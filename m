@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtp2.synopsys.com ([198.182.44.80]:51277 "EHLO
+Received: from kiruna.synopsys.com ([198.182.44.80]:51286 "EHLO
 	kiruna.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753466Ab3AXKyi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jan 2013 05:54:38 -0500
+	with ESMTP id S1754341Ab3AXKzy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jan 2013 05:55:54 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v3 06/71] ARC: uaccess friends
-Date: Thu, 24 Jan 2013 16:20:17 +0530
-Message-ID: <1359024639-21915-4-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v3 34/71] ARC: [plat-arcfpga]: Enabling DeviceTree for Angel4 board
+Date: Thu, 24 Jan 2013 16:20:30 +0530
+Message-ID: <1359024639-21915-17-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1359024639-21915-1-git-send-email-vgupta@synopsys.com>
 References: <1359024639-21915-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
@@ -14,770 +14,375 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20130124105017.HEsi2B3vtQv5d7uSzsz6RFtEqWSw2i1X6R0xA_aWnLI@z>
+Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Grant Likely <grant.likely@secretlab.ca>
+Message-ID: <20130124105030.HnTRrIoZtM4E6RT7PSAvXRrKAfDn9HjsBsL_B8ZatAw@z>
+
+* arc-uart platform device now populated dynamically, using
+  of_platform_populate() - applies to any other device whatsoever.
+
+* uart in turn requires incore arc-intc to be also present in DT
+
+* A irq-domain needs to be instantiated for IRQ requests by DT probed
+  device (e.g. arc-uart)
+
+TODO: switch over to linear irq domain once all devs have been
+      transitioned to DT
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+Cc: Grant Likely <grant.likely@secretlab.ca>
+Cc: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/arc/include/asm/segment.h |   24 ++
- arch/arc/include/asm/uaccess.h |  646 ++++++++++++++++++++++++++++++++++++++++
- arch/arc/mm/extable.c          |   63 ++++
- 3 files changed, 733 insertions(+), 0 deletions(-)
- create mode 100644 arch/arc/include/asm/segment.h
- create mode 100644 arch/arc/include/asm/uaccess.h
- create mode 100644 arch/arc/mm/extable.c
+ .../devicetree/bindings/arc/interrupts.txt         |   24 +++++
+ arch/arc/boot/dts/Makefile                         |    2 +-
+ arch/arc/boot/dts/angel4.dts                       |   55 +++++++++++
+ arch/arc/boot/dts/skeleton.dtsi                    |   12 +++
+ arch/arc/kernel/irq.c                              |   38 +++++++-
+ arch/arc/plat-arcfpga/platform.c                   |   97 +++++++++----------
+ 6 files changed, 170 insertions(+), 58 deletions(-)
+ create mode 100644 Documentation/devicetree/bindings/arc/interrupts.txt
+ create mode 100644 arch/arc/boot/dts/angel4.dts
 
-diff --git a/arch/arc/include/asm/segment.h b/arch/arc/include/asm/segment.h
+diff --git a/Documentation/devicetree/bindings/arc/interrupts.txt b/Documentation/devicetree/bindings/arc/interrupts.txt
 new file mode 100644
-index 0000000..da2c459
+index 0000000..9a5d562
 --- /dev/null
-+++ b/arch/arc/include/asm/segment.h
++++ b/Documentation/devicetree/bindings/arc/interrupts.txt
 @@ -0,0 +1,24 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
++* ARC700 incore Interrupt Controller
 +
-+#ifndef __ASMARC_SEGMENT_H
-+#define __ASMARC_SEGMENT_H
++  The core interrupt controller provides 32 prioritised interrupts (2 levels)
++  to ARC700 core.
 +
-+#ifndef __ASSEMBLY__
++Properties:
 +
-+typedef unsigned long mm_segment_t;
++- compatible: "snps,arc700-intc"
++- interrupt-controller: This is an interrupt controller.
++- #interrupt-cells: Must be <1>.
 +
-+#define MAKE_MM_SEG(s)	((mm_segment_t) { (s) })
++  Single Cell "interrupts" property of a device specifies the IRQ number
++  between 0 to 31
 +
-+#define KERNEL_DS		MAKE_MM_SEG(0)
-+#define USER_DS			MAKE_MM_SEG(TASK_SIZE)
++  intc accessed via the special ARC AUX register interface, hence "reg" property
++  is not specified.
 +
-+#define segment_eq(a, b)	((a) == (b))
++Example:
 +
-+#endif /* __ASSEMBLY__ */
-+#endif /* __ASMARC_SEGMENT_H */
-diff --git a/arch/arc/include/asm/uaccess.h b/arch/arc/include/asm/uaccess.h
++	intc: interrupt-controller {
++		compatible = "snps,arc700-intc";
++		interrupt-controller;
++		#interrupt-cells = <1>;
++	};
+diff --git a/arch/arc/boot/dts/Makefile b/arch/arc/boot/dts/Makefile
+index 4a972a3..dfda14e 100644
+--- a/arch/arc/boot/dts/Makefile
++++ b/arch/arc/boot/dts/Makefile
+@@ -1,7 +1,7 @@
+ ifeq ($(CONFIG_OF),y)
+ 
+ # Built-in dtb
+-builtindtb-y		:= skeleton
++builtindtb-y		:= angel4
+ 
+ ifneq ($(CONFIG_ARC_BUILTIN_DTB_NAME),"")
+ 	builtindtb-y	:= $(CONFIG_ARC_BUILTIN_DTB_NAME)
+diff --git a/arch/arc/boot/dts/angel4.dts b/arch/arc/boot/dts/angel4.dts
 new file mode 100644
-index 0000000..f13bca4
+index 0000000..4c188d5
 --- /dev/null
-+++ b/arch/arc/include/asm/uaccess.h
-@@ -0,0 +1,646 @@
++++ b/arch/arc/boot/dts/angel4.dts
+@@ -0,0 +1,55 @@
 +/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
 + * published by the Free Software Foundation.
-+ *
-+ * vineetg: June 2010
-+ *    -__clear_user( ) called multiple times during elf load was byte loop
-+ *    converted to do as much word clear as possible.
-+ *
-+ * vineetg: Dec 2009
-+ *    -Hand crafted constant propagation for "constant" copy sizes
-+ *    -stock kernel shrunk by 33K at -O3
-+ *
-+ * vineetg: Sept 2009
-+ *    -Added option to (UN)inline copy_(to|from)_user to reduce code sz
-+ *    -kernel shrunk by 200K even at -O3 (gcc 4.2.1)
-+ *    -Enabled when doing -Os
-+ *
-+ * Amit Bhor, Sameer Dhavale: Codito Technologies 2004
 + */
++/dts-v1/;
 +
-+#ifndef _ASM_ARC_UACCESS_H
-+#define _ASM_ARC_UACCESS_H
++/include/ "skeleton.dtsi"
 +
-+#include <linux/sched.h>
-+#include <asm/errno.h>
-+#include <linux/string.h>	/* for generic string functions */
++/ {
++	compatible = "snps,arc-angel4";
++	clock-frequency = <80000000>;	/* 80 MHZ */
++	#address-cells = <1>;
++	#size-cells = <1>;
++	interrupt-parent = <&intc>;
 +
++	chosen {
++		bootargs = "console=ttyARC0,115200n8";
++	};
 +
-+#define __kernel_ok		(segment_eq(get_fs(), KERNEL_DS))
++	aliases {
++		serial0 = &arcuart0;
++	};
 +
-+/*
-+ * Algorthmically, for __user_ok() we want do:
-+ * 	(start < TASK_SIZE) && (start+len < TASK_SIZE)
-+ * where TASK_SIZE could either be retrieved from thread_info->addr_limit or
-+ * emitted directly in code.
-+ *
-+ * This can however be rewritten as follows:
-+ *	(len <= TASK_SIZE) && (start+len < TASK_SIZE)
-+ *
-+ * Because it essentially checks if buffer end is within limit and @len is
-+ * non-ngeative, which implies that buffer start will be within limit too.
-+ *
-+ * The reason for rewriting being, for majorit yof cases, @len is generally
-+ * compile time constant, causing first sub-expression to be compile time
-+ * subsumed.
-+ *
-+ * The second part would generate weird large LIMMs e.g. (0x6000_0000 - 0x10),
-+ * so we check for TASK_SIZE using get_fs() since the addr_limit load from mem
-+ * would already have been done at this call site for __kernel_ok()
-+ *
-+ */
-+#define __user_ok(addr, sz)	(((sz) <= TASK_SIZE) && \
-+				 (((addr)+(sz)) <= get_fs()))
-+#define __access_ok(addr, sz)	(unlikely(__kernel_ok) || \
-+				 likely(__user_ok((addr), (sz))))
++	memory {
++		device_type = "memory";
++		reg = <0x00000000 0x10000000>;	/* 256M */
++	};
 +
-+static inline unsigned long
-+__arc_copy_from_user(void *to, const void __user *from, unsigned long n)
++	fpga {
++		compatible = "simple-bus";
++		#address-cells = <1>;
++		#size-cells = <1>;
++
++		/* child and parent address space 1:1 mapped */
++		ranges;
++
++		intc: interrupt-controller {
++			compatible = "snps,arc700-intc";
++			interrupt-controller;
++			#interrupt-cells = <1>;
++		};
++
++		arcuart0: serial@c0fc1000 {
++			compatible = "snps,arc-uart";
++			reg = <0xc0fc1000 0x100>;
++			interrupts = <5>;
++			clock-frequency = <80000000>;
++			baud = <115200>;
++			status = "okay";
++		};
++	};
++};
+diff --git a/arch/arc/boot/dts/skeleton.dtsi b/arch/arc/boot/dts/skeleton.dtsi
+index eb8b773..a870bdd 100644
+--- a/arch/arc/boot/dts/skeleton.dtsi
++++ b/arch/arc/boot/dts/skeleton.dtsi
+@@ -18,6 +18,18 @@
+ 	#size-cells = <1>;
+ 	chosen { };
+ 	aliases { };
++
++	cpus {
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		cpu@0 {
++			device_type = "cpu";
++			compatible = "snps,arc770d";
++			reg = <0>;
++		};
++	};
++
+ 	memory {
+ 		device_type = "memory";
+ 		reg = <0x00000000 0x10000000>;	/* 256M */
+diff --git a/arch/arc/kernel/irq.c b/arch/arc/kernel/irq.c
+index 2f399eb..3c18e66 100644
+--- a/arch/arc/kernel/irq.c
++++ b/arch/arc/kernel/irq.c
+@@ -9,6 +9,8 @@
+ 
+ #include <linux/interrupt.h>
+ #include <linux/module.h>
++#include <linux/of.h>
++#include <linux/irqdomain.h>
+ #include <asm/sections.h>
+ #include <asm/irq.h>
+ 
+@@ -59,16 +61,40 @@ static struct irq_chip onchip_intc = {
+ 	.irq_unmask	= arc_unmask_irq,
+ };
+ 
++static int arc_intc_domain_map(struct irq_domain *d, unsigned int irq,
++				irq_hw_number_t hw)
 +{
-+	long res = 0;
-+	char val;
-+	unsigned long tmp1, tmp2, tmp3, tmp4;
-+	unsigned long orig_n = n;
-+
-+	if (n == 0)
-+		return 0;
-+
-+	/* unaligned */
-+	if (((unsigned long)to & 0x3) || ((unsigned long)from & 0x3)) {
-+
-+		unsigned char tmp;
-+
-+		__asm__ __volatile__ (
-+		"	mov.f   lp_count, %0		\n"
-+		"	lpnz 2f				\n"
-+		"1:	ldb.ab  %1, [%3, 1]		\n"
-+		"	stb.ab  %1, [%2, 1]		\n"
-+		"	sub     %0,%0,1			\n"
-+		"2:	;nop				\n"
-+		"	.section .fixup, \"ax\"		\n"
-+		"	.align 4			\n"
-+		"3:	j   2b				\n"
-+		"	.previous			\n"
-+		"	.section __ex_table, \"a\"	\n"
-+		"	.align 4			\n"
-+		"	.word   1b, 3b			\n"
-+		"	.previous			\n"
-+
-+		: "+r" (n),
-+		/*
-+		 * Note as an '&' earlyclobber operand to make sure the
-+		 * temporary register inside the loop is not the same as
-+		 *  FROM or TO.
-+		*/
-+		  "=&r" (tmp), "+r" (to), "+r" (from)
-+		:
-+		: "lp_count", "lp_start", "lp_end", "memory");
-+
-+		return n;
-+	}
-+
-+	/*
-+	 * Hand-crafted constant propagation to reduce code sz of the
-+	 * laddered copy 16x,8,4,2,1
-+	 */
-+	if (__builtin_constant_p(orig_n)) {
-+		res = orig_n;
-+
-+		if (orig_n / 16) {
-+			orig_n = orig_n % 16;
-+
-+			__asm__ __volatile__(
-+			"	lsr   lp_count, %7,4		\n"
-+			"	lp    3f			\n"
-+			"1:	ld.ab   %3, [%2, 4]		\n"
-+			"11:	ld.ab   %4, [%2, 4]		\n"
-+			"12:	ld.ab   %5, [%2, 4]		\n"
-+			"13:	ld.ab   %6, [%2, 4]		\n"
-+			"	st.ab   %3, [%1, 4]		\n"
-+			"	st.ab   %4, [%1, 4]		\n"
-+			"	st.ab   %5, [%1, 4]		\n"
-+			"	st.ab   %6, [%1, 4]		\n"
-+			"	sub     %0,%0,16		\n"
-+			"3:	;nop				\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   3b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   1b, 4b			\n"
-+			"	.word   11b,4b			\n"
-+			"	.word   12b,4b			\n"
-+			"	.word   13b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from),
-+			  "=r"(tmp1), "=r"(tmp2), "=r"(tmp3), "=r"(tmp4)
-+			: "ir"(n)
-+			: "lp_count", "memory");
-+		}
-+		if (orig_n / 8) {
-+			orig_n = orig_n % 8;
-+
-+			__asm__ __volatile__(
-+			"14:	ld.ab   %3, [%2,4]		\n"
-+			"15:	ld.ab   %4, [%2,4]		\n"
-+			"	st.ab   %3, [%1,4]		\n"
-+			"	st.ab   %4, [%1,4]		\n"
-+			"	sub     %0,%0,8			\n"
-+			"31:	;nop				\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   31b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   14b,4b			\n"
-+			"	.word   15b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from),
-+			  "=r"(tmp1), "=r"(tmp2)
-+			:
-+			: "memory");
-+		}
-+		if (orig_n / 4) {
-+			orig_n = orig_n % 4;
-+
-+			__asm__ __volatile__(
-+			"16:	ld.ab   %3, [%2,4]		\n"
-+			"	st.ab   %3, [%1,4]		\n"
-+			"	sub     %0,%0,4			\n"
-+			"32:	;nop				\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   32b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   16b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from), "=r"(tmp1)
-+			:
-+			: "memory");
-+		}
-+		if (orig_n / 2) {
-+			orig_n = orig_n % 2;
-+
-+			__asm__ __volatile__(
-+			"17:	ldw.ab   %3, [%2,2]		\n"
-+			"	stw.ab   %3, [%1,2]		\n"
-+			"	sub      %0,%0,2		\n"
-+			"33:	;nop				\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   33b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   17b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from), "=r"(tmp1)
-+			:
-+			: "memory");
-+		}
-+		if (orig_n & 1) {
-+			__asm__ __volatile__(
-+			"18:	ldb.ab   %3, [%2,2]		\n"
-+			"	stb.ab   %3, [%1,2]		\n"
-+			"	sub      %0,%0,1		\n"
-+			"34:	; nop				\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   34b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   18b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from), "=r"(tmp1)
-+			:
-+			: "memory");
-+		}
-+	} else {  /* n is NOT constant, so laddered copy of 16x,8,4,2,1  */
-+
-+		__asm__ __volatile__(
-+		"	mov %0,%3			\n"
-+		"	lsr.f   lp_count, %3,4		\n"  /* 16x bytes */
-+		"	lpnz    3f			\n"
-+		"1:	ld.ab   %5, [%2, 4]		\n"
-+		"11:	ld.ab   %6, [%2, 4]		\n"
-+		"12:	ld.ab   %7, [%2, 4]		\n"
-+		"13:	ld.ab   %8, [%2, 4]		\n"
-+		"	st.ab   %5, [%1, 4]		\n"
-+		"	st.ab   %6, [%1, 4]		\n"
-+		"	st.ab   %7, [%1, 4]		\n"
-+		"	st.ab   %8, [%1, 4]		\n"
-+		"	sub     %0,%0,16		\n"
-+		"3:	and.f   %3,%3,0xf		\n"  /* stragglers */
-+		"	bz      34f			\n"
-+		"	bbit0   %3,3,31f		\n"  /* 8 bytes left */
-+		"14:	ld.ab   %5, [%2,4]		\n"
-+		"15:	ld.ab   %6, [%2,4]		\n"
-+		"	st.ab   %5, [%1,4]		\n"
-+		"	st.ab   %6, [%1,4]		\n"
-+		"	sub.f   %0,%0,8			\n"
-+		"31:	bbit0   %3,2,32f		\n"  /* 4 bytes left */
-+		"16:	ld.ab   %5, [%2,4]		\n"
-+		"	st.ab   %5, [%1,4]		\n"
-+		"	sub.f   %0,%0,4			\n"
-+		"32:	bbit0   %3,1,33f		\n"  /* 2 bytes left */
-+		"17:	ldw.ab  %5, [%2,2]		\n"
-+		"	stw.ab  %5, [%1,2]		\n"
-+		"	sub.f   %0,%0,2			\n"
-+		"33:	bbit0   %3,0,34f		\n"
-+		"18:	ldb.ab  %5, [%2,1]		\n"  /* 1 byte left */
-+		"	stb.ab  %5, [%1,1]		\n"
-+		"	sub.f   %0,%0,1			\n"
-+		"34:	;nop				\n"
-+		"	.section .fixup, \"ax\"		\n"
-+		"	.align 4			\n"
-+		"4:	j   34b				\n"
-+		"	.previous			\n"
-+		"	.section __ex_table, \"a\"	\n"
-+		"	.align 4			\n"
-+		"	.word   1b, 4b			\n"
-+		"	.word   11b,4b			\n"
-+		"	.word   12b,4b			\n"
-+		"	.word   13b,4b			\n"
-+		"	.word   14b,4b			\n"
-+		"	.word   15b,4b			\n"
-+		"	.word   16b,4b			\n"
-+		"	.word   17b,4b			\n"
-+		"	.word   18b,4b			\n"
-+		"	.previous			\n"
-+		: "=r" (res), "+r"(to), "+r"(from), "+r"(n), "=r"(val),
-+		  "=r"(tmp1), "=r"(tmp2), "=r"(tmp3), "=r"(tmp4)
-+		:
-+		: "lp_count", "memory");
-+	}
-+
-+	return res;
-+}
-+
-+extern unsigned long slowpath_copy_to_user(void __user *to, const void *from,
-+					   unsigned long n);
-+
-+static inline unsigned long
-+__arc_copy_to_user(void __user *to, const void *from, unsigned long n)
-+{
-+	long res = 0;
-+	char val;
-+	unsigned long tmp1, tmp2, tmp3, tmp4;
-+	unsigned long orig_n = n;
-+
-+	if (n == 0)
-+		return 0;
-+
-+	/* unaligned */
-+	if (((unsigned long)to & 0x3) || ((unsigned long)from & 0x3)) {
-+
-+		unsigned char tmp;
-+
-+		__asm__ __volatile__(
-+		"	mov.f   lp_count, %0		\n"
-+		"	lpnz 3f				\n"
-+		"	ldb.ab  %1, [%3, 1]		\n"
-+		"1:	stb.ab  %1, [%2, 1]		\n"
-+		"	sub     %0, %0, 1		\n"
-+		"3:	;nop				\n"
-+		"	.section .fixup, \"ax\"		\n"
-+		"	.align 4			\n"
-+		"4:	j   3b				\n"
-+		"	.previous			\n"
-+		"	.section __ex_table, \"a\"	\n"
-+		"	.align 4			\n"
-+		"	.word   1b, 4b			\n"
-+		"	.previous			\n"
-+
-+		: "+r" (n),
-+		/* Note as an '&' earlyclobber operand to make sure the
-+		 * temporary register inside the loop is not the same as
-+		 * FROM or TO.
-+		 */
-+		  "=&r" (tmp), "+r" (to), "+r" (from)
-+		:
-+		: "lp_count", "lp_start", "lp_end", "memory");
-+
-+		return n;
-+	}
-+
-+	if (__builtin_constant_p(orig_n)) {
-+		res = orig_n;
-+
-+		if (orig_n / 16) {
-+			orig_n = orig_n % 16;
-+
-+			__asm__ __volatile__(
-+			"	lsr lp_count, %7,4		\n"
-+			"	lp  3f				\n"
-+			"	ld.ab %3, [%2, 4]		\n"
-+			"	ld.ab %4, [%2, 4]		\n"
-+			"	ld.ab %5, [%2, 4]		\n"
-+			"	ld.ab %6, [%2, 4]		\n"
-+			"1:	st.ab %3, [%1, 4]		\n"
-+			"11:	st.ab %4, [%1, 4]		\n"
-+			"12:	st.ab %5, [%1, 4]		\n"
-+			"13:	st.ab %6, [%1, 4]		\n"
-+			"	sub   %0, %0, 16		\n"
-+			"3:;nop					\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   3b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   1b, 4b			\n"
-+			"	.word   11b,4b			\n"
-+			"	.word   12b,4b			\n"
-+			"	.word   13b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from),
-+			  "=r"(tmp1), "=r"(tmp2), "=r"(tmp3), "=r"(tmp4)
-+			: "ir"(n)
-+			: "lp_count", "memory");
-+		}
-+		if (orig_n / 8) {
-+			orig_n = orig_n % 8;
-+
-+			__asm__ __volatile__(
-+			"	ld.ab   %3, [%2,4]		\n"
-+			"	ld.ab   %4, [%2,4]		\n"
-+			"14:	st.ab   %3, [%1,4]		\n"
-+			"15:	st.ab   %4, [%1,4]		\n"
-+			"	sub     %0, %0, 8		\n"
-+			"31:;nop				\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   31b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   14b,4b			\n"
-+			"	.word   15b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from),
-+			  "=r"(tmp1), "=r"(tmp2)
-+			:
-+			: "memory");
-+		}
-+		if (orig_n / 4) {
-+			orig_n = orig_n % 4;
-+
-+			__asm__ __volatile__(
-+			"	ld.ab   %3, [%2,4]		\n"
-+			"16:	st.ab   %3, [%1,4]		\n"
-+			"	sub     %0, %0, 4		\n"
-+			"32:;nop				\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   32b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   16b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from), "=r"(tmp1)
-+			:
-+			: "memory");
-+		}
-+		if (orig_n / 2) {
-+			orig_n = orig_n % 2;
-+
-+			__asm__ __volatile__(
-+			"	ldw.ab    %3, [%2,2]		\n"
-+			"17:	stw.ab    %3, [%1,2]		\n"
-+			"	sub       %0, %0, 2		\n"
-+			"33:;nop				\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   33b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   17b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from), "=r"(tmp1)
-+			:
-+			: "memory");
-+		}
-+		if (orig_n & 1) {
-+			__asm__ __volatile__(
-+			"	ldb.ab  %3, [%2,1]		\n"
-+			"18:	stb.ab  %3, [%1,1]		\n"
-+			"	sub     %0, %0, 1		\n"
-+			"34:	;nop				\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   34b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   18b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from), "=r"(tmp1)
-+			:
-+			: "memory");
-+		}
-+	} else {  /* n is NOT constant, so laddered copy of 16x,8,4,2,1  */
-+
-+		__asm__ __volatile__(
-+		"	mov   %0,%3			\n"
-+		"	lsr.f lp_count, %3,4		\n"  /* 16x bytes */
-+		"	lpnz  3f			\n"
-+		"	ld.ab %5, [%2, 4]		\n"
-+		"	ld.ab %6, [%2, 4]		\n"
-+		"	ld.ab %7, [%2, 4]		\n"
-+		"	ld.ab %8, [%2, 4]		\n"
-+		"1:	st.ab %5, [%1, 4]		\n"
-+		"11:	st.ab %6, [%1, 4]		\n"
-+		"12:	st.ab %7, [%1, 4]		\n"
-+		"13:	st.ab %8, [%1, 4]		\n"
-+		"	sub   %0, %0, 16		\n"
-+		"3:	and.f %3,%3,0xf			\n" /* stragglers */
-+		"	bz 34f				\n"
-+		"	bbit0   %3,3,31f		\n" /* 8 bytes left */
-+		"	ld.ab   %5, [%2,4]		\n"
-+		"	ld.ab   %6, [%2,4]		\n"
-+		"14:	st.ab   %5, [%1,4]		\n"
-+		"15:	st.ab   %6, [%1,4]		\n"
-+		"	sub.f   %0, %0, 8		\n"
-+		"31:	bbit0   %3,2,32f		\n"  /* 4 bytes left */
-+		"	ld.ab   %5, [%2,4]		\n"
-+		"16:	st.ab   %5, [%1,4]		\n"
-+		"	sub.f   %0, %0, 4		\n"
-+		"32:	bbit0 %3,1,33f			\n"  /* 2 bytes left */
-+		"	ldw.ab    %5, [%2,2]		\n"
-+		"17:	stw.ab    %5, [%1,2]		\n"
-+		"	sub.f %0, %0, 2			\n"
-+		"33:	bbit0 %3,0,34f			\n"
-+		"	ldb.ab    %5, [%2,1]		\n"  /* 1 byte left */
-+		"18:	stb.ab  %5, [%1,1]		\n"
-+		"	sub.f %0, %0, 1			\n"
-+		"34:	;nop				\n"
-+		"	.section .fixup, \"ax\"		\n"
-+		"	.align 4			\n"
-+		"4:	j   34b				\n"
-+		"	.previous			\n"
-+		"	.section __ex_table, \"a\"	\n"
-+		"	.align 4			\n"
-+		"	.word   1b, 4b			\n"
-+		"	.word   11b,4b			\n"
-+		"	.word   12b,4b			\n"
-+		"	.word   13b,4b			\n"
-+		"	.word   14b,4b			\n"
-+		"	.word   15b,4b			\n"
-+		"	.word   16b,4b			\n"
-+		"	.word   17b,4b			\n"
-+		"	.word   18b,4b			\n"
-+		"	.previous			\n"
-+		: "=r" (res), "+r"(to), "+r"(from), "+r"(n), "=r"(val),
-+		  "=r"(tmp1), "=r"(tmp2), "=r"(tmp3), "=r"(tmp4)
-+		:
-+		: "lp_count", "memory");
-+	}
-+
-+	return res;
-+}
-+
-+static inline unsigned long __arc_clear_user(void __user *to, unsigned long n)
-+{
-+	long res = n;
-+	unsigned char *d_char = to;
-+
-+	__asm__ __volatile__(
-+	"	bbit0   %0, 0, 1f		\n"
-+	"75:	stb.ab  %2, [%0,1]		\n"
-+	"	sub %1, %1, 1			\n"
-+	"1:	bbit0   %0, 1, 2f		\n"
-+	"76:	stw.ab  %2, [%0,2]		\n"
-+	"	sub %1, %1, 2			\n"
-+	"2:	asr.f   lp_count, %1, 2		\n"
-+	"	lpnz    3f			\n"
-+	"77:	st.ab   %2, [%0,4]		\n"
-+	"	sub %1, %1, 4			\n"
-+	"3:	bbit0   %1, 1, 4f		\n"
-+	"78:	stw.ab  %2, [%0,2]		\n"
-+	"	sub %1, %1, 2			\n"
-+	"4:	bbit0   %1, 0, 5f		\n"
-+	"79:	stb.ab  %2, [%0,1]		\n"
-+	"	sub %1, %1, 1			\n"
-+	"5:					\n"
-+	"	.section .fixup, \"ax\"		\n"
-+	"	.align 4			\n"
-+	"3:	j   5b				\n"
-+	"	.previous			\n"
-+	"	.section __ex_table, \"a\"	\n"
-+	"	.align 4			\n"
-+	"	.word   75b, 3b			\n"
-+	"	.word   76b, 3b			\n"
-+	"	.word   77b, 3b			\n"
-+	"	.word   78b, 3b			\n"
-+	"	.word   79b, 3b			\n"
-+	"	.previous			\n"
-+	: "+r"(d_char), "+r"(res)
-+	: "i"(0)
-+	: "lp_count", "lp_start", "lp_end", "memory");
-+
-+	return res;
-+}
-+
-+static inline long
-+__arc_strncpy_from_user(char *dst, const char __user *src, long count)
-+{
-+	long res = count;
-+	char val;
-+	unsigned int hw_count;
-+
-+	if (count == 0)
-+		return 0;
-+
-+	__asm__ __volatile__(
-+	"	lp 2f		\n"
-+	"1:	ldb.ab  %3, [%2, 1]		\n"
-+	"	breq.d  %3, 0, 2f		\n"
-+	"	stb.ab  %3, [%1, 1]		\n"
-+	"2:	sub %0, %6, %4			\n"
-+	"3:	;nop				\n"
-+	"	.section .fixup, \"ax\"		\n"
-+	"	.align 4			\n"
-+	"4:	mov %0, %5			\n"
-+	"	j   3b				\n"
-+	"	.previous			\n"
-+	"	.section __ex_table, \"a\"	\n"
-+	"	.align 4			\n"
-+	"	.word   1b, 4b			\n"
-+	"	.previous			\n"
-+	: "=r"(res), "+r"(dst), "+r"(src), "=&r"(val), "=l"(hw_count)
-+	: "g"(-EFAULT), "ir"(count), "4"(count)	/* this "4" seeds lp_count */
-+	: "memory");
-+
-+	return res;
-+}
-+
-+static inline long __arc_strnlen_user(const char __user *s, long n)
-+{
-+	long res, tmp1, cnt;
-+	char val;
-+
-+	__asm__ __volatile__(
-+	"	mov %2, %1			\n"
-+	"1:	ldb.ab  %3, [%0, 1]		\n"
-+	"	breq.d  %3, 0, 2f		\n"
-+	"	sub.f   %2, %2, 1		\n"
-+	"	bnz 1b				\n"
-+	"	sub %2, %2, 1			\n"
-+	"2:	sub %0, %1, %2			\n"
-+	"3:	;nop				\n"
-+	"	.section .fixup, \"ax\"		\n"
-+	"	.align 4			\n"
-+	"4:	mov %0, 0			\n"
-+	"	j   3b				\n"
-+	"	.previous			\n"
-+	"	.section __ex_table, \"a\"	\n"
-+	"	.align 4			\n"
-+	"	.word 1b, 4b			\n"
-+	"	.previous			\n"
-+	: "=r"(res), "=r"(tmp1), "=r"(cnt), "=r"(val)
-+	: "0"(s), "1"(n)
-+	: "memory");
-+
-+	return res;
-+}
-+
-+#ifndef CONFIG_CC_OPTIMIZE_FOR_SIZE
-+#define __copy_from_user(t, f, n)	__arc_copy_from_user(t, f, n)
-+#define __copy_to_user(t, f, n)		__arc_copy_to_user(t, f, n)
-+#define __clear_user(d, n)		__arc_clear_user(d, n)
-+#define __strncpy_from_user(d, s, n)	__arc_strncpy_from_user(d, s, n)
-+#define __strnlen_user(s, n)		__arc_strnlen_user(s, n)
-+#else
-+extern long arc_copy_from_user_noinline(void *to, const void __user * from,
-+		unsigned long n);
-+extern long arc_copy_to_user_noinline(void __user *to, const void *from,
-+		unsigned long n);
-+extern unsigned long arc_clear_user_noinline(void __user *to,
-+		unsigned long n);
-+extern long arc_strncpy_from_user_noinline (char *dst, const char __user *src,
-+		long count);
-+extern long arc_strnlen_user_noinline(const char __user *src, long n);
-+
-+#define __copy_from_user(t, f, n)	arc_copy_from_user_noinline(t, f, n)
-+#define __copy_to_user(t, f, n)		arc_copy_to_user_noinline(t, f, n)
-+#define __clear_user(d, n)		arc_clear_user_noinline(d, n)
-+#define __strncpy_from_user(d, s, n)	arc_strncpy_from_user_noinline(d, s, n)
-+#define __strnlen_user(s, n)		arc_strnlen_user_noinline(s, n)
-+
-+#endif
-+
-+#include <asm-generic/uaccess.h>
-+
-+extern int fixup_exception(struct pt_regs *regs);
-+
-+#endif
-diff --git a/arch/arc/mm/extable.c b/arch/arc/mm/extable.c
-new file mode 100644
-index 0000000..014172b
---- /dev/null
-+++ b/arch/arc/mm/extable.c
-@@ -0,0 +1,63 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * Borrowed heavily from MIPS
-+ */
-+
-+#include <linux/module.h>
-+#include <linux/uaccess.h>
-+
-+int fixup_exception(struct pt_regs *regs)
-+{
-+	const struct exception_table_entry *fixup;
-+
-+	fixup = search_exception_tables(instruction_pointer(regs));
-+	if (fixup) {
-+		regs->ret = fixup->fixup;
-+
-+		return 1;
-+	}
++	if (irq == TIMER0_IRQ)
++		irq_set_chip_and_handler(irq, &onchip_intc, handle_percpu_irq);
++	else
++		irq_set_chip_and_handler(irq, &onchip_intc, handle_level_irq);
 +
 +	return 0;
 +}
 +
-+#ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
++static const struct irq_domain_ops arc_intc_domain_ops = {
++	.xlate = irq_domain_xlate_onecell,
++	.map = arc_intc_domain_map,
++};
 +
-+long arc_copy_from_user_noinline(void *to, const void __user * from,
-+		unsigned long n)
-+{
-+	return __arc_copy_from_user(to, from, n);
-+}
-+EXPORT_SYMBOL(arc_copy_from_user_noinline);
++static struct irq_domain *root_domain;
 +
-+long arc_copy_to_user_noinline(void __user *to, const void *from,
-+		unsigned long n)
-+{
-+	return __arc_copy_to_user(to, from, n);
-+}
-+EXPORT_SYMBOL(arc_copy_to_user_noinline);
+ void __init init_onchip_IRQ(void)
+ {
+-	int i;
++	struct device_node *intc = NULL;
 +
-+unsigned long arc_clear_user_noinline(void __user *to,
-+		unsigned long n)
-+{
-+	return __arc_clear_user(to, n);
-+}
-+EXPORT_SYMBOL(arc_clear_user_noinline);
++	intc = of_find_compatible_node(NULL, NULL, "snps,arc700-intc");
++	if(!intc)
++		panic("DeviceTree Missing incore intc\n");
 +
-+long arc_strncpy_from_user_noinline (char *dst, const char __user *src,
-+		long count)
-+{
-+	return __arc_strncpy_from_user(dst, src, count);
-+}
-+EXPORT_SYMBOL(arc_strncpy_from_user_noinline);
-+
-+long arc_strnlen_user_noinline(const char __user *src, long n)
-+{
-+	return __arc_strnlen_user(src, n);
-+}
-+EXPORT_SYMBOL(arc_strnlen_user_noinline);
++	root_domain = irq_domain_add_legacy(intc, NR_IRQS, 0, 0,
++					    &arc_intc_domain_ops, NULL);
+ 
+-	for (i = 0; i < NR_IRQS; i++)
+-		irq_set_chip_and_handler(i, &onchip_intc, handle_level_irq);
++	if (!root_domain)
++		panic("root irq domain not avail\n");
+ 
+-#ifdef CONFIG_SMP
+-	irq_set_chip_and_handler(TIMER0_IRQ, &onchip_intc, handle_percpu_irq);
+-#endif
++	/* with this we don't need to export root_domain */
++	irq_set_default_host(root_domain);
+ }
+ 
+ /*
+diff --git a/arch/arc/plat-arcfpga/platform.c b/arch/arc/plat-arcfpga/platform.c
+index 5388b31..33bcac8 100644
+--- a/arch/arc/plat-arcfpga/platform.c
++++ b/arch/arc/plat-arcfpga/platform.c
+@@ -13,6 +13,7 @@
+ #include <linux/device.h>
+ #include <linux/platform_device.h>
+ #include <linux/console.h>
++#include <linux/of_platform.h>
+ #include <asm/setup.h>
+ #include <asm/irq.h>
+ #include <asm/clk.h>
+@@ -20,58 +21,56 @@
+ 
+ /*----------------------- Platform Devices -----------------------------*/
+ 
+-#if defined(CONFIG_SERIAL_ARC) || defined(CONFIG_SERIAL_ARC_MODULE)
+-
+ static unsigned long arc_uart_info[] = {
+-	CONFIG_ARC_SERIAL_BAUD,	/* uart->baud */
+-	-1,			/* uart->port.uartclk */
+-	-1,			/* uart->is_emulated (runtime @running_on_hw) */
++	0,	/* uart->is_emulated (runtime @running_on_hw) */
++	0,	/* uart->port.uartclk */
++	0,	/* uart->baud */
+ 	0
+ };
+ 
+-#define ARC_UART_DEV(n)					\
+-							\
+-static struct resource arc_uart##n##_res[] = {		\
+-	{						\
+-		.start = UART##n##_BASE,			\
+-		.end   = UART##n##_BASE + 0xFF,		\
+-		.flags = IORESOURCE_MEM,		\
+-	},						\
+-	{						\
+-		.start = UART##n##_IRQ,			\
+-		.end   = UART##n##_IRQ,			\
+-		.flags = IORESOURCE_IRQ,		\
+-	},						\
+-};							\
+-							\
+-static struct platform_device arc_uart##n##_dev = {	\
+-	.name = "arc-uart",				\
+-	.id = n,					\
+-	.num_resources = ARRAY_SIZE(arc_uart##n##_res),	\
+-	.resource = arc_uart##n##_res,			\
+-	.dev = {					\
+-		.platform_data = &arc_uart_info,	\
+-	},						\
+-}
++#if defined(CONFIG_SERIAL_ARC_CONSOLE)
++/*
++ * static platform data - but only for early serial
++ * TBD: derive this from a special DT node
++ */
++static struct resource arc_uart0_res[] = {
++	{
++		.start = UART0_BASE,
++		.end   = UART0_BASE + 0xFF,
++		.flags = IORESOURCE_MEM,
++	},
++	{
++		.start = UART0_IRQ,
++		.end   = UART0_IRQ,
++		.flags = IORESOURCE_IRQ,
++	},
++};
+ 
+-ARC_UART_DEV(0);
+-#if CONFIG_SERIAL_ARC_NR_PORTS > 1
+-ARC_UART_DEV(1);
+-#endif
++static struct platform_device arc_uart0_dev = {
++	.name = "arc-uart",
++	.id = 0,
++	.num_resources = ARRAY_SIZE(arc_uart0_res),
++	.resource = arc_uart0_res,
++	.dev = {
++		.platform_data = &arc_uart_info,
++	},
++};
+ 
+ static struct platform_device *fpga_early_devs[] __initdata = {
+-#if defined(CONFIG_SERIAL_ARC_CONSOLE)
+ 	&arc_uart0_dev,
+-#endif
+ };
 +#endif
+ 
+ static void arc_fpga_serial_init(void)
+ {
++	/* To let driver workaround ISS bug: baudh Reg can't be set to 0 */
++	arc_uart_info[0] = !running_on_hw;
++
+ 	arc_uart_info[1] = arc_get_core_freq();
+ 
+-	/* To let driver workaround ISS bug: baudh Reg can't be set to 0 */
+-	arc_uart_info[2] = !running_on_hw;
++	arc_uart_info[2] = CONFIG_ARC_SERIAL_BAUD;
+ 
++#if defined(CONFIG_SERIAL_ARC_CONSOLE)
+ 	early_platform_add_devices(fpga_early_devs,
+ 				   ARRAY_SIZE(fpga_early_devs));
+ 
+@@ -97,16 +96,9 @@ static void arc_fpga_serial_init(void)
+ 	 * otherwise the early console never gets a chance to run.
+ 	 */
+ 	add_preferred_console("ttyARC", 0, "115200");
++#endif
+ }
+ 
+-#else
+-
+-static void arc_fpga_serial_init(void)
+-{
+-}
+-
+-#endif	/* CONFIG_SERIAL_ARC */
+-
+ /*
+  * Early Platform Initialization called from setup_arch()
+  */
+@@ -117,20 +109,23 @@ void __init arc_platform_early_init(void)
+ 	arc_fpga_serial_init();
+ }
+ 
+-static struct platform_device *fpga_devs[] __initdata = {
++static struct of_dev_auxdata plat_auxdata_lookup[] __initdata = {
+ #if defined(CONFIG_SERIAL_ARC) || defined(CONFIG_SERIAL_ARC_MODULE)
+-	&arc_uart0_dev,
+-#if CONFIG_SERIAL_ARC_NR_PORTS > 1
+-	&arc_uart1_dev,
+-#endif
++	OF_DEV_AUXDATA("snps,arc-uart", UART0_BASE, "arc-uart", arc_uart_info),
+ #endif
++	{}
+ };
+ 
+ int __init fpga_plat_init(void)
+ {
+ 	pr_info("[plat-arcfpga]: registering device resources\n");
+ 
+-	platform_add_devices(fpga_devs, ARRAY_SIZE(fpga_devs));
++	/*
++	 * Traverses flattened DeviceTree - registering platform devices
++	 * complete with their resources
++	 */
++	of_platform_populate(NULL, of_default_bus_match_table,
++			     plat_auxdata_lookup, NULL);
+ 
+ 	return 0;
+ }
 -- 
 1.7.4.1
 
