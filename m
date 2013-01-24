@@ -1,490 +1,137 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v3 50/71] ARC: Unaligned access emulation
-Date: Thu, 24 Jan 2013 16:36:14 +0530
-Message-ID: <1359025589-22277-31-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v3 36/71] ARC: [plat-arcfpga] defconfig
+Date: Thu, 24 Jan 2013 16:36:04 +0530
+Message-ID: <1359025589-22277-21-git-send-email-vgupta@synopsys.com>
 References: <1359025589-22277-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtp3.synopsys.com ([198.182.44.81]:34164 "EHLO
-	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753994Ab3AXLLO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jan 2013 06:11:14 -0500
+Received: from vaxjo.synopsys.com ([198.182.60.75]:47398 "EHLO
+	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754319Ab3AXLKp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jan 2013 06:10:45 -0500
 In-Reply-To: <1359025589-22277-1-git-send-email-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Tim Yao <tim.yao@amlogic.com>
+Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 
-ARC700 doesn't natively support unaligned access, but can be emulated
--Unaligned Access Exception
--Disassembly at the Fault address to find the exact insn (long/short)
+With this we get to a running kernel on ISS
 
-Also per Arnd's comment, we runtime control it using 2 sysctl knobs:
-* SYSCTL_ARCH_UNALIGN_ALLOW: Runtime enable/disble
-* SYSCTL_ARCH_UNALIGN_NO_WARN: Warn on each emulation attempt
+---------------------------------->8-----------------------------------
+Linux version 3.8.0-rc3+ (vineetg@vineetg-Latitude) (gcc version 4.4.7
+(ARCompact elf32 toolchain (built 20121213)) ) #3 Thu Jan 17 14:22:05
+IST 2013
+Board "arc-angel4" from snps (Manufacturer)
+Memory size set via devicetree 256M
+[plat-arcfpga]: registering early dev resources
+bootconsole [early_ARCuart0] enabled
+pcpu-alloc: s0 r0 d32768 u32768 alloc=1*32768
+pcpu-alloc: [0] 0
+Built 1 zonelists in Zone order, mobility grouping on.  Total pages:
+32624
+Kernel command line: console=ttyARC0,115200n8
+PID hash table entries: 1024 (order: -1, 4096 bytes)
+Dentry cache hash table entries: 32768 (order: 4, 131072 bytes)
+Inode-cache hash table entries: 16384 (order: 3, 65536 bytes)
+Memory Available: 248M / 256M (1312K code, 463K data, 4184K init, 1400K
+reserv)
+SLUB: Genslabs=12, HWalign=64, Order=0-3, MinObjects=0, CPUs=1, Nodes=1
+NR_IRQS:16
+Console: colour dummy device 80x25
+Calibrating delay loop... 39.73 BogoMIPS (lpj=198656)
+pid_max: default: 32768 minimum: 301
+Mount-cache hash table entries: 1024
+devtmpfs: initialized
+[plat-arcfpga]: registering device resources
+bio: create slab <bio-0> at 0
+Switching to clocksource ARC RTSC
+io scheduler noop registered (default)
+arc-uart: ttyARC0 at MMIO 0xc0fc1000 (irq = 5) is a arc-uart
+console [ttyARC0] enabled, bootconsole disabled
+console [ttyARC0] enabled, bootconsole disabled
+mousedev: PS/2 mouse device common for all mice
+Warning: unable to open an initial console.
+Freeing unused kernel memory: 4184k [80002000] to [80418000]
+Mounting proc
+Mounting sysfs
+Mounting devpts
+Setting hostname to ARCLinux
+Starting System logger (syslogd)
+Bringing up loopback device
+ifconfig: socket: Function not implemented
+route: socket: Function not implemented
+Disk not detected !
+Mounting tmpfs
+mount: mounting tmpfs on /dev/shm failed: Invalid argument
+/etc/init.d/rcS: line 76: can't create /proc/sys/kernel/msgmni:
+nonexistent directory
 
-Originally contributed by Tim Yao <tim.yao@amlogic.com>
+Please press Enter to activate this console.
+***********************************************************************
+                        Welcome to ARCLinux
+***********************************************************************
+[ARCLinux]$
+
+---------------------------------->8-----------------------------------
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-Cc: Tim Yao <tim.yao@amlogic.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/arc/Kconfig                 |   11 ++
- arch/arc/include/asm/Kbuild      |    1 -
- arch/arc/include/asm/ptrace.h    |    3 +
- arch/arc/include/asm/unaligned.h |   29 +++++
- arch/arc/kernel/Makefile         |    1 +
- arch/arc/kernel/disasm.c         |    2 +-
- arch/arc/kernel/entry.S          |   13 ++
- arch/arc/kernel/traps.c          |   26 ++++
- arch/arc/kernel/unaligned.c      |  245 ++++++++++++++++++++++++++++++++++++++
- 9 files changed, 329 insertions(+), 2 deletions(-)
- create mode 100644 arch/arc/include/asm/unaligned.h
- create mode 100644 arch/arc/kernel/unaligned.c
+ arch/arc/configs/fpga_defconfig |   46 +++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 46 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arc/configs/fpga_defconfig
 
-diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index cde8d3f..f804283 100644
---- a/arch/arc/Kconfig
-+++ b/arch/arc/Kconfig
-@@ -336,6 +336,17 @@ config ARC_CURR_IN_REG
- 	  This reserved Register R25 to point to Current Task in
- 	  kernel mode. This saves memory access for each such access
- 
-+
-+config ARC_MISALIGN_ACCESS
-+	bool "Emulate unaligned memory access (userspace only)"
-+	default N
-+	select SYSCTL_ARCH_UNALIGN_NO_WARN
-+	select SYSCTL_ARCH_UNALIGN_ALLOW
-+	help
-+	  This enables misaligned 16 & 32 bit memory access from user space.
-+	  Use ONLY-IF-ABS-NECESSARY as it will be very slow and also can hide
-+	  potential bugs in code
-+
- config ARC_STACK_NONEXEC
- 	bool "Make stack non-executable"
- 	default n
-diff --git a/arch/arc/include/asm/Kbuild b/arch/arc/include/asm/Kbuild
-index 78e982d..b24089c 100644
---- a/arch/arc/include/asm/Kbuild
-+++ b/arch/arc/include/asm/Kbuild
-@@ -52,7 +52,6 @@ generic-y += topology.h
- generic-y += trace_clock.h
- generic-y += types.h
- generic-y += ucontext.h
--generic-y += unaligned.h
- generic-y += user.h
- generic-y += vga.h
- generic-y += xor.h
-diff --git a/arch/arc/include/asm/ptrace.h b/arch/arc/include/asm/ptrace.h
-index 713f145..6ab65fa 100644
---- a/arch/arc/include/asm/ptrace.h
-+++ b/arch/arc/include/asm/ptrace.h
-@@ -132,6 +132,9 @@ struct user_regs_struct {
- 	sp;			\
- })
- 
-+/* return 1 if PC in delay slot */
-+#define delay_mode(regs) ((regs->status32 & STATUS_DE_MASK) == STATUS_DE_MASK)
-+
- #define in_syscall(regs)    (regs->event & orig_r8_IS_SCALL)
- #define in_brkpt_trap(regs) (regs->event & orig_r8_IS_BRKPT)
- 
-diff --git a/arch/arc/include/asm/unaligned.h b/arch/arc/include/asm/unaligned.h
+diff --git a/arch/arc/configs/fpga_defconfig b/arch/arc/configs/fpga_defconfig
 new file mode 100644
-index 0000000..5dbe63f
+index 0000000..8638e101f
 --- /dev/null
-+++ b/arch/arc/include/asm/unaligned.h
-@@ -0,0 +1,29 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef _ASM_ARC_UNALIGNED_H
-+#define _ASM_ARC_UNALIGNED_H
-+
-+/* ARC700 can't handle unaligned Data accesses. */
-+
-+#include <asm-generic/unaligned.h>
-+#include <asm/ptrace.h>
-+
-+#ifdef CONFIG_ARC_MISALIGN_ACCESS
-+int misaligned_fixup(unsigned long address, struct pt_regs *regs,
-+		     unsigned long cause, struct callee_regs *cregs);
-+#else
-+static inline int
-+misaligned_fixup(unsigned long address, struct pt_regs *regs,
-+		 unsigned long cause, struct callee_regs *cregs)
-+{
-+	return 0;
-+}
-+#endif
-+
-+#endif /* _ASM_ARC_UNALIGNED_H */
-diff --git a/arch/arc/kernel/Makefile b/arch/arc/kernel/Makefile
-index a64a604..1609b2d 100644
---- a/arch/arc/kernel/Makefile
-+++ b/arch/arc/kernel/Makefile
-@@ -16,6 +16,7 @@ obj-$(CONFIG_MODULES)			+= arcksyms.o module.o
- obj-$(CONFIG_SMP) 			+= smp.o
- obj-$(CONFIG_ARC_DW2_UNWIND)		+= unwind.o
- obj-$(CONFIG_KPROBES)      		+= kprobes.o
-+obj-$(CONFIG_ARC_MISALIGN_ACCESS) 	+= unaligned.o
- 
- obj-$(CONFIG_ARC_FPU_SAVE_RESTORE)	+= fpu.o
- CFLAGS_fpu.o   += -mdpfp
-diff --git a/arch/arc/kernel/disasm.c b/arch/arc/kernel/disasm.c
-index 51bad8f..2f39028 100644
---- a/arch/arc/kernel/disasm.c
-+++ b/arch/arc/kernel/disasm.c
-@@ -15,7 +15,7 @@
- #include <asm/disasm.h>
- #include <asm/uaccess.h>
- 
--#if defined(CONFIG_KGDB) || defined(CONFIG_MISALIGN_ACCESS) || \
-+#if defined(CONFIG_KGDB) || defined(CONFIG_ARC_MISALIGN_ACCESS) || \
- 	defined(CONFIG_KPROBES)
- 
- /* disasm_instr: Analyses instruction at addr, stores
-diff --git a/arch/arc/kernel/entry.S b/arch/arc/kernel/entry.S
-index 021cfa4..f8efade 100644
---- a/arch/arc/kernel/entry.S
-+++ b/arch/arc/kernel/entry.S
-@@ -7,6 +7,9 @@
-  * it under the terms of the GNU General Public License version 2 as
-  * published by the Free Software Foundation.
-  *
-+ * vineetg: May 2011
-+ *  -Userspace unaligned access emulation
-+ *
-  * vineetg: Feb 2011 (ptrace low level code fixes)
-  *  -traced syscall return code (r0) was not saved into pt_regs for restoring
-  *   into user reg-file when traded task rets to user space.
-@@ -387,7 +390,17 @@ ARC_ENTRY EV_TLBProtV
- 	mov r1, r4              ; faulting address
- 	mov r2, sp              ; pt_regs
- 
-+#ifdef  CONFIG_ARC_MISALIGN_ACCESS
-+	SAVE_CALLEE_SAVED_USER
-+	mov r3, sp              ; callee_regs
-+#endif
-+
- 	bl  do_misaligned_access
-+
-+#ifdef  CONFIG_ARC_MISALIGN_ACCESS
-+	DISCARD_CALLEE_SAVED_USER
-+#endif
-+
- 	b   ret_from_exception
- 
- ARC_EXIT EV_TLBProtV
-diff --git a/arch/arc/kernel/traps.c b/arch/arc/kernel/traps.c
-index c6396b4..ec802c5 100644
---- a/arch/arc/kernel/traps.c
-+++ b/arch/arc/kernel/traps.c
-@@ -7,6 +7,9 @@
-  * it under the terms of the GNU General Public License version 2 as
-  * published by the Free Software Foundation.
-  *
-+ * vineetg: May 2011
-+ *  -user-space unaligned access emulation
-+ *
-  * Rahul Trivedi: Codito Technologies 2004
-  */
- 
-@@ -16,6 +19,7 @@
- #include <asm/ptrace.h>
- #include <asm/setup.h>
- #include <asm/kprobes.h>
-+#include <asm/unaligned.h>
- 
- void __init trap_init(void)
- {
-@@ -79,7 +83,29 @@ DO_ERROR_INFO(SIGILL, "Illegal Insn (or Seq)", insterror_is_error, ILL_ILLOPC)
- DO_ERROR_INFO(SIGBUS, "Invalid Mem Access", do_memory_error, BUS_ADRERR)
- DO_ERROR_INFO(SIGTRAP, "Breakpoint Set", trap_is_brkpt, TRAP_BRKPT)
- 
-+#ifdef CONFIG_ARC_MISALIGN_ACCESS
-+/*
-+ * Entry Point for Misaligned Data access Exception, for emulating in software
-+ */
-+int do_misaligned_access(unsigned long cause, unsigned long address,
-+			 struct pt_regs *regs, struct callee_regs *cregs)
-+{
-+	if (misaligned_fixup(address, regs, cause, cregs) != 0) {
-+		siginfo_t info;
-+
-+		info.si_signo = SIGBUS;
-+		info.si_errno = 0;
-+		info.si_code = BUS_ADRALN;
-+		info.si_addr = (void __user *)address;
-+		return handle_exception(cause, "Misaligned Access", regs,
-+					  &info);
-+	}
-+	return 0;
-+}
-+
-+#else
- DO_ERROR_INFO(SIGSEGV, "Misaligned Access", do_misaligned_access, SEGV_ACCERR)
-+#endif
- 
- /*
-  * Entry point for miscll errors such as Nested Exceptions
-diff --git a/arch/arc/kernel/unaligned.c b/arch/arc/kernel/unaligned.c
-new file mode 100644
-index 0000000..4cd8163
---- /dev/null
-+++ b/arch/arc/kernel/unaligned.c
-@@ -0,0 +1,245 @@
-+/*
-+ * Copyright (C) 2011-2012 Synopsys (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * vineetg : May 2011
-+ *  -Adapted (from .26 to .35)
-+ *  -original contribution by Tim.yao@amlogic.com
-+ *
-+ */
-+
-+#include <linux/types.h>
-+#include <linux/ptrace.h>
-+#include <linux/uaccess.h>
-+#include <asm/disasm.h>
-+
-+#define __get8_unaligned_check(val, addr, err)		\
-+	__asm__(					\
-+	"1:	ldb.ab	%1, [%2, 1]\n"			\
-+	"2:\n"						\
-+	"	.section .fixup,\"ax\"\n"		\
-+	"	.align	4\n"				\
-+	"3:	mov	%0, 1\n"			\
-+	"	b	2b\n"				\
-+	"	.previous\n"				\
-+	"	.section __ex_table,\"a\"\n"		\
-+	"	.align	4\n"				\
-+	"	.long	1b, 3b\n"			\
-+	"	.previous\n"				\
-+	: "=r" (err), "=&r" (val), "=r" (addr)		\
-+	: "0" (err), "2" (addr))
-+
-+#define get16_unaligned_check(val, addr)		\
-+	do {						\
-+		unsigned int err = 0, v, a = addr;	\
-+		__get8_unaligned_check(v, a, err);	\
-+		val =  v ;				\
-+		__get8_unaligned_check(v, a, err);	\
-+		val |= v << 8;				\
-+		if (err)				\
-+			goto fault;			\
-+	} while (0)
-+
-+#define get32_unaligned_check(val, addr)		\
-+	do {						\
-+		unsigned int err = 0, v, a = addr;	\
-+		__get8_unaligned_check(v, a, err);	\
-+		val =  v << 0;				\
-+		__get8_unaligned_check(v, a, err);	\
-+		val |= v << 8;				\
-+		__get8_unaligned_check(v, a, err);	\
-+		val |= v << 16;				\
-+		__get8_unaligned_check(v, a, err);	\
-+		val |= v << 24;				\
-+		if (err)				\
-+			goto fault;			\
-+	} while (0)
-+
-+#define put16_unaligned_check(val, addr)		\
-+	do {						\
-+		unsigned int err = 0, v = val, a = addr;\
-+							\
-+		__asm__(				\
-+		"1:	stb.ab	%1, [%2, 1]\n"		\
-+		"	lsr %1, %1, 8\n"		\
-+		"2:	stb	%1, [%2]\n"		\
-+		"3:\n"					\
-+		"	.section .fixup,\"ax\"\n"	\
-+		"	.align	4\n"			\
-+		"4:	mov	%0, 1\n"		\
-+		"	b	3b\n"			\
-+		"	.previous\n"			\
-+		"	.section __ex_table,\"a\"\n"	\
-+		"	.align	4\n"			\
-+		"	.long	1b, 4b\n"		\
-+		"	.long	2b, 4b\n"		\
-+		"	.previous\n"			\
-+		: "=r" (err), "=&r" (v), "=&r" (a)	\
-+		: "0" (err), "1" (v), "2" (a));		\
-+							\
-+		if (err)				\
-+			goto fault;			\
-+	} while (0)
-+
-+#define put32_unaligned_check(val, addr)		\
-+	do {						\
-+		unsigned int err = 0, v = val, a = addr;\
-+		__asm__(				\
-+							\
-+		"1:	stb.ab	%1, [%2, 1]\n"		\
-+		"	lsr %1, %1, 8\n"		\
-+		"2:	stb.ab	%1, [%2, 1]\n"		\
-+		"	lsr %1, %1, 8\n"		\
-+		"3:	stb.ab	%1, [%2, 1]\n"		\
-+		"	lsr %1, %1, 8\n"		\
-+		"4:	stb	%1, [%2]\n"		\
-+		"5:\n"					\
-+		"	.section .fixup,\"ax\"\n"	\
-+		"	.align	4\n"			\
-+		"6:	mov	%0, 1\n"		\
-+		"	b	5b\n"			\
-+		"	.previous\n"			\
-+		"	.section __ex_table,\"a\"\n"	\
-+		"	.align	4\n"			\
-+		"	.long	1b, 6b\n"		\
-+		"	.long	2b, 6b\n"		\
-+		"	.long	3b, 6b\n"		\
-+		"	.long	4b, 6b\n"		\
-+		"	.previous\n"			\
-+		: "=r" (err), "=&r" (v), "=&r" (a)	\
-+		: "0" (err), "1" (v), "2" (a));		\
-+							\
-+		if (err)				\
-+			goto fault;			\
-+	} while (0)
-+
-+/* sysctl hooks */
-+int unaligned_enabled __read_mostly = 1;	/* Enabled by default */
-+int no_unaligned_warning __read_mostly = 1;	/* Only 1 warning by default */
-+
-+static void fixup_load(struct disasm_state *state, struct pt_regs *regs,
-+			struct callee_regs *cregs)
-+{
-+	int val;
-+
-+	/* register write back */
-+	if ((state->aa == 1) || (state->aa == 2)) {
-+		set_reg(state->wb_reg, state->src1 + state->src2, regs, cregs);
-+
-+		if (state->aa == 2)
-+			state->src2 = 0;
-+	}
-+
-+	if (state->zz == 0) {
-+		get32_unaligned_check(val, state->src1 + state->src2);
-+	} else {
-+		get16_unaligned_check(val, state->src1 + state->src2);
-+
-+		if (state->x)
-+			val = (val << 16) >> 16;
-+	}
-+
-+	if (state->pref == 0)
-+		set_reg(state->dest, val, regs, cregs);
-+
-+	return;
-+
-+fault:	state->fault = 1;
-+}
-+
-+static void fixup_store(struct disasm_state *state, struct pt_regs *regs,
-+			struct callee_regs *cregs)
-+{
-+	/* register write back */
-+	if ((state->aa == 1) || (state->aa == 2)) {
-+		set_reg(state->wb_reg, state->src2 + state->src3, regs, cregs);
-+
-+		if (state->aa == 3)
-+			state->src3 = 0;
-+	} else if (state->aa == 3) {
-+		if (state->zz == 2) {
-+			set_reg(state->wb_reg, state->src2 + (state->src3 << 1),
-+				regs, cregs);
-+		} else if (!state->zz) {
-+			set_reg(state->wb_reg, state->src2 + (state->src3 << 2),
-+				regs, cregs);
-+		} else {
-+			goto fault;
-+		}
-+	}
-+
-+	/* write fix-up */
-+	if (!state->zz)
-+		put32_unaligned_check(state->src1, state->src2 + state->src3);
-+	else
-+		put16_unaligned_check(state->src1, state->src2 + state->src3);
-+
-+	return;
-+
-+fault:	state->fault = 1;
-+}
-+
-+/*
-+ * Handle an unaligned access
-+ * Returns 0 if successfully handled, 1 if some error happened
-+ */
-+int misaligned_fixup(unsigned long address, struct pt_regs *regs,
-+		     unsigned long cause, struct callee_regs *cregs)
-+{
-+	struct disasm_state state;
-+	char buf[TASK_COMM_LEN];
-+
-+	/* handle user mode only and only if enabled by sysadmin */
-+	if (!user_mode(regs) || !unaligned_enabled)
-+		return 1;
-+
-+	if (no_unaligned_warning) {
-+		pr_warn_once("%s(%d) made unaligned access which was emulated"
-+			     " by kernel assist\n. This can degrade application"
-+			     " performance significantly\n. To enable further"
-+			     " logging of such instances, please \n"
-+			     " echo 0 > /proc/sys/kernel/ignore-unaligned-usertrap\n",
-+			     get_task_comm(buf, current), task_pid_nr(current));
-+	} else {
-+		/* Add rate limiting if it gets down to it */
-+		pr_warn("%s(%d): unaligned access to/from 0x%lx by PC: 0x%lx\n",
-+			get_task_comm(buf, current), task_pid_nr(current),
-+			address, regs->ret);
-+
-+	}
-+
-+	disasm_instr(regs->ret, &state, 1, regs, cregs);
-+
-+	if (state.fault)
-+		goto fault;
-+
-+	/* ldb/stb should not have unaligned exception */
-+	if ((state.zz == 1) || (state.di))
-+		goto fault;
-+
-+	if (!state.write)
-+		fixup_load(&state, regs, cregs);
-+	else
-+		fixup_store(&state, regs, cregs);
-+
-+	if (state.fault)
-+		goto fault;
-+
-+	if (delay_mode(regs)) {
-+		regs->ret = regs->bta;
-+		regs->status32 &= ~STATUS_DE_MASK;
-+	} else {
-+		regs->ret += state.instr_len;
-+	}
-+
-+	return 0;
-+
-+fault:
-+	pr_err("Alignment trap: fault in fix-up %08lx at [<%08lx>]\n",
-+		state.words[0], address);
-+
-+	return 1;
-+}
++++ b/arch/arc/configs/fpga_defconfig
+@@ -0,0 +1,46 @@
++CONFIG_CROSS_COMPILE="arc-elf32-"
++# CONFIG_LOCALVERSION_AUTO is not set
++CONFIG_DEFAULT_HOSTNAME="ARCLinux"
++# CONFIG_SWAP is not set
++CONFIG_HIGH_RES_TIMERS=y
++CONFIG_IKCONFIG=y
++CONFIG_IKCONFIG_PROC=y
++CONFIG_NAMESPACES=y
++# CONFIG_UTS_NS is not set
++# CONFIG_PID_NS is not set
++CONFIG_BLK_DEV_INITRD=y
++CONFIG_INITRAMFS_SOURCE="../arc_initramfs"
++CONFIG_EXPERT=y
++# CONFIG_FUTEX is not set
++# CONFIG_COMPAT_BRK is not set
++# CONFIG_LBDAF is not set
++# CONFIG_BLK_DEV_BSG is not set
++# CONFIG_IOSCHED_DEADLINE is not set
++# CONFIG_IOSCHED_CFQ is not set
++CONFIG_ARC_BUILTIN_DTB_NAME="angel4"
++# CONFIG_COMPACTION is not set
++# CONFIG_CROSS_MEMORY_ATTACH is not set
++# CONFIG_STANDALONE is not set
++# CONFIG_PREVENT_FIRMWARE_BUILD is not set
++# CONFIG_FIRMWARE_IN_KERNEL is not set
++# CONFIG_BLK_DEV is not set
++# CONFIG_INPUT_MOUSEDEV_PSAUX is not set
++# CONFIG_INPUT_KEYBOARD is not set
++# CONFIG_INPUT_MOUSE is not set
++# CONFIG_SERIO is not set
++# CONFIG_LEGACY_PTYS is not set
++# CONFIG_DEVKMEM is not set
++CONFIG_SERIAL_ARC=y
++CONFIG_SERIAL_ARC_CONSOLE=y
++# CONFIG_HW_RANDOM is not set
++# CONFIG_HWMON is not set
++# CONFIG_VGA_CONSOLE is not set
++# CONFIG_HID is not set
++# CONFIG_USB_SUPPORT is not set
++# CONFIG_IOMMU_SUPPORT is not set
++# CONFIG_DNOTIFY is not set
++# CONFIG_INOTIFY_USER is not set
++# CONFIG_MISC_FILESYSTEMS is not set
++# CONFIG_ENABLE_WARN_DEPRECATED is not set
++# CONFIG_ENABLE_MUST_CHECK is not set
++CONFIG_XZ_DEC=y
 -- 
 1.7.4.1
