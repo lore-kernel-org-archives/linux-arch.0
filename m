@@ -1,56 +1,36 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH v2 00/76] Synopsys ARC Linux kernel Port
-Date: Thu, 24 Jan 2013 12:00:04 +0000
-Message-ID: <51012244.9070002@imgtec.com>
-References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com> <201301181512.14441.arnd@arndb.de> <5100F6AD.5050001@synopsys.com> <51010461.20604@imgtec.com> <510108B9.3020205@synopsys.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-15"
-Content-Transfer-Encoding: 7bit
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH v2 65/76] ARC: UAPI Disintegrate arch/arc/include/asm
+Date: Thu, 24 Jan 2013 13:28:12 +0000
+Message-ID: <26124.1359034092@warthog.procyon.org.uk>
+References: <510104DB.9040403@imgtec.com> <50FFCAC4.1050002@synopsys.com> <1358511930-7424-1-git-send-email-vgupta@synopsys.com> <1358511930-7424-66-git-send-email-vgupta@synopsys.com> <10760.1358945425@warthog.procyon.org.uk> <5100CAAF.8090702@synopsys.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:56937 "EHLO multi.imgtec.com"
+Received: from mx1.redhat.com ([209.132.183.28]:23937 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753830Ab3AXMAK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 24 Jan 2013 07:00:10 -0500
-In-Reply-To: <510108B9.3020205@synopsys.com>
+	id S1753248Ab3AXN2T (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 24 Jan 2013 08:28:19 -0500
+In-Reply-To: <510104DB.9040403@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Stephen Rothwell <sfr@canb.auug.org.au>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>, James Hogan <james.hogan@imgtec.com>
+Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
 
-On 24/01/13 10:11, Vineet Gupta wrote:
-> On Thursday 24 January 2013 03:22 PM, James Hogan wrote:
->> Hi Vineet,
->>
->> On 24/01/13 08:54, Vineet Gupta wrote:
->>> (3) That branch will be ARC patches on top of Linus's 3.8 rc4. Actually for my
->>> development, I'd also cherry picked a few patches from linux-next (soft and hard
->>> dependencies from several different *next trees) - hard ones being
->>>
->>> f13a366 CONFIG_GENERIC_SIGALTSTACK build breakage with asm-generic/syscalls.h [Al]
->> FYI this one has now been merged into Linus' master.
->>
->> Cheers
->> James
->>
+James Hogan <james.hogan@imgtec.com> wrote:
+
+> > BTW looking at metag port, it seems that <asm/setup.h> does #include
+> > <uapi/asm/setup.h>, but latter doesn't exist in the repository - is it
+> > generated for you James or is this same issue which David elucidated to
+> > above ?
 > 
-> OK thanks - but I'd rather have the patches based on a well known checkpoint - so
-> maybe wait for next rc.
+> We have generic-y += setup.h in arch/metag/include/uapi/asm/Kbuild for this
 
-In that case you may like to merge Al's for-linus branch in the mean
-time, or the commit you want directly, since it's definitely gone into
-the master without being rebased.
+Vineet can't do that as his COMMAND_LINE_SIZE is different to the standard and
+also not placed in his UAPI setup.h.
 
-> Any ideas about other questions on the thread - given that several next trees are
-> still involved.
+So far, only user-mode Linux and x86 don't put COMMAND_LINE_SIZE in
+uapi/asm/setup.h.  Everything else does.
 
-Stephen said it's fine to merge other trees as long as you let them know
-so they don't rebase, or ask them which branch is best to use that won't
-rebase. See the following thread:
-https://lkml.org/lkml/2013/1/11/187
+	grep -r 'define\s*COMMAND_LINE_SIZE' arch/*/include | grep -v /uapi/
 
-> metag doesn't seem to be on linux-next yet ?
+Not sure if that's needed to build a bootloader or not.
 
-Not yet, although I think it's almost ready. I need to solicit some acks.
-
-Cheers
-James
+David
