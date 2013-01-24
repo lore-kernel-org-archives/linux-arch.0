@@ -1,374 +1,532 @@
-From: Vineet Gupta <Vineet.Gupta1-HKixBCOQz3hWk0Htik3J/w@public.gmane.org>
-Subject: [PATCH v3 32/71] ARC: [DeviceTree] Basic support
-Date: Thu, 24 Jan 2013 16:20:28 +0530
-Message-ID: <1359024639-21915-15-git-send-email-vgupta@synopsys.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: [PATCH v3 19/71] ARC: Timers/counters/delay management
+Date: Thu, 24 Jan 2013 16:20:21 +0530
+Message-ID: <1359024639-21915-8-git-send-email-vgupta@synopsys.com>
 References: <1359024639-21915-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
-In-Reply-To: <1359024639-21915-1-git-send-email-vgupta-HKixBCOQz3hWk0Htik3J/w@public.gmane.org>
-List-Unsubscribe: <https://lists.ozlabs.org/options/devicetree-discuss>,
- <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/devicetree-discuss/>
-List-Post: <mailto:devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
-List-Help: <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/devicetree-discuss>,
- <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=subscribe>
-Errors-To: devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
-Sender: "devicetree-discuss"
- <devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
-To: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: Vineet Gupta <Vineet.Gupta1-HKixBCOQz3hWk0Htik3J/w@public.gmane.org>, Rob Herring <rob.herring-bsGFqQB8/DxBDgjK7y7TUQ@public.gmane.org>, devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1359024639-21915-1-git-send-email-vgupta@synopsys.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
-This is minimal infrastructure needed for devicetree work.
-It uses an a sample "skeleton" devicetree - embedded in kernel image -
-to print the board, manufacturer by parsing the top-level "compatible"
-string.
+ARC700 includes 2 in-core 32bit timers TIMER0 and TIMER1.
+Both have exactly same capabilies.
 
-As of now we don't need any additional "board" specific "machine_desc".
+* programmable to count from TIMER<n>_CNT to TIMER<n>_LIMIT
+* for count 0 and LIMIT ~1, provides a free-running counter by
+    auto-wrapping when limit is reached.
+* optionally interrupt when LIMIT is reached (oneshot event semantics)
+* rearming the interrupt provides periodic semantics
+* run at CPU clk
 
-TODO: support interpreting the command line as boot-loader passed dtb
+ARC Linux uses TIMER0 for clockevent (periodic/oneshot) and TIMER1 for
+clocksource (free-running clock).
 
-Signed-off-by: Vineet Gupta <vgupta-HKixBCOQz3hWk0Htik3J/w@public.gmane.org>
-Cc: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Cc: Grant Likely <grant.likely-s3s/WqlpOiPyB63q8FvJNQ@public.gmane.org>
-Cc: devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
-Cc: Rob Herring <rob.herring-bsGFqQB8/DxBDgjK7y7TUQ@public.gmane.org>
+Newer cores provide RTSC insn which gives a 64bit cpu clk snapshot hence
+is more apt for clocksource when available.
+
+SMP poses a bit of challenge for global timekeeping clocksource /
+sched_clock() backend:
+ -TIMER1 based local clocks are out-of-sync hence can't be used
+  (thus we default to jiffies based cs as well as sched_clock() one/both
+  of which platform can override with it's specific hardware assist)
+ -RTSC is only allowed in SMP if it's cross-core-sync (Kconfig glue
+  ensures that) and thus usable for both requirements.
+
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/arc/Kconfig                |    9 +++++
- arch/arc/Makefile               |    9 +++++
- arch/arc/boot/dts/Makefile      |   14 ++++++++
- arch/arc/boot/dts/skeleton.dts  |   10 ++++++
- arch/arc/boot/dts/skeleton.dtsi |   21 ++++++++++++
- arch/arc/include/asm/prom.h     |   15 ++++++++
- arch/arc/include/asm/sections.h |    1 +
- arch/arc/kernel/Makefile        |    2 +
- arch/arc/kernel/devtree.c       |   69 +++++++++++++++++++++++++++++++++++++++
- arch/arc/kernel/setup.c         |    9 +++++
- arch/arc/mm/init.c              |   13 +++++++
- 11 files changed, 172 insertions(+), 0 deletions(-)
- create mode 100644 arch/arc/boot/dts/Makefile
- create mode 100644 arch/arc/boot/dts/skeleton.dts
- create mode 100644 arch/arc/boot/dts/skeleton.dtsi
- create mode 100644 arch/arc/include/asm/prom.h
- create mode 100644 arch/arc/kernel/devtree.c
+ arch/arc/include/asm/arcregs.h |   11 ++
+ arch/arc/include/asm/clk.h     |   20 +++
+ arch/arc/include/asm/delay.h   |   68 +++++++++
+ arch/arc/include/asm/irq.h     |    2 +
+ arch/arc/include/asm/timex.h   |   18 +++
+ arch/arc/kernel/clk.c          |   11 ++
+ arch/arc/kernel/time.c         |  295 ++++++++++++++++++++++++++++++++++++++++
+ 7 files changed, 425 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arc/include/asm/clk.h
+ create mode 100644 arch/arc/include/asm/delay.h
+ create mode 100644 arch/arc/include/asm/timex.h
+ create mode 100644 arch/arc/kernel/clk.c
+ create mode 100644 arch/arc/kernel/time.c
 
-diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index a353849..7666857 100644
---- a/arch/arc/Kconfig
-+++ b/arch/arc/Kconfig
-@@ -24,8 +24,11 @@ config ARC
- 	select GENERIC_SMP_IDLE_THREAD
- 	select HAVE_GENERIC_HARDIRQS
- 	select HAVE_MEMBLOCK
-+	select IRQ_DOMAIN
- 	select MODULES_USE_ELF_RELA
- 	select NO_BOOTMEM
-+	select OF
-+	select OF_EARLY_FLATTREE
+diff --git a/arch/arc/include/asm/arcregs.h b/arch/arc/include/asm/arcregs.h
+index d764118..5131bb3 100644
+--- a/arch/arc/include/asm/arcregs.h
++++ b/arch/arc/include/asm/arcregs.h
+@@ -47,6 +47,17 @@
+ #define AUX_ITRIGGER		0x40d
+ #define AUX_IPULSE		0x415
  
- config SCHED_OMIT_FRAME_POINTER
- 	def_bool y
-@@ -320,6 +323,12 @@ config CMDLINE_UBOOT
- 	  to it. kernel startup code will copy the string into cmdline buffer
- 	  and also append CONFIG_CMDLINE.
- 
-+config ARC_BUILTIN_DTB_NAME
-+	string "Built in DTB"
-+	help
-+	  Set the name of the DTB to embed in the vmlinux binary
-+	  Leaving it blank selects the minimal "skeleton" dtb
++/* Timer related Aux registers */
++#define ARC_REG_TIMER0_LIMIT	0x23	/* timer 0 limit */
++#define ARC_REG_TIMER0_CTRL	0x22	/* timer 0 control */
++#define ARC_REG_TIMER0_CNT	0x21	/* timer 0 count */
++#define ARC_REG_TIMER1_LIMIT	0x102	/* timer 1 limit */
++#define ARC_REG_TIMER1_CTRL	0x101	/* timer 1 control */
++#define ARC_REG_TIMER1_CNT	0x100	/* timer 1 count */
 +
- source "kernel/Kconfig.preempt"
- 
- endmenu	 # "ARC Architecture Configuration"
-diff --git a/arch/arc/Makefile b/arch/arc/Makefile
-index 4d52a3b..90570f9 100644
---- a/arch/arc/Makefile
-+++ b/arch/arc/Makefile
-@@ -83,6 +83,9 @@ head-y		:= arch/arc/kernel/head.o
- # See arch/arc/Kbuild for content of core part of the kernel
- core-y		+= arch/arc/
- 
-+# w/o this dtb won't embed into kernel binary
-+core-y		+= arch/arc/boot/dts/
-+
- # w/o this ifneq, make ARCH=arc clean was crapping out
- ifneq ($(platform-y),)
- core-y		+= arch/arc/plat-$(PLATFORM)/
-@@ -101,6 +104,12 @@ bootpImage: vmlinux
- uImage: vmlinux
- 	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
- 
-+%.dtb %.dtb.S %.dtb.o:
-+	$(Q)$(MAKE) $(build)=$(boot)/dts $(boot)/dts/$@
-+
-+dtbs:
-+	$(Q)$(MAKE) $(build)=$(boot)/dts $(boot)/dts/$@
-+
- archclean:
- 	$(Q)$(MAKE) $(clean)=$(boot)
- 
-diff --git a/arch/arc/boot/dts/Makefile b/arch/arc/boot/dts/Makefile
-new file mode 100644
-index 0000000..4a972a3
---- /dev/null
-+++ b/arch/arc/boot/dts/Makefile
-@@ -0,0 +1,14 @@
-+ifeq ($(CONFIG_OF),y)
-+
-+# Built-in dtb
-+builtindtb-y		:= skeleton
-+
-+ifneq ($(CONFIG_ARC_BUILTIN_DTB_NAME),"")
-+	builtindtb-y	:= $(CONFIG_ARC_BUILTIN_DTB_NAME)
-+endif
-+
-+obj-y	+= $(patsubst "%",%,$(builtindtb-y)).dtb.o
-+
-+clean-files := *.dtb
-+
-+endif
-diff --git a/arch/arc/boot/dts/skeleton.dts b/arch/arc/boot/dts/skeleton.dts
-new file mode 100644
-index 0000000..25a84fb
---- /dev/null
-+++ b/arch/arc/boot/dts/skeleton.dts
-@@ -0,0 +1,10 @@
-+/*
-+ * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+/dts-v1/;
-+
-+/include/ "skeleton.dtsi"
-diff --git a/arch/arc/boot/dts/skeleton.dtsi b/arch/arc/boot/dts/skeleton.dtsi
-new file mode 100644
-index 0000000..9b357d8
---- /dev/null
-+++ b/arch/arc/boot/dts/skeleton.dtsi
-@@ -0,0 +1,21 @@
-+/*
-+ * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+/*
-+ * Skeleton device tree; the bare minimum needed to boot; just include and
-+ * add a compatible value.
-+ */
-+
-+/ {
-+	compatible = "snps,arc";
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+	chosen { };
-+	aliases { };
-+	memory { device_type = "memory"; reg = <0 0>; };
-+};
-diff --git a/arch/arc/include/asm/prom.h b/arch/arc/include/asm/prom.h
-new file mode 100644
-index 0000000..f54489b
---- /dev/null
-+++ b/arch/arc/include/asm/prom.h
-@@ -0,0 +1,15 @@
-+/*
-+ * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef _ASM_ARC_PROM_H_
-+#define _ASM_ARC_PROM_H_
-+
-+#define HAVE_ARCH_DEVTREE_FIXUPS
-+extern int __init setup_machine_fdt(void *dt);
-+
-+#endif
-diff --git a/arch/arc/include/asm/sections.h b/arch/arc/include/asm/sections.h
-index fc15f2e..6fc1159 100644
---- a/arch/arc/include/asm/sections.h
-+++ b/arch/arc/include/asm/sections.h
-@@ -13,5 +13,6 @@
- 
- extern char _int_vec_base_lds[];
- extern char __arc_dccm_base[];
-+extern char __dtb_start[];
- 
- #endif
-diff --git a/arch/arc/kernel/Makefile b/arch/arc/kernel/Makefile
-index 6d83431..8a55e99 100644
---- a/arch/arc/kernel/Makefile
-+++ b/arch/arc/kernel/Makefile
-@@ -8,6 +8,8 @@
- obj-y	:= arcksyms.o setup.o irq.o time.o reset.o ptrace.o entry.o process.o
- obj-y	+= signal.o traps.o sys.o troubleshoot.o stacktrace.o clk.o
- 
-+obj-$(CONFIG_OF)			+= devtree.o
-+
- obj-$(CONFIG_ARC_FPU_SAVE_RESTORE)	+= fpu.o
- CFLAGS_fpu.o   += -mdpfp
- 
-diff --git a/arch/arc/kernel/devtree.c b/arch/arc/kernel/devtree.c
-new file mode 100644
-index 0000000..229f78e
---- /dev/null
-+++ b/arch/arc/kernel/devtree.c
-@@ -0,0 +1,69 @@
-+/*
-+ * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * Based on highly stipped down version of METAG
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+
-+#include <linux/init.h>
-+#include <linux/export.h>
-+#include <linux/errno.h>
-+#include <linux/types.h>
-+#include <linux/reboot.h>
-+#include <linux/memblock.h>
-+#include <linux/of.h>
-+#include <linux/of_fdt.h>
-+#include <linux/of_irq.h>
-+#include <linux/of_platform.h>
-+#include <asm/prom.h>
-+
-+/* called from unflatten_device_tree() to bootstrap devicetree itself */
-+void * __init early_init_dt_alloc_memory_arch(u64 size, u64 align)
-+{
-+	return __va(memblock_alloc(size, align));
-+}
-+
-+/**
-+ * setup_machine_fdt - Machine setup when an dtb was passed to the kernel
-+ * @dt:		virtual address pointer to dt blob
-+ *
-+ * If a dtb was passed to the kernel, then use it to choose the correct
-+ * machine_desc and to setup the system.
-+ */
-+int __init setup_machine_fdt(void *dt)
-+{
-+	struct boot_param_header *devtree = dt;
-+	unsigned long dt_root;
-+	char *model, *compat;
-+	char manufacturer[16];
-+
-+	/* check device tree validity */
-+	if (be32_to_cpu(devtree->magic) != OF_DT_HEADER)
-+		return 1;
-+
-+	/* Search the mdescs for the 'best' compatible value match */
-+	initial_boot_params = devtree;
-+	dt_root = of_get_flat_dt_root();
-+
-+	/* compat = "<manufacturer>,<model>" */
-+	compat = of_get_flat_dt_prop(dt_root, "compatible", NULL);
-+	if (!compat)
-+		compat = "<unknown>";
-+
-+	model = strchr(compat, ',');
-+	if (model)
-+		model++;
-+
-+	strlcpy(manufacturer, compat, model ? model - compat : strlen(compat));
-+
-+	pr_info("Board \"%s\" from %s (Manufacturer)\n", model, manufacturer);
-+
-+	/* Retrieve various information from the /chosen node */
-+	of_scan_flat_dt(early_init_dt_scan_chosen, boot_command_line);
-+
-+	return 0;
-+}
-diff --git a/arch/arc/kernel/setup.c b/arch/arc/kernel/setup.c
-index 82ac206..27aebd6 100644
---- a/arch/arc/kernel/setup.c
-+++ b/arch/arc/kernel/setup.c
-@@ -13,6 +13,8 @@
- #include <linux/console.h>
- #include <linux/module.h>
- #include <linux/cpu.h>
-+#include <linux/of_fdt.h>
-+#include <asm/sections.h>
- #include <asm/arcregs.h>
- #include <asm/tlb.h>
- #include <asm/cache.h>
-@@ -20,6 +22,7 @@
- #include <asm/page.h>
- #include <asm/irq.h>
- #include <asm/arcregs.h>
-+#include <asm/prom.h>
- 
- #define FIX_PTR(x)  __asm__ __volatile__(";" : "+r"(x))
- 
-@@ -57,6 +60,8 @@ void __init __attribute__((weak)) arc_platform_early_init(void)
- 
- void __init setup_arch(char **cmdline_p)
- {
-+	int rc;
-+
- #ifdef CONFIG_CMDLINE_UBOOT
- 	/* Make sure that a whitespace is inserted before */
- 	strlcat(command_line, " ", sizeof(command_line));
-@@ -71,6 +76,8 @@ void __init setup_arch(char **cmdline_p)
- 	strlcpy(boot_command_line, command_line, COMMAND_LINE_SIZE);
- 	*cmdline_p = command_line;
- 
-+	rc = setup_machine_fdt(__dtb_start);
-+
- 	/* To force early parsing of things like mem=xxx */
- 	parse_early_param();
- 
-@@ -81,6 +88,8 @@ void __init setup_arch(char **cmdline_p)
- 
- 	setup_arch_memory();
- 
-+	unflatten_device_tree();
-+
- 	/* Can be issue if someone passes cmd line arg "ro"
- 	 * But that is unlikely so keeping it as it is
- 	 */
-diff --git a/arch/arc/mm/init.c b/arch/arc/mm/init.c
-index 63da347..682cf57 100644
---- a/arch/arc/mm/init.c
-+++ b/arch/arc/mm/init.c
-@@ -39,6 +39,11 @@ static int __init setup_mem_sz(char *str)
- }
- early_param("mem", setup_mem_sz);
- 
-+void __init early_init_dt_add_memory_arch(u64 base, u64 size)
-+{
-+	pr_err("%s(%llx, %llx)\n", __func__, base, size);
-+}
++#define TIMER_CTRL_IE		(1 << 0) /* Interupt when Count reachs limit */
++#define TIMER_CTRL_NH		(1 << 1) /* Count only when CPU NOT halted */
 +
  /*
-  * First memory setup routine called from setup_arch()
-  * 1. setup swapper's mm @init_mm
-@@ -169,3 +174,11 @@ void __init free_initrd_mem(unsigned long start, unsigned long end)
- 	free_init_pages("initrd memory", start, end);
- }
- #endif
+  * Floating Pt Registers
+  * Status regs are read-only (build-time) so need not be saved/restored
+diff --git a/arch/arc/include/asm/clk.h b/arch/arc/include/asm/clk.h
+new file mode 100644
+index 0000000..6195643
+--- /dev/null
++++ b/arch/arc/include/asm/clk.h
+@@ -0,0 +1,20 @@
++/*
++ * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
 +
-+#ifdef CONFIG_OF_FLATTREE
-+void __init early_init_dt_setup_initrd_arch(unsigned long start,
-+					    unsigned long end)
++#ifndef _ASM_ARC_CLK_H
++#define _ASM_ARC_CLK_H
++
++/* Although we can't really hide core_freq, the accessor is still better way */
++extern unsigned long core_freq;
++
++static inline unsigned long arc_get_core_freq(void)
 +{
-+	pr_err("%s(%lx, %lx)\n", __func__, start, end);
++	return core_freq;
 +}
-+#endif /* CONFIG_OF_FLATTREE */
++
++#endif
+diff --git a/arch/arc/include/asm/delay.h b/arch/arc/include/asm/delay.h
+new file mode 100644
+index 0000000..442ce5d
+--- /dev/null
++++ b/arch/arc/include/asm/delay.h
+@@ -0,0 +1,68 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * Delay routines using pre computed loops_per_jiffy value.
++ *
++ * vineetg: Feb 2012
++ *  -Rewrote in "C" to avoid dealing with availability of H/w MPY
++ *  -Also reduced the num of MPY operations from 3 to 2
++ *
++ * Amit Bhor: Codito Technologies 2004
++ */
++
++#ifndef __ASM_ARC_UDELAY_H
++#define __ASM_ARC_UDELAY_H
++
++#include <asm/param.h>		/* HZ */
++
++static inline void __delay(unsigned long loops)
++{
++	__asm__ __volatile__(
++	"1:	sub.f %0, %0, 1	\n"
++	"	jpnz 1b		\n"
++	: "+r"(loops)
++	:
++	: "cc");
++}
++
++extern void __bad_udelay(void);
++
++/*
++ * Normal Math for computing loops in "N" usecs
++ *  -we have precomputed @loops_per_jiffy
++ *  -1 sec has HZ jiffies
++ * loops per "N" usecs = ((loops_per_jiffy * HZ / 1000000) * N)
++ *
++ * Approximate Division by multiplication:
++ *  -Mathematically if we multiply and divide a number by same value the
++ *   result remains unchanged:  In this case, we use 2^32
++ *  -> (loops_per_N_usec * 2^32 ) / 2^32
++ *  -> (((loops_per_jiffy * HZ / 1000000) * N) * 2^32) / 2^32
++ *  -> (loops_per_jiffy * HZ * N * 4295) / 2^32
++ *
++ *  -Divide by 2^32 is very simply right shift by 32
++ *  -We simply need to ensure that the multiply per above eqn happens in
++ *   64-bit precision (if CPU doesn't support it - gcc can emaulate it)
++ */
++
++static inline void __udelay(unsigned long usecs)
++{
++	unsigned long loops;
++
++	/* (long long) cast ensures 64 bit MPY - real or emulated
++	 * HZ * 4295 is pre-evaluated by gcc - hence only 2 mpy ops
++	 */
++	loops = ((long long)(usecs * 4295 * HZ) *
++		 (long long)(loops_per_jiffy)) >> 32;
++
++	__delay(loops);
++}
++
++#define udelay(n) (__builtin_constant_p(n) ? ((n) > 20000 ? __bad_udelay() \
++				: __udelay(n)) : __udelay(n))
++
++#endif /* __ASM_ARC_UDELAY_H */
+diff --git a/arch/arc/include/asm/irq.h b/arch/arc/include/asm/irq.h
+index ca4aeba..514b302 100644
+--- a/arch/arc/include/asm/irq.h
++++ b/arch/arc/include/asm/irq.h
+@@ -19,4 +19,6 @@ extern void __init arc_init_IRQ(void);
+ extern void __init plat_init_IRQ(void);
+ extern int __init get_hw_config_num_irq(void);
+ 
++void __cpuinit arc_local_timer_setup(unsigned int cpu);
++
+ #endif
+diff --git a/arch/arc/include/asm/timex.h b/arch/arc/include/asm/timex.h
+new file mode 100644
+index 0000000..0a82960
+--- /dev/null
++++ b/arch/arc/include/asm/timex.h
+@@ -0,0 +1,18 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#ifndef _ASM_ARC_TIMEX_H
++#define _ASM_ARC_TIMEX_H
++
++#define CLOCK_TICK_RATE	80000000 /* slated to be removed */
++
++#include <asm-generic/timex.h>
++
++/* XXX: get_cycles() to be implemented with RTSC insn */
++
++#endif /* _ASM_ARC_TIMEX_H */
+diff --git a/arch/arc/kernel/clk.c b/arch/arc/kernel/clk.c
+new file mode 100644
+index 0000000..64925db
+--- /dev/null
++++ b/arch/arc/kernel/clk.c
+@@ -0,0 +1,11 @@
++/*
++ * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#include <asm/clk.h>
++
++unsigned long core_freq = CONFIG_ARC_PLAT_CLK;
+diff --git a/arch/arc/kernel/time.c b/arch/arc/kernel/time.c
+new file mode 100644
+index 0000000..05dba11
+--- /dev/null
++++ b/arch/arc/kernel/time.c
+@@ -0,0 +1,295 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * vineetg: Jan 1011
++ *  -sched_clock( ) no longer jiffies based. Uses the same clocksource
++ *   as gtod
++ *
++ * Rajeshwarr/Vineetg: Mar 2008
++ *  -Implemented CONFIG_GENERIC_TIME (rather deleted arch specific code)
++ *   for arch independent gettimeofday()
++ *  -Implemented CONFIG_GENERIC_CLOCKEVENTS as base for hrtimers
++ *
++ * Vineetg: Mar 2008: Forked off from time.c which now is time-jiff.c
++ */
++
++/* ARC700 has two 32bit independent prog Timers: TIMER0 and TIMER1
++ * Each can programmed to go from @count to @limit and optionally
++ * interrupt when that happens.
++ * A write to Control Register clears the Interrupt
++ *
++ * We've designated TIMER0 for events (clockevents)
++ * while TIMER1 for free running (clocksource)
++ *
++ * Newer ARC700 cores have 64bit clk fetching RTSC insn, preferred over TIMER1
++ */
++
++#include <linux/spinlock.h>
++#include <linux/interrupt.h>
++#include <linux/module.h>
++#include <linux/sched.h>
++#include <linux/kernel.h>
++#include <linux/interrupt.h>
++#include <linux/time.h>
++#include <linux/init.h>
++#include <linux/timex.h>
++#include <linux/profile.h>
++#include <linux/clocksource.h>
++#include <linux/clockchips.h>
++#include <asm/irq.h>
++#include <asm/arcregs.h>
++#include <asm/clk.h>
++
++#define ARC_TIMER_MAX	0xFFFFFFFF
++
++/********** Clock Source Device *********/
++
++#ifdef CONFIG_ARC_HAS_RTSC
++
++int __cpuinit arc_counter_setup(void)
++{
++	/* RTSC insn taps into cpu clk, needs no setup */
++
++	/* For SMP, only allowed if cross-core-sync, hence usable as cs */
++	return 1;
++}
++
++static cycle_t arc_counter_read(struct clocksource *cs)
++{
++	unsigned long flags;
++	union {
++#ifdef CONFIG_CPU_BIG_ENDIAN
++		struct { u32 high, low; };
++#else
++		struct { u32 low, high; };
++#endif
++		cycle_t  full;
++	} stamp;
++
++	flags = arch_local_irq_save();
++
++	__asm__ __volatile(
++	"	.extCoreRegister tsch, 58,  r, cannot_shortcut	\n"
++	"	rtsc %0, 0	\n"
++	"	mov  %1, tsch	\n"	/* TSCH is extn core reg 58 */
++	: "=r" (stamp.low), "=r" (stamp.high));
++
++	arch_local_irq_restore(flags);
++
++	return stamp.full;
++}
++
++static struct clocksource arc_counter = {
++	.name   = "ARC RTSC",
++	.rating = 300,
++	.read   = arc_counter_read,
++	.mask   = CLOCKSOURCE_MASK(64),
++	.flags  = CLOCK_SOURCE_IS_CONTINUOUS,
++};
++
++#else /* !CONFIG_ARC_HAS_RTSC */
++
++static bool is_usable_as_clocksource(void)
++{
++#ifdef CONFIG_SMP
++	return 0;
++#else
++	return 1;
++#endif
++}
++
++/*
++ * set 32bit TIMER1 to keep counting monotonically and wraparound
++ */
++int __cpuinit arc_counter_setup(void)
++{
++	write_aux_reg(ARC_REG_TIMER1_LIMIT, ARC_TIMER_MAX);
++	write_aux_reg(ARC_REG_TIMER1_CNT, 0);
++	write_aux_reg(ARC_REG_TIMER1_CTRL, TIMER_CTRL_NH);
++
++	return is_usable_as_clocksource();
++}
++
++static cycle_t arc_counter_read(struct clocksource *cs)
++{
++	return (cycle_t) read_aux_reg(ARC_REG_TIMER1_CNT);
++}
++
++static struct clocksource arc_counter = {
++	.name   = "ARC Timer1",
++	.rating = 300,
++	.read   = arc_counter_read,
++	.mask   = CLOCKSOURCE_MASK(32),
++	.flags  = CLOCK_SOURCE_IS_CONTINUOUS,
++};
++
++#endif
++
++/********** Clock Event Device *********/
++
++/*
++ * Arm the timer to interrupt after @limit cycles
++ * The distinction for oneshot/periodic is done in arc_event_timer_ack() below
++ */
++static void arc_timer_event_setup(unsigned int limit)
++{
++	write_aux_reg(ARC_REG_TIMER0_LIMIT, limit);
++	write_aux_reg(ARC_REG_TIMER0_CNT, 0);	/* start from 0 */
++
++	write_aux_reg(ARC_REG_TIMER0_CTRL, TIMER_CTRL_IE | TIMER_CTRL_NH);
++}
++
++/*
++ * Acknowledge the interrupt (oneshot) and optionally re-arm it (periodic)
++ * -Any write to CTRL Reg will ack the intr (NH bit: Count when not halted)
++ * -Rearming is done by setting the IE bit
++ *
++ * Small optimisation: Normal code would have been
++ *   if (irq_reenable)
++ *     CTRL_REG = (IE | NH);
++ *   else
++ *     CTRL_REG = NH;
++ * However since IE is BIT0 we can fold the branch
++ */
++static void arc_timer_event_ack(unsigned int irq_reenable)
++{
++	write_aux_reg(ARC_REG_TIMER0_CTRL, irq_reenable | TIMER_CTRL_NH);
++}
++
++static int arc_clkevent_set_next_event(unsigned long delta,
++				       struct clock_event_device *dev)
++{
++	arc_timer_event_setup(delta);
++	return 0;
++}
++
++static void arc_clkevent_set_mode(enum clock_event_mode mode,
++				  struct clock_event_device *dev)
++{
++	switch (mode) {
++	case CLOCK_EVT_MODE_PERIODIC:
++		arc_timer_event_setup(arc_get_core_freq() / HZ);
++		break;
++	case CLOCK_EVT_MODE_ONESHOT:
++		break;
++	default:
++		break;
++	}
++
++	return;
++}
++
++static DEFINE_PER_CPU(struct clock_event_device, arc_clockevent_device) = {
++	.name		= "ARC Timer0",
++	.features	= CLOCK_EVT_FEAT_ONESHOT | CLOCK_EVT_FEAT_PERIODIC,
++	.mode		= CLOCK_EVT_MODE_UNUSED,
++	.rating		= 300,
++	.irq		= TIMER0_IRQ,	/* hardwired, no need for resources */
++	.set_next_event = arc_clkevent_set_next_event,
++	.set_mode	= arc_clkevent_set_mode,
++};
++
++static irqreturn_t timer_irq_handler(int irq, void *dev_id)
++{
++	struct clock_event_device *clk = &__get_cpu_var(arc_clockevent_device);
++
++	arc_timer_event_ack(clk->mode == CLOCK_EVT_MODE_PERIODIC);
++	clk->event_handler(clk);
++	return IRQ_HANDLED;
++}
++
++static struct irqaction arc_timer_irq = {
++	.name    = "Timer0 (clock-evt-dev)",
++	.flags   = IRQF_TIMER | IRQF_PERCPU,
++	.handler = timer_irq_handler,
++};
++
++/*
++ * Setup the local event timer for @cpu
++ * N.B. weak so that some exotic ARC SoCs can completely override it
++ */
++void __attribute__((weak)) __cpuinit arc_local_timer_setup(unsigned int cpu)
++{
++	struct clock_event_device *clk = &per_cpu(arc_clockevent_device, cpu);
++
++	clockevents_calc_mult_shift(clk, arc_get_core_freq(), 5);
++
++	clk->max_delta_ns = clockevent_delta2ns(ARC_TIMER_MAX, clk);
++	clk->cpumask = cpumask_of(cpu);
++
++	clockevents_register_device(clk);
++
++	/*
++	 * setup the per-cpu timer IRQ handler - for all cpus
++	 * For non boot CPU explicitly unmask at intc
++	 * setup_irq() -> .. -> irq_startup() already does this on boot-cpu
++	 */
++	if (!cpu)
++		setup_irq(TIMER0_IRQ, &arc_timer_irq);
++	else
++		arch_unmask_irq(TIMER0_IRQ);
++}
++
++/*
++ * Called from start_kernel() - boot CPU only
++ *
++ * -Sets up h/w timers as applicable on boot cpu
++ * -Also sets up any global state needed for timer subsystem:
++ *    - for "counting" timer, registers a clocksource, usable across CPUs
++ *      (provided that underlying counter h/w is synchronized across cores)
++ *    - for "event" timer, sets up TIMER0 IRQ (as that is platform agnostic)
++ */
++void __init time_init(void)
++{
++	/*
++	 * sets up the timekeeping free-flowing counter which also returns
++	 * whether the counter is usable as clocksource
++	 */
++	if (arc_counter_setup())
++		/*
++		 * CLK upto 4.29 GHz can be safely represented in 32 bits
++		 * because Max 32 bit number is 4,294,967,295
++		 */
++		clocksource_register_hz(&arc_counter, arc_get_core_freq());
++
++	/* sets up the periodic event timer */
++	arc_local_timer_setup(smp_processor_id());
++}
++
++#ifdef CONFIG_ARC_HAS_RTSC
++/*
++ * sched_clock math assist
++ * ns = cycles * (ns_per_sec / cpu_freq_hz)
++ * ns = cycles * (10^6 / cpu_freq_khz)
++ * ns = cycles * (10^6 * 2^SF / cpu_freq_khz) / 2^SF
++ * ns = cycles * cyc2ns_scale >> SF
++ */
++#define CYC2NS_SF	10  /* 2^10, carefully chosen */
++#define CYC2NS_SCALE	((1000000 << CYC2NS_SF) / (arc_get_core_freq() / 1000))
++
++static unsigned long long cycles2ns(unsigned long long cyc)
++{
++	return (cyc * CYC2NS_SCALE ) >> CYC2NS_SF;
++}
++
++/*
++ * Scheduler clock - a monotonically increasing clock in nanosec units.
++ * It's return value must NOT wrap around.
++ *
++ * - Since 32bit TIMER1 will overflow almost immediately (53sec @ 80MHz), it
++ *   can't be used directly.
++ * - Using getrawmonotonic (TIMER1 based, but with state for last + current
++ *   snapshots), is no-good either because of seqlock deadlock possibilities
++ * - So only with native 64bit timer we do this, otherwise fallback to generic
++ *   jiffies based version - which despite not being fine grained gaurantees
++ *   the monotonically increasing semantics.
++ */
++unsigned long long sched_clock(void)
++{
++	return cycles2ns(arc_counter_read(NULL));
++}
++#endif
 -- 
 1.7.4.1
