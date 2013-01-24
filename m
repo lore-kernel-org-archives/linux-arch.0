@@ -1,32 +1,48 @@
 From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH v2 00/76] Synopsys ARC Linux kernel Port
-Date: Thu, 24 Jan 2013 09:52:33 +0000
-Message-ID: <51010461.20604@imgtec.com>
-References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com> <201301181512.14441.arnd@arndb.de> <5100F6AD.5050001@synopsys.com>
+Subject: Re: [PATCH v2 65/76] ARC: UAPI Disintegrate arch/arc/include/asm
+Date: Thu, 24 Jan 2013 09:54:35 +0000
+Message-ID: <510104DB.9040403@imgtec.com>
+References: <50FFCAC4.1050002@synopsys.com> <1358511930-7424-1-git-send-email-vgupta@synopsys.com> <1358511930-7424-66-git-send-email-vgupta@synopsys.com> <10760.1358945425@warthog.procyon.org.uk> <5100CAAF.8090702@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-15"
+Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:43346 "EHLO multi.imgtec.com"
+Received: from multi.imgtec.com ([194.200.65.239]:43382 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752731Ab3AXJwi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 24 Jan 2013 04:52:38 -0500
-In-Reply-To: <5100F6AD.5050001@synopsys.com>
+	id S1752731Ab3AXJyj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 24 Jan 2013 04:54:39 -0500
+In-Reply-To: <5100CAAF.8090702@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: David Howells <dhowells@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
 
 Hi Vineet,
 
-On 24/01/13 08:54, Vineet Gupta wrote:
-> (3) That branch will be ARC patches on top of Linus's 3.8 rc4. Actually for my
-> development, I'd also cherry picked a few patches from linux-next (soft and hard
-> dependencies from several different *next trees) - hard ones being
+On 24/01/13 05:46, Vineet Gupta wrote:
+> On Wednesday 23 January 2013 06:20 PM, David Howells wrote:
+>> Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
+>>
+>>> I generated this patch using the scripts you provided. If these look OK to
+>>> you, can you please ACK.
+>>
+>> You need to take a look at uapi/asm/setup.h.  It's created as an empty file -
+>> which will get discarded by patch.  Do you actually need a UAPI instance of
+>> that?
+>>
+>> David
+>>
 > 
-> f13a366 CONFIG_GENERIC_SIGALTSTACK build breakage with asm-generic/syscalls.h [Al]
+> Given that setup.h is exported by include/uapi/asm-generic/Kbuild.asm (as part of
+> userspace header ABI) there's no way we can avoid it's uapi sibling - even if
+> empty. But to workaround patch discarding it, I will add a placeholder comment in
+> generated setup.h (just like you did for arch/cris). Would that take care of it ?
+> 
+> BTW looking at metag port, it seems that <asm/setup.h> does #include
+> <uapi/asm/setup.h>, but latter doesn't exist in the repository - is it generated
+> for you James or is this same issue which David elucidated to above ?
 
-FYI this one has now been merged into Linus' master.
+We have generic-y += setup.h in arch/metag/include/uapi/asm/Kbuild for this
 
 Cheers
 James
