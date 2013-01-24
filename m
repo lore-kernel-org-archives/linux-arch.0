@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from vaxjo.synopsys.com ([198.182.60.75]:47439 "EHLO
-	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754324Ab3AXLQU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jan 2013 06:16:20 -0500
+Received: from us01smtp3.synopsys.com ([198.182.44.81]:34123 "EHLO
+	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753543Ab3AXLJ2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jan 2013 06:09:28 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v3 68/71] ARC: [Review] Multi-platform image #8: platform registers SMP callbacks
-Date: Thu, 24 Jan 2013 16:36:28 +0530
-Message-ID: <1359025589-22277-45-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v3 28/71] ARC: Page Fault handling
+Date: Thu, 24 Jan 2013 16:36:01 +0530
+Message-ID: <1359025589-22277-18-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1359025589-22277-1-git-send-email-vgupta@synopsys.com>
 References: <1359025589-22277-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
@@ -15,120 +15,256 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20130124110628.izJizDIWxv-_InHw8LEM8-Ks-eyAS-uS3g7qs3hJsZ4@z>
+Message-ID: <20130124110601.U1B4JwhTmb5mkXsXmjjRuHpSkhxOkolgnb--DxnNhS4@z>
 
-Platforms export their SMP callbacks by populating arc_smp_ops.
-The population itself needs to be done pretty early, from init_early
-callback.
+This includes recent changes to make handler "retry" and/or "killable"
+
+The killable (early exit) logic is loosely based on how SH implements it
+	return if SIGKILL + either of VM_FAULT_OOM or VM_FAULT_RETRY
+which is different from Hexagon implementation which would NOT early
+exit for
+	SIGKILL + VM_FAULT_OOM + !VM_FAULT_RETRY
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/arc/plat-arcfpga/include/plat/smp.h |    1 +
- arch/arc/plat-arcfpga/platform.c         |    4 +++
- arch/arc/plat-arcfpga/smp.c              |   41 ++++++++++++++++-------------
- 3 files changed, 28 insertions(+), 18 deletions(-)
+ arch/arc/mm/fault.c |  228 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 228 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arc/mm/fault.c
 
-diff --git a/arch/arc/plat-arcfpga/include/plat/smp.h b/arch/arc/plat-arcfpga/include/plat/smp.h
-index 27822ac..c09eb4c 100644
---- a/arch/arc/plat-arcfpga/include/plat/smp.h
-+++ b/arch/arc/plat-arcfpga/include/plat/smp.h
-@@ -111,6 +111,7 @@ extern void idu_irq_set_tgtcpu(uint8_t irq, uint32_t mask);
- extern void idu_irq_set_mode(uint8_t irq, uint8_t dest_mode, uint8_t trig_mode);
- 
- extern void iss_model_init_smp(unsigned int cpu);
-+extern void iss_model_init_early_smp(void);
- 
- #endif	/* CONFIG_SMP */
- 
-diff --git a/arch/arc/plat-arcfpga/platform.c b/arch/arc/plat-arcfpga/platform.c
-index 4024f10..4e20a1a 100644
---- a/arch/arc/plat-arcfpga/platform.c
-+++ b/arch/arc/plat-arcfpga/platform.c
-@@ -162,6 +162,10 @@ static void __init plat_fpga_early_init(void)
- 	setup_bvci_lat_unit();
- 
- 	arc_fpga_serial_init();
+diff --git a/arch/arc/mm/fault.c b/arch/arc/mm/fault.c
+new file mode 100644
+index 0000000..af55aab
+--- /dev/null
++++ b/arch/arc/mm/fault.c
+@@ -0,0 +1,228 @@
++/* Page Fault Handling for ARC (TLB Miss / ProtV)
++ *
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
 +
-+#ifdef CONFIG_SMP
-+	iss_model_init_early_smp();
-+#endif
- }
- 
- static struct of_dev_auxdata plat_auxdata_lookup[] __initdata = {
-diff --git a/arch/arc/plat-arcfpga/smp.c b/arch/arc/plat-arcfpga/smp.c
-index 68a53b1..91b5534 100644
---- a/arch/arc/plat-arcfpga/smp.c
-+++ b/arch/arc/plat-arcfpga/smp.c
-@@ -24,25 +24,10 @@ static char smp_cpuinfo_buf[128];
-  *-------------------------------------------------------------------
-  */
- 
--const char *arc_platform_smp_cpuinfo(void)
--{
--#define IS_AVAIL1(var, str)    ((var) ? str : "")
--
--	struct bcr_mp mp;
--
--	READ_BCR(ARC_REG_MP_BCR, mp);
--
--	sprintf(smp_cpuinfo_buf, "Extn [700-SMP]: v%d, arch(%d) %s %s %s\n",
--		mp.ver, mp.mp_arch, IS_AVAIL1(mp.scu, "SCU"),
--		IS_AVAIL1(mp.idu, "IDU"), IS_AVAIL1(mp.sdu, "SDU"));
--
--	return smp_cpuinfo_buf;
--}
--
- /*
-  * Master kick starting another CPU
-  */
--void arc_platform_smp_wakeup_cpu(int cpu, unsigned long pc)
-+static void iss_model_smp_wakeup_cpu(int cpu, unsigned long pc)
- {
- 	/* setup the start PC */
- 	write_aux_reg(ARC_AUX_XTL_REG_PARAM, pc);
-@@ -103,19 +88,39 @@ void iss_model_init_smp(unsigned int cpu)
- 	smp_ipi_irq_setup(cpu, IDU_INTERRUPT_0 + cpu);
- }
- 
--void arc_platform_ipi_send(const struct cpumask *callmap)
-+static void iss_model_ipi_send(void *arg)
- {
-+	struct cpumask *callmap = arg;
- 	unsigned int cpu;
- 
- 	for_each_cpu(cpu, callmap)
- 		idu_irq_assert(cpu);
- }
- 
--void arc_platform_ipi_clear(int cpu, int irq)
-+static void iss_model_ipi_clear(int cpu, int irq)
- {
- 	idu_irq_clear(IDU_INTERRUPT_0 + cpu);
- }
- 
-+void iss_model_init_early_smp(void)
++#include <linux/signal.h>
++#include <linux/interrupt.h>
++#include <linux/sched.h>
++#include <linux/errno.h>
++#include <linux/ptrace.h>
++#include <linux/version.h>
++#include <linux/uaccess.h>
++#include <linux/kdebug.h>
++#include <asm/pgalloc.h>
++
++static int handle_vmalloc_fault(struct mm_struct *mm, unsigned long address)
 +{
-+#define IS_AVAIL1(var, str)    ((var) ? str : "")
++	/*
++	 * Synchronize this task's top level page-table
++	 * with the 'reference' page table.
++	 */
++	pgd_t *pgd, *pgd_k;
++	pud_t *pud, *pud_k;
++	pmd_t *pmd, *pmd_k;
 +
-+	struct bcr_mp mp;
++	pgd = pgd_offset_fast(mm, address);
++	pgd_k = pgd_offset_k(address);
 +
-+	READ_BCR(ARC_REG_MP_BCR, mp);
++	if (!pgd_present(*pgd_k))
++		goto bad_area;
 +
-+	sprintf(smp_cpuinfo_buf, "Extn [ISS-SMP]: v%d, arch(%d) %s %s %s\n",
-+		mp.ver, mp.mp_arch, IS_AVAIL1(mp.scu, "SCU"),
-+		IS_AVAIL1(mp.idu, "IDU"), IS_AVAIL1(mp.sdu, "SDU"));
++	pud = pud_offset(pgd, address);
++	pud_k = pud_offset(pgd_k, address);
++	if (!pud_present(*pud_k))
++		goto bad_area;
 +
-+	plat_smp_ops.info = smp_cpuinfo_buf;
++	pmd = pmd_offset(pud, address);
++	pmd_k = pmd_offset(pud_k, address);
++	if (!pmd_present(*pmd_k))
++		goto bad_area;
 +
-+	plat_smp_ops.cpu_kick = iss_model_smp_wakeup_cpu;
-+	plat_smp_ops.ipi_send = iss_model_ipi_send;
-+	plat_smp_ops.ipi_clear = iss_model_ipi_clear;
++	set_pmd(pmd, *pmd_k);
++
++	/* XXX: create the TLB entry here */
++	return 0;
++
++bad_area:
++	return 1;
 +}
 +
- /*
-  *-------------------------------------------------------------------
-  * Low level Platform IPI Providers
++void do_page_fault(struct pt_regs *regs, int write, unsigned long address,
++		   unsigned long cause_code)
++{
++	struct vm_area_struct *vma = NULL;
++	struct task_struct *tsk = current;
++	struct mm_struct *mm = tsk->mm;
++	siginfo_t info;
++	int fault, ret;
++	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE |
++				(write ? FAULT_FLAG_WRITE : 0);
++
++	/*
++	 * We fault-in kernel-space virtual memory on-demand. The
++	 * 'reference' page table is init_mm.pgd.
++	 *
++	 * NOTE! We MUST NOT take any locks for this case. We may
++	 * be in an interrupt or a critical region, and should
++	 * only copy the information from the master page table,
++	 * nothing more.
++	 */
++	if (address >= VMALLOC_START && address <= VMALLOC_END) {
++		ret = handle_vmalloc_fault(mm, address);
++		if (unlikely(ret))
++			goto bad_area_nosemaphore;
++		else
++			return;
++	}
++
++	info.si_code = SEGV_MAPERR;
++
++	/*
++	 * If we're in an interrupt or have no user
++	 * context, we must not take the fault..
++	 */
++	if (in_atomic() || !mm)
++		goto no_context;
++
++retry:
++	down_read(&mm->mmap_sem);
++	vma = find_vma(mm, address);
++	if (!vma)
++		goto bad_area;
++	if (vma->vm_start <= address)
++		goto good_area;
++	if (!(vma->vm_flags & VM_GROWSDOWN))
++		goto bad_area;
++	if (expand_stack(vma, address))
++		goto bad_area;
++
++	/*
++	 * Ok, we have a good vm_area for this memory access, so
++	 * we can handle it..
++	 */
++good_area:
++	info.si_code = SEGV_ACCERR;
++
++	/* Handle protection violation, execute on heap or stack */
++
++	if (cause_code == ((ECR_V_PROTV << 16) | ECR_C_PROTV_INST_FETCH))
++		goto bad_area;
++
++	if (write) {
++		if (!(vma->vm_flags & VM_WRITE))
++			goto bad_area;
++	} else {
++		if (!(vma->vm_flags & (VM_READ | VM_EXEC)))
++			goto bad_area;
++	}
++
++survive:
++	/*
++	 * If for any reason at all we couldn't handle the fault,
++	 * make sure we exit gracefully rather than endlessly redo
++	 * the fault.
++	 */
++	fault = handle_mm_fault(mm, vma, address, flags);
++
++	/* If Pagefault was interrupted by SIGKILL, exit page fault "early" */
++	if (unlikely(fatal_signal_pending(current))) {
++		if ((fault & VM_FAULT_ERROR) && !(fault & VM_FAULT_RETRY))
++			up_read(&mm->mmap_sem);
++		if (user_mode(regs))
++			return;
++	}
++
++	if (likely(!(fault & VM_FAULT_ERROR))) {
++		if (flags & FAULT_FLAG_ALLOW_RETRY) {
++			/* To avoid updating stats twice for retry case */
++			if (fault & VM_FAULT_MAJOR)
++				tsk->maj_flt++;
++			else
++				tsk->min_flt++;
++
++			if (fault & VM_FAULT_RETRY) {
++				flags &= ~FAULT_FLAG_ALLOW_RETRY;
++				flags |= FAULT_FLAG_TRIED;
++				goto retry;
++			}
++		}
++
++		/* Fault Handled Gracefully */
++		up_read(&mm->mmap_sem);
++		return;
++	}
++
++	/* TBD: switch to pagefault_out_of_memory() */
++	if (fault & VM_FAULT_OOM)
++		goto out_of_memory;
++	else if (fault & VM_FAULT_SIGBUS)
++		goto do_sigbus;
++
++	/* no man's land */
++	BUG();
++
++	/*
++	 * Something tried to access memory that isn't in our memory map..
++	 * Fix it, but check if it's kernel or user first..
++	 */
++bad_area:
++	up_read(&mm->mmap_sem);
++
++bad_area_nosemaphore:
++	/* User mode accesses just cause a SIGSEGV */
++	if (user_mode(regs)) {
++		tsk->thread.fault_address = address;
++		tsk->thread.cause_code = cause_code;
++		info.si_signo = SIGSEGV;
++		info.si_errno = 0;
++		/* info.si_code has been set above */
++		info.si_addr = (void __user *)address;
++		force_sig_info(SIGSEGV, &info, tsk);
++		return;
++	}
++
++no_context:
++	/* Are we prepared to handle this kernel fault?
++	 *
++	 * (The kernel has valid exception-points in the source
++	 *  when it acesses user-memory. When it fails in one
++	 *  of those points, we find it in a table and do a jump
++	 *  to some fixup code that loads an appropriate error
++	 *  code)
++	 */
++	if (fixup_exception(regs))
++		return;
++
++	die("Oops", regs, address, cause_code);
++
++out_of_memory:
++	if (is_global_init(tsk)) {
++		yield();
++		goto survive;
++	}
++	up_read(&mm->mmap_sem);
++
++	if (user_mode(regs))
++		do_group_exit(SIGKILL);	/* This will never return */
++
++	goto no_context;
++
++do_sigbus:
++	up_read(&mm->mmap_sem);
++
++	if (!user_mode(regs))
++		goto no_context;
++
++	tsk->thread.fault_address = address;
++	tsk->thread.cause_code = cause_code;
++	info.si_signo = SIGBUS;
++	info.si_errno = 0;
++	info.si_code = BUS_ADRERR;
++	info.si_addr = (void __user *)address;
++	force_sig_info(SIGBUS, &info, tsk);
++}
 -- 
 1.7.4.1
 
