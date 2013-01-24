@@ -1,128 +1,183 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v3 68/71] ARC: [Review] Multi-platform image #8: platform registers SMP callbacks
-Date: Thu, 24 Jan 2013 16:36:28 +0530
-Message-ID: <1359025589-22277-45-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v3 39/71] ARC: Futex support
+Date: Thu, 24 Jan 2013 16:36:07 +0530
+Message-ID: <1359025589-22277-24-git-send-email-vgupta@synopsys.com>
 References: <1359025589-22277-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from us02smtp2.synopsys.com ([198.182.60.77]:42933 "EHLO
+	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754755Ab3AXLL7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jan 2013 06:11:59 -0500
 In-Reply-To: <1359025589-22277-1-git-send-email-vgupta@synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-List-Id: linux-arch.vger.kernel.org
-
-Platforms export their SMP callbacks by populating arc_smp_ops.
-The population itself needs to be done pretty early, from init_early
-callback.
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/arc/plat-arcfpga/include/plat/smp.h |    1 +
- arch/arc/plat-arcfpga/platform.c         |    4 +++
- arch/arc/plat-arcfpga/smp.c              |   41 ++++++++++++++++-------------
- 3 files changed, 28 insertions(+), 18 deletions(-)
+ arch/arc/include/asm/futex.h |  151 ++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 151 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arc/include/asm/futex.h
 
-diff --git a/arch/arc/plat-arcfpga/include/plat/smp.h b/arch/arc/plat-arcfpga/include/plat/smp.h
-index 27822ac..c09eb4c 100644
---- a/arch/arc/plat-arcfpga/include/plat/smp.h
-+++ b/arch/arc/plat-arcfpga/include/plat/smp.h
-@@ -111,6 +111,7 @@ extern void idu_irq_set_tgtcpu(uint8_t irq, uint32_t mask);
- extern void idu_irq_set_mode(uint8_t irq, uint8_t dest_mode, uint8_t trig_mode);
- 
- extern void iss_model_init_smp(unsigned int cpu);
-+extern void iss_model_init_early_smp(void);
- 
- #endif	/* CONFIG_SMP */
- 
-diff --git a/arch/arc/plat-arcfpga/platform.c b/arch/arc/plat-arcfpga/platform.c
-index 4024f10..4e20a1a 100644
---- a/arch/arc/plat-arcfpga/platform.c
-+++ b/arch/arc/plat-arcfpga/platform.c
-@@ -162,6 +162,10 @@ static void __init plat_fpga_early_init(void)
- 	setup_bvci_lat_unit();
- 
- 	arc_fpga_serial_init();
+diff --git a/arch/arc/include/asm/futex.h b/arch/arc/include/asm/futex.h
+new file mode 100644
+index 0000000..4dc64dd
+--- /dev/null
++++ b/arch/arc/include/asm/futex.h
+@@ -0,0 +1,151 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * Vineetg: August 2010: From Android kernel work
++ */
 +
-+#ifdef CONFIG_SMP
-+	iss_model_init_early_smp();
-+#endif
- }
- 
- static struct of_dev_auxdata plat_auxdata_lookup[] __initdata = {
-diff --git a/arch/arc/plat-arcfpga/smp.c b/arch/arc/plat-arcfpga/smp.c
-index 68a53b1..91b5534 100644
---- a/arch/arc/plat-arcfpga/smp.c
-+++ b/arch/arc/plat-arcfpga/smp.c
-@@ -24,25 +24,10 @@ static char smp_cpuinfo_buf[128];
-  *-------------------------------------------------------------------
-  */
- 
--const char *arc_platform_smp_cpuinfo(void)
--{
--#define IS_AVAIL1(var, str)    ((var) ? str : "")
--
--	struct bcr_mp mp;
--
--	READ_BCR(ARC_REG_MP_BCR, mp);
--
--	sprintf(smp_cpuinfo_buf, "Extn [700-SMP]: v%d, arch(%d) %s %s %s\n",
--		mp.ver, mp.mp_arch, IS_AVAIL1(mp.scu, "SCU"),
--		IS_AVAIL1(mp.idu, "IDU"), IS_AVAIL1(mp.sdu, "SDU"));
--
--	return smp_cpuinfo_buf;
--}
--
- /*
-  * Master kick starting another CPU
-  */
--void arc_platform_smp_wakeup_cpu(int cpu, unsigned long pc)
-+static void iss_model_smp_wakeup_cpu(int cpu, unsigned long pc)
- {
- 	/* setup the start PC */
- 	write_aux_reg(ARC_AUX_XTL_REG_PARAM, pc);
-@@ -103,19 +88,39 @@ void iss_model_init_smp(unsigned int cpu)
- 	smp_ipi_irq_setup(cpu, IDU_INTERRUPT_0 + cpu);
- }
- 
--void arc_platform_ipi_send(const struct cpumask *callmap)
-+static void iss_model_ipi_send(void *arg)
- {
-+	struct cpumask *callmap = arg;
- 	unsigned int cpu;
- 
- 	for_each_cpu(cpu, callmap)
- 		idu_irq_assert(cpu);
- }
- 
--void arc_platform_ipi_clear(int cpu, int irq)
-+static void iss_model_ipi_clear(int cpu, int irq)
- {
- 	idu_irq_clear(IDU_INTERRUPT_0 + cpu);
- }
- 
-+void iss_model_init_early_smp(void)
++#ifndef _ASM_FUTEX_H
++#define _ASM_FUTEX_H
++
++#include <linux/futex.h>
++#include <linux/preempt.h>
++#include <linux/uaccess.h>
++#include <asm/errno.h>
++
++#define __futex_atomic_op(insn, ret, oldval, uaddr, oparg)\
++							\
++	__asm__ __volatile__(				\
++	"1:	ld  %1, [%2]			\n"	\
++		insn				"\n"	\
++	"2:	st  %0, [%2]			\n"	\
++	"	mov %0, 0			\n"	\
++	"3:					\n"	\
++	"	.section .fixup,\"ax\"		\n"	\
++	"	.align  4			\n"	\
++	"4:	mov %0, %4			\n"	\
++	"	b   3b				\n"	\
++	"	.previous			\n"	\
++	"	.section __ex_table,\"a\"	\n"	\
++	"	.align  4			\n"	\
++	"	.word   1b, 4b			\n"	\
++	"	.word   2b, 4b			\n"	\
++	"	.previous			\n"	\
++							\
++	: "=&r" (ret), "=&r" (oldval)			\
++	: "r" (uaddr), "r" (oparg), "ir" (-EFAULT)	\
++	: "cc", "memory")
++
++static inline int futex_atomic_op_inuser(int encoded_op, u32 __user *uaddr)
 +{
-+#define IS_AVAIL1(var, str)    ((var) ? str : "")
++	int op = (encoded_op >> 28) & 7;
++	int cmp = (encoded_op >> 24) & 15;
++	int oparg = (encoded_op << 8) >> 20;
++	int cmparg = (encoded_op << 20) >> 20;
++	int oldval = 0, ret;
 +
-+	struct bcr_mp mp;
++	if (encoded_op & (FUTEX_OP_OPARG_SHIFT << 28))
++		oparg = 1 << oparg;
 +
-+	READ_BCR(ARC_REG_MP_BCR, mp);
++	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(int)))
++		return -EFAULT;
 +
-+	sprintf(smp_cpuinfo_buf, "Extn [ISS-SMP]: v%d, arch(%d) %s %s %s\n",
-+		mp.ver, mp.mp_arch, IS_AVAIL1(mp.scu, "SCU"),
-+		IS_AVAIL1(mp.idu, "IDU"), IS_AVAIL1(mp.sdu, "SDU"));
++	pagefault_disable();	/* implies preempt_disable() */
 +
-+	plat_smp_ops.info = smp_cpuinfo_buf;
++	switch (op) {
++	case FUTEX_OP_SET:
++		__futex_atomic_op("mov %0, %3", ret, oldval, uaddr, oparg);
++		break;
++	case FUTEX_OP_ADD:
++		__futex_atomic_op("add %0, %1, %3", ret, oldval, uaddr, oparg);
++		break;
++	case FUTEX_OP_OR:
++		__futex_atomic_op("or  %0, %1, %3", ret, oldval, uaddr, oparg);
++		break;
++	case FUTEX_OP_ANDN:
++		__futex_atomic_op("bic %0, %1, %3", ret, oldval, uaddr, oparg);
++		break;
++	case FUTEX_OP_XOR:
++		__futex_atomic_op("xor %0, %1, %3", ret, oldval, uaddr, oparg);
++		break;
++	default:
++		ret = -ENOSYS;
++	}
 +
-+	plat_smp_ops.cpu_kick = iss_model_smp_wakeup_cpu;
-+	plat_smp_ops.ipi_send = iss_model_ipi_send;
-+	plat_smp_ops.ipi_clear = iss_model_ipi_clear;
++	pagefault_enable();	/* subsumes preempt_enable() */
++
++	if (!ret) {
++		switch (cmp) {
++		case FUTEX_OP_CMP_EQ:
++			ret = (oldval == cmparg);
++			break;
++		case FUTEX_OP_CMP_NE:
++			ret = (oldval != cmparg);
++			break;
++		case FUTEX_OP_CMP_LT:
++			ret = (oldval < cmparg);
++			break;
++		case FUTEX_OP_CMP_GE:
++			ret = (oldval >= cmparg);
++			break;
++		case FUTEX_OP_CMP_LE:
++			ret = (oldval <= cmparg);
++			break;
++		case FUTEX_OP_CMP_GT:
++			ret = (oldval > cmparg);
++			break;
++		default:
++			ret = -ENOSYS;
++		}
++	}
++	return ret;
 +}
 +
- /*
-  *-------------------------------------------------------------------
-  * Low level Platform IPI Providers
++/* Compare-xchg with preemption disabled.
++ *  Notes:
++ *      -Best-Effort: Exchg happens only if compare succeeds.
++ *          If compare fails, returns; leaving retry/looping to upper layers
++ *      -successful cmp-xchg: return orig value in @addr (same as cmp val)
++ *      -Compare fails: return orig value in @addr
++ *      -user access r/w fails: return -EFAULT
++ */
++static inline int
++futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr, u32 oldval,
++					u32 newval)
++{
++	u32 val;
++
++	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(int)))
++		return -EFAULT;
++
++	pagefault_disable();	/* implies preempt_disable() */
++
++	/* TBD : can use llock/scond */
++	__asm__ __volatile__(
++	"1:	ld    %0, [%3]	\n"
++	"	brne  %0, %1, 3f	\n"
++	"2:	st    %2, [%3]	\n"
++	"3:	\n"
++	"	.section .fixup,\"ax\"	\n"
++	"4:	mov %0, %4	\n"
++	"	b   3b	\n"
++	"	.previous	\n"
++	"	.section __ex_table,\"a\"	\n"
++	"	.align  4	\n"
++	"	.word   1b, 4b	\n"
++	"	.word   2b, 4b	\n"
++	"	.previous\n"
++	: "=&r"(val)
++	: "r"(oldval), "r"(newval), "r"(uaddr), "ir"(-EFAULT)
++	: "cc", "memory");
++
++	pagefault_enable();	/* subsumes preempt_enable() */
++
++	*uval = val;
++	return val;
++}
++
++#endif
 -- 
 1.7.4.1
