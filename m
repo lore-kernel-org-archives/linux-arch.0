@@ -1,7 +1,7 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v3 25/71] ARC: MMU Context Management
-Date: Thu, 24 Jan 2013 16:35:58 +0530
-Message-ID: <1359025589-22277-15-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v3 38/71] ARC: ptrace support
+Date: Thu, 24 Jan 2013 16:36:06 +0530
+Message-ID: <1359025589-22277-23-git-send-email-vgupta@synopsys.com>
 References: <1359025589-22277-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -12,315 +12,310 @@ To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 List-Id: linux-arch.vger.kernel.org
 
-ARC700 MMU provides for tagging TLB entries with a 8-bit ASID to avoid
-having to flush the TLB every task switch.
-
-It also allows for a quick way to invalidate all the TLB entries for
-task useful for:
-* COW sementics during fork()
-* task exit()ing
-
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/arc/include/asm/arcregs.h     |    7 ++
- arch/arc/include/asm/mmu.h         |   23 ++++
- arch/arc/include/asm/mmu_context.h |  209 ++++++++++++++++++++++++++++++++++++
- arch/arc/mm/tlb.c                  |   23 ++++
- 4 files changed, 262 insertions(+), 0 deletions(-)
- create mode 100644 arch/arc/include/asm/mmu.h
- create mode 100644 arch/arc/include/asm/mmu_context.h
- create mode 100644 arch/arc/mm/tlb.c
+ arch/arc/Kconfig         |    1 +
+ arch/arc/kernel/Makefile |    3 +
+ arch/arc/kernel/entry.S  |   68 +++++++++++++++++++++++
+ arch/arc/kernel/ptrace.c |  136 +++++++++++++++++++++++++++++++++++++++++++++-
+ 4 files changed, 206 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arc/include/asm/arcregs.h b/arch/arc/include/asm/arcregs.h
-index c6e2805..c12eb9b 100644
---- a/arch/arc/include/asm/arcregs.h
-+++ b/arch/arc/include/asm/arcregs.h
-@@ -85,6 +85,13 @@
- #define DC_CTRL_INV_MODE_FLUSH  0x40
- #define DC_CTRL_FLUSH_STATUS    0x100
+diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+index 03347cb..409b937 100644
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@ -22,6 +22,7 @@ config ARC
+ 	select GENERIC_PENDING_IRQ if SMP
+ 	select GENERIC_SIGALTSTACK
+ 	select GENERIC_SMP_IDLE_THREAD
++	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_GENERIC_HARDIRQS
+ 	select HAVE_MEMBLOCK
+ 	select IRQ_DOMAIN
+diff --git a/arch/arc/kernel/Makefile b/arch/arc/kernel/Makefile
+index 8a55e99..1f01d35 100644
+--- a/arch/arc/kernel/Makefile
++++ b/arch/arc/kernel/Makefile
+@@ -5,6 +5,9 @@
+ # it under the terms of the GNU General Public License version 2 as
+ # published by the Free Software Foundation.
  
-+/* MMU Management regs */
-+#define ARC_REG_PID		0x409
-+#define ARC_REG_SCRATCH_DATA0	0x418
++# Pass UTS_MACHINE for user_regset definition
++CFLAGS_ptrace.o		+= -DUTS_MACHINE='"$(UTS_MACHINE)"'
 +
-+/* Bits in MMU PID register */
-+#define MMU_ENABLE		(1 << 31)	/* Enable MMU for process */
-+
- /*
-  * Floating Pt Registers
-  * Status regs are read-only (build-time) so need not be saved/restored
-diff --git a/arch/arc/include/asm/mmu.h b/arch/arc/include/asm/mmu.h
-new file mode 100644
-index 0000000..56b0232
---- /dev/null
-+++ b/arch/arc/include/asm/mmu.h
-@@ -0,0 +1,23 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
+ obj-y	:= arcksyms.o setup.o irq.o time.o reset.o ptrace.o entry.o process.o
+ obj-y	+= signal.o traps.o sys.o troubleshoot.o stacktrace.o clk.o
+ 
+diff --git a/arch/arc/kernel/entry.S b/arch/arc/kernel/entry.S
+index 69d0d37..76697ae 100644
+--- a/arch/arc/kernel/entry.S
++++ b/arch/arc/kernel/entry.S
+@@ -7,6 +7,13 @@
+  * it under the terms of the GNU General Public License version 2 as
+  * published by the Free Software Foundation.
+  *
++ * vineetg: Feb 2011 (ptrace low level code fixes)
++ *  -traced syscall return code (r0) was not saved into pt_regs for restoring
++ *   into user reg-file when traded task rets to user space.
++ *  -syscalls needing arch-wrappers (mainly for passing sp as pt_regs)
++ *   were not invoking post-syscall trace hook (jumping directly into
++ *   ret_from_system_call)
 + *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
+  * vineetg: Nov 2010:
+  *  -Vector table jumps (@8 bytes) converted into branches (@4 bytes)
+  *  -To maintain the slot size of 8 bytes/vector, added nop, which is
+@@ -347,6 +354,50 @@ ARC_ENTRY EV_Extension
+ 	b   ret_from_exception
+ ARC_EXIT EV_Extension
+ 
++;######################### System Call Tracing #########################
 +
-+#ifndef _ASM_ARC_MMU_H
-+#define _ASM_ARC_MMU_H
++tracesys:
++	; save EFA in case tracer wants the PC of traced task
++	; using ERET won't work since next-PC has already committed
++	lr  r12, [efa]
++	GET_CURR_TASK_FIELD_PTR   TASK_THREAD, r11
++	st  r12, [r11, THREAD_FAULT_ADDR]
 +
-+#ifndef __ASSEMBLY__
++	; PRE Sys Call Ptrace hook
++	mov r0, sp			; pt_regs needed
++	bl  @syscall_trace_entry
 +
-+typedef struct {
-+	unsigned long asid;	/* Pvt Addr-Space ID for mm */
-+#ifdef CONFIG_ARC_TLB_DBG
-+	struct task_struct *tsk;
-+#endif
-+} mm_context_t;
++	; Tracing code now returns the syscall num (orig or modif)
++	mov r8, r0
 +
-+#endif
++	; Do the Sys Call as we normally would.
++	; Validate the Sys Call number
++	cmp     r8,  NR_syscalls
++	mov.hi  r0, -ENOSYS
++	bhi     tracesys_exit
 +
-+#endif
-diff --git a/arch/arc/include/asm/mmu_context.h b/arch/arc/include/asm/mmu_context.h
-new file mode 100644
-index 0000000..d12f3de
---- /dev/null
-+++ b/arch/arc/include/asm/mmu_context.h
-@@ -0,0 +1,209 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * vineetg: May 2011
-+ *  -Refactored get_new_mmu_context( ) to only handle live-mm.
-+ *   retiring-mm handled in other hooks
-+ *
-+ * Vineetg: March 25th, 2008: Bug #92690
-+ *  -Major rewrite of Core ASID allocation routine get_new_mmu_context
-+ *
-+ * Amit Bhor, Sameer Dhavale: Codito Technologies 2004
-+ */
++	; Restore the sys-call args. Mere invocation of the hook abv could have
++	; clobbered them (since they are in scratch regs). The tracer could also
++	; have deliberately changed the syscall args: r0-r7
++	ld  r0, [sp, PT_r0]
++	ld  r1, [sp, PT_r1]
++	ld  r2, [sp, PT_r2]
++	ld  r3, [sp, PT_r3]
++	ld  r4, [sp, PT_r4]
++	ld  r5, [sp, PT_r5]
++	ld  r6, [sp, PT_r6]
++	ld  r7, [sp, PT_r7]
++	ld.as   r9, [sys_call_table, r8]
++	jl      [r9]        ; Entry into Sys Call Handler
 +
-+#ifndef _ASM_ARC_MMU_CONTEXT_H
-+#define _ASM_ARC_MMU_CONTEXT_H
++tracesys_exit:
++	st  r0, [sp, PT_r0]     ; sys call return value in pt_regs
 +
-+#include <asm/arcregs.h>
-+#include <asm/tlb.h>
++	;POST Sys Call Ptrace Hook
++	bl  @syscall_trace_exit
++	b   ret_from_exception ; NOT ret_from_system_call at is saves r0 which
++	; we'd done before calling post hook above
 +
-+#include <asm-generic/mm_hooks.h>
+ ;################### Break Point TRAP ##########################
+ 
+ 	; ======= (5b) Trap is due to Break-Point =========
+@@ -412,6 +463,11 @@ ARC_ENTRY EV_Trap
+ 	; Before doing anything, return from CPU Exception Mode
+ 	FAKE_RET_FROM_EXCPN r11
+ 
++	; If syscall tracing ongoing, invoke pre-pos-hooks
++	GET_CURR_THR_INFO_FLAGS   r10
++	btst r10, TIF_SYSCALL_TRACE
++	bnz tracesys  ; this never comes back
 +
-+/*		ARC700 ASID Management
-+ *
-+ * ARC MMU provides 8-bit ASID (0..255) to TAG TLB entries, allowing entries
-+ * with same vaddr (different tasks) to co-exit. This provides for
-+ * "Fast Context Switch" i.e. no TLB flush on ctxt-switch
-+ *
-+ * Linux assigns each task a unique ASID. A simple round-robin allocation
-+ * of H/w ASID is done using software tracker @asid_cache.
-+ * When it reaches max 255, the allocation cycle starts afresh by flushing
-+ * the entire TLB and wrapping ASID back to zero.
-+ *
-+ * For book-keeping, Linux uses a couple of data-structures:
-+ *  -mm_struct has an @asid field to keep a note of task's ASID (needed at the
-+ *   time of say switch_mm( )
-+ *  -An array of mm structs @asid_mm_map[] for asid->mm the reverse mapping,
-+ *  given an ASID, finding the mm struct associated.
-+ *
-+ * The round-robin allocation algorithm allows for ASID stealing.
-+ * If asid tracker is at "x-1", a new req will allocate "x", even if "x" was
-+ * already assigned to another (switched-out) task. Obviously the prev owner
-+ * is marked with an invalid ASID to make it request for a new ASID when it
-+ * gets scheduled next time. However its TLB entries (with ASID "x") could
-+ * exist, which must be cleared before the same ASID is used by the new owner.
-+ * Flushing them would be plausible but costly solution. Instead we force a
-+ * allocation policy quirk, which ensures that a stolen ASID won't have any
-+ * TLB entries associates, alleviating the need to flush.
-+ * The quirk essentially is not allowing ASID allocated in prev cycle
-+ * to be used past a roll-over in the next cycle.
-+ * When this happens (i.e. task ASID > asid tracker), task needs to refresh
-+ * its ASID, aligning it to current value of tracker. If the task doesn't get
-+ * scheduled past a roll-over, hence its ASID is not yet realigned with
-+ * tracker, such ASID is anyways safely reusable because it is
-+ * gauranteed that TLB entries with that ASID wont exist.
-+ */
+ 	;============ This is normal System Call case ==========
+ 	; Sys-call num shd not exceed the total system calls avail
+ 	cmp     r8,  NR_syscalls
+@@ -608,6 +664,10 @@ ARC_ENTRY sys_fork_wrapper
+ 	bl  @sys_fork
+ 	DISCARD_CALLEE_SAVED_USER
+ 
++	GET_CURR_THR_INFO_FLAGS   r10
++	btst r10, TIF_SYSCALL_TRACE
++	bnz  tracesys_exit
 +
-+#define FIRST_ASID  0
-+#define MAX_ASID    255			/* 8 bit PID field in PID Aux reg */
-+#define NO_ASID     (MAX_ASID + 1)	/* ASID Not alloc to mmu ctxt */
-+#define NUM_ASID    ((MAX_ASID - FIRST_ASID) + 1)
+ 	b ret_from_system_call
+ ARC_EXIT sys_fork_wrapper
+ 
+@@ -616,6 +676,10 @@ ARC_ENTRY sys_vfork_wrapper
+ 	bl  @sys_vfork
+ 	DISCARD_CALLEE_SAVED_USER
+ 
++	GET_CURR_THR_INFO_FLAGS   r10
++	btst r10, TIF_SYSCALL_TRACE
++	bnz  tracesys_exit
 +
-+/* ASID to mm struct mapping */
-+extern struct mm_struct *asid_mm_map[NUM_ASID + 1];
+ 	b ret_from_system_call
+ ARC_EXIT sys_vfork_wrapper
+ 
+@@ -624,5 +688,9 @@ ARC_ENTRY sys_clone_wrapper
+ 	bl  @sys_clone
+ 	DISCARD_CALLEE_SAVED_USER
+ 
++	GET_CURR_THR_INFO_FLAGS   r10
++	btst r10, TIF_SYSCALL_TRACE
++	bnz  tracesys_exit
 +
-+extern int asid_cache;
+ 	b ret_from_system_call
+ ARC_EXIT sys_clone_wrapper
+diff --git a/arch/arc/kernel/ptrace.c b/arch/arc/kernel/ptrace.c
+index 1cf944a..c6a81c5 100644
+--- a/arch/arc/kernel/ptrace.c
++++ b/arch/arc/kernel/ptrace.c
+@@ -7,6 +7,122 @@
+  */
+ 
+ #include <linux/ptrace.h>
++#include <linux/tracehook.h>
++#include <linux/regset.h>
++#include <linux/unistd.h>
++#include <linux/elf.h>
 +
-+/*
-+ * Assign a new ASID to task. If the task already has an ASID, it is
-+ * relinquished.
-+ */
-+static inline void get_new_mmu_context(struct mm_struct *mm)
++static struct callee_regs *task_callee_regs(struct task_struct *tsk)
 +{
-+	struct mm_struct *prev_owner;
-+	unsigned long flags;
++	struct callee_regs *tmp = (struct callee_regs *)tsk->thread.callee_reg;
++	return tmp;
++}
 +
-+	local_irq_save(flags);
++static int genregs_get(struct task_struct *target,
++		       const struct user_regset *regset,
++		       unsigned int pos, unsigned int count,
++		       void *kbuf, void __user *ubuf)
++{
++	const struct pt_regs *ptregs = task_pt_regs(target);
++	const struct callee_regs *cregs = task_callee_regs(target);
++	int ret = 0;
++	unsigned int stop_pc_val;
 +
-+	/*
-+	 * Relinquish the currently owned ASID (if any).
-+	 * Doing unconditionally saves a cmp-n-branch; for already unused
-+	 * ASID slot, the value was/remains NULL
-+	 */
-+	asid_mm_map[mm->context.asid] = (struct mm_struct *)NULL;
++#define REG_O_CHUNK(START, END, PTR)	\
++	if (!ret)	\
++		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, PTR, \
++			offsetof(struct user_regs_struct, START), \
++			offsetof(struct user_regs_struct, END));
 +
-+	/* move to new ASID */
-+	if (++asid_cache > MAX_ASID) {	/* ASID roll-over */
-+		asid_cache = FIRST_ASID;
-+		flush_tlb_all();
++#define REG_O_ONE(LOC, PTR)	\
++	if (!ret)		\
++		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, PTR, \
++			offsetof(struct user_regs_struct, LOC), \
++			offsetof(struct user_regs_struct, LOC) + 4);
++
++	REG_O_CHUNK(scratch, callee, ptregs);
++	REG_O_CHUNK(callee, efa, cregs);
++	REG_O_CHUNK(efa, stop_pc, &target->thread.fault_address);
++
++	if (!ret) {
++		if (in_brkpt_trap(ptregs)) {
++			stop_pc_val = target->thread.fault_address;
++			pr_debug("\t\tstop_pc (brk-pt)\n");
++		} else {
++			stop_pc_val = ptregs->ret;
++			pr_debug("\t\tstop_pc (others)\n");
++		}
++
++		REG_O_ONE(stop_pc, &stop_pc_val);
 +	}
 +
-+	/*
-+	 * Is next ASID already owned by some-one else (we are stealing it).
-+	 * If so, let the orig owner be aware of this, so when it runs, it
-+	 * asks for a brand new ASID. This would only happen for a long-lived
-+	 * task with ASID from prev allocation cycle (before ASID roll-over).
-+	 *
-+	 * This might look wrong - if we are re-using some other task's ASID,
-+	 * won't we use it's stale TLB entries too. Actually switch_mm( ) takes
-+	 * care of such a case: it ensures that task with ASID from prev alloc
-+	 * cycle, when scheduled will refresh it's ASID: see switch_mm( ) below
-+	 * The stealing scenario described here will only happen if that task
-+	 * didn't get a chance to refresh it's ASID - implying stale entries
-+	 * won't exist.
-+	 */
-+	prev_owner = asid_mm_map[asid_cache];
-+	if (prev_owner)
-+		prev_owner->context.asid = NO_ASID;
-+
-+	/* Assign new ASID to tsk */
-+	asid_mm_map[asid_cache] = mm;
-+	mm->context.asid = asid_cache;
-+
-+#ifdef CONFIG_ARC_TLB_DBG
-+	pr_info("ARC_TLB_DBG: NewMM=0x%x OldMM=0x%x task_struct=0x%x Task: %s,"
-+	       " pid:%u, assigned asid:%lu\n",
-+	       (unsigned int)mm, (unsigned int)prev_owner,
-+	       (unsigned int)(mm->context.tsk), (mm->context.tsk)->comm,
-+	       (mm->context.tsk)->pid, mm->context.asid);
-+#endif
-+
-+	write_aux_reg(ARC_REG_PID, asid_cache | MMU_ENABLE);
-+
-+	local_irq_restore(flags);
++	return ret;
 +}
 +
-+/*
-+ * Initialize the context related info for a new mm_struct
-+ * instance.
-+ */
-+static inline int
-+init_new_context(struct task_struct *tsk, struct mm_struct *mm)
++static int genregs_set(struct task_struct *target,
++		       const struct user_regset *regset,
++		       unsigned int pos, unsigned int count,
++		       const void *kbuf, const void __user *ubuf)
 +{
-+	mm->context.asid = NO_ASID;
-+#ifdef CONFIG_ARC_TLB_DBG
-+	mm->context.tsk = tsk;
-+#endif
-+	return 0;
++	const struct pt_regs *ptregs = task_pt_regs(target);
++	const struct callee_regs *cregs = task_callee_regs(target);
++	int ret = 0;
++
++#define REG_IN_CHUNK(FIRST, NEXT, PTR)	\
++	if (!ret)			\
++		ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, \
++			(void *)(PTR), \
++			offsetof(struct user_regs_struct, FIRST), \
++			offsetof(struct user_regs_struct, NEXT));
++
++#define REG_IN_ONE(LOC, PTR)		\
++	if (!ret)			\
++		ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, \
++			(void *)(PTR), \
++			offsetof(struct user_regs_struct, LOC), \
++			offsetof(struct user_regs_struct, LOC) + 4);
++
++#define REG_IGNORE_ONE(LOC)		\
++	if (!ret)			\
++		ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf, \
++			offsetof(struct user_regs_struct, LOC), \
++			offsetof(struct user_regs_struct, LOC) + 4);
++
++	/* TBD: disallow updates to STATUS32, orig_r8 etc*/
++	REG_IN_CHUNK(scratch, callee, ptregs);	/* pt_regs[bta..orig_r8] */
++	REG_IN_CHUNK(callee, efa, cregs);	/* callee_regs[r25..r13] */
++	REG_IGNORE_ONE(efa);			/* efa update invalid */
++	REG_IN_ONE(stop_pc, &ptregs->ret);	/* stop_pc: PC update */
++
++	return ret;
 +}
 +
-+/* Prepare the MMU for task: setup PID reg with allocated ASID
-+    If task doesn't have an ASID (never alloc or stolen, get a new ASID)
-+*/
-+static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
-+			     struct task_struct *tsk)
-+{
-+	/* PGD cached in MMU reg to avoid 3 mem lookups: task->mm->pgd */
-+	write_aux_reg(ARC_REG_SCRATCH_DATA0, next->pgd);
++enum arc_getset {
++	REGSET_GENERAL,
++};
 +
-+	/*
-+	 * Get a new ASID if task doesn't have a valid one. Possible when
-+	 *  -task never had an ASID (fresh after fork)
-+	 *  -it's ASID was stolen - past an ASID roll-over.
-+	 *  -There's a third obscure scenario (if this task is running for the
-+	 *   first time afer an ASID rollover), where despite having a valid
-+	 *   ASID, we force a get for new ASID - see comments at top.
-+	 *
-+	 * Both the non-alloc scenario and first-use-after-rollover can be
-+	 * detected using the single condition below:  NO_ASID = 256
-+	 * while asid_cache is always a valid ASID value (0-255).
-+	 */
-+	if (next->context.asid > asid_cache) {
-+		get_new_mmu_context(next);
-+	} else {
-+		/*
-+		 * XXX: This will never happen given the chks above
-+		 * BUG_ON(next->context.asid > MAX_ASID);
-+		 */
-+		write_aux_reg(ARC_REG_PID, next->context.asid | MMU_ENABLE);
++static const struct user_regset arc_regsets[] = {
++	[REGSET_GENERAL] = {
++	       .core_note_type = NT_PRSTATUS,
++	       .n = ELF_NGREG,
++	       .size = sizeof(unsigned long),
++	       .align = sizeof(unsigned long),
++	       .get = genregs_get,
++	       .set = genregs_set,
++	}
++};
++
++static const struct user_regset_view user_arc_view = {
++	.name		= UTS_MACHINE,
++	.e_machine	= EM_ARCOMPACT,
++	.regsets	= arc_regsets,
++	.n		= ARRAY_SIZE(arc_regsets)
++};
++
++const struct user_regset_view *task_user_regset_view(struct task_struct *task)
++{
++	return &user_arc_view;
++}
+ 
+ void ptrace_disable(struct task_struct *child)
+ {
+@@ -16,11 +132,27 @@ long arch_ptrace(struct task_struct *child, long request,
+ 		 unsigned long addr, unsigned long data)
+ {
+ 	int ret = -EIO;
++
++	pr_debug("REQ=%ld: ADDR =0x%lx, DATA=0x%lx)\n", request, addr, data);
++
++	switch (request) {
++	default:
++		ret = ptrace_request(child, request, addr, data);
++		break;
 +	}
 +
-+}
-+
-+static inline void destroy_context(struct mm_struct *mm)
+ 	return ret;
+ }
+ 
++asmlinkage int syscall_trace_entry(struct pt_regs *regs)
 +{
-+	unsigned long flags;
-+
-+	local_irq_save(flags);
-+
-+	asid_mm_map[mm->context.asid] = NULL;
-+	mm->context.asid = NO_ASID;
-+
-+	local_irq_restore(flags);
++	if (tracehook_report_syscall_entry(regs))
++		return ULONG_MAX;
+ 
+-const struct user_regset_view *task_user_regset_view(struct task_struct *task)
++	return regs->r8;
 +}
 +
-+/* it seemed that deactivate_mm( ) is a reasonable place to do book-keeping
-+ * for retiring-mm. However destroy_context( ) still needs to do that because
-+ * between mm_release( ) = >deactive_mm( ) and
-+ * mmput => .. => __mmdrop( ) => destroy_context( )
-+ * there is a good chance that task gets sched-out/in, making it's ASID valid
-+ * again (this teased me for a whole day).
-+ */
-+#define deactivate_mm(tsk, mm)   do { } while (0)
-+
-+static inline void activate_mm(struct mm_struct *prev, struct mm_struct *next)
-+{
-+	write_aux_reg(ARC_REG_SCRATCH_DATA0, next->pgd);
-+
-+	/* Unconditionally get a new ASID */
-+	get_new_mmu_context(next);
-+
-+}
-+
-+#define enter_lazy_tlb(mm, tsk)
-+
-+#endif /* __ASM_ARC_MMU_CONTEXT_H */
-diff --git a/arch/arc/mm/tlb.c b/arch/arc/mm/tlb.c
-new file mode 100644
-index 0000000..f1edae2
---- /dev/null
-+++ b/arch/arc/mm/tlb.c
-@@ -0,0 +1,23 @@
-+/*
-+ * TLB Management (flush/create/diagnostics) for ARC700
-+ *
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#include <linux/module.h>
-+#include <asm/arcregs.h>
-+#include <asm/mmu_context.h>
-+#include <asm/tlb.h>
-+
-+/* A copy of the ASID from the PID reg is kept in asid_cache */
-+int asid_cache = FIRST_ASID;
-+
-+/* ASID to mm struct mapping. We have one extra entry corresponding to
-+ * NO_ASID to save us a compare when clearing the mm entry for old asid
-+ * see get_new_mmu_context (asm-arc/mmu_context.h)
-+ */
-+struct mm_struct *asid_mm_map[NUM_ASID + 1];
++asmlinkage void syscall_trace_exit(struct pt_regs *regs)
+ {
+-	return (const struct user_regset_view *)NULL;
++	tracehook_report_syscall_exit(regs, 0);
+ }
 -- 
 1.7.4.1
