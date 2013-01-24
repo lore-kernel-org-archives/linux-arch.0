@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hermes.synopsys.com ([198.182.44.81]:34144 "EHLO
-	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753837Ab3AXLKp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jan 2013 06:10:45 -0500
+Received: from us02smtp2.synopsys.com ([198.182.60.77]:42864 "EHLO
+	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753547Ab3AXLJ1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jan 2013 06:09:27 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v3 13/71] ARC: String library
-Date: Thu, 24 Jan 2013 16:35:53 +0530
-Message-ID: <1359025589-22277-10-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v3 25/71] ARC: MMU Context Management
+Date: Thu, 24 Jan 2013 16:35:58 +0530
+Message-ID: <1359025589-22277-15-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1359025589-22277-1-git-send-email-vgupta@synopsys.com>
 References: <1359025589-22277-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
@@ -14,39 +14,81 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Joern Rennecke <joern.rennecke@embecosm.com>
-Message-ID: <20130124110553.R9sl_mLOiRt_1h2j4fLGNG87uwyFL17M_jPJ5Fmryfk@z>
+Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <20130124110558.PfFr7u88uvqFkXXAUCSA72P5u3F5Bj53pRE74eKu7Ek@z>
 
-Hand optimised asm code for ARC700 pipeline.
-Originally written/optimized by Joern Rennecke
+ARC700 MMU provides for tagging TLB entries with a 8-bit ASID to avoid
+having to flush the TLB every task switch.
+
+It also allows for a quick way to invalidate all the TLB entries for
+task useful for:
+* COW sementics during fork()
+* task exit()ing
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-Cc: Joern Rennecke <joern.rennecke@embecosm.com>
 ---
- arch/arc/include/asm/string.h |   40 +++++++++++++
- arch/arc/lib/memcmp.S         |  124 +++++++++++++++++++++++++++++++++++++++++
- arch/arc/lib/memcpy-700.S     |   66 ++++++++++++++++++++++
- arch/arc/lib/memset.S         |   59 +++++++++++++++++++
- arch/arc/lib/strchr-700.S     |  123 ++++++++++++++++++++++++++++++++++++++++
- arch/arc/lib/strcmp.S         |   96 +++++++++++++++++++++++++++++++
- arch/arc/lib/strcpy-700.S     |   70 +++++++++++++++++++++++
- arch/arc/lib/strlen.S         |   83 +++++++++++++++++++++++++++
- 8 files changed, 661 insertions(+), 0 deletions(-)
- create mode 100644 arch/arc/include/asm/string.h
- create mode 100644 arch/arc/lib/memcmp.S
- create mode 100644 arch/arc/lib/memcpy-700.S
- create mode 100644 arch/arc/lib/memset.S
- create mode 100644 arch/arc/lib/strchr-700.S
- create mode 100644 arch/arc/lib/strcmp.S
- create mode 100644 arch/arc/lib/strcpy-700.S
- create mode 100644 arch/arc/lib/strlen.S
+ arch/arc/include/asm/arcregs.h     |    7 ++
+ arch/arc/include/asm/mmu.h         |   23 ++++
+ arch/arc/include/asm/mmu_context.h |  209 ++++++++++++++++++++++++++++++++++++
+ arch/arc/mm/tlb.c                  |   23 ++++
+ 4 files changed, 262 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arc/include/asm/mmu.h
+ create mode 100644 arch/arc/include/asm/mmu_context.h
+ create mode 100644 arch/arc/mm/tlb.c
 
-diff --git a/arch/arc/include/asm/string.h b/arch/arc/include/asm/string.h
+diff --git a/arch/arc/include/asm/arcregs.h b/arch/arc/include/asm/arcregs.h
+index c6e2805..c12eb9b 100644
+--- a/arch/arc/include/asm/arcregs.h
++++ b/arch/arc/include/asm/arcregs.h
+@@ -85,6 +85,13 @@
+ #define DC_CTRL_INV_MODE_FLUSH  0x40
+ #define DC_CTRL_FLUSH_STATUS    0x100
+ 
++/* MMU Management regs */
++#define ARC_REG_PID		0x409
++#define ARC_REG_SCRATCH_DATA0	0x418
++
++/* Bits in MMU PID register */
++#define MMU_ENABLE		(1 << 31)	/* Enable MMU for process */
++
+ /*
+  * Floating Pt Registers
+  * Status regs are read-only (build-time) so need not be saved/restored
+diff --git a/arch/arc/include/asm/mmu.h b/arch/arc/include/asm/mmu.h
 new file mode 100644
-index 0000000..87676c8
+index 0000000..56b0232
 --- /dev/null
-+++ b/arch/arc/include/asm/string.h
-@@ -0,0 +1,40 @@
++++ b/arch/arc/include/asm/mmu.h
+@@ -0,0 +1,23 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#ifndef _ASM_ARC_MMU_H
++#define _ASM_ARC_MMU_H
++
++#ifndef __ASSEMBLY__
++
++typedef struct {
++	unsigned long asid;	/* Pvt Addr-Space ID for mm */
++#ifdef CONFIG_ARC_TLB_DBG
++	struct task_struct *tsk;
++#endif
++} mm_context_t;
++
++#endif
++
++#endif
+diff --git a/arch/arc/include/asm/mmu_context.h b/arch/arc/include/asm/mmu_context.h
+new file mode 100644
+index 0000000..d12f3de
+--- /dev/null
++++ b/arch/arc/include/asm/mmu_context.h
+@@ -0,0 +1,209 @@
 +/*
 + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
 + *
@@ -55,441 +97,216 @@ index 0000000..87676c8
 + * published by the Free Software Foundation.
 + *
 + * vineetg: May 2011
-+ *  -We had half-optimised memset/memcpy, got better versions of those
-+ *  -Added memcmp, strchr, strcpy, strcmp, strlen
++ *  -Refactored get_new_mmu_context( ) to only handle live-mm.
++ *   retiring-mm handled in other hooks
 + *
-+ * Amit Bhor: Codito Technologies 2004
++ * Vineetg: March 25th, 2008: Bug #92690
++ *  -Major rewrite of Core ASID allocation routine get_new_mmu_context
++ *
++ * Amit Bhor, Sameer Dhavale: Codito Technologies 2004
 + */
 +
-+#ifndef _ASM_ARC_STRING_H
-+#define _ASM_ARC_STRING_H
++#ifndef _ASM_ARC_MMU_CONTEXT_H
++#define _ASM_ARC_MMU_CONTEXT_H
 +
-+#include <linux/types.h>
++#include <asm/arcregs.h>
++#include <asm/tlb.h>
 +
-+#ifdef __KERNEL__
++#include <asm-generic/mm_hooks.h>
 +
-+#define __HAVE_ARCH_MEMSET
-+#define __HAVE_ARCH_MEMCPY
-+#define __HAVE_ARCH_MEMCMP
-+#define __HAVE_ARCH_STRCHR
-+#define __HAVE_ARCH_STRCPY
-+#define __HAVE_ARCH_STRCMP
-+#define __HAVE_ARCH_STRLEN
++/*		ARC700 ASID Management
++ *
++ * ARC MMU provides 8-bit ASID (0..255) to TAG TLB entries, allowing entries
++ * with same vaddr (different tasks) to co-exit. This provides for
++ * "Fast Context Switch" i.e. no TLB flush on ctxt-switch
++ *
++ * Linux assigns each task a unique ASID. A simple round-robin allocation
++ * of H/w ASID is done using software tracker @asid_cache.
++ * When it reaches max 255, the allocation cycle starts afresh by flushing
++ * the entire TLB and wrapping ASID back to zero.
++ *
++ * For book-keeping, Linux uses a couple of data-structures:
++ *  -mm_struct has an @asid field to keep a note of task's ASID (needed at the
++ *   time of say switch_mm( )
++ *  -An array of mm structs @asid_mm_map[] for asid->mm the reverse mapping,
++ *  given an ASID, finding the mm struct associated.
++ *
++ * The round-robin allocation algorithm allows for ASID stealing.
++ * If asid tracker is at "x-1", a new req will allocate "x", even if "x" was
++ * already assigned to another (switched-out) task. Obviously the prev owner
++ * is marked with an invalid ASID to make it request for a new ASID when it
++ * gets scheduled next time. However its TLB entries (with ASID "x") could
++ * exist, which must be cleared before the same ASID is used by the new owner.
++ * Flushing them would be plausible but costly solution. Instead we force a
++ * allocation policy quirk, which ensures that a stolen ASID won't have any
++ * TLB entries associates, alleviating the need to flush.
++ * The quirk essentially is not allowing ASID allocated in prev cycle
++ * to be used past a roll-over in the next cycle.
++ * When this happens (i.e. task ASID > asid tracker), task needs to refresh
++ * its ASID, aligning it to current value of tracker. If the task doesn't get
++ * scheduled past a roll-over, hence its ASID is not yet realigned with
++ * tracker, such ASID is anyways safely reusable because it is
++ * gauranteed that TLB entries with that ASID wont exist.
++ */
 +
-+extern void *memset(void *ptr, int, __kernel_size_t);
-+extern void *memcpy(void *, const void *, __kernel_size_t);
-+extern void memzero(void *ptr, __kernel_size_t n);
-+extern int memcmp(const void *, const void *, __kernel_size_t);
-+extern char *strchr(const char *s, int c);
-+extern char *strcpy(char *dest, const char *src);
-+extern int strcmp(const char *cs, const char *ct);
-+extern __kernel_size_t strlen(const char *);
++#define FIRST_ASID  0
++#define MAX_ASID    255			/* 8 bit PID field in PID Aux reg */
++#define NO_ASID     (MAX_ASID + 1)	/* ASID Not alloc to mmu ctxt */
++#define NUM_ASID    ((MAX_ASID - FIRST_ASID) + 1)
 +
-+#endif /* __KERNEL__ */
-+#endif /* _ASM_ARC_STRING_H */
-diff --git a/arch/arc/lib/memcmp.S b/arch/arc/lib/memcmp.S
-new file mode 100644
-index 0000000..bc813d5
---- /dev/null
-+++ b/arch/arc/lib/memcmp.S
-@@ -0,0 +1,124 @@
++/* ASID to mm struct mapping */
++extern struct mm_struct *asid_mm_map[NUM_ASID + 1];
++
++extern int asid_cache;
++
 +/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
++ * Assign a new ASID to task. If the task already has an ASID, it is
++ * relinquished.
 + */
++static inline void get_new_mmu_context(struct mm_struct *mm)
++{
++	struct mm_struct *prev_owner;
++	unsigned long flags;
 +
-+#include <asm/linkage.h>
++	local_irq_save(flags);
 +
-+#ifdef __LITTLE_ENDIAN__
-+#define WORD2 r2
-+#define SHIFT r3
-+#else /* BIG ENDIAN */
-+#define WORD2 r3
-+#define SHIFT r2
++	/*
++	 * Relinquish the currently owned ASID (if any).
++	 * Doing unconditionally saves a cmp-n-branch; for already unused
++	 * ASID slot, the value was/remains NULL
++	 */
++	asid_mm_map[mm->context.asid] = (struct mm_struct *)NULL;
++
++	/* move to new ASID */
++	if (++asid_cache > MAX_ASID) {	/* ASID roll-over */
++		asid_cache = FIRST_ASID;
++		flush_tlb_all();
++	}
++
++	/*
++	 * Is next ASID already owned by some-one else (we are stealing it).
++	 * If so, let the orig owner be aware of this, so when it runs, it
++	 * asks for a brand new ASID. This would only happen for a long-lived
++	 * task with ASID from prev allocation cycle (before ASID roll-over).
++	 *
++	 * This might look wrong - if we are re-using some other task's ASID,
++	 * won't we use it's stale TLB entries too. Actually switch_mm( ) takes
++	 * care of such a case: it ensures that task with ASID from prev alloc
++	 * cycle, when scheduled will refresh it's ASID: see switch_mm( ) below
++	 * The stealing scenario described here will only happen if that task
++	 * didn't get a chance to refresh it's ASID - implying stale entries
++	 * won't exist.
++	 */
++	prev_owner = asid_mm_map[asid_cache];
++	if (prev_owner)
++		prev_owner->context.asid = NO_ASID;
++
++	/* Assign new ASID to tsk */
++	asid_mm_map[asid_cache] = mm;
++	mm->context.asid = asid_cache;
++
++#ifdef CONFIG_ARC_TLB_DBG
++	pr_info("ARC_TLB_DBG: NewMM=0x%x OldMM=0x%x task_struct=0x%x Task: %s,"
++	       " pid:%u, assigned asid:%lu\n",
++	       (unsigned int)mm, (unsigned int)prev_owner,
++	       (unsigned int)(mm->context.tsk), (mm->context.tsk)->comm,
++	       (mm->context.tsk)->pid, mm->context.asid);
 +#endif
 +
-+ARC_ENTRY memcmp
-+	or	r12,r0,r1
-+	asl_s	r12,r12,30
-+	sub	r3,r2,1
-+	brls	r2,r12,.Lbytewise
-+	ld	r4,[r0,0]
-+	ld	r5,[r1,0]
-+	lsr.f	lp_count,r3,3
-+	lpne	.Loop_end
-+	ld_s	WORD2,[r0,4]
-+	ld_s	r12,[r1,4]
-+	brne	r4,r5,.Leven
-+	ld.a	r4,[r0,8]
-+	ld.a	r5,[r1,8]
-+	brne	WORD2,r12,.Lodd
-+.Loop_end:
-+	asl_s	SHIFT,SHIFT,3
-+	bhs_s	.Last_cmp
-+	brne	r4,r5,.Leven
-+	ld	r4,[r0,4]
-+	ld	r5,[r1,4]
-+#ifdef __LITTLE_ENDIAN__
-+	nop_s
-+	; one more load latency cycle
-+.Last_cmp:
-+	xor	r0,r4,r5
-+	bset	r0,r0,SHIFT
-+	sub_s	r1,r0,1
-+	bic_s	r1,r1,r0
-+	norm	r1,r1
-+	b.d	.Leven_cmp
-+	and	r1,r1,24
-+.Leven:
-+	xor	r0,r4,r5
-+	sub_s	r1,r0,1
-+	bic_s	r1,r1,r0
-+	norm	r1,r1
-+	; slow track insn
-+	and	r1,r1,24
-+.Leven_cmp:
-+	asl	r2,r4,r1
-+	asl	r12,r5,r1
-+	lsr_s	r2,r2,1
-+	lsr_s	r12,r12,1
-+	j_s.d	[blink]
-+	sub	r0,r2,r12
-+	.balign	4
-+.Lodd:
-+	xor	r0,WORD2,r12
-+	sub_s	r1,r0,1
-+	bic_s	r1,r1,r0
-+	norm	r1,r1
-+	; slow track insn
-+	and	r1,r1,24
-+	asl_s	r2,r2,r1
-+	asl_s	r12,r12,r1
-+	lsr_s	r2,r2,1
-+	lsr_s	r12,r12,1
-+	j_s.d	[blink]
-+	sub	r0,r2,r12
-+#else /* BIG ENDIAN */
-+.Last_cmp:
-+	neg_s	SHIFT,SHIFT
-+	lsr	r4,r4,SHIFT
-+	lsr	r5,r5,SHIFT
-+	; slow track insn
-+.Leven:
-+	sub.f	r0,r4,r5
-+	mov.ne	r0,1
-+	j_s.d	[blink]
-+	bset.cs	r0,r0,31
-+.Lodd:
-+	cmp_s	WORD2,r12
++	write_aux_reg(ARC_REG_PID, asid_cache | MMU_ENABLE);
 +
-+	mov_s	r0,1
-+	j_s.d	[blink]
-+	bset.cs	r0,r0,31
-+#endif /* ENDIAN */
-+	.balign	4
-+.Lbytewise:
-+	breq	r2,0,.Lnil
-+	ldb	r4,[r0,0]
-+	ldb	r5,[r1,0]
-+	lsr.f	lp_count,r3
-+	lpne	.Lbyte_end
-+	ldb_s	r3,[r0,1]
-+	ldb	r12,[r1,1]
-+	brne	r4,r5,.Lbyte_even
-+	ldb.a	r4,[r0,2]
-+	ldb.a	r5,[r1,2]
-+	brne	r3,r12,.Lbyte_odd
-+.Lbyte_end:
-+	bcc	.Lbyte_even
-+	brne	r4,r5,.Lbyte_even
-+	ldb_s	r3,[r0,1]
-+	ldb_s	r12,[r1,1]
-+.Lbyte_odd:
-+	j_s.d	[blink]
-+	sub	r0,r3,r12
-+.Lbyte_even:
-+	j_s.d	[blink]
-+	sub	r0,r4,r5
-+.Lnil:
-+	j_s.d	[blink]
-+	mov	r0,0
-+ARC_EXIT memcmp
-diff --git a/arch/arc/lib/memcpy-700.S b/arch/arc/lib/memcpy-700.S
-new file mode 100644
-index 0000000..b64cc10
---- /dev/null
-+++ b/arch/arc/lib/memcpy-700.S
-@@ -0,0 +1,66 @@
++	local_irq_restore(flags);
++}
++
 +/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
++ * Initialize the context related info for a new mm_struct
++ * instance.
 + */
-+
-+#include <asm/linkage.h>
-+
-+ARC_ENTRY memcpy
-+	or	r3,r0,r1
-+	asl_s	r3,r3,30
-+	mov_s	r5,r0
-+	brls.d	r2,r3,.Lcopy_bytewise
-+	sub.f	r3,r2,1
-+	ld_s	r12,[r1,0]
-+	asr.f	lp_count,r3,3
-+	bbit0.d	r3,2,.Lnox4
-+	bmsk_s	r2,r2,1
-+	st.ab	r12,[r5,4]
-+	ld.a	r12,[r1,4]
-+.Lnox4:
-+	lppnz	.Lendloop
-+	ld_s	r3,[r1,4]
-+	st.ab	r12,[r5,4]
-+	ld.a	r12,[r1,8]
-+	st.ab	r3,[r5,4]
-+.Lendloop:
-+	breq	r2,0,.Last_store
-+	ld	r3,[r5,0]
-+#ifdef __LITTLE_ENDIAN__
-+	add3	r2,-1,r2
-+	; uses long immediate
-+	xor_s	r12,r12,r3
-+	bmsk	r12,r12,r2
-+    xor_s	r12,r12,r3
-+#else /* BIG ENDIAN */
-+	sub3	r2,31,r2
-+	; uses long immediate
-+        xor_s	r3,r3,r12
-+        bmsk	r3,r3,r2
-+        xor_s	r12,r12,r3
-+#endif /* ENDIAN */
-+.Last_store:
-+	j_s.d	[blink]
-+	st	r12,[r5,0]
-+
-+	.balign	4
-+.Lcopy_bytewise:
-+	jcs	[blink]
-+	ldb_s	r12,[r1,0]
-+	lsr.f	lp_count,r3
-+	bhs_s	.Lnox1
-+	stb.ab	r12,[r5,1]
-+	ldb.a	r12,[r1,1]
-+.Lnox1:
-+	lppnz	.Lendbloop
-+	ldb_s	r3,[r1,1]
-+	stb.ab	r12,[r5,1]
-+	ldb.a	r12,[r1,2]
-+	stb.ab	r3,[r5,1]
-+.Lendbloop:
-+	j_s.d	[blink]
-+	stb	r12,[r5,0]
-+ARC_EXIT memcpy
-diff --git a/arch/arc/lib/memset.S b/arch/arc/lib/memset.S
-new file mode 100644
-index 0000000..9b2d88d
---- /dev/null
-+++ b/arch/arc/lib/memset.S
-@@ -0,0 +1,59 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#include <asm/linkage.h>
-+
-+#define SMALL	7 /* Must be at least 6 to deal with alignment/loop issues.  */
-+
-+ARC_ENTRY memset
-+	mov_s	r4,r0
-+	or	r12,r0,r2
-+	bmsk.f	r12,r12,1
-+	extb_s	r1,r1
-+	asl	r3,r1,8
-+	beq.d	.Laligned
-+	or_s	r1,r1,r3
-+	brls	r2,SMALL,.Ltiny
-+	add	r3,r2,r0
-+	stb	r1,[r3,-1]
-+	bclr_s	r3,r3,0
-+	stw	r1,[r3,-2]
-+	bmsk.f	r12,r0,1
-+	add_s	r2,r2,r12
-+	sub.ne	r2,r2,4
-+	stb.ab	r1,[r4,1]
-+	and	r4,r4,-2
-+	stw.ab	r1,[r4,2]
-+	and	r4,r4,-4
-+.Laligned:	; This code address should be aligned for speed.
-+	asl	r3,r1,16
-+	lsr.f	lp_count,r2,2
-+	or_s	r1,r1,r3
-+	lpne	.Loop_end
-+	st.ab	r1,[r4,4]
-+.Loop_end:
-+	j_s	[blink]
-+
-+	.balign	4
-+.Ltiny:
-+	mov.f	lp_count,r2
-+	lpne	.Ltiny_end
-+	stb.ab	r1,[r4,1]
-+.Ltiny_end:
-+	j_s	[blink]
-+ARC_EXIT memset
-+
-+; memzero: @r0 = mem, @r1 = size_t
-+; memset:  @r0 = mem, @r1 = char, @r2 = size_t
-+
-+ARC_ENTRY memzero
-+    ; adjust bzero args to memset args
-+    mov r2, r1
-+    mov r1, 0
-+    b  memset    ;tail call so need to tinker with blink
-+ARC_EXIT memzero
-diff --git a/arch/arc/lib/strchr-700.S b/arch/arc/lib/strchr-700.S
-new file mode 100644
-index 0000000..99c1047
---- /dev/null
-+++ b/arch/arc/lib/strchr-700.S
-@@ -0,0 +1,123 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+/* ARC700 has a relatively long pipeline and branch prediction, so we want
-+   to avoid branches that are hard to predict.  On the other hand, the
-+   presence of the norm instruction makes it easier to operate on whole
-+   words branch-free.  */
-+
-+#include <asm/linkage.h>
-+
-+ARC_ENTRY strchr
-+	extb_s	r1,r1
-+	asl	r5,r1,8
-+	bmsk	r2,r0,1
-+	or	r5,r5,r1
-+	mov_s	r3,0x01010101
-+	breq.d	r2,r0,.Laligned
-+	asl	r4,r5,16
-+	sub_s	r0,r0,r2
-+	asl	r7,r2,3
-+	ld_s	r2,[r0]
-+#ifdef __LITTLE_ENDIAN__
-+	asl	r7,r3,r7
-+#else
-+	lsr	r7,r3,r7
++static inline int
++init_new_context(struct task_struct *tsk, struct mm_struct *mm)
++{
++	mm->context.asid = NO_ASID;
++#ifdef CONFIG_ARC_TLB_DBG
++	mm->context.tsk = tsk;
 +#endif
-+	or	r5,r5,r4
-+	ror	r4,r3
-+	sub	r12,r2,r7
-+	bic_s	r12,r12,r2
-+	and	r12,r12,r4
-+	brne.d	r12,0,.Lfound0_ua
-+	xor	r6,r2,r5
-+	ld.a	r2,[r0,4]
-+	sub	r12,r6,r7
-+	bic	r12,r12,r6
-+	and	r7,r12,r4
-+	breq	r7,0,.Loop ; For speed, we want this branch to be unaligned.
-+	b	.Lfound_char ; Likewise this one.
-+; /* We require this code address to be unaligned for speed...  */
-+.Laligned:
-+	ld_s	r2,[r0]
-+	or	r5,r5,r4
-+	ror	r4,r3
-+; /* ... so that this code address is aligned, for itself and ...  */
-+.Loop:
-+	sub	r12,r2,r3
-+	bic_s	r12,r12,r2
-+	and	r12,r12,r4
-+	brne.d	r12,0,.Lfound0
-+	xor	r6,r2,r5
-+	ld.a	r2,[r0,4]
-+	sub	r12,r6,r3
-+	bic	r12,r12,r6
-+	and	r7,r12,r4
-+	breq	r7,0,.Loop /* ... so that this branch is unaligned.  */
-+	; Found searched-for character.  r0 has already advanced to next word.
-+#ifdef __LITTLE_ENDIAN__
-+/* We only need the information about the first matching byte
-+   (i.e. the least significant matching byte) to be exact,
-+   hence there is no problem with carry effects.  */
-+.Lfound_char:
-+	sub	r3,r7,1
-+	bic	r3,r3,r7
-+	norm	r2,r3
-+	sub_s	r0,r0,1
-+	asr_s	r2,r2,3
-+	j.d	[blink]
-+	sub_s	r0,r0,r2
++	return 0;
++}
 +
-+	.balign	4
-+.Lfound0_ua:
-+	mov	r3,r7
-+.Lfound0:
-+	sub	r3,r6,r3
-+	bic	r3,r3,r6
-+	and	r2,r3,r4
-+	or_s	r12,r12,r2
-+	sub_s	r3,r12,1
-+	bic_s	r3,r3,r12
-+	norm	r3,r3
-+	add_s	r0,r0,3
-+	asr_s	r12,r3,3
-+	asl.f	0,r2,r3
-+	sub_s	r0,r0,r12
-+	j_s.d	[blink]
-+	mov.pl	r0,0
-+#else /* BIG ENDIAN */
-+.Lfound_char:
-+	lsr	r7,r7,7
++/* Prepare the MMU for task: setup PID reg with allocated ASID
++    If task doesn't have an ASID (never alloc or stolen, get a new ASID)
++*/
++static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
++			     struct task_struct *tsk)
++{
++	/* PGD cached in MMU reg to avoid 3 mem lookups: task->mm->pgd */
++	write_aux_reg(ARC_REG_SCRATCH_DATA0, next->pgd);
 +
-+	bic	r2,r7,r6
-+	norm	r2,r2
-+	sub_s	r0,r0,4
-+	asr_s	r2,r2,3
-+	j.d	[blink]
-+	add_s	r0,r0,r2
++	/*
++	 * Get a new ASID if task doesn't have a valid one. Possible when
++	 *  -task never had an ASID (fresh after fork)
++	 *  -it's ASID was stolen - past an ASID roll-over.
++	 *  -There's a third obscure scenario (if this task is running for the
++	 *   first time afer an ASID rollover), where despite having a valid
++	 *   ASID, we force a get for new ASID - see comments at top.
++	 *
++	 * Both the non-alloc scenario and first-use-after-rollover can be
++	 * detected using the single condition below:  NO_ASID = 256
++	 * while asid_cache is always a valid ASID value (0-255).
++	 */
++	if (next->context.asid > asid_cache) {
++		get_new_mmu_context(next);
++	} else {
++		/*
++		 * XXX: This will never happen given the chks above
++		 * BUG_ON(next->context.asid > MAX_ASID);
++		 */
++		write_aux_reg(ARC_REG_PID, next->context.asid | MMU_ENABLE);
++	}
 +
-+.Lfound0_ua:
-+	mov_s	r3,r7
-+.Lfound0:
-+	asl_s	r2,r2,7
-+	or	r7,r6,r4
-+	bic_s	r12,r12,r2
-+	sub	r2,r7,r3
-+	or	r2,r2,r6
-+	bic	r12,r2,r12
-+	bic.f	r3,r4,r12
-+	norm	r3,r3
++}
 +
-+	add.pl	r3,r3,1
-+	asr_s	r12,r3,3
-+	asl.f	0,r2,r3
-+	add_s	r0,r0,r12
-+	j_s.d	[blink]
-+	mov.mi	r0,0
-+#endif /* ENDIAN */
-+ARC_EXIT strchr
-diff --git a/arch/arc/lib/strcmp.S b/arch/arc/lib/strcmp.S
++static inline void destroy_context(struct mm_struct *mm)
++{
++	unsigned long flags;
++
++	local_irq_save(flags);
++
++	asid_mm_map[mm->context.asid] = NULL;
++	mm->context.asid = NO_ASID;
++
++	local_irq_restore(flags);
++}
++
++/* it seemed that deactivate_mm( ) is a reasonable place to do book-keeping
++ * for retiring-mm. However destroy_context( ) still needs to do that because
++ * between mm_release( ) = >deactive_mm( ) and
++ * mmput => .. => __mmdrop( ) => destroy_context( )
++ * there is a good chance that task gets sched-out/in, making it's ASID valid
++ * again (this teased me for a whole day).
++ */
++#define deactivate_mm(tsk, mm)   do { } while (0)
++
++static inline void activate_mm(struct mm_struct *prev, struct mm_struct *next)
++{
++	write_aux_reg(ARC_REG_SCRATCH_DATA0, next->pgd);
++
++	/* Unconditionally get a new ASID */
++	get_new_mmu_context(next);
++
++}
++
++#define enter_lazy_tlb(mm, tsk)
++
++#endif /* __ASM_ARC_MMU_CONTEXT_H */
+diff --git a/arch/arc/mm/tlb.c b/arch/arc/mm/tlb.c
 new file mode 100644
-index 0000000..5dc802b
+index 0000000..f1edae2
 --- /dev/null
-+++ b/arch/arc/lib/strcmp.S
-@@ -0,0 +1,96 @@
++++ b/arch/arc/mm/tlb.c
+@@ -0,0 +1,23 @@
 +/*
++ * TLB Management (flush/create/diagnostics) for ARC700
++ *
 + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -497,259 +314,19 @@ index 0000000..5dc802b
 + * published by the Free Software Foundation.
 + */
 +
-+/* This is optimized primarily for the ARC700.
-+   It would be possible to speed up the loops by one cycle / word
-+   respective one cycle / byte by forcing double source 1 alignment, unrolling
-+   by a factor of two, and speculatively loading the second word / byte of
-+   source 1; however, that would increase the overhead for loop setup / finish,
-+   and strcmp might often terminate early.  */
++#include <linux/module.h>
++#include <asm/arcregs.h>
++#include <asm/mmu_context.h>
++#include <asm/tlb.h>
 +
-+#include <asm/linkage.h>
++/* A copy of the ASID from the PID reg is kept in asid_cache */
++int asid_cache = FIRST_ASID;
 +
-+ARC_ENTRY strcmp
-+	or	r2,r0,r1
-+	bmsk_s	r2,r2,1
-+	brne	r2,0,.Lcharloop
-+	mov_s	r12,0x01010101
-+	ror	r5,r12
-+.Lwordloop:
-+	ld.ab	r2,[r0,4]
-+	ld.ab	r3,[r1,4]
-+	nop_s
-+	sub	r4,r2,r12
-+	bic	r4,r4,r2
-+	and	r4,r4,r5
-+	brne	r4,0,.Lfound0
-+	breq	r2,r3,.Lwordloop
-+#ifdef	__LITTLE_ENDIAN__
-+	xor	r0,r2,r3	; mask for difference
-+	sub_s	r1,r0,1
-+	bic_s	r0,r0,r1	; mask for least significant difference bit
-+	sub	r1,r5,r0
-+	xor	r0,r5,r1	; mask for least significant difference byte
-+	and_s	r2,r2,r0
-+	and_s	r3,r3,r0
-+#endif /* LITTLE ENDIAN */
-+	cmp_s	r2,r3
-+	mov_s	r0,1
-+	j_s.d	[blink]
-+	bset.lo	r0,r0,31
-+
-+	.balign	4
-+#ifdef __LITTLE_ENDIAN__
-+.Lfound0:
-+	xor	r0,r2,r3	; mask for difference
-+	or	r0,r0,r4	; or in zero indicator
-+	sub_s	r1,r0,1
-+	bic_s	r0,r0,r1	; mask for least significant difference bit
-+	sub	r1,r5,r0
-+	xor	r0,r5,r1	; mask for least significant difference byte
-+	and_s	r2,r2,r0
-+	and_s	r3,r3,r0
-+	sub.f	r0,r2,r3
-+	mov.hi	r0,1
-+	j_s.d	[blink]
-+	bset.lo	r0,r0,31
-+#else /* BIG ENDIAN */
-+	/* The zero-detection above can mis-detect 0x01 bytes as zeroes
-+	   because of carry-propagateion from a lower significant zero byte.
-+	   We can compensate for this by checking that bit0 is zero.
-+	   This compensation is not necessary in the step where we
-+	   get a low estimate for r2, because in any affected bytes
-+	   we already have 0x00 or 0x01, which will remain unchanged
-+	   when bit 7 is cleared.  */
-+	.balign	4
-+.Lfound0:
-+	lsr	r0,r4,8
-+	lsr_s	r1,r2
-+	bic_s	r2,r2,r0	; get low estimate for r2 and get ...
-+	bic_s	r0,r0,r1	; <this is the adjusted mask for zeros>
-+	or_s	r3,r3,r0	; ... high estimate r3 so that r2 > r3 will ...
-+	cmp_s	r3,r2		; ... be independent of trailing garbage
-+	or_s	r2,r2,r0	; likewise for r3 > r2
-+	bic_s	r3,r3,r0
-+	rlc	r0,0		; r0 := r2 > r3 ? 1 : 0
-+	cmp_s	r2,r3
-+	j_s.d	[blink]
-+	bset.lo	r0,r0,31
-+#endif /* ENDIAN */
-+
-+	.balign	4
-+.Lcharloop:
-+	ldb.ab	r2,[r0,1]
-+	ldb.ab	r3,[r1,1]
-+	nop_s
-+	breq	r2,0,.Lcmpend
-+	breq	r2,r3,.Lcharloop
-+.Lcmpend:
-+	j_s.d	[blink]
-+	sub	r0,r2,r3
-+ARC_EXIT strcmp
-diff --git a/arch/arc/lib/strcpy-700.S b/arch/arc/lib/strcpy-700.S
-new file mode 100644
-index 0000000..b7ca4ae
---- /dev/null
-+++ b/arch/arc/lib/strcpy-700.S
-@@ -0,0 +1,70 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
++/* ASID to mm struct mapping. We have one extra entry corresponding to
++ * NO_ASID to save us a compare when clearing the mm entry for old asid
++ * see get_new_mmu_context (asm-arc/mmu_context.h)
 + */
-+
-+/* If dst and src are 4 byte aligned, copy 8 bytes at a time.
-+   If the src is 4, but not 8 byte aligned, we first read 4 bytes to get
-+   it 8 byte aligned.  Thus, we can do a little read-ahead, without
-+   dereferencing a cache line that we should not touch.
-+   Note that short and long instructions have been scheduled to avoid
-+   branch stalls.
-+   The beq_s to r3z could be made unaligned & long to avoid a stall
-+   there, but the it is not likely to be taken often, and it
-+   would also be likey to cost an unaligned mispredict at the next call.  */
-+
-+#include <asm/linkage.h>
-+
-+ARC_ENTRY strcpy
-+	or	r2,r0,r1
-+	bmsk_s	r2,r2,1
-+	brne.d	r2,0,charloop
-+	mov_s	r10,r0
-+	ld_s	r3,[r1,0]
-+	mov	r8,0x01010101
-+	bbit0.d	r1,2,loop_start
-+	ror	r12,r8
-+	sub	r2,r3,r8
-+	bic_s	r2,r2,r3
-+	tst_s	r2,r12
-+	bne	r3z
-+	mov_s	r4,r3
-+	.balign 4
-+loop:
-+	ld.a	r3,[r1,4]
-+	st.ab	r4,[r10,4]
-+loop_start:
-+	ld.a	r4,[r1,4]
-+	sub	r2,r3,r8
-+	bic_s	r2,r2,r3
-+	tst_s	r2,r12
-+	bne_s	r3z
-+	st.ab	r3,[r10,4]
-+	sub	r2,r4,r8
-+	bic	r2,r2,r4
-+	tst	r2,r12
-+	beq	loop
-+	mov_s	r3,r4
-+#ifdef __LITTLE_ENDIAN__
-+r3z:	bmsk.f	r1,r3,7
-+	lsr_s	r3,r3,8
-+#else
-+r3z:	lsr.f	r1,r3,24
-+	asl_s	r3,r3,8
-+#endif
-+	bne.d	r3z
-+	stb.ab	r1,[r10,1]
-+	j_s	[blink]
-+
-+	.balign	4
-+charloop:
-+	ldb.ab	r3,[r1,1]
-+
-+
-+	brne.d	r3,0,charloop
-+	stb.ab	r3,[r10,1]
-+	j	[blink]
-+ARC_EXIT strcpy
-diff --git a/arch/arc/lib/strlen.S b/arch/arc/lib/strlen.S
-new file mode 100644
-index 0000000..39759e0
---- /dev/null
-+++ b/arch/arc/lib/strlen.S
-@@ -0,0 +1,83 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#include <asm/linkage.h>
-+
-+ARC_ENTRY strlen
-+	or	r3,r0,7
-+	ld	r2,[r3,-7]
-+	ld.a	r6,[r3,-3]
-+	mov	r4,0x01010101
-+	; uses long immediate
-+#ifdef __LITTLE_ENDIAN__
-+	asl_s	r1,r0,3
-+	btst_s	r0,2
-+	asl	r7,r4,r1
-+	ror	r5,r4
-+	sub	r1,r2,r7
-+	bic_s	r1,r1,r2
-+	mov.eq	r7,r4
-+	sub	r12,r6,r7
-+	bic	r12,r12,r6
-+	or.eq	r12,r12,r1
-+	and	r12,r12,r5
-+	brne	r12,0,.Learly_end
-+#else /* BIG ENDIAN */
-+	ror	r5,r4
-+	btst_s	r0,2
-+	mov_s	r1,31
-+	sub3	r7,r1,r0
-+	sub	r1,r2,r4
-+	bic_s	r1,r1,r2
-+	bmsk	r1,r1,r7
-+	sub	r12,r6,r4
-+	bic	r12,r12,r6
-+	bmsk.ne	r12,r12,r7
-+	or.eq	r12,r12,r1
-+	and	r12,r12,r5
-+	brne	r12,0,.Learly_end
-+#endif /* ENDIAN */
-+
-+.Loop:
-+	ld_s	r2,[r3,4]
-+	ld.a	r6,[r3,8]
-+	; stall for load result
-+	sub	r1,r2,r4
-+	bic_s	r1,r1,r2
-+	sub	r12,r6,r4
-+	bic	r12,r12,r6
-+	or	r12,r12,r1
-+	and	r12,r12,r5
-+	breq r12,0,.Loop
-+.Lend:
-+	and.f	r1,r1,r5
-+	sub.ne	r3,r3,4
-+	mov.eq	r1,r12
-+#ifdef __LITTLE_ENDIAN__
-+	sub_s	r2,r1,1
-+	bic_s	r2,r2,r1
-+	norm	r1,r2
-+	sub_s	r0,r0,3
-+	lsr_s	r1,r1,3
-+	sub	    r0,r3,r0
-+	j_s.d	[blink]
-+	sub	    r0,r0,r1
-+#else /* BIG ENDIAN */
-+	lsr_s	r1,r1,7
-+	mov.eq	r2,r6
-+	bic_s	r1,r1,r2
-+	norm	r1,r1
-+	sub	    r0,r3,r0
-+	lsr_s	r1,r1,3
-+	j_s.d	[blink]
-+	add	    r0,r0,r1
-+#endif /* ENDIAN */
-+.Learly_end:
-+	b.d	.Lend
-+	sub_s.ne r1,r1,r1
-+ARC_EXIT strlen
++struct mm_struct *asid_mm_map[NUM_ASID + 1];
 -- 
 1.7.4.1
 
