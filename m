@@ -1,108 +1,370 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp07.au.ibm.com ([202.81.31.140]:54573 "EHLO
-	e23smtp07.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753220Ab3AXEcL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Jan 2013 23:32:11 -0500
-Received: from /spool/local
-	by e23smtp07.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Thu, 24 Jan 2013 14:25:43 +1000
-Message-ID: <5100B8CC.4080406@linux.vnet.ibm.com>
-Date: Thu, 24 Jan 2013 10:00:04 +0530
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Received: from us02smtp1.synopsys.com ([198.182.60.75]:47243 "EHLO
+	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753241Ab3AXKxQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jan 2013 05:53:16 -0500
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: [PATCH v3 32/71] ARC: [DeviceTree] Basic support
+Date: Thu, 24 Jan 2013 16:20:28 +0530
+Message-ID: <1359024639-21915-15-git-send-email-vgupta@synopsys.com>
+In-Reply-To: <1359024639-21915-1-git-send-email-vgupta@synopsys.com>
+References: <1359024639-21915-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v5 04/45] percpu_rwlock: Implement the core design of
- Per-CPU Reader-Writer Locks
-References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com> <20130122073347.13822.85876.stgit@srivatsabhat.in.ibm.com> <20130123185522.GG2373@mtj.dyndns.org> <51003B20.2060506@linux.vnet.ibm.com> <20130123195740.GI2373@mtj.dyndns.org>
-In-Reply-To: <20130123195740.GI2373@mtj.dyndns.org>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tejun Heo <tj@kernel.org>
-Cc: tglx@linutronix.de, peterz@infradead.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, walken@google.com
-Message-ID: <20130124043004.Ry9hRrd_dGcpCUPhsZcWm0hFdQxMdqDUGxhW8rJB92o@z>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Grant Likely <grant.likely@secretlab.ca>, devicetree-discuss@lists.ozlabs.org, Rob Herring <rob.herring@calxeda.com>
+Message-ID: <20130124105028.k7pvqrMd7jyFDcyrAy_Fjg9NZZjMjylaMuCKedXPlxg@z>
 
-On 01/24/2013 01:27 AM, Tejun Heo wrote:
-> Hello, Srivatsa.
-> 
-> On Thu, Jan 24, 2013 at 01:03:52AM +0530, Srivatsa S. Bhat wrote:
->> Hmm.. I split it up into steps to help explain the reasoning behind
->> the code sufficiently, rather than spring all of the intricacies at
->> one go (which would make it very hard to write the changelog/comments
->> also). The split made it easier for me to document it well in the
->> changelog, because I could deal with reasonable chunks of code/complexity
->> at a time. IMHO that helps people reading it for the first time to
->> understand the logic easily.
-> 
-> I don't know.  It's a judgement call I guess.  I personally would much
-> prefer having ample documentation as comments in the source itself or
-> as a separate Documentation/ file as that's what most people are gonna
-> be looking at to figure out what's going on.  Maybe just compact it a
-> bit and add more in-line documentation instead?
-> 
+This is minimal infrastructure needed for devicetree work.
+It uses an a sample "skeleton" devicetree - embedded in kernel image -
+to print the board, manufacturer by parsing the top-level "compatible"
+string.
 
-OK, I'll think about this.
+As of now we don't need any additional "board" specific "machine_desc".
 
->>> The only two options are either punishing writers or identifying and
->>> updating all such possible deadlocks.  percpu_rwsem does the former,
->>> right?  I don't know how feasible the latter would be.
->>
->> I don't think we can avoid looking into all the possible deadlocks,
->> as long as we use rwlocks inside get/put_online_cpus_atomic() (assuming
->> rwlocks are fair). Even with Oleg's idea of using synchronize_sched()
->> at the writer, we still need to take care of locking rules, because the
->> synchronize_sched() only helps avoid the memory barriers at the reader,
->> and doesn't help get rid of the rwlocks themselves.
-> 
-> Well, percpu_rwlock don't have to use rwlock for the slow path.  It
-> can implement its own writer starving locking scheme.  It's not like
-> implementing slow path global rwlock logic is difficult.
->
+TODO: support interpreting the command line as boot-loader passed dtb
 
-Great idea! So probably I could use atomic ops or something similar in the
-slow path to implement the scheme we need...
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Grant Likely <grant.likely@secretlab.ca>
+Cc: devicetree-discuss@lists.ozlabs.org
+Cc: Rob Herring <rob.herring@calxeda.com>
+---
+ arch/arc/Kconfig                |    9 +++++
+ arch/arc/Makefile               |    9 +++++
+ arch/arc/boot/dts/Makefile      |   14 ++++++++
+ arch/arc/boot/dts/skeleton.dts  |   10 ++++++
+ arch/arc/boot/dts/skeleton.dtsi |   21 ++++++++++++
+ arch/arc/include/asm/prom.h     |   15 ++++++++
+ arch/arc/include/asm/sections.h |    1 +
+ arch/arc/kernel/Makefile        |    2 +
+ arch/arc/kernel/devtree.c       |   69 +++++++++++++++++++++++++++++++++++++++
+ arch/arc/kernel/setup.c         |    9 +++++
+ arch/arc/mm/init.c              |   13 +++++++
+ 11 files changed, 172 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arc/boot/dts/Makefile
+ create mode 100644 arch/arc/boot/dts/skeleton.dts
+ create mode 100644 arch/arc/boot/dts/skeleton.dtsi
+ create mode 100644 arch/arc/include/asm/prom.h
+ create mode 100644 arch/arc/kernel/devtree.c
 
->> CPU 0                          CPU 1
->>
->> read_lock(&rwlock)
->>
->>                               write_lock(&rwlock) //spins, because CPU 0
->>                               //has acquired the lock for read
->>
->> read_lock(&rwlock)
->>    ^^^^^
->> What happens here? Does CPU 0 start spinning (and hence deadlock) or will
->> it continue realizing that it already holds the rwlock for read?
-> 
-> I don't think rwlock allows nesting write lock inside read lock.
-> read_lock(); write_lock() will always deadlock.
-> 
-
-Sure, I understand that :-) My question was, what happens when *two* CPUs
-are involved, as in, the read_lock() is invoked only on CPU 0 whereas the
-write_lock() is invoked on CPU 1.
-
-For example, the same scenario shown above, but with slightly different
-timing, will NOT result in a deadlock:
-
-Scenario 2:
-  CPU 0                                CPU 1
-
-read_lock(&rwlock)
-
-
-read_lock(&rwlock) //doesn't spin
-
-                                    write_lock(&rwlock) //spins, because CPU 0
-                                    //has acquired the lock for read
-
-
-So I was wondering whether the "fairness" logic of rwlocks would cause
-the second read_lock() to spin (in the first scenario shown above) because
-a writer is already waiting (and hence new readers should spin) and thus
-cause a deadlock.
-
-Regards,
-Srivatsa S. Bhat
+diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+index a353849..7666857 100644
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@ -24,8 +24,11 @@ config ARC
+ 	select GENERIC_SMP_IDLE_THREAD
+ 	select HAVE_GENERIC_HARDIRQS
+ 	select HAVE_MEMBLOCK
++	select IRQ_DOMAIN
+ 	select MODULES_USE_ELF_RELA
+ 	select NO_BOOTMEM
++	select OF
++	select OF_EARLY_FLATTREE
+ 
+ config SCHED_OMIT_FRAME_POINTER
+ 	def_bool y
+@@ -320,6 +323,12 @@ config CMDLINE_UBOOT
+ 	  to it. kernel startup code will copy the string into cmdline buffer
+ 	  and also append CONFIG_CMDLINE.
+ 
++config ARC_BUILTIN_DTB_NAME
++	string "Built in DTB"
++	help
++	  Set the name of the DTB to embed in the vmlinux binary
++	  Leaving it blank selects the minimal "skeleton" dtb
++
+ source "kernel/Kconfig.preempt"
+ 
+ endmenu	 # "ARC Architecture Configuration"
+diff --git a/arch/arc/Makefile b/arch/arc/Makefile
+index 4d52a3b..90570f9 100644
+--- a/arch/arc/Makefile
++++ b/arch/arc/Makefile
+@@ -83,6 +83,9 @@ head-y		:= arch/arc/kernel/head.o
+ # See arch/arc/Kbuild for content of core part of the kernel
+ core-y		+= arch/arc/
+ 
++# w/o this dtb won't embed into kernel binary
++core-y		+= arch/arc/boot/dts/
++
+ # w/o this ifneq, make ARCH=arc clean was crapping out
+ ifneq ($(platform-y),)
+ core-y		+= arch/arc/plat-$(PLATFORM)/
+@@ -101,6 +104,12 @@ bootpImage: vmlinux
+ uImage: vmlinux
+ 	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
+ 
++%.dtb %.dtb.S %.dtb.o:
++	$(Q)$(MAKE) $(build)=$(boot)/dts $(boot)/dts/$@
++
++dtbs:
++	$(Q)$(MAKE) $(build)=$(boot)/dts $(boot)/dts/$@
++
+ archclean:
+ 	$(Q)$(MAKE) $(clean)=$(boot)
+ 
+diff --git a/arch/arc/boot/dts/Makefile b/arch/arc/boot/dts/Makefile
+new file mode 100644
+index 0000000..4a972a3
+--- /dev/null
++++ b/arch/arc/boot/dts/Makefile
+@@ -0,0 +1,14 @@
++ifeq ($(CONFIG_OF),y)
++
++# Built-in dtb
++builtindtb-y		:= skeleton
++
++ifneq ($(CONFIG_ARC_BUILTIN_DTB_NAME),"")
++	builtindtb-y	:= $(CONFIG_ARC_BUILTIN_DTB_NAME)
++endif
++
++obj-y	+= $(patsubst "%",%,$(builtindtb-y)).dtb.o
++
++clean-files := *.dtb
++
++endif
+diff --git a/arch/arc/boot/dts/skeleton.dts b/arch/arc/boot/dts/skeleton.dts
+new file mode 100644
+index 0000000..25a84fb
+--- /dev/null
++++ b/arch/arc/boot/dts/skeleton.dts
+@@ -0,0 +1,10 @@
++/*
++ * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++/dts-v1/;
++
++/include/ "skeleton.dtsi"
+diff --git a/arch/arc/boot/dts/skeleton.dtsi b/arch/arc/boot/dts/skeleton.dtsi
+new file mode 100644
+index 0000000..9b357d8
+--- /dev/null
++++ b/arch/arc/boot/dts/skeleton.dtsi
+@@ -0,0 +1,21 @@
++/*
++ * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++/*
++ * Skeleton device tree; the bare minimum needed to boot; just include and
++ * add a compatible value.
++ */
++
++/ {
++	compatible = "snps,arc";
++	#address-cells = <1>;
++	#size-cells = <1>;
++	chosen { };
++	aliases { };
++	memory { device_type = "memory"; reg = <0 0>; };
++};
+diff --git a/arch/arc/include/asm/prom.h b/arch/arc/include/asm/prom.h
+new file mode 100644
+index 0000000..f54489b
+--- /dev/null
++++ b/arch/arc/include/asm/prom.h
+@@ -0,0 +1,15 @@
++/*
++ * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#ifndef _ASM_ARC_PROM_H_
++#define _ASM_ARC_PROM_H_
++
++#define HAVE_ARCH_DEVTREE_FIXUPS
++extern int __init setup_machine_fdt(void *dt);
++
++#endif
+diff --git a/arch/arc/include/asm/sections.h b/arch/arc/include/asm/sections.h
+index fc15f2e..6fc1159 100644
+--- a/arch/arc/include/asm/sections.h
++++ b/arch/arc/include/asm/sections.h
+@@ -13,5 +13,6 @@
+ 
+ extern char _int_vec_base_lds[];
+ extern char __arc_dccm_base[];
++extern char __dtb_start[];
+ 
+ #endif
+diff --git a/arch/arc/kernel/Makefile b/arch/arc/kernel/Makefile
+index 6d83431..8a55e99 100644
+--- a/arch/arc/kernel/Makefile
++++ b/arch/arc/kernel/Makefile
+@@ -8,6 +8,8 @@
+ obj-y	:= arcksyms.o setup.o irq.o time.o reset.o ptrace.o entry.o process.o
+ obj-y	+= signal.o traps.o sys.o troubleshoot.o stacktrace.o clk.o
+ 
++obj-$(CONFIG_OF)			+= devtree.o
++
+ obj-$(CONFIG_ARC_FPU_SAVE_RESTORE)	+= fpu.o
+ CFLAGS_fpu.o   += -mdpfp
+ 
+diff --git a/arch/arc/kernel/devtree.c b/arch/arc/kernel/devtree.c
+new file mode 100644
+index 0000000..229f78e
+--- /dev/null
++++ b/arch/arc/kernel/devtree.c
+@@ -0,0 +1,69 @@
++/*
++ * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * Based on highly stipped down version of METAG
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++
++#include <linux/init.h>
++#include <linux/export.h>
++#include <linux/errno.h>
++#include <linux/types.h>
++#include <linux/reboot.h>
++#include <linux/memblock.h>
++#include <linux/of.h>
++#include <linux/of_fdt.h>
++#include <linux/of_irq.h>
++#include <linux/of_platform.h>
++#include <asm/prom.h>
++
++/* called from unflatten_device_tree() to bootstrap devicetree itself */
++void * __init early_init_dt_alloc_memory_arch(u64 size, u64 align)
++{
++	return __va(memblock_alloc(size, align));
++}
++
++/**
++ * setup_machine_fdt - Machine setup when an dtb was passed to the kernel
++ * @dt:		virtual address pointer to dt blob
++ *
++ * If a dtb was passed to the kernel, then use it to choose the correct
++ * machine_desc and to setup the system.
++ */
++int __init setup_machine_fdt(void *dt)
++{
++	struct boot_param_header *devtree = dt;
++	unsigned long dt_root;
++	char *model, *compat;
++	char manufacturer[16];
++
++	/* check device tree validity */
++	if (be32_to_cpu(devtree->magic) != OF_DT_HEADER)
++		return 1;
++
++	/* Search the mdescs for the 'best' compatible value match */
++	initial_boot_params = devtree;
++	dt_root = of_get_flat_dt_root();
++
++	/* compat = "<manufacturer>,<model>" */
++	compat = of_get_flat_dt_prop(dt_root, "compatible", NULL);
++	if (!compat)
++		compat = "<unknown>";
++
++	model = strchr(compat, ',');
++	if (model)
++		model++;
++
++	strlcpy(manufacturer, compat, model ? model - compat : strlen(compat));
++
++	pr_info("Board \"%s\" from %s (Manufacturer)\n", model, manufacturer);
++
++	/* Retrieve various information from the /chosen node */
++	of_scan_flat_dt(early_init_dt_scan_chosen, boot_command_line);
++
++	return 0;
++}
+diff --git a/arch/arc/kernel/setup.c b/arch/arc/kernel/setup.c
+index 82ac206..27aebd6 100644
+--- a/arch/arc/kernel/setup.c
++++ b/arch/arc/kernel/setup.c
+@@ -13,6 +13,8 @@
+ #include <linux/console.h>
+ #include <linux/module.h>
+ #include <linux/cpu.h>
++#include <linux/of_fdt.h>
++#include <asm/sections.h>
+ #include <asm/arcregs.h>
+ #include <asm/tlb.h>
+ #include <asm/cache.h>
+@@ -20,6 +22,7 @@
+ #include <asm/page.h>
+ #include <asm/irq.h>
+ #include <asm/arcregs.h>
++#include <asm/prom.h>
+ 
+ #define FIX_PTR(x)  __asm__ __volatile__(";" : "+r"(x))
+ 
+@@ -57,6 +60,8 @@ void __init __attribute__((weak)) arc_platform_early_init(void)
+ 
+ void __init setup_arch(char **cmdline_p)
+ {
++	int rc;
++
+ #ifdef CONFIG_CMDLINE_UBOOT
+ 	/* Make sure that a whitespace is inserted before */
+ 	strlcat(command_line, " ", sizeof(command_line));
+@@ -71,6 +76,8 @@ void __init setup_arch(char **cmdline_p)
+ 	strlcpy(boot_command_line, command_line, COMMAND_LINE_SIZE);
+ 	*cmdline_p = command_line;
+ 
++	rc = setup_machine_fdt(__dtb_start);
++
+ 	/* To force early parsing of things like mem=xxx */
+ 	parse_early_param();
+ 
+@@ -81,6 +88,8 @@ void __init setup_arch(char **cmdline_p)
+ 
+ 	setup_arch_memory();
+ 
++	unflatten_device_tree();
++
+ 	/* Can be issue if someone passes cmd line arg "ro"
+ 	 * But that is unlikely so keeping it as it is
+ 	 */
+diff --git a/arch/arc/mm/init.c b/arch/arc/mm/init.c
+index 63da347..682cf57 100644
+--- a/arch/arc/mm/init.c
++++ b/arch/arc/mm/init.c
+@@ -39,6 +39,11 @@ static int __init setup_mem_sz(char *str)
+ }
+ early_param("mem", setup_mem_sz);
+ 
++void __init early_init_dt_add_memory_arch(u64 base, u64 size)
++{
++	pr_err("%s(%llx, %llx)\n", __func__, base, size);
++}
++
+ /*
+  * First memory setup routine called from setup_arch()
+  * 1. setup swapper's mm @init_mm
+@@ -169,3 +174,11 @@ void __init free_initrd_mem(unsigned long start, unsigned long end)
+ 	free_init_pages("initrd memory", start, end);
+ }
+ #endif
++
++#ifdef CONFIG_OF_FLATTREE
++void __init early_init_dt_setup_initrd_arch(unsigned long start,
++					    unsigned long end)
++{
++	pr_err("%s(%lx, %lx)\n", __func__, start, end);
++}
++#endif /* CONFIG_OF_FLATTREE */
+-- 
+1.7.4.1
 
