@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us02smtp1.synopsys.com ([198.182.60.75]:47394 "EHLO
-	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754306Ab3AXLKp (ORCPT
+Received: from alvesta.synopsys.com ([198.182.60.77]:42906 "EHLO
+	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754320Ab3AXLKp (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jan 2013 06:10:45 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v3 08/71] ARC: [optim] uaccess __{get,put}_user() optimised
-Date: Thu, 24 Jan 2013 16:35:49 +0530
-Message-ID: <1359025589-22277-6-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v3 35/71] ARC: Last bits (stubs) to get to a running kernel with UART
+Date: Thu, 24 Jan 2013 16:36:03 +0530
+Message-ID: <1359025589-22277-20-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1359025589-22277-1-git-send-email-vgupta@synopsys.com>
 References: <1359025589-22277-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
@@ -15,149 +15,126 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20130124110549.4fy_dBRsRkmXfcFbAwojlzPFXjKTaFpTE7O01Yr76L0@z>
+Message-ID: <20130124110603.-CRX7-w-2TNUKmMmdsdxmW4du7L51cNPgzDsAc7z2QE@z>
 
-Override asm-generic implementations. We basically gain on 2 fronts
+This was part of port buildup strategy from Arnd to have a minimal kernel
+at first and then add optional features (stacktracing, ptrace, smp,
+kprobes, oprofile....)
 
-* checks for alignment no longer needed as we are only doing "unit"
-  sized copies.
-
-  (Careful observer could argue that While the kernel buffers are aligned,
-   the user buffer in theory might not be - however in that case the
-   user space is already broken when it tries to deref a hword/word
-   straddling word boundary - so we are not making it any worse).
-
-* __copy_{to,from}_user( ) returns bytes that couldn't be copied,
-  whereas get_user() returns 0 for success or -EFAULT (not size). Thus
-  the code to do leftover bytes calculation can be avoided as well.
-
-The savings were significant: ~17k of code.
-
-bloat-o-meter vmlinux_uaccess_pre vmlinux_uaccess_post
-add/remove: 0/4 grow/shrink: 8/118 up/down: 1262/-18758 (-17496)
-							^^^^^^^^^
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/arc/include/asm/uaccess.h |  105 ++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 105 insertions(+), 0 deletions(-)
+ arch/arc/kernel/ptrace.c       |   26 ++++++++++++++++++++++++
+ arch/arc/kernel/stacktrace.c   |   43 ++++++++++++++++++++++++++++++++++++++++
+ arch/arc/kernel/troubleshoot.c |   17 +++++++++++++++
+ 3 files changed, 86 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arc/kernel/ptrace.c
+ create mode 100644 arch/arc/kernel/stacktrace.c
+ create mode 100644 arch/arc/kernel/troubleshoot.c
 
-diff --git a/arch/arc/include/asm/uaccess.h b/arch/arc/include/asm/uaccess.h
-index f13bca4..3242082 100644
---- a/arch/arc/include/asm/uaccess.h
-+++ b/arch/arc/include/asm/uaccess.h
-@@ -57,6 +57,111 @@
- #define __access_ok(addr, sz)	(unlikely(__kernel_ok) || \
- 				 likely(__user_ok((addr), (sz))))
- 
-+/*********** Single byte/hword/word copies ******************/
-+
-+#define __get_user_fn(sz, u, k)					\
-+({								\
-+	long __ret = 0;	/* success by default */	\
-+	switch (sz) {						\
-+	case 1: __arc_get_user_one(*(k), u, "ldb", __ret); break;	\
-+	case 2: __arc_get_user_one(*(k), u, "ldw", __ret); break;	\
-+	case 4: __arc_get_user_one(*(k), u, "ld", __ret);  break;	\
-+	case 8: __arc_get_user_one_64(*(k), u, __ret);     break;	\
-+	}							\
-+	__ret;							\
-+})
-+
+diff --git a/arch/arc/kernel/ptrace.c b/arch/arc/kernel/ptrace.c
+new file mode 100644
+index 0000000..1cf944a
+--- /dev/null
++++ b/arch/arc/kernel/ptrace.c
+@@ -0,0 +1,26 @@
 +/*
-+ * Returns 0 on success, -EFAULT if not.
-+ * @ret already contains 0 - given that errors will be less likely
-+ * (hence +r asm constraint below).
-+ * In case of error, fixup code will make it -EFAULT
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
 + */
-+#define __arc_get_user_one(dst, src, op, ret)	\
-+	__asm__ __volatile__(                   \
-+	"1:	"op"    %1,[%2]\n"		\
-+	"2:	;nop\n"				\
-+	"	.section .fixup, \"ax\"\n"	\
-+	"	.align 4\n"			\
-+	"3:	mov %0, %3\n"			\
-+	"	j   2b\n"			\
-+	"	.previous\n"			\
-+	"	.section __ex_table, \"a\"\n"	\
-+	"	.align 4\n"			\
-+	"	.word 1b,3b\n"			\
-+	"	.previous\n"			\
-+						\
-+	: "+r" (ret), "=r" (dst)		\
-+	: "r" (src), "ir" (-EFAULT))
 +
-+#define __arc_get_user_one_64(dst, src, ret)	\
-+	__asm__ __volatile__(                   \
-+	"1:	ld   %1,[%2]\n"			\
-+	"4:	ld  %R1,[%2, 4]\n"		\
-+	"2:	;nop\n"				\
-+	"	.section .fixup, \"ax\"\n"	\
-+	"	.align 4\n"			\
-+	"3:	mov %0, %3\n"			\
-+	"	j   2b\n"			\
-+	"	.previous\n"			\
-+	"	.section __ex_table, \"a\"\n"	\
-+	"	.align 4\n"			\
-+	"	.word 1b,3b\n"			\
-+	"	.word 4b,3b\n"			\
-+	"	.previous\n"			\
-+						\
-+	: "+r" (ret), "=r" (dst)		\
-+	: "r" (src), "ir" (-EFAULT))
++#include <linux/ptrace.h>
 +
-+#define __put_user_fn(sz, u, k)					\
-+({								\
-+	long __ret = 0;	/* success by default */	\
-+	switch (sz) {						\
-+	case 1: __arc_put_user_one(*(k), u, "stb", __ret); break;	\
-+	case 2: __arc_put_user_one(*(k), u, "stw", __ret); break;	\
-+	case 4: __arc_put_user_one(*(k), u, "st", __ret);  break;	\
-+	case 8: __arc_put_user_one_64(*(k), u, __ret);     break;	\
-+	}							\
-+	__ret;							\
-+})
++void ptrace_disable(struct task_struct *child)
++{
++}
 +
-+#define __arc_put_user_one(src, dst, op, ret)	\
-+	__asm__ __volatile__(                   \
-+	"1:	"op"    %1,[%2]\n"		\
-+	"2:	;nop\n"				\
-+	"	.section .fixup, \"ax\"\n"	\
-+	"	.align 4\n"			\
-+	"3:	mov %0, %3\n"			\
-+	"	j   2b\n"			\
-+	"	.previous\n"			\
-+	"	.section __ex_table, \"a\"\n"	\
-+	"	.align 4\n"			\
-+	"	.word 1b,3b\n"			\
-+	"	.previous\n"			\
-+						\
-+	: "+r" (ret)				\
-+	: "r" (src), "r" (dst), "ir" (-EFAULT))
-+
-+#define __arc_put_user_one_64(src, dst, ret)	\
-+	__asm__ __volatile__(                   \
-+	"1:	st   %1,[%2]\n"			\
-+	"4:	st  %R1,[%2, 4]\n"		\
-+	"2:	;nop\n"				\
-+	"	.section .fixup, \"ax\"\n"	\
-+	"	.align 4\n"			\
-+	"3:	mov %0, %3\n"			\
-+	"	j   2b\n"			\
-+	"	.previous\n"			\
-+	"	.section __ex_table, \"a\"\n"	\
-+	"	.align 4\n"			\
-+	"	.word 1b,3b\n"			\
-+	"	.word 4b,3b\n"			\
-+	"	.previous\n"			\
-+						\
-+	: "+r" (ret)				\
-+	: "r" (src), "r" (dst), "ir" (-EFAULT))
++long arch_ptrace(struct task_struct *child, long request,
++		 unsigned long addr, unsigned long data)
++{
++	int ret = -EIO;
++	return ret;
++}
 +
 +
- static inline unsigned long
- __arc_copy_from_user(void *to, const void __user *from, unsigned long n)
- {
++const struct user_regset_view *task_user_regset_view(struct task_struct *task)
++{
++	return (const struct user_regset_view *)NULL;
++}
+diff --git a/arch/arc/kernel/stacktrace.c b/arch/arc/kernel/stacktrace.c
+new file mode 100644
+index 0000000..b9d1646
+--- /dev/null
++++ b/arch/arc/kernel/stacktrace.c
+@@ -0,0 +1,43 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#include <linux/ptrace.h>
++#include <linux/export.h>
++
++/*-------------------------------------------------------------------------
++ *              APIs expected by various kernel sub-systems
++ *-------------------------------------------------------------------------
++ */
++
++noinline void show_stacktrace(struct task_struct *tsk, struct pt_regs *regs)
++{
++	pr_info("\nStack Trace: NOT Available\n");
++}
++EXPORT_SYMBOL(show_stacktrace);
++
++/* Expected by sched Code */
++void show_stack(struct task_struct *tsk, unsigned long *sp)
++{
++	show_stacktrace(tsk, NULL);
++}
++
++/* Expected by Rest of kernel code */
++void dump_stack(void)
++{
++	show_stacktrace(NULL, NULL);
++}
++EXPORT_SYMBOL(dump_stack);
++
++/* Another API expected by schedular, shows up in "ps" as Wait Channel
++ * Ofcourse just returning schedule( ) would be pointless so unwind until
++ * the function is not in schedular code
++ */
++unsigned int get_wchan(struct task_struct *tsk)
++{
++	return 0;
++}
+diff --git a/arch/arc/kernel/troubleshoot.c b/arch/arc/kernel/troubleshoot.c
+new file mode 100644
+index 0000000..80bfe2a
+--- /dev/null
++++ b/arch/arc/kernel/troubleshoot.c
+@@ -0,0 +1,17 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ */
++
++#include <linux/ptrace.h>
++
++void show_regs(struct pt_regs *regs)
++{
++}
++
++void show_kernel_fault_diag(const char *str, struct pt_regs *regs,
++			    unsigned long address, unsigned long cause_reg)
++{
++}
 -- 
 1.7.4.1
 
