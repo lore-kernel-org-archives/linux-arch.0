@@ -1,148 +1,162 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v3 53/71] ARC: [plat-arfpga] BVCI Latency Unit setup
-Date: Thu, 24 Jan 2013 16:36:17 +0530
-Message-ID: <1359025589-22277-34-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v3 64/71] ARC: [Review] Multi-platform image #4: Isolate platform headers
+Date: Thu, 24 Jan 2013 16:36:24 +0530
+Message-ID: <1359025589-22277-41-git-send-email-vgupta@synopsys.com>
 References: <1359025589-22277-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hermes.synopsys.com ([198.182.44.81]:34229 "EHLO
-	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754865Ab3AXLOE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jan 2013 06:14:04 -0500
+Received: from alvesta.synopsys.com ([198.182.60.77]:42994 "EHLO
+	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753804Ab3AXLOD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jan 2013 06:14:03 -0500
 In-Reply-To: <1359025589-22277-1-git-send-email-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
----
- arch/arc/plat-arcfpga/Kconfig    |   32 +++++++++++++++++++++
- arch/arc/plat-arcfpga/platform.c |   56 ++++++++++++++++++++++++++++++++++++++
- 2 files changed, 88 insertions(+), 0 deletions(-)
+-Top level ARC makefile removes -I for platform headers
+-asm/irq.h no longer includes plat/irq.h
 
-diff --git a/arch/arc/plat-arcfpga/Kconfig b/arch/arc/plat-arcfpga/Kconfig
-index 38752bf..9912d9c 100644
---- a/arch/arc/plat-arcfpga/Kconfig
-+++ b/arch/arc/plat-arcfpga/Kconfig
-@@ -44,4 +44,36 @@ config ARC_SERIAL_BAUD
- 	help
- 	  Baud rate for the ARC UART
+-platform makefile adds -I for it's specfic platform headers
+-platform code to directly include it's plat/irq.h
+
+-Linker script needed plat/memmap.h for CCM info, already in .config
+
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+---
+ arch/arc/Makefile                |   16 +---------------
+ arch/arc/include/asm/irq.h       |    1 -
+ arch/arc/kernel/vmlinux.lds.S    |    1 -
+ arch/arc/plat-arcfpga/Makefile   |    2 ++
+ arch/arc/plat-arcfpga/irq.c      |    2 +-
+ arch/arc/plat-arcfpga/platform.c |    2 +-
+ arch/arc/plat-arcfpga/smp.c      |    3 ++-
+ 7 files changed, 7 insertions(+), 20 deletions(-)
+
+diff --git a/arch/arc/Makefile b/arch/arc/Makefile
+index 0b041d5..c7d4999 100644
+--- a/arch/arc/Makefile
++++ b/arch/arc/Makefile
+@@ -10,14 +10,6 @@ UTS_MACHINE := arc
  
-+menuconfig ARC_HAS_BVCI_LAT_UNIT
-+	bool "BVCI Bus Latency Unit"
-+	depends on ARC_BOARD_ML509 || ARC_BOARD_ANGEL4
-+	help
-+	  IP to add artifical latency to BVCI Bus Based FPGA builds.
-+	  The default latency (even worst case) for FPGA is non-realistic
-+	  (~10 SDRAM, ~5 SSRAM).
+ KBUILD_DEFCONFIG := fpga_defconfig
+ 
+-# For ARC FPGA Platforms
+-platform-$(CONFIG_ARC_PLAT_FPGA_LEGACY)	:= arcfpga
+-#New platform adds here
+-
+-PLATFORM := $(platform-y)
+-export PLATFORM
+-
+-cflags-y	+= -Iarch/arc/plat-$(PLATFORM)/include
+ cflags-y	+= -mA7 -fno-common -pipe -fno-builtin -D__linux__
+ 
+ LINUXINCLUDE	+=  -include ${src}/arch/arc/include/asm/defines.h
+@@ -86,9 +78,6 @@ KBUILD_CFLAGS	+= $(cflags-y)
+ KBUILD_AFLAGS	+= $(KBUILD_CFLAGS)
+ LDFLAGS		+= $(ldflags-y)
+ 
+-# Needed for Linker script preprocessing
+-KBUILD_CPPFLAGS	+= -Iarch/arc/plat-$(PLATFORM)/include
+-
+ head-y		:= arch/arc/kernel/head.o
+ 
+ # See arch/arc/Kbuild for content of core part of the kernel
+@@ -97,10 +86,7 @@ core-y		+= arch/arc/
+ # w/o this dtb won't embed into kernel binary
+ core-y		+= arch/arc/boot/dts/
+ 
+-# w/o this ifneq, make ARCH=arc clean was crapping out
+-ifneq ($(platform-y),)
+-core-y		+= arch/arc/plat-$(PLATFORM)/
+-endif
++core-$(CONFIG_ARC_PLAT_FPGA_LEGACY)	+= arch/arc/plat-arcfpga/
+ 
+ drivers-$(CONFIG_OPROFILE)	+= arch/arc/oprofile/
+ 
+diff --git a/arch/arc/include/asm/irq.h b/arch/arc/include/asm/irq.h
+index f1b318d..20aaab8 100644
+--- a/arch/arc/include/asm/irq.h
++++ b/arch/arc/include/asm/irq.h
+@@ -13,7 +13,6 @@
+ #define TIMER0_IRQ      3
+ #define TIMER1_IRQ      4
+ 
+-#include <plat/irq.h>		/* Board Specific IRQ assignments */
+ #include <asm-generic/irq.h>
+ 
+ extern void __init arc_init_IRQ(void);
+diff --git a/arch/arc/kernel/vmlinux.lds.S b/arch/arc/kernel/vmlinux.lds.S
+index 622d8b6..d3c92f5 100644
+--- a/arch/arc/kernel/vmlinux.lds.S
++++ b/arch/arc/kernel/vmlinux.lds.S
+@@ -10,7 +10,6 @@
+ #include <asm/cache.h>
+ #include <asm/page.h>
+ #include <asm/thread_info.h>
+-#include <plat/memmap.h>
+ 
+ OUTPUT_ARCH(arc)
+ ENTRY(_stext)
+diff --git a/arch/arc/plat-arcfpga/Makefile b/arch/arc/plat-arcfpga/Makefile
+index 2a828be..a44e22e 100644
+--- a/arch/arc/plat-arcfpga/Makefile
++++ b/arch/arc/plat-arcfpga/Makefile
+@@ -6,5 +6,7 @@
+ # published by the Free Software Foundation.
+ #
+ 
++KBUILD_CFLAGS	+= -Iarch/arc/plat-arcfpga/include
 +
-+config BVCI_LAT_UNITS
-+	hex "Latency Unit(s) Bitmap"
-+	default "0x0"
-+	depends on ARC_HAS_BVCI_LAT_UNIT
-+	help
-+	  There are multiple Latency Units corresponding to the many
-+	  interfaces of the system bus arbiter (both CPU side as well as
-+	  the peripheral side).
-+	  To add latency to ALL memory transaction, choose Unit 0, otherwise
-+	  for finer grainer - interface wise latency, specify a bitmap (1 bit
-+	  per unit) of all units. e.g. 1,2,12 will be 0x1003
-+
-+	  Unit  0 - System Arb and Mem Controller
-+	  Unit  1 - I$ and System Bus
-+	  Unit  2 - D$ and System Bus
-+	  ..
-+	  Unit 12 - IDE Disk controller and System Bus
-+
-+config BVCI_LAT_CYCLES
-+	int "Latency Value in cycles"
-+	range 0 63
-+	default "30"
-+	depends on ARC_HAS_BVCI_LAT_UNIT
-+
- endif
+ obj-y := platform.o irq.o
+ obj-$(CONFIG_SMP)		+= smp.o
+diff --git a/arch/arc/plat-arcfpga/irq.c b/arch/arc/plat-arcfpga/irq.c
+index 0ea43c2..d2215fd 100644
+--- a/arch/arc/plat-arcfpga/irq.c
++++ b/arch/arc/plat-arcfpga/irq.c
+@@ -9,7 +9,7 @@
+  */
+ 
+ #include <linux/interrupt.h>
+-#include <asm/irq.h>
++#include <plat/irq.h>
+ 
+ void __init plat_fpga_init_IRQ(void)
+ {
 diff --git a/arch/arc/plat-arcfpga/platform.c b/arch/arc/plat-arcfpga/platform.c
-index 33bcac8..b7f63e3 100644
+index ac85d69..4024f10 100644
 --- a/arch/arc/plat-arcfpga/platform.c
 +++ b/arch/arc/plat-arcfpga/platform.c
-@@ -12,6 +12,7 @@
- #include <linux/init.h>
- #include <linux/device.h>
- #include <linux/platform_device.h>
-+#include <linux/io.h>
+@@ -16,11 +16,11 @@
  #include <linux/console.h>
  #include <linux/of_platform.h>
  #include <asm/setup.h>
-@@ -19,6 +20,59 @@
+-#include <asm/irq.h>
  #include <asm/clk.h>
+ #include <asm/mach_desc.h>
  #include <plat/memmap.h>
+ #include <plat/smp.h>
++#include <plat/irq.h>
  
-+/*-----------------------BVCI Latency Unit -----------------------------*/
-+
-+#ifdef CONFIG_ARC_HAS_BVCI_LAT_UNIT
-+
-+int lat_cycles = CONFIG_BVCI_LAT_CYCLES;
-+
-+/* BVCI Bus Profiler: Latency Unit */
-+static void __init setup_bvci_lat_unit(void)
-+{
-+#define MAX_BVCI_UNITS 12
-+
-+	unsigned int i;
-+	unsigned int *base = (unsigned int *)BVCI_LAT_UNIT_BASE;
-+	const unsigned long units_req = CONFIG_BVCI_LAT_UNITS;
-+	const unsigned int REG_UNIT = 21;
-+	const unsigned int REG_VAL = 22;
-+
-+	/*
-+	 * There are multiple Latency Units corresponding to the many
-+	 * interfaces of the system bus arbiter (both CPU side as well as
-+	 * the peripheral side).
-+	 *
-+	 * Unit  0 - System Arb and Mem Controller - adds latency to all
-+	 *	    memory trasactions
-+	 * Unit  1 - I$ and System Bus
-+	 * Unit  2 - D$ and System Bus
-+	 * ..
-+	 * Unit 12 - IDE Disk controller and System Bus
-+	 *
-+	 * The programmers model requires writing to lat_unit reg first
-+	 * and then the latency value (cycles) to lat_value reg
-+	 */
-+
-+	if (CONFIG_BVCI_LAT_UNITS == 0) {
-+		writel(0, base + REG_UNIT);
-+		writel(lat_cycles, base + REG_VAL);
-+		pr_info("BVCI Latency for all Memory Transactions %d cycles\n",
-+			lat_cycles);
-+	} else {
-+		for_each_set_bit(i, &units_req, MAX_BVCI_UNITS) {
-+			writel(i + 1, base + REG_UNIT); /* loop is 0 based */
-+			writel(lat_cycles, base + REG_VAL);
-+			pr_info("BVCI Latency for Unit[%d] = %d cycles\n",
-+				(i + 1), lat_cycles);
-+		}
-+	}
-+}
-+#else
-+static void __init setup_bvci_lat_unit(void)
-+{
-+}
-+#endif
-+
- /*----------------------- Platform Devices -----------------------------*/
+ /*-----------------------BVCI Latency Unit -----------------------------*/
  
- static unsigned long arc_uart_info[] = {
-@@ -106,6 +160,8 @@ void __init arc_platform_early_init(void)
- {
- 	pr_info("[plat-arcfpga]: registering early dev resources\n");
+diff --git a/arch/arc/plat-arcfpga/smp.c b/arch/arc/plat-arcfpga/smp.c
+index fec1879..68a53b1 100644
+--- a/arch/arc/plat-arcfpga/smp.c
++++ b/arch/arc/plat-arcfpga/smp.c
+@@ -12,7 +12,8 @@
+  */
  
-+	setup_bvci_lat_unit();
-+
- 	arc_fpga_serial_init();
- }
+ #include <linux/smp.h>
+-#include <asm/irq.h>
++#include <linux/irq.h>
++#include <plat/irq.h>
+ #include <plat/smp.h>
  
+ static char smp_cpuinfo_buf[128];
 -- 
 1.7.4.1
