@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtp3.synopsys.com ([198.182.44.81]:34123 "EHLO
-	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753543Ab3AXLJ2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jan 2013 06:09:28 -0500
+Received: from us01smtp2.synopsys.com ([198.182.44.80]:51392 "EHLO
+	kiruna.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753498Ab3AXLJw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jan 2013 06:09:52 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v3 28/71] ARC: Page Fault handling
-Date: Thu, 24 Jan 2013 16:36:01 +0530
-Message-ID: <1359025589-22277-18-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v3 38/71] ARC: ptrace support
+Date: Thu, 24 Jan 2013 16:36:06 +0530
+Message-ID: <1359025589-22277-23-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1359025589-22277-1-git-send-email-vgupta@synopsys.com>
 References: <1359025589-22277-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
@@ -15,256 +15,313 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20130124110601.U1B4JwhTmb5mkXsXmjjRuHpSkhxOkolgnb--DxnNhS4@z>
-
-This includes recent changes to make handler "retry" and/or "killable"
-
-The killable (early exit) logic is loosely based on how SH implements it
-	return if SIGKILL + either of VM_FAULT_OOM or VM_FAULT_RETRY
-which is different from Hexagon implementation which would NOT early
-exit for
-	SIGKILL + VM_FAULT_OOM + !VM_FAULT_RETRY
+Message-ID: <20130124110606.9mqjf6WBgaPJ8KV9gveolDAItMKcuzgfJIfwLfN9q6Y@z>
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/arc/mm/fault.c |  228 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 228 insertions(+), 0 deletions(-)
- create mode 100644 arch/arc/mm/fault.c
+ arch/arc/Kconfig         |    1 +
+ arch/arc/kernel/Makefile |    3 +
+ arch/arc/kernel/entry.S  |   68 +++++++++++++++++++++++
+ arch/arc/kernel/ptrace.c |  136 +++++++++++++++++++++++++++++++++++++++++++++-
+ 4 files changed, 206 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arc/mm/fault.c b/arch/arc/mm/fault.c
-new file mode 100644
-index 0000000..af55aab
---- /dev/null
-+++ b/arch/arc/mm/fault.c
-@@ -0,0 +1,228 @@
-+/* Page Fault Handling for ARC (TLB Miss / ProtV)
-+ *
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
+diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+index 03347cb..409b937 100644
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@ -22,6 +22,7 @@ config ARC
+ 	select GENERIC_PENDING_IRQ if SMP
+ 	select GENERIC_SIGALTSTACK
+ 	select GENERIC_SMP_IDLE_THREAD
++	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_GENERIC_HARDIRQS
+ 	select HAVE_MEMBLOCK
+ 	select IRQ_DOMAIN
+diff --git a/arch/arc/kernel/Makefile b/arch/arc/kernel/Makefile
+index 8a55e99..1f01d35 100644
+--- a/arch/arc/kernel/Makefile
++++ b/arch/arc/kernel/Makefile
+@@ -5,6 +5,9 @@
+ # it under the terms of the GNU General Public License version 2 as
+ # published by the Free Software Foundation.
+ 
++# Pass UTS_MACHINE for user_regset definition
++CFLAGS_ptrace.o		+= -DUTS_MACHINE='"$(UTS_MACHINE)"'
 +
-+#include <linux/signal.h>
-+#include <linux/interrupt.h>
-+#include <linux/sched.h>
-+#include <linux/errno.h>
-+#include <linux/ptrace.h>
-+#include <linux/version.h>
-+#include <linux/uaccess.h>
-+#include <linux/kdebug.h>
-+#include <asm/pgalloc.h>
+ obj-y	:= arcksyms.o setup.o irq.o time.o reset.o ptrace.o entry.o process.o
+ obj-y	+= signal.o traps.o sys.o troubleshoot.o stacktrace.o clk.o
+ 
+diff --git a/arch/arc/kernel/entry.S b/arch/arc/kernel/entry.S
+index 69d0d37..76697ae 100644
+--- a/arch/arc/kernel/entry.S
++++ b/arch/arc/kernel/entry.S
+@@ -7,6 +7,13 @@
+  * it under the terms of the GNU General Public License version 2 as
+  * published by the Free Software Foundation.
+  *
++ * vineetg: Feb 2011 (ptrace low level code fixes)
++ *  -traced syscall return code (r0) was not saved into pt_regs for restoring
++ *   into user reg-file when traded task rets to user space.
++ *  -syscalls needing arch-wrappers (mainly for passing sp as pt_regs)
++ *   were not invoking post-syscall trace hook (jumping directly into
++ *   ret_from_system_call)
++ *
+  * vineetg: Nov 2010:
+  *  -Vector table jumps (@8 bytes) converted into branches (@4 bytes)
+  *  -To maintain the slot size of 8 bytes/vector, added nop, which is
+@@ -347,6 +354,50 @@ ARC_ENTRY EV_Extension
+ 	b   ret_from_exception
+ ARC_EXIT EV_Extension
+ 
++;######################### System Call Tracing #########################
 +
-+static int handle_vmalloc_fault(struct mm_struct *mm, unsigned long address)
++tracesys:
++	; save EFA in case tracer wants the PC of traced task
++	; using ERET won't work since next-PC has already committed
++	lr  r12, [efa]
++	GET_CURR_TASK_FIELD_PTR   TASK_THREAD, r11
++	st  r12, [r11, THREAD_FAULT_ADDR]
++
++	; PRE Sys Call Ptrace hook
++	mov r0, sp			; pt_regs needed
++	bl  @syscall_trace_entry
++
++	; Tracing code now returns the syscall num (orig or modif)
++	mov r8, r0
++
++	; Do the Sys Call as we normally would.
++	; Validate the Sys Call number
++	cmp     r8,  NR_syscalls
++	mov.hi  r0, -ENOSYS
++	bhi     tracesys_exit
++
++	; Restore the sys-call args. Mere invocation of the hook abv could have
++	; clobbered them (since they are in scratch regs). The tracer could also
++	; have deliberately changed the syscall args: r0-r7
++	ld  r0, [sp, PT_r0]
++	ld  r1, [sp, PT_r1]
++	ld  r2, [sp, PT_r2]
++	ld  r3, [sp, PT_r3]
++	ld  r4, [sp, PT_r4]
++	ld  r5, [sp, PT_r5]
++	ld  r6, [sp, PT_r6]
++	ld  r7, [sp, PT_r7]
++	ld.as   r9, [sys_call_table, r8]
++	jl      [r9]        ; Entry into Sys Call Handler
++
++tracesys_exit:
++	st  r0, [sp, PT_r0]     ; sys call return value in pt_regs
++
++	;POST Sys Call Ptrace Hook
++	bl  @syscall_trace_exit
++	b   ret_from_exception ; NOT ret_from_system_call at is saves r0 which
++	; we'd done before calling post hook above
++
+ ;################### Break Point TRAP ##########################
+ 
+ 	; ======= (5b) Trap is due to Break-Point =========
+@@ -412,6 +463,11 @@ ARC_ENTRY EV_Trap
+ 	; Before doing anything, return from CPU Exception Mode
+ 	FAKE_RET_FROM_EXCPN r11
+ 
++	; If syscall tracing ongoing, invoke pre-pos-hooks
++	GET_CURR_THR_INFO_FLAGS   r10
++	btst r10, TIF_SYSCALL_TRACE
++	bnz tracesys  ; this never comes back
++
+ 	;============ This is normal System Call case ==========
+ 	; Sys-call num shd not exceed the total system calls avail
+ 	cmp     r8,  NR_syscalls
+@@ -608,6 +664,10 @@ ARC_ENTRY sys_fork_wrapper
+ 	bl  @sys_fork
+ 	DISCARD_CALLEE_SAVED_USER
+ 
++	GET_CURR_THR_INFO_FLAGS   r10
++	btst r10, TIF_SYSCALL_TRACE
++	bnz  tracesys_exit
++
+ 	b ret_from_system_call
+ ARC_EXIT sys_fork_wrapper
+ 
+@@ -616,6 +676,10 @@ ARC_ENTRY sys_vfork_wrapper
+ 	bl  @sys_vfork
+ 	DISCARD_CALLEE_SAVED_USER
+ 
++	GET_CURR_THR_INFO_FLAGS   r10
++	btst r10, TIF_SYSCALL_TRACE
++	bnz  tracesys_exit
++
+ 	b ret_from_system_call
+ ARC_EXIT sys_vfork_wrapper
+ 
+@@ -624,5 +688,9 @@ ARC_ENTRY sys_clone_wrapper
+ 	bl  @sys_clone
+ 	DISCARD_CALLEE_SAVED_USER
+ 
++	GET_CURR_THR_INFO_FLAGS   r10
++	btst r10, TIF_SYSCALL_TRACE
++	bnz  tracesys_exit
++
+ 	b ret_from_system_call
+ ARC_EXIT sys_clone_wrapper
+diff --git a/arch/arc/kernel/ptrace.c b/arch/arc/kernel/ptrace.c
+index 1cf944a..c6a81c5 100644
+--- a/arch/arc/kernel/ptrace.c
++++ b/arch/arc/kernel/ptrace.c
+@@ -7,6 +7,122 @@
+  */
+ 
+ #include <linux/ptrace.h>
++#include <linux/tracehook.h>
++#include <linux/regset.h>
++#include <linux/unistd.h>
++#include <linux/elf.h>
++
++static struct callee_regs *task_callee_regs(struct task_struct *tsk)
 +{
-+	/*
-+	 * Synchronize this task's top level page-table
-+	 * with the 'reference' page table.
-+	 */
-+	pgd_t *pgd, *pgd_k;
-+	pud_t *pud, *pud_k;
-+	pmd_t *pmd, *pmd_k;
-+
-+	pgd = pgd_offset_fast(mm, address);
-+	pgd_k = pgd_offset_k(address);
-+
-+	if (!pgd_present(*pgd_k))
-+		goto bad_area;
-+
-+	pud = pud_offset(pgd, address);
-+	pud_k = pud_offset(pgd_k, address);
-+	if (!pud_present(*pud_k))
-+		goto bad_area;
-+
-+	pmd = pmd_offset(pud, address);
-+	pmd_k = pmd_offset(pud_k, address);
-+	if (!pmd_present(*pmd_k))
-+		goto bad_area;
-+
-+	set_pmd(pmd, *pmd_k);
-+
-+	/* XXX: create the TLB entry here */
-+	return 0;
-+
-+bad_area:
-+	return 1;
++	struct callee_regs *tmp = (struct callee_regs *)tsk->thread.callee_reg;
++	return tmp;
 +}
 +
-+void do_page_fault(struct pt_regs *regs, int write, unsigned long address,
-+		   unsigned long cause_code)
++static int genregs_get(struct task_struct *target,
++		       const struct user_regset *regset,
++		       unsigned int pos, unsigned int count,
++		       void *kbuf, void __user *ubuf)
 +{
-+	struct vm_area_struct *vma = NULL;
-+	struct task_struct *tsk = current;
-+	struct mm_struct *mm = tsk->mm;
-+	siginfo_t info;
-+	int fault, ret;
-+	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE |
-+				(write ? FAULT_FLAG_WRITE : 0);
++	const struct pt_regs *ptregs = task_pt_regs(target);
++	const struct callee_regs *cregs = task_callee_regs(target);
++	int ret = 0;
++	unsigned int stop_pc_val;
 +
-+	/*
-+	 * We fault-in kernel-space virtual memory on-demand. The
-+	 * 'reference' page table is init_mm.pgd.
-+	 *
-+	 * NOTE! We MUST NOT take any locks for this case. We may
-+	 * be in an interrupt or a critical region, and should
-+	 * only copy the information from the master page table,
-+	 * nothing more.
-+	 */
-+	if (address >= VMALLOC_START && address <= VMALLOC_END) {
-+		ret = handle_vmalloc_fault(mm, address);
-+		if (unlikely(ret))
-+			goto bad_area_nosemaphore;
-+		else
-+			return;
-+	}
++#define REG_O_CHUNK(START, END, PTR)	\
++	if (!ret)	\
++		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, PTR, \
++			offsetof(struct user_regs_struct, START), \
++			offsetof(struct user_regs_struct, END));
 +
-+	info.si_code = SEGV_MAPERR;
++#define REG_O_ONE(LOC, PTR)	\
++	if (!ret)		\
++		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, PTR, \
++			offsetof(struct user_regs_struct, LOC), \
++			offsetof(struct user_regs_struct, LOC) + 4);
 +
-+	/*
-+	 * If we're in an interrupt or have no user
-+	 * context, we must not take the fault..
-+	 */
-+	if (in_atomic() || !mm)
-+		goto no_context;
++	REG_O_CHUNK(scratch, callee, ptregs);
++	REG_O_CHUNK(callee, efa, cregs);
++	REG_O_CHUNK(efa, stop_pc, &target->thread.fault_address);
 +
-+retry:
-+	down_read(&mm->mmap_sem);
-+	vma = find_vma(mm, address);
-+	if (!vma)
-+		goto bad_area;
-+	if (vma->vm_start <= address)
-+		goto good_area;
-+	if (!(vma->vm_flags & VM_GROWSDOWN))
-+		goto bad_area;
-+	if (expand_stack(vma, address))
-+		goto bad_area;
-+
-+	/*
-+	 * Ok, we have a good vm_area for this memory access, so
-+	 * we can handle it..
-+	 */
-+good_area:
-+	info.si_code = SEGV_ACCERR;
-+
-+	/* Handle protection violation, execute on heap or stack */
-+
-+	if (cause_code == ((ECR_V_PROTV << 16) | ECR_C_PROTV_INST_FETCH))
-+		goto bad_area;
-+
-+	if (write) {
-+		if (!(vma->vm_flags & VM_WRITE))
-+			goto bad_area;
-+	} else {
-+		if (!(vma->vm_flags & (VM_READ | VM_EXEC)))
-+			goto bad_area;
-+	}
-+
-+survive:
-+	/*
-+	 * If for any reason at all we couldn't handle the fault,
-+	 * make sure we exit gracefully rather than endlessly redo
-+	 * the fault.
-+	 */
-+	fault = handle_mm_fault(mm, vma, address, flags);
-+
-+	/* If Pagefault was interrupted by SIGKILL, exit page fault "early" */
-+	if (unlikely(fatal_signal_pending(current))) {
-+		if ((fault & VM_FAULT_ERROR) && !(fault & VM_FAULT_RETRY))
-+			up_read(&mm->mmap_sem);
-+		if (user_mode(regs))
-+			return;
-+	}
-+
-+	if (likely(!(fault & VM_FAULT_ERROR))) {
-+		if (flags & FAULT_FLAG_ALLOW_RETRY) {
-+			/* To avoid updating stats twice for retry case */
-+			if (fault & VM_FAULT_MAJOR)
-+				tsk->maj_flt++;
-+			else
-+				tsk->min_flt++;
-+
-+			if (fault & VM_FAULT_RETRY) {
-+				flags &= ~FAULT_FLAG_ALLOW_RETRY;
-+				flags |= FAULT_FLAG_TRIED;
-+				goto retry;
-+			}
++	if (!ret) {
++		if (in_brkpt_trap(ptregs)) {
++			stop_pc_val = target->thread.fault_address;
++			pr_debug("\t\tstop_pc (brk-pt)\n");
++		} else {
++			stop_pc_val = ptregs->ret;
++			pr_debug("\t\tstop_pc (others)\n");
 +		}
 +
-+		/* Fault Handled Gracefully */
-+		up_read(&mm->mmap_sem);
-+		return;
++		REG_O_ONE(stop_pc, &stop_pc_val);
 +	}
 +
-+	/* TBD: switch to pagefault_out_of_memory() */
-+	if (fault & VM_FAULT_OOM)
-+		goto out_of_memory;
-+	else if (fault & VM_FAULT_SIGBUS)
-+		goto do_sigbus;
-+
-+	/* no man's land */
-+	BUG();
-+
-+	/*
-+	 * Something tried to access memory that isn't in our memory map..
-+	 * Fix it, but check if it's kernel or user first..
-+	 */
-+bad_area:
-+	up_read(&mm->mmap_sem);
-+
-+bad_area_nosemaphore:
-+	/* User mode accesses just cause a SIGSEGV */
-+	if (user_mode(regs)) {
-+		tsk->thread.fault_address = address;
-+		tsk->thread.cause_code = cause_code;
-+		info.si_signo = SIGSEGV;
-+		info.si_errno = 0;
-+		/* info.si_code has been set above */
-+		info.si_addr = (void __user *)address;
-+		force_sig_info(SIGSEGV, &info, tsk);
-+		return;
-+	}
-+
-+no_context:
-+	/* Are we prepared to handle this kernel fault?
-+	 *
-+	 * (The kernel has valid exception-points in the source
-+	 *  when it acesses user-memory. When it fails in one
-+	 *  of those points, we find it in a table and do a jump
-+	 *  to some fixup code that loads an appropriate error
-+	 *  code)
-+	 */
-+	if (fixup_exception(regs))
-+		return;
-+
-+	die("Oops", regs, address, cause_code);
-+
-+out_of_memory:
-+	if (is_global_init(tsk)) {
-+		yield();
-+		goto survive;
-+	}
-+	up_read(&mm->mmap_sem);
-+
-+	if (user_mode(regs))
-+		do_group_exit(SIGKILL);	/* This will never return */
-+
-+	goto no_context;
-+
-+do_sigbus:
-+	up_read(&mm->mmap_sem);
-+
-+	if (!user_mode(regs))
-+		goto no_context;
-+
-+	tsk->thread.fault_address = address;
-+	tsk->thread.cause_code = cause_code;
-+	info.si_signo = SIGBUS;
-+	info.si_errno = 0;
-+	info.si_code = BUS_ADRERR;
-+	info.si_addr = (void __user *)address;
-+	force_sig_info(SIGBUS, &info, tsk);
++	return ret;
 +}
++
++static int genregs_set(struct task_struct *target,
++		       const struct user_regset *regset,
++		       unsigned int pos, unsigned int count,
++		       const void *kbuf, const void __user *ubuf)
++{
++	const struct pt_regs *ptregs = task_pt_regs(target);
++	const struct callee_regs *cregs = task_callee_regs(target);
++	int ret = 0;
++
++#define REG_IN_CHUNK(FIRST, NEXT, PTR)	\
++	if (!ret)			\
++		ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, \
++			(void *)(PTR), \
++			offsetof(struct user_regs_struct, FIRST), \
++			offsetof(struct user_regs_struct, NEXT));
++
++#define REG_IN_ONE(LOC, PTR)		\
++	if (!ret)			\
++		ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, \
++			(void *)(PTR), \
++			offsetof(struct user_regs_struct, LOC), \
++			offsetof(struct user_regs_struct, LOC) + 4);
++
++#define REG_IGNORE_ONE(LOC)		\
++	if (!ret)			\
++		ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf, \
++			offsetof(struct user_regs_struct, LOC), \
++			offsetof(struct user_regs_struct, LOC) + 4);
++
++	/* TBD: disallow updates to STATUS32, orig_r8 etc*/
++	REG_IN_CHUNK(scratch, callee, ptregs);	/* pt_regs[bta..orig_r8] */
++	REG_IN_CHUNK(callee, efa, cregs);	/* callee_regs[r25..r13] */
++	REG_IGNORE_ONE(efa);			/* efa update invalid */
++	REG_IN_ONE(stop_pc, &ptregs->ret);	/* stop_pc: PC update */
++
++	return ret;
++}
++
++enum arc_getset {
++	REGSET_GENERAL,
++};
++
++static const struct user_regset arc_regsets[] = {
++	[REGSET_GENERAL] = {
++	       .core_note_type = NT_PRSTATUS,
++	       .n = ELF_NGREG,
++	       .size = sizeof(unsigned long),
++	       .align = sizeof(unsigned long),
++	       .get = genregs_get,
++	       .set = genregs_set,
++	}
++};
++
++static const struct user_regset_view user_arc_view = {
++	.name		= UTS_MACHINE,
++	.e_machine	= EM_ARCOMPACT,
++	.regsets	= arc_regsets,
++	.n		= ARRAY_SIZE(arc_regsets)
++};
++
++const struct user_regset_view *task_user_regset_view(struct task_struct *task)
++{
++	return &user_arc_view;
++}
+ 
+ void ptrace_disable(struct task_struct *child)
+ {
+@@ -16,11 +132,27 @@ long arch_ptrace(struct task_struct *child, long request,
+ 		 unsigned long addr, unsigned long data)
+ {
+ 	int ret = -EIO;
++
++	pr_debug("REQ=%ld: ADDR =0x%lx, DATA=0x%lx)\n", request, addr, data);
++
++	switch (request) {
++	default:
++		ret = ptrace_request(child, request, addr, data);
++		break;
++	}
++
+ 	return ret;
+ }
+ 
++asmlinkage int syscall_trace_entry(struct pt_regs *regs)
++{
++	if (tracehook_report_syscall_entry(regs))
++		return ULONG_MAX;
+ 
+-const struct user_regset_view *task_user_regset_view(struct task_struct *task)
++	return regs->r8;
++}
++
++asmlinkage void syscall_trace_exit(struct pt_regs *regs)
+ {
+-	return (const struct user_regset_view *)NULL;
++	tracehook_report_syscall_exit(regs, 0);
+ }
 -- 
 1.7.4.1
 
