@@ -1,337 +1,264 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v3 37/71] ARC: [optim] Cache "current" in Register r25
-Date: Thu, 24 Jan 2013 16:36:05 +0530
-Message-ID: <1359025589-22277-22-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v3 28/71] ARC: Page Fault handling
+Date: Thu, 24 Jan 2013 16:36:01 +0530
+Message-ID: <1359025589-22277-18-git-send-email-vgupta@synopsys.com>
 References: <1359025589-22277-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtp2.synopsys.com ([198.182.44.80]:51389 "EHLO
-	kiruna.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753840Ab3AXLJn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jan 2013 06:09:43 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1359025589-22277-1-git-send-email-vgupta@synopsys.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+List-Id: linux-arch.vger.kernel.org
+
+This includes recent changes to make handler "retry" and/or "killable"
+
+The killable (early exit) logic is loosely based on how SH implements it
+	return if SIGKILL + either of VM_FAULT_OOM or VM_FAULT_RETRY
+which is different from Hexagon implementation which would NOT early
+exit for
+	SIGKILL + VM_FAULT_OOM + !VM_FAULT_RETRY
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/Kconfig                 |    7 ++++++
- arch/arc/Makefile                |    9 +++++++
- arch/arc/include/asm/Kbuild      |    1 -
- arch/arc/include/asm/current.h   |   32 +++++++++++++++++++++++++++
- arch/arc/include/asm/entry.h     |   45 ++++++++++++++++++++++++++++++++++++++
- arch/arc/include/asm/processor.h |    3 ++
- arch/arc/kernel/asm-offsets.c    |    3 ++
- arch/arc/kernel/ctx_sw.c         |    7 ++++++
- arch/arc/kernel/entry.S          |   14 +++++++++++
- 9 files changed, 120 insertions(+), 1 deletions(-)
- create mode 100644 arch/arc/include/asm/current.h
+ arch/arc/mm/fault.c |  228 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 228 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arc/mm/fault.c
 
-diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index 7db9785..03347cb 100644
---- a/arch/arc/Kconfig
-+++ b/arch/arc/Kconfig
-@@ -264,6 +264,13 @@ config LINUX_LINK_BASE
- 
- endmenu # "Platform Board Configuration"
- 
-+config ARC_CURR_IN_REG
-+	bool "Dedicate Register r25 for current_task pointer"
-+	default y
-+	help
-+	  This reserved Register R25 to point to Current Task in
-+	  kernel mode. This saves memory access for each such access
-+
- config ARC_STACK_NONEXEC
- 	bool "Make stack non-executable"
- 	default n
-diff --git a/arch/arc/Makefile b/arch/arc/Makefile
-index 90570f9..4247f48 100644
---- a/arch/arc/Makefile
-+++ b/arch/arc/Makefile
-@@ -20,6 +20,15 @@ export PLATFORM
- cflags-y	+= -Iarch/arc/plat-$(PLATFORM)/include
- cflags-y	+= -mA7 -fno-common -pipe -fno-builtin -D__linux__
- 
-+ifdef CONFIG_ARC_CURR_IN_REG
-+# For a global register defintion, make sure it gets passed to every file
-+# We had a customer reported bug where some code built in kernel was NOT using
-+# any kernel headers, and missing the r25 global register
-+# Can't do unconditionally (like above) because of recursive include issues
-+# due to <linux/thread_info.h>
-+LINUXINCLUDE	+=  -include ${src}/arch/arc/include/asm/current.h
-+endif
-+
- atleast_gcc44 :=  $(call cc-ifversion, -gt, 0402, y)
- cflags-$(atleast_gcc44)			+= -fsection-anchors
- 
-diff --git a/arch/arc/include/asm/Kbuild b/arch/arc/include/asm/Kbuild
-index 105ec11..78e982d 100644
---- a/arch/arc/include/asm/Kbuild
-+++ b/arch/arc/include/asm/Kbuild
-@@ -11,7 +11,6 @@ generic-y += bugs.h
- generic-y += bitsperlong.h
- generic-y += clkdev.h
- generic-y += cputime.h
--generic-y += current.h
- generic-y += device.h
- generic-y += div64.h
- generic-y += emergency-restart.h
-diff --git a/arch/arc/include/asm/current.h b/arch/arc/include/asm/current.h
+diff --git a/arch/arc/mm/fault.c b/arch/arc/mm/fault.c
 new file mode 100644
-index 0000000..87b9185
+index 0000000..af55aab
 --- /dev/null
-+++ b/arch/arc/include/asm/current.h
-@@ -0,0 +1,32 @@
-+/*
++++ b/arch/arc/mm/fault.c
+@@ -0,0 +1,228 @@
++/* Page Fault Handling for ARC (TLB Miss / ProtV)
++ *
 + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
 + * published by the Free Software Foundation.
-+ *
-+ * Vineetg: May 16th, 2008
-+ *  - Current macro is now implemented as "global register" r25
 + */
 +
-+#ifndef _ASM_ARC_CURRENT_H
-+#define _ASM_ARC_CURRENT_H
++#include <linux/signal.h>
++#include <linux/interrupt.h>
++#include <linux/sched.h>
++#include <linux/errno.h>
++#include <linux/ptrace.h>
++#include <linux/version.h>
++#include <linux/uaccess.h>
++#include <linux/kdebug.h>
++#include <asm/pgalloc.h>
 +
-+#ifdef __KERNEL__
-+
-+#ifndef __ASSEMBLY__
-+
-+#ifdef CONFIG_ARC_CURR_IN_REG
-+
-+register struct task_struct *curr_arc asm("r25");
-+#define current (curr_arc)
-+
-+#else
-+#include <asm-generic/current.h>
-+#endif /* ! CONFIG_ARC_CURR_IN_REG */
-+
-+#endif /* ! __ASSEMBLY__ */
-+
-+#endif	/* __KERNEL__ */
-+
-+#endif /* _ASM_ARC_CURRENT_H */
-diff --git a/arch/arc/include/asm/entry.h b/arch/arc/include/asm/entry.h
-index 9eada5b..716f4f7 100644
---- a/arch/arc/include/asm/entry.h
-+++ b/arch/arc/include/asm/entry.h
-@@ -13,6 +13,8 @@
-  *   was being "CLEARED" rather then "SET". Actually "SET" clears ZOL context
-  *
-  * Vineetg: May 5th 2008
-+ *  -Modified CALLEE_REG save/restore macros to handle the fact that
-+ *      r25 contains the kernel current task ptr
-  *  - Defined Stack Switching Macro to be reused in all intr/excp hdlrs
-  *  - Shaved off 11 instructions from RESTORE_ALL_INT1 by using the
-  *      address Write back load ld.ab instead of seperate ld/add instn
-@@ -28,6 +30,7 @@
- #include <asm/asm-offsets.h>
- #include <asm/arcregs.h>
- #include <asm/ptrace.h>
-+#include <asm/processor.h>	/* For VMALLOC_START */
- #include <asm/thread_info.h>	/* For THREAD_SIZE */
- 
- /* Note on the LD/ST addr modes with addr reg wback
-@@ -106,7 +109,14 @@
- 	st.a    r22, [sp, -4]
- 	st.a    r23, [sp, -4]
- 	st.a    r24, [sp, -4]
-+
-+#ifdef CONFIG_ARC_CURR_IN_REG
-+	; Retrieve orig r25 and save it on stack
-+	ld      r12, [r25, TASK_THREAD + THREAD_USER_R25]
-+	st.a    r12, [sp, -4]
-+#else
- 	st.a    r25, [sp, -4]
-+#endif
- 
- 	/* move up by 1 word to "create" callee_regs->"stack_place_holder" */
- 	sub sp, sp, 4
-@@ -131,8 +141,12 @@
- 	st.a    r22, [sp, -4]
- 	st.a    r23, [sp, -4]
- 	st.a    r24, [sp, -4]
-+#ifdef CONFIG_ARC_CURR_IN_REG
-+	sub     sp, sp, 8
-+#else
- 	st.a    r25, [sp, -4]
- 	sub     sp, sp, 4
-+#endif
- .endm
- 
- /*--------------------------------------------------------------
-@@ -148,8 +162,14 @@
-  *-------------------------------------------------------------*/
- .macro RESTORE_CALLEE_SAVED_KERNEL
- 
-+
-+#ifdef CONFIG_ARC_CURR_IN_REG
-+	add     sp, sp, 8  /* skip callee_reg gutter and user r25 placeholder */
-+#else
- 	add     sp, sp, 4   /* skip "callee_regs->stack_place_holder" */
- 	ld.ab   r25, [sp, 4]
-+#endif
-+
- 	ld.ab   r24, [sp, 4]
- 	ld.ab   r23, [sp, 4]
- 	ld.ab   r22, [sp, 4]
-@@ -235,6 +255,7 @@
-  *
-  * Entry   : r9 contains pre-IRQ/exception/trap status32
-  * Exit    : SP is set to kernel mode stack pointer
-+ *           If CURR_IN_REG, r25 set to "current" task pointer
-  * Clobbers: r9
-  *-------------------------------------------------------------*/
- 
-@@ -259,6 +280,16 @@
- 
- 	GET_CURR_TASK_ON_CPU   r9
- 
-+#ifdef CONFIG_ARC_CURR_IN_REG
-+
-+	/* If current task pointer cached in r25, time to
-+	 *  -safekeep USER r25 in task->thread_struct->user_r25
-+	 *  -load r25 with current task ptr
++static int handle_vmalloc_fault(struct mm_struct *mm, unsigned long address)
++{
++	/*
++	 * Synchronize this task's top level page-table
++	 * with the 'reference' page table.
 +	 */
-+	st.as	r25, [r9, (TASK_THREAD + THREAD_USER_R25)/4]
-+	mov	r25, r9
-+#endif
++	pgd_t *pgd, *pgd_k;
++	pud_t *pud, *pud_k;
++	pmd_t *pmd, *pmd_k;
 +
- 	/* With current tsk in r9, get it's kernel mode stack base */
- 	GET_TSK_STACK_BASE  r9, r9
- 
-@@ -519,17 +550,31 @@
- 
- .macro  SET_CURR_TASK_ON_CPU    tsk, tmp
- 	st  \tsk, [@_current_task]
-+#ifdef CONFIG_ARC_CURR_IN_REG
-+	mov r25, \tsk
-+#endif
- .endm
- 
- /* ------------------------------------------------------------------
-  * Get the ptr to some field of Current Task at @off in task struct
-+ *  -Uses r25 for Current task ptr if that is enabled
-  */
- 
-+#ifdef CONFIG_ARC_CURR_IN_REG
++	pgd = pgd_offset_fast(mm, address);
++	pgd_k = pgd_offset_k(address);
 +
-+.macro GET_CURR_TASK_FIELD_PTR  off,  reg
-+	add \reg, r25, \off
-+.endm
++	if (!pgd_present(*pgd_k))
++		goto bad_area;
 +
-+#else
++	pud = pud_offset(pgd, address);
++	pud_k = pud_offset(pgd_k, address);
++	if (!pud_present(*pud_k))
++		goto bad_area;
 +
- .macro GET_CURR_TASK_FIELD_PTR  off,  reg
- 	GET_CURR_TASK_ON_CPU  \reg
- 	add \reg, \reg, \off
- .endm
- 
-+#endif	/* CONFIG_ARC_CURR_IN_REG */
++	pmd = pmd_offset(pud, address);
++	pmd_k = pmd_offset(pud_k, address);
++	if (!pmd_present(*pmd_k))
++		goto bad_area;
 +
- #endif  /* __ASSEMBLY__ */
- 
- #endif  /* __ASM_ARC_ENTRY_H */
-diff --git a/arch/arc/include/asm/processor.h b/arch/arc/include/asm/processor.h
-index 860252e..b7b1556 100644
---- a/arch/arc/include/asm/processor.h
-+++ b/arch/arc/include/asm/processor.h
-@@ -29,6 +29,9 @@ struct thread_struct {
- 	unsigned long callee_reg;	/* pointer to callee regs */
- 	unsigned long fault_address;	/* dbls as brkpt holder as well */
- 	unsigned long cause_code;	/* Exception Cause Code (ECR) */
-+#ifdef CONFIG_ARC_CURR_IN_REG
-+	unsigned long user_r25;
-+#endif
- #ifdef CONFIG_ARC_FPU_SAVE_RESTORE
- 	struct arc_fpu fpu;
- #endif
-diff --git a/arch/arc/kernel/asm-offsets.c b/arch/arc/kernel/asm-offsets.c
-index 7f3f611..b0e7254 100644
---- a/arch/arc/kernel/asm-offsets.c
-+++ b/arch/arc/kernel/asm-offsets.c
-@@ -23,6 +23,9 @@ int main(void)
- 
- 	DEFINE(THREAD_KSP, offsetof(struct thread_struct, ksp));
- 	DEFINE(THREAD_CALLEE_REG, offsetof(struct thread_struct, callee_reg));
-+#ifdef CONFIG_ARC_CURR_IN_REG
-+	DEFINE(THREAD_USER_R25, offsetof(struct thread_struct, user_r25));
-+#endif
- 	DEFINE(THREAD_FAULT_ADDR,
- 	       offsetof(struct thread_struct, fault_address));
- 
-diff --git a/arch/arc/kernel/ctx_sw.c b/arch/arc/kernel/ctx_sw.c
-index 647e37a..fbf739c 100644
---- a/arch/arc/kernel/ctx_sw.c
-+++ b/arch/arc/kernel/ctx_sw.c
-@@ -24,6 +24,9 @@ __switch_to(struct task_struct *prev_task, struct task_struct *next_task)
- 	unsigned int prev = (unsigned int)prev_task;
- 	unsigned int next = (unsigned int)next_task;
- 	int num_words_to_skip = 1;
-+#ifdef CONFIG_ARC_CURR_IN_REG
-+	num_words_to_skip++;
-+#endif
- 
- 	__asm__ __volatile__(
- 		/* FP/BLINK save generated by gcc (standard function prologue */
-@@ -39,7 +42,9 @@ __switch_to(struct task_struct *prev_task, struct task_struct *next_task)
- 		"st.a    r22, [sp, -4]   \n\t"
- 		"st.a    r23, [sp, -4]   \n\t"
- 		"st.a    r24, [sp, -4]   \n\t"
-+#ifndef CONFIG_ARC_CURR_IN_REG
- 		"st.a    r25, [sp, -4]   \n\t"
-+#endif
- 		"sub     sp, sp, %4      \n\t"	/* create gutter at top */
- 
- 		/* set ksp of outgoing task in tsk->thread.ksp */
-@@ -62,7 +67,9 @@ __switch_to(struct task_struct *prev_task, struct task_struct *next_task)
- 
- 		"add    sp, sp, %4     \n\t"	/* skip gutter at top */
- 
-+#ifndef CONFIG_ARC_CURR_IN_REG
- 		"ld.ab   r25, [sp, 4]   \n\t"
-+#endif
- 		"ld.ab   r24, [sp, 4]   \n\t"
- 		"ld.ab   r23, [sp, 4]   \n\t"
- 		"ld.ab   r22, [sp, 4]   \n\t"
-diff --git a/arch/arc/kernel/entry.S b/arch/arc/kernel/entry.S
-index ce8670d..69d0d37 100644
---- a/arch/arc/kernel/entry.S
-+++ b/arch/arc/kernel/entry.S
-@@ -32,6 +32,9 @@
-  *   was being "CLEARED" rather then "SET". Since it is Loop INHIBIT Bit,
-  *   setting it and not clearing it clears ZOL context
-  *
-+ * Vineetg: May 16th, 2008
-+ *  - r25 now contains the Current Task when in kernel
-+ *
-  * Vineetg: Dec 22, 2007
-  *    Minor Surgery of Low Level ISR to make it SMP safe
-  *    - MMU_SCRATCH0 Reg used for freeing up r9 in Level 1 ISR
-@@ -535,6 +538,17 @@ restore_regs :
- 	; XXX can this be optimised out
- 	IRQ_DISABLE_SAVE    r9, r10	;@r10 has prisitine (pre-disable) copy
- 
-+#ifdef CONFIG_ARC_CURR_IN_REG
-+	; Restore User R25
-+	; Earlier this used to be only for returning to user mode
-+	; However with 2 levels of IRQ this can also happen even if
-+	; in kernel mode
-+	ld r9, [sp, PT_sp]
-+	brhs r9, VMALLOC_START, 8f
-+	RESTORE_USER_R25
-+8:
-+#endif
++	set_pmd(pmd, *pmd_k);
 +
- 	; Restore REG File. In case multiple Events outstanding,
- 	; use the same priorty as rtie: EXCPN, L2 IRQ, L1 IRQ, None
- 	; Note that we use realtime STATUS32 (not pt_regs->status32) to
++	/* XXX: create the TLB entry here */
++	return 0;
++
++bad_area:
++	return 1;
++}
++
++void do_page_fault(struct pt_regs *regs, int write, unsigned long address,
++		   unsigned long cause_code)
++{
++	struct vm_area_struct *vma = NULL;
++	struct task_struct *tsk = current;
++	struct mm_struct *mm = tsk->mm;
++	siginfo_t info;
++	int fault, ret;
++	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE |
++				(write ? FAULT_FLAG_WRITE : 0);
++
++	/*
++	 * We fault-in kernel-space virtual memory on-demand. The
++	 * 'reference' page table is init_mm.pgd.
++	 *
++	 * NOTE! We MUST NOT take any locks for this case. We may
++	 * be in an interrupt or a critical region, and should
++	 * only copy the information from the master page table,
++	 * nothing more.
++	 */
++	if (address >= VMALLOC_START && address <= VMALLOC_END) {
++		ret = handle_vmalloc_fault(mm, address);
++		if (unlikely(ret))
++			goto bad_area_nosemaphore;
++		else
++			return;
++	}
++
++	info.si_code = SEGV_MAPERR;
++
++	/*
++	 * If we're in an interrupt or have no user
++	 * context, we must not take the fault..
++	 */
++	if (in_atomic() || !mm)
++		goto no_context;
++
++retry:
++	down_read(&mm->mmap_sem);
++	vma = find_vma(mm, address);
++	if (!vma)
++		goto bad_area;
++	if (vma->vm_start <= address)
++		goto good_area;
++	if (!(vma->vm_flags & VM_GROWSDOWN))
++		goto bad_area;
++	if (expand_stack(vma, address))
++		goto bad_area;
++
++	/*
++	 * Ok, we have a good vm_area for this memory access, so
++	 * we can handle it..
++	 */
++good_area:
++	info.si_code = SEGV_ACCERR;
++
++	/* Handle protection violation, execute on heap or stack */
++
++	if (cause_code == ((ECR_V_PROTV << 16) | ECR_C_PROTV_INST_FETCH))
++		goto bad_area;
++
++	if (write) {
++		if (!(vma->vm_flags & VM_WRITE))
++			goto bad_area;
++	} else {
++		if (!(vma->vm_flags & (VM_READ | VM_EXEC)))
++			goto bad_area;
++	}
++
++survive:
++	/*
++	 * If for any reason at all we couldn't handle the fault,
++	 * make sure we exit gracefully rather than endlessly redo
++	 * the fault.
++	 */
++	fault = handle_mm_fault(mm, vma, address, flags);
++
++	/* If Pagefault was interrupted by SIGKILL, exit page fault "early" */
++	if (unlikely(fatal_signal_pending(current))) {
++		if ((fault & VM_FAULT_ERROR) && !(fault & VM_FAULT_RETRY))
++			up_read(&mm->mmap_sem);
++		if (user_mode(regs))
++			return;
++	}
++
++	if (likely(!(fault & VM_FAULT_ERROR))) {
++		if (flags & FAULT_FLAG_ALLOW_RETRY) {
++			/* To avoid updating stats twice for retry case */
++			if (fault & VM_FAULT_MAJOR)
++				tsk->maj_flt++;
++			else
++				tsk->min_flt++;
++
++			if (fault & VM_FAULT_RETRY) {
++				flags &= ~FAULT_FLAG_ALLOW_RETRY;
++				flags |= FAULT_FLAG_TRIED;
++				goto retry;
++			}
++		}
++
++		/* Fault Handled Gracefully */
++		up_read(&mm->mmap_sem);
++		return;
++	}
++
++	/* TBD: switch to pagefault_out_of_memory() */
++	if (fault & VM_FAULT_OOM)
++		goto out_of_memory;
++	else if (fault & VM_FAULT_SIGBUS)
++		goto do_sigbus;
++
++	/* no man's land */
++	BUG();
++
++	/*
++	 * Something tried to access memory that isn't in our memory map..
++	 * Fix it, but check if it's kernel or user first..
++	 */
++bad_area:
++	up_read(&mm->mmap_sem);
++
++bad_area_nosemaphore:
++	/* User mode accesses just cause a SIGSEGV */
++	if (user_mode(regs)) {
++		tsk->thread.fault_address = address;
++		tsk->thread.cause_code = cause_code;
++		info.si_signo = SIGSEGV;
++		info.si_errno = 0;
++		/* info.si_code has been set above */
++		info.si_addr = (void __user *)address;
++		force_sig_info(SIGSEGV, &info, tsk);
++		return;
++	}
++
++no_context:
++	/* Are we prepared to handle this kernel fault?
++	 *
++	 * (The kernel has valid exception-points in the source
++	 *  when it acesses user-memory. When it fails in one
++	 *  of those points, we find it in a table and do a jump
++	 *  to some fixup code that loads an appropriate error
++	 *  code)
++	 */
++	if (fixup_exception(regs))
++		return;
++
++	die("Oops", regs, address, cause_code);
++
++out_of_memory:
++	if (is_global_init(tsk)) {
++		yield();
++		goto survive;
++	}
++	up_read(&mm->mmap_sem);
++
++	if (user_mode(regs))
++		do_group_exit(SIGKILL);	/* This will never return */
++
++	goto no_context;
++
++do_sigbus:
++	up_read(&mm->mmap_sem);
++
++	if (!user_mode(regs))
++		goto no_context;
++
++	tsk->thread.fault_address = address;
++	tsk->thread.cause_code = cause_code;
++	info.si_signo = SIGBUS;
++	info.si_errno = 0;
++	info.si_code = BUS_ADRERR;
++	info.si_addr = (void __user *)address;
++	force_sig_info(SIGBUS, &info, tsk);
++}
 -- 
 1.7.4.1
