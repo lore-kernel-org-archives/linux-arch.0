@@ -1,7 +1,7 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v3 38/71] ARC: ptrace support
-Date: Thu, 24 Jan 2013 16:36:06 +0530
-Message-ID: <1359025589-22277-23-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v3 08/71] ARC: [optim] uaccess __{get,put}_user() optimised
+Date: Thu, 24 Jan 2013 16:35:49 +0530
+Message-ID: <1359025589-22277-6-git-send-email-vgupta@synopsys.com>
 References: <1359025589-22277-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -12,310 +12,146 @@ To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 List-Id: linux-arch.vger.kernel.org
 
+Override asm-generic implementations. We basically gain on 2 fronts
+
+* checks for alignment no longer needed as we are only doing "unit"
+  sized copies.
+
+  (Careful observer could argue that While the kernel buffers are aligned,
+   the user buffer in theory might not be - however in that case the
+   user space is already broken when it tries to deref a hword/word
+   straddling word boundary - so we are not making it any worse).
+
+* __copy_{to,from}_user( ) returns bytes that couldn't be copied,
+  whereas get_user() returns 0 for success or -EFAULT (not size). Thus
+  the code to do leftover bytes calculation can be avoided as well.
+
+The savings were significant: ~17k of code.
+
+bloat-o-meter vmlinux_uaccess_pre vmlinux_uaccess_post
+add/remove: 0/4 grow/shrink: 8/118 up/down: 1262/-18758 (-17496)
+							^^^^^^^^^
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/arc/Kconfig         |    1 +
- arch/arc/kernel/Makefile |    3 +
- arch/arc/kernel/entry.S  |   68 +++++++++++++++++++++++
- arch/arc/kernel/ptrace.c |  136 +++++++++++++++++++++++++++++++++++++++++++++-
- 4 files changed, 206 insertions(+), 2 deletions(-)
+ arch/arc/include/asm/uaccess.h |  105 ++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 105 insertions(+), 0 deletions(-)
 
-diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index 03347cb..409b937 100644
---- a/arch/arc/Kconfig
-+++ b/arch/arc/Kconfig
-@@ -22,6 +22,7 @@ config ARC
- 	select GENERIC_PENDING_IRQ if SMP
- 	select GENERIC_SIGALTSTACK
- 	select GENERIC_SMP_IDLE_THREAD
-+	select HAVE_ARCH_TRACEHOOK
- 	select HAVE_GENERIC_HARDIRQS
- 	select HAVE_MEMBLOCK
- 	select IRQ_DOMAIN
-diff --git a/arch/arc/kernel/Makefile b/arch/arc/kernel/Makefile
-index 8a55e99..1f01d35 100644
---- a/arch/arc/kernel/Makefile
-+++ b/arch/arc/kernel/Makefile
-@@ -5,6 +5,9 @@
- # it under the terms of the GNU General Public License version 2 as
- # published by the Free Software Foundation.
+diff --git a/arch/arc/include/asm/uaccess.h b/arch/arc/include/asm/uaccess.h
+index f13bca4..3242082 100644
+--- a/arch/arc/include/asm/uaccess.h
++++ b/arch/arc/include/asm/uaccess.h
+@@ -57,6 +57,111 @@
+ #define __access_ok(addr, sz)	(unlikely(__kernel_ok) || \
+ 				 likely(__user_ok((addr), (sz))))
  
-+# Pass UTS_MACHINE for user_regset definition
-+CFLAGS_ptrace.o		+= -DUTS_MACHINE='"$(UTS_MACHINE)"'
++/*********** Single byte/hword/word copies ******************/
 +
- obj-y	:= arcksyms.o setup.o irq.o time.o reset.o ptrace.o entry.o process.o
- obj-y	+= signal.o traps.o sys.o troubleshoot.o stacktrace.o clk.o
- 
-diff --git a/arch/arc/kernel/entry.S b/arch/arc/kernel/entry.S
-index 69d0d37..76697ae 100644
---- a/arch/arc/kernel/entry.S
-+++ b/arch/arc/kernel/entry.S
-@@ -7,6 +7,13 @@
-  * it under the terms of the GNU General Public License version 2 as
-  * published by the Free Software Foundation.
-  *
-+ * vineetg: Feb 2011 (ptrace low level code fixes)
-+ *  -traced syscall return code (r0) was not saved into pt_regs for restoring
-+ *   into user reg-file when traded task rets to user space.
-+ *  -syscalls needing arch-wrappers (mainly for passing sp as pt_regs)
-+ *   were not invoking post-syscall trace hook (jumping directly into
-+ *   ret_from_system_call)
-+ *
-  * vineetg: Nov 2010:
-  *  -Vector table jumps (@8 bytes) converted into branches (@4 bytes)
-  *  -To maintain the slot size of 8 bytes/vector, added nop, which is
-@@ -347,6 +354,50 @@ ARC_ENTRY EV_Extension
- 	b   ret_from_exception
- ARC_EXIT EV_Extension
- 
-+;######################### System Call Tracing #########################
++#define __get_user_fn(sz, u, k)					\
++({								\
++	long __ret = 0;	/* success by default */	\
++	switch (sz) {						\
++	case 1: __arc_get_user_one(*(k), u, "ldb", __ret); break;	\
++	case 2: __arc_get_user_one(*(k), u, "ldw", __ret); break;	\
++	case 4: __arc_get_user_one(*(k), u, "ld", __ret);  break;	\
++	case 8: __arc_get_user_one_64(*(k), u, __ret);     break;	\
++	}							\
++	__ret;							\
++})
 +
-+tracesys:
-+	; save EFA in case tracer wants the PC of traced task
-+	; using ERET won't work since next-PC has already committed
-+	lr  r12, [efa]
-+	GET_CURR_TASK_FIELD_PTR   TASK_THREAD, r11
-+	st  r12, [r11, THREAD_FAULT_ADDR]
++/*
++ * Returns 0 on success, -EFAULT if not.
++ * @ret already contains 0 - given that errors will be less likely
++ * (hence +r asm constraint below).
++ * In case of error, fixup code will make it -EFAULT
++ */
++#define __arc_get_user_one(dst, src, op, ret)	\
++	__asm__ __volatile__(                   \
++	"1:	"op"    %1,[%2]\n"		\
++	"2:	;nop\n"				\
++	"	.section .fixup, \"ax\"\n"	\
++	"	.align 4\n"			\
++	"3:	mov %0, %3\n"			\
++	"	j   2b\n"			\
++	"	.previous\n"			\
++	"	.section __ex_table, \"a\"\n"	\
++	"	.align 4\n"			\
++	"	.word 1b,3b\n"			\
++	"	.previous\n"			\
++						\
++	: "+r" (ret), "=r" (dst)		\
++	: "r" (src), "ir" (-EFAULT))
 +
-+	; PRE Sys Call Ptrace hook
-+	mov r0, sp			; pt_regs needed
-+	bl  @syscall_trace_entry
++#define __arc_get_user_one_64(dst, src, ret)	\
++	__asm__ __volatile__(                   \
++	"1:	ld   %1,[%2]\n"			\
++	"4:	ld  %R1,[%2, 4]\n"		\
++	"2:	;nop\n"				\
++	"	.section .fixup, \"ax\"\n"	\
++	"	.align 4\n"			\
++	"3:	mov %0, %3\n"			\
++	"	j   2b\n"			\
++	"	.previous\n"			\
++	"	.section __ex_table, \"a\"\n"	\
++	"	.align 4\n"			\
++	"	.word 1b,3b\n"			\
++	"	.word 4b,3b\n"			\
++	"	.previous\n"			\
++						\
++	: "+r" (ret), "=r" (dst)		\
++	: "r" (src), "ir" (-EFAULT))
 +
-+	; Tracing code now returns the syscall num (orig or modif)
-+	mov r8, r0
++#define __put_user_fn(sz, u, k)					\
++({								\
++	long __ret = 0;	/* success by default */	\
++	switch (sz) {						\
++	case 1: __arc_put_user_one(*(k), u, "stb", __ret); break;	\
++	case 2: __arc_put_user_one(*(k), u, "stw", __ret); break;	\
++	case 4: __arc_put_user_one(*(k), u, "st", __ret);  break;	\
++	case 8: __arc_put_user_one_64(*(k), u, __ret);     break;	\
++	}							\
++	__ret;							\
++})
 +
-+	; Do the Sys Call as we normally would.
-+	; Validate the Sys Call number
-+	cmp     r8,  NR_syscalls
-+	mov.hi  r0, -ENOSYS
-+	bhi     tracesys_exit
++#define __arc_put_user_one(src, dst, op, ret)	\
++	__asm__ __volatile__(                   \
++	"1:	"op"    %1,[%2]\n"		\
++	"2:	;nop\n"				\
++	"	.section .fixup, \"ax\"\n"	\
++	"	.align 4\n"			\
++	"3:	mov %0, %3\n"			\
++	"	j   2b\n"			\
++	"	.previous\n"			\
++	"	.section __ex_table, \"a\"\n"	\
++	"	.align 4\n"			\
++	"	.word 1b,3b\n"			\
++	"	.previous\n"			\
++						\
++	: "+r" (ret)				\
++	: "r" (src), "r" (dst), "ir" (-EFAULT))
 +
-+	; Restore the sys-call args. Mere invocation of the hook abv could have
-+	; clobbered them (since they are in scratch regs). The tracer could also
-+	; have deliberately changed the syscall args: r0-r7
-+	ld  r0, [sp, PT_r0]
-+	ld  r1, [sp, PT_r1]
-+	ld  r2, [sp, PT_r2]
-+	ld  r3, [sp, PT_r3]
-+	ld  r4, [sp, PT_r4]
-+	ld  r5, [sp, PT_r5]
-+	ld  r6, [sp, PT_r6]
-+	ld  r7, [sp, PT_r7]
-+	ld.as   r9, [sys_call_table, r8]
-+	jl      [r9]        ; Entry into Sys Call Handler
++#define __arc_put_user_one_64(src, dst, ret)	\
++	__asm__ __volatile__(                   \
++	"1:	st   %1,[%2]\n"			\
++	"4:	st  %R1,[%2, 4]\n"		\
++	"2:	;nop\n"				\
++	"	.section .fixup, \"ax\"\n"	\
++	"	.align 4\n"			\
++	"3:	mov %0, %3\n"			\
++	"	j   2b\n"			\
++	"	.previous\n"			\
++	"	.section __ex_table, \"a\"\n"	\
++	"	.align 4\n"			\
++	"	.word 1b,3b\n"			\
++	"	.word 4b,3b\n"			\
++	"	.previous\n"			\
++						\
++	: "+r" (ret)				\
++	: "r" (src), "r" (dst), "ir" (-EFAULT))
 +
-+tracesys_exit:
-+	st  r0, [sp, PT_r0]     ; sys call return value in pt_regs
 +
-+	;POST Sys Call Ptrace Hook
-+	bl  @syscall_trace_exit
-+	b   ret_from_exception ; NOT ret_from_system_call at is saves r0 which
-+	; we'd done before calling post hook above
-+
- ;################### Break Point TRAP ##########################
- 
- 	; ======= (5b) Trap is due to Break-Point =========
-@@ -412,6 +463,11 @@ ARC_ENTRY EV_Trap
- 	; Before doing anything, return from CPU Exception Mode
- 	FAKE_RET_FROM_EXCPN r11
- 
-+	; If syscall tracing ongoing, invoke pre-pos-hooks
-+	GET_CURR_THR_INFO_FLAGS   r10
-+	btst r10, TIF_SYSCALL_TRACE
-+	bnz tracesys  ; this never comes back
-+
- 	;============ This is normal System Call case ==========
- 	; Sys-call num shd not exceed the total system calls avail
- 	cmp     r8,  NR_syscalls
-@@ -608,6 +664,10 @@ ARC_ENTRY sys_fork_wrapper
- 	bl  @sys_fork
- 	DISCARD_CALLEE_SAVED_USER
- 
-+	GET_CURR_THR_INFO_FLAGS   r10
-+	btst r10, TIF_SYSCALL_TRACE
-+	bnz  tracesys_exit
-+
- 	b ret_from_system_call
- ARC_EXIT sys_fork_wrapper
- 
-@@ -616,6 +676,10 @@ ARC_ENTRY sys_vfork_wrapper
- 	bl  @sys_vfork
- 	DISCARD_CALLEE_SAVED_USER
- 
-+	GET_CURR_THR_INFO_FLAGS   r10
-+	btst r10, TIF_SYSCALL_TRACE
-+	bnz  tracesys_exit
-+
- 	b ret_from_system_call
- ARC_EXIT sys_vfork_wrapper
- 
-@@ -624,5 +688,9 @@ ARC_ENTRY sys_clone_wrapper
- 	bl  @sys_clone
- 	DISCARD_CALLEE_SAVED_USER
- 
-+	GET_CURR_THR_INFO_FLAGS   r10
-+	btst r10, TIF_SYSCALL_TRACE
-+	bnz  tracesys_exit
-+
- 	b ret_from_system_call
- ARC_EXIT sys_clone_wrapper
-diff --git a/arch/arc/kernel/ptrace.c b/arch/arc/kernel/ptrace.c
-index 1cf944a..c6a81c5 100644
---- a/arch/arc/kernel/ptrace.c
-+++ b/arch/arc/kernel/ptrace.c
-@@ -7,6 +7,122 @@
-  */
- 
- #include <linux/ptrace.h>
-+#include <linux/tracehook.h>
-+#include <linux/regset.h>
-+#include <linux/unistd.h>
-+#include <linux/elf.h>
-+
-+static struct callee_regs *task_callee_regs(struct task_struct *tsk)
-+{
-+	struct callee_regs *tmp = (struct callee_regs *)tsk->thread.callee_reg;
-+	return tmp;
-+}
-+
-+static int genregs_get(struct task_struct *target,
-+		       const struct user_regset *regset,
-+		       unsigned int pos, unsigned int count,
-+		       void *kbuf, void __user *ubuf)
-+{
-+	const struct pt_regs *ptregs = task_pt_regs(target);
-+	const struct callee_regs *cregs = task_callee_regs(target);
-+	int ret = 0;
-+	unsigned int stop_pc_val;
-+
-+#define REG_O_CHUNK(START, END, PTR)	\
-+	if (!ret)	\
-+		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, PTR, \
-+			offsetof(struct user_regs_struct, START), \
-+			offsetof(struct user_regs_struct, END));
-+
-+#define REG_O_ONE(LOC, PTR)	\
-+	if (!ret)		\
-+		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, PTR, \
-+			offsetof(struct user_regs_struct, LOC), \
-+			offsetof(struct user_regs_struct, LOC) + 4);
-+
-+	REG_O_CHUNK(scratch, callee, ptregs);
-+	REG_O_CHUNK(callee, efa, cregs);
-+	REG_O_CHUNK(efa, stop_pc, &target->thread.fault_address);
-+
-+	if (!ret) {
-+		if (in_brkpt_trap(ptregs)) {
-+			stop_pc_val = target->thread.fault_address;
-+			pr_debug("\t\tstop_pc (brk-pt)\n");
-+		} else {
-+			stop_pc_val = ptregs->ret;
-+			pr_debug("\t\tstop_pc (others)\n");
-+		}
-+
-+		REG_O_ONE(stop_pc, &stop_pc_val);
-+	}
-+
-+	return ret;
-+}
-+
-+static int genregs_set(struct task_struct *target,
-+		       const struct user_regset *regset,
-+		       unsigned int pos, unsigned int count,
-+		       const void *kbuf, const void __user *ubuf)
-+{
-+	const struct pt_regs *ptregs = task_pt_regs(target);
-+	const struct callee_regs *cregs = task_callee_regs(target);
-+	int ret = 0;
-+
-+#define REG_IN_CHUNK(FIRST, NEXT, PTR)	\
-+	if (!ret)			\
-+		ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, \
-+			(void *)(PTR), \
-+			offsetof(struct user_regs_struct, FIRST), \
-+			offsetof(struct user_regs_struct, NEXT));
-+
-+#define REG_IN_ONE(LOC, PTR)		\
-+	if (!ret)			\
-+		ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, \
-+			(void *)(PTR), \
-+			offsetof(struct user_regs_struct, LOC), \
-+			offsetof(struct user_regs_struct, LOC) + 4);
-+
-+#define REG_IGNORE_ONE(LOC)		\
-+	if (!ret)			\
-+		ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf, \
-+			offsetof(struct user_regs_struct, LOC), \
-+			offsetof(struct user_regs_struct, LOC) + 4);
-+
-+	/* TBD: disallow updates to STATUS32, orig_r8 etc*/
-+	REG_IN_CHUNK(scratch, callee, ptregs);	/* pt_regs[bta..orig_r8] */
-+	REG_IN_CHUNK(callee, efa, cregs);	/* callee_regs[r25..r13] */
-+	REG_IGNORE_ONE(efa);			/* efa update invalid */
-+	REG_IN_ONE(stop_pc, &ptregs->ret);	/* stop_pc: PC update */
-+
-+	return ret;
-+}
-+
-+enum arc_getset {
-+	REGSET_GENERAL,
-+};
-+
-+static const struct user_regset arc_regsets[] = {
-+	[REGSET_GENERAL] = {
-+	       .core_note_type = NT_PRSTATUS,
-+	       .n = ELF_NGREG,
-+	       .size = sizeof(unsigned long),
-+	       .align = sizeof(unsigned long),
-+	       .get = genregs_get,
-+	       .set = genregs_set,
-+	}
-+};
-+
-+static const struct user_regset_view user_arc_view = {
-+	.name		= UTS_MACHINE,
-+	.e_machine	= EM_ARCOMPACT,
-+	.regsets	= arc_regsets,
-+	.n		= ARRAY_SIZE(arc_regsets)
-+};
-+
-+const struct user_regset_view *task_user_regset_view(struct task_struct *task)
-+{
-+	return &user_arc_view;
-+}
- 
- void ptrace_disable(struct task_struct *child)
+ static inline unsigned long
+ __arc_copy_from_user(void *to, const void __user *from, unsigned long n)
  {
-@@ -16,11 +132,27 @@ long arch_ptrace(struct task_struct *child, long request,
- 		 unsigned long addr, unsigned long data)
- {
- 	int ret = -EIO;
-+
-+	pr_debug("REQ=%ld: ADDR =0x%lx, DATA=0x%lx)\n", request, addr, data);
-+
-+	switch (request) {
-+	default:
-+		ret = ptrace_request(child, request, addr, data);
-+		break;
-+	}
-+
- 	return ret;
- }
- 
-+asmlinkage int syscall_trace_entry(struct pt_regs *regs)
-+{
-+	if (tracehook_report_syscall_entry(regs))
-+		return ULONG_MAX;
- 
--const struct user_regset_view *task_user_regset_view(struct task_struct *task)
-+	return regs->r8;
-+}
-+
-+asmlinkage void syscall_trace_exit(struct pt_regs *regs)
- {
--	return (const struct user_regset_view *)NULL;
-+	tracehook_report_syscall_exit(regs, 0);
- }
 -- 
 1.7.4.1
