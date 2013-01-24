@@ -1,388 +1,264 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from kiruna.synopsys.com ([198.182.44.80]:51286 "EHLO
-	kiruna.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754341Ab3AXKzy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jan 2013 05:55:54 -0500
+Received: from alvesta.synopsys.com ([198.182.60.77]:42954 "EHLO
+	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754919Ab3AXLMk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jan 2013 06:12:40 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v3 34/71] ARC: [plat-arcfpga]: Enabling DeviceTree for Angel4 board
-Date: Thu, 24 Jan 2013 16:20:30 +0530
-Message-ID: <1359024639-21915-17-git-send-email-vgupta@synopsys.com>
-In-Reply-To: <1359024639-21915-1-git-send-email-vgupta@synopsys.com>
-References: <1359024639-21915-1-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v3 63/71] ARC: [Review] Multi-platform image #3: switch to board callback
+Date: Thu, 24 Jan 2013 16:36:23 +0530
+Message-ID: <1359025589-22277-40-git-send-email-vgupta@synopsys.com>
+In-Reply-To: <1359025589-22277-1-git-send-email-vgupta@synopsys.com>
+References: <1359025589-22277-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
 Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Grant Likely <grant.likely@secretlab.ca>
-Message-ID: <20130124105030.HnTRrIoZtM4E6RT7PSAvXRrKAfDn9HjsBsL_B8ZatAw@z>
+Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <20130124110623.FvexIFTfaV6EzQeXYy_9TeUpcnKXjL78KTyTmG32Lyc@z>
 
-* arc-uart platform device now populated dynamically, using
-  of_platform_populate() - applies to any other device whatsoever.
-
-* uart in turn requires incore arc-intc to be also present in DT
-
-* A irq-domain needs to be instantiated for IRQ requests by DT probed
-  device (e.g. arc-uart)
-
-TODO: switch over to linear irq domain once all devs have been
-      transitioned to DT
+-platform API is retired and instead callbacks are used
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-Cc: Grant Likely <grant.likely@secretlab.ca>
 Cc: Arnd Bergmann <arnd@arndb.de>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- .../devicetree/bindings/arc/interrupts.txt         |   24 +++++
- arch/arc/boot/dts/Makefile                         |    2 +-
- arch/arc/boot/dts/angel4.dts                       |   55 +++++++++++
- arch/arc/boot/dts/skeleton.dtsi                    |   12 +++
- arch/arc/kernel/irq.c                              |   38 +++++++-
- arch/arc/plat-arcfpga/platform.c                   |   97 +++++++++----------
- 6 files changed, 170 insertions(+), 58 deletions(-)
- create mode 100644 Documentation/devicetree/bindings/arc/interrupts.txt
- create mode 100644 arch/arc/boot/dts/angel4.dts
+ arch/arc/include/asm/irq.h               |    1 -
+ arch/arc/include/asm/smp.h               |    5 ---
+ arch/arc/kernel/irq.c                    |    2 -
+ arch/arc/kernel/setup.c                  |    5 ---
+ arch/arc/kernel/smp.c                    |    1 -
+ arch/arc/plat-arcfpga/include/plat/irq.h |    2 +
+ arch/arc/plat-arcfpga/include/plat/smp.h |    2 +
+ arch/arc/plat-arcfpga/irq.c              |    2 +-
+ arch/arc/plat-arcfpga/platform.c         |   50 +++++++++++++++++++++++++-----
+ arch/arc/plat-arcfpga/smp.c              |    4 +--
+ 10 files changed, 48 insertions(+), 26 deletions(-)
 
-diff --git a/Documentation/devicetree/bindings/arc/interrupts.txt b/Documentation/devicetree/bindings/arc/interrupts.txt
-new file mode 100644
-index 0000000..9a5d562
---- /dev/null
-+++ b/Documentation/devicetree/bindings/arc/interrupts.txt
-@@ -0,0 +1,24 @@
-+* ARC700 incore Interrupt Controller
-+
-+  The core interrupt controller provides 32 prioritised interrupts (2 levels)
-+  to ARC700 core.
-+
-+Properties:
-+
-+- compatible: "snps,arc700-intc"
-+- interrupt-controller: This is an interrupt controller.
-+- #interrupt-cells: Must be <1>.
-+
-+  Single Cell "interrupts" property of a device specifies the IRQ number
-+  between 0 to 31
-+
-+  intc accessed via the special ARC AUX register interface, hence "reg" property
-+  is not specified.
-+
-+Example:
-+
-+	intc: interrupt-controller {
-+		compatible = "snps,arc700-intc";
-+		interrupt-controller;
-+		#interrupt-cells = <1>;
-+	};
-diff --git a/arch/arc/boot/dts/Makefile b/arch/arc/boot/dts/Makefile
-index 4a972a3..dfda14e 100644
---- a/arch/arc/boot/dts/Makefile
-+++ b/arch/arc/boot/dts/Makefile
-@@ -1,7 +1,7 @@
- ifeq ($(CONFIG_OF),y)
+diff --git a/arch/arc/include/asm/irq.h b/arch/arc/include/asm/irq.h
+index c91b2e4..f1b318d 100644
+--- a/arch/arc/include/asm/irq.h
++++ b/arch/arc/include/asm/irq.h
+@@ -17,7 +17,6 @@
+ #include <asm-generic/irq.h>
  
- # Built-in dtb
--builtindtb-y		:= skeleton
-+builtindtb-y		:= angel4
+ extern void __init arc_init_IRQ(void);
+-extern void __init plat_init_IRQ(void);
+ extern int __init get_hw_config_num_irq(void);
  
- ifneq ($(CONFIG_ARC_BUILTIN_DTB_NAME),"")
- 	builtindtb-y	:= $(CONFIG_ARC_BUILTIN_DTB_NAME)
-diff --git a/arch/arc/boot/dts/angel4.dts b/arch/arc/boot/dts/angel4.dts
-new file mode 100644
-index 0000000..4c188d5
---- /dev/null
-+++ b/arch/arc/boot/dts/angel4.dts
-@@ -0,0 +1,55 @@
-+/*
-+ * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+/dts-v1/;
-+
-+/include/ "skeleton.dtsi"
-+
-+/ {
-+	compatible = "snps,arc-angel4";
-+	clock-frequency = <80000000>;	/* 80 MHZ */
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+	interrupt-parent = <&intc>;
-+
-+	chosen {
-+		bootargs = "console=ttyARC0,115200n8";
-+	};
-+
-+	aliases {
-+		serial0 = &arcuart0;
-+	};
-+
-+	memory {
-+		device_type = "memory";
-+		reg = <0x00000000 0x10000000>;	/* 256M */
-+	};
-+
-+	fpga {
-+		compatible = "simple-bus";
-+		#address-cells = <1>;
-+		#size-cells = <1>;
-+
-+		/* child and parent address space 1:1 mapped */
-+		ranges;
-+
-+		intc: interrupt-controller {
-+			compatible = "snps,arc700-intc";
-+			interrupt-controller;
-+			#interrupt-cells = <1>;
-+		};
-+
-+		arcuart0: serial@c0fc1000 {
-+			compatible = "snps,arc-uart";
-+			reg = <0xc0fc1000 0x100>;
-+			interrupts = <5>;
-+			clock-frequency = <80000000>;
-+			baud = <115200>;
-+			status = "okay";
-+		};
-+	};
-+};
-diff --git a/arch/arc/boot/dts/skeleton.dtsi b/arch/arc/boot/dts/skeleton.dtsi
-index eb8b773..a870bdd 100644
---- a/arch/arc/boot/dts/skeleton.dtsi
-+++ b/arch/arc/boot/dts/skeleton.dtsi
-@@ -18,6 +18,18 @@
- 	#size-cells = <1>;
- 	chosen { };
- 	aliases { };
-+
-+	cpus {
-+		#address-cells = <1>;
-+		#size-cells = <0>;
-+
-+		cpu@0 {
-+			device_type = "cpu";
-+			compatible = "snps,arc770d";
-+			reg = <0>;
-+		};
-+	};
-+
- 	memory {
- 		device_type = "memory";
- 		reg = <0x00000000 0x10000000>;	/* 256M */
+ void __cpuinit arc_local_timer_setup(unsigned int cpu);
+diff --git a/arch/arc/include/asm/smp.h b/arch/arc/include/asm/smp.h
+index f91f194..0cff3a5 100644
+--- a/arch/arc/include/asm/smp.h
++++ b/arch/arc/include/asm/smp.h
+@@ -46,10 +46,6 @@ extern int smp_ipi_irq_setup(int cpu, int irq);
+  * arc_platform_smp_cpuinfo:
+  *	returns a string containing info for /proc/cpuinfo
+  *
+- * arc_platform_smp_init_cpu:
+- *	Called from start_kernel_secondary to do any CPU local setup
+- *	such as starting a timer, setting up IPI etc
+- *
+  * arc_platform_smp_wait_to_boot:
+  *	Called from early bootup code for non-Master CPUs to "park" them
+  *
+@@ -64,7 +60,6 @@ extern int smp_ipi_irq_setup(int cpu, int irq);
+  *	Takes @cpu which got IPI at @irq to do any IPI clearing
+  */
+ extern const char *arc_platform_smp_cpuinfo(void);
+-extern void arc_platform_smp_init_cpu(void);
+ extern void arc_platform_smp_wait_to_boot(int cpu);
+ extern void arc_platform_smp_wakeup_cpu(int cpu, unsigned long pc);
+ extern void arc_platform_ipi_send(const struct cpumask *callmap);
 diff --git a/arch/arc/kernel/irq.c b/arch/arc/kernel/irq.c
-index 2f399eb..3c18e66 100644
+index 1198168..551c10d 100644
 --- a/arch/arc/kernel/irq.c
 +++ b/arch/arc/kernel/irq.c
-@@ -9,6 +9,8 @@
- 
- #include <linux/interrupt.h>
- #include <linux/module.h>
-+#include <linux/of.h>
-+#include <linux/irqdomain.h>
- #include <asm/sections.h>
- #include <asm/irq.h>
- 
-@@ -59,16 +61,40 @@ static struct irq_chip onchip_intc = {
- 	.irq_unmask	= arc_unmask_irq,
- };
- 
-+static int arc_intc_domain_map(struct irq_domain *d, unsigned int irq,
-+				irq_hw_number_t hw)
-+{
-+	if (irq == TIMER0_IRQ)
-+		irq_set_chip_and_handler(irq, &onchip_intc, handle_percpu_irq);
-+	else
-+		irq_set_chip_and_handler(irq, &onchip_intc, handle_level_irq);
-+
-+	return 0;
-+}
-+
-+static const struct irq_domain_ops arc_intc_domain_ops = {
-+	.xlate = irq_domain_xlate_onecell,
-+	.map = arc_intc_domain_map,
-+};
-+
-+static struct irq_domain *root_domain;
-+
- void __init init_onchip_IRQ(void)
+@@ -124,7 +124,6 @@ void __init init_onchip_IRQ(void)
+ void __init init_IRQ(void)
  {
--	int i;
-+	struct device_node *intc = NULL;
-+
-+	intc = of_find_compatible_node(NULL, NULL, "snps,arc700-intc");
-+	if(!intc)
-+		panic("DeviceTree Missing incore intc\n");
-+
-+	root_domain = irq_domain_add_legacy(intc, NR_IRQS, 0, 0,
-+					    &arc_intc_domain_ops, NULL);
+ 	init_onchip_IRQ();
+-	plat_init_IRQ();
  
--	for (i = 0; i < NR_IRQS; i++)
--		irq_set_chip_and_handler(i, &onchip_intc, handle_level_irq);
-+	if (!root_domain)
-+		panic("root irq domain not avail\n");
+ 	/* Any external intc can be setup here */
+ 	if (machine_desc->init_irq)
+@@ -132,7 +131,6 @@ void __init init_IRQ(void)
  
--#ifdef CONFIG_SMP
--	irq_set_chip_and_handler(TIMER0_IRQ, &onchip_intc, handle_percpu_irq);
--#endif
-+	/* with this we don't need to export root_domain */
-+	irq_set_default_host(root_domain);
+ #ifdef CONFIG_SMP
+ 	/* Master CPU can initialize it's side of IPI */
+-	arc_platform_smp_init_cpu();
+ 	if (machine_desc->init_smp)
+ 		machine_desc->init_smp(smp_processor_id());
+ #endif
+diff --git a/arch/arc/kernel/setup.c b/arch/arc/kernel/setup.c
+index 20273b8..e591c6a 100644
+--- a/arch/arc/kernel/setup.c
++++ b/arch/arc/kernel/setup.c
+@@ -319,10 +319,6 @@ void __init setup_processor(void)
+ 	arc_chk_fpu();
  }
  
- /*
-diff --git a/arch/arc/plat-arcfpga/platform.c b/arch/arc/plat-arcfpga/platform.c
-index 5388b31..33bcac8 100644
---- a/arch/arc/plat-arcfpga/platform.c
-+++ b/arch/arc/plat-arcfpga/platform.c
-@@ -13,6 +13,7 @@
- #include <linux/device.h>
- #include <linux/platform_device.h>
- #include <linux/console.h>
-+#include <linux/of_platform.h>
- #include <asm/setup.h>
- #include <asm/irq.h>
- #include <asm/clk.h>
-@@ -20,58 +21,56 @@
- 
- /*----------------------- Platform Devices -----------------------------*/
- 
--#if defined(CONFIG_SERIAL_ARC) || defined(CONFIG_SERIAL_ARC_MODULE)
--
- static unsigned long arc_uart_info[] = {
--	CONFIG_ARC_SERIAL_BAUD,	/* uart->baud */
--	-1,			/* uart->port.uartclk */
--	-1,			/* uart->is_emulated (runtime @running_on_hw) */
-+	0,	/* uart->is_emulated (runtime @running_on_hw) */
-+	0,	/* uart->port.uartclk */
-+	0,	/* uart->baud */
- 	0
- };
- 
--#define ARC_UART_DEV(n)					\
--							\
--static struct resource arc_uart##n##_res[] = {		\
--	{						\
--		.start = UART##n##_BASE,			\
--		.end   = UART##n##_BASE + 0xFF,		\
--		.flags = IORESOURCE_MEM,		\
--	},						\
--	{						\
--		.start = UART##n##_IRQ,			\
--		.end   = UART##n##_IRQ,			\
--		.flags = IORESOURCE_IRQ,		\
--	},						\
--};							\
--							\
--static struct platform_device arc_uart##n##_dev = {	\
--	.name = "arc-uart",				\
--	.id = n,					\
--	.num_resources = ARRAY_SIZE(arc_uart##n##_res),	\
--	.resource = arc_uart##n##_res,			\
--	.dev = {					\
--		.platform_data = &arc_uart_info,	\
--	},						\
--}
-+#if defined(CONFIG_SERIAL_ARC_CONSOLE)
-+/*
-+ * static platform data - but only for early serial
-+ * TBD: derive this from a special DT node
-+ */
-+static struct resource arc_uart0_res[] = {
-+	{
-+		.start = UART0_BASE,
-+		.end   = UART0_BASE + 0xFF,
-+		.flags = IORESOURCE_MEM,
-+	},
-+	{
-+		.start = UART0_IRQ,
-+		.end   = UART0_IRQ,
-+		.flags = IORESOURCE_IRQ,
-+	},
-+};
- 
--ARC_UART_DEV(0);
--#if CONFIG_SERIAL_ARC_NR_PORTS > 1
--ARC_UART_DEV(1);
--#endif
-+static struct platform_device arc_uart0_dev = {
-+	.name = "arc-uart",
-+	.id = 0,
-+	.num_resources = ARRAY_SIZE(arc_uart0_res),
-+	.resource = arc_uart0_res,
-+	.dev = {
-+		.platform_data = &arc_uart_info,
-+	},
-+};
- 
- static struct platform_device *fpga_early_devs[] __initdata = {
--#if defined(CONFIG_SERIAL_ARC_CONSOLE)
- 	&arc_uart0_dev,
--#endif
- };
-+#endif
- 
- static void arc_fpga_serial_init(void)
- {
-+	/* To let driver workaround ISS bug: baudh Reg can't be set to 0 */
-+	arc_uart_info[0] = !running_on_hw;
-+
- 	arc_uart_info[1] = arc_get_core_freq();
- 
--	/* To let driver workaround ISS bug: baudh Reg can't be set to 0 */
--	arc_uart_info[2] = !running_on_hw;
-+	arc_uart_info[2] = CONFIG_ARC_SERIAL_BAUD;
- 
-+#if defined(CONFIG_SERIAL_ARC_CONSOLE)
- 	early_platform_add_devices(fpga_early_devs,
- 				   ARRAY_SIZE(fpga_early_devs));
- 
-@@ -97,16 +96,9 @@ static void arc_fpga_serial_init(void)
- 	 * otherwise the early console never gets a chance to run.
- 	 */
- 	add_preferred_console("ttyARC", 0, "115200");
-+#endif
- }
- 
--#else
--
--static void arc_fpga_serial_init(void)
+-void __init __attribute__((weak)) arc_platform_early_init(void)
 -{
 -}
 -
--#endif	/* CONFIG_SERIAL_ARC */
--
- /*
-  * Early Platform Initialization called from setup_arch()
-  */
-@@ -117,20 +109,23 @@ void __init arc_platform_early_init(void)
- 	arc_fpga_serial_init();
+ void __init setup_arch(char **cmdline_p)
+ {
+ #ifdef CONFIG_CMDLINE_UBOOT
+@@ -347,7 +343,6 @@ void __init setup_arch(char **cmdline_p)
+ 	parse_early_param();
+ 
+ 	/* Platform/board specific: e.g. early console registration */
+-	arc_platform_early_init();
+ 	if (machine_desc->init_early)
+ 		machine_desc->init_early();
+ 
+diff --git a/arch/arc/kernel/smp.c b/arch/arc/kernel/smp.c
+index ea15f07..8ee010f 100644
+--- a/arch/arc/kernel/smp.c
++++ b/arch/arc/kernel/smp.c
+@@ -127,7 +127,6 @@ void __cpuinit start_kernel_secondary(void)
+ 
+ 	pr_info("## CPU%u LIVE ##: Executing Code...\n", cpu);
+ 
+-	arc_platform_smp_init_cpu();
+ 	if (machine_desc->init_smp)
+ 		machine_desc->init_smp(smp_processor_id());
+ 
+diff --git a/arch/arc/plat-arcfpga/include/plat/irq.h b/arch/arc/plat-arcfpga/include/plat/irq.h
+index 255b90e..6515df2 100644
+--- a/arch/arc/plat-arcfpga/include/plat/irq.h
++++ b/arch/arc/plat-arcfpga/include/plat/irq.h
+@@ -32,4 +32,6 @@
+ #define IDU_INTERRUPT_0 16
+ #endif
+ 
++extern void __init plat_fpga_init_IRQ(void);
++
+ #endif
+diff --git a/arch/arc/plat-arcfpga/include/plat/smp.h b/arch/arc/plat-arcfpga/include/plat/smp.h
+index 8c5e46c..27822ac 100644
+--- a/arch/arc/plat-arcfpga/include/plat/smp.h
++++ b/arch/arc/plat-arcfpga/include/plat/smp.h
+@@ -110,6 +110,8 @@ struct idu_irq_status {
+ extern void idu_irq_set_tgtcpu(uint8_t irq, uint32_t mask);
+ extern void idu_irq_set_mode(uint8_t irq, uint8_t dest_mode, uint8_t trig_mode);
+ 
++extern void iss_model_init_smp(unsigned int cpu);
++
+ #endif	/* CONFIG_SMP */
+ 
+ #endif
+diff --git a/arch/arc/plat-arcfpga/irq.c b/arch/arc/plat-arcfpga/irq.c
+index 590edd1..0ea43c2 100644
+--- a/arch/arc/plat-arcfpga/irq.c
++++ b/arch/arc/plat-arcfpga/irq.c
+@@ -11,7 +11,7 @@
+ #include <linux/interrupt.h>
+ #include <asm/irq.h>
+ 
+-void __init plat_init_IRQ(void)
++void __init plat_fpga_init_IRQ(void)
+ {
+ 	/*
+ 	 * SMP Hack because UART IRQ hardwired to cpu0 (boot-cpu) but if the
+diff --git a/arch/arc/plat-arcfpga/platform.c b/arch/arc/plat-arcfpga/platform.c
+index b7f63e3..ac85d69 100644
+--- a/arch/arc/plat-arcfpga/platform.c
++++ b/arch/arc/plat-arcfpga/platform.c
+@@ -18,7 +18,9 @@
+ #include <asm/setup.h>
+ #include <asm/irq.h>
+ #include <asm/clk.h>
++#include <asm/mach_desc.h>
+ #include <plat/memmap.h>
++#include <plat/smp.h>
+ 
+ /*-----------------------BVCI Latency Unit -----------------------------*/
+ 
+@@ -153,10 +155,7 @@ static void arc_fpga_serial_init(void)
+ #endif
  }
  
--static struct platform_device *fpga_devs[] __initdata = {
-+static struct of_dev_auxdata plat_auxdata_lookup[] __initdata = {
- #if defined(CONFIG_SERIAL_ARC) || defined(CONFIG_SERIAL_ARC_MODULE)
--	&arc_uart0_dev,
--#if CONFIG_SERIAL_ARC_NR_PORTS > 1
--	&arc_uart1_dev,
--#endif
-+	OF_DEV_AUXDATA("snps,arc-uart", UART0_BASE, "arc-uart", arc_uart_info),
- #endif
-+	{}
+-/*
+- * Early Platform Initialization called from setup_arch()
+- */
+-void __init arc_platform_early_init(void)
++static void __init plat_fpga_early_init(void)
+ {
+ 	pr_info("[plat-arcfpga]: registering early dev resources\n");
+ 
+@@ -172,7 +171,7 @@ static struct of_dev_auxdata plat_auxdata_lookup[] __initdata = {
+ 	{}
  };
  
- int __init fpga_plat_init(void)
+-int __init fpga_plat_init(void)
++static void __init plat_fpga_populate_dev(void)
  {
  	pr_info("[plat-arcfpga]: registering device resources\n");
  
--	platform_add_devices(fpga_devs, ARRAY_SIZE(fpga_devs));
-+	/*
-+	 * Traverses flattened DeviceTree - registering platform devices
-+	 * complete with their resources
-+	 */
-+	of_platform_populate(NULL, of_default_bus_match_table,
-+			     plat_auxdata_lookup, NULL);
- 
- 	return 0;
+@@ -182,7 +181,42 @@ int __init fpga_plat_init(void)
+ 	 */
+ 	of_platform_populate(NULL, of_default_bus_match_table,
+ 			     plat_auxdata_lookup, NULL);
+-
+-	return 0;
  }
+-arch_initcall(fpga_plat_init);
++
++/*----------------------- Machine Descriptions ------------------------------
++ *
++ * Machine description is simply a set of platform/board specific callbacks
++ * This is not directly related to DeviceTree based dynamic device creation,
++ * however as part of early device tree scan, we also select the right
++ * callback set, by matching the DT compatible name.
++ */
++
++static const char *aa4_compat[] __initdata = {
++	"snps,arc-angel4",
++	NULL,
++};
++
++MACHINE_START(ANGEL4, "angel4")
++	.dt_compat	= aa4_compat,
++	.init_early	= plat_fpga_early_init,
++	.init_machine	= plat_fpga_populate_dev,
++	.init_irq	= plat_fpga_init_IRQ,
++#ifdef CONFIG_SMP
++	.init_smp	= iss_model_init_smp,
++#endif
++MACHINE_END
++
++static const char *ml509_compat[] __initdata = {
++	"snps,arc-ml509",
++	NULL,
++};
++
++MACHINE_START(ML509, "ml509")
++	.dt_compat	= ml509_compat,
++	.init_early	= plat_fpga_early_init,
++	.init_machine	= plat_fpga_populate_dev,
++	.init_irq	= plat_fpga_init_IRQ,
++#ifdef CONFIG_SMP
++	.init_smp	= iss_model_init_smp,
++#endif
++MACHINE_END
+diff --git a/arch/arc/plat-arcfpga/smp.c b/arch/arc/plat-arcfpga/smp.c
+index a95fcdb..fec1879 100644
+--- a/arch/arc/plat-arcfpga/smp.c
++++ b/arch/arc/plat-arcfpga/smp.c
+@@ -63,10 +63,8 @@ void arc_platform_smp_wakeup_cpu(int cpu, unsigned long pc)
+  * -Master      : init_IRQ()
+  * -Other(s)    : start_kernel_secondary()
+  */
+-void arc_platform_smp_init_cpu(void)
++void iss_model_init_smp(unsigned int cpu)
+ {
+-	int cpu = smp_processor_id();
+-
+ 	/* Check if CPU is configured for more than 16 interrupts */
+ 	if (NR_IRQS <= 16 || get_hw_config_num_irq() <= 16)
+ 		panic("[arcfpga] IRQ system can't support IDU IPI\n");
 -- 
 1.7.4.1
 
