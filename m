@@ -1,367 +1,148 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v3 51/71] ARC: kgdb support
-Date: Thu, 24 Jan 2013 16:36:15 +0530
-Message-ID: <1359025589-22277-32-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v3 53/71] ARC: [plat-arfpga] BVCI Latency Unit setup
+Date: Thu, 24 Jan 2013 16:36:17 +0530
+Message-ID: <1359025589-22277-34-git-send-email-vgupta@synopsys.com>
 References: <1359025589-22277-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from hermes.synopsys.com ([198.182.44.81]:34229 "EHLO
+	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754865Ab3AXLOE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jan 2013 06:14:04 -0500
 In-Reply-To: <1359025589-22277-1-git-send-email-vgupta@synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, Mischa Jonker <Mischa.Jonker@synopsys.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Jason Wessel <jason.wessel@windriver.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 
-From: Mischa Jonker <mjonker@synopsys.com>
-
-Signed-off-by: Mischa Jonker <mjonker@synopsys.com>
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-Cc: Jason Wessel <jason.wessel@windriver.com>
-Acked-by: Jason Wessel <jason.wessel@windriver.com>
 ---
- arch/arc/Kconfig            |    3 +-
- arch/arc/include/asm/kgdb.h |   61 +++++++++++++
- arch/arc/kernel/Makefile    |    1 +
- arch/arc/kernel/kgdb.c      |  205 +++++++++++++++++++++++++++++++++++++++++++
- arch/arc/kernel/traps.c     |    6 ++
- 5 files changed, 275 insertions(+), 1 deletions(-)
- create mode 100644 arch/arc/include/asm/kgdb.h
- create mode 100644 arch/arc/kernel/kgdb.c
+ arch/arc/plat-arcfpga/Kconfig    |   32 +++++++++++++++++++++
+ arch/arc/plat-arcfpga/platform.c |   56 ++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 88 insertions(+), 0 deletions(-)
 
-diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index f804283..69a939af 100644
---- a/arch/arc/Kconfig
-+++ b/arch/arc/Kconfig
-@@ -22,6 +22,7 @@ config ARC
- 	select GENERIC_PENDING_IRQ if SMP
- 	select GENERIC_SIGALTSTACK
- 	select GENERIC_SMP_IDLE_THREAD
-+	select HAVE_ARCH_KGDB
- 	select HAVE_ARCH_TRACEHOOK
- 	select HAVE_GENERIC_HARDIRQS
- 	select HAVE_KPROBES
-@@ -378,7 +379,7 @@ config ARC_DW2_UNWIND
+diff --git a/arch/arc/plat-arcfpga/Kconfig b/arch/arc/plat-arcfpga/Kconfig
+index 38752bf..9912d9c 100644
+--- a/arch/arc/plat-arcfpga/Kconfig
++++ b/arch/arc/plat-arcfpga/Kconfig
+@@ -44,4 +44,36 @@ config ARC_SERIAL_BAUD
+ 	help
+ 	  Baud rate for the ARC UART
  
- config ARC_DBG_TLB_PARANOIA
- 	bool "Paranoia Checks in Low Level TLB Handlers"
--	depends on ARC_DBG && !SMP
-+	depends on ARC_DBG
- 	default n
- 
- config ARC_DBG_TLB_MISS_COUNT
-diff --git a/arch/arc/include/asm/kgdb.h b/arch/arc/include/asm/kgdb.h
-new file mode 100644
-index 0000000..f3c4934
---- /dev/null
-+++ b/arch/arc/include/asm/kgdb.h
-@@ -0,0 +1,61 @@
-+/*
-+ * kgdb support for ARC
-+ *
-+ * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
++menuconfig ARC_HAS_BVCI_LAT_UNIT
++	bool "BVCI Bus Latency Unit"
++	depends on ARC_BOARD_ML509 || ARC_BOARD_ANGEL4
++	help
++	  IP to add artifical latency to BVCI Bus Based FPGA builds.
++	  The default latency (even worst case) for FPGA is non-realistic
++	  (~10 SDRAM, ~5 SSRAM).
 +
-+#ifndef __ARC_KGDB_H__
-+#define __ARC_KGDB_H__
++config BVCI_LAT_UNITS
++	hex "Latency Unit(s) Bitmap"
++	default "0x0"
++	depends on ARC_HAS_BVCI_LAT_UNIT
++	help
++	  There are multiple Latency Units corresponding to the many
++	  interfaces of the system bus arbiter (both CPU side as well as
++	  the peripheral side).
++	  To add latency to ALL memory transaction, choose Unit 0, otherwise
++	  for finer grainer - interface wise latency, specify a bitmap (1 bit
++	  per unit) of all units. e.g. 1,2,12 will be 0x1003
 +
-+#ifdef CONFIG_KGDB
++	  Unit  0 - System Arb and Mem Controller
++	  Unit  1 - I$ and System Bus
++	  Unit  2 - D$ and System Bus
++	  ..
++	  Unit 12 - IDE Disk controller and System Bus
 +
-+#include <asm/user.h>
++config BVCI_LAT_CYCLES
++	int "Latency Value in cycles"
++	range 0 63
++	default "30"
++	depends on ARC_HAS_BVCI_LAT_UNIT
 +
-+/* to ensure compatibility with Linux 2.6.35, we don't implement the get/set
-+ * register API yet */
-+#undef DBG_MAX_REG_NUM
-+
-+#define GDB_MAX_REGS		39
-+
-+#define BREAK_INSTR_SIZE	2
-+#define CACHE_FLUSH_IS_SAFE	1
-+#define NUMREGBYTES		(GDB_MAX_REGS * 4)
-+#define BUFMAX			2048
-+
-+static inline void arch_kgdb_breakpoint(void)
-+{
-+	__asm__ __volatile__ ("trap_s	0x4\n");
-+}
-+
-+extern void kgdb_trap(struct pt_regs *regs, int param);
-+
-+enum arc700_linux_regnums {
-+	_R0		= 0,
-+	_R1, _R2, _R3, _R4, _R5, _R6, _R7, _R8, _R9, _R10, _R11, _R12, _R13,
-+	_R14, _R15, _R16, _R17, _R18, _R19, _R20, _R21, _R22, _R23, _R24,
-+	_R25, _R26,
-+	_BTA		= 27,
-+	_LP_START	= 28,
-+	_LP_END		= 29,
-+	_LP_COUNT	= 30,
-+	_STATUS32	= 31,
-+	_BLINK		= 32,
-+	_FP		= 33,
-+	__SP		= 34,
-+	_EFA		= 35,
-+	_RET		= 36,
-+	_ORIG_R8	= 37,
-+	_STOP_PC	= 38
-+};
-+
-+#else
-+static inline void kgdb_trap(struct pt_regs *regs, int param)
-+{
-+}
-+#endif
-+
-+#endif	/* __ARC_KGDB_H__ */
-diff --git a/arch/arc/kernel/Makefile b/arch/arc/kernel/Makefile
-index 1609b2d..44975b6 100644
---- a/arch/arc/kernel/Makefile
-+++ b/arch/arc/kernel/Makefile
-@@ -17,6 +17,7 @@ obj-$(CONFIG_SMP) 			+= smp.o
- obj-$(CONFIG_ARC_DW2_UNWIND)		+= unwind.o
- obj-$(CONFIG_KPROBES)      		+= kprobes.o
- obj-$(CONFIG_ARC_MISALIGN_ACCESS) 	+= unaligned.o
-+obj-$(CONFIG_KGDB)			+= kgdb.o
- 
- obj-$(CONFIG_ARC_FPU_SAVE_RESTORE)	+= fpu.o
- CFLAGS_fpu.o   += -mdpfp
-diff --git a/arch/arc/kernel/kgdb.c b/arch/arc/kernel/kgdb.c
-new file mode 100644
-index 0000000..2888ba5
---- /dev/null
-+++ b/arch/arc/kernel/kgdb.c
-@@ -0,0 +1,205 @@
-+/*
-+ * kgdb support for ARC
-+ *
-+ * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#include <linux/kgdb.h>
-+#include <asm/disasm.h>
-+#include <asm/cacheflush.h>
-+
-+static void to_gdb_regs(unsigned long *gdb_regs, struct pt_regs *kernel_regs,
-+			struct callee_regs *cregs)
-+{
-+	int regno;
-+
-+	for (regno = 0; regno <= 26; regno++)
-+		gdb_regs[_R0 + regno] = get_reg(regno, kernel_regs, cregs);
-+
-+	for (regno = 27; regno < GDB_MAX_REGS; regno++)
-+		gdb_regs[regno] = 0;
-+
-+	gdb_regs[_FP]		= kernel_regs->fp;
-+	gdb_regs[__SP]		= kernel_regs->sp;
-+	gdb_regs[_BLINK]	= kernel_regs->blink;
-+	gdb_regs[_RET]		= kernel_regs->ret;
-+	gdb_regs[_STATUS32]	= kernel_regs->status32;
-+	gdb_regs[_LP_COUNT]	= kernel_regs->lp_count;
-+	gdb_regs[_LP_END]	= kernel_regs->lp_end;
-+	gdb_regs[_LP_START]	= kernel_regs->lp_start;
-+	gdb_regs[_BTA]		= kernel_regs->bta;
-+	gdb_regs[_STOP_PC]	= kernel_regs->ret;
-+}
-+
-+static void from_gdb_regs(unsigned long *gdb_regs, struct pt_regs *kernel_regs,
-+			struct callee_regs *cregs)
-+{
-+	int regno;
-+
-+	for (regno = 0; regno <= 26; regno++)
-+		set_reg(regno, gdb_regs[regno + _R0], kernel_regs, cregs);
-+
-+	kernel_regs->fp		= gdb_regs[_FP];
-+	kernel_regs->sp		= gdb_regs[__SP];
-+	kernel_regs->blink	= gdb_regs[_BLINK];
-+	kernel_regs->ret	= gdb_regs[_RET];
-+	kernel_regs->status32	= gdb_regs[_STATUS32];
-+	kernel_regs->lp_count	= gdb_regs[_LP_COUNT];
-+	kernel_regs->lp_end	= gdb_regs[_LP_END];
-+	kernel_regs->lp_start	= gdb_regs[_LP_START];
-+	kernel_regs->bta	= gdb_regs[_BTA];
-+}
-+
-+
-+void pt_regs_to_gdb_regs(unsigned long *gdb_regs, struct pt_regs *kernel_regs)
-+{
-+	to_gdb_regs(gdb_regs, kernel_regs, (struct callee_regs *)
-+		current->thread.callee_reg);
-+}
-+
-+void gdb_regs_to_pt_regs(unsigned long *gdb_regs, struct pt_regs *kernel_regs)
-+{
-+	from_gdb_regs(gdb_regs, kernel_regs, (struct callee_regs *)
-+		current->thread.callee_reg);
-+}
-+
-+void sleeping_thread_to_gdb_regs(unsigned long *gdb_regs,
-+				 struct task_struct *task)
-+{
-+	if (task)
-+		to_gdb_regs(gdb_regs, task_pt_regs(task),
-+			(struct callee_regs *) task->thread.callee_reg);
-+}
-+
-+struct single_step_data_t {
-+	uint16_t opcode[2];
-+	unsigned long address[2];
-+	int is_branch;
-+	int armed;
-+} single_step_data;
-+
-+static void undo_single_step(struct pt_regs *regs)
-+{
-+	if (single_step_data.armed) {
-+		int i;
-+
-+		for (i = 0; i < (single_step_data.is_branch ? 2 : 1); i++) {
-+			memcpy((void *) single_step_data.address[i],
-+				&single_step_data.opcode[i],
-+				BREAK_INSTR_SIZE);
-+
-+			flush_icache_range(single_step_data.address[i],
-+				single_step_data.address[i] +
-+				BREAK_INSTR_SIZE);
-+		}
-+		single_step_data.armed = 0;
-+	}
-+}
-+
-+static void place_trap(unsigned long address, void *save)
-+{
-+	memcpy(save, (void *) address, BREAK_INSTR_SIZE);
-+	memcpy((void *) address, &arch_kgdb_ops.gdb_bpt_instr,
-+		BREAK_INSTR_SIZE);
-+	flush_icache_range(address, address + BREAK_INSTR_SIZE);
-+}
-+
-+static void do_single_step(struct pt_regs *regs)
-+{
-+	single_step_data.is_branch = disasm_next_pc((unsigned long)
-+		regs->ret, regs, (struct callee_regs *)
-+		current->thread.callee_reg,
-+		&single_step_data.address[0],
-+		&single_step_data.address[1]);
-+
-+	place_trap(single_step_data.address[0], &single_step_data.opcode[0]);
-+
-+	if (single_step_data.is_branch) {
-+		place_trap(single_step_data.address[1],
-+			&single_step_data.opcode[1]);
-+	}
-+
-+	single_step_data.armed++;
-+}
-+
-+int kgdb_arch_handle_exception(int e_vector, int signo, int err_code,
-+			       char *remcomInBuffer, char *remcomOutBuffer,
-+			       struct pt_regs *regs)
-+{
-+	unsigned long addr;
-+	char *ptr;
-+
-+	undo_single_step(regs);
-+
-+	switch (remcomInBuffer[0]) {
-+	case 's':
-+	case 'c':
-+		ptr = &remcomInBuffer[1];
-+		if (kgdb_hex2long(&ptr, &addr))
-+			regs->ret = addr;
-+
-+	case 'D':
-+	case 'k':
-+		atomic_set(&kgdb_cpu_doing_single_step, -1);
-+
-+		if (remcomInBuffer[0] == 's') {
-+			do_single_step(regs);
-+			atomic_set(&kgdb_cpu_doing_single_step,
-+				   smp_processor_id());
-+		}
-+
-+		return 0;
-+	}
-+	return -1;
-+}
-+
-+unsigned long kgdb_arch_pc(int exception, struct pt_regs *regs)
-+{
-+	return instruction_pointer(regs);
-+}
-+
-+int kgdb_arch_init(void)
-+{
-+	single_step_data.armed = 0;
-+	return 0;
-+}
-+
-+void kgdb_trap(struct pt_regs *regs, int param)
-+{
-+	/* trap_s 3 is used for breakpoints that overwrite existing
-+	 * instructions, while trap_s 4 is used for compiled breakpoints.
-+	 *
-+	 * with trap_s 3 breakpoints the original instruction needs to be
-+	 * restored and continuation needs to start at the location of the
-+	 * breakpoint.
-+	 *
-+	 * with trap_s 4 (compiled) breakpoints, continuation needs to
-+	 * start after the breakpoint.
-+	 */
-+	if (param == 3)
-+		instruction_pointer(regs) -= BREAK_INSTR_SIZE;
-+
-+	kgdb_handle_exception(1, SIGTRAP, 0, regs);
-+}
-+
-+void kgdb_arch_exit(void)
-+{
-+}
-+
-+void kgdb_arch_set_pc(struct pt_regs *regs, unsigned long ip)
-+{
-+	instruction_pointer(regs) = ip;
-+}
-+
-+struct kgdb_arch arch_kgdb_ops = {
-+	/* breakpoint instruction: TRAP_S 0x3 */
-+#ifdef CONFIG_CPU_BIG_ENDIAN
-+	.gdb_bpt_instr		= {0x78, 0x7e},
-+#else
-+	.gdb_bpt_instr		= {0x7e, 0x78},
-+#endif
-+};
-diff --git a/arch/arc/kernel/traps.c b/arch/arc/kernel/traps.c
-index ec802c5..7496995 100644
---- a/arch/arc/kernel/traps.c
-+++ b/arch/arc/kernel/traps.c
-@@ -20,6 +20,7 @@
+ endif
+diff --git a/arch/arc/plat-arcfpga/platform.c b/arch/arc/plat-arcfpga/platform.c
+index 33bcac8..b7f63e3 100644
+--- a/arch/arc/plat-arcfpga/platform.c
++++ b/arch/arc/plat-arcfpga/platform.c
+@@ -12,6 +12,7 @@
+ #include <linux/init.h>
+ #include <linux/device.h>
+ #include <linux/platform_device.h>
++#include <linux/io.h>
+ #include <linux/console.h>
+ #include <linux/of_platform.h>
  #include <asm/setup.h>
- #include <asm/kprobes.h>
- #include <asm/unaligned.h>
-+#include <asm/kgdb.h>
+@@ -19,6 +20,59 @@
+ #include <asm/clk.h>
+ #include <plat/memmap.h>
  
- void __init trap_init(void)
- {
-@@ -141,6 +142,11 @@ void do_non_swi_trap(unsigned long cause, unsigned long address,
- 		trap_is_kprobe(param, address, regs);
- 		break;
- 
-+	case 3:
-+	case 4:
-+		kgdb_trap(regs, param);
-+		break;
++/*-----------------------BVCI Latency Unit -----------------------------*/
 +
- 	default:
- 		break;
- 	}
++#ifdef CONFIG_ARC_HAS_BVCI_LAT_UNIT
++
++int lat_cycles = CONFIG_BVCI_LAT_CYCLES;
++
++/* BVCI Bus Profiler: Latency Unit */
++static void __init setup_bvci_lat_unit(void)
++{
++#define MAX_BVCI_UNITS 12
++
++	unsigned int i;
++	unsigned int *base = (unsigned int *)BVCI_LAT_UNIT_BASE;
++	const unsigned long units_req = CONFIG_BVCI_LAT_UNITS;
++	const unsigned int REG_UNIT = 21;
++	const unsigned int REG_VAL = 22;
++
++	/*
++	 * There are multiple Latency Units corresponding to the many
++	 * interfaces of the system bus arbiter (both CPU side as well as
++	 * the peripheral side).
++	 *
++	 * Unit  0 - System Arb and Mem Controller - adds latency to all
++	 *	    memory trasactions
++	 * Unit  1 - I$ and System Bus
++	 * Unit  2 - D$ and System Bus
++	 * ..
++	 * Unit 12 - IDE Disk controller and System Bus
++	 *
++	 * The programmers model requires writing to lat_unit reg first
++	 * and then the latency value (cycles) to lat_value reg
++	 */
++
++	if (CONFIG_BVCI_LAT_UNITS == 0) {
++		writel(0, base + REG_UNIT);
++		writel(lat_cycles, base + REG_VAL);
++		pr_info("BVCI Latency for all Memory Transactions %d cycles\n",
++			lat_cycles);
++	} else {
++		for_each_set_bit(i, &units_req, MAX_BVCI_UNITS) {
++			writel(i + 1, base + REG_UNIT); /* loop is 0 based */
++			writel(lat_cycles, base + REG_VAL);
++			pr_info("BVCI Latency for Unit[%d] = %d cycles\n",
++				(i + 1), lat_cycles);
++		}
++	}
++}
++#else
++static void __init setup_bvci_lat_unit(void)
++{
++}
++#endif
++
+ /*----------------------- Platform Devices -----------------------------*/
+ 
+ static unsigned long arc_uart_info[] = {
+@@ -106,6 +160,8 @@ void __init arc_platform_early_init(void)
+ {
+ 	pr_info("[plat-arcfpga]: registering early dev resources\n");
+ 
++	setup_bvci_lat_unit();
++
+ 	arc_fpga_serial_init();
+ }
+ 
 -- 
 1.7.4.1
