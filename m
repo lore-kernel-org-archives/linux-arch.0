@@ -1,827 +1,518 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v3 11/71] ARC: Fundamental ARCH data-types/defines
-Date: Thu, 24 Jan 2013 16:20:18 +0530
-Message-ID: <1359024639-21915-5-git-send-email-vgupta@synopsys.com>
-References: <1359024639-21915-1-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v3 00/71] Synopsys ARC Linux kernel Port (Part #1)
+Date: Thu, 24 Jan 2013 16:20:14 +0530
+Message-ID: <1359024639-21915-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hermes.synopsys.com ([198.182.44.81]:33760 "EHLO
-	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752782Ab3AXKwc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jan 2013 05:52:32 -0500
-In-Reply-To: <1359024639-21915-1-git-send-email-vgupta@synopsys.com>
+Received: from vaxjo.synopsys.com ([198.182.60.75]:47235 "EHLO
+	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753483Ab3AXKwj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jan 2013 05:52:39 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Jonas Bonn <jonas.bonn@gmail.com>, Al Viro <viro@ZenIV.linux.org.uk>
+Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 
-* L1_CACHE_SHIFT
-* PAGE_SIZE, PAGE_OFFSET
-* struct pt_regs, struct user_regs_struct
-* struct thread_struct, cpu_relax(), task_pt_regs(), start_thread(), ...
-* struct thread_info, THREAD_SIZE, INIT_THREAD_INFO(), TIF_*, ...
-* BUG()
-* ELF_*
-* Elf_*
+This patchset based off-of 3.8-rc4, adds the Linux kernel port to ARC700
+processor family (750D and 770D) from Synopsys. I would be greatful for
+further review and feedback.
 
-To disallow user-space visibility into some of the core kernel data-types
-such as struct pt_regs, #ifdef __KERNEL__ which also makes the UAPI header
-spit (further patch in the series) to NOT export it to asm/uapi/ptrace.h
+Salient points about v3 patchset
+-------------------------------
+* All of the feedback from v2 patchseries has been addressed.
+* series sent in 2 parts, with other part containing patches not touched
+  since v2.
 
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-Cc: Jonas Bonn <jonas.bonn@gmail.com>
-Cc: Al Viro <viro@ZenIV.linux.org.uk>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+About ARC Cores
+----------------
+ARC700 is highly configurable and power efficient 32-bit RISC core with MMU.
+It is embedded in SoCs deployed in TV Set Top boxes, Digital Media Players,
+all the way to Network-on-Chips.
+
+More information is available @
+ http://www.synopsys.com/IP/ProcessorIP/ARCProcessors/Pages/default.aspx
+
+The GNU tool-chain, based off of gcc 4.4  + uClibc 0.9.30.3 is also available
+from github. Please refer to Readme.md in "toolchain" repository also in same
+hierarchy as kernel above.
+
 ---
- arch/arc/include/asm/bug.h         |   37 +++++++++
- arch/arc/include/asm/cache.h       |   21 +++++
- arch/arc/include/asm/elf.h         |   97 ++++++++++++++++++++++++
- arch/arc/include/asm/exec.h        |   15 ++++
- arch/arc/include/asm/kdebug.h      |   19 +++++
- arch/arc/include/asm/linkage.h     |   30 ++++++++
- arch/arc/include/asm/module.h      |   17 ++++
- arch/arc/include/asm/page.h        |   42 +++++++++++
- arch/arc/include/asm/processor.h   |  143 ++++++++++++++++++++++++++++++++++++
- arch/arc/include/asm/ptrace.h      |  132 +++++++++++++++++++++++++++++++++
- arch/arc/include/asm/sections.h    |   17 ++++
- arch/arc/include/asm/thread_info.h |  121 ++++++++++++++++++++++++++++++
- 12 files changed, 691 insertions(+), 0 deletions(-)
+v3:
+=========================================================================
+
+Review comments (with #<xx> patch in series addressing them)
+
+#01 * Kbuild trace_clock.h inclusion - [split aggregate 3.8 patch]
+#02 * Build system patch moved towards start of series
+#02 * Dropped line continuation from Makefiles, Removed conditional HOTPLUG (Sam)
+#02 * Removed empty vmlinux.lds.h (Sam)
+#11 * _TIF_WORK_MASK needs to use the exact bits needed (Al Viro)
+#17 * squashed generic clone patch into syscall patch (Al Viro)
+#17 * split/squashed sys_execve removal bits into syscall patch (Al Viro)
+#18 * split/squashed kernel_execve bits into process creation patch (Al Viro)
+#18 * squashed switch-to-saner-execve into process creation patch (Al Viro)
+#18 * squashed switch-to-generic-kernel-thread patch into process creation patch
+#18 * cpu_idle() - fix a race between need_resched and sleep (Arnd)
+#20 * task_pt_regs(current) => current_pt_regs()  (Al Viro)
+#20 * altstack changes [split aggregate 3.8 patch] into signal handling (Al Viro)
+#29 * include asm/cacheflush.h in io.h [split aggregate 3.8 patch]
+#29 * Implemented __raw_{read,write}{b,w,l} for ARC with inline asm (Arnd)
+#29 * early ioremap requiring MMU needs to bail out
+#30 * switched from bootmem to memblock (Arnd)
+#32 * dtb folder folded into dts to be consistent with other arches (Rob)
+#32 * Using generic dtb build rule (Rob)
+#33 * skeleton.dtsi no longer contains board references (Rob)
+#34 * default DT is a board specific file (angel4) and not skeleton (Rob)
+#42 * module helpers only defined when module unwinder really needs them (Arnd)
+#44 * Removed CONFIG_ARC_HAS_IPI glue to enable SMP across platforms (Arnd)
+#57 * hostlink driver converted/simplified using misc_register (Arnd)
+#58 * UAPI - added a placeholder comment to empty setup.h (David)
+#62 * struct machine_desc - arrange the callbacks in order of their call (Arnd)
+
+Bug fixes (since v2)
+
+#02 * ARC_SERIAL_BAUD depends on SERIAL_ARC_CONSOLE as well
+#18 * RTSC fix in big-endian configuration (Noam Camus)
+#21 * in_syscall() broken because checking of pt_regs->orig_r8 vs. pt_regs->event
+#21 * syscall restarting infrastructure Big Endian safe
+#22 * syscall restarting broken because not checking pt_regs->event
+#23 * Changelog typo
+#34 * cleanup static platform device for early arc-uart
+#44 * Added CPU active notifier to secondary boot
+#69 * Update defconfig for tmpfs, ext2, ....
+    * make allyesconfig fixes
+#06   * Missing ; in EXPORT_SYMBOL() in extable.c
+#29   * Missing dma_sync_single_range_for_{cpu,device}
+#29   * Missing dma_mmap_coherent/dma_get_sgtable
+#48   * Missing regs_return_value() in ptrace.h for kprobes self-test
+#70   * missing serial.h
+
+
+v2:
+=========================================================================
+Changes for RFC v1 review:
+
+* Reworked arc_local_irq_enable() with WARN_ONCE for buggy drivers (tglx)
+* struct pt_regs wrapped under #ifdef __KERNEL__ (Jonas)
+* returning to user mode (Al Viro)
+  * re-enable interrupts before handling TIF_SIGPENDING/TIF_NOTIFY_RESUME
+  * Don't discard callee-regs after handling signal
+  * After TIF_NOTIFY_RESUME processing, loop back to start of TIF_* checks
+* Reworked init_IRQ() to not use irq_modify_status() at all (tglx)
+* Removed legacy syscalls (Arnd)
+* cpu_idle to use schedule_preempt_disabled API (tglx)
+* clocksource/clockevent code renamed/reworked (tglx)
+* Removed possible live-lock in sched_clock() (tglx)
+* Ensured that syscalls are not restarted multiple times (Al Viro)
+* Support for DeviceTree based dynamic platform device registration (Arnd)
+* clock-speed / mem-size extracted from Device Tree (Arnd)
+* multi-platform-image - Non-exclusive platform selection in build (Arnd)
+* multi-platform-image - Non-exclusive boards selection in build (Arnd)
+* Fix the issue in switch to generic_execve (Al Viro)
+* defconfigs need to be created using savedefconfig (Arnd)
+* Remove support for legacy ptrace POKEUSR/PEEKUSR ABI (Arnd)
+* module stubs need not be defined in Arch code (Arnd)
+* Low Level Event Capture completely taken out (Arnd)
+* Unaligned access runtime controlled using 2 sysctl knobs (Arnd)
+* using io accessors for programming BVCI Latency Unit (Arnd)
+
+Other fixes:
+
+* 3.7 -> 3.8 upstream changes
+  * Rebased off of 3.8-rc4
+  * UAPI Disintegration using scripts provided David Howells
+  * Generic clone/fork/vfork
+  * switch to saner kernel_execve semantics (GENERIC_KERNEL_EXECVE)
+  * Altstack consolidation tracking changes
+  * trace_clock.h introduction, cacheflush.h inclusion removal from io.h
+* bitops
+  * test_and_clear_bit() was SETing the bit instead of CLEARing
+  * test_and_*_bit() workaround a gas bug where a bitpos > 31 is not reported
+    by doing __builtin_constant_p() check early
+* uaccess
+  * Added support for non-inline copy_{to,from}_user() for -Os
+  * Optimised {get,put}_user() by overriding asm-generic versions
+* Timers
+  * split Process scheduling/Timers patch into two.
+  * Add support for 64bit timestamp counter using RTSC instruction.
+* Others
+  * Move the incore intc chip handler out of platform code into common code
+  * cpu_ide() to use the rcu_idle_* calls
+
+
+patchset history
+-----------------
+[v2]	: https://lkml.org/lkml/2013/1/18/182
+
+[RFC v1]: https://lkml.org/lkml/2012/11/7/114
+          https://lkml.org/lkml/2012/11/12/121
+
+Gilad Ben-Yossef (1):
+  ARC: Add support for ioremap_prot API
+
+Mischa Jonker (1):
+  ARC: kgdb support
+
+Vineet Gupta (69):
+  ARC: Generic Headers
+  ARC: Build system: Makefiles, Kconfig, Linker script
+  ARC: irqflags - Interrupt enabling/disabling at in-core intc
+  ARC: Atomic/bitops/cmpxchg/barriers
+  asm-generic headers: uaccess.h to conditionally define segment_eq()
+  ARC: uaccess friends
+  asm-generic: uaccess: Allow arches to over-ride __{get,put}_user_fn()
+  ARC: [optim] uaccess __{get,put}_user() optimised
+  asm-generic headers: Allow yet more arch overrides in checksum.h
+  ARC: Checksum/byteorder/swab routines
+  ARC: Fundamental ARCH data-types/defines
+  ARC: Spinlock/rwlock/mutex primitives
+  ARC: String library
+  ARC: Low level IRQ/Trap/Exception Handling
+  ARC: Interrupt Handling
+  ARC: Non-MMU Exception Handling
+  ARC: Syscall support (no-legacy-syscall ABI)
+  ARC: Process-creation/scheduling/idle-loop
+  ARC: Timers/counters/delay management
+  ARC: Signal handling
+  ARC: [Review] Preparing to fix incorrect syscall restarts due to
+    signals
+  ARC: [Review] Prevent incorrect syscall restarts
+  ARC: Cache Flush Management
+  ARC: Page Table Management
+  ARC: MMU Context Management
+  ARC: MMU Exception Handling
+  ARC: TLB flush Handling
+  ARC: Page Fault handling
+  ARC: I/O and DMA Mappings
+  ARC: Boot #1: low-level, setup_arch(), /proc/cpuinfo, mem init
+  ARC: [plat-arcfpga] Static platform device for CONFIG_SERIAL_ARC
+  ARC: [DeviceTree] Basic support
+  ARC: [DeviceTree] Convert some Kconfig items to runtime values
+  ARC: [plat-arcfpga]: Enabling DeviceTree for Angel4 board
+  ARC: Last bits (stubs) to get to a running kernel with UART
+  ARC: [plat-arcfpga] defconfig
+  ARC: [optim] Cache "current" in Register r25
+  ARC: ptrace support
+  ARC: Futex support
+  ARC: OProfile support
+  ARC: Support for high priority interrupts in the in-core intc
+  ARC: Module support
+  ARC: Diagnostics: show_regs() etc
+  ARC: SMP support
+  ARC: DWARF2 .debug_frame based stack unwinder
+  ARC: stacktracing APIs based on dw2 unwinder
+  ARC: disassembly (needed by kprobes/kgdb/unaligned-access-emul)
+  ARC: kprobes support
+  sysctl: Enable PARISC "unaligned-trap" to be used cross-arch
+  ARC: Unaligned access emulation
+  ARC: Boot #2: Verbose Boot reporting / feature verification
+  ARC: [plat-arfpga] BVCI Latency Unit setup
+  perf, ARC: Enable building perf tools for ARC
+  ARC: perf support (software counters only)
+  ARC: Support for single cycle Close Coupled Mem (CCM)
+  ARC: Hostlink Pseudo-Driver for Metaware Debugger
+  ARC: UAPI Disintegrate arch/arc/include/asm
+  ARC: [Review] Multi-platform image #1: Kconfig enablement
+  ARC: Fold boards sub-menu into platform/SoC menu
+  ARC: [Review] Multi-platform image #2: Board callback Infrastructure
+  ARC: [Review] Multi-platform image #3: switch to board callback
+  ARC: [Review] Multi-platform image #4: Isolate platform headers
+  ARC: [Review] Multi-platform image #5: NR_IRQS defined by ARC core
+  ARC: [Review] Multi-platform image #6: cpu-to-dma-addr optional
+  ARC: [Review] Multi-platform image #7: SMP common code to use
+    callbacks
+  ARC: [Review] Multi-platform image #8: platform registers SMP
+    callbacks
+  ARC: [plat-arcfpga] defconfig for fully loaded ARC Linux
+  ARC: Provide a default serial.h for uart drivers needing BASE_BAUD
+  ARC: Add self to MAINTAINERS
+
+ .../devicetree/bindings/arc/interrupts.txt         |   24 +
+ MAINTAINERS                                        |    6 +
+ arch/arc/Kbuild                                    |    2 +
+ arch/arc/Kconfig                                   |  456 +++++++
+ arch/arc/Kconfig.debug                             |   34 +
+ arch/arc/Makefile                                  |  126 ++
+ arch/arc/boot/Makefile                             |   26 +
+ arch/arc/boot/dts/Makefile                         |   14 +
+ arch/arc/boot/dts/angel4.dts                       |   55 +
+ arch/arc/boot/dts/skeleton.dts                     |   10 +
+ arch/arc/boot/dts/skeleton.dtsi                    |   37 +
+ arch/arc/configs/fpga_defconfig                    |   61 +
+ arch/arc/include/asm/Kbuild                        |   49 +
+ arch/arc/include/asm/arcregs.h                     |  433 +++++++
+ arch/arc/include/asm/asm-offsets.h                 |    9 +
+ arch/arc/include/asm/atomic.h                      |  232 ++++
+ arch/arc/include/asm/barrier.h                     |   42 +
+ arch/arc/include/asm/bitops.h                      |  516 ++++++++
+ arch/arc/include/asm/bug.h                         |   37 +
+ arch/arc/include/asm/cache.h                       |   75 ++
+ arch/arc/include/asm/cacheflush.h                  |   67 +
+ arch/arc/include/asm/checksum.h                    |  101 ++
+ arch/arc/include/asm/clk.h                         |   22 +
+ arch/arc/include/asm/cmpxchg.h                     |  143 +++
+ arch/arc/include/asm/current.h                     |   32 +
+ arch/arc/include/asm/defines.h                     |   56 +
+ arch/arc/include/asm/delay.h                       |   68 +
+ arch/arc/include/asm/disasm.h                      |  116 ++
+ arch/arc/include/asm/dma-mapping.h                 |  221 ++++
+ arch/arc/include/asm/dma.h                         |   14 +
+ arch/arc/include/asm/elf.h                         |   97 ++
+ arch/arc/include/asm/entry.h                       |  724 +++++++++++
+ arch/arc/include/asm/exec.h                        |   15 +
+ arch/arc/include/asm/futex.h                       |  151 +++
+ arch/arc/include/asm/io.h                          |  105 ++
+ arch/arc/include/asm/irq.h                         |   25 +
+ arch/arc/include/asm/irqflags.h                    |  153 +++
+ arch/arc/include/asm/kdebug.h                      |   19 +
+ arch/arc/include/asm/kgdb.h                        |   61 +
+ arch/arc/include/asm/kprobes.h                     |   62 +
+ arch/arc/include/asm/linkage.h                     |   63 +
+ arch/arc/include/asm/mach_desc.h                   |   85 ++
+ arch/arc/include/asm/mmu.h                         |   23 +
+ arch/arc/include/asm/mmu_context.h                 |  213 ++++
+ arch/arc/include/asm/module.h                      |   28 +
+ arch/arc/include/asm/mutex.h                       |   18 +
+ arch/arc/include/asm/page.h                        |  109 ++
+ arch/arc/include/asm/perf_event.h                  |   13 +
+ arch/arc/include/asm/pgalloc.h                     |  134 ++
+ arch/arc/include/asm/pgtable.h                     |  405 ++++++
+ arch/arc/include/asm/processor.h                   |  151 +++
+ arch/arc/include/asm/prom.h                        |   14 +
+ arch/arc/include/asm/ptrace.h                      |  135 ++
+ arch/arc/include/asm/sections.h                    |   18 +
+ arch/arc/include/asm/segment.h                     |   24 +
+ arch/arc/include/asm/serial.h                      |   25 +
+ arch/arc/include/asm/setup.h                       |   37 +
+ arch/arc/include/asm/smp.h                         |  130 ++
+ arch/arc/include/asm/spinlock.h                    |  144 +++
+ arch/arc/include/asm/spinlock_types.h              |   35 +
+ arch/arc/include/asm/string.h                      |   40 +
+ arch/arc/include/asm/switch_to.h                   |   41 +
+ arch/arc/include/asm/syscall.h                     |   72 ++
+ arch/arc/include/asm/syscalls.h                    |   29 +
+ arch/arc/include/asm/thread_info.h                 |  121 ++
+ arch/arc/include/asm/timex.h                       |   18 +
+ arch/arc/include/asm/tlb-mmu1.h                    |  104 ++
+ arch/arc/include/asm/tlb.h                         |   58 +
+ arch/arc/include/asm/tlbflush.h                    |   28 +
+ arch/arc/include/asm/uaccess.h                     |  751 +++++++++++
+ arch/arc/include/asm/unaligned.h                   |   29 +
+ arch/arc/include/asm/unwind.h                      |  163 +++
+ arch/arc/include/uapi/asm/Kbuild                   |   11 +
+ arch/arc/include/uapi/asm/byteorder.h              |   18 +
+ arch/arc/include/uapi/asm/cachectl.h               |   28 +
+ arch/arc/include/uapi/asm/page.h                   |   39 +
+ arch/arc/include/uapi/asm/ptrace.h                 |   46 +
+ arch/arc/include/uapi/asm/setup.h                  |    6 +
+ arch/arc/include/uapi/asm/sigcontext.h             |   23 +
+ arch/arc/include/uapi/asm/signal.h                 |   27 +
+ arch/arc/include/uapi/asm/swab.h                   |   98 ++
+ arch/arc/include/uapi/asm/unistd.h                 |   34 +
+ arch/arc/kernel/Makefile                           |   33 +
+ arch/arc/kernel/arc_hostlink.c                     |   58 +
+ arch/arc/kernel/arcksyms.c                         |   56 +
+ arch/arc/kernel/asm-offsets.c                      |   49 +
+ arch/arc/kernel/clk.c                              |   21 +
+ arch/arc/kernel/ctx_sw.c                           |  109 ++
+ arch/arc/kernel/ctx_sw_asm.S                       |   58 +
+ arch/arc/kernel/devtree.c                          |  113 ++
+ arch/arc/kernel/disasm.c                           |  538 ++++++++
+ arch/arc/kernel/entry.S                            |  839 ++++++++++++
+ arch/arc/kernel/fpu.c                              |   55 +
+ arch/arc/kernel/head.S                             |  111 ++
+ arch/arc/kernel/irq.c                              |  273 ++++
+ arch/arc/kernel/kgdb.c                             |  205 +++
+ arch/arc/kernel/kprobes.c                          |  525 ++++++++
+ arch/arc/kernel/module.c                           |  145 +++
+ arch/arc/kernel/process.c                          |  235 ++++
+ arch/arc/kernel/ptrace.c                           |  158 +++
+ arch/arc/kernel/reset.c                            |   33 +
+ arch/arc/kernel/setup.c                            |  471 +++++++
+ arch/arc/kernel/signal.c                           |  363 ++++++
+ arch/arc/kernel/smp.c                              |  332 +++++
+ arch/arc/kernel/stacktrace.c                       |  254 ++++
+ arch/arc/kernel/sys.c                              |   18 +
+ arch/arc/kernel/time.c                             |  299 +++++
+ arch/arc/kernel/traps.c                            |  170 +++
+ arch/arc/kernel/troubleshoot.c                     |  322 +++++
+ arch/arc/kernel/unaligned.c                        |  245 ++++
+ arch/arc/kernel/unwind.c                           | 1329 ++++++++++++++++++++
+ arch/arc/kernel/vmlinux.lds.S                      |  163 +++
+ arch/arc/lib/Makefile                              |    9 +
+ arch/arc/lib/memcmp.S                              |  124 ++
+ arch/arc/lib/memcpy-700.S                          |   66 +
+ arch/arc/lib/memset.S                              |   59 +
+ arch/arc/lib/strchr-700.S                          |  123 ++
+ arch/arc/lib/strcmp.S                              |   96 ++
+ arch/arc/lib/strcpy-700.S                          |   70 +
+ arch/arc/lib/strlen.S                              |   83 ++
+ arch/arc/mm/Makefile                               |   10 +
+ arch/arc/mm/cache_arc700.c                         |  771 ++++++++++++
+ arch/arc/mm/dma.c                                  |   94 ++
+ arch/arc/mm/extable.c                              |   63 +
+ arch/arc/mm/fault.c                                |  228 ++++
+ arch/arc/mm/init.c                                 |  187 +++
+ arch/arc/mm/ioremap.c                              |   91 ++
+ arch/arc/mm/tlb.c                                  |  645 ++++++++++
+ arch/arc/mm/tlbex.S                                |  408 ++++++
+ arch/arc/oprofile/Makefile                         |    9 +
+ arch/arc/oprofile/common.c                         |   22 +
+ arch/arc/plat-arcfpga/Kconfig                      |   84 ++
+ arch/arc/plat-arcfpga/Makefile                     |   12 +
+ arch/arc/plat-arcfpga/include/plat/irq.h           |   31 +
+ arch/arc/plat-arcfpga/include/plat/memmap.h        |   31 +
+ arch/arc/plat-arcfpga/include/plat/smp.h           |  118 ++
+ arch/arc/plat-arcfpga/irq.c                        |   25 +
+ arch/arc/plat-arcfpga/platform.c                   |  226 ++++
+ arch/arc/plat-arcfpga/smp.c                        |  171 +++
+ arch/parisc/Kconfig                                |    1 +
+ include/asm-generic/checksum.h                     |    4 +
+ include/asm-generic/uaccess.h                      |   14 +-
+ init/Kconfig                                       |    8 +
+ kernel/sysctl.c                                    |    5 +
+ lib/checksum.c                                     |    2 +
+ tools/perf/perf.h                                  |    6 +
+ 146 files changed, 19559 insertions(+), 1 deletions(-)
+ create mode 100644 Documentation/devicetree/bindings/arc/interrupts.txt
+ create mode 100644 arch/arc/Kbuild
+ create mode 100644 arch/arc/Kconfig
+ create mode 100644 arch/arc/Kconfig.debug
+ create mode 100644 arch/arc/Makefile
+ create mode 100644 arch/arc/boot/Makefile
+ create mode 100644 arch/arc/boot/dts/Makefile
+ create mode 100644 arch/arc/boot/dts/angel4.dts
+ create mode 100644 arch/arc/boot/dts/skeleton.dts
+ create mode 100644 arch/arc/boot/dts/skeleton.dtsi
+ create mode 100644 arch/arc/configs/fpga_defconfig
+ create mode 100644 arch/arc/include/asm/Kbuild
+ create mode 100644 arch/arc/include/asm/arcregs.h
+ create mode 100644 arch/arc/include/asm/asm-offsets.h
+ create mode 100644 arch/arc/include/asm/atomic.h
+ create mode 100644 arch/arc/include/asm/barrier.h
+ create mode 100644 arch/arc/include/asm/bitops.h
  create mode 100644 arch/arc/include/asm/bug.h
  create mode 100644 arch/arc/include/asm/cache.h
+ create mode 100644 arch/arc/include/asm/cacheflush.h
+ create mode 100644 arch/arc/include/asm/checksum.h
+ create mode 100644 arch/arc/include/asm/clk.h
+ create mode 100644 arch/arc/include/asm/cmpxchg.h
+ create mode 100644 arch/arc/include/asm/current.h
+ create mode 100644 arch/arc/include/asm/defines.h
+ create mode 100644 arch/arc/include/asm/delay.h
+ create mode 100644 arch/arc/include/asm/disasm.h
+ create mode 100644 arch/arc/include/asm/dma-mapping.h
+ create mode 100644 arch/arc/include/asm/dma.h
  create mode 100644 arch/arc/include/asm/elf.h
+ create mode 100644 arch/arc/include/asm/entry.h
  create mode 100644 arch/arc/include/asm/exec.h
+ create mode 100644 arch/arc/include/asm/futex.h
+ create mode 100644 arch/arc/include/asm/io.h
+ create mode 100644 arch/arc/include/asm/irq.h
+ create mode 100644 arch/arc/include/asm/irqflags.h
  create mode 100644 arch/arc/include/asm/kdebug.h
+ create mode 100644 arch/arc/include/asm/kgdb.h
+ create mode 100644 arch/arc/include/asm/kprobes.h
  create mode 100644 arch/arc/include/asm/linkage.h
+ create mode 100644 arch/arc/include/asm/mach_desc.h
+ create mode 100644 arch/arc/include/asm/mmu.h
+ create mode 100644 arch/arc/include/asm/mmu_context.h
  create mode 100644 arch/arc/include/asm/module.h
+ create mode 100644 arch/arc/include/asm/mutex.h
  create mode 100644 arch/arc/include/asm/page.h
+ create mode 100644 arch/arc/include/asm/perf_event.h
+ create mode 100644 arch/arc/include/asm/pgalloc.h
+ create mode 100644 arch/arc/include/asm/pgtable.h
  create mode 100644 arch/arc/include/asm/processor.h
+ create mode 100644 arch/arc/include/asm/prom.h
  create mode 100644 arch/arc/include/asm/ptrace.h
  create mode 100644 arch/arc/include/asm/sections.h
+ create mode 100644 arch/arc/include/asm/segment.h
+ create mode 100644 arch/arc/include/asm/serial.h
+ create mode 100644 arch/arc/include/asm/setup.h
+ create mode 100644 arch/arc/include/asm/smp.h
+ create mode 100644 arch/arc/include/asm/spinlock.h
+ create mode 100644 arch/arc/include/asm/spinlock_types.h
+ create mode 100644 arch/arc/include/asm/string.h
+ create mode 100644 arch/arc/include/asm/switch_to.h
+ create mode 100644 arch/arc/include/asm/syscall.h
+ create mode 100644 arch/arc/include/asm/syscalls.h
  create mode 100644 arch/arc/include/asm/thread_info.h
+ create mode 100644 arch/arc/include/asm/timex.h
+ create mode 100644 arch/arc/include/asm/tlb-mmu1.h
+ create mode 100644 arch/arc/include/asm/tlb.h
+ create mode 100644 arch/arc/include/asm/tlbflush.h
+ create mode 100644 arch/arc/include/asm/uaccess.h
+ create mode 100644 arch/arc/include/asm/unaligned.h
+ create mode 100644 arch/arc/include/asm/unwind.h
+ create mode 100644 arch/arc/include/uapi/asm/Kbuild
+ create mode 100644 arch/arc/include/uapi/asm/byteorder.h
+ create mode 100644 arch/arc/include/uapi/asm/cachectl.h
+ create mode 100644 arch/arc/include/uapi/asm/page.h
+ create mode 100644 arch/arc/include/uapi/asm/ptrace.h
+ create mode 100644 arch/arc/include/uapi/asm/setup.h
+ create mode 100644 arch/arc/include/uapi/asm/sigcontext.h
+ create mode 100644 arch/arc/include/uapi/asm/signal.h
+ create mode 100644 arch/arc/include/uapi/asm/swab.h
+ create mode 100644 arch/arc/include/uapi/asm/unistd.h
+ create mode 100644 arch/arc/kernel/Makefile
+ create mode 100644 arch/arc/kernel/arc_hostlink.c
+ create mode 100644 arch/arc/kernel/arcksyms.c
+ create mode 100644 arch/arc/kernel/asm-offsets.c
+ create mode 100644 arch/arc/kernel/clk.c
+ create mode 100644 arch/arc/kernel/ctx_sw.c
+ create mode 100644 arch/arc/kernel/ctx_sw_asm.S
+ create mode 100644 arch/arc/kernel/devtree.c
+ create mode 100644 arch/arc/kernel/disasm.c
+ create mode 100644 arch/arc/kernel/entry.S
+ create mode 100644 arch/arc/kernel/fpu.c
+ create mode 100644 arch/arc/kernel/head.S
+ create mode 100644 arch/arc/kernel/irq.c
+ create mode 100644 arch/arc/kernel/kgdb.c
+ create mode 100644 arch/arc/kernel/kprobes.c
+ create mode 100644 arch/arc/kernel/module.c
+ create mode 100644 arch/arc/kernel/process.c
+ create mode 100644 arch/arc/kernel/ptrace.c
+ create mode 100644 arch/arc/kernel/reset.c
+ create mode 100644 arch/arc/kernel/setup.c
+ create mode 100644 arch/arc/kernel/signal.c
+ create mode 100644 arch/arc/kernel/smp.c
+ create mode 100644 arch/arc/kernel/stacktrace.c
+ create mode 100644 arch/arc/kernel/sys.c
+ create mode 100644 arch/arc/kernel/time.c
+ create mode 100644 arch/arc/kernel/traps.c
+ create mode 100644 arch/arc/kernel/troubleshoot.c
+ create mode 100644 arch/arc/kernel/unaligned.c
+ create mode 100644 arch/arc/kernel/unwind.c
+ create mode 100644 arch/arc/kernel/vmlinux.lds.S
+ create mode 100644 arch/arc/lib/Makefile
+ create mode 100644 arch/arc/lib/memcmp.S
+ create mode 100644 arch/arc/lib/memcpy-700.S
+ create mode 100644 arch/arc/lib/memset.S
+ create mode 100644 arch/arc/lib/strchr-700.S
+ create mode 100644 arch/arc/lib/strcmp.S
+ create mode 100644 arch/arc/lib/strcpy-700.S
+ create mode 100644 arch/arc/lib/strlen.S
+ create mode 100644 arch/arc/mm/Makefile
+ create mode 100644 arch/arc/mm/cache_arc700.c
+ create mode 100644 arch/arc/mm/dma.c
+ create mode 100644 arch/arc/mm/extable.c
+ create mode 100644 arch/arc/mm/fault.c
+ create mode 100644 arch/arc/mm/init.c
+ create mode 100644 arch/arc/mm/ioremap.c
+ create mode 100644 arch/arc/mm/tlb.c
+ create mode 100644 arch/arc/mm/tlbex.S
+ create mode 100644 arch/arc/oprofile/Makefile
+ create mode 100644 arch/arc/oprofile/common.c
+ create mode 100644 arch/arc/plat-arcfpga/Kconfig
+ create mode 100644 arch/arc/plat-arcfpga/Makefile
+ create mode 100644 arch/arc/plat-arcfpga/include/plat/irq.h
+ create mode 100644 arch/arc/plat-arcfpga/include/plat/memmap.h
+ create mode 100644 arch/arc/plat-arcfpga/include/plat/smp.h
+ create mode 100644 arch/arc/plat-arcfpga/irq.c
+ create mode 100644 arch/arc/plat-arcfpga/platform.c
+ create mode 100644 arch/arc/plat-arcfpga/smp.c
 
-diff --git a/arch/arc/include/asm/bug.h b/arch/arc/include/asm/bug.h
-new file mode 100644
-index 0000000..2ad8f9b
---- /dev/null
-+++ b/arch/arc/include/asm/bug.h
-@@ -0,0 +1,37 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef _ASM_ARC_BUG_H
-+#define _ASM_ARC_BUG_H
-+
-+#ifndef __ASSEMBLY__
-+
-+#include <asm/ptrace.h>
-+
-+struct task_struct;
-+
-+void show_regs(struct pt_regs *regs);
-+void show_stacktrace(struct task_struct *tsk, struct pt_regs *regs);
-+void show_kernel_fault_diag(const char *str, struct pt_regs *regs,
-+			    unsigned long address, unsigned long cause_reg);
-+void die(const char *str, struct pt_regs *regs, unsigned long address,
-+	 unsigned long cause_reg);
-+
-+#define BUG()	do {				\
-+	dump_stack();					\
-+	pr_warn("Kernel BUG in %s: %s: %d!\n",	\
-+		__FILE__, __func__,  __LINE__);	\
-+} while (0)
-+
-+#define HAVE_ARCH_BUG
-+
-+#include <asm-generic/bug.h>
-+
-+#endif	/* !__ASSEMBLY__ */
-+
-+#endif
-diff --git a/arch/arc/include/asm/cache.h b/arch/arc/include/asm/cache.h
-new file mode 100644
-index 0000000..30c72a4
---- /dev/null
-+++ b/arch/arc/include/asm/cache.h
-@@ -0,0 +1,21 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef __ARC_ASM_CACHE_H
-+#define __ARC_ASM_CACHE_H
-+
-+/* In case $$ not config, setup a dummy number for rest of kernel */
-+#ifndef CONFIG_ARC_CACHE_LINE_SHIFT
-+#define L1_CACHE_SHIFT		6
-+#else
-+#define L1_CACHE_SHIFT		CONFIG_ARC_CACHE_LINE_SHIFT
-+#endif
-+
-+#define L1_CACHE_BYTES		(1 << L1_CACHE_SHIFT)
-+
-+#endif /* _ASM_CACHE_H */
-diff --git a/arch/arc/include/asm/elf.h b/arch/arc/include/asm/elf.h
-new file mode 100644
-index 0000000..147284f
---- /dev/null
-+++ b/arch/arc/include/asm/elf.h
-@@ -0,0 +1,97 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef __ASM_ARC_ELF_H
-+#define __ASM_ARC_ELF_H
-+
-+#include <asm/ptrace.h>
-+
-+#define EM_ARCOMPACT		93
-+
-+/* Machine specific ELF Hdr flags */
-+#define EF_ARC_OSABI_MSK	0x00000f00
-+#define EF_ARC_OSABI_ORIG	0x00000000   /* MUST be zero for back-compat */
-+#define EF_ARC_OSABI_V2		0x00000200
-+
-+/* ARC Relocations (kernel Modules only) */
-+#define  R_ARC_32		0x4
-+#define  R_ARC_32_ME		0x1B
-+#define  R_ARC_S25H_PCREL	0x10
-+#define  R_ARC_S25W_PCREL	0x11
-+
-+typedef unsigned long elf_greg_t;
-+typedef unsigned long elf_fpregset_t;
-+
-+
-+/* core dump regs is in the order pt_regs, callee_regs, stop_pc (for gdb) */
-+#define ELF_NGREG	((sizeof(struct pt_regs) + sizeof(struct callee_regs) \
-+			  + sizeof(unsigned long)) / sizeof(elf_greg_t))
-+
-+typedef elf_greg_t elf_gregset_t[ELF_NGREG];
-+
-+/*
-+ * To ensure that
-+ *  -we don't load something for the wrong architecture.
-+ *  -The userspace is using the correct syscall ABI
-+ */
-+struct elf32_hdr;
-+extern int elf_check_arch(const struct elf32_hdr *);
-+#define elf_check_arch	elf_check_arch
-+
-+/*
-+ * These are used to set parameters in the core dumps.
-+ */
-+#define ELF_ARCH		EM_ARCOMPACT
-+#define ELF_CLASS		ELFCLASS32
-+
-+#ifdef CONFIG_CPU_BIG_ENDIAN
-+#define ELF_DATA		ELFDATA2MSB
-+#else
-+#define ELF_DATA		ELFDATA2LSB
-+#endif
-+
-+#ifdef __KERNEL__
-+
-+#define CORE_DUMP_USE_REGSET
-+
-+#define ELF_EXEC_PAGESIZE	PAGE_SIZE
-+
-+/*
-+ * This is the location that an ET_DYN program is loaded if exec'ed.  Typical
-+ * use of this is to invoke "./ld.so someprog" to test out a new version of
-+ * the loader.  We need to make sure that it is out of the way of the program
-+ * that it will "exec", and that there is sufficient room for the brk.
-+ */
-+#define ELF_ET_DYN_BASE		(2 * TASK_SIZE / 3)
-+
-+/*
-+ * When the program starts, a1 contains a pointer to a function to be
-+ * registered with atexit, as per the SVR4 ABI.  A value of 0 means we
-+ * have no such handler.
-+ */
-+#define ELF_PLAT_INIT(_r, load_addr)	((_r)->r0 = 0)
-+
-+/*
-+ * This yields a mask that user programs can use to figure out what
-+ * instruction set this cpu supports.
-+ */
-+#define ELF_HWCAP	(0)
-+
-+/*
-+ * This yields a string that ld.so will use to load implementation
-+ * specific libraries for optimization.  This is more specific in
-+ * intent than poking at uname or /proc/cpuinfo.
-+ */
-+#define ELF_PLATFORM	(NULL)
-+
-+#define SET_PERSONALITY(ex) \
-+	set_personality(PER_LINUX | (current->personality & (~PER_MASK)))
-+
-+#endif  /* __KERNEL__ */
-+
-+#endif
-diff --git a/arch/arc/include/asm/exec.h b/arch/arc/include/asm/exec.h
-new file mode 100644
-index 0000000..28abc69
---- /dev/null
-+++ b/arch/arc/include/asm/exec.h
-@@ -0,0 +1,15 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef __ASM_ARC_EXEC_H
-+#define __ASM_ARC_EXEC_H
-+
-+/* Align to 16b */
-+#define arch_align_stack(p) ((unsigned long)(p) & ~0xf)
-+
-+#endif
-diff --git a/arch/arc/include/asm/kdebug.h b/arch/arc/include/asm/kdebug.h
-new file mode 100644
-index 0000000..3fbe6c4
---- /dev/null
-+++ b/arch/arc/include/asm/kdebug.h
-@@ -0,0 +1,19 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef _ASM_ARC_KDEBUG_H
-+#define _ASM_ARC_KDEBUG_H
-+
-+enum die_val {
-+	DIE_UNUSED,
-+	DIE_TRAP,
-+	DIE_IERR,
-+	DIE_OOPS
-+};
-+
-+#endif
-diff --git a/arch/arc/include/asm/linkage.h b/arch/arc/include/asm/linkage.h
-new file mode 100644
-index 0000000..a45d1bb
---- /dev/null
-+++ b/arch/arc/include/asm/linkage.h
-@@ -0,0 +1,30 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef __ASM_LINKAGE_H
-+#define __ASM_LINKAGE_H
-+
-+#ifdef __ASSEMBLY__
-+
-+/* Can't use the ENTRY macro in linux/linkage.h
-+ * gas considers ';' as comment vs. newline
-+ */
-+.macro ARC_ENTRY name
-+	.global \name
-+	.align 4
-+	\name:
-+.endm
-+
-+.macro ARC_EXIT name
-+#define ASM_PREV_SYM_ADDR(name)  .-##name
-+	.size \ name, ASM_PREV_SYM_ADDR(\name)
-+.endm
-+
-+#endif /* __ASSEMBLY__ */
-+
-+#endif
-diff --git a/arch/arc/include/asm/module.h b/arch/arc/include/asm/module.h
-new file mode 100644
-index 0000000..165d768
---- /dev/null
-+++ b/arch/arc/include/asm/module.h
-@@ -0,0 +1,17 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * Amit Bhor, Sameer Dhavale: Codito Technologies 2004
-+
-+ */
-+
-+#ifndef _ASM_ARC_MODULE_H
-+#define _ASM_ARC_MODULE_H
-+
-+#include <asm-generic/module.h>
-+
-+#endif /* _ASM_ARC_MODULE_H */
-diff --git a/arch/arc/include/asm/page.h b/arch/arc/include/asm/page.h
-new file mode 100644
-index 0000000..7cd1224
---- /dev/null
-+++ b/arch/arc/include/asm/page.h
-@@ -0,0 +1,42 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef __ASM_ARC_PAGE_H
-+#define __ASM_ARC_PAGE_H
-+
-+/* PAGE_SHIFT determines the page size */
-+#if defined(CONFIG_ARC_PAGE_SIZE_16K)
-+#define PAGE_SHIFT 14
-+#elif defined(CONFIG_ARC_PAGE_SIZE_4K)
-+#define PAGE_SHIFT 12
-+#else
-+/*
-+ * Default 8k
-+ * done this way (instead of under CONFIG_ARC_PAGE_SIZE_8K) because adhoc
-+ * user code (busybox appletlib.h) expects PAGE_SHIFT to be defined w/o
-+ * using the correct uClibc header and in their build our autoconf.h is
-+ * not available
-+ */
-+#define PAGE_SHIFT 13
-+#endif
-+
-+#ifdef __ASSEMBLY__
-+#define PAGE_SIZE	(1 << PAGE_SHIFT)
-+#define PAGE_OFFSET	(0x80000000)
-+#else
-+#define PAGE_SIZE	(1UL << PAGE_SHIFT)	/* Default 8K */
-+#define PAGE_OFFSET	(0x80000000UL)	/* Kernel starts at 2G onwards */
-+#endif
-+
-+#define PAGE_MASK	(~(PAGE_SIZE-1))
-+
-+#endif /* !__ASSEMBLY__ */
-+
-+#endif /* __KERNEL__ */
-+
-+#endif
-diff --git a/arch/arc/include/asm/processor.h b/arch/arc/include/asm/processor.h
-new file mode 100644
-index 0000000..bf88cfb
---- /dev/null
-+++ b/arch/arc/include/asm/processor.h
-@@ -0,0 +1,143 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * vineetg: March 2009
-+ *  -Implemented task_pt_regs( )
-+ *
-+ * Amit Bhor, Sameer Dhavale, Ashwin Chaugule: Codito Technologies 2004
-+ */
-+
-+#ifndef __ASM_ARC_PROCESSOR_H
-+#define __ASM_ARC_PROCESSOR_H
-+
-+#ifdef __KERNEL__
-+
-+#ifndef __ASSEMBLY__
-+
-+#include <asm/arcregs.h>	/* for STATUS_E1_MASK et all */
-+
-+/* Arch specific stuff which needs to be saved per task.
-+ * However these items are not so important so as to earn a place in
-+ * struct thread_info
-+ */
-+struct thread_struct {
-+	unsigned long ksp;	/* kernel mode stack pointer */
-+	unsigned long callee_reg;	/* pointer to callee regs */
-+	unsigned long fault_address;	/* dbls as brkpt holder as well */
-+	unsigned long cause_code;	/* Exception Cause Code (ECR) */
-+};
-+
-+#define INIT_THREAD  {                          \
-+	.ksp = sizeof(init_stack) + (unsigned long) init_stack, \
-+}
-+
-+/* Forward declaration, a strange C thing */
-+struct task_struct;
-+
-+/*
-+ * Return saved PC of a blocked thread.
-+ */
-+unsigned long thread_saved_pc(struct task_struct *t);
-+
-+#define task_pt_regs(p) \
-+	((struct pt_regs *)(THREAD_SIZE - 4 + (void *)task_stack_page(p)) - 1)
-+
-+/* Free all resources held by a thread. */
-+#define release_thread(thread) do { } while (0)
-+
-+/* Prepare to copy thread state - unlazy all lazy status */
-+#define prepare_to_copy(tsk)    do { } while (0)
-+
-+#define cpu_relax()	do { } while (0)
-+
-+/*
-+ * Create a new kernel thread
-+ */
-+
-+extern int kernel_thread(int (*fn) (void *), void *arg, unsigned long flags);
-+
-+#define copy_segments(tsk, mm)      do { } while (0)
-+#define release_segments(mm)        do { } while (0)
-+
-+#define KSTK_EIP(tsk)   (task_pt_regs(tsk)->ret)
-+
-+/*
-+ * Where abouts of Task's sp, fp, blink when it was last seen in kernel mode.
-+ * These can't be derived from pt_regs as that would give correp user-mode val
-+ */
-+#define KSTK_ESP(tsk)   (tsk->thread.ksp)
-+#define KSTK_BLINK(tsk) (*((unsigned int *)((KSTK_ESP(tsk)) + (13+1+1)*4)))
-+#define KSTK_FP(tsk)    (*((unsigned int *)((KSTK_ESP(tsk)) + (13+1)*4)))
-+
-+/*
-+ * Do necessary setup to start up a newly executed thread.
-+ *
-+ * E1,E2 so that Interrupts are enabled in user mode
-+ * L set, so Loop inhibited to begin with
-+ * lp_start and lp_end seeded with bogus non-zero values so to easily catch
-+ * the ARC700 sr to lp_start hardware bug
-+ */
-+#define start_thread(_regs, _pc, _usp)				\
-+do {								\
-+	set_fs(USER_DS); /* reads from user space */		\
-+	(_regs)->ret = (_pc);					\
-+	/* Interrupts enabled in User Mode */			\
-+	(_regs)->status32 = STATUS_U_MASK | STATUS_L_MASK	\
-+		| STATUS_E1_MASK | STATUS_E2_MASK;		\
-+	(_regs)->sp = (_usp);					\
-+	/* bogus seed values for debugging */			\
-+	(_regs)->lp_start = 0x10;				\
-+	(_regs)->lp_end = 0x80;					\
-+} while (0)
-+
-+extern unsigned int get_wchan(struct task_struct *p);
-+
-+/*
-+ * Default implementation of macro that returns current
-+ * instruction pointer ("program counter").
-+ * Should the PC register be read instead ? This macro does not seem to
-+ * be used in many places so this wont be all that bad.
-+ */
-+#define current_text_addr() ({ __label__ _l; _l: &&_l; })
-+
-+#endif /* !__ASSEMBLY__ */
-+
-+/* Kernels Virtual memory area.
-+ * Unlike other architectures(MIPS, sh, cris ) ARC 700 does not have a
-+ * "kernel translated" region (like KSEG2 in MIPS). So we use a upper part
-+ * of the translated bottom 2GB for kernel virtual memory and protect
-+ * these pages from user accesses by disabling Ru, Eu and Wu.
-+ */
-+#define VMALLOC_SIZE	(0x10000000)	/* 256M */
-+#define VMALLOC_START	(PAGE_OFFSET - VMALLOC_SIZE)
-+#define VMALLOC_END	(PAGE_OFFSET)
-+
-+/* Most of the architectures seem to be keeping some kind of padding between
-+ * userspace TASK_SIZE and PAGE_OFFSET. i.e TASK_SIZE != PAGE_OFFSET.
-+ */
-+#define USER_KERNEL_GUTTER    0x10000000
-+
-+/* User address space:
-+ * On ARC700, CPU allows the entire lower half of 32 bit address space to be
-+ * translated. Thus potentially 2G (0:0x7FFF_FFFF) could be User vaddr space.
-+ * However we steal 256M for kernel addr (0x7000_0000:0x7FFF_FFFF) and another
-+ * 256M (0x6000_0000:0x6FFF_FFFF) is gutter between user/kernel spaces
-+ * Thus total User vaddr space is (0:0x5FFF_FFFF)
-+ */
-+#define TASK_SIZE	(PAGE_OFFSET - VMALLOC_SIZE - USER_KERNEL_GUTTER)
-+
-+#define STACK_TOP       TASK_SIZE
-+#define STACK_TOP_MAX   STACK_TOP
-+
-+/* This decides where the kernel will search for a free chunk of vm
-+ * space during mmap's.
-+ */
-+#define TASK_UNMAPPED_BASE      (TASK_SIZE / 3)
-+
-+#endif /* __KERNEL__ */
-+
-+#endif /* __ASM_ARC_PROCESSOR_H */
-diff --git a/arch/arc/include/asm/ptrace.h b/arch/arc/include/asm/ptrace.h
-new file mode 100644
-index 0000000..561c7eb
---- /dev/null
-+++ b/arch/arc/include/asm/ptrace.h
-@@ -0,0 +1,132 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * Amit Bhor, Sameer Dhavale: Codito Technologies 2004
-+ */
-+
-+#ifndef __ASM_ARC_PTRACE_H
-+#define __ASM_ARC_PTRACE_H
-+
-+/*
-+ * XXX: ABI hack.
-+ * The offset calc can be cleanly done in asm-offset.c, however gdb includes
-+ * this header directly.
-+ */
-+#define PT_bta		4
-+#define PT_lp_start	8
-+#define PT_lp_end	12
-+#define PT_lp_count	16
-+#define PT_status32	20
-+#define PT_ret		24
-+#define PT_blink	28
-+#define PT_fp		32
-+#define PT_r26		36
-+#define PT_r12		40
-+#define PT_r11		44
-+#define PT_r10		48
-+#define PT_r9		52
-+#define PT_r8		56
-+#define PT_r7		60
-+#define PT_r6		64
-+#define PT_r5		68
-+#define PT_r4		72
-+#define PT_r3		76
-+#define PT_r2		80
-+#define PT_r1		84
-+#define PT_r0		88
-+#define PT_sp		92
-+#define PT_orig_r0	96
-+#define PT_orig_r8	100
-+
-+#ifdef __KERNEL__
-+
-+#ifndef __ASSEMBLY__
-+
-+/* THE pt_regs: Defines how regs are saved during entry into kernel */
-+
-+struct pt_regs {
-+	/*
-+	 * 1 word gutter after reg-file has been saved
-+	 * Technically not needed, Since SP always points to a "full" location
-+	 * (vs. "empty"). But pt_regs is shared with tools....
-+	 */
-+	long res;
-+
-+	/* Real registers */
-+	long bta;	/* bta_l1, bta_l2, erbta */
-+	long lp_start;
-+	long lp_end;
-+	long lp_count;
-+	long status32;	/* status32_l1, status32_l2, erstatus */
-+	long ret;	/* ilink1, ilink2 or eret */
-+	long blink;
-+	long fp;
-+	long r26;	/* gp */
-+	long r12;
-+	long r11;
-+	long r10;
-+	long r9;
-+	long r8;
-+	long r7;
-+	long r6;
-+	long r5;
-+	long r4;
-+	long r3;
-+	long r2;
-+	long r1;
-+	long r0;
-+	long sp;	/* user/kernel sp depending on where we came from  */
-+	long orig_r0;
-+	long orig_r8;	/*to distinguish bet excp, sys call, int1 or int2 */
-+};
-+
-+/* Callee saved registers - need to be saved only when you are scheduled out */
-+
-+struct callee_regs {
-+	long res;	/* Again this is not needed */
-+	long r25;
-+	long r24;
-+	long r23;
-+	long r22;
-+	long r21;
-+	long r20;
-+	long r19;
-+	long r18;
-+	long r17;
-+	long r16;
-+	long r15;
-+	long r14;
-+	long r13;
-+};
-+
-+/* User mode registers, used for core dumps. */
-+struct user_regs_struct {
-+	struct pt_regs scratch;
-+	struct callee_regs callee;
-+	long efa;	/* break pt addr, for break points in delay slots */
-+	long stop_pc;	/* give dbg stop_pc directly after checking orig_r8 */
-+};
-+
-+#define instruction_pointer(regs)	((regs)->ret)
-+#define profile_pc(regs)		instruction_pointer(regs)
-+
-+/* return 1 if user mode or 0 if kernel mode */
-+#define user_mode(regs) (regs->status32 & STATUS_U_MASK)
-+
-+#define user_stack_pointer(regs)\
-+({  unsigned int sp;		\
-+	if (user_mode(regs))	\
-+		sp = (regs)->sp;\
-+	else			\
-+		sp = -1;	\
-+	sp;			\
-+})
-+#endif /* !__ASSEMBLY__ */
-+
-+#endif /* __KERNEL__ */
-+
-+#endif /* __ASM_PTRACE_H */
-diff --git a/arch/arc/include/asm/sections.h b/arch/arc/include/asm/sections.h
-new file mode 100644
-index 0000000..fc15f2e
---- /dev/null
-+++ b/arch/arc/include/asm/sections.h
-@@ -0,0 +1,17 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef _ASM_ARC_SECTIONS_H
-+#define _ASM_ARC_SECTIONS_H
-+
-+#include <asm-generic/sections.h>
-+
-+extern char _int_vec_base_lds[];
-+extern char __arc_dccm_base[];
-+
-+#endif
-diff --git a/arch/arc/include/asm/thread_info.h b/arch/arc/include/asm/thread_info.h
-new file mode 100644
-index 0000000..2d50a4c
---- /dev/null
-+++ b/arch/arc/include/asm/thread_info.h
-@@ -0,0 +1,121 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * Vineetg: Oct 2009
-+ *  No need for ARC specific thread_info allocator (kmalloc/free). This is
-+ *  anyways one page allocation, thus slab alloc can be short-circuited and
-+ *  the generic version (get_free_page) would be loads better.
-+ *
-+ * Sameer Dhavale: Codito Technologies 2004
-+ */
-+
-+#ifndef _ASM_THREAD_INFO_H
-+#define _ASM_THREAD_INFO_H
-+
-+#ifdef __KERNEL__
-+
-+#include <asm/page.h>
-+
-+#ifdef CONFIG_16KSTACKS
-+#define THREAD_SIZE_ORDER 1
-+#else
-+#define THREAD_SIZE_ORDER 0
-+#endif
-+
-+#define THREAD_SIZE     (PAGE_SIZE << THREAD_SIZE_ORDER)
-+
-+#ifndef __ASSEMBLY__
-+
-+#include <linux/thread_info.h>
-+#include <asm/segment.h>
-+
-+/*
-+ * low level task data that entry.S needs immediate access to
-+ * - this struct should fit entirely inside of one cache line
-+ * - this struct shares the supervisor stack pages
-+ * - if the contents of this structure are changed, the assembly constants
-+ *   must also be changed
-+ */
-+struct thread_info {
-+	unsigned long flags;		/* low level flags */
-+	int preempt_count;		/* 0 => preemptable, <0 => BUG */
-+	struct task_struct *task;	/* main task structure */
-+	mm_segment_t addr_limit;	/* thread address space */
-+	struct exec_domain *exec_domain;/* execution domain */
-+	__u32 cpu;			/* current CPU */
-+	unsigned long thr_ptr;		/* TLS ptr */
-+	struct restart_block restart_block;
-+};
-+
-+/*
-+ * macros/functions for gaining access to the thread information structure
-+ *
-+ * preempt_count needs to be 1 initially, until the scheduler is functional.
-+ */
-+#define INIT_THREAD_INFO(tsk)			\
-+{						\
-+	.task       = &tsk,			\
-+	.exec_domain    = &default_exec_domain,	\
-+	.flags      = 0,			\
-+	.cpu        = 0,			\
-+	.preempt_count  = INIT_PREEMPT_COUNT,	\
-+	.addr_limit = KERNEL_DS,		\
-+	.restart_block  = {			\
-+		.fn = do_no_restart_syscall,	\
-+	},					\
-+}
-+
-+#define init_thread_info    (init_thread_union.thread_info)
-+#define init_stack          (init_thread_union.stack)
-+
-+static inline __attribute_const__ struct thread_info *current_thread_info(void)
-+{
-+	register unsigned long sp asm("sp");
-+	return (struct thread_info *)(sp & ~(THREAD_SIZE - 1));
-+}
-+
-+#endif /* !__ASSEMBLY__ */
-+
-+#define PREEMPT_ACTIVE      0x10000000
-+
-+/*
-+ * thread information flags
-+ * - these are process state flags that various assembly files may need to
-+ *   access
-+ * - pending work-to-be-done flags are in LSW
-+ * - other flags in MSW
-+ */
-+#define TIF_RESTORE_SIGMASK	0	/* restore sig mask in do_signal() */
-+#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
-+#define TIF_SIGPENDING		2	/* signal pending */
-+#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
-+#define TIF_SYSCALL_AUDIT	4	/* syscall auditing active */
-+#define TIF_SYSCALL_TRACE	15	/* syscall trace active */
-+
-+/* true if poll_idle() is polling TIF_NEED_RESCHED */
-+#define TIF_MEMDIE		16
-+
-+#define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
-+#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
-+#define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
-+#define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
-+#define _TIF_SYSCALL_AUDIT	(1<<TIF_SYSCALL_AUDIT)
-+#define _TIF_MEMDIE		(1<<TIF_MEMDIE)
-+
-+/* work to do on interrupt/exception return */
-+#define _TIF_WORK_MASK		(_TIF_NEED_RESCHED | _TIF_SIGPENDING | \
-+				 _TIF_NOTIFY_RESUME)
-+
-+/*
-+ * _TIF_ALLWORK_MASK includes SYSCALL_TRACE, but we don't need it.
-+ * SYSCALL_TRACE is anways seperately/unconditionally tested right after a
-+ * syscall, so all that reamins to be tested is _TIF_WORK_MASK
-+ */
-+
-+#endif /* __KERNEL__ */
-+
-+#endif /* _ASM_THREAD_INFO_H */
 -- 
 1.7.4.1
