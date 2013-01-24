@@ -1,36 +1,51 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH v2 65/76] ARC: UAPI Disintegrate arch/arc/include/asm
-Date: Thu, 24 Jan 2013 13:28:12 +0000
-Message-ID: <26124.1359034092@warthog.procyon.org.uk>
-References: <510104DB.9040403@imgtec.com> <50FFCAC4.1050002@synopsys.com> <1358511930-7424-1-git-send-email-vgupta@synopsys.com> <1358511930-7424-66-git-send-email-vgupta@synopsys.com> <10760.1358945425@warthog.procyon.org.uk> <5100CAAF.8090702@synopsys.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:23937 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753248Ab3AXN2T (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 24 Jan 2013 08:28:19 -0500
-In-Reply-To: <510104DB.9040403@imgtec.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>, James Hogan <james.hogan@imgtec.com>
-Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH v5 01/45] percpu_rwlock: Introduce the global
+ reader-writer lock backend
+Date: Thu, 24 Jan 2013 16:58:40 +0100
+Message-ID: <20130124155840.GA10651@redhat.com>
+References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
+ <20130122073315.13822.27093.stgit@srivatsabhat.in.ibm.com>
+ <1358883152.21576.55.camel@gandalf.local.home>
+ <CANN689HOmiO-5714UiyuOcjrRYW2DkR4cPLgt96f5YeB9Ws3RQ@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <CANN689HOmiO-5714UiyuOcjrRYW2DkR4cPLgt96f5YeB9Ws3RQ@mail.gmail.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: linux-arm-kernel-bounces@lists.infradead.org
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Michel Lespinasse <walken@google.com>
+Cc: linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, mingo@kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, paulmck@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, rusty@rustcorp.com.au, Steven Rostedt <rostedt@goodmis.org>, rjw@sisk.pl, namhyung@kernel.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, sbw@mit.edu, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
+List-Id: linux-arch.vger.kernel.org
 
-James Hogan <james.hogan@imgtec.com> wrote:
+On 01/23, Michel Lespinasse wrote:
+>
+> On Tue, Jan 22, 2013 at 11:32 AM, Steven Rostedt <rostedt@goodmis.org> wrote:
+> >
+> > I thought global locks are now fair. That is, a reader will block if a
+> > writer is waiting. Hence, the above should deadlock on the current
+> > rwlock_t types.
+>
+> I believe you are mistaken here. struct rw_semaphore is fair (and
+> blocking), but rwlock_t is unfair. The reason we can't easily make
+> rwlock_t fair is because tasklist_lock currently depends on the
+> rwlock_t unfairness - tasklist_lock readers typically don't disable
+> local interrupts, and tasklist_lock may be acquired again from within
+> an interrupt, which would deadlock if rwlock_t was fair and a writer
+> was queued by the time the interrupt is processed.
 
-> > BTW looking at metag port, it seems that <asm/setup.h> does #include
-> > <uapi/asm/setup.h>, but latter doesn't exist in the repository - is it
-> > generated for you James or is this same issue which David elucidated to
-> > above ?
-> 
-> We have generic-y += setup.h in arch/metag/include/uapi/asm/Kbuild for this
+Yes.
 
-Vineet can't do that as his COMMAND_LINE_SIZE is different to the standard and
-also not placed in his UAPI setup.h.
+And, iirc, it was even documented somewhere that while rwlock_t is not
+really nice, it is good to share the locking with interrupts. You do
+not need to disable irqs.
 
-So far, only user-mode Linux and x86 don't put COMMAND_LINE_SIZE in
-uapi/asm/setup.h.  Everything else does.
-
-	grep -r 'define\s*COMMAND_LINE_SIZE' arch/*/include | grep -v /uapi/
-
-Not sure if that's needed to build a bootloader or not.
-
-David
+Oleg.
