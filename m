@@ -1,7 +1,7 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v3 06/71] ARC: uaccess friends
-Date: Thu, 24 Jan 2013 16:20:17 +0530
-Message-ID: <1359024639-21915-4-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v3 33/71] ARC: [DeviceTree] Convert some Kconfig items to runtime values
+Date: Thu, 24 Jan 2013 16:20:29 +0530
+Message-ID: <1359024639-21915-16-git-send-email-vgupta@synopsys.com>
 References: <1359024639-21915-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -9,769 +9,175 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1359024639-21915-1-git-send-email-vgupta@synopsys.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Grant Likely <grant.likely@secretlab.ca>
 List-Id: linux-arch.vger.kernel.org
 
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
----
- arch/arc/include/asm/segment.h |   24 ++
- arch/arc/include/asm/uaccess.h |  646 ++++++++++++++++++++++++++++++++++++++++
- arch/arc/mm/extable.c          |   63 ++++
- 3 files changed, 733 insertions(+), 0 deletions(-)
- create mode 100644 arch/arc/include/asm/segment.h
- create mode 100644 arch/arc/include/asm/uaccess.h
- create mode 100644 arch/arc/mm/extable.c
+* mem size now runtime configured (prev CONFIG_ARC_PLAT_SDRAM_SIZE)
+* core cpu clk runtime configured (prev CONFIG_ARC_PLAT_CLK)
 
-diff --git a/arch/arc/include/asm/segment.h b/arch/arc/include/asm/segment.h
-new file mode 100644
-index 0000000..da2c459
---- /dev/null
-+++ b/arch/arc/include/asm/segment.h
-@@ -0,0 +1,24 @@
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Grant Likely <grant.likely@secretlab.ca>
+---
+ arch/arc/Kconfig                |   12 ------------
+ arch/arc/boot/dts/skeleton.dtsi |    6 +++++-
+ arch/arc/include/asm/clk.h      |    2 ++
+ arch/arc/kernel/clk.c           |   12 +++++++++++-
+ arch/arc/kernel/devtree.c       |   13 +++++++++++++
+ arch/arc/mm/init.c              |    9 ++++++---
+ 6 files changed, 37 insertions(+), 17 deletions(-)
+
+diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+index 7666857..7db9785 100644
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@ -249,10 +249,6 @@ source "arch/arc/plat-arcfpga/Kconfig"
+ 
+ #New platform adds here
+ 
+-config ARC_PLAT_CLK
+-	int "Clk speed in Hz"
+-	default "80000000"
+-
+ config LINUX_LINK_BASE
+ 	hex "Linux Link Address"
+ 	default "0x80000000"
+@@ -266,14 +262,6 @@ config LINUX_LINK_BASE
+ 	  Linux needs to be scooted a bit.
+ 	  If you don't know what the above means, leave this setting alone.
+ 
+-config ARC_PLAT_SDRAM_SIZE
+-	hex "SD RAM Size"
+-	default "0x10000000"
+-	help
+-	  Implies the amount of SDRAM/DRAM Linux is going to claim/own.
+-	  The actual memory itself could be larger than this number. But for
+-	  all software purposes, this is the amt of memory.
+-
+ endmenu # "Platform Board Configuration"
+ 
+ config ARC_STACK_NONEXEC
+diff --git a/arch/arc/boot/dts/skeleton.dtsi b/arch/arc/boot/dts/skeleton.dtsi
+index 9b357d8..eb8b773 100644
+--- a/arch/arc/boot/dts/skeleton.dtsi
++++ b/arch/arc/boot/dts/skeleton.dtsi
+@@ -13,9 +13,13 @@
+ 
+ / {
+ 	compatible = "snps,arc";
++	clock-frequency = <80000000>;	/* 80 MHZ */
+ 	#address-cells = <1>;
+ 	#size-cells = <1>;
+ 	chosen { };
+ 	aliases { };
+-	memory { device_type = "memory"; reg = <0 0>; };
++	memory {
++		device_type = "memory";
++		reg = <0x00000000 0x10000000>;	/* 256M */
++	};
+ };
+diff --git a/arch/arc/include/asm/clk.h b/arch/arc/include/asm/clk.h
+index 6195643..bf9d29f 100644
+--- a/arch/arc/include/asm/clk.h
++++ b/arch/arc/include/asm/clk.h
+@@ -17,4 +17,6 @@ static inline unsigned long arc_get_core_freq(void)
+ 	return core_freq;
+ }
+ 
++extern int arc_set_core_freq(unsigned long);
++
+ #endif
+diff --git a/arch/arc/kernel/clk.c b/arch/arc/kernel/clk.c
+index 64925db..66ce0dc 100644
+--- a/arch/arc/kernel/clk.c
++++ b/arch/arc/kernel/clk.c
+@@ -8,4 +8,14 @@
+ 
+ #include <asm/clk.h>
+ 
+-unsigned long core_freq = CONFIG_ARC_PLAT_CLK;
++unsigned long core_freq = 800000000;
++
 +/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
++ * As of now we default to device-tree provided clock
++ * In future we can determine this in early boot
 + */
-+
-+#ifndef __ASMARC_SEGMENT_H
-+#define __ASMARC_SEGMENT_H
-+
-+#ifndef __ASSEMBLY__
-+
-+typedef unsigned long mm_segment_t;
-+
-+#define MAKE_MM_SEG(s)	((mm_segment_t) { (s) })
-+
-+#define KERNEL_DS		MAKE_MM_SEG(0)
-+#define USER_DS			MAKE_MM_SEG(TASK_SIZE)
-+
-+#define segment_eq(a, b)	((a) == (b))
-+
-+#endif /* __ASSEMBLY__ */
-+#endif /* __ASMARC_SEGMENT_H */
-diff --git a/arch/arc/include/asm/uaccess.h b/arch/arc/include/asm/uaccess.h
-new file mode 100644
-index 0000000..f13bca4
---- /dev/null
-+++ b/arch/arc/include/asm/uaccess.h
-@@ -0,0 +1,646 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * vineetg: June 2010
-+ *    -__clear_user( ) called multiple times during elf load was byte loop
-+ *    converted to do as much word clear as possible.
-+ *
-+ * vineetg: Dec 2009
-+ *    -Hand crafted constant propagation for "constant" copy sizes
-+ *    -stock kernel shrunk by 33K at -O3
-+ *
-+ * vineetg: Sept 2009
-+ *    -Added option to (UN)inline copy_(to|from)_user to reduce code sz
-+ *    -kernel shrunk by 200K even at -O3 (gcc 4.2.1)
-+ *    -Enabled when doing -Os
-+ *
-+ * Amit Bhor, Sameer Dhavale: Codito Technologies 2004
-+ */
-+
-+#ifndef _ASM_ARC_UACCESS_H
-+#define _ASM_ARC_UACCESS_H
-+
-+#include <linux/sched.h>
-+#include <asm/errno.h>
-+#include <linux/string.h>	/* for generic string functions */
-+
-+
-+#define __kernel_ok		(segment_eq(get_fs(), KERNEL_DS))
-+
-+/*
-+ * Algorthmically, for __user_ok() we want do:
-+ * 	(start < TASK_SIZE) && (start+len < TASK_SIZE)
-+ * where TASK_SIZE could either be retrieved from thread_info->addr_limit or
-+ * emitted directly in code.
-+ *
-+ * This can however be rewritten as follows:
-+ *	(len <= TASK_SIZE) && (start+len < TASK_SIZE)
-+ *
-+ * Because it essentially checks if buffer end is within limit and @len is
-+ * non-ngeative, which implies that buffer start will be within limit too.
-+ *
-+ * The reason for rewriting being, for majorit yof cases, @len is generally
-+ * compile time constant, causing first sub-expression to be compile time
-+ * subsumed.
-+ *
-+ * The second part would generate weird large LIMMs e.g. (0x6000_0000 - 0x10),
-+ * so we check for TASK_SIZE using get_fs() since the addr_limit load from mem
-+ * would already have been done at this call site for __kernel_ok()
-+ *
-+ */
-+#define __user_ok(addr, sz)	(((sz) <= TASK_SIZE) && \
-+				 (((addr)+(sz)) <= get_fs()))
-+#define __access_ok(addr, sz)	(unlikely(__kernel_ok) || \
-+				 likely(__user_ok((addr), (sz))))
-+
-+static inline unsigned long
-+__arc_copy_from_user(void *to, const void __user *from, unsigned long n)
++int arc_set_core_freq(unsigned long freq)
 +{
-+	long res = 0;
-+	char val;
-+	unsigned long tmp1, tmp2, tmp3, tmp4;
-+	unsigned long orig_n = n;
-+
-+	if (n == 0)
-+		return 0;
-+
-+	/* unaligned */
-+	if (((unsigned long)to & 0x3) || ((unsigned long)from & 0x3)) {
-+
-+		unsigned char tmp;
-+
-+		__asm__ __volatile__ (
-+		"	mov.f   lp_count, %0		\n"
-+		"	lpnz 2f				\n"
-+		"1:	ldb.ab  %1, [%3, 1]		\n"
-+		"	stb.ab  %1, [%2, 1]		\n"
-+		"	sub     %0,%0,1			\n"
-+		"2:	;nop				\n"
-+		"	.section .fixup, \"ax\"		\n"
-+		"	.align 4			\n"
-+		"3:	j   2b				\n"
-+		"	.previous			\n"
-+		"	.section __ex_table, \"a\"	\n"
-+		"	.align 4			\n"
-+		"	.word   1b, 3b			\n"
-+		"	.previous			\n"
-+
-+		: "+r" (n),
-+		/*
-+		 * Note as an '&' earlyclobber operand to make sure the
-+		 * temporary register inside the loop is not the same as
-+		 *  FROM or TO.
-+		*/
-+		  "=&r" (tmp), "+r" (to), "+r" (from)
-+		:
-+		: "lp_count", "lp_start", "lp_end", "memory");
-+
-+		return n;
-+	}
-+
-+	/*
-+	 * Hand-crafted constant propagation to reduce code sz of the
-+	 * laddered copy 16x,8,4,2,1
-+	 */
-+	if (__builtin_constant_p(orig_n)) {
-+		res = orig_n;
-+
-+		if (orig_n / 16) {
-+			orig_n = orig_n % 16;
-+
-+			__asm__ __volatile__(
-+			"	lsr   lp_count, %7,4		\n"
-+			"	lp    3f			\n"
-+			"1:	ld.ab   %3, [%2, 4]		\n"
-+			"11:	ld.ab   %4, [%2, 4]		\n"
-+			"12:	ld.ab   %5, [%2, 4]		\n"
-+			"13:	ld.ab   %6, [%2, 4]		\n"
-+			"	st.ab   %3, [%1, 4]		\n"
-+			"	st.ab   %4, [%1, 4]		\n"
-+			"	st.ab   %5, [%1, 4]		\n"
-+			"	st.ab   %6, [%1, 4]		\n"
-+			"	sub     %0,%0,16		\n"
-+			"3:	;nop				\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   3b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   1b, 4b			\n"
-+			"	.word   11b,4b			\n"
-+			"	.word   12b,4b			\n"
-+			"	.word   13b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from),
-+			  "=r"(tmp1), "=r"(tmp2), "=r"(tmp3), "=r"(tmp4)
-+			: "ir"(n)
-+			: "lp_count", "memory");
-+		}
-+		if (orig_n / 8) {
-+			orig_n = orig_n % 8;
-+
-+			__asm__ __volatile__(
-+			"14:	ld.ab   %3, [%2,4]		\n"
-+			"15:	ld.ab   %4, [%2,4]		\n"
-+			"	st.ab   %3, [%1,4]		\n"
-+			"	st.ab   %4, [%1,4]		\n"
-+			"	sub     %0,%0,8			\n"
-+			"31:	;nop				\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   31b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   14b,4b			\n"
-+			"	.word   15b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from),
-+			  "=r"(tmp1), "=r"(tmp2)
-+			:
-+			: "memory");
-+		}
-+		if (orig_n / 4) {
-+			orig_n = orig_n % 4;
-+
-+			__asm__ __volatile__(
-+			"16:	ld.ab   %3, [%2,4]		\n"
-+			"	st.ab   %3, [%1,4]		\n"
-+			"	sub     %0,%0,4			\n"
-+			"32:	;nop				\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   32b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   16b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from), "=r"(tmp1)
-+			:
-+			: "memory");
-+		}
-+		if (orig_n / 2) {
-+			orig_n = orig_n % 2;
-+
-+			__asm__ __volatile__(
-+			"17:	ldw.ab   %3, [%2,2]		\n"
-+			"	stw.ab   %3, [%1,2]		\n"
-+			"	sub      %0,%0,2		\n"
-+			"33:	;nop				\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   33b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   17b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from), "=r"(tmp1)
-+			:
-+			: "memory");
-+		}
-+		if (orig_n & 1) {
-+			__asm__ __volatile__(
-+			"18:	ldb.ab   %3, [%2,2]		\n"
-+			"	stb.ab   %3, [%1,2]		\n"
-+			"	sub      %0,%0,1		\n"
-+			"34:	; nop				\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   34b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   18b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from), "=r"(tmp1)
-+			:
-+			: "memory");
-+		}
-+	} else {  /* n is NOT constant, so laddered copy of 16x,8,4,2,1  */
-+
-+		__asm__ __volatile__(
-+		"	mov %0,%3			\n"
-+		"	lsr.f   lp_count, %3,4		\n"  /* 16x bytes */
-+		"	lpnz    3f			\n"
-+		"1:	ld.ab   %5, [%2, 4]		\n"
-+		"11:	ld.ab   %6, [%2, 4]		\n"
-+		"12:	ld.ab   %7, [%2, 4]		\n"
-+		"13:	ld.ab   %8, [%2, 4]		\n"
-+		"	st.ab   %5, [%1, 4]		\n"
-+		"	st.ab   %6, [%1, 4]		\n"
-+		"	st.ab   %7, [%1, 4]		\n"
-+		"	st.ab   %8, [%1, 4]		\n"
-+		"	sub     %0,%0,16		\n"
-+		"3:	and.f   %3,%3,0xf		\n"  /* stragglers */
-+		"	bz      34f			\n"
-+		"	bbit0   %3,3,31f		\n"  /* 8 bytes left */
-+		"14:	ld.ab   %5, [%2,4]		\n"
-+		"15:	ld.ab   %6, [%2,4]		\n"
-+		"	st.ab   %5, [%1,4]		\n"
-+		"	st.ab   %6, [%1,4]		\n"
-+		"	sub.f   %0,%0,8			\n"
-+		"31:	bbit0   %3,2,32f		\n"  /* 4 bytes left */
-+		"16:	ld.ab   %5, [%2,4]		\n"
-+		"	st.ab   %5, [%1,4]		\n"
-+		"	sub.f   %0,%0,4			\n"
-+		"32:	bbit0   %3,1,33f		\n"  /* 2 bytes left */
-+		"17:	ldw.ab  %5, [%2,2]		\n"
-+		"	stw.ab  %5, [%1,2]		\n"
-+		"	sub.f   %0,%0,2			\n"
-+		"33:	bbit0   %3,0,34f		\n"
-+		"18:	ldb.ab  %5, [%2,1]		\n"  /* 1 byte left */
-+		"	stb.ab  %5, [%1,1]		\n"
-+		"	sub.f   %0,%0,1			\n"
-+		"34:	;nop				\n"
-+		"	.section .fixup, \"ax\"		\n"
-+		"	.align 4			\n"
-+		"4:	j   34b				\n"
-+		"	.previous			\n"
-+		"	.section __ex_table, \"a\"	\n"
-+		"	.align 4			\n"
-+		"	.word   1b, 4b			\n"
-+		"	.word   11b,4b			\n"
-+		"	.word   12b,4b			\n"
-+		"	.word   13b,4b			\n"
-+		"	.word   14b,4b			\n"
-+		"	.word   15b,4b			\n"
-+		"	.word   16b,4b			\n"
-+		"	.word   17b,4b			\n"
-+		"	.word   18b,4b			\n"
-+		"	.previous			\n"
-+		: "=r" (res), "+r"(to), "+r"(from), "+r"(n), "=r"(val),
-+		  "=r"(tmp1), "=r"(tmp2), "=r"(tmp3), "=r"(tmp4)
-+		:
-+		: "lp_count", "memory");
-+	}
-+
-+	return res;
-+}
-+
-+extern unsigned long slowpath_copy_to_user(void __user *to, const void *from,
-+					   unsigned long n);
-+
-+static inline unsigned long
-+__arc_copy_to_user(void __user *to, const void *from, unsigned long n)
-+{
-+	long res = 0;
-+	char val;
-+	unsigned long tmp1, tmp2, tmp3, tmp4;
-+	unsigned long orig_n = n;
-+
-+	if (n == 0)
-+		return 0;
-+
-+	/* unaligned */
-+	if (((unsigned long)to & 0x3) || ((unsigned long)from & 0x3)) {
-+
-+		unsigned char tmp;
-+
-+		__asm__ __volatile__(
-+		"	mov.f   lp_count, %0		\n"
-+		"	lpnz 3f				\n"
-+		"	ldb.ab  %1, [%3, 1]		\n"
-+		"1:	stb.ab  %1, [%2, 1]		\n"
-+		"	sub     %0, %0, 1		\n"
-+		"3:	;nop				\n"
-+		"	.section .fixup, \"ax\"		\n"
-+		"	.align 4			\n"
-+		"4:	j   3b				\n"
-+		"	.previous			\n"
-+		"	.section __ex_table, \"a\"	\n"
-+		"	.align 4			\n"
-+		"	.word   1b, 4b			\n"
-+		"	.previous			\n"
-+
-+		: "+r" (n),
-+		/* Note as an '&' earlyclobber operand to make sure the
-+		 * temporary register inside the loop is not the same as
-+		 * FROM or TO.
-+		 */
-+		  "=&r" (tmp), "+r" (to), "+r" (from)
-+		:
-+		: "lp_count", "lp_start", "lp_end", "memory");
-+
-+		return n;
-+	}
-+
-+	if (__builtin_constant_p(orig_n)) {
-+		res = orig_n;
-+
-+		if (orig_n / 16) {
-+			orig_n = orig_n % 16;
-+
-+			__asm__ __volatile__(
-+			"	lsr lp_count, %7,4		\n"
-+			"	lp  3f				\n"
-+			"	ld.ab %3, [%2, 4]		\n"
-+			"	ld.ab %4, [%2, 4]		\n"
-+			"	ld.ab %5, [%2, 4]		\n"
-+			"	ld.ab %6, [%2, 4]		\n"
-+			"1:	st.ab %3, [%1, 4]		\n"
-+			"11:	st.ab %4, [%1, 4]		\n"
-+			"12:	st.ab %5, [%1, 4]		\n"
-+			"13:	st.ab %6, [%1, 4]		\n"
-+			"	sub   %0, %0, 16		\n"
-+			"3:;nop					\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   3b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   1b, 4b			\n"
-+			"	.word   11b,4b			\n"
-+			"	.word   12b,4b			\n"
-+			"	.word   13b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from),
-+			  "=r"(tmp1), "=r"(tmp2), "=r"(tmp3), "=r"(tmp4)
-+			: "ir"(n)
-+			: "lp_count", "memory");
-+		}
-+		if (orig_n / 8) {
-+			orig_n = orig_n % 8;
-+
-+			__asm__ __volatile__(
-+			"	ld.ab   %3, [%2,4]		\n"
-+			"	ld.ab   %4, [%2,4]		\n"
-+			"14:	st.ab   %3, [%1,4]		\n"
-+			"15:	st.ab   %4, [%1,4]		\n"
-+			"	sub     %0, %0, 8		\n"
-+			"31:;nop				\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   31b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   14b,4b			\n"
-+			"	.word   15b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from),
-+			  "=r"(tmp1), "=r"(tmp2)
-+			:
-+			: "memory");
-+		}
-+		if (orig_n / 4) {
-+			orig_n = orig_n % 4;
-+
-+			__asm__ __volatile__(
-+			"	ld.ab   %3, [%2,4]		\n"
-+			"16:	st.ab   %3, [%1,4]		\n"
-+			"	sub     %0, %0, 4		\n"
-+			"32:;nop				\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   32b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   16b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from), "=r"(tmp1)
-+			:
-+			: "memory");
-+		}
-+		if (orig_n / 2) {
-+			orig_n = orig_n % 2;
-+
-+			__asm__ __volatile__(
-+			"	ldw.ab    %3, [%2,2]		\n"
-+			"17:	stw.ab    %3, [%1,2]		\n"
-+			"	sub       %0, %0, 2		\n"
-+			"33:;nop				\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   33b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   17b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from), "=r"(tmp1)
-+			:
-+			: "memory");
-+		}
-+		if (orig_n & 1) {
-+			__asm__ __volatile__(
-+			"	ldb.ab  %3, [%2,1]		\n"
-+			"18:	stb.ab  %3, [%1,1]		\n"
-+			"	sub     %0, %0, 1		\n"
-+			"34:	;nop				\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   34b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   18b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from), "=r"(tmp1)
-+			:
-+			: "memory");
-+		}
-+	} else {  /* n is NOT constant, so laddered copy of 16x,8,4,2,1  */
-+
-+		__asm__ __volatile__(
-+		"	mov   %0,%3			\n"
-+		"	lsr.f lp_count, %3,4		\n"  /* 16x bytes */
-+		"	lpnz  3f			\n"
-+		"	ld.ab %5, [%2, 4]		\n"
-+		"	ld.ab %6, [%2, 4]		\n"
-+		"	ld.ab %7, [%2, 4]		\n"
-+		"	ld.ab %8, [%2, 4]		\n"
-+		"1:	st.ab %5, [%1, 4]		\n"
-+		"11:	st.ab %6, [%1, 4]		\n"
-+		"12:	st.ab %7, [%1, 4]		\n"
-+		"13:	st.ab %8, [%1, 4]		\n"
-+		"	sub   %0, %0, 16		\n"
-+		"3:	and.f %3,%3,0xf			\n" /* stragglers */
-+		"	bz 34f				\n"
-+		"	bbit0   %3,3,31f		\n" /* 8 bytes left */
-+		"	ld.ab   %5, [%2,4]		\n"
-+		"	ld.ab   %6, [%2,4]		\n"
-+		"14:	st.ab   %5, [%1,4]		\n"
-+		"15:	st.ab   %6, [%1,4]		\n"
-+		"	sub.f   %0, %0, 8		\n"
-+		"31:	bbit0   %3,2,32f		\n"  /* 4 bytes left */
-+		"	ld.ab   %5, [%2,4]		\n"
-+		"16:	st.ab   %5, [%1,4]		\n"
-+		"	sub.f   %0, %0, 4		\n"
-+		"32:	bbit0 %3,1,33f			\n"  /* 2 bytes left */
-+		"	ldw.ab    %5, [%2,2]		\n"
-+		"17:	stw.ab    %5, [%1,2]		\n"
-+		"	sub.f %0, %0, 2			\n"
-+		"33:	bbit0 %3,0,34f			\n"
-+		"	ldb.ab    %5, [%2,1]		\n"  /* 1 byte left */
-+		"18:	stb.ab  %5, [%1,1]		\n"
-+		"	sub.f %0, %0, 1			\n"
-+		"34:	;nop				\n"
-+		"	.section .fixup, \"ax\"		\n"
-+		"	.align 4			\n"
-+		"4:	j   34b				\n"
-+		"	.previous			\n"
-+		"	.section __ex_table, \"a\"	\n"
-+		"	.align 4			\n"
-+		"	.word   1b, 4b			\n"
-+		"	.word   11b,4b			\n"
-+		"	.word   12b,4b			\n"
-+		"	.word   13b,4b			\n"
-+		"	.word   14b,4b			\n"
-+		"	.word   15b,4b			\n"
-+		"	.word   16b,4b			\n"
-+		"	.word   17b,4b			\n"
-+		"	.word   18b,4b			\n"
-+		"	.previous			\n"
-+		: "=r" (res), "+r"(to), "+r"(from), "+r"(n), "=r"(val),
-+		  "=r"(tmp1), "=r"(tmp2), "=r"(tmp3), "=r"(tmp4)
-+		:
-+		: "lp_count", "memory");
-+	}
-+
-+	return res;
-+}
-+
-+static inline unsigned long __arc_clear_user(void __user *to, unsigned long n)
-+{
-+	long res = n;
-+	unsigned char *d_char = to;
-+
-+	__asm__ __volatile__(
-+	"	bbit0   %0, 0, 1f		\n"
-+	"75:	stb.ab  %2, [%0,1]		\n"
-+	"	sub %1, %1, 1			\n"
-+	"1:	bbit0   %0, 1, 2f		\n"
-+	"76:	stw.ab  %2, [%0,2]		\n"
-+	"	sub %1, %1, 2			\n"
-+	"2:	asr.f   lp_count, %1, 2		\n"
-+	"	lpnz    3f			\n"
-+	"77:	st.ab   %2, [%0,4]		\n"
-+	"	sub %1, %1, 4			\n"
-+	"3:	bbit0   %1, 1, 4f		\n"
-+	"78:	stw.ab  %2, [%0,2]		\n"
-+	"	sub %1, %1, 2			\n"
-+	"4:	bbit0   %1, 0, 5f		\n"
-+	"79:	stb.ab  %2, [%0,1]		\n"
-+	"	sub %1, %1, 1			\n"
-+	"5:					\n"
-+	"	.section .fixup, \"ax\"		\n"
-+	"	.align 4			\n"
-+	"3:	j   5b				\n"
-+	"	.previous			\n"
-+	"	.section __ex_table, \"a\"	\n"
-+	"	.align 4			\n"
-+	"	.word   75b, 3b			\n"
-+	"	.word   76b, 3b			\n"
-+	"	.word   77b, 3b			\n"
-+	"	.word   78b, 3b			\n"
-+	"	.word   79b, 3b			\n"
-+	"	.previous			\n"
-+	: "+r"(d_char), "+r"(res)
-+	: "i"(0)
-+	: "lp_count", "lp_start", "lp_end", "memory");
-+
-+	return res;
-+}
-+
-+static inline long
-+__arc_strncpy_from_user(char *dst, const char __user *src, long count)
-+{
-+	long res = count;
-+	char val;
-+	unsigned int hw_count;
-+
-+	if (count == 0)
-+		return 0;
-+
-+	__asm__ __volatile__(
-+	"	lp 2f		\n"
-+	"1:	ldb.ab  %3, [%2, 1]		\n"
-+	"	breq.d  %3, 0, 2f		\n"
-+	"	stb.ab  %3, [%1, 1]		\n"
-+	"2:	sub %0, %6, %4			\n"
-+	"3:	;nop				\n"
-+	"	.section .fixup, \"ax\"		\n"
-+	"	.align 4			\n"
-+	"4:	mov %0, %5			\n"
-+	"	j   3b				\n"
-+	"	.previous			\n"
-+	"	.section __ex_table, \"a\"	\n"
-+	"	.align 4			\n"
-+	"	.word   1b, 4b			\n"
-+	"	.previous			\n"
-+	: "=r"(res), "+r"(dst), "+r"(src), "=&r"(val), "=l"(hw_count)
-+	: "g"(-EFAULT), "ir"(count), "4"(count)	/* this "4" seeds lp_count */
-+	: "memory");
-+
-+	return res;
-+}
-+
-+static inline long __arc_strnlen_user(const char __user *s, long n)
-+{
-+	long res, tmp1, cnt;
-+	char val;
-+
-+	__asm__ __volatile__(
-+	"	mov %2, %1			\n"
-+	"1:	ldb.ab  %3, [%0, 1]		\n"
-+	"	breq.d  %3, 0, 2f		\n"
-+	"	sub.f   %2, %2, 1		\n"
-+	"	bnz 1b				\n"
-+	"	sub %2, %2, 1			\n"
-+	"2:	sub %0, %1, %2			\n"
-+	"3:	;nop				\n"
-+	"	.section .fixup, \"ax\"		\n"
-+	"	.align 4			\n"
-+	"4:	mov %0, 0			\n"
-+	"	j   3b				\n"
-+	"	.previous			\n"
-+	"	.section __ex_table, \"a\"	\n"
-+	"	.align 4			\n"
-+	"	.word 1b, 4b			\n"
-+	"	.previous			\n"
-+	: "=r"(res), "=r"(tmp1), "=r"(cnt), "=r"(val)
-+	: "0"(s), "1"(n)
-+	: "memory");
-+
-+	return res;
-+}
-+
-+#ifndef CONFIG_CC_OPTIMIZE_FOR_SIZE
-+#define __copy_from_user(t, f, n)	__arc_copy_from_user(t, f, n)
-+#define __copy_to_user(t, f, n)		__arc_copy_to_user(t, f, n)
-+#define __clear_user(d, n)		__arc_clear_user(d, n)
-+#define __strncpy_from_user(d, s, n)	__arc_strncpy_from_user(d, s, n)
-+#define __strnlen_user(s, n)		__arc_strnlen_user(s, n)
-+#else
-+extern long arc_copy_from_user_noinline(void *to, const void __user * from,
-+		unsigned long n);
-+extern long arc_copy_to_user_noinline(void __user *to, const void *from,
-+		unsigned long n);
-+extern unsigned long arc_clear_user_noinline(void __user *to,
-+		unsigned long n);
-+extern long arc_strncpy_from_user_noinline (char *dst, const char __user *src,
-+		long count);
-+extern long arc_strnlen_user_noinline(const char __user *src, long n);
-+
-+#define __copy_from_user(t, f, n)	arc_copy_from_user_noinline(t, f, n)
-+#define __copy_to_user(t, f, n)		arc_copy_to_user_noinline(t, f, n)
-+#define __clear_user(d, n)		arc_clear_user_noinline(d, n)
-+#define __strncpy_from_user(d, s, n)	arc_strncpy_from_user_noinline(d, s, n)
-+#define __strnlen_user(s, n)		arc_strnlen_user_noinline(s, n)
-+
-+#endif
-+
-+#include <asm-generic/uaccess.h>
-+
-+extern int fixup_exception(struct pt_regs *regs);
-+
-+#endif
-diff --git a/arch/arc/mm/extable.c b/arch/arc/mm/extable.c
-new file mode 100644
-index 0000000..014172b
---- /dev/null
-+++ b/arch/arc/mm/extable.c
-@@ -0,0 +1,63 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * Borrowed heavily from MIPS
-+ */
-+
-+#include <linux/module.h>
-+#include <linux/uaccess.h>
-+
-+int fixup_exception(struct pt_regs *regs)
-+{
-+	const struct exception_table_entry *fixup;
-+
-+	fixup = search_exception_tables(instruction_pointer(regs));
-+	if (fixup) {
-+		regs->ret = fixup->fixup;
-+
-+		return 1;
-+	}
-+
++	core_freq = freq;
 +	return 0;
 +}
+diff --git a/arch/arc/kernel/devtree.c b/arch/arc/kernel/devtree.c
+index 229f78e..d2a41be 100644
+--- a/arch/arc/kernel/devtree.c
++++ b/arch/arc/kernel/devtree.c
+@@ -20,6 +20,7 @@
+ #include <linux/of_irq.h>
+ #include <linux/of_platform.h>
+ #include <asm/prom.h>
++#include <asm/clk.h>
+ 
+ /* called from unflatten_device_tree() to bootstrap devicetree itself */
+ void * __init early_init_dt_alloc_memory_arch(u64 size, u64 align)
+@@ -39,7 +40,9 @@ int __init setup_machine_fdt(void *dt)
+ 	struct boot_param_header *devtree = dt;
+ 	unsigned long dt_root;
+ 	char *model, *compat;
++	void *clk;
+ 	char manufacturer[16];
++	unsigned long len;
+ 
+ 	/* check device tree validity */
+ 	if (be32_to_cpu(devtree->magic) != OF_DT_HEADER)
+@@ -65,5 +68,15 @@ int __init setup_machine_fdt(void *dt)
+ 	/* Retrieve various information from the /chosen node */
+ 	of_scan_flat_dt(early_init_dt_scan_chosen, boot_command_line);
+ 
++	/* Initialize {size,address}-cells info */
++	of_scan_flat_dt(early_init_dt_scan_root, NULL);
 +
-+#ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
++	/* Setup memory, calling early_init_dt_add_memory_arch */
++	of_scan_flat_dt(early_init_dt_scan_memory, NULL);
 +
-+long arc_copy_from_user_noinline(void *to, const void __user * from,
-+		unsigned long n)
-+{
-+	return __arc_copy_from_user(to, from, n);
-+}
-+EXPORT_SYMBOL(arc_copy_from_user_noinline);
++	clk = of_get_flat_dt_prop(dt_root, "clock-frequency", &len);
++	if (clk)
++		arc_set_core_freq(of_read_ulong(clk, len/4));
 +
-+long arc_copy_to_user_noinline(void __user *to, const void *from,
-+		unsigned long n)
-+{
-+	return __arc_copy_to_user(to, from, n);
-+}
-+EXPORT_SYMBOL(arc_copy_to_user_noinline);
-+
-+unsigned long arc_clear_user_noinline(void __user *to,
-+		unsigned long n)
-+{
-+	return __arc_clear_user(to, n);
-+}
-+EXPORT_SYMBOL(arc_clear_user_noinline);
-+
-+long arc_strncpy_from_user_noinline (char *dst, const char __user *src,
-+		long count)
-+{
-+	return __arc_strncpy_from_user(dst, src, count);
-+}
-+EXPORT_SYMBOL(arc_strncpy_from_user_noinline);
-+
-+long arc_strnlen_user_noinline(const char __user *src, long n)
-+{
-+	return __arc_strnlen_user(src, n);
-+}
-+EXPORT_SYMBOL(arc_strnlen_user_noinline);
-+#endif
+ 	return 0;
+ }
+diff --git a/arch/arc/mm/init.c b/arch/arc/mm/init.c
+index 682cf57..caf797d 100644
+--- a/arch/arc/mm/init.c
++++ b/arch/arc/mm/init.c
+@@ -25,7 +25,7 @@ char empty_zero_page[PAGE_SIZE] __aligned(PAGE_SIZE);
+ EXPORT_SYMBOL(empty_zero_page);
+ 
+ /* Default tot mem from .config */
+-static unsigned long arc_mem_sz = CONFIG_ARC_PLAT_SDRAM_SIZE;
++static unsigned long arc_mem_sz = 0x20000000;  /* some default */
+ 
+ /* User can over-ride above with "mem=nnn[KkMm]" in cmdline */
+ static int __init setup_mem_sz(char *str)
+@@ -41,7 +41,8 @@ early_param("mem", setup_mem_sz);
+ 
+ void __init early_init_dt_add_memory_arch(u64 base, u64 size)
+ {
+-	pr_err("%s(%llx, %llx)\n", __func__, base, size);
++	arc_mem_sz = size & PAGE_MASK;
++	pr_info("Memory size set via devicetree %ldM\n", TO_MB(arc_mem_sz));
+ }
+ 
+ /*
+@@ -62,7 +63,9 @@ void __init setup_arch_memory(void)
+ 
+ 	/*
+ 	 * We do it here, so that memory is correctly instantiated
+-	 * even if "mem=xxx" cmline over-ride is not given
++	 * even if "mem=xxx" cmline over-ride is given and/or
++	 * DT has memory node. Each causes an update to @arc_mem_sz
++	 * and we finally add memory one here
+ 	 */
+ 	memblock_add(CONFIG_LINUX_LINK_BASE, arc_mem_sz);
+ 
 -- 
 1.7.4.1
