@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us02smtp2.synopsys.com ([198.182.60.77]:42508 "EHLO
-	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753423Ab3AXKyw (ORCPT
+Received: from us02smtp1.synopsys.com ([198.182.60.75]:47266 "EHLO
+	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753559Ab3AXKyw (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jan 2013 05:54:52 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v3 33/71] ARC: [DeviceTree] Convert some Kconfig items to runtime values
-Date: Thu, 24 Jan 2013 16:20:29 +0530
-Message-ID: <1359024639-21915-16-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v3 21/71] ARC: [Review] Preparing to fix incorrect syscall restarts due to signals
+Date: Thu, 24 Jan 2013 16:20:23 +0530
+Message-ID: <1359024639-21915-10-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1359024639-21915-1-git-send-email-vgupta@synopsys.com>
 References: <1359024639-21915-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
@@ -14,176 +14,159 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Grant Likely <grant.likely@secretlab.ca>
-Message-ID: <20130124105029.MUDq5TZnNkMGb-wVOeNvxBZmKhg288v2c67ufVd62XU@z>
+Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Al Viro <viro@ZenIV.linux.org.uk>
+Message-ID: <20130124105023.b7VNl3sX92EO_fhbjfsm6Q3ukK6tvrixtl5mS8Z0boY@z>
 
-* mem size now runtime configured (prev CONFIG_ARC_PLAT_SDRAM_SIZE)
-* core cpu clk runtime configured (prev CONFIG_ARC_PLAT_CLK)
+To avoid multiple syscall restarts (multiple signals) or no restart at
+all (sigreturn), we need just an extra bit of state "literally 1 bit" in
+struct pt_regs. orig_r8 is the best place to do this, however given the
+way it is encoded currently, we can't add anything simplistically.
+
+Current orig_r8:
+* syscalls   -> 1 to NR_SYSCALLS
+* Exceptions -> NR_SYSCALLS + 1
+* Break-point-> NR_SYSCALLS + 2
+
+In new scheme it is a bit-field
+* lower short word contains the  exact event type (and a new bit to represent
+   restart semantics : if syscall was already / can't be restarted)
+* upper short word optionally containing the syscall num - needed by
+  likes of tracehooks etc
+
+This patch only changes how orig_r8 is organised and nothing should
+change behaviourily.
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Grant Likely <grant.likely@secretlab.ca>
+Cc: Al Viro <viro@ZenIV.linux.org.uk>
 ---
- arch/arc/Kconfig                |   12 ------------
- arch/arc/boot/dts/skeleton.dtsi |    6 +++++-
- arch/arc/include/asm/clk.h      |    2 ++
- arch/arc/kernel/clk.c           |   12 +++++++++++-
- arch/arc/kernel/devtree.c       |   13 +++++++++++++
- arch/arc/mm/init.c              |    9 ++++++---
- 6 files changed, 37 insertions(+), 17 deletions(-)
+ arch/arc/include/asm/entry.h  |   29 +++++++++++++++++------------
+ arch/arc/include/asm/ptrace.h |   20 ++++++++++++++++----
+ arch/arc/kernel/entry.S       |    4 ++--
+ 3 files changed, 35 insertions(+), 18 deletions(-)
 
-diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index 7666857..7db9785 100644
---- a/arch/arc/Kconfig
-+++ b/arch/arc/Kconfig
-@@ -249,10 +249,6 @@ source "arch/arc/plat-arcfpga/Kconfig"
+diff --git a/arch/arc/include/asm/entry.h b/arch/arc/include/asm/entry.h
+index 6b42bf5..9eada5b 100644
+--- a/arch/arc/include/asm/entry.h
++++ b/arch/arc/include/asm/entry.h
+@@ -343,18 +343,12 @@
+  *-------------------------------------------------------------*/
+ .macro SAVE_ALL_EXCEPTION   marker
  
- #New platform adds here
++	st      \marker, [sp, 8]
++	st      r0, [sp, 4]    /* orig_r0, needed only for sys calls */
++
+ 	/* Restore r9 used to code the early prologue */
+ 	EXCPN_PROLOG_RESTORE_REG  r9
  
--config ARC_PLAT_CLK
--	int "Clk speed in Hz"
--	default "80000000"
+-	/* Save the complete regfile now */
 -
- config LINUX_LINK_BASE
- 	hex "Linux Link Address"
- 	default "0x80000000"
-@@ -266,14 +262,6 @@ config LINUX_LINK_BASE
- 	  Linux needs to be scooted a bit.
- 	  If you don't know what the above means, leave this setting alone.
+-	/* orig_r8 marker:
+-	 * syscalls   -> 1 to NR_SYSCALLS
+-	 * Exceptions -> NR_SYSCALLS + 1
+-	 * Break-point-> NR_SYSCALLS + 2
+-	 */
+-	st      \marker, [sp, 8]
+-	st      r0, [sp, 4]    /* orig_r0, needed only for sys calls */
+ 	SAVE_CALLER_SAVED
+ 	st.a    r26, [sp, -4]   /* gp */
+ 	st.a    fp, [sp, -4]
+@@ -384,14 +378,25 @@
+  * Save scratch regs for exceptions
+  *-------------------------------------------------------------*/
+ .macro SAVE_ALL_SYS
+-	SAVE_ALL_EXCEPTION  (NR_syscalls + 1)
++	SAVE_ALL_EXCEPTION  orig_r8_IS_EXCPN
+ .endm
  
--config ARC_PLAT_SDRAM_SIZE
--	hex "SD RAM Size"
--	default "0x10000000"
--	help
--	  Implies the amount of SDRAM/DRAM Linux is going to claim/own.
--	  The actual memory itself could be larger than this number. But for
--	  all software purposes, this is the amt of memory.
--
- endmenu # "Platform Board Configuration"
+ /*--------------------------------------------------------------
+  * Save scratch regs for sys calls
+  *-------------------------------------------------------------*/
+ .macro SAVE_ALL_TRAP
+-	SAVE_ALL_EXCEPTION  r8
++	/*
++	 * Setup pt_regs->orig_r8.
++	 * Encode syscall number (r8) in upper short word of event type (r9)
++	 * N.B. #1: This is already endian safe (see ptrace.h)
++	 *      #2: Only r9 can be used as scratch as it is already clobbered
++	 *          and it's contents are no longer needed by the latter part
++	 *          of exception prologue
++	 */
++	lsl  r9, r8, 16
++	or   r9, r9, orig_r8_IS_SCALL
++
++	SAVE_ALL_EXCEPTION  r9
+ .endm
  
- config ARC_STACK_NONEXEC
-diff --git a/arch/arc/boot/dts/skeleton.dtsi b/arch/arc/boot/dts/skeleton.dtsi
-index 9b357d8..eb8b773 100644
---- a/arch/arc/boot/dts/skeleton.dtsi
-+++ b/arch/arc/boot/dts/skeleton.dtsi
-@@ -13,9 +13,13 @@
+ /*--------------------------------------------------------------
+@@ -442,7 +447,7 @@
+ 	ld  r9, [@int1_saved_reg]
  
- / {
- 	compatible = "snps,arc";
-+	clock-frequency = <80000000>;	/* 80 MHZ */
- 	#address-cells = <1>;
- 	#size-cells = <1>;
- 	chosen { };
- 	aliases { };
--	memory { device_type = "memory"; reg = <0 0>; };
-+	memory {
-+		device_type = "memory";
-+		reg = <0x00000000 0x10000000>;	/* 256M */
-+	};
+ 	/* now we are ready to save the remaining context :) */
+-	st     -1, [sp, 8]    /* orig_r8, -1 for interuppt level one */
++	st      orig_r8_IS_IRQ1, [sp, 8]    /* Event Type */
+ 	st      0, [sp, 4]    /* orig_r0 , N/A for IRQ */
+ 	SAVE_CALLER_SAVED
+ 	st.a    r26, [sp, -4]   /* gp */
+diff --git a/arch/arc/include/asm/ptrace.h b/arch/arc/include/asm/ptrace.h
+index 72754a2..1711d56 100644
+--- a/arch/arc/include/asm/ptrace.h
++++ b/arch/arc/include/asm/ptrace.h
+@@ -81,7 +81,13 @@ struct pt_regs {
+ 	long r0;
+ 	long sp;	/* user/kernel sp depending on where we came from  */
+ 	long orig_r0;
+-	long orig_r8;	/*to distinguish bet excp, sys call, int1 or int2 */
++	/*to distinguish bet excp, syscall, irq */
++#ifdef CONFIG_CPU_BIG_ENDIAN
++	/* so that assembly code is same for LE/BE */
++	unsigned long orig_r8:16, event:16;
++#else
++	unsigned long event:16, orig_r8:16;
++#endif
  };
-diff --git a/arch/arc/include/asm/clk.h b/arch/arc/include/asm/clk.h
-index 6195643..bf9d29f 100644
---- a/arch/arc/include/asm/clk.h
-+++ b/arch/arc/include/asm/clk.h
-@@ -17,4 +17,6 @@ static inline unsigned long arc_get_core_freq(void)
- 	return core_freq;
- }
  
-+extern int arc_set_core_freq(unsigned long);
+ /* Callee saved registers - need to be saved only when you are scheduled out */
+@@ -126,9 +132,8 @@ struct user_regs_struct {
+ 	sp;			\
+ })
+ 
+-/* return 1 if in syscall, 0 if Intr or Exception */
+-#define in_syscall(regs) (((regs->orig_r8) >= 0 && \
+-			   (regs->orig_r8 <= NR_syscalls)) ? 1 : 0)
++#define in_syscall(regs)    (regs->event & orig_r8_IS_SCALL)
++#define in_brkpt_trap(regs) (regs->event & orig_r8_IS_BRKPT)
+ 
+ #define current_pt_regs()					\
+ ({								\
+@@ -140,6 +145,13 @@ struct user_regs_struct {
+ 
+ #endif /* !__ASSEMBLY__ */
+ 
++#define orig_r8_IS_SCALL		0x0001
++#define orig_r8_IS_SCALL_RESTARTED	0x0002
++#define orig_r8_IS_BRKPT		0x0004
++#define orig_r8_IS_EXCPN		0x0004
++#define orig_r8_IS_IRQ1			0x0010
++#define orig_r8_IS_IRQ2			0x0020
 +
- #endif
-diff --git a/arch/arc/kernel/clk.c b/arch/arc/kernel/clk.c
-index 64925db..66ce0dc 100644
---- a/arch/arc/kernel/clk.c
-+++ b/arch/arc/kernel/clk.c
-@@ -8,4 +8,14 @@
+ #endif /* __KERNEL__ */
  
- #include <asm/clk.h>
+ #endif /* __ASM_PTRACE_H */
+diff --git a/arch/arc/kernel/entry.S b/arch/arc/kernel/entry.S
+index d625b77..ce8670d 100644
+--- a/arch/arc/kernel/entry.S
++++ b/arch/arc/kernel/entry.S
+@@ -350,8 +350,8 @@ ARC_EXIT EV_Extension
  
--unsigned long core_freq = CONFIG_ARC_PLAT_CLK;
-+unsigned long core_freq = 800000000;
-+
-+/*
-+ * As of now we default to device-tree provided clock
-+ * In future we can determine this in early boot
-+ */
-+int arc_set_core_freq(unsigned long freq)
-+{
-+	core_freq = freq;
-+	return 0;
-+}
-diff --git a/arch/arc/kernel/devtree.c b/arch/arc/kernel/devtree.c
-index 229f78e..d2a41be 100644
---- a/arch/arc/kernel/devtree.c
-+++ b/arch/arc/kernel/devtree.c
-@@ -20,6 +20,7 @@
- #include <linux/of_irq.h>
- #include <linux/of_platform.h>
- #include <asm/prom.h>
-+#include <asm/clk.h>
+ trap_with_param:
  
- /* called from unflatten_device_tree() to bootstrap devicetree itself */
- void * __init early_init_dt_alloc_memory_arch(u64 size, u64 align)
-@@ -39,7 +40,9 @@ int __init setup_machine_fdt(void *dt)
- 	struct boot_param_header *devtree = dt;
- 	unsigned long dt_root;
- 	char *model, *compat;
-+	void *clk;
- 	char manufacturer[16];
-+	unsigned long len;
+-	;make sure orig_r8 is a positive value
+-	st  NR_syscalls + 2, [sp, PT_orig_r8]
++	; stop_pc info by gdb needs this info
++	st  orig_r8_IS_BRKPT, [sp, PT_orig_r8]
  
- 	/* check device tree validity */
- 	if (be32_to_cpu(devtree->magic) != OF_DT_HEADER)
-@@ -65,5 +68,15 @@ int __init setup_machine_fdt(void *dt)
- 	/* Retrieve various information from the /chosen node */
- 	of_scan_flat_dt(early_init_dt_scan_chosen, boot_command_line);
- 
-+	/* Initialize {size,address}-cells info */
-+	of_scan_flat_dt(early_init_dt_scan_root, NULL);
-+
-+	/* Setup memory, calling early_init_dt_add_memory_arch */
-+	of_scan_flat_dt(early_init_dt_scan_memory, NULL);
-+
-+	clk = of_get_flat_dt_prop(dt_root, "clock-frequency", &len);
-+	if (clk)
-+		arc_set_core_freq(of_read_ulong(clk, len/4));
-+
- 	return 0;
- }
-diff --git a/arch/arc/mm/init.c b/arch/arc/mm/init.c
-index 682cf57..caf797d 100644
---- a/arch/arc/mm/init.c
-+++ b/arch/arc/mm/init.c
-@@ -25,7 +25,7 @@ char empty_zero_page[PAGE_SIZE] __aligned(PAGE_SIZE);
- EXPORT_SYMBOL(empty_zero_page);
- 
- /* Default tot mem from .config */
--static unsigned long arc_mem_sz = CONFIG_ARC_PLAT_SDRAM_SIZE;
-+static unsigned long arc_mem_sz = 0x20000000;  /* some default */
- 
- /* User can over-ride above with "mem=nnn[KkMm]" in cmdline */
- static int __init setup_mem_sz(char *str)
-@@ -41,7 +41,8 @@ early_param("mem", setup_mem_sz);
- 
- void __init early_init_dt_add_memory_arch(u64 base, u64 size)
- {
--	pr_err("%s(%llx, %llx)\n", __func__, base, size);
-+	arc_mem_sz = size & PAGE_MASK;
-+	pr_info("Memory size set via devicetree %ldM\n", TO_MB(arc_mem_sz));
- }
- 
- /*
-@@ -62,7 +63,9 @@ void __init setup_arch_memory(void)
- 
- 	/*
- 	 * We do it here, so that memory is correctly instantiated
--	 * even if "mem=xxx" cmline over-ride is not given
-+	 * even if "mem=xxx" cmline over-ride is given and/or
-+	 * DT has memory node. Each causes an update to @arc_mem_sz
-+	 * and we finally add memory one here
- 	 */
- 	memblock_add(CONFIG_LINUX_LINK_BASE, arc_mem_sz);
- 
+ 	mov r0, r12
+ 	lr  r1, [efa]
 -- 
 1.7.4.1
 
