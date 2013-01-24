@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us02smtp2.synopsys.com ([198.182.60.77]:43000 "EHLO
-	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753780Ab3AXLOU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jan 2013 06:14:20 -0500
+Received: from hermes.synopsys.com ([198.182.44.81]:34203 "EHLO
+	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754377Ab3AXLMx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jan 2013 06:12:53 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v3 67/71] ARC: [Review] Multi-platform image #7: SMP common code to use callbacks
-Date: Thu, 24 Jan 2013 16:36:27 +0530
-Message-ID: <1359025589-22277-44-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v3 55/71] ARC: perf support (software counters only)
+Date: Thu, 24 Jan 2013 16:36:19 +0530
+Message-ID: <1359025589-22277-36-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1359025589-22277-1-git-send-email-vgupta@synopsys.com>
 References: <1359025589-22277-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
@@ -15,133 +15,58 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20130124110627.ptJcis8QxGq7r-dbVSQ6H8dB6RgIIOVeGb0VZ3b69yA@z>
-
-This again is for switch from singleton platform SMP API to
-multi-platform paradigm
-
-Platform code is not yet setup to populate the callbacks, that happens
-in next commit
+Message-ID: <20130124110619.DSRZ7XelXbQb37Nb_PdlGdIvJzutvJEfi-muK5OHlYo@z>
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/arc/include/asm/smp.h |   36 +++++++++++++++---------------------
- arch/arc/kernel/smp.c      |   16 +++++++++++++---
- 2 files changed, 28 insertions(+), 24 deletions(-)
+ arch/arc/Kconfig                  |    3 +++
+ arch/arc/include/asm/perf_event.h |   13 +++++++++++++
+ 2 files changed, 16 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arc/include/asm/perf_event.h
 
-diff --git a/arch/arc/include/asm/smp.h b/arch/arc/include/asm/smp.h
-index 0cff3a5..c4fb211 100644
---- a/arch/arc/include/asm/smp.h
-+++ b/arch/arc/include/asm/smp.h
-@@ -31,6 +31,7 @@ extern void arch_send_call_function_ipi_mask(const struct cpumask *mask);
-  */
- extern void __init smp_init_cpus(void);
- extern void __init first_lines_of_secondary(void);
-+extern const char *arc_platform_smp_cpuinfo(void);
+diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+index 69a939af..03183f6 100644
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@ -25,16 +25,19 @@ config ARC
+ 	select HAVE_ARCH_KGDB
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_GENERIC_HARDIRQS
++	select HAVE_IRQ_WORK
+ 	select HAVE_KPROBES
+ 	select HAVE_KRETPROBES
+ 	select HAVE_MEMBLOCK
+ 	select HAVE_MOD_ARCH_SPECIFIC if ARC_DW2_UNWIND
+ 	select HAVE_OPROFILE
++	select HAVE_PERF_EVENTS
+ 	select IRQ_DOMAIN
+ 	select MODULES_USE_ELF_RELA
+ 	select NO_BOOTMEM
+ 	select OF
+ 	select OF_EARLY_FLATTREE
++	select PERF_USE_VMALLOC
  
- /*
-  * API expected BY platform smp code (FROM arch smp code)
-@@ -41,29 +42,22 @@ extern void __init first_lines_of_secondary(void);
- extern int smp_ipi_irq_setup(int cpu, int irq);
- 
- /*
-- * APIs expected FROM platform smp code
-- *
-- * arc_platform_smp_cpuinfo:
-- *	returns a string containing info for /proc/cpuinfo
-- *
-- * arc_platform_smp_wait_to_boot:
-- *	Called from early bootup code for non-Master CPUs to "park" them
-+ * struct plat_smp_ops	- SMP callbacks provided by platform to ARC SMP
-  *
-- * arc_platform_smp_wakeup_cpu:
-- *	Called from __cpu_up (Master CPU) to kick start another one
-- *
-- * arc_platform_ipi_send:
-- *	Takes @cpumask to which IPI(s) would be sent.
-- *	The actual msg-id/buffer is manager in arch-common code
-- *
-- * arc_platform_ipi_clear:
-- *	Takes @cpu which got IPI at @irq to do any IPI clearing
-+ * @info:		SoC SMP specific info for /proc/cpuinfo etc
-+ * @cpu_kick:		For Master to kickstart a cpu (optionally at a PC)
-+ * @ipi_send:		To send IPI to a @cpumask
-+ * @ips_clear:		To clear IPI received by @cpu at @irq
-  */
--extern const char *arc_platform_smp_cpuinfo(void);
--extern void arc_platform_smp_wait_to_boot(int cpu);
--extern void arc_platform_smp_wakeup_cpu(int cpu, unsigned long pc);
--extern void arc_platform_ipi_send(const struct cpumask *callmap);
--extern void arc_platform_ipi_clear(int cpu, int irq);
-+struct plat_smp_ops {
-+	const char 	*info;
-+	void		(*cpu_kick)(int cpu, unsigned long pc);
-+	void		(*ipi_send)(void *callmap);
-+	void		(*ipi_clear)(int cpu, int irq);
-+};
+ config SCHED_OMIT_FRAME_POINTER
+ 	def_bool y
+diff --git a/arch/arc/include/asm/perf_event.h b/arch/arc/include/asm/perf_event.h
+new file mode 100644
+index 0000000..115ad96
+--- /dev/null
++++ b/arch/arc/include/asm/perf_event.h
+@@ -0,0 +1,13 @@
++/*
++ * Copyright (C) 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ */
 +
-+/* TBD: stop exporting it for direct population by platform */
-+extern struct plat_smp_ops  plat_smp_ops;
- 
- #endif  /* CONFIG_SMP */
- 
-diff --git a/arch/arc/kernel/smp.c b/arch/arc/kernel/smp.c
-index 8ee010f..3af3e06 100644
---- a/arch/arc/kernel/smp.c
-+++ b/arch/arc/kernel/smp.c
-@@ -37,6 +37,8 @@
- arch_spinlock_t smp_atomic_ops_lock = __ARCH_SPIN_LOCK_UNLOCKED;
- arch_spinlock_t smp_bitops_lock = __ARCH_SPIN_LOCK_UNLOCKED;
- 
-+struct plat_smp_ops  plat_smp_ops;
++#ifndef __ASM_PERF_EVENT_H
++#define __ASM_PERF_EVENT_H
 +
- /* XXX: per cpu ? Only needed once in early seconday boot */
- struct task_struct *secondary_idle_tsk;
- 
-@@ -105,6 +107,11 @@ void __attribute__((weak)) arc_platform_smp_wait_to_boot(int cpu)
- 	"	b 1b	\n");
- }
- 
-+const char *arc_platform_smp_cpuinfo(void)
-+{
-+	return plat_smp_ops.info;
-+}
-+
- /*
-  * The very first "C" code executed by secondary
-  * Called from asm stub in head.S
-@@ -156,7 +163,8 @@ int __cpuinit __cpu_up(unsigned int cpu, struct task_struct *idle)
- 	pr_info("Idle Task [%d] %p", cpu, idle);
- 	pr_info("Trying to bring up CPU%u ...\n", cpu);
- 
--	arc_platform_smp_wakeup_cpu(cpu,
-+	if (plat_smp_ops.cpu_kick)
-+		plat_smp_ops.cpu_kick(cpu,
- 				(unsigned long)first_lines_of_secondary);
- 
- 	/* wait for 1 sec after kicking the secondary */
-@@ -225,7 +233,8 @@ static void ipi_send_msg(const struct cpumask *callmap, enum ipi_msg_type msg)
- 	}
- 
- 	/* Call the platform specific cross-CPU call function  */
--	arc_platform_ipi_send(callmap);
-+	if (plat_smp_ops.ipi_send)
-+		plat_smp_ops.ipi_send((void *)callmap);
- 
- 	local_irq_restore(flags);
- }
-@@ -299,7 +308,8 @@ irqreturn_t do_IPI(int irq, void *dev_id)
- 	struct ipi_data *ipi = &per_cpu(ipi_data, cpu);
- 	unsigned long ops;
- 
--	arc_platform_ipi_clear(cpu, irq);
-+	if (plat_smp_ops.ipi_clear)
-+		plat_smp_ops.ipi_clear(cpu, irq);
- 
- 	/*
- 	 * XXX: is this loop really needed
++#endif /* __ASM_PERF_EVENT_H */
 -- 
 1.7.4.1
 
