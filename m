@@ -1,68 +1,78 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH v3 00/44] Meta Linux Kernel Port
-Date: Sat, 26 Jan 2013 21:53:38 +0000
-Message-ID: <20130126215338.GA25964@balrog>
-References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
- <5102BB38.3050207@imgtec.com>
- <201301260025.10020.arnd@arndb.de>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: [PATCH v2 0/9] Provide dma_mmap_coherent() and dma_get_sgtable()
+Date: Sun, 27 Jan 2013 11:33:19 +0100
+Message-ID: <1359282808-31398-1-git-send-email-geert@linux-m68k.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f178.google.com ([209.85.212.178]:34372 "EHLO
-	mail-wi0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754341Ab3AZVxp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 26 Jan 2013 16:53:45 -0500
-Received: by mail-wi0-f178.google.com with SMTP id hn3so503179wib.11
-        for <linux-arch@vger.kernel.org>; Sat, 26 Jan 2013 13:53:44 -0800 (PST)
-Content-Disposition: inline
-In-Reply-To: <201301260025.10020.arnd@arndb.de>
+Received: from gerard.telenet-ops.be ([195.130.132.48]:59661 "EHLO
+	gerard.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756411Ab3A0Kdd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 27 Jan 2013 05:33:33 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: James Hogan <james.hogan@imgtec.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Stephen Rothwell <sfr@canb.auug.org.au>
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
 
-Hi Arnd,
+dma_common_mmap() and dma_common_get_sgtable() are defined in
+drivers/base/dma-mapping.c, and always compiled if CONFIG_HAS_DMA=3Dy.
 
-On Sat, Jan 26, 2013 at 12:25:09AM +0000, Arnd Bergmann wrote:
-> On Friday 25 January 2013, James Hogan wrote:
-> > Review seems to have gone quiet. I'm fairly happy with this core
-> > patchset in it's currently form (only trivial alterations required since
-> > the v3 patches, e.g. some review comments and rebasing on linus/master),
-> > and would like to get it into the v3.9 merge window. What's the best way
-> > forward? I presume I need to get acks on each individual patch?
-> 
-> 
-> I've just looked through the entire series once more and could not find
-> any show-stoppers. I consider this ready for 3.9, and I'm also quite happy
-> with Vineet's ARC port, although I think he is still integrating some
-> feedback comments.
+However, their forward declarations and the inline functions defined on=
+ top
+of them (dma_mmap_attrs(), dma_mmap_coherent(), dma_mmap_writecombine()=
+,
+dma_get_sgtable_attrs()), dma_get_sgtable()) are in
+<asm-generic/dma-mapping-common.h>, which is not included by all
+architectures supporting CONFIG_HAS_DMA=3Dy.  There exist no alternativ=
+e
+implementations.
 
-Thanks for taking another look over it and for all the guidance.
+Hence for e.g. m68k allmodconfig, I get:
 
-> I'd suggest that you both ask Stephen to add the trees to linux-next
-> now (I thought you had done that already, but I don't see them there
-> at the moment).
+drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =E2=80=98vb=
+2_dc_mmap=E2=80=99:
+drivers/media/v4l2-core/videobuf2-dma-contig.c:204: error: implicit dec=
+laration of function =E2=80=98dma_mmap_coherent=E2=80=99
+drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =E2=80=98vb=
+2_dc_get_base_sgt=E2=80=99:
+drivers/media/v4l2-core/videobuf2-dma-contig.c:387: error: implicit dec=
+laration of function =E2=80=98dma_get_sgtable=E2=80=99
 
-Okay. Yeh, I was holding off expecting to need more acks.
+This series adds dma_mmap_coherent() and dma_get_sgtable() for all
+architectures that set CONFIG_HAS_DMA=3Dy, but don't use dma_map_ops.
 
-> You don't need Acked-by statements on every single patch, but having
-> more of those is certainly benefitial. When it comes to the merge
-> window, please send a pull request to Linus, and keep me on Cc,
-> so I can weigh in with an additional Ack to the series.
+  - On architectures for which I received an ack (avr32, blackfin, cris=
+,
+    and m68k), the patches are unchanged compared to v1: dma_mmap_coher=
+ent()
+    and dma_get_sgtable() are implement as inline stubs using
+    dma_common_mmap() and dma_common_get_sgtable().
 
-Okay, I'll try and get some more acks on specific patches.
+  - On architectures where the current API cannot be implemented (paris=
+c),
+    dma_mmap_coherent() and dma_get_sgtable() are dummy implementations=
+ that
+    just return -EINVAL, until the API has been finalized.
 
-> Until then, maybe you can have another look at each other's architecture
-> trees (ARC and Meta). Since you are in exactly the same situation with
-> upstream integration now, you are probably the best people to review
-> the code, and you providing ACKs and constructive feedback to the other
-> tree will helps others see that you are up to the job as an arch
-> maintainer. I have also given a few comments to one of you that
-> may actually apply to the other one just as well, but I can't remember
-> now what I discussed with whom ;-)
+  - On architectures for which I did not receive an ack (c6x, frv, mn10=
+300,
+    and xtensa), dma_mmap_coherent() and dma_get_sgtable() are dummy
+    implementations that just return -EINVAL, too.
 
-Good idea. I've been working on a few changes already based on ARC
-feedback which also applies to Meta :-)
+I'll add this to the m68k for-next branch, so hopefully we can get an
+unbroken build in 3.8.
 
-Cheers
-James
+Gr{oetje,eeting}s,
+
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
+m68k.org
+
+In personal conversations with technical people, I call myself a hacker=
+=2E But
+when I'm talking to journalists I just say "programmer" or something li=
+ke that.
+							    -- Linus Torvalds
