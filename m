@@ -1,80 +1,35 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH v2 3/9] c6x: Provide dummy dma_mmap_coherent() and dma_get_sgtable()
-Date: Sun, 27 Jan 2013 11:33:22 +0100
-Message-ID: <1359282808-31398-4-git-send-email-geert@linux-m68k.org>
+Subject: Re: [PATCH v2 0/9] Provide dma_mmap_coherent() and dma_get_sgtable()
+Date: Sun, 27 Jan 2013 11:43:59 +0100
+Message-ID: <CAMuHMdU=4+AZDTHABzwkEEeDQNtMZfWgb23Tf1f1befofGMcQQ@mail.gmail.com>
 References: <1359282808-31398-1-git-send-email-geert@linux-m68k.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gerard.telenet-ops.be ([195.130.132.48]:59694 "EHLO
-	gerard.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756412Ab3A0Kdd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 27 Jan 2013 05:33:33 -0500
+Received: from mail-vc0-f177.google.com ([209.85.220.177]:65203 "EHLO
+	mail-vc0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754292Ab3A0KoA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 27 Jan 2013 05:44:00 -0500
 In-Reply-To: <1359282808-31398-1-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Marek Szyprowski <m.szyprowski@samsung.com>, linux-c6x-dev@linux-c6x.org
+To: linux-arch@vger.kernel.org, Marek Szyprowski <m.szyprowski@samsung.com>
+Cc: linux-kernel@vger.kernel.org
 
-c6x/allmodconfig (assumed):
+On Sun, Jan 27, 2013 at 11:33 AM, Geert Uytterhoeven
+<geert@linux-m68k.org> wrote:
+> I'll add this to the m68k for-next branch, so hopefully we can get an
+> unbroken build in 3.8.
 
-drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =E2=80=98vb=
-2_dc_mmap=E2=80=99:
-drivers/media/v4l2-core/videobuf2-dma-contig.c:204: error: implicit dec=
-laration of function =E2=80=98dma_mmap_coherent=E2=80=99
-drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =E2=80=98vb=
-2_dc_get_base_sgt=E2=80=99:
-drivers/media/v4l2-core/videobuf2-dma-contig.c:387: error: implicit dec=
-laration of function =E2=80=98dma_get_sgtable=E2=80=99
+Sorry, I meant "for-linus", as it's destined for 3.8, not 3.9.
 
-=46or architectures using dma_map_ops, dma_mmap_coherent() and
-dma_get_sgtable() are provided in <asm-generic/dma-mapping-common.h>.
+Gr{oetje,eeting}s,
 
-C6x does not use dma_map_ops, hence it should implement them itself.
-=46or now, use dummy implementations that just return -EINVAL, until th=
-e API
-has been finalized.
+                        Geert
 
-Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: linux-c6x-dev@linux-c6x.org
----
-v2: Dummy implementations that just return -EINVAL
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-Not compile-tested due to lack of cross-compiler
----
- arch/c6x/include/asm/dma-mapping.h |   15 +++++++++++++++
- 1 files changed, 15 insertions(+), 0 deletions(-)
-
-diff --git a/arch/c6x/include/asm/dma-mapping.h b/arch/c6x/include/asm/=
-dma-mapping.h
-index 3c69406..88bd0d8 100644
---- a/arch/c6x/include/asm/dma-mapping.h
-+++ b/arch/c6x/include/asm/dma-mapping.h
-@@ -89,4 +89,19 @@ extern void dma_free_coherent(struct device *, size_=
-t, void *, dma_addr_t);
- #define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent((d), (s),=
- (h), (f))
- #define dma_free_noncoherent(d, s, v, h)  dma_free_coherent((d), (s), =
-(v), (h))
-=20
-+/* Not supported for now */
-+static inline int dma_mmap_coherent(struct device *dev,
-+				    struct vm_area_struct *vma, void *cpu_addr,
-+				    dma_addr_t dma_addr, size_t size)
-+{
-+	return -EINVAL;
-+}
-+
-+static inline int dma_get_sgtable(struct device *dev, struct sg_table =
-*sgt,
-+				  void *cpu_addr, dma_addr_t dma_addr,
-+				  size_t size)
-+{
-+	return -EINVAL;
-+}
-+
- #endif	/* _ASM_C6X_DMA_MAPPING_H */
---=20
-1.7.0.4
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
