@@ -1,19 +1,23 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH v2 7/9] mn10300: Provide dummy dma_mmap_coherent() and dma_get_sgtable()
-Date: Sun, 27 Jan 2013 11:33:26 +0100
-Message-ID: <1359282808-31398-8-git-send-email-geert@linux-m68k.org>
+Subject: [PATCH v2 6/9] m68k: Provide dma_mmap_coherent() and dma_get_sgtable()
+Date: Sun, 27 Jan 2013 11:33:25 +0100
+Message-ID: <1359282808-31398-7-git-send-email-geert@linux-m68k.org>
 References: <1359282808-31398-1-git-send-email-geert@linux-m68k.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from gerard.telenet-ops.be ([195.130.132.48]:59700 "EHLO
+	gerard.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756426Ab3A0Kdd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 27 Jan 2013 05:33:33 -0500
 In-Reply-To: <1359282808-31398-1-git-send-email-geert@linux-m68k.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Marek Szyprowski <m.szyprowski@samsung.com>, linux-am33-list@redhat.com
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Marek Szyprowski <m.szyprowski@samsung.com>, linux-m68k@lists.linux-m68k.org
 
-mn10300/allmodconfig:
+m68k/allmodconfig:
 
 drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =E2=80=98vb=
 2_dc_mmap=E2=80=99:
@@ -27,46 +31,42 @@ laration of function =E2=80=98dma_get_sgtable=E2=80=99
 =46or architectures using dma_map_ops, dma_mmap_coherent() and
 dma_get_sgtable() are provided in <asm-generic/dma-mapping-common.h>.
 
-Mn10300 does not use dma_map_ops, hence it should implement them itself=
-=2E
-=46or now, use dummy implementations that just return -EINVAL, until th=
-e API
-has been finalized.
+M68k does not use dma_map_ops, hence it should implement them as inline
+stubs using dma_common_mmap() and dma_common_get_sgtable().
 
 Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
 Cc: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: linux-am33-list@redhat.com
+Cc: linux-m68k@lists.linux-m68k.org
 ---
-v2: Dummy implementations that just return -EINVAL
+v2: No changes
 ---
- arch/mn10300/include/asm/dma-mapping.h |   15 +++++++++++++++
- 1 files changed, 15 insertions(+), 0 deletions(-)
+ arch/m68k/include/asm/dma-mapping.h |   10 ++++++++++
+ 1 files changed, 10 insertions(+), 0 deletions(-)
 
-diff --git a/arch/mn10300/include/asm/dma-mapping.h b/arch/mn10300/incl=
-ude/asm/dma-mapping.h
-index c1be439..a18abfc 100644
---- a/arch/mn10300/include/asm/dma-mapping.h
-+++ b/arch/mn10300/include/asm/dma-mapping.h
-@@ -168,4 +168,19 @@ void dma_cache_sync(void *vaddr, size_t size,
- 	mn10300_dcache_flush_inv();
+diff --git a/arch/m68k/include/asm/dma-mapping.h b/arch/m68k/include/as=
+m/dma-mapping.h
+index c68cdb4..05aa535 100644
+--- a/arch/m68k/include/asm/dma-mapping.h
++++ b/arch/m68k/include/asm/dma-mapping.h
+@@ -110,4 +110,14 @@ static inline int dma_mapping_error(struct device =
+*dev, dma_addr_t handle)
+ 	return 0;
  }
 =20
-+/* Not supported for now */
-+static inline int dma_mmap_coherent(struct device *dev,
-+				    struct vm_area_struct *vma, void *cpu_addr,
-+				    dma_addr_t dma_addr, size_t size)
-+{
-+	return -EINVAL;
-+}
-+
-+static inline int dma_get_sgtable(struct device *dev, struct sg_table =
++/* drivers/base/dma-mapping.c */
++extern int dma_common_mmap(struct device *dev, struct vm_area_struct *=
+vma,
++			   void *cpu_addr, dma_addr_t dma_addr, size_t size);
++extern int dma_common_get_sgtable(struct device *dev, struct sg_table =
 *sgt,
 +				  void *cpu_addr, dma_addr_t dma_addr,
-+				  size_t size)
-+{
-+	return -EINVAL;
-+}
++				  size_t size);
 +
- #endif
++#define dma_mmap_coherent(d, v, c, h, s) dma_common_mmap(d, v, c, h, s=
+)
++#define dma_get_sgtable(d, t, v, h, s) dma_common_get_sgtable(d, t, v,=
+ h, s)
++
+ #endif  /* _M68K_DMA_MAPPING_H */
 --=20
 1.7.0.4
