@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gerard.telenet-ops.be ([195.130.132.48]:59695 "EHLO
-	gerard.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756411Ab3A0Kdf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 27 Jan 2013 05:33:35 -0500
+Received: from jacques.telenet-ops.be ([195.130.132.50]:38163 "EHLO
+	jacques.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756512Ab3A0Kdi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 27 Jan 2013 05:33:38 -0500
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH v2 8/9] parisc: Provide dummy dma_mmap_coherent() and dma_get_sgtable()
-Date: Sun, 27 Jan 2013 11:33:27 +0100
-Message-ID: <1359282808-31398-9-git-send-email-geert@linux-m68k.org>
+Subject: [PATCH v2 9/9] xtensa: Provide dummy dma_mmap_coherent() and dma_get_sgtable()
+Date: Sun, 27 Jan 2013 11:33:28 +0100
+Message-ID: <1359282808-31398-10-git-send-email-geert@linux-m68k.org>
 In-Reply-To: <1359282808-31398-1-git-send-email-geert@linux-m68k.org>
 References: <1359282808-31398-1-git-send-email-geert@linux-m68k.org>
 MIME-Version: 1.0
@@ -15,10 +15,10 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Marek Szyprowski <m.szyprowski@samsung.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-parisc@vger.kernel.org
-Message-ID: <20130127103327.rrs_sYfQ0wvwmFSmpxBooERkbJ-CRZms72Hr8BvxL7g@z>
+Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Marek Szyprowski <m.szyprowski@samsung.com>, linux-xtensa@linux-xtensa.org
+Message-ID: <20130127103328.7x6cbVK0bYmp4na6xaWKOrWQpYrqtyG1YPQ_7VuNfhs@z>
 
-parisc/allmodconfig:
+xtensa/allmodconfig:
 
 drivers/media/v4l2-core/videobuf2-dma-contig.c: In function ‘vb2_dc_mmap’:
 drivers/media/v4l2-core/videobuf2-dma-contig.c:204: error: implicit declaration of function ‘dma_mmap_coherent’
@@ -28,29 +28,28 @@ drivers/media/v4l2-core/videobuf2-dma-contig.c:387: error: implicit declaration 
 For architectures using dma_map_ops, dma_mmap_coherent() and
 dma_get_sgtable() are provided in <asm-generic/dma-mapping-common.h>.
 
-Parisc does not use dma_map_ops, hence it should implement them itself.
-For now, use dummy implementations that just return -EINVAL, until the
-API has been finalized, as it cannot be supported on PA-RISC as-is.
+Xtensa does not use dma_map_ops, hence it should implement them itself.
+For now, use dummy implementations that just return -EINVAL, until the API
+has been finalized.
 
 Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
 Cc: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: James Bottomley <James.Bottomley@hansenpartnership.com>
-Cc: linux-parisc@vger.kernel.org
+Cc: linux-xtensa@linux-xtensa.org
 ---
 v2: Dummy implementations that just return -EINVAL
 ---
- arch/parisc/include/asm/dma-mapping.h |   15 +++++++++++++++
+ arch/xtensa/include/asm/dma-mapping.h |   15 +++++++++++++++
  1 files changed, 15 insertions(+), 0 deletions(-)
 
-diff --git a/arch/parisc/include/asm/dma-mapping.h b/arch/parisc/include/asm/dma-mapping.h
-index 467bbd5..106b395 100644
---- a/arch/parisc/include/asm/dma-mapping.h
-+++ b/arch/parisc/include/asm/dma-mapping.h
-@@ -238,4 +238,19 @@ void * sba_get_iommu(struct parisc_device *dev);
- /* At the moment, we panic on error for IOMMU resource exaustion */
- #define dma_mapping_error(dev, x)	0
+diff --git a/arch/xtensa/include/asm/dma-mapping.h b/arch/xtensa/include/asm/dma-mapping.h
+index 4acb5fe..172a02a 100644
+--- a/arch/xtensa/include/asm/dma-mapping.h
++++ b/arch/xtensa/include/asm/dma-mapping.h
+@@ -170,4 +170,19 @@ dma_cache_sync(struct device *dev, void *vaddr, size_t size,
+ 	consistent_sync(vaddr, size, direction);
+ }
  
-+/* This API cannot be supported on PA-RISC */
++/* Not supported for now */
 +static inline int dma_mmap_coherent(struct device *dev,
 +				    struct vm_area_struct *vma, void *cpu_addr,
 +				    dma_addr_t dma_addr, size_t size)
@@ -65,7 +64,7 @@ index 467bbd5..106b395 100644
 +	return -EINVAL;
 +}
 +
- #endif
+ #endif	/* _XTENSA_DMA_MAPPING_H */
 -- 
 1.7.0.4
 
