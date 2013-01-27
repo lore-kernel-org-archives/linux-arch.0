@@ -1,7 +1,7 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH v2 1/9] avr32: Provide dma_mmap_coherent() and dma_get_sgtable()
-Date: Sun, 27 Jan 2013 11:33:20 +0100
-Message-ID: <1359282808-31398-2-git-send-email-geert@linux-m68k.org>
+Subject: [PATCH v2 7/9] mn10300: Provide dummy dma_mmap_coherent() and dma_get_sgtable()
+Date: Sun, 27 Jan 2013 11:33:26 +0100
+Message-ID: <1359282808-31398-8-git-send-email-geert@linux-m68k.org>
 References: <1359282808-31398-1-git-send-email-geert@linux-m68k.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -10,10 +10,10 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1359282808-31398-1-git-send-email-geert@linux-m68k.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>
+Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Marek Szyprowski <m.szyprowski@samsung.com>, linux-am33-list@redhat.com
 List-Id: linux-arch.vger.kernel.org
 
-avr32/allmodconfig:
+mn10300/allmodconfig:
 
 drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =E2=80=98vb=
 2_dc_mmap=E2=80=99:
@@ -27,45 +27,46 @@ laration of function =E2=80=98dma_get_sgtable=E2=80=99
 =46or architectures using dma_map_ops, dma_mmap_coherent() and
 dma_get_sgtable() are provided in <asm-generic/dma-mapping-common.h>.
 
-Avr32 does not use dma_map_ops, hence it should implement them as inlin=
-e
-stubs using dma_common_mmap() and dma_common_get_sgtable().
+Mn10300 does not use dma_map_ops, hence it should implement them itself=
+=2E
+=46or now, use dummy implementations that just return -EINVAL, until th=
+e API
+has been finalized.
 
 Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
 Cc: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
-Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+Cc: linux-am33-list@redhat.com
 ---
-v2: No changes
+v2: Dummy implementations that just return -EINVAL
 ---
- arch/avr32/include/asm/dma-mapping.h |   10 ++++++++++
- 1 files changed, 10 insertions(+), 0 deletions(-)
+ arch/mn10300/include/asm/dma-mapping.h |   15 +++++++++++++++
+ 1 files changed, 15 insertions(+), 0 deletions(-)
 
-diff --git a/arch/avr32/include/asm/dma-mapping.h b/arch/avr32/include/=
-asm/dma-mapping.h
-index aaf5199..b3d18f9 100644
---- a/arch/avr32/include/asm/dma-mapping.h
-+++ b/arch/avr32/include/asm/dma-mapping.h
-@@ -336,4 +336,14 @@ dma_sync_sg_for_device(struct device *dev, struct =
-scatterlist *sg,
- #define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent(d, s, h, =
-f)
- #define dma_free_noncoherent(d, s, v, h) dma_free_coherent(d, s, v, h)
+diff --git a/arch/mn10300/include/asm/dma-mapping.h b/arch/mn10300/incl=
+ude/asm/dma-mapping.h
+index c1be439..a18abfc 100644
+--- a/arch/mn10300/include/asm/dma-mapping.h
++++ b/arch/mn10300/include/asm/dma-mapping.h
+@@ -168,4 +168,19 @@ void dma_cache_sync(void *vaddr, size_t size,
+ 	mn10300_dcache_flush_inv();
+ }
 =20
-+/* drivers/base/dma-mapping.c */
-+extern int dma_common_mmap(struct device *dev, struct vm_area_struct *=
-vma,
-+			   void *cpu_addr, dma_addr_t dma_addr, size_t size);
-+extern int dma_common_get_sgtable(struct device *dev, struct sg_table =
++/* Not supported for now */
++static inline int dma_mmap_coherent(struct device *dev,
++				    struct vm_area_struct *vma, void *cpu_addr,
++				    dma_addr_t dma_addr, size_t size)
++{
++	return -EINVAL;
++}
++
++static inline int dma_get_sgtable(struct device *dev, struct sg_table =
 *sgt,
 +				  void *cpu_addr, dma_addr_t dma_addr,
-+				  size_t size);
++				  size_t size)
++{
++	return -EINVAL;
++}
 +
-+#define dma_mmap_coherent(d, v, c, h, s) dma_common_mmap(d, v, c, h, s=
-)
-+#define dma_get_sgtable(d, t, v, h, s) dma_common_get_sgtable(d, t, v,=
- h, s)
-+
- #endif /* __ASM_AVR32_DMA_MAPPING_H */
+ #endif
 --=20
 1.7.0.4
