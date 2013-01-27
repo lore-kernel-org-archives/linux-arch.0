@@ -1,61 +1,71 @@
-From: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
-Subject: [PATCH v2 2/9] blackfin: Provide
-	dma_mmap_coherent() and dma_get_sgtable()
-Date: Sun, 27 Jan 2013 11:33:21 +0100
-Message-ID: <1359282808-31398-3-git-send-email-geert@linux-m68k.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: [PATCH v2 1/9] avr32: Provide dma_mmap_coherent() and dma_get_sgtable()
+Date: Sun, 27 Jan 2013 11:33:20 +0100
+Message-ID: <1359282808-31398-2-git-send-email-geert@linux-m68k.org>
 References: <1359282808-31398-1-git-send-email-geert@linux-m68k.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <uclinux-dist-devel-bounces-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org>
-In-Reply-To: <1359282808-31398-1-git-send-email-geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
-List-Unsubscribe: <https://blackfin.uclinux.org/mailman/options/uclinux-dist-devel>,
-	<mailto:uclinux-dist-devel-request-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://blackfin.uclinux.org/pipermail/uclinux-dist-devel>
-List-Post: <mailto:uclinux-dist-devel-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org>
-List-Help: <mailto:uclinux-dist-devel-request-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org?subject=help>
-List-Subscribe: <https://blackfin.uclinux.org/mailman/listinfo/uclinux-dist-devel>,
-	<mailto:uclinux-dist-devel-request-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org?subject=subscribe>
-Sender: uclinux-dist-devel-bounces-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org
-Errors-To: uclinux-dist-devel-bounces-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org
-To: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: uclinux-dist-devel-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org, Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Marek Szyprowski <m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1359282808-31398-1-git-send-email-geert@linux-m68k.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-YmxhY2tmaW4vYWxsbW9kY29uZmlnOgoKZHJpdmVycy9tZWRpYS92NGwyLWNvcmUvdmlkZW9idWYy
-LWRtYS1jb250aWcuYzogSW4gZnVuY3Rpb24g4oCYdmIyX2RjX21tYXDigJk6CmRyaXZlcnMvbWVk
-aWEvdjRsMi1jb3JlL3ZpZGVvYnVmMi1kbWEtY29udGlnLmM6MjA0OiBlcnJvcjogaW1wbGljaXQg
-ZGVjbGFyYXRpb24gb2YgZnVuY3Rpb24g4oCYZG1hX21tYXBfY29oZXJlbnTigJkKZHJpdmVycy9t
-ZWRpYS92NGwyLWNvcmUvdmlkZW9idWYyLWRtYS1jb250aWcuYzogSW4gZnVuY3Rpb24g4oCYdmIy
-X2RjX2dldF9iYXNlX3NndOKAmToKZHJpdmVycy9tZWRpYS92NGwyLWNvcmUvdmlkZW9idWYyLWRt
-YS1jb250aWcuYzozODc6IGVycm9yOiBpbXBsaWNpdCBkZWNsYXJhdGlvbiBvZiBmdW5jdGlvbiDi
-gJhkbWFfZ2V0X3NndGFibGXigJkKCkZvciBhcmNoaXRlY3R1cmVzIHVzaW5nIGRtYV9tYXBfb3Bz
-LCBkbWFfbW1hcF9jb2hlcmVudCgpIGFuZApkbWFfZ2V0X3NndGFibGUoKSBhcmUgcHJvdmlkZWQg
-aW4gPGFzbS1nZW5lcmljL2RtYS1tYXBwaW5nLWNvbW1vbi5oPi4KCkJsYWNrZmluIGRvZXMgbm90
-IHVzZSBkbWFfbWFwX29wcywgaGVuY2UgaXQgc2hvdWxkIGltcGxlbWVudCB0aGVtIGFzIGlubGlu
-ZQpzdHVicyB1c2luZyBkbWFfY29tbW9uX21tYXAoKSBhbmQgZG1hX2NvbW1vbl9nZXRfc2d0YWJs
-ZSgpLgoKU2lnbmVkLW9mZi1ieTogR2VlcnQgVXl0dGVyaG9ldmVuIDxnZWVydEBsaW51eC1tNjhr
-Lm9yZz4KQ2M6IE1hcmVrIFN6eXByb3dza2kgPG0uc3p5cHJvd3NraUBzYW1zdW5nLmNvbT4KQ2M6
-IHVjbGludXgtZGlzdC1kZXZlbEBibGFja2Zpbi51Y2xpbnV4Lm9yZwpBY2tlZC1ieTogU2NvdHQg
-SmlhbmcgPHNjb3R0LmppYW5nLmxpbnV4QGdtYWlsLmNvbT4KLS0tCnYyOiBObyBjaGFuZ2VzCi0t
-LQogYXJjaC9ibGFja2Zpbi9pbmNsdWRlL2FzbS9kbWEtbWFwcGluZy5oIHwgICAxMCArKysrKysr
-KysrCiAxIGZpbGVzIGNoYW5nZWQsIDEwIGluc2VydGlvbnMoKyksIDAgZGVsZXRpb25zKC0pCgpk
-aWZmIC0tZ2l0IGEvYXJjaC9ibGFja2Zpbi9pbmNsdWRlL2FzbS9kbWEtbWFwcGluZy5oIGIvYXJj
-aC9ibGFja2Zpbi9pbmNsdWRlL2FzbS9kbWEtbWFwcGluZy5oCmluZGV4IGJiZjQ2MTAuLjA1NGQ5
-ZWMgMTAwNjQ0Ci0tLSBhL2FyY2gvYmxhY2tmaW4vaW5jbHVkZS9hc20vZG1hLW1hcHBpbmcuaAor
-KysgYi9hcmNoL2JsYWNrZmluL2luY2x1ZGUvYXNtL2RtYS1tYXBwaW5nLmgKQEAgLTE1NCw0ICsx
-NTQsMTQgQEAgZG1hX2NhY2hlX3N5bmMoc3RydWN0IGRldmljZSAqZGV2LCB2b2lkICp2YWRkciwg
-c2l6ZV90IHNpemUsCiAJX2RtYV9zeW5jKChkbWFfYWRkcl90KXZhZGRyLCBzaXplLCBkaXIpOwog
-fQogCisvKiBkcml2ZXJzL2Jhc2UvZG1hLW1hcHBpbmcuYyAqLworZXh0ZXJuIGludCBkbWFfY29t
-bW9uX21tYXAoc3RydWN0IGRldmljZSAqZGV2LCBzdHJ1Y3Qgdm1fYXJlYV9zdHJ1Y3QgKnZtYSwK
-KwkJCSAgIHZvaWQgKmNwdV9hZGRyLCBkbWFfYWRkcl90IGRtYV9hZGRyLCBzaXplX3Qgc2l6ZSk7
-CitleHRlcm4gaW50IGRtYV9jb21tb25fZ2V0X3NndGFibGUoc3RydWN0IGRldmljZSAqZGV2LCBz
-dHJ1Y3Qgc2dfdGFibGUgKnNndCwKKwkJCQkgIHZvaWQgKmNwdV9hZGRyLCBkbWFfYWRkcl90IGRt
-YV9hZGRyLAorCQkJCSAgc2l6ZV90IHNpemUpOworCisjZGVmaW5lIGRtYV9tbWFwX2NvaGVyZW50
-KGQsIHYsIGMsIGgsIHMpIGRtYV9jb21tb25fbW1hcChkLCB2LCBjLCBoLCBzKQorI2RlZmluZSBk
-bWFfZ2V0X3NndGFibGUoZCwgdCwgdiwgaCwgcykgZG1hX2NvbW1vbl9nZXRfc2d0YWJsZShkLCB0
-LCB2LCBoLCBzKQorCiAjZW5kaWYJCQkJLyogX0JMQUNLRklOX0RNQV9NQVBQSU5HX0ggKi8KLS0g
-CjEuNy4wLjQKCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-ClVjbGludXgtZGlzdC1kZXZlbCBtYWlsaW5nIGxpc3QKVWNsaW51eC1kaXN0LWRldmVsQGJsYWNr
-ZmluLnVjbGludXgub3JnCmh0dHBzOi8vYmxhY2tmaW4udWNsaW51eC5vcmcvbWFpbG1hbi9saXN0
-aW5mby91Y2xpbnV4LWRpc3QtZGV2ZWw=
+avr32/allmodconfig:
+
+drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =E2=80=98vb=
+2_dc_mmap=E2=80=99:
+drivers/media/v4l2-core/videobuf2-dma-contig.c:204: error: implicit dec=
+laration of function =E2=80=98dma_mmap_coherent=E2=80=99
+drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =E2=80=98vb=
+2_dc_get_base_sgt=E2=80=99:
+drivers/media/v4l2-core/videobuf2-dma-contig.c:387: error: implicit dec=
+laration of function =E2=80=98dma_get_sgtable=E2=80=99
+
+=46or architectures using dma_map_ops, dma_mmap_coherent() and
+dma_get_sgtable() are provided in <asm-generic/dma-mapping-common.h>.
+
+Avr32 does not use dma_map_ops, hence it should implement them as inlin=
+e
+stubs using dma_common_mmap() and dma_common_get_sgtable().
+
+Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>
+Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
+Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+---
+v2: No changes
+---
+ arch/avr32/include/asm/dma-mapping.h |   10 ++++++++++
+ 1 files changed, 10 insertions(+), 0 deletions(-)
+
+diff --git a/arch/avr32/include/asm/dma-mapping.h b/arch/avr32/include/=
+asm/dma-mapping.h
+index aaf5199..b3d18f9 100644
+--- a/arch/avr32/include/asm/dma-mapping.h
++++ b/arch/avr32/include/asm/dma-mapping.h
+@@ -336,4 +336,14 @@ dma_sync_sg_for_device(struct device *dev, struct =
+scatterlist *sg,
+ #define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent(d, s, h, =
+f)
+ #define dma_free_noncoherent(d, s, v, h) dma_free_coherent(d, s, v, h)
+=20
++/* drivers/base/dma-mapping.c */
++extern int dma_common_mmap(struct device *dev, struct vm_area_struct *=
+vma,
++			   void *cpu_addr, dma_addr_t dma_addr, size_t size);
++extern int dma_common_get_sgtable(struct device *dev, struct sg_table =
+*sgt,
++				  void *cpu_addr, dma_addr_t dma_addr,
++				  size_t size);
++
++#define dma_mmap_coherent(d, v, c, h, s) dma_common_mmap(d, v, c, h, s=
+)
++#define dma_get_sgtable(d, t, v, h, s) dma_common_get_sgtable(d, t, v,=
+ h, s)
++
+ #endif /* __ASM_AVR32_DMA_MAPPING_H */
+--=20
+1.7.0.4
