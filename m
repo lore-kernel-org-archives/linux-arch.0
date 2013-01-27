@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gerard.telenet-ops.be ([195.130.132.48]:59662 "EHLO
+Received: from gerard.telenet-ops.be ([195.130.132.48]:59712 "EHLO
 	gerard.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756449Ab3A0Kdf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 27 Jan 2013 05:33:35 -0500
+	with ESMTP id S1756433Ab3A0Kde (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 27 Jan 2013 05:33:34 -0500
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH v2 4/9] cris: Provide dma_mmap_coherent() and dma_get_sgtable()
-Date: Sun, 27 Jan 2013 11:33:23 +0100
-Message-ID: <1359282808-31398-5-git-send-email-geert@linux-m68k.org>
+Subject: [PATCH v2 7/9] mn10300: Provide dummy dma_mmap_coherent() and dma_get_sgtable()
+Date: Sun, 27 Jan 2013 11:33:26 +0100
+Message-ID: <1359282808-31398-8-git-send-email-geert@linux-m68k.org>
 In-Reply-To: <1359282808-31398-1-git-send-email-geert@linux-m68k.org>
 References: <1359282808-31398-1-git-send-email-geert@linux-m68k.org>
 MIME-Version: 1.0
@@ -15,10 +15,10 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Marek Szyprowski <m.szyprowski@samsung.com>, linux-cris-kernel@axis.com
-Message-ID: <20130127103323.FlNTaTc9rnPORu2a-TYkXs-HpkTT7FwcUMpahxAF1zM@z>
+Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Marek Szyprowski <m.szyprowski@samsung.com>, linux-am33-list@redhat.com
+Message-ID: <20130127103326.QxhJ-kKi4WU7hxqkXa8qmcCQ60Bc31QEvbd_gVUxY5s@z>
 
-cris/allmodconfig:
+mn10300/allmodconfig:
 
 drivers/media/v4l2-core/videobuf2-dma-contig.c: In function ‘vb2_dc_mmap’:
 drivers/media/v4l2-core/videobuf2-dma-contig.c:204: error: implicit declaration of function ‘dma_mmap_coherent’
@@ -28,38 +28,42 @@ drivers/media/v4l2-core/videobuf2-dma-contig.c:387: error: implicit declaration 
 For architectures using dma_map_ops, dma_mmap_coherent() and
 dma_get_sgtable() are provided in <asm-generic/dma-mapping-common.h>.
 
-Cris does not use dma_map_ops, hence it should implement them as inline
-stubs using dma_common_mmap() and dma_common_get_sgtable().
+Mn10300 does not use dma_map_ops, hence it should implement them itself.
+For now, use dummy implementations that just return -EINVAL, until the API
+has been finalized.
 
 Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
 Cc: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: linux-cris-kernel@axis.com
-Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
+Cc: linux-am33-list@redhat.com
 ---
-v2: No changes
+v2: Dummy implementations that just return -EINVAL
 ---
- arch/cris/include/asm/dma-mapping.h |   10 ++++++++++
- 1 files changed, 10 insertions(+), 0 deletions(-)
+ arch/mn10300/include/asm/dma-mapping.h |   15 +++++++++++++++
+ 1 files changed, 15 insertions(+), 0 deletions(-)
 
-diff --git a/arch/cris/include/asm/dma-mapping.h b/arch/cris/include/asm/dma-mapping.h
-index 8588b2c..2f0f654 100644
---- a/arch/cris/include/asm/dma-mapping.h
-+++ b/arch/cris/include/asm/dma-mapping.h
-@@ -158,5 +158,15 @@ dma_cache_sync(struct device *dev, void *vaddr, size_t size,
- {
+diff --git a/arch/mn10300/include/asm/dma-mapping.h b/arch/mn10300/include/asm/dma-mapping.h
+index c1be439..a18abfc 100644
+--- a/arch/mn10300/include/asm/dma-mapping.h
++++ b/arch/mn10300/include/asm/dma-mapping.h
+@@ -168,4 +168,19 @@ void dma_cache_sync(void *vaddr, size_t size,
+ 	mn10300_dcache_flush_inv();
  }
  
-+/* drivers/base/dma-mapping.c */
-+extern int dma_common_mmap(struct device *dev, struct vm_area_struct *vma,
-+			   void *cpu_addr, dma_addr_t dma_addr, size_t size);
-+extern int dma_common_get_sgtable(struct device *dev, struct sg_table *sgt,
++/* Not supported for now */
++static inline int dma_mmap_coherent(struct device *dev,
++				    struct vm_area_struct *vma, void *cpu_addr,
++				    dma_addr_t dma_addr, size_t size)
++{
++	return -EINVAL;
++}
++
++static inline int dma_get_sgtable(struct device *dev, struct sg_table *sgt,
 +				  void *cpu_addr, dma_addr_t dma_addr,
-+				  size_t size);
++				  size_t size)
++{
++	return -EINVAL;
++}
 +
-+#define dma_mmap_coherent(d, v, c, h, s) dma_common_mmap(d, v, c, h, s)
-+#define dma_get_sgtable(d, t, v, h, s) dma_common_get_sgtable(d, t, v, h, s)
-+
- 
  #endif
 -- 
 1.7.0.4
