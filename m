@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gerard.telenet-ops.be ([195.130.132.48]:59712 "EHLO
-	gerard.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756433Ab3A0Kde (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 27 Jan 2013 05:33:34 -0500
+Received: from georges.telenet-ops.be ([195.130.137.68]:53045 "EHLO
+	georges.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756455Ab3A0Kdg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 27 Jan 2013 05:33:36 -0500
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH v2 7/9] mn10300: Provide dummy dma_mmap_coherent() and dma_get_sgtable()
-Date: Sun, 27 Jan 2013 11:33:26 +0100
-Message-ID: <1359282808-31398-8-git-send-email-geert@linux-m68k.org>
+Subject: [PATCH v2 2/9] blackfin: Provide dma_mmap_coherent() and dma_get_sgtable()
+Date: Sun, 27 Jan 2013 11:33:21 +0100
+Message-ID: <1359282808-31398-3-git-send-email-geert@linux-m68k.org>
 In-Reply-To: <1359282808-31398-1-git-send-email-geert@linux-m68k.org>
 References: <1359282808-31398-1-git-send-email-geert@linux-m68k.org>
 MIME-Version: 1.0
@@ -15,10 +15,10 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Marek Szyprowski <m.szyprowski@samsung.com>, linux-am33-list@redhat.com
-Message-ID: <20130127103326.QxhJ-kKi4WU7hxqkXa8qmcCQ60Bc31QEvbd_gVUxY5s@z>
+Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Marek Szyprowski <m.szyprowski@samsung.com>, uclinux-dist-devel@blackfin.uclinux.org
+Message-ID: <20130127103321.sQnzmaK0nTrkA7SitudL6clyL1puMHFmFV-ZAKry908@z>
 
-mn10300/allmodconfig:
+blackfin/allmodconfig:
 
 drivers/media/v4l2-core/videobuf2-dma-contig.c: In function ‘vb2_dc_mmap’:
 drivers/media/v4l2-core/videobuf2-dma-contig.c:204: error: implicit declaration of function ‘dma_mmap_coherent’
@@ -28,43 +28,38 @@ drivers/media/v4l2-core/videobuf2-dma-contig.c:387: error: implicit declaration 
 For architectures using dma_map_ops, dma_mmap_coherent() and
 dma_get_sgtable() are provided in <asm-generic/dma-mapping-common.h>.
 
-Mn10300 does not use dma_map_ops, hence it should implement them itself.
-For now, use dummy implementations that just return -EINVAL, until the API
-has been finalized.
+Blackfin does not use dma_map_ops, hence it should implement them as inline
+stubs using dma_common_mmap() and dma_common_get_sgtable().
 
 Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
 Cc: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: linux-am33-list@redhat.com
+Cc: uclinux-dist-devel@blackfin.uclinux.org
+Acked-by: Scott Jiang <scott.jiang.linux@gmail.com>
 ---
-v2: Dummy implementations that just return -EINVAL
+v2: No changes
 ---
- arch/mn10300/include/asm/dma-mapping.h |   15 +++++++++++++++
- 1 files changed, 15 insertions(+), 0 deletions(-)
+ arch/blackfin/include/asm/dma-mapping.h |   10 ++++++++++
+ 1 files changed, 10 insertions(+), 0 deletions(-)
 
-diff --git a/arch/mn10300/include/asm/dma-mapping.h b/arch/mn10300/include/asm/dma-mapping.h
-index c1be439..a18abfc 100644
---- a/arch/mn10300/include/asm/dma-mapping.h
-+++ b/arch/mn10300/include/asm/dma-mapping.h
-@@ -168,4 +168,19 @@ void dma_cache_sync(void *vaddr, size_t size,
- 	mn10300_dcache_flush_inv();
+diff --git a/arch/blackfin/include/asm/dma-mapping.h b/arch/blackfin/include/asm/dma-mapping.h
+index bbf4610..054d9ec 100644
+--- a/arch/blackfin/include/asm/dma-mapping.h
++++ b/arch/blackfin/include/asm/dma-mapping.h
+@@ -154,4 +154,14 @@ dma_cache_sync(struct device *dev, void *vaddr, size_t size,
+ 	_dma_sync((dma_addr_t)vaddr, size, dir);
  }
  
-+/* Not supported for now */
-+static inline int dma_mmap_coherent(struct device *dev,
-+				    struct vm_area_struct *vma, void *cpu_addr,
-+				    dma_addr_t dma_addr, size_t size)
-+{
-+	return -EINVAL;
-+}
-+
-+static inline int dma_get_sgtable(struct device *dev, struct sg_table *sgt,
++/* drivers/base/dma-mapping.c */
++extern int dma_common_mmap(struct device *dev, struct vm_area_struct *vma,
++			   void *cpu_addr, dma_addr_t dma_addr, size_t size);
++extern int dma_common_get_sgtable(struct device *dev, struct sg_table *sgt,
 +				  void *cpu_addr, dma_addr_t dma_addr,
-+				  size_t size)
-+{
-+	return -EINVAL;
-+}
++				  size_t size);
 +
- #endif
++#define dma_mmap_coherent(d, v, c, h, s) dma_common_mmap(d, v, c, h, s)
++#define dma_get_sgtable(d, t, v, h, s) dma_common_get_sgtable(d, t, v, h, s)
++
+ #endif				/* _BLACKFIN_DMA_MAPPING_H */
 -- 
 1.7.0.4
 
