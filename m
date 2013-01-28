@@ -1,68 +1,41 @@
 From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH v3 00/44] Meta Linux Kernel Port
-Date: Mon, 28 Jan 2013 11:08:31 +0000
-Message-ID: <51065C2F.9010505@imgtec.com>
-References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com> <5102BB38.3050207@imgtec.com> <201301260025.10020.arnd@arndb.de> <51062460.9060902@synopsys.com>
+Subject: Re: [PATCH v3 21/44] metag: Time keeping
+Date: Mon, 28 Jan 2013 12:59:10 +0000
+Message-ID: <5106761E.5070001@imgtec.com>
+References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com> <1357831872-29451-22-git-send-email-james.hogan@imgtec.com> <201301260003.43854.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: text/plain; charset="ISO-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:1646 "EHLO multi.imgtec.com"
+Received: from multi.imgtec.com ([194.200.65.239]:9551 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754205Ab3A1LJD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 28 Jan 2013 06:09:03 -0500
-In-Reply-To: <51062460.9060902@synopsys.com>
+	id S1751407Ab3A1M7U (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 28 Jan 2013 07:59:20 -0500
+In-Reply-To: <201301260003.43854.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Hi Vineet
-
-On 28/01/13 07:10, Vineet Gupta wrote:
->> You don't need Acked-by statements on every single patch, but having
->> more of those is certainly benefitial. When it comes to the merge
->> window, please send a pull request to Linus, and keep me on Cc,
->> so I can weigh in with an additional Ack to the series.
+On 26/01/13 00:03, Arnd Bergmann wrote:
+> On Thursday 10 January 2013, James Hogan wrote:
+>> Add time keeping code for metag. Meta hardware threads have 2 timers.
+>> The background timer (TXTIMER) is used as a free-running time base, and
+>> the interrupt timer (TXTIMERI) is used for the timer interrupt. Both
+>> counters traditionally count at approximately 1MHz.
+>>
+>> Signed-off-by: James Hogan <james.hogan@imgtec.com>
+>> ---
+>>  arch/metag/include/asm/clock.h     |   51 +++++++++++
+>>  arch/metag/include/asm/delay.h     |   29 +++++++
+>>  arch/metag/include/asm/mach/arch.h |    4 +
+>>  arch/metag/kernel/clock.c          |   53 ++++++++++++
+>>  arch/metag/kernel/time.c           |  163 ++++++++++++++++++++++++++++++++++++
 > 
-> While the first pull request can go directly from github, I presume the logistics
-> for setting up accounts on kernel.org will only kick start after the first batch
-> of code has been accepted. I can't seem to find any discussions on lists to that
-> effect.
+> We are actually moving clocksource drivers to drivers/clocksource
+> now, maybe you can move this one too.
 
-this may be relevant:
+Yes, will do.
 
-https://korg.wiki.kernel.org/index.php/Userdoc:getting_account
-
-> BTW I went back to hexagon submission patches in 2011 and it seems every new arch
-> makes the exact same mistakes:
-> -idle sleep race
-> -faltering in TIF_WORK_RESUME and in fixing that breaking the syscall restarting
-> -redundant symbols in module.c
-> ...
-> 
-> Will it make sense to have a checklist-for-new-arches with concrete examples of
-> broken and fixed code so that you, Al and other reviewers don't have to repeat the
-> same thing over and over again.
-
-I suspect some of the problem is that the code will have been copied
-from other architectures which were subsequently fixed, but the fixes
-weren't being tracked while the out of tree port was being updated.
-
-I don't think it's a bad idea to have a checklist like that, but I think
-this is always going to continue to happen, and be dependent on when the
-arch port was first written, so such a checklist may well need updating
-lots based on what mistakes are most commonly made.
-
-I'd suggest the following generic things:
-* Work with upstream in the first place to minimise the period the arch
-is out of tree (tends not to happen as much as we'd all like).
-* Read linux-arch ML so that common per-arch problems are noticed as
-soon as they're apparent, and cc it when those sorts of issues are raised.
-* Look at comments for other/previous arch submissions (I definitely
-made a fair few fixes/changes after looking at c6x, tile, and arc comments).
-* Documenting these arch specific issues (like Al's signal brain dump
-which was very valuable to understand the subtleties).
-
-Cheers
+Thanks
 James
