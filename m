@@ -1,84 +1,102 @@
-From: Bob Liu <lliubbo@gmail.com>
-Subject: Re: [PATCH v5 31/45] blackfin/smp: Use get/put_online_cpus_atomic()
- to prevent CPU offline
-Date: Mon, 28 Jan 2013 17:09:34 +0800
-Message-ID: <CAA_GA1fSLNKSDTGSzHoA+j-mur85BvoSRkARq+DMfORuwrrX4Q@mail.gmail.com>
-References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
-	<20130122074123.13822.39102.stgit@srivatsabhat.in.ibm.com>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [PATCH v3 32/71] ARC: [DeviceTree] Basic support
+Date: Mon, 28 Jan 2013 10:21:50 +0000
+Message-ID: <5106513E.4010205@imgtec.com>
+References: <1359024639-21915-1-git-send-email-vgupta@synopsys.com> <1359024639-21915-15-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <20130122074123.13822.39102.stgit@srivatsabhat.in.ibm.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from multi.imgtec.com ([194.200.65.239]:53058 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754144Ab3A1KVz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 28 Jan 2013 05:21:55 -0500
+In-Reply-To: <1359024639-21915-15-git-send-email-vgupta@synopsys.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, Grant Likely <grant.likely@secretlab.ca>, devicetree-discuss@lists.ozlabs.org, Rob Herring <rob.herring@calxeda.com>
 
-On Tue, Jan 22, 2013 at 3:41 PM, Srivatsa S. Bhat
-<srivatsa.bhat@linux.vnet.ibm.com> wrote:
-> Once stop_machine() is gone from the CPU offline path, we won't be able to
-> depend on preempt_disable() or local_irq_disable() to prevent CPUs from
-> going offline from under us.
->
-> Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going offline,
-> while invoking from atomic context.
->
-> Cc: Mike Frysinger <vapier@gentoo.org>
-> Cc: Bob Liu <lliubbo@gmail.com>
-> Cc: Steven Miao <realmz6@gmail.com>
-> Cc: uclinux-dist-devel@blackfin.uclinux.org
-> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+Hi Vineet,
 
-Thanks, will be applied to my blackfin arch tree.
+On 24/01/13 10:50, Vineet Gupta wrote:
+> diff --git a/arch/arc/Makefile b/arch/arc/Makefile
+> index 4d52a3b..90570f9 100644
+> --- a/arch/arc/Makefile
+> +++ b/arch/arc/Makefile
+> @@ -83,6 +83,9 @@ head-y		:= arch/arc/kernel/head.o
+>  # See arch/arc/Kbuild for content of core part of the kernel
+>  core-y		+= arch/arc/
+>  
+> +# w/o this dtb won't embed into kernel binary
+> +core-y		+= arch/arc/boot/dts/
+> +
+>  # w/o this ifneq, make ARCH=arc clean was crapping out
+>  ifneq ($(platform-y),)
+>  core-y		+= arch/arc/plat-$(PLATFORM)/
+> @@ -101,6 +104,12 @@ bootpImage: vmlinux
+>  uImage: vmlinux
+>  	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
+>  
+> +%.dtb %.dtb.S %.dtb.o:
+> +	$(Q)$(MAKE) $(build)=$(boot)/dts $(boot)/dts/$@
 
-> ---
->
->  arch/blackfin/mach-common/smp.c |    6 ++++--
->  1 file changed, 4 insertions(+), 2 deletions(-)
->
-> diff --git a/arch/blackfin/mach-common/smp.c b/arch/blackfin/mach-common/smp.c
-> index bb61ae4..6cc6d7a 100644
-> --- a/arch/blackfin/mach-common/smp.c
-> +++ b/arch/blackfin/mach-common/smp.c
-> @@ -194,6 +194,7 @@ void send_ipi(const struct cpumask *cpumask, enum ipi_message_type msg)
->         struct ipi_data *bfin_ipi_data;
->         unsigned long flags;
->
-> +       get_online_cpus_atomic();
->         local_irq_save(flags);
->         smp_mb();
->         for_each_cpu(cpu, cpumask) {
-> @@ -205,6 +206,7 @@ void send_ipi(const struct cpumask *cpumask, enum ipi_message_type msg)
->         }
->
->         local_irq_restore(flags);
-> +       put_online_cpus_atomic();
->  }
->
->  void arch_send_call_function_single_ipi(int cpu)
-> @@ -238,13 +240,13 @@ void smp_send_stop(void)
->  {
->         cpumask_t callmap;
->
-> -       preempt_disable();
-> +       get_online_cpus_atomic();
->         cpumask_copy(&callmap, cpu_online_mask);
->         cpumask_clear_cpu(smp_processor_id(), &callmap);
->         if (!cpumask_empty(&callmap))
->                 send_ipi(&callmap, BFIN_IPI_CPU_STOP);
->
-> -       preempt_enable();
-> +       put_online_cpus_atomic();
->
->         return;
->  }
->
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
+arm64 also depends on scripts here, presumably for a reason. I've copied
+this in metag too.
 
--- 
-Regards,
---Bob
+> +
+> +dtbs:
+> +	$(Q)$(MAKE) $(build)=$(boot)/dts $(boot)/dts/$@
+
+arm64 does this like below which I think is slightly nicer than how
+metag did it:
+
+dtbs: scripts
+	$(Q)$(MAKE) $(build)=$(boot)/dts dtbs
+
+> +
+>  archclean:
+>  	$(Q)$(MAKE) $(clean)=$(boot)
+>  
+> diff --git a/arch/arc/boot/dts/Makefile b/arch/arc/boot/dts/Makefile
+> new file mode 100644
+> index 0000000..4a972a3
+> --- /dev/null
+> +++ b/arch/arc/boot/dts/Makefile
+> @@ -0,0 +1,14 @@
+> +ifeq ($(CONFIG_OF),y)
+> +
+> +# Built-in dtb
+> +builtindtb-y		:= skeleton
+> +
+> +ifneq ($(CONFIG_ARC_BUILTIN_DTB_NAME),"")
+> +	builtindtb-y	:= $(CONFIG_ARC_BUILTIN_DTB_NAME)
+> +endif
+> +
+> +obj-y	+= $(patsubst "%",%,$(builtindtb-y)).dtb.o
+> +
+> +clean-files := *.dtb
+
+You don't seem to have a rule for dtbs, but still redirect it in the
+main Makefile. I suppose dtbs may want adding to your archhelp if you
+use it.
+
+arm64 also adds dtbs and $(dtb-y) to targets (at least in linux-next). I
+think this makes sure that they don't get rebuilt unless they've
+actually changed. I've also copied this for metag.
+
+
+> --- a/arch/arc/kernel/Makefile
+> +++ b/arch/arc/kernel/Makefile
+> @@ -8,6 +8,8 @@
+>  obj-y	:= arcksyms.o setup.o irq.o time.o reset.o ptrace.o entry.o process.o
+>  obj-y	+= signal.o traps.o sys.o troubleshoot.o stacktrace.o clk.o
+>  
+> +obj-$(CONFIG_OF)			+= devtree.o
+> +
+
+You always select CONFIG_OF, so this could be obj-y. I'm not sure this
+particularly matters though.
+
+Cheers
+James
