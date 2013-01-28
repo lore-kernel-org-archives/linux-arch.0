@@ -1,102 +1,68 @@
 From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH v3 32/71] ARC: [DeviceTree] Basic support
-Date: Mon, 28 Jan 2013 10:21:50 +0000
-Message-ID: <5106513E.4010205@imgtec.com>
-References: <1359024639-21915-1-git-send-email-vgupta@synopsys.com> <1359024639-21915-15-git-send-email-vgupta@synopsys.com>
+Subject: Re: [PATCH v3 00/44] Meta Linux Kernel Port
+Date: Mon, 28 Jan 2013 11:08:31 +0000
+Message-ID: <51065C2F.9010505@imgtec.com>
+References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com> <5102BB38.3050207@imgtec.com> <201301260025.10020.arnd@arndb.de> <51062460.9060902@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:53058 "EHLO multi.imgtec.com"
+Received: from multi.imgtec.com ([194.200.65.239]:1646 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754144Ab3A1KVz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 28 Jan 2013 05:21:55 -0500
-In-Reply-To: <1359024639-21915-15-git-send-email-vgupta@synopsys.com>
+	id S1754205Ab3A1LJD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 28 Jan 2013 06:09:03 -0500
+In-Reply-To: <51062460.9060902@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, Grant Likely <grant.likely@secretlab.ca>, devicetree-discuss@lists.ozlabs.org, Rob Herring <rob.herring@calxeda.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Hi Vineet,
+Hi Vineet
 
-On 24/01/13 10:50, Vineet Gupta wrote:
-> diff --git a/arch/arc/Makefile b/arch/arc/Makefile
-> index 4d52a3b..90570f9 100644
-> --- a/arch/arc/Makefile
-> +++ b/arch/arc/Makefile
-> @@ -83,6 +83,9 @@ head-y		:= arch/arc/kernel/head.o
->  # See arch/arc/Kbuild for content of core part of the kernel
->  core-y		+= arch/arc/
->  
-> +# w/o this dtb won't embed into kernel binary
-> +core-y		+= arch/arc/boot/dts/
-> +
->  # w/o this ifneq, make ARCH=arc clean was crapping out
->  ifneq ($(platform-y),)
->  core-y		+= arch/arc/plat-$(PLATFORM)/
-> @@ -101,6 +104,12 @@ bootpImage: vmlinux
->  uImage: vmlinux
->  	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
->  
-> +%.dtb %.dtb.S %.dtb.o:
-> +	$(Q)$(MAKE) $(build)=$(boot)/dts $(boot)/dts/$@
+On 28/01/13 07:10, Vineet Gupta wrote:
+>> You don't need Acked-by statements on every single patch, but having
+>> more of those is certainly benefitial. When it comes to the merge
+>> window, please send a pull request to Linus, and keep me on Cc,
+>> so I can weigh in with an additional Ack to the series.
+> 
+> While the first pull request can go directly from github, I presume the logistics
+> for setting up accounts on kernel.org will only kick start after the first batch
+> of code has been accepted. I can't seem to find any discussions on lists to that
+> effect.
 
-arm64 also depends on scripts here, presumably for a reason. I've copied
-this in metag too.
+this may be relevant:
 
-> +
-> +dtbs:
-> +	$(Q)$(MAKE) $(build)=$(boot)/dts $(boot)/dts/$@
+https://korg.wiki.kernel.org/index.php/Userdoc:getting_account
 
-arm64 does this like below which I think is slightly nicer than how
-metag did it:
+> BTW I went back to hexagon submission patches in 2011 and it seems every new arch
+> makes the exact same mistakes:
+> -idle sleep race
+> -faltering in TIF_WORK_RESUME and in fixing that breaking the syscall restarting
+> -redundant symbols in module.c
+> ...
+> 
+> Will it make sense to have a checklist-for-new-arches with concrete examples of
+> broken and fixed code so that you, Al and other reviewers don't have to repeat the
+> same thing over and over again.
 
-dtbs: scripts
-	$(Q)$(MAKE) $(build)=$(boot)/dts dtbs
+I suspect some of the problem is that the code will have been copied
+from other architectures which were subsequently fixed, but the fixes
+weren't being tracked while the out of tree port was being updated.
 
-> +
->  archclean:
->  	$(Q)$(MAKE) $(clean)=$(boot)
->  
-> diff --git a/arch/arc/boot/dts/Makefile b/arch/arc/boot/dts/Makefile
-> new file mode 100644
-> index 0000000..4a972a3
-> --- /dev/null
-> +++ b/arch/arc/boot/dts/Makefile
-> @@ -0,0 +1,14 @@
-> +ifeq ($(CONFIG_OF),y)
-> +
-> +# Built-in dtb
-> +builtindtb-y		:= skeleton
-> +
-> +ifneq ($(CONFIG_ARC_BUILTIN_DTB_NAME),"")
-> +	builtindtb-y	:= $(CONFIG_ARC_BUILTIN_DTB_NAME)
-> +endif
-> +
-> +obj-y	+= $(patsubst "%",%,$(builtindtb-y)).dtb.o
-> +
-> +clean-files := *.dtb
+I don't think it's a bad idea to have a checklist like that, but I think
+this is always going to continue to happen, and be dependent on when the
+arch port was first written, so such a checklist may well need updating
+lots based on what mistakes are most commonly made.
 
-You don't seem to have a rule for dtbs, but still redirect it in the
-main Makefile. I suppose dtbs may want adding to your archhelp if you
-use it.
-
-arm64 also adds dtbs and $(dtb-y) to targets (at least in linux-next). I
-think this makes sure that they don't get rebuilt unless they've
-actually changed. I've also copied this for metag.
-
-
-> --- a/arch/arc/kernel/Makefile
-> +++ b/arch/arc/kernel/Makefile
-> @@ -8,6 +8,8 @@
->  obj-y	:= arcksyms.o setup.o irq.o time.o reset.o ptrace.o entry.o process.o
->  obj-y	+= signal.o traps.o sys.o troubleshoot.o stacktrace.o clk.o
->  
-> +obj-$(CONFIG_OF)			+= devtree.o
-> +
-
-You always select CONFIG_OF, so this could be obj-y. I'm not sure this
-particularly matters though.
+I'd suggest the following generic things:
+* Work with upstream in the first place to minimise the period the arch
+is out of tree (tends not to happen as much as we'd all like).
+* Read linux-arch ML so that common per-arch problems are noticed as
+soon as they're apparent, and cc it when those sorts of issues are raised.
+* Look at comments for other/previous arch submissions (I definitely
+made a fair few fixes/changes after looking at c6x, tile, and arc comments).
+* Documenting these arch specific issues (like Al's signal brain dump
+which was very valuable to understand the subtleties).
 
 Cheers
 James
