@@ -1,877 +1,376 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH v3 58/71] ARC: UAPI Disintegrate arch/arc/include/asm
-Date: Mon, 28 Jan 2013 13:06:10 +0530
-Message-ID: <51062A6A.3040202@synopsys.com>
-References: <1359024639-21915-1-git-send-email-vgupta@synopsys.com> <1359024639-21915-22-git-send-email-vgupta@synopsys.com>
+Subject: Re: [PATCH v3 32/71] ARC: [DeviceTree] Basic support
+Date: Mon, 28 Jan 2013 13:10:29 +0530
+Message-ID: <51062B6D.8020805@synopsys.com>
+References: <1359024639-21915-1-git-send-email-vgupta@synopsys.com> <1359024639-21915-15-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us02smtp1.synopsys.com ([198.182.60.75]:40677 "EHLO
+Received: from us02smtp1.synopsys.com ([198.182.60.75]:40710 "EHLO
 	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752974Ab3A1Hg0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Jan 2013 02:36:26 -0500
-In-Reply-To: <1359024639-21915-22-git-send-email-vgupta@synopsys.com>
+	with ESMTP id S1753458Ab3A1Hko (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Jan 2013 02:40:44 -0500
+In-Reply-To: <1359024639-21915-15-git-send-email-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
+To: Rob Herring <rob.herring@calxeda.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-Hi David,
+Hi Rob,
 
 On Thursday 24 January 2013 04:20 PM, Vineet Gupta wrote:
-> 1. ./genfilelist.pl arch/arc/include/asm/
+> This is minimal infrastructure needed for devicetree work.
+> It uses an a sample "skeleton" devicetree - embedded in kernel image -
+> to print the board, manufacturer by parsing the top-level "compatible"
+> string.
 > 
-> 2. Create arch/arc/include/uapi/asm/Kbuild as follows
+> As of now we don't need any additional "board" specific "machine_desc".
 > 
-> 	+# UAPI Header export list
-> 	+include include/uapi/asm-generic/Kbuild.asm
+> TODO: support interpreting the command line as boot-loader passed dtb
 > 
-> 3. ./disintegrate-one.pl arch/arc/include/{,uapi/}asm/<above-list>
-> 
-> 4. Edit arch/arc/include/asm/Kbuild to remove ref to
-> 	asm-generic/Kbuild.asm
-> 
-> To work around empty uapi/asm/setup.h added a placholder comment.
-> 
-> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-> Cc: David Howells <dhowells@redhat.com>
+> Signed-off-by: Vineet Gupta <vgupta-HKixBCOQz3hWk0Htik3J/w@public.gmane.org>
+> Cc: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+> Cc: Grant Likely <grant.likely-s3s/WqlpOiPyB63q8FvJNQ@public.gmane.org>
+> Cc: devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
+> Cc: Rob Herring <rob.herring-bsGFqQB8/DxBDgjK7y7TUQ@public.gmane.org>
 > ---
->  arch/arc/include/asm/Kbuild            |    8 ---
->  arch/arc/include/asm/byteorder.h       |   18 ------
->  arch/arc/include/asm/cachectl.h        |   28 ---------
->  arch/arc/include/asm/page.h            |   30 +---------
->  arch/arc/include/asm/ptrace.h          |   37 +-----------
->  arch/arc/include/asm/setup.h           |    3 +-
->  arch/arc/include/asm/sigcontext.h      |   23 --------
->  arch/arc/include/asm/signal.h          |   27 ---------
->  arch/arc/include/asm/swab.h            |   98 --------------------------------
->  arch/arc/include/asm/unistd.h          |   34 -----------
->  arch/arc/include/uapi/asm/Kbuild       |   11 ++++
->  arch/arc/include/uapi/asm/byteorder.h  |   18 ++++++
->  arch/arc/include/uapi/asm/cachectl.h   |   28 +++++++++
->  arch/arc/include/uapi/asm/page.h       |   39 +++++++++++++
->  arch/arc/include/uapi/asm/ptrace.h     |   46 +++++++++++++++
->  arch/arc/include/uapi/asm/setup.h      |    6 ++
->  arch/arc/include/uapi/asm/sigcontext.h |   23 ++++++++
->  arch/arc/include/uapi/asm/signal.h     |   27 +++++++++
->  arch/arc/include/uapi/asm/swab.h       |   98 ++++++++++++++++++++++++++++++++
->  arch/arc/include/uapi/asm/unistd.h     |   34 +++++++++++
->  20 files changed, 335 insertions(+), 301 deletions(-)
->  delete mode 100644 arch/arc/include/asm/byteorder.h
->  delete mode 100644 arch/arc/include/asm/cachectl.h
->  delete mode 100644 arch/arc/include/asm/sigcontext.h
->  delete mode 100644 arch/arc/include/asm/signal.h
->  delete mode 100644 arch/arc/include/asm/swab.h
->  delete mode 100644 arch/arc/include/asm/unistd.h
->  create mode 100644 arch/arc/include/uapi/asm/Kbuild
->  create mode 100644 arch/arc/include/uapi/asm/byteorder.h
->  create mode 100644 arch/arc/include/uapi/asm/cachectl.h
->  create mode 100644 arch/arc/include/uapi/asm/page.h
->  create mode 100644 arch/arc/include/uapi/asm/ptrace.h
->  create mode 100644 arch/arc/include/uapi/asm/setup.h
->  create mode 100644 arch/arc/include/uapi/asm/sigcontext.h
->  create mode 100644 arch/arc/include/uapi/asm/signal.h
->  create mode 100644 arch/arc/include/uapi/asm/swab.h
->  create mode 100644 arch/arc/include/uapi/asm/unistd.h
+>  arch/arc/Kconfig                |    9 +++++
+>  arch/arc/Makefile               |    9 +++++
+>  arch/arc/boot/dts/Makefile      |   14 ++++++++
+>  arch/arc/boot/dts/skeleton.dts  |   10 ++++++
+>  arch/arc/boot/dts/skeleton.dtsi |   21 ++++++++++++
+>  arch/arc/include/asm/prom.h     |   15 ++++++++
+>  arch/arc/include/asm/sections.h |    1 +
+>  arch/arc/kernel/Makefile        |    2 +
+>  arch/arc/kernel/devtree.c       |   69 +++++++++++++++++++++++++++++++++++++++
+>  arch/arc/kernel/setup.c         |    9 +++++
+>  arch/arc/mm/init.c              |   13 +++++++
+>  11 files changed, 172 insertions(+), 0 deletions(-)
+>  create mode 100644 arch/arc/boot/dts/Makefile
+>  create mode 100644 arch/arc/boot/dts/skeleton.dts
+>  create mode 100644 arch/arc/boot/dts/skeleton.dtsi
+>  create mode 100644 arch/arc/include/asm/prom.h
+>  create mode 100644 arch/arc/kernel/devtree.c
 > 
-> diff --git a/arch/arc/include/asm/Kbuild b/arch/arc/include/asm/Kbuild
-> index b24089c..48af742 100644
-> --- a/arch/arc/include/asm/Kbuild
-> +++ b/arch/arc/include/asm/Kbuild
-> @@ -1,11 +1,3 @@
-> -include include/asm-generic/Kbuild.asm
-> -
-> -# 7-Oct-12: Jeremy Bennett <jeremy.bennett@embecosm.com>. Some of these
-> -# headers, beyond those specified in the generic set are needed by user code.
-> -
-> -header-y += page.h
-> -header-y += cachectl.h
-> -
->  generic-y += auxvec.h
->  generic-y += bugs.h
->  generic-y += bitsperlong.h
-> diff --git a/arch/arc/include/asm/byteorder.h b/arch/arc/include/asm/byteorder.h
-> deleted file mode 100644
-> index 9da71d4..0000000
-> --- a/arch/arc/include/asm/byteorder.h
-> +++ /dev/null
-> @@ -1,18 +0,0 @@
-> -/*
-> - * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-> - *
-> - * This program is free software; you can redistribute it and/or modify
-> - * it under the terms of the GNU General Public License version 2 as
-> - * published by the Free Software Foundation.
-> - */
-> -
-> -#ifndef __ASM_ARC_BYTEORDER_H
-> -#define __ASM_ARC_BYTEORDER_H
-> -
-> -#ifdef CONFIG_CPU_BIG_ENDIAN
-> -#include <linux/byteorder/big_endian.h>
-> -#else
-> -#include <linux/byteorder/little_endian.h>
-> -#endif
-> -
-> -#endif /* ASM_ARC_BYTEORDER_H */
-> diff --git a/arch/arc/include/asm/cachectl.h b/arch/arc/include/asm/cachectl.h
-> deleted file mode 100644
-> index 51c73f0..0000000
-> --- a/arch/arc/include/asm/cachectl.h
-> +++ /dev/null
-> @@ -1,28 +0,0 @@
-> -/*
-> - * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-> - *
-> - * This program is free software; you can redistribute it and/or modify
-> - * it under the terms of the GNU General Public License version 2 as
-> - * published by the Free Software Foundation.
-> - */
-> -
-> -#ifndef __ARC_ASM_CACHECTL_H
-> -#define __ARC_ASM_CACHECTL_H
-> -
-> -/*
-> - * ARC ABI flags defined for Android's finegrained cacheflush requirements
-> - */
-> -#define CF_I_INV	0x0002
-> -#define CF_D_FLUSH	0x0010
-> -#define CF_D_FLUSH_INV	0x0020
-> -
-> -#define CF_DEFAULT	(CF_I_INV | CF_D_FLUSH)
-> -
-> -/*
-> - * Standard flags expected by cacheflush system call users
-> - */
-> -#define ICACHE	CF_I_INV
-> -#define DCACHE	CF_D_FLUSH
-> -#define BCACHE	(CF_I_INV | CF_D_FLUSH)
-> -
-> -#endif
-> diff --git a/arch/arc/include/asm/page.h b/arch/arc/include/asm/page.h
-> index d111d0c..dfe1f8a 100644
-> --- a/arch/arc/include/asm/page.h
-> +++ b/arch/arc/include/asm/page.h
-> @@ -5,37 +5,11 @@
->   * it under the terms of the GNU General Public License version 2 as
->   * published by the Free Software Foundation.
->   */
-> -
->  #ifndef __ASM_ARC_PAGE_H
->  #define __ASM_ARC_PAGE_H
+> diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+> index a353849..7666857 100644
+> --- a/arch/arc/Kconfig
+> +++ b/arch/arc/Kconfig
+> @@ -24,8 +24,11 @@ config ARC
+>  	select GENERIC_SMP_IDLE_THREAD
+>  	select HAVE_GENERIC_HARDIRQS
+>  	select HAVE_MEMBLOCK
+> +	select IRQ_DOMAIN
+>  	select MODULES_USE_ELF_RELA
+>  	select NO_BOOTMEM
+> +	select OF
+> +	select OF_EARLY_FLATTREE
 >  
-> -/* PAGE_SHIFT determines the page size */
-> -#if defined(CONFIG_ARC_PAGE_SIZE_16K)
-> -#define PAGE_SHIFT 14
-> -#elif defined(CONFIG_ARC_PAGE_SIZE_4K)
-> -#define PAGE_SHIFT 12
-> -#else
-> -/*
-> - * Default 8k
-> - * done this way (instead of under CONFIG_ARC_PAGE_SIZE_8K) because adhoc
-> - * user code (busybox appletlib.h) expects PAGE_SHIFT to be defined w/o
-> - * using the correct uClibc header and in their build our autoconf.h is
-> - * not available
-> - */
-> -#define PAGE_SHIFT 13
-> -#endif
-> -
-> -#ifdef __ASSEMBLY__
-> -#define PAGE_SIZE	(1 << PAGE_SHIFT)
-> -#define PAGE_OFFSET	(0x80000000)
-> -#else
-> -#define PAGE_SIZE	(1UL << PAGE_SHIFT)	/* Default 8K */
-> -#define PAGE_OFFSET	(0x80000000UL)	/* Kernel starts at 2G onwards */
-> -#endif
-> +#include <uapi/asm/page.h>
+>  config SCHED_OMIT_FRAME_POINTER
+>  	def_bool y
+> @@ -320,6 +323,12 @@ config CMDLINE_UBOOT
+>  	  to it. kernel startup code will copy the string into cmdline buffer
+>  	  and also append CONFIG_CMDLINE.
 >  
-> -#define PAGE_MASK	(~(PAGE_SIZE-1))
-> -
-> -#ifdef __KERNEL__
->  
->  #ifndef __ASSEMBLY__
->  
-> @@ -129,6 +103,4 @@ typedef unsigned long pgtable_t;
->  
->  #endif /* !__ASSEMBLY__ */
->  
-> -#endif /* __KERNEL__ */
-> -
->  #endif
-> diff --git a/arch/arc/include/asm/ptrace.h b/arch/arc/include/asm/ptrace.h
-> index 6ab65fa..95e633e 100644
-> --- a/arch/arc/include/asm/ptrace.h
-> +++ b/arch/arc/include/asm/ptrace.h
-> @@ -7,42 +7,11 @@
->   *
->   * Amit Bhor, Sameer Dhavale: Codito Technologies 2004
->   */
-> -
->  #ifndef __ASM_ARC_PTRACE_H
->  #define __ASM_ARC_PTRACE_H
->  
-> -/*
-> - * XXX: ABI hack.
-> - * The offset calc can be cleanly done in asm-offset.c, however gdb includes
-> - * this header directly.
-> - */
-> -#define PT_bta		4
-> -#define PT_lp_start	8
-> -#define PT_lp_end	12
-> -#define PT_lp_count	16
-> -#define PT_status32	20
-> -#define PT_ret		24
-> -#define PT_blink	28
-> -#define PT_fp		32
-> -#define PT_r26		36
-> -#define PT_r12		40
-> -#define PT_r11		44
-> -#define PT_r10		48
-> -#define PT_r9		52
-> -#define PT_r8		56
-> -#define PT_r7		60
-> -#define PT_r6		64
-> -#define PT_r5		68
-> -#define PT_r4		72
-> -#define PT_r3		76
-> -#define PT_r2		80
-> -#define PT_r1		84
-> -#define PT_r0		88
-> -#define PT_sp		92
-> -#define PT_orig_r0	96
-> -#define PT_orig_r8	100
-> -
-> -#ifdef __KERNEL__
-> +#include <uapi/asm/ptrace.h>
+> +config ARC_BUILTIN_DTB_NAME
+> +	string "Built in DTB"
+> +	help
+> +	  Set the name of the DTB to embed in the vmlinux binary
+> +	  Leaving it blank selects the minimal "skeleton" dtb
 > +
+>  source "kernel/Kconfig.preempt"
 >  
->  #ifndef __ASSEMBLY__
+>  endmenu	 # "ARC Architecture Configuration"
+> diff --git a/arch/arc/Makefile b/arch/arc/Makefile
+> index 4d52a3b..90570f9 100644
+> --- a/arch/arc/Makefile
+> +++ b/arch/arc/Makefile
+> @@ -83,6 +83,9 @@ head-y		:= arch/arc/kernel/head.o
+>  # See arch/arc/Kbuild for content of core part of the kernel
+>  core-y		+= arch/arc/
 >  
-> @@ -163,6 +132,4 @@ static inline long regs_return_value(struct pt_regs *regs)
->  #define orig_r8_IS_IRQ1			0x0010
->  #define orig_r8_IS_IRQ2			0x0020
->  
-> -#endif /* __KERNEL__ */
-> -
->  #endif /* __ASM_PTRACE_H */
-> diff --git a/arch/arc/include/asm/setup.h b/arch/arc/include/asm/setup.h
-> index fc97411..229e506 100644
-> --- a/arch/arc/include/asm/setup.h
-> +++ b/arch/arc/include/asm/setup.h
-> @@ -5,11 +5,12 @@
->   * it under the terms of the GNU General Public License version 2 as
->   * published by the Free Software Foundation.
->   */
-> -
->  #ifndef __ASMARC_SETUP_H
->  #define __ASMARC_SETUP_H
->  
+> +# w/o this dtb won't embed into kernel binary
+> +core-y		+= arch/arc/boot/dts/
 > +
->  #include <linux/types.h>
-> +#include <uapi/asm/setup.h>
+>  # w/o this ifneq, make ARCH=arc clean was crapping out
+>  ifneq ($(platform-y),)
+>  core-y		+= arch/arc/plat-$(PLATFORM)/
+> @@ -101,6 +104,12 @@ bootpImage: vmlinux
+>  uImage: vmlinux
+>  	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
 >  
->  #define COMMAND_LINE_SIZE 256
+> +%.dtb %.dtb.S %.dtb.o:
+> +	$(Q)$(MAKE) $(build)=$(boot)/dts $(boot)/dts/$@
+> +
+> +dtbs:
+> +	$(Q)$(MAKE) $(build)=$(boot)/dts $(boot)/dts/$@
+> +
+>  archclean:
+>  	$(Q)$(MAKE) $(clean)=$(boot)
 >  
-> diff --git a/arch/arc/include/asm/sigcontext.h b/arch/arc/include/asm/sigcontext.h
-> deleted file mode 100644
-> index f21b541..0000000
-> --- a/arch/arc/include/asm/sigcontext.h
-> +++ /dev/null
-> @@ -1,23 +0,0 @@
-> -/*
-> - * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-> - *
-> - * This program is free software; you can redistribute it and/or modify
-> - * it under the terms of the GNU General Public License version 2 as
-> - * published by the Free Software Foundation.
-> - */
-> -
-> -#ifndef _ASM_ARC_SIGCONTEXT_H
-> -#define _ASM_ARC_SIGCONTEXT_H
-> -
-> -#include <asm/ptrace.h>
-> -
-> -/*
-> - * Signal context structure - contains all info to do with the state
-> - * before the signal handler was invoked.  Note: only add new entries
-> - * to the end of the structure.
-> - */
-> -struct sigcontext {
-> -	struct pt_regs regs;
-> -};
-> -
-> -#endif /* _ASM_ARC_SIGCONTEXT_H */
-> diff --git a/arch/arc/include/asm/signal.h b/arch/arc/include/asm/signal.h
-> deleted file mode 100644
-> index fad62f7..0000000
-> --- a/arch/arc/include/asm/signal.h
-> +++ /dev/null
-> @@ -1,27 +0,0 @@
-> -/*
-> - * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-> - *
-> - * This program is free software; you can redistribute it and/or modify
-> - * it under the terms of the GNU General Public License version 2 as
-> - * published by the Free Software Foundation.
-> - *
-> - * Amit Bhor, Sameer Dhavale: Codito Technologies 2004
-> - */
-> -
-> -#ifndef _ASM_ARC_SIGNAL_H
-> -#define _ASM_ARC_SIGNAL_H
-> -
-> -/*
-> - * This is much needed for ARC sigreturn optimization.
-> - * This allows uClibc to piggback the addr of a sigreturn stub in sigaction,
-> - * which allows sigreturn based re-entry into kernel after handling signal.
-> - * W/o this kernel needs to "synthesize" the sigreturn trampoline on user
-> - * mode stack which in turn forces the following:
-> - * -TLB Flush (after making the stack page executable)
-> - * -Cache line Flush (to make I/D Cache lines coherent)
-> - */
-> -#define SA_RESTORER	0x04000000
-> -
-> -#include <asm-generic/signal.h>
-> -
-> -#endif /* _ASM_ARC_SIGNAL_H */
-> diff --git a/arch/arc/include/asm/swab.h b/arch/arc/include/asm/swab.h
-> deleted file mode 100644
-> index 095599a..0000000
-> --- a/arch/arc/include/asm/swab.h
-> +++ /dev/null
-> @@ -1,98 +0,0 @@
-> -/*
-> - * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-> - *
-> - * This program is free software; you can redistribute it and/or modify
-> - * it under the terms of the GNU General Public License version 2 as
-> - * published by the Free Software Foundation.
-> - *
-> - * vineetg: May 2011
-> - *  -Support single cycle endian-swap insn in ARC700 4.10
-> - *
-> - * vineetg: June 2009
-> - *  -Better htonl implementation (5 instead of 9 ALU instructions)
-> - *  -Hardware assisted single cycle bswap (Use Case of ARC custom instrn)
-> - */
-> -
-> -#ifndef __ASM_ARC_SWAB_H
-> -#define __ASM_ARC_SWAB_H
-> -
-> -#include <linux/types.h>
-> -
-> -/* Native single cycle endian swap insn */
-> -#ifdef CONFIG_ARC_HAS_SWAPE
-> -
-> -#define __arch_swab32(x)		\
-> -({					\
-> -	unsigned int tmp = x;		\
-> -	__asm__(			\
-> -	"	swape	%0, %1	\n"	\
-> -	: "=r" (tmp)			\
-> -	: "r" (tmp));			\
-> -	tmp;				\
-> -})
-> -
-> -#else
-> -
-> -/* Several ways of Endian-Swap Emulation for ARC
-> - * 0: kernel generic
-> - * 1: ARC optimised "C"
-> - * 2: ARC Custom instruction
-> - */
-> -#define ARC_BSWAP_TYPE	1
-> -
-> -#if (ARC_BSWAP_TYPE == 1)		/******* Software only ********/
-> -
-> -/* The kernel default implementation of htonl is
-> - *		return  x<<24 | x>>24 |
-> - *		 (x & (__u32)0x0000ff00UL)<<8 | (x & (__u32)0x00ff0000UL)>>8;
-> - *
-> - * This generates 9 instructions on ARC (excluding the ld/st)
-> - *
-> - * 8051fd8c:	ld     r3,[r7,20]	; Mem op : Get the value to be swapped
-> - * 8051fd98:	asl    r5,r3,24		; get  3rd Byte
-> - * 8051fd9c:	lsr    r2,r3,24		; get  0th Byte
-> - * 8051fda0:	and    r4,r3,0xff00
-> - * 8051fda8:	asl    r4,r4,8		; get 1st Byte
-> - * 8051fdac:	and    r3,r3,0x00ff0000
-> - * 8051fdb4:	or     r2,r2,r5		; combine 0th and 3rd Bytes
-> - * 8051fdb8:	lsr    r3,r3,8		; 2nd Byte at correct place in Dst Reg
-> - * 8051fdbc:	or     r2,r2,r4		; combine 0,3 Bytes with 1st Byte
-> - * 8051fdc0:	or     r2,r2,r3		; combine 0,3,1 Bytes with 2nd Byte
-> - * 8051fdc4:	st     r2,[r1,20]	; Mem op : save result back to mem
-> - *
-> - * Joern suggested a better "C" algorithm which is great since
-> - * (1) It is portable to any architecure
-> - * (2) At the same time it takes advantage of ARC ISA (rotate intrns)
-> - */
-> -
-> -#define __arch_swab32(x)					\
-> -({	unsigned long __in = (x), __tmp;			\
-> -	__tmp = __in << 8 | __in >> 24; /* ror tmp,in,24 */	\
-> -	__in = __in << 24 | __in >> 8; /* ror in,in,8 */	\
-> -	__tmp ^= __in;						\
-> -	__tmp &= 0xff00ff;					\
-> -	__tmp ^ __in;						\
-> -})
-> -
-> -#elif (ARC_BSWAP_TYPE == 2)	/* Custom single cycle bwap instruction */
-> -
-> -#define __arch_swab32(x)						\
-> -({									\
-> -	unsigned int tmp = x;						\
-> -	__asm__(							\
-> -	"	.extInstruction	bswap, 7, 0x00, SUFFIX_NONE, SYNTAX_2OP	\n"\
-> -	"	bswap  %0, %1						\n"\
-> -	: "=r" (tmp)							\
-> -	: "r" (tmp));							\
-> -	tmp;								\
-> -})
-> -
-> -#endif /* ARC_BSWAP_TYPE=zzz */
-> -
-> -#endif /* CONFIG_ARC_HAS_SWAPE */
-> -
-> -#if !defined(__STRICT_ANSI__) || defined(__KERNEL__)
-> -#define __SWAB_64_THRU_32__
-> -#endif
-> -
-> -#endif
-> diff --git a/arch/arc/include/asm/unistd.h b/arch/arc/include/asm/unistd.h
-> deleted file mode 100644
-> index 6f30484..0000000
-> --- a/arch/arc/include/asm/unistd.h
-> +++ /dev/null
-> @@ -1,34 +0,0 @@
-> -/*
-> - * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-> - *
-> - * This program is free software; you can redistribute it and/or modify
-> - * it under the terms of the GNU General Public License version 2 as
-> - * published by the Free Software Foundation.
-> - */
-> -
-> -/******** no-legacy-syscalls-ABI *******/
-> -
-> -#define __ARCH_WANT_SYS_EXECVE
-> -#define __ARCH_WANT_SYS_CLONE
-> -#define __ARCH_WANT_SYS_VFORK
-> -#define __ARCH_WANT_SYS_FORK
-> -
-> -#define sys_mmap2 sys_mmap_pgoff
-> -
-> -#include <asm-generic/unistd.h>
-> -
-> -#define NR_syscalls	__NR_syscalls
-> -
-> -/* ARC specific syscall */
-> -#define __NR_cacheflush		(__NR_arch_specific_syscall + 0)
-> -#define __NR_arc_settls		(__NR_arch_specific_syscall + 1)
-> -#define __NR_arc_gettls		(__NR_arch_specific_syscall + 2)
-> -
-> -__SYSCALL(__NR_cacheflush, sys_cacheflush)
-> -__SYSCALL(__NR_arc_settls, sys_arc_settls)
-> -__SYSCALL(__NR_arc_gettls, sys_arc_gettls)
-> -
-> -
-> -/* Generic syscall (fs/filesystems.c - lost in asm-generic/unistd.h */
-> -#define __NR_sysfs		(__NR_arch_specific_syscall + 3)
-> -__SYSCALL(__NR_sysfs, sys_sysfs)
-> diff --git a/arch/arc/include/uapi/asm/Kbuild b/arch/arc/include/uapi/asm/Kbuild
+> diff --git a/arch/arc/boot/dts/Makefile b/arch/arc/boot/dts/Makefile
 > new file mode 100644
-> index 0000000..2736244
+> index 0000000..4a972a3
 > --- /dev/null
-> +++ b/arch/arc/include/uapi/asm/Kbuild
-> @@ -0,0 +1,11 @@
-> +# UAPI Header export list
-> +include include/uapi/asm-generic/Kbuild.asm
-> +header-y += page.h
-> +header-y += setup.h
-> +header-y += byteorder.h
-> +header-y += cachectl.h
-> +header-y += ptrace.h
-> +header-y += sigcontext.h
-> +header-y += signal.h
-> +header-y += swab.h
-> +header-y += unistd.h
-> diff --git a/arch/arc/include/uapi/asm/byteorder.h b/arch/arc/include/uapi/asm/byteorder.h
+> +++ b/arch/arc/boot/dts/Makefile
+> @@ -0,0 +1,14 @@
+> +ifeq ($(CONFIG_OF),y)
+> +
+> +# Built-in dtb
+> +builtindtb-y		:= skeleton
+> +
+> +ifneq ($(CONFIG_ARC_BUILTIN_DTB_NAME),"")
+> +	builtindtb-y	:= $(CONFIG_ARC_BUILTIN_DTB_NAME)
+> +endif
+> +
+> +obj-y	+= $(patsubst "%",%,$(builtindtb-y)).dtb.o
+> +
+> +clean-files := *.dtb
+> +
+> +endif
+> diff --git a/arch/arc/boot/dts/skeleton.dts b/arch/arc/boot/dts/skeleton.dts
 > new file mode 100644
-> index 0000000..9da71d4
+> index 0000000..25a84fb
 > --- /dev/null
-> +++ b/arch/arc/include/uapi/asm/byteorder.h
-> @@ -0,0 +1,18 @@
+> +++ b/arch/arc/boot/dts/skeleton.dts
+> @@ -0,0 +1,10 @@
 > +/*
-> + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
+> + * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
+> + *
+> + * This program is free software; you can redistribute it and/or modify
+> + * it under the terms of the GNU General Public License version 2 as
+> + * published by the Free Software Foundation.
+> + */
+> +/dts-v1/;
+> +
+> +/include/ "skeleton.dtsi"
+> diff --git a/arch/arc/boot/dts/skeleton.dtsi b/arch/arc/boot/dts/skeleton.dtsi
+> new file mode 100644
+> index 0000000..9b357d8
+> --- /dev/null
+> +++ b/arch/arc/boot/dts/skeleton.dtsi
+> @@ -0,0 +1,21 @@
+> +/*
+> + * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
 > + *
 > + * This program is free software; you can redistribute it and/or modify
 > + * it under the terms of the GNU General Public License version 2 as
 > + * published by the Free Software Foundation.
 > + */
 > +
-> +#ifndef __ASM_ARC_BYTEORDER_H
-> +#define __ASM_ARC_BYTEORDER_H
-> +
-> +#ifdef CONFIG_CPU_BIG_ENDIAN
-> +#include <linux/byteorder/big_endian.h>
-> +#else
-> +#include <linux/byteorder/little_endian.h>
-> +#endif
-> +
-> +#endif /* ASM_ARC_BYTEORDER_H */
-> diff --git a/arch/arc/include/uapi/asm/cachectl.h b/arch/arc/include/uapi/asm/cachectl.h
-> new file mode 100644
-> index 0000000..51c73f0
-> --- /dev/null
-> +++ b/arch/arc/include/uapi/asm/cachectl.h
-> @@ -0,0 +1,28 @@
 > +/*
-> + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-> + *
-> + * This program is free software; you can redistribute it and/or modify
-> + * it under the terms of the GNU General Public License version 2 as
-> + * published by the Free Software Foundation.
+> + * Skeleton device tree; the bare minimum needed to boot; just include and
+> + * add a compatible value.
 > + */
 > +
-> +#ifndef __ARC_ASM_CACHECTL_H
-> +#define __ARC_ASM_CACHECTL_H
-> +
-> +/*
-> + * ARC ABI flags defined for Android's finegrained cacheflush requirements
-> + */
-> +#define CF_I_INV	0x0002
-> +#define CF_D_FLUSH	0x0010
-> +#define CF_D_FLUSH_INV	0x0020
-> +
-> +#define CF_DEFAULT	(CF_I_INV | CF_D_FLUSH)
-> +
-> +/*
-> + * Standard flags expected by cacheflush system call users
-> + */
-> +#define ICACHE	CF_I_INV
-> +#define DCACHE	CF_D_FLUSH
-> +#define BCACHE	(CF_I_INV | CF_D_FLUSH)
-> +
-> +#endif
-> diff --git a/arch/arc/include/uapi/asm/page.h b/arch/arc/include/uapi/asm/page.h
-> new file mode 100644
-> index 0000000..e5d41e0
-> --- /dev/null
-> +++ b/arch/arc/include/uapi/asm/page.h
-> @@ -0,0 +1,39 @@
-> +/*
-> + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-> + *
-> + * This program is free software; you can redistribute it and/or modify
-> + * it under the terms of the GNU General Public License version 2 as
-> + * published by the Free Software Foundation.
-> + */
-> +
-> +#ifndef _UAPI__ASM_ARC_PAGE_H
-> +#define _UAPI__ASM_ARC_PAGE_H
-> +
-> +/* PAGE_SHIFT determines the page size */
-> +#if defined(CONFIG_ARC_PAGE_SIZE_16K)
-> +#define PAGE_SHIFT 14
-> +#elif defined(CONFIG_ARC_PAGE_SIZE_4K)
-> +#define PAGE_SHIFT 12
-> +#else
-> +/*
-> + * Default 8k
-> + * done this way (instead of under CONFIG_ARC_PAGE_SIZE_8K) because adhoc
-> + * user code (busybox appletlib.h) expects PAGE_SHIFT to be defined w/o
-> + * using the correct uClibc header and in their build our autoconf.h is
-> + * not available
-> + */
-> +#define PAGE_SHIFT 13
-> +#endif
-> +
-> +#ifdef __ASSEMBLY__
-> +#define PAGE_SIZE	(1 << PAGE_SHIFT)
-> +#define PAGE_OFFSET	(0x80000000)
-> +#else
-> +#define PAGE_SIZE	(1UL << PAGE_SHIFT)	/* Default 8K */
-> +#define PAGE_OFFSET	(0x80000000UL)	/* Kernel starts at 2G onwards */
-> +#endif
-> +
-> +#define PAGE_MASK	(~(PAGE_SIZE-1))
-> +
-> +
-> +#endif /* _UAPI__ASM_ARC_PAGE_H */
-> diff --git a/arch/arc/include/uapi/asm/ptrace.h b/arch/arc/include/uapi/asm/ptrace.h
-> new file mode 100644
-> index 0000000..bccf4ab
-> --- /dev/null
-> +++ b/arch/arc/include/uapi/asm/ptrace.h
-> @@ -0,0 +1,46 @@
-> +/*
-> + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-> + *
-> + * This program is free software; you can redistribute it and/or modify
-> + * it under the terms of the GNU General Public License version 2 as
-> + * published by the Free Software Foundation.
-> + *
-> + * Amit Bhor, Sameer Dhavale: Codito Technologies 2004
-> + */
-> +
-> +#ifndef _UAPI__ASM_ARC_PTRACE_H
-> +#define _UAPI__ASM_ARC_PTRACE_H
-> +
-> +/*
-> + * XXX: ABI hack.
-> + * The offset calc can be cleanly done in asm-offset.c, however gdb includes
-> + * this header directly.
-> + */
-> +#define PT_bta		4
-> +#define PT_lp_start	8
-> +#define PT_lp_end	12
-> +#define PT_lp_count	16
-> +#define PT_status32	20
-> +#define PT_ret		24
-> +#define PT_blink	28
-> +#define PT_fp		32
-> +#define PT_r26		36
-> +#define PT_r12		40
-> +#define PT_r11		44
-> +#define PT_r10		48
-> +#define PT_r9		52
-> +#define PT_r8		56
-> +#define PT_r7		60
-> +#define PT_r6		64
-> +#define PT_r5		68
-> +#define PT_r4		72
-> +#define PT_r3		76
-> +#define PT_r2		80
-> +#define PT_r1		84
-> +#define PT_r0		88
-> +#define PT_sp		92
-> +#define PT_orig_r0	96
-> +#define PT_orig_r8	100
-> +
-> +
-> +#endif /* _UAPI__ASM_ARC_PTRACE_H */
-> diff --git a/arch/arc/include/uapi/asm/setup.h b/arch/arc/include/uapi/asm/setup.h
-> new file mode 100644
-> index 0000000..a6d4e44
-> --- /dev/null
-> +++ b/arch/arc/include/uapi/asm/setup.h
-> @@ -0,0 +1,6 @@
-> +/*
-> + * setup.h is part of userspace header ABI so UAPI scripts have to generate it
-> + * even if there's nothing to export - causing empty <uapi/asm/setup.h>
-> + * However to prevent "patch" from discarding it we add this placeholder
-> + * comment
-> + */
-> diff --git a/arch/arc/include/uapi/asm/sigcontext.h b/arch/arc/include/uapi/asm/sigcontext.h
-> new file mode 100644
-> index 0000000..f21b541
-> --- /dev/null
-> +++ b/arch/arc/include/uapi/asm/sigcontext.h
-> @@ -0,0 +1,23 @@
-> +/*
-> + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-> + *
-> + * This program is free software; you can redistribute it and/or modify
-> + * it under the terms of the GNU General Public License version 2 as
-> + * published by the Free Software Foundation.
-> + */
-> +
-> +#ifndef _ASM_ARC_SIGCONTEXT_H
-> +#define _ASM_ARC_SIGCONTEXT_H
-> +
-> +#include <asm/ptrace.h>
-> +
-> +/*
-> + * Signal context structure - contains all info to do with the state
-> + * before the signal handler was invoked.  Note: only add new entries
-> + * to the end of the structure.
-> + */
-> +struct sigcontext {
-> +	struct pt_regs regs;
+> +/ {
+> +	compatible = "snps,arc";
+> +	#address-cells = <1>;
+> +	#size-cells = <1>;
+> +	chosen { };
+> +	aliases { };
+> +	memory { device_type = "memory"; reg = <0 0>; };
 > +};
-> +
-> +#endif /* _ASM_ARC_SIGCONTEXT_H */
-> diff --git a/arch/arc/include/uapi/asm/signal.h b/arch/arc/include/uapi/asm/signal.h
+> diff --git a/arch/arc/include/asm/prom.h b/arch/arc/include/asm/prom.h
 > new file mode 100644
-> index 0000000..fad62f7
+> index 0000000..f54489b
 > --- /dev/null
-> +++ b/arch/arc/include/uapi/asm/signal.h
-> @@ -0,0 +1,27 @@
+> +++ b/arch/arc/include/asm/prom.h
+> @@ -0,0 +1,15 @@
 > +/*
-> + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
+> + * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
 > + *
 > + * This program is free software; you can redistribute it and/or modify
 > + * it under the terms of the GNU General Public License version 2 as
 > + * published by the Free Software Foundation.
-> + *
-> + * Amit Bhor, Sameer Dhavale: Codito Technologies 2004
 > + */
 > +
-> +#ifndef _ASM_ARC_SIGNAL_H
-> +#define _ASM_ARC_SIGNAL_H
+> +#ifndef _ASM_ARC_PROM_H_
+> +#define _ASM_ARC_PROM_H_
 > +
-> +/*
-> + * This is much needed for ARC sigreturn optimization.
-> + * This allows uClibc to piggback the addr of a sigreturn stub in sigaction,
-> + * which allows sigreturn based re-entry into kernel after handling signal.
-> + * W/o this kernel needs to "synthesize" the sigreturn trampoline on user
-> + * mode stack which in turn forces the following:
-> + * -TLB Flush (after making the stack page executable)
-> + * -Cache line Flush (to make I/D Cache lines coherent)
-> + */
-> +#define SA_RESTORER	0x04000000
+> +#define HAVE_ARCH_DEVTREE_FIXUPS
+> +extern int __init setup_machine_fdt(void *dt);
 > +
-> +#include <asm-generic/signal.h>
+> +#endif
+> diff --git a/arch/arc/include/asm/sections.h b/arch/arc/include/asm/sections.h
+> index fc15f2e..6fc1159 100644
+> --- a/arch/arc/include/asm/sections.h
+> +++ b/arch/arc/include/asm/sections.h
+> @@ -13,5 +13,6 @@
+>  
+>  extern char _int_vec_base_lds[];
+>  extern char __arc_dccm_base[];
+> +extern char __dtb_start[];
+>  
+>  #endif
+> diff --git a/arch/arc/kernel/Makefile b/arch/arc/kernel/Makefile
+> index 6d83431..8a55e99 100644
+> --- a/arch/arc/kernel/Makefile
+> +++ b/arch/arc/kernel/Makefile
+> @@ -8,6 +8,8 @@
+>  obj-y	:= arcksyms.o setup.o irq.o time.o reset.o ptrace.o entry.o process.o
+>  obj-y	+= signal.o traps.o sys.o troubleshoot.o stacktrace.o clk.o
+>  
+> +obj-$(CONFIG_OF)			+= devtree.o
 > +
-> +#endif /* _ASM_ARC_SIGNAL_H */
-> diff --git a/arch/arc/include/uapi/asm/swab.h b/arch/arc/include/uapi/asm/swab.h
+>  obj-$(CONFIG_ARC_FPU_SAVE_RESTORE)	+= fpu.o
+>  CFLAGS_fpu.o   += -mdpfp
+>  
+> diff --git a/arch/arc/kernel/devtree.c b/arch/arc/kernel/devtree.c
 > new file mode 100644
-> index 0000000..095599a
+> index 0000000..229f78e
 > --- /dev/null
-> +++ b/arch/arc/include/uapi/asm/swab.h
-> @@ -0,0 +1,98 @@
+> +++ b/arch/arc/kernel/devtree.c
+> @@ -0,0 +1,69 @@
 > +/*
-> + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
+> + * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
+> + *
+> + * Based on highly stipped down version of METAG
 > + *
 > + * This program is free software; you can redistribute it and/or modify
 > + * it under the terms of the GNU General Public License version 2 as
 > + * published by the Free Software Foundation.
-> + *
-> + * vineetg: May 2011
-> + *  -Support single cycle endian-swap insn in ARC700 4.10
-> + *
-> + * vineetg: June 2009
-> + *  -Better htonl implementation (5 instead of 9 ALU instructions)
-> + *  -Hardware assisted single cycle bswap (Use Case of ARC custom instrn)
 > + */
 > +
-> +#ifndef __ASM_ARC_SWAB_H
-> +#define __ASM_ARC_SWAB_H
 > +
+> +#include <linux/init.h>
+> +#include <linux/export.h>
+> +#include <linux/errno.h>
 > +#include <linux/types.h>
+> +#include <linux/reboot.h>
+> +#include <linux/memblock.h>
+> +#include <linux/of.h>
+> +#include <linux/of_fdt.h>
+> +#include <linux/of_irq.h>
+> +#include <linux/of_platform.h>
+> +#include <asm/prom.h>
 > +
-> +/* Native single cycle endian swap insn */
-> +#ifdef CONFIG_ARC_HAS_SWAPE
+> +/* called from unflatten_device_tree() to bootstrap devicetree itself */
+> +void * __init early_init_dt_alloc_memory_arch(u64 size, u64 align)
+> +{
+> +	return __va(memblock_alloc(size, align));
+> +}
 > +
-> +#define __arch_swab32(x)		\
-> +({					\
-> +	unsigned int tmp = x;		\
-> +	__asm__(			\
-> +	"	swape	%0, %1	\n"	\
-> +	: "=r" (tmp)			\
-> +	: "r" (tmp));			\
-> +	tmp;				\
-> +})
-> +
-> +#else
-> +
-> +/* Several ways of Endian-Swap Emulation for ARC
-> + * 0: kernel generic
-> + * 1: ARC optimised "C"
-> + * 2: ARC Custom instruction
+> +/**
+> + * setup_machine_fdt - Machine setup when an dtb was passed to the kernel
+> + * @dt:		virtual address pointer to dt blob
+> + *
+> + * If a dtb was passed to the kernel, then use it to choose the correct
+> + * machine_desc and to setup the system.
 > + */
-> +#define ARC_BSWAP_TYPE	1
+> +int __init setup_machine_fdt(void *dt)
+> +{
+> +	struct boot_param_header *devtree = dt;
+> +	unsigned long dt_root;
+> +	char *model, *compat;
+> +	char manufacturer[16];
 > +
-> +#if (ARC_BSWAP_TYPE == 1)		/******* Software only ********/
+> +	/* check device tree validity */
+> +	if (be32_to_cpu(devtree->magic) != OF_DT_HEADER)
+> +		return 1;
 > +
-> +/* The kernel default implementation of htonl is
-> + *		return  x<<24 | x>>24 |
-> + *		 (x & (__u32)0x0000ff00UL)<<8 | (x & (__u32)0x00ff0000UL)>>8;
-> + *
-> + * This generates 9 instructions on ARC (excluding the ld/st)
-> + *
-> + * 8051fd8c:	ld     r3,[r7,20]	; Mem op : Get the value to be swapped
-> + * 8051fd98:	asl    r5,r3,24		; get  3rd Byte
-> + * 8051fd9c:	lsr    r2,r3,24		; get  0th Byte
-> + * 8051fda0:	and    r4,r3,0xff00
-> + * 8051fda8:	asl    r4,r4,8		; get 1st Byte
-> + * 8051fdac:	and    r3,r3,0x00ff0000
-> + * 8051fdb4:	or     r2,r2,r5		; combine 0th and 3rd Bytes
-> + * 8051fdb8:	lsr    r3,r3,8		; 2nd Byte at correct place in Dst Reg
-> + * 8051fdbc:	or     r2,r2,r4		; combine 0,3 Bytes with 1st Byte
-> + * 8051fdc0:	or     r2,r2,r3		; combine 0,3,1 Bytes with 2nd Byte
-> + * 8051fdc4:	st     r2,[r1,20]	; Mem op : save result back to mem
-> + *
-> + * Joern suggested a better "C" algorithm which is great since
-> + * (1) It is portable to any architecure
-> + * (2) At the same time it takes advantage of ARC ISA (rotate intrns)
-> + */
+> +	/* Search the mdescs for the 'best' compatible value match */
+> +	initial_boot_params = devtree;
+> +	dt_root = of_get_flat_dt_root();
 > +
-> +#define __arch_swab32(x)					\
-> +({	unsigned long __in = (x), __tmp;			\
-> +	__tmp = __in << 8 | __in >> 24; /* ror tmp,in,24 */	\
-> +	__in = __in << 24 | __in >> 8; /* ror in,in,8 */	\
-> +	__tmp ^= __in;						\
-> +	__tmp &= 0xff00ff;					\
-> +	__tmp ^ __in;						\
-> +})
+> +	/* compat = "<manufacturer>,<model>" */
+> +	compat = of_get_flat_dt_prop(dt_root, "compatible", NULL);
+> +	if (!compat)
+> +		compat = "<unknown>";
 > +
-> +#elif (ARC_BSWAP_TYPE == 2)	/* Custom single cycle bwap instruction */
+> +	model = strchr(compat, ',');
+> +	if (model)
+> +		model++;
 > +
-> +#define __arch_swab32(x)						\
-> +({									\
-> +	unsigned int tmp = x;						\
-> +	__asm__(							\
-> +	"	.extInstruction	bswap, 7, 0x00, SUFFIX_NONE, SYNTAX_2OP	\n"\
-> +	"	bswap  %0, %1						\n"\
-> +	: "=r" (tmp)							\
-> +	: "r" (tmp));							\
-> +	tmp;								\
-> +})
+> +	strlcpy(manufacturer, compat, model ? model - compat : strlen(compat));
 > +
-> +#endif /* ARC_BSWAP_TYPE=zzz */
+> +	pr_info("Board \"%s\" from %s (Manufacturer)\n", model, manufacturer);
 > +
-> +#endif /* CONFIG_ARC_HAS_SWAPE */
+> +	/* Retrieve various information from the /chosen node */
+> +	of_scan_flat_dt(early_init_dt_scan_chosen, boot_command_line);
 > +
-> +#if !defined(__STRICT_ANSI__) || defined(__KERNEL__)
-> +#define __SWAB_64_THRU_32__
-> +#endif
+> +	return 0;
+> +}
+> diff --git a/arch/arc/kernel/setup.c b/arch/arc/kernel/setup.c
+> index 82ac206..27aebd6 100644
+> --- a/arch/arc/kernel/setup.c
+> +++ b/arch/arc/kernel/setup.c
+> @@ -13,6 +13,8 @@
+>  #include <linux/console.h>
+>  #include <linux/module.h>
+>  #include <linux/cpu.h>
+> +#include <linux/of_fdt.h>
+> +#include <asm/sections.h>
+>  #include <asm/arcregs.h>
+>  #include <asm/tlb.h>
+>  #include <asm/cache.h>
+> @@ -20,6 +22,7 @@
+>  #include <asm/page.h>
+>  #include <asm/irq.h>
+>  #include <asm/arcregs.h>
+> +#include <asm/prom.h>
+>  
+>  #define FIX_PTR(x)  __asm__ __volatile__(";" : "+r"(x))
+>  
+> @@ -57,6 +60,8 @@ void __init __attribute__((weak)) arc_platform_early_init(void)
+>  
+>  void __init setup_arch(char **cmdline_p)
+>  {
+> +	int rc;
 > +
-> +#endif
-> diff --git a/arch/arc/include/uapi/asm/unistd.h b/arch/arc/include/uapi/asm/unistd.h
-> new file mode 100644
-> index 0000000..6f30484
-> --- /dev/null
-> +++ b/arch/arc/include/uapi/asm/unistd.h
-> @@ -0,0 +1,34 @@
-> +/*
-> + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-> + *
-> + * This program is free software; you can redistribute it and/or modify
-> + * it under the terms of the GNU General Public License version 2 as
-> + * published by the Free Software Foundation.
-> + */
+>  #ifdef CONFIG_CMDLINE_UBOOT
+>  	/* Make sure that a whitespace is inserted before */
+>  	strlcat(command_line, " ", sizeof(command_line));
+> @@ -71,6 +76,8 @@ void __init setup_arch(char **cmdline_p)
+>  	strlcpy(boot_command_line, command_line, COMMAND_LINE_SIZE);
+>  	*cmdline_p = command_line;
+>  
+> +	rc = setup_machine_fdt(__dtb_start);
 > +
-> +/******** no-legacy-syscalls-ABI *******/
+>  	/* To force early parsing of things like mem=xxx */
+>  	parse_early_param();
+>  
+> @@ -81,6 +88,8 @@ void __init setup_arch(char **cmdline_p)
+>  
+>  	setup_arch_memory();
+>  
+> +	unflatten_device_tree();
 > +
-> +#define __ARCH_WANT_SYS_EXECVE
-> +#define __ARCH_WANT_SYS_CLONE
-> +#define __ARCH_WANT_SYS_VFORK
-> +#define __ARCH_WANT_SYS_FORK
+>  	/* Can be issue if someone passes cmd line arg "ro"
+>  	 * But that is unlikely so keeping it as it is
+>  	 */
+> diff --git a/arch/arc/mm/init.c b/arch/arc/mm/init.c
+> index 63da347..682cf57 100644
+> --- a/arch/arc/mm/init.c
+> +++ b/arch/arc/mm/init.c
+> @@ -39,6 +39,11 @@ static int __init setup_mem_sz(char *str)
+>  }
+>  early_param("mem", setup_mem_sz);
+>  
+> +void __init early_init_dt_add_memory_arch(u64 base, u64 size)
+> +{
+> +	pr_err("%s(%llx, %llx)\n", __func__, base, size);
+> +}
 > +
-> +#define sys_mmap2 sys_mmap_pgoff
+>  /*
+>   * First memory setup routine called from setup_arch()
+>   * 1. setup swapper's mm @init_mm
+> @@ -169,3 +174,11 @@ void __init free_initrd_mem(unsigned long start, unsigned long end)
+>  	free_init_pages("initrd memory", start, end);
+>  }
+>  #endif
 > +
-> +#include <asm-generic/unistd.h>
-> +
-> +#define NR_syscalls	__NR_syscalls
-> +
-> +/* ARC specific syscall */
-> +#define __NR_cacheflush		(__NR_arch_specific_syscall + 0)
-> +#define __NR_arc_settls		(__NR_arch_specific_syscall + 1)
-> +#define __NR_arc_gettls		(__NR_arch_specific_syscall + 2)
-> +
-> +__SYSCALL(__NR_cacheflush, sys_cacheflush)
-> +__SYSCALL(__NR_arc_settls, sys_arc_settls)
-> +__SYSCALL(__NR_arc_gettls, sys_arc_gettls)
-> +
-> +
-> +/* Generic syscall (fs/filesystems.c - lost in asm-generic/unistd.h */
-> +#define __NR_sysfs		(__NR_arch_specific_syscall + 3)
-> +__SYSCALL(__NR_sysfs, sys_sysfs)
+> +#ifdef CONFIG_OF_FLATTREE
+> +void __init early_init_dt_setup_initrd_arch(unsigned long start,
+> +					    unsigned long end)
+> +{
+> +	pr_err("%s(%lx, %lx)\n", __func__, start, end);
+> +}
+> +#endif /* CONFIG_OF_FLATTREE */
 > 
 
-If this looks OK, can you please rubber-stamp it with your ACK.
+Does the reworked patch look OK to you ? If so, can I get your ACK please.
 
 Thx,
 -Vineet
