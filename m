@@ -1,31 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:47112 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753838Ab3A2OcD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 Jan 2013 09:32:03 -0500
-Message-ID: <5107DD1C.2080008@imgtec.com>
-Date: Tue, 29 Jan 2013 14:30:52 +0000
-From: James Hogan <james.hogan@imgtec.com>
-MIME-Version: 1.0
-Subject: linux-next: new arch/metag tree
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Received: from haggis.pcug.org.au ([203.10.76.10]:49385 "EHLO
+	members.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753134Ab3A2UpE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Jan 2013 15:45:04 -0500
+Date: Wed, 30 Jan 2013 07:44:52 +1100
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [PATCH v3 00/44] Meta Linux Kernel Port
+Message-ID: <20130130074452.f67abeeaae3a00d046f5699f@canb.auug.org.au>
+In-Reply-To: <51062460.9060902@synopsys.com>
+References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
+	<5102BB38.3050207@imgtec.com>
+	<201301260025.10020.arnd@arndb.de>
+	<51062460.9060902@synopsys.com>
+Mime-Version: 1.0
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA256";
+ boundary="Signature=_Wed__30_Jan_2013_07_44_52_+1100_Y8/7NGD184iCD+MN"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: linux-kernel <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Arnd <arnd@arndb.de>
-Message-ID: <20130129143052.6fRktys-Jl2mRFw83loT4tfUEYrl1peRzwauna8nMlY@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, James Hogan <james.hogan@imgtec.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20130129204452.cQRU5iyr2XWBM0FAP3-X3Nt7ToldLdIP1nTU7lN7UKc@z>
 
-Hi Stephen,
+--Signature=_Wed__30_Jan_2013_07_44_52_+1100_Y8/7NGD184iCD+MN
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Please can you add the following branch to linux-next for Meta
-architecture support:
+Hi Vineet,
 
-git://github.com/jahogan/metag-linux.git for-next
+On Mon, 28 Jan 2013 12:40:24 +0530 Vineet Gupta <Vineet.Gupta1@synopsys.com=
+> wrote:
+>
+> Stephen, can you please add the following branch (rebased off 3.8-rc5) to=
+ linux-next
+>=20
+> git://github.com/foss-for-synopsys-dwc-arc-processors/linux.git  arc-next
 
-(this is currently v4 of the patchset excluding the last two patches,
-the tty and fs drivers, as I'd like acks first).
+Added from today (though there may not be a linux-next release today).
 
-Thanks
-James
+> While the first pull request can go directly from github, I presume the l=
+ogistics
+> for setting up accounts on kernel.org will only kick start after the firs=
+t batch
+> of code has been accepted. I can't seem to find any discussions on lists =
+to that
+> effect.
 
+Linus prefers to not pull from github, but will if you ask him to pull a
+tag signed with a verifiable gpg key.  This is not a requirement if your
+tree is on kernel.org (though you still need a verifiable gpg key to get
+a kernel.org account).
+
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+
+--Signature=_Wed__30_Jan_2013_07_44_52_+1100_Y8/7NGD184iCD+MN
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.12 (GNU/Linux)
+
+iQIcBAEBCAAGBQJRCDTEAAoJEECxmPOUX5FEvJYQAKaLABnY5uum6gM9796w6kpY
+x1G+I93g+1cYyLEt8AyVHFEEsZWGAlTMmEs3/cphufj5qMa/Ie4dBe6xo7vL1eBN
+XcHkrQSwESqyUSChNEwdWQNk+hPdqRnLMxBse0X1p10VlytSDBwGcuGv1p2bF77Q
+V2btYxtJnbC+XEL41xYdyVmFfPPbYGxZVijpOVa0KCsqq52BPyI+wb9XuoheiT3y
+5OKhxD4c9NhAu0JRosoMDTGEclxZ21YMsc0TM8dPQzadaWrwqn6YncMxWjwbN8Yd
+8LZg+k/YY7BPtbFRJbZZMu1VH/pYqfdTqNq8oUP2gyST0vu32fR0MkUoQgIN6fQZ
+X4CT+0o3s8GMwGuSVf3sLcIrIRYtpb5UegaTywGxYwzgom7I8IE/WuWK3yYYq7n1
+ZsqdtZwUz+z2r9bxQWLcFikIfJxeMvJ/rOvQ3zjCzfZ/6US9BPzlo9w/ELi7Ckri
+SqCEnxAdkNvZ5gaNRIq/f2rOhub/WyYjVrByzNJ1DXnBGdzRJoKoVTzKzrcrtnxQ
+rKFfv6+72KwznBaZ9ZyPLopPPkUx5XvzWp/Omgp4ngKCAJ4+DBrUm8X+aKEYQDNq
+dQPOTBQTZewwhYz62km3MclqMeT2PORw19GsWVZyJyin42vXxdGobrxI4sRGVWzo
+6Yl90Ajgz0oDFQmB0wHC
+=QijY
+-----END PGP SIGNATURE-----
+
+--Signature=_Wed__30_Jan_2013_07_44_52_+1100_Y8/7NGD184iCD+MN--
