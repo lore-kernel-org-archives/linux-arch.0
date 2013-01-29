@@ -1,93 +1,77 @@
-From: Vineet Gupta <Vineet.Gupta1-HKixBCOQz3hWk0Htik3J/w@public.gmane.org>
-Subject: Re: [PATCH v3 32/71] ARC: [DeviceTree] Basic support
-Date: Tue, 29 Jan 2013 19:09:16 +0530
-Message-ID: <5107D104.5050304@synopsys.com>
-References: <1359024639-21915-1-git-send-email-vgupta@synopsys.com>
- <1359024639-21915-15-git-send-email-vgupta@synopsys.com>
- <5107CDD3.3050502@gmail.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH v3 02/71] ARC: Build system: Makefiles, Kconfig, Linker
+ script
+Date: Tue, 29 Jan 2013 19:15:07 +0530
+Message-ID: <5107D263.4090606@synopsys.com>
+References: <1359024639-21915-1-git-send-email-vgupta@synopsys.com> <1359024639-21915-3-git-send-email-vgupta@synopsys.com> <51061AD0.4020200@synopsys.com> <20130128184419.GA24853@merkur.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
-In-Reply-To: <5107CDD3.3050502-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-List-Unsubscribe: <https://lists.ozlabs.org/options/devicetree-discuss>,
- <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/devicetree-discuss/>
-List-Post: <mailto:devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
-List-Help: <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/devicetree-discuss>,
- <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=subscribe>
-Errors-To: devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
-Sender: "devicetree-discuss"
- <devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
-To: Rob Herring <robherring2-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from hermes.synopsys.com ([198.182.44.81]:44396 "EHLO
+	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752988Ab3A2Npn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Jan 2013 08:45:43 -0500
+In-Reply-To: <20130128184419.GA24853@merkur.ravnborg.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
 
-On Tuesday 29 January 2013 06:55 PM, Rob Herring wrote:
-> On 01/24/2013 04:50 AM, Vineet Gupta wrote:
->> This is minimal infrastructure needed for devicetree work.
->> It uses an a sample "skeleton" devicetree - embedded in kernel image -
->> to print the board, manufacturer by parsing the top-level "compatible"
->> string.
+On Tuesday 29 January 2013 12:14 AM, Sam Ravnborg wrote:
+> On Mon, Jan 28, 2013 at 11:59:36AM +0530, Vineet Gupta wrote:
+>> Hi Sam,
 >>
->> As of now we don't need any additional "board" specific "machine_desc".
->>
->> TODO: support interpreting the command line as boot-loader passed dtb
->>
->> Signed-off-by: Vineet Gupta <vgupta-HKixBCOQz3hWk0Htik3J/w@public.gmane.org>
->> Cc: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
->> Cc: Grant Likely <grant.likely-s3s/WqlpOiPyB63q8FvJNQ@public.gmane.org>
->> Cc: devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
->> Cc: Rob Herring <rob.herring-bsGFqQB8/DxBDgjK7y7TUQ@public.gmane.org>
-> One minor thing below, otherwise:
+>> On Thursday 24 January 2013 04:20 PM, Vineet Gupta wrote:
+>>> Arnd in his review pointed out that arch Kconfig organisation has several
+>>> deficiencies:
+>>>
+>>> * Build time entries for things which can be runtime extracted from DT
+>>>   (e.g. SDRAM size, core clk frequency..)
+>>> * Not multi-platform-image-build friendly (choice .. endchoice constructs)
+>>> * cpu variants support (750/770) is exclusive.
+>>>
+>>> The first 2 have been fixed in subsequent patches.
+>>> Due to the nature of the 750 and 770, it is not possible to build for
+>>> both together, w/o special runtime glue code which would hurt
+>>> performance.
+>>>
+>>> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+>>> Cc: Arnd Bergmann <arnd@arndb.de>
+>>> Cc: Sam Ravnborg <sam@ravnborg.org>
+> Looks good - all former comments addressed, and nothing were jumping
+> into my eyes now.
+> Many existing architectures looks worse from the build stuff perspective...
 >
-> Reviewed-by: Rob Herring <rob.herring-bsGFqQB8/DxBDgjK7y7TUQ@public.gmane.org>
+> Acked-by: Sam Ravnborg <sam@ravnborg.org>
 >
->
->> diff --git a/arch/arc/kernel/devtree.c b/arch/arc/kernel/devtree.c
->> new file mode 100644
->> index 0000000..229f78e
->> --- /dev/null
->> +++ b/arch/arc/kernel/devtree.c
->> @@ -0,0 +1,69 @@
->> +/*
->> + * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
->> + *
->> + * Based on highly stipped down version of METAG
->> + *
->> + * This program is free software; you can redistribute it and/or modify
->> + * it under the terms of the GNU General Public License version 2 as
->> + * published by the Free Software Foundation.
->> + */
->> +
->> +
->> +#include <linux/init.h>
->> +#include <linux/export.h>
->> +#include <linux/errno.h>
-> Is this include needed?
+> 	Sam
 
-Nope - removed.
+Thx Sam. I have a following one liner change to the version you reviewed. Will it
+be OK to add your ACK despite that or do I need to send the updated patch for you
+to take a look again.
 
->
->> +#include <linux/types.h>
->> +#include <linux/reboot.h>
-> And this?
+-Vineet
 
-reboot.h is needed for the machine_halt() prototype.
-
->
->> +#include <linux/memblock.h>
->> +#include <linux/of.h>
->> +#include <linux/of_fdt.h>
->> +#include <linux/of_irq.h>
-> And this?
->
->> +#include <linux/of_platform.h>
-> And this?
-
-Both of the above removed.
-
-I'll send a revised patch which also addresses James' review comments as well -
-(namely broken dtbs rule, adding dependency on scripts ...)
-See https://lkml.org/lkml/2013/1/28/138 for reference.
+------------------------->8-----------------------
+diff --git a/arch/arc/plat-arcfpga/Kconfig b/arch/arc/plat-arcfpga/Kconfig
+index 3fecd6f..b41e786 100644
+--- a/arch/arc/plat-arcfpga/Kconfig
++++ b/arch/arc/plat-arcfpga/Kconfig
+@@ -8,6 +8,7 @@
+ 
+ menuconfig ARC_PLAT_FPGA_LEGACY
+     bool "\"Legacy\" ARC FPGA dev Boards"
++    select ISS_SMP_EXTN if SMP
+     help
+       Support for ARC development boards, provided by Synopsys.
+       These are based on FPGA or ISS. e.g.
+@@ -19,7 +20,6 @@ if ARC_PLAT_FPGA_LEGACY
+ 
+ config ARC_BOARD_ANGEL4
+     bool "ARC Angel4"
+-    select ISS_SMP_EXTN if SMP
+     default y
+     help
+       ARC Angel4 FPGA Ref Platform (Xilinx Virtex Based)
+------------------------->8-----------------------
