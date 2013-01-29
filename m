@@ -1,40 +1,59 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH v3 32/71] ARC: [DeviceTree] Basic support
-Date: Tue, 29 Jan 2013 10:06:31 +0000
-Message-ID: <51079F27.1040905@imgtec.com>
-References: <1359024639-21915-1-git-send-email-vgupta@synopsys.com> <1359024639-21915-15-git-send-email-vgupta@synopsys.com> <5106513E.4010205@imgtec.com> <51079C05.7040308@synopsys.com>
+From: Namhyung Kim <namhyung@kernel.org>
+Subject: Re: [PATCH v5 07/45] CPU hotplug: Provide APIs to prevent CPU offline from atomic context
+Date: Tue, 29 Jan 2013 19:21:19 +0900
+Message-ID: <87mwvsuw68.fsf@sejong.aot.lge.com>
+References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
+	<20130122073446.13822.39253.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:17601 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751217Ab3A2KGf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 Jan 2013 05:06:35 -0500
-In-Reply-To: <51079C05.7040308@synopsys.com>
+Received: from LGEMRELSE7Q.lge.com ([156.147.1.151]:46413 "EHLO
+	LGEMRELSE7Q.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750972Ab3A2KVW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Jan 2013 05:21:22 -0500
+In-Reply-To: <20130122073446.13822.39253.stgit@srivatsabhat.in.ibm.com>
+	(Srivatsa S. Bhat's message of "Tue, 22 Jan 2013 13:04:54 +0530")
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, Grant Likely <grant.likely@secretlab.ca>, devicetree-discuss@lists.ozlabs.org, Rob Herring <rob.herring@calxeda.com>
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
 
-Hi Vineet,
+Hi Srivatsa,
 
->> arm64 also adds dtbs and $(dtb-y) to targets (at least in linux-next). I
->> think this makes sure that they don't get rebuilt unless they've
->> actually changed. I've also copied this for metag.
-> 
-> Did you verify that it makes a difference - at least at my end it's not - the
-> default dtb is getting rebuilt everytime. I need to debug this some more.
+On Tue, 22 Jan 2013 13:04:54 +0530, Srivatsa S. Bhat wrote:
+> @@ -246,15 +291,21 @@ struct take_cpu_down_param {
+>  static int __ref take_cpu_down(void *_param)
+>  {
+>  	struct take_cpu_down_param *param = _param;
+> -	int err;
+> +	unsigned long flags;
+> +	int err = 0;
 
-Yeh, for me it prevents the following build lines appearing every time:
-DTC     arch/metag/boot/dts/tz1090_01sp.dtb
+It seems no need to set 'err' to 0.
 
-but it still does these every time:
-DTB    arch/metag/boot/dts/tz1090_01sp.dtb.S
-AS      arch/metag/boot/dts/tz1090_01sp.dtb.o
+Thanks,
+Namhyung
 
-Adding dtbs o targets actually didn't seem to be necessary with $(dtb-y)
-added.
-
-Cheers
-James
+> +
+> +	percpu_write_lock_irqsave(&hotplug_pcpu_rwlock, &flags);
+>  
+>  	/* Ensure this CPU doesn't handle any more interrupts. */
+>  	err = __cpu_disable();
+>  	if (err < 0)
+> -		return err;
+> +		goto out;
+>  
+>  	cpu_notify(CPU_DYING | param->mod, param->hcpu);
+> -	return 0;
+> +
+> +out:
+> +	percpu_write_unlock_irqrestore(&hotplug_pcpu_rwlock, &flags);
+> +	return err;
+>  }
+>  
+>  /* Requires cpu_add_remove_lock to be held */
+>
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-pm" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
