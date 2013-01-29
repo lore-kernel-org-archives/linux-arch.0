@@ -1,77 +1,366 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH v3 02/71] ARC: Build system: Makefiles, Kconfig, Linker
- script
-Date: Tue, 29 Jan 2013 19:15:07 +0530
-Message-ID: <5107D263.4090606@synopsys.com>
-References: <1359024639-21915-1-git-send-email-vgupta@synopsys.com> <1359024639-21915-3-git-send-email-vgupta@synopsys.com> <51061AD0.4020200@synopsys.com> <20130128184419.GA24853@merkur.ravnborg.org>
+Subject: [PATCH v4 32/71] ARC: [DeviceTree] Basic support
+Date: Tue, 29 Jan 2013 19:25:23 +0530
+Message-ID: <1359467723-4269-1-git-send-email-vgupta@synopsys.com>
+References: <5107CDD3.3050502@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hermes.synopsys.com ([198.182.44.81]:44396 "EHLO
-	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752988Ab3A2Npn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Jan 2013 08:45:43 -0500
-In-Reply-To: <20130128184419.GA24853@merkur.ravnborg.org>
+Received: from vaxjo.synopsys.com ([198.182.60.75]:56680 "EHLO
+	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756945Ab3A2Nzt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Jan 2013 08:55:49 -0500
+In-Reply-To: <5107CDD3.3050502@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
+To: robherring2@gmail.com
+Cc: inux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Arnd Bergmann <arnd@arndb.de>, Grant Likely <grant.likely@secretlab.ca>, devicetree-discuss@lists.ozlabs.org, Rob Herring <rob.herring@calxeda.com>, James Hogan <james.hogan@imgtec.com>
 
-On Tuesday 29 January 2013 12:14 AM, Sam Ravnborg wrote:
-> On Mon, Jan 28, 2013 at 11:59:36AM +0530, Vineet Gupta wrote:
->> Hi Sam,
->>
->> On Thursday 24 January 2013 04:20 PM, Vineet Gupta wrote:
->>> Arnd in his review pointed out that arch Kconfig organisation has several
->>> deficiencies:
->>>
->>> * Build time entries for things which can be runtime extracted from DT
->>>   (e.g. SDRAM size, core clk frequency..)
->>> * Not multi-platform-image-build friendly (choice .. endchoice constructs)
->>> * cpu variants support (750/770) is exclusive.
->>>
->>> The first 2 have been fixed in subsequent patches.
->>> Due to the nature of the 750 and 770, it is not possible to build for
->>> both together, w/o special runtime glue code which would hurt
->>> performance.
->>>
->>> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
->>> Cc: Arnd Bergmann <arnd@arndb.de>
->>> Cc: Sam Ravnborg <sam@ravnborg.org>
-> Looks good - all former comments addressed, and nothing were jumping
-> into my eyes now.
-> Many existing architectures looks worse from the build stuff perspective...
->
-> Acked-by: Sam Ravnborg <sam@ravnborg.org>
->
-> 	Sam
+This is minimal infrastructure needed for devicetree work.
+It uses an a sample "skeleton" devicetree - embedded in kernel image -
+to print the board, manufacturer by parsing the top-level "compatible"
+string.
 
-Thx Sam. I have a following one liner change to the version you reviewed. Will it
-be OK to add your ACK despite that or do I need to send the updated patch for you
-to take a look again.
+As of now we don't need any additional "board" specific "machine_desc".
 
--Vineet
+TODO: support interpreting the command line as boot-loader passed dtb
 
-------------------------->8-----------------------
-diff --git a/arch/arc/plat-arcfpga/Kconfig b/arch/arc/plat-arcfpga/Kconfig
-index 3fecd6f..b41e786 100644
---- a/arch/arc/plat-arcfpga/Kconfig
-+++ b/arch/arc/plat-arcfpga/Kconfig
-@@ -8,6 +8,7 @@
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Grant Likely <grant.likely@secretlab.ca>
+Cc: devicetree-discuss@lists.ozlabs.org
+Cc: Rob Herring <rob.herring@calxeda.com>
+Cc: James Hogan <james.hogan@imgtec.com>
+---
+ arch/arc/Kconfig                |    9 +++++
+ arch/arc/Makefile               |    9 +++++
+ arch/arc/boot/dts/Makefile      |   17 ++++++++++
+ arch/arc/boot/dts/skeleton.dts  |   10 ++++++
+ arch/arc/boot/dts/skeleton.dtsi |   21 +++++++++++++
+ arch/arc/include/asm/prom.h     |   15 +++++++++
+ arch/arc/include/asm/sections.h |    1 +
+ arch/arc/kernel/Makefile        |    1 +
+ arch/arc/kernel/devtree.c       |   64 +++++++++++++++++++++++++++++++++++++++
+ arch/arc/kernel/setup.c         |    9 +++++
+ arch/arc/mm/init.c              |   13 ++++++++
+ 11 files changed, 169 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arc/boot/dts/Makefile
+ create mode 100644 arch/arc/boot/dts/skeleton.dts
+ create mode 100644 arch/arc/boot/dts/skeleton.dtsi
+ create mode 100644 arch/arc/include/asm/prom.h
+ create mode 100644 arch/arc/kernel/devtree.c
+
+diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+index a353849..7666857 100644
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@ -24,8 +24,11 @@ config ARC
+ 	select GENERIC_SMP_IDLE_THREAD
+ 	select HAVE_GENERIC_HARDIRQS
+ 	select HAVE_MEMBLOCK
++	select IRQ_DOMAIN
+ 	select MODULES_USE_ELF_RELA
+ 	select NO_BOOTMEM
++	select OF
++	select OF_EARLY_FLATTREE
  
- menuconfig ARC_PLAT_FPGA_LEGACY
-     bool "\"Legacy\" ARC FPGA dev Boards"
-+    select ISS_SMP_EXTN if SMP
-     help
-       Support for ARC development boards, provided by Synopsys.
-       These are based on FPGA or ISS. e.g.
-@@ -19,7 +20,6 @@ if ARC_PLAT_FPGA_LEGACY
+ config SCHED_OMIT_FRAME_POINTER
+ 	def_bool y
+@@ -320,6 +323,12 @@ config CMDLINE_UBOOT
+ 	  to it. kernel startup code will copy the string into cmdline buffer
+ 	  and also append CONFIG_CMDLINE.
  
- config ARC_BOARD_ANGEL4
-     bool "ARC Angel4"
--    select ISS_SMP_EXTN if SMP
-     default y
-     help
-       ARC Angel4 FPGA Ref Platform (Xilinx Virtex Based)
-------------------------->8-----------------------
++config ARC_BUILTIN_DTB_NAME
++	string "Built in DTB"
++	help
++	  Set the name of the DTB to embed in the vmlinux binary
++	  Leaving it blank selects the minimal "skeleton" dtb
++
+ source "kernel/Kconfig.preempt"
+ 
+ endmenu	 # "ARC Architecture Configuration"
+diff --git a/arch/arc/Makefile b/arch/arc/Makefile
+index 4d52a3b..29b5fcd 100644
+--- a/arch/arc/Makefile
++++ b/arch/arc/Makefile
+@@ -83,6 +83,9 @@ head-y		:= arch/arc/kernel/head.o
+ # See arch/arc/Kbuild for content of core part of the kernel
+ core-y		+= arch/arc/
+ 
++# w/o this dtb won't embed into kernel binary
++core-y		+= arch/arc/boot/dts/
++
+ # w/o this ifneq, make ARCH=arc clean was crapping out
+ ifneq ($(platform-y),)
+ core-y		+= arch/arc/plat-$(PLATFORM)/
+@@ -101,6 +104,12 @@ bootpImage: vmlinux
+ uImage: vmlinux
+ 	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
+ 
++%.dtb %.dtb.S %.dtb.o: scripts
++	$(Q)$(MAKE) $(build)=$(boot)/dts $(boot)/dts/$@
++
++dtbs: scripts
++	$(Q)$(MAKE) $(build)=$(boot)/dts dtbs
++
+ archclean:
+ 	$(Q)$(MAKE) $(clean)=$(boot)
+ 
+diff --git a/arch/arc/boot/dts/Makefile b/arch/arc/boot/dts/Makefile
+new file mode 100644
+index 0000000..ea3114c
+--- /dev/null
++++ b/arch/arc/boot/dts/Makefile
+@@ -0,0 +1,17 @@
++ifeq ($(CONFIG_OF),y)
++
++# Built-in dtb
++builtindtb-y		:= skeleton
++
++ifneq ($(CONFIG_ARC_BUILTIN_DTB_NAME),"")
++	builtindtb-y	:= $(patsubst "%",%,$(CONFIG_ARC_BUILTIN_DTB_NAME))
++endif
++
++obj-y   += $(builtindtb-y).dtb.o
++targets += $(builtindtb-y).dtb
++
++dtbs:  $(addprefix  $(obj)/, $(builtindtb-y).dtb)
++
++clean-files := *.dtb
++
++endif
+diff --git a/arch/arc/boot/dts/skeleton.dts b/arch/arc/boot/dts/skeleton.dts
+new file mode 100644
+index 0000000..25a84fb
+--- /dev/null
++++ b/arch/arc/boot/dts/skeleton.dts
+@@ -0,0 +1,10 @@
++/*
++ * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++/dts-v1/;
++
++/include/ "skeleton.dtsi"
+diff --git a/arch/arc/boot/dts/skeleton.dtsi b/arch/arc/boot/dts/skeleton.dtsi
+new file mode 100644
+index 0000000..9b357d8
+--- /dev/null
++++ b/arch/arc/boot/dts/skeleton.dtsi
+@@ -0,0 +1,21 @@
++/*
++ * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++/*
++ * Skeleton device tree; the bare minimum needed to boot; just include and
++ * add a compatible value.
++ */
++
++/ {
++	compatible = "snps,arc";
++	#address-cells = <1>;
++	#size-cells = <1>;
++	chosen { };
++	aliases { };
++	memory { device_type = "memory"; reg = <0 0>; };
++};
+diff --git a/arch/arc/include/asm/prom.h b/arch/arc/include/asm/prom.h
+new file mode 100644
+index 0000000..f54489b
+--- /dev/null
++++ b/arch/arc/include/asm/prom.h
+@@ -0,0 +1,15 @@
++/*
++ * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#ifndef _ASM_ARC_PROM_H_
++#define _ASM_ARC_PROM_H_
++
++#define HAVE_ARCH_DEVTREE_FIXUPS
++extern int __init setup_machine_fdt(void *dt);
++
++#endif
+diff --git a/arch/arc/include/asm/sections.h b/arch/arc/include/asm/sections.h
+index fc15f2e..6fc1159 100644
+--- a/arch/arc/include/asm/sections.h
++++ b/arch/arc/include/asm/sections.h
+@@ -13,5 +13,6 @@
+ 
+ extern char _int_vec_base_lds[];
+ extern char __arc_dccm_base[];
++extern char __dtb_start[];
+ 
+ #endif
+diff --git a/arch/arc/kernel/Makefile b/arch/arc/kernel/Makefile
+index 6d83431..eeab7c79 100644
+--- a/arch/arc/kernel/Makefile
++++ b/arch/arc/kernel/Makefile
+@@ -7,6 +7,7 @@
+ 
+ obj-y	:= arcksyms.o setup.o irq.o time.o reset.o ptrace.o entry.o process.o
+ obj-y	+= signal.o traps.o sys.o troubleshoot.o stacktrace.o clk.o
++obj-y   += devtree.o
+ 
+ obj-$(CONFIG_ARC_FPU_SAVE_RESTORE)	+= fpu.o
+ CFLAGS_fpu.o   += -mdpfp
+diff --git a/arch/arc/kernel/devtree.c b/arch/arc/kernel/devtree.c
+new file mode 100644
+index 0000000..48e157e
+--- /dev/null
++++ b/arch/arc/kernel/devtree.c
+@@ -0,0 +1,64 @@
++/*
++ * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * Based on reduced version of METAG
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++
++#include <linux/init.h>
++#include <linux/reboot.h>
++#include <linux/memblock.h>
++#include <linux/of.h>
++#include <linux/of_fdt.h>
++#include <asm/prom.h>
++
++/* called from unflatten_device_tree() to bootstrap devicetree itself */
++void * __init early_init_dt_alloc_memory_arch(u64 size, u64 align)
++{
++	return __va(memblock_alloc(size, align));
++}
++
++/**
++ * setup_machine_fdt - Machine setup when an dtb was passed to the kernel
++ * @dt:		virtual address pointer to dt blob
++ *
++ * If a dtb was passed to the kernel, then use it to choose the correct
++ * machine_desc and to setup the system.
++ */
++int __init setup_machine_fdt(void *dt)
++{
++	struct boot_param_header *devtree = dt;
++	unsigned long dt_root;
++	char *model, *compat;
++	char manufacturer[16];
++
++	/* check device tree validity */
++	if (be32_to_cpu(devtree->magic) != OF_DT_HEADER)
++		return 1;
++
++	/* Search the mdescs for the 'best' compatible value match */
++	initial_boot_params = devtree;
++	dt_root = of_get_flat_dt_root();
++
++	/* compat = "<manufacturer>,<model>" */
++	compat = of_get_flat_dt_prop(dt_root, "compatible", NULL);
++	if (!compat)
++		compat = "<unknown>";
++
++	model = strchr(compat, ',');
++	if (model)
++		model++;
++
++	strlcpy(manufacturer, compat, model ? model - compat : strlen(compat));
++
++	pr_info("Board \"%s\" from %s (Manufacturer)\n", model, manufacturer);
++
++	/* Retrieve various information from the /chosen node */
++	of_scan_flat_dt(early_init_dt_scan_chosen, boot_command_line);
++
++	return 0;
++}
+diff --git a/arch/arc/kernel/setup.c b/arch/arc/kernel/setup.c
+index 82ac206..27aebd6 100644
+--- a/arch/arc/kernel/setup.c
++++ b/arch/arc/kernel/setup.c
+@@ -13,6 +13,8 @@
+ #include <linux/console.h>
+ #include <linux/module.h>
+ #include <linux/cpu.h>
++#include <linux/of_fdt.h>
++#include <asm/sections.h>
+ #include <asm/arcregs.h>
+ #include <asm/tlb.h>
+ #include <asm/cache.h>
+@@ -20,6 +22,7 @@
+ #include <asm/page.h>
+ #include <asm/irq.h>
+ #include <asm/arcregs.h>
++#include <asm/prom.h>
+ 
+ #define FIX_PTR(x)  __asm__ __volatile__(";" : "+r"(x))
+ 
+@@ -57,6 +60,8 @@ void __init __attribute__((weak)) arc_platform_early_init(void)
+ 
+ void __init setup_arch(char **cmdline_p)
+ {
++	int rc;
++
+ #ifdef CONFIG_CMDLINE_UBOOT
+ 	/* Make sure that a whitespace is inserted before */
+ 	strlcat(command_line, " ", sizeof(command_line));
+@@ -71,6 +76,8 @@ void __init setup_arch(char **cmdline_p)
+ 	strlcpy(boot_command_line, command_line, COMMAND_LINE_SIZE);
+ 	*cmdline_p = command_line;
+ 
++	rc = setup_machine_fdt(__dtb_start);
++
+ 	/* To force early parsing of things like mem=xxx */
+ 	parse_early_param();
+ 
+@@ -81,6 +88,8 @@ void __init setup_arch(char **cmdline_p)
+ 
+ 	setup_arch_memory();
+ 
++	unflatten_device_tree();
++
+ 	/* Can be issue if someone passes cmd line arg "ro"
+ 	 * But that is unlikely so keeping it as it is
+ 	 */
+diff --git a/arch/arc/mm/init.c b/arch/arc/mm/init.c
+index 63da347..682cf57 100644
+--- a/arch/arc/mm/init.c
++++ b/arch/arc/mm/init.c
+@@ -39,6 +39,11 @@ static int __init setup_mem_sz(char *str)
+ }
+ early_param("mem", setup_mem_sz);
+ 
++void __init early_init_dt_add_memory_arch(u64 base, u64 size)
++{
++	pr_err("%s(%llx, %llx)\n", __func__, base, size);
++}
++
+ /*
+  * First memory setup routine called from setup_arch()
+  * 1. setup swapper's mm @init_mm
+@@ -169,3 +174,11 @@ void __init free_initrd_mem(unsigned long start, unsigned long end)
+ 	free_init_pages("initrd memory", start, end);
+ }
+ #endif
++
++#ifdef CONFIG_OF_FLATTREE
++void __init early_init_dt_setup_initrd_arch(unsigned long start,
++					    unsigned long end)
++{
++	pr_err("%s(%lx, %lx)\n", __func__, start, end);
++}
++#endif /* CONFIG_OF_FLATTREE */
+-- 
+1.7.4.1
