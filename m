@@ -1,84 +1,105 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v3 15/31] arm64: SMP support
-Date: Tue, 29 Jan 2013 11:03:12 +0000
-Message-ID: <20130129110311.GD25983@arm.com>
-References: <CALZhoSTsmmsBgT2CtpC1uN9DQM5NTftA024FsyRitCFhPa7LpQ@mail.gmail.com>
+From: Namhyung Kim <namhyung@kernel.org>
+Subject: Re: [PATCH v5 04/45] percpu_rwlock: Implement the core design of Per-CPU Reader-Writer Locks
+Date: Tue, 29 Jan 2013 20:12:37 +0900
+Message-ID: <87ip6gutsq.fsf@sejong.aot.lge.com>
+References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
+	<20130122073347.13822.85876.stgit@srivatsabhat.in.ibm.com>
+	<20130123185522.GG2373@mtj.dyndns.org>
+	<51003B20.2060506@linux.vnet.ibm.com>
+	<20130123195740.GI2373@mtj.dyndns.org>
+	<5100B8CC.4080406@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:55417 "EHLO
-	cam-smtp0.cambridge.arm.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1753993Ab3A2LDY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 Jan 2013 06:03:24 -0500
-Content-Disposition: inline
-In-Reply-To: <CALZhoSTsmmsBgT2CtpC1uN9DQM5NTftA024FsyRitCFhPa7LpQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Lei Wen <adrian.wenl@gmail.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "leiwen@marvell.com" <leiwen@marvell.com>
+Content-Type: text/plain
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <5100B8CC.4080406@linux.vnet.ibm.com> (Srivatsa S. Bhat's message
+	of "Thu, 24 Jan 2013 10:00:04 +0530")
+Sender: netdev-owner@vger.kernel.org
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: Tejun Heo <tj@kernel.org>, tglx@linutronix.de, peterz@infradead.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, walken@google.com
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jan 28, 2013 at 02:46:53AM +0000, Lei Wen wrote:
-> On Sat, Sep 8, 2012 at 12:26 AM, Catalin Marinas <catalin.marinas@arm.com<mailto:catalin.marinas@arm.com>> wrote:
-> > This patch adds SMP initialisation and spinlocks implementation for
-> > AArch64. The spinlock support uses the new load-acquire/store-release
-> > instructions to avoid explicit barriers. The architecture also specifies
-> > that an event is automatically generated when clearing the exclusive
-> > monitor state to wake up processors in WFE, so there is no need for an
-> > explicit DSB/SEV instruction sequence. The SEVL instruction is used to
-> > set the exclusive monitor locally as there is no conditional WFE and a
-> > branch is more expensive.
-> > 
-> > For the SMP booting protocol, see Documentation/arm64/booting.txt.
-> > 
-> > Signed-off-by: Will Deacon <will.deacon@arm.com<mailto:will.deacon@arm.com>>
-> > Signed-off-by: Marc Zyngier <marc.zyngier@arm.com<mailto:marc.zyngier@arm.com>>
-> > Signed-off-by: Catalin Marinas <catalin.marinas@arm.com<mailto:catalin.marinas@arm.com>>
-> > Acked-by: Arnd Bergmann <arnd@arndb.de<mailto:arnd@arndb.de>>
-> > Acked-by: Tony Lindgren <tony@atomide.com<mailto:tony@atomide.com>>
-> > ---
-> >  arch/arm64/include/asm/hardirq.h        |    5 +
-> >  arch/arm64/include/asm/smp.h            |   69 +++++
-> >  arch/arm64/include/asm/spinlock.h       |  202 +++++++++++++
-> >  arch/arm64/include/asm/spinlock_types.h |   38 +++
-> >  arch/arm64/kernel/smp.c                 |  469 +++++++++++++++++++++++++++++++
-> >  5 files changed, 783 insertions(+), 0 deletions(-)
-> >  create mode 100644 arch/arm64/include/asm/smp.h
-> >  create mode 100644 arch/arm64/include/asm/spinlock.h
-> >  create mode 100644 arch/arm64/include/asm/spinlock_types.h
-> >  create mode 100644 arch/arm64/kernel/smp.c
-> > 
-> [snip...]
-> > +static inline void arch_spin_lock(arch_spinlock_t *lock)
-> > +{
-> > +       unsigned int tmp;
-> > +
-> > +       asm volatile(
-> > +       "       sevl\n"
-> > +       "1:     wfe\n"
-> > +       "2:     ldaxr   %w0, [%1]\n"
-> > +       "       cbnz    %w0, 1b\n"
-> > +       "       stxr    %w0, %w2, [%1]\n"
-> > +       "       cbnz    %w0, 2b\n"
-> > +       : "=&r" (tmp)
-> > +       : "r" (&lock->lock), "r" (1)
-> > +       : "memory");
-> 
-> Why just put "memory" attribute here is enough for keep lock variable
-> being updated around multi-cores? I check the original spinlock we use
-> in bit32 machine: arch/arm/include/asm/spinlock.h It actually use
-> smp_mb after successfully acquire that lock, so we don't need it for
-> arm64? Or if it is true that we don't need it in arm64, could we also
-> eliminate the smp_mb usage in arm32?
+On Thu, 24 Jan 2013 10:00:04 +0530, Srivatsa S. Bhat wrote:
+> On 01/24/2013 01:27 AM, Tejun Heo wrote:
+>> On Thu, Jan 24, 2013 at 01:03:52AM +0530, Srivatsa S. Bhat wrote:
+>>> CPU 0                          CPU 1
+>>>
+>>> read_lock(&rwlock)
+>>>
+>>>                               write_lock(&rwlock) //spins, because CPU 0
+>>>                               //has acquired the lock for read
+>>>
+>>> read_lock(&rwlock)
+>>>    ^^^^^
+>>> What happens here? Does CPU 0 start spinning (and hence deadlock) or will
+>>> it continue realizing that it already holds the rwlock for read?
+>> 
+>> I don't think rwlock allows nesting write lock inside read lock.
+>> read_lock(); write_lock() will always deadlock.
+>> 
+>
+> Sure, I understand that :-) My question was, what happens when *two* CPUs
+> are involved, as in, the read_lock() is invoked only on CPU 0 whereas the
+> write_lock() is invoked on CPU 1.
+>
+> For example, the same scenario shown above, but with slightly different
+> timing, will NOT result in a deadlock:
+>
+> Scenario 2:
+>   CPU 0                                CPU 1
+>
+> read_lock(&rwlock)
+>
+>
+> read_lock(&rwlock) //doesn't spin
+>
+>                                     write_lock(&rwlock) //spins, because CPU 0
+>                                     //has acquired the lock for read
+>
+>
+> So I was wondering whether the "fairness" logic of rwlocks would cause
+> the second read_lock() to spin (in the first scenario shown above) because
+> a writer is already waiting (and hence new readers should spin) and thus
+> cause a deadlock.
 
-We need the smp_mb (which is a dmb instruction) on AArch32 (ARMv6/v7
-instruction set). For AArch64 we have load-acquire and store-release
-instructions (lda*, stl*) which act as half-barriers. In the
-arch_spin_lock function above we have a ldaxr which prevents any memory
-accesses inside the locked region to be observed before this
-instruction. The unlock is done with a stlr instructions which prevents
-any memory accesses inside the locked region to be observed after this
-instruction.
+In my understanding, current x86 rwlock does basically this (of course,
+in an atomic fashion):
 
--- 
-Catalin
+
+#define RW_LOCK_BIAS 0x10000
+
+rwlock_init(rwlock)
+{
+	rwlock->lock = RW_LOCK_BIAS;
+}
+
+arch_read_lock(rwlock)
+{
+retry:
+	if (--rwlock->lock >= 0)
+		return;
+
+        rwlock->lock++;
+        while (rwlock->lock < 1)
+        	continue;
+
+        goto retry;
+}
+
+arch_write_lock(rwlock)
+{
+retry:
+	if ((rwlock->lock -= RW_LOCK_BIAS) == 0)
+        	return;
+
+        rwlock->lock += RW_LOCK_BIAS;
+	while (rwlock->lock != RW_LOCK_BIAS)
+		continue;
+
+        goto retry;
+}
+
+
+So I can't find where the 'fairness' logic comes from..
+
+Thanks,
+Namhyung
