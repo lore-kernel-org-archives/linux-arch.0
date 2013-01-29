@@ -1,88 +1,236 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtp3.synopsys.com ([198.182.44.81]:44207 "EHLO
-	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756906Ab3A2Njv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Jan 2013 08:39:51 -0500
-Message-ID: <5107D104.5050304@synopsys.com>
-Date: Tue, 29 Jan 2013 19:09:16 +0530
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Received: from multi.imgtec.com ([194.200.65.239]:43236 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757165Ab3A2OPr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 29 Jan 2013 09:15:47 -0500
+From: James Hogan <james.hogan@imgtec.com>
+Subject: [PATCH v4 19/43] metag: Device tree
+Date: Tue, 29 Jan 2013 14:15:11 +0000
+Message-ID: <1359468915-8760-2-git-send-email-james.hogan@imgtec.com>
+In-Reply-To: <1359468915-8760-1-git-send-email-james.hogan@imgtec.com>
+References: <1359468915-8760-1-git-send-email-james.hogan@imgtec.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v3 32/71] ARC: [DeviceTree] Basic support
-References: <1359024639-21915-1-git-send-email-vgupta@synopsys.com> <1359024639-21915-15-git-send-email-vgupta@synopsys.com> <5107CDD3.3050502@gmail.com>
-In-Reply-To: <5107CDD3.3050502@gmail.com>
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rob Herring <robherring2@gmail.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, Grant Likely <grant.likely@secretlab.ca>, devicetree-discuss@lists.ozlabs.org
-Message-ID: <20130129133916.lcQ8OIz3ouI9pqZ7bq4tt23GzBbEy0_yfqniBII6Xx4@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, James Hogan <james.hogan@imgtec.com>, Grant Likely <grant.likely@secretlab.ca>, Rob Herring <rob.herring@calxeda.com>, devicetree-discuss@lists.ozlabs.org, Sam Ravnborg <sam@ravnborg.org>
+Message-ID: <20130129141511.V1fohbaOgT8m82bh28WoGaYuJ3EgwRMGCVk7yZX3gzQ@z>
 
-On Tuesday 29 January 2013 06:55 PM, Rob Herring wrote:
-> On 01/24/2013 04:50 AM, Vineet Gupta wrote:
->> This is minimal infrastructure needed for devicetree work.
->> It uses an a sample "skeleton" devicetree - embedded in kernel image -
->> to print the board, manufacturer by parsing the top-level "compatible"
->> string.
->>
->> As of now we don't need any additional "board" specific "machine_desc".
->>
->> TODO: support interpreting the command line as boot-loader passed dtb
->>
->> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
->> Cc: Arnd Bergmann <arnd@arndb.de>
->> Cc: Grant Likely <grant.likely@secretlab.ca>
->> Cc: devicetree-discuss@lists.ozlabs.org
->> Cc: Rob Herring <rob.herring@calxeda.com>
-> One minor thing below, otherwise:
->
-> Reviewed-by: Rob Herring <rob.herring@calxeda.com>
->
->
->> diff --git a/arch/arc/kernel/devtree.c b/arch/arc/kernel/devtree.c
->> new file mode 100644
->> index 0000000..229f78e
->> --- /dev/null
->> +++ b/arch/arc/kernel/devtree.c
->> @@ -0,0 +1,69 @@
->> +/*
->> + * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
->> + *
->> + * Based on highly stipped down version of METAG
->> + *
->> + * This program is free software; you can redistribute it and/or modify
->> + * it under the terms of the GNU General Public License version 2 as
->> + * published by the Free Software Foundation.
->> + */
->> +
->> +
->> +#include <linux/init.h>
->> +#include <linux/export.h>
->> +#include <linux/errno.h>
-> Is this include needed?
+Add device tree files to arch/metag.
 
-Nope - removed.
+Signed-off-by: James Hogan <james.hogan@imgtec.com>
+Cc: Grant Likely <grant.likely@secretlab.ca>
+Cc: Rob Herring <rob.herring@calxeda.com>
+Cc: devicetree-discuss@lists.ozlabs.org
+Cc: Sam Ravnborg <sam@ravnborg.org>
+---
+v4:
+  * move dtb directory into dts and use common dtb rules (Rob Herring)
 
->
->> +#include <linux/types.h>
->> +#include <linux/reboot.h>
-> And this?
+ arch/metag/boot/dts/Makefile      |   16 ++++++
+ arch/metag/boot/dts/skeleton.dts  |   10 ++++
+ arch/metag/boot/dts/skeleton.dtsi |   14 +++++
+ arch/metag/include/asm/prom.h     |   23 +++++++++
+ arch/metag/kernel/devtree.c       |   97 +++++++++++++++++++++++++++++++++++++
+ 5 files changed, 160 insertions(+), 0 deletions(-)
+ create mode 100644 arch/metag/boot/dts/Makefile
+ create mode 100644 arch/metag/boot/dts/skeleton.dts
+ create mode 100644 arch/metag/boot/dts/skeleton.dtsi
+ create mode 100644 arch/metag/include/asm/prom.h
+ create mode 100644 arch/metag/kernel/devtree.c
 
-reboot.h is needed for the machine_halt() prototype.
+diff --git a/arch/metag/boot/dts/Makefile b/arch/metag/boot/dts/Makefile
+new file mode 100644
+index 0000000..e0b5afd
+--- /dev/null
++++ b/arch/metag/boot/dts/Makefile
+@@ -0,0 +1,16 @@
++dtb-y	+= skeleton.dtb
++
++# Built-in dtb
++builtindtb-y				:= skeleton
++
++ifneq ($(CONFIG_METAG_BUILTIN_DTB_NAME),"")
++	builtindtb-y			:= $(CONFIG_METAG_BUILTIN_DTB_NAME)
++endif
++obj-$(CONFIG_METAG_BUILTIN_DTB)	+= $(patsubst "%",%,$(builtindtb-y)).dtb.o
++
++targets	+= dtbs
++targets	+= $(dtb-y)
++
++dtbs: $(addprefix $(obj)/, $(dtb-y))
++
++clean-files += *.dtb
+diff --git a/arch/metag/boot/dts/skeleton.dts b/arch/metag/boot/dts/skeleton.dts
+new file mode 100644
+index 0000000..7244d1f
+--- /dev/null
++++ b/arch/metag/boot/dts/skeleton.dts
+@@ -0,0 +1,10 @@
++/*
++ * Copyright (C) 2012 Imagination Technologies Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++/dts-v1/;
++
++/include/ "skeleton.dtsi"
+diff --git a/arch/metag/boot/dts/skeleton.dtsi b/arch/metag/boot/dts/skeleton.dtsi
+new file mode 100644
+index 0000000..78229ea
+--- /dev/null
++++ b/arch/metag/boot/dts/skeleton.dtsi
+@@ -0,0 +1,14 @@
++/*
++ * Skeleton device tree; the bare minimum needed to boot; just include and
++ * add a compatible value.  The bootloader will typically populate the memory
++ * node.
++ */
++
++/ {
++	compatible = "img,meta";
++	#address-cells = <1>;
++	#size-cells = <1>;
++	chosen { };
++	aliases { };
++	memory { device_type = "memory"; reg = <0 0>; };
++};
+diff --git a/arch/metag/include/asm/prom.h b/arch/metag/include/asm/prom.h
+new file mode 100644
+index 0000000..d881396
+--- /dev/null
++++ b/arch/metag/include/asm/prom.h
+@@ -0,0 +1,23 @@
++/*
++ *  arch/metag/include/asm/prom.h
++ *
++ *  Copyright (C) 2012 Imagination Technologies Ltd.
++ *
++ *  Based on ARM version:
++ *  Copyright (C) 2009 Canonical Ltd. <jeremy.kerr@canonical.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ */
++#ifndef __ASM_METAG_PROM_H
++#define __ASM_METAG_PROM_H
++
++#include <asm/setup.h>
++#define HAVE_ARCH_DEVTREE_FIXUPS
++
++extern struct machine_desc *setup_machine_fdt(void *dt);
++extern void metag_dt_memblock_reserve(void);
++
++#endif /* __ASM_METAG_PROM_H */
+diff --git a/arch/metag/kernel/devtree.c b/arch/metag/kernel/devtree.c
+new file mode 100644
+index 0000000..5b6b1d85
+--- /dev/null
++++ b/arch/metag/kernel/devtree.c
+@@ -0,0 +1,97 @@
++/*
++ *  linux/arch/metag/kernel/devtree.c
++ *
++ *  Copyright (C) 2012 Imagination Technologies Ltd.
++ *
++ *  Based on ARM version:
++ *  Copyright (C) 2009 Canonical Ltd. <jeremy.kerr@canonical.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#include <linux/init.h>
++#include <linux/export.h>
++#include <linux/types.h>
++#include <linux/bootmem.h>
++#include <linux/memblock.h>
++#include <linux/of.h>
++#include <linux/of_fdt.h>
++
++#include <asm/setup.h>
++#include <asm/page.h>
++#include <asm/mach/arch.h>
++
++void __init early_init_dt_add_memory_arch(u64 base, u64 size)
++{
++	pr_err("%s(%llx, %llx)\n",
++	       __func__, base, size);
++}
++
++void * __init early_init_dt_alloc_memory_arch(u64 size, u64 align)
++{
++	return alloc_bootmem_align(size, align);
++}
++
++/**
++ * setup_machine_fdt - Machine setup when an dtb was passed to the kernel
++ * @dt:		virtual address pointer to dt blob
++ *
++ * If a dtb was passed to the kernel, then use it to choose the correct
++ * machine_desc and to setup the system.
++ */
++struct machine_desc * __init setup_machine_fdt(void *dt)
++{
++	struct boot_param_header *devtree = dt;
++	struct machine_desc *mdesc, *mdesc_best = NULL;
++	unsigned int score, mdesc_score = ~1;
++	unsigned long dt_root;
++	const char *model;
++
++	/* check device tree validity */
++	if (be32_to_cpu(devtree->magic) != OF_DT_HEADER)
++		return NULL;
++
++	/* Search the mdescs for the 'best' compatible value match */
++	initial_boot_params = devtree;
++	dt_root = of_get_flat_dt_root();
++
++	for_each_machine_desc(mdesc) {
++		score = of_flat_dt_match(dt_root, mdesc->dt_compat);
++		if (score > 0 && score < mdesc_score) {
++			mdesc_best = mdesc;
++			mdesc_score = score;
++		}
++	}
++	if (!mdesc_best) {
++		const char *prop;
++		long size;
++
++		pr_err("\nError: unrecognized/unsupported device tree compatible list:\n[ ");
++
++		prop = of_get_flat_dt_prop(dt_root, "compatible", &size);
++		if (prop) {
++			while (size > 0) {
++				printk("'%s' ", prop);
++				size -= strlen(prop) + 1;
++				prop += strlen(prop) + 1;
++			}
++		}
++		printk("]\n\n");
++
++		dump_machine_table(); /* does not return */
++	}
++
++	model = of_get_flat_dt_prop(dt_root, "model", NULL);
++	if (!model)
++		model = of_get_flat_dt_prop(dt_root, "compatible", NULL);
++	if (!model)
++		model = "<unknown>";
++	pr_info("Machine: %s, model: %s\n", mdesc_best->name, model);
++
++	/* Retrieve various information from the /chosen node */
++	of_scan_flat_dt(early_init_dt_scan_chosen, boot_command_line);
++
++	return mdesc_best;
++}
+-- 
+1.7.7.6
 
->
->> +#include <linux/memblock.h>
->> +#include <linux/of.h>
->> +#include <linux/of_fdt.h>
->> +#include <linux/of_irq.h>
-> And this?
->
->> +#include <linux/of_platform.h>
-> And this?
-
-Both of the above removed.
-
-I'll send a revised patch which also addresses James' review comments as well -
-(namely broken dtbs rule, adding dependency on scripts ...)
-See https://lkml.org/lkml/2013/1/28/138 for reference.
 
