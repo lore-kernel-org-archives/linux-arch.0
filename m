@@ -1,39 +1,116 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:43256 "EHLO multi.imgtec.com"
+Received: from multi.imgtec.com ([194.200.65.239]:43236 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757150Ab3A2OPy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 Jan 2013 09:15:54 -0500
+	id S1757184Ab3A2OPl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 29 Jan 2013 09:15:41 -0500
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH v4 42/43] tty/metag_da: Add metag DA TTY driver
-Date: Tue, 29 Jan 2013 14:15:14 +0000
-Message-ID: <1359468915-8760-5-git-send-email-james.hogan@imgtec.com>
-In-Reply-To: <1359468915-8760-1-git-send-email-james.hogan@imgtec.com>
-References: <1359468915-8760-1-git-send-email-james.hogan@imgtec.com>
+Subject: [PATCH v4 00/43] Meta Linux Kernel Port
+Date: Tue, 29 Jan 2013 14:15:10 +0000
+Message-ID: <1359468915-8760-1-git-send-email-james.hogan@imgtec.com>
 MIME-Version: 1.0
 Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, James Hogan <james.hogan@imgtec.com>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, Mauro Carvalho Chehab <mchehab@redhat.com>, Cesar Eduardo Barros <cesarb@cesarb.net>, Joe Perches <joe@perches.com>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20130129141514.Jihm0VH1ETle8bTp9quz3Bbyb5qRqlZict_4rSYUZvs@z>
+Cc: Arnd Bergmann <arnd@arndb.de>, James Hogan <james.hogan@imgtec.com>
+Message-ID: <20130129141510.8WIqI9wvErV3PUr6TJ-YUQSrhx1kYi81IoSwnPnF-9A@z>
 
-Add a TTY driver for communicating over a Meta DA (Debug Adapter)
-channel using the bios channel SWITCH operation.
+This patchset adds core architecture support to Linux for Imagination's
+Meta ATP (Meta 1) and HTP (Meta 2) processor cores. I'm now happy with
+this patchset as it is. Not a lot has changed since v3 (see below),
+which is why I've only included patches which have changed in
+non-trivial ways, namely patches 19, 21, 26, 42, 43, but of course
+further review and acks are welcome.
 
-Signed-off-by: James Hogan <james.hogan@imgtec.com>
-Cc: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Jiri Slaby <jslaby@suse.cz>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Mauro Carvalho Chehab <mchehab@redhat.com>
-Cc: Cesar Eduardo Barros <cesarb@cesarb.net>
-Cc: Joe Perches <joe@perches.com>
-Cc: "David S. Miller" <davem@davemloft.net>
+The patches are based on v3.8-rc5, and can be found in a more complete
+form in the following git tree:
+  git://github.com/jahogan/metag-linux.git metag-core
+
+Meta cores are 32-bit, hardware multithreaded, general purpose, embedded
+processors which also feature a DSP instruction set, and can be found in
+many digital radios. They are capable of running different operating
+systems on different hardware threads, for example a digital radio might
+run RTOSes for DAB decoding and audio decoding on 3 hardware threads,
+and run Linux on the 4th hardware thread to manage the user interface,
+networking etc. HTPs are also capable of running SMP Linux on multiple
+hardware threads.
+
+A buildroot tree containing toolchain patches can be found here (use
+meta2_defconfig):
+  git://github.com/img-meta/metag-buildroot.git metag-core
+
+Freely available instruction set and architecture overview documents can
+be found on the following page:
+  http://www.imgtec.com/downloads.asp
+
 ---
-v4:
-  * addressed review comments (Jiri Slaby)
+v4 (tag: metag-core-v4):
 
-v3:
+changes since v3
+* tree:
+  * rebased on v3.8-rc5
+  * make more use of __core_reg_{get,set} interfaces over inline asm
+  * removed the oprofile patch for now until I've looked at wrapping it
+    around perf as some other architectures do
+* timekeeping
+  * move to drivers/clocksource/metag_generic.c (Arnd)
+  * use cpu notifier to setup secondary cpu timers
+* traps
+  * fix lack of critical section restart in kick_handler
+* irq handling
+  * rename irqchips s/meta/metag/
+* scheduling/process management
+  * fix idle race (requires use of inline asm to trigger irq entry
+    rather than SWITCH instruction) (Arnd)
+* build infrastructure & device tree
+  * move dtb directory into dts and use common dtb rules (Rob Herring)
+* ftrace:
+  * remove duplicate include (Steven Rostedt)
+* tty/metag_da:
+  * addressed review comments (Jiri Slaby)
+* fs/imgdafs:
+  * clean up fscall similarly to chancall in tty/metag_da
+
+
+v3 (tag: metag-core-v3):
+
+changes since v2
+* tree:
+  * rebased on linux-next and related changes
+  * integrated generic kernel_thread/kernel_execve into patches
+* signals:
+  * replace do_notify_resume with do_work_pending containing signal
+    handling loop (Al Viro)
+  * handlerless local syscall restart (Al Viro)
+  * fix rt_sigreturn's do_sigaltstack handling (Al Viro)
+  * explicitly detect rt_sigreturn and treat as non-syscall for purposes
+    of syscall restart (Al Viro)
+  * refactor syscall restart code based on arm
+  * use generic sigaltstack
+* irq handling:
+  * move irq drivers into drivers/irqchip/ (Arnd)
+  * switch to sparse irq (Arnd)
+  * allow per machine override of nr_irqs
+  * switch root TBI, internal, and external interrupt drivers to linear
+    irqdomain
+  * implement masking in internal interrupt driver
+* system calls:
+  * remove magic pt_regs 7th syscall argument (Al Viro)
+  * use generic sys_clone (Al Viro)
+  * fix use of 0 for invalid syscall number (use -1 instead)
+* documentation
+  * added Documentation/kernel-ABI.txt describing various ABIs (Al Viro)
+* tbx:
+  * move tbx/tbicache.c to mm/cache.c and refactor / clean up (Joe
+    Perches)
+  * clean up tbx/tbistring.c
+  * rename asm/lock.h->asm/global_lock.h, remove dependence on tbx
+  * update all lock users to use asm/global_lock.h rather than tbx
+    macros
+  * add and use __core_reg_[gs]et macros to replace TBI_[GS]ETREG
+  * make use of compiler builtins for cache/tlb handling instructions
+    rather than tbx macros
+* tty/metag_da:
   * mostly rewritten to address Alan Cox' feedback
   * use del_timer_sync() where appropriate (Alan Cox)
   * convert to use tty_port helpers (Alan Cox)
@@ -42,835 +119,498 @@ v3:
   * fix init error handling
   * implement hangup (Alan Cox)
   * omit specific baud rate (Alan Cox)
+* boot:
+  * switch to generic CMDLINE Kconfig symbols (Sam Ravnborg)
+* alignment patches
+  * removed taskstats changes (see "netlink: align attributes on
+    64-bits" patches)
+  * rework CONFIG_HAVE_64BIT_ALIGNED_ACCESS patch for clarity
 
-v2:
-  * update DA TTY to be more thread safe and use tty_ports
 
- MAINTAINERS                            |    1 +
- arch/metag/Kconfig                     |    4 +-
- arch/metag/configs/meta1_defconfig     |    2 +
- arch/metag/configs/meta2_defconfig     |    2 +
- arch/metag/configs/meta2_smp_defconfig |    2 +
- arch/metag/kernel/setup.c              |   12 +
- drivers/tty/Kconfig                    |   13 +
- drivers/tty/Makefile                   |    1 +
- drivers/tty/metag_da.c                 |  679 ++++++++++++++++++++++++++++++++
- 9 files changed, 715 insertions(+), 1 deletions(-)
+v2 (tag: metag-core-v2):
+
+changes based on rfc-v1 review feedback:
+* moved build infrastructure patch later (Sam Ravnborg)
+* various build system cleanups (Sam Ravnborg)
+* split generic build changes out of main build patch (Sam Ravnborg)
+* deprecate powervr DT vendor id (Rob Herring)
+* ftrace now uses recordmcount.c (Steven Rostedt)
+* fixed imgdafs fserrno problem (Al Viro)
+* io.h changes, inline asm, removed casts, added metag_in/out (Arnd)
+* remove bus_to_virt (Arnd)
+* use asm-generic/syscalls.h (Arnd)
+* remove superfluous metag_spinlock system call (Arnd)
+* renamed packed 64bit arg syscall wrappers (Arnd)
+
+other changes:
+* rebased on v3.7-rc8
+  * changes based on v3.6..v3.7-rc8 patches
+  * uapi disintegration (thanks to David Howells for the assistance)
+* add cmpdi2/ucmpdi2 intrinsics and clean up lib Makefile
+* fix numa build
+* split memory management patch into 6 separate patches to make them
+  more manageable and stop them bouncing:
+  * cache/tlb handling
+  * memory management
+  * memory handling
+  * huge tlb
+  * highmem
+  * tcm
+* split architecture definitions out of TBX into asm/metag_*.h
+* merged remaining TBX header files into a single asm/tbx.h
+* split TBX patch into 2 separate patches to stop them bouncing
+* merge various similar Kconfig changes in generic code
+* dropped sysfs drivers from this patchset (we normally have them turned
+  off anyway so they're not a priority)
+* renamed dafs to imgdafs
+* implemented perf events
+* rewrote ptrace to use nicely abstracted regsets
+* removed non-standard hw_breakpoints/ptrace API
+* use ptrace abstracted context structs in sigcontext
+* update DA TTY to be more thread safe and use tty_ports
+* switch to generic sys_execve
+
+James Hogan (43):
+  asm-generic/io.h: check CONFIG_VIRT_TO_BUS
+  asm-generic/unistd.h: handle symbol prefixes in cond_syscall
+  Revert some of "binfmt_elf: cleanups"
+  Add HAVE_64BIT_ALIGNED_ACCESS
+  trace/ring_buffer: handle 64bit aligned structs
+  metag: Add MAINTAINERS entry
+  metag: Headers for core arch constants
+  metag: Header for core memory mapped registers
+  metag: Boot
+  metag: TBX header
+  metag: TBX source
+  metag: Cache/TLB handling
+  metag: Memory management
+  metag: Memory handling
+  metag: Huge TLB
+  metag: Highmem support
+  metag: TCM support
+  metag: Signal handling
+  metag: Device tree
+  metag: ptrace
+  metag: Time keeping
+  metag: Traps
+  metag: IRQ handling
+  metag: Internal and external irqchips
+  metag: System Calls
+  metag: Scheduling/Process management
+  metag: Module support
+  metag: Atomics, locks and bitops
+  metag: Basic documentation
+  metag: SMP support
+  metag: DMA
+  metag: Optimised library functions
+  metag: Stack unwinding
+  metag: Various other headers
+  mm: define VM_GROWSUP for CONFIG_METAG
+  Kconfig.debug: add METAG to dependency lists
+  metag: Build infrastructure
+  metag: Perf
+  metag: ftrace support
+  scripts/checkstack.pl: Add metag support
+  metag: Add JTAG Debug Adapter (DA) support
+  tty/metag_da: Add metag DA TTY driver
+  fs: imgdafs: Add IMG DAFS filesystem for metag
+
+ Documentation/00-INDEX                             |    2 +
+ .../devicetree/bindings/metag/meta-intc.txt        |   82 ++
+ Documentation/kernel-parameters.txt                |    4 +
+ Documentation/metag/00-INDEX                       |    4 +
+ Documentation/metag/kernel-ABI.txt                 |  256 ++++
+ MAINTAINERS                                        |   12 +
+ arch/Kconfig                                       |   16 +
+ arch/metag/Kconfig                                 |  295 ++++
+ arch/metag/Kconfig.debug                           |   40 +
+ arch/metag/Kconfig.soc                             |   55 +
+ arch/metag/Makefile                                |   87 ++
+ arch/metag/boot/.gitignore                         |    4 +
+ arch/metag/boot/Makefile                           |   68 +
+ arch/metag/boot/dts/Makefile                       |   16 +
+ arch/metag/boot/dts/skeleton.dts                   |   10 +
+ arch/metag/boot/dts/skeleton.dtsi                  |   14 +
+ arch/metag/configs/meta1_defconfig                 |   41 +
+ arch/metag/configs/meta2_defconfig                 |   42 +
+ arch/metag/configs/meta2_smp_defconfig             |   43 +
+ arch/metag/include/asm/Kbuild                      |   54 +
+ arch/metag/include/asm/atomic.h                    |   53 +
+ arch/metag/include/asm/atomic_lnkget.h             |  234 ++++
+ arch/metag/include/asm/atomic_lock1.h              |  160 +++
+ arch/metag/include/asm/barrier.h                   |   85 ++
+ arch/metag/include/asm/bitops.h                    |  132 ++
+ arch/metag/include/asm/bug.h                       |   12 +
+ arch/metag/include/asm/cache.h                     |   23 +
+ arch/metag/include/asm/cacheflush.h                |  250 ++++
+ arch/metag/include/asm/cachepart.h                 |   42 +
+ arch/metag/include/asm/checksum.h                  |   92 ++
+ arch/metag/include/asm/clock.h                     |   51 +
+ arch/metag/include/asm/cmpxchg.h                   |   65 +
+ arch/metag/include/asm/cmpxchg_irq.h               |   42 +
+ arch/metag/include/asm/cmpxchg_lnkget.h            |   86 ++
+ arch/metag/include/asm/cmpxchg_lock1.h             |   48 +
+ arch/metag/include/asm/core_reg.h                  |   35 +
+ arch/metag/include/asm/cpu.h                       |   14 +
+ arch/metag/include/asm/da.h                        |   43 +
+ arch/metag/include/asm/delay.h                     |   29 +
+ arch/metag/include/asm/div64.h                     |   12 +
+ arch/metag/include/asm/dma-mapping.h               |  183 +++
+ arch/metag/include/asm/elf.h                       |  128 ++
+ arch/metag/include/asm/fixmap.h                    |   99 ++
+ arch/metag/include/asm/ftrace.h                    |   23 +
+ arch/metag/include/asm/global_lock.h               |  100 ++
+ arch/metag/include/asm/gpio.h                      |    4 +
+ arch/metag/include/asm/highmem.h                   |   62 +
+ arch/metag/include/asm/hugetlb.h                   |   86 ++
+ arch/metag/include/asm/hwthread.h                  |   40 +
+ arch/metag/include/asm/io.h                        |  165 +++
+ arch/metag/include/asm/irq.h                       |   32 +
+ arch/metag/include/asm/irqflags.h                  |   94 ++
+ arch/metag/include/asm/l2cache.h                   |  258 ++++
+ arch/metag/include/asm/linkage.h                   |    7 +
+ arch/metag/include/asm/mach/arch.h                 |   86 ++
+ arch/metag/include/asm/metag_isa.h                 |   81 ++
+ arch/metag/include/asm/metag_mem.h                 | 1106 +++++++++++++++
+ arch/metag/include/asm/metag_regs.h                | 1180 ++++++++++++++++
+ arch/metag/include/asm/mman.h                      |   11 +
+ arch/metag/include/asm/mmu.h                       |   77 ++
+ arch/metag/include/asm/mmu_context.h               |  113 ++
+ arch/metag/include/asm/mmzone.h                    |   42 +
+ arch/metag/include/asm/module.h                    |   37 +
+ arch/metag/include/asm/page.h                      |  128 ++
+ arch/metag/include/asm/perf_event.h                |    4 +
+ arch/metag/include/asm/pgalloc.h                   |   79 ++
+ arch/metag/include/asm/pgtable.h                   |  370 +++++
+ arch/metag/include/asm/processor.h                 |  202 +++
+ arch/metag/include/asm/prom.h                      |   23 +
+ arch/metag/include/asm/ptrace.h                    |   60 +
+ arch/metag/include/asm/setup.h                     |    8 +
+ arch/metag/include/asm/smp.h                       |   29 +
+ arch/metag/include/asm/sparsemem.h                 |   13 +
+ arch/metag/include/asm/spinlock.h                  |   22 +
+ arch/metag/include/asm/spinlock_lnkget.h           |  249 ++++
+ arch/metag/include/asm/spinlock_lock1.h            |  184 +++
+ arch/metag/include/asm/spinlock_types.h            |   20 +
+ arch/metag/include/asm/stacktrace.h                |   20 +
+ arch/metag/include/asm/string.h                    |   13 +
+ arch/metag/include/asm/switch.h                    |   21 +
+ arch/metag/include/asm/syscall.h                   |  104 ++
+ arch/metag/include/asm/syscalls.h                  |   39 +
+ arch/metag/include/asm/tbx.h                       | 1425 ++++++++++++++++++++
+ arch/metag/include/asm/tcm.h                       |   30 +
+ arch/metag/include/asm/thread_info.h               |  155 +++
+ arch/metag/include/asm/tlb.h                       |   36 +
+ arch/metag/include/asm/tlbflush.h                  |   77 ++
+ arch/metag/include/asm/topology.h                  |   53 +
+ arch/metag/include/asm/traps.h                     |   48 +
+ arch/metag/include/asm/uaccess.h                   |  241 ++++
+ arch/metag/include/asm/unistd.h                    |   12 +
+ arch/metag/include/asm/user_gateway.h              |   44 +
+ arch/metag/include/uapi/asm/Kbuild                 |   13 +
+ arch/metag/include/uapi/asm/byteorder.h            |    1 +
+ arch/metag/include/uapi/asm/ptrace.h               |  113 ++
+ arch/metag/include/uapi/asm/resource.h             |    7 +
+ arch/metag/include/uapi/asm/sigcontext.h           |   31 +
+ arch/metag/include/uapi/asm/siginfo.h              |    8 +
+ arch/metag/include/uapi/asm/swab.h                 |   26 +
+ arch/metag/include/uapi/asm/unistd.h               |   21 +
+ arch/metag/kernel/.gitignore                       |    1 +
+ arch/metag/kernel/Makefile                         |   39 +
+ arch/metag/kernel/asm-offsets.c                    |   14 +
+ arch/metag/kernel/cachepart.c                      |  124 ++
+ arch/metag/kernel/clock.c                          |   53 +
+ arch/metag/kernel/core_reg.c                       |  117 ++
+ arch/metag/kernel/da.c                             |   23 +
+ arch/metag/kernel/devtree.c                        |  100 ++
+ arch/metag/kernel/dma.c                            |  507 +++++++
+ arch/metag/kernel/ftrace.c                         |  126 ++
+ arch/metag/kernel/ftrace_stub.S                    |   76 ++
+ arch/metag/kernel/head.S                           |   57 +
+ arch/metag/kernel/irq.c                            |  323 +++++
+ arch/metag/kernel/kick.c                           |   98 ++
+ arch/metag/kernel/machines.c                       |   20 +
+ arch/metag/kernel/metag_ksyms.c                    |   80 ++
+ arch/metag/kernel/module.c                         |  284 ++++
+ arch/metag/kernel/perf/Makefile                    |    3 +
+ arch/metag/kernel/perf/perf_event.c                |  861 ++++++++++++
+ arch/metag/kernel/perf/perf_event.h                |  106 ++
+ arch/metag/kernel/perf_callchain.c                 |   96 ++
+ arch/metag/kernel/process.c                        |  461 +++++++
+ arch/metag/kernel/ptrace.c                         |  380 ++++++
+ arch/metag/kernel/setup.c                          |  571 ++++++++
+ arch/metag/kernel/signal.c                         |  344 +++++
+ arch/metag/kernel/smp.c                            |  575 ++++++++
+ arch/metag/kernel/stacktrace.c                     |  187 +++
+ arch/metag/kernel/sys_metag.c                      |  180 +++
+ arch/metag/kernel/tbiunexp.S                       |   22 +
+ arch/metag/kernel/tcm.c                            |  151 +++
+ arch/metag/kernel/time.c                           |   15 +
+ arch/metag/kernel/topology.c                       |   77 ++
+ arch/metag/kernel/traps.c                          |  978 ++++++++++++++
+ arch/metag/kernel/user_gateway.S                   |   97 ++
+ arch/metag/kernel/vmlinux.lds.S                    |   71 +
+ arch/metag/lib/Makefile                            |   22 +
+ arch/metag/lib/ashldi3.S                           |   33 +
+ arch/metag/lib/ashrdi3.S                           |   33 +
+ arch/metag/lib/checksum.c                          |  168 +++
+ arch/metag/lib/clear_page.S                        |   17 +
+ arch/metag/lib/cmpdi2.S                            |   32 +
+ arch/metag/lib/copy_page.S                         |   20 +
+ arch/metag/lib/delay.c                             |   56 +
+ arch/metag/lib/div64.S                             |  108 ++
+ arch/metag/lib/divsi3.S                            |  100 ++
+ arch/metag/lib/ip_fast_csum.S                      |   32 +
+ arch/metag/lib/lshrdi3.S                           |   33 +
+ arch/metag/lib/memcpy.S                            |  185 +++
+ arch/metag/lib/memmove.S                           |  345 +++++
+ arch/metag/lib/memset.S                            |   86 ++
+ arch/metag/lib/modsi3.S                            |   38 +
+ arch/metag/lib/muldi3.S                            |   44 +
+ arch/metag/lib/ucmpdi2.S                           |   27 +
+ arch/metag/lib/usercopy.c                          | 1341 ++++++++++++++++++
+ arch/metag/mm/Kconfig                              |  153 +++
+ arch/metag/mm/Makefile                             |   19 +
+ arch/metag/mm/cache.c                              |  441 ++++++
+ arch/metag/mm/extable.c                            |   15 +
+ arch/metag/mm/fault.c                              |  239 ++++
+ arch/metag/mm/highmem.c                            |  133 ++
+ arch/metag/mm/hugetlbpage.c                        |  291 ++++
+ arch/metag/mm/init.c                               |  448 ++++++
+ arch/metag/mm/ioremap.c                            |   89 ++
+ arch/metag/mm/l2cache.c                            |  192 +++
+ arch/metag/mm/maccess.c                            |   68 +
+ arch/metag/mm/mmu-meta1.c                          |  157 +++
+ arch/metag/mm/mmu-meta2.c                          |  207 +++
+ arch/metag/mm/numa.c                               |   81 ++
+ arch/metag/tbx/Makefile                            |   21 +
+ arch/metag/tbx/tbicore.S                           |  136 ++
+ arch/metag/tbx/tbictx.S                            |  366 +++++
+ arch/metag/tbx/tbictxfpu.S                         |  190 +++
+ arch/metag/tbx/tbidefr.S                           |  175 +++
+ arch/metag/tbx/tbidspram.S                         |  161 +++
+ arch/metag/tbx/tbilogf.S                           |   48 +
+ arch/metag/tbx/tbipcx.S                            |  451 +++++++
+ arch/metag/tbx/tbiroot.S                           |   87 ++
+ arch/metag/tbx/tbisoft.S                           |  237 ++++
+ arch/metag/tbx/tbistring.c                         |  114 ++
+ arch/metag/tbx/tbitimer.S                          |  207 +++
+ drivers/clocksource/Kconfig                        |    5 +
+ drivers/clocksource/Makefile                       |    1 +
+ drivers/clocksource/metag_generic.c                |  198 +++
+ drivers/irqchip/Makefile                           |    2 +
+ drivers/irqchip/irq-metag-ext.c                    |  868 ++++++++++++
+ drivers/irqchip/irq-metag.c                        |  343 +++++
+ drivers/tty/Kconfig                                |   13 +
+ drivers/tty/Makefile                               |    1 +
+ drivers/tty/metag_da.c                             |  679 ++++++++++
+ fs/Kconfig                                         |    1 +
+ fs/Makefile                                        |    1 +
+ fs/binfmt_elf.c                                    |    4 +
+ fs/imgdafs/Kconfig                                 |    6 +
+ fs/imgdafs/Makefile                                |    7 +
+ fs/imgdafs/imgdafs.h                               |   80 ++
+ fs/imgdafs/inode.c                                 |  843 ++++++++++++
+ include/asm-generic/io.h                           |    2 +
+ include/asm-generic/unistd.h                       |    9 +-
+ include/clocksource/metag_generic.h                |   21 +
+ include/linux/irqchip/metag-ext.h                  |   33 +
+ include/linux/irqchip/metag.h                      |   24 +
+ include/linux/mm.h                                 |    2 +
+ include/uapi/linux/elf.h                           |    2 +
+ kernel/trace/ring_buffer.c                         |    6 +-
+ lib/Kconfig.debug                                  |    4 +-
+ scripts/checkstack.pl                              |    8 +-
+ scripts/recordmcount.c                             |   13 +
+ 207 files changed, 28428 insertions(+), 7 deletions(-)
+ create mode 100644 Documentation/devicetree/bindings/metag/meta-intc.txt
+ create mode 100644 Documentation/metag/00-INDEX
+ create mode 100644 Documentation/metag/kernel-ABI.txt
+ create mode 100644 arch/metag/Kconfig
+ create mode 100644 arch/metag/Kconfig.debug
+ create mode 100644 arch/metag/Kconfig.soc
+ create mode 100644 arch/metag/Makefile
+ create mode 100644 arch/metag/boot/.gitignore
+ create mode 100644 arch/metag/boot/Makefile
+ create mode 100644 arch/metag/boot/dts/Makefile
+ create mode 100644 arch/metag/boot/dts/skeleton.dts
+ create mode 100644 arch/metag/boot/dts/skeleton.dtsi
+ create mode 100644 arch/metag/configs/meta1_defconfig
+ create mode 100644 arch/metag/configs/meta2_defconfig
+ create mode 100644 arch/metag/configs/meta2_smp_defconfig
+ create mode 100644 arch/metag/include/asm/Kbuild
+ create mode 100644 arch/metag/include/asm/atomic.h
+ create mode 100644 arch/metag/include/asm/atomic_lnkget.h
+ create mode 100644 arch/metag/include/asm/atomic_lock1.h
+ create mode 100644 arch/metag/include/asm/barrier.h
+ create mode 100644 arch/metag/include/asm/bitops.h
+ create mode 100644 arch/metag/include/asm/bug.h
+ create mode 100644 arch/metag/include/asm/cache.h
+ create mode 100644 arch/metag/include/asm/cacheflush.h
+ create mode 100644 arch/metag/include/asm/cachepart.h
+ create mode 100644 arch/metag/include/asm/checksum.h
+ create mode 100644 arch/metag/include/asm/clock.h
+ create mode 100644 arch/metag/include/asm/cmpxchg.h
+ create mode 100644 arch/metag/include/asm/cmpxchg_irq.h
+ create mode 100644 arch/metag/include/asm/cmpxchg_lnkget.h
+ create mode 100644 arch/metag/include/asm/cmpxchg_lock1.h
+ create mode 100644 arch/metag/include/asm/core_reg.h
+ create mode 100644 arch/metag/include/asm/cpu.h
+ create mode 100644 arch/metag/include/asm/da.h
+ create mode 100644 arch/metag/include/asm/delay.h
+ create mode 100644 arch/metag/include/asm/div64.h
+ create mode 100644 arch/metag/include/asm/dma-mapping.h
+ create mode 100644 arch/metag/include/asm/elf.h
+ create mode 100644 arch/metag/include/asm/fixmap.h
+ create mode 100644 arch/metag/include/asm/ftrace.h
+ create mode 100644 arch/metag/include/asm/global_lock.h
+ create mode 100644 arch/metag/include/asm/gpio.h
+ create mode 100644 arch/metag/include/asm/highmem.h
+ create mode 100644 arch/metag/include/asm/hugetlb.h
+ create mode 100644 arch/metag/include/asm/hwthread.h
+ create mode 100644 arch/metag/include/asm/io.h
+ create mode 100644 arch/metag/include/asm/irq.h
+ create mode 100644 arch/metag/include/asm/irqflags.h
+ create mode 100644 arch/metag/include/asm/l2cache.h
+ create mode 100644 arch/metag/include/asm/linkage.h
+ create mode 100644 arch/metag/include/asm/mach/arch.h
+ create mode 100644 arch/metag/include/asm/metag_isa.h
+ create mode 100644 arch/metag/include/asm/metag_mem.h
+ create mode 100644 arch/metag/include/asm/metag_regs.h
+ create mode 100644 arch/metag/include/asm/mman.h
+ create mode 100644 arch/metag/include/asm/mmu.h
+ create mode 100644 arch/metag/include/asm/mmu_context.h
+ create mode 100644 arch/metag/include/asm/mmzone.h
+ create mode 100644 arch/metag/include/asm/module.h
+ create mode 100644 arch/metag/include/asm/page.h
+ create mode 100644 arch/metag/include/asm/perf_event.h
+ create mode 100644 arch/metag/include/asm/pgalloc.h
+ create mode 100644 arch/metag/include/asm/pgtable.h
+ create mode 100644 arch/metag/include/asm/processor.h
+ create mode 100644 arch/metag/include/asm/prom.h
+ create mode 100644 arch/metag/include/asm/ptrace.h
+ create mode 100644 arch/metag/include/asm/setup.h
+ create mode 100644 arch/metag/include/asm/smp.h
+ create mode 100644 arch/metag/include/asm/sparsemem.h
+ create mode 100644 arch/metag/include/asm/spinlock.h
+ create mode 100644 arch/metag/include/asm/spinlock_lnkget.h
+ create mode 100644 arch/metag/include/asm/spinlock_lock1.h
+ create mode 100644 arch/metag/include/asm/spinlock_types.h
+ create mode 100644 arch/metag/include/asm/stacktrace.h
+ create mode 100644 arch/metag/include/asm/string.h
+ create mode 100644 arch/metag/include/asm/switch.h
+ create mode 100644 arch/metag/include/asm/syscall.h
+ create mode 100644 arch/metag/include/asm/syscalls.h
+ create mode 100644 arch/metag/include/asm/tbx.h
+ create mode 100644 arch/metag/include/asm/tcm.h
+ create mode 100644 arch/metag/include/asm/thread_info.h
+ create mode 100644 arch/metag/include/asm/tlb.h
+ create mode 100644 arch/metag/include/asm/tlbflush.h
+ create mode 100644 arch/metag/include/asm/topology.h
+ create mode 100644 arch/metag/include/asm/traps.h
+ create mode 100644 arch/metag/include/asm/uaccess.h
+ create mode 100644 arch/metag/include/asm/unistd.h
+ create mode 100644 arch/metag/include/asm/user_gateway.h
+ create mode 100644 arch/metag/include/uapi/asm/Kbuild
+ create mode 100644 arch/metag/include/uapi/asm/byteorder.h
+ create mode 100644 arch/metag/include/uapi/asm/ptrace.h
+ create mode 100644 arch/metag/include/uapi/asm/resource.h
+ create mode 100644 arch/metag/include/uapi/asm/sigcontext.h
+ create mode 100644 arch/metag/include/uapi/asm/siginfo.h
+ create mode 100644 arch/metag/include/uapi/asm/swab.h
+ create mode 100644 arch/metag/include/uapi/asm/unistd.h
+ create mode 100644 arch/metag/kernel/.gitignore
+ create mode 100644 arch/metag/kernel/Makefile
+ create mode 100644 arch/metag/kernel/asm-offsets.c
+ create mode 100644 arch/metag/kernel/cachepart.c
+ create mode 100644 arch/metag/kernel/clock.c
+ create mode 100644 arch/metag/kernel/core_reg.c
+ create mode 100644 arch/metag/kernel/da.c
+ create mode 100644 arch/metag/kernel/devtree.c
+ create mode 100644 arch/metag/kernel/dma.c
+ create mode 100644 arch/metag/kernel/ftrace.c
+ create mode 100644 arch/metag/kernel/ftrace_stub.S
+ create mode 100644 arch/metag/kernel/head.S
+ create mode 100644 arch/metag/kernel/irq.c
+ create mode 100644 arch/metag/kernel/kick.c
+ create mode 100644 arch/metag/kernel/machines.c
+ create mode 100644 arch/metag/kernel/metag_ksyms.c
+ create mode 100644 arch/metag/kernel/module.c
+ create mode 100644 arch/metag/kernel/perf/Makefile
+ create mode 100644 arch/metag/kernel/perf/perf_event.c
+ create mode 100644 arch/metag/kernel/perf/perf_event.h
+ create mode 100644 arch/metag/kernel/perf_callchain.c
+ create mode 100644 arch/metag/kernel/process.c
+ create mode 100644 arch/metag/kernel/ptrace.c
+ create mode 100644 arch/metag/kernel/setup.c
+ create mode 100644 arch/metag/kernel/signal.c
+ create mode 100644 arch/metag/kernel/smp.c
+ create mode 100644 arch/metag/kernel/stacktrace.c
+ create mode 100644 arch/metag/kernel/sys_metag.c
+ create mode 100644 arch/metag/kernel/tbiunexp.S
+ create mode 100644 arch/metag/kernel/tcm.c
+ create mode 100644 arch/metag/kernel/time.c
+ create mode 100644 arch/metag/kernel/topology.c
+ create mode 100644 arch/metag/kernel/traps.c
+ create mode 100644 arch/metag/kernel/user_gateway.S
+ create mode 100644 arch/metag/kernel/vmlinux.lds.S
+ create mode 100644 arch/metag/lib/Makefile
+ create mode 100644 arch/metag/lib/ashldi3.S
+ create mode 100644 arch/metag/lib/ashrdi3.S
+ create mode 100644 arch/metag/lib/checksum.c
+ create mode 100644 arch/metag/lib/clear_page.S
+ create mode 100644 arch/metag/lib/cmpdi2.S
+ create mode 100644 arch/metag/lib/copy_page.S
+ create mode 100644 arch/metag/lib/delay.c
+ create mode 100644 arch/metag/lib/div64.S
+ create mode 100644 arch/metag/lib/divsi3.S
+ create mode 100644 arch/metag/lib/ip_fast_csum.S
+ create mode 100644 arch/metag/lib/lshrdi3.S
+ create mode 100644 arch/metag/lib/memcpy.S
+ create mode 100644 arch/metag/lib/memmove.S
+ create mode 100644 arch/metag/lib/memset.S
+ create mode 100644 arch/metag/lib/modsi3.S
+ create mode 100644 arch/metag/lib/muldi3.S
+ create mode 100644 arch/metag/lib/ucmpdi2.S
+ create mode 100644 arch/metag/lib/usercopy.c
+ create mode 100644 arch/metag/mm/Kconfig
+ create mode 100644 arch/metag/mm/Makefile
+ create mode 100644 arch/metag/mm/cache.c
+ create mode 100644 arch/metag/mm/extable.c
+ create mode 100644 arch/metag/mm/fault.c
+ create mode 100644 arch/metag/mm/highmem.c
+ create mode 100644 arch/metag/mm/hugetlbpage.c
+ create mode 100644 arch/metag/mm/init.c
+ create mode 100644 arch/metag/mm/ioremap.c
+ create mode 100644 arch/metag/mm/l2cache.c
+ create mode 100644 arch/metag/mm/maccess.c
+ create mode 100644 arch/metag/mm/mmu-meta1.c
+ create mode 100644 arch/metag/mm/mmu-meta2.c
+ create mode 100644 arch/metag/mm/numa.c
+ create mode 100644 arch/metag/tbx/Makefile
+ create mode 100644 arch/metag/tbx/tbicore.S
+ create mode 100644 arch/metag/tbx/tbictx.S
+ create mode 100644 arch/metag/tbx/tbictxfpu.S
+ create mode 100644 arch/metag/tbx/tbidefr.S
+ create mode 100644 arch/metag/tbx/tbidspram.S
+ create mode 100644 arch/metag/tbx/tbilogf.S
+ create mode 100644 arch/metag/tbx/tbipcx.S
+ create mode 100644 arch/metag/tbx/tbiroot.S
+ create mode 100644 arch/metag/tbx/tbisoft.S
+ create mode 100644 arch/metag/tbx/tbistring.c
+ create mode 100644 arch/metag/tbx/tbitimer.S
+ create mode 100644 drivers/clocksource/metag_generic.c
+ create mode 100644 drivers/irqchip/irq-metag-ext.c
+ create mode 100644 drivers/irqchip/irq-metag.c
  create mode 100644 drivers/tty/metag_da.c
+ create mode 100644 fs/imgdafs/Kconfig
+ create mode 100644 fs/imgdafs/Makefile
+ create mode 100644 fs/imgdafs/imgdafs.h
+ create mode 100644 fs/imgdafs/inode.c
+ create mode 100644 include/clocksource/metag_generic.h
+ create mode 100644 include/linux/irqchip/metag-ext.h
+ create mode 100644 include/linux/irqchip/metag.h
 
-diff --git a/MAINTAINERS b/MAINTAINERS
-index eafc72d..cb89fe3 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -5043,6 +5043,7 @@ F:	Documentation/devicetree/bindings/metag/
- F:	drivers/clocksource/metag_generic.c
- F:	drivers/irqchip/irq-metag.c
- F:	drivers/irqchip/irq-metag-ext.c
-+F:	drivers/tty/metag_da.c
- 
- MICROBLAZE ARCHITECTURE
- M:	Michal Simek <monstr@monstr.eu>
-diff --git a/arch/metag/Kconfig b/arch/metag/Kconfig
-index 7bf6fee..9cba2f9 100644
---- a/arch/metag/Kconfig
-+++ b/arch/metag/Kconfig
-@@ -221,7 +221,9 @@ config METAG_DA
- 	  of the DA will be detected automatically at boot, so it is safe to say
- 	  Y to this option even when booting without a DA.
- 
--	  This enables support for services provided by DA JTAG debug adapters.
-+	  This enables support for services provided by DA JTAG debug adapters,
-+	  such as:
-+	  - communication over DA channels (such as the console driver).
- 
- menu "Boot options"
- 
-diff --git a/arch/metag/configs/meta1_defconfig b/arch/metag/configs/meta1_defconfig
-index 0773425..ad663ca 100644
---- a/arch/metag/configs/meta1_defconfig
-+++ b/arch/metag/configs/meta1_defconfig
-@@ -28,6 +28,8 @@ CONFIG_BLK_DEV_RAM_SIZE=16384
- # CONFIG_SERIO is not set
- # CONFIG_VT is not set
- # CONFIG_LEGACY_PTYS is not set
-+CONFIG_DA_TTY=y
-+CONFIG_DA_CONSOLE=y
- # CONFIG_DEVKMEM is not set
- # CONFIG_HW_RANDOM is not set
- # CONFIG_HWMON is not set
-diff --git a/arch/metag/configs/meta2_defconfig b/arch/metag/configs/meta2_defconfig
-index 001f9bf..47922e93 100644
---- a/arch/metag/configs/meta2_defconfig
-+++ b/arch/metag/configs/meta2_defconfig
-@@ -29,6 +29,8 @@ CONFIG_BLK_DEV_RAM_SIZE=16384
- # CONFIG_SERIO is not set
- # CONFIG_VT is not set
- # CONFIG_LEGACY_PTYS is not set
-+CONFIG_DA_TTY=y
-+CONFIG_DA_CONSOLE=y
- # CONFIG_DEVKMEM is not set
- # CONFIG_HW_RANDOM is not set
- # CONFIG_HWMON is not set
-diff --git a/arch/metag/configs/meta2_smp_defconfig b/arch/metag/configs/meta2_smp_defconfig
-index d6f7e46..f508250 100644
---- a/arch/metag/configs/meta2_smp_defconfig
-+++ b/arch/metag/configs/meta2_smp_defconfig
-@@ -30,6 +30,8 @@ CONFIG_BLK_DEV_RAM_SIZE=16384
- # CONFIG_SERIO is not set
- # CONFIG_VT is not set
- # CONFIG_LEGACY_PTYS is not set
-+CONFIG_DA_TTY=y
-+CONFIG_DA_CONSOLE=y
- # CONFIG_DEVKMEM is not set
- # CONFIG_HW_RANDOM is not set
- # CONFIG_HWMON is not set
-diff --git a/arch/metag/kernel/setup.c b/arch/metag/kernel/setup.c
-index 43dcf6a..89f9cdc 100644
---- a/arch/metag/kernel/setup.c
-+++ b/arch/metag/kernel/setup.c
-@@ -61,6 +61,11 @@ extern char _heap_start[];
- extern u32 __dtb_start[];
- #endif
- 
-+#ifdef CONFIG_DA_CONSOLE
-+/* Our early channel based console driver */
-+extern struct console dash_console;
-+#endif
-+
- struct machine_desc *machine_desc __initdata;
- 
- /*
-@@ -182,6 +187,13 @@ void __init setup_arch(char **cmdline_p)
- 	metag_cache_probe();
- 
- 	metag_da_probe();
-+#ifdef CONFIG_DA_CONSOLE
-+	if (metag_da_enabled()) {
-+		/* An early channel based console driver */
-+		register_console(&dash_console);
-+		add_preferred_console("ttyDA", 1, NULL);
-+	}
-+#endif
- 
- 	/* try interpreting the argument as a device tree */
- 	machine_desc = setup_machine_fdt(original_cmd_line);
-diff --git a/drivers/tty/Kconfig b/drivers/tty/Kconfig
-index 0ecf22b..5eef53d 100644
---- a/drivers/tty/Kconfig
-+++ b/drivers/tty/Kconfig
-@@ -388,3 +388,16 @@ config PPC_EARLY_DEBUG_EHV_BC_HANDLE
- 	  If the number you specify is not a valid byte channel handle, then
- 	  there simply will be no early console output.  This is true also
- 	  if you don't boot under a hypervisor at all.
-+
-+config DA_TTY
-+	bool "DA TTY"
-+	depends on METAG_DA
-+	select SERIAL_NONSTANDARD
-+	help
-+	  This enables a TTY on a Dash channel.
-+
-+config DA_CONSOLE
-+	bool "DA Console"
-+	depends on DA_TTY
-+	help
-+	  This enables a console on a Dash channel.
-diff --git a/drivers/tty/Makefile b/drivers/tty/Makefile
-index 2953059..dbd7745 100644
---- a/drivers/tty/Makefile
-+++ b/drivers/tty/Makefile
-@@ -27,5 +27,6 @@ obj-$(CONFIG_SYNCLINK_GT)	+= synclink_gt.o
- obj-$(CONFIG_SYNCLINKMP)	+= synclinkmp.o
- obj-$(CONFIG_SYNCLINK)		+= synclink.o
- obj-$(CONFIG_PPC_EPAPR_HV_BYTECHAN) += ehv_bytechan.o
-+obj-$(CONFIG_DA_TTY)	+= metag_da.o
- 
- obj-y += ipwireless/
-diff --git a/drivers/tty/metag_da.c b/drivers/tty/metag_da.c
-new file mode 100644
-index 0000000..6a0b2e6
---- /dev/null
-+++ b/drivers/tty/metag_da.c
-@@ -0,0 +1,679 @@
-+/*
-+ *  dashtty.c - tty driver for Dash channels interface.
-+ *
-+ *  Copyright (C) 2007,2008,2012 Imagination Technologies
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file COPYING in the main directory of this archive
-+ * for more details.
-+ *
-+ */
-+
-+#include <linux/atomic.h>
-+#include <linux/completion.h>
-+#include <linux/console.h>
-+#include <linux/delay.h>
-+#include <linux/export.h>
-+#include <linux/init.h>
-+#include <linux/kernel.h>
-+#include <linux/kthread.h>
-+#include <linux/mutex.h>
-+#include <linux/sched.h>
-+#include <linux/serial.h>
-+#include <linux/slab.h>
-+#include <linux/spinlock.h>
-+#include <linux/string.h>
-+#include <linux/timer.h>
-+#include <linux/tty.h>
-+#include <linux/tty_driver.h>
-+#include <linux/tty_flip.h>
-+#include <linux/uaccess.h>
-+
-+#include <asm/da.h>
-+
-+/* Channel error codes */
-+#define CONAOK	0
-+#define CONERR	1
-+#define CONBAD	2
-+#define CONPRM	3
-+#define CONADR	4
-+#define CONCNT	5
-+#define CONCBF	6
-+#define CONCBE	7
-+#define CONBSY	8
-+
-+/* Default channel for the console */
-+#define CONSOLE_CHANNEL      1
-+
-+#define NUM_TTY_CHANNELS     6
-+
-+/* Auto allocate */
-+#define DA_TTY_MAJOR        0
-+
-+/* A speedy poll rate helps the userland debug process connection response.
-+ * But, if you set it too high then no other userland processes get much
-+ * of a look in.
-+ */
-+#define DA_TTY_POLL (HZ / 50)
-+
-+/*
-+ * A short put delay improves latency but has a high throughput overhead
-+ */
-+#define DA_TTY_PUT_DELAY (HZ / 100)
-+
-+static atomic_t num_channels_need_poll = ATOMIC_INIT(0);
-+
-+static struct timer_list poll_timer;
-+
-+static struct tty_driver *channel_driver;
-+
-+static struct timer_list put_timer;
-+static struct task_struct *dashtty_thread;
-+
-+#define RX_BUF_SIZE 1024
-+
-+enum {
-+	INCHR = 1,
-+	OUTCHR,
-+	RDBUF,
-+	WRBUF,
-+	RDSTAT
-+};
-+
-+/**
-+ * struct dashtty_port - Wrapper struct for dashtty tty_port.
-+ * @port:		TTY port data
-+ * @rx_lock:		Lock for rx_buf.
-+ *			This protects between the poll timer and user context.
-+ *			It's also held during read SWITCH operations.
-+ * @rx_buf:		Read buffer
-+ * @xmit_lock:		Lock for xmit_*, and port.xmit_buf.
-+ *			This protects between user context and kernel thread.
-+ *			It's also held during write SWITCH operations.
-+ * @xmit_cnt:		Size of xmit buffer contents
-+ * @xmit_head:		Head of xmit buffer where data is written
-+ * @xmit_tail:		Tail of xmit buffer where data is read
-+ * @xmit_empty:		Completion for xmit buffer being empty
-+ */
-+struct dashtty_port {
-+	struct tty_port		 port;
-+	spinlock_t		 rx_lock;
-+	void			*rx_buf;
-+	struct mutex		 xmit_lock;
-+	unsigned int		 xmit_cnt;
-+	unsigned int		 xmit_head;
-+	unsigned int		 xmit_tail;
-+	struct completion	 xmit_empty;
-+};
-+
-+static struct dashtty_port dashtty_ports[NUM_TTY_CHANNELS];
-+
-+static atomic_t dashtty_xmit_cnt = ATOMIC_INIT(0);
-+static wait_queue_head_t dashtty_waitqueue;
-+
-+/*
-+ * Low-level DA channel access routines
-+ */
-+static int chancall(int in_bios_function, int in_channel,
-+		    int in_arg2, void *in_arg3,
-+		    void *in_arg4)
-+{
-+	register int   bios_function asm("D1Ar1") = in_bios_function;
-+	register int   channel       asm("D0Ar2") = in_channel;
-+	register int   arg2          asm("D1Ar3") = in_arg2;
-+	register void *arg3          asm("D0Ar4") = in_arg3;
-+	register void *arg4          asm("D1Ar5") = in_arg4;
-+	register int   bios_call     asm("D0Ar6") = 3;
-+	register int   result        asm("D0Re0");
-+
-+	asm volatile (
-+		"MSETL	[A0StP++], %6,%4,%2\n\t"
-+		"ADD	A0StP, A0StP, #8\n\t"
-+		"SWITCH	#0x0C30208\n\t"
-+		"GETD	%0, [A0StP+#-8]\n\t"
-+		"SUB	A0StP, A0StP, #(4*6)+8\n\t"
-+		: "=d" (result)   /* outs */
-+		: "d" (bios_function),
-+		  "d" (channel),
-+		  "d" (arg2),
-+		  "d" (arg3),
-+		  "d" (arg4),
-+		  "d" (bios_call) /* ins */
-+		: "memory");
-+
-+	return result;
-+}
-+
-+/*
-+ * Attempts to fetch count bytes from channel and returns actual count.
-+ */
-+static int fetch_data(struct tty_struct *tty)
-+{
-+	unsigned int channel = tty->index;
-+	struct dashtty_port *dport = &dashtty_ports[channel];
-+	int received = 0;
-+
-+	spin_lock_bh(&dport->rx_lock);
-+	/* check the port isn't being shut down */
-+	if (!dport->rx_buf)
-+		goto unlock;
-+	if (chancall(RDBUF, channel, RX_BUF_SIZE,
-+		     (void *)dport->rx_buf, &received) == CONAOK) {
-+		if (received) {
-+			int space;
-+			unsigned char *cbuf;
-+
-+			space = tty_prepare_flip_string(tty, &cbuf, received);
-+
-+			if (space <= 0)
-+				goto unlock;
-+
-+			memcpy(cbuf, dport->rx_buf, space);
-+			tty_flip_buffer_push(tty);
-+		}
-+	}
-+unlock:
-+	spin_unlock_bh(&dport->rx_lock);
-+
-+	return received;
-+}
-+
-+/**
-+ * find_channel_to_poll() - Returns kref to the next channel tty to poll.
-+ * Returns:	The TTY of the next channel to poll, or NULL if no TTY needs
-+ *		polling. Release with tty_kref_put().
-+ */
-+static struct tty_struct *find_channel_to_poll(void)
-+{
-+	static int last_polled_channel;
-+	int last = last_polled_channel;
-+	int chan;
-+	struct tty_struct *tty = NULL;
-+
-+	for (chan = last + 1; ; ++chan) {
-+		if (chan >= NUM_TTY_CHANNELS)
-+			chan = 0;
-+
-+		tty = tty_port_tty_get(&dashtty_ports[chan].port);
-+		if (tty) {
-+			last_polled_channel = chan;
-+			return tty;
-+		}
-+
-+		if (chan == last)
-+			break;
-+	}
-+	return tty;
-+}
-+
-+/**
-+ * put_channel_data() - Write out a block of channel data.
-+ * @chan:	DA channel number.
-+ *
-+ * Write a single block of data out to the debug adapter. If the circular buffer
-+ * is wrapped then only the first block is written.
-+ *
-+ * Returns:	1 if the remote buffer was too full to accept data.
-+ *		0 otherwise.
-+ */
-+static int put_channel_data(unsigned int chan)
-+{
-+	struct dashtty_port *dport;
-+	struct tty_struct *tty;
-+	int number_written;
-+	unsigned int count = 0;
-+
-+	dport = &dashtty_ports[chan];
-+	mutex_lock(&dport->xmit_lock);
-+	if (dport->xmit_cnt) {
-+		count = min((unsigned int)(SERIAL_XMIT_SIZE - dport->xmit_tail),
-+			    dport->xmit_cnt);
-+		chancall(WRBUF, chan, count,
-+			 dport->port.xmit_buf + dport->xmit_tail,
-+			 &number_written);
-+		dport->xmit_cnt -= number_written;
-+		if (!dport->xmit_cnt) {
-+			/* reset pointers to avoid wraps */
-+			dport->xmit_head = 0;
-+			dport->xmit_tail = 0;
-+			complete(&dport->xmit_empty);
-+		} else {
-+			dport->xmit_tail += number_written;
-+			if (dport->xmit_tail >= SERIAL_XMIT_SIZE)
-+				dport->xmit_tail -= SERIAL_XMIT_SIZE;
-+		}
-+		atomic_sub(number_written, &dashtty_xmit_cnt);
-+	}
-+	mutex_unlock(&dport->xmit_lock);
-+
-+	/* if we've made more data available, wake up tty */
-+	if (count && number_written) {
-+		tty = tty_port_tty_get(&dport->port);
-+		if (tty) {
-+			tty_wakeup(tty);
-+			tty_kref_put(tty);
-+		}
-+	}
-+
-+	/* did the write fail? */
-+	return count && !number_written;
-+}
-+
-+/**
-+ * put_data() - Kernel thread to write out blocks of channel data to DA.
-+ * @arg:	Unused.
-+ *
-+ * This kernel thread runs while @dashtty_xmit_cnt != 0, and loops over the
-+ * channels to write out any buffered data. If any of the channels stall due to
-+ * the remote buffer being full, a hold off happens to allow the debugger to
-+ * drain the buffer.
-+ */
-+static int put_data(void *arg)
-+{
-+	unsigned int chan, stall;
-+
-+	__set_current_state(TASK_RUNNING);
-+	while (!kthread_should_stop()) {
-+		/*
-+		 * For each channel see if there's anything to transmit in the
-+		 * port's xmit_buf.
-+		 */
-+		stall = 0;
-+		for (chan = 0; chan < NUM_TTY_CHANNELS; ++chan)
-+			stall += put_channel_data(chan);
-+
-+		/*
-+		 * If some of the buffers are full, hold off for a short while
-+		 * to allow them to empty.
-+		 */
-+		if (stall)
-+			msleep(25);
-+
-+		wait_event_interruptible(dashtty_waitqueue,
-+					 atomic_read(&dashtty_xmit_cnt));
-+	}
-+
-+	return 0;
-+}
-+
-+/*
-+ *	This gets called every DA_TTY_POLL and polls the channels for data
-+ */
-+static void dashtty_timer(unsigned long ignored)
-+{
-+	struct tty_struct *tty;
-+
-+	/* If there are no ports open do nothing and don't poll again. */
-+	if (!atomic_read(&num_channels_need_poll))
-+		return;
-+
-+	tty = find_channel_to_poll();
-+
-+	/* Did we find a channel to poll? */
-+	if (tty) {
-+		fetch_data(tty);
-+		tty_kref_put(tty);
-+	}
-+
-+	mod_timer_pinned(&poll_timer, jiffies + DA_TTY_POLL);
-+}
-+
-+static void add_poll_timer(struct timer_list *poll_timer)
-+{
-+	setup_timer(poll_timer, dashtty_timer, 0);
-+	poll_timer->expires = jiffies + DA_TTY_POLL;
-+
-+	/*
-+	 * Always attach the timer to the boot CPU. The DA channels are per-CPU
-+	 * so all polling should be from a single CPU.
-+	 */
-+	add_timer_on(poll_timer, 0);
-+}
-+
-+static int dashtty_port_activate(struct tty_port *port, struct tty_struct *tty)
-+{
-+	struct dashtty_port *dport = container_of(port, struct dashtty_port,
-+						  port);
-+	void *rx_buf;
-+
-+	/* Allocate the buffer we use for writing data */
-+	if (tty_port_alloc_xmit_buf(port) < 0)
-+		goto err;
-+
-+	/* Allocate the buffer we use for reading data */
-+	rx_buf = kzalloc(RX_BUF_SIZE, GFP_KERNEL);
-+	if (!rx_buf)
-+		goto err_free_xmit;
-+
-+	spin_lock_bh(&dport->rx_lock);
-+	dport->rx_buf = rx_buf;
-+	spin_unlock_bh(&dport->rx_lock);
-+
-+	/*
-+	 * Don't add the poll timer if we're opening a console. This
-+	 * avoids the overhead of polling the Dash but means it is not
-+	 * possible to have a login on /dev/console.
-+	 *
-+	 */
-+	if (dport != &dashtty_ports[CONSOLE_CHANNEL])
-+		if (atomic_inc_return(&num_channels_need_poll) == 1)
-+			add_poll_timer(&poll_timer);
-+
-+	return 0;
-+err_free_xmit:
-+	tty_port_free_xmit_buf(port);
-+err:
-+	return -ENOMEM;
-+}
-+
-+static void dashtty_port_shutdown(struct tty_port *port)
-+{
-+	struct dashtty_port *dport = container_of(port, struct dashtty_port,
-+						  port);
-+	void *rx_buf;
-+	unsigned int count;
-+
-+	/* stop reading */
-+	if (dport != &dashtty_ports[CONSOLE_CHANNEL])
-+		if (atomic_dec_and_test(&num_channels_need_poll))
-+			del_timer_sync(&poll_timer);
-+
-+	mutex_lock(&dport->xmit_lock);
-+	count = dport->xmit_cnt;
-+	mutex_unlock(&dport->xmit_lock);
-+	if (count) {
-+		/*
-+		 * There's still data to write out, so wake and wait for the
-+		 * writer thread to drain the buffer.
-+		 */
-+		del_timer(&put_timer);
-+		wake_up_interruptible(&dashtty_waitqueue);
-+		wait_for_completion(&dport->xmit_empty);
-+	}
-+
-+	/* Null the read buffer (timer could still be running!) */
-+	spin_lock_bh(&dport->rx_lock);
-+	rx_buf = dport->rx_buf;
-+	dport->rx_buf = NULL;
-+	spin_unlock_bh(&dport->rx_lock);
-+	/* Free the read buffer */
-+	kfree(rx_buf);
-+
-+	/* Free the write buffer */
-+	tty_port_free_xmit_buf(port);
-+}
-+
-+static const struct tty_port_operations dashtty_port_ops = {
-+	.activate	= dashtty_port_activate,
-+	.shutdown	= dashtty_port_shutdown,
-+};
-+
-+static int dashtty_install(struct tty_driver *driver, struct tty_struct *tty)
-+{
-+	return tty_port_install(&dashtty_ports[tty->index].port, driver, tty);
-+}
-+
-+static int dashtty_open(struct tty_struct *tty, struct file *filp)
-+{
-+	return tty_port_open(tty->port, tty, filp);
-+}
-+
-+static void dashtty_close(struct tty_struct *tty, struct file *filp)
-+{
-+	return tty_port_close(tty->port, tty, filp);
-+}
-+
-+static void dashtty_hangup(struct tty_struct *tty)
-+{
-+	int channel;
-+	struct dashtty_port *dport;
-+
-+	channel = tty->index;
-+	dport = &dashtty_ports[channel];
-+
-+	/* drop any data in the xmit buffer */
-+	mutex_lock(&dport->xmit_lock);
-+	if (dport->xmit_cnt) {
-+		atomic_sub(dport->xmit_cnt, &dashtty_xmit_cnt);
-+		dport->xmit_cnt = 0;
-+		dport->xmit_head = 0;
-+		dport->xmit_tail = 0;
-+		complete(&dport->xmit_empty);
-+	}
-+	mutex_unlock(&dport->xmit_lock);
-+
-+	tty_port_hangup(tty->port);
-+}
-+
-+/**
-+ * dashtty_put_timer() - Delayed wake up of kernel thread.
-+ * @ignored:	unused
-+ *
-+ * This timer function wakes up the kernel thread if any data exists in the
-+ * buffers. It is used to delay the expensive writeout until the writer has
-+ * stopped writing.
-+ */
-+static void dashtty_put_timer(unsigned long ignored)
-+{
-+	if (atomic_read(&dashtty_xmit_cnt))
-+		wake_up_interruptible(&dashtty_waitqueue);
-+}
-+
-+static int dashtty_write(struct tty_struct *tty, const unsigned char *buf,
-+			 int total)
-+{
-+	int channel, count, block;
-+	struct dashtty_port *dport;
-+
-+	/* Determine the channel */
-+	channel = tty->index;
-+	dport = &dashtty_ports[channel];
-+
-+	/*
-+	 * Write to output buffer.
-+	 *
-+	 * The reason that we asynchronously write the buffer is because if we
-+	 * were to write the buffer synchronously then because DA channels are
-+	 * per-CPU the buffer would be written to the channel of whatever CPU
-+	 * we're running on.
-+	 *
-+	 * What we actually want to happen is have all input and output done on
-+	 * one CPU.
-+	 */
-+	mutex_lock(&dport->xmit_lock);
-+	/* work out how many bytes we can write to the xmit buffer */
-+	total = min(total, (int)(SERIAL_XMIT_SIZE - dport->xmit_cnt));
-+	atomic_add(total, &dashtty_xmit_cnt);
-+	dport->xmit_cnt += total;
-+	/* write the actual bytes (may need splitting if it wraps) */
-+	for (count = total; count; count -= block) {
-+		block = min(count, (int)(SERIAL_XMIT_SIZE - dport->xmit_head));
-+		memcpy(dport->port.xmit_buf + dport->xmit_head, buf, block);
-+		dport->xmit_head += block;
-+		if (dport->xmit_head >= SERIAL_XMIT_SIZE)
-+			dport->xmit_head -= SERIAL_XMIT_SIZE;
-+		buf += block;
-+	}
-+	count = dport->xmit_cnt;
-+	/* xmit buffer no longer empty? */
-+	if (count)
-+		INIT_COMPLETION(dport->xmit_empty);
-+	mutex_unlock(&dport->xmit_lock);
-+
-+	if (total) {
-+		/*
-+		 * If the buffer is full, wake up the kthread, otherwise allow
-+		 * some more time for the buffer to fill up a bit before waking
-+		 * it.
-+		 */
-+		if (count == SERIAL_XMIT_SIZE) {
-+			del_timer(&put_timer);
-+			wake_up_interruptible(&dashtty_waitqueue);
-+		} else {
-+			mod_timer(&put_timer, jiffies + DA_TTY_PUT_DELAY);
-+		}
-+	}
-+	return total;
-+}
-+
-+static int dashtty_write_room(struct tty_struct *tty)
-+{
-+	struct dashtty_port *dport;
-+	int channel;
-+	int room;
-+
-+	channel = tty->index;
-+	dport = &dashtty_ports[channel];
-+
-+	/* report the space in the xmit buffer */
-+	mutex_lock(&dport->xmit_lock);
-+	room = SERIAL_XMIT_SIZE - dport->xmit_cnt;
-+	mutex_unlock(&dport->xmit_lock);
-+
-+	return room;
-+}
-+
-+static int dashtty_chars_in_buffer(struct tty_struct *tty)
-+{
-+	struct dashtty_port *dport;
-+	int channel;
-+	int chars;
-+
-+	channel = tty->index;
-+	dport = &dashtty_ports[channel];
-+
-+	/* report the number of bytes in the xmit buffer */
-+	mutex_lock(&dport->xmit_lock);
-+	chars = dport->xmit_cnt;
-+	mutex_unlock(&dport->xmit_lock);
-+
-+	return chars;
-+}
-+
-+static const struct tty_operations dashtty_ops = {
-+	.install		= dashtty_install,
-+	.open			= dashtty_open,
-+	.close			= dashtty_close,
-+	.hangup			= dashtty_hangup,
-+	.write			= dashtty_write,
-+	.write_room		= dashtty_write_room,
-+	.chars_in_buffer	= dashtty_chars_in_buffer,
-+};
-+
-+static int __init dashtty_init(void)
-+{
-+	int ret;
-+	int nport;
-+	struct dashtty_port *dport;
-+
-+	if (!metag_da_enabled())
-+		return -ENODEV;
-+
-+	channel_driver = tty_alloc_driver(NUM_TTY_CHANNELS,
-+					  TTY_DRIVER_REAL_RAW);
-+	if (IS_ERR(channel_driver))
-+		return PTR_ERR(channel_driver);
-+
-+	channel_driver->driver_name = "metag_da";
-+	channel_driver->name = "ttyDA";
-+	channel_driver->major = DA_TTY_MAJOR;
-+	channel_driver->minor_start = 0;
-+	channel_driver->type = TTY_DRIVER_TYPE_SERIAL;
-+	channel_driver->subtype = SERIAL_TYPE_NORMAL;
-+	channel_driver->init_termios = tty_std_termios;
-+	channel_driver->init_termios.c_cflag |= CLOCAL;
-+
-+	tty_set_operations(channel_driver, &dashtty_ops);
-+	for (nport = 0; nport < NUM_TTY_CHANNELS; nport++) {
-+		dport = &dashtty_ports[nport];
-+		tty_port_init(&dport->port);
-+		dport->port.ops = &dashtty_port_ops;
-+		spin_lock_init(&dport->rx_lock);
-+		mutex_init(&dport->xmit_lock);
-+		/* the xmit buffer starts empty, i.e. completely written */
-+		init_completion(&dport->xmit_empty);
-+		complete(&dport->xmit_empty);
-+	}
-+
-+	setup_timer(&put_timer, dashtty_put_timer, 0);
-+
-+	init_waitqueue_head(&dashtty_waitqueue);
-+	dashtty_thread = kthread_create(put_data, NULL, "ttyDA");
-+	if (IS_ERR(dashtty_thread)) {
-+		pr_err("Couldn't create dashtty thread\n");
-+		ret = PTR_ERR(dashtty_thread);
-+		goto err_destroy_ports;
-+	}
-+	/*
-+	 * Bind the writer thread to the boot CPU so it can't migrate.
-+	 * DA channels are per-CPU and we want all channel I/O to be on a single
-+	 * predictable CPU.
-+	 */
-+	kthread_bind(dashtty_thread, 0);
-+	wake_up_process(dashtty_thread);
-+
-+	ret = tty_register_driver(channel_driver);
-+
-+	if (ret < 0) {
-+		pr_err("Couldn't install dashtty driver: err %d\n",
-+		       ret);
-+		goto err_stop_kthread;
-+	}
-+
-+	return 0;
-+
-+err_stop_kthread:
-+	kthread_stop(dashtty_thread);
-+err_destroy_ports:
-+	for (nport = 0; nport < NUM_TTY_CHANNELS; nport++) {
-+		dport = &dashtty_ports[nport];
-+		tty_port_destroy(&dport->port);
-+	}
-+	put_tty_driver(channel_driver);
-+	return ret;
-+}
-+
-+static void dashtty_exit(void)
-+{
-+	int nport;
-+	struct dashtty_port *dport;
-+
-+	del_timer_sync(&put_timer);
-+	kthread_stop(dashtty_thread);
-+	del_timer_sync(&poll_timer);
-+	tty_unregister_driver(channel_driver);
-+	for (nport = 0; nport < NUM_TTY_CHANNELS; nport++) {
-+		dport = &dashtty_ports[nport];
-+		tty_port_destroy(&dport->port);
-+	}
-+	put_tty_driver(channel_driver);
-+}
-+
-+module_init(dashtty_init);
-+module_exit(dashtty_exit);
-+
-+#ifdef CONFIG_DA_CONSOLE
-+
-+static void dash_console_write(struct console *co, const char *s,
-+			       unsigned int count)
-+{
-+	int actually_written;
-+
-+	chancall(WRBUF, CONSOLE_CHANNEL, count, (void *)s, &actually_written);
-+}
-+
-+static struct tty_driver *dash_console_device(struct console *c, int *index)
-+{
-+	*index = c->index;
-+	return channel_driver;
-+}
-+
-+struct console dash_console = {
-+	.name = "ttyDA",
-+	.write = dash_console_write,
-+	.device = dash_console_device,
-+	.flags = CON_PRINTBUFFER,
-+	.index = 1,
-+};
-+
-+#endif
 -- 
 1.7.7.6
 
