@@ -1,43 +1,123 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp02.in.ibm.com ([122.248.162.2]:53416 "EHLO
-	e28smtp02.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751518Ab3A2BQN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Jan 2013 20:16:13 -0500
-Received: from /spool/local
-	by e28smtp02.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 29 Jan 2013 06:43:52 +0530
-Message-ID: <5107225A.5040702@linux.vnet.ibm.com>
-Date: Tue, 29 Jan 2013 12:14:02 +1100
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Received: from us01smtp3.synopsys.com ([198.182.44.81]:39007 "EHLO
+	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755102Ab3A2Jx3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Jan 2013 04:53:29 -0500
+Message-ID: <51079C05.7040308@synopsys.com>
+Date: Tue, 29 Jan 2013 15:23:09 +0530
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v5 31/45] blackfin/smp: Use get/put_online_cpus_atomic()
- to prevent CPU offline
-References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com> <20130122074123.13822.39102.stgit@srivatsabhat.in.ibm.com> <CAA_GA1fSLNKSDTGSzHoA+j-mur85BvoSRkARq+DMfORuwrrX4Q@mail.gmail.com> <CAOS58YN_r-ahRvPekOo_84bM7z3YcFw1EA7DcTf0NVyEhv7ssA@mail.gmail.com>
-In-Reply-To: <CAOS58YN_r-ahRvPekOo_84bM7z3YcFw1EA7DcTf0NVyEhv7ssA@mail.gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
+Subject: Re: [PATCH v3 32/71] ARC: [DeviceTree] Basic support
+References: <1359024639-21915-1-git-send-email-vgupta@synopsys.com> <1359024639-21915-15-git-send-email-vgupta@synopsys.com> <5106513E.4010205@imgtec.com>
+In-Reply-To: <5106513E.4010205@imgtec.com>
+Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tejun Heo <tj@kernel.org>
-Cc: Bob Liu <lliubbo@gmail.com>, tglx@linutronix.de, peterz@infradead.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130129011402.WoQbuQQ-c7HRcnRhNvnojO8Z-W6ZUhnFq2NbqQMhUGI@z>
+To: James Hogan <james.hogan@imgtec.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, Grant Likely <grant.likely@secretlab.ca>, devicetree-discuss@lists.ozlabs.org, Rob Herring <rob.herring@calxeda.com>
+Message-ID: <20130129095309.Z-1Psv22wyBnHgMnnvQ1WJAHFh8d1o6EXfsbPnP5JDc@z>
 
-On 01/29/2013 06:06 AM, Tejun Heo wrote:
-> Hello, Bob.
-> 
-> On Mon, Jan 28, 2013 at 1:09 AM, Bob Liu <lliubbo@gmail.com> wrote:
->> Thanks, will be applied to my blackfin arch tree.
-> 
-> I think we still have some work ahead of us to have this patchset
-> ready for inclusion and even then it probably would be best to route
-> these patches together, so probably not a very good idea to apply this
-> to blackfin right now.
-> 
+Hi James,
 
-Thanks Tejun for pointing that out! I'll address the review comments
-soon and respin the patchset.
- 
-Regards,
-Srivatsa S. Bhat
+On Monday 28 January 2013 03:51 PM, James Hogan wrote:
+> Hi Vineet,
+> 
+> On 24/01/13 10:50, Vineet Gupta wrote:
+>> diff --git a/arch/arc/Makefile b/arch/arc/Makefile
+>> index 4d52a3b..90570f9 100644
+>> --- a/arch/arc/Makefile
+>> +++ b/arch/arc/Makefile
+>> @@ -83,6 +83,9 @@ head-y		:= arch/arc/kernel/head.o
+>>  # See arch/arc/Kbuild for content of core part of the kernel
+>>  core-y		+= arch/arc/
+>>  
+>> +# w/o this dtb won't embed into kernel binary
+>> +core-y		+= arch/arc/boot/dts/
+>> +
+>>  # w/o this ifneq, make ARCH=arc clean was crapping out
+>>  ifneq ($(platform-y),)
+>>  core-y		+= arch/arc/plat-$(PLATFORM)/
+>> @@ -101,6 +104,12 @@ bootpImage: vmlinux
+>>  uImage: vmlinux
+>>  	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
+>>  
+>> +%.dtb %.dtb.S %.dtb.o:
+>> +	$(Q)$(MAKE) $(build)=$(boot)/dts $(boot)/dts/$@
+> 
+> arm64 also depends on scripts here, presumably for a reason. I've copied
+> this in metag too.
+
+It probably has to do with forcing rebuild of DTs, in case scripts/dtc/dtc changes.
+
+I'll add that as well.
+
+
+>> +
+>> +dtbs:
+>> +	$(Q)$(MAKE) $(build)=$(boot)/dts $(boot)/dts/$@
+> 
+> arm64 does this like below which I think is slightly nicer than how
+> metag did it:
+> 
+> dtbs: scripts
+> 	$(Q)$(MAKE) $(build)=$(boot)/dts dtbs
+
+OK !
+
+>> +
+>>  archclean:
+>>  	$(Q)$(MAKE) $(clean)=$(boot)
+>>  
+>> diff --git a/arch/arc/boot/dts/Makefile b/arch/arc/boot/dts/Makefile
+>> new file mode 100644
+>> index 0000000..4a972a3
+>> --- /dev/null
+>> +++ b/arch/arc/boot/dts/Makefile
+>> @@ -0,0 +1,14 @@
+>> +ifeq ($(CONFIG_OF),y)
+>> +
+>> +# Built-in dtb
+>> +builtindtb-y		:= skeleton
+>> +
+>> +ifneq ($(CONFIG_ARC_BUILTIN_DTB_NAME),"")
+>> +	builtindtb-y	:= $(CONFIG_ARC_BUILTIN_DTB_NAME)
+>> +endif
+>> +
+>> +obj-y	+= $(patsubst "%",%,$(builtindtb-y)).dtb.o
+>> +
+>> +clean-files := *.dtb
+> 
+> You don't seem to have a rule for dtbs, but still redirect it in the
+> main Makefile. I suppose dtbs may want adding to your archhelp if you
+> use it.
+
+The dtbs rule doesn't seem to be working for me here. I'll need to investigate a bit.
+
+> 
+> arm64 also adds dtbs and $(dtb-y) to targets (at least in linux-next). I
+> think this makes sure that they don't get rebuilt unless they've
+> actually changed. I've also copied this for metag.
+
+Did you verify that it makes a difference - at least at my end it's not - the
+default dtb is getting rebuilt everytime. I need to debug this some more.
+
+
+>> --- a/arch/arc/kernel/Makefile
+>> +++ b/arch/arc/kernel/Makefile
+>> @@ -8,6 +8,8 @@
+>>  obj-y	:= arcksyms.o setup.o irq.o time.o reset.o ptrace.o entry.o process.o
+>>  obj-y	+= signal.o traps.o sys.o troubleshoot.o stacktrace.o clk.o
+>>  
+>> +obj-$(CONFIG_OF)			+= devtree.o
+>> +
+> 
+> You always select CONFIG_OF, so this could be obj-y. I'm not sure this
+> particularly matters though.
+
+Right, for consistency we might add this unconditionally.
+
+Thanks for your review
+-Vineet
+
 
