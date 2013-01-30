@@ -1,61 +1,84 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH v3 40/71] ARC: OProfile support
-Date: Wed, 30 Jan 2013 17:16:17 +0530
-Message-ID: <51090809.8010801@synopsys.com>
-References: <1359025589-22277-1-git-send-email-vgupta@synopsys.com>
-	<1359025589-22277-25-git-send-email-vgupta@synopsys.com>
-	<5108016B.5050303@imgtec.com> <5108BEF5.6030500@synopsys.com>
-	<5108FBFD.8080705@imgtec.com>
+Subject: Re: [PATCH v4 32/71] ARC: [DeviceTree] Basic support
+Date: Wed, 30 Jan 2013 17:26:12 +0530
+Message-ID: <51090A5C.8090802@synopsys.com>
+References: <5107CDD3.3050502@gmail.com> <1359467723-4269-1-git-send-email-vgupta@synopsys.com> <5108FF13.7080404@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <oprofile-list-bounces@lists.sourceforge.net>
-In-Reply-To: <5108FBFD.8080705@imgtec.com>
-List-Unsubscribe: <https://lists.sourceforge.net/lists/listinfo/oprofile-list>,
-	<mailto:oprofile-list-request@lists.sourceforge.net?subject=unsubscribe>
-List-Archive: <http://sourceforge.net/mailarchive/forum.php?forum_name=oprofile-list>
-List-Post: <mailto:oprofile-list@lists.sourceforge.net>
-List-Help: <mailto:oprofile-list-request@lists.sourceforge.net?subject=help>
-List-Subscribe: <https://lists.sourceforge.net/lists/listinfo/oprofile-list>,
-	<mailto:oprofile-list-request@lists.sourceforge.net?subject=subscribe>
-Errors-To: oprofile-list-bounces@lists.sourceforge.net
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from hermes.synopsys.com ([198.182.44.81]:50446 "EHLO
+	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750769Ab3A3L5A (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Jan 2013 06:57:00 -0500
+In-Reply-To: <5108FF13.7080404@imgtec.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: James Hogan <james.hogan@imgtec.com>
-Cc: linux-arch@vger.kernel.org, oprofile-list@lists.sf.net, linux-kernel@vger.kernel.org, arnd@arndb.de
-List-Id: linux-arch.vger.kernel.org
+Cc: robherring2@gmail.com, inux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Grant Likely <grant.likely@secretlab.ca>, devicetree-discuss@lists.ozlabs.org, Rob Herring <rob.herring@calxeda.com>
 
-On Wednesday 30 January 2013 04:24 PM, James Hogan wrote:
-> On 30/01/13 06:34, Vineet Gupta wrote:
->> On Tuesday 29 January 2013 10:35 PM, James Hogan wrote:
->>> Hi Vineet,
->>>
->>> You don't appear to define CONFIG_HW_PERF_EVENTS, so
->>> include/linux/oprofile.h will presumably define oprofile_perf_init as
->>> just a pr_info(...); return -ENODEV;
->>>
->>> Similarly drivers/oprofile/oprofile_perf.o doesn't seem to be being built.
->>>
->>> I'm probably missing something somewhere?
->> Not much :-)
->>
->> oprofile_arch_init() failure causes oprofile to fall back to timer based PC only
->> sampling - for coarse grained profiling. I'll soon be starting on integratign the
->> hardware counter support to both oprofile/perf.
-> Okay cool. It's just slightly misleading for anybody copying the code
-> that it calls oprofile_perf_init which is known never to do anything
-> :-). Maybe it's worth adding a comment in there to clarify.
+On Wednesday 30 January 2013 04:38 PM, James Hogan wrote:
+> Hi Vineet
+>
+> On 29/01/13 13:55, Vineet Gupta wrote:
+>> diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+>> index a353849..7666857 100644
+>> --- a/arch/arc/Kconfig
+>> +++ b/arch/arc/Kconfig
+>> @@ -24,8 +24,11 @@ config ARC
+>> +	select OF
+>> diff --git a/arch/arc/Makefile b/arch/arc/Makefile
+>> index 4d52a3b..29b5fcd 100644
+>> --- a/arch/arc/Makefile
+>> +++ b/arch/arc/Makefile
+>> @@ -83,6 +83,9 @@ head-y		:= arch/arc/kernel/head.o
+>> +# w/o this dtb won't embed into kernel binary
+>> +core-y		+= arch/arc/boot/dts/
+>> diff --git a/arch/arc/boot/dts/Makefile b/arch/arc/boot/dts/Makefile
+>> new file mode 100644
+>> index 0000000..ea3114c
+>> --- /dev/null
+>> +++ b/arch/arc/boot/dts/Makefile
+>> @@ -0,0 +1,17 @@
+>> +ifeq ($(CONFIG_OF),y)
+> This doesn't seem necessary since you select OF (and if you didn't you
+> could put core-$(CONFIG_OF) in the main Makefile.
 
-I think banner comment in oprofile.h for oprofile_arch_init() needs to document
-that "in case it fails, oprofile switches to timer mode PC sampling".
-But nevertheless it's good idea to add that clarification in my code anyways.
+Right - taken care of.
 
->  
+>
+>> diff --git a/arch/arc/kernel/Makefile b/arch/arc/kernel/Makefile
+>> index 6d83431..eeab7c79 100644
+>> --- a/arch/arc/kernel/Makefile
+>> +++ b/arch/arc/kernel/Makefile
+>> @@ -7,6 +7,7 @@
+>>  
+>>  obj-y	:= arcksyms.o setup.o irq.o time.o reset.o ptrace.o entry.o process.o
+>>  obj-y	+= signal.o traps.o sys.o troubleshoot.o stacktrace.o clk.o
+>> +obj-y   += devtree.o
+> nit: whitespace is inconsistent here.
+
+OK !
+
+>> diff --git a/arch/arc/kernel/setup.c b/arch/arc/kernel/setup.c
+>> index 82ac206..27aebd6 100644
+>> --- a/arch/arc/kernel/setup.c
+>> +++ b/arch/arc/kernel/setup.c
+>> @@ -71,6 +76,8 @@ void __init setup_arch(char **cmdline_p)
+>>  	strlcpy(boot_command_line, command_line, COMMAND_LINE_SIZE);
+>>  	*cmdline_p = command_line;
+>>  
+>> +	rc = setup_machine_fdt(__dtb_start);
+> Should this panic or something if it fails? Actually I see it does in
+> your -next branch, so I guess it's fixed in a later patch.
+
+Yes, it does in [62/71] when the return value is a machine description which is
+NULL. Since my DT support was incrementally added - this patch only enables
+printing the board name from the "early" flattened DT and does no more - and
+doesn't care if that succeeds or not.
+
+> So other than the stuff above:
 > Reviewed-by: James Hogan <james.hogan@imgtec.com>
 
 Thx,
 -Vineet
-
-------------------------------------------------------------------------------
-Everyone hates slow websites. So do we.
-Make your web apps faster with AppDynamics
-Download AppDynamics Lite for free today:
-http://p.sf.net/sfu/appdyn_d2d_jan
