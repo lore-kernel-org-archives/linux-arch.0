@@ -1,55 +1,46 @@
 From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH v3 43/44] tty/metag_da: Add metag DA TTY driver
-Date: Wed, 30 Jan 2013 10:43:51 +0000
-Message-ID: <5108F967.8070808@imgtec.com>
-References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com> <1357831872-29451-44-git-send-email-james.hogan@imgtec.com> <50F3E3FF.4080803@imgtec.com> <51026E55.80905@imgtec.com> <20130130051418.GB26687@kroah.com>
+Subject: Re: [PATCH v3 40/71] ARC: OProfile support
+Date: Wed, 30 Jan 2013 10:54:53 +0000
+Message-ID: <5108FBFD.8080705@imgtec.com>
+References: <1359025589-22277-1-git-send-email-vgupta@synopsys.com> <1359025589-22277-25-git-send-email-vgupta@synopsys.com> <5108016B.5050303@imgtec.com> <5108BEF5.6030500@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:38630 "EHLO multi.imgtec.com"
+Received: from multi.imgtec.com ([194.200.65.239]:39836 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754525Ab3A3KpY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Jan 2013 05:45:24 -0500
-In-Reply-To: <20130130051418.GB26687@kroah.com>
+	id S1753704Ab3A3Ky4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 30 Jan 2013 05:54:56 -0500
+In-Reply-To: <5108BEF5.6030500@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, linux-arch@vger.kernel.org, Alan Cox <alan@lxorguk.ukuu.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Mauro Carvalho Chehab <mchehab@redhat.com>, Cesar Eduardo Barros <cesarb@cesarb.net>, Joe Perches <joe@perches.com>, "David S. Miller" <davem@davemloft.net>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, Robert Richter <rric@kernel.org>, oprofile-list@lists.sf.net
 
-On 30/01/13 05:14, Greg Kroah-Hartman wrote:
-> On Fri, Jan 25, 2013 at 11:36:53AM +0000, James Hogan wrote:
->> Hi,
+On 30/01/13 06:34, Vineet Gupta wrote:
+> On Tuesday 29 January 2013 10:35 PM, James Hogan wrote:
+>> Hi Vineet,
 >>
->> On 14/01/13 10:54, James Hogan wrote:
->>> Here's a new version addressing Jiri's feedback.
->>>
->>> Add a TTY driver for communicating over a Meta DA (Debug Adapter)
->>> channel using the bios channel SWITCH operation.
->>>
->>> Signed-off-by: James Hogan <james.hogan@imgtec.com>
->>> Cc: Alan Cox <alan@lxorguk.ukuu.org.uk>
->>> Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
->>> Cc: Jiri Slaby <jslaby@suse.cz>
->>> Cc: Andrew Morton <akpm@linux-foundation.org>
->>> Cc: Mauro Carvalho Chehab <mchehab@redhat.com>
->>> Cc: Cesar Eduardo Barros <cesarb@cesarb.net>
->>> Cc: Joe Perches <joe@perches.com>
->>> Cc: "David S. Miller" <davem@davemloft.net>
+>> You don't appear to define CONFIG_HW_PERF_EVENTS, so
+>> include/linux/oprofile.h will presumably define oprofile_perf_init as
+>> just a pr_info(...); return -ENODEV;
 >>
->> If this looks okay, I'd appreciate if somebody could Ack it.
+>> Similarly drivers/oprofile/oprofile_perf.o doesn't seem to be being built.
 >>
->> I have some further patches ready to simplify the code around
->> tty_prepare_flip_string and tty_flip_buffer_push to avoid taking a tty
->> kref, after Jiri's changes in that area in linux-next. I guess these can
->> be applied once both sets of changes are merged.
+>> I'm probably missing something somewhere?
 > 
-> At first glance, it looks good to me:
+> Not much :-)
 > 
-> Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-> 
+> oprofile_arch_init() failure causes oprofile to fall back to timer based PC only
+> sampling - for coarse grained profiling. I'll soon be starting on integratign the
+> hardware counter support to both oprofile/perf.
 
-Thanks Greg.
+Okay cool. It's just slightly misleading for anybody copying the code
+that it calls oprofile_perf_init which is known never to do anything
+:-). Maybe it's worth adding a comment in there to clarify. If it's only
+temporary I'm fine with it.
+
+Reviewed-by: James Hogan <james.hogan@imgtec.com>
 
 Cheers
 James
