@@ -1,84 +1,68 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH v4 32/71] ARC: [DeviceTree] Basic support
-Date: Wed, 30 Jan 2013 17:26:12 +0530
-Message-ID: <51090A5C.8090802@synopsys.com>
-References: <5107CDD3.3050502@gmail.com> <1359467723-4269-1-git-send-email-vgupta@synopsys.com> <5108FF13.7080404@imgtec.com>
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: Using IO functions across ARM, PPC and Microblaze architectures
+Date: Wed, 30 Jan 2013 13:33:28 +0100
+Message-ID: <51091318.6000001@monstr.eu>
+References: <CAHTX3d+VNDVQjnTnAB=Ywxo7odvNmCPu=wGZ03-xWLecSMsS9A@mail.gmail.com> <20121207211606.6c5d5bc8@pyramind.ukuu.org.uk> <CAMuHMdVNszTFRjqiUoZ42+noaOcGjLZyZ9O30c5UVNNJhp0LMw@mail.gmail.com>
+Reply-To: monstr@monstr.eu
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hermes.synopsys.com ([198.182.44.81]:50446 "EHLO
-	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750769Ab3A3L5A (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Jan 2013 06:57:00 -0500
-In-Reply-To: <5108FF13.7080404@imgtec.com>
+Received: from mail-ee0-f52.google.com ([74.125.83.52]:35565 "EHLO
+	mail-ee0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752359Ab3A3Mdb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Jan 2013 07:33:31 -0500
+Received: by mail-ee0-f52.google.com with SMTP id b15so780912eek.11
+        for <linux-arch@vger.kernel.org>; Wed, 30 Jan 2013 04:33:30 -0800 (PST)
+In-Reply-To: <CAMuHMdVNszTFRjqiUoZ42+noaOcGjLZyZ9O30c5UVNNJhp0LMw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
-Cc: robherring2@gmail.com, inux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Grant Likely <grant.likely@secretlab.ca>, devicetree-discuss@lists.ozlabs.org, Rob Herring <rob.herring@calxeda.com>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Alan Cox <alan@lxorguk.ukuu.org.uk>, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, David Hinds <dahinds@users.sourceforge.net>
 
-On Wednesday 30 January 2013 04:38 PM, James Hogan wrote:
-> Hi Vineet
+On 12/08/2012 11:57 AM, Geert Uytterhoeven wrote:
+> On Fri, Dec 7, 2012 at 10:16 PM, Alan Cox <alan@lxorguk.ukuu.org.uk> wrote:
+>>> Because I need to use IO functions which will behave
+>>> on arm as little endian and on powerpc as big endian
+>>> and on microblaze depends on endian setting.
+>>> I haven't found any IO function which I could use by 3 architectures
+>>> without using preprocessor macros or runtime detection
+>>
+>> Its a rather weird mix. We can do "always big" and "always little"
+>>
+>>> 1. Using helper function + preprocessor macros
+>>> (using static inline function also possible)
+>>
+>> Then someone comes along and sticks a daughterboard into the system with
+>> the same device the other way around and there are years
+>>
+>>> 2. Using function pointers
+>>
+>> Probably smarter. 8250.c works this way and it has to handle some
+>> extremely bizarre mappings.
+>>
+>>> b) Runtime initialization - here is the question if there is
+>>> any standard function which I could use.
+>>
+>> Set the pointers up and pass them as data with your platform device, that
+>> way the function definitions are buried in your platform code where they
+>> depend.
 >
-> On 29/01/13 13:55, Vineet Gupta wrote:
->> diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
->> index a353849..7666857 100644
->> --- a/arch/arc/Kconfig
->> +++ b/arch/arc/Kconfig
->> @@ -24,8 +24,11 @@ config ARC
->> +	select OF
->> diff --git a/arch/arc/Makefile b/arch/arc/Makefile
->> index 4d52a3b..29b5fcd 100644
->> --- a/arch/arc/Makefile
->> +++ b/arch/arc/Makefile
->> @@ -83,6 +83,9 @@ head-y		:= arch/arc/kernel/head.o
->> +# w/o this dtb won't embed into kernel binary
->> +core-y		+= arch/arc/boot/dts/
->> diff --git a/arch/arc/boot/dts/Makefile b/arch/arc/boot/dts/Makefile
->> new file mode 100644
->> index 0000000..ea3114c
->> --- /dev/null
->> +++ b/arch/arc/boot/dts/Makefile
->> @@ -0,0 +1,17 @@
->> +ifeq ($(CONFIG_OF),y)
-> This doesn't seem necessary since you select OF (and if you didn't you
-> could put core-$(CONFIG_OF) in the main Makefile.
-
-Right - taken care of.
-
+> Or embed a struct io_ops * in struct device, to be set up by the bus driver?
 >
->> diff --git a/arch/arc/kernel/Makefile b/arch/arc/kernel/Makefile
->> index 6d83431..eeab7c79 100644
->> --- a/arch/arc/kernel/Makefile
->> +++ b/arch/arc/kernel/Makefile
->> @@ -7,6 +7,7 @@
->>  
->>  obj-y	:= arcksyms.o setup.o irq.o time.o reset.o ptrace.o entry.o process.o
->>  obj-y	+= signal.o traps.o sys.o troubleshoot.o stacktrace.o clk.o
->> +obj-y   += devtree.o
-> nit: whitespace is inconsistent here.
+> Wasn't David Hinds working on something like this in the context of PCMCIA
+> a few decades ago?
 
-OK !
 
->> diff --git a/arch/arc/kernel/setup.c b/arch/arc/kernel/setup.c
->> index 82ac206..27aebd6 100644
->> --- a/arch/arc/kernel/setup.c
->> +++ b/arch/arc/kernel/setup.c
->> @@ -71,6 +76,8 @@ void __init setup_arch(char **cmdline_p)
->>  	strlcpy(boot_command_line, command_line, COMMAND_LINE_SIZE);
->>  	*cmdline_p = command_line;
->>  
->> +	rc = setup_machine_fdt(__dtb_start);
-> Should this panic or something if it fails? Actually I see it does in
-> your -next branch, so I guess it's fixed in a later patch.
+Do you have any link on that?
 
-Yes, it does in [62/71] when the return value is a machine description which is
-NULL. Since my DT support was incrementally added - this patch only enables
-printing the board name from the "early" flattened DT and does no more - and
-doesn't care if that succeeds or not.
+Thanks,
+Michal
 
-> So other than the stuff above:
-> Reviewed-by: James Hogan <james.hogan@imgtec.com>
 
-Thx,
--Vineet
+
+-- 
+Michal Simek, Ing. (M.Eng)
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel 2.6 Microblaze Linux - http://www.monstr.eu/fdt/
+Microblaze U-BOOT custodian
