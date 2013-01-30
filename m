@@ -1,52 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.19.201]:44750 "EHLO mail.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751766Ab3A3IK0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Jan 2013 03:10:26 -0500
-Date: Wed, 30 Jan 2013 00:14:18 -0500
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: Re: [PATCH v3 43/44] tty/metag_da: Add metag DA TTY driver
-Message-ID: <20130130051418.GB26687@kroah.com>
-References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
- <1357831872-29451-44-git-send-email-james.hogan@imgtec.com>
- <50F3E3FF.4080803@imgtec.com>
- <51026E55.80905@imgtec.com>
+Received: from hermes.synopsys.com ([198.182.44.81]:50302 "EHLO
+	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752487Ab3A3Ls3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Jan 2013 06:48:29 -0500
+Message-ID: <51090809.8010801@synopsys.com>
+Date: Wed, 30 Jan 2013 17:16:17 +0530
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <51026E55.80905@imgtec.com>
+Subject: Re: [PATCH v3 40/71] ARC: OProfile support
+References: <1359025589-22277-1-git-send-email-vgupta@synopsys.com> <1359025589-22277-25-git-send-email-vgupta@synopsys.com> <5108016B.5050303@imgtec.com> <5108BEF5.6030500@synopsys.com> <5108FBFD.8080705@imgtec.com>
+In-Reply-To: <5108FBFD.8080705@imgtec.com>
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Hogan <james.hogan@imgtec.com>
-Cc: linux-kernel@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>, linux-arch@vger.kernel.org, Alan Cox <alan@lxorguk.ukuu.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Mauro Carvalho Chehab <mchehab@redhat.com>, Cesar Eduardo Barros <cesarb@cesarb.net>, Joe Perches <joe@perches.com>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20130130051418.FFCwOrTnl-OIVsGs4Xv4RBilW2yv-yCu_YBRhEYc83E@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, Robert Richter <rric@kernel.org>, oprofile-list@lists.sf.net
+Message-ID: <20130130114617.2SvwfzF1qtXeQwaAriKHgqtc_a3kl7K-Jjqt6eUxxP0@z>
 
-On Fri, Jan 25, 2013 at 11:36:53AM +0000, James Hogan wrote:
-> Hi,
-> 
-> On 14/01/13 10:54, James Hogan wrote:
-> > Here's a new version addressing Jiri's feedback.
-> > 
-> > Add a TTY driver for communicating over a Meta DA (Debug Adapter)
-> > channel using the bios channel SWITCH operation.
-> > 
-> > Signed-off-by: James Hogan <james.hogan@imgtec.com>
-> > Cc: Alan Cox <alan@lxorguk.ukuu.org.uk>
-> > Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-> > Cc: Jiri Slaby <jslaby@suse.cz>
-> > Cc: Andrew Morton <akpm@linux-foundation.org>
-> > Cc: Mauro Carvalho Chehab <mchehab@redhat.com>
-> > Cc: Cesar Eduardo Barros <cesarb@cesarb.net>
-> > Cc: Joe Perches <joe@perches.com>
-> > Cc: "David S. Miller" <davem@davemloft.net>
-> 
-> If this looks okay, I'd appreciate if somebody could Ack it.
-> 
-> I have some further patches ready to simplify the code around
-> tty_prepare_flip_string and tty_flip_buffer_push to avoid taking a tty
-> kref, after Jiri's changes in that area in linux-next. I guess these can
-> be applied once both sets of changes are merged.
+On Wednesday 30 January 2013 04:24 PM, James Hogan wrote:
+> On 30/01/13 06:34, Vineet Gupta wrote:
+>> On Tuesday 29 January 2013 10:35 PM, James Hogan wrote:
+>>> Hi Vineet,
+>>>
+>>> You don't appear to define CONFIG_HW_PERF_EVENTS, so
+>>> include/linux/oprofile.h will presumably define oprofile_perf_init as
+>>> just a pr_info(...); return -ENODEV;
+>>>
+>>> Similarly drivers/oprofile/oprofile_perf.o doesn't seem to be being built.
+>>>
+>>> I'm probably missing something somewhere?
+>> Not much :-)
+>>
+>> oprofile_arch_init() failure causes oprofile to fall back to timer based PC only
+>> sampling - for coarse grained profiling. I'll soon be starting on integratign the
+>> hardware counter support to both oprofile/perf.
+> Okay cool. It's just slightly misleading for anybody copying the code
+> that it calls oprofile_perf_init which is known never to do anything
+> :-). Maybe it's worth adding a comment in there to clarify.
 
-At first glance, it looks good to me:
+I think banner comment in oprofile.h for oprofile_arch_init() needs to document
+that "in case it fails, oprofile switches to timer mode PC sampling".
+But nevertheless it's good idea to add that clarification in my code anyways.
 
-Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+>  
+> Reviewed-by: James Hogan <james.hogan@imgtec.com>
+
+Thx,
+-Vineet
