@@ -1,7 +1,7 @@
 From: Alexandre Courbot <acourbot@nvidia.com>
-Subject: [PATCH 2/9] gpiolib: use gpio_chips list in gpiolib_sysfs_init
-Date: Sun,  3 Feb 2013 01:29:25 +0900
-Message-ID: <1359822572-26009-4-git-send-email-acourbot@nvidia.com>
+Subject: [PATCH 4/9] gpiolib: use gpio_chips list in sysfs ops
+Date: Sun,  3 Feb 2013 01:29:27 +0900
+Message-ID: <1359822572-26009-6-git-send-email-acourbot@nvidia.com>
 References: <1359822572-26009-1-git-send-email-acourbot@nvidia.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,38 +21,73 @@ To: Grant Likely <grant.likely@secretlab.ca>, Linus Walleij <linus.walleij@linar
 Cc: linux-arch@vger.kernel.org, gnurou@gmail.com, Alexandre Courbot <acourbot@nvidia.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Use the small list of GPIO chips instead of parsing the whole GPIO
+This makes the code both simpler and faster compared to parsing the GPIO
 number space.
 
 Signed-off-by: Alexandre Courbot <acourbot@nvidia.com>
 ---
- drivers/gpio/gpiolib.c | 7 ++-----
- 1 file changed, 2 insertions(+), 5 deletions(-)
+ drivers/gpio/gpiolib.c | 37 ++++++++++---------------------------
+ 1 file changed, 10 insertions(+), 27 deletions(-)
 
 diff --git a/drivers/gpio/gpiolib.c b/drivers/gpio/gpiolib.c
-index 0050766..4ceb4a7 100644
+index 92f9ee4..e473ded 100644
 --- a/drivers/gpio/gpiolib.c
 +++ b/drivers/gpio/gpiolib.c
-@@ -973,7 +973,7 @@ static int __init gpiolib_sysfs_init(void)
+@@ -1889,45 +1889,28 @@ static void gpiolib_dbg_show(struct seq_file *s, struct gpio_chip *chip)
+ static void *gpiolib_seq_start(struct seq_file *s, loff_t *pos)
  {
- 	int		status;
- 	unsigned long	flags;
--	unsigned	gpio;
-+	struct gpio_chip *chip;
+ 	struct gpio_chip *chip = NULL;
+-	unsigned int gpio;
+-	void *ret = NULL;
+-	loff_t index = 0;
++	loff_t index = *pos;
  
- 	status = class_register(&gpio_class);
- 	if (status < 0)
-@@ -986,10 +986,7 @@ static int __init gpiolib_sysfs_init(void)
- 	 * registered, and so arch_initcall() can always gpio_export().
- 	 */
- 	spin_lock_irqsave(&gpio_lock, flags);
--	for (gpio = 0; gpio < ARCH_NR_GPIOS; gpio++) {
--		struct gpio_chip	*chip;
+ 	/* REVISIT this isn't locked against gpio_chip removal ... */
+ 
+-	for (gpio = 0; gpio_is_valid(gpio); gpio++) {
+-		if (gpio_desc[gpio].chip == chip)
+-			continue;
 -
 -		chip = gpio_desc[gpio].chip;
-+	list_for_each_entry(chip, &gpio_chips, list) {
- 		if (!chip || chip->exported)
- 			continue;
+-		if (!chip)
+-			continue;
+-
+-		if (index++ >= *pos) {
+-			ret = chip;
+-			break;
+-		}
+-	}
+-
+ 	s->private = "";
  
+-	return ret;
++	list_for_each_entry(chip, &gpio_chips, list)
++		if (index-- == 0)
++			return chip;
++
++	return NULL;
+ }
+ 
+ static void *gpiolib_seq_next(struct seq_file *s, void *v, loff_t *pos)
+ {
+ 	struct gpio_chip *chip = v;
+-	unsigned int gpio;
+ 	void *ret = NULL;
+ 
+-	/* skip GPIOs provided by the current chip */
+-	for (gpio = chip->base + chip->ngpio; gpio_is_valid(gpio); gpio++) {
+-		chip = gpio_desc[gpio].chip;
+-		if (chip) {
+-			ret = chip;
+-			break;
+-		}
+-	}
++	if (list_is_last(&chip->list, &gpio_chips))
++		ret = NULL;
++	else
++		ret = list_entry(chip->list.next, struct gpio_chip, list);
+ 
+ 	s->private = "\n";
+ 	++*pos;
 -- 
 1.8.1.1
