@@ -1,68 +1,85 @@
 From: Alexandre Courbot <acourbot@nvidia.com>
-Subject: [PATCH 8/9] gpiolib: use gpio_chips list in gpio_to_desc
-Date: Sun,  3 Feb 2013 01:29:31 +0900
-Message-ID: <1359822572-26009-10-git-send-email-acourbot@nvidia.com>
+Subject: [PATCH 9/9] gpiolib: dynamically allocate descriptors array
+Date: Sun,  3 Feb 2013 01:29:32 +0900
+Message-ID: <1359822572-26009-11-git-send-email-acourbot@nvidia.com>
 References: <1359822572-26009-1-git-send-email-acourbot@nvidia.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-da0-f50.google.com ([209.85.210.50]:47651 "EHLO
-	mail-da0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758066Ab3BBQ1l (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Feb 2013 11:27:41 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1359822572-26009-1-git-send-email-acourbot@nvidia.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Grant Likely <grant.likely@secretlab.ca>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, gnurou@gmail.com, Alexandre Courbot <acourbot@nvidia.com>
+List-Id: linux-arch.vger.kernel.org
 
-Parse the list of chips to find the descriptor corresponding to a GPIO
-number instead of directly picking the entry of the global gpio_desc[]
-array, which is due to be removed.
-
-This turns the complexity of converting a GPIO number into a descriptor
-from O(1) to O(n) where n is the number of GPIO chips in the system.
-Since n is ought to be small anyway, there should be no noticeable
-performance impact. Moreover, GPIO users who care for speed already have
-implemented their own gpio_get_value() and gpio_set_value() with a
-fast path for the GPIO numbers that matter and this change does not
-affect such use cases.
-
-The descriptor-based GPIO API, due to be introduced soon, will make this
-lookup unnecessary.
+Allocate the GPIO descriptor's memory dynamically when GPIO chips are
+added instead of using the static gpio_desc[] array. gpio_desc[] is now
+totally unused and therefore removed.
 
 Signed-off-by: Alexandre Courbot <acourbot@nvidia.com>
 ---
- drivers/gpio/gpiolib.c | 19 +++++++++++++++----
- 1 file changed, 15 insertions(+), 4 deletions(-)
+ drivers/gpio/gpiolib.c | 16 ++++++++++++----
+ 1 file changed, 12 insertions(+), 4 deletions(-)
 
 diff --git a/drivers/gpio/gpiolib.c b/drivers/gpio/gpiolib.c
-index 9599b9a..0247c48 100644
+index 0247c48..893cf94 100644
 --- a/drivers/gpio/gpiolib.c
 +++ b/drivers/gpio/gpiolib.c
-@@ -122,10 +122,21 @@ static int gpio_chip_hwgpio(const struct gpio_desc *desc)
+@@ -41,7 +41,7 @@
+ #define	extra_checks	0
+ #endif
+ 
+-/* gpio_lock prevents conflicts during gpio_desc[] table updates.
++/* gpio_lock prevents conflicts during gpio descriptors updates.
+  * While any GPIO is requested, its gpio_chip is not removable;
+  * each GPIO's "requested" flag serves as a lock and refcount.
   */
- static struct gpio_desc *gpio_to_desc(unsigned gpio)
- {
--	if (WARN(!gpio_is_valid(gpio), "invalid GPIO %d\n", gpio))
--		return NULL;
--	else
--		return &gpio_desc[gpio];
-+	struct gpio_chip *chip;
-+
-+	list_for_each_entry(chip, &gpio_chips, list) {
-+		int gpio_min = chip->base;
-+		int gpio_max = gpio_min + chip->ngpio;
-+		if (gpio >= gpio_min && gpio < gpio_max)
-+			return &chip->desc[gpio - gpio_min];
-+		else if (gpio < gpio_min)
-+			/* gpio_chips are ordered by base, so we won't get any
-+			 * hit if we arrive here... */
-+			break;
+@@ -70,7 +70,6 @@ struct gpio_desc {
+ 	const char		*label;
+ #endif
+ };
+-static struct gpio_desc gpio_desc[ARCH_NR_GPIOS];
+ 
+ #define GPIO_OFFSET_VALID(chip, offset) (offset >= 0 && offset < chip->ngpio)
+ 
+@@ -1163,6 +1162,13 @@ int gpiochip_add(struct gpio_chip *chip)
+ 		goto fail;
+ 	}
+ 
++	chip->desc = kzalloc(sizeof(struct gpio_desc) * chip->ngpio,
++			     GFP_KERNEL);
++	if (!chip->desc) {
++		status = -ENOMEM;
++		goto fail;
 +	}
 +
-+	pr_warn("%s: no registered chip to handle GPIO %d\n", __func__, gpio);
-+	return NULL;
- }
+ 	spin_lock_irqsave(&gpio_lock, flags);
  
- /**
+ 	if (base < 0) {
+@@ -1177,8 +1183,6 @@ int gpiochip_add(struct gpio_chip *chip)
+ 	status = gpiochip_add_to_list(chip);
+ 
+ 	if (status == 0) {
+-		chip->desc = &gpio_desc[chip->base];
+-
+ 		for (id = 0; id < chip->ngpio; id++) {
+ 			struct gpio_desc *desc = &chip->desc[id];
+ 			desc->chip = chip;
+@@ -1218,6 +1222,8 @@ unlock:
+ 
+ 	return 0;
+ fail:
++	kfree(chip->desc);
++
+ 	/* failures here can mean systems won't boot... */
+ 	pr_err("gpiochip_add: gpios %d..%d (%s) failed to register\n",
+ 		chip->base, chip->base + chip->ngpio - 1,
+@@ -1261,6 +1267,8 @@ int gpiochip_remove(struct gpio_chip *chip)
+ 	if (status == 0)
+ 		gpiochip_unexport(chip);
+ 
++	kfree(chip->desc);
++
+ 	return status;
+ }
+ EXPORT_SYMBOL_GPL(gpiochip_remove);
 -- 
 1.8.1.1
