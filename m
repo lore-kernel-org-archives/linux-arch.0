@@ -1,53 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f53.google.com ([209.85.220.53]:63511 "EHLO
-	mail-pa0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757582Ab3BBOmD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Feb 2013 09:42:03 -0500
+Received: from mail-pb0-f46.google.com ([209.85.160.46]:39508 "EHLO
+	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758066Ab3BBQ1f (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Feb 2013 11:27:35 -0500
 From: Alexandre Courbot <acourbot@nvidia.com>
-Subject: [PATCH 1/2] arm: pxa: tosa: do not use gpiochip_reserve()
-Date: Sat,  2 Feb 2013 23:44:05 +0900
-Message-ID: <1359816246-3979-2-git-send-email-acourbot@nvidia.com>
-In-Reply-To: <1359816246-3979-1-git-send-email-acourbot@nvidia.com>
-References: <1359816246-3979-1-git-send-email-acourbot@nvidia.com>
+Subject: [PATCH 5/9] gpiolib: use gpio_chips list in gpiochip_find_base
+Date: Sun,  3 Feb 2013 01:29:28 +0900
+Message-ID: <1359822572-26009-7-git-send-email-acourbot@nvidia.com>
+In-Reply-To: <1359822572-26009-1-git-send-email-acourbot@nvidia.com>
+References: <1359822572-26009-1-git-send-email-acourbot@nvidia.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dmitry Eremin-Solenikov <dbaryshkov@gmail.com>, Dirk Opfer <dirk@opfer-online.de>, Grant Likely <grant.likely@secretlab.ca>, Linus Walleij <linus.walleij@linaro.org>, Eric Miao <eric.y.miao@gmail.com>, Russell King <linux@arm.linux.org.uk>, Haojian Zhuang <haojian.zhuang@gmail.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, gnurou@gmail.com, Alexandre Courbot <acourbot@nvidia.com>
-Message-ID: <20130202144405.tY-MkPEBSocJYqy8X3Nwmqrdl2LYk_4hD0domBMJBKY@z>
+To: Grant Likely <grant.likely@secretlab.ca>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, gnurou@gmail.com, Alexandre Courbot <acourbot@nvidia.com>
+Message-ID: <20130202162928.WV73ttDv2nkWFs4kaCov9EL5GRSjIeI0TMQp2uwTUrc@z>
 
-GPIO address space reservation during early platform initialization is
-not needed anymore for Tosa. Remove the calls to gpiochip_reserve()
-which is due to be removed.
+Re-implement gpiochip_find_base using the list of chips instead of the
+global gpio_desc[] array. This makes it both simpler and more efficient,
+and is needed to remove the global descriptors array.
 
 Signed-off-by: Alexandre Courbot <acourbot@nvidia.com>
 ---
- arch/arm/mach-pxa/tosa.c | 6 ------
- 1 file changed, 6 deletions(-)
+ drivers/gpio/gpiolib.c | 37 ++++++++++++++++---------------------
+ 1 file changed, 16 insertions(+), 21 deletions(-)
 
-diff --git a/arch/arm/mach-pxa/tosa.c b/arch/arm/mach-pxa/tosa.c
-index 9e7998d..3d91d2e 100644
---- a/arch/arm/mach-pxa/tosa.c
-+++ b/arch/arm/mach-pxa/tosa.c
-@@ -927,8 +927,6 @@ static void tosa_restart(char mode, const char *cmd)
- 
- static void __init tosa_init(void)
+diff --git a/drivers/gpio/gpiolib.c b/drivers/gpio/gpiolib.c
+index e473ded..af4c350 100644
+--- a/drivers/gpio/gpiolib.c
++++ b/drivers/gpio/gpiolib.c
+@@ -126,30 +126,25 @@ struct gpio_chip *gpio_to_chip(unsigned gpio)
+ /* dynamic allocation of GPIOs, e.g. on a hotplugged device */
+ static int gpiochip_find_base(int ngpio)
  {
--	int dummy;
+-	int i;
+-	int spare = 0;
+-	int base = -ENOSPC;
 -
- 	pxa2xx_mfp_config(ARRAY_AND_SIZE(tosa_pin_config));
- 
- 	pxa_set_ffuart_info(NULL);
-@@ -947,10 +945,6 @@ static void __init tosa_init(void)
- 	/* enable batt_fault */
- 	PMCR = 0x01;
- 
--	dummy = gpiochip_reserve(TOSA_SCOOP_GPIO_BASE, 12);
--	dummy = gpiochip_reserve(TOSA_SCOOP_JC_GPIO_BASE, 12);
--	dummy = gpiochip_reserve(TOSA_TC6393XB_GPIO_BASE, 16);
+-	for (i = ARCH_NR_GPIOS - 1; i >= 0 ; i--) {
+-		struct gpio_desc *desc = &gpio_desc[i];
+-		struct gpio_chip *chip = desc->chip;
 -
- 	pxa_set_mci_info(&tosa_mci_platform_data);
- 	pxa_set_ficp_info(&tosa_ficp_platform_data);
- 	pxa_set_i2c_info(NULL);
+-		if (!chip) {
+-			spare++;
+-			if (spare == ngpio) {
+-				base = i;
+-				break;
+-			}
+-		} else {
+-			spare = 0;
+-			if (chip)
+-				i -= chip->ngpio - 1;
+-		}
++	struct gpio_chip *chip;
++	int base = ARCH_NR_GPIOS - ngpio;
++
++	list_for_each_entry_reverse(chip, &gpio_chips, list) {
++		/* found a free space? */
++		if (chip->base + chip->ngpio <= base)
++			break;
++		else
++			/* nope, check the space right before the chip */
++			base = chip->base - ngpio;
+ 	}
+ 
+-	if (gpio_is_valid(base))
++	if (gpio_is_valid(base)) {
+ 		pr_debug("%s: found new base at %d\n", __func__, base);
+-	return base;
++		return base;
++	} else {
++		pr_err("%s: cannot find free range\n", __func__);
++		return -ENOSPC;
++	}
+ }
+ 
+ /* caller ensures gpio is valid and requested, chip->get_direction may sleep  */
 -- 
 1.8.1.1
 
