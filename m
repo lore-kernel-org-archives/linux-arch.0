@@ -1,50 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hermes.synopsys.com ([198.182.44.81]:50302 "EHLO
-	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752487Ab3A3Ls3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Jan 2013 06:48:29 -0500
-Message-ID: <51090809.8010801@synopsys.com>
-Date: Wed, 30 Jan 2013 17:16:17 +0530
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH v3 40/71] ARC: OProfile support
-References: <1359025589-22277-1-git-send-email-vgupta@synopsys.com> <1359025589-22277-25-git-send-email-vgupta@synopsys.com> <5108016B.5050303@imgtec.com> <5108BEF5.6030500@synopsys.com> <5108FBFD.8080705@imgtec.com>
-In-Reply-To: <5108FBFD.8080705@imgtec.com>
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Received: from mail-pa0-f53.google.com ([209.85.220.53]:63511 "EHLO
+	mail-pa0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757582Ab3BBOmD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Feb 2013 09:42:03 -0500
+From: Alexandre Courbot <acourbot@nvidia.com>
+Subject: [PATCH 1/2] arm: pxa: tosa: do not use gpiochip_reserve()
+Date: Sat,  2 Feb 2013 23:44:05 +0900
+Message-ID: <1359816246-3979-2-git-send-email-acourbot@nvidia.com>
+In-Reply-To: <1359816246-3979-1-git-send-email-acourbot@nvidia.com>
+References: <1359816246-3979-1-git-send-email-acourbot@nvidia.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, Robert Richter <rric@kernel.org>, oprofile-list@lists.sf.net
-Message-ID: <20130130114617.2SvwfzF1qtXeQwaAriKHgqtc_a3kl7K-Jjqt6eUxxP0@z>
+To: Dmitry Eremin-Solenikov <dbaryshkov@gmail.com>, Dirk Opfer <dirk@opfer-online.de>, Grant Likely <grant.likely@secretlab.ca>, Linus Walleij <linus.walleij@linaro.org>, Eric Miao <eric.y.miao@gmail.com>, Russell King <linux@arm.linux.org.uk>, Haojian Zhuang <haojian.zhuang@gmail.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, gnurou@gmail.com, Alexandre Courbot <acourbot@nvidia.com>
+Message-ID: <20130202144405.tY-MkPEBSocJYqy8X3Nwmqrdl2LYk_4hD0domBMJBKY@z>
 
-On Wednesday 30 January 2013 04:24 PM, James Hogan wrote:
-> On 30/01/13 06:34, Vineet Gupta wrote:
->> On Tuesday 29 January 2013 10:35 PM, James Hogan wrote:
->>> Hi Vineet,
->>>
->>> You don't appear to define CONFIG_HW_PERF_EVENTS, so
->>> include/linux/oprofile.h will presumably define oprofile_perf_init as
->>> just a pr_info(...); return -ENODEV;
->>>
->>> Similarly drivers/oprofile/oprofile_perf.o doesn't seem to be being built.
->>>
->>> I'm probably missing something somewhere?
->> Not much :-)
->>
->> oprofile_arch_init() failure causes oprofile to fall back to timer based PC only
->> sampling - for coarse grained profiling. I'll soon be starting on integratign the
->> hardware counter support to both oprofile/perf.
-> Okay cool. It's just slightly misleading for anybody copying the code
-> that it calls oprofile_perf_init which is known never to do anything
-> :-). Maybe it's worth adding a comment in there to clarify.
+GPIO address space reservation during early platform initialization is
+not needed anymore for Tosa. Remove the calls to gpiochip_reserve()
+which is due to be removed.
 
-I think banner comment in oprofile.h for oprofile_arch_init() needs to document
-that "in case it fails, oprofile switches to timer mode PC sampling".
-But nevertheless it's good idea to add that clarification in my code anyways.
+Signed-off-by: Alexandre Courbot <acourbot@nvidia.com>
+---
+ arch/arm/mach-pxa/tosa.c | 6 ------
+ 1 file changed, 6 deletions(-)
 
->  
-> Reviewed-by: James Hogan <james.hogan@imgtec.com>
+diff --git a/arch/arm/mach-pxa/tosa.c b/arch/arm/mach-pxa/tosa.c
+index 9e7998d..3d91d2e 100644
+--- a/arch/arm/mach-pxa/tosa.c
++++ b/arch/arm/mach-pxa/tosa.c
+@@ -927,8 +927,6 @@ static void tosa_restart(char mode, const char *cmd)
+ 
+ static void __init tosa_init(void)
+ {
+-	int dummy;
+-
+ 	pxa2xx_mfp_config(ARRAY_AND_SIZE(tosa_pin_config));
+ 
+ 	pxa_set_ffuart_info(NULL);
+@@ -947,10 +945,6 @@ static void __init tosa_init(void)
+ 	/* enable batt_fault */
+ 	PMCR = 0x01;
+ 
+-	dummy = gpiochip_reserve(TOSA_SCOOP_GPIO_BASE, 12);
+-	dummy = gpiochip_reserve(TOSA_SCOOP_JC_GPIO_BASE, 12);
+-	dummy = gpiochip_reserve(TOSA_TC6393XB_GPIO_BASE, 16);
+-
+ 	pxa_set_mci_info(&tosa_mci_platform_data);
+ 	pxa_set_ficp_info(&tosa_ficp_platform_data);
+ 	pxa_set_i2c_info(NULL);
+-- 
+1.8.1.1
 
-Thx,
--Vineet
