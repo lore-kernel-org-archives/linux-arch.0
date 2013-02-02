@@ -1,74 +1,68 @@
 From: Alexandre Courbot <acourbot@nvidia.com>
-Subject: [PATCH 5/9] gpiolib: use gpio_chips list in gpiochip_find_base
-Date: Sun,  3 Feb 2013 01:29:28 +0900
-Message-ID: <1359822572-26009-7-git-send-email-acourbot@nvidia.com>
+Subject: [PATCH 8/9] gpiolib: use gpio_chips list in gpio_to_desc
+Date: Sun,  3 Feb 2013 01:29:31 +0900
+Message-ID: <1359822572-26009-10-git-send-email-acourbot@nvidia.com>
 References: <1359822572-26009-1-git-send-email-acourbot@nvidia.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-da0-f50.google.com ([209.85.210.50]:47651 "EHLO
+	mail-da0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758066Ab3BBQ1l (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Feb 2013 11:27:41 -0500
 In-Reply-To: <1359822572-26009-1-git-send-email-acourbot@nvidia.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Grant Likely <grant.likely@secretlab.ca>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, gnurou@gmail.com, Alexandre Courbot <acourbot@nvidia.com>
-List-Id: linux-arch.vger.kernel.org
 
-Re-implement gpiochip_find_base using the list of chips instead of the
-global gpio_desc[] array. This makes it both simpler and more efficient,
-and is needed to remove the global descriptors array.
+Parse the list of chips to find the descriptor corresponding to a GPIO
+number instead of directly picking the entry of the global gpio_desc[]
+array, which is due to be removed.
+
+This turns the complexity of converting a GPIO number into a descriptor
+from O(1) to O(n) where n is the number of GPIO chips in the system.
+Since n is ought to be small anyway, there should be no noticeable
+performance impact. Moreover, GPIO users who care for speed already have
+implemented their own gpio_get_value() and gpio_set_value() with a
+fast path for the GPIO numbers that matter and this change does not
+affect such use cases.
+
+The descriptor-based GPIO API, due to be introduced soon, will make this
+lookup unnecessary.
 
 Signed-off-by: Alexandre Courbot <acourbot@nvidia.com>
 ---
- drivers/gpio/gpiolib.c | 37 ++++++++++++++++---------------------
- 1 file changed, 16 insertions(+), 21 deletions(-)
+ drivers/gpio/gpiolib.c | 19 +++++++++++++++----
+ 1 file changed, 15 insertions(+), 4 deletions(-)
 
 diff --git a/drivers/gpio/gpiolib.c b/drivers/gpio/gpiolib.c
-index e473ded..af4c350 100644
+index 9599b9a..0247c48 100644
 --- a/drivers/gpio/gpiolib.c
 +++ b/drivers/gpio/gpiolib.c
-@@ -126,30 +126,25 @@ struct gpio_chip *gpio_to_chip(unsigned gpio)
- /* dynamic allocation of GPIOs, e.g. on a hotplugged device */
- static int gpiochip_find_base(int ngpio)
+@@ -122,10 +122,21 @@ static int gpio_chip_hwgpio(const struct gpio_desc *desc)
+  */
+ static struct gpio_desc *gpio_to_desc(unsigned gpio)
  {
--	int i;
--	int spare = 0;
--	int base = -ENOSPC;
--
--	for (i = ARCH_NR_GPIOS - 1; i >= 0 ; i--) {
--		struct gpio_desc *desc = &gpio_desc[i];
--		struct gpio_chip *chip = desc->chip;
--
--		if (!chip) {
--			spare++;
--			if (spare == ngpio) {
--				base = i;
--				break;
--			}
--		} else {
--			spare = 0;
--			if (chip)
--				i -= chip->ngpio - 1;
--		}
+-	if (WARN(!gpio_is_valid(gpio), "invalid GPIO %d\n", gpio))
+-		return NULL;
+-	else
+-		return &gpio_desc[gpio];
 +	struct gpio_chip *chip;
-+	int base = ARCH_NR_GPIOS - ngpio;
 +
-+	list_for_each_entry_reverse(chip, &gpio_chips, list) {
-+		/* found a free space? */
-+		if (chip->base + chip->ngpio <= base)
++	list_for_each_entry(chip, &gpio_chips, list) {
++		int gpio_min = chip->base;
++		int gpio_max = gpio_min + chip->ngpio;
++		if (gpio >= gpio_min && gpio < gpio_max)
++			return &chip->desc[gpio - gpio_min];
++		else if (gpio < gpio_min)
++			/* gpio_chips are ordered by base, so we won't get any
++			 * hit if we arrive here... */
 +			break;
-+		else
-+			/* nope, check the space right before the chip */
-+			base = chip->base - ngpio;
- 	}
- 
--	if (gpio_is_valid(base))
-+	if (gpio_is_valid(base)) {
- 		pr_debug("%s: found new base at %d\n", __func__, base);
--	return base;
-+		return base;
-+	} else {
-+		pr_err("%s: cannot find free range\n", __func__);
-+		return -ENOSPC;
 +	}
++
++	pr_warn("%s: no registered chip to handle GPIO %d\n", __func__, gpio);
++	return NULL;
  }
  
- /* caller ensures gpio is valid and requested, chip->get_direction may sleep  */
+ /**
 -- 
 1.8.1.1
