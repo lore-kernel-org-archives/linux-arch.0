@@ -1,12 +1,14 @@
 From: Alexandre Courbot <acourbot@nvidia.com>
 Subject: [PATCH 0/9] gpiolib: remove gpio_desc[] static array
-Date: Sun,  3 Feb 2013 01:29:22 +0900
-Message-ID: <1359822572-26009-1-git-send-email-acourbot@nvidia.com>
+Date: Sun,  3 Feb 2013 01:29:23 +0900
+Message-ID: <1359822572-26009-2-git-send-email-acourbot@nvidia.com>
+References: <1359822572-26009-1-git-send-email-acourbot@nvidia.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-da0-f49.google.com ([209.85.210.49]:62096 "EHLO
-	mail-da0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757582Ab3BBQ1T (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Feb 2013 11:27:19 -0500
+Received: from mail-pb0-f52.google.com ([209.85.160.52]:55957 "EHLO
+	mail-pb0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757582Ab3BBQ1Z (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Feb 2013 11:27:25 -0500
+In-Reply-To: <1359822572-26009-1-git-send-email-acourbot@nvidia.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Grant Likely <grant.likely@secretlab.ca>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>
