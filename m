@@ -1,36 +1,69 @@
-From: Linus Walleij <linus.walleij@linaro.org>
-Subject: Re: [PATCH 0/2] gpiolib: remove gpiochip_reserve()
-Date: Sat, 2 Feb 2013 16:01:37 +0100
-Message-ID: <CACRpkdbFTt3bN4y5QFMFq6dfAA3XOkKWF4FY5X4jcGfYbYvxOw@mail.gmail.com>
-References: <1359816246-3979-1-git-send-email-acourbot@nvidia.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+From: Alexandre Courbot <acourbot@nvidia.com>
+Subject: [PATCH 0/9] gpiolib: remove gpio_desc[] static array
+Date: Sun,  3 Feb 2013 01:29:22 +0900
+Message-ID: <1359822572-26009-1-git-send-email-acourbot@nvidia.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ia0-f182.google.com ([209.85.210.182]:53955 "EHLO
-	mail-ia0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757874Ab3BBPBh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Feb 2013 10:01:37 -0500
-Received: by mail-ia0-f182.google.com with SMTP id w33so6578446iag.13
-        for <linux-arch@vger.kernel.org>; Sat, 02 Feb 2013 07:01:37 -0800 (PST)
-In-Reply-To: <1359816246-3979-1-git-send-email-acourbot@nvidia.com>
+Received: from mail-da0-f49.google.com ([209.85.210.49]:62096 "EHLO
+	mail-da0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757582Ab3BBQ1T (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Feb 2013 11:27:19 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexandre Courbot <acourbot@nvidia.com>
-Cc: Dmitry Eremin-Solenikov <dbaryshkov@gmail.com>, Dirk Opfer <dirk@opfer-online.de>, Grant Likely <grant.likely@secretlab.ca>, Eric Miao <eric.y.miao@gmail.com>, Russell King <linux@arm.linux.org.uk>, Haojian Zhuang <haojian.zhuang@gmail.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, gnurou@gmail.com
+To: Grant Likely <grant.likely@secretlab.ca>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, gnurou@gmail.com, Alexandre Courbot <acourbot@nvidia.com>
 
-On Sat, Feb 2, 2013 at 3:44 PM, Alexandre Courbot <acourbot@nvidia.com> wrote:
+Since Linus kindly merged the gpiochip_reserve() removal patches, here comes the
+main course.
 
-> If Dmitri could give his Acked-by or Tested-by and one of the GPIO maintainers
-> merge this series, I could go ahead with the deeper changes to gpiolib.
+This series removes the ARCH_NR_GPIOS sized static array of GPIO descriptors
+that stood in gpiolib and replaces it with a more flexible mechanism that
+dynamically allocates GPIO descriptors as chips are added.
 
-Good riddance.
+ARCH_NR_GPIOS is still here, but now only controls the upper limit of the GPIO
+integer space, i.e. which GPIO numbers are valid and where GPIO chips without a
+base GPIO are placed in the GPIO space. Technically it would be possible to get
+rid of it completely - but this might change GPIO numbers on some architectures
+and make people unhappy. At least it can now be arbitrarily high without
+consuming more memory.
 
-Both patches applied to get some rotation in linux-next.
+As a result of this series, gpiolib has a slightly lower memory footprint (~-9KB
+on my Tegra2 board which has a GPIO space of 1024 but only uses 232 of them), is
+very slightly slower (because of the gpio to descriptor conversion which is
+linear instead of being constant), and (most importantly) is prepared to receive
+the new descriptor-based public GPIO interface.
 
-This is too good stuff to wait and I like to push this work ahead
-a bit. I can still back them out if there is some problem on the
-TOSA.
+The linear-time conversion between GPIO numbers and descriptors might make some
+teeth grind, but please consider the following. First, even though the
+conversion is O(n), this is a very small n (the number of GPIO chips), and I
+doubt the overhead would be even perceptible. Second, the gpio descriptor
+interface that will follow this series will not require this conversion since it
+works with descriptors directly. Finally, the GPIO framework allow platforms
+that are concerned about performance to implement gpio_get_value() and
+gpio_set_value() with a fast path shortcutting gpiolib for those GPIO numbers
+for which performance matters, and this is not affected at all by this series.
 
+The patches are split as much as possible to make the switch as easy to follow
+as possible - they may actually be oversplit, if this is the case please let me
+know and I will resubmit the series.
 
-Yours,
-Linus Walleij
+This has been tested on a Tegra 2 Ventana board. I made sure that debugfs and
+sysfs were working as before, and that GPIOs had the expected value. Being a
+rather deep change, it should certainly undergo some more testing.
+
+Alexandre Courbot (9):
+  gpiolib: link all gpio_chips using a list
+  gpiolib: use gpio_chips list in gpiolib_sysfs_init
+  gpiolib: use gpio_chips list in gpiochip_find
+  gpiolib: use gpio_chips list in sysfs ops
+  gpiolib: use gpio_chips list in gpiochip_find_base
+  gpiolib: use descriptors internally
+  gpiolib: let gpio_chip reference its descriptors
+  gpiolib: use gpio_chips list in gpio_to_desc
+  gpiolib: dynamically allocate descriptors array
+
+ drivers/gpio/gpiolib.c     | 694 ++++++++++++++++++++++++++++-----------------
+ include/asm-generic/gpio.h |   5 +
+ 2 files changed, 440 insertions(+), 259 deletions(-)
+
+-- 
+1.8.1.1
