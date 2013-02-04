@@ -1,24 +1,25 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from linux-sh.org ([111.68.239.195]:54931 "EHLO linux-sh.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754242Ab3BDLcG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 4 Feb 2013 06:32:06 -0500
-Date: Mon, 4 Feb 2013 20:30:44 +0900
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: [PATCH RESEND 1/1] arch Kconfig: remove references to IRQ_PER_CPU
-Message-ID: <20130204113043.GB12216@linux-sh.org>
-References: <1359972583-17134-1-git-send-email-james.hogan@imgtec.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:36203 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753467Ab3BDSaU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Feb 2013 13:30:20 -0500
+Message-ID: <1360002617.2465.33.camel@dabdike>
+Subject: Re: [PATCH RESEND 1/1] arch Kconfig: remove references to
+ IRQ_PER_CPU
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Date: Mon, 04 Feb 2013 10:30:17 -0800
 In-Reply-To: <1359972583-17134-1-git-send-email-james.hogan@imgtec.com>
+References: <1359972583-17134-1-git-send-email-james.hogan@imgtec.com>
+Content-Type: text/plain; charset="ISO-8859-15"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Hogan <james.hogan@imgtec.com>
-Cc: linux-kernel@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Mike Frysinger <vapier@gentoo.org>, Fenghua Yu <fenghua.yu@intel.com>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>
-Message-ID: <20130204113044.QL5cS6bFjRL6Jymrzp1qRywgJsjG3FzZqo2zDCYNaec@z>
+Cc: linux-kernel@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Mike Frysinger <vapier@gentoo.org>, Fenghua Yu <fenghua.yu@intel.com>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Paul Mundt <lethal@linux-sh.org>
+Message-ID: <20130204183017.0Eji4iLuM3Tv56JTdwm34stbwuJIVy2Echu0XUWXp9c@z>
 
-On Mon, Feb 04, 2013 at 10:09:43AM +0000, James Hogan wrote:
+On Mon, 2013-02-04 at 10:09 +0000, James Hogan wrote:
 > The IRQ_PER_CPU Kconfig symbol was removed in the following commit:
 > 
 > Commit 6a58fb3bad099076f36f0f30f44507bc3275cdb6 ("genirq: Remove
@@ -41,4 +42,15 @@ On Mon, Feb 04, 2013 at 10:09:43AM +0000, James Hogan wrote:
 > Acked-by: Tony Luck <tony.luck@intel.com>
 > Acked-by: Richard Kuo <rkuo@codeaurora.org>
 
-Acked-by: Paul Mundt <lethal@linux-sh.org>
+For what it's worth ACK, but I don't really think you need it since the
+patch is trivial and obviously correct.
+
+> 
+> Does anybody want to pick this patch up?
+
+I see Thomas already has.  Thanks, by the way, for not doing this as one
+patch per architecture ...
+
+James
+
+
