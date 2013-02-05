@@ -1,33 +1,67 @@
-From: Linus Walleij <linus.walleij@linaro.org>
-Subject: Re: [PATCH 9/9] gpiolib: dynamically allocate descriptors array
-Date: Tue, 5 Feb 2013 19:02:29 +0100
-Message-ID: <CACRpkdaTF1Ca5GX-D+cx-_LrOVZyhX_mgLGRfv65dabof5-RYQ@mail.gmail.com>
-References: <1359822572-26009-1-git-send-email-acourbot@nvidia.com>
-	<1359822572-26009-11-git-send-email-acourbot@nvidia.com>
+From: rkuo <rkuo@codeaurora.org>
+Subject: Re: [PATCH v3 00/44] Meta Linux Kernel Port
+Date: Tue, 5 Feb 2013 17:40:27 -0600
+Message-ID: <20130205234026.GA4939@codeaurora.org>
+References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
+ <5102BB38.3050207@imgtec.com>
+ <201301260025.10020.arnd@arndb.de>
+ <51062460.9060902@synopsys.com>
+ <20130130074452.f67abeeaae3a00d046f5699f@canb.auug.org.au>
+ <51110F1A.8090606@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f174.google.com ([209.85.223.174]:37394 "EHLO
-	mail-ie0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755283Ab3BESC3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Feb 2013 13:02:29 -0500
-Received: by mail-ie0-f174.google.com with SMTP id k10so611810iea.33
-        for <linux-arch@vger.kernel.org>; Tue, 05 Feb 2013 10:02:29 -0800 (PST)
-In-Reply-To: <1359822572-26009-11-git-send-email-acourbot@nvidia.com>
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:49989 "EHLO
+	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750935Ab3BEXka (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Feb 2013 18:40:30 -0500
+Content-Disposition: inline
+In-Reply-To: <51110F1A.8090606@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexandre Courbot <acourbot@nvidia.com>
-Cc: Grant Likely <grant.likely@secretlab.ca>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, gnurou@gmail.com
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>, Arnd Bergmann <arnd@arndb.de>, James Hogan <james.hogan@imgtec.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Sat, Feb 2, 2013 at 5:29 PM, Alexandre Courbot <acourbot@nvidia.com> wrote:
+I actually found someone locally who signed my key.
 
-> Allocate the GPIO descriptor's memory dynamically when GPIO chips are
-> added instead of using the static gpio_desc[] array. gpio_desc[] is now
-> totally unused and therefore removed.
->
-> Signed-off-by: Alexandre Courbot <acourbot@nvidia.com>
+Good luck!
 
-Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
 
-Yours,
-Linus Walleij
+
+
+On Tue, Feb 05, 2013 at 07:24:34PM +0530, Vineet Gupta wrote:
+> On Wednesday 30 January 2013 02:14 AM, Stephen Rothwell wrote:
+> > Hi Vineet,
+> > 
+> > On Mon, 28 Jan 2013 12:40:24 +0530 Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
+> >>
+> >> Stephen, can you please add the following branch (rebased off 3.8-rc5) to linux-next
+> >>
+> >> git://github.com/foss-for-synopsys-dwc-arc-processors/linux.git  arc-next
+> > 
+> > Added from today (though there may not be a linux-next release today).
+> 
+> Thanks Stephan - I see it in there for last 2 days now.
+> 
+> >> While the first pull request can go directly from github, I presume the logistics
+> >> for setting up accounts on kernel.org will only kick start after the first batch
+> >> of code has been accepted. I can't seem to find any discussions on lists to that
+> >> effect.
+> > 
+> > Linus prefers to not pull from github, but will if you ask him to pull a
+> > tag signed with a verifiable gpg key.  This is not a requirement if your
+> > tree is on kernel.org (though you still need a verifiable gpg key to get
+> > a kernel.org account).
+> 
+> At the moment I don't have my key signed by anyone else. James pointed me to
+> http://www.kernel.org/signature.html so I've added myself to the google map page
+> and there's obviously no one near me. So how do we solve this - can I call a
+> developer - who say trusts me - and get him to sign using my key-id.
+> 
+> Richard I believe you were in a similar situation when submitting your port - how
+> did you end up solving this.
+> 
+> Damn! I was at ELCE back in November but wasn't aware of need for doing this.
+> 
+> Thx,
+> -Vineet
