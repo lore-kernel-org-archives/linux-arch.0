@@ -1,67 +1,38 @@
-From: rkuo <rkuo@codeaurora.org>
-Subject: Re: [PATCH v3 00/44] Meta Linux Kernel Port
-Date: Tue, 5 Feb 2013 17:40:27 -0600
-Message-ID: <20130205234026.GA4939@codeaurora.org>
-References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
- <5102BB38.3050207@imgtec.com>
- <201301260025.10020.arnd@arndb.de>
- <51062460.9060902@synopsys.com>
- <20130130074452.f67abeeaae3a00d046f5699f@canb.auug.org.au>
- <51110F1A.8090606@synopsys.com>
+From: Alex Courbot <acourbot@nvidia.com>
+Subject: Re: [PATCH 5/9] gpiolib: use gpio_chips list in gpiochip_find_base
+Date: Wed, 6 Feb 2013 13:48:19 +0900
+Message-ID: <5111E093.4060600@nvidia.com>
+References: <1359822572-26009-1-git-send-email-acourbot@nvidia.com> <1359822572-26009-7-git-send-email-acourbot@nvidia.com> <CACRpkdYT4p8uez8DHTSsjKFb=KmWbtCXJQtyXLAJkCC7fKaErw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine01.qualcomm.com ([199.106.114.254]:49989 "EHLO
-	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750935Ab3BEXka (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Feb 2013 18:40:30 -0500
-Content-Disposition: inline
-In-Reply-To: <51110F1A.8090606@synopsys.com>
+Received: from hqemgate03.nvidia.com ([216.228.121.140]:12103 "EHLO
+	hqemgate03.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754462Ab3BFEs1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Feb 2013 23:48:27 -0500
+In-Reply-To: <CACRpkdYT4p8uez8DHTSsjKFb=KmWbtCXJQtyXLAJkCC7fKaErw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, Arnd Bergmann <arnd@arndb.de>, James Hogan <james.hogan@imgtec.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Linus Walleij <linus.walleij@linaro.org>
+Cc: Haojian Zhuang <haojian.zhuang@linaro.org>, Grant Likely <grant.likely@secretlab.ca>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "gnurou@gmail.com" <gnurou@gmail.com>
 
-I actually found someone locally who signed my key.
+On 02/06/2013 02:21 AM, Linus Walleij wrote:
+> This looks like it is preserving this userspace-sensitive semantic
+> so that dynamically added chips will still get the same assigned
+> numbers.
 
-Good luck!
+It does (it should, at least), the assigned ranges should be strictly 
+identical to the previous version. While testing I also made sure all 
+chips had the same GPIO range.
 
+> But I want some guarantees, so state clearly in the commit
+> that any dynamically assigned chip will get the same base
+> address after this change as it got before it, and please take
+> this opportunity to add a comment stating that this search
+> method is vital for userspace ABIs, and must be preserved.
 
+Done. I will take the blame if something goes wrong. :)
 
-
-On Tue, Feb 05, 2013 at 07:24:34PM +0530, Vineet Gupta wrote:
-> On Wednesday 30 January 2013 02:14 AM, Stephen Rothwell wrote:
-> > Hi Vineet,
-> > 
-> > On Mon, 28 Jan 2013 12:40:24 +0530 Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
-> >>
-> >> Stephen, can you please add the following branch (rebased off 3.8-rc5) to linux-next
-> >>
-> >> git://github.com/foss-for-synopsys-dwc-arc-processors/linux.git  arc-next
-> > 
-> > Added from today (though there may not be a linux-next release today).
-> 
-> Thanks Stephan - I see it in there for last 2 days now.
-> 
-> >> While the first pull request can go directly from github, I presume the logistics
-> >> for setting up accounts on kernel.org will only kick start after the first batch
-> >> of code has been accepted. I can't seem to find any discussions on lists to that
-> >> effect.
-> > 
-> > Linus prefers to not pull from github, but will if you ask him to pull a
-> > tag signed with a verifiable gpg key.  This is not a requirement if your
-> > tree is on kernel.org (though you still need a verifiable gpg key to get
-> > a kernel.org account).
-> 
-> At the moment I don't have my key signed by anyone else. James pointed me to
-> http://www.kernel.org/signature.html so I've added myself to the google map page
-> and there's obviously no one near me. So how do we solve this - can I call a
-> developer - who say trusts me - and get him to sign using my key-id.
-> 
-> Richard I believe you were in a similar situation when submitting your port - how
-> did you end up solving this.
-> 
-> Damn! I was at ELCE back in November but wasn't aware of need for doing this.
-> 
-> Thx,
-> -Vineet
+Thanks,
+Alex.
