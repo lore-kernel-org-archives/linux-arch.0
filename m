@@ -1,38 +1,31 @@
-From: Alex Courbot <acourbot@nvidia.com>
-Subject: Re: [PATCH 5/9] gpiolib: use gpio_chips list in gpiochip_find_base
-Date: Wed, 6 Feb 2013 13:48:19 +0900
-Message-ID: <5111E093.4060600@nvidia.com>
-References: <1359822572-26009-1-git-send-email-acourbot@nvidia.com> <1359822572-26009-7-git-send-email-acourbot@nvidia.com> <CACRpkdYT4p8uez8DHTSsjKFb=KmWbtCXJQtyXLAJkCC7fKaErw@mail.gmail.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH v3 19/44] metag: Device tree
+Date: Wed, 6 Feb 2013 18:36:13 +0530
+Message-ID: <51125545.7050006@synopsys.com>
+References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com> <1357831872-29451-20-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
+Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hqemgate03.nvidia.com ([216.228.121.140]:12103 "EHLO
-	hqemgate03.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754462Ab3BFEs1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Feb 2013 23:48:27 -0500
-In-Reply-To: <CACRpkdYT4p8uez8DHTSsjKFb=KmWbtCXJQtyXLAJkCC7fKaErw@mail.gmail.com>
+Received: from vaxjo.synopsys.com ([198.182.60.75]:43819 "EHLO
+	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751341Ab3BFNGa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Feb 2013 08:06:30 -0500
+In-Reply-To: <1357831872-29451-20-git-send-email-james.hogan@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Walleij <linus.walleij@linaro.org>
-Cc: Haojian Zhuang <haojian.zhuang@linaro.org>, Grant Likely <grant.likely@secretlab.ca>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "gnurou@gmail.com" <gnurou@gmail.com>
+To: James Hogan <james.hogan@imgtec.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On 02/06/2013 02:21 AM, Linus Walleij wrote:
-> This looks like it is preserving this userspace-sensitive semantic
-> so that dynamically added chips will still get the same assigned
-> numbers.
+On Thursday 10 January 2013 09:00 PM, James Hogan wrote:
+> Add device tree files to arch/metag.
+> 
+> Signed-off-by: James Hogan <james.hogan@imgtec.com>
 
-It does (it should, at least), the assigned ranges should be strictly 
-identical to the previous version. While testing I also made sure all 
-chips had the same GPIO range.
+Acknowledging the fact that I reused much of code/ideas from this patch for ARC
+Device tree and multi-platform-image implementation:
 
-> But I want some guarantees, so state clearly in the commit
-> that any dynamically assigned chip will get the same base
-> address after this change as it got before it, and please take
-> this opportunity to add a comment stating that this search
-> method is vital for userspace ABIs, and must be preserved.
+Reviewed-by: Vineet Gupta <vgupta@synopsys.com>
 
-Done. I will take the blame if something goes wrong. :)
-
-Thanks,
-Alex.
+Thx,
+-Vineet
