@@ -1,53 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp07.in.ibm.com ([122.248.162.7]:46289 "EHLO
-	e28smtp07.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750759Ab3BGGNl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Feb 2013 01:13:41 -0500
-Received: from /spool/local
-	by e28smtp07.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Thu, 7 Feb 2013 11:41:13 +0530
-Message-ID: <51134596.4080106@linux.vnet.ibm.com>
-Date: Thu, 07 Feb 2013 11:41:34 +0530
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH v5 00/45] CPU hotplug: stop_machine()-free CPU hotplug
-References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com> <510FBC01.2030405@linux.vnet.ibm.com> <87haloiwv0.fsf@rustcorp.com.au>
-In-Reply-To: <87haloiwv0.fsf@rustcorp.com.au>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Received: from mail-we0-f182.google.com ([74.125.82.182]:44941 "EHLO
+	mail-we0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758124Ab3BGOS6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Feb 2013 09:18:58 -0500
+Received: by mail-we0-f182.google.com with SMTP id t57so2180486wey.13
+        for <linux-arch@vger.kernel.org>; Thu, 07 Feb 2013 06:18:57 -0800 (PST)
+From: Michal Simek <michal.simek@xilinx.com>
+Subject: [PATCH] asm-generic: io: Fix ioread16/32be and iowrite16/32be
+Date: Thu,  7 Feb 2013 15:18:48 +0100
+Message-ID: <1360246728-3490-1-git-send-email-michal.simek@xilinx.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rusty Russell <rusty@rustcorp.com.au>
-Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, mingo@kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, fweisbec@gmail.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, rostedt@goodmis.org, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, wangyun@linux.vnet.ibm.com, netdev@vger.kernel.org, namhyung@kernel.org, akpm@linux-foundation.org, walken@google.com, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20130207061134.RGnWRaO056fmi5tPK5qKXQn0Yp9dCTQmZkVPPHwbFA8@z>
+To: linux-kernel@vger.kernel.org, monstr@monstr.eu
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org
+Message-ID: <20130207141848.Y9qWvFwOR-AEhHkXq3NssWBA-VuriYrKS6zTx8mAriU@z>
 
-On 02/07/2013 09:44 AM, Rusty Russell wrote:
-> "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com> writes:
->> On 01/22/2013 01:03 PM, Srivatsa S. Bhat wrote:
->>                  Avg. latency of 1 CPU offline (ms) [stop-cpu/stop-m/c latency]
->>
->> # online CPUs    Mainline (with stop-m/c)       This patchset (no stop-m/c)
->>
->>       8                 17.04                          7.73
->>
->>      16                 18.05                          6.44
->>
->>      32                 17.31                          7.39
->>
->>      64                 32.40                          9.28
->>
->>     128                 98.23                          7.35
-> 
-> Nice!
+Fix ioreadXXbe and iowriteXXbe functions which did
+additional little endian conversion on native big endian systems.
+Using be_to_cpu (cpu_to_be) conversions with __raw_read/write
+functions have resolved it.
 
-Thank you :-)
+Signed-off-by: Michal Simek <michal.simek@xilinx.com>
+CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+CC: Arnd Bergmann <arnd@arndb.de>
+CC: Geert Uytterhoeven <geert@linux-m68k.org>
+CC: Will Deacon <will.deacon@arm.com>
+CC: linux-arch@vger.kernel.org
+---
+ include/asm-generic/io.h |    8 ++++----
+ 1 files changed, 4 insertions(+), 4 deletions(-)
 
->  I wonder how the ARM guys feel with their quad-cpu systems...
-> 
-
-That would be definitely interesting to know :-)
-
-Regards,
-Srivatsa S. Bhat
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index 33bbbae..8823581 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -225,15 +225,15 @@ static inline void outsl(unsigned long addr, const void *buffer, int count)
+ #ifndef CONFIG_GENERIC_IOMAP
+ #define ioread8(addr)		readb(addr)
+ #define ioread16(addr)		readw(addr)
+-#define ioread16be(addr)	be16_to_cpu(ioread16(addr))
++#define ioread16be(addr)	__be16_to_cpu(__raw_readw(addr))
+ #define ioread32(addr)		readl(addr)
+-#define ioread32be(addr)	be32_to_cpu(ioread32(addr))
++#define ioread32be(addr)	__be32_to_cpu(__raw_readl(addr))
+ 
+ #define iowrite8(v, addr)	writeb((v), (addr))
+ #define iowrite16(v, addr)	writew((v), (addr))
+-#define iowrite16be(v, addr)	iowrite16(be16_to_cpu(v), (addr))
++#define iowrite16be(v, addr)	__raw_writew(__cpu_to_be16(v), addr)
+ #define iowrite32(v, addr)	writel((v), (addr))
+-#define iowrite32be(v, addr)	iowrite32(be32_to_cpu(v), (addr))
++#define iowrite32be(v, addr)	__raw_writel(__cpu_to_be32(v), addr)
+ 
+ #define ioread8_rep(p, dst, count) \
+ 	insb((unsigned long) (p), (dst), (count))
+-- 
+1.7.0.4
 
