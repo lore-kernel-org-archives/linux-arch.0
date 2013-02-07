@@ -1,45 +1,38 @@
-From: =?ISO-8859-1?Q?Andr=E9_Hentschel?= <nerv@dawncrow.de>
-Subject: Re: [PATCH] arm: Preserve TPIDRURW on context switch
-Date: Thu, 07 Feb 2013 00:01:23 +0100
-Message-ID: <5112E0C3.1080706@dawncrow.de>
-References: <5112DC7E.4020108@dawncrow.de> <20130206225150.GL17833@n2100.arm.linux.org.uk>
+From: Rusty Russell <rusty@rustcorp.com.au>
+Subject: Re: [PATCH v5 00/45] CPU hotplug: stop_machine()-free CPU hotplug
+Date: Thu, 07 Feb 2013 14:44:27 +1030
+Message-ID: <87haloiwv0.fsf@rustcorp.com.au>
+References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com> <510FBC01.2030405@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20130206225150.GL17833@n2100.arm.linux.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: linux-arch@vger.kernel.org, will.deacon@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Greg KH <gregkh@linuxfoundation.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ozlabs.org ([203.10.76.45]:50736 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756414Ab3BGERX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 6 Feb 2013 23:17:23 -0500
+In-Reply-To: <510FBC01.2030405@linux.vnet.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, mingo@kernel.org
+Cc: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, akpm@linux-foundation.org, namhyung@kernel.org, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, walken@google.com
 
-Am 06.02.2013 23:51, schrieb Russell King - ARM Linux:
-> On Wed, Feb 06, 2013 at 11:43:10PM +0100, Andr=E9 Hentschel wrote:
->> There are more and more applications coming to WinRT, Wine could sup=
-port them,
->> but mostly they expect to have the thread environment block (TEB) in=
- TPIDRURW.
->> This register must be preserved per thread instead of being cleared.
->=20
-> I'd prefer this was done a little more sensitively to those CPUs wher=
-e
-> loads/stores are expensive, namely:
->=20
->> +
->> +	@ preserve TPIDRURW register state
->> +	get_tls2	r3, r4, r5
->> +	str	r3, [r1, #TI_TP2_VALUE]
->> +	ldr	r3, [r2, #TI_TP2_VALUE]
->> +	set_tls2	r3, r4, r5
->=20
-> those two loads/stores get omitted from the thread switching if the C=
-PU
-> doesn't support it.  Do you think that's something you could do?
+"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com> writes:
+> On 01/22/2013 01:03 PM, Srivatsa S. Bhat wrote:
+>                  Avg. latency of 1 CPU offline (ms) [stop-cpu/stop-m/c latency]
+>
+> # online CPUs    Mainline (with stop-m/c)       This patchset (no stop-m/c)
+>
+>       8                 17.04                          7.73
+>
+>      16                 18.05                          6.44
+>
+>      32                 17.31                          7.39
+>
+>      64                 32.40                          9.28
+>
+>     128                 98.23                          7.35
 
-No, i'm not sure how to improve this. How does the process can continue=
-, can you or someone else fix that and add his Signed-off-by?
+Nice!  I wonder how the ARM guys feel with their quad-cpu systems...
 
-
---=20
-
-Best Regards, Andr=E9 Hentschel
+Thanks!
+Rusty.
