@@ -1,39 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:50736 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756414Ab3BGERX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 6 Feb 2013 23:17:23 -0500
-From: Rusty Russell <rusty@rustcorp.com.au>
-Subject: Re: [PATCH v5 00/45] CPU hotplug: stop_machine()-free CPU hotplug
-In-Reply-To: <510FBC01.2030405@linux.vnet.ibm.com>
-References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com> <510FBC01.2030405@linux.vnet.ibm.com>
-Date: Thu, 07 Feb 2013 14:44:27 +1030
-Message-ID: <87haloiwv0.fsf@rustcorp.com.au>
+Received: from e28smtp07.in.ibm.com ([122.248.162.7]:46289 "EHLO
+	e28smtp07.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750759Ab3BGGNl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Feb 2013 01:13:41 -0500
+Received: from /spool/local
+	by e28smtp07.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
+	Thu, 7 Feb 2013 11:41:13 +0530
+Message-ID: <51134596.4080106@linux.vnet.ibm.com>
+Date: Thu, 07 Feb 2013 11:41:34 +0530
+From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Subject: Re: [PATCH v5 00/45] CPU hotplug: stop_machine()-free CPU hotplug
+References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com> <510FBC01.2030405@linux.vnet.ibm.com> <87haloiwv0.fsf@rustcorp.com.au>
+In-Reply-To: <87haloiwv0.fsf@rustcorp.com.au>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, mingo@kernel.org
-Cc: akpm@linux-foundation.org, namhyung@kernel.org, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, walken@google.com
-Message-ID: <20130207041427.bPB3NTkb5vS91MSR_UrMesmTy5TqS0Ec9P828niffWE@z>
+To: Rusty Russell <rusty@rustcorp.com.au>
+Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, mingo@kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, fweisbec@gmail.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, rostedt@goodmis.org, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, wangyun@linux.vnet.ibm.com, netdev@vger.kernel.org, namhyung@kernel.org, akpm@linux-foundation.org, walken@google.com, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20130207061134.RGnWRaO056fmi5tPK5qKXQn0Yp9dCTQmZkVPPHwbFA8@z>
 
-"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com> writes:
-> On 01/22/2013 01:03 PM, Srivatsa S. Bhat wrote:
->                  Avg. latency of 1 CPU offline (ms) [stop-cpu/stop-m/c latency]
->
-> # online CPUs    Mainline (with stop-m/c)       This patchset (no stop-m/c)
->
->       8                 17.04                          7.73
->
->      16                 18.05                          6.44
->
->      32                 17.31                          7.39
->
->      64                 32.40                          9.28
->
->     128                 98.23                          7.35
+On 02/07/2013 09:44 AM, Rusty Russell wrote:
+> "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com> writes:
+>> On 01/22/2013 01:03 PM, Srivatsa S. Bhat wrote:
+>>                  Avg. latency of 1 CPU offline (ms) [stop-cpu/stop-m/c latency]
+>>
+>> # online CPUs    Mainline (with stop-m/c)       This patchset (no stop-m/c)
+>>
+>>       8                 17.04                          7.73
+>>
+>>      16                 18.05                          6.44
+>>
+>>      32                 17.31                          7.39
+>>
+>>      64                 32.40                          9.28
+>>
+>>     128                 98.23                          7.35
+> 
+> Nice!
 
-Nice!  I wonder how the ARM guys feel with their quad-cpu systems...
+Thank you :-)
 
-Thanks!
-Rusty.
+>  I wonder how the ARM guys feel with their quad-cpu systems...
+> 
+
+That would be definitely interesting to know :-)
+
+Regards,
+Srivatsa S. Bhat
+
