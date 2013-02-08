@@ -1,59 +1,70 @@
-From: Michal Simek <monstr@monstr.eu>
-Subject: Re: [PATCH] asm-generic: io: Fix ioread16/32be and iowrite16/32be
-Date: Fri, 8 Feb 2013 09:24:11 +0100
-Message-ID: <CAHTX3d+2SpK5pe5d-++j+CrDEF7orDa7zHfQChy21z+Ls2MDJQ@mail.gmail.com>
-References: <1360246728-3490-1-git-send-email-michal.simek@xilinx.com>
-	<CAMuHMdWEr-uZqc6P1CGNw0P6JG3FGsRKJLB1tLWzuYuBujTzfQ@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAMuHMdWEr-uZqc6P1CGNw0P6JG3FGsRKJLB1tLWzuYuBujTzfQ@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Steve Capper <steve.capper@arm.com>
+Subject: [PATCH 1/6] ARM: mm: correct pte_same behaviour for LPAE.
+Date: Fri,  8 Feb 2013 15:01:18 +0000
+Message-ID: <1360335683-7755-2-git-send-email-steve.capper@arm.com>
+References: <1360335683-7755-1-git-send-email-steve.capper@arm.com>
+Content-Type: text/plain; charset=WINDOWS-1252
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from service87.mimecast.com ([91.220.42.44]:41782 "EHLO
+	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758440Ab3BHPBs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Feb 2013 10:01:48 -0500
+In-Reply-To: <1360335683-7755-1-git-send-email-steve.capper@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Cc: c.dall@virtualopensystems.com, akpm@linux-foundation.org, mhocko@suse.cz, kirill@shutemov.name, aarcange@redhat.com, cmetcalf@tilera.com, hoffman@marvell.com, notasas@gmail.com, bill4carson@gmail.com, will.deacon@arm.com, catalin.marinas@arm.com, maen@marvell.com, shadi@marvell.com, tawfik@marvell.com, Steve Capper <steve.capper@arm.com>
 
-2013/2/8 Geert Uytterhoeven <geert@linux-m68k.org>:
-> On Thu, Feb 7, 2013 at 3:18 PM, Michal Simek <michal.simek@xilinx.com> wrote:
->> Fix ioreadXXbe and iowriteXXbe functions which did
->> additional little endian conversion on native big endian systems.
->> Using be_to_cpu (cpu_to_be) conversions with __raw_read/write
->> functions have resolved it.
->>
->> Signed-off-by: Michal Simek <michal.simek@xilinx.com>
->> CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
->> CC: Arnd Bergmann <arnd@arndb.de>
->> CC: Geert Uytterhoeven <geert@linux-m68k.org>
->> CC: Will Deacon <will.deacon@arm.com>
->> CC: linux-arch@vger.kernel.org
->
-> I have one question (see below). Apart from that:
-> Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
->
->> -#define ioread16be(addr)       be16_to_cpu(ioread16(addr))
->> +#define ioread16be(addr)       __be16_to_cpu(__raw_readw(addr))
->
-> Why did you change it to the __beX_to_cpu variant with underscores?
+For 3 levels of paging the PTE_EXT_NG bit will be set for user
+address ptes that are written to a page table but not for ptes
+created with mk_pte.
 
-The question could be probably different. Why are they even defined?
-I have grepped the kernel and all archs use these generic macros
+This can cause some comparison tests made by pte_same to fail
+spuriously and lead to other problems.
 
-include/linux/byteorder/generic.h:94:#define be32_to_cpu __be32_to_cpu
-include/linux/byteorder/generic.h:106:#define be32_to_cpup __be32_to_cpup
-include/linux/byteorder/generic.h:118:#define be32_to_cpus __be32_to_cpus
+To correct this behaviour, we mask off PTE_EXT_NG for any pte that
+is present before running the comparison.
 
-What about to remove them?
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+Signed-off-by: Steve Capper <steve.capper@arm.com>
+---
+ arch/arm/include/asm/pgtable-3level.h |   17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
 
-Back to you question. I can't remember particular reason for that maybe
-just experience that __ versions should be the fastest kernel implementation.
-
-Thanks,
-Michal
-
-
--- 
-Michal Simek, Ing. (M.Eng)
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel - Microblaze cpu - http://www.monstr.eu/fdt/
-Maintainer of Linux kernel - Xilinx Zynq ARM architecture
-Microblaze U-BOOT custodian and responsible for u-boot arm zynq platform
+diff --git a/arch/arm/include/asm/pgtable-3level.h b/arch/arm/include/asm/p=
+gtable-3level.h
+index a3f3792..2b73b0f 100644
+--- a/arch/arm/include/asm/pgtable-3level.h
++++ b/arch/arm/include/asm/pgtable-3level.h
+@@ -148,6 +148,23 @@ static inline pmd_t *pmd_offset(pud_t *pud, unsigned l=
+ong addr)
+ =09=09clean_pmd_entry(pmdp);=09\
+ =09} while (0)
+=20
++/*
++ * For 3 levels of paging the PTE_EXT_NG bit will be set for user address =
+ptes
++ * that are written to a page table but not for ptes created with mk_pte.
++ *
++ * In hugetlb_no_page, a new huge pte (new_pte) is generated and passed to
++ * hugetlb_cow, where it is compared with an entry in a page table.
++ * This comparison test fails erroneously leading ultimately to a memory l=
+eak.
++ *
++ * To correct this behaviour, we mask off PTE_EXT_NG for any pte that is
++ * present before running the comparison.
++ */
++#define __HAVE_ARCH_PTE_SAME
++#define pte_same(pte_a,pte_b)=09((pte_present(pte_a) ? pte_val(pte_a) & ~P=
+TE_EXT_NG=09\
++=09=09=09=09=09: pte_val(pte_a))=09=09=09=09\
++=09=09=09=09=3D=3D (pte_present(pte_b) ? pte_val(pte_b) & ~PTE_EXT_NG=09\
++=09=09=09=09=09: pte_val(pte_b)))
++
+ #define set_pte_ext(ptep,pte,ext) cpu_set_pte_ext(ptep,__pte(pte_val(pte)|=
+(ext)))
+=20
+ #endif /* __ASSEMBLY__ */
+--=20
+1.7.9.5
