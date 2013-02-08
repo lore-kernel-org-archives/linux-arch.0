@@ -1,130 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e33.co.us.ibm.com ([32.97.110.151]:53250 "EHLO
+Received: from e33.co.us.ibm.com ([32.97.110.151]:34443 "EHLO
 	e33.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1947386Ab3BHXsT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Feb 2013 18:48:19 -0500
+	with ESMTP id S1947406Ab3BHXvd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Feb 2013 18:51:33 -0500
 Received: from /spool/local
 	by e33.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Fri, 8 Feb 2013 16:48:18 -0700
-Date: Fri, 8 Feb 2013 15:47:54 -0800
+	Fri, 8 Feb 2013 16:51:33 -0700
+Date: Fri, 8 Feb 2013 15:51:22 -0800
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH v5 06/45] percpu_rwlock: Allow writers to be readers, and
- add lockdep annotations
-Message-ID: <20130208234754.GM2666@linux.vnet.ibm.com>
+Subject: Re: [PATCH v5 08/45] CPU hotplug: Convert preprocessor macros to
+ static inline functions
+Message-ID: <20130208235122.GO2666@linux.vnet.ibm.com>
 Reply-To: paulmck@linux.vnet.ibm.com
 References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
- <20130122073416.13822.96504.stgit@srivatsabhat.in.ibm.com>
+ <20130122073500.13822.11469.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20130122073416.13822.96504.stgit@srivatsabhat.in.ibm.com>
+In-Reply-To: <20130122073500.13822.11469.stgit@srivatsabhat.in.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130208234754.4huS_6EbMj-msSwn8KG1bQ17d2Az7Dl7R_8GiIZ31tc@z>
+Message-ID: <20130208235122.K9tDTG91PJnkwMsKMX0j-7jwE9R7n31x6SXFVeoz5GQ@z>
 
-On Tue, Jan 22, 2013 at 01:04:23PM +0530, Srivatsa S. Bhat wrote:
-> CPU hotplug (which will be the first user of per-CPU rwlocks) has a special
-> requirement with respect to locking: the writer, after acquiring the per-CPU
-> rwlock for write, must be allowed to take the same lock for read, without
-> deadlocking and without getting complaints from lockdep. In comparison, this
-> is similar to what get_online_cpus()/put_online_cpus() does today: it allows
-> a hotplug writer (who holds the cpu_hotplug.lock mutex) to invoke it without
-> locking issues, because it silently returns if the caller is the hotplug
-> writer itself.
+On Tue, Jan 22, 2013 at 01:05:02PM +0530, Srivatsa S. Bhat wrote:
+> On 12/05/2012 06:10 AM, Andrew Morton wrote:
+> "static inline C functions would be preferred if possible.  Feel free to
+> fix up the wrong crufty surrounding code as well ;-)"
 > 
-> This can be easily achieved with per-CPU rwlocks as well (even without a
-> "is this a writer?" check) by incrementing the per-CPU refcount of the writer
-> immediately after taking the global rwlock for write, and then decrementing
-> the per-CPU refcount before releasing the global rwlock.
-> This ensures that any reader that comes along on that CPU while the writer is
-> active (on that same CPU), notices the non-zero value of the nested counter
-> and assumes that it is a nested read-side critical section and proceeds by
-> just incrementing the refcount. Thus we prevent the reader from taking the
-> global rwlock for read, which prevents the writer from deadlocking itself.
+> Convert the macros in the CPU hotplug code to static inline C functions.
 > 
-> Add that support and teach lockdep about this special locking scheme so
-> that it knows that this sort of usage is valid. Also add the required lockdep
-> annotations to enable it to detect common locking problems with per-CPU
-> rwlocks.
-
-Very nice!  The write-side interrupt disabling ensures that the task
-stays on CPU, as required.
-
-One request: Could we please have a comment explaining the reasons for
-the writer incrementing and decrementing the reader reference count?
-
-It looked really really strange to me until I came back and read the
-commit log.  ;-)
-
-							Thanx, Paul
-
-> Cc: David Howells <dhowells@redhat.com>
 > Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+
+Reviewed-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+
 > ---
 > 
->  lib/percpu-rwlock.c |   21 +++++++++++++++++++++
->  1 file changed, 21 insertions(+)
+>  include/linux/cpu.h |    8 ++++----
+>  1 file changed, 4 insertions(+), 4 deletions(-)
 > 
-> diff --git a/lib/percpu-rwlock.c b/lib/percpu-rwlock.c
-> index a8d177a..054a50a 100644
-> --- a/lib/percpu-rwlock.c
-> +++ b/lib/percpu-rwlock.c
-> @@ -84,6 +84,10 @@ void percpu_read_lock_irqsafe(struct percpu_rwlock *pcpu_rwlock)
+> diff --git a/include/linux/cpu.h b/include/linux/cpu.h
+> index cf24da1..eb79f47 100644
+> --- a/include/linux/cpu.h
+> +++ b/include/linux/cpu.h
+> @@ -198,10 +198,10 @@ static inline void cpu_hotplug_driver_unlock(void)
 > 
->  		if (likely(!writer_active(pcpu_rwlock))) {
->  			this_cpu_inc(*pcpu_rwlock->reader_refcnt);
-> +
-> +			/* Pretend that we take global_rwlock for lockdep */
-> +			rwlock_acquire_read(&pcpu_rwlock->global_rwlock.dep_map,
-> +					    0, 0, _RET_IP_);
->  		} else {
->  			/* Writer is active, so switch to global rwlock. */
+>  #else		/* CONFIG_HOTPLUG_CPU */
 > 
-> @@ -108,6 +112,12 @@ void percpu_read_lock_irqsafe(struct percpu_rwlock *pcpu_rwlock)
->  			if (!writer_active(pcpu_rwlock)) {
->  				this_cpu_inc(*pcpu_rwlock->reader_refcnt);
->  				read_unlock(&pcpu_rwlock->global_rwlock);
-> +
-> +				/*
-> +				 * Pretend that we take global_rwlock for lockdep
-> +				 */
-> +				rwlock_acquire_read(&pcpu_rwlock->global_rwlock.dep_map,
-> +						    0, 0, _RET_IP_);
->  			}
->  		}
->  	}
-> @@ -128,6 +138,14 @@ void percpu_read_unlock_irqsafe(struct percpu_rwlock *pcpu_rwlock)
->  	if (reader_nested_percpu(pcpu_rwlock)) {
->  		this_cpu_dec(*pcpu_rwlock->reader_refcnt);
->  		smp_wmb(); /* Paired with smp_rmb() in sync_reader() */
-> +
-> +		/*
-> +		 * If this is the last decrement, then it is time to pretend
-> +		 * to lockdep that we are releasing the read lock.
-> +		 */
-> +		if (!reader_nested_percpu(pcpu_rwlock))
-> +			rwlock_release(&pcpu_rwlock->global_rwlock.dep_map,
-> +				       1, _RET_IP_);
->  	} else {
->  		read_unlock(&pcpu_rwlock->global_rwlock);
->  	}
-> @@ -205,11 +223,14 @@ void percpu_write_lock_irqsave(struct percpu_rwlock *pcpu_rwlock,
->  	announce_writer_active(pcpu_rwlock);
->  	sync_all_readers(pcpu_rwlock);
->  	write_lock_irqsave(&pcpu_rwlock->global_rwlock, *flags);
-> +	this_cpu_inc(*pcpu_rwlock->reader_refcnt);
->  }
-> 
->  void percpu_write_unlock_irqrestore(struct percpu_rwlock *pcpu_rwlock,
->  			 unsigned long *flags)
->  {
-> +	this_cpu_dec(*pcpu_rwlock->reader_refcnt);
-> +
->  	/*
->  	 * Inform all readers that we are done, so that they can switch back
->  	 * to their per-cpu refcounts. (We don't need to wait for them to
+> -#define get_online_cpus()	do { } while (0)
+> -#define put_online_cpus()	do { } while (0)
+> -#define get_online_cpus_atomic()	do { } while (0)
+> -#define put_online_cpus_atomic()	do { } while (0)
+> +static inline void get_online_cpus(void) {}
+> +static inline void put_online_cpus(void) {}
+> +static inline void get_online_cpus_atomic(void) {}
+> +static inline void put_online_cpus_atomic(void) {}
+>  #define hotcpu_notifier(fn, pri)	do { (void)(fn); } while (0)
+>  /* These aren't inline functions due to a GCC bug. */
+>  #define register_hotcpu_notifier(nb)	({ (void)(nb); 0; })
 > 
 
