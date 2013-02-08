@@ -1,181 +1,77 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH] arm: Preserve TPIDRURW on context switch
-Date: Fri, 8 Feb 2013 15:48:09 +0000
-Message-ID: <20130208154809.GF3495@mudshark.cambridge.arm.com>
-References: <5112DC7E.4020108@dawncrow.de>
- <20130206225150.GL17833@n2100.arm.linux.org.uk>
- <5112E0C3.1080706@dawncrow.de>
+From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Subject: Re: [PATCH v5 00/45] CPU hotplug: stop_machine()-free CPU hotplug
+Date: Fri, 08 Feb 2013 22:14:49 +0530
+Message-ID: <51152B81.2050501@linux.vnet.ibm.com>
+References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com> <510FBC01.2030405@linux.vnet.ibm.com> <87haloiwv0.fsf@rustcorp.com.au> <51134596.4080106@linux.vnet.ibm.com> <20130208154113.GV17833@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:58794 "EHLO
-	cam-smtp0.cambridge.arm.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1760152Ab3BHPs0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Feb 2013 10:48:26 -0500
-Content-Disposition: inline
-In-Reply-To: <5112E0C3.1080706@dawncrow.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: =?iso-8859-1?Q?Andr=E9?= Hentschel <nerv@dawncrow.de>
-Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Greg KH <gregkh@linuxfoundation.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <20130208154113.GV17833@n2100.arm.linux.org.uk>
+Sender: linux-doc-owner@vger.kernel.org
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, walken@google.com, mingo@kernel.org, linux-arch@vger.kernel.org, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, paulmck@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, Rusty Russell <rusty@rustcorp.com.au>, rostedt@goodmis.org, rjw@sisk.pl, namhyung@kernel.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, oleg@redhat.com, sbw@mit.edu, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Feb 06, 2013 at 11:01:23PM +0000, Andr=E9 Hentschel wrote:
-> Am 06.02.2013 23:51, schrieb Russell King - ARM Linux:
-> > On Wed, Feb 06, 2013 at 11:43:10PM +0100, Andr=E9 Hentschel wrote:
-> >> There are more and more applications coming to WinRT, Wine could s=
-upport them,
-> >> but mostly they expect to have the thread environment block (TEB) =
-in TPIDRURW.
-> >> This register must be preserved per thread instead of being cleare=
-d.
-> >=20
-> > I'd prefer this was done a little more sensitively to those CPUs wh=
-ere
-> > loads/stores are expensive, namely:
-> >=20
-> >> +
-> >> +	@ preserve TPIDRURW register state
-> >> +	get_tls2	r3, r4, r5
-> >> +	str	r3, [r1, #TI_TP2_VALUE]
-> >> +	ldr	r3, [r2, #TI_TP2_VALUE]
-> >> +	set_tls2	r3, r4, r5
-> >=20
-> > those two loads/stores get omitted from the thread switching if the=
- CPU
-> > doesn't support it.  Do you think that's something you could do?
->=20
-> No, i'm not sure how to improve this. How does the process can contin=
-ue, can you or someone else fix that and add his Signed-off-by?
+On 02/08/2013 09:11 PM, Russell King - ARM Linux wrote:
+> On Thu, Feb 07, 2013 at 11:41:34AM +0530, Srivatsa S. Bhat wrote:
+>> On 02/07/2013 09:44 AM, Rusty Russell wrote:
+>>> "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com> writes:
+>>>> On 01/22/2013 01:03 PM, Srivatsa S. Bhat wrote:
+>>>>                  Avg. latency of 1 CPU offline (ms) [stop-cpu/stop-m/c latency]
+>>>>
+>>>> # online CPUs    Mainline (with stop-m/c)       This patchset (no stop-m/c)
+>>>>
+>>>>       8                 17.04                          7.73
+>>>>
+>>>>      16                 18.05                          6.44
+>>>>
+>>>>      32                 17.31                          7.39
+>>>>
+>>>>      64                 32.40                          9.28
+>>>>
+>>>>     128                 98.23                          7.35
+>>>
+>>> Nice!
+>>
+>> Thank you :-)
+>>
+>>>  I wonder how the ARM guys feel with their quad-cpu systems...
+>>>
+>>
+>> That would be definitely interesting to know :-)
+> 
+> That depends what exactly you'd like tested (and how) and whether you'd
+> like it to be a test-chip based quad core, or an OMAP dual-core SoC.
+> 
 
-How about something like the (completely untested) diff below?
+The effect of stop_machine() doesn't really depend on the CPU architecture
+used underneath or the platform. It depends only on the _number_ of
+_logical_ CPUs used.
 
-Andre: if this works for you, I'm happy to write a commit message etc.
+And stop_machine() has 2 noticeable drawbacks:
+1. It makes the hotplug operation itself slow
+2. and it causes disruptions to the workloads running on the other
+CPUs by hijacking the entire machine for significant amounts of time.
 
-Cheers,
+In my experiments (mentioned above), I tried to measure how my patchset
+improves (reduces) the duration of hotplug (CPU offline) itself. Which is
+also slightly indicative of the impact it has on the rest of the system.
 
-Will
+But what would be nice to test, is a setup where the workloads running on
+the rest of the system are latency-sensitive, and measure the impact of
+CPU offline on them, with this patchset applied. That would tell us how
+far is this useful in making CPU hotplug less disruptive on the system.
 
---->8
+Of course, it would be nice to also see whether we observe any reduction
+in hotplug duration itself (point 1 above) on ARM platforms with lot
+of CPUs. [This could potentially speed up suspend/resume, which is used
+rather heavily on ARM platforms].
 
-diff --git a/arch/arm/include/asm/thread_info.h b/arch/arm/include/asm/=
-thread_info.h
-index cddda1f..d90be6d 100644
---- a/arch/arm/include/asm/thread_info.h
-+++ b/arch/arm/include/asm/thread_info.h
-@@ -58,7 +58,7 @@ struct thread_info {
- 	struct cpu_context_save	cpu_context;	/* cpu context */
- 	__u32			syscall;	/* syscall number */
- 	__u8			used_cp[16];	/* thread used copro */
--	unsigned long		tp_value;
-+	unsigned long		tp_value[2];	/* TLS registers */
- #ifdef CONFIG_CRUNCH
- 	struct crunch_state	crunchstate;
- #endif
-diff --git a/arch/arm/include/asm/tls.h b/arch/arm/include/asm/tls.h
-index 73409e6..e1b09d32 100644
---- a/arch/arm/include/asm/tls.h
-+++ b/arch/arm/include/asm/tls.h
-@@ -6,9 +6,9 @@
- 	.endm
-=20
- 	.macro set_tls_v6k, tp, tmp1, tmp2
--	mcr	p15, 0, \tp, c13, c0, 3		@ set TLS register
--	mov	\tmp1, #0
--	mcr	p15, 0, \tmp1, c13, c0, 2	@ clear user r/w TLS register
-+	ldrd	\tmp1, \tmp2, [\tp]
-+	mcr	p15, 0, \tmp1, c13, c0, 3	@ set user r/o TLS register
-+	mcr	p15, 0, \tmp2, c13, c0, 2	@ set user r/w TLS register
- 	.endm
-=20
- 	.macro set_tls_v6, tp, tmp1, tmp2
-@@ -16,15 +16,17 @@
- 	ldr	\tmp1, [\tmp1, #0]
- 	mov	\tmp2, #0xffff0fff
- 	tst	\tmp1, #HWCAP_TLS		@ hardware TLS available?
--	mcrne	p15, 0, \tp, c13, c0, 3		@ yes, set TLS register
--	movne	\tmp1, #0
--	mcrne	p15, 0, \tmp1, c13, c0, 2	@ clear user r/w TLS register
--	streq	\tp, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
-+	ldrdne	\tmp1, \tmp2, [\tp]
-+	ldreq	\tmp1, [\tp]
-+	mcrne	p15, 0, \tmp1, c13, c0, 3	@ yes, set user r/o TLS register
-+	mcrne	p15, 0, \tmp2, c13, c0, 2	@ set user r/w TLS register
-+	streq	\tmp1, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
- 	.endm
-=20
- 	.macro set_tls_software, tp, tmp1, tmp2
--	mov	\tmp1, #0xffff0fff
--	str	\tp, [\tmp1, #-15]		@ set TLS value at 0xffff0ff0
-+	ldr	\tmp1, [\tp]
-+	mov	\tmp2, #0xffff0fff
-+	str	\tmp1, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
- 	.endm
- #endif
-=20
-diff --git a/arch/arm/kernel/entry-armv.S b/arch/arm/kernel/entry-armv.=
-S
-index 0f82098..a0a8fe3 100644
---- a/arch/arm/kernel/entry-armv.S
-+++ b/arch/arm/kernel/entry-armv.S
-@@ -728,7 +728,7 @@ ENTRY(__switch_to)
-  UNWIND(.fnstart	)
-  UNWIND(.cantunwind	)
- 	add	ip, r1, #TI_CPU_SAVE
--	ldr	r3, [r2, #TI_TP_VALUE]
-+	add	r3, r2, #TI_TP_VALUE
-  ARM(	stmia	ip!, {r4 - sl, fp, sp, lr} )	@ Store most regs on stack
-  THUMB(	stmia	ip!, {r4 - sl, fp}	   )	@ Store most regs on stack
-  THUMB(	str	sp, [ip], #4		   )
-diff --git a/arch/arm/kernel/process.c b/arch/arm/kernel/process.c
-index c6dec5f..ea298d2 100644
---- a/arch/arm/kernel/process.c
-+++ b/arch/arm/kernel/process.c
-@@ -400,7 +400,7 @@ copy_thread(unsigned long clone_flags, unsigned lon=
-g stack_start,
- 	clear_ptrace_hw_breakpoint(p);
-=20
- 	if (clone_flags & CLONE_SETTLS)
--		thread->tp_value =3D childregs->ARM_r3;
-+		thread->tp_value[0] =3D childregs->ARM_r3;
-=20
- 	thread_notify(THREAD_NOTIFY_COPY, thread);
-=20
-diff --git a/arch/arm/kernel/ptrace.c b/arch/arm/kernel/ptrace.c
-index 03deeff..2bc1514 100644
---- a/arch/arm/kernel/ptrace.c
-+++ b/arch/arm/kernel/ptrace.c
-@@ -849,7 +849,7 @@ long arch_ptrace(struct task_struct *child, long re=
-quest,
- #endif
-=20
- 		case PTRACE_GET_THREAD_AREA:
--			ret =3D put_user(task_thread_info(child)->tp_value,
-+			ret =3D put_user(task_thread_info(child)->tp_value[0],
- 				       datap);
- 			break;
-=20
-diff --git a/arch/arm/kernel/traps.c b/arch/arm/kernel/traps.c
-index b0179b8..08b0db9 100644
---- a/arch/arm/kernel/traps.c
-+++ b/arch/arm/kernel/traps.c
-@@ -588,7 +588,7 @@ asmlinkage int arm_syscall(int no, struct pt_regs *=
-regs)
- 		return regs->ARM_r0;
-=20
- 	case NR(set_tls):
--		thread->tp_value =3D regs->ARM_r0;
-+		thread->tp_value[0] =3D regs->ARM_r0;
- 		if (tls_emu)
- 			return 0;
- 		if (has_tls_reg) {
-@@ -706,7 +706,7 @@ static int get_tp_trap(struct pt_regs *regs, unsign=
-ed int instr)
- 	int reg =3D (instr >> 12) & 15;
- 	if (reg =3D=3D 15)
- 		return 1;
--	regs->uregs[reg] =3D current_thread_info()->tp_value;
-+	regs->uregs[reg] =3D current_thread_info()->tp_value[0];
- 	regs->ARM_pc +=3D 4;
- 	return 0;
- }
+The benefits from this patchset over mainline (both in terms of points
+1 and 2 above) is expected to increase, with increasing number of CPUs in
+the system.
+
+Regards,
+Srivatsa S. Bhat
+
