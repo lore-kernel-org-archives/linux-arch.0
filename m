@@ -1,91 +1,124 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp02.au.ibm.com ([202.81.31.144]:39994 "EHLO
-	e23smtp02.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1946853Ab3BHSME (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Feb 2013 13:12:04 -0500
+Received: from e32.co.us.ibm.com ([32.97.110.150]:57208 "EHLO
+	e32.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1947295Ab3BHWsI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Feb 2013 17:48:08 -0500
 Received: from /spool/local
-	by e23smtp02.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Sat, 9 Feb 2013 04:06:16 +1000
-Message-ID: <51153F72.1060005@linux.vnet.ibm.com>
-Date: Fri, 08 Feb 2013 23:39:54 +0530
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+	by e32.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Fri, 8 Feb 2013 15:48:07 -0700
+Date: Fri, 8 Feb 2013 14:47:42 -0800
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH v5 04/45] percpu_rwlock: Implement the core design of
+ Per-CPU Reader-Writer Locks
+Message-ID: <20130208224742.GJ2666@linux.vnet.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
+References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
+ <20130122073347.13822.85876.stgit@srivatsabhat.in.ibm.com>
+ <20130123185522.GG2373@mtj.dyndns.org>
+ <51003B20.2060506@linux.vnet.ibm.com>
+ <20130123195740.GI2373@mtj.dyndns.org>
+ <5100B8CC.4080406@linux.vnet.ibm.com>
+ <87ip6gutsq.fsf@sejong.aot.lge.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v5 00/45] CPU hotplug: stop_machine()-free CPU hotplug
-References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com> <510FBC01.2030405@linux.vnet.ibm.com> <87haloiwv0.fsf@rustcorp.com.au> <51134596.4080106@linux.vnet.ibm.com> <20130208154113.GV17833@n2100.arm.linux.org.uk> <51152B81.2050501@linux.vnet.ibm.com>
-In-Reply-To: <51152B81.2050501@linux.vnet.ibm.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <87ip6gutsq.fsf@sejong.aot.lge.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, walken@google.com, mingo@kernel.org, linux-arch@vger.kernel.org, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, paulmck@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, Rusty Russell <rusty@rustcorp.com.au>, rostedt@goodmis.org, rjw@sisk.pl, namhyung@kernel.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, oleg@redhat.com, sbw@mit.edu, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, vincent.guittot@linaro.org
-Message-ID: <20130208180954.bh4oNhyfocukjq6VFk33UIqZel0ueeZh9YQEimmebN4@z>
+To: Namhyung Kim <namhyung@kernel.org>
+Cc: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Tejun Heo <tj@kernel.org>, tglx@linutronix.de, peterz@infradead.org, oleg@redhat.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, walken@google.com
+Message-ID: <20130208224742.uVbg8Fq9latsoDtF3lGaYZQ08-vuai1EnzmgAGBI9V8@z>
 
-On 02/08/2013 10:14 PM, Srivatsa S. Bhat wrote:
-> On 02/08/2013 09:11 PM, Russell King - ARM Linux wrote:
->> On Thu, Feb 07, 2013 at 11:41:34AM +0530, Srivatsa S. Bhat wrote:
->>> On 02/07/2013 09:44 AM, Rusty Russell wrote:
->>>> "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com> writes:
->>>>> On 01/22/2013 01:03 PM, Srivatsa S. Bhat wrote:
->>>>>                  Avg. latency of 1 CPU offline (ms) [stop-cpu/stop-m/c latency]
->>>>>
->>>>> # online CPUs    Mainline (with stop-m/c)       This patchset (no stop-m/c)
->>>>>
->>>>>       8                 17.04                          7.73
->>>>>
->>>>>      16                 18.05                          6.44
->>>>>
->>>>>      32                 17.31                          7.39
->>>>>
->>>>>      64                 32.40                          9.28
->>>>>
->>>>>     128                 98.23                          7.35
->>>>
->>>> Nice!
->>>
->>> Thank you :-)
->>>
->>>>  I wonder how the ARM guys feel with their quad-cpu systems...
->>>>
->>>
->>> That would be definitely interesting to know :-)
->>
->> That depends what exactly you'd like tested (and how) and whether you'd
->> like it to be a test-chip based quad core, or an OMAP dual-core SoC.
->>
+On Tue, Jan 29, 2013 at 08:12:37PM +0900, Namhyung Kim wrote:
+> On Thu, 24 Jan 2013 10:00:04 +0530, Srivatsa S. Bhat wrote:
+> > On 01/24/2013 01:27 AM, Tejun Heo wrote:
+> >> On Thu, Jan 24, 2013 at 01:03:52AM +0530, Srivatsa S. Bhat wrote:
+> >>> CPU 0                          CPU 1
+> >>>
+> >>> read_lock(&rwlock)
+> >>>
+> >>>                               write_lock(&rwlock) //spins, because CPU 0
+> >>>                               //has acquired the lock for read
+> >>>
+> >>> read_lock(&rwlock)
+> >>>    ^^^^^
+> >>> What happens here? Does CPU 0 start spinning (and hence deadlock) or will
+> >>> it continue realizing that it already holds the rwlock for read?
+> >> 
+> >> I don't think rwlock allows nesting write lock inside read lock.
+> >> read_lock(); write_lock() will always deadlock.
+> >> 
+> >
+> > Sure, I understand that :-) My question was, what happens when *two* CPUs
+> > are involved, as in, the read_lock() is invoked only on CPU 0 whereas the
+> > write_lock() is invoked on CPU 1.
+> >
+> > For example, the same scenario shown above, but with slightly different
+> > timing, will NOT result in a deadlock:
+> >
+> > Scenario 2:
+> >   CPU 0                                CPU 1
+> >
+> > read_lock(&rwlock)
+> >
+> >
+> > read_lock(&rwlock) //doesn't spin
+> >
+> >                                     write_lock(&rwlock) //spins, because CPU 0
+> >                                     //has acquired the lock for read
+> >
+> >
+> > So I was wondering whether the "fairness" logic of rwlocks would cause
+> > the second read_lock() to spin (in the first scenario shown above) because
+> > a writer is already waiting (and hence new readers should spin) and thus
+> > cause a deadlock.
 > 
-> The effect of stop_machine() doesn't really depend on the CPU architecture
-> used underneath or the platform. It depends only on the _number_ of
-> _logical_ CPUs used.
+> In my understanding, current x86 rwlock does basically this (of course,
+> in an atomic fashion):
 > 
-> And stop_machine() has 2 noticeable drawbacks:
-> 1. It makes the hotplug operation itself slow
-> 2. and it causes disruptions to the workloads running on the other
-> CPUs by hijacking the entire machine for significant amounts of time.
 > 
-> In my experiments (mentioned above), I tried to measure how my patchset
-> improves (reduces) the duration of hotplug (CPU offline) itself. Which is
-> also slightly indicative of the impact it has on the rest of the system.
+> #define RW_LOCK_BIAS 0x10000
 > 
-> But what would be nice to test, is a setup where the workloads running on
-> the rest of the system are latency-sensitive, and measure the impact of
-> CPU offline on them, with this patchset applied. That would tell us how
-> far is this useful in making CPU hotplug less disruptive on the system.
+> rwlock_init(rwlock)
+> {
+> 	rwlock->lock = RW_LOCK_BIAS;
+> }
 > 
-> Of course, it would be nice to also see whether we observe any reduction
-> in hotplug duration itself (point 1 above) on ARM platforms with lot
-> of CPUs. [This could potentially speed up suspend/resume, which is used
-> rather heavily on ARM platforms].
+> arch_read_lock(rwlock)
+> {
+> retry:
+> 	if (--rwlock->lock >= 0)
+> 		return;
 > 
-> The benefits from this patchset over mainline (both in terms of points
-> 1 and 2 above) is expected to increase, with increasing number of CPUs in
-> the system.
+>         rwlock->lock++;
+>         while (rwlock->lock < 1)
+>         	continue;
 > 
+>         goto retry;
+> }
+> 
+> arch_write_lock(rwlock)
+> {
+> retry:
+> 	if ((rwlock->lock -= RW_LOCK_BIAS) == 0)
+>         	return;
+> 
+>         rwlock->lock += RW_LOCK_BIAS;
+> 	while (rwlock->lock != RW_LOCK_BIAS)
+> 		continue;
+> 
+>         goto retry;
+> }
+> 
+> 
+> So I can't find where the 'fairness' logic comes from..
 
-Adding Vincent to CC, who had previously evaluated the performance and
-latency implications of CPU hotplug on ARM platforms, IIRC.
+I looked through several of the rwlock implementations, and in all of
+them the writer backs off if it sees readers -- or refrains from asserting
+ownership of the lock to begin with.
 
-Regards,
-Srivatsa S. Bhat
+So it should be OK to use rwlock as shown in the underlying patch.
+
+							Thanx, Paul
 
