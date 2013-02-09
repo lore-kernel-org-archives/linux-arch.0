@@ -1,84 +1,99 @@
 From: Grant Likely <grant.likely@secretlab.ca>
-Subject: Re: [PATCH 8/9] gpiolib: use gpio_chips list in gpio_to_desc
-Date: Sat, 09 Feb 2013 09:58:03 +0000
-Message-ID: <20130209095803.61C653E2CF2@localhost>
-References: <1359822572-26009-1-git-send-email-acourbot@nvidia.com> <1359822572-26009-10-git-send-email-acourbot@nvidia.com>
+Subject: Re: [PATCH 6/9] gpiolib: use descriptors internally
+Date: Sat, 09 Feb 2013 13:11:58 +0000
+Message-ID: <20130209131158.22FD53E30EC@localhost>
+References: <1359822572-26009-1-git-send-email-acourbot@nvidia.com> <1359822572-26009-8-git-send-email-acourbot@nvidia.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1359822572-26009-10-git-send-email-acourbot@nvidia.com>
+In-Reply-To: <1359822572-26009-8-git-send-email-acourbot@nvidia.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, gnurou@gmail.com, Alexandre Courbot <acourbot@nvidia.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Sun,  3 Feb 2013 01:29:31 +0900, Alexandre Courbot <acourbot@nvidia.com> wrote:
-> Parse the list of chips to find the descriptor corresponding to a GPIO
-> number instead of directly picking the entry of the global gpio_desc[]
-> array, which is due to be removed.
-> 
-> This turns the complexity of converting a GPIO number into a descriptor
-> from O(1) to O(n) where n is the number of GPIO chips in the system.
-> Since n is ought to be small anyway, there should be no noticeable
-> performance impact. Moreover, GPIO users who care for speed already have
-> implemented their own gpio_get_value() and gpio_set_value() with a
-> fast path for the GPIO numbers that matter and this change does not
-> affect such use cases.
-> 
-> The descriptor-based GPIO API, due to be introduced soon, will make this
-> lookup unnecessary.
-
-I'm actually going to NAK this one. This is a hot path. Having a O(1)
-lookup from gpio number to gpio desc is important. I know you want to be
-rid of the gpio_desc table entirely, but in this case I think it is
-warranted. However, you can change the gpio_desc table to be a table of
-pointers to gpio_descs instead of a table of gpio_descs. That would save
-a lot of memory since unused GPIOs wouldn't have gpio_descs associated
-with them. It is also the mechanism used by the IRQ subsystem.
-
-So, it makes sense for the primary gpio_chip lookup to be the list, but
-the table needs to stick around as a secondary lookup.
-
-g.
-
+On Sun,  3 Feb 2013 01:29:29 +0900, Alexandre Courbot <acourbot@nvidia.com> wrote:
+> Make sure gpiolib works internally with descriptors and (chip, offset)
+> pairs instead of using the global integer namespace. This prepares the
+> ground for the removal of the global gpio_desc[] array and the
+> introduction of the descriptor-based GPIO API.
 > 
 > Signed-off-by: Alexandre Courbot <acourbot@nvidia.com>
 > ---
->  drivers/gpio/gpiolib.c | 19 +++++++++++++++----
->  1 file changed, 15 insertions(+), 4 deletions(-)
+>  drivers/gpio/gpiolib.c | 493 +++++++++++++++++++++++++++++++------------------
+>  1 file changed, 317 insertions(+), 176 deletions(-)
 > 
 > diff --git a/drivers/gpio/gpiolib.c b/drivers/gpio/gpiolib.c
-> index 9599b9a..0247c48 100644
+> index af4c350..82c40bd 100644
 > --- a/drivers/gpio/gpiolib.c
 > +++ b/drivers/gpio/gpiolib.c
-> @@ -122,10 +122,21 @@ static int gpio_chip_hwgpio(const struct gpio_desc *desc)
->   */
->  static struct gpio_desc *gpio_to_desc(unsigned gpio)
->  {
-> -	if (WARN(!gpio_is_valid(gpio), "invalid GPIO %d\n", gpio))
-> -		return NULL;
-> -	else
-> -		return &gpio_desc[gpio];
-> +	struct gpio_chip *chip;
-> +
-> +	list_for_each_entry(chip, &gpio_chips, list) {
-> +		int gpio_min = chip->base;
-> +		int gpio_max = gpio_min + chip->ngpio;
-> +		if (gpio >= gpio_min && gpio < gpio_max)
-> +			return &chip->desc[gpio - gpio_min];
-> +		else if (gpio < gpio_min)
-> +			/* gpio_chips are ordered by base, so we won't get any
-> +			 * hit if we arrive here... */
-> +			break;
-> +	}
-> +
-> +	pr_warn("%s: no registered chip to handle GPIO %d\n", __func__, gpio);
-> +	return NULL;
->  }
+> @@ -78,6 +78,28 @@ static LIST_HEAD(gpio_chips);
+>  static DEFINE_IDR(dirent_idr);
+>  #endif
 >  
->  /**
-> -- 
-> 1.8.1.1
-> 
+> +/*
+> + * Internal gpiod_* API using descriptors instead of the integer namespace.
+> + * Most of this should eventually go public.
+> + */
+> +static int gpiod_request(struct gpio_desc *desc, const char *label);
+> +static void gpiod_free(struct gpio_desc *desc);
+> +static int gpiod_direction_input(struct gpio_desc *desc);
+> +static int gpiod_direction_output(struct gpio_desc *desc, int value);
+> +static int gpiod_set_debounce(struct gpio_desc *desc, unsigned debounce);
+> +static int gpiod_get_value_cansleep(struct gpio_desc *desc);
+> +static void gpiod_set_value_cansleep(struct gpio_desc *desc, int value);
+> +static int gpiod_get_value(struct gpio_desc *desc);
+> +static void gpiod_set_value(struct gpio_desc *desc, int value);
+> +static int gpiod_cansleep(struct gpio_desc *desc);
+> +static int gpiod_to_irq(struct gpio_desc *desc);
+> +static int gpiod_export(struct gpio_desc *desc, bool direction_may_change);
+> +static int gpiod_export_link(struct device *dev, const char *name,
+> +			     struct gpio_desc *desc);
+> +static int gpiod_sysfs_set_active_low(struct gpio_desc *desc, int value);
+> +static void gpiod_unexport(struct gpio_desc *desc);
 
--- 
-Grant Likely, B.Sc, P.Eng.
-Secret Lab Technologies, Ltd.
+I've been thinking about the adding of a new API to supplant the old,
+and I'm wondering if we're going about this the wrong way around; at
+least for the public api. We've moved to a model where device drivers
+are really supposed to tread GPIO numbers as opaque handles. Most device
+drivers are well behaved on this point. (Others of course are not so
+well behaved and either hard code or interpret what a number means, but
+those users already need to be fixed before they will work with the
+device tree)
+
+Rather than creating a new API with a long-term-plan to move all old
+users to the new API - touching a lot of code all over the kernel in the
+process - what if we repurposed the existing API in a backwards
+compatible way.
+
+I think the maximum GPIO number I've seen in use is 65535, and that was
+based on dynamic allocation. What if we did the following:
+
+typedef unsigned long gpio_handle_t;
+
+struct gpio_desc *gpio_handle_to_desc(gpio_handle_t gpio)
+{
+	if (gpio <= NR_GPIOS)
+		return &gpio_desc[gpio];
+	return (struct gpio_desc *)gpio;
+}
+
+int gpio_get_direction(gpio_handle_t gpio)
+{
+	struct gpio_desc *desc = gpio_handle_to_desc(gpio);
+	if (!desc)
+		return -EEXIST;
+	return gpiod_get_direction(desc);
+}
+
+And do the same for all the other hooks. That will make the gpio changes
+much lower impact across the kernel, allow legacy gpio users to keep
+doing what they are doing, and encourage driver authors to keep out of
+the gpio_desc internals.
+
+Thoughts?
+
+I'm probably going to apply this patch anyway because it only affects
+the gpiolib internals, I need to take one more look over it before I
+make a decision. I want to get as much of this as possible queued up for
+v3.9 to make future work easier.
+
+g.
