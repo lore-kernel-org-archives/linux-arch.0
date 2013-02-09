@@ -1,41 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f170.google.com ([74.125.82.170]:46362 "EHLO
-	mail-we0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752757Ab3BIKKK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Feb 2013 05:10:10 -0500
-Received: by mail-we0-f170.google.com with SMTP id z53so3864492wey.1
-        for <linux-arch@vger.kernel.org>; Sat, 09 Feb 2013 02:10:09 -0800 (PST)
+Received: from mail-we0-f180.google.com ([74.125.82.180]:60651 "EHLO
+	mail-we0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752502Ab3BIKKE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Feb 2013 05:10:04 -0500
+Received: by mail-we0-f180.google.com with SMTP id k14so3587612wer.39
+        for <linux-arch@vger.kernel.org>; Sat, 09 Feb 2013 02:10:02 -0800 (PST)
 From: Grant Likely <grant.likely@secretlab.ca>
-Subject: Re: [PATCH 5/9] gpiolib: use gpio_chips list in gpiochip_find_base
-In-Reply-To: <5111E093.4060600@nvidia.com>
-References: <1359822572-26009-1-git-send-email-acourbot@nvidia.com> <1359822572-26009-7-git-send-email-acourbot@nvidia.com> <CACRpkdYT4p8uez8DHTSsjKFb=KmWbtCXJQtyXLAJkCC7fKaErw@mail.gmail.com> <5111E093.4060600@nvidia.com>
-Date: Sat, 09 Feb 2013 09:47:53 +0000
-Message-ID: <20130209094753.555F03E2C66@localhost>
+Subject: Re: [PATCH 4/9] gpiolib: use gpio_chips list in sysfs ops
+In-Reply-To: <CACRpkdaC3pu3tBZrw0Az226XEt6+AzJ_NiiCaLwV9o6NUZ8MQw@mail.gmail.com>
+References: <1359822572-26009-1-git-send-email-acourbot@nvidia.com> <1359822572-26009-6-git-send-email-acourbot@nvidia.com> <CACRpkdaC3pu3tBZrw0Az226XEt6+AzJ_NiiCaLwV9o6NUZ8MQw@mail.gmail.com>
+Date: Sat, 09 Feb 2013 09:37:53 +0000
+Message-ID: <20130209093753.654C53E2C59@localhost>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex Courbot <acourbot@nvidia.com>, Linus Walleij <linus.walleij@linaro.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "gnurou@gmail.com" <gnurou@gmail.com>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Haojian Zhuang <haojian.zhuang@linaro.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20130209094753.qsG3FVyB0EA85H3Wi8CsObDevfy3Ac8ngjekF0kx7wQ@z>
+To: Linus Walleij <linus.walleij@linaro.org>, Alexandre Courbot <acourbot@nvidia.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, gnurou@gmail.com
+Message-ID: <20130209093753.IfnKHG3X77onfVUNmBQ_7C3capQSWS1dUWjrGGBspmc@z>
 
-On Wed, 6 Feb 2013 13:48:19 +0900, Alex Courbot <acourbot@nvidia.com> wrote:
-> On 02/06/2013 02:21 AM, Linus Walleij wrote:
-> > This looks like it is preserving this userspace-sensitive semantic
-> > so that dynamically added chips will still get the same assigned
-> > numbers.
+On Tue, 5 Feb 2013 18:15:54 +0100, Linus Walleij <linus.walleij@linaro.org> wrote:
+> On Sat, Feb 2, 2013 at 5:29 PM, Alexandre Courbot <acourbot@nvidia.com> wrote:
 > 
-> It does (it should, at least), the assigned ranges should be strictly 
-> identical to the previous version. While testing I also made sure all 
-> chips had the same GPIO range.
+> > This makes the code both simpler and faster compared to parsing the GPIO
+> > number space.
+> >
+> > Signed-off-by: Alexandre Courbot <acourbot@nvidia.com>
 > 
-> > But I want some guarantees, so state clearly in the commit
-> > that any dynamically assigned chip will get the same base
-> > address after this change as it got before it, and please take
-> > this opportunity to add a comment stating that this search
-> > method is vital for userspace ABIs, and must be preserved.
-> 
-> Done. I will take the blame if something goes wrong. :)
+> Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
 
-Applied, thanks
+Applied, thanks.
+
+However, this code is incorrect (it was incorrect before you touched it,
+so not your fault). Moving it to a list makes it a lot worse though
+because it introduces the possibility of dereferencing an invalid
+pointer. The hooks need to grab the spinlock before parsing the list.
+
+I've got a patch which I'll post. I'd appreciate it if you can test
+also.
+
+In actual fact, I'd like to replace the spinlock with a mutex, but that
+requires some auditing to make sure there aren't any users from an
+atomic context.
 
 g.
 
