@@ -1,33 +1,40 @@
-From: Grant Likely <grant.likely@secretlab.ca>
-Subject: Re: [PATCH 7/9] gpiolib: let gpio_chip reference its descriptors
-Date: Sat, 09 Feb 2013 13:28:03 +0000
-Message-ID: <20130209132803.AC8323E30EC@localhost>
-References: <1359822572-26009-1-git-send-email-acourbot@nvidia.com> <1359822572-26009-9-git-send-email-acourbot@nvidia.com> <CACRpkdZ3L15vbfBGC-SmmGKnt8N_GZGKP92su3aZWQZdPPVR2Q@mail.gmail.com>
+From: Alexandre Courbot <acourbot@nvidia.com>
+Subject: Re: [PATCH 4/9] gpiolib: use gpio_chips list in sysfs ops
+Date: Sat, 9 Feb 2013 22:53:22 +0900
+Message-ID: <CAAVeFuLW5pP=Kk7wh63eNAuycvEcXV1op6GkXyZwK85Gqz+DJQ@mail.gmail.com>
+References: <1359822572-26009-1-git-send-email-acourbot@nvidia.com>
+ <1359822572-26009-6-git-send-email-acourbot@nvidia.com> <CACRpkdaC3pu3tBZrw0Az226XEt6+AzJ_NiiCaLwV9o6NUZ8MQw@mail.gmail.com>
+ <20130209093753.654C53E2C59@localhost>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f42.google.com ([74.125.82.42]:54964 "EHLO
-	mail-wg0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753142Ab3BIN2I (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Feb 2013 08:28:08 -0500
-Received: by mail-wg0-f42.google.com with SMTP id 12so1334718wgh.1
-        for <linux-arch@vger.kernel.org>; Sat, 09 Feb 2013 05:28:07 -0800 (PST)
-In-Reply-To: <CACRpkdZ3L15vbfBGC-SmmGKnt8N_GZGKP92su3aZWQZdPPVR2Q@mail.gmail.com>
+Received: from mail-ia0-f174.google.com ([209.85.210.174]:55474 "EHLO
+	mail-ia0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756080Ab3BINxn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Feb 2013 08:53:43 -0500
+In-Reply-To: <20130209093753.654C53E2C59@localhost>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Walleij <linus.walleij@linaro.org>, Alexandre Courbot <acourbot@nvidia.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, gnurou@gmail.com
+To: Grant Likely <grant.likely@secretlab.ca>
+Cc: Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 
-On Tue, 5 Feb 2013 19:00:09 +0100, Linus Walleij <linus.walleij@linaro.org> wrote:
-> On Sat, Feb 2, 2013 at 5:29 PM, Alexandre Courbot <acourbot@nvidia.com> wrote:
-> 
-> > Add a pointer to the gpio_chip structure that references the array of
-> > GPIO descriptors belonging to the chip, and update gpiolib code to use
-> > this pointer instead of the global gpio_desc[] array. This is another
-> > step towards the removal of the gpio_desc[] global array.
-> >
-> > Signed-off-by: Alexandre Courbot <acourbot@nvidia.com>
-> 
-> Reviewed-by: Linus Walleij <linus.walleij@linaro.orh>
+On Sat, Feb 9, 2013 at 6:37 PM, Grant Likely <grant.likely@secretlab.ca> wrote:
+> However, this code is incorrect (it was incorrect before you touched it,
+> so not your fault). Moving it to a list makes it a lot worse though
+> because it introduces the possibility of dereferencing an invalid
+> pointer. The hooks need to grab the spinlock before parsing the list.
+>
+> I've got a patch which I'll post. I'd appreciate it if you can test
+> also.
+>
+> In actual fact, I'd like to replace the spinlock with a mutex, but that
+> requires some auditing to make sure there aren't any users from an
+> atomic context.
 
-Applied, thanks.
+I thought about doing that as well actually, but left it for later. It
+looks safe at first sight, but as you mention we cannot exclude a few
+users will break as a consequence of such a switch.
 
-g.
+In any case, I plan to give it a try once that big chunk is merged.
+
+Alex.
