@@ -1,50 +1,43 @@
 From: Grant Likely <grant.likely@secretlab.ca>
-Subject: Re: [PATCH 1/9] gpiolib: link all gpio_chips using a list
-Date: Sat, 09 Feb 2013 09:20:38 +0000
-Message-ID: <20130209092039.0C5D23E2548@localhost>
-References: <1359822572-26009-1-git-send-email-acourbot@nvidia.com> <1359822572-26009-3-git-send-email-acourbot@nvidia.com> <CACRpkdZDtJ3AN+Pgxy9nNgVx_YYTC=7AuDC48w7kDbDAeqdufw@mail.gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CACRpkdZDtJ3AN+Pgxy9nNgVx_YYTC=7AuDC48w7kDbDAeqdufw@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Subject: Re: [PATCH 2/9] gpiolib: use gpio_chips list in gpiolib_sysfs_init
+Date: Sat, 09 Feb 2013 09:22:32 +0000
+Message-ID: <20130209092232.64D0A3E2C01@localhost>
+References: <1359822572-26009-1-git-send-email-acourbot@nvidia.com>
+ <1359822572-26009-4-git-send-email-acourbot@nvidia.com>
+ <CACRpkdaz8h_1uKoH1q9gLmCxE0BMAxBakaq_eFfnfJr2V_Ct5w@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <CACRpkdaz8h_1uKoH1q9gLmCxE0BMAxBakaq_eFfnfJr2V_Ct5w@mail.gmail.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: linux-arm-kernel-bounces@lists.infradead.org
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: Linus Walleij <linus.walleij@linaro.org>, Alexandre Courbot <acourbot@nvidia.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, gnurou@gmail.com
+Cc: linux-arch@vger.kernel.org, gnurou@gmail.com, linux-arm-kernel@lists.infradead.org, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 5 Feb 2013 18:00:56 +0100, Linus Walleij <linus.walleij@linaro.org> wrote:
+On Tue, 5 Feb 2013 18:04:43 +0100, Linus Walleij <linus.walleij@linaro.org> wrote:
 > On Sat, Feb 2, 2013 at 5:29 PM, Alexandre Courbot <acourbot@nvidia.com> wrote:
 > 
-> > Add a list member to gpio_chip that allows all chips to be parsed
-> > quickly. The current method requires parsing the entire GPIO integer
-> > space, which is painfully slow. Using a list makes many chip operations
-> > that involve lookup or parsing faster, and also simplifies the code. It
-> > is also necessary to eventually get rid of the global gpio_desc[] array.
-> >
-> > The list of gpio_chips is always ordered by base GPIO number to ensure
-> > chips traversal is done in the right order.
+> > Use the small list of GPIO chips instead of parsing the whole GPIO
+> > number space.
 > >
 > > Signed-off-by: Alexandre Courbot <acourbot@nvidia.com>
 > 
-> OK!
-> 
-> > + * Return -EBUSY if the new chip overlaps with some other chip's integer
-> > + * space.
-> (...)
-> > +       /* are we stepping on the chip right before? */
-> > +       if (pos != &gpio_chips && pos->prev != &gpio_chips) {
-> > +               _chip = list_entry(pos->prev, struct gpio_chip, list);
-> > +               if (_chip->base + _chip->ngpio > chip->base) {
-> > +                       dev_err(chip->dev,
-> > +                              "GPIO integer space overlap, cannot add chip\n");
-> > +                       err = -EBUSY;
-> > +               }
-> > +       }
-> 
-> This robustness change on its own is a merit for merging the patch.
-> And keeping a list of gpiochips available is great for stuff like
-> debugfs.
-> 
 > Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
+> 
 
 Applied, thanks.
 
 g.
+
+-- 
+Grant Likely, B.Sc, P.Eng.
+Secret Lab Technologies, Ltd.
