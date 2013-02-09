@@ -1,75 +1,33 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH v5 14/45] rcu, CPU hotplug: Fix comment referring to
- stop_machine()
-Date: Fri, 8 Feb 2013 16:14:39 -0800
-Message-ID: <20130209001439.GQ2666@linux.vnet.ibm.com>
-References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
- <20130122073630.13822.99359.stgit@srivatsabhat.in.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <20130122073630.13822.99359.stgit@srivatsabhat.in.ibm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: linux-arm-kernel-bounces@lists.infradead.org
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Cc: linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, mingo@kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, rusty@rustcorp.com.au, rostedt@goodmis.org, rjw@sisk.pl, namhyung@kernel.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, oleg@redhat.com, sbw@mit.edu, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
+From: Grant Likely <grant.likely@secretlab.ca>
+Subject: Re: [PATCH 5/9] gpiolib: use gpio_chips list in gpiochip_find_base
+Date: Sat, 09 Feb 2013 09:47:53 +0000
+Message-ID: <20130209094753.555F03E2C66@localhost>
+References: <1359822572-26009-1-git-send-email-acourbot@nvidia.com> <1359822572-26009-7-git-send-email-acourbot@nvidia.com> <CACRpkdYT4p8uez8DHTSsjKFb=KmWbtCXJQtyXLAJkCC7fKaErw@mail.gmail.com> <5111E093.4060600@nvidia.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <5111E093.4060600@nvidia.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Alex Courbot <acourbot@nvidia.com>, Linus Walleij <linus.walleij@linaro.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "gnurou@gmail.com" <gnurou@gmail.com>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Haojian Zhuang <haojian.zhuang@linaro.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 22, 2013 at 01:06:34PM +0530, Srivatsa S. Bhat wrote:
-> Don't refer to stop_machine() in the CPU hotplug path, since we are going
-> to get rid of it. Also, move the comment referring to callback adoption
-> to the CPU_DEAD case, because that's where it happens now.
+On Wed, 6 Feb 2013 13:48:19 +0900, Alex Courbot <acourbot@nvidia.com> wrote:
+> On 02/06/2013 02:21 AM, Linus Walleij wrote:
+> > This looks like it is preserving this userspace-sensitive semantic
+> > so that dynamically added chips will still get the same assigned
+> > numbers.
 > 
-> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
-
-Ouch!  That comment is indeed obsolete and must die.
-
-I queued this to -rcu with your Signed-off-by.  However, I omitted
-the added comment, as it is imcomplete -- it is easy to look at
-rcu_cleanup_dead_cpu() to see what it does.
-
-							Thanx, Paul
-
-> ---
+> It does (it should, at least), the assigned ranges should be strictly 
+> identical to the previous version. While testing I also made sure all 
+> chips had the same GPIO range.
 > 
->  kernel/rcutree.c |    9 ++++-----
->  1 file changed, 4 insertions(+), 5 deletions(-)
+> > But I want some guarantees, so state clearly in the commit
+> > that any dynamically assigned chip will get the same base
+> > address after this change as it got before it, and please take
+> > this opportunity to add a comment stating that this search
+> > method is vital for userspace ABIs, and must be preserved.
 > 
-> diff --git a/kernel/rcutree.c b/kernel/rcutree.c
-> index e441b77..ac94474 100644
-> --- a/kernel/rcutree.c
-> +++ b/kernel/rcutree.c
-> @@ -2827,11 +2827,6 @@ static int __cpuinit rcu_cpu_notify(struct notifier_block *self,
->  		break;
->  	case CPU_DYING:
->  	case CPU_DYING_FROZEN:
-> -		/*
-> -		 * The whole machine is "stopped" except this CPU, so we can
-> -		 * touch any data without introducing corruption. We send the
-> -		 * dying CPU's callbacks to an arbitrarily chosen online CPU.
-> -		 */
->  		for_each_rcu_flavor(rsp)
->  			rcu_cleanup_dying_cpu(rsp);
->  		rcu_cleanup_after_idle(cpu);
-> @@ -2840,6 +2835,10 @@ static int __cpuinit rcu_cpu_notify(struct notifier_block *self,
->  	case CPU_DEAD_FROZEN:
->  	case CPU_UP_CANCELED:
->  	case CPU_UP_CANCELED_FROZEN:
-> +		/*
-> +		 * We send the dead CPU's callbacks to an arbitrarily chosen
-> +		 * online CPU.
-> +		 */
->  		for_each_rcu_flavor(rsp)
->  			rcu_cleanup_dead_cpu(cpu, rsp);
->  		break;
-> 
+> Done. I will take the blame if something goes wrong. :)
+
+Applied, thanks
+
+g.
