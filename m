@@ -1,52 +1,63 @@
-From: Grant Likely <grant.likely@secretlab.ca>
-Subject: Re: [PATCH 8/9] gpiolib: use gpio_chips list in gpio_to_desc
-Date: Sat, 9 Feb 2013 14:37:39 +0000
-Message-ID: <CACxGe6uLsznC=X7TUnJajqh3GZYE7EQwo2DwTQbWPGvKFLwtSQ@mail.gmail.com>
-References: <1359822572-26009-1-git-send-email-acourbot@nvidia.com>
- <1359822572-26009-10-git-send-email-acourbot@nvidia.com> <20130209095803.61C653E2CF2@localhost>
- <CAAVeFuK39k322MeQuzLDibGDSdidrhzqwstSWOPWwCy41Ehg-Q@mail.gmail.com>
+From: =?ISO-8859-1?Q?Andr=E9_Hentschel?= <nerv@dawncrow.de>
+Subject: Re: [PATCH] arm: Preserve TPIDRURW on context switch
+Date: Sat, 09 Feb 2013 17:44:21 +0100
+Message-ID: <51167CE5.6060303@dawncrow.de>
+References: <5112DC7E.4020108@dawncrow.de> <20130206225150.GL17833@n2100.arm.linux.org.uk> <5112E0C3.1080706@dawncrow.de> <20130208154809.GF3495@mudshark.cambridge.arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ia0-f171.google.com ([209.85.210.171]:37707 "EHLO
-	mail-ia0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757261Ab3BIOiB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Feb 2013 09:38:01 -0500
-Received: by mail-ia0-f171.google.com with SMTP id z13so5239607iaz.30
-        for <linux-arch@vger.kernel.org>; Sat, 09 Feb 2013 06:38:00 -0800 (PST)
-In-Reply-To: <CAAVeFuK39k322MeQuzLDibGDSdidrhzqwstSWOPWwCy41Ehg-Q@mail.gmail.com>
+Received: from moutng.kundenserver.de ([212.227.17.8]:56035 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1760762Ab3BIQoa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Feb 2013 11:44:30 -0500
+In-Reply-To: <20130208154809.GF3495@mudshark.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexandre Courbot <acourbot@nvidia.com>
-Cc: Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: Will Deacon <will.deacon@arm.com>
+Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Greg KH <gregkh@linuxfoundation.org>
 
-On Sat, Feb 9, 2013 at 2:21 PM, Alexandre Courbot <acourbot@nvidia.com> wrote:
-> On Sat, Feb 9, 2013 at 6:58 PM, Grant Likely <grant.likely@secretlab.ca> wrote:
->> I'm actually going to NAK this one. This is a hot path. Having a O(1)
->> lookup from gpio number to gpio desc is important. I know you want to be
->> rid of the gpio_desc table entirely, but in this case I think it is
->> warranted. However, you can change the gpio_desc table to be a table of
->> pointers to gpio_descs instead of a table of gpio_descs. That would save
->> a lot of memory since unused GPIOs wouldn't have gpio_descs associated
->> with them. It is also the mechanism used by the IRQ subsystem.
->
-> That would work - what I don't like is that it still ends being a
-> fixed-size static array that is not necessarily tailored to the
-> platform's needs. But I understand you don't want to punish the users
-> of the integer-based API, even though the penalty should really be
-> neglectable here.
->
-> Well, maybe I can try to come again with this once everybody uses GPIO
-> descriptors instead of integers. ;)
+Am 08.02.2013 16:48, schrieb Will Deacon:
+> On Wed, Feb 06, 2013 at 11:01:23PM +0000, Andr=E9 Hentschel wrote:
+>> Am 06.02.2013 23:51, schrieb Russell King - ARM Linux:
+>>> On Wed, Feb 06, 2013 at 11:43:10PM +0100, Andr=E9 Hentschel wrote:
+>>>> There are more and more applications coming to WinRT, Wine could s=
+upport them,
+>>>> but mostly they expect to have the thread environment block (TEB) =
+in TPIDRURW.
+>>>> This register must be preserved per thread instead of being cleare=
+d.
+>>>
+>>> I'd prefer this was done a little more sensitively to those CPUs wh=
+ere
+>>> loads/stores are expensive, namely:
+>>>
+>>>> +
+>>>> +	@ preserve TPIDRURW register state
+>>>> +	get_tls2	r3, r4, r5
+>>>> +	str	r3, [r1, #TI_TP2_VALUE]
+>>>> +	ldr	r3, [r2, #TI_TP2_VALUE]
+>>>> +	set_tls2	r3, r4, r5
+>>>
+>>> those two loads/stores get omitted from the thread switching if the=
+ CPU
+>>> doesn't support it.  Do you think that's something you could do?
+>>
+>> No, i'm not sure how to improve this. How does the process can conti=
+nue, can you or someone else fix that and add his Signed-off-by?
+>=20
+> How about something like the (completely untested) diff below?
+>=20
+> Andre: if this works for you, I'm happy to write a commit message etc=
+=2E
+>=20
+> Cheers,
+>=20
+> Will
+>=20
+> --->8
 
-Yes, when everyone uses descriptor handles the problem goes away.
-Until then we can just make the table fairly large. If it is pointers
-to descs instead of the descs themselves then the memory cost really
-isn't that significant.
+I'll try the next days and report back, thx.
+--=20
 
-We could also make the table itself grow dynamically, but I don't
-think there is evidence suggesting that is needed. Thomas tried to do
-the same thing with the irq desc table and found the resulting code
-was far more convoluted than he wanted to support.
-
-g.
+Best Regards, Andr=E9 Hentschel
