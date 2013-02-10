@@ -1,77 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp01.in.ibm.com ([122.248.162.1]:55803 "EHLO
-	e28smtp01.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750931Ab3BJTrL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 10 Feb 2013 14:47:11 -0500
-Received: from /spool/local
-	by e28smtp01.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Mon, 11 Feb 2013 01:14:42 +0530
-Message-ID: <5117F8BF.8010009@linux.vnet.ibm.com>
-Date: Mon, 11 Feb 2013 01:15:03 +0530
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Received: from mx1.redhat.com ([209.132.183.28]:32325 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756612Ab3BJTwW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 10 Feb 2013 14:52:22 -0500
+Date: Sun, 10 Feb 2013 20:50:42 +0100
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH v5 04/45] percpu_rwlock: Implement the core design of
+	Per-CPU Reader-Writer Locks
+Message-ID: <20130210195042.GA6236@redhat.com>
+References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com> <20130122073347.13822.85876.stgit@srivatsabhat.in.ibm.com> <20130208231017.GK2666@linux.vnet.ibm.com> <20130210180607.GA1375@redhat.com> <5117F403.1050300@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v5 44/45] CPU hotplug, stop_machine: Decouple CPU hotplug
- from stop_machine() in Kconfig
-References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com> <20130122074518.13822.86992.stgit@srivatsabhat.in.ibm.com> <20130209001554.GR2666@linux.vnet.ibm.com>
-In-Reply-To: <20130209001554.GR2666@linux.vnet.ibm.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <5117F403.1050300@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: paulmck@linux.vnet.ibm.com
-Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130210194503.yC0iCPhALybwRI3h1zgAXPD4fqzbf3Zj-Crrl-yAnsI@z>
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130210195042.l5Nidi3cgCCPyU14XmLyg7gHAf5BR2CfkaqjhJz3TDc@z>
 
-On 02/09/2013 05:45 AM, Paul E. McKenney wrote:
-> On Tue, Jan 22, 2013 at 01:15:22PM +0530, Srivatsa S. Bhat wrote:
->> ... and also cleanup a comment that refers to CPU hotplug being dependent on
->> stop_machine().
->>
->> Cc: David Howells <dhowells@redhat.com>
->> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
-> 
-> Reviewed-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-> 
-> (Hey, I thought I owed myself an easy one!)
-> 
+On 02/11, Srivatsa S. Bhat wrote:
+>
+> On 02/10/2013 11:36 PM, Oleg Nesterov wrote:
+> >>> +static void announce_writer_inactive(struct percpu_rwlock *pcpu_rwlock)
+> >>> +{
+> >>> +   unsigned int cpu;
+> >>> +
+> >>> +   drop_writer_signal(pcpu_rwlock, smp_processor_id());
+> >>
+> >> Why do we drop ourselves twice?  More to the point, why is it important to
+> >> drop ourselves first?
+> >
+> > And don't we need mb() _before_ we clear ->writer_signal ?
+> >
+>
+> Oh, right! Or, how about moving announce_writer_inactive() to _after_
+> write_unlock()?
 
-Haha ;-)
+Not sure this will help... but, either way it seems we have another
+problem...
 
-Regards,
-Srivatsa S. Bhat
+percpu_rwlock tries to be "generic". This means we should "ignore" its
+usage in hotplug, and _write_lock should not race with _write_unlock.
 
->> ---
->>
->>  include/linux/stop_machine.h |    2 +-
->>  init/Kconfig                 |    2 +-
->>  2 files changed, 2 insertions(+), 2 deletions(-)
->>
->> diff --git a/include/linux/stop_machine.h b/include/linux/stop_machine.h
->> index 3b5e910..ce2d3c4 100644
->> --- a/include/linux/stop_machine.h
->> +++ b/include/linux/stop_machine.h
->> @@ -120,7 +120,7 @@ int stop_machine(int (*fn)(void *), void *data, const struct cpumask *cpus);
->>   * @cpus: the cpus to run the @fn() on (NULL = any online cpu)
->>   *
->>   * Description: This is a special version of the above, which assumes cpus
->> - * won't come or go while it's being called.  Used by hotplug cpu.
->> + * won't come or go while it's being called.
->>   */
->>  int __stop_machine(int (*fn)(void *), void *data, const struct cpumask *cpus);
->>
->> diff --git a/init/Kconfig b/init/Kconfig
->> index be8b7f5..048a0c5 100644
->> --- a/init/Kconfig
->> +++ b/init/Kconfig
->> @@ -1711,7 +1711,7 @@ config INIT_ALL_POSSIBLE
->>  config STOP_MACHINE
->>  	bool
->>  	default y
->> -	depends on (SMP && MODULE_UNLOAD) || HOTPLUG_CPU
->> +	depends on (SMP && MODULE_UNLOAD)
->>  	help
->>  	  Need stop_machine() primitive.
->>
->>
+IOW. Suppose that _write_unlock clears ->writer_signal. We need to ensure
+that this can't race with another write which wants to set this flag.
+Perhaps it should be counter as well, and it should be protected by
+the same ->global_rwlock, but _write_lock() should drop it before
+sync_all_readers() and then take it again?
+
+> >>> +static inline void sync_reader(struct percpu_rwlock *pcpu_rwlock,
+> >>> +			       unsigned int cpu)
+> >>> +{
+> >>> +	smp_rmb(); /* Paired with smp_[w]mb() in percpu_read_[un]lock() */
+> >>
+> >> As I understand it, the purpose of this memory barrier is to ensure
+> >> that the stores in drop_writer_signal() happen before the reads from
+> >> ->reader_refcnt in reader_uses_percpu_refcnt(), thus preventing the
+> >> race between a new reader attempting to use the fastpath and this writer
+> >> acquiring the lock.  Unless I am confused, this must be smp_mb() rather
+> >> than smp_rmb().
+> >
+> > And note that before sync_reader() we call announce_writer_active() which
+> > already adds mb() before sync_all_readers/sync_reader, so this rmb() looks
+> > unneeded.
+> >
+>
+> My intention was to help the writer see the ->reader_refcnt drop to zero
+> ASAP; hence I used smp_wmb() at reader and smp_rmb() here at the writer.
+
+Hmm, interesting... Not sure, but can't really comment. However I can
+answer your next question:
+
+> Please correct me if my understanding of memory barriers is wrong here..
+
+Who? Me??? No we have paulmck for that ;)
+
+Oleg.
 
