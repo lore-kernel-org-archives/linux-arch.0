@@ -1,63 +1,56 @@
-From: =?ISO-8859-1?Q?Andr=E9_Hentschel?= <nerv@dawncrow.de>
-Subject: Re: [PATCH] arm: Preserve TPIDRURW on context switch
-Date: Sat, 09 Feb 2013 17:44:21 +0100
-Message-ID: <51167CE5.6060303@dawncrow.de>
-References: <5112DC7E.4020108@dawncrow.de> <20130206225150.GL17833@n2100.arm.linux.org.uk> <5112E0C3.1080706@dawncrow.de> <20130208154809.GF3495@mudshark.cambridge.arm.com>
+From: Tony Lindgren <tony@atomide.com>
+Subject: Re: [PATCH] arm: Include soc.h to fix compiling
+Date: Sat, 9 Feb 2013 19:11:39 -0800
+Message-ID: <20130210031139.GD4801@atomide.com>
+References: <5112DC75.8070806@dawncrow.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.8]:56035 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760762Ab3BIQoa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Feb 2013 11:44:30 -0500
-In-Reply-To: <20130208154809.GF3495@mudshark.cambridge.arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Greg KH <gregkh@linuxfoundation.org>
+Return-path: <linux-omap-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <5112DC75.8070806@dawncrow.de>
+Sender: linux-omap-owner@vger.kernel.org
+To: =?utf-8?B?QW5kcsOp?= Hentschel <nerv@dawncrow.de>
+Cc: linux@arm.linux.org.uk, linux-omap@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Am 08.02.2013 16:48, schrieb Will Deacon:
-> On Wed, Feb 06, 2013 at 11:01:23PM +0000, Andr=E9 Hentschel wrote:
->> Am 06.02.2013 23:51, schrieb Russell King - ARM Linux:
->>> On Wed, Feb 06, 2013 at 11:43:10PM +0100, Andr=E9 Hentschel wrote:
->>>> There are more and more applications coming to WinRT, Wine could s=
-upport them,
->>>> but mostly they expect to have the thread environment block (TEB) =
-in TPIDRURW.
->>>> This register must be preserved per thread instead of being cleare=
-d.
->>>
->>> I'd prefer this was done a little more sensitively to those CPUs wh=
-ere
->>> loads/stores are expensive, namely:
->>>
->>>> +
->>>> +	@ preserve TPIDRURW register state
->>>> +	get_tls2	r3, r4, r5
->>>> +	str	r3, [r1, #TI_TP2_VALUE]
->>>> +	ldr	r3, [r2, #TI_TP2_VALUE]
->>>> +	set_tls2	r3, r4, r5
->>>
->>> those two loads/stores get omitted from the thread switching if the=
- CPU
->>> doesn't support it.  Do you think that's something you could do?
->>
->> No, i'm not sure how to improve this. How does the process can conti=
-nue, can you or someone else fix that and add his Signed-off-by?
+* Andr=C3=A9 Hentschel <nerv@dawncrow.de> [130206 14:46]:
+> I needed this when compiling for pandaboard at commit: 0944c0a0346571=
+8909ba8e800a5230528aeabafb
 >=20
-> How about something like the (completely untested) diff below?
->=20
-> Andre: if this works for you, I'm happy to write a commit message etc=
-=2E
->=20
-> Cheers,
->=20
-> Will
->=20
-> --->8
+> Signed-off-by: Andr=C3=A9 Hentschel <nerv@dawncrow.de>From: =3D?UTF-8=
+?q?Andr=3DC3=3DA9=3D20Hentschel?=3D <nerv@dawncrow.de>
+> From: =3D?UTF-8?q?Andr=3DC3=3DA9=3D20Hentschel?=3D <nerv@dawncrow.de>
+> Date: Wed, 6 Feb 2013 23:16:20 +0100
+> Subject: [PATCH] arm: Include soc.h to fix compiling
 
-I'll try the next days and report back, thx.
---=20
+Thanks, applying into omap-for-v3.9/multiplatform-fixes
+with the comments fixed up a bit.
 
-Best Regards, Andr=E9 Hentschel
+Tony
+=20
+> ---
+>  arch/arm/mach-omap2/drm.c | 1 +
+>  1 file changed, 1 insertion(+)
+>=20
+> diff --git a/arch/arm/mach-omap2/drm.c b/arch/arm/mach-omap2/drm.c
+> index 4c7566c..b4faf96 100644
+> --- a/arch/arm/mach-omap2/drm.c
+> +++ b/arch/arm/mach-omap2/drm.c
+> @@ -27,6 +27,7 @@
+> =20
+>  #include "omap_device.h"
+>  #include "omap_hwmod.h"
+> +#include "soc.h"
+> =20
+>  #if defined(CONFIG_DRM_OMAP) || (CONFIG_DRM_OMAP_MODULE)
+> =20
+> --=20
+> 1.8.0
+>=20
+> Best Regards, Andr=C3=A9 Hentschel
+--
+To unsubscribe from this list: send the line "unsubscribe linux-omap" i=
+n
+the body of a message to majordomo@vger.kernel.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
