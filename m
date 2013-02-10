@@ -1,65 +1,52 @@
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: Re: [PATCH v5 04/45] percpu_rwlock: Implement the core design of
- Per-CPU Reader-Writer Locks
-Date: Mon, 11 Feb 2013 01:50:10 +0530
-Message-ID: <511800FA.1060007@linux.vnet.ibm.com>
-References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com> <20130122073347.13822.85876.stgit@srivatsabhat.in.ibm.com> <20130208231017.GK2666@linux.vnet.ibm.com> <5117F0C0.2030605@linux.vnet.ibm.com> <20130210201312.GB6236@redhat.com>
+From: Grazvydas Ignotas <notasas@gmail.com>
+Subject: Re: [PATCH 0/6] ARM: mm: HugeTLB + THP support.
+Date: Sun, 10 Feb 2013 22:45:59 +0200
+Message-ID: <CANOLnONh3rtqLXZ7LrEW9ML-Dzpr0=xmkeqnTVVzt3iq2sNyhg@mail.gmail.com>
+References: <1360335683-7755-1-git-send-email-steve.capper@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp03.au.ibm.com ([202.81.31.145]:60511 "EHLO
-	e23smtp03.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1761186Ab3BJUWd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 10 Feb 2013 15:22:33 -0500
-Received: from /spool/local
-	by e23smtp03.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Mon, 11 Feb 2013 06:16:47 +1000
-In-Reply-To: <20130210201312.GB6236@redhat.com>
+Received: from mail-ob0-f178.google.com ([209.85.214.178]:43667 "EHLO
+	mail-ob0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755681Ab3BJUqA convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 10 Feb 2013 15:46:00 -0500
+Received: by mail-ob0-f178.google.com with SMTP id wd20so5556563obb.9
+        for <linux-arch@vger.kernel.org>; Sun, 10 Feb 2013 12:45:59 -0800 (PST)
+In-Reply-To: <1360335683-7755-1-git-send-email-steve.capper@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, mingo@kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, paulmck@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, rusty@rustcorp.com.au, rostedt@goodmis.org, rjw@sisk.pl, namhyung@kernel.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, sbw@mit.edu, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
+To: Steve Capper <steve.capper@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, c.dall@virtualopensystems.com, akpm@linux-foundation.org, mhocko@suse.cz, kirill@shutemov.name, aarcange@redhat.com, cmetcalf@tilera.com, hoffman@marvell.com, bill4carson@gmail.com, will.deacon@arm.com, catalin.marinas@arm.com, maen@marvell.com, shadi@marvell.com, tawfik@marvell.com
 
-On 02/11/2013 01:43 AM, Oleg Nesterov wrote:
-> On 02/11, Srivatsa S. Bhat wrote:
->>
->> On 02/09/2013 04:40 AM, Paul E. McKenney wrote:
->>>> +static void announce_writer_inactive(struct percpu_rwlock *pcpu_rwlock)
->>>> +{
->>>> +	unsigned int cpu;
->>>> +
->>>> +	drop_writer_signal(pcpu_rwlock, smp_processor_id());
->>>
->>> Why do we drop ourselves twice?  More to the point, why is it important to
->>> drop ourselves first?
->>>
->>
->> I don't see where we are dropping ourselves twice. Note that we are no longer
->> in the cpu_online_mask, so the 'for' loop below won't include us. So we need
->> to manually drop ourselves. It doesn't matter whether we drop ourselves first
->> or later.
-> 
-> Yes, but this just reflects its usage in cpu-hotplug. cpu goes away under
-> _write_lock.
-> 
+On Fri, Feb 8, 2013 at 5:01 PM, Steve Capper <steve.capper@arm.com> wro=
+te:
+> Hello,
+> The following patches bring both HugeTLB support and Transparent
+> HugePage (THP) support to ARM.
+>
+> These are not intended for 3.9.
 
-Ah, right. I guess the code still has remnants from the older version in which
-this locking scheme wasn't generic and was tied to cpu-hotplug alone..
+I've tested this on 3.2 with this series and dependencies (LPAE and
+some others) backported because I currently only have full board
+support on 3.2. This was done on OMAP3/CortexA8 pandora board running
+PSX emulator that renders graphics to 16bpp 1024x512 framebuffer
+(sometimes 2048x1024 in "enhanced" mode). Here are some average frames
+per second counter readings without huge pages and with them:
 
-> Perhaps _write_lock/unlock shoud use for_each_possible_cpu() instead?
-> 
+(not showing games as they are irrelevant here)
+no hugetlb / hugetlb
+game1: ~52 / 57
+game2: ~67 / 77
+game3: 21 / 26
+game4: 22 / 25
 
-Hmm, that wouldn't be too bad.
+As it can be seen here huge pages are very useful for this kind of
+load, so I'm really looking forward for this to get merged.
 
-> Hmm... I think this makes sense anyway. Otherwise, in theory,
-> percpu_write_lock(random_non_hotplug_lock) can race with cpu_up?
-> 
+=46WIW:
+Tested-by: Grazvydas Ignotas <notasas@gmail.com>
 
-Yeah, makes sense. Will change it to for_each_possible_cpu().
-And I had previously fixed such races with lglocks with a complicated scheme (to
-avoid the costly for_each_possible loop), which was finally rewritten to use
-for_each_possible_cpu() for the sake of simplicity..
-Regards,
-Srivatsa S. Bhat
+
+--=20
+Gra=C5=BEvydas
