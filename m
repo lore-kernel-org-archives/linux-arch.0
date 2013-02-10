@@ -1,54 +1,118 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mho-03-ewr.mailhop.org ([204.13.248.66]:20495 "EHLO
-	mho-01-ewr.mailhop.org" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1756944Ab3BJDLp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Feb 2013 22:11:45 -0500
-Date: Sat, 9 Feb 2013 19:11:39 -0800
-From: Tony Lindgren <tony@atomide.com>
-Subject: Re: [PATCH] arm: Include soc.h to fix compiling
-Message-ID: <20130210031139.GD4801@atomide.com>
-References: <5112DC75.8070806@dawncrow.de>
+Received: from mx1.redhat.com ([209.132.183.28]:29911 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756314Ab3BJSJm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 10 Feb 2013 13:09:42 -0500
+Date: Sun, 10 Feb 2013 19:06:07 +0100
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH v5 04/45] percpu_rwlock: Implement the core design of
+	Per-CPU Reader-Writer Locks
+Message-ID: <20130210180607.GA1375@redhat.com>
+References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com> <20130122073347.13822.85876.stgit@srivatsabhat.in.ibm.com> <20130208231017.GK2666@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <5112DC75.8070806@dawncrow.de>
+In-Reply-To: <20130208231017.GK2666@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?utf-8?B?QW5kcsOp?= Hentschel <nerv@dawncrow.de>
-Cc: linux@arm.linux.org.uk, linux-omap@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130210031139.U-J7WTWPD1kSFYe0rkzzCEEODc2yMr0oatpD3z7W_IE@z>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130210180607.dD6hZiqkXdyZxT7jLRLEYxjlLMNzAxNu0VfBF03UntE@z>
 
-* André Hentschel <nerv@dawncrow.de> [130206 14:46]:
-> I needed this when compiling for pandaboard at commit: 0944c0a03465718909ba8e800a5230528aeabafb
-> 
-> Signed-off-by: André Hentschel <nerv@dawncrow.de>From: =?UTF-8?q?Andr=C3=A9=20Hentschel?= <nerv@dawncrow.de>
-> From: =?UTF-8?q?Andr=C3=A9=20Hentschel?= <nerv@dawncrow.de>
-> Date: Wed, 6 Feb 2013 23:16:20 +0100
-> Subject: [PATCH] arm: Include soc.h to fix compiling
+On 02/08, Paul E. McKenney wrote:
+>
+> On Tue, Jan 22, 2013 at 01:03:53PM +0530, Srivatsa S. Bhat wrote:
+> >
+> >  void percpu_read_unlock(struct percpu_rwlock *pcpu_rwlock)
+> >  {
+> > -	read_unlock(&pcpu_rwlock->global_rwlock);
+>
+> We need an smp_mb() here to keep the critical section ordered before the
+> this_cpu_dec() below.  Otherwise, if a writer shows up just after we
+> exit the fastpath, that writer is not guaranteed to see the effects of
+> our critical section.  Equivalently, the prior read-side critical section
+> just might see some of the writer's updates, which could be a bit of
+> a surprise to the reader.
 
-Thanks, applying into omap-for-v3.9/multiplatform-fixes
-with the comments fixed up a bit.
+Agreed, we should not assume that a "reader" doesn't write. And we should
+ensure that this "read" section actually completes before this_cpu_dec().
 
-Tony
- 
-> ---
->  arch/arm/mach-omap2/drm.c | 1 +
->  1 file changed, 1 insertion(+)
-> 
-> diff --git a/arch/arm/mach-omap2/drm.c b/arch/arm/mach-omap2/drm.c
-> index 4c7566c..b4faf96 100644
-> --- a/arch/arm/mach-omap2/drm.c
-> +++ b/arch/arm/mach-omap2/drm.c
-> @@ -27,6 +27,7 @@
->  
->  #include "omap_device.h"
->  #include "omap_hwmod.h"
-> +#include "soc.h"
->  
->  #if defined(CONFIG_DRM_OMAP) || (CONFIG_DRM_OMAP_MODULE)
->  
-> -- 
-> 1.8.0
-> 
-> Best Regards, André Hentschel
+> > +	/*
+> > +	 * We never allow heterogeneous nesting of readers. So it is trivial
+> > +	 * to find out the kind of reader we are, and undo the operation
+> > +	 * done by our corresponding percpu_read_lock().
+> > +	 */
+> > +	if (__this_cpu_read(*pcpu_rwlock->reader_refcnt)) {
+> > +		this_cpu_dec(*pcpu_rwlock->reader_refcnt);
+> > +		smp_wmb(); /* Paired with smp_rmb() in sync_reader() */
+>
+> Given an smp_mb() above, I don't understand the need for this smp_wmb().
+> Isn't the idea that if the writer sees ->reader_refcnt decremented to
+> zero, it also needs to see the effects of the corresponding reader's
+> critical section?
+
+I am equally confused ;)
+
+OTOH, we can probably aboid any barrier if reader_nested_percpu() == T.
+
+
+> > +static void announce_writer_inactive(struct percpu_rwlock *pcpu_rwlock)
+> > +{
+> > +   unsigned int cpu;
+> > +
+> > +   drop_writer_signal(pcpu_rwlock, smp_processor_id());
+>
+> Why do we drop ourselves twice?  More to the point, why is it important to
+> drop ourselves first?
+
+And don't we need mb() _before_ we clear ->writer_signal ?
+
+> > +static inline void sync_reader(struct percpu_rwlock *pcpu_rwlock,
+> > +			       unsigned int cpu)
+> > +{
+> > +	smp_rmb(); /* Paired with smp_[w]mb() in percpu_read_[un]lock() */
+>
+> As I understand it, the purpose of this memory barrier is to ensure
+> that the stores in drop_writer_signal() happen before the reads from
+> ->reader_refcnt in reader_uses_percpu_refcnt(), thus preventing the
+> race between a new reader attempting to use the fastpath and this writer
+> acquiring the lock.  Unless I am confused, this must be smp_mb() rather
+> than smp_rmb().
+
+And note that before sync_reader() we call announce_writer_active() which
+already adds mb() before sync_all_readers/sync_reader, so this rmb() looks
+unneeded.
+
+But, at the same time, could you confirm that we do not need another mb()
+after sync_all_readers() in percpu_write_lock() ? I mean, without mb(),
+can't this reader_uses_percpu_refcnt() LOAD leak into the critical section
+protected by ->global_rwlock? Then this LOAD can be re-ordered with other
+memory operations done by the writer.
+
+
+
+Srivatsa, I think that the code would be more understandable if you kill
+the helpers like sync_reader/raise_writer_signal. Perhaps even all "write"
+helpers, I am not sure. At least, it seems to me that all barriers should
+be moved to percpu_write_lock/unlock. But I won't insist of course, up to
+you.
+
+And cosmetic nit... How about
+
+	struct xxx {
+		unsigned long	reader_refcnt;
+		bool		writer_signal;
+	}
+
+	struct percpu_rwlock {
+		struct xxx __percpu	*xxx;
+		rwlock_t		global_rwlock;
+	};
+
+?
+
+This saves one alloc_percpu() and ensures that reader_refcnt/writer_signal
+are always in the same cache-line.
+
+Oleg.
+
