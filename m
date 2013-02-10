@@ -1,39 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f170.google.com ([209.85.223.170]:48159 "EHLO
-	mail-ie0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757951Ab3BIOWR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Feb 2013 09:22:17 -0500
+Received: from mho-03-ewr.mailhop.org ([204.13.248.66]:20495 "EHLO
+	mho-01-ewr.mailhop.org" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1756944Ab3BJDLp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Feb 2013 22:11:45 -0500
+Date: Sat, 9 Feb 2013 19:11:39 -0800
+From: Tony Lindgren <tony@atomide.com>
+Subject: Re: [PATCH] arm: Include soc.h to fix compiling
+Message-ID: <20130210031139.GD4801@atomide.com>
+References: <5112DC75.8070806@dawncrow.de>
 MIME-Version: 1.0
-In-Reply-To: <20130209095803.61C653E2CF2@localhost>
-References: <1359822572-26009-1-git-send-email-acourbot@nvidia.com>
- <1359822572-26009-10-git-send-email-acourbot@nvidia.com> <20130209095803.61C653E2CF2@localhost>
-From: Alexandre Courbot <acourbot@nvidia.com>
-Date: Sat, 9 Feb 2013 23:21:56 +0900
-Message-ID: <CAAVeFuK39k322MeQuzLDibGDSdidrhzqwstSWOPWwCy41Ehg-Q@mail.gmail.com>
-Subject: Re: [PATCH 8/9] gpiolib: use gpio_chips list in gpio_to_desc
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <5112DC75.8070806@dawncrow.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Grant Likely <grant.likely@secretlab.ca>
-Cc: Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20130209142156.VlXDIxsb-mIN7DnIsYLmbP3v8sXeqOZGa5LvLMQM694@z>
+To: =?utf-8?B?QW5kcsOp?= Hentschel <nerv@dawncrow.de>
+Cc: linux@arm.linux.org.uk, linux-omap@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130210031139.U-J7WTWPD1kSFYe0rkzzCEEODc2yMr0oatpD3z7W_IE@z>
 
-On Sat, Feb 9, 2013 at 6:58 PM, Grant Likely <grant.likely@secretlab.ca> wrote:
-> I'm actually going to NAK this one. This is a hot path. Having a O(1)
-> lookup from gpio number to gpio desc is important. I know you want to be
-> rid of the gpio_desc table entirely, but in this case I think it is
-> warranted. However, you can change the gpio_desc table to be a table of
-> pointers to gpio_descs instead of a table of gpio_descs. That would save
-> a lot of memory since unused GPIOs wouldn't have gpio_descs associated
-> with them. It is also the mechanism used by the IRQ subsystem.
+* André Hentschel <nerv@dawncrow.de> [130206 14:46]:
+> I needed this when compiling for pandaboard at commit: 0944c0a03465718909ba8e800a5230528aeabafb
+> 
+> Signed-off-by: André Hentschel <nerv@dawncrow.de>From: =?UTF-8?q?Andr=C3=A9=20Hentschel?= <nerv@dawncrow.de>
+> From: =?UTF-8?q?Andr=C3=A9=20Hentschel?= <nerv@dawncrow.de>
+> Date: Wed, 6 Feb 2013 23:16:20 +0100
+> Subject: [PATCH] arm: Include soc.h to fix compiling
 
-That would work - what I don't like is that it still ends being a
-fixed-size static array that is not necessarily tailored to the
-platform's needs. But I understand you don't want to punish the users
-of the integer-based API, even though the penalty should really be
-neglectable here.
+Thanks, applying into omap-for-v3.9/multiplatform-fixes
+with the comments fixed up a bit.
 
-Well, maybe I can try to come again with this once everybody uses GPIO
-descriptors instead of integers. ;)
-
-Alex.
+Tony
+ 
+> ---
+>  arch/arm/mach-omap2/drm.c | 1 +
+>  1 file changed, 1 insertion(+)
+> 
+> diff --git a/arch/arm/mach-omap2/drm.c b/arch/arm/mach-omap2/drm.c
+> index 4c7566c..b4faf96 100644
+> --- a/arch/arm/mach-omap2/drm.c
+> +++ b/arch/arm/mach-omap2/drm.c
+> @@ -27,6 +27,7 @@
+>  
+>  #include "omap_device.h"
+>  #include "omap_hwmod.h"
+> +#include "soc.h"
+>  
+>  #if defined(CONFIG_DRM_OMAP) || (CONFIG_DRM_OMAP_MODULE)
+>  
+> -- 
+> 1.8.0
+> 
+> Best Regards, André Hentschel
