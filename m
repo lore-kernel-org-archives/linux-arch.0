@@ -1,46 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f172.google.com ([209.85.217.172]:38564 "EHLO
-	mail-lb0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755410Ab3BKKaw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Feb 2013 05:30:52 -0500
+Received: from multi.imgtec.com ([194.200.65.239]:38837 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755881Ab3BKL5s (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 11 Feb 2013 06:57:48 -0500
+Message-ID: <5118DCA8.1030905@imgtec.com>
+Date: Mon, 11 Feb 2013 11:57:28 +0000
+From: James Hogan <james.hogan@imgtec.com>
 MIME-Version: 1.0
-In-Reply-To: <5118C458.2070205@synopsys.com>
-References: <1359024639-21915-1-git-send-email-vgupta@synopsys.com>
-	<1359024639-21915-9-git-send-email-vgupta@synopsys.com>
-	<51189D2F.4030000@synopsys.com>
-	<CACM3HyGNZxfOXpw01POBVT-YcVKQsnPkO6Kgg+epfZS-x-BRCg@mail.gmail.com>
-	<5118C458.2070205@synopsys.com>
-Date: Mon, 11 Feb 2013 11:30:50 +0100
-Message-ID: <CACM3HyF2GHz5PKuurYG2Hg+UEKeto+zme5gcv2fxQDC=tpZYRw@mail.gmail.com>
-Subject: Re: pt_regs leak into userspace (was Re: [PATCH v3 20/71] ARC: Signal handling)
-From: Jonas Bonn <jonas.bonn@gmail.com>
-Content-Type: text/plain; charset=UTF-8
+Subject: Re: [PATCH] Centralise CONFIG_ARCH_NO_VIRT_TO_BUS
+References: <ADE657CA350FB648AAC2C43247A983F00206B25884B1@AUSP01VMBX24.collaborationhost.net> <CAErSpo6WG2R_8sa=rOmAOci-3iFpDs2NFzNkZYxDnD2oTiMQJg@mail.gmail.com> <20121113082615.2f482eb8835daf46e1f27947@canb.auug.org.au>
+In-Reply-To: <20121113082615.2f482eb8835daf46e1f27947@canb.auug.org.au>
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature";
+	boundary="------------enig37A461183FDA2E5D4D4AAECC"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20130211103050.KmJxj-aVcILMMq3ogxKzvB3_ZGr1akUTdx068-dYlHo@z>
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Bjorn Helgaas <bhelgaas@google.com>, H Hartley Sweeten <hartleys@visionengravers.com>, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <20130211115728.7CWejCHNve_a_TwxAe4JjcOGORqDtM5hiXzS9rZIRhE@z>
 
-On 11 February 2013 11:13, Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
-> On Monday 11 February 2013 03:06 PM, Jonas Bonn wrote:
->> On 11 February 2013 08:26, Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
->>
->>> The only downside of this patch is that userspace signal stack grows in size,
->>> since signal frame only cares about scratch regs (pt_regs), but has to accommodate
->>> unused placeholder for callee regs too by virtue of using user_regs_struct.
->> Is this really true?  Don't setcontext and friends require that _all_
->> the registers be part of sigcontext?
->
-> But for an ABI - callee saved regs will anyhow be saved/restored even in
-> setcontext case ! So collecting it for that purpose seems useless, or am I missing
-> something here.
+--------------enig37A461183FDA2E5D4D4AAECC
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: quoted-printable
 
-Yes, I agree with you on the ABI bit... but set/get/swapcontext are
-special in that they use rt_sigreturn to "trick" the kernel into
-swapping out _all_ registers; it's a light-weight (userspace) context
-switch.
+Hi Stephen,
 
-(I really don't know this area very well, though, so I'm hoping
-somebody more knowledgable jumps in here... Al?)
+On 12/11/12 21:26, Stephen Rothwell wrote:
+> Make if easier for more architectures to select it and thus disable
+> drivers that use virt_to_bus().
+>=20
+> Signed-off-by: Stephen Rothwell <sfr@canb.auug.org.au>
 
-/Jonas
+I was just wondering what the status of this patch is? It was in -next
+for a while but seems to have disappeared.
+
+Cheers
+James
+
+
+--------------enig37A461183FDA2E5D4D4AAECC
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.13 (GNU/Linux)
+
+iQIcBAEBAgAGBQJRGNytAAoJEKHZs+irPybf7bsP/RSiVOQdalVSVaHYvN15XDWz
+p+iSIRyYRLbaYTJ3Sln+av82+aVnjMi75l8UBsWLHGKkLSMB4SqnOTVmASJHVnFp
+w8ClS7+/UmlQySB8o5YxQ5IFPO1MaRBYOTPBpc+Y/y6Ub045wzW62wvkjD7j1Rl3
+uVTldd26lD+hysgWEjQOYIl3ZaAeMmSTx+zML/1XxHRFODCVCId5GyGaP8mulRIj
+aeemZHXqZFpzGAJbun52dOy0xI8iY+fj9jzwyoFKq2bMyRHt2CV7b2DsRmrYLT+G
+pTJQpqn609pFYPPFsHD8pCKBZOAzz2KUJjJmf0yAFViAdzaoeSvKQ/405J6ja+0J
+7BJguKzKTJI5MpPe+w7Z6XeNMz4nmhz6JkezwMsEWs8mm2f/ZtvJQQNeJGJ1MD7e
+JUolNN1DjDHNck8i8ZfoA5AiCpdqNqu8BWLc/EW3fE4+dvbkW9N7nG3pu8wQsGBk
+ZS46URl1F8tHHUNVg87pDoYKJU91FTQzq+8TX658R1Voqg2xMRjjBaZkpQSiC16k
+Ewx+uSTWe5Uf7PcjcRdqbLxpvKgoJyD5BSsat2doSk12s/Gv3zeF5Z3Va5Ldn2q2
+r0d4b6qGvL8q6LAhxeVUsVynPBv9UC3UMP2jMNGAecSXrqjwA3qgOOdkwLulIfVM
+r5wi1jOQ1/vVvboMQJ6z
+=wprH
+-----END PGP SIGNATURE-----
+
+--------------enig37A461183FDA2E5D4D4AAECC--
+
