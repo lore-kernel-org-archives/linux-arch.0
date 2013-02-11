@@ -1,35 +1,46 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: pt_regs leak into userspace (was Re: [PATCH v3 20/71] ARC: Signal
- handling)
-Date: Mon, 11 Feb 2013 18:38:58 +0530
-Message-ID: <5118ED6A.3050809@synopsys.com>
-References: <1359024639-21915-1-git-send-email-vgupta@synopsys.com> <1359024639-21915-9-git-send-email-vgupta@synopsys.com> <51189D2F.4030000@synopsys.com> <CACM3HyGNZxfOXpw01POBVT-YcVKQsnPkO6Kgg+epfZS-x-BRCg@mail.gmail.com> <5118C458.2070205@synopsys.com> <5118C7B6.6040807@imgtec.com> <CACM3HyG+4Pzx02iL9atxG+FOLiCcTeXR+ivzRO78bqDHNp5rGQ@mail.gmail.com> <5118D478.3010205@synopsys.com> <CACM3HyG7B=iMb4cHYP2cb8np55t8WefWTh4x3SYkGK4Lc=RXbA@mail.gmail.com> <5118E60E.5060606@synopsys.com> <CACM3HyF8VhGo9zaAFiX8z97nz-fLeyCSZOCwAN=py5NfxhCfGw@mail.gmail.com>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: pt_regs leak into userspace (was Re: [PATCH v3 20/71] ARC:
+ Signal handling)
+Date: Mon, 11 Feb 2013 14:07:05 +0000
+Message-ID: <20130211140704.GI4503@ZenIV.linux.org.uk>
+References: <1359024639-21915-1-git-send-email-vgupta@synopsys.com>
+ <1359024639-21915-9-git-send-email-vgupta@synopsys.com>
+ <51189D2F.4030000@synopsys.com>
+ <CACM3HyGNZxfOXpw01POBVT-YcVKQsnPkO6Kgg+epfZS-x-BRCg@mail.gmail.com>
+ <5118C458.2070205@synopsys.com>
+ <CACM3HyF2GHz5PKuurYG2Hg+UEKeto+zme5gcv2fxQDC=tpZYRw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us02smtp1.synopsys.com ([198.182.60.75]:50833 "EHLO
-	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757146Ab3BKNJN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Feb 2013 08:09:13 -0500
-In-Reply-To: <CACM3HyF8VhGo9zaAFiX8z97nz-fLeyCSZOCwAN=py5NfxhCfGw@mail.gmail.com>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:44081 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756466Ab3BKOHH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Feb 2013 09:07:07 -0500
+Content-Disposition: inline
+In-Reply-To: <CACM3HyF2GHz5PKuurYG2Hg+UEKeto+zme5gcv2fxQDC=tpZYRw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jonas Bonn <jonas.bonn@gmail.com>
-Cc: James Hogan <james.hogan@imgtec.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>
+Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-On Monday 11 February 2013 06:32 PM, Jonas Bonn wrote:
-> On 11 February 2013 13:37, Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
->> Anyhow going back to my orig patch - if we park the
->> callee-regs-in-sigcontext-or-not, other bits look OK ?
->>
-> Aside from the callee-regs question (which I hope somebody more
-> knowledgeable can chime in on):  Acked-by: Jonas Bonn
-> <jonas@southpole.se>
+On Mon, Feb 11, 2013 at 11:30:50AM +0100, Jonas Bonn wrote:
 
-Thx. As I mentioned, this patch will needed to be chopped and squashed into
-several existing commits.
-I presume I'll add the Ack to "ARC: Fundamental ARCH data-types/defines" which
-contains the initial def of ptrace.h
+> >> Is this really true?  Don't setcontext and friends require that _all_
+> >> the registers be part of sigcontext?
+> >
+> > But for an ABI - callee saved regs will anyhow be saved/restored even in
+> > setcontext case ! So collecting it for that purpose seems useless, or am I missing
+> > something here.
+> 
+> Yes, I agree with you on the ABI bit... but set/get/swapcontext are
+> special in that they use rt_sigreturn to "trick" the kernel into
+> swapping out _all_ registers; it's a light-weight (userspace) context
+> switch.
+> 
+> (I really don't know this area very well, though, so I'm hoping
+> somebody more knowledgable jumps in here... Al?)
 
--Vineet
+I'd suggest asking itanic folks; they do *not* put callee-saved stuff into
+sigcontext.  AFAICS, they don't have setcontext() implemented as a syscall
+at all - it's done as sigprocmask() + doing to callee-saved registers what
+longjmp() does.
