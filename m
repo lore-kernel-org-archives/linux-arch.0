@@ -1,46 +1,56 @@
-From: Stephen Warren <swarren@wwwdotorg.org>
-Subject: Re: [PATCH 6/9] gpiolib: use descriptors internally
-Date: Mon, 11 Feb 2013 10:39:17 -0700
-Message-ID: <51192CC5.9060300@wwwdotorg.org>
-References: <1359822572-26009-1-git-send-email-acourbot@nvidia.com> <1359822572-26009-8-git-send-email-acourbot@nvidia.com> <CACRpkdbib-+pvMiLQN=f6d-1dhK2OK3znJeGoL7rDxDQYuJRuA@mail.gmail.com> <CAAVeFu+phNtzzj7rw96g9iH8sj9gGqd5SfAqtkDHvu3PeL_oQA@mail.gmail.com> <20130209091729.978C73E1A18@localhost> <CACRpkdagLssOG3FW8Qr1zqFabGMgdupADwg1=c0eQ7e76_XM5A@mail.gmail.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH v5 00/45] CPU hotplug: stop_machine()-free CPU hotplug
+Date: Mon, 11 Feb 2013 11:08:52 -0800
+Message-ID: <20130211190852.GA5695@linux.vnet.ibm.com>
+References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
+ <510FBC01.2030405@linux.vnet.ibm.com>
+ <87haloiwv0.fsf@rustcorp.com.au>
+ <51134596.4080106@linux.vnet.ibm.com>
+ <20130208154113.GV17833@n2100.arm.linux.org.uk>
+ <51152B81.2050501@linux.vnet.ibm.com>
+ <51153F72.1060005@linux.vnet.ibm.com>
+ <CAKfTPtCe+cD7LLkb+D6pqG1SwG2V08ws=4XO3ttHEHV2qgmqPg@mail.gmail.com>
+ <5118E2CD.90401@linux.vnet.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from avon.wwwdotorg.org ([70.85.31.133]:58891 "EHLO
-	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757846Ab3BKRjV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Feb 2013 12:39:21 -0500
-In-Reply-To: <CACRpkdagLssOG3FW8Qr1zqFabGMgdupADwg1=c0eQ7e76_XM5A@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Walleij <linus.walleij@linaro.org>
-Cc: Grant Likely <grant.likely@secretlab.ca>, Alexandre Courbot <acourbot@nvidia.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Alexandre Courbot <gnurou@gmail.com>, Mark Brown <broonie@opensource.wolfsonmicro.com>, Mike Turquette <mturquette@linaro.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-doc-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <5118E2CD.90401@linux.vnet.ibm.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: Vincent Guittot <vincent.guittot@linaro.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, walken@google.com, mingo@kernel.org, linux-arch@vger.kernel.org, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, Rusty Russell <rusty@rustcorp.com.au>, rostedt@goodmis.org, rjw@sisk.pl, namhyung@kernel.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, oleg@redhat.com, sbw@mit.edu, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
+List-Id: linux-arch.vger.kernel.org
 
-On 02/11/2013 07:09 AM, Linus Walleij wrote:
-> On Sat, Feb 9, 2013 at 10:17 AM, Grant Likely <grant.likely@secretlab.ca> wrote:
-> 
->> The ERR_PTR()/IS_ERR() is a horrible pattern for code
->> readability because it breaks the expectations that programmers have for
->> what is and is not a bad pointer. There are decades of history where the
->> test for a bad pointer is 'if (!ptr)'. Not only does ERR_PTR make make
->> that test not work, but the compiler won't tell you when you get it
->> wrong.
->>
->> There are places where ERR_PTR makes sense. Particularly when
->> communicating with userspace where error codes have very specific
->> meanings, but I don't want it in the GPIO subsystem.
-> 
-> OK I disagree but you get to decide.
-> 
-> However if you take this all the way to the descriptor API
-> it will make the consumer (driver) API for GPIO descriptors deviate
-> from what is today used for clocks, regulators and pins.
-> 
-> With all the resulting confusion for users.
-> I've seen worse subsystem deviations though.
+On Mon, Feb 11, 2013 at 05:53:41PM +0530, Srivatsa S. Bhat wrote:
+> On 02/11/2013 05:28 PM, Vincent Guittot wrote:
+> > On 8 February 2013 19:09, Srivatsa S. Bhat
+> > <srivatsa.bhat@linux.vnet.ibm.com> wrote:
 
-Sorry I haven't looked at the specific APIs this discussion refers to,
-but clients of the GPIO descriptor API are going to need to distinguish
-"fail" from "deferred probe", so at least some initial get-like API will
-need to pass back some error detail...
+[ . . . ]
+
+> >> Adding Vincent to CC, who had previously evaluated the performance and
+> >> latency implications of CPU hotplug on ARM platforms, IIRC.
+> >>
+> >
+> > Hi Srivatsa,
+> > 
+> > I can try to run some of our stress tests on your patches.
+> 
+> Great!
+> 
+> > Have you
+> > got a git tree that i can pull ?
+> > 
+> 
+> Unfortunately, no, none at the moment..  :-(
+
+You do need to create an externally visible git tree.  In the meantime,
+I have added your series at rcu/bhat.2013.01.21a on -rcu:
+
+git://git.kernel.org/pub/scm/linux/kernel/git/paulmck/linux-rcu.git
+
+This should appear soon on a kernel.org mirror near you.  ;-)
+
+							Thanx, Paul
+
