@@ -1,63 +1,71 @@
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: Re: [PATCH v5 00/45] CPU hotplug: stop_machine()-free CPU hotplug
-Date: Tue, 12 Feb 2013 09:28:53 +0530
-Message-ID: <5119BDFD.1000909@linux.vnet.ibm.com>
-References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com> <510FBC01.2030405@linux.vnet.ibm.com> <87haloiwv0.fsf@rustcorp.com.au> <51134596.4080106@linux.vnet.ibm.com> <20130208154113.GV17833@n2100.arm.linux.org.uk> <51152B81.2050501@linux.vnet.ibm.com> <51153F72.1060005@linux.vnet.ibm.com> <CAKfTPtCe+cD7LLkb+D6pqG1SwG2V08ws=4XO3ttHEHV2qgmqPg@mail.gmail.com> <5118E2CD.90401@linux.vnet.ibm.com> <20130211190852.GA5695@linux.vnet.ibm.com>
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [PATCH] Centralise CONFIG_ARCH_NO_VIRT_TO_BUS
+Date: Tue, 12 Feb 2013 15:40:10 +1100
+Message-ID: <20130212154010.3f8b88da4756c7cf04e28a04@canb.auug.org.au>
+References: <ADE657CA350FB648AAC2C43247A983F00206B25884B1@AUSP01VMBX24.collaborationhost.net>
+	<CAErSpo6WG2R_8sa=rOmAOci-3iFpDs2NFzNkZYxDnD2oTiMQJg@mail.gmail.com>
+	<20121113082615.2f482eb8835daf46e1f27947@canb.auug.org.au>
+	<5118DCA8.1030905@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA256";
+ boundary="Signature=_Tue__12_Feb_2013_15_40_10_+1100_/tP3R2cmcOMVcqGq"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp09.au.ibm.com ([202.81.31.142]:37357 "EHLO
-	e23smtp09.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753192Ab3BLEBG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Feb 2013 23:01:06 -0500
-Received: from /spool/local
-	by e23smtp09.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 12 Feb 2013 13:54:11 +1000
-In-Reply-To: <20130211190852.GA5695@linux.vnet.ibm.com>
+Received: from haggis.pcug.org.au ([203.10.76.10]:59788 "EHLO
+	members.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755051Ab3BLEkW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Feb 2013 23:40:22 -0500
+In-Reply-To: <5118DCA8.1030905@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: paulmck@linux.vnet.ibm.com
-Cc: Vincent Guittot <vincent.guittot@linaro.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, walken@google.com, mingo@kernel.org, linux-arch@vger.kernel.org, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, Rusty Russell <rusty@rustcorp.com.au>, rostedt@goodmis.org, rjw@sisk.pl, namhyung@kernel.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, oleg@redhat.com, sbw@mit.edu, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
+To: James Hogan <james.hogan@imgtec.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Bjorn Helgaas <bhelgaas@google.com>, H Hartley Sweeten <hartleys@visionengravers.com>, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 
-On 02/12/2013 12:38 AM, Paul E. McKenney wrote:
-> On Mon, Feb 11, 2013 at 05:53:41PM +0530, Srivatsa S. Bhat wrote:
->> On 02/11/2013 05:28 PM, Vincent Guittot wrote:
->>> On 8 February 2013 19:09, Srivatsa S. Bhat
->>> <srivatsa.bhat@linux.vnet.ibm.com> wrote:
-> 
-> [ . . . ]
-> 
->>>> Adding Vincent to CC, who had previously evaluated the performance and
->>>> latency implications of CPU hotplug on ARM platforms, IIRC.
->>>>
->>>
->>> Hi Srivatsa,
->>>
->>> I can try to run some of our stress tests on your patches.
->>
->> Great!
->>
->>> Have you
->>> got a git tree that i can pull ?
->>>
->>
->> Unfortunately, no, none at the moment..  :-(
-> 
-> You do need to create an externally visible git tree.
+--Signature=_Tue__12_Feb_2013_15_40_10_+1100_/tP3R2cmcOMVcqGq
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Ok, I'll do that soon.
+Hi James,
 
->  In the meantime,
-> I have added your series at rcu/bhat.2013.01.21a on -rcu:
-> 
-> git://git.kernel.org/pub/scm/linux/kernel/git/paulmck/linux-rcu.git
-> 
-> This should appear soon on a kernel.org mirror near you.  ;-)
+On Mon, 11 Feb 2013 11:57:28 +0000 James Hogan <james.hogan@imgtec.com> wro=
+te:
 >
+> On 12/11/12 21:26, Stephen Rothwell wrote:
+> > Make if easier for more architectures to select it and thus disable
+> > drivers that use virt_to_bus().
+> >=20
+> > Signed-off-by: Stephen Rothwell <sfr@canb.auug.org.au>
+>=20
+> I was just wondering what the status of this patch is? It was in -next
+> for a while but seems to have disappeared.
 
-Thank you very much, Paul! :-)
+Yeah, I think Andrew dropped it in favour of a more complete solution
+which I haven't written yet.   Let me dig out the emails and have a shot.
 
-Regards,
-Srivatsa S. Bhat
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+
+--Signature=_Tue__12_Feb_2013_15_40_10_+1100_/tP3R2cmcOMVcqGq
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.12 (GNU/Linux)
+
+iQIcBAEBCAAGBQJRGceqAAoJEECxmPOUX5FEFmMP/0Ij7tkBNzHsx4SV440XKPZA
+D1dk7h3RiqyQnN6PR3EXOyRq8bqAOZvo45qor94ToZjleK8c2/qJP1cPlhJ4FQg1
+d8tQ/0ZElEnpwfAXTL20FZL38vz3OivQWW4Bg/NR8eIMK1HXkQWSjTeAQEYXY+4a
+ImIHecJd5bigDctCIuBnSgur9Ojso/sUHnk6vlin5pW5PjYeEucGoYPjjP84MY+6
+L8KbTarTQdLwS3U2mNmpnuJYjLcykJqrmjj+RP6O6qUmcSE5/Gc8KnrPWIMEQ7Yq
+QGijkjTJcoAoDTZ/lv0hY5UDFoqFFvjBnLmmcbpdzK0WfB46jP0WRz7pfatvxfP1
+/QwGED65JR5nuwMmD2KVIJwF/X4jv8f+qi/yMFk3xvFESLx4MJwVESU5N/VjH091
+Fo3xjohM+YzujERv7CGLTT5ncgQHaxi/7KpynIOfIUEOiAAgZH/v2Z6kYSR7hfVS
+vjXmTicgCv6/5B2lSQ3bstq0uOD0dS2H9KLw42V3zvqJNXkMR4R/uPoefKyVENTt
+8kReuHcDAa/bfBuTCdzn97xH3sxYxs/QCMNlJHdeH41Hya4KEtR4Q4sa2O2/zg2Z
+upTJ/uRiJnzQ4UW6XNPPPXpnD3eq+y/PrtDmCcJvHy1S9i4U14ztqgYqy0WKlJWt
+28ClCvTZEJqz7XzYWvNm
+=9W1/
+-----END PGP SIGNATURE-----
+
+--Signature=_Tue__12_Feb_2013_15_40_10_+1100_/tP3R2cmcOMVcqGq--
