@@ -1,70 +1,401 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e31.co.us.ibm.com ([32.97.110.149]:48873 "EHLO
-	e31.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758847Ab3BLQQq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2013 11:16:46 -0500
-Received: from /spool/local
-	by e31.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Tue, 12 Feb 2013 09:16:44 -0700
-Date: Tue, 12 Feb 2013 08:15:30 -0800
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH v5 04/45] percpu_rwlock: Implement the core design of
- Per-CPU Reader-Writer Locks
-Message-ID: <20130212161530.GA9929@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
- <20130122073347.13822.85876.stgit@srivatsabhat.in.ibm.com>
- <20130208231017.GK2666@linux.vnet.ibm.com>
- <20130210180607.GA1375@redhat.com>
- <20130210195417.GK2666@linux.vnet.ibm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20130210195417.GK2666@linux.vnet.ibm.com>
+Received: from mail-yh0-f74.google.com ([209.85.213.74]:37921 "EHLO
+	mail-yh0-f74.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751990Ab3BLWZP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2013 17:25:15 -0500
+Received: by mail-yh0-f74.google.com with SMTP id z6so61429yhz.3
+        for <linux-arch@vger.kernel.org>; Tue, 12 Feb 2013 14:25:15 -0800 (PST)
+Subject: + arch-kconfig-centralise-config_arch_no_virt_to_bus.patch added to -mm tree
+From: akpm@linux-foundation.org
+Date: Tue, 12 Feb 2013 14:19:05 -0800
+Message-ID: <20130212221905.C1D8531C1CB@corp2gmr1-1.hot.corp.google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130212161530.5NdJLtGt_S6YG2pB3bosQMSolKFKvuF8R0YtmL4F2f8@z>
+To: mm-commits@vger.kernel.org
+Cc: sfr@canb.auug.org.au, James.Bottomley@HansenPartnership.com, Vineet.Gupta1@synopsys.com, benh@kernel.crashing.org, bhelgaas@google.com, davem@davemloft.net, hartleys@visionengravers.com, james.hogan@imgtec.com, lethal@linux-sh.org, linux-arch@vger.kernel.org, paulus@samba.org
+Message-ID: <20130212221905.CICOdYGTz18PGrV813mEO5-_49y0A-A8nUezN-1FsTY@z>
 
-On Sun, Feb 10, 2013 at 11:54:17AM -0800, Paul E. McKenney wrote:
-> On Sun, Feb 10, 2013 at 07:06:07PM +0100, Oleg Nesterov wrote:
-> > On 02/08, Paul E. McKenney wrote:
-> 
-> [ . . . ]
-> 
-> > > > +static inline void sync_reader(struct percpu_rwlock *pcpu_rwlock,
-> > > > +			       unsigned int cpu)
-> > > > +{
-> > > > +	smp_rmb(); /* Paired with smp_[w]mb() in percpu_read_[un]lock() */
-> > >
-> > > As I understand it, the purpose of this memory barrier is to ensure
-> > > that the stores in drop_writer_signal() happen before the reads from
-> > > ->reader_refcnt in reader_uses_percpu_refcnt(), thus preventing the
-> > > race between a new reader attempting to use the fastpath and this writer
-> > > acquiring the lock.  Unless I am confused, this must be smp_mb() rather
-> > > than smp_rmb().
-> > 
-> > And note that before sync_reader() we call announce_writer_active() which
-> > already adds mb() before sync_all_readers/sync_reader, so this rmb() looks
-> > unneeded.
-> > 
-> > But, at the same time, could you confirm that we do not need another mb()
-> > after sync_all_readers() in percpu_write_lock() ? I mean, without mb(),
-> > can't this reader_uses_percpu_refcnt() LOAD leak into the critical section
-> > protected by ->global_rwlock? Then this LOAD can be re-ordered with other
-> > memory operations done by the writer.
-> 
-> As soon as I get the rest of the way through Thomas's patchset.  ;-)
 
-There is a memory barrier associated with write_lock(), but it is
-only required to keep the critical section inside the lock -- and is
-permitted to allow stuff outside of the lock to be reordered into the
-critical section.  So I believe we do indeed need an smp_mb() between
-sync_all_readers() and write_lock() in percpu_write_lock().
+The patch titled
+     Subject: arch Kconfig: centralise CONFIG_ARCH_NO_VIRT_TO_BUS
+has been added to the -mm tree.  Its filename is
+     arch-kconfig-centralise-config_arch_no_virt_to_bus.patch
 
-Good eyes, Oleg!
+Before you just go and hit "reply", please:
+   a) Consider who else should be cc'ed
+   b) Prefer to cc a suitable mailing list as well
+   c) Ideally: find the original patch on the mailing list and do a
+      reply-to-all to that, adding suitable additional cc's
 
-							Thanx, Paul
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
+
+The -mm tree is included into linux-next and is updated
+there every 3-4 working days
+
+------------------------------------------------------
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: arch Kconfig: centralise CONFIG_ARCH_NO_VIRT_TO_BUS
+
+Change it to CONFIG_HAVE_VIRT_TO_BUS and set it in all architecures
+that already provide virt_to_bus().
+
+Signed-off-by: Stephen Rothwell <sfr@canb.auug.org.au>
+Reviewed-by: James Hogan <james.hogan@imgtec.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>
+Cc: H Hartley Sweeten <hartleys@visionengravers.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Paul Mundt <lethal@linux-sh.org>
+Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ arch/Kconfig            |    7 +++++++
+ arch/alpha/Kconfig      |    1 +
+ arch/arm/Kconfig        |    1 +
+ arch/avr32/Kconfig      |    1 +
+ arch/blackfin/Kconfig   |    1 +
+ arch/cris/Kconfig       |    1 +
+ arch/frv/Kconfig        |    1 +
+ arch/h8300/Kconfig      |    1 +
+ arch/ia64/Kconfig       |    1 +
+ arch/m32r/Kconfig       |    1 +
+ arch/m68k/Kconfig       |    1 +
+ arch/microblaze/Kconfig |    1 +
+ arch/mips/Kconfig       |    1 +
+ arch/mn10300/Kconfig    |    1 +
+ arch/openrisc/Kconfig   |    1 +
+ arch/parisc/Kconfig     |    1 +
+ arch/powerpc/Kconfig    |    4 +---
+ arch/s390/Kconfig       |    1 +
+ arch/score/Kconfig      |    1 +
+ arch/sh/Kconfig         |    3 ---
+ arch/sparc/Kconfig      |    3 ---
+ arch/tile/Kconfig       |    1 +
+ arch/unicore32/Kconfig  |    1 +
+ arch/x86/Kconfig        |    1 +
+ arch/xtensa/Kconfig     |    1 +
+ mm/Kconfig              |    2 +-
+ 26 files changed, 30 insertions(+), 10 deletions(-)
+
+diff -puN arch/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/Kconfig
+--- a/arch/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
++++ a/arch/Kconfig
+@@ -319,6 +319,13 @@ config ARCH_WANT_OLD_COMPAT_IPC
+ 	select ARCH_WANT_COMPAT_IPC_PARSE_VERSION
+ 	bool
+ 
++config HAVE_VIRT_TO_BUS
++	bool
++	help
++	  An architecture should select this if it implements the
++	  deprecated interface virt_to_bus().  All new architectures
++	  should probably not select this.
++
+ config HAVE_ARCH_SECCOMP_FILTER
+ 	bool
+ 	help
+diff -puN arch/alpha/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/alpha/Kconfig
+--- a/arch/alpha/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
++++ a/arch/alpha/Kconfig
+@@ -9,6 +9,7 @@ config ALPHA
+ 	select HAVE_PERF_EVENTS
+ 	select HAVE_DMA_ATTRS
+ 	select HAVE_GENERIC_HARDIRQS
++	select HAVE_VIRT_TO_BUS
+ 	select GENERIC_IRQ_PROBE
+ 	select AUTO_IRQ_AFFINITY if SMP
+ 	select GENERIC_IRQ_SHOW
+diff -puN arch/arm/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/arm/Kconfig
+--- a/arch/arm/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
++++ a/arch/arm/Kconfig
+@@ -49,6 +49,7 @@ config ARM
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
+ 	select HAVE_SYSCALL_TRACEPOINTS
+ 	select HAVE_UID16
++	select HAVE_VIRT_TO_BUS
+ 	select KTIME_SCALAR
+ 	select PERF_USE_VMALLOC
+ 	select RTC_LIB
+diff -puN arch/avr32/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/avr32/Kconfig
+--- a/arch/avr32/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
++++ a/arch/avr32/Kconfig
+@@ -7,6 +7,7 @@ config AVR32
+ 	select HAVE_OPROFILE
+ 	select HAVE_KPROBES
+ 	select HAVE_GENERIC_HARDIRQS
++	select HAVE_VIRT_TO_BUS
+ 	select GENERIC_IRQ_PROBE
+ 	select GENERIC_ATOMIC64
+ 	select HARDIRQS_SW_RESEND
+diff -puN arch/blackfin/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/blackfin/Kconfig
+--- a/arch/blackfin/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
++++ a/arch/blackfin/Kconfig
+@@ -33,6 +33,7 @@ config BLACKFIN
+ 	select ARCH_HAVE_CUSTOM_GPIO_H
+ 	select ARCH_WANT_OPTIONAL_GPIOLIB
+ 	select HAVE_UID16
++	select HAVE_VIRT_TO_BUS
+ 	select ARCH_WANT_IPC_PARSE_VERSION
+ 	select HAVE_GENERIC_HARDIRQS
+ 	select GENERIC_ATOMIC64
+diff -puN arch/cris/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/cris/Kconfig
+--- a/arch/cris/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
++++ a/arch/cris/Kconfig
+@@ -43,6 +43,7 @@ config CRIS
+ 	select GENERIC_ATOMIC64
+ 	select HAVE_GENERIC_HARDIRQS
+ 	select HAVE_UID16
++	select HAVE_VIRT_TO_BUS
+ 	select ARCH_WANT_IPC_PARSE_VERSION
+ 	select GENERIC_IRQ_SHOW
+ 	select GENERIC_IOMAP
+diff -puN arch/frv/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/frv/Kconfig
+--- a/arch/frv/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
++++ a/arch/frv/Kconfig
+@@ -6,6 +6,7 @@ config FRV
+ 	select HAVE_PERF_EVENTS
+ 	select HAVE_UID16
+ 	select HAVE_GENERIC_HARDIRQS
++	select HAVE_VIRT_TO_BUS
+ 	select GENERIC_IRQ_SHOW
+ 	select HAVE_DEBUG_BUGVERBOSE
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+diff -puN arch/h8300/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/h8300/Kconfig
+--- a/arch/h8300/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
++++ a/arch/h8300/Kconfig
+@@ -5,6 +5,7 @@ config H8300
+ 	select HAVE_GENERIC_HARDIRQS
+ 	select GENERIC_ATOMIC64
+ 	select HAVE_UID16
++	select HAVE_VIRT_TO_BUS
+ 	select ARCH_WANT_IPC_PARSE_VERSION
+ 	select GENERIC_IRQ_SHOW
+ 	select GENERIC_CPU_DEVICES
+diff -puN arch/ia64/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/ia64/Kconfig
+--- a/arch/ia64/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
++++ a/arch/ia64/Kconfig
+@@ -26,6 +26,7 @@ config IA64
+ 	select HAVE_MEMBLOCK
+ 	select HAVE_MEMBLOCK_NODE_MAP
+ 	select HAVE_VIRT_CPU_ACCOUNTING
++	select HAVE_VIRT_TO_BUS
+ 	select ARCH_DISCARD_MEMBLOCK
+ 	select GENERIC_IRQ_PROBE
+ 	select GENERIC_PENDING_IRQ if SMP
+diff -puN arch/m32r/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/m32r/Kconfig
+--- a/arch/m32r/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
++++ a/arch/m32r/Kconfig
+@@ -10,6 +10,7 @@ config M32R
+ 	select ARCH_WANT_IPC_PARSE_VERSION
+ 	select HAVE_DEBUG_BUGVERBOSE
+ 	select HAVE_GENERIC_HARDIRQS
++	select HAVE_VIRT_TO_BUS
+ 	select GENERIC_IRQ_PROBE
+ 	select GENERIC_IRQ_SHOW
+ 	select GENERIC_ATOMIC64
+diff -puN arch/m68k/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/m68k/Kconfig
+--- a/arch/m68k/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
++++ a/arch/m68k/Kconfig
+@@ -8,6 +8,7 @@ config M68K
+ 	select GENERIC_IRQ_SHOW
+ 	select GENERIC_ATOMIC64
+ 	select HAVE_UID16
++	select HAVE_VIRT_TO_BUS
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG if RMW_INSNS
+ 	select GENERIC_CPU_DEVICES
+ 	select GENERIC_STRNCPY_FROM_USER if MMU
+diff -puN arch/microblaze/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/microblaze/Kconfig
+--- a/arch/microblaze/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
++++ a/arch/microblaze/Kconfig
+@@ -19,6 +19,7 @@ config MICROBLAZE
+ 	select HAVE_DEBUG_KMEMLEAK
+ 	select IRQ_DOMAIN
+ 	select HAVE_GENERIC_HARDIRQS
++	select HAVE_VIRT_TO_BUS
+ 	select GENERIC_IRQ_PROBE
+ 	select GENERIC_IRQ_SHOW
+ 	select GENERIC_PCI_IOMAP
+diff -puN arch/mips/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/mips/Kconfig
+--- a/arch/mips/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
++++ a/arch/mips/Kconfig
+@@ -38,6 +38,7 @@ config MIPS
+ 	select GENERIC_CLOCKEVENTS
+ 	select GENERIC_CMOS_UPDATE
+ 	select HAVE_MOD_ARCH_SPECIFIC
++	select HAVE_VIRT_TO_BUS
+ 	select MODULES_USE_ELF_REL if MODULES
+ 	select MODULES_USE_ELF_RELA if MODULES && 64BIT
+ 	select CLONE_BACKWARDS
+diff -puN arch/mn10300/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/mn10300/Kconfig
+--- a/arch/mn10300/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
++++ a/arch/mn10300/Kconfig
+@@ -8,6 +8,7 @@ config MN10300
+ 	select HAVE_ARCH_KGDB
+ 	select GENERIC_ATOMIC64
+ 	select HAVE_NMI_WATCHDOG if MN10300_WD_TIMER
++	select HAVE_VIRT_TO_BUS
+ 	select GENERIC_CLOCKEVENTS
+ 	select MODULES_USE_ELF_RELA
+ 	select OLD_SIGSUSPEND3
+diff -puN arch/openrisc/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/openrisc/Kconfig
+--- a/arch/openrisc/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
++++ a/arch/openrisc/Kconfig
+@@ -12,6 +12,7 @@ config OPENRISC
+ 	select ARCH_WANT_OPTIONAL_GPIOLIB
+         select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_GENERIC_HARDIRQS
++	select HAVE_VIRT_TO_BUS
+ 	select GENERIC_IRQ_CHIP
+ 	select GENERIC_IRQ_PROBE
+ 	select GENERIC_IRQ_SHOW
+diff -puN arch/parisc/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/parisc/Kconfig
+--- a/arch/parisc/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
++++ a/arch/parisc/Kconfig
+@@ -20,6 +20,7 @@ config PARISC
+ 	select GENERIC_STRNCPY_FROM_USER
+ 	select SYSCTL_ARCH_UNALIGN_ALLOW
+ 	select HAVE_MOD_ARCH_SPECIFIC
++	select HAVE_VIRT_TO_BUS
+ 	select MODULES_USE_ELF_RELA
+ 	select CLONE_BACKWARDS
+ 	select TTY # Needed for pdc_cons.c
+diff -puN arch/powerpc/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/powerpc/Kconfig
+--- a/arch/powerpc/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
++++ a/arch/powerpc/Kconfig
+@@ -87,9 +87,6 @@ config GENERIC_GPIO
+ 	help
+ 	  Generic GPIO API support
+ 
+-config ARCH_NO_VIRT_TO_BUS
+-	def_bool PPC64
+-
+ config PPC
+ 	bool
+ 	default y
+@@ -101,6 +98,7 @@ config PPC
+ 	select HAVE_FUNCTION_GRAPH_TRACER
+ 	select SYSCTL_EXCEPTION_TRACE
+ 	select ARCH_WANT_OPTIONAL_GPIOLIB
++	select HAVE_VIRT_TO_BUS if !PPC64
+ 	select HAVE_IDE
+ 	select HAVE_IOREMAP_PROT
+ 	select HAVE_EFFICIENT_UNALIGNED_ACCESS
+diff -puN arch/s390/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/s390/Kconfig
+--- a/arch/s390/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
++++ a/arch/s390/Kconfig
+@@ -134,6 +134,7 @@ config S390
+ 	select HAVE_SYSCALL_WRAPPERS
+ 	select HAVE_UID16 if 32BIT
+ 	select HAVE_VIRT_CPU_ACCOUNTING
++	select HAVE_VIRT_TO_BUS
+ 	select INIT_ALL_POSSIBLE
+ 	select KTIME_SCALAR if 32BIT
+ 	select MODULES_USE_ELF_RELA
+diff -puN arch/score/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/score/Kconfig
+--- a/arch/score/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
++++ a/arch/score/Kconfig
+@@ -12,6 +12,7 @@ config SCORE
+        select GENERIC_CPU_DEVICES
+        select GENERIC_CLOCKEVENTS
+        select HAVE_MOD_ARCH_SPECIFIC
++	select HAVE_VIRT_TO_BUS
+ 	select MODULES_USE_ELF_REL
+ 	select CLONE_BACKWARDS
+ 
+diff -puN arch/sh/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/sh/Kconfig
+--- a/arch/sh/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
++++ a/arch/sh/Kconfig
+@@ -148,9 +148,6 @@ config ARCH_HAS_ILOG2_U32
+ config ARCH_HAS_ILOG2_U64
+ 	def_bool n
+ 
+-config ARCH_NO_VIRT_TO_BUS
+-	def_bool y
+-
+ config ARCH_HAS_DEFAULT_IDLE
+ 	def_bool y
+ 
+diff -puN arch/sparc/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/sparc/Kconfig
+--- a/arch/sparc/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
++++ a/arch/sparc/Kconfig
+@@ -145,9 +145,6 @@ config GENERIC_GPIO
+ 	help
+ 	  Generic GPIO API support
+ 
+-config ARCH_NO_VIRT_TO_BUS
+-	def_bool y
+-
+ config ARCH_SUPPORTS_DEBUG_PAGEALLOC
+ 	def_bool y if SPARC64
+ 
+diff -puN arch/tile/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/tile/Kconfig
+--- a/arch/tile/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
++++ a/arch/tile/Kconfig
+@@ -17,6 +17,7 @@ config TILE
+ 	select GENERIC_IRQ_SHOW
+ 	select HAVE_DEBUG_BUGVERBOSE
+ 	select HAVE_SYSCALL_WRAPPERS if TILEGX
++	select HAVE_VIRT_TO_BUS
+ 	select SYS_HYPERVISOR
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+ 	select GENERIC_CLOCKEVENTS
+diff -puN arch/unicore32/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/unicore32/Kconfig
+--- a/arch/unicore32/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
++++ a/arch/unicore32/Kconfig
+@@ -9,6 +9,7 @@ config UNICORE32
+ 	select GENERIC_ATOMIC64
+ 	select HAVE_KERNEL_LZO
+ 	select HAVE_KERNEL_LZMA
++	select HAVE_VIRT_TO_BUS
+ 	select ARCH_HAVE_CUSTOM_GPIO_H
+ 	select GENERIC_FIND_FIRST_BIT
+ 	select GENERIC_IRQ_PROBE
+diff -puN arch/x86/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/x86/Kconfig
+--- a/arch/x86/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
++++ a/arch/x86/Kconfig
+@@ -112,6 +112,7 @@ config X86
+ 	select GENERIC_STRNLEN_USER
+ 	select HAVE_CONTEXT_TRACKING if X86_64
+ 	select HAVE_IRQ_TIME_ACCOUNTING
++	select HAVE_VIRT_TO_BUS
+ 	select MODULES_USE_ELF_REL if X86_32
+ 	select MODULES_USE_ELF_RELA if X86_64
+ 	select CLONE_BACKWARDS if X86_32
+diff -puN arch/xtensa/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/xtensa/Kconfig
+--- a/arch/xtensa/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
++++ a/arch/xtensa/Kconfig
+@@ -9,6 +9,7 @@ config XTENSA
+ 	select HAVE_IDE
+ 	select GENERIC_ATOMIC64
+ 	select HAVE_GENERIC_HARDIRQS
++	select HAVE_VIRT_TO_BUS
+ 	select GENERIC_IRQ_SHOW
+ 	select GENERIC_CPU_DEVICES
+ 	select MODULES_USE_ELF_RELA
+diff -puN mm/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus mm/Kconfig
+--- a/mm/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
++++ a/mm/Kconfig
+@@ -287,7 +287,7 @@ config NR_QUICK
+ 
+ config VIRT_TO_BUS
+ 	def_bool y
+-	depends on !ARCH_NO_VIRT_TO_BUS
++	depends on HAVE_VIRT_TO_BUS
+ 
+ config MMU_NOTIFIER
+ 	bool
+_
+
+Patches currently in -mm which might be from sfr@canb.auug.org.au are
+
+linux-next.patch
+mm-memblockc-use-config_have_memblock_node_map-to-protect-movablecore_map-in-memblock_overlaps_region.patch
+swap-add-per-partition-lock-for-swapfile-fix-fix.patch
+swap-add-per-partition-lock-for-swapfile-fix-fix-fix-fix.patch
+arch-kconfig-centralise-config_arch_no_virt_to_bus.patch
+kernel-forkc-export-kernel_thread-to-modules.patch
 
