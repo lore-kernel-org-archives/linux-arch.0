@@ -1,60 +1,34 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH v5 04/45] percpu_rwlock: Implement the core design of
- Per-CPU Reader-Writer Locks
-Date: Tue, 12 Feb 2013 08:15:30 -0800
-Message-ID: <20130212161530.GA9929@linux.vnet.ibm.com>
-References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
- <20130122073347.13822.85876.stgit@srivatsabhat.in.ibm.com>
- <20130208231017.GK2666@linux.vnet.ibm.com>
- <20130210180607.GA1375@redhat.com>
- <20130210195417.GK2666@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 6/9] gpiolib: use descriptors internally
+Date: Tue, 12 Feb 2013 17:18:48 +0000
+Message-ID: <201302121718.48244.arnd@arndb.de>
+References: <1359822572-26009-1-git-send-email-acourbot@nvidia.com> <CACRpkdaHuv7CXCy15-o94G0r0+2BStsi34ZVbBAhyGj=U3xgOg@mail.gmail.com> <20130212155927.GE6088@linux-sh.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20130210195417.GK2666@linux.vnet.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.17.8]:52400 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933383Ab3BLRTH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2013 12:19:07 -0500
+In-Reply-To: <20130212155927.GE6088@linux-sh.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Paul Mundt <lethal@linux-sh.org>
+Cc: Linus Walleij <linus.walleij@linaro.org>, Stephen Warren <swarren@wwwdotorg.org>, Grant Likely <grant.likely@secretlab.ca>, Alexandre Courbot <acourbot@nvidia.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Alexandre Courbot <gnurou@gmail.com>, Mark Brown <broonie@opensource.wolfsonmicro.com>, Mike Turquette <mturquette@linaro.org>
 
-On Sun, Feb 10, 2013 at 11:54:17AM -0800, Paul E. McKenney wrote:
-> On Sun, Feb 10, 2013 at 07:06:07PM +0100, Oleg Nesterov wrote:
-> > On 02/08, Paul E. McKenney wrote:
-> 
-> [ . . . ]
-> 
-> > > > +static inline void sync_reader(struct percpu_rwlock *pcpu_rwlock,
-> > > > +			       unsigned int cpu)
-> > > > +{
-> > > > +	smp_rmb(); /* Paired with smp_[w]mb() in percpu_read_[un]lock() */
-> > >
-> > > As I understand it, the purpose of this memory barrier is to ensure
-> > > that the stores in drop_writer_signal() happen before the reads from
-> > > ->reader_refcnt in reader_uses_percpu_refcnt(), thus preventing the
-> > > race between a new reader attempting to use the fastpath and this writer
-> > > acquiring the lock.  Unless I am confused, this must be smp_mb() rather
-> > > than smp_rmb().
+On Tuesday 12 February 2013, Paul Mundt wrote:
+> > While I do get the point... I chatted with Grant about it and
+> > I want to talk to some toolchain people about this to see if
+> > pointers containing potential error codes can somehow be
+> > "flagged" by the compiler so we can enforce error checking on
+> > them. (It may sound a bit utopic...)
 > > 
-> > And note that before sync_reader() we call announce_writer_active() which
-> > already adds mb() before sync_all_readers/sync_reader, so this rmb() looks
-> > unneeded.
-> > 
-> > But, at the same time, could you confirm that we do not need another mb()
-> > after sync_all_readers() in percpu_write_lock() ? I mean, without mb(),
-> > can't this reader_uses_percpu_refcnt() LOAD leak into the critical section
-> > protected by ->global_rwlock? Then this LOAD can be re-ordered with other
-> > memory operations done by the writer.
-> 
-> As soon as I get the rest of the way through Thomas's patchset.  ;-)
+> At the very least you can __must_check annotate, although that's probably
+> still a bit coarser grained than what you're after.
 
-There is a memory barrier associated with write_lock(), but it is
-only required to keep the critical section inside the lock -- and is
-permitted to allow stuff outside of the lock to be reordered into the
-critical section.  So I believe we do indeed need an smp_mb() between
-sync_all_readers() and write_lock() in percpu_write_lock().
+There is an idea: we could have variants of __must_check for different
+classes of returns: NULL error, ERR_PTR, negative integer on error, ...
 
-Good eyes, Oleg!
-
-							Thanx, Paul
+	Arnd
