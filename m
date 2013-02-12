@@ -1,61 +1,60 @@
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: [PATCH 6/9] gpiolib: use descriptors internally
-Date: Wed, 13 Feb 2013 00:59:28 +0900
-Message-ID: <20130212155927.GE6088@linux-sh.org>
-References: <1359822572-26009-1-git-send-email-acourbot@nvidia.com>
- <1359822572-26009-8-git-send-email-acourbot@nvidia.com>
- <CACRpkdbib-+pvMiLQN=f6d-1dhK2OK3znJeGoL7rDxDQYuJRuA@mail.gmail.com>
- <CAAVeFu+phNtzzj7rw96g9iH8sj9gGqd5SfAqtkDHvu3PeL_oQA@mail.gmail.com>
- <20130209091729.978C73E1A18@localhost>
- <CACRpkdagLssOG3FW8Qr1zqFabGMgdupADwg1=c0eQ7e76_XM5A@mail.gmail.com>
- <51192CC5.9060300@wwwdotorg.org>
- <CACRpkdaHuv7CXCy15-o94G0r0+2BStsi34ZVbBAhyGj=U3xgOg@mail.gmail.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH v5 04/45] percpu_rwlock: Implement the core design of
+ Per-CPU Reader-Writer Locks
+Date: Tue, 12 Feb 2013 08:15:30 -0800
+Message-ID: <20130212161530.GA9929@linux.vnet.ibm.com>
+References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
+ <20130122073347.13822.85876.stgit@srivatsabhat.in.ibm.com>
+ <20130208231017.GK2666@linux.vnet.ibm.com>
+ <20130210180607.GA1375@redhat.com>
+ <20130210195417.GK2666@linux.vnet.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from linux-sh.org ([111.68.239.195]:44679 "EHLO linux-sh.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758579Ab3BLQAA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Feb 2013 11:00:00 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <CACRpkdaHuv7CXCy15-o94G0r0+2BStsi34ZVbBAhyGj=U3xgOg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Walleij <linus.walleij@linaro.org>
-Cc: Stephen Warren <swarren@wwwdotorg.org>, Grant Likely <grant.likely@secretlab.ca>, Alexandre Courbot <acourbot@nvidia.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Alexandre Courbot <gnurou@gmail.com>, Mark Brown <broonie@opensource.wolfsonmicro.com>, Mike Turquette <mturquette@linaro.org>
+In-Reply-To: <20130210195417.GK2666@linux.vnet.ibm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Feb 12, 2013 at 01:29:10PM +0100, Linus Walleij wrote:
-> On Mon, Feb 11, 2013 at 6:39 PM, Stephen Warren <swarren@wwwdotorg.org> wrote:
-> > On 02/11/2013 07:09 AM, Linus Walleij wrote:
+On Sun, Feb 10, 2013 at 11:54:17AM -0800, Paul E. McKenney wrote:
+> On Sun, Feb 10, 2013 at 07:06:07PM +0100, Oleg Nesterov wrote:
+> > On 02/08, Paul E. McKenney wrote:
 > 
-> >> However if you take this all the way to the descriptor API
-> >> it will make the consumer (driver) API for GPIO descriptors deviate
-> >> from what is today used for clocks, regulators and pins.
-> >>
-> >> With all the resulting confusion for users.
-> >> I've seen worse subsystem deviations though.
-> >
-> > Sorry I haven't looked at the specific APIs this discussion refers to,
-> > but clients of the GPIO descriptor API are going to need to distinguish
-> > "fail" from "deferred probe", so at least some initial get-like API will
-> > need to pass back some error detail...
+> [ . . . ]
 > 
-> Right, so in some other patch I stated that this would lead
-> to a GPIO descriptor fetch interface such as this:
+> > > > +static inline void sync_reader(struct percpu_rwlock *pcpu_rwlock,
+> > > > +			       unsigned int cpu)
+> > > > +{
+> > > > +	smp_rmb(); /* Paired with smp_[w]mb() in percpu_read_[un]lock() */
+> > >
+> > > As I understand it, the purpose of this memory barrier is to ensure
+> > > that the stores in drop_writer_signal() happen before the reads from
+> > > ->reader_refcnt in reader_uses_percpu_refcnt(), thus preventing the
+> > > race between a new reader attempting to use the fastpath and this writer
+> > > acquiring the lock.  Unless I am confused, this must be smp_mb() rather
+> > > than smp_rmb().
+> > 
+> > And note that before sync_reader() we call announce_writer_active() which
+> > already adds mb() before sync_all_readers/sync_reader, so this rmb() looks
+> > unneeded.
+> > 
+> > But, at the same time, could you confirm that we do not need another mb()
+> > after sync_all_readers() in percpu_write_lock() ? I mean, without mb(),
+> > can't this reader_uses_percpu_refcnt() LOAD leak into the critical section
+> > protected by ->global_rwlock? Then this LOAD can be re-ordered with other
+> > memory operations done by the writer.
 > 
-> int gpiod_get(struct gpiod_desc **gpiod, struct device *dev, const char *name);
-> 
-> Rather than the more established:
-> 
-> struct gpio_desc *gpiod_get(struct device *dev, const char *name);
-> 
-> And I'm worried about the lack of consistency.
-> 
-> While I do get the point... I chatted with Grant about it and
-> I want to talk to some toolchain people about this to see if
-> pointers containing potential error codes can somehow be
-> "flagged" by the compiler so we can enforce error checking on
-> them. (It may sound a bit utopic...)
-> 
-At the very least you can __must_check annotate, although that's probably
-still a bit coarser grained than what you're after.
+> As soon as I get the rest of the way through Thomas's patchset.  ;-)
+
+There is a memory barrier associated with write_lock(), but it is
+only required to keep the critical section inside the lock -- and is
+permitted to allow stuff outside of the lock to be reordered into the
+critical section.  So I believe we do indeed need an smp_mb() between
+sync_all_readers() and write_lock() in percpu_write_lock().
+
+Good eyes, Oleg!
+
+							Thanx, Paul
