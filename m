@@ -1,63 +1,60 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH] Centralise CONFIG_ARCH_NO_VIRT_TO_BUS
-Date: Tue, 12 Feb 2013 12:04:18 +0000
-Message-ID: <511A2FC2.7010909@imgtec.com>
-References: <ADE657CA350FB648AAC2C43247A983F00206B25884B1@AUSP01VMBX24.collaborationhost.net> <CAErSpo6WG2R_8sa=rOmAOci-3iFpDs2NFzNkZYxDnD2oTiMQJg@mail.gmail.com> <20121113082615.2f482eb8835daf46e1f27947@canb.auug.org.au> <5118DCA8.1030905@imgtec.com> <20130212154010.3f8b88da4756c7cf04e28a04@canb.auug.org.au> <20130212224729.5e60d0303bda923bebcc1185@canb.auug.org.au>
+From: Linus Walleij <linus.walleij@linaro.org>
+Subject: Re: [PATCH 6/9] gpiolib: use descriptors internally
+Date: Tue, 12 Feb 2013 13:29:10 +0100
+Message-ID: <CACRpkdaHuv7CXCy15-o94G0r0+2BStsi34ZVbBAhyGj=U3xgOg@mail.gmail.com>
+References: <1359822572-26009-1-git-send-email-acourbot@nvidia.com>
+	<1359822572-26009-8-git-send-email-acourbot@nvidia.com>
+	<CACRpkdbib-+pvMiLQN=f6d-1dhK2OK3znJeGoL7rDxDQYuJRuA@mail.gmail.com>
+	<CAAVeFu+phNtzzj7rw96g9iH8sj9gGqd5SfAqtkDHvu3PeL_oQA@mail.gmail.com>
+	<20130209091729.978C73E1A18@localhost>
+	<CACRpkdagLssOG3FW8Qr1zqFabGMgdupADwg1=c0eQ7e76_XM5A@mail.gmail.com>
+	<51192CC5.9060300@wwwdotorg.org>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature";
-	boundary="------------enigCD18698F87994248FE52F0D9"
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:45581 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758941Ab3BLMEd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Feb 2013 07:04:33 -0500
-In-Reply-To: <20130212224729.5e60d0303bda923bebcc1185@canb.auug.org.au>
+Received: from mail-ie0-f169.google.com ([209.85.223.169]:53010 "EHLO
+	mail-ie0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758515Ab3BLM3L (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Feb 2013 07:29:11 -0500
+Received: by mail-ie0-f169.google.com with SMTP id 13so17780iea.14
+        for <linux-arch@vger.kernel.org>; Tue, 12 Feb 2013 04:29:10 -0800 (PST)
+In-Reply-To: <51192CC5.9060300@wwwdotorg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Bjorn Helgaas <bhelgaas@google.com>, H Hartley Sweeten <hartleys@visionengravers.com>, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+To: Stephen Warren <swarren@wwwdotorg.org>
+Cc: Grant Likely <grant.likely@secretlab.ca>, Alexandre Courbot <acourbot@nvidia.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Alexandre Courbot <gnurou@gmail.com>, Mark Brown <broonie@opensource.wolfsonmicro.com>, Mike Turquette <mturquette@linaro.org>
 
---------------enigCD18698F87994248FE52F0D9
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: quoted-printable
+On Mon, Feb 11, 2013 at 6:39 PM, Stephen Warren <swarren@wwwdotorg.org> wrote:
+> On 02/11/2013 07:09 AM, Linus Walleij wrote:
 
-On 12/02/13 11:47, Stephen Rothwell wrote:
-> Change it to CONFIG_HAVE_VIRT_TO_BUS and set it in all architecures
+>> However if you take this all the way to the descriptor API
+>> it will make the consumer (driver) API for GPIO descriptors deviate
+>> from what is today used for clocks, regulators and pins.
+>>
+>> With all the resulting confusion for users.
+>> I've seen worse subsystem deviations though.
+>
+> Sorry I haven't looked at the specific APIs this discussion refers to,
+> but clients of the GPIO descriptor API are going to need to distinguish
+> "fail" from "deferred probe", so at least some initial get-like API will
+> need to pass back some error detail...
 
-nit: typo in "architecures"
+Right, so in some other patch I stated that this would lead
+to a GPIO descriptor fetch interface such as this:
 
-> that already provide virt_to_bus().
->=20
-> Signed-off-by: Stephen Rothwell <sfr@canb.auug.org.au>
+int gpiod_get(struct gpiod_desc **gpiod, struct device *dev, const char *name);
 
-Reviewed-by: James Hogan <james.hogan@imgtec.com>
+Rather than the more established:
 
-Cheers
-James
+struct gpio_desc *gpiod_get(struct device *dev, const char *name);
 
+And I'm worried about the lack of consistency.
 
---------------enigCD18698F87994248FE52F0D9
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
+While I do get the point... I chatted with Grant about it and
+I want to talk to some toolchain people about this to see if
+pointers containing potential error codes can somehow be
+"flagged" by the compiler so we can enforce error checking on
+them. (It may sound a bit utopic...)
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.13 (GNU/Linux)
-
-iQIcBAEBAgAGBQJRGi/CAAoJEKHZs+irPybfbLoQAJcwSYD3NK1dOp1OC8OUY4tF
-SA0WEPGCHUY0ewKfTfJAxzxeiKBL0/v0EigmMktkMmg/BauiT/75q4/EG8SxjnD7
-Tf/pZ0IlTU9xM5dYeqSNEeimxZv8gXp5DEJ56+UV8pSZ0PhtNowKCTnePA71DtO6
-mFNYP9GcjSxNYHfYTzHxLEhp0xfSTVWrOpW0ak+y97XMQOS3Yxff8wSizq7LhBcG
-H+t5J8paEWs73BJsZKzVtkdDyp4Tv5shjHhl4TeGv7doxcYykX5yIlWxgZLFRRI+
-3o1JACl75gmFDxGi/2cYK+mkp24SupVYNGw/teRrsKGOoGO6k30XLG3COlYQCSOb
-mslGyP1DFryONBNcRJ3gT8dkyv9zsoL0vwMj6TN1e36MnAAlKoAnziJZ/kpscR4F
-IOuEPBtOjothoEgA9e+X/BdkGBh3kLztZvFE72wWYIX/r9+ynrWi85SZDcxMG/o+
-f/uvRaOIRI5E8nPyapat75veiw7GWNl5ZxvCRzHl8e1xEWUb/PWlJma+fd7sAZLn
-fFlCPQ53QG//t2t1Y6OjiNbzOJsj+1yMI/EHULbeSVALUyvYPzaH+yfCvHwIBNTx
-vbb0JQKEB+syLW5QNYIBOpBCkyMYrEW+TUHj3MUIXJ2JZgB6e9P+HUKwQXb7PW4F
-6gotw7qwQEz9aNx36fBk
-=69Xu
------END PGP SIGNATURE-----
-
---------------enigCD18698F87994248FE52F0D9--
+Yours,
+Linus Walleij
