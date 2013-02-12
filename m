@@ -1,56 +1,63 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 Subject: Re: [PATCH v5 00/45] CPU hotplug: stop_machine()-free CPU hotplug
-Date: Mon, 11 Feb 2013 11:08:52 -0800
-Message-ID: <20130211190852.GA5695@linux.vnet.ibm.com>
-References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
- <510FBC01.2030405@linux.vnet.ibm.com>
- <87haloiwv0.fsf@rustcorp.com.au>
- <51134596.4080106@linux.vnet.ibm.com>
- <20130208154113.GV17833@n2100.arm.linux.org.uk>
- <51152B81.2050501@linux.vnet.ibm.com>
- <51153F72.1060005@linux.vnet.ibm.com>
- <CAKfTPtCe+cD7LLkb+D6pqG1SwG2V08ws=4XO3ttHEHV2qgmqPg@mail.gmail.com>
- <5118E2CD.90401@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+Date: Tue, 12 Feb 2013 09:28:53 +0530
+Message-ID: <5119BDFD.1000909@linux.vnet.ibm.com>
+References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com> <510FBC01.2030405@linux.vnet.ibm.com> <87haloiwv0.fsf@rustcorp.com.au> <51134596.4080106@linux.vnet.ibm.com> <20130208154113.GV17833@n2100.arm.linux.org.uk> <51152B81.2050501@linux.vnet.ibm.com> <51153F72.1060005@linux.vnet.ibm.com> <CAKfTPtCe+cD7LLkb+D6pqG1SwG2V08ws=4XO3ttHEHV2qgmqPg@mail.gmail.com> <5118E2CD.90401@linux.vnet.ibm.com> <20130211190852.GA5695@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-doc-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <5118E2CD.90401@linux.vnet.ibm.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e23smtp09.au.ibm.com ([202.81.31.142]:37357 "EHLO
+	e23smtp09.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753192Ab3BLEBG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Feb 2013 23:01:06 -0500
+Received: from /spool/local
+	by e23smtp09.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
+	Tue, 12 Feb 2013 13:54:11 +1000
+In-Reply-To: <20130211190852.GA5695@linux.vnet.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: paulmck@linux.vnet.ibm.com
 Cc: Vincent Guittot <vincent.guittot@linaro.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, walken@google.com, mingo@kernel.org, linux-arch@vger.kernel.org, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, Rusty Russell <rusty@rustcorp.com.au>, rostedt@goodmis.org, rjw@sisk.pl, namhyung@kernel.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, oleg@redhat.com, sbw@mit.edu, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
-List-Id: linux-arch.vger.kernel.org
 
-On Mon, Feb 11, 2013 at 05:53:41PM +0530, Srivatsa S. Bhat wrote:
-> On 02/11/2013 05:28 PM, Vincent Guittot wrote:
-> > On 8 February 2013 19:09, Srivatsa S. Bhat
-> > <srivatsa.bhat@linux.vnet.ibm.com> wrote:
-
-[ . . . ]
-
-> >> Adding Vincent to CC, who had previously evaluated the performance and
-> >> latency implications of CPU hotplug on ARM platforms, IIRC.
-> >>
-> >
-> > Hi Srivatsa,
-> > 
-> > I can try to run some of our stress tests on your patches.
+On 02/12/2013 12:38 AM, Paul E. McKenney wrote:
+> On Mon, Feb 11, 2013 at 05:53:41PM +0530, Srivatsa S. Bhat wrote:
+>> On 02/11/2013 05:28 PM, Vincent Guittot wrote:
+>>> On 8 February 2013 19:09, Srivatsa S. Bhat
+>>> <srivatsa.bhat@linux.vnet.ibm.com> wrote:
 > 
-> Great!
+> [ . . . ]
 > 
-> > Have you
-> > got a git tree that i can pull ?
-> > 
+>>>> Adding Vincent to CC, who had previously evaluated the performance and
+>>>> latency implications of CPU hotplug on ARM platforms, IIRC.
+>>>>
+>>>
+>>> Hi Srivatsa,
+>>>
+>>> I can try to run some of our stress tests on your patches.
+>>
+>> Great!
+>>
+>>> Have you
+>>> got a git tree that i can pull ?
+>>>
+>>
+>> Unfortunately, no, none at the moment..  :-(
 > 
-> Unfortunately, no, none at the moment..  :-(
+> You do need to create an externally visible git tree.
 
-You do need to create an externally visible git tree.  In the meantime,
-I have added your series at rcu/bhat.2013.01.21a on -rcu:
+Ok, I'll do that soon.
 
-git://git.kernel.org/pub/scm/linux/kernel/git/paulmck/linux-rcu.git
+>  In the meantime,
+> I have added your series at rcu/bhat.2013.01.21a on -rcu:
+> 
+> git://git.kernel.org/pub/scm/linux/kernel/git/paulmck/linux-rcu.git
+> 
+> This should appear soon on a kernel.org mirror near you.  ;-)
+>
 
-This should appear soon on a kernel.org mirror near you.  ;-)
+Thank you very much, Paul! :-)
 
-							Thanx, Paul
-
+Regards,
+Srivatsa S. Bhat
