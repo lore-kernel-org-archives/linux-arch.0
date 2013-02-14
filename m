@@ -1,71 +1,133 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ia0-f180.google.com ([209.85.210.180]:33665 "EHLO
-	mail-ia0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759068Ab3BNLTA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Feb 2013 06:19:00 -0500
-Received: by mail-ia0-f180.google.com with SMTP id f27so2127549iae.39
-        for <linux-arch@vger.kernel.org>; Thu, 14 Feb 2013 03:19:00 -0800 (PST)
+Received: from mail-pb0-f42.google.com ([209.85.160.42]:56782 "EHLO
+	mail-pb0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759032Ab3BNVYD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Feb 2013 16:24:03 -0500
+Received: by mail-pb0-f42.google.com with SMTP id xb4so323394pbc.1
+        for <linux-arch@vger.kernel.org>; Thu, 14 Feb 2013 13:24:02 -0800 (PST)
+Date: Thu, 14 Feb 2013 13:24:09 -0800 (PST)
+From: Hugh Dickins <hughd@google.com>
+Subject: Re: [PATCH] mm: Limit pgd range freeing to mm->task_size
+In-Reply-To: <20130213134756.b90f8e1b.akpm@linux-foundation.org>
+Message-ID: <alpine.LNX.2.00.1302141227500.1911@eggly.anvils>
+References: <1360755569-27282-1-git-send-email-catalin.marinas@arm.com> <20130213134756.b90f8e1b.akpm@linux-foundation.org>
 MIME-Version: 1.0
-In-Reply-To: <201302141022.00297.arnd@arndb.de>
-References: <20130207151831.2868.5146.stgit@patser.local>
-	<20130207151838.2868.69610.stgit@patser.local>
-	<201302141022.00297.arnd@arndb.de>
-Date: Thu, 14 Feb 2013 12:18:59 +0100
-Message-ID: <CAKMK7uG_gJ6+9vZ+MDStUgE-M-bDHM+Sk3cTDdVBxGCjhY6TLg@mail.gmail.com>
-Subject: Re: [Linaro-mm-sig] [PATCH 2/3] mutex: add support for reservation
- style locks
-From: Daniel Vetter <daniel@ffwll.ch>
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, a.p.zijlstra@chello.nl, x86@kernel.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, robclark@gmail.com, tglx@linutronix.de, mingo@elte.hu, linux-media@vger.kernel.org
-Message-ID: <20130214111859.7MRin0Hz0Ni2GXEu2Nom_GY2GPe18XHQkwj3GiA8Sss@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Andrea Arcangeli <aarcange@redhat.com>, Russell King <linux@arm.linux.org.uk>
+Message-ID: <20130214212409.up34TiqjzCYz6_uLT30M7fG7twi6943lg9PJIvM0Xms@z>
 
-On Thu, Feb 14, 2013 at 11:22 AM, Arnd Bergmann <arnd@arndb.de> wrote:
->
->>   These functions will return -EDEADLK instead of -EAGAIN if
->>   reservation_id is the same as the reservation_id that's attempted to
->>   lock the mutex with, since in that case you presumably attempted to
->>   lock the same lock twice.
->
-> Since the user always has to check the return value, would it be
-> possible to provide only the interruptible kind of this function
-> but not the non-interruptible one? In general, interruptible locks
-> are obviously harder to use, but they are much user friendlier when
-> something goes wrong.
+On Wed, 13 Feb 2013, Andrew Morton wrote:
+> On Wed, 13 Feb 2013 11:39:29 +0000
+> Catalin Marinas <catalin.marinas@arm.com> wrote:
+> 
+> > ARM processors with LPAE enabled use 3 levels of page tables, with an
+> > entry in the top level (pgd) covering 1GB of virtual space. Because of
+> > the branch relocation limitations on ARM, the loadable modules are
+> > mapped 16MB below PAGE_OFFSET, making the corresponding 1GB pgd shared
+> > between kernel modules and user space.
+> > 
+> > Since free_pgtables() is called with ceiling == 0, free_pgd_range() (and
+> > subsequently called functions) also frees the page table
+> > shared between user space and kernel modules (which is normally handled
+> > by the ARM-specific pgd_free() function).
+> > 
+> > This patch changes the ceiling argument to mm->task_size for the
+> > free_pgtables() and free_pgd_range() function calls. We cannot use
+> > TASK_SIZE since this macro may not be a run-time constant on 64-bit
+> > systems supporting compat applications.
+> 
+> I'm trying to work out why we're using 0 in there at all, rather than
+> ->task_size.  But that's lost in the mists of time.
+> 
+> As you've discovered, handling of task_size and TASK_SIZE is somewhat
+> inconsistent across architectures and with compat tasks.  I guess we
+> toss it in there and see if anything breaks...
 
-At least in drm/i915 we only use _interruptible locking on the
-command-submission ioctls for all locks which could be held while
-waiting for the gpu. We need unwind paths and ioctl restarting anyway
-to bail out on catastrophic events like gpu hangs, so signal interrupt
-handling comes for free.
+... and an x86_64 kernel quickly shows,
+with either 64-bit or 32-bit userspace, that exit_mmap() breaks at
+WARN_ON(mm->nr_ptes > (FIRST_USER_ADDRESS+PMD_SIZE-1)>>PMD_SHIFT);
 
-Otoh in the modeset code we generally don't bother with that, since
-unwinding a modeset sequence mid-way is something you don't want to do
-really if your sanity is dear to you. But we also never need
-mutli-object reservations in the modeset code, neither can I imagine a
-future need for it.
+We couldn't think of using mm->task_size in 2.6.12 because it didn't
+exist then; but although it sounds plausible, and on many architectures
+(x86_32?) it should be fine, in general it's not quite the right thing
+to use.  0 is an easy rounded-up-whatever-the-increment version of
+TASK_SIZE (okay, it's missing an implicit 1 before all its 0s).
 
-So from my side we could drop the non-interruptible interface. But I
-have not checked whether dropping this would complicate the ttm
-conversion.
+The ceiling passed to free_pgtables() says how far up it can go in
+freeing pts and pmds and puds and pgds: when doing munmap(), you have
+to be careful not to stray beyond the range you're freeing; when doing
+exit_mmap(), you have to be careful to free all the areas you might
+have had to avoid before.
 
->> mutex_reserve_lock_slow and mutex_reserve_lock_intr_slow:
->>   Similar to mutex_reserve_lock, except it won't backoff with -EAGAIN.
->>   This is useful when mutex_reserve_lock failed with -EAGAIN, and you
->>   unreserved all buffers so no deadlock can occur.
->
-> Are these meant to be used a lot? If not, maybe prefix them with __mutex_
-> instead of mutex_.
+mm->task_size does not necessarily fall on a nice boundary: use it
+instead of 0 and exit_mmap() is liable to leave unfreed page tables
+at several levels.
 
-If you detect an inversion in a multi-buffer reservation you have to
-drop all locks and call these functions on the buffer which failed
-(that's the contention point, hence it's the right lock to sleep on).
-So every place using ticket locks will also call the above slowpath
-functions by necessity.
--Daniel
--- 
-Daniel Vetter
-Software Engineer, Intel Corporation
-+41 (0) 79 365 57 48 - http://blog.ffwll.ch
+I'm sure that Catalin is right that he needs to adjust that ceiling arg
+to free_pgtables() to cope with a level shared between user and kernel.
+
+I met the same problem two years ago, when doing a patch (which worked
+but went nowhere: x86 people kept on changing the early pagetable setup)
+to make CONFIG_VMSPLIT_2G_OPT and 3G_OPT compatible with CONFIG_X86_PAE.
+That shared a level beween user and kernel too: everything could be
+handled down in the arch code, except this free_pgtables() ceiling arg.
+
+(I did not make any change to the free_pgd_range() calls in fs/exec.c,
+I'm not familiar with those at all: my patch appeared to work fine
+without touching them, but now I wonder.)
+
+Here's the mm/mmap.c part of my patch (but it now looks like the
+default should go into include/asm-generic):
+
+--- a/mm/mmap.c
++++ b/mm/mmap.c
+@@ -38,6 +38,16 @@
+ 
+ #include "internal.h"
+ 
++/*
++ * On almost all architectures and configurations, 0 can be used as the
++ * upper ceiling to free_pgtables(): on many architectures it has the same
++ * effect as using TASK_SIZE.  However, there is one configuration which
++ * must impose a more careful limit, to avoid freeing kernel pgtables.
++ */
++#ifndef USER_PGTABLES_CEILING
++#define USER_PGTABLES_CEILING	0UL
++#endif
++
+ #ifndef arch_mmap_check
+ #define arch_mmap_check(addr, len, flags)	(0)
+ #endif
+@@ -1888,8 +1898,8 @@ static void unmap_region(struct mm_struct *mm,
+ 	update_hiwater_rss(mm);
+ 	unmap_vmas(&tlb, vma, start, end, &nr_accounted, NULL);
+ 	vm_unacct_memory(nr_accounted);
+-	free_pgtables(tlb, vma, prev? prev->vm_end: FIRST_USER_ADDRESS,
+-				 next? next->vm_start: 0);
++	free_pgtables(tlb, vma, prev ? prev->vm_end : FIRST_USER_ADDRESS,
++				 next ? next->vm_start : USER_PGTABLES_CEILING);
+ 	tlb_finish_mmu(tlb, start, end);
+ }
+ 
+@@ -2221,7 +2231,7 @@ void exit_mmap(struct mm_struct *mm)
+ 	end = unmap_vmas(&tlb, vma, 0, -1, &nr_accounted, NULL);
+ 	vm_unacct_memory(nr_accounted);
+ 
+-	free_pgtables(tlb, vma, FIRST_USER_ADDRESS, 0);
++	free_pgtables(tlb, vma, FIRST_USER_ADDRESS, USER_PGTABLES_CEILING);
+ 	tlb_finish_mmu(tlb, 0, end);
+ 	arch_flush_exec_range(mm);
+ 
+
+Then arch/x86/include/asm/pgtable-3level_types.h had to
+#define USER_PGTABLES_CEILING PAGE_OFFSET
+in the special configuration.
+
+In other words: to be safe, I believe you have to keep using 0 for the
+ceiling on all the architectures and configurations that you're not
+adding special new code to handle the user/kernel shared pagetables.
+
+Hugh
