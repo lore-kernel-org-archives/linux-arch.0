@@ -1,45 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp16.uk.ibm.com ([195.75.94.112]:39341 "EHLO
-	e06smtp16.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757387Ab3BNKXd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Feb 2013 05:23:33 -0500
-Received: from /spool/local
-	by e06smtp16.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
-	Thu, 14 Feb 2013 10:21:36 -0000
-Date: Thu, 14 Feb 2013 11:23:06 +0100
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [RFC][CFT] what's in signal.git queue
-Message-ID: <20130214112306.30ab728c@mschwide>
-In-Reply-To: <20130214012539.GQ4503@ZenIV.linux.org.uk>
-References: <20130214012539.GQ4503@ZenIV.linux.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from mail-ia0-f180.google.com ([209.85.210.180]:33665 "EHLO
+	mail-ia0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759068Ab3BNLTA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Feb 2013 06:19:00 -0500
+Received: by mail-ia0-f180.google.com with SMTP id f27so2127549iae.39
+        for <linux-arch@vger.kernel.org>; Thu, 14 Feb 2013 03:19:00 -0800 (PST)
+MIME-Version: 1.0
+In-Reply-To: <201302141022.00297.arnd@arndb.de>
+References: <20130207151831.2868.5146.stgit@patser.local>
+	<20130207151838.2868.69610.stgit@patser.local>
+	<201302141022.00297.arnd@arndb.de>
+Date: Thu, 14 Feb 2013 12:18:59 +0100
+Message-ID: <CAKMK7uG_gJ6+9vZ+MDStUgE-M-bDHM+Sk3cTDdVBxGCjhY6TLg@mail.gmail.com>
+Subject: Re: [Linaro-mm-sig] [PATCH 2/3] mutex: add support for reservation
+ style locks
+From: Daniel Vetter <daniel@ffwll.ch>
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Mike Frysinger <vapier@gentoo.org>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Tony Luck <tony.luck@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hirokazu Takata <takata@linux-m32r.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, Jonas Bonn <jonas@southpole.se>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Richard Kuo <rkuo@codeaurora.org>, Lennox Wu <lennox.wu@gmail.com>, "David S. Miller" <davem@davemloft.net>, Paul Mundt <lethal@linux-sh.org>, Chris Zankel <chris@zankel.net>, Chris Metcalf <cmetcalf@tilera.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Russell King <linux@arm.linux.org.uk>
-Message-ID: <20130214102306.kEG7xQHlZrqrgKEpR3QHpckAvd6buf5miwe2YyV9-DU@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linaro-mm-sig@lists.linaro.org, linux-arch@vger.kernel.org, a.p.zijlstra@chello.nl, x86@kernel.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, robclark@gmail.com, tglx@linutronix.de, mingo@elte.hu, linux-media@vger.kernel.org
+Message-ID: <20130214111859.7MRin0Hz0Ni2GXEu2Nom_GY2GPe18XHQkwj3GiA8Sss@z>
 
-On Thu, 14 Feb 2013 01:25:39 +0000
-Al Viro <viro@ZenIV.linux.org.uk> wrote:
+On Thu, Feb 14, 2013 at 11:22 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+>
+>>   These functions will return -EDEADLK instead of -EAGAIN if
+>>   reservation_id is the same as the reservation_id that's attempted to
+>>   lock the mutex with, since in that case you presumably attempted to
+>>   lock the same lock twice.
+>
+> Since the user always has to check the return value, would it be
+> possible to provide only the interruptible kind of this function
+> but not the non-interruptible one? In general, interruptible locks
+> are obviously harder to use, but they are much user friendlier when
+> something goes wrong.
 
-> At that point the common stem ends; as far as I'm concerned, this part is
-> in never-rebase mode by now.  Then comes a bunch of per-architecture branches;
-> all subject to ACK by maintainers (ones who are not MIA, that is ;-/).  Once
-> maintainer(s) are OK with a branch, it's in no-rebase mode as well.  Branch
-> names are of form arch-<arch name>, same as the last time around.
+At least in drm/i915 we only use _interruptible locking on the
+command-submission ioctls for all locks which could be held while
+waiting for the gpu. We need unwind paths and ioctl restarting anyway
+to bail out on catastrophic events like gpu hangs, so signal interrupt
+handling comes for free.
 
-Just tested the signal.git master branch (didn't see any additional commit on
-the arch-s390 branch). Works for me and the test suite of gdb does not come up
-with any new unexpected failures. So for the s390 parts:
+Otoh in the modeset code we generally don't bother with that, since
+unwinding a modeset sequence mid-way is something you don't want to do
+really if your sanity is dear to you. But we also never need
+mutli-object reservations in the modeset code, neither can I imagine a
+future need for it.
 
-Acked-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
+So from my side we could drop the non-interruptible interface. But I
+have not checked whether dropping this would complicate the ttm
+conversion.
 
+>> mutex_reserve_lock_slow and mutex_reserve_lock_intr_slow:
+>>   Similar to mutex_reserve_lock, except it won't backoff with -EAGAIN.
+>>   This is useful when mutex_reserve_lock failed with -EAGAIN, and you
+>>   unreserved all buffers so no deadlock can occur.
+>
+> Are these meant to be used a lot? If not, maybe prefix them with __mutex_
+> instead of mutex_.
+
+If you detect an inversion in a multi-buffer reservation you have to
+drop all locks and call these functions on the buffer which failed
+(that's the contention point, hence it's the right lock to sleep on).
+So every place using ticket locks will also call the above slowpath
+functions by necessity.
+-Daniel
 -- 
-blue skies,
-   Martin.
-
-"Reality continues to ruin my life." - Calvin.
-
+Daniel Vetter
+Software Engineer, Intel Corporation
++41 (0) 79 365 57 48 - http://blog.ffwll.ch
