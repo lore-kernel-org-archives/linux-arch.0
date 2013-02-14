@@ -1,20 +1,33 @@
-From: "Capt:Mohamed Habbash" <ham@dipaso.com.ec>
-Subject: Re: From Capt: Mohamed Habbash
-Date: Wed, 13 Feb 2013 20:38:55 -0500 (ECT)
-Message-ID: <16795860.573871.1360805935980.JavaMail.root__5014.37009447745$1360806891$gmane$org@dipaso.com.ec>
-Reply-To: "Capt:Mohamed Habbash" <habbash58@yahoo.com>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [RFC][CFT] what's in signal.git queue
+Date: Thu, 14 Feb 2013 20:52:22 +1100
+Message-ID: <1360835542.6646.5.camel@pasglop>
+References: <20130214012539.GQ4503@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.dipaso.com.ec ([190.52.72.117]:59751 "EHLO
-	mail.dipaso.com.ec" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753879Ab3BNByS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Feb 2013 20:54:18 -0500
+Received: from gate.crashing.org ([63.228.1.57]:49940 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757109Ab3BNJzt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 14 Feb 2013 04:55:49 -0500
+In-Reply-To: <20130214012539.GQ4503@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Mike Frysinger <vapier@gentoo.org>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Tony Luck <tony.luck@intel.com>, Hirokazu Takata <takata@linux-m32r.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, Jonas Bonn <jonas@southpole.se>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Richard Kuo <rkuo@codeaurora.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Lennox Wu <lennox.wu@gmail.com>, "David S. Miller" <davem@davemloft.net>, Paul Mundt <lethal@linux-sh.org>, Chris Zankel <chris@zankel.net>, Chris Metcalf <cmetcalf@tilera.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Guan Xuetao <gxt@mprc.pku.edu.cn>
 
+On Thu, 2013-02-14 at 01:25 +0000, Al Viro wrote:
+> Mostly it's a unification of signal-related syscalls, both native and compat
+> ones; by the end of it we shouldn't have syscalls left in normal
+> arch/*/kernel/signal*.c - there are some exceptions due to genuine weirdness
+> of arch-specific calling conventions, but that's rare.  Another (somewhat
+> related) story in there is more compat_sys_something() getting switched to
+> COMPAT_SYSCALL_DEFINE, giving us proper argument validation wrappers.  Not
+> everything got switched, of course, but a lot of those guys has been.
 
-Assalamu'alaikum, wr,wb.,
-Attn:Dear,
-I am, Capt: Mohamed Habbash, am seeking for an Agent in your country to transfer $10.3Million US Dollars for investment get back for more Detail, if interested.
+FYI. I'm going to be off to some meeting & bringup work in the US for two weeks
+so expect little responsiveness from me on this until after I'm back (March 1st).
+
+Cheers,
+Ben.
