@@ -1,128 +1,202 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp04.in.ibm.com ([122.248.162.4]:40735 "EHLO
-	e28smtp04.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751733Ab3BOTmy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Feb 2013 14:42:54 -0500
-Received: from /spool/local
-	by e28smtp04.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Sat, 16 Feb 2013 01:10:31 +0530
-Message-ID: <511E8F3C.2010406@linux.vnet.ibm.com>
-Date: Sat, 16 Feb 2013 01:10:44 +0530
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH v5 00/45] CPU hotplug: stop_machine()-free CPU hotplug
-References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com> <510FBC01.2030405@linux.vnet.ibm.com>	<87haloiwv0.fsf@rustcorp.com.au> <51134596.4080106@linux.vnet.ibm.com> <20130208154113.GV17833@n2100.arm.linux.org.uk> <51152B81.2050501@linux.vnet.ibm.com>	<51153F72.1060005@linux.vnet.ibm.com> <CAKfTPtCe+cD7LLkb+D6pqG1SwG2V08ws=4XO3ttHEHV2qgmqPg@mail.gmail.com> <5118E2CD.90401@linux.vnet.ibm.com> <20130211190852.GA5695@linux.vnet.ibm.com> <5119BDFD.1000909@linux.vnet.ibm.com> <CAKfTPtAo2hQTfBKTVUuLKgsGJ2ZLD0UTR3fH9UFuJwyFt4n__w@mail.gmail.com>
-In-Reply-To: <CAKfTPtAo2hQTfBKTVUuLKgsGJ2ZLD0UTR3fH9UFuJwyFt4n__w@mail.gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
+Received: from mail.linuxfoundation.org ([140.211.169.12]:48696 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750875Ab3BOVOy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Feb 2013 16:14:54 -0500
+Date: Fri, 15 Feb 2013 13:14:51 -0800
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [patch 1/2] mm: fincore()
+Message-ID: <20130215131451.138e83ce.akpm@linux-foundation.org>
+In-Reply-To: <20130215063450.GA24047@cmpxchg.org>
+References: <87a9rbh7b4.fsf@rustcorp.com.au>
+	<20130211162701.GB13218@cmpxchg.org>
+	<20130211141239.f4decf03.akpm@linux-foundation.org>
+	<20130215063450.GA24047@cmpxchg.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vincent Guittot <vincent.guittot@linaro.org>
-Cc: paulmck@linux.vnet.ibm.com, Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, walken@google.com, mingo@kernel.org, linux-arch@vger.kernel.org, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, Rusty Russell <rusty@rustcorp.com.au>, rostedt@goodmis.org, rjw@sisk.pl, namhyung@kernel.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, oleg@redhat.com, sbw@mit.edu, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20130215194044.uk-8TP6WPFJg7dXC34F4hgWh_FVBoq6IfZ7Tt3c75WQ@z>
+To: Johannes Weiner <hannes@cmpxchg.org>
+Cc: Rusty Russell <rusty@rustcorp.com.au>, LKML <linux-kernel@vger.kernel.org>, Nick Piggin <npiggin@suse.de>, Stewart Smith <stewart@flamingspork.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Message-ID: <20130215211451.9onZqA-ctJm-ZZotx_Ve9svwj148CMeyE-ieg1xypL0@z>
 
-Hi Vincent,
+On Fri, 15 Feb 2013 01:34:50 -0500
+Johannes Weiner <hannes@cmpxchg.org> wrote:
 
-On 02/15/2013 06:58 PM, Vincent Guittot wrote:
-> Hi Srivatsa,
+> On Mon, Feb 11, 2013 at 02:12:39PM -0800, Andrew Morton wrote:
+> > Also, having to mmap the file to be able to query pagecache state is a
+> > hack.  Whatever happened to the fincore() patch?
 > 
-> I have run some tests with you branch (thanks Paul for the git tree)
-> and you will find results below.
->
+> I don't know, but how about this one:
 
-Thank you very much for testing this patchset!
- 
-> The tests condition are:
-> - 5 CPUs system in 2 clusters
-> - The test plugs/unplugs CPU2 and it increases the system load each 20
-> plug/unplug sequence with either more cyclictests threads
-> - The test is done with all CPUs online and with only CPU0 and CPU2
-> 
-> The main conclusion is that there is no differences with and without
-> your patches with my stress tests. I'm not sure that it was the
-> expected results but the cpu_down is already quite low : 4-5ms in
-> average
+This appears to be remotely derived from Chris's original
+(http://lwn.net/Articles/371540/).  The comments, at least ;) Some
+mention in the changelog would be appropriate.
+
+> Provide a syscall to determine whether a given file's pages are cached
+> in memory.  This is more elegant than mmapping the file for the sole
+> purpose of using mincore(), and also works on NOMMU.
 > 
 
-Atleast my patchset doesn't perform _worse_ than mainline, with respect
-to cpu_down duration :-)
+Obviously we'll be needing more than this at the appropriate time so
+Michael can write the manpage.
 
-So, here is the analysis:
-Stop-machine() doesn't really slow down CPU-down operation, if the rest
-of the CPUs are mostly running in userspace all the time. Because, the
-CPUs running userspace workloads cooperate very eagerly with the stop-machine
-dance - they receive the resched IPI, and allow the per-cpu cpu-stopper
-thread to monopolize the CPU, almost immediately.
+Please provide a nice tools/testing/selftests/fincore/ along with this
+code?
 
-The scenario where stop-machine() takes longer to take effect is when
-most of the online CPUs are running in kernelspace, because, then the
-probability that they call preempt_disable() frequently (and hence inhibit
-stop-machine) is higher. That's why, in my tests, I ran genload from LTP
-which generated a lot of system-time (system-time in 'top' indicates activity
-in kernelspace). Hence my patchset showed significant improvement over
-mainline in my tests.
+> --- /dev/null
+> +++ b/mm/fincore.c
+> @@ -0,0 +1,128 @@
+> +#include <linux/syscalls.h>
+> +#include <linux/pagemap.h>
+> +#include <linux/file.h>
+> +#include <linux/fs.h>
+> +#include <linux/mm.h>
+> +
+> +static long do_fincore(struct address_space *mapping, pgoff_t pgstart,
+> +		       unsigned long nr_pages, unsigned char *vec)
+> +{
+> +	pgoff_t pgend = pgstart + nr_pages;
+> +	struct radix_tree_iter iter;
+> +	void **slot;
+> +	long nr = 0;
+> +
+> +	rcu_read_lock();
+> +restart:
+> +	radix_tree_for_each_slot(slot, &mapping->page_tree, &iter, pgstart) {
+> +		unsigned char present;
+> +		struct page *page;
+> +
+> +		/* Handle holes */
+> +		if (iter.index != pgstart + nr) {
+> +			if (iter.index < pgend)
+> +				nr_pages = iter.index - pgstart;
+> +			break;
 
-However, your test is very useful too, if we measure a different parameter:
-the latency impact on the workloads running on the system (cyclic test).
-One other important aim of this patchset is to make hotplug as less intrusive
-as possible, for other workloads running on the system. So if you measure
-the cyclictest numbers, I would expect my patchset to show better numbers
-than mainline, when you do cpu-hotplug in parallel (same test that you did).
-Mainline would run stop-machine and hence interrupt the cyclic test tasks
-too often. My patchset wouldn't do that, and hence cyclic test should
-ideally show better numbers.
+This break looks odd - it terminates the entire function.  Am too lazy
+to work out why ;)
 
-I'd really appreciate if you could try that out and let me know how it
-goes.. :-) Thank you very much!
+> +		}
+> +repeat:
+> +		page = radix_tree_deref_slot(slot);
+> +		if (unlikely(!page))
+> +			continue;
 
-Regards,
-Srivatsa S. Bhat
+Is a bug, isn't it?  Need to zero vec[nr].
 
-> 
-> 
-> On 12 February 2013 04:58, Srivatsa S. Bhat
-> <srivatsa.bhat@linux.vnet.ibm.com> wrote:
->> On 02/12/2013 12:38 AM, Paul E. McKenney wrote:
->>> On Mon, Feb 11, 2013 at 05:53:41PM +0530, Srivatsa S. Bhat wrote:
->>>> On 02/11/2013 05:28 PM, Vincent Guittot wrote:
->>>>> On 8 February 2013 19:09, Srivatsa S. Bhat
->>>>> <srivatsa.bhat@linux.vnet.ibm.com> wrote:
->>>
->>> [ . . . ]
->>>
->>>>>> Adding Vincent to CC, who had previously evaluated the performance and
->>>>>> latency implications of CPU hotplug on ARM platforms, IIRC.
->>>>>>
->>>>>
->>>>> Hi Srivatsa,
->>>>>
->>>>> I can try to run some of our stress tests on your patches.
->>>>
->>>> Great!
->>>>
->>>>> Have you
->>>>> got a git tree that i can pull ?
->>>>>
->>>>
->>>> Unfortunately, no, none at the moment..  :-(
->>>
->>> You do need to create an externally visible git tree.
->>
->> Ok, I'll do that soon.
->>
->>>  In the meantime,
->>> I have added your series at rcu/bhat.2013.01.21a on -rcu:
->>>
->>> git://git.kernel.org/pub/scm/linux/kernel/git/paulmck/linux-rcu.git
->>>
->>> This should appear soon on a kernel.org mirror near you.  ;-)
->>>
->>
->> Thank you very much, Paul! :-)
->>
->> Regards,
->> Srivatsa S. Bhat
->>
+> +		if (radix_tree_exception(page)) {
+> +			if (radix_tree_deref_retry(page)) {
+> +				/*
+> +				 * Transient condition which can only trigger
+> +				 * when entry at index 0 moves out of or back
+> +				 * to root: none yet gotten, safe to restart.
+> +				 */
+> +				WARN_ON(iter.index);
+> +				goto restart;
+> +			}
+> +			present = 0;
+> +		} else {
+> +			if (!page_cache_get_speculative(page))
+> +				goto repeat;
+> +
+> +			/* Has the page moved? */
+> +			if (unlikely(page != *slot)) {
+> +				page_cache_release(page);
+> +				goto repeat;
+> +			}
+> +
+> +			present = PageUptodate(page);
 
+hm, OK, so we assume that test_bit() returns 1 or 0 and not just
+"true".  That's OK, iirc.
+
+Why does it have to be uptodate?  It could be present and under read()
+IO.  That's "in core"?
+
+> +			page_cache_release(page);
+> +		}
+> +		vec[nr] = present;
+> +
+> +		if (++nr == nr_pages)
+> +			break;
+> +	}
+> +	rcu_read_unlock();
+> +
+> +	if (nr < nr_pages)
+> +		memset(vec + nr, 0, nr_pages - nr);
+> +
+> +	return nr_pages;
+> +}
+> +
+> +/*
+> + * The fincore(2) system call.
+> + *
+> + * fincore() returns the memory residency status of the given file's
+> + * pages, in the range [start, start + len].
+> + * The status is returned in a vector of bytes.  The least significant
+> + * bit of each byte is 1 if the referenced page is in memory, otherwise
+> + * it is zero.
+
+Yes, and there will be immediate calmour to add more goodies to the
+other seven bits.  PageDirty, referenced state, etc.  We should think
+about this now, at the design stage rather than grafting things on
+later.
+
+> + * Because the status of a page can change after fincore() checks it
+> + * but before it returns to the application, the returned vector may
+> + * contain stale information.
+> + *
+> + * return values:
+> + *  zero    - success
+> + *  -EBADF  - fd isn't a valid open file descriptor
+> + *  -EFAULT - vec points to an illegal address
+> + *  -EINVAL - start is not a multiple of PAGE_CACHE_SIZE
+> + */
+> +SYSCALL_DEFINE4(fincore, unsigned int, fd, loff_t, start, loff_t, len,
+> +		unsigned char __user *, vec)
+> +{
+> +	unsigned long nr_pages;
+> +	pgoff_t pgstart;
+> +	struct fd f;
+> +	long ret;
+> +
+> +	if (start & ~PAGE_CACHE_MASK)
+> +		return -EINVAL;
+
+This restriction appears to be unnecessary?
+
+> +	f = fdget(fd);
+> +	if (!f.file)
+> +		return -EBADF;
+
+I fear what happens if we run this syscall against a random fd from
+/dev/some-gizmo.  Suggest adding tests for S_ISREG and non-null ->mapping.
+
+> +	pgstart = start >> PAGE_CACHE_SHIFT;
+> +	nr_pages = DIV_ROUND_UP(len, PAGE_CACHE_SIZE);
+> +
+> +	while (nr_pages) {
+> +		unsigned char tmp[64];
+> +
+> +		ret = do_fincore(f.file->f_mapping, pgstart,
+> +				 min(nr_pages, sizeof(tmp)), tmp);
+> +		if (ret <= 0)
+> +			break;
+> +
+> +		if (copy_to_user(vec, tmp, ret)) {
+> +			ret = -EFAULT;
+> +			break;
+> +		}
+> +
+> +		nr_pages -= ret;
+> +		pgstart += ret;
+> +		vec += ret;
+> +		ret = 0;
+> +	}
+> +
+> +	fdput(f);
+> +
+> +	return ret;
+> +}
 
