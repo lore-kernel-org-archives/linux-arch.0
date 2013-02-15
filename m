@@ -1,40 +1,42 @@
-From: Johannes Weiner <hannes@cmpxchg.org>
-Subject: [patch 2/2] x86-64: hook up fincore() syscall
-Date: Fri, 15 Feb 2013 01:35:45 -0500
-Message-ID: <20130215063545.GB24047@cmpxchg.org>
-References: <87a9rbh7b4.fsf@rustcorp.com.au>
- <20130211162701.GB13218@cmpxchg.org>
- <20130211141239.f4decf03.akpm@linux-foundation.org>
+From: Jonas Bonn <jonas.bonn@gmail.com>
+Subject: Re: pt_regs leak into userspace (was Re: [PATCH v3 20/71] ARC: Signal handling)
+Date: Fri, 15 Feb 2013 08:23:44 +0100
+Message-ID: <CACM3HyExw6WDtF6gtFrmLjyvPDTAKodSerChaoqUNZsSyD+b2g@mail.gmail.com>
+References: <1359024639-21915-1-git-send-email-vgupta@synopsys.com>
+	<1359024639-21915-9-git-send-email-vgupta@synopsys.com>
+	<51189D2F.4030000@synopsys.com>
+	<CACM3HyGNZxfOXpw01POBVT-YcVKQsnPkO6Kgg+epfZS-x-BRCg@mail.gmail.com>
+	<5118C458.2070205@synopsys.com>
+	<CACM3HyF2GHz5PKuurYG2Hg+UEKeto+zme5gcv2fxQDC=tpZYRw@mail.gmail.com>
+	<20130211140704.GI4503@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zene.cmpxchg.org ([85.214.230.12]:39853 "EHLO zene.cmpxchg.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751357Ab3BOGfu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 15 Feb 2013 01:35:50 -0500
-Content-Disposition: inline
-In-Reply-To: <20130211141239.f4decf03.akpm@linux-foundation.org>
+Received: from mail-la0-f41.google.com ([209.85.215.41]:33800 "EHLO
+	mail-la0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S935388Ab3BOHZM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Feb 2013 02:25:12 -0500
+In-Reply-To: <20130211140704.GI4503@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Rusty Russell <rusty@rustcorp.com.au>, LKML <linux-kernel@vger.kernel.org>, Nick Piggin <npiggin@suse.de>, Stewart Smith <stewart@flamingspork.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-Signed-off-by: Johannes Weiner <hannes@cmpxchg.org>
----
- arch/x86/syscalls/syscall_64.tbl | 1 +
- 1 file changed, 1 insertion(+)
+On 11 February 2013 15:07, Al Viro <viro@zeniv.linux.org.uk> wrote:
 
-diff --git a/arch/x86/syscalls/syscall_64.tbl b/arch/x86/syscalls/syscall_64.tbl
-index 38ae65d..c9ac047 100644
---- a/arch/x86/syscalls/syscall_64.tbl
-+++ b/arch/x86/syscalls/syscall_64.tbl
-@@ -320,6 +320,7 @@
- 311	64	process_vm_writev	sys_process_vm_writev
- 312	common	kcmp			sys_kcmp
- 313	common	finit_module		sys_finit_module
-+314	common	fincore			sys_fincore
- 
- #
- # x32-specific system call numbers start at 512 to avoid cache impact
--- 
-1.7.11.7
+> I'd suggest asking itanic folks; they do *not* put callee-saved stuff into
+> sigcontext.  AFAICS, they don't have setcontext() implemented as a syscall
+> at all - it's done as sigprocmask() + doing to callee-saved registers what
+> longjmp() does.
+
+
+Just to round off this discussion, after giving it some more thought I
+agree that the case where you would need callee-saved registers
+restored is probably rather pathological.  Any sane use of
+get/set/swapcontext is manageable without this.
+
+So, Vineet, I'm now convinced your approach is sound.  I will probably
+amend the OpenRISC arch to behave similarly.  Consider your entire
+patch Acked now.
+
+/Jonas
