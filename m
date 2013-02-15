@@ -1,42 +1,33 @@
-From: Jonas Bonn <jonas.bonn@gmail.com>
-Subject: Re: pt_regs leak into userspace (was Re: [PATCH v3 20/71] ARC: Signal handling)
-Date: Fri, 15 Feb 2013 08:23:44 +0100
-Message-ID: <CACM3HyExw6WDtF6gtFrmLjyvPDTAKodSerChaoqUNZsSyD+b2g@mail.gmail.com>
-References: <1359024639-21915-1-git-send-email-vgupta@synopsys.com>
-	<1359024639-21915-9-git-send-email-vgupta@synopsys.com>
-	<51189D2F.4030000@synopsys.com>
-	<CACM3HyGNZxfOXpw01POBVT-YcVKQsnPkO6Kgg+epfZS-x-BRCg@mail.gmail.com>
-	<5118C458.2070205@synopsys.com>
-	<CACM3HyF2GHz5PKuurYG2Hg+UEKeto+zme5gcv2fxQDC=tpZYRw@mail.gmail.com>
-	<20130211140704.GI4503@ZenIV.linux.org.uk>
+From: Jonas Bonn <jonas@southpole.se>
+Subject: Re: [RFC][CFT] what's in signal.git queue
+Date: Fri, 15 Feb 2013 08:29:14 +0100
+Message-ID: <511DE3CA.7020801@southpole.se>
+References: <20130214012539.GQ4503@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f41.google.com ([209.85.215.41]:33800 "EHLO
-	mail-la0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S935388Ab3BOHZM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Feb 2013 02:25:12 -0500
-In-Reply-To: <20130211140704.GI4503@ZenIV.linux.org.uk>
+Received: from mail.southpole.se ([37.247.8.11]:59628 "EHLO mail.southpole.se"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S935388Ab3BOH2q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 15 Feb 2013 02:28:46 -0500
+In-Reply-To: <20130214012539.GQ4503@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Mike Frysinger <vapier@gentoo.org>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Tony Luck <tony.luck@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hirokazu Takata <takata@linux-m32r.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Richard Kuo <rkuo@codeaurora.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Lennox Wu <lennox.wu@gmail.com>, "David S. Miller" <davem@davemloft.net>, Paul Mundt <lethal@linux-sh.org>, Chris Zankel <chris@zankel.net>, Chris Metcalf <cmetcalf@tilera.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Guan Xuetao <gx>
 
-On 11 February 2013 15:07, Al Viro <viro@zeniv.linux.org.uk> wrote:
+On 02/14/13 02:25, Al Viro wrote:
+> At that point the common stem ends; as far as I'm concerned, this part is
+> in never-rebase mode by now.  Then comes a bunch of per-architecture branches;
+> all subject to ACK by maintainers (ones who are not MIA, that is ;-/).  Once
+> maintainer(s) are OK with a branch, it's in no-rebase mode as well.  Branch
+> names are of form arch-<arch name>, same as the last time around.
+>
+>
 
-> I'd suggest asking itanic folks; they do *not* put callee-saved stuff into
-> sigcontext.  AFAICS, they don't have setcontext() implemented as a syscall
-> at all - it's done as sigprocmask() + doing to callee-saved registers what
-> longjmp() does.
+I tested the arch-openrisc branch and it looks good.
 
-
-Just to round off this discussion, after giving it some more thought I
-agree that the case where you would need callee-saved registers
-restored is probably rather pathological.  Any sane use of
-get/set/swapcontext is manageable without this.
-
-So, Vineet, I'm now convinced your approach is sound.  I will probably
-amend the OpenRISC arch to behave similarly.  Consider your entire
-patch Acked now.
+Acked-by: Jonas Bonn <jonas@southpole.se>
 
 /Jonas
