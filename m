@@ -1,85 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zene.cmpxchg.org ([85.214.230.12]:39917 "EHLO zene.cmpxchg.org"
+Received: from ozlabs.org ([203.10.76.45]:45019 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752259Ab3BOXNM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 15 Feb 2013 18:13:12 -0500
-Date: Fri, 15 Feb 2013 18:13:04 -0500
-From: Johannes Weiner <hannes@cmpxchg.org>
+	id S1753289Ab3BQWPG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 17 Feb 2013 17:15:06 -0500
+From: Rusty Russell <rusty@rustcorp.com.au>
 Subject: Re: [patch 1/2] mm: fincore()
-Message-ID: <20130215231304.GB23930@cmpxchg.org>
-References: <87a9rbh7b4.fsf@rustcorp.com.au>
- <20130211162701.GB13218@cmpxchg.org>
- <20130211141239.f4decf03.akpm@linux-foundation.org>
- <20130215063450.GA24047@cmpxchg.org>
- <20130215132738.c85c9eda.akpm@linux-foundation.org>
+In-Reply-To: <20130215154235.0fb36f53.akpm@linux-foundation.org>
+References: <87a9rbh7b4.fsf@rustcorp.com.au> <20130211162701.GB13218@cmpxchg.org> <20130211141239.f4decf03.akpm@linux-foundation.org> <20130215063450.GA24047@cmpxchg.org> <20130215132738.c85c9eda.akpm@linux-foundation.org> <20130215231304.GB23930@cmpxchg.org> <20130215154235.0fb36f53.akpm@linux-foundation.org>
+Date: Sat, 16 Feb 2013 14:53:43 +1030
+Message-ID: <87621skhtc.fsf@rustcorp.com.au>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20130215132738.c85c9eda.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Rusty Russell <rusty@rustcorp.com.au>, LKML <linux-kernel@vger.kernel.org>, Nick Piggin <npiggin@suse.de>, Stewart Smith <stewart@flamingspork.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org
-Message-ID: <20130215231304.PocXP8MEgnVkZ1a3ExuW0_Ul5JrAv4nMXICNdxN8R8k@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Nick Piggin <npiggin@suse.de>, Stewart Smith <stewart@flamingspork.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Message-ID: <20130216042343.Cdu_JYU4n-V1OGl5CEy4eqtebVeabjIvCdZVyAN_dJU@z>
 
-On Fri, Feb 15, 2013 at 01:27:38PM -0800, Andrew Morton wrote:
-> On Fri, 15 Feb 2013 01:34:50 -0500
+Andrew Morton <akpm@linux-foundation.org> writes:
+> On Fri, 15 Feb 2013 18:13:04 -0500
 > Johannes Weiner <hannes@cmpxchg.org> wrote:
-> 
-> > + * The status is returned in a vector of bytes.  The least significant
-> > + * bit of each byte is 1 if the referenced page is in memory, otherwise
-> > + * it is zero.
-> 
-> Also, this is going to be dreadfully inefficient for some obvious cases.
-> 
-> We could address that by returning the info in some more efficient
-> representation.  That will be run-length encoded in some fashion.
-> 
-> The obvious way would be to populate an array of
-> 
-> struct page_status {
-> 	u32 present:1;
-> 	u32 count:31;
-> };
-> 
-> or whatever.
+>> I dunno.  The byte vector might not be optimal but its worst cases
+>> seem more attractive, is just as extensible, and dead simple to use.
+>
+> But I think "which pages from this 4TB file are in core" will not be an
+> uncommon usage, and writing a gig of memory to find three pages is just
+> awful.
 
-I'm having a hard time seeing how this could be extended to more
-status bits without stifling the optimization too much.  If we just
-add more status bits to one page_status, the likelihood of long runs
-where all bits are in agreement decreases.  But as the optimization
-becomes less and less effective, we are stuck with an interface that
-is more PITA than just using mmap and mincore again.
+Actually, I don't know of any usage for this call.
 
-The user has to supply a worst-case-sized vector with one struct
-page_status per page in the range, but the per-page item will be
-bigger than with the byte vector because of the additional run length
-variable.
+I'd really like to use it for backup programs, so they stop pulling
+random crap into memory (but leave things already resident).  But that
+needs to madvise(MADV_DONTNEED) on the page, so need mmap.
 
-> Another way would be to define the syscall so it returns "number of
-> pages present/absent starting at offset `start'".  In other words, one
-> call to fincore() will return a single `struct page_status'.  Userspace
-> can then walk through the file and generate the full picture, if needed.
-> 
-> This also gets inefficient in obvious cases, but it's not as obviously
-> bad?
+So why not just use mincore?
 
-Any run-length encoding will have a problem with multiple status bits,
-I guess.
-
-Maybe with a mask of bits the user is interested in?
-
-struct page_status {
-	unsigned long states;
-	unsigned long count;
-};
-
-int fincore(int fd, loff_t start, loff_t len,
-            unsigned long states_mask,
-            struct page_status *status)
-
-However, one struct page_status per run leaves you with a worst case
-of one syscall per page in the range.
-
-I dunno.  The byte vector might not be optimal but its worst cases
-seem more attractive, is just as extensible, and dead simple to use.
+Cheers,
+Rusty.
