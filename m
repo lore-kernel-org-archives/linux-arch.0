@@ -1,71 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bk0-f51.google.com ([209.85.214.51]:37275 "EHLO
-	mail-bk0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752226Ab3BRQua (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2013 11:50:30 -0500
-Received: by mail-bk0-f51.google.com with SMTP id ik5so2623065bkc.24
-        for <linux-arch@vger.kernel.org>; Mon, 18 Feb 2013 08:50:28 -0800 (PST)
+Received: from mail-qa0-f47.google.com ([209.85.216.47]:59683 "EHLO
+	mail-qa0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756513Ab3BRRVF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2013 12:21:05 -0500
+Received: by mail-qa0-f47.google.com with SMTP id j8so1381925qah.6
+        for <linux-arch@vger.kernel.org>; Mon, 18 Feb 2013 09:21:03 -0800 (PST)
 MIME-Version: 1.0
-In-Reply-To: <1361201422.23152.154.camel@gandalf.local.home>
-References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
-	<510FBC01.2030405@linux.vnet.ibm.com>
-	<87haloiwv0.fsf@rustcorp.com.au>
-	<51134596.4080106@linux.vnet.ibm.com>
-	<20130208154113.GV17833@n2100.arm.linux.org.uk>
-	<51152B81.2050501@linux.vnet.ibm.com>
-	<51153F72.1060005@linux.vnet.ibm.com>
-	<CAKfTPtCe+cD7LLkb+D6pqG1SwG2V08ws=4XO3ttHEHV2qgmqPg@mail.gmail.com>
-	<5118E2CD.90401@linux.vnet.ibm.com>
-	<20130211190852.GA5695@linux.vnet.ibm.com>
-	<5119BDFD.1000909@linux.vnet.ibm.com>
-	<CAKfTPtAo2hQTfBKTVUuLKgsGJ2ZLD0UTR3fH9UFuJwyFt4n__w@mail.gmail.com>
-	<511E8F3C.2010406@linux.vnet.ibm.com>
-	<CAKfTPtD=2jn1AVjuhVP1ot7_8x9-W4==hNGZET5N9tRE7gtyMw@mail.gmail.com>
-	<512203B3.7090002@linux.vnet.ibm.com>
-	<512207A6.4000402@linux.vnet.ibm.com>
-	<CAKfTPtA1aTseD6Gntkf_zbCEbfZzt3P2-P1un6iF5_1TdVLjRQ@mail.gmail.com>
-	<1361201422.23152.154.camel@gandalf.local.home>
-Date: Mon, 18 Feb 2013 17:50:28 +0100
-Message-ID: <CAKfTPtC4hbXXWO=_zsGYryM9hpWaGFLbiY+jiLf=koLa4xGJOQ@mail.gmail.com>
-Subject: Re: [PATCH v5 00/45] CPU hotplug: stop_machine()-free CPU hotplug
-From: Vincent Guittot <vincent.guittot@linaro.org>
+In-Reply-To: <51225A36.40600@linux.vnet.ibm.com>
+References: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com>
+	<20130218123920.26245.56709.stgit@srivatsabhat.in.ibm.com>
+	<CANN689HhVxDv+3Bn9UAxOMzj0egTvVp_c7oAmQ2nnQ8Xjn_aMA@mail.gmail.com>
+	<51225A36.40600@linux.vnet.ibm.com>
+Date: Tue, 19 Feb 2013 01:21:02 +0800
+Message-ID: <CANN689FJPLfz06MFRJ9T+BuToejAzjYP_yrw_H4iGi1Kb3p2-g@mail.gmail.com>
+Subject: Re: [PATCH v6 08/46] CPU hotplug: Provide APIs to prevent CPU offline
+ from atomic context
+From: Michel Lespinasse <walken@google.com>
 Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, paulmck@linux.vnet.ibm.com, Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, walken@google.com, mingo@kernel.org, linux-arch@vger.kernel.org, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, Rusty Russell <rusty@rustcorp.com.au>, rjw@sisk.pl, namhyung@kernel.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, oleg@redhat.com, sbw@mit.edu, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20130218165028.Z5eUNV-YLoGf-NV_BxQyWlAvfFNk2EbqETWIibccpUU@z>
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, vincent.guittot@linaro.org
+Message-ID: <20130218172102.thrsLxpdiklPr9SUDR3WUXXPZprXjcRhhIvCVMUDklI@z>
 
-On 18 February 2013 16:30, Steven Rostedt <rostedt@goodmis.org> wrote:
-> On Mon, 2013-02-18 at 11:58 +0100, Vincent Guittot wrote:
->
->> My tests have been done without cpuidle because i have some issues
->> with function tracer and cpuidle
+On Tue, Feb 19, 2013 at 12:43 AM, Srivatsa S. Bhat
+<srivatsa.bhat@linux.vnet.ibm.com> wrote:
+> On 02/18/2013 09:53 PM, Michel Lespinasse wrote:
+>> I am wondering though, if you could take care of recursive uses in
+>> get/put_online_cpus_atomic() instead of doing it as a property of your
+>> rwlock:
 >>
->> But the cpu hotplug and cpuidle work well when I run the tests without
->> enabling the function tracer
+>> get_online_cpus_atomic()
+>> {
+>>     unsigned long flags;
+>>     local_irq_save(flags);
+>>     if (this_cpu_inc_return(hotplug_recusion_count) == 1)
+>>         percpu_read_lock_irqsafe(&hotplug_pcpu_rwlock);
+>>     local_irq_restore(flags);
+>> }
 >>
+>> Once again, the idea there is to avoid baking the reader side
+>> recursive properties into your rwlock itself, so that it won't be
+>> impossible to implement reader/writer fairness into your rwlock in the
+>> future (which may be not be very important for the hotplug use, but
+>> could be when other uses get introduced).
 >
-> I know suspend and resume has issues with function tracing (because it
-> makes things like calling smp_processor_id() crash the system), but I'm
-> unaware of issues with hotplug itself. Could be some of the same issues.
->
-> Can you give me more details, I'll try to investigate it.
+> Hmm, your proposal above looks good to me, at first glance.
+> (Sorry, I had mistaken your earlier mails to mean that you were against
+> recursive reader-side, while you actually meant that you didn't like
+> implementing the recursive reader-side logic using the recursive property
+> of rwlocks).
 
-yes for sure.
-The problem is more linked to cpuidle and function tracer.
+To be honest, I was replying as I went through the series, so I hadn't
+digested your hotplug use case yet :)
 
-cpu hotplug and function tracer work when cpuidle is disable.
-cpu hotplug and cpuidle works if i don't enable function tracer.
-my platform is dead as soon as I enable function tracer if cpuidle is
-enabled. It looks like some notrace are missing in my platform driver
-but we haven't completely fix the issue yet
+But yes - I don't like having the rwlock itself be recursive, but I do
+understand that you have a legitimate requirement for
+get_online_cpus_atomic() to be recursive. This IMO points to the
+direction I suggested, of explicitly handling the recusion in
+get_online_cpus_atomic() so that the underlying rwlock doesn't have to
+support recursive reader side itself.
 
-Vincent
+(And this would work for the idea of making writers own the reader
+side as well - you can do it with the hotplug_recursion_count instead
+of with the underlying rwlock).
 
->
-> Thanks,
->
-> -- Steve
->
->
+> While your idea above looks good, it might introduce more complexity
+> in the unlock path, since this would allow nesting of heterogeneous readers
+> (ie., if hotplug_recursion_count == 1, you don't know whether you need to
+> simply decrement the counter or unlock the rwlock as well).
+
+Well, I think the idea doesn't make the underlying rwlock more
+complex, since you could in principle keep your existing
+percpu_read_lock_irqsafe implementation as is and just remove the
+recursive behavior from its documentation.
+
+Now ideally if we're adding a bit of complexity in
+get_online_cpus_atomic() it'd be nice if we could remove some from
+percpu_read_lock_irqsafe, but I haven't thought about that deeply
+either. I think you'd still want to have the equivalent of a percpu
+reader_refcnt, except it could now be a bool instead of an int, and
+percpu_read_lock_irqsafe would still set it to back to 0/false after
+acquiring the global read side if a writer is signaled. Basically your
+existing percpu_read_lock_irqsafe code should still work, and we could
+remove just the parts that were only there to deal with the recursive
+property.
+
+-- 
+Michel "Walken" Lespinasse
+A program is never fully debugged until the last user dies.
