@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp04.in.ibm.com ([122.248.162.4]:36939 "EHLO
-	e28smtp04.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756846Ab3BRMph (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2013 07:45:37 -0500
+Received: from e23smtp03.au.ibm.com ([202.81.31.145]:53428 "EHLO
+	e23smtp03.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932130Ab3BRMoy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2013 07:44:54 -0500
 Received: from /spool/local
-	by e28smtp04.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp03.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Mon, 18 Feb 2013 18:13:10 +0530
+	Mon, 18 Feb 2013 22:38:56 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v6 36/46] m32r: Use get/put_online_cpus_atomic() to prevent
- CPU offline
-Date: Mon, 18 Feb 2013 18:13:23 +0530
-Message-ID: <20130218124323.26245.86492.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v6 32/46] blackfin/smp: Use get/put_online_cpus_atomic() to
+ prevent CPU offline
+Date: Mon, 18 Feb 2013 18:12:42 +0530
+Message-ID: <20130218124242.26245.39810.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com>
 References: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -21,7 +21,7 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org
 Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, walken@google.com, vincent.guittot@linaro.org
-Message-ID: <20130218124323.xlpH7rOsIw7bp73MNMsSUHOMezyYor-O7AbnHTQSsjM@z>
+Message-ID: <20130218124242.MzyxdbfXgEUSwdwsUiHrtET4D5XYqNriyOP9E7fInmM@z>
 
 Once stop_machine() is gone from the CPU offline path, we won't be able to
 depend on preempt_disable() or local_irq_disable() to prevent CPUs from
@@ -30,82 +30,50 @@ going offline from under us.
 Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going offline,
 while invoking from atomic context.
 
-Cc: Hirokazu Takata <takata@linux-m32r.org>
-Cc: linux-m32r@ml.linux-m32r.org
-Cc: linux-m32r-ja@ml.linux-m32r.org
+Cc: Mike Frysinger <vapier@gentoo.org>
+Cc: Bob Liu <lliubbo@gmail.com>
+Cc: Steven Miao <realmz6@gmail.com>
+Cc: uclinux-dist-devel@blackfin.uclinux.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/m32r/kernel/smp.c |   12 ++++++++----
- 1 file changed, 8 insertions(+), 4 deletions(-)
+ arch/blackfin/mach-common/smp.c |    6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
 
-diff --git a/arch/m32r/kernel/smp.c b/arch/m32r/kernel/smp.c
-index ce7aea3..0dad4d7 100644
---- a/arch/m32r/kernel/smp.c
-+++ b/arch/m32r/kernel/smp.c
-@@ -151,7 +151,7 @@ void smp_flush_cache_all(void)
- 	cpumask_t cpumask;
- 	unsigned long *mask;
- 
--	preempt_disable();
-+	get_online_cpus_atomic();
- 	cpumask_copy(&cpumask, cpu_online_mask);
- 	cpumask_clear_cpu(smp_processor_id(), &cpumask);
- 	spin_lock(&flushcache_lock);
-@@ -162,7 +162,7 @@ void smp_flush_cache_all(void)
- 	while (flushcache_cpumask)
- 		mb();
- 	spin_unlock(&flushcache_lock);
--	preempt_enable();
-+	put_online_cpus_atomic();
- }
- 
- void smp_flush_cache_all_interrupt(void)
-@@ -250,7 +250,7 @@ void smp_flush_tlb_mm(struct mm_struct *mm)
- 	unsigned long *mmc;
+diff --git a/arch/blackfin/mach-common/smp.c b/arch/blackfin/mach-common/smp.c
+index bb61ae4..6cc6d7a 100644
+--- a/arch/blackfin/mach-common/smp.c
++++ b/arch/blackfin/mach-common/smp.c
+@@ -194,6 +194,7 @@ void send_ipi(const struct cpumask *cpumask, enum ipi_message_type msg)
+ 	struct ipi_data *bfin_ipi_data;
  	unsigned long flags;
  
++	get_online_cpus_atomic();
+ 	local_irq_save(flags);
+ 	smp_mb();
+ 	for_each_cpu(cpu, cpumask) {
+@@ -205,6 +206,7 @@ void send_ipi(const struct cpumask *cpumask, enum ipi_message_type msg)
+ 	}
+ 
+ 	local_irq_restore(flags);
++	put_online_cpus_atomic();
+ }
+ 
+ void arch_send_call_function_single_ipi(int cpu)
+@@ -238,13 +240,13 @@ void smp_send_stop(void)
+ {
+ 	cpumask_t callmap;
+ 
 -	preempt_disable();
 +	get_online_cpus_atomic();
- 	cpu_id = smp_processor_id();
- 	mmc = &mm->context[cpu_id];
- 	cpumask_copy(&cpu_mask, mm_cpumask(mm));
-@@ -268,7 +268,7 @@ void smp_flush_tlb_mm(struct mm_struct *mm)
- 	if (!cpumask_empty(&cpu_mask))
- 		flush_tlb_others(cpu_mask, mm, NULL, FLUSH_ALL);
+ 	cpumask_copy(&callmap, cpu_online_mask);
+ 	cpumask_clear_cpu(smp_processor_id(), &callmap);
+ 	if (!cpumask_empty(&callmap))
+ 		send_ipi(&callmap, BFIN_IPI_CPU_STOP);
  
 -	preempt_enable();
 +	put_online_cpus_atomic();
+ 
+ 	return;
  }
- 
- /*==========================================================================*
-@@ -715,10 +715,12 @@ static void send_IPI_allbutself(int ipi_num, int try)
- {
- 	cpumask_t cpumask;
- 
-+	get_online_cpus_atomic();
- 	cpumask_copy(&cpumask, cpu_online_mask);
- 	cpumask_clear_cpu(smp_processor_id(), &cpumask);
- 
- 	send_IPI_mask(&cpumask, ipi_num, try);
-+	put_online_cpus_atomic();
- }
- 
- /*==========================================================================*
-@@ -750,6 +752,7 @@ static void send_IPI_mask(const struct cpumask *cpumask, int ipi_num, int try)
- 	if (num_cpus <= 1)	/* NO MP */
- 		return;
- 
-+	get_online_cpus_atomic();
- 	cpumask_and(&tmp, cpumask, cpu_online_mask);
- 	BUG_ON(!cpumask_equal(cpumask, &tmp));
- 
-@@ -760,6 +763,7 @@ static void send_IPI_mask(const struct cpumask *cpumask, int ipi_num, int try)
- 	}
- 
- 	send_IPI_mask_phys(&physid_mask, ipi_num, try);
-+	put_online_cpus_atomic();
- }
- 
- /*==========================================================================*
 
