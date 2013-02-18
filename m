@@ -1,133 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bk0-f53.google.com ([209.85.214.53]:38748 "EHLO
-	mail-bk0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750840Ab3BRK6v (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2013 05:58:51 -0500
-Received: by mail-bk0-f53.google.com with SMTP id j10so2443981bkw.26
-        for <linux-arch@vger.kernel.org>; Mon, 18 Feb 2013 02:58:50 -0800 (PST)
+Received: from e23smtp04.au.ibm.com ([202.81.31.146]:41078 "EHLO
+	e23smtp04.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755730Ab3BRMql (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2013 07:46:41 -0500
+Received: from /spool/local
+	by e23smtp04.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
+	Mon, 18 Feb 2013 22:37:34 +1000
+From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Subject: [PATCH v6 44/46] cpu: No more __stop_machine() in _cpu_down()
+Date: Mon, 18 Feb 2013 18:14:31 +0530
+Message-ID: <20130218124431.26245.10956.stgit@srivatsabhat.in.ibm.com>
+In-Reply-To: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com>
+References: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
-In-Reply-To: <512207A6.4000402@linux.vnet.ibm.com>
-References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
-	<510FBC01.2030405@linux.vnet.ibm.com>
-	<87haloiwv0.fsf@rustcorp.com.au>
-	<51134596.4080106@linux.vnet.ibm.com>
-	<20130208154113.GV17833@n2100.arm.linux.org.uk>
-	<51152B81.2050501@linux.vnet.ibm.com>
-	<51153F72.1060005@linux.vnet.ibm.com>
-	<CAKfTPtCe+cD7LLkb+D6pqG1SwG2V08ws=4XO3ttHEHV2qgmqPg@mail.gmail.com>
-	<5118E2CD.90401@linux.vnet.ibm.com>
-	<20130211190852.GA5695@linux.vnet.ibm.com>
-	<5119BDFD.1000909@linux.vnet.ibm.com>
-	<CAKfTPtAo2hQTfBKTVUuLKgsGJ2ZLD0UTR3fH9UFuJwyFt4n__w@mail.gmail.com>
-	<511E8F3C.2010406@linux.vnet.ibm.com>
-	<CAKfTPtD=2jn1AVjuhVP1ot7_8x9-W4==hNGZET5N9tRE7gtyMw@mail.gmail.com>
-	<512203B3.7090002@linux.vnet.ibm.com>
-	<512207A6.4000402@linux.vnet.ibm.com>
-Date: Mon, 18 Feb 2013 11:58:49 +0100
-Message-ID: <CAKfTPtA1aTseD6Gntkf_zbCEbfZzt3P2-P1un6iF5_1TdVLjRQ@mail.gmail.com>
-Subject: Re: [PATCH v5 00/45] CPU hotplug: stop_machine()-free CPU hotplug
-From: Vincent Guittot <vincent.guittot@linaro.org>
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Cc: paulmck@linux.vnet.ibm.com, Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, walken@google.com, mingo@kernel.org, linux-arch@vger.kernel.org, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, Rusty Russell <rusty@rustcorp.com.au>, rostedt@goodmis.org, rjw@sisk.pl, namhyung@kernel.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, oleg@redhat.com, sbw@mit.edu, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20130218105849.oKEsjY9TAqW3iKjz-kS4UGGxGiRCsLY6u6S4zOhiBTU@z>
+To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org
+Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, walken@google.com, vincent.guittot@linaro.org
+Message-ID: <20130218124431._hSmgpLf0n2XawDOYLwrm2Fm3VoTLj3-JXADoWLp-L4@z>
 
-On 18 February 2013 11:51, Srivatsa S. Bhat
-<srivatsa.bhat@linux.vnet.ibm.com> wrote:
-> On 02/18/2013 04:04 PM, Srivatsa S. Bhat wrote:
->> On 02/18/2013 03:54 PM, Vincent Guittot wrote:
->>> On 15 February 2013 20:40, Srivatsa S. Bhat
->>> <srivatsa.bhat@linux.vnet.ibm.com> wrote:
->>>> Hi Vincent,
->>>>
->>>> On 02/15/2013 06:58 PM, Vincent Guittot wrote:
->>>>> Hi Srivatsa,
->>>>>
->>>>> I have run some tests with you branch (thanks Paul for the git tree)
->>>>> and you will find results below.
->>>>>
->>>>
->>>> Thank you very much for testing this patchset!
->>>>
->>>>> The tests condition are:
->>>>> - 5 CPUs system in 2 clusters
->>>>> - The test plugs/unplugs CPU2 and it increases the system load each 20
->>>>> plug/unplug sequence with either more cyclictests threads
->>>>> - The test is done with all CPUs online and with only CPU0 and CPU2
->>>>>
->>>>> The main conclusion is that there is no differences with and without
->>>>> your patches with my stress tests. I'm not sure that it was the
->>>>> expected results but the cpu_down is already quite low : 4-5ms in
->>>>> average
->>>>>
->>>>
->>>> Atleast my patchset doesn't perform _worse_ than mainline, with respect
->>>> to cpu_down duration :-)
->>>
->>> yes exactly and it has pass  more than 400 consecutive plug/unplug on
->>> an ARM platform
->>>
->>
->> Great! However, did you turn on CPU_IDLE during your tests?
->>
->> In my tests, I had turned off cpu idle in the .config, like I had mentioned in
->> the cover letter. I'm struggling to get it working with CPU_IDLE/INTEL_IDLE
->> turned on, because it gets into a lockup almost immediately. It appears that
->> the lock-holder of clockevents_lock never releases it, for some reason..
->> See below for the full log. Lockdep has not been useful in debugging this,
->> unfortunately :-(
->>
->
-> Ah, nevermind, the following diff fixes it :-) I had applied this fix on v5
-> and tested but it still had races where I used to hit the lockups. Now after
-> I fixed all the memory barrier issues that Paul and Oleg pointed out in v5,
-> I applied this fix again and tested it just now - it works beautifully! :-)
+From: Paul E. McKenney <paul.mckenney@linaro.org>
 
-My tests have been done without cpuidle because i have some issues
-with function tracer and cpuidle
+The _cpu_down() function invoked as part of the CPU-hotplug offlining
+process currently invokes __stop_machine(), which is slow and inflicts
+substantial real-time latencies on the entire system.  This patch
+substitutes stop_one_cpu() for __stop_machine() in order to improve
+both performance and real-time latency.
 
-But the cpu hotplug and cpuidle work well when I run the tests without
-enabling the function tracer
+There were a number of uses of preempt_disable() or local_irq_disable()
+that were intended to block CPU-hotplug offlining. These were fixed by
+using get/put_online_cpus_atomic(), which is the new synchronization
+primitive to prevent CPU offline, while invoking from atomic context.
 
-Vincent
+Signed-off-by: Paul E. McKenney <paul.mckenney@linaro.org>
+Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+[ srivatsa.bhat@linux.vnet.ibm.com: Refer to the new sync primitives for
+  readers (in the changelog); s/stop_cpus/stop_one_cpu and fix comment
+  referring to stop_machine in the code]
+Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+---
 
->
-> I'll include this fix and post a v6 soon.
->
-> Regards,
-> Srivatsa S. Bhat
->
-> --------------------------------------------------------------------------->
->
->
-> diff --git a/kernel/time/clockevents.c b/kernel/time/clockevents.c
-> index 30b6de0..ca340fd 100644
-> --- a/kernel/time/clockevents.c
-> +++ b/kernel/time/clockevents.c
-> @@ -17,6 +17,7 @@
->  #include <linux/module.h>
->  #include <linux/notifier.h>
->  #include <linux/smp.h>
-> +#include <linux/cpu.h>
->
->  #include "tick-internal.h"
->
-> @@ -431,6 +432,7 @@ void clockevents_notify(unsigned long reason, void *arg)
->         unsigned long flags;
->         int cpu;
->
-> +       get_online_cpus_atomic();
->         raw_spin_lock_irqsave(&clockevents_lock, flags);
->         clockevents_do_notify(reason, arg);
->
-> @@ -459,6 +461,7 @@ void clockevents_notify(unsigned long reason, void *arg)
->                 break;
->         }
->         raw_spin_unlock_irqrestore(&clockevents_lock, flags);
-> +       put_online_cpus_atomic();
->  }
->  EXPORT_SYMBOL_GPL(clockevents_notify);
->  #endif
->
+ kernel/cpu.c |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/kernel/cpu.c b/kernel/cpu.c
+index 58dd1df..652fb53 100644
+--- a/kernel/cpu.c
++++ b/kernel/cpu.c
+@@ -337,7 +337,7 @@ static int __ref _cpu_down(unsigned int cpu, int tasks_frozen)
+ 	}
+ 	smpboot_park_threads(cpu);
+ 
+-	err = __stop_machine(take_cpu_down, &tcd_param, cpumask_of(cpu));
++	err = stop_one_cpu(cpu, take_cpu_down, &tcd_param);
+ 	if (err) {
+ 		/* CPU didn't die: tell everyone.  Can't complain. */
+ 		smpboot_unpark_threads(cpu);
+@@ -349,7 +349,7 @@ static int __ref _cpu_down(unsigned int cpu, int tasks_frozen)
+ 	/*
+ 	 * The migration_call() CPU_DYING callback will have removed all
+ 	 * runnable tasks from the cpu, there's only the idle task left now
+-	 * that the migration thread is done doing the stop_machine thing.
++	 * that the migration thread is done doing the stop_one_cpu() thing.
+ 	 *
+ 	 * Wait for the stop thread to go away.
+ 	 */
+
