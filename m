@@ -1,100 +1,121 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH 1/2] mm: Allow arch code to control the user page table ceiling
-Date: Mon, 18 Feb 2013 16:18:30 +0000
-Message-ID: <1361204311-14127-2-git-send-email-catalin.marinas@arm.com>
-References: <1361204311-14127-1-git-send-email-catalin.marinas@arm.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1361204311-14127-1-git-send-email-catalin.marinas@arm.com>
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, Hugh Dickins <hughd@google.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+From: Michel Lespinasse <walken@google.com>
+Subject: Re: [PATCH v6 08/46] CPU hotplug: Provide APIs to prevent CPU offline
+ from atomic context
+Date: Tue, 19 Feb 2013 00:23:56 +0800
+Message-ID: <CANN689HhVxDv+3Bn9UAxOMzj0egTvVp_c7oAmQ2nnQ8Xjn_aMA@mail.gmail.com>
+References: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com>
+	<20130218123920.26245.56709.stgit@srivatsabhat.in.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <20130218123920.26245.56709.stgit@srivatsabhat.in.ibm.com>
+Sender: netdev-owner@vger.kernel.org
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, vincent.guittot@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-From: Hugh Dickins <hughd@google.com>
+On Mon, Feb 18, 2013 at 8:39 PM, Srivatsa S. Bhat
+<srivatsa.bhat@linux.vnet.ibm.com> wrote:
+> Some important design requirements and considerations:
+> -----------------------------------------------------
+>
+> 1. Scalable synchronization at the reader-side, especially in the fast-path
+>
+>    Any synchronization at the atomic hotplug readers side must be highly
+>    scalable - avoid global single-holder locks/counters etc. Because, these
+>    paths currently use the extremely fast preempt_disable(); our replacement
+>    to preempt_disable() should not become ridiculously costly and also should
+>    not serialize the readers among themselves needlessly.
+>
+>    At a minimum, the new APIs must be extremely fast at the reader side
+>    atleast in the fast-path, when no CPU offline writers are active.
+>
+> 2. preempt_disable() was recursive. The replacement should also be recursive.
+>
+> 3. No (new) lock-ordering restrictions
+>
+>    preempt_disable() was super-flexible. It didn't impose any ordering
+>    restrictions or rules for nesting. Our replacement should also be equally
+>    flexible and usable.
+>
+> 4. No deadlock possibilities
+>
+>    Regular per-cpu locking is not the way to go if we want to have relaxed
+>    rules for lock-ordering. Because, we can end up in circular-locking
+>    dependencies as explained in https://lkml.org/lkml/2012/12/6/290
+>
+>    So, avoid the usual per-cpu locking schemes (per-cpu locks/per-cpu atomic
+>    counters with spin-on-contention etc) as much as possible, to avoid
+>    numerous deadlock possibilities from creeping in.
+>
+>
+> Implementation of the design:
+> ----------------------------
+>
+> We use per-CPU reader-writer locks for synchronization because:
+>
+>   a. They are quite fast and scalable in the fast-path (when no writers are
+>      active), since they use fast per-cpu counters in those paths.
+>
+>   b. They are recursive at the reader side.
+>
+>   c. They provide a good amount of safety against deadlocks; they don't
+>      spring new deadlock possibilities on us from out of nowhere. As a
+>      result, they have relaxed locking rules and are quite flexible, and
+>      thus are best suited for replacing usages of preempt_disable() or
+>      local_irq_disable() at the reader side.
+>
+> Together, these satisfy all the requirements mentioned above.
 
-On architectures where a pgd entry may be shared between user and kernel
-(ARM+LPAE), freeing page tables needs a ceiling other than 0. This patch
-introduces a generic USER_PGTABLES_CEILING that arch code can override.
+Thanks for this detailed design explanation.
 
-Signed-off-by: Hugh Dickins <hughd@google.com>
-[catalin.marinas@arm.com: commit log; shift_arg_pages(), asm-generic/pgtables.h changes]
-Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Russell King <linux@arm.linux.org.uk>
-Cc: Andrew Morton <akpm@linux-foundation.org>
----
- fs/exec.c                     |  4 ++--
- include/asm-generic/pgtable.h | 10 ++++++++++
- mm/mmap.c                     |  4 ++--
- 3 files changed, 14 insertions(+), 4 deletions(-)
+> +/*
+> + * Invoked by atomic hotplug reader (a task which wants to prevent
+> + * CPU offline, but which can't afford to sleep), to prevent CPUs from
+> + * going offline. So, you can call this function from atomic contexts
+> + * (including interrupt handlers).
+> + *
+> + * Note: This does NOT prevent CPUs from coming online! It only prevents
+> + * CPUs from going offline.
+> + *
+> + * You can call this function recursively.
+> + *
+> + * Returns with preemption disabled (but interrupts remain as they are;
+> + * they are not disabled).
+> + */
+> +void get_online_cpus_atomic(void)
+> +{
+> +       percpu_read_lock_irqsafe(&hotplug_pcpu_rwlock);
+> +}
+> +EXPORT_SYMBOL_GPL(get_online_cpus_atomic);
+> +
+> +void put_online_cpus_atomic(void)
+> +{
+> +       percpu_read_unlock_irqsafe(&hotplug_pcpu_rwlock);
+> +}
+> +EXPORT_SYMBOL_GPL(put_online_cpus_atomic);
 
-diff --git a/fs/exec.c b/fs/exec.c
-index 20df02c..547eaaa 100644
---- a/fs/exec.c
-+++ b/fs/exec.c
-@@ -613,7 +613,7 @@ static int shift_arg_pages(struct vm_area_struct *vma, unsigned long shift)
- 		 * when the old and new regions overlap clear from new_end.
- 		 */
- 		free_pgd_range(&tlb, new_end, old_end, new_end,
--			vma->vm_next ? vma->vm_next->vm_start : 0);
-+			vma->vm_next ? vma->vm_next->vm_start : USER_PGTABLES_CEILING);
- 	} else {
- 		/*
- 		 * otherwise, clean from old_start; this is done to not touch
-@@ -622,7 +622,7 @@ static int shift_arg_pages(struct vm_area_struct *vma, unsigned long shift)
- 		 * for the others its just a little faster.
- 		 */
- 		free_pgd_range(&tlb, old_start, old_end, new_end,
--			vma->vm_next ? vma->vm_next->vm_start : 0);
-+			vma->vm_next ? vma->vm_next->vm_start : USER_PGTABLES_CEILING);
- 	}
- 	tlb_finish_mmu(&tlb, new_end, old_end);
- 
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 5cf680a..f50a87d 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -7,6 +7,16 @@
- #include <linux/mm_types.h>
- #include <linux/bug.h>
- 
-+/*
-+ * On almost all architectures and configurations, 0 can be used as the
-+ * upper ceiling to free_pgtables(): on many architectures it has the same
-+ * effect as using TASK_SIZE.  However, there is one configuration which
-+ * must impose a more careful limit, to avoid freeing kernel pgtables.
-+ */
-+#ifndef USER_PGTABLES_CEILING
-+#define USER_PGTABLES_CEILING	0UL
-+#endif
-+
- #ifndef __HAVE_ARCH_PTEP_SET_ACCESS_FLAGS
- extern int ptep_set_access_flags(struct vm_area_struct *vma,
- 				 unsigned long address, pte_t *ptep,
-diff --git a/mm/mmap.c b/mm/mmap.c
-index d1e4124..e262710 100644
---- a/mm/mmap.c
-+++ b/mm/mmap.c
-@@ -2262,7 +2262,7 @@ static void unmap_region(struct mm_struct *mm,
- 	update_hiwater_rss(mm);
- 	unmap_vmas(&tlb, vma, start, end);
- 	free_pgtables(&tlb, vma, prev ? prev->vm_end : FIRST_USER_ADDRESS,
--				 next ? next->vm_start : 0);
-+				 next ? next->vm_start : USER_PGTABLES_CEILING);
- 	tlb_finish_mmu(&tlb, start, end);
- }
- 
-@@ -2640,7 +2640,7 @@ void exit_mmap(struct mm_struct *mm)
- 	/* Use -1 here to ensure all VMAs in the mm are unmapped */
- 	unmap_vmas(&tlb, vma, 0, -1);
- 
--	free_pgtables(&tlb, vma, FIRST_USER_ADDRESS, 0);
-+	free_pgtables(&tlb, vma, FIRST_USER_ADDRESS, USER_PGTABLES_CEILING);
- 	tlb_finish_mmu(&tlb, 0, -1);
- 
- 	/*
+So, you made it clear why you want a recursive read side here.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+I am wondering though, if you could take care of recursive uses in
+get/put_online_cpus_atomic() instead of doing it as a property of your
+rwlock:
+
+get_online_cpus_atomic()
+{
+    unsigned long flags;
+    local_irq_save(flags);
+    if (this_cpu_inc_return(hotplug_recusion_count) == 1)
+        percpu_read_lock_irqsafe(&hotplug_pcpu_rwlock);
+    local_irq_restore(flags);
+}
+
+Once again, the idea there is to avoid baking the reader side
+recursive properties into your rwlock itself, so that it won't be
+impossible to implement reader/writer fairness into your rwlock in the
+future (which may be not be very important for the hotplug use, but
+could be when other uses get introduced).
+
+-- 
+Michel "Walken" Lespinasse
+A program is never fully debugged until the last user dies.
