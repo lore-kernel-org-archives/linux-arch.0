@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp08.in.ibm.com ([122.248.162.8]:58889 "EHLO
+Received: from e28smtp08.in.ibm.com ([122.248.162.8]:57937 "EHLO
 	e28smtp08.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756026Ab3BRMnm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2013 07:43:42 -0500
+	with ESMTP id S1751512Ab3BRMlj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2013 07:41:39 -0500
 Received: from /spool/local
 	by e28smtp08.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Mon, 18 Feb 2013 18:10:21 +0530
+	Mon, 18 Feb 2013 18:08:18 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v6 23/46] infiniband: ehca: Use get/put_online_cpus_atomic()
- to prevent CPU offline
-Date: Mon, 18 Feb 2013 18:11:27 +0530
-Message-ID: <20130218124127.26245.52045.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v6 09/46] CPU hotplug: Convert preprocessor macros to static
+ inline functions
+Date: Mon, 18 Feb 2013 18:09:32 +0530
+Message-ID: <20130218123932.26245.15573.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com>
 References: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -21,74 +21,38 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org
 Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, walken@google.com, vincent.guittot@linaro.org
-Message-ID: <20130218124127.N4d5O1m11ZjscSuK1jwC_pzxZh8CTnyQi7OTuvdyA2U@z>
+Message-ID: <20130218123932.s8ePMEhaJo4wogNUYR8AaeWYHupLs9xR5WvV7zXp1uA@z>
 
-Once stop_machine() is gone from the CPU offline path, we won't be able to
-depend on preempt_disable() or local_irq_disable() to prevent CPUs from
-going offline from under us.
+On 12/05/2012 06:10 AM, Andrew Morton wrote:
+"static inline C functions would be preferred if possible.  Feel free to
+fix up the wrong crufty surrounding code as well ;-)"
 
-Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going offline,
-while invoking from atomic context.
+Convert the macros in the CPU hotplug code to static inline C functions.
 
-Cc: Roland Dreier <roland@kernel.org>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+Reviewed-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 ---
 
- drivers/infiniband/hw/ehca/ehca_irq.c |    8 ++++++++
- 1 file changed, 8 insertions(+)
+ include/linux/cpu.h |    8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/drivers/infiniband/hw/ehca/ehca_irq.c b/drivers/infiniband/hw/ehca/ehca_irq.c
-index 8615d7c..d61936c 100644
---- a/drivers/infiniband/hw/ehca/ehca_irq.c
-+++ b/drivers/infiniband/hw/ehca/ehca_irq.c
-@@ -43,6 +43,7 @@
+diff --git a/include/linux/cpu.h b/include/linux/cpu.h
+index cf24da1..eb79f47 100644
+--- a/include/linux/cpu.h
++++ b/include/linux/cpu.h
+@@ -198,10 +198,10 @@ static inline void cpu_hotplug_driver_unlock(void)
  
- #include <linux/slab.h>
- #include <linux/smpboot.h>
-+#include <linux/cpu.h>
+ #else		/* CONFIG_HOTPLUG_CPU */
  
- #include "ehca_classes.h"
- #include "ehca_irq.h"
-@@ -653,6 +654,9 @@ void ehca_tasklet_eq(unsigned long data)
- 	ehca_process_eq((struct ehca_shca*)data, 1);
- }
- 
-+/*
-+ * Must be called under get_online_cpus_atomic() and put_online_cpus_atomic().
-+ */
- static int find_next_online_cpu(struct ehca_comp_pool *pool)
- {
- 	int cpu;
-@@ -703,6 +707,7 @@ static void queue_comp_task(struct ehca_cq *__cq)
- 	int cq_jobs;
- 	unsigned long flags;
- 
-+	get_online_cpus_atomic();
- 	cpu_id = find_next_online_cpu(pool);
- 	BUG_ON(!cpu_online(cpu_id));
- 
-@@ -720,6 +725,7 @@ static void queue_comp_task(struct ehca_cq *__cq)
- 		BUG_ON(!cct || !thread);
- 	}
- 	__queue_comp_task(__cq, cct, thread);
-+	put_online_cpus_atomic();
- }
- 
- static void run_comp_task(struct ehca_cpu_comp_task *cct)
-@@ -759,6 +765,7 @@ static void comp_task_park(unsigned int cpu)
- 	list_splice_init(&cct->cq_list, &list);
- 	spin_unlock_irq(&cct->task_lock);
- 
-+	get_online_cpus_atomic();
- 	cpu = find_next_online_cpu(pool);
- 	target = per_cpu_ptr(pool->cpu_comp_tasks, cpu);
- 	thread = *per_cpu_ptr(pool->cpu_comp_threads, cpu);
-@@ -768,6 +775,7 @@ static void comp_task_park(unsigned int cpu)
- 		__queue_comp_task(cq, target, thread);
- 	}
- 	spin_unlock_irq(&target->task_lock);
-+	put_online_cpus_atomic();
- }
- 
- static void comp_task_stop(unsigned int cpu, bool online)
+-#define get_online_cpus()	do { } while (0)
+-#define put_online_cpus()	do { } while (0)
+-#define get_online_cpus_atomic()	do { } while (0)
+-#define put_online_cpus_atomic()	do { } while (0)
++static inline void get_online_cpus(void) {}
++static inline void put_online_cpus(void) {}
++static inline void get_online_cpus_atomic(void) {}
++static inline void put_online_cpus_atomic(void) {}
+ #define hotcpu_notifier(fn, pri)	do { (void)(fn); } while (0)
+ /* These aren't inline functions due to a GCC bug. */
+ #define register_hotcpu_notifier(nb)	({ (void)(nb); 0; })
 
