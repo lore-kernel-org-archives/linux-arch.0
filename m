@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp08.au.ibm.com ([202.81.31.141]:39333 "EHLO
-	e23smtp08.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751214Ab3BRMnC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2013 07:43:02 -0500
+Received: from e28smtp07.in.ibm.com ([122.248.162.7]:51109 "EHLO
+	e28smtp07.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753122Ab3BRMnX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2013 07:43:23 -0500
 Received: from /spool/local
-	by e23smtp08.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp07.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Mon, 18 Feb 2013 22:41:16 +1000
+	Mon, 18 Feb 2013 18:10:37 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v6 19/46] irq: Use get/put_online_cpus_atomic() to prevent CPU
+Subject: [PATCH v6 20/46] net: Use get/put_online_cpus_atomic() to prevent CPU
  offline
-Date: Mon, 18 Feb 2013 18:10:52 +0530
-Message-ID: <20130218124052.26245.30164.stgit@srivatsabhat.in.ibm.com>
+Date: Mon, 18 Feb 2013 18:11:04 +0530
+Message-ID: <20130218124104.26245.44272.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com>
 References: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -21,7 +21,7 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org
 Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, walken@google.com, vincent.guittot@linaro.org
-Message-ID: <20130218124052.4kBDEBpoNA95YMhjTqO6kOlUhJvGbvkxPdACnuTCB_w@z>
+Message-ID: <20130218124104.Vg_bTptFIrzw98EvMRBHzNTNLLrxhWt2mr9PJ0kn13E@z>
 
 Once stop_machine() is gone from the CPU offline path, we won't be able to
 depend on preempt_disable() or local_irq_disable() to prevent CPUs from
@@ -30,52 +30,71 @@ going offline from under us.
 Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going offline,
 while invoking from atomic context.
 
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Eric Dumazet <edumazet@google.com>
+Cc: netdev@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- kernel/irq/manage.c |    7 +++++++
- 1 file changed, 7 insertions(+)
+ net/core/dev.c |    9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
 
-diff --git a/kernel/irq/manage.c b/kernel/irq/manage.c
-index e49a288..b4240b9 100644
---- a/kernel/irq/manage.c
-+++ b/kernel/irq/manage.c
-@@ -16,6 +16,7 @@
- #include <linux/interrupt.h>
- #include <linux/slab.h>
- #include <linux/sched.h>
-+#include <linux/cpu.h>
- #include <linux/task_work.h>
+diff --git a/net/core/dev.c b/net/core/dev.c
+index f64e439..5421f96 100644
+--- a/net/core/dev.c
++++ b/net/core/dev.c
+@@ -3089,7 +3089,7 @@ int netif_rx(struct sk_buff *skb)
+ 		struct rps_dev_flow voidflow, *rflow = &voidflow;
+ 		int cpu;
  
- #include "internals.h"
-@@ -202,7 +203,9 @@ int irq_set_affinity(unsigned int irq, const struct cpumask *mask)
- 		return -EINVAL;
- 
- 	raw_spin_lock_irqsave(&desc->lock, flags);
-+	get_online_cpus_atomic();
- 	ret =  __irq_set_affinity_locked(irq_desc_get_irq_data(desc), mask);
-+	put_online_cpus_atomic();
- 	raw_spin_unlock_irqrestore(&desc->lock, flags);
- 	return ret;
- }
-@@ -343,7 +346,9 @@ int irq_select_affinity_usr(unsigned int irq, struct cpumask *mask)
- 	int ret;
- 
- 	raw_spin_lock_irqsave(&desc->lock, flags);
-+	get_online_cpus_atomic();
- 	ret = setup_affinity(irq, desc, mask);
-+	put_online_cpus_atomic();
- 	raw_spin_unlock_irqrestore(&desc->lock, flags);
- 	return ret;
- }
-@@ -1126,7 +1131,9 @@ __setup_irq(unsigned int irq, struct irq_desc *desc, struct irqaction *new)
- 		}
- 
- 		/* Set default affinity mask once everything is setup */
+-		preempt_disable();
 +		get_online_cpus_atomic();
- 		setup_affinity(irq, desc, mask);
-+		put_online_cpus_atomic();
+ 		rcu_read_lock();
  
- 	} else if (new->flags & IRQF_TRIGGER_MASK) {
- 		unsigned int nmsk = new->flags & IRQF_TRIGGER_MASK;
+ 		cpu = get_rps_cpu(skb->dev, skb, &rflow);
+@@ -3099,7 +3099,7 @@ int netif_rx(struct sk_buff *skb)
+ 		ret = enqueue_to_backlog(skb, cpu, &rflow->last_qtail);
+ 
+ 		rcu_read_unlock();
+-		preempt_enable();
++		put_online_cpus_atomic();
+ 	} else
+ #endif
+ 	{
+@@ -3498,6 +3498,7 @@ int netif_receive_skb(struct sk_buff *skb)
+ 		struct rps_dev_flow voidflow, *rflow = &voidflow;
+ 		int cpu, ret;
+ 
++		get_online_cpus_atomic();
+ 		rcu_read_lock();
+ 
+ 		cpu = get_rps_cpu(skb->dev, skb, &rflow);
+@@ -3505,9 +3506,11 @@ int netif_receive_skb(struct sk_buff *skb)
+ 		if (cpu >= 0) {
+ 			ret = enqueue_to_backlog(skb, cpu, &rflow->last_qtail);
+ 			rcu_read_unlock();
++			put_online_cpus_atomic();
+ 			return ret;
+ 		}
+ 		rcu_read_unlock();
++		put_online_cpus_atomic();
+ 	}
+ #endif
+ 	return __netif_receive_skb(skb);
+@@ -3887,6 +3890,7 @@ static void net_rps_action_and_irq_enable(struct softnet_data *sd)
+ 		local_irq_enable();
+ 
+ 		/* Send pending IPI's to kick RPS processing on remote cpus. */
++		get_online_cpus_atomic();
+ 		while (remsd) {
+ 			struct softnet_data *next = remsd->rps_ipi_next;
+ 
+@@ -3895,6 +3899,7 @@ static void net_rps_action_and_irq_enable(struct softnet_data *sd)
+ 							   &remsd->csd, 0);
+ 			remsd = next;
+ 		}
++		put_online_cpus_atomic();
+ 	} else
+ #endif
+ 		local_irq_enable();
 
