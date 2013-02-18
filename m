@@ -1,67 +1,110 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp09.au.ibm.com ([202.81.31.142]:50115 "EHLO
-	e23smtp09.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751578Ab3BRSQv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2013 13:16:51 -0500
+Received: from e28smtp03.in.ibm.com ([122.248.162.3]:48930 "EHLO
+	e28smtp03.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753616Ab3BRSxD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2013 13:53:03 -0500
 Received: from /spool/local
-	by e23smtp09.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp03.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 19 Feb 2013 04:09:43 +1000
-Message-ID: <51226F91.7000108@linux.vnet.ibm.com>
-Date: Mon, 18 Feb 2013 23:44:41 +0530
+	Tue, 19 Feb 2013 00:20:39 +0530
+Message-ID: <51227810.6090009@linux.vnet.ibm.com>
+Date: Tue, 19 Feb 2013 00:20:56 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v6 04/46] percpu_rwlock: Implement the core design of
- Per-CPU Reader-Writer Locks
-References: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com> <20130218123856.26245.46705.stgit@srivatsabhat.in.ibm.com> <CANN689F9S7c1M8+cEpz3tsxGF34+NTRBLvxgPUOtbvav5u+RRA@mail.gmail.com> <5122551E.1080703@linux.vnet.ibm.com> <51226B46.9080707@linux.vnet.ibm.com> <CANN689FSxOz+0Cu7EG_yKD8ZE1OpT4kyT+ybLfXSqaifodJRpw@mail.gmail.com>
-In-Reply-To: <CANN689FSxOz+0Cu7EG_yKD8ZE1OpT4kyT+ybLfXSqaifodJRpw@mail.gmail.com>
+Subject: Re: [PATCH v6 08/46] CPU hotplug: Provide APIs to prevent CPU offline
+ from atomic context
+References: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com> <20130218123920.26245.56709.stgit@srivatsabhat.in.ibm.com> <CANN689HhVxDv+3Bn9UAxOMzj0egTvVp_c7oAmQ2nnQ8Xjn_aMA@mail.gmail.com> <51225A36.40600@linux.vnet.ibm.com> <CANN689FJPLfz06MFRJ9T+BuToejAzjYP_yrw_H4iGi1Kb3p2-g@mail.gmail.com>
+In-Reply-To: <CANN689FJPLfz06MFRJ9T+BuToejAzjYP_yrw_H4iGi1Kb3p2-g@mail.gmail.com>
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Michel Lespinasse <walken@google.com>
-Cc: linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, namhyung@kernel.org, mingo@kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, paulmck@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, rusty@rustcorp.com.au, rostedt@goodmis.org, rjw@sisk.pl, vincent.guittot@linaro.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, oleg@redhat.com, sbw@mit.edu, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20130218181441.6gmwb9Q23E8vPrT6ks5BYieFDCkuh5PgmgTpZirkbNw@z>
+Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, vincent.guittot@linaro.org
+Message-ID: <20130218185056.Tae6d8nmX8z7hlg1R1FJsD5NRhWHuWII0bK9hN3ZDw8@z>
 
-On 02/18/2013 11:37 PM, Michel Lespinasse wrote:
-> On Tue, Feb 19, 2013 at 1:56 AM, Srivatsa S. Bhat
+On 02/18/2013 10:51 PM, Michel Lespinasse wrote:
+> On Tue, Feb 19, 2013 at 12:43 AM, Srivatsa S. Bhat
 > <srivatsa.bhat@linux.vnet.ibm.com> wrote:
->> On 02/18/2013 09:51 PM, Srivatsa S. Bhat wrote:
->>> On 02/18/2013 09:15 PM, Michel Lespinasse wrote:
->>>> I don't see anything preventing a race with the corresponding code in
->>>> percpu_write_unlock() that sets writer_signal back to false. Did I
->>>> miss something here ? It seems to me we don't have any guarantee that
->>>> all writer signals will be set to true at the end of the loop...
+>> On 02/18/2013 09:53 PM, Michel Lespinasse wrote:
+>>> I am wondering though, if you could take care of recursive uses in
+>>> get/put_online_cpus_atomic() instead of doing it as a property of your
+>>> rwlock:
 >>>
->>> Ah, thanks for pointing that out! IIRC Oleg had pointed this issue in the last
->>> version, but back then, I hadn't fully understood what he meant. Your
->>> explanation made it clear. I'll work on fixing this.
+>>> get_online_cpus_atomic()
+>>> {
+>>>     unsigned long flags;
+>>>     local_irq_save(flags);
+>>>     if (this_cpu_inc_return(hotplug_recusion_count) == 1)
+>>>         percpu_read_lock_irqsafe(&hotplug_pcpu_rwlock);
+>>>     local_irq_restore(flags);
+>>> }
+>>>
+>>> Once again, the idea there is to avoid baking the reader side
+>>> recursive properties into your rwlock itself, so that it won't be
+>>> impossible to implement reader/writer fairness into your rwlock in the
+>>> future (which may be not be very important for the hotplug use, but
+>>> could be when other uses get introduced).
 >>
->> We can fix this by using the simple patch (untested) shown below.
->> The alternative would be to acquire the rwlock for write, update the
->> ->writer_signal values, release the lock, wait for readers to switch,
->> again acquire the rwlock for write with interrupts disabled etc... which
->> makes it kinda messy, IMHO. So I prefer the simple version shown below.
+>> Hmm, your proposal above looks good to me, at first glance.
+>> (Sorry, I had mistaken your earlier mails to mean that you were against
+>> recursive reader-side, while you actually meant that you didn't like
+>> implementing the recursive reader-side logic using the recursive property
+>> of rwlocks).
 > 
-> Looks good.
+> To be honest, I was replying as I went through the series, so I hadn't
+> digested your hotplug use case yet :)
 > 
-> Another alternative would be to make writer_signal an atomic integer
-> instead of a bool. That way writers can increment it before locking
-> and decrement it while unlocking.
+> But yes - I don't like having the rwlock itself be recursive, but I do
+> understand that you have a legitimate requirement for
+> get_online_cpus_atomic() to be recursive. This IMO points to the
+> direction I suggested, of explicitly handling the recusion in
+> get_online_cpus_atomic() so that the underlying rwlock doesn't have to
+> support recursive reader side itself.
+> 
+> (And this would work for the idea of making writers own the reader
+> side as well - you can do it with the hotplug_recursion_count instead
+> of with the underlying rwlock).
+> 
+>> While your idea above looks good, it might introduce more complexity
+>> in the unlock path, since this would allow nesting of heterogeneous readers
+>> (ie., if hotplug_recursion_count == 1, you don't know whether you need to
+>> simply decrement the counter or unlock the rwlock as well).
+> 
+> Well, I think the idea doesn't make the underlying rwlock more
+> complex, since you could in principle keep your existing
+> percpu_read_lock_irqsafe implementation as is and just remove the
+> recursive behavior from its documentation.
+> 
+> Now ideally if we're adding a bit of complexity in
+> get_online_cpus_atomic() it'd be nice if we could remove some from
+> percpu_read_lock_irqsafe, but I haven't thought about that deeply
+> either. I think you'd still want to have the equivalent of a percpu
+> reader_refcnt, except it could now be a bool instead of an int, and
+> percpu_read_lock_irqsafe would still set it to back to 0/false after
+> acquiring the global read side if a writer is signaled. Basically your
+> existing percpu_read_lock_irqsafe code should still work, and we could
+> remove just the parts that were only there to deal with the recursive
+> property.
 > 
 
-Yep, that would also do. But the spinlock version looks simpler - no need
-to check if the atomic counter is non-zero, no need to explicitly spin in
-a tight-loop etc.
+But, the whole intention behind removing the parts depending on the
+recursive property of rwlocks would be to make it easier to make rwlocks
+fair (going forward) right? Then, that won't work for CPU hotplug, because,
+just like we have a legitimate reason to have recursive
+get_online_cpus_atomic(), we also have a legitimate reason to have
+unfairness in locking (i.e., for deadlock-safety). So we simply can't
+afford to make the locking fair - we'll end up in too many deadlock
+possibilities, as hinted in the changelog of patch 1.
 
-> To reduce the number of atomic ops during writer lock/unlock, the
-> writer_signal could also be a global read_mostly variable (I don't see
-> any downsides to that compared to having it percpu - or is it because
-> you wanted all the fastpath state to be in one single cacheline ?)
-> 
+(Remember, we are replacing preempt_disable(), which had absolutely no
+special nesting rules or locking implications. That is why we are forced
+to provide maximum locking flexibility and safety against new/previously
+non-existent deadlocks, in the new synchronization scheme).
 
-Yes, we (Oleg and I) debated for a while about global vs percpu, and then
-finally decided to go with percpu to have cache benefits.
+So the only long-term solution I can think of is to decouple
+percpu-rwlocks and rwlock_t (like what Tejun suggested) by implementing
+our own unfair locking scheme inside. What do you think?
 
 Regards,
 Srivatsa S. Bhat
