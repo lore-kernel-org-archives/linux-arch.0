@@ -1,59 +1,90 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v6 22/46] crypto: pcrypt - Protect access to cpu_online_mask
- with get/put_online_cpus()
-Date: Mon, 18 Feb 2013 18:11:15 +0530
-Message-ID: <20130218124115.26245.88223.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v6 20/46] net: Use get/put_online_cpus_atomic() to prevent CPU
+ offline
+Date: Mon, 18 Feb 2013 18:11:04 +0530
+Message-ID: <20130218124104.26245.44272.stgit@srivatsabhat.in.ibm.com>
 References: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp02.au.ibm.com ([202.81.31.144]:43448 "EHLO
-	e23smtp02.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755792Ab3BRMn1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2013 07:43:27 -0500
-Received: from /spool/local
-	by e23smtp02.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Mon, 18 Feb 2013 22:37:22 +1000
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org
 Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, walken@google.com, vincent.guittot@linaro.org
+List-Id: linux-arch.vger.kernel.org
 
-The pcrypt_aead_init_tfm() function access the cpu_online_mask without
-disabling CPU hotplug. And it looks like it can afford to sleep, so use
-the get/put_online_cpus() APIs to protect against CPU hotplug.
+Once stop_machine() is gone from the CPU offline path, we won't be able to
+depend on preempt_disable() or local_irq_disable() to prevent CPUs from
+going offline from under us.
 
-Cc: Steffen Klassert <steffen.klassert@secunet.com>
-Cc: Herbert Xu <herbert@gondor.apana.org.au>
+Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going offline,
+while invoking from atomic context.
+
 Cc: "David S. Miller" <davem@davemloft.net>
-Cc: linux-crypto@vger.kernel.org
+Cc: Eric Dumazet <edumazet@google.com>
+Cc: netdev@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- crypto/pcrypt.c |    4 ++++
- 1 file changed, 4 insertions(+)
+ net/core/dev.c |    9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
 
-diff --git a/crypto/pcrypt.c b/crypto/pcrypt.c
-index b2c99dc..10f64e2 100644
---- a/crypto/pcrypt.c
-+++ b/crypto/pcrypt.c
-@@ -280,12 +280,16 @@ static int pcrypt_aead_init_tfm(struct crypto_tfm *tfm)
+diff --git a/net/core/dev.c b/net/core/dev.c
+index f64e439..5421f96 100644
+--- a/net/core/dev.c
++++ b/net/core/dev.c
+@@ -3089,7 +3089,7 @@ int netif_rx(struct sk_buff *skb)
+ 		struct rps_dev_flow voidflow, *rflow = &voidflow;
+ 		int cpu;
  
- 	ictx->tfm_count++;
+-		preempt_disable();
++		get_online_cpus_atomic();
+ 		rcu_read_lock();
  
-+	get_online_cpus();
-+
- 	cpu_index = ictx->tfm_count % cpumask_weight(cpu_online_mask);
+ 		cpu = get_rps_cpu(skb->dev, skb, &rflow);
+@@ -3099,7 +3099,7 @@ int netif_rx(struct sk_buff *skb)
+ 		ret = enqueue_to_backlog(skb, cpu, &rflow->last_qtail);
  
- 	ctx->cb_cpu = cpumask_first(cpu_online_mask);
- 	for (cpu = 0; cpu < cpu_index; cpu++)
- 		ctx->cb_cpu = cpumask_next(ctx->cb_cpu, cpu_online_mask);
+ 		rcu_read_unlock();
+-		preempt_enable();
++		put_online_cpus_atomic();
+ 	} else
+ #endif
+ 	{
+@@ -3498,6 +3498,7 @@ int netif_receive_skb(struct sk_buff *skb)
+ 		struct rps_dev_flow voidflow, *rflow = &voidflow;
+ 		int cpu, ret;
  
-+	put_online_cpus();
-+
- 	cipher = crypto_spawn_aead(crypto_instance_ctx(inst));
++		get_online_cpus_atomic();
+ 		rcu_read_lock();
  
- 	if (IS_ERR(cipher))
+ 		cpu = get_rps_cpu(skb->dev, skb, &rflow);
+@@ -3505,9 +3506,11 @@ int netif_receive_skb(struct sk_buff *skb)
+ 		if (cpu >= 0) {
+ 			ret = enqueue_to_backlog(skb, cpu, &rflow->last_qtail);
+ 			rcu_read_unlock();
++			put_online_cpus_atomic();
+ 			return ret;
+ 		}
+ 		rcu_read_unlock();
++		put_online_cpus_atomic();
+ 	}
+ #endif
+ 	return __netif_receive_skb(skb);
+@@ -3887,6 +3890,7 @@ static void net_rps_action_and_irq_enable(struct softnet_data *sd)
+ 		local_irq_enable();
+ 
+ 		/* Send pending IPI's to kick RPS processing on remote cpus. */
++		get_online_cpus_atomic();
+ 		while (remsd) {
+ 			struct softnet_data *next = remsd->rps_ipi_next;
+ 
+@@ -3895,6 +3899,7 @@ static void net_rps_action_and_irq_enable(struct softnet_data *sd)
+ 							   &remsd->csd, 0);
+ 			remsd = next;
+ 		}
++		put_online_cpus_atomic();
+ 	} else
+ #endif
+ 		local_irq_enable();
