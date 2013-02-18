@@ -1,103 +1,103 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f169.google.com ([209.85.223.169]:44604 "EHLO
-	mail-ie0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754480Ab3BRPp1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2013 10:45:27 -0500
-Received: by mail-ie0-f169.google.com with SMTP id 13so7418358iea.14
-        for <linux-arch@vger.kernel.org>; Mon, 18 Feb 2013 07:45:26 -0800 (PST)
+Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:59264 "EHLO
+	cam-smtp0.cambridge.arm.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1751731Ab3BRPuS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 18 Feb 2013 10:50:18 -0500
+Date: Mon, 18 Feb 2013 15:49:44 +0000
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH] mm: Limit pgd range freeing to mm->task_size
+Message-ID: <20130218154944.GA1678@arm.com>
+References: <1360755569-27282-1-git-send-email-catalin.marinas@arm.com>
+ <20130213134756.b90f8e1b.akpm@linux-foundation.org>
+ <alpine.LNX.2.00.1302141227500.1911@eggly.anvils>
 MIME-Version: 1.0
-In-Reply-To: <20130218123856.26245.46705.stgit@srivatsabhat.in.ibm.com>
-References: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com>
-	<20130218123856.26245.46705.stgit@srivatsabhat.in.ibm.com>
-Date: Mon, 18 Feb 2013 23:45:26 +0800
-Message-ID: <CANN689F9S7c1M8+cEpz3tsxGF34+NTRBLvxgPUOtbvav5u+RRA@mail.gmail.com>
-Subject: Re: [PATCH v6 04/46] percpu_rwlock: Implement the core design of
- Per-CPU Reader-Writer Locks
-From: Michel Lespinasse <walken@google.com>
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <alpine.LNX.2.00.1302141227500.1911@eggly.anvils>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, vincent.guittot@linaro.org
-Message-ID: <20130218154526.bWjAfNukRkd2We0tFDmtIm6SL_Sw4LErZChRKTs_pUQ@z>
+To: Hugh Dickins <hughd@google.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andrea Arcangeli <aarcange@redhat.com>, Russell King <linux@arm.linux.org.uk>
+Message-ID: <20130218154944.3ZRMjRGnPiF5MD6Iv6-1RGdoGuQvvvHNLnJSoVCGg84@z>
 
-Hi Srivasta,
+Hugh,
 
-I admit not having followed in detail the threads about the previous
-iteration, so some of my comments may have been discussed already
-before - apologies if that is the case.
+On Thu, Feb 14, 2013 at 09:24:09PM +0000, Hugh Dickins wrote:
+> On Wed, 13 Feb 2013, Andrew Morton wrote:
+> > On Wed, 13 Feb 2013 11:39:29 +0000
+> > Catalin Marinas <catalin.marinas@arm.com> wrote:
+> > 
+> > > ARM processors with LPAE enabled use 3 levels of page tables, with an
+> > > entry in the top level (pgd) covering 1GB of virtual space. Because of
+> > > the branch relocation limitations on ARM, the loadable modules are
+> > > mapped 16MB below PAGE_OFFSET, making the corresponding 1GB pgd shared
+> > > between kernel modules and user space.
+> > > 
+> > > Since free_pgtables() is called with ceiling == 0, free_pgd_range() (and
+> > > subsequently called functions) also frees the page table
+> > > shared between user space and kernel modules (which is normally handled
+> > > by the ARM-specific pgd_free() function).
+> > > 
+> > > This patch changes the ceiling argument to mm->task_size for the
+> > > free_pgtables() and free_pgd_range() function calls. We cannot use
+> > > TASK_SIZE since this macro may not be a run-time constant on 64-bit
+> > > systems supporting compat applications.
+> > 
+> > I'm trying to work out why we're using 0 in there at all, rather than
+> > ->task_size.  But that's lost in the mists of time.
+> > 
+> > As you've discovered, handling of task_size and TASK_SIZE is somewhat
+> > inconsistent across architectures and with compat tasks.  I guess we
+> > toss it in there and see if anything breaks...
+> 
+> ... and an x86_64 kernel quickly shows,
+> with either 64-bit or 32-bit userspace, that exit_mmap() breaks at
+> WARN_ON(mm->nr_ptes > (FIRST_USER_ADDRESS+PMD_SIZE-1)>>PMD_SHIFT);
+> 
+> We couldn't think of using mm->task_size in 2.6.12 because it didn't
+> exist then; but although it sounds plausible, and on many architectures
+> (x86_32?) it should be fine, in general it's not quite the right thing
+> to use.  0 is an easy rounded-up-whatever-the-increment version of
+> TASK_SIZE (okay, it's missing an implicit 1 before all its 0s).
+> 
+> The ceiling passed to free_pgtables() says how far up it can go in
+> freeing pts and pmds and puds and pgds: when doing munmap(), you have
+> to be careful not to stray beyond the range you're freeing; when doing
+> exit_mmap(), you have to be careful to free all the areas you might
+> have had to avoid before.
 
-On Mon, Feb 18, 2013 at 8:38 PM, Srivatsa S. Bhat
-<srivatsa.bhat@linux.vnet.ibm.com> wrote:
-> Reader-writer locks and per-cpu counters are recursive, so they can be
-> used in a nested fashion in the reader-path, which makes per-CPU rwlocks also
-> recursive. Also, this design of switching the synchronization scheme ensures
-> that you can safely nest and use these locks in a very flexible manner.
+Yes, on ARM+LPAE we make sure we free what's left of the shared pgd (a
+pmd page).
 
-I like the general idea of switching between per-cpu and global
-rwlocks as needed; however I dislike unfair locks, and especially
-unfair recursive rwlocks.
+> mm->task_size does not necessarily fall on a nice boundary: use it
+> instead of 0 and exit_mmap() is liable to leave unfreed page tables
+> at several levels.
+> 
+> I'm sure that Catalin is right that he needs to adjust that ceiling arg
+> to free_pgtables() to cope with a level shared between user and kernel.
+> 
+> I met the same problem two years ago, when doing a patch (which worked
+> but went nowhere: x86 people kept on changing the early pagetable setup)
+> to make CONFIG_VMSPLIT_2G_OPT and 3G_OPT compatible with CONFIG_X86_PAE.
+> That shared a level beween user and kernel too: everything could be
+> handled down in the arch code, except this free_pgtables() ceiling arg.
+> 
+> (I did not make any change to the free_pgd_range() calls in fs/exec.c,
+> I'm not familiar with those at all: my patch appeared to work fine
+> without touching them, but now I wonder.)
+> 
+> Here's the mm/mmap.c part of my patch (but it now looks like the
+> default should go into include/asm-generic):
 
-If you look at rwlock_t, the main reason we haven't been able to
-implement reader/writer fairness there is because tasklist_lock makes
-use of the recursive nature of the rwlock_t read side. I'm worried
-about introducing more lock usages that would make use of the same
-property for your proposed lock.
+Thanks for the patch. It is related to FIRST_USER_ADDRESS which is
+defined in asm/pgtable.h, so asm-generic/pgtable.h looks like a good
+place. We can actually make FIRST_USER_ADDRESS generic as well since
+apart from arm and unicore32 all the other architectures define it as 0.
 
-I am fine with your proposal not implementing reader/writer fairness
-from day 1, but I am worried about your proposal having a recursive
-reader side. Or, to put it another way: if your proposal didn't have a
-recursive reader side, and rwlock_t could somehow be changed to
-implement reader/writer fairness, then this property could
-automatically propagate into your proposed rwlock; but if anyone makes
-use of the recursive nature of your proposal then implementing
-reader/writer fairness later won't be as easy.
-
-I see that the very next change in this series is talking about
-acquiring the read side from interrupts, so it does look like you're
-planning to make use of the recursive nature of the read side. I kinda
-wish you didn't, as this is exactly replicating the design of
-tasklist_lock which is IMO problematic. Your prior proposal of
-disabling interrupts during the read side had other disadvantages, but
-I think it was nice that it didn't rely on having a recursive read
-side.
-
-> +#define reader_yet_to_switch(pcpu_rwlock, cpu)                             \
-> +       (ACCESS_ONCE(per_cpu_ptr((pcpu_rwlock)->rw_state, cpu)->reader_refcnt))
-> +
-> +#define reader_percpu_nesting_depth(pcpu_rwlock)                 \
-> +       (__this_cpu_read((pcpu_rwlock)->rw_state->reader_refcnt))
-> +
-> +#define reader_uses_percpu_refcnt(pcpu_rwlock)                         \
-> +                               reader_percpu_nesting_depth(pcpu_rwlock)
-> +
-> +#define reader_nested_percpu(pcpu_rwlock)                              \
-> +                       (reader_percpu_nesting_depth(pcpu_rwlock) > 1)
-> +
-> +#define writer_active(pcpu_rwlock)                                     \
-> +       (__this_cpu_read((pcpu_rwlock)->rw_state->writer_signal))
-
-I'm personally not a fan of such one-line shorthand functions - I
-think they tend to make the code harder to read instead of easier, as
-one constantly has to refer to them to understand what's actually
-going on.
-
->  void percpu_write_lock(struct percpu_rwlock *pcpu_rwlock)
->  {
-> +       unsigned int cpu;
-> +
-> +       /*
-> +        * Tell all readers that a writer is becoming active, so that they
-> +        * start switching over to the global rwlock.
-> +        */
-> +       for_each_possible_cpu(cpu)
-> +               per_cpu_ptr(pcpu_rwlock->rw_state, cpu)->writer_signal = true;
-
-I don't see anything preventing a race with the corresponding code in
-percpu_write_unlock() that sets writer_signal back to false. Did I
-miss something here ? It seems to me we don't have any guarantee that
-all writer signals will be set to true at the end of the loop...
+I'll shortly post a series of two patches with your patch and the ARM
+definition of USER_PGTABLES_CEILING.
 
 -- 
-Michel "Walken" Lespinasse
-A program is never fully debugged until the last user dies.
+Catalin
