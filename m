@@ -1,40 +1,103 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ra.se.axis.com ([195.60.68.13]:44274 "EHLO ra.se.axis.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751651Ab3BRNHR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 18 Feb 2013 08:07:17 -0500
-Date: Mon, 18 Feb 2013 14:07:12 +0100
-From: Jesper Nilsson <jesper.nilsson@axis.com>
-Subject: Re: [PATCH v6 33/46] cris/smp: Use get/put_online_cpus_atomic() to
- prevent CPU offline
-Message-ID: <20130218130712.GO23529@axis.com>
-References: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com>
- <20130218124254.26245.4577.stgit@srivatsabhat.in.ibm.com>
+Received: from mail-ie0-f169.google.com ([209.85.223.169]:44604 "EHLO
+	mail-ie0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754480Ab3BRPp1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2013 10:45:27 -0500
+Received: by mail-ie0-f169.google.com with SMTP id 13so7418358iea.14
+        for <linux-arch@vger.kernel.org>; Mon, 18 Feb 2013 07:45:26 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20130218124254.26245.4577.stgit@srivatsabhat.in.ibm.com>
+In-Reply-To: <20130218123856.26245.46705.stgit@srivatsabhat.in.ibm.com>
+References: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com>
+	<20130218123856.26245.46705.stgit@srivatsabhat.in.ibm.com>
+Date: Mon, 18 Feb 2013 23:45:26 +0800
+Message-ID: <CANN689F9S7c1M8+cEpz3tsxGF34+NTRBLvxgPUOtbvav5u+RRA@mail.gmail.com>
+Subject: Re: [PATCH v6 04/46] percpu_rwlock: Implement the core design of
+ Per-CPU Reader-Writer Locks
+From: Michel Lespinasse <walken@google.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, walken@google.com, vincent.guittot@linaro.org
-Message-ID: <20130218130712.UQEM5nOClEwAIrdrlvz0v61UPnjKOZcXhQ0RbmLoBlM@z>
+Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, vincent.guittot@linaro.org
+Message-ID: <20130218154526.bWjAfNukRkd2We0tFDmtIm6SL_Sw4LErZChRKTs_pUQ@z>
 
-On Mon, Feb 18, 2013 at 06:12:54PM +0530, Srivatsa S. Bhat wrote:
-> Once stop_machine() is gone from the CPU offline path, we won't be able to
-> depend on preempt_disable() or local_irq_disable() to prevent CPUs from
-> going offline from under us.
-> 
-> Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going offline,
-> while invoking from atomic context.
-> 
-> Cc: Mikael Starvik <starvik@axis.com>
+Hi Srivasta,
 
-> Cc: linux-cris-kernel@axis.com
-> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+I admit not having followed in detail the threads about the previous
+iteration, so some of my comments may have been discussed already
+before - apologies if that is the case.
 
-Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
+On Mon, Feb 18, 2013 at 8:38 PM, Srivatsa S. Bhat
+<srivatsa.bhat@linux.vnet.ibm.com> wrote:
+> Reader-writer locks and per-cpu counters are recursive, so they can be
+> used in a nested fashion in the reader-path, which makes per-CPU rwlocks also
+> recursive. Also, this design of switching the synchronization scheme ensures
+> that you can safely nest and use these locks in a very flexible manner.
 
-/^JN - Jesper Nilsson
+I like the general idea of switching between per-cpu and global
+rwlocks as needed; however I dislike unfair locks, and especially
+unfair recursive rwlocks.
+
+If you look at rwlock_t, the main reason we haven't been able to
+implement reader/writer fairness there is because tasklist_lock makes
+use of the recursive nature of the rwlock_t read side. I'm worried
+about introducing more lock usages that would make use of the same
+property for your proposed lock.
+
+I am fine with your proposal not implementing reader/writer fairness
+from day 1, but I am worried about your proposal having a recursive
+reader side. Or, to put it another way: if your proposal didn't have a
+recursive reader side, and rwlock_t could somehow be changed to
+implement reader/writer fairness, then this property could
+automatically propagate into your proposed rwlock; but if anyone makes
+use of the recursive nature of your proposal then implementing
+reader/writer fairness later won't be as easy.
+
+I see that the very next change in this series is talking about
+acquiring the read side from interrupts, so it does look like you're
+planning to make use of the recursive nature of the read side. I kinda
+wish you didn't, as this is exactly replicating the design of
+tasklist_lock which is IMO problematic. Your prior proposal of
+disabling interrupts during the read side had other disadvantages, but
+I think it was nice that it didn't rely on having a recursive read
+side.
+
+> +#define reader_yet_to_switch(pcpu_rwlock, cpu)                             \
+> +       (ACCESS_ONCE(per_cpu_ptr((pcpu_rwlock)->rw_state, cpu)->reader_refcnt))
+> +
+> +#define reader_percpu_nesting_depth(pcpu_rwlock)                 \
+> +       (__this_cpu_read((pcpu_rwlock)->rw_state->reader_refcnt))
+> +
+> +#define reader_uses_percpu_refcnt(pcpu_rwlock)                         \
+> +                               reader_percpu_nesting_depth(pcpu_rwlock)
+> +
+> +#define reader_nested_percpu(pcpu_rwlock)                              \
+> +                       (reader_percpu_nesting_depth(pcpu_rwlock) > 1)
+> +
+> +#define writer_active(pcpu_rwlock)                                     \
+> +       (__this_cpu_read((pcpu_rwlock)->rw_state->writer_signal))
+
+I'm personally not a fan of such one-line shorthand functions - I
+think they tend to make the code harder to read instead of easier, as
+one constantly has to refer to them to understand what's actually
+going on.
+
+>  void percpu_write_lock(struct percpu_rwlock *pcpu_rwlock)
+>  {
+> +       unsigned int cpu;
+> +
+> +       /*
+> +        * Tell all readers that a writer is becoming active, so that they
+> +        * start switching over to the global rwlock.
+> +        */
+> +       for_each_possible_cpu(cpu)
+> +               per_cpu_ptr(pcpu_rwlock->rw_state, cpu)->writer_signal = true;
+
+I don't see anything preventing a race with the corresponding code in
+percpu_write_unlock() that sets writer_signal back to false. Did I
+miss something here ? It seems to me we don't have any guarantee that
+all writer signals will be set to true at the end of the loop...
+
 -- 
-               Jesper Nilsson -- jesper.nilsson@axis.com
+Michel "Walken" Lespinasse
+A program is never fully debugged until the last user dies.
