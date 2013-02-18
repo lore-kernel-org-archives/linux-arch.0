@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:4727 "EHLO
+Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:8397 "EHLO
 	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755290Ab3BRTxS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2013 14:53:18 -0500
-Message-ID: <1361217195.23152.170.camel@gandalf.local.home>
+	with ESMTP id S1757279Ab3BRTx0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2013 14:53:26 -0500
+Message-ID: <1361217204.23152.171.camel@gandalf.local.home>
 Subject: Re: [PATCH v5 00/45] CPU hotplug: stop_machine()-free CPU hotplug
 From: Steven Rostedt <rostedt@goodmis.org>
-Date: Mon, 18 Feb 2013 14:53:15 -0500
+Date: Mon, 18 Feb 2013 14:53:24 -0500
 In-Reply-To: <CAKfTPtC4hbXXWO=_zsGYryM9hpWaGFLbiY+jiLf=koLa4xGJOQ@mail.gmail.com>
 References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
 	 <510FBC01.2030405@linux.vnet.ibm.com> <87haloiwv0.fsf@rustcorp.com.au>
@@ -31,7 +31,7 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Vincent Guittot <vincent.guittot@linaro.org>
 Cc: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, paulmck@linux.vnet.ibm.com, Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, walken@google.com, mingo@kernel.org, linux-arch@vger.kernel.org, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, Rusty Russell <rusty@rustcorp.com.au>, rjw@sisk.pl, namhyung@kernel.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, oleg@redhat.com, sbw@mit.edu, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20130218195315.0iEhnQwMmsKlB3KW4bot1TF8m68DbqhYEiX8PKx1qY8@z>
+Message-ID: <20130218195324.7nY8CJmx-2k0FQJl3Hp-vyUDW_ZquH_yCSaNapb2szc@z>
 
 On Mon, 2013-02-18 at 17:50 +0100, Vincent Guittot wrote:
 
@@ -63,6 +63,7 @@ f(t) {
  <failed? bisect f(t1), if not bisect f(t2)>
 }
 
+-- Steve
 
 
 
