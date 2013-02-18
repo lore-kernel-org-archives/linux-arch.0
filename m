@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp08.in.ibm.com ([122.248.162.8]:58222 "EHLO
-	e28smtp08.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754913Ab3BRMmQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2013 07:42:16 -0500
+Received: from e23smtp04.au.ibm.com ([202.81.31.146]:35146 "EHLO
+	e23smtp04.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755098Ab3BRMm3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Feb 2013 07:42:29 -0500
 Received: from /spool/local
-	by e28smtp08.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp04.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Mon, 18 Feb 2013 18:08:55 +0530
+	Mon, 18 Feb 2013 22:33:21 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v6 13/46] sched/migration: Use raw_spin_lock/unlock since
- interrupts are already disabled
-Date: Mon, 18 Feb 2013 18:10:06 +0530
-Message-ID: <20130218124006.26245.88872.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v6 15/46] tick: Use get/put_online_cpus_atomic() to prevent
+ CPU offline
+Date: Mon, 18 Feb 2013 18:10:18 +0530
+Message-ID: <20130218124018.26245.34450.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com>
 References: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -21,59 +21,39 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org
 Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, walken@google.com, vincent.guittot@linaro.org
-Message-ID: <20130218124006.7nW8iPMsP8Y9lHnYM0Z_Sk4vx3GpxYnUtAPA8I9tKaY@z>
+Message-ID: <20130218124018.J88vu3zAoN7cRLvqvxZbjIaLlV7RkkhuAydjrFlpzGM@z>
 
-We need not use the raw_spin_lock_irqsave/restore primitives because
-all CPU_DYING notifiers run with interrupts disabled. So just use
-raw_spin_lock/unlock.
+Once stop_machine() is gone from the CPU offline path, we won't be able to
+depend on preempt_disable() or local_irq_disable() to prevent CPUs from
+going offline from under us.
+
+Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going offline,
+while invoking from atomic context.
 
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- kernel/sched/core.c |   12 +++++-------
- 1 file changed, 5 insertions(+), 7 deletions(-)
+ kernel/time/tick-broadcast.c |    2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index ead8af6..71741d0 100644
---- a/kernel/sched/core.c
-+++ b/kernel/sched/core.c
-@@ -4870,9 +4870,7 @@ static void calc_load_migrate(struct rq *rq)
-  * Migrate all tasks from the rq, sleeping tasks will be migrated by
-  * try_to_wake_up()->select_task_rq().
-  *
-- * Called with rq->lock held even though we'er in stop_machine() and
-- * there's no concurrency possible, we hold the required locks anyway
-- * because of lock validation efforts.
-+ * Called with rq->lock held.
+diff --git a/kernel/time/tick-broadcast.c b/kernel/time/tick-broadcast.c
+index f113755..d123a2c 100644
+--- a/kernel/time/tick-broadcast.c
++++ b/kernel/time/tick-broadcast.c
+@@ -160,6 +160,7 @@ static void tick_do_broadcast(struct cpumask *mask)
   */
- static void migrate_tasks(unsigned int dead_cpu)
+ static void tick_do_periodic_broadcast(void)
  {
-@@ -4884,8 +4882,8 @@ static void migrate_tasks(unsigned int dead_cpu)
- 	 * Fudge the rq selection such that the below task selection loop
- 	 * doesn't get stuck on the currently eligible stop task.
- 	 *
--	 * We're currently inside stop_machine() and the rq is either stuck
--	 * in the stop_machine_cpu_stop() loop, or we're executing this code,
-+	 * We're currently inside stop_one_cpu() and the rq is either stuck
-+	 * in the cpu_stopper_thread(), or we're executing this code,
- 	 * either way we should never end up calling schedule() until we're
- 	 * done here.
- 	 */
-@@ -5154,14 +5152,14 @@ migration_call(struct notifier_block *nfb, unsigned long action, void *hcpu)
- 	case CPU_DYING:
- 		sched_ttwu_pending();
- 		/* Update our root-domain */
--		raw_spin_lock_irqsave(&rq->lock, flags);
-+		raw_spin_lock(&rq->lock); /* Interrupts already disabled */
- 		if (rq->rd) {
- 			BUG_ON(!cpumask_test_cpu(cpu, rq->rd->span));
- 			set_rq_offline(rq);
- 		}
- 		migrate_tasks(cpu);
- 		BUG_ON(rq->nr_running != 1); /* the migration thread */
--		raw_spin_unlock_irqrestore(&rq->lock, flags);
-+		raw_spin_unlock(&rq->lock);
- 		break;
++	get_online_cpus_atomic();
+ 	raw_spin_lock(&tick_broadcast_lock);
  
- 	case CPU_DEAD:
+ 	cpumask_and(to_cpumask(tmpmask),
+@@ -167,6 +168,7 @@ static void tick_do_periodic_broadcast(void)
+ 	tick_do_broadcast(to_cpumask(tmpmask));
+ 
+ 	raw_spin_unlock(&tick_broadcast_lock);
++	put_online_cpus_atomic();
+ }
+ 
+ /*
 
