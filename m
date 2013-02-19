@@ -1,88 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f54.google.com ([209.85.220.54]:54930 "EHLO
-	mail-pa0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932858Ab3BSSVc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Feb 2013 13:21:32 -0500
-Received: by mail-pa0-f54.google.com with SMTP id fa10so3541768pad.27
-        for <linux-arch@vger.kernel.org>; Tue, 19 Feb 2013 10:21:31 -0800 (PST)
-Date: Tue, 19 Feb 2013 10:20:50 -0800 (PST)
-From: Hugh Dickins <hughd@google.com>
-Subject: Re: [PATCH 2/2] arm: Set the page table freeing ceiling to
- TASK_SIZE
-In-Reply-To: <1361204311-14127-3-git-send-email-catalin.marinas@arm.com>
-Message-ID: <alpine.LNX.2.00.1302191008290.2139@eggly.anvils>
-References: <1361204311-14127-1-git-send-email-catalin.marinas@arm.com> <1361204311-14127-3-git-send-email-catalin.marinas@arm.com>
+Received: from e28smtp07.in.ibm.com ([122.248.162.7]:40341 "EHLO
+	e28smtp07.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933536Ab3BSSbf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Feb 2013 13:31:35 -0500
+Received: from /spool/local
+	by e28smtp07.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
+	Tue, 19 Feb 2013 23:58:45 +0530
+Message-ID: <5123C482.5070704@linux.vnet.ibm.com>
+Date: Tue, 19 Feb 2013 23:59:22 +0530
+From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Subject: Re: [PATCH v5 29/45] x86/xen: Use get/put_online_cpus_atomic() to
+ prevent CPU offline
+References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com> <20130122074046.13822.61950.stgit@srivatsabhat.in.ibm.com> <20130219181038.GB18244@phenom.dumpdata.com>
+In-Reply-To: <20130219181038.GB18244@phenom.dumpdata.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
-Message-ID: <20130219182050.o5gyPITmeM5qtjGVRCWr2hNIQ67Bz7FMY_JmEecj4BM@z>
+To: Konrad Rzeszutek Wilk <konrad@kernel.org>
+Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130219182922.W-jV9h53KNmmdIEZ2PxxikmJ-koU_cDexEm3Wb0XuBg@z>
 
-On Mon, 18 Feb 2013, Catalin Marinas wrote:
-
-> ARM processors with LPAE enabled use 3 levels of page tables, with an
-> entry in the top level (pgd) covering 1GB of virtual space. Because of
-> the branch relocation limitations on ARM, the loadable modules are
-> mapped 16MB below PAGE_OFFSET, making the corresponding 1GB pgd shared
-> between kernel modules and user space.
+On 02/19/2013 11:40 PM, Konrad Rzeszutek Wilk wrote:
+> On Tue, Jan 22, 2013 at 01:10:51PM +0530, Srivatsa S. Bhat wrote:
+>> Once stop_machine() is gone from the CPU offline path, we won't be able to
+>> depend on preempt_disable() or local_irq_disable() to prevent CPUs from
+>> going offline from under us.
+>>
+>> Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going offline,
+>> while invoking from atomic context.
+>>
+>> Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
 > 
-> If free_pgtables() is called with the default ceiling 0,
-> free_pgd_range() (and subsequently called functions) also frees the page
-> table shared between user space and kernel modules (which is normally
-> handled by the ARM-specific pgd_free() function). This patch changes
-> defines the ARM USER_PGTABLES_CEILING to TASK_SIZE.
+> Weird. I see this in the patch but I don't see it in the header?
 
-I don't have an ARM to test on, so I won't ack or nack this,
-but I am a little worried or puzzled.
+Meaning, you didn't get this email at all?
 
-I thought CONFIG_ARM_LPAE came in v3.3: so I would expect these
-patches to need "Cc: stable@vger.kernel.org" for porting back there.
+> Did you
+> explicitly suppress the CC part?
+> 
 
-But then, did v3.3..v3.8 have the appropriate arch/arm code to handle
-the freeing of the user+kernel pgd?  I'm not asserting that it could
-not, but when doing the similar arch/x86 thing, I had to make changes
-down there, so it's not necessarily something that works automatically.
-
-And does the ARM !LPAE case work correctly (not leaking page tables
-at any level) with this change from 0 to TASK_SIZE?  Again, I'm not
-asserting that it does not, but your commit description doesn't give
-enough confidence that you've tried that.
-
-Perhaps you have some other patches to arch/arm, that of course I
-wouldn't have noticed, which make this all work together; and it's
-accepted that CONFIG_ARM_LPAE is broken on v3.3..v3.8, and too
-much risk to backport it all for -stable.
-
-Maybe all I'm asking for is a more reassuring commit description.
-
-Hugh
+No.. I sent the entire patchset to a set of email ids and in addition to
+that I CC'ed individual patches to the respective maintainers/lists (the
+CC: list in the changelog). I used the --auto knob from stgit to do that.
 
 > 
-> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Russell King <linux@arm.linux.org.uk>
-> Cc: Hugh Dickins <hughd@google.com>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> ---
->  arch/arm/include/asm/pgtable.h | 7 +++++++
->  1 file changed, 7 insertions(+)
-> 
-> diff --git a/arch/arm/include/asm/pgtable.h b/arch/arm/include/asm/pgtable.h
-> index c094749..8f06ee5 100644
-> --- a/arch/arm/include/asm/pgtable.h
-> +++ b/arch/arm/include/asm/pgtable.h
-> @@ -61,6 +61,13 @@ extern void __pgd_error(const char *file, int line, pgd_t);
->  #define FIRST_USER_ADDRESS	PAGE_SIZE
->  
->  /*
-> + * Use TASK_SIZE as the ceiling argument for free_pgtables() and
-> + * free_pgd_range() to avoid freeing the modules pmd when LPAE is enabled (pmd
-> + * page shared between user and kernel).
-> + */
-> +#define USER_PGTABLES_CEILING	TASK_SIZE
-> +
-> +/*
->   * The pgprot_* and protection_map entries will be fixed up in runtime
->   * to include the cachable and bufferable bits based on memory policy,
->   * as well as any architecture dependent bits like global/ASID and SMP
+> Anyhow, the patch looks sane enough, thought I need to to run it through
+> a test framework just to be on a sure side.
+>
+
+Sure, thank you. But you might want to test the v6 that I sent out
+yesterday instead of v5. Oh, wait a min, you didn't get the v6 mail also?
+
+Here it is, for your reference:
+http://marc.info/?l=linux-kernel&m=136119260122255&w=2
+
+Regards,
+Srivatsa S. Bhat
+
+>> Cc: Jeremy Fitzhardinge <jeremy@goop.org>
+>> Cc: "H. Peter Anvin" <hpa@zytor.com>
+>> Cc: x86@kernel.org
+>> Cc: xen-devel@lists.xensource.com
+>> Cc: virtualization@lists.linux-foundation.org
+>> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+>> ---
+
