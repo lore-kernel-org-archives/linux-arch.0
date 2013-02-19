@@ -1,62 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp02.in.ibm.com ([122.248.162.2]:56072 "EHLO
-	e28smtp02.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932721Ab3BSLAw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Feb 2013 06:00:52 -0500
-Received: from /spool/local
-	by e28smtp02.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 19 Feb 2013 16:27:42 +0530
-Message-ID: <51235AD6.9040407@linux.vnet.ibm.com>
-Date: Tue, 19 Feb 2013 16:28:30 +0530
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Received: from mail-pb0-f50.google.com ([209.85.160.50]:37902 "EHLO
+	mail-pb0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758843Ab3BSSI7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Feb 2013 13:08:59 -0500
+Received: by mail-pb0-f50.google.com with SMTP id up1so2384308pbc.9
+        for <linux-arch@vger.kernel.org>; Tue, 19 Feb 2013 10:08:59 -0800 (PST)
+Date: Tue, 19 Feb 2013 10:08:12 -0800 (PST)
+From: Hugh Dickins <hughd@google.com>
+Subject: Re: [PATCH 1/2] mm: Allow arch code to control the user page table
+ ceiling
+In-Reply-To: <1361204311-14127-2-git-send-email-catalin.marinas@arm.com>
+Message-ID: <alpine.LNX.2.00.1302191005320.2139@eggly.anvils>
+References: <1361204311-14127-1-git-send-email-catalin.marinas@arm.com> <1361204311-14127-2-git-send-email-catalin.marinas@arm.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v6 08/46] CPU hotplug: Provide APIs to prevent CPU offline
- from atomic context
-References: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com> <20130218123920.26245.56709.stgit@srivatsabhat.in.ibm.com> <CANN689HhVxDv+3Bn9UAxOMzj0egTvVp_c7oAmQ2nnQ8Xjn_aMA@mail.gmail.com> <51225A36.40600@linux.vnet.ibm.com> <CANN689FJPLfz06MFRJ9T+BuToejAzjYP_yrw_H4iGi1Kb3p2-g@mail.gmail.com> <51227810.6090009@linux.vnet.ibm.com> <CANN689E-98zK69pGeojbm30n3sswQYVBvhk3i3OzqvbeqSrSrg@mail.gmail.com> <51234C23.2030909@linux.vnet.ibm.com> <AE90C24D6B3A694183C094C60CF0A2F6026B7154@saturn3.aculab.com>
-In-Reply-To: <AE90C24D6B3A694183C094C60CF0A2F6026B7154@saturn3.aculab.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Laight <David.Laight@ACULAB.COM>
-Cc: Michel Lespinasse <walken@google.com>, linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, mingo@kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, paulmck@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, rusty@rustcorp.com.au, rostedt@goodmis.org, rjw@sisk.pl, namhyung@kernel.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, oleg@redhat.com, vincent.guittot@linaro.org, sbw@mit.edu, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20130219105830.cTETg3wuDupF8dygfuMhWh3HK74h__lRUvxtVg-wZ-M@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Message-ID: <20130219180812.Pey71uOBiUlDsOa3rEWVRKztmvAzsdpTHAtK6RROLEE@z>
 
-On 02/19/2013 04:12 PM, David Laight wrote:
->> I wouldn't go that far... ;-) Unfairness is not a show-stopper right?
->> IMHO, the warning/documentation should suffice for anybody wanting to
->> try out this locking scheme for other use-cases.
+On Mon, 18 Feb 2013, Catalin Marinas wrote:
+
+> From: Hugh Dickins <hughd@google.com>
+
+You're being generous to me :)
+Thanks for doing most of the work, yes, this looks fine.
+BUt I'd have expected a Cc stable below: see comment on 2/2.
+
+Hugh
+
 > 
-> I presume that by 'fairness' you mean 'write preference'?
+> On architectures where a pgd entry may be shared between user and kernel
+> (ARM+LPAE), freeing page tables needs a ceiling other than 0. This patch
+> introduces a generic USER_PGTABLES_CEILING that arch code can override.
 > 
-
-Yep.
-
-> I'd not sure how difficult it would be, but maybe have two functions
-> for acquiring the lock for read, one blocks if there is a writer
-> waiting, the other doesn't.
+> Signed-off-by: Hugh Dickins <hughd@google.com>
+> [catalin.marinas@arm.com: commit log; shift_arg_pages(), asm-generic/pgtables.h changes]
+> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Russell King <linux@arm.linux.org.uk>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> ---
+>  fs/exec.c                     |  4 ++--
+>  include/asm-generic/pgtable.h | 10 ++++++++++
+>  mm/mmap.c                     |  4 ++--
+>  3 files changed, 14 insertions(+), 4 deletions(-)
 > 
-> That way you can change the individual call sites separately.
->
-
-Right, we could probably use that method to change the call sites in
-multiple stages, in the future.
- 
-> The other place I can imagine a per-cpu rwlock being used
-> is to allow a driver to disable 'sleep' or software controlled
-> hardware removal while it performs a sequence of operations.
+> diff --git a/fs/exec.c b/fs/exec.c
+> index 20df02c..547eaaa 100644
+> --- a/fs/exec.c
+> +++ b/fs/exec.c
+> @@ -613,7 +613,7 @@ static int shift_arg_pages(struct vm_area_struct *vma, unsigned long shift)
+>  		 * when the old and new regions overlap clear from new_end.
+>  		 */
+>  		free_pgd_range(&tlb, new_end, old_end, new_end,
+> -			vma->vm_next ? vma->vm_next->vm_start : 0);
+> +			vma->vm_next ? vma->vm_next->vm_start : USER_PGTABLES_CEILING);
+>  	} else {
+>  		/*
+>  		 * otherwise, clean from old_start; this is done to not touch
+> @@ -622,7 +622,7 @@ static int shift_arg_pages(struct vm_area_struct *vma, unsigned long shift)
+>  		 * for the others its just a little faster.
+>  		 */
+>  		free_pgd_range(&tlb, old_start, old_end, new_end,
+> -			vma->vm_next ? vma->vm_next->vm_start : 0);
+> +			vma->vm_next ? vma->vm_next->vm_start : USER_PGTABLES_CEILING);
+>  	}
+>  	tlb_finish_mmu(&tlb, new_end, old_end);
+>  
+> diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+> index 5cf680a..f50a87d 100644
+> --- a/include/asm-generic/pgtable.h
+> +++ b/include/asm-generic/pgtable.h
+> @@ -7,6 +7,16 @@
+>  #include <linux/mm_types.h>
+>  #include <linux/bug.h>
+>  
+> +/*
+> + * On almost all architectures and configurations, 0 can be used as the
+> + * upper ceiling to free_pgtables(): on many architectures it has the same
+> + * effect as using TASK_SIZE.  However, there is one configuration which
+> + * must impose a more careful limit, to avoid freeing kernel pgtables.
+> + */
+> +#ifndef USER_PGTABLES_CEILING
+> +#define USER_PGTABLES_CEILING	0UL
+> +#endif
+> +
+>  #ifndef __HAVE_ARCH_PTEP_SET_ACCESS_FLAGS
+>  extern int ptep_set_access_flags(struct vm_area_struct *vma,
+>  				 unsigned long address, pte_t *ptep,
+> diff --git a/mm/mmap.c b/mm/mmap.c
+> index d1e4124..e262710 100644
+> --- a/mm/mmap.c
+> +++ b/mm/mmap.c
+> @@ -2262,7 +2262,7 @@ static void unmap_region(struct mm_struct *mm,
+>  	update_hiwater_rss(mm);
+>  	unmap_vmas(&tlb, vma, start, end);
+>  	free_pgtables(&tlb, vma, prev ? prev->vm_end : FIRST_USER_ADDRESS,
+> -				 next ? next->vm_start : 0);
+> +				 next ? next->vm_start : USER_PGTABLES_CEILING);
+>  	tlb_finish_mmu(&tlb, start, end);
+>  }
+>  
+> @@ -2640,7 +2640,7 @@ void exit_mmap(struct mm_struct *mm)
+>  	/* Use -1 here to ensure all VMAs in the mm are unmapped */
+>  	unmap_vmas(&tlb, vma, 0, -1);
+>  
+> -	free_pgtables(&tlb, vma, FIRST_USER_ADDRESS, 0);
+> +	free_pgtables(&tlb, vma, FIRST_USER_ADDRESS, USER_PGTABLES_CEILING);
+>  	tlb_finish_mmu(&tlb, 0, -1);
+>  
+>  	/*
 > 
-
-BTW, per-cpu rwlocks use spinlocks underneath, so they can be used only
-in atomic contexts (you can't sleep holding this lock). So that would
-probably make it less attractive or useless to "heavy-weight" usecases
-like the latter one you mentioned. They probably need to use per-cpu
-rw-semaphore or some such, which allows sleeping. I'm not very certain
-of the exact usecases you are talking about, but I just wanted to
-point out that percpu-rwlocks might not be applicable to many scenarios.
-..(which might be a good thing, considering its unfair property today).
-
-Regards,
-Srivatsa S. Bhat
-
