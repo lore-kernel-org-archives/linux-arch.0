@@ -1,84 +1,205 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp01.au.ibm.com ([202.81.31.143]:48231 "EHLO
-	e23smtp01.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758232Ab3BSJ6F (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Feb 2013 04:58:05 -0500
-Received: from /spool/local
-	by e23smtp01.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 19 Feb 2013 19:52:25 +1000
-Message-ID: <51234C23.2030909@linux.vnet.ibm.com>
-Date: Tue, 19 Feb 2013 15:25:47 +0530
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Received: from mail-gh0-f172.google.com ([209.85.160.172]:36402 "EHLO
+	mail-gh0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932342Ab3BSKal (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Feb 2013 05:30:41 -0500
+Message-ID: <5123531B.8090301@gmail.com>
+Date: Tue, 19 Feb 2013 18:25:31 +0800
+From: Simon Jeons <simon.jeons@gmail.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v6 08/46] CPU hotplug: Provide APIs to prevent CPU offline
- from atomic context
-References: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com> <20130218123920.26245.56709.stgit@srivatsabhat.in.ibm.com> <CANN689HhVxDv+3Bn9UAxOMzj0egTvVp_c7oAmQ2nnQ8Xjn_aMA@mail.gmail.com> <51225A36.40600@linux.vnet.ibm.com> <CANN689FJPLfz06MFRJ9T+BuToejAzjYP_yrw_H4iGi1Kb3p2-g@mail.gmail.com> <51227810.6090009@linux.vnet.ibm.com> <CANN689E-98zK69pGeojbm30n3sswQYVBvhk3i3OzqvbeqSrSrg@mail.gmail.com>
-In-Reply-To: <CANN689E-98zK69pGeojbm30n3sswQYVBvhk3i3OzqvbeqSrSrg@mail.gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
+Subject: Re: [patch 1/2] mm: fincore()
+References: <87a9rbh7b4.fsf@rustcorp.com.au> <20130211162701.GB13218@cmpxchg.org> <20130211141239.f4decf03.akpm@linux-foundation.org> <20130215063450.GA24047@cmpxchg.org>
+In-Reply-To: <20130215063450.GA24047@cmpxchg.org>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michel Lespinasse <walken@google.com>
-Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, vincent.guittot@linaro.org
-Message-ID: <20130219095547.mwYTfbpwyJpnCK2ZD7Gc-U70JKl__p4BuekMbSJ0G5w@z>
+To: Johannes Weiner <hannes@cmpxchg.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, LKML <linux-kernel@vger.kernel.org>, Nick Piggin <npiggin@suse.de>, Stewart Smith <stewart@flamingspork.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Message-ID: <20130219102531.dJCix0s07KyZbExn9wBgr5M6CCNqt6jyh7bc3m1h1Jw@z>
 
-On 02/19/2013 03:10 PM, Michel Lespinasse wrote:
-> On Tue, Feb 19, 2013 at 2:50 AM, Srivatsa S. Bhat
-> <srivatsa.bhat@linux.vnet.ibm.com> wrote:
->> But, the whole intention behind removing the parts depending on the
->> recursive property of rwlocks would be to make it easier to make rwlocks
->> fair (going forward) right? Then, that won't work for CPU hotplug, because,
->> just like we have a legitimate reason to have recursive
->> get_online_cpus_atomic(), we also have a legitimate reason to have
->> unfairness in locking (i.e., for deadlock-safety). So we simply can't
->> afford to make the locking fair - we'll end up in too many deadlock
->> possibilities, as hinted in the changelog of patch 1.
-> 
-> Grumpf - I hadn't realized that making the underlying rwlock fair
-> would break your hotplug use case. But you are right, it would. Oh
-> well :/
-> 
-
-Yeah :-/
-
->> So the only long-term solution I can think of is to decouple
->> percpu-rwlocks and rwlock_t (like what Tejun suggested) by implementing
->> our own unfair locking scheme inside. What do you think?
-> 
-> I have no idea how hard would it be to change get_online_cpus_atomic()
-> call sites so that the hotplug rwlock read side has a defined order vs
-> other locks (thus making sure the situation you describe in patch 1
-> doesn't happen). I agree we shouldn't base our short term plans around
-> that, but maybe that's doable in the long term ???
+Hi Johannes,
+On 02/15/2013 02:34 PM, Johannes Weiner wrote:
+> On Mon, Feb 11, 2013 at 02:12:39PM -0800, Andrew Morton wrote:
+>> Also, having to mmap the file to be able to query pagecache state is a
+>> hack.  Whatever happened to the fincore() patch?
+> I don't know, but how about this one:
 >
+> ---
+> From: Johannes Weiner <hannes@cmpxchg.org>
+> Subject: [patch 1/2] mm: fincore()
+>
+> Provide a syscall to determine whether a given file's pages are cached
+> in memory.  This is more elegant than mmapping the file for the sole
+> purpose of using mincore(), and also works on NOMMU.
 
-I think it should be possible in the longer term. I'm expecting it to be
-*much much* harder to audit and convert (requiring a lot of subsystem
-knowledge of each subsystem that we are touching), than the simpler
-tree-wide conversion that I did in this patchset... but I don't think it
-is impossible.
- 
-> Otherwise, I think we should add some big-fat-warning that percpu
-> rwlocks don't have reader/writer fairness, that the hotplug use case
-> actually depends on the unfairness / would break if the rwlock was
-> made fair, and that any new uses of percpu rwlocks should be very
-> carefully considered because of the reader/writer fairness issues.
+Who is the user of mincore()/fincore()? In which scenario user processes 
+need to know their pages are resident in memory or not?
 
-In fact, when I started out, I actually contained all the new locking code
-inside CPU hotplug itself, and didn't even expose it as a generic percpu
-rwlock in some of the previous versions of this patchset... :-)
-
-But now that we already have a generic locking scheme exposed, we could
-add a warning against using it without due consideration.
-
-> Maybe even give percpu rwlocks a less generic sounding name, given how
-> constrained they are by the hotplug use case.
- 
-I wouldn't go that far... ;-) Unfairness is not a show-stopper right?
-IMHO, the warning/documentation should suffice for anybody wanting to
-try out this locking scheme for other use-cases.
-
-Regards,
-Srivatsa S. Bhat
+> Signed-off-by: Johannes Weiner <hannes@cmpxchg.org>
+> ---
+>   include/linux/syscalls.h |   2 +
+>   mm/Makefile              |   2 +-
+>   mm/fincore.c             | 128 +++++++++++++++++++++++++++++++++++++++++++++++
+>   3 files changed, 131 insertions(+), 1 deletion(-)
+>   create mode 100644 mm/fincore.c
+>
+> diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+> index 313a8e0..3ceab2a 100644
+> --- a/include/linux/syscalls.h
+> +++ b/include/linux/syscalls.h
+> @@ -897,4 +897,6 @@ asmlinkage long sys_process_vm_writev(pid_t pid,
+>   asmlinkage long sys_kcmp(pid_t pid1, pid_t pid2, int type,
+>   			 unsigned long idx1, unsigned long idx2);
+>   asmlinkage long sys_finit_module(int fd, const char __user *uargs, int flags);
+> +asmlinkage long sys_fincore(unsigned int fd, loff_t start, loff_t len,
+> +			    unsigned char __user * vec);
+>   #endif
+> diff --git a/mm/Makefile b/mm/Makefile
+> index 185a22b..221cdae 100644
+> --- a/mm/Makefile
+> +++ b/mm/Makefile
+> @@ -17,7 +17,7 @@ obj-y			:= filemap.o mempool.o oom_kill.o fadvise.o \
+>   			   util.o mmzone.o vmstat.o backing-dev.o \
+>   			   mm_init.o mmu_context.o percpu.o slab_common.o \
+>   			   compaction.o balloon_compaction.o \
+> -			   interval_tree.o $(mmu-y)
+> +			   interval_tree.o fincore.o $(mmu-y)
+>   
+>   obj-y += init-mm.o
+>   
+> diff --git a/mm/fincore.c b/mm/fincore.c
+> new file mode 100644
+> index 0000000..d504611
+> --- /dev/null
+> +++ b/mm/fincore.c
+> @@ -0,0 +1,128 @@
+> +#include <linux/syscalls.h>
+> +#include <linux/pagemap.h>
+> +#include <linux/file.h>
+> +#include <linux/fs.h>
+> +#include <linux/mm.h>
+> +
+> +static long do_fincore(struct address_space *mapping, pgoff_t pgstart,
+> +		       unsigned long nr_pages, unsigned char *vec)
+> +{
+> +	pgoff_t pgend = pgstart + nr_pages;
+> +	struct radix_tree_iter iter;
+> +	void **slot;
+> +	long nr = 0;
+> +
+> +	rcu_read_lock();
+> +restart:
+> +	radix_tree_for_each_slot(slot, &mapping->page_tree, &iter, pgstart) {
+> +		unsigned char present;
+> +		struct page *page;
+> +
+> +		/* Handle holes */
+> +		if (iter.index != pgstart + nr) {
+> +			if (iter.index < pgend)
+> +				nr_pages = iter.index - pgstart;
+> +			break;
+> +		}
+> +repeat:
+> +		page = radix_tree_deref_slot(slot);
+> +		if (unlikely(!page))
+> +			continue;
+> +
+> +		if (radix_tree_exception(page)) {
+> +			if (radix_tree_deref_retry(page)) {
+> +				/*
+> +				 * Transient condition which can only trigger
+> +				 * when entry at index 0 moves out of or back
+> +				 * to root: none yet gotten, safe to restart.
+> +				 */
+> +				WARN_ON(iter.index);
+> +				goto restart;
+> +			}
+> +			present = 0;
+> +		} else {
+> +			if (!page_cache_get_speculative(page))
+> +				goto repeat;
+> +
+> +			/* Has the page moved? */
+> +			if (unlikely(page != *slot)) {
+> +				page_cache_release(page);
+> +				goto repeat;
+> +			}
+> +
+> +			present = PageUptodate(page);
+> +			page_cache_release(page);
+> +		}
+> +		vec[nr] = present;
+> +
+> +		if (++nr == nr_pages)
+> +			break;
+> +	}
+> +	rcu_read_unlock();
+> +
+> +	if (nr < nr_pages)
+> +		memset(vec + nr, 0, nr_pages - nr);
+> +
+> +	return nr_pages;
+> +}
+> +
+> +/*
+> + * The fincore(2) system call.
+> + *
+> + * fincore() returns the memory residency status of the given file's
+> + * pages, in the range [start, start + len].
+> + * The status is returned in a vector of bytes.  The least significant
+> + * bit of each byte is 1 if the referenced page is in memory, otherwise
+> + * it is zero.
+> + *
+> + * Because the status of a page can change after fincore() checks it
+> + * but before it returns to the application, the returned vector may
+> + * contain stale information.
+> + *
+> + * return values:
+> + *  zero    - success
+> + *  -EBADF  - fd isn't a valid open file descriptor
+> + *  -EFAULT - vec points to an illegal address
+> + *  -EINVAL - start is not a multiple of PAGE_CACHE_SIZE
+> + */
+> +SYSCALL_DEFINE4(fincore, unsigned int, fd, loff_t, start, loff_t, len,
+> +		unsigned char __user *, vec)
+> +{
+> +	unsigned long nr_pages;
+> +	pgoff_t pgstart;
+> +	struct fd f;
+> +	long ret;
+> +
+> +	if (start & ~PAGE_CACHE_MASK)
+> +		return -EINVAL;
+> +
+> +	f = fdget(fd);
+> +	if (!f.file)
+> +		return -EBADF;
+> +
+> +	pgstart = start >> PAGE_CACHE_SHIFT;
+> +	nr_pages = DIV_ROUND_UP(len, PAGE_CACHE_SIZE);
+> +
+> +	while (nr_pages) {
+> +		unsigned char tmp[64];
+> +
+> +		ret = do_fincore(f.file->f_mapping, pgstart,
+> +				 min(nr_pages, sizeof(tmp)), tmp);
+> +		if (ret <= 0)
+> +			break;
+> +
+> +		if (copy_to_user(vec, tmp, ret)) {
+> +			ret = -EFAULT;
+> +			break;
+> +		}
+> +
+> +		nr_pages -= ret;
+> +		pgstart += ret;
+> +		vec += ret;
+> +		ret = 0;
+> +	}
+> +
+> +	fdput(f);
+> +
+> +	return ret;
+> +}
 
