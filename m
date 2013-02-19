@@ -1,80 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bk0-f44.google.com ([209.85.214.44]:36233 "EHLO
-	mail-bk0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932314Ab3BSKdo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Feb 2013 05:33:44 -0500
-Received: by mail-bk0-f44.google.com with SMTP id j4so3019676bkw.31
-        for <linux-arch@vger.kernel.org>; Tue, 19 Feb 2013 02:33:42 -0800 (PST)
+Received: from e28smtp02.in.ibm.com ([122.248.162.2]:56072 "EHLO
+	e28smtp02.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932721Ab3BSLAw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Feb 2013 06:00:52 -0500
+Received: from /spool/local
+	by e28smtp02.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
+	Tue, 19 Feb 2013 16:27:42 +0530
+Message-ID: <51235AD6.9040407@linux.vnet.ibm.com>
+Date: Tue, 19 Feb 2013 16:28:30 +0530
+From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 MIME-Version: 1.0
-In-Reply-To: <1361217204.23152.171.camel@gandalf.local.home>
-References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
-	<510FBC01.2030405@linux.vnet.ibm.com>
-	<87haloiwv0.fsf@rustcorp.com.au>
-	<51134596.4080106@linux.vnet.ibm.com>
-	<20130208154113.GV17833@n2100.arm.linux.org.uk>
-	<51152B81.2050501@linux.vnet.ibm.com>
-	<51153F72.1060005@linux.vnet.ibm.com>
-	<CAKfTPtCe+cD7LLkb+D6pqG1SwG2V08ws=4XO3ttHEHV2qgmqPg@mail.gmail.com>
-	<5118E2CD.90401@linux.vnet.ibm.com>
-	<20130211190852.GA5695@linux.vnet.ibm.com>
-	<5119BDFD.1000909@linux.vnet.ibm.com>
-	<CAKfTPtAo2hQTfBKTVUuLKgsGJ2ZLD0UTR3fH9UFuJwyFt4n__w@mail.gmail.com>
-	<511E8F3C.2010406@linux.vnet.ibm.com>
-	<CAKfTPtD=2jn1AVjuhVP1ot7_8x9-W4==hNGZET5N9tRE7gtyMw@mail.gmail.com>
-	<512203B3.7090002@linux.vnet.ibm.com>
-	<512207A6.4000402@linux.vnet.ibm.com>
-	<CAKfTPtA1aTseD6Gntkf_zbCEbfZzt3P2-P1un6iF5_1TdVLjRQ@mail.gmail.com>
-	<1361201422.23152.154.camel@gandalf.local.home>
-	<CAKfTPtC4hbXXWO=_zsGYryM9hpWaGFLbiY+jiLf=koLa4xGJOQ@mail.gmail.com>
-	<1361217204.23152.171.camel@gandalf.local.home>
-Date: Tue, 19 Feb 2013 11:33:42 +0100
-Message-ID: <CAKfTPtBRv8ffewiXP0740YRn6TxmKOLS5Tzo=a98=60vAqyBEw@mail.gmail.com>
-Subject: Re: [PATCH v5 00/45] CPU hotplug: stop_machine()-free CPU hotplug
-From: Vincent Guittot <vincent.guittot@linaro.org>
+Subject: Re: [PATCH v6 08/46] CPU hotplug: Provide APIs to prevent CPU offline
+ from atomic context
+References: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com> <20130218123920.26245.56709.stgit@srivatsabhat.in.ibm.com> <CANN689HhVxDv+3Bn9UAxOMzj0egTvVp_c7oAmQ2nnQ8Xjn_aMA@mail.gmail.com> <51225A36.40600@linux.vnet.ibm.com> <CANN689FJPLfz06MFRJ9T+BuToejAzjYP_yrw_H4iGi1Kb3p2-g@mail.gmail.com> <51227810.6090009@linux.vnet.ibm.com> <CANN689E-98zK69pGeojbm30n3sswQYVBvhk3i3OzqvbeqSrSrg@mail.gmail.com> <51234C23.2030909@linux.vnet.ibm.com> <AE90C24D6B3A694183C094C60CF0A2F6026B7154@saturn3.aculab.com>
+In-Reply-To: <AE90C24D6B3A694183C094C60CF0A2F6026B7154@saturn3.aculab.com>
 Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, paulmck@linux.vnet.ibm.com, Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, walken@google.com, mingo@kernel.org, linux-arch@vger.kernel.org, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, Rusty Russell <rusty@rustcorp.com.au>, rjw@sisk.pl, namhyung@kernel.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, oleg@redhat.com, sbw@mit.edu, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20130219103342.KCEx--w0MVQDEpDDZkwmSHfNE71yXZIWaZEKhyuBM_k@z>
+To: David Laight <David.Laight@ACULAB.COM>
+Cc: Michel Lespinasse <walken@google.com>, linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, mingo@kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, paulmck@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, rusty@rustcorp.com.au, rostedt@goodmis.org, rjw@sisk.pl, namhyung@kernel.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, oleg@redhat.com, vincent.guittot@linaro.org, sbw@mit.edu, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20130219105830.cTETg3wuDupF8dygfuMhWh3HK74h__lRUvxtVg-wZ-M@z>
 
-On 18 February 2013 20:53, Steven Rostedt <rostedt@goodmis.org> wrote:
-> On Mon, 2013-02-18 at 17:50 +0100, Vincent Guittot wrote:
->
->> yes for sure.
->> The problem is more linked to cpuidle and function tracer.
->>
->> cpu hotplug and function tracer work when cpuidle is disable.
->> cpu hotplug and cpuidle works if i don't enable function tracer.
->> my platform is dead as soon as I enable function tracer if cpuidle is
->> enabled. It looks like some notrace are missing in my platform driver
->> but we haven't completely fix the issue yet
->>
->
-> You can bisect to find out exactly what function is the problem:
->
->  cat /debug/tracing/available_filter_functions > t
->
-> f(t) {
->  num=`wc -l t`
->  sed -ne "1,${num}p" t > t1
->  let num=num+1
->  sed -ne "${num},$p" t > t2
->
->  cat t1 > /debug/tracing/set_ftrace_filter
->  # note this may take a long time to finish
->
->  echo function > /debug/tracing/current_tracer
->
->  <failed? bisect f(t1), if not bisect f(t2)>
-> }
+On 02/19/2013 04:12 PM, David Laight wrote:
+>> I wouldn't go that far... ;-) Unfairness is not a show-stopper right?
+>> IMHO, the warning/documentation should suffice for anybody wanting to
+>> try out this locking scheme for other use-cases.
+> 
+> I presume that by 'fairness' you mean 'write preference'?
+> 
+
+Yep.
+
+> I'd not sure how difficult it would be, but maybe have two functions
+> for acquiring the lock for read, one blocks if there is a writer
+> waiting, the other doesn't.
+> 
+> That way you can change the individual call sites separately.
 >
 
-Thanks, i'm going to have a look
+Right, we could probably use that method to change the call sites in
+multiple stages, in the future.
+ 
+> The other place I can imagine a per-cpu rwlock being used
+> is to allow a driver to disable 'sleep' or software controlled
+> hardware removal while it performs a sequence of operations.
+> 
 
-Vincent
+BTW, per-cpu rwlocks use spinlocks underneath, so they can be used only
+in atomic contexts (you can't sleep holding this lock). So that would
+probably make it less attractive or useless to "heavy-weight" usecases
+like the latter one you mentioned. They probably need to use per-cpu
+rw-semaphore or some such, which allows sleeping. I'm not very certain
+of the exact usecases you are talking about, but I just wanted to
+point out that percpu-rwlocks might not be applicable to many scenarios.
+..(which might be a good thing, considering its unfair property today).
 
-> -- Steve
->
->
->
+Regards,
+Srivatsa S. Bhat
+
