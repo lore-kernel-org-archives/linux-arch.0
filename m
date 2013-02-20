@@ -1,95 +1,59 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 2/2] arm: Set the page table freeing ceiling to TASK_SIZE
-Date: Tue, 19 Feb 2013 22:55:47 +0000
-Message-ID: <20130219225547.GB6889@MacBook-Pro.local>
-References: <1361204311-14127-1-git-send-email-catalin.marinas@arm.com>
- <1361204311-14127-3-git-send-email-catalin.marinas@arm.com>
- <alpine.LNX.2.00.1302191008290.2139@eggly.anvils>
+From: =?ISO-8859-1?Q?Andr=E9_Hentschel?= <nerv@dawncrow.de>
+Subject: Re: [PATCH] arm: Preserve TPIDRURW on context switch
+Date: Wed, 20 Feb 2013 20:34:37 +0100
+Message-ID: <5125254D.7040401@dawncrow.de>
+References: <5112DC7E.4020108@dawncrow.de> <20130206225150.GL17833@n2100.arm.linux.org.uk> <5112E0C3.1080706@dawncrow.de> <20130208154809.GF3495@mudshark.cambridge.arm.com> <511A4B93.1000700@dawncrow.de> <20130212140950.GC4123@mudshark.cambridge.arm.com> <511A5995.5000607@parrot.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <alpine.LNX.2.00.1302191008290.2139@eggly.anvils>
-Sender: owner-linux-mm@kvack.org
-To: Hugh Dickins <hughd@google.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.126.171]:64324 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933749Ab3BTTe5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Feb 2013 14:34:57 -0500
+In-Reply-To: <511A5995.5000607@parrot.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Matthieu CASTET <matthieu.castet@parrot.com>
+Cc: Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Greg KH <gregkh@linuxfoundation.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
-Hugh,
+Am 12.02.2013 16:02, schrieb Matthieu CASTET:
+> Will Deacon a =E9crit :
+>> Hi Andre,
+>>
+>> On Tue, Feb 12, 2013 at 02:02:59PM +0000, Andr=E9 Hentschel wrote:
+>>> Am 08.02.2013 16:48, schrieb Will Deacon:
+>>>> On Wed, Feb 06, 2013 at 11:01:23PM +0000, Andr=E9 Hentschel wrote:
+>>>>> No, i'm not sure how to improve this. How does the process can co=
+ntinue, can you or someone else fix that and add his Signed-off-by?
+>>>> How about something like the (completely untested) diff below?
+>>>>
+>>>> Andre: if this works for you, I'm happy to write a commit message =
+etc.
+>>> Thx for your effort, but it doesn't work, at least not with my 3.4.=
+6 suse kernel.
+>>> Be free to have another try, i'll be happy to test it.
+>>
+>> Well, cheers for testing. Can you be more specific about what goes w=
+rong
+>> please? What do you see in TPIDRURW?
+>>
+> The tls value is never saved to : thread->tp_value[1].
+>=20
+> Also I don't know if you can avoid the extra ldr in the software case=
+=2E
+>=20
+> Matthieu
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-arch"=
+ in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+>=20
 
-On Tue, Feb 19, 2013 at 06:20:50PM +0000, Hugh Dickins wrote:
-> On Mon, 18 Feb 2013, Catalin Marinas wrote:
-> 
-> > ARM processors with LPAE enabled use 3 levels of page tables, with an
-> > entry in the top level (pgd) covering 1GB of virtual space. Because of
-> > the branch relocation limitations on ARM, the loadable modules are
-> > mapped 16MB below PAGE_OFFSET, making the corresponding 1GB pgd shared
-> > between kernel modules and user space.
-> > 
-> > If free_pgtables() is called with the default ceiling 0,
-> > free_pgd_range() (and subsequently called functions) also frees the page
-> > table shared between user space and kernel modules (which is normally
-> > handled by the ARM-specific pgd_free() function). This patch changes
-> > defines the ARM USER_PGTABLES_CEILING to TASK_SIZE.
-> 
-> I don't have an ARM to test on, so I won't ack or nack this,
-> but I am a little worried or puzzled.
-> 
-> I thought CONFIG_ARM_LPAE came in v3.3: so I would expect these
-> patches to need "Cc: stable@vger.kernel.org" for porting back there.
+Hi Will,
+seems like Matthieu is right, any update on this?
 
-Yes, I'll add this.
+--=20
 
-> But then, did v3.3..v3.8 have the appropriate arch/arm code to handle
-> the freeing of the user+kernel pgd?  I'm not asserting that it could
-> not, but when doing the similar arch/x86 thing, I had to make changes
-> down there, so it's not necessarily something that works automatically.
-
-Unfortunately it doesn't have any code to handle this, though it is
-relatively hard to trigger the problem. The pgd entry shared between
-user and kernel on ARM is used for loadable modules and kmap. It
-triggers for example if we get an interrupt handled by a loadable module
-during a task exit. The rest of the kernel pgd is fine as PAGE_OFFSET is
-an entirely new pgd entry.
-
-I had a workaround for arch/arm only but after discussions with rmk, we
-decided that ceiling is the mode elegant solution.
-
-> And does the ARM !LPAE case work correctly (not leaking page tables
-> at any level) with this change from 0 to TASK_SIZE?  Again, I'm not
-> asserting that it does not, but your commit description doesn't give
-> enough confidence that you've tried that.
-
-In the ARM !LPAE case, we only have two levels of page tables and the
-pmd pages are allocated by pgd_alloc() and freed in pgd_free(). The next
-pte level is not shared between user and kernel (actually for module
-space and kmap below PAGE_OFFSET we don't even allocate new ptes, just
-point the pmd to the existing kernel pte).
-
-I'll add more information to the commit message.
-
-> Perhaps you have some other patches to arch/arm, that of course I
-> wouldn't have noticed, which make this all work together; and it's
-> accepted that CONFIG_ARM_LPAE is broken on v3.3..v3.8, and too
-> much risk to backport it all for -stable.
-
-I think it makes sense to backport to v3.3 as we don't have any other
-ARM patches addressing this. The shared pgd entry with LPAE is handled
-explicitly in pgd_free() (I've done this from the beginning as a
-precaution, though the condition never triggered because of the 0
-ceiling).
-
-> Maybe all I'm asking for is a more reassuring commit description.
-
-I agree. I'm also waiting for rmk's ack.
-
-Thanks.
-
--- 
-Catalin
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Best Regards, Andr=E9 Hentschel
