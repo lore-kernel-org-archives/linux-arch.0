@@ -1,46 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:35793 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752724Ab3BUKeG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 21 Feb 2013 05:34:06 -0500
-Date: Thu, 21 Feb 2013 10:33:43 +0000
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH] arm: Preserve TPIDRURW on context switch
-Message-ID: <20130221103342.GA20566@mudshark.cambridge.arm.com>
-References: <5112DC7E.4020108@dawncrow.de>
- <20130206225150.GL17833@n2100.arm.linux.org.uk>
- <5112E0C3.1080706@dawncrow.de>
- <20130208154809.GF3495@mudshark.cambridge.arm.com>
- <511A4B93.1000700@dawncrow.de>
- <20130212140950.GC4123@mudshark.cambridge.arm.com>
- <511A5995.5000607@parrot.com>
- <5125254D.7040401@dawncrow.de>
+Received: from mail-vb0-f42.google.com ([209.85.212.42]:37464 "EHLO
+	mail-vb0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755908Ab3BUSVs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Feb 2013 13:21:48 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <5125254D.7040401@dawncrow.de>
+In-Reply-To: <51242908.2050308@huawei.com>
+References: <51074786.5030007@huawei.com>
+	<1359995565.7515.178.camel@mfleming-mobl1.ger.corp.intel.com>
+	<51131248.3080203@huawei.com>
+	<5113450C.1080109@huawei.com>
+	<CA+8MBbKuBheEj9t8whJBc=S7NdxCF8MvuD2Ajm7suP=7JC01fg@mail.gmail.com>
+	<51242908.2050308@huawei.com>
+Date: Thu, 21 Feb 2013 10:21:46 -0800
+Message-ID: <CA+8MBbJdOCh5Hh-K6wRDzACy-a4S1qV2S5zxwJk2MhAhZvxbqg@mail.gmail.com>
+Subject: Re: [PATCH V3] ia64/mm: fix a bad_page bug when crash kernel booting
+From: Tony Luck <tony.luck@gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?iso-8859-1?Q?Andr=E9?= Hentschel <nerv@dawncrow.de>
-Cc: Matthieu CASTET <matthieu.castet@parrot.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Greg KH <gregkh@linuxfoundation.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20130221103343.amRk6R8fd2x4N6do3CTWcIMrn98Ldxj-h0kLqJjZ_Cg@z>
+To: Xishi Qiu <qiuxishi@huawei.com>
+Cc: Matt Fleming <matt.fleming@intel.com>, fenghua.yu@intel.com, Liujiang <jiang.liu@huawei.com>, Andrew Morton <akpm@linux-foundation.org>, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, linux-efi@vger.kernel.org, linux-mm@kvack.org, Hanjun Guo <guohanjun@huawei.com>, WuJianguo <wujianguo@huawei.com>, linux-arch@vger.kernel.org
+Message-ID: <20130221182146.jSFG6xhRHfAxK2-uJdFaES-qT6mRkOa1PhXXbiegZUU@z>
 
-Hi Andre,
+On Tue, Feb 19, 2013 at 5:38 PM, Xishi Qiu <qiuxishi@huawei.com> wrote:
+> Seems like a good idea, should we modify "\linux\Documentation\kernel-parameters.txt"?
 
-On Wed, Feb 20, 2013 at 07:34:37PM +0000, André Hentschel wrote:
-> Am 12.02.2013 16:02, schrieb Matthieu CASTET:
-> > The tls value is never saved to : thread->tp_value[1].
-> > 
-> > Also I don't know if you can avoid the extra ldr in the software case.
->
-> seems like Matthieu is right, any update on this?
+Perhaps in Documentation/kdump/kdump.txt (which the crashkernel entry
+in kernel-parameters.txt
+points at).  The ia64 section of kdump.txt notes that the start
+address will be rounded up to
+a GRANULE boundary, but doesn't talk about restrictions on the size.
 
-Yeah, I'll get round to this after the merge window and send a v2.
-I have a nice long flight to Hong Kong on the horizon, which may well drive
-me to writing patches :)
+I wonder if any other architectures have alignment restrictions on the
+addresses in
+"crashkernel" parameters? Does x86 like them to be 2MB aligned?
 
-Cheers,
+Second question is whether we should check and warn in parse_crashkernel_mem()?
+I think the answer is "yes" (since the consequences of getting this
+wrong don't show
+up till much later, and the errors aren't all that obviously connected
+back to the original
+mistake).  Perhaps each architecture that cares could provide defines:
 
-Will
+#define ARCH_CRASH_KERNEL_START_ALIGN (... arch value here ...)
+#define ARCH_CRASH_KERNEL_SIZE_ALIGN (... arch value here ...)
+
+[Suggestion provided mostly to provoke somebody to provide a more
+elegant solution]
+
+-Tony
