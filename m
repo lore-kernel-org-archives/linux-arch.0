@@ -1,39 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine01.qualcomm.com ([199.106.114.254]:15891 "EHLO
-	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933548Ab3BTTgd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Feb 2013 14:36:33 -0500
-Date: Wed, 20 Feb 2013 13:36:27 -0600
-From: rkuo <rkuo@codeaurora.org>
-Subject: Re: [RFC][CFT] what's in signal.git queue
-Message-ID: <20130220193627.GA15171@codeaurora.org>
-References: <20130214012539.GQ4503@ZenIV.linux.org.uk>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:35793 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752724Ab3BUKeG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 21 Feb 2013 05:34:06 -0500
+Date: Thu, 21 Feb 2013 10:33:43 +0000
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH] arm: Preserve TPIDRURW on context switch
+Message-ID: <20130221103342.GA20566@mudshark.cambridge.arm.com>
+References: <5112DC7E.4020108@dawncrow.de>
+ <20130206225150.GL17833@n2100.arm.linux.org.uk>
+ <5112E0C3.1080706@dawncrow.de>
+ <20130208154809.GF3495@mudshark.cambridge.arm.com>
+ <511A4B93.1000700@dawncrow.de>
+ <20130212140950.GC4123@mudshark.cambridge.arm.com>
+ <511A5995.5000607@parrot.com>
+ <5125254D.7040401@dawncrow.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
-In-Reply-To: <20130214012539.GQ4503@ZenIV.linux.org.uk>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <5125254D.7040401@dawncrow.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Mike Frysinger <vapier@gentoo.org>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Tony Luck <tony.luck@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hirokazu Takata <takata@linux-m32r.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, Jonas Bonn <jonas@southpole.se>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Lennox Wu <lennox.wu@gmail.com>, "David S. Miller" <davem@davemloft.net>, Paul Mundt <lethal@linux-sh.org>, Chris Zankel <chris@zankel.net>, Chris Metcalf <cmetcalf@tilera.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Russell King <linux@arm.linux.org.uk>
-Message-ID: <20130220193627.sjON6k1-IMxzHr6U3lThF8zw00OgOsQo1ARzLpY4Pkw@z>
+To: =?iso-8859-1?Q?Andr=E9?= Hentschel <nerv@dawncrow.de>
+Cc: Matthieu CASTET <matthieu.castet@parrot.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Greg KH <gregkh@linuxfoundation.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20130221103343.amRk6R8fd2x4N6do3CTWcIMrn98Ldxj-h0kLqJjZ_Cg@z>
 
-On Thu, Feb 14, 2013 at 01:25:39AM +0000, Al Viro wrote:
-> At that point the common stem ends; as far as I'm concerned, this part is
-> in never-rebase mode by now.  Then comes a bunch of per-architecture branches;
-> all subject to ACK by maintainers (ones who are not MIA, that is ;-/).  Once
-> maintainer(s) are OK with a branch, it's in no-rebase mode as well.  Branch
-> names are of form arch-<arch name>, same as the last time around.
+Hi Andre,
 
-Tested the Hexagon patches; looks fine.
+On Wed, Feb 20, 2013 at 07:34:37PM +0000, André Hentschel wrote:
+> Am 12.02.2013 16:02, schrieb Matthieu CASTET:
+> > The tls value is never saved to : thread->tp_value[1].
+> > 
+> > Also I don't know if you can avoid the extra ldr in the software case.
+>
+> seems like Matthieu is right, any update on this?
 
-Thanks!
+Yeah, I'll get round to this after the merge window and send a v2.
+I have a nice long flight to Hong Kong on the horizon, which may well drive
+me to writing patches :)
 
-Acked-by: Richard Kuo <rkuo@codeaurora.org>
+Cheers,
 
-
--- 
-
-Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum,
-hosted by The Linux Foundation
+Will
