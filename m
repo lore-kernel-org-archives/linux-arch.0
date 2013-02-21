@@ -1,42 +1,19 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH] arm: Preserve TPIDRURW on context switch
-Date: Thu, 21 Feb 2013 10:33:43 +0000
-Message-ID: <20130221103342.GA20566@mudshark.cambridge.arm.com>
-References: <5112DC7E.4020108@dawncrow.de>
- <20130206225150.GL17833@n2100.arm.linux.org.uk>
- <5112E0C3.1080706@dawncrow.de>
- <20130208154809.GF3495@mudshark.cambridge.arm.com>
- <511A4B93.1000700@dawncrow.de>
- <20130212140950.GC4123@mudshark.cambridge.arm.com>
- <511A5995.5000607@parrot.com>
- <5125254D.7040401@dawncrow.de>
+From: Webmail Administrator <fauzi@matic.gov.my>
+Subject: =?utf-8?Q?Your_Mailbox_Has_Exceeded_It_Quota/Limit=C2=AE?=
+Date: Fri, 22 Feb 2013 00:00:39 +0800 (MYT)
+Message-ID: <729710404.30030.1361462439162.JavaMail.root@mail.matic.gov.my>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <5125254D.7040401@dawncrow.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: =?iso-8859-1?Q?Andr=E9?= Hentschel <nerv@dawncrow.de>
-Cc: Matthieu CASTET <matthieu.castet@parrot.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Greg KH <gregkh@linuxfoundation.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.matic.gov.my ([175.28.14.3]:35923 "HELO mail.matic.gov.my"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with SMTP
+	id S1755421Ab3BUSII (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 21 Feb 2013 13:08:08 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 
-Hi Andre,
 
-On Wed, Feb 20, 2013 at 07:34:37PM +0000, Andr=E9 Hentschel wrote:
-> Am 12.02.2013 16:02, schrieb Matthieu CASTET:
-> > The tls value is never saved to : thread->tp_value[1].
-> >=20
-> > Also I don't know if you can avoid the extra ldr in the software ca=
-se.
->
-> seems like Matthieu is right, any update on this?
 
-Yeah, I'll get round to this after the merge window and send a v2.
-I have a nice long flight to Hong Kong on the horizon, which may well d=
-rive
-me to writing patches :)
-
-Cheers,
-
-Will
+-- 
+Your Mailbox Has Exceeded It Quota/Limit As Set By Your Administration, And You May Not Be Able To Send Or Receive New Mails Until You Re-Validate It. To Re-Validate, Please CLICK:  www.mailservices.at.tf
