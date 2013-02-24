@@ -1,51 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vb0-f42.google.com ([209.85.212.42]:37464 "EHLO
-	mail-vb0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755908Ab3BUSVs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Feb 2013 13:21:48 -0500
+Received: from mail-vb0-f47.google.com ([209.85.212.47]:33733 "EHLO
+	mail-vb0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759415Ab3BXC4E (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 23 Feb 2013 21:56:04 -0500
 MIME-Version: 1.0
-In-Reply-To: <51242908.2050308@huawei.com>
-References: <51074786.5030007@huawei.com>
-	<1359995565.7515.178.camel@mfleming-mobl1.ger.corp.intel.com>
-	<51131248.3080203@huawei.com>
-	<5113450C.1080109@huawei.com>
-	<CA+8MBbKuBheEj9t8whJBc=S7NdxCF8MvuD2Ajm7suP=7JC01fg@mail.gmail.com>
-	<51242908.2050308@huawei.com>
-Date: Thu, 21 Feb 2013 10:21:46 -0800
-Message-ID: <CA+8MBbJdOCh5Hh-K6wRDzACy-a4S1qV2S5zxwJk2MhAhZvxbqg@mail.gmail.com>
-Subject: Re: [PATCH V3] ia64/mm: fix a bad_page bug when crash kernel booting
-From: Tony Luck <tony.luck@gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
+In-Reply-To: <20130220225214.GJ4503@ZenIV.linux.org.uk>
+References: <20130220225214.GJ4503@ZenIV.linux.org.uk>
+Date: Sat, 23 Feb 2013 18:56:02 -0800
+Message-ID: <CA+55aFwx-O4Q=1gKgv=cyG8ObzUyPVh9Ctmuh-DX_DE9rumU5g@mail.gmail.com>
+Subject: Re: [git pull] signal.git
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Xishi Qiu <qiuxishi@huawei.com>
-Cc: Matt Fleming <matt.fleming@intel.com>, fenghua.yu@intel.com, Liujiang <jiang.liu@huawei.com>, Andrew Morton <akpm@linux-foundation.org>, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, linux-efi@vger.kernel.org, linux-mm@kvack.org, Hanjun Guo <guohanjun@huawei.com>, WuJianguo <wujianguo@huawei.com>, linux-arch@vger.kernel.org
-Message-ID: <20130221182146.jSFG6xhRHfAxK2-uJdFaES-qT6mRkOa1PhXXbiegZUU@z>
+To: Al Viro <viro@zeniv.linux.org.uk>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20130224025602.aqjUdkUJP4MJdwQzVVjQLEYzkLPUlNUaGYi_lVlKnfI@z>
 
-On Tue, Feb 19, 2013 at 5:38 PM, Xishi Qiu <qiuxishi@huawei.com> wrote:
-> Seems like a good idea, should we modify "\linux\Documentation\kernel-parameters.txt"?
+On Wed, Feb 20, 2013 at 2:52 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
+> * a bunch of signal-related syscalls (both native and compat) unified.
 
-Perhaps in Documentation/kdump/kdump.txt (which the crashkernel entry
-in kernel-parameters.txt
-points at).  The ia64 section of kdump.txt notes that the start
-address will be rounded up to
-a GRANULE boundary, but doesn't talk about restrictions on the size.
+Ok, in the meantime I had merged the parisc and powerpc trees, which
+had their own fixes in this area: powerpc added the transactional
+memory support for power8 (which impacted signal save/restore), and
+parisc had some fixes to the routines you then removed in favor of
+generic ones.
 
-I wonder if any other architectures have alignment restrictions on the
-addresses in
-"crashkernel" parameters? Does x86 like them to be 2MB aligned?
+I fixed up the conflicts, and they didn't look that bad, but I could
+easily have messed something up, so people - please double-check the
+end result.
 
-Second question is whether we should check and warn in parse_crashkernel_mem()?
-I think the answer is "yes" (since the consequences of getting this
-wrong don't show
-up till much later, and the errors aren't all that obviously connected
-back to the original
-mistake).  Perhaps each architecture that cares could provide defines:
-
-#define ARCH_CRASH_KERNEL_START_ALIGN (... arch value here ...)
-#define ARCH_CRASH_KERNEL_SIZE_ALIGN (... arch value here ...)
-
-[Suggestion provided mostly to provoke somebody to provide a more
-elegant solution]
-
--Tony
+             Linus
