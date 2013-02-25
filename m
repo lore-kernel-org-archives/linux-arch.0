@@ -1,41 +1,151 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [tile] sys_llseek() can *not* be used as compat_sys_llseek() there
-Date: Mon, 25 Feb 2013 00:29:13 +0000
-Message-ID: <20130225002913.GW4503@ZenIV.linux.org.uk>
+From: Lai Jiangshan <eag0628@gmail.com>
+Subject: Re: [PATCH v6 04/46] percpu_rwlock: Implement the core design of
+ Per-CPU Reader-Writer Locks
+Date: Mon, 25 Feb 2013 23:53:22 +0800
+Message-ID: <CACvQF53bdh4_BxF0y1fnTVR+T2OmRc0jmWQYftsvx92-fg-Lug@mail.gmail.com>
+References: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com>
+	<20130218123856.26245.46705.stgit@srivatsabhat.in.ibm.com>
+	<CANN689F9S7c1M8+cEpz3tsxGF34+NTRBLvxgPUOtbvav5u+RRA@mail.gmail.com>
+	<5122551E.1080703@linux.vnet.ibm.com>
+	<51226B46.9080707@linux.vnet.ibm.com>
+	<CANN689FSxOz+0Cu7EG_yKD8ZE1OpT4kyT+ybLfXSqaifodJRpw@mail.gmail.com>
+	<51226F91.7000108@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:50347 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759178Ab3BYA3Q (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 24 Feb 2013 19:29:16 -0500
-Content-Disposition: inline
+Received: from mail-ie0-f175.google.com ([209.85.223.175]:59333 "EHLO
+	mail-ie0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756871Ab3BYPxX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Feb 2013 10:53:23 -0500
+In-Reply-To: <51226F91.7000108@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@tilera.com>
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: Michel Lespinasse <walken@google.com>, linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, namhyung@kernel.org, mingo@kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, paulmck@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, rusty@rustcorp.com.au, rostedt@goodmis.org, rjw@sisk.pl, vincent.guittot@linaro.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, oleg@redhat.com, sbw@mit.edu, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
 
-	Unless I'm seriously misreading your code, you have all arguments of
-compat syscall sign-extended by asm glue.  If that's the case, consider
-what will happen to 32bit binary doing
-	llseek(fd, 0, 0xffffffff, &pos, SEEK_CUR)
-on 32bit and 64bit hosts resp.  The former will move the current position
-by 4Gb forward; the latter - by one byte backwards...
+Hi, Srivatsa,
 
-	sys_llseek() will do the right thing for compat on architectures that
-zero-extend the arguments of compat syscall; x86/sparc/ppc/arm64 fall into
-that category.  mips and (AFAICS) tile do not (and s390 is just plain weird
-and needs wrappers for just about everything).  mips has sys_32_llseek() for
-a good reason; we probably want to take that into fs/read_write.c, but
-on such architectures something *is* needed - plain sys_llseek() won't work...
+The target of the whole patchset is nice for me.
+A question: How did you find out the such usages of
+"preempt_disable()" and convert them? did all are converted?
 
-	FWIW, I suspect that we want __ARCH_COMPAT_ZERO_EXTENDS or
-__ARCH_COMPAT_SIGN_EXTENDS defined in asm/compat.h; the need of sys_llseek()
-would be "it's 32bit or it has compat and it's zero-extending", while
-"has compat and it's not zero-extending" would pick compat_sys_llseek()
-instead.  __ARCH_WANT_SYS_LLSEEK shouldn't exist...
+And I think the lock is too complex and reinvent the wheel, why don't
+you reuse the lglock?
+I wrote an untested draft here.
 
-	And things like "do we need compat_sys_lseek(), compat_sys_truncate()
-and their ilk" could be expressed via those as well - compat && !sign_extends.
+Thanks,
+Lai
 
-	Comments?
+PS: Some HA tools(I'm writing one) which takes checkpoints of
+virtual-machines frequently, I guess this patchset can speedup the
+tools.
+
+From 01db542693a1b7fc6f9ece45d57cb529d9be5b66 Mon Sep 17 00:00:00 2001
+From: Lai Jiangshan <laijs@cn.fujitsu.com>
+Date: Mon, 25 Feb 2013 23:14:27 +0800
+Subject: [PATCH] lglock: add read-preference local-global rwlock
+
+locality via lglock(trylock)
+read-preference read-write-lock via fallback rwlock_t
+
+Signed-off-by: Lai Jiangshan <laijs@cn.fujitsu.com>
+---
+ include/linux/lglock.h |   31 +++++++++++++++++++++++++++++++
+ kernel/lglock.c        |   45 +++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 76 insertions(+), 0 deletions(-)
+
+diff --git a/include/linux/lglock.h b/include/linux/lglock.h
+index 0d24e93..30fe887 100644
+--- a/include/linux/lglock.h
++++ b/include/linux/lglock.h
+@@ -67,4 +67,35 @@ void lg_local_unlock_cpu(struct lglock *lg, int cpu);
+ void lg_global_lock(struct lglock *lg);
+ void lg_global_unlock(struct lglock *lg);
+
++struct lgrwlock {
++	unsigned long __percpu *fallback_reader_refcnt;
++	struct lglock lglock;
++	rwlock_t fallback_rwlock;
++};
++
++#define DEFINE_LGRWLOCK(name)						\
++	static DEFINE_PER_CPU(arch_spinlock_t, name ## _lock)		\
++	= __ARCH_SPIN_LOCK_UNLOCKED;					\
++	static DEFINE_PER_CPU(unsigned long, name ## _refcnt);		\
++	struct lgrwlock name = {					\
++		.fallback_reader_refcnt = &name ## _refcnt,		\
++		.lglock = { .lock = &name ## _lock } }
++
++#define DEFINE_STATIC_LGRWLOCK(name)					\
++	static DEFINE_PER_CPU(arch_spinlock_t, name ## _lock)		\
++	= __ARCH_SPIN_LOCK_UNLOCKED;					\
++	static DEFINE_PER_CPU(unsigned long, name ## _refcnt);		\
++	static struct lgrwlock name = {					\
++		.fallback_reader_refcnt = &name ## _refcnt,		\
++		.lglock = { .lock = &name ## _lock } }
++
++static inline void lg_rwlock_init(struct lgrwlock *lgrw, char *name)
++{
++	lg_lock_init(&lgrw->lglock, name);
++}
++
++void lg_rwlock_local_read_lock(struct lgrwlock *lgrw);
++void lg_rwlock_local_read_unlock(struct lgrwlock *lgrw);
++void lg_rwlock_global_write_lock(struct lgrwlock *lgrw);
++void lg_rwlock_global_write_unlock(struct lgrwlock *lgrw);
+ #endif
+diff --git a/kernel/lglock.c b/kernel/lglock.c
+index 6535a66..463543a 100644
+--- a/kernel/lglock.c
++++ b/kernel/lglock.c
+@@ -87,3 +87,48 @@ void lg_global_unlock(struct lglock *lg)
+ 	preempt_enable();
+ }
+ EXPORT_SYMBOL(lg_global_unlock);
++
++void lg_rwlock_local_read_lock(struct lgrwlock *lgrw)
++{
++	struct lglock *lg = &lgrw->lglock;
++
++	preempt_disable();
++	if (likely(!__this_cpu_read(*lgrw->fallback_reader_refcnt))) {
++		if (likely(arch_spin_trylock(this_cpu_ptr(lg->lock)))) {
++			rwlock_acquire_read(&lg->lock_dep_map, 0, 0, _RET_IP_);
++			return;
++		}
++		read_lock(&lgrw->fallback_rwlock);
++	}
++
++	__this_cpu_inc(*lgrw->fallback_reader_refcnt);
++}
++EXPORT_SYMBOL(lg_rwlock_local_read_lock);
++
++void lg_rwlock_local_read_unlock(struct lgrwlock *lgrw)
++{
++	if (likely(!__this_cpu_read(*lgrw->fallback_reader_refcnt))) {
++		lg_local_unlock(&lgrw->lglock);
++		return;
++	}
++
++	if (!__this_cpu_dec_return(*lgrw->fallback_reader_refcnt))
++		read_unlock(&lgrw->fallback_rwlock);
++
++	preempt_enable();
++}
++EXPORT_SYMBOL(lg_rwlock_local_read_unlock);
++
++void lg_rwlock_global_write_lock(struct lgrwlock *lgrw)
++{
++	lg_global_lock(&lgrw->lglock);
++	write_lock(&lgrw->fallback_rwlock);
++}
++EXPORT_SYMBOL(lg_rwlock_global_write_lock);
++
++void lg_rwlock_global_write_unlock(struct lgrwlock *lgrw)
++{
++	write_unlock(&lgrw->fallback_rwlock);
++	lg_global_unlock(&lgrw->lglock);
++}
++EXPORT_SYMBOL(lg_rwlock_global_write_unlock);
+-- 
+1.7.7.6
