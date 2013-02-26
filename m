@@ -1,33 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ia0-f174.google.com ([209.85.210.174]:44836 "EHLO
-	mail-ia0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754498Ab3BZATU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Feb 2013 19:19:20 -0500
+Received: from e28smtp02.in.ibm.com ([122.248.162.2]:47603 "EHLO
+	e28smtp02.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755657Ab3BZJFE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Feb 2013 04:05:04 -0500
+Received: from /spool/local
+	by e28smtp02.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
+	Tue, 26 Feb 2013 14:31:37 +0530
+Message-ID: <512C7A38.8060906@linux.vnet.ibm.com>
+Date: Tue, 26 Feb 2013 14:32:48 +0530
+From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 MIME-Version: 1.0
-In-Reply-To: <CACvQF51jCxk5jUqmhD=QBBtUsBkQWZzakacrKO4Gsk=w61rNwQ@mail.gmail.com>
-References: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com>
-	<20130218123856.26245.46705.stgit@srivatsabhat.in.ibm.com>
-	<CANN689F9S7c1M8+cEpz3tsxGF34+NTRBLvxgPUOtbvav5u+RRA@mail.gmail.com>
-	<5122551E.1080703@linux.vnet.ibm.com>
-	<51226B46.9080707@linux.vnet.ibm.com>
-	<CANN689FSxOz+0Cu7EG_yKD8ZE1OpT4kyT+ybLfXSqaifodJRpw@mail.gmail.com>
-	<51226F91.7000108@linux.vnet.ibm.com>
-	<CACvQF53bdh4_BxF0y1fnTVR+T2OmRc0jmWQYftsvx92-fg-Lug@mail.gmail.com>
-	<512BBAD8.8010006@linux.vnet.ibm.com>
-	<CACvQF51jCxk5jUqmhD=QBBtUsBkQWZzakacrKO4Gsk=w61rNwQ@mail.gmail.com>
-Date: Tue, 26 Feb 2013 08:19:19 +0800
-Message-ID: <CACvQF50-ZqE3=baerh5oVk6q+TxmNt53pp-vHkK=QfM1rtPEuw@mail.gmail.com>
 Subject: Re: [PATCH v6 04/46] percpu_rwlock: Implement the core design of
  Per-CPU Reader-Writer Locks
-From: Lai Jiangshan <eag0628@gmail.com>
+References: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com> <20130218123856.26245.46705.stgit@srivatsabhat.in.ibm.com> <CANN689F9S7c1M8+cEpz3tsxGF34+NTRBLvxgPUOtbvav5u+RRA@mail.gmail.com> <5122551E.1080703@linux.vnet.ibm.com>	<51226B46.9080707@linux.vnet.ibm.com> <CANN689FSxOz+0Cu7EG_yKD8ZE1OpT4kyT+ybLfXSqaifodJRpw@mail.gmail.com> <51226F91.7000108@linux.vnet.ibm.com> <CACvQF53bdh4_BxF0y1fnTVR+T2OmRc0jmWQYftsvx92-fg-Lug@mail.gmail.com> <512BBAD8.8010006@linux.vnet.ibm.com> <CACvQF51jCxk5jUqmhD=QBBtUsBkQWZzakacrKO4Gsk=w61rNwQ@mail.gmail.com>
+In-Reply-To: <CACvQF51jCxk5jUqmhD=QBBtUsBkQWZzakacrKO4Gsk=w61rNwQ@mail.gmail.com>
 Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+To: Lai Jiangshan <eag0628@gmail.com>
 Cc: Michel Lespinasse <walken@google.com>, linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, namhyung@kernel.org, mingo@kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, paulmck@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, rusty@rustcorp.com.au, rostedt@goodmis.org, rjw@sisk.pl, vincent.guittot@linaro.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, oleg@redhat.com, sbw@mit.edu, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20130226001919.eJpdGxzvItnKwlx3LbTMjwQXnNUzW6KBfjylGTgO5u8@z>
+Message-ID: <20130226090248.QCqya1ZUXG6kEL6pkLF0iSIyOAvdikcrBtdfrz02-ow@z>
 
-On Tue, Feb 26, 2013 at 8:17 AM, Lai Jiangshan <eag0628@gmail.com> wrote:
+On 02/26/2013 05:47 AM, Lai Jiangshan wrote:
 > On Tue, Feb 26, 2013 at 3:26 AM, Srivatsa S. Bhat
 > <srivatsa.bhat@linux.vnet.ibm.com> wrote:
 >> Hi Lai,
@@ -39,23 +35,7 @@ On Tue, Feb 26, 2013 at 8:17 AM, Lai Jiangshan <eag0628@gmail.com> wrote:
 >>
 >> Cool! Thanks :-)
 >>
->>> A question: How did you find out the such usages of
->>> "preempt_disable()" and convert them? did all are converted?
->>>
->>
->> Well, I scanned through the source tree for usages which implicitly
->> disabled CPU offline and converted them over. Its not limited to uses
->> of preempt_disable() alone - even spin_locks, rwlocks, local_irq_disable()
->> etc also help disable CPU offline. So I tried to dig out all such uses
->> and converted them. However, since the merge window is open, a lot of
->> new code is flowing into the tree. So I'll have to rescan the tree to
->> see if there are any more places to convert.
->>
->>> And I think the lock is too complex and reinvent the wheel, why don't
->>> you reuse the lglock?
->>
->> lglocks? No way! ;-) See below...
->>
+[...]
 >>> I wrote an untested draft here.
 >>>
 >>> Thanks,
@@ -169,12 +149,9 @@ On Tue, Feb 26, 2013 at 8:17 AM, Lai Jiangshan <eag0628@gmail.com> wrote:
 >> and also safe-guard it against circular-locking-dependencies and deadlocks.
 >> Please take a look at the changelog of patch 1 - it explains the situation
 >> with an example.
->
->
+> 
+> 
 > My lock fixes your requirements(I read patch 1-6 before I sent). In
-
-s/fixes/fits/
-
 > readsite, lglock 's lock is token via trylock, the lglock doesn't
 > contribute to deadlocks, we can consider it doesn't exist when we find
 > deadlock from it. And global fallback rwlock doesn't result to
@@ -182,47 +159,47 @@ s/fixes/fits/
 > fallback_reader_refcnt inside the cpu-hotplug write-side, I don't do
 > it in generic lgrwlock)
 >
->
+
+Ah, since you hadn't mentioned the increment at the writer-side in your
+previous email, I had missed the bigger picture of what you were trying
+to achieve.
+ 
+> 
 > If lg_rwlock_local_read_lock() spins, which means
 > lg_rwlock_local_read_lock() spins on fallback_rwlock, and which means
 > lg_rwlock_global_write_lock() took the lgrwlock successfully and
 > return, and which means lg_rwlock_local_read_lock() will stop spinning
 > when the write side finished.
->
->
->>
->>> +void lg_rwlock_global_write_lock(struct lgrwlock *lgrw)
->>> +{
->>> +     lg_global_lock(&lgrw->lglock);
->>
->> This does a for-loop on all CPUs and takes their locks one-by-one. That's
->> exactly what we want to prevent, because that is the _source_ of all our
->> deadlock woes in this case. In the presence of perfect lock ordering
->> guarantees, this wouldn't have been a problem (that's why lglocks are
->> being used successfully elsewhere in the kernel). In the stop-machine()
->> removal case, the over-flexibility of preempt_disable() forces us to provide
->> an equally flexible locking alternative. Hence we can't use such per-cpu
->> locking schemes.
->>
->> You might note that, for exactly this reason, I haven't actually used any
->> per-cpu _locks_ in this synchronization scheme, though it is named as
->> "per-cpu rwlocks". The only per-cpu component here are the refcounts, and
->> we consciously avoid waiting/spinning on them (because then that would be
->> equivalent to having per-cpu locks, which are deadlock-prone). We use
->> global rwlocks to get the deadlock-safety that we need.
->>
->>> +     write_lock(&lgrw->fallback_rwlock);
->>> +}
->>> +EXPORT_SYMBOL(lg_rwlock_global_write_lock);
->>> +
->>> +void lg_rwlock_global_write_unlock(struct lgrwlock *lgrw)
->>> +{
->>> +     write_unlock(&lgrw->fallback_rwlock);
->>> +     lg_global_unlock(&lgrw->lglock);
->>> +}
->>> +EXPORT_SYMBOL(lg_rwlock_global_write_unlock);
->>>
->>
->> Regards,
->> Srivatsa S. Bhat
->>
+> 
+
+Unfortunately, I see quite a few issues with the code above. IIUC, the
+writer and the reader both increment the same counters. So how will the
+unlock() code in the reader path know when to unlock which of the locks?
+(The counter-dropping-to-zero logic is not safe, since it can be updated
+due to different reasons). And now that I look at it again, in the absence
+of the writer, the reader is allowed to be recursive at the heavy cost of
+taking the global rwlock for read, every 2nd time you nest (because the
+spinlock is non-recursive). Also, this lg_rwlock implementation uses 3
+different data-structures - a per-cpu spinlock, a global rwlock and
+a per-cpu refcnt, and its not immediately apparent why you need those many
+or even those many varieties. Also I see that this doesn't handle the
+case of interrupt-handlers also being readers.
+
+IMHO, the per-cpu rwlock scheme that I have implemented in this patchset
+has a clean, understandable design and just enough data-structures/locks
+to achieve its goal and has several optimizations (like reducing the
+interrupts-disabled time etc) included - all in a very straight-forward
+manner. Since this is non-trivial, IMHO, starting from a clean slate is
+actually better than trying to retrofit the logic into some locking scheme
+which we actively want to avoid (and hence effectively we aren't even
+borrowing anything from!).
+
+To summarize, if you are just pointing out that we can implement the same
+logic by altering lglocks, then sure, I acknowledge the possibility.
+However, I don't think doing that actually makes it better; it either
+convolutes the logic unnecessarily, or ends up looking _very_ similar to
+the implementation in this patchset, from what I can see.
+
+Regards,
+Srivatsa S. Bhat
+
