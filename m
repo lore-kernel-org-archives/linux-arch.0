@@ -1,46 +1,54 @@
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH v6 04/46] percpu_rwlock: Implement the core design of
-	Per-CPU Reader-Writer Locks
-Date: Wed, 27 Feb 2013 20:25:51 +0100
-Message-ID: <20130227192551.GA8333@redhat.com>
-References: <51226F91.7000108@linux.vnet.ibm.com> <CACvQF53bdh4_BxF0y1fnTVR+T2OmRc0jmWQYftsvx92-fg-Lug@mail.gmail.com> <512BBAD8.8010006@linux.vnet.ibm.com> <CACvQF51jCxk5jUqmhD=QBBtUsBkQWZzakacrKO4Gsk=w61rNwQ@mail.gmail.com> <512C7A38.8060906@linux.vnet.ibm.com> <CACvQF51RvhM8XNqu3-1OTQ=cZUZ=pAX+_zx0a29+W67N1X+BgQ@mail.gmail.com> <512CC509.1050000@linux.vnet.ibm.com> <CACvQF50UgiqPpDk3HCmV86zKSf6tPjqr0bZowfPEOJs0g0r0MQ@mail.gmail.com> <512D0D67.9010609@linux.vnet.ibm.com> <CANN689FuuEb9wpV43DkTtgv6syvBYL-LQxByWznyAq8dkrhzBw@mail.gmail.com>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [tile] sys_llseek() can *not* be used as compat_sys_llseek()
+ there
+Date: Wed, 27 Feb 2013 19:41:57 +0000
+Message-ID: <20130227194156.GQ4503@ZenIV.linux.org.uk>
+References: <20130225002913.GW4503@ZenIV.linux.org.uk>
+ <512E5471.2060908@tilera.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-doc-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:42575 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756104Ab3B0Tl6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Feb 2013 14:41:58 -0500
 Content-Disposition: inline
-In-Reply-To: <CANN689FuuEb9wpV43DkTtgv6syvBYL-LQxByWznyAq8dkrhzBw@mail.gmail.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Michel Lespinasse <walken@google.com>
-Cc: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Lai Jiangshan <eag0628@gmail.com>, linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, namhyung@kernel.org, mingo@kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, paulmck@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, rusty@rustcorp.com.au, rostedt@goodmis.org, rjw@sisk.pl, vincent.guittot@linaro.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, sbw@mit.edu, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <512E5471.2060908@tilera.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Chris Metcalf <cmetcalf@tilera.com>
+Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
 
-On 02/27, Michel Lespinasse wrote:
->
-> +void lg_rwlock_local_read_lock(struct lgrwlock *lgrw)
-> +{
-> +       preempt_disable();
-> +
-> +       if (__this_cpu_read(*lgrw->local_refcnt) ||
-> +           arch_spin_trylock(this_cpu_ptr(lgrw->lglock->lock))) {
-> +               __this_cpu_inc(*lgrw->local_refcnt);
+On Wed, Feb 27, 2013 at 01:46:09PM -0500, Chris Metcalf wrote:
+> On 2/24/2013 7:29 PM, Al Viro wrote:
+> > 	Unless I'm seriously misreading your code, you have all arguments of
+> > compat syscall sign-extended by asm glue.  If that's the case, consider
+> > what will happen to 32bit binary doing
+> > 	llseek(fd, 0, 0xffffffff, &pos, SEEK_CUR)
+> > on 32bit and 64bit hosts resp.  The former will move the current position
+> > by 4Gb forward; the latter - by one byte backwards...
+> 
+> Without testing this (I'm in an airport), I think you might be right.  But the fix seems like it might just be changing the parameters of the llseek syscall in read_write.c to be "unsigned int" for offset_high and offset_low.  That would let the usual syscall-wrappers code properly zero-extend the high bits.
 
-Please look at __this_cpu_generic_to_op(). You need this_cpu_inc()
-to avoid the race with irs. The same for _read_unlock.
+... and screw binary compatibility on 64bit architectures that have llseek(2).
+I also thought that there's no such thing - after all, any such architecture
+has perfectly usable lseek(2).  No such luck - parisc64, ppc64, sparc64, s390x
+and sh64 all have both of those.  AFAICS, glibc does not use llseek(2) on any
+of those and any userland code directly using that syscall would be rather
+dumb, but then this is precisely the sort of userland code likely to screw
+it up.
 
-But otherwise I agree, looks like a clever and working idea to me.
-And simple!
+I don't know; it's a borderline case, but strictly speaking we would be
+breaking syscall ABI compatibility on those architectures by doing that.
+OTOH, the real rule is more squishy - "don't break real userland code",
+so...  Hell knows.
 
-> There is an interesting case where lg_rwlock_local_read_lock could be
-> interrupted after getting the local lglock but before incrementing
-> local_refcnt to 1; if that happens any nested readers within that
-> interrupt will have to take the global rwlock read side. I think this
-> is perfectly acceptable
+Linus, do you have any comments on that proposal?  Basically, that would make
+sys_llseek() ignore upper 32 bits of offset_low on 64bit targets.  Benefit:
+fixes bug in tile compat, removes the need of compat wrapper on mips, slightly
+simpler rules for populating compat syscall tables.  Cost: changes behaviour
+of llseek(2) for 64bit binaries on parisc, ppc, sparc, s390, sh64.  AFAIK,
+glibc ignores that syscall on those targets, so affected userland would have
+to do it manually via syscall(__NR_llseek,...).
 
-Agreed.
-
-Or interrupt can do spin_trylock(percpu-lock) after we take the global
-->fallback_rwlock (if we race with write_lock + write_unlock), but I do
-not see any possible deadlock in this case.
-
-Oleg.
-
+TBH, I'd rather solve it by providing a mips-style wrapper for tile, but...
