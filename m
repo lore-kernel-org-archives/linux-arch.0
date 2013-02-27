@@ -1,174 +1,119 @@
-From: Michal Hocko <mhocko@suse.cz>
-Subject: Re: [patch] mm, show_mem: suppress page counts in non-blockable
- contexts
-Date: Wed, 27 Feb 2013 11:00:24 +0100
-Message-ID: <20130227100024.GA16724@dhcp22.suse.cz>
-References: <alpine.DEB.2.02.1302261642520.11109@chino.kir.corp.google.com>
+From: Michel Lespinasse <walken@google.com>
+Subject: Re: [PATCH v6 04/46] percpu_rwlock: Implement the core design of
+ Per-CPU Reader-Writer Locks
+Date: Wed, 27 Feb 2013 19:11:34 +0800
+Message-ID: <CANN689FuuEb9wpV43DkTtgv6syvBYL-LQxByWznyAq8dkrhzBw@mail.gmail.com>
+References: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com>
+	<20130218123856.26245.46705.stgit@srivatsabhat.in.ibm.com>
+	<CANN689F9S7c1M8+cEpz3tsxGF34+NTRBLvxgPUOtbvav5u+RRA@mail.gmail.com>
+	<5122551E.1080703@linux.vnet.ibm.com>
+	<51226B46.9080707@linux.vnet.ibm.com>
+	<CANN689FSxOz+0Cu7EG_yKD8ZE1OpT4kyT+ybLfXSqaifodJRpw@mail.gmail.com>
+	<51226F91.7000108@linux.vnet.ibm.com>
+	<CACvQF53bdh4_BxF0y1fnTVR+T2OmRc0jmWQYftsvx92-fg-Lug@mail.gmail.com>
+	<512BBAD8.8010006@linux.vnet.ibm.com>
+	<CACvQF51jCxk5jUqmhD=QBBtUsBkQWZzakacrKO4Gsk=w61rNwQ@mail.gmail.com>
+	<512C7A38.8060906@linux.vnet.ibm.com>
+	<CACvQF51RvhM8XNqu3-1OTQ=cZUZ=pAX+_zx0a29+W67N1X+BgQ@mail.gmail.com>
+	<512CC509.1050000@linux.vnet.ibm.com>
+	<CACvQF50UgiqPpDk3HCmV86zKSf6tPjqr0bZowfPEOJs0g0r0MQ@mail.gmail.com>
+	<512D0D67.9010609@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:55799 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750715Ab3B0KA1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 27 Feb 2013 05:00:27 -0500
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.02.1302261642520.11109@chino.kir.corp.google.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Rientjes <rientjes@google.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Mel Gorman <mgorman@suse.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <512D0D67.9010609@linux.vnet.ibm.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: Lai Jiangshan <eag0628@gmail.com>, linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, namhyung@kernel.org, mingo@kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, paulmck@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, rusty@rustcorp.com.au, rostedt@goodmis.org, rjw@sisk.pl, vincent.guittot@linaro.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, oleg@redhat.com, sbw@mit.edu, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue 26-02-13 16:46:08, David Rientjes wrote:
-> On large systems with a lot of memory, walking all RAM to determine page 
-> types may take a half second or even more.
-> 
-> In non-blockable contexts, the page allocator will emit a page allocation 
-> failure warning unless __GFP_NOWARN is specified.  In such contexts, irqs 
-> are typically disabled and such a lengthy delay may result in soft 
-> lockups.
+Hi Srivatsa,
 
-But we are trying to prevent from soft lockups by calling
-touch_nmi_watchdog every now when iterating over pages so the lock up
-detector shouldn't trigger.
+I think there is some elegance in Lai's proposal of using a local
+trylock for the reader uncontended case and global rwlock to deal with
+the contended case without deadlocks. He apparently didn't realize
+initially that nested read locks are common, and he seems to have
+confused you because of that, but I think his proposal could be
+changed easily to account for that and result in short, easily
+understood code. What about the following:
 
-Anyway, I think that the additional information (which can be really
-costly as you are describing) is not that useful. Most of the useful
-information is already printed by show_free_areas. Or does it help when
-we know how much memory is shared/reserved/etc. when the allocation
-fails?
+- local_refcnt is a local lock count; it indicates how many recursive
+locks are taken using the local lglock
+- lglock is used by readers for local locking; it must be acquired
+before local_refcnt becomes nonzero and released after local_refcnt
+goes back to zero.
+- fallback_rwlock is used by readers for global locking; it is
+acquired when fallback_reader_refcnt is zero and the trylock fails on
+lglock
 
-So I do agree with the dropping the additional information for the
-allocation failure path (sysrq+m might still show it) but I fail to see
-how the lockup detector plays any role here. Can we just drop it because
-it is not that interesting and it is costly so it is not worth
-bothering?
- 
-> To fix this, suppress the page walk in such contexts when printing the 
-> page allocation failure warning.
-> 
-> Signed-off-by: David Rientjes <rientjes@google.com>
-> ---
->  arch/arm/mm/init.c       | 3 +++
->  arch/ia64/mm/contig.c    | 2 ++
->  arch/ia64/mm/discontig.c | 2 ++
->  arch/parisc/mm/init.c    | 2 ++
->  arch/unicore32/mm/init.c | 3 +++
->  include/linux/mm.h       | 3 ++-
->  lib/show_mem.c           | 3 +++
->  mm/page_alloc.c          | 7 +++++++
->  8 files changed, 24 insertions(+), 1 deletion(-)
-> 
-> diff --git a/arch/arm/mm/init.c b/arch/arm/mm/init.c
-> --- a/arch/arm/mm/init.c
-> +++ b/arch/arm/mm/init.c
-> @@ -99,6 +99,9 @@ void show_mem(unsigned int filter)
->  	printk("Mem-info:\n");
->  	show_free_areas(filter);
->  
-> +	if (filter & SHOW_MEM_FILTER_PAGE_COUNT)
-> +		return;
-> +
->  	for_each_bank (i, mi) {
->  		struct membank *bank = &mi->bank[i];
->  		unsigned int pfn1, pfn2;
-> diff --git a/arch/ia64/mm/contig.c b/arch/ia64/mm/contig.c
-> --- a/arch/ia64/mm/contig.c
-> +++ b/arch/ia64/mm/contig.c
-> @@ -47,6 +47,8 @@ void show_mem(unsigned int filter)
->  	printk(KERN_INFO "Mem-info:\n");
->  	show_free_areas(filter);
->  	printk(KERN_INFO "Node memory in pages:\n");
-> +	if (filter & SHOW_MEM_FILTER_PAGE_COUNT)
-> +		return;
->  	for_each_online_pgdat(pgdat) {
->  		unsigned long present;
->  		unsigned long flags;
-> diff --git a/arch/ia64/mm/discontig.c b/arch/ia64/mm/discontig.c
-> --- a/arch/ia64/mm/discontig.c
-> +++ b/arch/ia64/mm/discontig.c
-> @@ -623,6 +623,8 @@ void show_mem(unsigned int filter)
->  
->  	printk(KERN_INFO "Mem-info:\n");
->  	show_free_areas(filter);
-> +	if (filter & SHOW_MEM_FILTER_PAGE_COUNT)
-> +		return;
->  	printk(KERN_INFO "Node memory in pages:\n");
->  	for_each_online_pgdat(pgdat) {
->  		unsigned long present;
-> diff --git a/arch/parisc/mm/init.c b/arch/parisc/mm/init.c
-> --- a/arch/parisc/mm/init.c
-> +++ b/arch/parisc/mm/init.c
-> @@ -697,6 +697,8 @@ void show_mem(unsigned int filter)
->  
->  	printk(KERN_INFO "Mem-info:\n");
->  	show_free_areas(filter);
-> +	if (filter & SHOW_MEM_FILTER_PAGE_COUNT)
-> +		return;
->  #ifndef CONFIG_DISCONTIGMEM
->  	i = max_mapnr;
->  	while (i-- > 0) {
-> diff --git a/arch/unicore32/mm/init.c b/arch/unicore32/mm/init.c
-> --- a/arch/unicore32/mm/init.c
-> +++ b/arch/unicore32/mm/init.c
-> @@ -66,6 +66,9 @@ void show_mem(unsigned int filter)
->  	printk(KERN_DEFAULT "Mem-info:\n");
->  	show_free_areas(filter);
->  
-> +	if (filter & SHOW_MEM_FILTER_PAGE_COUNT)
-> +		return;
-> +
->  	for_each_bank(i, mi) {
->  		struct membank *bank = &mi->bank[i];
->  		unsigned int pfn1, pfn2;
-> diff --git a/include/linux/mm.h b/include/linux/mm.h
-> --- a/include/linux/mm.h
-> +++ b/include/linux/mm.h
-> @@ -898,7 +898,8 @@ extern void pagefault_out_of_memory(void);
->   * Flags passed to show_mem() and show_free_areas() to suppress output in
->   * various contexts.
->   */
-> -#define SHOW_MEM_FILTER_NODES	(0x0001u)	/* filter disallowed nodes */
-> +#define SHOW_MEM_FILTER_NODES		(0x0001u)	/* disallowed nodes */
-> +#define SHOW_MEM_FILTER_PAGE_COUNT	(0x0002u)	/* page type count */
->  
->  extern void show_free_areas(unsigned int flags);
->  extern bool skip_free_areas_node(unsigned int flags, int nid);
-> diff --git a/lib/show_mem.c b/lib/show_mem.c
-> --- a/lib/show_mem.c
-> +++ b/lib/show_mem.c
-> @@ -18,6 +18,9 @@ void show_mem(unsigned int filter)
->  	printk("Mem-Info:\n");
->  	show_free_areas(filter);
->  
-> +	if (filter & SHOW_MEM_FILTER_PAGE_COUNT)
-> +		return;
-> +
->  	for_each_online_pgdat(pgdat) {
->  		unsigned long i, flags;
->  
-> diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-> --- a/mm/page_alloc.c
-> +++ b/mm/page_alloc.c
-> @@ -2009,6 +2009,13 @@ void warn_alloc_failed(gfp_t gfp_mask, int order, const char *fmt, ...)
->  		return;
->  
->  	/*
-> +	 * Walking all memory to count page types is very expensive and should
-> +	 * be inhibited in non-blockable contexts.
-> +	 */
-> +	if (!(gfp_mask & __GFP_WAIT))
-> +		filter |= SHOW_MEM_FILTER_PAGE_COUNT;
-> +
-> +	/*
->  	 * This documents exceptions given to allocations in certain
->  	 * contexts that are allowed to allocate outside current's set
->  	 * of allowed nodes.
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
++void lg_rwlock_local_read_lock(struct lgrwlock *lgrw)
++{
++       preempt_disable();
++
++       if (__this_cpu_read(*lgrw->local_refcnt) ||
++           arch_spin_trylock(this_cpu_ptr(lgrw->lglock->lock))) {
++               __this_cpu_inc(*lgrw->local_refcnt);
++
+rwlock_acquire_read(&lgrw->fallback_rwlock->lock_dep_map, 0, 0,
+_RET_IP_);
++       } else {
++               read_lock(&lgrw->fallback_rwlock);
++       }
++}
++EXPORT_SYMBOL(lg_rwlock_local_read_lock);
++
++void lg_rwlock_local_read_unlock(struct lgrwlock *lgrw)
++{
++       if (likely(__this_cpu_read(*lgrw->local_refcnt))) {
++               rwlock_release(&lgrw->fallback_rwlock->lock_dep_map,
+1, _RET_IP_);
++               if (!__this_cpu_dec_return(*lgrw->local_refcnt))
++                       arch_spin_unlock(this_cpu_ptr(lgrw->lglock->lock));
++       } else {
++               read_unlock(&lgrw->fallback_rwlock);
++       }
++
++       preempt_enable();
++}
++EXPORT_SYMBOL(lg_rwlock_local_read_unlock);
++
++void lg_rwlock_global_write_lock(struct lgrwlock *lgrw)
++{
++       int i;
++
++       preempt_disable();
++
++       for_each_possible_cpu(i)
++               arch_spin_lock(per_cpu_ptr(lgrw->lglock->lock, i));
++       write_lock(&lgrw->fallback_rwlock);
++}
++EXPORT_SYMBOL(lg_rwlock_global_write_lock);
++
++void lg_rwlock_global_write_unlock(struct lgrwlock *lgrw)
++{
++       int i;
++
++       write_unlock(&lgrw->fallback_rwlock);
++       for_each_possible_cpu(i)
++               arch_spin_unlock(per_cpu_ptr(lgrw->lglock->lock, i));
++
++       preempt_enable();
++}
++EXPORT_SYMBOL(lg_rwlock_global_write_unlock);
+
+This is to me relatively easier to understand than Srivatsa's
+proposal. Now I'm not sure who wins efficiency wise, but I think it
+should be relatively close as readers at least don't touch shared
+state in the uncontended case (even with some recursion going on).
+
+There is an interesting case where lg_rwlock_local_read_lock could be
+interrupted after getting the local lglock but before incrementing
+local_refcnt to 1; if that happens any nested readers within that
+interrupt will have to take the global rwlock read side. I think this
+is perfectly acceptable as this should not be a common case though
+(and thus the global rwlock cache line probably wouldn't even bounce
+between cpus then).
 
 -- 
-Michal Hocko
-SUSE Labs
+Michel "Walken" Lespinasse
+A program is never fully debugged until the last user dies.
