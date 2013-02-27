@@ -1,53 +1,46 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: Re: [tile] sys_llseek() can *not* be used as compat_sys_llseek()
- there
-Date: Wed, 27 Feb 2013 13:46:09 -0500
-Message-ID: <512E5471.2060908@tilera.com>
-References: <20130225002913.GW4503@ZenIV.linux.org.uk>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH v6 04/46] percpu_rwlock: Implement the core design of
+	Per-CPU Reader-Writer Locks
+Date: Wed, 27 Feb 2013 20:25:51 +0100
+Message-ID: <20130227192551.GA8333@redhat.com>
+References: <51226F91.7000108@linux.vnet.ibm.com> <CACvQF53bdh4_BxF0y1fnTVR+T2OmRc0jmWQYftsvx92-fg-Lug@mail.gmail.com> <512BBAD8.8010006@linux.vnet.ibm.com> <CACvQF51jCxk5jUqmhD=QBBtUsBkQWZzakacrKO4Gsk=w61rNwQ@mail.gmail.com> <512C7A38.8060906@linux.vnet.ibm.com> <CACvQF51RvhM8XNqu3-1OTQ=cZUZ=pAX+_zx0a29+W67N1X+BgQ@mail.gmail.com> <512CC509.1050000@linux.vnet.ibm.com> <CACvQF50UgiqPpDk3HCmV86zKSf6tPjqr0bZowfPEOJs0g0r0MQ@mail.gmail.com> <512D0D67.9010609@linux.vnet.ibm.com> <CANN689FuuEb9wpV43DkTtgv6syvBYL-LQxByWznyAq8dkrhzBw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([12.216.194.151]:45860 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753580Ab3B0SqM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Feb 2013 13:46:12 -0500
-In-Reply-To: <20130225002913.GW4503@ZenIV.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-doc-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <CANN689FuuEb9wpV43DkTtgv6syvBYL-LQxByWznyAq8dkrhzBw@mail.gmail.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Michel Lespinasse <walken@google.com>
+Cc: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Lai Jiangshan <eag0628@gmail.com>, linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, namhyung@kernel.org, mingo@kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, paulmck@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, rusty@rustcorp.com.au, rostedt@goodmis.org, rjw@sisk.pl, vincent.guittot@linaro.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, sbw@mit.edu, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
+List-Id: linux-arch.vger.kernel.org
 
-On 2/24/2013 7:29 PM, Al Viro wrote:
-> 	Unless I'm seriously misreading your code, you have all arguments of
-> compat syscall sign-extended by asm glue.  If that's the case, consider
-> what will happen to 32bit binary doing
-> 	llseek(fd, 0, 0xffffffff, &pos, SEEK_CUR)
-> on 32bit and 64bit hosts resp.  The former will move the current position
-> by 4Gb forward; the latter - by one byte backwards...
-
-Without testing this (I'm in an airport), I think you might be right.  But the fix seems like it might just be changing the parameters of the llseek syscall in read_write.c to be "unsigned int" for offset_high and offset_low.  That would let the usual syscall-wrappers code properly zero-extend the high bits.
-
-> 	sys_llseek() will do the right thing for compat on architectures that
-> zero-extend the arguments of compat syscall; x86/sparc/ppc/arm64 fall into
-> that category.  mips and (AFAICS) tile do not (and s390 is just plain weird
-> and needs wrappers for just about everything).  mips has sys_32_llseek() for
-> a good reason; we probably want to take that into fs/read_write.c, but
-> on such architectures something *is* needed - plain sys_llseek() won't work...
+On 02/27, Michel Lespinasse wrote:
 >
-> 	FWIW, I suspect that we want __ARCH_COMPAT_ZERO_EXTENDS or
-> __ARCH_COMPAT_SIGN_EXTENDS defined in asm/compat.h; the need of sys_llseek()
-> would be "it's 32bit or it has compat and it's zero-extending", while
-> "has compat and it's not zero-extending" would pick compat_sys_llseek()
-> instead.  __ARCH_WANT_SYS_LLSEEK shouldn't exist...
->
-> 	And things like "do we need compat_sys_lseek(), compat_sys_truncate()
-> and their ilk" could be expressed via those as well - compat && !sign_extends.
->
-> 	Comments?
+> +void lg_rwlock_local_read_lock(struct lgrwlock *lgrw)
+> +{
+> +       preempt_disable();
+> +
+> +       if (__this_cpu_read(*lgrw->local_refcnt) ||
+> +           arch_spin_trylock(this_cpu_ptr(lgrw->lglock->lock))) {
+> +               __this_cpu_inc(*lgrw->local_refcnt);
 
-Cleanups like these sound generally good.  For tilegx32, for good or bad, we emulated the register allocation conventions of our 32-bit tilepro architecture, so that for example truncate64 has r0 = filename, r1 = dummy, r2+r3 = offset.  This doesn't match what the compiler would generate for a simple "char *, long long" argument pair, since for tilegx32 we (obviously) represent long long as a 64-bit register value in general.  But for new architectures it might be good to look to make changes like those you are suggesting.
+Please look at __this_cpu_generic_to_op(). You need this_cpu_inc()
+to avoid the race with irs. The same for _read_unlock.
 
--- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+But otherwise I agree, looks like a clever and working idea to me.
+And simple!
+
+> There is an interesting case where lg_rwlock_local_read_lock could be
+> interrupted after getting the local lglock but before incrementing
+> local_refcnt to 1; if that happens any nested readers within that
+> interrupt will have to take the global rwlock read side. I think this
+> is perfectly acceptable
+
+Agreed.
+
+Or interrupt can do spin_trylock(percpu-lock) after we take the global
+->fallback_rwlock (if we race with write_lock + write_unlock), but I do
+not see any possible deadlock in this case.
+
+Oleg.
+
