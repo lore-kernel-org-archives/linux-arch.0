@@ -1,388 +1,307 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gg0-f201.google.com ([209.85.161.201]:58791 "EHLO
-	mail-gg0-f201.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759441Ab3B1URu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Feb 2013 15:17:50 -0500
-Received: by mail-gg0-f201.google.com with SMTP id l2so245361ggn.4
-        for <linux-arch@vger.kernel.org>; Thu, 28 Feb 2013 12:17:49 -0800 (PST)
-Subject: [merged] arch-kconfig-centralise-config_arch_no_virt_to_bus.patch removed from -mm tree
-From: akpm@linux-foundation.org
-Date: Thu, 28 Feb 2013 12:17:48 -0800
-Message-ID: <20130228201748.D16E631C1F0@corp2gmr1-1.hot.corp.google.com>
+Received: from mail-bk0-f51.google.com ([209.85.214.51]:58066 "EHLO
+	mail-bk0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752299Ab3CAMFG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Mar 2013 07:05:06 -0500
+Received: by mail-bk0-f51.google.com with SMTP id ik5so1326090bkc.38
+        for <linux-arch@vger.kernel.org>; Fri, 01 Mar 2013 04:05:04 -0800 (PST)
+MIME-Version: 1.0
+In-Reply-To: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com>
+References: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com>
+Date: Fri, 1 Mar 2013 13:05:04 +0100
+Message-ID: <CAKfTPtB1J+AXi4ZViuxPRxag3O4C9O2ZUeFza1HUFeAiYUy+yg@mail.gmail.com>
+Subject: Re: [PATCH v6 00/46] CPU hotplug: stop_machine()-free CPU hotplug
+From: Vincent Guittot <vincent.guittot@linaro.org>
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: sfr@canb.auug.org.au, James.Bottomley@HansenPartnership.com, Vineet.Gupta1@synopsys.com, benh@kernel.crashing.org, bhelgaas@google.com, davem@davemloft.net, hartleys@visionengravers.com, james.hogan@imgtec.com, lethal@linux-sh.org, linux-arch@vger.kernel.org, paulus@samba.org, mm-commits@vger.kernel.org
-Message-ID: <20130228201748.dnxpVVg5DNyEEg5WTdMiDenBx1oy3FSz6oNca4szreM@z>
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, walken@google.com
+Message-ID: <20130301120504.U2oQ5kgOMriUMoHawUUSSIInxUF6UONLrrwULyjIOU0@z>
 
+Hi Srivatsa,
 
-The patch titled
-     Subject: arch Kconfig: centralise CONFIG_ARCH_NO_VIRT_TO_BUS
-has been removed from the -mm tree.  Its filename was
-     arch-kconfig-centralise-config_arch_no_virt_to_bus.patch
+I have run some tests with genload on my ARM platform but even with
+the mainline the cpu_down is quite short and stable ( around  4ms )
+with 5 or 2 online cores. The duration is similar with your patches
 
-This patch was dropped because it was merged into mainline or a subsystem tree
+I have maybe not used the right option for genload ? I have used
+genload -m 10 which seems to generate the most system time. Which
+command have you used for your tests ?
 
-------------------------------------------------------
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: arch Kconfig: centralise CONFIG_ARCH_NO_VIRT_TO_BUS
+Vincent
 
-Change it to CONFIG_HAVE_VIRT_TO_BUS and set it in all architecures
-that already provide virt_to_bus().
-
-Signed-off-by: Stephen Rothwell <sfr@canb.auug.org.au>
-Reviewed-by: James Hogan <james.hogan@imgtec.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>
-Cc: H Hartley Sweeten <hartleys@visionengravers.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: Paul Mundt <lethal@linux-sh.org>
-Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- arch/Kconfig            |    7 +++++++
- arch/alpha/Kconfig      |    1 +
- arch/arm/Kconfig        |    1 +
- arch/avr32/Kconfig      |    1 +
- arch/blackfin/Kconfig   |    1 +
- arch/cris/Kconfig       |    1 +
- arch/frv/Kconfig        |    1 +
- arch/h8300/Kconfig      |    1 +
- arch/ia64/Kconfig       |    1 +
- arch/m32r/Kconfig       |    1 +
- arch/m68k/Kconfig       |    1 +
- arch/microblaze/Kconfig |    1 +
- arch/mips/Kconfig       |    1 +
- arch/mn10300/Kconfig    |    1 +
- arch/openrisc/Kconfig   |    1 +
- arch/parisc/Kconfig     |    1 +
- arch/powerpc/Kconfig    |    4 +---
- arch/s390/Kconfig       |    1 +
- arch/score/Kconfig      |    1 +
- arch/sh/Kconfig         |    3 ---
- arch/sparc/Kconfig      |    3 ---
- arch/tile/Kconfig       |    1 +
- arch/unicore32/Kconfig  |    1 +
- arch/x86/Kconfig        |    1 +
- arch/xtensa/Kconfig     |    1 +
- mm/Kconfig              |    2 +-
- 26 files changed, 30 insertions(+), 10 deletions(-)
-
-diff -puN arch/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/Kconfig
---- a/arch/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
-+++ a/arch/Kconfig
-@@ -303,6 +303,13 @@ config ARCH_WANT_OLD_COMPAT_IPC
- 	select ARCH_WANT_COMPAT_IPC_PARSE_VERSION
- 	bool
- 
-+config HAVE_VIRT_TO_BUS
-+	bool
-+	help
-+	  An architecture should select this if it implements the
-+	  deprecated interface virt_to_bus().  All new architectures
-+	  should probably not select this.
-+
- config HAVE_ARCH_SECCOMP_FILTER
- 	bool
- 	help
-diff -puN arch/alpha/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/alpha/Kconfig
---- a/arch/alpha/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
-+++ a/arch/alpha/Kconfig
-@@ -9,6 +9,7 @@ config ALPHA
- 	select HAVE_PERF_EVENTS
- 	select HAVE_DMA_ATTRS
- 	select HAVE_GENERIC_HARDIRQS
-+	select HAVE_VIRT_TO_BUS
- 	select GENERIC_IRQ_PROBE
- 	select AUTO_IRQ_AFFINITY if SMP
- 	select GENERIC_IRQ_SHOW
-diff -puN arch/arm/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/arm/Kconfig
---- a/arch/arm/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
-+++ a/arch/arm/Kconfig
-@@ -49,6 +49,7 @@ config ARM
- 	select HAVE_REGS_AND_STACK_ACCESS_API
- 	select HAVE_SYSCALL_TRACEPOINTS
- 	select HAVE_UID16
-+	select HAVE_VIRT_TO_BUS
- 	select KTIME_SCALAR
- 	select PERF_USE_VMALLOC
- 	select RTC_LIB
-diff -puN arch/avr32/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/avr32/Kconfig
---- a/arch/avr32/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
-+++ a/arch/avr32/Kconfig
-@@ -7,6 +7,7 @@ config AVR32
- 	select HAVE_OPROFILE
- 	select HAVE_KPROBES
- 	select HAVE_GENERIC_HARDIRQS
-+	select HAVE_VIRT_TO_BUS
- 	select GENERIC_IRQ_PROBE
- 	select GENERIC_ATOMIC64
- 	select HARDIRQS_SW_RESEND
-diff -puN arch/blackfin/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/blackfin/Kconfig
---- a/arch/blackfin/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
-+++ a/arch/blackfin/Kconfig
-@@ -33,6 +33,7 @@ config BLACKFIN
- 	select ARCH_HAVE_CUSTOM_GPIO_H
- 	select ARCH_WANT_OPTIONAL_GPIOLIB
- 	select HAVE_UID16
-+	select HAVE_VIRT_TO_BUS
- 	select ARCH_WANT_IPC_PARSE_VERSION
- 	select HAVE_GENERIC_HARDIRQS
- 	select GENERIC_ATOMIC64
-diff -puN arch/cris/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/cris/Kconfig
---- a/arch/cris/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
-+++ a/arch/cris/Kconfig
-@@ -43,6 +43,7 @@ config CRIS
- 	select GENERIC_ATOMIC64
- 	select HAVE_GENERIC_HARDIRQS
- 	select HAVE_UID16
-+	select HAVE_VIRT_TO_BUS
- 	select ARCH_WANT_IPC_PARSE_VERSION
- 	select GENERIC_IRQ_SHOW
- 	select GENERIC_IOMAP
-diff -puN arch/frv/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/frv/Kconfig
---- a/arch/frv/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
-+++ a/arch/frv/Kconfig
-@@ -6,6 +6,7 @@ config FRV
- 	select HAVE_PERF_EVENTS
- 	select HAVE_UID16
- 	select HAVE_GENERIC_HARDIRQS
-+	select HAVE_VIRT_TO_BUS
- 	select GENERIC_IRQ_SHOW
- 	select HAVE_DEBUG_BUGVERBOSE
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
-diff -puN arch/h8300/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/h8300/Kconfig
---- a/arch/h8300/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
-+++ a/arch/h8300/Kconfig
-@@ -5,6 +5,7 @@ config H8300
- 	select HAVE_GENERIC_HARDIRQS
- 	select GENERIC_ATOMIC64
- 	select HAVE_UID16
-+	select HAVE_VIRT_TO_BUS
- 	select ARCH_WANT_IPC_PARSE_VERSION
- 	select GENERIC_IRQ_SHOW
- 	select GENERIC_CPU_DEVICES
-diff -puN arch/ia64/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/ia64/Kconfig
---- a/arch/ia64/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
-+++ a/arch/ia64/Kconfig
-@@ -26,6 +26,7 @@ config IA64
- 	select HAVE_MEMBLOCK
- 	select HAVE_MEMBLOCK_NODE_MAP
- 	select HAVE_VIRT_CPU_ACCOUNTING
-+	select HAVE_VIRT_TO_BUS
- 	select ARCH_DISCARD_MEMBLOCK
- 	select GENERIC_IRQ_PROBE
- 	select GENERIC_PENDING_IRQ if SMP
-diff -puN arch/m32r/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/m32r/Kconfig
---- a/arch/m32r/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
-+++ a/arch/m32r/Kconfig
-@@ -10,6 +10,7 @@ config M32R
- 	select ARCH_WANT_IPC_PARSE_VERSION
- 	select HAVE_DEBUG_BUGVERBOSE
- 	select HAVE_GENERIC_HARDIRQS
-+	select HAVE_VIRT_TO_BUS
- 	select GENERIC_IRQ_PROBE
- 	select GENERIC_IRQ_SHOW
- 	select GENERIC_ATOMIC64
-diff -puN arch/m68k/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/m68k/Kconfig
---- a/arch/m68k/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
-+++ a/arch/m68k/Kconfig
-@@ -8,6 +8,7 @@ config M68K
- 	select GENERIC_IRQ_SHOW
- 	select GENERIC_ATOMIC64
- 	select HAVE_UID16
-+	select HAVE_VIRT_TO_BUS
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG if RMW_INSNS
- 	select GENERIC_CPU_DEVICES
- 	select GENERIC_STRNCPY_FROM_USER if MMU
-diff -puN arch/microblaze/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/microblaze/Kconfig
---- a/arch/microblaze/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
-+++ a/arch/microblaze/Kconfig
-@@ -19,6 +19,7 @@ config MICROBLAZE
- 	select HAVE_DEBUG_KMEMLEAK
- 	select IRQ_DOMAIN
- 	select HAVE_GENERIC_HARDIRQS
-+	select HAVE_VIRT_TO_BUS
- 	select GENERIC_IRQ_PROBE
- 	select GENERIC_IRQ_SHOW
- 	select GENERIC_PCI_IOMAP
-diff -puN arch/mips/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/mips/Kconfig
---- a/arch/mips/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
-+++ a/arch/mips/Kconfig
-@@ -38,6 +38,7 @@ config MIPS
- 	select GENERIC_CLOCKEVENTS
- 	select GENERIC_CMOS_UPDATE
- 	select HAVE_MOD_ARCH_SPECIFIC
-+	select HAVE_VIRT_TO_BUS
- 	select MODULES_USE_ELF_REL if MODULES
- 	select MODULES_USE_ELF_RELA if MODULES && 64BIT
- 	select CLONE_BACKWARDS
-diff -puN arch/mn10300/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/mn10300/Kconfig
---- a/arch/mn10300/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
-+++ a/arch/mn10300/Kconfig
-@@ -8,6 +8,7 @@ config MN10300
- 	select HAVE_ARCH_KGDB
- 	select GENERIC_ATOMIC64
- 	select HAVE_NMI_WATCHDOG if MN10300_WD_TIMER
-+	select HAVE_VIRT_TO_BUS
- 	select GENERIC_CLOCKEVENTS
- 	select MODULES_USE_ELF_RELA
- 	select OLD_SIGSUSPEND3
-diff -puN arch/openrisc/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/openrisc/Kconfig
---- a/arch/openrisc/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
-+++ a/arch/openrisc/Kconfig
-@@ -12,6 +12,7 @@ config OPENRISC
- 	select ARCH_WANT_OPTIONAL_GPIOLIB
-         select HAVE_ARCH_TRACEHOOK
- 	select HAVE_GENERIC_HARDIRQS
-+	select HAVE_VIRT_TO_BUS
- 	select GENERIC_IRQ_CHIP
- 	select GENERIC_IRQ_PROBE
- 	select GENERIC_IRQ_SHOW
-diff -puN arch/parisc/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/parisc/Kconfig
---- a/arch/parisc/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
-+++ a/arch/parisc/Kconfig
-@@ -19,6 +19,7 @@ config PARISC
- 	select GENERIC_SMP_IDLE_THREAD
- 	select GENERIC_STRNCPY_FROM_USER
- 	select HAVE_MOD_ARCH_SPECIFIC
-+	select HAVE_VIRT_TO_BUS
- 	select MODULES_USE_ELF_RELA
- 	select CLONE_BACKWARDS
- 	select TTY # Needed for pdc_cons.c
-diff -puN arch/powerpc/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/powerpc/Kconfig
---- a/arch/powerpc/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
-+++ a/arch/powerpc/Kconfig
-@@ -87,9 +87,6 @@ config GENERIC_GPIO
- 	help
- 	  Generic GPIO API support
- 
--config ARCH_NO_VIRT_TO_BUS
--	def_bool PPC64
--
- config PPC
- 	bool
- 	default y
-@@ -101,6 +98,7 @@ config PPC
- 	select HAVE_FUNCTION_GRAPH_TRACER
- 	select SYSCTL_EXCEPTION_TRACE
- 	select ARCH_WANT_OPTIONAL_GPIOLIB
-+	select HAVE_VIRT_TO_BUS if !PPC64
- 	select HAVE_IDE
- 	select HAVE_IOREMAP_PROT
- 	select HAVE_EFFICIENT_UNALIGNED_ACCESS
-diff -puN arch/s390/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/s390/Kconfig
---- a/arch/s390/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
-+++ a/arch/s390/Kconfig
-@@ -134,6 +134,7 @@ config S390
- 	select HAVE_SYSCALL_WRAPPERS
- 	select HAVE_UID16 if 32BIT
- 	select HAVE_VIRT_CPU_ACCOUNTING
-+	select HAVE_VIRT_TO_BUS
- 	select INIT_ALL_POSSIBLE
- 	select KTIME_SCALAR if 32BIT
- 	select MODULES_USE_ELF_RELA
-diff -puN arch/score/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/score/Kconfig
---- a/arch/score/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
-+++ a/arch/score/Kconfig
-@@ -12,6 +12,7 @@ config SCORE
-        select GENERIC_CPU_DEVICES
-        select GENERIC_CLOCKEVENTS
-        select HAVE_MOD_ARCH_SPECIFIC
-+	select HAVE_VIRT_TO_BUS
- 	select MODULES_USE_ELF_REL
- 	select CLONE_BACKWARDS
- 
-diff -puN arch/sh/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/sh/Kconfig
---- a/arch/sh/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
-+++ a/arch/sh/Kconfig
-@@ -148,9 +148,6 @@ config ARCH_HAS_ILOG2_U32
- config ARCH_HAS_ILOG2_U64
- 	def_bool n
- 
--config ARCH_NO_VIRT_TO_BUS
--	def_bool y
--
- config ARCH_HAS_DEFAULT_IDLE
- 	def_bool y
- 
-diff -puN arch/sparc/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/sparc/Kconfig
---- a/arch/sparc/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
-+++ a/arch/sparc/Kconfig
-@@ -146,9 +146,6 @@ config GENERIC_GPIO
- 	help
- 	  Generic GPIO API support
- 
--config ARCH_NO_VIRT_TO_BUS
--	def_bool y
--
- config ARCH_SUPPORTS_DEBUG_PAGEALLOC
- 	def_bool y if SPARC64
- 
-diff -puN arch/tile/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/tile/Kconfig
---- a/arch/tile/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
-+++ a/arch/tile/Kconfig
-@@ -17,6 +17,7 @@ config TILE
- 	select GENERIC_IRQ_SHOW
- 	select HAVE_DEBUG_BUGVERBOSE
- 	select HAVE_SYSCALL_WRAPPERS if TILEGX
-+	select HAVE_VIRT_TO_BUS
- 	select SYS_HYPERVISOR
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
- 	select GENERIC_CLOCKEVENTS
-diff -puN arch/unicore32/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/unicore32/Kconfig
---- a/arch/unicore32/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
-+++ a/arch/unicore32/Kconfig
-@@ -9,6 +9,7 @@ config UNICORE32
- 	select GENERIC_ATOMIC64
- 	select HAVE_KERNEL_LZO
- 	select HAVE_KERNEL_LZMA
-+	select HAVE_VIRT_TO_BUS
- 	select ARCH_HAVE_CUSTOM_GPIO_H
- 	select GENERIC_FIND_FIRST_BIT
- 	select GENERIC_IRQ_PROBE
-diff -puN arch/x86/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/x86/Kconfig
---- a/arch/x86/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
-+++ a/arch/x86/Kconfig
-@@ -112,6 +112,7 @@ config X86
- 	select GENERIC_STRNLEN_USER
- 	select HAVE_CONTEXT_TRACKING if X86_64
- 	select HAVE_IRQ_TIME_ACCOUNTING
-+	select HAVE_VIRT_TO_BUS
- 	select MODULES_USE_ELF_REL if X86_32
- 	select MODULES_USE_ELF_RELA if X86_64
- 	select CLONE_BACKWARDS if X86_32
-diff -puN arch/xtensa/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus arch/xtensa/Kconfig
---- a/arch/xtensa/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
-+++ a/arch/xtensa/Kconfig
-@@ -9,6 +9,7 @@ config XTENSA
- 	select HAVE_IDE
- 	select GENERIC_ATOMIC64
- 	select HAVE_GENERIC_HARDIRQS
-+	select HAVE_VIRT_TO_BUS
- 	select GENERIC_IRQ_SHOW
- 	select GENERIC_CPU_DEVICES
- 	select MODULES_USE_ELF_RELA
-diff -puN mm/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus mm/Kconfig
---- a/mm/Kconfig~arch-kconfig-centralise-config_arch_no_virt_to_bus
-+++ a/mm/Kconfig
-@@ -287,7 +287,7 @@ config NR_QUICK
- 
- config VIRT_TO_BUS
- 	def_bool y
--	depends on !ARCH_NO_VIRT_TO_BUS
-+	depends on HAVE_VIRT_TO_BUS
- 
- config MMU_NOTIFIER
- 	bool
-_
-
-Patches currently in -mm which might be from sfr@canb.auug.org.au are
-
-origin.patch
-linux-next.patch
-kernel-forkc-export-kernel_thread-to-modules.patch
-
+On 18 February 2013 13:38, Srivatsa S. Bhat
+<srivatsa.bhat@linux.vnet.ibm.com> wrote:
+> Hi,
+>
+> This patchset removes CPU hotplug's dependence on stop_machine() from the CPU
+> offline path and provides an alternative (set of APIs) to preempt_disable() to
+> prevent CPUs from going offline, which can be invoked from atomic context.
+> The motivation behind the removal of stop_machine() is to avoid its ill-effects
+> and thus improve the design of CPU hotplug. (More description regarding this
+> is available in the patches).
+>
+> All the users of preempt_disable()/local_irq_disable() who used to use it to
+> prevent CPU offline, have been converted to the new primitives introduced in the
+> patchset. Also, the CPU_DYING notifiers have been audited to check whether
+> they can cope up with the removal of stop_machine() or whether they need to
+> use new locks for synchronization (all CPU_DYING notifiers looked OK, without
+> the need for any new locks).
+>
+> Applies on current mainline (v3.8-rc7+).
+>
+> This patchset is available in the following git branch:
+>
+> git://github.com/srivatsabhat/linux.git  stop-machine-free-cpu-hotplug-v6
+>
+>
+> Overview of the patches:
+> -----------------------
+>
+> Patches 1 to 7 introduce a generic, flexible Per-CPU Reader-Writer Locking
+> scheme.
+>
+> Patch 8 uses this synchronization mechanism to build the
+> get/put_online_cpus_atomic() APIs which can be used from atomic context, to
+> prevent CPUs from going offline.
+>
+> Patch 9 is a cleanup; it converts preprocessor macros to static inline
+> functions.
+>
+> Patches 10 to 43 convert various call-sites to use the new APIs.
+>
+> Patch 44 is the one which actually removes stop_machine() from the CPU
+> offline path.
+>
+> Patch 45 decouples stop_machine() and CPU hotplug from Kconfig.
+>
+> Patch 46 updates the documentation to reflect the new APIs.
+>
+>
+> Changes in v6:
+> --------------
+>
+> * Fixed issues related to memory barriers, as pointed out by Paul and Oleg.
+> * Fixed the locking issue related to clockevents_lock, which was being
+>   triggered when cpu idle was enabled.
+> * Some code restructuring to improve readability and to enhance some fastpath
+>   optimizations.
+> * Randconfig build-fixes, reported by Fengguang Wu.
+>
+>
+> Changes in v5:
+> --------------
+>   Exposed a new generic locking scheme: Flexible Per-CPU Reader-Writer locks,
+>   based on the synchronization schemes already discussed in the previous
+>   versions, and used it in CPU hotplug, to implement the new APIs.
+>
+>   Audited the CPU_DYING notifiers in the kernel source tree and replaced
+>   usages of preempt_disable() with the new get/put_online_cpus_atomic() APIs
+>   where necessary.
+>
+>
+> Changes in v4:
+> --------------
+>   The synchronization scheme has been simplified quite a bit, which makes it
+>   look a lot less complex than before. Some highlights:
+>
+> * Implicit ACKs:
+>
+>   The earlier design required the readers to explicitly ACK the writer's
+>   signal. The new design uses implicit ACKs instead. The reader switching
+>   over to rwlock implicitly tells the writer to stop waiting for that reader.
+>
+> * No atomic operations:
+>
+>   Since we got rid of explicit ACKs, we no longer have the need for a reader
+>   and a writer to update the same counter. So we can get rid of atomic ops
+>   too.
+>
+> Changes in v3:
+> --------------
+> * Dropped the _light() and _full() variants of the APIs. Provided a single
+>   interface: get/put_online_cpus_atomic().
+>
+> * Completely redesigned the synchronization mechanism again, to make it
+>   fast and scalable at the reader-side in the fast-path (when no hotplug
+>   writers are active). This new scheme also ensures that there is no
+>   possibility of deadlocks due to circular locking dependency.
+>   In summary, this provides the scalability and speed of per-cpu rwlocks
+>   (without actually using them), while avoiding the downside (deadlock
+>   possibilities) which is inherent in any per-cpu locking scheme that is
+>   meant to compete with preempt_disable()/enable() in terms of flexibility.
+>
+>   The problem with using per-cpu locking to replace preempt_disable()/enable
+>   was explained here:
+>   https://lkml.org/lkml/2012/12/6/290
+>
+>   Basically we use per-cpu counters (for scalability) when no writers are
+>   active, and then switch to global rwlocks (for lock-safety) when a writer
+>   becomes active. It is a slightly complex scheme, but it is based on
+>   standard principles of distributed algorithms.
+>
+> Changes in v2:
+> -------------
+> * Completely redesigned the synchronization scheme to avoid using any extra
+>   cpumasks.
+>
+> * Provided APIs for 2 types of atomic hotplug readers: "light" (for
+>   light-weight) and "full". We wish to have more "light" readers than
+>   the "full" ones, to avoid indirectly inducing the "stop_machine effect"
+>   without even actually using stop_machine().
+>
+>   And the patches show that it _is_ generally true: 5 patches deal with
+>   "light" readers, whereas only 1 patch deals with a "full" reader.
+>
+>   Also, the "light" readers happen to be in very hot paths. So it makes a
+>   lot of sense to have such a distinction and a corresponding light-weight
+>   API.
+>
+> Links to previous versions:
+> v5: http://lwn.net/Articles/533553/
+> v4: https://lkml.org/lkml/2012/12/11/209
+> v3: https://lkml.org/lkml/2012/12/7/287
+> v2: https://lkml.org/lkml/2012/12/5/322
+> v1: https://lkml.org/lkml/2012/12/4/88
+>
+> --
+>  Paul E. McKenney (1):
+>       cpu: No more __stop_machine() in _cpu_down()
+>
+> Srivatsa S. Bhat (45):
+>       percpu_rwlock: Introduce the global reader-writer lock backend
+>       percpu_rwlock: Introduce per-CPU variables for the reader and the writer
+>       percpu_rwlock: Provide a way to define and init percpu-rwlocks at compile time
+>       percpu_rwlock: Implement the core design of Per-CPU Reader-Writer Locks
+>       percpu_rwlock: Make percpu-rwlocks IRQ-safe, optimally
+>       percpu_rwlock: Rearrange the read-lock code to fastpath nested percpu readers
+>       percpu_rwlock: Allow writers to be readers, and add lockdep annotations
+>       CPU hotplug: Provide APIs to prevent CPU offline from atomic context
+>       CPU hotplug: Convert preprocessor macros to static inline functions
+>       smp, cpu hotplug: Fix smp_call_function_*() to prevent CPU offline properly
+>       smp, cpu hotplug: Fix on_each_cpu_*() to prevent CPU offline properly
+>       sched/timer: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       sched/migration: Use raw_spin_lock/unlock since interrupts are already disabled
+>       sched/rt: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       tick: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       time/clocksource: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       clockevents: Use get/put_online_cpus_atomic() in clockevents_notify()
+>       softirq: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       irq: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       net: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       block: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       crypto: pcrypt - Protect access to cpu_online_mask with get/put_online_cpus()
+>       infiniband: ehca: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       [SCSI] fcoe: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       staging: octeon: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       x86: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       perf/x86: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       KVM: Use get/put_online_cpus_atomic() to prevent CPU offline from atomic context
+>       kvm/vmx: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       x86/xen: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       alpha/smp: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       blackfin/smp: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       cris/smp: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       hexagon/smp: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       ia64: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       m32r: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       MIPS: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       mn10300: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       parisc: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       powerpc: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       sh: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       sparc: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       tile: Use get/put_online_cpus_atomic() to prevent CPU offline
+>       CPU hotplug, stop_machine: Decouple CPU hotplug from stop_machine() in Kconfig
+>       Documentation/cpu-hotplug: Remove references to stop_machine()
+>
+>   Documentation/cpu-hotplug.txt                 |   17 +-
+>  arch/alpha/kernel/smp.c                       |   19 +-
+>  arch/arm/Kconfig                              |    1
+>  arch/blackfin/Kconfig                         |    1
+>  arch/blackfin/mach-common/smp.c               |    6 -
+>  arch/cris/arch-v32/kernel/smp.c               |    8 +
+>  arch/hexagon/kernel/smp.c                     |    5
+>  arch/ia64/Kconfig                             |    1
+>  arch/ia64/kernel/irq_ia64.c                   |   13 +
+>  arch/ia64/kernel/perfmon.c                    |    6 +
+>  arch/ia64/kernel/smp.c                        |   23 ++
+>  arch/ia64/mm/tlb.c                            |    6 -
+>  arch/m32r/kernel/smp.c                        |   12 +
+>  arch/mips/Kconfig                             |    1
+>  arch/mips/kernel/cevt-smtc.c                  |    8 +
+>  arch/mips/kernel/smp.c                        |   16 +-
+>  arch/mips/kernel/smtc.c                       |    3
+>  arch/mips/mm/c-octeon.c                       |    4
+>  arch/mn10300/Kconfig                          |    1
+>  arch/mn10300/kernel/smp.c                     |    2
+>  arch/mn10300/mm/cache-smp.c                   |    5
+>  arch/mn10300/mm/tlb-smp.c                     |   15 +
+>  arch/parisc/Kconfig                           |    1
+>  arch/parisc/kernel/smp.c                      |    4
+>  arch/powerpc/Kconfig                          |    1
+>  arch/powerpc/mm/mmu_context_nohash.c          |    2
+>  arch/s390/Kconfig                             |    1
+>  arch/sh/Kconfig                               |    1
+>  arch/sh/kernel/smp.c                          |   12 +
+>  arch/sparc/Kconfig                            |    1
+>  arch/sparc/kernel/leon_smp.c                  |    2
+>  arch/sparc/kernel/smp_64.c                    |    9 -
+>  arch/sparc/kernel/sun4d_smp.c                 |    2
+>  arch/sparc/kernel/sun4m_smp.c                 |    3
+>  arch/tile/kernel/smp.c                        |    4
+>  arch/x86/Kconfig                              |    1
+>  arch/x86/include/asm/ipi.h                    |    5
+>  arch/x86/kernel/apic/apic_flat_64.c           |   10 +
+>  arch/x86/kernel/apic/apic_numachip.c          |    5
+>  arch/x86/kernel/apic/es7000_32.c              |    5
+>  arch/x86/kernel/apic/io_apic.c                |    7 -
+>  arch/x86/kernel/apic/ipi.c                    |   10 +
+>  arch/x86/kernel/apic/x2apic_cluster.c         |    4
+>  arch/x86/kernel/apic/x2apic_uv_x.c            |    4
+>  arch/x86/kernel/cpu/mcheck/therm_throt.c      |    4
+>  arch/x86/kernel/cpu/perf_event_intel_uncore.c |    5
+>  arch/x86/kvm/vmx.c                            |    8 +
+>  arch/x86/mm/tlb.c                             |   14 +
+>  arch/x86/xen/mmu.c                            |   11 +
+>  arch/x86/xen/smp.c                            |    9 +
+>  block/blk-softirq.c                           |    4
+>  crypto/pcrypt.c                               |    4
+>  drivers/infiniband/hw/ehca/ehca_irq.c         |    8 +
+>  drivers/scsi/fcoe/fcoe.c                      |    7 +
+>  drivers/staging/octeon/ethernet-rx.c          |    3
+>  include/linux/cpu.h                           |    8 +
+>  include/linux/percpu-rwlock.h                 |   74 +++++++
+>  include/linux/stop_machine.h                  |    2
+>  init/Kconfig                                  |    2
+>  kernel/cpu.c                                  |   59 +++++-
+>  kernel/irq/manage.c                           |    7 +
+>  kernel/sched/core.c                           |   36 +++-
+>  kernel/sched/fair.c                           |    5
+>  kernel/sched/rt.c                             |    3
+>  kernel/smp.c                                  |   65 ++++--
+>  kernel/softirq.c                              |    3
+>  kernel/time/clockevents.c                     |    3
+>  kernel/time/clocksource.c                     |    5
+>  kernel/time/tick-broadcast.c                  |    2
+>  kernel/timer.c                                |    2
+>  lib/Kconfig                                   |    3
+>  lib/Makefile                                  |    1
+>  lib/percpu-rwlock.c                           |  256 +++++++++++++++++++++++++
+>  net/core/dev.c                                |    9 +
+>  virt/kvm/kvm_main.c                           |   10 +
+>  75 files changed, 776 insertions(+), 123 deletions(-)
+>  create mode 100644 include/linux/percpu-rwlock.h
+>  create mode 100644 lib/percpu-rwlock.c
+>
+>
+>
+> Regards,
+> Srivatsa S. Bhat
+> IBM Linux Technology Center
+>
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-pm" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
