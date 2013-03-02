@@ -1,55 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:56939 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751962Ab3CBPMi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Mar 2013 10:12:38 -0500
-Date: Sat, 2 Mar 2013 15:12:37 +0000
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [git pull] signal.git fixes
-Message-ID: <20130302151237.GA4503@ZenIV.linux.org.uk>
+Received: from mx1.redhat.com ([209.132.183.28]:44013 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752275Ab3CBRED (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 2 Mar 2013 12:04:03 -0500
+Date: Sat, 2 Mar 2013 18:01:45 +0100
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH] lglock: add read-preference local-global rwlock
+Message-ID: <20130302170145.GA29769@redhat.com>
+References: <512C7A38.8060906@linux.vnet.ibm.com> <CACvQF51RvhM8XNqu3-1OTQ=cZUZ=pAX+_zx0a29+W67N1X+BgQ@mail.gmail.com> <512CC509.1050000@linux.vnet.ibm.com> <CACvQF50UgiqPpDk3HCmV86zKSf6tPjqr0bZowfPEOJs0g0r0MQ@mail.gmail.com> <512D0D67.9010609@linux.vnet.ibm.com> <CACvQF53ph2ixdM-otzetjM5cR+2kcZj6sckOp3TnzzA_x-EZ8w@mail.gmail.com> <512E7879.20109@linux.vnet.ibm.com> <5130E8E2.50206@cn.fujitsu.com> <20130301182854.GA3631@redhat.com> <513201B7.5070004@cn.fujitsu.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
+In-Reply-To: <513201B7.5070004@cn.fujitsu.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20130302151237.5tYbrMwy896Vy4RDrTI3pSq424GBKlHJGGYdQgNIyrE@z>
+To: Lai Jiangshan <laijs@cn.fujitsu.com>
+Cc: paulmck@linux.vnet.ibm.com, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Lai Jiangshan <eag0628@gmail.com>, Michel Lespinasse <walken@google.com>, linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, namhyung@kernel.org, mingo@kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, rusty@rustcorp.com.au, rostedt@goodmis.org, rjw@sisk.pl, vincent.guittot@linaro.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, sbw@mit.edu, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20130302170145.F3F1ETgwyePoMn6gUWMeZY2TEHVJb-E5gjzx7BH3QSI@z>
 
-Fixes for several regressions introduced in the last signal.git pile,
-along with fixing bugs in truncate and ftruncate compat (on just about
-anything biarch at least one of those two had been done wrong).
+On 03/02, Lai Jiangshan wrote:
+>
+> On 02/03/13 02:28, Oleg Nesterov wrote:
+> > Lai, I didn't read this discussion except the code posted by Michel.
+> > I'll try to read this patch carefully later, but I'd like to ask
+> > a couple of questions.
+> >
+> > This version looks more complex than Michel's, why? Just curious, I
+> > am trying to understand what I missed. See
+> > http://marc.info/?l=linux-kernel&m=136196350213593
+>
+> Michel changed my old draft version a little, his version is good enough for me.
 
-Please, pull from
-git://git.kernel.org/pub/scm/linux/kernel/git/viro/signal for-linus
+Yes, I see. But imho Michel suggested the valuable cleanup, the code
+becomes even more simple with the same perfomance.
 
-Shortlog:
-Al Viro (4):
-      lseek() and truncate() on sparc really need sign extension
-      switch lseek to COMPAT_SYSCALL_DEFINE
-      fix compat truncate/ftruncate
-      [regression] braino in "sparc: convert to ksignal"
+Your v2 looks almost correct to me, but I still think it makes sense
+to incorporate the simplification from Michel.
 
-Heiko Carstens (1):
-      compat: restore timerfd settime and gettime compat syscalls
+> My new version tries to add a little better nestable support with only
+> adding single __this_cpu_op() in _read_[un]lock().
 
-Diffstat:
- arch/arm64/include/asm/unistd32.h  |    6 +++---
- arch/arm64/kernel/sys32.S          |    5 -----
- arch/mips/kernel/scall64-o32.S     |    4 ++--
- arch/parisc/kernel/sys_parisc32.c  |   10 ----------
- arch/parisc/kernel/syscall_table.S |    6 +++---
- arch/powerpc/include/asm/systbl.h  |    2 +-
- arch/powerpc/kernel/sys_ppc32.c    |   18 ------------------
- arch/s390/kernel/compat_wrapper.S  |   16 ----------------
- arch/s390/kernel/syscalls.S        |    6 +++---
- arch/sparc/kernel/signal32.c       |    2 +-
- arch/sparc/kernel/systbls_64.S     |    6 +++---
- arch/x86/ia32/sys_ia32.c           |    5 -----
- arch/x86/include/asm/sys_ia32.h    |    1 -
- arch/x86/syscalls/syscall_32.tbl   |    6 +++---
- fs/open.c                          |   15 +++++++++++++++
- fs/read_write.c                    |    9 ++++++++-
- fs/timerfd.c                       |   10 +++++-----
- include/linux/compat.h             |    3 +++
- 18 files changed, 50 insertions(+), 80 deletions(-)
+How? Afaics with or without FALLBACK_BASE you need _reed + _inc/dec in
+_read_lock/unlock.
+
+Oleg.
+
