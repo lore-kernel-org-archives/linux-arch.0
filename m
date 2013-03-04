@@ -1,63 +1,86 @@
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH V2] lglock: add read-preference local-global rwlock
-Date: Sun, 3 Mar 2013 18:40:56 +0100
-Message-ID: <20130303174056.GA30176@redhat.com>
-References: <512CC509.1050000@linux.vnet.ibm.com> <CACvQF50UgiqPpDk3HCmV86zKSf6tPjqr0bZowfPEOJs0g0r0MQ@mail.gmail.com> <512D0D67.9010609@linux.vnet.ibm.com> <CACvQF53ph2ixdM-otzetjM5cR+2kcZj6sckOp3TnzzA_x-EZ8w@mail.gmail.com> <512E7879.20109@linux.vnet.ibm.com> <5130E8E2.50206@cn.fujitsu.com> <20130301182854.GA3631@redhat.com> <CANN689HEW=b5S93J27p+rBX-5m7jkW4FER=eHDCp7OgMaTWLPw@mail.gmail.com> <5131FB4C.7070408@cn.fujitsu.com> <20130302172003.GC29769@redhat.com>
+From: Chris Metcalf <cmetcalf@tilera.com>
+Subject: [PATCH] tile: work around bug in the generic sys_llseek
+Date: Mon, 4 Mar 2013 11:19:09 -0500
+Message-ID: <201303041627.r24GR7Ql032052@farm-0021.internal.tilera.com>
+References: <20130227194156.GQ4503@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-doc-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20130302172003.GC29769@redhat.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Lai Jiangshan <laijs@cn.fujitsu.com>
-Cc: Michel Lespinasse <walken@google.com>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Lai Jiangshan <eag0628@gmail.com>, linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, namhyung@kernel.org, mingo@kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, paulmck@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, rusty@rustcorp.com.au, rostedt@goodmis.org, rjw@sisk.pl, vincent.guittot@linaro.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, sbw@mit.edu, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from usmamail.tilera.com ([12.216.194.151]:8155 "EHLO
+	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758251Ab3CDQ1J (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Mar 2013 11:27:09 -0500
+In-Reply-To: <20130227194156.GQ4503@ZenIV.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org, Al Viro <viro@ZenIV.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>
 
-On 03/02, Oleg Nesterov wrote:
->
-> On 03/02, Lai Jiangshan wrote:
-> >
-> > +void lg_rwlock_local_read_unlock(struct lgrwlock *lgrw)
-> > +{
-> > +	switch (__this_cpu_read(*lgrw->reader_refcnt)) {
-> > +	case 1:
-> > +		__this_cpu_write(*lgrw->reader_refcnt, 0);
-> > +		lg_local_unlock(&lgrw->lglock);
-> > +		return;
-> > +	case FALLBACK_BASE:
-> > +		__this_cpu_write(*lgrw->reader_refcnt, 0);
-> > +		read_unlock(&lgrw->fallback_rwlock);
-> > +		rwlock_release(&lg->lock_dep_map, 1, _RET_IP_);
->
-> I guess "case 1:" should do rwlock_release() too.
->
-> Otherwise, at first glance looks correct...
->
-> However, I still think that FALLBACK_BASE only adds the unnecessary
-> complications. But even if I am right this is subjective of course, please
-> feel free to ignore.
+sys_llseek should specify the high and low 32-bit seek values as "unsigned
+int" but instead it specifies "unsigned long".  Since compat syscall
+arguments are always sign-extended on tile, this means that a seek value
+of 0xffffffff will be incorrectly interpreted as a value of -1ULL.
 
-Yes, but...
+To avoid the risk of breaking binary compatibility on architectures
+that already use sys_llseek this way, we follow the same path as MIPS
+and provide a wrapper override.
 
-> And btw, I am not sure about lg->lock_dep_map, perhaps we should use
-> fallback_rwlock->dep_map ?
->
-> We need rwlock_acquire_read() even in the fast-path, and this acquire_read
-> should be paired with rwlock_acquire() in _write_lock(), but it does
-> spin_acquire(lg->lock_dep_map). Yes, currently this is the same (afaics)
-> but perhaps fallback_rwlock->dep_map would be more clean.
+Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
+Cc: stable@kernel.org [v3.6 onwards]
+---
+Al Viro suggested changing the generic implementation but there has
+been no followup, and his preference was just fixing tile anyway,
+so this is what this patch does.  Al, can you ack this if it looks OK?
+The generated code for compat_sys_llseek just clears the high 32 bits
+of the two offset parameters and jumps to sys_llseek.
 
-Please ignore this part.
+ arch/tile/include/asm/compat.h |    3 +++
+ arch/tile/kernel/compat.c      |   13 +++++++++++++
+ 2 files changed, 16 insertions(+)
 
-I missed that lg_rwlock_global_write_lock() relies on lg_global_lock(),
-and I just noticed that it does rwlock_acquire(lg->lock_dep_map).
-
-Hmm. But then I do not understand the lglock annotations. Obviously,
-rwlock_acquire_read() in lg_local_lock() can't even detect the simplest
-deadlock, say, lg_local_lock(LOCK) + lg_local_lock(LOCK). Not to mention
-spin_lock(X) + lg_local_lock(Y) vs lg_local_lock(Y) + spin_lock(X).
-
-OK, I understand that it is not easy to make these annotations correct...
-
-Oleg.
-
+diff --git a/arch/tile/include/asm/compat.h b/arch/tile/include/asm/compat.h
+index 001d418..78f1f2d 100644
+--- a/arch/tile/include/asm/compat.h
++++ b/arch/tile/include/asm/compat.h
+@@ -288,6 +288,9 @@ long compat_sys_sync_file_range2(int fd, unsigned int flags,
+ long compat_sys_fallocate(int fd, int mode,
+ 			  u32 offset_lo, u32 offset_hi,
+ 			  u32 len_lo, u32 len_hi);
++long compat_sys_llseek(unsigned int fd, unsigned int offset_high,
++		       unsigned int offset_low, loff_t __user * result,
++		       unsigned int origin);
+ 
+ /* Assembly trampoline to avoid clobbering r0. */
+ long _compat_sys_rt_sigreturn(void);
+diff --git a/arch/tile/kernel/compat.c b/arch/tile/kernel/compat.c
+index 7f72401..69034e2 100644
+--- a/arch/tile/kernel/compat.c
++++ b/arch/tile/kernel/compat.c
+@@ -76,6 +76,18 @@ long compat_sys_fallocate(int fd, int mode,
+ 			     ((loff_t)len_hi << 32) | len_lo);
+ }
+ 
++/*
++ * Avoid bug in generic sys_llseek() that specifies offset_high and
++ * offset_low as "unsigned long", thus making it possible to pass
++ * a sign-extended high 32 bits in offset_low.
++ */
++long compat_sys_llseek(unsigned int fd, unsigned int offset_high,
++		       unsigned int offset_low, loff_t __user * result,
++		       unsigned int origin)
++{
++	return sys_llseek(fd, offset_high, offset_low, result, origin);
++}
++ 
+ /* Provide the compat syscall number to call mapping. */
+ #undef __SYSCALL
+ #define __SYSCALL(nr, call) [nr] = (call),
+@@ -83,6 +95,7 @@ long compat_sys_fallocate(int fd, int mode,
+ /* See comments in sys.c */
+ #define compat_sys_fadvise64_64 sys32_fadvise64_64
+ #define compat_sys_readahead sys32_readahead
++#define sys_llseek compat_sys_llseek
+ 
+ /* Call the assembly trampolines where necessary. */
+ #define compat_sys_rt_sigreturn _compat_sys_rt_sigreturn
+-- 
+1.7.10.3
