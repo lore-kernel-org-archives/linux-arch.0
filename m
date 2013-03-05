@@ -1,106 +1,46 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: [PATCH] tile: properly use COMPAT_SYSCALL_DEFINEx
-Date: Mon, 4 Mar 2013 13:37:32 -0500
-Message-ID: <201303041841.r24If3rp001825@farm-0021.internal.tilera.com>
-References: <20130304165410.GS4503@ZenIV.linux.org.uk>
+From: Michel Lespinasse <walken@google.com>
+Subject: Re: [PATCH V2] lglock: add read-preference local-global rwlock
+Date: Mon, 4 Mar 2013 17:37:09 -0800
+Message-ID: <CANN689F6RHCtDAiBGu=n60UKUEE5Ld50gkwS3rNdE2GN2+v3nA@mail.gmail.com>
+References: <512CC509.1050000@linux.vnet.ibm.com>
+	<CACvQF50UgiqPpDk3HCmV86zKSf6tPjqr0bZowfPEOJs0g0r0MQ@mail.gmail.com>
+	<512D0D67.9010609@linux.vnet.ibm.com>
+	<CACvQF53ph2ixdM-otzetjM5cR+2kcZj6sckOp3TnzzA_x-EZ8w@mail.gmail.com>
+	<512E7879.20109@linux.vnet.ibm.com>
+	<5130E8E2.50206@cn.fujitsu.com>
+	<20130301182854.GA3631@redhat.com>
+	<CANN689HEW=b5S93J27p+rBX-5m7jkW4FER=eHDCp7OgMaTWLPw@mail.gmail.com>
+	<5131FB4C.7070408@cn.fujitsu.com>
+	<20130302172003.GC29769@redhat.com>
+	<20130303174056.GA30176@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([12.216.194.151]:63357 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932263Ab3CDSlF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Mar 2013 13:41:05 -0500
-In-Reply-To: <20130304165410.GS4503@ZenIV.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <20130303174056.GA30176@redhat.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: Lai Jiangshan <laijs@cn.fujitsu.com>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Lai Jiangshan <eag0628@gmail.com>, linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, namhyung@kernel.org, mingo@kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, paulmck@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, rusty@rustcorp.com.au, rostedt@goodmis.org, rjw@sisk.pl, vincent.guittot@linaro.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, sbw@mit.edu, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
+List-Id: linux-arch.vger.kernel.org
 
-This was pointed out by Al Viro.  Using the correct wrappers
-properly does sign extension as necessary on syscall arguments.
+On Sun, Mar 3, 2013 at 9:40 AM, Oleg Nesterov <oleg@redhat.com> wrote:
+>> However, I still think that FALLBACK_BASE only adds the unnecessary
+>> complications. But even if I am right this is subjective of course, please
+>> feel free to ignore.
 
-Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
----
- arch/tile/kernel/compat.c |   35 +++++++++++++++++++----------------
- 1 file changed, 19 insertions(+), 16 deletions(-)
+Would it help if I sent out that version (without FALLBACK_BASE) as a
+formal proposal ?
 
-diff --git a/arch/tile/kernel/compat.c b/arch/tile/kernel/compat.c
-index 69034e2..6ea4cdb 100644
---- a/arch/tile/kernel/compat.c
-+++ b/arch/tile/kernel/compat.c
-@@ -32,45 +32,48 @@
-  * adapt the usual convention.
-  */
- 
--long compat_sys_truncate64(char __user *filename, u32 dummy, u32 low, u32 high)
-+COMPAT_SYSCALL_DEFINE4(truncate64, char __user *, filename, u32, dummy,
-+                       u32, low, u32, high)
- {
- 	return sys_truncate(filename, ((loff_t)high << 32) | low);
- }
- 
--long compat_sys_ftruncate64(unsigned int fd, u32 dummy, u32 low, u32 high)
-+COMPAT_SYSCALL_DEFINE4(ftruncate64, unsigned int, fd, u32, dummy,
-+                       u32, low, u32, high)
- {
- 	return sys_ftruncate(fd, ((loff_t)high << 32) | low);
- }
- 
--long compat_sys_pread64(unsigned int fd, char __user *ubuf, size_t count,
--			u32 dummy, u32 low, u32 high)
-+COMPAT_SYSCALL_DEFINE6(pread64, unsigned int, fd, char __user *, ubuf,
-+                       size_t, count, u32, dummy, u32, low, u32, high)
- {
- 	return sys_pread64(fd, ubuf, count, ((loff_t)high << 32) | low);
- }
- 
--long compat_sys_pwrite64(unsigned int fd, char __user *ubuf, size_t count,
--			 u32 dummy, u32 low, u32 high)
-+COMPAT_SYSCALL_DEFINE6(pwrite64, unsigned int, fd, char __user *, ubuf,
-+                       size_t, count, u32, dummy, u32, low, u32, high)
- {
- 	return sys_pwrite64(fd, ubuf, count, ((loff_t)high << 32) | low);
- }
- 
--long compat_sys_lookup_dcookie(u32 low, u32 high, char __user *buf, size_t len)
-+COMPAT_SYSCALL_DEFINE4(lookup_dcookie, u32, low, u32, high,
-+                       char __user *, buf, size_t, len)
- {
- 	return sys_lookup_dcookie(((loff_t)high << 32) | low, buf, len);
- }
- 
--long compat_sys_sync_file_range2(int fd, unsigned int flags,
--				 u32 offset_lo, u32 offset_hi,
--				 u32 nbytes_lo, u32 nbytes_hi)
-+COMPAT_SYSCALL_DEFINE6(sync_file_range2, int, fd, unsigned int, flags,
-+                       u32, offset_lo, u32, offset_hi,
-+                       u32, nbytes_lo, u32, nbytes_hi)
- {
- 	return sys_sync_file_range(fd, ((loff_t)offset_hi << 32) | offset_lo,
- 				   ((loff_t)nbytes_hi << 32) | nbytes_lo,
- 				   flags);
- }
- 
--long compat_sys_fallocate(int fd, int mode,
--			  u32 offset_lo, u32 offset_hi,
--			  u32 len_lo, u32 len_hi)
-+COMPAT_SYSCALL_DEFINE6(fallocate, int, fd, int, mode,
-+                       u32, offset_lo, u32, offset_hi,
-+                       u32, len_lo, u32, len_hi)
- {
- 	return sys_fallocate(fd, mode, ((loff_t)offset_hi << 32) | offset_lo,
- 			     ((loff_t)len_hi << 32) | len_lo);
-@@ -81,9 +84,9 @@ long compat_sys_fallocate(int fd, int mode,
-  * offset_low as "unsigned long", thus making it possible to pass
-  * a sign-extended high 32 bits in offset_low.
-  */
--long compat_sys_llseek(unsigned int fd, unsigned int offset_high,
--		       unsigned int offset_low, loff_t __user * result,
--		       unsigned int origin)
-+COMPAT_SYSCALL_DEFINE5(llseek, unsigned int, fd, unsigned int, offset_high,
-+		       unsigned int, offset_low, loff_t __user *, result,
-+		       unsigned int, origin)
- {
- 	return sys_llseek(fd, offset_high, offset_low, result, origin);
- }
+> Hmm. But then I do not understand the lglock annotations. Obviously,
+> rwlock_acquire_read() in lg_local_lock() can't even detect the simplest
+> deadlock, say, lg_local_lock(LOCK) + lg_local_lock(LOCK). Not to mention
+> spin_lock(X) + lg_local_lock(Y) vs lg_local_lock(Y) + spin_lock(X).
+>
+> OK, I understand that it is not easy to make these annotations correct...
+
+I am going to send out a proposal to fix the existing lglock
+annotations and detect the two cases you noticed. It's actually not
+that hard :)
+
 -- 
-1.7.10.3
+Michel "Walken" Lespinasse
+A program is never fully debugged until the last user dies.
