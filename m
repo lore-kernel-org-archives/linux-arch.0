@@ -1,102 +1,215 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cn.fujitsu.com ([222.73.24.84]:13830 "EHLO song.cn.fujitsu.com"
-	rhost-flags-OK-FAIL-OK-OK) by vger.kernel.org with ESMTP
-	id S1754489Ab3CEPjp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 5 Mar 2013 10:39:45 -0500
-Message-ID: <5136123C.3040508@cn.fujitsu.com>
-Date: Tue, 05 Mar 2013 23:41:48 +0800
-From: Lai Jiangshan <laijs@cn.fujitsu.com>
-MIME-Version: 1.0
+Received: from mail-pb0-f48.google.com ([209.85.160.48]:39400 "EHLO
+	mail-pb0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751792Ab3CEQTS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Mar 2013 11:19:18 -0500
+Received: by mail-pb0-f48.google.com with SMTP id wy12so4612728pbc.7
+        for <linux-arch@vger.kernel.org>; Tue, 05 Mar 2013 08:19:18 -0800 (PST)
+Date: Tue, 5 Mar 2013 08:19:12 -0800
+From: Michel Lespinasse <walken@google.com>
 Subject: Re: [PATCH V2] lglock: add read-preference local-global rwlock
-References: <512BBAD8.8010006@linux.vnet.ibm.com> <CACvQF51jCxk5jUqmhD=QBBtUsBkQWZzakacrKO4Gsk=w61rNwQ@mail.gmail.com> <512C7A38.8060906@linux.vnet.ibm.com> <CACvQF51RvhM8XNqu3-1OTQ=cZUZ=pAX+_zx0a29+W67N1X+BgQ@mail.gmail.com> <512CC509.1050000@linux.vnet.ibm.com> <CACvQF50UgiqPpDk3HCmV86zKSf6tPjqr0bZowfPEOJs0g0r0MQ@mail.gmail.com> <512D0D67.9010609@linux.vnet.ibm.com> <CACvQF53ph2ixdM-otzetjM5cR+2kcZj6sckOp3TnzzA_x-EZ8w@mail.gmail.com> <512E7879.20109@linux.vnet.ibm.com>	<5130E8E2.50206@cn.fujitsu.com> <20130301182854.GA3631@redhat.com> <CANN689HEW=b5S93J27p+rBX-5m7jkW4FER=eHDCp7OgMaTWLPw@mail.gmail.com> <5131FB4C.7070408@cn.fujitsu.com> <513232B6.9060905@linux.vnet.ibm.com>
-In-Reply-To: <513232B6.9060905@linux.vnet.ibm.com>
-Content-Transfer-Encoding: 7bit
-Content-Type: text/plain; charset=UTF-8
+Message-ID: <20130305161912.GA30756@google.com>
+References: <CACvQF50UgiqPpDk3HCmV86zKSf6tPjqr0bZowfPEOJs0g0r0MQ@mail.gmail.com>
+ <512D0D67.9010609@linux.vnet.ibm.com>
+ <CACvQF53ph2ixdM-otzetjM5cR+2kcZj6sckOp3TnzzA_x-EZ8w@mail.gmail.com>
+ <512E7879.20109@linux.vnet.ibm.com>
+ <5130E8E2.50206@cn.fujitsu.com>
+ <20130301182854.GA3631@redhat.com>
+ <CANN689HEW=b5S93J27p+rBX-5m7jkW4FER=eHDCp7OgMaTWLPw@mail.gmail.com>
+ <5131FB4C.7070408@cn.fujitsu.com>
+ <20130302172003.GC29769@redhat.com>
+ <51360ED1.3030104@cn.fujitsu.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <51360ED1.3030104@cn.fujitsu.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Cc: Michel Lespinasse <walken@google.com>, Oleg Nesterov <oleg@redhat.com>, Lai Jiangshan <eag0628@gmail.com>, linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, namhyung@kernel.org, mingo@kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, paulmck@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, rusty@rustcorp.com.au, rostedt@goodmis.org, rjw@sisk.pl, vincent.guittot@linaro.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, sbw@mit.edu, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20130305154148.gn45raMXo-X-b18yJ-ISUyJ9-Qy9ye5f2f1Nx7cBVU0@z>
+To: Lai Jiangshan <laijs@cn.fujitsu.com>
+Cc: Oleg Nesterov <oleg@redhat.com>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Lai Jiangshan <eag0628@gmail.com>, linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, namhyung@kernel.org, mingo@kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, paulmck@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, rusty@rustcorp.com.au, rostedt@goodmis.org, rjw@sisk.pl, vincent.guittot@linaro.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, sbw@mit.edu, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20130305161912.L3FGBjNZmYMkwjax8of1ResDw26sEhhO8khstYNRoVo@z>
 
-On 03/03/13 01:11, Srivatsa S. Bhat wrote:
-> On 03/02/2013 06:44 PM, Lai Jiangshan wrote:
->> From 345a7a75c314ff567be48983e0892bc69c4452e7 Mon Sep 17 00:00:00 2001
->> From: Lai Jiangshan <laijs@cn.fujitsu.com>
->> Date: Sat, 2 Mar 2013 20:33:14 +0800
->> Subject: [PATCH] lglock: add read-preference local-global rwlock
->>
->> Current lglock is not read-preference, so it can't be used on some cases
->> which read-preference rwlock can do. Example, get_cpu_online_atomic().
->>
-> [...]
->> diff --git a/kernel/lglock.c b/kernel/lglock.c
->> index 6535a66..52e9b2c 100644
->> --- a/kernel/lglock.c
->> +++ b/kernel/lglock.c
->> @@ -87,3 +87,71 @@ void lg_global_unlock(struct lglock *lg)
->>  	preempt_enable();
->>  }
->>  EXPORT_SYMBOL(lg_global_unlock);
->> +
->> +#define FALLBACK_BASE	(1UL << 30)
->> +
->> +void lg_rwlock_local_read_lock(struct lgrwlock *lgrw)
->> +{
->> +	struct lglock *lg = &lgrw->lglock;
->> +
->> +	preempt_disable();
->> +	if (likely(!__this_cpu_read(*lgrw->reader_refcnt))) {
->> +		rwlock_acquire_read(&lg->lock_dep_map, 0, 0, _RET_IP_);
->> +		if (unlikely(!arch_spin_trylock(this_cpu_ptr(lg->lock)))) {
->> +			read_lock(&lgrw->fallback_rwlock);
->> +			__this_cpu_write(*lgrw->reader_refcnt, FALLBACK_BASE);
->> +			return;
->> +		}
->> +	}
->> +
->> +	__this_cpu_inc(*lgrw->reader_refcnt);
->> +}
->> +EXPORT_SYMBOL(lg_rwlock_local_read_lock);
->> +
->> +void lg_rwlock_local_read_unlock(struct lgrwlock *lgrw)
->> +{
->> +	switch (__this_cpu_read(*lgrw->reader_refcnt)) {
->> +	case 1:
->> +		__this_cpu_write(*lgrw->reader_refcnt, 0);
->> +		lg_local_unlock(&lgrw->lglock);
->> +		return;
-> 
-> This should be a break, instead of a return, right?
-> Otherwise, there will be a preempt imbalance...
+Hi Lai,
 
+Just a few comments about your v2 proposal. Hopefully you'll catch
+these before you send out v3 :)
 
-"lockdep" and "preempt" are handled in lg_local_unlock(&lgrw->lglock);
+- I would prefer reader_refcnt to be unsigned int instead of unsigned long
+- I would like some comment to indicate that lgrwlocks don't have
+  reader-writer fairness and are thus somewhat discouraged
+  (people could use plain lglock if they don't need reader preference,
+  though even that use (as brlock) is discouraged already :)
+- I don't think FALLBACK_BASE is necessary (you already mentioned you'd
+  drop it)
+- I prefer using the fallback_rwlock's dep_map for lockdep tracking.
+  I feel this is more natural since we want the lgrwlock to behave as
+  the rwlock, not as the lglock.
+- I prefer to avoid return statements in the middle of functions when
+  it's easyto do so.
+
+Attached is my current version (based on an earlier version of your code).
+You don't have to take it as is but I feel it makes for a more concrete
+suggestion :)
 
 Thanks,
-Lai
 
-> 
->> +	case FALLBACK_BASE:
->> +		__this_cpu_write(*lgrw->reader_refcnt, 0);
->> +		read_unlock(&lgrw->fallback_rwlock);
->> +		rwlock_release(&lg->lock_dep_map, 1, _RET_IP_);
->> +		break;
->> +	default:
->> +		__this_cpu_dec(*lgrw->reader_refcnt);
->> +		break;
->> +	}
->> +
->> +	preempt_enable();
->> +}
-> 
-> 
-> Regards,
-> Srivatsa S. Bhat
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
-> 
+----------------------------8<-------------------------------------------
+lglock: add read-preference lgrwlock
 
+Current lglock may be used as a fair rwlock; however sometimes a
+read-preference rwlock is preferred. One such use case recently came
+up for get_cpu_online_atomic().
+
+This change adds a new lgrwlock with the following properties:
+- high performance read side, using only cpu-local structures when there
+  is no write side to contend with;
+- correctness guarantees similar to rwlock_t: recursive readers are allowed
+  and the lock's read side is not ordered vs other locks;
+- low performance write side (comparable to lglocks' global side).
+
+The implementation relies on the following principles:
+- reader_refcnt is a local lock count; it indicates how many recursive
+  read locks are taken using the local lglock;
+- lglock is used by readers for local locking; it must be acquired
+  before reader_refcnt becomes nonzero and released after reader_refcnt
+  goes back to zero;
+- fallback_rwlock is used by readers for global locking; it is acquired
+  when fallback_reader_refcnt is zero and the trylock fails on lglock.
+- writers take both the lglock write side and the fallback_rwlock, thus
+  making sure to exclude both local and global readers.
+
+Thanks to Srivatsa S. Bhat for proposing a lock with these requirements
+and Lai Jiangshan for proposing this algorithm as an lglock extension.
+
+Signed-off-by: Michel Lespinasse <walken@google.com>
+
+---
+ include/linux/lglock.h | 46 +++++++++++++++++++++++++++++++++++++++
+ kernel/lglock.c        | 58 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 104 insertions(+)
+
+diff --git a/include/linux/lglock.h b/include/linux/lglock.h
+index 0d24e932db0b..8b59084935d5 100644
+--- a/include/linux/lglock.h
++++ b/include/linux/lglock.h
+@@ -67,4 +67,50 @@ void lg_local_unlock_cpu(struct lglock *lg, int cpu);
+ void lg_global_lock(struct lglock *lg);
+ void lg_global_unlock(struct lglock *lg);
+ 
++/*
++ * lglock may be used as a read write spinlock if desired (though this is
++ * not encouraged as the write side scales badly on high CPU count machines).
++ * It has reader/writer fairness when used that way.
++ *
++ * However, sometimes it is desired to have an unfair rwlock instead, with
++ * reentrant readers that don't need to be ordered vs other locks, comparable
++ * to rwlock_t. lgrwlock implements such semantics.
++ */
++struct lgrwlock {
++	unsigned int __percpu *reader_refcnt;
++	struct lglock lglock;
++	rwlock_t fallback_rwlock;
++};
++
++#define __DEFINE_LGRWLOCK_PERCPU_DATA(name)				\
++	static DEFINE_PER_CPU(unsigned int, name ## _refcnt);		\
++	static DEFINE_PER_CPU(arch_spinlock_t, name ## _lock)		\
++	= __ARCH_SPIN_LOCK_UNLOCKED;
++
++#define __LGRWLOCK_INIT(name) {						\
++	.reader_refcnt = &name ## _refcnt,				\
++	.lglock = { .lock = &name ## _lock },				\
++	.fallback_rwlock = __RW_LOCK_UNLOCKED(name.fallback_rwlock)	\
++}
++
++#define DEFINE_LGRWLOCK(name)						\
++	__DEFINE_LGRWLOCK_PERCPU_DATA(name)				\
++	struct lgrwlock name = __LGRWLOCK_INIT(name)
++
++#define DEFINE_STATIC_LGRWLOCK(name)					\
++	__DEFINE_LGRWLOCK_PERCPU_DATA(name)				\
++	static struct lgrwlock name = __LGRWLOCK_INIT(name)
++
++static inline void lg_rwlock_init(struct lgrwlock *lgrw, char *name)
++{
++	lg_lock_init(&lgrw->lglock, name);
++}
++
++void lg_read_lock(struct lgrwlock *lgrw);
++void lg_read_unlock(struct lgrwlock *lgrw);
++void lg_write_lock(struct lgrwlock *lgrw);
++void lg_write_unlock(struct lgrwlock *lgrw);
++void __lg_read_write_lock(struct lgrwlock *lgrw);
++void __lg_read_write_unlock(struct lgrwlock *lgrw);
++
+ #endif
+diff --git a/kernel/lglock.c b/kernel/lglock.c
+index 86ae2aebf004..e78a7c95dbfd 100644
+--- a/kernel/lglock.c
++++ b/kernel/lglock.c
+@@ -87,3 +87,61 @@ void lg_global_unlock(struct lglock *lg)
+ 	preempt_enable();
+ }
+ EXPORT_SYMBOL(lg_global_unlock);
++
++void lg_read_lock(struct lgrwlock *lgrw)
++{
++	preempt_disable();
++
++	if (__this_cpu_read(*lgrw->reader_refcnt) ||
++	    arch_spin_trylock(this_cpu_ptr(lgrw->lglock.lock))) {
++		__this_cpu_inc(*lgrw->reader_refcnt);
++		rwlock_acquire_read(&lgrw->fallback_rwlock.dep_map,
++				    0, 0, _RET_IP_);
++	} else {
++		read_lock(&lgrw->fallback_rwlock);
++	}
++}
++EXPORT_SYMBOL(lg_read_lock);
++
++void lg_read_unlock(struct lgrwlock *lgrw)
++{
++	if (likely(__this_cpu_read(*lgrw->reader_refcnt))) {
++		rwlock_release(&lgrw->fallback_rwlock.dep_map,
++			       1, _RET_IP_);
++		if (!__this_cpu_dec_return(*lgrw->reader_refcnt))
++			arch_spin_unlock(this_cpu_ptr(lgrw->lglock.lock));
++	} else {
++		read_unlock(&lgrw->fallback_rwlock);
++	}
++
++	preempt_enable();
++}
++EXPORT_SYMBOL(lg_read_unlock);
++
++void lg_write_lock(struct lgrwlock *lgrw)
++{
++	lg_global_lock(&lgrw->lglock);
++	write_lock(&lgrw->fallback_rwlock);
++}
++EXPORT_SYMBOL(lg_write_lock);
++
++void lg_write_unlock(struct lgrwlock *lgrw)
++{
++	write_unlock(&lgrw->fallback_rwlock);
++	lg_global_unlock(&lgrw->lglock);
++}
++EXPORT_SYMBOL(lg_write_unlock);
++
++void __lg_read_write_lock(struct lgrwlock *lgrw)
++{
++	lg_write_lock(lgrw);
++	__this_cpu_write(*lgrw->reader_refcnt, 1);
++}
++EXPORT_SYMBOL(__lg_read_write_lock);
++
++void __lg_read_write_unlock(struct lgrwlock *lgrw)
++{
++	__this_cpu_write(*lgrw->reader_refcnt, 0);
++	lg_write_unlock(lgrw);
++}
++EXPORT_SYMBOL(__lg_read_write_unlock);
+
+-- 
+Michel "Walken" Lespinasse
+A program is never fully debugged until the last user dies.
