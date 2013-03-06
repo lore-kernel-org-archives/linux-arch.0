@@ -1,80 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp02.au.ibm.com ([202.81.31.144]:42757 "EHLO
-	e23smtp02.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758236Ab3CESaJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Mar 2013 13:30:09 -0500
-Received: from /spool/local
-	by e23smtp02.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Wed, 6 Mar 2013 04:23:39 +1000
-Message-ID: <51363920.3040906@linux.vnet.ibm.com>
-Date: Tue, 05 Mar 2013 23:57:44 +0530
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Received: from mx1.redhat.com ([209.132.183.28]:55937 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753554Ab3CFUrg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 6 Mar 2013 15:47:36 -0500
+Subject: [RFC][PATCH 0/4] UAPI: Fix up endianness conditionals
+From: David Howells <dhowells@redhat.com>
+Date: Wed, 06 Mar 2013 20:47:25 +0000
+Message-ID: <20130306204724.31327.43118.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
-Subject: Re: [PATCH v6 04/46] percpu_rwlock: Implement the core design of
- Per-CPU Reader-Writer Locks
-References: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com> <CANN689F9S7c1M8+cEpz3tsxGF34+NTRBLvxgPUOtbvav5u+RRA@mail.gmail.com> <5122551E.1080703@linux.vnet.ibm.com>	<51226B46.9080707@linux.vnet.ibm.com> <CANN689FSxOz+0Cu7EG_yKD8ZE1OpT4kyT+ybLfXSqaifodJRpw@mail.gmail.com> <51226F91.7000108@linux.vnet.ibm.com> <CACvQF53bdh4_BxF0y1fnTVR+T2OmRc0jmWQYftsvx92-fg-Lug@mail.gmail.com> <512BBAD8.8010006@linux.vnet.ibm.com> <CACvQF51jCxk5jUqmhD=QBBtUsBkQWZzakacrKO4Gsk=w61rNwQ@mail.gmail.com> <512C7A38.8060906@linux.vnet.ibm.com> <CACvQF51RvhM8XNqu3-1OTQ=cZUZ=pAX+_zx0a29+W67N1X+BgQ@mail.gmail.com> <512CC509.1050000@linux.vnet.ibm.com> <CACvQF50UgiqPpDk3HCmV86zKSf6tPjqr0bZowfPEOJs0g0r0MQ@mail.gmail.com> <512D0D67.9010609@linux.vnet.ibm.com> <CACvQF53ph2ixdM-otzetjM5cR+2kcZj6sckOp3TnzzA_x-EZ8w@mail.gmail.com> <512E7879.20109@linux.vnet.ibm.com> <5130EA6B.6030901@cn.fujitsu.com> <513105DD.8010908@linux.vnet.ibm.com> <51361C71.5060502@cn.fujitsu.com>
-In-Reply-To: <51361C71.5060502@cn.fujitsu.com>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Lai Jiangshan <laijs@cn.fujitsu.com>
-Cc: Lai Jiangshan <eag0628@gmail.com>, Michel Lespinasse <walken@google.com>, linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, namhyung@kernel.org, mingo@kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, paulmck@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, rusty@rustcorp.com.au, rostedt@goodmis.org, rjw@sisk.pl, vincent.guittot@linaro.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, oleg@redhat.com, sbw@mit.edu, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20130305182744.kAllTUcZGAfHvoIiwVhbsUbJIKDgQig7mAQJ91cvUmY@z>
+To: torvalds@linux-foundation.org
+Cc: linux-arch@vger.kernel.org, sfr@canb.auug.org.au, Joakim.Tjernlund@transmode.se, arnd@arndb.de, linux-kernel@vger.kernel.org, akpm@linux-foundation.org
+Message-ID: <20130306204725.7xcUiHxY0kHFyj8gxVo_EMXBZJLg6PcGHZETE-PvPoA@z>
 
-Hi Lai,
 
-On 03/05/2013 09:55 PM, Lai Jiangshan wrote:
-> Hi, Srivatsa,
-> 
-> I'm sorry again, I delayed your works.
->
+Here are four patches to fix some of the problems with endianness-related
+preprocessor conditionals I have found in the UAPI header files.
 
-No, you didn't :-) I have been busy with some internal work lately,
-so I haven't been able to go through the recent discussions and
-review the new code carefully.. I'll get to it as soon as I can.
- 
-> I have some thinkings about the way how to get this work done.
-> 
-> First step: (2~3 patches)
-> Use preempt_disable() to implement get_online_cpu_atomic(), and add lockdep for it.
-> 
-> Second step:
-> Conversion patches.
-> 
-> We can send the patchset of the above steps at first.
-> {
-> It does not change any behavior of the kernel.
-> and it is annotation(instead of direct preempt_diable() without comments sometimes),
-> so I expected they can be merged very early.
-> }
-> 
-> Third step:
-> After all people confide the conversion patches covered all cases and cpuhotplug site is ready for it,
-> we will implement get_online_cpu_atomic() via locks and remove stop_machine() from cpuhotplug.
-> 
-> Any thought?
-> 
+The problem is that the way that preprocessor conditionals are used to
+determine endianness when building for Linux userspace (as defined by the
+predominant use of glibc) is not compatible with the way that the kernel build
+does things.  The problem revolves around how __BIG_ENDIAN and __LITTLE_ENDIAN
+are defined in each environment.
 
-That sounds like a good plan. It might involve slightly more churn
-than just directly changing the locking scheme, but it is safer.
-And the extra churn is anyway limited only to the implementation of
-get/put_online_cpus_atomic().. so that should be fine IMHO.
+When building for Linux userspace, __BIG_ENDIAN and __LITTLE_ENDIAN are always
+defined - so the kernel's preferred:
 
-> 
-> If I have time, I will help you for the patches of the first step.
-> (I was assigned bad job in office-time, I can only do kernel-dev work in night.)
-> 
-> And for step2, I will write a checklist or spatch-script.
-> 
+	if defined(__xxx_ENDIAN)
 
-Do look at the conversion already done in this v6 as well. In
-addition to that, we will have to account for the new kernel
-code that went in recently.
+is always true in userspace builds, no matter which endianness your check
+employs - whereas only one is defined in the kernel builds - meaning
 
-I'll get back to working on the above mentioned aspects soon.
+	#if __BYTE_ORDER == __xxx_ENDIAN
 
-Regards,
-Srivatsa S. Bhat
+gives a warning with -Wundef if you select the undefined endianness for your
+check.
+
+
+Unfortunately, the UAPI header files _must_ employ the userspace variant of
+these conditionals outside of __KERNEL__-conditionalised regions as these
+conditionals get exposed to userspace and userspace _cannot_ be changed.
+
+These can be fixed in the UAPI headers by changing:
+
+	#if defined(__BIG_ENDIAN)
+	#define foo 1234
+	#elif defined(__LITTLE_ENDIAN)
+	#define foo 4321
+	#else
+	#error endianness unspecified
+	#endif
+
+to:
+
+	#if defined(__BYTE_ORDER) ? __BYTE_ORDER == __BIG_ENDIAN : defined(__BIG_ENDIAN)
+	#define foo 1234
+	#elif defined(__BYTE_ORDER) ? __BYTE_ORDER == __LITTLE_ENDIAN : defined(__LITTLE_ENDIAN)
+	#define foo 4321
+	#else
+	#error endianness unspecified
+	#endif
+
+as it appears gcc's cpp doesn't complain about macros that aren't evaluated.
+
+[!!!] NOTE [!!!]  These patches may adversely change the userspace API.  Since
+the userspace API appears to be wrong under some circumstances due to incorrect
+conditionals, it may be necessary to make an alternate fix whereby the we
+select the first variant unconditionally in all cases as we would otherwise be
+changing the actual userspace API.
+
+David
+---
+David Howells (4):
+      UAPI: Fix endianness conditionals in linux/aio_abi.h
+      UAPI: Fix endianness conditionals in linux/acct.h
+      UAPI: Fix endianness conditionals in linux/raid/md_p.h
+      UAPI: Fix endianness conditionals in M32R's asm/stat.h
+
+
+ arch/m32r/include/uapi/asm/stat.h |    4 ++--
+ include/uapi/linux/acct.h         |    6 ++++--
+ include/uapi/linux/aio_abi.h      |    4 ++--
+ include/uapi/linux/raid/md_p.h    |    6 ++++--
+ 4 files changed, 12 insertions(+), 8 deletions(-)
 
