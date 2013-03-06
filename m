@@ -1,72 +1,116 @@
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: Re: [PATCH v6 04/46] percpu_rwlock: Implement the core design of
- Per-CPU Reader-Writer Locks
-Date: Tue, 05 Mar 2013 23:57:44 +0530
-Message-ID: <51363920.3040906@linux.vnet.ibm.com>
-References: <20130218123714.26245.61816.stgit@srivatsabhat.in.ibm.com> <CANN689F9S7c1M8+cEpz3tsxGF34+NTRBLvxgPUOtbvav5u+RRA@mail.gmail.com> <5122551E.1080703@linux.vnet.ibm.com>	<51226B46.9080707@linux.vnet.ibm.com> <CANN689FSxOz+0Cu7EG_yKD8ZE1OpT4kyT+ybLfXSqaifodJRpw@mail.gmail.com> <51226F91.7000108@linux.vnet.ibm.com> <CACvQF53bdh4_BxF0y1fnTVR+T2OmRc0jmWQYftsvx92-fg-Lug@mail.gmail.com> <512BBAD8.8010006@linux.vnet.ibm.com> <CACvQF51jCxk5jUqmhD=QBBtUsBkQWZzakacrKO4Gsk=w61rNwQ@mail.gmail.com> <512C7A38.8060906@linux.vnet.ibm.com> <CACvQF51RvhM8XNqu3-1OTQ=cZUZ=pAX+_zx0a29+W67N1X+BgQ@mail.gmail.com> <512CC509.1050000@linux.vnet.ibm.com> <CACvQF50UgiqPpDk3HCmV86zKSf6tPjqr0bZowfPEOJs0g0r0MQ@mail.gmail.com> <512D0D67.9010609@linux.vnet.ibm.com> <CACvQF53ph2ixdM-otzetjM5cR+2kcZj6sckOp3TnzzA_x-E
- Z8w@mail.gmail.com> <512E7879.20109@linux.vnet.ibm.com> <5130EA6B.6030901@cn.fujitsu.com> <513105DD.8010908@linux.vnet.ibm.com> <51361C71.5060502@cn.fujitsu.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <51361C71.5060502@cn.fujitsu.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Lai Jiangshan <laijs@cn.fujitsu.com>
-Cc: Lai Jiangshan <eag0628@gmail.com>, Michel Lespinasse <walken@google.com>, linux-doc@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, namhyung@kernel.org, mingo@kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, paulmck@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, rusty@rustcorp.com.au, rostedt@goodmis.org, rjw@sisk.pl, vincent.guittot@linaro.org, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, netdev@vger.kernel.org, oleg@redhat.com, sbw@mit.edu, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
-List-Id: linux-arch.vger.kernel.org
+From: David Howells <dhowells@redhat.com>
+Subject: Byteorder conditional compilation problems
+Date: Wed, 06 Mar 2013 16:43:09 +0000
+Message-ID: <31680.1362588189@warthog.procyon.org.uk>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:2298 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750780Ab3CFQnV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 6 Mar 2013 11:43:21 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: torvalds@linux-foundation.org, sfr@canb.auug.org.au, Joakim.Tjernlund@transmode.se, akpm@linux-foundation.org
+Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org
 
-Hi Lai,
 
-On 03/05/2013 09:55 PM, Lai Jiangshan wrote:
-> Hi, Srivatsa,
-> 
-> I'm sorry again, I delayed your works.
->
+Hi Linus,
 
-No, you didn't :-) I have been busy with some internal work lately,
-so I haven't been able to go through the recent discussions and
-review the new code carefully.. I'll get to it as soon as I can.
- 
-> I have some thinkings about the way how to get this work done.
-> 
-> First step: (2~3 patches)
-> Use preempt_disable() to implement get_online_cpu_atomic(), and add lockdep for it.
-> 
-> Second step:
-> Conversion patches.
-> 
-> We can send the patchset of the above steps at first.
-> {
-> It does not change any behavior of the kernel.
-> and it is annotation(instead of direct preempt_diable() without comments sometimes),
-> so I expected they can be merged very early.
-> }
-> 
-> Third step:
-> After all people confide the conversion patches covered all cases and cpuhotplug site is ready for it,
-> we will implement get_online_cpu_atomic() via locks and remove stop_machine() from cpuhotplug.
-> 
-> Any thought?
-> 
+Looking at commit 13da9e200fe4740b02cd51e07ab454627e228920, I suspect the
+answer will be no, but can we please revisit the use of __BYTE_ORDER in the
+kernel?
 
-That sounds like a good plan. It might involve slightly more churn
-than just directly changing the locking scheme, but it is safer.
-And the extra churn is anyway limited only to the implementation of
-get/put_online_cpus_atomic().. so that should be fine IMHO.
 
-> 
-> If I have time, I will help you for the patches of the first step.
-> (I was assigned bad job in office-time, I can only do kernel-dev work in night.)
-> 
-> And for step2, I will write a checklist or spatch-script.
-> 
+The reason for this is that I've noticed a number of places in the UAPI
+headers where __LITTLE_ENDIAN and __BIG_ENDIAN are assumed to act as in the
+main kernel: they are tested for definedness, which is incorrect in UAPI
+headers unless guarded by __KERNEL__.  In UAPI headers, they _must_ be
+compared to __BYTE_ORDER in !__KERNEL__ conditions and <endian.h> should
+perhaps be #included as well.
 
-Do look at the conversion already done in this v6 as well. In
-addition to that, we will have to account for the new kernel
-code that went in recently.
+The following headers are all incorrect in their usage in this manner:
 
-I'll get back to working on the above mentioned aspects soon.
+	include/uapi/linux/aio_abi.h - definition of PADDED()
+	include/uapi/linux/acct.h - definition of ACCT_BYTEORDER
+	include/uapi/linux/raid/md_p.h - order of members in mdp_superblock_s
+	arch/m32r/include/uapi/asm/stat.h - order of members in stat64
 
-Regards,
-Srivatsa S. Bhat
+The last two are the most worrying as these are visible from userspace.  Both
+cases will likely use the __BIG_ENDIAN version in userspace (depending on
+header inclusion ordering) - and it wouldn't surprise me if there's a nasty
+bug in the RAID API that no one has spotted yet.  M32R will likely have a
+problem too if anyone uses that in LE mode (the default is "no" on that one,
+though).
 
+And then there are:
+
+	arch/arc/include/uapi/asm/byteorder.h - uses CONFIG_CPU_BIG_ENDIAN
+	arch/c6x/include/uapi/asm/byteorder.h - uses _BIG_ENDIAN
+	arch/c6x/include/uapi/asm/ptrace.h - uses _BIG_ENDIAN
+	arch/mips/include/uapi/asm/msgbuf.h - uses CONFIG_CPU_LITTLE_ENDIAN
+
+which all look like they might be wrong.
+
+And finally, there are:
+
+	include/{uapi/,}linux/patchkey.h - macro _PATCHKEY
+	include/{uapi/,}linux/soundcard.h - macro AFMT_S16_NE
+
+which have two separate bits (one UAPI, one KAPI) defining the same macro in
+the same way because the macro is endianness-dependent, but the logic to
+select the variant cannot be shared between UAPI and KAPI.
+
+The following:
+
+	include/uapi/sound/asound.h
+	include/uapi/sound/sfnt_info.h
+
+seem to dodge the problem by using SNDRV_{LITTLE,BIG}_ENDIAN instead - though
+this doesn't seem to be defined in any headers under /usr/include, so I
+presume it is required to be set manually by anyone using those headers.
+
+
+Whilst the following opinion:
+
+	The kernel has never had that crazy "__BYTE_ORDER == __LITTLE_ENDIAN"
+	model.  It's not how we do things, and it isn't how we _should_ do
+	things.  So don't go there.
+
+may be a valid, it is incompatible with userspace.  We cannot change how
+userspace works, but we could change how the kernel works to match it, thus
+reducing the confusion.
+
+
+Looking at commit b3b77c8caef1750ebeea1054e39e358550ea9f55, I think the
+problems with it are simple to resolve:
+
+ (1) linux/byteorder/big_endian.h didn't define __LITTLE_ENDIAN and
+     .../little_endian.h didn't define __BIG_ENDIAN.  These should be placed
+     in a common header, and only __BYTE_ORDER defined in the separate
+     headers.
+
+ (2) Tests for the definedness of __BIG_ENDIAN and __LITTLE_ENDIAN must be
+     replaced en mass with comparisons against __BYTE_ORDER.
+
+Sadly, (1) and (2) would have to be done in the same commit to avoid problems
+since __BIG_ENDIAN and __LITTLE_ENDIAN must both be defined to for (1):-/
+
+
+Throughout the whole kernel:
+
+ - There are 703 instances of "defined(__XXX_ENDIAN)" scattered over 68
+   files.  None of these appear to be in comments.
+
+ - There are 6 instances of "def __XXX_ENDIAN[^_]" scattered over 4 files and
+   these are all in comments.
+
+ - There are a lot of "__XXX_ENDIAN__" - but these are not a problem.
+   Possibly these should be converted to "__XXX_ENDIAN" and the relevant -D
+   preprocessor flags removed.
+
+ - There are a lot of "__XXX_ENDIAN_BITFIELD" - which aren't a problem either.
+
+
+Scripting a change from "defined(__XXX_ENDIAN)" to "(__XXX_ENDIAN==__BYTEORDER)"
+should be easy to script.
+
+David
