@@ -1,39 +1,83 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: Byteorder conditional compilation problems
-Date: Wed, 6 Mar 2013 09:37:35 -0800
-Message-ID: <CA+55aFw5aqVCpsSAyy5VFhk4UwgBxKpOikVz-AC3kLJsxe0Ygw@mail.gmail.com>
-References: <31680.1362588189@warthog.procyon.org.uk>
+From: David Howells <dhowells@redhat.com>
+Subject: [RFC][PATCH 0/4] UAPI: Fix up endianness conditionals
+Date: Wed, 06 Mar 2013 20:47:25 +0000
+Message-ID: <20130306204724.31327.43118.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vb0-f47.google.com ([209.85.212.47]:48461 "EHLO
-	mail-vb0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752794Ab3CFRhg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Mar 2013 12:37:36 -0500
-In-Reply-To: <31680.1362588189@warthog.procyon.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, Joakim.Tjernlund@transmode.se, Andrew Morton <akpm@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: torvalds@linux-foundation.org
+Cc: linux-arch@vger.kernel.org, sfr@canb.auug.org.au, Joakim.Tjernlund@transmode.se, arnd@arndb.de, linux-kernel@vger.kernel.org, akpm@linux-foundation.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Mar 6, 2013 at 8:43 AM, David Howells <dhowells@redhat.com> wrote:
->
-> Scripting a change from "defined(__XXX_ENDIAN)" to "(__XXX_ENDIAN==__BYTEORDER)"
-> should be easy to script.
 
-How about we just make the rule be that we shouldn't test __xyz_ENDIAN
-at all, and instead always use CONFIG_xyz_ENDIAN, which isn't
-ambiguous. And then have the exporter of the uapi header files just
-sed-script that into __xyz_ENDIAN == __BYTEORDER.
+Here are four patches to fix some of the problems with endianness-related
+preprocessor conditionals I have found in the UAPI header files.
 
-The whole __xyz_ENDIAN == __BYTE_ORDER syntax is moronic, and the
-standard under BSD seems to be single-underscore "_BYTE_ORDER", while
-glibc uses double underscore __BYTE_ORDER. The whole thing is a
-f*cking mess, and I really don't want to get the idiotic mess into the
-kernel any more than I have to.
+The problem is that the way that preprocessor conditionals are used to
+determine endianness when building for Linux userspace (as defined by the
+predominant use of glibc) is not compatible with the way that the kernel build
+does things.  The problem revolves around how __BIG_ENDIAN and __LITTLE_ENDIAN
+are defined in each environment.
 
-In fact, I'd prefer to let it just be. Changing it in the kernel to
-the idiotic and non-standard user mode format is pointless. Just fix
-up the (few) entries in the uapi header files.
+When building for Linux userspace, __BIG_ENDIAN and __LITTLE_ENDIAN are always
+defined - so the kernel's preferred:
 
-                  Linus
+	if defined(__xxx_ENDIAN)
+
+is always true in userspace builds, no matter which endianness your check
+employs - whereas only one is defined in the kernel builds - meaning
+
+	#if __BYTE_ORDER == __xxx_ENDIAN
+
+gives a warning with -Wundef if you select the undefined endianness for your
+check.
+
+
+Unfortunately, the UAPI header files _must_ employ the userspace variant of
+these conditionals outside of __KERNEL__-conditionalised regions as these
+conditionals get exposed to userspace and userspace _cannot_ be changed.
+
+These can be fixed in the UAPI headers by changing:
+
+	#if defined(__BIG_ENDIAN)
+	#define foo 1234
+	#elif defined(__LITTLE_ENDIAN)
+	#define foo 4321
+	#else
+	#error endianness unspecified
+	#endif
+
+to:
+
+	#if defined(__BYTE_ORDER) ? __BYTE_ORDER == __BIG_ENDIAN : defined(__BIG_ENDIAN)
+	#define foo 1234
+	#elif defined(__BYTE_ORDER) ? __BYTE_ORDER == __LITTLE_ENDIAN : defined(__LITTLE_ENDIAN)
+	#define foo 4321
+	#else
+	#error endianness unspecified
+	#endif
+
+as it appears gcc's cpp doesn't complain about macros that aren't evaluated.
+
+[!!!] NOTE [!!!]  These patches may adversely change the userspace API.  Since
+the userspace API appears to be wrong under some circumstances due to incorrect
+conditionals, it may be necessary to make an alternate fix whereby the we
+select the first variant unconditionally in all cases as we would otherwise be
+changing the actual userspace API.
+
+David
+---
+David Howells (4):
+      UAPI: Fix endianness conditionals in linux/aio_abi.h
+      UAPI: Fix endianness conditionals in linux/acct.h
+      UAPI: Fix endianness conditionals in linux/raid/md_p.h
+      UAPI: Fix endianness conditionals in M32R's asm/stat.h
+
+
+ arch/m32r/include/uapi/asm/stat.h |    4 ++--
+ include/uapi/linux/acct.h         |    6 ++++--
+ include/uapi/linux/aio_abi.h      |    4 ++--
+ include/uapi/linux/raid/md_p.h    |    6 ++++--
+ 4 files changed, 12 insertions(+), 8 deletions(-)
