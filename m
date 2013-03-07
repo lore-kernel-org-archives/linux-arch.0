@@ -1,408 +1,638 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: [PATCH] Select VIRT_TO_BUS directly where needed
-Date: Thu, 7 Mar 2013 15:48:16 +1100
-Message-ID: <20130307154816.4e3daace932faa4f8390e53e@canb.auug.org.au>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [RFC PATCH v1 00/33] accurately calculate pages managed by buddy
+ system
+Date: Thu, 7 Mar 2013 11:55:52 +0530
+Message-ID: <513832F0.30504@synopsys.com>
+References: <51376444.9030601@gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA256";
- boundary="Signature=_Thu__7_Mar_2013_15_48_16_+1100_HK+JRFo_=aLEC.U3"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from haggis.pcug.org.au ([203.10.76.10]:50775 "EHLO
-	members.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756514Ab3CGEs0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Mar 2013 23:48:26 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Linus <torvalds@linux-foundation.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Content-Type: multipart/mixed;
+	boundary="------------040600030405000409030405"
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <51376444.9030601@gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Jiang Liu <liuj97@gmail.com>
+Cc: James Hogan <james.hogan@imgtec.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
+List-Id: linux-arch.vger.kernel.org
 
---Signature=_Thu__7_Mar_2013_15_48_16_+1100_HK+JRFo_=aLEC.U3
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+--------------040600030405000409030405
+Content-Type: multipart/alternative;
+	boundary="------------060000040705080005090009"
 
-In commit 887cbce0adea ("arch Kconfig: centralise
-CONFIG_ARCH_NO_VIRT_TO_BUS") I introduced the config sybmol
-HAVE_VIRT_TO_BUS and selected that where needed.  I am not sure what I was
-thinking.  Instead, just directly select VIRT_TO_BUS where it is needed.
+--------------060000040705080005090009
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 
-Signed-off-by: Stephen Rothwell <sfr@canb.auug.org.au>
----
- arch/Kconfig            | 7 -------
- arch/alpha/Kconfig      | 2 +-
- arch/arm/Kconfig        | 2 +-
- arch/avr32/Kconfig      | 2 +-
- arch/blackfin/Kconfig   | 2 +-
- arch/cris/Kconfig       | 2 +-
- arch/frv/Kconfig        | 2 +-
- arch/h8300/Kconfig      | 2 +-
- arch/ia64/Kconfig       | 2 +-
- arch/m32r/Kconfig       | 2 +-
- arch/m68k/Kconfig       | 2 +-
- arch/microblaze/Kconfig | 2 +-
- arch/mips/Kconfig       | 2 +-
- arch/mn10300/Kconfig    | 2 +-
- arch/openrisc/Kconfig   | 2 +-
- arch/parisc/Kconfig     | 2 +-
- arch/powerpc/Kconfig    | 2 +-
- arch/s390/Kconfig       | 2 +-
- arch/score/Kconfig      | 2 +-
- arch/tile/Kconfig       | 2 +-
- arch/unicore32/Kconfig  | 2 +-
- arch/x86/Kconfig        | 2 +-
- arch/xtensa/Kconfig     | 2 +-
- mm/Kconfig              | 8 ++++++--
- 24 files changed, 28 insertions(+), 31 deletions(-)
+Somehow the CC to linux-arch and linux-mm got lost in the trail - Also adding
+James for metag and clipped the extended CC list.
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 5a1779c..1455579 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -319,13 +319,6 @@ config ARCH_WANT_OLD_COMPAT_IPC
- 	select ARCH_WANT_COMPAT_IPC_PARSE_VERSION
- 	bool
-=20
--config HAVE_VIRT_TO_BUS
--	bool
--	help
--	  An architecture should select this if it implements the
--	  deprecated interface virt_to_bus().  All new architectures
--	  should probably not select this.
+Acked-by: Vineet Gupta <vgupta@synopsys.com> for patch 01 (ARC bits)
+
+
+-------- Original Message --------
+Subject: 	Re: [RFC PATCH v1 00/33] accurately calculate pages managed by buddy system
+Date: 	Wed, 6 Mar 2013 23:44:04 +0800
+From: 	Jiang Liu <liuj97@gmail.com>
+To: 	Vineet Gupta <Vineet.Gupta1@synopsys.com>
+CC: 	Andrew Morton <akpm@linux-foundation.org>, David Rientjes
+<rientjes@google.com>, Jiang Liu <jiang.liu@huawei.com>, Wen Congyang
+<wency@cn.fujitsu.com>, Maciej Rutecki <maciej.rutecki@gmail.com>, "Chris Clayton"
+<chris2553@googlemail.com>, "Rafael J . Wysocki" <rjw@sisk.pl>, "Mel Gorman"
+<mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, "KAMEZAWA Hiroyuki"
+<kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, Jianguo Wu
+<wujianguo@huawei.com>, Anatolij Gustschin <agust@denx.de>, Aurelien Jacquiot
+<a-jacquiot@ti.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin
+Marinas <catalin.marinas@arm.com>, "Chen Liqin" <liqin.chen@sunplusct.com>, Chris
+Metcalf <cmetcalf@tilera.com>, Chris Zankel <chris@zankel.net>, David Howells
+<dhowells@redhat.com>, "David S. Miller" <davem@davemloft.net>, Eric Biederman
+<ebiederm@xmission.com>, Fenghua Yu <fenghua.yu@intel.com>, "Geert Uytterhoeven"
+<geert@linux-m68k.org>
+
+
+
+On 03/06/2013 01:21 PM, Vineet Gupta wrote:
+> Hi Jiang,
+> 
+> On Tuesday 05 March 2013 08:24 PM, Jiang Liu wrote:
+>> The original goal of this patchset is to fix the bug reported by
+>> https://bugzilla.kernel.org/show_bug.cgi?id=53501
+>>
+>> Now it has also been expanded to reduce common code used by memory
+>> initializion. In total it has reduced about 550 lines of code.
+>>
+>> Patch 1:
+>> 	Extract common help functions from free_init_mem() and
+>> 	free_initrd_mem() on different architectures.
+>> Patch 2-27:
+>> 	Use help functions to simplify free_init_mem() and
+>> 	free_initrd_mem() on different architectures. This has reduced
+>> 	about 500 lines of code.
+>> Patch 28:
+>> 	Introduce common help function to free highmem pages when
+>> 	initializing memory subsystem.
+>> Patch 29-32:
+>> 	Adjust totalhigh_pages, totalram_pages and zone->managed_pages
+>> 	altogether when reserving/unreserving pages.
+>> Patch 33:
+>> 	Change /sys/.../node/nodex/meminfo to report available pages
+>> 	within the node as "MemTotal".
+>>
+>> We have only tested these patchset on x86 platforms, and have done basic
+>> compliation tests using cross-compilers from ftp.kernel.org. That means
+>> some code may not pass compilation on some architectures. So any help
+>> to test this patchset are welcomed!
+>>
+>> Jiang Liu (33):
+>>   mm: introduce common help functions to deal with reserved/managed
+>>     pages
+>>   mm/alpha: use common help functions to free reserved pages
+>>   mm/ARM: use common help functions to free reserved pages
+>>   mm/avr32: use common help functions to free reserved pages
+>>   mm/blackfin: use common help functions to free reserved pages
+>>   mm/c6x: use common help functions to free reserved pages
+>>   mm/cris: use common help functions to free reserved pages
+>>   mm/FRV: use common help functions to free reserved pages
+>>   mm/h8300: use common help functions to free reserved pages
+>>   mm/IA64: use common help functions to free reserved pages
+>>   mm/m32r: use common help functions to free reserved pages
+>>   mm/m68k: use common help functions to free reserved pages
+>>   mm/microblaze: use common help functions to free reserved pages
+>>   mm/MIPS: use common help functions to free reserved pages
+>>   mm/mn10300: use common help functions to free reserved pages
+>>   mm/openrisc: use common help functions to free reserved pages
+>>   mm/parisc: use common help functions to free reserved pages
+>>   mm/ppc: use common help functions to free reserved pages
+>>   mm/s390: use common help functions to free reserved pages
+>>   mm/score: use common help functions to free reserved pages
+>>   mm/SH: use common help functions to free reserved pages
+>>   mm/SPARC: use common help functions to free reserved pages
+>>   mm/um: use common help functions to free reserved pages
+>>   mm/unicore32: use common help functions to free reserved pages
+>>   mm/x86: use common help functions to free reserved pages
+>>   mm/xtensa: use common help functions to free reserved pages
+>>   mm,kexec: use common help functions to free reserved pages
+>>   mm: introduce free_highmem_page() helper to free highmem pages inti
+>>     buddy system
+>>   mm: accurately calculate zone->managed_pages for highmem zones
+>>   mm: use a dedicated lock to protect totalram_pages and
+>>     zone->managed_pages
+>>   mm: avoid using __free_pages_bootmem() at runtime
+>>   mm: correctly update zone->mamaged_pages
+>>   mm: report available pages as "MemTotal" for each NUMA node
+> 
+> I'm not sure what baseline your patches are based off of - however as part of
+> 3.9-rc1, two new architectures were merged (arc and metag). It would be ideal if
+> they got updated them as part of this series itself - if possible. Please let me know.
+> 
+> Thx,
+> -Vineet
+
+Hi Vineet,
+	I have rebased the patchset to v3.9-rc1, but haven't noticed these two
+new architectures. So how about the attached three patches?
+	Regards!
+	Gerry
+
+
+
+
+
+
+
+
+--------------060000040705080005090009
+Content-Type: text/html; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
+
+<html>
+  <head>
+
+    <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+  </head>
+  <body bgcolor="#FFFFFF" text="#000000">
+    Somehow the CC to linux-arch and linux-mm got lost in the trail -
+    Also adding James for metag and clipped the extended CC list.<br>
+    <div class="moz-forward-container"><br>
+      <pre>Acked-by: Vineet Gupta <a class="moz-txt-link-rfc2396E" href="mailto:vgupta@synopsys.com">&lt;vgupta@synopsys.com&gt;</a> for patch 01 (ARC bits)</pre>
+      <br>
+      -------- Original Message --------
+      <table class="moz-email-headers-table" border="0" cellpadding="0"
+        cellspacing="0">
+        <tbody>
+          <tr>
+            <th align="RIGHT" nowrap="nowrap" valign="BASELINE">Subject:
+            </th>
+            <td>Re: [RFC PATCH v1 00/33] accurately calculate pages
+              managed by buddy system</td>
+          </tr>
+          <tr>
+            <th align="RIGHT" nowrap="nowrap" valign="BASELINE">Date: </th>
+            <td>Wed, 6 Mar 2013 23:44:04 +0800</td>
+          </tr>
+          <tr>
+            <th align="RIGHT" nowrap="nowrap" valign="BASELINE">From: </th>
+            <td>Jiang Liu <a class="moz-txt-link-rfc2396E" href="mailto:liuj97@gmail.com">&lt;liuj97@gmail.com&gt;</a></td>
+          </tr>
+          <tr>
+            <th align="RIGHT" nowrap="nowrap" valign="BASELINE">To: </th>
+            <td>Vineet Gupta <a class="moz-txt-link-rfc2396E" href="mailto:Vineet.Gupta1@synopsys.com">&lt;Vineet.Gupta1@synopsys.com&gt;</a></td>
+          </tr>
+          <tr>
+            <th align="RIGHT" nowrap="nowrap" valign="BASELINE">CC: </th>
+            <td>Andrew Morton <a class="moz-txt-link-rfc2396E" href="mailto:akpm@linux-foundation.org">&lt;akpm@linux-foundation.org&gt;</a>, David
+              Rientjes <a class="moz-txt-link-rfc2396E" href="mailto:rientjes@google.com">&lt;rientjes@google.com&gt;</a>, Jiang Liu
+              <a class="moz-txt-link-rfc2396E" href="mailto:jiang.liu@huawei.com">&lt;jiang.liu@huawei.com&gt;</a>, Wen Congyang
+              <a class="moz-txt-link-rfc2396E" href="mailto:wency@cn.fujitsu.com">&lt;wency@cn.fujitsu.com&gt;</a>, Maciej Rutecki
+              <a class="moz-txt-link-rfc2396E" href="mailto:maciej.rutecki@gmail.com">&lt;maciej.rutecki@gmail.com&gt;</a>, "Chris Clayton"
+              <a class="moz-txt-link-rfc2396E" href="mailto:chris2553@googlemail.com">&lt;chris2553@googlemail.com&gt;</a>, "Rafael J . Wysocki"
+              <a class="moz-txt-link-rfc2396E" href="mailto:rjw@sisk.pl">&lt;rjw@sisk.pl&gt;</a>, "Mel Gorman" <a class="moz-txt-link-rfc2396E" href="mailto:mgorman@suse.de">&lt;mgorman@suse.de&gt;</a>,
+              Minchan Kim <a class="moz-txt-link-rfc2396E" href="mailto:minchan@kernel.org">&lt;minchan@kernel.org&gt;</a>, "KAMEZAWA
+              Hiroyuki" <a class="moz-txt-link-rfc2396E" href="mailto:kamezawa.hiroyu@jp.fujitsu.com">&lt;kamezawa.hiroyu@jp.fujitsu.com&gt;</a>, Michal
+              Hocko <a class="moz-txt-link-rfc2396E" href="mailto:mhocko@suse.cz">&lt;mhocko@suse.cz&gt;</a>, Jianguo Wu
+              <a class="moz-txt-link-rfc2396E" href="mailto:wujianguo@huawei.com">&lt;wujianguo@huawei.com&gt;</a>, Anatolij Gustschin
+              <a class="moz-txt-link-rfc2396E" href="mailto:agust@denx.de">&lt;agust@denx.de&gt;</a>, Aurelien Jacquiot
+              <a class="moz-txt-link-rfc2396E" href="mailto:a-jacquiot@ti.com">&lt;a-jacquiot@ti.com&gt;</a>, Benjamin Herrenschmidt
+              <a class="moz-txt-link-rfc2396E" href="mailto:benh@kernel.crashing.org">&lt;benh@kernel.crashing.org&gt;</a>, Catalin Marinas
+              <a class="moz-txt-link-rfc2396E" href="mailto:catalin.marinas@arm.com">&lt;catalin.marinas@arm.com&gt;</a>, "Chen Liqin"
+              <a class="moz-txt-link-rfc2396E" href="mailto:liqin.chen@sunplusct.com">&lt;liqin.chen@sunplusct.com&gt;</a>, Chris Metcalf
+              <a class="moz-txt-link-rfc2396E" href="mailto:cmetcalf@tilera.com">&lt;cmetcalf@tilera.com&gt;</a>, Chris Zankel
+              <a class="moz-txt-link-rfc2396E" href="mailto:chris@zankel.net">&lt;chris@zankel.net&gt;</a>, David Howells
+              <a class="moz-txt-link-rfc2396E" href="mailto:dhowells@redhat.com">&lt;dhowells@redhat.com&gt;</a>, "David S. Miller"
+              <a class="moz-txt-link-rfc2396E" href="mailto:davem@davemloft.net">&lt;davem@davemloft.net&gt;</a>, Eric Biederman
+              <a class="moz-txt-link-rfc2396E" href="mailto:ebiederm@xmission.com">&lt;ebiederm@xmission.com&gt;</a>, Fenghua Yu
+              <a class="moz-txt-link-rfc2396E" href="mailto:fenghua.yu@intel.com">&lt;fenghua.yu@intel.com&gt;</a>, "Geert Uytterhoeven"
+              <a class="moz-txt-link-rfc2396E" href="mailto:geert@linux-m68k.org">&lt;geert@linux-m68k.org&gt;</a></td>
+          </tr>
+        </tbody>
+      </table>
+      <br>
+      <br>
+      <pre>On 03/06/2013 01:21 PM, Vineet Gupta wrote:
+&gt; Hi Jiang,
+&gt; 
+&gt; On Tuesday 05 March 2013 08:24 PM, Jiang Liu wrote:
+&gt;&gt; The original goal of this patchset is to fix the bug reported by
+&gt;&gt; <a class="moz-txt-link-freetext" href="https://bugzilla.kernel.org/show_bug.cgi?id=53501">https://bugzilla.kernel.org/show_bug.cgi?id=53501</a>
+&gt;&gt;
+&gt;&gt; Now it has also been expanded to reduce common code used by memory
+&gt;&gt; initializion. In total it has reduced about 550 lines of code.
+&gt;&gt;
+&gt;&gt; Patch 1:
+&gt;&gt; 	Extract common help functions from free_init_mem() and
+&gt;&gt; 	free_initrd_mem() on different architectures.
+&gt;&gt; Patch 2-27:
+&gt;&gt; 	Use help functions to simplify free_init_mem() and
+&gt;&gt; 	free_initrd_mem() on different architectures. This has reduced
+&gt;&gt; 	about 500 lines of code.
+&gt;&gt; Patch 28:
+&gt;&gt; 	Introduce common help function to free highmem pages when
+&gt;&gt; 	initializing memory subsystem.
+&gt;&gt; Patch 29-32:
+&gt;&gt; 	Adjust totalhigh_pages, totalram_pages and zone-&gt;managed_pages
+&gt;&gt; 	altogether when reserving/unreserving pages.
+&gt;&gt; Patch 33:
+&gt;&gt; 	Change /sys/.../node/nodex/meminfo to report available pages
+&gt;&gt; 	within the node as "MemTotal".
+&gt;&gt;
+&gt;&gt; We have only tested these patchset on x86 platforms, and have done basic
+&gt;&gt; compliation tests using cross-compilers from <a class="moz-txt-link-abbreviated" href="ftp://ftp.kernel.org">ftp.kernel.org</a>. That means
+&gt;&gt; some code may not pass compilation on some architectures. So any help
+&gt;&gt; to test this patchset are welcomed!
+&gt;&gt;
+&gt;&gt; Jiang Liu (33):
+&gt;&gt;   mm: introduce common help functions to deal with reserved/managed
+&gt;&gt;     pages
+&gt;&gt;   mm/alpha: use common help functions to free reserved pages
+&gt;&gt;   mm/ARM: use common help functions to free reserved pages
+&gt;&gt;   mm/avr32: use common help functions to free reserved pages
+&gt;&gt;   mm/blackfin: use common help functions to free reserved pages
+&gt;&gt;   mm/c6x: use common help functions to free reserved pages
+&gt;&gt;   mm/cris: use common help functions to free reserved pages
+&gt;&gt;   mm/FRV: use common help functions to free reserved pages
+&gt;&gt;   mm/h8300: use common help functions to free reserved pages
+&gt;&gt;   mm/IA64: use common help functions to free reserved pages
+&gt;&gt;   mm/m32r: use common help functions to free reserved pages
+&gt;&gt;   mm/m68k: use common help functions to free reserved pages
+&gt;&gt;   mm/microblaze: use common help functions to free reserved pages
+&gt;&gt;   mm/MIPS: use common help functions to free reserved pages
+&gt;&gt;   mm/mn10300: use common help functions to free reserved pages
+&gt;&gt;   mm/openrisc: use common help functions to free reserved pages
+&gt;&gt;   mm/parisc: use common help functions to free reserved pages
+&gt;&gt;   mm/ppc: use common help functions to free reserved pages
+&gt;&gt;   mm/s390: use common help functions to free reserved pages
+&gt;&gt;   mm/score: use common help functions to free reserved pages
+&gt;&gt;   mm/SH: use common help functions to free reserved pages
+&gt;&gt;   mm/SPARC: use common help functions to free reserved pages
+&gt;&gt;   mm/um: use common help functions to free reserved pages
+&gt;&gt;   mm/unicore32: use common help functions to free reserved pages
+&gt;&gt;   mm/x86: use common help functions to free reserved pages
+&gt;&gt;   mm/xtensa: use common help functions to free reserved pages
+&gt;&gt;   mm,kexec: use common help functions to free reserved pages
+&gt;&gt;   mm: introduce free_highmem_page() helper to free highmem pages inti
+&gt;&gt;     buddy system
+&gt;&gt;   mm: accurately calculate zone-&gt;managed_pages for highmem zones
+&gt;&gt;   mm: use a dedicated lock to protect totalram_pages and
+&gt;&gt;     zone-&gt;managed_pages
+&gt;&gt;   mm: avoid using __free_pages_bootmem() at runtime
+&gt;&gt;   mm: correctly update zone-&gt;mamaged_pages
+&gt;&gt;   mm: report available pages as "MemTotal" for each NUMA node
+&gt; 
+&gt; I'm not sure what baseline your patches are based off of - however as part of
+&gt; 3.9-rc1, two new architectures were merged (arc and metag). It would be ideal if
+&gt; they got updated them as part of this series itself - if possible. Please let me know.
+&gt; 
+&gt; Thx,
+&gt; -Vineet
+
+Hi Vineet,
+	I have rebased the patchset to v3.9-rc1, but haven't noticed these two
+new architectures. So how about the attached three patches?
+	Regards!
+	Gerry
+
+
+
+
+</pre>
+      <br>
+      <br>
+    </div>
+    <br>
+  </body>
+</html>
+
+--------------060000040705080005090009--
+
+--------------040600030405000409030405
+Content-Type: text/x-patch;
+	name="0001-mm-arc-use-common-help-functions-to-free-reserved-pa.patch"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: attachment;
+	filename*0="0001-mm-arc-use-common-help-functions-to-free-reserved-pa.pa";
+	filename*1="tch"
+
+diff --git a/arch/arc/mm/init.c b/arch/arc/mm/init.c
+index caf797d..727d479 100644
+--- a/arch/arc/mm/init.c
++++ b/arch/arc/mm/init.c
+@@ -144,37 +144,18 @@ void __init mem_init(void)
+ 		PAGES_TO_KB(reserved_pages));
+ }
+ 
+-static void __init free_init_pages(const char *what, unsigned long begin,
+-				   unsigned long end)
+-{
+-	unsigned long addr;
 -
- config HAVE_ARCH_SECCOMP_FILTER
- 	bool
- 	help
-diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
-index 5833aa4..8a33ba0 100644
---- a/arch/alpha/Kconfig
-+++ b/arch/alpha/Kconfig
-@@ -9,7 +9,7 @@ config ALPHA
- 	select HAVE_PERF_EVENTS
- 	select HAVE_DMA_ATTRS
- 	select HAVE_GENERIC_HARDIRQS
--	select HAVE_VIRT_TO_BUS
-+	select VIRT_TO_BUS
- 	select GENERIC_IRQ_PROBE
- 	select AUTO_IRQ_AFFINITY if SMP
- 	select GENERIC_IRQ_SHOW
-diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index 5b71469..fc6fe23 100644
---- a/arch/arm/Kconfig
-+++ b/arch/arm/Kconfig
-@@ -49,7 +49,7 @@ config ARM
- 	select HAVE_REGS_AND_STACK_ACCESS_API
- 	select HAVE_SYSCALL_TRACEPOINTS
- 	select HAVE_UID16
--	select HAVE_VIRT_TO_BUS
-+	select VIRT_TO_BUS
- 	select KTIME_SCALAR
- 	select PERF_USE_VMALLOC
- 	select RTC_LIB
-diff --git a/arch/avr32/Kconfig b/arch/avr32/Kconfig
-index 9b89257..c1a868d 100644
---- a/arch/avr32/Kconfig
-+++ b/arch/avr32/Kconfig
-@@ -7,7 +7,7 @@ config AVR32
- 	select HAVE_OPROFILE
- 	select HAVE_KPROBES
- 	select HAVE_GENERIC_HARDIRQS
--	select HAVE_VIRT_TO_BUS
-+	select VIRT_TO_BUS
- 	select GENERIC_IRQ_PROBE
- 	select GENERIC_ATOMIC64
- 	select HARDIRQS_SW_RESEND
-diff --git a/arch/blackfin/Kconfig b/arch/blackfin/Kconfig
-index 600494c..c3f2e0b 100644
---- a/arch/blackfin/Kconfig
-+++ b/arch/blackfin/Kconfig
-@@ -33,7 +33,7 @@ config BLACKFIN
- 	select ARCH_HAVE_CUSTOM_GPIO_H
- 	select ARCH_WANT_OPTIONAL_GPIOLIB
- 	select HAVE_UID16
--	select HAVE_VIRT_TO_BUS
-+	select VIRT_TO_BUS
- 	select ARCH_WANT_IPC_PARSE_VERSION
- 	select HAVE_GENERIC_HARDIRQS
- 	select GENERIC_ATOMIC64
-diff --git a/arch/cris/Kconfig b/arch/cris/Kconfig
-index bb0ac66..06dd026 100644
---- a/arch/cris/Kconfig
-+++ b/arch/cris/Kconfig
-@@ -43,7 +43,7 @@ config CRIS
- 	select GENERIC_ATOMIC64
- 	select HAVE_GENERIC_HARDIRQS
- 	select HAVE_UID16
--	select HAVE_VIRT_TO_BUS
-+	select VIRT_TO_BUS
- 	select ARCH_WANT_IPC_PARSE_VERSION
- 	select GENERIC_IRQ_SHOW
- 	select GENERIC_IOMAP
-diff --git a/arch/frv/Kconfig b/arch/frv/Kconfig
-index 12369b1..2ce731f 100644
---- a/arch/frv/Kconfig
-+++ b/arch/frv/Kconfig
-@@ -6,7 +6,7 @@ config FRV
- 	select HAVE_PERF_EVENTS
- 	select HAVE_UID16
- 	select HAVE_GENERIC_HARDIRQS
--	select HAVE_VIRT_TO_BUS
-+	select VIRT_TO_BUS
- 	select GENERIC_IRQ_SHOW
- 	select HAVE_DEBUG_BUGVERBOSE
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
-diff --git a/arch/h8300/Kconfig b/arch/h8300/Kconfig
-index ae8551e..79250de 100644
---- a/arch/h8300/Kconfig
-+++ b/arch/h8300/Kconfig
-@@ -5,7 +5,7 @@ config H8300
- 	select HAVE_GENERIC_HARDIRQS
- 	select GENERIC_ATOMIC64
- 	select HAVE_UID16
--	select HAVE_VIRT_TO_BUS
-+	select VIRT_TO_BUS
- 	select ARCH_WANT_IPC_PARSE_VERSION
- 	select GENERIC_IRQ_SHOW
- 	select GENERIC_CPU_DEVICES
-diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
-index 33f3fdc..9a02f71 100644
---- a/arch/ia64/Kconfig
-+++ b/arch/ia64/Kconfig
-@@ -26,7 +26,7 @@ config IA64
- 	select HAVE_MEMBLOCK
- 	select HAVE_MEMBLOCK_NODE_MAP
- 	select HAVE_VIRT_CPU_ACCOUNTING
--	select HAVE_VIRT_TO_BUS
-+	select VIRT_TO_BUS
- 	select ARCH_DISCARD_MEMBLOCK
- 	select GENERIC_IRQ_PROBE
- 	select GENERIC_PENDING_IRQ if SMP
-diff --git a/arch/m32r/Kconfig b/arch/m32r/Kconfig
-index 9262381..bcd17b2 100644
---- a/arch/m32r/Kconfig
-+++ b/arch/m32r/Kconfig
-@@ -10,7 +10,7 @@ config M32R
- 	select ARCH_WANT_IPC_PARSE_VERSION
- 	select HAVE_DEBUG_BUGVERBOSE
- 	select HAVE_GENERIC_HARDIRQS
--	select HAVE_VIRT_TO_BUS
-+	select VIRT_TO_BUS
- 	select GENERIC_IRQ_PROBE
- 	select GENERIC_IRQ_SHOW
- 	select GENERIC_ATOMIC64
-diff --git a/arch/m68k/Kconfig b/arch/m68k/Kconfig
-index 0e708c7..6de8133 100644
---- a/arch/m68k/Kconfig
-+++ b/arch/m68k/Kconfig
-@@ -8,7 +8,7 @@ config M68K
- 	select GENERIC_IRQ_SHOW
- 	select GENERIC_ATOMIC64
- 	select HAVE_UID16
--	select HAVE_VIRT_TO_BUS
-+	select VIRT_TO_BUS
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG if RMW_INSNS
- 	select GENERIC_CPU_DEVICES
- 	select GENERIC_STRNCPY_FROM_USER if MMU
-diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
-index 7843d11..1323fa2 100644
---- a/arch/microblaze/Kconfig
-+++ b/arch/microblaze/Kconfig
-@@ -19,7 +19,7 @@ config MICROBLAZE
- 	select HAVE_DEBUG_KMEMLEAK
- 	select IRQ_DOMAIN
- 	select HAVE_GENERIC_HARDIRQS
--	select HAVE_VIRT_TO_BUS
-+	select VIRT_TO_BUS
- 	select GENERIC_IRQ_PROBE
- 	select GENERIC_IRQ_SHOW
- 	select GENERIC_PCI_IOMAP
-diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
-index ae9c716..cd2e21f 100644
---- a/arch/mips/Kconfig
-+++ b/arch/mips/Kconfig
-@@ -38,7 +38,7 @@ config MIPS
- 	select GENERIC_CLOCKEVENTS
- 	select GENERIC_CMOS_UPDATE
- 	select HAVE_MOD_ARCH_SPECIFIC
--	select HAVE_VIRT_TO_BUS
-+	select VIRT_TO_BUS
- 	select MODULES_USE_ELF_REL if MODULES
- 	select MODULES_USE_ELF_RELA if MODULES && 64BIT
- 	select CLONE_BACKWARDS
-diff --git a/arch/mn10300/Kconfig b/arch/mn10300/Kconfig
-index b06c736..428da17 100644
---- a/arch/mn10300/Kconfig
-+++ b/arch/mn10300/Kconfig
-@@ -8,7 +8,7 @@ config MN10300
- 	select HAVE_ARCH_KGDB
- 	select GENERIC_ATOMIC64
- 	select HAVE_NMI_WATCHDOG if MN10300_WD_TIMER
--	select HAVE_VIRT_TO_BUS
-+	select VIRT_TO_BUS
- 	select GENERIC_CLOCKEVENTS
- 	select MODULES_USE_ELF_RELA
- 	select OLD_SIGSUSPEND3
-diff --git a/arch/openrisc/Kconfig b/arch/openrisc/Kconfig
-index 014a648..9862d20 100644
---- a/arch/openrisc/Kconfig
-+++ b/arch/openrisc/Kconfig
-@@ -12,7 +12,7 @@ config OPENRISC
- 	select ARCH_WANT_OPTIONAL_GPIOLIB
-         select HAVE_ARCH_TRACEHOOK
- 	select HAVE_GENERIC_HARDIRQS
--	select HAVE_VIRT_TO_BUS
-+	select VIRT_TO_BUS
- 	select GENERIC_IRQ_CHIP
- 	select GENERIC_IRQ_PROBE
- 	select GENERIC_IRQ_SHOW
-diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
-index a9ff712..0339181 100644
---- a/arch/parisc/Kconfig
-+++ b/arch/parisc/Kconfig
-@@ -21,7 +21,7 @@ config PARISC
- 	select GENERIC_STRNCPY_FROM_USER
- 	select SYSCTL_ARCH_UNALIGN_ALLOW
- 	select HAVE_MOD_ARCH_SPECIFIC
--	select HAVE_VIRT_TO_BUS
-+	select VIRT_TO_BUS
- 	select MODULES_USE_ELF_RELA
- 	select CLONE_BACKWARDS
- 	select TTY # Needed for pdc_cons.c
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index b89d7eb..8082151 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -98,7 +98,7 @@ config PPC
- 	select HAVE_FUNCTION_GRAPH_TRACER
- 	select SYSCTL_EXCEPTION_TRACE
- 	select ARCH_WANT_OPTIONAL_GPIOLIB
--	select HAVE_VIRT_TO_BUS if !PPC64
-+	select VIRT_TO_BUS if !PPC64
- 	select HAVE_IDE
- 	select HAVE_IOREMAP_PROT
- 	select HAVE_EFFICIENT_UNALIGNED_ACCESS
-diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-index 4b50537..eb8fb62 100644
---- a/arch/s390/Kconfig
-+++ b/arch/s390/Kconfig
-@@ -134,7 +134,7 @@ config S390
- 	select HAVE_SYSCALL_WRAPPERS
- 	select HAVE_UID16 if 32BIT
- 	select HAVE_VIRT_CPU_ACCOUNTING
--	select HAVE_VIRT_TO_BUS
-+	select VIRT_TO_BUS
- 	select INIT_ALL_POSSIBLE
- 	select KTIME_SCALAR if 32BIT
- 	select MODULES_USE_ELF_RELA
-diff --git a/arch/score/Kconfig b/arch/score/Kconfig
-index e569aa1..c8def8b 100644
---- a/arch/score/Kconfig
-+++ b/arch/score/Kconfig
-@@ -12,7 +12,7 @@ config SCORE
-        select GENERIC_CPU_DEVICES
-        select GENERIC_CLOCKEVENTS
-        select HAVE_MOD_ARCH_SPECIFIC
--	select HAVE_VIRT_TO_BUS
-+	select VIRT_TO_BUS
- 	select MODULES_USE_ELF_REL
- 	select CLONE_BACKWARDS
-=20
-diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
-index ff496ab..25877ae 100644
---- a/arch/tile/Kconfig
-+++ b/arch/tile/Kconfig
-@@ -17,7 +17,7 @@ config TILE
- 	select GENERIC_IRQ_SHOW
- 	select HAVE_DEBUG_BUGVERBOSE
- 	select HAVE_SYSCALL_WRAPPERS if TILEGX
--	select HAVE_VIRT_TO_BUS
-+	select VIRT_TO_BUS
- 	select SYS_HYPERVISOR
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
- 	select GENERIC_CLOCKEVENTS
-diff --git a/arch/unicore32/Kconfig b/arch/unicore32/Kconfig
-index dc50b15..2943e3a 100644
---- a/arch/unicore32/Kconfig
-+++ b/arch/unicore32/Kconfig
-@@ -9,7 +9,7 @@ config UNICORE32
- 	select GENERIC_ATOMIC64
- 	select HAVE_KERNEL_LZO
- 	select HAVE_KERNEL_LZMA
--	select HAVE_VIRT_TO_BUS
-+	select VIRT_TO_BUS
- 	select ARCH_HAVE_CUSTOM_GPIO_H
- 	select GENERIC_FIND_FIRST_BIT
- 	select GENERIC_IRQ_PROBE
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index a4f24f5..70c0f3d 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -112,7 +112,7 @@ config X86
- 	select GENERIC_STRNLEN_USER
- 	select HAVE_CONTEXT_TRACKING if X86_64
- 	select HAVE_IRQ_TIME_ACCOUNTING
--	select HAVE_VIRT_TO_BUS
-+	select VIRT_TO_BUS
- 	select MODULES_USE_ELF_REL if X86_32
- 	select MODULES_USE_ELF_RELA if X86_64
- 	select CLONE_BACKWARDS if X86_32
-diff --git a/arch/xtensa/Kconfig b/arch/xtensa/Kconfig
-index 35876ff..b09de49 100644
---- a/arch/xtensa/Kconfig
-+++ b/arch/xtensa/Kconfig
-@@ -9,7 +9,7 @@ config XTENSA
- 	select HAVE_IDE
- 	select GENERIC_ATOMIC64
- 	select HAVE_GENERIC_HARDIRQS
--	select HAVE_VIRT_TO_BUS
-+	select VIRT_TO_BUS
- 	select GENERIC_IRQ_SHOW
- 	select GENERIC_CPU_DEVICES
- 	select MODULES_USE_ELF_RELA
-diff --git a/mm/Kconfig b/mm/Kconfig
-index ae55c1e..3bea74f 100644
---- a/mm/Kconfig
-+++ b/mm/Kconfig
-@@ -286,8 +286,12 @@ config NR_QUICK
- 	default "1"
-=20
- config VIRT_TO_BUS
--	def_bool y
--	depends on HAVE_VIRT_TO_BUS
-+	bool
-+	help
-+	  An architecture should select this if it implements the
-+	  deprecated interface virt_to_bus().  All new architectures
-+	  should probably not select this.
+-	pr_info("Freeing %s: %ldk [%lx] to [%lx]\n",
+-		what, TO_KB(end - begin), begin, end);
+-
+-	/* need to check that the page we free is not a partial page */
+-	for (addr = begin; addr + PAGE_SIZE <= end; addr += PAGE_SIZE) {
+-		ClearPageReserved(virt_to_page(addr));
+-		init_page_count(virt_to_page(addr));
+-		free_page(addr);
+-		totalram_pages++;
+-	}
+-}
+-
+ /*
+  * free_initmem: Free all the __init memory.
+  */
+ void __init_refok free_initmem(void)
+ {
+-	free_init_pages("unused kernel memory",
+-			(unsigned long)__init_begin,
+-			(unsigned long)__init_end);
++	free_initmem_default(0);
+ }
+ 
+ #ifdef CONFIG_BLK_DEV_INITRD
+ void __init free_initrd_mem(unsigned long start, unsigned long end)
+ {
+-	free_init_pages("initrd memory", start, end);
++	free_reserved_area(start, end, 0, "initrd");
+ }
+ #endif
+ 
+-- 
+1.7.9.5
+
+
+
+--------------040600030405000409030405
+Content-Type: text/x-patch;
+	name="0002-mm-metag-use-common-help-functions-to-free-reserved-.patch"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: attachment;
+	filename*0="0002-mm-metag-use-common-help-functions-to-free-reserved-.pa";
+	filename*1="tch"
+
+diff --git a/arch/metag/mm/init.c b/arch/metag/mm/init.c
+index 504a398..c6784fb 100644
+--- a/arch/metag/mm/init.c
++++ b/arch/metag/mm/init.c
+@@ -412,32 +412,15 @@ void __init mem_init(void)
+ 	return;
+ }
+ 
+-static void free_init_pages(char *what, unsigned long begin, unsigned long end)
+-{
+-	unsigned long addr;
+-
+-	for (addr = begin; addr < end; addr += PAGE_SIZE) {
+-		ClearPageReserved(virt_to_page(addr));
+-		init_page_count(virt_to_page(addr));
+-		memset((void *)addr, POISON_FREE_INITMEM, PAGE_SIZE);
+-		free_page(addr);
+-		totalram_pages++;
+-	}
+-	pr_info("Freeing %s: %luk freed\n", what, (end - begin) >> 10);
+-}
+-
+ void free_initmem(void)
+ {
+-	free_init_pages("unused kernel memory",
+-			(unsigned long)(&__init_begin),
+-			(unsigned long)(&__init_end));
++	free_initmem_default(POISON_FREE_INITMEM);
+ }
+ 
+ #ifdef CONFIG_BLK_DEV_INITRD
+ void free_initrd_mem(unsigned long start, unsigned long end)
+ {
+-	end = end & PAGE_MASK;
+-	free_init_pages("initrd memory", start, end);
++	free_reserved_area(start, end, POISON_FREE_INITMEM, "initrd");
+ }
+ #endif
+ 
+-- 
+1.7.9.5
+
+
+
+--------------040600030405000409030405
+Content-Type: text/x-patch; name="0003-free-highmem-metag.patch"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: attachment; filename="0003-free-highmem-metag.patch"
+
+diff --git a/arch/arm/mm/init.c b/arch/arm/mm/init.c
+index 40a5bc2..400a383 100644
+--- a/arch/arm/mm/init.c
++++ b/arch/arm/mm/init.c
+@@ -519,10 +519,8 @@ static void __init free_unused_memmap(struct meminfo *mi)
+ #ifdef CONFIG_HIGHMEM
+ static inline void free_area_high(unsigned long pfn, unsigned long end)
+ {
+-	for (; pfn < end; pfn++) {
+-		__free_reserved_page(pfn_to_page(pfn));
+-		totalhigh_pages++;
+-	}
++	for (; pfn < end; pfn++)
++		free_highmem_page(pfn_to_page(pfn));
+ }
+ #endif
+ 
+diff --git a/arch/metag/mm/init.c b/arch/metag/mm/init.c
+index c6784fb..7449af0 100644
+--- a/arch/metag/mm/init.c
++++ b/arch/metag/mm/init.c
+@@ -380,13 +380,8 @@ void __init mem_init(void)
+ 
+ #ifdef CONFIG_HIGHMEM
+ 	unsigned long tmp;
+-	for (tmp = highstart_pfn; tmp < highend_pfn; tmp++) {
+-		struct page *page = pfn_to_page(tmp);
+-		ClearPageReserved(page);
+-		init_page_count(page);
+-		__free_page(page);
+-		totalhigh_pages++;
+-	}
++	for (tmp = highstart_pfn; tmp < highend_pfn; tmp++)
++		free_highmem_page(pfn_to_page(tmp));
+ 	totalram_pages += totalhigh_pages;
+ 	num_physpages += totalhigh_pages;
+ #endif /* CONFIG_HIGHMEM */
+diff --git a/arch/microblaze/mm/init.c b/arch/microblaze/mm/init.c
+index 9be5302..d0fe2a8 100644
+--- a/arch/microblaze/mm/init.c
++++ b/arch/microblaze/mm/init.c
+@@ -82,10 +82,7 @@ static unsigned long highmem_setup(void)
+ 		/* FIXME not sure about */
+ 		if (memblock_is_reserved(pfn << PAGE_SHIFT))
+ 			continue;
+-		ClearPageReserved(page);
+-		init_page_count(page);
+-		__free_page(page);
+-		totalhigh_pages++;
++		free_highmem_page(page);
+ 		reservedpages++;
+ 	}
+ 	totalram_pages += totalhigh_pages;
+diff --git a/arch/mips/mm/init.c b/arch/mips/mm/init.c
+index 60f7c61..3105494 100644
+--- a/arch/mips/mm/init.c
++++ b/arch/mips/mm/init.c
+@@ -393,10 +393,7 @@ void __init mem_init(void)
+ 			SetPageReserved(page);
+ 			continue;
+ 		}
+-		ClearPageReserved(page);
+-		init_page_count(page);
+-		__free_page(page);
+-		totalhigh_pages++;
++		free_highmem_page(page);
+ 	}
+ 	totalram_pages += totalhigh_pages;
+ 	num_physpages += totalhigh_pages;
+diff --git a/arch/powerpc/mm/mem.c b/arch/powerpc/mm/mem.c
+index c756713..79eb16b 100644
+--- a/arch/powerpc/mm/mem.c
++++ b/arch/powerpc/mm/mem.c
+@@ -352,10 +352,7 @@ void __init mem_init(void)
+ 			struct page *page = pfn_to_page(pfn);
+ 			if (memblock_is_reserved(paddr))
+ 				continue;
+-			ClearPageReserved(page);
+-			init_page_count(page);
+-			__free_page(page);
+-			totalhigh_pages++;
++			free_higmem_page(page);
+ 			reservedpages--;
+ 		}
+ 		totalram_pages += totalhigh_pages;
+diff --git a/arch/sparc/mm/init_32.c b/arch/sparc/mm/init_32.c
+index 2a7b6eb..cd4c78c 100644
+--- a/arch/sparc/mm/init_32.c
++++ b/arch/sparc/mm/init_32.c
+@@ -282,14 +282,8 @@ static void map_high_region(unsigned long start_pfn, unsigned long end_pfn)
+ 	printk("mapping high region %08lx - %08lx\n", start_pfn, end_pfn);
+ #endif
+ 
+-	for (tmp = start_pfn; tmp < end_pfn; tmp++) {
+-		struct page *page = pfn_to_page(tmp);
+-
+-		ClearPageReserved(page);
+-		init_page_count(page);
+-		__free_page(page);
+-		totalhigh_pages++;
+-	}
++	for (tmp = start_pfn; tmp < end_pfn; tmp++)
++		free_higmem_page(pfn_to_page(tmp));
+ }
+ 
+ void __init mem_init(void)
+diff --git a/arch/um/kernel/mem.c b/arch/um/kernel/mem.c
+index d5ac802..fea5c9d 100644
+--- a/arch/um/kernel/mem.c
++++ b/arch/um/kernel/mem.c
+@@ -42,17 +42,12 @@ static unsigned long brk_end;
+ static void setup_highmem(unsigned long highmem_start,
+ 			  unsigned long highmem_len)
+ {
+-	struct page *page;
+ 	unsigned long highmem_pfn;
+ 	int i;
+ 
+ 	highmem_pfn = __pa(highmem_start) >> PAGE_SHIFT;
+-	for (i = 0; i < highmem_len >> PAGE_SHIFT; i++) {
+-		page = &mem_map[highmem_pfn + i];
+-		ClearPageReserved(page);
+-		init_page_count(page);
+-		__free_page(page);
+-	}
++	for (i = 0; i < highmem_len >> PAGE_SHIFT; i++)
++		free_highmem_page(&mem_map[highmem_pfn + i]);
+ }
+ #endif
+ 
+@@ -73,7 +68,7 @@ void __init mem_init(void)
+ 	totalram_pages = free_all_bootmem();
+ 	max_low_pfn = totalram_pages;
+ #ifdef CONFIG_HIGHMEM
+-	totalhigh_pages = highmem >> PAGE_SHIFT;
++	setup_highmem(end_iomem, highmem);
+ 	totalram_pages += totalhigh_pages;
+ #endif
+ 	num_physpages = totalram_pages;
+@@ -81,10 +76,6 @@ void __init mem_init(void)
+ 	printk(KERN_INFO "Memory: %luk available\n",
+ 	       nr_free_pages() << (PAGE_SHIFT-10));
+ 	kmalloc_ok = 1;
+-
+-#ifdef CONFIG_HIGHMEM
+-	setup_highmem(end_iomem, highmem);
+-#endif
+ }
+ 
+ /*
+diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
+index 2d19001..3ac7e31 100644
+--- a/arch/x86/mm/init_32.c
++++ b/arch/x86/mm/init_32.c
+@@ -427,14 +427,6 @@ static void __init permanent_kmaps_init(pgd_t *pgd_base)
+ 	pkmap_page_table = pte;
+ }
+ 
+-static void __init add_one_highpage_init(struct page *page)
+-{
+-	ClearPageReserved(page);
+-	init_page_count(page);
+-	__free_page(page);
+-	totalhigh_pages++;
+-}
+-
+ void __init add_highpages_with_active_regions(int nid,
+ 			 unsigned long start_pfn, unsigned long end_pfn)
+ {
+@@ -448,7 +440,7 @@ void __init add_highpages_with_active_regions(int nid,
+ 					      start_pfn, end_pfn);
+ 		for ( ; pfn < e_pfn; pfn++)
+ 			if (pfn_valid(pfn))
+-				add_one_highpage_init(pfn_to_page(pfn));
++				free_highmem_page(pfn_to_page(pfn));
+ 	}
+ }
+ #else
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 881461c..4d1509b 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -1296,6 +1296,9 @@ extern void free_area_init_node(int nid, unsigned long * zones_size,
+ extern void free_initmem(void);
+ 
+ /* Help functions to deal with reserved/managed pages. */
++#ifdef	CONFIG_HIGHMEM
++extern void free_highmem_page(struct page *page);
++#endif
+ extern unsigned long free_reserved_area(unsigned long start, unsigned long end,
+ 					int poison, char *s);
+ 
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index 0fadb09..ad2f619 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -5133,6 +5133,14 @@ unsigned long free_reserved_area(unsigned long start, unsigned long end,
+ 	return pages;
+ }
+ 
++#ifdef	CONFIG_HIGHMEM
++void free_highmem_page(struct page *page)
++{
++	__free_reserved_page(page);
++	totalhigh_pages++;
++}
++#endif
 +
-=20
- config MMU_NOTIFIER
- 	bool
---=20
-1.8.1
+ /**
+  * set_dma_reserve - set the specified number of pages reserved in the first zone
+  * @new_dma_reserve: The number of pages to mark reserved
 
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
 
---Signature=_Thu__7_Mar_2013_15_48_16_+1100_HK+JRFo_=aLEC.U3
-Content-Type: application/pgp-signature
+--------------040600030405000409030405--
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.12 (GNU/Linux)
-
-iQIcBAEBCAAGBQJROBwQAAoJEECxmPOUX5FE5u8QAKLumeLAyTZDyS1XqPrZeZ/7
-rfB6nNbSPXJsEjnHvkZKrePRwTWAw540y5At8x/tbzWmKty79BX4E89soccex+sD
-o766/jTghrLu2CnrHar6f51+A2TVHcvOeyxtJbYSvw79/b2lEDFgGDXl6UX9kLcz
-q4It9EJXJ/HHViAS45gIru5ZfgEoWmp/bNE7OyLawzvCASY8DuzyS+rK33f57lXh
-UNHMLO01trtdazGYdNvD16UvTB0LSMgSR0rxO0Zp60ivbV5xWk2CFFWGZ20PwTZu
-jk2csh/kGQVxbAi/fjMUILVBfrIwnc0PbKyUQRRJ39VCdi+5CQXFP1WAQYjkafwE
-/i4VvwTAnfUkPxQ9aktGlVIdCJKSpQcwnWi8/yOG/nFIvpq4xd+rUwj/Jo83pLkg
-4slD2gERmDjpBsXpOUlA8SdPeibJpr9wmpM0pDYoiJg5lLPA+r7RXfGuFrfuMa3w
-NGLe8KkJVHULjrafY2M3FPpKZE+JBHaE8G08A0WjhIkROSTu6gYG3Nb8ouik4KZc
-E3DzLL4WQD6+hY1bvFE7rq99QIcFUUy2Oenm8V3bbosaelcydHd3nMuzCbMjLOWw
-CoGdIdgwAtT2U7/+th2YxUEfpv+t7LDGqZgw2XezERW+aKoiEI/4EcDTeURDhPLe
-VcxVFHoVHOY5jiH9yGxF
-=u9sN
------END PGP SIGNATURE-----
-
---Signature=_Thu__7_Mar_2013_15_48_16_+1100_HK+JRFo_=aLEC.U3--
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
