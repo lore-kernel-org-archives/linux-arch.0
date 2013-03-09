@@ -1,45 +1,80 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: Byteorder conditional compilation problems
-Date: Thu, 7 Mar 2013 08:17:00 +0100
-Message-ID: <CAMuHMdWcONApHZV6J-oCkQeiyUESU9y_hpWT9cA37MGGvmgG1Q@mail.gmail.com>
-References: <31680.1362588189@warthog.procyon.org.uk>
-	<CA+55aFw5aqVCpsSAyy5VFhk4UwgBxKpOikVz-AC3kLJsxe0Ygw@mail.gmail.com>
+From: Francesco Lavra <francescolavra.fl@gmail.com>
+Subject: Re: [Linaro-mm-sig] [PATCH v2 1/3] arch: make __mutex_fastpath_lock_retval
+ return whether fastpath succeeded or not.
+Date: Sat, 09 Mar 2013 13:06:20 +0100
+Message-ID: <513B25BC.3010609@gmail.com>
+References: <20130228102452.15191.22673.stgit@patser>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ia0-f181.google.com ([209.85.210.181]:37586 "EHLO
-	mail-ia0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751184Ab3CGHRB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Mar 2013 02:17:01 -0500
-In-Reply-To: <CA+55aFw5aqVCpsSAyy5VFhk4UwgBxKpOikVz-AC3kLJsxe0Ygw@mail.gmail.com>
+Received: from mail-wi0-f176.google.com ([209.85.212.176]:52280 "EHLO
+	mail-wi0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755774Ab3CIME5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Mar 2013 07:04:57 -0500
+In-Reply-To: <20130228102452.15191.22673.stgit@patser>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: David Howells <dhowells@redhat.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Joakim.Tjernlund@transmode.se, Andrew Morton <akpm@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, a.p.zijlstra@chello.nl, x86@kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robclark@gmail.com, tglx@linutronix.de, mingo@elte.hu, linux-media@vger.kernel.org
 
-On Wed, Mar 6, 2013 at 6:37 PM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
-> On Wed, Mar 6, 2013 at 8:43 AM, David Howells <dhowells@redhat.com> wrote:
->> Scripting a change from "defined(__XXX_ENDIAN)" to "(__XXX_ENDIAN==__BYTEORDER)"
->> should be easy to script.
->
-> How about we just make the rule be that we shouldn't test __xyz_ENDIAN
-> at all, and instead always use CONFIG_xyz_ENDIAN, which isn't
-> ambiguous. And then have the exporter of the uapi header files just
-> sed-script that into __xyz_ENDIAN == __BYTEORDER.
+On 02/28/2013 11:24 AM, Maarten Lankhorst wrote:
+> This will allow me to call functions that have multiple arguments if fastpath fails.
+> This is required to support ticket mutexes, because they need to be able to pass an
+> extra argument to the fail function.
+> 
+> Originally I duplicated the functions, by adding __mutex_fastpath_lock_retval_arg.
+> This ended up being just a duplication of the existing function, so a way to test
+> if fastpath was called ended up being better.
+> 
+> This also cleaned up the reservation mutex patch some by being able to call an
+> atomic_set instead of atomic_xchg, and making it easier to detect if the wrong
+> unlock function was previously used.
+> 
+> Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+> ---
+>  arch/ia64/include/asm/mutex.h    |   10 ++++------
+>  arch/powerpc/include/asm/mutex.h |   10 ++++------
+>  arch/sh/include/asm/mutex-llsc.h |    4 ++--
+>  arch/x86/include/asm/mutex_32.h  |   11 ++++-------
+>  arch/x86/include/asm/mutex_64.h  |   11 ++++-------
+>  include/asm-generic/mutex-dec.h  |   10 ++++------
+>  include/asm-generic/mutex-null.h |    2 +-
+>  include/asm-generic/mutex-xchg.h |   10 ++++------
+>  kernel/mutex.c                   |   32 ++++++++++++++------------------
+>  9 files changed, 41 insertions(+), 59 deletions(-)
+[...]
+> diff --git a/arch/x86/include/asm/mutex_32.h b/arch/x86/include/asm/mutex_32.h
+> index 03f90c8..b7f6b34 100644
+> --- a/arch/x86/include/asm/mutex_32.h
+> +++ b/arch/x86/include/asm/mutex_32.h
+> @@ -42,17 +42,14 @@ do {								\
+>   *  __mutex_fastpath_lock_retval - try to take the lock by moving the count
+>   *                                 from 1 to a 0 value
+>   *  @count: pointer of type atomic_t
+> - *  @fail_fn: function to call if the original value was not 1
+>   *
+> - * Change the count from 1 to a value lower than 1, and call <fail_fn> if it
+> - * wasn't 1 originally. This function returns 0 if the fastpath succeeds,
+> - * or anything the slow path function returns
+> + * Change the count from 1 to a value lower than 1. This function returns 0
+> + * if the fastpath succeeds, or 1 otherwise.
 
-I was going to suggest a checkpatch test, but your suggestion is a
-better solution.
-Still, we may want the checkpatch test, to make sure no one explicitly does the
-moronic byte order check.
+The minus sign is missing, the return value should be -1.
 
-Gr{oetje,eeting}s,
+[...]
+> diff --git a/include/asm-generic/mutex-null.h b/include/asm-generic/mutex-null.h
+> index e1bbbc7..efd6206 100644
+> --- a/include/asm-generic/mutex-null.h
+> +++ b/include/asm-generic/mutex-null.h
+> @@ -11,7 +11,7 @@
+>  #define _ASM_GENERIC_MUTEX_NULL_H
+>  
+>  #define __mutex_fastpath_lock(count, fail_fn)		fail_fn(count)
+> -#define __mutex_fastpath_lock_retval(count, fail_fn)	fail_fn(count)
+> +#define __mutex_fastpath_lock_retval(count, fail_fn)	(-1)
 
-                        Geert
+The fail_fn parameter should be dropped here as well.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Regards,
+Francesco
