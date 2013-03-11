@@ -1,63 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:15324 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753866Ab3CFUsW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 6 Mar 2013 15:48:22 -0500
-Subject: [PATCH 4/4] UAPI: Fix endianness conditionals in M32R's asm/stat.h
-From: David Howells <dhowells@redhat.com>
-Date: Wed, 06 Mar 2013 20:48:00 +0000
-Message-ID: <20130306204759.31327.7782.stgit@warthog.procyon.org.uk>
-In-Reply-To: <20130306204724.31327.43118.stgit@warthog.procyon.org.uk>
-References: <20130306204724.31327.43118.stgit@warthog.procyon.org.uk>
+Received: from us01smtp2.synopsys.com ([198.182.44.80]:59367 "EHLO
+	kiruna.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751319Ab3CKNtJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Mar 2013 09:49:09 -0400
+Message-ID: <513DE0C7.9030304@synopsys.com>
+Date: Mon, 11 Mar 2013 19:18:55 +0530
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Subject: Re: SYSV IPC broken for no-legacy syscall kernels (was Re: [RFC PATCH
+ v1 26/31] ARC: Build system: Makefiles, Kconfig, Linker script)
+References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <513DD464.2060008@synopsys.com> <513DD6FB.4000400@imgtec.com> <201303111330.15589.arnd@arndb.de>
+In-Reply-To: <201303111330.15589.arnd@arndb.de>
+Content-Type: text/plain; charset="ISO-8859-15"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: torvalds@linux-foundation.org
-Cc: linux-arch@vger.kernel.org, sfr@canb.auug.org.au, linux-m32r@ml.linux-m32r.org, Joakim.Tjernlund@transmode.se, arnd@arndb.de, Hirokazu Takata <takata@linux-m32r.org>, linux-kernel@vger.kernel.org, linux-m32r-ja@ml.linux-m32r.org, akpm@linux-foundation.org
-Message-ID: <20130306204800.vKKKpuBdHLlfQJ_LJ6Ntbf8E1DAf-z4M6f_5D5cCiJ8@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: James Hogan <james.hogan@imgtec.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Markos <markos.chandras@imgtec.com>
+Message-ID: <20130311134855.g8O8Y2DBSXN9w6gz1jzg7f5JMPn4oJh6-82dj7yIIS8@z>
 
-In the UAPI header files, __BIG_ENDIAN and __LITTLE_ENDIAN must be compared
-against __BYTE_ORDER in preprocessor conditionals where these are exposed to
-userspace (that is they're not inside __KERNEL__ conditionals).
+Hi Arnd,
 
-However, in the main kernel the norm is to check for "defined(__XXX_ENDIAN)"
-rather than comparing against __BYTE_ORDER and this has incorrectly leaked
-into the userspace headers.
+On Monday 11 March 2013 07:00 PM, Arnd Bergmann wrote:
+> On Monday 11 March 2013, James Hogan wrote:
+>>> /*
+>>>  * Version flags for semctl, msgctl, and shmctl commands
+>>>  * These are passed as bitflags or-ed with the actual command
+>>>  */
+>>> #define IPC_OLD 0    /* Old version (no 32-bit UID support on many
+>>>                architectures) */
+>>> #define IPC_64  0x0100  /* New version (support 32-bit UIDs, bigger
+>>>                message sizes, etc. */
+>>>
+>>> So someone with more ABI wisdom needs to suggest what is the right approach.
+>> Agreed.
+>>
+>> Note that in uClibc, 64bit arches (excl alpha/mips for some reason) were
+>> already defining __IPC_64 as 0, so there's some precedent for it working
+>> the way it does.
+> Yes, there is no reason to need the distinction. If LTP is checking for
+> IPC_OLD compatibility on anything but really old architectures, that is
+> a bug in LTP, or possibly in the libc.
+>
+> 	Arnd
 
-The definition of struct stat64 in M32R's asm/stat.h is wrong in this way.
-Note that userspace will likely interpret the field order incorrectly as the
-big-endian variant on little-endian machines - depending on header inclusion
-order.
+I'm sorrry - I don't quite understand what you mean.
 
-[!!!] NOTE [!!!]  This patch may adversely change the userspace API.  It might
-be better to fix the ordering of st_blocks and __pad4 in struct stat64.
+The question is what should the msgctl(2) ABI be w.r.t. @cmd arg. Does it need to
+be of type 0x01NN  (i.e. IPC_64 ORed) or should it be be 0xNN. If it's 0x01NN,
+then ARCH_WANT_IPC_PARSE_VERSION is needed in Kconfig, otherwise, I need to fix
+uClibc.
 
-Signed-off-by: David Howells <dhowells@redhat.com>
-cc: Hirokazu Takata <takata@linux-m32r.org>
-cc: linux-m32r@ml.linux-m32r.org
-cc: linux-m32r-ja@ml.linux-m32r.org
----
+The reason for confusion seems to be a comment in existing uapi/linux/ipc.h which
+seems to suggest that IPC_OLD is 0 and IPC_64 is newer version.
 
- arch/m32r/include/uapi/asm/stat.h |    4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
-
-diff --git a/arch/m32r/include/uapi/asm/stat.h b/arch/m32r/include/uapi/asm/stat.h
-index da4518f..98470fe 100644
---- a/arch/m32r/include/uapi/asm/stat.h
-+++ b/arch/m32r/include/uapi/asm/stat.h
-@@ -63,10 +63,10 @@ struct stat64 {
- 	long long	st_size;
- 	unsigned long	st_blksize;
- 
--#if defined(__BIG_ENDIAN)
-+#if defined(__BYTE_ORDER) ? __BYTE_ORDER == __BIG_ENDIAN : defined(__BIG_ENDIAN)
- 	unsigned long	__pad4;		/* future possible st_blocks high bits */
- 	unsigned long	st_blocks;	/* Number 512-byte blocks allocated. */
--#elif defined(__LITTLE_ENDIAN)
-+#elif defined(__BYTE_ORDER) ? __BYTE_ORDER == __LITTLE_ENDIAN : defined(__LITTLE_ENDIAN)
- 	unsigned long	st_blocks;	/* Number 512-byte blocks allocated. */
- 	unsigned long	__pad4;		/* future possible st_blocks high bits */
- #else
+Thx,
+-Vineet
 
