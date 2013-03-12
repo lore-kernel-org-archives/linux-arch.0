@@ -1,66 +1,60 @@
 From: Gerald Schaefer <gerald.schaefer@de.ibm.com>
-Subject: Re: [PATCH 0/1] mm/hugetlb: add more arch-defined huge_pte_xxx
+Subject: Re: [PATCH 1/1] mm/hugetlb: add more arch-defined huge_pte_xxx
  functions
-Date: Tue, 12 Mar 2013 20:28:16 +0100
-Message-ID: <20130312202816.0890348c@thinkpad>
+Date: Tue, 12 Mar 2013 20:48:03 +0100
+Message-ID: <20130312204803.32234105@thinkpad>
 References: <1363114106-30251-1-git-send-email-gerald.schaefer@de.ibm.com>
-	<20130312190011.GC20355@linux-sh.org>
+	<1363114106-30251-2-git-send-email-gerald.schaefer@de.ibm.com>
+	<513F7B55.60805@tilera.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp15.uk.ibm.com ([195.75.94.111]:40457 "EHLO
-	e06smtp15.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932565Ab3CLT21 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Mar 2013 15:28:27 -0400
-Received: from /spool/local
-	by e06smtp15.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <gerald.schaefer@de.ibm.com>;
-	Tue, 12 Mar 2013 19:26:12 -0000
-In-Reply-To: <20130312190011.GC20355@linux-sh.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Paul Mundt <lethal@linux-sh.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Mel Gorman <mgorman@suse.de>, Hugh Dickins <hughd@google.com>, Hillf Danton <dhillf@gmail.com>, Michal Hocko <mhocko@suse.cz>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Ralf Baechle <ralf@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <513F7B55.60805@tilera.com>
+Sender: owner-linux-mm@kvack.org
+To: Chris Metcalf <cmetcalf@tilera.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Mel Gorman <mgorman@suse.de>, Hugh Dickins <hughd@google.com>, Hillf Danton <dhillf@gmail.com>, Michal Hocko <mhocko@suse.cz>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Ralf Baechle <ralf@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, 13 Mar 2013 04:00:12 +0900
-Paul Mundt <lethal@linux-sh.org> wrote:
+On Tue, 12 Mar 2013 15:00:37 -0400
+Chris Metcalf <cmetcalf@tilera.com> wrote:
 
-> On Tue, Mar 12, 2013 at 07:48:25PM +0100, Gerald Schaefer wrote:
+> On 3/12/2013 2:48 PM, Gerald Schaefer wrote:
+> > Commit abf09bed3c "s390/mm: implement software dirty bits" introduced
+> > another difference in the pte layout vs. the pmd layout on s390,
+> > thoroughly breaking the s390 support for hugetlbfs. This requires
+> > replacing some more pte_xxx functions in mm/hugetlbfs.c with a
+> > huge_pte_xxx version.
+> >
 > > This patch introduces those huge_pte_xxx functions and their
 > > implementation on all architectures supporting hugetlbfs. This change
 > > will be a no-op for all architectures other than s390.
-> > 
-> ..
+> >
+> > [...]
+> >  
+> > +static inline pte_t mk_huge_pte(struct page *page, pgprot_t pgprot)
+> > +{
+> > +	return mk_pte(page, pgprot);
+> > +}
 > 
-> >  arch/ia64/include/asm/hugetlb.h    | 36 ++++++++++++++++++++++++
-> >  arch/mips/include/asm/hugetlb.h    | 36 ++++++++++++++++++++++++
-> >  arch/powerpc/include/asm/hugetlb.h | 36 ++++++++++++++++++++++++
-> >  arch/s390/include/asm/hugetlb.h    | 56 +++++++++++++++++++++++++++++++++++++-
-> >  arch/s390/include/asm/pgtable.h    | 20 --------------
-> >  arch/s390/mm/hugetlbpage.c         |  2 +-
-> >  arch/sh/include/asm/hugetlb.h      | 36 ++++++++++++++++++++++++
-> >  arch/sparc/include/asm/hugetlb.h   | 36 ++++++++++++++++++++++++
-> >  arch/tile/include/asm/hugetlb.h    | 36 ++++++++++++++++++++++++
-> >  arch/x86/include/asm/hugetlb.h     | 36 ++++++++++++++++++++++++
-> >  mm/hugetlb.c                       | 23 ++++++++--------
-> >  11 files changed, 320 insertions(+), 33 deletions(-)
-> > 
-> None of these wrappers are doing anything profound for most platforms, so
-> this would be a good candidate for an asm-generic/hugetlb.h (after which
-> s390 can continue to be special and no one else has to care).
+> Does it make sense to merge this new per-arch function with the existing per-arch arch_make_huge_pte() function?  Certainly in the tile case, we could set up our "super" bit in the initial mk_huge_pte() call, and then set "young" and "huge" after that in the platform-independent caller (make_huge_pte).  This would allow your change to eliminate some code as well as just introducing code :-)
+> 
+Yes, I guess there is also some potential of optimizing/eliminating
+existing code. Apart from the arch_make_huge_pte() that you mentioned,
+there is also a pte_mkhuge() left over, which looks like it should be
+merged into the new mk_huge_pte().
 
-Yes, that was also my first idea, but I vaguely remembered some discussion
-with Andrew when I sent the original s390 hugetlb support patch (which also
-went for the asm-generic approach). So I tried to dig out that thread, and
-it turned out that the ugliness of ARCH_HAS_xxx actually resulted in my
-original patch to be changed into removing lots of those and therefore
-creating the individual arch header files, for the sake of readability and
-maintainability. So I guess it would be straightforward to extend those
-header files now, instead of re-introducing some of the ugliness.
-
-See also here http://marc.info/?l=linux-kernel&m=120536577402075&w=2 and
-here http://marc.info/?l=linux-kernel&m=120732788201196&w=2.
+But that would probably require more modifications than I'd dare to
+bring up on rc3+. So the main focus of this patch is to fix the bug
+on s390 with sw dirty bits before that bug appears in 3.9, and therefore
+I'd like to keep it as simple as possible and w/o functional changes
+on any other architecture for now.
 
 Thanks,
 Gerald
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
