@@ -1,34 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.186]:53815 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753114Ab3CLNFO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Mar 2013 09:05:14 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 1/1] asm-generic: move cmpxchg*_local defs to cmpxchg.h
-Date: Tue, 12 Mar 2013 13:05:08 +0000
-References: <1362030843-25354-1-git-send-email-jonas@southpole.se> <513F2124.6060504@southpole.se>
-In-Reply-To: <513F2124.6060504@southpole.se>
-MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Message-ID: <201303121305.08691.arnd@arndb.de>
+Received: from kanga.kvack.org ([205.233.56.17]:57037 "EHLO kanga.kvack.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932153Ab3CLQ4D (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 Mar 2013 12:56:03 -0400
+Date: Tue, 12 Mar 2013 12:32:07 -0400
+From: Benjamin LaHaise <bcrl@kvack.org>
+Subject: Re: [PATCH 1/4] UAPI: Fix endianness conditionals in linux/aio_abi.h
+Message-ID: <20130312163207.GI8869@kvack.org>
+References: <20130306204724.31327.43118.stgit@warthog.procyon.org.uk> <20130306204733.31327.97388.stgit@warthog.procyon.org.uk>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20130306204733.31327.97388.stgit@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jonas Bonn <jonas@southpole.se>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>
-Message-ID: <20130312130508.X2TLLDnJTWOUVCAkShJpFurHnbFzCJCoEIWQSumFXhs@z>
+To: David Howells <dhowells@redhat.com>
+Cc: torvalds@linux-foundation.org, linux-arch@vger.kernel.org, sfr@canb.auug.org.au, Joakim.Tjernlund@transmode.se, arnd@arndb.de, linux-aio@kvack.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org
+Message-ID: <20130312163207.kQjK0AuC1fzXButHs2AwI0ej1_aeS8CPvJ0Vkqd5O3o@z>
 
-On Tuesday 12 March 2013, Jonas Bonn wrote:
-> Can you comment on this patch?  This is needed so that the generic 
-> asm/cmpxchg.h can be used standalone (i.e. without pulling in atomic.h). 
->   OpenRISC uses the generic asm/cmpxchg.h and things currently don't 
-> build without this since linux/llist.h now includes asm/cmpxchg.h 
-> standalone.
+On Wed, Mar 06, 2013 at 08:47:33PM +0000, David Howells wrote:
+> In the UAPI header files, __BIG_ENDIAN and __LITTLE_ENDIAN must be compared
+> against __BYTE_ORDER in preprocessor conditionals where these are exposed to
+> userspace (that is they're not inside __KERNEL__ conditionals).
+> 
+> However, in the main kernel the norm is to check for "defined(__XXX_ENDIAN)"
+> rather than comparing against __BYTE_ORDER and this has incorrectly leaked
+> into the userspace headers.
+> 
+> The definition of PADDED() in linux/aio_abi.h is wrong in this way.  Note that
+> userspace will likely interpret this and thus the order of fields in struct
+> iocb incorrectly as the little-endian variant on big-endian machines -
+> depending on header inclusion order.
+> 
+> [!!!] NOTE [!!!]  This patch may adversely change the userspace API.  It might
+> be better to fix the ordering of aio_key and aio_reserved1 in struct iocb.
 
-Looks fine to me, I thought I had replied to this earlier, but I don't
-see it in my 'sent-mail' folder now, so I assume I did not.
+It is unlikely that anyone has used the existing kernel headers and hit this 
+issue given that most existing users use the libaio.h include (which does not 
+get the endianness tests wrong).  Given that the kernel has always used the 
+correct endian mappings, this change is correct.
 
-Please send this as a bug fix through your own tree.
+Acked-by: Benjamin LaHaise <bcrl@kvack.org>
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+		-ben
+
+> Signed-off-by: David Howells <dhowells@redhat.com>
+> cc: Benjamin LaHaise <bcrl@kvack.org>
+> cc: linux-aio@kvack.org
+> ---
+> 
+>  include/uapi/linux/aio_abi.h |    4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
+> 
+> diff --git a/include/uapi/linux/aio_abi.h b/include/uapi/linux/aio_abi.h
+> index 86fa7a7..bb2554f 100644
+> --- a/include/uapi/linux/aio_abi.h
+> +++ b/include/uapi/linux/aio_abi.h
+> @@ -62,9 +62,9 @@ struct io_event {
+>  	__s64		res2;		/* secondary result */
+>  };
+>  
+> -#if defined(__LITTLE_ENDIAN)
+> +#if defined(__BYTE_ORDER) ? __BYTE_ORDER == __LITTLE_ENDIAN : defined(__LITTLE_ENDIAN)
+>  #define PADDED(x,y)	x, y
+> -#elif defined(__BIG_ENDIAN)
+> +#elif defined(__BYTE_ORDER) ? __BYTE_ORDER == __BIG_ENDIAN : defined(__BIG_ENDIAN)
+>  #define PADDED(x,y)	y, x
+>  #else
+>  #error edit for your odd byteorder.
+> 
+> --
+> To unsubscribe, send a message with 'unsubscribe linux-aio' in
+> the body to majordomo@kvack.org.  For more info on Linux AIO,
+> see: http://www.kvack.org/aio/
+> Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
+
+-- 
+"Thought is the essence of where you are now."
