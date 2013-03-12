@@ -1,50 +1,62 @@
-From: Jeff Moyer <jmoyer@redhat.com>
-Subject: Re: [PATCH 1/4] UAPI: Fix endianness conditionals in linux/aio_abi.h
-Date: Tue, 12 Mar 2013 14:22:17 -0400
-Message-ID: <x49boaov5pi.fsf@segfault.boston.devel.redhat.com>
-References: <20130306204724.31327.43118.stgit@warthog.procyon.org.uk>
-	<20130306204733.31327.97388.stgit@warthog.procyon.org.uk>
-	<20130312163207.GI8869@kvack.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-aio@kvack.org>
-In-Reply-To: <20130312163207.GI8869@kvack.org> (Benjamin LaHaise's message of
-	"Tue, 12 Mar 2013 12:32:07 -0400")
-Sender: owner-linux-aio@kvack.org
-To: Benjamin LaHaise <bcrl@kvack.org>
-Cc: David Howells <dhowells@redhat.com>, torvalds@linux-foundation.org, linux-arch@vger.kernel.org, sfr@canb.auug.org.au, Joakim.Tjernlund@transmode.se, arnd@arndb.de, linux-aio@kvack.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org
-List-Id: linux-arch.vger.kernel.org
+From: Gerald Schaefer <gerald.schaefer@de.ibm.com>
+Subject: [PATCH 0/1] mm/hugetlb: add more arch-defined huge_pte_xxx functions
+Date: Tue, 12 Mar 2013 19:48:25 +0100
+Message-ID: <1363114106-30251-1-git-send-email-gerald.schaefer@de.ibm.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e06smtp10.uk.ibm.com ([195.75.94.106]:55442 "EHLO
+	e06smtp10.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932302Ab3CLSst (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Mar 2013 14:48:49 -0400
+Received: from /spool/local
+	by e06smtp10.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <gerald.schaefer@de.ibm.com>;
+	Tue, 12 Mar 2013 18:47:36 -0000
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>, Mel Gorman <mgorman@suse.de>, Hugh Dickins <hughd@google.com>, Hillf Danton <dhillf@gmail.com>, Michal Hocko <mhocko@suse.cz>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Ralf Baechle <ralf@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Gerald Schaefer <gerald.schaefer@de.ibm.com>
 
-Benjamin LaHaise <bcrl@kvack.org> writes:
+Using pte_t and pte_xxx functions in mm/hugetlbfs.c for "huge ptes" has
+always been confusing and error-prone on architectures that have a
+different layout for the pte/pmd/... level entries. That was the reason
+for the individual arch header files in <arch>/include/asm/hugetlb.h
+containing implementations for various huge_pte_xxx versions of the
+original pte_xxx functions, if needed.
 
-> On Wed, Mar 06, 2013 at 08:47:33PM +0000, David Howells wrote:
->> In the UAPI header files, __BIG_ENDIAN and __LITTLE_ENDIAN must be compared
->> against __BYTE_ORDER in preprocessor conditionals where these are exposed to
->> userspace (that is they're not inside __KERNEL__ conditionals).
->> 
->> However, in the main kernel the norm is to check for "defined(__XXX_ENDIAN)"
->> rather than comparing against __BYTE_ORDER and this has incorrectly leaked
->> into the userspace headers.
->> 
->> The definition of PADDED() in linux/aio_abi.h is wrong in this way.  Note that
->> userspace will likely interpret this and thus the order of fields in struct
->> iocb incorrectly as the little-endian variant on big-endian machines -
->> depending on header inclusion order.
->> 
->> [!!!] NOTE [!!!]  This patch may adversely change the userspace API.  It might
->> be better to fix the ordering of aio_key and aio_reserved1 in struct iocb.
->
-> It is unlikely that anyone has used the existing kernel headers and hit this 
-> issue given that most existing users use the libaio.h include (which does not 
-> get the endianness tests wrong).  Given that the kernel has always used the 
-> correct endian mappings, this change is correct.
+Commit abf09bed3c "s390/mm: implement software dirty bits" introduced
+another difference in the pte layout vs. the pmd layout on s390,
+thoroughly breaking the s390 support for hugetlbfs. This requires
+replacing some more pte_xxx functions in mm/hugetlbfs.c with a
+huge_pte_xxx version.
 
-Agreed.
+This patch introduces those huge_pte_xxx functions and their
+implementation on all architectures supporting hugetlbfs. This change
+will be a no-op for all architectures other than s390.
 
-Acked-by: Jeff Moyer <jmoyer@redhat.com>
+I am also thinking about a more complete clean-up patch, replacing all
+remaining pte_xxx invocations in mm/hugetlbfs.c and maybe also
+introducing a separate type like hpte_t to make this issue more
+transparent and prevent future problems. But that may also require some
+functional changes, and it probably won't be ready in time for Kernel
+3.9. So for now, this patch only fixes the impact of the software dirty
+bit changes on s390, hoping that it can be included in Kernel 3.9,
+since that will be the first release including the sw dirty bits.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-aio' in
-the body to majordomo@kvack.org.  For more info on Linux AIO,
-see: http://www.kvack.org/aio/
-Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
+Gerald Schaefer (1):
+  mm/hugetlb: add more arch-defined huge_pte_xxx functions
+
+ arch/ia64/include/asm/hugetlb.h    | 36 ++++++++++++++++++++++++
+ arch/mips/include/asm/hugetlb.h    | 36 ++++++++++++++++++++++++
+ arch/powerpc/include/asm/hugetlb.h | 36 ++++++++++++++++++++++++
+ arch/s390/include/asm/hugetlb.h    | 56 +++++++++++++++++++++++++++++++++++++-
+ arch/s390/include/asm/pgtable.h    | 20 --------------
+ arch/s390/mm/hugetlbpage.c         |  2 +-
+ arch/sh/include/asm/hugetlb.h      | 36 ++++++++++++++++++++++++
+ arch/sparc/include/asm/hugetlb.h   | 36 ++++++++++++++++++++++++
+ arch/tile/include/asm/hugetlb.h    | 36 ++++++++++++++++++++++++
+ arch/x86/include/asm/hugetlb.h     | 36 ++++++++++++++++++++++++
+ mm/hugetlb.c                       | 23 ++++++++--------
+ 11 files changed, 320 insertions(+), 33 deletions(-)
+
+-- 
+1.7.12.4
