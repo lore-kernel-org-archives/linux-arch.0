@@ -1,126 +1,85 @@
-From: NeilBrown <neilb@suse.de>
-Subject: Re: [PATCH 3/4] UAPI: Fix endianness conditionals in
- linux/raid/md_p.h
-Date: Tue, 12 Mar 2013 12:43:31 +1100
-Message-ID: <20130312124331.221fcc15@notabene.brown>
-References: <20130306204724.31327.43118.stgit@warthog.procyon.org.uk>
-	<20130306204751.31327.18239.stgit@warthog.procyon.org.uk>
+From: Jonas Bonn <jonas@southpole.se>
+Subject: Re: [PATCH 1/1] asm-generic: move cmpxchg*_local defs to cmpxchg.h
+Date: Tue, 12 Mar 2013 13:35:48 +0100
+Message-ID: <513F2124.6060504@southpole.se>
+References: <1362030843-25354-1-git-send-email-jonas@southpole.se>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=PGP-SHA1;
- boundary="Sig_/ZJTX6adI9zZ/4/IrFenN+b2"; protocol="application/pgp-signature"
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:48199 "EHLO mx2.suse.de"
+Received: from mail.southpole.se ([37.247.8.11]:43491 "EHLO mail.southpole.se"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754951Ab3CLBnp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Mar 2013 21:43:45 -0400
-In-Reply-To: <20130306204751.31327.18239.stgit@warthog.procyon.org.uk>
+	id S1750946Ab3CLMfq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 Mar 2013 08:35:46 -0400
+In-Reply-To: <1362030843-25354-1-git-send-email-jonas@southpole.se>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: torvalds@linux-foundation.org, linux-arch@vger.kernel.org, sfr@canb.auug.org.au, Joakim.Tjernlund@transmode.se, arnd@arndb.de, linux-kernel@vger.kernel.org, linux-raid@vger.kernel.org, akpm@linux-foundation.org
+To: arnd@arndb.de
+Cc: Jonas Bonn <jonas@southpole.se>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>
 
---Sig_/ZJTX6adI9zZ/4/IrFenN+b2
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: quoted-printable
+Hi Arnd,
 
-On Wed, 06 Mar 2013 20:47:51 +0000 David Howells <dhowells@redhat.com> wrot=
-e:
-
-> In the UAPI header files, __BIG_ENDIAN and __LITTLE_ENDIAN must be compar=
-ed
-> against __BYTE_ORDER in preprocessor conditionals where these are exposed=
- to
-> userspace (that is they're not inside __KERNEL__ conditionals).
->=20
-> However, in the main kernel the norm is to check for "defined(__XXX_ENDIA=
-N)"
-> rather than comparing against __BYTE_ORDER and this has incorrectly leaked
-> into the userspace headers.
->=20
-> The definition of struct mdp_superblock_s in linux/raid/md_p.h is wrong i=
-n this
-> way.  Note that userspace will likely interpret the ordering of the fields
-> incorrectly as the big-endian variant on a little-endian machines - depen=
-ding
-> on header inclusion order.
->=20
-> [!!!] NOTE [!!!]  This patch may adversely change the userspace API.  It =
-might
-> be better to fix the ordering of events_hi, events_lo, cp_events_hi and
-> cp_events_lo in struct mdp_superblock_s / typedef mdp_super_t.
-
-Thanks David - looks good to me.
-Changing the ordering of fields isn't really an option at this stage - over
-10 years too late :-(.
-I think any user-space tools that use this data structure have their own co=
-py
-of the include file.
-
-Acked-by: NeilBrown <neilb@suse.de>
+Can you comment on this patch?  This is needed so that the generic 
+asm/cmpxchg.h can be used standalone (i.e. without pulling in atomic.h). 
+  OpenRISC uses the generic asm/cmpxchg.h and things currently don't 
+build without this since linux/llist.h now includes asm/cmpxchg.h 
+standalone.
 
 Thanks,
-NeilBrown
+Jonas
 
-
->=20
-> Signed-off-by: David Howells <dhowells@redhat.com>
-> cc: Neil Brown <neilb@suse.de>
-> cc: linux-raid@vger.kernel.org
+On 02/28/2013 06:54 AM, Jonas Bonn wrote:
+> asm/cmpxchg.h can be included on its own and needs to be self-consistent.
+> The definitions for the cmpxchg*_local macros, as such, need to be part
+> of this file.
+>
+> This fixes a build issue on OpenRISC since the system.h smashing patch
+> 96f951edb1f1bdbbc99b0cd458f9808bb83d58ae that introdued the direct inclusion
+> asm/cmpxchg.h into linux/llist.h.
+>
+> CC: David Howells <dhowells@redhat.com>
+> Signed-off-by: Jonas Bonn <jonas@southpole.se>
 > ---
->=20
->  include/uapi/linux/raid/md_p.h |    6 ++++--
->  1 file changed, 4 insertions(+), 2 deletions(-)
->=20
-> diff --git a/include/uapi/linux/raid/md_p.h b/include/uapi/linux/raid/md_=
-p.h
-> index ee75353..fe1a540 100644
-> --- a/include/uapi/linux/raid/md_p.h
-> +++ b/include/uapi/linux/raid/md_p.h
-> @@ -145,16 +145,18 @@ typedef struct mdp_superblock_s {
->  	__u32 failed_disks;	/*  4 Number of failed disks		      */
->  	__u32 spare_disks;	/*  5 Number of spare disks		      */
->  	__u32 sb_csum;		/*  6 checksum of the whole superblock        */
-> -#ifdef __BIG_ENDIAN
-> +#if defined(__BYTE_ORDER) ? __BYTE_ORDER =3D=3D __BIG_ENDIAN : defined(_=
-_BIG_ENDIAN)
->  	__u32 events_hi;	/*  7 high-order of superblock update count   */
->  	__u32 events_lo;	/*  8 low-order of superblock update count    */
->  	__u32 cp_events_hi;	/*  9 high-order of checkpoint update count   */
->  	__u32 cp_events_lo;	/* 10 low-order of checkpoint update count    */
-> -#else
-> +#elif defined(__BYTE_ORDER) ? __BYTE_ORDER =3D=3D __LITTLE_ENDIAN : defi=
-ned(__LITTLE_ENDIAN)
->  	__u32 events_lo;	/*  7 low-order of superblock update count    */
->  	__u32 events_hi;	/*  8 high-order of superblock update count   */
->  	__u32 cp_events_lo;	/*  9 low-order of checkpoint update count    */
->  	__u32 cp_events_hi;	/* 10 high-order of checkpoint update count   */
-> +#else
-> +#error unspecified endianness
->  #endif
->  	__u32 recovery_cp;	/* 11 recovery checkpoint sector count	      */
->  	/* There are only valid for minor_version > 90 */
-
-
---Sig_/ZJTX6adI9zZ/4/IrFenN+b2
-Content-Type: application/pgp-signature; name=signature.asc
-Content-Disposition: attachment; filename=signature.asc
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.19 (GNU/Linux)
-
-iQIVAwUBUT6IQznsnt1WYoG5AQI+hxAAurxPHJ36bjQjs/USfO+oq3bIT3v/7amX
-s3BsLjj+8TAsWXHSNWMLnCKackt6p59PZS73urB1sZ/kIxmw2Gw+A8Ih977P8RhU
-XrNEY08ob4N+oqHKmopdAVixfq4Siv/Mz6DcBrMsjA1oDctuT8Kv8T8OgDA96gVD
-t71oICUZZreVROU1sknDxkqIi5WK7DwSyQpOq4Zhwn5t3juLq8LF3lrxTqxj/Ez4
-I3JjF8WzR7EGRSl6D9+mZekLJeLMdz7RXzd38xxlIAOjsQUTCbTf6Y/PVJUWUL3L
-yn4kTyozjSh5FHpRPHkYIsZNHVXAM++6JPIlAFfn3MRByjDJMhkwx5QnojKHPsub
-8rSI86/LzOu/qbqDtUK7EGVUnCxCHme+7/dqhGSwmYxgrQCRXsS4hZHIc1uOGWOW
-l0AbGLN0cNGozyCKobjgO2DkpO2oq6nkVXdQdFPz4l6hYWt6mG5ahIe1h82du2AB
-AjorZDzEkA4K2Uk4OzgDCM1teYUmZdRLwLLYBJLDM6giqfxHnSaZQRk8QaTUsD1L
-XD8aSPR9yxokDUl4EN9/JLh6yoE0JL1YOHc2Cea9yvXuk1bLJSmeMihwt1PpzjmV
-IziX4K+1HV5MJZ6bgSOg6Yim4Cvl1XEtcOBsrY2iAf570Meqagvd5l4sTyLJuEyH
-0uusZJUDi2c=
-=9Sit
------END PGP SIGNATURE-----
-
---Sig_/ZJTX6adI9zZ/4/IrFenN+b2--
+>   include/asm-generic/atomic.h  |    6 ------
+>   include/asm-generic/cmpxchg.h |   10 ++++++++++
+>   2 files changed, 10 insertions(+), 6 deletions(-)
+>
+> diff --git a/include/asm-generic/atomic.h b/include/asm-generic/atomic.h
+> index 1ced641..33bd2de 100644
+> --- a/include/asm-generic/atomic.h
+> +++ b/include/asm-generic/atomic.h
+> @@ -136,12 +136,6 @@ static inline void atomic_dec(atomic_t *v)
+>   #define atomic_xchg(ptr, v)		(xchg(&(ptr)->counter, (v)))
+>   #define atomic_cmpxchg(v, old, new)	(cmpxchg(&((v)->counter), (old), (new)))
+>
+> -#define cmpxchg_local(ptr, o, n)				  	       \
+> -	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
+> -			(unsigned long)(n), sizeof(*(ptr))))
+> -
+> -#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
+> -
+>   static inline int __atomic_add_unless(atomic_t *v, int a, int u)
+>   {
+>     int c, old;
+> diff --git a/include/asm-generic/cmpxchg.h b/include/asm-generic/cmpxchg.h
+> index 1488302..811fb1e 100644
+> --- a/include/asm-generic/cmpxchg.h
+> +++ b/include/asm-generic/cmpxchg.h
+> @@ -92,6 +92,16 @@ unsigned long __xchg(unsigned long x, volatile void *ptr, int size)
+>    */
+>   #include <asm-generic/cmpxchg-local.h>
+>
+> +#ifndef cmpxchg_local
+> +#define cmpxchg_local(ptr, o, n)				  	       \
+> +	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
+> +			(unsigned long)(n), sizeof(*(ptr))))
+> +#endif
+> +
+> +#ifndef cmpxchg64_local
+> +#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
+> +#endif
+> +
+>   #define cmpxchg(ptr, o, n)	cmpxchg_local((ptr), (o), (n))
+>   #define cmpxchg64(ptr, o, n)	cmpxchg64_local((ptr), (o), (n))
+>
+>
