@@ -1,44 +1,56 @@
-From: Margaret Jones <info@loan.com>
-Subject: Info
-Date: Tue, 12 Mar 2013 23:19:44 +0200
-Message-ID: <20130312231944.25475vnpeumfxe04__20335.8487728567$1363126198$gmane$org@email.damt.gov.gr>
-Reply-To: incitipprimfina@citiprimeloan.co.uk
+From: Michal Hocko <mhocko@suse.cz>
+Subject: Re: [PATCH 1/1] mm/hugetlb: add more arch-defined huge_pte_xxx
+ functions
+Date: Thu, 14 Mar 2013 14:14:04 +0100
+Message-ID: <20130314131404.GH11631@dhcp22.suse.cz>
+References: <1363114106-30251-1-git-send-email-gerald.schaefer@de.ibm.com>
+ <1363114106-30251-2-git-send-email-gerald.schaefer@de.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain;
- charset=UTF-8;
- DelSp="Yes";
- format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.damt.gov.gr ([84.205.252.71]:57849 "EHLO mail.damt.gov.gr"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S932065Ab3CLWJI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Mar 2013 18:09:08 -0400
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+In-Reply-To: <1363114106-30251-2-git-send-email-gerald.schaefer@de.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: Gerald Schaefer <gerald.schaefer@de.ibm.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Mel Gorman <mgorman@suse.de>, Hugh Dickins <hughd@google.com>, Hillf Danton <dhillf@gmail.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Ralf Baechle <ralf@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-This is a general notification to the public. We are a reputable and  
-legitimate loan lender company in United Kingdom,Malaysia and Ghana.We  
-give out all kinds of loans, such as personal loans,commercial loans,  
-business loans, investment loans, etc. We offer long and short terms  
-loan services with an affordable interest rate of 3% only. We offer  
-the best loan services on the internet,because our loan services are  
-very genuine and efficient.
+On Tue 12-03-13 19:48:26, Gerald Schaefer wrote:
+> Commit abf09bed3c "s390/mm: implement software dirty bits" introduced
+> another difference in the pte layout vs. the pmd layout on s390,
+> thoroughly breaking the s390 support for hugetlbfs. This requires
+> replacing some more pte_xxx functions in mm/hugetlbfs.c with a
+> huge_pte_xxx version.
+> 
+> This patch introduces those huge_pte_xxx functions and their
+> implementation on all architectures supporting hugetlbfs. This change
+> will be a no-op for all architectures other than s390.
+> 
+> Signed-off-by: Gerald Schaefer <gerald.schaefer@de.ibm.com>
+> ---
+>  arch/ia64/include/asm/hugetlb.h    | 36 ++++++++++++++++++++++++
+>  arch/mips/include/asm/hugetlb.h    | 36 ++++++++++++++++++++++++
+>  arch/powerpc/include/asm/hugetlb.h | 36 ++++++++++++++++++++++++
+>  arch/s390/include/asm/hugetlb.h    | 56 +++++++++++++++++++++++++++++++++++++-
+>  arch/s390/include/asm/pgtable.h    | 20 --------------
+>  arch/s390/mm/hugetlbpage.c         |  2 +-
+>  arch/sh/include/asm/hugetlb.h      | 36 ++++++++++++++++++++++++
+>  arch/sparc/include/asm/hugetlb.h   | 36 ++++++++++++++++++++++++
+>  arch/tile/include/asm/hugetlb.h    | 36 ++++++++++++++++++++++++
+>  arch/x86/include/asm/hugetlb.h     | 36 ++++++++++++++++++++++++
+>  mm/hugetlb.c                       | 23 ++++++++--------
+>  11 files changed, 320 insertions(+), 33 deletions(-)
 
-We have also been awarded by the general loan lending commission as  
-the best loan company on the internet. For details about our loan  
-services, contact us via email for more informations.email:  
-incitipprimfina@citiprimeloan.co.uk
+Ouch, this adds a lot of code that is almost same for all archs except
+for some. Can we just make one common definition and define only those
+that differ, please?
+[...]
+-- 
+Michal Hocko
+SUSE Labs
 
-1. Names in full :
-2. Country of Residence/Address :
-3. Amount :
-4. Duration Of Loan :
-5. Age:
-6.Phone Number:
-7.Applicant Address:
-We look forward to your patronage.
-Regards
-Margaret Jones
-Secretary
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
