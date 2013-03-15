@@ -1,39 +1,43 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [PATCH] Turn off -Wmaybe-uninitialized when building with -Os
-Date: Fri, 15 Mar 2013 17:58:08 +0000
-Message-ID: <20130315175808.GT4977@n2100.arm.linux.org.uk>
-References: <7534695.eTHcH0enMV@wuerfel>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [RFC PATCH (resend)] block layer zero-copy: missing access_ok() check
+Date: Fri, 15 Mar 2013 11:01:16 -0700
+Message-ID: <CA+55aFwuL-nB=xDfCfP1+Sn2Q0DEruhWcsrp_oP2meEyeF71jg@mail.gmail.com>
+References: <20130315133748.GA31887@Krystal>
+	<20130315152326.GM31875@kernel.dk>
+	<20130315155808.GB1659@Krystal>
+	<CA+55aFxW0vkpgJCpJVJVqDmDG61P_AOoVMFVhfqVxM45Mj-LNA@mail.gmail.com>
+	<20130315171000.GA2342@Krystal>
+	<CA+55aFyrj9LsRp2gaoy1Lo6+s_brWjeKDG8F8JOLk2VaKndeaQ@mail.gmail.com>
+	<20130315175710.GA2748@Krystal>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:36391 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751901Ab3COR6R (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Mar 2013 13:58:17 -0400
-Content-Disposition: inline
-In-Reply-To: <7534695.eTHcH0enMV@wuerfel>
+Received: from mail-ve0-f178.google.com ([209.85.128.178]:57671 "EHLO
+	mail-ve0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751363Ab3COSBR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Mar 2013 14:01:17 -0400
+Received: by mail-ve0-f178.google.com with SMTP id db10so2814309veb.23
+        for <linux-arch@vger.kernel.org>; Fri, 15 Mar 2013 11:01:16 -0700 (PDT)
+In-Reply-To: <20130315175710.GA2748@Krystal>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+To: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Jens Axboe <axboe@kernel.dk>, "security@kernel.org" <security@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Nick Piggin <npiggin@kernel.dk>
 
-On Thu, Mar 14, 2013 at 11:01:35PM +0100, Arnd Bergmann wrote:
-> gcc-4.7 and higher add a lot of false positive warnings about
-> potential uses of uninitialized warnings, but only when optimizing
-> for size (-Os). This is the default when building allyesconfig,
-> which turns on CONFIG_CC_OPTIMIZE_FOR_SIZE.
-> 
-> In order to avoid getting a lot of patches that initialize such
-> variables and accidentally hide real errors along the way, let's
-> just turn off this warning on the respective gcc versions
-> when building with size optimizations. The -Wmaybe-uninitialized
-> option was introduced in the same gcc version (4.7) that is now
-> causing the false positives, so there is no effect on older compilers.
-> 
-> A side effect is that when building with CONFIG_CC_OPTIMIZE_FOR_SIZE,
-> we might now see /fewer/ warnings about possibly uninitialized
-> warnings than with -O2, but that is still much better than seeing
-> warnings known to be bogus.
+On Fri, Mar 15, 2013 at 10:57 AM, Mathieu Desnoyers
+<mathieu.desnoyers@efficios.com> wrote:
+>
+> In addition to get_user_pages_fast() issues, I see that there are many
+> direct callers of get_user_pages() that seem to assume that access
+> checks are performed within this function.
 
-What about truely uninitialized uses of variables?  Will this hide
-their warning too?
+get_user_pages() does check permissions. It looks up the vma and
+checks them there, which is much more than access_ok() ever does.
+
+>  AFAIU, on architectures that
+> have a _PAGE_USER flag, this check is performed internally by pgd_bad()
+> and pud_bad(), but what happens to all the others ?
+
+Irrelevant. See above.
+
+              Linus
