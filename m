@@ -1,17 +1,32 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH] Turn off -Wmaybe-uninitialized when building with -Os
-Date: Thu, 14 Mar 2013 23:01:35 +0100
-Message-ID: <7534695.eTHcH0enMV@wuerfel>
+Subject: Fwd: [PATCH] Turn off -Wmaybe-uninitialized when building with -Os
+Date: Fri, 15 Mar 2013 14:55:38 +0000
+Message-ID: <201303151455.38917.arnd@arndb.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.8]:51332 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752982Ab3CNWBh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Mar 2013 18:01:37 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: linux-kbuild@vger.kernel.org
+Cc: Michal Marek <mmarek@suse.cz>, linux-arch@vger.kernel.org, inux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
+
+I forgot to put the linux-kbuild list on Cc, that is probably the
+best place to discuss this patch.
+
+----------  Forwarded Message  ----------
+
+Subject: [PATCH] Turn off -Wmaybe-uninitialized when building with -Os
+Date: Thursday 14 March 2013
+From: Arnd Bergmann <arnd@arndb.de>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
 
 gcc-4.7 and higher add a lot of false positive warnings about
@@ -50,3 +65,10 @@ index 10fb6c7..caea2d1 100644
  else
  KBUILD_CFLAGS	+= -O2
  endif
+
+--
+To unsubscribe from this list: send the line "unsubscribe linux-arch" in
+the body of a message to majordomo@vger.kernel.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
+
+-------------------------------------------------------
