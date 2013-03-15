@@ -1,55 +1,95 @@
-From: Gerald Schaefer <gerald.schaefer@de.ibm.com>
-Subject: Re: [PATCH v2] mm/hugetlb: add more arch-defined huge_pte functions
-Date: Fri, 15 Mar 2013 18:05:21 +0100
-Message-ID: <20130315180521.618460c5@vbox-ubuntu>
-References: <1363283463-50880-1-git-send-email-gerald.schaefer@de.ibm.com>
-	<20130315160241.GD28311@dhcp22.suse.cz>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [RFC PATCH (resend)] block layer zero-copy: missing access_ok() check
+Date: Fri, 15 Mar 2013 10:21:41 -0700
+Message-ID: <CA+55aFyrj9LsRp2gaoy1Lo6+s_brWjeKDG8F8JOLk2VaKndeaQ@mail.gmail.com>
+References: <20130315133748.GA31887@Krystal>
+	<20130315152326.GM31875@kernel.dk>
+	<20130315155808.GB1659@Krystal>
+	<CA+55aFxW0vkpgJCpJVJVqDmDG61P_AOoVMFVhfqVxM45Mj-LNA@mail.gmail.com>
+	<20130315171000.GA2342@Krystal>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp12.uk.ibm.com ([195.75.94.108]:45627 "EHLO
-	e06smtp12.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754045Ab3CORFe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Mar 2013 13:05:34 -0400
-Received: from /spool/local
-	by e06smtp12.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <gerald.schaefer@de.ibm.com>;
-	Fri, 15 Mar 2013 17:03:03 -0000
-In-Reply-To: <20130315160241.GD28311@dhcp22.suse.cz>
+Received: from mail-vb0-f41.google.com ([209.85.212.41]:36628 "EHLO
+	mail-vb0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752232Ab3CORVt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Mar 2013 13:21:49 -0400
+Received: by mail-vb0-f41.google.com with SMTP id l22so2056379vbn.28
+        for <linux-arch@vger.kernel.org>; Fri, 15 Mar 2013 10:21:41 -0700 (PDT)
+In-Reply-To: <20130315171000.GA2342@Krystal>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@suse.cz>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Mel Gorman <mgorman@suse.de>, Hugh Dickins <hughd@google.com>, Hillf Danton <dhillf@gmail.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Ralf Baechle <ralf@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
+To: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Cc: Jens Axboe <axboe@kernel.dk>, "security@kernel.org" <security@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Nick Piggin <npiggin@kernel.dk>
 
-On Fri, 15 Mar 2013 17:02:41 +0100
-Michal Hocko <mhocko@suse.cz> wrote:
+Adding linux-arch. Guys, can you check your architectures?
 
-> On Thu 14-03-13 18:51:03, Gerald Schaefer wrote:
-> > Commit abf09bed3c "s390/mm: implement software dirty bits"
-> > introduced another difference in the pte layout vs. the pmd layout
-> > on s390, thoroughly breaking the s390 support for hugetlbfs. This
-> > requires replacing some more pte_xxx functions in mm/hugetlbfs.c
-> > with a huge_pte_xxx version.
-> > 
-> > This patch introduces those huge_pte_xxx functions and their
-> > generic implementation in asm-generic/hugetlb.h, which will now be
-> > included on all architectures supporting hugetlbfs apart from s390.
-> > This change will be a no-op for those architectures.
-> > 
-> > Signed-off-by: Gerald Schaefer <gerald.schaefer@de.ibm.com>
-> 
-> yes this looks much better. I cannot talk about s390 part because I am
-> not familiar with it but the rest looks good to me.
-> 
-> Maybe one nit, though. pte_page and pte_same do not have their
-> huge_Foo counterparts.
+Also, make sure to check huge-pages if they are separate. Basically,
+if you have code like this:
 
-Yes, a few pte_xxx calls remain. I left those because they still
-work on s390 (and all other archs apparently). I am thinking about
-a more complete cleanup, maybe eliminating the ambiguous use of pte_t
-for hugetlb completely. Not sure if I can get to it before Martin
-introduces the next s390 pte changes :)
+                if (!pte_present(pte) ||
+                    pte_special(pte) || (write && !pte_write(pte))) {
+                        pte_unmap(ptep);
+                        return 0;
+                }
 
-Thanks,
-Gerald
+it's probably buggy. It's not sufficient to just check write
+permissions, you do need to check user permissions too.
+
+Powerpc,x86 and sh seem to get it right by virtue of checking rthe
+user bit. s390 checks against TASK_SIZE.
+
+MIPS does seem buggy. Sparc I don't know the meaning of the bits for.
+And powerpc does have several variants, so while the main one looks
+fine, I didn't look at the other ones.
+
+                     Linus
+
+On Fri, Mar 15, 2013 at 10:10 AM, Mathieu Desnoyers
+<mathieu.desnoyers@efficios.com> wrote:
+> * Linus Torvalds (torvalds@linux-foundation.org) wrote:
+>>
+>> It's a bit subtle, but at least the x86 get-user-pages does actually
+>> check access_ok() implicitly. It's just that it does so using the bits
+>> in the page table, and does the page table lookup as a "user access".
+>> So it checks the page tables themselves, not the user limit.
+>>
+>> Which is fine, because that's what the *hardware* does. So if the page
+>> tables make something readable to users, then they are readable by
+>> definition.
+>>
+>> So get_user_pages_fast() doesn't need access_ok() before it, and the
+>> naming isn't actually confusing. And I'm sure we knew this at some
+>> point.
+>
+> Ah, I see! so my guess is that it is expected that "gup_*" functions
+> implicitly check that they are getting user pages. If we look at this
+> through fresh eyes, across all architectures:
+>
+> * x86: looks OK: gup* checks with _PAGE_USER flag. The slow path that
+>   goes through __get_user_pages() seem to rely on follow_page_mask() and
+>   then pgd_bad() as well as pud_bad() to check the _PAGE_USER flag.
+>
+> * mips: access_ok missing in get_user_pages_fast,
+>   -> I don't see any explicit mention of "USER" pages flags within the
+>      gup functions.
+>
+> * powerpc: access_ok is there, everything is fine,
+>
+> * s390: access_ok missing in both __get_user_pages_fast and
+>   get_user_pages_fast.
+>   -> I don't see clear indication of USER pages being flagged.
+>
+> * sh: access_ok missing in get_user_pages_fast,
+>   -> OK, gup_* functions are checking a _PAGE_USER flag.
+>
+> * sparc: access_ok missing in get_user_pages_fast,
+>   -> no indication of any _PAGE_USER flag.
+>
+> * generic: mm/util.c:get_user_pages_fast() ends up calling
+>   mm/memory.c:get_user_pages() and then __get_user_pages(), which are
+>   also used as slow-path for all architectures above:
+>
+>   -> from my understanding, through follow_page_mask() pgd_bad() and
+>      pud_bad() are checking _PAGE_USER flags (when they exist).
+>      Unfortunately, the following grep is slightly worrying:
