@@ -1,41 +1,63 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH 2/2] tracing: syscall_regfunc() should not skip kernel
- threads
-Date: Sun, 17 Mar 2013 15:36:12 -0400
-Message-ID: <1363548972.25967.137.camel@gandalf.local.home>
-References: <20130317182834.GA22989@redhat.com>
-	 <1363546493.25967.129.camel@gandalf.local.home>
-	 <20130317190438.GA24582@redhat.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Using __int128 on 64-bit architectures
+Date: Sun, 17 Mar 2013 16:04:32 -0700
+Message-ID: <51464C00.5090107@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-15"
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:25377 "EHLO
-	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752801Ab3CQTgN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 17 Mar 2013 15:36:13 -0400
-In-Reply-To: <20130317190438.GA24582@redhat.com>
+Received: from terminus.zytor.com ([198.137.202.10]:57371 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755698Ab3CQXEh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 17 Mar 2013 19:04:37 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, linux-kernel@vger.kernel.org, "H. Peter Anvin" <hpa@linux.intel.com>, linux-arch <linux-arch@vger.kernel.org>
+To: Linux Arch Mailing List <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 
-On Sun, 2013-03-17 at 20:04 +0100, Oleg Nesterov wrote:
+Hi all,
 
-> > I'm really thinking the TIF_SYSCALL_TRACEPOINT flag is getting a bit
-> > ridiculous. We really should have a "swap syscall table when tracepoints
-> > enabled" that changes the syscall table that does exactly the same thing
-> > as the normal table but wraps the system call with the tracepoints.
-> 
-> But we also need to force the slow path in system_call...
+How desirable/portable is it to use __int128 on non-x86 64-bit
+architectures to get a 64*64 -> 128 bit multiply?  On x86-64 this works
+extremely well, but I'm worried about that needlessly breaking on other
+architectures.
 
-Why? If we remove the tracepoint from the slowpath and use a table swap,
-then we wouldn't need to use the slowpath at all.
+In particular, it looks opportune to use a scaling-by-multiply instead
+of a multiply-divide on lines 253 and 269 of kernel/time.c:
 
-> 
-> Anyway, do you agree with this change for now?
+   243  unsigned int jiffies_to_msecs(const unsigned long j)
+   244  {
+   245  #if HZ <= MSEC_PER_SEC && !(MSEC_PER_SEC % HZ)
+   246          return (MSEC_PER_SEC / HZ) * j;
+   247  #elif HZ > MSEC_PER_SEC && !(HZ % MSEC_PER_SEC)
+   248          return (j + (HZ / MSEC_PER_SEC) - 1)/(HZ / MSEC_PER_SEC);
+   249  #else
+   250  # if BITS_PER_LONG == 32
+   251          return (HZ_TO_MSEC_MUL32 * j) >> HZ_TO_MSEC_SHR32;
+   252  # else
+   253          return (j * HZ_TO_MSEC_NUM) / HZ_TO_MSEC_DEN;
+   254  # endif
+   255  #endif
+   256  }
+   257  EXPORT_SYMBOL(jiffies_to_msecs);
+   258
+   259  unsigned int jiffies_to_usecs(const unsigned long j)
+   260  {
+   261  #if HZ <= USEC_PER_SEC && !(USEC_PER_SEC % HZ)
+   262          return (USEC_PER_SEC / HZ) * j;
+   263  #elif HZ > USEC_PER_SEC && !(HZ % USEC_PER_SEC)
+   264          return (j + (HZ / USEC_PER_SEC) - 1)/(HZ / USEC_PER_SEC);
+   265  #else
+   266  # if BITS_PER_LONG == 32
+   267          return (HZ_TO_USEC_MUL32 * j) >> HZ_TO_USEC_SHR32;
+   268  # else
+   269          return (j * HZ_TO_USEC_NUM) / HZ_TO_USEC_DEN;
+   270  # endif
+   271  #endif
+   272  }
 
-Well, if it's solving a bug today sure. But we should really be looking
-at fixing what's there for the future.
 
--- Steve
+	-hpa
+
+-- 
+H. Peter Anvin, Intel Open Source Technology Center
+I work for Intel.  I don't speak on their behalf.
