@@ -1,64 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:59905 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752358Ab3CPI4X (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sat, 16 Mar 2013 04:56:23 -0400
-Message-ID: <1363424174.2459.15.camel@dabdike>
-Subject: Re: Fwd: [PATCH] Turn off -Wmaybe-uninitialized when building with
- -Os
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Date: Sat, 16 Mar 2013 08:56:14 +0000
-In-Reply-To: <201303151943.45980.arnd@arndb.de>
-References: <201303151455.38917.arnd@arndb.de>
-	 <20130315181246.GW4977@n2100.arm.linux.org.uk>
-	 <201303151943.45980.arnd@arndb.de>
-Content-Type: text/plain; charset="ISO-8859-15"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mx1.redhat.com ([209.132.183.28]:54267 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756519Ab3CQTGn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 17 Mar 2013 15:06:43 -0400
+Date: Sun, 17 Mar 2013 20:04:38 +0100
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH 2/2] tracing: syscall_regfunc() should not skip kernel
+	threads
+Message-ID: <20130317190438.GA24582@redhat.com>
+References: <20130317182834.GA22989@redhat.com> <1363546493.25967.129.camel@gandalf.local.home>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1363546493.25967.129.camel@gandalf.local.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-kbuild@vger.kernel.org, Michal Marek <mmarek@suse.cz>, linux-arch@vger.kernel.org, inux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20130316085614.f01echqr5xiQczOEIRyOO6roRg-xYA_0HovZji1mCJk@z>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, linux-kernel@vger.kernel.org, "H. Peter Anvin" <hpa@linux.intel.com>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20130317190438.9lEhHaSr8ZDmYlIxClIhPs8_Wbb7BOjuC14CdueON1g@z>
 
-On Fri, 2013-03-15 at 19:43 +0000, Arnd Bergmann wrote:
-> On Friday 15 March 2013, Russell King - ARM Linux wrote:
-> > On Fri, Mar 15, 2013 at 02:55:38PM +0000, Arnd Bergmann wrote:
-> 
-> > > I'd like to merge this for 3.9 and also for the stable kernels,
-> > > if people agree this is a good idea.
-> > 
-> > I think I replied to your previous version recently asking whether
-> > this affects real uninitialized variables too.
-> 
-> If gcc can prove that there is a code path in which the variable is
-> used uninitialized, it will still warn with this patch, since we are
-> leaving -Wuninitialized enabled but only disable -Wmaybe-uninitilized.
-> There are obviously some cases where gcc correctly warns today but
-> cannot prove whether or not this is actually possible. I don't have
-> any data about how often we'd see one or the other, but I would expect
-> the first one to be more common.
-> 
-> We'd also still see all valid warnings with the Kconfig default of
-> building with -O2 rather than -Os, and as gcc gets smarter over time,
-> it should show more of the real bugs with -Wuninitialized.
-> 
-> I think the real trade-off is that not applying this patch will cause
-> more patches to get merged that add bogus initializations, which
-> definitely prevent gcc from warning about a real uninitialized
-> variable bug in that function again. I have done some of those
-> patches myself in the past, but it always feels really wrong to
-> do those.
+On 03/17, Steven Rostedt wrote:
+>
+> On Sun, 2013-03-17 at 19:28 +0100, Oleg Nesterov wrote:
+> > syscall_regfunc() ignores the kernel thread because "it has
+> > no effect", see cc3b13c1 "Don't trace kernel thread syscalls".
+> >
+> > However, this means that a user-space task spawned by
+> > call_usermodehelper() won't report the system calls if
+> > kernel_execve() is called when sys_tracepoint_refcount != 0.
+> >
+> > Remove this check. Hopefully the unnecessary report from
+> > ret_from_fork path mentioned by cc3b13c1 is fine. In fact
+> > "this is the only case" is not true. Say, kernel_execve()
+> > itself does "int 80" on X86_32. Hopefully fine too.
+>
+> I'm really thinking the TIF_SYSCALL_TRACEPOINT flag is getting a bit
+> ridiculous. We really should have a "swap syscall table when tracepoints
+> enabled" that changes the syscall table that does exactly the same thing
+> as the normal table but wraps the system call with the tracepoints.
 
-I always reject any set variable to zero (or mark it uninitialised) just
-because gcc warns patches precisely because they would hide future
-errors; all the checkers we care about have a false positive matching
-system now.  The thing this would cut down on is the number of newbie "I
-compiled the kernel myself and this fixes the warning I found" type
-patches, which I do see as a net benefit.
+But we also need to force the slow path in system_call...
 
-James
+Anyway, do you agree with this change for now?
 
-
+Oleg.
 
