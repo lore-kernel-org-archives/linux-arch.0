@@ -1,59 +1,40 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [RFC PATCH (resend)] block layer zero-copy: missing access_ok()
- check
-Date: Mon, 18 Mar 2013 07:51:39 +0100
-Message-ID: <1363589499.21545.5.camel@pasglop>
-References: <20130315133748.GA31887@Krystal>
-	 <20130315152326.GM31875@kernel.dk> <20130315155808.GB1659@Krystal>
-	 <CA+55aFxW0vkpgJCpJVJVqDmDG61P_AOoVMFVhfqVxM45Mj-LNA@mail.gmail.com>
-	 <20130315171000.GA2342@Krystal>
-	 <CA+55aFyrj9LsRp2gaoy1Lo6+s_brWjeKDG8F8JOLk2VaKndeaQ@mail.gmail.com>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH 2/2] tracing: syscall_regfunc() should not skip kernel
+	threads
+Date: Mon, 18 Mar 2013 17:26:50 +0100
+Message-ID: <20130318162650.GA20313@redhat.com>
+References: <20130317182834.GA22989@redhat.com> <1363546493.25967.129.camel@gandalf.local.home> <20130317190438.GA24582@redhat.com> <1363548972.25967.137.camel@gandalf.local.home>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:47953 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750847Ab3CRG4O (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 18 Mar 2013 02:56:14 -0400
-In-Reply-To: <CA+55aFyrj9LsRp2gaoy1Lo6+s_brWjeKDG8F8JOLk2VaKndeaQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Jens Axboe <axboe@kernel.dk>, "security@kernel.org" <security@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Nick Piggin <npiggin@kernel.dk>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1363548972.25967.137.camel@gandalf.local.home>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, linux-kernel@vger.kernel.org, "H. Peter Anvin" <hpa@linux.intel.com>, linux-arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, 2013-03-15 at 10:21 -0700, Linus Torvalds wrote:
-> Adding linux-arch. Guys, can you check your architectures?
-> 
-> Also, make sure to check huge-pages if they are separate. Basically,
-> if you have code like this:
-> 
->                 if (!pte_present(pte) ||
->                     pte_special(pte) || (write && !pte_write(pte))) {
->                         pte_unmap(ptep);
->                         return 0;
->                 }
-> 
-> it's probably buggy. It's not sufficient to just check write
-> permissions, you do need to check user permissions too.
-> 
-> Powerpc,x86 and sh seem to get it right by virtue of checking rthe
-> user bit. s390 checks against TASK_SIZE.
-> 
-> MIPS does seem buggy. Sparc I don't know the meaning of the bits for.
-> And powerpc does have several variants, so while the main one looks
-> fine, I didn't look at the other ones.
+On 03/17, Steven Rostedt wrote:
+>
+> On Sun, 2013-03-17 at 20:04 +0100, Oleg Nesterov wrote:
+>
+> > > I'm really thinking the TIF_SYSCALL_TRACEPOINT flag is getting a bit
+> > > ridiculous. We really should have a "swap syscall table when tracepoints
+> > > enabled" that changes the syscall table that does exactly the same thing
+> > > as the normal table but wraps the system call with the tracepoints.
+> >
+> > But we also need to force the slow path in system_call...
+>
+> Why? If we remove the tracepoint from the slowpath and use a table swap,
+> then we wouldn't need to use the slowpath at all.
 
-Took the train half way through... I assume we are talking gup_fast
-here ? So we have an access_ok() accross the range, which should make
-us safe. Additionally on ppc64 we have a different pgd for user and
-kernel pages anyway.
+Ah, indeed, you are right.
 
-We do check for huge pages at every level as far as I can tell (and
-those are user only) and finally we check for _PAGE_USER.
+> > Anyway, do you agree with this change for now?
+>
+> Well, if it's solving a bug today sure. But we should really be looking
+> at fixing what's there for the future.
 
-The only "subtlety" I can think of is that PROT_NONE has no _PAGE_USER
-for us and thus will fail a gup but that's expected right ?
+OK, thanks.
 
-Cheers,
-Ben.
+Oleg.
