@@ -1,40 +1,25 @@
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH 2/2] tracing: syscall_regfunc() should not skip kernel
-	threads
-Date: Mon, 18 Mar 2013 17:26:50 +0100
-Message-ID: <20130318162650.GA20313@redhat.com>
-References: <20130317182834.GA22989@redhat.com> <1363546493.25967.129.camel@gandalf.local.home> <20130317190438.GA24582@redhat.com> <1363548972.25967.137.camel@gandalf.local.home>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH 2/2] tracing: syscall_regfunc() should not skip kernel threads
+Date: Tue, 19 Mar 2013 15:10:26 +0000
+Message-ID: <32387.1363705826@warthog.procyon.org.uk>
+References: <1363548972.25967.137.camel@gandalf.local.home> <20130317182834.GA22989@redhat.com> <1363546493.25967.129.camel@gandalf.local.home> <20130317190438.GA24582@redhat.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:23159 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932137Ab3CSPKv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 19 Mar 2013 11:10:51 -0400
 In-Reply-To: <1363548972.25967.137.camel@gandalf.local.home>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Steven Rostedt <rostedt@goodmis.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, linux-kernel@vger.kernel.org, "H. Peter Anvin" <hpa@linux.intel.com>, linux-arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: dhowells@redhat.com, Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, linux-kernel@vger.kernel.org, "H. Peter Anvin" <hpa@linux.intel.com>, linux-arch <linux-arch@vger.kernel.org>
 
-On 03/17, Steven Rostedt wrote:
->
-> On Sun, 2013-03-17 at 20:04 +0100, Oleg Nesterov wrote:
->
-> > > I'm really thinking the TIF_SYSCALL_TRACEPOINT flag is getting a bit
-> > > ridiculous. We really should have a "swap syscall table when tracepoints
-> > > enabled" that changes the syscall table that does exactly the same thing
-> > > as the normal table but wraps the system call with the tracepoints.
-> >
-> > But we also need to force the slow path in system_call...
->
+Steven Rostedt <rostedt@goodmis.org> wrote:
+
 > Why? If we remove the tracepoint from the slowpath and use a table swap,
 > then we wouldn't need to use the slowpath at all.
 
-Ah, indeed, you are right.
+How are you engineering a table swap?  Do you patch the system call code to
+change the immediate address loaded or do you put in a level of indirection?
 
-> > Anyway, do you agree with this change for now?
->
-> Well, if it's solving a bug today sure. But we should really be looking
-> at fixing what's there for the future.
-
-OK, thanks.
-
-Oleg.
+David
