@@ -1,46 +1,110 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:27058 "EHLO mx1.redhat.com"
+Received: from zene.cmpxchg.org ([85.214.230.12]:41663 "EHLO zene.cmpxchg.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751431Ab3CRQ3C (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 18 Mar 2013 12:29:02 -0400
-Date: Mon, 18 Mar 2013 17:26:50 +0100
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH 2/2] tracing: syscall_regfunc() should not skip kernel
-	threads
-Message-ID: <20130318162650.GA20313@redhat.com>
-References: <20130317182834.GA22989@redhat.com> <1363546493.25967.129.camel@gandalf.local.home> <20130317190438.GA24582@redhat.com> <1363548972.25967.137.camel@gandalf.local.home>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1363548972.25967.137.camel@gandalf.local.home>
+	id S1757005Ab3CTSEA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 20 Mar 2013 14:04:00 -0400
+From: Johannes Weiner <hannes@cmpxchg.org>
+Subject: [patch 5/5] x86-64: fall back to regular page vmemmap on allocation failure
+Date: Wed, 20 Mar 2013 14:03:32 -0400
+Message-ID: <1363802612-32127-6-git-send-email-hannes@cmpxchg.org>
+In-Reply-To: <1363802612-32127-1-git-send-email-hannes@cmpxchg.org>
+References: <1363802612-32127-1-git-send-email-hannes@cmpxchg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, linux-kernel@vger.kernel.org, "H. Peter Anvin" <hpa@linux.intel.com>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20130318162650.-RcYGTt4rwQylxsItvw6DdGDz8v2yIu0kJbEU0kAUa0@z>
+To: x86@kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: Ben Hutchings <ben@decadent.org.uk>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130320180332.cubIATjyahjFSgAtb28dm8LCAYaT8SgPlWQ18sghbIo@z>
 
-On 03/17, Steven Rostedt wrote:
->
-> On Sun, 2013-03-17 at 20:04 +0100, Oleg Nesterov wrote:
->
-> > > I'm really thinking the TIF_SYSCALL_TRACEPOINT flag is getting a bit
-> > > ridiculous. We really should have a "swap syscall table when tracepoints
-> > > enabled" that changes the syscall table that does exactly the same thing
-> > > as the normal table but wraps the system call with the tracepoints.
-> >
-> > But we also need to force the slow path in system_call...
->
-> Why? If we remove the tracepoint from the slowpath and use a table swap,
-> then we wouldn't need to use the slowpath at all.
+Memory hotplug can happen on a machine under load, memory shortness
+and fragmentation, so huge page allocations for the vmemmap are not
+guaranteed to succeed.
 
-Ah, indeed, you are right.
+Try to fall back to regular pages before failing the hotplug event
+completely.
 
-> > Anyway, do you agree with this change for now?
->
-> Well, if it's solving a bug today sure. But we should really be looking
-> at fixing what's there for the future.
+Signed-off-by: Johannes Weiner <hannes@cmpxchg.org>
+---
+ arch/x86/mm/init_64.c | 51 ++++++++++++++++++++++++++++++---------------------
+ 1 file changed, 30 insertions(+), 21 deletions(-)
 
-OK, thanks.
-
-Oleg.
+diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
+index 134c85d..e2e7afb 100644
+--- a/arch/x86/mm/init_64.c
++++ b/arch/x86/mm/init_64.c
+@@ -1286,11 +1286,14 @@ static int __meminit vmemmap_populate_hugepages(unsigned long start,
+ 						unsigned long end, int node)
+ {
+ 	unsigned long addr;
++	unsigned long next;
+ 	pgd_t *pgd;
+ 	pud_t *pud;
+ 	pmd_t *pmd;
+ 
+-	for (addr = start; addr < end; addr += PMD_SIZE) {
++	for (addr = start; addr < end; addr = next) {
++		next = pmd_addr_end(addr, end);
++
+ 		pgd = vmemmap_pgd_populate(addr, node);
+ 		if (!pgd)
+ 			return -ENOMEM;
+@@ -1301,31 +1304,37 @@ static int __meminit vmemmap_populate_hugepages(unsigned long start,
+ 
+ 		pmd = pmd_offset(pud, addr);
+ 		if (pmd_none(*pmd)) {
+-			pte_t entry;
+ 			void *p;
+ 
+ 			p = vmemmap_alloc_block_buf(PMD_SIZE, node);
+-			if (!p)
+-				return -ENOMEM;
+-
+-			entry = pfn_pte(__pa(p) >> PAGE_SHIFT,
+-					PAGE_KERNEL_LARGE);
+-			set_pmd(pmd, __pmd(pte_val(entry)));
+-
+-			/* check to see if we have contiguous blocks */
+-			if (p_end != p || node_start != node) {
+-				if (p_start)
+-					printk(KERN_DEBUG " [%lx-%lx] PMD -> [%p-%p] on node %d\n",
+-					       addr_start, addr_end-1, p_start, p_end-1, node_start);
+-				addr_start = addr;
+-				node_start = node;
+-				p_start = p;
+-			}
++			if (p) {
++				pte_t entry;
++
++				entry = pfn_pte(__pa(p) >> PAGE_SHIFT,
++						PAGE_KERNEL_LARGE);
++				set_pmd(pmd, __pmd(pte_val(entry)));
++
++				/* check to see if we have contiguous blocks */
++				if (p_end != p || node_start != node) {
++					if (p_start)
++						printk(KERN_DEBUG " [%lx-%lx] PMD -> [%p-%p] on node %d\n",
++						       addr_start, addr_end-1, p_start, p_end-1, node_start);
++					addr_start = addr;
++					node_start = node;
++					p_start = p;
++				}
+ 
+-			addr_end = addr + PMD_SIZE;
+-			p_end = p + PMD_SIZE;
+-		} else
++				addr_end = addr + PMD_SIZE;
++				p_end = p + PMD_SIZE;
++				continue;
++			}
++		} else if (pmd_large(*pmd)) {
+ 			vmemmap_verify((pte_t *)pmd, node, addr, next);
++			continue;
++		}
++		pr_warn_once("vmemmap: falling back to regular page backing\n");
++		if (vmemmap_populate_basepages(addr, next, node))
++			return -ENOMEM;
+ 	}
+ 	return 0;
+ }
+-- 
+1.7.11.7
 
