@@ -1,7 +1,7 @@
 From: Johannes Weiner <hannes@cmpxchg.org>
-Subject: [patch 3/5] x86-64: remove dead debugging code for !pse setups
-Date: Wed, 20 Mar 2013 14:03:30 -0400
-Message-ID: <1363802612-32127-4-git-send-email-hannes@cmpxchg.org>
+Subject: [patch 5/5] x86-64: fall back to regular page vmemmap on allocation failure
+Date: Wed, 20 Mar 2013 14:03:32 -0400
+Message-ID: <1363802612-32127-6-git-send-email-hannes@cmpxchg.org>
 References: <1363802612-32127-1-git-send-email-hannes@cmpxchg.org>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1363802612-32127-1-git-send-email-hannes@cmpxchg.org>
@@ -10,28 +10,96 @@ To: x86@kernel.org, Andrew Morton <akpm@linux-foundation.org>
 Cc: Ben Hutchings <ben@decadent.org.uk>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-No need to maintain addr_end and p_end when they are never actually
-read anywhere on !pse setups.  Remove the dead code.
+Memory hotplug can happen on a machine under load, memory shortness
+and fragmentation, so huge page allocations for the vmemmap are not
+guaranteed to succeed.
+
+Try to fall back to regular pages before failing the hotplug event
+completely.
 
 Signed-off-by: Johannes Weiner <hannes@cmpxchg.org>
 ---
- arch/x86/mm/init_64.c | 3 ---
- 1 file changed, 3 deletions(-)
+ arch/x86/mm/init_64.c | 51 ++++++++++++++++++++++++++++++---------------------
+ 1 file changed, 30 insertions(+), 21 deletions(-)
 
 diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index 7dd132c..1acba7e 100644
+index 134c85d..e2e7afb 100644
 --- a/arch/x86/mm/init_64.c
 +++ b/arch/x86/mm/init_64.c
-@@ -1312,9 +1312,6 @@ int __meminit vmemmap_populate(unsigned long start, unsigned long end, int node)
+@@ -1286,11 +1286,14 @@ static int __meminit vmemmap_populate_hugepages(unsigned long start,
+ 						unsigned long end, int node)
+ {
+ 	unsigned long addr;
++	unsigned long next;
+ 	pgd_t *pgd;
+ 	pud_t *pud;
+ 	pmd_t *pmd;
  
- 			if (!p)
- 				return -ENOMEM;
+-	for (addr = start; addr < end; addr += PMD_SIZE) {
++	for (addr = start; addr < end; addr = next) {
++		next = pmd_addr_end(addr, end);
++
+ 		pgd = vmemmap_pgd_populate(addr, node);
+ 		if (!pgd)
+ 			return -ENOMEM;
+@@ -1301,31 +1304,37 @@ static int __meminit vmemmap_populate_hugepages(unsigned long start,
+ 
+ 		pmd = pmd_offset(pud, addr);
+ 		if (pmd_none(*pmd)) {
+-			pte_t entry;
+ 			void *p;
+ 
+ 			p = vmemmap_alloc_block_buf(PMD_SIZE, node);
+-			if (!p)
+-				return -ENOMEM;
 -
--			addr_end = addr + PAGE_SIZE;
--			p_end = p + PAGE_SIZE;
- 		} else {
- 			next = pmd_addr_end(addr, end);
+-			entry = pfn_pte(__pa(p) >> PAGE_SHIFT,
+-					PAGE_KERNEL_LARGE);
+-			set_pmd(pmd, __pmd(pte_val(entry)));
+-
+-			/* check to see if we have contiguous blocks */
+-			if (p_end != p || node_start != node) {
+-				if (p_start)
+-					printk(KERN_DEBUG " [%lx-%lx] PMD -> [%p-%p] on node %d\n",
+-					       addr_start, addr_end-1, p_start, p_end-1, node_start);
+-				addr_start = addr;
+-				node_start = node;
+-				p_start = p;
+-			}
++			if (p) {
++				pte_t entry;
++
++				entry = pfn_pte(__pa(p) >> PAGE_SHIFT,
++						PAGE_KERNEL_LARGE);
++				set_pmd(pmd, __pmd(pte_val(entry)));
++
++				/* check to see if we have contiguous blocks */
++				if (p_end != p || node_start != node) {
++					if (p_start)
++						printk(KERN_DEBUG " [%lx-%lx] PMD -> [%p-%p] on node %d\n",
++						       addr_start, addr_end-1, p_start, p_end-1, node_start);
++					addr_start = addr;
++					node_start = node;
++					p_start = p;
++				}
  
+-			addr_end = addr + PMD_SIZE;
+-			p_end = p + PMD_SIZE;
+-		} else
++				addr_end = addr + PMD_SIZE;
++				p_end = p + PMD_SIZE;
++				continue;
++			}
++		} else if (pmd_large(*pmd)) {
+ 			vmemmap_verify((pte_t *)pmd, node, addr, next);
++			continue;
++		}
++		pr_warn_once("vmemmap: falling back to regular page backing\n");
++		if (vmemmap_populate_basepages(addr, next, node))
++			return -ENOMEM;
+ 	}
+ 	return 0;
+ }
 -- 
 1.7.11.7
 
