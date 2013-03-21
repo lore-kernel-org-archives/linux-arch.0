@@ -1,106 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:33093 "EHLO
+Received: from www.linutronix.de ([62.245.132.108]:33136 "EHLO
 	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753680Ab3CUVxG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Mar 2013 17:53:06 -0400
-Message-ID: <20130321215234.014923303@linutronix.de>
-Date: Thu, 21 Mar 2013 21:53:05 -0000
+	with ESMTP id S932231Ab3CUVxL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Mar 2013 17:53:11 -0400
+Message-ID: <20130321215234.338692935@linutronix.de>
+Date: Thu, 21 Mar 2013 21:53:09 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 11/34] bfin: Use generic idle loop
+Subject: [patch 16/34] hexagon: Use generic idle loop
 References: <20130321214930.752934102@linutronix.de>
-Content-Disposition: inline; filename=bfin-use-generic-idle-loop.patch
+Content-Disposition: inline; filename=hexagon-use-generic-idle-loop.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, Mike Frysinger <vapier@gentoo.org>
-Message-ID: <20130321215305.9Phz1oly_us9WSlcIy5HwfElprJY5d2tr7rytmBc5BQ@z>
+Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, Richard Kuo <rkuo@codeaurora.org>
+Message-ID: <20130321215309.ZW-3QYRagXhFY745NBFNZzYabDCUWnNzuc_CaugUCi4@z>
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Mike Frysinger <vapier@gentoo.org>
+Cc: Richard Kuo <rkuo@codeaurora.org>
 ---
- arch/blackfin/Kconfig           |    1 +
- arch/blackfin/kernel/process.c  |   30 ++----------------------------
- arch/blackfin/mach-common/smp.c |    2 +-
- 3 files changed, 4 insertions(+), 29 deletions(-)
+ arch/hexagon/Kconfig          |    1 +
+ arch/hexagon/kernel/process.c |   23 +++--------------------
+ arch/hexagon/kernel/smp.c     |    2 +-
+ 3 files changed, 5 insertions(+), 21 deletions(-)
 
-Index: linux-2.6/arch/blackfin/Kconfig
+Index: linux-2.6/arch/hexagon/Kconfig
 ===================================================================
---- linux-2.6.orig/arch/blackfin/Kconfig
-+++ linux-2.6/arch/blackfin/Kconfig
-@@ -41,6 +41,7 @@ config BLACKFIN
- 	select USE_GENERIC_SMP_HELPERS if SMP
- 	select HAVE_NMI_WATCHDOG if NMI_WATCHDOG
+--- linux-2.6.orig/arch/hexagon/Kconfig
++++ linux-2.6/arch/hexagon/Kconfig
+@@ -24,6 +24,7 @@ config HEXAGON
+ 	select NO_IOPORT
+ 	select GENERIC_IOMAP
  	select GENERIC_SMP_IDLE_THREAD
 +	select GENERIC_IDLE_LOOP
- 	select ARCH_USES_GETTIMEOFFSET if !GENERIC_CLOCKEVENTS
- 	select HAVE_MOD_ARCH_SPECIFIC
- 	select MODULES_USE_ELF_RELA
-Index: linux-2.6/arch/blackfin/kernel/process.c
+ 	select STACKTRACE_SUPPORT
+ 	select KTIME_SCALAR
+ 	select GENERIC_CLOCKEVENTS
+Index: linux-2.6/arch/hexagon/kernel/process.c
 ===================================================================
---- linux-2.6.orig/arch/blackfin/kernel/process.c
-+++ linux-2.6/arch/blackfin/kernel/process.c
-@@ -47,14 +47,14 @@ EXPORT_SYMBOL(pm_power_off);
-  */
- #ifdef CONFIG_IDLE_L1
- static void default_idle(void)__attribute__((l1_text));
--void cpu_idle(void)__attribute__((l1_text));
-+void arch_cpu_idle(void)__attribute__((l1_text));
- #endif
- 
- /*
-  * This is our default idle handler.  We need to disable
-  * interrupts here to ensure we don't miss a wakeup call.
+--- linux-2.6.orig/arch/hexagon/kernel/process.c
++++ linux-2.6/arch/hexagon/kernel/process.c
+@@ -51,28 +51,11 @@ void start_thread(struct pt_regs *regs, 
+  *  If hardware or VM offer wait termination even though interrupts
+  *  are disabled.
   */
 -static void default_idle(void)
 +void arch_cpu_idle(void)
  {
- #ifdef CONFIG_IPIPE
- 	ipipe_suspend_domain();
-@@ -67,32 +67,6 @@ static void default_idle(void)
+ 	__vmwait();
+-}
+-
+-void (*idle_sleep)(void) = default_idle;
+-
+-void cpu_idle(void)
+-{
+-	while (1) {
+-		tick_nohz_idle_enter();
+-		local_irq_disable();
+-		while (!need_resched()) {
+-			idle_sleep();
+-			/*  interrupts wake us up, but aren't serviced  */
+-			local_irq_enable();	/* service interrupt   */
+-			local_irq_disable();
+-		}
+-		local_irq_enable();
+-		tick_nohz_idle_exit();
+-		schedule();
+-	}
++	/*  interrupts wake us up, but irqs are still disabled */
++	local_irq_enable();
  }
  
  /*
-- * The idle thread.  We try to conserve power, while trying to keep
-- * overall latency low.  The architecture specific idle is passed
-- * a value to indicate the level of "idleness" of the system.
-- */
--void cpu_idle(void)
--{
--	/* endless idle loop with no priority at all */
--	while (1) {
--
--#ifdef CONFIG_HOTPLUG_CPU
--		if (cpu_is_offline(smp_processor_id()))
--			cpu_die();
--#endif
--		tick_nohz_idle_enter();
--		rcu_idle_enter();
--		while (!need_resched())
--			default_idle();
--		rcu_idle_exit();
--		tick_nohz_idle_exit();
--		preempt_enable_no_resched();
--		schedule();
--		preempt_disable();
--	}
--}
--
--/*
-  * Do necessary setup to start up a newly executed thread.
-  *
-  * pass the data segment into user programs if it exists,
-Index: linux-2.6/arch/blackfin/mach-common/smp.c
+Index: linux-2.6/arch/hexagon/kernel/smp.c
 ===================================================================
---- linux-2.6.orig/arch/blackfin/mach-common/smp.c
-+++ linux-2.6/arch/blackfin/mach-common/smp.c
-@@ -335,7 +335,7 @@ void __cpuinit secondary_start_kernel(vo
- 	 */
- 	calibrate_delay();
+--- linux-2.6.orig/arch/hexagon/kernel/smp.c
++++ linux-2.6/arch/hexagon/kernel/smp.c
+@@ -184,7 +184,7 @@ void __cpuinit start_secondary(void)
+ 
+ 	local_irq_enable();
  
 -	cpu_idle();
 +	cpu_startup_entry(CPUHP_ONLINE);
  }
  
- void __init smp_prepare_boot_cpu(void)
+ 
 
 
