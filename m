@@ -1,89 +1,103 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:33249 "EHLO
+Received: from www.linutronix.de ([62.245.132.108]:33181 "EHLO
 	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932279Ab3CUVxU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Mar 2013 17:53:20 -0400
-Message-ID: <20130321215235.090816526@linutronix.de>
-Date: Thu, 21 Mar 2013 21:53:18 -0000
+	with ESMTP id S932204Ab3CUVxO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Mar 2013 17:53:14 -0400
+Message-ID: <20130321215234.606480852@linutronix.de>
+Date: Thu, 21 Mar 2013 21:53:12 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 27/34] s390: Use generic idle loop
+Subject: [patch 20/34] metag: Use generic idle loop
 References: <20130321214930.752934102@linutronix.de>
-Content-Disposition: inline; filename=s390-use-generic-idle-loop.patch
+Content-Disposition: inline; filename=metag-use-generic-idle-loop.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20130321215318.9LOrdM3XyueqlS6NGEbCaGhtIHO6GWvJUBlDNlj9ilE@z>
+Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, James Hogan <james.hogan@imgtec.com>
+Message-ID: <20130321215312.4iCmrBNpsm9Z9SdQK2HHUdL0dXctI2_kIyTO6ObWvU8@z>
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: James Hogan <james.hogan@imgtec.com>
 ---
- arch/s390/kernel/process.c |   25 +++++++------------------
- arch/s390/kernel/smp.c     |    3 +--
- 2 files changed, 8 insertions(+), 20 deletions(-)
+ arch/metag/Kconfig          |    1 +
+ arch/metag/kernel/process.c |   32 +++-----------------------------
+ arch/metag/kernel/smp.c     |    2 +-
+ 3 files changed, 5 insertions(+), 30 deletions(-)
 
-Index: linux-2.6/arch/s390/kernel/process.c
+Index: linux-2.6/arch/metag/Kconfig
 ===================================================================
---- linux-2.6.orig/arch/s390/kernel/process.c
-+++ linux-2.6/arch/s390/kernel/process.c
-@@ -62,17 +62,15 @@ unsigned long thread_saved_pc(struct tas
- }
- 
+--- linux-2.6.orig/arch/metag/Kconfig
++++ linux-2.6/arch/metag/Kconfig
+@@ -9,6 +9,7 @@ config METAG
+ 	select GENERIC_CLOCKEVENTS
+ 	select GENERIC_IRQ_SHOW
+ 	select GENERIC_SMP_IDLE_THREAD
++	select GENERIC_IDLE_LOOP
+ 	select HAVE_64BIT_ALIGNED_ACCESS
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_C_RECORDMCOUNT
+Index: linux-2.6/arch/metag/kernel/process.c
+===================================================================
+--- linux-2.6.orig/arch/metag/kernel/process.c
++++ linux-2.6/arch/metag/kernel/process.c
+@@ -31,7 +31,7 @@
  /*
-- * The idle loop on a S390...
-+ * The idle function on a S390...
+  * Wait for the next interrupt and enable local interrupts
   */
--static void default_idle(void)
+-static inline void arch_idle(void)
 +void arch_cpu_idle(void)
  {
--	if (cpu_is_offline(smp_processor_id()))
--		cpu_die();
--	local_irq_disable();
--	if (need_resched()) {
-+	if (test_thread_flag(TIF_MCCK_PENDING)) {
- 		local_irq_enable();
- 		return;
- 	}
-+
- 	local_mcck_disable();
- 	if (test_thread_flag(TIF_MCCK_PENDING)) {
- 		local_mcck_enable();
-@@ -83,19 +81,10 @@ static void default_idle(void)
- 	vtime_stop_cpu();
+ 	int tmp;
+ 
+@@ -59,35 +59,9 @@ static inline void arch_idle(void)
+ 		      : "r" (get_trigger_mask()));
  }
  
 -void cpu_idle(void)
-+void arch_cpu_idle_exit(void)
++void arch_cpu_idle_dead(void)
  {
--	for (;;) {
+-	set_thread_flag(TIF_POLLING_NRFLAG);
+-
+-	while (1) {
 -		tick_nohz_idle_enter();
 -		rcu_idle_enter();
--		while (!need_resched() && !test_thread_flag(TIF_MCCK_PENDING))
--			default_idle();
+-
+-		while (!need_resched()) {
+-			/*
+-			 * We need to disable interrupts here to ensure we don't
+-			 * miss a wakeup call.
+-			 */
+-			local_irq_disable();
+-			if (!need_resched()) {
+-#ifdef CONFIG_HOTPLUG_CPU
+-				if (cpu_is_offline(smp_processor_id()))
+-					cpu_die();
+-#endif
+-				arch_idle();
+-			} else {
+-				local_irq_enable();
+-			}
+-		}
+-
 -		rcu_idle_exit();
 -		tick_nohz_idle_exit();
--		if (test_thread_flag(TIF_MCCK_PENDING))
--			s390_handle_mcck();
 -		schedule_preempt_disabled();
--	}
-+	if (test_thread_flag(TIF_MCCK_PENDING))
-+		s390_handle_mcck();
+-	 }
++	cpu_die();
  }
  
- extern void __kprobes kernel_thread_starter(void);
-Index: linux-2.6/arch/s390/kernel/smp.c
+ void (*pm_power_off)(void);
+Index: linux-2.6/arch/metag/kernel/smp.c
 ===================================================================
---- linux-2.6.orig/arch/s390/kernel/smp.c
-+++ linux-2.6/arch/s390/kernel/smp.c
-@@ -711,8 +711,7 @@ static void __cpuinit smp_start_secondar
- 	set_cpu_online(smp_processor_id(), true);
- 	inc_irq_stat(CPU_RST);
- 	local_irq_enable();
--	/* cpu_idle will call schedule for us */
+--- linux-2.6.orig/arch/metag/kernel/smp.c
++++ linux-2.6/arch/metag/kernel/smp.c
+@@ -297,7 +297,7 @@ asmlinkage void secondary_start_kernel(v
+ 	/*
+ 	 * OK, it's off to the idle thread for us
+ 	 */
 -	cpu_idle();
 +	cpu_startup_entry(CPUHP_ONLINE);
  }
  
- /* Upping and downing of CPUs */
+ void __init smp_cpus_done(unsigned int max_cpus)
 
 
