@@ -1,70 +1,76 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 14/34] frv: Use generic idle loop
-Date: Thu, 21 Mar 2013 21:53:07 -0000
-Message-ID: <20130321215234.217235264@linutronix.de>
+Subject: [patch 18/34] m32r: Use generic idle loop
+Date: Thu, 21 Mar 2013 21:53:10 -0000
+Message-ID: <20130321215234.470547189@linutronix.de>
 References: <20130321214930.752934102@linutronix.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=frv-use-generic-idle-loop.patch
+Content-Disposition: inline; filename=m32r-use-generic-idle-loop.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, David Howells <dhowells@redhat.com>
+Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, Hirokazu Takata <takata@linux-m32r.org>
 List-Id: linux-arch.vger.kernel.org
 
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: David Howells <dhowells@redhat.com>
----
- arch/frv/Kconfig          |    1 +
- arch/frv/kernel/process.c |   27 +++++----------------------
- 2 files changed, 6 insertions(+), 22 deletions(-)
+Replace the private poller.
 
-Index: linux-2.6/arch/frv/Kconfig
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: Hirokazu Takata <takata@linux-m32r.org>
+---
+ arch/m32r/Kconfig          |    1 +
+ arch/m32r/kernel/process.c |   18 ------------------
+ arch/m32r/kernel/smpboot.c |    2 +-
+ 3 files changed, 2 insertions(+), 19 deletions(-)
+
+Index: linux-2.6/arch/m32r/Kconfig
 ===================================================================
---- linux-2.6.orig/arch/frv/Kconfig
-+++ linux-2.6/arch/frv/Kconfig
-@@ -8,6 +8,7 @@ config FRV
- 	select HAVE_GENERIC_HARDIRQS
+--- linux-2.6.orig/arch/m32r/Kconfig
++++ linux-2.6/arch/m32r/Kconfig
+@@ -13,6 +13,7 @@ config M32R
  	select VIRT_TO_BUS
+ 	select GENERIC_IRQ_PROBE
  	select GENERIC_IRQ_SHOW
 +	select GENERIC_IDLE_LOOP
- 	select HAVE_DEBUG_BUGVERBOSE
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
- 	select GENERIC_CPU_DEVICES
-Index: linux-2.6/arch/frv/kernel/process.c
+ 	select GENERIC_ATOMIC64
+ 	select ARCH_USES_GETTIMEOFFSET
+ 	select MODULES_USE_ELF_RELA
+Index: linux-2.6/arch/m32r/kernel/process.c
 ===================================================================
---- linux-2.6.orig/arch/frv/kernel/process.c
-+++ linux-2.6/arch/frv/kernel/process.c
-@@ -59,29 +59,12 @@ static void core_sleep_idle(void)
- 	mb();
- }
+--- linux-2.6.orig/arch/m32r/kernel/process.c
++++ linux-2.6/arch/m32r/kernel/process.c
+@@ -47,24 +47,6 @@ unsigned long thread_saved_pc(struct tas
+ void (*pm_power_off)(void) = NULL;
+ EXPORT_SYMBOL(pm_power_off);
  
--void (*idle)(void) = core_sleep_idle;
--
 -/*
 - * The idle thread. There's no useful work to be
 - * done, so just try to conserve power and have a
 - * low exit latency (ie sit in a loop waiting for
 - * somebody to say that they'd like to reschedule)
 - */
--void cpu_idle(void)
-+void arch_cpu_idle(void)
- {
+-void cpu_idle (void)
+-{
 -	/* endless idle loop with no priority at all */
 -	while (1) {
 -		rcu_idle_enter();
--		while (!need_resched()) {
--			check_pgt_cache();
--
--			if (!frv_dma_inprogress && idle)
--				idle();
--		}
+-		while (!need_resched())
+-			cpu_relax();
 -		rcu_idle_exit();
--
 -		schedule_preempt_disabled();
 -	}
-+	if (!frv_dma_inprogress)
-+		core_sleep_idle();
-+	else
-+		local_irq_enable();
+-}
+-
+ void machine_restart(char *__unused)
+ {
+ #if defined(CONFIG_PLAT_MAPPI3)
+Index: linux-2.6/arch/m32r/kernel/smpboot.c
+===================================================================
+--- linux-2.6.orig/arch/m32r/kernel/smpboot.c
++++ linux-2.6/arch/m32r/kernel/smpboot.c
+@@ -432,7 +432,7 @@ int __init start_secondary(void *unused)
+ 	 */
+ 	local_flush_tlb_all();
+ 
+-	cpu_idle();
++	cpu_startup_entry(CPUHP_ONLINE);
+ 	return 0;
  }
  
- void machine_restart(char * __unused)
