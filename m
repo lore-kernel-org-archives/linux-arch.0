@@ -1,84 +1,145 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:33101 "EHLO
+Received: from www.linutronix.de ([62.245.132.108]:33083 "EHLO
 	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753684Ab3CUVxH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Mar 2013 17:53:07 -0400
-Message-ID: <20130321215234.087033904@linutronix.de>
-Date: Thu, 21 Mar 2013 21:53:05 -0000
+	with ESMTP id S1753657Ab3CUVxG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Mar 2013 17:53:06 -0400
+Message-ID: <20130321215233.950290809@linutronix.de>
+Date: Thu, 21 Mar 2013 21:53:04 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 12/34] c6x: Use generic idle loop
+Subject: [patch 10/34] avr32: Use generic idle loop
 References: <20130321214930.752934102@linutronix.de>
-Content-Disposition: inline; filename=c6x-use-generic-idle-loop.patch
+Content-Disposition: inline; filename=avr32-use-generic-idle-loop.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, Mark Salter <msalter@redhat.com>
-Message-ID: <20130321215305._bX7wtBt-rN6JvTe9HRMn4Oja5hom9W_UveLx2p_M2U@z>
+Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>
+Message-ID: <20130321215304.VF_jG9ibSiEaR7cGRQ4g5FOsOaUvk-2BgBy6bHYmpls@z>
+
+Also replace the idle poll enforcement by the generic functionality.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Mark Salter <msalter@redhat.com>
+Cc: Hans-Christian Egtvedt <egtvedt@samfundet.no>
 ---
- arch/c6x/Kconfig          |    1 +
- arch/c6x/kernel/process.c |   28 +---------------------------
- 2 files changed, 2 insertions(+), 27 deletions(-)
+ arch/avr32/Kconfig                       |    1 +
+ arch/avr32/kernel/process.c              |   13 ++-----------
+ arch/avr32/kernel/time.c                 |    8 ++++++--
+ arch/avr32/mach-at32ap/include/mach/pm.h |   24 ------------------------
+ arch/avr32/mach-at32ap/pm-at32ap700x.S   |    7 -------
+ 5 files changed, 9 insertions(+), 44 deletions(-)
 
-Index: linux-2.6/arch/c6x/Kconfig
+Index: linux-2.6/arch/avr32/Kconfig
 ===================================================================
---- linux-2.6.orig/arch/c6x/Kconfig
-+++ linux-2.6/arch/c6x/Kconfig
-@@ -18,6 +18,7 @@ config C6X
- 	select OF_EARLY_FLATTREE
- 	select GENERIC_CLOCKEVENTS
- 	select MODULES_USE_ELF_RELA
-+	select GENERIC_IDLE_LOOP
- 
- config MMU
- 	def_bool n
-Index: linux-2.6/arch/c6x/kernel/process.c
+--- linux-2.6.orig/arch/avr32/Kconfig
++++ linux-2.6/arch/avr32/Kconfig
+@@ -10,6 +10,7 @@ config AVR32
+ 	select VIRT_TO_BUS
+ 	select GENERIC_IRQ_PROBE
+ 	select GENERIC_ATOMIC64
++	seletc GENERIC_IDLE_LOOP
+ 	select HARDIRQS_SW_RESEND
+ 	select GENERIC_IRQ_SHOW
+ 	select ARCH_HAVE_CUSTOM_GPIO_H
+Index: linux-2.6/arch/avr32/kernel/process.c
 ===================================================================
---- linux-2.6.orig/arch/c6x/kernel/process.c
-+++ linux-2.6/arch/c6x/kernel/process.c
-@@ -33,7 +33,7 @@ extern asmlinkage void ret_from_kernel_t
- void (*pm_power_off)(void);
- EXPORT_SYMBOL(pm_power_off);
+--- linux-2.6.orig/arch/avr32/kernel/process.c
++++ linux-2.6/arch/avr32/kernel/process.c
+@@ -30,18 +30,9 @@ EXPORT_SYMBOL(pm_power_off);
+  * This file handles the architecture-dependent parts of process handling..
+  */
  
--static void c6x_idle(void)
+-void cpu_idle(void)
 +void arch_cpu_idle(void)
  {
- 	unsigned long tmp;
- 
-@@ -49,32 +49,6 @@ static void c6x_idle(void)
- 		      : "=b"(tmp));
- }
- 
--/*
-- * The idle loop for C64x
-- */
--void cpu_idle(void)
--{
 -	/* endless idle loop with no priority at all */
 -	while (1) {
 -		tick_nohz_idle_enter();
 -		rcu_idle_enter();
--		while (1) {
--			local_irq_disable();
--			if (need_resched()) {
--				local_irq_enable();
--				break;
--			}
--			c6x_idle(); /* enables local irqs */
--		}
+-		while (!need_resched())
+-			cpu_idle_sleep();
 -		rcu_idle_exit();
 -		tick_nohz_idle_exit();
--
--		preempt_enable_no_resched();
--		schedule();
--		preempt_disable();
+-		schedule_preempt_disabled();
 -	}
++	cpu_enter_idle();
+ }
+ 
+ void machine_halt(void)
+Index: linux-2.6/arch/avr32/kernel/time.c
+===================================================================
+--- linux-2.6.orig/arch/avr32/kernel/time.c
++++ linux-2.6/arch/avr32/kernel/time.c
+@@ -87,13 +87,17 @@ static void comparator_mode(enum clock_e
+ 		pr_debug("%s: start\n", evdev->name);
+ 		/* FALLTHROUGH */
+ 	case CLOCK_EVT_MODE_RESUME:
+-		cpu_disable_idle_sleep();
++		/*
++		 * If we're using the COUNT and COMPARE registers we
++		 * need to force idle poll.
++		 */
++		cpu_idle_poll_ctrl(true);
+ 		break;
+ 	case CLOCK_EVT_MODE_UNUSED:
+ 	case CLOCK_EVT_MODE_SHUTDOWN:
+ 		sysreg_write(COMPARE, 0);
+ 		pr_debug("%s: stop\n", evdev->name);
+-		cpu_enable_idle_sleep();
++		cpu_idle_poll_ctrl(false);
+ 		break;
+ 	default:
+ 		BUG();
+Index: linux-2.6/arch/avr32/mach-at32ap/include/mach/pm.h
+===================================================================
+--- linux-2.6.orig/arch/avr32/mach-at32ap/include/mach/pm.h
++++ linux-2.6/arch/avr32/mach-at32ap/include/mach/pm.h
+@@ -21,30 +21,6 @@
+ extern void cpu_enter_idle(void);
+ extern void cpu_enter_standby(unsigned long sdramc_base);
+ 
+-extern bool disable_idle_sleep;
+-
+-static inline void cpu_disable_idle_sleep(void)
+-{
+-	disable_idle_sleep = true;
 -}
 -
- static void halt_loop(void)
- {
- 	printk(KERN_EMERG "System Halted, OK to turn off power\n");
+-static inline void cpu_enable_idle_sleep(void)
+-{
+-	disable_idle_sleep = false;
+-}
+-
+-static inline void cpu_idle_sleep(void)
+-{
+-	/*
+-	 * If we're using the COUNT and COMPARE registers for
+-	 * timekeeping, we can't use the IDLE state.
+-	 */
+-	if (disable_idle_sleep)
+-		cpu_relax();
+-	else
+-		cpu_enter_idle();
+-}
+-
+ void intc_set_suspend_handler(unsigned long offset);
+ #endif
+ 
+Index: linux-2.6/arch/avr32/mach-at32ap/pm-at32ap700x.S
+===================================================================
+--- linux-2.6.orig/arch/avr32/mach-at32ap/pm-at32ap700x.S
++++ linux-2.6/arch/avr32/mach-at32ap/pm-at32ap700x.S
+@@ -18,13 +18,6 @@
+ /* Same as 0xfff00000 but fits in a 21 bit signed immediate */
+ #define PM_BASE	-0x100000
+ 
+-	.section .bss, "wa", @nobits
+-	.global	disable_idle_sleep
+-	.type	disable_idle_sleep, @object
+-disable_idle_sleep:
+-	.int	4
+-	.size	disable_idle_sleep, . - disable_idle_sleep
+-
+ 	/* Keep this close to the irq handlers */
+ 	.section .irq.text, "ax", @progbits
+ 
 
 
