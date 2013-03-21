@@ -1,64 +1,136 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 28/34] score: Use generic idle loop
-Date: Thu, 21 Mar 2013 21:53:19 -0000
-Message-ID: <20130321215235.147909863@linutronix.de>
+Subject: [patch 26/34] powerpc: Use generic idle loop
+Date: Thu, 21 Mar 2013 21:53:17 -0000
+Message-ID: <20130321215235.026838003@linutronix.de>
 References: <20130321214930.752934102@linutronix.de>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:33257 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932358Ab3CUVxU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Mar 2013 17:53:20 -0400
-Content-Disposition: inline; filename=score-use-generic-idle-loop.patch
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline; filename=powerpc-use-generic-idle-loop.patch
+Sender: linux-kernel-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, Lennox Wu <lennox.wu@gmail.com>
+Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Lennox Wu <lennox.wu@gmail.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- arch/score/Kconfig          |    1 +
- arch/score/kernel/process.c |   18 ------------------
- 2 files changed, 1 insertion(+), 18 deletions(-)
+ arch/powerpc/Kconfig       |    1 
+ arch/powerpc/kernel/idle.c |   78 ++++++++++++---------------------------------
+ arch/powerpc/kernel/smp.c  |    2 -
+ 3 files changed, 24 insertions(+), 57 deletions(-)
 
-Index: linux-2.6/arch/score/Kconfig
+Index: linux-2.6/arch/powerpc/Kconfig
 ===================================================================
---- linux-2.6.orig/arch/score/Kconfig
-+++ linux-2.6/arch/score/Kconfig
-@@ -11,6 +11,7 @@ config SCORE
-        select ARCH_DISCARD_MEMBLOCK
-        select GENERIC_CPU_DEVICES
-        select GENERIC_CLOCKEVENTS
-+       select GENERIC_IDLE_LOOP
-        select HAVE_MOD_ARCH_SPECIFIC
- 	select VIRT_TO_BUS
- 	select MODULES_USE_ELF_REL
-Index: linux-2.6/arch/score/kernel/process.c
+--- linux-2.6.orig/arch/powerpc/Kconfig
++++ linux-2.6/arch/powerpc/Kconfig
+@@ -133,6 +133,7 @@ config PPC
+ 	select HAVE_ARCH_JUMP_LABEL
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+ 	select GENERIC_SMP_IDLE_THREAD
++	select GENERIC_IDLE_LOOP
+ 	select GENERIC_CMOS_UPDATE
+ 	select GENERIC_TIME_VSYSCALL_OLD
+ 	select GENERIC_CLOCKEVENTS
+Index: linux-2.6/arch/powerpc/kernel/idle.c
 ===================================================================
---- linux-2.6.orig/arch/score/kernel/process.c
-+++ linux-2.6/arch/score/kernel/process.c
-@@ -41,24 +41,6 @@ void machine_halt(void) {}
- /* If or when software machine-power-off is implemented, add code here. */
- void machine_power_off(void) {}
+--- linux-2.6.orig/arch/powerpc/kernel/idle.c
++++ linux-2.6/arch/powerpc/kernel/idle.c
+@@ -50,64 +50,30 @@ static int __init powersave_off(char *ar
+ }
+ __setup("powersave=off", powersave_off);
  
 -/*
-- * The idle thread. There's no useful work to be
-- * done, so just try to conserve power and have a
-- * low exit latency (ie sit in a loop waiting for
-- * somebody to say that they'd like to reschedule)
+- * The body of the idle task.
 - */
--void __noreturn cpu_idle(void)
--{
--	/* endless idle loop with no priority at all */
+-void cpu_idle(void)
++void arch_cpu_idle(void)
+ {
+-	set_thread_flag(TIF_POLLING_NRFLAG);
 -	while (1) {
+-		tick_nohz_idle_enter();
 -		rcu_idle_enter();
--		while (!need_resched())
--			barrier();
--		rcu_idle_exit();
--		schedule_preempt_disabled();
--	}
--}
 -
- void ret_from_fork(void);
- void ret_from_kernel_thread(void);
+-		while (!need_resched() && !cpu_should_die()) {
+-			ppc64_runlatch_off();
+-
+-			if (ppc_md.power_save) {
+-				clear_thread_flag(TIF_POLLING_NRFLAG);
+-				/*
+-				 * smp_mb is so clearing of TIF_POLLING_NRFLAG
+-				 * is ordered w.r.t. need_resched() test.
+-				 */
+-				smp_mb();
+-				local_irq_disable();
+-
+-				/* Don't trace irqs off for idle */
+-				stop_critical_timings();
+-
+-				/* check again after disabling irqs */
+-				if (!need_resched() && !cpu_should_die())
+-					ppc_md.power_save();
+-
+-				start_critical_timings();
+-
+-				/* Some power_save functions return with
+-				 * interrupts enabled, some don't.
+-				 */
+-				if (irqs_disabled())
+-					local_irq_enable();
+-				set_thread_flag(TIF_POLLING_NRFLAG);
+-
+-			} else {
+-				/*
+-				 * Go into low thread priority and possibly
+-				 * low power mode.
+-				 */
+-				HMT_low();
+-				HMT_very_low();
+-			}
+-		}
+-
+-		HMT_medium();
+-		ppc64_runlatch_on();
+-		rcu_idle_exit();
+-		tick_nohz_idle_exit();
+-		if (cpu_should_die()) {
+-			sched_preempt_enable_no_resched();
+-			cpu_die();
+-		}
+-		schedule_preempt_disabled();
++	ppc64_runlatch_off();
++
++	if (ppc_md.power_save) {
++		ppc_md.power_save();
++		/*
++		 * Some power_save functions return with
++		 * interrupts enabled, some don't.
++		 */
++		if (irqs_disabled())
++			local_irq_enable();
++	} else {
++		local_irq_enable();
++		/*
++		 * Go into low thread priority and possibly
++		 * low power mode.
++		 */
++		HMT_low();
++		HMT_very_low();
+ 	}
++
++	HMT_medium();
++	ppc64_runlatch_on();
+ }
  
+ int powersave_nap;
+Index: linux-2.6/arch/powerpc/kernel/smp.c
+===================================================================
+--- linux-2.6.orig/arch/powerpc/kernel/smp.c
++++ linux-2.6/arch/powerpc/kernel/smp.c
+@@ -669,7 +669,7 @@ __cpuinit void start_secondary(void *unu
+ 
+ 	local_irq_enable();
+ 
+-	cpu_idle();
++	cpu_startup_entry(CPUHP_ONLINE);
+ 
+ 	BUG();
+ }
