@@ -1,55 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zene.cmpxchg.org ([85.214.230.12]:41645 "EHLO zene.cmpxchg.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752500Ab3CTSDq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 20 Mar 2013 14:03:46 -0400
-From: Johannes Weiner <hannes@cmpxchg.org>
-Subject: [patch 1/5] mm: Try harder to allocate vmemmap blocks
-Date: Wed, 20 Mar 2013 14:03:28 -0400
-Message-ID: <1363802612-32127-2-git-send-email-hannes@cmpxchg.org>
-In-Reply-To: <1363802612-32127-1-git-send-email-hannes@cmpxchg.org>
-References: <1363802612-32127-1-git-send-email-hannes@cmpxchg.org>
+Received: from vaxjo.synopsys.com ([198.182.60.75]:36985 "EHLO
+	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752245Ab3CUGwy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Mar 2013 02:52:54 -0400
+Message-ID: <514AADAD.1060503@synopsys.com>
+Date: Thu, 21 Mar 2013 12:20:21 +0530
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+MIME-Version: 1.0
+Subject: host gcc 4.7 warning when generating defconfig
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: x86@kernel.org, Andrew Morton <akpm@linux-foundation.org>
-Cc: Ben Hutchings <ben@decadent.org.uk>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130320180328.WqWNdyiXXof9BGjBFfYPvj_96gr5gjbnM3J4uA5XGOw@z>
+To: "linux-kbuild@vger.kernel.org" <linux-kbuild@vger.kernel.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Message-ID: <20130321065021.1Un7rjZYwskCTWY2LXOZT43uoq39ibxPSsK1ZFet1m8@z>
 
-From: Ben Hutchings <ben@decadent.org.uk>
+Hi,
 
-Hot-adding memory on x86_64 normally requires huge page allocation.
-When this is done to a VM guest, it's usually because the system is
-already tight on memory, so the request tends to fail.  Try to avoid
-this by adding __GFP_REPEAT to the allocation flags.
+We do cross compile builds for ARC Linux. To avoid the env var set, we have a
+defconfig entry for CONFIG_CROSS_COMPILE.
+This worked fine so far (host gcc 4.4 i.e.). When switched to a new host distro
+(gcc 4.7), a defconfig build spews out the warning.
 
-Reported-and-tested-by: Bernhard Schmidt <Bernhard.Schmidt@lrz.de>
-Reference: http://bugs.debian.org/699913
-Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
-Signed-off-by: Johannes Weiner <hannes@cmpxchg.org>
----
- mm/sparse-vmemmap.c | 8 +++++---
- 1 file changed, 5 insertions(+), 3 deletions(-)
+------------------->8--------------------------
+mymake defconfig
+gcc: error: unrecognized command line option '-marc600'
+gcc: error: unrecognized command line option '-mA7'
+gcc: error: unrecognized command line option '-mno-sdata'
+gcc: error: unrecognized command line option '-mno-mpy'
+*** Default configuration is based on 'fpga_defconfig'
+#
+# configuration written to .config
+------------------->8--------------------------
 
-diff --git a/mm/sparse-vmemmap.c b/mm/sparse-vmemmap.c
-index 1b7e22a..22b7e18 100644
---- a/mm/sparse-vmemmap.c
-+++ b/mm/sparse-vmemmap.c
-@@ -53,10 +53,12 @@ void * __meminit vmemmap_alloc_block(unsigned long size, int node)
- 		struct page *page;
+While the following trivial fix seems to fix this, it seems that the spew is
+coming due to LIBGCC definition line, which is strange to be called for defconfig
+generation. Any thoughts ?
+
+---------------->
+diff --git a/arch/arc/Makefile b/arch/arc/Makefile
+index 4232d4e..97e6c20 100644
+--- a/arch/arc/Makefile
++++ b/arch/arc/Makefile
+@@ -8,6 +8,10 @@
  
- 		if (node_state(node, N_HIGH_MEMORY))
--			page = alloc_pages_node(node,
--				GFP_KERNEL | __GFP_ZERO, get_order(size));
-+			page = alloc_pages_node(
-+				node, GFP_KERNEL | __GFP_ZERO | __GFP_REPEAT,
-+				get_order(size));
- 		else
--			page = alloc_pages(GFP_KERNEL | __GFP_ZERO,
-+			page = alloc_pages(
-+				GFP_KERNEL | __GFP_ZERO | __GFP_REPEAT,
- 				get_order(size));
- 		if (page)
- 			return page_address(page);
--- 
-1.7.11.7
+ UTS_MACHINE := arc
+ 
++ifeq ($(CROSS_COMPILE),)
++#CROSS_COMPILE := arc-elf32-
++endif
++
+ KBUILD_DEFCONFIG := fpga_defconfig
 
+Thx,
+-Vineet
