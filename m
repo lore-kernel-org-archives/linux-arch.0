@@ -1,99 +1,184 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 11/34] bfin: Use generic idle loop
-Date: Thu, 21 Mar 2013 21:53:05 -0000
-Message-ID: <20130321215234.014923303@linutronix.de>
+Subject: [patch 01/34] arch: Cleanup enable/disable_hlt
+Date: Thu, 21 Mar 2013 21:52:56 -0000
+Message-ID: <20130321215233.377959540@linutronix.de>
 References: <20130321214930.752934102@linutronix.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=bfin-use-generic-idle-loop.patch
+Content-Disposition: inline; filename=arch-cleanup-disable-hlt.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, Mike Frysinger <vapier@gentoo.org>
+Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Mike Frysinger <vapier@gentoo.org>
----
- arch/blackfin/Kconfig           |    1 +
- arch/blackfin/kernel/process.c  |   30 ++----------------------------
- arch/blackfin/mach-common/smp.c |    2 +-
- 3 files changed, 4 insertions(+), 29 deletions(-)
+enable/disable_hlt() does not need to be exported and can be killed on
+architectures which do not use it at all.
 
-Index: linux-2.6/arch/blackfin/Kconfig
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+---
+ arch/arm/kernel/process.c               |    4 ----
+ arch/cris/arch-v32/kernel/process.c     |    8 +++-----
+ arch/cris/include/asm/processor.h       |    7 -------
+ arch/cris/kernel/process.c              |   25 -------------------------
+ arch/microblaze/include/asm/processor.h |    2 --
+ arch/microblaze/kernel/process.c        |   12 ------------
+ arch/mn10300/kernel/smp.c               |    5 -----
+ 7 files changed, 3 insertions(+), 60 deletions(-)
+
+Index: linux-2.6/arch/arm/kernel/process.c
 ===================================================================
---- linux-2.6.orig/arch/blackfin/Kconfig
-+++ linux-2.6/arch/blackfin/Kconfig
-@@ -41,6 +41,7 @@ config BLACKFIN
- 	select USE_GENERIC_SMP_HELPERS if SMP
- 	select HAVE_NMI_WATCHDOG if NMI_WATCHDOG
- 	select GENERIC_SMP_IDLE_THREAD
-+	select GENERIC_IDLE_LOOP
- 	select ARCH_USES_GETTIMEOFFSET if !GENERIC_CLOCKEVENTS
- 	select HAVE_MOD_ARCH_SPECIFIC
- 	select MODULES_USE_ELF_RELA
-Index: linux-2.6/arch/blackfin/kernel/process.c
-===================================================================
---- linux-2.6.orig/arch/blackfin/kernel/process.c
-+++ linux-2.6/arch/blackfin/kernel/process.c
-@@ -47,14 +47,14 @@ EXPORT_SYMBOL(pm_power_off);
-  */
- #ifdef CONFIG_IDLE_L1
- static void default_idle(void)__attribute__((l1_text));
--void cpu_idle(void)__attribute__((l1_text));
-+void arch_cpu_idle(void)__attribute__((l1_text));
- #endif
- 
- /*
-  * This is our default idle handler.  We need to disable
-  * interrupts here to ensure we don't miss a wakeup call.
-  */
--static void default_idle(void)
-+void arch_cpu_idle(void)
- {
- #ifdef CONFIG_IPIPE
- 	ipipe_suspend_domain();
-@@ -67,32 +67,6 @@ static void default_idle(void)
+--- linux-2.6.orig/arch/arm/kernel/process.c
++++ linux-2.6/arch/arm/kernel/process.c
+@@ -64,16 +64,12 @@ void disable_hlt(void)
+ 	hlt_counter++;
  }
  
- /*
-- * The idle thread.  We try to conserve power, while trying to keep
-- * overall latency low.  The architecture specific idle is passed
-- * a value to indicate the level of "idleness" of the system.
-- */
--void cpu_idle(void)
--{
--	/* endless idle loop with no priority at all */
--	while (1) {
+-EXPORT_SYMBOL(disable_hlt);
 -
--#ifdef CONFIG_HOTPLUG_CPU
--		if (cpu_is_offline(smp_processor_id()))
--			cpu_die();
--#endif
--		tick_nohz_idle_enter();
--		rcu_idle_enter();
--		while (!need_resched())
--			default_idle();
--		rcu_idle_exit();
--		tick_nohz_idle_exit();
--		preempt_enable_no_resched();
--		schedule();
--		preempt_disable();
--	}
+ void enable_hlt(void)
+ {
+ 	hlt_counter--;
+ 	BUG_ON(hlt_counter < 0);
+ }
+ 
+-EXPORT_SYMBOL(enable_hlt);
+-
+ static int __init nohlt_setup(char *__unused)
+ {
+ 	hlt_counter = 1;
+Index: linux-2.6/arch/cris/arch-v32/kernel/process.c
+===================================================================
+--- linux-2.6.orig/arch/cris/arch-v32/kernel/process.c
++++ linux-2.6/arch/cris/arch-v32/kernel/process.c
+@@ -20,16 +20,14 @@
+ 
+ extern void stop_watchdog(void);
+ 
+-extern int cris_hlt_counter;
+-
+ /* We use this if we don't have any better idle routine. */
+ void default_idle(void)
+ {
+ 	local_irq_disable();
+-	if (!need_resched() && !cris_hlt_counter) {
+-	        /* Halt until exception. */
++	if (!need_resched()) {
++		/* Halt until exception. */
+ 		__asm__ volatile("ei    \n\t"
+-                                 "halt      ");
++				 "halt      ");
+ 	}
+ 	local_irq_enable();
+ }
+Index: linux-2.6/arch/cris/include/asm/processor.h
+===================================================================
+--- linux-2.6.orig/arch/cris/include/asm/processor.h
++++ linux-2.6/arch/cris/include/asm/processor.h
+@@ -65,13 +65,6 @@ static inline void release_thread(struct
+ 
+ #define cpu_relax()     barrier()
+ 
+-/*
+- * disable hlt during certain critical i/o operations
+- */
+-#define HAVE_DISABLE_HLT
+-void disable_hlt(void);
+-void enable_hlt(void);
+-
+ void default_idle(void);
+ 
+ #endif /* __ASM_CRIS_PROCESSOR_H */
+Index: linux-2.6/arch/cris/kernel/process.c
+===================================================================
+--- linux-2.6.orig/arch/cris/kernel/process.c
++++ linux-2.6/arch/cris/kernel/process.c
+@@ -29,31 +29,6 @@
+ 
+ //#define DEBUG
+ 
+-/*
+- * The hlt_counter, disable_hlt and enable_hlt is just here as a hook if
+- * there would ever be a halt sequence (for power save when idle) with
+- * some largish delay when halting or resuming *and* a driver that can't
+- * afford that delay.  The hlt_counter would then be checked before
+- * executing the halt sequence, and the driver marks the unhaltable
+- * region by enable_hlt/disable_hlt.
+- */
+-
+-int cris_hlt_counter=0;
+-
+-void disable_hlt(void)
+-{
+-	cris_hlt_counter++;
 -}
 -
--/*
-  * Do necessary setup to start up a newly executed thread.
-  *
-  * pass the data segment into user programs if it exists,
-Index: linux-2.6/arch/blackfin/mach-common/smp.c
-===================================================================
---- linux-2.6.orig/arch/blackfin/mach-common/smp.c
-+++ linux-2.6/arch/blackfin/mach-common/smp.c
-@@ -335,7 +335,7 @@ void __cpuinit secondary_start_kernel(vo
- 	 */
- 	calibrate_delay();
+-EXPORT_SYMBOL(disable_hlt);
+-
+-void enable_hlt(void)
+-{
+-	cris_hlt_counter--;
+-}
+-
+-EXPORT_SYMBOL(enable_hlt);
+- 
+ extern void default_idle(void);
  
--	cpu_idle();
-+	cpu_startup_entry(CPUHP_ONLINE);
+ void (*pm_power_off)(void);
+Index: linux-2.6/arch/microblaze/include/asm/processor.h
+===================================================================
+--- linux-2.6.orig/arch/microblaze/include/asm/processor.h
++++ linux-2.6/arch/microblaze/include/asm/processor.h
+@@ -160,8 +160,6 @@ unsigned long get_wchan(struct task_stru
+ #  define STACK_TOP	TASK_SIZE
+ #  define STACK_TOP_MAX	STACK_TOP
+ 
+-void disable_hlt(void);
+-void enable_hlt(void);
+ void default_idle(void);
+ 
+ #ifdef CONFIG_DEBUG_FS
+Index: linux-2.6/arch/microblaze/kernel/process.c
+===================================================================
+--- linux-2.6.orig/arch/microblaze/kernel/process.c
++++ linux-2.6/arch/microblaze/kernel/process.c
+@@ -46,18 +46,6 @@ EXPORT_SYMBOL(pm_power_off);
+ 
+ static int hlt_counter = 1;
+ 
+-void disable_hlt(void)
+-{
+-	hlt_counter++;
+-}
+-EXPORT_SYMBOL(disable_hlt);
+-
+-void enable_hlt(void)
+-{
+-	hlt_counter--;
+-}
+-EXPORT_SYMBOL(enable_hlt);
+-
+ static int __init nohlt_setup(char *__unused)
+ {
+ 	hlt_counter = 1;
+Index: linux-2.6/arch/mn10300/kernel/smp.c
+===================================================================
+--- linux-2.6.orig/arch/mn10300/kernel/smp.c
++++ linux-2.6/arch/mn10300/kernel/smp.c
+@@ -935,8 +935,6 @@ int __cpu_up(unsigned int cpu, struct ta
+ 	int timeout;
+ 
+ #ifdef CONFIG_HOTPLUG_CPU
+-	if (num_online_cpus() == 1)
+-		disable_hlt();
+ 	if (sleep_mode[cpu])
+ 		run_wakeup_cpu(cpu);
+ #endif /* CONFIG_HOTPLUG_CPU */
+@@ -1003,9 +1001,6 @@ int __cpu_disable(void)
+ void __cpu_die(unsigned int cpu)
+ {
+ 	run_sleep_cpu(cpu);
+-
+-	if (num_online_cpus() == 1)
+-		enable_hlt();
  }
  
- void __init smp_prepare_boot_cpu(void)
+ #ifdef CONFIG_MN10300_CACHE_ENABLED
