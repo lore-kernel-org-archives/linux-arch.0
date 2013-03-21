@@ -1,41 +1,69 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [RFC PATCH (resend)] block layer zero-copy: missing
- access_ok() check
-Date: Thu, 21 Mar 2013 17:33:13 -0400 (EDT)
-Message-ID: <20130321.173313.827411684773319604.davem@davemloft.net>
-References: <CA+55aFxW0vkpgJCpJVJVqDmDG61P_AOoVMFVhfqVxM45Mj-LNA@mail.gmail.com>
-	<20130315171000.GA2342@Krystal>
-	<CA+55aFyrj9LsRp2gaoy1Lo6+s_brWjeKDG8F8JOLk2VaKndeaQ@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:47336 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753461Ab3CUVdQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Mar 2013 17:33:16 -0400
-In-Reply-To: <CA+55aFyrj9LsRp2gaoy1Lo6+s_brWjeKDG8F8JOLk2VaKndeaQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: torvalds@linux-foundation.org
-Cc: mathieu.desnoyers@efficios.com, linux-arch@vger.kernel.org, axboe@kernel.dk, security@kernel.org, gregkh@linuxfoundation.org, viro@zeniv.linux.org.uk, npiggin@kernel.dk
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch 03/34] idle: Implement set/clr functions for need_resched poll
+Date: Thu, 21 Mar 2013 21:52:58 -0000
+Message-ID: <20130321215233.518839807@linutronix.de>
+References: <20130321214930.752934102@linutronix.de>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline;
+ filename=smpboot-implement-need-resched-polling-helpers.patch
+Sender: linux-kernel-owner@vger.kernel.org
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Fri, 15 Mar 2013 10:21:41 -0700
+Implement set/clear functions for the idle need_resched poll
+implementation.
 
-> Adding linux-arch. Guys, can you check your architectures?
- ...
->> * sparc: access_ok missing in get_user_pages_fast,
->>   -> no indication of any _PAGE_USER flag.
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+---
+ include/linux/sched.h |   23 ++++++++++++++++++++++-
+ 1 file changed, 22 insertions(+), 1 deletion(-)
 
-Well, access_ok() returns 1 unconditionally on sparc64.  I can add a
-call there if you want.  :-)
-
-And that's because the user virtual address space is %100 segregated
-from the privileged one.  There are no "user address ranges"
-vs. kernel ones.
-
-For example, we can and do give 64-bit processes the full 64-bit
-virtual address space for user mappings.
-
-The page tables, outside of swapper_pg_dir, only map user pages.
+Index: linux-2.6/include/linux/sched.h
+===================================================================
+--- linux-2.6.orig/include/linux/sched.h
++++ linux-2.6/include/linux/sched.h
+@@ -2473,7 +2473,7 @@ static inline unsigned long *end_of_stac
+ #endif
+ 
+ /*
+- * Idle thread specific functions to determine the need_resched
++ * Idle thread specific functions for the the need_resched
+  * polling state. We have two versions, one based on TS_POLLING in
+  * thread_info.status and one based on TIF_POLLING_NRFLAG in
+  * thread_info.flags
+@@ -2483,13 +2483,34 @@ static inline int tsk_is_polling(struct 
+ {
+ 	return task_thread_info(p)->status & TS_POLLING;
+ }
++static inline void current_set_polling(void)
++{
++	current_thread_info()->status |= TS_POLLING;
++}
++
++static inline void current_clr_polling(void)
++{
++	current_thread_info()->status &= ~TS_POLLING;
++	smp_mb__after_clear_bit();
++}
+ #elif defined(TIF_POLLING_NRFLAG)
+ static inline int tsk_is_polling(struct task_struct *p)
+ {
+ 	test_tsk_thread_flag(p, TIF_POLLING_NRFLAG);
+ }
++static inline void current_set_polling(void)
++{
++	set_thread_flag(TIF_POLLING_NRFLAG);
++}
++
++static inline void current_clr_polling(void)
++{
++	clear_thread_flag(TIF_POLLING_NRFLAG);
++}
+ #else
+ static inline int tsk_is_polling(struct task_struct *p) { return 0; }
++static inline void current_set_polling(void) { }
++static inline void current_clr_polling(void) { }
+ #endif
+ 
+ static inline int object_is_on_stack(void *obj)
