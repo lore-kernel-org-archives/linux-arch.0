@@ -1,135 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:33110 "EHLO
+Received: from www.linutronix.de ([62.245.132.108]:33101 "EHLO
 	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932178Ab3CUVxI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Mar 2013 17:53:08 -0400
-Message-ID: <20130321215234.148829489@linutronix.de>
-Date: Thu, 21 Mar 2013 21:53:06 -0000
+	with ESMTP id S1753684Ab3CUVxH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Mar 2013 17:53:07 -0400
+Message-ID: <20130321215234.087033904@linutronix.de>
+Date: Thu, 21 Mar 2013 21:53:05 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 13/34] cris: Use generic idle loop
+Subject: [patch 12/34] c6x: Use generic idle loop
 References: <20130321214930.752934102@linutronix.de>
-Content-Disposition: inline; filename=cris-use-generic-idle-loop.patch
+Content-Disposition: inline; filename=c6x-use-generic-idle-loop.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, Jesper Nilsson <jesper.nilsson@axis.com>
-Message-ID: <20130321215306.wV7M1id_RP0J_DHSqd6TR428ro7pIe5nKdV1uYeu-_M@z>
+Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, Mark Salter <msalter@redhat.com>
+Message-ID: <20130321215305._bX7wtBt-rN6JvTe9HRMn4Oja5hom9W_UveLx2p_M2U@z>
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Jesper Nilsson <jesper.nilsson@axis.com>
+Cc: Mark Salter <msalter@redhat.com>
 ---
- arch/cris/Kconfig                   |    1 +
- arch/cris/arch-v10/kernel/process.c |    3 ++-
- arch/cris/arch-v32/kernel/process.c |   10 ++++------
- arch/cris/arch-v32/kernel/smp.c     |    4 +---
- arch/cris/kernel/process.c          |   24 ++----------------------
- 5 files changed, 10 insertions(+), 32 deletions(-)
+ arch/c6x/Kconfig          |    1 +
+ arch/c6x/kernel/process.c |   28 +---------------------------
+ 2 files changed, 2 insertions(+), 27 deletions(-)
 
-Index: linux-2.6/arch/cris/Kconfig
+Index: linux-2.6/arch/c6x/Kconfig
 ===================================================================
---- linux-2.6.orig/arch/cris/Kconfig
-+++ linux-2.6/arch/cris/Kconfig
-@@ -48,6 +48,7 @@ config CRIS
- 	select GENERIC_IRQ_SHOW
- 	select GENERIC_IOMAP
- 	select GENERIC_SMP_IDLE_THREAD if ETRAX_ARCH_V32
-+	select GENERIC_IDLE_LOOP
- 	select GENERIC_CMOS_UPDATE
+--- linux-2.6.orig/arch/c6x/Kconfig
++++ linux-2.6/arch/c6x/Kconfig
+@@ -18,6 +18,7 @@ config C6X
+ 	select OF_EARLY_FLATTREE
+ 	select GENERIC_CLOCKEVENTS
  	select MODULES_USE_ELF_RELA
- 	select CLONE_BACKWARDS2
-Index: linux-2.6/arch/cris/arch-v10/kernel/process.c
++	select GENERIC_IDLE_LOOP
+ 
+ config MMU
+ 	def_bool n
+Index: linux-2.6/arch/c6x/kernel/process.c
 ===================================================================
---- linux-2.6.orig/arch/cris/arch-v10/kernel/process.c
-+++ linux-2.6/arch/cris/arch-v10/kernel/process.c
-@@ -30,8 +30,9 @@ void etrax_gpio_wake_up_check(void); /* 
- void default_idle(void)
- {
- #ifdef CONFIG_ETRAX_GPIO
--  etrax_gpio_wake_up_check();
-+	etrax_gpio_wake_up_check();
- #endif
-+	local_irq_enable();
- }
- 
- /*
-Index: linux-2.6/arch/cris/arch-v32/kernel/process.c
-===================================================================
---- linux-2.6.orig/arch/cris/arch-v32/kernel/process.c
-+++ linux-2.6/arch/cris/arch-v32/kernel/process.c
-@@ -23,12 +23,10 @@ extern void stop_watchdog(void);
- /* We use this if we don't have any better idle routine. */
- void default_idle(void)
- {
--	local_irq_disable();
--	if (!need_resched()) {
--		/* Halt until exception. */
--		__asm__ volatile("ei    \n\t"
--				 "halt      ");
--	}
-+	/* Halt until exception. */
-+	__asm__ volatile("ei    \n\t"
-+			 "halt      ");
-+	/* CHECKME: Is this really needed ?? */
- 	local_irq_enable();
- }
- 
-Index: linux-2.6/arch/cris/arch-v32/kernel/smp.c
-===================================================================
---- linux-2.6.orig/arch/cris/arch-v32/kernel/smp.c
-+++ linux-2.6/arch/cris/arch-v32/kernel/smp.c
-@@ -145,8 +145,6 @@ smp_boot_one_cpu(int cpuid, struct task_
-  * specific stuff such as the local timer and the MMU. */
- void __init smp_callin(void)
- {
--	extern void cpu_idle(void);
--
- 	int cpu = cpu_now_booting;
- 	reg_intr_vect_rw_mask vect_mask = {0};
- 
-@@ -170,7 +168,7 @@ void __init smp_callin(void)
- 	local_irq_enable();
- 
- 	set_cpu_online(cpu, true);
--	cpu_idle();
-+	cpu_startup_entry(CPUHP_ONLINE);
- }
- 
- /* Stop execution on this CPU.*/
-Index: linux-2.6/arch/cris/kernel/process.c
-===================================================================
---- linux-2.6.orig/arch/cris/kernel/process.c
-+++ linux-2.6/arch/cris/kernel/process.c
-@@ -34,29 +34,9 @@ extern void default_idle(void);
+--- linux-2.6.orig/arch/c6x/kernel/process.c
++++ linux-2.6/arch/c6x/kernel/process.c
+@@ -33,7 +33,7 @@ extern asmlinkage void ret_from_kernel_t
  void (*pm_power_off)(void);
  EXPORT_SYMBOL(pm_power_off);
  
--/*
-- * The idle thread. There's no useful work to be
-- * done, so just try to conserve power and have a
-- * low exit latency (ie sit in a loop waiting for
-- * somebody to say that they'd like to reschedule)
-- */
--
--void cpu_idle (void)
+-static void c6x_idle(void)
 +void arch_cpu_idle(void)
  {
--	/* endless idle loop with no priority at all */
--	while (1) {
--		rcu_idle_enter();
--		while (!need_resched()) {
--			/*
--			 * Mark this as an RCU critical section so that
--			 * synchronize_kernel() in the unload path waits
--			 * for our completion.
--			 */
--			default_idle();
--		}
--		rcu_idle_exit();
--		schedule_preempt_disabled();
--	}
-+	default_idle();
+ 	unsigned long tmp;
+ 
+@@ -49,32 +49,6 @@ static void c6x_idle(void)
+ 		      : "=b"(tmp));
  }
  
- void hard_reset_now (void);
+-/*
+- * The idle loop for C64x
+- */
+-void cpu_idle(void)
+-{
+-	/* endless idle loop with no priority at all */
+-	while (1) {
+-		tick_nohz_idle_enter();
+-		rcu_idle_enter();
+-		while (1) {
+-			local_irq_disable();
+-			if (need_resched()) {
+-				local_irq_enable();
+-				break;
+-			}
+-			c6x_idle(); /* enables local irqs */
+-		}
+-		rcu_idle_exit();
+-		tick_nohz_idle_exit();
+-
+-		preempt_enable_no_resched();
+-		schedule();
+-		preempt_disable();
+-	}
+-}
+-
+ static void halt_loop(void)
+ {
+ 	printk(KERN_EMERG "System Halted, OK to turn off power\n");
 
 
