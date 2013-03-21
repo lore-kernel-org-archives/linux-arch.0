@@ -1,172 +1,96 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 29/34] sh: Use generic idle loop
-Date: Thu, 21 Mar 2013 21:53:20 -0000
-Message-ID: <20130321215235.216323644@linutronix.de>
+Subject: [patch 20/34] metag: Use generic idle loop
+Date: Thu, 21 Mar 2013 21:53:12 -0000
+Message-ID: <20130321215234.606480852@linutronix.de>
 References: <20130321214930.752934102@linutronix.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=sh-use-generic-idle-loop.patch
+Content-Disposition: inline; filename=metag-use-generic-idle-loop.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, Paul Mundt <lethal@linux-sh.org>
+Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, James Hogan <james.hogan@imgtec.com>
 List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Paul Mundt <lethal@linux-sh.org>
+Cc: James Hogan <james.hogan@imgtec.com>
 ---
- arch/sh/Kconfig       |    2 
- arch/sh/kernel/idle.c |  102 ++++----------------------------------------------
- arch/sh/kernel/smp.c  |    2 
- 3 files changed, 12 insertions(+), 94 deletions(-)
+ arch/metag/Kconfig          |    1 +
+ arch/metag/kernel/process.c |   32 +++-----------------------------
+ arch/metag/kernel/smp.c     |    2 +-
+ 3 files changed, 5 insertions(+), 30 deletions(-)
 
-Index: linux-2.6/arch/sh/Kconfig
+Index: linux-2.6/arch/metag/Kconfig
 ===================================================================
---- linux-2.6.orig/arch/sh/Kconfig
-+++ linux-2.6/arch/sh/Kconfig
-@@ -33,6 +33,8 @@ config SUPERH
- 	select GENERIC_ATOMIC64
+--- linux-2.6.orig/arch/metag/Kconfig
++++ linux-2.6/arch/metag/Kconfig
+@@ -9,6 +9,7 @@ config METAG
+ 	select GENERIC_CLOCKEVENTS
  	select GENERIC_IRQ_SHOW
  	select GENERIC_SMP_IDLE_THREAD
 +	select GENERIC_IDLE_LOOP
-+	select GENERIC_IDLE_POLL_SETUP
- 	select GENERIC_CLOCKEVENTS
- 	select GENERIC_CMOS_UPDATE if SH_SH03 || SH_DREAMCAST
- 	select GENERIC_STRNCPY_FROM_USER
-Index: linux-2.6/arch/sh/kernel/idle.c
+ 	select HAVE_64BIT_ALIGNED_ACCESS
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_C_RECORDMCOUNT
+Index: linux-2.6/arch/metag/kernel/process.c
 ===================================================================
---- linux-2.6.orig/arch/sh/kernel/idle.c
-+++ linux-2.6/arch/sh/kernel/idle.c
-@@ -24,98 +24,19 @@
- 
- static void (*sh_idle)(void);
- 
--static int hlt_counter;
--
--static int __init nohlt_setup(char *__unused)
--{
--	hlt_counter = 1;
--	return 1;
--}
--__setup("nohlt", nohlt_setup);
--
--static int __init hlt_setup(char *__unused)
--{
--	hlt_counter = 0;
--	return 1;
--}
--__setup("hlt", hlt_setup);
--
--static inline int hlt_works(void)
--{
--	return !hlt_counter;
--}
--
--/*
-- * On SMP it's slightly faster (but much more power-consuming!)
-- * to poll the ->work.need_resched flag instead of waiting for the
-- * cross-CPU IPI to arrive. Use this option with caution.
-- */
--static void poll_idle(void)
--{
--	local_irq_enable();
--	while (!need_resched())
--		cpu_relax();
--}
--
- void default_idle(void)
- {
--	if (hlt_works()) {
--		clear_thread_flag(TIF_POLLING_NRFLAG);
--		smp_mb__after_clear_bit();
--
--		set_bl_bit();
--		if (!need_resched()) {
--			local_irq_enable();
--			cpu_sleep();
--		} else
--			local_irq_enable();
--
--		set_thread_flag(TIF_POLLING_NRFLAG);
--		clear_bl_bit();
--	} else
--		poll_idle();
-+	set_bl_bit();
-+	local_irq_enable();
-+	/* Isn't this racy ? */
-+	cpu_sleep();
-+	clear_bl_bit();
- }
- 
--/*
-- * The idle thread. There's no useful work to be done, so just try to conserve
-- * power and have a low exit latency (ie sit in a loop waiting for somebody to
-- * say that they'd like to reschedule)
-- */
--void cpu_idle(void)
+--- linux-2.6.orig/arch/metag/kernel/process.c
++++ linux-2.6/arch/metag/kernel/process.c
+@@ -31,7 +31,7 @@
+ /*
+  * Wait for the next interrupt and enable local interrupts
+  */
+-static inline void arch_idle(void)
 +void arch_cpu_idle(void)
  {
--	unsigned int cpu = smp_processor_id();
--
+ 	int tmp;
+ 
+@@ -59,35 +59,9 @@ static inline void arch_idle(void)
+ 		      : "r" (get_trigger_mask()));
+ }
+ 
+-void cpu_idle(void)
++void arch_cpu_idle_dead(void)
+ {
 -	set_thread_flag(TIF_POLLING_NRFLAG);
 -
--	/* endless idle loop with no priority at all */
 -	while (1) {
 -		tick_nohz_idle_enter();
 -		rcu_idle_enter();
 -
 -		while (!need_resched()) {
--			check_pgt_cache();
--			rmb();
--
--			if (cpu_is_offline(cpu))
--				play_dead();
--
--			local_irq_disable();
--			/* Don't trace irqs off for idle */
--			stop_critical_timings();
--			if (cpuidle_idle_call())
--				sh_idle();
 -			/*
--			 * Sanity check to ensure that sh_idle() returns
--			 * with IRQs enabled
+-			 * We need to disable interrupts here to ensure we don't
+-			 * miss a wakeup call.
 -			 */
--			WARN_ON(irqs_disabled());
--			start_critical_timings();
+-			local_irq_disable();
+-			if (!need_resched()) {
+-#ifdef CONFIG_HOTPLUG_CPU
+-				if (cpu_is_offline(smp_processor_id()))
+-					cpu_die();
+-#endif
+-				arch_idle();
+-			} else {
+-				local_irq_enable();
+-			}
 -		}
 -
 -		rcu_idle_exit();
 -		tick_nohz_idle_exit();
 -		schedule_preempt_disabled();
--	}
-+	if (cpuidle_idle_call())
-+		sh_idle();
+-	 }
++	cpu_die();
  }
  
- void __init select_idle_routine(void)
-@@ -123,13 +44,8 @@ void __init select_idle_routine(void)
- 	/*
- 	 * If a platform has set its own idle routine, leave it alone.
- 	 */
--	if (sh_idle)
--		return;
--
--	if (hlt_works())
-+	if (!sh_idle)
- 		sh_idle = default_idle;
--	else
--		sh_idle = poll_idle;
- }
- 
- void stop_this_cpu(void *unused)
-Index: linux-2.6/arch/sh/kernel/smp.c
+ void (*pm_power_off)(void);
+Index: linux-2.6/arch/metag/kernel/smp.c
 ===================================================================
---- linux-2.6.orig/arch/sh/kernel/smp.c
-+++ linux-2.6/arch/sh/kernel/smp.c
-@@ -203,7 +203,7 @@ asmlinkage void __cpuinit start_secondar
- 	set_cpu_online(cpu, true);
- 	per_cpu(cpu_state, cpu) = CPU_ONLINE;
- 
+--- linux-2.6.orig/arch/metag/kernel/smp.c
++++ linux-2.6/arch/metag/kernel/smp.c
+@@ -297,7 +297,7 @@ asmlinkage void secondary_start_kernel(v
+ 	/*
+ 	 * OK, it's off to the idle thread for us
+ 	 */
 -	cpu_idle();
 +	cpu_startup_entry(CPUHP_ONLINE);
  }
  
- extern struct {
+ void __init smp_cpus_done(unsigned int max_cpus)
