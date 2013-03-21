@@ -1,45 +1,52 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [patch 2/5] sparse-vmemmap: specify vmemmap population range
- in bytes
-Date: Wed, 20 Mar 2013 14:43:41 -0400 (EDT)
-Message-ID: <20130320.144341.680730923044605208.davem@davemloft.net>
-References: <1363802612-32127-1-git-send-email-hannes@cmpxchg.org>
-	<1363802612-32127-3-git-send-email-hannes@cmpxchg.org>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: host gcc 4.7 warning when generating defconfig
+Date: Thu, 21 Mar 2013 12:20:21 +0530
+Message-ID: <514AADAD.1060503@synopsys.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:60084 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754593Ab3CTSno (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Mar 2013 14:43:44 -0400
-In-Reply-To: <1363802612-32127-3-git-send-email-hannes@cmpxchg.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: hannes@cmpxchg.org
-Cc: x86@kernel.org, akpm@linux-foundation.org, ben@decadent.org.uk, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: "linux-kbuild@vger.kernel.org" <linux-kbuild@vger.kernel.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+List-Id: linux-arch.vger.kernel.org
 
-From: Johannes Weiner <hannes@cmpxchg.org>
-Date: Wed, 20 Mar 2013 14:03:29 -0400
+Hi,
 
-> The sparse code, when asking the architecture to populate the vmemmap,
-> specifies the section range as a starting page and a number of pages.
-> 
-> This is an awkward interface, because none of the arch-specific code
-> actually thinks of the range in terms of 'struct page' units and
-> always translates it to bytes first.
-> 
-> In addition, later patches mix huge page and regular page backing for
-> the vmemmap.  For this, they need to call vmemmap_populate_basepages()
-> on sub-section ranges with PAGE_SIZE and PMD_SIZE in mind.  But these
-> are not necessarily multiples of the 'struct page' size and so this
-> unit is too coarse.
-> 
-> Just translate the section range into bytes once in the generic sparse
-> code, then pass byte ranges down the stack.
-> 
-> Signed-off-by: Johannes Weiner <hannes@cmpxchg.org>
+We do cross compile builds for ARC Linux. To avoid the env var set, we have a
+defconfig entry for CONFIG_CROSS_COMPILE.
+This worked fine so far (host gcc 4.4 i.e.). When switched to a new host distro
+(gcc 4.7), a defconfig build spews out the warning.
 
-Boot tested on sparc64:
+------------------->8--------------------------
+mymake defconfig
+gcc: error: unrecognized command line option '-marc600'
+gcc: error: unrecognized command line option '-mA7'
+gcc: error: unrecognized command line option '-mno-sdata'
+gcc: error: unrecognized command line option '-mno-mpy'
+*** Default configuration is based on 'fpga_defconfig'
+#
+# configuration written to .config
+------------------->8--------------------------
 
-Acked-by: David S. Miller <davem@davemloft.net>
+While the following trivial fix seems to fix this, it seems that the spew is
+coming due to LIBGCC definition line, which is strange to be called for defconfig
+generation. Any thoughts ?
+
+---------------->
+diff --git a/arch/arc/Makefile b/arch/arc/Makefile
+index 4232d4e..97e6c20 100644
+--- a/arch/arc/Makefile
++++ b/arch/arc/Makefile
+@@ -8,6 +8,10 @@
+ 
+ UTS_MACHINE := arc
+ 
++ifeq ($(CROSS_COMPILE),)
++#CROSS_COMPILE := arc-elf32-
++endif
++
+ KBUILD_DEFCONFIG := fpga_defconfig
+
+Thx,
+-Vineet
