@@ -1,95 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:33037 "EHLO
+Received: from www.linutronix.de ([62.245.132.108]:33033 "EHLO
 	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932167Ab3CUVxA (ORCPT
+	with ESMTP id S932159Ab3CUVxA (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Mar 2013 17:53:00 -0400
-Message-ID: <20130321215233.583190032@linutronix.de>
-Date: Thu, 21 Mar 2013 21:52:59 -0000
+Message-ID: <20130321215233.518839807@linutronix.de>
+Date: Thu, 21 Mar 2013 21:52:58 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 04/34] idle: Provide a generic entry point for the idle code
+Subject: [patch 03/34] idle: Implement set/clr functions for need_resched poll
 References: <20130321214930.752934102@linutronix.de>
 Content-Disposition: inline;
- filename=smpboot-implement-core-idle-function.patch
+ filename=smpboot-implement-need-resched-polling-helpers.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>
-Message-ID: <20130321215259.qgH85_P074nY5dZDIBQtPA-erh5YHAWlLMMKJE6uomM@z>
+Message-ID: <20130321215258.hNQALbh63SwtANCl40Yy7g0CSQLGdoMimEm7TIsMGOc@z>
 
-For now this calls cpu_idle(), but in the long run we want to move the
-cpu bringup code to the core and therefor we add a state argument.
+Implement set/clear functions for the idle need_resched poll
+implementation.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- include/linux/cpu.h |    8 ++++++++
- init/main.c         |    2 +-
- kernel/Makefile     |    1 +
- kernel/cpu/Makefile |    1 +
- kernel/cpu/idle.c   |   10 ++++++++++
- 5 files changed, 21 insertions(+), 1 deletion(-)
+ include/linux/sched.h |   23 ++++++++++++++++++++++-
+ 1 file changed, 22 insertions(+), 1 deletion(-)
 
-Index: linux-2.6/include/linux/cpu.h
+Index: linux-2.6/include/linux/sched.h
 ===================================================================
---- linux-2.6.orig/include/linux/cpu.h
-+++ linux-2.6/include/linux/cpu.h
-@@ -212,4 +212,12 @@ static inline int disable_nonboot_cpus(v
- static inline void enable_nonboot_cpus(void) {}
- #endif /* !CONFIG_PM_SLEEP_SMP */
+--- linux-2.6.orig/include/linux/sched.h
++++ linux-2.6/include/linux/sched.h
+@@ -2473,7 +2473,7 @@ static inline unsigned long *end_of_stac
+ #endif
  
-+enum cpuhp_state {
-+	CPUHP_OFFLINE,
-+	CPUHP_ONLINE,
-+};
-+
-+void cpu_startup_entry(enum cpuhp_state state);
-+void cpu_idle(void);
-+
- #endif /* _LINUX_CPU_H_ */
-Index: linux-2.6/init/main.c
-===================================================================
---- linux-2.6.orig/init/main.c
-+++ linux-2.6/init/main.c
-@@ -384,7 +384,7 @@ static noinline void __init_refok rest_i
- 	init_idle_bootup_task(current);
- 	schedule_preempt_disabled();
- 	/* Call into cpu_idle with preempt disabled */
--	cpu_idle();
-+	cpu_startup_entry(CPUHP_ONLINE);
+ /*
+- * Idle thread specific functions to determine the need_resched
++ * Idle thread specific functions for the the need_resched
+  * polling state. We have two versions, one based on TS_POLLING in
+  * thread_info.status and one based on TIF_POLLING_NRFLAG in
+  * thread_info.flags
+@@ -2483,13 +2483,34 @@ static inline int tsk_is_polling(struct 
+ {
+ 	return task_thread_info(p)->status & TS_POLLING;
  }
- 
- /* Check for early params. */
-Index: linux-2.6/kernel/Makefile
-===================================================================
---- linux-2.6.orig/kernel/Makefile
-+++ linux-2.6/kernel/Makefile
-@@ -24,6 +24,7 @@ endif
- 
- obj-y += sched/
- obj-y += power/
-+obj-y += cpu/
- 
- obj-$(CONFIG_CHECKPOINT_RESTORE) += kcmp.o
- obj-$(CONFIG_FREEZER) += freezer.o
-Index: linux-2.6/kernel/cpu/Makefile
-===================================================================
---- /dev/null
-+++ linux-2.6/kernel/cpu/Makefile
-@@ -0,0 +1 @@
-+obj-y	= idle.o
-Index: linux-2.6/kernel/cpu/idle.c
-===================================================================
---- /dev/null
-+++ linux-2.6/kernel/cpu/idle.c
-@@ -0,0 +1,10 @@
-+/*
-+ * Generic entry point for the idle threads
-+ */
-+#include <linux/sched.h>
-+#include <linux/cpu.h>
-+
-+void cpu_startup_entry(enum cpuhp_state state)
++static inline void current_set_polling(void)
 +{
-+	cpu_idle();
++	current_thread_info()->status |= TS_POLLING;
 +}
++
++static inline void current_clr_polling(void)
++{
++	current_thread_info()->status &= ~TS_POLLING;
++	smp_mb__after_clear_bit();
++}
+ #elif defined(TIF_POLLING_NRFLAG)
+ static inline int tsk_is_polling(struct task_struct *p)
+ {
+ 	test_tsk_thread_flag(p, TIF_POLLING_NRFLAG);
+ }
++static inline void current_set_polling(void)
++{
++	set_thread_flag(TIF_POLLING_NRFLAG);
++}
++
++static inline void current_clr_polling(void)
++{
++	clear_thread_flag(TIF_POLLING_NRFLAG);
++}
+ #else
+ static inline int tsk_is_polling(struct task_struct *p) { return 0; }
++static inline void current_set_polling(void) { }
++static inline void current_clr_polling(void) { }
+ #endif
+ 
+ static inline int object_is_on_stack(void *obj)
 
 
