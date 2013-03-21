@@ -1,57 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from vaxjo.synopsys.com ([198.182.60.75]:36985 "EHLO
-	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752245Ab3CUGwy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Mar 2013 02:52:54 -0400
-Message-ID: <514AADAD.1060503@synopsys.com>
-Date: Thu, 21 Mar 2013 12:20:21 +0530
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-MIME-Version: 1.0
-Subject: host gcc 4.7 warning when generating defconfig
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Received: from www.linutronix.de ([62.245.132.108]:33314 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752082Ab3CUVx0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Mar 2013 17:53:26 -0400
+Message-ID: <20130321215235.546600507@linutronix.de>
+Date: Thu, 21 Mar 2013 21:53:24 -0000
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch 34/34] xtensa: Use generic idle loop
+References: <20130321214930.752934102@linutronix.de>
+Content-Disposition: inline; filename=xtensa-use-generic-idle-loop.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "linux-kbuild@vger.kernel.org" <linux-kbuild@vger.kernel.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Message-ID: <20130321065021.1Un7rjZYwskCTWY2LXOZT43uoq39ibxPSsK1ZFet1m8@z>
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, Chris Zankel <chris@zankel.net>
+Message-ID: <20130321215324.KfAI86gCPisHfgxGN1QB-qPUunYDq9-wYP2Ay3SoS9M@z>
 
-Hi,
+Unfortunately this arch does not compile at all :(
 
-We do cross compile builds for ARC Linux. To avoid the env var set, we have a
-defconfig entry for CONFIG_CROSS_COMPILE.
-This worked fine so far (host gcc 4.4 i.e.). When switched to a new host distro
-(gcc 4.7), a defconfig build spews out the warning.
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: Chris Zankel <chris@zankel.net>
+---
+ arch/xtensa/Kconfig          |    1 +
+ arch/xtensa/kernel/process.c |   14 ++------------
+ 2 files changed, 3 insertions(+), 12 deletions(-)
 
-------------------->8--------------------------
-mymake defconfig
-gcc: error: unrecognized command line option '-marc600'
-gcc: error: unrecognized command line option '-mA7'
-gcc: error: unrecognized command line option '-mno-sdata'
-gcc: error: unrecognized command line option '-mno-mpy'
-*** Default configuration is based on 'fpga_defconfig'
-#
-# configuration written to .config
-------------------->8--------------------------
-
-While the following trivial fix seems to fix this, it seems that the spew is
-coming due to LIBGCC definition line, which is strange to be called for defconfig
-generation. Any thoughts ?
-
----------------->
-diff --git a/arch/arc/Makefile b/arch/arc/Makefile
-index 4232d4e..97e6c20 100644
---- a/arch/arc/Makefile
-+++ b/arch/arc/Makefile
-@@ -8,6 +8,10 @@
+Index: linux-2.6/arch/xtensa/Kconfig
+===================================================================
+--- linux-2.6.orig/arch/xtensa/Kconfig
++++ linux-2.6/arch/xtensa/Kconfig
+@@ -19,6 +19,7 @@ config XTENSA
+ 	select CLONE_BACKWARDS
+ 	select IRQ_DOMAIN
+ 	select HAVE_OPROFILE
++	select GENERIC_IDLE_LOOP
+ 	help
+ 	  Xtensa processors are 32-bit RISC machines designed by Tensilica
+ 	  primarily for embedded systems.  These processors are both
+Index: linux-2.6/arch/xtensa/kernel/process.c
+===================================================================
+--- linux-2.6.orig/arch/xtensa/kernel/process.c
++++ linux-2.6/arch/xtensa/kernel/process.c
+@@ -105,19 +105,9 @@ void coprocessor_flush_all(struct thread
+ /*
+  * Powermanagement idle function, if any is provided by the platform.
+  */
+-
+-void cpu_idle(void)
++void arch_cpu_idle(void)
+ {
+-	local_irq_enable();
+-
+-	/* endless idle loop with no priority at all */
+-	while (1) {
+-		rcu_idle_enter();
+-		while (!need_resched())
+-			platform_idle();
+-		rcu_idle_exit();
+-		schedule_preempt_disabled();
+-	}
++	platform_idle();
+ }
  
- UTS_MACHINE := arc
- 
-+ifeq ($(CROSS_COMPILE),)
-+#CROSS_COMPILE := arc-elf32-
-+endif
-+
- KBUILD_DEFCONFIG := fpga_defconfig
+ /*
 
-Thx,
--Vineet
+
