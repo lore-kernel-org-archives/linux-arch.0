@@ -1,82 +1,83 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 27/34] s390: Use generic idle loop
-Date: Thu, 21 Mar 2013 21:53:18 -0000
-Message-ID: <20130321215235.090816526@linutronix.de>
+Subject: [patch 25/34] parisc: Use generic idle loop
+Date: Thu, 21 Mar 2013 21:53:16 -0000
+Message-ID: <20130321215234.956305981@linutronix.de>
 References: <20130321214930.752934102@linutronix.de>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=s390-use-generic-idle-loop.patch
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from www.linutronix.de ([62.245.132.108]:33232 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932332Ab3CUVxS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Mar 2013 17:53:18 -0400
+Content-Disposition: inline; filename=parisc-use-generic-idle-loop.patch
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
+Cc: Helge Deller <deller@gmx.de>
 ---
- arch/s390/kernel/process.c |   25 +++++++------------------
- arch/s390/kernel/smp.c     |    3 +--
- 2 files changed, 8 insertions(+), 20 deletions(-)
+ arch/parisc/Kconfig          |    1 +
+ arch/parisc/kernel/process.c |   22 ----------------------
+ arch/parisc/kernel/smp.c     |    2 +-
+ 3 files changed, 2 insertions(+), 23 deletions(-)
 
-Index: linux-2.6/arch/s390/kernel/process.c
+Index: linux-2.6/arch/parisc/Kconfig
 ===================================================================
---- linux-2.6.orig/arch/s390/kernel/process.c
-+++ linux-2.6/arch/s390/kernel/process.c
-@@ -62,17 +62,15 @@ unsigned long thread_saved_pc(struct tas
- }
+--- linux-2.6.orig/arch/parisc/Kconfig
++++ linux-2.6/arch/parisc/Kconfig
+@@ -18,6 +18,7 @@ config PARISC
+ 	select GENERIC_PCI_IOMAP
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+ 	select GENERIC_SMP_IDLE_THREAD
++	select GENERIC_IDLE_LOOP
+ 	select GENERIC_STRNCPY_FROM_USER
+ 	select SYSCTL_ARCH_UNALIGN_ALLOW
+ 	select HAVE_MOD_ARCH_SPECIFIC
+Index: linux-2.6/arch/parisc/kernel/process.c
+===================================================================
+--- linux-2.6.orig/arch/parisc/kernel/process.c
++++ linux-2.6/arch/parisc/kernel/process.c
+@@ -59,28 +59,6 @@
+ #include <asm/unwind.h>
+ #include <asm/sections.h>
  
- /*
-- * The idle loop on a S390...
-+ * The idle function on a S390...
-  */
--static void default_idle(void)
-+void arch_cpu_idle(void)
- {
--	if (cpu_is_offline(smp_processor_id()))
--		cpu_die();
--	local_irq_disable();
--	if (need_resched()) {
-+	if (test_thread_flag(TIF_MCCK_PENDING)) {
- 		local_irq_enable();
- 		return;
- 	}
-+
- 	local_mcck_disable();
- 	if (test_thread_flag(TIF_MCCK_PENDING)) {
- 		local_mcck_enable();
-@@ -83,19 +81,10 @@ static void default_idle(void)
- 	vtime_stop_cpu();
- }
- 
+-/*
+- * The idle thread. There's no useful work to be
+- * done, so just try to conserve power and have a
+- * low exit latency (ie sit in a loop waiting for
+- * somebody to say that they'd like to reschedule)
+- */
 -void cpu_idle(void)
-+void arch_cpu_idle_exit(void)
- {
--	for (;;) {
--		tick_nohz_idle_enter();
+-{
+-	set_thread_flag(TIF_POLLING_NRFLAG);
+-
+-	/* endless idle loop with no priority at all */
+-	while (1) {
 -		rcu_idle_enter();
--		while (!need_resched() && !test_thread_flag(TIF_MCCK_PENDING))
--			default_idle();
+-		while (!need_resched())
+-			barrier();
 -		rcu_idle_exit();
--		tick_nohz_idle_exit();
--		if (test_thread_flag(TIF_MCCK_PENDING))
--			s390_handle_mcck();
 -		schedule_preempt_disabled();
+-		check_pgt_cache();
 -	}
-+	if (test_thread_flag(TIF_MCCK_PENDING))
-+		s390_handle_mcck();
- }
+-}
+-
+-
+ #define COMMAND_GLOBAL  F_EXTEND(0xfffe0030)
+ #define CMD_RESET       5       /* reset any module */
  
- extern void __kprobes kernel_thread_starter(void);
-Index: linux-2.6/arch/s390/kernel/smp.c
+Index: linux-2.6/arch/parisc/kernel/smp.c
 ===================================================================
---- linux-2.6.orig/arch/s390/kernel/smp.c
-+++ linux-2.6/arch/s390/kernel/smp.c
-@@ -711,8 +711,7 @@ static void __cpuinit smp_start_secondar
- 	set_cpu_online(smp_processor_id(), true);
- 	inc_irq_stat(CPU_RST);
- 	local_irq_enable();
--	/* cpu_idle will call schedule for us */
--	cpu_idle();
-+	cpu_startup_entry(CPUHP_ONLINE);
- }
+--- linux-2.6.orig/arch/parisc/kernel/smp.c
++++ linux-2.6/arch/parisc/kernel/smp.c
+@@ -329,7 +329,7 @@ void __init smp_callin(void)
  
- /* Upping and downing of CPUs */
+ 	local_irq_enable();  /* Interrupts have been off until now */
+ 
+-	cpu_idle();      /* Wait for timer to schedule some work */
++	cpu_startup_entry(CPUHP_ONLINE);
+ 
+ 	/* NOTREACHED */
+ 	panic("smp_callin() AAAAaaaaahhhh....\n");
