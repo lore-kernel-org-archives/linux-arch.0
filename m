@@ -1,96 +1,64 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 20/34] metag: Use generic idle loop
-Date: Thu, 21 Mar 2013 21:53:12 -0000
-Message-ID: <20130321215234.606480852@linutronix.de>
+Subject: [patch 28/34] score: Use generic idle loop
+Date: Thu, 21 Mar 2013 21:53:19 -0000
+Message-ID: <20130321215235.147909863@linutronix.de>
 References: <20130321214930.752934102@linutronix.de>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=metag-use-generic-idle-loop.patch
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from www.linutronix.de ([62.245.132.108]:33257 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932358Ab3CUVxU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Mar 2013 17:53:20 -0400
+Content-Disposition: inline; filename=score-use-generic-idle-loop.patch
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, James Hogan <james.hogan@imgtec.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, Lennox Wu <lennox.wu@gmail.com>
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: James Hogan <james.hogan@imgtec.com>
+Cc: Lennox Wu <lennox.wu@gmail.com>
 ---
- arch/metag/Kconfig          |    1 +
- arch/metag/kernel/process.c |   32 +++-----------------------------
- arch/metag/kernel/smp.c     |    2 +-
- 3 files changed, 5 insertions(+), 30 deletions(-)
+ arch/score/Kconfig          |    1 +
+ arch/score/kernel/process.c |   18 ------------------
+ 2 files changed, 1 insertion(+), 18 deletions(-)
 
-Index: linux-2.6/arch/metag/Kconfig
+Index: linux-2.6/arch/score/Kconfig
 ===================================================================
---- linux-2.6.orig/arch/metag/Kconfig
-+++ linux-2.6/arch/metag/Kconfig
-@@ -9,6 +9,7 @@ config METAG
- 	select GENERIC_CLOCKEVENTS
- 	select GENERIC_IRQ_SHOW
- 	select GENERIC_SMP_IDLE_THREAD
-+	select GENERIC_IDLE_LOOP
- 	select HAVE_64BIT_ALIGNED_ACCESS
- 	select HAVE_ARCH_TRACEHOOK
- 	select HAVE_C_RECORDMCOUNT
-Index: linux-2.6/arch/metag/kernel/process.c
+--- linux-2.6.orig/arch/score/Kconfig
++++ linux-2.6/arch/score/Kconfig
+@@ -11,6 +11,7 @@ config SCORE
+        select ARCH_DISCARD_MEMBLOCK
+        select GENERIC_CPU_DEVICES
+        select GENERIC_CLOCKEVENTS
++       select GENERIC_IDLE_LOOP
+        select HAVE_MOD_ARCH_SPECIFIC
+ 	select VIRT_TO_BUS
+ 	select MODULES_USE_ELF_REL
+Index: linux-2.6/arch/score/kernel/process.c
 ===================================================================
---- linux-2.6.orig/arch/metag/kernel/process.c
-+++ linux-2.6/arch/metag/kernel/process.c
-@@ -31,7 +31,7 @@
- /*
-  * Wait for the next interrupt and enable local interrupts
-  */
--static inline void arch_idle(void)
-+void arch_cpu_idle(void)
- {
- 	int tmp;
+--- linux-2.6.orig/arch/score/kernel/process.c
++++ linux-2.6/arch/score/kernel/process.c
+@@ -41,24 +41,6 @@ void machine_halt(void) {}
+ /* If or when software machine-power-off is implemented, add code here. */
+ void machine_power_off(void) {}
  
-@@ -59,35 +59,9 @@ static inline void arch_idle(void)
- 		      : "r" (get_trigger_mask()));
- }
- 
--void cpu_idle(void)
-+void arch_cpu_idle_dead(void)
- {
--	set_thread_flag(TIF_POLLING_NRFLAG);
--
+-/*
+- * The idle thread. There's no useful work to be
+- * done, so just try to conserve power and have a
+- * low exit latency (ie sit in a loop waiting for
+- * somebody to say that they'd like to reschedule)
+- */
+-void __noreturn cpu_idle(void)
+-{
+-	/* endless idle loop with no priority at all */
 -	while (1) {
--		tick_nohz_idle_enter();
 -		rcu_idle_enter();
--
--		while (!need_resched()) {
--			/*
--			 * We need to disable interrupts here to ensure we don't
--			 * miss a wakeup call.
--			 */
--			local_irq_disable();
--			if (!need_resched()) {
--#ifdef CONFIG_HOTPLUG_CPU
--				if (cpu_is_offline(smp_processor_id()))
--					cpu_die();
--#endif
--				arch_idle();
--			} else {
--				local_irq_enable();
--			}
--		}
--
+-		while (!need_resched())
+-			barrier();
 -		rcu_idle_exit();
--		tick_nohz_idle_exit();
 -		schedule_preempt_disabled();
--	 }
-+	cpu_die();
- }
+-	}
+-}
+-
+ void ret_from_fork(void);
+ void ret_from_kernel_thread(void);
  
- void (*pm_power_off)(void);
-Index: linux-2.6/arch/metag/kernel/smp.c
-===================================================================
---- linux-2.6.orig/arch/metag/kernel/smp.c
-+++ linux-2.6/arch/metag/kernel/smp.c
-@@ -297,7 +297,7 @@ asmlinkage void secondary_start_kernel(v
- 	/*
- 	 * OK, it's off to the idle thread for us
- 	 */
--	cpu_idle();
-+	cpu_startup_entry(CPUHP_ONLINE);
- }
- 
- void __init smp_cpus_done(unsigned int max_cpus)
