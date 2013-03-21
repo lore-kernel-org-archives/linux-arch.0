@@ -1,87 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:33059 "EHLO
+Received: from www.linutronix.de ([62.245.132.108]:33037 "EHLO
 	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753617Ab3CUVxD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Mar 2013 17:53:03 -0400
-Message-ID: <20130321215233.766017538@linutronix.de>
-Date: Thu, 21 Mar 2013 21:53:01 -0000
+	with ESMTP id S932167Ab3CUVxA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Mar 2013 17:53:00 -0400
+Message-ID: <20130321215233.583190032@linutronix.de>
+Date: Thu, 21 Mar 2013 21:52:59 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 07/34] alpha: Use generic idle loop
+Subject: [patch 04/34] idle: Provide a generic entry point for the idle code
 References: <20130321214930.752934102@linutronix.de>
-Content-Disposition: inline; filename=alpha-use-generic-idle-loop.patch
+Content-Disposition: inline;
+ filename=smpboot-implement-core-idle-function.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>
-Message-ID: <20130321215301.QNC-YQlmxwAEehLYjITi6U97bCXplOA20AKdmKbFquo@z>
+Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>
+Message-ID: <20130321215259.qgH85_P074nY5dZDIBQtPA-erh5YHAWlLMMKJE6uomM@z>
 
-The core provides a generic idle poll loop.
+For now this calls cpu_idle(), but in the long run we want to move the
+cpu bringup code to the core and therefor we add a state argument.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Richard Henderson <rth@twiddle.net>
-Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Cc: Matt Turner <mattst88@gmail.com>
 ---
- arch/alpha/Kconfig          |    1 +
- arch/alpha/kernel/process.c |   19 -------------------
- arch/alpha/kernel/smp.c     |    3 +--
- 3 files changed, 2 insertions(+), 21 deletions(-)
+ include/linux/cpu.h |    8 ++++++++
+ init/main.c         |    2 +-
+ kernel/Makefile     |    1 +
+ kernel/cpu/Makefile |    1 +
+ kernel/cpu/idle.c   |   10 ++++++++++
+ 5 files changed, 21 insertions(+), 1 deletion(-)
 
-Index: linux-2.6/arch/alpha/Kconfig
+Index: linux-2.6/include/linux/cpu.h
 ===================================================================
---- linux-2.6.orig/arch/alpha/Kconfig
-+++ linux-2.6/arch/alpha/Kconfig
-@@ -17,6 +17,7 @@ config ALPHA
- 	select ARCH_WANT_IPC_PARSE_VERSION
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
- 	select GENERIC_SMP_IDLE_THREAD
-+	select GENERIC_IDLE_LOOP
- 	select GENERIC_CMOS_UPDATE
- 	select GENERIC_STRNCPY_FROM_USER
- 	select GENERIC_STRNLEN_USER
-Index: linux-2.6/arch/alpha/kernel/process.c
-===================================================================
---- linux-2.6.orig/arch/alpha/kernel/process.c
-+++ linux-2.6/arch/alpha/kernel/process.c
-@@ -46,25 +46,6 @@
- void (*pm_power_off)(void) = machine_power_off;
- EXPORT_SYMBOL(pm_power_off);
+--- linux-2.6.orig/include/linux/cpu.h
++++ linux-2.6/include/linux/cpu.h
+@@ -212,4 +212,12 @@ static inline int disable_nonboot_cpus(v
+ static inline void enable_nonboot_cpus(void) {}
+ #endif /* !CONFIG_PM_SLEEP_SMP */
  
--void
--cpu_idle(void)
--{
--	current_thread_info()->status |= TS_POLLING;
--
--	while (1) {
--		/* FIXME -- EV6 and LCA45 know how to power down
--		   the CPU.  */
--
--		rcu_idle_enter();
--		while (!need_resched())
--			cpu_relax();
--
--		rcu_idle_exit();
--		schedule_preempt_disabled();
--	}
--}
--
--
- struct halt_info {
- 	int mode;
- 	char *restart_cmd;
-Index: linux-2.6/arch/alpha/kernel/smp.c
++enum cpuhp_state {
++	CPUHP_OFFLINE,
++	CPUHP_ONLINE,
++};
++
++void cpu_startup_entry(enum cpuhp_state state);
++void cpu_idle(void);
++
+ #endif /* _LINUX_CPU_H_ */
+Index: linux-2.6/init/main.c
 ===================================================================
---- linux-2.6.orig/arch/alpha/kernel/smp.c
-+++ linux-2.6/arch/alpha/kernel/smp.c
-@@ -167,8 +167,7 @@ smp_callin(void)
- 	      cpuid, current, current->active_mm));
- 
- 	preempt_disable();
--	/* Do nothing.  */
+--- linux-2.6.orig/init/main.c
++++ linux-2.6/init/main.c
+@@ -384,7 +384,7 @@ static noinline void __init_refok rest_i
+ 	init_idle_bootup_task(current);
+ 	schedule_preempt_disabled();
+ 	/* Call into cpu_idle with preempt disabled */
 -	cpu_idle();
 +	cpu_startup_entry(CPUHP_ONLINE);
  }
  
- /* Wait until hwrpb->txrdy is clear for cpu.  Return -1 on timeout.  */
+ /* Check for early params. */
+Index: linux-2.6/kernel/Makefile
+===================================================================
+--- linux-2.6.orig/kernel/Makefile
++++ linux-2.6/kernel/Makefile
+@@ -24,6 +24,7 @@ endif
+ 
+ obj-y += sched/
+ obj-y += power/
++obj-y += cpu/
+ 
+ obj-$(CONFIG_CHECKPOINT_RESTORE) += kcmp.o
+ obj-$(CONFIG_FREEZER) += freezer.o
+Index: linux-2.6/kernel/cpu/Makefile
+===================================================================
+--- /dev/null
++++ linux-2.6/kernel/cpu/Makefile
+@@ -0,0 +1 @@
++obj-y	= idle.o
+Index: linux-2.6/kernel/cpu/idle.c
+===================================================================
+--- /dev/null
++++ linux-2.6/kernel/cpu/idle.c
+@@ -0,0 +1,10 @@
++/*
++ * Generic entry point for the idle threads
++ */
++#include <linux/sched.h>
++#include <linux/cpu.h>
++
++void cpu_startup_entry(enum cpuhp_state state)
++{
++	cpu_idle();
++}
 
 
