@@ -1,154 +1,72 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 00/34] idle: Consolidate idle implementations
-Date: Thu, 21 Mar 2013 21:52:56 -0000
-Message-ID: <20130321214930.752934102@linutronix.de>
+From: Tony Breeds <tony@bakeyournoodle.com>
+Subject: Re: [patch 02/34] arch: Consolidate tsk_is_polling()
+Date: Fri, 22 Mar 2013 16:01:19 +1100
+Message-ID: <20130322050118.GA31022@thor.bakeyournoodle.com>
+References: <20130321214930.752934102@linutronix.de>
+ <20130321215233.446034505@linutronix.de>
+Mime-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha256;
+	protocol="application/pgp-signature"; boundary="x+6KMIRAuhnl3hBn"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:33028 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932144Ab3CUVxA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Mar 2013 17:53:00 -0400
+Received: from ozlabs.org ([203.10.76.45]:40210 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932185Ab3CVFB1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 22 Mar 2013 01:01:27 -0400
+Content-Disposition: inline
+In-Reply-To: <20130321215233.446034505@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>
 
-Each architecture implements its own cpu_idle() code, which is more or
-less the same on all architectures (plus/minus a few bugs and a few
-missing extra functionalities, instrumentation ...). That also forces
-everyone who is interested in idle related features to add new
-functionality to every architecture. What a waste.
 
-Aside of that pointless code duplicaiton the ongoing quest to
-consolidate the cpu hotplug code needs a common entry point for the
-non boot cpus.
+--x+6KMIRAuhnl3hBn
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-The following series implements a generic idle function and converts
-most architectures over. I left out SPARC (it involves sparc asm) and
-UM (it made me barf). If we can move those architectures as well, we
-can get rid of the extra config switch and have everything
-consolidated.
+On Thu, Mar 21, 2013 at 09:52:57PM -0000, Thomas Gleixner wrote:
 
-I spent a lot of time to make sure that the conversion preserved the
-non obvious differences of the architecture implementations, but I
-really need help from the affected maintainers to prove the
-correctness.
+> Index: linux-2.6/arch/powerpc/include/asm/thread_info.h
+> =3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
+> --- linux-2.6.orig/arch/powerpc/include/asm/thread_info.h
+> +++ linux-2.6/arch/powerpc/include/asm/thread_info.h
+> @@ -182,10 +182,6 @@ static inline bool test_thread_local_fla
+>  #define is_32bit_task()	(1)
+>  #endif
+> =20
+> -#define tsk_is_polling(t) test_tsk_thread_flag(t, TIF_POLLING_NRFLAG)
+> -
+> -#endif	/* !__ASSEMBLY__ */
+> -
 
-Thanks,
+I think taking out this #endif is wrong.  probably wrong in the other
+arches as well.
+=20
 
-	tglx
----
- arch/openrisc/kernel/idle.c                         |   73 ------------
- linux-2.6/arch/Kconfig                              |    3 
- linux-2.6/arch/alpha/Kconfig                        |    1 
- linux-2.6/arch/alpha/include/asm/thread_info.h      |    2 
- linux-2.6/arch/alpha/kernel/process.c               |   19 ---
- linux-2.6/arch/alpha/kernel/smp.c                   |    3 
- linux-2.6/arch/arc/Kconfig                          |    1 
- linux-2.6/arch/arc/kernel/process.c                 |   27 ----
- linux-2.6/arch/arc/kernel/smp.c                     |    2 
- linux-2.6/arch/arm/Kconfig                          |    2 
- linux-2.6/arch/arm/include/asm/system_misc.h        |    3 
- linux-2.6/arch/arm/kernel/process.c                 |  100 ++++-------------
- linux-2.6/arch/arm/kernel/smp.c                     |    2 
- linux-2.6/arch/arm/mach-gemini/idle.c               |    4 
- linux-2.6/arch/arm/mach-gemini/irq.c                |    2 
- linux-2.6/arch/arm/mach-ixp4xx/common.c             |    2 
- linux-2.6/arch/arm/mach-omap1/pm.c                  |    5 
- linux-2.6/arch/arm/mach-omap2/omap_hwmod.c          |    6 -
- linux-2.6/arch/arm/mach-omap2/pm.c                  |    5 
- linux-2.6/arch/arm/mach-orion5x/board-dt.c          |    2 
- linux-2.6/arch/arm/mach-orion5x/common.c            |    2 
- linux-2.6/arch/arm/mach-shark/core.c                |    2 
- linux-2.6/arch/arm/mach-shmobile/suspend.c          |    4 
- linux-2.6/arch/arm/mach-w90x900/dev.c               |    2 
- linux-2.6/arch/arm64/Kconfig                        |    1 
- linux-2.6/arch/arm64/kernel/process.c               |   43 -------
- linux-2.6/arch/arm64/kernel/smp.c                   |    2 
- linux-2.6/arch/avr32/Kconfig                        |    1 
- linux-2.6/arch/avr32/kernel/process.c               |   13 --
- linux-2.6/arch/avr32/kernel/time.c                  |    8 +
- linux-2.6/arch/avr32/mach-at32ap/include/mach/pm.h  |   24 ----
- linux-2.6/arch/avr32/mach-at32ap/pm-at32ap700x.S    |    7 -
- linux-2.6/arch/blackfin/Kconfig                     |    1 
- linux-2.6/arch/blackfin/kernel/process.c            |   30 -----
- linux-2.6/arch/blackfin/mach-common/smp.c           |    2 
- linux-2.6/arch/c6x/Kconfig                          |    1 
- linux-2.6/arch/c6x/kernel/process.c                 |   28 ----
- linux-2.6/arch/cris/Kconfig                         |    1 
- linux-2.6/arch/cris/arch-v10/kernel/process.c       |    3 
- linux-2.6/arch/cris/arch-v32/kernel/process.c       |   12 --
- linux-2.6/arch/cris/arch-v32/kernel/smp.c           |    4 
- linux-2.6/arch/cris/include/asm/processor.h         |    7 -
- linux-2.6/arch/cris/kernel/process.c                |   49 --------
- linux-2.6/arch/frv/Kconfig                          |    1 
- linux-2.6/arch/frv/kernel/process.c                 |   27 ----
- linux-2.6/arch/h8300/Kconfig                        |    1 
- linux-2.6/arch/h8300/kernel/process.c               |   35 ------
- linux-2.6/arch/hexagon/Kconfig                      |    1 
- linux-2.6/arch/hexagon/kernel/process.c             |   23 ----
- linux-2.6/arch/hexagon/kernel/smp.c                 |    2 
- linux-2.6/arch/ia64/Kconfig                         |    1 
- linux-2.6/arch/ia64/include/asm/thread_info.h       |    2 
- linux-2.6/arch/ia64/kernel/perfmon.c                |   13 --
- linux-2.6/arch/ia64/kernel/process.c                |   83 ++------------
- linux-2.6/arch/ia64/kernel/smpboot.c                |    2 
- linux-2.6/arch/m32r/Kconfig                         |    1 
- linux-2.6/arch/m32r/kernel/process.c                |   18 ---
- linux-2.6/arch/m32r/kernel/smpboot.c                |    2 
- linux-2.6/arch/m68k/Kconfig                         |    1 
- linux-2.6/arch/m68k/kernel/process.c                |   32 -----
- linux-2.6/arch/metag/Kconfig                        |    1 
- linux-2.6/arch/metag/include/asm/thread_info.h      |    2 
- linux-2.6/arch/metag/kernel/process.c               |   32 -----
- linux-2.6/arch/metag/kernel/smp.c                   |    2 
- linux-2.6/arch/microblaze/Kconfig                   |    2 
- linux-2.6/arch/microblaze/include/asm/processor.h   |    5 
- linux-2.6/arch/microblaze/include/asm/thread_info.h |    1 
- linux-2.6/arch/microblaze/kernel/process.c          |   65 -----------
- linux-2.6/arch/mips/Kconfig                         |    1 
- linux-2.6/arch/mips/kernel/process.c                |   46 ++------
- linux-2.6/arch/mips/kernel/smp.c                    |    2 
- linux-2.6/arch/mn10300/Kconfig                      |    1 
- linux-2.6/arch/mn10300/include/asm/thread_info.h    |    2 
- linux-2.6/arch/mn10300/kernel/process.c             |   70 +-----------
- linux-2.6/arch/mn10300/kernel/smp.c                 |    7 -
- linux-2.6/arch/openrisc/Kconfig                     |    1 
- linux-2.6/arch/openrisc/include/asm/thread_info.h   |    2 
- linux-2.6/arch/parisc/Kconfig                       |    1 
- linux-2.6/arch/parisc/include/asm/thread_info.h     |    2 
- linux-2.6/arch/parisc/kernel/process.c              |   22 ---
- linux-2.6/arch/parisc/kernel/smp.c                  |    2 
- linux-2.6/arch/powerpc/Kconfig                      |    1 
- linux-2.6/arch/powerpc/include/asm/thread_info.h    |    4 
- linux-2.6/arch/powerpc/kernel/idle.c                |   78 +++----------
- linux-2.6/arch/powerpc/kernel/smp.c                 |    2 
- linux-2.6/arch/s390/kernel/process.c                |   25 +---
- linux-2.6/arch/s390/kernel/smp.c                    |    3 
- linux-2.6/arch/score/Kconfig                        |    1 
- linux-2.6/arch/score/kernel/process.c               |   18 ---
- linux-2.6/arch/sh/Kconfig                           |    2 
- linux-2.6/arch/sh/include/asm/thread_info.h         |    4 
- linux-2.6/arch/sh/kernel/idle.c                     |  102 +----------------
- linux-2.6/arch/sh/kernel/smp.c                      |    2 
- linux-2.6/arch/sparc/include/asm/thread_info_32.h   |    2 
- linux-2.6/arch/sparc/include/asm/thread_info_64.h   |    2 
- linux-2.6/arch/tile/include/asm/thread_info.h       |    2 
- linux-2.6/arch/tile/kernel/process.c                |   61 +---------
- linux-2.6/arch/tile/kernel/smpboot.c                |    4 
- linux-2.6/arch/unicore32/Kconfig                    |    1 
- linux-2.6/arch/unicore32/kernel/process.c           |   21 ---
- linux-2.6/arch/x86/Kconfig                          |    1 
- linux-2.6/arch/x86/include/asm/thread_info.h        |    2 
- linux-2.6/arch/x86/kernel/process.c                 |  106 +++++-------------
- linux-2.6/arch/x86/kernel/smpboot.c                 |    2 
- linux-2.6/arch/x86/xen/smp.c                        |    2 
- linux-2.6/arch/xtensa/Kconfig                       |    1 
- linux-2.6/arch/xtensa/kernel/process.c              |   14 --
- linux-2.6/include/linux/cpu.h                       |   16 ++
- linux-2.6/include/linux/sched.h                     |   41 +++++++
- linux-2.6/init/main.c                               |    2 
- linux-2.6/kernel/Makefile                           |    1 
- linux-2.6/kernel/cpu/Makefile                       |    1 
- linux-2.6/kernel/cpu/idle.c                         |  115 ++++++++++++++++++++
- linux-2.6/kernel/sched/core.c                       |    5 
- 114 files changed, 432 insertions(+), 1237 deletions(-)
+Yours Tony
+
+--x+6KMIRAuhnl3hBn
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.13 (GNU/Linux)
+
+iQIcBAEBCAAGBQJRS+WdAAoJEEsCiJRY75GKaV8P/29Beq3fXuM7BW5Xnds0Qksg
+NC2pSP1IejBwjWfiGoWVeSuorffFtu/jy2n5rauGozox1nuU6TdZrV9wN0Z6H/Xc
+pdSgk17vBDpJxRpyF8tWR5UA+7gMbf+fQ+0n/JdureMU1PyD+lF0IysxhMraXGmi
+FtOarVfuewnz9WFhl7fokJNB6SkDxQV3AUFkhdpv9ErQtE9szTueFlXAjZF1+07T
+CqjnU8DiHWc9wkKPoOMoAucuucOh4/kVS2RF4iNV0dYq9zem6k9/3NxPEqVLbmv/
+C0/bq77dAwvKyJq+wA8C4Fgf5WXdizvyckoIHGhN8nDIiEIUQBAQDG41SddpN4hS
+5lCFDYMe1fq+9N7AV/C+CDoK/HGtK/RXQdPZuRnYI//KjEWBh5cWfubj97zC2OIc
+wr68tQZ6t863DvlVgTrPZyhFJVBZ7gJfJY3jYee0Ar//lByinMGsSDbMpgJ25U0B
+l5K0JD9yxE/qGjT595aIMbOdiiN9e/j30HBneij1JRFYeRiPe4l7KBUar1kuUcR8
+puiQLveAZj388fdlMIEoVPcrnJUj0CAnUkGxWb2em8KE5P+ncMfLzEKjRkLv0+Bh
+B0/YRzWqTiW/z0GWuv2rukkYDpaZDgsuNG2XyQxDCUuYducv0Qm1dwUsRJ+It4lY
+WZiu2GFn2V11gnAR14zD
+=LLmO
+-----END PGP SIGNATURE-----
+
+--x+6KMIRAuhnl3hBn--
