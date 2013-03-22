@@ -1,17 +1,17 @@
 From: Tony Breeds <tony@bakeyournoodle.com>
 Subject: Re: [patch 02/34] arch: Consolidate tsk_is_polling()
-Date: Fri, 22 Mar 2013 16:01:19 +1100
-Message-ID: <20130322050118.GA31022@thor.bakeyournoodle.com>
+Date: Fri, 22 Mar 2013 16:20:11 +1100
+Message-ID: <20130322052010.GB31022@thor.bakeyournoodle.com>
 References: <20130321214930.752934102@linutronix.de>
  <20130321215233.446034505@linutronix.de>
 Mime-Version: 1.0
 Content-Type: multipart/signed; micalg=pgp-sha256;
-	protocol="application/pgp-signature"; boundary="x+6KMIRAuhnl3hBn"
+	protocol="application/pgp-signature"; boundary="neYutvxvOLaeuPCA"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:40210 "EHLO ozlabs.org"
+Received: from ozlabs.org ([203.10.76.45]:33882 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932185Ab3CVFB1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 22 Mar 2013 01:01:27 -0400
+	id S1752534Ab3CVFUO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 22 Mar 2013 01:20:14 -0400
 Content-Disposition: inline
 In-Reply-To: <20130321215233.446034505@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
@@ -20,53 +20,56 @@ To: Thomas Gleixner <tglx@linutronix.de>
 Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>
 
 
---x+6KMIRAuhnl3hBn
+--neYutvxvOLaeuPCA
 Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
 Content-Transfer-Encoding: quoted-printable
 
 On Thu, Mar 21, 2013 at 09:52:57PM -0000, Thomas Gleixner wrote:
-
-> Index: linux-2.6/arch/powerpc/include/asm/thread_info.h
-> =3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-> --- linux-2.6.orig/arch/powerpc/include/asm/thread_info.h
-> +++ linux-2.6/arch/powerpc/include/asm/thread_info.h
-> @@ -182,10 +182,6 @@ static inline bool test_thread_local_fla
->  #define is_32bit_task()	(1)
->  #endif
-> =20
-> -#define tsk_is_polling(t) test_tsk_thread_flag(t, TIF_POLLING_NRFLAG)
-> -
-> -#endif	/* !__ASSEMBLY__ */
-> -
-
-I think taking out this #endif is wrong.  probably wrong in the other
-arches as well.
 =20
+> +/*
+> + * Idle thread specific functions to determine the need_resched
+> + * polling state. We have two versions, one based on TS_POLLING in
+> + * thread_info.status and one based on TIF_POLLING_NRFLAG in
+> + * thread_info.flags
+> + */
+> +#ifdef TS_POLLING
+> +static inline int tsk_is_polling(struct task_struct *p)
+> +{
+> +	return task_thread_info(p)->status & TS_POLLING;
+> +}
+> +#elif defined(TIF_POLLING_NRFLAG)
+> +static inline int tsk_is_polling(struct task_struct *p)
+> +{
+> +	test_tsk_thread_flag(p, TIF_POLLING_NRFLAG);
+> +}
+
+On powerpc (at least) this is used before it's declared.  Also I think
+you're missing a 'return' in that function.
+
+*cough* https://www.kernel.org/pub/tools/crosstool/ *cough*
 
 Yours Tony
 
---x+6KMIRAuhnl3hBn
+--neYutvxvOLaeuPCA
 Content-Type: application/pgp-signature
 
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.13 (GNU/Linux)
 
-iQIcBAEBCAAGBQJRS+WdAAoJEEsCiJRY75GKaV8P/29Beq3fXuM7BW5Xnds0Qksg
-NC2pSP1IejBwjWfiGoWVeSuorffFtu/jy2n5rauGozox1nuU6TdZrV9wN0Z6H/Xc
-pdSgk17vBDpJxRpyF8tWR5UA+7gMbf+fQ+0n/JdureMU1PyD+lF0IysxhMraXGmi
-FtOarVfuewnz9WFhl7fokJNB6SkDxQV3AUFkhdpv9ErQtE9szTueFlXAjZF1+07T
-CqjnU8DiHWc9wkKPoOMoAucuucOh4/kVS2RF4iNV0dYq9zem6k9/3NxPEqVLbmv/
-C0/bq77dAwvKyJq+wA8C4Fgf5WXdizvyckoIHGhN8nDIiEIUQBAQDG41SddpN4hS
-5lCFDYMe1fq+9N7AV/C+CDoK/HGtK/RXQdPZuRnYI//KjEWBh5cWfubj97zC2OIc
-wr68tQZ6t863DvlVgTrPZyhFJVBZ7gJfJY3jYee0Ar//lByinMGsSDbMpgJ25U0B
-l5K0JD9yxE/qGjT595aIMbOdiiN9e/j30HBneij1JRFYeRiPe4l7KBUar1kuUcR8
-puiQLveAZj388fdlMIEoVPcrnJUj0CAnUkGxWb2em8KE5P+ncMfLzEKjRkLv0+Bh
-B0/YRzWqTiW/z0GWuv2rukkYDpaZDgsuNG2XyQxDCUuYducv0Qm1dwUsRJ+It4lY
-WZiu2GFn2V11gnAR14zD
-=LLmO
+iQIcBAEBCAAGBQJRS+oKAAoJEEsCiJRY75GKRQMQAI6f6lV/cIRU2zTZYJ9SGCkI
+yvaP28K4yJYofT4jDkWVKd8iQOICm2UXik4j5H+8wXOUo7rgN7NvfRiiZWVlbe4H
+1GI8Kw/+7nhNuS/f/Mud/wK+81Nkx907kT+5cttqszOawepoOrX0/UTMRerfEHhN
+P7sRspjQULKvGJ6MrsMyIXO0fJzb3B9BT8b1CmjLxJbSp+aLz9c/E4ho4QY4yi41
+0T7z/44u/YLEGwxU7IUNJaXoL211vc7fUXObSjTY8Mcnv4iciyOOI6bLOwfHaPQp
+jJ/A3ZcNXHoRWlg/gGGJtQA6RLvQdLpcr7RyY9782GPy4aORxV+JfQWKaXZlo/CJ
+KKdsmYkdCgWpqqTPiMry6rnOtMOASaR7EmSz9KqBdocpYlEjC39k4q+t29cZKV2g
+W9ThFaNIBHJD313bGLyWciLO7b6HNA8EloHDMfEV/GrLyGzAAgUMTI6oCUaWnYcY
++4rItpcG0LSdpxuggCtoGOO7mIyuvJgZmfDgz52H3tollTuMWcN00bEASBoKwhn2
+O845JKv5axf6OvzCDuumM+IOeGANASMJKh0EVDQWUI+H1onHlAZxBiyrXHEdTg0r
+NDtPC0RCTYxuO6MILVBmmgg0PWjYLq2biPN4jxr+oprcnbFtUYnyIGJSC8js9WI6
+Sbtj99g0lI6jp3wBI8Dc
+=x4VK
 -----END PGP SIGNATURE-----
 
---x+6KMIRAuhnl3hBn--
+--neYutvxvOLaeuPCA--
