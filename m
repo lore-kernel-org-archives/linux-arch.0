@@ -1,76 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:33033 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932159Ab3CUVxA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Mar 2013 17:53:00 -0400
-Message-ID: <20130321215233.518839807@linutronix.de>
-Date: Thu, 21 Mar 2013 21:52:58 -0000
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 03/34] idle: Implement set/clr functions for need_resched poll
+Received: from mail-oa0-f53.google.com ([209.85.219.53]:35466 "EHLO
+	mail-oa0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933187Ab3CVMhq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Mar 2013 08:37:46 -0400
+MIME-Version: 1.0
+In-Reply-To: <20130321215235.546600507@linutronix.de>
 References: <20130321214930.752934102@linutronix.de>
-Content-Disposition: inline;
- filename=smpboot-implement-need-resched-polling-helpers.patch
+	<20130321215235.546600507@linutronix.de>
+Date: Fri, 22 Mar 2013 16:37:45 +0400
+Message-ID: <CAMo8BfLQSieZpUvWL=yLDh4KgM1LboWRy79_MKbOW38nw_Q8tw@mail.gmail.com>
+Subject: Re: [patch 34/34] xtensa: Use generic idle loop
+From: Max Filippov <jcmvbkbc@gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>
-Message-ID: <20130321215258.hNQALbh63SwtANCl40Yy7g0CSQLGdoMimEm7TIsMGOc@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, Chris Zankel <chris@zankel.net>
+Message-ID: <20130322123745.S5AvucqBtOALT1m_eU21Jgi-iGWoyLLvRTqgKRTt4s8@z>
 
-Implement set/clear functions for the idle need_resched poll
-implementation.
+On Fri, Mar 22, 2013 at 1:53 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
+> Unfortunately this arch does not compile at all :(
 
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
----
- include/linux/sched.h |   23 ++++++++++++++++++++++-
- 1 file changed, 22 insertions(+), 1 deletion(-)
+Hi Thomas,
 
-Index: linux-2.6/include/linux/sched.h
-===================================================================
---- linux-2.6.orig/include/linux/sched.h
-+++ linux-2.6/include/linux/sched.h
-@@ -2473,7 +2473,7 @@ static inline unsigned long *end_of_stac
- #endif
- 
- /*
-- * Idle thread specific functions to determine the need_resched
-+ * Idle thread specific functions for the the need_resched
-  * polling state. We have two versions, one based on TS_POLLING in
-  * thread_info.status and one based on TIF_POLLING_NRFLAG in
-  * thread_info.flags
-@@ -2483,13 +2483,34 @@ static inline int tsk_is_polling(struct 
- {
- 	return task_thread_info(p)->status & TS_POLLING;
- }
-+static inline void current_set_polling(void)
-+{
-+	current_thread_info()->status |= TS_POLLING;
-+}
-+
-+static inline void current_clr_polling(void)
-+{
-+	current_thread_info()->status &= ~TS_POLLING;
-+	smp_mb__after_clear_bit();
-+}
- #elif defined(TIF_POLLING_NRFLAG)
- static inline int tsk_is_polling(struct task_struct *p)
- {
- 	test_tsk_thread_flag(p, TIF_POLLING_NRFLAG);
- }
-+static inline void current_set_polling(void)
-+{
-+	set_thread_flag(TIF_POLLING_NRFLAG);
-+}
-+
-+static inline void current_clr_polling(void)
-+{
-+	clear_thread_flag(TIF_POLLING_NRFLAG);
-+}
- #else
- static inline int tsk_is_polling(struct task_struct *p) { return 0; }
-+static inline void current_set_polling(void) { }
-+static inline void current_clr_polling(void) { }
- #endif
- 
- static inline int object_is_on_stack(void *obj)
+according to KISSKB http://kisskb.ellerman.id.au/kisskb/compiler/19/
+it does, you probably don't need to build allmodconfig.
 
+With this patch I see WARN coming from the kernel/cpu/idle.c:94,
+xtensa __platform_idle returns with interrupts enabled.
+Interestingly, even the default arch_cpu_idle does so.
 
+-- 
+Thanks.
+-- Max
