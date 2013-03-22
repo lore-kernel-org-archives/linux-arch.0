@@ -1,30 +1,48 @@
-From: Max Filippov <jcmvbkbc@gmail.com>
-Subject: Re: [patch 34/34] xtensa: Use generic idle loop
-Date: Fri, 22 Mar 2013 16:37:45 +0400
-Message-ID: <CAMo8BfLQSieZpUvWL=yLDh4KgM1LboWRy79_MKbOW38nw_Q8tw@mail.gmail.com>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [patch 00/34] idle: Consolidate idle implementations
+Date: Fri, 22 Mar 2013 21:09:07 +0100
+Message-ID: <20130322200907.GA29202@merkur.ravnborg.org>
 References: <20130321214930.752934102@linutronix.de>
-	<20130321215235.546600507@linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20130321215235.546600507@linutronix.de>
-Sender: linux-kernel-owner@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp.snhosting.dk ([87.238.248.203]:53549 "EHLO
+	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1422691Ab3CVUJJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Mar 2013 16:09:09 -0400
+Content-Disposition: inline
+In-Reply-To: <20130321214930.752934102@linutronix.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, Chris Zankel <chris@zankel.net>
-List-Id: linux-arch.vger.kernel.org
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, "David S. Miller" <davem@davemloft.net>
 
-On Fri, Mar 22, 2013 at 1:53 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
-> Unfortunately this arch does not compile at all :(
+Hi Thomas.
+On Thu, Mar 21, 2013 at 09:52:56PM -0000, Thomas Gleixner wrote:
+> Each architecture implements its own cpu_idle() code, which is more or
+> less the same on all architectures (plus/minus a few bugs and a few
+> missing extra functionalities, instrumentation ...). That also forces
+> everyone who is interested in idle related features to add new
+> functionality to every architecture. What a waste.
+> 
+> Aside of that pointless code duplicaiton the ongoing quest to
+> consolidate the cpu hotplug code needs a common entry point for the
+> non boot cpus.
+> 
+> The following series implements a generic idle function and converts
+> most architectures over. I left out SPARC (it involves sparc asm) and
+> UM (it made me barf). If we can move those architectures as well, we
+> can get rid of the extra config switch and have everything
+> consolidated.
+I wanted to take a quick look at sparc - but build failed
+after applying patch 1-5. Looks like the same issue Tony already
+reaported.
 
-Hi Thomas,
+At very first glnce it looks straightforward to convert
+both sparc32 and sparc64.
+The assembler stuff used by sparc64 fits into one of the arch functions
+as far as I could see.
 
-according to KISSKB http://kisskb.ellerman.id.au/kisskb/compiler/19/
-it does, you probably don't need to build allmodconfig.
+When I get back from vacation I may take a look.
 
-With this patch I see WARN coming from the kernel/cpu/idle.c:94,
-xtensa __platform_idle returns with interrupts enabled.
-Interestingly, even the default arch_cpu_idle does so.
-
--- 
-Thanks.
--- Max
+	Sam
