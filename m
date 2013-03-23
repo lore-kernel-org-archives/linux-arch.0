@@ -1,69 +1,113 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f49.google.com ([209.85.220.49]:37323 "EHLO
-	mail-pa0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1423310Ab3CVVak (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Mar 2013 17:30:40 -0400
-Received: by mail-pa0-f49.google.com with SMTP id kp6so67853pab.8
-        for <linux-arch@vger.kernel.org>; Fri, 22 Mar 2013 14:30:39 -0700 (PDT)
-From: Kevin Hilman <khilman@linaro.org>
-Subject: Re: [patch 08/34] arm: Use generic idle loop
+Received: from e06smtp13.uk.ibm.com ([195.75.94.109]:34090 "EHLO
+	e06smtp13.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753050Ab3CWJib (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 23 Mar 2013 05:38:31 -0400
+Received: from /spool/local
+	by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
+	Sat, 23 Mar 2013 09:36:14 -0000
+Date: Sat, 23 Mar 2013 10:38:26 +0100
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [patch 27/34] s390: Use generic idle loop
+Message-ID: <20130323093826.GC3530@osiris>
 References: <20130321214930.752934102@linutronix.de>
-	<20130321215233.826238797@linutronix.de>
-Date: Fri, 22 Mar 2013 14:24:53 -0700
-In-Reply-To: <20130321215233.826238797@linutronix.de> (Thomas Gleixner's
-	message of "Thu, 21 Mar 2013 21:53:02 -0000")
-Message-ID: <87zjxv9lga.fsf@linaro.org>
+ <20130321215235.090816526@linutronix.de>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20130321215235.090816526@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, Russell King <linux@arm.linux.org.uk>
-Message-ID: <20130322212453.grkY1PkD8FvdPOgQhPDkqgnWogGs2fhZeuSYxYT6RYY@z>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>
+Message-ID: <20130323093826.4vFdVnLkVdnBEtsJOAp8uxzKWcFAJF1ul2d5rxj5Nvw@z>
 
-Hi Thomas,
-
-Thomas Gleixner <tglx@linutronix.de> writes:
-
-> Use the generic idle loop and replace enable/disable_hlt with the
-> respective core functions.
->
+On Thu, Mar 21, 2013 at 09:53:18PM -0000, Thomas Gleixner wrote:
 > Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Russell King <linux@arm.linux.org.uk>
+> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+> ---
+>  arch/s390/kernel/process.c |   25 +++++++------------------
+>  arch/s390/kernel/smp.c     |    3 +--
+>  2 files changed, 8 insertions(+), 20 deletions(-)
 
-I gave patches 1-5 + this a quick spin on ARM (specifially some OMAP3 and
-OMAP4 platforms, with and without CPUidle enabled.)
+Please merge the patch below into your patch to fix some issues.
 
-The OMAP stuff needed a couple minor compile fixes (below), but
-otherwise it passes the quick "seems to work" test.
+Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+---
+ arch/s390/Kconfig          |  1 +
+ arch/s390/kernel/process.c | 13 +++++--------
+ arch/s390/kernel/vtime.c   |  5 -----
+ 3 files changed, 6 insertions(+), 13 deletions(-)
 
-So at least for ARM/OMAP:
-
-Tested-by: Kevin Hilman <khilman@linaro.org>
-
-Kevin
-
-
-diff --git a/arch/arm/mach-omap1/pm.c b/arch/arm/mach-omap1/pm.c
-index 23c653a..db37f49 100644
---- a/arch/arm/mach-omap1/pm.c
-+++ b/arch/arm/mach-omap1/pm.c
-@@ -43,6 +43,7 @@
- #include <linux/module.h>
- #include <linux/io.h>
- #include <linux/atomic.h>
-+#include <linux/cpu.h>
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index eb8fb62..749513d 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -97,6 +97,7 @@ config S390
+ 	select CLONE_BACKWARDS2
+ 	select GENERIC_CLOCKEVENTS
+ 	select GENERIC_CPU_DEVICES if !SMP
++	select GENERIC_IDLE_LOOP
+ 	select GENERIC_KERNEL_THREAD
+ 	select GENERIC_SMP_IDLE_THREAD
+ 	select GENERIC_TIME_VSYSCALL_OLD
+diff --git a/arch/s390/kernel/process.c b/arch/s390/kernel/process.c
+index 546afed..2bc3edd 100644
+--- a/arch/s390/kernel/process.c
++++ b/arch/s390/kernel/process.c
+@@ -61,16 +61,8 @@ unsigned long thread_saved_pc(struct task_struct *tsk)
+ 	return sf->gprs[8];
+ }
  
- #include <asm/fncpy.h>
- #include <asm/system_misc.h>
-diff --git a/arch/arm/mach-omap2/omap_hwmod.c b/arch/arm/mach-omap2/omap_hwmod.c
-index 3a6c6b8..2f17f95 100644
---- a/arch/arm/mach-omap2/omap_hwmod.c
-+++ b/arch/arm/mach-omap2/omap_hwmod.c
-@@ -138,6 +138,7 @@
- #include <linux/spinlock.h>
- #include <linux/slab.h>
- #include <linux/bootmem.h>
-+#include <linux/cpu.h>
+-/*
+- * The idle function on a S390...
+- */
+ void arch_cpu_idle(void)
+ {
+-	if (test_thread_flag(TIF_MCCK_PENDING)) {
+-		local_irq_enable();
+-		return;
+-	}
+-
+ 	local_mcck_disable();
+ 	if (test_thread_flag(TIF_MCCK_PENDING)) {
+ 		local_mcck_enable();
+@@ -87,6 +79,11 @@ void arch_cpu_idle_exit(void)
+ 		s390_handle_mcck();
+ }
  
- #include <asm/system_misc.h>
++void arch_cpu_idle_dead(void)
++{
++	cpu_die();
++}
++
+ extern void __kprobes kernel_thread_starter(void);
+ 
+ /*
+diff --git a/arch/s390/kernel/vtime.c b/arch/s390/kernel/vtime.c
+index a0042ac..3fb0935 100644
+--- a/arch/s390/kernel/vtime.c
++++ b/arch/s390/kernel/vtime.c
+@@ -158,8 +158,6 @@ void __kprobes vtime_stop_cpu(void)
+ 	unsigned long psw_mask;
+ 
+ 	trace_hardirqs_on();
+-	/* Don't trace preempt off for idle. */
+-	stop_critical_timings();
+ 
+ 	/* Wait for external, I/O or machine check interrupt. */
+ 	psw_mask = psw_kernel_bits | PSW_MASK_WAIT | PSW_MASK_DAT |
+@@ -169,9 +167,6 @@ void __kprobes vtime_stop_cpu(void)
+ 	/* Call the assembler magic in entry.S */
+ 	psw_idle(idle, psw_mask);
+ 
+-	/* Reenable preemption tracer. */
+-	start_critical_timings();
+-
+ 	/* Account time spent with enabled wait psw loaded as idle time. */
+ 	idle->sequence++;
+ 	smp_wmb();
+-- 
+1.7.12.4
+
