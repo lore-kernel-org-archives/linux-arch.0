@@ -1,113 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp13.uk.ibm.com ([195.75.94.109]:34090 "EHLO
-	e06smtp13.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753050Ab3CWJib (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 23 Mar 2013 05:38:31 -0400
-Received: from /spool/local
-	by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
-	Sat, 23 Mar 2013 09:36:14 -0000
-Date: Sat, 23 Mar 2013 10:38:26 +0100
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [patch 27/34] s390: Use generic idle loop
-Message-ID: <20130323093826.GC3530@osiris>
-References: <20130321214930.752934102@linutronix.de>
- <20130321215235.090816526@linutronix.de>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20130321215235.090816526@linutronix.de>
+Received: from mail-pb0-f41.google.com ([209.85.160.41]:37320 "EHLO
+	mail-pb0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752896Ab3CXH1J (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 24 Mar 2013 03:27:09 -0400
+From: Jiang Liu <liuj97@gmail.com>
+Subject: [RFC PATCH v2, part4 01/39] vmlinux.lds: add comments for global variables and clean up useless declarations
+Date: Sun, 24 Mar 2013 15:24:27 +0800
+Message-ID: <1364109934-7851-2-git-send-email-jiang.liu@huawei.com>
+In-Reply-To: <1364109934-7851-1-git-send-email-jiang.liu@huawei.com>
+References: <1364109934-7851-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>
-Message-ID: <20130323093826.4vFdVnLkVdnBEtsJOAp8uxzKWcFAJF1ul2d5rxj5Nvw@z>
+To: Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>
+Cc: Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Message-ID: <20130324072427.txhHyGFkahahHSGmxPqmcDYkJaqbRzY6UCrg6rxYNC8@z>
 
-On Thu, Mar 21, 2013 at 09:53:18PM -0000, Thomas Gleixner wrote:
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-> ---
->  arch/s390/kernel/process.c |   25 +++++++------------------
->  arch/s390/kernel/smp.c     |    3 +--
->  2 files changed, 8 insertions(+), 20 deletions(-)
+This patch documents global variables exported from vmlinux.lds.
+1) Add comments about usage guidelines for global variables exported
+   from vmlinux.lds.S.
+2) Remove unused __initdata_begin[] and __initdata_end[].
 
-Please merge the patch below into your patch to fix some issues.
-
-Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
 ---
- arch/s390/Kconfig          |  1 +
- arch/s390/kernel/process.c | 13 +++++--------
- arch/s390/kernel/vtime.c   |  5 -----
- 3 files changed, 6 insertions(+), 13 deletions(-)
+ include/asm-generic/sections.h |   21 ++++++++++++++++++++-
+ 1 file changed, 20 insertions(+), 1 deletion(-)
 
-diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-index eb8fb62..749513d 100644
---- a/arch/s390/Kconfig
-+++ b/arch/s390/Kconfig
-@@ -97,6 +97,7 @@ config S390
- 	select CLONE_BACKWARDS2
- 	select GENERIC_CLOCKEVENTS
- 	select GENERIC_CPU_DEVICES if !SMP
-+	select GENERIC_IDLE_LOOP
- 	select GENERIC_KERNEL_THREAD
- 	select GENERIC_SMP_IDLE_THREAD
- 	select GENERIC_TIME_VSYSCALL_OLD
-diff --git a/arch/s390/kernel/process.c b/arch/s390/kernel/process.c
-index 546afed..2bc3edd 100644
---- a/arch/s390/kernel/process.c
-+++ b/arch/s390/kernel/process.c
-@@ -61,16 +61,8 @@ unsigned long thread_saved_pc(struct task_struct *tsk)
- 	return sf->gprs[8];
- }
+diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
+index c1a1216..f1a24b5 100644
+--- a/include/asm-generic/sections.h
++++ b/include/asm-generic/sections.h
+@@ -3,6 +3,26 @@
  
--/*
-- * The idle function on a S390...
-- */
- void arch_cpu_idle(void)
- {
--	if (test_thread_flag(TIF_MCCK_PENDING)) {
--		local_irq_enable();
--		return;
--	}
--
- 	local_mcck_disable();
- 	if (test_thread_flag(TIF_MCCK_PENDING)) {
- 		local_mcck_enable();
-@@ -87,6 +79,11 @@ void arch_cpu_idle_exit(void)
- 		s390_handle_mcck();
- }
+ /* References to section boundaries */
  
-+void arch_cpu_idle_dead(void)
-+{
-+	cpu_die();
-+}
-+
- extern void __kprobes kernel_thread_starter(void);
++/*
++ * Usage guidelines:
++ * _text, _data: architecture specific, don't use them in arch-independent code
++ * [_stext, _etext]: contains .text.* sections, may also contain .rodata.*
++ *                   and/or .init.* sections
++ * [_sdata, _edata]: contains .data.* sections, may also contain .rodata.*
++ *                   and/or .init.* sections.
++ * [__start_rodata, __end_rodata]: contains .rodata.* sections
++ * [__init_begin, __init_end]: contains .init.* sections, but .init.text.*
++ *                   may be out of this range on some architectures.
++ * [_sinittext, _einittext]: contains .init.text.* sections
++ * [__bss_start, __bss_stop]: contains BSS sections
++ *
++ * Following global variables are optional and may be unavailable on some
++ * architectures and/or kernel configurations.
++ *	_text, _data
++ *	__kprobes_text_start, __kprobes_text_end
++ *	__entry_text_start, __entry_text_end
++ *	__ctors_start, __ctors_end
++ */
+ extern char _text[], _stext[], _etext[];
+ extern char _data[], _sdata[], _edata[];
+ extern char __bss_start[], __bss_stop[];
+@@ -12,7 +32,6 @@ extern char _end[];
+ extern char __per_cpu_load[], __per_cpu_start[], __per_cpu_end[];
+ extern char __kprobes_text_start[], __kprobes_text_end[];
+ extern char __entry_text_start[], __entry_text_end[];
+-extern char __initdata_begin[], __initdata_end[];
+ extern char __start_rodata[], __end_rodata[];
  
- /*
-diff --git a/arch/s390/kernel/vtime.c b/arch/s390/kernel/vtime.c
-index a0042ac..3fb0935 100644
---- a/arch/s390/kernel/vtime.c
-+++ b/arch/s390/kernel/vtime.c
-@@ -158,8 +158,6 @@ void __kprobes vtime_stop_cpu(void)
- 	unsigned long psw_mask;
- 
- 	trace_hardirqs_on();
--	/* Don't trace preempt off for idle. */
--	stop_critical_timings();
- 
- 	/* Wait for external, I/O or machine check interrupt. */
- 	psw_mask = psw_kernel_bits | PSW_MASK_WAIT | PSW_MASK_DAT |
-@@ -169,9 +167,6 @@ void __kprobes vtime_stop_cpu(void)
- 	/* Call the assembler magic in entry.S */
- 	psw_idle(idle, psw_mask);
- 
--	/* Reenable preemption tracer. */
--	start_critical_timings();
--
- 	/* Account time spent with enabled wait psw loaded as idle time. */
- 	idle->sequence++;
- 	smp_wmb();
+ /* Start and end of .ctors section - used for constructor calls. */
 -- 
-1.7.12.4
+1.7.9.5
 
