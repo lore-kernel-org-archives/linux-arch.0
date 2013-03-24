@@ -1,65 +1,72 @@
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [patch 27/34] s390: Use generic idle loop
-Date: Sat, 23 Mar 2013 10:39:42 +0100
-Message-ID: <20130323093942.GD3530@osiris>
-References: <20130321214930.752934102@linutronix.de>
- <20130321215235.090816526@linutronix.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp14.uk.ibm.com ([195.75.94.110]:52241 "EHLO
-	e06smtp14.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754982Ab3CWJjt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 23 Mar 2013 05:39:49 -0400
-Received: from /spool/local
-	by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
-	Sat, 23 Mar 2013 09:35:43 -0000
-Content-Disposition: inline
-In-Reply-To: <20130321215235.090816526@linutronix.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>
+From: Jiang Liu <liuj97@gmail.com>
+Subject: [RFC PATCH v2, part4 01/39] vmlinux.lds: add comments for global variables and clean up useless declarations
+Date: Sun, 24 Mar 2013 15:24:27 +0800
+Message-ID: <1364109934-7851-2-git-send-email-jiang.liu@huawei.com>
+References: <1364109934-7851-1-git-send-email-jiang.liu@huawei.com>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1364109934-7851-1-git-send-email-jiang.liu@huawei.com>
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>
+Cc: Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Mar 21, 2013 at 09:53:18PM -0000, Thomas Gleixner wrote:
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-> ---
->  arch/s390/kernel/process.c |   25 +++++++------------------
->  arch/s390/kernel/smp.c     |    3 +--
->  2 files changed, 8 insertions(+), 20 deletions(-)
+This patch documents global variables exported from vmlinux.lds.
+1) Add comments about usage guidelines for global variables exported
+   from vmlinux.lds.S.
+2) Remove unused __initdata_begin[] and __initdata_end[].
 
-FWIW, the patch below is also needed to fix a compile error.
-I'll take care it gets upstream independently of your work.
-
-From 10c8cd5139f9a18cd6e955793ae7ad0877b5dd86 Mon Sep 17 00:00:00 2001
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Date: Sat, 23 Mar 2013 10:29:01 +0100
-Subject: [PATCH 2/2] s390/mm: provide emtpy check_pgt_cache() function
-
-All architectures need to provide a check_pgt_cache() function. The s390 one
-got lost somewhere.
-So reintroduce it to prevent future compile errors e.g. if Thomas Gleixner's
-idle loop rework patches get merged.
-
-Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
 ---
- arch/s390/include/asm/pgtable.h | 2 ++
- 1 file changed, 2 insertions(+)
+ include/asm-generic/sections.h |   21 ++++++++++++++++++++-
+ 1 file changed, 20 insertions(+), 1 deletion(-)
 
-diff --git a/arch/s390/include/asm/pgtable.h b/arch/s390/include/asm/pgtable.h
-index 4a29308..a11c773 100644
---- a/arch/s390/include/asm/pgtable.h
-+++ b/arch/s390/include/asm/pgtable.h
-@@ -1533,6 +1533,8 @@ extern int s390_enable_sie(void);
-  */
- #define pgtable_cache_init()	do { } while (0)
+diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
+index c1a1216..f1a24b5 100644
+--- a/include/asm-generic/sections.h
++++ b/include/asm-generic/sections.h
+@@ -3,6 +3,26 @@
  
-+static inline void check_pgt_cache(void) { }
-+
- #include <asm-generic/pgtable.h>
+ /* References to section boundaries */
  
- #endif /* _S390_PAGE_H */
++/*
++ * Usage guidelines:
++ * _text, _data: architecture specific, don't use them in arch-independent code
++ * [_stext, _etext]: contains .text.* sections, may also contain .rodata.*
++ *                   and/or .init.* sections
++ * [_sdata, _edata]: contains .data.* sections, may also contain .rodata.*
++ *                   and/or .init.* sections.
++ * [__start_rodata, __end_rodata]: contains .rodata.* sections
++ * [__init_begin, __init_end]: contains .init.* sections, but .init.text.*
++ *                   may be out of this range on some architectures.
++ * [_sinittext, _einittext]: contains .init.text.* sections
++ * [__bss_start, __bss_stop]: contains BSS sections
++ *
++ * Following global variables are optional and may be unavailable on some
++ * architectures and/or kernel configurations.
++ *	_text, _data
++ *	__kprobes_text_start, __kprobes_text_end
++ *	__entry_text_start, __entry_text_end
++ *	__ctors_start, __ctors_end
++ */
+ extern char _text[], _stext[], _etext[];
+ extern char _data[], _sdata[], _edata[];
+ extern char __bss_start[], __bss_stop[];
+@@ -12,7 +32,6 @@ extern char _end[];
+ extern char __per_cpu_load[], __per_cpu_start[], __per_cpu_end[];
+ extern char __kprobes_text_start[], __kprobes_text_end[];
+ extern char __entry_text_start[], __entry_text_end[];
+-extern char __initdata_begin[], __initdata_end[];
+ extern char __start_rodata[], __end_rodata[];
+ 
+ /* Start and end of .ctors section - used for constructor calls. */
 -- 
-1.7.12.4
+1.7.9.5
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
