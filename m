@@ -1,65 +1,42 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [RFC PATCH v2, part4 00/39] Simplify mem_init() implementations
- and kill num_physpages
-Date: Mon, 25 Mar 2013 22:37:07 +0530
-Message-ID: <5150843B.1020804@synopsys.com>
-References: <1364109934-7851-1-git-send-email-jiang.liu@huawei.com> <1364112719.1975.4.camel@dabdike.int.hansenpartnership.com> <51507916.6030402@gmail.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [patch 09/34] arm64: Use generic idle loop
+Date: Mon, 25 Mar 2013 18:06:56 +0000
+Message-ID: <20130325180656.GG3894@arm.com>
+References: <20130321214930.752934102@linutronix.de>
+ <20130321215233.887563095@linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-15"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hermes.synopsys.com ([198.182.44.81]:42551 "EHLO
-	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932371Ab3CYRH1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Mar 2013 13:07:27 -0400
-In-Reply-To: <51507916.6030402@gmail.com>
+Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:59293 "EHLO
+	cam-smtp0.cambridge.arm.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S932576Ab3CYSOT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 25 Mar 2013 14:14:19 -0400
+Content-Disposition: inline
+In-Reply-To: <20130321215233.887563095@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiang Liu <liuj97@gmail.com>
-Cc: James Bottomley <James.Bottomley@HansenPartnership.com>, Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>, Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>
 
-On 03/25/2013 09:49 PM, Jiang Liu wrote:
-> Hi James,
-> 	Thanks for reminder, my patch series have been screwed up.
-> I will send another version and build a git tree on github.
-> 	Thanks!
-> 	Gerry
+On Thu, Mar 21, 2013 at 09:53:03PM +0000, Thomas Gleixner wrote:
+> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> ---
+> Index: linux-2.6/arch/arm64/Kconfig
+> ===================================================================
+> --- linux-2.6.orig/arch/arm64/Kconfig
+> +++ linux-2.6/arch/arm64/Kconfig
+> @@ -14,6 +14,7 @@ config ARM64
+>  	select GENERIC_IRQ_PROBE
+>  	select GENERIC_IRQ_SHOW
+>  	select GENERIC_SMP_IDLE_THREAD
+> +	select GENERIC_IDLE_LOOP
+>  	select GENERIC_TIME_VSYSCALL
+>  	select HARDIRQS_SW_RESEND
+>  	select HAVE_ARCH_TRACEHOOK
 
-Please don't forget conversion of the newly added arc and metag arches !
+Minor thing, I try to keep these entries alphabetically sorted (it won't
+last long, I'm sure). Otherwise,
 
-Thx,
--Vineet
-
-> On 03/24/2013 04:11 PM, James Bottomley wrote:
->> On Sun, 2013-03-24 at 15:24 +0800, Jiang Liu wrote:
->>> The original goal of this patchset is to fix the bug reported by
->>> https://bugzilla.kernel.org/show_bug.cgi?id=53501
->>> Now it has also been expanded to reduce common code used by memory
->>> initializion.
->>>
->>> This is the last part, previous three patch sets could be accessed at:
->>> http://marc.info/?l=linux-mm&m=136289696323825&w=2
->>> http://marc.info/?l=linux-mm&m=136290291524901&w=2
->>> http://marc.info/?l=linux-mm&m=136345342831592&w=2
->>>
->>> This patchset applies to
->>> https://git.kernel.org/pub/scm/linux/kernel/git/mhocko/mm.git since-3.8
->>
->> You're going to have to have a git tree for this if you want this series
->> testing on other architectures.  Plus cc'ing linux-arch would be a good
->> idea for that case.  The patch series seems to be screwed up in the
->> numbering:  The parisc patches 26/39 and 27/39 are identical.
->>
->> James
->>
->>
->>
->>
->>
-> 
-> --
-> To unsubscribe, send a message with 'unsubscribe linux-mm' in
-> the body to majordomo@kvack.org.  For more info on Linux MM,
-> see: http://www.linux-mm.org/ .
-> Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
-> 
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
