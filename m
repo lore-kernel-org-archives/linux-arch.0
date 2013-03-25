@@ -1,38 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:63171 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754367Ab3CXJt0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 24 Mar 2013 05:49:26 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC PATCH v2, part4 01/39] vmlinux.lds: add comments for global variables and clean up useless declarations
-Date: Sun, 24 Mar 2013 09:47:41 +0000
-References: <1364109934-7851-1-git-send-email-jiang.liu@huawei.com> <1364109934-7851-2-git-send-email-jiang.liu@huawei.com>
-In-Reply-To: <1364109934-7851-2-git-send-email-jiang.liu@huawei.com>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:43771 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756687Ab3CYLtc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Mar 2013 07:49:32 -0400
+Date: Mon, 25 Mar 2013 11:48:08 +0000
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [patch 08/34] arm: Use generic idle loop
+Message-ID: <20130325114808.GQ4977@n2100.arm.linux.org.uk>
+References: <20130321214930.752934102@linutronix.de> <20130321215233.826238797@linutronix.de> <87zjxv9lga.fsf@linaro.org> <alpine.LFD.2.02.1303251230440.22263@ionos>
 MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-Message-ID: <201303240947.42085.arnd@arndb.de>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.2.02.1303251230440.22263@ionos>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiang Liu <liuj97@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>, Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20130324094741.6YU1CA181GYm8Lm5gLLzyk5vOirASo2_dWZvFWFSuks@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Kevin Hilman <khilman@linaro.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>
+Message-ID: <20130325114808.RNp6gvNL1jjQBt2LI88l-CRlLfl4qAdx4k9s-tK_IF8@z>
 
-On Sunday 24 March 2013, Jiang Liu wrote:
-> This patch documents global variables exported from vmlinux.lds.
-> 1) Add comments about usage guidelines for global variables exported
->    from vmlinux.lds.S.
-> 2) Remove unused __initdata_begin[] and __initdata_end[].
+On Mon, Mar 25, 2013 at 12:31:20PM +0100, Thomas Gleixner wrote:
+> On Fri, 22 Mar 2013, Kevin Hilman wrote:
 > 
-> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: linux-arch@vger.kernel.org
-> Cc: linux-kernel@vger.kernel.org
-> ---
->  include/asm-generic/sections.h |   21 ++++++++++++++++++++-
->  1 file changed, 20 insertions(+), 1 deletion(-)
+> > Hi Thomas,
+> > 
+> > Thomas Gleixner <tglx@linutronix.de> writes:
+> > 
+> > > Use the generic idle loop and replace enable/disable_hlt with the
+> > > respective core functions.
+> > >
+> > > Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+> > > Cc: Russell King <linux@arm.linux.org.uk>
+> > 
+> > I gave patches 1-5 + this a quick spin on ARM (specifially some OMAP3 and
+> > OMAP4 platforms, with and without CPUidle enabled.)
+> > 
+> > The OMAP stuff needed a couple minor compile fixes (below), but
+> > otherwise it passes the quick "seems to work" test.
+> 
+> Yeah, that's needed for the other arch/arm conversions as well.
 
-for asm-generic:
-
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+So, the only patch I got was this one, which is useless to test on its
+own...
