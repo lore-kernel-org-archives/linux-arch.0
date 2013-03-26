@@ -1,29 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-da0-f52.google.com ([209.85.210.52]:33737 "EHLO
-	mail-da0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S964912Ab3CZQBm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Mar 2013 12:01:42 -0400
+Received: from mail-pa0-f49.google.com ([209.85.220.49]:56098 "EHLO
+	mail-pa0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965266Ab3CZQB1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Mar 2013 12:01:27 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v3, part4 27/39] mm/PARISC: prepare for removing num_physpages and simplify mem_init()
-Date: Tue, 26 Mar 2013 23:54:46 +0800
-Message-ID: <1364313298-17336-28-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v3, part4 26/39] mm/openrisc: prepare for removing num_physpages and simplify mem_init()
+Date: Tue, 26 Mar 2013 23:54:45 +0800
+Message-ID: <1364313298-17336-27-git-send-email-jiang.liu@huawei.com>
 In-Reply-To: <1364313298-17336-1-git-send-email-jiang.liu@huawei.com>
 References: <1364313298-17336-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>
-Cc: Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Thomas Gleixner <tglx@linutronix.de>, linux-parisc@vger.kernel.org
-Message-ID: <20130326155446.fvHmtFq2d5QtH9JcSSdYWhqqH3WCAPuP8ilYwlZwgLM@z>
+Cc: Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jonas Bonn <jonas@southpole.se>, Arnd Bergmann <arnd@arndb.de>, linux@lists.openrisc.net
+Message-ID: <20130326155445.ei2k_X0KEmzmUXBhqbjkxhJgS_T9Hb7KGVKJcqYa03E@z>
 
 Prepare for removing num_physpages and simplify mem_init().
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
-Cc: Helge Deller <deller@gmx.de>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Michal Hocko <mhocko@suse.cz>
-Cc: David Rientjes <rientjes@google.com>
-Cc: linux-parisc@vger.kernel.org
+Cc: Jonas Bonn <jonas@southpole.se>
+Cc: David Howells <dhowells@redhat.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: linux@lists.openrisc.net
 Cc: linux-kernel@vger.kernel.org
 ---
 Hi all,
@@ -35,109 +33,74 @@ So I regenerate a third version and also set up a git tree at:
 	Regards!
 	Gerry
 ---
- arch/parisc/mm/init.c |   46 +++-------------------------------------------
- 1 file changed, 3 insertions(+), 43 deletions(-)
+ arch/openrisc/mm/init.c |   44 ++++----------------------------------------
+ 1 file changed, 4 insertions(+), 40 deletions(-)
 
-diff --git a/arch/parisc/mm/init.c b/arch/parisc/mm/init.c
-index 1fe9d841..f80c175 100644
---- a/arch/parisc/mm/init.c
-+++ b/arch/parisc/mm/init.c
-@@ -214,7 +214,6 @@ static void __init setup_bootmem(void)
- 	mem_limit_func();       /* check for "mem=" argument */
+diff --git a/arch/openrisc/mm/init.c b/arch/openrisc/mm/init.c
+index 71d6b40..f3c8f47 100644
+--- a/arch/openrisc/mm/init.c
++++ b/arch/openrisc/mm/init.c
+@@ -191,56 +191,20 @@ void __init paging_init(void)
  
- 	mem_max = 0;
--	num_physpages = 0;
- 	for (i = 0; i < npmem_ranges; i++) {
- 		unsigned long rsize;
+ /* References to section boundaries */
  
-@@ -229,10 +228,8 @@ static void __init setup_bootmem(void)
- 				npmem_ranges = i + 1;
- 				mem_max = mem_limit;
- 			}
--	        num_physpages += pmem_ranges[i].pages;
- 			break;
- 		}
--	    num_physpages += pmem_ranges[i].pages;
- 		mem_max += rsize;
- 	}
- 
-@@ -532,7 +529,7 @@ void free_initmem(void)
- 	 * pages are no-longer executable */
- 	flush_icache_range(init_begin, init_end);
- 	
--	num_physpages += free_initmem_default(-1);
-+	free_initmem_default(-1);
- 
- 	/* set up a new led state on systems shipped LED State panel */
- 	pdc_chassis_send_status(PDC_CHASSIS_DIRECT_BCOMPLETE);
-@@ -580,8 +577,6 @@ unsigned long pcxl_dma_start __read_mostly;
- 
+-static int __init free_pages_init(void)
+-{
+-	int reservedpages, pfn;
+-
+-	/* this will put all low memory onto the freelists */
+-	free_all_bootmem();
+-
+-	reservedpages = 0;
+-	for (pfn = 0; pfn < max_low_pfn; pfn++) {
+-		/*
+-		 * Only count reserved RAM pages
+-		 */
+-		if (PageReserved(mem_map + pfn))
+-			reservedpages++;
+-	}
+-
+-	return reservedpages;
+-}
+-
+-static void __init set_max_mapnr_init(void)
+-{
+-	max_mapnr = num_physpages = max_low_pfn;
+-}
+-
  void __init mem_init(void)
  {
 -	int codesize, reservedpages, datasize, initsize;
 -
- 	/* Do sanity checks on page table constants */
- 	BUILD_BUG_ON(PTE_ENTRY_SIZE != sizeof(pte_t));
- 	BUILD_BUG_ON(PMD_ENTRY_SIZE != sizeof(pmd_t));
-@@ -603,33 +598,6 @@ void __init mem_init(void)
- 	}
- #endif
+ 	BUG_ON(!mem_map);
  
--	codesize = (unsigned long)_etext - (unsigned long)_text;
--	datasize = (unsigned long)_edata - (unsigned long)_etext;
--	initsize = (unsigned long)__init_end - (unsigned long)__init_begin;
+-	set_max_mapnr_init();
 -
--	reservedpages = 0;
--{
--	unsigned long pfn;
--#ifdef CONFIG_DISCONTIGMEM
--	int i;
--
--	for (i = 0; i < npmem_ranges; i++) {
--		for (pfn = node_start_pfn(i); pfn < node_end_pfn(i); pfn++) {
--			if (PageReserved(pfn_to_page(pfn)))
--				reservedpages++;
--		}
--	}
--#else /* !CONFIG_DISCONTIGMEM */
--	for (pfn = 0; pfn < max_pfn; pfn++) {
--		/*
--		 * Only count reserved RAM pages
--		 */
--		if (PageReserved(pfn_to_page(pfn)))
--			reservedpages++;
--	}
--#endif
--}
--
- #ifdef CONFIG_PA11
- 	if (hppa_dma_ops == &pcxl_dma_ops) {
- 		pcxl_dma_start = (unsigned long)SET_MAP_OFFSET(MAP_START);
-@@ -643,15 +611,7 @@ void __init mem_init(void)
- 	parisc_vmalloc_start = SET_MAP_OFFSET(MAP_START);
- #endif
++	max_mapnr = max_low_pfn;
+ 	high_memory = (void *)__va(max_low_pfn * PAGE_SIZE);
  
--	printk(KERN_INFO "Memory: %luk/%luk available (%dk kernel code, %dk reserved, %dk data, %dk init)\n",
--		nr_free_pages() << (PAGE_SHIFT-10),
--		num_physpages << (PAGE_SHIFT-10),
--		codesize >> 10,
--		reservedpages << (PAGE_SHIFT-10),
--		datasize >> 10,
--		initsize >> 10
--	);
+ 	/* clear the zero-page */
+ 	memset((void *)empty_zero_page, 0, PAGE_SIZE);
+ 
+-	reservedpages = free_pages_init();
 -
+-	codesize = (unsigned long)&_etext - (unsigned long)&_stext;
+-	datasize = (unsigned long)&_edata - (unsigned long)&_etext;
+-	initsize = (unsigned long)&__init_end - (unsigned long)&__init_begin;
++	/* this will put all low memory onto the freelists */
++	free_all_bootmem();
+ 
+-	printk(KERN_INFO
+-	       "Memory: %luk/%luk available (%dk kernel code, %dk reserved, %dk data, %dk init, %ldk highmem)\n",
+-	       (unsigned long)nr_free_pages() << (PAGE_SHIFT - 10),
+-	       max_mapnr << (PAGE_SHIFT - 10), codesize >> 10,
+-	       reservedpages << (PAGE_SHIFT - 10), datasize >> 10,
+-	       initsize >> 10, (unsigned long)(0 << (PAGE_SHIFT - 10))
+-	    );
 +	mem_init_print_info(NULL);
- #ifdef CONFIG_DEBUG_KERNEL /* double-sanity-check paranoia */
- 	printk("virtual kernel memory layout:\n"
- 	       "    vmalloc : 0x%p - 0x%p   (%4ld MB)\n"
-@@ -1099,6 +1059,6 @@ void flush_tlb_all(void)
- #ifdef CONFIG_BLK_DEV_INITRD
- void free_initrd_mem(unsigned long start, unsigned long end)
- {
--	num_physpages += free_reserved_area(start, end, -1, "initrd");
-+	free_reserved_area(start, end, -1, "initrd");
- }
- #endif
+ 
+ 	printk("mem_init_done ...........................................\n");
+ 	mem_init_done = 1;
 -- 
 1.7.9.5
 
