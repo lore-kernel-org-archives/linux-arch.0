@@ -1,54 +1,35 @@
-From: David Howells <dhowells@redhat.com>
-Subject: [PATCH] UAPI: Remove empty Kbuild files
-Date: Tue, 26 Mar 2013 17:48:53 +0000
-Message-ID: <20130326174853.10144.36253.stgit@warthog.procyon.org.uk>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH] UAPI: Remove empty Kbuild files
+Date: Tue, 26 Mar 2013 13:18:28 -0700
+Message-ID: <20130326131828.209aff73e38d3273d078bb2e@linux-foundation.org>
+References: <20130326174853.10144.36253.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: torvalds@linux-foundation.org, arnd@arndb.de
-Cc: linux-arch@vger.kernel.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:51165 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753725Ab3CZUSa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Mar 2013 16:18:30 -0400
+In-Reply-To: <20130326174853.10144.36253.stgit@warthog.procyon.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Howells <dhowells@redhat.com>
+Cc: torvalds@linux-foundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-Remove empty Kbuild files as they cause problems with the patch program which
-removes files that become empty.
+On Tue, 26 Mar 2013 17:48:53 +0000 David Howells <dhowells@redhat.com> wrote:
 
-Should I also remove include/Kbuild as that now does nothing?  Or should it be
-left as an anchor just in case we want it in future?
+> Remove empty Kbuild files as they cause problems with the patch program which
+> removes files that become empty.
+> 
+> Should I also remove include/Kbuild as that now does nothing?  Or should it be
+> left as an anchor just in case we want it in future?
 
-Signed-off-by: David Howells <dhowells@redhat.com>
----
+I think that if the build system created it, a `make clean' or `make
+mproper' should rub it out again.  Ideally a `make mrproper' will give
+you a tree which is identical to a freshly-untarred kernel.org tarball
+(yes?).
 
- include/Kbuild         |    3 ---
- include/scsi/Kbuild    |    1 -
- include/scsi/fc/Kbuild |    0 
- include/video/Kbuild   |    0 
- 4 files changed, 4 deletions(-)
- delete mode 100644 include/scsi/Kbuild
- delete mode 100644 include/scsi/fc/Kbuild
- delete mode 100644 include/video/Kbuild
-
-diff --git a/include/Kbuild b/include/Kbuild
-index 1dfd33e..bab1145 100644
---- a/include/Kbuild
-+++ b/include/Kbuild
-@@ -1,5 +1,2 @@
- # Top-level Makefile calls into asm-$(ARCH)
- # List only non-arch directories below
--
--header-y += video/
--header-y += scsi/
-diff --git a/include/scsi/Kbuild b/include/scsi/Kbuild
-deleted file mode 100644
-index 562ff9d..0000000
---- a/include/scsi/Kbuild
-+++ /dev/null
-@@ -1 +0,0 @@
--header-y += fc/
-diff --git a/include/scsi/fc/Kbuild b/include/scsi/fc/Kbuild
-deleted file mode 100644
-index e69de29..0000000
-diff --git a/include/video/Kbuild b/include/video/Kbuild
-deleted file mode 100644
-index e69de29..0000000
+Which reminds me of my email which you're still hiding from ;)
+Shouldn't a `make mrproper' undo the effects of `make headers_install'
+by wiping ./usr/include/?
