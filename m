@@ -1,32 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-da0-f47.google.com ([209.85.210.47]:34247 "EHLO
-	mail-da0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759842Ab3CZQEc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Mar 2013 12:04:32 -0400
+Received: from mail-da0-f43.google.com ([209.85.210.43]:42505 "EHLO
+	mail-da0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759843Ab3CZQGd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Mar 2013 12:06:33 -0400
+Received: by mail-da0-f43.google.com with SMTP id u36so3767119dak.16
+        for <linux-arch@vger.kernel.org>; Tue, 26 Mar 2013 09:06:33 -0700 (PDT)
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v3, part4 39/39] mm: kill global variable num_physpages
-Date: Tue, 26 Mar 2013 23:54:58 +0800
-Message-ID: <1364313298-17336-40-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v3, part4 14/39] mm/blackfin: prepare for removing num_physpages and simplify mem_init()
+Date: Tue, 26 Mar 2013 23:54:33 +0800
+Message-ID: <1364313298-17336-15-git-send-email-jiang.liu@huawei.com>
 In-Reply-To: <1364313298-17336-1-git-send-email-jiang.liu@huawei.com>
 References: <1364313298-17336-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>
-Cc: Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Michel Lespinasse <walken@google.com>, Rik van Riel <riel@redhat.com>, Hugh Dickins <hughd@google.com>, Al Viro <viro@zeniv.linux.org.uk>, Konstantin Khlebnikov <khlebnikov@openvz.org>
-Message-ID: <20130326155458.8eYRonJzwZlGNyQs_8_jKf1nUvE3f62iR9e1QfyRtU4@z>
+Cc: Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>, Bob Liu <lliubbo@gmail.com>, uclinux-dist-devel@blackfin.uclinux.org
+Message-ID: <20130326155433.5if-Iqs8m8e2uxI1murNeUpOOgdSCOMTvX521vCa0pg@z>
 
-Now all references to num_physpages have been removed, so kill it.
+Prepare for removing num_physpages and simplify mem_init().
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Mel Gorman <mgorman@suse.de>
-Cc: Michel Lespinasse <walken@google.com>
-Cc: Rik van Riel <riel@redhat.com>
-Cc: Jiang Liu <jiang.liu@huawei.com>
-Cc: Hugh Dickins <hughd@google.com>
-Cc: David Rientjes <rientjes@google.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Konstantin Khlebnikov <khlebnikov@openvz.org>
-Cc: linux-mm@kvack.org
+Cc: Mike Frysinger <vapier@gentoo.org>
+Cc: Bob Liu <lliubbo@gmail.com>
+Cc: uclinux-dist-devel@blackfin.uclinux.org
 Cc: linux-kernel@vger.kernel.org
 ---
 Hi all,
@@ -38,63 +34,63 @@ So I regenerate a third version and also set up a git tree at:
 	Regards!
 	Gerry
 ---
- include/linux/mm.h |    1 -
- mm/memory.c        |    2 --
- mm/nommu.c         |    2 --
- 3 files changed, 5 deletions(-)
+ arch/blackfin/mm/init.c |   38 ++++++--------------------------------
+ 1 file changed, 6 insertions(+), 32 deletions(-)
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index c225a4f..a49afbf 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -29,7 +29,6 @@ struct writeback_control;
- extern unsigned long max_mapnr;
- #endif
+diff --git a/arch/blackfin/mm/init.c b/arch/blackfin/mm/init.c
+index 1cc8607..e4b6e11 100644
+--- a/arch/blackfin/mm/init.c
++++ b/arch/blackfin/mm/init.c
+@@ -90,43 +90,17 @@ asmlinkage void __init init_pda(void)
  
--extern unsigned long num_physpages;
- extern unsigned long totalram_pages;
- extern void * high_memory;
- extern int page_cluster;
-diff --git a/mm/memory.c b/mm/memory.c
-index 705473a..ecc771d 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -82,7 +82,6 @@ EXPORT_SYMBOL(max_mapnr);
- EXPORT_SYMBOL(mem_map);
- #endif
+ void __init mem_init(void)
+ {
+-	unsigned int codek = 0, datak = 0, initk = 0;
+-	unsigned int reservedpages = 0, freepages = 0;
+-	unsigned long tmp;
+-	unsigned long start_mem = memory_start;
+-	unsigned long end_mem = memory_end;
++	char buf[64];
  
--unsigned long num_physpages;
- /*
-  * A number of key systems in x86 including ioremap() rely on the assumption
-  * that high_memory defines the upper bound on direct map memory, then end
-@@ -92,7 +91,6 @@ unsigned long num_physpages;
-  */
- void * high_memory;
+-	end_mem &= PAGE_MASK;
+-	high_memory = (void *)end_mem;
+-
+-	start_mem = PAGE_ALIGN(start_mem);
+-	max_mapnr = num_physpages = MAP_NR(high_memory);
+-	printk(KERN_DEBUG "Kernel managed physical pages: %lu\n", num_physpages);
++	high_memory = (void *)(memory_end & PAGE_MASK);
++	max_mapnr = MAP_NR(high_memory);
++	printk(KERN_DEBUG "Kernel managed physical pages: %lu\n", max_mapnr);
  
--EXPORT_SYMBOL(num_physpages);
- EXPORT_SYMBOL(high_memory);
+ 	/* This will put all low memory onto the freelists. */
+ 	free_all_bootmem();
  
- /*
-diff --git a/mm/nommu.c b/mm/nommu.c
-index 4eb25a8..ac23388 100644
---- a/mm/nommu.c
-+++ b/mm/nommu.c
-@@ -55,7 +55,6 @@
- void *high_memory;
- struct page *mem_map;
- unsigned long max_mapnr;
--unsigned long num_physpages;
- unsigned long highest_memmap_pfn;
- struct percpu_counter vm_committed_as;
- int sysctl_overcommit_memory = OVERCOMMIT_GUESS; /* heuristic overcommit */
-@@ -82,7 +81,6 @@ unsigned long vm_memory_committed(void)
- EXPORT_SYMBOL_GPL(vm_memory_committed);
+-	reservedpages = 0;
+-	for (tmp = ARCH_PFN_OFFSET; tmp < max_mapnr; tmp++)
+-		if (PageReserved(pfn_to_page(tmp)))
+-			reservedpages++;
+-	freepages =  max_mapnr - ARCH_PFN_OFFSET - reservedpages;
+-
+-	/* do not count in kernel image between _rambase and _ramstart */
+-	reservedpages -= (_ramstart - _rambase) >> PAGE_SHIFT;
+-#if (defined(CONFIG_BFIN_EXTMEM_ICACHEABLE) && ANOMALY_05000263)
+-	reservedpages += (_ramend - memory_end - DMA_UNCACHED_REGION) >> PAGE_SHIFT;
+-#endif
+-
+-	codek = (_etext - _stext) >> 10;
+-	initk = (__init_end - __init_begin) >> 10;
+-	datak = ((_ramstart - _rambase) >> 10) - codek - initk;
+-
+-	printk(KERN_INFO
+-	     "Memory available: %luk/%luk RAM, "
+-		"(%uk init code, %uk kernel code, %uk data, %uk dma, %uk reserved)\n",
+-		(unsigned long) freepages << (PAGE_SHIFT-10), (_ramend - CONFIG_PHY_RAM_BASE_ADDRESS) >> 10,
+-		initk, codek, datak, DMA_UNCACHED_REGION >> 10, (reservedpages << (PAGE_SHIFT-10)));
++	snprintf(buf, sizeof(buf) - 1, "%uK DMA", DMA_UNCACHED_REGION >> 10);
++	mem_init_print_info(buf);
+ }
  
- EXPORT_SYMBOL(mem_map);
--EXPORT_SYMBOL(num_physpages);
- 
- /* list of mapped, potentially shareable regions */
- static struct kmem_cache *vm_region_jar;
+ #ifdef CONFIG_BLK_DEV_INITRD
 -- 
 1.7.9.5
 
