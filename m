@@ -1,198 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f45.google.com ([209.85.160.45]:59273 "EHLO
-	mail-pb0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934963Ab3CZQMG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Mar 2013 12:12:06 -0400
-From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v3, part4 36/39] mm/x86: prepare for removing num_physpages and simplify mem_init()
-Date: Tue, 26 Mar 2013 23:54:55 +0800
-Message-ID: <1364313298-17336-37-git-send-email-jiang.liu@huawei.com>
-In-Reply-To: <1364313298-17336-1-git-send-email-jiang.liu@huawei.com>
-References: <1364313298-17336-1-git-send-email-jiang.liu@huawei.com>
+Received: from mx1.redhat.com ([209.132.183.28]:18699 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754550Ab3CZRtA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 26 Mar 2013 13:49:00 -0400
+Subject: [PATCH] UAPI: Remove empty Kbuild files
+From: David Howells <dhowells@redhat.com>
+Date: Tue, 26 Mar 2013 17:48:53 +0000
+Message-ID: <20130326174853.10144.36253.stgit@warthog.procyon.org.uk>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>
-Cc: Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Andreas Herrmann <andreas.herrmann3@amd.com>, Tang Chen <tangchen@cn.fujitsu.com>
-Message-ID: <20130326155455.8lmYP3redQ7nTRbu89mUUX0KM3-hNeCHNjKaAMIp4YU@z>
+To: torvalds@linux-foundation.org, arnd@arndb.de
+Cc: linux-arch@vger.kernel.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org
+Message-ID: <20130326174853.UH_NgffL-lhXZVGsQwk0CurTHJ8dbs9gIfhDwBd5YaM@z>
 
-Prepare for removing num_physpages and simplify mem_init().
+Remove empty Kbuild files as they cause problems with the patch program which
+removes files that become empty.
 
-Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
-Cc: Andreas Herrmann <andreas.herrmann3@amd.com>
-Cc: Tang Chen <tangchen@cn.fujitsu.com>
-Cc: Wen Congyang <wency@cn.fujitsu.com>
-Cc: Jianguo Wu <wujianguo@huawei.com>
-Cc: linux-kernel@vger.kernel.org
+Should I also remove include/Kbuild as that now does nothing?  Or should it be
+left as an anchor just in case we want it in future?
+
+Signed-off-by: David Howells <dhowells@redhat.com>
 ---
-Hi all,
-	Sorry for my mistake that my previous patch series has been screwed up.
-So I regenerate a third version and also set up a git tree at:
-	git://github.com/jiangliu/linux.git mem_init
-	Any help to review and test are welcomed!
 
-	Regards!
-	Gerry
----
- arch/x86/kernel/cpu/amd.c |    2 +-
- arch/x86/kernel/setup.c   |    2 --
- arch/x86/mm/init_32.c     |   30 ++----------------------------
- arch/x86/mm/init_64.c     |   20 +-------------------
- arch/x86/mm/numa_32.c     |    2 --
- 5 files changed, 4 insertions(+), 52 deletions(-)
+ include/Kbuild         |    3 ---
+ include/scsi/Kbuild    |    1 -
+ include/scsi/fc/Kbuild |    0 
+ include/video/Kbuild   |    0 
+ 4 files changed, 4 deletions(-)
+ delete mode 100644 include/scsi/Kbuild
+ delete mode 100644 include/scsi/fc/Kbuild
+ delete mode 100644 include/video/Kbuild
 
-diff --git a/arch/x86/kernel/cpu/amd.c b/arch/x86/kernel/cpu/amd.c
-index 15239ff..3465db2 100644
---- a/arch/x86/kernel/cpu/amd.c
-+++ b/arch/x86/kernel/cpu/amd.c
-@@ -91,7 +91,7 @@ static void __cpuinit init_amd_k5(struct cpuinfo_x86 *c)
- static void __cpuinit init_amd_k6(struct cpuinfo_x86 *c)
- {
- 	u32 l, h;
--	int mbytes = num_physpages >> (20-PAGE_SHIFT);
-+	int mbytes = get_num_physpages() >> (20-PAGE_SHIFT);
- 
- 	if (c->x86_model < 6) {
- 		/* Based on AMD doc 20734R - June 2000 */
-diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-index 342b1a7..5e5e26e 100644
---- a/arch/x86/kernel/setup.c
-+++ b/arch/x86/kernel/setup.c
-@@ -934,8 +934,6 @@ void __init setup_arch(char **cmdline_p)
- 	/* max_low_pfn get updated here */
- 	find_low_pfn_range();
- #else
--	num_physpages = max_pfn;
+diff --git a/include/Kbuild b/include/Kbuild
+index 1dfd33e..bab1145 100644
+--- a/include/Kbuild
++++ b/include/Kbuild
+@@ -1,5 +1,2 @@
+ # Top-level Makefile calls into asm-$(ARCH)
+ # List only non-arch directories below
 -
- 	check_x2apic();
- 
- 	/* How many end-of-memory variables you have, grandma! */
-diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
-index 857032c..62e8920 100644
---- a/arch/x86/mm/init_32.c
-+++ b/arch/x86/mm/init_32.c
-@@ -634,10 +634,8 @@ void __init initmem_init(void)
- 		highstart_pfn = max_low_pfn;
- 	printk(KERN_NOTICE "%ldMB HIGHMEM available.\n",
- 		pages_to_mb(highend_pfn - highstart_pfn));
--	num_physpages = highend_pfn;
- 	high_memory = (void *) __va(highstart_pfn * PAGE_SIZE - 1) + 1;
- #else
--	num_physpages = max_low_pfn;
- 	high_memory = (void *) __va(max_low_pfn * PAGE_SIZE - 1) + 1;
- #endif
- 
-@@ -645,7 +643,7 @@ void __init initmem_init(void)
- 	sparse_memory_present_with_active_regions(0);
- 
- #ifdef CONFIG_FLATMEM
--	max_mapnr = num_physpages;
-+	max_mapnr = IS_ENABLED(CONFIG_HIGHMEM) ? highend_pfn : max_low_pfn;
- #endif
- 	__vmalloc_start_set = true;
- 
-@@ -715,9 +713,6 @@ static void __init test_wp_bit(void)
- 
- void __init mem_init(void)
- {
--	int codesize, reservedpages, datasize, initsize;
--	int tmp;
--
- 	pci_iommu_alloc();
- 
- #ifdef CONFIG_FLATMEM
-@@ -737,28 +732,7 @@ void __init mem_init(void)
- 	/* this will put all low memory onto the freelists */
- 	free_all_bootmem();
- 
--	reservedpages = 0;
--	for (tmp = 0; tmp < max_low_pfn; tmp++)
--		/*
--		 * Only count reserved RAM pages:
--		 */
--		if (page_is_ram(tmp) && PageReserved(pfn_to_page(tmp)))
--			reservedpages++;
--
--	codesize =  (unsigned long) &_etext - (unsigned long) &_text;
--	datasize =  (unsigned long) &_edata - (unsigned long) &_etext;
--	initsize =  (unsigned long) &__init_end - (unsigned long) &__init_begin;
--
--	printk(KERN_INFO "Memory: %luk/%luk available (%dk kernel code, "
--			"%dk reserved, %dk data, %dk init, %ldk highmem)\n",
--		nr_free_pages() << (PAGE_SHIFT-10),
--		num_physpages << (PAGE_SHIFT-10),
--		codesize >> 10,
--		reservedpages << (PAGE_SHIFT-10),
--		datasize >> 10,
--		initsize >> 10,
--		totalhigh_pages << (PAGE_SHIFT-10));
--
-+	mem_init_print_info(NULL);
- 	printk(KERN_INFO "virtual kernel memory layout:\n"
- 		"    fixmap  : 0x%08lx - 0x%08lx   (%4ld kB)\n"
- #ifdef CONFIG_HIGHMEM
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index f524138..a1c1db1 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -1029,9 +1029,6 @@ static void __init register_page_bootmem_info(void)
- 
- void __init mem_init(void)
- {
--	long codesize, reservedpages, datasize, initsize;
--	unsigned long absent_pages;
--
- 	pci_iommu_alloc();
- 
- 	/* clear_bss() already clear the empty_zero_page */
-@@ -1040,28 +1037,13 @@ void __init mem_init(void)
- 
- 	/* this will put all memory onto the freelists */
- 	free_all_bootmem();
--
--	absent_pages = absent_pages_in_range(0, max_pfn);
--	reservedpages = max_pfn - totalram_pages - absent_pages;
- 	after_bootmem = 1;
- 
--	codesize =  (unsigned long) &_etext - (unsigned long) &_text;
--	datasize =  (unsigned long) &_edata - (unsigned long) &_etext;
--	initsize =  (unsigned long) &__init_end - (unsigned long) &__init_begin;
--
- 	/* Register memory areas for /proc/kcore */
- 	kclist_add(&kcore_vsyscall, (void *)VSYSCALL_START,
- 			 VSYSCALL_END - VSYSCALL_START, KCORE_OTHER);
- 
--	printk(KERN_INFO "Memory: %luk/%luk available (%ldk kernel code, "
--			 "%ldk absent, %ldk reserved, %ldk data, %ldk init)\n",
--		nr_free_pages() << (PAGE_SHIFT-10),
--		max_pfn << (PAGE_SHIFT-10),
--		codesize >> 10,
--		absent_pages << (PAGE_SHIFT-10),
--		reservedpages << (PAGE_SHIFT-10),
--		datasize >> 10,
--		initsize >> 10);
-+	mem_init_print_info(NULL);
- }
- 
- #ifdef CONFIG_DEBUG_RODATA
-diff --git a/arch/x86/mm/numa_32.c b/arch/x86/mm/numa_32.c
-index 534255a..dc32528 100644
---- a/arch/x86/mm/numa_32.c
-+++ b/arch/x86/mm/numa_32.c
-@@ -244,10 +244,8 @@ void __init initmem_init(void)
- 		highstart_pfn = max_low_pfn;
- 	printk(KERN_NOTICE "%ldMB HIGHMEM available.\n",
- 	       pages_to_mb(highend_pfn - highstart_pfn));
--	num_physpages = highend_pfn;
- 	high_memory = (void *) __va(highstart_pfn * PAGE_SIZE - 1) + 1;
- #else
--	num_physpages = max_low_pfn;
- 	high_memory = (void *) __va(max_low_pfn * PAGE_SIZE - 1) + 1;
- #endif
- 	printk(KERN_NOTICE "%ldMB LOWMEM available.\n",
--- 
-1.7.9.5
+-header-y += video/
+-header-y += scsi/
+diff --git a/include/scsi/Kbuild b/include/scsi/Kbuild
+deleted file mode 100644
+index 562ff9d..0000000
+--- a/include/scsi/Kbuild
++++ /dev/null
+@@ -1 +0,0 @@
+-header-y += fc/
+diff --git a/include/scsi/fc/Kbuild b/include/scsi/fc/Kbuild
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/include/video/Kbuild b/include/video/Kbuild
+deleted file mode 100644
+index e69de29..0000000
 
