@@ -1,29 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f48.google.com ([209.85.220.48]:63374 "EHLO
-	mail-pa0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934853Ab3CZQJI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Mar 2013 12:09:08 -0400
-Received: by mail-pa0-f48.google.com with SMTP id lj1so513889pab.21
-        for <linux-arch@vger.kernel.org>; Tue, 26 Mar 2013 09:09:07 -0700 (PDT)
+Received: from mail-pb0-f44.google.com ([209.85.160.44]:61836 "EHLO
+	mail-pb0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933665Ab3CZQI7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Mar 2013 12:08:59 -0400
+Received: by mail-pb0-f44.google.com with SMTP id wz17so1348383pbc.31
+        for <linux-arch@vger.kernel.org>; Tue, 26 Mar 2013 09:08:58 -0700 (PDT)
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v3, part4 33/39] mm/tile: prepare for removing num_physpages and simplify mem_init()
-Date: Tue, 26 Mar 2013 23:54:52 +0800
-Message-ID: <1364313298-17336-34-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v3, part4 31/39] mm/SH: prepare for removing num_physpages and simplify mem_init()
+Date: Tue, 26 Mar 2013 23:54:50 +0800
+Message-ID: <1364313298-17336-32-git-send-email-jiang.liu@huawei.com>
 In-Reply-To: <1364313298-17336-1-git-send-email-jiang.liu@huawei.com>
 References: <1364313298-17336-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>
-Cc: Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Bjorn Helgaas <bhelgaas@google.com>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20130326155452.lvd4RDRSDT_1X3ds4Q5F4Flj3HKx_zZ34JbqAYnGqU8@z>
+Cc: Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Paul Mundt <lethal@linux-sh.org>, Tang Chen <tangchen@cn.fujitsu.com>, linux-sh@vger.kernel.org
+Message-ID: <20130326155450.qiBwWD2WnFPWLibO16JGDhsJPLNLEHH5bZ5uzvTDIME@z>
 
 Prepare for removing num_physpages and simplify mem_init().
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Chris Metcalf <cmetcalf@tilera.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>
-Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Paul Mundt <lethal@linux-sh.org>
 Cc: Wen Congyang <wency@cn.fujitsu.com>
+Cc: Tang Chen <tangchen@cn.fujitsu.com>
+Cc: linux-sh@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org
 ---
 Hi all,
@@ -35,114 +35,62 @@ So I regenerate a third version and also set up a git tree at:
 	Regards!
 	Gerry
 ---
- arch/tile/kernel/setup.c |   16 ++++++++--------
- arch/tile/mm/init.c      |   15 +--------------
- 2 files changed, 9 insertions(+), 22 deletions(-)
+ arch/sh/mm/init.c |   25 ++++---------------------
+ 1 file changed, 4 insertions(+), 21 deletions(-)
 
-diff --git a/arch/tile/kernel/setup.c b/arch/tile/kernel/setup.c
-index a986b71..54469a5 100644
---- a/arch/tile/kernel/setup.c
-+++ b/arch/tile/kernel/setup.c
-@@ -329,6 +329,7 @@ static void __init setup_memory(void)
- #if defined(CONFIG_HIGHMEM) || defined(__tilegx__)
- 	long lowmem_pages;
- #endif
-+	unsigned long physpages = 0;
- 
- 	/* We are using a char to hold the cpu_2_node[] mapping */
- 	BUILD_BUG_ON(MAX_NUMNODES > 127);
-@@ -388,8 +389,8 @@ static void __init setup_memory(void)
- 				continue;
- 			}
- 		}
--		if (num_physpages + PFN_DOWN(range.size) > maxmem_pfn) {
--			int max_size = maxmem_pfn - num_physpages;
-+		if (physpages + PFN_DOWN(range.size) > maxmem_pfn) {
-+			int max_size = maxmem_pfn - physpages;
- 			if (max_size > 0) {
- 				pr_err("Maxmem reduced node %d to %d pages\n",
- 				       i, max_size);
-@@ -446,7 +447,7 @@ static void __init setup_memory(void)
- 		node_start_pfn[i] = start;
- 		node_end_pfn[i] = end;
- 		node_controller[i] = range.controller;
--		num_physpages += size;
-+		physpages += size;
- 		max_pfn = end;
- 
- 		/* Mark node as online */
-@@ -465,7 +466,7 @@ static void __init setup_memory(void)
- 	 * we're willing to use at 8 million pages (32GB of 4KB pages).
- 	 */
- 	cap = 8 * 1024 * 1024;  /* 8 million pages */
--	if (num_physpages > cap) {
-+	if (physpages > cap) {
- 		int num_nodes = num_online_nodes();
- 		int cap_each = cap / num_nodes;
- 		unsigned long dropped_pages = 0;
-@@ -476,10 +477,10 @@ static void __init setup_memory(void)
- 				node_end_pfn[i] = node_start_pfn[i] + cap_each;
- 			}
- 		}
--		num_physpages -= dropped_pages;
-+		physpages -= dropped_pages;
- 		pr_warning("Only using %ldMB memory;"
- 		       " ignoring %ldMB.\n",
--		       num_physpages >> (20 - PAGE_SHIFT),
-+		       physpages >> (20 - PAGE_SHIFT),
- 		       dropped_pages >> (20 - PAGE_SHIFT));
- 		pr_warning("Consider using a larger page size.\n");
- 	}
-@@ -497,7 +498,7 @@ static void __init setup_memory(void)
- 
- 	lowmem_pages = (mappable_physpages > MAXMEM_PFN) ?
- 		MAXMEM_PFN : mappable_physpages;
--	highmem_pages = (long) (num_physpages - lowmem_pages);
-+	highmem_pages = (long) (physpages - lowmem_pages);
- 
- 	pr_notice("%ldMB HIGHMEM available.\n",
- 	       pages_to_mb(highmem_pages > 0 ? highmem_pages : 0));
-@@ -514,7 +515,6 @@ static void __init setup_memory(void)
- 		pr_warning("Use a HIGHMEM enabled kernel.\n");
- 		max_low_pfn = MAXMEM_PFN;
- 		max_pfn = MAXMEM_PFN;
--		num_physpages = MAXMEM_PFN;
- 		node_end_pfn[0] = MAXMEM_PFN;
- 	} else {
- 		pr_notice("%ldMB memory available.\n",
-diff --git a/arch/tile/mm/init.c b/arch/tile/mm/init.c
-index f2ac2f4..e182958 100644
---- a/arch/tile/mm/init.c
-+++ b/arch/tile/mm/init.c
-@@ -821,7 +821,6 @@ static void __init set_max_mapnr_init(void)
+diff --git a/arch/sh/mm/init.c b/arch/sh/mm/init.c
+index aecd913..3826596 100644
+--- a/arch/sh/mm/init.c
++++ b/arch/sh/mm/init.c
+@@ -407,24 +407,18 @@ unsigned int mem_init_done = 0;
  
  void __init mem_init(void)
  {
 -	int codesize, datasize, initsize;
- 	int i;
- #ifndef __tilegx__
- 	void *last;
-@@ -853,19 +852,7 @@ void __init mem_init(void)
- 	set_non_bootmem_pages_init();
- #endif
+-	int nid;
++	pg_data_t *pgdat;
  
--	codesize =  (unsigned long)&_etext - (unsigned long)&_text;
--	datasize =  (unsigned long)&_end - (unsigned long)&_sdata;
--	initsize =  (unsigned long)&_einittext - (unsigned long)&_sinittext;
--	initsize += (unsigned long)&_einitdata - (unsigned long)&_sinitdata;
+ 	iommu_init();
+ 
+-	num_physpages = 0;
+ 	high_memory = NULL;
+ 
+-	for_each_online_node(nid) {
+-		pg_data_t *pgdat = NODE_DATA(nid);
++	for_each_online_pgdat(pgdat) {
+ 		void *node_high_memory;
+ 
+-		num_physpages += pgdat->node_present_pages;
 -
--	pr_info("Memory: %luk/%luk available (%dk kernel code, %dk data, %dk init, %ldk highmem)\n",
--		(unsigned long) nr_free_pages() << (PAGE_SHIFT-10),
+ 		if (pgdat->node_spanned_pages)
+ 			free_all_bootmem_node(pgdat);
+ 
+-
+ 		node_high_memory = (void *)__va((pgdat->node_start_pfn +
+ 						 pgdat->node_spanned_pages) <<
+ 						 PAGE_SHIFT);
+@@ -441,19 +435,8 @@ void __init mem_init(void)
+ 
+ 	vsyscall_init();
+ 
+-	codesize =  (unsigned long) &_etext - (unsigned long) &_text;
+-	datasize =  (unsigned long) &_edata - (unsigned long) &_etext;
+-	initsize =  (unsigned long) &__init_end - (unsigned long) &__init_begin;
+-
+-	printk(KERN_INFO "Memory: %luk/%luk available (%dk kernel code, "
+-	       "%dk data, %dk init)\n",
+-		nr_free_pages() << (PAGE_SHIFT-10),
 -		num_physpages << (PAGE_SHIFT-10),
 -		codesize >> 10,
 -		datasize >> 10,
--		initsize >> 10,
--		(unsigned long) (totalhigh_pages << (PAGE_SHIFT-10))
--	       );
+-		initsize >> 10);
+-
+-	printk(KERN_INFO "virtual kernel memory layout:\n"
 +	mem_init_print_info(NULL);
- 
- 	/*
- 	 * In debug mode, dump some interesting memory mappings.
++	pr_info("virtual kernel memory layout:\n"
+ 		"    fixmap  : 0x%08lx - 0x%08lx   (%4ld kB)\n"
+ #ifdef CONFIG_HIGHMEM
+ 		"    pkmap   : 0x%08lx - 0x%08lx   (%4ld kB)\n"
 -- 
 1.7.9.5
 
