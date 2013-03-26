@@ -1,34 +1,25 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f44.google.com ([209.85.220.44]:64049 "EHLO
-	mail-pa0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965392Ab3CZP5Q (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Mar 2013 11:57:16 -0400
+Received: from mail-pb0-f42.google.com ([209.85.160.42]:45836 "EHLO
+	mail-pb0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S934872Ab3CZP5n (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Mar 2013 11:57:43 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v3, part4 03/39] c6x: normalize global variables exported by vmlinux.lds
-Date: Tue, 26 Mar 2013 23:54:22 +0800
-Message-ID: <1364313298-17336-4-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v3, part4 05/39] score: normalize global variables exported by vmlinux.lds
+Date: Tue, 26 Mar 2013 23:54:24 +0800
+Message-ID: <1364313298-17336-6-git-send-email-jiang.liu@huawei.com>
 In-Reply-To: <1364313298-17336-1-git-send-email-jiang.liu@huawei.com>
 References: <1364313298-17336-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>
-Cc: Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Aurelien Jacquiot <a-jacquiot@ti.com>, linux-c6x-dev@linux-c6x.org
-Message-ID: <20130326155422.fVJ2kM_MZynM6MH-C2fx7mFAEukSIKC495JlGgezzfc@z>
+Cc: Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Chen Liqin <liqin.chen@sunplusct.com>, Lennox Wu <lennox.wu@gmail.com>
+Message-ID: <20130326155424.CAKo2gOMRBdEukqTI5s5kpuOltc7qQw5UtZwbJKCiyY@z>
 
-Normalize global variables exported by vmlinux.lds to conform usage
-guidelines from include/asm-generic/sections.h.
-
-Use _text to mark the start of the kernel image including the head text,
-and _stext to mark the start of the .text section.
-
-This patch also fixes possible bugs due to current address layout that
-[__init_begin, __init_end] is a sub-range of [_stext, _etext] and pages
-within range [__init_begin, __init_end] will be freed by free_initmem().
+Generate mandatory global variables _sdata in file vmlinux.lds.
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Mark Salter <msalter@redhat.com>
-Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
-Cc: linux-c6x-dev@linux-c6x.org
+Cc: Chen Liqin <liqin.chen@sunplusct.com>
+Cc: Lennox Wu <lennox.wu@gmail.com>
 Cc: linux-kernel@vger.kernel.org
 ---
 Hi all,
@@ -40,39 +31,21 @@ So I regenerate a third version and also set up a git tree at:
 	Regards!
 	Gerry
 ---
- arch/c6x/kernel/vmlinux.lds.S |    4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ arch/score/kernel/vmlinux.lds.S |    1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/arch/c6x/kernel/vmlinux.lds.S b/arch/c6x/kernel/vmlinux.lds.S
-index 1d81c4c..279d807 100644
---- a/arch/c6x/kernel/vmlinux.lds.S
-+++ b/arch/c6x/kernel/vmlinux.lds.S
-@@ -54,16 +54,15 @@ SECTIONS
+diff --git a/arch/score/kernel/vmlinux.lds.S b/arch/score/kernel/vmlinux.lds.S
+index eebcbaa..7274b5c 100644
+--- a/arch/score/kernel/vmlinux.lds.S
++++ b/arch/score/kernel/vmlinux.lds.S
+@@ -49,6 +49,7 @@ SECTIONS
  	}
  
- 	. = ALIGN(PAGE_SIZE);
-+	__init_begin = .;
- 	.init :
- 	{
--		_stext = .;
- 		_sinittext = .;
- 		HEAD_TEXT
- 		INIT_TEXT
- 		_einittext = .;
- 	}
+ 	. = ALIGN(16);
++	_sdata =  .;			/* Start of data section */
+ 	RODATA
  
--	__init_begin = _stext;
- 	INIT_DATA_SECTION(16)
- 
- 	PERCPU_SECTION(128)
-@@ -74,6 +73,7 @@ SECTIONS
- 	.text :
- 	{
- 		_text = .;
-+		_stext = .;
- 		TEXT_TEXT
- 		SCHED_TEXT
- 		LOCK_TEXT
+ 	EXCEPTION_TABLE(16)
 -- 
 1.7.9.5
 
