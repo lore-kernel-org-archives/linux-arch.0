@@ -1,28 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-da0-f41.google.com ([209.85.210.41]:44241 "EHLO
-	mail-da0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965566Ab3CZQCv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Mar 2013 12:02:51 -0400
+Received: from mail-pa0-f51.google.com ([209.85.220.51]:55959 "EHLO
+	mail-pa0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933562Ab3CZP4w (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Mar 2013 11:56:52 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v3, part4 32/39] mm/SPARC: prepare for removing num_physpages and simplify mem_init()
-Date: Tue, 26 Mar 2013 23:54:51 +0800
-Message-ID: <1364313298-17336-33-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v3, part4 01/39] vmlinux.lds: add comments for global variables and clean up useless declarations
+Date: Tue, 26 Mar 2013 23:54:20 +0800
+Message-ID: <1364313298-17336-2-git-send-email-jiang.liu@huawei.com>
 In-Reply-To: <1364313298-17336-1-git-send-email-jiang.liu@huawei.com>
 References: <1364313298-17336-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>
-Cc: Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Sam Ravnborg <sam@ravnborg.org>, Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>, Tang Chen <tangchen@cn.fujitsu.com>, sparclinux@vger.kernel.org
-Message-ID: <20130326155451.GCYXJmJx8y4_xfzBNQ2LTlnGvs4YazXdj7zEqexxE0c@z>
+Cc: Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20130326155420.MwlIh88hd_3kBFQT9qjsRUkNbQ5fkv_YkFmKSJTu8wc@z>
 
-Prepare for removing num_physpages and simplify mem_init().
+This patch documents global variables exported from vmlinux.lds.
+1) Add comments about usage guidelines for global variables exported
+   from vmlinux.lds.S.
+2) Remove unused __initdata_begin[] and __initdata_end[].
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: Sam Ravnborg <sam@ravnborg.org>
-Cc: Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>
-Cc: Tang Chen <tangchen@cn.fujitsu.com>
-Cc: sparclinux@vger.kernel.org
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org
 ---
 Hi all,
@@ -34,164 +35,48 @@ So I regenerate a third version and also set up a git tree at:
 	Regards!
 	Gerry
 ---
- arch/sparc/kernel/leon_smp.c |    3 ---
- arch/sparc/mm/init_32.c      |   33 +++------------------------------
- arch/sparc/mm/init_64.c      |   27 +++------------------------
- 3 files changed, 6 insertions(+), 57 deletions(-)
+ include/asm-generic/sections.h |   21 ++++++++++++++++++++-
+ 1 file changed, 20 insertions(+), 1 deletion(-)
 
-diff --git a/arch/sparc/kernel/leon_smp.c b/arch/sparc/kernel/leon_smp.c
-index 143b1a5..5a9ab8d 100644
---- a/arch/sparc/kernel/leon_smp.c
-+++ b/arch/sparc/kernel/leon_smp.c
-@@ -269,15 +269,12 @@ void __init leon_smp_done(void)
- 	/* Free unneeded trap tables */
- 	if (!cpu_present(1)) {
- 		free_reserved_page(virt_to_page(&trapbase_cpu1));
--		num_physpages++;
- 	}
- 	if (!cpu_present(2)) {
- 		free_reserved_page(virt_to_page(&trapbase_cpu2));
--		num_physpages++;
- 	}
- 	if (!cpu_present(3)) {
- 		free_reserved_page(virt_to_page(&trapbase_cpu3));
--		num_physpages++;
- 	}
- 	/* Ok, they are spinning and ready to go. */
- 	smp_processors_ready = 1;
-diff --git a/arch/sparc/mm/init_32.c b/arch/sparc/mm/init_32.c
-index e96afed..25d10cf 100644
---- a/arch/sparc/mm/init_32.c
-+++ b/arch/sparc/mm/init_32.c
-@@ -288,10 +288,6 @@ static void map_high_region(unsigned long start_pfn, unsigned long end_pfn)
+diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
+index c1a1216..f1a24b5 100644
+--- a/include/asm-generic/sections.h
++++ b/include/asm-generic/sections.h
+@@ -3,6 +3,26 @@
  
- void __init mem_init(void)
- {
--	int codepages = 0;
--	int datapages = 0;
--	int initpages = 0; 
--	int reservedpages = 0;
- 	int i;
+ /* References to section boundaries */
  
- 	if (PKMAP_BASE+LAST_PKMAP*PAGE_SIZE >= FIXADDR_START) {
-@@ -329,8 +325,6 @@ void __init mem_init(void)
- 		unsigned long start_pfn = sp_banks[i].base_addr >> PAGE_SHIFT;
- 		unsigned long end_pfn = (sp_banks[i].base_addr + sp_banks[i].num_bytes) >> PAGE_SHIFT;
++/*
++ * Usage guidelines:
++ * _text, _data: architecture specific, don't use them in arch-independent code
++ * [_stext, _etext]: contains .text.* sections, may also contain .rodata.*
++ *                   and/or .init.* sections
++ * [_sdata, _edata]: contains .data.* sections, may also contain .rodata.*
++ *                   and/or .init.* sections.
++ * [__start_rodata, __end_rodata]: contains .rodata.* sections
++ * [__init_begin, __init_end]: contains .init.* sections, but .init.text.*
++ *                   may be out of this range on some architectures.
++ * [_sinittext, _einittext]: contains .init.text.* sections
++ * [__bss_start, __bss_stop]: contains BSS sections
++ *
++ * Following global variables are optional and may be unavailable on some
++ * architectures and/or kernel configurations.
++ *	_text, _data
++ *	__kprobes_text_start, __kprobes_text_end
++ *	__entry_text_start, __entry_text_end
++ *	__ctors_start, __ctors_end
++ */
+ extern char _text[], _stext[], _etext[];
+ extern char _data[], _sdata[], _edata[];
+ extern char __bss_start[], __bss_stop[];
+@@ -12,7 +32,6 @@ extern char _end[];
+ extern char __per_cpu_load[], __per_cpu_start[], __per_cpu_end[];
+ extern char __kprobes_text_start[], __kprobes_text_end[];
+ extern char __entry_text_start[], __entry_text_end[];
+-extern char __initdata_begin[], __initdata_end[];
+ extern char __start_rodata[], __end_rodata[];
  
--		num_physpages += sp_banks[i].num_bytes >> PAGE_SHIFT;
--
- 		if (end_pfn <= highstart_pfn)
- 			continue;
- 
-@@ -340,39 +334,18 @@ void __init mem_init(void)
- 		map_high_region(start_pfn, end_pfn);
- 	}
- 	
--	codepages = (((unsigned long) &_etext) - ((unsigned long)&_start));
--	codepages = PAGE_ALIGN(codepages) >> PAGE_SHIFT;
--	datapages = (((unsigned long) &_edata) - ((unsigned long)&_etext));
--	datapages = PAGE_ALIGN(datapages) >> PAGE_SHIFT;
--	initpages = (((unsigned long) &__init_end) - ((unsigned long) &__init_begin));
--	initpages = PAGE_ALIGN(initpages) >> PAGE_SHIFT;
--
--	/* Ignore memory holes for the purpose of counting reserved pages */
--	for (i=0; i < max_low_pfn; i++)
--		if (test_bit(i >> (20 - PAGE_SHIFT), sparc_valid_addr_bitmap)
--		    && PageReserved(pfn_to_page(i)))
--			reservedpages++;
--
--	printk(KERN_INFO "Memory: %luk/%luk available (%dk kernel code, %dk reserved, %dk data, %dk init, %ldk highmem)\n",
--	       nr_free_pages() << (PAGE_SHIFT-10),
--	       num_physpages << (PAGE_SHIFT - 10),
--	       codepages << (PAGE_SHIFT-10),
--	       reservedpages << (PAGE_SHIFT - 10),
--	       datapages << (PAGE_SHIFT-10), 
--	       initpages << (PAGE_SHIFT-10),
--	       totalhigh_pages << (PAGE_SHIFT-10));
-+	mem_init_print_info(NULL);
- }
- 
- void free_initmem (void)
- {
--	num_physpages += free_initmem_default(POISON_FREE_INITMEM);
-+	free_initmem_default(POISON_FREE_INITMEM);
- }
- 
- #ifdef CONFIG_BLK_DEV_INITRD
- void free_initrd_mem(unsigned long start, unsigned long end)
- {
--	num_physpages += free_reserved_area(start, end, POISON_FREE_INITMEM,
--					    "initrd");
-+	free_reserved_area(start, end, POISON_FREE_INITMEM, "initrd");
- }
- #endif
- 
-diff --git a/arch/sparc/mm/init_64.c b/arch/sparc/mm/init_64.c
-index fde310e..6768e47 100644
---- a/arch/sparc/mm/init_64.c
-+++ b/arch/sparc/mm/init_64.c
-@@ -2023,7 +2023,6 @@ static void __init patch_tlb_miss_handler_bitmap(void)
- 
- void __init mem_init(void)
- {
--	unsigned long codepages, datapages, initpages;
- 	unsigned long addr, last;
- 
- 	addr = PAGE_OFFSET + kern_base;
-@@ -2051,11 +2050,6 @@ void __init mem_init(void)
- 	free_all_bootmem();
- #endif
- 
--	/* We subtract one to account for the mem_map_zero page
--	 * allocated below.
--	 */
--	num_physpages = totalram_pages - 1;
--
- 	/*
- 	 * Set up the zero page, mark it reserved, so that page count
- 	 * is not manipulated when freeing the page from user ptes.
-@@ -2067,19 +2061,7 @@ void __init mem_init(void)
- 	}
- 	mark_page_reserved(mem_map_zero);
- 
--	codepages = (((unsigned long) _etext) - ((unsigned long) _start));
--	codepages = PAGE_ALIGN(codepages) >> PAGE_SHIFT;
--	datapages = (((unsigned long) _edata) - ((unsigned long) _etext));
--	datapages = PAGE_ALIGN(datapages) >> PAGE_SHIFT;
--	initpages = (((unsigned long) __init_end) - ((unsigned long) __init_begin));
--	initpages = PAGE_ALIGN(initpages) >> PAGE_SHIFT;
--
--	printk("Memory: %luk available (%ldk kernel code, %ldk data, %ldk init) [%016lx,%016lx]\n",
--	       nr_free_pages() << (PAGE_SHIFT-10),
--	       codepages << (PAGE_SHIFT-10),
--	       datapages << (PAGE_SHIFT-10), 
--	       initpages << (PAGE_SHIFT-10), 
--	       PAGE_OFFSET, (last_valid_pfn << PAGE_SHIFT));
-+	mem_init_print_info(NULL);
- 
- 	if (tlb_type == cheetah || tlb_type == cheetah_plus)
- 		cheetah_ecache_flush_init();
-@@ -2111,18 +2093,15 @@ void free_initmem(void)
- 			((unsigned long) KERNBASE));
- 		memset((void *)addr, POISON_FREE_INITMEM, PAGE_SIZE);
- 
--		if (do_free) {
-+		if (do_free)
- 			free_reserved_page(virt_to_page(page));
--			num_physpages++;
--		}
- 	}
- }
- 
- #ifdef CONFIG_BLK_DEV_INITRD
- void free_initrd_mem(unsigned long start, unsigned long end)
- {
--	num_physpages += free_reserved_area(start, end, POISON_FREE_INITMEM,
--					    "initrd");
-+	free_reserved_area(start, end, POISON_FREE_INITMEM, "initrd");
- }
- #endif
- 
+ /* Start and end of .ctors section - used for constructor calls. */
 -- 
 1.7.9.5
 
