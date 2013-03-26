@@ -1,100 +1,54 @@
-From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v3, part4 39/39] mm: kill global variable num_physpages
-Date: Tue, 26 Mar 2013 23:54:58 +0800
-Message-ID: <1364313298-17336-40-git-send-email-jiang.liu@huawei.com>
-References: <1364313298-17336-1-git-send-email-jiang.liu@huawei.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1364313298-17336-1-git-send-email-jiang.liu@huawei.com>
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>
-Cc: Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Michel Lespinasse <walken@google.com>, Rik van Riel <riel@redhat.com>, Hugh Dickins <hughd@google.com>, Al Viro <viro@zeniv.linux.org.uk>, Konstantin Khlebnikov <khlebnikov@openvz.org>
+From: David Howells <dhowells@redhat.com>
+Subject: [PATCH] UAPI: Remove empty Kbuild files
+Date: Tue, 26 Mar 2013 17:48:53 +0000
+Message-ID: <20130326174853.10144.36253.stgit@warthog.procyon.org.uk>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: torvalds@linux-foundation.org, arnd@arndb.de
+Cc: linux-arch@vger.kernel.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Now all references to num_physpages have been removed, so kill it.
+Remove empty Kbuild files as they cause problems with the patch program which
+removes files that become empty.
 
-Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Mel Gorman <mgorman@suse.de>
-Cc: Michel Lespinasse <walken@google.com>
-Cc: Rik van Riel <riel@redhat.com>
-Cc: Jiang Liu <jiang.liu@huawei.com>
-Cc: Hugh Dickins <hughd@google.com>
-Cc: David Rientjes <rientjes@google.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Konstantin Khlebnikov <khlebnikov@openvz.org>
-Cc: linux-mm@kvack.org
-Cc: linux-kernel@vger.kernel.org
+Should I also remove include/Kbuild as that now does nothing?  Or should it be
+left as an anchor just in case we want it in future?
+
+Signed-off-by: David Howells <dhowells@redhat.com>
 ---
-Hi all,
-	Sorry for my mistake that my previous patch series has been screwed up.
-So I regenerate a third version and also set up a git tree at:
-	git://github.com/jiangliu/linux.git mem_init
-	Any help to review and test are welcomed!
 
-	Regards!
-	Gerry
----
- include/linux/mm.h |    1 -
- mm/memory.c        |    2 --
- mm/nommu.c         |    2 --
- 3 files changed, 5 deletions(-)
+ include/Kbuild         |    3 ---
+ include/scsi/Kbuild    |    1 -
+ include/scsi/fc/Kbuild |    0 
+ include/video/Kbuild   |    0 
+ 4 files changed, 4 deletions(-)
+ delete mode 100644 include/scsi/Kbuild
+ delete mode 100644 include/scsi/fc/Kbuild
+ delete mode 100644 include/video/Kbuild
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index c225a4f..a49afbf 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -29,7 +29,6 @@ struct writeback_control;
- extern unsigned long max_mapnr;
- #endif
- 
--extern unsigned long num_physpages;
- extern unsigned long totalram_pages;
- extern void * high_memory;
- extern int page_cluster;
-diff --git a/mm/memory.c b/mm/memory.c
-index 705473a..ecc771d 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -82,7 +82,6 @@ EXPORT_SYMBOL(max_mapnr);
- EXPORT_SYMBOL(mem_map);
- #endif
- 
--unsigned long num_physpages;
- /*
-  * A number of key systems in x86 including ioremap() rely on the assumption
-  * that high_memory defines the upper bound on direct map memory, then end
-@@ -92,7 +91,6 @@ unsigned long num_physpages;
-  */
- void * high_memory;
- 
--EXPORT_SYMBOL(num_physpages);
- EXPORT_SYMBOL(high_memory);
- 
- /*
-diff --git a/mm/nommu.c b/mm/nommu.c
-index 4eb25a8..ac23388 100644
---- a/mm/nommu.c
-+++ b/mm/nommu.c
-@@ -55,7 +55,6 @@
- void *high_memory;
- struct page *mem_map;
- unsigned long max_mapnr;
--unsigned long num_physpages;
- unsigned long highest_memmap_pfn;
- struct percpu_counter vm_committed_as;
- int sysctl_overcommit_memory = OVERCOMMIT_GUESS; /* heuristic overcommit */
-@@ -82,7 +81,6 @@ unsigned long vm_memory_committed(void)
- EXPORT_SYMBOL_GPL(vm_memory_committed);
- 
- EXPORT_SYMBOL(mem_map);
--EXPORT_SYMBOL(num_physpages);
- 
- /* list of mapped, potentially shareable regions */
- static struct kmem_cache *vm_region_jar;
--- 
-1.7.9.5
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+diff --git a/include/Kbuild b/include/Kbuild
+index 1dfd33e..bab1145 100644
+--- a/include/Kbuild
++++ b/include/Kbuild
+@@ -1,5 +1,2 @@
+ # Top-level Makefile calls into asm-$(ARCH)
+ # List only non-arch directories below
+-
+-header-y += video/
+-header-y += scsi/
+diff --git a/include/scsi/Kbuild b/include/scsi/Kbuild
+deleted file mode 100644
+index 562ff9d..0000000
+--- a/include/scsi/Kbuild
++++ /dev/null
+@@ -1 +0,0 @@
+-header-y += fc/
+diff --git a/include/scsi/fc/Kbuild b/include/scsi/fc/Kbuild
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/include/video/Kbuild b/include/video/Kbuild
+deleted file mode 100644
+index e69de29..0000000
