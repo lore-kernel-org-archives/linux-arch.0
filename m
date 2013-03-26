@@ -1,43 +1,206 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:43771 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756687Ab3CYLtc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Mar 2013 07:49:32 -0400
-Date: Mon, 25 Mar 2013 11:48:08 +0000
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [patch 08/34] arm: Use generic idle loop
-Message-ID: <20130325114808.GQ4977@n2100.arm.linux.org.uk>
-References: <20130321214930.752934102@linutronix.de> <20130321215233.826238797@linutronix.de> <87zjxv9lga.fsf@linaro.org> <alpine.LFD.2.02.1303251230440.22263@ionos>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.2.02.1303251230440.22263@ionos>
+Received: from mail-pa0-f46.google.com ([209.85.220.46]:62132 "EHLO
+	mail-pa0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933562Ab3CZP4m (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Mar 2013 11:56:42 -0400
+From: Jiang Liu <liuj97@gmail.com>
+Subject: [PATCH v3, part4 00/39] Simplify mem_init() implementations and kill num_physpages
+Date: Tue, 26 Mar 2013 23:54:19 +0800
+Message-ID: <1364313298-17336-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Kevin Hilman <khilman@linaro.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>
-Message-ID: <20130325114808.RNp6gvNL1jjQBt2LI88l-CRlLfl4qAdx4k9s-tK_IF8@z>
+To: Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>
+Cc: Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130326155419.MpX1Rq5sq6SkXuzfpLWuo0vqAuh1a9ZHbywdMoKg64I@z>
 
-On Mon, Mar 25, 2013 at 12:31:20PM +0100, Thomas Gleixner wrote:
-> On Fri, 22 Mar 2013, Kevin Hilman wrote:
-> 
-> > Hi Thomas,
-> > 
-> > Thomas Gleixner <tglx@linutronix.de> writes:
-> > 
-> > > Use the generic idle loop and replace enable/disable_hlt with the
-> > > respective core functions.
-> > >
-> > > Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> > > Cc: Russell King <linux@arm.linux.org.uk>
-> > 
-> > I gave patches 1-5 + this a quick spin on ARM (specifially some OMAP3 and
-> > OMAP4 platforms, with and without CPUidle enabled.)
-> > 
-> > The OMAP stuff needed a couple minor compile fixes (below), but
-> > otherwise it passes the quick "seems to work" test.
-> 
-> Yeah, that's needed for the other arch/arm conversions as well.
+Hi all,
+	Sorry for my mistake that my previous patch series has been screwed up.
+So I regenerate a third version and also set up a git tree at:
+	git://github.com/jiangliu/linux.git mem_init
+	Any help to review and test are welcomed!
 
-So, the only patch I got was this one, which is useless to test on its
-own...
+The original goal of this patchset is to fix the bug reported by
+https://bugzilla.kernel.org/show_bug.cgi?id=53501
+Now it has also been expanded to reduce common code used by memory
+initializion.
+
+This is the last part, previous three patch sets could be accessed at:
+http://marc.info/?l=linux-mm&m=136289696323825&w=2
+http://marc.info/?l=linux-mm&m=136290291524901&w=2
+http://marc.info/?l=linux-mm&m=136345342831592&w=2
+
+This patchset applies to
+https://git.kernel.org/pub/scm/linux/kernel/git/mhocko/mm.git since-3.8
+
+Patch 1-7: 
+	1) add comments for global variables exported by vmlinux.lds
+	2) normalize global variables exported by vmlinux.lds
+Patch 8:
+	Introduce helper functions mem_init_print_info() and
+	get_num_physpages()
+Patch 9:
+	Avoid using num_physpages at runtime
+Patch 10-38:
+	1) Simplify mem_init() by using mem_init_print_info()
+	2) Prepare fore kill global variable num_physpages
+Patch 39:
+	Kill global variable num_physpages
+
+With all patches applied, mem_init(), free_initmem(), free_initrd_mem()
+could be as simple as below. This patch series has reduced about 1.2K
+lines of code in total.
+
+#ifndef CONFIG_DISCONTIGMEM
+void __init
+mem_init(void)
+{
+	max_mapnr = max_low_pfn;
+	free_all_bootmem();
+	high_memory = (void *) __va(max_low_pfn * PAGE_SIZE);
+
+	mem_init_print_info(NULL);
+}
+#endif /* CONFIG_DISCONTIGMEM */
+
+void
+free_initmem(void)
+{
+	free_initmem_default(-1);
+}
+
+#ifdef CONFIG_BLK_DEV_INITRD
+void
+free_initrd_mem(unsigned long start, unsigned long end)
+{
+	free_reserved_area(start, end, -1, "initrd");
+}
+#endif
+
+Due to hardware resource limitations, I have only tested this on x86_64.
+And the messages reported are:
+Previous log message:
+Memory: 7745676k/8910848k available (6934k kernel code, 836024k absent, 329148k reserved, 6343k data, 1012k init)
+Current log message:
+Memory: 7744624K/8074824K available (6969K kernel code, 1011K data, 2828K rodata, 1016K init, 9640K bss, 330200K reserved)
+
+Any help to review or test these patch series are welcomed!
+
+Regards!
+Gerry
+
+Jiang Liu (39):
+  vmlinux.lds: add comments for global variables and clean up useless
+    declarations
+  avr32: normalize global variables exported by vmlinux.lds
+  c6x: normalize global variables exported by vmlinux.lds
+  h8300: normalize global variables exported by vmlinux.lds
+  score: normalize global variables exported by vmlinux.lds
+  tile: normalize global variables exported by vmlinux.lds
+  UML: normalize global variables exported by vmlinux.lds
+  mm: introduce helper function mem_init_print_info() to simplify
+    mem_init()
+  mm: use totalram_pages instead of num_physpages at runtime
+  mm/alpha: prepare for removing num_physpages and simplify mem_init()
+  mm/ARM: prepare for removing num_physpages and simplify mem_init()
+  mm/ARM64: prepare for removing num_physpages and simplify mem_init()
+  mm/AVR32: prepare for removing num_physpages and simplify mem_init()
+  mm/blackfin: prepare for removing num_physpages and simplify
+    mem_init()
+  mm/c6x: prepare for removing num_physpages and simplify mem_init()
+  mm/cris: prepare for removing num_physpages and simplify mem_init()
+  mm/frv: prepare for removing num_physpages and simplify mem_init()
+  mm/h8300: prepare for removing num_physpages and simplify mem_init()
+  mm/hexagon: prepare for removing num_physpages and simplify
+    mem_init()
+  mm/IA64: prepare for removing num_physpages and simplify mem_init()
+  mm/m32r: prepare for removing num_physpages and simplify mem_init()
+  mm/m68k: prepare for removing num_physpages and simplify mem_init()
+  mm/microblaze: prepare for removing num_physpages and simplify
+    mem_init()
+  mm/MIPS: prepare for removing num_physpages and simplify mem_init()
+  mm/mn10300: prepare for removing num_physpages and simplify
+    mem_init()
+  mm/openrisc: prepare for removing num_physpages and simplify
+    mem_init()
+  mm/PARISC: prepare for removing num_physpages and simplify mem_init()
+  mm/ppc: prepare for removing num_physpages and simplify mem_init()
+  mm/s390: prepare for removing num_physpages and simplify mem_init()
+  mm/score: prepare for removing num_physpages and simplify mem_init()
+  mm/SH: prepare for removing num_physpages and simplify mem_init()
+  mm/SPARC: prepare for removing num_physpages and simplify mem_init()
+  mm/tile: prepare for removing num_physpages and simplify mem_init()
+  mm/um: prepare for removing num_physpages and simplify mem_init()
+  mm/unicore32: prepare for removing num_physpages and simplify
+    mem_init()
+  mm/x86: prepare for removing num_physpages and simplify mem_init()
+  mm/xtensa: prepare for removing num_physpages and simplify mem_init()
+  mm/hotplug: prepare for removing num_physpages
+  mm: kill global variable num_physpages
+
+ arch/alpha/mm/init.c              |   32 ++-------------------
+ arch/alpha/mm/numa.c              |   34 ++++------------------
+ arch/arm/mm/init.c                |   47 ++----------------------------
+ arch/arm64/mm/init.c              |   48 ++-----------------------------
+ arch/avr32/kernel/setup.c         |    2 +-
+ arch/avr32/kernel/vmlinux.lds.S   |    4 +--
+ arch/avr32/mm/init.c              |   29 +++----------------
+ arch/blackfin/mm/init.c           |   38 ++++---------------------
+ arch/c6x/kernel/vmlinux.lds.S     |    4 +--
+ arch/c6x/mm/init.c                |   11 +------
+ arch/cris/mm/init.c               |   33 ++-------------------
+ arch/frv/kernel/setup.c           |   14 ++++-----
+ arch/frv/mm/init.c                |   49 +++++++++----------------------
+ arch/h8300/boot/compressed/misc.c |    1 -
+ arch/h8300/kernel/vmlinux.lds.S   |    2 ++
+ arch/h8300/mm/init.c              |   34 ++++++----------------
+ arch/hexagon/mm/init.c            |    3 +-
+ arch/ia64/mm/contig.c             |   11 -------
+ arch/ia64/mm/discontig.c          |    3 --
+ arch/ia64/mm/init.c               |   27 +-----------------
+ arch/m32r/mm/discontig.c          |    6 +---
+ arch/m32r/mm/init.c               |   49 ++++---------------------------
+ arch/m68k/mm/init.c               |   31 ++------------------
+ arch/microblaze/mm/init.c         |   51 ++++-----------------------------
+ arch/mips/mm/init.c               |   57 ++++++++++++-------------------------
+ arch/mips/pci/pci-lantiq.c        |    2 +-
+ arch/mips/sgi-ip27/ip27-memory.c  |   21 ++------------
+ arch/mn10300/mm/init.c            |   26 ++---------------
+ arch/openrisc/mm/init.c           |   44 +++-------------------------
+ arch/parisc/mm/init.c             |   46 ++----------------------------
+ arch/powerpc/mm/mem.c             |   56 ++++++++----------------------------
+ arch/s390/mm/init.c               |   17 ++---------
+ arch/score/kernel/vmlinux.lds.S   |    1 +
+ arch/score/mm/init.c              |   26 ++---------------
+ arch/sh/mm/init.c                 |   25 +++-------------
+ arch/sparc/kernel/leon_smp.c      |    3 --
+ arch/sparc/mm/init_32.c           |   33 ++-------------------
+ arch/sparc/mm/init_64.c           |   27 ++----------------
+ arch/tile/include/asm/sections.h  |    2 +-
+ arch/tile/kernel/setup.c          |   20 ++++++-------
+ arch/tile/kernel/vmlinux.lds.S    |    4 ++-
+ arch/tile/mm/init.c               |   17 ++---------
+ arch/um/include/asm/common.lds.S  |    1 -
+ arch/um/kernel/dyn.lds.S          |    6 ++--
+ arch/um/kernel/mem.c              |    4 +--
+ arch/um/kernel/uml.lds.S          |    7 +++--
+ arch/unicore32/mm/init.c          |   49 ++-----------------------------
+ arch/x86/kernel/cpu/amd.c         |    2 +-
+ arch/x86/kernel/setup.c           |    2 --
+ arch/x86/mm/init_32.c             |   30 ++-----------------
+ arch/x86/mm/init_64.c             |   20 +------------
+ arch/x86/mm/numa_32.c             |    2 --
+ arch/xtensa/mm/init.c             |   27 ++----------------
+ fs/fuse/inode.c                   |    2 +-
+ include/asm-generic/sections.h    |   21 +++++++++++++-
+ include/linux/mm.h                |   13 ++++++++-
+ kernel/power/snapshot.c           |    4 +--
+ mm/memory.c                       |    2 --
+ mm/memory_hotplug.c               |    4 ---
+ mm/nommu.c                        |    2 --
+ mm/page_alloc.c                   |   52 +++++++++++++++++++++++++++++++++
+ net/ipv4/inet_fragment.c          |    2 +-
+ 62 files changed, 256 insertions(+), 986 deletions(-)
+
+-- 
+1.7.9.5
+
