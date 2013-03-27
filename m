@@ -1,37 +1,51 @@
-From: Michele Roca <michele.rocca@cacciatoritrentini.it>
-Subject: MY GOOD FRIEND!
-Date: Wed, 27 Mar 2013 09:10:09 +0100
-Message-ID: <858397a3c3e05f3d5407156d0b746379__26155.8993174278$1364372439$gmane$org@cacciatoritrentini.it>
-Reply-To: <wernererichzeller@yahoo.com>
+From: Jesper Nilsson <jesper.nilsson@axis.com>
+Subject: Re: [patch 13/34] cris: Use generic idle loop
+Date: Wed, 27 Mar 2013 16:04:24 +0100
+Message-ID: <20130327150421.GV28422@axis.com>
+References: <20130321214930.752934102@linutronix.de>
+ <20130321215234.148829489@linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8;
-	format=flowed
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from vm0854.cs10.seeweb.it ([95.174.23.70]:55134 "EHLO
-	smtpserver01.ergonet.it" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756934Ab3C0ISs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Mar 2013 04:18:48 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20130321215234.148829489@linutronix.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
 
+On Thu, Mar 21, 2013 at 09:53:06PM -0000, Thomas Gleixner wrote:
+[snip]
+> Index: linux-2.6/arch/cris/arch-v32/kernel/process.c
+> ===================================================================
+> --- linux-2.6.orig/arch/cris/arch-v32/kernel/process.c
+> +++ linux-2.6/arch/cris/arch-v32/kernel/process.c
+> @@ -23,12 +23,10 @@ extern void stop_watchdog(void);
+>  /* We use this if we don't have any better idle routine. */
+>  void default_idle(void)
+>  {
+> -	local_irq_disable();
+> -	if (!need_resched()) {
+> -		/* Halt until exception. */
+> -		__asm__ volatile("ei    \n\t"
+> -				 "halt      ");
+> -	}
+> +	/* Halt until exception. */
+> +	__asm__ volatile("ei    \n\t"
+> +			 "halt      ");
+> +	/* CHECKME: Is this really needed ?? */
+>  	local_irq_enable();
 
+No, that local_irq_enable() is redundant since we already enabled interrupts
+in the assembler directive above.
 
-I am Barrister Werner Erich Zeller; I need your sincere partnership in
-transferring the sum of 15,000,000.00 EUR The details await you as you=20
-reply!
+>  }
 
-please! Call +44 702 409 0820 (office)
+Looks good,
 
---=20
-Ich bin Barrister Werner Erich Zeller, ich brauche eure aufrichtige
-Partnerschaft intransferring die Summe von 15.000.000,00 EUR auf Ihr
-Bankkonto in dieser Woche f=C3=BCr den Nutzen der beiden von uns 50% ea=
-ch.It
-ist 100% legal, legitim und sicher! f=C3=BCr Details, schreiben Sie mir=
- auf
-dieser meiner privaten E-Mail statt: Dies ist dringende und ernste Sie
-m=C3=BCssen bereit sein und bereit, bevor Sie mich kontaktieren.
+Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
 
-bitte! Rufen Sie +44 702 409 0820 (B=C3=BCro)
+/^JN - Jesper Nilsson
+-- 
+               Jesper Nilsson -- jesper.nilsson@axis.com
