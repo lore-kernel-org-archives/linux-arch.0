@@ -1,107 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp06.in.ibm.com ([122.248.162.6]:36296 "EHLO
-	e28smtp06.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751887Ab3C1PpN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Mar 2013 11:45:13 -0400
+Received: from e28smtp05.in.ibm.com ([122.248.162.5]:60972 "EHLO
+	e28smtp05.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756747Ab3C1Ppw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Mar 2013 11:45:52 -0400
 Received: from /spool/local
-	by e28smtp06.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp05.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Thu, 28 Mar 2013 21:10:55 +0530
-Message-ID: <515464EB.1090809@linux.vnet.ibm.com>
-Date: Thu, 28 Mar 2013 21:12:35 +0530
+	Thu, 28 Mar 2013 21:12:56 +0530
+Message-ID: <5154651A.6010304@linux.vnet.ibm.com>
+Date: Thu, 28 Mar 2013 21:13:22 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Subject: Re: [patch 22/34] mips: Use generic idle loop
-References: <20130321214930.752934102@linutronix.de> <20130321215234.754954871@linutronix.de>
-In-Reply-To: <20130321215234.754954871@linutronix.de>
+Subject: Re: [patch 33/34] x86: Use generic idle loop
+References: <20130321214930.752934102@linutronix.de> <20130321215235.486594473@linutronix.de>
+In-Reply-To: <20130321215235.486594473@linutronix.de>
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Magnus Damm <magnus.damm@gmail.com>, Ralf Baechle <ralf@linux-mips.org>
-Message-ID: <20130328154235.cUk-sGzDIh88U0datpeiDrsS-YLCII5oekfwj__ywGI@z>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Magnus Damm <magnus.damm@gmail.com>, x86@kernel.org
+Message-ID: <20130328154322.bcnwQHRja4QcVDrIbCb8dYujDYOIdqaGeBRPUKk6uak@z>
 
 On 03/22/2013 03:23 AM, Thomas Gleixner wrote:
 > Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Ralf Baechle <ralf@linux-mips.org>
+> Cc: x86@kernel.org
 > ---
->  arch/mips/Kconfig          |    1 
->  arch/mips/kernel/process.c |   46 ++++++++++++---------------------------------
->  arch/mips/kernel/smp.c     |    2 -
->  3 files changed, 15 insertions(+), 34 deletions(-)
->
 [...]
- 
-> Index: linux-2.6/arch/mips/kernel/process.c
-> ===================================================================
-> --- linux-2.6.orig/arch/mips/kernel/process.c
-> +++ linux-2.6/arch/mips/kernel/process.c
-> @@ -41,44 +41,24 @@
->  #include <asm/inst.h>
->  #include <asm/stacktrace.h>
-> 
-> -/*
-> - * The idle thread. There's no useful work to be done, so just try to conserve
-> - * power and have a low exit latency (ie sit in a loop waiting for somebody to
-> - * say that they'd like to reschedule)
-> - */
-> -void __noreturn cpu_idle(void)
-> +void arch_cpu_idle_dead(void)
->  {
-> -	int cpu;
-> -
-> -	/* CPU is going idle. */
-> -	cpu = smp_processor_id();
-> +	/* What the heck is this check doing ? */
-> +	if (!cpu_isset(cpu, cpu_callin_map))
-> +		play_dead();}
+> +#define POLL_IDLE	(void*) 0x01
+> +
 
-Extra closing brace?
+[...]
 
-> +}
-> 
-> -	/* endless idle loop with no priority at all */
-> -	while (1) {
-> -		tick_nohz_idle_enter();
-> -		rcu_idle_enter();
-> -		while (!need_resched() && cpu_online(cpu)) {
-> +void arch__cpu_idle(void)
-
-s/arch__cpu_idle/arch_cpu_idle (single underscore)
-
-
-Regards,
-Srivatsa S. Bhat
-
-> +{
->  #ifdef CONFIG_MIPS_MT_SMTC
-> -			extern void smtc_idle_loop_hook(void);
-> +	extern void smtc_idle_loop_hook(void);
-> 
-> -			smtc_idle_loop_hook();
-> +	smtc_idle_loop_hook();
->  #endif
-> -
-> -			if (cpu_wait) {
-> -				/* Don't trace irqs off for idle */
-> -				stop_critical_timings();
-> -				(*cpu_wait)();
-> -				start_critical_timings();
-> -			}
-> -		}
-> -#ifdef CONFIG_HOTPLUG_CPU
-> -		if (!cpu_online(cpu) && !cpu_isset(cpu, cpu_callin_map))
-> -			play_dead();
-> -#endif
-> -		rcu_idle_exit();
-> -		tick_nohz_idle_exit();
-> -		schedule_preempt_disabled();
-> -	}
-> +	if (cpu_wait)
-> +		(*cpu_wait)();
-> +	else
-> +		local_irq_enable();
+>  #ifdef CONFIG_APM_MODULE
+> @@ -411,20 +376,6 @@ void stop_this_cpu(void *dummy)
+>  		halt();
 >  }
 > 
+> -/*
+> - * On SMP it's slightly faster (but much more power-consuming!)
+> - * to poll the ->work.need_resched flag instead of waiting for the
+> - * cross-CPU IPI to arrive. Use this option with caution.
+> - */
+> -static void poll_idle(void)
+> -{
+> -	trace_cpu_idle_rcuidle(0, smp_processor_id());
+> -	local_irq_enable();
+> -	while (!need_resched())
+> -		cpu_relax();
+> -	trace_cpu_idle_rcuidle(PWR_EVENT_EXIT, smp_processor_id());
+> -}
+> -
+>  bool amd_e400_c1e_detected;
+>  EXPORT_SYMBOL(amd_e400_c1e_detected);
+> 
+> @@ -489,7 +440,7 @@ static void amd_e400_idle(void)
+>  void __cpuinit select_idle_routine(const struct cpuinfo_x86 *c)
+>  {
+>  #ifdef CONFIG_SMP
+> -	if (x86_idle == poll_idle && smp_num_siblings > 1)
+> +	if (x86_idle == POLL_IDLE && smp_num_siblings > 1)
+>  		pr_warn_once("WARNING: polling idle and HT enabled, performance may degrade\n");
+>  #endif
+>  	if (x86_idle)
+> @@ -517,8 +468,9 @@ static int __init idle_setup(char *str)
+> 
+>  	if (!strcmp(str, "poll")) {
+>  		pr_info("using polling idle threads\n");
+> -		x86_idle = poll_idle;
+> +		x86_idle = POLL_IDLE;
+>  		boot_option_idle_override = IDLE_POLL;
+> +		cpu_idle_poll_ctrl(true);
+
+Why is that POLL_IDLE needed? Won't cpu_idle_poll_ctrl() suffice?
+
+By the way, booting with idle=poll locks up the kernel during boot with
+this patch applied (I verified it). So I think we should just skip the
+whole POLL_IDLE thing and leave the job to cpu_idle_poll_ctrl().
+
+ 
+Regards,
+Srivatsa S. Bhat
 
