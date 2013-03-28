@@ -1,120 +1,107 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: Re: [patch 07/34] alpha: Use generic idle loop
-Date: Thu, 28 Mar 2013 21:07:56 +0530
-Message-ID: <515463D4.60501@linux.vnet.ibm.com>
-References: <20130321214930.752934102@linutronix.de> <20130321215233.766017538@linutronix.de>
+Subject: Re: [patch 05/34] idle: Implement generic idle function
+Date: Thu, 28 Mar 2013 21:09:24 +0530
+Message-ID: <5154642C.6080709@linux.vnet.ibm.com>
+References: <20130321214930.752934102@linutronix.de> <20130321215233.646635455@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp07.in.ibm.com ([122.248.162.7]:50567 "EHLO
-	e28smtp07.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751214Ab3C1Pk1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Mar 2013 11:40:27 -0400
+Received: from e28smtp03.in.ibm.com ([122.248.162.3]:49327 "EHLO
+	e28smtp03.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751214Ab3C1PmJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Mar 2013 11:42:09 -0400
 Received: from /spool/local
-	by e28smtp07.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp03.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Thu, 28 Mar 2013 21:06:22 +0530
-In-Reply-To: <20130321215233.766017538@linutronix.de>
+	Thu, 28 Mar 2013 21:08:38 +0530
+In-Reply-To: <20130321215233.646635455@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Magnus Damm <magnus.damm@gmail.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>
+To: Thomas Gleixner <tglx@linutronix.de>, Deepthi Dharwar <deepthi@linux.vnet.ibm.com>, "Rafael J. Wysocki" <rjw@sisk.pl>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Magnus Damm <magnus.damm@gmail.com>
 
 On 03/22/2013 03:23 AM, Thomas Gleixner wrote:
-> The core provides a generic idle poll loop.
+> All idle functions in arch/* are more or less the same, plus minus a
+> few bugs and extra instrumentation, tickless support and other
+> optional items.
+> 
+> Implement a generic idle function which resembles the functionality
+> found in arch/. Provide weak arch_cpu_idle_* functions which can be
+> overridden by the architecture code if needed.
 > 
 > Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Richard Henderson <rth@twiddle.net>
-> Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-> Cc: Matt Turner <mattst88@gmail.com>
 > ---
->  arch/alpha/Kconfig          |    1 +
->  arch/alpha/kernel/process.c |   19 -------------------
->  arch/alpha/kernel/smp.c     |    3 +--
->  3 files changed, 2 insertions(+), 21 deletions(-)
+>  arch/Kconfig        |    3 +
+>  include/linux/cpu.h |    8 +++
+>  kernel/cpu/idle.c   |  105 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+>  3 files changed, 116 insertions(+)
+[...]
+> +
+> +/*
+> + * Generic idle loop implementation
+> + */
+> +static void cpu_idle_loop(void)
+> +{
+> +	while (1) {
+> +		tick_nohz_idle_enter();
+> +
+> +		while (!need_resched()) {
+> +			check_pgt_cache();
+> +			rmb();
+> +
+> +			if (cpu_is_offline(smp_processor_id()))
+> +				arch_cpu_idle_dead();
+> +
+> +			local_irq_disable();
+> +			arch_cpu_idle_enter();
+> +
+> +			if (cpu_idle_force_poll) {
+> +				cpu_idle_poll();
+> +			} else {
+> +				current_clr_polling();
+> +				if (!need_resched()) {
+> +					stop_critical_timings();
+> +					rcu_idle_enter();
+> +					arch_cpu_idle();
+> +					WARN_ON_ONCE(!irqs_disabled());
+
+I understand that you have changed it to WARN_ON_ONCE(irqs_disabled()) in
+the v2 hosted in your git tree..
+
+Sometime ago, Deepthi (in CC) had added such a check and Rafael had faced
+some weird problems with that, and hence it was removed. Below are some
+links to that discussion.
+
+https://lkml.org/lkml/2012/6/22/48
+https://lkml.org/lkml/2012/6/24/132
+https://lkml.org/lkml/2012/6/25/402
+
+Rafael, do you still see that problem after applying Thomas' patches?
+
+> +					rcu_idle_exit();
+> +					start_critical_timings();
+> +				} else {
+> +					local_irq_enable();
+> +				}
+> +				current_set_polling();
+> +			}
+> +			arch_cpu_idle_exit();
+> +		}
+> +		tick_nohz_idle_exit();
+> +		schedule_preempt_disabled();
+> +	}
+> +}
+> +
+> +void cpu_startup_entry(enum cpuhp_state state)
+> +{
+> +	current_set_polling();
+> +	arch_cpu_idle_prepare();
+> +	cpu_idle_loop();
+> +}
+> +#endif
 > 
-> Index: linux-2.6/arch/alpha/Kconfig
-> ===================================================================
-> --- linux-2.6.orig/arch/alpha/Kconfig
-> +++ linux-2.6/arch/alpha/Kconfig
-> @@ -17,6 +17,7 @@ config ALPHA
->  	select ARCH_WANT_IPC_PARSE_VERSION
->  	select ARCH_HAVE_NMI_SAFE_CMPXCHG
->  	select GENERIC_SMP_IDLE_THREAD
-> +	select GENERIC_IDLE_LOOP
->  	select GENERIC_CMOS_UPDATE
->  	select GENERIC_STRNCPY_FROM_USER
->  	select GENERIC_STRNLEN_USER
-> Index: linux-2.6/arch/alpha/kernel/process.c
-> ===================================================================
-> --- linux-2.6.orig/arch/alpha/kernel/process.c
-> +++ linux-2.6/arch/alpha/kernel/process.c
-> @@ -46,25 +46,6 @@
->  void (*pm_power_off)(void) = machine_power_off;
->  EXPORT_SYMBOL(pm_power_off);
 > 
-> -void
-> -cpu_idle(void)
-> -{
-> -	current_thread_info()->status |= TS_POLLING;
-> -
-> -	while (1) {
-> -		/* FIXME -- EV6 and LCA45 know how to power down
-> -		   the CPU.  */
-> -
-> -		rcu_idle_enter();
-> -		while (!need_resched())
-> -			cpu_relax();
-> -
-> -		rcu_idle_exit();
-> -		schedule_preempt_disabled();
-> -	}
-> -}
-> -
-> -
-
-(In all my replies, I'm referring to the code in your v2 on your git
-tree, but replying to the corresponding patches in your v1).
-
-So, in alpha, we poll in cpu idle. In the generic implementation in
-kernel/cpu/idle.c, arch_cpu_idle() is defined as:
-
-void __weak arch_cpu_idle(void)
-{
-        cpu_idle_poll();
-}
-
-Should it not have been:
-
-void __weak arch_cpu_idle(void)
-{
-	current_set_polling();
-        cpu_idle_poll();
-	current_clr_polling();
-}
-
-instead?
 
 Regards,
 Srivatsa S. Bhat
-
->  struct halt_info {
->  	int mode;
->  	char *restart_cmd;
-> Index: linux-2.6/arch/alpha/kernel/smp.c
-> ===================================================================
-> --- linux-2.6.orig/arch/alpha/kernel/smp.c
-> +++ linux-2.6/arch/alpha/kernel/smp.c
-> @@ -167,8 +167,7 @@ smp_callin(void)
->  	      cpuid, current, current->active_mm));
-> 
->  	preempt_disable();
-> -	/* Do nothing.  */
-> -	cpu_idle();
-> +	cpu_startup_entry(CPUHP_ONLINE);
->  }
-> 
->  /* Wait until hwrpb->txrdy is clear for cpu.  Return -1 on timeout.  */
-> 
-> 
