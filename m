@@ -1,74 +1,45 @@
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: Re: [patch 33/34] x86: Use generic idle loop
-Date: Thu, 28 Mar 2013 21:13:22 +0530
-Message-ID: <5154651A.6010304@linux.vnet.ibm.com>
-References: <20130321214930.752934102@linutronix.de> <20130321215235.486594473@linutronix.de>
+From: Chris Zankel <chris@zankel.net>
+Subject: Re: [patch 00/34] idle: Consolidate idle implementations
+Date: Thu, 28 Mar 2013 15:16:09 -0700
+Message-ID: <5154C129.9040807@zankel.net>
+References: <20130321214930.752934102@linutronix.de> <alpine.LFD.2.02.1303271940150.22263@ionos> <5153EC43.7070808@zankel.net> <alpine.LFD.2.02.1303281023020.22263@ionos>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20130321215235.486594473@linutronix.de>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pd0-f182.google.com ([209.85.192.182]:39635 "EHLO
+	mail-pd0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751453Ab3C1WQN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Mar 2013 18:16:13 -0400
+Received: by mail-pd0-f182.google.com with SMTP id 3so5597pdj.41
+        for <linux-arch@vger.kernel.org>; Thu, 28 Mar 2013 15:16:13 -0700 (PDT)
+In-Reply-To: <alpine.LFD.2.02.1303281023020.22263@ionos>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Magnus Damm <magnus.damm@gmail.com>, x86@kernel.org
-List-Id: linux-arch.vger.kernel.org
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 
-On 03/22/2013 03:23 AM, Thomas Gleixner wrote:
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> Cc: x86@kernel.org
-> ---
+Hi Thomas,
+
+On 3/28/13 2:24 AM, Thomas Gleixner wrote:
+> On Thu, 28 Mar 2013, Chris Zankel wrote:
+>
+>> For Xtensa:
+>> Acked-by: Chris Zankel <chris@zankel.net>
+>>
+>> Thanks for going the extra mile and test-compiling it.
+> Though, the build fails later with:
+>
+> arch/xtensa/kernel/built-in.o:(.init.literal+0x90): undefined reference to `platform_pcibios_init'
+> arch/xtensa/kernel/built-in.o: In function `setup_arch':
+> (.init.text+0x1de): undefined reference to `platform_pcibios_init'
+> drivers/built-in.o: In function `pci_assign_unassigned_resources':
 [...]
-> +#define POLL_IDLE	(void*) 0x01
-> +
 
-[...]
+Thanks for the info. With KALLSYMS enabled, the .rodata section between 
+the .text and the .init.text section is extended to a point where it 
+exceeds the call range between those sections. I'm working on a fix 
+(basically, move the .init.text section close to the .init section).
 
->  #ifdef CONFIG_APM_MODULE
-> @@ -411,20 +376,6 @@ void stop_this_cpu(void *dummy)
->  		halt();
->  }
-> 
-> -/*
-> - * On SMP it's slightly faster (but much more power-consuming!)
-> - * to poll the ->work.need_resched flag instead of waiting for the
-> - * cross-CPU IPI to arrive. Use this option with caution.
-> - */
-> -static void poll_idle(void)
-> -{
-> -	trace_cpu_idle_rcuidle(0, smp_processor_id());
-> -	local_irq_enable();
-> -	while (!need_resched())
-> -		cpu_relax();
-> -	trace_cpu_idle_rcuidle(PWR_EVENT_EXIT, smp_processor_id());
-> -}
-> -
->  bool amd_e400_c1e_detected;
->  EXPORT_SYMBOL(amd_e400_c1e_detected);
-> 
-> @@ -489,7 +440,7 @@ static void amd_e400_idle(void)
->  void __cpuinit select_idle_routine(const struct cpuinfo_x86 *c)
->  {
->  #ifdef CONFIG_SMP
-> -	if (x86_idle == poll_idle && smp_num_siblings > 1)
-> +	if (x86_idle == POLL_IDLE && smp_num_siblings > 1)
->  		pr_warn_once("WARNING: polling idle and HT enabled, performance may degrade\n");
->  #endif
->  	if (x86_idle)
-> @@ -517,8 +468,9 @@ static int __init idle_setup(char *str)
-> 
->  	if (!strcmp(str, "poll")) {
->  		pr_info("using polling idle threads\n");
-> -		x86_idle = poll_idle;
-> +		x86_idle = POLL_IDLE;
->  		boot_option_idle_override = IDLE_POLL;
-> +		cpu_idle_poll_ctrl(true);
-
-Why is that POLL_IDLE needed? Won't cpu_idle_poll_ctrl() suffice?
-
-By the way, booting with idle=poll locks up the kernel during boot with
-this patch applied (I verified it). So I think we should just skip the
-whole POLL_IDLE thing and leave the job to cpu_idle_poll_ctrl().
-
- 
-Regards,
-Srivatsa S. Bhat
+Thanks,
+-Chris
