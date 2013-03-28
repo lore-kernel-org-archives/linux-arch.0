@@ -1,40 +1,120 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: Generic syscall ABI support
-Date: Thu, 28 Mar 2013 11:42:47 +0000
-Message-ID: <201303281142.47631.arnd@arndb.de>
-References: <1364440182.2289.45.camel@leyfoon-vm> <201303281040.04463.arnd@arndb.de> <1364470251.3146.1.camel@leyfoon-vm>
+From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Subject: Re: [patch 07/34] alpha: Use generic idle loop
+Date: Thu, 28 Mar 2013 21:07:56 +0530
+Message-ID: <515463D4.60501@linux.vnet.ibm.com>
+References: <20130321214930.752934102@linutronix.de> <20130321215233.766017538@linutronix.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="utf-8"
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:52071 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751619Ab3C1Lmy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Mar 2013 07:42:54 -0400
-In-Reply-To: <1364470251.3146.1.camel@leyfoon-vm>
+Received: from e28smtp07.in.ibm.com ([122.248.162.7]:50567 "EHLO
+	e28smtp07.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751214Ab3C1Pk1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Mar 2013 11:40:27 -0400
+Received: from /spool/local
+	by e28smtp07.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
+	Thu, 28 Mar 2013 21:06:22 +0530
+In-Reply-To: <20130321215233.766017538@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Magnus Damm <magnus.damm@gmail.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>
 
-On Thursday 28 March 2013, Ley Foon Tan wrote:
-> On Thu, 2013-03-28 at 10:40 +0000, Arnd Bergmann wrote:
-> > On Thursday 28 March 2013, Ley Foon Tan wrote:
-> > > We will working on generic ABI for kernel and Glibc. This might take
-> > > some times.
-> > 
-> > Ok. Don't let that hold you up from submitting the kernel patches
-> > for review though.
->
-> Do you mean we can submit the patches for review before we got the
-> generic ABI support?
+On 03/22/2013 03:23 AM, Thomas Gleixner wrote:
+> The core provides a generic idle poll loop.
+> 
+> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Richard Henderson <rth@twiddle.net>
+> Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+> Cc: Matt Turner <mattst88@gmail.com>
+> ---
+>  arch/alpha/Kconfig          |    1 +
+>  arch/alpha/kernel/process.c |   19 -------------------
+>  arch/alpha/kernel/smp.c     |    3 +--
+>  3 files changed, 2 insertions(+), 21 deletions(-)
+> 
+> Index: linux-2.6/arch/alpha/Kconfig
+> ===================================================================
+> --- linux-2.6.orig/arch/alpha/Kconfig
+> +++ linux-2.6/arch/alpha/Kconfig
+> @@ -17,6 +17,7 @@ config ALPHA
+>  	select ARCH_WANT_IPC_PARSE_VERSION
+>  	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+>  	select GENERIC_SMP_IDLE_THREAD
+> +	select GENERIC_IDLE_LOOP
+>  	select GENERIC_CMOS_UPDATE
+>  	select GENERIC_STRNCPY_FROM_USER
+>  	select GENERIC_STRNLEN_USER
+> Index: linux-2.6/arch/alpha/kernel/process.c
+> ===================================================================
+> --- linux-2.6.orig/arch/alpha/kernel/process.c
+> +++ linux-2.6/arch/alpha/kernel/process.c
+> @@ -46,25 +46,6 @@
+>  void (*pm_power_off)(void) = machine_power_off;
+>  EXPORT_SYMBOL(pm_power_off);
+> 
+> -void
+> -cpu_idle(void)
+> -{
+> -	current_thread_info()->status |= TS_POLLING;
+> -
+> -	while (1) {
+> -		/* FIXME -- EV6 and LCA45 know how to power down
+> -		   the CPU.  */
+> -
+> -		rcu_idle_enter();
+> -		while (!need_resched())
+> -			cpu_relax();
+> -
+> -		rcu_idle_exit();
+> -		schedule_preempt_disabled();
+> -	}
+> -}
+> -
+> -
 
-I mean you can send the other patches for review already. Changing
-your implementtion to use the generic ABI will basically just mean
-not sending the patches tht implement your own ABI, so that's not
-hard. Of course until you also have a new glibc port, you won't be
-able to test that it actually works, but that is not essential for
-the reviewing stage.
+(In all my replies, I'm referring to the code in your v2 on your git
+tree, but replying to the corresponding patches in your v1).
 
-	Arnd
+So, in alpha, we poll in cpu idle. In the generic implementation in
+kernel/cpu/idle.c, arch_cpu_idle() is defined as:
+
+void __weak arch_cpu_idle(void)
+{
+        cpu_idle_poll();
+}
+
+Should it not have been:
+
+void __weak arch_cpu_idle(void)
+{
+	current_set_polling();
+        cpu_idle_poll();
+	current_clr_polling();
+}
+
+instead?
+
+Regards,
+Srivatsa S. Bhat
+
+>  struct halt_info {
+>  	int mode;
+>  	char *restart_cmd;
+> Index: linux-2.6/arch/alpha/kernel/smp.c
+> ===================================================================
+> --- linux-2.6.orig/arch/alpha/kernel/smp.c
+> +++ linux-2.6/arch/alpha/kernel/smp.c
+> @@ -167,8 +167,7 @@ smp_callin(void)
+>  	      cpuid, current, current->active_mm));
+> 
+>  	preempt_disable();
+> -	/* Do nothing.  */
+> -	cpu_idle();
+> +	cpu_startup_entry(CPUHP_ONLINE);
+>  }
+> 
+>  /* Wait until hwrpb->txrdy is clear for cpu.  Return -1 on timeout.  */
+> 
+> 
