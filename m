@@ -1,45 +1,41 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: Generic syscall ABI support
-Date: Wed, 27 Mar 2013 22:35:20 -0700
-Message-ID: <5153D698.6010102@zytor.com>
-References: <1364440182.2289.45.camel@leyfoon-vm>
+Date: Thu, 28 Mar 2013 07:44:27 +0000
+Message-ID: <201303280744.27477.arnd@arndb.de>
+References: <1364440182.2289.45.camel@leyfoon-vm> <5153D698.6010102@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: Text/Plain;
+  charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:48362 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751327Ab3C1Ffh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 28 Mar 2013 01:35:37 -0400
-In-Reply-To: <1364440182.2289.45.camel@leyfoon-vm>
+Received: from moutng.kundenserver.de ([212.227.126.186]:62538 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755865Ab3C1Hoc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Mar 2013 03:44:32 -0400
+In-Reply-To: <5153D698.6010102@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ley Foon Tan <lftan@altera.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On 03/27/2013 08:09 PM, Ley Foon Tan wrote:
-> Need advise regarding the generic syscall ABI support.
-> 
-> We are planning to upstream our Nios II kernel (arch/nios2) to mainline.
-> But it doesn't support generic syscall ABI yet (It requires an updated
-> Glibc port as well). 
-> 
-> The question is, is it a requirement for new arch to support generic
-> syscall ABI when upstreaming? Can we upstream a non-generic syscall ABI
-> first and migrate to generic syscall ABI in future?
-> Thanks.
-> 
-> Regards
-> LFTAN
-> 
+On Thursday 28 March 2013, H. Peter Anvin wrote:
+> On 03/27/2013 08:09 PM, Ley Foon Tan wrote:
 
-That would be extremely difficult.
+> > The question is, is it a requirement for new arch to support generic
+> > syscall ABI when upstreaming? Can we upstream a non-generic syscall ABI
+> > first and migrate to generic syscall ABI in future?
+> > Thanks.
+>
+> In general, you should use the generic ABI for a new port unless you
+> have very strong and convincing reasons not to.
 
-In general, you should use the generic ABI for a new port unless you
-have *very* strong and convincing reasons not to.
+Yes, absolutely. What a couple of the previous architectures have done is
+to keep out of tree patches for their old ABI for a while, and to submit
+only code that follows the generic ABI upstream. Usually it doesn't take
+long for users to migrate to a new user space after that, but it gives
+people a migration strategy. Normally you have other patches that are
+required on top of the stuff that is already upstream while you are
+getting everything merged, so this is not much different to a device
+driver that needs to get rewritten to adapt to a new kernel subsystem.
 
-Given how long the Nios2 port has been in upstreaming (unfortunate, I
-like to play with FPGAs ;) it seems worthwhile to adjust it before
-pushing it.
-
-	-hpa
+	Arnd
