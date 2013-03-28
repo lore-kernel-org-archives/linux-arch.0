@@ -1,97 +1,50 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: Re: [patch 22/34] mips: Use generic idle loop
-Date: Thu, 28 Mar 2013 21:12:35 +0530
-Message-ID: <515464EB.1090809@linux.vnet.ibm.com>
-References: <20130321214930.752934102@linutronix.de> <20130321215234.754954871@linutronix.de>
+Subject: Re: [patch 30/34] tile: Enter idle with preemption disabled
+Date: Thu, 28 Mar 2013 21:13:06 +0530
+Message-ID: <5154650A.1060406@linux.vnet.ibm.com>
+References: <20130321214930.752934102@linutronix.de> <20130321215235.280451779@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20130321215234.754954871@linutronix.de>
+In-Reply-To: <20130321215235.280451779@linutronix.de>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Magnus Damm <magnus.damm@gmail.com>, Ralf Baechle <ralf@linux-mips.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Magnus Damm <magnus.damm@gmail.com>, Chris Metcalf <cmetcalf@tilera.com>
 List-Id: linux-arch.vger.kernel.org
 
 On 03/22/2013 03:23 AM, Thomas Gleixner wrote:
+> cpu_idle() needs to be called with preemption disabled.
+> 
 > Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Ralf Baechle <ralf@linux-mips.org>
+> Cc: Chris Metcalf <cmetcalf@tilera.com>
 > ---
->  arch/mips/Kconfig          |    1 
->  arch/mips/kernel/process.c |   46 ++++++++++++---------------------------------
->  arch/mips/kernel/smp.c     |    2 -
->  3 files changed, 15 insertions(+), 34 deletions(-)
->
-[...]
- 
-> Index: linux-2.6/arch/mips/kernel/process.c
+>  arch/tile/kernel/smpboot.c |    2 --
+>  1 file changed, 2 deletions(-)
+> 
+> Index: linux-2.6/arch/tile/kernel/smpboot.c
 > ===================================================================
-> --- linux-2.6.orig/arch/mips/kernel/process.c
-> +++ linux-2.6/arch/mips/kernel/process.c
-> @@ -41,44 +41,24 @@
->  #include <asm/inst.h>
->  #include <asm/stacktrace.h>
+> --- linux-2.6.orig/arch/tile/kernel/smpboot.c
+> +++ linux-2.6/arch/tile/kernel/smpboot.c
+> @@ -207,8 +207,6 @@ void __cpuinit online_secondary(void)
+>  	/* Set up tile-timer clock-event device on this cpu */
+>  	setup_tile_timer();
 > 
-> -/*
-> - * The idle thread. There's no useful work to be done, so just try to conserve
-> - * power and have a low exit latency (ie sit in a loop waiting for somebody to
-> - * say that they'd like to reschedule)
-> - */
-> -void __noreturn cpu_idle(void)
-> +void arch_cpu_idle_dead(void)
->  {
-> -	int cpu;
+> -	preempt_enable();
 > -
-> -	/* CPU is going idle. */
-> -	cpu = smp_processor_id();
-> +	/* What the heck is this check doing ? */
-> +	if (!cpu_isset(cpu, cpu_callin_map))
-> +		play_dead();}
 
-Extra closing brace?
+Hmm, so shouldn't we call preempt_disabled() here?
 
-> +}
-> 
-> -	/* endless idle loop with no priority at all */
-> -	while (1) {
-> -		tick_nohz_idle_enter();
-> -		rcu_idle_enter();
-> -		while (!need_resched() && cpu_online(cpu)) {
-> +void arch__cpu_idle(void)
+I see that start_secondary() calls preempt_disabled(), but I didn't quite
+understand as to which of the *_secondary() functions have to call
+it... especially since its the online_secondary() function which calls
+cpu_idle().
 
-s/arch__cpu_idle/arch_cpu_idle (single underscore)
-
-
-Regards,
-Srivatsa S. Bhat
-
-> +{
->  #ifdef CONFIG_MIPS_MT_SMTC
-> -			extern void smtc_idle_loop_hook(void);
-> +	extern void smtc_idle_loop_hook(void);
-> 
-> -			smtc_idle_loop_hook();
-> +	smtc_idle_loop_hook();
->  #endif
-> -
-> -			if (cpu_wait) {
-> -				/* Don't trace irqs off for idle */
-> -				stop_critical_timings();
-> -				(*cpu_wait)();
-> -				start_critical_timings();
-> -			}
-> -		}
-> -#ifdef CONFIG_HOTPLUG_CPU
-> -		if (!cpu_online(cpu) && !cpu_isset(cpu, cpu_callin_map))
-> -			play_dead();
-> -#endif
-> -		rcu_idle_exit();
-> -		tick_nohz_idle_exit();
-> -		schedule_preempt_disabled();
-> -	}
-> +	if (cpu_wait)
-> +		(*cpu_wait)();
-> +	else
-> +		local_irq_enable();
+>  	cpu_idle();
 >  }
 > 
+> 
+> 
+ 
+Regards,
+Srivatsa S. Bhat
