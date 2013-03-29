@@ -1,35 +1,43 @@
 From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH v3, part4 32/39] mm/SPARC: prepare for removing
-	num_physpages and simplify mem_init()
-Date: Fri, 29 Mar 2013 17:17:31 +0100
-Message-ID: <20130329161731.GB6201@merkur.ravnborg.org>
-References: <1364313298-17336-1-git-send-email-jiang.liu@huawei.com> <1364313298-17336-33-git-send-email-jiang.liu@huawei.com>
+Subject: Re: [patch 00/34] idle: Consolidate idle implementations
+Date: Fri, 29 Mar 2013 17:19:05 +0100
+Message-ID: <20130329161905.GC6201@merkur.ravnborg.org>
+References: <20130321214930.752934102@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.snhosting.dk ([87.238.248.203]:53148 "EHLO
-	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755021Ab3C2QRd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Mar 2013 12:17:33 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1364313298-17336-33-git-send-email-jiang.liu@huawei.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Jiang Liu <liuj97@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>, Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>, Tang Chen <tangchen@cn.fujitsu.com>, sparclinux@vger.kernel.org
+In-Reply-To: <20130321214930.752934102@linutronix.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Mar 26, 2013 at 11:54:51PM +0800, Jiang Liu wrote:
-> Prepare for removing num_physpages and simplify mem_init().
+On Thu, Mar 21, 2013 at 09:52:56PM -0000, Thomas Gleixner wrote:
+> Each architecture implements its own cpu_idle() code, which is more or
+> less the same on all architectures (plus/minus a few bugs and a few
+> missing extra functionalities, instrumentation ...). That also forces
+> everyone who is interested in idle related features to add new
+> functionality to every architecture. What a waste.
 > 
-> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-> Cc: "David S. Miller" <davem@davemloft.net>
-> Cc: Sam Ravnborg <sam@ravnborg.org>
-> Cc: Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>
-> Cc: Tang Chen <tangchen@cn.fujitsu.com>
-> Cc: sparclinux@vger.kernel.org
-> Cc: linux-kernel@vger.kernel.org
+> Aside of that pointless code duplicaiton the ongoing quest to
+> consolidate the cpu hotplug code needs a common entry point for the
+> non boot cpus.
+> 
+> The following series implements a generic idle function and converts
+> most architectures over. I left out SPARC (it involves sparc asm) and
+> UM (it made me barf). If we can move those architectures as well, we
+> can get rid of the extra config switch and have everything
+> consolidated.
+> 
+> I spent a lot of time to make sure that the conversion preserved the
+> non obvious differences of the architecture implementations, but I
+> really need help from the affected maintainers to prove the
+> correctness.
 
-Looks good!
-Acked-by: Sam Ravnborg <sam@ravnborg.org>
+Hi Thomas.
+
+Where can I find the git tree with the latest patches?
+Or do you plan to submit a v2 soon?
 
 	Sam
