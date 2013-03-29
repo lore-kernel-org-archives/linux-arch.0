@@ -1,68 +1,194 @@
-From: Jiang Liu <liuj97@gmail.com>
-Subject: Re: [PATCH v3, part4 38/39] mm/hotplug: prepare for removing num_physpages
-Date: Sat, 30 Mar 2013 00:42:14 +0800
-Message-ID: <5155C466.9040406@gmail.com>
-References: <1364313298-17336-1-git-send-email-jiang.liu@huawei.com> <1364313298-17336-39-git-send-email-jiang.liu@huawei.com> <20130329111856.GA3824@merkur.ravnborg.org> <5155B517.3040501@gmail.com> <20130329161700.GA6201@merkur.ravnborg.org> <5155C196.5020909@gmail.com> <20130329164014.GA6266@merkur.ravnborg.org>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: [PATCH] sparc: Use generic idle loop
+Date: Fri, 29 Mar 2013 21:29:26 +0100
+Message-ID: <20130329202926.GA9484@merkur.ravnborg.org>
+References: <20130321214930.752934102@linutronix.de> <20130329161905.GC6201@merkur.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-da0-f50.google.com ([209.85.210.50]:43373 "EHLO
-	mail-da0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754928Ab3C2Qm1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Mar 2013 12:42:27 -0400
-In-Reply-To: <20130329164014.GA6266@merkur.ravnborg.org>
+Received: from smtp.snhosting.dk ([87.238.248.203]:17577 "EHLO
+	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756618Ab3C2U33 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Mar 2013 16:29:29 -0400
+Content-Disposition: inline
+In-Reply-To: <20130329161905.GC6201@merkur.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>, Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Tang Chen <tangchen@cn.fujitsu.com>, Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, "David S. Miller" <davem@davemloft.net>
 
-On 03/30/2013 12:40 AM, Sam Ravnborg wrote:
-> On Sat, Mar 30, 2013 at 12:30:14AM +0800, Jiang Liu wrote:
->> On 03/30/2013 12:17 AM, Sam Ravnborg wrote:
->>>>>> diff --git a/mm/memory_hotplug.c b/mm/memory_hotplug.c
->>>>>> index 97454b3..9b1b494 100644
->>>>>> --- a/mm/memory_hotplug.c
->>>>>> +++ b/mm/memory_hotplug.c
->>>>>> @@ -751,10 +751,6 @@ EXPORT_SYMBOL_GPL(restore_online_page_callback);
->>>>>>  
->>>>>>  void __online_page_set_limits(struct page *page)
->>>>>>  {
->>>>>> -	unsigned long pfn = page_to_pfn(page);
->>>>>> -
->>>>>> -	if (pfn >= num_physpages)
->>>>>> -		num_physpages = pfn + 1;
->>>>>>  }
->>>>>>  EXPORT_SYMBOL_GPL(__online_page_set_limits);
->>>>>
->>>>> How can this be correct?
->>>>> With this change __online_page_set_limits() is now a nop.
->>>> Hi Sam,
->>>> 	We will eventually remove the global variable num_physpages in the last patch.
->>>> I kept the nop __online_page_set_limits() because I have a plan to use it to fix other
->>>> bugs in memory hotplug, otherwise it may be killed too.
->>>
->>> The xen ballon driver uses __online_page_set_limits for memory
->>> hotplug - so this will break this driver afaics.
->> Hi Sam,
->> 	I haven't gotten your point yet here. 
->> 	Function __online_page_set_limits() was only used to update the global variable
->> num_physpages, and one of the goals of this patch set is to get rid of num_physpages.
->> So I think it won't break Xen balloon driver.
->> 	Please refer to the patch here, which eventually kills num_physpages.
->> http://marc.info/?l=linux-mm&m=136431387813309&w=2
-> 
-> I assumed that num_physpages was used run-time to check for the
-> available number of pages. And __online_page_set_limits() were used
-> to reduced the number of online pages.
-> 
-> But a quick grep did not reveal any such use.
-> 
-> So it looks OK - thanks for the clarification.
-Yeah, we have a patch to replace num_physpages with totalram_pages for runtime access,
-please refer to:
-http://marc.info/?l=linux-mm&m=136431351413052&w=2
+Add generic cpu_idle support
 
-> 
-> 	Sam
-> 
+sparc32:
+- replace call to cpu_idle() with cpu_startup_entry()
+- add arch_cpu_idle()
+
+sparc64:
+- smp_callin() includes cpu_startup_entry() call so we can
+  skip calling cpu_idle from assembler
+- add arch_cpu_idle_enter() and arch_cpu_idle_dead()
+
+Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
+Cc: David S. Miller <davem@davemloft.net>
+
+---
+This patch is on top of smp/testing in the tip tree.
+It is build tested on sparc32 + sparc64
+
+	Sam
+
+
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index 3d361f2..5f22169 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -39,6 +39,7 @@ config SPARC
+ 	select GENERIC_CLOCKEVENTS
+ 	select GENERIC_STRNCPY_FROM_USER
+ 	select GENERIC_STRNLEN_USER
++	select GENERIC_IDLE_LOOP
+ 	select MODULES_USE_ELF_RELA
+ 	select ODD_RT_SIGACTION
+ 	select OLD_SIGSUSPEND
+diff --git a/arch/sparc/kernel/hvtramp.S b/arch/sparc/kernel/hvtramp.S
+index 9365432..605c960 100644
+--- a/arch/sparc/kernel/hvtramp.S
++++ b/arch/sparc/kernel/hvtramp.S
+@@ -128,8 +128,7 @@ hv_cpu_startup:
+ 
+ 	call		smp_callin
+ 	 nop
+-	call		cpu_idle
+-	 mov		0, %o0
++
+ 	call		cpu_panic
+ 	 nop
+ 
+diff --git a/arch/sparc/kernel/process_32.c b/arch/sparc/kernel/process_32.c
+index 62eede1..ec92959 100644
+--- a/arch/sparc/kernel/process_32.c
++++ b/arch/sparc/kernel/process_32.c
+@@ -64,23 +64,13 @@ extern void fpsave(unsigned long *, unsigned long *, void *, unsigned long *);
+ struct task_struct *last_task_used_math = NULL;
+ struct thread_info *current_set[NR_CPUS];
+ 
+-/*
+- * the idle loop on a Sparc... ;)
+- */
+-void cpu_idle(void)
++/* the idle loop on a Sparc... ;) */
++void arch_cpu_idle(void)
+ {
+-	set_thread_flag(TIF_POLLING_NRFLAG);
+-
+-	/* endless idle loop with no priority at all */
+-	for (;;) {
+-		while (!need_resched()) {
+-			if (sparc_idle)
+-				(*sparc_idle)();
+-			else
+-				cpu_relax();
+-		}
+-		schedule_preempt_disabled();
+-	}
++	if (sparc_idle)
++		(*sparc_idle)();
++	else
++		cpu_relax();
+ }
+ 
+ /* XXX cli/sti -> local_irq_xxx here, check this works once SMP is fixed. */
+diff --git a/arch/sparc/kernel/process_64.c b/arch/sparc/kernel/process_64.c
+index cdb80b2..5ed6b02 100644
+--- a/arch/sparc/kernel/process_64.c
++++ b/arch/sparc/kernel/process_64.c
+@@ -52,8 +52,13 @@
+ 
+ #include "kstack.h"
+ 
+-static void sparc64_yield(int cpu)
++/* The idle loop on sparc64. */
++void arch_cpu_idle_enter()
+ {
++	int cpu;
++
++	cpu = smp_processor_id();
++
+ 	if (tlb_type != hypervisor) {
+ 		touch_nmi_watchdog();
+ 		return;
+@@ -88,31 +93,10 @@ static void sparc64_yield(int cpu)
+ 	set_thread_flag(TIF_POLLING_NRFLAG);
+ }
+ 
+-/* The idle loop on sparc64. */
+-void cpu_idle(void)
++void arch_cpu_idle_dead()
+ {
+-	int cpu = smp_processor_id();
+-
+-	set_thread_flag(TIF_POLLING_NRFLAG);
+-
+-	while(1) {
+-		tick_nohz_idle_enter();
+-		rcu_idle_enter();
+-
+-		while (!need_resched() && !cpu_is_offline(cpu))
+-			sparc64_yield(cpu);
+-
+-		rcu_idle_exit();
+-		tick_nohz_idle_exit();
+-
+-#ifdef CONFIG_HOTPLUG_CPU
+-		if (cpu_is_offline(cpu)) {
+-			sched_preempt_enable_no_resched();
+-			cpu_play_dead();
+-		}
+-#endif
+-		schedule_preempt_disabled();
+-	}
++	sched_preempt_enable_no_resched();
++	cpu_play_dead();
+ }
+ 
+ #ifdef CONFIG_COMPAT
+diff --git a/arch/sparc/kernel/smp_32.c b/arch/sparc/kernel/smp_32.c
+index 9e7e6d7..e3f2b81 100644
+--- a/arch/sparc/kernel/smp_32.c
++++ b/arch/sparc/kernel/smp_32.c
+@@ -369,7 +369,7 @@ void __cpuinit sparc_start_secondary(void *arg)
+ 	local_irq_enable();
+ 
+ 	wmb();
+-	cpu_idle();
++	cpu_startup_entry(CPUHP_ONLINE);
+ 
+ 	/* We should never reach here! */
+ 	BUG();
+diff --git a/arch/sparc/kernel/smp_64.c b/arch/sparc/kernel/smp_64.c
+index 537eb66..c025ffc 100644
+--- a/arch/sparc/kernel/smp_64.c
++++ b/arch/sparc/kernel/smp_64.c
+@@ -127,6 +127,8 @@ void __cpuinit smp_callin(void)
+ 
+ 	/* idle thread is expected to have preempt disabled */
+ 	preempt_disable();
++
++	cpu_startup_entry(CPUHP_ONLINE);
+ }
+ 
+ void cpu_panic(void)
+diff --git a/arch/sparc/kernel/trampoline_64.S b/arch/sparc/kernel/trampoline_64.S
+index da1b781..2e973a2 100644
+--- a/arch/sparc/kernel/trampoline_64.S
++++ b/arch/sparc/kernel/trampoline_64.S
+@@ -407,8 +407,7 @@ after_lock_tlb:
+ 
+ 	call		smp_callin
+ 	 nop
+-	call		cpu_idle
+-	 mov		0, %o0
++
+ 	call		cpu_panic
+ 	 nop
+ 1:	b,a,pt		%xcc, 1b
