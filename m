@@ -1,47 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.snhosting.dk ([87.238.248.203]:27871 "EHLO
+Received: from smtp.snhosting.dk ([87.238.248.203]:14953 "EHLO
 	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754096Ab3C2QRD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Mar 2013 12:17:03 -0400
-Date: Fri, 29 Mar 2013 17:17:00 +0100
+	with ESMTP id S1754320Ab3C2QTH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Mar 2013 12:19:07 -0400
+Date: Fri, 29 Mar 2013 17:19:05 +0100
 From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH v3, part4 38/39] mm/hotplug: prepare for removing
-	num_physpages
-Message-ID: <20130329161700.GA6201@merkur.ravnborg.org>
-References: <1364313298-17336-1-git-send-email-jiang.liu@huawei.com> <1364313298-17336-39-git-send-email-jiang.liu@huawei.com> <20130329111856.GA3824@merkur.ravnborg.org> <5155B517.3040501@gmail.com>
+Subject: Re: [patch 00/34] idle: Consolidate idle implementations
+Message-ID: <20130329161905.GC6201@merkur.ravnborg.org>
+References: <20130321214930.752934102@linutronix.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <5155B517.3040501@gmail.com>
+In-Reply-To: <20130321214930.752934102@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiang Liu <liuj97@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>, Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Tang Chen <tangchen@cn.fujitsu.com>, Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>
-Message-ID: <20130329161700.Kk9rtNgtyeHKVNuD_QVDKwm1CDZi5g0BWlOGkB7SHCk@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>
+Message-ID: <20130329161905.Irv-pDQbLzFHOXyTU4OsFqALfZvEcGLvwbK9In1UFbE@z>
 
-> >> diff --git a/mm/memory_hotplug.c b/mm/memory_hotplug.c
-> >> index 97454b3..9b1b494 100644
-> >> --- a/mm/memory_hotplug.c
-> >> +++ b/mm/memory_hotplug.c
-> >> @@ -751,10 +751,6 @@ EXPORT_SYMBOL_GPL(restore_online_page_callback);
-> >>  
-> >>  void __online_page_set_limits(struct page *page)
-> >>  {
-> >> -	unsigned long pfn = page_to_pfn(page);
-> >> -
-> >> -	if (pfn >= num_physpages)
-> >> -		num_physpages = pfn + 1;
-> >>  }
-> >>  EXPORT_SYMBOL_GPL(__online_page_set_limits);
-> > 
-> > How can this be correct?
-> > With this change __online_page_set_limits() is now a nop.
-> Hi Sam,
-> 	We will eventually remove the global variable num_physpages in the last patch.
-> I kept the nop __online_page_set_limits() because I have a plan to use it to fix other
-> bugs in memory hotplug, otherwise it may be killed too.
+On Thu, Mar 21, 2013 at 09:52:56PM -0000, Thomas Gleixner wrote:
+> Each architecture implements its own cpu_idle() code, which is more or
+> less the same on all architectures (plus/minus a few bugs and a few
+> missing extra functionalities, instrumentation ...). That also forces
+> everyone who is interested in idle related features to add new
+> functionality to every architecture. What a waste.
+> 
+> Aside of that pointless code duplicaiton the ongoing quest to
+> consolidate the cpu hotplug code needs a common entry point for the
+> non boot cpus.
+> 
+> The following series implements a generic idle function and converts
+> most architectures over. I left out SPARC (it involves sparc asm) and
+> UM (it made me barf). If we can move those architectures as well, we
+> can get rid of the extra config switch and have everything
+> consolidated.
+> 
+> I spent a lot of time to make sure that the conversion preserved the
+> non obvious differences of the architecture implementations, but I
+> really need help from the affected maintainers to prove the
+> correctness.
 
-The xen ballon driver uses __online_page_set_limits for memory
-hotplug - so this will break this driver afaics.
+Hi Thomas.
+
+Where can I find the git tree with the latest patches?
+Or do you plan to submit a v2 soon?
 
 	Sam
