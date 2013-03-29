@@ -1,61 +1,54 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH v3, part4 38/39] mm/hotplug: prepare for removing
-	num_physpages
-Date: Fri, 29 Mar 2013 12:18:56 +0100
-Message-ID: <20130329111856.GA3824@merkur.ravnborg.org>
-References: <1364313298-17336-1-git-send-email-jiang.liu@huawei.com> <1364313298-17336-39-git-send-email-jiang.liu@huawei.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [patch 07/34] alpha: Use generic idle loop
+Date: Fri, 29 Mar 2013 12:22:54 +0100 (CET)
+Message-ID: <alpine.LFD.2.02.1303291210250.22263@ionos>
+References: <20130321214930.752934102@linutronix.de> <20130321215233.766017538@linutronix.de> <515463D4.60501@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.snhosting.dk ([87.238.248.203]:32631 "EHLO
-	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753982Ab3C2LS6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Mar 2013 07:18:58 -0400
-Content-Disposition: inline
-In-Reply-To: <1364313298-17336-39-git-send-email-jiang.liu@huawei.com>
+Received: from www.linutronix.de ([62.245.132.108]:44976 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754307Ab3C2LXC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Mar 2013 07:23:02 -0400
+In-Reply-To: <515463D4.60501@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiang Liu <liuj97@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>, Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Tang Chen <tangchen@cn.fujitsu.com>, Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Magnus Damm <magnus.damm@gmail.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>
 
-On Tue, Mar 26, 2013 at 11:54:57PM +0800, Jiang Liu wrote:
-> Prepare for removing num_physpages.
+On Thu, 28 Mar 2013, Srivatsa S. Bhat wrote:
+> (In all my replies, I'm referring to the code in your v2 on your git
+> tree, but replying to the corresponding patches in your v1).
 > 
-> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-> Cc: Wen Congyang <wency@cn.fujitsu.com>
-> Cc: Tang Chen <tangchen@cn.fujitsu.com>
-> Cc: Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>
-> Cc: linux-mm@kvack.org
-> Cc: linux-kernel@vger.kernel.org
-> ---
-> Hi all,
-> 	Sorry for my mistake that my previous patch series has been screwed up.
-> So I regenerate a third version and also set up a git tree at:
-> 	git://github.com/jiangliu/linux.git mem_init
-> 	Any help to review and test are welcomed!
+> So, in alpha, we poll in cpu idle. In the generic implementation in
+> kernel/cpu/idle.c, arch_cpu_idle() is defined as:
 > 
-> 	Regards!
-> 	Gerry
-> ---
->  mm/memory_hotplug.c |    4 ----
->  1 file changed, 4 deletions(-)
+> void __weak arch_cpu_idle(void)
+> {
+>         cpu_idle_poll();
+> }
 > 
-> diff --git a/mm/memory_hotplug.c b/mm/memory_hotplug.c
-> index 97454b3..9b1b494 100644
-> --- a/mm/memory_hotplug.c
-> +++ b/mm/memory_hotplug.c
-> @@ -751,10 +751,6 @@ EXPORT_SYMBOL_GPL(restore_online_page_callback);
->  
->  void __online_page_set_limits(struct page *page)
->  {
-> -	unsigned long pfn = page_to_pfn(page);
-> -
-> -	if (pfn >= num_physpages)
-> -		num_physpages = pfn + 1;
->  }
->  EXPORT_SYMBOL_GPL(__online_page_set_limits);
+> Should it not have been:
+> 
+> void __weak arch_cpu_idle(void)
+> {
+> 	current_set_polling();
+>         cpu_idle_poll();
+> 	current_clr_polling();
+> }
+> 
+> instead?
 
-How can this be correct?
-With this change __online_page_set_limits() is now a nop.
+Hmm, we should not clear it at all, because we are always polling and
+never leave polling mode. So instead of calling cpu_idle_poll from the
+weak arch_cpu_idle() we should set cpu_idle_force_poll so we drop into
 
-	Sam
+	if (cpu_idle_force_poll) {
+		cpu_idle_poll();
+	} else ...
+
+which keeps the polling flag set.
+
+Thanks,
+
+	tglx
