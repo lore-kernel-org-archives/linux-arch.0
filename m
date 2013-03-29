@@ -1,26 +1,45 @@
-From: "Ramos Brontons" <rbt@rmu.ac.th>
-Subject: Transfer proposal
-Date: Fri, 29 Mar 2013 06:57:29 +0700
-Message-ID: <20130328230713.M9986__27907.3090678596$1364517163$gmane$org@rmu.ac.th>
-Reply-To: b_brontonss@hotmail.com
+From: Rob Landley <rob@landley.net>
+Subject: Re: Generic syscall ABI support
+Date: Thu, 28 Mar 2013 23:41:37 -0500
+Message-ID: <1364532097.18069.7@driftwood>
+References: <201303281142.47631.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset=tis-620
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from [202.29.22.17] ([202.29.22.17]:41410 "EHLO ironport.rmu.ac.th"
-	rhost-flags-FAIL-FAIL-OK-OK) by vger.kernel.org with ESMTP
-	id S1753668Ab3C2AcQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 28 Mar 2013 20:32:16 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii; DelSp=Yes; Format=Flowed
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <201303281142.47631.arnd@arndb.de> (from arnd@arndb.de on Thu
+	Mar 28 06:42:47 2013)
+Content-Disposition: inline
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Ley Foon Tan <lftan@altera.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Dear Friend,
-I got your email address from your country directory.
-I have a transfer proposal worth fourteen millions five hundred US dollars 
-(USD14,500, 000).  For more details and clarification,please reply my email or 
-call me.
+On 03/28/2013 06:42:47 AM, Arnd Bergmann wrote:
+> On Thursday 28 March 2013, Ley Foon Tan wrote:
+> > On Thu, 2013-03-28 at 10:40 +0000, Arnd Bergmann wrote:
+> > > On Thursday 28 March 2013, Ley Foon Tan wrote:
+> > > > We will working on generic ABI for kernel and Glibc. This might  
+> take
+> > > > some times.
+> > >
+> > > Ok. Don't let that hold you up from submitting the kernel patches
+> > > for review though.
+> >
+> > Do you mean we can submit the patches for review before we got the
+> > generic ABI support?
+> 
+> I mean you can send the other patches for review already. Changing
+> your implementtion to use the generic ABI will basically just mean
+> not sending the patches tht implement your own ABI, so that's not
+> hard. Of course until you also have a new glibc port, you won't be
+> able to test that it actually works, but that is not essential for
+> the reviewing stage.
 
-Regards,
-Barrister Ramon Brontons
-Tel: +44 7031975999
-Email: b_brontonss@hotmail.com
+You don't need a new glibc port, you need a new klibc or musl port.
+
+   http://www.openwall.com/lists/musl/2012/07/08/1
+
+Way less work than getting glibc working for your basic smoketest...
+
+Rob
