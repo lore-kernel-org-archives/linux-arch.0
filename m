@@ -1,45 +1,38 @@
-From: Rob Landley <rob@landley.net>
+From: "H. Peter Anvin" <hpa@zytor.com>
 Subject: Re: Generic syscall ABI support
-Date: Thu, 28 Mar 2013 23:41:37 -0500
-Message-ID: <1364532097.18069.7@driftwood>
-References: <201303281142.47631.arnd@arndb.de>
+Date: Thu, 28 Mar 2013 21:53:52 -0700
+Message-ID: <51551E60.4070708@zytor.com>
+References: <1364532097.18069.7@driftwood>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; DelSp=Yes; Format=Flowed
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <201303281142.47631.arnd@arndb.de> (from arnd@arndb.de on Thu
-	Mar 28 06:42:47 2013)
-Content-Disposition: inline
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Ley Foon Tan <lftan@altera.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:34081 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751641Ab3C2EyH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 29 Mar 2013 00:54:07 -0400
+In-Reply-To: <1364532097.18069.7@driftwood>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Rob Landley <rob@landley.net>
+Cc: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On 03/28/2013 06:42:47 AM, Arnd Bergmann wrote:
-> On Thursday 28 March 2013, Ley Foon Tan wrote:
-> > On Thu, 2013-03-28 at 10:40 +0000, Arnd Bergmann wrote:
-> > > On Thursday 28 March 2013, Ley Foon Tan wrote:
-> > > > We will working on generic ABI for kernel and Glibc. This might  
-> take
-> > > > some times.
-> > >
-> > > Ok. Don't let that hold you up from submitting the kernel patches
-> > > for review though.
-> >
-> > Do you mean we can submit the patches for review before we got the
-> > generic ABI support?
+On 03/28/2013 09:41 PM, Rob Landley wrote:
 > 
-> I mean you can send the other patches for review already. Changing
-> your implementtion to use the generic ABI will basically just mean
-> not sending the patches tht implement your own ABI, so that's not
-> hard. Of course until you also have a new glibc port, you won't be
-> able to test that it actually works, but that is not essential for
-> the reviewing stage.
+> You don't need a new glibc port, you need a new klibc or musl port.
+> 
+>   http://www.openwall.com/lists/musl/2012/07/08/1
+> 
+> Way less work than getting glibc working for your basic smoketest...
+> 
 
-You don't need a new glibc port, you need a new klibc or musl port.
+Good point.  Average time to port klibc to a new architecture is about
+four hours as long as the person porting knows the calling conventions
+and assembly language involved.
 
-   http://www.openwall.com/lists/musl/2012/07/08/1
+	-hpa
 
-Way less work than getting glibc working for your basic smoketest...
 
-Rob
+-- 
+H. Peter Anvin, Intel Open Source Technology Center
+I work for Intel.  I don't speak on their behalf.
