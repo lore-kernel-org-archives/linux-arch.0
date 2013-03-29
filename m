@@ -1,42 +1,61 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: Generic syscall ABI support
-Date: Fri, 29 Mar 2013 10:42:52 +0000
-Message-ID: <201303291042.52284.arnd@arndb.de>
-References: <1364532097.18069.7@driftwood> <51551E60.4070708@zytor.com> <1364550599.7481.8.camel@leyfoon-vm>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH v3, part4 38/39] mm/hotplug: prepare for removing
+	num_physpages
+Date: Fri, 29 Mar 2013 12:18:56 +0100
+Message-ID: <20130329111856.GA3824@merkur.ravnborg.org>
+References: <1364313298-17336-1-git-send-email-jiang.liu@huawei.com> <1364313298-17336-39-git-send-email-jiang.liu@huawei.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.8]:55791 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751105Ab3C2Km6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Mar 2013 06:42:58 -0400
-In-Reply-To: <1364550599.7481.8.camel@leyfoon-vm>
+Received: from smtp.snhosting.dk ([87.238.248.203]:32631 "EHLO
+	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753982Ab3C2LS6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Mar 2013 07:18:58 -0400
+Content-Disposition: inline
+In-Reply-To: <1364313298-17336-39-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Rob Landley <rob@landley.net>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Jiang Liu <liuj97@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>, Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Tang Chen <tangchen@cn.fujitsu.com>, Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>
 
-On Friday 29 March 2013, Ley Foon Tan wrote:
-> > 
-> Thanks for the suggestion.
-> Too bad we don't have in-house expert in klibc and musl port. 
+On Tue, Mar 26, 2013 at 11:54:57PM +0800, Jiang Liu wrote:
+> Prepare for removing num_physpages.
 > 
-> Hi HPA,
-> I knew you are the developer of klibc. Do you have any documentation to
-> port a new architecture and also how to replace glibc with klibc in
-> build?
+> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+> Cc: Wen Congyang <wency@cn.fujitsu.com>
+> Cc: Tang Chen <tangchen@cn.fujitsu.com>
+> Cc: Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>
+> Cc: linux-mm@kvack.org
+> Cc: linux-kernel@vger.kernel.org
+> ---
+> Hi all,
+> 	Sorry for my mistake that my previous patch series has been screwed up.
+> So I regenerate a third version and also set up a git tree at:
+> 	git://github.com/jiangliu/linux.git mem_init
+> 	Any help to review and test are welcomed!
 > 
-> By the way, klibc or musl is easier to port?
+> 	Regards!
+> 	Gerry
+> ---
+>  mm/memory_hotplug.c |    4 ----
+>  1 file changed, 4 deletions(-)
+> 
+> diff --git a/mm/memory_hotplug.c b/mm/memory_hotplug.c
+> index 97454b3..9b1b494 100644
+> --- a/mm/memory_hotplug.c
+> +++ b/mm/memory_hotplug.c
+> @@ -751,10 +751,6 @@ EXPORT_SYMBOL_GPL(restore_online_page_callback);
+>  
+>  void __online_page_set_limits(struct page *page)
+>  {
+> -	unsigned long pfn = page_to_pfn(page);
+> -
+> -	if (pfn >= num_physpages)
+> -		num_physpages = pfn + 1;
+>  }
+>  EXPORT_SYMBOL_GPL(__online_page_set_limits);
 
-I have no experience with musl, but klibc is probably the easiest to
-port that you can find. Doing a new port doesn't require any prior
-knowledge of klibc itself, the code is so small that any experienced
-C programmer can understand it entirely in short time and do a new
-port. However, it is also not meant as a general purpose libc or a
-glibc replacement, as there is a very limited set of code that can use
-it. It's certainly complete enough to test that the ABI itself is
-working.
+How can this be correct?
+With this change __online_page_set_limits() is now a nop.
 
-	Arnd
+	Sam
