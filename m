@@ -1,194 +1,176 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [PATCH] sparc: Use generic idle loop
-Date: Fri, 29 Mar 2013 21:29:26 +0100
-Message-ID: <20130329202926.GA9484@merkur.ravnborg.org>
-References: <20130321214930.752934102@linutronix.de> <20130329161905.GC6201@merkur.ravnborg.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Tejun Heo <tj@kernel.org>
+Subject: [PATCHSET] arch: unify task dump debug info
+Date: Fri, 29 Mar 2013 19:27:03 -0700
+Message-ID: <1364610428-2074-1-git-send-email-tj@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.snhosting.dk ([87.238.248.203]:17577 "EHLO
-	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756618Ab3C2U33 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Mar 2013 16:29:29 -0400
-Content-Disposition: inline
-In-Reply-To: <20130329161905.GC6201@merkur.ravnborg.org>
+Received: from mail-qe0-f50.google.com ([209.85.128.50]:62840 "EHLO
+	mail-qe0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755534Ab3C3C1a (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Mar 2013 22:27:30 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, "David S. Miller" <davem@davemloft.net>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@redhat.com, x86@kernel.org
+Cc: rth@twiddle.net, linux@arm.linux.org.uk, msalter@redhat.com, starvik@axis.com, dhowells@redhat.com, tony.luck@intel.com, benh@kernel.crashing.org, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, jonas@southpole.se, rkuo@codeaurora.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, davem@davemloft.net, lethal@linux-sh.org, vgupta@synopsys.com, chris@zankel.net, cmetcalf@tilera.com, ysato@users.sourceforge.jp, gxt@mprc.pku.edu.cn, jdike@addtoit.com
 
-Add generic cpu_idle support
+Hello,
 
-sparc32:
-- replace call to cpu_idle() with cpu_startup_entry()
-- add arch_cpu_idle()
+There are multiple ways a task can be dumped - explicit call to
+dump_stack(), triggering WARN() or BUG(), through sysrq-t and so on.
+Most of what gets printed is upto each architecture and the current
+state is not particularly pretty.  Different pieces of information are
+presented differently depending on which path the dump takes and which
+architecture it's running on.  This is messy for no good reason and
+makes it exceedingly difficult to add or modify debug information to
+task dumps.
 
-sparc64:
-- smp_callin() includes cpu_startup_entry() call so we can
-  skip calling cpu_idle from assembler
-- add arch_cpu_idle_enter() and arch_cpu_idle_dead()
+In all archs except for s390, there's nothing arch-specific about the
+printed debug information.  This patchset updates all those archs to
+use the same helpers to consistently print out the same debug
+information.
 
-Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-Cc: David S. Miller <davem@davemloft.net>
+An example WARN dump after this patchset.
 
----
-This patch is on top of smp/testing in the tip tree.
-It is build tested on sparc32 + sparc64
+ WARNING: at /work/os/work/kernel/workqueue.c:4840 init_workqueues+0x35/0x505()
+ Modules linked in:
+ Pid: 1, comm: swapper/0 Not tainted 3.9.0-rc1-work+ #18 empty empty/S3992
+  0000000000000009 ffff88007c861e08 ffffffff81c61525 ffff88007c861e48
+  ffffffff8108f500 ffffffff82228240 0000000000000040 ffffffff8234a041
+  0000000000000000 0000000000000000 0000000000000000 ffff88007c861e58
+ Call Trace:
+  [<ffffffff81c61525>] dump_stack+0x19/0x1b
+  [<ffffffff8108f500>] warn_slowpath_common+0x70/0xa0
+  [<ffffffff8108f54a>] warn_slowpath_null+0x1a/0x20
+  [<ffffffff8234a076>] init_workqueues+0x35/0x505
+  ...
 
-	Sam
+And BUG dump.
 
+ kernel BUG at /work/os/work/kernel/workqueue.c:4841!
+ invalid opcode: 0000 [#1] PREEMPT SMP DEBUG_PAGEALLOC
+ Modules linked in:
+ Pid: 1, comm: swapper/0 Tainted: G        W    3.9.0-rc1-work+ #20 empty empty/S3992
+ CPU:0 task: ffff88007c85e040 ti: ffff88007c860000 task.ti: ffff88007c860000
+ RIP: 0010:[<ffffffff8234a042>]  [<ffffffff8234a042>] init_workqueues+0x15/0x17
+ RSP: 0000:ffff88007c861ec8  EFLAGS: 00010296
+ RAX: 0000000000000024 RBX: ffffffff82446608 RCX: 0000000000000001
+ ...
+ Stack:
+  ffff88007c861ef8 ffffffff81000312 ffffffff82446608 ffff88007c85e650
+  0000000000000003 0000000000000000 ffff88007c861f38 ffffffff82335e5d
+  ffff88007c862080 ffffffff8223d8c0 ffff88007c862080 ffffffff81c47730
+ Call Trace:
+  [<ffffffff81000312>] do_one_initcall+0x122/0x170
+  [<ffffffff82335e5d>] kernel_init_freeable+0x9b/0x1c8
+  ...
 
-diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-index 3d361f2..5f22169 100644
---- a/arch/sparc/Kconfig
-+++ b/arch/sparc/Kconfig
-@@ -39,6 +39,7 @@ config SPARC
- 	select GENERIC_CLOCKEVENTS
- 	select GENERIC_STRNCPY_FROM_USER
- 	select GENERIC_STRNLEN_USER
-+	select GENERIC_IDLE_LOOP
- 	select MODULES_USE_ELF_RELA
- 	select ODD_RT_SIGACTION
- 	select OLD_SIGSUSPEND
-diff --git a/arch/sparc/kernel/hvtramp.S b/arch/sparc/kernel/hvtramp.S
-index 9365432..605c960 100644
---- a/arch/sparc/kernel/hvtramp.S
-+++ b/arch/sparc/kernel/hvtramp.S
-@@ -128,8 +128,7 @@ hv_cpu_startup:
- 
- 	call		smp_callin
- 	 nop
--	call		cpu_idle
--	 mov		0, %o0
-+
- 	call		cpu_panic
- 	 nop
- 
-diff --git a/arch/sparc/kernel/process_32.c b/arch/sparc/kernel/process_32.c
-index 62eede1..ec92959 100644
---- a/arch/sparc/kernel/process_32.c
-+++ b/arch/sparc/kernel/process_32.c
-@@ -64,23 +64,13 @@ extern void fpsave(unsigned long *, unsigned long *, void *, unsigned long *);
- struct task_struct *last_task_used_math = NULL;
- struct thread_info *current_set[NR_CPUS];
- 
--/*
-- * the idle loop on a Sparc... ;)
-- */
--void cpu_idle(void)
-+/* the idle loop on a Sparc... ;) */
-+void arch_cpu_idle(void)
- {
--	set_thread_flag(TIF_POLLING_NRFLAG);
--
--	/* endless idle loop with no priority at all */
--	for (;;) {
--		while (!need_resched()) {
--			if (sparc_idle)
--				(*sparc_idle)();
--			else
--				cpu_relax();
--		}
--		schedule_preempt_disabled();
--	}
-+	if (sparc_idle)
-+		(*sparc_idle)();
-+	else
-+		cpu_relax();
- }
- 
- /* XXX cli/sti -> local_irq_xxx here, check this works once SMP is fixed. */
-diff --git a/arch/sparc/kernel/process_64.c b/arch/sparc/kernel/process_64.c
-index cdb80b2..5ed6b02 100644
---- a/arch/sparc/kernel/process_64.c
-+++ b/arch/sparc/kernel/process_64.c
-@@ -52,8 +52,13 @@
- 
- #include "kstack.h"
- 
--static void sparc64_yield(int cpu)
-+/* The idle loop on sparc64. */
-+void arch_cpu_idle_enter()
- {
-+	int cpu;
-+
-+	cpu = smp_processor_id();
-+
- 	if (tlb_type != hypervisor) {
- 		touch_nmi_watchdog();
- 		return;
-@@ -88,31 +93,10 @@ static void sparc64_yield(int cpu)
- 	set_thread_flag(TIF_POLLING_NRFLAG);
- }
- 
--/* The idle loop on sparc64. */
--void cpu_idle(void)
-+void arch_cpu_idle_dead()
- {
--	int cpu = smp_processor_id();
--
--	set_thread_flag(TIF_POLLING_NRFLAG);
--
--	while(1) {
--		tick_nohz_idle_enter();
--		rcu_idle_enter();
--
--		while (!need_resched() && !cpu_is_offline(cpu))
--			sparc64_yield(cpu);
--
--		rcu_idle_exit();
--		tick_nohz_idle_exit();
--
--#ifdef CONFIG_HOTPLUG_CPU
--		if (cpu_is_offline(cpu)) {
--			sched_preempt_enable_no_resched();
--			cpu_play_dead();
--		}
--#endif
--		schedule_preempt_disabled();
--	}
-+	sched_preempt_enable_no_resched();
-+	cpu_play_dead();
- }
- 
- #ifdef CONFIG_COMPAT
-diff --git a/arch/sparc/kernel/smp_32.c b/arch/sparc/kernel/smp_32.c
-index 9e7e6d7..e3f2b81 100644
---- a/arch/sparc/kernel/smp_32.c
-+++ b/arch/sparc/kernel/smp_32.c
-@@ -369,7 +369,7 @@ void __cpuinit sparc_start_secondary(void *arg)
- 	local_irq_enable();
- 
- 	wmb();
--	cpu_idle();
-+	cpu_startup_entry(CPUHP_ONLINE);
- 
- 	/* We should never reach here! */
- 	BUG();
-diff --git a/arch/sparc/kernel/smp_64.c b/arch/sparc/kernel/smp_64.c
-index 537eb66..c025ffc 100644
---- a/arch/sparc/kernel/smp_64.c
-+++ b/arch/sparc/kernel/smp_64.c
-@@ -127,6 +127,8 @@ void __cpuinit smp_callin(void)
- 
- 	/* idle thread is expected to have preempt disabled */
- 	preempt_disable();
-+
-+	cpu_startup_entry(CPUHP_ONLINE);
- }
- 
- void cpu_panic(void)
-diff --git a/arch/sparc/kernel/trampoline_64.S b/arch/sparc/kernel/trampoline_64.S
-index da1b781..2e973a2 100644
---- a/arch/sparc/kernel/trampoline_64.S
-+++ b/arch/sparc/kernel/trampoline_64.S
-@@ -407,8 +407,7 @@ after_lock_tlb:
- 
- 	call		smp_callin
- 	 nop
--	call		cpu_idle
--	 mov		0, %o0
-+
- 	call		cpu_panic
- 	 nop
- 1:	b,a,pt		%xcc, 1b
+This patchset contains the following five patches.
+
+ 0001-x86-don-t-show-trace-beyond-show_stack-NULL-NULL.patch
+ 0002-sparc32-make-show_stack-acquire-fp-if-_ksp-is-not-sp.patch
+ 0003-dump_stack-consolidate-dump_stack-implementations-an.patch
+ 0004-dump_stack-implement-arch-specific-hardware-descript.patch
+ 0005-dump_stack-unify-debug-information-printed-by-show_r.patch
+
+0001-0002 update stack dumping functions in x86 and sparc32 in
+preparation.
+
+0003 makes all arches except s390 and blackfin use generic
+dump_stack().  blackfin still uses the generic helper to print the
+same info.  s390 is left alone as its current debug info includes
+arch-specific stuff.
+
+0004 properly abstracts DMI identifier printing in WARN() and
+show_regs() so that all dumps print out the information.  This enables
+show_regs() to use the same debug info message.
+
+0005 updates show_regs() of all arches except for s390 to use a common
+generic helper to print debug info.
+
+While this patchset changes how debug info is printed on some archs,
+the printed information is always superset of what used to be there.
+
+This patchset makes task dump debug messages consistent and enables
+adding more information.  Workqueue is scheduled to add worker
+information including the workqueue in use and work item specific
+description.
+
+This patchset is based on top of v3.9-rc4 and available in the
+following git branch.
+
+ git://git.kernel.org/pub/scm/linux/kernel/git/tj/misc.git review-unify-dump
+
+While this patch touches a lot of archs, it isn't too likely to cause
+non-trivial conflicts with arch-specfic changes and would probably be
+best to route together either through -tip or -mm.
+
+x86 is tested but other archs are either only compile tested or not
+tested at all.  Changes to most archs are generally trivial.
+
+diffstat follows.  Thanks.
+
+ arch/alpha/kernel/process.c         |    1 
+ arch/alpha/kernel/traps.c           |    7 ---
+ arch/arc/kernel/stacktrace.c        |    7 ---
+ arch/arc/kernel/troubleshoot.c      |    1 
+ arch/arm/kernel/process.c           |    8 +---
+ arch/arm/kernel/traps.c             |    7 ---
+ arch/arm64/kernel/process.c         |    7 ---
+ arch/arm64/kernel/traps.c           |    7 ---
+ arch/avr32/kernel/process.c         |   13 +------
+ arch/blackfin/kernel/dumpstack.c    |    1 
+ arch/blackfin/kernel/trace.c        |    2 +
+ arch/c6x/kernel/traps.c             |   10 -----
+ arch/cris/arch-v10/kernel/process.c |    3 +
+ arch/cris/arch-v32/kernel/process.c |    3 +
+ arch/cris/kernel/traps.c            |    7 ---
+ arch/frv/kernel/traps.c             |   14 -------
+ arch/h8300/kernel/process.c         |    2 +
+ arch/h8300/kernel/traps.c           |    7 ---
+ arch/hexagon/kernel/traps.c         |    8 ----
+ arch/hexagon/kernel/vm_events.c     |    2 +
+ arch/ia64/kernel/process.c          |   12 +-----
+ arch/ia64/kernel/setup.c            |    1 
+ arch/m32r/kernel/process.c          |    2 +
+ arch/m32r/kernel/traps.c            |    9 ----
+ arch/m68k/kernel/traps.c            |   12 ------
+ arch/metag/kernel/process.c         |    2 +
+ arch/metag/kernel/traps.c           |    6 ---
+ arch/microblaze/kernel/process.c    |    2 +
+ arch/microblaze/kernel/traps.c      |    6 ---
+ arch/mips/kernel/traps.c            |   15 --------
+ arch/mn10300/kernel/process.c       |    1 
+ arch/mn10300/kernel/traps.c         |   11 ------
+ arch/openrisc/kernel/process.c      |    1 
+ arch/openrisc/kernel/traps.c        |   11 ------
+ arch/parisc/kernel/traps.c          |   10 +----
+ arch/powerpc/kernel/process.c       |   14 +------
+ arch/score/kernel/traps.c           |   12 +-----
+ arch/sh/kernel/dumpstack.c          |    6 ---
+ arch/sh/kernel/process_32.c         |    6 ---
+ arch/sh/kernel/process_64.c         |    1 
+ arch/sparc/kernel/process_32.c      |   23 ++++--------
+ arch/sparc/kernel/process_64.c      |    2 +
+ arch/sparc/kernel/traps_64.c        |    7 ---
+ arch/tile/kernel/process.c          |    3 -
+ arch/um/kernel/sysrq.c              |   12 ------
+ arch/um/sys-ppc/sysrq.c             |    2 +
+ arch/unicore32/kernel/process.c     |    6 ---
+ arch/unicore32/kernel/traps.c       |    6 ---
+ arch/x86/include/asm/bug.h          |    3 -
+ arch/x86/kernel/dumpstack.c         |   28 ++++++---------
+ arch/x86/kernel/dumpstack_32.c      |    4 --
+ arch/x86/kernel/dumpstack_64.c      |    6 ---
+ arch/x86/kernel/process.c           |   24 -------------
+ arch/x86/kernel/process_32.c        |    2 -
+ arch/x86/kernel/process_64.c        |    1 
+ arch/x86/kernel/setup.c             |    1 
+ arch/xtensa/kernel/traps.c          |   10 +----
+ drivers/firmware/dmi_scan.c         |   26 ++++++++++++++
+ include/linux/dmi.h                 |    2 +
+ include/linux/printk.h              |    4 ++
+ kernel/panic.c                      |    6 ---
+ lib/dump_stack.c                    |   66 ++++++++++++++++++++++++++++++++++--
+ 62 files changed, 167 insertions(+), 334 deletions(-)
+
+--
+tejun
