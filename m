@@ -1,83 +1,86 @@
 From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH 3/5] dump_stack: consolidate dump_stack()
- implementations and unify their behaviors
-Date: Fri, 29 Mar 2013 23:30:02 -0400 (EDT)
-Message-ID: <20130329.233002.1109620073576548375.davem@davemloft.net>
+Subject: Re: [PATCH v2 5/5] dump_stack: unify debug information printed by
+ show_regs()
+Date: Fri, 29 Mar 2013 23:30:53 -0400 (EDT)
+Message-ID: <20130329.233053.364190210064269793.davem@davemloft.net>
 References: <1364610428-2074-1-git-send-email-tj@kernel.org>
-	<1364610428-2074-4-git-send-email-tj@kernel.org>
+	<1364610428-2074-6-git-send-email-tj@kernel.org>
+	<20130330032445.GA28468@htj.dyndns.org>
 Mime-Version: 1.0
 Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:60051 "EHLO
+Received: from shards.monkeyblade.net ([149.20.54.216]:60097 "EHLO
 	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757795Ab3C3DaH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Mar 2013 23:30:07 -0400
-In-Reply-To: <1364610428-2074-4-git-send-email-tj@kernel.org>
+	with ESMTP id S1757623Ab3C3Da5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Mar 2013 23:30:57 -0400
+In-Reply-To: <20130330032445.GA28468@htj.dyndns.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tj@kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@redhat.com, x86@kernel.org, rth@twiddle.net, linux@arm.linux.org.uk, msalter@redhat.com, starvik@axis.com, dhowells@redhat.com, tony.luck@intel.com, benh@kernel.crashing.org, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, jonas@southpole.se, rkuo@codeaurora.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, vgupta@synopsys.com, chris@zankel.net, cmetcalf@tilera.com, ysato@users.sourceforge.jp, gxt@mprc.pku.edu.cn, jdike@addtoit.com, heiko.carstens@de.ibm.com, linux-s390@vger.kernel.org, vapier@gentoo.org, uclinux-dist-devel@blackfin.uclinux.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@redhat.com, x86@kernel.org, rth@twiddle.net, linux@arm.linux.org.uk, msalter@redhat.com, starvik@axis.com, dhowells@redhat.com, tony.luck@intel.com, benh@kernel.crashing.org, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, jonas@southpole.se, rkuo@codeaurora.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, vgupta@synopsys.com, chris@zankel.net, cmetcalf@tilera.com, ysato@users.sourceforge.jp, gxt@mprc.pku.edu.cn, jdike@addtoit.com
 
 From: Tejun Heo <tj@kernel.org>
-Date: Fri, 29 Mar 2013 19:27:06 -0700
+Date: Fri, 29 Mar 2013 20:24:45 -0700
 
-> Both dump_stack() and show_stack() are currently implemented by each
-> architecture.  show_stack(NULL, NULL) dumps the backtrace for the
-> current task as does dump_stack().  On some archs, dump_stack() prints
-> extra information - pid, utsname and so on - in addition to the
-> backtrace while the two are identical on other archs.
+> show_regs() is inherently arch-dependent but it does make sense to
+> print generic debug information and some archs already do albeit in
+> slightly different forms.  This patch introduces a generic function to
+> print debug information from show_regs() so that different archs print
+> out the same information and it's much easier to modify what's
+> printed.
 > 
-> The usages in arch-independent code of the two functions indicate
-> show_stack(NULL, NULL) should print out bare backtrace while
-> dump_stack() is used for debugging purposes when something went wrong,
-> so it does make sense to print additional information on the task
-> which triggered dump_stack().
+> show_regs_print_current() prints out the same debug info as
+> dump_stack() does plus CPU, task and thread_info pointers.
 > 
-> There's no reason to require archs to implement two separate but
-> mostly identical functions.  It leads to unnecessary subtle
-> differences among archs and makes it very tedius to add generic debug
-> information.
+> * Archs which didn't print debug info now do.
 > 
-> This patch expands the dummy fallback dump_stack() implementation in
-> lib/dump_stack.c such that it prints out debug information (taken from
-> x86) and invokes show_stack(NULL, NULL) and drops arch-specific
-> dump_stack() implementations in all archs except blackfin and s390.
-> Blackfin's dump_stack() does something wonky that I don't understand
-> and s390 prints its own debug information which includes fields which
-> aren't accessible from arch-indepdent code.
+>   alpha, arc, blackfin, c6x, cris, frv, h8300, hexagon, ia64, m32r,
+>   metag, microblaze, mn10300, openrisc, parisc, score, sh64, sparc,
+>   um, xtensa
 > 
-> Debug information can be printed separately by calling
-> dump_stack_print_info() so that arch-specific dump_stack()
-> implementation can still emit the same debug information.  This is
-> used in blackfin.
+> * Already prints debug info.  Replaced with show_regs_print_current().
+>   The printed information is superset of what used to be there.
 > 
-> This patch brings the following behavior changes.
+>   arm, arm64, avr32, mips, powerpc, sh32, tile, unicore32, x86
 > 
-> * On some archs, an extra level in backtrace for show_stack() could be
->   printed.  This is because the top frame was determined in
->   dump_stack() on those archs while generic dump_stack() can't do that
->   reliably.  It can be compensated by inlining dump_stack() but not
->   sure whether that'd be necessary.
+> * The printed debug information includes arch-specific bits.  Left
+>   alone.
 > 
-> * Most archs didn't use to print debug info on dump_stack().  They do
->   now.
+>   s390
 > 
-> An example WARN dump follows.
+> Note that now all archs print the debug info before actual register
+> dumps.
 > 
->  WARNING: at /work/os/work/kernel/workqueue.c:4840 init_workqueues+0x35/0x505()
->  Hardware name: empty
+> An example BUG() dump follows.
+> 
+>  kernel BUG at /work/os/work/kernel/workqueue.c:4841!
+>  invalid opcode: 0000 [#1] PREEMPT SMP DEBUG_PAGEALLOC
 >  Modules linked in:
->  Pid: 1, comm: swapper/0 Not tainted 3.9.0-rc1-work+ #17
->   0000000000000009 ffff88007c861e08 ffffffff81c61545 ffff88007c861e48
->   ffffffff8108f50f ffffffff82228240 0000000000000040 ffffffff8234a03c
->   0000000000000000 0000000000000000 0000000000000000 ffff88007c861e58
+>  Pid: 1, comm: swapper/0 Tainted: G        W    3.9.0-rc1-work+ #20 empty empty/S3992
+>  CPU:0 task: ffff88007c85e040 ti: ffff88007c860000 task.ti: ffff88007c860000
+>  RIP: 0010:[<ffffffff8234a042>]  [<ffffffff8234a042>] init_workqueues+0x15/0x17
+>  RSP: 0000:ffff88007c861ec8  EFLAGS: 00010296
+>  RAX: 0000000000000024 RBX: ffffffff82446608 RCX: 0000000000000001
+>  RDX: 0000000000000046 RSI: 0000000000000000 RDI: 0000000000000009
+>  RBP: ffff88007c861ec8 R08: 0000000000000000 R09: 0000000000000000
+>  R10: 0000000000000001 R11: 0000000000000000 R12: ffffffff8234a02d
+>  R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
+>  FS:  0000000000000000(0000) GS:ffff88007dc00000(0000) knlGS:0000000000000000
+>  CS:  0010 DS: 0000 ES: 0000 CR0: 000000008005003b
+>  CR2: ffff88015f7ff000 CR3: 00000000021f1000 CR4: 00000000000007f0
+>  DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+>  DR3: 0000000000000000 DR6: 00000000ffff0ff0 DR7: 0000000000000400
+>  Stack:
+>   ffff88007c861ef8 ffffffff81000312 ffffffff82446608 ffff88007c85e650
+>   0000000000000003 0000000000000000 ffff88007c861f38 ffffffff82335e5d
+>   ffff88007c862080 ffffffff8223d8c0 ffff88007c862080 ffffffff81c47730
 >  Call Trace:
->   [<ffffffff81c61545>] dump_stack+0x19/0x1b
->   [<ffffffff8108f50f>] warn_slowpath_common+0x7f/0xc0
->   [<ffffffff8108f56a>] warn_slowpath_null+0x1a/0x20
->   [<ffffffff8234a071>] init_workqueues+0x35/0x505
+>   [<ffffffff81000312>] do_one_initcall+0x122/0x170
+>   [<ffffffff82335e5d>] kernel_init_freeable+0x9b/0x1c8
 >   ...
+> 
+> v2: Typo fix in x86-32.
 > 
 > Signed-off-by: Tejun Heo <tj@kernel.org>
 
