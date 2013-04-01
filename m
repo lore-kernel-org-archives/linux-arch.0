@@ -1,277 +1,174 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.snhosting.dk ([87.238.248.203]:55502 "EHLO
-	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751729Ab3DAJGX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Apr 2013 05:06:23 -0400
-Date: Mon, 1 Apr 2013 11:06:20 +0200
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH] sparc: Use generic idle loop
-Message-ID: <20130401090620.GA24861@merkur.ravnborg.org>
-References: <20130321214930.752934102@linutronix.de> <20130329161905.GC6201@merkur.ravnborg.org> <20130329202926.GA9484@merkur.ravnborg.org> <51592EF1.4090302@linux.vnet.ibm.com>
+Received: from e23smtp03.au.ibm.com ([202.81.31.145]:56161 "EHLO
+	e23smtp03.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757372Ab3DAJQD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Apr 2013 05:16:03 -0400
+Received: from /spool/local
+	by e23smtp03.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <deepthi@linux.vnet.ibm.com>;
+	Mon, 1 Apr 2013 19:08:54 +1000
+Message-ID: <51594FD5.6030204@linux.vnet.ibm.com>
+Date: Mon, 01 Apr 2013 14:43:57 +0530
+From: Deepthi Dharwar <deepthi@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <51592EF1.4090302@linux.vnet.ibm.com>
+Subject: Re: [patch 26/34] powerpc: Use generic idle loop
+References: <20130321214930.752934102@linutronix.de> <20130321215235.026838003@linutronix.de> <51546452.3090408@linux.vnet.ibm.com>
+In-Reply-To: <51546452.3090408@linux.vnet.ibm.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, "David S. Miller" <davem@davemloft.net>
-Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Magnus Damm <magnus.damm@gmail.com>
-Message-ID: <20130401090620.FwRD-GcxYsaS7Pr45Ba_GtUvq_51jbZow6BsRlJelac@z>
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Magnus Damm <magnus.damm@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Preeti U Murthy <preeti@linux.vnet.ibm.com>, Vaidyanathan Srinivasan <svaidy@linux.vnet.ibm.com>
+Message-ID: <20130401091357.46psuQvT4bOicNEXv3VYQxyoIkrHEeUu9dg2Ytp_bgE@z>
 
-Hi Srivatsa,
+On 03/28/2013 09:10 PM, Srivatsa S. Bhat wrote:
+> On 03/22/2013 03:23 AM, Thomas Gleixner wrote:
+>> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+>> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+>> ---
+> [...]
+>> Index: linux-2.6/arch/powerpc/kernel/idle.c
+>> ===================================================================
+>> --- linux-2.6.orig/arch/powerpc/kernel/idle.c
+>> +++ linux-2.6/arch/powerpc/kernel/idle.c
+>> @@ -50,64 +50,30 @@ static int __init powersave_off(char *ar
+>>  }
+>>  __setup("powersave=off", powersave_off);
+>>
+>> -/*
+>> - * The body of the idle task.
+>> - */
+>> -void cpu_idle(void)
+>> +void arch_cpu_idle(void)
+>>  {
+>> -	set_thread_flag(TIF_POLLING_NRFLAG);
+>> -	while (1) {
+>> -		tick_nohz_idle_enter();
+>> -		rcu_idle_enter();
+>> -
+>> -		while (!need_resched() && !cpu_should_die()) {
+>> -			ppc64_runlatch_off();
+>> -
+>> -			if (ppc_md.power_save) {
+>> -				clear_thread_flag(TIF_POLLING_NRFLAG);
+>> -				/*
+>> -				 * smp_mb is so clearing of TIF_POLLING_NRFLAG
+>> -				 * is ordered w.r.t. need_resched() test.
+>> -				 */
+>> -				smp_mb();
+>> -				local_irq_disable();
+>> -
+>> -				/* Don't trace irqs off for idle */
+>> -				stop_critical_timings();
+>> -
+>> -				/* check again after disabling irqs */
+>> -				if (!need_resched() && !cpu_should_die())
+>> -					ppc_md.power_save();
+>> -
+>> -				start_critical_timings();
+>> -
+>> -				/* Some power_save functions return with
+>> -				 * interrupts enabled, some don't.
+>> -				 */
+>> -				if (irqs_disabled())
+>> -					local_irq_enable();
+>> -				set_thread_flag(TIF_POLLING_NRFLAG);
+>> -
+>> -			} else {
+>> -				/*
+>> -				 * Go into low thread priority and possibly
+>> -				 * low power mode.
+>> -				 */
+>> -				HMT_low();
+>> -				HMT_very_low();
+>> -			}
+>> -		}
+>> -
+>> -		HMT_medium();
+>> -		ppc64_runlatch_on();
+>> -		rcu_idle_exit();
+>> -		tick_nohz_idle_exit();
+>> -		if (cpu_should_die()) {
+>> -			sched_preempt_enable_no_resched();
+>> -			cpu_die();
+>> -		}
+>> -		schedule_preempt_disabled();
+>> +	ppc64_runlatch_off();
+>> +
+>> +	if (ppc_md.power_save) {
+>> +		ppc_md.power_save();
+>> +		/*
+>> +		 * Some power_save functions return with
+>> +		 * interrupts enabled, some don't.
+>> +		 */
+>> +		if (irqs_disabled())
+>> +			local_irq_enable();
+>> +	} else {
+>> +		local_irq_enable();
+>> +		/*
+>> +		 * Go into low thread priority and possibly
+>> +		 * low power mode.
+>> +		 */
+>> +		HMT_low();
+>> +		HMT_very_low();
+>>  	}
+>> +
+>> +	HMT_medium();
+>> +	ppc64_runlatch_on();
+>>  }
+>>
 
-thanks for the feedback!
+The below patch is essential to get hotplug working on POWER.
+With that, generic idle loop works fine for PSERIES.
 
-@davem - I need you to look at this again. I am not sure about the changes
-I do in sparc64_yield().
+Tested-by: Deepthi Dharwar <deepthi@linux.vnet.ibm.com>
 
-> > +/* the idle loop on a Sparc... ;) */
-> > +void arch_cpu_idle(void)
-> >  {
-> > +	if (sparc_idle)
-> > +		(*sparc_idle)();
-> > +	else
-> > +		cpu_relax();
-> >  }
 > 
-> You need to enable interrupts when coming out in the 'else' case,
-> because we enter with interrupts disabled and expect to come out
-> of arch_cpu_idle() with interrupts enabled. (Otherwise you'll hit
-> that WARN_ON() in the generic code). Thomas has handled a similar
-> case in the mips patch.
-
-Something like this should do it then:
-
-/* Idle loop support */
-void arch_cpu_idle(void)
-{
-        if (sparc_idle)
-                (*sparc_idle)();
-        else
-                local_irq_enable();
-}
-
-I dropped cpu_relax() as this is a simple barrier() which is
-part of the generic code (using rmb()).
-
-
-> > -static void sparc64_yield(int cpu)
-> > +/* The idle loop on sparc64. */
-> > +void arch_cpu_idle_enter()
-> >  {
-> > +	int cpu;
-> > +
-> > +	cpu = smp_processor_id();
-> > +
-> >  	if (tlb_type != hypervisor) {
-> >  		touch_nmi_watchdog();
-> >  		return;
-> > @@ -88,31 +93,10 @@ static void sparc64_yield(int cpu)
-> >  	set_thread_flag(TIF_POLLING_NRFLAG);
-> >  }
-> > 
+> The call to cpu_die() seems to be missing. And considering this commit,
 > 
-> Hmm, this looks weird. The contents of this function should have
-> been inside arch_cpu_idle() (not arch_cpu_idle_enter).
-Yep - I see now.
+> commit a7c2bb8279d20d853e43c34584eaf2b039de8026
+> Author: Signed-off-by: Darren Hart <dvhltc@us.ibm.com>
+> Date:   Wed Aug 4 18:28:33 2010 +0000
+> 
+>     powerpc: Re-enable preemption before cpu_die()
+> 
+> we need to call it with preempt enabled. So how about folding the
+> following diff with this patch?
+> 
+> 
+> diff --git a/arch/powerpc/kernel/idle.c b/arch/powerpc/kernel/idle.c
+> index b751baa..e434fb9 100644
+> --- a/arch/powerpc/kernel/idle.c
+> +++ b/arch/powerpc/kernel/idle.c
+> @@ -33,11 +33,6 @@
+>  #include <asm/runlatch.h>
+>  #include <asm/smp.h>
+> 
+> -#ifdef CONFIG_HOTPLUG_CPU
+> -#define cpu_should_die()	cpu_is_offline(smp_processor_id())
+> -#else
+> -#define cpu_should_die()	0
+> -#endif
+> 
+>  unsigned long cpuidle_disable = IDLE_NO_OVERRIDE;
+>  EXPORT_SYMBOL(cpuidle_disable);
+> @@ -50,6 +45,12 @@ static int __init powersave_off(char *arg)
+>  }
+>  __setup("powersave=off", powersave_off);
+> 
+> +void arch_cpu_idle_dead(void)
+> +{
+> +	sched_preempt_enable_no_resched();
+> +	cpu_die();
+> +}
+> +
+>  void arch_cpu_idle(void)
+>  {
+>  	ppc64_runlatch_off();
+> 
+> 
+> Regards,
+> Srivatsa S. Bhat
+> 
 
-> And it is
-> unnecessary to set/clear POLLING flags here, since they are handled
-> in the generic code.
-OK
-
-> (Same is the case with the need_resched and
-> the cpu_is_offline check).
-There are some comments about race-conditions in the commit where they were added.
-I think the out-most pair can be dropped as this is done in generic code but
-that the inner ones needs to stay.
-
-I simplified arch_cpu_idle() - former sparc64_yield() based on your comments.
-- dropped TIF_POLLING_NRFLAG handling
-- dropped smp_mb__after_clear_bit() - this is done in generic code using rmb()
-- dropped the out-most while (!need_resched() && !cpu_is_offline(cpu))
-- always enable irq on exit (but I am not sure if this is correct)
-
-But I need davem to have a look at this - as I am fooling around in
-code that I do not know much about..
-So this is *NOT* to be applied.
-
-	Sam
-
-diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-index 3d361f2..ee5eacc 100644
---- a/arch/sparc/Kconfig
-+++ b/arch/sparc/Kconfig
-@@ -37,6 +37,7 @@ config SPARC
- 	select GENERIC_SMP_IDLE_THREAD
- 	select GENERIC_CMOS_UPDATE
- 	select GENERIC_CLOCKEVENTS
-+	select GENERIC_IDLE_LOOP
- 	select GENERIC_STRNCPY_FROM_USER
- 	select GENERIC_STRNLEN_USER
- 	select MODULES_USE_ELF_RELA
-diff --git a/arch/sparc/kernel/hvtramp.S b/arch/sparc/kernel/hvtramp.S
-index 9365432..605c960 100644
---- a/arch/sparc/kernel/hvtramp.S
-+++ b/arch/sparc/kernel/hvtramp.S
-@@ -128,8 +128,7 @@ hv_cpu_startup:
- 
- 	call		smp_callin
- 	 nop
--	call		cpu_idle
--	 mov		0, %o0
-+
- 	call		cpu_panic
- 	 nop
- 
-diff --git a/arch/sparc/kernel/process_32.c b/arch/sparc/kernel/process_32.c
-index 62eede1..890d7c4 100644
---- a/arch/sparc/kernel/process_32.c
-+++ b/arch/sparc/kernel/process_32.c
-@@ -64,23 +64,13 @@ extern void fpsave(unsigned long *, unsigned long *, void *, unsigned long *);
- struct task_struct *last_task_used_math = NULL;
- struct thread_info *current_set[NR_CPUS];
- 
--/*
-- * the idle loop on a Sparc... ;)
-- */
--void cpu_idle(void)
-+/* Idle loop support. */
-+void arch_cpu_idle(void)
- {
--	set_thread_flag(TIF_POLLING_NRFLAG);
--
--	/* endless idle loop with no priority at all */
--	for (;;) {
--		while (!need_resched()) {
--			if (sparc_idle)
--				(*sparc_idle)();
--			else
--				cpu_relax();
--		}
--		schedule_preempt_disabled();
--	}
-+	if (sparc_idle)
-+		(*sparc_idle)();
-+	else
-+		local_irq_enable();
- }
- 
- /* XXX cli/sti -> local_irq_xxx here, check this works once SMP is fixed. */
-diff --git a/arch/sparc/kernel/process_64.c b/arch/sparc/kernel/process_64.c
-index cdb80b2..cecb0d6 100644
---- a/arch/sparc/kernel/process_64.c
-+++ b/arch/sparc/kernel/process_64.c
-@@ -52,17 +52,12 @@
- 
- #include "kstack.h"
- 
--static void sparc64_yield(int cpu)
-+/* Idle loop support on sparc64. */
-+void arch_cpu_idle(void)
- {
- 	if (tlb_type != hypervisor) {
- 		touch_nmi_watchdog();
--		return;
--	}
--
--	clear_thread_flag(TIF_POLLING_NRFLAG);
--	smp_mb__after_clear_bit();
--
--	while (!need_resched() && !cpu_is_offline(cpu)) {
-+	} else {
- 		unsigned long pstate;
- 
- 		/* Disable interrupts. */
-@@ -73,7 +68,7 @@ static void sparc64_yield(int cpu)
- 			: "=&r" (pstate)
- 			: "i" (PSTATE_IE));
- 
--		if (!need_resched() && !cpu_is_offline(cpu))
-+		if (!need_resched() && !cpu_is_offline(smp_processor_id()))
- 			sun4v_cpu_yield();
- 
- 		/* Re-enable interrupts. */
-@@ -84,36 +79,16 @@ static void sparc64_yield(int cpu)
- 			: "=&r" (pstate)
- 			: "i" (PSTATE_IE));
- 	}
--
--	set_thread_flag(TIF_POLLING_NRFLAG);
-+	local_irq_enable();
- }
- 
--/* The idle loop on sparc64. */
--void cpu_idle(void)
--{
--	int cpu = smp_processor_id();
--
--	set_thread_flag(TIF_POLLING_NRFLAG);
--
--	while(1) {
--		tick_nohz_idle_enter();
--		rcu_idle_enter();
--
--		while (!need_resched() && !cpu_is_offline(cpu))
--			sparc64_yield(cpu);
--
--		rcu_idle_exit();
--		tick_nohz_idle_exit();
--
- #ifdef CONFIG_HOTPLUG_CPU
--		if (cpu_is_offline(cpu)) {
--			sched_preempt_enable_no_resched();
--			cpu_play_dead();
--		}
--#endif
--		schedule_preempt_disabled();
--	}
-+void arch_cpu_idle_dead()
-+{
-+	sched_preempt_enable_no_resched();
-+	cpu_play_dead();
- }
-+#endif
- 
- #ifdef CONFIG_COMPAT
- static void show_regwindow32(struct pt_regs *regs)
-diff --git a/arch/sparc/kernel/smp_32.c b/arch/sparc/kernel/smp_32.c
-index 9e7e6d7..e3f2b81 100644
---- a/arch/sparc/kernel/smp_32.c
-+++ b/arch/sparc/kernel/smp_32.c
-@@ -369,7 +369,7 @@ void __cpuinit sparc_start_secondary(void *arg)
- 	local_irq_enable();
- 
- 	wmb();
--	cpu_idle();
-+	cpu_startup_entry(CPUHP_ONLINE);
- 
- 	/* We should never reach here! */
- 	BUG();
-diff --git a/arch/sparc/kernel/smp_64.c b/arch/sparc/kernel/smp_64.c
-index 537eb66..c025ffc 100644
---- a/arch/sparc/kernel/smp_64.c
-+++ b/arch/sparc/kernel/smp_64.c
-@@ -127,6 +127,8 @@ void __cpuinit smp_callin(void)
- 
- 	/* idle thread is expected to have preempt disabled */
- 	preempt_disable();
-+
-+	cpu_startup_entry(CPUHP_ONLINE);
- }
- 
- void cpu_panic(void)
-diff --git a/arch/sparc/kernel/trampoline_64.S b/arch/sparc/kernel/trampoline_64.S
-index da1b781..2e973a2 100644
---- a/arch/sparc/kernel/trampoline_64.S
-+++ b/arch/sparc/kernel/trampoline_64.S
-@@ -407,8 +407,7 @@ after_lock_tlb:
- 
- 	call		smp_callin
- 	 nop
--	call		cpu_idle
--	 mov		0, %o0
-+
- 	call		cpu_panic
- 	 nop
- 1:	b,a,pt		%xcc, 1b
