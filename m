@@ -1,164 +1,72 @@
-From: Deepthi Dharwar <deepthi@linux.vnet.ibm.com>
-Subject: Re: [patch 26/34] powerpc: Use generic idle loop
-Date: Mon, 01 Apr 2013 14:43:57 +0530
-Message-ID: <51594FD5.6030204@linux.vnet.ibm.com>
-References: <20130321214930.752934102@linutronix.de> <20130321215235.026838003@linutronix.de> <51546452.3090408@linux.vnet.ibm.com>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: host gcc 4.7 warning when generating defconfig
+Date: Mon, 1 Apr 2013 14:12:18 +0200
+Message-ID: <20130401121218.GA4409@merkur.ravnborg.org>
+References: <514AADAD.1060503@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <51546452.3090408@linux.vnet.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Magnus Damm <magnus.damm@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Preeti U Murthy <preeti@linux.vnet.ibm.com>, Vaidyanathan Srinivasan <svaidy@linux.vnet.ibm.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp.snhosting.dk ([87.238.248.203]:43188 "EHLO
+	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752656Ab3DAMMU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Apr 2013 08:12:20 -0400
+Content-Disposition: inline
+In-Reply-To: <514AADAD.1060503@synopsys.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-kbuild@vger.kernel.org" <linux-kbuild@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>
 
-On 03/28/2013 09:10 PM, Srivatsa S. Bhat wrote:
-> On 03/22/2013 03:23 AM, Thomas Gleixner wrote:
->> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
->> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
->> ---
-> [...]
->> Index: linux-2.6/arch/powerpc/kernel/idle.c
->> ===================================================================
->> --- linux-2.6.orig/arch/powerpc/kernel/idle.c
->> +++ linux-2.6/arch/powerpc/kernel/idle.c
->> @@ -50,64 +50,30 @@ static int __init powersave_off(char *ar
->>  }
->>  __setup("powersave=off", powersave_off);
->>
->> -/*
->> - * The body of the idle task.
->> - */
->> -void cpu_idle(void)
->> +void arch_cpu_idle(void)
->>  {
->> -	set_thread_flag(TIF_POLLING_NRFLAG);
->> -	while (1) {
->> -		tick_nohz_idle_enter();
->> -		rcu_idle_enter();
->> -
->> -		while (!need_resched() && !cpu_should_die()) {
->> -			ppc64_runlatch_off();
->> -
->> -			if (ppc_md.power_save) {
->> -				clear_thread_flag(TIF_POLLING_NRFLAG);
->> -				/*
->> -				 * smp_mb is so clearing of TIF_POLLING_NRFLAG
->> -				 * is ordered w.r.t. need_resched() test.
->> -				 */
->> -				smp_mb();
->> -				local_irq_disable();
->> -
->> -				/* Don't trace irqs off for idle */
->> -				stop_critical_timings();
->> -
->> -				/* check again after disabling irqs */
->> -				if (!need_resched() && !cpu_should_die())
->> -					ppc_md.power_save();
->> -
->> -				start_critical_timings();
->> -
->> -				/* Some power_save functions return with
->> -				 * interrupts enabled, some don't.
->> -				 */
->> -				if (irqs_disabled())
->> -					local_irq_enable();
->> -				set_thread_flag(TIF_POLLING_NRFLAG);
->> -
->> -			} else {
->> -				/*
->> -				 * Go into low thread priority and possibly
->> -				 * low power mode.
->> -				 */
->> -				HMT_low();
->> -				HMT_very_low();
->> -			}
->> -		}
->> -
->> -		HMT_medium();
->> -		ppc64_runlatch_on();
->> -		rcu_idle_exit();
->> -		tick_nohz_idle_exit();
->> -		if (cpu_should_die()) {
->> -			sched_preempt_enable_no_resched();
->> -			cpu_die();
->> -		}
->> -		schedule_preempt_disabled();
->> +	ppc64_runlatch_off();
->> +
->> +	if (ppc_md.power_save) {
->> +		ppc_md.power_save();
->> +		/*
->> +		 * Some power_save functions return with
->> +		 * interrupts enabled, some don't.
->> +		 */
->> +		if (irqs_disabled())
->> +			local_irq_enable();
->> +	} else {
->> +		local_irq_enable();
->> +		/*
->> +		 * Go into low thread priority and possibly
->> +		 * low power mode.
->> +		 */
->> +		HMT_low();
->> +		HMT_very_low();
->>  	}
->> +
->> +	HMT_medium();
->> +	ppc64_runlatch_on();
->>  }
->>
-
-The below patch is essential to get hotplug working on POWER.
-With that, generic idle loop works fine for PSERIES.
-
-Tested-by: Deepthi Dharwar <deepthi@linux.vnet.ibm.com>
-
+On Thu, Mar 21, 2013 at 12:20:21PM +0530, Vineet Gupta wrote:
+> Hi,
 > 
-> The call to cpu_die() seems to be missing. And considering this commit,
+> We do cross compile builds for ARC Linux. To avoid the env var set, we have a
+> defconfig entry for CONFIG_CROSS_COMPILE.
+> This worked fine so far (host gcc 4.4 i.e.). When switched to a new host distro
+> (gcc 4.7), a defconfig build spews out the warning.
 > 
-> commit a7c2bb8279d20d853e43c34584eaf2b039de8026
-> Author: Signed-off-by: Darren Hart <dvhltc@us.ibm.com>
-> Date:   Wed Aug 4 18:28:33 2010 +0000
+> ------------------->8--------------------------
+> mymake defconfig
+> gcc: error: unrecognized command line option '-marc600'
+> gcc: error: unrecognized command line option '-mA7'
+> gcc: error: unrecognized command line option '-mno-sdata'
+> gcc: error: unrecognized command line option '-mno-mpy'
+> *** Default configuration is based on 'fpga_defconfig'
+> #
+> # configuration written to .config
+> ------------------->8--------------------------
 > 
->     powerpc: Re-enable preemption before cpu_die()
+> While the following trivial fix seems to fix this, it seems that the spew is
+> coming due to LIBGCC definition line, which is strange to be called for defconfig
+> generation. Any thoughts ?
 > 
-> we need to call it with preempt enabled. So how about folding the
-> following diff with this patch?
-> 
-> 
-> diff --git a/arch/powerpc/kernel/idle.c b/arch/powerpc/kernel/idle.c
-> index b751baa..e434fb9 100644
-> --- a/arch/powerpc/kernel/idle.c
-> +++ b/arch/powerpc/kernel/idle.c
-> @@ -33,11 +33,6 @@
->  #include <asm/runlatch.h>
->  #include <asm/smp.h>
-> 
-> -#ifdef CONFIG_HOTPLUG_CPU
-> -#define cpu_should_die()	cpu_is_offline(smp_processor_id())
-> -#else
-> -#define cpu_should_die()	0
-> -#endif
-> 
->  unsigned long cpuidle_disable = IDLE_NO_OVERRIDE;
->  EXPORT_SYMBOL(cpuidle_disable);
-> @@ -50,6 +45,12 @@ static int __init powersave_off(char *arg)
->  }
->  __setup("powersave=off", powersave_off);
-> 
-> +void arch_cpu_idle_dead(void)
-> +{
-> +	sched_preempt_enable_no_resched();
-> +	cpu_die();
-> +}
+> ---------------->
+> diff --git a/arch/arc/Makefile b/arch/arc/Makefile
+> index 4232d4e..97e6c20 100644
+> --- a/arch/arc/Makefile
+> +++ b/arch/arc/Makefile
+> @@ -8,6 +8,10 @@
+>  
+>  UTS_MACHINE := arc
+>  
+> +ifeq ($(CROSS_COMPILE),)
+> +#CROSS_COMPILE := arc-elf32-
+> +endif
 > +
->  void arch_cpu_idle(void)
->  {
->  	ppc64_runlatch_off();
-> 
-> 
-> Regards,
-> Srivatsa S. Bhat
-> 
+>  KBUILD_DEFCONFIG := fpga_defconfig
+
+
+You could try to use LIBGCC = $(shell ... for assignment.
+Use "=" and not ":=".
+
+Like this:
+
+-LIBGCC := $(shell $(CC) $(ARC_LIBGCC) $(cflags-y) --print-libgcc-file-name)
++LIBGCC = $(shell $(CC) $(ARC_LIBGCC) $(cflags-y) --print-libgcc-file-name)
+
+This would defer the evaluation until we actually reference the variable,
+and thus I think it will not trigger for a defconfig build.
+
+I could not reproduce the problem here so I am not sure this has any effect though...
+
+	Sam
