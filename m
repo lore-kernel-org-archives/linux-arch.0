@@ -1,27 +1,19 @@
-From: David Miller <davem@davemloft.net>
+From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 Subject: Re: [PATCH] sparc: Use generic idle loop
-Date: Sun, 31 Mar 2013 19:46:16 -0400 (EDT)
-Message-ID: <20130331.194616.1802921705658512929.davem@davemloft.net>
-References: <20130321214930.752934102@linutronix.de>
-	<20130329161905.GC6201@merkur.ravnborg.org>
-	<20130329202926.GA9484@merkur.ravnborg.org>
+Date: Mon, 01 Apr 2013 12:23:37 +0530
+Message-ID: <51592EF1.4090302@linux.vnet.ibm.com>
+References: <20130321214930.752934102@linutronix.de> <20130329161905.GC6201@merkur.ravnborg.org> <20130329202926.GA9484@merkur.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:49936 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756214Ab3CaXqS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 31 Mar 2013 19:46:18 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20130329202926.GA9484@merkur.ravnborg.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: sam@ravnborg.org
-Cc: tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, rusty@rustcorp.com.au, paulmck@linux.vnet.ibm.com, mingo@elte.hu, peterz@infradead.org, srivatsa.bhat@linux.vnet.ibm.com, magnus.damm@gmail.com
+Sender: linux-kernel-owner@vger.kernel.org
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Magnus Damm <magnus.damm@gmail.com>, "David S. Miller" <davem@davemloft.net>
+List-Id: linux-arch.vger.kernel.org
 
-From: Sam Ravnborg <sam@ravnborg.org>
-Date: Fri, 29 Mar 2013 21:29:26 +0100
-
+On 03/30/2013 01:59 AM, Sam Ravnborg wrote:
 > Add generic cpu_idle support
 > 
 > sparc32:
@@ -34,5 +26,122 @@ Date: Fri, 29 Mar 2013 21:29:26 +0100
 > - add arch_cpu_idle_enter() and arch_cpu_idle_dead()
 > 
 > Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
+> Cc: David S. Miller <davem@davemloft.net>
+> 
+> ---
+> This patch is on top of smp/testing in the tip tree.
+> It is build tested on sparc32 + sparc64
+> 
+> 	Sam
+> 
+[...]
+> 
+> diff --git a/arch/sparc/kernel/process_32.c b/arch/sparc/kernel/process_32.c
+> index 62eede1..ec92959 100644
+> --- a/arch/sparc/kernel/process_32.c
+> +++ b/arch/sparc/kernel/process_32.c
+> @@ -64,23 +64,13 @@ extern void fpsave(unsigned long *, unsigned long *, void *, unsigned long *);
+>  struct task_struct *last_task_used_math = NULL;
+>  struct thread_info *current_set[NR_CPUS];
+> 
+> -/*
+> - * the idle loop on a Sparc... ;)
+> - */
+> -void cpu_idle(void)
+> +/* the idle loop on a Sparc... ;) */
+> +void arch_cpu_idle(void)
+>  {
+> -	set_thread_flag(TIF_POLLING_NRFLAG);
+> -
+> -	/* endless idle loop with no priority at all */
+> -	for (;;) {
+> -		while (!need_resched()) {
+> -			if (sparc_idle)
+> -				(*sparc_idle)();
+> -			else
+> -				cpu_relax();
+> -		}
+> -		schedule_preempt_disabled();
+> -	}
+> +	if (sparc_idle)
+> +		(*sparc_idle)();
+> +	else
+> +		cpu_relax();
+>  }
 
-Acked-by: David S. Miller <davem@davemloft.net>
+You need to enable interrupts when coming out in the 'else' case,
+because we enter with interrupts disabled and expect to come out
+of arch_cpu_idle() with interrupts enabled. (Otherwise you'll hit
+that WARN_ON() in the generic code). Thomas has handled a similar
+case in the mips patch.
+
+> 
+>  /* XXX cli/sti -> local_irq_xxx here, check this works once SMP is fixed. */
+> diff --git a/arch/sparc/kernel/process_64.c b/arch/sparc/kernel/process_64.c
+> index cdb80b2..5ed6b02 100644
+> --- a/arch/sparc/kernel/process_64.c
+> +++ b/arch/sparc/kernel/process_64.c
+> @@ -52,8 +52,13 @@
+> 
+>  #include "kstack.h"
+> 
+> -static void sparc64_yield(int cpu)
+> +/* The idle loop on sparc64. */
+> +void arch_cpu_idle_enter()
+>  {
+> +	int cpu;
+> +
+> +	cpu = smp_processor_id();
+> +
+>  	if (tlb_type != hypervisor) {
+>  		touch_nmi_watchdog();
+>  		return;
+> @@ -88,31 +93,10 @@ static void sparc64_yield(int cpu)
+>  	set_thread_flag(TIF_POLLING_NRFLAG);
+>  }
+> 
+
+Hmm, this looks weird. The contents of this function should have
+been inside arch_cpu_idle() (not arch_cpu_idle_enter). And it is
+unnecessary to set/clear POLLING flags here, since they are handled
+in the generic code. (Same is the case with the need_resched and
+the cpu_is_offline check).
+
+I agree that the naming is a little subtle, but in the current
+scheme of things in this patchset, arch_cpu_idle_enter() is what
+you call to do initialization _before_ you perform cpu idle, whereas
+arch_cpu_idle() is the function that is supposed to do the actual
+arch-specific idling.
+
+Regards,
+Srivatsa S. Bhat
+
+> -/* The idle loop on sparc64. */
+> -void cpu_idle(void)
+> +void arch_cpu_idle_dead()
+>  {
+> -	int cpu = smp_processor_id();
+> -
+> -	set_thread_flag(TIF_POLLING_NRFLAG);
+> -
+> -	while(1) {
+> -		tick_nohz_idle_enter();
+> -		rcu_idle_enter();
+> -
+> -		while (!need_resched() && !cpu_is_offline(cpu))
+> -			sparc64_yield(cpu);
+> -
+> -		rcu_idle_exit();
+> -		tick_nohz_idle_exit();
+> -
+> -#ifdef CONFIG_HOTPLUG_CPU
+> -		if (cpu_is_offline(cpu)) {
+> -			sched_preempt_enable_no_resched();
+> -			cpu_play_dead();
+> -		}
+> -#endif
+> -		schedule_preempt_disabled();
+> -	}
+> +	sched_preempt_enable_no_resched();
+> +	cpu_play_dead();
+>  }
