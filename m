@@ -1,60 +1,87 @@
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [PATCH 3/5] dump_stack: consolidate dump_stack()
- implementations and unify their behaviors
-Date: Tue, 2 Apr 2013 08:48:08 +0200
-Message-ID: <20130402084808.0c6d61f8@mschwide>
+From: Jesper Nilsson <jesper.nilsson@axis.com>
+Subject: Re: [PATCH v2 5/5] dump_stack: unify debug information printed by
+ show_regs()
+Date: Tue, 2 Apr 2013 11:21:38 +0200
+Message-ID: <20130402092138.GG19150@axis.com>
 References: <1364610428-2074-1-git-send-email-tj@kernel.org>
-	<1364610428-2074-4-git-send-email-tj@kernel.org>
-	<20130330114534.GA5404@osiris>
+ <1364610428-2074-6-git-send-email-tj@kernel.org>
+ <20130330032445.GA28468@htj.dyndns.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp14.uk.ibm.com ([195.75.94.110]:41933 "EHLO
-	e06smtp14.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759999Ab3DBGsV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Apr 2013 02:48:21 -0400
-Received: from /spool/local
-	by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
-	Tue, 2 Apr 2013 07:43:54 +0100
-In-Reply-To: <20130330114534.GA5404@osiris>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Tejun Heo <tj@kernel.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@redhat.com, x86@kernel.org, rth@twiddle.net, linux@arm.linux.org.uk, msalter@redhat.com, starvik@axis.com, dhowells@redhat.com, tony.luck@intel.com, benh@kernel.crashing.org, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, jonas@southpole.se, rkuo@codeaurora.org, liqin.chen@sunplusct.com, davem@davemloft.net, lethal@linux-sh.org, vgupta@synopsys.com, chris@zankel.net, cmetcalf@tilera.com, ysato@users.sourceforge.jp, gxt@mprc.pku.edu.cn, jdike@addtoit.com, linux-s390@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>, uclinux-dist-devel@blackfin.uclinux.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20130330032445.GA28468@htj.dyndns.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Tejun Heo <tj@kernel.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@redhat.com, x86@kernel.org, rth@twiddle.net, linux@arm.linux.org.uk, msalter@redhat.com, starvik@axis.com, dhowells@redhat.com, tony.luck@intel.com, benh@kernel.crashing.org, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, jonas@southpole.se, rkuo@codeaurora.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, davem@davemloft.net, lethal@linux-sh.org, vgupta@synopsys.com, chris@zankel.net, cmetcalf@tilera.com, ysato@users.sourceforge.jp, gxt@mprc.pku.edu.cn, jdike@addtoit.com
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, 30 Mar 2013 12:45:35 +0100
-Heiko Carstens <heiko.carstens@de.ibm.com> wrote:
-
-> On Fri, Mar 29, 2013 at 07:27:06PM -0700, Tejun Heo wrote:
-> > Both dump_stack() and show_stack() are currently implemented by each
-> > architecture.  show_stack(NULL, NULL) dumps the backtrace for the
-> > current task as does dump_stack().  On some archs, dump_stack() prints
-> > extra information - pid, utsname and so on - in addition to the
-> > backtrace while the two are identical on other archs.
+On Fri, Mar 29, 2013 at 08:24:45PM -0700, Tejun Heo wrote:
+> show_regs() is inherently arch-dependent but it does make sense to
+> print generic debug information and some archs already do albeit in
+> slightly different forms.  This patch introduces a generic function to
+> print debug information from show_regs() so that different archs print
+> out the same information and it's much easier to modify what's
+> printed.
 > 
-> [...]
+> show_regs_print_current() prints out the same debug info as
+> dump_stack() does plus CPU, task and thread_info pointers.
 > 
-> > This patch expands the dummy fallback dump_stack() implementation in
-> > lib/dump_stack.c such that it prints out debug information (taken from
-> > x86) and invokes show_stack(NULL, NULL) and drops arch-specific
-> > dump_stack() implementations in all archs except blackfin and s390.
-> > Blackfin's dump_stack() does something wonky that I don't understand
-> > and s390 prints its own debug information which includes fields which
-> > aren't accessible from arch-indepdent code.
+> * Archs which didn't print debug info now do.
 > 
-> The couple of extra fields aren't worth an s390 version of dump_stack()
-> that differs from all other architectures.
-> Please drop the s390 version as well. Thanks!
+>   alpha, arc, blackfin, c6x, cris, frv, h8300, hexagon, ia64, m32r,
+>   metag, microblaze, mn10300, openrisc, parisc, score, sh64, sparc,
+>   um, xtensa
+> 
+> * Already prints debug info.  Replaced with show_regs_print_current().
+>   The printed information is superset of what used to be there.
+> 
+>   arm, arm64, avr32, mips, powerpc, sh32, tile, unicore32, x86
+> 
+> * The printed debug information includes arch-specific bits.  Left
+>   alone.
+> 
+>   s390
+> 
+> Note that now all archs print the debug info before actual register
+> dumps.
+> 
+> An example BUG() dump follows.
+> 
+>  kernel BUG at /work/os/work/kernel/workqueue.c:4841!
+>  invalid opcode: 0000 [#1] PREEMPT SMP DEBUG_PAGEALLOC
+>  Modules linked in:
+>  Pid: 1, comm: swapper/0 Tainted: G        W    3.9.0-rc1-work+ #20 empty empty/S3992
+>  CPU:0 task: ffff88007c85e040 ti: ffff88007c860000 task.ti: ffff88007c860000
+>  RIP: 0010:[<ffffffff8234a042>]  [<ffffffff8234a042>] init_workqueues+0x15/0x17
+>  RSP: 0000:ffff88007c861ec8  EFLAGS: 00010296
+>  RAX: 0000000000000024 RBX: ffffffff82446608 RCX: 0000000000000001
+>  RDX: 0000000000000046 RSI: 0000000000000000 RDI: 0000000000000009
+>  RBP: ffff88007c861ec8 R08: 0000000000000000 R09: 0000000000000000
+>  R10: 0000000000000001 R11: 0000000000000000 R12: ffffffff8234a02d
+>  R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
+>  FS:  0000000000000000(0000) GS:ffff88007dc00000(0000) knlGS:0000000000000000
+>  CS:  0010 DS: 0000 ES: 0000 CR0: 000000008005003b
+>  CR2: ffff88015f7ff000 CR3: 00000000021f1000 CR4: 00000000000007f0
+>  DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+>  DR3: 0000000000000000 DR6: 00000000ffff0ff0 DR7: 0000000000000400
+>  Stack:
+>   ffff88007c861ef8 ffffffff81000312 ffffffff82446608 ffff88007c85e650
+>   0000000000000003 0000000000000000 ffff88007c861f38 ffffffff82335e5d
+>   ffff88007c862080 ffffffff8223d8c0 ffff88007c862080 ffffffff81c47730
+>  Call Trace:
+>   [<ffffffff81000312>] do_one_initcall+0x122/0x170
+>   [<ffffffff82335e5d>] kernel_init_freeable+0x9b/0x1c8
+>   ...
+> 
+> v2: Typo fix in x86-32.
+> 
+> Signed-off-by: Tejun Heo <tj@kernel.org>
 
-Hmm, we would lose task_thread_info(current)->cpu and current->thread.ksp,
-I don't care much about the kernel stack pointer which has been stored at
-the last call to __switch_to but the cpu number might be interesting.
-Could we add the cpu number to the generic dump_stack version?
+For the CRIS bits:
 
+Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
+
+/^JN - Jesper Nilsson
 -- 
-blue skies,
-   Martin.
-
-"Reality continues to ruin my life." - Calvin.
+               Jesper Nilsson -- jesper.nilsson@axis.com
