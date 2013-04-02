@@ -1,65 +1,39 @@
-From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Subject: Re: [PATCH v2 2/3] mutex: add support for reservation style locks,
- v2
-Date: Tue, 02 Apr 2013 16:57:05 +0200
-Message-ID: <515AF1C1.7080508@canonical.com>
-References: <20130228102452.15191.22673.stgit@patser>  <20130228102502.15191.14146.stgit@patser> <1364900432.18374.24.camel@laptop>
+From: Daniel Vetter <daniel.vetter@ffwll.ch>
+Subject: Re: [PATCH v2 2/3] mutex: add support for reservation style locks, v2
+Date: Tue, 2 Apr 2013 17:56:07 +0200
+Message-ID: <CAKMK7uF63ttYwN-D+ZrivCw6m1hw2Qgf+3ut_iCsMkgEbL5LPw@mail.gmail.com>
+References: <20130228102452.15191.22673.stgit@patser>
+	<20130228102502.15191.14146.stgit@patser>
+	<1364900432.18374.24.camel@laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-media-owner@vger.kernel.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ie0-f175.google.com ([209.85.223.175]:46079 "EHLO
+	mail-ie0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932598Ab3DBP4I (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Apr 2013 11:56:08 -0400
+Received: by mail-ie0-f175.google.com with SMTP id c12so586188ieb.34
+        for <linux-arch@vger.kernel.org>; Tue, 02 Apr 2013 08:56:07 -0700 (PDT)
 In-Reply-To: <1364900432.18374.24.camel@laptop>
-Sender: linux-media-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, daniel.vetter@ffwll.ch, x86@kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robclark@gmail.com, tglx@linutronix.de, mingo@elte.hu, linux-media@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Cc: Maarten Lankhorst <maarten.lankhorst@canonical.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robclark@gmail.com, tglx@linutronix.de, mingo@elte.hu, linux-media@vger.kernel.org
 
-Hey,
-
-Thanks for reviewing.
-
-Op 02-04-13 13:00, Peter Zijlstra schreef:
-> On Thu, 2013-02-28 at 11:25 +0100, Maarten Lankhorst wrote:
->> +Reservation type mutexes
->> +struct ticket_mutex {
->> +extern int __must_check _mutex_reserve_lock(struct ticket_mutex *lock,
-> That's two different names and two different forms of one (for a total
-> of 3 variants) for the same scheme.
->
-> FAIL...
-It's been hard since I haven't seen anything similar in the kernel, I originally went with tickets
-since that's what ttm originally called it, and tried to kill as many references as I could
-when I noticed ticket mutexes already being taken.
-
-I'll fix up the ticket_mutex -> reservation_mutex, and mutex_reserve_* -> reserve_mutex_*
-
-> On Thu, 2013-02-28 at 11:25 +0100, Maarten Lankhorst wrote:
->> +mutex_reserve_lock_slow and mutex_reserve_lock_intr_slow:
->> +  Similar to mutex_reserve_lock, except it won't backoff with
->> -EAGAIN.
->> +  This is useful when mutex_reserve_lock failed with -EAGAIN, and you
->> +  unreserved all reservation_locks so no deadlock can occur.
->> +
-> I don't particularly like these function names, with lock
-> implementations the _slow post-fix is typically used for slow path
-> implementations, not API type interfaces.
- I didn't intend for drivers to use the new calls directly, but rather through a wrapper,
-for example by ttm_eu_reserve_buffers in drivers/gpu/drm/ttm/ttm_execbuf_util.c
-
+On Tue, Apr 2, 2013 at 1:00 PM, Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
 > Also, is there anything in CS literature that comes close to this? I'd
 > think the DBMS people would have something similar with their
 > transactional systems. What do they call it?
-I didn't study cs, but judging from your phrasing I guess you mean you want me to call it transaction_mutexes instead?
 
-> Head hurts, needs more time to ponder. It would be good if someone else
-> (this would probably be you maarten) would also consider this and
-> explore
-> this 'interesting' problem space :-)
-My head too, evil priority stuff!
-
-Hacky but pragmatical workaround for now: use a real mutex around all the reserve_mutex_lock* calls instead of a virtual lock.
-It can be unlocked as soon as all locks have been taken, before any actual work is done.
-
-It only slightly kills the point of having a reservation in the first place, but at least it won't break completely -rt completely for now.
-
-~Maarten
+I've looked around a bit and in dbms row-locking land this seems to be
+called the wound-wait deadlock avoidance algorithm. It's the same
+approach where if you encounter an older ticket (there called
+transaction timestamp) you drop all locked rows and retry (or abort)
+the transaction. If you encounter a newer ticket when trying to grab a
+lock simply do a blocking wait. So ticket/reservation in Maartens
+patches is the analog of timestamp/transaction.
+-Daniel
+-- 
+Daniel Vetter
+Software Engineer, Intel Corporation
++41 (0) 79 365 57 48 - http://blog.ffwll.ch
