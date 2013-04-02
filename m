@@ -1,120 +1,60 @@
-From: Jonas Bonn <jonas@southpole.se>
-Subject: Re: [PATCH v3,
- part4 26/39] mm/openrisc: prepare for removing num_physpages and
- simplify mem_init()
-Date: Tue, 02 Apr 2013 07:31:44 +0200
-Message-ID: <515A6D40.90702@southpole.se>
-References: <1364313298-17336-1-git-send-email-jiang.liu@huawei.com>
-	<1364313298-17336-27-git-send-email-jiang.liu@huawei.com>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [PATCH 3/5] dump_stack: consolidate dump_stack()
+ implementations and unify their behaviors
+Date: Tue, 2 Apr 2013 08:48:08 +0200
+Message-ID: <20130402084808.0c6d61f8@mschwide>
+References: <1364610428-2074-1-git-send-email-tj@kernel.org>
+	<1364610428-2074-4-git-send-email-tj@kernel.org>
+	<20130330114534.GA5404@osiris>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-bounces@lists.openrisc.net>
-In-Reply-To: <1364313298-17336-27-git-send-email-jiang.liu@huawei.com>
-List-Unsubscribe: <http://lists.openrisc.net/options/linux>,
-	<mailto:linux-request@lists.openrisc.net?subject=unsubscribe>
-List-Archive: <http://lists.openrisc.net/pipermail/linux>
-List-Post: <mailto:linux@lists.openrisc.net>
-List-Help: <mailto:linux-request@lists.openrisc.net?subject=help>
-List-Subscribe: <http://lists.openrisc.net/listinfo/linux>,
-	<mailto:linux-request@lists.openrisc.net?subject=subscribe>
-Sender: linux-bounces@lists.openrisc.net
-Errors-To: linux-bounces@lists.openrisc.net
-To: Jiang Liu <liuj97@gmail.com>
-Cc: linux-arch@vger.kernel.org, James Bottomley <James.Bottomley@HansenPartnership.com>, David Howells <dhowells@redhat.com>, Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, linux-mm@kvack.org, linux@lists.openrisc.net, Mark Salter <msalter@redhat.com>, linux-kernel@vger.kernel.org, Michal Hocko <mhocko@suse.cz>, Minchan Kim <minchan@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mel Gorman <mgorman@suse.de>, David Rientjes <rientjes@google.com>, Andrew Morton <akpm@linux-foundation.org>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Jianguo Wu <wujianguo@huawei.com>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e06smtp14.uk.ibm.com ([195.75.94.110]:41933 "EHLO
+	e06smtp14.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759999Ab3DBGsV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Apr 2013 02:48:21 -0400
+Received: from /spool/local
+	by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
+	Tue, 2 Apr 2013 07:43:54 +0100
+In-Reply-To: <20130330114534.GA5404@osiris>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Tejun Heo <tj@kernel.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@redhat.com, x86@kernel.org, rth@twiddle.net, linux@arm.linux.org.uk, msalter@redhat.com, starvik@axis.com, dhowells@redhat.com, tony.luck@intel.com, benh@kernel.crashing.org, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, jonas@southpole.se, rkuo@codeaurora.org, liqin.chen@sunplusct.com, davem@davemloft.net, lethal@linux-sh.org, vgupta@synopsys.com, chris@zankel.net, cmetcalf@tilera.com, ysato@users.sourceforge.jp, gxt@mprc.pku.edu.cn, jdike@addtoit.com, linux-s390@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>, uclinux-dist-devel@blackfin.uclinux.org
 
-On 03/26/2013 04:54 PM, Jiang Liu wrote:
-> Prepare for removing num_physpages and simplify mem_init().
->
-> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-> Cc: Jonas Bonn <jonas@southpole.se>
-> Cc: David Howells <dhowells@redhat.com>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: linux@lists.openrisc.net
-> Cc: linux-kernel@vger.kernel.org
+On Sat, 30 Mar 2013 12:45:35 +0100
+Heiko Carstens <heiko.carstens@de.ibm.com> wrote:
 
-Tested and works fine on OpenRISC.
+> On Fri, Mar 29, 2013 at 07:27:06PM -0700, Tejun Heo wrote:
+> > Both dump_stack() and show_stack() are currently implemented by each
+> > architecture.  show_stack(NULL, NULL) dumps the backtrace for the
+> > current task as does dump_stack().  On some archs, dump_stack() prints
+> > extra information - pid, utsname and so on - in addition to the
+> > backtrace while the two are identical on other archs.
+> 
+> [...]
+> 
+> > This patch expands the dummy fallback dump_stack() implementation in
+> > lib/dump_stack.c such that it prints out debug information (taken from
+> > x86) and invokes show_stack(NULL, NULL) and drops arch-specific
+> > dump_stack() implementations in all archs except blackfin and s390.
+> > Blackfin's dump_stack() does something wonky that I don't understand
+> > and s390 prints its own debug information which includes fields which
+> > aren't accessible from arch-indepdent code.
+> 
+> The couple of extra fields aren't worth an s390 version of dump_stack()
+> that differs from all other architectures.
+> Please drop the s390 version as well. Thanks!
 
-Acked-by: Jonas Bonn <jonas@southpole.se>
+Hmm, we would lose task_thread_info(current)->cpu and current->thread.ksp,
+I don't care much about the kernel stack pointer which has been stored at
+the last call to __switch_to but the cpu number might be interesting.
+Could we add the cpu number to the generic dump_stack version?
 
-/Jonas
+-- 
+blue skies,
+   Martin.
 
-> ---
-> Hi all,
-> 	Sorry for my mistake that my previous patch series has been screwed up.
-> So I regenerate a third version and also set up a git tree at:
-> 	git://github.com/jiangliu/linux.git mem_init
-> 	Any help to review and test are welcomed!
->
-> 	Regards!
-> 	Gerry
-> ---
->   arch/openrisc/mm/init.c |   44 ++++----------------------------------------
->   1 file changed, 4 insertions(+), 40 deletions(-)
->
-> diff --git a/arch/openrisc/mm/init.c b/arch/openrisc/mm/init.c
-> index 71d6b40..f3c8f47 100644
-> --- a/arch/openrisc/mm/init.c
-> +++ b/arch/openrisc/mm/init.c
-> @@ -191,56 +191,20 @@ void __init paging_init(void)
->   
->   /* References to section boundaries */
->   
-> -static int __init free_pages_init(void)
-> -{
-> -	int reservedpages, pfn;
-> -
-> -	/* this will put all low memory onto the freelists */
-> -	free_all_bootmem();
-> -
-> -	reservedpages = 0;
-> -	for (pfn = 0; pfn < max_low_pfn; pfn++) {
-> -		/*
-> -		 * Only count reserved RAM pages
-> -		 */
-> -		if (PageReserved(mem_map + pfn))
-> -			reservedpages++;
-> -	}
-> -
-> -	return reservedpages;
-> -}
-> -
-> -static void __init set_max_mapnr_init(void)
-> -{
-> -	max_mapnr = num_physpages = max_low_pfn;
-> -}
-> -
->   void __init mem_init(void)
->   {
-> -	int codesize, reservedpages, datasize, initsize;
-> -
->   	BUG_ON(!mem_map);
->   
-> -	set_max_mapnr_init();
-> -
-> +	max_mapnr = max_low_pfn;
->   	high_memory = (void *)__va(max_low_pfn * PAGE_SIZE);
->   
->   	/* clear the zero-page */
->   	memset((void *)empty_zero_page, 0, PAGE_SIZE);
->   
-> -	reservedpages = free_pages_init();
-> -
-> -	codesize = (unsigned long)&_etext - (unsigned long)&_stext;
-> -	datasize = (unsigned long)&_edata - (unsigned long)&_etext;
-> -	initsize = (unsigned long)&__init_end - (unsigned long)&__init_begin;
-> +	/* this will put all low memory onto the freelists */
-> +	free_all_bootmem();
->   
-> -	printk(KERN_INFO
-> -	       "Memory: %luk/%luk available (%dk kernel code, %dk reserved, %dk data, %dk init, %ldk highmem)\n",
-> -	       (unsigned long)nr_free_pages() << (PAGE_SHIFT - 10),
-> -	       max_mapnr << (PAGE_SHIFT - 10), codesize >> 10,
-> -	       reservedpages << (PAGE_SHIFT - 10), datasize >> 10,
-> -	       initsize >> 10, (unsigned long)(0 << (PAGE_SHIFT - 10))
-> -	    );
-> +	mem_init_print_info(NULL);
->   
->   	printk("mem_init_done ...........................................\n");
->   	mem_init_done = 1;
+"Reality continues to ruin my life." - Calvin.
