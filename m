@@ -1,116 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f47.google.com ([209.85.160.47]:49966 "EHLO
-	mail-pb0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932161Ab3DBOjD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Apr 2013 10:39:03 -0400
-Message-ID: <515AED78.7000909@gmail.com>
-Date: Tue, 02 Apr 2013 22:38:48 +0800
-From: Jiang Liu <liuj97@gmail.com>
+Received: from youngberry.canonical.com ([91.189.89.112]:55630 "EHLO
+	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1760714Ab3DBO5J (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Apr 2013 10:57:09 -0400
+Message-ID: <515AF1C1.7080508@canonical.com>
+Date: Tue, 02 Apr 2013 16:57:05 +0200
+From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v3, part4 26/39] mm/openrisc: prepare for removing num_physpages
- and simplify mem_init()
-References: <1364313298-17336-1-git-send-email-jiang.liu@huawei.com> <1364313298-17336-27-git-send-email-jiang.liu@huawei.com> <515A6D40.90702@southpole.se>
-In-Reply-To: <515A6D40.90702@southpole.se>
-Content-Type: text/plain; charset=ISO-8859-1
+Subject: Re: [PATCH v2 2/3] mutex: add support for reservation style locks,
+ v2
+References: <20130228102452.15191.22673.stgit@patser>  <20130228102502.15191.14146.stgit@patser> <1364900432.18374.24.camel@laptop>
+In-Reply-To: <1364900432.18374.24.camel@laptop>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jonas Bonn <jonas@southpole.se>
-Cc: Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>, Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux@lists.openrisc.net
-Message-ID: <20130402143848.8IQqIaVyd-M6LqMUSMDweCmi3j2T7puDG-bAMGDm2tU@z>
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, daniel.vetter@ffwll.ch, x86@kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robclark@gmail.com, tglx@linutronix.de, mingo@elte.hu, linux-media@vger.kernel.org
+Message-ID: <20130402145705.ugMsDSjiqqEZwlBmO5j3x6iAogHB_YiM875UqhOQ39o@z>
 
-Hi Jonas,
-	Thanks for testing.
-	Regards!
-	Gerry
-On 04/02/2013 01:31 PM, Jonas Bonn wrote:
-> On 03/26/2013 04:54 PM, Jiang Liu wrote:
->> Prepare for removing num_physpages and simplify mem_init().
->>
->> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
->> Cc: Jonas Bonn <jonas@southpole.se>
->> Cc: David Howells <dhowells@redhat.com>
->> Cc: Arnd Bergmann <arnd@arndb.de>
->> Cc: linux@lists.openrisc.net
->> Cc: linux-kernel@vger.kernel.org
-> 
-> Tested and works fine on OpenRISC.
-> 
-> Acked-by: Jonas Bonn <jonas@southpole.se>
-> 
-> /Jonas
-> 
->> ---
->> Hi all,
->>     Sorry for my mistake that my previous patch series has been screwed up.
->> So I regenerate a third version and also set up a git tree at:
->>     git://github.com/jiangliu/linux.git mem_init
->>     Any help to review and test are welcomed!
->>
->>     Regards!
->>     Gerry
->> ---
->>   arch/openrisc/mm/init.c |   44 ++++----------------------------------------
->>   1 file changed, 4 insertions(+), 40 deletions(-)
->>
->> diff --git a/arch/openrisc/mm/init.c b/arch/openrisc/mm/init.c
->> index 71d6b40..f3c8f47 100644
->> --- a/arch/openrisc/mm/init.c
->> +++ b/arch/openrisc/mm/init.c
->> @@ -191,56 +191,20 @@ void __init paging_init(void)
->>     /* References to section boundaries */
->>   -static int __init free_pages_init(void)
->> -{
->> -    int reservedpages, pfn;
->> -
->> -    /* this will put all low memory onto the freelists */
->> -    free_all_bootmem();
->> -
->> -    reservedpages = 0;
->> -    for (pfn = 0; pfn < max_low_pfn; pfn++) {
->> -        /*
->> -         * Only count reserved RAM pages
->> -         */
->> -        if (PageReserved(mem_map + pfn))
->> -            reservedpages++;
->> -    }
->> -
->> -    return reservedpages;
->> -}
->> -
->> -static void __init set_max_mapnr_init(void)
->> -{
->> -    max_mapnr = num_physpages = max_low_pfn;
->> -}
->> -
->>   void __init mem_init(void)
->>   {
->> -    int codesize, reservedpages, datasize, initsize;
->> -
->>       BUG_ON(!mem_map);
->>   -    set_max_mapnr_init();
->> -
->> +    max_mapnr = max_low_pfn;
->>       high_memory = (void *)__va(max_low_pfn * PAGE_SIZE);
->>         /* clear the zero-page */
->>       memset((void *)empty_zero_page, 0, PAGE_SIZE);
->>   -    reservedpages = free_pages_init();
->> -
->> -    codesize = (unsigned long)&_etext - (unsigned long)&_stext;
->> -    datasize = (unsigned long)&_edata - (unsigned long)&_etext;
->> -    initsize = (unsigned long)&__init_end - (unsigned long)&__init_begin;
->> +    /* this will put all low memory onto the freelists */
->> +    free_all_bootmem();
->>   -    printk(KERN_INFO
->> -           "Memory: %luk/%luk available (%dk kernel code, %dk reserved, %dk data, %dk init, %ldk highmem)\n",
->> -           (unsigned long)nr_free_pages() << (PAGE_SHIFT - 10),
->> -           max_mapnr << (PAGE_SHIFT - 10), codesize >> 10,
->> -           reservedpages << (PAGE_SHIFT - 10), datasize >> 10,
->> -           initsize >> 10, (unsigned long)(0 << (PAGE_SHIFT - 10))
->> -        );
->> +    mem_init_print_info(NULL);
->>         printk("mem_init_done ...........................................\n");
->>       mem_init_done = 1;
-> 
-> 
+Hey,
+
+Thanks for reviewing.
+
+Op 02-04-13 13:00, Peter Zijlstra schreef:
+> On Thu, 2013-02-28 at 11:25 +0100, Maarten Lankhorst wrote:
+>> +Reservation type mutexes
+>> +struct ticket_mutex {
+>> +extern int __must_check _mutex_reserve_lock(struct ticket_mutex *lock,
+> That's two different names and two different forms of one (for a total
+> of 3 variants) for the same scheme.
+>
+> FAIL...
+It's been hard since I haven't seen anything similar in the kernel, I originally went with tickets
+since that's what ttm originally called it, and tried to kill as many references as I could
+when I noticed ticket mutexes already being taken.
+
+I'll fix up the ticket_mutex -> reservation_mutex, and mutex_reserve_* -> reserve_mutex_*
+
+> On Thu, 2013-02-28 at 11:25 +0100, Maarten Lankhorst wrote:
+>> +mutex_reserve_lock_slow and mutex_reserve_lock_intr_slow:
+>> +  Similar to mutex_reserve_lock, except it won't backoff with
+>> -EAGAIN.
+>> +  This is useful when mutex_reserve_lock failed with -EAGAIN, and you
+>> +  unreserved all reservation_locks so no deadlock can occur.
+>> +
+> I don't particularly like these function names, with lock
+> implementations the _slow post-fix is typically used for slow path
+> implementations, not API type interfaces.
+ I didn't intend for drivers to use the new calls directly, but rather through a wrapper,
+for example by ttm_eu_reserve_buffers in drivers/gpu/drm/ttm/ttm_execbuf_util.c
+
+> Also, is there anything in CS literature that comes close to this? I'd
+> think the DBMS people would have something similar with their
+> transactional systems. What do they call it?
+I didn't study cs, but judging from your phrasing I guess you mean you want me to call it transaction_mutexes instead?
+
+> Head hurts, needs more time to ponder. It would be good if someone else
+> (this would probably be you maarten) would also consider this and
+> explore
+> this 'interesting' problem space :-)
+My head too, evil priority stuff!
+
+Hacky but pragmatical workaround for now: use a real mutex around all the reserve_mutex_lock* calls instead of a virtual lock.
+It can be unlocked as soon as all locks have been taken, before any actual work is done.
+
+It only slightly kills the point of having a reservation in the first place, but at least it won't break completely -rt completely for now.
+
+~Maarten
 
