@@ -1,123 +1,74 @@
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: Re: [PATCH v2 2/3] mutex: add support for reservation style locks,
- v2
-Date: Tue, 02 Apr 2013 18:59:14 +0200
-Message-ID: <1364921954.20640.22.camel@laptop>
+From: Daniel Vetter <daniel.vetter@ffwll.ch>
+Subject: Re: [PATCH v2 2/3] mutex: add support for reservation style locks, v2
+Date: Tue, 2 Apr 2013 19:23:22 +0200
+Message-ID: <CAKMK7uGPGbNiKUPvdmsuyTB5g8G0DhGhdFDiN0ht8jBsgdG+SQ@mail.gmail.com>
 References: <20130228102452.15191.22673.stgit@patser>
-	  <20130228102502.15191.14146.stgit@patser>
-	 <1364900432.18374.24.camel@laptop> <515AF1C1.7080508@canonical.com>
+	<20130228102502.15191.14146.stgit@patser>
+	<1364900432.18374.24.camel@laptop>
+	<515AF1C1.7080508@canonical.com>
+	<1364921954.20640.22.camel@laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 173-166-109-252-newengland.hfc.comcastbusiness.net ([173.166.109.252]:42422
-	"EHLO bombadil.infradead.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1759748Ab3DBQ73 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Apr 2013 12:59:29 -0400
-Received: from dhcp-089-099-019-018.chello.nl ([89.99.19.18] helo=dyad.programming.kicks-ass.net)
-	by bombadil.infradead.org with esmtpsa (Exim 4.80.1 #2 (Red Hat Linux))
-	id 1UN4YR-0000su-Tl
-	for linux-arch@vger.kernel.org; Tue, 02 Apr 2013 16:59:28 +0000
-In-Reply-To: <515AF1C1.7080508@canonical.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, daniel.vetter@ffwll.ch, x86@kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robclark@gmail.com, tglx@linutronix.de, mingo@elte.hu, linux-media@vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1364921954.20640.22.camel@laptop>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Maarten Lankhorst <maarten.lankhorst@canonical.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robclark@gmail.com, tglx@linutronix.de, mingo@elte.hu, linux-media@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2013-04-02 at 16:57 +0200, Maarten Lankhorst wrote:
-> Hey,
-> 
-> Thanks for reviewing.
+On Tue, Apr 2, 2013 at 6:59 PM, Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
+>> > Head hurts, needs more time to ponder. It would be good if someone else
+>> > (this would probably be you maarten) would also consider this explore
+>> > this 'interesting' problem space :-)
+>
+>> My head too, evil priority stuff!
+>>
+>> Hacky but pragmatical workaround for now: use a real mutex around all
+>> the reserve_mutex_lock* calls instead of a virtual lock. It can be
+>> unlocked as soon as all locks have been taken, before any actual work
+>> is done.
+>>
+>> It only slightly kills the point of having a reservation in the first
+>> place, but at least it won't break completely -rt completely for now.
+>
+> Yeah, global lock, yay :-(
 
-Only partway through so far :-)
+We've discussed this quite a bit on irc and came up with a bunch of
+other ideas. The global lock is completely transparent to users, since
+the lockdep annotations already rely on ticket_init/fini being a
+virtual lock. So we can always fall back to that option.
 
-> Op 02-04-13 13:00, Peter Zijlstra schreef:
-> > On Thu, 2013-02-28 at 11:25 +0100, Maarten Lankhorst wrote:
-> >> +Reservation type mutexes
-> >> +struct ticket_mutex {
-> >> +extern int __must_check _mutex_reserve_lock(struct ticket_mutex *lock,
-> > That's two different names and two different forms of one (for a total
-> > of 3 variants) for the same scheme.
-> >
-> > FAIL...
+For more fancy approaches we need to consider the aim first - do we
+just want to prevent deadlocks through PI or do we aim for bounded
+per-reservation_mutex wait block-to-acquire times for the thread with
+highest rt-prio.
 
-> It's been hard since I haven't seen anything similar in the kernel, I
-> originally went with tickets since that's what ttm originally called
-> it, and tried to kill as many references as I could when I noticed
-> ticket mutexes already being taken.
+If it's just the former I think we can get by by piggy-packing on top
+of the existing PI mutex code. Only downside is that threads can lock
+arbitrary many reservation locks and so we're looking at boosting an
+entire tree of processes. Otoh common operations done while holding
+such a lock are swapping buffer objects in or waiting for gpu
+rendering. And since we can easily queue up a few ms of rendering rt
+guarantees are out the window ;-)
 
-Ticket mutexes as such don't exist, but we have ticket based spinlock
-implementations. It seems a situation ripe for confusion to have two
-locking primitives (mutex, spinlock) with similar names (ticket) but
-vastly different semantics.
+If that's not good enough and the global lock not scalable enough we
+could try to limit the fan-out by setting a PI-boost flag in the
+reservation ticket (in additional to the normal PI boosting for the
+reservation mutex). Threads which are boosted in that fashion will get
+a -EAGAIN on the next mutex_reserv_lock call, ensuring that the
+blocking doesn't spread to further threads. But that requires that we
+pass around pointers to tickets instead of values, so lifetime fun
+(atm the ticket is on the stack) and probably tons of races in
+updating the ticket boost state. I'd like to avoid that until we've
+demonstrated a need for it ...
 
-> I'll fix up the ticket_mutex -> reservation_mutex, and mutex_reserve_*
-> -> reserve_mutex_*
+In any way I think that all three approaches should fit into the
+proposed interfaces, so we should be able to do something sane here.
+But since I have pretty much zero clue about rt I have no idea which
+of the first two approaches would be preferable.
 
-Do a google for "lock reservation" and observe the results.. its some
-scheme where they pre-assign lock ownership to the most likely thread.
-
-> > On Thu, 2013-02-28 at 11:25 +0100, Maarten Lankhorst wrote:
-> >> +mutex_reserve_lock_slow and mutex_reserve_lock_intr_slow:
-> >> +  Similar to mutex_reserve_lock, except it won't backoff with
-> >> -EAGAIN.
-> >> +  This is useful when mutex_reserve_lock failed with -EAGAIN, and you
-> >> +  unreserved all reservation_locks so no deadlock can occur.
-> >> +
-> > I don't particularly like these function names, with lock
-> > implementations the _slow post-fix is typically used for slow path
-> > implementations, not API type interfaces.
-
->  I didn't intend for drivers to use the new calls directly, but rather
-> through a wrapper, for example by ttm_eu_reserve_buffers in
-> drivers/gpu/drm/ttm/ttm_execbuf_util.c
-
-You're providing a generic interface to the core kernel, other people
-will end up using it. Providing a proper API is helpful.
-
-> > Also, is there anything in CS literature that comes close to this? I'd
-> > think the DBMS people would have something similar with their
-> > transactional systems. What do they call it?
-
-> I didn't study cs, but judging from your phrasing I guess you mean you
-> want me to call it transaction_mutexes instead?
-
-Nah, me neither, I just hate reinventing names for something that's
-already got a perfectly fine name under which a bunch of people know
-it.
-
-See the email from Daniel, apparently its known as wound-wait deadlock
-avoidance -- its actually described in the "deadlock" wikipedia
-article.
-
-So how about we call the thing something like:
-
-  struct ww_mutex; /* wound/wait */
-
-  int mutex_wound_lock(struct ww_mutex *); /* returns -EDEADLK */
-  int mutex_wait_lock(struct ww_mutex *);  /* does not fail */
-
-Hmm.. thinking about that,.. you only need that second variant because
-you don't have a clear lock to wait for the 'older' process to
-complete; but having the unconditional wait makes the entire thing
-prone to accidents and deadlocks when the 'user' (read your fellow
-programmers) make a mistake.
-
-Ideally we'd only have the one primitive that returns -EDEADLK and use
-a 'proper' mutex to wait on or somesuch.. let me ponder this a bit more.
-
-> > Head hurts, needs more time to ponder. It would be good if someone else 
-> > (this would probably be you maarten) would also consider this explore 
-> > this 'interesting' problem space :-) 
-
-> My head too, evil priority stuff!
-> 
-> Hacky but pragmatical workaround for now: use a real mutex around all
-> the reserve_mutex_lock* calls instead of a virtual lock. It can be
-> unlocked as soon as all locks have been taken, before any actual work
-> is done.
-> 
-> It only slightly kills the point of having a reservation in the first
-> place, but at least it won't break completely -rt completely for now.
-
-Yeah, global lock, yay :-(
+Cheers, Daniel
+-- 
+Daniel Vetter
+Software Engineer, Intel Corporation
++41 (0) 79 365 57 48 - http://blog.ffwll.ch
