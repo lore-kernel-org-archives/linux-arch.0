@@ -1,55 +1,53 @@
-From: Linus Walleij <linus.walleij@linaro.org>
-Subject: Re: [PATCH 0/3] gpio: remove GENERIC_GPIO completely
-Date: Wed, 3 Apr 2013 15:28:03 +0200
-Message-ID: <CACRpkdak79-KuSXdRb7B83Xe+6-f-gNK12Q+EVbXNPSwJLqgrw@mail.gmail.com>
-References: <1364562678-8945-1-git-send-email-acourbot@nvidia.com>
+From: Stephen Warren <swarren@wwwdotorg.org>
+Subject: Re: [PATCH] Kbuild: Avoid DTB rebuilds if source files are untouched
+Date: Wed, 03 Apr 2013 10:18:26 -0600
+Message-ID: <515C5652.8070705@wwwdotorg.org>
+References: <1364973141-16354-1-git-send-email-vgupta@synopsys.com> <515BD6B8.1020607@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ia0-f169.google.com ([209.85.210.169]:55051 "EHLO
-	mail-ia0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760704Ab3DCN2F (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Apr 2013 09:28:05 -0400
-Received: by mail-ia0-f169.google.com with SMTP id j5so1271139iaf.28
-        for <linux-arch@vger.kernel.org>; Wed, 03 Apr 2013 06:28:04 -0700 (PDT)
-In-Reply-To: <1364562678-8945-1-git-send-email-acourbot@nvidia.com>
+Received: from avon.wwwdotorg.org ([70.85.31.133]:48928 "EHLO
+	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758798Ab3DCQSa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Apr 2013 12:18:30 -0400
+In-Reply-To: <515BD6B8.1020607@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexandre Courbot <gnurou@gmail.com>
-Cc: Grant Likely <grant.likely@secretlab.ca>, Arnd Bergmann <arnd@arndb.de>, Romain Naour <romain.naour@openwide.fr>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Alexandre Courbot <acourbot@nvidia.com>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, Michal Marek <mmarek@suse.cz>, Stephen Warren <swarren@nvidia.com>, Grant Likely <grant.likely@secretlab.ca>, linux-kbuild@vger.kernel.org
 
-On Fri, Mar 29, 2013 at 2:11 PM, Alexandre Courbot <gnurou@gmail.com> wrote:
+On 04/03/2013 01:14 AM, Vineet Gupta wrote:
+> forgot to CC linux-arch
+> 
+> On 04/03/2013 12:42 PM, Vineet Gupta wrote:
+>> Currently, for every ARC kernel build I see the following:
+>>
+>> --------------->8-----------------
+>>   DTB    arch/arc/boot/dts/angel4.dtb.S
+>>   AS      arch/arc/boot/dts/angel4.dtb.o
+>>   LD      arch/arc/boot/dts/built-in.o
+>> rm arch/arc/boot/dts/angel4.dtb.S        <-- forces rebuild next iter
+>>   CHK     kernel/config_data.h
+>> --------------->8-----------------
 
-> Since I have received no death threat from architecture maintainers I'd like to
-> proceed with the remainder of this work so that it doesn't go half-baked into
-> 3.10. These three patches finish the removal of the GENERIC_GPIO config option
-> which has been made equivalent to GPIOLIB in the previous series. It does so by
-> first changing all references to GENERIC_GPIO into GPIOLIB in driver code and
-> configuration files, and then removing the unused option from the Kconfig files
-> where it is declared.
->
-> The last patch in the series confirms gpiolib in its new role as GPIO framework
-> by renaming CONFIG_GPIOLIB into CONFIG_GPIO, following the model used by other
-> frameworks. This name changing might rise concern but it seems more logical to
-> me and the historical gpiolib name is still mentioned in the documentation to
-> relieve the confusion.
->
-> If I can get a few acks on these (or at least the first two ones) I'd like to
-> include them into my next branch as soon as possible so points of breakage can
-> be fixed. There are indeed a few new users of GENERIC_GPIO (CC Romain, I sent a
-> warning but saw no action so far) in the next tree and compilation will break
-> for them.
->
-> Another issue, I could not update the Chinese documentation in a satisfying
-> manner due to my absence of Chinese skills. Hope that will be forgiven.
->
-> Alexandre Courbot (3):
->   Convert selectors of GENERIC_GPIO to GPIOLIB
->   Remove GENERIC_GPIO config option
->   Rename CONFIG_GPIOLIB to CONFIG_GPIO
+I assume that's because the file is an intermediate file, and only built
+due to a chain of build rules, and hence make clean it up itself after
+the build?
 
-The series:
-Acked-by: Linus Walleij <linus.walleij@linaro.org>
+>> diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
 
-Yours,
-Linus Walleij
+>> +.PRECIOUS: $(obj)/%.dtb.S
+>> +
+>>  $(obj)/%.dtb.S: $(obj)/%.dtb
+>>  	$(call cmd,dt_S_dtb)
+
+I'm not sure if .PRECIOUS is correct here. That prevents make from
+deleting the file if make is CTRL-C'd in the middle of generating it.
+Couldn't that leave a stale/corrupt file around that'd break the build.
+Judging by:
+
+http://www.gnu.org/software/make/manual/html_node/Special-Targets.html
+
+I think .SECONDARY might be a better choice? Does that solve the problem
+you're seeing?
