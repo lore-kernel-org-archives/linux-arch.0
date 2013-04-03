@@ -1,88 +1,52 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH v2 5/5] dump_stack: unify debug information printed by
- show_regs()
-Date: Wed, 3 Apr 2013 10:27:06 +0530
-Message-ID: <515BB6A2.4090004@synopsys.com>
-References: <1364610428-2074-1-git-send-email-tj@kernel.org> <1364610428-2074-6-git-send-email-tj@kernel.org> <20130330032445.GA28468@htj.dyndns.org>
+Subject: Re: [PATCH] Kbuild: Avoid DTB rebuilds if source files are untouched
+Date: Wed, 3 Apr 2013 12:44:00 +0530
+Message-ID: <515BD6B8.1020607@synopsys.com>
+References: <1364973141-16354-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtp3.synopsys.com ([198.182.44.81]:36591 "EHLO
-	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754930Ab3DCFAR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Apr 2013 01:00:17 -0400
-In-Reply-To: <20130330032445.GA28468@htj.dyndns.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Tejun Heo <tj@kernel.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@redhat.com, x86@kernel.org, rth@twiddle.net, linux@arm.linux.org.uk, msalter@redhat.com, starvik@axis.com, dhowells@redhat.com, tony.luck@intel.com, benh@kernel.crashing.org, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, jonas@southpole.se, rkuo@codeaurora.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, davem@davemloft.net, lethal@linux-sh.org, chris@zankel.net, cmetcalf@tilera.com, ysato@users.sourceforge.jp, gxt@mprc.pku.edu.cn, jdike@addtoit.com
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <1364973141-16354-1-git-send-email-vgupta@synopsys.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Cc: linux-kernel@vger.kernel.org, Michal Marek <mmarek@suse.cz>, Stephen Warren <swarren@nvidia.com>, Grant Likely <grant.likely@secretlab.ca>, linux-kbuild@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On 03/30/2013 08:54 AM, Tejun Heo wrote:
-> show_regs() is inherently arch-dependent but it does make sense to
-> print generic debug information and some archs already do albeit in
-> slightly different forms.  This patch introduces a generic function to
-> print debug information from show_regs() so that different archs print
-> out the same information and it's much easier to modify what's
-> printed.
-> 
-> show_regs_print_current() prints out the same debug info as
-> dump_stack() does plus CPU, task and thread_info pointers.
-> 
-> * Archs which didn't print debug info now do.
-> 
->   alpha, arc, blackfin, c6x, cris, frv, h8300, hexagon, ia64, m32r,
->   metag, microblaze, mn10300, openrisc, parisc, score, sh64, sparc,
->   um, xtensa
-> 
-> * Already prints debug info.  Replaced with show_regs_print_current().
->   The printed information is superset of what used to be there.
-> 
->   arm, arm64, avr32, mips, powerpc, sh32, tile, unicore32, x86
-> 
-> * The printed debug information includes arch-specific bits.  Left
->   alone.
-> 
->   s390
-> 
-> Note that now all archs print the debug info before actual register
-> dumps.
-> 
-> An example BUG() dump follows.
-> 
->  kernel BUG at /work/os/work/kernel/workqueue.c:4841!
->  invalid opcode: 0000 [#1] PREEMPT SMP DEBUG_PAGEALLOC
->  Modules linked in:
->  Pid: 1, comm: swapper/0 Tainted: G        W    3.9.0-rc1-work+ #20 empty empty/S3992
->  CPU:0 task: ffff88007c85e040 ti: ffff88007c860000 task.ti: ffff88007c860000
->  RIP: 0010:[<ffffffff8234a042>]  [<ffffffff8234a042>] init_workqueues+0x15/0x17
->  RSP: 0000:ffff88007c861ec8  EFLAGS: 00010296
->  RAX: 0000000000000024 RBX: ffffffff82446608 RCX: 0000000000000001
->  RDX: 0000000000000046 RSI: 0000000000000000 RDI: 0000000000000009
->  RBP: ffff88007c861ec8 R08: 0000000000000000 R09: 0000000000000000
->  R10: 0000000000000001 R11: 0000000000000000 R12: ffffffff8234a02d
->  R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
->  FS:  0000000000000000(0000) GS:ffff88007dc00000(0000) knlGS:0000000000000000
->  CS:  0010 DS: 0000 ES: 0000 CR0: 000000008005003b
->  CR2: ffff88015f7ff000 CR3: 00000000021f1000 CR4: 00000000000007f0
->  DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
->  DR3: 0000000000000000 DR6: 00000000ffff0ff0 DR7: 0000000000000400
->  Stack:
->   ffff88007c861ef8 ffffffff81000312 ffffffff82446608 ffff88007c85e650
->   0000000000000003 0000000000000000 ffff88007c861f38 ffffffff82335e5d
->   ffff88007c862080 ffffffff8223d8c0 ffff88007c862080 ffffffff81c47730
->  Call Trace:
->   [<ffffffff81000312>] do_one_initcall+0x122/0x170
->   [<ffffffff82335e5d>] kernel_init_freeable+0x9b/0x1c8
->   ...
-> 
-> v2: Typo fix in x86-32.
-> 
-> Signed-off-by: Tejun Heo <tj@kernel.org>
+forgot to CC linux-arch
 
-For arch/arc
+On 04/03/2013 12:42 PM, Vineet Gupta wrote:
+> Currently, for every ARC kernel build I see the following:
+>
+> --------------->8-----------------
+>   DTB    arch/arc/boot/dts/angel4.dtb.S
+>   AS      arch/arc/boot/dts/angel4.dtb.o
+>   LD      arch/arc/boot/dts/built-in.o
+> rm arch/arc/boot/dts/angel4.dtb.S        <-- forces rebuild next iter
+>   CHK     kernel/config_data.h
+> --------------->8-----------------
+>
+> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+> Cc: Michal Marek <mmarek@suse.cz>
+> Cc: Stephen Warren <swarren@nvidia.com>
+> Cc: Grant Likely <grant.likely@secretlab.ca>
+> Cc: linux-kbuild@vger.kernel.org
+> Cc: linux-kernel@vger.kernel.org
+> ---
+>  scripts/Makefile.lib |    2 ++
+>  1 file changed, 2 insertions(+)
+>
+> diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+> index 07125e6..17f96f4 100644
+> --- a/scripts/Makefile.lib
+> +++ b/scripts/Makefile.lib
+> @@ -265,6 +265,8 @@ cmd_dt_S_dtb=						\
+>  	echo '.balign STRUCT_ALIGNMENT'; 		\
+>  ) > $@
+>  
+> +.PRECIOUS: $(obj)/%.dtb.S
+> +
+>  $(obj)/%.dtb.S: $(obj)/%.dtb
+>  	$(call cmd,dt_S_dtb)
+>  
 
-Acked-by: Vineet Gupta <vgupta@synopsys.com>
-
-Thx,
--vineet
