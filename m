@@ -1,41 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f53.google.com ([209.85.220.53]:64629 "EHLO
-	mail-pa0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759201Ab3DBSY6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Apr 2013 14:24:58 -0400
-Date: Tue, 2 Apr 2013 11:24:52 -0700
-From: Tejun Heo <tj@kernel.org>
-Subject: Re: [PATCH 4/5] dump_stack: implement arch-specific hardware
- description in task dumps
-Message-ID: <20130402182452.GB6185@htj.dyndns.org>
-References: <1364610428-2074-1-git-send-email-tj@kernel.org>
- <1364610428-2074-5-git-send-email-tj@kernel.org>
- <CAErSpo7Hh7UNkeH=dKrNwPywQZFRfzaX5o7ReUsNvWjM4aD-eA@mail.gmail.com>
+Received: from us02smtp2.synopsys.com ([198.182.60.77]:34671 "EHLO
+	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1760615Ab3DCHOP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Apr 2013 03:14:15 -0400
+Message-ID: <515BD6B8.1020607@synopsys.com>
+Date: Wed, 3 Apr 2013 12:44:00 +0530
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAErSpo7Hh7UNkeH=dKrNwPywQZFRfzaX5o7ReUsNvWjM4aD-eA@mail.gmail.com>
+Subject: Re: [PATCH] Kbuild: Avoid DTB rebuilds if source files are untouched
+References: <1364973141-16354-1-git-send-email-vgupta@synopsys.com>
+In-Reply-To: <1364973141-16354-1-git-send-email-vgupta@synopsys.com>
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: linux-arch@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, "x86@kernel.org" <x86@kernel.org>, Richard Henderson <rth@twiddle.net>, Russell King <linux@arm.linux.org.uk>, msalter@redhat.com, starvik@axis.com, David Howells <dhowells@redhat.com>, Tony Luck <tony.luck@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, takata@linux-m32r.org, Geert Uytterhoeven <geert@linux-m68k.org>, james.hogan@imgtec.com, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, jonas@southpole.se, rkuo@codeaurora.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, liqin.chen@sunplusct.com, David Miller <davem@davemloft.net>, Paul Mundt <lethal@linux-sh.org>, vgupta@synopsys.com, Chris Zankel <chris@zankel.net>, Chris Metcalf <cmetcalf@tilera.com>, ysato@users.sourceforge.jp, Guan Xuetao <gxt@mprc.pku.edu.cn>, jdike@addtoit.com
-Message-ID: <20130402182452.GZm2kIEZPvRB6lXEfwlWrahzafRtsaLat-hfNUQBpkY@z>
+To: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Cc: linux-kernel@vger.kernel.org, Michal Marek <mmarek@suse.cz>, Stephen Warren <swarren@nvidia.com>, Grant Likely <grant.likely@secretlab.ca>, linux-kbuild@vger.kernel.org
+Message-ID: <20130403071400.gU7je9djyhoA41RPBESUCNuBGqfbxWFtJzbM_0TZens@z>
 
-Hello,
+forgot to CC linux-arch
 
-On Mon, Apr 01, 2013 at 12:11:17PM -0600, Bjorn Helgaas wrote:
-> > +       dump_stack_set_arch_desc("%s %s%s%s", vendor, product,
-> > +                                board ? "/" : "", board ? board : "");
-> > +}
-> 
-> Should this be combined or made consistent with dmi_dump_ids()?  They
-> look almost the same but not quite (no BIOS version here).
+On 04/03/2013 12:42 PM, Vineet Gupta wrote:
+> Currently, for every ARC kernel build I see the following:
+>
+> --------------->8-----------------
+>   DTB    arch/arc/boot/dts/angel4.dtb.S
+>   AS      arch/arc/boot/dts/angel4.dtb.o
+>   LD      arch/arc/boot/dts/built-in.o
+> rm arch/arc/boot/dts/angel4.dtb.S        <-- forces rebuild next iter
+>   CHK     kernel/config_data.h
+> --------------->8-----------------
+>
+> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+> Cc: Michal Marek <mmarek@suse.cz>
+> Cc: Stephen Warren <swarren@nvidia.com>
+> Cc: Grant Likely <grant.likely@secretlab.ca>
+> Cc: linux-kbuild@vger.kernel.org
+> Cc: linux-kernel@vger.kernel.org
+> ---
+>  scripts/Makefile.lib |    2 ++
+>  1 file changed, 2 insertions(+)
+>
+> diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+> index 07125e6..17f96f4 100644
+> --- a/scripts/Makefile.lib
+> +++ b/scripts/Makefile.lib
+> @@ -265,6 +265,8 @@ cmd_dt_S_dtb=						\
+>  	echo '.balign STRUCT_ALIGNMENT'; 		\
+>  ) > $@
+>  
+> +.PRECIOUS: $(obj)/%.dtb.S
+> +
+>  $(obj)/%.dtb.S: $(obj)/%.dtb
+>  	$(call cmd,dt_S_dtb)
+>  
 
-Yeah, that actually would be more useful.  It'd likely be too long
-tho.  We can separate it out into its own line which one of the x86
-debug paths is doing anyway.  I'll look into it.
-
-Thanks.
-
--- 
-tejun
