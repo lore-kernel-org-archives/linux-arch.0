@@ -1,57 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us02smtp2.synopsys.com ([198.182.60.77]:34671 "EHLO
-	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760615Ab3DCHOP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Apr 2013 03:14:15 -0400
-Message-ID: <515BD6B8.1020607@synopsys.com>
-Date: Wed, 3 Apr 2013 12:44:00 +0530
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH] Kbuild: Avoid DTB rebuilds if source files are untouched
-References: <1364973141-16354-1-git-send-email-vgupta@synopsys.com>
-In-Reply-To: <1364973141-16354-1-git-send-email-vgupta@synopsys.com>
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Received: from mail-qa0-f42.google.com ([209.85.216.42]:50178 "EHLO
+	mail-qa0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1763221Ab3DCTP7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Apr 2013 15:15:59 -0400
+From: Tejun Heo <tj@kernel.org>
+Subject: [PATCH 2/7] sparc32: make show_stack() acquire %fp if @_ksp is not specified
+Date: Wed,  3 Apr 2013 12:14:52 -0700
+Message-ID: <1365016497-32033-3-git-send-email-tj@kernel.org>
+In-Reply-To: <1365016497-32033-1-git-send-email-tj@kernel.org>
+References: <1365016497-32033-1-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Cc: linux-kernel@vger.kernel.org, Michal Marek <mmarek@suse.cz>, Stephen Warren <swarren@nvidia.com>, Grant Likely <grant.likely@secretlab.ca>, linux-kbuild@vger.kernel.org
-Message-ID: <20130403071400.gU7je9djyhoA41RPBESUCNuBGqfbxWFtJzbM_0TZens@z>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@redhat.com, x86@kernel.org
+Cc: rth@twiddle.net, linux@arm.linux.org.uk, msalter@redhat.com, starvik@axis.com, dhowells@redhat.com, tony.luck@intel.com, benh@kernel.crashing.org, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, jonas@southpole.se, rkuo@codeaurora.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, davem@davemloft.net, lethal@linux-sh.org, vgupta@synopsys.com, chris@zankel.net, cmetcalf@tilera.com, ysato@users.sourceforge.jp, gxt@mprc.pku.edu.cn, jdike@addtoit.com, Tejun Heo <tj@kernel.org>
+Message-ID: <20130403191452.l5oAkOJF9278XmK0oJlu8FYO6hqrnH_mGB1oVHZ6cIk@z>
 
-forgot to CC linux-arch
+show_stack(current or NULL, NULL) is used by arch-independent code to
+dump backtrace of the current task; however, sparc32 show_stack()
+doesn't implement it and wouldn't print any backtrace when NULL @_ksp
+is specfied.
 
-On 04/03/2013 12:42 PM, Vineet Gupta wrote:
-> Currently, for every ARC kernel build I see the following:
->
-> --------------->8-----------------
->   DTB    arch/arc/boot/dts/angel4.dtb.S
->   AS      arch/arc/boot/dts/angel4.dtb.o
->   LD      arch/arc/boot/dts/built-in.o
-> rm arch/arc/boot/dts/angel4.dtb.S        <-- forces rebuild next iter
->   CHK     kernel/config_data.h
-> --------------->8-----------------
->
-> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-> Cc: Michal Marek <mmarek@suse.cz>
-> Cc: Stephen Warren <swarren@nvidia.com>
-> Cc: Grant Likely <grant.likely@secretlab.ca>
-> Cc: linux-kbuild@vger.kernel.org
-> Cc: linux-kernel@vger.kernel.org
-> ---
->  scripts/Makefile.lib |    2 ++
->  1 file changed, 2 insertions(+)
->
-> diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
-> index 07125e6..17f96f4 100644
-> --- a/scripts/Makefile.lib
-> +++ b/scripts/Makefile.lib
-> @@ -265,6 +265,8 @@ cmd_dt_S_dtb=						\
->  	echo '.balign STRUCT_ALIGNMENT'; 		\
->  ) > $@
->  
-> +.PRECIOUS: $(obj)/%.dtb.S
-> +
->  $(obj)/%.dtb.S: $(obj)/%.dtb
->  	$(call cmd,dt_S_dtb)
->  
+Make show_stack() acquire and use %fp if @tsk is NULL or current and
+@_ksp is NULL.  This makes %fp fetching in dump_stack() unnecessary.
+Make it use NULL for @_ksp instead.
+
+Only compile tested.
+
+Signed-off-by: Tejun Heo <tj@kernel.org>
+Acked-by: David S. Miller <davem@davemloft.net>
+---
+ arch/sparc/kernel/process_32.c | 16 +++++++---------
+ 1 file changed, 7 insertions(+), 9 deletions(-)
+
+diff --git a/arch/sparc/kernel/process_32.c b/arch/sparc/kernel/process_32.c
+index 62eede1..0d57b24 100644
+--- a/arch/sparc/kernel/process_32.c
++++ b/arch/sparc/kernel/process_32.c
+@@ -153,11 +153,13 @@ void show_stack(struct task_struct *tsk, unsigned long *_ksp)
+ 	struct reg_window32 *rw;
+ 	int count = 0;
+ 
+-	if (tsk != NULL)
+-		task_base = (unsigned long) task_stack_page(tsk);
+-	else
+-		task_base = (unsigned long) current_thread_info();
++	if (!tsk)
++		tsk = current;
+ 
++	if (tsk == current && !_ksp)
++		__asm__ __volatile__("mov	%%fp, %0" : "=r" (_ksp));
++
++	task_base = (unsigned long) task_stack_page(tsk);
+ 	fp = (unsigned long) _ksp;
+ 	do {
+ 		/* Bogus frame pointer? */
+@@ -175,11 +177,7 @@ void show_stack(struct task_struct *tsk, unsigned long *_ksp)
+ 
+ void dump_stack(void)
+ {
+-	unsigned long *ksp;
+-
+-	__asm__ __volatile__("mov	%%fp, %0"
+-			     : "=r" (ksp));
+-	show_stack(current, ksp);
++	show_stack(current, NULL);
+ }
+ 
+ EXPORT_SYMBOL(dump_stack);
+-- 
+1.8.1.4
 
