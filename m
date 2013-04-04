@@ -1,35 +1,41 @@
 From: Richard Kuo <rkuo@codeaurora.org>
-Subject: [PATCH 4/6] Hexagon: check to if we will overflow the signal stack
-Date: Wed,  3 Apr 2013 19:02:54 -0500
-Message-ID: <1365033776-21804-5-git-send-email-rkuo@codeaurora.org>
+Subject: [PATCH 6/6] Hexagon: fix psp/sp macro
+Date: Wed,  3 Apr 2013 19:02:56 -0500
+Message-ID: <1365033776-21804-7-git-send-email-rkuo@codeaurora.org>
 References: <1365033776-21804-1-git-send-email-rkuo@codeaurora.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:22864 "EHLO
+	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932481Ab3DDADV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Apr 2013 20:03:21 -0400
 In-Reply-To: <1365033776-21804-1-git-send-email-rkuo@codeaurora.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, viro@ZenIV.linux.org.uk
 Cc: Richard Kuo <rkuo@codeaurora.org>
-List-Id: linux-arch.vger.kernel.org
+
+Based on feedback from Al Viro; previous-stack-pointer and
+user reg for same should always be kept consistent.
 
 Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
 ---
- arch/hexagon/kernel/signal.c |    4 ++++
- 1 file changed, 4 insertions(+)
+ arch/hexagon/include/uapi/asm/registers.h |    3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
 
-diff --git a/arch/hexagon/kernel/signal.c b/arch/hexagon/kernel/signal.c
-index 8a20e8e..097623c 100644
---- a/arch/hexagon/kernel/signal.c
-+++ b/arch/hexagon/kernel/signal.c
-@@ -41,6 +41,10 @@ static void __user *get_sigframe(struct k_sigaction *ka, struct pt_regs *regs,
- {
- 	unsigned long sp = regs->r29;
+diff --git a/arch/hexagon/include/uapi/asm/registers.h b/arch/hexagon/include/uapi/asm/registers.h
+index 8050415..12005da 100644
+--- a/arch/hexagon/include/uapi/asm/registers.h
++++ b/arch/hexagon/include/uapi/asm/registers.h
+@@ -212,8 +212,7 @@ struct pt_regs {
+ #define pt_badva(regs) ((regs)->hvmer.vmbadva)
  
-+	/* check if we would overflow the alt stack */
-+	if (on_sig_stack(sp) && !likely(on_sig_stack(sp - frame_size)))
-+		return (void __user __force *)-1UL;
-+
- 	/* Switch to signal stack if appropriate */
- 	if ((ka->sa.sa_flags & SA_ONSTACK) && (sas_ss_flags(sp) == 0))
- 		sp = current->sas_ss_sp + current->sas_ss_size;
+ #define pt_set_rte_sp(regs, sp) do {\
+-	pt_psp(regs) = (sp);\
+-	(regs)->SP = (unsigned long) &((regs)->hvmer);\
++	pt_psp(regs) = (regs)->SP = (sp);\
+ 	} while (0)
+ 
+ #define pt_set_kmode(regs) \
 -- 
 1.7.9.5
 
