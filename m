@@ -1,111 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from seldrel01.sonyericsson.com ([212.209.106.2]:6517 "EHLO
+Received: from seldrel01.sonyericsson.com ([212.209.106.2]:6505 "EHLO
 	seldrel01.sonyericsson.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1760316Ab3DDMwI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Apr 2013 08:52:08 -0400
+	by vger.kernel.org with ESMTP id S1760288Ab3DDMwH convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 4 Apr 2013 08:52:07 -0400
 From: Oskar Andero <oskar.andero@sonymobile.com>
-Subject: [PATCH v2 4/4] kprobes: replace printk with pr_-functions
-Date: Thu, 4 Apr 2013 14:51:29 +0200
-Message-ID: <1365079889-21525-5-git-send-email-oskar.andero@sonymobile.com>
+Subject: [PATCH v2 3/4] kprobes: move x86-specific blacklist symbols to arch directory
+Date: Thu, 4 Apr 2013 14:51:28 +0200
+Message-ID: <1365079889-21525-4-git-send-email-oskar.andero@sonymobile.com>
 In-Reply-To: <1365079889-21525-1-git-send-email-oskar.andero@sonymobile.com>
 References: <1365079889-21525-1-git-send-email-oskar.andero@sonymobile.com>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, masami.hiramatsu.pt@hitachi.com, davem@davemloft.net, anil.s.keshavamurthy@intel.com, ananth@in.ibm.com, radovan.lekanovic@sonymobile.com, bjorn.davidsson@sonymobile.com, oskar.andero@sonymobile.com
-Message-ID: <20130404125129.uBbCga4b6ZjGBygeKnPCEVLn6KK55msafJWLSIrjt0U@z>
+Message-ID: <20130404125128.dhapGJMMS6ZfFCBwP8ca7iU7IwyQdCGXEioZTMTobP0@z>
 
-Instead of using printk use pr_info/pr_err/pr_warn. This was
-detected by the checkpatch.pl script.
+From: Björn Davidsson <bjorn.davidsson@sonymobile.com>
+
+The common kprobes blacklist contains x86-specific symbols.
+Looking for these in kallsyms takes unnecessary time during startup
+on non-X86 platform. The symbols where moved to
+arch/x86/kernel/kprobes/core.c.
 
 Cc: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
 Cc: David S. Miller <davem@davemloft.net>
+Cc: linux-arch@vger.kernel.org
+Reviewed-by: Radovan Lekanovic <radovan.lekanovic@sonymobile.com>
+Signed-off-by: Björn Davidsson <bjorn.davidsson@sonymobile.com>
 Signed-off-by: Oskar Andero <oskar.andero@sonymobile.com>
-Acked-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
 ---
- kernel/kprobes.c | 18 +++++++++---------
- 1 file changed, 9 insertions(+), 9 deletions(-)
+ arch/x86/kernel/kprobes/core.c | 6 +++++-
+ kernel/kprobes.c               | 3 ---
+ 2 files changed, 5 insertions(+), 4 deletions(-)
 
+diff --git a/arch/x86/kernel/kprobes/core.c b/arch/x86/kernel/kprobes/core.c
+index 4aa71a5..41ce6c1 100644
+--- a/arch/x86/kernel/kprobes/core.c
++++ b/arch/x86/kernel/kprobes/core.c
+@@ -65,7 +65,11 @@ void jprobe_return_end(void);
+ DEFINE_PER_CPU(struct kprobe *, current_kprobe) = NULL;
+ DEFINE_PER_CPU(struct kprobe_ctlblk, kprobe_ctlblk);
+ 
+-const char * const arch_kprobes_blacksyms[] = {};
++const char * const arch_kprobes_blacksyms[] = {
++	"native_get_debugreg",
++	"irq_entries_start",
++	"common_interrupt",
++};
+ const size_t arch_kprobes_blacksyms_size = ARRAY_SIZE(arch_kprobes_blacksyms);
+ 
+ #define stack_addr(regs) ((unsigned long *)kernel_stack_pointer(regs))
 diff --git a/kernel/kprobes.c b/kernel/kprobes.c
-index 58c9f4e..d61cbad 100644
+index 7654278..58c9f4e 100644
 --- a/kernel/kprobes.c
 +++ b/kernel/kprobes.c
-@@ -168,7 +168,7 @@ static void init_kprobe_blacklist(void)
- 			kprobe_lookup_name(kretprobe_blacklist[i].name,
- 					   kretprobe_blacklist[i].addr);
- 			if (!kretprobe_blacklist[i].addr)
--				printk("kretprobe: lookup failed: %s\n",
-+				pr_err("kretprobe: lookup failed: %s\n",
- 				       kretprobe_blacklist[i].name);
- 		}
- 	}
-@@ -780,7 +780,7 @@ static void reuse_unused_kprobe(struct kprobe *ap)
- 	 */
- 	op = container_of(ap, struct optimized_kprobe, kp);
- 	if (unlikely(list_empty(&op->list)))
--		printk(KERN_WARNING "Warning: found a stray unused "
-+		pr_warn("Warning: found a stray unused "
- 			"aggrprobe@%p\n", ap->addr);
- 	/* Enable the probe again */
- 	ap->flags &= ~KPROBE_FLAG_DISABLED;
-@@ -887,7 +887,7 @@ static void __kprobes optimize_all_kprobes(void)
- 			if (!kprobe_disabled(p))
- 				optimize_kprobe(p);
- 	}
--	printk(KERN_INFO "Kprobes globally optimized\n");
-+	pr_info("Kprobes globally optimized\n");
- }
- 
- /* This should be called with kprobe_mutex locked */
-@@ -911,7 +911,7 @@ static void __kprobes unoptimize_all_kprobes(void)
- 	}
- 	/* Wait for unoptimizing completion */
- 	wait_for_kprobe_optimizer();
--	printk(KERN_INFO "Kprobes globally unoptimized\n");
-+	pr_info("Kprobes globally unoptimized\n");
- }
- 
- int sysctl_kprobes_optimization;
-@@ -982,7 +982,7 @@ static void __kprobes __disarm_kprobe(struct kprobe *p, bool reopt)
- /* There should be no unused kprobes can be reused without optimization */
- static void reuse_unused_kprobe(struct kprobe *ap)
- {
--	printk(KERN_ERR "Error: There should be no unused kprobe here.\n");
-+	pr_err("Error: There should be no unused kprobe here.\n");
- 	BUG_ON(kprobe_unused(ap));
- }
- 
-@@ -2096,8 +2096,8 @@ EXPORT_SYMBOL_GPL(enable_kprobe);
- 
- void __kprobes dump_kprobe(struct kprobe *kp)
- {
--	printk(KERN_WARNING "Dumping kprobe:\n");
--	printk(KERN_WARNING "Name: %s\nAddress: %p\nOffset: %x\n",
-+	pr_warn("Dumping kprobe:\n");
-+	pr_warn("Name: %s\nAddress: %p\nOffset: %x\n",
- 	       kp->symbol_name, kp->addr, kp->offset);
- }
- 
-@@ -2293,7 +2293,7 @@ static void __kprobes arm_all_kprobes(void)
- 	}
- 
- 	kprobes_all_disarmed = false;
--	printk(KERN_INFO "Kprobes globally enabled\n");
-+	pr_info("Kprobes globally enabled\n");
- 
- already_enabled:
- 	mutex_unlock(&kprobe_mutex);
-@@ -2315,7 +2315,7 @@ static void __kprobes disarm_all_kprobes(void)
- 	}
- 
- 	kprobes_all_disarmed = true;
--	printk(KERN_INFO "Kprobes globally disabled\n");
-+	pr_info("Kprobes globally disabled\n");
- 
- 	for (i = 0; i < KPROBE_TABLE_SIZE; i++) {
- 		head = &kprobe_table[i];
+@@ -95,9 +95,6 @@ static raw_spinlock_t *kretprobe_table_lock_ptr(unsigned long hash)
+  */
+ static const char * const common_kprobes_blacksyms[] = {
+ 	"preempt_schedule",
+-	"native_get_debugreg",
+-	"irq_entries_start",
+-	"common_interrupt",
+ 	"mcount",       /* mcount can be called from everywhere */
+ };
+ static const size_t common_kprobes_blacksyms_size =
 -- 
 1.8.1.5
 
