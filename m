@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:53083 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1762587Ab3DDQjt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Apr 2013 12:39:49 -0400
+Received: from 173-166-109-252-newengland.hfc.comcastbusiness.net ([173.166.109.252]:52426
+	"EHLO bombadil.infradead.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1762896Ab3DDQlO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Apr 2013 12:41:14 -0400
 Received: from dhcp-089-099-019-018.chello.nl ([89.99.19.18] helo=dyad.programming.kicks-ass.net)
-	by merlin.infradead.org with esmtpsa (Exim 4.80.1 #2 (Red Hat Linux))
-	id 1UNnCW-0004EA-9X
-	for linux-arch@vger.kernel.org; Thu, 04 Apr 2013 16:39:48 +0000
-Message-ID: <1365093584.2609.110.camel@laptop>
+	by bombadil.infradead.org with esmtpsa (Exim 4.80.1 #2 (Red Hat Linux))
+	id 1UNnDt-0005jF-Sg
+	for linux-arch@vger.kernel.org; Thu, 04 Apr 2013 16:41:14 +0000
+Message-ID: <1365093662.2609.111.camel@laptop>
 Subject: Re: [PATCH v2 2/3] mutex: add support for reservation style locks,
  v2
 From: Peter Zijlstra <peterz@infradead.org>
-Date: Thu, 04 Apr 2013 18:39:44 +0200
+Date: Thu, 04 Apr 2013 18:41:02 +0200
 In-Reply-To: <20130404133123.GW2228@phenom.ffwll.local>
 References: <20130228102452.15191.22673.stgit@patser>
 	 <20130228102502.15191.14146.stgit@patser>
@@ -25,16 +25,20 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Daniel Vetter <daniel@ffwll.ch>
 Cc: Maarten Lankhorst <maarten.lankhorst@canonical.com>, linux-arch@vger.kernel.org, daniel.vetter@ffwll.ch, x86@kernel.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robclark@gmail.com, tglx@linutronix.de, mingo@elte.hu, linux-media@vger.kernel.org
-Message-ID: <20130404163944.Y9ZcSPN8U4f7ftAc0RUR98aN6M2NCDDj3vQ-15hLRlI@z>
+Message-ID: <20130404164102.TYXFgRhVcTp2YF23Lm8Nij4SOKJCWS4IC80DgY-byTU@z>
 
 On Thu, 2013-04-04 at 15:31 +0200, Daniel Vetter wrote:
-> The trick with the current code is that the oldest task
-> will never see an -EAGAIN ever and hence is guaranteed to make forward
-> progress. If the task is really unlucky though it might be forced to
-> wait
-> for a younger task for every ww_mutex it tries to acquire.
+> The thing is now that you're not expected to hold these locks for a
+> long
+> time - if you need to synchronously stall while holding a lock
+> performance
+> will go down the gutters anyway. And since most current
+> gpus/co-processors
+> still can't really preempt fairness isn't that high a priority,
+> either.
+> So we didn't think too much about that.
 
-Agreed on that.. while I didn't state this my proposed thing should
-behave the same. It follows from the symmetry breaking in that only
-younger tasks can get 'kill'ed.
+Yeah but you're proposing a new synchronization primitive for the core
+kernel.. all such 'fun' details need to be considered, not only those
+few that bear on the one usecase.
 
