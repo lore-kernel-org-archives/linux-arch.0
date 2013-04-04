@@ -1,137 +1,96 @@
-From: Stephen Warren <swarren@wwwdotorg.org>
-Subject: Re: [PATCH] Kbuild: Avoid DTB rebuilds if source files are untouched
-Date: Thu, 04 Apr 2013 11:36:14 -0600
-Message-ID: <515DBA0E.6000604@wwwdotorg.org>
-References: <1364973141-16354-1-git-send-email-vgupta@synopsys.com> <515BD6B8.1020607@synopsys.com> <515C5652.8070705@wwwdotorg.org> <515D0FFB.4030803@synopsys.com>
+From: Daniel Vetter <daniel@ffwll.ch>
+Subject: Re: [PATCH v2 2/3] mutex: add support for reservation style locks, v2
+Date: Thu, 4 Apr 2013 22:44:31 +0200
+Message-ID: <CAKMK7uEUdtiDDCRPwpiumkrST6suFY7YuQcPAXR_nJ0XHKzsAw@mail.gmail.com>
+References: <20130228102452.15191.22673.stgit@patser>
+	<20130228102502.15191.14146.stgit@patser>
+	<1364900432.18374.24.camel@laptop>
+	<515AF1C1.7080508@canonical.com>
+	<1364921954.20640.22.camel@laptop>
+	<1365076908.2609.94.camel@laptop>
+	<20130404133123.GW2228@phenom.ffwll.local>
+	<1365094158.2609.119.camel@laptop>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <515D0FFB.4030803@synopsys.com>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, Michal Marek <mmarek@suse.cz>, Stephen Warren <swarren@nvidia.com>, Grant Likely <grant.likely@secretlab.ca>, linux-kbuild@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ie0-f180.google.com ([209.85.223.180]:33832 "EHLO
+	mail-ie0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1760625Ab3DDUoc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Apr 2013 16:44:32 -0400
+Received: by mail-ie0-f180.google.com with SMTP id a11so3485690iee.39
+        for <linux-arch@vger.kernel.org>; Thu, 04 Apr 2013 13:44:31 -0700 (PDT)
+In-Reply-To: <1365094158.2609.119.camel@laptop>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Maarten Lankhorst <maarten.lankhorst@canonical.com>, linux-arch@vger.kernel.org, x86@kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, dri-devel <dri-devel@lists.freedesktop.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, rob clark <robclark@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
 
-On 04/03/2013 11:30 PM, Vineet Gupta wrote:
-> On 04/03/2013 09:48 PM, Stephen Warren wrote:
->> On 04/03/2013 01:14 AM, Vineet Gupta wrote:
->>> forgot to CC linux-arch
->>>
->>> On 04/03/2013 12:42 PM, Vineet Gupta wrote:
->>>> Currently, for every ARC kernel build I see the following:
->>>>
->>>> --------------->8-----------------
->>>>   DTB    arch/arc/boot/dts/angel4.dtb.S
->>>>   AS      arch/arc/boot/dts/angel4.dtb.o
->>>>   LD      arch/arc/boot/dts/built-in.o
->>>> rm arch/arc/boot/dts/angel4.dtb.S        <-- forces rebuild next iter
->>>>   CHK     kernel/config_data.h
->>>> --------------->8-----------------
->> I assume that's because the file is an intermediate file, and only built
->> due to a chain of build rules, and hence make clean it up itself after
->> the build?
-> 
-> Indeed - I should have made that explicit in the Changelog.
-> 
->>>> +.PRECIOUS: $(obj)/%.dtb.S
->>>> +
->>>>  $(obj)/%.dtb.S: $(obj)/%.dtb
->>>>  	$(call cmd,dt_S_dtb)
->> I'm not sure if .PRECIOUS is correct here. That prevents make from
->> deleting the file if make is CTRL-C'd in the middle of generating it.
->> Couldn't that leave a stale/corrupt file around that'd break the build.
->> Judging by:
->>
->> http://www.gnu.org/software/make/manual/html_node/Special-Targets.html
->>
->> I think .SECONDARY might be a better choice? Does that solve the problem
->> you're seeing?
-> 
-> Technically .SECONDARY is better - however it doesn't seem to work.
+On Thu, Apr 4, 2013 at 6:49 PM, Peter Zijlstra <peterz@infradead.org> wrote:
+> On Thu, 2013-04-04 at 15:31 +0200, Daniel Vetter wrote:
+>> We've discussed this approach of using (rt-prio, age) instead of just
+>> age
+>> to determine the the "oldness" of a task for deadlock-breaking with
+>> -EAGAIN. The problem is that through PI boosting or normal rt-prio
+>> changes
+>> while tasks are trying to acquire ww_mutexes you can create acyclic
+>> loops
+>> in the blocked-on graph of ww_mutexes after the fact and so cause
+>> deadlocks. So we've convinced ourselves that this approche doesn't
+>> work.
+>
+> Could you pretty please draw me a picture, I'm having trouble seeing
+> what you mean.
+>
+> AFAICT as long as you boost Y while its the lock owner things should
+> work out, no?
 
-Hmmm. It does for me.
+So this one here took a bit of pondering. But I think you'll like the
+conclusion.
 
-$ make --version
-GNU Make 3.81
+Now the deadlock detection works because it impose a dag onto all
+lockers which clearly denotes who'll wait and who will get wounded.
+The problem with using (rt_prio, ww_age/ticket) instead of just the
+ticket si that it's ambigous in the face of PI boosting. E.g.
+- rt_prio of A > rt_prio of B, but
+- task A is younger than task B
 
-I hacked the ARM makefiles as follows:
+Before boosting task A wins, but after boosting (when only the age
+matters) task B wins, since it's now older. So now when B comes around
+and tries to grab a lock A currently holds, it'll also block.
 
-diff --git a/arch/arm/Makefile b/arch/arm/Makefile
-index 4737408..70247c6 100644
---- a/arch/arm/Makefile
-+++ b/arch/arm/Makefile
-@@ -256,6 +256,7 @@ core-y                              +=
-arch/arm/kernel/ arch/arm/mm/ arch/arm/common/
- core-y                         += arch/arm/net/
- core-y                         += arch/arm/crypto/
- core-y                         += $(machdirs) $(platdirs)
-+core-y                         += arch/arm/boot/dts/
+Now the cool thing with TASK_KILLABLE (hey, I start to appreciate it,
+bear with me!) is that this is no problem - it limits the length of
+any chain of blocked tasks to just one link of blocked tasks:
+- If the length is currently one it cannot be extended - the blocked
+task will set the PF_GTFO flag on the current holder, and since that
+would be checked before blocking on another ww_mutex the chain can't
+grow past one blocked task.
+- If the current holder itself is blocked on another ww_mutex it'll be
+in TASK_DEADLOCK state and get woken up.
 
- drivers-$(CONFIG_OPROFILE)      += arch/arm/oprofile/
+In both case the current holder of the lock will either continue with
+what it's been doing (PI-boosted ofc) until it unlocks everything or
+hits the PF_GTFO check and backs off from all currently held locks. RT
+mission accomplished I think since the wait time for the highest-prio
+task for grabbing a lock is bounded by the lock hold time for the
+completely uncontended case. And within a given rt-prio the normal
+wait/wound algorithm will resolve conflicts (and ensure forward
+progress).
 
-diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
-index dedca49..af2202e 100644
---- a/arch/arm/boot/dts/Makefile
-+++ b/arch/arm/boot/dts/Makefile
-@@ -197,3 +197,5 @@ dtbs: $(addprefix $(obj)/, $(dtb-y))
-        $(Q)rm -f $(obj)/../*.dtb
+So I'm now rather convinced that with the TASK_DEADLOCK implementation
+we can make (rt_prio, age) lock ordering work. But it's not an
+artifact of consistent PI boosting (I've raced down that alley first
+trying to prove it to no avail), but the fact that lock holder kicking
+through PF_GTFO naturally limits blocked task chains on ww_mutexes to
+just one link. That in turn makes any post-PI-boosted considerations
+moot and so can't result in havoc due to a PI-boost having flipped an
+edge in the lock_er_ ordering DAG (we sort tasks with wait/wound, not
+locks, hence it's not a lock ordering DAG).
 
- clean-files := *.dtb
-+
-+obj-y += tegra20-test.dtb.o
-
-and manually created a tegra20-test.dts. For reasons I didn't bother
-investigating, the .dtb.S -> .dtb.o conversion failed with syntax
-errors, and because the .dtb.S file was an intermediate file, make rm's
-it in this case. That's exactly the issue you're seeing.
-
-I then added the following to Makefile.lib:
-
-diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
-index a0ab6d7..fc11a67 100644
---- a/scripts/Makefile.lib
-+++ b/scripts/Makefile.lib
-@@ -258,6 +258,8 @@ cmd_dt_S_dtb=
-        \
-        echo '.balign STRUCT_ALIGNMENT';                \
- ) > $@
-
-+.SECONDARY: $(obj)/%.dtb.S
-+
- $(obj)/%.dtb.S: $(obj)/%.dtb
-        $(call cmd,dt_S_dtb)
-
-and no longer see make rm'ing the .dtb.S file. So, the .SECONDARY is
-behaving as expected, and should fix your problem.
-
-One other problem this highlighted: Unless you also mark the generated
-.dtb file as PRECIOUS/SECONDARY (or unless that DTB is included in
-targets for some reason) then make also rm's that, since it considers it
-intermediate:
-
-  DTC     arch/arm/boot/dts/tegra20-test.dtb
-  DTB    arch/arm/boot/dts/tegra20-test.dtb.S
-  AS      arch/arm/boot/dts/tegra20-test.dtb.o
-[error]
-rm arch/arm/boot/dts/tegra20-test.dtb
-
-So, your patch would probably need modification to apply the fix to
-*.dtb too, since they might also be intermediate?
-
-Perhaps add something like the following to arch/arc/boot/dts/Makefile?
-
-.SECONDARY: $(obj)/$(builtindtb-y).dtb
-
-> Running make with various debug toggles doesn't seem to be helping with why
-> .PRECIOUS works but not this.
-> That is also likely reason for a bunch of other .PRECIOUS entries in the same file
-> but no .SECONDARY.
-
-The existing .PRECIOUS exist to support lexer/yacc files, for which both
-the source .l/.y files are checked in, and the generated
-%.lex.c_shipped/%.tab.[cl]_shipped are also checked in. In this case,
-the "_shipped" files must be marked PRECIOUS, since they're under source
-control and hence should never be deleted. I don't believ this same
-situation applies to the .dtb.S files you're having problems with, so I
-don't think .PRECIOUS is correct for them.
+Please poke holes into this argument, I've probably missed a sublety
+somewhere ...
+-Daniel
+--
+Daniel Vetter
+Software Engineer, Intel Corporation
++41 (0) 79 365 57 48 - http://blog.ffwll.ch
