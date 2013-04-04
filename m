@@ -1,8 +1,8 @@
 From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH v2 2/3] mutex: add support for reservation style locks,
  v2
-Date: Thu, 04 Apr 2013 18:33:00 +0200
-Message-ID: <1365093180.2609.103.camel@laptop>
+Date: Thu, 04 Apr 2013 18:38:36 +0200
+Message-ID: <1365093516.2609.109.camel@laptop>
 References: <20130228102452.15191.22673.stgit@patser>
 	 <20130228102502.15191.14146.stgit@patser>
 	 <1364900432.18374.24.camel@laptop> <515AF1C1.7080508@canonical.com>
@@ -19,45 +19,24 @@ Cc: Maarten Lankhorst <maarten.lankhorst@canonical.com>, linux-arch@vger.kernel.
 List-Id: linux-arch.vger.kernel.org
 
 On Thu, 2013-04-04 at 15:31 +0200, Daniel Vetter wrote:
-> We do add some form of owner tracking by storing the reservation
-> ticket
-> of the current holder into every ww_mutex. So when task-Y in your
-> above
-> example tries to acquire lock A it notices that it's behind in the
-> global
-> queue and immedieately returns -EAGAIN to indicate the deadlock.
-> 
-> Aside, there's a bit of fun in that ttm uses -EDEADLCK for when you
-> try to
-> reserve the same buffer twice - it can easily detect that by comparing
-> the
-> lock owner ticket with the provided one and if it matches bail out. 
+> Hm, I guess your aim with the TASK_DEADLOCK wakeup is to bound the
+> wait
+> times of older task.
 
-Sure, but this should bear no influence on the design of the mutex
-primitive. At most we should ensure this situation is recognizable.
+No, imagine the following:
 
-> Hence we've kept the special -EDEADLCK semantics even for the ww_mutex
-> stuff.
+struct ww_mutex A, B;
+struct mutex C;
 
-There's EDEADLK and EDEADLOCK, EDEADLCK does alas not exist :-)
+	task-O	task-Y	task-X
+	  	A
+		B
+			C
+		C
+	B
 
-> > Now this gets a little more interesting if we change the scenario a
-> > little:
-> > 
-> >       task-O  task-Y
-> >         A
-> >               B
-> >         B <-- blocks on Y
-> >               * <-- could be A
-> 
-> The current code at least simple blocks task-O on B until task-Y
-> unlocks
-> B. Deadlocks cannot happen since if task-Y ever tries to acquire a
-> lock
-> which is held by an older task (e.g. lock A) it will bail out with
-> -EAGAIN.
-
-Agreed, O would have to wait until Y unlocks B. It was a 'detail' I
-skimped over for the sake of brevity. I was merely trying to illustrate
-the ways in which we must bring Y to return -EDEADLK (or -EAGAIN in
-your version).
+At this point O finds that Y owns B and thus we want to make Y 'yield'
+B to make allow B progress. Since Y is blocked, we'll send a wakeup.
+However Y is blocked on a different locking primitive; one that doesn't
+collaborate in the -EDEADLK scheme therefore we don't want the wakeup to
+succeed.
