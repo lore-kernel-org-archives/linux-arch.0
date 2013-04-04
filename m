@@ -1,47 +1,142 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine02.qualcomm.com ([199.106.114.251]:33319 "EHLO
-	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1763464Ab3DDQ7R (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Apr 2013 12:59:17 -0400
-Message-ID: <515DB152.603@codeaurora.org>
-Date: Thu, 04 Apr 2013 11:58:58 -0500
-From: Richard Kuo <rkuo@codeaurora.org>
+Received: from avon.wwwdotorg.org ([70.85.31.133]:47500 "EHLO
+	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1763995Ab3DDRgR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Apr 2013 13:36:17 -0400
+Message-ID: <515DBA0E.6000604@wwwdotorg.org>
+Date: Thu, 04 Apr 2013 11:36:14 -0600
+From: Stephen Warren <swarren@wwwdotorg.org>
 MIME-Version: 1.0
-Subject: Re: [PATCH 4/6] Hexagon: check to if we will overflow the signal
- stack
-References: <1365033776-21804-1-git-send-email-rkuo@codeaurora.org> <1365033776-21804-5-git-send-email-rkuo@codeaurora.org> <CAHrUA37oTkv-x5f4zZVwqjWAqvyMdwXAokw1EDBHiGv8ozWxVQ@mail.gmail.com>
-In-Reply-To: <CAHrUA37oTkv-x5f4zZVwqjWAqvyMdwXAokw1EDBHiGv8ozWxVQ@mail.gmail.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
+Subject: Re: [PATCH] Kbuild: Avoid DTB rebuilds if source files are untouched
+References: <1364973141-16354-1-git-send-email-vgupta@synopsys.com> <515BD6B8.1020607@synopsys.com> <515C5652.8070705@wwwdotorg.org> <515D0FFB.4030803@synopsys.com>
+In-Reply-To: <515D0FFB.4030803@synopsys.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linasvepstas@gmail.com
-Cc: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, viro@zeniv.linux.org.uk
-Message-ID: <20130404165858.loweBpa7jzClb0-ztm0daBuXQvBYT9ai94Te4QMMPKs@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, Michal Marek <mmarek@suse.cz>, Stephen Warren <swarren@nvidia.com>, Grant Likely <grant.likely@secretlab.ca>, linux-kbuild@vger.kernel.org
+Message-ID: <20130404173614.QgpsYUvLD-oLo_dV3vcVkje20_GSJp_Rs2oCmOXtYSU@z>
 
-On 04/04/2013 11:25 AM, Linas Vepstas wrote:
-> On 3 April 2013 19:02, Richard Kuo <rkuo@codeaurora.org> wrote:
->
->> +       /* check if we would overflow the alt stack */
->> +       if (on_sig_stack(sp) && !likely(on_sig_stack(sp - frame_size)))
->> +               return (void __user __force *)-1UL;
-> I found the !likely construction confusing, as its doing both a
-> 'unlikely' (right?) and inverting the argument. It seems clearer,
-> to idiots like me, to write this as:
->
-> if (on_sig_stack(sp) && unlikely(!on_sig_stack(sp - frame_size)))
->
-> since where checking for overflow, and its unlikely that the overflow happened.
->
-> -- Linas
+On 04/03/2013 11:30 PM, Vineet Gupta wrote:
+> On 04/03/2013 09:48 PM, Stephen Warren wrote:
+>> On 04/03/2013 01:14 AM, Vineet Gupta wrote:
+>>> forgot to CC linux-arch
+>>>
+>>> On 04/03/2013 12:42 PM, Vineet Gupta wrote:
+>>>> Currently, for every ARC kernel build I see the following:
+>>>>
+>>>> --------------->8-----------------
+>>>>   DTB    arch/arc/boot/dts/angel4.dtb.S
+>>>>   AS      arch/arc/boot/dts/angel4.dtb.o
+>>>>   LD      arch/arc/boot/dts/built-in.o
+>>>> rm arch/arc/boot/dts/angel4.dtb.S        <-- forces rebuild next iter
+>>>>   CHK     kernel/config_data.h
+>>>> --------------->8-----------------
+>> I assume that's because the file is an intermediate file, and only built
+>> due to a chain of build rules, and hence make clean it up itself after
+>> the build?
+> 
+> Indeed - I should have made that explicit in the Changelog.
+> 
+>>>> +.PRECIOUS: $(obj)/%.dtb.S
+>>>> +
+>>>>  $(obj)/%.dtb.S: $(obj)/%.dtb
+>>>>  	$(call cmd,dt_S_dtb)
+>> I'm not sure if .PRECIOUS is correct here. That prevents make from
+>> deleting the file if make is CTRL-C'd in the middle of generating it.
+>> Couldn't that leave a stale/corrupt file around that'd break the build.
+>> Judging by:
+>>
+>> http://www.gnu.org/software/make/manual/html_node/Special-Targets.html
+>>
+>> I think .SECONDARY might be a better choice? Does that solve the problem
+>> you're seeing?
+> 
+> Technically .SECONDARY is better - however it doesn't seem to work.
 
-I'm not sure if putting a double negative in there will make it less not 
-easy to understand...
+Hmmm. It does for me.
 
+$ make --version
+GNU Make 3.81
 
--- 
+I hacked the ARM makefiles as follows:
 
-Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum,
-hosted by The Linux Foundation
+diff --git a/arch/arm/Makefile b/arch/arm/Makefile
+index 4737408..70247c6 100644
+--- a/arch/arm/Makefile
++++ b/arch/arm/Makefile
+@@ -256,6 +256,7 @@ core-y                              +=
+arch/arm/kernel/ arch/arm/mm/ arch/arm/common/
+ core-y                         += arch/arm/net/
+ core-y                         += arch/arm/crypto/
+ core-y                         += $(machdirs) $(platdirs)
++core-y                         += arch/arm/boot/dts/
 
+ drivers-$(CONFIG_OPROFILE)      += arch/arm/oprofile/
+
+diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
+index dedca49..af2202e 100644
+--- a/arch/arm/boot/dts/Makefile
++++ b/arch/arm/boot/dts/Makefile
+@@ -197,3 +197,5 @@ dtbs: $(addprefix $(obj)/, $(dtb-y))
+        $(Q)rm -f $(obj)/../*.dtb
+
+ clean-files := *.dtb
++
++obj-y += tegra20-test.dtb.o
+
+and manually created a tegra20-test.dts. For reasons I didn't bother
+investigating, the .dtb.S -> .dtb.o conversion failed with syntax
+errors, and because the .dtb.S file was an intermediate file, make rm's
+it in this case. That's exactly the issue you're seeing.
+
+I then added the following to Makefile.lib:
+
+diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+index a0ab6d7..fc11a67 100644
+--- a/scripts/Makefile.lib
++++ b/scripts/Makefile.lib
+@@ -258,6 +258,8 @@ cmd_dt_S_dtb=
+        \
+        echo '.balign STRUCT_ALIGNMENT';                \
+ ) > $@
+
++.SECONDARY: $(obj)/%.dtb.S
++
+ $(obj)/%.dtb.S: $(obj)/%.dtb
+        $(call cmd,dt_S_dtb)
+
+and no longer see make rm'ing the .dtb.S file. So, the .SECONDARY is
+behaving as expected, and should fix your problem.
+
+One other problem this highlighted: Unless you also mark the generated
+.dtb file as PRECIOUS/SECONDARY (or unless that DTB is included in
+targets for some reason) then make also rm's that, since it considers it
+intermediate:
+
+  DTC     arch/arm/boot/dts/tegra20-test.dtb
+  DTB    arch/arm/boot/dts/tegra20-test.dtb.S
+  AS      arch/arm/boot/dts/tegra20-test.dtb.o
+[error]
+rm arch/arm/boot/dts/tegra20-test.dtb
+
+So, your patch would probably need modification to apply the fix to
+*.dtb too, since they might also be intermediate?
+
+Perhaps add something like the following to arch/arc/boot/dts/Makefile?
+
+.SECONDARY: $(obj)/$(builtindtb-y).dtb
+
+> Running make with various debug toggles doesn't seem to be helping with why
+> .PRECIOUS works but not this.
+> That is also likely reason for a bunch of other .PRECIOUS entries in the same file
+> but no .SECONDARY.
+
+The existing .PRECIOUS exist to support lexer/yacc files, for which both
+the source .l/.y files are checked in, and the generated
+%.lex.c_shipped/%.tab.[cl]_shipped are also checked in. In this case,
+the "_shipped" files must be marked PRECIOUS, since they're under source
+control and hence should never be deleted. I don't believ this same
+situation applies to the .dtb.S files you're having problems with, so I
+don't think .PRECIOUS is correct for them.
