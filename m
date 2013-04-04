@@ -1,61 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine02.qualcomm.com ([199.106.114.251]:4834 "EHLO
-	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758014Ab3DDADR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Apr 2013 20:03:17 -0400
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:22864 "EHLO
+	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932439Ab3DDADV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Apr 2013 20:03:21 -0400
 From: Richard Kuo <rkuo@codeaurora.org>
-Subject: [PATCH 0/6] Hexagon: various signal and return path cleanups
-Date: Wed,  3 Apr 2013 19:02:50 -0500
-Message-ID: <1365033776-21804-1-git-send-email-rkuo@codeaurora.org>
+Subject: [PATCH 3/6] Hexagon: use correct work mask when checking for more work
+Date: Wed,  3 Apr 2013 19:02:53 -0500
+Message-ID: <1365033776-21804-4-git-send-email-rkuo@codeaurora.org>
+In-Reply-To: <1365033776-21804-1-git-send-email-rkuo@codeaurora.org>
+References: <1365033776-21804-1-git-send-email-rkuo@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, viro@ZenIV.linux.org.uk
 Cc: Richard Kuo <rkuo@codeaurora.org>
-Message-ID: <20130404000250.zIHb-Cl0dd8srlXG7bwdgsdkuPMJrRRFYBGgTzBSCzw@z>
+Message-ID: <20130404000253.i7puloKCcyuxS41UXNAUeVrxv771cPjZf1VXv011-lM@z>
 
-The following patches clean up various issues with the signal and return
-path parts of the Hexagon arch port, which were pointed out by Al Viro:
+Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
+---
+ arch/hexagon/kernel/process.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-https://lkml.org/lkml/2012/2/11/128
-
-The work pending check was moved into a C routine to make it more
-readable and to make sure we repeat the check when necessary.  Also, various
-arguments and return values for signal handling should now be fixed.
-
-The patches can also be viewed in the context of my next batch of cleanups
-at my repo:
-
-git://git.kernel.org/pub/scm/linux/kernel/git/rkuo/linux-hexagon-kernel.git
-
-
-Any feedback is appreciated.
-
-
-Thanks,
-Richard Kuo
-
-
-
-
-Richard Kuo (6):
-  Hexagon: Signal and return path fixes
-  Hexagon: fix up int enable/disable at ret_from_fork
-  Hexagon: use correct work mask when checking for more work
-  Hexagon: check to if we will overflow the signal stack
-  Hexagon: break up user fn/arg register setting
-  Hexagon: fix psp/sp macro
-
- arch/hexagon/include/uapi/asm/registers.h |    3 +-
- arch/hexagon/include/uapi/asm/signal.h    |    2 +
- arch/hexagon/kernel/process.c             |   44 ++++++++++++-
- arch/hexagon/kernel/signal.c              |   33 +++-------
- arch/hexagon/kernel/traps.c               |   13 +---
- arch/hexagon/kernel/vm_entry.S            |   96 +++++++++++++----------------
- 6 files changed, 100 insertions(+), 91 deletions(-)
-
+diff --git a/arch/hexagon/kernel/process.c b/arch/hexagon/kernel/process.c
+index dc72ed5..8e90b0c 100644
+--- a/arch/hexagon/kernel/process.c
++++ b/arch/hexagon/kernel/process.c
+@@ -215,7 +215,7 @@ int dump_fpu(struct pt_regs *regs, elf_fpregset_t *fpu)
+ 
+ int do_work_pending(struct pt_regs *regs, u32 thread_info_flags)
+ {
+-	if (!(thread_info_flags & _TIF_ALLWORK_MASK)) {
++	if (!(thread_info_flags & _TIF_WORK_MASK)) {
+ 		return 0;
+ 	}  /* shortcut -- no work to be done */
+ 
 -- 
 1.7.9.5
-
 
 --
 
