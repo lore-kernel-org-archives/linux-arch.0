@@ -1,8 +1,8 @@
 From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH v2 2/3] mutex: add support for reservation style locks,
  v2
-Date: Thu, 04 Apr 2013 18:39:44 +0200
-Message-ID: <1365093584.2609.110.camel@laptop>
+Date: Thu, 04 Apr 2013 18:41:02 +0200
+Message-ID: <1365093662.2609.111.camel@laptop>
 References: <20130228102452.15191.22673.stgit@patser>
 	 <20130228102502.15191.14146.stgit@patser>
 	 <1364900432.18374.24.camel@laptop> <515AF1C1.7080508@canonical.com>
@@ -11,20 +11,24 @@ References: <20130228102452.15191.22673.stgit@patser>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-media-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20130404133123.GW2228@phenom.ffwll.local>
-Sender: linux-media-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: Daniel Vetter <daniel@ffwll.ch>
 Cc: Maarten Lankhorst <maarten.lankhorst@canonical.com>, linux-arch@vger.kernel.org, daniel.vetter@ffwll.ch, x86@kernel.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robclark@gmail.com, tglx@linutronix.de, mingo@elte.hu, linux-media@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 On Thu, 2013-04-04 at 15:31 +0200, Daniel Vetter wrote:
-> The trick with the current code is that the oldest task
-> will never see an -EAGAIN ever and hence is guaranteed to make forward
-> progress. If the task is really unlucky though it might be forced to
-> wait
-> for a younger task for every ww_mutex it tries to acquire.
+> The thing is now that you're not expected to hold these locks for a
+> long
+> time - if you need to synchronously stall while holding a lock
+> performance
+> will go down the gutters anyway. And since most current
+> gpus/co-processors
+> still can't really preempt fairness isn't that high a priority,
+> either.
+> So we didn't think too much about that.
 
-Agreed on that.. while I didn't state this my proposed thing should
-behave the same. It follows from the symmetry breaking in that only
-younger tasks can get 'kill'ed.
+Yeah but you're proposing a new synchronization primitive for the core
+kernel.. all such 'fun' details need to be considered, not only those
+few that bear on the one usecase.
