@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:53979 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1763369Ab3DDQnS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Apr 2013 12:43:18 -0400
+Received: from 173-166-109-252-newengland.hfc.comcastbusiness.net ([173.166.109.252]:52458
+	"EHLO bombadil.infradead.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1763183Ab3DDQqR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Apr 2013 12:46:17 -0400
 Received: from dhcp-089-099-019-018.chello.nl ([89.99.19.18] helo=dyad.programming.kicks-ass.net)
-	by merlin.infradead.org with esmtpsa (Exim 4.80.1 #2 (Red Hat Linux))
-	id 1UNnFt-0006bE-Sx
-	for linux-arch@vger.kernel.org; Thu, 04 Apr 2013 16:43:18 +0000
-Message-ID: <1365093786.2609.113.camel@laptop>
+	by bombadil.infradead.org with esmtpsa (Exim 4.80.1 #2 (Red Hat Linux))
+	id 1UNnIm-0007CF-NJ
+	for linux-arch@vger.kernel.org; Thu, 04 Apr 2013 16:46:17 +0000
+Message-ID: <1365093965.2609.116.camel@laptop>
 Subject: Re: [PATCH v2 2/3] mutex: add support for reservation style locks,
  v2
 From: Peter Zijlstra <peterz@infradead.org>
-Date: Thu, 04 Apr 2013 18:43:06 +0200
+Date: Thu, 04 Apr 2013 18:46:05 +0200
 In-Reply-To: <20130404133123.GW2228@phenom.ffwll.local>
 References: <20130228102452.15191.22673.stgit@patser>
 	 <20130228102502.15191.14146.stgit@patser>
@@ -25,17 +25,27 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Daniel Vetter <daniel@ffwll.ch>
 Cc: Maarten Lankhorst <maarten.lankhorst@canonical.com>, linux-arch@vger.kernel.org, daniel.vetter@ffwll.ch, x86@kernel.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robclark@gmail.com, tglx@linutronix.de, mingo@elte.hu, linux-media@vger.kernel.org
-Message-ID: <20130404164306.R9wUs6UP0JPzkACI-qPgQFlKHCc9_gCo-7D_GyFWtMU@z>
+Message-ID: <20130404164605.icR6QMJngHoMADDUT5SHC6AZKhG7Dq0yqUgpGe-GPMw@z>
 
 On Thu, 2013-04-04 at 15:31 +0200, Daniel Vetter wrote:
-> Another big reason for having a start/end marker like you've describe
-> is
-> lockdep support.
+> I'm a bit confused about the different classes you're talking about.
+> Since
+> the ticket queue is currently a global counter there's only one class
+> of
+> ww_mutexes. 
 
-Yeah, I saw how you did that.. but there's other ways of making it work
-too, you could for instance create a new validation state for this type
-of lock.
+Right, so that's not something that's going to fly.. we need to support
+multiple users, including nesting of those. Again, you're adding
+something to the generic kernel infrastructure, it had better be usable
+:-)
 
-That said, I didn't consider lockdep too much, I first want the regular
-semantics clear.
+> I guess we could change that once a second user shows up
+
+No, we fix that before it all goes in. I would _so_ hate to find out it
+cannot be 'fixed' and be stuck with a half-arsed sync primitive in the
+core kernel that's only every usable by the one existent user.
+
+So for now, forget all about TTM, DMA-BUF and other such coolness
+except to verify that whatever we end up with does indeed work for the
+case you need it for ;-)
 
