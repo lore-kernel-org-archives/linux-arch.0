@@ -1,60 +1,50 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH] Kbuild: Avoid DTB rebuilds if source files are untouched
-Date: Thu, 4 Apr 2013 11:00:35 +0530
-Message-ID: <515D0FFB.4030803@synopsys.com>
-References: <1364973141-16354-1-git-send-email-vgupta@synopsys.com> <515BD6B8.1020607@synopsys.com> <515C5652.8070705@wwwdotorg.org>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [PATCH 3/7] dump_stack: consolidate dump_stack()
+ implementations and unify their behaviors
+Date: Thu, 4 Apr 2013 09:13:09 +0200
+Message-ID: <20130404091309.5c9da9d3@mschwide>
+References: <1365016497-32033-1-git-send-email-tj@kernel.org>
+	<1365016497-32033-4-git-send-email-tj@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <515C5652.8070705@wwwdotorg.org>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Stephen Warren <swarren@wwwdotorg.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, Michal Marek <mmarek@suse.cz>, Stephen Warren <swarren@nvidia.com>, Grant Likely <grant.likely@secretlab.ca>, linux-kbuild@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e06smtp14.uk.ibm.com ([195.75.94.110]:46254 "EHLO
+	e06smtp14.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1763346Ab3DDHN0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Apr 2013 03:13:26 -0400
+Received: from /spool/local
+	by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
+	Thu, 4 Apr 2013 08:08:54 +0100
+In-Reply-To: <1365016497-32033-4-git-send-email-tj@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Tejun Heo <tj@kernel.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@redhat.com, x86@kernel.org, rth@twiddle.net, linux@arm.linux.org.uk, msalter@redhat.com, starvik@axis.com, dhowells@redhat.com, tony.luck@intel.com, benh@kernel.crashing.org, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, jonas@southpole.se, rkuo@codeaurora.org, liqin.chen@sunplusct.com, davem@davemloft.net, lethal@linux-sh.org, vgupta@synopsys.com, chris@zankel.net, cmetcalf@tilera.com, ysato@users.sourceforge.jp, gxt@mprc.pku.edu.cn, jdike@addtoit.com, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>, uclinux-dist-devel@blackfin.uclinux.org, Fengguang Wu <fengguang.wu@intel.com>
 
-On 04/03/2013 09:48 PM, Stephen Warren wrote:
-> On 04/03/2013 01:14 AM, Vineet Gupta wrote:
->> forgot to CC linux-arch
->>
->> On 04/03/2013 12:42 PM, Vineet Gupta wrote:
->>> Currently, for every ARC kernel build I see the following:
->>>
->>> --------------->8-----------------
->>>   DTB    arch/arc/boot/dts/angel4.dtb.S
->>>   AS      arch/arc/boot/dts/angel4.dtb.o
->>>   LD      arch/arc/boot/dts/built-in.o
->>> rm arch/arc/boot/dts/angel4.dtb.S        <-- forces rebuild next iter
->>>   CHK     kernel/config_data.h
->>> --------------->8-----------------
-> I assume that's because the file is an intermediate file, and only built
-> due to a chain of build rules, and hence make clean it up itself after
-> the build?
+On Wed,  3 Apr 2013 12:14:53 -0700
+Tejun Heo <tj@kernel.org> wrote:
 
-Indeed - I should have made that explicit in the Changelog.
+> v2: CPU number added to the generic debug info as requested by s390
+>     folks and dropped the s390 specific dump_stack().  This loses %ksp
+>     from the debug message which the maintainers think isn't important
+>     enough to keep the s390-specific dump_stack() implementation.
+> 
+>     dump_stack_print_info() is moved to kernel/printk.c from
+>     lib/dump_stack.c.  Because linkage is per objecct file,
+>     dump_stack_print_info() living in the same lib file as generic
+>     dump_stack() means that archs which implement custom dump_stack()
+>     - at this point, only blackfin - can't use dump_stack_print_info()
+>     as that will bring in the generic version of dump_stack() too.  v1
+>     The v1 patch broke build on blackfin due to this issue.  The build
+>     breakage was reported by Fengguang Wu.
 
->>> +.PRECIOUS: $(obj)/%.dtb.S
->>> +
->>>  $(obj)/%.dtb.S: $(obj)/%.dtb
->>>  	$(call cmd,dt_S_dtb)
-> I'm not sure if .PRECIOUS is correct here. That prevents make from
-> deleting the file if make is CTRL-C'd in the middle of generating it.
-> Couldn't that leave a stale/corrupt file around that'd break the build.
-> Judging by:
->
-> http://www.gnu.org/software/make/manual/html_node/Special-Targets.html
->
-> I think .SECONDARY might be a better choice? Does that solve the problem
-> you're seeing?
+For the s390 changes:
+Acked-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
 
-Technically .SECONDARY is better - however it doesn't seem to work.
-Running make with various debug toggles doesn't seem to be helping with why
-.PRECIOUS works but not this.
-That is also likely reason for a bunch of other .PRECIOUS entries in the same file
-but no .SECONDARY.
+-- 
+blue skies,
+   Martin.
 
-I presume this is something not specific to ARC kernel or my host.
-Can you try the .SECONDARY locally to see if it works for you.
-
-Thx,
--Vineet
+"Reality continues to ruin my life." - Calvin.
