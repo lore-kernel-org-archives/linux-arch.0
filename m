@@ -1,38 +1,35 @@
 From: Richard Kuo <rkuo@codeaurora.org>
-Subject: [PATCH 5/6] Hexagon: break up user fn/arg register setting
-Date: Wed,  3 Apr 2013 19:02:55 -0500
-Message-ID: <1365033776-21804-6-git-send-email-rkuo@codeaurora.org>
+Subject: [PATCH 4/6] Hexagon: check to if we will overflow the signal stack
+Date: Wed,  3 Apr 2013 19:02:54 -0500
+Message-ID: <1365033776-21804-5-git-send-email-rkuo@codeaurora.org>
 References: <1365033776-21804-1-git-send-email-rkuo@codeaurora.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine02.qualcomm.com ([199.106.114.251]:4834 "EHLO
-	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758014Ab3DDADT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Apr 2013 20:03:19 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1365033776-21804-1-git-send-email-rkuo@codeaurora.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, viro@ZenIV.linux.org.uk
 Cc: Richard Kuo <rkuo@codeaurora.org>
+List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
 ---
- arch/hexagon/kernel/process.c |    3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ arch/hexagon/kernel/signal.c |    4 ++++
+ 1 file changed, 4 insertions(+)
 
-diff --git a/arch/hexagon/kernel/process.c b/arch/hexagon/kernel/process.c
-index 8e90b0c..2009377 100644
---- a/arch/hexagon/kernel/process.c
-+++ b/arch/hexagon/kernel/process.c
-@@ -113,7 +113,8 @@ int copy_thread(unsigned long clone_flags, unsigned long usp,
- 	if (unlikely(p->flags & PF_KTHREAD)) {
- 		memset(childregs, 0, sizeof(struct pt_regs));
- 		/* r24 <- fn, r25 <- arg */
--		ss->r2524 = usp | ((u64)arg << 32);
-+		ss->r24 = usp;
-+		ss->r25 = arg;
- 		pt_set_kmode(childregs);
- 		return 0;
- 	}
+diff --git a/arch/hexagon/kernel/signal.c b/arch/hexagon/kernel/signal.c
+index 8a20e8e..097623c 100644
+--- a/arch/hexagon/kernel/signal.c
++++ b/arch/hexagon/kernel/signal.c
+@@ -41,6 +41,10 @@ static void __user *get_sigframe(struct k_sigaction *ka, struct pt_regs *regs,
+ {
+ 	unsigned long sp = regs->r29;
+ 
++	/* check if we would overflow the alt stack */
++	if (on_sig_stack(sp) && !likely(on_sig_stack(sp - frame_size)))
++		return (void __user __force *)-1UL;
++
+ 	/* Switch to signal stack if appropriate */
+ 	if ((ka->sa.sa_flags & SA_ONSTACK) && (sas_ss_flags(sp) == 0))
+ 		sp = current->sas_ss_sp + current->sas_ss_size;
 -- 
 1.7.9.5
 
