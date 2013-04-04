@@ -1,8 +1,8 @@
 From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH v2 2/3] mutex: add support for reservation style locks,
  v2
-Date: Thu, 04 Apr 2013 18:49:18 +0200
-Message-ID: <1365094158.2609.119.camel@laptop>
+Date: Thu, 04 Apr 2013 18:54:36 +0200
+Message-ID: <1365094476.2609.123.camel@laptop>
 References: <20130228102452.15191.22673.stgit@patser>
 	 <20130228102502.15191.14146.stgit@patser>
 	 <1364900432.18374.24.camel@laptop> <515AF1C1.7080508@canonical.com>
@@ -19,19 +19,24 @@ Cc: Maarten Lankhorst <maarten.lankhorst@canonical.com>, linux-arch@vger.kernel.
 List-Id: linux-arch.vger.kernel.org
 
 On Thu, 2013-04-04 at 15:31 +0200, Daniel Vetter wrote:
-> We've discussed this approach of using (rt-prio, age) instead of just
-> age
-> to determine the the "oldness" of a task for deadlock-breaking with
-> -EAGAIN. The problem is that through PI boosting or normal rt-prio
-> changes
-> while tasks are trying to acquire ww_mutexes you can create acyclic
-> loops
-> in the blocked-on graph of ww_mutexes after the fact and so cause
-> deadlocks. So we've convinced ourselves that this approche doesn't
-> work.
+> Well, it was a good read and I'm rather happy that we agree on the
+> ww_ctx
+> thing (whatever it's called in the end), even though we have slightly
+> different reasons for it.
 
-Could you pretty please draw me a picture, I'm having trouble seeing
-what you mean.
+Yeah, I tried various weirdness to get out from under it, but the whole
+progress/fairness thing made it rather hard. Ideally you'd be able to
+use some existing scheduler state since its the same goal, but the
+whole wakeup-retry muck makes that hard.
 
-AFAICT as long as you boost Y while its the lock owner things should
-work out, no?
+> I don't really have a useful idea to make the retry handling for users
+> more rusty-compliant though, and I'm still unhappy with all current
+> naming
+> proposals ;-)
+
+Ah, naming,.. yeah I'm not too terribly attached to most of them. I
+just want to avoid something that's reasonably well known to mean
+something different.
+
+Furthermore, since we use the wound/wait symmetry breaking it would
+make sense for that to appear somewhere in the name.
