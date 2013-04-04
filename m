@@ -1,7 +1,7 @@
 From: Richard Kuo <rkuo@codeaurora.org>
-Subject: [PATCH 3/6] Hexagon: use correct work mask when checking for more work
-Date: Wed,  3 Apr 2013 19:02:53 -0500
-Message-ID: <1365033776-21804-4-git-send-email-rkuo@codeaurora.org>
+Subject: [PATCH 2/6] Hexagon: fix up int enable/disable at ret_from_fork
+Date: Wed,  3 Apr 2013 19:02:52 -0500
+Message-ID: <1365033776-21804-3-git-send-email-rkuo@codeaurora.org>
 References: <1365033776-21804-1-git-send-email-rkuo@codeaurora.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1365033776-21804-1-git-send-email-rkuo@codeaurora.org>
@@ -10,24 +10,42 @@ To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger
 Cc: Richard Kuo <rkuo@codeaurora.org>
 List-Id: linux-arch.vger.kernel.org
 
+Check return coming out of check_work_pending, and if copy_thread
+passed us a function in r24, call it.  Based on feedback from Al
+Viro.
+
 Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
 ---
- arch/hexagon/kernel/process.c |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/hexagon/kernel/vm_entry.S |   13 +++++++++++--
+ 1 file changed, 11 insertions(+), 2 deletions(-)
 
-diff --git a/arch/hexagon/kernel/process.c b/arch/hexagon/kernel/process.c
-index dc72ed5..8e90b0c 100644
---- a/arch/hexagon/kernel/process.c
-+++ b/arch/hexagon/kernel/process.c
-@@ -215,7 +215,7 @@ int dump_fpu(struct pt_regs *regs, elf_fpregset_t *fpu)
- 
- int do_work_pending(struct pt_regs *regs, u32 thread_info_flags)
- {
--	if (!(thread_info_flags & _TIF_ALLWORK_MASK)) {
-+	if (!(thread_info_flags & _TIF_WORK_MASK)) {
- 		return 0;
- 	}  /* shortcut -- no work to be done */
- 
+diff --git a/arch/hexagon/kernel/vm_entry.S b/arch/hexagon/kernel/vm_entry.S
+index 053551e..0de8638 100644
+--- a/arch/hexagon/kernel/vm_entry.S
++++ b/arch/hexagon/kernel/vm_entry.S
+@@ -371,11 +371,20 @@ _K_enter_machcheck:
+ 	.globl ret_from_fork
+ ret_from_fork:
+ 	{
+-		call schedule_tail;
++		call schedule_tail
+ 		R16.H = #HI(do_work_pending);
+ 	}
+ 	{
++		P0 = cmp.eq(R24, #0);
+ 		R16.L = #LO(do_work_pending);
+ 		R0 = #VM_INT_DISABLE;
+-		jump check_work_pending;
++	}
++	if P0 jump check_work_pending
++	{
++		R0 = R25;
++		callr R24
++	}
++	{
++		jump check_work_pending
++		R0 = #VM_INT_DISABLE;
+ 	}
 -- 
 1.7.9.5
 
