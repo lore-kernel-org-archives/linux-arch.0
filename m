@@ -1,30 +1,63 @@
-From: Linas Vepstas <linasvepstas@gmail.com>
-Subject: Re: [PATCH 4/6] Hexagon: check to if we will overflow the signal stack
-Date: Thu, 4 Apr 2013 11:25:50 -0500
-Message-ID: <CAHrUA37oTkv-x5f4zZVwqjWAqvyMdwXAokw1EDBHiGv8ozWxVQ@mail.gmail.com>
-References: <1365033776-21804-1-git-send-email-rkuo@codeaurora.org> <1365033776-21804-5-git-send-email-rkuo@codeaurora.org>
-Reply-To: linasvepstas@gmail.com
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v2 2/3] mutex: add support for reservation style locks,
+ v2
+Date: Thu, 04 Apr 2013 18:33:00 +0200
+Message-ID: <1365093180.2609.103.camel@laptop>
+References: <20130228102452.15191.22673.stgit@patser>
+	 <20130228102502.15191.14146.stgit@patser>
+	 <1364900432.18374.24.camel@laptop> <515AF1C1.7080508@canonical.com>
+	 <1364921954.20640.22.camel@laptop> <1365076908.2609.94.camel@laptop>
+	 <20130404133123.GW2228@phenom.ffwll.local>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-hexagon-owner@vger.kernel.org>
-In-Reply-To: <1365033776-21804-5-git-send-email-rkuo@codeaurora.org>
-Sender: linux-hexagon-owner@vger.kernel.org
-To: Richard Kuo <rkuo@codeaurora.org>
-Cc: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, viro@zeniv.linux.org.uk
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-media-owner@vger.kernel.org>
+In-Reply-To: <20130404133123.GW2228@phenom.ffwll.local>
+Sender: linux-media-owner@vger.kernel.org
+To: Daniel Vetter <daniel@ffwll.ch>
+Cc: Maarten Lankhorst <maarten.lankhorst@canonical.com>, linux-arch@vger.kernel.org, daniel.vetter@ffwll.ch, x86@kernel.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robclark@gmail.com, tglx@linutronix.de, mingo@elte.hu, linux-media@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 3 April 2013 19:02, Richard Kuo <rkuo@codeaurora.org> wrote:
+On Thu, 2013-04-04 at 15:31 +0200, Daniel Vetter wrote:
+> We do add some form of owner tracking by storing the reservation
+> ticket
+> of the current holder into every ww_mutex. So when task-Y in your
+> above
+> example tries to acquire lock A it notices that it's behind in the
+> global
+> queue and immedieately returns -EAGAIN to indicate the deadlock.
+> 
+> Aside, there's a bit of fun in that ttm uses -EDEADLCK for when you
+> try to
+> reserve the same buffer twice - it can easily detect that by comparing
+> the
+> lock owner ticket with the provided one and if it matches bail out. 
 
-> +       /* check if we would overflow the alt stack */
-> +       if (on_sig_stack(sp) && !likely(on_sig_stack(sp - frame_size)))
-> +               return (void __user __force *)-1UL;
+Sure, but this should bear no influence on the design of the mutex
+primitive. At most we should ensure this situation is recognizable.
 
-I found the !likely construction confusing, as its doing both a
-'unlikely' (right?) and inverting the argument. It seems clearer,
-to idiots like me, to write this as:
+> Hence we've kept the special -EDEADLCK semantics even for the ww_mutex
+> stuff.
 
-if (on_sig_stack(sp) && unlikely(!on_sig_stack(sp - frame_size)))
+There's EDEADLK and EDEADLOCK, EDEADLCK does alas not exist :-)
 
-since where checking for overflow, and its unlikely that the overflow happened.
+> > Now this gets a little more interesting if we change the scenario a
+> > little:
+> > 
+> >       task-O  task-Y
+> >         A
+> >               B
+> >         B <-- blocks on Y
+> >               * <-- could be A
+> 
+> The current code at least simple blocks task-O on B until task-Y
+> unlocks
+> B. Deadlocks cannot happen since if task-Y ever tries to acquire a
+> lock
+> which is held by an older task (e.g. lock A) it will bail out with
+> -EAGAIN.
 
--- Linas
+Agreed, O would have to wait until Y unlocks B. It was a 'detail' I
+skimped over for the sake of brevity. I was merely trying to illustrate
+the ways in which we must bring Y to return -EDEADLK (or -EAGAIN in
+your version).
