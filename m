@@ -1,190 +1,186 @@
-From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v4, part3 27/41] mm/MIPS: prepare for removing num_physpages and simplify mem_init()
-Date: Sat,  6 Apr 2013 22:32:26 +0800
-Message-ID: <1365258760-30821-28-git-send-email-jiang.liu@huawei.com>
-References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
-Return-path: <linux-mips-bounce@linux-mips.org>
-In-Reply-To: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
-List-help: <mailto:ecartis@linux-mips.org?Subject=help>
-List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
-List-software: Ecartis version 1.0.0
-List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
-List-owner: <mailto:ralf@linux-mips.org>
-List-post: <mailto:linux-mips@linux-mips.org>
-List-archive: <http://www.linux-mips.org/archives/linux-mips/>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, David Daney <david.daney@cavium.com>, Arnd Bergmann <arnd@arndb.de>, Jiri Kosina <jkosina@suse.cz>, John Crispin <blogic@openwrt.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+From: Oskar Andero <oskar.andero@sonymobile.com>
+Subject: [PATCH v3 2/4] kprobes: split blacklist into common and arch
+Date: Fri, 5 Apr 2013 15:26:38 +0200
+Message-ID: <1365168400-17954-3-git-send-email-oskar.andero@sonymobile.com>
+References: <1365168400-17954-1-git-send-email-oskar.andero@sonymobile.com>
+Mime-Version: 1.0
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1365168400-17954-1-git-send-email-oskar.andero@sonymobile.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, davem@davemloft.net, anil.s.keshavamurthy@intel.com, ananth@in.ibm.com, Joonsoo Kim <iamjoonsoo.kim@lge.com>, radovan.lekanovic@sonymobile.com, bjorn.davidsson@sonymobile.com, oskar.andero@sonymobile.com
 List-Id: linux-arch.vger.kernel.org
 
-Prepare for removing num_physpages and simplify mem_init().
+Some blackpoints are only valid for specific architectures. To let each
+architecture specify its own blackpoints the list has been split in two
+lists: common and arch. The common list is kept in kernel/kprobes.c and
+the arch list is kept in the arch/ directory.
 
-Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: David Daney <david.daney@cavium.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Jiri Kosina <jkosina@suse.cz>
-Cc: John Crispin <blogic@openwrt.org>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Minchan Kim <minchan@kernel.org>
-Cc: linux-mips@linux-mips.org
-Cc: linux-kernel@vger.kernel.org
+Cc: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+Cc: David S. Miller <davem@davemloft.net>
+Cc: linux-arch@vger.kernel.org
+Signed-off-by: Oskar Andero <oskar.andero@sonymobile.com>
 ---
- arch/mips/mm/init.c              |   57 ++++++++++++--------------------------
- arch/mips/pci/pci-lantiq.c       |    2 +-
- arch/mips/sgi-ip27/ip27-memory.c |   21 ++------------
- 3 files changed, 21 insertions(+), 59 deletions(-)
+ kernel/kprobes.c | 88 +++++++++++++++++++++++++++++++++++++-------------------
+ 1 file changed, 59 insertions(+), 29 deletions(-)
 
-diff --git a/arch/mips/mm/init.c b/arch/mips/mm/init.c
-index de4ff2f..0392a1a 100644
---- a/arch/mips/mm/init.c
-+++ b/arch/mips/mm/init.c
-@@ -358,11 +358,24 @@ void __init paging_init(void)
- static struct kcore_list kcore_kseg0;
+diff --git a/kernel/kprobes.c b/kernel/kprobes.c
+index c8c2281..2458ae1 100644
+--- a/kernel/kprobes.c
++++ b/kernel/kprobes.c
+@@ -68,7 +68,6 @@
  #endif
  
--void __init mem_init(void)
-+static inline void mem_init_free_highmem(void)
- {
--	unsigned long codesize, reservedpages, datasize, initsize;
--	unsigned long tmp, ram;
-+#ifdef CONFIG_HIGHMEM
-+	unsigned long tmp;
+ static int kprobes_initialized;
+-static bool kprobe_blacklist_initialized;
+ static struct hlist_head kprobe_table[KPROBE_TABLE_SIZE];
+ static struct hlist_head kretprobe_inst_table[KPROBE_TABLE_SIZE];
  
-+	for (tmp = highstart_pfn; tmp < highend_pfn; tmp++) {
-+		struct page *page = pfn_to_page(tmp);
+@@ -94,31 +93,64 @@ static raw_spinlock_t *kretprobe_table_lock_ptr(unsigned long hash)
+  *
+  * For such cases, we now have a blacklist
+  */
+-static struct kprobe_blackpoint kprobe_blacklist[] = {
+-	{"preempt_schedule",},
+-	{"native_get_debugreg",},
+-	{"irq_entries_start",},
+-	{"common_interrupt",},
+-	{"mcount",},	/* mcount can be called from everywhere */
+-	{NULL}    /* Terminator */
++static const char * const common_kprobes_blacksyms[] = {
++	"preempt_schedule",
++	"native_get_debugreg",
++	"irq_entries_start",
++	"common_interrupt",
++	"mcount",       /* mcount can be called from everywhere */
+ };
++static const size_t common_kprobes_blacksyms_size =
++			ARRAY_SIZE(common_kprobes_blacksyms);
 +
-+		if (!page_is_ram(tmp))
-+			SetPageReserved(page);
-+		else
-+			free_highmem_page(page);
-+	}
-+#endif
-+}
++/*
++ * These weak symbols can be overridden from the arch/ directory for
++ * architecure specific blackpoints.
++ */
++const char * const __weak arch_kprobes_blacksyms[] = {};
++const size_t __weak arch_kprobes_blacksyms_size;
 +
-+void __init mem_init(void)
++static struct kprobe_blackpoint *kprobe_blacklist;
++static size_t kprobe_blacklist_size;
++
++static void init_kprobe_blacklist_entry(struct kprobe_blackpoint *kb,
++					const char * const name)
 +{
- #ifdef CONFIG_HIGHMEM
- #ifdef CONFIG_DISCONTIGMEM
- #error "CONFIG_HIGHMEM and CONFIG_DISCONTIGMEM dont work together yet"
-@@ -375,32 +388,8 @@ void __init mem_init(void)
++	const char *symbol_name;
++	char *modname, namebuf[128];
++	void *addr;
++	unsigned long offset = 0, size = 0;
++
++	kb->name = name;
++	kprobe_lookup_name(kb->name, addr);
++	if (!addr)
++		return;
++
++	kb->start_addr = (unsigned long)addr;
++	symbol_name = kallsyms_lookup(kb->start_addr,
++			&size, &offset, &modname, namebuf);
++	if (!symbol_name)
++		kb->range = 0;
++	else
++		kb->range = size;
++}
  
- 	free_all_bootmem();
- 	setup_zero_pages();	/* Setup zeroed pages.  */
--
--	reservedpages = ram = 0;
--	for (tmp = 0; tmp < max_low_pfn; tmp++)
--		if (page_is_ram(tmp) && pfn_valid(tmp)) {
--			ram++;
--			if (PageReserved(pfn_to_page(tmp)))
--				reservedpages++;
--		}
--	num_physpages = ram;
--
--#ifdef CONFIG_HIGHMEM
--	for (tmp = highstart_pfn; tmp < highend_pfn; tmp++) {
--		struct page *page = pfn_to_page(tmp);
--
--		if (!page_is_ram(tmp)) {
--			SetPageReserved(page);
--			continue;
--		}
--		free_highmem_page(page);
--	}
--	num_physpages += totalhigh_pages;
--#endif
--
--	codesize =  (unsigned long) &_etext - (unsigned long) &_text;
--	datasize =  (unsigned long) &_edata - (unsigned long) &_etext;
--	initsize =  (unsigned long) &__init_end - (unsigned long) &__init_begin;
-+	mem_init_free_highmem();
-+	mem_init_print_info(NULL);
- 
- #ifdef CONFIG_64BIT
- 	if ((unsigned long) &_text > (unsigned long) CKSEG0)
-@@ -409,16 +398,6 @@ void __init mem_init(void)
- 		kclist_add(&kcore_kseg0, (void *) CKSEG0,
- 				0x80000000 - 4, KCORE_TEXT);
- #endif
--
--	printk(KERN_INFO "Memory: %luk/%luk available (%ldk kernel code, "
--	       "%ldk reserved, %ldk data, %ldk init, %ldk highmem)\n",
--	       nr_free_pages() << (PAGE_SHIFT-10),
--	       ram << (PAGE_SHIFT-10),
--	       codesize >> 10,
--	       reservedpages << (PAGE_SHIFT-10),
--	       datasize >> 10,
--	       initsize >> 10,
--	       totalhigh_pages << (PAGE_SHIFT-10));
- }
- #endif /* !CONFIG_NEED_MULTIPLE_NODES */
- 
-diff --git a/arch/mips/pci/pci-lantiq.c b/arch/mips/pci/pci-lantiq.c
-index 879077b..cb1ef99 100644
---- a/arch/mips/pci/pci-lantiq.c
-+++ b/arch/mips/pci/pci-lantiq.c
-@@ -89,7 +89,7 @@ static inline u32 ltq_calc_bar11mask(void)
- 	u32 mem, bar11mask;
- 
- 	/* BAR11MASK value depends on available memory on system. */
--	mem = num_physpages * PAGE_SIZE;
-+	mem = get_num_physpages() * PAGE_SIZE;
- 	bar11mask = (0x0ffffff0 & ~((1 << (fls(mem) - 1)) - 1)) | 8;
- 
- 	return bar11mask;
-diff --git a/arch/mips/sgi-ip27/ip27-memory.c b/arch/mips/sgi-ip27/ip27-memory.c
-index 936e617..d074680 100644
---- a/arch/mips/sgi-ip27/ip27-memory.c
-+++ b/arch/mips/sgi-ip27/ip27-memory.c
-@@ -357,8 +357,6 @@ static void __init szmem(void)
- 	int slot;
- 	cnodeid_t node;
- 
--	num_physpages = 0;
--
- 	for_each_online_node(node) {
- 		nodebytes = 0;
- 		for (slot = 0; slot < MAX_MEM_SLOTS; slot++) {
-@@ -381,7 +379,6 @@ static void __init szmem(void)
- 				slot = MAX_MEM_SLOTS;
- 				continue;
- 			}
--			num_physpages += slot_psize;
- 			memblock_add_node(PFN_PHYS(slot_getbasepfn(node, slot)),
- 					  PFN_PHYS(slot_psize), node);
- 		}
-@@ -480,10 +477,9 @@ void __init paging_init(void)
- 
- void __init mem_init(void)
+ /* it can take some time ( > 100ms ) to initialise the
+  * blacklist so we delay this until we actually need it
+  */
+ static void init_kprobe_blacklist(void)
  {
--	unsigned long codesize, datasize, initsize, tmp;
- 	unsigned node;
+-	int i;
+-	unsigned long offset = 0, size = 0;
+-	char *modname, namebuf[128];
+-	const char *symbol_name;
+-	void *addr;
++	int i, j = 0;
+ 	struct kprobe_blackpoint *kb;
  
--	high_memory = (void *) __va(num_physpages << PAGE_SHIFT);
-+	high_memory = (void *) __va(get_num_physpages() << PAGE_SHIFT);
+ 	mutex_lock(&kprobe_mutex);
+-	if (kprobe_blacklist_initialized)
++	if (kprobe_blacklist)
+ 		goto out;
  
- 	for_each_online_node(node) {
- 		/*
-@@ -494,18 +490,5 @@ void __init mem_init(void)
++	kprobe_blacklist_size = common_kprobes_blacksyms_size +
++				arch_kprobes_blacksyms_size;
++	kb = kzalloc(sizeof(*kb) * kprobe_blacklist_size, GFP_KERNEL);
++
+ 	/*
+ 	 * Lookup and populate the kprobe_blacklist.
+ 	 *
+@@ -127,18 +159,14 @@ static void init_kprobe_blacklist(void)
+ 	 * since a kprobe need not necessarily be at the beginning
+ 	 * of a function.
+ 	 */
+-	for (kb = kprobe_blacklist; kb->name != NULL; kb++) {
+-		kprobe_lookup_name(kb->name, addr);
+-		if (!addr)
+-			continue;
++	for (i = 0; i < common_kprobes_blacksyms_size; i++, j++) {
++		init_kprobe_blacklist_entry(&kb[j],
++					    common_kprobes_blacksyms[i]);
++	}
  
- 	setup_zero_pages();	/* This comes from node 0 */
+-		kb->start_addr = (unsigned long)addr;
+-		symbol_name = kallsyms_lookup(kb->start_addr,
+-				&size, &offset, &modname, namebuf);
+-		if (!symbol_name)
+-			kb->range = 0;
+-		else
+-			kb->range = size;
++	for (i = 0; i < arch_kprobes_blacksyms_size; i++, j++) {
++		init_kprobe_blacklist_entry(&kb[j],
++					    arch_kprobes_blacksyms[i]);
+ 	}
  
--	codesize =  (unsigned long) &_etext - (unsigned long) &_text;
--	datasize =  (unsigned long) &_edata - (unsigned long) &_etext;
--	initsize =  (unsigned long) &__init_end - (unsigned long) &__init_begin;
--
--	tmp = nr_free_pages();
--	printk(KERN_INFO "Memory: %luk/%luk available (%ldk kernel code, "
--	       "%ldk reserved, %ldk data, %ldk init, %ldk highmem)\n",
--	       tmp << (PAGE_SHIFT-10),
--	       num_physpages << (PAGE_SHIFT-10),
--	       codesize >> 10,
--	       (num_physpages - tmp) << (PAGE_SHIFT-10),
--	       datasize >> 10,
--	       initsize >> 10,
--	       totalhigh_pages << (PAGE_SHIFT-10));
-+	mem_init_print_info(NULL);
- }
+ 	if (kretprobe_blacklist_size) {
+@@ -153,7 +181,7 @@ static void init_kprobe_blacklist(void)
+ 	}
+ 
+ 	smp_wmb();
+-	kprobe_blacklist_initialized = true;
++	kprobe_blacklist = kb;
+ 
+ out:
+ 	mutex_unlock(&kprobe_mutex);
+@@ -1384,18 +1412,20 @@ out:
+ static int __kprobes in_kprobes_functions(unsigned long addr)
+ {
+ 	struct kprobe_blackpoint *kb;
++	int i;
+ 
+ 	if (addr >= (unsigned long)__kprobes_text_start &&
+ 	    addr < (unsigned long)__kprobes_text_end)
+ 		return -EINVAL;
+ 
+-	if (unlikely(!kprobe_blacklist_initialized))
++	if (unlikely(!kprobe_blacklist))
+ 		init_kprobe_blacklist();
+ 	/*
+ 	 * If there exists a kprobe_blacklist, verify and
+ 	 * fail any probe registration in the prohibited area
+ 	 */
+-	for (kb = kprobe_blacklist; kb->name != NULL; kb++) {
++	for (i = 0; i < kprobe_blacklist_size; i++) {
++		kb = &kprobe_blacklist[i];
+ 		if (kb->start_addr) {
+ 			if (addr >= kb->start_addr &&
+ 			    addr < (kb->start_addr + kb->range))
+@@ -1876,7 +1906,7 @@ int __kprobes register_kretprobe(struct kretprobe *rp)
+ 	void *addr;
+ 
+ 	if (kretprobe_blacklist_size) {
+-		if (unlikely(!kprobe_blacklist_initialized))
++		if (unlikely(!kprobe_blacklist))
+ 			init_kprobe_blacklist();
+ 		addr = kprobe_addr(&rp->kp);
+ 		if (IS_ERR(addr))
 -- 
-1.7.9.5
+1.8.1.5
