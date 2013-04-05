@@ -1,240 +1,130 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH v2 2/4] kprobes: split blacklist into common and arch
-Date: Fri, 5 Apr 2013 13:34:46 +0530
-Message-ID: <515E859E.7080206@synopsys.com>
-References: <1365079889-21525-1-git-send-email-oskar.andero@sonymobile.com> <1365079889-21525-3-git-send-email-oskar.andero@sonymobile.com>
+From: Oskar Andero <oskar.andero@sonymobile.com>
+Subject: Re: Re: [PATCH v2 1/4] kprobes: delay blacklist symbol lookup until
+ we actually need it
+Date: Fri, 5 Apr 2013 12:00:49 +0200
+Message-ID: <20130405100049.GI2481@caracas.corpusers.net>
+References: <1365079889-21525-1-git-send-email-oskar.andero@sonymobile.com>
+ <1365079889-21525-2-git-send-email-oskar.andero@sonymobile.com>
+ <20130405005628.GA13624@lge.com>
+ <515E33E8.6050507@hitachi.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from kiruna.synopsys.com ([198.182.44.80]:46619 "EHLO
-	kiruna.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1161089Ab3DEIFH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Apr 2013 04:05:07 -0400
-In-Reply-To: <1365079889-21525-3-git-send-email-oskar.andero@sonymobile.com>
+Received: from seldrel01.sonyericsson.com ([212.209.106.2]:6172 "EHLO
+	seldrel01.sonyericsson.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752035Ab3DEKAw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Apr 2013 06:00:52 -0400
+Content-Disposition: inline
+In-Reply-To: <515E33E8.6050507@hitachi.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oskar Andero <oskar.andero@sonymobile.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, masami.hiramatsu.pt@hitachi.com, davem@davemloft.net, anil.s.keshavamurthy@intel.com, ananth@in.ibm.com, radovan.lekanovic@sonymobile.com, bjorn.davidsson@sonymobile.com
+To: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+Cc: Joonsoo Kim <iamjoonsoo.kim@lge.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "anil.s.keshavamurthy@intel.com" <anil.s.keshavamurthy@intel.com>, "ananth@in.ibm.com" <ananth@in.ibm.com>, "Lekanovic, Radovan" <Radovan.Lekanovic@sonymobile.com>, =?iso-8859-1?Q?Davidsson=2C_Bj=F6rn?= <Bjorn.Davidsson@sonymobile.com>, Toby Collett <toby.collett@sonymobile.com>, "yrl.pp-manager.tt@hitachi.com" <yrl.pp-manager.tt@hitachi.com>
 
-On 04/04/2013 06:21 PM, Oskar Andero wrote:
-> Some blackpoints are only valid for specific architectures. To let each
-> architecture specify its own blackpoints the list has been split in two
-> lists: common and arch. The common list is kept in kernel/kprobes.c and
-> the arch list is kept in the arch/ directory.
+Thanks for your input guys!
+
+On 04:16 Fri 05 Apr     , Masami Hiramatsu wrote:
+> (2013/04/05 9:56), Joonsoo Kim wrote:
+> > Hello, Oskar.
+> > 
+> > On Thu, Apr 04, 2013 at 02:51:26PM +0200, Oskar Andero wrote:
+> >> From: Toby Collett <toby.collett@sonymobile.com>
+> >>
+> >> The symbol lookup can take a long time and kprobes is
+> >> initialised very early in boot, so delay symbol lookup
+> >> until the blacklist is first used.
+> >>
+> >> Cc: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+> >> Cc: David S. Miller <davem@davemloft.net>
+> >> Reviewed-by: Radovan Lekanovic <radovan.lekanovic@sonymobile.com>
+> >> Signed-off-by: Toby Collett <toby.collett@sonymobile.com>
+> >> Signed-off-by: Oskar Andero <oskar.andero@sonymobile.com>
+> >> ---
+> >>  kernel/kprobes.c | 98 ++++++++++++++++++++++++++++++++++----------------------
+> >>  1 file changed, 60 insertions(+), 38 deletions(-)
+> >>
+> >> diff --git a/kernel/kprobes.c b/kernel/kprobes.c
+> >> index e35be53..0a270e5 100644
+> >> --- a/kernel/kprobes.c
+> >> +++ b/kernel/kprobes.c
+> >> @@ -68,6 +68,7 @@
+> >>  #endif
+> >>  
+> >>  static int kprobes_initialized;
+> >> +static int kprobe_blacklist_initialized;
+> >>  static struct hlist_head kprobe_table[KPROBE_TABLE_SIZE];
+> >>  static struct hlist_head kretprobe_inst_table[KPROBE_TABLE_SIZE];
+> >>  
+> >> @@ -102,6 +103,60 @@ static struct kprobe_blackpoint kprobe_blacklist[] = {
+> >>  	{NULL}    /* Terminator */
+> >>  };
+> >>  
+> >> +/* it can take some time ( > 100ms ) to initialise the
+> >> + * blacklist so we delay this until we actually need it
+> >> + */
+> >> +static void init_kprobe_blacklist(void)
+> >> +{
+> >> +	int i;
+> >> +	unsigned long offset = 0, size = 0;
+> >> +	char *modname, namebuf[128];
+> >> +	const char *symbol_name;
+> >> +	void *addr;
+> >> +	struct kprobe_blackpoint *kb;
+> >> +
+> >> +	mutex_lock(&kprobe_mutex);
+> >> +	if (kprobe_blacklist_initialized)
+> >> +		goto out;
+> >> +
+> >> +	/*
+> >> +	 * Lookup and populate the kprobe_blacklist.
+> >> +	 *
+> >> +	 * Unlike the kretprobe blacklist, we'll need to determine
+> >> +	 * the range of addresses that belong to the said functions,
+> >> +	 * since a kprobe need not necessarily be at the beginning
+> >> +	 * of a function.
+> >> +	 */
+> >> +	for (kb = kprobe_blacklist; kb->name != NULL; kb++) {
+> >> +		kprobe_lookup_name(kb->name, addr);
+> >> +		if (!addr)
+> >> +			continue;
+> >> +
+> >> +		kb->start_addr = (unsigned long)addr;
+> >> +		symbol_name = kallsyms_lookup(kb->start_addr,
+> >> +				&size, &offset, &modname, namebuf);
+> >> +		if (!symbol_name)
+> >> +			kb->range = 0;
+> >> +		else
+> >> +			kb->range = size;
+> >> +	}
+> >> +
+> >> +	if (kretprobe_blacklist_size) {
+> >> +		/* lookup the function address from its name */
+> >> +		for (i = 0; kretprobe_blacklist[i].name != NULL; i++) {
+> >> +			kprobe_lookup_name(kretprobe_blacklist[i].name,
+> >> +					   kretprobe_blacklist[i].addr);
+> >> +			if (!kretprobe_blacklist[i].addr)
+> >> +				printk("kretprobe: lookup failed: %s\n",
+> >> +				       kretprobe_blacklist[i].name);
+> >> +		}
+> >> +	}
+> >> +	kprobe_blacklist_initialized = 1;
+> > 
+> > You need smp_wmb() before assigning 'kprobe_blacklist_initialized = 1'.
+> > This guarantee that who see kprobe_blacklist_initialized = 1 will get
+> > updated data of kprobe_blacklist.
 > 
-> Cc: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-> Cc: David S. Miller <davem@davemloft.net>
-> Cc: linux-arch@vger.kernel.org
-> Signed-off-by: Oskar Andero <oskar.andero@sonymobile.com>
-> ---
->  arch/arc/kernel/kprobes.c      |  3 ++
->  arch/arm/kernel/kprobes.c      |  2 +
->  arch/avr32/kernel/kprobes.c    |  3 ++
->  arch/ia64/kernel/kprobes.c     |  3 ++
->  arch/mips/kernel/kprobes.c     |  3 ++
->  arch/mn10300/kernel/kprobes.c  |  2 +
->  arch/powerpc/kernel/kprobes.c  |  3 ++
->  arch/s390/kernel/kprobes.c     |  3 ++
->  arch/sh/kernel/kprobes.c       |  3 ++
->  arch/sparc/kernel/kprobes.c    |  3 ++
->  arch/x86/kernel/kprobes/core.c |  3 ++
->  kernel/kprobes.c               | 85 +++++++++++++++++++++++++++---------------
->  12 files changed, 86 insertions(+), 30 deletions(-)
+> Right, to ensure blacklist is updated, memory barrier is required.
+
+Agreed.
+
+> > Please refer my previous patch once more :)
+> > 
+> > And How about define kprobe_blacklist_initialized as boolean?
 > 
-> diff --git a/arch/arc/kernel/kprobes.c b/arch/arc/kernel/kprobes.c
-> index 3bfeacb..894eee6 100644
-> --- a/arch/arc/kernel/kprobes.c
-> +++ b/arch/arc/kernel/kprobes.c
-> @@ -24,6 +24,9 @@
->  DEFINE_PER_CPU(struct kprobe *, current_kprobe) = NULL;
->  DEFINE_PER_CPU(struct kprobe_ctlblk, kprobe_ctlblk);
->  
-> +const char * const arch_kprobes_blacksyms[] = {};
-> +const size_t arch_kprobes_blacksyms_size = ARRAY_SIZE(arch_kprobes_blacksyms);
-> +
->  int __kprobes arch_prepare_kprobe(struct kprobe *p)
->  {
->  	/* Attempt to probe at unaligned address */
-> diff --git a/arch/arm/kernel/kprobes.c b/arch/arm/kernel/kprobes.c
-> index 170e9f3..772d9ec 100644
-> --- a/arch/arm/kernel/kprobes.c
-> +++ b/arch/arm/kernel/kprobes.c
-> @@ -46,6 +46,8 @@
->  DEFINE_PER_CPU(struct kprobe *, current_kprobe) = NULL;
->  DEFINE_PER_CPU(struct kprobe_ctlblk, kprobe_ctlblk);
->  
-> +const char * const arch_kprobes_blacksyms[] = {};
-> +const size_t arch_kprobes_blacksyms_size = ARRAY_SIZE(arch_kprobes_blacksyms);
->  
->  int __kprobes arch_prepare_kprobe(struct kprobe *p)
->  {
-> diff --git a/arch/avr32/kernel/kprobes.c b/arch/avr32/kernel/kprobes.c
-> index f820e9f..3b02c1e 100644
-> --- a/arch/avr32/kernel/kprobes.c
-> +++ b/arch/avr32/kernel/kprobes.c
-> @@ -24,6 +24,9 @@ static struct pt_regs jprobe_saved_regs;
->  
->  struct kretprobe_blackpoint kretprobe_blacklist[] = {{NULL, NULL}};
->  
-> +const char * const arch_kprobes_blacksyms[] = {};
-> +const size_t arch_kprobes_blacksyms_size = ARRAY_SIZE(arch_kprobes_blacksyms);
-> +
->  int __kprobes arch_prepare_kprobe(struct kprobe *p)
->  {
->  	int ret = 0;
-> diff --git a/arch/ia64/kernel/kprobes.c b/arch/ia64/kernel/kprobes.c
-> index f8280a7..239f2fd 100644
-> --- a/arch/ia64/kernel/kprobes.c
-> +++ b/arch/ia64/kernel/kprobes.c
-> @@ -42,6 +42,9 @@ DEFINE_PER_CPU(struct kprobe_ctlblk, kprobe_ctlblk);
->  
->  struct kretprobe_blackpoint kretprobe_blacklist[] = {{NULL, NULL}};
->  
-> +const char * const arch_kprobes_blacksyms[] = {};
-> +const size_t arch_kprobes_blacksyms_size = ARRAY_SIZE(arch_kprobes_blacksyms);
-> +
->  enum instruction_type {A, I, M, F, B, L, X, u};
->  static enum instruction_type bundle_encoding[32][3] = {
->    { M, I, I },				/* 00 */
-> diff --git a/arch/mips/kernel/kprobes.c b/arch/mips/kernel/kprobes.c
-> index 12bc4eb..de6a1aa 100644
-> --- a/arch/mips/kernel/kprobes.c
-> +++ b/arch/mips/kernel/kprobes.c
-> @@ -53,6 +53,9 @@ static const union mips_instruction breakpoint2_insn = {
->  DEFINE_PER_CPU(struct kprobe *, current_kprobe);
->  DEFINE_PER_CPU(struct kprobe_ctlblk, kprobe_ctlblk);
->  
-> +const char * const arch_kprobes_blacksyms[] = {};
-> +const size_t arch_kprobes_blacksyms_size = ARRAY_SIZE(arch_kprobes_blacksyms);
-> +
->  static int __kprobes insn_has_delayslot(union mips_instruction insn)
->  {
->  	switch (insn.i_format.opcode) {
-> diff --git a/arch/mn10300/kernel/kprobes.c b/arch/mn10300/kernel/kprobes.c
-> index 0311a7f..ed57094 100644
-> --- a/arch/mn10300/kernel/kprobes.c
-> +++ b/arch/mn10300/kernel/kprobes.c
-> @@ -41,6 +41,8 @@ static unsigned long cur_kprobe_bp_addr;
->  
->  DEFINE_PER_CPU(struct kprobe *, current_kprobe) = NULL;
->  
-> +const char * const arch_kprobes_blacksyms[] = {};
-> +const size_t arch_kprobes_blacksyms_size = ARRAY_SIZE(arch_kprobes_blacksyms);
->  
->  /* singlestep flag bits */
->  #define SINGLESTEP_BRANCH 1
-> diff --git a/arch/powerpc/kernel/kprobes.c b/arch/powerpc/kernel/kprobes.c
-> index 11f5b03..b18ba45 100644
-> --- a/arch/powerpc/kernel/kprobes.c
-> +++ b/arch/powerpc/kernel/kprobes.c
-> @@ -47,6 +47,9 @@ DEFINE_PER_CPU(struct kprobe_ctlblk, kprobe_ctlblk);
->  
->  struct kretprobe_blackpoint kretprobe_blacklist[] = {{NULL, NULL}};
->  
-> +const char * const arch_kprobes_blacksyms[] = {};
-> +const size_t arch_kprobes_blacksyms_size = ARRAY_SIZE(arch_kprobes_blacksyms);
-> +
->  int __kprobes arch_prepare_kprobe(struct kprobe *p)
->  {
->  	int ret = 0;
-> diff --git a/arch/s390/kernel/kprobes.c b/arch/s390/kernel/kprobes.c
-> index 3388b2b..2077bb0 100644
-> --- a/arch/s390/kernel/kprobes.c
-> +++ b/arch/s390/kernel/kprobes.c
-> @@ -37,6 +37,9 @@ DEFINE_PER_CPU(struct kprobe_ctlblk, kprobe_ctlblk);
->  
->  struct kretprobe_blackpoint kretprobe_blacklist[] = { };
->  
-> +const char * const arch_kprobes_blacksyms[] = {};
-> +const size_t arch_kprobes_blacksyms_size = ARRAY_SIZE(arch_kprobes_blacksyms);
-> +
->  static int __kprobes is_prohibited_opcode(kprobe_opcode_t *insn)
->  {
->  	switch (insn[0] >> 8) {
-> diff --git a/arch/sh/kernel/kprobes.c b/arch/sh/kernel/kprobes.c
-> index 42b46e6..8acfb02 100644
-> --- a/arch/sh/kernel/kprobes.c
-> +++ b/arch/sh/kernel/kprobes.c
-> @@ -24,6 +24,9 @@ static DEFINE_PER_CPU(struct kprobe, saved_current_opcode);
->  static DEFINE_PER_CPU(struct kprobe, saved_next_opcode);
->  static DEFINE_PER_CPU(struct kprobe, saved_next_opcode2);
->  
-> +const char * const arch_kprobes_blacksyms[] = {};
-> +const size_t arch_kprobes_blacksyms_size = ARRAY_SIZE(arch_kprobes_blacksyms);
-> +
->  #define OPCODE_JMP(x)	(((x) & 0xF0FF) == 0x402b)
->  #define OPCODE_JSR(x)	(((x) & 0xF0FF) == 0x400b)
->  #define OPCODE_BRA(x)	(((x) & 0xF000) == 0xa000)
-> diff --git a/arch/sparc/kernel/kprobes.c b/arch/sparc/kernel/kprobes.c
-> index e722121..627e35c 100644
-> --- a/arch/sparc/kernel/kprobes.c
-> +++ b/arch/sparc/kernel/kprobes.c
-> @@ -45,6 +45,9 @@ DEFINE_PER_CPU(struct kprobe_ctlblk, kprobe_ctlblk);
->  
->  struct kretprobe_blackpoint kretprobe_blacklist[] = {{NULL, NULL}};
->  
-> +const char * const arch_kprobes_blacksyms[] = {};
-> +const size_t arch_kprobes_blacksyms_size = ARRAY_SIZE(arch_kprobes_blacksyms);
-> +
->  int __kprobes arch_prepare_kprobe(struct kprobe *p)
->  {
->  	if ((unsigned long) p->addr & 0x3UL)
-> diff --git a/arch/x86/kernel/kprobes/core.c b/arch/x86/kernel/kprobes/core.c
-> index 7bfe318..4aa71a5 100644
-> --- a/arch/x86/kernel/kprobes/core.c
-> +++ b/arch/x86/kernel/kprobes/core.c
-> @@ -65,6 +65,9 @@ void jprobe_return_end(void);
->  DEFINE_PER_CPU(struct kprobe *, current_kprobe) = NULL;
->  DEFINE_PER_CPU(struct kprobe_ctlblk, kprobe_ctlblk);
->  
-> +const char * const arch_kprobes_blacksyms[] = {};
-> +const size_t arch_kprobes_blacksyms_size = ARRAY_SIZE(arch_kprobes_blacksyms);
-> +
->  #define stack_addr(regs) ((unsigned long *)kernel_stack_pointer(regs))
->  
->  #define W(row, b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, ba, bb, bc, bd, be, bf)\
-> diff --git a/kernel/kprobes.c b/kernel/kprobes.c
-> index 0a270e5..7654278 100644
-> --- a/kernel/kprobes.c
-> +++ b/kernel/kprobes.c
-> @@ -68,7 +68,6 @@
->  #endif
->  
->  static int kprobes_initialized;
-> -static int kprobe_blacklist_initialized;
->  static struct hlist_head kprobe_table[KPROBE_TABLE_SIZE];
->  static struct hlist_head kretprobe_inst_table[KPROBE_TABLE_SIZE];
->  
-> @@ -94,31 +93,60 @@ static raw_spinlock_t *kretprobe_table_lock_ptr(unsigned long hash)
->   *
->   * For such cases, we now have a blacklist
->   */
-> -static struct kprobe_blackpoint kprobe_blacklist[] = {
-> -	{"preempt_schedule",},
-> -	{"native_get_debugreg",},
-> -	{"irq_entries_start",},
-> -	{"common_interrupt",},
-> -	{"mcount",},	/* mcount can be called from everywhere */
-> -	{NULL}    /* Terminator */
-> +static const char * const common_kprobes_blacksyms[] = {
-> +	"preempt_schedule",
-> +	"native_get_debugreg",
-> +	"irq_entries_start",
-> +	"common_interrupt",
-> +	"mcount",       /* mcount can be called from everywhere */
->  };
-> +static const size_t common_kprobes_blacksyms_size =
-> +			ARRAY_SIZE(common_kprobes_blacksyms);
-> +
-> +extern const char * const arch_kprobes_blacksyms[];
-> +extern const size_t arch_kprobes_blacksyms_size;
+> Good idea :)
+> 
 
-Instead of this, if you define arch_kprobes_blacksyms{,_size} as weak symbols
-here, you don't need to patch all the arches for dummy empty entries.
-Any arch which cares for a blacklist can easily override the weak def by defining
-it's own copy. A lot of core kernel code - where arch variant is NOT typically use
-dis written this way !
+I'll fix it for v3.
 
-Thx,
--Vineet
+-Oskar
+> 
