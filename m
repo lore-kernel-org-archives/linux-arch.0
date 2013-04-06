@@ -1,89 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-da0-f43.google.com ([209.85.210.43]:39485 "EHLO
-	mail-da0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1422933Ab3DFNzo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Apr 2013 09:55:44 -0400
+Received: from mail-pa0-f49.google.com ([209.85.220.49]:49970 "EHLO
+	mail-pa0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1423008Ab3DFN4w (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Apr 2013 09:56:52 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v4, part3 01/15] mm: fix build warnings caused by free_reserved_area()
-Date: Sat,  6 Apr 2013 21:54:55 +0800
-Message-ID: <1365256509-29024-2-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v4, part3 08/15] mm: fix some trivial typos in comments
+Date: Sat,  6 Apr 2013 21:55:02 +0800
+Message-ID: <1365256509-29024-9-git-send-email-jiang.liu@huawei.com>
 In-Reply-To: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com>
 References: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20130406135455.GOqbIms_pSv60qKOGnf2MPrQ0R_4Jo_6kj_wPaIg1SA@z>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Tang Chen <tangchen@cn.fujitsu.com>, Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>, Marek Szyprowski <m.szyprowski@samsung.com>
+Message-ID: <20130406135502.G0R3C430nDlt0IWpFaKqHn2cz28cvpH0PHA3T91twtg@z>
 
-Fix following build warnings cuased by free_reserved_area():
-
-arch/arm/mm/init.c: In function 'mem_init':
-arch/arm/mm/init.c:603:2: warning: passing argument 1 of 'free_reserved_area' makes integer from pointer without a cast [enabled by default]
-  free_reserved_area(__va(PHYS_PFN_OFFSET), swapper_pg_dir, 0, NULL);
-  ^
-In file included from include/linux/mman.h:4:0,
-                 from arch/arm/mm/init.c:15:
-include/linux/mm.h:1301:22: note: expected 'long unsigned int' but argument is of type 'void *'
- extern unsigned long free_reserved_area(unsigned long start, unsigned long end,
-
-   mm/page_alloc.c: In function 'free_reserved_area':
->> mm/page_alloc.c:5134:3: warning: passing argument 1 of 'virt_to_phys' makes pointer from integer without a cast [enabled by default]
-   In file included from arch/mips/include/asm/page.h:49:0,
-                    from include/linux/mmzone.h:20,
-                    from include/linux/gfp.h:4,
-                    from include/linux/mm.h:8,
-                    from mm/page_alloc.c:18:
-   arch/mips/include/asm/io.h:119:29: note: expected 'const volatile void *' but argument is of type 'long unsigned int'
-   mm/page_alloc.c: In function 'free_area_init_nodes':
-   mm/page_alloc.c:5030:34: warning: array subscript is below array bounds [-Warray-bounds]
+Fix some trivial typos in comments.
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Reported-by: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arm-kernel@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org
+Cc: Wen Congyang <wency@cn.fujitsu.com>
+Cc: Tang Chen <tangchen@cn.fujitsu.com>
+Cc: Jiang Liu <jiang.liu@huawei.com>
+Cc: Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>
+Cc: Mel Gorman <mgorman@suse.de>
+Cc: Minchan Kim <minchan@kernel.org>
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>
 Cc: linux-mm@kvack.org
+Cc: linux-kernel@vger.kernel.org
 ---
- arch/arm/mm/init.c |    6 ++++--
- mm/page_alloc.c    |    2 +-
- 2 files changed, 5 insertions(+), 3 deletions(-)
+ mm/memory_hotplug.c |    2 +-
+ mm/page_alloc.c     |    2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm/mm/init.c b/arch/arm/mm/init.c
-index 9a5cdc0..7a82fcd 100644
---- a/arch/arm/mm/init.c
-+++ b/arch/arm/mm/init.c
-@@ -600,7 +600,8 @@ void __init mem_init(void)
- 
- #ifdef CONFIG_SA1111
- 	/* now that our DMA memory is actually so designated, we can free it */
--	free_reserved_area(__va(PHYS_PFN_OFFSET), swapper_pg_dir, 0, NULL);
-+	free_reserved_area((unsigned long)__va(PHYS_PFN_OFFSET),
-+			   (unsigned long)swapper_pg_dir, 0, NULL);
- #endif
- 
- 	free_highpages();
-@@ -728,7 +729,8 @@ void free_initmem(void)
- 	extern char __tcm_start, __tcm_end;
- 
- 	poison_init_mem(&__tcm_start, &__tcm_end - &__tcm_start);
--	free_reserved_area(&__tcm_start, &__tcm_end, 0, "TCM link");
-+	free_reserved_area((unsigned long)&__tcm_start,
-+			   (unsigned long)&__tcm_end, 0, "TCM link");
- #endif
- 
- 	poison_init_mem(__init_begin, __init_end - __init_begin);
+diff --git a/mm/memory_hotplug.c b/mm/memory_hotplug.c
+index 57decb2..a5b8fde 100644
+--- a/mm/memory_hotplug.c
++++ b/mm/memory_hotplug.c
+@@ -309,7 +309,7 @@ static int __meminit move_pfn_range_left(struct zone *z1, struct zone *z2,
+ 	/* can't move pfns which are higher than @z2 */
+ 	if (end_pfn > zone_end_pfn(z2))
+ 		goto out_fail;
+-	/* the move out part mast at the left most of @z2 */
++	/* the move out part must at the left most of @z2 */
+ 	if (start_pfn > z2->zone_start_pfn)
+ 		goto out_fail;
+ 	/* must included/overlap */
 diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index e4923e9..8bf7956 100644
+index 6bd697c..c3c3eda 100644
 --- a/mm/page_alloc.c
 +++ b/mm/page_alloc.c
-@@ -5196,7 +5196,7 @@ unsigned long free_reserved_area(unsigned long start, unsigned long end,
- 	for (pages = 0; pos < end; pos += PAGE_SIZE, pages++) {
- 		if (poison)
- 			memset((void *)pos, poison, PAGE_SIZE);
--		free_reserved_page(virt_to_page(pos));
-+		free_reserved_page(virt_to_page((void *)pos));
- 	}
- 
- 	if (pages && s)
+@@ -2863,7 +2863,7 @@ EXPORT_SYMBOL(free_pages_exact);
+  * nr_free_zone_pages() counts the number of counts pages which are beyond the
+  * high watermark within all zones at or below a given zone index.  For each
+  * zone, the number of pages is calculated as:
+- *     present_pages - high_pages
++ *     managed_pages - high_pages
+  */
+ static unsigned long nr_free_zone_pages(int offset)
+ {
 -- 
 1.7.9.5
 
