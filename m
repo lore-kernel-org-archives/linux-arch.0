@@ -1,70 +1,136 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-da0-f44.google.com ([209.85.210.44]:48612 "EHLO
-	mail-da0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1423040Ab3DFOmN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Apr 2013 10:42:13 -0400
+Received: from mail-pb0-f51.google.com ([209.85.160.51]:33907 "EHLO
+	mail-pb0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1423141Ab3DFOne (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Apr 2013 10:43:34 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v4, part3 02/41] avr32: normalize global variables exported by vmlinux.lds
-Date: Sat,  6 Apr 2013 22:32:01 +0800
-Message-ID: <1365258760-30821-3-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v4, part3 11/41] mm/alpha: prepare for removing num_physpages and simplify mem_init()
+Date: Sat,  6 Apr 2013 22:32:10 +0800
+Message-ID: <1365258760-30821-12-git-send-email-jiang.liu@huawei.com>
 In-Reply-To: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
 References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>
-Message-ID: <20130406143201.x4GguLWp6OcUTrUMB5ZUJ47cNr2UDIsQyQC6hazgdr0@z>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org
+Message-ID: <20130406143210.tRbGL_Gw7s5FN8lUwMush17GljUBDEugbQiQPggpMVs@z>
 
-Normalize global variables exported by vmlinux.lds to conform usage
-guidelines from include/asm-generic/sections.h.
-
-Use _text to mark the start of the kernel image including the head text,
-and _stext to mark the start of the .text section.
+Prepare for removing num_physpages and simplify mem_init().
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
-Cc: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+Cc: Richard Henderson <rth@twiddle.net>
+Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Cc: Matt Turner <mattst88@gmail.com>
+Cc: David Howells <dhowells@redhat.com>
+Cc: linux-alpha@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org
 ---
- arch/avr32/kernel/setup.c       |    2 +-
- arch/avr32/kernel/vmlinux.lds.S |    4 ++--
- 2 files changed, 3 insertions(+), 3 deletions(-)
+ arch/alpha/mm/init.c |   32 ++------------------------------
+ arch/alpha/mm/numa.c |   34 ++--------------------------------
+ 2 files changed, 4 insertions(+), 62 deletions(-)
 
-diff --git a/arch/avr32/kernel/setup.c b/arch/avr32/kernel/setup.c
-index b4247f4..209ae5a 100644
---- a/arch/avr32/kernel/setup.c
-+++ b/arch/avr32/kernel/setup.c
-@@ -555,7 +555,7 @@ void __init setup_arch (char **cmdline_p)
- {
- 	struct clk *cpu_clk;
+diff --git a/arch/alpha/mm/init.c b/arch/alpha/mm/init.c
+index ca07a97..04c933c 100644
+--- a/arch/alpha/mm/init.c
++++ b/arch/alpha/mm/init.c
+@@ -277,42 +277,14 @@ srm_paging_stop (void)
+ #endif
  
--	init_mm.start_code = (unsigned long)_text;
-+	init_mm.start_code = (unsigned long)_stext;
- 	init_mm.end_code = (unsigned long)_etext;
- 	init_mm.end_data = (unsigned long)_edata;
- 	init_mm.brk = (unsigned long)_end;
-diff --git a/arch/avr32/kernel/vmlinux.lds.S b/arch/avr32/kernel/vmlinux.lds.S
-index 9cd2bd9..a458917 100644
---- a/arch/avr32/kernel/vmlinux.lds.S
-+++ b/arch/avr32/kernel/vmlinux.lds.S
-@@ -23,7 +23,7 @@ SECTIONS
+ #ifndef CONFIG_DISCONTIGMEM
+-static void __init
+-printk_memory_info(void)
+-{
+-	unsigned long codesize, reservedpages, datasize, initsize, tmp;
+-	extern int page_is_ram(unsigned long) __init;
+-
+-	/* printk all informations */
+-	reservedpages = 0;
+-	for (tmp = 0; tmp < max_low_pfn; tmp++)
+-		/*
+-		 * Only count reserved RAM pages
+-		 */
+-		if (page_is_ram(tmp) && PageReserved(mem_map+tmp))
+-			reservedpages++;
+-
+-	codesize =  (unsigned long) &_etext - (unsigned long) &_text;
+-	datasize =  (unsigned long) &_edata - (unsigned long) &_data;
+-	initsize =  (unsigned long) &__init_end - (unsigned long) &__init_begin;
+-
+-	printk("Memory: %luk/%luk available (%luk kernel code, %luk reserved, %luk data, %luk init)\n",
+-	       nr_free_pages() << (PAGE_SHIFT-10),
+-	       max_mapnr << (PAGE_SHIFT-10),
+-	       codesize >> 10,
+-	       reservedpages << (PAGE_SHIFT-10),
+-	       datasize >> 10,
+-	       initsize >> 10);
+-}
+-
+ void __init
+ mem_init(void)
  {
- 	. = CONFIG_ENTRY_ADDRESS;
- 	.init		: AT(ADDR(.init) - LOAD_OFFSET) {
--		_stext = .;
-+		_text = .;
- 		__init_begin = .;
- 			_sinittext = .;
- 			*(.text.reset)
-@@ -46,7 +46,7 @@ SECTIONS
+-	max_mapnr = num_physpages = max_low_pfn;
++	max_mapnr = max_low_pfn;
+ 	free_all_bootmem();
+ 	high_memory = (void *) __va(max_low_pfn * PAGE_SIZE);
  
- 	.text		: AT(ADDR(.text) - LOAD_OFFSET) {
- 		_evba = .;
--		_text = .;
-+		_stext = .;
- 		*(.ex.text)
- 		*(.irq.text)
- 		KPROBES_TEXT
+-	printk_memory_info();
++	mem_init_print_info(NULL);
+ }
+ #endif /* CONFIG_DISCONTIGMEM */
+ 
+diff --git a/arch/alpha/mm/numa.c b/arch/alpha/mm/numa.c
+index 857452c..0894b3a8 100644
+--- a/arch/alpha/mm/numa.c
++++ b/arch/alpha/mm/numa.c
+@@ -129,8 +129,6 @@ setup_memory_node(int nid, void *kernel_end)
+ 	if (node_max_pfn > max_low_pfn)
+ 		max_pfn = max_low_pfn = node_max_pfn;
+ 
+-	num_physpages += node_max_pfn - node_min_pfn;
+-
+ #if 0 /* we'll try this one again in a little while */
+ 	/* Cute trick to make sure our local node data is on local memory */
+ 	node_data[nid] = (pg_data_t *)(__va(node_min_pfn << PAGE_SHIFT));
+@@ -324,37 +322,9 @@ void __init paging_init(void)
+ 
+ void __init mem_init(void)
+ {
+-	unsigned long codesize, reservedpages, datasize, initsize, pfn;
+-	extern int page_is_ram(unsigned long) __init;
+-	unsigned long nid, i;
+ 	high_memory = (void *) __va(max_low_pfn << PAGE_SHIFT);
+-
+-	reservedpages = 0;
+-	for_each_online_node(nid) {
+-		/*
+-		 * This will free up the bootmem, ie, slot 0 memory
+-		 */
+-		free_all_bootmem_node(NODE_DATA(nid));
+-
+-		pfn = NODE_DATA(nid)->node_start_pfn;
+-		for (i = 0; i < node_spanned_pages(nid); i++, pfn++)
+-			if (page_is_ram(pfn) &&
+-			    PageReserved(nid_page_nr(nid, i)))
+-				reservedpages++;
+-	}
+-
+-	codesize =  (unsigned long) &_etext - (unsigned long) &_text;
+-	datasize =  (unsigned long) &_edata - (unsigned long) &_data;
+-	initsize =  (unsigned long) &__init_end - (unsigned long) &__init_begin;
+-
+-	printk("Memory: %luk/%luk available (%luk kernel code, %luk reserved, "
+-	       "%luk data, %luk init)\n",
+-	       nr_free_pages() << (PAGE_SHIFT-10),
+-	       num_physpages << (PAGE_SHIFT-10),
+-	       codesize >> 10,
+-	       reservedpages << (PAGE_SHIFT-10),
+-	       datasize >> 10,
+-	       initsize >> 10);
++	free_all_bootmem();
++	mem_init_print_info(NULL);
+ #if 0
+ 	mem_stress();
+ #endif
 -- 
 1.7.9.5
 
