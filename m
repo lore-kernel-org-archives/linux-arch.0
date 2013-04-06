@@ -1,91 +1,78 @@
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v4, part3 29/41] mm/openrisc: prepare for removing num_physpages and simplify mem_init()
-Date: Sat,  6 Apr 2013 22:32:28 +0800
-Message-ID: <1365258760-30821-30-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v4, part3 24/41] mm/m68k: prepare for removing num_physpages and simplify mem_init()
+Date: Sat,  6 Apr 2013 22:32:23 +0800
+Message-ID: <1365258760-30821-25-git-send-email-jiang.liu@huawei.com>
 References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-m68k-owner@vger.kernel.org>
 In-Reply-To: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-m68k-owner@vger.kernel.org
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux@lists.openrisc.net
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Greg Ungerer <gerg@uclinux.org>, linux-m68k@lists.linux-m68k.org
 List-Id: linux-arch.vger.kernel.org
 
 Prepare for removing num_physpages and simplify mem_init().
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Acked-by: Jonas Bonn <jonas@southpole.se>
-Cc: David Howells <dhowells@redhat.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: linux@lists.openrisc.net
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Greg Ungerer <gerg@uclinux.org>
+Cc: linux-m68k@lists.linux-m68k.org
 Cc: linux-kernel@vger.kernel.org
 ---
- arch/openrisc/mm/init.c |   44 ++++----------------------------------------
- 1 file changed, 4 insertions(+), 40 deletions(-)
+ arch/m68k/mm/init.c |   31 ++-----------------------------
+ 1 file changed, 2 insertions(+), 29 deletions(-)
 
-diff --git a/arch/openrisc/mm/init.c b/arch/openrisc/mm/init.c
-index da26482..ac438ab 100644
---- a/arch/openrisc/mm/init.c
-+++ b/arch/openrisc/mm/init.c
-@@ -202,56 +202,20 @@ void __init paging_init(void)
- 
- /* References to section boundaries */
- 
--static int __init free_pages_init(void)
--{
--	int reservedpages, pfn;
--
--	/* this will put all low memory onto the freelists */
--	free_all_bootmem();
--
--	reservedpages = 0;
--	for (pfn = 0; pfn < max_low_pfn; pfn++) {
--		/*
--		 * Only count reserved RAM pages
--		 */
--		if (PageReserved(mem_map + pfn))
--			reservedpages++;
--	}
--
--	return reservedpages;
--}
--
--static void __init set_max_mapnr_init(void)
--{
--	max_mapnr = num_physpages = max_low_pfn;
--}
--
+diff --git a/arch/m68k/mm/init.c b/arch/m68k/mm/init.c
+index 2485a8c..0723141 100644
+--- a/arch/m68k/mm/init.c
++++ b/arch/m68k/mm/init.c
+@@ -149,33 +149,11 @@ void __init print_memmap(void)
  void __init mem_init(void)
  {
--	int codesize, reservedpages, datasize, initsize;
+ 	pg_data_t *pgdat;
+-	int codepages = 0;
+-	int datapages = 0;
+-	int initpages = 0;
+ 	int i;
+ 
+ 	/* this will put all memory onto the freelists */
+-	num_physpages = 0;
+-	for_each_online_pgdat(pgdat) {
+-		num_physpages += pgdat->node_present_pages;
 -
- 	BUG_ON(!mem_map);
- 
--	set_max_mapnr_init();
++	for_each_online_pgdat(pgdat)
+ 		free_all_bootmem_node(pgdat);
+-		for (i = 0; i < pgdat->node_spanned_pages; i++) {
+-			struct page *page = pgdat->node_mem_map + i;
+-			char *addr = page_to_virt(page);
 -
-+	max_mapnr = max_low_pfn;
- 	high_memory = (void *)__va(max_low_pfn * PAGE_SIZE);
+-			if (!PageReserved(page))
+-				continue;
+-			if (addr >= _text &&
+-			    addr < _etext)
+-				codepages++;
+-			else if (addr >= __init_begin &&
+-				 addr < __init_end)
+-				initpages++;
+-			else
+-				datapages++;
+-		}
+-	}
  
- 	/* clear the zero-page */
- 	memset((void *)empty_zero_page, 0, PAGE_SIZE);
+ #if defined(CONFIG_MMU) && !defined(CONFIG_SUN3) && !defined(CONFIG_COLDFIRE)
+ 	/* insert pointer tables allocated so far into the tablelist */
+@@ -190,12 +168,7 @@ void __init mem_init(void)
+ 		init_pointer_table((unsigned long)zero_pgtable);
+ #endif
  
--	reservedpages = free_pages_init();
--
--	codesize = (unsigned long)&_etext - (unsigned long)&_stext;
--	datasize = (unsigned long)&_edata - (unsigned long)&_etext;
--	initsize = (unsigned long)&__init_end - (unsigned long)&__init_begin;
-+	/* this will put all low memory onto the freelists */
-+	free_all_bootmem();
- 
--	printk(KERN_INFO
--	       "Memory: %luk/%luk available (%dk kernel code, %dk reserved, %dk data, %dk init, %ldk highmem)\n",
--	       (unsigned long)nr_free_pages() << (PAGE_SHIFT - 10),
--	       max_mapnr << (PAGE_SHIFT - 10), codesize >> 10,
--	       reservedpages << (PAGE_SHIFT - 10), datasize >> 10,
--	       initsize >> 10, (unsigned long)(0 << (PAGE_SHIFT - 10))
--	    );
+-	pr_info("Memory: %luk/%luk available (%dk kernel code, %dk data, %dk init)\n",
+-	       nr_free_pages() << (PAGE_SHIFT-10),
+-	       totalram_pages << (PAGE_SHIFT-10),
+-	       codepages << (PAGE_SHIFT-10),
+-	       datapages << (PAGE_SHIFT-10),
+-	       initpages << (PAGE_SHIFT-10));
 +	mem_init_print_info(NULL);
+ 	print_memmap();
+ }
  
- 	printk("mem_init_done ...........................................\n");
- 	mem_init_done = 1;
 -- 
 1.7.9.5
