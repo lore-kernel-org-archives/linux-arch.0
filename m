@@ -1,177 +1,45 @@
-From: Oskar Andero <oskar.andero@sonymobile.com>
-Subject: [PATCH v3 1/4] kprobes: delay blacklist symbol lookup until we actually need it
-Date: Fri, 5 Apr 2013 15:26:37 +0200
-Message-ID: <1365168400-17954-2-git-send-email-oskar.andero@sonymobile.com>
-References: <1365168400-17954-1-git-send-email-oskar.andero@sonymobile.com>
-Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1365168400-17954-1-git-send-email-oskar.andero@sonymobile.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, davem@davemloft.net, anil.s.keshavamurthy@intel.com, ananth@in.ibm.com, Joonsoo Kim <iamjoonsoo.kim@lge.com>, radovan.lekanovic@sonymobile.com, bjorn.davidsson@sonymobile.com, oskar.andero@sonymobile.com, Toby Collett <toby.collett@sonymobile.com>
+From: Jiang Liu <liuj97@gmail.com>
+Subject: [PATCH v4, part3 21/41] mm/hexagon: prepare for removing num_physpages and simplify mem_init()
+Date: Sat,  6 Apr 2013 22:32:20 +0800
+Message-ID: <1365258760-30821-22-git-send-email-jiang.liu@huawei.com>
+References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-From: Toby Collett <toby.collett@sonymobile.com>
+Prepare for removing num_physpages and simplify mem_init().
 
-The symbol lookup can take a long time and kprobes is
-initialised very early in boot, so delay symbol lookup
-until the blacklist is first used.
-
-Cc: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Cc: David S. Miller <davem@davemloft.net>
-Reviewed-by: Radovan Lekanovic <radovan.lekanovic@sonymobile.com>
-Signed-off-by: Toby Collett <toby.collett@sonymobile.com>
-Signed-off-by: Oskar Andero <oskar.andero@sonymobile.com>
+Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+Cc: Richard Kuo <rkuo@codeaurora.org>
+Cc: linux-hexagon@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
 ---
- kernel/kprobes.c | 100 ++++++++++++++++++++++++++++++++++---------------------
- 1 file changed, 62 insertions(+), 38 deletions(-)
+ arch/hexagon/mm/init.c |    3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
 
-diff --git a/kernel/kprobes.c b/kernel/kprobes.c
-index e35be53..c8c2281 100644
---- a/kernel/kprobes.c
-+++ b/kernel/kprobes.c
-@@ -68,6 +68,7 @@
- #endif
- 
- static int kprobes_initialized;
-+static bool kprobe_blacklist_initialized;
- static struct hlist_head kprobe_table[KPROBE_TABLE_SIZE];
- static struct hlist_head kretprobe_inst_table[KPROBE_TABLE_SIZE];
- 
-@@ -102,6 +103,62 @@ static struct kprobe_blackpoint kprobe_blacklist[] = {
- 	{NULL}    /* Terminator */
- };
- 
-+/* it can take some time ( > 100ms ) to initialise the
-+ * blacklist so we delay this until we actually need it
-+ */
-+static void init_kprobe_blacklist(void)
-+{
-+	int i;
-+	unsigned long offset = 0, size = 0;
-+	char *modname, namebuf[128];
-+	const char *symbol_name;
-+	void *addr;
-+	struct kprobe_blackpoint *kb;
-+
-+	mutex_lock(&kprobe_mutex);
-+	if (kprobe_blacklist_initialized)
-+		goto out;
-+
-+	/*
-+	 * Lookup and populate the kprobe_blacklist.
-+	 *
-+	 * Unlike the kretprobe blacklist, we'll need to determine
-+	 * the range of addresses that belong to the said functions,
-+	 * since a kprobe need not necessarily be at the beginning
-+	 * of a function.
-+	 */
-+	for (kb = kprobe_blacklist; kb->name != NULL; kb++) {
-+		kprobe_lookup_name(kb->name, addr);
-+		if (!addr)
-+			continue;
-+
-+		kb->start_addr = (unsigned long)addr;
-+		symbol_name = kallsyms_lookup(kb->start_addr,
-+				&size, &offset, &modname, namebuf);
-+		if (!symbol_name)
-+			kb->range = 0;
-+		else
-+			kb->range = size;
-+	}
-+
-+	if (kretprobe_blacklist_size) {
-+		/* lookup the function address from its name */
-+		for (i = 0; kretprobe_blacklist[i].name != NULL; i++) {
-+			kprobe_lookup_name(kretprobe_blacklist[i].name,
-+					   kretprobe_blacklist[i].addr);
-+			if (!kretprobe_blacklist[i].addr)
-+				printk("kretprobe: lookup failed: %s\n",
-+				       kretprobe_blacklist[i].name);
-+		}
-+	}
-+
-+	smp_wmb();
-+	kprobe_blacklist_initialized = true;
-+
-+out:
-+	mutex_unlock(&kprobe_mutex);
-+}
-+
- #ifdef __ARCH_WANT_KPROBES_INSN_SLOT
- /*
-  * kprobe->ainsn.insn points to the copy of the instruction to be
-@@ -1331,6 +1388,9 @@ static int __kprobes in_kprobes_functions(unsigned long addr)
- 	if (addr >= (unsigned long)__kprobes_text_start &&
- 	    addr < (unsigned long)__kprobes_text_end)
- 		return -EINVAL;
-+
-+	if (unlikely(!kprobe_blacklist_initialized))
-+		init_kprobe_blacklist();
- 	/*
- 	 * If there exists a kprobe_blacklist, verify and
- 	 * fail any probe registration in the prohibited area
-@@ -1816,6 +1876,8 @@ int __kprobes register_kretprobe(struct kretprobe *rp)
- 	void *addr;
- 
- 	if (kretprobe_blacklist_size) {
-+		if (unlikely(!kprobe_blacklist_initialized))
-+			init_kprobe_blacklist();
- 		addr = kprobe_addr(&rp->kp);
- 		if (IS_ERR(addr))
- 			return PTR_ERR(addr);
-@@ -2065,11 +2127,6 @@ static struct notifier_block kprobe_module_nb = {
- static int __init init_kprobes(void)
+diff --git a/arch/hexagon/mm/init.c b/arch/hexagon/mm/init.c
+index c048d06e..c0f0781 100644
+--- a/arch/hexagon/mm/init.c
++++ b/arch/hexagon/mm/init.c
+@@ -70,9 +70,8 @@ unsigned long long kmap_generation;
+ void __init mem_init(void)
  {
- 	int i, err = 0;
--	unsigned long offset = 0, size = 0;
--	char *modname, namebuf[128];
--	const char *symbol_name;
--	void *addr;
--	struct kprobe_blackpoint *kb;
+ 	free_all_bootmem();
+-	num_physpages = bootmem_lastpg;	/*  seriously, what?  */
  
- 	/* FIXME allocate the probe table, currently defined statically */
- 	/* initialize all list heads */
-@@ -2079,39 +2136,6 @@ static int __init init_kprobes(void)
- 		raw_spin_lock_init(&(kretprobe_table_locks[i].lock));
- 	}
+-	printk(KERN_INFO "totalram_pages = %ld\n", totalram_pages);
++	mem_init_print_info(NULL);
  
--	/*
--	 * Lookup and populate the kprobe_blacklist.
--	 *
--	 * Unlike the kretprobe blacklist, we'll need to determine
--	 * the range of addresses that belong to the said functions,
--	 * since a kprobe need not necessarily be at the beginning
--	 * of a function.
--	 */
--	for (kb = kprobe_blacklist; kb->name != NULL; kb++) {
--		kprobe_lookup_name(kb->name, addr);
--		if (!addr)
--			continue;
--
--		kb->start_addr = (unsigned long)addr;
--		symbol_name = kallsyms_lookup(kb->start_addr,
--				&size, &offset, &modname, namebuf);
--		if (!symbol_name)
--			kb->range = 0;
--		else
--			kb->range = size;
--	}
--
--	if (kretprobe_blacklist_size) {
--		/* lookup the function address from its name */
--		for (i = 0; kretprobe_blacklist[i].name != NULL; i++) {
--			kprobe_lookup_name(kretprobe_blacklist[i].name,
--					   kretprobe_blacklist[i].addr);
--			if (!kretprobe_blacklist[i].addr)
--				printk("kretprobe: lookup failed: %s\n",
--				       kretprobe_blacklist[i].name);
--		}
--	}
--
- #if defined(CONFIG_OPTPROBES)
- #if defined(__ARCH_WANT_KPROBES_INSN_SLOT)
- 	/* Init kprobe_optinsn_slots */
+ 	/*
+ 	 *  To-Do:  someone somewhere should wipe out the bootmem map
 -- 
-1.8.1.5
+1.7.9.5
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
