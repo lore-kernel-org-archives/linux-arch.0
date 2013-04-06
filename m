@@ -1,68 +1,46 @@
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v4, part3 33/41] mm/score: prepare for removing num_physpages and simplify mem_init()
-Date: Sat,  6 Apr 2013 22:32:32 +0800
-Message-ID: <1365258760-30821-34-git-send-email-jiang.liu@huawei.com>
-References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v4, part3 09/15] mm: use managed_pages to calculate default zonelist order
+Date: Sat,  6 Apr 2013 21:55:03 +0800
+Message-ID: <1365256509-29024-10-git-send-email-jiang.liu@huawei.com>
+References: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f181.google.com ([209.85.192.181]:45258 "EHLO
-	mail-pd0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1423554Ab3DFOqp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Apr 2013 10:46:45 -0400
-In-Reply-To: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
+Received: from mail-pb0-f54.google.com ([209.85.160.54]:57557 "EHLO
+	mail-pb0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1423023Ab3DFN5D (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Apr 2013 09:57:03 -0400
+In-Reply-To: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Chen Liqin <liqin.chen@sunplusct.com>, Lennox Wu <lennox.wu@gmail.com>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mel Gorman <mel@csn.ul.ie>, Marek Szyprowski <m.szyprowski@samsung.com>
 
-Prepare for removing num_physpages and simplify mem_init().
+Use zone->managed_pages instead of zone->present_pages to calculate
+default zonelist order because managed_pages means allocatable pages.
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Chen Liqin <liqin.chen@sunplusct.com>
-Cc: Lennox Wu <lennox.wu@gmail.com>
+Cc: Mel Gorman <mel@csn.ul.ie>
+Cc: Minchan Kim <minchan@kernel.org>
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>
+Cc: linux-mm@kvack.org
 Cc: linux-kernel@vger.kernel.org
 ---
- arch/score/mm/init.c |   26 ++------------------------
- 1 file changed, 2 insertions(+), 24 deletions(-)
+ mm/page_alloc.c |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/score/mm/init.c b/arch/score/mm/init.c
-index 579fc4e..2a223d8 100644
---- a/arch/score/mm/init.c
-+++ b/arch/score/mm/init.c
-@@ -77,33 +77,11 @@ void __init paging_init(void)
- 
- void __init mem_init(void)
- {
--	unsigned long codesize, reservedpages, datasize, initsize;
--	unsigned long tmp, ram = 0;
--
- 	high_memory = (void *) __va(max_low_pfn << PAGE_SHIFT);
- 	free_all_bootmem();
- 	setup_zero_page();	/* Setup zeroed pages. */
--	reservedpages = 0;
--
--	for (tmp = 0; tmp < max_low_pfn; tmp++)
--		if (page_is_ram(tmp)) {
--			ram++;
--			if (PageReserved(pfn_to_page(tmp)))
--				reservedpages++;
--		}
--
--	num_physpages = ram;
--	codesize = (unsigned long) &_etext - (unsigned long) &_text;
--	datasize = (unsigned long) &_edata - (unsigned long) &_etext;
--	initsize = (unsigned long) &__init_end - (unsigned long) &__init_begin;
--
--	printk(KERN_INFO "Memory: %luk/%luk available (%ldk kernel code, "
--			"%ldk reserved, %ldk data, %ldk init, %ldk highmem)\n",
--			(unsigned long) nr_free_pages() << (PAGE_SHIFT-10),
--			ram << (PAGE_SHIFT-10), codesize >> 10,
--			reservedpages << (PAGE_SHIFT-10), datasize >> 10,
--			initsize >> 10,
--			totalhigh_pages << (PAGE_SHIFT-10));
-+
-+	mem_init_print_info(NULL);
- }
- #endif /* !CONFIG_NEED_MULTIPLE_NODES */
- 
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index c3c3eda..1f94380 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -3449,8 +3449,8 @@ static int default_zonelist_order(void)
+ 			z = &NODE_DATA(nid)->node_zones[zone_type];
+ 			if (populated_zone(z)) {
+ 				if (zone_type < ZONE_NORMAL)
+-					low_kmem_size += z->present_pages;
+-				total_size += z->present_pages;
++					low_kmem_size += z->managed_pages;
++				total_size += z->managed_pages;
+ 			} else if (zone_type == ZONE_NORMAL) {
+ 				/*
+ 				 * If any node has only lowmem, then node order
 -- 
 1.7.9.5
