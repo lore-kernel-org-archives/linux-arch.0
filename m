@@ -1,77 +1,175 @@
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v4, part3 20/41] mm/h8300: prepare for removing num_physpages and simplify mem_init()
-Date: Sat,  6 Apr 2013 22:32:19 +0800
-Message-ID: <1365258760-30821-21-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v4, part3 35/41] mm/SPARC: prepare for removing num_physpages and simplify mem_init()
+Date: Sat,  6 Apr 2013 22:32:34 +0800
+Message-ID: <1365258760-30821-36-git-send-email-jiang.liu@huawei.com>
 References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pa0-f51.google.com ([209.85.220.51]:47524 "EHLO
+	mail-pa0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1423570Ab3DFOrD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Apr 2013 10:47:03 -0400
 In-Reply-To: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Geert Uytterhoeven <geert@linux-m68k.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Sam Ravnborg <sam@ravnborg.org>, Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>, Tang Chen <tangchen@cn.fujitsu.com>, sparclinux@vger.kernel.org
 
 Prepare for removing num_physpages and simplify mem_init().
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Sam Ravnborg <sam@ravnborg.org>
+Cc: Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>
+Cc: Tang Chen <tangchen@cn.fujitsu.com>
+Cc: sparclinux@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org
 ---
- arch/h8300/mm/init.c |   34 ++++++++--------------------------
- 1 file changed, 8 insertions(+), 26 deletions(-)
+ arch/sparc/kernel/leon_smp.c |    3 ---
+ arch/sparc/mm/init_32.c      |   33 +++------------------------------
+ arch/sparc/mm/init_64.c      |   23 ++---------------------
+ 3 files changed, 5 insertions(+), 54 deletions(-)
 
-diff --git a/arch/h8300/mm/init.c b/arch/h8300/mm/init.c
-index 22fd869..0088f3a 100644
---- a/arch/h8300/mm/init.c
-+++ b/arch/h8300/mm/init.c
-@@ -121,40 +121,22 @@ void __init paging_init(void)
+diff --git a/arch/sparc/kernel/leon_smp.c b/arch/sparc/kernel/leon_smp.c
+index 6cfc1b0..d7aa524 100644
+--- a/arch/sparc/kernel/leon_smp.c
++++ b/arch/sparc/kernel/leon_smp.c
+@@ -254,15 +254,12 @@ void __init leon_smp_done(void)
+ 	/* Free unneeded trap tables */
+ 	if (!cpu_present(1)) {
+ 		free_reserved_page(virt_to_page(&trapbase_cpu1));
+-		num_physpages++;
+ 	}
+ 	if (!cpu_present(2)) {
+ 		free_reserved_page(virt_to_page(&trapbase_cpu2));
+-		num_physpages++;
+ 	}
+ 	if (!cpu_present(3)) {
+ 		free_reserved_page(virt_to_page(&trapbase_cpu3));
+-		num_physpages++;
+ 	}
+ 	/* Ok, they are spinning and ready to go. */
+ 	smp_processors_ready = 1;
+diff --git a/arch/sparc/mm/init_32.c b/arch/sparc/mm/init_32.c
+index e96afed..25d10cf 100644
+--- a/arch/sparc/mm/init_32.c
++++ b/arch/sparc/mm/init_32.c
+@@ -288,10 +288,6 @@ static void map_high_region(unsigned long start_pfn, unsigned long end_pfn)
  
  void __init mem_init(void)
  {
--	int codek = 0, datak = 0, initk = 0;
--	/* DAVIDM look at setup memory map generically with reserved area */
--	unsigned long tmp;
--	extern unsigned long  _ramend, _ramstart;
--	unsigned long len = &_ramend - &_ramstart;
--	unsigned long start_mem = memory_start; /* DAVIDM - these must start at end of kernel */
--	unsigned long end_mem   = memory_end; /* DAVIDM - this must not include kernel stack at top */
-+	unsigned long codesize = _etext - _stext;
+-	int codepages = 0;
+-	int datapages = 0;
+-	int initpages = 0; 
+-	int reservedpages = 0;
+ 	int i;
  
- #ifdef DEBUG
--	printk(KERN_DEBUG "Mem_init: start=%lx, end=%lx\n", start_mem, end_mem);
-+	pr_debug("Mem_init: start=%lx, end=%lx\n", memory_start, memory_end);
- #endif
+ 	if (PKMAP_BASE+LAST_PKMAP*PAGE_SIZE >= FIXADDR_START) {
+@@ -329,8 +325,6 @@ void __init mem_init(void)
+ 		unsigned long start_pfn = sp_banks[i].base_addr >> PAGE_SHIFT;
+ 		unsigned long end_pfn = (sp_banks[i].base_addr + sp_banks[i].num_bytes) >> PAGE_SHIFT;
  
--	end_mem &= PAGE_MASK;
--	high_memory = (void *) end_mem;
+-		num_physpages += sp_banks[i].num_bytes >> PAGE_SHIFT;
 -
--	start_mem = PAGE_ALIGN(start_mem);
--	max_mapnr = num_physpages = MAP_NR(high_memory);
-+	high_memory = (void *) (memory_end & PAGE_MASK);
-+	max_mapnr = MAP_NR(high_memory);
+ 		if (end_pfn <= highstart_pfn)
+ 			continue;
  
- 	/* this will put all low memory onto the freelists */
- 	free_all_bootmem();
- 
--	codek = (_etext - _stext) >> 10;
--	datak = (__bss_stop - _sdata) >> 10;
--	initk = (__init_begin - __init_end) >> 10;
+@@ -340,39 +334,18 @@ void __init mem_init(void)
+ 		map_high_region(start_pfn, end_pfn);
+ 	}
+ 	
+-	codepages = (((unsigned long) &_etext) - ((unsigned long)&_start));
+-	codepages = PAGE_ALIGN(codepages) >> PAGE_SHIFT;
+-	datapages = (((unsigned long) &_edata) - ((unsigned long)&_etext));
+-	datapages = PAGE_ALIGN(datapages) >> PAGE_SHIFT;
+-	initpages = (((unsigned long) &__init_end) - ((unsigned long) &__init_begin));
+-	initpages = PAGE_ALIGN(initpages) >> PAGE_SHIFT;
 -
--	tmp = nr_free_pages() << PAGE_SHIFT;
--	printk(KERN_INFO "Memory available: %luk/%luk RAM, %luk/%luk ROM (%dk kernel code, %dk data)\n",
--	       tmp >> 10,
--	       len >> 10,
--	       (rom_length > 0) ? ((rom_length >> 10) - codek) : 0,
--	       rom_length >> 10,
--	       codek,
--	       datak
--	       );
+-	/* Ignore memory holes for the purpose of counting reserved pages */
+-	for (i=0; i < max_low_pfn; i++)
+-		if (test_bit(i >> (20 - PAGE_SHIFT), sparc_valid_addr_bitmap)
+-		    && PageReserved(pfn_to_page(i)))
+-			reservedpages++;
+-
+-	printk(KERN_INFO "Memory: %luk/%luk available (%dk kernel code, %dk reserved, %dk data, %dk init, %ldk highmem)\n",
+-	       nr_free_pages() << (PAGE_SHIFT-10),
+-	       num_physpages << (PAGE_SHIFT - 10),
+-	       codepages << (PAGE_SHIFT-10),
+-	       reservedpages << (PAGE_SHIFT - 10),
+-	       datapages << (PAGE_SHIFT-10), 
+-	       initpages << (PAGE_SHIFT-10),
+-	       totalhigh_pages << (PAGE_SHIFT-10));
 +	mem_init_print_info(NULL);
-+	if (rom_length > 0 && rom_length > codesize)
-+		pr_info("Memory available: %luK/%luK ROM\n",
-+			(rom_length - codesize) >> 10, rom_length >> 10);
  }
  
+ void free_initmem (void)
+ {
+-	num_physpages += free_initmem_default(POISON_FREE_INITMEM);
++	free_initmem_default(POISON_FREE_INITMEM);
+ }
+ 
+ #ifdef CONFIG_BLK_DEV_INITRD
+ void free_initrd_mem(unsigned long start, unsigned long end)
+ {
+-	num_physpages += free_reserved_area(start, end, POISON_FREE_INITMEM,
+-					    "initrd");
++	free_reserved_area(start, end, POISON_FREE_INITMEM, "initrd");
+ }
+ #endif
+ 
+diff --git a/arch/sparc/mm/init_64.c b/arch/sparc/mm/init_64.c
+index 541a3bc..b1e35b7 100644
+--- a/arch/sparc/mm/init_64.c
++++ b/arch/sparc/mm/init_64.c
+@@ -2039,7 +2039,6 @@ static void __init register_page_bootmem_info(void)
+ }
+ void __init mem_init(void)
+ {
+-	unsigned long codepages, datapages, initpages;
+ 	unsigned long addr, last;
+ 
+ 	addr = PAGE_OFFSET + kern_base;
+@@ -2057,11 +2056,6 @@ void __init mem_init(void)
+ 	register_page_bootmem_info();
+ 	free_all_bootmem();
+ 
+-	/* We subtract one to account for the mem_map_zero page
+-	 * allocated below.
+-	 */
+-	num_physpages = totalram_pages - 1;
+-
+ 	/*
+ 	 * Set up the zero page, mark it reserved, so that page count
+ 	 * is not manipulated when freeing the page from user ptes.
+@@ -2073,19 +2067,7 @@ void __init mem_init(void)
+ 	}
+ 	mark_page_reserved(mem_map_zero);
+ 
+-	codepages = (((unsigned long) _etext) - ((unsigned long) _start));
+-	codepages = PAGE_ALIGN(codepages) >> PAGE_SHIFT;
+-	datapages = (((unsigned long) _edata) - ((unsigned long) _etext));
+-	datapages = PAGE_ALIGN(datapages) >> PAGE_SHIFT;
+-	initpages = (((unsigned long) __init_end) - ((unsigned long) __init_begin));
+-	initpages = PAGE_ALIGN(initpages) >> PAGE_SHIFT;
+-
+-	printk("Memory: %luk available (%ldk kernel code, %ldk data, %ldk init) [%016lx,%016lx]\n",
+-	       nr_free_pages() << (PAGE_SHIFT-10),
+-	       codepages << (PAGE_SHIFT-10),
+-	       datapages << (PAGE_SHIFT-10), 
+-	       initpages << (PAGE_SHIFT-10), 
+-	       PAGE_OFFSET, (last_valid_pfn << PAGE_SHIFT));
++	mem_init_print_info(NULL);
+ 
+ 	if (tlb_type == cheetah || tlb_type == cheetah_plus)
+ 		cheetah_ecache_flush_init();
+@@ -2125,8 +2107,7 @@ void free_initmem(void)
+ #ifdef CONFIG_BLK_DEV_INITRD
+ void free_initrd_mem(unsigned long start, unsigned long end)
+ {
+-	num_physpages += free_reserved_area(start, end, POISON_FREE_INITMEM,
+-					    "initrd");
++	free_reserved_area(start, end, POISON_FREE_INITMEM, "initrd");
+ }
+ #endif
  
 -- 
 1.7.9.5
