@@ -1,126 +1,105 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f169.google.com ([209.85.192.169]:45109 "EHLO
-	mail-pd0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1423252Ab3DFOpm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Apr 2013 10:45:42 -0400
+Received: from mail-pb0-f47.google.com ([209.85.160.47]:44720 "EHLO
+	mail-pb0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1423085Ab3DFOr2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Apr 2013 10:47:28 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v4, part3 26/41] mm/microblaze: prepare for removing num_physpages and simplify mem_init()
-Date: Sat,  6 Apr 2013 22:32:25 +0800
-Message-ID: <1365258760-30821-27-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v4, part3 38/41] mm/unicore32: prepare for removing num_physpages and simplify mem_init()
+Date: Sat,  6 Apr 2013 22:32:37 +0800
+Message-ID: <1365258760-30821-39-git-send-email-jiang.liu@huawei.com>
 In-Reply-To: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
 References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Michal Simek <monstr@monstr.eu>, microblaze-uclinux@itee.uq.edu.au
-Message-ID: <20130406143225.iQHlhSpV6XPLYb4QJ4P_hvPrdHX2-y2lKEh5Dnbk1uE@z>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>
+Message-ID: <20130406143237.6yraWwKbYuzeT27Vv0YPqqn9RtKrodNSrEKiDe0CXOQ@z>
 
 Prepare for removing num_physpages and simplify mem_init().
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Michal Simek <monstr@monstr.eu>
-Cc: microblaze-uclinux@itee.uq.edu.au
+Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Cc: Michal Hocko <mhocko@suse.cz>
+Cc: David Rientjes <rientjes@google.com>
 Cc: linux-kernel@vger.kernel.org
 ---
- arch/microblaze/mm/init.c |   51 ++++++---------------------------------------
- 1 file changed, 6 insertions(+), 45 deletions(-)
+ arch/unicore32/mm/init.c |   49 ++--------------------------------------------
+ 1 file changed, 2 insertions(+), 47 deletions(-)
 
-diff --git a/arch/microblaze/mm/init.c b/arch/microblaze/mm/init.c
-index fb7f248..b0a4a36 100644
---- a/arch/microblaze/mm/init.c
-+++ b/arch/microblaze/mm/init.c
-@@ -71,24 +71,17 @@ static void __init highmem_init(void)
- 	kmap_prot = PAGE_KERNEL;
- }
- 
--static unsigned long highmem_setup(void)
-+static void highmem_setup(void)
- {
- 	unsigned long pfn;
--	unsigned long reservedpages = 0;
- 
- 	for (pfn = max_low_pfn; pfn < max_pfn; ++pfn) {
- 		struct page *page = pfn_to_page(pfn);
- 
- 		/* FIXME not sure about */
--		if (memblock_is_reserved(pfn << PAGE_SHIFT))
--			continue;
--		free_highmem_page(page);
--		reservedpages++;
-+		if (!memblock_is_reserved(pfn << PAGE_SHIFT))
-+			free_highmem_page(page);
- 	}
--	pr_info("High memory: %luk\n",
--					totalhigh_pages << (PAGE_SHIFT-10));
--
--	return reservedpages;
- }
- #endif /* CONFIG_HIGHMEM */
- 
-@@ -167,13 +160,12 @@ void __init setup_memory(void)
- 	 * min_low_pfn - the first page (mm/bootmem.c - node_boot_start)
- 	 * max_low_pfn
- 	 * max_mapnr - the first unused page (mm/bootmem.c - node_low_pfn)
--	 * num_physpages - number of all pages
- 	 */
- 
- 	/* memory start is from the kernel end (aligned) to higher addr */
- 	min_low_pfn = memory_start >> PAGE_SHIFT; /* minimum for allocation */
- 	/* RAM is assumed contiguous */
--	num_physpages = max_mapnr = memory_size >> PAGE_SHIFT;
-+	max_mapnr = memory_size >> PAGE_SHIFT;
- 	max_low_pfn = ((u64)memory_start + (u64)lowmem_size) >> PAGE_SHIFT;
- 	max_pfn = ((u64)memory_start + (u64)memory_size) >> PAGE_SHIFT;
- 
-@@ -246,46 +238,15 @@ void free_initmem(void)
- 
+diff --git a/arch/unicore32/mm/init.c b/arch/unicore32/mm/init.c
+index 119b9e8..39a967a 100644
+--- a/arch/unicore32/mm/init.c
++++ b/arch/unicore32/mm/init.c
+@@ -383,10 +383,6 @@ static void __init free_unused_memmap(struct meminfo *mi)
+  */
  void __init mem_init(void)
  {
--	pg_data_t *pgdat;
--	unsigned long reservedpages = 0, codesize, initsize, datasize, bsssize;
+-	unsigned long reserved_pages, free_pages;
+-	struct memblock_region *reg;
+-	int i;
 -
- 	high_memory = (void *)__va(memory_start + lowmem_size - 1);
+ 	max_mapnr   = pfn_to_page(max_pfn + PHYS_PFN_OFFSET) - mem_map;
  
- 	/* this will put all memory onto the freelists */
+ 	free_unused_memmap(&meminfo);
+@@ -394,48 +390,7 @@ void __init mem_init(void)
+ 	/* this will put all unused low memory onto the freelists */
  	free_all_bootmem();
+ 
+-	reserved_pages = free_pages = 0;
 -
--	for_each_online_pgdat(pgdat) {
--		unsigned long i;
--		struct page *page;
+-	for_each_bank(i, &meminfo) {
+-		struct membank *bank = &meminfo.bank[i];
+-		unsigned int pfn1, pfn2;
+-		struct page *page, *end;
 -
--		for (i = 0; i < pgdat->node_spanned_pages; i++) {
--			if (!pfn_valid(pgdat->node_start_pfn + i))
--				continue;
--			page = pgdat_page_nr(pgdat, i);
+-		pfn1 = bank_pfn_start(bank);
+-		pfn2 = bank_pfn_end(bank);
+-
+-		page = pfn_to_page(pfn1);
+-		end  = pfn_to_page(pfn2 - 1) + 1;
+-
+-		do {
 -			if (PageReserved(page))
--				reservedpages++;
--		}
+-				reserved_pages++;
+-			else if (!page_count(page))
+-				free_pages++;
+-			page++;
+-		} while (page < end);
 -	}
 -
- #ifdef CONFIG_HIGHMEM
--	reservedpages -= highmem_setup();
-+	highmem_setup();
- #endif
- 
--	codesize = (unsigned long)&_sdata - (unsigned long)&_stext;
--	datasize = (unsigned long)&_edata - (unsigned long)&_sdata;
--	initsize = (unsigned long)&__init_end - (unsigned long)&__init_begin;
--	bsssize = (unsigned long)&__bss_stop - (unsigned long)&__bss_start;
+-	/*
+-	 * Since our memory may not be contiguous, calculate the
+-	 * real number of pages we have in this system
+-	 */
+-	printk(KERN_INFO "Memory:");
+-	num_physpages = 0;
+-	for_each_memblock(memory, reg) {
+-		unsigned long pages = memblock_region_memory_end_pfn(reg) -
+-			memblock_region_memory_base_pfn(reg);
+-		num_physpages += pages;
+-		printk(" %ldMB", pages >> (20 - PAGE_SHIFT));
+-	}
+-	printk(" = %luMB total\n", num_physpages >> (20 - PAGE_SHIFT));
 -
--	pr_info("Memory: %luk/%luk available (%luk kernel code, ",
+-	printk(KERN_NOTICE "Memory: %luk/%luk available, %luk reserved, %luK highmem\n",
 -		nr_free_pages() << (PAGE_SHIFT-10),
--		num_physpages << (PAGE_SHIFT-10),
--		codesize >> 10);
--	pr_cont("%luk reserved, %luk data, %luk bss, %luk init)\n",
--		reservedpages << (PAGE_SHIFT-10),
--		datasize >> 10,
--		bsssize >> 10,
--		initsize >> 10);
+-		free_pages << (PAGE_SHIFT-10),
+-		reserved_pages << (PAGE_SHIFT-10),
+-		totalhigh_pages << (PAGE_SHIFT-10));
 -
-+	mem_init_print_info(str);
- #ifdef CONFIG_MMU
- 	pr_info("Kernel virtual memory layout:\n");
- 	pr_info("  * 0x%08lx..0x%08lx  : fixmap\n", FIXADDR_START, FIXADDR_TOP);
++	mem_init_print_info(NULL);
+ 	printk(KERN_NOTICE "Virtual kernel memory layout:\n"
+ 		"    vector  : 0x%08lx - 0x%08lx   (%4ld kB)\n"
+ 		"    vmalloc : 0x%08lx - 0x%08lx   (%4ld MB)\n"
+@@ -464,7 +419,7 @@ void __init mem_init(void)
+ 	BUILD_BUG_ON(TASK_SIZE				> MODULES_VADDR);
+ 	BUG_ON(TASK_SIZE				> MODULES_VADDR);
+ 
+-	if (PAGE_SIZE >= 16384 && num_physpages <= 128) {
++	if (PAGE_SIZE >= 16384 && get_num_physpages() <= 128) {
+ 		/*
+ 		 * On a machine this small we won't get
+ 		 * anywhere without overcommit, so turn
 -- 
 1.7.9.5
 
