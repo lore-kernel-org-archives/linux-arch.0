@@ -1,72 +1,159 @@
-From: Oskar Andero <oskar.andero@sonymobile.com>
-Subject: [PATCH v3 3/4] kprobes: move x86-specific blacklist symbols to arch directory
-Date: Fri, 5 Apr 2013 15:26:39 +0200
-Message-ID: <1365168400-17954-4-git-send-email-oskar.andero@sonymobile.com>
-References: <1365168400-17954-1-git-send-email-oskar.andero@sonymobile.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1365168400-17954-1-git-send-email-oskar.andero@sonymobile.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, davem@davemloft.net, anil.s.keshavamurthy@intel.com, ananth@in.ibm.com, Joonsoo Kim <iamjoonsoo.kim@lge.com>, radovan.lekanovic@sonymobile.com, bjorn.davidsson@sonymobile.com, oskar.andero@sonymobile.com
+From: Jiang Liu <liuj97@gmail.com>
+Subject: [PATCH v4, part3 19/41] mm/frv: prepare for removing num_physpages and simplify mem_init()
+Date: Sat,  6 Apr 2013 22:32:18 +0800
+Message-ID: <1365258760-30821-20-git-send-email-jiang.liu@huawei.com>
+References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-=46rom: Bj=C3=B6rn Davidsson <bjorn.davidsson@sonymobile.com>
+Prepare for removing num_physpages and simplify mem_init().
 
-The common kprobes blacklist contains x86-specific symbols.
-Looking for these in kallsyms takes unnecessary time during startup
-on non-X86 platform. The symbols where moved to
-arch/x86/kernel/kprobes/core.c.
-
-Cc: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Cc: David S. Miller <davem@davemloft.net>
-Cc: linux-arch@vger.kernel.org
-Reviewed-by: Radovan Lekanovic <radovan.lekanovic@sonymobile.com>
-Signed-off-by: Bj=C3=B6rn Davidsson <bjorn.davidsson@sonymobile.com>
-Signed-off-by: Oskar Andero <oskar.andero@sonymobile.com>
-Acked-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+Cc: David Howells <dhowells@redhat.com>
+Cc: Andi Kleen <ak@linux.intel.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: linux-kernel@vger.kernel.org
 ---
- arch/x86/kernel/kprobes/core.c | 7 +++++++
- kernel/kprobes.c               | 3 ---
- 2 files changed, 7 insertions(+), 3 deletions(-)
+ arch/frv/kernel/setup.c |   13 +++++++------
+ arch/frv/mm/init.c      |   49 ++++++++++++++---------------------------------
+ 2 files changed, 21 insertions(+), 41 deletions(-)
 
-diff --git a/arch/x86/kernel/kprobes/core.c b/arch/x86/kernel/kprobes/c=
-ore.c
-index 7bfe318..41ce6c1 100644
---- a/arch/x86/kernel/kprobes/core.c
-+++ b/arch/x86/kernel/kprobes/core.c
-@@ -65,6 +65,13 @@ void jprobe_return_end(void);
- DEFINE_PER_CPU(struct kprobe *, current_kprobe) =3D NULL;
- DEFINE_PER_CPU(struct kprobe_ctlblk, kprobe_ctlblk);
-=20
-+const char * const arch_kprobes_blacksyms[] =3D {
-+	"native_get_debugreg",
-+	"irq_entries_start",
-+	"common_interrupt",
-+};
-+const size_t arch_kprobes_blacksyms_size =3D ARRAY_SIZE(arch_kprobes_b=
-lacksyms);
-+
- #define stack_addr(regs) ((unsigned long *)kernel_stack_pointer(regs))
-=20
- #define W(row, b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, ba, bb, bc, bd,=
- be, bf)\
-diff --git a/kernel/kprobes.c b/kernel/kprobes.c
-index 2458ae1..b289384 100644
---- a/kernel/kprobes.c
-+++ b/kernel/kprobes.c
-@@ -95,9 +95,6 @@ static raw_spinlock_t *kretprobe_table_lock_ptr(unsig=
-ned long hash)
+diff --git a/arch/frv/kernel/setup.c b/arch/frv/kernel/setup.c
+index a513647..f78f8cb 100644
+--- a/arch/frv/kernel/setup.c
++++ b/arch/frv/kernel/setup.c
+@@ -876,6 +876,7 @@ late_initcall(setup_arch_serial);
+ static void __init setup_linux_memory(void)
+ {
+ 	unsigned long bootmap_size, low_top_pfn, kstart, kend, high_mem;
++	unsigned long physpages;
+ 
+ 	kstart	= (unsigned long) &__kernel_image_start - PAGE_OFFSET;
+ 	kend	= (unsigned long) &__kernel_image_end - PAGE_OFFSET;
+@@ -893,19 +894,19 @@ static void __init setup_linux_memory(void)
+ 					 );
+ 
+ 	/* pass the memory that the kernel can immediately use over to the bootmem allocator */
+-	max_mapnr = num_physpages = (memory_end - memory_start) >> PAGE_SHIFT;
++	max_mapnr = physpages = (memory_end - memory_start) >> PAGE_SHIFT;
+ 	low_top_pfn = (KERNEL_LOWMEM_END - KERNEL_LOWMEM_START) >> PAGE_SHIFT;
+ 	high_mem = 0;
+ 
+-	if (num_physpages > low_top_pfn) {
++	if (physpages > low_top_pfn) {
+ #ifdef CONFIG_HIGHMEM
+-		high_mem = num_physpages - low_top_pfn;
++		high_mem = physpages - low_top_pfn;
+ #else
+-		max_mapnr = num_physpages = low_top_pfn;
++		max_mapnr = physpages = low_top_pfn;
+ #endif
+ 	}
+ 	else {
+-		low_top_pfn = num_physpages;
++		low_top_pfn = physpages;
+ 	}
+ 
+ 	min_low_pfn = memory_start >> PAGE_SHIFT;
+@@ -979,7 +980,7 @@ static void __init setup_uclinux_memory(void)
+ 	free_bootmem(memory_start, memory_end - memory_start);
+ 
+ 	high_memory = (void *) (memory_end & PAGE_MASK);
+-	max_mapnr = num_physpages = ((unsigned long) high_memory - PAGE_OFFSET) >> PAGE_SHIFT;
++	max_mapnr = ((unsigned long) high_memory - PAGE_OFFSET) >> PAGE_SHIFT;
+ 
+ 	min_low_pfn = memory_start >> PAGE_SHIFT;
+ 	max_low_pfn = memory_end >> PAGE_SHIFT;
+diff --git a/arch/frv/mm/init.c b/arch/frv/mm/init.c
+index 4215822..e9e2b6f 100644
+--- a/arch/frv/mm/init.c
++++ b/arch/frv/mm/init.c
+@@ -78,7 +78,7 @@ void __init paging_init(void)
+ 	memset((void *) empty_zero_page, 0, PAGE_SIZE);
+ 
+ #ifdef CONFIG_HIGHMEM
+-	if (num_physpages - num_mappedpages) {
++	if (get_num_physpages() - num_mappedpages) {
+ 		pgd_t *pge;
+ 		pud_t *pue;
+ 		pmd_t *pme;
+@@ -96,7 +96,7 @@ void __init paging_init(void)
+ 	 */
+ 	zones_size[ZONE_NORMAL]  = max_low_pfn - min_low_pfn;
+ #ifdef CONFIG_HIGHMEM
+-	zones_size[ZONE_HIGHMEM] = num_physpages - num_mappedpages;
++	zones_size[ZONE_HIGHMEM] = get_num_physpages() - num_mappedpages;
+ #endif
+ 
+ 	free_area_init(zones_size);
+@@ -114,45 +114,24 @@ void __init paging_init(void)
   */
- static const char * const common_kprobes_blacksyms[] =3D {
- 	"preempt_schedule",
--	"native_get_debugreg",
--	"irq_entries_start",
--	"common_interrupt",
- 	"mcount",       /* mcount can be called from everywhere */
- };
- static const size_t common_kprobes_blacksyms_size =3D
---=20
-1.8.1.5
+ void __init mem_init(void)
+ {
+-	unsigned long npages = (memory_end - memory_start) >> PAGE_SHIFT;
+-	unsigned long tmp;
+-#ifdef CONFIG_MMU
+-	unsigned long loop, pfn;
+-	int datapages = 0;
+-#endif
+-	int codek = 0, datak = 0;
++	unsigned long code_size = _etext - _stext;
+ 
+ 	/* this will put all low memory onto the freelists */
+ 	free_all_bootmem();
++#if defined(CONFIG_MMU) && defined(CONFIG_HIGHMEM)
++	{
++		unsigned long pfn;
+ 
+-#ifdef CONFIG_MMU
+-	for (loop = 0 ; loop < npages ; loop++)
+-		if (PageReserved(&mem_map[loop]))
+-			datapages++;
+-
+-#ifdef CONFIG_HIGHMEM
+-	for (pfn = num_physpages - 1; pfn >= num_mappedpages; pfn--)
+-		free_highmem_page(&mem_map[pfn]);
+-#endif
+-
+-	codek = ((unsigned long) &_etext - (unsigned long) &_stext) >> 10;
+-	datak = datapages << (PAGE_SHIFT - 10);
+-
+-#else
+-	codek = (_etext - _stext) >> 10;
+-	datak = 0; //(__bss_stop - _sdata) >> 10;
++		for (pfn = get_num_physpages() - 1;
++		     pfn >= num_mappedpages; pfn--)
++			free_highmem_page(&mem_map[pfn]);
++	}
+ #endif
+ 
+-	tmp = nr_free_pages() << PAGE_SHIFT;
+-	printk("Memory available: %luKiB/%luKiB RAM, %luKiB/%luKiB ROM (%dKiB kernel code, %dKiB data)\n",
+-	       tmp >> 10,
+-	       npages << (PAGE_SHIFT - 10),
+-	       (rom_length > 0) ? ((rom_length >> 10) - codek) : 0,
+-	       rom_length >> 10,
+-	       codek,
+-	       datak
+-	       );
+-
++	mem_init_print_info(NULL);
++	if (rom_length > 0 && rom_length >= code_size)
++		printk("Memory available:  %luKiB/%luKiB ROM\n",
++			(rom_length - code_size) >> 10, rom_length >> 10);
+ } /* end mem_init() */
+ 
+ /*****************************************************************************/
+-- 
+1.7.9.5
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
