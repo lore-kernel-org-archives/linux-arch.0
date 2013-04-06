@@ -1,79 +1,81 @@
-From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v4, part3 16/41] mm/blackfin: prepare for removing num_physpages and simplify mem_init()
-Date: Sat,  6 Apr 2013 22:32:15 +0800
-Message-ID: <1365258760-30821-17-git-send-email-jiang.liu@huawei.com>
-References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>, Bob Liu <lliubbo@gmail.com>, uclinux-dist-devel@blackfin.uclinux.org
-List-Id: linux-arch.vger.kernel.org
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH] [PATCH] Gaurantee spinlocks implicit barrier for !PREEMPT_COUNT
+Date: Sat, 6 Apr 2013 11:01:23 -0700
+Message-ID: <CA+55aFyvD2NtQatdaFZt+Q6ZPD0USofhgZHEock8rOx0ihSLhQ@mail.gmail.com>
+References: <alpine.LFD.2.02.1304031433350.21884@ionos>
+	<1364998282-21437-1-git-send-email-vgupta@synopsys.com>
+	<20130404152808.GB15261@ab42.lan>
+	<515E54BD.2090300@synopsys.com>
+	<51602459.3040105@synopsys.com>
+	<CA+55aFw=-oJxujka-emxyRcY54MSe3qEjZ6xgzoE-roe3EFk5g@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ea0-f176.google.com ([209.85.215.176]:46780 "EHLO
+	mail-ea0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753631Ab3DFSBY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Apr 2013 14:01:24 -0400
+In-Reply-To: <CA+55aFw=-oJxujka-emxyRcY54MSe3qEjZ6xgzoE-roe3EFk5g@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Christian Ruppert <christian.ruppert@abilis.com>, Pierrick Hascoet <pierrick.hascoet@abilis.com>, Frederic Weisbecker <fweisbec@gmail.com>, Steven Rostedt <srostedt@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-c6x-dev@linux-c6x.org
 
-Prepare for removing num_physpages and simplify mem_init().
+Looking around, it looks like c6x has the same bug.
 
-Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Mike Frysinger <vapier@gentoo.org>
-Cc: Bob Liu <lliubbo@gmail.com>
-Cc: uclinux-dist-devel@blackfin.uclinux.org
-Cc: linux-kernel@vger.kernel.org
----
- arch/blackfin/mm/init.c |   38 ++++++--------------------------------
- 1 file changed, 6 insertions(+), 32 deletions(-)
+Some other architectures (tile) have such subtle implementations
+(where is __insn_mtspr() defined?) that I have a hard time judging.
+And maybe I missed something, but the rest seem ok.
 
-diff --git a/arch/blackfin/mm/init.c b/arch/blackfin/mm/init.c
-index 1cc8607..e4b6e11 100644
---- a/arch/blackfin/mm/init.c
-+++ b/arch/blackfin/mm/init.c
-@@ -90,43 +90,17 @@ asmlinkage void __init init_pda(void)
- 
- void __init mem_init(void)
- {
--	unsigned int codek = 0, datak = 0, initk = 0;
--	unsigned int reservedpages = 0, freepages = 0;
--	unsigned long tmp;
--	unsigned long start_mem = memory_start;
--	unsigned long end_mem = memory_end;
-+	char buf[64];
- 
--	end_mem &= PAGE_MASK;
--	high_memory = (void *)end_mem;
--
--	start_mem = PAGE_ALIGN(start_mem);
--	max_mapnr = num_physpages = MAP_NR(high_memory);
--	printk(KERN_DEBUG "Kernel managed physical pages: %lu\n", num_physpages);
-+	high_memory = (void *)(memory_end & PAGE_MASK);
-+	max_mapnr = MAP_NR(high_memory);
-+	printk(KERN_DEBUG "Kernel managed physical pages: %lu\n", max_mapnr);
- 
- 	/* This will put all low memory onto the freelists. */
- 	free_all_bootmem();
- 
--	reservedpages = 0;
--	for (tmp = ARCH_PFN_OFFSET; tmp < max_mapnr; tmp++)
--		if (PageReserved(pfn_to_page(tmp)))
--			reservedpages++;
--	freepages =  max_mapnr - ARCH_PFN_OFFSET - reservedpages;
--
--	/* do not count in kernel image between _rambase and _ramstart */
--	reservedpages -= (_ramstart - _rambase) >> PAGE_SHIFT;
--#if (defined(CONFIG_BFIN_EXTMEM_ICACHEABLE) && ANOMALY_05000263)
--	reservedpages += (_ramend - memory_end - DMA_UNCACHED_REGION) >> PAGE_SHIFT;
--#endif
--
--	codek = (_etext - _stext) >> 10;
--	initk = (__init_end - __init_begin) >> 10;
--	datak = ((_ramstart - _rambase) >> 10) - codek - initk;
--
--	printk(KERN_INFO
--	     "Memory available: %luk/%luk RAM, "
--		"(%uk init code, %uk kernel code, %uk data, %uk dma, %uk reserved)\n",
--		(unsigned long) freepages << (PAGE_SHIFT-10), (_ramend - CONFIG_PHY_RAM_BASE_ADDRESS) >> 10,
--		initk, codek, datak, DMA_UNCACHED_REGION >> 10, (reservedpages << (PAGE_SHIFT-10)));
-+	snprintf(buf, sizeof(buf) - 1, "%uK DMA", DMA_UNCACHED_REGION >> 10);
-+	mem_init_print_info(buf);
- }
- 
- #ifdef CONFIG_BLK_DEV_INITRD
--- 
-1.7.9.5
+                Linus
+
+On Sat, Apr 6, 2013 at 9:13 AM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+> This is all *COMPLETELY* wrong.
+>
+> Neither the normal preempt macros, nor the plain spinlocks, should
+> protect anything at all against interrupts.
+>
+> The real protection should come from the  spin_lock_irqsave() in
+> lock_timer_base(), not from spinlocks, and not from preemption.
+>
+> It sounds like ARC is completely buggered, and hasn't made the irq
+> disable be a compiler barrier. That's an ARC bug, and it's a big one,
+> and can affect a lot more than just the timers.
+>
+> So the real fix is to add a "memory" clobber to
+> arch_local_irq_save/restore() and friends, so that the compiler
+> doesn't get to cache memory state from the irq-enabled region into the
+> irq-disabled one.
+>
+> Fix ARC, don't try to blame generic code. You should have asked
+> yourself why only ARC saw this bug, when the code apparently works
+> fine for everybody else!
+>
+>                    Linus
+>
+> On Sat, Apr 6, 2013 at 6:34 AM, Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
+>>> On 04/05/2013 10:06 AM, Vineet Gupta wrote:
+>>> Hi Thomas,
+>>>
+>>> Given that we are closing on 3.9 release, and that one/more of these patches fix a
+>>> real issue for us - can you please consider my earlier patch to fix
+>>> timer_pending() only for 3.9 [http://www.spinics.net/lists/kernel/msg1508224.html]
+>>> This will be a localized / low risk change for this late in cycle.
+>>>
+>>> For 3.10 - assuming preempt_* change is blessed, we can revert this one and add
+>>> that fuller/better fix.
+>>>
+>>> What do you think ?
+>>>
+>>> Thx,
+>>> -Vineet
+>>>
+>>
+>> Ping ! Sorry for pestering, but one of the fixes is needed before 3.9 goes out.
+>>
+>> Simple localized fix: http://www.spinics.net/lists/kernel/msg1508224.html
+>> Better but risky: http://www.spinics.net/lists/kernel/msg1510885.html
+>>
+>> Thx,
+>> -Vineet
