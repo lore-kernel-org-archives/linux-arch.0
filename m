@@ -1,63 +1,65 @@
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v4, part3 03/41] c6x: normalize global variables exported by vmlinux.lds
-Date: Sat,  6 Apr 2013 22:32:02 +0800
-Message-ID: <1365258760-30821-4-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v4, part3 32/41] mm/s390: prepare for removing num_physpages and simplify mem_init()
+Date: Sat,  6 Apr 2013 22:32:31 +0800
+Message-ID: <1365258760-30821-33-git-send-email-jiang.liu@huawei.com>
 References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pd0-f180.google.com ([209.85.192.180]:37255 "EHLO
+	mail-pd0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1423085Ab3DFOqh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Apr 2013 10:46:37 -0400
 In-Reply-To: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Aurelien Jacquiot <a-jacquiot@ti.com>, linux-c6x-dev@linux-c6x.org
-List-Id: linux-arch.vger.kernel.org
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm.com, linux-s390@vger.kernel.org
 
-Normalize global variables exported by vmlinux.lds to conform usage
-guidelines from include/asm-generic/sections.h.
-
-Use _text to mark the start of the kernel image including the head text,
-and _stext to mark the start of the .text section.
-
-This patch also fixes possible bugs due to current address layout that
-[__init_begin, __init_end] is a sub-range of [_stext, _etext] and pages
-within range [__init_begin, __init_end] will be freed by free_initmem().
+Prepare for removing num_physpages and simplify mem_init().
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Mark Salter <msalter@redhat.com>
-Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
-Cc: linux-c6x-dev@linux-c6x.org
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: linux390@de.ibm.com
+Cc: linux-s390@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org
 ---
- arch/c6x/kernel/vmlinux.lds.S |    4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ arch/s390/mm/init.c |   17 ++---------------
+ 1 file changed, 2 insertions(+), 15 deletions(-)
 
-diff --git a/arch/c6x/kernel/vmlinux.lds.S b/arch/c6x/kernel/vmlinux.lds.S
-index 1d81c4c..279d807 100644
---- a/arch/c6x/kernel/vmlinux.lds.S
-+++ b/arch/c6x/kernel/vmlinux.lds.S
-@@ -54,16 +54,15 @@ SECTIONS
- 	}
+diff --git a/arch/s390/mm/init.c b/arch/s390/mm/init.c
+index 24d52aa..771c27a 100644
+--- a/arch/s390/mm/init.c
++++ b/arch/s390/mm/init.c
+@@ -133,9 +133,7 @@ void __init paging_init(void)
  
- 	. = ALIGN(PAGE_SIZE);
-+	__init_begin = .;
- 	.init :
- 	{
--		_stext = .;
- 		_sinittext = .;
- 		HEAD_TEXT
- 		INIT_TEXT
- 		_einittext = .;
- 	}
+ void __init mem_init(void)
+ {
+-	unsigned long codesize, reservedpages, datasize, initsize;
+-
+-        max_mapnr = num_physpages = max_low_pfn;
++        max_mapnr = max_low_pfn;
+         high_memory = (void *) __va(max_low_pfn * PAGE_SIZE);
  
--	__init_begin = _stext;
- 	INIT_DATA_SECTION(16)
+ 	/* Setup guest page hinting */
+@@ -145,18 +143,7 @@ void __init mem_init(void)
+ 	free_all_bootmem();
+ 	setup_zero_pages();	/* Setup zeroed pages. */
  
- 	PERCPU_SECTION(128)
-@@ -74,6 +73,7 @@ SECTIONS
- 	.text :
- 	{
- 		_text = .;
-+		_stext = .;
- 		TEXT_TEXT
- 		SCHED_TEXT
- 		LOCK_TEXT
+-	reservedpages = 0;
+-
+-	codesize =  (unsigned long) &_etext - (unsigned long) &_text;
+-	datasize =  (unsigned long) &_edata - (unsigned long) &_etext;
+-	initsize =  (unsigned long) &__init_end - (unsigned long) &__init_begin;
+-        printk("Memory: %luk/%luk available (%ldk kernel code, %ldk reserved, %ldk data, %ldk init)\n",
+-		nr_free_pages() << (PAGE_SHIFT-10),
+-                max_mapnr << (PAGE_SHIFT-10),
+-                codesize >> 10,
+-                reservedpages << (PAGE_SHIFT-10),
+-                datasize >>10,
+-                initsize >> 10);
++	mem_init_print_info(NULL);
+ 	printk("Write protected kernel read-only data: %#lx - %#lx\n",
+ 	       (unsigned long)&_stext,
+ 	       PFN_ALIGN((unsigned long)&_eshared) - 1);
 -- 
 1.7.9.5
