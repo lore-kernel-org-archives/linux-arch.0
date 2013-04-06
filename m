@@ -1,57 +1,71 @@
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v4, part3 08/15] mm: fix some trivial typos in comments
-Date: Sat,  6 Apr 2013 21:55:02 +0800
-Message-ID: <1365256509-29024-9-git-send-email-jiang.liu@huawei.com>
-References: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Subject: [PATCH v4, part3 01/41] vmlinux.lds: add comments for global variables and clean up useless declarations
+Date: Sat,  6 Apr 2013 22:32:00 +0800
+Message-ID: <1365258760-30821-2-git-send-email-jiang.liu@huawei.com>
+References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pd0-f176.google.com ([209.85.192.176]:57457 "EHLO
+	mail-pd0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1423058Ab3DFOmF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Apr 2013 10:42:05 -0400
+In-Reply-To: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Tang Chen <tangchen@cn.fujitsu.com>, Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>, Marek Szyprowski <m.szyprowski@samsung.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
 
-Fix some trivial typos in comments.
+This patch documents global variables exported from vmlinux.lds.
+1) Add comments about usage guidelines for global variables exported
+   from vmlinux.lds.S.
+2) Remove unused __initdata_begin[] and __initdata_end[].
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Wen Congyang <wency@cn.fujitsu.com>
-Cc: Tang Chen <tangchen@cn.fujitsu.com>
-Cc: Jiang Liu <jiang.liu@huawei.com>
-Cc: Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>
-Cc: Mel Gorman <mgorman@suse.de>
-Cc: Minchan Kim <minchan@kernel.org>
-Cc: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: linux-mm@kvack.org
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org
 ---
- mm/memory_hotplug.c |    2 +-
- mm/page_alloc.c     |    2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ include/asm-generic/sections.h |   21 ++++++++++++++++++++-
+ 1 file changed, 20 insertions(+), 1 deletion(-)
 
-diff --git a/mm/memory_hotplug.c b/mm/memory_hotplug.c
-index 57decb2..a5b8fde 100644
---- a/mm/memory_hotplug.c
-+++ b/mm/memory_hotplug.c
-@@ -309,7 +309,7 @@ static int __meminit move_pfn_range_left(struct zone *z1, struct zone *z2,
- 	/* can't move pfns which are higher than @z2 */
- 	if (end_pfn > zone_end_pfn(z2))
- 		goto out_fail;
--	/* the move out part mast at the left most of @z2 */
-+	/* the move out part must at the left most of @z2 */
- 	if (start_pfn > z2->zone_start_pfn)
- 		goto out_fail;
- 	/* must included/overlap */
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 6bd697c..c3c3eda 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -2863,7 +2863,7 @@ EXPORT_SYMBOL(free_pages_exact);
-  * nr_free_zone_pages() counts the number of counts pages which are beyond the
-  * high watermark within all zones at or below a given zone index.  For each
-  * zone, the number of pages is calculated as:
-- *     present_pages - high_pages
-+ *     managed_pages - high_pages
-  */
- static unsigned long nr_free_zone_pages(int offset)
- {
+diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
+index c1a1216..f1a24b5 100644
+--- a/include/asm-generic/sections.h
++++ b/include/asm-generic/sections.h
+@@ -3,6 +3,26 @@
+ 
+ /* References to section boundaries */
+ 
++/*
++ * Usage guidelines:
++ * _text, _data: architecture specific, don't use them in arch-independent code
++ * [_stext, _etext]: contains .text.* sections, may also contain .rodata.*
++ *                   and/or .init.* sections
++ * [_sdata, _edata]: contains .data.* sections, may also contain .rodata.*
++ *                   and/or .init.* sections.
++ * [__start_rodata, __end_rodata]: contains .rodata.* sections
++ * [__init_begin, __init_end]: contains .init.* sections, but .init.text.*
++ *                   may be out of this range on some architectures.
++ * [_sinittext, _einittext]: contains .init.text.* sections
++ * [__bss_start, __bss_stop]: contains BSS sections
++ *
++ * Following global variables are optional and may be unavailable on some
++ * architectures and/or kernel configurations.
++ *	_text, _data
++ *	__kprobes_text_start, __kprobes_text_end
++ *	__entry_text_start, __entry_text_end
++ *	__ctors_start, __ctors_end
++ */
+ extern char _text[], _stext[], _etext[];
+ extern char _data[], _sdata[], _edata[];
+ extern char __bss_start[], __bss_stop[];
+@@ -12,7 +32,6 @@ extern char _end[];
+ extern char __per_cpu_load[], __per_cpu_start[], __per_cpu_end[];
+ extern char __kprobes_text_start[], __kprobes_text_end[];
+ extern char __entry_text_start[], __entry_text_end[];
+-extern char __initdata_begin[], __initdata_end[];
+ extern char __start_rodata[], __end_rodata[];
+ 
+ /* Start and end of .ctors section - used for constructor calls. */
 -- 
 1.7.9.5
