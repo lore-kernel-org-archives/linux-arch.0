@@ -1,81 +1,77 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH] [PATCH] Gaurantee spinlocks implicit barrier for !PREEMPT_COUNT
-Date: Sat, 6 Apr 2013 11:01:23 -0700
-Message-ID: <CA+55aFyvD2NtQatdaFZt+Q6ZPD0USofhgZHEock8rOx0ihSLhQ@mail.gmail.com>
+From: "Jacquiot, Aurelien" <a-jacquiot@ti.com>
+Subject: RE: [PATCH] [PATCH] Gaurantee spinlocks implicit barrier for
+ !PREEMPT_COUNT
+Date: Sat, 6 Apr 2013 19:54:53 +0000
+Message-ID: <553CFBBAF1315044BC4CD328C97B0B1C1804500D@DNCE05.ent.ti.com>
 References: <alpine.LFD.2.02.1304031433350.21884@ionos>
 	<1364998282-21437-1-git-send-email-vgupta@synopsys.com>
-	<20130404152808.GB15261@ab42.lan>
-	<515E54BD.2090300@synopsys.com>
+	<20130404152808.GB15261@ab42.lan>	<515E54BD.2090300@synopsys.com>
 	<51602459.3040105@synopsys.com>
 	<CA+55aFw=-oJxujka-emxyRcY54MSe3qEjZ6xgzoE-roe3EFk5g@mail.gmail.com>
+ <CA+55aFyvD2NtQatdaFZt+Q6ZPD0USofhgZHEock8rOx0ihSLhQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ea0-f176.google.com ([209.85.215.176]:46780 "EHLO
-	mail-ea0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753631Ab3DFSBY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Apr 2013 14:01:24 -0400
-In-Reply-To: <CA+55aFw=-oJxujka-emxyRcY54MSe3qEjZ6xgzoE-roe3EFk5g@mail.gmail.com>
+Received: from bear.ext.ti.com ([192.94.94.41]:35692 "EHLO bear.ext.ti.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756574Ab3DFTzc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 6 Apr 2013 15:55:32 -0400
+In-Reply-To: <CA+55aFyvD2NtQatdaFZt+Q6ZPD0USofhgZHEock8rOx0ihSLhQ@mail.gmail.com>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Christian Ruppert <christian.ruppert@abilis.com>, Pierrick Hascoet <pierrick.hascoet@abilis.com>, Frederic Weisbecker <fweisbec@gmail.com>, Steven Rostedt <srostedt@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-c6x-dev@linux-c6x.org
+To: Linus Torvalds <torvalds@linux-foundation.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Mark Salter <msalter@redhat.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Christian Ruppert <christian.ruppert@abilis.com>, Pierrick Hascoet <pierrick.hascoet@abilis.com>, Frederic Weisbecker <fweisbec@gmail.com>, Steven Rostedt <srostedt@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>
 
-Looking around, it looks like c6x has the same bug.
-
-Some other architectures (tile) have such subtle implementations
-(where is __insn_mtspr() defined?) that I have a hard time judging.
-And maybe I missed something, but the rest seem ok.
-
-                Linus
-
-On Sat, Apr 6, 2013 at 9:13 AM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
-> This is all *COMPLETELY* wrong.
->
-> Neither the normal preempt macros, nor the plain spinlocks, should
-> protect anything at all against interrupts.
->
-> The real protection should come from the  spin_lock_irqsave() in
-> lock_timer_base(), not from spinlocks, and not from preemption.
->
-> It sounds like ARC is completely buggered, and hasn't made the irq
-> disable be a compiler barrier. That's an ARC bug, and it's a big one,
-> and can affect a lot more than just the timers.
->
-> So the real fix is to add a "memory" clobber to
-> arch_local_irq_save/restore() and friends, so that the compiler
-> doesn't get to cache memory state from the irq-enabled region into the
-> irq-disabled one.
->
-> Fix ARC, don't try to blame generic code. You should have asked
-> yourself why only ARC saw this bug, when the code apparently works
-> fine for everybody else!
->
->                    Linus
->
-> On Sat, Apr 6, 2013 at 6:34 AM, Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
->>> On 04/05/2013 10:06 AM, Vineet Gupta wrote:
->>> Hi Thomas,
->>>
->>> Given that we are closing on 3.9 release, and that one/more of these patches fix a
->>> real issue for us - can you please consider my earlier patch to fix
->>> timer_pending() only for 3.9 [http://www.spinics.net/lists/kernel/msg1508224.html]
->>> This will be a localized / low risk change for this late in cycle.
->>>
->>> For 3.10 - assuming preempt_* change is blessed, we can revert this one and add
->>> that fuller/better fix.
->>>
->>> What do you think ?
->>>
->>> Thx,
->>> -Vineet
->>>
->>
->> Ping ! Sorry for pestering, but one of the fixes is needed before 3.9 goes out.
->>
->> Simple localized fix: http://www.spinics.net/lists/kernel/msg1508224.html
->> Better but risky: http://www.spinics.net/lists/kernel/msg1510885.html
->>
->> Thx,
->> -Vineet
+QWdyZWVkLiBXZSB3aWxsIGZpeCBpdC4NCg0KQXVyZWxpZW4NCg0KDQpUZXhhcyBJbnN0cnVtZW50
+cyBGcmFuY2UgU0EsIDgyMSBBdmVudWUgSmFjayBLaWxieSwgMDYyNzAgVmlsbGVuZXV2ZSBMb3Vi
+ZXQuIDAzNiA0MjAgMDQwIFIuQy5TIEFudGliZXMuIENhcGl0YWwgZGUgRVVSIDEyLjY1NC43ODQN
+Cg0KLS0tLS1PcmlnaW5hbCBNZXNzYWdlLS0tLS0NCkZyb206IGxpbnVzOTcxQGdtYWlsLmNvbSBb
+bWFpbHRvOmxpbnVzOTcxQGdtYWlsLmNvbV0gT24gQmVoYWxmIE9mIExpbnVzIFRvcnZhbGRzDQpT
+ZW50OiBTYXR1cmRheSwgQXByaWwgMDYsIDIwMTMgODowMSBQTQ0KVG86IFZpbmVldCBHdXB0YTsg
+TWFyayBTYWx0ZXI7IEphY3F1aW90LCBBdXJlbGllbg0KQ2M6IFRob21hcyBHbGVpeG5lcjsgQ2hy
+aXN0aWFuIFJ1cHBlcnQ7IFBpZXJyaWNrIEhhc2NvZXQ7IEZyZWRlcmljIFdlaXNiZWNrZXI7IFN0
+ZXZlbiBSb3N0ZWR0OyBQZXRlciBaaWpsc3RyYTsgSW5nbyBNb2xuYXI7IExpbnV4IEtlcm5lbCBN
+YWlsaW5nIExpc3Q7IGxpbnV4LWFyY2hAdmdlci5rZXJuZWwub3JnOyBsaW51eC1jNngtZGV2QGxp
+bnV4LWM2eC5vcmcNClN1YmplY3Q6IFJlOiBbUEFUQ0hdIFtQQVRDSF0gR2F1cmFudGVlIHNwaW5s
+b2NrcyBpbXBsaWNpdCBiYXJyaWVyIGZvciAhUFJFRU1QVF9DT1VOVA0KDQpMb29raW5nIGFyb3Vu
+ZCwgaXQgbG9va3MgbGlrZSBjNnggaGFzIHRoZSBzYW1lIGJ1Zy4NCg0KU29tZSBvdGhlciBhcmNo
+aXRlY3R1cmVzICh0aWxlKSBoYXZlIHN1Y2ggc3VidGxlIGltcGxlbWVudGF0aW9ucyAod2hlcmUg
+aXMgX19pbnNuX210c3ByKCkgZGVmaW5lZD8pIHRoYXQgSSBoYXZlIGEgaGFyZCB0aW1lIGp1ZGdp
+bmcuDQpBbmQgbWF5YmUgSSBtaXNzZWQgc29tZXRoaW5nLCBidXQgdGhlIHJlc3Qgc2VlbSBvay4N
+Cg0KICAgICAgICAgICAgICAgIExpbnVzDQoNCk9uIFNhdCwgQXByIDYsIDIwMTMgYXQgOToxMyBB
+TSwgTGludXMgVG9ydmFsZHMgPHRvcnZhbGRzQGxpbnV4LWZvdW5kYXRpb24ub3JnPiB3cm90ZToN
+Cj4gVGhpcyBpcyBhbGwgKkNPTVBMRVRFTFkqIHdyb25nLg0KPg0KPiBOZWl0aGVyIHRoZSBub3Jt
+YWwgcHJlZW1wdCBtYWNyb3MsIG5vciB0aGUgcGxhaW4gc3BpbmxvY2tzLCBzaG91bGQNCj4gcHJv
+dGVjdCBhbnl0aGluZyBhdCBhbGwgYWdhaW5zdCBpbnRlcnJ1cHRzLg0KPg0KPiBUaGUgcmVhbCBw
+cm90ZWN0aW9uIHNob3VsZCBjb21lIGZyb20gdGhlICBzcGluX2xvY2tfaXJxc2F2ZSgpIGluDQo+
+IGxvY2tfdGltZXJfYmFzZSgpLCBub3QgZnJvbSBzcGlubG9ja3MsIGFuZCBub3QgZnJvbSBwcmVl
+bXB0aW9uLg0KPg0KPiBJdCBzb3VuZHMgbGlrZSBBUkMgaXMgY29tcGxldGVseSBidWdnZXJlZCwg
+YW5kIGhhc24ndCBtYWRlIHRoZSBpcnENCj4gZGlzYWJsZSBiZSBhIGNvbXBpbGVyIGJhcnJpZXIu
+IFRoYXQncyBhbiBBUkMgYnVnLCBhbmQgaXQncyBhIGJpZyBvbmUsDQo+IGFuZCBjYW4gYWZmZWN0
+IGEgbG90IG1vcmUgdGhhbiBqdXN0IHRoZSB0aW1lcnMuDQo+DQo+IFNvIHRoZSByZWFsIGZpeCBp
+cyB0byBhZGQgYSAibWVtb3J5IiBjbG9iYmVyIHRvDQo+IGFyY2hfbG9jYWxfaXJxX3NhdmUvcmVz
+dG9yZSgpIGFuZCBmcmllbmRzLCBzbyB0aGF0IHRoZSBjb21waWxlcg0KPiBkb2Vzbid0IGdldCB0
+byBjYWNoZSBtZW1vcnkgc3RhdGUgZnJvbSB0aGUgaXJxLWVuYWJsZWQgcmVnaW9uIGludG8gdGhl
+DQo+IGlycS1kaXNhYmxlZCBvbmUuDQo+DQo+IEZpeCBBUkMsIGRvbid0IHRyeSB0byBibGFtZSBn
+ZW5lcmljIGNvZGUuIFlvdSBzaG91bGQgaGF2ZSBhc2tlZA0KPiB5b3Vyc2VsZiB3aHkgb25seSBB
+UkMgc2F3IHRoaXMgYnVnLCB3aGVuIHRoZSBjb2RlIGFwcGFyZW50bHkgd29ya3MNCj4gZmluZSBm
+b3IgZXZlcnlib2R5IGVsc2UhDQo+DQo+ICAgICAgICAgICAgICAgICAgICBMaW51cw0KPg0KPiBP
+biBTYXQsIEFwciA2LCAyMDEzIGF0IDY6MzQgQU0sIFZpbmVldCBHdXB0YSA8VmluZWV0Lkd1cHRh
+MUBzeW5vcHN5cy5jb20+IHdyb3RlOg0KPj4+IE9uIDA0LzA1LzIwMTMgMTA6MDYgQU0sIFZpbmVl
+dCBHdXB0YSB3cm90ZToNCj4+PiBIaSBUaG9tYXMsDQo+Pj4NCj4+PiBHaXZlbiB0aGF0IHdlIGFy
+ZSBjbG9zaW5nIG9uIDMuOSByZWxlYXNlLCBhbmQgdGhhdCBvbmUvbW9yZSBvZiB0aGVzZQ0KPj4+
+IHBhdGNoZXMgZml4IGEgcmVhbCBpc3N1ZSBmb3IgdXMgLSBjYW4geW91IHBsZWFzZSBjb25zaWRl
+ciBteSBlYXJsaWVyDQo+Pj4gcGF0Y2ggdG8gZml4DQo+Pj4gdGltZXJfcGVuZGluZygpIG9ubHkg
+Zm9yIDMuOQ0KPj4+IFtodHRwOi8vd3d3LnNwaW5pY3MubmV0L2xpc3RzL2tlcm5lbC9tc2cxNTA4
+MjI0Lmh0bWxdDQo+Pj4gVGhpcyB3aWxsIGJlIGEgbG9jYWxpemVkIC8gbG93IHJpc2sgY2hhbmdl
+IGZvciB0aGlzIGxhdGUgaW4gY3ljbGUuDQo+Pj4NCj4+PiBGb3IgMy4xMCAtIGFzc3VtaW5nIHBy
+ZWVtcHRfKiBjaGFuZ2UgaXMgYmxlc3NlZCwgd2UgY2FuIHJldmVydCB0aGlzDQo+Pj4gb25lIGFu
+ZCBhZGQgdGhhdCBmdWxsZXIvYmV0dGVyIGZpeC4NCj4+Pg0KPj4+IFdoYXQgZG8geW91IHRoaW5r
+ID8NCj4+Pg0KPj4+IFRoeCwNCj4+PiAtVmluZWV0DQo+Pj4NCj4+DQo+PiBQaW5nICEgU29ycnkg
+Zm9yIHBlc3RlcmluZywgYnV0IG9uZSBvZiB0aGUgZml4ZXMgaXMgbmVlZGVkIGJlZm9yZSAzLjkg
+Z29lcyBvdXQuDQo+Pg0KPj4gU2ltcGxlIGxvY2FsaXplZCBmaXg6DQo+PiBodHRwOi8vd3d3LnNw
+aW5pY3MubmV0L2xpc3RzL2tlcm5lbC9tc2cxNTA4MjI0Lmh0bWwNCj4+IEJldHRlciBidXQgcmlz
+a3k6IGh0dHA6Ly93d3cuc3Bpbmljcy5uZXQvbGlzdHMva2VybmVsL21zZzE1MTA4ODUuaHRtbA0K
+Pj4NCj4+IFRoeCwNCj4+IC1WaW5lZXQNCg0K
