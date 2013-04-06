@@ -1,83 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f49.google.com ([209.85.220.49]:55581 "EHLO
-	mail-pa0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1423148Ab3DFOoe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Apr 2013 10:44:34 -0400
+Received: from mail-da0-f51.google.com ([209.85.210.51]:33118 "EHLO
+	mail-da0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1423148Ab3DFOoZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Apr 2013 10:44:25 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v4, part3 18/41] mm/cris: prepare for removing num_physpages and simplify mem_init()
-Date: Sat,  6 Apr 2013 22:32:17 +0800
-Message-ID: <1365258760-30821-19-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v4, part3 17/41] mm/c6x: prepare for removing num_physpages and simplify mem_init()
+Date: Sat,  6 Apr 2013 22:32:16 +0800
+Message-ID: <1365258760-30821-18-git-send-email-jiang.liu@huawei.com>
 In-Reply-To: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
 References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, linux-cris-kernel@axis.com
-Message-ID: <20130406143217.g0loTkAO7RL16yOjAukBmJtvUKOGuTPH0CyNWQW54TM@z>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Aurelien Jacquiot <a-jacquiot@ti.com>, linux-c6x-dev@linux-c6x.org
+Message-ID: <20130406143216.D_an8DOgUZYAMnP7vTWaJy4EjEdHuGTqfXd_r-rVq0U@z>
 
 Prepare for removing num_physpages and simplify mem_init().
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Mikael Starvik <starvik@axis.com>
-Cc: Jesper Nilsson <jesper.nilsson@axis.com>
-Cc: linux-cris-kernel@axis.com
+Cc: Mark Salter <msalter@redhat.com>
+Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
+Cc: linux-c6x-dev@linux-c6x.org
 Cc: linux-kernel@vger.kernel.org
 ---
- arch/cris/mm/init.c |   33 ++-------------------------------
- 1 file changed, 2 insertions(+), 31 deletions(-)
+ arch/c6x/mm/init.c |   11 +----------
+ 1 file changed, 1 insertion(+), 10 deletions(-)
 
-diff --git a/arch/cris/mm/init.c b/arch/cris/mm/init.c
-index 52b8b56..c81af5b 100644
---- a/arch/cris/mm/init.c
-+++ b/arch/cris/mm/init.c
-@@ -19,9 +19,6 @@ unsigned long empty_zero_page;
- void __init
- mem_init(void)
- {
--	int codesize, reservedpages, datasize, initsize;
--	unsigned long tmp;
--
- 	BUG_ON(!mem_map);
+diff --git a/arch/c6x/mm/init.c b/arch/c6x/mm/init.c
+index 2c51474..066f75c 100644
+--- a/arch/c6x/mm/init.c
++++ b/arch/c6x/mm/init.c
+@@ -57,21 +57,12 @@ void __init paging_init(void)
  
- 	/* max/min_low_pfn was set by setup.c
-@@ -29,35 +26,9 @@ mem_init(void)
- 	 *
- 	 * high_memory was also set in setup.c
- 	 */
+ void __init mem_init(void)
+ {
+-	int codek, datak;
+-	unsigned long tmp;
+-	unsigned long len = memory_end - memory_start;
 -
--	max_mapnr = num_physpages = max_low_pfn - min_low_pfn;
-- 
--	/* this will put all memory onto the freelists */
-+	max_mapnr = max_low_pfn - min_low_pfn;
-         free_all_bootmem();
+ 	high_memory = (void *)(memory_end & PAGE_MASK);
+ 
+ 	/* this will put all memory onto the freelists */
+ 	free_all_bootmem();
+ 
+-	codek = (_etext - _stext) >> 10;
+-	datak = (_end - _sdata) >> 10;
 -
--	reservedpages = 0;
--	for (tmp = 0; tmp < max_mapnr; tmp++) {
--		/*
--                 * Only count reserved RAM pages
--                 */
--		if (PageReserved(mem_map + tmp))
--			reservedpages++;
--	}
--
--	codesize =  (unsigned long) &_etext - (unsigned long) &_stext;
--        datasize =  (unsigned long) &_edata - (unsigned long) &_etext;
--        initsize =  (unsigned long) &__init_end - (unsigned long) &__init_begin;
--	
--        printk(KERN_INFO
--               "Memory: %luk/%luk available (%dk kernel code, %dk reserved, %dk data, "
--	       "%dk init)\n" ,
--	       nr_free_pages() << (PAGE_SHIFT-10),
--	       max_mapnr << (PAGE_SHIFT-10),
--	       codesize >> 10,
--	       reservedpages << (PAGE_SHIFT-10),
--	       datasize >> 10,
--	       initsize >> 10
--               );
+-	tmp = nr_free_pages() << PAGE_SHIFT;
+-	printk(KERN_INFO "Memory: %luk/%luk RAM (%dk kernel code, %dk data)\n",
+-	       tmp >> 10, len >> 10, codek, datak);
 +	mem_init_print_info(NULL);
  }
  
- /* free the pages occupied by initialization code */
+ #ifdef CONFIG_BLK_DEV_INITRD
 -- 
 1.7.9.5
 
