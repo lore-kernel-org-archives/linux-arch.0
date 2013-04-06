@@ -1,124 +1,79 @@
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v4, part3 07/41] UML: normalize global variables exported by vmlinux.lds
-Date: Sat,  6 Apr 2013 22:32:06 +0800
-Message-ID: <1365258760-30821-8-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v4, part3 34/41] mm/SH: prepare for removing num_physpages and simplify mem_init()
+Date: Sat,  6 Apr 2013 22:32:33 +0800
+Message-ID: <1365258760-30821-35-git-send-email-jiang.liu@huawei.com>
 References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Al Viro <viro@zeniv.linux.org.uk>, user-mode-linux-devel@lists.sourceforge.net
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Paul Mundt <lethal@linux-sh.org>, Tang Chen <tangchen@cn.fujitsu.com>, linux-sh@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Normalize global variables exported by vmlinux.lds to conform usage
-guidelines from include/asm-generic/sections.h.
-
-1) Use _text to mark the start of the kernel image including the head
-text, and _stext to mark the start of the .text section.
-2) Export mandatory global variables __bss_stop.
-3) Adjust __init_begin and __init_end to avoid acrossing .text and
-   .data sections.
+Prepare for removing num_physpages and simplify mem_init().
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Jeff Dike <jdike@addtoit.com>
-Cc: Richard Weinberger <richard@nod.at>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: user-mode-linux-devel@lists.sourceforge.net
+Cc: Paul Mundt <lethal@linux-sh.org>
+Cc: Wen Congyang <wency@cn.fujitsu.com>
+Cc: Tang Chen <tangchen@cn.fujitsu.com>
+Cc: linux-sh@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org
 ---
- arch/um/include/asm/common.lds.S |    1 -
- arch/um/kernel/dyn.lds.S         |    6 ++++--
- arch/um/kernel/uml.lds.S         |    7 +++++--
- 3 files changed, 9 insertions(+), 5 deletions(-)
+ arch/sh/mm/init.c |   25 ++++---------------------
+ 1 file changed, 4 insertions(+), 21 deletions(-)
 
-diff --git a/arch/um/include/asm/common.lds.S b/arch/um/include/asm/common.lds.S
-index 4938de5..1dd5bd8 100644
---- a/arch/um/include/asm/common.lds.S
-+++ b/arch/um/include/asm/common.lds.S
-@@ -57,7 +57,6 @@
- 	*(.uml.initcall.init)
- 	__uml_initcall_end = .;
-   }
--  __init_end = .;
+diff --git a/arch/sh/mm/init.c b/arch/sh/mm/init.c
+index aecd913..3826596 100644
+--- a/arch/sh/mm/init.c
++++ b/arch/sh/mm/init.c
+@@ -407,24 +407,18 @@ unsigned int mem_init_done = 0;
  
-   SECURITY_INIT
+ void __init mem_init(void)
+ {
+-	int codesize, datasize, initsize;
+-	int nid;
++	pg_data_t *pgdat;
  
-diff --git a/arch/um/kernel/dyn.lds.S b/arch/um/kernel/dyn.lds.S
-index fb8fd6f..adde088 100644
---- a/arch/um/kernel/dyn.lds.S
-+++ b/arch/um/kernel/dyn.lds.S
-@@ -14,8 +14,6 @@ SECTIONS
-   __binary_start = .;
-   . = ALIGN(4096);		/* Init code and data */
-   _text = .;
--  _stext = .;
--  __init_begin = .;
-   INIT_TEXT_SECTION(PAGE_SIZE)
+ 	iommu_init();
  
-   . = ALIGN(PAGE_SIZE);
-@@ -67,6 +65,7 @@ SECTIONS
-   } =0x90909090
-   .plt            : { *(.plt) }
-   .text           : {
-+    _stext = .;
-     TEXT_TEXT
-     SCHED_TEXT
-     LOCK_TEXT
-@@ -91,7 +90,9 @@ SECTIONS
+-	num_physpages = 0;
+ 	high_memory = NULL;
  
-   #include <asm/common.lds.S>
+-	for_each_online_node(nid) {
+-		pg_data_t *pgdat = NODE_DATA(nid);
++	for_each_online_pgdat(pgdat) {
+ 		void *node_high_memory;
  
-+  __init_begin = .;
-   init.data : { INIT_DATA }
-+  __init_end = .;
+-		num_physpages += pgdat->node_present_pages;
+-
+ 		if (pgdat->node_spanned_pages)
+ 			free_all_bootmem_node(pgdat);
  
-   /* Ensure the __preinit_array_start label is properly aligned.  We
-      could instead move the label definition inside the section, but
-@@ -155,6 +156,7 @@ SECTIONS
-    . = ALIGN(32 / 8);
-   . = ALIGN(32 / 8);
-   }
-+   __bss_stop = .;
-   _end = .;
-   PROVIDE (end = .);
+-
+ 		node_high_memory = (void *)__va((pgdat->node_start_pfn +
+ 						 pgdat->node_spanned_pages) <<
+ 						 PAGE_SHIFT);
+@@ -441,19 +435,8 @@ void __init mem_init(void)
  
-diff --git a/arch/um/kernel/uml.lds.S b/arch/um/kernel/uml.lds.S
-index ff65fb4..6899195 100644
---- a/arch/um/kernel/uml.lds.S
-+++ b/arch/um/kernel/uml.lds.S
-@@ -20,13 +20,12 @@ SECTIONS
-   . = START + SIZEOF_HEADERS;
+ 	vsyscall_init();
  
-   _text = .;
--  _stext = .;
--  __init_begin = .;
-   INIT_TEXT_SECTION(0)
-   . = ALIGN(PAGE_SIZE);
- 
-   .text      :
-   {
-+    _stext = .;
-     TEXT_TEXT
-     SCHED_TEXT
-     LOCK_TEXT
-@@ -62,7 +61,10 @@ SECTIONS
- 
-   #include <asm/common.lds.S>
- 
-+  __init_begin = .;
-   init.data : { INIT_DATA }
-+  __init_end = .;
-+
-   .data    :
-   {
-     INIT_TASK_DATA(KERNEL_STACK_SIZE)
-@@ -97,6 +99,7 @@ SECTIONS
-   PROVIDE(_bss_start = .);
-   SBSS(0)
-   BSS(0)
-+   __bss_stop = .;
-   _end = .;
-   PROVIDE (end = .);
- 
+-	codesize =  (unsigned long) &_etext - (unsigned long) &_text;
+-	datasize =  (unsigned long) &_edata - (unsigned long) &_etext;
+-	initsize =  (unsigned long) &__init_end - (unsigned long) &__init_begin;
+-
+-	printk(KERN_INFO "Memory: %luk/%luk available (%dk kernel code, "
+-	       "%dk data, %dk init)\n",
+-		nr_free_pages() << (PAGE_SHIFT-10),
+-		num_physpages << (PAGE_SHIFT-10),
+-		codesize >> 10,
+-		datasize >> 10,
+-		initsize >> 10);
+-
+-	printk(KERN_INFO "virtual kernel memory layout:\n"
++	mem_init_print_info(NULL);
++	pr_info("virtual kernel memory layout:\n"
+ 		"    fixmap  : 0x%08lx - 0x%08lx   (%4ld kB)\n"
+ #ifdef CONFIG_HIGHMEM
+ 		"    pkmap   : 0x%08lx - 0x%08lx   (%4ld kB)\n"
 -- 
 1.7.9.5
