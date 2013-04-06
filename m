@@ -1,79 +1,190 @@
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v4, part3 03/15] mm/ARM64: kill poison_init_mem()
-Date: Sat,  6 Apr 2013 21:54:57 +0800
-Message-ID: <1365256509-29024-4-git-send-email-jiang.liu@huawei.com>
-References: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Subject: [PATCH v4, part3 27/41] mm/MIPS: prepare for removing num_physpages and simplify mem_init()
+Date: Sat,  6 Apr 2013 22:32:26 +0800
+Message-ID: <1365258760-30821-28-git-send-email-jiang.liu@huawei.com>
+References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
+Return-path: <linux-mips-bounce@linux-mips.org>
+In-Reply-To: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, James Bottomley <James.Bottomley@HansenPartnership.com>, David Howells <dhowells@redhat.com>, Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Mark Salter <msalter@redhat.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, Michal Hocko <mhocko@suse.cz>, Minchan Kim <minchan@kernel.org>, Mel Gorman <mgorman@suse.de>, David Rientjes <rientjes@google.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Jianguo Wu <wujianguo@huawei.com>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, David Daney <david.daney@cavium.com>, Arnd Bergmann <arnd@arndb.de>, Jiri Kosina <jkosina@suse.cz>, John Crispin <blogic@openwrt.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-Use free_reserved_area() to poison initmem memory pages and kill
-poison_init_mem() on ARM64.
+Prepare for removing num_physpages and simplify mem_init().
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: David Daney <david.daney@cavium.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Jiri Kosina <jkosina@suse.cz>
+Cc: John Crispin <blogic@openwrt.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Minchan Kim <minchan@kernel.org>
+Cc: linux-mips@linux-mips.org
 Cc: linux-kernel@vger.kernel.org
 ---
- arch/arm64/mm/init.c |   17 +++--------------
- 1 file changed, 3 insertions(+), 14 deletions(-)
+ arch/mips/mm/init.c              |   57 ++++++++++++--------------------------
+ arch/mips/pci/pci-lantiq.c       |    2 +-
+ arch/mips/sgi-ip27/ip27-memory.c |   21 ++------------
+ 3 files changed, 21 insertions(+), 59 deletions(-)
 
-diff --git a/arch/arm64/mm/init.c b/arch/arm64/mm/init.c
-index e58dd7f..b87bdb8 100644
---- a/arch/arm64/mm/init.c
-+++ b/arch/arm64/mm/init.c
-@@ -197,14 +197,6 @@ void __init bootmem_init(void)
- 	max_pfn = max_low_pfn = max;
- }
+diff --git a/arch/mips/mm/init.c b/arch/mips/mm/init.c
+index de4ff2f..0392a1a 100644
+--- a/arch/mips/mm/init.c
++++ b/arch/mips/mm/init.c
+@@ -358,11 +358,24 @@ void __init paging_init(void)
+ static struct kcore_list kcore_kseg0;
+ #endif
  
--/*
-- * Poison init memory with an undefined instruction (0x0).
-- */
--static inline void poison_init_mem(void *s, size_t count)
--{
--	memset(s, 0, count);
--}
+-void __init mem_init(void)
++static inline void mem_init_free_highmem(void)
+ {
+-	unsigned long codesize, reservedpages, datasize, initsize;
+-	unsigned long tmp, ram;
++#ifdef CONFIG_HIGHMEM
++	unsigned long tmp;
+ 
++	for (tmp = highstart_pfn; tmp < highend_pfn; tmp++) {
++		struct page *page = pfn_to_page(tmp);
++
++		if (!page_is_ram(tmp))
++			SetPageReserved(page);
++		else
++			free_highmem_page(page);
++	}
++#endif
++}
++
++void __init mem_init(void)
++{
+ #ifdef CONFIG_HIGHMEM
+ #ifdef CONFIG_DISCONTIGMEM
+ #error "CONFIG_HIGHMEM and CONFIG_DISCONTIGMEM dont work together yet"
+@@ -375,32 +388,8 @@ void __init mem_init(void)
+ 
+ 	free_all_bootmem();
+ 	setup_zero_pages();	/* Setup zeroed pages.  */
 -
- #ifndef CONFIG_SPARSEMEM_VMEMMAP
- static inline void free_memmap(unsigned long start_pfn, unsigned long end_pfn)
- {
-@@ -386,8 +378,7 @@ void __init mem_init(void)
- 
- void free_initmem(void)
- {
--	poison_init_mem(__init_begin, __init_end - __init_begin);
--	free_initmem_default(-1);
-+	free_initmem_default(0);
- }
- 
- #ifdef CONFIG_BLK_DEV_INITRD
-@@ -396,10 +387,8 @@ static int keep_initrd;
- 
- void free_initrd_mem(unsigned long start, unsigned long end)
- {
--	if (!keep_initrd) {
--		poison_init_mem((void *)start, PAGE_ALIGN(end) - start);
--		free_reserved_area(start, end, -1, "initrd");
+-	reservedpages = ram = 0;
+-	for (tmp = 0; tmp < max_low_pfn; tmp++)
+-		if (page_is_ram(tmp) && pfn_valid(tmp)) {
+-			ram++;
+-			if (PageReserved(pfn_to_page(tmp)))
+-				reservedpages++;
+-		}
+-	num_physpages = ram;
+-
+-#ifdef CONFIG_HIGHMEM
+-	for (tmp = highstart_pfn; tmp < highend_pfn; tmp++) {
+-		struct page *page = pfn_to_page(tmp);
+-
+-		if (!page_is_ram(tmp)) {
+-			SetPageReserved(page);
+-			continue;
+-		}
+-		free_highmem_page(page);
 -	}
-+	if (!keep_initrd)
-+		free_reserved_area(start, end, 0, "initrd");
- }
+-	num_physpages += totalhigh_pages;
+-#endif
+-
+-	codesize =  (unsigned long) &_etext - (unsigned long) &_text;
+-	datasize =  (unsigned long) &_edata - (unsigned long) &_etext;
+-	initsize =  (unsigned long) &__init_end - (unsigned long) &__init_begin;
++	mem_init_free_highmem();
++	mem_init_print_info(NULL);
  
- static int __init keepinitrd_setup(char *__unused)
+ #ifdef CONFIG_64BIT
+ 	if ((unsigned long) &_text > (unsigned long) CKSEG0)
+@@ -409,16 +398,6 @@ void __init mem_init(void)
+ 		kclist_add(&kcore_kseg0, (void *) CKSEG0,
+ 				0x80000000 - 4, KCORE_TEXT);
+ #endif
+-
+-	printk(KERN_INFO "Memory: %luk/%luk available (%ldk kernel code, "
+-	       "%ldk reserved, %ldk data, %ldk init, %ldk highmem)\n",
+-	       nr_free_pages() << (PAGE_SHIFT-10),
+-	       ram << (PAGE_SHIFT-10),
+-	       codesize >> 10,
+-	       reservedpages << (PAGE_SHIFT-10),
+-	       datasize >> 10,
+-	       initsize >> 10,
+-	       totalhigh_pages << (PAGE_SHIFT-10));
+ }
+ #endif /* !CONFIG_NEED_MULTIPLE_NODES */
+ 
+diff --git a/arch/mips/pci/pci-lantiq.c b/arch/mips/pci/pci-lantiq.c
+index 879077b..cb1ef99 100644
+--- a/arch/mips/pci/pci-lantiq.c
++++ b/arch/mips/pci/pci-lantiq.c
+@@ -89,7 +89,7 @@ static inline u32 ltq_calc_bar11mask(void)
+ 	u32 mem, bar11mask;
+ 
+ 	/* BAR11MASK value depends on available memory on system. */
+-	mem = num_physpages * PAGE_SIZE;
++	mem = get_num_physpages() * PAGE_SIZE;
+ 	bar11mask = (0x0ffffff0 & ~((1 << (fls(mem) - 1)) - 1)) | 8;
+ 
+ 	return bar11mask;
+diff --git a/arch/mips/sgi-ip27/ip27-memory.c b/arch/mips/sgi-ip27/ip27-memory.c
+index 936e617..d074680 100644
+--- a/arch/mips/sgi-ip27/ip27-memory.c
++++ b/arch/mips/sgi-ip27/ip27-memory.c
+@@ -357,8 +357,6 @@ static void __init szmem(void)
+ 	int slot;
+ 	cnodeid_t node;
+ 
+-	num_physpages = 0;
+-
+ 	for_each_online_node(node) {
+ 		nodebytes = 0;
+ 		for (slot = 0; slot < MAX_MEM_SLOTS; slot++) {
+@@ -381,7 +379,6 @@ static void __init szmem(void)
+ 				slot = MAX_MEM_SLOTS;
+ 				continue;
+ 			}
+-			num_physpages += slot_psize;
+ 			memblock_add_node(PFN_PHYS(slot_getbasepfn(node, slot)),
+ 					  PFN_PHYS(slot_psize), node);
+ 		}
+@@ -480,10 +477,9 @@ void __init paging_init(void)
+ 
+ void __init mem_init(void)
+ {
+-	unsigned long codesize, datasize, initsize, tmp;
+ 	unsigned node;
+ 
+-	high_memory = (void *) __va(num_physpages << PAGE_SHIFT);
++	high_memory = (void *) __va(get_num_physpages() << PAGE_SHIFT);
+ 
+ 	for_each_online_node(node) {
+ 		/*
+@@ -494,18 +490,5 @@ void __init mem_init(void)
+ 
+ 	setup_zero_pages();	/* This comes from node 0 */
+ 
+-	codesize =  (unsigned long) &_etext - (unsigned long) &_text;
+-	datasize =  (unsigned long) &_edata - (unsigned long) &_etext;
+-	initsize =  (unsigned long) &__init_end - (unsigned long) &__init_begin;
+-
+-	tmp = nr_free_pages();
+-	printk(KERN_INFO "Memory: %luk/%luk available (%ldk kernel code, "
+-	       "%ldk reserved, %ldk data, %ldk init, %ldk highmem)\n",
+-	       tmp << (PAGE_SHIFT-10),
+-	       num_physpages << (PAGE_SHIFT-10),
+-	       codesize >> 10,
+-	       (num_physpages - tmp) << (PAGE_SHIFT-10),
+-	       datasize >> 10,
+-	       initsize >> 10,
+-	       totalhigh_pages << (PAGE_SHIFT-10));
++	mem_init_print_info(NULL);
+ }
 -- 
 1.7.9.5
