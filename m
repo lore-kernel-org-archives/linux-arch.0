@@ -1,185 +1,230 @@
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v4, part3 39/41] mm/x86: prepare for removing num_physpages and simplify mem_init()
-Date: Sat,  6 Apr 2013 22:32:38 +0800
-Message-ID: <1365258760-30821-40-git-send-email-jiang.liu@huawei.com>
-References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Subject: [PATCH v4, part3 10/15] mm: accurately calculate zone->managed_pages for highmem zones
+Date: Sat,  6 Apr 2013 21:55:04 +0800
+Message-ID: <1365256509-29024-11-git-send-email-jiang.liu@huawei.com>
+References: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pa0-f44.google.com ([209.85.220.44]:33338 "EHLO
+	mail-pa0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1423024Ab3DFN5P (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Apr 2013 09:57:15 -0400
+In-Reply-To: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Andreas Herrmann <andreas.herrmann3@amd.com>, Tang Chen <tangchen@cn.fujitsu.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Tejun Heo <tj@kernel.org>, Joonsoo Kim <js1304@gmail.com>, Yinghai Lu <yinghai@kernel.org>, Marek Szyprowski <m.szyprowski@samsung.com>
 
-Prepare for removing num_physpages and simplify mem_init().
+Commit "mm: introduce new field 'managed_pages' to struct zone" assumes
+that all highmem pages will be freed into the buddy system by function
+mem_init(). But that's not always true, some architectures may reserve
+some highmem pages during boot. For example PPC may allocate highmem
+pages for giagant HugeTLB pages, and several architectures have code to
+check PageReserved flag to exclude highmem pages allocated during boot
+when freeing highmem pages into the buddy system.
+
+So treat highmem pages in the same way as normal pages, that is to:
+1) reset zone->managed_pages to zero in mem_init().
+2) recalculate managed_pages when freeing pages into the buddy system.
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
-Cc: Andreas Herrmann <andreas.herrmann3@amd.com>
-Cc: Tang Chen <tangchen@cn.fujitsu.com>
-Cc: Wen Congyang <wency@cn.fujitsu.com>
-Cc: Jianguo Wu <wujianguo@huawei.com>
+Cc: Tejun Heo <tj@kernel.org>
+Cc: Joonsoo Kim <js1304@gmail.com>
+Cc: Yinghai Lu <yinghai@kernel.org>
+Cc: Mel Gorman <mgorman@suse.de>
+Cc: Minchan Kim <minchan@kernel.org>
+Cc: Kamezawa Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>
 Cc: linux-kernel@vger.kernel.org
+Cc: linux-mm@kvack.org
 ---
- arch/x86/kernel/cpu/amd.c |    2 +-
- arch/x86/kernel/setup.c   |    2 --
- arch/x86/mm/init_32.c     |   30 ++----------------------------
- arch/x86/mm/init_64.c     |   20 +-------------------
- arch/x86/mm/numa_32.c     |    2 --
- 5 files changed, 4 insertions(+), 52 deletions(-)
+ arch/metag/mm/init.c     |    6 ++++++
+ arch/x86/mm/highmem_32.c |    6 ++++++
+ include/linux/bootmem.h  |    1 +
+ mm/bootmem.c             |   32 ++++++++++++++++++--------------
+ mm/nobootmem.c           |   30 ++++++++++++++++--------------
+ mm/page_alloc.c          |    1 +
+ 6 files changed, 48 insertions(+), 28 deletions(-)
 
-diff --git a/arch/x86/kernel/cpu/amd.c b/arch/x86/kernel/cpu/amd.c
-index fa96eb0..f97d534 100644
---- a/arch/x86/kernel/cpu/amd.c
-+++ b/arch/x86/kernel/cpu/amd.c
-@@ -90,7 +90,7 @@ static void __cpuinit init_amd_k5(struct cpuinfo_x86 *c)
- static void __cpuinit init_amd_k6(struct cpuinfo_x86 *c)
- {
- 	u32 l, h;
--	int mbytes = num_physpages >> (20-PAGE_SHIFT);
-+	int mbytes = get_num_physpages() >> (20-PAGE_SHIFT);
+diff --git a/arch/metag/mm/init.c b/arch/metag/mm/init.c
+index d05b845..58a36f3 100644
+--- a/arch/metag/mm/init.c
++++ b/arch/metag/mm/init.c
+@@ -380,6 +380,12 @@ void __init mem_init(void)
  
- 	if (c->x86_model < 6) {
- 		/* Based on AMD doc 20734R - June 2000 */
-diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-index 90d8cc9..3b05ab7 100644
---- a/arch/x86/kernel/setup.c
-+++ b/arch/x86/kernel/setup.c
-@@ -1013,8 +1013,6 @@ void __init setup_arch(char **cmdline_p)
- 	/* max_low_pfn get updated here */
- 	find_low_pfn_range();
- #else
--	num_physpages = max_pfn;
--
- 	check_x2apic();
- 
- 	/* How many end-of-memory variables you have, grandma! */
-diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
-index 9fa46ba..4287f1f 100644
---- a/arch/x86/mm/init_32.c
-+++ b/arch/x86/mm/init_32.c
-@@ -660,10 +660,8 @@ void __init initmem_init(void)
- 		highstart_pfn = max_low_pfn;
- 	printk(KERN_NOTICE "%ldMB HIGHMEM available.\n",
- 		pages_to_mb(highend_pfn - highstart_pfn));
--	num_physpages = highend_pfn;
- 	high_memory = (void *) __va(highstart_pfn * PAGE_SIZE - 1) + 1;
- #else
--	num_physpages = max_low_pfn;
- 	high_memory = (void *) __va(max_low_pfn * PAGE_SIZE - 1) + 1;
- #endif
- 
-@@ -671,7 +669,7 @@ void __init initmem_init(void)
- 	sparse_memory_present_with_active_regions(0);
- 
- #ifdef CONFIG_FLATMEM
--	max_mapnr = num_physpages;
-+	max_mapnr = IS_ENABLED(CONFIG_HIGHMEM) ? highend_pfn : max_low_pfn;
- #endif
- 	__vmalloc_start_set = true;
- 
-@@ -739,9 +737,6 @@ static void __init test_wp_bit(void)
- 
- void __init mem_init(void)
- {
--	int codesize, reservedpages, datasize, initsize;
--	int tmp;
--
- 	pci_iommu_alloc();
- 
- #ifdef CONFIG_FLATMEM
-@@ -761,30 +756,9 @@ void __init mem_init(void)
- 	/* this will put all low memory onto the freelists */
- 	free_all_bootmem();
- 
--	reservedpages = 0;
--	for (tmp = 0; tmp < max_low_pfn; tmp++)
--		/*
--		 * Only count reserved RAM pages:
--		 */
--		if (page_is_ram(tmp) && PageReserved(pfn_to_page(tmp)))
--			reservedpages++;
--
- 	after_bootmem = 1;
- 
--	codesize =  (unsigned long) &_etext - (unsigned long) &_text;
--	datasize =  (unsigned long) &_edata - (unsigned long) &_etext;
--	initsize =  (unsigned long) &__init_end - (unsigned long) &__init_begin;
--
--	printk(KERN_INFO "Memory: %luk/%luk available (%dk kernel code, "
--			"%dk reserved, %dk data, %dk init, %ldk highmem)\n",
--		nr_free_pages() << (PAGE_SHIFT-10),
--		num_physpages << (PAGE_SHIFT-10),
--		codesize >> 10,
--		reservedpages << (PAGE_SHIFT-10),
--		datasize >> 10,
--		initsize >> 10,
--		totalhigh_pages << (PAGE_SHIFT-10));
--
-+	mem_init_print_info(NULL);
- 	printk(KERN_INFO "virtual kernel memory layout:\n"
- 		"    fixmap  : 0x%08lx - 0x%08lx   (%4ld kB)\n"
  #ifdef CONFIG_HIGHMEM
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index 65116e5..650264b 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -1043,9 +1043,6 @@ static void __init register_page_bootmem_info(void)
+ 	unsigned long tmp;
++
++	/*
++	 * Explicitly reset zone->managed_pages because highmem pages are
++	 * freed before calling free_all_bootmem_node();
++	 */
++	reset_all_zones_managed_pages();
+ 	for (tmp = highstart_pfn; tmp < highend_pfn; tmp++)
+ 		free_highmem_page(pfn_to_page(tmp));
+ 	num_physpages += totalhigh_pages;
+diff --git a/arch/x86/mm/highmem_32.c b/arch/x86/mm/highmem_32.c
+index 252b8f5..4500142 100644
+--- a/arch/x86/mm/highmem_32.c
++++ b/arch/x86/mm/highmem_32.c
+@@ -1,6 +1,7 @@
+ #include <linux/highmem.h>
+ #include <linux/module.h>
+ #include <linux/swap.h> /* for totalram_pages */
++#include <linux/bootmem.h>
  
- void __init mem_init(void)
+ void *kmap(struct page *page)
  {
--	long codesize, reservedpages, datasize, initsize;
--	unsigned long absent_pages;
--
- 	pci_iommu_alloc();
+@@ -121,6 +122,11 @@ void __init set_highmem_pages_init(void)
+ 	struct zone *zone;
+ 	int nid;
  
- 	/* clear_bss() already clear the empty_zero_page */
-@@ -1054,28 +1051,13 @@ void __init mem_init(void)
++	/*
++	 * Explicitly reset zone->managed_pages because set_highmem_pages_init()
++	 * is invoked before free_all_bootmem()
++	 */
++	reset_all_zones_managed_pages();
+ 	for_each_zone(zone) {
+ 		unsigned long zone_start_pfn, zone_end_pfn;
  
- 	/* this will put all memory onto the freelists */
- 	free_all_bootmem();
--
--	absent_pages = absent_pages_in_range(0, max_pfn);
--	reservedpages = max_pfn - totalram_pages - absent_pages;
- 	after_bootmem = 1;
+diff --git a/include/linux/bootmem.h b/include/linux/bootmem.h
+index cdc3bab..b585f57 100644
+--- a/include/linux/bootmem.h
++++ b/include/linux/bootmem.h
+@@ -47,6 +47,7 @@ extern unsigned long init_bootmem(unsigned long addr, unsigned long memend);
+ extern unsigned long free_low_memory_core_early(int nodeid);
+ extern unsigned long free_all_bootmem_node(pg_data_t *pgdat);
+ extern unsigned long free_all_bootmem(void);
++extern void reset_all_zones_managed_pages(void);
  
--	codesize =  (unsigned long) &_etext - (unsigned long) &_text;
--	datasize =  (unsigned long) &_edata - (unsigned long) &_etext;
--	initsize =  (unsigned long) &__init_end - (unsigned long) &__init_begin;
--
- 	/* Register memory areas for /proc/kcore */
- 	kclist_add(&kcore_vsyscall, (void *)VSYSCALL_START,
- 			 VSYSCALL_END - VSYSCALL_START, KCORE_OTHER);
- 
--	printk(KERN_INFO "Memory: %luk/%luk available (%ldk kernel code, "
--			 "%ldk absent, %ldk reserved, %ldk data, %ldk init)\n",
--		nr_free_pages() << (PAGE_SHIFT-10),
--		max_pfn << (PAGE_SHIFT-10),
--		codesize >> 10,
--		absent_pages << (PAGE_SHIFT-10),
--		reservedpages << (PAGE_SHIFT-10),
--		datasize >> 10,
--		initsize >> 10);
-+	mem_init_print_info(NULL);
+ extern void free_bootmem_node(pg_data_t *pgdat,
+ 			      unsigned long addr,
+diff --git a/mm/bootmem.c b/mm/bootmem.c
+index d937107..39e6156 100644
+--- a/mm/bootmem.c
++++ b/mm/bootmem.c
+@@ -242,20 +242,26 @@ static unsigned long __init free_all_bootmem_core(bootmem_data_t *bdata)
+ 	return count;
  }
  
- #ifdef CONFIG_DEBUG_RODATA
-diff --git a/arch/x86/mm/numa_32.c b/arch/x86/mm/numa_32.c
-index 73a6d73..0342d27 100644
---- a/arch/x86/mm/numa_32.c
-+++ b/arch/x86/mm/numa_32.c
-@@ -83,10 +83,8 @@ void __init initmem_init(void)
- 		highstart_pfn = max_low_pfn;
- 	printk(KERN_NOTICE "%ldMB HIGHMEM available.\n",
- 	       pages_to_mb(highend_pfn - highstart_pfn));
--	num_physpages = highend_pfn;
- 	high_memory = (void *) __va(highstart_pfn * PAGE_SIZE - 1) + 1;
- #else
--	num_physpages = max_low_pfn;
- 	high_memory = (void *) __va(max_low_pfn * PAGE_SIZE - 1) + 1;
+-static void reset_node_lowmem_managed_pages(pg_data_t *pgdat)
++static int reset_managed_pages_done __initdata;
++
++static inline void __init reset_node_managed_pages(pg_data_t *pgdat)
+ {
+ 	struct zone *z;
+ 
+-	/*
+-	 * In free_area_init_core(), highmem zone's managed_pages is set to
+-	 * present_pages, and bootmem allocator doesn't allocate from highmem
+-	 * zones. So there's no need to recalculate managed_pages because all
+-	 * highmem pages will be managed by the buddy system. Here highmem
+-	 * zone also includes highmem movable zone.
+-	 */
++	if (reset_managed_pages_done)
++		return;
++
+ 	for (z = pgdat->node_zones; z < pgdat->node_zones + MAX_NR_ZONES; z++)
+-		if (!is_highmem(z))
+-			z->managed_pages = 0;
++		z->managed_pages = 0;
++}
++
++void __init reset_all_zones_managed_pages(void)
++{
++	struct pglist_data *pgdat;
++
++	for_each_online_pgdat(pgdat)
++		reset_node_managed_pages(pgdat);
++	reset_managed_pages_done = 1;
+ }
+ 
+ /**
+@@ -267,7 +273,7 @@ static void reset_node_lowmem_managed_pages(pg_data_t *pgdat)
+ unsigned long __init free_all_bootmem_node(pg_data_t *pgdat)
+ {
+ 	register_page_bootmem_info_node(pgdat);
+-	reset_node_lowmem_managed_pages(pgdat);
++	reset_node_managed_pages(pgdat);
+ 	return free_all_bootmem_core(pgdat->bdata);
+ }
+ 
+@@ -280,10 +286,8 @@ unsigned long __init free_all_bootmem(void)
+ {
+ 	unsigned long total_pages = 0;
+ 	bootmem_data_t *bdata;
+-	struct pglist_data *pgdat;
+ 
+-	for_each_online_pgdat(pgdat)
+-		reset_node_lowmem_managed_pages(pgdat);
++	reset_all_zones_managed_pages();
+ 
+ 	list_for_each_entry(bdata, &bdata_list, list)
+ 		total_pages += free_all_bootmem_core(bdata);
+diff --git a/mm/nobootmem.c b/mm/nobootmem.c
+index 5e07d36..fa584ff 100644
+--- a/mm/nobootmem.c
++++ b/mm/nobootmem.c
+@@ -137,20 +137,25 @@ unsigned long __init free_low_memory_core_early(int nodeid)
+ 	return count;
+ }
+ 
+-static void reset_node_lowmem_managed_pages(pg_data_t *pgdat)
++static int reset_managed_pages_done __initdata;
++
++static inline void __init reset_node_managed_pages(pg_data_t *pgdat)
+ {
+ 	struct zone *z;
+ 
+-	/*
+-	 * In free_area_init_core(), highmem zone's managed_pages is set to
+-	 * present_pages, and bootmem allocator doesn't allocate from highmem
+-	 * zones. So there's no need to recalculate managed_pages because all
+-	 * highmem pages will be managed by the buddy system. Here highmem
+-	 * zone also includes highmem movable zone.
+-	 */
++	if (reset_managed_pages_done)
++		return;
+ 	for (z = pgdat->node_zones; z < pgdat->node_zones + MAX_NR_ZONES; z++)
+-		if (!is_highmem(z))
+-			z->managed_pages = 0;
++		z->managed_pages = 0;
++}
++
++void __init reset_all_zones_managed_pages(void)
++{
++	struct pglist_data *pgdat;
++
++	for_each_online_pgdat(pgdat)
++		reset_node_managed_pages(pgdat);
++	reset_managed_pages_done = 1;
+ }
+ 
+ /**
+@@ -160,10 +165,7 @@ static void reset_node_lowmem_managed_pages(pg_data_t *pgdat)
+  */
+ unsigned long __init free_all_bootmem(void)
+ {
+-	struct pglist_data *pgdat;
+-
+-	for_each_online_pgdat(pgdat)
+-		reset_node_lowmem_managed_pages(pgdat);
++	reset_all_zones_managed_pages();
+ 
+ 	/*
+ 	 * We need to use MAX_NUMNODES instead of NODE_DATA(0)->node_id
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index 1f94380..45be58c 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -5211,6 +5211,7 @@ void free_highmem_page(struct page *page)
+ {
+ 	__free_reserved_page(page);
+ 	totalram_pages++;
++	page_zone(page)->managed_pages++;
+ 	totalhigh_pages++;
+ }
  #endif
- 	printk(KERN_NOTICE "%ldMB LOWMEM available.\n",
 -- 
 1.7.9.5
