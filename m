@@ -1,72 +1,124 @@
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v4, part3 40/41] mm/xtensa: prepare for removing num_physpages and simplify mem_init()
-Date: Sat,  6 Apr 2013 22:32:39 +0800
-Message-ID: <1365258760-30821-41-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v4, part3 07/41] UML: normalize global variables exported by vmlinux.lds
+Date: Sat,  6 Apr 2013 22:32:06 +0800
+Message-ID: <1365258760-30821-8-git-send-email-jiang.liu@huawei.com>
 References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-xtensa@linux-xtensa.org
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Al Viro <viro@zeniv.linux.org.uk>, user-mode-linux-devel@lists.sourceforge.net
 List-Id: linux-arch.vger.kernel.org
 
-Prepare for removing num_physpages and simplify mem_init().
+Normalize global variables exported by vmlinux.lds to conform usage
+guidelines from include/asm-generic/sections.h.
+
+1) Use _text to mark the start of the kernel image including the head
+text, and _stext to mark the start of the .text section.
+2) Export mandatory global variables __bss_stop.
+3) Adjust __init_begin and __init_end to avoid acrossing .text and
+   .data sections.
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Chris Zankel <chris@zankel.net>
-Cc: Max Filippov <jcmvbkbc@gmail.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: linux-xtensa@linux-xtensa.org
+Cc: Jeff Dike <jdike@addtoit.com>
+Cc: Richard Weinberger <richard@nod.at>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: user-mode-linux-devel@lists.sourceforge.net
 Cc: linux-kernel@vger.kernel.org
 ---
- arch/xtensa/mm/init.c |   27 ++-------------------------
- 1 file changed, 2 insertions(+), 25 deletions(-)
+ arch/um/include/asm/common.lds.S |    1 -
+ arch/um/kernel/dyn.lds.S         |    6 ++++--
+ arch/um/kernel/uml.lds.S         |    7 +++++--
+ 3 files changed, 9 insertions(+), 5 deletions(-)
 
-diff --git a/arch/xtensa/mm/init.c b/arch/xtensa/mm/init.c
-index dc6e009..267428e 100644
---- a/arch/xtensa/mm/init.c
-+++ b/arch/xtensa/mm/init.c
-@@ -173,12 +173,8 @@ void __init zones_init(void)
+diff --git a/arch/um/include/asm/common.lds.S b/arch/um/include/asm/common.lds.S
+index 4938de5..1dd5bd8 100644
+--- a/arch/um/include/asm/common.lds.S
++++ b/arch/um/include/asm/common.lds.S
+@@ -57,7 +57,6 @@
+ 	*(.uml.initcall.init)
+ 	__uml_initcall_end = .;
+   }
+-  __init_end = .;
  
- void __init mem_init(void)
- {
--	unsigned long codesize, reservedpages, datasize, initsize;
--	unsigned long highmemsize, tmp, ram;
--
--	max_mapnr = num_physpages = max_low_pfn - ARCH_PFN_OFFSET;
-+	max_mapnr = max_low_pfn - ARCH_PFN_OFFSET;
- 	high_memory = (void *) __va(max_low_pfn << PAGE_SHIFT);
--	highmemsize = 0;
+   SECURITY_INIT
  
- #ifdef CONFIG_HIGHMEM
- #error HIGHGMEM not implemented in init.c
-@@ -186,26 +182,7 @@ void __init mem_init(void)
+diff --git a/arch/um/kernel/dyn.lds.S b/arch/um/kernel/dyn.lds.S
+index fb8fd6f..adde088 100644
+--- a/arch/um/kernel/dyn.lds.S
++++ b/arch/um/kernel/dyn.lds.S
+@@ -14,8 +14,6 @@ SECTIONS
+   __binary_start = .;
+   . = ALIGN(4096);		/* Init code and data */
+   _text = .;
+-  _stext = .;
+-  __init_begin = .;
+   INIT_TEXT_SECTION(PAGE_SIZE)
  
- 	free_all_bootmem();
+   . = ALIGN(PAGE_SIZE);
+@@ -67,6 +65,7 @@ SECTIONS
+   } =0x90909090
+   .plt            : { *(.plt) }
+   .text           : {
++    _stext = .;
+     TEXT_TEXT
+     SCHED_TEXT
+     LOCK_TEXT
+@@ -91,7 +90,9 @@ SECTIONS
  
--	reservedpages = ram = 0;
--	for (tmp = 0; tmp < max_mapnr; tmp++) {
--		ram++;
--		if (PageReserved(mem_map+tmp))
--			reservedpages++;
--	}
--
--	codesize =  (unsigned long) _etext - (unsigned long) _stext;
--	datasize =  (unsigned long) _edata - (unsigned long) _sdata;
--	initsize =  (unsigned long) __init_end - (unsigned long) __init_begin;
--
--	printk("Memory: %luk/%luk available (%ldk kernel code, %ldk reserved, "
--	       "%ldk data, %ldk init %ldk highmem)\n",
--	       nr_free_pages() << (PAGE_SHIFT-10),
--	       ram << (PAGE_SHIFT-10),
--	       codesize >> 10,
--	       reservedpages << (PAGE_SHIFT-10),
--	       datasize >> 10,
--	       initsize >> 10,
--	       highmemsize >> 10);
-+	mem_init_print_info(NULL);
- }
+   #include <asm/common.lds.S>
  
- #ifdef CONFIG_BLK_DEV_INITRD
++  __init_begin = .;
+   init.data : { INIT_DATA }
++  __init_end = .;
+ 
+   /* Ensure the __preinit_array_start label is properly aligned.  We
+      could instead move the label definition inside the section, but
+@@ -155,6 +156,7 @@ SECTIONS
+    . = ALIGN(32 / 8);
+   . = ALIGN(32 / 8);
+   }
++   __bss_stop = .;
+   _end = .;
+   PROVIDE (end = .);
+ 
+diff --git a/arch/um/kernel/uml.lds.S b/arch/um/kernel/uml.lds.S
+index ff65fb4..6899195 100644
+--- a/arch/um/kernel/uml.lds.S
++++ b/arch/um/kernel/uml.lds.S
+@@ -20,13 +20,12 @@ SECTIONS
+   . = START + SIZEOF_HEADERS;
+ 
+   _text = .;
+-  _stext = .;
+-  __init_begin = .;
+   INIT_TEXT_SECTION(0)
+   . = ALIGN(PAGE_SIZE);
+ 
+   .text      :
+   {
++    _stext = .;
+     TEXT_TEXT
+     SCHED_TEXT
+     LOCK_TEXT
+@@ -62,7 +61,10 @@ SECTIONS
+ 
+   #include <asm/common.lds.S>
+ 
++  __init_begin = .;
+   init.data : { INIT_DATA }
++  __init_end = .;
++
+   .data    :
+   {
+     INIT_TASK_DATA(KERNEL_STACK_SIZE)
+@@ -97,6 +99,7 @@ SECTIONS
+   PROVIDE(_bss_start = .);
+   SBSS(0)
+   BSS(0)
++   __bss_stop = .;
+   _end = .;
+   PROVIDE (end = .);
+ 
 -- 
 1.7.9.5
