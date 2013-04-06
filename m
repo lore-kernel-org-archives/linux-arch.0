@@ -1,84 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f45.google.com ([209.85.160.45]:39017 "EHLO
-	mail-pb0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1423252Ab3DFOp0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Apr 2013 10:45:26 -0400
+Received: from mail-pd0-f178.google.com ([209.85.192.178]:45168 "EHLO
+	mail-pd0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1423252Ab3DFOpA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Apr 2013 10:45:00 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v4, part3 24/41] mm/m68k: prepare for removing num_physpages and simplify mem_init()
-Date: Sat,  6 Apr 2013 22:32:23 +0800
-Message-ID: <1365258760-30821-25-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v4, part3 21/41] mm/hexagon: prepare for removing num_physpages and simplify mem_init()
+Date: Sat,  6 Apr 2013 22:32:20 +0800
+Message-ID: <1365258760-30821-22-git-send-email-jiang.liu@huawei.com>
 In-Reply-To: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
 References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Greg Ungerer <gerg@uclinux.org>, linux-m68k@lists.linux-m68k.org
-Message-ID: <20130406143223.6Za5P4lY9L5i-JtsAxSHt0oMKKNW0795C3aktkfMG3Y@z>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org
+Message-ID: <20130406143220._4UcdOCZeqWL_W0zb7e42h1Q_zX20SrNNdljy7Dh6eE@z>
 
 Prepare for removing num_physpages and simplify mem_init().
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Greg Ungerer <gerg@uclinux.org>
-Cc: linux-m68k@lists.linux-m68k.org
+Cc: Richard Kuo <rkuo@codeaurora.org>
+Cc: linux-hexagon@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org
 ---
- arch/m68k/mm/init.c |   31 ++-----------------------------
- 1 file changed, 2 insertions(+), 29 deletions(-)
+ arch/hexagon/mm/init.c |    3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
 
-diff --git a/arch/m68k/mm/init.c b/arch/m68k/mm/init.c
-index 2485a8c..0723141 100644
---- a/arch/m68k/mm/init.c
-+++ b/arch/m68k/mm/init.c
-@@ -149,33 +149,11 @@ void __init print_memmap(void)
+diff --git a/arch/hexagon/mm/init.c b/arch/hexagon/mm/init.c
+index c048d06e..c0f0781 100644
+--- a/arch/hexagon/mm/init.c
++++ b/arch/hexagon/mm/init.c
+@@ -70,9 +70,8 @@ unsigned long long kmap_generation;
  void __init mem_init(void)
  {
- 	pg_data_t *pgdat;
--	int codepages = 0;
--	int datapages = 0;
--	int initpages = 0;
- 	int i;
+ 	free_all_bootmem();
+-	num_physpages = bootmem_lastpg;	/*  seriously, what?  */
  
- 	/* this will put all memory onto the freelists */
--	num_physpages = 0;
--	for_each_online_pgdat(pgdat) {
--		num_physpages += pgdat->node_present_pages;
--
-+	for_each_online_pgdat(pgdat)
- 		free_all_bootmem_node(pgdat);
--		for (i = 0; i < pgdat->node_spanned_pages; i++) {
--			struct page *page = pgdat->node_mem_map + i;
--			char *addr = page_to_virt(page);
--
--			if (!PageReserved(page))
--				continue;
--			if (addr >= _text &&
--			    addr < _etext)
--				codepages++;
--			else if (addr >= __init_begin &&
--				 addr < __init_end)
--				initpages++;
--			else
--				datapages++;
--		}
--	}
- 
- #if defined(CONFIG_MMU) && !defined(CONFIG_SUN3) && !defined(CONFIG_COLDFIRE)
- 	/* insert pointer tables allocated so far into the tablelist */
-@@ -190,12 +168,7 @@ void __init mem_init(void)
- 		init_pointer_table((unsigned long)zero_pgtable);
- #endif
- 
--	pr_info("Memory: %luk/%luk available (%dk kernel code, %dk data, %dk init)\n",
--	       nr_free_pages() << (PAGE_SHIFT-10),
--	       totalram_pages << (PAGE_SHIFT-10),
--	       codepages << (PAGE_SHIFT-10),
--	       datapages << (PAGE_SHIFT-10),
--	       initpages << (PAGE_SHIFT-10));
+-	printk(KERN_INFO "totalram_pages = %ld\n", totalram_pages);
 +	mem_init_print_info(NULL);
- 	print_memmap();
- }
  
+ 	/*
+ 	 *  To-Do:  someone somewhere should wipe out the bootmem map
 -- 
 1.7.9.5
 
