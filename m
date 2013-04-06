@@ -1,113 +1,133 @@
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v4, part3 30/41] mm/PARISC: prepare for removing num_physpages and simplify mem_init()
-Date: Sat,  6 Apr 2013 22:32:29 +0800
-Message-ID: <1365258760-30821-31-git-send-email-jiang.liu@huawei.com>
-References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
-Return-path: <linux-parisc-owner@vger.kernel.org>
-In-Reply-To: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
-Sender: linux-parisc-owner@vger.kernel.org
+Subject: [PATCH v4, part3 11/15] mm: use a dedicated lock to protect totalram_pages and zone->managed_pages
+Date: Sat,  6 Apr 2013 21:55:05 +0800
+Message-ID: <1365256509-29024-12-git-send-email-jiang.liu@huawei.com>
+References: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Thomas Gleixner <tglx@linutronix.de>, linux-parisc@vger.kernel.org
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Michel Lespinasse <walken@google.com>, Rik van Riel <riel@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-Prepare for removing num_physpages and simplify mem_init().
+Currently lock_memory_hotplug()/unlock_memory_hotplug() are used to
+protect totalram_pages and zone->managed_pages. Other than the memory
+hotplug driver, totalram_pages and zone->managed_pages may also be
+modified at runtime by other drivers, such as Xen balloon,
+virtio_balloon etc. For those cases, memory hotplug lock is a little
+too heavy, so introduce a dedicated lock to protect totalram_pages
+and zone->managed_pages.
+
+Now we have a simplified locking rules totalram_pages and
+zone->managed_pages as:
+1) no locking for read accesses because they are unsigned long.
+2) no locking for write accesses at boot time in single-threaded context.
+3) serialize write accesses at runtime by acquiring the dedicated
+   managed_page_count_lock.
+
+Also adjust zone->managed_pages when freeing reserved pages into the
+buddy system, to keep totalram_pages and zone->managed_pages in
+consistence.
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
-Cc: Helge Deller <deller@gmx.de>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Michal Hocko <mhocko@suse.cz>
-Cc: David Rientjes <rientjes@google.com>
-Cc: linux-parisc@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Mel Gorman <mgorman@suse.de>
+Cc: Michel Lespinasse <walken@google.com>
+Cc: Rik van Riel <riel@redhat.com>
+Cc: Minchan Kim <minchan@kernel.org>
+Cc: linux-mm@kvack.org (open list:MEMORY MANAGEMENT)
+Cc: linux-kernel@vger.kernel.org (open list)
 ---
- arch/parisc/mm/init.c |   46 +++-------------------------------------------
- 1 file changed, 3 insertions(+), 43 deletions(-)
+ include/linux/mm.h     |    6 ++----
+ include/linux/mmzone.h |   14 ++++++++++----
+ mm/page_alloc.c        |   19 +++++++++++++++++++
+ 3 files changed, 31 insertions(+), 8 deletions(-)
 
-diff --git a/arch/parisc/mm/init.c b/arch/parisc/mm/init.c
-index 1fe9d841..f80c175 100644
---- a/arch/parisc/mm/init.c
-+++ b/arch/parisc/mm/init.c
-@@ -214,7 +214,6 @@ static void __init setup_bootmem(void)
- 	mem_limit_func();       /* check for "mem=" argument */
- 
- 	mem_max = 0;
--	num_physpages = 0;
- 	for (i = 0; i < npmem_ranges; i++) {
- 		unsigned long rsize;
- 
-@@ -229,10 +228,8 @@ static void __init setup_bootmem(void)
- 				npmem_ranges = i + 1;
- 				mem_max = mem_limit;
- 			}
--	        num_physpages += pmem_ranges[i].pages;
- 			break;
- 		}
--	    num_physpages += pmem_ranges[i].pages;
- 		mem_max += rsize;
- 	}
- 
-@@ -532,7 +529,7 @@ void free_initmem(void)
- 	 * pages are no-longer executable */
- 	flush_icache_range(init_begin, init_end);
- 	
--	num_physpages += free_initmem_default(-1);
-+	free_initmem_default(-1);
- 
- 	/* set up a new led state on systems shipped LED State panel */
- 	pdc_chassis_send_status(PDC_CHASSIS_DIRECT_BCOMPLETE);
-@@ -580,8 +577,6 @@ unsigned long pcxl_dma_start __read_mostly;
- 
- void __init mem_init(void)
- {
--	int codesize, reservedpages, datasize, initsize;
--
- 	/* Do sanity checks on page table constants */
- 	BUILD_BUG_ON(PTE_ENTRY_SIZE != sizeof(pte_t));
- 	BUILD_BUG_ON(PMD_ENTRY_SIZE != sizeof(pmd_t));
-@@ -603,33 +598,6 @@ void __init mem_init(void)
- 	}
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 1f03b0e..da3ffb0 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -1301,6 +1301,7 @@ extern void free_initmem(void);
+  */
+ extern unsigned long free_reserved_area(unsigned long start, unsigned long end,
+ 					int poison, char *s);
++
+ #ifdef	CONFIG_HIGHMEM
+ /*
+  * Free a highmem page into the buddy system, adjusting totalhigh_pages
+@@ -1309,10 +1310,7 @@ extern unsigned long free_reserved_area(unsigned long start, unsigned long end,
+ extern void free_highmem_page(struct page *page);
  #endif
  
--	codesize = (unsigned long)_etext - (unsigned long)_text;
--	datasize = (unsigned long)_edata - (unsigned long)_etext;
--	initsize = (unsigned long)__init_end - (unsigned long)__init_begin;
--
--	reservedpages = 0;
+-static inline void adjust_managed_page_count(struct page *page, long count)
 -{
--	unsigned long pfn;
--#ifdef CONFIG_DISCONTIGMEM
--	int i;
--
--	for (i = 0; i < npmem_ranges; i++) {
--		for (pfn = node_start_pfn(i); pfn < node_end_pfn(i); pfn++) {
--			if (PageReserved(pfn_to_page(pfn)))
--				reservedpages++;
--		}
--	}
--#else /* !CONFIG_DISCONTIGMEM */
--	for (pfn = 0; pfn < max_pfn; pfn++) {
--		/*
--		 * Only count reserved RAM pages
--		 */
--		if (PageReserved(pfn_to_page(pfn)))
--			reservedpages++;
--	}
--#endif
+-	totalram_pages += count;
 -}
--
- #ifdef CONFIG_PA11
- 	if (hppa_dma_ops == &pcxl_dma_ops) {
- 		pcxl_dma_start = (unsigned long)SET_MAP_OFFSET(MAP_START);
-@@ -643,15 +611,7 @@ void __init mem_init(void)
- 	parisc_vmalloc_start = SET_MAP_OFFSET(MAP_START);
- #endif
++extern void adjust_managed_page_count(struct page *page, long count);
  
--	printk(KERN_INFO "Memory: %luk/%luk available (%dk kernel code, %dk reserved, %dk data, %dk init)\n",
--		nr_free_pages() << (PAGE_SHIFT-10),
--		num_physpages << (PAGE_SHIFT-10),
--		codesize >> 10,
--		reservedpages << (PAGE_SHIFT-10),
--		datasize >> 10,
--		initsize >> 10
--	);
+ /* Free the reserved page into the buddy system, so it gets managed. */
+ static inline void __free_reserved_page(struct page *page)
+diff --git a/include/linux/mmzone.h b/include/linux/mmzone.h
+index 72e1cb5..dc9c6ca 100644
+--- a/include/linux/mmzone.h
++++ b/include/linux/mmzone.h
+@@ -474,10 +474,16 @@ struct zone {
+ 	 * frequently read in proximity to zone->lock.  It's good to
+ 	 * give them a chance of being in the same cacheline.
+ 	 *
+-	 * Write access to present_pages and managed_pages at runtime should
+-	 * be protected by lock_memory_hotplug()/unlock_memory_hotplug().
+-	 * Any reader who can't tolerant drift of present_pages and
+-	 * managed_pages should hold memory hotplug lock to get a stable value.
++	 * Write access to present_pages at runtime should be protected by
++	 * lock_memory_hotplug()/unlock_memory_hotplug().  Any reader who can't
++	 * tolerant drift of present_pages should hold memory hotplug lock to
++	 * get a stable value.
++	 *
++	 * Read access to managed_pages should be safe because it's unsigned
++	 * long. Write access to zone->managed_pages and totalram_pages are
++	 * protected by managed_page_count_lock at runtime. Idealy only
++	 * adjust_managed_page_count() should be used instead of directly
++	 * touching zone->managed_pages and totalram_pages.
+ 	 */
+ 	unsigned long		spanned_pages;
+ 	unsigned long		present_pages;
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index 45be58c..ca1a6ce 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -100,6 +100,9 @@ nodemask_t node_states[NR_NODE_STATES] __read_mostly = {
+ };
+ EXPORT_SYMBOL(node_states);
+ 
++/* Protect totalram_pages and zone->managed_pages */
++static DEFINE_SPINLOCK(managed_page_count_lock);
++
+ unsigned long totalram_pages __read_mostly;
+ unsigned long totalreserve_pages __read_mostly;
+ /*
+@@ -5186,6 +5189,22 @@ early_param("movablecore", cmdline_parse_movablecore);
+ 
+ #endif /* CONFIG_HAVE_MEMBLOCK_NODE_MAP */
+ 
++void adjust_managed_page_count(struct page *page, long count)
++{
++	bool lock = (system_state != SYSTEM_BOOTING);
++
++	/* No need to acquire the lock during boot */
++	if (lock)
++		spin_lock(&managed_page_count_lock);
++
++	page_zone(page)->managed_pages += count;
++	totalram_pages += count;
++
++	if (lock)
++		spin_unlock(&managed_page_count_lock);
++}
++EXPORT_SYMBOL(adjust_managed_page_count);
++
+ unsigned long free_reserved_area(unsigned long start, unsigned long end,
+ 				 int poison, char *s)
+ {
+-- 
+1.7.9.5
