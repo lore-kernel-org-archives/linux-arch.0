@@ -1,130 +1,114 @@
-From: Oskar Andero <oskar.andero@sonymobile.com>
-Subject: Re: Re: [PATCH v2 1/4] kprobes: delay blacklist symbol lookup until
- we actually need it
-Date: Fri, 5 Apr 2013 12:00:49 +0200
-Message-ID: <20130405100049.GI2481@caracas.corpusers.net>
-References: <1365079889-21525-1-git-send-email-oskar.andero@sonymobile.com>
- <1365079889-21525-2-git-send-email-oskar.andero@sonymobile.com>
- <20130405005628.GA13624@lge.com>
- <515E33E8.6050507@hitachi.com>
+From: Jiang Liu <liuj97@gmail.com>
+Subject: [PATCH v4,
+ part3 14/41] mm/ARM64: prepare for removing num_physpages and
+ simplify mem_init()
+Date: Sat,  6 Apr 2013 22:32:13 +0800
+Message-ID: <1365258760-30821-15-git-send-email-jiang.liu@huawei.com>
+References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from seldrel01.sonyericsson.com ([212.209.106.2]:6172 "EHLO
-	seldrel01.sonyericsson.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752035Ab3DEKAw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Apr 2013 06:00:52 -0400
-Content-Disposition: inline
-In-Reply-To: <515E33E8.6050507@hitachi.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Cc: Joonsoo Kim <iamjoonsoo.kim@lge.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "davem@davemloft.net" <davem@davemloft.net>, "anil.s.keshavamurthy@intel.com" <anil.s.keshavamurthy@intel.com>, "ananth@in.ibm.com" <ananth@in.ibm.com>, "Lekanovic, Radovan" <Radovan.Lekanovic@sonymobile.com>, =?iso-8859-1?Q?Davidsson=2C_Bj=F6rn?= <Bjorn.Davidsson@sonymobile.com>, Toby Collett <toby.collett@sonymobile.com>, "yrl.pp-manager.tt@hitachi.com" <yrl.pp-manager.tt@hitachi.com>
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, James Bottomley <James.Bottomley@HansenPartnership.com>, David Howells <dhowells@redhat.com>, Russell King <linux@arm.linux.org.uk>, Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Mark Salter <msalter@redhat.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, Michal Hocko <mhocko@suse.cz>, Minchan Kim <minchan@kernel.org>, Mel Gorman <mgorman@suse.de>, David Rientjes <rientjes@google.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Jianguo Wu <wujianguo@huawei.com>
+List-Id: linux-arch.vger.kernel.org
 
-Thanks for your input guys!
+Prepare for removing num_physpages and simplify mem_init().
 
-On 04:16 Fri 05 Apr     , Masami Hiramatsu wrote:
-> (2013/04/05 9:56), Joonsoo Kim wrote:
-> > Hello, Oskar.
-> > 
-> > On Thu, Apr 04, 2013 at 02:51:26PM +0200, Oskar Andero wrote:
-> >> From: Toby Collett <toby.collett@sonymobile.com>
-> >>
-> >> The symbol lookup can take a long time and kprobes is
-> >> initialised very early in boot, so delay symbol lookup
-> >> until the blacklist is first used.
-> >>
-> >> Cc: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-> >> Cc: David S. Miller <davem@davemloft.net>
-> >> Reviewed-by: Radovan Lekanovic <radovan.lekanovic@sonymobile.com>
-> >> Signed-off-by: Toby Collett <toby.collett@sonymobile.com>
-> >> Signed-off-by: Oskar Andero <oskar.andero@sonymobile.com>
-> >> ---
-> >>  kernel/kprobes.c | 98 ++++++++++++++++++++++++++++++++++----------------------
-> >>  1 file changed, 60 insertions(+), 38 deletions(-)
-> >>
-> >> diff --git a/kernel/kprobes.c b/kernel/kprobes.c
-> >> index e35be53..0a270e5 100644
-> >> --- a/kernel/kprobes.c
-> >> +++ b/kernel/kprobes.c
-> >> @@ -68,6 +68,7 @@
-> >>  #endif
-> >>  
-> >>  static int kprobes_initialized;
-> >> +static int kprobe_blacklist_initialized;
-> >>  static struct hlist_head kprobe_table[KPROBE_TABLE_SIZE];
-> >>  static struct hlist_head kretprobe_inst_table[KPROBE_TABLE_SIZE];
-> >>  
-> >> @@ -102,6 +103,60 @@ static struct kprobe_blackpoint kprobe_blacklist[] = {
-> >>  	{NULL}    /* Terminator */
-> >>  };
-> >>  
-> >> +/* it can take some time ( > 100ms ) to initialise the
-> >> + * blacklist so we delay this until we actually need it
-> >> + */
-> >> +static void init_kprobe_blacklist(void)
-> >> +{
-> >> +	int i;
-> >> +	unsigned long offset = 0, size = 0;
-> >> +	char *modname, namebuf[128];
-> >> +	const char *symbol_name;
-> >> +	void *addr;
-> >> +	struct kprobe_blackpoint *kb;
-> >> +
-> >> +	mutex_lock(&kprobe_mutex);
-> >> +	if (kprobe_blacklist_initialized)
-> >> +		goto out;
-> >> +
-> >> +	/*
-> >> +	 * Lookup and populate the kprobe_blacklist.
-> >> +	 *
-> >> +	 * Unlike the kretprobe blacklist, we'll need to determine
-> >> +	 * the range of addresses that belong to the said functions,
-> >> +	 * since a kprobe need not necessarily be at the beginning
-> >> +	 * of a function.
-> >> +	 */
-> >> +	for (kb = kprobe_blacklist; kb->name != NULL; kb++) {
-> >> +		kprobe_lookup_name(kb->name, addr);
-> >> +		if (!addr)
-> >> +			continue;
-> >> +
-> >> +		kb->start_addr = (unsigned long)addr;
-> >> +		symbol_name = kallsyms_lookup(kb->start_addr,
-> >> +				&size, &offset, &modname, namebuf);
-> >> +		if (!symbol_name)
-> >> +			kb->range = 0;
-> >> +		else
-> >> +			kb->range = size;
-> >> +	}
-> >> +
-> >> +	if (kretprobe_blacklist_size) {
-> >> +		/* lookup the function address from its name */
-> >> +		for (i = 0; kretprobe_blacklist[i].name != NULL; i++) {
-> >> +			kprobe_lookup_name(kretprobe_blacklist[i].name,
-> >> +					   kretprobe_blacklist[i].addr);
-> >> +			if (!kretprobe_blacklist[i].addr)
-> >> +				printk("kretprobe: lookup failed: %s\n",
-> >> +				       kretprobe_blacklist[i].name);
-> >> +		}
-> >> +	}
-> >> +	kprobe_blacklist_initialized = 1;
-> > 
-> > You need smp_wmb() before assigning 'kprobe_blacklist_initialized = 1'.
-> > This guarantee that who see kprobe_blacklist_initialized = 1 will get
-> > updated data of kprobe_blacklist.
-> 
-> Right, to ensure blacklist is updated, memory barrier is required.
+Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: linux-kernel@vger.kernel.org
+---
+ arch/arm64/mm/init.c |   48 +++---------------------------------------------
+ 1 file changed, 3 insertions(+), 45 deletions(-)
 
-Agreed.
-
-> > Please refer my previous patch once more :)
-> > 
-> > And How about define kprobe_blacklist_initialized as boolean?
-> 
-> Good idea :)
-> 
-
-I'll fix it for v3.
-
--Oskar
-> 
+diff --git a/arch/arm64/mm/init.c b/arch/arm64/mm/init.c
+index 0f2cf5d..821e788 100644
+--- a/arch/arm64/mm/init.c
++++ b/arch/arm64/mm/init.c
+@@ -272,59 +272,17 @@ static void __init free_unused_memmap(void)
+  */
+ void __init mem_init(void)
+ {
+-	unsigned long reserved_pages, free_pages;
+-	struct memblock_region *reg;
+-
+ 	arm64_swiotlb_init();
+ 
+ 	max_mapnr   = pfn_to_page(max_pfn + PHYS_PFN_OFFSET) - mem_map;
+ 
+ #ifndef CONFIG_SPARSEMEM_VMEMMAP
+-	/* this will put all unused low memory onto the freelists */
+ 	free_unused_memmap();
+ #endif
+-
++	/* this will put all unused low memory onto the freelists */
+ 	free_all_bootmem();
+ 
+-	reserved_pages = free_pages = 0;
+-
+-	for_each_memblock(memory, reg) {
+-		unsigned int pfn1, pfn2;
+-		struct page *page, *end;
+-
+-		pfn1 = __phys_to_pfn(reg->base);
+-		pfn2 = pfn1 + __phys_to_pfn(reg->size);
+-
+-		page = pfn_to_page(pfn1);
+-		end  = pfn_to_page(pfn2 - 1) + 1;
+-
+-		do {
+-			if (PageReserved(page))
+-				reserved_pages++;
+-			else if (!page_count(page))
+-				free_pages++;
+-			page++;
+-		} while (page < end);
+-	}
+-
+-	/*
+-	 * Since our memory may not be contiguous, calculate the real number
+-	 * of pages we have in this system.
+-	 */
+-	pr_info("Memory:");
+-	num_physpages = 0;
+-	for_each_memblock(memory, reg) {
+-		unsigned long pages = memblock_region_memory_end_pfn(reg) -
+-			memblock_region_memory_base_pfn(reg);
+-		num_physpages += pages;
+-		printk(" %ldMB", pages >> (20 - PAGE_SHIFT));
+-	}
+-	printk(" = %luMB total\n", num_physpages >> (20 - PAGE_SHIFT));
+-
+-	pr_notice("Memory: %luk/%luk available, %luk reserved\n",
+-		  nr_free_pages() << (PAGE_SHIFT-10),
+-		  free_pages << (PAGE_SHIFT-10),
+-		  reserved_pages << (PAGE_SHIFT-10));
++	mem_init_print_info();
+ 
+ #define MLK(b, t) b, t, ((t) - (b)) >> 10
+ #define MLM(b, t) b, t, ((t) - (b)) >> 20
+@@ -366,7 +324,7 @@ void __init mem_init(void)
+ 	BUILD_BUG_ON(TASK_SIZE_64			> MODULES_VADDR);
+ 	BUG_ON(TASK_SIZE_64				> MODULES_VADDR);
+ 
+-	if (PAGE_SIZE >= 16384 && num_physpages <= 128) {
++	if (PAGE_SIZE >= 16384 && get_num_physpages() <= 128) {
+ 		extern int sysctl_overcommit_memory;
+ 		/*
+ 		 * On a machine this small we won't get anywhere without
+-- 
+1.7.9.5
