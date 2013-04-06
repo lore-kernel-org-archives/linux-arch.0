@@ -1,145 +1,62 @@
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v4, part3 08/41] mm: introduce helper function mem_init_print_info() to simplify mem_init()
-Date: Sat,  6 Apr 2013 22:32:07 +0800
-Message-ID: <1365258760-30821-9-git-send-email-jiang.liu@huawei.com>
-References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
-Sender: owner-linux-mm@kvack.org
+Subject: [PATCH v4, part3 15/15] mm: report available pages as "MemTotal" for each NUMA node
+Date: Sat,  6 Apr 2013 21:55:09 +0800
+Message-ID: <1365256509-29024-16-git-send-email-jiang.liu@huawei.com>
+References: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pa0-f46.google.com ([209.85.220.46]:62771 "EHLO
+	mail-pa0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1422941Ab3DFN6H (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Apr 2013 09:58:07 -0400
+In-Reply-To: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Michel Lespinasse <walken@google.com>, Rik van Riel <riel@redhat.com>, Marek Szyprowski <m.szyprowski@samsung.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-Introduce helper function mem_init_print_info() to simplify mem_init()
-across different architectures, which also unifies the format and
-information printed.
+As reported by https://bugzilla.kernel.org/show_bug.cgi?id=53501,
+"MemTotal" from /proc/meminfo means memory pages managed by the buddy
+system (managed_pages), but "MemTotal" from /sys/.../node/nodex/meminfo
+means phsical pages present (present_pages) within the NUMA node.
+There's a difference between managed_pages and present_pages due to
+bootmem allocator and reserved pages.
 
-Function mem_init_print_info() calculates memory statistics information
-without walking each page, so it should be a little faster on some
-architectures.
+And Documentation/filesystems/proc.txt says
+    MemTotal: Total usable ram (i.e. physical ram minus a few reserved
+              bits and the kernel binary code)
 
-Also introduce another helper get_num_physpages() to kill the global
-variable num_physpages.
+So change /sys/.../node/nodex/meminfo to report available pages within
+the node as "MemTotal".
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+Reported-by: sworddragon2@aol.com
 Cc: Andrew Morton <akpm@linux-foundation.org>
 Cc: Mel Gorman <mgorman@suse.de>
-Cc: Michel Lespinasse <walken@google.com>
-Cc: Rik van Riel <riel@redhat.com>
 Cc: Minchan Kim <minchan@kernel.org>
-Cc: Marek Szyprowski <m.szyprowski@samsung.com>
 Cc: linux-mm@kvack.org
 Cc: linux-kernel@vger.kernel.org
 ---
- include/linux/mm.h |   12 ++++++++++++
- mm/page_alloc.c    |   52 ++++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 64 insertions(+)
+ mm/page_alloc.c |    6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index da3ffb0..7758014 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -1311,6 +1311,7 @@ extern void free_highmem_page(struct page *page);
- #endif
- 
- extern void adjust_managed_page_count(struct page *page, long count);
-+extern void mem_init_print_info(const char *str);
- 
- /* Free the reserved page into the buddy system, so it gets managed. */
- static inline void __free_reserved_page(struct page *page)
-@@ -1347,6 +1348,17 @@ static inline unsigned long free_initmem_default(int poison)
- 				  poison, "unused kernel");
- }
- 
-+static inline unsigned long get_num_physpages(void)
-+{
-+	int nid;
-+	unsigned long phys_pages = 0;
-+
-+	for_each_online_node(nid)
-+		phys_pages += node_present_pages(nid);
-+
-+	return phys_pages;
-+}
-+
- #ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
- /*
-  * With CONFIG_HAVE_MEMBLOCK_NODE_MAP set, an architecture may initialise its
 diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 74b0faf..e3f2071 100644
+index 4257a63..74b0faf 100644
 --- a/mm/page_alloc.c
 +++ b/mm/page_alloc.c
-@@ -61,6 +61,7 @@
- #include <linux/hugetlb.h>
- #include <linux/sched/rt.h>
+@@ -2922,9 +2922,13 @@ EXPORT_SYMBOL(si_meminfo);
+ #ifdef CONFIG_NUMA
+ void si_meminfo_node(struct sysinfo *val, int nid)
+ {
++	int zone_type;		/* needs to be signed */
++	unsigned long managed_pages = 0;
+ 	pg_data_t *pgdat = NODE_DATA(nid);
  
-+#include <asm/sections.h>
- #include <asm/tlbflush.h>
- #include <asm/div64.h>
- #include "internal.h"
-@@ -5232,6 +5233,57 @@ void free_highmem_page(struct page *page)
- }
- #endif
- 
-+
-+void __init mem_init_print_info(const char *str)
-+{
-+	unsigned long physpages, codesize, datasize, rosize;
-+	unsigned long init_code_size, init_data_size;
-+
-+	physpages = get_num_physpages();
-+	codesize = _etext - _stext;
-+	datasize = _edata - _sdata;
-+	rosize = __end_rodata - __start_rodata;
-+	init_data_size = __init_end - __init_begin;
-+	init_code_size = _einittext - _sinittext;
-+
-+	/*
-+	 * Detect special cases and adjust section sizes accordingly:
-+	 * 1) .init.* may be embedded into .data sections
-+	 * 2) .init.text.* may be out of [__init_begin, __init_end],
-+	 *    please refer to arch/tile/kernel/vmlinux.lds.S.
-+	 * 3) .rodata.* may be embedded into .text or .data sections.
-+	 */
-+#define adj_init_size(start, end, size, pos, adj) \
-+	if (start <= pos && pos < end && size > adj) \
-+		size -= adj;
-+
-+	adj_init_size(__init_begin, __init_end, init_data_size,
-+		     _sinittext, init_code_size);
-+	adj_init_size(_stext, _etext, codesize, _sinittext, init_code_size);
-+	adj_init_size(_sdata, _edata, datasize, __init_begin, init_data_size);
-+	adj_init_size(_stext, _etext, codesize, __start_rodata, rosize);
-+	adj_init_size(_sdata, _edata, datasize, __start_rodata, rosize);
-+
-+#undef	adj_init_size
-+
-+	printk("Memory: %luK/%luK available "
-+	       "(%luK kernel code, %luK rwdata, %luK rodata, "
-+	       "%luK init, %luK bss, %luK reserved"
-+#ifdef	CONFIG_HIGHMEM
-+	       ", %luK highmem"
-+#endif
-+	       "%s%s)\n",
-+	       nr_free_pages() << (PAGE_SHIFT-10), physpages << (PAGE_SHIFT-10),
-+	       codesize >> 10, datasize >> 10, rosize >> 10,
-+	       (init_data_size + init_code_size) >> 10,
-+	       (__bss_stop - __bss_start) >> 10,
-+	       (physpages - totalram_pages) << (PAGE_SHIFT-10),
-+#ifdef	CONFIG_HIGHMEM
-+	       totalhigh_pages << (PAGE_SHIFT-10),
-+#endif
-+	       str ? ", " : "", str ? str : "");
-+}
-+
- /**
-  * set_dma_reserve - set the specified number of pages reserved in the first zone
-  * @new_dma_reserve: The number of pages to mark reserved
+-	val->totalram = pgdat->node_present_pages;
++	for (zone_type = 0; zone_type < MAX_NR_ZONES; zone_type++)
++		managed_pages += pgdat->node_zones[zone_type].managed_pages;
++	val->totalram = managed_pages;
+ 	val->freeram = node_page_state(nid, NR_FREE_PAGES);
+ #ifdef CONFIG_HIGHMEM
+ 	val->totalhigh = pgdat->node_zones[ZONE_HIGHMEM].managed_pages;
 -- 
 1.7.9.5
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
