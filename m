@@ -1,59 +1,63 @@
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v4, part3 05/15] mm/tile: use common help functions to free reserved pages
-Date: Sat,  6 Apr 2013 21:54:59 +0800
-Message-ID: <1365256509-29024-6-git-send-email-jiang.liu@huawei.com>
-References: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f172.google.com ([209.85.192.172]:33458 "EHLO
-	mail-pd0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1422946Ab3DFN4X (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Apr 2013 09:56:23 -0400
-In-Reply-To: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [PATCH v4, part3 03/41] c6x: normalize global variables exported by vmlinux.lds
+Date: Sat,  6 Apr 2013 22:32:02 +0800
+Message-ID: <1365258760-30821-4-git-send-email-jiang.liu@huawei.com>
+References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Aurelien Jacquiot <a-jacquiot@ti.com>, linux-c6x-dev@linux-c6x.org
+List-Id: linux-arch.vger.kernel.org
 
-Use common help functions to free reserved pages.
+Normalize global variables exported by vmlinux.lds to conform usage
+guidelines from include/asm-generic/sections.h.
+
+Use _text to mark the start of the kernel image including the head text,
+and _stext to mark the start of the .text section.
+
+This patch also fixes possible bugs due to current address layout that
+[__init_begin, __init_end] is a sub-range of [_stext, _etext] and pages
+within range [__init_begin, __init_end] will be freed by free_initmem().
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Chris Metcalf <cmetcalf@tilera.com>
-Cc: Wen Congyang <wency@cn.fujitsu.com>
+Cc: Mark Salter <msalter@redhat.com>
+Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
+Cc: linux-c6x-dev@linux-c6x.org
 Cc: linux-kernel@vger.kernel.org
 ---
- arch/tile/mm/init.c |    7 ++-----
- 1 file changed, 2 insertions(+), 5 deletions(-)
+ arch/c6x/kernel/vmlinux.lds.S |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/tile/mm/init.c b/arch/tile/mm/init.c
-index 2749515..ccfeb3f 100644
---- a/arch/tile/mm/init.c
-+++ b/arch/tile/mm/init.c
-@@ -720,7 +720,7 @@ static void __init init_free_pfn_range(unsigned long start, unsigned long end)
- 		}
- 		init_page_count(page);
- 		__free_pages(page, order);
--		totalram_pages += count;
-+		adjust_managed_page_count(page, count);
- 
- 		page += count;
- 		pfn += count;
-@@ -1024,16 +1024,13 @@ static void free_init_pages(char *what, unsigned long begin, unsigned long end)
- 			pte_clear(&init_mm, addr, ptep);
- 			continue;
- 		}
--		__ClearPageReserved(page);
--		init_page_count(page);
- 		if (pte_huge(*ptep))
- 			BUG_ON(!kdata_huge);
- 		else
- 			set_pte_at(&init_mm, addr, ptep,
- 				   pfn_pte(pfn, PAGE_KERNEL));
- 		memset((void *)addr, POISON_FREE_INITMEM, PAGE_SIZE);
--		free_page(addr);
--		totalram_pages++;
-+		free_reserved_page(page);
+diff --git a/arch/c6x/kernel/vmlinux.lds.S b/arch/c6x/kernel/vmlinux.lds.S
+index 1d81c4c..279d807 100644
+--- a/arch/c6x/kernel/vmlinux.lds.S
++++ b/arch/c6x/kernel/vmlinux.lds.S
+@@ -54,16 +54,15 @@ SECTIONS
  	}
- 	pr_info("Freeing %s: %ldk freed\n", what, (end - begin) >> 10);
- }
+ 
+ 	. = ALIGN(PAGE_SIZE);
++	__init_begin = .;
+ 	.init :
+ 	{
+-		_stext = .;
+ 		_sinittext = .;
+ 		HEAD_TEXT
+ 		INIT_TEXT
+ 		_einittext = .;
+ 	}
+ 
+-	__init_begin = _stext;
+ 	INIT_DATA_SECTION(16)
+ 
+ 	PERCPU_SECTION(128)
+@@ -74,6 +73,7 @@ SECTIONS
+ 	.text :
+ 	{
+ 		_text = .;
++		_stext = .;
+ 		TEXT_TEXT
+ 		SCHED_TEXT
+ 		LOCK_TEXT
 -- 
 1.7.9.5
