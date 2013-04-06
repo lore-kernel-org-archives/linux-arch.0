@@ -1,60 +1,131 @@
-From: Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>
-Subject: Re: [PATCH v4, part3 08/15] mm: fix some trivial typos in comments
-Date: Sat, 06 Apr 2013 18:36:28 +0400
-Message-ID: <516032EC.9080905@cogentembedded.com>
-References: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com> <1365256509-29024-9-git-send-email-jiang.liu@huawei.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1365256509-29024-9-git-send-email-jiang.liu@huawei.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Jiang Liu <liuj97@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Tang Chen <tangchen@cn.fujitsu.com>, Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>, Marek Szyprowski <m.szyprowski@samsung.com>
+From: Jiang Liu <liuj97@gmail.com>
+Subject: [PATCH v4, part3 11/41] mm/alpha: prepare for removing num_physpages and simplify mem_init()
+Date: Sat,  6 Apr 2013 22:32:10 +0800
+Message-ID: <1365258760-30821-12-git-send-email-jiang.liu@huawei.com>
+References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
+Return-path: <linux-alpha-owner@vger.kernel.org>
+In-Reply-To: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
+Sender: linux-alpha-owner@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hello.
+Prepare for removing num_physpages and simplify mem_init().
 
-On 06-04-2013 17:55, Jiang Liu wrote:
+Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+Cc: Richard Henderson <rth@twiddle.net>
+Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Cc: Matt Turner <mattst88@gmail.com>
+Cc: David Howells <dhowells@redhat.com>
+Cc: linux-alpha@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+---
+ arch/alpha/mm/init.c |   32 ++------------------------------
+ arch/alpha/mm/numa.c |   34 ++--------------------------------
+ 2 files changed, 4 insertions(+), 62 deletions(-)
 
-> Fix some trivial typos in comments.
+diff --git a/arch/alpha/mm/init.c b/arch/alpha/mm/init.c
+index ca07a97..04c933c 100644
+--- a/arch/alpha/mm/init.c
++++ b/arch/alpha/mm/init.c
+@@ -277,42 +277,14 @@ srm_paging_stop (void)
+ #endif
+ 
+ #ifndef CONFIG_DISCONTIGMEM
+-static void __init
+-printk_memory_info(void)
+-{
+-	unsigned long codesize, reservedpages, datasize, initsize, tmp;
+-	extern int page_is_ram(unsigned long) __init;
+-
+-	/* printk all informations */
+-	reservedpages = 0;
+-	for (tmp = 0; tmp < max_low_pfn; tmp++)
+-		/*
+-		 * Only count reserved RAM pages
+-		 */
+-		if (page_is_ram(tmp) && PageReserved(mem_map+tmp))
+-			reservedpages++;
+-
+-	codesize =  (unsigned long) &_etext - (unsigned long) &_text;
+-	datasize =  (unsigned long) &_edata - (unsigned long) &_data;
+-	initsize =  (unsigned long) &__init_end - (unsigned long) &__init_begin;
+-
+-	printk("Memory: %luk/%luk available (%luk kernel code, %luk reserved, %luk data, %luk init)\n",
+-	       nr_free_pages() << (PAGE_SHIFT-10),
+-	       max_mapnr << (PAGE_SHIFT-10),
+-	       codesize >> 10,
+-	       reservedpages << (PAGE_SHIFT-10),
+-	       datasize >> 10,
+-	       initsize >> 10);
+-}
+-
+ void __init
+ mem_init(void)
+ {
+-	max_mapnr = num_physpages = max_low_pfn;
++	max_mapnr = max_low_pfn;
+ 	free_all_bootmem();
+ 	high_memory = (void *) __va(max_low_pfn * PAGE_SIZE);
+ 
+-	printk_memory_info();
++	mem_init_print_info(NULL);
+ }
+ #endif /* CONFIG_DISCONTIGMEM */
+ 
+diff --git a/arch/alpha/mm/numa.c b/arch/alpha/mm/numa.c
+index 857452c..0894b3a8 100644
+--- a/arch/alpha/mm/numa.c
++++ b/arch/alpha/mm/numa.c
+@@ -129,8 +129,6 @@ setup_memory_node(int nid, void *kernel_end)
+ 	if (node_max_pfn > max_low_pfn)
+ 		max_pfn = max_low_pfn = node_max_pfn;
+ 
+-	num_physpages += node_max_pfn - node_min_pfn;
+-
+ #if 0 /* we'll try this one again in a little while */
+ 	/* Cute trick to make sure our local node data is on local memory */
+ 	node_data[nid] = (pg_data_t *)(__va(node_min_pfn << PAGE_SHIFT));
+@@ -324,37 +322,9 @@ void __init paging_init(void)
+ 
+ void __init mem_init(void)
+ {
+-	unsigned long codesize, reservedpages, datasize, initsize, pfn;
+-	extern int page_is_ram(unsigned long) __init;
+-	unsigned long nid, i;
+ 	high_memory = (void *) __va(max_low_pfn << PAGE_SHIFT);
+-
+-	reservedpages = 0;
+-	for_each_online_node(nid) {
+-		/*
+-		 * This will free up the bootmem, ie, slot 0 memory
+-		 */
+-		free_all_bootmem_node(NODE_DATA(nid));
+-
+-		pfn = NODE_DATA(nid)->node_start_pfn;
+-		for (i = 0; i < node_spanned_pages(nid); i++, pfn++)
+-			if (page_is_ram(pfn) &&
+-			    PageReserved(nid_page_nr(nid, i)))
+-				reservedpages++;
+-	}
+-
+-	codesize =  (unsigned long) &_etext - (unsigned long) &_text;
+-	datasize =  (unsigned long) &_edata - (unsigned long) &_data;
+-	initsize =  (unsigned long) &__init_end - (unsigned long) &__init_begin;
+-
+-	printk("Memory: %luk/%luk available (%luk kernel code, %luk reserved, "
+-	       "%luk data, %luk init)\n",
+-	       nr_free_pages() << (PAGE_SHIFT-10),
+-	       num_physpages << (PAGE_SHIFT-10),
+-	       codesize >> 10,
+-	       reservedpages << (PAGE_SHIFT-10),
+-	       datasize >> 10,
+-	       initsize >> 10);
++	free_all_bootmem();
++	mem_init_print_info(NULL);
+ #if 0
+ 	mem_stress();
+ #endif
+-- 
+1.7.9.5
 
-> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-> Cc: Wen Congyang <wency@cn.fujitsu.com>
-> Cc: Tang Chen <tangchen@cn.fujitsu.com>
-> Cc: Jiang Liu <jiang.liu@huawei.com>
-> Cc: Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>
-> Cc: Mel Gorman <mgorman@suse.de>
-> Cc: Minchan Kim <minchan@kernel.org>
-> Cc: Marek Szyprowski <m.szyprowski@samsung.com>
-> Cc: linux-mm@kvack.org
-> Cc: linux-kernel@vger.kernel.org
-[...]
-
-> diff --git a/mm/memory_hotplug.c b/mm/memory_hotplug.c
-> index 57decb2..a5b8fde 100644
-> --- a/mm/memory_hotplug.c
-> +++ b/mm/memory_hotplug.c
-> @@ -309,7 +309,7 @@ static int __meminit move_pfn_range_left(struct zone *z1, struct zone *z2,
->   	/* can't move pfns which are higher than @z2 */
->   	if (end_pfn > zone_end_pfn(z2))
->   		goto out_fail;
-> -	/* the move out part mast at the left most of @z2 */
-> +	/* the move out part must at the left most of @z2 */
-
-    Maybe "must be"?
-
-> diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-> index 6bd697c..c3c3eda 100644
-> --- a/mm/page_alloc.c
-> +++ b/mm/page_alloc.c
-> @@ -2863,7 +2863,7 @@ EXPORT_SYMBOL(free_pages_exact);
->    * nr_free_zone_pages() counts the number of counts pages which are beyond the
->    * high watermark within all zones at or below a given zone index.  For each
->    * zone, the number of pages is calculated as:
-> - *     present_pages - high_pages
-> + *     managed_pages - high_pages
-
-    I'm not sure it's that trivial.
-
-WBR, Sergei
