@@ -1,159 +1,57 @@
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v4, part3 19/41] mm/frv: prepare for removing num_physpages and simplify mem_init()
-Date: Sat,  6 Apr 2013 22:32:18 +0800
-Message-ID: <1365258760-30821-20-git-send-email-jiang.liu@huawei.com>
-References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
-Sender: owner-linux-mm@kvack.org
+Subject: [PATCH v4, part3 06/15] mm, powertv: use free_reserved_area() to simplify code
+Date: Sat,  6 Apr 2013 21:55:00 +0800
+Message-ID: <1365256509-29024-7-git-send-email-jiang.liu@huawei.com>
+References: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com>
+Return-path: <linux-mips-bounce@linux-mips.org>
+In-Reply-To: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, linux-mips@linux-mips.org
 List-Id: linux-arch.vger.kernel.org
 
-Prepare for removing num_physpages and simplify mem_init().
+Use common help function free_reserved_area() to simplify code.
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: David Howells <dhowells@redhat.com>
-Cc: Andi Kleen <ak@linux.intel.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Jiang Liu <jiang.liu@huawei.com>
+Cc: linux-mips@linux-mips.org
 Cc: linux-kernel@vger.kernel.org
 ---
- arch/frv/kernel/setup.c |   13 +++++++------
- arch/frv/mm/init.c      |   49 ++++++++++++++---------------------------------
- 2 files changed, 21 insertions(+), 41 deletions(-)
+ arch/mips/powertv/asic/asic_devices.c |   13 ++-----------
+ 1 file changed, 2 insertions(+), 11 deletions(-)
 
-diff --git a/arch/frv/kernel/setup.c b/arch/frv/kernel/setup.c
-index a513647..f78f8cb 100644
---- a/arch/frv/kernel/setup.c
-+++ b/arch/frv/kernel/setup.c
-@@ -876,6 +876,7 @@ late_initcall(setup_arch_serial);
- static void __init setup_linux_memory(void)
- {
- 	unsigned long bootmap_size, low_top_pfn, kstart, kend, high_mem;
-+	unsigned long physpages;
- 
- 	kstart	= (unsigned long) &__kernel_image_start - PAGE_OFFSET;
- 	kend	= (unsigned long) &__kernel_image_end - PAGE_OFFSET;
-@@ -893,19 +894,19 @@ static void __init setup_linux_memory(void)
- 					 );
- 
- 	/* pass the memory that the kernel can immediately use over to the bootmem allocator */
--	max_mapnr = num_physpages = (memory_end - memory_start) >> PAGE_SHIFT;
-+	max_mapnr = physpages = (memory_end - memory_start) >> PAGE_SHIFT;
- 	low_top_pfn = (KERNEL_LOWMEM_END - KERNEL_LOWMEM_START) >> PAGE_SHIFT;
- 	high_mem = 0;
- 
--	if (num_physpages > low_top_pfn) {
-+	if (physpages > low_top_pfn) {
- #ifdef CONFIG_HIGHMEM
--		high_mem = num_physpages - low_top_pfn;
-+		high_mem = physpages - low_top_pfn;
- #else
--		max_mapnr = num_physpages = low_top_pfn;
-+		max_mapnr = physpages = low_top_pfn;
- #endif
- 	}
- 	else {
--		low_top_pfn = num_physpages;
-+		low_top_pfn = physpages;
- 	}
- 
- 	min_low_pfn = memory_start >> PAGE_SHIFT;
-@@ -979,7 +980,7 @@ static void __init setup_uclinux_memory(void)
- 	free_bootmem(memory_start, memory_end - memory_start);
- 
- 	high_memory = (void *) (memory_end & PAGE_MASK);
--	max_mapnr = num_physpages = ((unsigned long) high_memory - PAGE_OFFSET) >> PAGE_SHIFT;
-+	max_mapnr = ((unsigned long) high_memory - PAGE_OFFSET) >> PAGE_SHIFT;
- 
- 	min_low_pfn = memory_start >> PAGE_SHIFT;
- 	max_low_pfn = memory_end >> PAGE_SHIFT;
-diff --git a/arch/frv/mm/init.c b/arch/frv/mm/init.c
-index 4215822..e9e2b6f 100644
---- a/arch/frv/mm/init.c
-+++ b/arch/frv/mm/init.c
-@@ -78,7 +78,7 @@ void __init paging_init(void)
- 	memset((void *) empty_zero_page, 0, PAGE_SIZE);
- 
- #ifdef CONFIG_HIGHMEM
--	if (num_physpages - num_mappedpages) {
-+	if (get_num_physpages() - num_mappedpages) {
- 		pgd_t *pge;
- 		pud_t *pue;
- 		pmd_t *pme;
-@@ -96,7 +96,7 @@ void __init paging_init(void)
- 	 */
- 	zones_size[ZONE_NORMAL]  = max_low_pfn - min_low_pfn;
- #ifdef CONFIG_HIGHMEM
--	zones_size[ZONE_HIGHMEM] = num_physpages - num_mappedpages;
-+	zones_size[ZONE_HIGHMEM] = get_num_physpages() - num_mappedpages;
- #endif
- 
- 	free_area_init(zones_size);
-@@ -114,45 +114,24 @@ void __init paging_init(void)
+diff --git a/arch/mips/powertv/asic/asic_devices.c b/arch/mips/powertv/asic/asic_devices.c
+index d38b095..9f64c23 100644
+--- a/arch/mips/powertv/asic/asic_devices.c
++++ b/arch/mips/powertv/asic/asic_devices.c
+@@ -529,17 +529,8 @@ EXPORT_SYMBOL(asic_resource_get);
   */
- void __init mem_init(void)
+ void platform_release_memory(void *ptr, int size)
  {
--	unsigned long npages = (memory_end - memory_start) >> PAGE_SHIFT;
--	unsigned long tmp;
--#ifdef CONFIG_MMU
--	unsigned long loop, pfn;
--	int datapages = 0;
--#endif
--	int codek = 0, datak = 0;
-+	unsigned long code_size = _etext - _stext;
- 
- 	/* this will put all low memory onto the freelists */
- 	free_all_bootmem();
-+#if defined(CONFIG_MMU) && defined(CONFIG_HIGHMEM)
-+	{
-+		unsigned long pfn;
- 
--#ifdef CONFIG_MMU
--	for (loop = 0 ; loop < npages ; loop++)
--		if (PageReserved(&mem_map[loop]))
--			datapages++;
+-	unsigned long addr;
+-	unsigned long end;
 -
--#ifdef CONFIG_HIGHMEM
--	for (pfn = num_physpages - 1; pfn >= num_mappedpages; pfn--)
--		free_highmem_page(&mem_map[pfn]);
--#endif
+-	addr = ((unsigned long)ptr + (PAGE_SIZE - 1)) & PAGE_MASK;
+-	end = ((unsigned long)ptr + size) & PAGE_MASK;
 -
--	codek = ((unsigned long) &_etext - (unsigned long) &_stext) >> 10;
--	datak = datapages << (PAGE_SHIFT - 10);
--
--#else
--	codek = (_etext - _stext) >> 10;
--	datak = 0; //(__bss_stop - _sdata) >> 10;
-+		for (pfn = get_num_physpages() - 1;
-+		     pfn >= num_mappedpages; pfn--)
-+			free_highmem_page(&mem_map[pfn]);
-+	}
- #endif
+-	for (; addr < end; addr += PAGE_SIZE) {
+-		ClearPageReserved(virt_to_page(__va(addr)));
+-		init_page_count(virt_to_page(__va(addr)));
+-		free_page((unsigned long)__va(addr));
+-	}
++	free_reserved_area((unsigned long)ptr, (unsigned long)(ptr + size),
++			   -1, NULL);
+ }
+ EXPORT_SYMBOL(platform_release_memory);
  
--	tmp = nr_free_pages() << PAGE_SHIFT;
--	printk("Memory available: %luKiB/%luKiB RAM, %luKiB/%luKiB ROM (%dKiB kernel code, %dKiB data)\n",
--	       tmp >> 10,
--	       npages << (PAGE_SHIFT - 10),
--	       (rom_length > 0) ? ((rom_length >> 10) - codek) : 0,
--	       rom_length >> 10,
--	       codek,
--	       datak
--	       );
--
-+	mem_init_print_info(NULL);
-+	if (rom_length > 0 && rom_length >= code_size)
-+		printk("Memory available:  %luKiB/%luKiB ROM\n",
-+			(rom_length - code_size) >> 10, rom_length >> 10);
- } /* end mem_init() */
- 
- /*****************************************************************************/
 -- 
 1.7.9.5
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
