@@ -1,132 +1,81 @@
-From: Simon Jeons <simon.jeons@gmail.com>
-Subject: Re: [PATCH v4, part3 00/15] accurately calculate memory statisitic
- information
-Date: Sun, 07 Apr 2013 09:34:17 +0800
-Message-ID: <5160CD19.8070705@gmail.com>
-References: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com>
+From: Chen Baozi <baozich@gmail.com>
+Subject: Re: [PATCH 0/3] gpio: remove GENERIC_GPIO completely
+Date: Sun, 7 Apr 2013 11:23:04 +0800
+Message-ID: <20130407032304.GA11500@cbz-workstation>
+References: <1364562678-8945-1-git-send-email-acourbot@nvidia.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com>
-Sender: owner-linux-mm@kvack.org
-To: Jiang Liu <liuj97@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pa0-f50.google.com ([209.85.220.50]:42272 "EHLO
+	mail-pa0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1161347Ab3DGDZz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Apr 2013 23:25:55 -0400
+Content-Disposition: inline
+In-Reply-To: <1364562678-8945-1-git-send-email-acourbot@nvidia.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Alexandre Courbot <gnurou@gmail.com>
+Cc: Grant Likely <grant.likely@secretlab.ca>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Romain Naour <romain.naour@openwide.fr>, linux-arch@vger.kernel.org, Alexandre Courbot <acourbot@nvidia.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 
-Hi Jiang,
-On 04/06/2013 09:54 PM, Jiang Liu wrote:
-> The original goal of this patchset is to fix the bug reported by
-> https://bugzilla.kernel.org/show_bug.cgi?id=53501
-> Now it has also been expanded to reduce common code used by memory
-> initializion.
->
-> This is the third part, previous two patch sets could be accessed at:
-> http://marc.info/?l=linux-mm&m=136289696323825&w=2
-> http://marc.info/?l=linux-mm&m=136290291524901&w=2
->
-> This patchset applies to
-> git://git.cmpxchg.org/linux-mmotm.git fc374c1f9d7bdcfb851b15b86e58ac5e1f645e32
-> which is based on mmotm-2013-03-26-15-09.
->
-> V2->V4:
-> 1) rebase to git://git.cmpxchg.org/linux-mmotm.git
-> 2) fix some build warnings and other minor bugs of previous patches
->
-> We have only tested these patchset on x86 platforms, and have done basic
-> compliation tests using cross-compilers from ftp.kernel.org. That means
-> some code may not pass compilation on some architectures. So any help
-> to test this patchset are welcomed!
->
-> Patch 1-7:
-> 	Bugfixes and more work for part1 and part2
-> Patch 8-9:
-> 	Fix typo and minor bugs in mm core
-> Patch 10-14:
-> 	Enhance the way to manage totalram_pages, totalhigh_pages and
-> 	zone->managed_pages.
-> Patch 15:
-> 	Report available pages within the node as "MemTotal" for sysfs
-> 	interface /sys/.../node/nodex/meminfo
->
-> Jiang Liu (15):
->    mm: fix build warnings caused by free_reserved_area()
->    mm: enhance free_reserved_area() to support poisoning memory with
->      zero
->    mm/ARM64: kill poison_init_mem()
->    mm/x86: use free_reserved_area() to simplify code
->    mm/tile: use common help functions to free reserved pages
->    mm, powertv: use free_reserved_area() to simplify code
->    mm, acornfb: use free_reserved_area() to simplify code
->    mm: fix some trivial typos in comments
->    mm: use managed_pages to calculate default zonelist order
->    mm: accurately calculate zone->managed_pages for highmem zones
->    mm: use a dedicated lock to protect totalram_pages and
->      zone->managed_pages
->    mm: make __free_pages_bootmem() only available at boot time
->    mm: correctly update zone->mamaged_pages
->    mm: concentrate modification of totalram_pages into the mm core
->    mm: report available pages as "MemTotal" for each NUMA node
+On Fri, Mar 29, 2013 at 06:11:15AM -0700, Alexandre Courbot wrote:
+> Another issue, I could not update the Chinese documentation in a sati=
+sfying
+> manner due to my absence of Chinese skills. Hope that will be forgive=
+n.
+>=20
+Hi Alexandre,
 
-What I interested in is how you test different platform? I don't think 
-you can have all the physical platform.
+I have changed the Chinese documentation according to your update as
+follows. Hopefully it would be helpful, :)
 
->
->   arch/alpha/kernel/sys_nautilus.c      |    2 +-
->   arch/alpha/mm/init.c                  |    6 ++--
->   arch/alpha/mm/numa.c                  |    2 +-
->   arch/arc/mm/init.c                    |    2 +-
->   arch/arm/mm/init.c                    |   13 ++++----
->   arch/arm64/mm/init.c                  |   15 ++-------
->   arch/avr32/mm/init.c                  |    6 ++--
->   arch/blackfin/mm/init.c               |    6 ++--
->   arch/c6x/mm/init.c                    |    6 ++--
->   arch/cris/mm/init.c                   |    4 +--
->   arch/frv/mm/init.c                    |    6 ++--
->   arch/h8300/mm/init.c                  |    6 ++--
->   arch/hexagon/mm/init.c                |    3 +-
->   arch/ia64/mm/init.c                   |    4 +--
->   arch/m32r/mm/init.c                   |    6 ++--
->   arch/m68k/mm/init.c                   |    8 ++---
->   arch/metag/mm/init.c                  |   11 ++++---
->   arch/microblaze/mm/init.c             |    6 ++--
->   arch/mips/mm/init.c                   |    2 +-
->   arch/mips/powertv/asic/asic_devices.c |   13 ++------
->   arch/mips/sgi-ip27/ip27-memory.c      |    2 +-
->   arch/mn10300/mm/init.c                |    2 +-
->   arch/openrisc/mm/init.c               |    6 ++--
->   arch/parisc/mm/init.c                 |    8 ++---
->   arch/powerpc/kernel/kvm.c             |    2 +-
->   arch/powerpc/mm/mem.c                 |    7 ++---
->   arch/s390/mm/init.c                   |    4 +--
->   arch/score/mm/init.c                  |    2 +-
->   arch/sh/mm/init.c                     |    6 ++--
->   arch/sparc/mm/init_32.c               |    3 +-
->   arch/sparc/mm/init_64.c               |    2 +-
->   arch/tile/mm/init.c                   |    9 ++----
->   arch/um/kernel/mem.c                  |    4 +--
->   arch/unicore32/mm/init.c              |    6 ++--
->   arch/x86/mm/highmem_32.c              |    6 ++++
->   arch/x86/mm/init.c                    |   14 ++-------
->   arch/x86/mm/init_32.c                 |    2 +-
->   arch/x86/mm/init_64.c                 |   25 +++------------
->   arch/xtensa/mm/init.c                 |    6 ++--
->   drivers/video/acornfb.c               |   28 ++---------------
->   drivers/virtio/virtio_balloon.c       |    8 +++--
->   drivers/xen/balloon.c                 |   23 +++-----------
->   include/linux/bootmem.h               |    1 +
->   include/linux/mm.h                    |   17 +++++-----
->   include/linux/mmzone.h                |   14 ++++++---
->   mm/bootmem.c                          |   41 +++++++++++++++---------
->   mm/hugetlb.c                          |    2 +-
->   mm/memory_hotplug.c                   |   33 ++++----------------
->   mm/nobootmem.c                        |   35 ++++++++++++---------
->   mm/page_alloc.c                       |   55 +++++++++++++++++++++------------
->   50 files changed, 222 insertions(+), 278 deletions(-)
->
+---
+ Documentation/zh_CN/gpio.txt | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+diff --git a/Documentation/zh_CN/gpio.txt b/Documentation/zh_CN/gpio.tx=
+t
+index 4fa7b4e..d5b8f01 100644
+--- a/Documentation/zh_CN/gpio.txt
++++ b/Documentation/zh_CN/gpio.txt
+@@ -84,10 +84,10 @@ GPIO =E5=85=AC=E7=BA=A6
+ =E6=8E=A7=E5=88=B6=E5=99=A8=E7=9A=84=E6=8A=BD=E8=B1=A1=E5=87=BD=E6=95=B0=
+=E6=9D=A5=E5=AE=9E=E7=8E=B0=E5=AE=83=E3=80=82(=E6=9C=89=E4=B8=80=E4=BA=9B=
+=E5=8F=AF=E9=80=89=E7=9A=84=E4=BB=A3=E7=A0=81=E8=83=BD=E6=94=AF=E6=8C=81=
+=E8=BF=99=E7=A7=8D=E7=AD=96=E7=95=A5=E7=9A=84=E5=AE=9E=E7=8E=B0,=E6=9C=AC=
+=E6=96=87=E6=A1=A3
+ =E5=90=8E=E9=9D=A2=E4=BC=9A=E4=BB=8B=E7=BB=8D=EF=BC=8C=E4=BD=86=E4=BD=9C=
+=E4=B8=BA GPIO =E6=8E=A5=E5=8F=A3=E7=9A=84=E5=AE=A2=E6=88=B7=E7=AB=AF=E9=
+=A9=B1=E5=8A=A8=E7=A8=8B=E5=BA=8F=E5=BF=85=E9=A1=BB=E4=B8=8E=E5=AE=83=E7=
+=9A=84=E5=AE=9E=E7=8E=B0=E6=97=A0=E5=85=B3=E3=80=82)
+=20
+-=E4=B9=9F=E5=B0=B1=E6=98=AF=E8=AF=B4,=E5=A6=82=E6=9E=9C=E5=9C=A8=E4=BB=
+=96=E4=BB=AC=E7=9A=84=E5=B9=B3=E5=8F=B0=E4=B8=8A=E6=94=AF=E6=8C=81=E8=BF=
+=99=E4=B8=AA=E5=85=AC=E7=BA=A6=EF=BC=8C=E9=A9=B1=E5=8A=A8=E5=BA=94=E5=B0=
+=BD=E5=8F=AF=E8=83=BD=E7=9A=84=E4=BD=BF=E7=94=A8=E5=AE=83=E3=80=82=E5=B9=
+=B3=E5=8F=B0
+-=E5=BF=85=E9=A1=BB=E5=9C=A8 Kconfig =E4=B8=AD=E5=A3=B0=E6=98=8E=E5=AF=B9=
+ GENERIC_GPIO=E7=9A=84=E6=94=AF=E6=8C=81 (=E5=B8=83=E5=B0=94=E5=9E=8B t=
+rue)=EF=BC=8C=E5=B9=B6=E6=8F=90=E4=BE=9B
+-=E4=B8=80=E4=B8=AA <asm/gpio.h> =E6=96=87=E4=BB=B6=E3=80=82=E9=82=A3=E4=
+=BA=9B=E8=B0=83=E7=94=A8=E6=A0=87=E5=87=86 GPIO =E5=87=BD=E6=95=B0=E7=9A=
+=84=E9=A9=B1=E5=8A=A8=E5=BA=94=E8=AF=A5=E5=9C=A8 Kconfig
+-=E5=85=A5=E5=8F=A3=E4=B8=AD=E5=A3=B0=E6=98=8E=E4=BE=9D=E8=B5=96GENERIC=
+_GPIO=E3=80=82=E5=BD=93=E9=A9=B1=E5=8A=A8=E5=8C=85=E5=90=AB=E6=96=87=E4=
+=BB=B6:
++=E4=B9=9F=E5=B0=B1=E6=98=AF=E8=AF=B4,=E5=A6=82=E6=9E=9C=E5=9C=A8=E4=BB=
+=96=E4=BB=AC=E7=9A=84=E5=B9=B3=E5=8F=B0=E4=B8=8A=E6=94=AF=E6=8C=81=E8=BF=
+=99=E4=B8=AA=E5=85=AC=E7=BA=A6=EF=BC=8C=E9=A9=B1=E5=8A=A8=E5=BA=94=E5=B0=
+=BD=E5=8F=AF=E8=83=BD=E7=9A=84=E4=BD=BF=E7=94=A8=E5=AE=83=E3=80=82=E5=90=
+=8C=E6=97=B6=EF=BC=8C=E5=B9=B3=E5=8F=B0
++=E5=BF=85=E9=A1=BB=E5=9C=A8 Kconfig =E4=B8=AD=E9=80=89=E6=8B=A9 ARCH_R=
+EQUIRE_GPIOLIB =E6=88=96=E8=80=85 ARCH_WANT_OPTIONAL_GPIOLIB
++=E9=80=89=E9=A1=B9=E3=80=82=E9=82=A3=E4=BA=9B=E8=B0=83=E7=94=A8=E6=A0=87=
+=E5=87=86 GPIO =E5=87=BD=E6=95=B0=E7=9A=84=E9=A9=B1=E5=8A=A8=E5=BA=94=E8=
+=AF=A5=E5=9C=A8 Kconfig
+=E5=85=A5=E5=8F=A3=E4=B8=AD=E5=A3=B0=E6=98=8E=E4=BE=9D=E8=B5=96GENERIC_=
+GPIO=E3=80=82
++=E5=BD=93=E9=A9=B1=E5=8A=A8=E5=8C=85=E5=90=AB=E6=96=87=E4=BB=B6:
+=20
+        #include <linux/gpio.h>
+ =20
