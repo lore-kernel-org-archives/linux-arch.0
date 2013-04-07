@@ -1,136 +1,132 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f51.google.com ([209.85.160.51]:33907 "EHLO
-	mail-pb0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1423141Ab3DFOne (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Apr 2013 10:43:34 -0400
-From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v4, part3 11/41] mm/alpha: prepare for removing num_physpages and simplify mem_init()
-Date: Sat,  6 Apr 2013 22:32:10 +0800
-Message-ID: <1365258760-30821-12-git-send-email-jiang.liu@huawei.com>
-In-Reply-To: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
-References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
+Received: from mail-ia0-f175.google.com ([209.85.210.175]:46546 "EHLO
+	mail-ia0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1161232Ab3DGBe0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Apr 2013 21:34:26 -0400
+Message-ID: <5160CD19.8070705@gmail.com>
+Date: Sun, 07 Apr 2013 09:34:17 +0800
+From: Simon Jeons <simon.jeons@gmail.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH v4, part3 00/15] accurately calculate memory statisitic
+ information
+References: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com>
+In-Reply-To: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org
-Message-ID: <20130406143210.tRbGL_Gw7s5FN8lUwMush17GljUBDEugbQiQPggpMVs@z>
+To: Jiang Liu <liuj97@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130407013417.9p-lzD0a3jvrurNOmsfSbDGJOQd4MCsCoNGWlCa19iQ@z>
 
-Prepare for removing num_physpages and simplify mem_init().
+Hi Jiang,
+On 04/06/2013 09:54 PM, Jiang Liu wrote:
+> The original goal of this patchset is to fix the bug reported by
+> https://bugzilla.kernel.org/show_bug.cgi?id=53501
+> Now it has also been expanded to reduce common code used by memory
+> initializion.
+>
+> This is the third part, previous two patch sets could be accessed at:
+> http://marc.info/?l=linux-mm&m=136289696323825&w=2
+> http://marc.info/?l=linux-mm&m=136290291524901&w=2
+>
+> This patchset applies to
+> git://git.cmpxchg.org/linux-mmotm.git fc374c1f9d7bdcfb851b15b86e58ac5e1f645e32
+> which is based on mmotm-2013-03-26-15-09.
+>
+> V2->V4:
+> 1) rebase to git://git.cmpxchg.org/linux-mmotm.git
+> 2) fix some build warnings and other minor bugs of previous patches
+>
+> We have only tested these patchset on x86 platforms, and have done basic
+> compliation tests using cross-compilers from ftp.kernel.org. That means
+> some code may not pass compilation on some architectures. So any help
+> to test this patchset are welcomed!
+>
+> Patch 1-7:
+> 	Bugfixes and more work for part1 and part2
+> Patch 8-9:
+> 	Fix typo and minor bugs in mm core
+> Patch 10-14:
+> 	Enhance the way to manage totalram_pages, totalhigh_pages and
+> 	zone->managed_pages.
+> Patch 15:
+> 	Report available pages within the node as "MemTotal" for sysfs
+> 	interface /sys/.../node/nodex/meminfo
+>
+> Jiang Liu (15):
+>    mm: fix build warnings caused by free_reserved_area()
+>    mm: enhance free_reserved_area() to support poisoning memory with
+>      zero
+>    mm/ARM64: kill poison_init_mem()
+>    mm/x86: use free_reserved_area() to simplify code
+>    mm/tile: use common help functions to free reserved pages
+>    mm, powertv: use free_reserved_area() to simplify code
+>    mm, acornfb: use free_reserved_area() to simplify code
+>    mm: fix some trivial typos in comments
+>    mm: use managed_pages to calculate default zonelist order
+>    mm: accurately calculate zone->managed_pages for highmem zones
+>    mm: use a dedicated lock to protect totalram_pages and
+>      zone->managed_pages
+>    mm: make __free_pages_bootmem() only available at boot time
+>    mm: correctly update zone->mamaged_pages
+>    mm: concentrate modification of totalram_pages into the mm core
+>    mm: report available pages as "MemTotal" for each NUMA node
 
-Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Richard Henderson <rth@twiddle.net>
-Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Cc: Matt Turner <mattst88@gmail.com>
-Cc: David Howells <dhowells@redhat.com>
-Cc: linux-alpha@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
----
- arch/alpha/mm/init.c |   32 ++------------------------------
- arch/alpha/mm/numa.c |   34 ++--------------------------------
- 2 files changed, 4 insertions(+), 62 deletions(-)
+What I interested in is how you test different platform? I don't think 
+you can have all the physical platform.
 
-diff --git a/arch/alpha/mm/init.c b/arch/alpha/mm/init.c
-index ca07a97..04c933c 100644
---- a/arch/alpha/mm/init.c
-+++ b/arch/alpha/mm/init.c
-@@ -277,42 +277,14 @@ srm_paging_stop (void)
- #endif
- 
- #ifndef CONFIG_DISCONTIGMEM
--static void __init
--printk_memory_info(void)
--{
--	unsigned long codesize, reservedpages, datasize, initsize, tmp;
--	extern int page_is_ram(unsigned long) __init;
--
--	/* printk all informations */
--	reservedpages = 0;
--	for (tmp = 0; tmp < max_low_pfn; tmp++)
--		/*
--		 * Only count reserved RAM pages
--		 */
--		if (page_is_ram(tmp) && PageReserved(mem_map+tmp))
--			reservedpages++;
--
--	codesize =  (unsigned long) &_etext - (unsigned long) &_text;
--	datasize =  (unsigned long) &_edata - (unsigned long) &_data;
--	initsize =  (unsigned long) &__init_end - (unsigned long) &__init_begin;
--
--	printk("Memory: %luk/%luk available (%luk kernel code, %luk reserved, %luk data, %luk init)\n",
--	       nr_free_pages() << (PAGE_SHIFT-10),
--	       max_mapnr << (PAGE_SHIFT-10),
--	       codesize >> 10,
--	       reservedpages << (PAGE_SHIFT-10),
--	       datasize >> 10,
--	       initsize >> 10);
--}
--
- void __init
- mem_init(void)
- {
--	max_mapnr = num_physpages = max_low_pfn;
-+	max_mapnr = max_low_pfn;
- 	free_all_bootmem();
- 	high_memory = (void *) __va(max_low_pfn * PAGE_SIZE);
- 
--	printk_memory_info();
-+	mem_init_print_info(NULL);
- }
- #endif /* CONFIG_DISCONTIGMEM */
- 
-diff --git a/arch/alpha/mm/numa.c b/arch/alpha/mm/numa.c
-index 857452c..0894b3a8 100644
---- a/arch/alpha/mm/numa.c
-+++ b/arch/alpha/mm/numa.c
-@@ -129,8 +129,6 @@ setup_memory_node(int nid, void *kernel_end)
- 	if (node_max_pfn > max_low_pfn)
- 		max_pfn = max_low_pfn = node_max_pfn;
- 
--	num_physpages += node_max_pfn - node_min_pfn;
--
- #if 0 /* we'll try this one again in a little while */
- 	/* Cute trick to make sure our local node data is on local memory */
- 	node_data[nid] = (pg_data_t *)(__va(node_min_pfn << PAGE_SHIFT));
-@@ -324,37 +322,9 @@ void __init paging_init(void)
- 
- void __init mem_init(void)
- {
--	unsigned long codesize, reservedpages, datasize, initsize, pfn;
--	extern int page_is_ram(unsigned long) __init;
--	unsigned long nid, i;
- 	high_memory = (void *) __va(max_low_pfn << PAGE_SHIFT);
--
--	reservedpages = 0;
--	for_each_online_node(nid) {
--		/*
--		 * This will free up the bootmem, ie, slot 0 memory
--		 */
--		free_all_bootmem_node(NODE_DATA(nid));
--
--		pfn = NODE_DATA(nid)->node_start_pfn;
--		for (i = 0; i < node_spanned_pages(nid); i++, pfn++)
--			if (page_is_ram(pfn) &&
--			    PageReserved(nid_page_nr(nid, i)))
--				reservedpages++;
--	}
--
--	codesize =  (unsigned long) &_etext - (unsigned long) &_text;
--	datasize =  (unsigned long) &_edata - (unsigned long) &_data;
--	initsize =  (unsigned long) &__init_end - (unsigned long) &__init_begin;
--
--	printk("Memory: %luk/%luk available (%luk kernel code, %luk reserved, "
--	       "%luk data, %luk init)\n",
--	       nr_free_pages() << (PAGE_SHIFT-10),
--	       num_physpages << (PAGE_SHIFT-10),
--	       codesize >> 10,
--	       reservedpages << (PAGE_SHIFT-10),
--	       datasize >> 10,
--	       initsize >> 10);
-+	free_all_bootmem();
-+	mem_init_print_info(NULL);
- #if 0
- 	mem_stress();
- #endif
--- 
-1.7.9.5
+>
+>   arch/alpha/kernel/sys_nautilus.c      |    2 +-
+>   arch/alpha/mm/init.c                  |    6 ++--
+>   arch/alpha/mm/numa.c                  |    2 +-
+>   arch/arc/mm/init.c                    |    2 +-
+>   arch/arm/mm/init.c                    |   13 ++++----
+>   arch/arm64/mm/init.c                  |   15 ++-------
+>   arch/avr32/mm/init.c                  |    6 ++--
+>   arch/blackfin/mm/init.c               |    6 ++--
+>   arch/c6x/mm/init.c                    |    6 ++--
+>   arch/cris/mm/init.c                   |    4 +--
+>   arch/frv/mm/init.c                    |    6 ++--
+>   arch/h8300/mm/init.c                  |    6 ++--
+>   arch/hexagon/mm/init.c                |    3 +-
+>   arch/ia64/mm/init.c                   |    4 +--
+>   arch/m32r/mm/init.c                   |    6 ++--
+>   arch/m68k/mm/init.c                   |    8 ++---
+>   arch/metag/mm/init.c                  |   11 ++++---
+>   arch/microblaze/mm/init.c             |    6 ++--
+>   arch/mips/mm/init.c                   |    2 +-
+>   arch/mips/powertv/asic/asic_devices.c |   13 ++------
+>   arch/mips/sgi-ip27/ip27-memory.c      |    2 +-
+>   arch/mn10300/mm/init.c                |    2 +-
+>   arch/openrisc/mm/init.c               |    6 ++--
+>   arch/parisc/mm/init.c                 |    8 ++---
+>   arch/powerpc/kernel/kvm.c             |    2 +-
+>   arch/powerpc/mm/mem.c                 |    7 ++---
+>   arch/s390/mm/init.c                   |    4 +--
+>   arch/score/mm/init.c                  |    2 +-
+>   arch/sh/mm/init.c                     |    6 ++--
+>   arch/sparc/mm/init_32.c               |    3 +-
+>   arch/sparc/mm/init_64.c               |    2 +-
+>   arch/tile/mm/init.c                   |    9 ++----
+>   arch/um/kernel/mem.c                  |    4 +--
+>   arch/unicore32/mm/init.c              |    6 ++--
+>   arch/x86/mm/highmem_32.c              |    6 ++++
+>   arch/x86/mm/init.c                    |   14 ++-------
+>   arch/x86/mm/init_32.c                 |    2 +-
+>   arch/x86/mm/init_64.c                 |   25 +++------------
+>   arch/xtensa/mm/init.c                 |    6 ++--
+>   drivers/video/acornfb.c               |   28 ++---------------
+>   drivers/virtio/virtio_balloon.c       |    8 +++--
+>   drivers/xen/balloon.c                 |   23 +++-----------
+>   include/linux/bootmem.h               |    1 +
+>   include/linux/mm.h                    |   17 +++++-----
+>   include/linux/mmzone.h                |   14 ++++++---
+>   mm/bootmem.c                          |   41 +++++++++++++++---------
+>   mm/hugetlb.c                          |    2 +-
+>   mm/memory_hotplug.c                   |   33 ++++----------------
+>   mm/nobootmem.c                        |   35 ++++++++++++---------
+>   mm/page_alloc.c                       |   55 +++++++++++++++++++++------------
+>   50 files changed, 222 insertions(+), 278 deletions(-)
+>
 
