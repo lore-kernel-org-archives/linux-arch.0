@@ -1,49 +1,49 @@
-From: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-Subject: Re: [PATCH v4, part3 02/41] avr32: normalize global variables
- exported by vmlinux.lds
-Date: Sun, 7 Apr 2013 10:00:18 +0200
-Message-ID: <20130407080018.GB31879@samfundet.no>
-References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
- <1365258760-30821-3-git-send-email-jiang.liu@huawei.com>
+From: Jiang Liu <liuj97@gmail.com>
+Subject: Re: [PATCH v4, part3 00/15] accurately calculate memory statisitic
+ information
+Date: Sun, 07 Apr 2013 23:08:58 +0800
+Message-ID: <51618C0A.1040205@gmail.com>
+References: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com> <5160CD19.8070705@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <1365258760-30821-3-git-send-email-jiang.liu@huawei.com>
-Sender: owner-linux-mm@kvack.org
-To: Jiang Liu <liuj97@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Haavard Skinnemoen <hskinnemoen@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ie0-f179.google.com ([209.85.223.179]:53189 "EHLO
+	mail-ie0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933858Ab3DGPJK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 7 Apr 2013 11:09:10 -0400
+In-Reply-To: <5160CD19.8070705@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Simon Jeons <simon.jeons@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-Around Sat 06 Apr 2013 22:32:01 +0800 or thereabout, Jiang Liu wrote:
-> Normalize global variables exported by vmlinux.lds to conform usage
-> guidelines from include/asm-generic/sections.h.
+On 04/07/2013 09:34 AM, Simon Jeons wrote:
+> Hi Jiang,
+> On 04/06/2013 09:54 PM, Jiang Liu wrote:
+>> Jiang Liu (15):
+>>    mm: fix build warnings caused by free_reserved_area()
+>>    mm: enhance free_reserved_area() to support poisoning memory with
+>>      zero
+>>    mm/ARM64: kill poison_init_mem()
+>>    mm/x86: use free_reserved_area() to simplify code
+>>    mm/tile: use common help functions to free reserved pages
+>>    mm, powertv: use free_reserved_area() to simplify code
+>>    mm, acornfb: use free_reserved_area() to simplify code
+>>    mm: fix some trivial typos in comments
+>>    mm: use managed_pages to calculate default zonelist order
+>>    mm: accurately calculate zone->managed_pages for highmem zones
+>>    mm: use a dedicated lock to protect totalram_pages and
+>>      zone->managed_pages
+>>    mm: make __free_pages_bootmem() only available at boot time
+>>    mm: correctly update zone->mamaged_pages
+>>    mm: concentrate modification of totalram_pages into the mm core
+>>    mm: report available pages as "MemTotal" for each NUMA node
 > 
-> Use _text to mark the start of the kernel image including the head text,
-> and _stext to mark the start of the .text section.
-
-I'm assuming this series of patches makes this change.
-
-> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-> Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
-> Cc: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-> Cc: linux-kernel@vger.kernel.org
-
-Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-
-> ---
->  arch/avr32/kernel/setup.c       |    2 +-
->  arch/avr32/kernel/vmlinux.lds.S |    4 ++--
->  2 files changed, 3 insertions(+), 3 deletions(-)
-
-<snipp diff>
-
--- 
-mvh
-Hans-Christian Egtvedt
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> What I interested in is how you test different platform? I don't think you can have all the physical platform.
+> 
+Hi Simon,
+	That's one issue I'm facing, I only have limited hardware platforms for testing,
+so I could ask for help from the community to review and test the patch series.
+	Regards!
+	Gerry	
