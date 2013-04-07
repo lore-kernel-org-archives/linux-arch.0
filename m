@@ -1,81 +1,47 @@
-From: Chen Baozi <baozich@gmail.com>
-Subject: Re: [PATCH 0/3] gpio: remove GENERIC_GPIO completely
-Date: Sun, 7 Apr 2013 11:23:04 +0800
-Message-ID: <20130407032304.GA11500@cbz-workstation>
-References: <1364562678-8945-1-git-send-email-acourbot@nvidia.com>
+From: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+Subject: Re: [PATCH v4, part3 15/41] mm/AVR32: prepare for removing
+ num_physpages and simplify mem_init()
+Date: Sun, 7 Apr 2013 09:59:02 +0200
+Message-ID: <20130407075902.GA31879@samfundet.no>
+References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
+ <1365258760-30821-16-git-send-email-jiang.liu@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f50.google.com ([209.85.220.50]:42272 "EHLO
-	mail-pa0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1161347Ab3DGDZz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Apr 2013 23:25:55 -0400
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <1364562678-8945-1-git-send-email-acourbot@nvidia.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Alexandre Courbot <gnurou@gmail.com>
-Cc: Grant Likely <grant.likely@secretlab.ca>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Romain Naour <romain.naour@openwide.fr>, linux-arch@vger.kernel.org, Alexandre Courbot <acourbot@nvidia.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+In-Reply-To: <1365258760-30821-16-git-send-email-jiang.liu@huawei.com>
+Sender: owner-linux-mm@kvack.org
+To: Jiang Liu <liuj97@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Haavard Skinnemoen <hskinnemoen@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Mar 29, 2013 at 06:11:15AM -0700, Alexandre Courbot wrote:
-> Another issue, I could not update the Chinese documentation in a sati=
-sfying
-> manner due to my absence of Chinese skills. Hope that will be forgive=
-n.
->=20
-Hi Alexandre,
+Around Sat 06 Apr 2013 22:32:14 +0800 or thereabout, Jiang Liu wrote:
+> Prepare for removing num_physpages and simplify mem_init().
+> 
+> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+> Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
+> Cc: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+> Cc: linux-kernel@vger.kernel.org (open list)
 
-I have changed the Chinese documentation according to your update as
-follows. Hopefully it would be helpful, :)
+Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
 
----
- Documentation/zh_CN/gpio.txt | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+> ---
+>  arch/avr32/mm/init.c |   29 ++++-------------------------
+>  1 file changed, 4 insertions(+), 25 deletions(-)
+> 
+> diff --git a/arch/avr32/mm/init.c b/arch/avr32/mm/init.c
+> index 7e8d55a..c1706a0 100644
+> --- a/arch/avr32/mm/init.c
+> +++ b/arch/avr32/mm/init.c
 
-diff --git a/Documentation/zh_CN/gpio.txt b/Documentation/zh_CN/gpio.tx=
-t
-index 4fa7b4e..d5b8f01 100644
---- a/Documentation/zh_CN/gpio.txt
-+++ b/Documentation/zh_CN/gpio.txt
-@@ -84,10 +84,10 @@ GPIO =E5=85=AC=E7=BA=A6
- =E6=8E=A7=E5=88=B6=E5=99=A8=E7=9A=84=E6=8A=BD=E8=B1=A1=E5=87=BD=E6=95=B0=
-=E6=9D=A5=E5=AE=9E=E7=8E=B0=E5=AE=83=E3=80=82(=E6=9C=89=E4=B8=80=E4=BA=9B=
-=E5=8F=AF=E9=80=89=E7=9A=84=E4=BB=A3=E7=A0=81=E8=83=BD=E6=94=AF=E6=8C=81=
-=E8=BF=99=E7=A7=8D=E7=AD=96=E7=95=A5=E7=9A=84=E5=AE=9E=E7=8E=B0,=E6=9C=AC=
-=E6=96=87=E6=A1=A3
- =E5=90=8E=E9=9D=A2=E4=BC=9A=E4=BB=8B=E7=BB=8D=EF=BC=8C=E4=BD=86=E4=BD=9C=
-=E4=B8=BA GPIO =E6=8E=A5=E5=8F=A3=E7=9A=84=E5=AE=A2=E6=88=B7=E7=AB=AF=E9=
-=A9=B1=E5=8A=A8=E7=A8=8B=E5=BA=8F=E5=BF=85=E9=A1=BB=E4=B8=8E=E5=AE=83=E7=
-=9A=84=E5=AE=9E=E7=8E=B0=E6=97=A0=E5=85=B3=E3=80=82)
-=20
--=E4=B9=9F=E5=B0=B1=E6=98=AF=E8=AF=B4,=E5=A6=82=E6=9E=9C=E5=9C=A8=E4=BB=
-=96=E4=BB=AC=E7=9A=84=E5=B9=B3=E5=8F=B0=E4=B8=8A=E6=94=AF=E6=8C=81=E8=BF=
-=99=E4=B8=AA=E5=85=AC=E7=BA=A6=EF=BC=8C=E9=A9=B1=E5=8A=A8=E5=BA=94=E5=B0=
-=BD=E5=8F=AF=E8=83=BD=E7=9A=84=E4=BD=BF=E7=94=A8=E5=AE=83=E3=80=82=E5=B9=
-=B3=E5=8F=B0
--=E5=BF=85=E9=A1=BB=E5=9C=A8 Kconfig =E4=B8=AD=E5=A3=B0=E6=98=8E=E5=AF=B9=
- GENERIC_GPIO=E7=9A=84=E6=94=AF=E6=8C=81 (=E5=B8=83=E5=B0=94=E5=9E=8B t=
-rue)=EF=BC=8C=E5=B9=B6=E6=8F=90=E4=BE=9B
--=E4=B8=80=E4=B8=AA <asm/gpio.h> =E6=96=87=E4=BB=B6=E3=80=82=E9=82=A3=E4=
-=BA=9B=E8=B0=83=E7=94=A8=E6=A0=87=E5=87=86 GPIO =E5=87=BD=E6=95=B0=E7=9A=
-=84=E9=A9=B1=E5=8A=A8=E5=BA=94=E8=AF=A5=E5=9C=A8 Kconfig
--=E5=85=A5=E5=8F=A3=E4=B8=AD=E5=A3=B0=E6=98=8E=E4=BE=9D=E8=B5=96GENERIC=
-_GPIO=E3=80=82=E5=BD=93=E9=A9=B1=E5=8A=A8=E5=8C=85=E5=90=AB=E6=96=87=E4=
-=BB=B6:
-+=E4=B9=9F=E5=B0=B1=E6=98=AF=E8=AF=B4,=E5=A6=82=E6=9E=9C=E5=9C=A8=E4=BB=
-=96=E4=BB=AC=E7=9A=84=E5=B9=B3=E5=8F=B0=E4=B8=8A=E6=94=AF=E6=8C=81=E8=BF=
-=99=E4=B8=AA=E5=85=AC=E7=BA=A6=EF=BC=8C=E9=A9=B1=E5=8A=A8=E5=BA=94=E5=B0=
-=BD=E5=8F=AF=E8=83=BD=E7=9A=84=E4=BD=BF=E7=94=A8=E5=AE=83=E3=80=82=E5=90=
-=8C=E6=97=B6=EF=BC=8C=E5=B9=B3=E5=8F=B0
-+=E5=BF=85=E9=A1=BB=E5=9C=A8 Kconfig =E4=B8=AD=E9=80=89=E6=8B=A9 ARCH_R=
-EQUIRE_GPIOLIB =E6=88=96=E8=80=85 ARCH_WANT_OPTIONAL_GPIOLIB
-+=E9=80=89=E9=A1=B9=E3=80=82=E9=82=A3=E4=BA=9B=E8=B0=83=E7=94=A8=E6=A0=87=
-=E5=87=86 GPIO =E5=87=BD=E6=95=B0=E7=9A=84=E9=A9=B1=E5=8A=A8=E5=BA=94=E8=
-=AF=A5=E5=9C=A8 Kconfig
-=E5=85=A5=E5=8F=A3=E4=B8=AD=E5=A3=B0=E6=98=8E=E4=BE=9D=E8=B5=96GENERIC_=
-GPIO=E3=80=82
-+=E5=BD=93=E9=A9=B1=E5=8A=A8=E5=8C=85=E5=90=AB=E6=96=87=E4=BB=B6:
-=20
-        #include <linux/gpio.h>
- =20
+<snipp diff>
+
+-- 
+mvh
+Hans-Christian Egtvedt
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
