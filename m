@@ -1,38 +1,40 @@
 From: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-Subject: Re: [PATCH v4, part3 15/41] mm/AVR32: prepare for removing
- num_physpages and simplify mem_init()
-Date: Sun, 7 Apr 2013 09:59:02 +0200
-Message-ID: <20130407075902.GA31879@samfundet.no>
+Subject: Re: [PATCH v4, part3 02/41] avr32: normalize global variables
+ exported by vmlinux.lds
+Date: Sun, 7 Apr 2013 10:00:18 +0200
+Message-ID: <20130407080018.GB31879@samfundet.no>
 References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com>
- <1365258760-30821-16-git-send-email-jiang.liu@huawei.com>
+ <1365258760-30821-3-git-send-email-jiang.liu@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <1365258760-30821-16-git-send-email-jiang.liu@huawei.com>
+In-Reply-To: <1365258760-30821-3-git-send-email-jiang.liu@huawei.com>
 Sender: owner-linux-mm@kvack.org
 To: Jiang Liu <liuj97@gmail.com>
 Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Haavard Skinnemoen <hskinnemoen@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-Around Sat 06 Apr 2013 22:32:14 +0800 or thereabout, Jiang Liu wrote:
-> Prepare for removing num_physpages and simplify mem_init().
+Around Sat 06 Apr 2013 22:32:01 +0800 or thereabout, Jiang Liu wrote:
+> Normalize global variables exported by vmlinux.lds to conform usage
+> guidelines from include/asm-generic/sections.h.
 > 
+> Use _text to mark the start of the kernel image including the head text,
+> and _stext to mark the start of the .text section.
+
+I'm assuming this series of patches makes this change.
+
 > Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
 > Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
 > Cc: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-> Cc: linux-kernel@vger.kernel.org (open list)
+> Cc: linux-kernel@vger.kernel.org
 
 Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
 
 > ---
->  arch/avr32/mm/init.c |   29 ++++-------------------------
->  1 file changed, 4 insertions(+), 25 deletions(-)
-> 
-> diff --git a/arch/avr32/mm/init.c b/arch/avr32/mm/init.c
-> index 7e8d55a..c1706a0 100644
-> --- a/arch/avr32/mm/init.c
-> +++ b/arch/avr32/mm/init.c
+>  arch/avr32/kernel/setup.c       |    2 +-
+>  arch/avr32/kernel/vmlinux.lds.S |    4 ++--
+>  2 files changed, 3 insertions(+), 3 deletions(-)
 
 <snipp diff>
 
