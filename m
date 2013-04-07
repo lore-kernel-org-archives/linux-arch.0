@@ -1,49 +1,48 @@
-From: Jiang Liu <liuj97@gmail.com>
-Subject: Re: [PATCH v4, part3 00/15] accurately calculate memory statisitic
- information
-Date: Sun, 07 Apr 2013 23:08:58 +0800
-Message-ID: <51618C0A.1040205@gmail.com>
-References: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com> <5160CD19.8070705@gmail.com>
+From: Alexandre Courbot <gnurou@gmail.com>
+Subject: Re: [PATCH 0/3] gpio: remove GENERIC_GPIO completely
+Date: Sun, 7 Apr 2013 14:25:39 -0700
+Message-ID: <CAAVeFuL185oiZfmv9waN9kOqVqfhnbC11JEs3Y59gpXNfiW34Q@mail.gmail.com>
+References: <1364562678-8945-1-git-send-email-acourbot@nvidia.com> <20130407032304.GA11500@cbz-workstation>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f179.google.com ([209.85.223.179]:53189 "EHLO
-	mail-ie0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933858Ab3DGPJK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 7 Apr 2013 11:09:10 -0400
-In-Reply-To: <5160CD19.8070705@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Simon Jeons <simon.jeons@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: base64
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20130407032304.GA11500@cbz-workstation>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Chen Baozi <baozich@gmail.com>
+Cc: Grant Likely <grant.likely@secretlab.ca>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Romain Naour <romain.naour@openwide.fr>, linux-arch <linux-arch@vger.kernel.org>, Alexandre Courbot <acourbot@nvidia.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 04/07/2013 09:34 AM, Simon Jeons wrote:
-> Hi Jiang,
-> On 04/06/2013 09:54 PM, Jiang Liu wrote:
->> Jiang Liu (15):
->>    mm: fix build warnings caused by free_reserved_area()
->>    mm: enhance free_reserved_area() to support poisoning memory with
->>      zero
->>    mm/ARM64: kill poison_init_mem()
->>    mm/x86: use free_reserved_area() to simplify code
->>    mm/tile: use common help functions to free reserved pages
->>    mm, powertv: use free_reserved_area() to simplify code
->>    mm, acornfb: use free_reserved_area() to simplify code
->>    mm: fix some trivial typos in comments
->>    mm: use managed_pages to calculate default zonelist order
->>    mm: accurately calculate zone->managed_pages for highmem zones
->>    mm: use a dedicated lock to protect totalram_pages and
->>      zone->managed_pages
->>    mm: make __free_pages_bootmem() only available at boot time
->>    mm: correctly update zone->mamaged_pages
->>    mm: concentrate modification of totalram_pages into the mm core
->>    mm: report available pages as "MemTotal" for each NUMA node
-> 
-> What I interested in is how you test different platform? I don't think you can have all the physical platform.
-> 
-Hi Simon,
-	That's one issue I'm facing, I only have limited hardware platforms for testing,
-so I could ask for help from the community to review and test the patch series.
-	Regards!
-	Gerry	
+SGkgQ2hlbiwNCg0KQ29vbCwgdGhhbmtzISBDYW4geW91IHNlbmQgYSBmb3JtYXR0ZWQgcGF0Y2gg
+dG8gaW5jbHVkZSBpbiB0aGUgc2VyaWVzLA0Kb3IgZG8geW91IHByZWZlciBtZSB0byBzcXVhc2gg
+aXQgaW4gdGhlIHJlbGV2YW50IHBhdGNoIGFuZCBhZGQgeW91cg0Kc2lnbm9mZiBmb3IgdGhpcyBm
+aWxlPw0KDQpBbGV4Lg0KDQoyMDEzLzQvNiBDaGVuIEJhb3ppIDxiYW96aWNoQGdtYWlsLmNvbT46
+DQo+IE9uIEZyaSwgTWFyIDI5LCAyMDEzIGF0IDA2OjExOjE1QU0gLTA3MDAsIEFsZXhhbmRyZSBD
+b3VyYm90IHdyb3RlOg0KPj4gQW5vdGhlciBpc3N1ZSwgSSBjb3VsZCBub3QgdXBkYXRlIHRoZSBD
+aGluZXNlIGRvY3VtZW50YXRpb24gaW4gYSBzYXRpc2Z5aW5nDQo+PiBtYW5uZXIgZHVlIHRvIG15
+IGFic2VuY2Ugb2YgQ2hpbmVzZSBza2lsbHMuIEhvcGUgdGhhdCB3aWxsIGJlIGZvcmdpdmVuLg0K
+Pj4NCj4gSGkgQWxleGFuZHJlLA0KPg0KPiBJIGhhdmUgY2hhbmdlZCB0aGUgQ2hpbmVzZSBkb2N1
+bWVudGF0aW9uIGFjY29yZGluZyB0byB5b3VyIHVwZGF0ZSBhcw0KPiBmb2xsb3dzLiBIb3BlZnVs
+bHkgaXQgd291bGQgYmUgaGVscGZ1bCwgOikNCj4NCj4gLS0tDQo+ICBEb2N1bWVudGF0aW9uL3po
+X0NOL2dwaW8udHh0IHwgOCArKysrLS0tLQ0KPiAgMSBmaWxlIGNoYW5nZWQsIDQgaW5zZXJ0aW9u
+cygrKSwgNCBkZWxldGlvbnMoLSkNCj4NCj4gZGlmZiAtLWdpdCBhL0RvY3VtZW50YXRpb24vemhf
+Q04vZ3Bpby50eHQgYi9Eb2N1bWVudGF0aW9uL3poX0NOL2dwaW8udHh0DQo+IGluZGV4IDRmYTdi
+NGUuLmQ1YjhmMDEgMTAwNjQ0DQo+IC0tLSBhL0RvY3VtZW50YXRpb24vemhfQ04vZ3Bpby50eHQN
+Cj4gKysrIGIvRG9jdW1lbnRhdGlvbi96aF9DTi9ncGlvLnR4dA0KPiBAQCAtODQsMTAgKzg0LDEw
+IEBAIEdQSU8g5YWs57qmDQo+ICDmjqfliLblmajnmoTmir3osaHlh73mlbDmnaXlrp7njrDlroPj
+gIIo5pyJ5LiA5Lqb5Y+v6YCJ55qE5Luj56CB6IO95pSv5oyB6L+Z56eN562W55Wl55qE5a6e546w
+LOacrOaWh+ahow0KPiAg5ZCO6Z2i5Lya5LuL57uN77yM5L2G5L2c5Li6IEdQSU8g5o6l5Y+j55qE
+5a6i5oi356uv6amx5Yqo56iL5bqP5b+F6aG75LiO5a6D55qE5a6e546w5peg5YWz44CCKQ0KPg0K
+PiAt5Lmf5bCx5piv6K+0LOWmguaenOWcqOS7luS7rOeahOW5s+WPsOS4iuaUr+aMgei/meS4quWF
+rOe6pu+8jOmpseWKqOW6lOWwveWPr+iDveeahOS9v+eUqOWug+OAguW5s+WPsA0KPiAt5b+F6aG7
+5ZyoIEtjb25maWcg5Lit5aOw5piO5a+5IEdFTkVSSUNfR1BJT+eahOaUr+aMgSAo5biD5bCU5Z6L
+IHRydWUp77yM5bm25o+Q5L6bDQo+IC3kuIDkuKogPGFzbS9ncGlvLmg+IOaWh+S7tuOAgumCo+S6
+m+iwg+eUqOagh+WHhiBHUElPIOWHveaVsOeahOmpseWKqOW6lOivpeWcqCBLY29uZmlnDQo+IC3l
+haXlj6PkuK3lo7DmmI7kvp3otZZHRU5FUklDX0dQSU/jgILlvZPpqbHliqjljIXlkKvmlofku7Y6
+DQo+ICvkuZ/lsLHmmK/or7Qs5aaC5p6c5Zyo5LuW5Lus55qE5bmz5Y+w5LiK5pSv5oyB6L+Z5Liq
+5YWs57qm77yM6amx5Yqo5bqU5bC95Y+v6IO955qE5L2/55So5a6D44CC5ZCM5pe277yM5bmz5Y+w
+DQo+ICvlv4XpobvlnKggS2NvbmZpZyDkuK3pgInmi6kgQVJDSF9SRVFVSVJFX0dQSU9MSUIg5oiW
+6ICFIEFSQ0hfV0FOVF9PUFRJT05BTF9HUElPTElCDQo+ICvpgInpobnjgILpgqPkupvosIPnlKjm
+oIflh4YgR1BJTyDlh73mlbDnmoTpqbHliqjlupTor6XlnKggS2NvbmZpZw0KPiDlhaXlj6PkuK3l
+o7DmmI7kvp3otZZHRU5FUklDX0dQSU/jgIINCj4gK+W9k+mpseWKqOWMheWQq+aWh+S7tjoNCj4N
+Cj4gICAgICAgICAjaW5jbHVkZSA8bGludXgvZ3Bpby5oPg0KPg0K
