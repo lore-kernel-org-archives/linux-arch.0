@@ -1,141 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp08.au.ibm.com ([202.81.31.141]:56360 "EHLO
-	e23smtp08.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S935872Ab3DHMgc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Apr 2013 08:36:32 -0400
-Received: from /spool/local
-	by e23smtp08.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Mon, 8 Apr 2013 22:34:21 +1000
-Message-ID: <5162B92E.6020703@linux.vnet.ibm.com>
-Date: Mon, 08 Apr 2013 18:03:50 +0530
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Received: from mx1.redhat.com ([209.132.183.28]:14685 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S935851Ab3DHNkc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 8 Apr 2013 09:40:32 -0400
+Message-ID: <5162C887.5070900@redhat.com>
+Date: Mon, 08 Apr 2013 09:39:19 -0400
+From: Rik van Riel <riel@redhat.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH] sparc: Use generic idle loop
-References: <20130321214930.752934102@linutronix.de> <20130329161905.GC6201@merkur.ravnborg.org> <20130329202926.GA9484@merkur.ravnborg.org> <51592EF1.4090302@linux.vnet.ibm.com> <20130401090620.GA24861@merkur.ravnborg.org>
-In-Reply-To: <20130401090620.GA24861@merkur.ravnborg.org>
-Content-Type: text/plain; charset=ISO-8859-1
+Subject: Re: [PATCH v4, part3 11/15] mm: use a dedicated lock to protect totalram_pages
+ and zone->managed_pages
+References: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com> <1365256509-29024-12-git-send-email-jiang.liu@huawei.com>
+In-Reply-To: <1365256509-29024-12-git-send-email-jiang.liu@huawei.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Magnus Damm <magnus.damm@gmail.com>
-Message-ID: <20130408123350.REThsve2HEBA2M5WjXaKUKNS7CxBKuA4hxLv5u-6Kn0@z>
+To: Jiang Liu <liuj97@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Michel Lespinasse <walken@google.com>
+Message-ID: <20130408133919.w0HjU-p1p9lkeuLGrg9nafA0Zf18kjww9chMj1VkVrE@z>
 
-Hi Sam,
+On 04/06/2013 09:55 AM, Jiang Liu wrote:
 
-On 04/01/2013 02:36 PM, Sam Ravnborg wrote:
-> Hi Srivatsa,
-> 
-> thanks for the feedback!
-> 
-> @davem - I need you to look at this again. I am not sure about the changes
-> I do in sparc64_yield().
-> 
->>> +/* the idle loop on a Sparc... ;) */
->>> +void arch_cpu_idle(void)
->>>  {
->>> +	if (sparc_idle)
->>> +		(*sparc_idle)();
->>> +	else
->>> +		cpu_relax();
->>>  }
->>
->> You need to enable interrupts when coming out in the 'else' case,
->> because we enter with interrupts disabled and expect to come out
->> of arch_cpu_idle() with interrupts enabled. (Otherwise you'll hit
->> that WARN_ON() in the generic code). Thomas has handled a similar
->> case in the mips patch.
-> 
-> Something like this should do it then:
-> 
-> /* Idle loop support */
-> void arch_cpu_idle(void)
-> {
->         if (sparc_idle)
->                 (*sparc_idle)();
->         else
->                 local_irq_enable();
-> }
-> 
-> I dropped cpu_relax() as this is a simple barrier() which is
-> part of the generic code (using rmb()).
-> 
-
-Yep, that sounds good.
-
-[...] 
->> (Same is the case with the need_resched and
->> the cpu_is_offline check).
-> There are some comments about race-conditions in the commit where they were added.
-> I think the out-most pair can be dropped as this is done in generic code but
-> that the inner ones needs to stay.
-> 
-> I simplified arch_cpu_idle() - former sparc64_yield() based on your comments.
-> - dropped TIF_POLLING_NRFLAG handling
-> - dropped smp_mb__after_clear_bit() - this is done in generic code using rmb()
-> - dropped the out-most while (!need_resched() && !cpu_is_offline(cpu))
-> - always enable irq on exit (but I am not sure if this is correct)
-> 
-> But I need davem to have a look at this - as I am fooling around in
-> code that I do not know much about..
-> So this is *NOT* to be applied.
-> 
-> 	Sam
+> @@ -5186,6 +5189,22 @@ early_param("movablecore", cmdline_parse_movablecore);
 >
-[...]
->  /* XXX cli/sti -> local_irq_xxx here, check this works once SMP is fixed. */
-> diff --git a/arch/sparc/kernel/process_64.c b/arch/sparc/kernel/process_64.c
-> index cdb80b2..cecb0d6 100644
-> --- a/arch/sparc/kernel/process_64.c
-> +++ b/arch/sparc/kernel/process_64.c
-> @@ -52,17 +52,12 @@
-> 
->  #include "kstack.h"
-> 
-> -static void sparc64_yield(int cpu)
-> +/* Idle loop support on sparc64. */
-> +void arch_cpu_idle(void)
->  {
->  	if (tlb_type != hypervisor) {
->  		touch_nmi_watchdog();
-> -		return;
-> -	}
-> -
-> -	clear_thread_flag(TIF_POLLING_NRFLAG);
-> -	smp_mb__after_clear_bit();
-> -
-> -	while (!need_resched() && !cpu_is_offline(cpu)) {
-> +	} else {
->  		unsigned long pstate;
-> 
->  		/* Disable interrupts. */
-> @@ -73,7 +68,7 @@ static void sparc64_yield(int cpu)
->  			: "=&r" (pstate)
->  			: "i" (PSTATE_IE));
-> 
-> -		if (!need_resched() && !cpu_is_offline(cpu))
-> +		if (!need_resched() && !cpu_is_offline(smp_processor_id()))
->  			sun4v_cpu_yield();
-> 
->  		/* Re-enable interrupts. */
-> @@ -84,36 +79,16 @@ static void sparc64_yield(int cpu)
->  			: "=&r" (pstate)
->  			: "i" (PSTATE_IE));
->  	}
-> -
-> -	set_thread_flag(TIF_POLLING_NRFLAG);
-> +	local_irq_enable();
->  }
+>   #endif /* CONFIG_HAVE_MEMBLOCK_NODE_MAP */
+>
+> +void adjust_managed_page_count(struct page *page, long count)
+> +{
+> +	bool lock = (system_state != SYSTEM_BOOTING);
+> +
+> +	/* No need to acquire the lock during boot */
+> +	if (lock)
+> +		spin_lock(&managed_page_count_lock);
+> +
+> +	page_zone(page)->managed_pages += count;
+> +	totalram_pages += count;
+> +
+> +	if (lock)
+> +		spin_unlock(&managed_page_count_lock);
+> +}
 
-Nitpick: you can probably move the local_irq_enable() to the
-'if' block, since the else block already has assembly code to enable
-the interrupts. But anyway its up to you.
+While I agree the boot code currently does not need the lock, is
+there any harm to removing that conditional?
 
-This version of your code looks fine to me.
+That would simplify the code, and protect against possible future
+cleverness of initializing multiple memory things simultaneously.
 
-Reviewed-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
-
-Regards,
-Srivatsa S. Bhat
-
+-- 
+All rights reversed
