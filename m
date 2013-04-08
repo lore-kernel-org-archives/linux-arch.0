@@ -1,205 +1,128 @@
-From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Subject: Re: [PATCH v3 2/4] kprobes: split blacklist into common and arch
-Date: Mon, 08 Apr 2013 20:02:50 +0900
-Message-ID: <5162A3DA.9010205@hitachi.com>
-References: <1365168400-17954-1-git-send-email-oskar.andero@sonymobile.com> <1365168400-17954-3-git-send-email-oskar.andero@sonymobile.com>
+From: Daniel Vetter <daniel@ffwll.ch>
+Subject: Re: [PATCH v2 2/3] mutex: add support for reservation style locks, v2
+Date: Mon, 8 Apr 2013 13:50:26 +0200
+Message-ID: <20130408115026.GL2228@phenom.ffwll.local>
+References: <20130228102452.15191.22673.stgit@patser>
+ <20130228102502.15191.14146.stgit@patser>
+ <1364900432.18374.24.camel@laptop>
+ <515AF1C1.7080508@canonical.com>
+ <1364921954.20640.22.camel@laptop>
+ <1365076908.2609.94.camel@laptop>
+ <20130404133123.GW2228@phenom.ffwll.local>
+ <CAKMK7uG_qLQrZUdE_LRANm7qXPvGUisBx-k=+y=F2gA3=odkrQ@mail.gmail.com>
+ <1365417564.2609.153.camel@laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-2022-JP
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail4.hitachi.co.jp ([133.145.228.5]:52615 "EHLO
-	mail4.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S935118Ab3DHLCx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Apr 2013 07:02:53 -0400
-In-Reply-To: <1365168400-17954-3-git-send-email-oskar.andero@sonymobile.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Oskar Andero <oskar.andero@sonymobile.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, davem@davemloft.net, anil.s.keshavamurthy@intel.com, ananth@in.ibm.com, Joonsoo Kim <iamjoonsoo.kim@lge.com>, radovan.lekanovic@sonymobile.com, bjorn.davidsson@sonymobile.com, "yrl.pp-manager.tt@hitachi.com" <yrl.pp-manager.tt@hitachi.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-media-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1365417564.2609.153.camel@laptop>
+Sender: linux-media-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Daniel Vetter <daniel.vetter@ffwll.ch>, Maarten Lankhorst <maarten.lankhorst@canonical.com>, linux-arch@vger.kernel.org, x86@kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, dri-devel <dri-devel@lists.freedesktop.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, rob clark <robclark@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-(2013/04/05 22:26), Oskar Andero wrote:
-> Some blackpoints are only valid for specific architectures. To let each
-> architecture specify its own blackpoints the list has been split in two
-> lists: common and arch. The common list is kept in kernel/kprobes.c and
-> the arch list is kept in the arch/ directory.
-
-Looks good for me:)
-
-Acked-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-
-Thank you!
-
+On Mon, Apr 08, 2013 at 12:39:24PM +0200, Peter Zijlstra wrote:
+> On Thu, 2013-04-04 at 18:56 +0200, Daniel Vetter wrote:
+> > Presuming I'm still following we should be able to fix this with the
+> > new sleep state TASK_DEADLOCK and a flag somewhere in the thread info
+> > (let's call it PF_GTFO for simplicity).
 > 
-> Cc: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-> Cc: David S. Miller <davem@davemloft.net>
-> Cc: linux-arch@vger.kernel.org
-> Signed-off-by: Oskar Andero <oskar.andero@sonymobile.com>
-> ---
->  kernel/kprobes.c | 88 +++++++++++++++++++++++++++++++++++++-------------------
->  1 file changed, 59 insertions(+), 29 deletions(-)
-> 
-> diff --git a/kernel/kprobes.c b/kernel/kprobes.c
-> index c8c2281..2458ae1 100644
-> --- a/kernel/kprobes.c
-> +++ b/kernel/kprobes.c
-> @@ -68,7 +68,6 @@
->  #endif
->  
->  static int kprobes_initialized;
-> -static bool kprobe_blacklist_initialized;
->  static struct hlist_head kprobe_table[KPROBE_TABLE_SIZE];
->  static struct hlist_head kretprobe_inst_table[KPROBE_TABLE_SIZE];
->  
-> @@ -94,31 +93,64 @@ static raw_spinlock_t *kretprobe_table_lock_ptr(unsigned long hash)
->   *
->   * For such cases, we now have a blacklist
->   */
-> -static struct kprobe_blackpoint kprobe_blacklist[] = {
-> -	{"preempt_schedule",},
-> -	{"native_get_debugreg",},
-> -	{"irq_entries_start",},
-> -	{"common_interrupt",},
-> -	{"mcount",},	/* mcount can be called from everywhere */
-> -	{NULL}    /* Terminator */
-> +static const char * const common_kprobes_blacksyms[] = {
-> +	"preempt_schedule",
-> +	"native_get_debugreg",
-> +	"irq_entries_start",
-> +	"common_interrupt",
-> +	"mcount",       /* mcount can be called from everywhere */
->  };
-> +static const size_t common_kprobes_blacksyms_size =
-> +			ARRAY_SIZE(common_kprobes_blacksyms);
-> +
-> +/*
-> + * These weak symbols can be overridden from the arch/ directory for
-> + * architecure specific blackpoints.
-> + */
-> +const char * const __weak arch_kprobes_blacksyms[] = {};
-> +const size_t __weak arch_kprobes_blacksyms_size;
-> +
-> +static struct kprobe_blackpoint *kprobe_blacklist;
-> +static size_t kprobe_blacklist_size;
-> +
-> +static void init_kprobe_blacklist_entry(struct kprobe_blackpoint *kb,
-> +					const char * const name)
-> +{
-> +	const char *symbol_name;
-> +	char *modname, namebuf[128];
-> +	void *addr;
-> +	unsigned long offset = 0, size = 0;
-> +
-> +	kb->name = name;
-> +	kprobe_lookup_name(kb->name, addr);
-> +	if (!addr)
-> +		return;
-> +
-> +	kb->start_addr = (unsigned long)addr;
-> +	symbol_name = kallsyms_lookup(kb->start_addr,
-> +			&size, &offset, &modname, namebuf);
-> +	if (!symbol_name)
-> +		kb->range = 0;
-> +	else
-> +		kb->range = size;
-> +}
->  
->  /* it can take some time ( > 100ms ) to initialise the
->   * blacklist so we delay this until we actually need it
->   */
->  static void init_kprobe_blacklist(void)
->  {
-> -	int i;
-> -	unsigned long offset = 0, size = 0;
-> -	char *modname, namebuf[128];
-> -	const char *symbol_name;
-> -	void *addr;
-> +	int i, j = 0;
->  	struct kprobe_blackpoint *kb;
->  
->  	mutex_lock(&kprobe_mutex);
-> -	if (kprobe_blacklist_initialized)
-> +	if (kprobe_blacklist)
->  		goto out;
->  
-> +	kprobe_blacklist_size = common_kprobes_blacksyms_size +
-> +				arch_kprobes_blacksyms_size;
-> +	kb = kzalloc(sizeof(*kb) * kprobe_blacklist_size, GFP_KERNEL);
-> +
->  	/*
->  	 * Lookup and populate the kprobe_blacklist.
->  	 *
-> @@ -127,18 +159,14 @@ static void init_kprobe_blacklist(void)
->  	 * since a kprobe need not necessarily be at the beginning
->  	 * of a function.
->  	 */
-> -	for (kb = kprobe_blacklist; kb->name != NULL; kb++) {
-> -		kprobe_lookup_name(kb->name, addr);
-> -		if (!addr)
-> -			continue;
-> +	for (i = 0; i < common_kprobes_blacksyms_size; i++, j++) {
-> +		init_kprobe_blacklist_entry(&kb[j],
-> +					    common_kprobes_blacksyms[i]);
-> +	}
->  
-> -		kb->start_addr = (unsigned long)addr;
-> -		symbol_name = kallsyms_lookup(kb->start_addr,
-> -				&size, &offset, &modname, namebuf);
-> -		if (!symbol_name)
-> -			kb->range = 0;
-> -		else
-> -			kb->range = size;
-> +	for (i = 0; i < arch_kprobes_blacksyms_size; i++, j++) {
-> +		init_kprobe_blacklist_entry(&kb[j],
-> +					    arch_kprobes_blacksyms[i]);
->  	}
->  
->  	if (kretprobe_blacklist_size) {
-> @@ -153,7 +181,7 @@ static void init_kprobe_blacklist(void)
->  	}
->  
->  	smp_wmb();
-> -	kprobe_blacklist_initialized = true;
-> +	kprobe_blacklist = kb;
->  
->  out:
->  	mutex_unlock(&kprobe_mutex);
-> @@ -1384,18 +1412,20 @@ out:
->  static int __kprobes in_kprobes_functions(unsigned long addr)
->  {
->  	struct kprobe_blackpoint *kb;
-> +	int i;
->  
->  	if (addr >= (unsigned long)__kprobes_text_start &&
->  	    addr < (unsigned long)__kprobes_text_end)
->  		return -EINVAL;
->  
-> -	if (unlikely(!kprobe_blacklist_initialized))
-> +	if (unlikely(!kprobe_blacklist))
->  		init_kprobe_blacklist();
->  	/*
->  	 * If there exists a kprobe_blacklist, verify and
->  	 * fail any probe registration in the prohibited area
->  	 */
-> -	for (kb = kprobe_blacklist; kb->name != NULL; kb++) {
-> +	for (i = 0; i < kprobe_blacklist_size; i++) {
-> +		kb = &kprobe_blacklist[i];
->  		if (kb->start_addr) {
->  			if (addr >= kb->start_addr &&
->  			    addr < (kb->start_addr + kb->range))
-> @@ -1876,7 +1906,7 @@ int __kprobes register_kretprobe(struct kretprobe *rp)
->  	void *addr;
->  
->  	if (kretprobe_blacklist_size) {
-> -		if (unlikely(!kprobe_blacklist_initialized))
-> +		if (unlikely(!kprobe_blacklist))
->  			init_kprobe_blacklist();
->  		addr = kprobe_addr(&rp->kp);
->  		if (IS_ERR(addr))
-> 
+> I'm reading "Get The F*ck Out" ? I like the name, except PF_flags are
+> unsuitable since they are not atomic and we'd need to set it from
+> another thread.
 
+I think the PF_ flag is a non-starter for a different reason, too. To make
+different clases of ww_mutexes nest properly, we need to make sure that we
+don't dead/live-lock trying to wake up a task holdinga ww_mutex of class
+A, while that task is trying to acquire ww_mutexes of class B. Picture:
 
+	task 1			task 2			task 3
+							holds lock B
+	ticket_A = acquire_start(class A)
+	ww_mutex_lock(lock A, ticket_A)			busy doing something
+
+	ticket_B = acquire_start(class B)
+	ww_mutex_lock(lock B, ticket_B)
+	-> contention with task 3
+				
+				ticket_task2 = acquire_start(class A)
+				ww_mutex_lock(lock A, ticket_task2)
+				-> contention with task 1
+
+If we go with the PF_GTFO task flag, task 2 will set it on task 1
+(handwave locking/atomicity again here ;-). But taks 1 will only back off
+from any locks in class B. Or at least I think we should impose that
+restriction, since otherwise a ww_mutex acquire loop will leak out badly
+abstraction-wise and making nesting pretty much impossible in practice.
+
+But if we really want nesting to work transparently, then task 1 should be
+allowed to continue taking locks from class A (after an acquire_end(class
+B) call ofc). But then it will have missed the wakeup from task 2, so task
+2 blocks for too long and task 1 doesn't back off from further acquiring
+locks in class A.
+
+Presuming my reasoning for the rt case isn't broken, this break deadlock
+avoidance if we sort by (rt_prio, ticket).
+
+So I think we need to move the PF_GTFO flag to the ticket to make sure
+that task1 will notice that there's contention with one of the locks it
+holds from class A and that it better gtfo asap (i.e. back off, drop all
+currently held locks in class A and go into the slowpath).
+
+But I still need to think the nesting case through a bit more (and draw
+some diagrams), so not sure yet. One thing I still need to ponder is how
+to best stack tickets (for tasks doing nested ww_mutex locking) and where
+all we need a pointer to relevant tickets and what kind of fun this
+entails ... I need to ponder this some more.
+
+> >  Then every time a task does a
+> > blocking wait on a ww_mutex it would set this special sleep state and
+> > also check the PF_GTFO bit.
+> 
+> So its the contending task (O for B) setting PF_GTFO on the owning task
+> (M for B), right?
+
+Yeah, the idea is that the contending task sets this bit on the current
+holder (whether we put that bit into the task or the ticket), so that the
+current owner can back off and drop all currently held locks at the next
+opportunity (either due to being woken up in TASK_DEADLCOK state or in the
+next ww_mutex_lock call).
+
+> But yeah, all ww_mutex sleep states should have the new TASK_DEADLOCK
+> sleep state added.
+> 
+> >  If the later is set, it bails out with
+> > -EAGAIN (so that all locks are dropped).
+> 
+> I would really rather see -EDEADLK for that..
+
+I agree it makes more sense for a general api (outside of ttm), but I
+struggle a bit to come up with a good errno for the "you hold this lock
+already" case. Best I could do is -EBUSY ...
+
+Hm, looking through errno.h I've just spotted -EALREADY. Seems to be used
+all over (not just networking), so I guess we could extend it's meaning a
+bit?
+
+> > Now if a task wants to take a lock and notices that it's held by a
+> > younger locker it can set that flag and wake the thread up (need to
+> > think about all the races a bit, but we should be able to make this
+> > work). Then it can do the normal blocking mutex slowpath and wait for
+> > the unlock.
+> 
+> Right.
+> 
+> > Now if O and M race a bit against each another M should either get
+> > woken (if it's already blocked on Y) and back off, or notice that the
+> > thread flag is set before it even tries to grab another mutex 
+> 
+> ww_mutex, it should block just fine on regular mutexes and other
+> primitives.
+
+Yes, that special behaviour should only apply to ww_mutexes not to any
+other locking. I've not been terribly careful here ...
+-Daniel
 -- 
-Masami HIRAMATSU
-IT Management Research Dept. Linux Technology Center
-Hitachi, Ltd., Yokohama Research Laboratory
-E-mail: masami.hiramatsu.pt@hitachi.com
+Daniel Vetter
+Software Engineer, Intel Corporation
++41 (0) 79 365 57 48 - http://blog.ffwll.ch
