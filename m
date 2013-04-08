@@ -1,368 +1,81 @@
 From: Alexandre Courbot <gnurou@gmail.com>
-Subject: [PATCH v2 2/4] gpio: remove GENERIC_GPIO config option
-Date: Mon,  8 Apr 2013 11:32:28 -0700
-Message-ID: <1365445950-5736-3-git-send-email-gnurou@gmail.com>
+Subject: [PATCH v2 4/4] gpio: update gpio Chinese documentation
+Date: Mon,  8 Apr 2013 11:32:30 -0700
+Message-ID: <1365445950-5736-5-git-send-email-gnurou@gmail.com>
 References: <1365445950-5736-1-git-send-email-gnurou@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f177.google.com ([209.85.192.177]:46556 "EHLO
-	mail-pd0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S935501Ab3DHScP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Apr 2013 14:32:15 -0400
-Received: by mail-pd0-f177.google.com with SMTP id u11so3379067pdi.36
-        for <linux-arch@vger.kernel.org>; Mon, 08 Apr 2013 11:32:13 -0700 (PDT)
+Received: from mail-pd0-f176.google.com ([209.85.192.176]:42188 "EHLO
+	mail-pd0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S935536Ab3DHScU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Apr 2013 14:32:20 -0400
+Received: by mail-pd0-f176.google.com with SMTP id r11so3334800pdi.7
+        for <linux-arch@vger.kernel.org>; Mon, 08 Apr 2013 11:32:19 -0700 (PDT)
 In-Reply-To: <1365445950-5736-1-git-send-email-gnurou@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Grant Likely <grant.likely@secretlab.ca>, Linus Walleij <linus.walleij@linaro.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, gnurou@gmail.com, Alexandre Courbot <acourbot@nvidia.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, gnurou@gmail.com, Chen Baozi <baozich@gmail.com>
 
-From: Alexandre Courbot <acourbot@nvidia.com>
+=46rom: Chen Baozi <baozich@gmail.com>
 
-GENERIC_GPIO has been made equivalent to GPIOLIB in architecture code
-and all driver code has been switch to depend on GPIOLIB. It is thus
-safe to have GENERIC_GPIO removed.
+Since the GENERIC_GPIO has been removed and the documentation of it
+has been modified, this patch updates the corresponding documentation o=
+f
+gpio in Chinese.
 
-Signed-off-by: Alexandre Courbot <acourbot@nvidia.com>
-Acked-by: Linus Walleij <linus.walleij@linaro.org>
+Signed-off-by: Chen Baozi <baozich@gmail.com>
+Acked-by: Alexandre Courbot <acourbot@nvidia.com>
 ---
- Documentation/gpio.txt      | 10 +++++-----
- arch/alpha/Kconfig          |  3 ---
- arch/arm/Kconfig            |  3 ---
- arch/arm/plat-orion/gpio.c  |  2 +-
- arch/arm64/Kconfig          |  3 ---
- arch/avr32/Kconfig          |  3 ---
- arch/blackfin/Kconfig       |  3 ---
- arch/hexagon/Kconfig        |  3 ---
- arch/ia64/Kconfig           |  3 ---
- arch/m68k/Kconfig           |  3 ---
- arch/metag/Kconfig          |  3 ---
- arch/microblaze/Kconfig     |  3 ---
- arch/mips/Kconfig           |  3 ---
- arch/openrisc/Kconfig       |  3 ---
- arch/powerpc/Kconfig        |  5 -----
- arch/sh/Kconfig             |  3 ---
- arch/sparc/Kconfig          |  5 -----
- arch/unicore32/Kconfig      |  3 ---
- arch/x86/Kconfig            |  3 ---
- arch/xtensa/Kconfig         |  3 ---
- drivers/gpio/Kconfig        |  1 -
- drivers/gpio/gpio-lpc32xx.c |  2 +-
- 22 files changed, 7 insertions(+), 66 deletions(-)
+ Documentation/zh_CN/gpio.txt | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/Documentation/gpio.txt b/Documentation/gpio.txt
-index 77a1d11..6f83fa9 100644
---- a/Documentation/gpio.txt
-+++ b/Documentation/gpio.txt
-@@ -72,11 +72,11 @@ in this document, but drivers acting as clients to the GPIO interface must
- not care how it's implemented.)
- 
- That said, if the convention is supported on their platform, drivers should
--use it when possible.  Platforms must declare GENERIC_GPIO support in their
--Kconfig (boolean true), and provide an <asm/gpio.h> file.  Drivers that can't
--work without standard GPIO calls should have Kconfig entries which depend
--on GENERIC_GPIO.  The GPIO calls are available, either as "real code" or as
--optimized-away stubs, when drivers use the include file:
-+use it when possible.  Platforms must select ARCH_REQUIRE_GPIOLIB or
-+ARCH_WANT_OPTIONAL_GPIOLIB in their Kconfig.  Drivers that can't work without
-+standard GPIO calls should have Kconfig entries which depend on GPIOLIB.  The
-+GPIO calls are available, either as "real code" or as optimized-away stubs,
-+when drivers use the include file:
- 
+diff --git a/Documentation/zh_CN/gpio.txt b/Documentation/zh_CN/gpio.tx=
+t
+index 99dbb69..8c8c712 100644
+--- a/Documentation/zh_CN/gpio.txt
++++ b/Documentation/zh_CN/gpio.txt
+@@ -84,10 +84,10 @@ GPIO =E5=85=AC=E7=BA=A6
+ =E6=8E=A7=E5=88=B6=E5=99=A8=E7=9A=84=E6=8A=BD=E8=B1=A1=E5=87=BD=E6=95=B0=
+=E6=9D=A5=E5=AE=9E=E7=8E=B0=E5=AE=83=E3=80=82(=E6=9C=89=E4=B8=80=E4=BA=9B=
+=E5=8F=AF=E9=80=89=E7=9A=84=E4=BB=A3=E7=A0=81=E8=83=BD=E6=94=AF=E6=8C=81=
+=E8=BF=99=E7=A7=8D=E7=AD=96=E7=95=A5=E7=9A=84=E5=AE=9E=E7=8E=B0,=E6=9C=AC=
+=E6=96=87=E6=A1=A3
+ =E5=90=8E=E9=9D=A2=E4=BC=9A=E4=BB=8B=E7=BB=8D=EF=BC=8C=E4=BD=86=E4=BD=9C=
+=E4=B8=BA GPIO =E6=8E=A5=E5=8F=A3=E7=9A=84=E5=AE=A2=E6=88=B7=E7=AB=AF=E9=
+=A9=B1=E5=8A=A8=E7=A8=8B=E5=BA=8F=E5=BF=85=E9=A1=BB=E4=B8=8E=E5=AE=83=E7=
+=9A=84=E5=AE=9E=E7=8E=B0=E6=97=A0=E5=85=B3=E3=80=82)
+=20
+-=E4=B9=9F=E5=B0=B1=E6=98=AF=E8=AF=B4,=E5=A6=82=E6=9E=9C=E5=9C=A8=E4=BB=
+=96=E4=BB=AC=E7=9A=84=E5=B9=B3=E5=8F=B0=E4=B8=8A=E6=94=AF=E6=8C=81=E8=BF=
+=99=E4=B8=AA=E5=85=AC=E7=BA=A6=EF=BC=8C=E9=A9=B1=E5=8A=A8=E5=BA=94=E5=B0=
+=BD=E5=8F=AF=E8=83=BD=E7=9A=84=E4=BD=BF=E7=94=A8=E5=AE=83=E3=80=82=E5=B9=
+=B3=E5=8F=B0
+-=E5=BF=85=E9=A1=BB=E5=9C=A8 Kconfig =E4=B8=AD=E5=A3=B0=E6=98=8E=E5=AF=B9=
+ GENERIC_GPIO=E7=9A=84=E6=94=AF=E6=8C=81 (=E5=B8=83=E5=B0=94=E5=9E=8B t=
+rue)=EF=BC=8C=E5=B9=B6=E6=8F=90=E4=BE=9B
+-=E4=B8=80=E4=B8=AA <asm/gpio.h> =E6=96=87=E4=BB=B6=E3=80=82=E9=82=A3=E4=
+=BA=9B=E8=B0=83=E7=94=A8=E6=A0=87=E5=87=86 GPIO =E5=87=BD=E6=95=B0=E7=9A=
+=84=E9=A9=B1=E5=8A=A8=E5=BA=94=E8=AF=A5=E5=9C=A8 Kconfig
+-=E5=85=A5=E5=8F=A3=E4=B8=AD=E5=A3=B0=E6=98=8E=E4=BE=9D=E8=B5=96GENERIC=
+_GPIO=E3=80=82=E5=BD=93=E9=A9=B1=E5=8A=A8=E5=8C=85=E5=90=AB=E6=96=87=E4=
+=BB=B6:
++=E4=B9=9F=E5=B0=B1=E6=98=AF=E8=AF=B4,=E5=A6=82=E6=9E=9C=E5=9C=A8=E4=BB=
+=96=E4=BB=AC=E7=9A=84=E5=B9=B3=E5=8F=B0=E4=B8=8A=E6=94=AF=E6=8C=81=E8=BF=
+=99=E4=B8=AA=E5=85=AC=E7=BA=A6=EF=BC=8C=E9=A9=B1=E5=8A=A8=E5=BA=94=E5=B0=
+=BD=E5=8F=AF=E8=83=BD=E7=9A=84=E4=BD=BF=E7=94=A8=E5=AE=83=E3=80=82=E5=90=
+=8C=E6=97=B6=EF=BC=8C=E5=B9=B3=E5=8F=B0
++=E5=BF=85=E9=A1=BB=E5=9C=A8 Kconfig =E4=B8=AD=E9=80=89=E6=8B=A9 ARCH_R=
+EQUIRE_GPIOLIB =E6=88=96=E8=80=85 ARCH_WANT_OPTIONAL_GPIOLIB
++=E9=80=89=E9=A1=B9=E3=80=82=E9=82=A3=E4=BA=9B=E8=B0=83=E7=94=A8=E6=A0=87=
+=E5=87=86 GPIO =E5=87=BD=E6=95=B0=E7=9A=84=E9=A9=B1=E5=8A=A8=E5=BA=94=E8=
+=AF=A5=E5=9C=A8 Kconfig =E5=85=A5=E5=8F=A3=E4=B8=AD=E5=A3=B0=E6=98=8E=E4=
+=BE=9D=E8=B5=96GENERIC_GPIO=E3=80=82
++=E5=BD=93=E9=A9=B1=E5=8A=A8=E5=8C=85=E5=90=AB=E6=96=87=E4=BB=B6:
+=20
  	#include <linux/gpio.h>
- 
-diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
-index 8629127..837a1f2 100644
---- a/arch/alpha/Kconfig
-+++ b/arch/alpha/Kconfig
-@@ -55,9 +55,6 @@ config GENERIC_CALIBRATE_DELAY
- 	bool
- 	default y
- 
--config GENERIC_GPIO
--	bool
--
- config ZONE_DMA
- 	bool
- 	default y
-diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index 946b518..d5098f3 100644
---- a/arch/arm/Kconfig
-+++ b/arch/arm/Kconfig
-@@ -109,9 +109,6 @@ config MIGHT_HAVE_PCI
- config SYS_SUPPORTS_APM_EMULATION
- 	bool
- 
--config GENERIC_GPIO
--	bool
--
- config HAVE_TCM
- 	bool
- 	select GENERIC_ALLOCATOR
-diff --git a/arch/arm/plat-orion/gpio.c b/arch/arm/plat-orion/gpio.c
-index c29ee7e..59ddf4d 100644
---- a/arch/arm/plat-orion/gpio.c
-+++ b/arch/arm/plat-orion/gpio.c
-@@ -150,7 +150,7 @@ err_out:
- }
- 
- /*
-- * GENERIC_GPIO primitives.
-+ * GPIO primitives.
-  */
- static int orion_gpio_request(struct gpio_chip *chip, unsigned pin)
- {
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 9b6d19f..e6e7007 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -92,9 +92,6 @@ config SWIOTLB
- config IOMMU_HELPER
- 	def_bool SWIOTLB
- 
--config GENERIC_GPIO
--	bool
--
- source "init/Kconfig"
- 
- source "kernel/Kconfig.freezer"
-diff --git a/arch/avr32/Kconfig b/arch/avr32/Kconfig
-index d22c6b4..ff775b8 100644
---- a/arch/avr32/Kconfig
-+++ b/arch/avr32/Kconfig
-@@ -26,9 +26,6 @@ config AVR32
- 	  There is an AVR32 Linux project with a web page at
- 	  http://avr32linux.org/.
- 
--config GENERIC_GPIO
--	def_bool n
--
- config STACKTRACE_SUPPORT
- 	def_bool y
- 
-diff --git a/arch/blackfin/Kconfig b/arch/blackfin/Kconfig
-index ed62933..a117652 100644
---- a/arch/blackfin/Kconfig
-+++ b/arch/blackfin/Kconfig
-@@ -52,9 +52,6 @@ config GENERIC_BUG
- config ZONE_DMA
- 	def_bool y
- 
--config GENERIC_GPIO
--	def_bool n
--
- config FORCE_MAX_ZONEORDER
- 	int
- 	default "14"
-diff --git a/arch/hexagon/Kconfig b/arch/hexagon/Kconfig
-index 04dff5b..b418471 100644
---- a/arch/hexagon/Kconfig
-+++ b/arch/hexagon/Kconfig
-@@ -157,9 +157,6 @@ source "mm/Kconfig"
- 
- source "kernel/Kconfig.hz"
- 
--config GENERIC_GPIO
--	def_bool n
--
- endmenu
- 
- source "init/Kconfig"
-diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
-index e7e55a0..15aae79 100644
---- a/arch/ia64/Kconfig
-+++ b/arch/ia64/Kconfig
-@@ -101,9 +101,6 @@ config GENERIC_CALIBRATE_DELAY
- config HAVE_SETUP_PER_CPU_AREA
- 	def_bool y
- 
--config GENERIC_GPIO
--	bool
--
- config DMI
- 	bool
- 	default y
-diff --git a/arch/m68k/Kconfig b/arch/m68k/Kconfig
-index 6de8133..821170e 100644
---- a/arch/m68k/Kconfig
-+++ b/arch/m68k/Kconfig
-@@ -35,9 +35,6 @@ config ARCH_HAS_ILOG2_U32
- config ARCH_HAS_ILOG2_U64
- 	bool
- 
--config GENERIC_GPIO
--	bool
--
- config GENERIC_HWEIGHT
- 	bool
- 	default y
-diff --git a/arch/metag/Kconfig b/arch/metag/Kconfig
-index 6f16c14..dcd9440 100644
---- a/arch/metag/Kconfig
-+++ b/arch/metag/Kconfig
-@@ -52,9 +52,6 @@ config GENERIC_HWEIGHT
- config GENERIC_CALIBRATE_DELAY
- 	def_bool y
- 
--config GENERIC_GPIO
--	def_bool n
--
- config NO_IOPORT
- 	def_bool y
- 
-diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
-index 173ab2c..ffe9372 100644
---- a/arch/microblaze/Kconfig
-+++ b/arch/microblaze/Kconfig
-@@ -53,9 +53,6 @@ config GENERIC_HWEIGHT
- config GENERIC_CALIBRATE_DELAY
- 	def_bool y
- 
--config GENERIC_GPIO
--	bool
--
- config GENERIC_CSUM
- 	def_bool y
- 
-diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
-index bd50459..4d4cdce 100644
---- a/arch/mips/Kconfig
-+++ b/arch/mips/Kconfig
-@@ -1005,9 +1005,6 @@ config GENERIC_ISA_DMA_SUPPORT_BROKEN
- config ISA_DMA_API
- 	bool
- 
--config GENERIC_GPIO
--	bool
--
- config HOLES_IN_ZONE
- 	bool
- 
-diff --git a/arch/openrisc/Kconfig b/arch/openrisc/Kconfig
-index df469d7..1072bfd 100644
---- a/arch/openrisc/Kconfig
-+++ b/arch/openrisc/Kconfig
-@@ -44,9 +44,6 @@ config GENERIC_HWEIGHT
- config NO_IOPORT
- 	def_bool y
- 
--config GENERIC_GPIO
--	def_bool n
--
- config TRACE_IRQFLAGS_SUPPORT
-         def_bool y
- 
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 0ac9f61..ec1f292 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -82,11 +82,6 @@ config GENERIC_HWEIGHT
- 	bool
- 	default y
- 
--config GENERIC_GPIO
--	bool
--	help
--	  Generic GPIO API support
--
- config PPC
- 	bool
- 	default y
-diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
-index 5e85963..f9391a6 100644
---- a/arch/sh/Kconfig
-+++ b/arch/sh/Kconfig
-@@ -92,9 +92,6 @@ config GENERIC_CSUM
- config GENERIC_HWEIGHT
- 	def_bool y
- 
--config GENERIC_GPIO
--	def_bool n
--
- config GENERIC_CALIBRATE_DELAY
- 	bool
- 
-diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-index 91cf75d..255be2d 100644
---- a/arch/sparc/Kconfig
-+++ b/arch/sparc/Kconfig
-@@ -137,11 +137,6 @@ config GENERIC_ISA_DMA
- 	bool
- 	default y if SPARC32
- 
--config GENERIC_GPIO
--	bool
--	help
--	  Generic GPIO API support
--
- config ARCH_SUPPORTS_DEBUG_PAGEALLOC
- 	def_bool y if SPARC64
- 
-diff --git a/arch/unicore32/Kconfig b/arch/unicore32/Kconfig
-index 468cd70..41bcc00 100644
---- a/arch/unicore32/Kconfig
-+++ b/arch/unicore32/Kconfig
-@@ -23,9 +23,6 @@ config UNICORE32
- 	  designs licensed by PKUnity Ltd.
- 	  Please see web page at <http://www.pkunity.com/>.
- 
--config GENERIC_GPIO
--	bool
--
- config GENERIC_CSUM
- 	def_bool y
- 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 75267ec..0619778 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -174,9 +174,6 @@ config GENERIC_BUG_RELATIVE_POINTERS
- config GENERIC_HWEIGHT
- 	def_bool y
- 
--config GENERIC_GPIO
--	bool
--
- config ARCH_MAY_HAVE_PC_FDC
- 	def_bool y
- 	depends on ISA_DMA_API
-diff --git a/arch/xtensa/Kconfig b/arch/xtensa/Kconfig
-index a9bdb1c..2348ec0 100644
---- a/arch/xtensa/Kconfig
-+++ b/arch/xtensa/Kconfig
-@@ -33,9 +33,6 @@ config RWSEM_XCHGADD_ALGORITHM
- config GENERIC_HWEIGHT
- 	def_bool y
- 
--config GENERIC_GPIO
--	bool
--
- config ARCH_HAS_ILOG2_U32
- 	def_bool n
- 
-diff --git a/drivers/gpio/Kconfig b/drivers/gpio/Kconfig
-index afbe0d1..8351661 100644
---- a/drivers/gpio/Kconfig
-+++ b/drivers/gpio/Kconfig
-@@ -38,7 +38,6 @@ config GPIO_DEVRES
- menuconfig GPIOLIB
- 	bool "GPIO Support"
- 	depends on ARCH_WANT_OPTIONAL_GPIOLIB || ARCH_REQUIRE_GPIOLIB
--	select GENERIC_GPIO
- 	help
- 	  This enables GPIO support through the generic GPIO library.
- 	  You only need to enable this, if you also want to enable
-diff --git a/drivers/gpio/gpio-lpc32xx.c b/drivers/gpio/gpio-lpc32xx.c
-index 36d7dee..4ad9c6b 100644
---- a/drivers/gpio/gpio-lpc32xx.c
-+++ b/drivers/gpio/gpio-lpc32xx.c
-@@ -255,7 +255,7 @@ static int __get_gpo_state_p3(struct lpc32xx_gpio_chip *group,
- }
- 
- /*
-- * GENERIC_GPIO primitives.
-+ * GPIO primitives.
-  */
- static int lpc32xx_gpio_dir_input_p012(struct gpio_chip *chip,
- 	unsigned pin)
--- 
+=20
+--=20
 1.8.2
