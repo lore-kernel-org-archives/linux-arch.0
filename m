@@ -1,56 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oa0-f50.google.com ([209.85.219.50]:36919 "EHLO
-	mail-oa0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760508Ab3DHQGH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Apr 2013 12:06:07 -0400
-Message-ID: <5162EAE2.6010306@gmail.com>
-Date: Tue, 09 Apr 2013 00:05:54 +0800
-From: Jiang Liu <liuj97@gmail.com>
+Received: from mail-ia0-f174.google.com ([209.85.210.174]:50808 "EHLO
+	mail-ia0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S935207Ab3DHRDv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Apr 2013 13:03:51 -0400
 MIME-Version: 1.0
-Subject: Re: [PATCH v4, part3 11/15] mm: use a dedicated lock to protect totalram_pages
- and zone->managed_pages
-References: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com> <1365256509-29024-12-git-send-email-jiang.liu@huawei.com> <5162C887.5070900@redhat.com>
-In-Reply-To: <5162C887.5070900@redhat.com>
+In-Reply-To: <20130408012253.GA2545@cbz-workstation>
+References: <20130408012253.GA2545@cbz-workstation>
+From: Alexandre Courbot <gnurou@gmail.com>
+Date: Mon, 8 Apr 2013 10:03:30 -0700
+Message-ID: <CAAVeFuLrgTGoSU+OG2RWEVorcCSREG10hTMSAafNMZdFdG7APw@mail.gmail.com>
+Subject: Re: [PATCH] gpio: update gpio Chinese documentation
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: base64
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rik van Riel <riel@redhat.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Michel Lespinasse <walken@google.com>
-Message-ID: <20130408160554.MI5EAXuDXfMfyMOL7IKdOUR52xr8FM-xUslZ6gZtLaY@z>
+To: Chen Baozi <baozich@gmail.com>
+Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20130408170330.2cH6pwidL3gzS9sqzZUohOojLNS4aYfEYjpkvzFm2Tg@z>
 
-On 04/08/2013 09:39 PM, Rik van Riel wrote:
-> On 04/06/2013 09:55 AM, Jiang Liu wrote:
-> 
->> @@ -5186,6 +5189,22 @@ early_param("movablecore", cmdline_parse_movablecore);
->>
->>   #endif /* CONFIG_HAVE_MEMBLOCK_NODE_MAP */
->>
->> +void adjust_managed_page_count(struct page *page, long count)
->> +{
->> +    bool lock = (system_state != SYSTEM_BOOTING);
->> +
->> +    /* No need to acquire the lock during boot */
->> +    if (lock)
->> +        spin_lock(&managed_page_count_lock);
->> +
->> +    page_zone(page)->managed_pages += count;
->> +    totalram_pages += count;
->> +
->> +    if (lock)
->> +        spin_unlock(&managed_page_count_lock);
->> +}
-> 
-> While I agree the boot code currently does not need the lock, is
-> there any harm to removing that conditional?
-> 
-> That would simplify the code, and protect against possible future
-> cleverness of initializing multiple memory things simultaneously.
-> 
-Hi Rik,
-	Thanks for you comments.
-	I'm OK with that. Acquiring/releasing the lock should be lightweight
-because there shouldn't be contention during boot. Will remove the logic in
-next version.
-	Regards!
-	Gerry
+MjAxMy80LzcgQ2hlbiBCYW96aSA8YmFvemljaEBnbWFpbC5jb20+Og0KPiBTaW5jZSB0aGUgR0VO
+RVJJQ19HUElPIGhhcyBiZWVuIHJlbW92ZWQgYW5kIHRoZSBkb2N1bWVudGF0aW9uIG9mIGl0DQo+
+IGhhcyBiZWVuIG1vZGlmaWVkLCB0aGlzIHBhdGNoIHVwZGF0ZXMgdGhlIGNvcnJlc3BvbmRpbmcg
+ZG9jdW1lbnRhdGlvbiBvZg0KPiBncGlvIGluIENoaW5lc2UuDQo+DQo+IFNpZ25lZC1vZmYtYnk6
+IENoZW4gQmFvemkgPGJhb3ppY2hAZ21haWwuY29tPg0KPiAtLS0NCj4gIERvY3VtZW50YXRpb24v
+emhfQ04vZ3Bpby50eHQgfCA4ICsrKystLS0tDQo+ICAxIGZpbGUgY2hhbmdlZCwgNCBpbnNlcnRp
+b25zKCspLCA0IGRlbGV0aW9ucygtKQ0KDQpBY2tlZC1ieTogQWxleGFuZHJlIENvdXJib3QgPGFj
+b3VyYm90QG52aWRpYS5jb20+DQoNCkludGVncmF0ZWQgaW50byBteSBzZXJpZXMsIHRoYW5rcy4g
+V2l0aCB0aGlzIEkgZ3Vlc3MgSSBjYW4gc2VuZCB0aGUNCndob2xlIHNlcmllcyBhZ2FpbiB0byBH
+cmFudCBmb3IgaGltIHRvIGludGVncmF0ZSBpbiBoaXMgYnJhbmNoLiBJdCdzDQp0aW1lIGlmIHdl
+IHdhbnQgaXQgdG8gbWFrZSBpdCBmb3IgMy4xMC4NCg0KQWxleC4NCg0KDQo+DQo+IGRpZmYgLS1n
+aXQgYS9Eb2N1bWVudGF0aW9uL3poX0NOL2dwaW8udHh0IGIvRG9jdW1lbnRhdGlvbi96aF9DTi9n
+cGlvLnR4dA0KPiBpbmRleCA0ZmE3YjRlLi5kNWI4ZjAxIDEwMDY0NA0KPiAtLS0gYS9Eb2N1bWVu
+dGF0aW9uL3poX0NOL2dwaW8udHh0DQo+ICsrKyBiL0RvY3VtZW50YXRpb24vemhfQ04vZ3Bpby50
+eHQNCj4gQEAgLTg0LDEwICs4NCwxMCBAQCBHUElPIOWFrOe6pg0KPiAg5o6n5Yi25Zmo55qE5oq9
+6LGh5Ye95pWw5p2l5a6e546w5a6D44CCKOacieS4gOS6m+WPr+mAieeahOS7o+eggeiDveaUr+aM
+gei/meenjeetlueVpeeahOWunueOsCzmnKzmlofmoaMNCj4gIOWQjumdouS8muS7i+e7je+8jOS9
+huS9nOS4uiBHUElPIOaOpeWPo+eahOWuouaIt+err+mpseWKqOeoi+W6j+W/hemhu+S4juWug+ea
+hOWunueOsOaXoOWFs+OAgikNCj4NCj4gLeS5n+WwseaYr+ivtCzlpoLmnpzlnKjku5bku6znmoTl
+ubPlj7DkuIrmlK/mjIHov5nkuKrlhaznuqbvvIzpqbHliqjlupTlsL3lj6/og73nmoTkvb/nlKjl
+roPjgILlubPlj7ANCj4gLeW/hemhu+WcqCBLY29uZmlnIOS4reWjsOaYjuWvuSBHRU5FUklDX0dQ
+SU/nmoTmlK/mjIEgKOW4g+WwlOWeiyB0cnVlKe+8jOW5tuaPkOS+mw0KPiAt5LiA5LiqIDxhc20v
+Z3Bpby5oPiDmlofku7bjgILpgqPkupvosIPnlKjmoIflh4YgR1BJTyDlh73mlbDnmoTpqbHliqjl
+upTor6XlnKggS2NvbmZpZw0KPiAt5YWl5Y+j5Lit5aOw5piO5L6d6LWWR0VORVJJQ19HUElP44CC
+5b2T6amx5Yqo5YyF5ZCr5paH5Lu2Og0KPiAr5Lmf5bCx5piv6K+0LOWmguaenOWcqOS7luS7rOea
+hOW5s+WPsOS4iuaUr+aMgei/meS4quWFrOe6pu+8jOmpseWKqOW6lOWwveWPr+iDveeahOS9v+eU
+qOWug+OAguWQjOaXtu+8jOW5s+WPsA0KPiAr5b+F6aG75ZyoIEtjb25maWcg5Lit6YCJ5oupIEFS
+Q0hfUkVRVUlSRV9HUElPTElCIOaIluiAhSBBUkNIX1dBTlRfT1BUSU9OQUxfR1BJT0xJQg0KPiAr
+6YCJ6aG544CC6YKj5Lqb6LCD55So5qCH5YeGIEdQSU8g5Ye95pWw55qE6amx5Yqo5bqU6K+l5Zyo
+IEtjb25maWcg5YWl5Y+j5Lit5aOw5piO5L6d6LWWR0VORVJJQ19HUElP44CCDQo+ICvlvZPpqbHl
+iqjljIXlkKvmlofku7Y6DQo+DQo+ICAgICAgICAgI2luY2x1ZGUgPGxpbnV4L2dwaW8uaD4NCj4N
+Cj4gLS0NCj4gMS44LjEuNA0KPg0K
