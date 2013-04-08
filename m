@@ -1,92 +1,198 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from outbound-mail02.westnet.com.au ([203.10.1.243]:53290 "EHLO
-	outbound-mail02.westnet.com.au" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S934610Ab3DHBfv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 7 Apr 2013 21:35:51 -0400
-Message-ID: <51621E92.10400@uclinux.org>
-Date: Mon, 08 Apr 2013 11:34:10 +1000
-From: Greg Ungerer <gerg@uclinux.org>
+Received: from mail9.hitachi.co.jp ([133.145.228.44]:52889 "EHLO
+	mail9.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S935303Ab3DHK6y (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Apr 2013 06:58:54 -0400
+Message-ID: <5162A2EB.7030105@hitachi.com>
+Date: Mon, 08 Apr 2013 19:58:51 +0900
+From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v4, part3 24/41] mm/m68k: prepare for removing num_physpages
- and simplify mem_init()
-References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com> <1365258760-30821-25-git-send-email-jiang.liu@huawei.com>
-In-Reply-To: <1365258760-30821-25-git-send-email-jiang.liu@huawei.com>
-Content-Type: text/plain; charset=ISO-8859-1
+Subject: Re: [PATCH v3 1/4] kprobes: delay blacklist symbol lookup until
+ we actually need it
+References: <1365168400-17954-1-git-send-email-oskar.andero@sonymobile.com> <1365168400-17954-2-git-send-email-oskar.andero@sonymobile.com>
+In-Reply-To: <1365168400-17954-2-git-send-email-oskar.andero@sonymobile.com>
+Content-Type: text/plain; charset=ISO-2022-JP
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiang Liu <liuj97@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k@lists.linux-m68k.org
-Message-ID: <20130408013410.BrNBk9los1Xrx9LdNfubDaqM8NnzGasTg0P9Rr8zyfA@z>
+To: Oskar Andero <oskar.andero@sonymobile.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, davem@davemloft.net, anil.s.keshavamurthy@intel.com, ananth@in.ibm.com, Joonsoo Kim <iamjoonsoo.kim@lge.com>, radovan.lekanovic@sonymobile.com, bjorn.davidsson@sonymobile.com, Toby Collett <toby.collett@sonymobile.com>, "yrl.pp-manager.tt@hitachi.com" <yrl.pp-manager.tt@hitachi.com>
+Message-ID: <20130408105851.AfqbofYmF_04f_t_O4UNfmbS1nXAG23OB36KxpMOYbs@z>
 
-On 07/04/13 00:32, Jiang Liu wrote:
-> Prepare for removing num_physpages and simplify mem_init().
+(2013/04/05 22:26), Oskar Andero wrote:
+> From: Toby Collett <toby.collett@sonymobile.com>
 > 
-> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-> Cc: Greg Ungerer <gerg@uclinux.org>
+> The symbol lookup can take a long time and kprobes is
+> initialised very early in boot, so delay symbol lookup
+> until the blacklist is first used.
 
-Acked-by: Greg Ungerer <gerg@uclinux.org
+Acked-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
 
+Thanks!
 
-> Cc: linux-m68k@lists.linux-m68k.org
-> Cc: linux-kernel@vger.kernel.org
+> 
+> Cc: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+> Cc: David S. Miller <davem@davemloft.net>
+> Reviewed-by: Radovan Lekanovic <radovan.lekanovic@sonymobile.com>
+> Signed-off-by: Toby Collett <toby.collett@sonymobile.com>
+> Signed-off-by: Oskar Andero <oskar.andero@sonymobile.com>
 > ---
->  arch/m68k/mm/init.c |   31 ++-----------------------------
->  1 file changed, 2 insertions(+), 29 deletions(-)
+>  kernel/kprobes.c | 100 ++++++++++++++++++++++++++++++++++---------------------
+>  1 file changed, 62 insertions(+), 38 deletions(-)
 > 
-> diff --git a/arch/m68k/mm/init.c b/arch/m68k/mm/init.c
-> index 2485a8c..0723141 100644
-> --- a/arch/m68k/mm/init.c
-> +++ b/arch/m68k/mm/init.c
-> @@ -149,33 +149,11 @@ void __init print_memmap(void)
->  void __init mem_init(void)
->  {
->  	pg_data_t *pgdat;
-> -	int codepages = 0;
-> -	int datapages = 0;
-> -	int initpages = 0;
->  	int i;
->  
->  	/* this will put all memory onto the freelists */
-> -	num_physpages = 0;
-> -	for_each_online_pgdat(pgdat) {
-> -		num_physpages += pgdat->node_present_pages;
-> -
-> +	for_each_online_pgdat(pgdat)
->  		free_all_bootmem_node(pgdat);
-> -		for (i = 0; i < pgdat->node_spanned_pages; i++) {
-> -			struct page *page = pgdat->node_mem_map + i;
-> -			char *addr = page_to_virt(page);
-> -
-> -			if (!PageReserved(page))
-> -				continue;
-> -			if (addr >= _text &&
-> -			    addr < _etext)
-> -				codepages++;
-> -			else if (addr >= __init_begin &&
-> -				 addr < __init_end)
-> -				initpages++;
-> -			else
-> -				datapages++;
-> -		}
-> -	}
->  
->  #if defined(CONFIG_MMU) && !defined(CONFIG_SUN3) && !defined(CONFIG_COLDFIRE)
->  	/* insert pointer tables allocated so far into the tablelist */
-> @@ -190,12 +168,7 @@ void __init mem_init(void)
->  		init_pointer_table((unsigned long)zero_pgtable);
+> diff --git a/kernel/kprobes.c b/kernel/kprobes.c
+> index e35be53..c8c2281 100644
+> --- a/kernel/kprobes.c
+> +++ b/kernel/kprobes.c
+> @@ -68,6 +68,7 @@
 >  #endif
 >  
-> -	pr_info("Memory: %luk/%luk available (%dk kernel code, %dk data, %dk init)\n",
-> -	       nr_free_pages() << (PAGE_SHIFT-10),
-> -	       totalram_pages << (PAGE_SHIFT-10),
-> -	       codepages << (PAGE_SHIFT-10),
-> -	       datapages << (PAGE_SHIFT-10),
-> -	       initpages << (PAGE_SHIFT-10));
-> +	mem_init_print_info(NULL);
->  	print_memmap();
->  }
+>  static int kprobes_initialized;
+> +static bool kprobe_blacklist_initialized;
+>  static struct hlist_head kprobe_table[KPROBE_TABLE_SIZE];
+>  static struct hlist_head kretprobe_inst_table[KPROBE_TABLE_SIZE];
 >  
+> @@ -102,6 +103,62 @@ static struct kprobe_blackpoint kprobe_blacklist[] = {
+>  	{NULL}    /* Terminator */
+>  };
+>  
+> +/* it can take some time ( > 100ms ) to initialise the
+> + * blacklist so we delay this until we actually need it
+> + */
+> +static void init_kprobe_blacklist(void)
+> +{
+> +	int i;
+> +	unsigned long offset = 0, size = 0;
+> +	char *modname, namebuf[128];
+> +	const char *symbol_name;
+> +	void *addr;
+> +	struct kprobe_blackpoint *kb;
+> +
+> +	mutex_lock(&kprobe_mutex);
+> +	if (kprobe_blacklist_initialized)
+> +		goto out;
+> +
+> +	/*
+> +	 * Lookup and populate the kprobe_blacklist.
+> +	 *
+> +	 * Unlike the kretprobe blacklist, we'll need to determine
+> +	 * the range of addresses that belong to the said functions,
+> +	 * since a kprobe need not necessarily be at the beginning
+> +	 * of a function.
+> +	 */
+> +	for (kb = kprobe_blacklist; kb->name != NULL; kb++) {
+> +		kprobe_lookup_name(kb->name, addr);
+> +		if (!addr)
+> +			continue;
+> +
+> +		kb->start_addr = (unsigned long)addr;
+> +		symbol_name = kallsyms_lookup(kb->start_addr,
+> +				&size, &offset, &modname, namebuf);
+> +		if (!symbol_name)
+> +			kb->range = 0;
+> +		else
+> +			kb->range = size;
+> +	}
+> +
+> +	if (kretprobe_blacklist_size) {
+> +		/* lookup the function address from its name */
+> +		for (i = 0; kretprobe_blacklist[i].name != NULL; i++) {
+> +			kprobe_lookup_name(kretprobe_blacklist[i].name,
+> +					   kretprobe_blacklist[i].addr);
+> +			if (!kretprobe_blacklist[i].addr)
+> +				printk("kretprobe: lookup failed: %s\n",
+> +				       kretprobe_blacklist[i].name);
+> +		}
+> +	}
+> +
+> +	smp_wmb();
+> +	kprobe_blacklist_initialized = true;
+> +
+> +out:
+> +	mutex_unlock(&kprobe_mutex);
+> +}
+> +
+>  #ifdef __ARCH_WANT_KPROBES_INSN_SLOT
+>  /*
+>   * kprobe->ainsn.insn points to the copy of the instruction to be
+> @@ -1331,6 +1388,9 @@ static int __kprobes in_kprobes_functions(unsigned long addr)
+>  	if (addr >= (unsigned long)__kprobes_text_start &&
+>  	    addr < (unsigned long)__kprobes_text_end)
+>  		return -EINVAL;
+> +
+> +	if (unlikely(!kprobe_blacklist_initialized))
+> +		init_kprobe_blacklist();
+>  	/*
+>  	 * If there exists a kprobe_blacklist, verify and
+>  	 * fail any probe registration in the prohibited area
+> @@ -1816,6 +1876,8 @@ int __kprobes register_kretprobe(struct kretprobe *rp)
+>  	void *addr;
+>  
+>  	if (kretprobe_blacklist_size) {
+> +		if (unlikely(!kprobe_blacklist_initialized))
+> +			init_kprobe_blacklist();
+>  		addr = kprobe_addr(&rp->kp);
+>  		if (IS_ERR(addr))
+>  			return PTR_ERR(addr);
+> @@ -2065,11 +2127,6 @@ static struct notifier_block kprobe_module_nb = {
+>  static int __init init_kprobes(void)
+>  {
+>  	int i, err = 0;
+> -	unsigned long offset = 0, size = 0;
+> -	char *modname, namebuf[128];
+> -	const char *symbol_name;
+> -	void *addr;
+> -	struct kprobe_blackpoint *kb;
+>  
+>  	/* FIXME allocate the probe table, currently defined statically */
+>  	/* initialize all list heads */
+> @@ -2079,39 +2136,6 @@ static int __init init_kprobes(void)
+>  		raw_spin_lock_init(&(kretprobe_table_locks[i].lock));
+>  	}
+>  
+> -	/*
+> -	 * Lookup and populate the kprobe_blacklist.
+> -	 *
+> -	 * Unlike the kretprobe blacklist, we'll need to determine
+> -	 * the range of addresses that belong to the said functions,
+> -	 * since a kprobe need not necessarily be at the beginning
+> -	 * of a function.
+> -	 */
+> -	for (kb = kprobe_blacklist; kb->name != NULL; kb++) {
+> -		kprobe_lookup_name(kb->name, addr);
+> -		if (!addr)
+> -			continue;
+> -
+> -		kb->start_addr = (unsigned long)addr;
+> -		symbol_name = kallsyms_lookup(kb->start_addr,
+> -				&size, &offset, &modname, namebuf);
+> -		if (!symbol_name)
+> -			kb->range = 0;
+> -		else
+> -			kb->range = size;
+> -	}
+> -
+> -	if (kretprobe_blacklist_size) {
+> -		/* lookup the function address from its name */
+> -		for (i = 0; kretprobe_blacklist[i].name != NULL; i++) {
+> -			kprobe_lookup_name(kretprobe_blacklist[i].name,
+> -					   kretprobe_blacklist[i].addr);
+> -			if (!kretprobe_blacklist[i].addr)
+> -				printk("kretprobe: lookup failed: %s\n",
+> -				       kretprobe_blacklist[i].name);
+> -		}
+> -	}
+> -
+>  #if defined(CONFIG_OPTPROBES)
+>  #if defined(__ARCH_WANT_KPROBES_INSN_SLOT)
+>  	/* Init kprobe_optinsn_slots */
 > 
+
+
+-- 
+Masami HIRAMATSU
+IT Management Research Dept. Linux Technology Center
+Hitachi, Ltd., Yokohama Research Laboratory
+E-mail: masami.hiramatsu.pt@hitachi.com
+
 
