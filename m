@@ -1,47 +1,75 @@
-From: Alexandre Courbot <gnurou@gmail.com>
-Subject: Re: [PATCH] gpio: update gpio Chinese documentation
-Date: Mon, 8 Apr 2013 10:03:30 -0700
-Message-ID: <CAAVeFuLrgTGoSU+OG2RWEVorcCSREG10hTMSAafNMZdFdG7APw@mail.gmail.com>
-References: <20130408012253.GA2545@cbz-workstation>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH] sparc: Use generic idle loop
+Date: Mon, 8 Apr 2013 19:10:35 +0200
+Message-ID: <20130408171035.GA27264@merkur.ravnborg.org>
+References: <20130321214930.752934102@linutronix.de> <20130329161905.GC6201@merkur.ravnborg.org> <20130329202926.GA9484@merkur.ravnborg.org> <51592EF1.4090302@linux.vnet.ibm.com> <20130401090620.GA24861@merkur.ravnborg.org> <5162B92E.6020703@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: base64
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20130408012253.GA2545@cbz-workstation>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Chen Baozi <baozich@gmail.com>
-Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp.snhosting.dk ([87.238.248.203]:25280 "EHLO
+	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S934756Ab3DHRKh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Apr 2013 13:10:37 -0400
+Content-Disposition: inline
+In-Reply-To: <5162B92E.6020703@linux.vnet.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Magnus Damm <magnus.damm@gmail.com>
 
-MjAxMy80LzcgQ2hlbiBCYW96aSA8YmFvemljaEBnbWFpbC5jb20+Og0KPiBTaW5jZSB0aGUgR0VO
-RVJJQ19HUElPIGhhcyBiZWVuIHJlbW92ZWQgYW5kIHRoZSBkb2N1bWVudGF0aW9uIG9mIGl0DQo+
-IGhhcyBiZWVuIG1vZGlmaWVkLCB0aGlzIHBhdGNoIHVwZGF0ZXMgdGhlIGNvcnJlc3BvbmRpbmcg
-ZG9jdW1lbnRhdGlvbiBvZg0KPiBncGlvIGluIENoaW5lc2UuDQo+DQo+IFNpZ25lZC1vZmYtYnk6
-IENoZW4gQmFvemkgPGJhb3ppY2hAZ21haWwuY29tPg0KPiAtLS0NCj4gIERvY3VtZW50YXRpb24v
-emhfQ04vZ3Bpby50eHQgfCA4ICsrKystLS0tDQo+ICAxIGZpbGUgY2hhbmdlZCwgNCBpbnNlcnRp
-b25zKCspLCA0IGRlbGV0aW9ucygtKQ0KDQpBY2tlZC1ieTogQWxleGFuZHJlIENvdXJib3QgPGFj
-b3VyYm90QG52aWRpYS5jb20+DQoNCkludGVncmF0ZWQgaW50byBteSBzZXJpZXMsIHRoYW5rcy4g
-V2l0aCB0aGlzIEkgZ3Vlc3MgSSBjYW4gc2VuZCB0aGUNCndob2xlIHNlcmllcyBhZ2FpbiB0byBH
-cmFudCBmb3IgaGltIHRvIGludGVncmF0ZSBpbiBoaXMgYnJhbmNoLiBJdCdzDQp0aW1lIGlmIHdl
-IHdhbnQgaXQgdG8gbWFrZSBpdCBmb3IgMy4xMC4NCg0KQWxleC4NCg0KDQo+DQo+IGRpZmYgLS1n
-aXQgYS9Eb2N1bWVudGF0aW9uL3poX0NOL2dwaW8udHh0IGIvRG9jdW1lbnRhdGlvbi96aF9DTi9n
-cGlvLnR4dA0KPiBpbmRleCA0ZmE3YjRlLi5kNWI4ZjAxIDEwMDY0NA0KPiAtLS0gYS9Eb2N1bWVu
-dGF0aW9uL3poX0NOL2dwaW8udHh0DQo+ICsrKyBiL0RvY3VtZW50YXRpb24vemhfQ04vZ3Bpby50
-eHQNCj4gQEAgLTg0LDEwICs4NCwxMCBAQCBHUElPIOWFrOe6pg0KPiAg5o6n5Yi25Zmo55qE5oq9
-6LGh5Ye95pWw5p2l5a6e546w5a6D44CCKOacieS4gOS6m+WPr+mAieeahOS7o+eggeiDveaUr+aM
-gei/meenjeetlueVpeeahOWunueOsCzmnKzmlofmoaMNCj4gIOWQjumdouS8muS7i+e7je+8jOS9
-huS9nOS4uiBHUElPIOaOpeWPo+eahOWuouaIt+err+mpseWKqOeoi+W6j+W/hemhu+S4juWug+ea
-hOWunueOsOaXoOWFs+OAgikNCj4NCj4gLeS5n+WwseaYr+ivtCzlpoLmnpzlnKjku5bku6znmoTl
-ubPlj7DkuIrmlK/mjIHov5nkuKrlhaznuqbvvIzpqbHliqjlupTlsL3lj6/og73nmoTkvb/nlKjl
-roPjgILlubPlj7ANCj4gLeW/hemhu+WcqCBLY29uZmlnIOS4reWjsOaYjuWvuSBHRU5FUklDX0dQ
-SU/nmoTmlK/mjIEgKOW4g+WwlOWeiyB0cnVlKe+8jOW5tuaPkOS+mw0KPiAt5LiA5LiqIDxhc20v
-Z3Bpby5oPiDmlofku7bjgILpgqPkupvosIPnlKjmoIflh4YgR1BJTyDlh73mlbDnmoTpqbHliqjl
-upTor6XlnKggS2NvbmZpZw0KPiAt5YWl5Y+j5Lit5aOw5piO5L6d6LWWR0VORVJJQ19HUElP44CC
-5b2T6amx5Yqo5YyF5ZCr5paH5Lu2Og0KPiAr5Lmf5bCx5piv6K+0LOWmguaenOWcqOS7luS7rOea
-hOW5s+WPsOS4iuaUr+aMgei/meS4quWFrOe6pu+8jOmpseWKqOW6lOWwveWPr+iDveeahOS9v+eU
-qOWug+OAguWQjOaXtu+8jOW5s+WPsA0KPiAr5b+F6aG75ZyoIEtjb25maWcg5Lit6YCJ5oupIEFS
-Q0hfUkVRVUlSRV9HUElPTElCIOaIluiAhSBBUkNIX1dBTlRfT1BUSU9OQUxfR1BJT0xJQg0KPiAr
-6YCJ6aG544CC6YKj5Lqb6LCD55So5qCH5YeGIEdQSU8g5Ye95pWw55qE6amx5Yqo5bqU6K+l5Zyo
-IEtjb25maWcg5YWl5Y+j5Lit5aOw5piO5L6d6LWWR0VORVJJQ19HUElP44CCDQo+ICvlvZPpqbHl
-iqjljIXlkKvmlofku7Y6DQo+DQo+ICAgICAgICAgI2luY2x1ZGUgPGxpbnV4L2dwaW8uaD4NCj4N
-Cj4gLS0NCj4gMS44LjEuNA0KPg0K
+> > @@ -52,17 +52,12 @@
+> > 
+> >  #include "kstack.h"
+> > 
+> > -static void sparc64_yield(int cpu)
+> > +/* Idle loop support on sparc64. */
+> > +void arch_cpu_idle(void)
+> >  {
+> >  	if (tlb_type != hypervisor) {
+> >  		touch_nmi_watchdog();
+> > -		return;
+> > -	}
+> > -
+> > -	clear_thread_flag(TIF_POLLING_NRFLAG);
+> > -	smp_mb__after_clear_bit();
+> > -
+> > -	while (!need_resched() && !cpu_is_offline(cpu)) {
+> > +	} else {
+> >  		unsigned long pstate;
+> > 
+> >  		/* Disable interrupts. */
+> > @@ -73,7 +68,7 @@ static void sparc64_yield(int cpu)
+> >  			: "=&r" (pstate)
+> >  			: "i" (PSTATE_IE));
+> > 
+> > -		if (!need_resched() && !cpu_is_offline(cpu))
+> > +		if (!need_resched() && !cpu_is_offline(smp_processor_id()))
+> >  			sun4v_cpu_yield();
+> > 
+> >  		/* Re-enable interrupts. */
+> > @@ -84,36 +79,16 @@ static void sparc64_yield(int cpu)
+> >  			: "=&r" (pstate)
+> >  			: "i" (PSTATE_IE));
+> >  	}
+> > -
+> > -	set_thread_flag(TIF_POLLING_NRFLAG);
+> > +	local_irq_enable();
+> >  }
+> 
+> Nitpick: you can probably move the local_irq_enable() to the
+> 'if' block, since the else block already has assembly code to enable
+> the interrupts. But anyway its up to you.
+
+I think not.
+local_irq_disable writes 0 to the PIL register,
+whereas the above code set the IE (Interrupt enable) bit to 0.
+
+So the implementations differs - and I think there is a good
+reason for being so.
+
+But this is the part where I refer to that I am fooling around
+in code that I do not understand.
+I re-checked the SPARC V9 manual - but I did not within a few minutes
+reading understand what is the difference between the twoo.
+
+	Sam
