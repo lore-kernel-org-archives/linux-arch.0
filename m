@@ -1,135 +1,141 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ee0-f51.google.com ([74.125.83.51]:35610 "EHLO
-	mail-ee0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934976Ab3DHLr2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Apr 2013 07:47:28 -0400
-Received: by mail-ee0-f51.google.com with SMTP id c4so2248903eek.24
-        for <linux-arch@vger.kernel.org>; Mon, 08 Apr 2013 04:47:27 -0700 (PDT)
-Date: Mon, 8 Apr 2013 13:50:26 +0200
-From: Daniel Vetter <daniel@ffwll.ch>
-Subject: Re: [PATCH v2 2/3] mutex: add support for reservation style locks, v2
-Message-ID: <20130408115026.GL2228@phenom.ffwll.local>
-References: <20130228102452.15191.22673.stgit@patser>
- <20130228102502.15191.14146.stgit@patser>
- <1364900432.18374.24.camel@laptop>
- <515AF1C1.7080508@canonical.com>
- <1364921954.20640.22.camel@laptop>
- <1365076908.2609.94.camel@laptop>
- <20130404133123.GW2228@phenom.ffwll.local>
- <CAKMK7uG_qLQrZUdE_LRANm7qXPvGUisBx-k=+y=F2gA3=odkrQ@mail.gmail.com>
- <1365417564.2609.153.camel@laptop>
+Received: from e23smtp08.au.ibm.com ([202.81.31.141]:56360 "EHLO
+	e23smtp08.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S935872Ab3DHMgc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Apr 2013 08:36:32 -0400
+Received: from /spool/local
+	by e23smtp08.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
+	Mon, 8 Apr 2013 22:34:21 +1000
+Message-ID: <5162B92E.6020703@linux.vnet.ibm.com>
+Date: Mon, 08 Apr 2013 18:03:50 +0530
+From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1365417564.2609.153.camel@laptop>
+Subject: Re: [PATCH] sparc: Use generic idle loop
+References: <20130321214930.752934102@linutronix.de> <20130329161905.GC6201@merkur.ravnborg.org> <20130329202926.GA9484@merkur.ravnborg.org> <51592EF1.4090302@linux.vnet.ibm.com> <20130401090620.GA24861@merkur.ravnborg.org>
+In-Reply-To: <20130401090620.GA24861@merkur.ravnborg.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Daniel Vetter <daniel.vetter@ffwll.ch>, Maarten Lankhorst <maarten.lankhorst@canonical.com>, linux-arch@vger.kernel.org, x86@kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, dri-devel <dri-devel@lists.freedesktop.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, rob clark <robclark@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
-Message-ID: <20130408115026.FtvJBtqvxPS5v3A-taM948-JG4EcO7yBIOte4NsbqRI@z>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Magnus Damm <magnus.damm@gmail.com>
+Message-ID: <20130408123350.REThsve2HEBA2M5WjXaKUKNS7CxBKuA4hxLv5u-6Kn0@z>
 
-On Mon, Apr 08, 2013 at 12:39:24PM +0200, Peter Zijlstra wrote:
-> On Thu, 2013-04-04 at 18:56 +0200, Daniel Vetter wrote:
-> > Presuming I'm still following we should be able to fix this with the
-> > new sleep state TASK_DEADLOCK and a flag somewhere in the thread info
-> > (let's call it PF_GTFO for simplicity).
+Hi Sam,
+
+On 04/01/2013 02:36 PM, Sam Ravnborg wrote:
+> Hi Srivatsa,
 > 
-> I'm reading "Get The F*ck Out" ? I like the name, except PF_flags are
-> unsuitable since they are not atomic and we'd need to set it from
-> another thread.
-
-I think the PF_ flag is a non-starter for a different reason, too. To make
-different clases of ww_mutexes nest properly, we need to make sure that we
-don't dead/live-lock trying to wake up a task holdinga ww_mutex of class
-A, while that task is trying to acquire ww_mutexes of class B. Picture:
-
-	task 1			task 2			task 3
-							holds lock B
-	ticket_A = acquire_start(class A)
-	ww_mutex_lock(lock A, ticket_A)			busy doing something
-
-	ticket_B = acquire_start(class B)
-	ww_mutex_lock(lock B, ticket_B)
-	-> contention with task 3
-				
-				ticket_task2 = acquire_start(class A)
-				ww_mutex_lock(lock A, ticket_task2)
-				-> contention with task 1
-
-If we go with the PF_GTFO task flag, task 2 will set it on task 1
-(handwave locking/atomicity again here ;-). But taks 1 will only back off
-from any locks in class B. Or at least I think we should impose that
-restriction, since otherwise a ww_mutex acquire loop will leak out badly
-abstraction-wise and making nesting pretty much impossible in practice.
-
-But if we really want nesting to work transparently, then task 1 should be
-allowed to continue taking locks from class A (after an acquire_end(class
-B) call ofc). But then it will have missed the wakeup from task 2, so task
-2 blocks for too long and task 1 doesn't back off from further acquiring
-locks in class A.
-
-Presuming my reasoning for the rt case isn't broken, this break deadlock
-avoidance if we sort by (rt_prio, ticket).
-
-So I think we need to move the PF_GTFO flag to the ticket to make sure
-that task1 will notice that there's contention with one of the locks it
-holds from class A and that it better gtfo asap (i.e. back off, drop all
-currently held locks in class A and go into the slowpath).
-
-But I still need to think the nesting case through a bit more (and draw
-some diagrams), so not sure yet. One thing I still need to ponder is how
-to best stack tickets (for tasks doing nested ww_mutex locking) and where
-all we need a pointer to relevant tickets and what kind of fun this
-entails ... I need to ponder this some more.
-
-> >  Then every time a task does a
-> > blocking wait on a ww_mutex it would set this special sleep state and
-> > also check the PF_GTFO bit.
+> thanks for the feedback!
 > 
-> So its the contending task (O for B) setting PF_GTFO on the owning task
-> (M for B), right?
-
-Yeah, the idea is that the contending task sets this bit on the current
-holder (whether we put that bit into the task or the ticket), so that the
-current owner can back off and drop all currently held locks at the next
-opportunity (either due to being woken up in TASK_DEADLCOK state or in the
-next ww_mutex_lock call).
-
-> But yeah, all ww_mutex sleep states should have the new TASK_DEADLOCK
-> sleep state added.
+> @davem - I need you to look at this again. I am not sure about the changes
+> I do in sparc64_yield().
 > 
-> >  If the later is set, it bails out with
-> > -EAGAIN (so that all locks are dropped).
+>>> +/* the idle loop on a Sparc... ;) */
+>>> +void arch_cpu_idle(void)
+>>>  {
+>>> +	if (sparc_idle)
+>>> +		(*sparc_idle)();
+>>> +	else
+>>> +		cpu_relax();
+>>>  }
+>>
+>> You need to enable interrupts when coming out in the 'else' case,
+>> because we enter with interrupts disabled and expect to come out
+>> of arch_cpu_idle() with interrupts enabled. (Otherwise you'll hit
+>> that WARN_ON() in the generic code). Thomas has handled a similar
+>> case in the mips patch.
 > 
-> I would really rather see -EDEADLK for that..
-
-I agree it makes more sense for a general api (outside of ttm), but I
-struggle a bit to come up with a good errno for the "you hold this lock
-already" case. Best I could do is -EBUSY ...
-
-Hm, looking through errno.h I've just spotted -EALREADY. Seems to be used
-all over (not just networking), so I guess we could extend it's meaning a
-bit?
-
-> > Now if a task wants to take a lock and notices that it's held by a
-> > younger locker it can set that flag and wake the thread up (need to
-> > think about all the races a bit, but we should be able to make this
-> > work). Then it can do the normal blocking mutex slowpath and wait for
-> > the unlock.
+> Something like this should do it then:
 > 
-> Right.
+> /* Idle loop support */
+> void arch_cpu_idle(void)
+> {
+>         if (sparc_idle)
+>                 (*sparc_idle)();
+>         else
+>                 local_irq_enable();
+> }
 > 
-> > Now if O and M race a bit against each another M should either get
-> > woken (if it's already blocked on Y) and back off, or notice that the
-> > thread flag is set before it even tries to grab another mutex 
+> I dropped cpu_relax() as this is a simple barrier() which is
+> part of the generic code (using rmb()).
 > 
-> ww_mutex, it should block just fine on regular mutexes and other
-> primitives.
 
-Yes, that special behaviour should only apply to ww_mutexes not to any
-other locking. I've not been terribly careful here ...
--Daniel
--- 
-Daniel Vetter
-Software Engineer, Intel Corporation
-+41 (0) 79 365 57 48 - http://blog.ffwll.ch
+Yep, that sounds good.
+
+[...] 
+>> (Same is the case with the need_resched and
+>> the cpu_is_offline check).
+> There are some comments about race-conditions in the commit where they were added.
+> I think the out-most pair can be dropped as this is done in generic code but
+> that the inner ones needs to stay.
+> 
+> I simplified arch_cpu_idle() - former sparc64_yield() based on your comments.
+> - dropped TIF_POLLING_NRFLAG handling
+> - dropped smp_mb__after_clear_bit() - this is done in generic code using rmb()
+> - dropped the out-most while (!need_resched() && !cpu_is_offline(cpu))
+> - always enable irq on exit (but I am not sure if this is correct)
+> 
+> But I need davem to have a look at this - as I am fooling around in
+> code that I do not know much about..
+> So this is *NOT* to be applied.
+> 
+> 	Sam
+>
+[...]
+>  /* XXX cli/sti -> local_irq_xxx here, check this works once SMP is fixed. */
+> diff --git a/arch/sparc/kernel/process_64.c b/arch/sparc/kernel/process_64.c
+> index cdb80b2..cecb0d6 100644
+> --- a/arch/sparc/kernel/process_64.c
+> +++ b/arch/sparc/kernel/process_64.c
+> @@ -52,17 +52,12 @@
+> 
+>  #include "kstack.h"
+> 
+> -static void sparc64_yield(int cpu)
+> +/* Idle loop support on sparc64. */
+> +void arch_cpu_idle(void)
+>  {
+>  	if (tlb_type != hypervisor) {
+>  		touch_nmi_watchdog();
+> -		return;
+> -	}
+> -
+> -	clear_thread_flag(TIF_POLLING_NRFLAG);
+> -	smp_mb__after_clear_bit();
+> -
+> -	while (!need_resched() && !cpu_is_offline(cpu)) {
+> +	} else {
+>  		unsigned long pstate;
+> 
+>  		/* Disable interrupts. */
+> @@ -73,7 +68,7 @@ static void sparc64_yield(int cpu)
+>  			: "=&r" (pstate)
+>  			: "i" (PSTATE_IE));
+> 
+> -		if (!need_resched() && !cpu_is_offline(cpu))
+> +		if (!need_resched() && !cpu_is_offline(smp_processor_id()))
+>  			sun4v_cpu_yield();
+> 
+>  		/* Re-enable interrupts. */
+> @@ -84,36 +79,16 @@ static void sparc64_yield(int cpu)
+>  			: "=&r" (pstate)
+>  			: "i" (PSTATE_IE));
+>  	}
+> -
+> -	set_thread_flag(TIF_POLLING_NRFLAG);
+> +	local_irq_enable();
+>  }
+
+Nitpick: you can probably move the local_irq_enable() to the
+'if' block, since the else block already has assembly code to enable
+the interrupts. But anyway its up to you.
+
+This version of your code looks fine to me.
+
+Reviewed-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+
+Regards,
+Srivatsa S. Bhat
+
