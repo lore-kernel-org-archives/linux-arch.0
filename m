@@ -1,51 +1,70 @@
-From: Jiang Liu <liuj97@gmail.com>
-Subject: Re: [PATCH v4, part3 11/15] mm: use a dedicated lock to protect totalram_pages
- and zone->managed_pages
-Date: Tue, 09 Apr 2013 00:05:54 +0800
-Message-ID: <5162EAE2.6010306@gmail.com>
-References: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com> <1365256509-29024-12-git-send-email-jiang.liu@huawei.com> <5162C887.5070900@redhat.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH 1/7] x86: don't show trace beyond show_stack(NULL, NULL)
+Date: Mon, 8 Apr 2013 18:08:11 +0200
+Message-ID: <20130408160811.GA20612@gmail.com>
+References: <1365016497-32033-1-git-send-email-tj@kernel.org>
+ <1365016497-32033-2-git-send-email-tj@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <5162C887.5070900@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Rik van Riel <riel@redhat.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Michel Lespinasse <walken@google.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ea0-f172.google.com ([209.85.215.172]:42720 "EHLO
+	mail-ea0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933050Ab3DHQIQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Apr 2013 12:08:16 -0400
+Content-Disposition: inline
+In-Reply-To: <1365016497-32033-2-git-send-email-tj@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Tejun Heo <tj@kernel.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@redhat.com, x86@kernel.org, rth@twiddle.net, linux@arm.linux.org.uk, msalter@redhat.com, starvik@axis.com, dhowells@redhat.com, tony.luck@intel.com, benh@kernel.crashing.org, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, jonas@southpole.se, rkuo@codeaurora.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, davem@davemloft.net, lethal@linux-sh.org, vgupta@synopsys.com, chris@zankel.net, cmetcalf@tilera.com, ysato@users.sourceforge.jp, gxt@mprc.pku.edu.cn, jdike@addtoit.com
 
-On 04/08/2013 09:39 PM, Rik van Riel wrote:
-> On 04/06/2013 09:55 AM, Jiang Liu wrote:
+
+* Tejun Heo <tj@kernel.org> wrote:
+
+> show_stack(current or NULL, NULL) is used to print the backtrace of
+> the current task.  As trace beyond the function itself isn't of much
+> interest to anyone, don't show it by determining sp and bp in
+> show_stack()'s frame and passing them to show_stack_log_lvl().
 > 
->> @@ -5186,6 +5189,22 @@ early_param("movablecore", cmdline_parse_movablecore);
->>
->>   #endif /* CONFIG_HAVE_MEMBLOCK_NODE_MAP */
->>
->> +void adjust_managed_page_count(struct page *page, long count)
->> +{
->> +    bool lock = (system_state != SYSTEM_BOOTING);
->> +
->> +    /* No need to acquire the lock during boot */
->> +    if (lock)
->> +        spin_lock(&managed_page_count_lock);
->> +
->> +    page_zone(page)->managed_pages += count;
->> +    totalram_pages += count;
->> +
->> +    if (lock)
->> +        spin_unlock(&managed_page_count_lock);
->> +}
+> This brings show_stack(NULL, NULL)'s behavior in line with
+> dump_stack().
 > 
-> While I agree the boot code currently does not need the lock, is
-> there any harm to removing that conditional?
+> Signed-off-by: Tejun Heo <tj@kernel.org>
+> ---
+>  arch/x86/kernel/dumpstack.c | 14 +++++++++++++-
+>  1 file changed, 13 insertions(+), 1 deletion(-)
 > 
-> That would simplify the code, and protect against possible future
-> cleverness of initializing multiple memory things simultaneously.
-> 
-Hi Rik,
-	Thanks for you comments.
-	I'm OK with that. Acquiring/releasing the lock should be lightweight
-because there shouldn't be contention during boot. Will remove the logic in
-next version.
-	Regards!
-	Gerry
+> diff --git a/arch/x86/kernel/dumpstack.c b/arch/x86/kernel/dumpstack.c
+> index c8797d5..dd1a7c3 100644
+> --- a/arch/x86/kernel/dumpstack.c
+> +++ b/arch/x86/kernel/dumpstack.c
+> @@ -176,7 +176,19 @@ void show_trace(struct task_struct *task, struct pt_regs *regs,
+>  
+>  void show_stack(struct task_struct *task, unsigned long *sp)
+>  {
+> -	show_stack_log_lvl(task, NULL, sp, 0, "");
+> +	unsigned long bp = 0;
+> +	unsigned long stack;
+> +
+> +	/*
+> +	 * Stack frames below this one aren't interesting.  Don't show them
+> +	 * if we're printing for %current.
+> +	 */
+> +	if (!sp && (!task || task == current)) {
+> +		sp = &stack;
+> +		bp = stack_frame(current, NULL);
+> +	}
+> +
+> +	show_stack_log_lvl(task, NULL, sp, bp, "");
+
+Hm, show_regs() has a similar problem AFAICS.
+
+Would be nice to create an __always_inline helper for all this, and to use it for 
+show_regs() as well.
+
+Then the !bp special case in dump_trace() could be removed, and !bp be made an 
+invalid variant.
+
+Thanks,
+
+	Ingo
