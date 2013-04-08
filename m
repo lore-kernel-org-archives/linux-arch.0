@@ -1,70 +1,47 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH 1/7] x86: don't show trace beyond show_stack(NULL, NULL)
-Date: Mon, 8 Apr 2013 18:08:11 +0200
-Message-ID: <20130408160811.GA20612@gmail.com>
-References: <1365016497-32033-1-git-send-email-tj@kernel.org>
- <1365016497-32033-2-git-send-email-tj@kernel.org>
+From: Alexandre Courbot <gnurou@gmail.com>
+Subject: Re: [PATCH] gpio: update gpio Chinese documentation
+Date: Mon, 8 Apr 2013 10:03:30 -0700
+Message-ID: <CAAVeFuLrgTGoSU+OG2RWEVorcCSREG10hTMSAafNMZdFdG7APw@mail.gmail.com>
+References: <20130408012253.GA2545@cbz-workstation>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ea0-f172.google.com ([209.85.215.172]:42720 "EHLO
-	mail-ea0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933050Ab3DHQIQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Apr 2013 12:08:16 -0400
-Content-Disposition: inline
-In-Reply-To: <1365016497-32033-2-git-send-email-tj@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Tejun Heo <tj@kernel.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@redhat.com, x86@kernel.org, rth@twiddle.net, linux@arm.linux.org.uk, msalter@redhat.com, starvik@axis.com, dhowells@redhat.com, tony.luck@intel.com, benh@kernel.crashing.org, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, jonas@southpole.se, rkuo@codeaurora.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, davem@davemloft.net, lethal@linux-sh.org, vgupta@synopsys.com, chris@zankel.net, cmetcalf@tilera.com, ysato@users.sourceforge.jp, gxt@mprc.pku.edu.cn, jdike@addtoit.com
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: base64
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20130408012253.GA2545@cbz-workstation>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Chen Baozi <baozich@gmail.com>
+Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-
-* Tejun Heo <tj@kernel.org> wrote:
-
-> show_stack(current or NULL, NULL) is used to print the backtrace of
-> the current task.  As trace beyond the function itself isn't of much
-> interest to anyone, don't show it by determining sp and bp in
-> show_stack()'s frame and passing them to show_stack_log_lvl().
-> 
-> This brings show_stack(NULL, NULL)'s behavior in line with
-> dump_stack().
-> 
-> Signed-off-by: Tejun Heo <tj@kernel.org>
-> ---
->  arch/x86/kernel/dumpstack.c | 14 +++++++++++++-
->  1 file changed, 13 insertions(+), 1 deletion(-)
-> 
-> diff --git a/arch/x86/kernel/dumpstack.c b/arch/x86/kernel/dumpstack.c
-> index c8797d5..dd1a7c3 100644
-> --- a/arch/x86/kernel/dumpstack.c
-> +++ b/arch/x86/kernel/dumpstack.c
-> @@ -176,7 +176,19 @@ void show_trace(struct task_struct *task, struct pt_regs *regs,
->  
->  void show_stack(struct task_struct *task, unsigned long *sp)
->  {
-> -	show_stack_log_lvl(task, NULL, sp, 0, "");
-> +	unsigned long bp = 0;
-> +	unsigned long stack;
-> +
-> +	/*
-> +	 * Stack frames below this one aren't interesting.  Don't show them
-> +	 * if we're printing for %current.
-> +	 */
-> +	if (!sp && (!task || task == current)) {
-> +		sp = &stack;
-> +		bp = stack_frame(current, NULL);
-> +	}
-> +
-> +	show_stack_log_lvl(task, NULL, sp, bp, "");
-
-Hm, show_regs() has a similar problem AFAICS.
-
-Would be nice to create an __always_inline helper for all this, and to use it for 
-show_regs() as well.
-
-Then the !bp special case in dump_trace() could be removed, and !bp be made an 
-invalid variant.
-
-Thanks,
-
-	Ingo
+MjAxMy80LzcgQ2hlbiBCYW96aSA8YmFvemljaEBnbWFpbC5jb20+Og0KPiBTaW5jZSB0aGUgR0VO
+RVJJQ19HUElPIGhhcyBiZWVuIHJlbW92ZWQgYW5kIHRoZSBkb2N1bWVudGF0aW9uIG9mIGl0DQo+
+IGhhcyBiZWVuIG1vZGlmaWVkLCB0aGlzIHBhdGNoIHVwZGF0ZXMgdGhlIGNvcnJlc3BvbmRpbmcg
+ZG9jdW1lbnRhdGlvbiBvZg0KPiBncGlvIGluIENoaW5lc2UuDQo+DQo+IFNpZ25lZC1vZmYtYnk6
+IENoZW4gQmFvemkgPGJhb3ppY2hAZ21haWwuY29tPg0KPiAtLS0NCj4gIERvY3VtZW50YXRpb24v
+emhfQ04vZ3Bpby50eHQgfCA4ICsrKystLS0tDQo+ICAxIGZpbGUgY2hhbmdlZCwgNCBpbnNlcnRp
+b25zKCspLCA0IGRlbGV0aW9ucygtKQ0KDQpBY2tlZC1ieTogQWxleGFuZHJlIENvdXJib3QgPGFj
+b3VyYm90QG52aWRpYS5jb20+DQoNCkludGVncmF0ZWQgaW50byBteSBzZXJpZXMsIHRoYW5rcy4g
+V2l0aCB0aGlzIEkgZ3Vlc3MgSSBjYW4gc2VuZCB0aGUNCndob2xlIHNlcmllcyBhZ2FpbiB0byBH
+cmFudCBmb3IgaGltIHRvIGludGVncmF0ZSBpbiBoaXMgYnJhbmNoLiBJdCdzDQp0aW1lIGlmIHdl
+IHdhbnQgaXQgdG8gbWFrZSBpdCBmb3IgMy4xMC4NCg0KQWxleC4NCg0KDQo+DQo+IGRpZmYgLS1n
+aXQgYS9Eb2N1bWVudGF0aW9uL3poX0NOL2dwaW8udHh0IGIvRG9jdW1lbnRhdGlvbi96aF9DTi9n
+cGlvLnR4dA0KPiBpbmRleCA0ZmE3YjRlLi5kNWI4ZjAxIDEwMDY0NA0KPiAtLS0gYS9Eb2N1bWVu
+dGF0aW9uL3poX0NOL2dwaW8udHh0DQo+ICsrKyBiL0RvY3VtZW50YXRpb24vemhfQ04vZ3Bpby50
+eHQNCj4gQEAgLTg0LDEwICs4NCwxMCBAQCBHUElPIOWFrOe6pg0KPiAg5o6n5Yi25Zmo55qE5oq9
+6LGh5Ye95pWw5p2l5a6e546w5a6D44CCKOacieS4gOS6m+WPr+mAieeahOS7o+eggeiDveaUr+aM
+gei/meenjeetlueVpeeahOWunueOsCzmnKzmlofmoaMNCj4gIOWQjumdouS8muS7i+e7je+8jOS9
+huS9nOS4uiBHUElPIOaOpeWPo+eahOWuouaIt+err+mpseWKqOeoi+W6j+W/hemhu+S4juWug+ea
+hOWunueOsOaXoOWFs+OAgikNCj4NCj4gLeS5n+WwseaYr+ivtCzlpoLmnpzlnKjku5bku6znmoTl
+ubPlj7DkuIrmlK/mjIHov5nkuKrlhaznuqbvvIzpqbHliqjlupTlsL3lj6/og73nmoTkvb/nlKjl
+roPjgILlubPlj7ANCj4gLeW/hemhu+WcqCBLY29uZmlnIOS4reWjsOaYjuWvuSBHRU5FUklDX0dQ
+SU/nmoTmlK/mjIEgKOW4g+WwlOWeiyB0cnVlKe+8jOW5tuaPkOS+mw0KPiAt5LiA5LiqIDxhc20v
+Z3Bpby5oPiDmlofku7bjgILpgqPkupvosIPnlKjmoIflh4YgR1BJTyDlh73mlbDnmoTpqbHliqjl
+upTor6XlnKggS2NvbmZpZw0KPiAt5YWl5Y+j5Lit5aOw5piO5L6d6LWWR0VORVJJQ19HUElP44CC
+5b2T6amx5Yqo5YyF5ZCr5paH5Lu2Og0KPiAr5Lmf5bCx5piv6K+0LOWmguaenOWcqOS7luS7rOea
+hOW5s+WPsOS4iuaUr+aMgei/meS4quWFrOe6pu+8jOmpseWKqOW6lOWwveWPr+iDveeahOS9v+eU
+qOWug+OAguWQjOaXtu+8jOW5s+WPsA0KPiAr5b+F6aG75ZyoIEtjb25maWcg5Lit6YCJ5oupIEFS
+Q0hfUkVRVUlSRV9HUElPTElCIOaIluiAhSBBUkNIX1dBTlRfT1BUSU9OQUxfR1BJT0xJQg0KPiAr
+6YCJ6aG544CC6YKj5Lqb6LCD55So5qCH5YeGIEdQSU8g5Ye95pWw55qE6amx5Yqo5bqU6K+l5Zyo
+IEtjb25maWcg5YWl5Y+j5Lit5aOw5piO5L6d6LWWR0VORVJJQ19HUElP44CCDQo+ICvlvZPpqbHl
+iqjljIXlkKvmlofku7Y6DQo+DQo+ICAgICAgICAgI2luY2x1ZGUgPGxpbnV4L2dwaW8uaD4NCj4N
+Cj4gLS0NCj4gMS44LjEuNA0KPg0K
