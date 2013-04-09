@@ -1,72 +1,228 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+From: Thomas Gleixner <tglx@linutronix.de>
 Subject: Re: [patch 08/34] arm: Use generic idle loop
-Date: Mon, 8 Apr 2013 22:47:19 +0100
-Message-ID: <20130408214719.GN17995@n2100.arm.linux.org.uk>
+Date: Tue, 9 Apr 2013 11:20:31 +0200 (CEST)
+Message-ID: <alpine.LFD.2.02.1304091106360.21884@ionos>
 References: <20130321214930.752934102@linutronix.de> <20130321215233.826238797@linutronix.de> <87zjxv9lga.fsf@linaro.org> <alpine.LFD.2.02.1303251230440.22263@ionos> <20130325114808.GQ4977@n2100.arm.linux.org.uk> <alpine.LFD.2.02.1303251501520.22263@ionos>
+ <20130408214719.GN17995@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:54680 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S936372Ab3DHVrn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Apr 2013 17:47:43 -0400
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.2.02.1303251501520.22263@ionos>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20130408214719.GN17995@n2100.arm.linux.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
 Cc: Kevin Hilman <khilman@linaro.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Mar 25, 2013 at 03:02:39PM +0100, Thomas Gleixner wrote:
-> On Mon, 25 Mar 2013, Russell King - ARM Linux wrote:
+Russell,
+
+On Mon, 8 Apr 2013, Russell King - ARM Linux wrote:
+> On Mon, Mar 25, 2013 at 03:02:39PM +0100, Thomas Gleixner wrote:
+> So, how can I review these changes when all there is is a git URL, and
+> I *do* not want to pull them into my tree without first looking at the
+> patches, possibly reviewing them and *replying* with the patch inline?
+
+the patches were CC'ed to LKML and linux-arch and I expected that you
+are at least having the latter. Find the relevant patch inlined below.
+
+> I see you've now added this stuff to -tip.  I guess ARM doesn't matter
+> to you at all.  I guess having ARM people review the core changes doesn't
+> matter either.
 > 
-> > On Mon, Mar 25, 2013 at 12:31:20PM +0100, Thomas Gleixner wrote:
-> > > On Fri, 22 Mar 2013, Kevin Hilman wrote:
-> > > 
-> > > > Hi Thomas,
-> > > > 
-> > > > Thomas Gleixner <tglx@linutronix.de> writes:
-> > > > 
-> > > > > Use the generic idle loop and replace enable/disable_hlt with the
-> > > > > respective core functions.
-> > > > >
-> > > > > Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> > > > > Cc: Russell King <linux@arm.linux.org.uk>
-> > > > 
-> > > > I gave patches 1-5 + this a quick spin on ARM (specifially some OMAP3 and
-> > > > OMAP4 platforms, with and without CPUidle enabled.)
-> > > > 
-> > > > The OMAP stuff needed a couple minor compile fixes (below), but
-> > > > otherwise it passes the quick "seems to work" test.
-> > > 
-> > > Yeah, that's needed for the other arch/arm conversions as well.
-> > 
-> > So, the only patch I got was this one, which is useless to test on its
-> > own...
+> Well, I guess if it's broken, we'll just have to fix it up after the
+> merge window.
 > 
-> I'm testing V2 now and will post an git URL with a testing branch
-> later tonight.
+> One rule for x86, a different one for ARM.  Let x86 maintainers moan
+> about ARM people, but don't let ARM people moan about x86 maintainers.
+> Yes, sure, right, I get it.
 
-So, how can I review these changes when all there is is a git URL, and
-I *do* not want to pull them into my tree without first looking at the
-patches, possibly reviewing them and *replying* with the patch inline?
+Sigh no.
+ 
+> So, explicitly, my concern is this replacement of enable_hlt()/disable_hlt()
+> with this cpu_idle_poll_ctrl(), and whether this interface is still
+> counted - so that it's possible to call disable_hlt() to _permanently_
+> disable any hlt-based idle loop.
 
-I see you've now added this stuff to -tip.  I guess ARM doesn't matter
-to you at all.  I guess having ARM people review the core changes doesn't
-matter either.
+It is a counter. I looked carefully at all the various slightly
+differently fcked up implementations and picked the counter based one
+as it fits all requirements.
+ 
+Thanks,
 
-Well, I guess if it's broken, we'll just have to fix it up after the
-merge window.
+	tglx
+---
+Subject: idle: Implement generic idle function
+From: Thomas Gleixner <tglx@linutronix.de>
+Date: Thu, 21 Mar 2013 22:49:35 +0100
 
-One rule for x86, a different one for ARM.  Let x86 maintainers moan
-about ARM people, but don't let ARM people moan about x86 maintainers.
-Yes, sure, right, I get it.
+All idle functions in arch/* are more or less the same, plus minus a
+few bugs and extra instrumentation, tickless support and other
+optional items.
 
-So, explicitly, my concern is this replacement of enable_hlt()/disable_hlt()
-with this cpu_idle_poll_ctrl(), and whether this interface is still
-counted - so that it's possible to call disable_hlt() to _permanently_
-disable any hlt-based idle loop.
+Implement a generic idle function which resembles the functionality
+found in arch/. Provide weak arch_cpu_idle_* functions which can be
+overridden by the architecture code if needed.
 
-If that's not possible with your revised interface, you have just broken
-some ARM platforms.  I can only guess... because you never copied your
-entire patch set to me nor to the ARM lists.
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Rusty Russell <rusty@rustcorp.com.au>
+Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Reviewed-by: Cc: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: Magnus Damm <magnus.damm@gmail.com>
+Link: http://lkml.kernel.org/r/20130321215233.646635455@linutronix.de
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+---
+ arch/Kconfig        |    3 +
+ include/linux/cpu.h |    8 +++
+ kernel/cpu/idle.c   |  105 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 116 insertions(+)
+
+Index: linux-2.6/arch/Kconfig
+===================================================================
+--- linux-2.6.orig/arch/Kconfig
++++ linux-2.6/arch/Kconfig
+@@ -216,6 +216,9 @@ config USE_GENERIC_SMP_HELPERS
+ config GENERIC_SMP_IDLE_THREAD
+        bool
+ 
++config GENERIC_IDLE_LOOP
++       bool
++
+ # Select if arch init_task initializer is different to init/init_task.c
+ config ARCH_INIT_TASK
+        bool
+Index: linux-2.6/include/linux/cpu.h
+===================================================================
+--- linux-2.6.orig/include/linux/cpu.h
++++ linux-2.6/include/linux/cpu.h
+@@ -220,4 +220,12 @@ enum cpuhp_state {
+ void cpu_startup_entry(enum cpuhp_state state);
+ void cpu_idle(void);
+ 
++void cpu_idle_poll_ctrl(bool enable);
++
++void arch_cpu_idle(void);
++void arch_cpu_idle_prepare(void);
++void arch_cpu_idle_enter(void);
++void arch_cpu_idle_exit(void);
++void arch_cpu_idle_dead(void);
++
+ #endif /* _LINUX_CPU_H_ */
+Index: linux-2.6/kernel/cpu/idle.c
+===================================================================
+--- linux-2.6.orig/kernel/cpu/idle.c
++++ linux-2.6/kernel/cpu/idle.c
+@@ -3,8 +3,113 @@
+  */
+ #include <linux/sched.h>
+ #include <linux/cpu.h>
++#include <linux/tick.h>
++#include <linux/mm.h>
+ 
++#include <asm/tlb.h>
++
++#include <trace/events/power.h>
++
++#ifndef CONFIG_GENERIC_IDLE_LOOP
+ void cpu_startup_entry(enum cpuhp_state state)
+ {
+ 	cpu_idle();
+ }
++#else
++
++static int __read_mostly cpu_idle_force_poll;
++
++void cpu_idle_poll_ctrl(bool enable)
++{
++	if (enable) {
++		cpu_idle_force_poll++;
++	} else {
++		cpu_idle_force_poll--;
++		WARN_ON_ONCE(cpu_idle_force_poll < 0);
++	}
++}
++
++#ifdef CONFIG_GENERIC_IDLE_POLL_SETUP
++static int __init cpu_idle_poll_setup(char *__unused)
++{
++	cpu_idle_force_poll = 1;
++	return 1;
++}
++__setup("nohlt", cpu_idle_poll_setup);
++
++static int __init cpu_idle_nopoll_setup(char *__unused)
++{
++	cpu_idle_force_poll = 0;
++	return 1;
++}
++__setup("hlt", cpu_idle_nopoll_setup);
++#endif
++
++static inline int cpu_idle_poll(void)
++{
++	trace_cpu_idle_rcuidle(0, smp_processor_id());
++	local_irq_enable();
++	while (!need_resched())
++		cpu_relax();
++	trace_cpu_idle_rcuidle(PWR_EVENT_EXIT, smp_processor_id());
++	return 1;
++}
++
++/* Weak implementations for optional arch specific functions */
++void __weak arch_cpu_idle_prepare(void) { }
++void __weak arch_cpu_idle_enter(void) { }
++void __weak arch_cpu_idle_exit(void) { }
++void __weak arch_cpu_idle_dead(void) { }
++void __weak arch_cpu_idle(void)
++{
++	cpu_idle_force_poll = 1;
++}
++
++/*
++ * Generic idle loop implementation
++ */
++static void cpu_idle_loop(void)
++{
++	while (1) {
++		tick_nohz_idle_enter();
++
++		while (!need_resched()) {
++			check_pgt_cache();
++			rmb();
++
++			if (cpu_is_offline(smp_processor_id()))
++				arch_cpu_idle_dead();
++
++			local_irq_disable();
++			arch_cpu_idle_enter();
++
++			if (cpu_idle_force_poll) {
++				cpu_idle_poll();
++			} else {
++				current_clr_polling();
++				if (!need_resched()) {
++					stop_critical_timings();
++					rcu_idle_enter();
++					arch_cpu_idle();
++					WARN_ON_ONCE(irqs_disabled());
++					rcu_idle_exit();
++					start_critical_timings();
++				} else {
++					local_irq_enable();
++				}
++				current_set_polling();
++			}
++			arch_cpu_idle_exit();
++		}
++		tick_nohz_idle_exit();
++		schedule_preempt_disabled();
++	}
++}
++
++void cpu_startup_entry(enum cpuhp_state state)
++{
++	current_set_polling();
++	arch_cpu_idle_prepare();
++	cpu_idle_loop();
++}
++#endif
