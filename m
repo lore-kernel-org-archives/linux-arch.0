@@ -1,26 +1,38 @@
-From: "Barr Guillermo Chavez Esq" <guillermocha1@aol.com>
-Subject: Re:Just read your email and this is my response.
-Date: Tue, 9 Apr 2013 18:21:08 -0000
-Message-ID: <19719bbd0a5d100af86699f5572107d3.squirrel@dzlnx02.cloudapp.net>
-Reply-To: guillermocha1@aol.com
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH v2 2/3] mutex: add support for reservation style locks, v2
+Date: Tue, 9 Apr 2013 18:18:30 -0400
+Message-ID: <20130409221830.GA20739@home.goodmis.org>
+References: <20130228102452.15191.22673.stgit@patser>
+ <20130228102502.15191.14146.stgit@patser>
+ <1364900432.18374.24.camel@laptop>
+ <515AF1C1.7080508@canonical.com>
+ <1364921954.20640.22.camel@laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from [168.63.98.182] ([168.63.98.182]:1296 "EHLO
-	mail.dzlnx02.cloudapp.net" rhost-flags-FAIL-FAIL-OK-FAIL)
-	by vger.kernel.org with ESMTP id S934470Ab3DIV3r (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Apr 2013 17:29:47 -0400
+Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:3973 "EHLO
+	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750943Ab3DIWSe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Apr 2013 18:18:34 -0400
+Content-Disposition: inline
+In-Reply-To: <1364921954.20640.22.camel@laptop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Maarten Lankhorst <maarten.lankhorst@canonical.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, daniel.vetter@ffwll.ch, x86@kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robclark@gmail.com, tglx@linutronix.de, mingo@elte.hu, linux-media@vger.kernel.org
 
+On Tue, Apr 02, 2013 at 06:59:14PM +0200, Peter Zijlstra wrote:
+> 
+> So how about we call the thing something like:
+> 
+>   struct ww_mutex; /* wound/wait */
 
+Reading this I can't help but think of Elmer Fudd saying "Round Robin"
+as "Wound Wobin"
 
+-- Steve
 
-Kindly bear with me for contacting you this way.Mr name is Mr Guillermo
-Chavez and am writing you to kindly reply me once you get this message it
-is about one of my late friend who died in the ongoing war in SYRIA he was
-in the engineering an oil legal dealer who was also my client and i his
-legal Lawyer to his business, i will explain further if you show your
-interest by responding to me through this my personal email
-(gchavez2013@aim.com)
+> 
+>   int mutex_wound_lock(struct ww_mutex *); /* returns -EDEADLK */
+>   int mutex_wait_lock(struct ww_mutex *);  /* does not fail */
+> 
