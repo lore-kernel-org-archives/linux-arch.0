@@ -1,59 +1,58 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH 1/7] x86: don't show trace beyond show_stack(NULL, NULL)
-Date: Wed, 10 Apr 2013 12:35:08 +0200
-Message-ID: <20130410103508.GD28505@gmail.com>
-References: <1365016497-32033-1-git-send-email-tj@kernel.org>
- <1365016497-32033-2-git-send-email-tj@kernel.org>
- <20130408160811.GA20612@gmail.com>
- <20130408175734.GH3021@htj.dyndns.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH/RFC] m68k: Add -ffreestanding to KBUILD_CFLAGS
+Date: Wed, 10 Apr 2013 12:59:44 +0200
+Message-ID: <CAMuHMdXEvLMz5rRjQrhENxJ6UHRnPCtzyNg=hqitspuY88G7sA@mail.gmail.com>
+References: <1365585879-5321-1-git-send-email-geert@linux-m68k.org>
+	<51653C5D.4060408@suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ee0-f53.google.com ([74.125.83.53]:50364 "EHLO
-	mail-ee0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S936214Ab3DJKfN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Apr 2013 06:35:13 -0400
-Content-Disposition: inline
-In-Reply-To: <20130408175734.GH3021@htj.dyndns.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Tejun Heo <tj@kernel.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@redhat.com, x86@kernel.org, rth@twiddle.net, linux@arm.linux.org.uk, msalter@redhat.com, starvik@axis.com, dhowells@redhat.com, tony.luck@intel.com, benh@kernel.crashing.org, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, jonas@southpole.se, rkuo@codeaurora.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, davem@davemloft.net, lethal@linux-sh.org, vgupta@synopsys.com, chris@zankel.net, cmetcalf@tilera.com, ysato@users.sourceforge.jp, gxt@mprc.pku.edu.cn, jdike@addtoit.com
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <51653C5D.4060408@suse.cz>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Michal Marek <mmarek@suse.cz>
+Cc: linux-m68k <linux-m68k@lists.linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andi Kleen <andi@firstfloor.org>
+List-Id: linux-arch.vger.kernel.org
 
+On Wed, Apr 10, 2013 at 12:18 PM, Michal Marek <mmarek@suse.cz> wrote:
+> (Added Andi to CC)
+>
+> On 10.4.2013 11:24, Geert Uytterhoeven wrote:
+> [...]
+>> E.g. gcc turned
+>>
+>>     strncat(name, "%d", 2);
+>>
+>> into a call to strlen() and a 16-bit store, causing a link failure, as
+>> arch/m68k/include/asm/string.h provides strlen() using a macro:
+>>
+>>     ERROR: "strlen" [net/ipv4/ip_tunnel.ko] undefined!
+> [...]
+>> QUESTION: Should we re-enable -ffreestanding in the main Makefile instead?
+>>
+>> It was removed in
+>>
+>> commit 6edfba1b33c701108717f4e036320fc39abe1912
+>> Author: Andi Kleen <ak@suse.de>
+>> Date:   Sat Mar 25 16:29:49 2006 +0100
+>>
+>>     [PATCH] x86_64: Don't define string functions to builtin
+>
+> My understanding is, that with -fnobuiltin, the compiler is not allowed
+> to make assumptions about functions if it does not see their definition,
+> even if they resemble standard functions. E.g. on x86_64, strlen() is
+> out-of-line, so gcc would have to assume, that strcmp() has side
+> effects. How about just naming the m68k inline function 'strlen'?
 
-* Tejun Heo <tj@kernel.org> wrote:
+Having an inline function named "strlen" is not sufficient, as it needs an
+(exported) symbol named "strlen" at link time or module load time.
 
-> Hello, Ingo.
-> 
-> On Mon, Apr 08, 2013 at 06:08:11PM +0200, Ingo Molnar wrote:
-> > >  void show_stack(struct task_struct *task, unsigned long *sp)
-> > >  {
-> > > -	show_stack_log_lvl(task, NULL, sp, 0, "");
-> > > +	unsigned long bp = 0;
-> > > +	unsigned long stack;
-> > > +
-> > > +	/*
-> > > +	 * Stack frames below this one aren't interesting.  Don't show them
-> > > +	 * if we're printing for %current.
-> > > +	 */
-> > > +	if (!sp && (!task || task == current)) {
-> > > +		sp = &stack;
-> > > +		bp = stack_frame(current, NULL);
-> > > +	}
-> > > +
-> > > +	show_stack_log_lvl(task, NULL, sp, bp, "");
-> > 
-> > Hm, show_regs() has a similar problem AFAICS.
-> 
-> Doesn't seem so.  show_regs() have pt_regs which gets passed to
-> dump_trace() and then used to determine the frame being dumped.
-> e.g. BUG() takes pt_regs from the faulting frame and thus doesn't show
-> anything beyond it.
+Gr{oetje,eeting}s,
 
-Ok - but my other observation probably holds, that the bp == 0 special case in 
-dump_trace() should be changed to a [printk()-ed] warning or so? No user will pass 
-in bp == 0 legitimately, AFAICS.
+                        Geert
 
-Thanks,
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-	Ingo
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
