@@ -1,25 +1,27 @@
-From: David Miller <davem@davemloft.net>
+From: Andi Kleen <andi@firstfloor.org>
 Subject: Re: [PATCH/RFC] m68k: Add -ffreestanding to KBUILD_CFLAGS
-Date: Wed, 10 Apr 2013 13:06:23 -0400 (EDT)
-Message-ID: <20130410.130623.1470172183056352815.davem@davemloft.net>
+Date: Wed, 10 Apr 2013 19:48:59 +0200
+Message-ID: <20130410174859.GE16732@two.firstfloor.org>
 References: <1365585879-5321-1-git-send-email-geert@linux-m68k.org>
+ <51653C5D.4060408@suse.cz>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <1365585879-5321-1-git-send-email-geert@linux-m68k.org>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: geert@linux-m68k.org
-Cc: linux-m68k@lists.linux-m68k.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <51653C5D.4060408@suse.cz>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Michal Marek <mmarek@suse.cz>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k@lists.linux-m68k.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, Andi Kleen <andi@firstfloor.org>
 List-Id: linux-arch.vger.kernel.org
 
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Wed, 10 Apr 2013 11:24:39 +0200
+> My understanding is, that with -fnobuiltin, the compiler is not allowed
+> to make assumptions about functions if it does not see their definition,
+> even if they resemble standard functions. E.g. on x86_64, strlen() is
+> out-of-line, so gcc would have to assume, that strcmp() has side
+> effects. How about just naming the m68k inline function 'strlen'?
 
-> Without -ffreestanding, gcc may replace calls to standard C library
-> functions by calls to other standard C library functions and/or inline
-> code.  This may cause link errors if the replacement code calls a standard
-> C library function that's implemented as a macro in the kernel.
+You should always supply an out of line fallback version with 
+the standard name. The easiest way is to define the right
+define so that lib/string.c does it.
 
-I think you should instead implement the library functions that gcc might
-emit during a build.
+-Andi
