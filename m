@@ -1,77 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ia0-f176.google.com ([209.85.210.176]:64608 "EHLO
-	mail-ia0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S935579Ab3DJI1p (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Apr 2013 04:27:45 -0400
-Received: by mail-ia0-f176.google.com with SMTP id i1so186050iaa.21
-        for <linux-arch@vger.kernel.org>; Wed, 10 Apr 2013 01:27:45 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <20130409222707.GB20739@home.goodmis.org>
-References: <20130228102452.15191.22673.stgit@patser>
-	<20130228102502.15191.14146.stgit@patser>
-	<1364900432.18374.24.camel@laptop>
-	<515AF1C1.7080508@canonical.com>
-	<1364921954.20640.22.camel@laptop>
-	<1365076908.2609.94.camel@laptop>
-	<20130404133123.GW2228@phenom.ffwll.local>
-	<1365093516.2609.109.camel@laptop>
-	<20130409222707.GB20739@home.goodmis.org>
-Date: Wed, 10 Apr 2013 10:27:44 +0200
-Message-ID: <CAKMK7uH7mW9HK6_ZO8OhwQLBUJE3LBizweth1cvZdjVBzOGa=Q@mail.gmail.com>
-Subject: Re: [PATCH v2 2/3] mutex: add support for reservation style locks, v2
-From: Daniel Vetter <daniel.vetter@ffwll.ch>
-Content-Type: text/plain; charset=ISO-8859-1
+Received: from jacques.telenet-ops.be ([195.130.132.50]:48714 "EHLO
+	jacques.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752835Ab3DJJYs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Apr 2013 05:24:48 -0400
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: [PATCH/RFC] m68k: Add -ffreestanding to KBUILD_CFLAGS
+Date: Wed, 10 Apr 2013 11:24:39 +0200
+Message-ID: <1365585879-5321-1-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Maarten Lankhorst <maarten.lankhorst@canonical.com>, linux-arch@vger.kernel.org, x86@kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, dri-devel <dri-devel@lists.freedesktop.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, rob clark <robclark@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
-Message-ID: <20130410082744.TAE4NrUwTT7XsjddTVq71zpqqCJvFjcoyCLBfA-Jt7M@z>
+To: linux-m68k@lists.linux-m68k.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>
+Message-ID: <20130410092439.P40zZsUUt2x1swlaVXHeMBGpTx6M8d5rITy_0-pGCz4@z>
 
-On Wed, Apr 10, 2013 at 12:27 AM, Steven Rostedt <rostedt@goodmis.org> wrote:
-> On Thu, Apr 04, 2013 at 06:38:36PM +0200, Peter Zijlstra wrote:
->> On Thu, 2013-04-04 at 15:31 +0200, Daniel Vetter wrote:
->> > Hm, I guess your aim with the TASK_DEADLOCK wakeup is to bound the
->> > wait
->> > times of older task.
->>
->> No, imagine the following:
->>
->> struct ww_mutex A, B;
->> struct mutex C;
->>
->>       task-O  task-Y  task-X
->>               A
->>               B
->>                       C
->>               C
->>       B
->>
->> At this point O finds that Y owns B and thus we want to make Y 'yield'
->> B to make allow B progress. Since Y is blocked, we'll send a wakeup.
->> However Y is blocked on a different locking primitive; one that doesn't
->> collaborate in the -EDEADLK scheme therefore we don't want the wakeup to
->> succeed.
->
-> I'm confused to why the above is a problem. Task-X will eventually
-> release C, and then Y will release B and O will get to continue. Do we
-> have to drop them once the owner is blocked? Can't we follow the chain
-> like the PI code does?
+Without -ffreestanding, gcc may replace calls to standard C library
+functions by calls to other standard C library functions and/or inline
+code.  This may cause link errors if the replacement code calls a standard
+C library function that's implemented as a macro in the kernel.
 
-Just waiting until every task already holding a lock completes and
-unlucks it is indeed a viable solution - it's the currently
-implemented algorithm in ttm and Maarten's current patches.
+E.g. gcc turned
 
-The nice thing with Peter's wakeup idea on top is:
-- It bounds blocked times.
-- And (at least I think so) it's the key thing making PI boosting
-possible without any ugly PI inversion deadlocks happening. See
+    strncat(name, "%d", 2);
 
-Message-ID: <CAKMK7uEUdtiDDCRPwpiumkrST6suFY7YuQcPAXR_nJ0XHKzsAw@mail.gmail.com>
+into a call to strlen() and a 16-bit store, causing a link failure, as
+arch/m68k/include/asm/string.h provides strlen() using a macro:
 
-for my current reasoning about this (I have not yet managed to poke a
-hole into it).
--Daniel
---
-Daniel Vetter
-Software Engineer, Intel Corporation
-+41 (0) 79 365 57 48 - http://blog.ffwll.ch
+    ERROR: "strlen" [net/ipv4/ip_tunnel.ko] undefined!
+
+In addition, this saves ca. 64 bytes of text on a typical kernel build.
+
+Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+---
+http://kisskb.ellerman.id.au/kisskb/buildresult/8462108/
+
+QUESTION: Should we re-enable -ffreestanding in the main Makefile instead?
+
+It was removed in
+
+commit 6edfba1b33c701108717f4e036320fc39abe1912
+Author: Andi Kleen <ak@suse.de>
+Date:   Sat Mar 25 16:29:49 2006 +0100
+
+    [PATCH] x86_64: Don't define string functions to builtin
+
+    gcc should handle this anyways, and it causes problems when
+    sprintf is turned into strcpy by gcc behind our backs and
+    the C fallback version of strcpy is actually defining __builtin_strcpy
+
+    Then drop -ffreestanding from the main Makefile because it isn't
+    needed anymore and implies -fno-builtin, which is wrong now.
+    (it was only added for x86-64, so dropping it should be safe)
+
+    Noticed by Roman Zippel
+
+    Cc: Roman Zippel <zippel@linux-m68k.org>
+    Signed-off-by: Andi Kleen <ak@suse.de>
+    Signed-off-by: Linus Torvalds <torvalds@osdl.org>
+
+Subsequently, it got re-enabled for mips, sh, x86-32, um/x86, xtensa, and
+score.
+
+ arch/m68k/Makefile |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/arch/m68k/Makefile b/arch/m68k/Makefile
+index 2f02acf..8e06a38 100644
+--- a/arch/m68k/Makefile
++++ b/arch/m68k/Makefile
+@@ -58,7 +58,7 @@ cpuflags-$(CONFIG_M5206e)	:= $(call cc-option,-mcpu=5206e,-m5200)
+ cpuflags-$(CONFIG_M5206)	:= $(call cc-option,-mcpu=5206,-m5200)
+ 
+ KBUILD_AFLAGS += $(cpuflags-y)
+-KBUILD_CFLAGS += $(cpuflags-y) -pipe
++KBUILD_CFLAGS += $(cpuflags-y) -pipe -ffreestanding
+ ifdef CONFIG_MMU
+ # without -fno-strength-reduce the 53c7xx.c driver fails ;-(
+ KBUILD_CFLAGS += -fno-strength-reduce -ffixed-a2
+-- 
+1.7.0.4
+
