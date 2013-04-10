@@ -1,57 +1,45 @@
-From: Daniel Vetter <daniel@ffwll.ch>
-Subject: Re: [PATCH v2 2/3] mutex: add support for reservation style locks, v2
-Date: Wed, 10 Apr 2013 11:33:22 +0200
-Message-ID: <20130410093322.GH27612@phenom.ffwll.local>
-References: <20130228102452.15191.22673.stgit@patser>
- <20130228102502.15191.14146.stgit@patser>
- <1364900432.18374.24.camel@laptop>
- <515AF1C1.7080508@canonical.com>
- <1364921954.20640.22.camel@laptop>
- <1365076908.2609.94.camel@laptop>
- <20130404133123.GW2228@phenom.ffwll.local>
- <1365093662.2609.111.camel@laptop>
- <20130409222808.GC20739@home.goodmis.org>
+From: Michal Marek <mmarek@suse.cz>
+Subject: Re: [PATCH/RFC] m68k: Add -ffreestanding to KBUILD_CFLAGS
+Date: Wed, 10 Apr 2013 12:18:05 +0200
+Message-ID: <51653C5D.4060408@suse.cz>
+References: <1365585879-5321-1-git-send-email-geert@linux-m68k.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ee0-f52.google.com ([74.125.83.52]:37556 "EHLO
-	mail-ee0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755014Ab3DJJaY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Apr 2013 05:30:24 -0400
-Received: by mail-ee0-f52.google.com with SMTP id d17so121512eek.39
-        for <linux-arch@vger.kernel.org>; Wed, 10 Apr 2013 02:30:23 -0700 (PDT)
-Content-Disposition: inline
-In-Reply-To: <20130409222808.GC20739@home.goodmis.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Daniel Vetter <daniel@ffwll.ch>, Maarten Lankhorst <maarten.lankhorst@canonical.com>, linux-arch@vger.kernel.org, daniel.vetter@ffwll.ch, x86@kernel.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robclark@gmail.com, tglx@linutronix.de, mingo@elte.hu, linux-media@vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-2
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <1365585879-5321-1-git-send-email-geert@linux-m68k.org>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: linux-m68k@lists.linux-m68k.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, Andi Kleen <andi@firstfloor.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Apr 09, 2013 at 06:28:08PM -0400, Steven Rostedt wrote:
-> On Thu, Apr 04, 2013 at 06:41:02PM +0200, Peter Zijlstra wrote:
-> > On Thu, 2013-04-04 at 15:31 +0200, Daniel Vetter wrote:
-> > > The thing is now that you're not expected to hold these locks for a
-> > > long
-> > > time - if you need to synchronously stall while holding a lock
-> > > performance
-> > > will go down the gutters anyway. And since most current
-> > > gpus/co-processors
-> > > still can't really preempt fairness isn't that high a priority,
-> > > either.
-> > > So we didn't think too much about that.
-> > 
-> > Yeah but you're proposing a new synchronization primitive for the core
-> > kernel.. all such 'fun' details need to be considered, not only those
-> > few that bear on the one usecase.
+(Added Andi to CC)
+
+On 10.4.2013 11:24, Geert Uytterhoeven wrote:
+[...]
+> E.g. gcc turned
 > 
-> Which bares the question, what other use cases are there?
+>     strncat(name, "%d", 2);
+> 
+> into a call to strlen() and a 16-bit store, causing a link failure, as
+> arch/m68k/include/asm/string.h provides strlen() using a macro:
+> 
+>     ERROR: "strlen" [net/ipv4/ip_tunnel.ko] undefined!
+[...]
+> QUESTION: Should we re-enable -ffreestanding in the main Makefile instead?
+> 
+> It was removed in
+> 
+> commit 6edfba1b33c701108717f4e036320fc39abe1912
+> Author: Andi Kleen <ak@suse.de>
+> Date:   Sat Mar 25 16:29:49 2006 +0100
+> 
+>     [PATCH] x86_64: Don't define string functions to builtin
 
-Tbh I don't see any other either - but I agree with Peter and thinking
-things through and making the api a bit more generic seems to help in
-clarifying the semantics. Reminds me that I still need to draw a few
-diagrams ;-)
--Daniel
--- 
-Daniel Vetter
-Software Engineer, Intel Corporation
-+41 (0) 79 365 57 48 - http://blog.ffwll.ch
+My understanding is, that with -fnobuiltin, the compiler is not allowed
+to make assumptions about functions if it does not see their definition,
+even if they resemble standard functions. E.g. on x86_64, strlen() is
+out-of-line, so gcc would have to assume, that strcmp() has side
+effects. How about just naming the m68k inline function 'strlen'?
+
+Michal
