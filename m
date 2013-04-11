@@ -1,57 +1,50 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH v2 0/4] remove GENERIC_GPIO
-Date: Thu, 11 Apr 2013 19:35:37 +0530
-Message-ID: <5166C331.7060404@synopsys.com>
-References: <1365445950-5736-1-git-send-email-gnurou@gmail.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH/RFC] m68k: Add -ffreestanding to KBUILD_CFLAGS
+Date: Thu, 11 Apr 2013 20:04:31 +0200
+Message-ID: <CAMuHMdXJWo=R28rexHJZGof==CgEa0gbC3yr18iPs-tAkv2FZQ@mail.gmail.com>
+References: <1365585879-5321-1-git-send-email-geert@linux-m68k.org>
+	<51653C5D.4060408@suse.cz>
+	<CAMuHMdXEvLMz5rRjQrhENxJ6UHRnPCtzyNg=hqitspuY88G7sA@mail.gmail.com>
+	<20130410122611.GB17541@sepie.suse.cz>
+	<CAMuHMdUHiiBEZm7eFYtL3PqCXF6PjscbFKjiJ33BEwQ+YLKOXQ@mail.gmail.com>
+	<20130410152229.GC17541@sepie.suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtp3.synopsys.com ([198.182.44.81]:44886 "EHLO
-	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751464Ab3DKOF4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Apr 2013 10:05:56 -0400
-In-Reply-To: <1365445950-5736-1-git-send-email-gnurou@gmail.com>
+Received: from mail-ie0-f173.google.com ([209.85.223.173]:37955 "EHLO
+	mail-ie0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S936017Ab3DKSEc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Apr 2013 14:04:32 -0400
+In-Reply-To: <20130410152229.GC17541@sepie.suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexandre Courbot <gnurou@gmail.com>
-Cc: Grant Likely <grant.likely@secretlab.ca>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Alexandre Courbot <acourbot@nvidia.com>, "christian.ruppert@abilis.com" <christian.ruppert@abilis.com>, Pierrick Hascoet <pierrick.hascoet@abilis.com>, sascha leuenberger <sascha.leuenberger@abilis.com>
+To: Michal Marek <mmarek@suse.cz>
+Cc: linux-m68k <linux-m68k@lists.linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andi Kleen <andi@firstfloor.org>
 
-Hi Alexandre,
+On Wed, Apr 10, 2013 at 5:22 PM, Michal Marek <mmarek@suse.cz> wrote:
+> Subject: [PATCH] m68k: Remove inline strlen() implementation
+>
+> GCC can replace a strncat() call with constant second argument into a
+> strlen + store, which results in a link error:
+>
+> ERROR: "strlen" [net/ipv4/ip_tunnel.ko] undefined!
+>
+> The inline function is a simple for loop in C. Other architectures
+> either use an asm optimized variant, or use the generic function from
+> lib/string.c.
+>
+> Reported-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> Signed-off-by: Michal Marek <mmarek@suse.cz>
 
-On 04/09/2013 12:02 AM, Alexandre Courbot wrote:
-> From: Alexandre Courbot <acourbot@nvidia.com>
-> 
-> Second version, based on -next this time, of the GENERIC_GPIO removal patches.
-> Considering there is only a short amount of time before 3.10 merge window opens,
-> I hope this version will be considered for inclusion, otherwise we'd end up
-> with an half-baked removal or I will have to rebase everything for 3.11. :(
-> 
-> Grant, if this is ok with you, how shall we have this integrated into your
-> branch? Half of this has been tested in my -next branch, and the present patches
-> make the next half, should I resend you the whole series based on -next and
-> withdraw my branch? This is a fast moving target, so we should try and shoot
-> that duck as soon as we can! :)
-> 
-> Changes from v1:
-> * Rebased on -next
-> * Added Chinese documentation update from Chen Baozi
-> 
-> Alexandre Courbot (3):
->   gpio: convert selectors of GENERIC_GPIO to GPIOLIB
->   gpio: remove GENERIC_GPIO config option
->   gpio: rename CONFIG_GPIOLIB to CONFIG_GPIO
-> 
+Thanks, this one works. Let me do some measurements...
 
-I'm the maintainer for arch/arc.
+Gr{oetje,eeting}s,
 
-For 3.10, we are going to have a sub-platform included which enables GPIO.
-However given that your patch is still not in a maintainer tree I'm going to apply
-the platform patch with GENERIC_GPIO and it would show up in -next as well. But
-don't be alarmed - to align with your work, Christian or you can then possibly
-apply a patch to make arch/arc/* confirm to your work - preferably via your
-tree/patchseries  - OK ?
+                        Geert
 
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-Thx,
--Vineet
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
