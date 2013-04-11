@@ -1,190 +1,57 @@
-From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH UPDATED v2 1/7] x86: don't show trace into stacktrace
- machinery
-Date: Wed, 10 Apr 2013 14:18:17 -0700
-Message-ID: <20130410211817.GH17641@mtj.dyndns.org>
-References: <1365016497-32033-1-git-send-email-tj@kernel.org>
- <1365016497-32033-2-git-send-email-tj@kernel.org>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH v2 0/4] remove GENERIC_GPIO
+Date: Thu, 11 Apr 2013 19:35:37 +0530
+Message-ID: <5166C331.7060404@synopsys.com>
+References: <1365445950-5736-1-git-send-email-gnurou@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qa0-f46.google.com ([209.85.216.46]:60283 "EHLO
-	mail-qa0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759399Ab3DJVSZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Apr 2013 17:18:25 -0400
-Content-Disposition: inline
-In-Reply-To: <1365016497-32033-2-git-send-email-tj@kernel.org>
+Received: from us01smtp3.synopsys.com ([198.182.44.81]:44886 "EHLO
+	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751464Ab3DKOF4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Apr 2013 10:05:56 -0400
+In-Reply-To: <1365445950-5736-1-git-send-email-gnurou@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@redhat.com, x86@kernel.org
-Cc: rth@twiddle.net, linux@arm.linux.org.uk, msalter@redhat.com, starvik@axis.com, dhowells@redhat.com, tony.luck@intel.com, benh@kernel.crashing.org, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, jonas@southpole.se, rkuo@codeaurora.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, davem@davemloft.net, lethal@linux-sh.org, vgupta@synopsys.com, chris@zankel.net, cmetcalf@tilera.com, ysato@users.sourceforge.jp, gxt@mprc.pku.edu.cn, jdike@addtoit.com
+To: Alexandre Courbot <gnurou@gmail.com>
+Cc: Grant Likely <grant.likely@secretlab.ca>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Alexandre Courbot <acourbot@nvidia.com>, "christian.ruppert@abilis.com" <christian.ruppert@abilis.com>, Pierrick Hascoet <pierrick.hascoet@abilis.com>, sascha leuenberger <sascha.leuenberger@abilis.com>
 
-From d2a454b1b1b93e8a8ecc3639f6641b100dbddfe5 Mon Sep 17 00:00:00 2001
-From: Tejun Heo <tj@kernel.org>
-Date: Wed, 10 Apr 2013 14:16:51 -0700
+Hi Alexandre,
 
-When dumping stacktrace, frames of the stacktrace code itself aren't
-interesting.  Implement dump_trace_current_frame() helper which can be
-used by (eventual) users of dump_trace() to determine the stack and
-frame pointers of the current frame so that frames beyond that point
-are ignored by dump_trace().
+On 04/09/2013 12:02 AM, Alexandre Courbot wrote:
+> From: Alexandre Courbot <acourbot@nvidia.com>
+> 
+> Second version, based on -next this time, of the GENERIC_GPIO removal patches.
+> Considering there is only a short amount of time before 3.10 merge window opens,
+> I hope this version will be considered for inclusion, otherwise we'd end up
+> with an half-baked removal or I will have to rebase everything for 3.11. :(
+> 
+> Grant, if this is ok with you, how shall we have this integrated into your
+> branch? Half of this has been tested in my -next branch, and the present patches
+> make the next half, should I resend you the whole series based on -next and
+> withdraw my branch? This is a fast moving target, so we should try and shoot
+> that duck as soon as we can! :)
+> 
+> Changes from v1:
+> * Rebased on -next
+> * Added Chinese documentation update from Chen Baozi
+> 
+> Alexandre Courbot (3):
+>   gpio: convert selectors of GENERIC_GPIO to GPIOLIB
+>   gpio: remove GENERIC_GPIO config option
+>   gpio: rename CONFIG_GPIOLIB to CONFIG_GPIO
+> 
 
-show_stack() and save_stack_trace[_tsk]() are updated to use the
-helper and now ignore frames beyond their own.  This brings
-show_stack(NULL, NULL)'s behavior in line with dump_stack().
+I'm the maintainer for arch/arc.
 
-Also add dump_trace_warn_current_frame() which is used by dump_trace()
-implementations to whine about callers which dump %current but don't
-specify the frame to dump to catch mistakes.
+For 3.10, we are going to have a sub-platform included which enables GPIO.
+However given that your patch is still not in a maintainer tree I'm going to apply
+the platform patch with GENERIC_GPIO and it would show up in -next as well. But
+don't be alarmed - to align with your work, Christian or you can then possibly
+apply a patch to make arch/arc/* confirm to your work - preferably via your
+tree/patchseries  - OK ?
 
-The original patch just updated show_stack().  Applying it to other
-users and addition of warning are suggested by Ingo.
 
-v2: Removed double negation in the warning message as suggested by
-    Borislav.
-
-Signed-off-by: Tejun Heo <tj@kernel.org>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Borislav Petkov <bp@alien8.de>
----
- arch/x86/include/asm/stacktrace.h | 35 +++++++++++++++++++++++++++++++++++
- arch/x86/kernel/dumpstack.c       | 11 ++++++++++-
- arch/x86/kernel/dumpstack_32.c    |  2 ++
- arch/x86/kernel/dumpstack_64.c    |  2 ++
- arch/x86/kernel/stacktrace.c      | 12 ++++++++++--
- 5 files changed, 59 insertions(+), 3 deletions(-)
-
-diff --git a/arch/x86/include/asm/stacktrace.h b/arch/x86/include/asm/stacktrace.h
-index 70bbe39..c610ab1 100644
---- a/arch/x86/include/asm/stacktrace.h
-+++ b/arch/x86/include/asm/stacktrace.h
-@@ -73,14 +73,49 @@ stack_frame(struct task_struct *task, struct pt_regs *regs)
- 	/* bp is the last reg pushed by switch_to */
- 	return *(unsigned long *)task->thread.sp;
- }
-+
-+/* sanity check helper for dump_trace(), see dump_trace_current_frame() */
-+static inline void
-+dump_trace_warn_current_frame(struct task_struct *task, struct pt_regs *regs,
-+			      unsigned long bp)
-+{
-+	if ((!task || task == current) && !regs && !bp)
-+		printk(KERN_WARNING "dump_trace: %pf specified neither frame nor regs for %%current\n",
-+		       __builtin_return_address(0));
-+}
- #else
- static inline unsigned long
- stack_frame(struct task_struct *task, struct pt_regs *regs)
- {
- 	return 0;
- }
-+
-+static inline void
-+dump_trace_warn_current_frame(struct task_struct *task, struct pt_regs *regs,
-+			      unsigned long bp)
-+{ }
- #endif
- 
-+/**
-+ * dump_trace_current_frame - stack and frame pointers for the current frame
-+ * @sp: output argument for the stack pointer
-+ * @bp: output argument for the frame pointer
-+ *
-+ * When dumping %current, dump_trace() wants its caller to specify the top
-+ * frame so that it doesn't end up showing unncessary traces into stack
-+ * dumping machinery.  This helper can be used to determine @sp and @bp to
-+ * pass to dump_trace() when dumping %current.  This functions is
-+ * __always_inline so that it records the frame of the caller.
-+ */
-+static __always_inline
-+void dump_trace_current_frame(unsigned long **sp, unsigned long *bp)
-+{
-+	unsigned long stack;
-+
-+	*sp = &stack;
-+	*bp = stack_frame(current, NULL);
-+}
-+
- extern void
- show_trace_log_lvl(struct task_struct *task, struct pt_regs *regs,
- 		   unsigned long *stack, unsigned long bp, char *log_lvl);
-diff --git a/arch/x86/kernel/dumpstack.c b/arch/x86/kernel/dumpstack.c
-index c8797d5..6e5e3ab 100644
---- a/arch/x86/kernel/dumpstack.c
-+++ b/arch/x86/kernel/dumpstack.c
-@@ -176,7 +176,16 @@ void show_trace(struct task_struct *task, struct pt_regs *regs,
- 
- void show_stack(struct task_struct *task, unsigned long *sp)
- {
--	show_stack_log_lvl(task, NULL, sp, 0, "");
-+	unsigned long bp = 0;
-+
-+	/*
-+	 * Stack frames below this one aren't interesting.  Don't show them
-+	 * if we're printing for %current.
-+	 */
-+	if (!sp && (!task || task == current))
-+		dump_trace_current_frame(&sp, &bp);
-+
-+	show_stack_log_lvl(task, NULL, sp, bp, "");
- }
- 
- /*
-diff --git a/arch/x86/kernel/dumpstack_32.c b/arch/x86/kernel/dumpstack_32.c
-index 1038a41..8cc7c4a 100644
---- a/arch/x86/kernel/dumpstack_32.c
-+++ b/arch/x86/kernel/dumpstack_32.c
-@@ -23,6 +23,8 @@ void dump_trace(struct task_struct *task, struct pt_regs *regs,
- {
- 	int graph = 0;
- 
-+	dump_trace_warn_current_frame(task, regs, bp);
-+
- 	if (!task)
- 		task = current;
- 
-diff --git a/arch/x86/kernel/dumpstack_64.c b/arch/x86/kernel/dumpstack_64.c
-index b653675..349a8a9 100644
---- a/arch/x86/kernel/dumpstack_64.c
-+++ b/arch/x86/kernel/dumpstack_64.c
-@@ -123,6 +123,8 @@ void dump_trace(struct task_struct *task, struct pt_regs *regs,
- 	int graph = 0;
- 	unsigned long dummy;
- 
-+	dump_trace_warn_current_frame(task, regs, bp);
-+
- 	if (!task)
- 		task = current;
- 
-diff --git a/arch/x86/kernel/stacktrace.c b/arch/x86/kernel/stacktrace.c
-index fdd0c64..0908a50 100644
---- a/arch/x86/kernel/stacktrace.c
-+++ b/arch/x86/kernel/stacktrace.c
-@@ -60,7 +60,10 @@ static const struct stacktrace_ops save_stack_ops_nosched = {
-  */
- void save_stack_trace(struct stack_trace *trace)
- {
--	dump_trace(current, NULL, NULL, 0, &save_stack_ops, trace);
-+	unsigned long *sp, bp;
-+
-+	dump_trace_current_frame(&sp, &bp);
-+	dump_trace(current, NULL, sp, bp, &save_stack_ops, trace);
- 	if (trace->nr_entries < trace->max_entries)
- 		trace->entries[trace->nr_entries++] = ULONG_MAX;
- }
-@@ -75,7 +78,12 @@ void save_stack_trace_regs(struct pt_regs *regs, struct stack_trace *trace)
- 
- void save_stack_trace_tsk(struct task_struct *tsk, struct stack_trace *trace)
- {
--	dump_trace(tsk, NULL, NULL, 0, &save_stack_ops_nosched, trace);
-+	unsigned long *sp = NULL, bp = 0;
-+
-+	if (!tsk || tsk == current)
-+		dump_trace_current_frame(&sp, &bp);
-+
-+	dump_trace(tsk, NULL, sp, bp, &save_stack_ops_nosched, trace);
- 	if (trace->nr_entries < trace->max_entries)
- 		trace->entries[trace->nr_entries++] = ULONG_MAX;
- }
--- 
-1.8.1.4
+Thx,
+-Vineet
