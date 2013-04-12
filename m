@@ -1,42 +1,96 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH v2] sparc: Use generic idle loop
-Date: Fri, 12 Apr 2013 14:58:23 -0400 (EDT)
-Message-ID: <20130412.145823.1608861418189836214.davem@davemloft.net>
-References: <20130408.152449.169732563685022388.davem@davemloft.net>
-	<20130411193850.GA2330@merkur.ravnborg.org>
-	<alpine.LFD.2.02.1304122055210.21884@ionos>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH/RFC] m68k: Add -ffreestanding to KBUILD_CFLAGS
+Date: Fri, 12 Apr 2013 21:47:46 +0200
+Message-ID: <CAMuHMdXTKTVb_QLUn3xuA0tMThxC1mR331jU4O11dG4rNyWzRw@mail.gmail.com>
+References: <1365585879-5321-1-git-send-email-geert@linux-m68k.org>
+	<51653C5D.4060408@suse.cz>
+	<CAMuHMdXEvLMz5rRjQrhENxJ6UHRnPCtzyNg=hqitspuY88G7sA@mail.gmail.com>
+	<20130410122611.GB17541@sepie.suse.cz>
+	<CAMuHMdUHiiBEZm7eFYtL3PqCXF6PjscbFKjiJ33BEwQ+YLKOXQ@mail.gmail.com>
+	<20130410152229.GC17541@sepie.suse.cz>
+	<CAMuHMdXJWo=R28rexHJZGof==CgEa0gbC3yr18iPs-tAkv2FZQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:52409 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752547Ab3DLS60 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Apr 2013 14:58:26 -0400
-In-Reply-To: <alpine.LFD.2.02.1304122055210.21884@ionos>
+Received: from mail-ia0-f177.google.com ([209.85.210.177]:42422 "EHLO
+	mail-ia0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752680Ab3DLTrt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Apr 2013 15:47:49 -0400
+In-Reply-To: <CAMuHMdXJWo=R28rexHJZGof==CgEa0gbC3yr18iPs-tAkv2FZQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de
-Cc: sam@ravnborg.org, srivatsa.bhat@linux.vnet.ibm.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, rusty@rustcorp.com.au, paulmck@linux.vnet.ibm.com, mingo@elte.hu, peterz@infradead.org, magnus.damm@gmail.com
+To: Michal Marek <mmarek@suse.cz>
+Cc: linux-m68k <linux-m68k@lists.linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andi Kleen <andi@firstfloor.org>
 
-From: Thomas Gleixner <tglx@linutronix.de>
-Date: Fri, 12 Apr 2013 20:56:10 +0200 (CEST)
+On Thu, Apr 11, 2013 at 8:04 PM, Geert Uytterhoeven
+<geert@linux-m68k.org> wrote:
+> On Wed, Apr 10, 2013 at 5:22 PM, Michal Marek <mmarek@suse.cz> wrote:
+>> Subject: [PATCH] m68k: Remove inline strlen() implementation
+>>
+>> GCC can replace a strncat() call with constant second argument into a
+>> strlen + store, which results in a link error:
+>>
+>> ERROR: "strlen" [net/ipv4/ip_tunnel.ko] undefined!
+>>
+>> The inline function is a simple for loop in C. Other architectures
+>> either use an asm optimized variant, or use the generic function from
+>> lib/string.c.
+>>
+>> Reported-by: Geert Uytterhoeven <geert@linux-m68k.org>
+>> Signed-off-by: Michal Marek <mmarek@suse.cz>
+>
+> Thanks, this one works. Let me do some measurements...
 
-> On Thu, 11 Apr 2013, Sam Ravnborg wrote:
-> 
->> Add generic cpu_idle support
->> 
->> sparc32:
->> - replace call to cpu_idle() with cpu_startup_entry()
->> - add arch_cpu_idle()
->> 
->> sparc64:
->> - smp_callin() now include cpu_startup_entry() call so we can
->>   skip calling cpu_idle from assembler
->> - add arch_cpu_idle() and arch_cpu_idle_dead()
-> 
-> Nice !
-> 
-> If Dave acks it, I'll pick it up 
+No visible impact on size for a typical build; the increase in .text
+is offset by
+the decrease in .data:
 
-Acked-by: David S. Miller <davem@davemloft.net>
+-      .text : 0x00001000 - 0x002aab64   (2727 KiB)
+-      .data : 0x002ad938 - 0x00392148   ( 915 KiB)
++      .text : 0x00001000 - 0x002aac74   (2728 KiB)
++      .data : 0x002ada48 - 0x00392148   ( 914 KiB)
+
+On Wed, Apr 10, 2013 at 5:22 PM, Michal Marek <mmarek@suse.cz> wrote:
+> On Wed, Apr 10, 2013 at 04:19:14PM +0200, Geert Uytterhoeven wrote:
+>> Thanks for the patch, but modpost still fails with
+>>
+>> ERROR: "strlen" [net/ipv4/ip_tunnel.ko] undefined!
+>
+> OK OK, I am convinced. Then how about this? If you prefer speed over
+> size, the the other option is to add
+>
+> size_t strlen(const char *s)
+> {
+>        return __kernel_strlen(s);
+> }
+> EXPORT_SYMBOL(strlen);
+>
+> to arch/m68k/lib/string.c.
+
+Interestingly, this also doesn't work. It turns out none of the
+symbols defined in
+this file (currently strcpy and strcat) end up in vmlinux.
+
+As we've been stripping code from string.c, we've been left with just
+a few symbols
+that are typically never referenced, so the whole string.o in
+arch/m68k/lib/lib.a
+is not included in the final vmlinux.
+
+So more stringectomy to do...
+
+> On a related note, arch/m68k/lib/string.c is
+> built only in the CONFIG_MMU case, whereas asm/string.h is shared.
+
+So due to the above, this difference is mostly moot ;-)
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
