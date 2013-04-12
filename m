@@ -1,33 +1,47 @@
 From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: Re: [PATCH 3/7] dump_stack: consolidate dump_stack() implementations
- and unify their behaviors
-Date: Fri, 12 Apr 2013 16:39:01 -0400
-Message-ID: <516870E5.3050901@tilera.com>
-References: <1365016497-32033-1-git-send-email-tj@kernel.org> <1365016497-32033-4-git-send-email-tj@kernel.org>
+Subject: Re: [PATCH v4, part3 06/41] tile: normalize global variables exported
+ by vmlinux.lds
+Date: Fri, 12 Apr 2013 16:54:54 -0400
+Message-ID: <5168749E.80008@tilera.com>
+References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com> <1365258760-30821-7-git-send-email-jiang.liu@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([12.216.194.151]:30149 "EHLO
+Received: from usmamail.tilera.com ([12.216.194.151]:46927 "EHLO
 	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752547Ab3DLUjD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Apr 2013 16:39:03 -0400
-In-Reply-To: <1365016497-32033-4-git-send-email-tj@kernel.org>
+	with ESMTP id S1755061Ab3DLUy4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Apr 2013 16:54:56 -0400
+In-Reply-To: <1365258760-30821-7-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tejun Heo <tj@kernel.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@redhat.com, x86@kernel.org, rth@twiddle.net, linux@arm.linux.org.uk, msalter@redhat.com, starvik@axis.com, dhowells@redhat.com, tony.luck@intel.com, benh@kernel.crashing.org, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, jonas@southpole.se, rkuo@codeaurora.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, davem@davemloft.net, lethal@linux-sh.org, vgupta@synopsys.com, chris@zankel.net, ysato@users.sourceforge.jp, gxt@mprc.pku.edu.cn, jdike@addtoit.com, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>, uclinux-dist-devel@blackfin.uclinux.org, Fengguang Wu <fengguang.wu@intel.com>
+To: Jiang Liu <liuj97@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Rusty Russell <rusty@rustcorp.com.au>, Bjorn Helgaas <bhelgaas@google.com>, "David S. Miller" <davem@davemloft.net>
 
-On 4/3/2013 3:14 PM, Tejun Heo wrote:
-> This patch expands the dummy fallback dump_stack() implementation in
-> lib/dump_stack.c such that it prints out debug information (taken from
-> x86) and invokes show_stack(NULL, NULL) and drops arch-specific
-> dump_stack() implementations in all archs except blackfin.  Blackfin's
-> dump_stack() does something wonky that I don't understand.
+On 4/6/2013 10:32 AM, Jiang Liu wrote:
+> Normalize global variables exported by vmlinux.lds to conform usage
+> guidelines from include/asm-generic/sections.h.
+>
+> 1) Use _text to mark the start of the kernel image including the head
+> text, and _stext to mark the start of the .text section.
+> 2) Export mandatory global variables __init_begin and __init_end.
+>
+> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+> Cc: Chris Metcalf <cmetcalf@tilera.com>
+> Cc: Rusty Russell <rusty@rustcorp.com.au>
+> Cc: Bjorn Helgaas <bhelgaas@google.com>
+> Cc: "David S. Miller" <davem@davemloft.net>
+> Cc: Wen Congyang <wency@cn.fujitsu.com>
+> Cc: David Howells <dhowells@redhat.com>
+> Cc: linux-kernel@vger.kernel.org
+> ---
+>  arch/tile/include/asm/sections.h |    2 +-
+>  arch/tile/kernel/setup.c         |    4 ++--
+>  arch/tile/kernel/vmlinux.lds.S   |    4 +++-
+>  arch/tile/mm/init.c              |    2 +-
+>  4 files changed, 7 insertions(+), 5 deletions(-)
 
-arch/tile has a dump_stack() entry point in assembly (see arch/tile/kernel/entry.S) that passes to _dump_stack(), which passes to dump_stack_regs(), which passes to tile_show_stack().  Similarly, show_stack() passes to tile_show_stack(), which does lots of work to cross into userspace and continue showing the stack if possible, print symbol info for both kernel and userspace, etc.  I don't know if that's all supported fully in Tejun's generic version.
-
-Would it make sense for me to look at this after it's merged up into -next and see what tile needs?  Unfortunately I'm taking off for a week's vacation so won't be able to do much until after the 23rd.
+Acked-by: Chris Metcalf <cmetcalf@tilera.com>
 
 -- 
 Chris Metcalf, Tilera Corp.
