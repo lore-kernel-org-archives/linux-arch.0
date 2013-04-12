@@ -1,96 +1,46 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH/RFC] m68k: Add -ffreestanding to KBUILD_CFLAGS
-Date: Fri, 12 Apr 2013 21:47:46 +0200
-Message-ID: <CAMuHMdXTKTVb_QLUn3xuA0tMThxC1mR331jU4O11dG4rNyWzRw@mail.gmail.com>
-References: <1365585879-5321-1-git-send-email-geert@linux-m68k.org>
-	<51653C5D.4060408@suse.cz>
-	<CAMuHMdXEvLMz5rRjQrhENxJ6UHRnPCtzyNg=hqitspuY88G7sA@mail.gmail.com>
-	<20130410122611.GB17541@sepie.suse.cz>
-	<CAMuHMdUHiiBEZm7eFYtL3PqCXF6PjscbFKjiJ33BEwQ+YLKOXQ@mail.gmail.com>
-	<20130410152229.GC17541@sepie.suse.cz>
-	<CAMuHMdXJWo=R28rexHJZGof==CgEa0gbC3yr18iPs-tAkv2FZQ@mail.gmail.com>
+From: Chris Metcalf <cmetcalf@tilera.com>
+Subject: Re: [PATCH 6/7] dump_stack: unify debug information printed by show_regs()
+Date: Fri, 12 Apr 2013 16:37:18 -0400
+Message-ID: <5168707E.6040304@tilera.com>
+References: <1365016497-32033-1-git-send-email-tj@kernel.org> <1365016497-32033-7-git-send-email-tj@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ia0-f177.google.com ([209.85.210.177]:42422 "EHLO
-	mail-ia0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752680Ab3DLTrt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Apr 2013 15:47:49 -0400
-In-Reply-To: <CAMuHMdXJWo=R28rexHJZGof==CgEa0gbC3yr18iPs-tAkv2FZQ@mail.gmail.com>
+Received: from usmamail.tilera.com ([12.216.194.151]:60900 "EHLO
+	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755542Ab3DLUhU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Apr 2013 16:37:20 -0400
+In-Reply-To: <1365016497-32033-7-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Marek <mmarek@suse.cz>
-Cc: linux-m68k <linux-m68k@lists.linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andi Kleen <andi@firstfloor.org>
+To: Tejun Heo <tj@kernel.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@redhat.com, x86@kernel.org, rth@twiddle.net, linux@arm.linux.org.uk, msalter@redhat.com, starvik@axis.com, dhowells@redhat.com, tony.luck@intel.com, benh@kernel.crashing.org, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, jonas@southpole.se, rkuo@codeaurora.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, davem@davemloft.net, lethal@linux-sh.org, vgupta@synopsys.com, chris@zankel.net, ysato@users.sourceforge.jp, gxt@mprc.pku.edu.cn, jdike@addtoit.com, Heiko Carstens <heiko.carstens@de.ibm.com>
 
-On Thu, Apr 11, 2013 at 8:04 PM, Geert Uytterhoeven
-<geert@linux-m68k.org> wrote:
-> On Wed, Apr 10, 2013 at 5:22 PM, Michal Marek <mmarek@suse.cz> wrote:
->> Subject: [PATCH] m68k: Remove inline strlen() implementation
->>
->> GCC can replace a strncat() call with constant second argument into a
->> strlen + store, which results in a link error:
->>
->> ERROR: "strlen" [net/ipv4/ip_tunnel.ko] undefined!
->>
->> The inline function is a simple for loop in C. Other architectures
->> either use an asm optimized variant, or use the generic function from
->> lib/string.c.
->>
->> Reported-by: Geert Uytterhoeven <geert@linux-m68k.org>
->> Signed-off-by: Michal Marek <mmarek@suse.cz>
+On 4/3/2013 3:14 PM, Tejun Heo wrote:
+> show_regs() is inherently arch-dependent but it does make sense to
+> print generic debug information and some archs already do albeit in
+> slightly different forms.  This patch introduces a generic function to
+> print debug information from show_regs() so that different archs print
+> out the same information and it's much easier to modify what's
+> printed.
 >
-> Thanks, this one works. Let me do some measurements...
-
-No visible impact on size for a typical build; the increase in .text
-is offset by
-the decrease in .data:
-
--      .text : 0x00001000 - 0x002aab64   (2727 KiB)
--      .data : 0x002ad938 - 0x00392148   ( 915 KiB)
-+      .text : 0x00001000 - 0x002aac74   (2728 KiB)
-+      .data : 0x002ada48 - 0x00392148   ( 914 KiB)
-
-On Wed, Apr 10, 2013 at 5:22 PM, Michal Marek <mmarek@suse.cz> wrote:
-> On Wed, Apr 10, 2013 at 04:19:14PM +0200, Geert Uytterhoeven wrote:
->> Thanks for the patch, but modpost still fails with
->>
->> ERROR: "strlen" [net/ipv4/ip_tunnel.ko] undefined!
+> show_regs_print_info() prints out the same debug info as dump_stack()
+> does plus task and thread_info pointers.
 >
-> OK OK, I am convinced. Then how about this? If you prefer speed over
-> size, the the other option is to add
+> * Archs which didn't print debug info now do.
 >
-> size_t strlen(const char *s)
-> {
->        return __kernel_strlen(s);
-> }
-> EXPORT_SYMBOL(strlen);
+>   alpha, arc, blackfin, c6x, cris, frv, h8300, hexagon, ia64, m32r,
+>   metag, microblaze, mn10300, openrisc, parisc, score, sh64, sparc,
+>   um, xtensa
 >
-> to arch/m68k/lib/string.c.
+> * Already prints debug info.  Replaced with show_regs_print_info().
+>   The printed information is superset of what used to be there.
+>
+>   arm, arm64, avr32, mips, powerpc, sh32, tile, unicore32, x86
 
-Interestingly, this also doesn't work. It turns out none of the
-symbols defined in
-this file (currently strcpy and strcat) end up in vmlinux.
+Acked-by: Chris Metcalf <cmetcalf@tilera.com> [for tile]
 
-As we've been stripping code from string.c, we've been left with just
-a few symbols
-that are typically never referenced, so the whole string.o in
-arch/m68k/lib/lib.a
-is not included in the final vmlinux.
-
-So more stringectomy to do...
-
-> On a related note, arch/m68k/lib/string.c is
-> built only in the CONFIG_MMU case, whereas asm/string.h is shared.
-
-So due to the above, this difference is mostly moot ;-)
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+-- 
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
