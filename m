@@ -1,40 +1,41 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH] Kbuild: Avoid DTB rebuilds if source files are untouched
-Date: Fri, 12 Apr 2013 13:10:23 +0530
-Message-ID: <5167BA67.5080403@synopsys.com>
-References: <1364973141-16354-1-git-send-email-vgupta@synopsys.com> <515BD6B8.1020607@synopsys.com> <515C5652.8070705@wwwdotorg.org> <515D0FFB.4030803@synopsys.com> <515DBA0E.6000604@wwwdotorg.org> <51642158.3070205@synopsys.com>
+From: Alexandre Courbot <gnurou@gmail.com>
+Subject: Re: [PATCH v2 0/4] remove GENERIC_GPIO
+Date: Fri, 12 Apr 2013 11:42:42 -0700
+Message-ID: <CAAVeFuJ1T9FyBLBkxBGsWNppU66+7a2pzJVYieakNsEw35=9Ug@mail.gmail.com>
+References: <1365445950-5736-1-git-send-email-gnurou@gmail.com> <5166C331.7060404@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <51642158.3070205@synopsys.com>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Stephen Warren <swarren@wwwdotorg.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, Michal Marek <mmarek@suse.cz>, Stephen Warren <swarren@nvidia.com>, Grant Likely <grant.likely@secretlab.ca>, linux-kbuild@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ie0-f169.google.com ([209.85.223.169]:44766 "EHLO
+	mail-ie0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751920Ab3DLSnD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Apr 2013 14:43:03 -0400
+Received: by mail-ie0-f169.google.com with SMTP id ar20so3307886iec.14
+        for <linux-arch@vger.kernel.org>; Fri, 12 Apr 2013 11:43:02 -0700 (PDT)
+In-Reply-To: <5166C331.7060404@synopsys.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Grant Likely <grant.likely@secretlab.ca>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Alexandre Courbot <acourbot@nvidia.com>, "christian.ruppert@abilis.com" <christian.ruppert@abilis.com>, Pierrick Hascoet <pierrick.hascoet@abilis.com>, sascha leuenberger <sascha.leuenberger@abilis.com>
 
-On 04/09/2013 07:40 PM, Vineet Gupta wrote:
-> On 04/04/2013 11:06 PM, Stephen Warren wrote:
->
->> +.SECONDARY: $(obj)/%.dtb.S
->> +
->>  $(obj)/%.dtb.S: $(obj)/%.dtb
->>         $(call cmd,dt_S_dtb)
->>
->> and no longer see make rm'ing the .dtb.S file. So, the .SECONDARY is
->> behaving as expected, and should fix your problem.
-> Interestingly, if I make the file name explicit, .SECONDARY works for me too.
->
-> .SECONDARY: $(obj)/angel4.dtb.S
->
-> http://stackoverflow.com/questions/5426934/why-this-makefile-removes-my-goal
->
-> Is this a make bug or is it related to when the rule is parsed by make !
->
-> -Vineet
+Hi Vineet,
 
-Ping ? Anyone know how to resolve this
+On Thu, Apr 11, 2013 at 7:05 AM, Vineet Gupta
+<Vineet.Gupta1@synopsys.com> wrote:
+> I'm the maintainer for arch/arc.
+>
+> For 3.10, we are going to have a sub-platform included which enables GPIO.
+> However given that your patch is still not in a maintainer tree I'm going to apply
+> the platform patch with GENERIC_GPIO and it would show up in -next as well. But
+> don't be alarmed - to align with your work, Christian or you can then possibly
+> apply a patch to make arch/arc/* confirm to your work - preferably via your
+> tree/patchseries  - OK ?
 
--Vineet
+I guess that would work, but since I assume your platforms' GPIO
+implementation use gpiolib anyway wouldn't it be simpler and more
+logical to directly require it?
 
+If you have reasons for not doing so I'm ok with doing the switch
+later too, anyway that's what I had to do for all the other archs.
 
+Alex.
