@@ -1,38 +1,40 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCHSET v2] arch: unify task dump debug info
-Date: Fri, 12 Apr 2013 07:42:06 +0200
-Message-ID: <20130412054206.GD3887@gmail.com>
-References: <1365016497-32033-1-git-send-email-tj@kernel.org>
- <20130408153107.GA3021@htj.dyndns.org>
- <20130411184750.GK17641@mtj.dyndns.org>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH] Kbuild: Avoid DTB rebuilds if source files are untouched
+Date: Fri, 12 Apr 2013 13:10:23 +0530
+Message-ID: <5167BA67.5080403@synopsys.com>
+References: <1364973141-16354-1-git-send-email-vgupta@synopsys.com> <515BD6B8.1020607@synopsys.com> <515C5652.8070705@wwwdotorg.org> <515D0FFB.4030803@synopsys.com> <515DBA0E.6000604@wwwdotorg.org> <51642158.3070205@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ea0-f176.google.com ([209.85.215.176]:48967 "EHLO
-	mail-ea0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751290Ab3DLFmL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Apr 2013 01:42:11 -0400
-Content-Disposition: inline
-In-Reply-To: <20130411184750.GK17641@mtj.dyndns.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Tejun Heo <tj@kernel.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@redhat.com, x86@kernel.org, rth@twiddle.net, linux@arm.linux.org.uk, msalter@redhat.com, starvik@axis.com, dhowells@redhat.com, tony.luck@intel.com, benh@kernel.crashing.org, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, jonas@southpole.se, rkuo@codeaurora.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, davem@davemloft.net, lethal@linux-sh.org, vgupta@synopsys.com, chris@zankel.net, cmetcalf@tilera.com, ysato@users.sourceforge.jp, gxt@mprc.pku.edu.cn, jdike@addtoit.com
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <51642158.3070205@synopsys.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Stephen Warren <swarren@wwwdotorg.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, Michal Marek <mmarek@suse.cz>, Stephen Warren <swarren@nvidia.com>, Grant Likely <grant.likely@secretlab.ca>, linux-kbuild@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>
+List-Id: linux-arch.vger.kernel.org
+
+On 04/09/2013 07:40 PM, Vineet Gupta wrote:
+> On 04/04/2013 11:06 PM, Stephen Warren wrote:
+>
+>> +.SECONDARY: $(obj)/%.dtb.S
+>> +
+>>  $(obj)/%.dtb.S: $(obj)/%.dtb
+>>         $(call cmd,dt_S_dtb)
+>>
+>> and no longer see make rm'ing the .dtb.S file. So, the .SECONDARY is
+>> behaving as expected, and should fix your problem.
+> Interestingly, if I make the file name explicit, .SECONDARY works for me too.
+>
+> .SECONDARY: $(obj)/angel4.dtb.S
+>
+> http://stackoverflow.com/questions/5426934/why-this-makefile-removes-my-goal
+>
+> Is this a make bug or is it related to when the rule is parsed by make !
+>
+> -Vineet
+
+Ping ? Anyone know how to resolve this
+
+-Vineet
 
 
-* Tejun Heo <tj@kernel.org> wrote:
-
-> On Mon, Apr 08, 2013 at 08:31:07AM -0700, Tejun Heo wrote:
-> > Andrew, ping?
-> 
-> Ping #2.  Workqueue conversion of writeback in the block tree needs
-> these patches to avoid losing debug information over the conversion,
-> so it'd be great if this can be scheduled for 3.10.
-
-The x86 bits look good to me, assuming it's tested, etc.
-
-Acked-by: Ingo Molnar <mingo@kernel.org>
-
-Thanks,
-
-	Ingo
