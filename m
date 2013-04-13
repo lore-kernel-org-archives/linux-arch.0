@@ -1,61 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from avon.wwwdotorg.org ([70.85.31.133]:53077 "EHLO
-	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752796Ab3DLVws (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Apr 2013 17:52:48 -0400
-Message-ID: <5168822C.6040303@wwwdotorg.org>
-Date: Fri, 12 Apr 2013 15:52:44 -0600
-From: Stephen Warren <swarren@wwwdotorg.org>
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:62587 "EHLO
+	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753612Ab3DMBOJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Apr 2013 21:14:09 -0400
+Message-ID: <59dadf6a3450e5985c3b6f440be5ec07.squirrel@www.codeaurora.org>
+In-Reply-To: <20130411184750.GK17641@mtj.dyndns.org>
+References: <1365016497-32033-1-git-send-email-tj@kernel.org>
+    <20130408153107.GA3021@htj.dyndns.org>
+    <20130411184750.GK17641@mtj.dyndns.org>
+Date: Fri, 12 Apr 2013 18:14:09 -0700
+Subject: Re: [PATCHSET v2] arch: unify task dump debug info
+From: rkuo@codeaurora.org
 MIME-Version: 1.0
-Subject: Re: [PATCH] Kbuild: Avoid DTB rebuilds if source files are untouched
-References: <1364973141-16354-1-git-send-email-vgupta@synopsys.com> <515BD6B8.1020607@synopsys.com> <515C5652.8070705@wwwdotorg.org> <515D0FFB.4030803@synopsys.com> <515DBA0E.6000604@wwwdotorg.org> <51642158.3070205@synopsys.com> <5167BA67.5080403@synopsys.com>
-In-Reply-To: <5167BA67.5080403@synopsys.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, Michal Marek <mmarek@suse.cz>, Stephen Warren <swarren@nvidia.com>, Grant Likely <grant.likely@secretlab.ca>, linux-kbuild@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>
-Message-ID: <20130412215244.Q_kOPFUGoE07ZwbND470bMtNt5DL8TRePjfaR6HK-TU@z>
+To: Tejun Heo <tj@kernel.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@redhat.com, x86@kernel.org, rth@twiddle.net, linux@arm.linux.org.uk, msalter@redhat.com, starvik@axis.com, dhowells@redhat.com, tony.luck@intel.com, benh@kernel.crashing.org, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, jonas@southpole.se, rkuo@codeaurora.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, davem@davemloft.net, lethal@linux-sh.org, vgupta@synopsys.com, chris@zankel.net, cmetcalf@tilera.com, ysato@users.sourceforge.jp, gxt@mprc.pku.edu.cn, jdike@addtoit.com
+Message-ID: <20130413011409.lyDk0woLhKLCPUOR7bHLJbOT6aPZ3vdFJhuHiwyY9iM@z>
 
-On 04/12/2013 01:40 AM, Vineet Gupta wrote:
-> On 04/09/2013 07:40 PM, Vineet Gupta wrote:
->> On 04/04/2013 11:06 PM, Stephen Warren wrote:
->>
->>> +.SECONDARY: $(obj)/%.dtb.S
->>> +
->>>  $(obj)/%.dtb.S: $(obj)/%.dtb
->>>         $(call cmd,dt_S_dtb)
->>>
->>> and no longer see make rm'ing the .dtb.S file. So, the .SECONDARY is
->>> behaving as expected, and should fix your problem.
->> Interestingly, if I make the file name explicit, .SECONDARY works for me too.
->>
->> .SECONDARY: $(obj)/angel4.dtb.S
->>
->> http://stackoverflow.com/questions/5426934/why-this-makefile-removes-my-goal
->>
->> Is this a make bug or is it related to when the rule is parsed by make !
->>
->> -Vineet
-> 
-> Ping ? Anyone know how to resolve this
+> On Mon, Apr 08, 2013 at 08:31:07AM -0700, Tejun Heo wrote:
+>> Andrew, ping?
+>
+> Ping #2.  Workqueue conversion of writeback in the block tree needs
+> these patches to avoid losing debug information over the conversion,
+> so it'd be great if this can be scheduled for 3.10.
+>
+> Thanks.
+>
+> --
+> tejun
+>
 
-After installing the ARC toolchain (which was a bit painful to track
-down and install...) I reproduced your exact problem. I believe the
-patch below fixes it:
+Sorry for the late reply; wasn't able to test this until today.
 
-diff --git a/arch/arc/boot/dts/Makefile b/arch/arc/boot/dts/Makefile
-index 5776835..2f2cf23 100644
---- a/arch/arc/boot/dts/Makefile
-+++ b/arch/arc/boot/dts/Makefile
-@@ -8,6 +8,8 @@ endif
- obj-y   += $(builtindtb-y).dtb.o
- targets += $(builtindtb-y).dtb
+Hexagon could use the same "don't print into stacktrace machinery", but I
+can add that to my tree.
 
-+.SECONDARY: $(obj)/$(builtindtb-y).dtb.S
-+
- dtbs:  $(addprefix  $(obj)/, $(builtindtb-y).dtb)
+So for the Hexagon bits:
 
- clean-files := *.dtb
+Acked-by: Richard Kuo <rkuo@codeaurora.org>
+
+
+--
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum,
+hosted by The Linux Foundation
+
 
