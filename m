@@ -1,68 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f54.google.com ([209.85.220.54]:40448 "EHLO
-	mail-pa0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932156Ab3DMPlR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Apr 2013 11:41:17 -0400
+Received: from mail-pd0-f177.google.com ([209.85.192.177]:62833 "EHLO
+	mail-pd0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932156Ab3DMPlh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Apr 2013 11:41:37 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [RFC PATCH v1 06/19] mm/metag: prepare for killing free_all_bootmem_node()
-Date: Sat, 13 Apr 2013 23:36:26 +0800
-Message-ID: <1365867399-21323-7-git-send-email-jiang.liu@huawei.com>
+Subject: [RFC PATCH v1 08/19] mm/PARISC: prepare for killing free_all_bootmem_node()
+Date: Sat, 13 Apr 2013 23:36:28 +0800
+Message-ID: <1365867399-21323-9-git-send-email-jiang.liu@huawei.com>
 In-Reply-To: <1365867399-21323-1-git-send-email-jiang.liu@huawei.com>
 References: <1365867399-21323-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Yinghai Lu <yinghai@kernel.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, James Hogan <james.hogan@imgtec.com>
-Message-ID: <20130413153626.0v4lSox05rAchBiITjrTk9HimMUhz0VLMIexWamlKaA@z>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org
+Message-ID: <20130413153628.F5vs96Br0FixB4Ky66JGAb7NlffhIYd-CPc2KtxhNz4@z>
 
 Prepare for killing free_all_bootmem_node() by using
 free_all_bootmem().
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: James Hogan <james.hogan@imgtec.com>
+Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
+Cc: Helge Deller <deller@gmx.de>
+Cc: Michal Hocko <mhocko@suse.cz>
+Cc: David Rientjes <rientjes@google.com>
+Cc: linux-parisc@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org
 ---
- arch/metag/mm/init.c |   14 ++------------
- 1 file changed, 2 insertions(+), 12 deletions(-)
+ arch/parisc/mm/init.c |   12 +-----------
+ 1 file changed, 1 insertion(+), 11 deletions(-)
 
-diff --git a/arch/metag/mm/init.c b/arch/metag/mm/init.c
-index e00586f..096d022 100644
---- a/arch/metag/mm/init.c
-+++ b/arch/metag/mm/init.c
-@@ -376,31 +376,21 @@ void __init paging_init(unsigned long mem_end)
+diff --git a/arch/parisc/mm/init.c b/arch/parisc/mm/init.c
+index f80c175..ab76b84 100644
+--- a/arch/parisc/mm/init.c
++++ b/arch/parisc/mm/init.c
+@@ -585,18 +585,8 @@ void __init mem_init(void)
+ 			> BITS_PER_LONG);
  
- void __init mem_init(void)
- {
--	int nid;
+ 	high_memory = __va((max_pfn << PAGE_SHIFT));
 -
- #ifdef CONFIG_HIGHMEM
- 	unsigned long tmp;
- 
- 	/*
- 	 * Explicitly reset zone->managed_pages because highmem pages are
--	 * freed before calling free_all_bootmem_node();
-+	 * freed before calling free_all_bootmem();
- 	 */
- 	reset_all_zones_managed_pages();
- 	for (tmp = highstart_pfn; tmp < highend_pfn; tmp++)
- 		free_highmem_page(pfn_to_page(tmp));
- #endif /* CONFIG_HIGHMEM */
- 
--	for_each_online_node(nid) {
--		pg_data_t *pgdat = NODE_DATA(nid);
+-#ifndef CONFIG_DISCONTIGMEM
+-	max_mapnr = page_to_pfn(virt_to_page(high_memory - 1)) + 1;
++	set_max_mapnr(page_to_pfn(virt_to_page(high_memory - 1)) + 1);
+ 	free_all_bootmem();
+-#else
+-	{
+-		int i;
 -
--		if (pgdat->node_spanned_pages)
--			free_all_bootmem_node(pgdat);
+-		for (i = 0; i < npmem_ranges; i++)
+-			free_all_bootmem_node(NODE_DATA(i));
 -	}
--
-+	free_all_bootmem();
- 	mem_init_print_info(NULL);
- 	show_mem(0);
--
--	return;
- }
+-#endif
  
- void free_initmem(void)
+ #ifdef CONFIG_PA11
+ 	if (hppa_dma_ops == &pcxl_dma_ops) {
 -- 
 1.7.9.5
 
