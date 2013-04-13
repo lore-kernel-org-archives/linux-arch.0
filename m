@@ -1,44 +1,88 @@
-From: rkuo@codeaurora.org
-Subject: Re: [PATCHSET v2] arch: unify task dump debug info
-Date: Fri, 12 Apr 2013 18:14:09 -0700
-Message-ID: <59dadf6a3450e5985c3b6f440be5ec07.squirrel@www.codeaurora.org>
-References: <1365016497-32033-1-git-send-email-tj@kernel.org>
-    <20130408153107.GA3021@htj.dyndns.org>
-    <20130411184750.GK17641@mtj.dyndns.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20130411184750.GK17641@mtj.dyndns.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Tejun Heo <tj@kernel.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@redhat.com, x86@kernel.org, rth@twiddle.net, linux@arm.linux.org.uk, msalter@redhat.com, starvik@axis.com, dhowells@redhat.com, tony.luck@intel.com, benh@kernel.crashing.org, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, jonas@southpole.se, rkuo@codeaurora.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, davem@davemloft.net, lethal@linux-sh.org, vgupta@synopsys.com, chris@zankel.net, cmetcalf@tilera.com, ysato@users.sourceforge.jp, gxt@mprc.pku.edu.cn, jdike@addtoit.com
-List-Id: linux-arch.vger.kernel.org
+From: Jiang Liu <liuj97@gmail.com>
+Subject: [RFC PATCH v1 00/19] kill free_all_bootmem() and clean up VALID_PAGE()
+Date: Sat, 13 Apr 2013 23:36:20 +0800
+Message-ID: <1365867399-21323-1-git-send-email-jiang.liu@huawei.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pa0-f50.google.com ([209.85.220.50]:43798 "EHLO
+	mail-pa0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753789Ab3DMPkT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Apr 2013 11:40:19 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>, Yinghai Lu <yinghai@kernel.org>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-> On Mon, Apr 08, 2013 at 08:31:07AM -0700, Tejun Heo wrote:
->> Andrew, ping?
->
-> Ping #2.  Workqueue conversion of writeback in the block tree needs
-> these patches to avoid losing debug information over the conversion,
-> so it'd be great if this can be scheduled for 3.10.
->
-> Thanks.
->
-> --
-> tejun
->
+Commit 600cc5b7f6 "mm: Kill NO_BOOTMEM version free_all_bootmem_node()"
+has kill free_all_bootmem_node() for NO_BOOTMEM.
 
-Sorry for the late reply; wasn't able to test this until today.
+Currently the usage pattern for free_all_bootmem_node() is like:
+for_each_online_pgdat(pgdat)
+	free_all_bootmem_node(pgdat);
 
-Hexagon could use the same "don't print into stacktrace machinery", but I
-can add that to my tree.
+It's equivalent to free_all_bootmem(), so this patchset goes one
+step further to kill free_all_bootmem_node() for BOOTMEM too.
 
-So for the Hexagon bits:
+This patchset also tries to clean up code and comments related to
+VALID_PAGE() because it has been removed from kernel long time ago.
 
-Acked-by: Richard Kuo <rkuo@codeaurora.org>
+Patch 1-11:
+	Kill free_all_bootmem_node()
+Patch 12-16:
+	Clean up code and comments related to VALID_PAGE()
+Patch 17:
+	Fix a minor build warning for m68k
+Patch 18:
+	merge Alpha's mem_init() for UMA and NUMA.
+Patch 19:
+	call register_page_bootmem_info_node() from mm core
 
+This patch is based on patchset at
+http://marc.info/?l=linux-mm&m=136525931917910&w=2
 
---
-Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum,
-hosted by The Linux Foundation
+Jiang Liu (19):
+  mm: introduce accessor function set_max_mapnr()
+  mm/AVR32: prepare for killing free_all_bootmem_node()
+  mm/IA64: prepare for killing free_all_bootmem_node()
+  mm/m32r: prepare for killing free_all_bootmem_node()
+  mm/m68k: prepare for killing free_all_bootmem_node()
+  mm/metag: prepare for killing free_all_bootmem_node()
+  mm/MIPS: prepare for killing free_all_bootmem_node()
+  mm/PARISC: prepare for killing free_all_bootmem_node()
+  mm/PPC: prepare for killing free_all_bootmem_node()
+  mm/SH: prepare for killing free_all_bootmem_node()
+  mm: kill free_all_bootmem_node()
+  mm/ALPHA: clean up unused VALID_PAGE()
+  mm/CRIS: clean up unused VALID_PAGE()
+  mm/microblaze: clean up unused VALID_PAGE()
+  mm/ARM: fix stale comment about VALID_PAGE()
+  mm/unicore32: fix stale comment about VALID_PAGE()
+  mm/m68k: fix build warning of unused variable
+  mm/alpha: unify mem_init() for both UMA and NUMA architectures
+  mm: call register_page_bootmem_info_node() from mm core
+
+ arch/alpha/include/asm/mmzone.h     |    2 --
+ arch/alpha/mm/init.c                |    7 ++-----
+ arch/alpha/mm/numa.c                |   10 ----------
+ arch/arm/include/asm/memory.h       |    6 ------
+ arch/avr32/mm/init.c                |   21 +++++----------------
+ arch/cris/include/asm/page.h        |    1 -
+ arch/ia64/mm/init.c                 |    9 ++-------
+ arch/m32r/mm/init.c                 |   17 ++++-------------
+ arch/m68k/mm/init.c                 |   15 ++++++++-------
+ arch/metag/mm/init.c                |   14 ++------------
+ arch/microblaze/include/asm/page.h  |    1 -
+ arch/mips/sgi-ip27/ip27-memory.c    |   12 +-----------
+ arch/parisc/mm/init.c               |   12 +-----------
+ arch/powerpc/mm/mem.c               |   16 +---------------
+ arch/sh/mm/init.c                   |   16 ++++------------
+ arch/sparc/mm/init_64.c             |   12 ------------
+ arch/unicore32/include/asm/memory.h |    6 ------
+ arch/x86/mm/init_64.c               |   12 ------------
+ include/linux/bootmem.h             |    1 -
+ include/linux/mm.h                  |    9 ++++++++-
+ mm/bootmem.c                        |   24 ++++++------------------
+ mm/nobootmem.c                      |    6 ++++++
+ 22 files changed, 50 insertions(+), 179 deletions(-)
+
+-- 
+1.7.9.5
