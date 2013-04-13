@@ -1,51 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine01.qualcomm.com ([199.106.114.254]:62587 "EHLO
-	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753612Ab3DMBOJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Apr 2013 21:14:09 -0400
-Message-ID: <59dadf6a3450e5985c3b6f440be5ec07.squirrel@www.codeaurora.org>
-In-Reply-To: <20130411184750.GK17641@mtj.dyndns.org>
-References: <1365016497-32033-1-git-send-email-tj@kernel.org>
-    <20130408153107.GA3021@htj.dyndns.org>
-    <20130411184750.GK17641@mtj.dyndns.org>
-Date: Fri, 12 Apr 2013 18:14:09 -0700
-Subject: Re: [PATCHSET v2] arch: unify task dump debug info
-From: rkuo@codeaurora.org
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Received: from mail-pd0-f177.google.com ([209.85.192.177]:58988 "EHLO
+	mail-pd0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753789Ab3DMPk0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Apr 2013 11:40:26 -0400
+From: Jiang Liu <liuj97@gmail.com>
+Subject: [RFC PATCH v1 01/19] mm: introduce accessor function set_max_mapnr()
+Date: Sat, 13 Apr 2013 23:36:21 +0800
+Message-ID: <1365867399-21323-2-git-send-email-jiang.liu@huawei.com>
+In-Reply-To: <1365867399-21323-1-git-send-email-jiang.liu@huawei.com>
+References: <1365867399-21323-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tejun Heo <tj@kernel.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@redhat.com, x86@kernel.org, rth@twiddle.net, linux@arm.linux.org.uk, msalter@redhat.com, starvik@axis.com, dhowells@redhat.com, tony.luck@intel.com, benh@kernel.crashing.org, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, jonas@southpole.se, rkuo@codeaurora.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, davem@davemloft.net, lethal@linux-sh.org, vgupta@synopsys.com, chris@zankel.net, cmetcalf@tilera.com, ysato@users.sourceforge.jp, gxt@mprc.pku.edu.cn, jdike@addtoit.com
-Message-ID: <20130413011409.lyDk0woLhKLCPUOR7bHLJbOT6aPZ3vdFJhuHiwyY9iM@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Yinghai Lu <yinghai@kernel.org>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130413153621.q4oM6s3zjMnl4ORKkl9jpwt5fQ_hjFThcMYKWFQpXqw@z>
 
-> On Mon, Apr 08, 2013 at 08:31:07AM -0700, Tejun Heo wrote:
->> Andrew, ping?
->
-> Ping #2.  Workqueue conversion of writeback in the block tree needs
-> these patches to avoid losing debug information over the conversion,
-> so it'd be great if this can be scheduled for 3.10.
->
-> Thanks.
->
-> --
-> tejun
->
+Introduce accessor function set_max_mapnr() to set global variable
+max_mapnr.
 
-Sorry for the late reply; wasn't able to test this until today.
+Also unify condition compilation for max_mapnr with
+CONFIG_NEED_MULTIPLE_NODES instead of CONFIG_DISCONTIGMEM.
 
-Hexagon could use the same "don't print into stacktrace machinery", but I
-can add that to my tree.
+Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+---
+ include/linux/mm.h |    9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
 
-So for the Hexagon bits:
-
-Acked-by: Richard Kuo <rkuo@codeaurora.org>
-
-
---
-Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum,
-hosted by The Linux Foundation
-
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index f9f9f3c..497ebaf 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -25,8 +25,15 @@ struct file_ra_state;
+ struct user_struct;
+ struct writeback_control;
+ 
+-#ifndef CONFIG_DISCONTIGMEM          /* Don't use mapnrs, do it properly */
++#ifndef CONFIG_NEED_MULTIPLE_NODES	/* Don't use mapnrs, do it properly */
+ extern unsigned long max_mapnr;
++
++static inline void set_max_mapnr(unsigned long limit)
++{
++	max_mapnr = limit;
++}
++#else
++static inline void set_max_mapnr(unsigned long limit) { }
+ #endif
+ 
+ extern unsigned long totalram_pages;
+-- 
+1.7.9.5
 
