@@ -1,44 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f54.google.com ([209.85.220.54]:54503 "EHLO
-	mail-pa0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932607Ab3DMPm0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Apr 2013 11:42:26 -0400
+Received: from mail-pa0-f42.google.com ([209.85.220.42]:56140 "EHLO
+	mail-pa0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932607Ab3DMPnO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Apr 2013 11:43:14 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [RFC PATCH v1 13/19] mm/CRIS: clean up unused VALID_PAGE()
-Date: Sat, 13 Apr 2013 23:36:33 +0800
-Message-ID: <1365867399-21323-14-git-send-email-jiang.liu@huawei.com>
+Subject: [RFC PATCH v1 14/19] mm/microblaze: clean up unused VALID_PAGE()
+Date: Sat, 13 Apr 2013 23:36:34 +0800
+Message-ID: <1365867399-21323-15-git-send-email-jiang.liu@huawei.com>
 In-Reply-To: <1365867399-21323-1-git-send-email-jiang.liu@huawei.com>
 References: <1365867399-21323-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Yinghai Lu <yinghai@kernel.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, linux-cris-kernel@axis.com
-Message-ID: <20130413153633.JZBBpa8tC8vqJMd-wMzVCyU2JuDGyERumMfkOasHT3o@z>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Michal Simek <monstr@monstr.eu>, microblaze-uclinux@itee.uq.edu.au
+Message-ID: <20130413153634.a_fWjOaaQZNFuq_UswMEXLLt42GokoPQLvjPkhtZgL0@z>
 
 VALID_PAGE() has been removed from kernel long time ago, so clean up it.
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Mikael Starvik <starvik@axis.com>
-Cc: Jesper Nilsson <jesper.nilsson@axis.com>
-Cc: Jiang Liu <jiang.liu@huawei.com>
-Cc: linux-cris-kernel@axis.com
+Cc: Michal Simek <monstr@monstr.eu>
+Cc: microblaze-uclinux@itee.uq.edu.au
 Cc: linux-kernel@vger.kernel.org
 ---
- arch/cris/include/asm/page.h |    1 -
+ arch/microblaze/include/asm/page.h |    1 -
  1 file changed, 1 deletion(-)
 
-diff --git a/arch/cris/include/asm/page.h b/arch/cris/include/asm/page.h
-index be45ee3..dfc53f9 100644
---- a/arch/cris/include/asm/page.h
-+++ b/arch/cris/include/asm/page.h
-@@ -51,7 +51,6 @@ typedef struct page *pgtable_t;
-  */ 
+diff --git a/arch/microblaze/include/asm/page.h b/arch/microblaze/include/asm/page.h
+index 85a5ae8..fd85087 100644
+--- a/arch/microblaze/include/asm/page.h
++++ b/arch/microblaze/include/asm/page.h
+@@ -168,7 +168,6 @@ extern int page_is_ram(unsigned long pfn);
+ #  else /* CONFIG_MMU */
+ #  define ARCH_PFN_OFFSET	(memory_start >> PAGE_SHIFT)
+ #  define pfn_valid(pfn)	((pfn) < (max_mapnr + ARCH_PFN_OFFSET))
+-#  define VALID_PAGE(page) 	((page - mem_map) < max_mapnr)
+ #  endif /* CONFIG_MMU */
  
- #define virt_to_page(kaddr)    (mem_map + (((unsigned long)(kaddr) - PAGE_OFFSET) >> PAGE_SHIFT))
--#define VALID_PAGE(page)       (((page) - mem_map) < max_mapnr)
- #define virt_addr_valid(kaddr)	pfn_valid((unsigned)(kaddr) >> PAGE_SHIFT)
- 
- /* convert a page (based on mem_map and forward) to a physical address
+ # endif /* __ASSEMBLY__ */
 -- 
 1.7.9.5
 
