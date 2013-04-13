@@ -1,64 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-da0-f49.google.com ([209.85.210.49]:62916 "EHLO
-	mail-da0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753213Ab3DMPkr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Apr 2013 11:40:47 -0400
+Received: from mail-pd0-f172.google.com ([209.85.192.172]:53282 "EHLO
+	mail-pd0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754733Ab3DMPlI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Apr 2013 11:41:08 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [RFC PATCH v1 03/19] mm/IA64: prepare for killing free_all_bootmem_node()
-Date: Sat, 13 Apr 2013 23:36:23 +0800
-Message-ID: <1365867399-21323-4-git-send-email-jiang.liu@huawei.com>
+Subject: [RFC PATCH v1 05/19] mm/m68k: prepare for killing free_all_bootmem_node()
+Date: Sat, 13 Apr 2013 23:36:25 +0800
+Message-ID: <1365867399-21323-6-git-send-email-jiang.liu@huawei.com>
 In-Reply-To: <1365867399-21323-1-git-send-email-jiang.liu@huawei.com>
 References: <1365867399-21323-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Yinghai Lu <yinghai@kernel.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Tang Chen <tangchen@cn.fujitsu.com>, linux-ia64@vger.kernel.org
-Message-ID: <20130413153623.u-TBNjy3ybWNOIQjAz_bfK029W-z9J3w1uEse7qMXro@z>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Greg Ungerer <gerg@uclinux.org>, linux-m68k@lists.linux-m68k.org
+Message-ID: <20130413153625.JLcJOHNzmsuXXba-naEIcnR_bPbmhs2WghDXb7qCmUE@z>
 
 Prepare for killing free_all_bootmem_node() by using
 free_all_bootmem().
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: Tang Chen <tangchen@cn.fujitsu.com>
-Cc: David Rientjes <rientjes@google.com>
-Cc: linux-ia64@vger.kernel.org
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Greg Ungerer <gerg@uclinux.org>
+Cc: linux-m68k@lists.linux-m68k.org
 Cc: linux-kernel@vger.kernel.org
 ---
- arch/ia64/mm/init.c |    9 ++-------
- 1 file changed, 2 insertions(+), 7 deletions(-)
+ arch/m68k/mm/init.c |    4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
 
-diff --git a/arch/ia64/mm/init.c b/arch/ia64/mm/init.c
-index d4382dc..26eeb74 100644
---- a/arch/ia64/mm/init.c
-+++ b/arch/ia64/mm/init.c
-@@ -584,7 +584,6 @@ __setup("nolwsys", nolwsys_setup);
- void __init
- mem_init (void)
+diff --git a/arch/m68k/mm/init.c b/arch/m68k/mm/init.c
+index 0723141..20d0ae2 100644
+--- a/arch/m68k/mm/init.c
++++ b/arch/m68k/mm/init.c
+@@ -148,12 +148,10 @@ void __init print_memmap(void)
+ 
+ void __init mem_init(void)
  {
 -	pg_data_t *pgdat;
  	int i;
  
- 	BUG_ON(PTRS_PER_PGD * sizeof(pgd_t) != PAGE_SIZE);
-@@ -602,15 +601,11 @@ mem_init (void)
- 
- #ifdef CONFIG_FLATMEM
- 	BUG_ON(!mem_map);
--	max_mapnr = max_low_pfn;
- #endif
- 
-+	set_max_mapnr(max_low_pfn);
- 	high_memory = __va(max_low_pfn * PAGE_SIZE);
--
+ 	/* this will put all memory onto the freelists */
 -	for_each_online_pgdat(pgdat)
--		if (pgdat->bdata->node_bootmem_map)
--			free_all_bootmem_node(pgdat);
--
+-		free_all_bootmem_node(pgdat);
 +	free_all_bootmem();
- 	mem_init_print_info(NULL);
  
- 	/*
+ #if defined(CONFIG_MMU) && !defined(CONFIG_SUN3) && !defined(CONFIG_COLDFIRE)
+ 	/* insert pointer tables allocated so far into the tablelist */
 -- 
 1.7.9.5
 
