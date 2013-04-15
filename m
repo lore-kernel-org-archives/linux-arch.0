@@ -1,60 +1,60 @@
-From: Stephen Warren <swarren@wwwdotorg.org>
-Subject: Re: [PATCH] Kbuild: Avoid DTB rebuilds if source files are untouched
-Date: Mon, 15 Apr 2013 11:12:29 -0600
-Message-ID: <516C34FD.6090705@wwwdotorg.org>
-References: <1364973141-16354-1-git-send-email-vgupta@synopsys.com> <515BD6B8.1020607@synopsys.com> <515C5652.8070705@wwwdotorg.org> <515D0FFB.4030803@synopsys.com> <515DBA0E.6000604@wwwdotorg.org> <51642158.3070205@synopsys.com> <5167BA67.5080403@synopsys.com> <5168822C.6040303@wwwdotorg.org> <516C07AC.6070608@synopsys.com>
+From: "Xuetao Guan" <gxt@mprc.pku.edu.cn>
+Subject: Re: [RFC PATCH v1 16/19] mm/unicore32: fix stale comment about
+     VALID_PAGE()
+Date: Tue, 16 Apr 2013 03:11:21 +0800 (CST)
+Message-ID: <50160.128.237.237.232.1366053081.squirrel@mprc.pku.edu.cn>
+References: <1365867399-21323-1-git-send-email-jiang.liu@huawei.com>
+    <1365867399-21323-17-git-send-email-jiang.liu@huawei.com>
+Reply-To: gxt@mprc.pku.edu.cn
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from avon.wwwdotorg.org ([70.85.31.133]:45630 "EHLO
-	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752729Ab3DORMd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Apr 2013 13:12:33 -0400
-In-Reply-To: <516C07AC.6070608@synopsys.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, Michal Marek <mmarek@suse.cz>, Stephen Warren <swarren@nvidia.com>, Grant Likely <grant.likely@secretlab.ca>, linux-kbuild@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>
+Content-Type: text/plain;charset=gb2312
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1365867399-21323-17-git-send-email-jiang.liu@huawei.com>
+Sender: owner-linux-mm@kvack.org
+To: Jiang Liu <liuj97@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Yinghai Lu <yinghai@kernel.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>
+List-Id: linux-arch.vger.kernel.org
 
-On 04/15/2013 07:59 AM, Vineet Gupta wrote:
-> On 04/13/2013 03:22 AM, Stephen Warren wrote:
->>
->> After installing the ARC toolchain (which was a bit painful to track
->> down and install...) 
-> 
-> Sorry about that - we have a buildroot based distro about to be pushed upstream -
-> that would make it easier.
-> 
->> I reproduced your exact problem. I believe the
->> patch below fixes it:
->>
->> diff --git a/arch/arc/boot/dts/Makefile b/arch/arc/boot/dts/Makefile
->> index 5776835..2f2cf23 100644
->> --- a/arch/arc/boot/dts/Makefile
->> +++ b/arch/arc/boot/dts/Makefile
->> @@ -8,6 +8,8 @@ endif
->>  obj-y   += $(builtindtb-y).dtb.o
->>  targets += $(builtindtb-y).dtb
->>
->> +.SECONDARY: $(obj)/$(builtindtb-y).dtb.S
->> +
->>  dtbs:  $(addprefix  $(obj)/, $(builtindtb-y).dtb)
->>
->>  clean-files := *.dtb
-> 
-> Indeed it does - I fell stupid why this didn't occur to me. But given that you
-> have dealt with the dtb Makefile stuff alot more than I have :-) do you know why
-> it was not working when put in Makefile.lib because I feel a few other arches also
-> suffer from the same issue and would need similar fixes.
+> VALID_PAGE() has been removed from kernel long time ago,
+> so fix the comment.
+>
+> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+> Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
+> Cc: linux-kernel@vger.kernel.org
 
-Searching in Google implies that .SECONDARY doesn't work with wildcards
-(%.dtb.S for example), whereas .PRECIOUS does. Seems like perhaps a bug
-in make to me, but who knows. Perhaps that's why?
+Thanks,
 
-> Anyhow, for the patch, I can manually add --author="you" but it'll still lack your
-> SOB - you OK with that or do you want to send a formal patch.
+Acked-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
 
-Sure, you can either just say Suggested-by: for me, or apply my s-o-b below:
+> ---
+>  arch/unicore32/include/asm/memory.h |    6 ------
+>  1 file changed, 6 deletions(-)
+>
+> diff --git a/arch/unicore32/include/asm/memory.h
+> b/arch/unicore32/include/asm/memory.h
+> index 5eddb99..debafc4 100644
+> --- a/arch/unicore32/include/asm/memory.h
+> +++ b/arch/unicore32/include/asm/memory.h
+> @@ -98,12 +98,6 @@
+>  /*
+>   * Conversion between a struct page and a physical address.
+>   *
+> - * Note: when converting an unknown physical address to a
+> - * struct page, the resulting pointer must be validated
+> - * using VALID_PAGE().  It must return an invalid struct page
+> - * for any physical address not corresponding to a system
+> - * RAM address.
+> - *
+>   *  page_to_pfn(page)	convert a struct page * to a PFN number
+>   *  pfn_to_page(pfn)	convert a _valid_ PFN number to struct page *
+>   *
+> --
+> 1.7.9.5
+>
 
-Signed-off-by: Stephen Warren <swarren@nvidia.com>
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=3Dmailto:"dont@kvack.org"> email@kvack.org </a>
