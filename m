@@ -1,69 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-da0-f51.google.com ([209.85.210.51]:47272 "EHLO
-	mail-da0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753213Ab3DMPk5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Apr 2013 11:40:57 -0400
-From: Jiang Liu <liuj97@gmail.com>
-Subject: [RFC PATCH v1 04/19] mm/m32r: prepare for killing free_all_bootmem_node()
-Date: Sat, 13 Apr 2013 23:36:24 +0800
-Message-ID: <1365867399-21323-5-git-send-email-jiang.liu@huawei.com>
-In-Reply-To: <1365867399-21323-1-git-send-email-jiang.liu@huawei.com>
-References: <1365867399-21323-1-git-send-email-jiang.liu@huawei.com>
+Received: from kiruna.synopsys.com ([198.182.44.80]:42802 "EHLO
+	kiruna.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750911Ab3DON7Y (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Apr 2013 09:59:24 -0400
+Message-ID: <516C07AC.6070608@synopsys.com>
+Date: Mon, 15 Apr 2013 19:29:08 +0530
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH] Kbuild: Avoid DTB rebuilds if source files are untouched
+References: <1364973141-16354-1-git-send-email-vgupta@synopsys.com> <515BD6B8.1020607@synopsys.com> <515C5652.8070705@wwwdotorg.org> <515D0FFB.4030803@synopsys.com> <515DBA0E.6000604@wwwdotorg.org> <51642158.3070205@synopsys.com> <5167BA67.5080403@synopsys.com> <5168822C.6040303@wwwdotorg.org>
+In-Reply-To: <5168822C.6040303@wwwdotorg.org>
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Yinghai Lu <yinghai@kernel.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Hirokazu Takata <takata@linux-m32r.org>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org
-Message-ID: <20130413153624.HvoBZLrNgpbkNrNFZK7MUPT2l2vQU0GdTBlxtlakh5Y@z>
+To: Stephen Warren <swarren@wwwdotorg.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, Michal Marek <mmarek@suse.cz>, Stephen Warren <swarren@nvidia.com>, Grant Likely <grant.likely@secretlab.ca>, linux-kbuild@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>
+Message-ID: <20130415135908.yA6KVIYU-4-3Ixmq28nfED0JE1bBgd_duwOucdzh5P4@z>
 
-Prepare for killing free_all_bootmem_node() by using
-free_all_bootmem().
+On 04/13/2013 03:22 AM, Stephen Warren wrote:
+>
+> After installing the ARC toolchain (which was a bit painful to track
+> down and install...) 
 
-Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Hirokazu Takata <takata@linux-m32r.org>
-Cc: linux-m32r@ml.linux-m32r.org
-Cc: linux-m32r-ja@ml.linux-m32r.org
-Cc: linux-kernel@vger.kernel.org
----
- arch/m32r/mm/init.c |   17 ++++-------------
- 1 file changed, 4 insertions(+), 13 deletions(-)
+Sorry about that - we have a buildroot based distro about to be pushed upstream -
+that would make it easier.
 
-diff --git a/arch/m32r/mm/init.c b/arch/m32r/mm/init.c
-index 9c94839..3113c85 100644
---- a/arch/m32r/mm/init.c
-+++ b/arch/m32r/mm/init.c
-@@ -111,28 +111,19 @@ void __init paging_init(void)
-  *======================================================================*/
- void __init mem_init(void)
- {
--	int nid;
- #ifndef CONFIG_MMU
- 	extern unsigned long memory_end;
--#endif
- 
--#ifndef CONFIG_DISCONTIGMEM
--	max_mapnr = get_num_physpages();
--#endif	/* CONFIG_DISCONTIGMEM */
--
--#ifdef CONFIG_MMU
--	high_memory = (void *)__va(PFN_PHYS(MAX_LOW_PFN(0)));
--#else
- 	high_memory = (void *)(memory_end & PAGE_MASK);
-+#else
-+	high_memory = (void *)__va(PFN_PHYS(MAX_LOW_PFN(0)));
- #endif /* CONFIG_MMU */
- 
- 	/* clear the zero-page */
- 	memset(empty_zero_page, 0, PAGE_SIZE);
- 
--	/* this will put all low memory onto the freelists */
--	for_each_online_node(nid)
--		free_all_bootmem_node(NODE_DATA(nid));
--
-+	set_max_mapnr(get_num_physpages());
-+	free_all_bootmem();
- 	mem_init_print_info(NULL);
- }
- 
--- 
-1.7.9.5
+> I reproduced your exact problem. I believe the
+> patch below fixes it:
+>
+> diff --git a/arch/arc/boot/dts/Makefile b/arch/arc/boot/dts/Makefile
+> index 5776835..2f2cf23 100644
+> --- a/arch/arc/boot/dts/Makefile
+> +++ b/arch/arc/boot/dts/Makefile
+> @@ -8,6 +8,8 @@ endif
+>  obj-y   += $(builtindtb-y).dtb.o
+>  targets += $(builtindtb-y).dtb
+>
+> +.SECONDARY: $(obj)/$(builtindtb-y).dtb.S
+> +
+>  dtbs:  $(addprefix  $(obj)/, $(builtindtb-y).dtb)
+>
+>  clean-files := *.dtb
+
+Indeed it does - I fell stupid why this didn't occur to me. But given that you
+have dealt with the dtb Makefile stuff alot more than I have :-) do you know why
+it was not working when put in Makefile.lib because I feel a few other arches also
+suffer from the same issue and would need similar fixes.
+
+Anyhow, for the patch, I can manually add --author="you" but it'll still lack your
+SOB - you OK with that or do you want to send a formal patch.
+
+Thx,
+-Vineet
+
 
