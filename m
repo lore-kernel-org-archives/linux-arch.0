@@ -1,47 +1,60 @@
-From: Rik van Riel <riel@redhat.com>
-Subject: Re: [PATCH v2 2/3] mutex: Queue mutex spinners with MCS lock to reduce
- cacheline contention
-Date: Mon, 15 Apr 2013 12:27:12 -0400
-Message-ID: <516C2A60.6040802@redhat.com>
-References: <1366036679-9702-1-git-send-email-Waiman.Long@hp.com> <1366036679-9702-3-git-send-email-Waiman.Long@hp.com>
+From: Stephen Warren <swarren@wwwdotorg.org>
+Subject: Re: [PATCH] Kbuild: Avoid DTB rebuilds if source files are untouched
+Date: Mon, 15 Apr 2013 11:12:29 -0600
+Message-ID: <516C34FD.6090705@wwwdotorg.org>
+References: <1364973141-16354-1-git-send-email-vgupta@synopsys.com> <515BD6B8.1020607@synopsys.com> <515C5652.8070705@wwwdotorg.org> <515D0FFB.4030803@synopsys.com> <515DBA0E.6000604@wwwdotorg.org> <51642158.3070205@synopsys.com> <5167BA67.5080403@synopsys.com> <5168822C.6040303@wwwdotorg.org> <516C07AC.6070608@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:19158 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755783Ab3DOQ2c (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 15 Apr 2013 12:28:32 -0400
-In-Reply-To: <1366036679-9702-3-git-send-email-Waiman.Long@hp.com>
+Received: from avon.wwwdotorg.org ([70.85.31.133]:45630 "EHLO
+	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752729Ab3DORMd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Apr 2013 13:12:33 -0400
+In-Reply-To: <516C07AC.6070608@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <Waiman.Long@hp.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, David Howells <dhowells@redhat.com>, Dave Jones <davej@redhat.com>, Clark Williams <williams@redhat.com>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, "Chandramouleeswaran, Aswin" <aswin@hp.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, "Norton, Scott J" <scott.norton@hp.com>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, Michal Marek <mmarek@suse.cz>, Stephen Warren <swarren@nvidia.com>, Grant Likely <grant.likely@secretlab.ca>, linux-kbuild@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>
 
-On 04/15/2013 10:37 AM, Waiman Long wrote:
-> The current mutex spinning code (with MUTEX_SPIN_ON_OWNER option turned
-> on) allow multiple tasks to spin on a single mutex concurrently. A
-> potential problem with the current approach is that when the mutex
-> becomes available, all the spinning tasks will try to acquire the
-> mutex more or less simultaneously. As a result, there will be a lot of
-> cacheline bouncing especially on systems with a large number of CPUs.
->
-> This patch tries to reduce this kind of contention by putting the
-> mutex spinners into a queue so that only the first one in the queue
-> will try to acquire the mutex. This will reduce contention and allow
-> all the tasks to move forward faster.
->
-> The queuing of mutex spinners is done using an MCS lock based
-> implementation which will further reduce contention on the mutex
-> cacheline than a similar ticket spinlock based implementation. This
-> patch will add a new field into the mutex data structure for holding
-> the MCS lock. This expands the mutex size by 8 bytes for 64-bit system
-> and 4 bytes for 32-bit system. This overhead will be avoid if the
-> MUTEX_SPIN_ON_OWNER option is turned off.
+On 04/15/2013 07:59 AM, Vineet Gupta wrote:
+> On 04/13/2013 03:22 AM, Stephen Warren wrote:
+>>
+>> After installing the ARC toolchain (which was a bit painful to track
+>> down and install...) 
+> 
+> Sorry about that - we have a buildroot based distro about to be pushed upstream -
+> that would make it easier.
+> 
+>> I reproduced your exact problem. I believe the
+>> patch below fixes it:
+>>
+>> diff --git a/arch/arc/boot/dts/Makefile b/arch/arc/boot/dts/Makefile
+>> index 5776835..2f2cf23 100644
+>> --- a/arch/arc/boot/dts/Makefile
+>> +++ b/arch/arc/boot/dts/Makefile
+>> @@ -8,6 +8,8 @@ endif
+>>  obj-y   += $(builtindtb-y).dtb.o
+>>  targets += $(builtindtb-y).dtb
+>>
+>> +.SECONDARY: $(obj)/$(builtindtb-y).dtb.S
+>> +
+>>  dtbs:  $(addprefix  $(obj)/, $(builtindtb-y).dtb)
+>>
+>>  clean-files := *.dtb
+> 
+> Indeed it does - I fell stupid why this didn't occur to me. But given that you
+> have dealt with the dtb Makefile stuff alot more than I have :-) do you know why
+> it was not working when put in Makefile.lib because I feel a few other arches also
+> suffer from the same issue and would need similar fixes.
 
-> Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+Searching in Google implies that .SECONDARY doesn't work with wildcards
+(%.dtb.S for example), whereas .PRECIOUS does. Seems like perhaps a bug
+in make to me, but who knows. Perhaps that's why?
 
-Acked-by: Rik van Riel <riel@redhat.com>
+> Anyhow, for the patch, I can manually add --author="you" but it'll still lack your
+> SOB - you OK with that or do you want to send a formal patch.
 
--- 
-All rights reversed
+Sure, you can either just say Suggested-by: for me, or apply my s-o-b below:
+
+Signed-off-by: Stephen Warren <swarren@nvidia.com>
