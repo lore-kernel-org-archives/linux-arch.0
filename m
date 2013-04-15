@@ -1,48 +1,47 @@
 From: Rik van Riel <riel@redhat.com>
-Subject: Re: [PATCH v2 1/3] mutex: Make more scalable by doing less atomic
- operations
-Date: Mon, 15 Apr 2013 10:45:32 -0400
-Message-ID: <516C128C.3040302@redhat.com>
-References: <1366036679-9702-1-git-send-email-Waiman.Long@hp.com> <1366036679-9702-2-git-send-email-Waiman.Long@hp.com>
+Subject: Re: [PATCH v2 2/3] mutex: Queue mutex spinners with MCS lock to reduce
+ cacheline contention
+Date: Mon, 15 Apr 2013 12:27:12 -0400
+Message-ID: <516C2A60.6040802@redhat.com>
+References: <1366036679-9702-1-git-send-email-Waiman.Long@hp.com> <1366036679-9702-3-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:33771 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:19158 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752422Ab3DOOqW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 15 Apr 2013 10:46:22 -0400
-In-Reply-To: <1366036679-9702-2-git-send-email-Waiman.Long@hp.com>
+	id S1755783Ab3DOQ2c (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 15 Apr 2013 12:28:32 -0400
+In-Reply-To: <1366036679-9702-3-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Waiman Long <Waiman.Long@hp.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, David Howells <dhowells@redhat.com>, Dave Jones <davej@redhat.com>, Clark Williams <williams@redhat.com>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, "Chandramouleeswaran, Aswin" <aswin@hp.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, "Norton, Scott J" <scott.norton@hp.com>
 
 On 04/15/2013 10:37 AM, Waiman Long wrote:
-> In the __mutex_lock_common() function, an initial entry into
-> the lock slow path will cause two atomic_xchg instructions to be
-> issued. Together with the atomic decrement in the fast path, a total
-> of three atomic read-modify-write instructions will be issued in
-> rapid succession. This can cause a lot of cache bouncing when many
-> tasks are trying to acquire the mutex at the same time.
+> The current mutex spinning code (with MUTEX_SPIN_ON_OWNER option turned
+> on) allow multiple tasks to spin on a single mutex concurrently. A
+> potential problem with the current approach is that when the mutex
+> becomes available, all the spinning tasks will try to acquire the
+> mutex more or less simultaneously. As a result, there will be a lot of
+> cacheline bouncing especially on systems with a large number of CPUs.
 >
-> This patch will reduce the number of atomic_xchg instructions used by
-> checking the counter value first before issuing the instruction. The
-> atomic_read() function is just a simple memory read. The atomic_xchg()
-> function, on the other hand, can be up to 2 order of magnitude or even
-> more in cost when compared with atomic_read(). By using atomic_read()
-> to check the value first before calling atomic_xchg(), we can avoid a
-> lot of unnecessary cache coherency traffic. The only downside with this
-> change is that a task on the slow path will have a tiny bit
-> less chance of getting the mutex when competing with another task
-> in the fast path.
+> This patch tries to reduce this kind of contention by putting the
+> mutex spinners into a queue so that only the first one in the queue
+> will try to acquire the mutex. This will reduce contention and allow
+> all the tasks to move forward faster.
 >
+> The queuing of mutex spinners is done using an MCS lock based
+> implementation which will further reduce contention on the mutex
+> cacheline than a similar ticket spinlock based implementation. This
+> patch will add a new field into the mutex data structure for holding
+> the MCS lock. This expands the mutex size by 8 bytes for 64-bit system
+> and 4 bytes for 32-bit system. This overhead will be avoid if the
+> MUTEX_SPIN_ON_OWNER option is turned off.
 
 > Signed-off-by: Waiman Long <Waiman.Long@hp.com>
-> Reviewed-by: Davidlohr Bueso <davidlohr.bueso@hp.com>
 
-Reviewed-by: Rik van Riel <riel@redhat.com>
-
+Acked-by: Rik van Riel <riel@redhat.com>
 
 -- 
 All rights reversed
