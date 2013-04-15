@@ -1,34 +1,52 @@
-From: Jesper Nilsson <jesper.nilsson@axis.com>
-Subject: Re: [RFC PATCH v1 13/19] mm/CRIS: clean up unused VALID_PAGE()
-Date: Mon, 15 Apr 2013 15:14:36 +0200
-Message-ID: <20130415131436.GC11974@axis.com>
-References: <1365867399-21323-1-git-send-email-jiang.liu@huawei.com>
- <1365867399-21323-14-git-send-email-jiang.liu@huawei.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH] Kbuild: Avoid DTB rebuilds if source files are untouched
+Date: Mon, 15 Apr 2013 19:29:08 +0530
+Message-ID: <516C07AC.6070608@synopsys.com>
+References: <1364973141-16354-1-git-send-email-vgupta@synopsys.com> <515BD6B8.1020607@synopsys.com> <515C5652.8070705@wwwdotorg.org> <515D0FFB.4030803@synopsys.com> <515DBA0E.6000604@wwwdotorg.org> <51642158.3070205@synopsys.com> <5167BA67.5080403@synopsys.com> <5168822C.6040303@wwwdotorg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from anubis.se.axis.com ([195.60.68.12]:52947 "EHLO
-	anubis.se.axis.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751014Ab3DONOq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Apr 2013 09:14:46 -0400
-Content-Disposition: inline
-In-Reply-To: <1365867399-21323-14-git-send-email-jiang.liu@huawei.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Jiang Liu <liuj97@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Yinghai Lu <yinghai@kernel.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jespern@axis.com>, linux-cris-kernel <linux-cris-kernel@axis.com>
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <5168822C.6040303@wwwdotorg.org>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Stephen Warren <swarren@wwwdotorg.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, Michal Marek <mmarek@suse.cz>, Stephen Warren <swarren@nvidia.com>, Grant Likely <grant.likely@secretlab.ca>, linux-kbuild@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, Apr 13, 2013 at 05:36:33PM +0200, Jiang Liu wrote:
-> VALID_PAGE() has been removed from kernel long time ago, so clean up it.
-> 
-> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-> Cc: Mikael Starvik <starvik@axis.com>
-> Cc: Jiang Liu <jiang.liu@huawei.com>
-> Cc: linux-cris-kernel@axis.com
-> Cc: linux-kernel@vger.kernel.org
+On 04/13/2013 03:22 AM, Stephen Warren wrote:
+>
+> After installing the ARC toolchain (which was a bit painful to track
+> down and install...) 
 
-Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
+Sorry about that - we have a buildroot based distro about to be pushed upstream -
+that would make it easier.
 
-/^JN - Jesper Nilsson
--- 
-               Jesper Nilsson -- jesper.nilsson@axis.com
+> I reproduced your exact problem. I believe the
+> patch below fixes it:
+>
+> diff --git a/arch/arc/boot/dts/Makefile b/arch/arc/boot/dts/Makefile
+> index 5776835..2f2cf23 100644
+> --- a/arch/arc/boot/dts/Makefile
+> +++ b/arch/arc/boot/dts/Makefile
+> @@ -8,6 +8,8 @@ endif
+>  obj-y   += $(builtindtb-y).dtb.o
+>  targets += $(builtindtb-y).dtb
+>
+> +.SECONDARY: $(obj)/$(builtindtb-y).dtb.S
+> +
+>  dtbs:  $(addprefix  $(obj)/, $(builtindtb-y).dtb)
+>
+>  clean-files := *.dtb
+
+Indeed it does - I fell stupid why this didn't occur to me. But given that you
+have dealt with the dtb Makefile stuff alot more than I have :-) do you know why
+it was not working when put in Makefile.lib because I feel a few other arches also
+suffer from the same issue and would need similar fixes.
+
+Anyhow, for the patch, I can manually add --author="you" but it'll still lack your
+SOB - you OK with that or do you want to send a formal patch.
+
+Thx,
+-Vineet
+
+
