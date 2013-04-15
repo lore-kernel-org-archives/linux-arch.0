@@ -1,73 +1,34 @@
-From: Christian Ruppert <christian.ruppert@abilis.com>
-Subject: Re: [PATCH v2 0/4] remove GENERIC_GPIO
-Date: Mon, 15 Apr 2013 09:43:25 +0200
-Message-ID: <20130415074322.GC3264@ab42.lan>
-References: <1365445950-5736-1-git-send-email-gnurou@gmail.com>
- <5166C331.7060404@synopsys.com>
- <CAAVeFuJ1T9FyBLBkxBGsWNppU66+7a2pzJVYieakNsEw35=9Ug@mail.gmail.com>
+From: Jesper Nilsson <jesper.nilsson@axis.com>
+Subject: Re: [RFC PATCH v1 13/19] mm/CRIS: clean up unused VALID_PAGE()
+Date: Mon, 15 Apr 2013 15:14:36 +0200
+Message-ID: <20130415131436.GC11974@axis.com>
+References: <1365867399-21323-1-git-send-email-jiang.liu@huawei.com>
+ <1365867399-21323-14-git-send-email-jiang.liu@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.abilis.ch ([195.70.19.74]:18991 "EHLO mail.abilis.ch"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932513Ab3DOIHb convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Apr 2013 04:07:31 -0400
+Received: from anubis.se.axis.com ([195.60.68.12]:52947 "EHLO
+	anubis.se.axis.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751014Ab3DONOq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Apr 2013 09:14:46 -0400
 Content-Disposition: inline
-In-Reply-To: <CAAVeFuJ1T9FyBLBkxBGsWNppU66+7a2pzJVYieakNsEw35=9Ug@mail.gmail.com>
+In-Reply-To: <1365867399-21323-14-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexandre Courbot <gnurou@gmail.com>
-Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Grant Likely <grant.likely@secretlab.ca>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Alexandre Courbot <acourbot@nvidia.com>, Pierrick Hascoet <pierrick.hascoet@abilis.com>, sascha leuenberger <sascha.leuenberger@abilis.com>
+To: Jiang Liu <liuj97@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Yinghai Lu <yinghai@kernel.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jespern@axis.com>, linux-cris-kernel <linux-cris-kernel@axis.com>
 
-Hello Alexandre,
+On Sat, Apr 13, 2013 at 05:36:33PM +0200, Jiang Liu wrote:
+> VALID_PAGE() has been removed from kernel long time ago, so clean up it.
+> 
+> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+> Cc: Mikael Starvik <starvik@axis.com>
+> Cc: Jiang Liu <jiang.liu@huawei.com>
+> Cc: linux-cris-kernel@axis.com
+> Cc: linux-kernel@vger.kernel.org
 
-On Fri, Apr 12, 2013 at 11:42:42AM -0700, Alexandre Courbot wrote:
-> Hi Vineet,
->=20
-> On Thu, Apr 11, 2013 at 7:05 AM, Vineet Gupta
-> <Vineet.Gupta1@synopsys.com> wrote:
-> > I'm the maintainer for arch/arc.
-> >
-> > For 3.10, we are going to have a sub-platform included which enable=
-s GPIO.
-> > However given that your patch is still not in a maintainer tree I'm=
- going to apply
-> > the platform patch with GENERIC_GPIO and it would show up in -next =
-as well. But
-> > don't be alarmed - to align with your work, Christian or you can th=
-en possibly
-> > apply a patch to make arch/arc/* confirm to your work - preferably =
-via your
-> > tree/patchseries  - OK ?
->=20
-> I guess that would work, but since I assume your platforms' GPIO
-> implementation use gpiolib anyway wouldn't it be simpler and more
-> logical to directly require it?
->=20
-> If you have reasons for not doing so I'm ok with doing the switch
-> later too, anyway that's what I had to do for all the other archs.
+Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
 
-The GPIO driver patch was proposed on lkml a few days ago and although =
-I
-am not aware of any "GENERIC" methods it uses it does not compile
-without GENERIC_GPIO being defined (errors in of_gpio.h etc). You can
-review the patch at https://lkml.org/lkml/2013/4/10/385.
-
-We'd be happy to accept any guidance on how to remove GENERIC_GPIO.
-Also, I'm not sure the custom interface to the pin controller is a grea=
-t
-solution and suggestions are welcome. The goal is to remove redundancy
-between the drivers in the definition of pin groups.
-
-Regards,
-  Christian
-
---=20
-  Christian Ruppert              ,          <christian.ruppert@abilis.c=
-om>
-                                /|
-  Tel: +41/(0)22 816 19-42     //|                 3, Chemin du Pr=E9-F=
-leuri
-                             _// | bilis Systems   CH-1228 Plan-les-Oua=
-tes
+/^JN - Jesper Nilsson
+-- 
+               Jesper Nilsson -- jesper.nilsson@axis.com
