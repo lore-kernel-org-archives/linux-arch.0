@@ -1,51 +1,73 @@
-From: Alex Courbot <acourbot@nvidia.com>
-Subject: Re: [PATCH v2 0/4] remove GENERIC_GPIO
-Date: Tue, 16 Apr 2013 18:01:13 +0900
-Message-ID: <516D1359.2080609@nvidia.com>
-References: <1365445950-5736-1-git-send-email-gnurou@gmail.com> <5166C331.7060404@synopsys.com> <CAAVeFuJ1T9FyBLBkxBGsWNppU66+7a2pzJVYieakNsEw35=9Ug@mail.gmail.com> <20130415074322.GC3264@ab42.lan> <516CB71D.9070603@nvidia.com> <20130416073459.GA30238@ab42.lan>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH v2 2/3] mutex: Queue mutex spinners with MCS lock to
+ reduce cacheline contention
+Date: Tue, 16 Apr 2013 11:10:27 +0200
+Message-ID: <20130416091026.GB9569@gmail.com>
+References: <1366036679-9702-1-git-send-email-Waiman.Long@hp.com>
+ <1366036679-9702-3-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hqemgate04.nvidia.com ([216.228.121.35]:7743 "EHLO
-	hqemgate04.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753783Ab3DPJBT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Apr 2013 05:01:19 -0400
-In-Reply-To: <20130416073459.GA30238@ab42.lan>
+Received: from mail-ee0-f50.google.com ([74.125.83.50]:48727 "EHLO
+	mail-ee0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S934807Ab3DPJKb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Apr 2013 05:10:31 -0400
+Content-Disposition: inline
+In-Reply-To: <1366036679-9702-3-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christian Ruppert <christian.ruppert@abilis.com>
-Cc: Alexandre Courbot <gnurou@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Grant Likely <grant.likely@secretlab.ca>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Pierrick Hascoet <pierrick.hascoet@abilis.com>, sascha leuenberger <sascha.leuenberger@abilis.com>
+To: Waiman Long <Waiman.Long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, David Howells <dhowells@redhat.com>, Dave Jones <davej@redhat.com>, Clark Williams <williams@redhat.com>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, "Chandramouleeswaran, Aswin" <aswin@hp.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, "Norton, Scott J" <scott.norton@hp.com>, Rik van Riel <riel@redhat.com>
 
-Hi Christian,
 
-On 04/16/2013 04:34 PM, Christian Ruppert wrote:
-> Thanks for taking a look at the driver. I think the issue we see is due
-> to the fact that "Platforms must declare GENERIC_GPIO support in their
-> Kconfig (boolean true)" (from Documentation/gpio.txt). This seems to be
-> still the case at the moment and I haven't found a way around it.
-> Removing the config GENERIC_GPIO section from our platform's Kconfig
-> (see arch/arc/plat-tb10x/Kconfig in linux-next) results in compilation
-> errors. This seems logical since "config GPIOLIB" only selects
-> GENERIC_GPIO but assumes it is defined elsewhere.
->
-> We were wondering if we could get rid of the "config GENERIC_GPIO"
-> section in the new platform's Kconfig in order to avoid adding things
-> you are going to remove again soon and in order to check if there aren't
-> any hidden dependencies on GENERIC_GPIO in the driver. Do I understand
-> your mail correctly that this is not yet possible?
+* Waiman Long <Waiman.Long@hp.com> wrote:
 
-Oh, then it looks like *I* did not understand your mail correctly. It is 
-absolutely necessary indeed that your architecture declares a 
-GENERIC_GPIO config option. What I was trying to prevent you from doing 
-was to put new "select GENERIC_GPIO" or "depends on GENERIC_GPIO" in 
-your Kconfig files.
+> --- a/kernel/sched/core.c
+> +++ b/kernel/sched/core.c
+> @@ -3021,9 +3021,6 @@ static inline bool owner_running(struct mutex *lock, struct task_struct *owner)
+>   */
+>  int mutex_spin_on_owner(struct mutex *lock, struct task_struct *owner)
+>  {
+> -	if (!sched_feat(OWNER_SPIN))
+> -		return 0;
+> -
+>  	rcu_read_lock();
+>  	while (owner_running(lock, owner)) {
+>  		if (need_resched())
+> @@ -3040,6 +3037,27 @@ int mutex_spin_on_owner(struct mutex *lock, struct task_struct *owner)
+>  	 */
+>  	return lock->owner == NULL;
+>  }
+> +
+> +/*
+> + * Initial check for entering the mutex spinning loop
+> + */
+> +int mutex_can_spin_on_owner(struct mutex *lock)
+> +{
+> +	int retval = 1;
+> +
+> +	if (!sched_feat(OWNER_SPIN))
+> +		return 0;
+> +
+> +	rcu_read_lock();
+> +	if (lock->owner)
+> +		retval = lock->owner->on_cpu;
+> +	rcu_read_unlock();
+> +	/*
+> +	 * if lock->owner is not set, the mutex owner may have just acquired
+> +	 * it and not set the owner yet or the mutex has been released.
+> +	 */
+> +	return retval;
+> +}
 
-If the only reference to GENERIC_GPIO in your architecture or drivers is 
-the declaration of this config option, then it is perfectly fine - I 
-will take care of removing it when the time is right.
+The SCHED_FEAT_OWNER_SPIN was really just an early hack we did to make 
+with/without mutex-spinning testable.
 
-So I guess you guys are just fine - sorry about the misunderstanding!
+I'd suggest a preparatory patch that gets rid of that flag and moves these two 
+functions from sched/core.c to mutex.c where they belong.
+
+This will also allow the removal of the mutex prototypes from sched.h.
 
 Thanks,
-Alex.
+
+	Ingo
