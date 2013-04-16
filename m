@@ -1,60 +1,72 @@
-From: "Xuetao Guan" <gxt@mprc.pku.edu.cn>
-Subject: Re: [RFC PATCH v1 16/19] mm/unicore32: fix stale comment about
-     VALID_PAGE()
-Date: Tue, 16 Apr 2013 03:11:21 +0800 (CST)
-Message-ID: <50160.128.237.237.232.1366053081.squirrel@mprc.pku.edu.cn>
-References: <1365867399-21323-1-git-send-email-jiang.liu@huawei.com>
-    <1365867399-21323-17-git-send-email-jiang.liu@huawei.com>
-Reply-To: gxt@mprc.pku.edu.cn
+From: Alex Courbot <acourbot@nvidia.com>
+Subject: Re: [PATCH v2 0/4] remove GENERIC_GPIO
+Date: Tue, 16 Apr 2013 11:27:41 +0900
+Message-ID: <516CB71D.9070603@nvidia.com>
+References: <1365445950-5736-1-git-send-email-gnurou@gmail.com> <5166C331.7060404@synopsys.com> <CAAVeFuJ1T9FyBLBkxBGsWNppU66+7a2pzJVYieakNsEw35=9Ug@mail.gmail.com> <20130415074322.GC3264@ab42.lan>
 Mime-Version: 1.0
-Content-Type: text/plain;charset=gb2312
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1365867399-21323-17-git-send-email-jiang.liu@huawei.com>
-Sender: owner-linux-mm@kvack.org
-To: Jiang Liu <liuj97@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Yinghai Lu <yinghai@kernel.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from hqemgate04.nvidia.com ([216.228.121.35]:16589 "EHLO
+	hqemgate04.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S935053Ab3DPC1u (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Apr 2013 22:27:50 -0400
+In-Reply-To: <20130415074322.GC3264@ab42.lan>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christian Ruppert <christian.ruppert@abilis.com>
+Cc: Alexandre Courbot <gnurou@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Grant Likely <grant.likely@secretlab.ca>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Pierrick Hascoet <pierrick.hascoet@abilis.com>, sascha leuenberger <sascha.leuenberger@abilis.com>
 
-> VALID_PAGE() has been removed from kernel long time ago,
-> so fix the comment.
+On 04/15/2013 04:43 PM, Christian Ruppert wrote:
+> Hello Alexandre,
 >
-> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-> Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
-> Cc: linux-kernel@vger.kernel.org
+> On Fri, Apr 12, 2013 at 11:42:42AM -0700, Alexandre Courbot wrote:
+>> Hi Vineet,
+>>
+>> On Thu, Apr 11, 2013 at 7:05 AM, Vineet Gupta
+>> <Vineet.Gupta1@synopsys.com> wrote:
+>>> I'm the maintainer for arch/arc.
+>>>
+>>> For 3.10, we are going to have a sub-platform included which enables GPIO.
+>>> However given that your patch is still not in a maintainer tree I'm going to apply
+>>> the platform patch with GENERIC_GPIO and it would show up in -next as well. But
+>>> don't be alarmed - to align with your work, Christian or you can then possibly
+>>> apply a patch to make arch/arc/* confirm to your work - preferably via your
+>>> tree/patchseries  - OK ?
+>>
+>> I guess that would work, but since I assume your platforms' GPIO
+>> implementation use gpiolib anyway wouldn't it be simpler and more
+>> logical to directly require it?
+>>
+>> If you have reasons for not doing so I'm ok with doing the switch
+>> later too, anyway that's what I had to do for all the other archs.
+>
+> The GPIO driver patch was proposed on lkml a few days ago and although I
+> am not aware of any "GENERIC" methods it uses it does not compile
+> without GENERIC_GPIO being defined (errors in of_gpio.h etc). You can
+> review the patch at https://lkml.org/lkml/2013/4/10/385.
+>
+> We'd be happy to accept any guidance on how to remove GENERIC_GPIO.
+> Also, I'm not sure the custom interface to the pin controller is a great
+> solution and suggestions are welcome. The goal is to remove redundancy
+> between the drivers in the definition of pin groups.
+
+Hi Christian,
+
+Thanks for the link to the patch. This is rather puzzling - in 
+drivers/gpio/Kconfig your GPIO_TB10X config option seems to be under the 
+"if GPIOLIB" condition which is what I expect, since your driver uses 
+gpiolib. If you go to the GPIOLIB config option, you notice that is 
+explicitly selects GENERIC_GPIO as a result of being enabled. Therefore 
+CONFIG_GENERIC_GPIO should always be defined whenever your driver is 
+compiled and it should not be needed to select it elsewhere. Do we agree 
+on that?
+
+I'd really like to go to the bottom of this since I saw several similar 
+issues already, but I don't understand how this can happen at all. 
+Having the .config of both the working (with GENERIC_GPIO selected) and 
+non-working (only GPIOLIB selected) cases would probably be helpful, 
+could you send them to me?
 
 Thanks,
-
-Acked-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
-
-> ---
->  arch/unicore32/include/asm/memory.h |    6 ------
->  1 file changed, 6 deletions(-)
->
-> diff --git a/arch/unicore32/include/asm/memory.h
-> b/arch/unicore32/include/asm/memory.h
-> index 5eddb99..debafc4 100644
-> --- a/arch/unicore32/include/asm/memory.h
-> +++ b/arch/unicore32/include/asm/memory.h
-> @@ -98,12 +98,6 @@
->  /*
->   * Conversion between a struct page and a physical address.
->   *
-> - * Note: when converting an unknown physical address to a
-> - * struct page, the resulting pointer must be validated
-> - * using VALID_PAGE().  It must return an invalid struct page
-> - * for any physical address not corresponding to a system
-> - * RAM address.
-> - *
->   *  page_to_pfn(page)	convert a struct page * to a PFN number
->   *  pfn_to_page(pfn)	convert a _valid_ PFN number to struct page *
->   *
-> --
-> 1.7.9.5
->
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=3Dmailto:"dont@kvack.org"> email@kvack.org </a>
+Alex.
