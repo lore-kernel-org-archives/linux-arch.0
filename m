@@ -1,76 +1,87 @@
-From: Waiman Long <Waiman.Long@hp.com>
-Subject: Re: [PATCH v2 2/3] mutex: Queue mutex spinners with MCS lock to reduce
- cacheline contention
-Date: Tue, 16 Apr 2013 10:26:31 -0400
-Message-ID: <516D5F97.9050203@hp.com>
-References: <1366036679-9702-1-git-send-email-Waiman.Long@hp.com> <1366036679-9702-3-git-send-email-Waiman.Long@hp.com> <20130416091026.GB9569@gmail.com>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [PATCH 3/5] dump_stack: consolidate dump_stack() implementations
+ and unify their behaviors
+Date: Tue, 16 Apr 2013 15:59:24 +0100
+Message-ID: <516D674C.80504@imgtec.com>
+References: <1364610428-2074-1-git-send-email-tj@kernel.org> <1364610428-2074-4-git-send-email-tj@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t0017.houston.hp.com ([15.201.24.20]:30979 "EHLO
-	g4t0017.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933715Ab3DPO0f (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Apr 2013 10:26:35 -0400
-In-Reply-To: <20130416091026.GB9569@gmail.com>
+Received: from multi.imgtec.com ([194.200.65.239]:17188 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752347Ab3DPO7o (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 16 Apr 2013 10:59:44 -0400
+In-Reply-To: <1364610428-2074-4-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, David Howells <dhowells@redhat.com>, Dave Jones <davej@redhat.com>, Clark Williams <williams@redhat.com>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, "Chandramouleeswaran, Aswin" <aswin@hp.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, "Norton, Scott J" <scott.norton@hp.com>, Rik van Riel <riel@redhat.com>
+To: Tejun Heo <tj@kernel.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@redhat.com, x86@kernel.org, rth@twiddle.net, linux@arm.linux.org.uk, msalter@redhat.com, starvik@axis.com, dhowells@redhat.com, tony.luck@intel.com, benh@kernel.crashing.org, takata@linux-m32r.org, geert@linux-m68k.org, monstr@monstr.eu, ralf@linux-mips.org, jonas@southpole.se, rkuo@codeaurora.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, davem@davemloft.net, lethal@linux-sh.org, vgupta@synopsys.com, chris@zankel.net, cmetcalf@tilera.com, ysato@users.sourceforge.jp, gxt@mprc.pku.edu.cn, jdike@addtoit.com, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>, uclinux-dist-devel@blackfin.uclinux.org
 
-On 04/16/2013 05:10 AM, Ingo Molnar wrote:
-> * Waiman Long<Waiman.Long@hp.com>  wrote:
->
->> --- a/kernel/sched/core.c
->> +++ b/kernel/sched/core.c
->> @@ -3021,9 +3021,6 @@ static inline bool owner_running(struct mutex *lock, struct task_struct *owner)
->>    */
->>   int mutex_spin_on_owner(struct mutex *lock, struct task_struct *owner)
->>   {
->> -	if (!sched_feat(OWNER_SPIN))
->> -		return 0;
->> -
->>   	rcu_read_lock();
->>   	while (owner_running(lock, owner)) {
->>   		if (need_resched())
->> @@ -3040,6 +3037,27 @@ int mutex_spin_on_owner(struct mutex *lock, struct task_struct *owner)
->>   	 */
->>   	return lock->owner == NULL;
->>   }
->> +
->> +/*
->> + * Initial check for entering the mutex spinning loop
->> + */
->> +int mutex_can_spin_on_owner(struct mutex *lock)
->> +{
->> +	int retval = 1;
->> +
->> +	if (!sched_feat(OWNER_SPIN))
->> +		return 0;
->> +
->> +	rcu_read_lock();
->> +	if (lock->owner)
->> +		retval = lock->owner->on_cpu;
->> +	rcu_read_unlock();
->> +	/*
->> +	 * if lock->owner is not set, the mutex owner may have just acquired
->> +	 * it and not set the owner yet or the mutex has been released.
->> +	 */
->> +	return retval;
->> +}
-> The SCHED_FEAT_OWNER_SPIN was really just an early hack we did to make
-> with/without mutex-spinning testable.
-I see.
+On 30/03/13 02:27, Tejun Heo wrote:
+> Both dump_stack() and show_stack() are currently implemented by each
+> architecture.  show_stack(NULL, NULL) dumps the backtrace for the
+> current task as does dump_stack().  On some archs, dump_stack() prints
+> extra information - pid, utsname and so on - in addition to the
+> backtrace while the two are identical on other archs.
+> 
+> The usages in arch-independent code of the two functions indicate
+> show_stack(NULL, NULL) should print out bare backtrace while
+> dump_stack() is used for debugging purposes when something went wrong,
+> so it does make sense to print additional information on the task
+> which triggered dump_stack().
+> 
+> There's no reason to require archs to implement two separate but
+> mostly identical functions.  It leads to unnecessary subtle
+> differences among archs and makes it very tedius to add generic debug
+> information.
+> 
+> This patch expands the dummy fallback dump_stack() implementation in
+> lib/dump_stack.c such that it prints out debug information (taken from
+> x86) and invokes show_stack(NULL, NULL) and drops arch-specific
+> dump_stack() implementations in all archs except blackfin and s390.
+> Blackfin's dump_stack() does something wonky that I don't understand
+> and s390 prints its own debug information which includes fields which
+> aren't accessible from arch-indepdent code.
+> 
+> Debug information can be printed separately by calling
+> dump_stack_print_info() so that arch-specific dump_stack()
+> implementation can still emit the same debug information.  This is
+> used in blackfin.
+> 
+> This patch brings the following behavior changes.
+> 
+> * On some archs, an extra level in backtrace for show_stack() could be
+>   printed.  This is because the top frame was determined in
+>   dump_stack() on those archs while generic dump_stack() can't do that
+>   reliably.  It can be compensated by inlining dump_stack() but not
+>   sure whether that'd be necessary.
+> 
+> * Most archs didn't use to print debug info on dump_stack().  They do
+>   now.
+> 
+> An example WARN dump follows.
+> 
+>  WARNING: at /work/os/work/kernel/workqueue.c:4840 init_workqueues+0x35/0x505()
+>  Hardware name: empty
+>  Modules linked in:
+>  Pid: 1, comm: swapper/0 Not tainted 3.9.0-rc1-work+ #17
+>   0000000000000009 ffff88007c861e08 ffffffff81c61545 ffff88007c861e48
+>   ffffffff8108f50f ffffffff82228240 0000000000000040 ffffffff8234a03c
+>   0000000000000000 0000000000000000 0000000000000000 ffff88007c861e58
+>  Call Trace:
+>   [<ffffffff81c61545>] dump_stack+0x19/0x1b
+>   [<ffffffff8108f50f>] warn_slowpath_common+0x7f/0xc0
+>   [<ffffffff8108f56a>] warn_slowpath_null+0x1a/0x20
+>   [<ffffffff8234a071>] init_workqueues+0x35/0x505
+>   ...
+> 
+> Signed-off-by: Tejun Heo <tj@kernel.org>
+> Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+> Cc: linux-s390@vger.kernel.org
+> Cc: Mike Frysinger <vapier@gentoo.org>
+> Cc: uclinux-dist-devel@blackfin.uclinux.org
 
-> I'd suggest a preparatory patch that gets rid of that flag and moves these two
-> functions from sched/core.c to mutex.c where they belong.
->
-> This will also allow the removal of the mutex prototypes from sched.h.
-
-Yes, I can certainly prepare a patch to remove SCHED_FEAT_OWNER_SPIN & 
-move those functions back to mutex.c after my patch set goes in. As for 
-the timing, do you want me to do it now or it can wait as I will start 
-my vacation later this week and will be back by the end of the month.
-
-Regards,
-Longman
+For metag:
+Acked-by: James Hogan <james.hogan@imgtec.com>
