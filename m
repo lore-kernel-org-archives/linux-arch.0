@@ -1,87 +1,58 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH 3/5] dump_stack: consolidate dump_stack() implementations
- and unify their behaviors
-Date: Tue, 16 Apr 2013 15:59:24 +0100
-Message-ID: <516D674C.80504@imgtec.com>
-References: <1364610428-2074-1-git-send-email-tj@kernel.org> <1364610428-2074-4-git-send-email-tj@kernel.org>
+From: Jiang Liu <liuj97@gmail.com>
+Subject: Re: [RFC PATCH v1 00/19] kill free_all_bootmem() and clean up VALID_PAGE()
+Date: Tue, 16 Apr 2013 23:04:16 +0800
+Message-ID: <516D6870.1010303@gmail.com>
+References: <1365867399-21323-1-git-send-email-jiang.liu@huawei.com> <20130415045614.GB7494@iris.ozlabs.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:17188 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752347Ab3DPO7o (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 16 Apr 2013 10:59:44 -0400
-In-Reply-To: <1364610428-2074-4-git-send-email-tj@kernel.org>
+Received: from mail-pa0-f54.google.com ([209.85.220.54]:37741 "EHLO
+	mail-pa0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757296Ab3DPPE1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Apr 2013 11:04:27 -0400
+In-Reply-To: <20130415045614.GB7494@iris.ozlabs.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tejun Heo <tj@kernel.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@redhat.com, x86@kernel.org, rth@twiddle.net, linux@arm.linux.org.uk, msalter@redhat.com, starvik@axis.com, dhowells@redhat.com, tony.luck@intel.com, benh@kernel.crashing.org, takata@linux-m32r.org, geert@linux-m68k.org, monstr@monstr.eu, ralf@linux-mips.org, jonas@southpole.se, rkuo@codeaurora.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, davem@davemloft.net, lethal@linux-sh.org, vgupta@synopsys.com, chris@zankel.net, cmetcalf@tilera.com, ysato@users.sourceforge.jp, gxt@mprc.pku.edu.cn, jdike@addtoit.com, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>, uclinux-dist-devel@blackfin.uclinux.org
+To: Paul Mackerras <paulus@samba.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Yinghai Lu <yinghai@kernel.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On 30/03/13 02:27, Tejun Heo wrote:
-> Both dump_stack() and show_stack() are currently implemented by each
-> architecture.  show_stack(NULL, NULL) dumps the backtrace for the
-> current task as does dump_stack().  On some archs, dump_stack() prints
-> extra information - pid, utsname and so on - in addition to the
-> backtrace while the two are identical on other archs.
+On 04/15/2013 12:56 PM, Paul Mackerras wrote:
+> On Sat, Apr 13, 2013 at 11:36:20PM +0800, Jiang Liu wrote:
+>> Commit 600cc5b7f6 "mm: Kill NO_BOOTMEM version free_all_bootmem_node()"
+>> has kill free_all_bootmem_node() for NO_BOOTMEM.
+>>
+>> Currently the usage pattern for free_all_bootmem_node() is like:
+>> for_each_online_pgdat(pgdat)
+>> 	free_all_bootmem_node(pgdat);
+>>
+>> It's equivalent to free_all_bootmem(), so this patchset goes one
+>> step further to kill free_all_bootmem_node() for BOOTMEM too.
+>>
+>> This patchset also tries to clean up code and comments related to
+>> VALID_PAGE() because it has been removed from kernel long time ago.
+>>
+>> Patch 1-11:
+>> 	Kill free_all_bootmem_node()
+>> Patch 12-16:
+>> 	Clean up code and comments related to VALID_PAGE()
+>> Patch 17:
+>> 	Fix a minor build warning for m68k
+>> Patch 18:
+>> 	merge Alpha's mem_init() for UMA and NUMA.
+>> Patch 19:
+>> 	call register_page_bootmem_info_node() from mm core
 > 
-> The usages in arch-independent code of the two functions indicate
-> show_stack(NULL, NULL) should print out bare backtrace while
-> dump_stack() is used for debugging purposes when something went wrong,
-> so it does make sense to print additional information on the task
-> which triggered dump_stack().
+> How does this not break bisection?  Will a kernel still boot with
+> patches 1-11 applied but not patch 19?  As far as I can see such a
+> kernel would have no memory available to it after mem_init() time
+> and would therefore crash early in boot.
+Hi Paul,
+	Thanks for review!
+	Patch 1-11 replace free_all_bootmem_node() with free_all_bootmem(),
+so all normal pages will be freed into the buddy system as before. And
+patch 1-11 are independent with patch 19.
+	Gerry
 > 
-> There's no reason to require archs to implement two separate but
-> mostly identical functions.  It leads to unnecessary subtle
-> differences among archs and makes it very tedius to add generic debug
-> information.
+> Paul.
 > 
-> This patch expands the dummy fallback dump_stack() implementation in
-> lib/dump_stack.c such that it prints out debug information (taken from
-> x86) and invokes show_stack(NULL, NULL) and drops arch-specific
-> dump_stack() implementations in all archs except blackfin and s390.
-> Blackfin's dump_stack() does something wonky that I don't understand
-> and s390 prints its own debug information which includes fields which
-> aren't accessible from arch-indepdent code.
-> 
-> Debug information can be printed separately by calling
-> dump_stack_print_info() so that arch-specific dump_stack()
-> implementation can still emit the same debug information.  This is
-> used in blackfin.
-> 
-> This patch brings the following behavior changes.
-> 
-> * On some archs, an extra level in backtrace for show_stack() could be
->   printed.  This is because the top frame was determined in
->   dump_stack() on those archs while generic dump_stack() can't do that
->   reliably.  It can be compensated by inlining dump_stack() but not
->   sure whether that'd be necessary.
-> 
-> * Most archs didn't use to print debug info on dump_stack().  They do
->   now.
-> 
-> An example WARN dump follows.
-> 
->  WARNING: at /work/os/work/kernel/workqueue.c:4840 init_workqueues+0x35/0x505()
->  Hardware name: empty
->  Modules linked in:
->  Pid: 1, comm: swapper/0 Not tainted 3.9.0-rc1-work+ #17
->   0000000000000009 ffff88007c861e08 ffffffff81c61545 ffff88007c861e48
->   ffffffff8108f50f ffffffff82228240 0000000000000040 ffffffff8234a03c
->   0000000000000000 0000000000000000 0000000000000000 ffff88007c861e58
->  Call Trace:
->   [<ffffffff81c61545>] dump_stack+0x19/0x1b
->   [<ffffffff8108f50f>] warn_slowpath_common+0x7f/0xc0
->   [<ffffffff8108f56a>] warn_slowpath_null+0x1a/0x20
->   [<ffffffff8234a071>] init_workqueues+0x35/0x505
->   ...
-> 
-> Signed-off-by: Tejun Heo <tj@kernel.org>
-> Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-> Cc: linux-s390@vger.kernel.org
-> Cc: Mike Frysinger <vapier@gentoo.org>
-> Cc: uclinux-dist-devel@blackfin.uclinux.org
-
-For metag:
-Acked-by: James Hogan <james.hogan@imgtec.com>
