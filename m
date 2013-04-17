@@ -1,29 +1,331 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtp2.synopsys.com ([198.182.44.80]:33471 "EHLO
-	kiruna.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751343Ab3DQEPV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Apr 2013 00:15:21 -0400
-Message-ID: <516E21C8.5040908@synopsys.com>
-Date: Wed, 17 Apr 2013 09:45:04 +0530
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH] Kbuild: Avoid DTB rebuilds if source files are untouched
-References: <1364973141-16354-1-git-send-email-vgupta@synopsys.com> <515BD6B8.1020607@synopsys.com> <515C5652.8070705@wwwdotorg.org> <515D0FFB.4030803@synopsys.com> <515DBA0E.6000604@wwwdotorg.org> <51642158.3070205@synopsys.com> <5167BA67.5080403@synopsys.com> <5168822C.6040303@wwwdotorg.org> <516D7405.3060202@imgtec.com> <516D7600.4080002@imgtec.com>
-In-Reply-To: <516D7600.4080002@imgtec.com>
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Received: from g4t0014.houston.hp.com ([15.201.24.17]:39595 "EHLO
+	g4t0014.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754635Ab3DQE2j (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Apr 2013 00:28:39 -0400
+From: Waiman Long <Waiman.Long@hp.com>
+Subject: [PATCH v3 2/5] mutex: Queue mutex spinners with MCS lock to reduce cacheline contention
+Date: Wed, 17 Apr 2013 00:28:08 -0400
+Message-ID: <1366172891-7729-3-git-send-email-Waiman.Long@hp.com>
+In-Reply-To: <1366172891-7729-1-git-send-email-Waiman.Long@hp.com>
+References: <1366172891-7729-1-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
-Cc: Stephen Warren <swarren@wwwdotorg.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, Michal Marek <mmarek@suse.cz>, Stephen Warren <swarren@nvidia.com>, Grant Likely <grant.likely@secretlab.ca>, linux-kbuild@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>
-Message-ID: <20130417041504.a75Xyu1RMVKciHy66sZivaB6jtmyMEFYnJZU2BLUh2k@z>
+To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, David Howells <dhowells@redhat.com>, Dave Jones <davej@redhat.com>, Clark Williams <williams@redhat.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: Waiman Long <Waiman.Long@hp.com>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, "Chandramouleeswaran, Aswin" <aswin@hp.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, "Norton, Scott J" <scott.norton@hp.com>, Rik van Riel <riel@redhat.com>
+Message-ID: <20130417042808.cqV8nhXVX5FMlW65iM_uEKFEoFuzOjl_gFiaRrnSBwA@z>
 
-On 04/16/2013 09:32 PM, James Hogan wrote:
->
-> Also, I think you probably now want *.dtb.S added to clean-files,
-> otherwise they won't get removed by make clean.
+The current mutex spinning code (with MUTEX_SPIN_ON_OWNER option turned
+on) allow multiple tasks to spin on a single mutex concurrently. A
+potential problem with the current approach is that when the mutex
+becomes available, all the spinning tasks will try to acquire the
+mutex more or less simultaneously. As a result, there will be a lot of
+cacheline bouncing especially on systems with a large number of CPUs.
 
-Good catch !
+This patch tries to reduce this kind of contention by putting the
+mutex spinners into a queue so that only the first one in the queue
+will try to acquire the mutex. This will reduce contention and allow
+all the tasks to move forward faster.
 
-Thx,
--Vineet
+The queuing of mutex spinners is done using an MCS lock based
+implementation which will further reduce contention on the mutex
+cacheline than a similar ticket spinlock based implementation. This
+patch will add a new field into the mutex data structure for holding
+the MCS lock. This expands the mutex size by 8 bytes for 64-bit system
+and 4 bytes for 32-bit system. This overhead will be avoid if the
+MUTEX_SPIN_ON_OWNER option is turned off.
+
+The following table shows the jobs per minute (JPM) scalability data
+on an 8-node 80-core Westmere box with a 3.7.10 kernel. The numactl
+command is used to restrict the running of the fserver workloads to
+1/2/4/8 nodes with hyperthreading off.
+
++-----------------+-----------+-----------+-------------+----------+
+|  Configuration  | Mean JPM  | Mean JPM  |  Mean JPM   | % Change |
+|		  | w/o patch | patch 1   | patches 1&2 |  1->1&2  |
++-----------------+------------------------------------------------+
+|		  |              User Range 1100 - 2000		   |
++-----------------+------------------------------------------------+
+| 8 nodes, HT off |  227972   |  227237   |   305043    |  +34.2%  |
+| 4 nodes, HT off |  393503   |  381558   |   394650    |   +3.4%  |
+| 2 nodes, HT off |  334957   |  325240   |   338853    |   +4.2%  |
+| 1 node , HT off |  198141   |  197972   |   198075    |   +0.1%  |
++-----------------+------------------------------------------------+
+|		  |              User Range 200 - 1000		   |
++-----------------+------------------------------------------------+
+| 8 nodes, HT off |  282325   |  312870   |   332185    |   +6.2%  |
+| 4 nodes, HT off |  390698   |  378279   |   393419    |   +4.0%  |
+| 2 nodes, HT off |  336986   |  326543   |   340260    |   +4.2%  |
+| 1 node , HT off |  197588   |  197622   |   197582    |    0.0%  |
++-----------------+-----------+-----------+-------------+----------+
+
+At low user range 10-100, the JPM differences were within +/-1%. So
+they are not that interesting.
+
+The fserver workload uses mutex spinning extensively. With just
+the mutex change in the first patch, there is no noticeable change
+in performance.  Rather, there is a slight drop in performance. This
+mutex spinning patch more than recovers the lost performance and show
+a significant increase of +30% at high user load with the full 8 nodes.
+Similar improvements were also seen in a 3.8 kernel.
+
+The table below shows the %time spent by different kernel functions
+as reported by perf when running the fserver workload at 1500 users
+with all 8 nodes.
+
++-----------------------+-----------+---------+-------------+
+|        Function       |  % time   | % time  |   % time    |
+|                       | w/o patch | patch 1 | patches 1&2 |
++-----------------------+-----------+---------+-------------+
+| __read_lock_failed    |  34.96%   | 34.91%  |   29.14%    |
+| __write_lock_failed   |  10.14%   | 10.68%  |    7.51%    |
+| mutex_spin_on_owner   |   3.62%   |  3.42%  |    2.33%    |
+| mspin_lock            |    N/A    |   N/A   |    9.90%    |
+| __mutex_lock_slowpath |   1.46%   |  0.81%  |    0.14%    |
+| _raw_spin_lock        |   2.25%   |  2.50%  |    1.10%    |
++-----------------------+-----------+---------+-------------+
+
+The fserver workload for an 8-node system is dominated by the
+contention in the read/write lock. Mutex contention also plays a
+role. With the first patch only, mutex contention is down (as shown by
+the __mutex_lock_slowpath figure) which help a little bit. We saw only
+a few percents improvement with that.
+
+By applying patch 2 as well, the single mutex_spin_on_owner figure is
+now split out into an additional mspin_lock figure. The time increases
+from 3.42% to 11.23%. It shows a great reduction in contention among
+the spinners leading to a 30% improvement. The time ratio 9.9/2.33=4.3
+indicates that there are on average 4+ spinners waiting in the spin_lock
+loop for each spinner in the mutex_spin_on_owner loop. Contention in
+other locking functions also go down by quite a lot.
+
+The table below shows the performance change of both patches 1 & 2 over
+patch 1 alone in other AIM7 workloads (at 8 nodes, hyperthreading off).
+
++--------------+---------------+----------------+-----------------+
+|   Workload   | mean % change | mean % change  | mean % change   |
+|              | 10-100 users  | 200-1000 users | 1100-2000 users |
++--------------+---------------+----------------+-----------------+
+| alltests     |      0.0%     |     -0.8%      |     +0.6%       |
+| five_sec     |     -0.3%     |     +0.8%      |     +0.8%       |
+| high_systime |     +0.4%     |     +2.4%      |     +2.1%       |
+| new_fserver  |     +0.1%     |    +14.1%      |    +34.2%       |
+| shared       |     -0.5%     |     -0.3%      |     -0.4%       |
+| short        |     -1.7%     |     -9.8%      |     -8.3%       |
++--------------+---------------+----------------+-----------------+
+
+The short workload is the only one that shows a decline in performance
+probably due to the spinner locking and queuing overhead.
+
+Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+Acked-by: Rik van Riel <riel@redhat.com>
+---
+ include/linux/mutex.h |    3 ++
+ include/linux/sched.h |    3 ++
+ kernel/mutex.c        |   78 ++++++++++++++++++++++++++++++++++++++++++++++++-
+ kernel/sched/core.c   |   24 +++++++++++++--
+ 4 files changed, 104 insertions(+), 4 deletions(-)
+
+diff --git a/include/linux/mutex.h b/include/linux/mutex.h
+index 9121595..433da8a 100644
+--- a/include/linux/mutex.h
++++ b/include/linux/mutex.h
+@@ -53,6 +53,9 @@ struct mutex {
+ #if defined(CONFIG_DEBUG_MUTEXES) || defined(CONFIG_SMP)
+ 	struct task_struct	*owner;
+ #endif
++#ifdef CONFIG_MUTEX_SPIN_ON_OWNER
++	void			*spin_mlock;	/* Spinner MCS lock */
++#endif
+ #ifdef CONFIG_DEBUG_MUTEXES
+ 	const char 		*name;
+ 	void			*magic;
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index d35d2b6..8af6f13 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -320,7 +320,10 @@ extern signed long schedule_timeout_killable(signed long timeout);
+ extern signed long schedule_timeout_uninterruptible(signed long timeout);
+ asmlinkage void schedule(void);
+ extern void schedule_preempt_disabled(void);
++#ifdef CONFIG_MUTEX_SPIN_ON_OWNER
+ extern int mutex_spin_on_owner(struct mutex *lock, struct task_struct *owner);
++extern int mutex_can_spin_on_owner(struct mutex *lock);
++#endif
+ 
+ struct nsproxy;
+ struct user_namespace;
+diff --git a/kernel/mutex.c b/kernel/mutex.c
+index e3496df..e6a90de 100644
+--- a/kernel/mutex.c
++++ b/kernel/mutex.c
+@@ -55,6 +55,9 @@ __mutex_init(struct mutex *lock, const char *name, struct lock_class_key *key)
+ 	spin_lock_init(&lock->wait_lock);
+ 	INIT_LIST_HEAD(&lock->wait_list);
+ 	mutex_clear_owner(lock);
++#ifdef CONFIG_MUTEX_SPIN_ON_OWNER
++	lock->spin_mlock = NULL;
++#endif
+ 
+ 	debug_mutex_init(lock, name, key);
+ }
+@@ -106,6 +109,65 @@ void __sched mutex_lock(struct mutex *lock)
+ EXPORT_SYMBOL(mutex_lock);
+ #endif
+ 
++#ifdef CONFIG_MUTEX_SPIN_ON_OWNER
++/*
++ * In order to avoid a stampede of mutex spinners from acquiring the mutex
++ * more or less simultaneously, the spinners need to acquire a MCS lock
++ * first before spinning on the owner field.
++ *
++ * We don't inline mspin_lock() so that perf can correctly account for the
++ * time spent in this lock function.
++ */
++typedef struct mspin_node {
++	struct mspin_node *next;
++	int		   locked;	/* 1 if lock acquired */
++} mspin_node_t;
++
++typedef mspin_node_t	*mspin_lock_t;
++
++#define	MLOCK(mutex)	((mspin_lock_t *)&((mutex)->spin_mlock))
++
++static noinline void mspin_lock(mspin_lock_t *lock,  mspin_node_t *node)
++{
++	mspin_node_t *prev;
++
++	/* Init node */
++	node->locked = 0;
++	node->next   = NULL;
++
++	prev = xchg(lock, node);
++	if (likely(prev == NULL)) {
++		/* Lock acquired */
++		node->locked = 1;
++		return;
++	}
++	ACCESS_ONCE(prev->next) = node;
++	smp_wmb();
++	/* Wait until the lock holder passes the lock down */
++	while (!ACCESS_ONCE(node->locked))
++		arch_mutex_cpu_relax();
++}
++
++static void mspin_unlock(mspin_lock_t *lock,  mspin_node_t *node)
++{
++	mspin_node_t *next = ACCESS_ONCE(node->next);
++
++	if (likely(!next)) {
++		/*
++		 * Release the lock by setting it to NULL
++		 */
++		if (cmpxchg(lock, node, NULL) == node)
++			return;
++		/* Wait until the next pointer is set */
++		while (!(next = ACCESS_ONCE(node->next)))
++			arch_mutex_cpu_relax();
++	}
++	barrier();
++	ACCESS_ONCE(next->locked) = 1;
++	smp_wmb();
++}
++#endif
++
+ static __used noinline void __sched __mutex_unlock_slowpath(atomic_t *lock_count);
+ 
+ /**
+@@ -169,26 +231,39 @@ __mutex_lock_common(struct mutex *lock, long state, unsigned int subclass,
+ 	 *
+ 	 * We can't do this for DEBUG_MUTEXES because that relies on wait_lock
+ 	 * to serialize everything.
++	 *
++	 * The mutex spinners are queued up using MCS lock so that only one
++	 * spinner can compete for the mutex. However, if mutex spinning isn't
++	 * going to happen, there is no point in going through the lock/unlock
++	 * overhead.
+ 	 */
++	if (!mutex_can_spin_on_owner(lock))
++		goto slowpath;
+ 
+ 	for (;;) {
+ 		struct task_struct *owner;
++		mspin_node_t	    node;
+ 
+ 		/*
+ 		 * If there's an owner, wait for it to either
+ 		 * release the lock or go to sleep.
+ 		 */
++		mspin_lock(MLOCK(lock), &node);
+ 		owner = ACCESS_ONCE(lock->owner);
+-		if (owner && !mutex_spin_on_owner(lock, owner))
++		if (owner && !mutex_spin_on_owner(lock, owner)) {
++			mspin_unlock(MLOCK(lock), &node);
+ 			break;
++		}
+ 
+ 		if ((atomic_read(&lock->count) == 1) &&
+ 		    (atomic_cmpxchg(&lock->count, 1, 0) == 1)) {
+ 			lock_acquired(&lock->dep_map, ip);
+ 			mutex_set_owner(lock);
++			mspin_unlock(MLOCK(lock), &node);
+ 			preempt_enable();
+ 			return 0;
+ 		}
++		mspin_unlock(MLOCK(lock), &node);
+ 
+ 		/*
+ 		 * When there's no owner, we might have preempted between the
+@@ -207,6 +282,7 @@ __mutex_lock_common(struct mutex *lock, long state, unsigned int subclass,
+ 		 */
+ 		arch_mutex_cpu_relax();
+ 	}
++slowpath:
+ #endif
+ 	spin_lock_mutex(&lock->wait_lock, flags);
+ 
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index 7f12624..176e82a 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -3021,9 +3021,6 @@ static inline bool owner_running(struct mutex *lock, struct task_struct *owner)
+  */
+ int mutex_spin_on_owner(struct mutex *lock, struct task_struct *owner)
+ {
+-	if (!sched_feat(OWNER_SPIN))
+-		return 0;
+-
+ 	rcu_read_lock();
+ 	while (owner_running(lock, owner)) {
+ 		if (need_resched())
+@@ -3040,6 +3037,27 @@ int mutex_spin_on_owner(struct mutex *lock, struct task_struct *owner)
+ 	 */
+ 	return lock->owner == NULL;
+ }
++
++/*
++ * Initial check for entering the mutex spinning loop
++ */
++int mutex_can_spin_on_owner(struct mutex *lock)
++{
++	int retval = 1;
++
++	if (!sched_feat(OWNER_SPIN))
++		return 0;
++
++	rcu_read_lock();
++	if (lock->owner)
++		retval = lock->owner->on_cpu;
++	rcu_read_unlock();
++	/*
++	 * if lock->owner is not set, the mutex owner may have just acquired
++	 * it and not set the owner yet or the mutex has been released.
++	 */
++	return retval;
++}
+ #endif
+ 
+ #ifdef CONFIG_PREEMPT
+-- 
+1.7.1
+
