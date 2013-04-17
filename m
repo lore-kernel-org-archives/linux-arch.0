@@ -1,49 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:45019 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S965887Ab3DQJNZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 17 Apr 2013 05:13:25 -0400
-Message-ID: <516E67B2.20509@imgtec.com>
-Date: Wed, 17 Apr 2013 10:13:22 +0100
-From: James Hogan <james.hogan@imgtec.com>
+Received: from avon.wwwdotorg.org ([70.85.31.133]:53568 "EHLO
+	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965236Ab3DQPpR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Apr 2013 11:45:17 -0400
+Message-ID: <516EC1D6.6010205@wwwdotorg.org>
+Date: Wed, 17 Apr 2013 09:37:58 -0600
+From: Stephen Warren <swarren@wwwdotorg.org>
 MIME-Version: 1.0
-Subject: Re: [PATCH] Kbuild: Avoid DTB rebuilds if source files are untouched
-References: <1364973141-16354-1-git-send-email-vgupta@synopsys.com> <515BD6B8.1020607@synopsys.com> <515C5652.8070705@wwwdotorg.org> <515D0FFB.4030803@synopsys.com> <515DBA0E.6000604@wwwdotorg.org> <51642158.3070205@synopsys.com> <5167BA67.5080403@synopsys.com> <5168822C.6040303@wwwdotorg.org> <516D7405.3060202@imgtec.com> <516E2169.4020007@synopsys.com>
-In-Reply-To: <516E2169.4020007@synopsys.com>
-Content-Type: text/plain; charset="ISO-8859-1"
+Subject: Re: [PATCH 1/1] metag: avoid unnecessary builtin dtb rebuilds
+References: <1366192975-14953-1-git-send-email-james.hogan@imgtec.com>
+In-Reply-To: <1366192975-14953-1-git-send-email-james.hogan@imgtec.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Stephen Warren <swarren@wwwdotorg.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, Michal Marek <mmarek@suse.cz>, Stephen Warren <swarren@nvidia.com>, Grant Likely <grant.likely@secretlab.ca>, linux-kbuild@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>
-Message-ID: <20130417091322.sjqhczdhN6HuBNcY4Kn7UvK-VtgcvlOL_IyuobR_asY@z>
+To: James Hogan <james.hogan@imgtec.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Grant Likely <grant.likely@secretlab.ca>, Michal Marek <mmarek@suse.cz>, Sam Ravnborg <sam@ravnborg.org>
+Message-ID: <20130417153758.wLidmmACQ0WJQM0XMXQ3-b6onN8UcIRvT3Kltqvxewk@z>
 
-On 17/04/13 05:13, Vineet Gupta wrote:
-> Hi James,
+On 04/17/2013 04:02 AM, James Hogan wrote:
+> The builtin .dtb.S intermediate file needs to be marked with .SECONDARY
+> so that it isn't automatically deleted (which causes it to be
+> regenerated on every build). Also add *.dtb.S to clean-files so it gets
+> cleaned up by make clean.
 > 
-> On 04/16/2013 09:23 PM, James Hogan wrote:
->> On 12/04/13 22:52, Stephen Warren wrote:
->>> +.SECONDARY: $(obj)/$(builtindtb-y).dtb.S
->> Note, this may not work if you're using CONFIG_ARC_BUILTIN_DTB_NAME,
->> since it'll have quotes around it, so you may instead need:
->> .SECONDARY: $(obj)/$(patsubst "%",%,$(builtindtb-y)).dtb.S
->>
->> (at least that's what's required for the metag equivalent)
->>
->>> +
->>>  dtbs:  $(addprefix  $(obj)/, $(builtindtb-y).dtb)
->> You might find the same thing here too.
-> 
-> Actually in my Makefile, the quotes are stripped off in the very beginning to
-> avoid duplicating it in every place.
-> 
-> ifneq ($(CONFIG_ARC_BUILTIN_DTB_NAME),"")
->     builtindtb-y    := $(patsubst "%",%,$(CONFIG_ARC_BUILTIN_DTB_NAME))
-> endif
+> Similarly, if the specified builtin dtb isn't already in dtb-y (e.g.
+> imported into the tree and specified in CONFIG_METAG_BUILTIN_DTB_NAME)
+> it too will be treated as an intermediate and deleted automatically
+> (again causing it to be regenerated on every build), so add it to dtb-y
+> so it gets added to targets and the dtbs target.
 
-Ah yes, I didn't notice that difference. I'll do the same thing for
-metag (it only had 1 reference to it before).
-
-Thanks
-James
-
+Reviewed-by: Stephen Warren <swarren@nvidia.com>
