@@ -1,38 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f182.google.com ([209.85.192.182]:54266 "EHLO
-	mail-pd0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756120Ab3DQA6F (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Apr 2013 20:58:05 -0400
-Received: by mail-pd0-f182.google.com with SMTP id 3so573399pdj.27
-        for <linux-arch@vger.kernel.org>; Tue, 16 Apr 2013 17:58:03 -0700 (PDT)
-Date: Tue, 16 Apr 2013 17:57:53 -0700
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: Re: [PATCH 09/28] proc: Move some bits from linux/proc_fs.h to
- linux/{of.h, signal.h, tty.h} [RFC]
-Message-ID: <20130417005753.GB11541@kroah.com>
-References: <20130416182550.27773.89310.stgit@warthog.procyon.org.uk>
- <20130416182626.27773.48524.stgit@warthog.procyon.org.uk>
+Received: from us01smtp2.synopsys.com ([198.182.44.80]:33471 "EHLO
+	kiruna.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751343Ab3DQEPV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Apr 2013 00:15:21 -0400
+Message-ID: <516E21C8.5040908@synopsys.com>
+Date: Wed, 17 Apr 2013 09:45:04 +0530
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20130416182626.27773.48524.stgit@warthog.procyon.org.uk>
+Subject: Re: [PATCH] Kbuild: Avoid DTB rebuilds if source files are untouched
+References: <1364973141-16354-1-git-send-email-vgupta@synopsys.com> <515BD6B8.1020607@synopsys.com> <515C5652.8070705@wwwdotorg.org> <515D0FFB.4030803@synopsys.com> <515DBA0E.6000604@wwwdotorg.org> <51642158.3070205@synopsys.com> <5167BA67.5080403@synopsys.com> <5168822C.6040303@wwwdotorg.org> <516D7405.3060202@imgtec.com> <516D7600.4080002@imgtec.com>
+In-Reply-To: <516D7600.4080002@imgtec.com>
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree-discuss@lists.ozlabs.org, viro@zeniv.linux.org.uk, linux-fsdevel@vger.kernel.org, Jri Slaby <jslaby@suse.cz>
-Message-ID: <20130417005753.pvUt9xvhDwM6ofVSp3Uo9QZ2oSf_Fi4RkwlCg4ljQ70@z>
+To: James Hogan <james.hogan@imgtec.com>
+Cc: Stephen Warren <swarren@wwwdotorg.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, Michal Marek <mmarek@suse.cz>, Stephen Warren <swarren@nvidia.com>, Grant Likely <grant.likely@secretlab.ca>, linux-kbuild@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>
+Message-ID: <20130417041504.a75Xyu1RMVKciHy66sZivaB6jtmyMEFYnJZU2BLUh2k@z>
 
-On Tue, Apr 16, 2013 at 07:26:26PM +0100, David Howells wrote:
-> Move some bits from linux/proc_fs.h to linux/of.h, signal.h and tty.h.
-> 
-> Also move proc_tty_init() and proc_device_tree_init() to fs/proc/internal.h as
-> they're internal to procfs.
-> 
-> Signed-off-by: David Howells <dhowells@redhat.com>
-> cc: devicetree-discuss@lists.ozlabs.org
-> cc: linux-arch@vger.kernel.org
-> cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-> cc: Jri Slaby <jslaby@suse.cz>
-> ---
+On 04/16/2013 09:32 PM, James Hogan wrote:
+>
+> Also, I think you probably now want *.dtb.S added to clean-files,
+> otherwise they won't get removed by make clean.
 
-Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Good catch !
+
+Thx,
+-Vineet
