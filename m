@@ -1,43 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ee0-f53.google.com ([74.125.83.53]:60076 "EHLO
-	mail-ee0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965738Ab3DQHu7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Apr 2013 03:50:59 -0400
-Date: Wed, 17 Apr 2013 09:50:55 +0200
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v2 2/3] mutex: Queue mutex spinners with MCS lock to
- reduce cacheline contention
-Message-ID: <20130417075055.GC31607@gmail.com>
-References: <1366036679-9702-1-git-send-email-Waiman.Long@hp.com>
- <1366036679-9702-3-git-send-email-Waiman.Long@hp.com>
- <20130416091026.GB9569@gmail.com>
- <516D5F97.9050203@hp.com>
+Received: from multi.imgtec.com ([194.200.65.239]:45019 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S965887Ab3DQJNZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 17 Apr 2013 05:13:25 -0400
+Message-ID: <516E67B2.20509@imgtec.com>
+Date: Wed, 17 Apr 2013 10:13:22 +0100
+From: James Hogan <james.hogan@imgtec.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <516D5F97.9050203@hp.com>
+Subject: Re: [PATCH] Kbuild: Avoid DTB rebuilds if source files are untouched
+References: <1364973141-16354-1-git-send-email-vgupta@synopsys.com> <515BD6B8.1020607@synopsys.com> <515C5652.8070705@wwwdotorg.org> <515D0FFB.4030803@synopsys.com> <515DBA0E.6000604@wwwdotorg.org> <51642158.3070205@synopsys.com> <5167BA67.5080403@synopsys.com> <5168822C.6040303@wwwdotorg.org> <516D7405.3060202@imgtec.com> <516E2169.4020007@synopsys.com>
+In-Reply-To: <516E2169.4020007@synopsys.com>
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <Waiman.Long@hp.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, David Howells <dhowells@redhat.com>, Dave Jones <davej@redhat.com>, Clark Williams <williams@redhat.com>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, "Chandramouleeswaran, Aswin" <aswin@hp.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, "Norton, Scott J" <scott.norton@hp.com>, Rik van Riel <riel@redhat.com>
-Message-ID: <20130417075055.SEaW4--piPYWmdxTZAVipPaYLE5UEUX76Eww_wUcvBQ@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Stephen Warren <swarren@wwwdotorg.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, Michal Marek <mmarek@suse.cz>, Stephen Warren <swarren@nvidia.com>, Grant Likely <grant.likely@secretlab.ca>, linux-kbuild@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>
+Message-ID: <20130417091322.sjqhczdhN6HuBNcY4Kn7UvK-VtgcvlOL_IyuobR_asY@z>
 
-
-* Waiman Long <Waiman.Long@hp.com> wrote:
-
-> > I'd suggest a preparatory patch that gets rid of that flag and moves these two
-> > functions from sched/core.c to mutex.c where they belong.
-> >
-> > This will also allow the removal of the mutex prototypes from sched.h.
+On 17/04/13 05:13, Vineet Gupta wrote:
+> Hi James,
 > 
-> Yes, I can certainly prepare a patch to remove SCHED_FEAT_OWNER_SPIN & move 
-> those functions back to mutex.c after my patch set goes in. As for the timing, 
-> do you want me to do it now or it can wait as I will start my vacation later 
-> this week and will be back by the end of the month.
+> On 04/16/2013 09:23 PM, James Hogan wrote:
+>> On 12/04/13 22:52, Stephen Warren wrote:
+>>> +.SECONDARY: $(obj)/$(builtindtb-y).dtb.S
+>> Note, this may not work if you're using CONFIG_ARC_BUILTIN_DTB_NAME,
+>> since it'll have quotes around it, so you may instead need:
+>> .SECONDARY: $(obj)/$(patsubst "%",%,$(builtindtb-y)).dtb.S
+>>
+>> (at least that's what's required for the metag equivalent)
+>>
+>>> +
+>>>  dtbs:  $(addprefix  $(obj)/, $(builtindtb-y).dtb)
+>> You might find the same thing here too.
+> 
+> Actually in my Makefile, the quotes are stripped off in the very beginning to
+> avoid duplicating it in every place.
+> 
+> ifneq ($(CONFIG_ARC_BUILTIN_DTB_NAME),"")
+>     builtindtb-y    := $(patsubst "%",%,$(CONFIG_ARC_BUILTIN_DTB_NAME))
+> endif
 
-I'd suggest waiting with the latest series until you are back, so that you can 
-address regressions, should there be any.
+Ah yes, I didn't notice that difference. I'll do the same thing for
+metag (it only had 1 reference to it before).
 
-Thanks,
+Thanks
+James
 
-	Ingo
