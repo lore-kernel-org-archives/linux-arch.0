@@ -1,61 +1,77 @@
-From: Daniel Vetter <daniel.vetter@ffwll.ch>
-Subject: Re: [PATCH v2 2/3] mutex: add support for reservation style locks, v2
-Date: Wed, 17 Apr 2013 21:08:17 +0200
-Message-ID: <CAKMK7uHst+s9x0u4J04Qck26EeeUDOORM_SgYovmjV4c+mKP0w@mail.gmail.com>
-References: <20130228102452.15191.22673.stgit@patser>
-	<20130228102502.15191.14146.stgit@patser>
-	<1364900432.18374.24.camel@laptop>
-	<515AF1C1.7080508@canonical.com>
-	<1364921954.20640.22.camel@laptop>
-	<1365076908.2609.94.camel@laptop>
-	<20130404133123.GW2228@phenom.ffwll.local>
-	<1365093662.2609.111.camel@laptop>
-	<20130409222808.GC20739@home.goodmis.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+From: Waiman Long <Waiman.Long@hp.com>
+Subject: [PATCH v4 0/4]  mutex: Improve mutex performance by doing less atomic-ops & better spinning
+Date: Wed, 17 Apr 2013 15:23:10 -0400
+Message-ID: <1366226594-5506-1-git-send-email-Waiman.Long@hp.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f169.google.com ([209.85.223.169]:48445 "EHLO
-	mail-ie0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755790Ab3DQTIS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Apr 2013 15:08:18 -0400
-Received: by mail-ie0-f169.google.com with SMTP id ar20so2376373iec.14
-        for <linux-arch@vger.kernel.org>; Wed, 17 Apr 2013 12:08:17 -0700 (PDT)
-In-Reply-To: <20130409222808.GC20739@home.goodmis.org>
+Received: from g1t0027.austin.hp.com ([15.216.28.34]:29491 "EHLO
+	g1t0027.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753155Ab3DQTXj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Apr 2013 15:23:39 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Maarten Lankhorst <maarten.lankhorst@canonical.com>, linux-arch@vger.kernel.org, x86@kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, dri-devel <dri-devel@lists.freedesktop.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, rob clark <robclark@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
+To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, David Howells <dhowells@redhat.com>, Dave Jones <davej@redhat.com>, Clark Williams <williams@redhat.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: Waiman Long <Waiman.Long@hp.com>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, "Chandramouleeswaran, Aswin" <aswin@hp.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, "Norton, Scott J" <scott.norton@hp.com>, Rik van Riel <riel@redhat.com>
 
-On Wed, Apr 10, 2013 at 12:28 AM, Steven Rostedt <rostedt@goodmis.org> wrote:
-> On Thu, Apr 04, 2013 at 06:41:02PM +0200, Peter Zijlstra wrote:
->> On Thu, 2013-04-04 at 15:31 +0200, Daniel Vetter wrote:
->> > The thing is now that you're not expected to hold these locks for a
->> > long
->> > time - if you need to synchronously stall while holding a lock
->> > performance
->> > will go down the gutters anyway. And since most current
->> > gpus/co-processors
->> > still can't really preempt fairness isn't that high a priority,
->> > either.
->> > So we didn't think too much about that.
->>
->> Yeah but you're proposing a new synchronization primitive for the core
->> kernel.. all such 'fun' details need to be considered, not only those
->> few that bear on the one usecase.
->
-> Which bares the question, what other use cases are there?
+v3->v4
+ - Merge patch 4 into patch 2
+ - Move patch 5 forward to become patch 1
 
-Just stumbled over one I think: If we have a big graph of connected
-things (happens really often for video pipelines). And we want
-multiple users to use them in parallel. But sometimes a configuration
-change could take way too long and so would unduly stall a 2nd thread
-with just a global mutex, then per-object ww_mutexes would be a fit:
-You'd start with grabbing all the locks for the objects you want to
-change anything with, then grab anything in the graph that you also
-need to check. Thanks to loop detection and self-recursion this would
-all nicely work out, even for cyclic graphs of objects.
--Daniel
---
-Daniel Vetter
-Software Engineer, Intel Corporation
-+41 (0) 79 365 57 48 - http://blog.ffwll.ch
+v2->v3
+  - Add patch 4 to remove new typedefs introduced in patch 2.
+  - Add patch 5 to remove SCHED_FEAT_OWNER_SPIN and move the mutex
+    spinning code to mutex.c.
+
+v1->v2
+ - Remove the 2 mutex spinner patches and replaced it by another one
+   to improve the mutex spinning process.
+ - Remove changes made to kernel/mutex.h & localize changes in
+   kernel/mutex.c.
+ - Add an optional patch to remove architecture specific check in patch
+   1.
+
+This patch set is a collection of 4 different mutex related patches
+aimed at improving mutex performance especially for system with large
+number of CPUs. This is achieved by doing less atomic operations and
+better mutex spinning (when the CONFIG_MUTEX_SPIN_ON_OWNER is on).
+
+Patch 1 removes SCHED_FEAT_OWNER_SPIN which was just an earlier hack
+for testing purpose. It also moves the mutex spinning code back to
+mutex.c.
+
+Patch 2 reduces the number of atomic operations executed. It can
+produce dramatic performance improvement in the AIM7 benchmark with
+large number of CPUs. For example, there was a more than 3X improvement
+in the high_systime workload with a 3.7.10 kernel on an 8-socket
+x86-64 system with 80 cores. The 3.8 kernels, on the other hand,
+are not mutex limited for that workload anymore. So the performance
+improvement is only about 1% for the high_systime workload.
+
+Patch 3 improves the mutex spinning process by reducing contention
+among the spinners when competing for the mutex. This is done by
+using a MCS lock to put the spinners in a queue so that only the
+first spinner will try to acquire the mutex when it is available. This
+patch showed significant performance improvement of +30% on the AIM7
+fserver and new_fserver workload.
+
+Compared with patches 2&3 in v1, the new patch 3 consistently provided
+better performance improvement at high user load (1100-2000) for the
+fserver and new_fserver AIM7 workloads. The old patches had around 10%
+and less improvement at high user load while the new patch produced
+30% better performance for the same workloads.
+
+Patch 4 is an optional one for backing out architecture specific
+check in patch 2, if so desired.
+
+Waiman Long (4):
+  mutex: Move mutex spinning code from sched/core.c back to mutex.c
+  mutex: Make more scalable by doing less atomic operations
+  mutex: Queue mutex spinners with MCS lock to reduce cacheline
+    contention
+  mutex: back out architecture specific check for negative mutex count
+
+ include/linux/mutex.h   |    3 +
+ include/linux/sched.h   |    1 -
+ kernel/mutex.c          |  151 +++++++++++++++++++++++++++++++++++++++++++++-
+ kernel/sched/core.c     |   45 --------------
+ kernel/sched/features.h |    7 --
+ 5 files changed, 150 insertions(+), 57 deletions(-)
