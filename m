@@ -1,179 +1,187 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g1t0026.austin.hp.com ([15.216.28.33]:33372 "EHLO
-	g1t0026.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757572Ab3DQTXk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Apr 2013 15:23:40 -0400
-From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v4 1/4] mutex: Move mutex spinning code from sched/core.c back to mutex.c
-Date: Wed, 17 Apr 2013 15:23:11 -0400
-Message-ID: <1366226594-5506-2-git-send-email-Waiman.Long@hp.com>
-In-Reply-To: <1366226594-5506-1-git-send-email-Waiman.Long@hp.com>
-References: <1366226594-5506-1-git-send-email-Waiman.Long@hp.com>
+Received: from moutng.kundenserver.de ([212.227.126.171]:51106 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751775Ab3DSPy4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 19 Apr 2013 11:54:56 -0400
+Message-ID: <517168BB.3070903@dawncrow.de>
+Date: Fri, 19 Apr 2013 17:54:35 +0200
+From: =?ISO-8859-15?Q?Andr=E9_Hentschel?= <nerv@dawncrow.de>
+MIME-Version: 1.0
+Subject: [PATCHv2] arm: Preserve TPIDRURW on context switch
+Content-Type: text/plain; charset=ISO-8859-15
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, David Howells <dhowells@redhat.com>, Dave Jones <davej@redhat.com>, Clark Williams <williams@redhat.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: Waiman Long <Waiman.Long@hp.com>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, "Chandramouleeswaran, Aswin" <aswin@hp.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, "Norton, Scott J" <scott.norton@hp.com>, Rik van Riel <riel@redhat.com>
-Message-ID: <20130417192311.9dL70dgW47r61maNkrsKc_vbmuTvwyVo88XTX7ojaSg@z>
+To: linux-arch@vger.kernel.org, will.deacon@arm.com
+Cc: linux@arm.linux.org.uk, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, gregkh@linuxfoundation.org
+Message-ID: <20130419155435.6RN6LjSiN-fQfOoM2ckmvTnkQVV7lxsobeumf0GdxKo@z>
 
-As mentioned by Ingo, the SCHED_FEAT_OWNER_SPIN scheduler feature
-bit was really just an early hack to make with/without mutex-spinning
-testable. So it is no longer necessary.
+From: =?UTF-8?q?Andr=C3=A9=20Hentschel?= <nerv@dawncrow.de>
 
-This patch removes the SCHED_FEAT_OWNER_SPIN feature bit and move the
-mutex spinning code from kernel/sched/core.c back to kernel/mutex.c
-which is where they should belong.
+There are more and more applications coming to WinRT, Wine could support them,
+but mostly they expect to have the thread environment block (TEB) in TPIDRURW.
+This register must be preserved per thread instead of being cleared.
 
-Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+Signed-off-by: André Hentschel <nerv@dawncrow.de>
+
 ---
- include/linux/sched.h   |    1 -
- kernel/mutex.c          |   46 ++++++++++++++++++++++++++++++++++++++++++++++
- kernel/sched/core.c     |   45 ---------------------------------------------
- kernel/sched/features.h |    7 -------
- 4 files changed, 46 insertions(+), 53 deletions(-)
+This patch is against a86d52667d8eda5de39393ce737794403bdce1eb
 
-diff --git a/include/linux/sched.h b/include/linux/sched.h
-index e692a02..2d02c76 100644
---- a/include/linux/sched.h
-+++ b/include/linux/sched.h
-@@ -321,7 +321,6 @@ extern signed long schedule_timeout_killable(signed long timeout);
- extern signed long schedule_timeout_uninterruptible(signed long timeout);
- asmlinkage void schedule(void);
- extern void schedule_preempt_disabled(void);
--extern int mutex_spin_on_owner(struct mutex *lock, struct task_struct *owner);
+I could only test it with kernel 3.4.6
+
+ arch/arm/include/asm/thread_info.h |    2 +-
+ arch/arm/include/asm/tls.h         |   32 +++++++++++++++++++-------------
+ arch/arm/kernel/entry-armv.S       |    9 ++++-----
+ arch/arm/kernel/process.c          |    2 +-
+ arch/arm/kernel/ptrace.c           |    2 +-
+ arch/arm/kernel/traps.c            |    4 ++--
+ 6 files changed, 28 insertions(+), 23 deletions(-)
+
+diff --git a/arch/arm/include/asm/thread_info.h b/arch/arm/include/asm/thread_info.h
+index cddda1f..bb5b48d 100644
+--- a/arch/arm/include/asm/thread_info.h
++++ b/arch/arm/include/asm/thread_info.h
+@@ -58,7 +58,7 @@ struct thread_info {
+ 	struct cpu_context_save	cpu_context;	/* cpu context */
+ 	__u32			syscall;	/* syscall number */
+ 	__u8			used_cp[16];	/* thread used copro */
+-	unsigned long		tp_value;
++	unsigned long		tp_value[2];
+ #ifdef CONFIG_CRUNCH
+ 	struct crunch_state	crunchstate;
+ #endif
+diff --git a/arch/arm/include/asm/tls.h b/arch/arm/include/asm/tls.h
+index 73409e6..ea0189e 100644
+--- a/arch/arm/include/asm/tls.h
++++ b/arch/arm/include/asm/tls.h
+@@ -2,29 +2,35 @@
+ #define __ASMARM_TLS_H
  
- struct nsproxy;
- struct user_namespace;
-diff --git a/kernel/mutex.c b/kernel/mutex.c
-index 52f2301..262d717 100644
---- a/kernel/mutex.c
-+++ b/kernel/mutex.c
-@@ -95,6 +95,52 @@ void __sched mutex_lock(struct mutex *lock)
- EXPORT_SYMBOL(mutex_lock);
+ #ifdef __ASSEMBLY__
+-	.macro set_tls_none, tp, tmp1, tmp2
++	.macro set_tls_none, ntp, ptp, tmp1, tmp2
+ 	.endm
+ 
+-	.macro set_tls_v6k, tp, tmp1, tmp2
+-	mcr	p15, 0, \tp, c13, c0, 3		@ set TLS register
+-	mov	\tmp1, #0
+-	mcr	p15, 0, \tmp1, c13, c0, 2	@ clear user r/w TLS register
++	.macro set_tls_v6k, ntp, ptp, tmp1, tmp2
++	mrc	p15, 0, \tmp2, c13, c0, 2		@ get user r/w TLS register
++	str	\tmp2, [\ptp, #4]
++	ldrd	\tmp1, \tmp2, [\ntp]
++	mcr	p15, 0, \tmp1, c13, c0, 3	@ set user r/o TLS register
++	mcr	p15, 0, \tmp2, c13, c0, 2	@ set user r/w TLS register
+ 	.endm
+ 
+-	.macro set_tls_v6, tp, tmp1, tmp2
++	.macro set_tls_v6, ntp, ptp, tmp1, tmp2
+ 	ldr	\tmp1, =elf_hwcap
+ 	ldr	\tmp1, [\tmp1, #0]
+ 	mov	\tmp2, #0xffff0fff
+ 	tst	\tmp1, #HWCAP_TLS		@ hardware TLS available?
+-	mcrne	p15, 0, \tp, c13, c0, 3		@ yes, set TLS register
+-	movne	\tmp1, #0
+-	mcrne	p15, 0, \tmp1, c13, c0, 2	@ clear user r/w TLS register
+-	streq	\tp, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
++	mrcne	p15, 0, \tmp2, c13, c0, 2		@ get user r/w TLS register
++	strne	\tmp2, [\ptp, #4]
++	ldrdne	\tmp1, \tmp2, [\ntp]
++	ldreq	\tmp1, [\ntp]
++	mcrne	p15, 0, \tmp1, c13, c0, 3	@ yes, set user r/o TLS register
++	mcrne	p15, 0, \tmp2, c13, c0, 2	@ set user r/w TLS register
++	streq	\tmp1, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
+ 	.endm
+ 
+-	.macro set_tls_software, tp, tmp1, tmp2
+-	mov	\tmp1, #0xffff0fff
+-	str	\tp, [\tmp1, #-15]		@ set TLS value at 0xffff0ff0
++	.macro set_tls_software, ntp, ptp, tmp1, tmp2
++	ldr	\tmp1, [\ntp]
++	mov	\tmp2, #0xffff0fff
++	str	\tmp1, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
+ 	.endm
  #endif
  
-+#ifdef CONFIG_MUTEX_SPIN_ON_OWNER
-+/*
-+ * Mutex spinning code migrated from kernel/sched/core.c
-+ */
-+
-+static inline bool owner_running(struct mutex *lock, struct task_struct *owner)
-+{
-+	if (lock->owner != owner)
-+		return false;
-+
-+	/*
-+	 * Ensure we emit the owner->on_cpu, dereference _after_ checking
-+	 * lock->owner still matches owner, if that fails, owner might
-+	 * point to free()d memory, if it still matches, the rcu_read_lock()
-+	 * ensures the memory stays valid.
-+	 */
-+	barrier();
-+
-+	return owner->on_cpu;
-+}
-+
-+/*
-+ * Look out! "owner" is an entirely speculative pointer
-+ * access and not reliable.
-+ */
-+static noinline
-+int mutex_spin_on_owner(struct mutex *lock, struct task_struct *owner)
-+{
-+	rcu_read_lock();
-+	while (owner_running(lock, owner)) {
-+		if (need_resched())
-+			break;
-+
-+		arch_mutex_cpu_relax();
-+	}
-+	rcu_read_unlock();
-+
-+	/*
-+	 * We break out the loop above on need_resched() and when the
-+	 * owner changed, which is a sign for heavy contention. Return
-+	 * success only when lock->owner is NULL.
-+	 */
-+	return lock->owner == NULL;
-+}
-+#endif
-+
- static __used noinline void __sched __mutex_unlock_slowpath(atomic_t *lock_count);
- 
- /**
-diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index 67d0465..4205354 100644
---- a/kernel/sched/core.c
-+++ b/kernel/sched/core.c
-@@ -2999,51 +2999,6 @@ void __sched schedule_preempt_disabled(void)
- 	preempt_disable();
- }
- 
--#ifdef CONFIG_MUTEX_SPIN_ON_OWNER
--
--static inline bool owner_running(struct mutex *lock, struct task_struct *owner)
--{
--	if (lock->owner != owner)
--		return false;
--
--	/*
--	 * Ensure we emit the owner->on_cpu, dereference _after_ checking
--	 * lock->owner still matches owner, if that fails, owner might
--	 * point to free()d memory, if it still matches, the rcu_read_lock()
--	 * ensures the memory stays valid.
--	 */
--	barrier();
--
--	return owner->on_cpu;
--}
--
--/*
-- * Look out! "owner" is an entirely speculative pointer
-- * access and not reliable.
-- */
--int mutex_spin_on_owner(struct mutex *lock, struct task_struct *owner)
--{
--	if (!sched_feat(OWNER_SPIN))
--		return 0;
--
--	rcu_read_lock();
--	while (owner_running(lock, owner)) {
--		if (need_resched())
--			break;
--
--		arch_mutex_cpu_relax();
--	}
--	rcu_read_unlock();
--
--	/*
--	 * We break out the loop above on need_resched() and when the
--	 * owner changed, which is a sign for heavy contention. Return
--	 * success only when lock->owner is NULL.
--	 */
--	return lock->owner == NULL;
--}
+diff --git a/arch/arm/kernel/entry-armv.S b/arch/arm/kernel/entry-armv.S
+index 0f82098..78ce1c6 100644
+--- a/arch/arm/kernel/entry-armv.S
++++ b/arch/arm/kernel/entry-armv.S
+@@ -728,21 +728,20 @@ ENTRY(__switch_to)
+  UNWIND(.fnstart	)
+  UNWIND(.cantunwind	)
+ 	add	ip, r1, #TI_CPU_SAVE
+-	ldr	r3, [r2, #TI_TP_VALUE]
+  ARM(	stmia	ip!, {r4 - sl, fp, sp, lr} )	@ Store most regs on stack
+  THUMB(	stmia	ip!, {r4 - sl, fp}	   )	@ Store most regs on stack
+  THUMB(	str	sp, [ip], #4		   )
+  THUMB(	str	lr, [ip], #4		   )
+-#ifdef CONFIG_CPU_USE_DOMAINS
+-	ldr	r6, [r2, #TI_CPU_DOMAIN]
 -#endif
--
- #ifdef CONFIG_PREEMPT
- /*
-  * this is the entry point to schedule() from in-kernel preemption
-diff --git a/kernel/sched/features.h b/kernel/sched/features.h
-index 1ad1d2b..99399f8 100644
---- a/kernel/sched/features.h
-+++ b/kernel/sched/features.h
-@@ -46,13 +46,6 @@ SCHED_FEAT(DOUBLE_TICK, false)
- SCHED_FEAT(LB_BIAS, true)
+-	set_tls	r3, r4, r5
++	add	r3, r2, #TI_TP_VALUE
++	add	r4, r1, #TI_TP_VALUE
++	set_tls	r3, r4, r6, r7
+ #if defined(CONFIG_CC_STACKPROTECTOR) && !defined(CONFIG_SMP)
+ 	ldr	r7, [r2, #TI_TASK]
+ 	ldr	r8, =__stack_chk_guard
+ 	ldr	r7, [r7, #TSK_STACK_CANARY]
+ #endif
+ #ifdef CONFIG_CPU_USE_DOMAINS
++	ldr	r6, [r2, #TI_CPU_DOMAIN]
+ 	mcr	p15, 0, r6, c3, c0, 0		@ Set domain register
+ #endif
+ 	mov	r5, r0
+diff --git a/arch/arm/kernel/process.c b/arch/arm/kernel/process.c
+index 047d3e4..b3171c4 100644
+--- a/arch/arm/kernel/process.c
++++ b/arch/arm/kernel/process.c
+@@ -395,7 +395,7 @@ copy_thread(unsigned long clone_flags, unsigned long stack_start,
+ 	clear_ptrace_hw_breakpoint(p);
  
- /*
-- * Spin-wait on mutex acquisition when the mutex owner is running on
-- * another cpu -- assumes that when the owner is running, it will soon
-- * release the lock. Decreases scheduling overhead.
-- */
--SCHED_FEAT(OWNER_SPIN, true)
--
--/*
-  * Decrement CPU power based on time not spent running tasks
-  */
- SCHED_FEAT(NONTASK_POWER, true)
+ 	if (clone_flags & CLONE_SETTLS)
+-		thread->tp_value = childregs->ARM_r3;
++		thread->tp_value[0] = childregs->ARM_r3;
+ 
+ 	thread_notify(THREAD_NOTIFY_COPY, thread);
+ 
+diff --git a/arch/arm/kernel/ptrace.c b/arch/arm/kernel/ptrace.c
+index 03deeff..2bc1514 100644
+--- a/arch/arm/kernel/ptrace.c
++++ b/arch/arm/kernel/ptrace.c
+@@ -849,7 +849,7 @@ long arch_ptrace(struct task_struct *child, long request,
+ #endif
+ 
+ 		case PTRACE_GET_THREAD_AREA:
+-			ret = put_user(task_thread_info(child)->tp_value,
++			ret = put_user(task_thread_info(child)->tp_value[0],
+ 				       datap);
+ 			break;
+ 
+diff --git a/arch/arm/kernel/traps.c b/arch/arm/kernel/traps.c
+index 1c08911..f9d6259 100644
+--- a/arch/arm/kernel/traps.c
++++ b/arch/arm/kernel/traps.c
+@@ -588,7 +588,7 @@ asmlinkage int arm_syscall(int no, struct pt_regs *regs)
+ 		return regs->ARM_r0;
+ 
+ 	case NR(set_tls):
+-		thread->tp_value = regs->ARM_r0;
++		thread->tp_value[0] = regs->ARM_r0;
+ 		if (tls_emu)
+ 			return 0;
+ 		if (has_tls_reg) {
+@@ -706,7 +706,7 @@ static int get_tp_trap(struct pt_regs *regs, unsigned int instr)
+ 	int reg = (instr >> 12) & 15;
+ 	if (reg == 15)
+ 		return 1;
+-	regs->uregs[reg] = current_thread_info()->tp_value;
++	regs->uregs[reg] = current_thread_info()->tp_value[0];
+ 	regs->ARM_pc += 4;
+ 	return 0;
+ }
 -- 
-1.7.1
+1.7.10.4
+
 
