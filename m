@@ -1,187 +1,121 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:51106 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751775Ab3DSPy4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 19 Apr 2013 11:54:56 -0400
-Message-ID: <517168BB.3070903@dawncrow.de>
-Date: Fri, 19 Apr 2013 17:54:35 +0200
-From: =?ISO-8859-15?Q?Andr=E9_Hentschel?= <nerv@dawncrow.de>
+Received: from mail-da0-f48.google.com ([209.85.210.48]:46872 "EHLO
+	mail-da0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755331Ab3DTPUH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 20 Apr 2013 11:20:07 -0400
+Message-ID: <5172B21E.9000805@gmail.com>
+Date: Sat, 20 Apr 2013 23:19:58 +0800
+From: Jiang Liu <liuj97@gmail.com>
 MIME-Version: 1.0
-Subject: [PATCHv2] arm: Preserve TPIDRURW on context switch
-Content-Type: text/plain; charset=ISO-8859-15
-Content-Transfer-Encoding: 8bit
+Subject: Re: [PATCH v4, part3 13/41] mm/ARM: prepare for removing num_physpages
+ and simplify mem_init()
+References: <1365258760-30821-1-git-send-email-jiang.liu@huawei.com> <1365258760-30821-14-git-send-email-jiang.liu@huawei.com> <20130419165429.GA14496@n2100.arm.linux.org.uk>
+In-Reply-To: <20130419165429.GA14496@n2100.arm.linux.org.uk>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, will.deacon@arm.com
-Cc: linux@arm.linux.org.uk, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, gregkh@linuxfoundation.org
-Message-ID: <20130419155435.6RN6LjSiN-fQfOoM2ckmvTnkQVV7lxsobeumf0GdxKo@z>
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20130420151958.cTVWYiLzRd0QII9LXlCjarvovnyetzKjW8Zqp-S4u8Y@z>
 
-From: =?UTF-8?q?Andr=C3=A9=20Hentschel?= <nerv@dawncrow.de>
+On 04/20/2013 12:54 AM, Russell King - ARM Linux wrote:
+> On Sat, Apr 06, 2013 at 10:32:12PM +0800, Jiang Liu wrote:
+>> Prepare for removing num_physpages and simplify mem_init().
+>>
+>> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+>> Cc: Russell King <linux@arm.linux.org.uk>
+>> Cc: Catalin Marinas <catalin.marinas@arm.com>
+>> Cc: Will Deacon <will.deacon@arm.com>
+>> Cc: linux-arm-kernel@lists.infradead.org
+>> Cc: linux-kernel@vger.kernel.org
+>> ---
+>>  arch/arm/mm/init.c |   47 ++---------------------------------------------
+>>  1 file changed, 2 insertions(+), 45 deletions(-)
+>>
+>> diff --git a/arch/arm/mm/init.c b/arch/arm/mm/init.c
+>> index add4fcb..7a911d1 100644
+>> --- a/arch/arm/mm/init.c
+>> +++ b/arch/arm/mm/init.c
+>> @@ -582,9 +582,6 @@ static void __init free_highpages(void)
+>>   */
+>>  void __init mem_init(void)
+>>  {
+>> -	unsigned long reserved_pages, free_pages;
+>> -	struct memblock_region *reg;
+>> -	int i;
+>>  #ifdef CONFIG_HAVE_TCM
+>>  	/* These pointers are filled in on TCM detection */
+>>  	extern u32 dtcm_end;
+>> @@ -605,47 +602,7 @@ void __init mem_init(void)
+>>  
+>>  	free_highpages();
+>>  
+>> -	reserved_pages = free_pages = 0;
+>> -
+>> -	for_each_bank(i, &meminfo) {
+>> -		struct membank *bank = &meminfo.bank[i];
+>> -		unsigned int pfn1, pfn2;
+>> -		struct page *page, *end;
+>> -
+>> -		pfn1 = bank_pfn_start(bank);
+>> -		pfn2 = bank_pfn_end(bank);
+>> -
+>> -		page = pfn_to_page(pfn1);
+>> -		end  = pfn_to_page(pfn2 - 1) + 1;
+>> -
+>> -		do {
+>> -			if (PageReserved(page))
+>> -				reserved_pages++;
+>> -			else if (!page_count(page))
+>> -				free_pages++;
+>> -			page++;
+>> -		} while (page < end);
+>> -	}
+>> -
+>> -	/*
+>> -	 * Since our memory may not be contiguous, calculate the
+>> -	 * real number of pages we have in this system
+>> -	 */
+>> -	printk(KERN_INFO "Memory:");
+>> -	num_physpages = 0;
+>> -	for_each_memblock(memory, reg) {
+>> -		unsigned long pages = memblock_region_memory_end_pfn(reg) -
+>> -			memblock_region_memory_base_pfn(reg);
+>> -		num_physpages += pages;
+>> -		printk(" %ldMB", pages >> (20 - PAGE_SHIFT));
+>> -	}
+>> -	printk(" = %luMB total\n", num_physpages >> (20 - PAGE_SHIFT));
+>> -
+>> -	printk(KERN_NOTICE "Memory: %luk/%luk available, %luk reserved, %luK highmem\n",
+>> -		nr_free_pages() << (PAGE_SHIFT-10),
+>> -		free_pages << (PAGE_SHIFT-10),
+>> -		reserved_pages << (PAGE_SHIFT-10),
+>> -		totalhigh_pages << (PAGE_SHIFT-10));
+>> +	mem_init_print_info(NULL);
+> 
+> I'm concerned about this.  We explicitly do not use the memblock information
+> when walking the memory above for the reserved/free pages because memblock
+> merges the various banks of memory together - and those may cross sparsemem
+> boundaries.  Any crossing of the sparsemem boundaries needs the struct page
+> pointer to be re-evaluated because it can be part of a different array of
+> such things.
+> 
+> Where's the rest of the patches?
+> 
+Hi Russel,
+	Thanks for review the patch. You may find the patch introducing 
+mem_init_print_info() at: http://marc.info/?l=linux-mm&m=136525938817934&w=2
+Basically it prints standard memory statistics info as below for all architectures
+without walking the page structure array.
+Memory: 7744624K/8074824K available (6969K kernel code, 1011K data, 2828K rodata, 1016K init, 9640K bss, 330200K reserved)
 
-There are more and more applications coming to WinRT, Wine could support them,
-but mostly they expect to have the thread environment block (TEB) in TPIDRURW.
-This register must be preserved per thread instead of being cleared.
+On the other hand, the patch does change information printed on boot, especially
+it doesn't print size of each memory block. If needed, I can revert the code to
+print size of each memory block.
 
-Signed-off-by: André Hentschel <nerv@dawncrow.de>
+	Regards!
+	Gerry
 
----
-This patch is against a86d52667d8eda5de39393ce737794403bdce1eb
-
-I could only test it with kernel 3.4.6
-
- arch/arm/include/asm/thread_info.h |    2 +-
- arch/arm/include/asm/tls.h         |   32 +++++++++++++++++++-------------
- arch/arm/kernel/entry-armv.S       |    9 ++++-----
- arch/arm/kernel/process.c          |    2 +-
- arch/arm/kernel/ptrace.c           |    2 +-
- arch/arm/kernel/traps.c            |    4 ++--
- 6 files changed, 28 insertions(+), 23 deletions(-)
-
-diff --git a/arch/arm/include/asm/thread_info.h b/arch/arm/include/asm/thread_info.h
-index cddda1f..bb5b48d 100644
---- a/arch/arm/include/asm/thread_info.h
-+++ b/arch/arm/include/asm/thread_info.h
-@@ -58,7 +58,7 @@ struct thread_info {
- 	struct cpu_context_save	cpu_context;	/* cpu context */
- 	__u32			syscall;	/* syscall number */
- 	__u8			used_cp[16];	/* thread used copro */
--	unsigned long		tp_value;
-+	unsigned long		tp_value[2];
- #ifdef CONFIG_CRUNCH
- 	struct crunch_state	crunchstate;
- #endif
-diff --git a/arch/arm/include/asm/tls.h b/arch/arm/include/asm/tls.h
-index 73409e6..ea0189e 100644
---- a/arch/arm/include/asm/tls.h
-+++ b/arch/arm/include/asm/tls.h
-@@ -2,29 +2,35 @@
- #define __ASMARM_TLS_H
- 
- #ifdef __ASSEMBLY__
--	.macro set_tls_none, tp, tmp1, tmp2
-+	.macro set_tls_none, ntp, ptp, tmp1, tmp2
- 	.endm
- 
--	.macro set_tls_v6k, tp, tmp1, tmp2
--	mcr	p15, 0, \tp, c13, c0, 3		@ set TLS register
--	mov	\tmp1, #0
--	mcr	p15, 0, \tmp1, c13, c0, 2	@ clear user r/w TLS register
-+	.macro set_tls_v6k, ntp, ptp, tmp1, tmp2
-+	mrc	p15, 0, \tmp2, c13, c0, 2		@ get user r/w TLS register
-+	str	\tmp2, [\ptp, #4]
-+	ldrd	\tmp1, \tmp2, [\ntp]
-+	mcr	p15, 0, \tmp1, c13, c0, 3	@ set user r/o TLS register
-+	mcr	p15, 0, \tmp2, c13, c0, 2	@ set user r/w TLS register
- 	.endm
- 
--	.macro set_tls_v6, tp, tmp1, tmp2
-+	.macro set_tls_v6, ntp, ptp, tmp1, tmp2
- 	ldr	\tmp1, =elf_hwcap
- 	ldr	\tmp1, [\tmp1, #0]
- 	mov	\tmp2, #0xffff0fff
- 	tst	\tmp1, #HWCAP_TLS		@ hardware TLS available?
--	mcrne	p15, 0, \tp, c13, c0, 3		@ yes, set TLS register
--	movne	\tmp1, #0
--	mcrne	p15, 0, \tmp1, c13, c0, 2	@ clear user r/w TLS register
--	streq	\tp, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
-+	mrcne	p15, 0, \tmp2, c13, c0, 2		@ get user r/w TLS register
-+	strne	\tmp2, [\ptp, #4]
-+	ldrdne	\tmp1, \tmp2, [\ntp]
-+	ldreq	\tmp1, [\ntp]
-+	mcrne	p15, 0, \tmp1, c13, c0, 3	@ yes, set user r/o TLS register
-+	mcrne	p15, 0, \tmp2, c13, c0, 2	@ set user r/w TLS register
-+	streq	\tmp1, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
- 	.endm
- 
--	.macro set_tls_software, tp, tmp1, tmp2
--	mov	\tmp1, #0xffff0fff
--	str	\tp, [\tmp1, #-15]		@ set TLS value at 0xffff0ff0
-+	.macro set_tls_software, ntp, ptp, tmp1, tmp2
-+	ldr	\tmp1, [\ntp]
-+	mov	\tmp2, #0xffff0fff
-+	str	\tmp1, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
- 	.endm
- #endif
- 
-diff --git a/arch/arm/kernel/entry-armv.S b/arch/arm/kernel/entry-armv.S
-index 0f82098..78ce1c6 100644
---- a/arch/arm/kernel/entry-armv.S
-+++ b/arch/arm/kernel/entry-armv.S
-@@ -728,21 +728,20 @@ ENTRY(__switch_to)
-  UNWIND(.fnstart	)
-  UNWIND(.cantunwind	)
- 	add	ip, r1, #TI_CPU_SAVE
--	ldr	r3, [r2, #TI_TP_VALUE]
-  ARM(	stmia	ip!, {r4 - sl, fp, sp, lr} )	@ Store most regs on stack
-  THUMB(	stmia	ip!, {r4 - sl, fp}	   )	@ Store most regs on stack
-  THUMB(	str	sp, [ip], #4		   )
-  THUMB(	str	lr, [ip], #4		   )
--#ifdef CONFIG_CPU_USE_DOMAINS
--	ldr	r6, [r2, #TI_CPU_DOMAIN]
--#endif
--	set_tls	r3, r4, r5
-+	add	r3, r2, #TI_TP_VALUE
-+	add	r4, r1, #TI_TP_VALUE
-+	set_tls	r3, r4, r6, r7
- #if defined(CONFIG_CC_STACKPROTECTOR) && !defined(CONFIG_SMP)
- 	ldr	r7, [r2, #TI_TASK]
- 	ldr	r8, =__stack_chk_guard
- 	ldr	r7, [r7, #TSK_STACK_CANARY]
- #endif
- #ifdef CONFIG_CPU_USE_DOMAINS
-+	ldr	r6, [r2, #TI_CPU_DOMAIN]
- 	mcr	p15, 0, r6, c3, c0, 0		@ Set domain register
- #endif
- 	mov	r5, r0
-diff --git a/arch/arm/kernel/process.c b/arch/arm/kernel/process.c
-index 047d3e4..b3171c4 100644
---- a/arch/arm/kernel/process.c
-+++ b/arch/arm/kernel/process.c
-@@ -395,7 +395,7 @@ copy_thread(unsigned long clone_flags, unsigned long stack_start,
- 	clear_ptrace_hw_breakpoint(p);
- 
- 	if (clone_flags & CLONE_SETTLS)
--		thread->tp_value = childregs->ARM_r3;
-+		thread->tp_value[0] = childregs->ARM_r3;
- 
- 	thread_notify(THREAD_NOTIFY_COPY, thread);
- 
-diff --git a/arch/arm/kernel/ptrace.c b/arch/arm/kernel/ptrace.c
-index 03deeff..2bc1514 100644
---- a/arch/arm/kernel/ptrace.c
-+++ b/arch/arm/kernel/ptrace.c
-@@ -849,7 +849,7 @@ long arch_ptrace(struct task_struct *child, long request,
- #endif
- 
- 		case PTRACE_GET_THREAD_AREA:
--			ret = put_user(task_thread_info(child)->tp_value,
-+			ret = put_user(task_thread_info(child)->tp_value[0],
- 				       datap);
- 			break;
- 
-diff --git a/arch/arm/kernel/traps.c b/arch/arm/kernel/traps.c
-index 1c08911..f9d6259 100644
---- a/arch/arm/kernel/traps.c
-+++ b/arch/arm/kernel/traps.c
-@@ -588,7 +588,7 @@ asmlinkage int arm_syscall(int no, struct pt_regs *regs)
- 		return regs->ARM_r0;
- 
- 	case NR(set_tls):
--		thread->tp_value = regs->ARM_r0;
-+		thread->tp_value[0] = regs->ARM_r0;
- 		if (tls_emu)
- 			return 0;
- 		if (has_tls_reg) {
-@@ -706,7 +706,7 @@ static int get_tp_trap(struct pt_regs *regs, unsigned int instr)
- 	int reg = (instr >> 12) & 15;
- 	if (reg == 15)
- 		return 1;
--	regs->uregs[reg] = current_thread_info()->tp_value;
-+	regs->uregs[reg] = current_thread_info()->tp_value[0];
- 	regs->ARM_pc += 4;
- 	return 0;
- }
--- 
-1.7.10.4
 
 
