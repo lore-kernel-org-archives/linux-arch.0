@@ -1,102 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-da0-f53.google.com ([209.85.210.53]:64917 "EHLO
-	mail-da0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755419Ab3DTPem (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 20 Apr 2013 11:34:42 -0400
-Message-ID: <5172B58A.3090006@gmail.com>
-Date: Sat, 20 Apr 2013 23:34:34 +0800
-From: Jiang Liu <liuj97@gmail.com>
+Received: from nctlincom01.orcon.net.nz ([60.234.4.69]:44361 "EHLO
+	nctlincom01.orcon.net.nz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753155Ab3DULAO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 21 Apr 2013 07:00:14 -0400
+Received: from mx5.orcon.net.nz (mx5.orcon.net.nz [219.88.242.55])
+	by nctlincom01.orcon.net.nz (8.14.3/8.14.3/Debian-9.4) with ESMTP id r3LAkjLR030140
+	for <linux-arch@vger.kernel.org>; Sun, 21 Apr 2013 22:46:45 +1200
+Received: from Debian-exim by mx5.orcon.net.nz with local (Exim 4.69)
+	(envelope-from <mcree@orcon.net.nz>)
+	id 1UTqvg-0007dE-0o
+	for linux-arch@vger.kernel.org; Sun, 21 Apr 2013 21:51:28 +1200
+Date: Sun, 21 Apr 2013 21:51:20 +1200
+From: Michael Cree <mcree@orcon.net.nz>
+Subject: Re: Using __int128 on 64-bit architectures
+Message-ID: <20130421095120.GA6508@omega>
+References: <51464C00.5090107@zytor.com>
+ <alpine.LFD.2.03.1304210450490.17443@linux-mips.org>
+ <20130421193531.43965f592f00dfd6e3cfcf45@canb.auug.org.au>
 MIME-Version: 1.0
-Subject: Re: [PATCH v4, part3 01/15] mm: fix build warnings caused by free_reserved_area()
-References: <1365256509-29024-1-git-send-email-jiang.liu@huawei.com> <1365256509-29024-2-git-send-email-jiang.liu@huawei.com> <20130419165208.GZ14496@n2100.arm.linux.org.uk>
-In-Reply-To: <20130419165208.GZ14496@n2100.arm.linux.org.uk>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20130421193531.43965f592f00dfd6e3cfcf45@canb.auug.org.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, James Bottomley <James.Bottomley@HansenPartnership.com>, David Howells <dhowells@redhat.com>, Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org, Mark Salter <msalter@redhat.com>, linux-kernel@vger.kernel.org, Michal Hocko <mhocko@suse.cz>, Minchan Kim <minchan@kernel.org>, Mel Gorman <mgorman@suse.de>, David Rientjes <rientjes@google.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Jianguo Wu <wujianguo@huawei.com>
-Message-ID: <20130420153434.jskgh09uYRGNbbZE2y6MaovaO9GvrYf87VVXn6_rHz8@z>
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: "Maciej W. Rozycki" <macro@linux-mips.org>, "H. Peter Anvin" <hpa@zytor.com>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20130421095120.kgWetYC8bBoDUrij5jCb-NWKCDzaF0Iwpn30QBB7cZU@z>
 
-On 04/20/2013 12:52 AM, Russell King - ARM Linux wrote:
-> On Sat, Apr 06, 2013 at 09:54:55PM +0800, Jiang Liu wrote:
->> Fix following build warnings cuased by free_reserved_area():
->>
->> arch/arm/mm/init.c: In function 'mem_init':
->> arch/arm/mm/init.c:603:2: warning: passing argument 1 of 'free_reserved_area' makes integer from pointer without a cast [enabled by default]
->>   free_reserved_area(__va(PHYS_PFN_OFFSET), swapper_pg_dir, 0, NULL);
->>   ^
->> In file included from include/linux/mman.h:4:0,
->>                  from arch/arm/mm/init.c:15:
->> include/linux/mm.h:1301:22: note: expected 'long unsigned int' but argument is of type 'void *'
->>  extern unsigned long free_reserved_area(unsigned long start, unsigned long end,
->>
->>    mm/page_alloc.c: In function 'free_reserved_area':
->>>> mm/page_alloc.c:5134:3: warning: passing argument 1 of 'virt_to_phys' makes pointer from integer without a cast [enabled by default]
->>    In file included from arch/mips/include/asm/page.h:49:0,
->>                     from include/linux/mmzone.h:20,
->>                     from include/linux/gfp.h:4,
->>                     from include/linux/mm.h:8,
->>                     from mm/page_alloc.c:18:
->>    arch/mips/include/asm/io.h:119:29: note: expected 'const volatile void *' but argument is of type 'long unsigned int'
->>    mm/page_alloc.c: In function 'free_area_init_nodes':
->>    mm/page_alloc.c:5030:34: warning: array subscript is below array bounds [-Warray-bounds]
->>
->> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
->> Reported-by: Arnd Bergmann <arnd@arndb.de>
->> Cc: linux-arm-kernel@lists.infradead.org
->> Cc: linux-kernel@vger.kernel.org
->> Cc: linux-mm@kvack.org
->> ---
->>  arch/arm/mm/init.c |    6 ++++--
->>  mm/page_alloc.c    |    2 +-
->>  2 files changed, 5 insertions(+), 3 deletions(-)
->>
->> diff --git a/arch/arm/mm/init.c b/arch/arm/mm/init.c
->> index 9a5cdc0..7a82fcd 100644
->> --- a/arch/arm/mm/init.c
->> +++ b/arch/arm/mm/init.c
->> @@ -600,7 +600,8 @@ void __init mem_init(void)
->>  
->>  #ifdef CONFIG_SA1111
->>  	/* now that our DMA memory is actually so designated, we can free it */
->> -	free_reserved_area(__va(PHYS_PFN_OFFSET), swapper_pg_dir, 0, NULL);
->> +	free_reserved_area((unsigned long)__va(PHYS_PFN_OFFSET),
->> +			   (unsigned long)swapper_pg_dir, 0, NULL);
->>  #endif
->>  
->>  	free_highpages();
->> @@ -728,7 +729,8 @@ void free_initmem(void)
->>  	extern char __tcm_start, __tcm_end;
->>  
->>  	poison_init_mem(&__tcm_start, &__tcm_end - &__tcm_start);
->> -	free_reserved_area(&__tcm_start, &__tcm_end, 0, "TCM link");
->> +	free_reserved_area((unsigned long)&__tcm_start,
->> +			   (unsigned long)&__tcm_end, 0, "TCM link");
->>  #endif
->>  
->>  	poison_init_mem(__init_begin, __init_end - __init_begin);
->> diff --git a/mm/page_alloc.c b/mm/page_alloc.c
->> index e4923e9..8bf7956 100644
->> --- a/mm/page_alloc.c
->> +++ b/mm/page_alloc.c
->> @@ -5196,7 +5196,7 @@ unsigned long free_reserved_area(unsigned long start, unsigned long end,
->>  	for (pages = 0; pos < end; pos += PAGE_SIZE, pages++) {
->>  		if (poison)
->>  			memset((void *)pos, poison, PAGE_SIZE);
->> -		free_reserved_page(virt_to_page(pos));
->> +		free_reserved_page(virt_to_page((void *)pos));
+On Sun, Apr 21, 2013 at 07:35:31PM +1000, Stephen Rothwell wrote:
+> On Sun, 21 Apr 2013 05:29:28 +0100 (BST) "Maciej W. Rozycki" <macro@linux-mips.org> wrote:
+> >
+> >  Hmm, nobody has replied, so just FYI such widening multiplication is 
+> > available in all 64-bit MIPS hardware and GCC has supported it since 4.4 
+> > or mid 2008 (older versions used a libgcc __multi3 helper, not quite so 
+> > efficient as you can imagine).
 > 
-> Don't all these casts suggest to you that you may have the type wrong
-> in the first place?
+> i.e. for gcc 4.6.3, 64 bit powerpc calls out to __multi3
 > 
-Hi Russell,
-	Good question! 
-	Originally free_reserved_area() is designed to simplify free_initrd_mem(), and 
-free_initrd_mem() is declared as:
-	void free_initrd_mem(unsigned long start, unsigned long end)
-	So I have chosen "unsigned long" for free_reserved_area()'s first and second
-parameters, otherwise it will cause much more type casts in function free_initrd_mem().
-For code purity, we should use "void *" instead. So should we change to "void *" here?
-	Regards!
-	Gerry
+> The same is true for sparc64.
+
+Likewise, with gcc-4.6.3, alpha calls out to __multi3.
+
+Cheers
+Michael.
