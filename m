@@ -1,38 +1,52 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+From: Will Deacon <will.deacon@arm.com>
 Subject: Re: [PATCHv2] arm: Preserve TPIDRURW on context switch
-Date: Mon, 22 Apr 2013 15:36:16 +0100
-Message-ID: <20130422143616.GP14496@n2100.arm.linux.org.uk>
+Date: Mon, 22 Apr 2013 16:18:37 +0100
+Message-ID: <20130422151836.GA15665@mudshark.cambridge.arm.com>
 References: <517168BB.3070903@dawncrow.de>
+ <20130422143616.GP14496@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=iso-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:36369 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754277Ab3DVOg3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Apr 2013 10:36:29 -0400
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:62596 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753263Ab3DVPSz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 22 Apr 2013 11:18:55 -0400
 Content-Disposition: inline
-In-Reply-To: <517168BB.3070903@dawncrow.de>
+In-Reply-To: <20130422143616.GP14496@n2100.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?iso-8859-1?Q?Andr=E9?= Hentschel <nerv@dawncrow.de>
-Cc: linux-arch@vger.kernel.org, will.deacon@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, gregkh@linuxfoundation.org
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: =?iso-8859-1?Q?Andr=E9?= Hentschel <nerv@dawncrow.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>
 
-On Fri, Apr 19, 2013 at 05:54:35PM +0200, Andr=E9 Hentschel wrote:
-> From: =3D?UTF-8?q?Andr=3DC3=3DA9=3D20Hentschel?=3D <nerv@dawncrow.de>
+On Mon, Apr 22, 2013 at 03:36:16PM +0100, Russell King - ARM Linux wrot=
+e:
+> On Fri, Apr 19, 2013 at 05:54:35PM +0200, Andr=E9 Hentschel wrote:
+> > From: =3D?UTF-8?q?Andr=3DC3=3DA9=3D20Hentschel?=3D <nerv@dawncrow.d=
+e>
+> >=20
+> > There are more and more applications coming to WinRT, Wine could su=
+pport them,
+> > but mostly they expect to have the thread environment block (TEB) i=
+n TPIDRURW.
+> > This register must be preserved per thread instead of being cleared=
+=2E
+> >=20
+> > Signed-off-by: Andr=E9 Hentschel <nerv@dawncrow.de>
 >=20
-> There are more and more applications coming to WinRT, Wine could supp=
-ort them,
-> but mostly they expect to have the thread environment block (TEB) in =
-TPIDRURW.
-> This register must be preserved per thread instead of being cleared.
+> This actually makes things less efficient all round, because you
+> now use the value immediately after loading, which means it will caus=
+e
+> pipeline stalls, certainly on older CPUs.
 >=20
-> Signed-off-by: Andr=E9 Hentschel <nerv@dawncrow.de>
+> Could you please rework the patch to try avoiding soo many modificati=
+ons
+> to the way things have been done here?
 
-This actually makes things less efficient all round, because you
-now use the value immediately after loading, which means it will cause
-pipeline stalls, certainly on older CPUs.
+copy_thread also needs updating so that the *register* value for the pa=
+rent
+is copied to the child, since the parent may have written the register
+after the last context-switch, meaning that tp_value is out-of-date.
 
-Could you please rework the patch to try avoiding soo many modification=
-s
-to the way things have been done here?
+Will
