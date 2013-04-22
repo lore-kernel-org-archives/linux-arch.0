@@ -1,33 +1,38 @@
-From: Michael Cree <mcree@orcon.net.nz>
-Subject: Re: Using __int128 on 64-bit architectures
-Date: Sun, 21 Apr 2013 21:51:20 +1200
-Message-ID: <20130421095120.GA6508@omega>
-References: <51464C00.5090107@zytor.com>
- <alpine.LFD.2.03.1304210450490.17443@linux-mips.org>
- <20130421193531.43965f592f00dfd6e3cfcf45@canb.auug.org.au>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCHv2] arm: Preserve TPIDRURW on context switch
+Date: Mon, 22 Apr 2013 15:36:16 +0100
+Message-ID: <20130422143616.GP14496@n2100.arm.linux.org.uk>
+References: <517168BB.3070903@dawncrow.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:36369 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754277Ab3DVOg3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Apr 2013 10:36:29 -0400
 Content-Disposition: inline
-In-Reply-To: <20130421193531.43965f592f00dfd6e3cfcf45@canb.auug.org.au>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: "Maciej W. Rozycki" <macro@linux-mips.org>, "H. Peter Anvin" <hpa@zytor.com>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <517168BB.3070903@dawncrow.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: =?iso-8859-1?Q?Andr=E9?= Hentschel <nerv@dawncrow.de>
+Cc: linux-arch@vger.kernel.org, will.deacon@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, gregkh@linuxfoundation.org
 
-On Sun, Apr 21, 2013 at 07:35:31PM +1000, Stephen Rothwell wrote:
-> On Sun, 21 Apr 2013 05:29:28 +0100 (BST) "Maciej W. Rozycki" <macro@linux-mips.org> wrote:
-> >
-> >  Hmm, nobody has replied, so just FYI such widening multiplication is 
-> > available in all 64-bit MIPS hardware and GCC has supported it since 4.4 
-> > or mid 2008 (older versions used a libgcc __multi3 helper, not quite so 
-> > efficient as you can imagine).
-> 
-> i.e. for gcc 4.6.3, 64 bit powerpc calls out to __multi3
-> 
-> The same is true for sparc64.
+On Fri, Apr 19, 2013 at 05:54:35PM +0200, Andr=E9 Hentschel wrote:
+> From: =3D?UTF-8?q?Andr=3DC3=3DA9=3D20Hentschel?=3D <nerv@dawncrow.de>
+>=20
+> There are more and more applications coming to WinRT, Wine could supp=
+ort them,
+> but mostly they expect to have the thread environment block (TEB) in =
+TPIDRURW.
+> This register must be preserved per thread instead of being cleared.
+>=20
+> Signed-off-by: Andr=E9 Hentschel <nerv@dawncrow.de>
 
-Likewise, with gcc-4.6.3, alpha calls out to __multi3.
+This actually makes things less efficient all round, because you
+now use the value immediately after loading, which means it will cause
+pipeline stalls, certainly on older CPUs.
 
-Cheers
-Michael.
+Could you please rework the patch to try avoiding soo many modification=
+s
+to the way things have been done here?
