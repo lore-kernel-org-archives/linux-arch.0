@@ -1,215 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:37587 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1756331Ab3DXJnV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Apr 2013 05:43:21 -0400
-Date: Wed, 24 Apr 2013 10:42:51 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCHv2] arm: Preserve TPIDRURW on context switch
-Message-ID: <20130424094251.GA21850@mudshark.cambridge.arm.com>
-References: <517168BB.3070903@dawncrow.de>
- <20130422143616.GP14496@n2100.arm.linux.org.uk>
- <20130422151836.GA15665@mudshark.cambridge.arm.com>
- <5175A697.3080308@dawncrow.de>
- <20130423091536.GB17593@mudshark.cambridge.arm.com>
- <51770E4E.2040003@dawncrow.de>
+Received: from www.linutronix.de ([62.245.132.108]:46145 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755022Ab3DYVBJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Apr 2013 17:01:09 -0400
+Date: Thu, 25 Apr 2013 23:01:02 +0200 (CEST)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [patch 08/34] arm: Use generic idle loop
+In-Reply-To: <51798C1D.9090405@codeaurora.org>
+Message-ID: <alpine.LFD.2.02.1304252300030.21884@ionos>
+References: <20130321214930.752934102@linutronix.de> <20130321215233.826238797@linutronix.de> <87zjxv9lga.fsf@linaro.org> <alpine.LFD.2.02.1303251230440.22263@ionos> <20130325114808.GQ4977@n2100.arm.linux.org.uk> <alpine.LFD.2.02.1303251501520.22263@ionos>
+ <20130408214719.GN17995@n2100.arm.linux.org.uk> <alpine.LFD.2.02.1304091106360.21884@ionos> <20130409093836.GA14496@n2100.arm.linux.org.uk> <51798C1D.9090405@codeaurora.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <51770E4E.2040003@dawncrow.de>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?iso-8859-1?Q?Andr=E9?= Hentschel <nerv@dawncrow.de>
-Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20130424094251.UzPWMQnEmgXqOLFeTd-eS2y6gmpOiDb853LpR3tFxnM@z>
+To: Stephen Boyd <sboyd@codeaurora.org>
+Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, Kevin Hilman <khilman@linaro.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>
+Message-ID: <20130425210102.CnAP3JTZzOWF1c1xULhCZp8CSRKtRil0FtDDT2iPCQM@z>
 
-Hi Andrew,
-
-On Tue, Apr 23, 2013 at 11:42:22PM +0100, André Hentschel wrote:
-> Am 23.04.2013 11:15, schrieb Will Deacon:
-> > You could introduce `get' tls functions, which don't do anything for CPUs
-> > without the relevant registers.
+On Thu, 25 Apr 2013, Stephen Boyd wrote:
+> On 04/09/13 02:38, Russell King - ARM Linux wrote:
+> > On Tue, Apr 09, 2013 at 11:20:31AM +0200, Thomas Gleixner wrote:
+> >> On Mon, 8 Apr 2013, Russell King - ARM Linux wrote:
+> >>> On Mon, Mar 25, 2013 at 03:02:39PM +0100, Thomas Gleixner wrote:
+> >>> So, how can I review these changes when all there is is a git URL, and
+> >>> I *do* not want to pull them into my tree without first looking at the
+> >>> patches, possibly reviewing them and *replying* with the patch inline?
+> >> the patches were CC'ed to LKML and linux-arch and I expected that you
+> >> are at least having the latter. Find the relevant patch inlined below.
+> > I've not been on linux-arch for a few years now, after it evolved into
+> > yet another lkml-like list with high traffic rates, where mainly specific
+> > x86 issues seemed to be discussed, rather than it being a way to contact
+> > all arch maintainers.
+> >
+> >> It is a counter. I looked carefully at all the various slightly
+> >> differently fcked up implementations and picked the counter based one
+> >> as it fits all requirements.
+> > Great, thanks.  The attached patch looks fine to me.
 > 
-> Before i have another round of testing and patch formatting/sending,
-> what about the untested patch below?
+> I'm pretty sure that we need to apply this patch now that
+> rcu_idle_enter()/exit() is called lower down in the idle loop. Kevin,
+> did you test hotplug?
 
-Ok. Comments inline.
+If the patch is agreed on, I guess I should take it via my idle
+consolidation branch, right ?
 
-> diff --git a/arch/arm/include/asm/thread_info.h b/arch/arm/include/asm/thread_info.h
-> index cddda1f..bb5b48d 100644
-> --- a/arch/arm/include/asm/thread_info.h
-> +++ b/arch/arm/include/asm/thread_info.h
-> @@ -58,7 +58,7 @@ struct thread_info {
->  	struct cpu_context_save	cpu_context;	/* cpu context */
->  	__u32			syscall;	/* syscall number */
->  	__u8			used_cp[16];	/* thread used copro */
-> -	unsigned long		tp_value;
-> +	unsigned long		tp_value[2];
->  #ifdef CONFIG_CRUNCH
->  	struct crunch_state	crunchstate;
->  #endif
-> diff --git a/arch/arm/include/asm/tls.h b/arch/arm/include/asm/tls.h
-> index 73409e6..1c10163 100644
-> --- a/arch/arm/include/asm/tls.h
-> +++ b/arch/arm/include/asm/tls.h
-> @@ -2,13 +2,30 @@
->  #define __ASMARM_TLS_H
+ 
+> ----8<-----
+> 
+> From: Stephen Boyd <sboyd@codeaurora.org>
+> Subject: [PATCH] ARM: smp: Drop RCU_NONIDLE usage in cpu_die()
+> 
+> Before f7b861b (arm: Use generic idle loop, 2013-03-21) ARM would
+> kill the CPU within the rcu idle section. Now that the
+> rcu_idle_enter()/exit() pair have been pushed lower down in the
+> idle loop this is no longer true and so using RCU_NONIDLE here is
+> no longer necessary and also harmful because RCU is not actually
+> idle at this point.
+> 
+> Signed-off-by: Stephen Boyd <sboyd@codeaurora.org>
+> ---
+>  arch/arm/kernel/smp.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/arch/arm/kernel/smp.c b/arch/arm/kernel/smp.c
+> index 4619177..78f1eb5 100644
+> --- a/arch/arm/kernel/smp.c
+> +++ b/arch/arm/kernel/smp.c
+> @@ -233,7 +233,7 @@ void __ref cpu_die(void)
+>         mb();
 >  
->  #ifdef __ASSEMBLY__
-> +	.macro get_tls2_none, tp, tmp1
-> +	.endm
-
-Cosmetic, but these are really horrible macro names.
-
-> +	.macro get_tls2_v6k, tp, tmp1
-> +	mrc	p15, 0, \tmp1, c13, c0, 2		@ get user r/w TLS register
-> +	str	\tmp1, [\tp, #4]
-> +	.endm
-> +
-> +	.macro get_tls2_v6, tp, tmp1
-> +	ldr	\tmp1, =elf_hwcap
-> +	ldr	\tmp1, [\tmp1, #0]
-> +	tst	\tmp1, #HWCAP_TLS		@ hardware TLS available?
-> +	mrcne	p15, 0, \tmp1, c13, c0, 2		@ get user r/w TLS register
-> +	strne	\tmp1, [\tp, #4]
-
-You could factor out some of this hwcap checking now that it's used by both
-set and get.
-
-> +	.endm
-> +
-> +
->  	.macro set_tls_none, tp, tmp1, tmp2
->  	.endm
+>         /* Tell __cpu_die() that this CPU is now safe to dispose of */
+> -       RCU_NONIDLE(complete(&cpu_died));
+> +       complete(&cpu_died);
 >  
->  	.macro set_tls_v6k, tp, tmp1, tmp2
-> -	mcr	p15, 0, \tp, c13, c0, 3		@ set TLS register
-> -	mov	\tmp1, #0
-> -	mcr	p15, 0, \tmp1, c13, c0, 2	@ clear user r/w TLS register
-> +	ldrd	\tmp1, \tmp2, [\tp]
-> +	mcr	p15, 0, \tmp1, c13, c0, 3	@ set user r/o TLS register
-> +	mcr	p15, 0, \tmp2, c13, c0, 2	@ set user r/w TLS register
->  	.endm
->  
->  	.macro set_tls_v6, tp, tmp1, tmp2
-> @@ -16,33 +33,39 @@
->  	ldr	\tmp1, [\tmp1, #0]
->  	mov	\tmp2, #0xffff0fff
->  	tst	\tmp1, #HWCAP_TLS		@ hardware TLS available?
-> -	mcrne	p15, 0, \tp, c13, c0, 3		@ yes, set TLS register
-> -	movne	\tmp1, #0
-> -	mcrne	p15, 0, \tmp1, c13, c0, 2	@ clear user r/w TLS register
-> -	streq	\tp, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
-> +	ldrdne	\tmp1, \tmp2, [\tp]
-
-Does this work for big-endian CPUs?
-
-> +	ldreq	\tmp1, [\tp]
-> +	mcrne	p15, 0, \tmp1, c13, c0, 3	@ yes, set user r/o TLS register
-> +	mcrne	p15, 0, \tmp2, c13, c0, 2	@ set user r/w TLS register
-> +	streq	\tmp1, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
->  	.endm
->  
->  	.macro set_tls_software, tp, tmp1, tmp2
-> -	mov	\tmp1, #0xffff0fff
-> -	str	\tp, [\tmp1, #-15]		@ set TLS value at 0xffff0ff0
-> +	ldr	\tmp1, [\tp]
-> +	mov	\tmp2, #0xffff0fff
-> +	str	\tmp1, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
->  	.endm
->  #endif
->  
->  #ifdef CONFIG_TLS_REG_EMUL
->  #define tls_emu		1
->  #define has_tls_reg		1
-> +#define get_tls2		get_tls2_none
->  #define set_tls		set_tls_none
->  #elif defined(CONFIG_CPU_V6)
->  #define tls_emu		0
->  #define has_tls_reg		(elf_hwcap & HWCAP_TLS)
-> +#define get_tls2		get_tls2_v6
->  #define set_tls		set_tls_v6
->  #elif defined(CONFIG_CPU_32v6K)
->  #define tls_emu		0
->  #define has_tls_reg		1
-> +#define get_tls2		get_tls2_v6k
->  #define set_tls		set_tls_v6k
->  #else
->  #define tls_emu		0
->  #define has_tls_reg		0
-> +#define get_tls2		get_tls2_none
->  #define set_tls		set_tls_software
->  #endif
->  
-> diff --git a/arch/arm/kernel/entry-armv.S b/arch/arm/kernel/entry-armv.S
-> index 0f82098..097686b 100644
-> --- a/arch/arm/kernel/entry-armv.S
-> +++ b/arch/arm/kernel/entry-armv.S
-> @@ -728,7 +728,7 @@ ENTRY(__switch_to)
->   UNWIND(.fnstart	)
->   UNWIND(.cantunwind	)
->  	add	ip, r1, #TI_CPU_SAVE
-> -	ldr	r3, [r2, #TI_TP_VALUE]
-> +	add	r3, r1, #TI_TP_VALUE
->   ARM(	stmia	ip!, {r4 - sl, fp, sp, lr} )	@ Store most regs on stack
->   THUMB(	stmia	ip!, {r4 - sl, fp}	   )	@ Store most regs on stack
->   THUMB(	str	sp, [ip], #4		   )
-> @@ -736,6 +736,8 @@ ENTRY(__switch_to)
->  #ifdef CONFIG_CPU_USE_DOMAINS
->  	ldr	r6, [r2, #TI_CPU_DOMAIN]
->  #endif
-> +	get_tls2	r3, r4
-> +	add	r3, r2, #TI_TP_VALUE
->  	set_tls	r3, r4, r5
->  #if defined(CONFIG_CC_STACKPROTECTOR) && !defined(CONFIG_SMP)
->  	ldr	r7, [r2, #TI_TASK]
-> diff --git a/arch/arm/kernel/process.c b/arch/arm/kernel/process.c
-> index 047d3e4..6138eb1 100644
-> --- a/arch/arm/kernel/process.c
-> +++ b/arch/arm/kernel/process.c
-> @@ -395,7 +395,8 @@ copy_thread(unsigned long clone_flags, unsigned long stack_start,
->  	clear_ptrace_hw_breakpoint(p);
->  
->  	if (clone_flags & CLONE_SETTLS)
-> -		thread->tp_value = childregs->ARM_r3;
-> +		thread->tp_value[0] = childregs->ARM_r3;
-> +	thread->tp_value[1] = current_thread_info()->tp_value[1];
->
-
-This still isn't correct. Imagine the following sequence of events:
-
-  - Task foo writes its TPIDRURW register from userspace and then issues a
-    fork() system call. No context switch occurs between these two events.
-
-  - We start creating the child task, bar, and end up in copy_thread with
-    the `thread' pointing at foo's struct thread_info, which contains the
-    *old* TPIDRURW value.
-
-  - We copy out the stale value into bar, which is then scheduled with an
-    old TPIDRURW value.
-
-The solution is to reload the value sitting in the register in copy_thread,
-rather than relying on the thread_info being up-to-date. That's why I
-previously suggested not using asm macros for the getters.
-
->  	thread_notify(THREAD_NOTIFY_COPY, thread);
->  
-> diff --git a/arch/arm/kernel/ptrace.c b/arch/arm/kernel/ptrace.c
-> index 03deeff..2bc1514 100644
-> --- a/arch/arm/kernel/ptrace.c
-> +++ b/arch/arm/kernel/ptrace.c
-> @@ -849,7 +849,7 @@ long arch_ptrace(struct task_struct *child, long request,
->  #endif
->  
->  		case PTRACE_GET_THREAD_AREA:
-> -			ret = put_user(task_thread_info(child)->tp_value,
-> +			ret = put_user(task_thread_info(child)->tp_value[0],
->  				       datap);
->  			break;
-
-I'm guessing debuggers don't care about the new TLS value, or do we need a
-new ptrace request?
-
-Will
+>         /*
+>          * actual CPU shutdown procedure is at least platform (if not
+> 
+> -- 
+> Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
+> hosted by The Linux Foundation
+> 
+> 
