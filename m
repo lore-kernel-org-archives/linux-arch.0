@@ -1,84 +1,555 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:46145 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755022Ab3DYVBJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Apr 2013 17:01:09 -0400
-Date: Thu, 25 Apr 2013 23:01:02 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch 08/34] arm: Use generic idle loop
-In-Reply-To: <51798C1D.9090405@codeaurora.org>
-Message-ID: <alpine.LFD.2.02.1304252300030.21884@ionos>
-References: <20130321214930.752934102@linutronix.de> <20130321215233.826238797@linutronix.de> <87zjxv9lga.fsf@linaro.org> <alpine.LFD.2.02.1303251230440.22263@ionos> <20130325114808.GQ4977@n2100.arm.linux.org.uk> <alpine.LFD.2.02.1303251501520.22263@ionos>
- <20130408214719.GN17995@n2100.arm.linux.org.uk> <alpine.LFD.2.02.1304091106360.21884@ionos> <20130409093836.GA14496@n2100.arm.linux.org.uk> <51798C1D.9090405@codeaurora.org>
+Received: from adelie.canonical.com ([91.189.90.139]:39325 "EHLO
+	adelie.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755596Ab3D1Rqt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 28 Apr 2013 13:46:49 -0400
+Subject: [PATCH v3 3/3] mutex: Add ww tests to lib/locking-selftest.c. v3
+From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Date: Sun, 28 Apr 2013 19:04:14 +0200
+Message-ID: <20130428170414.17075.40337.stgit@patser>
+In-Reply-To: <20130428165914.17075.57751.stgit@patser>
+References: <20130428165914.17075.57751.stgit@patser>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Boyd <sboyd@codeaurora.org>
-Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, Kevin Hilman <khilman@linaro.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>
-Message-ID: <20130425210102.CnAP3JTZzOWF1c1xULhCZp8CSRKtRil0FtDDT2iPCQM@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, peterz@infradead.org, x86@kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robclark@gmail.com, rostedt@goodmis.org, daniel@ffwll.ch, tglx@linutronix.de, mingo@elte.hu, linux-media@vger.kernel.org
+Message-ID: <20130428170414.dILg11Z9ZRxCBGqmfqESLwVlRTtNcg7YKfIgAmf87Rg@z>
 
-On Thu, 25 Apr 2013, Stephen Boyd wrote:
-> On 04/09/13 02:38, Russell King - ARM Linux wrote:
-> > On Tue, Apr 09, 2013 at 11:20:31AM +0200, Thomas Gleixner wrote:
-> >> On Mon, 8 Apr 2013, Russell King - ARM Linux wrote:
-> >>> On Mon, Mar 25, 2013 at 03:02:39PM +0100, Thomas Gleixner wrote:
-> >>> So, how can I review these changes when all there is is a git URL, and
-> >>> I *do* not want to pull them into my tree without first looking at the
-> >>> patches, possibly reviewing them and *replying* with the patch inline?
-> >> the patches were CC'ed to LKML and linux-arch and I expected that you
-> >> are at least having the latter. Find the relevant patch inlined below.
-> > I've not been on linux-arch for a few years now, after it evolved into
-> > yet another lkml-like list with high traffic rates, where mainly specific
-> > x86 issues seemed to be discussed, rather than it being a way to contact
-> > all arch maintainers.
-> >
-> >> It is a counter. I looked carefully at all the various slightly
-> >> differently fcked up implementations and picked the counter based one
-> >> as it fits all requirements.
-> > Great, thanks.  The attached patch looks fine to me.
-> 
-> I'm pretty sure that we need to apply this patch now that
-> rcu_idle_enter()/exit() is called lower down in the idle loop. Kevin,
-> did you test hotplug?
+This stresses the lockdep code in some ways specifically useful to
+ww_mutexes. It adds checks for most of the common locking errors.
 
-If the patch is agreed on, I guess I should take it via my idle
-consolidation branch, right ?
+Changes since v1:
+ - Add tests to verify reservation_id is untouched.
+ - Use L() and U() macros where possible.
 
+Changes since v2:
+ - Use the ww_mutex api directly.
+ - Use macros for most of the code.
+
+Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+---
+ lib/locking-selftest.c |  439 ++++++++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 420 insertions(+), 19 deletions(-)
+
+diff --git a/lib/locking-selftest.c b/lib/locking-selftest.c
+index c3eb261..9cef196 100644
+--- a/lib/locking-selftest.c
++++ b/lib/locking-selftest.c
+@@ -26,6 +26,8 @@
+  */
+ static unsigned int debug_locks_verbose;
  
-> ----8<-----
-> 
-> From: Stephen Boyd <sboyd@codeaurora.org>
-> Subject: [PATCH] ARM: smp: Drop RCU_NONIDLE usage in cpu_die()
-> 
-> Before f7b861b (arm: Use generic idle loop, 2013-03-21) ARM would
-> kill the CPU within the rcu idle section. Now that the
-> rcu_idle_enter()/exit() pair have been pushed lower down in the
-> idle loop this is no longer true and so using RCU_NONIDLE here is
-> no longer necessary and also harmful because RCU is not actually
-> idle at this point.
-> 
-> Signed-off-by: Stephen Boyd <sboyd@codeaurora.org>
-> ---
->  arch/arm/kernel/smp.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff --git a/arch/arm/kernel/smp.c b/arch/arm/kernel/smp.c
-> index 4619177..78f1eb5 100644
-> --- a/arch/arm/kernel/smp.c
-> +++ b/arch/arm/kernel/smp.c
-> @@ -233,7 +233,7 @@ void __ref cpu_die(void)
->         mb();
->  
->         /* Tell __cpu_die() that this CPU is now safe to dispose of */
-> -       RCU_NONIDLE(complete(&cpu_died));
-> +       complete(&cpu_died);
->  
->         /*
->          * actual CPU shutdown procedure is at least platform (if not
-> 
-> -- 
-> Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
-> hosted by The Linux Foundation
-> 
-> 
++static DEFINE_WW_CLASS(ww_lockdep);
++
+ static int __init setup_debug_locks_verbose(char *str)
+ {
+ 	get_option(&str, &debug_locks_verbose);
+@@ -42,6 +44,10 @@ __setup("debug_locks_verbose=", setup_debug_locks_verbose);
+ #define LOCKTYPE_RWLOCK	0x2
+ #define LOCKTYPE_MUTEX	0x4
+ #define LOCKTYPE_RWSEM	0x8
++#define LOCKTYPE_WW	0x10
++
++static struct ww_acquire_ctx t, t2;
++static struct ww_mutex o, o2;
+ 
+ /*
+  * Normal standalone locks, for the circular and irq-context
+@@ -193,6 +199,17 @@ static void init_shared_classes(void)
+ #define RSU(x)			up_read(&rwsem_##x)
+ #define RWSI(x)			init_rwsem(&rwsem_##x)
+ 
++#define WWAI(x)			ww_acquire_init(x, &ww_lockdep)
++#define WWAD(x)			ww_acquire_done(x)
++#define WWAF(x)			ww_acquire_fini(x)
++
++#define WWL(x, c)		ww_mutex_lock(x, c)
++#define WWU(x)			ww_mutex_unlock(x)
++
++#define WWL1(x)			ww_mutex_lock_single(x)
++#define WWT1(x)			ww_mutex_trylock_single(x)
++#define WWU1(x)			ww_mutex_unlock_single(x)
++
+ #define LOCK_UNLOCK_2(x,y)	LOCK(x); LOCK(y); UNLOCK(y); UNLOCK(x)
+ 
+ /*
+@@ -894,11 +911,13 @@ GENERATE_PERMUTATIONS_3_EVENTS(irq_read_recursion_soft)
+ # define I_RWLOCK(x)	lockdep_reset_lock(&rwlock_##x.dep_map)
+ # define I_MUTEX(x)	lockdep_reset_lock(&mutex_##x.dep_map)
+ # define I_RWSEM(x)	lockdep_reset_lock(&rwsem_##x.dep_map)
++# define I_WW(x)	lockdep_reset_lock(&x.dep_map)
+ #else
+ # define I_SPINLOCK(x)
+ # define I_RWLOCK(x)
+ # define I_MUTEX(x)
+ # define I_RWSEM(x)
++# define I_WW(x)
+ #endif
+ 
+ #define I1(x)					\
+@@ -920,11 +939,20 @@ GENERATE_PERMUTATIONS_3_EVENTS(irq_read_recursion_soft)
+ static void reset_locks(void)
+ {
+ 	local_irq_disable();
++	lockdep_free_key_range(&ww_lockdep.acquire_key, 1);
++	lockdep_free_key_range(&ww_lockdep.mutex_key, 1);
++
+ 	I1(A); I1(B); I1(C); I1(D);
+ 	I1(X1); I1(X2); I1(Y1); I1(Y2); I1(Z1); I1(Z2);
++	I_WW(t); I_WW(t2); I_WW(o.base); I_WW(o2.base);
+ 	lockdep_reset();
+ 	I2(A); I2(B); I2(C); I2(D);
+ 	init_shared_classes();
++
++	ww_mutex_init(&o, &ww_lockdep); ww_mutex_init(&o2, &ww_lockdep);
++	memset(&t, 0, sizeof(t)); memset(&t2, 0, sizeof(t2));
++	memset(&ww_lockdep.acquire_key, 0, sizeof(ww_lockdep.acquire_key));
++	memset(&ww_lockdep.mutex_key, 0, sizeof(ww_lockdep.mutex_key));
+ 	local_irq_enable();
+ }
+ 
+@@ -938,7 +966,6 @@ static int unexpected_testcase_failures;
+ static void dotest(void (*testcase_fn)(void), int expected, int lockclass_mask)
+ {
+ 	unsigned long saved_preempt_count = preempt_count();
+-	int expected_failure = 0;
+ 
+ 	WARN_ON(irqs_disabled());
+ 
+@@ -946,26 +973,16 @@ static void dotest(void (*testcase_fn)(void), int expected, int lockclass_mask)
+ 	/*
+ 	 * Filter out expected failures:
+ 	 */
++	if (debug_locks != expected) {
+ #ifndef CONFIG_PROVE_LOCKING
+-	if ((lockclass_mask & LOCKTYPE_SPIN) && debug_locks != expected)
+-		expected_failure = 1;
+-	if ((lockclass_mask & LOCKTYPE_RWLOCK) && debug_locks != expected)
+-		expected_failure = 1;
+-	if ((lockclass_mask & LOCKTYPE_MUTEX) && debug_locks != expected)
+-		expected_failure = 1;
+-	if ((lockclass_mask & LOCKTYPE_RWSEM) && debug_locks != expected)
+-		expected_failure = 1;
++		expected_testcase_failures++;
++		printk("failed|");
++#else
++		unexpected_testcase_failures++;
++		printk("FAILED|");
++
++		dump_stack();
+ #endif
+-	if (debug_locks != expected) {
+-		if (expected_failure) {
+-			expected_testcase_failures++;
+-			printk("failed|");
+-		} else {
+-			unexpected_testcase_failures++;
+-
+-			printk("FAILED|");
+-			dump_stack();
+-		}
+ 	} else {
+ 		testcase_successes++;
+ 		printk("  ok  |");
+@@ -1108,6 +1125,388 @@ static inline void print_testname(const char *testname)
+ 	DO_TESTCASE_6IRW(desc, name, 312);			\
+ 	DO_TESTCASE_6IRW(desc, name, 321);
+ 
++static void ww_test_fail_acquire(void)
++{
++	int ret;
++
++	WWAI(&t);
++	t.stamp++;
++
++	ret = WWL(&o, &t);
++
++	if (WARN_ON(!o.ctx) ||
++	    WARN_ON(ret))
++		return;
++
++	/* No lockdep test, pure API */
++	ret = WWL(&o, &t);
++	WARN_ON(ret != -EALREADY);
++
++	ret = WWT1(&o);
++	WARN_ON(ret);
++
++	t2 = t;
++	t2.stamp++;
++	ret = WWL(&o, &t2);
++	WARN_ON(ret != -EDEADLK);
++	WWU(&o);
++
++	if (WWT1(&o))
++		WWU1(&o);
++#ifdef CONFIG_DEBUG_LOCK_ALLOC
++	else
++		DEBUG_LOCKS_WARN_ON(1);
++#endif
++}
++
++static void ww_test_normal(void)
++{
++	int ret;
++
++	WWAI(&t);
++
++	/*
++	 * test if ww_id is kept identical if not
++	 * called with any of the ww_* locking calls
++	 */
++
++	/* mutex_lock (and indirectly, mutex_lock_nested) */
++	o.ctx = (void *)~0UL;
++	WWL1(&o);
++	WWU1(&o);
++	WARN_ON(o.ctx != (void *)~0UL);
++
++	/* mutex_lock_interruptible (and *_nested) */
++	o.ctx = (void *)~0UL;
++	ret = mutex_lock_interruptible(&o.base);
++	if (!ret)
++		WWU1(&o);
++	else
++		WARN_ON(1);
++	WARN_ON(o.ctx != (void *)~0UL);
++
++	/* mutex_lock_killable (and *_nested) */
++	o.ctx = (void *)~0UL;
++	ret = mutex_lock_killable(&o.base);
++	if (!ret)
++		WWU1(&o);
++	else
++		WARN_ON(1);
++	WARN_ON(o.ctx != (void *)~0UL);
++
++	/* trylock, succeeding */
++	o.ctx = (void *)~0UL;
++	ret = WWT1(&o);
++	WARN_ON(!ret);
++	if (ret)
++		WWU1(&o);
++	else
++		WARN_ON(1);
++	WARN_ON(o.ctx != (void *)~0UL);
++
++	/* trylock, failing */
++	o.ctx = (void *)~0UL;
++	WWL1(&o);
++	ret = WWT1(&o);
++	WARN_ON(ret);
++	WWU1(&o);
++	WARN_ON(o.ctx != (void *)~0UL);
++
++	/* nest_lock */
++	o.ctx = (void *)~0UL;
++	mutex_lock_nest_lock(&o.base, &t);
++	WWU1(&o);
++	WARN_ON(o.ctx != (void *)~0UL);
++}
++
++static void ww_test_two_contexts(void)
++{
++	WWAI(&t);
++	WWAI(&t2);
++}
++
++static void ww_test_context_unlock_twice(void)
++{
++	WWAI(&t);
++	WWAD(&t);
++	WWAF(&t);
++	WWAF(&t);
++}
++
++static void ww_test_object_unlock_twice(void)
++{
++	WWL1(&o);
++	WWU1(&o);
++	WWU1(&o);
++}
++
++static void ww_test_spin_nest_unlocked(void)
++{
++	raw_spin_lock_nest_lock(&lock_A, &o.base);
++	U(A);
++}
++
++static void ww_test_mismatch_normal_ww(void)
++{
++	WWL1(&o);
++	WWU(&o);
++}
++
++static void ww_test_mismatch_ww_normal(void)
++{
++	int ret;
++
++	WWAI(&t);
++
++	ret = WWL(&o, &t);
++	WARN_ON(ret);
++	WWU1(&o);
++
++	/*
++	 * the second ww_mutex_lock will detect the
++	 * mismatch of the first one
++	 */
++	ret = WWL(&o, &t);
++	WARN_ON(ret);
++}
++
++static void ww_test_mismatch_ww_normal_slow(void)
++{
++	int ret;
++
++	WWAI(&t);
++
++	ret = WWL(&o, &t);
++	WARN_ON(ret);
++	WWU1(&o);
++
++	ww_mutex_lock_slow(&o, &t);
++}
++
++static void ww_test_context_block(void)
++{
++	int ret;
++
++	WWAI(&t);
++
++	ret = WWL(&o, &t);
++	WARN_ON(ret);
++	WWL1(&o2);
++}
++
++static void ww_test_context_try(void)
++{
++	int ret;
++
++	WWAI(&t);
++
++	ret = WWL(&o, &t);
++	WARN_ON(ret);
++
++	ret = WWT1(&o2);
++	WARN_ON(!ret);
++	WWU1(&o2);
++	WWU(&o);
++}
++
++static void ww_test_context_context(void)
++{
++	int ret;
++
++	WWAI(&t);
++
++	ret = WWL(&o, &t);
++	WARN_ON(ret);
++
++	ret = WWL(&o2, &t);
++	WARN_ON(ret);
++
++	WWU(&o2);
++	WWU(&o);
++}
++
++static void ww_test_try_block(void)
++{
++	bool ret;
++
++	ret = WWT1(&o);
++	WARN_ON(!ret);
++
++	WWL1(&o2);
++	WWU1(&o2);
++	WWU1(&o);
++}
++
++static void ww_test_try_try(void)
++{
++	bool ret;
++
++	ret = WWT1(&o);
++	WARN_ON(!ret);
++	ret = WWT1(&o2);
++	WARN_ON(!ret);
++	WWU1(&o2);
++	WWU1(&o);
++}
++
++static void ww_test_try_context(void)
++{
++	int ret;
++
++	ret = WWT1(&o);
++	WARN_ON(!ret);
++
++	WWAI(&t);
++
++	ret = WWL(&o2, &t);
++	WARN_ON(ret);
++}
++
++static void ww_test_block_block(void)
++{
++	WWL1(&o);
++	WWL1(&o2);
++}
++
++static void ww_test_block_try(void)
++{
++	bool ret;
++
++	WWL1(&o);
++	ret = WWT1(&o2);
++	WARN_ON(!ret);
++}
++
++static void ww_test_block_context(void)
++{
++	int ret;
++
++	WWL1(&o);
++	WWAI(&t);
++
++	ret = WWL(&o2, &t);
++	WARN_ON(ret);
++}
++
++static void ww_test_spin_block(void)
++{
++	L(A);
++	U(A);
++
++	WWL1(&o);
++	L(A);
++	U(A);
++	WWU1(&o);
++
++	L(A);
++	WWL1(&o);
++	WWU1(&o);
++	U(A);
++}
++
++static void ww_test_spin_try(void)
++{
++	bool ret;
++
++	L(A);
++	U(A);
++
++	ret = WWT1(&o);
++	WARN_ON(!ret);
++	L(A);
++	U(A);
++	WWU1(&o);
++
++	L(A);
++	ret = WWT1(&o);
++	WARN_ON(!ret);
++	WWU1(&o);
++	U(A);
++}
++
++static void ww_test_spin_context(void)
++{
++	int ret;
++
++	L(A);
++	U(A);
++
++	WWAI(&t);
++
++	ret = WWL(&o, &t);
++	WARN_ON(ret);
++	L(A);
++	U(A);
++	WWU(&o);
++
++	L(A);
++	ret = WWL(&o, &t);
++	WARN_ON(ret);
++	WWU(&o);
++	U(A);
++}
++
++static void ww_tests(void)
++{
++	printk("  --------------------------------------------------------------------------\n");
++	printk("  | Wound/wait tests |\n");
++	printk("  ---------------------\n");
++
++	print_testname("ww api failures");
++	dotest(ww_test_fail_acquire, SUCCESS, LOCKTYPE_WW);
++	dotest(ww_test_normal, SUCCESS, LOCKTYPE_WW);
++	printk("\n");
++
++	print_testname("using two ww contexts");
++	dotest(ww_test_two_contexts, FAILURE, LOCKTYPE_WW);
++	printk("\n");
++
++	print_testname("finish ww context twice");
++	dotest(ww_test_context_unlock_twice, FAILURE, LOCKTYPE_WW);
++	printk("\n");
++
++	print_testname("unlock twice");
++	dotest(ww_test_object_unlock_twice, FAILURE, LOCKTYPE_WW);
++	printk("\n");
++
++	print_testname("spinlock nest unlocked");
++	dotest(ww_test_spin_nest_unlocked, FAILURE, LOCKTYPE_WW);
++	printk("\n");
++
++	print_testname("ww mutex (un)lock mismatch");
++	dotest(ww_test_mismatch_normal_ww, FAILURE, LOCKTYPE_WW);
++	dotest(ww_test_mismatch_ww_normal, FAILURE, LOCKTYPE_WW);
++	dotest(ww_test_mismatch_ww_normal_slow, FAILURE, LOCKTYPE_WW);
++	printk("\n");
++
++	printk("  -----------------------------------------------------\n");
++	printk("                                 |block | try  |context|\n");
++	printk("  -----------------------------------------------------\n");
++
++	print_testname("context");
++	dotest(ww_test_context_block, FAILURE, LOCKTYPE_WW);
++	dotest(ww_test_context_try, SUCCESS, LOCKTYPE_WW);
++	dotest(ww_test_context_context, SUCCESS, LOCKTYPE_WW);
++	printk("\n");
++
++	print_testname("try");
++	dotest(ww_test_try_block, FAILURE, LOCKTYPE_WW);
++	dotest(ww_test_try_try, SUCCESS, LOCKTYPE_WW);
++	dotest(ww_test_try_context, FAILURE, LOCKTYPE_WW);
++	printk("\n");
++
++	print_testname("block");
++	dotest(ww_test_block_block, FAILURE, LOCKTYPE_WW);
++	dotest(ww_test_block_try, SUCCESS, LOCKTYPE_WW);
++	dotest(ww_test_block_context, FAILURE, LOCKTYPE_WW);
++	printk("\n");
++
++	print_testname("spinlock");
++	dotest(ww_test_spin_block, FAILURE, LOCKTYPE_WW);
++	dotest(ww_test_spin_try, SUCCESS, LOCKTYPE_WW);
++	dotest(ww_test_spin_context, FAILURE, LOCKTYPE_WW);
++	printk("\n");
++}
+ 
+ void locking_selftest(void)
+ {
+@@ -1188,6 +1587,8 @@ void locking_selftest(void)
+ 	DO_TESTCASE_6x2("irq read-recursion", irq_read_recursion);
+ //	DO_TESTCASE_6x2B("irq read-recursion #2", irq_read_recursion2);
+ 
++	ww_tests();
++
+ 	if (unexpected_testcase_failures) {
+ 		printk("-----------------------------------------------------------------\n");
+ 		debug_locks = 0;
+
