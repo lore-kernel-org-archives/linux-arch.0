@@ -1,49 +1,68 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [RFC PATCH 0/2] mm: Promote huge_pmd_share from x86 to mm.
-Date: Mon, 29 Apr 2013 23:10:35 +0100
-Message-ID: <20130429221034.GA49470@MacBook-Pro.local>
-References: <1367247356-11246-1-git-send-email-steve.capper@linaro.org>
- <alpine.DEB.2.02.1304291321070.29766@chino.kir.corp.google.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.02.1304291321070.29766@chino.kir.corp.google.com>
-Sender: owner-linux-mm@kvack.org
-To: David Rientjes <rientjes@google.com>
-Cc: Steve Capper <steve.capper@linaro.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Michal Hocko <mhocko@suse.cz>, Ken Chen <kenchen@google.com>, Mel Gorman <mgorman@suse.de>, Will Deacon <Will.Deacon@arm.com>
-List-Id: linux-arch.vger.kernel.org
+From: Steve Capper <steve.capper@linaro.org>
+Subject: [RFC PATCH 0/9] HugeTLB and THP support for ARM64.
+Date: Tue, 30 Apr 2013 17:30:39 +0100
+Message-ID: <1367339448-21727-1-git-send-email-steve.capper@linaro.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wg0-f41.google.com ([74.125.82.41]:42634 "EHLO
+	mail-wg0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932252Ab3D3Qa6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 30 Apr 2013 12:30:58 -0400
+Received: by mail-wg0-f41.google.com with SMTP id e11so3181319wgh.2
+        for <linux-arch@vger.kernel.org>; Tue, 30 Apr 2013 09:30:56 -0700 (PDT)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Cc: Michal Hocko <mhocko@suse.cz>, Ken Chen <kenchen@google.com>, Mel Gorman <mgorman@suse.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Steve Capper <steve.capper@linaro.org>
 
-On Mon, Apr 29, 2013 at 09:22:38PM +0100, David Rientjes wrote:
-> On Mon, 29 Apr 2013, Steve Capper wrote:
-> 
-> > Under x86, multiple puds can be made to reference the same bank of
-> > huge pmds provided that they represent a full PUD_SIZE of shared
-> > huge memory that is aligned to a PUD_SIZE boundary.
-> > 
-> > The code to share pmds does not require any architecture specific
-> > knowledge other than the fact that pmds can be indexed, thus can
-> > be beneficial to some other architectures.
-> > 
-> > This RFC promotes the huge_pmd_share code (and dependencies) from
-> > x86 to mm to make it accessible to other architectures.
-> > 
-> > I am working on ARM64 support for huge pages and rather than
-> > duplicate the x86 huge_pmd_share code, I thought it would be better
-> > to promote it to mm.
-> 
-> No objections to this, but I think you should do it as the first patch in 
-> a series that adds the arm support.  There's no need for this to be moved 
-> until that support is tested, proposed, reviewed, and merged.
+This series brings huge pages and transparent huge pages to ARM64.
+The functionality is very similar to x86, and a lot of code that can
+be used by both ARM64 and x86 is brought into mm to avoid the need
+for code duplication.
 
-I agree, it would be good to see the arm64 support in this series as
-well (though eventual upstreaming may go via separate paths).
+One notable difference from x86 is that ARM64 supports normal pages
+that are 64KB. When 64KB pages are enabled, huge page and
+transparent huge pages are 512MB only, otherwise the sizes match
+x86.
+
+This series applies to 3.9, and requires one additional patch
+ARM64: mm: Correct show_pte behaviour
+http://lists.infradead.org/pipermail/linux-arm-kernel/2013-April/164157.html
+
+I've tested this under the ARMv8 models (Fast and Foundation) and
+the x86 code has been tested in a KVM guest. libhugetlbfs was used
+for testing under both architectures.
+
+Any comments would be greatly appreciated.
+
+Steve Capper (9):
+  mm: hugetlb: Copy huge_pmd_share from x86 to mm.
+  x86: mm: Remove x86 version of huge_pmd_share.
+  mm: hugetlb: Copy general hugetlb code from x86 to mm.
+  x86: mm: Remove general hugetlb code from x86.
+  ARM64: mm: Add support for flushing huge pages.
+  ARM64: mm: Restore memblock limit when map_mem finished.
+  ARM64: mm: HugeTLB support.
+  ARM64: mm: Introduce MAX_ZONE_ORDER for 64K and THP.
+  ARM64: mm: THP support.
+
+ arch/arm64/Kconfig                     |  29 +++++
+ arch/arm64/include/asm/hugetlb.h       | 121 ++++++++++++++++++
+ arch/arm64/include/asm/pgtable-hwdef.h |   2 +
+ arch/arm64/include/asm/pgtable.h       |  56 +++++++++
+ arch/arm64/include/asm/tlb.h           |   6 +
+ arch/arm64/include/asm/tlbflush.h      |   2 +
+ arch/arm64/mm/Makefile                 |   1 +
+ arch/arm64/mm/fault.c                  |  19 +--
+ arch/arm64/mm/flush.c                  |   3 +-
+ arch/arm64/mm/hugetlbpage.c            |  70 +++++++++++
+ arch/arm64/mm/mmu.c                    |  19 ++-
+ arch/x86/Kconfig                       |   6 +
+ arch/x86/mm/hugetlbpage.c              | 187 ----------------------------
+ include/linux/hugetlb.h                |   4 +
+ mm/hugetlb.c                           | 219 +++++++++++++++++++++++++++++++--
+ 15 files changed, 526 insertions(+), 218 deletions(-)
+ create mode 100644 arch/arm64/include/asm/hugetlb.h
+ create mode 100644 arch/arm64/mm/hugetlbpage.c
 
 -- 
-Catalin
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+1.8.1.4
