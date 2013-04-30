@@ -1,148 +1,48 @@
-From: Steve Capper <steve.capper@linaro.org>
-Subject: [RFC PATCH 9/9] ARM64: mm: THP support.
-Date: Tue, 30 Apr 2013 17:30:48 +0100
-Message-ID: <1367339448-21727-10-git-send-email-steve.capper@linaro.org>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [RFC PATCH 3/9] mm: hugetlb: Copy general hugetlb code from
+ x86 to mm.
+Date: Tue, 30 Apr 2013 17:48:14 +0100
+Message-ID: <20130430164814.GK29766@arm.com>
 References: <1367339448-21727-1-git-send-email-steve.capper@linaro.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f179.google.com ([209.85.212.179]:47555 "EHLO
-	mail-wi0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932455Ab3D3QbW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 30 Apr 2013 12:31:22 -0400
-Received: by mail-wi0-f179.google.com with SMTP id l13so748771wie.12
-        for <linux-arch@vger.kernel.org>; Tue, 30 Apr 2013 09:31:20 -0700 (PDT)
-In-Reply-To: <1367339448-21727-1-git-send-email-steve.capper@linaro.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: Michal Hocko <mhocko@suse.cz>, Ken Chen <kenchen@google.com>, Mel Gorman <mgorman@suse.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Steve Capper <steve.capper@linaro.org>
+ <1367339448-21727-4-git-send-email-steve.capper@linaro.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <1367339448-21727-4-git-send-email-steve.capper@linaro.org>
+Sender: owner-linux-mm@kvack.org
+To: Steve Capper <steve.capper@linaro.org>
+Cc: "linux-mm@kvack.org" <linux-mm@kvack.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Michal Hocko <mhocko@suse.cz>, Ken Chen <kenchen@google.com>, Mel Gorman <mgorman@suse.de>, Will Deacon <Will.Deacon@arm.com>
+List-Id: linux-arch.vger.kernel.org
 
-Bring Transparent HugePage support to ARM. The size of a
-transparent huge page depends on the normal page size. A
-transparent huge page is always represented as a pmd.
+On Tue, Apr 30, 2013 at 05:30:42PM +0100, Steve Capper wrote:
+> diff --git a/mm/hugetlb.c b/mm/hugetlb.c
+> index 41179b0..e1dc5ae 100644
+> --- a/mm/hugetlb.c
+> +++ b/mm/hugetlb.c
+...
+> +pte_t *huge_pte_offset(struct mm_struct *mm, unsigned long addr)
+> +{
+> +	pgd_t *pgd;
+> +	pud_t *pud;
+> +	pmd_t *pmd = NULL;
+> +
+> +	pgd = pgd_offset(mm, addr);
+> +	if (pgd_present(*pgd)) {
+> +		pud = pud_offset(pgd, addr);
+> +		if (pud_present(*pud)) {
+> +			if (pud_large(*pud))
 
-If PAGE_SIZE is 4K, THPs are 2MB.
-If PAGE_SIZE is 64K, THPs are 512MB.
+That's more of a question for the x86 guys - can we replace pud_large()
+here with pud_huge()? It looks like the former simply checks for present
+and huge, so pud_huge() would be enough. This saves an additional
+definition.
 
-Signed-off-by: Steve Capper <steve.capper@linaro.org>
----
- arch/arm64/Kconfig                     |  3 +++
- arch/arm64/include/asm/pgtable-hwdef.h |  1 +
- arch/arm64/include/asm/pgtable.h       | 47 ++++++++++++++++++++++++++++++++++
- arch/arm64/include/asm/tlb.h           |  6 +++++
- arch/arm64/include/asm/tlbflush.h      |  2 ++
- 5 files changed, 59 insertions(+)
-
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 908fd95..9356802 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -194,6 +194,9 @@ config ARCH_WANT_GENERAL_HUGETLB
- config ARCH_WANT_HUGE_PMD_SHARE
- 	def_bool y if !ARM64_64K_PAGES
- 
-+config HAVE_ARCH_TRANSPARENT_HUGEPAGE
-+	def_bool y if MMU
-+
- source "mm/Kconfig"
- 
- config FORCE_MAX_ZONEORDER
-diff --git a/arch/arm64/include/asm/pgtable-hwdef.h b/arch/arm64/include/asm/pgtable-hwdef.h
-index c3cac68..862acf7 100644
---- a/arch/arm64/include/asm/pgtable-hwdef.h
-+++ b/arch/arm64/include/asm/pgtable-hwdef.h
-@@ -35,6 +35,7 @@
- /*
-  * Section
-  */
-+#define PMD_SECT_RDONLY		(_AT(pmdval_t, 1) << 7)		/* AP[2] */
- #define PMD_SECT_S		(_AT(pmdval_t, 3) << 8)
- #define PMD_SECT_AF		(_AT(pmdval_t, 1) << 10)
- #define PMD_SECT_NG		(_AT(pmdval_t, 1) << 11)
-diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
-index 4b7a058..06bfbd6 100644
---- a/arch/arm64/include/asm/pgtable.h
-+++ b/arch/arm64/include/asm/pgtable.h
-@@ -188,6 +188,53 @@ static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
- #define __HAVE_ARCH_PTE_SPECIAL
- 
- /*
-+ * Software PMD bits for THP
-+ */
-+
-+#define PMD_SECT_DIRTY		(_AT(pmdval_t, 1) << 55)
-+#define PMD_SECT_SPLITTING	(_AT(pmdval_t, 1) << 57)
-+
-+/*
-+ * THP definitions.
-+ */
-+#define pmd_young(pmd)		(pmd_val(pmd) & PMD_SECT_AF)
-+
-+#define __HAVE_ARCH_PMD_WRITE
-+#define pmd_write(pmd)		(!(pmd_val(pmd) & PMD_SECT_RDONLY))
-+
-+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-+#define pmd_trans_huge(pmd)	((pmd_val(pmd) & PMD_TYPE_MASK) == PMD_TYPE_SECT)
-+#define pmd_trans_splitting(pmd) (pmd_val(pmd) & PMD_SECT_SPLITTING)
-+#endif
-+
-+#define PMD_BIT_FUNC(fn,op) \
-+static inline pmd_t pmd_##fn(pmd_t pmd) { pmd_val(pmd) op; return pmd; }
-+
-+PMD_BIT_FUNC(wrprotect,	|= PMD_SECT_RDONLY);
-+PMD_BIT_FUNC(mkold,	&= ~PMD_SECT_AF);
-+PMD_BIT_FUNC(mksplitting, |= PMD_SECT_SPLITTING);
-+PMD_BIT_FUNC(mkwrite,   &= ~PMD_SECT_RDONLY);
-+PMD_BIT_FUNC(mkdirty,   |= PMD_SECT_DIRTY);
-+PMD_BIT_FUNC(mkyoung,   |= PMD_SECT_AF);
-+PMD_BIT_FUNC(mknotpresent, &= ~PMD_TYPE_MASK);
-+
-+#define pmd_mkhuge(pmd)		(__pmd((pmd_val(pmd) & ~PMD_TYPE_MASK) | PMD_TYPE_SECT))
-+
-+#define pmd_pfn(pmd)		(((pmd_val(pmd) & PMD_MASK) & PHYS_MASK) >> PAGE_SHIFT)
-+#define pfn_pmd(pfn,prot)	(__pmd(((phys_addr_t)(pfn) << PAGE_SHIFT) | pgprot_val(prot)))
-+#define mk_pmd(page,prot)	pfn_pmd(page_to_pfn(page),prot)
-+
-+#define pmd_page(pmd)           pfn_to_page(__phys_to_pfn(pmd_val(pmd) & PHYS_MASK))
-+
-+#define pmd_modify(pmd,newprot)	(__pmd(pmd_val(pmd) | pgprot_val(newprot)))
-+#define set_pmd_at(mm, addr, pmdp, pmd)	set_pmd(pmdp, pmd)
-+
-+static inline int has_transparent_hugepage(void)
-+{
-+	return 1;
-+}
-+
-+/*
-  * Mark the prot value as uncacheable and unbufferable.
-  */
- #define pgprot_noncached(prot) \
-diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
-index 654f096..46b3beb 100644
---- a/arch/arm64/include/asm/tlb.h
-+++ b/arch/arm64/include/asm/tlb.h
-@@ -187,4 +187,10 @@ static inline void __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmdp,
- 
- #define tlb_migrate_finish(mm)		do { } while (0)
- 
-+static inline void
-+tlb_remove_pmd_tlb_entry(struct mmu_gather *tlb, pmd_t *pmdp, unsigned long addr)
-+{
-+	tlb_add_flush(tlb, addr);
-+}
-+
- #endif
-diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
-index 122d632..8b48203 100644
---- a/arch/arm64/include/asm/tlbflush.h
-+++ b/arch/arm64/include/asm/tlbflush.h
-@@ -117,6 +117,8 @@ static inline void update_mmu_cache(struct vm_area_struct *vma,
- 	dsb();
- }
- 
-+#define update_mmu_cache_pmd(vma, address, pmd) do { } while (0)
-+
- #endif
- 
- #endif
 -- 
-1.8.1.4
+Catalin
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
