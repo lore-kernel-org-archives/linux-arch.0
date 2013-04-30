@@ -1,84 +1,62 @@
 From: Steve Capper <steve.capper@linaro.org>
-Subject: [RFC PATCH 6/9] ARM64: mm: Restore memblock limit when map_mem finished.
-Date: Tue, 30 Apr 2013 17:30:45 +0100
-Message-ID: <1367339448-21727-7-git-send-email-steve.capper@linaro.org>
+Subject: [RFC PATCH 8/9] ARM64: mm: Introduce MAX_ZONE_ORDER for 64K and THP.
+Date: Tue, 30 Apr 2013 17:30:47 +0100
+Message-ID: <1367339448-21727-9-git-send-email-steve.capper@linaro.org>
 References: <1367339448-21727-1-git-send-email-steve.capper@linaro.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f173.google.com ([74.125.82.173]:49871 "EHLO
-	mail-we0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932455Ab3D3QbR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 30 Apr 2013 12:31:17 -0400
-Received: by mail-we0-f173.google.com with SMTP id o7so574012wea.4
-        for <linux-arch@vger.kernel.org>; Tue, 30 Apr 2013 09:31:16 -0700 (PDT)
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1367339448-21727-1-git-send-email-steve.capper@linaro.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: owner-linux-mm@kvack.org
 To: linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Michal Hocko <mhocko@suse.cz>, Ken Chen <kenchen@google.com>, Mel Gorman <mgorman@suse.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Steve Capper <steve.capper@linaro.org>
+List-Id: linux-arch.vger.kernel.org
 
-In paging_init the memblock limit is set to restrict any addresses
-returned by early_alloc to fit within the initial direct kernel
-mapping in swapper_pg_dir. This allows map_mem to allocate puds,
-pmds and ptes from the initial direct kernel mapping.
+The buddy allocator has a default order of 11, which is too low to
+allocate enough memory for 512MB Transparent HugePages if our base
+page size is 64K. For any order less than 13, the combination of
+THP with 64K pages will cause a compile error.
 
-The limit stays low after paging_init() though, meaning any
-bootmem allocations will be from a restricted subset of memory.
-Gigabyte huge pages, for instance, are normally allocated from
-bootmem as their order (18) is too large for the default buddy
-allocator (MAX_ORDER = 11).
-
-This patch restores the memblock limit when map_mem has finished,
-allowing gigabyte huge pages (and other objects) to be allocated
-from all of bootmem.
+This patch introduces the MAX_ZONE_ORDER config option that allows
+one to explicitly override the order of the buddy allocator. If
+64K pages and THP are enabled the minimum value is set to 13.
 
 Signed-off-by: Steve Capper <steve.capper@linaro.org>
 ---
- arch/arm64/mm/mmu.c | 19 +++++++++++++------
- 1 file changed, 13 insertions(+), 6 deletions(-)
+ arch/arm64/Kconfig | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
 
-diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
-index 70b8cd4..d23188c 100644
---- a/arch/arm64/mm/mmu.c
-+++ b/arch/arm64/mm/mmu.c
-@@ -297,6 +297,16 @@ static void __init map_mem(void)
- {
- 	struct memblock_region *reg;
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 16aa780..908fd95 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -196,6 +196,23 @@ config ARCH_WANT_HUGE_PMD_SHARE
  
-+	/*
-+	 * Temporarily limit the memblock range. We need to do this as
-+	 * create_mapping requires puds, pmds and ptes to be allocated from
-+	 * memory addressable from the initial direct kernel mapping.
-+	 *
-+	 * The initial direct kernel mapping, located at swapper_pg_dir,
-+	 * gives us PGDIR_SIZE memory starting from PHYS_OFFSET (aligned).
-+	 */
-+	memblock_set_current_limit((PHYS_OFFSET & PGDIR_MASK) + PGDIR_SIZE);
+ source "mm/Kconfig"
+ 
++config FORCE_MAX_ZONEORDER
++	int "Maximum zone order"
++	range 11 64 if !(ARM64_64K_PAGES && TRANSPARENT_HUGEPAGE)
++	range 13 64 if ARM64_64K_PAGES && TRANSPARENT_HUGEPAGE
++	default "11" if !(ARM64_64K_PAGES && TRANSPARENT_HUGEPAGE)
++	default "13" if (ARM64_64K_PAGES && TRANSPARENT_HUGEPAGE)
++	help
++	  The kernel memory allocator divides physically contiguous memory
++	  blocks into "zones", where each zone is a power of two number of
++	  pages.  This option selects the largest power of two that the kernel
++	  keeps in the memory allocator.  If you need to allocate very large
++	  blocks of physically contiguous memory, then you may need to
++	  increase this value.
 +
- 	/* map all the memory banks */
- 	for_each_memblock(memory, reg) {
- 		phys_addr_t start = reg->base;
-@@ -307,6 +317,9 @@ static void __init map_mem(void)
- 
- 		create_mapping(start, __phys_to_virt(start), end - start);
- 	}
++	  This config option is actually maximum order plus one. For example,
++	  a value of 11 means that the largest free memory block is 2^10 pages.
 +
-+	/* Limit no longer required. */
-+	memblock_set_current_limit(MEMBLOCK_ALLOC_ANYWHERE);
- }
+ endmenu
  
- /*
-@@ -317,12 +330,6 @@ void __init paging_init(void)
- {
- 	void *zero_page;
- 
--	/*
--	 * Maximum PGDIR_SIZE addressable via the initial direct kernel
--	 * mapping in swapper_pg_dir.
--	 */
--	memblock_set_current_limit((PHYS_OFFSET & PGDIR_MASK) + PGDIR_SIZE);
--
- 	init_mem_pgprot();
- 	map_mem();
- 
+ menu "Boot options"
 -- 
 1.8.1.4
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
