@@ -1,137 +1,242 @@
-From: Alex Courbot <acourbot@nvidia.com>
-Subject: [GIT PULL] Removal of GENERIC_GPIO
-Date: Thu, 2 May 2013 19:20:10 +0900
-Message-ID: <51823DDA.7010103@nvidia.com>
+From: =?ISO-8859-1?Q?Andr=E9_Hentschel?= <nerv@dawncrow.de>
+Subject: Re: [PATCHv2] arm: Preserve TPIDRURW on context switch
+Date: Thu, 02 May 2013 21:54:40 +0200
+Message-ID: <5182C480.3080001@dawncrow.de>
+References: <517168BB.3070903@dawncrow.de> <20130422143616.GP14496@n2100.arm.linux.org.uk> <20130422151836.GA15665@mudshark.cambridge.arm.com> <5175A697.3080308@dawncrow.de> <20130423091536.GB17593@mudshark.cambridge.arm.com> <51770E4E.2040003@dawncrow.de> <20130424094251.GA21850@mudshark.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hqemgate04.nvidia.com ([216.228.121.35]:1911 "EHLO
-	hqemgate04.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753311Ab3EBKUP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 May 2013 06:20:15 -0400
+Received: from moutng.kundenserver.de ([212.227.17.9]:51733 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1760842Ab3EBTyp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 May 2013 15:54:45 -0400
+In-Reply-To: <20130424094251.GA21850@mudshark.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Grant Likely <grant.likely@secretlab.ca>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Alexandre Courbot <gnurou@gmail.com>
+To: Will Deacon <will.deacon@arm.com>
+Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-Hi Grant,
+Am 24.04.2013 11:42, schrieb Will Deacon:
+> Hi Andrew,
+>=20
+> On Tue, Apr 23, 2013 at 11:42:22PM +0100, Andr=E9 Hentschel wrote:
+>> Am 23.04.2013 11:15, schrieb Will Deacon:
+>>> You could introduce `get' tls functions, which don't do anything fo=
+r CPUs
+>>> without the relevant registers.
+>>
+>> Before i have another round of testing and patch formatting/sending,
+>> what about the untested patch below?
+>=20
+> Ok. Comments inline.
 
-Here is the pull request for the GENERIC_GPIO removal. It is almost 
-certain that a few fixups will be necessary - while I don't have precise 
-patches, the following steps should ensure the state of the code is clean:
+I answered to that seperatly.
+Here is another try based on your comments:
 
-* "git grep CONFIG_GENERIC_GPIO" should return 0 hits. Matches should be 
-replaced with CONFIG_GPIOLIB
-* "git grep '\bGENERIC_GPIO\b'" should return 1 hit in the Chinese 
-documentation. Selectors of GENERIC_GPIO should be turned into selectors 
-of GPIOLIB, while definitions of the option in architecture code should 
-be deleted.
 
-Please let me know if there is something more I can do to ease your task.
 
-Thanks,
-Alex.
-
-The following changes since commit 10b38669d64c757cfd927e3820292c580ed70aae:
-
-   Merge tag 'for-linus-v3.9-rc4' of git://oss.sgi.com/xfs/xfs 
-(2013-03-19 15:17:40 -0700)
-
-are available in the git repository at:
-
-   git://github.com/Gnurou/linux.git for_grant
-
-for you to fetch changes up to f4c54050640e7afa4749875cf9b900d42db361c0:
-
-   gpio: update gpio Chinese documentation (2013-04-16 18:47:22 +0900)
-
-----------------------------------------------------------------
-Alexandre Courbot (18):
-       mips: remove redundant GENERIC_GPIO select
-       mips: loongson: use GPIO driver on CONFIG_GPIOLIB
-       mips: txx9: change GENERIC_GPIO to GPIOLIB
-       mips: alchemy: require gpiolib
-       arm: remove redundant GENERIC_GPIO selection
-       arm: plat-orion: use GPIO driver on CONFIG_GPIOLIB
-       unicore32: remove unneeded select GENERIC_GPIO
-       unicore32: default GENERIC_GPIO to false
-       powerpc: remove redundant GENERIC_GPIO selection
-       sh: replace CONFIG_GENERIC_GPIO by CONFIG_GPIOLIB
-       xtensa: remove explicit selection of GENERIC_GPIO
-       avr32: default GENERIC_GPIO to false
-       openrisc: default GENERIC_GPIO to false
-       mips: pnx833x: remove requirement for GENERIC_GPIO
-       m68k: coldfire: use gpiolib
-       blackfin: force use of gpiolib
-       Convert selectors of GENERIC_GPIO to GPIOLIB
-       Remove GENERIC_GPIO config option
-
-Chen Baozi (1):
-       gpio: update gpio Chinese documentation
-
-  Documentation/gpio.txt               | 10 +++++-----
-  Documentation/zh_CN/gpio.txt         |  8 ++++----
-  arch/alpha/Kconfig                   |  3 ---
-  arch/arm/Kconfig                     |  3 ---
-  arch/arm/plat-orion/Makefile         |  2 +-
-  arch/arm/plat-orion/gpio.c           |  2 +-
-  arch/arm64/Kconfig                   |  3 ---
-  arch/avr32/Kconfig                   |  3 ---
-  arch/blackfin/Kconfig                |  5 +----
-  arch/hexagon/Kconfig                 |  3 ---
-  arch/ia64/Kconfig                    |  3 ---
-  arch/m68k/Kconfig                    |  3 ---
-  arch/m68k/Kconfig.cpu                |  3 +--
-  arch/metag/Kconfig                   |  3 ---
-  arch/microblaze/Kconfig              |  3 ---
-  arch/mips/Kconfig                    | 10 +---------
-  arch/mips/loongson/common/Makefile   |  2 +-
-  arch/mips/txx9/generic/setup.c       |  2 +-
-  arch/openrisc/Kconfig                |  3 ---
-  arch/powerpc/Kconfig                 |  5 -----
-  arch/powerpc/platforms/40x/Kconfig   |  1 -
-  arch/powerpc/platforms/44x/Kconfig   |  1 -
-  arch/powerpc/platforms/85xx/Kconfig  |  1 -
-  arch/powerpc/platforms/86xx/Kconfig  |  3 ---
-  arch/powerpc/platforms/8xx/Kconfig   |  1 -
-  arch/powerpc/platforms/Kconfig       |  4 ----
-  arch/sh/Kconfig                      |  3 ---
-  arch/sh/boards/mach-sdk7786/Makefile |  2 +-
-  arch/sh/boards/mach-x3proto/Makefile |  2 +-
-  arch/sh/kernel/cpu/sh2a/Makefile     |  2 +-
-  arch/sh/kernel/cpu/sh3/Makefile      |  2 +-
-  arch/sh/kernel/cpu/sh4a/Makefile     |  2 +-
-  arch/sparc/Kconfig                   |  5 -----
-  arch/unicore32/Kconfig               |  6 +-----
-  arch/x86/Kconfig                     |  3 ---
-  arch/xtensa/Kconfig                  |  3 ---
-  arch/xtensa/configs/iss_defconfig    |  1 -
-  arch/xtensa/configs/s6105_defconfig  |  1 -
-  drivers/extcon/Kconfig               |  2 +-
-  drivers/gpio/Kconfig                 |  1 -
-  drivers/gpio/gpio-lpc32xx.c          |  2 +-
-  drivers/i2c/busses/Kconfig           |  4 ++--
-  drivers/i2c/muxes/Kconfig            |  2 +-
-  drivers/input/keyboard/Kconfig       |  6 +++---
-  drivers/input/misc/Kconfig           |  8 ++++----
-  drivers/input/mouse/Kconfig          |  2 +-
-  drivers/leds/Kconfig                 |  6 +++---
-  drivers/mtd/maps/Kconfig             |  2 +-
-  drivers/mtd/nand/Kconfig             |  2 +-
-  drivers/net/phy/Kconfig              |  2 +-
-  drivers/pinctrl/sh-pfc/Kconfig       | 26 +++++++++++++-------------
-  drivers/regulator/Kconfig            |  2 +-
-  drivers/spi/Kconfig                  |  8 ++++----
-  drivers/staging/android/Kconfig      |  2 +-
-  drivers/staging/iio/accel/Kconfig    |  2 +-
-  drivers/staging/iio/adc/Kconfig      |  2 +-
-  drivers/staging/iio/addac/Kconfig    |  2 +-
-  drivers/staging/iio/resolver/Kconfig |  4 ++--
-  drivers/staging/iio/trigger/Kconfig  |  2 +-
-  drivers/usb/otg/Kconfig              |  2 +-
-  drivers/video/Kconfig                |  2 +-
-  drivers/video/backlight/Kconfig      |  4 ++--
-  drivers/w1/masters/Kconfig           |  2 +-
-  include/linux/gpio.h                 |  6 +++---
-  64 files changed, 74 insertions(+), 153 deletions(-)
+diff --git a/arch/arm/include/asm/thread_info.h b/arch/arm/include/asm/=
+thread_info.h
+index cddda1f..bb5b48d 100644
+--- a/arch/arm/include/asm/thread_info.h
++++ b/arch/arm/include/asm/thread_info.h
+@@ -58,7 +58,7 @@ struct thread_info {
+ 	struct cpu_context_save	cpu_context;	/* cpu context */
+ 	__u32			syscall;	/* syscall number */
+ 	__u8			used_cp[16];	/* thread used copro */
+-	unsigned long		tp_value;
++	unsigned long		tp_value[2];
+ #ifdef CONFIG_CRUNCH
+ 	struct crunch_state	crunchstate;
+ #endif
+diff --git a/arch/arm/include/asm/tls.h b/arch/arm/include/asm/tls.h
+index 73409e6..02f8674 100644
+--- a/arch/arm/include/asm/tls.h
++++ b/arch/arm/include/asm/tls.h
+@@ -2,48 +2,87 @@
+ #define __ASMARM_TLS_H
+=20
+ #ifdef __ASSEMBLY__
++	.macro check_hwcap_tls, tmp1
++	ldr	\tmp1, =3Delf_hwcap
++	ldr	\tmp1, [\tmp1, #0]
++	tst	\tmp1, #HWCAP_TLS		@ hardware TLS available?
++	.endm
++
++
++	.macro get_tls_none, tp, tmp1
++	.endm
++
++	.macro get_tls_v6k, tp, tmp1
++	mrc	p15, 0, \tmp1, c13, c0, 2		@ get user r/w TLS register
++	str	\tmp1, [\tp, #4]
++	.endm
++
++	.macro get_tls_v6, tp, tmp1
++	check_hwcap_tls \tmp1
++	mrcne	p15, 0, \tmp1, c13, c0, 2		@ get user r/w TLS register
++	strne	\tmp1, [\tp, #4]
++	.endm
++
++
+ 	.macro set_tls_none, tp, tmp1, tmp2
+ 	.endm
+=20
+ 	.macro set_tls_v6k, tp, tmp1, tmp2
+-	mcr	p15, 0, \tp, c13, c0, 3		@ set TLS register
+-	mov	\tmp1, #0
+-	mcr	p15, 0, \tmp1, c13, c0, 2	@ clear user r/w TLS register
++	ldrd	\tmp1, \tmp2, [\tp]
++	mcr	p15, 0, \tmp1, c13, c0, 3	@ set user r/o TLS register
++	mcr	p15, 0, \tmp2, c13, c0, 2	@ set user r/w TLS register
+ 	.endm
+=20
+ 	.macro set_tls_v6, tp, tmp1, tmp2
+-	ldr	\tmp1, =3Delf_hwcap
+-	ldr	\tmp1, [\tmp1, #0]
+ 	mov	\tmp2, #0xffff0fff
+-	tst	\tmp1, #HWCAP_TLS		@ hardware TLS available?
+-	mcrne	p15, 0, \tp, c13, c0, 3		@ yes, set TLS register
+-	movne	\tmp1, #0
+-	mcrne	p15, 0, \tmp1, c13, c0, 2	@ clear user r/w TLS register
+-	streq	\tp, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
++	check_hwcap_tls \tmp1
++	ldrdne	\tmp1, \tmp2, [\tp]
++	ldreq	\tmp1, [\tp]
++	mcrne	p15, 0, \tmp1, c13, c0, 3	@ yes, set user r/o TLS register
++	mcrne	p15, 0, \tmp2, c13, c0, 2	@ set user r/w TLS register
++	streq	\tmp1, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
+ 	.endm
+=20
+ 	.macro set_tls_software, tp, tmp1, tmp2
+-	mov	\tmp1, #0xffff0fff
+-	str	\tp, [\tmp1, #-15]		@ set TLS value at 0xffff0ff0
++	ldr	\tmp1, [\tp]
++	mov	\tmp2, #0xffff0fff
++	str	\tmp1, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
+ 	.endm
+ #endif
+=20
+ #ifdef CONFIG_TLS_REG_EMUL
+ #define tls_emu		1
+ #define has_tls_reg		1
++#define get_tls		get_tls_none
+ #define set_tls		set_tls_none
+ #elif defined(CONFIG_CPU_V6)
+ #define tls_emu		0
+ #define has_tls_reg		(elf_hwcap & HWCAP_TLS)
++#define get_tls		get_tls_v6
+ #define set_tls		set_tls_v6
+ #elif defined(CONFIG_CPU_32v6K)
+ #define tls_emu		0
+ #define has_tls_reg		1
++#define get_tls		get_tls_v6k
+ #define set_tls		set_tls_v6k
+ #else
+ #define tls_emu		0
+ #define has_tls_reg		0
++#define get_tls		get_tls_none
+ #define set_tls		set_tls_software
+ #endif
+=20
++#ifndef __ASSEMBLY__
++static inline void get_tpidrurw(unsigned long *tpidrurw)
++{
++	unsigned long t;
++#ifdef CONFIG_TLS_REG_EMUL
++	return;
++#endif
++	if (!has_tls_reg) return;
++	__asm__("mcr p15, 0, %0, c13, c0, 2" : : "r" (t));
++	*tpidrurw =3D t;
++}
++#endif
++
+ #endif	/* __ASMARM_TLS_H */
+diff --git a/arch/arm/kernel/entry-armv.S b/arch/arm/kernel/entry-armv.=
+S
+index 0f82098..2c892b2 100644
+--- a/arch/arm/kernel/entry-armv.S
++++ b/arch/arm/kernel/entry-armv.S
+@@ -728,7 +728,7 @@ ENTRY(__switch_to)
+  UNWIND(.fnstart	)
+  UNWIND(.cantunwind	)
+ 	add	ip, r1, #TI_CPU_SAVE
+-	ldr	r3, [r2, #TI_TP_VALUE]
++	add	r3, r1, #TI_TP_VALUE
+  ARM(	stmia	ip!, {r4 - sl, fp, sp, lr} )	@ Store most regs on stack
+  THUMB(	stmia	ip!, {r4 - sl, fp}	   )	@ Store most regs on stack
+  THUMB(	str	sp, [ip], #4		   )
+@@ -736,6 +736,8 @@ ENTRY(__switch_to)
+ #ifdef CONFIG_CPU_USE_DOMAINS
+ 	ldr	r6, [r2, #TI_CPU_DOMAIN]
+ #endif
++	get_tls	r3, r4
++	add	r3, r2, #TI_TP_VALUE
+ 	set_tls	r3, r4, r5
+ #if defined(CONFIG_CC_STACKPROTECTOR) && !defined(CONFIG_SMP)
+ 	ldr	r7, [r2, #TI_TASK]
+diff --git a/arch/arm/kernel/process.c b/arch/arm/kernel/process.c
+index 047d3e4..a13bbc8 100644
+--- a/arch/arm/kernel/process.c
++++ b/arch/arm/kernel/process.c
+@@ -36,6 +36,7 @@
+ #include <asm/cacheflush.h>
+ #include <asm/idmap.h>
+ #include <asm/processor.h>
++#include <asm/tls.h>
+ #include <asm/thread_notify.h>
+ #include <asm/stacktrace.h>
+ #include <asm/mach/time.h>
+@@ -395,7 +396,10 @@ copy_thread(unsigned long clone_flags, unsigned lo=
+ng stack_start,
+ 	clear_ptrace_hw_breakpoint(p);
+=20
+ 	if (clone_flags & CLONE_SETTLS)
+-		thread->tp_value =3D childregs->ARM_r3;
++	{
++		thread->tp_value[0] =3D childregs->ARM_r3;
++		get_tpidrurw(&thread->tp_value[1]);
++	}
+=20
+ 	thread_notify(THREAD_NOTIFY_COPY, thread);
+=20
+diff --git a/arch/arm/kernel/ptrace.c b/arch/arm/kernel/ptrace.c
+index 03deeff..2bc1514 100644
+--- a/arch/arm/kernel/ptrace.c
++++ b/arch/arm/kernel/ptrace.c
+@@ -849,7 +849,7 @@ long arch_ptrace(struct task_struct *child, long re=
+quest,
+ #endif
+=20
+ 		case PTRACE_GET_THREAD_AREA:
+-			ret =3D put_user(task_thread_info(child)->tp_value,
++			ret =3D put_user(task_thread_info(child)->tp_value[0],
+ 				       datap);
+ 			break;
+=20
+diff --git a/arch/arm/kernel/traps.c b/arch/arm/kernel/traps.c
+index 1c08911..f9d6259 100644
+--- a/arch/arm/kernel/traps.c
++++ b/arch/arm/kernel/traps.c
+@@ -588,7 +588,7 @@ asmlinkage int arm_syscall(int no, struct pt_regs *=
+regs)
+ 		return regs->ARM_r0;
+=20
+ 	case NR(set_tls):
+-		thread->tp_value =3D regs->ARM_r0;
++		thread->tp_value[0] =3D regs->ARM_r0;
+ 		if (tls_emu)
+ 			return 0;
+ 		if (has_tls_reg) {
+@@ -706,7 +706,7 @@ static int get_tp_trap(struct pt_regs *regs, unsign=
+ed int instr)
+ 	int reg =3D (instr >> 12) & 15;
+ 	if (reg =3D=3D 15)
+ 		return 1;
+-	regs->uregs[reg] =3D current_thread_info()->tp_value;
++	regs->uregs[reg] =3D current_thread_info()->tp_value[0];
+ 	regs->ARM_pc +=3D 4;
+ 	return 0;
+ }
