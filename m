@@ -1,45 +1,137 @@
-From: Steve Capper <steve.capper@linaro.org>
-Subject: Re: [RFC PATCH 8/9] ARM64: mm: Introduce MAX_ZONE_ORDER for 64K
- and THP.
-Date: Thu, 2 May 2013 11:05:08 +0100
-Message-ID: <20130502100507.GA19880@linaro.org>
-References: <1367339448-21727-1-git-send-email-steve.capper@linaro.org>
- <1367339448-21727-9-git-send-email-steve.capper@linaro.org>
- <20130502100000.GB20730@arm.com>
+From: Alex Courbot <acourbot@nvidia.com>
+Subject: [GIT PULL] Removal of GENERIC_GPIO
+Date: Thu, 2 May 2013 19:20:10 +0900
+Message-ID: <51823DDA.7010103@nvidia.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20130502100000.GB20730@arm.com>
-Sender: owner-linux-mm@kvack.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: "linux-mm@kvack.org" <linux-mm@kvack.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Michal Hocko <mhocko@suse.cz>, Ken Chen <kenchen@google.com>, Mel Gorman <mgorman@suse.de>, Will Deacon <Will.Deacon@arm.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from hqemgate04.nvidia.com ([216.228.121.35]:1911 "EHLO
+	hqemgate04.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753311Ab3EBKUP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 May 2013 06:20:15 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Grant Likely <grant.likely@secretlab.ca>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Alexandre Courbot <gnurou@gmail.com>
 
-On Thu, May 02, 2013 at 11:00:00AM +0100, Catalin Marinas wrote:
-> On Tue, Apr 30, 2013 at 05:30:47PM +0100, Steve Capper wrote:
- 
-> Can we just keep some sane defaults here without giving too much choice
-> to the user? Something like:
-> 
-> config FORCE_MAX_ZONEORDER
-> 	int
-> 	default "13" if (ARM64_64K_PAGES && TRANSPARENT_HUGEPAGE)
-> 	default "11"
-> 
-> We can extend it later if people need this but I'm aiming for a single
-> config on a multitude of boards.
-> 
-> -- 
-> Catalin
+Hi Grant,
 
-Thanks, that does look a lot neater :-).
+Here is the pull request for the GENERIC_GPIO removal. It is almost 
+certain that a few fixups will be necessary - while I don't have precise 
+patches, the following steps should ensure the state of the code is clean:
 
--- 
-Steve
+* "git grep CONFIG_GENERIC_GPIO" should return 0 hits. Matches should be 
+replaced with CONFIG_GPIOLIB
+* "git grep '\bGENERIC_GPIO\b'" should return 1 hit in the Chinese 
+documentation. Selectors of GENERIC_GPIO should be turned into selectors 
+of GPIOLIB, while definitions of the option in architecture code should 
+be deleted.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Please let me know if there is something more I can do to ease your task.
+
+Thanks,
+Alex.
+
+The following changes since commit 10b38669d64c757cfd927e3820292c580ed70aae:
+
+   Merge tag 'for-linus-v3.9-rc4' of git://oss.sgi.com/xfs/xfs 
+(2013-03-19 15:17:40 -0700)
+
+are available in the git repository at:
+
+   git://github.com/Gnurou/linux.git for_grant
+
+for you to fetch changes up to f4c54050640e7afa4749875cf9b900d42db361c0:
+
+   gpio: update gpio Chinese documentation (2013-04-16 18:47:22 +0900)
+
+----------------------------------------------------------------
+Alexandre Courbot (18):
+       mips: remove redundant GENERIC_GPIO select
+       mips: loongson: use GPIO driver on CONFIG_GPIOLIB
+       mips: txx9: change GENERIC_GPIO to GPIOLIB
+       mips: alchemy: require gpiolib
+       arm: remove redundant GENERIC_GPIO selection
+       arm: plat-orion: use GPIO driver on CONFIG_GPIOLIB
+       unicore32: remove unneeded select GENERIC_GPIO
+       unicore32: default GENERIC_GPIO to false
+       powerpc: remove redundant GENERIC_GPIO selection
+       sh: replace CONFIG_GENERIC_GPIO by CONFIG_GPIOLIB
+       xtensa: remove explicit selection of GENERIC_GPIO
+       avr32: default GENERIC_GPIO to false
+       openrisc: default GENERIC_GPIO to false
+       mips: pnx833x: remove requirement for GENERIC_GPIO
+       m68k: coldfire: use gpiolib
+       blackfin: force use of gpiolib
+       Convert selectors of GENERIC_GPIO to GPIOLIB
+       Remove GENERIC_GPIO config option
+
+Chen Baozi (1):
+       gpio: update gpio Chinese documentation
+
+  Documentation/gpio.txt               | 10 +++++-----
+  Documentation/zh_CN/gpio.txt         |  8 ++++----
+  arch/alpha/Kconfig                   |  3 ---
+  arch/arm/Kconfig                     |  3 ---
+  arch/arm/plat-orion/Makefile         |  2 +-
+  arch/arm/plat-orion/gpio.c           |  2 +-
+  arch/arm64/Kconfig                   |  3 ---
+  arch/avr32/Kconfig                   |  3 ---
+  arch/blackfin/Kconfig                |  5 +----
+  arch/hexagon/Kconfig                 |  3 ---
+  arch/ia64/Kconfig                    |  3 ---
+  arch/m68k/Kconfig                    |  3 ---
+  arch/m68k/Kconfig.cpu                |  3 +--
+  arch/metag/Kconfig                   |  3 ---
+  arch/microblaze/Kconfig              |  3 ---
+  arch/mips/Kconfig                    | 10 +---------
+  arch/mips/loongson/common/Makefile   |  2 +-
+  arch/mips/txx9/generic/setup.c       |  2 +-
+  arch/openrisc/Kconfig                |  3 ---
+  arch/powerpc/Kconfig                 |  5 -----
+  arch/powerpc/platforms/40x/Kconfig   |  1 -
+  arch/powerpc/platforms/44x/Kconfig   |  1 -
+  arch/powerpc/platforms/85xx/Kconfig  |  1 -
+  arch/powerpc/platforms/86xx/Kconfig  |  3 ---
+  arch/powerpc/platforms/8xx/Kconfig   |  1 -
+  arch/powerpc/platforms/Kconfig       |  4 ----
+  arch/sh/Kconfig                      |  3 ---
+  arch/sh/boards/mach-sdk7786/Makefile |  2 +-
+  arch/sh/boards/mach-x3proto/Makefile |  2 +-
+  arch/sh/kernel/cpu/sh2a/Makefile     |  2 +-
+  arch/sh/kernel/cpu/sh3/Makefile      |  2 +-
+  arch/sh/kernel/cpu/sh4a/Makefile     |  2 +-
+  arch/sparc/Kconfig                   |  5 -----
+  arch/unicore32/Kconfig               |  6 +-----
+  arch/x86/Kconfig                     |  3 ---
+  arch/xtensa/Kconfig                  |  3 ---
+  arch/xtensa/configs/iss_defconfig    |  1 -
+  arch/xtensa/configs/s6105_defconfig  |  1 -
+  drivers/extcon/Kconfig               |  2 +-
+  drivers/gpio/Kconfig                 |  1 -
+  drivers/gpio/gpio-lpc32xx.c          |  2 +-
+  drivers/i2c/busses/Kconfig           |  4 ++--
+  drivers/i2c/muxes/Kconfig            |  2 +-
+  drivers/input/keyboard/Kconfig       |  6 +++---
+  drivers/input/misc/Kconfig           |  8 ++++----
+  drivers/input/mouse/Kconfig          |  2 +-
+  drivers/leds/Kconfig                 |  6 +++---
+  drivers/mtd/maps/Kconfig             |  2 +-
+  drivers/mtd/nand/Kconfig             |  2 +-
+  drivers/net/phy/Kconfig              |  2 +-
+  drivers/pinctrl/sh-pfc/Kconfig       | 26 +++++++++++++-------------
+  drivers/regulator/Kconfig            |  2 +-
+  drivers/spi/Kconfig                  |  8 ++++----
+  drivers/staging/android/Kconfig      |  2 +-
+  drivers/staging/iio/accel/Kconfig    |  2 +-
+  drivers/staging/iio/adc/Kconfig      |  2 +-
+  drivers/staging/iio/addac/Kconfig    |  2 +-
+  drivers/staging/iio/resolver/Kconfig |  4 ++--
+  drivers/staging/iio/trigger/Kconfig  |  2 +-
+  drivers/usb/otg/Kconfig              |  2 +-
+  drivers/video/Kconfig                |  2 +-
+  drivers/video/backlight/Kconfig      |  4 ++--
+  drivers/w1/masters/Kconfig           |  2 +-
+  include/linux/gpio.h                 |  6 +++---
+  64 files changed, 74 insertions(+), 153 deletions(-)
