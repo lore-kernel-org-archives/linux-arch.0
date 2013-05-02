@@ -1,169 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:50964 "EHLO
+Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:51300 "EHLO
 	cam-smtp0.cambridge.arm.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1754558Ab3EAQVx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 May 2013 12:21:53 -0400
-Date: Wed, 1 May 2013 17:21:11 +0100
+	by vger.kernel.org with ESMTP id S1755837Ab3EBKAm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 May 2013 06:00:42 -0400
+Date: Thu, 2 May 2013 11:00:00 +0100
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [RFC PATCH 7/9] ARM64: mm: HugeTLB support.
-Message-ID: <20130501162111.GD17387@arm.com>
+Subject: Re: [RFC PATCH 8/9] ARM64: mm: Introduce MAX_ZONE_ORDER for 64K
+ and THP.
+Message-ID: <20130502100000.GB20730@arm.com>
 References: <1367339448-21727-1-git-send-email-steve.capper@linaro.org>
- <1367339448-21727-8-git-send-email-steve.capper@linaro.org>
+ <1367339448-21727-9-git-send-email-steve.capper@linaro.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1367339448-21727-8-git-send-email-steve.capper@linaro.org>
-Content-Language: en-US
+In-Reply-To: <1367339448-21727-9-git-send-email-steve.capper@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Steve Capper <steve.capper@linaro.org>
 Cc: "linux-mm@kvack.org" <linux-mm@kvack.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Michal Hocko <mhocko@suse.cz>, Ken Chen <kenchen@google.com>, Mel Gorman <mgorman@suse.de>, Will Deacon <Will.Deacon@arm.com>
-Message-ID: <20130501162111.VPahCT_5by_7KP30H5CpAxklletcPshmKvAdpgrLYKs@z>
+Message-ID: <20130502100000.lmTt88mxJdx1jIx_lwvf_pZkVPx8LtwS_BrtZs5tBiU@z>
 
-On Tue, Apr 30, 2013 at 05:30:46PM +0100, Steve Capper wrote:
+On Tue, Apr 30, 2013 at 05:30:47PM +0100, Steve Capper wrote:
+> The buddy allocator has a default order of 11, which is too low to
+> allocate enough memory for 512MB Transparent HugePages if our base
+> page size is 64K. For any order less than 13, the combination of
+> THP with 64K pages will cause a compile error.
+> 
+> This patch introduces the MAX_ZONE_ORDER config option that allows
+> one to explicitly override the order of the buddy allocator. If
+> 64K pages and THP are enabled the minimum value is set to 13.
+> 
+> Signed-off-by: Steve Capper <steve.capper@linaro.org>
+> ---
+>  arch/arm64/Kconfig | 17 +++++++++++++++++
+>  1 file changed, 17 insertions(+)
+> 
 > diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-> index 43b0e9f..16aa780 100644
+> index 16aa780..908fd95 100644
 > --- a/arch/arm64/Kconfig
 > +++ b/arch/arm64/Kconfig
-> @@ -185,6 +185,15 @@ config HW_PERF_EVENTS
->  	  Enable hardware performance counter support for perf events. If
->  	  disabled, perf events will use software events only.
+> @@ -196,6 +196,23 @@ config ARCH_WANT_HUGE_PMD_SHARE
 >  
-> +config SYS_SUPPORTS_HUGETLBFS
-> +	def_bool y if MMU
-> +
-> +config ARCH_WANT_GENERAL_HUGETLB
-> +	def_bool y if MMU
+>  source "mm/Kconfig"
+>  
+> +config FORCE_MAX_ZONEORDER
+> +	int "Maximum zone order"
+> +	range 11 64 if !(ARM64_64K_PAGES && TRANSPARENT_HUGEPAGE)
+> +	range 13 64 if ARM64_64K_PAGES && TRANSPARENT_HUGEPAGE
+> +	default "11" if !(ARM64_64K_PAGES && TRANSPARENT_HUGEPAGE)
+> +	default "13" if (ARM64_64K_PAGES && TRANSPARENT_HUGEPAGE)
 
-We could drop MMU here, I don't plan a uClinux port ;)
+Can we just keep some sane defaults here without giving too much choice
+to the user? Something like:
 
-> diff --git a/arch/arm64/include/asm/hugetlb.h b/arch/arm64/include/asm/hugetlb.h
-> new file mode 100644
-> index 0000000..d00d72a
-> --- /dev/null
-> +++ b/arch/arm64/include/asm/hugetlb.h
-...
-> +static inline pte_t huge_ptep_get(pte_t *ptep)
-> +{
-> +	return *ptep;
-> +}
-> +
-> +static inline void set_huge_pte_at(struct mm_struct *mm, unsigned long addr,
-> +				   pte_t *ptep, pte_t pte)
-> +{
-> +	set_pte_at(mm, addr, ptep, pte);
-> +}
-> +
-> +static inline void huge_ptep_clear_flush(struct vm_area_struct *vma,
-> +					 unsigned long addr, pte_t *ptep)
-> +{
-> +	ptep_clear_flush(vma, addr, ptep);
-> +}
-> +
-> +static inline void huge_ptep_set_wrprotect(struct mm_struct *mm,
-> +					   unsigned long addr, pte_t *ptep)
-> +{
-> +	ptep_set_wrprotect(mm, addr, ptep);
-> +}
-> +
-> +static inline pte_t huge_ptep_get_and_clear(struct mm_struct *mm,
-> +					    unsigned long addr, pte_t *ptep)
-> +{
-> +	return ptep_get_and_clear(mm, addr, ptep);
-> +}
-> +
-> +static inline int huge_ptep_set_access_flags(struct vm_area_struct *vma,
-> +					     unsigned long addr, pte_t *ptep,
-> +					     pte_t pte, int dirty)
-> +{
-> +	return ptep_set_access_flags(vma, addr, ptep, pte, dirty);
-> +}
-> +
-> +static inline void hugetlb_free_pgd_range(struct mmu_gather *tlb,
-> +					  unsigned long addr, unsigned long end,
-> +					  unsigned long floor,
-> +					  unsigned long ceiling)
-> +{
-> +	free_pgd_range(tlb, addr, end, floor, ceiling);
-> +}
-...
-> +static inline int huge_pte_none(pte_t pte)
-> +{
-> +	return pte_none(pte);
-> +}
-> +
-> +static inline pte_t huge_pte_wrprotect(pte_t pte)
-> +{
-> +	return pte_wrprotect(pte);
-> +}
+config FORCE_MAX_ZONEORDER
+	int
+	default "13" if (ARM64_64K_PAGES && TRANSPARENT_HUGEPAGE)
+	default "11"
 
-Could we make these generic too?
-
-> diff --git a/arch/arm64/mm/hugetlbpage.c b/arch/arm64/mm/hugetlbpage.c
-> new file mode 100644
-> index 0000000..06c74e8
-> --- /dev/null
-> +++ b/arch/arm64/mm/hugetlbpage.c
-> @@ -0,0 +1,70 @@
-> +/*
-> + * arch/arm64/mm/hugetlbpage.c
-> + *
-> + * Copyright (C) 2013 Linaro Ltd.
-> + *
-> + * Based on arch/x86/mm/hugetlbpage.c.
-> + *
-> + * This program is free software; you can redistribute it and/or modify
-> + * it under the terms of the GNU General Public License version 2 as
-> + * published by the Free Software Foundation.
-> + *
-> + * This program is distributed in the hope that it will be useful,
-> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
-> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-> + * GNU General Public License for more details.
-> + *
-> + * You should have received a copy of the GNU General Public License
-> + * along with this program; if not, write to the Free Software
-> + * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-> + */
-> +
-> +#include <linux/init.h>
-> +#include <linux/fs.h>
-> +#include <linux/mm.h>
-> +#include <linux/hugetlb.h>
-> +#include <linux/pagemap.h>
-> +#include <linux/err.h>
-> +#include <linux/sysctl.h>
-> +#include <asm/mman.h>
-> +#include <asm/tlb.h>
-> +#include <asm/tlbflush.h>
-> +#include <asm/pgalloc.h>
-> +
-> +#ifndef CONFIG_ARCH_WANT_HUGE_PMD_SHARE
-> +int huge_pmd_unshare(struct mm_struct *mm, unsigned long *addr, pte_t *ptep)
-> +{
-> +	return 0;
-> +}
-> +#endif
-> +
-> +struct page *follow_huge_addr(struct mm_struct *mm, unsigned long address,
-> +			      int write)
-> +{
-> +	return ERR_PTR(-EINVAL);
-> +}
-> +
-> +int pmd_huge(pmd_t pmd)
-> +{
-> +	return (pmd_val(pmd) & PMD_TYPE_MASK) == PMD_TYPE_SECT;
-> +}
-> +
-> +int pud_huge(pud_t pud)
-> +{
-> +	return (pud_val(pud) & PMD_TYPE_MASK) == PMD_TYPE_SECT;
-> +}
-
-The types are mismatched here since pud_val() returns a pgd when
-pgtable-nopud.h is used. I think we should defined PGD_TYPE_* in terms
-of pgdval_t and PUD_TYPE_* just an alias for them.
+We can extend it later if people need this but I'm aiming for a single
+config on a multitude of boards.
 
 -- 
 Catalin
