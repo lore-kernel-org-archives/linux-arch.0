@@ -1,99 +1,205 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [patch 00/34] idle: Consolidate idle implementations
-Date: Fri, 3 May 2013 11:47:44 +0200
-Message-ID: <CAMuHMdUuVdPjgu1mX+sxZv894LZNPgp_8NTUqUE4NC7-p=duCA@mail.gmail.com>
-References: <20130321214930.752934102@linutronix.de>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCHv2] arm: Preserve TPIDRURW on context switch
+Date: Fri, 3 May 2013 10:55:47 +0100
+Message-ID: <20130503095547.GD18614@n2100.arm.linux.org.uk>
+References: <517168BB.3070903@dawncrow.de> <20130422143616.GP14496@n2100.arm.linux.org.uk> <20130422151836.GA15665@mudshark.cambridge.arm.com> <5175A697.3080308@dawncrow.de> <20130423091536.GB17593@mudshark.cambridge.arm.com> <51770E4E.2040003@dawncrow.de> <20130424094251.GA21850@mudshark.cambridge.arm.com> <5182C480.3080001@dawncrow.de> <5183819E.50308@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ia0-f170.google.com ([209.85.210.170]:55500 "EHLO
-	mail-ia0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753137Ab3ECJrp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 May 2013 05:47:45 -0400
-In-Reply-To: <20130321214930.752934102@linutronix.de>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:43462 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1762406Ab3ECJ4B (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 May 2013 05:56:01 -0400
+Content-Disposition: inline
+In-Reply-To: <5183819E.50308@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, "kernel-janitors@vger.kernel.org" <kernel-janitors@vger.kernel.org>
+To: Jonathan Austin <jonathan.austin@arm.com>
+Cc: =?iso-8859-1?Q?Andr=E9?= Hentschel <nerv@dawncrow.de>, Will Deacon <Will.Deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
-Hi Thomas,
+On Fri, May 03, 2013 at 10:21:34AM +0100, Jonathan Austin wrote:
+>  	.macro set_tls_v6k, tp, tmp1, tmp2
+> -	mcr	p15, 0, \tp, c13, c0, 3		@ set TLS register
+> -	mov	\tmp1, #0
+> -	mcr	p15, 0, \tmp1, c13, c0, 2	@ clear user r/w TLS register
+> +	ldrd	\tmp1, \tmp2, [\tp]
+> +	mcr	p15, 0, \tmp1, c13, c0, 3	@ set user r/o TLS register
+> +	mcr	p15, 0, \tmp2, c13, c0, 2	@ set user r/w TLS register
 
-On Thu, Mar 21, 2013 at 10:52 PM, Thomas Gleixner <tglx@linutronix.de> wrote:
-> Each architecture implements its own cpu_idle() code, which is more or
-> less the same on all architectures (plus/minus a few bugs and a few
-> missing extra functionalities, instrumentation ...). That also forces
-> everyone who is interested in idle related features to add new
-> functionality to every architecture. What a waste.
+So we're still back at stalling the pipeline with result delays on older
+CPUs?
 
-I noticed there are still prototypes for cpu_idle() in include/linux/cpu.h
-and include/linux/smp.h, so I ran a full "git grep -w cpu_idle", which
-suggested a few more places that needs updates:
+> +	.endm
+> +
+> +	.macro save_tlsuser_v6k, tp, tmp1, tmp2
+> +	@ TPIDRURW can be updated from userspace, so we have to re-read it
+> +	mrc	p15, 0, \tmp2, c13, c0, 2	@ load user r/w TLS register
+> +	str	\tmp2, [\tp, #4]
+>  	.endm
+>  
+>  	.macro set_tls_v6, tp, tmp1, tmp2
+> @@ -16,15 +25,26 @@
+>  	ldr	\tmp1, [\tmp1, #0]
+>  	mov	\tmp2, #0xffff0fff
+>  	tst	\tmp1, #HWCAP_TLS		@ hardware TLS available?
+> -	mcrne	p15, 0, \tp, c13, c0, 3		@ yes, set TLS register
+> -	movne	\tmp1, #0
+> -	mcrne	p15, 0, \tmp1, c13, c0, 2	@ clear user r/w TLS register
+> -	streq	\tp, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
+> +	ldrned	\tmp1, \tmp2, [\tp]
+> +	ldreq	\tmp1, [\tp]
+> +	mcrne	p15, 0, \tmp1, c13, c0, 3	@ yes, set user r/o TLS register
+> +	mcrne	p15, 0, \tmp2, c13, c0, 2	@ set user r/w TLS register
+> +	streq	\tmp1, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
 
-Documentation/s390/Debugging390.txt:0001b304 T cpu_idle
-Documentation/s390/Debugging390.txt:is cpu_idle+0x66 ( quiet the cpu
-is asleep, don't wake it )
-Documentation/scheduler/sched-arch.txt:Your cpu_idle routines need to
-obey the following rules:
-Documentation/scheduler/sched-arch.txt:3. When cpu_idle finds
-(need_resched() == 'true'), it should call
-Documentation/trace/events-power.txt:cpu_idle           "state=%lu cpu_id=%lu"
-Documentation/trace/ftrace.txt:          <idle>-0     [002] .N.1
-21169.031484: rcu_idle_exit <-cpu_idle
-Documentation/trace/ftrace.txt: => cpu_idle
-Documentation/trace/ftrace.txt:  <idle>-0       3.N.1   11us :
-rcu_idle_exit <-cpu_idle
-Documentation/trace/ftrace.txt:  <idle>-0       3.N.1   11us :
-tick_nohz_idle_exit <-cpu_idle
-Documentation/trace/ftrace.txt:  <idle>-0       3.N.1   25us :
-sub_preempt_count <-cpu_idle
-Documentation/trace/ftrace.txt:  <idle>-0       3.N..   25us :
-schedule <-cpu_idle
-Documentation/trace/ftrace.txt:  <idle>-0       2.N.2    3us :
-cpu_idle: state=4294967295 cpu_id=2
-Documentation/virtual/uml/UserModeLinux-HOWTO.txt:       #3
-0x100a5508 in cpu_idle () at process_kern.c:471
-arch/arm/Kconfig:         This option adds a write barrier to the
-cpu_idle loop so that,
-arch/cris/arch-v10/drivers/gpio.c:       * from cpu_idle() in kernel/process.c
-arch/cris/arch-v10/drivers/gpio.c:       * The check in cpu_idle()
-reduces latency from ~15 ms to ~6 ms
-arch/cris/arch-v32/drivers/mach-fs/gpio.c:       * from cpu_idle() in
-kernel/process.c
-arch/cris/arch-v32/drivers/mach-fs/gpio.c:       * The check in
-cpu_idle() reduces latency from ~15 ms to ~6 ms
-arch/mips/kernel/smtc.c:                printk("Dangling IXMT in cpu_idle()\n");
-arch/powerpc/kernel/irq.c: * in cpu_idle() will properly re-enable everything.
-arch/sparc/kernel/leon_pmc.c:/* leon_pmc.c: LEON Power-down cpu_idle() handler
-arch/sparc/kernel/smp_32.c:     printk("CPU[%d]: Returns from
-cpu_idle!\n", smp_processor_id());
-arch/sparc/kernel/smp_64.c:     printk("CPU[%d]: Returns from
-cpu_idle!\n", smp_processor_id());
-arch/tile/include/asm/thread_info.h:/* Enable interrupts racelessly
-and nap forever: helper for cpu_idle(). */
-drivers/acpi/processor_driver.c:         * Set flag to delay
-cpu_idle/throttling initialization
-include/linux/cpu.h:void cpu_idle(void);
-include/linux/smp.h:extern void cpu_idle(void);
-include/trace/events/power.h:DEFINE_EVENT(cpu, cpu_idle,
-init/main.c: * cpu_idle.
-init/main.c:    /* Call into cpu_idle with preempt disabled */
-init/main.c:     * fragile until we cpu_idle() for the first time.
-kernel/trace/power-traces.c:EXPORT_TRACEPOINT_SYMBOL_GPL(cpu_idle);
-tools/perf/builtin-timechart.c:          * Mapping all these
-"power:cpu_idle" strings to the tracepoint
-tools/perf/builtin-timechart.c:         if (strcmp(event_str,
-"power:cpu_idle") == 0) {
-tools/perf/builtin-timechart.c:         "-e", "power:cpu_idle",
-tools/perf/builtin-timechart.c: if (!is_valid_tracepoint("power:cpu_idle") &&
-tools/perf/builtin-top.c:       "cpu_idle",
+This at least is better.
 
-Gr{oetje,eeting}s,
+> +	.endm
+> +
+> +	.macro save_tlsuser_v6, tp, tmp1, tmp2
+> +	@ TPIDRURW can be updated from userspace, so we have to re-read it
+> +	ldr	\tmp1, =elf_hwcap
+> +	ldr	\tmp1, [\tmp1, #0]
+> +	tst	\tmp1, #HWCAP_TLS		@ hardware TLS available?
 
-                        Geert
+But this isn't - this involves two delays.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+> +	mrcne	p15, 0, \tmp2, c13, c0, 2	@ read user r/w TLS register
+> +	strne	\tmp2, [\tp, #4]		@ save in to thread_info
+>  	.endm
+>  
+>  	.macro set_tls_software, tp, tmp1, tmp2
+> -	mov	\tmp1, #0xffff0fff
+> -	str	\tp, [\tmp1, #-15]		@ set TLS value at 0xffff0ff0
+> +	ldr	\tmp1, [\tp]
+> +	mov	\tmp2, #0xffff0fff
+> +	str	\tmp1, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
+>  	.endm
+>  #endif
+>  
+> @@ -32,18 +52,31 @@
+>  #define tls_emu		1
+>  #define has_tls_reg		1
+>  #define set_tls		set_tls_none
+> +#define save_tlsuser	save_tlsuser_none
+> +#define get_tlsuser	get_tlsuser_none
+>  #elif defined(CONFIG_CPU_V6)
+>  #define tls_emu		0
+>  #define has_tls_reg		(elf_hwcap & HWCAP_TLS)
+>  #define set_tls		set_tls_v6
+> +#define save_tlsuser	save_tlsuser_v6
+> +#define get_tlsuser	get_tlsuser_v6
+>  #elif defined(CONFIG_CPU_32v6K)
+>  #define tls_emu		0
+>  #define has_tls_reg		1
+>  #define set_tls		set_tls_v6k
+> +#define save_tlsuser	save_tlsuser_v6k
+> +#define get_tlsuser	get_tlsuser_v6k
+>  #else
+>  #define tls_emu		0
+>  #define has_tls_reg		0
+>  #define set_tls		set_tls_software
+> +#define save_tlsuser	save_tlsuser_none
+> +#define get_tlsuser	get_tlsuser_none
+>  #endif
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+This separation of setting and saving the TLS value is actually quite
+silly.  They're called from the same place, so lets just call it
+"switch_tls" instead.
+
+Here's just the assembly bits doing that - this is totally untested
+of course:
+
+ arch/arm/include/asm/tls.h   |   28 +++++++++++++++-------------
+ arch/arm/kernel/entry-armv.S |    4 ++--
+ 2 files changed, 17 insertions(+), 15 deletions(-)
+
+diff --git a/arch/arm/include/asm/tls.h b/arch/arm/include/asm/tls.h
+index 73409e6..9c377f1 100644
+--- a/arch/arm/include/asm/tls.h
++++ b/arch/arm/include/asm/tls.h
+@@ -2,27 +2,29 @@
+ #define __ASMARM_TLS_H
+ 
+ #ifdef __ASSEMBLY__
+-	.macro set_tls_none, tp, tmp1, tmp2
++	.macro switch_tls_none, base, tp, trw, tmp1, tmp2
+ 	.endm
+ 
+-	.macro set_tls_v6k, tp, tmp1, tmp2
++	.macro switch_tls_v6k, base, tp, trw, tmp1, tmp2
++	mrc	p15, 0, \tmp2, c13, c0, 2	@ get the user r/w register
+ 	mcr	p15, 0, \tp, c13, c0, 3		@ set TLS register
+-	mov	\tmp1, #0
+-	mcr	p15, 0, \tmp1, c13, c0, 2	@ clear user r/w TLS register
++	mcr	p15, 0, \trw, c13, c0, 2	@ and the user r/w register
++	str	\tmp2, [\base, #TI_TP_VALUE + 4]@ save it
+ 	.endm
+ 
+-	.macro set_tls_v6, tp, tmp1, tmp2
++	.macro switch_tls_v6, base, tp, trw, tmp1, tmp2
+ 	ldr	\tmp1, =elf_hwcap
+ 	ldr	\tmp1, [\tmp1, #0]
+ 	mov	\tmp2, #0xffff0fff
+ 	tst	\tmp1, #HWCAP_TLS		@ hardware TLS available?
+-	mcrne	p15, 0, \tp, c13, c0, 3		@ yes, set TLS register
+-	movne	\tmp1, #0
+-	mcrne	p15, 0, \tmp1, c13, c0, 2	@ clear user r/w TLS register
+ 	streq	\tp, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
++	mrcne	p15, 0, \tmp2, c13, c0, 2	@ get the user r/w register
++	mcrne	p15, 0, \tp, c13, c0, 3		@ yes, set TLS register
++	mcrne	p15, 0, \trw, c13, c0, 2	@ set user r/w register
++	strne	\tmp2, [\base, #TI_TP_VALUE + 4]@ save it
+ 	.endm
+ 
+-	.macro set_tls_software, tp, tmp1, tmp2
++	.macro switch_tls_software, base, tp, trw, tmp1, tmp2
+ 	mov	\tmp1, #0xffff0fff
+ 	str	\tp, [\tmp1, #-15]		@ set TLS value at 0xffff0ff0
+ 	.endm
+@@ -31,19 +33,19 @@
+ #ifdef CONFIG_TLS_REG_EMUL
+ #define tls_emu		1
+ #define has_tls_reg		1
+-#define set_tls		set_tls_none
++#define switch_tls	switch_tls_none
+ #elif defined(CONFIG_CPU_V6)
+ #define tls_emu		0
+ #define has_tls_reg		(elf_hwcap & HWCAP_TLS)
+-#define set_tls		set_tls_v6
++#define switch_tls	switch_tls_v6
+ #elif defined(CONFIG_CPU_32v6K)
+ #define tls_emu		0
+ #define has_tls_reg		1
+-#define set_tls		set_tls_v6k
++#define switch_tls	switch_tls_v6k
+ #else
+ #define tls_emu		0
+ #define has_tls_reg		0
+-#define set_tls		set_tls_software
++#define switch_tls	switch_tls_software
+ #endif
+ 
+ #endif	/* __ASMARM_TLS_H */
+diff --git a/arch/arm/kernel/entry-armv.S b/arch/arm/kernel/entry-armv.S
+index 0f82098..81a08b1 100644
+--- a/arch/arm/kernel/entry-armv.S
++++ b/arch/arm/kernel/entry-armv.S
+@@ -728,15 +728,15 @@ ENTRY(__switch_to)
+  UNWIND(.fnstart	)
+  UNWIND(.cantunwind	)
+ 	add	ip, r1, #TI_CPU_SAVE
+-	ldr	r3, [r2, #TI_TP_VALUE]
+  ARM(	stmia	ip!, {r4 - sl, fp, sp, lr} )	@ Store most regs on stack
+  THUMB(	stmia	ip!, {r4 - sl, fp}	   )	@ Store most regs on stack
+  THUMB(	str	sp, [ip], #4		   )
+  THUMB(	str	lr, [ip], #4		   )
++	ldrd	r4, r5, [r2, #TI_TP_VALUE]
+ #ifdef CONFIG_CPU_USE_DOMAINS
+ 	ldr	r6, [r2, #TI_CPU_DOMAIN]
+ #endif
+-	set_tls	r3, r4, r5
++	switch_tls r2, r4, r5, r3, r7
+ #if defined(CONFIG_CC_STACKPROTECTOR) && !defined(CONFIG_SMP)
+ 	ldr	r7, [r2, #TI_TASK]
+ 	ldr	r8, =__stack_chk_guard
