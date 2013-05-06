@@ -1,37 +1,66 @@
-From: =?UTF-8?B?QW5kcsOpIEhlbnRzY2hlbA==?= <nerv@dawncrow.de>
-Subject: Re: [PATCHv2] arm: Preserve TPIDRURW on context switch
-Date: Sat, 04 May 2013 17:54:37 +0200
-Message-ID: <51852F3D.5000802@dawncrow.de>
-References: <517168BB.3070903@dawncrow.de> <20130422143616.GP14496@n2100.arm.linux.org.uk> <20130422151836.GA15665@mudshark.cambridge.arm.com> <5175A697.3080308@dawncrow.de> <20130423091536.GB17593@mudshark.cambridge.arm.com> <51770E4E.2040003@dawncrow.de> <20130424094251.GA21850@mudshark.cambridge.arm.com> <5182C480.3080001@dawncrow.de> <5183819E.50308@arm.com> <20130503095547.GD18614@n2100.arm.linux.org.uk> <5183D6C3.8090402@arm.com>
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Build errors caused by modalias generation patch
+Date: Mon, 6 May 2013 18:02:54 +0200
+Message-ID: <20130506160253.GA27181@linux-mips.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:58737 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760569Ab3EDPzJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 4 May 2013 11:55:09 -0400
-In-Reply-To: <5183D6C3.8090402@arm.com>
+Received: from eddie.linux-mips.org ([78.24.191.182]:38562 "EHLO
+	cvs.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752289Ab3EFQDA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 6 May 2013 12:03:00 -0400
+Received: from localhost.localdomain ([127.0.0.1]:33511 "EHLO linux-mips.org"
+        rhost-flags-OK-OK-OK-FAIL) by eddie.linux-mips.org with ESMTP
+        id S6823037Ab3EFQC7CMy5d (ORCPT <rfc822;linux-arch@vger.kernel.org>
+        + 1 other); Mon, 6 May 2013 18:02:59 +0200
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jonathan Austin <jonathan.austin@arm.com>
-Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, Will Deacon <Will.Deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+To: Andreas Schwab <schwab@linux-m68k.org>
+Cc: linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org
 
-Am 03.05.2013 17:24, schrieb Jonathan Austin:
-> Hi Russell,
->=20
-> Thanks for the comments - you're right about the 'switch_tls'
-> being more appropriate - needed to take a step back to see that.
->=20
-> I've got a few questions, added inline.
->=20
-> Andr=C3=A9, Assuming I've understood things okay, there's a patch tha=
-t
-> uses Russell's asm stuff (with minor modifications, see the questions=
-)
-> and includes the C-world changes too. Perhaps you could see that it
-> solves your problem?
+Andreas,
 
-I'll test it tomorrow with my test tool and Wine.
-=46WIW i hacked together a test tool and it's available at https://gith=
-ub.com/AndreRH/tpidrurw-test
+doing builds of all MIPS defconfigs I observed a fair number of them
+were failing to build with errors like these:
+
+cobalt_defconfig:
+
+  CC [M]  drivers/hid/usbhid/hid-quirks.o
+  LD [M]  drivers/hid/usbhid/usbhid.o
+FATAL: drivers/hid/usbhid/usbhid: sizeof(struct usb_device_id)=32 is not a modulo of the size of section __mod_usb_device_table=48.
+Fix definition of struct usb_device_id in mod_devicetable.h
+make[5]: *** [drivers/hid/usbhid/usbhid.o] Error 1
+
+gpr_defconfig:
+
+  LD [M]  drivers/atm/fore_200e.o
+FATAL: drivers/atm/fore_200e: sizeof(struct pci_device_id)=32 is not a modulo of the size of section __mod_pci_device_table=56.
+Fix definition of struct pci_device_id in mod_devicetable.h
+make[4]: *** [drivers/atm/fore_200e.o] Error 1
+
+jazz_defconfig:
+
+  Building modules, stage 2.
+  MODPOST 355 modules
+FATAL: drivers/block/floppy: sizeof(struct pnp_device_id)=16 is not a modulo of the size of section __mod_pnp_device_table=24.
+Fix definition of struct pnp_device_id in mod_devicetable.h
+make[3]: *** [__modpost] Error 1
+
+malta_defconfig:
+
+  LD [M]  drivers/net/ethernet/chelsio/cxgb3/cxgb3.o
+FATAL: drivers/net/ethernet/chelsio/cxgb3/cxgb3: sizeof(struct pci_device_id)=32 is not a modulo of the size of section __mod_pci_device_table=392.
+Fix definition of struct pci_device_id in mod_devicetable.h
+make[7]: *** [drivers/net/ethernet/chelsio/cxgb3/cxgb3.o] Error 1
+make[6]: *** [drivers/net/ethernet/chelsio/cxgb3] Error 2
+make[5]: *** [drivers/net/ethernet/chelsio] Error 2
+
+etc.
+
+I can reproduce the issue can only building with a separate object directory.
+
+Reverting 6543becf26fff612cdadeed7250ccc8d49f67f27 [mod/file2alias: make
+modalias generation safe for cross compiling] fixes these for me.
+
+  Ralf
