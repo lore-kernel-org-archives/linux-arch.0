@@ -1,67 +1,33 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: The type of bitops
-Date: Mon, 6 May 2013 19:33:09 -0700
-Message-ID: <CA+55aFxqnB4CmJQyE1_r7swFyWUYhSU7Eyvg+7uRpCXUtpU1jg@mail.gmail.com>
-References: <51884263.4020608@zytor.com>
-	<CA+55aFzwjQ03ZA71rgKMhCqh_+1fcMbPJUK3upcOacX2F8+Z9A@mail.gmail.com>
-	<51885AA0.4090807@zytor.com>
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: Build errors caused by modalias generation patch
+Date: Tue, 7 May 2013 12:04:47 +0200
+Message-ID: <20130507100447.GA15044@linux-mips.org>
+References: <20130506160253.GA27181@linux-mips.org>
+ <87mws8m3eu.fsf@hase.home>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <51885AA0.4090807@zytor.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from eddie.linux-mips.org ([78.24.191.182]:41929 "EHLO
+	cvs.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754509Ab3EGKFK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 May 2013 06:05:10 -0400
+Received: from localhost.localdomain ([127.0.0.1]:36878 "EHLO linux-mips.org"
+        rhost-flags-OK-OK-OK-FAIL) by eddie.linux-mips.org with ESMTP
+        id S6822675Ab3EGKFDCkn1d (ORCPT <rfc822;linux-arch@vger.kernel.org>
+        + 1 other); Tue, 7 May 2013 12:05:03 +0200
+Content-Disposition: inline
+In-Reply-To: <87mws8m3eu.fsf@hase.home>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andreas Schwab <schwab@linux-m68k.org>
+Cc: linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org
 
-On Mon, May 6, 2013 at 6:36 PM, H. Peter Anvin <hpa@zytor.com> wrote:
->>
->> That sounds insane. Just *how* could the size of the argument even
->> matter? Seriously, there's no *difference* between a 32-bit or a
->> 64-bit index. The code is the same, there's no possible reason to make
->> it be different.
->>
->
-> The only reason on x86 would be to avoid the REX prefix.  Hardly worth
-> it, though.
+On Mon, May 06, 2013 at 07:19:53PM +0200, Andreas Schwab wrote:
 
-Hmm. You *might* be able to do it by simply turning the inline
-functions into statement expressions, and letting the compiler do the
-types as it will. Use "(nr)+0" to make sure that the type is at least
-"int", and then "Ir" as the asm constraint.
+> Please try the patch in
+> <http://marc.info/?l=linux-kbuild&m=136767800809256&w=2>.
 
-A quick test seems to imply that this works:
+No change in observed behaviour.  I did all my builds in empty object
+directories so I don't see why this patch would make any difference.
 
-  #define test_bit(nr, addr) \
-    ({ int oldbit; \
-        asm volatile("bt %2,%1\n\t" \
-                "sbb %0,%0" \
-                : "=r" (oldbit) \
-                : "m" (*(unsigned long *)(addr)), \
-                 "Ir" ((nr)+0)); \
-    oldbit; })
-
-  int test(int idx1, long idx2, void *addr)
-  {
-    return test_bit(idx1, addr) + test_bit(idx2, addr);
-  }
-
-and I get
-
-    ...
-    bt %edi,(%rdx)
-    ...
-    bt %rsi,(%rdx)
-    ...
-
-for the int/long index respectively. So if the argument is an 'int',
-it will avoid the rex prefix.
-
-And I tested that using a "char" index does indeed do the right thing too:
-
-    movsbl %dil,%eax
-    bt     %eax,(%rcx)
-
-so that all seems surmountable.Whether it really matters, I dunno.
-
-                 Linus
+  Ralf
