@@ -1,53 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:48591 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759316Ab3EFXxW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 6 May 2013 19:53:22 -0400
-Message-ID: <51884263.4020608@zytor.com>
-Date: Mon, 06 May 2013 16:53:07 -0700
-From: "H. Peter Anvin" <hpa@zytor.com>
+Received: from mail-ve0-f173.google.com ([209.85.128.173]:49765 "EHLO
+	mail-ve0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S934418Ab3EGCdL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 6 May 2013 22:33:11 -0400
 MIME-Version: 1.0
-Subject: The type of bitops
+In-Reply-To: <51885AA0.4090807@zytor.com>
+References: <51884263.4020608@zytor.com>
+	<CA+55aFzwjQ03ZA71rgKMhCqh_+1fcMbPJUK3upcOacX2F8+Z9A@mail.gmail.com>
+	<51885AA0.4090807@zytor.com>
+Date: Mon, 6 May 2013 19:33:09 -0700
+Message-ID: <CA+55aFxqnB4CmJQyE1_r7swFyWUYhSU7Eyvg+7uRpCXUtpU1jg@mail.gmail.com>
+Subject: Re: The type of bitops
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20130506235307.YC0-LA_0AYzvfYjGM2wxT6AvWCbnoszQqlom6JUEPO0@z>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20130507023309.BDhrSDLYnoErIe7cycZxPg0mcpNx2QuzfxBPpOmgiLY@z>
 
-The type of bitops is currently "int" on most, if not all, architectures
-except sparc64 where it is "unsigned long".  This already has the
-potential of causing failures on extremely large non-NUMA x86 boxes
-(specifically if any one node contains more than 8 TiB of memory, e.g.
-in an interleaved memory system.)
+On Mon, May 6, 2013 at 6:36 PM, H. Peter Anvin <hpa@zytor.com> wrote:
+>>
+>> That sounds insane. Just *how* could the size of the argument even
+>> matter? Seriously, there's no *difference* between a 32-bit or a
+>> 64-bit index. The code is the same, there's no possible reason to make
+>> it be different.
+>>
+>
+> The only reason on x86 would be to avoid the REX prefix.  Hardly worth
+> it, though.
 
-x86 has hardware bitmask instructions which are signed, this limits the
-types to either "int" or "long".
+Hmm. You *might* be able to do it by simply turning the inline
+functions into statement expressions, and letting the compiler do the
+types as it will. Use "(nr)+0" to make sure that the type is at least
+"int", and then "Ir" as the asm constraint.
 
-It seems pretty clear to me at least that x86-64 really should use
-"long".  However, before blindly making that change I wanted to feel
-people out for what this should look like across architectures.
+A quick test seems to imply that this works:
 
-Moving this forward, I see a couple of possibilities:
+  #define test_bit(nr, addr) \
+    ({ int oldbit; \
+        asm volatile("bt %2,%1\n\t" \
+                "sbb %0,%0" \
+                : "=r" (oldbit) \
+                : "m" (*(unsigned long *)(addr)), \
+                 "Ir" ((nr)+0)); \
+    oldbit; })
 
-1. We simply change the type to "long" on x86, and let this be a fully
-   architecture-specific option.  This is easy, obviously.
+  int test(int idx1, long idx2, void *addr)
+  {
+    return test_bit(idx1, addr) + test_bit(idx2, addr);
+  }
 
-2. Same as above, except we also define a typedef for whatever type is
-   the bitops argument type (bitops_t?  bitpos_t?)
+and I get
 
-3. Change the type to "long" Linux-wide, on the logic that it should be
-   the same as the general machine width across all platforms.
+    ...
+    bt %edi,(%rdx)
+    ...
+    bt %rsi,(%rdx)
+    ...
 
-4. Do some macro hacks so the bitops are dependent on the size of the
-   argument.
+for the int/long index respectively. So if the argument is an 'int',
+it will avoid the rex prefix.
 
-5. Introduce _long versions of the bitops.
+And I tested that using a "char" index does indeed do the right thing too:
 
-6. Do nothing at all.
+    movsbl %dil,%eax
+    bt     %eax,(%rcx)
 
+so that all seems surmountable.Whether it really matters, I dunno.
 
-Are there any 64-bit architectures where a 64-bit argument would be very
-costly?
-
-	-hpa
+                 Linus
