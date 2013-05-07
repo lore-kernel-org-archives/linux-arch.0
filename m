@@ -1,43 +1,59 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
 Subject: Re: Build errors caused by modalias generation patch
-Date: Tue, 7 May 2013 12:58:40 +0200
-Message-ID: <CAMuHMdWiQdUFREBMjQMmxrMa0LAOA2d3GqqeydyF5TK334ZwRw@mail.gmail.com>
+Date: Tue, 7 May 2013 14:20:50 +0200
+Message-ID: <CAMuHMdWRJrvWw35yC4AHcC7o-DrTLz9kT9ipQs9XP=55oSNNYQ@mail.gmail.com>
 References: <20130506160253.GA27181@linux-mips.org>
 	<87mws8m3eu.fsf@hase.home>
 	<20130507100447.GA15044@linux-mips.org>
+	<CAMuHMdWiQdUFREBMjQMmxrMa0LAOA2d3GqqeydyF5TK334ZwRw@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ia0-f172.google.com ([209.85.210.172]:57793 "EHLO
-	mail-ia0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756739Ab3EGK6l (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 May 2013 06:58:41 -0400
-In-Reply-To: <20130507100447.GA15044@linux-mips.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAMuHMdWiQdUFREBMjQMmxrMa0LAOA2d3GqqeydyF5TK334ZwRw@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Ralf Baechle <ralf@linux-mips.org>
-Cc: Andreas Schwab <schwab@linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Cc: Andreas Schwab <schwab@linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, May 7, 2013 at 12:04 PM, Ralf Baechle <ralf@linux-mips.org> wrote:
-> On Mon, May 06, 2013 at 07:19:53PM +0200, Andreas Schwab wrote:
->> Please try the patch in
->> <http://marc.info/?l=linux-kbuild&m=136767800809256&w=2>.
+On Tue, May 7, 2013 at 12:58 PM, Geert Uytterhoeven
+<geert@linux-m68k.org> wrote:
+> On Tue, May 7, 2013 at 12:04 PM, Ralf Baechle <ralf@linux-mips.org> wrote:
+>> On Mon, May 06, 2013 at 07:19:53PM +0200, Andreas Schwab wrote:
+>>> Please try the patch in
+>>> <http://marc.info/?l=linux-kbuild&m=136767800809256&w=2>.
+>>
+>> No change in observed behaviour.  I did all my builds in empty object
+>> directories so I don't see why this patch would make any difference.
 >
-> No change in observed behaviour.  I did all my builds in empty object
-> directories so I don't see why this patch would make any difference.
+> I'm getting this in an ia64 build (don't ask me why I build for itanic ;-):
+>
+> FATAL: drivers/acpi/button: sizeof(struct acpi_device_id)=14 is not a
+> modulo of the size of section __mod_acpi_device_table=144.
+> Fix definition of struct acpi_device_id in mod_devicetable.h
+>
+> This is next-20130501, with or without Andreas' fix.
+>
+> It works in my development tree based on yesterday's mainline
+> (d7ab7302f970a254997687a1cdede421a5635c68).
+>
+> I'll try today's linux-next, and will bisect if I find time...
 
-I'm getting this in an ia64 build (don't ask me why I build for itanic ;-):
+This was also caused by a leftover scripts/mod/devicetable-offsets.h in the
+source tree.
 
-FATAL: drivers/acpi/button: sizeof(struct acpi_device_id)=14 is not a
-modulo of the size of section __mod_acpi_device_table=144.
-Fix definition of struct acpi_device_id in mod_devicetable.h
+Andreas' fix works (sort of, read on), but only if you run "make mrproper"
+_after_ applying it.
 
-This is next-20130501, with or without Andreas' fix.
+Still, if you have other leftovers from a previous build in the source tree,
+you get:
 
-It works in my development tree based on yesterday's mainline
-(d7ab7302f970a254997687a1cdede421a5635c68).
+  Using /scratch/geert/linux/linux-next as source for kernel
+  /scratch/geert/linux/linux-next is not clean, please run 'make mrproper'
+  in the '/scratch/geert/linux/linux-next' directory.
 
-I'll try today's linux-next, and will bisect if I find time...
+However, you don't get that message if there's still a stale
+scripts/mod/devicetable-offsets.h in the source tree.
+Any idea how to fix that?
 
 Gr{oetje,eeting}s,
 
