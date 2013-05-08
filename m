@@ -1,67 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:32921 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1756706Ab3EHQoP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 May 2013 12:44:15 -0400
-Date: Wed, 8 May 2013 17:43:41 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC PATCH v2 07/11] ARM64: mm: Make PAGE_NONE pages read only
- and no-execute.
-Message-ID: <20130508164341.GG20820@mudshark.cambridge.arm.com>
-References: <1368006763-30774-1-git-send-email-steve.capper@linaro.org>
- <1368006763-30774-8-git-send-email-steve.capper@linaro.org>
+Received: from mail-lb0-f171.google.com ([209.85.217.171]:47124 "EHLO
+	mail-lb0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751653Ab3EHT3f (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 May 2013 15:29:35 -0400
+Received: by mail-lb0-f171.google.com with SMTP id u10so2302656lbi.16
+        for <linux-arch@vger.kernel.org>; Wed, 08 May 2013 12:29:34 -0700 (PDT)
+Message-ID: <518AA7A0.1020702@cogentembedded.com>
+Date: Wed, 08 May 2013 23:29:36 +0400
+From: Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1368006763-30774-8-git-send-email-steve.capper@linaro.org>
+Subject: Re: [PATCH v5, part4 20/41] mm/h8300: prepare for removing num_physpages
+ and simplify mem_init()
+References: <1368028298-7401-1-git-send-email-jiang.liu@huawei.com> <1368028298-7401-21-git-send-email-jiang.liu@huawei.com> <518A7CC0.1010606@cogentembedded.com>
+In-Reply-To: <518A7CC0.1010606@cogentembedded.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steve Capper <steve.capper@linaro.org>
-Cc: "linux-mm@kvack.org" <linux-mm@kvack.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Michal Hocko <mhocko@suse.cz>, Ken Chen <kenchen@google.com>, Mel Gorman <mgorman@suse.de>, Catalin Marinas <Catalin.Marinas@arm.com>, "patches@linaro.org" <patches@linaro.org>
-Message-ID: <20130508164341.8yF-bM_56dF_qkbjB2c9C2Ax__q49oHqz9YJMX5dEBo@z>
+To: Jiang Liu <liuj97@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Geert Uytterhoeven <geert@linux-m68k.org>
+Message-ID: <20130508192936.sH8aYLTtsqtDb_qkBt13pQXRrmHybBImAUfg5-XnXsQ@z>
 
-On Wed, May 08, 2013 at 10:52:39AM +0100, Steve Capper wrote:
-> If we consider the following code sequence:
-> 
-> 	my_pte = pte_modify(entry, myprot);
-> 	x = pte_write(my_pte);
-> 	y = pte_exec(my_pte);
-> 
-> If myprot comes from a PROT_NONE page, then x and y will both be
-> true which is undesireable behaviour.
-> 
-> This patch sets the no-execute and read-only bits for PAGE_NONE
-> such that the code above will return false for both x and y.
-> 
-> Signed-off-by: Steve Capper <steve.capper@linaro.org>
-> ---
->  arch/arm64/include/asm/pgtable.h | 4 ++--
->  1 file changed, 2 insertions(+), 2 deletions(-)
-> 
-> diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
-> index e333a24..b1a1b59 100644
-> --- a/arch/arm64/include/asm/pgtable.h
-> +++ b/arch/arm64/include/asm/pgtable.h
-> @@ -66,7 +66,7 @@ extern pgprot_t pgprot_default;
->  
->  #define _MOD_PROT(p, b)		__pgprot_modify(p, 0, b)
->  
-> -#define PAGE_NONE		__pgprot_modify(pgprot_default, PTE_TYPE_MASK, PTE_PROT_NONE)
-> +#define PAGE_NONE		__pgprot_modify(pgprot_default, PTE_TYPE_MASK, PTE_PROT_NONE | PTE_RDONLY | PTE_UXN)
->  #define PAGE_SHARED		_MOD_PROT(pgprot_default, PTE_USER | PTE_NG | PTE_PXN | PTE_UXN)
->  #define PAGE_SHARED_EXEC	_MOD_PROT(pgprot_default, PTE_USER | PTE_NG | PTE_PXN)
->  #define PAGE_COPY		_MOD_PROT(pgprot_default, PTE_USER | PTE_NG | PTE_PXN | PTE_UXN | PTE_RDONLY)
-> @@ -76,7 +76,7 @@ extern pgprot_t pgprot_default;
->  #define PAGE_KERNEL		_MOD_PROT(pgprot_default, PTE_PXN | PTE_UXN | PTE_DIRTY)
->  #define PAGE_KERNEL_EXEC	_MOD_PROT(pgprot_default, PTE_UXN | PTE_DIRTY)
->  
-> -#define __PAGE_NONE		__pgprot(((_PAGE_DEFAULT) & ~PTE_TYPE_MASK) | PTE_PROT_NONE)
-> +#define __PAGE_NONE		__pgprot(((_PAGE_DEFAULT) & ~PTE_TYPE_MASK) | PTE_PROT_NONE | PTE_RDONLY | PTE_UXN)
->  #define __PAGE_SHARED		__pgprot(_PAGE_DEFAULT | PTE_USER | PTE_NG | PTE_PXN | PTE_UXN)
->  #define __PAGE_SHARED_EXEC	__pgprot(_PAGE_DEFAULT | PTE_USER | PTE_NG | PTE_PXN)
->  #define __PAGE_COPY		__pgprot(_PAGE_DEFAULT | PTE_USER | PTE_NG | PTE_PXN | PTE_UXN | PTE_RDONLY)
+Hello.
 
-Whilst it's not strictly needed for pte_exec to work, I think you should
-include PTE_PXN in the PAGE_NONE definitions as well.
+On 05/08/2013 08:26 PM, Sergei Shtylyov wrote:
 
-Will
+>
+>> Prepare for removing num_physpages and simplify mem_init().
+>
+>> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+>> Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+>> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+>> Cc: linux-kernel@vger.kernel.org
+>> ---
+>>   arch/h8300/mm/init.c |   34 ++++++++--------------------------
+>>   1 file changed, 8 insertions(+), 26 deletions(-)
+>
+>> diff --git a/arch/h8300/mm/init.c b/arch/h8300/mm/init.c
+>> index 22fd869..0088f3a 100644
+>> --- a/arch/h8300/mm/init.c
+>> +++ b/arch/h8300/mm/init.c
+>> @@ -121,40 +121,22 @@ void __init paging_init(void)
+>>
+>>   void __init mem_init(void)
+>>   {
+>> -    int codek = 0, datak = 0, initk = 0;
+>> -    /* DAVIDM look at setup memory map generically with reserved 
+>> area */
+>> -    unsigned long tmp;
+>> -    extern unsigned long  _ramend, _ramstart;
+>> -    unsigned long len = &_ramend - &_ramstart;
+>> -    unsigned long start_mem = memory_start; /* DAVIDM - these must 
+>> start at end of kernel */
+>> -    unsigned long end_mem   = memory_end; /* DAVIDM - this must not 
+>> include kernel stack at top */
+>> +    unsigned long codesize = _etext - _stext;
+>>
+>>   #ifdef DEBUG
+>> -    printk(KERN_DEBUG "Mem_init: start=%lx, end=%lx\n", start_mem, 
+>> end_mem);
+>> +    pr_debug("Mem_init: start=%lx, end=%lx\n", memory_start, 
+>> memory_end);
+>>   #endif
+>
+>     pr_debug() only prints something if DEBUG is #define'd, so you can 
+> drop the #ifdef here.
+
+     Although, not necessarily: it also supports CONFIG_DYNAMIC_DEBUG -- 
+look at how pr_debug() is defined.
+So this doesn't seem to be an equivalent change, and I suggest not doing 
+it at all.
+
+WBR, Sergei
+
