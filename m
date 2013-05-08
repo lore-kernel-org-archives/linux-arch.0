@@ -1,156 +1,106 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-da0-f51.google.com ([209.85.210.51]:41708 "EHLO
-	mail-da0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755091Ab3EHPT6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 May 2013 11:19:58 -0400
+Received: from mail-pb0-f42.google.com ([209.85.160.42]:57409 "EHLO
+	mail-pb0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754150Ab3EHPTD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 May 2013 11:19:03 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v5, part3 12/15] mm: make __free_pages_bootmem() only available at boot time
-Date: Wed,  8 May 2013 23:17:11 +0800
-Message-ID: <1368026235-5976-13-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v5, part3 04/15] mm/x86: use free_reserved_area() to simplify code
+Date: Wed,  8 May 2013 23:17:03 +0800
+Message-ID: <1368026235-5976-5-git-send-email-jiang.liu@huawei.com>
 In-Reply-To: <1368026235-5976-1-git-send-email-jiang.liu@huawei.com>
 References: <1368026235-5976-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Yinghai Lu <yinghai@kernel.org>, x86@kernel.org, Tang Chen <tangchen@cn.fujitsu.com>, Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>
-Message-ID: <20130508151711.ndR4N--PF5KpQiPz2DaZjSM9K15ojrcgiN3sbJ-evvw@z>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Yinghai Lu <yinghai@kernel.org>, Tang Chen <tangchen@cn.fujitsu.com>
+Message-ID: <20130508151703.GqXmK70KTQEib-KjWAGxs_yPXUrGXOh4cmcp_loW_QQ@z>
 
-In order to simpilify management of totalram_pages and
-zone->managed_pages, make __free_pages_bootmem() only available
-at boot time. With this change applied, __free_pages_bootmem()
-will only be used by bootmem.c and nobootmem.c at boot time,
-so mark it as __init.  Other callers of __free_pages_bootmem()
-have been converted to use free_reserved_page(), which handles
-totalram_pages and zone->managed_pages in a safer way.
-
-This patch also fix a bug in free_pagetable() for x86_64, which
-should increase zone->managed_pages instead of zone->present_pages
-when freeing reserved pages.
-
-And now we have managed_pages_count_lock to protect totalram_pages
-and zone->managed_pages, so remove the redundant ppb_lock lock in
-put_page_bootmem(). This greatly simplifies the locking rules.
+Use common help function free_reserved_area() to simplify code.
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Yinghai Lu <yinghai@kernel.org>
 Cc: x86@kernel.org
-Cc: Wen Congyang <wency@cn.fujitsu.com>
+Cc: Yinghai Lu <yinghai@kernel.org>
 Cc: Tang Chen <tangchen@cn.fujitsu.com>
-Cc: Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>
-Cc: Mel Gorman <mgorman@suse.de>
-Cc: Minchan Kim <minchan@kernel.org>
+Cc: Wen Congyang <wency@cn.fujitsu.com>
+Cc: Jianguo Wu <wujianguo@huawei.com>
 Cc: linux-kernel@vger.kernel.org
-Cc: linux-mm@kvack.org
 ---
- arch/x86/mm/init_64.c |   18 ++----------------
- mm/memory_hotplug.c   |   16 ++--------------
- mm/page_alloc.c       |    9 +--------
- 3 files changed, 5 insertions(+), 38 deletions(-)
+ arch/x86/mm/init.c    |   14 +++-----------
+ arch/x86/mm/init_64.c |    5 ++---
+ 2 files changed, 5 insertions(+), 14 deletions(-)
 
+diff --git a/arch/x86/mm/init.c b/arch/x86/mm/init.c
+index fdc5dca..6738e1b 100644
+--- a/arch/x86/mm/init.c
++++ b/arch/x86/mm/init.c
+@@ -477,7 +477,6 @@ int devmem_is_allowed(unsigned long pagenr)
+ 
+ void free_init_pages(char *what, unsigned long begin, unsigned long end)
+ {
+-	unsigned long addr;
+ 	unsigned long begin_aligned, end_aligned;
+ 
+ 	/* Make sure boundaries are page aligned */
+@@ -492,8 +491,6 @@ void free_init_pages(char *what, unsigned long begin, unsigned long end)
+ 	if (begin >= end)
+ 		return;
+ 
+-	addr = begin;
+-
+ 	/*
+ 	 * If debugging page accesses then do not free this memory but
+ 	 * mark them not present - any buggy init-section access will
+@@ -512,18 +509,13 @@ void free_init_pages(char *what, unsigned long begin, unsigned long end)
+ 	set_memory_nx(begin, (end - begin) >> PAGE_SHIFT);
+ 	set_memory_rw(begin, (end - begin) >> PAGE_SHIFT);
+ 
+-	printk(KERN_INFO "Freeing %s: %luk freed\n", what, (end - begin) >> 10);
+-
+-	for (; addr < end; addr += PAGE_SIZE) {
+-		memset((void *)addr, POISON_FREE_INITMEM, PAGE_SIZE);
+-		free_reserved_page(virt_to_page(addr));
+-	}
++	free_reserved_area(begin, end, POISON_FREE_INITMEM, what);
+ #endif
+ }
+ 
+ void free_initmem(void)
+ {
+-	free_init_pages("unused kernel memory",
++	free_init_pages("unused kernel",
+ 			(unsigned long)(&__init_begin),
+ 			(unsigned long)(&__init_end));
+ }
+@@ -549,7 +541,7 @@ void __init free_initrd_mem(unsigned long start, unsigned long end)
+ 	 *   - relocate_initrd()
+ 	 * So here We can do PAGE_ALIGN() safely to get partial page to be freed
+ 	 */
+-	free_init_pages("initrd memory", start, PAGE_ALIGN(end));
++	free_init_pages("initrd", start, PAGE_ALIGN(end));
+ }
+ #endif
+ 
 diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index 0c6efb8..6ab46f2 100644
+index caad9a0..0c6efb8 100644
 --- a/arch/x86/mm/init_64.c
 +++ b/arch/x86/mm/init_64.c
-@@ -711,36 +711,22 @@ EXPORT_SYMBOL_GPL(arch_add_memory);
+@@ -1165,11 +1165,10 @@ void mark_rodata_ro(void)
+ 	set_memory_ro(start, (end-start) >> PAGE_SHIFT);
+ #endif
  
- static void __meminit free_pagetable(struct page *page, int order)
- {
--	struct zone *zone;
--	bool bootmem = false;
- 	unsigned long magic;
- 	unsigned int nr_pages = 1 << order;
- 
- 	/* bootmem page has reserved flag */
- 	if (PageReserved(page)) {
- 		__ClearPageReserved(page);
--		bootmem = true;
- 
- 		magic = (unsigned long)page->lru.next;
- 		if (magic == SECTION_INFO || magic == MIX_SECTION_INFO) {
- 			while (nr_pages--)
- 				put_page_bootmem(page++);
- 		} else
--			__free_pages_bootmem(page, order);
-+			while (nr_pages--)
-+				free_reserved_page(page++);
- 	} else
- 		free_pages((unsigned long)page_address(page), order);
+-	free_init_pages("unused kernel memory",
++	free_init_pages("unused kernel",
+ 			(unsigned long) __va(__pa_symbol(text_end)),
+ 			(unsigned long) __va(__pa_symbol(rodata_start)));
 -
--	/*
--	 * SECTION_INFO pages and MIX_SECTION_INFO pages
--	 * are all allocated by bootmem.
--	 */
--	if (bootmem) {
--		zone = page_zone(page);
--		zone_span_writelock(zone);
--		zone->present_pages += nr_pages;
--		zone_span_writeunlock(zone);
--		totalram_pages += nr_pages;
--	}
+-	free_init_pages("unused kernel memory",
++	free_init_pages("unused kernel",
+ 			(unsigned long) __va(__pa_symbol(rodata_end)),
+ 			(unsigned long) __va(__pa_symbol(_sdata)));
  }
- 
- static void __meminit free_pte_table(pte_t *pte_start, pmd_t *pmd)
-diff --git a/mm/memory_hotplug.c b/mm/memory_hotplug.c
-index 037d41d..c291295 100644
---- a/mm/memory_hotplug.c
-+++ b/mm/memory_hotplug.c
-@@ -101,12 +101,9 @@ void get_page_bootmem(unsigned long info,  struct page *page,
- 	atomic_inc(&page->_count);
- }
- 
--/* reference to __meminit __free_pages_bootmem is valid
-- * so use __ref to tell modpost not to generate a warning */
--void __ref put_page_bootmem(struct page *page)
-+void put_page_bootmem(struct page *page)
- {
- 	unsigned long type;
--	static DEFINE_MUTEX(ppb_lock);
- 
- 	type = (unsigned long) page->lru.next;
- 	BUG_ON(type < MEMORY_HOTPLUG_MIN_BOOTMEM_TYPE ||
-@@ -116,17 +113,8 @@ void __ref put_page_bootmem(struct page *page)
- 		ClearPagePrivate(page);
- 		set_page_private(page, 0);
- 		INIT_LIST_HEAD(&page->lru);
--
--		/*
--		 * Please refer to comment for __free_pages_bootmem()
--		 * for why we serialize here.
--		 */
--		mutex_lock(&ppb_lock);
--		__free_pages_bootmem(page, 0);
--		mutex_unlock(&ppb_lock);
--		totalram_pages++;
-+		free_reserved_page(page);
- 	}
--
- }
- 
- #ifdef CONFIG_HAVE_BOOTMEM_INFO_NODE
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 9d8209a..58b4523 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -745,14 +745,7 @@ static void __free_pages_ok(struct page *page, unsigned int order)
- 	local_irq_restore(flags);
- }
- 
--/*
-- * Read access to zone->managed_pages is safe because it's unsigned long,
-- * but we still need to serialize writers. Currently all callers of
-- * __free_pages_bootmem() except put_page_bootmem() should only be used
-- * at boot time. So for shorter boot time, we shift the burden to
-- * put_page_bootmem() to serialize writers.
-- */
--void __meminit __free_pages_bootmem(struct page *page, unsigned int order)
-+void __init __free_pages_bootmem(struct page *page, unsigned int order)
- {
- 	unsigned int nr_pages = 1 << order;
- 	unsigned int loop;
 -- 
 1.7.9.5
 
