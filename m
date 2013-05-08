@@ -1,371 +1,159 @@
 From: Steve Capper <steve.capper@linaro.org>
-Subject: [RFC PATCH v2 09/11] ARM64: mm: HugeTLB support.
-Date: Wed,  8 May 2013 10:52:41 +0100
-Message-ID: <1368006763-30774-10-git-send-email-steve.capper@linaro.org>
+Subject: [RFC PATCH v2 11/11] ARM64: mm: THP support.
+Date: Wed,  8 May 2013 10:52:43 +0100
+Message-ID: <1368006763-30774-12-git-send-email-steve.capper@linaro.org>
 References: <1368006763-30774-1-git-send-email-steve.capper@linaro.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f54.google.com ([74.125.82.54]:57711 "EHLO
-	mail-wg0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754046Ab3EHJxX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 May 2013 05:53:23 -0400
-Received: by mail-wg0-f54.google.com with SMTP id x12so1612343wgg.33
-        for <linux-arch@vger.kernel.org>; Wed, 08 May 2013 02:53:22 -0700 (PDT)
+Received: from mail-wi0-f179.google.com ([209.85.212.179]:43837 "EHLO
+	mail-wi0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754058Ab3EHJx0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 May 2013 05:53:26 -0400
+Received: by mail-wi0-f179.google.com with SMTP id l13so1696941wie.12
+        for <linux-arch@vger.kernel.org>; Wed, 08 May 2013 02:53:25 -0700 (PDT)
 In-Reply-To: <1368006763-30774-1-git-send-email-steve.capper@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Michal Hocko <mhocko@suse.cz>, Ken Chen <kenchen@google.com>, Mel Gorman <mgorman@suse.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, patches@linaro.org, Steve Capper <steve.capper@linaro.org>
 
-Add huge page support to ARM64, different huge page sizes are
-supported depending on the size of normal pages:
+Bring Transparent HugePage support to ARM. The size of a
+transparent huge page depends on the normal page size. A
+transparent huge page is always represented as a pmd.
 
-PAGE_SIZE is 4KB:
-   2MB - (pmds) these can be allocated at any time.
-1024MB - (puds) usually allocated on bootup with the command line
-         with something like: hugepagesz=1G hugepages=6
-
-PAGE_SIZE is 64KB:
- 512MB - (pmds) usually allocated on bootup via command line.
+If PAGE_SIZE is 4KB, THPs are 2MB.
+If PAGE_SIZE is 64KB, THPs are 512MB.
 
 Signed-off-by: Steve Capper <steve.capper@linaro.org>
 ---
- arch/arm64/Kconfig                     |   9 +++
- arch/arm64/include/asm/hugetlb.h       | 121 +++++++++++++++++++++++++++++++++
- arch/arm64/include/asm/pgtable-hwdef.h |   8 +++
- arch/arm64/include/asm/pgtable.h       |  13 +++-
- arch/arm64/mm/Makefile                 |   1 +
- arch/arm64/mm/fault.c                  |  19 ++----
- arch/arm64/mm/hugetlbpage.c            |  70 +++++++++++++++++++
- 7 files changed, 224 insertions(+), 17 deletions(-)
- create mode 100644 arch/arm64/include/asm/hugetlb.h
- create mode 100644 arch/arm64/mm/hugetlbpage.c
+ arch/arm64/Kconfig                     |  3 ++
+ arch/arm64/include/asm/pgtable-hwdef.h |  4 +++
+ arch/arm64/include/asm/pgtable.h       | 55 ++++++++++++++++++++++++++++++++++
+ arch/arm64/include/asm/tlb.h           |  6 ++++
+ arch/arm64/include/asm/tlbflush.h      |  2 ++
+ 5 files changed, 70 insertions(+)
 
 diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 43b0e9f..053533b 100644
+index a5f76cf..93a3b9e 100644
 --- a/arch/arm64/Kconfig
 +++ b/arch/arm64/Kconfig
-@@ -185,6 +185,15 @@ config HW_PERF_EVENTS
- 	  Enable hardware performance counter support for perf events. If
- 	  disabled, perf events will use software events only.
+@@ -194,6 +194,9 @@ config ARCH_WANT_GENERAL_HUGETLB
+ config ARCH_WANT_HUGE_PMD_SHARE
+ 	def_bool y if !ARM64_64K_PAGES
  
-+config SYS_SUPPORTS_HUGETLBFS
++config HAVE_ARCH_TRANSPARENT_HUGEPAGE
 +	def_bool y
-+
-+config ARCH_WANT_GENERAL_HUGETLB
-+	def_bool y
-+
-+config ARCH_WANT_HUGE_PMD_SHARE
-+	def_bool y if !ARM64_64K_PAGES
 +
  source "mm/Kconfig"
  
- endmenu
-diff --git a/arch/arm64/include/asm/hugetlb.h b/arch/arm64/include/asm/hugetlb.h
-new file mode 100644
-index 0000000..fb08fbb
---- /dev/null
-+++ b/arch/arm64/include/asm/hugetlb.h
-@@ -0,0 +1,121 @@
-+/*
-+ * arch/arm64/include/asm/hugetlb.h
-+ *
-+ * Copyright (C) 2013 Linaro Ltd.
-+ *
-+ * Based on arch/x86/include/asm/hugetlb.h
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-+ */
-+
-+#ifndef __ASM_HUGETLB_H
-+#define __ASM_HUGETLB_H
-+
-+#include <asm/page.h>
-+
-+static inline pte_t huge_ptep_get(pte_t *ptep)
-+{
-+	return *ptep;
-+}
-+
-+static inline void set_huge_pte_at(struct mm_struct *mm, unsigned long addr,
-+				   pte_t *ptep, pte_t pte)
-+{
-+	set_pte_at(mm, addr, ptep, pte);
-+}
-+
-+static inline void huge_ptep_clear_flush(struct vm_area_struct *vma,
-+					 unsigned long addr, pte_t *ptep)
-+{
-+	ptep_clear_flush(vma, addr, ptep);
-+}
-+
-+static inline void huge_ptep_set_wrprotect(struct mm_struct *mm,
-+					   unsigned long addr, pte_t *ptep)
-+{
-+	ptep_set_wrprotect(mm, addr, ptep);
-+}
-+
-+static inline pte_t huge_ptep_get_and_clear(struct mm_struct *mm,
-+					    unsigned long addr, pte_t *ptep)
-+{
-+	return ptep_get_and_clear(mm, addr, ptep);
-+}
-+
-+static inline int huge_ptep_set_access_flags(struct vm_area_struct *vma,
-+					     unsigned long addr, pte_t *ptep,
-+					     pte_t pte, int dirty)
-+{
-+	return ptep_set_access_flags(vma, addr, ptep, pte, dirty);
-+}
-+
-+static inline void hugetlb_free_pgd_range(struct mmu_gather *tlb,
-+					  unsigned long addr, unsigned long end,
-+					  unsigned long floor,
-+					  unsigned long ceiling)
-+{
-+	free_pgd_range(tlb, addr, end, floor, ceiling);
-+}
-+
-+static inline int is_hugepage_only_range(struct mm_struct *mm,
-+					 unsigned long addr, unsigned long len)
-+{
-+	return 0;
-+}
-+
-+static inline int prepare_hugepage_range(struct file *file,
-+					 unsigned long addr, unsigned long len)
-+{
-+	struct hstate *h = hstate_file(file);
-+	if (len & ~huge_page_mask(h))
-+		return -EINVAL;
-+	if (addr & ~huge_page_mask(h))
-+		return -EINVAL;
-+	return 0;
-+}
-+
-+static inline void hugetlb_prefault_arch_hook(struct mm_struct *mm)
-+{
-+}
-+
-+static inline int huge_pte_none(pte_t pte)
-+{
-+	return pte_none(pte);
-+}
-+
-+static inline pte_t huge_pte_wrprotect(pte_t pte)
-+{
-+	return pte_wrprotect(pte);
-+}
-+
-+static inline int arch_prepare_hugepage(struct page *page)
-+{
-+	return 0;
-+}
-+
-+static inline void arch_release_hugepage(struct page *page)
-+{
-+}
-+
-+static inline void arch_clear_hugepage_flags(struct page *page)
-+{
-+	clear_bit(PG_dcache_clean, &page->flags);
-+}
-+
-+static inline int pud_large(pud_t pud)
-+{
-+	return !(pud_val(pud) & PUD_TABLE_BIT);
-+}
-+
-+#endif /* __ASM_HUGETLB_H */
+ config FORCE_MAX_ZONEORDER
 diff --git a/arch/arm64/include/asm/pgtable-hwdef.h b/arch/arm64/include/asm/pgtable-hwdef.h
-index 75fd13d..e6e0a0d 100644
+index e6e0a0d..63c9d0d 100644
 --- a/arch/arm64/include/asm/pgtable-hwdef.h
 +++ b/arch/arm64/include/asm/pgtable-hwdef.h
-@@ -25,12 +25,19 @@
- /*
-  * Hardware page table definitions.
-  *
-+ * Level 1 descriptor (PUD).
-+ */
-+
-+#define PUD_TABLE_BIT		(_AT(pgdval_t, 1) << 1)
-+
-+/*
-  * Level 2 descriptor (PMD).
-  */
- #define PMD_TYPE_MASK		(_AT(pmdval_t, 3) << 0)
- #define PMD_TYPE_FAULT		(_AT(pmdval_t, 0) << 0)
- #define PMD_TYPE_TABLE		(_AT(pmdval_t, 3) << 0)
- #define PMD_TYPE_SECT		(_AT(pmdval_t, 1) << 0)
-+#define PMD_TABLE_BIT		(_AT(pmdval_t, 1) << 1)
- 
+@@ -42,6 +42,10 @@
  /*
   * Section
-@@ -53,6 +60,7 @@
- #define PTE_TYPE_MASK		(_AT(pteval_t, 3) << 0)
- #define PTE_TYPE_FAULT		(_AT(pteval_t, 0) << 0)
- #define PTE_TYPE_PAGE		(_AT(pteval_t, 3) << 0)
-+#define PTE_TABLE_BIT		(_AT(pteval_t, 1) << 1)
- #define PTE_USER		(_AT(pteval_t, 1) << 6)		/* AP[1] */
- #define PTE_RDONLY		(_AT(pteval_t, 1) << 7)		/* AP[2] */
- #define PTE_SHARED		(_AT(pteval_t, 3) << 8)		/* SH[1:0], inner shareable */
+  */
++#define PMD_SECT_VALID		(_AT(pmdval_t, 1) << 0)
++#define PMD_SECT_PROT_NONE	(_AT(pmdval_t, 1) << 2)
++#define PMD_SECT_USER		(_AT(pmdval_t, 1) << 6)		/* AP[1] */
++#define PMD_SECT_RDONLY		(_AT(pmdval_t, 1) << 7)		/* AP[2] */
+ #define PMD_SECT_S		(_AT(pmdval_t, 3) << 8)
+ #define PMD_SECT_AF		(_AT(pmdval_t, 1) << 10)
+ #define PMD_SECT_NG		(_AT(pmdval_t, 1) << 11)
 diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
-index e245260..6bcbcfd 100644
+index 6bcbcfd..fd17e0b 100644
 --- a/arch/arm64/include/asm/pgtable.h
 +++ b/arch/arm64/include/asm/pgtable.h
-@@ -173,8 +173,17 @@ static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
- /*
-  * Huge pte definitions.
-  */
--#define pte_huge(pte)		((pte_val(pte) & PTE_TYPE_MASK) == PTE_TYPE_HUGEPAGE)
--#define pte_mkhuge(pte)		(__pte((pte_val(pte) & ~PTE_TYPE_MASK) | PTE_TYPE_HUGEPAGE))
-+#define pte_huge(pte)		(!(pte_val(pte) & PTE_TABLE_BIT))
-+#define pte_mkhuge(pte)		(__pte(pte_val(pte) & ~PTE_TABLE_BIT))
-+
-+/*
-+ * Hugetlb definitions.
-+ */
-+#define HUGE_MAX_HSTATE		2
-+#define HPAGE_SHIFT		PMD_SHIFT
-+#define HPAGE_SIZE		(_AC(1, UL) << HPAGE_SHIFT)
-+#define HPAGE_MASK		(~(HPAGE_SIZE - 1))
-+#define HUGETLB_PAGE_ORDER	(HPAGE_SHIFT - PAGE_SHIFT)
- 
+@@ -188,6 +188,61 @@ static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
  #define __HAVE_ARCH_PTE_SPECIAL
  
-diff --git a/arch/arm64/mm/Makefile b/arch/arm64/mm/Makefile
-index 3140a2a..b51d364 100644
---- a/arch/arm64/mm/Makefile
-+++ b/arch/arm64/mm/Makefile
-@@ -2,3 +2,4 @@ obj-y				:= dma-mapping.o extable.o fault.o init.o \
- 				   cache.o copypage.o flush.o \
- 				   ioremap.o mmap.o pgd.o mmu.o \
- 				   context.o tlb.o proc.o
-+obj-$(CONFIG_HUGETLB_PAGE)	+= hugetlbpage.o
-diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
-index 5263817..36e3080 100644
---- a/arch/arm64/mm/fault.c
-+++ b/arch/arm64/mm/fault.c
-@@ -363,17 +363,6 @@ static int __kprobes do_translation_fault(unsigned long addr,
- }
- 
  /*
-- * Some section permission faults need to be handled gracefully.  They can
-- * happen due to a __{get,put}_user during an oops.
-- */
--static int do_sect_fault(unsigned long addr, unsigned int esr,
--			 struct pt_regs *regs)
--{
--	do_bad_area(addr, esr, regs);
--	return 0;
--}
--
--/*
-  * This abort handler always returns "fault".
-  */
- static int do_bad(unsigned long addr, unsigned int esr, struct pt_regs *regs)
-@@ -396,12 +385,12 @@ static struct fault_info {
- 	{ do_translation_fault,	SIGSEGV, SEGV_MAPERR,	"level 2 translation fault"	},
- 	{ do_page_fault,	SIGSEGV, SEGV_MAPERR,	"level 3 translation fault"	},
- 	{ do_bad,		SIGBUS,  0,		"reserved access flag fault"	},
--	{ do_bad,		SIGSEGV, SEGV_ACCERR,	"level 1 access flag fault"	},
--	{ do_bad,		SIGSEGV, SEGV_ACCERR,	"level 2 access flag fault"	},
-+	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 1 access flag fault"	},
-+	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 2 access flag fault"	},
- 	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 3 access flag fault"	},
- 	{ do_bad,		SIGBUS,  0,		"reserved permission fault"	},
--	{ do_bad,		SIGSEGV, SEGV_ACCERR,	"level 1 permission fault"	},
--	{ do_sect_fault,	SIGSEGV, SEGV_ACCERR,	"level 2 permission fault"	},
-+	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 1 permission fault"	},
-+	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 2 permission fault"	},
- 	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 3 permission fault"	},
- 	{ do_bad,		SIGBUS,  0,		"synchronous external abort"	},
- 	{ do_bad,		SIGBUS,  0,		"asynchronous external abort"	},
-diff --git a/arch/arm64/mm/hugetlbpage.c b/arch/arm64/mm/hugetlbpage.c
-new file mode 100644
-index 0000000..2fc8258
---- /dev/null
-+++ b/arch/arm64/mm/hugetlbpage.c
-@@ -0,0 +1,70 @@
-+/*
-+ * arch/arm64/mm/hugetlbpage.c
-+ *
-+ * Copyright (C) 2013 Linaro Ltd.
-+ *
-+ * Based on arch/x86/mm/hugetlbpage.c.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
++ * Software PMD bits for THP
 + */
 +
-+#include <linux/init.h>
-+#include <linux/fs.h>
-+#include <linux/mm.h>
-+#include <linux/hugetlb.h>
-+#include <linux/pagemap.h>
-+#include <linux/err.h>
-+#include <linux/sysctl.h>
-+#include <asm/mman.h>
-+#include <asm/tlb.h>
-+#include <asm/tlbflush.h>
-+#include <asm/pgalloc.h>
++#define PMD_SECT_DIRTY		(_AT(pmdval_t, 1) << 55)
++#define PMD_SECT_SPLITTING	(_AT(pmdval_t, 1) << 57)
 +
-+#ifndef CONFIG_ARCH_WANT_HUGE_PMD_SHARE
-+int huge_pmd_unshare(struct mm_struct *mm, unsigned long *addr, pte_t *ptep)
-+{
-+	return 0;
-+}
++/*
++ * THP definitions.
++ */
++#define pmd_young(pmd)		(pmd_val(pmd) & PMD_SECT_AF)
++
++#define __HAVE_ARCH_PMD_WRITE
++#define pmd_write(pmd)		(!(pmd_val(pmd) & PMD_SECT_RDONLY))
++
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++#define pmd_trans_huge(pmd)	(pmd_val(pmd) && !(pmd_val(pmd) & PMD_TABLE_BIT))
++#define pmd_trans_splitting(pmd) (pmd_val(pmd) & PMD_SECT_SPLITTING)
 +#endif
 +
-+struct page *follow_huge_addr(struct mm_struct *mm, unsigned long address,
-+			      int write)
++#define PMD_BIT_FUNC(fn,op) \
++static inline pmd_t pmd_##fn(pmd_t pmd) { pmd_val(pmd) op; return pmd; }
++
++PMD_BIT_FUNC(wrprotect,	|= PMD_SECT_RDONLY);
++PMD_BIT_FUNC(mkold,	&= ~PMD_SECT_AF);
++PMD_BIT_FUNC(mksplitting, |= PMD_SECT_SPLITTING);
++PMD_BIT_FUNC(mkwrite,   &= ~PMD_SECT_RDONLY);
++PMD_BIT_FUNC(mkdirty,   |= PMD_SECT_DIRTY);
++PMD_BIT_FUNC(mkyoung,   |= PMD_SECT_AF);
++PMD_BIT_FUNC(mknotpresent, &= ~PMD_TYPE_MASK);
++
++#define pmd_mkhuge(pmd)		(__pmd(pmd_val(pmd) & ~PMD_TABLE_BIT))
++
++#define pmd_pfn(pmd)		(((pmd_val(pmd) & PMD_MASK) & PHYS_MASK) >> PAGE_SHIFT)
++#define pfn_pmd(pfn,prot)	(__pmd(((phys_addr_t)(pfn) << PAGE_SHIFT) | pgprot_val(prot)))
++#define mk_pmd(page,prot)	pfn_pmd(page_to_pfn(page),prot)
++
++#define pmd_page(pmd)           pfn_to_page(__phys_to_pfn(pmd_val(pmd) & PHYS_MASK))
++
++static inline pmd_t pmd_modify(pmd_t pmd, pgprot_t newprot)
 +{
-+	return ERR_PTR(-EINVAL);
++	const pmdval_t mask = PMD_SECT_USER | PMD_SECT_PXN | PMD_SECT_UXN |
++			      PMD_SECT_RDONLY | PMD_SECT_PROT_NONE |
++			      PMD_SECT_VALID;
++	pmd_val(pmd) = (pmd_val(pmd) & ~mask) | (pgprot_val(newprot) & mask);
++	return pmd;
 +}
 +
-+int pmd_huge(pmd_t pmd)
-+{
-+	return !(pmd_val(pmd) & PMD_TABLE_BIT);
-+}
++#define set_pmd_at(mm, addr, pmdp, pmd)	set_pmd(pmdp, pmd)
 +
-+int pud_huge(pud_t pud)
++static inline int has_transparent_hugepage(void)
 +{
-+	return !(pud_val(pud) & PUD_TABLE_BIT);
-+}
-+
-+static __init int setup_hugepagesz(char *opt)
-+{
-+	unsigned long ps = memparse(opt, &opt);
-+	if (ps == PMD_SIZE) {
-+		hugetlb_add_hstate(PMD_SHIFT - PAGE_SHIFT);
-+	} else if (ps == PUD_SIZE) {
-+		hugetlb_add_hstate(PUD_SHIFT - PAGE_SHIFT);
-+	} else {
-+		pr_err("hugepagesz: Unsupported page size %lu M\n", ps >> 20);
-+		return 0;
-+	}
 +	return 1;
 +}
-+__setup("hugepagesz=", setup_hugepagesz);
++
++/*
+  * Mark the prot value as uncacheable and unbufferable.
+  */
+ #define pgprot_noncached(prot) \
+diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
+index 654f096..46b3beb 100644
+--- a/arch/arm64/include/asm/tlb.h
++++ b/arch/arm64/include/asm/tlb.h
+@@ -187,4 +187,10 @@ static inline void __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmdp,
+ 
+ #define tlb_migrate_finish(mm)		do { } while (0)
+ 
++static inline void
++tlb_remove_pmd_tlb_entry(struct mmu_gather *tlb, pmd_t *pmdp, unsigned long addr)
++{
++	tlb_add_flush(tlb, addr);
++}
++
+ #endif
+diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
+index 122d632..8b48203 100644
+--- a/arch/arm64/include/asm/tlbflush.h
++++ b/arch/arm64/include/asm/tlbflush.h
+@@ -117,6 +117,8 @@ static inline void update_mmu_cache(struct vm_area_struct *vma,
+ 	dsb();
+ }
+ 
++#define update_mmu_cache_pmd(vma, address, pmd) do { } while (0)
++
+ #endif
+ 
+ #endif
 -- 
 1.8.1.4
