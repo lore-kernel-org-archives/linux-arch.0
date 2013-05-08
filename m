@@ -1,132 +1,59 @@
 From: Steve Capper <steve.capper@linaro.org>
-Subject: [RFC PATCH v2 04/11] x86: mm: Remove general hugetlb code from x86.
-Date: Wed,  8 May 2013 10:52:36 +0100
-Message-ID: <1368006763-30774-5-git-send-email-steve.capper@linaro.org>
+Subject: [RFC PATCH v2 07/11] ARM64: mm: Make PAGE_NONE pages read only and no-execute.
+Date: Wed,  8 May 2013 10:52:39 +0100
+Message-ID: <1368006763-30774-8-git-send-email-steve.capper@linaro.org>
 References: <1368006763-30774-1-git-send-email-steve.capper@linaro.org>
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wg0-f45.google.com ([74.125.82.45]:40328 "EHLO
+	mail-wg0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754046Ab3EHJxT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 May 2013 05:53:19 -0400
+Received: by mail-wg0-f45.google.com with SMTP id l18so1695208wgh.12
+        for <linux-arch@vger.kernel.org>; Wed, 08 May 2013 02:53:18 -0700 (PDT)
 In-Reply-To: <1368006763-30774-1-git-send-email-steve.capper@linaro.org>
-Sender: owner-linux-mm@kvack.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Michal Hocko <mhocko@suse.cz>, Ken Chen <kenchen@google.com>, Mel Gorman <mgorman@suse.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, patches@linaro.org, Steve Capper <steve.capper@linaro.org>
-List-Id: linux-arch.vger.kernel.org
 
-huge_pte_alloc, huge_pte_offset and follow_huge_p[mu]d have
-already been copied over to mm.
+If we consider the following code sequence:
 
-This patch removes the x86 copies of these functions and activates
-the general ones by enabling:
-CONFIG_ARCH_WANT_GENERAL_HUGETLB
+	my_pte = pte_modify(entry, myprot);
+	x = pte_write(my_pte);
+	y = pte_exec(my_pte);
+
+If myprot comes from a PROT_NONE page, then x and y will both be
+true which is undesireable behaviour.
+
+This patch sets the no-execute and read-only bits for PAGE_NONE
+such that the code above will return false for both x and y.
 
 Signed-off-by: Steve Capper <steve.capper@linaro.org>
 ---
- arch/x86/Kconfig          |  3 +++
- arch/x86/mm/hugetlbpage.c | 67 -----------------------------------------------
- 2 files changed, 3 insertions(+), 67 deletions(-)
+ arch/arm64/include/asm/pgtable.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 60e3c402..db1ff87 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -215,6 +215,9 @@ config ARCH_SUSPEND_POSSIBLE
- config ARCH_WANT_HUGE_PMD_SHARE
- 	def_bool y
+diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
+index e333a24..b1a1b59 100644
+--- a/arch/arm64/include/asm/pgtable.h
++++ b/arch/arm64/include/asm/pgtable.h
+@@ -66,7 +66,7 @@ extern pgprot_t pgprot_default;
  
-+config ARCH_WANT_GENERAL_HUGETLB
-+	def_bool y
-+
- config ZONE_DMA32
- 	bool
- 	default X86_64
-diff --git a/arch/x86/mm/hugetlbpage.c b/arch/x86/mm/hugetlbpage.c
-index 7e522a3..7e73e8c 100644
---- a/arch/x86/mm/hugetlbpage.c
-+++ b/arch/x86/mm/hugetlbpage.c
-@@ -16,49 +16,6 @@
- #include <asm/tlbflush.h>
- #include <asm/pgalloc.h>
+ #define _MOD_PROT(p, b)		__pgprot_modify(p, 0, b)
  
--pte_t *huge_pte_alloc(struct mm_struct *mm,
--			unsigned long addr, unsigned long sz)
--{
--	pgd_t *pgd;
--	pud_t *pud;
--	pte_t *pte = NULL;
--
--	pgd = pgd_offset(mm, addr);
--	pud = pud_alloc(mm, pgd, addr);
--	if (pud) {
--		if (sz == PUD_SIZE) {
--			pte = (pte_t *)pud;
--		} else {
--			BUG_ON(sz != PMD_SIZE);
--			if (pud_none(*pud))
--				pte = huge_pmd_share(mm, addr, pud);
--			else
--				pte = (pte_t *)pmd_alloc(mm, pud, addr);
--		}
--	}
--	BUG_ON(pte && !pte_none(*pte) && !pte_huge(*pte));
--
--	return pte;
--}
--
--pte_t *huge_pte_offset(struct mm_struct *mm, unsigned long addr)
--{
--	pgd_t *pgd;
--	pud_t *pud;
--	pmd_t *pmd = NULL;
--
--	pgd = pgd_offset(mm, addr);
--	if (pgd_present(*pgd)) {
--		pud = pud_offset(pgd, addr);
--		if (pud_present(*pud)) {
--			if (pud_large(*pud))
--				return (pte_t *)pud;
--			pmd = pmd_offset(pud, addr);
--		}
--	}
--	return (pte_t *) pmd;
--}
--
- #if 0	/* This is just for testing */
- struct page *
- follow_huge_addr(struct mm_struct *mm, unsigned long address, int write)
-@@ -120,30 +77,6 @@ int pud_huge(pud_t pud)
- 	return !!(pud_val(pud) & _PAGE_PSE);
- }
+-#define PAGE_NONE		__pgprot_modify(pgprot_default, PTE_TYPE_MASK, PTE_PROT_NONE)
++#define PAGE_NONE		__pgprot_modify(pgprot_default, PTE_TYPE_MASK, PTE_PROT_NONE | PTE_RDONLY | PTE_UXN)
+ #define PAGE_SHARED		_MOD_PROT(pgprot_default, PTE_USER | PTE_NG | PTE_PXN | PTE_UXN)
+ #define PAGE_SHARED_EXEC	_MOD_PROT(pgprot_default, PTE_USER | PTE_NG | PTE_PXN)
+ #define PAGE_COPY		_MOD_PROT(pgprot_default, PTE_USER | PTE_NG | PTE_PXN | PTE_UXN | PTE_RDONLY)
+@@ -76,7 +76,7 @@ extern pgprot_t pgprot_default;
+ #define PAGE_KERNEL		_MOD_PROT(pgprot_default, PTE_PXN | PTE_UXN | PTE_DIRTY)
+ #define PAGE_KERNEL_EXEC	_MOD_PROT(pgprot_default, PTE_UXN | PTE_DIRTY)
  
--struct page *
--follow_huge_pmd(struct mm_struct *mm, unsigned long address,
--		pmd_t *pmd, int write)
--{
--	struct page *page;
--
--	page = pte_page(*(pte_t *)pmd);
--	if (page)
--		page += ((address & ~PMD_MASK) >> PAGE_SHIFT);
--	return page;
--}
--
--struct page *
--follow_huge_pud(struct mm_struct *mm, unsigned long address,
--		pud_t *pud, int write)
--{
--	struct page *page;
--
--	page = pte_page(*(pte_t *)pud);
--	if (page)
--		page += ((address & ~PUD_MASK) >> PAGE_SHIFT);
--	return page;
--}
--
- #endif
- 
- /* x86_64 also uses this file */
+-#define __PAGE_NONE		__pgprot(((_PAGE_DEFAULT) & ~PTE_TYPE_MASK) | PTE_PROT_NONE)
++#define __PAGE_NONE		__pgprot(((_PAGE_DEFAULT) & ~PTE_TYPE_MASK) | PTE_PROT_NONE | PTE_RDONLY | PTE_UXN)
+ #define __PAGE_SHARED		__pgprot(_PAGE_DEFAULT | PTE_USER | PTE_NG | PTE_PXN | PTE_UXN)
+ #define __PAGE_SHARED_EXEC	__pgprot(_PAGE_DEFAULT | PTE_USER | PTE_NG | PTE_PXN)
+ #define __PAGE_COPY		__pgprot(_PAGE_DEFAULT | PTE_USER | PTE_NG | PTE_PXN | PTE_UXN | PTE_RDONLY)
 -- 
 1.8.1.4
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
