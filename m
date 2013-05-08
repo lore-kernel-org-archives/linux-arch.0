@@ -1,130 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f178.google.com ([209.85.192.178]:49506 "EHLO
-	mail-pd0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756351Ab3EHPyH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 May 2013 11:54:07 -0400
+Received: from mail-pa0-f44.google.com ([209.85.220.44]:45344 "EHLO
+	mail-pa0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756351Ab3EHPyY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 May 2013 11:54:24 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v5, part4 07/41] UML: normalize global variables exported by vmlinux.lds
-Date: Wed,  8 May 2013 23:51:04 +0800
-Message-ID: <1368028298-7401-8-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v5, part4 09/41] mm: use totalram_pages instead of num_physpages at runtime
+Date: Wed,  8 May 2013 23:51:06 +0800
+Message-ID: <1368028298-7401-10-git-send-email-jiang.liu@huawei.com>
 In-Reply-To: <1368028298-7401-1-git-send-email-jiang.liu@huawei.com>
 References: <1368028298-7401-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Al Viro <viro@zeniv.linux.org.uk>, user-mode-linux-devel@lists.sourceforge.net
-Message-ID: <20130508155104.J0wj37_5vBrLLvLtDTDoWAEM6cnEK0nk8bhbdLIVicU@z>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Miklos Szeredi <miklos@szeredi.hu>, "David S. Miller" <davem@davemloft.net>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, James Morris <jmorris@namei.org>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Patrick McHardy <kaber@trash.net>, fuse-devel@lists.sourceforge.net, netdev@vger.kernel.org
+Message-ID: <20130508155106.jsf3ZCpMRnc2i-eHOUXE1RCNUSSpqkDCNDZKDRvK6fI@z>
 
-Normalize global variables exported by vmlinux.lds to conform usage
-guidelines from include/asm-generic/sections.h.
-
-1) Use _text to mark the start of the kernel image including the head
-text, and _stext to mark the start of the .text section.
-2) Export mandatory global variables __bss_stop.
-3) Adjust __init_begin and __init_end to avoid acrossing .text and
-   .data sections.
+The global variable num_physpages is scheduled to be removed, so use
+totalram_pages instead of num_physpages at runtime.
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Jeff Dike <jdike@addtoit.com>
-Cc: Richard Weinberger <richard@nod.at>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: user-mode-linux-devel@lists.sourceforge.net
+Cc: Miklos Szeredi <miklos@szeredi.hu>
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>
+Cc: James Morris <jmorris@namei.org>
+Cc: Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>
+Cc: Patrick McHardy <kaber@trash.net>
+Cc: fuse-devel@lists.sourceforge.net
 Cc: linux-kernel@vger.kernel.org
+Cc: netdev@vger.kernel.org
 ---
- arch/um/include/asm/common.lds.S |    1 -
- arch/um/kernel/dyn.lds.S         |    6 ++++--
- arch/um/kernel/uml.lds.S         |    7 +++++--
- 3 files changed, 9 insertions(+), 5 deletions(-)
+ fs/fuse/inode.c          |    2 +-
+ kernel/power/snapshot.c  |    4 ++--
+ net/ipv4/inet_fragment.c |    2 +-
+ 3 files changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/arch/um/include/asm/common.lds.S b/arch/um/include/asm/common.lds.S
-index 4938de5..1dd5bd8 100644
---- a/arch/um/include/asm/common.lds.S
-+++ b/arch/um/include/asm/common.lds.S
-@@ -57,7 +57,6 @@
- 	*(.uml.initcall.init)
- 	__uml_initcall_end = .;
-   }
--  __init_end = .;
+diff --git a/fs/fuse/inode.c b/fs/fuse/inode.c
+index 17ec1f7..cd6dc27 100644
+--- a/fs/fuse/inode.c
++++ b/fs/fuse/inode.c
+@@ -785,7 +785,7 @@ static const struct super_operations fuse_super_operations = {
+ static void sanitize_global_limit(unsigned *limit)
+ {
+ 	if (*limit == 0)
+-		*limit = ((num_physpages << PAGE_SHIFT) >> 13) /
++		*limit = ((totalram_pages << PAGE_SHIFT) >> 13) /
+ 			 sizeof(struct fuse_req);
  
-   SECURITY_INIT
+ 	if (*limit >= 1 << 16)
+diff --git a/kernel/power/snapshot.c b/kernel/power/snapshot.c
+index 0de2857..8b5d1cd 100644
+--- a/kernel/power/snapshot.c
++++ b/kernel/power/snapshot.c
+@@ -1651,7 +1651,7 @@ unsigned long snapshot_get_image_size(void)
+ static int init_header(struct swsusp_info *info)
+ {
+ 	memset(info, 0, sizeof(struct swsusp_info));
+-	info->num_physpages = num_physpages;
++	info->num_physpages = get_num_physpages();
+ 	info->image_pages = nr_copy_pages;
+ 	info->pages = snapshot_get_image_size();
+ 	info->size = info->pages;
+@@ -1795,7 +1795,7 @@ static int check_header(struct swsusp_info *info)
+ 	char *reason;
  
-diff --git a/arch/um/kernel/dyn.lds.S b/arch/um/kernel/dyn.lds.S
-index fb8fd6f..adde088 100644
---- a/arch/um/kernel/dyn.lds.S
-+++ b/arch/um/kernel/dyn.lds.S
-@@ -14,8 +14,6 @@ SECTIONS
-   __binary_start = .;
-   . = ALIGN(4096);		/* Init code and data */
-   _text = .;
--  _stext = .;
--  __init_begin = .;
-   INIT_TEXT_SECTION(PAGE_SIZE)
+ 	reason = check_image_kernel(info);
+-	if (!reason && info->num_physpages != num_physpages)
++	if (!reason && info->num_physpages != get_num_physpages())
+ 		reason = "memory size";
+ 	if (reason) {
+ 		printk(KERN_ERR "PM: Image mismatch: %s\n", reason);
+diff --git a/net/ipv4/inet_fragment.c b/net/ipv4/inet_fragment.c
+index e97d66a..f90079d 100644
+--- a/net/ipv4/inet_fragment.c
++++ b/net/ipv4/inet_fragment.c
+@@ -93,7 +93,7 @@ void inet_frags_init(struct inet_frags *f)
+ 	}
+ 	rwlock_init(&f->lock);
  
-   . = ALIGN(PAGE_SIZE);
-@@ -67,6 +65,7 @@ SECTIONS
-   } =0x90909090
-   .plt            : { *(.plt) }
-   .text           : {
-+    _stext = .;
-     TEXT_TEXT
-     SCHED_TEXT
-     LOCK_TEXT
-@@ -91,7 +90,9 @@ SECTIONS
+-	f->rnd = (u32) ((num_physpages ^ (num_physpages>>7)) ^
++	f->rnd = (u32) ((totalram_pages ^ (totalram_pages >> 7)) ^
+ 				   (jiffies ^ (jiffies >> 6)));
  
-   #include <asm/common.lds.S>
- 
-+  __init_begin = .;
-   init.data : { INIT_DATA }
-+  __init_end = .;
- 
-   /* Ensure the __preinit_array_start label is properly aligned.  We
-      could instead move the label definition inside the section, but
-@@ -155,6 +156,7 @@ SECTIONS
-    . = ALIGN(32 / 8);
-   . = ALIGN(32 / 8);
-   }
-+   __bss_stop = .;
-   _end = .;
-   PROVIDE (end = .);
- 
-diff --git a/arch/um/kernel/uml.lds.S b/arch/um/kernel/uml.lds.S
-index ff65fb4..6899195 100644
---- a/arch/um/kernel/uml.lds.S
-+++ b/arch/um/kernel/uml.lds.S
-@@ -20,13 +20,12 @@ SECTIONS
-   . = START + SIZEOF_HEADERS;
- 
-   _text = .;
--  _stext = .;
--  __init_begin = .;
-   INIT_TEXT_SECTION(0)
-   . = ALIGN(PAGE_SIZE);
- 
-   .text      :
-   {
-+    _stext = .;
-     TEXT_TEXT
-     SCHED_TEXT
-     LOCK_TEXT
-@@ -62,7 +61,10 @@ SECTIONS
- 
-   #include <asm/common.lds.S>
- 
-+  __init_begin = .;
-   init.data : { INIT_DATA }
-+  __init_end = .;
-+
-   .data    :
-   {
-     INIT_TASK_DATA(KERNEL_STACK_SIZE)
-@@ -97,6 +99,7 @@ SECTIONS
-   PROVIDE(_bss_start = .);
-   SBSS(0)
-   BSS(0)
-+   __bss_stop = .;
-   _end = .;
-   PROVIDE (end = .);
- 
+ 	setup_timer(&f->secret_timer, inet_frag_secret_rebuild,
 -- 
 1.7.9.5
 
