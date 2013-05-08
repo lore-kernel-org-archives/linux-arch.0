@@ -1,75 +1,132 @@
 From: Steve Capper <steve.capper@linaro.org>
-Subject: [RFC PATCH v2 08/11] ARM64: mm: Swap PTE_FILE and PTE_PROT_NONE bits.
-Date: Wed,  8 May 2013 10:52:40 +0100
-Message-ID: <1368006763-30774-9-git-send-email-steve.capper@linaro.org>
+Subject: [RFC PATCH v2 04/11] x86: mm: Remove general hugetlb code from x86.
+Date: Wed,  8 May 2013 10:52:36 +0100
+Message-ID: <1368006763-30774-5-git-send-email-steve.capper@linaro.org>
 References: <1368006763-30774-1-git-send-email-steve.capper@linaro.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f179.google.com ([74.125.82.179]:59350 "EHLO
-	mail-we0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754046Ab3EHJxV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 May 2013 05:53:21 -0400
-Received: by mail-we0-f179.google.com with SMTP id t59so1545078wes.38
-        for <linux-arch@vger.kernel.org>; Wed, 08 May 2013 02:53:20 -0700 (PDT)
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1368006763-30774-1-git-send-email-steve.capper@linaro.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: owner-linux-mm@kvack.org
 To: linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Michal Hocko <mhocko@suse.cz>, Ken Chen <kenchen@google.com>, Mel Gorman <mgorman@suse.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, patches@linaro.org, Steve Capper <steve.capper@linaro.org>
+List-Id: linux-arch.vger.kernel.org
 
-Under ARM64, PTEs can be broadly categorised as follows:
-   - Present and valid: Bit #0 is set. The PTE is valid and memory
-     access to the region may fault.
+huge_pte_alloc, huge_pte_offset and follow_huge_p[mu]d have
+already been copied over to mm.
 
-   - Present and invalid: Bit #0 is clear and bit #1 is set.
-     Represents present memory with PROT_NONE protection. The PTE
-     is an invalid entry, and the user fault handler will raise a
-     SIGSEGV.
-
-   - Not present (file): Bits #0 and #1 are clear, bit #2 is set.
-     Memory represented has been paged out. The PTE is an invalid
-     entry, and the fault handler will try and re-populate the
-     memory where necessary.
-
-Huge PTEs are block descriptors that have bit #1 clear. If we wish
-to represent PROT_NONE huge PTEs we then run into a problem as
-there is no way to distinguish between regular and huge PTEs if we
-set bit #1.
-
-As huge PTEs are always present, the meaning of bits #1 and #2 can
-be swapped for invalid PTEs. This patch swaps the PTE_FILE and
-PTE_PROT_NONE constants, allowing us to represent PROT_NONE huge
-PTEs.
+This patch removes the x86 copies of these functions and activates
+the general ones by enabling:
+CONFIG_ARCH_WANT_GENERAL_HUGETLB
 
 Signed-off-by: Steve Capper <steve.capper@linaro.org>
 ---
- arch/arm64/include/asm/pgtable.h | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ arch/x86/Kconfig          |  3 +++
+ arch/x86/mm/hugetlbpage.c | 67 -----------------------------------------------
+ 2 files changed, 3 insertions(+), 67 deletions(-)
 
-diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
-index b1a1b59..e245260 100644
---- a/arch/arm64/include/asm/pgtable.h
-+++ b/arch/arm64/include/asm/pgtable.h
-@@ -25,8 +25,8 @@
-  * Software defined PTE bits definition.
-  */
- #define PTE_VALID		(_AT(pteval_t, 1) << 0)
--#define PTE_PROT_NONE		(_AT(pteval_t, 1) << 1)	/* only when !PTE_VALID */
--#define PTE_FILE		(_AT(pteval_t, 1) << 2)	/* only when !pte_present() */
-+#define PTE_FILE		(_AT(pteval_t, 1) << 1)	/* only when !pte_present() */
-+#define PTE_PROT_NONE		(_AT(pteval_t, 1) << 2)	/* only when !PTE_VALID */
- #define PTE_DIRTY		(_AT(pteval_t, 1) << 55)
- #define PTE_SPECIAL		(_AT(pteval_t, 1) << 56)
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 60e3c402..db1ff87 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -215,6 +215,9 @@ config ARCH_SUSPEND_POSSIBLE
+ config ARCH_WANT_HUGE_PMD_SHARE
+ 	def_bool y
  
-@@ -306,8 +306,8 @@ extern pgd_t idmap_pg_dir[PTRS_PER_PGD];
++config ARCH_WANT_GENERAL_HUGETLB
++	def_bool y
++
+ config ZONE_DMA32
+ 	bool
+ 	default X86_64
+diff --git a/arch/x86/mm/hugetlbpage.c b/arch/x86/mm/hugetlbpage.c
+index 7e522a3..7e73e8c 100644
+--- a/arch/x86/mm/hugetlbpage.c
++++ b/arch/x86/mm/hugetlbpage.c
+@@ -16,49 +16,6 @@
+ #include <asm/tlbflush.h>
+ #include <asm/pgalloc.h>
  
- /*
-  * Encode and decode a file entry:
-- *	bits 0-1:	present (must be zero)
-- *	bit  2:		PTE_FILE
-+ *	bits 0 & 2:	present (must be zero)
-+ *	bit  1:		PTE_FILE
-  *	bits 3-63:	file offset / PAGE_SIZE
-  */
- #define pte_file(pte)		(pte_val(pte) & PTE_FILE)
+-pte_t *huge_pte_alloc(struct mm_struct *mm,
+-			unsigned long addr, unsigned long sz)
+-{
+-	pgd_t *pgd;
+-	pud_t *pud;
+-	pte_t *pte = NULL;
+-
+-	pgd = pgd_offset(mm, addr);
+-	pud = pud_alloc(mm, pgd, addr);
+-	if (pud) {
+-		if (sz == PUD_SIZE) {
+-			pte = (pte_t *)pud;
+-		} else {
+-			BUG_ON(sz != PMD_SIZE);
+-			if (pud_none(*pud))
+-				pte = huge_pmd_share(mm, addr, pud);
+-			else
+-				pte = (pte_t *)pmd_alloc(mm, pud, addr);
+-		}
+-	}
+-	BUG_ON(pte && !pte_none(*pte) && !pte_huge(*pte));
+-
+-	return pte;
+-}
+-
+-pte_t *huge_pte_offset(struct mm_struct *mm, unsigned long addr)
+-{
+-	pgd_t *pgd;
+-	pud_t *pud;
+-	pmd_t *pmd = NULL;
+-
+-	pgd = pgd_offset(mm, addr);
+-	if (pgd_present(*pgd)) {
+-		pud = pud_offset(pgd, addr);
+-		if (pud_present(*pud)) {
+-			if (pud_large(*pud))
+-				return (pte_t *)pud;
+-			pmd = pmd_offset(pud, addr);
+-		}
+-	}
+-	return (pte_t *) pmd;
+-}
+-
+ #if 0	/* This is just for testing */
+ struct page *
+ follow_huge_addr(struct mm_struct *mm, unsigned long address, int write)
+@@ -120,30 +77,6 @@ int pud_huge(pud_t pud)
+ 	return !!(pud_val(pud) & _PAGE_PSE);
+ }
+ 
+-struct page *
+-follow_huge_pmd(struct mm_struct *mm, unsigned long address,
+-		pmd_t *pmd, int write)
+-{
+-	struct page *page;
+-
+-	page = pte_page(*(pte_t *)pmd);
+-	if (page)
+-		page += ((address & ~PMD_MASK) >> PAGE_SHIFT);
+-	return page;
+-}
+-
+-struct page *
+-follow_huge_pud(struct mm_struct *mm, unsigned long address,
+-		pud_t *pud, int write)
+-{
+-	struct page *page;
+-
+-	page = pte_page(*(pte_t *)pud);
+-	if (page)
+-		page += ((address & ~PUD_MASK) >> PAGE_SHIFT);
+-	return page;
+-}
+-
+ #endif
+ 
+ /* x86_64 also uses this file */
 -- 
 1.8.1.4
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
