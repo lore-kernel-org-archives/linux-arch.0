@@ -1,83 +1,130 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f50.google.com ([209.85.160.50]:36036 "EHLO
-	mail-pb0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757790Ab3EHPzS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 May 2013 11:55:18 -0400
+Received: from mail-pd0-f178.google.com ([209.85.192.178]:49506 "EHLO
+	mail-pd0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756351Ab3EHPyH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 May 2013 11:54:07 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v5, part4 18/41] mm/cris: prepare for removing num_physpages and simplify mem_init()
-Date: Wed,  8 May 2013 23:51:15 +0800
-Message-ID: <1368028298-7401-19-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v5, part4 07/41] UML: normalize global variables exported by vmlinux.lds
+Date: Wed,  8 May 2013 23:51:04 +0800
+Message-ID: <1368028298-7401-8-git-send-email-jiang.liu@huawei.com>
 In-Reply-To: <1368028298-7401-1-git-send-email-jiang.liu@huawei.com>
 References: <1368028298-7401-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mikael Starvik <starvik@axis.com>, linux-cris-kernel@axis.com
-Message-ID: <20130508155115.EhH1gN2JCOjbv5nU-K9mfwHbVbgta9ciD3iM4M8Ven4@z>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Al Viro <viro@zeniv.linux.org.uk>, user-mode-linux-devel@lists.sourceforge.net
+Message-ID: <20130508155104.J0wj37_5vBrLLvLtDTDoWAEM6cnEK0nk8bhbdLIVicU@z>
 
-Prepare for removing num_physpages and simplify mem_init().
+Normalize global variables exported by vmlinux.lds to conform usage
+guidelines from include/asm-generic/sections.h.
+
+1) Use _text to mark the start of the kernel image including the head
+text, and _stext to mark the start of the .text section.
+2) Export mandatory global variables __bss_stop.
+3) Adjust __init_begin and __init_end to avoid acrossing .text and
+   .data sections.
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
-Cc: Mikael Starvik <starvik@axis.com>
-Cc: linux-cris-kernel@axis.com
+Cc: Jeff Dike <jdike@addtoit.com>
+Cc: Richard Weinberger <richard@nod.at>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: user-mode-linux-devel@lists.sourceforge.net
 Cc: linux-kernel@vger.kernel.org
 ---
- arch/cris/mm/init.c |   33 ++-------------------------------
- 1 file changed, 2 insertions(+), 31 deletions(-)
+ arch/um/include/asm/common.lds.S |    1 -
+ arch/um/kernel/dyn.lds.S         |    6 ++++--
+ arch/um/kernel/uml.lds.S         |    7 +++++--
+ 3 files changed, 9 insertions(+), 5 deletions(-)
 
-diff --git a/arch/cris/mm/init.c b/arch/cris/mm/init.c
-index 52b8b56..c81af5b 100644
---- a/arch/cris/mm/init.c
-+++ b/arch/cris/mm/init.c
-@@ -19,9 +19,6 @@ unsigned long empty_zero_page;
- void __init
- mem_init(void)
- {
--	int codesize, reservedpages, datasize, initsize;
--	unsigned long tmp;
--
- 	BUG_ON(!mem_map);
+diff --git a/arch/um/include/asm/common.lds.S b/arch/um/include/asm/common.lds.S
+index 4938de5..1dd5bd8 100644
+--- a/arch/um/include/asm/common.lds.S
++++ b/arch/um/include/asm/common.lds.S
+@@ -57,7 +57,6 @@
+ 	*(.uml.initcall.init)
+ 	__uml_initcall_end = .;
+   }
+-  __init_end = .;
  
- 	/* max/min_low_pfn was set by setup.c
-@@ -29,35 +26,9 @@ mem_init(void)
- 	 *
- 	 * high_memory was also set in setup.c
- 	 */
--
--	max_mapnr = num_physpages = max_low_pfn - min_low_pfn;
-- 
--	/* this will put all memory onto the freelists */
-+	max_mapnr = max_low_pfn - min_low_pfn;
-         free_all_bootmem();
--
--	reservedpages = 0;
--	for (tmp = 0; tmp < max_mapnr; tmp++) {
--		/*
--                 * Only count reserved RAM pages
--                 */
--		if (PageReserved(mem_map + tmp))
--			reservedpages++;
--	}
--
--	codesize =  (unsigned long) &_etext - (unsigned long) &_stext;
--        datasize =  (unsigned long) &_edata - (unsigned long) &_etext;
--        initsize =  (unsigned long) &__init_end - (unsigned long) &__init_begin;
--	
--        printk(KERN_INFO
--               "Memory: %luk/%luk available (%dk kernel code, %dk reserved, %dk data, "
--	       "%dk init)\n" ,
--	       nr_free_pages() << (PAGE_SHIFT-10),
--	       max_mapnr << (PAGE_SHIFT-10),
--	       codesize >> 10,
--	       reservedpages << (PAGE_SHIFT-10),
--	       datasize >> 10,
--	       initsize >> 10
--               );
-+	mem_init_print_info(NULL);
- }
+   SECURITY_INIT
  
- /* free the pages occupied by initialization code */
+diff --git a/arch/um/kernel/dyn.lds.S b/arch/um/kernel/dyn.lds.S
+index fb8fd6f..adde088 100644
+--- a/arch/um/kernel/dyn.lds.S
++++ b/arch/um/kernel/dyn.lds.S
+@@ -14,8 +14,6 @@ SECTIONS
+   __binary_start = .;
+   . = ALIGN(4096);		/* Init code and data */
+   _text = .;
+-  _stext = .;
+-  __init_begin = .;
+   INIT_TEXT_SECTION(PAGE_SIZE)
+ 
+   . = ALIGN(PAGE_SIZE);
+@@ -67,6 +65,7 @@ SECTIONS
+   } =0x90909090
+   .plt            : { *(.plt) }
+   .text           : {
++    _stext = .;
+     TEXT_TEXT
+     SCHED_TEXT
+     LOCK_TEXT
+@@ -91,7 +90,9 @@ SECTIONS
+ 
+   #include <asm/common.lds.S>
+ 
++  __init_begin = .;
+   init.data : { INIT_DATA }
++  __init_end = .;
+ 
+   /* Ensure the __preinit_array_start label is properly aligned.  We
+      could instead move the label definition inside the section, but
+@@ -155,6 +156,7 @@ SECTIONS
+    . = ALIGN(32 / 8);
+   . = ALIGN(32 / 8);
+   }
++   __bss_stop = .;
+   _end = .;
+   PROVIDE (end = .);
+ 
+diff --git a/arch/um/kernel/uml.lds.S b/arch/um/kernel/uml.lds.S
+index ff65fb4..6899195 100644
+--- a/arch/um/kernel/uml.lds.S
++++ b/arch/um/kernel/uml.lds.S
+@@ -20,13 +20,12 @@ SECTIONS
+   . = START + SIZEOF_HEADERS;
+ 
+   _text = .;
+-  _stext = .;
+-  __init_begin = .;
+   INIT_TEXT_SECTION(0)
+   . = ALIGN(PAGE_SIZE);
+ 
+   .text      :
+   {
++    _stext = .;
+     TEXT_TEXT
+     SCHED_TEXT
+     LOCK_TEXT
+@@ -62,7 +61,10 @@ SECTIONS
+ 
+   #include <asm/common.lds.S>
+ 
++  __init_begin = .;
+   init.data : { INIT_DATA }
++  __init_end = .;
++
+   .data    :
+   {
+     INIT_TASK_DATA(KERNEL_STACK_SIZE)
+@@ -97,6 +99,7 @@ SECTIONS
+   PROVIDE(_bss_start = .);
+   SBSS(0)
+   BSS(0)
++   __bss_stop = .;
+   _end = .;
+   PROVIDE (end = .);
+ 
 -- 
 1.7.9.5
 
