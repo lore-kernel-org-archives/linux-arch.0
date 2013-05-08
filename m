@@ -1,58 +1,37 @@
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v5, part4 04/41] h8300: normalize global variables exported by vmlinux.lds
-Date: Wed,  8 May 2013 23:51:01 +0800
-Message-ID: <1368028298-7401-5-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v5, part4 05/41] score: normalize global variables exported by vmlinux.lds
+Date: Wed,  8 May 2013 23:51:02 +0800
+Message-ID: <1368028298-7401-6-git-send-email-jiang.liu@huawei.com>
 References: <1368028298-7401-1-git-send-email-jiang.liu@huawei.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1368028298-7401-1-git-send-email-jiang.liu@huawei.com>
 Sender: owner-linux-mm@kvack.org
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Chen Liqin <liqin.chen@sunplusct.com>, Lennox Wu <lennox.wu@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-Generate mandatory global variables __bss_start/__bss_stop in
-file vmlinux.lds.
-
-Also remove one unused declaration of _text.
+Generate mandatory global variables _sdata in file vmlinux.lds.
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: Jiang Liu <jiang.liu@huawei.com>
+Cc: Chen Liqin <liqin.chen@sunplusct.com>
+Cc: Lennox Wu <lennox.wu@gmail.com>
 Cc: linux-kernel@vger.kernel.org
 ---
- arch/h8300/boot/compressed/misc.c |    1 -
- arch/h8300/kernel/vmlinux.lds.S   |    2 ++
- 2 files changed, 2 insertions(+), 1 deletion(-)
+ arch/score/kernel/vmlinux.lds.S |    1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/arch/h8300/boot/compressed/misc.c b/arch/h8300/boot/compressed/misc.c
-index 51ab6cb..4a1e3dd 100644
---- a/arch/h8300/boot/compressed/misc.c
-+++ b/arch/h8300/boot/compressed/misc.c
-@@ -79,7 +79,6 @@ static void error(char *m);
+diff --git a/arch/score/kernel/vmlinux.lds.S b/arch/score/kernel/vmlinux.lds.S
+index eebcbaa..7274b5c 100644
+--- a/arch/score/kernel/vmlinux.lds.S
++++ b/arch/score/kernel/vmlinux.lds.S
+@@ -49,6 +49,7 @@ SECTIONS
+ 	}
  
- int puts(const char *);
+ 	. = ALIGN(16);
++	_sdata =  .;			/* Start of data section */
+ 	RODATA
  
--extern int _text;		/* Defined in vmlinux.lds.S */
- extern int _end;
- static unsigned long free_mem_ptr;
- static unsigned long free_mem_end_ptr;
-diff --git a/arch/h8300/kernel/vmlinux.lds.S b/arch/h8300/kernel/vmlinux.lds.S
-index 03d356d..3253fed 100644
---- a/arch/h8300/kernel/vmlinux.lds.S
-+++ b/arch/h8300/kernel/vmlinux.lds.S
-@@ -132,10 +132,12 @@ SECTIONS
-         {
- 	. = ALIGN(0x4) ;
- 	__sbss = . ;
-+	___bss_start = . ;
- 		*(.bss*)
- 	. = ALIGN(0x4) ;
- 		*(COMMON)
- 	. = ALIGN(0x4) ;
-+	___bss_stop = . ;
- 	__ebss = . ;
- 	__end = . ;
- 	__ramstart = .;
+ 	EXCEPTION_TABLE(16)
 -- 
 1.7.9.5
 
