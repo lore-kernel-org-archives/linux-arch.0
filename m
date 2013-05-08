@@ -1,91 +1,72 @@
-From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v5, part4 41/41] mm: kill global variable num_physpages
-Date: Wed,  8 May 2013 23:51:38 +0800
-Message-ID: <1368028298-7401-42-git-send-email-jiang.liu@huawei.com>
-References: <1368028298-7401-1-git-send-email-jiang.liu@huawei.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1368028298-7401-1-git-send-email-jiang.liu@huawei.com>
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Michel Lespinasse <walken@google.com>, Rik van Riel <riel@redhat.com>, Hugh Dickins <hughd@google.com>, Al Viro <viro@zeniv.linux.org.uk>, Konstantin Khlebnikov <khlebnikov@openvz.org>
-List-Id: linux-arch.vger.kernel.org
+From: Christopher Covington <cov@codeaurora.org>
+Subject: Re: [RFC PATCH v2 08/11] ARM64: mm: Swap PTE_FILE and PTE_PROT_NONE
+ bits.
+Date: Wed, 08 May 2013 12:17:35 -0400
+Message-ID: <518A7A9F.9080105@codeaurora.org>
+References: <1368006763-30774-1-git-send-email-steve.capper@linaro.org> <1368006763-30774-9-git-send-email-steve.capper@linaro.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:15767 "EHLO
+	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757070Ab3EHQRh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 May 2013 12:17:37 -0400
+In-Reply-To: <1368006763-30774-9-git-send-email-steve.capper@linaro.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Steve Capper <steve.capper@linaro.org>
+Cc: linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, patches@linaro.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Michal Hocko <mhocko@suse.cz>, Ken Chen <kenchen@google.com>, Mel Gorman <mgorman@suse.de>
 
-Now all references to num_physpages have been removed, so kill it.
+Hi Steve,
 
-Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Mel Gorman <mgorman@suse.de>
-Cc: Michel Lespinasse <walken@google.com>
-Cc: Rik van Riel <riel@redhat.com>
-Cc: Jiang Liu <jiang.liu@huawei.com>
-Cc: Hugh Dickins <hughd@google.com>
-Cc: David Rientjes <rientjes@google.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Konstantin Khlebnikov <khlebnikov@openvz.org>
-Cc: linux-mm@kvack.org
-Cc: linux-kernel@vger.kernel.org
----
- include/linux/mm.h |    1 -
- mm/memory.c        |    2 --
- mm/nommu.c         |    2 --
- 3 files changed, 5 deletions(-)
+On 05/08/2013 05:52 AM, Steve Capper wrote:
+> Under ARM64, PTEs can be broadly categorised as follows:
+>    - Present and valid: Bit #0 is set. The PTE is valid and memory
+>      access to the region may fault.
+> 
+>    - Present and invalid: Bit #0 is clear and bit #1 is set.
+>      Represents present memory with PROT_NONE protection. The PTE
+>      is an invalid entry, and the user fault handler will raise a
+>      SIGSEGV.
+> 
+>    - Not present (file): Bits #0 and #1 are clear, bit #2 is set.
+>      Memory represented has been paged out. The PTE is an invalid
+>      entry, and the fault handler will try and re-populate the
+>      memory where necessary.
+> 
+> Huge PTEs are block descriptors that have bit #1 clear. If we wish
+> to represent PROT_NONE huge PTEs we then run into a problem as
+> there is no way to distinguish between regular and huge PTEs if we
+> set bit #1.
+> 
+> As huge PTEs are always present, the meaning of bits #1 and #2 can
+> be swapped for invalid PTEs. This patch swaps the PTE_FILE and
+> PTE_PROT_NONE constants, allowing us to represent PROT_NONE huge
+> PTEs.
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 66e5fb8..f02b34f 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -29,7 +29,6 @@ struct writeback_control;
- extern unsigned long max_mapnr;
- #endif
- 
--extern unsigned long num_physpages;
- extern unsigned long totalram_pages;
- extern void * high_memory;
- extern int page_cluster;
-diff --git a/mm/memory.c b/mm/memory.c
-index f7a1fba..0022366 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -82,7 +82,6 @@ EXPORT_SYMBOL(max_mapnr);
- EXPORT_SYMBOL(mem_map);
- #endif
- 
--unsigned long num_physpages;
- /*
-  * A number of key systems in x86 including ioremap() rely on the assumption
-  * that high_memory defines the upper bound on direct map memory, then end
-@@ -92,7 +91,6 @@ unsigned long num_physpages;
-  */
- void * high_memory;
- 
--EXPORT_SYMBOL(num_physpages);
- EXPORT_SYMBOL(high_memory);
- 
- /*
-diff --git a/mm/nommu.c b/mm/nommu.c
-index 247ef84..09cfde8 100644
---- a/mm/nommu.c
-+++ b/mm/nommu.c
-@@ -56,7 +56,6 @@
- void *high_memory;
- struct page *mem_map;
- unsigned long max_mapnr;
--unsigned long num_physpages;
- unsigned long highest_memmap_pfn;
- struct percpu_counter vm_committed_as;
- int sysctl_overcommit_memory = OVERCOMMIT_GUESS; /* heuristic overcommit */
-@@ -85,7 +84,6 @@ unsigned long vm_memory_committed(void)
- EXPORT_SYMBOL_GPL(vm_memory_committed);
- 
- EXPORT_SYMBOL(mem_map);
--EXPORT_SYMBOL(num_physpages);
- 
- /* list of mapped, potentially shareable regions */
- static struct kmem_cache *vm_region_jar;
+[...]
+
+> diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
+
+[...]
+
+> @@ -306,8 +306,8 @@ extern pgd_t idmap_pg_dir[PTRS_PER_PGD];
+>  
+>  /*
+>   * Encode and decode a file entry:
+> - *	bits 0-1:	present (must be zero)
+> - *	bit  2:		PTE_FILE
+> + *	bits 0 & 2:	present (must be zero)
+
+Consider using punctuation like "bits 0, 2" here to disambiguate from the
+binary and operation.
+
+[...]
+
+Christopher
+
 -- 
-1.7.9.5
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Employee of Qualcomm Innovation Center, Inc.
+Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
+hosted by the Linux Foundation.
