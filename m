@@ -1,84 +1,75 @@
 From: Steve Capper <steve.capper@linaro.org>
-Subject: [RFC PATCH v2 06/11] ARM64: mm: Restore memblock limit when map_mem finished.
-Date: Wed,  8 May 2013 10:52:38 +0100
-Message-ID: <1368006763-30774-7-git-send-email-steve.capper@linaro.org>
+Subject: [RFC PATCH v2 08/11] ARM64: mm: Swap PTE_FILE and PTE_PROT_NONE bits.
+Date: Wed,  8 May 2013 10:52:40 +0100
+Message-ID: <1368006763-30774-9-git-send-email-steve.capper@linaro.org>
 References: <1368006763-30774-1-git-send-email-steve.capper@linaro.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f180.google.com ([209.85.212.180]:49526 "EHLO
-	mail-wi0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753861Ab3EHJxS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 May 2013 05:53:18 -0400
-Received: by mail-wi0-f180.google.com with SMTP id h11so1697820wiv.7
-        for <linux-arch@vger.kernel.org>; Wed, 08 May 2013 02:53:16 -0700 (PDT)
+Received: from mail-we0-f179.google.com ([74.125.82.179]:59350 "EHLO
+	mail-we0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754046Ab3EHJxV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 May 2013 05:53:21 -0400
+Received: by mail-we0-f179.google.com with SMTP id t59so1545078wes.38
+        for <linux-arch@vger.kernel.org>; Wed, 08 May 2013 02:53:20 -0700 (PDT)
 In-Reply-To: <1368006763-30774-1-git-send-email-steve.capper@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Michal Hocko <mhocko@suse.cz>, Ken Chen <kenchen@google.com>, Mel Gorman <mgorman@suse.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, patches@linaro.org, Steve Capper <steve.capper@linaro.org>
 
-In paging_init the memblock limit is set to restrict any addresses
-returned by early_alloc to fit within the initial direct kernel
-mapping in swapper_pg_dir. This allows map_mem to allocate puds,
-pmds and ptes from the initial direct kernel mapping.
+Under ARM64, PTEs can be broadly categorised as follows:
+   - Present and valid: Bit #0 is set. The PTE is valid and memory
+     access to the region may fault.
 
-The limit stays low after paging_init() though, meaning any
-bootmem allocations will be from a restricted subset of memory.
-Gigabyte huge pages, for instance, are normally allocated from
-bootmem as their order (18) is too large for the default buddy
-allocator (MAX_ORDER = 11).
+   - Present and invalid: Bit #0 is clear and bit #1 is set.
+     Represents present memory with PROT_NONE protection. The PTE
+     is an invalid entry, and the user fault handler will raise a
+     SIGSEGV.
 
-This patch restores the memblock limit when map_mem has finished,
-allowing gigabyte huge pages (and other objects) to be allocated
-from all of bootmem.
+   - Not present (file): Bits #0 and #1 are clear, bit #2 is set.
+     Memory represented has been paged out. The PTE is an invalid
+     entry, and the fault handler will try and re-populate the
+     memory where necessary.
+
+Huge PTEs are block descriptors that have bit #1 clear. If we wish
+to represent PROT_NONE huge PTEs we then run into a problem as
+there is no way to distinguish between regular and huge PTEs if we
+set bit #1.
+
+As huge PTEs are always present, the meaning of bits #1 and #2 can
+be swapped for invalid PTEs. This patch swaps the PTE_FILE and
+PTE_PROT_NONE constants, allowing us to represent PROT_NONE huge
+PTEs.
 
 Signed-off-by: Steve Capper <steve.capper@linaro.org>
 ---
- arch/arm64/mm/mmu.c | 19 +++++++++++++------
- 1 file changed, 13 insertions(+), 6 deletions(-)
+ arch/arm64/include/asm/pgtable.h | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
-index 70b8cd4..d23188c 100644
---- a/arch/arm64/mm/mmu.c
-+++ b/arch/arm64/mm/mmu.c
-@@ -297,6 +297,16 @@ static void __init map_mem(void)
- {
- 	struct memblock_region *reg;
+diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
+index b1a1b59..e245260 100644
+--- a/arch/arm64/include/asm/pgtable.h
++++ b/arch/arm64/include/asm/pgtable.h
+@@ -25,8 +25,8 @@
+  * Software defined PTE bits definition.
+  */
+ #define PTE_VALID		(_AT(pteval_t, 1) << 0)
+-#define PTE_PROT_NONE		(_AT(pteval_t, 1) << 1)	/* only when !PTE_VALID */
+-#define PTE_FILE		(_AT(pteval_t, 1) << 2)	/* only when !pte_present() */
++#define PTE_FILE		(_AT(pteval_t, 1) << 1)	/* only when !pte_present() */
++#define PTE_PROT_NONE		(_AT(pteval_t, 1) << 2)	/* only when !PTE_VALID */
+ #define PTE_DIRTY		(_AT(pteval_t, 1) << 55)
+ #define PTE_SPECIAL		(_AT(pteval_t, 1) << 56)
  
-+	/*
-+	 * Temporarily limit the memblock range. We need to do this as
-+	 * create_mapping requires puds, pmds and ptes to be allocated from
-+	 * memory addressable from the initial direct kernel mapping.
-+	 *
-+	 * The initial direct kernel mapping, located at swapper_pg_dir,
-+	 * gives us PGDIR_SIZE memory starting from PHYS_OFFSET (aligned).
-+	 */
-+	memblock_set_current_limit((PHYS_OFFSET & PGDIR_MASK) + PGDIR_SIZE);
-+
- 	/* map all the memory banks */
- 	for_each_memblock(memory, reg) {
- 		phys_addr_t start = reg->base;
-@@ -307,6 +317,9 @@ static void __init map_mem(void)
- 
- 		create_mapping(start, __phys_to_virt(start), end - start);
- 	}
-+
-+	/* Limit no longer required. */
-+	memblock_set_current_limit(MEMBLOCK_ALLOC_ANYWHERE);
- }
+@@ -306,8 +306,8 @@ extern pgd_t idmap_pg_dir[PTRS_PER_PGD];
  
  /*
-@@ -317,12 +330,6 @@ void __init paging_init(void)
- {
- 	void *zero_page;
- 
--	/*
--	 * Maximum PGDIR_SIZE addressable via the initial direct kernel
--	 * mapping in swapper_pg_dir.
--	 */
--	memblock_set_current_limit((PHYS_OFFSET & PGDIR_MASK) + PGDIR_SIZE);
--
- 	init_mem_pgprot();
- 	map_mem();
- 
+  * Encode and decode a file entry:
+- *	bits 0-1:	present (must be zero)
+- *	bit  2:		PTE_FILE
++ *	bits 0 & 2:	present (must be zero)
++ *	bit  1:		PTE_FILE
+  *	bits 3-63:	file offset / PAGE_SIZE
+  */
+ #define pte_file(pte)		(pte_val(pte) & PTE_FILE)
 -- 
 1.8.1.4
