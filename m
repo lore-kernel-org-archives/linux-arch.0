@@ -1,134 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f50.google.com ([74.125.82.50]:36157 "EHLO
-	mail-wg0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753997Ab3EHJxP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 May 2013 05:53:15 -0400
-Received: by mail-wg0-f50.google.com with SMTP id m15so1693054wgh.29
-        for <linux-arch@vger.kernel.org>; Wed, 08 May 2013 02:53:13 -0700 (PDT)
-From: Steve Capper <steve.capper@linaro.org>
-Subject: [RFC PATCH v2 04/11] x86: mm: Remove general hugetlb code from x86.
-Date: Wed,  8 May 2013 10:52:36 +0100
-Message-ID: <1368006763-30774-5-git-send-email-steve.capper@linaro.org>
-In-Reply-To: <1368006763-30774-1-git-send-email-steve.capper@linaro.org>
+Received: from shutemov.name ([204.155.152.216]:37915 "EHLO shutemov.name"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752317Ab3EHL6L (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 8 May 2013 07:58:11 -0400
+Date: Wed, 8 May 2013 15:44:17 +0300
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [RFC PATCH v2 05/11] mm: thp: Correct the HPAGE_PMD_ORDER check.
+Message-ID: <20130508124417.GA29631@shutemov.name>
 References: <1368006763-30774-1-git-send-email-steve.capper@linaro.org>
+ <1368006763-30774-6-git-send-email-steve.capper@linaro.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1368006763-30774-6-git-send-email-steve.capper@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: Michal Hocko <mhocko@suse.cz>, Ken Chen <kenchen@google.com>, Mel Gorman <mgorman@suse.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, patches@linaro.org, Steve Capper <steve.capper@linaro.org>
-Message-ID: <20130508095236.sutfkRBiCYq2-78YrGqnKy6IsVS4w2BScYF25HRjav8@z>
+To: Steve Capper <steve.capper@linaro.org>
+Cc: linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Michal Hocko <mhocko@suse.cz>, Ken Chen <kenchen@google.com>, Mel Gorman <mgorman@suse.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, patches@linaro.org
+Message-ID: <20130508124417.7EPzAgsIm1F1dMHX0zm_IPia8vgeRU4HsuTx6pSs3XM@z>
 
-huge_pte_alloc, huge_pte_offset and follow_huge_p[mu]d have
-already been copied over to mm.
+On Wed, May 08, 2013 at 10:52:37AM +0100, Steve Capper wrote:
+> All Transparent Huge Pages are allocated by the buddy allocator.
+> 
+> A compile time check is in place that fails when the order of a
+> transparent huge page is too large to be allocated by the buddy
+> allocator. Unfortunately that compile time check passes when:
+> HPAGE_PMD_ORDER == MAX_ORDER
+> ( which is incorrect as the buddy allocator can only allocate
+> memory of order strictly less than MAX_ORDER. )
 
-This patch removes the x86 copies of these functions and activates
-the general ones by enabling:
-CONFIG_ARCH_WANT_GENERAL_HUGETLB
+It looks confusing to me. Shouldn't we fix what MAX_ORDER means instead?
 
-Signed-off-by: Steve Capper <steve.capper@linaro.org>
----
- arch/x86/Kconfig          |  3 +++
- arch/x86/mm/hugetlbpage.c | 67 -----------------------------------------------
- 2 files changed, 3 insertions(+), 67 deletions(-)
-
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 60e3c402..db1ff87 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -215,6 +215,9 @@ config ARCH_SUSPEND_POSSIBLE
- config ARCH_WANT_HUGE_PMD_SHARE
- 	def_bool y
- 
-+config ARCH_WANT_GENERAL_HUGETLB
-+	def_bool y
-+
- config ZONE_DMA32
- 	bool
- 	default X86_64
-diff --git a/arch/x86/mm/hugetlbpage.c b/arch/x86/mm/hugetlbpage.c
-index 7e522a3..7e73e8c 100644
---- a/arch/x86/mm/hugetlbpage.c
-+++ b/arch/x86/mm/hugetlbpage.c
-@@ -16,49 +16,6 @@
- #include <asm/tlbflush.h>
- #include <asm/pgalloc.h>
- 
--pte_t *huge_pte_alloc(struct mm_struct *mm,
--			unsigned long addr, unsigned long sz)
--{
--	pgd_t *pgd;
--	pud_t *pud;
--	pte_t *pte = NULL;
--
--	pgd = pgd_offset(mm, addr);
--	pud = pud_alloc(mm, pgd, addr);
--	if (pud) {
--		if (sz == PUD_SIZE) {
--			pte = (pte_t *)pud;
--		} else {
--			BUG_ON(sz != PMD_SIZE);
--			if (pud_none(*pud))
--				pte = huge_pmd_share(mm, addr, pud);
--			else
--				pte = (pte_t *)pmd_alloc(mm, pud, addr);
--		}
--	}
--	BUG_ON(pte && !pte_none(*pte) && !pte_huge(*pte));
--
--	return pte;
--}
--
--pte_t *huge_pte_offset(struct mm_struct *mm, unsigned long addr)
--{
--	pgd_t *pgd;
--	pud_t *pud;
--	pmd_t *pmd = NULL;
--
--	pgd = pgd_offset(mm, addr);
--	if (pgd_present(*pgd)) {
--		pud = pud_offset(pgd, addr);
--		if (pud_present(*pud)) {
--			if (pud_large(*pud))
--				return (pte_t *)pud;
--			pmd = pmd_offset(pud, addr);
--		}
--	}
--	return (pte_t *) pmd;
--}
--
- #if 0	/* This is just for testing */
- struct page *
- follow_huge_addr(struct mm_struct *mm, unsigned long address, int write)
-@@ -120,30 +77,6 @@ int pud_huge(pud_t pud)
- 	return !!(pud_val(pud) & _PAGE_PSE);
- }
- 
--struct page *
--follow_huge_pmd(struct mm_struct *mm, unsigned long address,
--		pmd_t *pmd, int write)
--{
--	struct page *page;
--
--	page = pte_page(*(pte_t *)pmd);
--	if (page)
--		page += ((address & ~PMD_MASK) >> PAGE_SHIFT);
--	return page;
--}
--
--struct page *
--follow_huge_pud(struct mm_struct *mm, unsigned long address,
--		pud_t *pud, int write)
--{
--	struct page *page;
--
--	page = pte_page(*(pte_t *)pud);
--	if (page)
--		page += ((address & ~PUD_MASK) >> PAGE_SHIFT);
--	return page;
--}
--
- #endif
- 
- /* x86_64 also uses this file */
 -- 
-1.8.1.4
-
+ Kirill A. Shutemov
