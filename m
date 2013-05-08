@@ -1,86 +1,73 @@
-From: =?ISO-8859-1?Q?Andr=E9_Hentschel?= <nerv@dawncrow.de>
-Subject: Re: [PATCHv3] arm: Preserve the user r/w register TPIDRURW on context
- switch and fork
-Date: Wed, 08 May 2013 19:41:28 +0200
-Message-ID: <518A8E48.2080801@dawncrow.de>
-References: <51896934.5080803@dawncrow.de> <20130508085753.GA15568@mudshark.cambridge.arm.com>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH v5, part3 01/15] mm: fix build warnings caused by
+	free_reserved_area()
+Date: Wed, 8 May 2013 19:45:55 +0100
+Message-ID: <20130508184555.GR18614@n2100.arm.linux.org.uk>
+References: <1368026235-5976-1-git-send-email-jiang.liu@huawei.com> <1368026235-5976-2-git-send-email-jiang.liu@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:61586 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756904Ab3EHRlg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 May 2013 13:41:36 -0400
-In-Reply-To: <20130508085753.GA15568@mudshark.cambridge.arm.com>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:46828 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751852Ab3EHSqP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 May 2013 14:46:15 -0400
+Content-Disposition: inline
+In-Reply-To: <1368026235-5976-2-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, Jonathan Austin <Jonathan.Austin@arm.com>
+To: Jiang Liu <liuj97@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, James Bottomley <James.Bottomley@HansenPartnership.com>, David Howells <dhowells@redhat.com>, Jiang Liu <jiang.liu@huawei.com>, Wen Congyang <wency@cn.fujitsu.com>, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org, Mark Salter <msalter@redhat.com>, linux-kernel@vger.kernel.org, Michal Hocko <mhocko@suse.cz>, Minchan Kim <minchan@kernel.org>, Mel Gorman <mgorman@suse.de>, David Rientjes <rientjes@google.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Jianguo Wu <wujianguo@huawei.com>
 
-Hi Will,
+On Wed, May 08, 2013 at 11:17:00PM +0800, Jiang Liu wrote:
+> Fix following build warnings cuased by free_reserved_area():
+> 
+> arch/arm/mm/init.c: In function 'mem_init':
+> arch/arm/mm/init.c:603:2: warning: passing argument 1 of 'free_reserved_area' makes integer from pointer without a cast [enabled by default]
+>   free_reserved_area(__va(PHYS_PFN_OFFSET), swapper_pg_dir, 0, NULL);
+>   ^
+> In file included from include/linux/mman.h:4:0,
+>                  from arch/arm/mm/init.c:15:
+> include/linux/mm.h:1301:22: note: expected 'long unsigned int' but argument is of type 'void *'
+>  extern unsigned long free_reserved_area(unsigned long start, unsigned long end,
+> 
+>    mm/page_alloc.c: In function 'free_reserved_area':
+> >> mm/page_alloc.c:5134:3: warning: passing argument 1 of 'virt_to_phys' makes pointer from integer without a cast [enabled by default]
+>    In file included from arch/mips/include/asm/page.h:49:0,
+>                     from include/linux/mmzone.h:20,
+>                     from include/linux/gfp.h:4,
+>                     from include/linux/mm.h:8,
+>                     from mm/page_alloc.c:18:
+>    arch/mips/include/asm/io.h:119:29: note: expected 'const volatile void *' but argument is of type 'long unsigned int'
+>    mm/page_alloc.c: In function 'free_area_init_nodes':
+>    mm/page_alloc.c:5030:34: warning: array subscript is below array bounds [-Warray-bounds]
+> 
+> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+> Reported-by: Arnd Bergmann <arnd@arndb.de>
+> Cc: linux-arm-kernel@lists.infradead.org
+> Cc: linux-kernel@vger.kernel.org
+> Cc: linux-mm@kvack.org
+> ---
+>  arch/arm/mm/init.c |    6 ++++--
+>  mm/page_alloc.c    |    2 +-
+>  2 files changed, 5 insertions(+), 3 deletions(-)
+> 
+> diff --git a/arch/arm/mm/init.c b/arch/arm/mm/init.c
+> index 9a5cdc0..7a82fcd 100644
+> --- a/arch/arm/mm/init.c
+> +++ b/arch/arm/mm/init.c
+> @@ -600,7 +600,8 @@ void __init mem_init(void)
+>  
+>  #ifdef CONFIG_SA1111
+>  	/* now that our DMA memory is actually so designated, we can free it */
+> -	free_reserved_area(__va(PHYS_PFN_OFFSET), swapper_pg_dir, 0, NULL);
+> +	free_reserved_area((unsigned long)__va(PHYS_PFN_OFFSET),
+> +			   (unsigned long)swapper_pg_dir, 0, NULL);
 
-thx for having a look.
+*YUCK*.
 
-Am 08.05.2013 10:57, schrieb Will Deacon:> Hi Andre,
->=20
-> On Tue, May 07, 2013 at 09:51:00PM +0100, Andr=E9 Hentschel wrote:
->> From: =3D?UTF-8?q?Andr=3DC3=3DA9=3D20Hentschel?=3D <nerv@dawncrow.de=
->
->=20
-> Might just be my mailer, but you should check that your name is intac=
-t here
-> otherwise the git log will be mangled.
+As I've said before, fixing the arguments on free_reserved_area() would
+be much better than throwing these horrid casts all over the code.
 
-That's for my acute accent and already worked with my first linux patch=
-, it's git generated.
-
->> Since commit 6a1c53124aa1 the user writeable TLS register was zeroed=
- to
->> prevent it from being used as a covert channel between two tasks.
->>
->> There are more and more applications coming to WinRT, Wine could sup=
-port them,
->> but mostly they expect to have the thread environment block (TEB) in=
- TPIDRURW.
->>
->> This patch preserves that register per thread instead of clearing it=
-=2E
->> Unlike the TPIDRURO, which is already switched, the TPIDRURW
->> can be updated from userspace so needs careful treatment in the case=
- that we
->> modify TPIDRURW and call fork(). To avoid this we must always read
->> TPIDRURW in copy_thread.
->>
->> Signed-off-by: Andr=E9 Hentschel <nerv@dawncrow.de>
->> Signed-off-by: Will Deacon <will.deacon@arm.com>
->> Signed-off-by: Jonathan Austin <jonathan.austin@arm.com>=20
->=20
-> [...]
->=20
->> diff --git a/arch/arm/include/asm/tls.h b/arch/arm/include/asm/tls.h
->> index 73409e6..22756ab 100644
->> --- a/arch/arm/include/asm/tls.h
->> +++ b/arch/arm/include/asm/tls.h
->> @@ -2,27 +2,30 @@
->>  #define __ASMARM_TLS_H
->> =20
->>  #ifdef __ASSEMBLY__
->> -	.macro set_tls_none, tp, tmp1, tmp2
->> +#include <asm/asm-offsets.h>
->> +	.macro switch_tls_none, base, tp, tpuser, tmp1, tmp2
->>  	.endm
->> =20
->> -	.macro set_tls_v6k, tp, tmp1, tmp2
->> +	.macro switch_tls_v6k, base, tp, tpuser, tmp1, tmp2
->> +	mrc	p15, 0, \tmp2, c13, c0, 2	@ get the user r/w register
->>  	mcr	p15, 0, \tp, c13, c0, 3		@ set TLS register
->> -	mov	\tmp1, #0
->> -	mcr	p15, 0, \tmp1, c13, c0, 2	@ clear user r/w TLS register
->> +	mcr	p15, 0, \tpuser, c13, c0, 2	@ and the user r/w register
->> +	strne	\tmp2, [\base, #TI_TP_VALUE + 4] @ save it
->=20
-> Why is this conditional?
-
-
-Seems like a copy&paste one, i'll send a v4
+You're casting pointers to integers, and then immediately casting them
+back to pointers in free_reserved_area().  Please fix the function
+argument types to be sane.
