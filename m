@@ -1,35 +1,54 @@
-From: Cody P Schafer <cody@linux.vnet.ibm.com>
-Subject: Re: [PATCH v5, part4 20/41] mm/h8300: prepare for removing num_physpages
- and simplify mem_init()
-Date: Wed, 08 May 2013 16:35:22 -0700
-Message-ID: <518AE13A.2060204@linux.vnet.ibm.com>
-References: <1368028298-7401-1-git-send-email-jiang.liu@huawei.com> <1368028298-7401-21-git-send-email-jiang.liu@huawei.com> <518A7CC0.1010606@cogentembedded.com> <518AA7A0.1020702@cogentembedded.com>
+From: Steve Capper <steve.capper@linaro.org>
+Subject: Re: [RFC PATCH v2 08/11] ARM64: mm: Swap PTE_FILE and
+ PTE_PROT_NONE bits.
+Date: Thu, 9 May 2013 09:15:05 +0100
+Message-ID: <20130509081504.GA28545@linaro.org>
+References: <1368006763-30774-1-git-send-email-steve.capper@linaro.org>
+ <1368006763-30774-9-git-send-email-steve.capper@linaro.org>
+ <518A7A9F.9080105@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e8.ny.us.ibm.com ([32.97.182.138]:37289 "EHLO e8.ny.us.ibm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751997Ab3EHXfe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 May 2013 19:35:34 -0400
-Received: from /spool/local
-	by e8.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <cody@linux.vnet.ibm.com>;
-	Wed, 8 May 2013 19:35:30 -0400
-In-Reply-To: <518AA7A0.1020702@cogentembedded.com>
+Received: from mail-we0-f180.google.com ([74.125.82.180]:54911 "EHLO
+	mail-we0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751105Ab3EIIPM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 May 2013 04:15:12 -0400
+Received: by mail-we0-f180.google.com with SMTP id n5so2609211wev.11
+        for <linux-arch@vger.kernel.org>; Thu, 09 May 2013 01:15:11 -0700 (PDT)
+Content-Disposition: inline
+In-Reply-To: <518A7A9F.9080105@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>
-Cc: Jiang Liu <liuj97@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Geert Uytterhoeven <geert@linux-m68k.org>
+To: Christopher Covington <cov@codeaurora.org>
+Cc: linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, patches@linaro.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Michal Hocko <mhocko@suse.cz>, Ken Chen <kenchen@google.com>, Mel Gorman <mgorman@suse.de>
 
-On 05/08/2013 12:29 PM, Sergei Shtylyov wrote:
->
->      Although, not necessarily: it also supports CONFIG_DYNAMIC_DEBUG --
-> look at how pr_debug() is defined.
-> So this doesn't seem to be an equivalent change, and I suggest not doing
-> it at all.
->
-> WBR, Sergei
+On Wed, May 08, 2013 at 12:17:35PM -0400, Christopher Covington wrote:
+> Hi Steve,
+> 
+> On 05/08/2013 05:52 AM, Steve Capper wrote:
+ 
+ [...]
+> 
+> > diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
+> 
+ [...]
+> 
+> > @@ -306,8 +306,8 @@ extern pgd_t idmap_pg_dir[PTRS_PER_PGD];
+> >  
+> >  /*
+> >   * Encode and decode a file entry:
+> > - *	bits 0-1:	present (must be zero)
+> > - *	bit  2:		PTE_FILE
+> > + *	bits 0 & 2:	present (must be zero)
+> 
+> Consider using punctuation like "bits 0, 2" here to disambiguate from the
+> binary and operation.
+> 
 
-pr_devel() should get the same behavior: no code emitted unless debug is 
-defined, if it is, output at KERN_DEBUG level.
+Hi Christopher,
+Thanks, I now have:
+       bits 0, 2:      present (must both be zero)
+
+Cheers,
+-- 
+Steve
