@@ -1,132 +1,237 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f54.google.com ([209.85.220.54]:53223 "EHLO
-	mail-pa0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754154Ab3EKRlm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 11 May 2013 13:41:42 -0400
+Received: from mail-pd0-f175.google.com ([209.85.192.175]:59262 "EHLO
+	mail-pd0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754465Ab3EKRmJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 11 May 2013 13:42:09 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v6, part3 11/16] mm: use a dedicated lock to protect totalram_pages and zone->managed_pages
-Date: Sun, 12 May 2013 01:34:44 +0800
-Message-ID: <1368293689-16410-12-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v6, part3 13/16] mm: correctly update zone->mamaged_pages
+Date: Sun, 12 May 2013 01:34:46 +0800
+Message-ID: <1368293689-16410-14-git-send-email-jiang.liu@huawei.com>
 In-Reply-To: <1368293689-16410-1-git-send-email-jiang.liu@huawei.com>
 References: <1368293689-16410-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Michel Lespinasse <walken@google.com>, Rik van Riel <riel@redhat.com>
-Message-ID: <20130511173444.qVa7UyD0uerZg4Y2Q6Ec__STYH3ahYPh0P5HgSj8Wcw@z>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Rusty Russell <rusty@rustcorp.com.au>, "Michael S. Tsirkin" <mst@redhat.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Jeremy Fitzhardinge <jeremy@goop.org>, Tang Chen <tangchen@cn.fujitsu.com>, Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>, virtualization@lists.linux-foundation.org, xen-devel@lists.xensource.com
+Message-ID: <20130511173446.Nv0skVRlGgGBJYj4wVK9o9D2mBZ_gszHP2otEAvkZNU@z>
 
-Currently lock_memory_hotplug()/unlock_memory_hotplug() are used to
-protect totalram_pages and zone->managed_pages. Other than the memory
-hotplug driver, totalram_pages and zone->managed_pages may also be
-modified at runtime by other drivers, such as Xen balloon,
-virtio_balloon etc. For those cases, memory hotplug lock is a little
-too heavy, so introduce a dedicated lock to protect totalram_pages
-and zone->managed_pages.
+Enhance adjust_managed_page_count() to adjust totalhigh_pages for
+highmem pages. And change code which directly adjusts totalram_pages
+to use adjust_managed_page_count() because it adjusts totalram_pages,
+totalhigh_pages and zone->managed_pages altogether in a safe way.
 
-Now we have a simplified locking rules totalram_pages and
-zone->managed_pages as:
-1) no locking for read accesses because they are unsigned long.
-2) no locking for write accesses at boot time in single-threaded context.
-3) serialize write accesses at runtime by acquiring the dedicated
-   managed_page_count_lock.
+Remove inc_totalhigh_pages() and dec_totalhigh_pages() from xen/balloon
+driver bacause adjust_managed_page_count() has already adjusted
+totalhigh_pages.
 
-Also adjust zone->managed_pages when freeing reserved pages into the
-buddy system, to keep totalram_pages and zone->managed_pages in
-consistence.
+This patch also fixes two bugs:
+1) enhances virtio_balloon driver to adjust totalhigh_pages when
+   reserve/unreserve pages.
+2) enhance memory_hotplug.c to adjust totalhigh_pages when hot-removing
+   memory.
+
+We still need to deal with modifications of totalram_pages in file
+arch/powerpc/platforms/pseries/cmm.c, but need help from PPC experts.
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+Cc: Chris Metcalf <cmetcalf@tilera.com>
+Cc: Rusty Russell <rusty@rustcorp.com.au>
+Cc: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Cc: Jeremy Fitzhardinge <jeremy@goop.org>
+Cc: Wen Congyang <wency@cn.fujitsu.com>
 Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Tang Chen <tangchen@cn.fujitsu.com>
+Cc: Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>
 Cc: Mel Gorman <mgorman@suse.de>
-Cc: Michel Lespinasse <walken@google.com>
-Cc: Rik van Riel <riel@redhat.com>
 Cc: Minchan Kim <minchan@kernel.org>
-Cc: linux-mm@kvack.org (open list:MEMORY MANAGEMENT)
-Cc: linux-kernel@vger.kernel.org (open list)
+Cc: linux-kernel@vger.kernel.org
+Cc: virtualization@lists.linux-foundation.org
+Cc: xen-devel@lists.xensource.com
+Cc: linux-mm@kvack.org
 ---
- include/linux/mm.h     |  6 ++----
- include/linux/mmzone.h | 14 ++++++++++----
- mm/page_alloc.c        | 12 ++++++++++++
- 3 files changed, 24 insertions(+), 8 deletions(-)
+ drivers/virtio/virtio_balloon.c |  8 +++++---
+ drivers/xen/balloon.c           | 23 +++++------------------
+ mm/hugetlb.c                    |  2 +-
+ mm/memory_hotplug.c             | 15 +++------------
+ mm/page_alloc.c                 | 10 +++++-----
+ 5 files changed, 19 insertions(+), 39 deletions(-)
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index a56bcaa..bfe3686 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -1309,6 +1309,7 @@ extern void free_initmem(void);
-  */
- extern unsigned long free_reserved_area(void *start, void *end,
- 					int poison, char *s);
-+
- #ifdef	CONFIG_HIGHMEM
- /*
-  * Free a highmem page into the buddy system, adjusting totalhigh_pages
-@@ -1317,10 +1318,7 @@ extern unsigned long free_reserved_area(void *start, void *end,
- extern void free_highmem_page(struct page *page);
+diff --git a/drivers/virtio/virtio_balloon.c b/drivers/virtio/virtio_balloon.c
+index bd3ae32..6649968 100644
+--- a/drivers/virtio/virtio_balloon.c
++++ b/drivers/virtio/virtio_balloon.c
+@@ -148,7 +148,7 @@ static void fill_balloon(struct virtio_balloon *vb, size_t num)
+ 		}
+ 		set_page_pfns(vb->pfns + vb->num_pfns, page);
+ 		vb->num_pages += VIRTIO_BALLOON_PAGES_PER_PAGE;
+-		totalram_pages--;
++		adjust_managed_page_count(page, -1);
+ 	}
+ 
+ 	/* Did we get any? */
+@@ -160,11 +160,13 @@ static void fill_balloon(struct virtio_balloon *vb, size_t num)
+ static void release_pages_by_pfn(const u32 pfns[], unsigned int num)
+ {
+ 	unsigned int i;
++	struct page *page;
+ 
+ 	/* Find pfns pointing at start of each page, get pages and free them. */
+ 	for (i = 0; i < num; i += VIRTIO_BALLOON_PAGES_PER_PAGE) {
+-		balloon_page_free(balloon_pfn_to_page(pfns[i]));
+-		totalram_pages++;
++		page = balloon_pfn_to_page(pfns[i]);
++		balloon_page_free(page);
++		adjust_managed_page_count(page, 1);
+ 	}
+ }
+ 
+diff --git a/drivers/xen/balloon.c b/drivers/xen/balloon.c
+index d42da3b..a453c05 100644
+--- a/drivers/xen/balloon.c
++++ b/drivers/xen/balloon.c
+@@ -89,14 +89,6 @@ EXPORT_SYMBOL_GPL(balloon_stats);
+ /* We increase/decrease in batches which fit in a page */
+ static xen_pfn_t frame_list[PAGE_SIZE / sizeof(unsigned long)];
+ 
+-#ifdef CONFIG_HIGHMEM
+-#define inc_totalhigh_pages() (totalhigh_pages++)
+-#define dec_totalhigh_pages() (totalhigh_pages--)
+-#else
+-#define inc_totalhigh_pages() do {} while (0)
+-#define dec_totalhigh_pages() do {} while (0)
+-#endif
+-
+ /* List of ballooned pages, threaded through the mem_map array. */
+ static LIST_HEAD(ballooned_pages);
+ 
+@@ -132,9 +124,7 @@ static void __balloon_append(struct page *page)
+ static void balloon_append(struct page *page)
+ {
+ 	__balloon_append(page);
+-	if (PageHighMem(page))
+-		dec_totalhigh_pages();
+-	totalram_pages--;
++	adjust_managed_page_count(page, -1);
+ }
+ 
+ /* balloon_retrieve: rescue a page from the balloon, if it is not empty. */
+@@ -151,13 +141,12 @@ static struct page *balloon_retrieve(bool prefer_highmem)
+ 		page = list_entry(ballooned_pages.next, struct page, lru);
+ 	list_del(&page->lru);
+ 
+-	if (PageHighMem(page)) {
++	if (PageHighMem(page))
+ 		balloon_stats.balloon_high--;
+-		inc_totalhigh_pages();
+-	} else
++	else
+ 		balloon_stats.balloon_low--;
+ 
+-	totalram_pages++;
++	adjust_managed_page_count(page, 1);
+ 
+ 	return page;
+ }
+@@ -374,9 +363,7 @@ static enum bp_state increase_reservation(unsigned long nr_pages)
  #endif
  
--static inline void adjust_managed_page_count(struct page *page, long count)
--{
--	totalram_pages += count;
--}
-+extern void adjust_managed_page_count(struct page *page, long count);
+ 		/* Relinquish the page back to the allocator. */
+-		ClearPageReserved(page);
+-		init_page_count(page);
+-		__free_page(page);
++		__free_reserved_page(page);
+ 	}
  
- /* Free the reserved page into the buddy system, so it gets managed. */
- static inline void __free_reserved_page(struct page *page)
-diff --git a/include/linux/mmzone.h b/include/linux/mmzone.h
-index 8c9f859..14ca1a9 100644
---- a/include/linux/mmzone.h
-+++ b/include/linux/mmzone.h
-@@ -474,10 +474,16 @@ struct zone {
- 	 * frequently read in proximity to zone->lock.  It's good to
- 	 * give them a chance of being in the same cacheline.
- 	 *
--	 * Write access to present_pages and managed_pages at runtime should
--	 * be protected by lock_memory_hotplug()/unlock_memory_hotplug().
--	 * Any reader who can't tolerant drift of present_pages and
--	 * managed_pages should hold memory hotplug lock to get a stable value.
-+	 * Write access to present_pages at runtime should be protected by
-+	 * lock_memory_hotplug()/unlock_memory_hotplug().  Any reader who can't
-+	 * tolerant drift of present_pages should hold memory hotplug lock to
-+	 * get a stable value.
-+	 *
-+	 * Read access to managed_pages should be safe because it's unsigned
-+	 * long. Write access to zone->managed_pages and totalram_pages are
-+	 * protected by managed_page_count_lock at runtime. Idealy only
-+	 * adjust_managed_page_count() should be used instead of directly
-+	 * touching zone->managed_pages and totalram_pages.
- 	 */
- 	unsigned long		spanned_pages;
- 	unsigned long		present_pages;
+ 	balloon_stats.current_pages += rc;
+diff --git a/mm/hugetlb.c b/mm/hugetlb.c
+index f8feeec..95c5a6b 100644
+--- a/mm/hugetlb.c
++++ b/mm/hugetlb.c
+@@ -1246,7 +1246,7 @@ static void __init gather_bootmem_prealloc(void)
+ 		 * side-effects, like CommitLimit going negative.
+ 		 */
+ 		if (h->order > (MAX_ORDER - 1))
+-			totalram_pages += 1 << h->order;
++			adjust_managed_page_count(page, 1 << h->order);
+ 	}
+ }
+ 
+diff --git a/mm/memory_hotplug.c b/mm/memory_hotplug.c
+index c291295..304ada7 100644
+--- a/mm/memory_hotplug.c
++++ b/mm/memory_hotplug.c
+@@ -769,20 +769,13 @@ EXPORT_SYMBOL_GPL(__online_page_set_limits);
+ 
+ void __online_page_increment_counters(struct page *page)
+ {
+-	totalram_pages++;
+-
+-#ifdef CONFIG_HIGHMEM
+-	if (PageHighMem(page))
+-		totalhigh_pages++;
+-#endif
++	adjust_managed_page_count(page, 1);
+ }
+ EXPORT_SYMBOL_GPL(__online_page_increment_counters);
+ 
+ void __online_page_free(struct page *page)
+ {
+-	ClearPageReserved(page);
+-	init_page_count(page);
+-	__free_page(page);
++	__free_reserved_page(page);
+ }
+ EXPORT_SYMBOL_GPL(__online_page_free);
+ 
+@@ -979,7 +972,6 @@ int __ref online_pages(unsigned long pfn, unsigned long nr_pages, int online_typ
+ 		return ret;
+ 	}
+ 
+-	zone->managed_pages += onlined_pages;
+ 	zone->present_pages += onlined_pages;
+ 	zone->zone_pgdat->node_present_pages += onlined_pages;
+ 	if (onlined_pages) {
+@@ -1563,10 +1555,9 @@ repeat:
+ 	/* reset pagetype flags and makes migrate type to be MOVABLE */
+ 	undo_isolate_page_range(start_pfn, end_pfn, MIGRATE_MOVABLE);
+ 	/* removal success */
+-	zone->managed_pages -= offlined_pages;
++	adjust_managed_page_count(pfn_to_page(start_pfn), -offlined_pages);
+ 	zone->present_pages -= offlined_pages;
+ 	zone->zone_pgdat->node_present_pages -= offlined_pages;
+-	totalram_pages -= offlined_pages;
+ 
+ 	init_per_zone_wmark_min();
+ 
 diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 0e681d3..14117a2 100644
+index a07e70a..56b0097 100644
 --- a/mm/page_alloc.c
 +++ b/mm/page_alloc.c
-@@ -100,6 +100,9 @@ nodemask_t node_states[NR_NODE_STATES] __read_mostly = {
- };
- EXPORT_SYMBOL(node_states);
+@@ -780,11 +780,7 @@ void __init init_cma_reserved_pageblock(struct page *page)
+ 	set_page_refcounted(page);
+ 	set_pageblock_migratetype(page, MIGRATE_CMA);
+ 	__free_pages(page, pageblock_order);
+-	totalram_pages += pageblock_nr_pages;
+-#ifdef CONFIG_HIGHMEM
+-	if (PageHighMem(page))
+-		totalhigh_pages += pageblock_nr_pages;
+-#endif
++	adjust_managed_page_count(page, pageblock_nr_pages);
+ }
+ #endif
  
-+/* Protect totalram_pages and zone->managed_pages */
-+static DEFINE_SPINLOCK(managed_page_count_lock);
-+
- unsigned long totalram_pages __read_mostly;
- unsigned long totalreserve_pages __read_mostly;
- /*
-@@ -5188,6 +5191,15 @@ early_param("movablecore", cmdline_parse_movablecore);
- 
- #endif /* CONFIG_HAVE_MEMBLOCK_NODE_MAP */
- 
-+void adjust_managed_page_count(struct page *page, long count)
-+{
-+	spin_lock(&managed_page_count_lock);
-+	page_zone(page)->managed_pages += count;
-+	totalram_pages += count;
-+	spin_unlock(&managed_page_count_lock);
-+}
-+EXPORT_SYMBOL(adjust_managed_page_count);
-+
- unsigned long free_reserved_area(void *start, void *end, int poison, char *s)
- {
- 	void *pos;
+@@ -5189,6 +5185,10 @@ void adjust_managed_page_count(struct page *page, long count)
+ 	spin_lock(&managed_page_count_lock);
+ 	page_zone(page)->managed_pages += count;
+ 	totalram_pages += count;
++#ifdef	CONFIG_HIGHMEM
++	if (PageHighMem(page))
++		totalhigh_pages += count;
++#endif
+ 	spin_unlock(&managed_page_count_lock);
+ }
+ EXPORT_SYMBOL(adjust_managed_page_count);
 -- 
 1.8.1.2
 
