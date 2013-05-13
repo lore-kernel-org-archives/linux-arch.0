@@ -1,8 +1,8 @@
 From: Oleg Nesterov <oleg@redhat.com>
-Subject: [PATCH 06/13] ptrace/x86: simplify the "disable" logic in
-	ptrace_write_dr7()
-Date: Mon, 13 May 2013 17:17:18 +0200
-Message-ID: <20130513151718.GA6266@redhat.com>
+Subject: [PATCH 09/13] ptrace/x86: ptrace_write_dr7() should create bp if
+	!disabled
+Date: Mon, 13 May 2013 17:17:29 +0200
+Message-ID: <20130513151729.GA6283@redhat.com>
 References: <20130513151631.GA6215@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -14,76 +14,53 @@ To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Frederic Weisbecker <fweisbec@gmail.com>, Ingo Molnar <mingo@elte.hu>, Jan Kratochvil <jan.kratochvil@redhat.com>, Michael Neuling <mikey@neuling.org>, Paul Mackerras <paulus@samba.org>, Paul Mundt <lethal@linux-sh.org>, Prasad <prasad@linux.vnet.ibm.com>, Russell King <linux@arm.linux.org.uk>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-ptrace_write_dr7() looks unnecessarily overcomplicated. We can
-factor out ptrace_modify_breakpoint() and do not do "continue"
-twice, just we need to pass the proper "disabled" argument to
-ptrace_modify_breakpoint().
+24f1e32c "hw-breakpoints: Rewrite the hw-breakpoints layer on top
+of perf events" introduced the minor regression. Before this commit
 
+	PTRACE_POKEUSER DR7, enableDR0
+	PTRACE_POKEUSER DR0, address
+
+was perfectly valid, now PTRACE_POKEUSER(DR7) fails if DR0 was not
+previously initialized by PTRACE_POKEUSER(DR0).
+
+Change ptrace_write_dr7() to do ptrace_register_breakpoint(addr => 0)
+if !bp && !disabled. This fixes watchpoint-zeroaddr from ptrace-tests,
+see https://bugzilla.redhat.com/show_bug.cgi?id=660204.
+
+Reported-by: Jan Kratochvil <jan.kratochvil@redhat.com>
 Signed-off-by: Oleg Nesterov <oleg@redhat.com>
 Acked-by: Frederic Weisbecker <fweisbec@gmail.com>
 ---
- arch/x86/kernel/ptrace.c |   40 +++++++++++++++-------------------------
- 1 files changed, 15 insertions(+), 25 deletions(-)
+ arch/x86/kernel/ptrace.c |   17 ++++++++++-------
+ 1 files changed, 10 insertions(+), 7 deletions(-)
 
 diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
-index 7a98b21..0649f16 100644
+index 0526368..5c387b3 100644
 --- a/arch/x86/kernel/ptrace.c
 +++ b/arch/x86/kernel/ptrace.c
-@@ -637,9 +637,7 @@ static int ptrace_write_dr7(struct task_struct *tsk, unsigned long data)
- 	struct thread_struct *thread = &(tsk->thread);
- 	unsigned long old_dr7;
- 	int i, orig_ret = 0, rc = 0;
--	int enabled, second_pass = 0;
--	unsigned len, type;
--	struct perf_event *bp;
-+	int second_pass = 0;
- 
- 	data &= ~DR_CONTROL_RESERVED;
- 	old_dr7 = ptrace_get_dr7(thread->ptrace_bps);
-@@ -649,30 +647,22 @@ restore:
- 	 * appropriate changes to each.
- 	 */
- 	for (i = 0; i < HBP_NUM; i++) {
--		enabled = decode_dr7(data, i, &len, &type);
--		bp = thread->ptrace_bps[i];
--
--		if (!enabled) {
--			if (bp) {
--				/*
--				 * Don't unregister the breakpoints right-away,
--				 * unless all register_user_hw_breakpoint()
--				 * requests have succeeded. This prevents
--				 * any window of opportunity for debug
--				 * register grabbing by other users.
--				 */
--				if (!second_pass)
--					continue;
--
--				rc = ptrace_modify_breakpoint(bp, len, type,
--							      tsk, 1);
--				if (rc)
--					break;
--			}
--			continue;
-+		unsigned len, type;
-+		bool disabled = !decode_dr7(data, i, &len, &type);
-+		struct perf_event *bp = thread->ptrace_bps[i];
+@@ -670,13 +670,16 @@ restore:
+ 		if (!bp) {
+ 			if (disabled)
+ 				continue;
+-			/*
+-			 * We should have at least an inactive breakpoint at
+-			 * this slot. It means the user is writing dr7 without
+-			 * having written the address register first.
+-			 */
+-			rc = -EINVAL;
+-			break;
 +
-+		if (disabled) {
-+			/*
-+			 * Don't unregister the breakpoints right-away, unless
-+			 * all register_user_hw_breakpoint() requests have
-+			 * succeeded. This prevents any window of opportunity
-+			 * for debug register grabbing by other users.
-+			 */
-+			if (!bp || !second_pass)
-+				continue;
++			bp = ptrace_register_breakpoint(tsk,
++					len, type, 0, disabled);
++			if (IS_ERR(bp)) {
++				rc = PTR_ERR(bp);
++				break;
++			}
++
++			thread->ptrace_bps[i] = bp;
++			continue;
  		}
  
--		rc = ptrace_modify_breakpoint(bp, len, type, tsk, 0);
-+		rc = ptrace_modify_breakpoint(bp, len, type, tsk, disabled);
- 		if (rc)
- 			break;
- 	}
+ 		rc = ptrace_modify_breakpoint(bp, len, type, disabled);
 -- 
 1.5.5.1
