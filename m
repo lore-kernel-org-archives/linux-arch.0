@@ -1,36 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f52.google.com ([209.85.160.52]:33229 "EHLO
-	mail-pb0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753311Ab3ELPRX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 12 May 2013 11:17:23 -0400
-Message-ID: <518FB27A.4070903@gmail.com>
-Date: Sun, 12 May 2013 23:17:14 +0800
-From: Liu Jiang <liuj97@gmail.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH v5, part4 20/41] mm/h8300: prepare for removing num_physpages
- and simplify mem_init()
-References: <1368028298-7401-1-git-send-email-jiang.liu@huawei.com> <1368028298-7401-21-git-send-email-jiang.liu@huawei.com> <518A7CC0.1010606@cogentembedded.com> <518AA7A0.1020702@cogentembedded.com> <518AE13A.2060204@linux.vnet.ibm.com>
-In-Reply-To: <518AE13A.2060204@linux.vnet.ibm.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from mx1.redhat.com ([209.132.183.28]:37269 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752041Ab3EMJTd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 13 May 2013 05:19:33 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <1368293689-16410-15-git-send-email-jiang.liu@huawei.com>
+References: <1368293689-16410-15-git-send-email-jiang.liu@huawei.com> <1368293689-16410-1-git-send-email-jiang.liu@huawei.com>
+Subject: Re: [PATCH v6, part3 14/16] mm: concentrate modification of totalram_pages into the mm core
+Date: Mon, 13 May 2013 10:19:11 +0100
+Message-ID: <15411.1368436751@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Cody P Schafer <cody@linux.vnet.ibm.com>
-Cc: Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Geert Uytterhoeven <geert@linux-m68k.org>
-Message-ID: <20130512151714.b-16t1fueDYjaM8dgjERg1swgk3Wcj62UPlgWKOhbmY@z>
+To: Jiang Liu <liuj97@gmail.com>
+Cc: dhowells@redhat.com, Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130513091911.MlsTSQD7waHbGozq1QJ-pyQXocDk7S3My7kL4q2vt7c@z>
 
-On 05/09/2013 07:35 AM, Cody P Schafer wrote:
-> On 05/08/2013 12:29 PM, Sergei Shtylyov wrote:
->>
->>      Although, not necessarily: it also supports CONFIG_DYNAMIC_DEBUG --
->> look at how pr_debug() is defined.
->> So this doesn't seem to be an equivalent change, and I suggest not doing
->> it at all.
->>
->> WBR, Sergei
->
-> pr_devel() should get the same behavior: no code emitted unless debug 
-> is defined, if it is, output at KERN_DEBUG level.
->
-Thanks Cody and Sergei, will use pr_devel() instead in next version.
-Gerry
+Jiang Liu <liuj97@gmail.com> wrote:
+
+> Concentrate code to modify totalram_pages into the mm core, so the arch
+> memory initialized code doesn't need to take care of it. With these
+> changes applied, only following functions from mm core modify global
+> variable totalram_pages:
+> free_bootmem_late(), free_all_bootmem(), free_all_bootmem_node(),
+> adjust_managed_page_count().
+> 
+> With this patch applied, it will be much more easier for us to keep
+> totalram_pages and zone->managed_pages in consistence.
+
+I like it.
+
+Acked-by: David Howells <dhowells@redhat.com>
