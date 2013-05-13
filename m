@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:35048 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:13274 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754921Ab3EMPV1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 May 2013 11:21:27 -0400
-Date: Mon, 13 May 2013 17:17:44 +0200
+	id S1755035Ab3EMPVd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 13 May 2013 11:21:33 -0400
+Date: Mon, 13 May 2013 17:17:33 +0200
 From: Oleg Nesterov <oleg@redhat.com>
-Subject: [PATCH 13/13] x86: kill TIF_DEBUG
-Message-ID: <20130513151744.GA6308@redhat.com>
+Subject: [PATCH 10/13] ptrace/x86: cleanup ptrace_set_debugreg()
+Message-ID: <20130513151733.GA6290@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
@@ -15,43 +15,78 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Frederic Weisbecker <fweisbec@gmail.com>, Ingo Molnar <mingo@elte.hu>, Jan Kratochvil <jan.kratochvil@redhat.com>, Michael Neuling <mikey@neuling.org>, Paul Mackerras <paulus@samba.org>, Paul Mundt <lethal@linux-sh.org>, Prasad <prasad@linux.vnet.ibm.com>, Russell King <linux@arm.linux.org.uk>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130513151744.CaImN5bDMBUO8YC_iiCer1t8WrZ-bV4k7i2d_u6aDMk@z>
+Message-ID: <20130513151733.TWPUvB4HZKQReOo9akmvztNCC-pHzTcugy_HyOe-SEs@z>
 
-Because it is not used.
+ptrace_set_debugreg() is trivial but looks horrible. Kill the
+unnecessary goto's and return's to cleanup the code.
+
+This matches ptrace_get_debugreg() which also needs the trivial
+whitespace cleanups.
 
 Signed-off-by: Oleg Nesterov <oleg@redhat.com>
+Acked-by: Frederic Weisbecker <fweisbec@gmail.com>
 ---
- arch/x86/include/asm/thread_info.h |    4 +---
- 1 files changed, 1 insertions(+), 3 deletions(-)
+ arch/x86/kernel/ptrace.c |   26 ++++++++------------------
+ 1 files changed, 8 insertions(+), 18 deletions(-)
 
-diff --git a/arch/x86/include/asm/thread_info.h b/arch/x86/include/asm/thread_info.h
-index a1df6e8..2781119 100644
---- a/arch/x86/include/asm/thread_info.h
-+++ b/arch/x86/include/asm/thread_info.h
-@@ -89,7 +89,6 @@ struct thread_info {
- #define TIF_FORK		18	/* ret_from_fork */
- #define TIF_NOHZ		19	/* in adaptive nohz mode */
- #define TIF_MEMDIE		20	/* is terminating due to OOM killer */
--#define TIF_DEBUG		21	/* uses debug registers */
- #define TIF_IO_BITMAP		22	/* uses I/O bitmap */
- #define TIF_FORCED_TF		24	/* true if TF in eflags artificially */
- #define TIF_BLOCKSTEP		25	/* set when we want DEBUGCTLMSR_BTF */
-@@ -113,7 +112,6 @@ struct thread_info {
- #define _TIF_IA32		(1 << TIF_IA32)
- #define _TIF_FORK		(1 << TIF_FORK)
- #define _TIF_NOHZ		(1 << TIF_NOHZ)
--#define _TIF_DEBUG		(1 << TIF_DEBUG)
- #define _TIF_IO_BITMAP		(1 << TIF_IO_BITMAP)
- #define _TIF_FORCED_TF		(1 << TIF_FORCED_TF)
- #define _TIF_BLOCKSTEP		(1 << TIF_BLOCKSTEP)
-@@ -154,7 +152,7 @@ struct thread_info {
- 	(_TIF_IO_BITMAP|_TIF_NOTSC|_TIF_BLOCKSTEP)
+diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
+index 5c387b3..7461f50 100644
+--- a/arch/x86/kernel/ptrace.c
++++ b/arch/x86/kernel/ptrace.c
+@@ -703,7 +703,7 @@ restore:
+  */
+ static unsigned long ptrace_get_debugreg(struct task_struct *tsk, int n)
+ {
+-	struct thread_struct *thread = &(tsk->thread);
++	struct thread_struct *thread = &tsk->thread;
+ 	unsigned long val = 0;
  
- #define _TIF_WORK_CTXSW_PREV (_TIF_WORK_CTXSW|_TIF_USER_RETURN_NOTIFY)
--#define _TIF_WORK_CTXSW_NEXT (_TIF_WORK_CTXSW|_TIF_DEBUG)
-+#define _TIF_WORK_CTXSW_NEXT (_TIF_WORK_CTXSW)
+ 	if (n < HBP_NUM) {
+@@ -713,7 +713,7 @@ static unsigned long ptrace_get_debugreg(struct task_struct *tsk, int n)
+ 			val = bp->hw.info.address;
+ 	} else if (n == 6) {
+ 		val = thread->debugreg6;
+-	 } else if (n == 7) {
++	} else if (n == 7) {
+ 		val = thread->ptrace_dr7;
+ 	}
+ 	return val;
+@@ -761,30 +761,20 @@ static int ptrace_set_breakpoint_addr(struct task_struct *tsk, int nr,
+ static int ptrace_set_debugreg(struct task_struct *tsk, int n,
+ 			       unsigned long val)
+ {
+-	struct thread_struct *thread = &(tsk->thread);
+-	int rc = 0;
+-
++	struct thread_struct *thread = &tsk->thread;
+ 	/* There are no DR4 or DR5 registers */
+-	if (n == 4 || n == 5)
+-		return -EIO;
++	int rc = -EIO;
  
- #define PREEMPT_ACTIVE		0x10000000
+-	if (n == 6) {
+-		thread->debugreg6 = val;
+-		goto ret_path;
+-	}
+ 	if (n < HBP_NUM) {
+ 		rc = ptrace_set_breakpoint_addr(tsk, n, val);
+-		if (rc)
+-			return rc;
+-	}
+-	/* All that's left is DR7 */
+-	if (n == 7) {
++	} else if (n == 6) {
++		thread->debugreg6 = val;
++		rc = 0;
++	} else if (n == 7) {
+ 		rc = ptrace_write_dr7(tsk, val);
+ 		if (!rc)
+ 			thread->ptrace_dr7 = val;
+ 	}
+-
+-ret_path:
+ 	return rc;
+ }
  
 -- 
 1.5.5.1
