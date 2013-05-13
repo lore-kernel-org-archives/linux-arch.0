@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:16220 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:13301 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751589Ab3EMPUr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 May 2013 11:20:47 -0400
-Date: Mon, 13 May 2013 17:16:58 +0200
+	id S1755034Ab3EMPVc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 13 May 2013 11:21:32 -0400
+Date: Mon, 13 May 2013 17:17:02 +0200
 From: Oleg Nesterov <oleg@redhat.com>
-Subject: [PATCH 01/13] ptrace/x86: Revert "hw_breakpoints: Fix racy access
-	to ptrace breakpoints"
-Message-ID: <20130513151658.GA6239@redhat.com>
+Subject: [PATCH 02/13] ptrace/powerpc: Revert "hw_breakpoints: Fix racy
+	access to ptrace breakpoints"
+Message-ID: <20130513151702.GA6246@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
@@ -16,102 +16,122 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Frederic Weisbecker <fweisbec@gmail.com>, Ingo Molnar <mingo@elte.hu>, Jan Kratochvil <jan.kratochvil@redhat.com>, Michael Neuling <mikey@neuling.org>, Paul Mackerras <paulus@samba.org>, Paul Mundt <lethal@linux-sh.org>, Prasad <prasad@linux.vnet.ibm.com>, Russell King <linux@arm.linux.org.uk>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130513151658.376PMOBypP9uV-A6mZ2RcCXO08hskYW9QZS2AXPVCf8@z>
+Message-ID: <20130513151702.GmAYMNtZMVWzmXganXnxZRZdmrhp3YArmGbf80SGsgE@z>
 
-This reverts commit 87dc669ba25777b67796d7262c569429e58b1ed4.
+This reverts commit 07fa7a0a8a586c01a8b416358c7012dcb9dc688d and
+removes ptrace_get/put_breakpoints() added by other commits.
 
 The patch was fine but we can no longer race with SIGKILL after
 9899d11f "ptrace: ensure arch_ptrace/ptrace_request can never race
 with SIGKILL", the __TASK_TRACED tracee can't be woken up and
 ->ptrace_bps[] can't go away.
 
-The patch only removes ptrace_get_breakpoints/ptrace_put_breakpoints
-and does a couple of "while at it" cleanups, it doesn't remove other
-changes from the reverted commit.
-
 Signed-off-by: Oleg Nesterov <oleg@redhat.com>
-Acked-by: Ingo Molnar <mingo@kernel.org>
-Acked-by: Frederic Weisbecker <fweisbec@gmail.com>
+Acked-by: Michael Neuling <mikey@neuling.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
 ---
- arch/x86/kernel/ptrace.c |   28 +++++-----------------------
- 1 files changed, 5 insertions(+), 23 deletions(-)
+ arch/powerpc/kernel/ptrace.c |   20 --------------------
+ 1 files changed, 0 insertions(+), 20 deletions(-)
 
-diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
-index 29a8120..7a98b21 100644
---- a/arch/x86/kernel/ptrace.c
-+++ b/arch/x86/kernel/ptrace.c
-@@ -641,9 +641,6 @@ static int ptrace_write_dr7(struct task_struct *tsk, unsigned long data)
- 	unsigned len, type;
- 	struct perf_event *bp;
- 
--	if (ptrace_get_breakpoints(tsk) < 0)
+diff --git a/arch/powerpc/kernel/ptrace.c b/arch/powerpc/kernel/ptrace.c
+index 3b14d32..0f28c19 100644
+--- a/arch/powerpc/kernel/ptrace.c
++++ b/arch/powerpc/kernel/ptrace.c
+@@ -974,16 +974,12 @@ int ptrace_set_debugreg(struct task_struct *task, unsigned long addr,
+ 	hw_brk.type = (data & HW_BRK_TYPE_DABR) | HW_BRK_TYPE_PRIV_ALL;
+ 	hw_brk.len = 8;
+ #ifdef CONFIG_HAVE_HW_BREAKPOINT
+-	if (ptrace_get_breakpoints(task) < 0)
 -		return -ESRCH;
 -
- 	data &= ~DR_CONTROL_RESERVED;
- 	old_dr7 = ptrace_get_dr7(thread->ptrace_bps);
- restore:
-@@ -692,9 +689,7 @@ restore:
- 		goto restore;
- 	}
- 
--	ptrace_put_breakpoints(tsk);
--
--	return ((orig_ret < 0) ? orig_ret : rc);
-+	return orig_ret < 0 ? orig_ret : rc;
- }
- 
- /*
-@@ -706,18 +701,10 @@ static unsigned long ptrace_get_debugreg(struct task_struct *tsk, int n)
- 	unsigned long val = 0;
- 
- 	if (n < HBP_NUM) {
--		struct perf_event *bp;
-+		struct perf_event *bp = thread->ptrace_bps[n];
- 
--		if (ptrace_get_breakpoints(tsk) < 0)
--			return -ESRCH;
--
--		bp = thread->ptrace_bps[n];
--		if (!bp)
--			val = 0;
--		else
-+		if (bp)
- 			val = bp->hw.info.address;
--
--		ptrace_put_breakpoints(tsk);
- 	} else if (n == 6) {
- 		val = thread->debugreg6;
- 	 } else if (n == 7) {
-@@ -734,9 +721,6 @@ static int ptrace_set_breakpoint_addr(struct task_struct *tsk, int nr,
- 	struct perf_event_attr attr;
- 	int err = 0;
- 
--	if (ptrace_get_breakpoints(tsk) < 0)
--		return -ESRCH;
--
- 	if (!t->ptrace_bps[nr]) {
- 		ptrace_breakpoint_init(&attr);
- 		/*
-@@ -762,7 +746,7 @@ static int ptrace_set_breakpoint_addr(struct task_struct *tsk, int nr,
- 		 */
- 		if (IS_ERR(bp)) {
- 			err = PTR_ERR(bp);
--			goto put;
-+			goto out;
+ 	bp = thread->ptrace_bps[0];
+ 	if ((!data) || !(hw_brk.type & HW_BRK_TYPE_RDWR)) {
+ 		if (bp) {
+ 			unregister_hw_breakpoint(bp);
+ 			thread->ptrace_bps[0] = NULL;
  		}
- 
- 		t->ptrace_bps[nr] = bp;
-@@ -773,9 +757,7 @@ static int ptrace_set_breakpoint_addr(struct task_struct *tsk, int nr,
- 		attr.bp_addr = addr;
- 		err = modify_user_hw_breakpoint(bp, &attr);
+-		ptrace_put_breakpoints(task);
+ 		return 0;
  	}
--
--put:
--	ptrace_put_breakpoints(tsk);
-+out:
- 	return err;
- }
+ 	if (bp) {
+@@ -996,11 +992,9 @@ int ptrace_set_debugreg(struct task_struct *task, unsigned long addr,
  
+ 		ret =  modify_user_hw_breakpoint(bp, &attr);
+ 		if (ret) {
+-			ptrace_put_breakpoints(task);
+ 			return ret;
+ 		}
+ 		thread->ptrace_bps[0] = bp;
+-		ptrace_put_breakpoints(task);
+ 		thread->hw_brk = hw_brk;
+ 		return 0;
+ 	}
+@@ -1015,12 +1009,9 @@ int ptrace_set_debugreg(struct task_struct *task, unsigned long addr,
+ 					       ptrace_triggered, NULL, task);
+ 	if (IS_ERR(bp)) {
+ 		thread->ptrace_bps[0] = NULL;
+-		ptrace_put_breakpoints(task);
+ 		return PTR_ERR(bp);
+ 	}
+ 
+-	ptrace_put_breakpoints(task);
+-
+ #endif /* CONFIG_HAVE_HW_BREAKPOINT */
+ 	task->thread.hw_brk = hw_brk;
+ #else /* CONFIG_PPC_ADV_DEBUG_REGS */
+@@ -1439,9 +1430,6 @@ static long ppc_set_hwdebug(struct task_struct *child,
+ 	if (bp_info->trigger_type & PPC_BREAKPOINT_TRIGGER_WRITE)
+ 		brk.type |= HW_BRK_TYPE_WRITE;
+ #ifdef CONFIG_HAVE_HW_BREAKPOINT
+-	if (ptrace_get_breakpoints(child) < 0)
+-		return -ESRCH;
+-
+ 	/*
+ 	 * Check if the request is for 'range' breakpoints. We can
+ 	 * support it if range < 8 bytes.
+@@ -1449,12 +1437,10 @@ static long ppc_set_hwdebug(struct task_struct *child,
+ 	if (bp_info->addr_mode == PPC_BREAKPOINT_MODE_RANGE_INCLUSIVE) {
+ 		len = bp_info->addr2 - bp_info->addr;
+ 	} else if (bp_info->addr_mode != PPC_BREAKPOINT_MODE_EXACT) {
+-		ptrace_put_breakpoints(child);
+ 		return -EINVAL;
+ 	}
+ 	bp = thread->ptrace_bps[0];
+ 	if (bp) {
+-		ptrace_put_breakpoints(child);
+ 		return -ENOSPC;
+ 	}
+ 
+@@ -1468,11 +1454,9 @@ static long ppc_set_hwdebug(struct task_struct *child,
+ 					       ptrace_triggered, NULL, child);
+ 	if (IS_ERR(bp)) {
+ 		thread->ptrace_bps[0] = NULL;
+-		ptrace_put_breakpoints(child);
+ 		return PTR_ERR(bp);
+ 	}
+ 
+-	ptrace_put_breakpoints(child);
+ 	return 1;
+ #endif /* CONFIG_HAVE_HW_BREAKPOINT */
+ 
+@@ -1516,16 +1500,12 @@ static long ppc_del_hwdebug(struct task_struct *child, long data)
+ 		return -EINVAL;
+ 
+ #ifdef CONFIG_HAVE_HW_BREAKPOINT
+-	if (ptrace_get_breakpoints(child) < 0)
+-		return -ESRCH;
+-
+ 	bp = thread->ptrace_bps[0];
+ 	if (bp) {
+ 		unregister_hw_breakpoint(bp);
+ 		thread->ptrace_bps[0] = NULL;
+ 	} else
+ 		ret = -ENOENT;
+-	ptrace_put_breakpoints(child);
+ 	return ret;
+ #else /* CONFIG_HAVE_HW_BREAKPOINT */
+ 	if (child->thread.hw_brk.address == 0)
 -- 
 1.5.5.1
 
