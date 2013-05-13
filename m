@@ -1,29 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:53962 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:30999 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754951Ab3EMPVY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 May 2013 11:21:24 -0400
-Date: Mon, 13 May 2013 17:16:31 +0200
+	id S1752684Ab3EMPVL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 13 May 2013 11:21:11 -0400
+Date: Mon, 13 May 2013 17:17:18 +0200
 From: Oleg Nesterov <oleg@redhat.com>
-Subject: [PATCH 0/13] ptrace/hw_breakpoint cleanups/fixes
-Message-ID: <20130513151631.GA6215@redhat.com>
+Subject: [PATCH 06/13] ptrace/x86: simplify the "disable" logic in
+	ptrace_write_dr7()
+Message-ID: <20130513151718.GA6266@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
+In-Reply-To: <20130513151631.GA6215@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Frederic Weisbecker <fweisbec@gmail.com>, Ingo Molnar <mingo@elte.hu>, Jan Kratochvil <jan.kratochvil@redhat.com>, Michael Neuling <mikey@neuling.org>, Paul Mackerras <paulus@samba.org>, Paul Mundt <lethal@linux-sh.org>, Prasad <prasad@linux.vnet.ibm.com>, Russell King <linux@arm.linux.org.uk>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130513151631.CL_exIUCzQj49loHPFG0ccDDsgRvLwO4McunXFixPSA@z>
+Message-ID: <20130513151718.j-rIRMACDijXPijOSrD6WJgDE2aUxiTVojb6i_ppX5g@z>
 
-Hello.
+ptrace_write_dr7() looks unnecessarily overcomplicated. We can
+factor out ptrace_modify_breakpoint() and do not do "continue"
+twice, just we need to pass the proper "disabled" argument to
+ptrace_modify_breakpoint().
 
-Andrew, please find ptrace/hw_breakpoint changes I sent before.
+Signed-off-by: Oleg Nesterov <oleg@redhat.com>
+Acked-by: Frederic Weisbecker <fweisbec@gmail.com>
+---
+ arch/x86/kernel/ptrace.c |   40 +++++++++++++++-------------------------
+ 1 files changed, 15 insertions(+), 25 deletions(-)
 
-No changes, I only added the acks I got.
-
-4/13 (arch/sh) and the last 2 patches were not acked, but hopefully
-the changes are really simple.
-
-Oleg.
+diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
+index 7a98b21..0649f16 100644
+--- a/arch/x86/kernel/ptrace.c
++++ b/arch/x86/kernel/ptrace.c
+@@ -637,9 +637,7 @@ static int ptrace_write_dr7(struct task_struct *tsk, unsigned long data)
+ 	struct thread_struct *thread = &(tsk->thread);
+ 	unsigned long old_dr7;
+ 	int i, orig_ret = 0, rc = 0;
+-	int enabled, second_pass = 0;
+-	unsigned len, type;
+-	struct perf_event *bp;
++	int second_pass = 0;
+ 
+ 	data &= ~DR_CONTROL_RESERVED;
+ 	old_dr7 = ptrace_get_dr7(thread->ptrace_bps);
+@@ -649,30 +647,22 @@ restore:
+ 	 * appropriate changes to each.
+ 	 */
+ 	for (i = 0; i < HBP_NUM; i++) {
+-		enabled = decode_dr7(data, i, &len, &type);
+-		bp = thread->ptrace_bps[i];
+-
+-		if (!enabled) {
+-			if (bp) {
+-				/*
+-				 * Don't unregister the breakpoints right-away,
+-				 * unless all register_user_hw_breakpoint()
+-				 * requests have succeeded. This prevents
+-				 * any window of opportunity for debug
+-				 * register grabbing by other users.
+-				 */
+-				if (!second_pass)
+-					continue;
+-
+-				rc = ptrace_modify_breakpoint(bp, len, type,
+-							      tsk, 1);
+-				if (rc)
+-					break;
+-			}
+-			continue;
++		unsigned len, type;
++		bool disabled = !decode_dr7(data, i, &len, &type);
++		struct perf_event *bp = thread->ptrace_bps[i];
++
++		if (disabled) {
++			/*
++			 * Don't unregister the breakpoints right-away, unless
++			 * all register_user_hw_breakpoint() requests have
++			 * succeeded. This prevents any window of opportunity
++			 * for debug register grabbing by other users.
++			 */
++			if (!bp || !second_pass)
++				continue;
+ 		}
+ 
+-		rc = ptrace_modify_breakpoint(bp, len, type, tsk, 0);
++		rc = ptrace_modify_breakpoint(bp, len, type, tsk, disabled);
+ 		if (rc)
+ 			break;
+ 	}
+-- 
+1.5.5.1
 
