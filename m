@@ -1,120 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:48911 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:53962 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754920Ab3EMPVU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 May 2013 11:21:20 -0400
-Date: Mon, 13 May 2013 17:17:14 +0200
+	id S1754951Ab3EMPVY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 13 May 2013 11:21:24 -0400
+Date: Mon, 13 May 2013 17:16:31 +0200
 From: Oleg Nesterov <oleg@redhat.com>
-Subject: [PATCH 05/13] ptrace: Revert "Prepare to fix racy accesses on task
-	breakpoints"
-Message-ID: <20130513151714.GA6263@redhat.com>
+Subject: [PATCH 0/13] ptrace/hw_breakpoint cleanups/fixes
+Message-ID: <20130513151631.GA6215@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20130513151631.GA6215@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Frederic Weisbecker <fweisbec@gmail.com>, Ingo Molnar <mingo@elte.hu>, Jan Kratochvil <jan.kratochvil@redhat.com>, Michael Neuling <mikey@neuling.org>, Paul Mackerras <paulus@samba.org>, Paul Mundt <lethal@linux-sh.org>, Prasad <prasad@linux.vnet.ibm.com>, Russell King <linux@arm.linux.org.uk>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130513151714.66u2qdeCakGO3KzikQfDB6WoH1cBfPakdomgf0stnVA@z>
+Message-ID: <20130513151631.CL_exIUCzQj49loHPFG0ccDDsgRvLwO4McunXFixPSA@z>
 
-This reverts commit bf26c018490c2fce7fe9b629083b96ce0e6ad019.
+Hello.
 
-The patch was fine but we can no longer race with SIGKILL after
-9899d11f "ptrace: ensure arch_ptrace/ptrace_request can never race
-with SIGKILL", the __TASK_TRACED tracee can't be woken up and
-->ptrace_bps[] can't go away.
+Andrew, please find ptrace/hw_breakpoint changes I sent before.
 
-Now that ptrace_get_breakpoints/ptrace_put_breakpoints have no
-callers, we can kill them and remove task->ptrace_bp_refcnt.
+No changes, I only added the acks I got.
 
-Signed-off-by: Oleg Nesterov <oleg@redhat.com>
-Acked-by: Frederic Weisbecker <fweisbec@gmail.com>
-Acked-by: Michael Neuling <mikey@neuling.org>
----
- include/linux/ptrace.h |   10 ----------
- include/linux/sched.h  |    3 ---
- kernel/exit.c          |    2 +-
- kernel/ptrace.c        |   16 ----------------
- 4 files changed, 1 insertions(+), 30 deletions(-)
+4/13 (arch/sh) and the last 2 patches were not acked, but hopefully
+the changes are really simple.
 
-diff --git a/include/linux/ptrace.h b/include/linux/ptrace.h
-index 89573a3..07d0df6 100644
---- a/include/linux/ptrace.h
-+++ b/include/linux/ptrace.h
-@@ -142,9 +142,6 @@ static inline void ptrace_init_task(struct task_struct *child, bool ptrace)
- {
- 	INIT_LIST_HEAD(&child->ptrace_entry);
- 	INIT_LIST_HEAD(&child->ptraced);
--#ifdef CONFIG_HAVE_HW_BREAKPOINT
--	atomic_set(&child->ptrace_bp_refcnt, 1);
--#endif
- 	child->jobctl = 0;
- 	child->ptrace = 0;
- 	child->parent = child->real_parent;
-@@ -351,11 +348,4 @@ extern int task_current_syscall(struct task_struct *target, long *callno,
- 				unsigned long args[6], unsigned int maxargs,
- 				unsigned long *sp, unsigned long *pc);
- 
--#ifdef CONFIG_HAVE_HW_BREAKPOINT
--extern int ptrace_get_breakpoints(struct task_struct *tsk);
--extern void ptrace_put_breakpoints(struct task_struct *tsk);
--#else
--static inline void ptrace_put_breakpoints(struct task_struct *tsk) { }
--#endif /* CONFIG_HAVE_HW_BREAKPOINT */
--
- #endif
-diff --git a/include/linux/sched.h b/include/linux/sched.h
-index 178a8d9..ebdba8a 100644
---- a/include/linux/sched.h
-+++ b/include/linux/sched.h
-@@ -1406,9 +1406,6 @@ struct task_struct {
- 	} memcg_batch;
- 	unsigned int memcg_kmem_skip_account;
- #endif
--#ifdef CONFIG_HAVE_HW_BREAKPOINT
--	atomic_t ptrace_bp_refcnt;
--#endif
- #ifdef CONFIG_UPROBES
- 	struct uprobe_task *utask;
- #endif
-diff --git a/kernel/exit.c b/kernel/exit.c
-index af2eb3c..0636035 100644
---- a/kernel/exit.c
-+++ b/kernel/exit.c
-@@ -819,7 +819,7 @@ void do_exit(long code)
- 	/*
- 	 * FIXME: do that only when needed, using sched_exit tracepoint
- 	 */
--	ptrace_put_breakpoints(tsk);
-+	flush_ptrace_hw_breakpoint(tsk);
- 
- 	exit_notify(tsk, group_dead);
- #ifdef CONFIG_NUMA
-diff --git a/kernel/ptrace.c b/kernel/ptrace.c
-index aed981a..8cc170b 100644
---- a/kernel/ptrace.c
-+++ b/kernel/ptrace.c
-@@ -1179,19 +1179,3 @@ asmlinkage long compat_sys_ptrace(compat_long_t request, compat_long_t pid,
- 	return ret;
- }
- #endif	/* CONFIG_COMPAT */
--
--#ifdef CONFIG_HAVE_HW_BREAKPOINT
--int ptrace_get_breakpoints(struct task_struct *tsk)
--{
--	if (atomic_inc_not_zero(&tsk->ptrace_bp_refcnt))
--		return 0;
--
--	return -1;
--}
--
--void ptrace_put_breakpoints(struct task_struct *tsk)
--{
--	if (atomic_dec_and_test(&tsk->ptrace_bp_refcnt))
--		flush_ptrace_hw_breakpoint(tsk);
--}
--#endif /* CONFIG_HAVE_HW_BREAKPOINT */
--- 
-1.5.5.1
+Oleg.
 
