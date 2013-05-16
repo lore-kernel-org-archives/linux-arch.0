@@ -1,42 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:49543 "EHLO
+Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:47914 "EHLO
 	cam-smtp0.cambridge.arm.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1752977Ab3EPOAK (ORCPT
+	by vger.kernel.org with ESMTP id S1751167Ab3EPOkI (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 May 2013 10:00:10 -0400
-Date: Thu, 16 May 2013 14:52:34 +0100
+	Thu, 16 May 2013 10:40:08 -0400
+Date: Thu, 16 May 2013 15:32:36 +0100
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [RFC PATCH v2 06/11] ARM64: mm: Restore memblock limit when
- map_mem finished.
-Message-ID: <20130516135233.GB18308@arm.com>
+Subject: Re: [RFC PATCH v2 09/11] ARM64: mm: HugeTLB support.
+Message-ID: <20130516143236.GD18308@arm.com>
 References: <1368006763-30774-1-git-send-email-steve.capper@linaro.org>
- <1368006763-30774-7-git-send-email-steve.capper@linaro.org>
+ <1368006763-30774-10-git-send-email-steve.capper@linaro.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1368006763-30774-7-git-send-email-steve.capper@linaro.org>
+In-Reply-To: <1368006763-30774-10-git-send-email-steve.capper@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Steve Capper <steve.capper@linaro.org>
 Cc: "linux-mm@kvack.org" <linux-mm@kvack.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Michal Hocko <mhocko@suse.cz>, Ken Chen <kenchen@google.com>, Mel Gorman <mgorman@suse.de>, Will Deacon <Will.Deacon@arm.com>, "patches@linaro.org" <patches@linaro.org>
-Message-ID: <20130516135234.mnhwwGiX9e4IviYy2ZKqT2ozFJsu12FgM9evoSrKlmk@z>
+Message-ID: <20130516143236.cPc3HY_to_urVuD7DdcLx8f2-1qD_spzvo9C2JW-b6Y@z>
 
-On Wed, May 08, 2013 at 10:52:38AM +0100, Steve Capper wrote:
-> In paging_init the memblock limit is set to restrict any addresses
-> returned by early_alloc to fit within the initial direct kernel
-> mapping in swapper_pg_dir. This allows map_mem to allocate puds,
-> pmds and ptes from the initial direct kernel mapping.
-> 
-> The limit stays low after paging_init() though, meaning any
-> bootmem allocations will be from a restricted subset of memory.
-> Gigabyte huge pages, for instance, are normally allocated from
-> bootmem as their order (18) is too large for the default buddy
-> allocator (MAX_ORDER = 11).
-> 
-> This patch restores the memblock limit when map_mem has finished,
-> allowing gigabyte huge pages (and other objects) to be allocated
-> from all of bootmem.
-> 
-> Signed-off-by: Steve Capper <steve.capper@linaro.org>
+On Wed, May 08, 2013 at 10:52:41AM +0100, Steve Capper wrote:
+> --- /dev/null
+> +++ b/arch/arm64/include/asm/hugetlb.h
+...
+> +static inline int pud_large(pud_t pud)
+> +{
+> +	return !(pud_val(pud) & PUD_TABLE_BIT);
+> +}
 
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+I already commented on this - do we really need pud_large() which is
+the same as pud_huge()? It's only defined on x86 and can be safely
+replaced with pud_huge().
+
+> --- /dev/null
+> +++ b/arch/arm64/mm/hugetlbpage.c
+> @@ -0,0 +1,70 @@
+...
+> +int pmd_huge(pmd_t pmd)
+> +{
+> +	return !(pmd_val(pmd) & PMD_TABLE_BIT);
+> +}
+> +
+> +int pud_huge(pud_t pud)
+> +{
+> +	return !(pud_val(pud) & PUD_TABLE_BIT);
+> +}
+
+You could even go further and make pud/pmd_huge static inline functions
+for slightly better efficiency (needs changing in the linux/hugetlb.h
+header).
+
+-- 
+Catalin
