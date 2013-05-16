@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:58602 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:56909 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752156Ab3EPLLz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 May 2013 07:11:55 -0400
-Date: Thu, 16 May 2013 14:10:14 +0300
+	id S1752226Ab3EPLN0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 May 2013 07:13:26 -0400
+Date: Thu, 16 May 2013 14:11:04 +0300
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v2 02/10] arm64: uaccess s/might_sleep/might_fault/
-Message-ID: <90a2283bb84b6ce77c9966d76dbceb5c7edffd18.1368702323.git.mst@redhat.com>
+Subject: [PATCH v2 04/10] m32r: uaccess s/might_sleep/might_fault/
+Message-ID: <8b99c8a5fb9dc4ee9a39f96ecb3b9c02c97a8ba2.1368702323.git.mst@redhat.com>
 References: <cover.1368702323.git.mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -16,38 +16,74 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, David Howells <dhowells@redhat.com>, Hirokazu Takata <takata@linux-m32r.org>, Michal Simek <monstr@monstr.eu>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, microblaze-uclinux@itee.uq.edu.au, linux-am33-list@redhat.com, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org
-Message-ID: <20130516111014.oZC0Pp2AsOuyIDEul65FgYEA-ZMVjHcaCmh7Oyn8DwY@z>
+Message-ID: <20130516111104.Kn1w7XOatm3gJR6_jPRkBpQcLWC4kSzR9RplZ9srn9E@z>
 
 The only reason uaccess routines might sleep
 is if they fault. Make this explicit.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/arm64/include/asm/uaccess.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ arch/m32r/include/asm/uaccess.h | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
 
-diff --git a/arch/arm64/include/asm/uaccess.h b/arch/arm64/include/asm/uaccess.h
-index 008f848..edb3d5c 100644
---- a/arch/arm64/include/asm/uaccess.h
-+++ b/arch/arm64/include/asm/uaccess.h
-@@ -166,7 +166,7 @@ do {									\
- 
- #define get_user(x, ptr)						\
+diff --git a/arch/m32r/include/asm/uaccess.h b/arch/m32r/include/asm/uaccess.h
+index 1c7047b..84fe7ba 100644
+--- a/arch/m32r/include/asm/uaccess.h
++++ b/arch/m32r/include/asm/uaccess.h
+@@ -216,7 +216,7 @@ extern int fixup_exception(struct pt_regs *regs);
  ({									\
+ 	long __gu_err = 0;						\
+ 	unsigned long __gu_val;						\
 -	might_sleep();							\
 +	might_fault();							\
- 	access_ok(VERIFY_READ, (ptr), sizeof(*(ptr))) ?			\
- 		__get_user((x), (ptr)) :				\
- 		((x) = 0, -EFAULT);					\
-@@ -227,7 +227,7 @@ do {									\
- 
- #define put_user(x, ptr)						\
- ({									\
+ 	__get_user_size(__gu_val,(ptr),(size),__gu_err);		\
+ 	(x) = (__typeof__(*(ptr)))__gu_val;				\
+ 	__gu_err;							\
+@@ -227,7 +227,7 @@ extern int fixup_exception(struct pt_regs *regs);
+ 	long __gu_err = -EFAULT;					\
+ 	unsigned long __gu_val = 0;					\
+ 	const __typeof__(*(ptr)) __user *__gu_addr = (ptr);		\
 -	might_sleep();							\
 +	might_fault();							\
- 	access_ok(VERIFY_WRITE, (ptr), sizeof(*(ptr))) ?		\
- 		__put_user((x), (ptr)) :				\
- 		-EFAULT;						\
+ 	if (access_ok(VERIFY_READ,__gu_addr,size))			\
+ 		__get_user_size(__gu_val,__gu_addr,(size),__gu_err);	\
+ 	(x) = (__typeof__(*(ptr)))__gu_val;				\
+@@ -295,7 +295,7 @@ do {									\
+ #define __put_user_nocheck(x,ptr,size)					\
+ ({									\
+ 	long __pu_err;							\
+-	might_sleep();							\
++	might_fault();							\
+ 	__put_user_size((x),(ptr),(size),__pu_err);			\
+ 	__pu_err;							\
+ })
+@@ -305,7 +305,7 @@ do {									\
+ ({									\
+ 	long __pu_err = -EFAULT;					\
+ 	__typeof__(*(ptr)) __user *__pu_addr = (ptr);			\
+-	might_sleep();							\
++	might_fault();							\
+ 	if (access_ok(VERIFY_WRITE,__pu_addr,size))			\
+ 		__put_user_size((x),__pu_addr,(size),__pu_err);		\
+ 	__pu_err;							\
+@@ -597,7 +597,7 @@ unsigned long __generic_copy_from_user(void *, const void __user *, unsigned lon
+  */
+ #define copy_to_user(to,from,n)				\
+ ({							\
+-	might_sleep();					\
++	might_fault();					\
+ 	__generic_copy_to_user((to),(from),(n));	\
+ })
+ 
+@@ -638,7 +638,7 @@ unsigned long __generic_copy_from_user(void *, const void __user *, unsigned lon
+  */
+ #define copy_from_user(to,from,n)			\
+ ({							\
+-	might_sleep();					\
++	might_fault();					\
+ 	__generic_copy_from_user((to),(from),(n));	\
+ })
+ 
 -- 
 MST
 
