@@ -1,31 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f180.google.com ([209.85.192.180]:38595 "EHLO
-	mail-pd0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753921Ab3EPN3V (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 May 2013 09:29:21 -0400
+Received: from usmamail.tilera.com ([12.216.194.151]:29194 "EHLO
+	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753632Ab3EPNdY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 May 2013 09:33:24 -0400
+Message-ID: <5194E021.8080906@tilera.com>
+Date: Thu, 16 May 2013 09:33:21 -0400
+From: Chris Metcalf <cmetcalf@tilera.com>
 MIME-Version: 1.0
-In-Reply-To: <90a2283bb84b6ce77c9966d76dbceb5c7edffd18.1368702323.git.mst@redhat.com>
-References: <cover.1368702323.git.mst@redhat.com> <90a2283bb84b6ce77c9966d76dbceb5c7edffd18.1368702323.git.mst@redhat.com>
-From: Catalin Marinas <catalin.marinas@arm.com>
-Date: Thu, 16 May 2013 14:29:01 +0100
-Message-ID: <CAHkRjk5bHV3WDSnfQLr1MPTXGXXKP+XKRbqL2fn_bPmXt_7=cw@mail.gmail.com>
-Subject: Re: [PATCH v2 02/10] arm64: uaccess s/might_sleep/might_fault/
-Content-Type: text/plain; charset=ISO-8859-1
+Subject: Re: [PATCH v2 08/10] tile: uaccess s/might_sleep/might_fault/
+References: <cover.1368702323.git.mst@redhat.com> <018bba1e097552bc4054e6d90e3f03e7c9a632bb.1368702323.git.mst@redhat.com>
+In-Reply-To: <018bba1e097552bc4054e6d90e3f03e7c9a632bb.1368702323.git.mst@redhat.com>
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, David Howells <dhowells@redhat.com>, Hirokazu Takata <takata@linux-m32r.org>, Michal Simek <monstr@monstr.eu>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, microblaze-uclinux@itee.uq.edu.au, linux-am33-list@redhat.com, linuxppc-dev@lists.ozlabs.org, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "kvm@vger.kernel.org" <kvm@vger.kernel.org>
-Message-ID: <20130516132901.mF4S79HYPQ1wgxas0iT-_l4ESvyDvUcVQzNuenI-Z14@z>
+Cc: linux-kernel@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, David Howells <dhowells@redhat.com>, Hirokazu Takata <takata@linux-m32r.org>, Michal Simek <monstr@monstr.eu>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, microblaze-uclinux@itee.uq.edu.au, linux-am33-list@redhat.com, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org
+Message-ID: <20130516133321.2gHZyc8XbapB2U_V3FhKLJSfuX6kneT4C97dDMDviI8@z>
 
-On 16 May 2013 12:10, Michael S. Tsirkin <mst@redhat.com> wrote:
+On 5/16/2013 7:15 AM, Michael S. Tsirkin wrote:
 > The only reason uaccess routines might sleep
 > is if they fault. Make this explicit.
 >
 > Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 > ---
->  arch/arm64/include/asm/uaccess.h | 4 ++--
->  1 file changed, 2 insertions(+), 2 deletions(-)
+>  arch/tile/include/asm/uaccess.h | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+>
 
-For arm64:
+Acked-by: Chris Metcalf <cmetcalf@tilera.com>
 
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+-- 
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
+
