@@ -1,36 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([12.216.194.151]:29194 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753632Ab3EPNdY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 May 2013 09:33:24 -0400
-Message-ID: <5194E021.8080906@tilera.com>
-Date: Thu, 16 May 2013 09:33:21 -0400
-From: Chris Metcalf <cmetcalf@tilera.com>
+Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:49543 "EHLO
+	cam-smtp0.cambridge.arm.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1752977Ab3EPOAK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 May 2013 10:00:10 -0400
+Date: Thu, 16 May 2013 14:52:34 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [RFC PATCH v2 06/11] ARM64: mm: Restore memblock limit when
+ map_mem finished.
+Message-ID: <20130516135233.GB18308@arm.com>
+References: <1368006763-30774-1-git-send-email-steve.capper@linaro.org>
+ <1368006763-30774-7-git-send-email-steve.capper@linaro.org>
 MIME-Version: 1.0
-Subject: Re: [PATCH v2 08/10] tile: uaccess s/might_sleep/might_fault/
-References: <cover.1368702323.git.mst@redhat.com> <018bba1e097552bc4054e6d90e3f03e7c9a632bb.1368702323.git.mst@redhat.com>
-In-Reply-To: <018bba1e097552bc4054e6d90e3f03e7c9a632bb.1368702323.git.mst@redhat.com>
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1368006763-30774-7-git-send-email-steve.capper@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: linux-kernel@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, David Howells <dhowells@redhat.com>, Hirokazu Takata <takata@linux-m32r.org>, Michal Simek <monstr@monstr.eu>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, microblaze-uclinux@itee.uq.edu.au, linux-am33-list@redhat.com, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org
-Message-ID: <20130516133321.2gHZyc8XbapB2U_V3FhKLJSfuX6kneT4C97dDMDviI8@z>
+To: Steve Capper <steve.capper@linaro.org>
+Cc: "linux-mm@kvack.org" <linux-mm@kvack.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Michal Hocko <mhocko@suse.cz>, Ken Chen <kenchen@google.com>, Mel Gorman <mgorman@suse.de>, Will Deacon <Will.Deacon@arm.com>, "patches@linaro.org" <patches@linaro.org>
+Message-ID: <20130516135234.mnhwwGiX9e4IviYy2ZKqT2ozFJsu12FgM9evoSrKlmk@z>
 
-On 5/16/2013 7:15 AM, Michael S. Tsirkin wrote:
-> The only reason uaccess routines might sleep
-> is if they fault. Make this explicit.
->
-> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
-> ---
->  arch/tile/include/asm/uaccess.h | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
->
+On Wed, May 08, 2013 at 10:52:38AM +0100, Steve Capper wrote:
+> In paging_init the memblock limit is set to restrict any addresses
+> returned by early_alloc to fit within the initial direct kernel
+> mapping in swapper_pg_dir. This allows map_mem to allocate puds,
+> pmds and ptes from the initial direct kernel mapping.
+> 
+> The limit stays low after paging_init() though, meaning any
+> bootmem allocations will be from a restricted subset of memory.
+> Gigabyte huge pages, for instance, are normally allocated from
+> bootmem as their order (18) is too large for the default buddy
+> allocator (MAX_ORDER = 11).
+> 
+> This patch restores the memblock limit when map_mem has finished,
+> allowing gigabyte huge pages (and other objects) to be allocated
+> from all of bootmem.
+> 
+> Signed-off-by: Steve Capper <steve.capper@linaro.org>
 
-Acked-by: Chris Metcalf <cmetcalf@tilera.com>
-
--- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
-
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
