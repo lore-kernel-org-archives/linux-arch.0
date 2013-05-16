@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:53449 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:35606 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752226Ab3EPLNu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 May 2013 07:13:50 -0400
-Date: Thu, 16 May 2013 14:11:19 +0300
+	id S1752686Ab3EPLQR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 May 2013 07:16:17 -0400
+Date: Thu, 16 May 2013 14:10:48 +0300
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v2 05/10] microblaze: uaccess s/might_sleep/might_fault/
-Message-ID: <b6ae099df81bf07ad812189a0fe83ae3ebde9306.1368702323.git.mst@redhat.com>
+Subject: [PATCH v2 03/10] frv: uaccess s/might_sleep/might_fault/
+Message-ID: <89d860b7fb23b35e6a15beda9df6ebccf820a2f6.1368702323.git.mst@redhat.com>
 References: <cover.1368702323.git.mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -16,47 +16,37 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, David Howells <dhowells@redhat.com>, Hirokazu Takata <takata@linux-m32r.org>, Michal Simek <monstr@monstr.eu>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, microblaze-uclinux@itee.uq.edu.au, linux-am33-list@redhat.com, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org
-Message-ID: <20130516111119.W7pbt2wvwrqCc1ApJMn56OnBCWyw0WOfxRx82pdq_Yw@z>
+Message-ID: <20130516111048.qdACsXASq2c8E5DHjWVbPgo8h-WfftDz-dYGTRV5dj0@z>
 
 The only reason uaccess routines might sleep
 is if they fault. Make this explicit.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/microblaze/include/asm/uaccess.h | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ arch/frv/include/asm/uaccess.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/microblaze/include/asm/uaccess.h b/arch/microblaze/include/asm/uaccess.h
-index efe59d8..2fc8bf7 100644
---- a/arch/microblaze/include/asm/uaccess.h
-+++ b/arch/microblaze/include/asm/uaccess.h
-@@ -145,7 +145,7 @@ static inline unsigned long __must_check __clear_user(void __user *to,
- static inline unsigned long __must_check clear_user(void __user *to,
- 							unsigned long n)
+diff --git a/arch/frv/include/asm/uaccess.h b/arch/frv/include/asm/uaccess.h
+index 0b67ec5..3ac9a59 100644
+--- a/arch/frv/include/asm/uaccess.h
++++ b/arch/frv/include/asm/uaccess.h
+@@ -280,14 +280,14 @@ extern long __memcpy_user(void *dst, const void *src, unsigned long count);
+ static inline unsigned long __must_check
+ __copy_to_user(void __user *to, const void *from, unsigned long n)
  {
--	might_sleep();
-+	might_fault();
- 	if (unlikely(!access_ok(VERIFY_WRITE, to, n)))
- 		return n;
+-       might_sleep();
++       might_fault();
+        return __copy_to_user_inatomic(to, from, n);
+ }
  
-@@ -371,7 +371,7 @@ extern long __user_bad(void);
- static inline long copy_from_user(void *to,
- 		const void __user *from, unsigned long n)
+ static inline unsigned long
+ __copy_from_user(void *to, const void __user *from, unsigned long n)
  {
--	might_sleep();
-+	might_fault();
- 	if (access_ok(VERIFY_READ, from, n))
- 		return __copy_from_user(to, from, n);
- 	return n;
-@@ -385,7 +385,7 @@ static inline long copy_from_user(void *to,
- static inline long copy_to_user(void __user *to,
- 		const void *from, unsigned long n)
- {
--	might_sleep();
-+	might_fault();
- 	if (access_ok(VERIFY_WRITE, to, n))
- 		return __copy_to_user(to, from, n);
- 	return n;
+-       might_sleep();
++       might_fault();
+        return __copy_from_user_inatomic(to, from, n);
+ }
+ 
 -- 
 MST
 
