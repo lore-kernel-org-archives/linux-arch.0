@@ -1,7 +1,7 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v2 05/10] microblaze: uaccess s/might_sleep/might_fault/
-Date: Thu, 16 May 2013 14:11:19 +0300
-Message-ID: <b6ae099df81bf07ad812189a0fe83ae3ebde9306.1368702323.git.mst@redhat.com>
+Subject: [PATCH v2 06/10] mn10300: uaccess s/might_sleep/might_fault/
+Date: Thu, 16 May 2013 14:12:35 +0300
+Message-ID: <affedb5f30410296ad0bb43a69158b38e32378ea.1368702323.git.mst@redhat.com>
 References: <cover.1368702323.git.mst@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -18,40 +18,29 @@ is if they fault. Make this explicit.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/microblaze/include/asm/uaccess.h | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ arch/mn10300/include/asm/uaccess.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/microblaze/include/asm/uaccess.h b/arch/microblaze/include/asm/uaccess.h
-index efe59d8..2fc8bf7 100644
---- a/arch/microblaze/include/asm/uaccess.h
-+++ b/arch/microblaze/include/asm/uaccess.h
-@@ -145,7 +145,7 @@ static inline unsigned long __must_check __clear_user(void __user *to,
- static inline unsigned long __must_check clear_user(void __user *to,
- 							unsigned long n)
- {
--	might_sleep();
-+	might_fault();
- 	if (unlikely(!access_ok(VERIFY_WRITE, to, n)))
- 		return n;
+diff --git a/arch/mn10300/include/asm/uaccess.h b/arch/mn10300/include/asm/uaccess.h
+index 780560b..107508a 100644
+--- a/arch/mn10300/include/asm/uaccess.h
++++ b/arch/mn10300/include/asm/uaccess.h
+@@ -471,13 +471,13 @@ extern unsigned long __generic_copy_from_user(void *, const void __user *,
  
-@@ -371,7 +371,7 @@ extern long __user_bad(void);
- static inline long copy_from_user(void *to,
- 		const void __user *from, unsigned long n)
- {
--	might_sleep();
-+	might_fault();
- 	if (access_ok(VERIFY_READ, from, n))
- 		return __copy_from_user(to, from, n);
- 	return n;
-@@ -385,7 +385,7 @@ static inline long copy_from_user(void *to,
- static inline long copy_to_user(void __user *to,
- 		const void *from, unsigned long n)
- {
--	might_sleep();
-+	might_fault();
- 	if (access_ok(VERIFY_WRITE, to, n))
- 		return __copy_to_user(to, from, n);
- 	return n;
+ #define __copy_to_user(to, from, n)			\
+ ({							\
+-	might_sleep();					\
++	might_fault();					\
+ 	__copy_to_user_inatomic((to), (from), (n));	\
+ })
+ 
+ #define __copy_from_user(to, from, n)			\
+ ({							\
+-	might_sleep();					\
++	might_fault();					\
+ 	__copy_from_user_inatomic((to), (from), (n));	\
+ })
+ 
 -- 
 MST
 
