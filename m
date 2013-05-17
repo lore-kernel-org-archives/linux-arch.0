@@ -1,122 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f182.google.com ([209.85.192.182]:39849 "EHLO
-	mail-pd0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756400Ab3EQPrO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 May 2013 11:47:14 -0400
+Received: from mail-pa0-f53.google.com ([209.85.220.53]:52885 "EHLO
+	mail-pa0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756416Ab3EQPrJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 May 2013 11:47:09 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v7, part3 16/16] AVR32: fix building warnings caused by redifinitions of HZ
-Date: Fri, 17 May 2013 23:45:18 +0800
-Message-ID: <1368805518-2634-17-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v7, part3 15/16] mm: report available pages as "MemTotal" for each NUMA node
+Date: Fri, 17 May 2013 23:45:17 +0800
+Message-ID: <1368805518-2634-16-git-send-email-jiang.liu@huawei.com>
 In-Reply-To: <1368805518-2634-1-git-send-email-jiang.liu@huawei.com>
 References: <1368805518-2634-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Haavard Skinnemoen <hskinnemoen@gmail.com>
-Message-ID: <20130517154518.Fm9nPKlZiHgBk_McFkECBzu3CBWFmjgM8nVOE4w7EQA@z>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130517154517.zPNur92HXsDt9Fk-nQRGYF2-1_hkpwMJS3vKh0ZkYS4@z>
 
-As suggested by David Howells <dhowells@redhat.com>, use
-asm-generic/param.h and uapi/asm-generic/param.h for AVR32.
+As reported by https://bugzilla.kernel.org/show_bug.cgi?id=53501,
+"MemTotal" from /proc/meminfo means memory pages managed by the buddy
+system (managed_pages), but "MemTotal" from /sys/.../node/nodex/meminfo
+means physical pages present (present_pages) within the NUMA node.
+There's a difference between managed_pages and present_pages due to
+bootmem allocator and reserved pages.
 
-It also fixes building warnings caused by redifinitions of HZ:
-In file included from /ws/linux/kernel/linux.git/include/uapi/linux/param.h:4,
-                 from include/linux/timex.h:63,
-                 from include/linux/jiffies.h:8,
-                 from include/linux/ktime.h:25,
-                 from include/linux/timer.h:5,
-                 from include/linux/workqueue.h:8,
-                 from include/linux/srcu.h:34,
-                 from include/linux/notifier.h:15,
-                 from include/linux/memory_hotplug.h:6,
-                 from include/linux/mmzone.h:777,
-                 from include/linux/gfp.h:4,
-                 from arch/avr32/mm/init.c:10:
-/ws/linux/kernel/linux.git/arch/avr32/include/asm/param.h:6:1: warning: "HZ" redefined
-In file included from /ws/linux/kernel/linux.git/arch/avr32/include/asm/param.h:4,
-                 from /ws/linux/kernel/linux.git/include/uapi/linux/param.h:4,
-                 from include/linux/timex.h:63,
-                 from include/linux/jiffies.h:8,
-                 from include/linux/ktime.h:25,
-                 from include/linux/timer.h:5,
-                 from include/linux/workqueue.h:8,
-                 from include/linux/srcu.h:34,
-                 from include/linux/notifier.h:15,
-                 from include/linux/memory_hotplug.h:6,
-                 from include/linux/mmzone.h:777,
-                 from include/linux/gfp.h:4,
-                 from arch/avr32/mm/init.c:10:
-/ws/linux/kernel/linux.git/arch/avr32/include/uapi/asm/param.h:6:1: warning: this is the location of the previous definition
+And Documentation/filesystems/proc.txt says
+    MemTotal: Total usable ram (i.e. physical ram minus a few reserved
+              bits and the kernel binary code)
+
+So change /sys/.../node/nodex/meminfo to report available pages within
+the node as "MemTotal".
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
+Reported-by: sworddragon2@aol.com
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Mel Gorman <mgorman@suse.de>
+Cc: Minchan Kim <minchan@kernel.org>
+Cc: linux-mm@kvack.org
 Cc: linux-kernel@vger.kernel.org
 ---
- arch/avr32/include/asm/Kbuild       |  1 +
- arch/avr32/include/asm/param.h      |  9 ---------
- arch/avr32/include/uapi/asm/Kbuild  |  1 +
- arch/avr32/include/uapi/asm/param.h | 18 ------------------
- 4 files changed, 2 insertions(+), 27 deletions(-)
- delete mode 100644 arch/avr32/include/asm/param.h
- delete mode 100644 arch/avr32/include/uapi/asm/param.h
+ mm/page_alloc.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
 
-diff --git a/arch/avr32/include/asm/Kbuild b/arch/avr32/include/asm/Kbuild
-index 4dd4f78..d22af85 100644
---- a/arch/avr32/include/asm/Kbuild
-+++ b/arch/avr32/include/asm/Kbuild
-@@ -2,3 +2,4 @@
- generic-y	+= clkdev.h
- generic-y	+= exec.h
- generic-y	+= trace_clock.h
-+generic-y	+= param.h
-diff --git a/arch/avr32/include/asm/param.h b/arch/avr32/include/asm/param.h
-deleted file mode 100644
-index 009a167..0000000
---- a/arch/avr32/include/asm/param.h
-+++ /dev/null
-@@ -1,9 +0,0 @@
--#ifndef __ASM_AVR32_PARAM_H
--#define __ASM_AVR32_PARAM_H
--
--#include <uapi/asm/param.h>
--
--# define HZ		CONFIG_HZ
--# define USER_HZ	100		/* User interfaces are in "ticks" */
--# define CLOCKS_PER_SEC	(USER_HZ)	/* frequency at which times() counts */
--#endif /* __ASM_AVR32_PARAM_H */
-diff --git a/arch/avr32/include/uapi/asm/Kbuild b/arch/avr32/include/uapi/asm/Kbuild
-index df53e7a..3b85ead 100644
---- a/arch/avr32/include/uapi/asm/Kbuild
-+++ b/arch/avr32/include/uapi/asm/Kbuild
-@@ -33,3 +33,4 @@ header-y += termbits.h
- header-y += termios.h
- header-y += types.h
- header-y += unistd.h
-+generic-y += param.h
-diff --git a/arch/avr32/include/uapi/asm/param.h b/arch/avr32/include/uapi/asm/param.h
-deleted file mode 100644
-index d28aa5e..0000000
---- a/arch/avr32/include/uapi/asm/param.h
-+++ /dev/null
-@@ -1,18 +0,0 @@
--#ifndef _UAPI__ASM_AVR32_PARAM_H
--#define _UAPI__ASM_AVR32_PARAM_H
--
--
--#ifndef HZ
--# define HZ		100
--#endif
--
--/* TODO: Should be configurable */
--#define EXEC_PAGESIZE	4096
--
--#ifndef NOGROUP
--# define NOGROUP	(-1)
--#endif
--
--#define MAXHOSTNAMELEN	64
--
--#endif /* _UAPI__ASM_AVR32_PARAM_H */
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index 56b0097..e7a517d 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -2924,9 +2924,13 @@ EXPORT_SYMBOL(si_meminfo);
+ #ifdef CONFIG_NUMA
+ void si_meminfo_node(struct sysinfo *val, int nid)
+ {
++	int zone_type;		/* needs to be signed */
++	unsigned long managed_pages = 0;
+ 	pg_data_t *pgdat = NODE_DATA(nid);
+ 
+-	val->totalram = pgdat->node_present_pages;
++	for (zone_type = 0; zone_type < MAX_NR_ZONES; zone_type++)
++		managed_pages += pgdat->node_zones[zone_type].managed_pages;
++	val->totalram = managed_pages;
+ 	val->freeram = node_page_state(nid, NR_FREE_PAGES);
+ #ifdef CONFIG_HIGHMEM
+ 	val->totalhigh = pgdat->node_zones[ZONE_HIGHMEM].managed_pages;
 -- 
 1.8.1.2
 
