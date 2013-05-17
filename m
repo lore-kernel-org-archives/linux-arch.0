@@ -1,61 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f46.google.com ([209.85.220.46]:56922 "EHLO
-	mail-pa0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754250Ab3EQPqM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 May 2013 11:46:12 -0400
+Received: from mail-pa0-f42.google.com ([209.85.220.42]:52828 "EHLO
+	mail-pa0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754250Ab3EQPqS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 May 2013 11:46:18 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v7, part3 05/16] mm/tile: use common help functions to free reserved pages
-Date: Fri, 17 May 2013 23:45:07 +0800
-Message-ID: <1368805518-2634-6-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v7, part3 06/16] mm, powertv: use free_reserved_area() to simplify code
+Date: Fri, 17 May 2013 23:45:08 +0800
+Message-ID: <1368805518-2634-7-git-send-email-jiang.liu@huawei.com>
 In-Reply-To: <1368805518-2634-1-git-send-email-jiang.liu@huawei.com>
 References: <1368805518-2634-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>
-Message-ID: <20130517154507.gUxAuc_f31wllTFNRZzLiv0hzGtuQ1ZD5q5ozA2dMJk@z>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, linux-mips@linux-mips.org
+Message-ID: <20130517154508.ruNwUIJStJlqQkre_M4z1Gp_1CcXoB_yjSeQK9Cm6bc@z>
 
-Use common help functions to free reserved pages.
+Use common help function free_reserved_area() to simplify code.
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Chris Metcalf <cmetcalf@tilera.com>
-Cc: Wen Congyang <wency@cn.fujitsu.com>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Jiang Liu <jiang.liu@huawei.com>
+Cc: linux-mips@linux-mips.org
 Cc: linux-kernel@vger.kernel.org
 ---
- arch/tile/mm/init.c | 7 ++-----
- 1 file changed, 2 insertions(+), 5 deletions(-)
+ arch/mips/powertv/asic/asic_devices.c | 13 ++-----------
+ 1 file changed, 2 insertions(+), 11 deletions(-)
 
-diff --git a/arch/tile/mm/init.c b/arch/tile/mm/init.c
-index 2749515..ccfeb3f 100644
---- a/arch/tile/mm/init.c
-+++ b/arch/tile/mm/init.c
-@@ -720,7 +720,7 @@ static void __init init_free_pfn_range(unsigned long start, unsigned long end)
- 		}
- 		init_page_count(page);
- 		__free_pages(page, order);
--		totalram_pages += count;
-+		adjust_managed_page_count(page, count);
- 
- 		page += count;
- 		pfn += count;
-@@ -1024,16 +1024,13 @@ static void free_init_pages(char *what, unsigned long begin, unsigned long end)
- 			pte_clear(&init_mm, addr, ptep);
- 			continue;
- 		}
--		__ClearPageReserved(page);
--		init_page_count(page);
- 		if (pte_huge(*ptep))
- 			BUG_ON(!kdata_huge);
- 		else
- 			set_pte_at(&init_mm, addr, ptep,
- 				   pfn_pte(pfn, PAGE_KERNEL));
- 		memset((void *)addr, POISON_FREE_INITMEM, PAGE_SIZE);
--		free_page(addr);
--		totalram_pages++;
-+		free_reserved_page(page);
- 	}
- 	pr_info("Freeing %s: %ldk freed\n", what, (end - begin) >> 10);
+diff --git a/arch/mips/powertv/asic/asic_devices.c b/arch/mips/powertv/asic/asic_devices.c
+index d38b095..9f64c23 100644
+--- a/arch/mips/powertv/asic/asic_devices.c
++++ b/arch/mips/powertv/asic/asic_devices.c
+@@ -529,17 +529,8 @@ EXPORT_SYMBOL(asic_resource_get);
+  */
+ void platform_release_memory(void *ptr, int size)
+ {
+-	unsigned long addr;
+-	unsigned long end;
+-
+-	addr = ((unsigned long)ptr + (PAGE_SIZE - 1)) & PAGE_MASK;
+-	end = ((unsigned long)ptr + size) & PAGE_MASK;
+-
+-	for (; addr < end; addr += PAGE_SIZE) {
+-		ClearPageReserved(virt_to_page(__va(addr)));
+-		init_page_count(virt_to_page(__va(addr)));
+-		free_page((unsigned long)__va(addr));
+-	}
++	free_reserved_area((unsigned long)ptr, (unsigned long)(ptr + size),
++			   -1, NULL);
  }
+ EXPORT_SYMBOL(platform_release_memory);
+ 
 -- 
 1.8.1.2
 
