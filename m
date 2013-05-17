@@ -1,58 +1,56 @@
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v7, part3 08/16] mm: fix some trivial typos in comments
-Date: Fri, 17 May 2013 23:45:10 +0800
-Message-ID: <1368805518-2634-9-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v7, part3 05/16] mm/tile: use common help functions to free reserved pages
+Date: Fri, 17 May 2013 23:45:07 +0800
+Message-ID: <1368805518-2634-6-git-send-email-jiang.liu@huawei.com>
 References: <1368805518-2634-1-git-send-email-jiang.liu@huawei.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1368805518-2634-1-git-send-email-jiang.liu@huawei.com>
 Sender: owner-linux-mm@kvack.org
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Tang Chen <tangchen@cn.fujitsu.com>, Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>, Marek Szyprowski <m.szyprowski@samsung.com>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>
 List-Id: linux-arch.vger.kernel.org
 
-Fix some trivial typos in comments.
+Use common help functions to free reserved pages.
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+Cc: Chris Metcalf <cmetcalf@tilera.com>
 Cc: Wen Congyang <wency@cn.fujitsu.com>
-Cc: Tang Chen <tangchen@cn.fujitsu.com>
-Cc: Jiang Liu <jiang.liu@huawei.com>
-Cc: Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>
-Cc: Mel Gorman <mgorman@suse.de>
-Cc: Minchan Kim <minchan@kernel.org>
-Cc: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: linux-mm@kvack.org
 Cc: linux-kernel@vger.kernel.org
 ---
- mm/memory_hotplug.c | 2 +-
- mm/page_alloc.c     | 2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ arch/tile/mm/init.c | 7 ++-----
+ 1 file changed, 2 insertions(+), 5 deletions(-)
 
-diff --git a/mm/memory_hotplug.c b/mm/memory_hotplug.c
-index a221fac..037d41d 100644
---- a/mm/memory_hotplug.c
-+++ b/mm/memory_hotplug.c
-@@ -309,7 +309,7 @@ static int __meminit move_pfn_range_left(struct zone *z1, struct zone *z2,
- 	/* can't move pfns which are higher than @z2 */
- 	if (end_pfn > zone_end_pfn(z2))
- 		goto out_fail;
--	/* the move out part mast at the left most of @z2 */
-+	/* the move out part must be at the left most of @z2 */
- 	if (start_pfn > z2->zone_start_pfn)
- 		goto out_fail;
- 	/* must included/overlap */
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 13e566a..88c8642 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -2865,7 +2865,7 @@ EXPORT_SYMBOL(free_pages_exact);
-  * nr_free_zone_pages() counts the number of counts pages which are beyond the
-  * high watermark within all zones at or below a given zone index.  For each
-  * zone, the number of pages is calculated as:
-- *     present_pages - high_pages
-+ *     managed_pages - high_pages
-  */
- static unsigned long nr_free_zone_pages(int offset)
- {
+diff --git a/arch/tile/mm/init.c b/arch/tile/mm/init.c
+index 2749515..ccfeb3f 100644
+--- a/arch/tile/mm/init.c
++++ b/arch/tile/mm/init.c
+@@ -720,7 +720,7 @@ static void __init init_free_pfn_range(unsigned long start, unsigned long end)
+ 		}
+ 		init_page_count(page);
+ 		__free_pages(page, order);
+-		totalram_pages += count;
++		adjust_managed_page_count(page, count);
+ 
+ 		page += count;
+ 		pfn += count;
+@@ -1024,16 +1024,13 @@ static void free_init_pages(char *what, unsigned long begin, unsigned long end)
+ 			pte_clear(&init_mm, addr, ptep);
+ 			continue;
+ 		}
+-		__ClearPageReserved(page);
+-		init_page_count(page);
+ 		if (pte_huge(*ptep))
+ 			BUG_ON(!kdata_huge);
+ 		else
+ 			set_pte_at(&init_mm, addr, ptep,
+ 				   pfn_pte(pfn, PAGE_KERNEL));
+ 		memset((void *)addr, POISON_FREE_INITMEM, PAGE_SIZE);
+-		free_page(addr);
+-		totalram_pages++;
++		free_reserved_page(page);
+ 	}
+ 	pr_info("Freeing %s: %ldk freed\n", what, (end - begin) >> 10);
+ }
 -- 
 1.8.1.2
 
