@@ -1,64 +1,106 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f53.google.com ([209.85.220.53]:52885 "EHLO
-	mail-pa0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756416Ab3EQPrJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 May 2013 11:47:09 -0400
+Received: from mail-da0-f46.google.com ([209.85.210.46]:41357 "EHLO
+	mail-da0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754250Ab3EQPqH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 May 2013 11:46:07 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v7, part3 15/16] mm: report available pages as "MemTotal" for each NUMA node
-Date: Fri, 17 May 2013 23:45:17 +0800
-Message-ID: <1368805518-2634-16-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v7, part3 04/16] mm/x86: use free_reserved_area() to simplify code
+Date: Fri, 17 May 2013 23:45:06 +0800
+Message-ID: <1368805518-2634-5-git-send-email-jiang.liu@huawei.com>
 In-Reply-To: <1368805518-2634-1-git-send-email-jiang.liu@huawei.com>
 References: <1368805518-2634-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130517154517.zPNur92HXsDt9Fk-nQRGYF2-1_hkpwMJS3vKh0ZkYS4@z>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Yinghai Lu <yinghai@kernel.org>, Tang Chen <tangchen@cn.fujitsu.com>
+Message-ID: <20130517154506.rUQClPjR10rB3Hy5ZWV-4qXSPG3fgTNCwI1k3XDlM40@z>
 
-As reported by https://bugzilla.kernel.org/show_bug.cgi?id=53501,
-"MemTotal" from /proc/meminfo means memory pages managed by the buddy
-system (managed_pages), but "MemTotal" from /sys/.../node/nodex/meminfo
-means physical pages present (present_pages) within the NUMA node.
-There's a difference between managed_pages and present_pages due to
-bootmem allocator and reserved pages.
-
-And Documentation/filesystems/proc.txt says
-    MemTotal: Total usable ram (i.e. physical ram minus a few reserved
-              bits and the kernel binary code)
-
-So change /sys/.../node/nodex/meminfo to report available pages within
-the node as "MemTotal".
+Use common help function free_reserved_area() to simplify code.
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Reported-by: sworddragon2@aol.com
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Mel Gorman <mgorman@suse.de>
-Cc: Minchan Kim <minchan@kernel.org>
-Cc: linux-mm@kvack.org
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
+Cc: Yinghai Lu <yinghai@kernel.org>
+Cc: Tang Chen <tangchen@cn.fujitsu.com>
+Cc: Wen Congyang <wency@cn.fujitsu.com>
+Cc: Jianguo Wu <wujianguo@huawei.com>
 Cc: linux-kernel@vger.kernel.org
 ---
- mm/page_alloc.c | 6 +++++-
- 1 file changed, 5 insertions(+), 1 deletion(-)
+ arch/x86/mm/init.c    | 14 +++-----------
+ arch/x86/mm/init_64.c |  5 ++---
+ 2 files changed, 5 insertions(+), 14 deletions(-)
 
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 56b0097..e7a517d 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -2924,9 +2924,13 @@ EXPORT_SYMBOL(si_meminfo);
- #ifdef CONFIG_NUMA
- void si_meminfo_node(struct sysinfo *val, int nid)
- {
-+	int zone_type;		/* needs to be signed */
-+	unsigned long managed_pages = 0;
- 	pg_data_t *pgdat = NODE_DATA(nid);
+diff --git a/arch/x86/mm/init.c b/arch/x86/mm/init.c
+index fed9993..9048d94 100644
+--- a/arch/x86/mm/init.c
++++ b/arch/x86/mm/init.c
+@@ -494,7 +494,6 @@ int devmem_is_allowed(unsigned long pagenr)
  
--	val->totalram = pgdat->node_present_pages;
-+	for (zone_type = 0; zone_type < MAX_NR_ZONES; zone_type++)
-+		managed_pages += pgdat->node_zones[zone_type].managed_pages;
-+	val->totalram = managed_pages;
- 	val->freeram = node_page_state(nid, NR_FREE_PAGES);
- #ifdef CONFIG_HIGHMEM
- 	val->totalhigh = pgdat->node_zones[ZONE_HIGHMEM].managed_pages;
+ void free_init_pages(char *what, unsigned long begin, unsigned long end)
+ {
+-	unsigned long addr;
+ 	unsigned long begin_aligned, end_aligned;
+ 
+ 	/* Make sure boundaries are page aligned */
+@@ -509,8 +508,6 @@ void free_init_pages(char *what, unsigned long begin, unsigned long end)
+ 	if (begin >= end)
+ 		return;
+ 
+-	addr = begin;
+-
+ 	/*
+ 	 * If debugging page accesses then do not free this memory but
+ 	 * mark them not present - any buggy init-section access will
+@@ -529,18 +526,13 @@ void free_init_pages(char *what, unsigned long begin, unsigned long end)
+ 	set_memory_nx(begin, (end - begin) >> PAGE_SHIFT);
+ 	set_memory_rw(begin, (end - begin) >> PAGE_SHIFT);
+ 
+-	printk(KERN_INFO "Freeing %s: %luk freed\n", what, (end - begin) >> 10);
+-
+-	for (; addr < end; addr += PAGE_SIZE) {
+-		memset((void *)addr, POISON_FREE_INITMEM, PAGE_SIZE);
+-		free_reserved_page(virt_to_page(addr));
+-	}
++	free_reserved_area(begin, end, POISON_FREE_INITMEM, what);
+ #endif
+ }
+ 
+ void free_initmem(void)
+ {
+-	free_init_pages("unused kernel memory",
++	free_init_pages("unused kernel",
+ 			(unsigned long)(&__init_begin),
+ 			(unsigned long)(&__init_end));
+ }
+@@ -566,7 +558,7 @@ void __init free_initrd_mem(unsigned long start, unsigned long end)
+ 	 *   - relocate_initrd()
+ 	 * So here We can do PAGE_ALIGN() safely to get partial page to be freed
+ 	 */
+-	free_init_pages("initrd memory", start, PAGE_ALIGN(end));
++	free_init_pages("initrd", start, PAGE_ALIGN(end));
+ }
+ #endif
+ 
+diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
+index bb00c46..32e2f25 100644
+--- a/arch/x86/mm/init_64.c
++++ b/arch/x86/mm/init_64.c
+@@ -1166,11 +1166,10 @@ void mark_rodata_ro(void)
+ 	set_memory_ro(start, (end-start) >> PAGE_SHIFT);
+ #endif
+ 
+-	free_init_pages("unused kernel memory",
++	free_init_pages("unused kernel",
+ 			(unsigned long) __va(__pa_symbol(text_end)),
+ 			(unsigned long) __va(__pa_symbol(rodata_start)));
+-
+-	free_init_pages("unused kernel memory",
++	free_init_pages("unused kernel",
+ 			(unsigned long) __va(__pa_symbol(rodata_end)),
+ 			(unsigned long) __va(__pa_symbol(_sdata)));
+ }
 -- 
 1.8.1.2
 
