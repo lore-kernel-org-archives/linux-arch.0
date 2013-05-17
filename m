@@ -1,107 +1,64 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v2 10/10] kernel: might_fault does not imply might_sleep
-Date: Thu, 16 May 2013 20:40:41 +0200
-Message-ID: <20130516184041.GP19669@dyad.programming.kicks-ass.net>
-References: <cover.1368702323.git.mst@redhat.com>
- <1f85dc8e6a0149677563a2dfb4cef9a9c7eaa391.1368702323.git.mst@redhat.com>
+From: Steve Capper <steve.capper@linaro.org>
+Subject: Re: [RFC PATCH v2 09/11] ARM64: mm: HugeTLB support.
+Date: Fri, 17 May 2013 09:41:25 +0100
+Message-ID: <20130517084124.GA22241@linaro.org>
+References: <1368006763-30774-1-git-send-email-steve.capper@linaro.org>
+ <1368006763-30774-10-git-send-email-steve.capper@linaro.org>
+ <20130516143236.GD18308@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <1f85dc8e6a0149677563a2dfb4cef9a9c7eaa391.1368702323.git.mst@redhat.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: linux-m32r-ja@ml.linux-m32r.org, kvm@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, David Howells <dhowells@redhat.com>, linux-mm@kvack.org, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, linux-am33-list@redhat.com, Hirokazu Takata <takata@linux-m32r.org>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, microblaze-uclinux@itee.uq.edu.au, Chris Metcalf <cmetcalf@tilera.com>, rostedt@goodmis.org, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Michal Simek <monstr@monstr.eu>, linux-m32r@ml.linux-m32r.org, linux-kernel@vger.kernel.org, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, linuxppc-dev@lists.ozlabs.org
+In-Reply-To: <20130516143236.GD18308@arm.com>
+Sender: owner-linux-mm@kvack.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: "linux-mm@kvack.org" <linux-mm@kvack.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Michal Hocko <mhocko@suse.cz>, Ken Chen <kenchen@google.com>, Mel Gorman <mgorman@suse.de>, Will Deacon <Will.Deacon@arm.com>, "patches@linaro.org" <patches@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, May 16, 2013 at 02:16:10PM +0300, Michael S. Tsirkin wrote:
-> There are several ways to make sure might_fault
-> calling function does not sleep.
-> One is to use it on kernel or otherwise locked memory - apparently
-> nfs/sunrpc does this. As noted by Ingo, this is handled by the
-> migh_fault() implementation in mm/memory.c but not the one in
-> linux/kernel.h so in the current code might_fault() schedules
-> differently depending on CONFIG_PROVE_LOCKING, which is an undesired
-> semantical side effect.
+On Thu, May 16, 2013 at 03:32:36PM +0100, Catalin Marinas wrote:
+> On Wed, May 08, 2013 at 10:52:41AM +0100, Steve Capper wrote:
+> > --- /dev/null
+> > +++ b/arch/arm64/include/asm/hugetlb.h
+> ...
+> > +static inline int pud_large(pud_t pud)
+> > +{
+> > +	return !(pud_val(pud) & PUD_TABLE_BIT);
+> > +}
 > 
-> Another is to call pagefault_disable: in this case the page fault
-> handler will go to fixups processing and we get an error instead of
-> sleeping, so the might_sleep annotation is a false positive.
-> vhost driver wants to do this now in order to reuse socket ops
-> under a spinlock (and fall back on slower thread handler
-> on error).
-
-Are you using the assumption that spin_lock() implies preempt_disable() implies
-pagefault_disable()? Note that this assumption isn't valid for -rt where the
-spinlock becomes preemptible but we'll not disable pagefaults.
-
-> Address both issues by:
-> 	- dropping the unconditional call to might_sleep
-> 	  from the fast might_fault code in linux/kernel.h
-> 	- checking for pagefault_disable() in the
-> 	  CONFIG_PROVE_LOCKING implementation
+> I already commented on this - do we really need pud_large() which is
+> the same as pud_huge()? It's only defined on x86 and can be safely
+> replaced with pud_huge().
 > 
-> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
-> ---
->  include/linux/kernel.h |  1 -
->  mm/memory.c            | 14 +++++++++-----
->  2 files changed, 9 insertions(+), 6 deletions(-)
+
+Thanks, yes, sorry this one slipped through the cracks.
+I'll update this to use pud_huge.
+
+> > --- /dev/null
+> > +++ b/arch/arm64/mm/hugetlbpage.c
+> > @@ -0,0 +1,70 @@
+> ...
+> > +int pmd_huge(pmd_t pmd)
+> > +{
+> > +	return !(pmd_val(pmd) & PMD_TABLE_BIT);
+> > +}
+> > +
+> > +int pud_huge(pud_t pud)
+> > +{
+> > +	return !(pud_val(pud) & PUD_TABLE_BIT);
+> > +}
 > 
-> diff --git a/include/linux/kernel.h b/include/linux/kernel.h
-> index e96329c..322b065 100644
-> --- a/include/linux/kernel.h
-> +++ b/include/linux/kernel.h
-> @@ -198,7 +198,6 @@ void might_fault(void);
->  #else
->  static inline void might_fault(void)
->  {
-> -	might_sleep();
+> You could even go further and make pud/pmd_huge static inline functions
+> for slightly better efficiency (needs changing in the linux/hugetlb.h
+> header).
 
-This removes potential resched points for PREEMPT_VOLUNTARY -- was that
-intentional?
+I'll have to have a think about this and a tinker :-). 
 
->  }
->  #endif
->  
-> diff --git a/mm/memory.c b/mm/memory.c
-> index 6dc1882..1b8327b 100644
-> --- a/mm/memory.c
-> +++ b/mm/memory.c
-> @@ -4222,13 +4222,17 @@ void might_fault(void)
->  	if (segment_eq(get_fs(), KERNEL_DS))
->  		return;
->  
-> -	might_sleep();
->  	/*
-> -	 * it would be nicer only to annotate paths which are not under
-> -	 * pagefault_disable, however that requires a larger audit and
-> -	 * providing helpers like get_user_atomic.
-> +	 * It would be nicer to annotate paths which are under preempt_disable
-> +	 * but not under pagefault_disable, however that requires a new flag
-> +	 * for differentiating between the two.
+Cheers,
+-- 
+Steve
 
--rt has this, pagefault_disable() doesn't change the preempt count but pokes
-at task_struct::pagefault_disable.
-
->  	 */
-> -	if (!in_atomic() && current->mm)
-> +	if (in_atomic())
-> +		return;
-> +
-> +	might_sleep();
-> +
-> +	if (current->mm)
->  		might_lock_read(&current->mm->mmap_sem);
->  }
->  EXPORT_SYMBOL(might_fault);
-> -- 
-> MST
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
