@@ -1,48 +1,79 @@
-From: =?ISO-8859-15?Q?Andr=E9_Hentschel?= <nerv@dawncrow.de>
-Subject: Re: [PATCHv4] arm: Preserve the user r/w register TPIDRURW on context
- switch and fork
-Date: Sat, 18 May 2013 17:02:25 +0200
-Message-ID: <51979801.7010903@dawncrow.de>
-References: <518AA19B.2020209@dawncrow.de>
+From: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+Subject: Re: [PATCH v7, part3 16/16] AVR32: fix building warnings caused by
+ redifinitions of HZ
+Date: Sat, 18 May 2013 21:33:56 +0200
+Message-ID: <20130518193356.GA4953@samfundet.no>
+References: <1368805518-2634-1-git-send-email-jiang.liu@huawei.com>
+ <1368805518-2634-17-git-send-email-jiang.liu@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-15
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:55315 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751743Ab3ERPCb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 18 May 2013 11:02:31 -0400
-In-Reply-To: <518AA19B.2020209@dawncrow.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, Will Deacon <will.deacon@arm.com>, Jonathan Austin <jonathan.austin@arm.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <1368805518-2634-17-git-send-email-jiang.liu@huawei.com>
+Sender: owner-linux-mm@kvack.org
+To: Jiang Liu <liuj97@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Haavard Skinnemoen <hskinnemoen@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
-Am 08.05.2013 21:03, schrieb Andr=E9 Hentschel:
-> From: =3D?UTF-8?q?Andr=3DC3=3DA9=3D20Hentschel?=3D <nerv@dawncrow.de>
->=20
-> Since commit 6a1c53124aa1 the user writeable TLS register was zeroed =
-to
-> prevent it from being used as a covert channel between two tasks.
->=20
-> There are more and more applications coming to WinRT, Wine could supp=
-ort them,
-> but mostly they expect to have the thread environment block (TEB) in =
-TPIDRURW.
->=20
-> This patch preserves that register per thread instead of clearing it.
-> Unlike the TPIDRURO, which is already switched, the TPIDRURW
-> can be updated from userspace so needs careful treatment in the case =
-that we
-> modify TPIDRURW and call fork(). To avoid this we must always read
-> TPIDRURW in copy_thread.
->=20
-> Signed-off-by: Andr=E9 Hentschel <nerv@dawncrow.de>
-> Signed-off-by: Will Deacon <will.deacon@arm.com>
-> Signed-off-by: Jonathan Austin <jonathan.austin@arm.com>=20
->=20
+Around Fri 17 May 2013 23:45:18 +0800 or thereabout, Jiang Liu wrote:
+> As suggested by David Howells <dhowells@redhat.com>, use
+> asm-generic/param.h and uapi/asm-generic/param.h for AVR32.
+> 
+> It also fixes building warnings caused by redifinitions of HZ:
+> In file included from /ws/linux/kernel/linux.git/include/uapi/linux/param.h:4,
+>                  from include/linux/timex.h:63,
+>                  from include/linux/jiffies.h:8,
+>                  from include/linux/ktime.h:25,
+>                  from include/linux/timer.h:5,
+>                  from include/linux/workqueue.h:8,
+>                  from include/linux/srcu.h:34,
+>                  from include/linux/notifier.h:15,
+>                  from include/linux/memory_hotplug.h:6,
+>                  from include/linux/mmzone.h:777,
+>                  from include/linux/gfp.h:4,
+>                  from arch/avr32/mm/init.c:10:
+> /ws/linux/kernel/linux.git/arch/avr32/include/asm/param.h:6:1: warning: "HZ" redefined
+> In file included from /ws/linux/kernel/linux.git/arch/avr32/include/asm/param.h:4,
+>                  from /ws/linux/kernel/linux.git/include/uapi/linux/param.h:4,
+>                  from include/linux/timex.h:63,
+>                  from include/linux/jiffies.h:8,
+>                  from include/linux/ktime.h:25,
+>                  from include/linux/timer.h:5,
+>                  from include/linux/workqueue.h:8,
+>                  from include/linux/srcu.h:34,
+>                  from include/linux/notifier.h:15,
+>                  from include/linux/memory_hotplug.h:6,
+>                  from include/linux/mmzone.h:777,
+>                  from include/linux/gfp.h:4,
+>                  from arch/avr32/mm/init.c:10:
+> /ws/linux/kernel/linux.git/arch/avr32/include/uapi/asm/param.h:6:1: warning: this is the location of the previous definition
+> 
+> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+> Cc: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+> Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
+> Cc: linux-kernel@vger.kernel.org
 
-Hi,
-I'm not yet very familiar with the development process here,
-am i getting no feedback on v4 because of the mergewindow being closed?
-Or is there another reason? Sry for being impatient.
+Thanks, I'll pull this into the linux-avr32 tree. I'm in the mountains right
+now, but will make a pull request early next week.
+
+Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+
+> ---
+>  arch/avr32/include/asm/Kbuild       |  1 +
+>  arch/avr32/include/asm/param.h      |  9 ---------
+>  arch/avr32/include/uapi/asm/Kbuild  |  1 +
+>  arch/avr32/include/uapi/asm/param.h | 18 ------------------
+>  4 files changed, 2 insertions(+), 27 deletions(-)
+>  delete mode 100644 arch/avr32/include/asm/param.h
+>  delete mode 100644 arch/avr32/include/uapi/asm/param.h
+
+<snipp diff>
+
+-- 
+HcE
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
