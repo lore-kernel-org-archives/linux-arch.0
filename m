@@ -1,64 +1,48 @@
-From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v7, part3 15/16] mm: report available pages as "MemTotal" for each NUMA node
-Date: Fri, 17 May 2013 23:45:17 +0800
-Message-ID: <1368805518-2634-16-git-send-email-jiang.liu@huawei.com>
-References: <1368805518-2634-1-git-send-email-jiang.liu@huawei.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1368805518-2634-1-git-send-email-jiang.liu@huawei.com>
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: =?ISO-8859-15?Q?Andr=E9_Hentschel?= <nerv@dawncrow.de>
+Subject: Re: [PATCHv4] arm: Preserve the user r/w register TPIDRURW on context
+ switch and fork
+Date: Sat, 18 May 2013 17:02:25 +0200
+Message-ID: <51979801.7010903@dawncrow.de>
+References: <518AA19B.2020209@dawncrow.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-15
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.126.187]:55315 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751743Ab3ERPCb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 18 May 2013 11:02:31 -0400
+In-Reply-To: <518AA19B.2020209@dawncrow.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, Will Deacon <will.deacon@arm.com>, Jonathan Austin <jonathan.austin@arm.com>
 
-As reported by https://bugzilla.kernel.org/show_bug.cgi?id=53501,
-"MemTotal" from /proc/meminfo means memory pages managed by the buddy
-system (managed_pages), but "MemTotal" from /sys/.../node/nodex/meminfo
-means physical pages present (present_pages) within the NUMA node.
-There's a difference between managed_pages and present_pages due to
-bootmem allocator and reserved pages.
+Am 08.05.2013 21:03, schrieb Andr=E9 Hentschel:
+> From: =3D?UTF-8?q?Andr=3DC3=3DA9=3D20Hentschel?=3D <nerv@dawncrow.de>
+>=20
+> Since commit 6a1c53124aa1 the user writeable TLS register was zeroed =
+to
+> prevent it from being used as a covert channel between two tasks.
+>=20
+> There are more and more applications coming to WinRT, Wine could supp=
+ort them,
+> but mostly they expect to have the thread environment block (TEB) in =
+TPIDRURW.
+>=20
+> This patch preserves that register per thread instead of clearing it.
+> Unlike the TPIDRURO, which is already switched, the TPIDRURW
+> can be updated from userspace so needs careful treatment in the case =
+that we
+> modify TPIDRURW and call fork(). To avoid this we must always read
+> TPIDRURW in copy_thread.
+>=20
+> Signed-off-by: Andr=E9 Hentschel <nerv@dawncrow.de>
+> Signed-off-by: Will Deacon <will.deacon@arm.com>
+> Signed-off-by: Jonathan Austin <jonathan.austin@arm.com>=20
+>=20
 
-And Documentation/filesystems/proc.txt says
-    MemTotal: Total usable ram (i.e. physical ram minus a few reserved
-              bits and the kernel binary code)
-
-So change /sys/.../node/nodex/meminfo to report available pages within
-the node as "MemTotal".
-
-Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Reported-by: sworddragon2@aol.com
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Mel Gorman <mgorman@suse.de>
-Cc: Minchan Kim <minchan@kernel.org>
-Cc: linux-mm@kvack.org
-Cc: linux-kernel@vger.kernel.org
----
- mm/page_alloc.c | 6 +++++-
- 1 file changed, 5 insertions(+), 1 deletion(-)
-
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 56b0097..e7a517d 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -2924,9 +2924,13 @@ EXPORT_SYMBOL(si_meminfo);
- #ifdef CONFIG_NUMA
- void si_meminfo_node(struct sysinfo *val, int nid)
- {
-+	int zone_type;		/* needs to be signed */
-+	unsigned long managed_pages = 0;
- 	pg_data_t *pgdat = NODE_DATA(nid);
- 
--	val->totalram = pgdat->node_present_pages;
-+	for (zone_type = 0; zone_type < MAX_NR_ZONES; zone_type++)
-+		managed_pages += pgdat->node_zones[zone_type].managed_pages;
-+	val->totalram = managed_pages;
- 	val->freeram = node_page_state(nid, NR_FREE_PAGES);
- #ifdef CONFIG_HIGHMEM
- 	val->totalhigh = pgdat->node_zones[ZONE_HIGHMEM].managed_pages;
--- 
-1.8.1.2
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Hi,
+I'm not yet very familiar with the development process here,
+am i getting no feedback on v4 because of the mergewindow being closed?
+Or is there another reason? Sry for being impatient.
