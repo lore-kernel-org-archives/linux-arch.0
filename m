@@ -1,78 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cassarossa.samfundet.no ([193.35.52.29]:53892 "EHLO
-	cassarossa.samfundet.no" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752850Ab3ERTgJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 18 May 2013 15:36:09 -0400
-Date: Sat, 18 May 2013 21:33:56 +0200
-From: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-Subject: Re: [PATCH v7, part3 16/16] AVR32: fix building warnings caused by
- redifinitions of HZ
-Message-ID: <20130518193356.GA4953@samfundet.no>
-References: <1368805518-2634-1-git-send-email-jiang.liu@huawei.com>
- <1368805518-2634-17-git-send-email-jiang.liu@huawei.com>
+Received: from eddie.linux-mips.org ([78.24.191.182]:54250 "EHLO
+	cvs.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753639Ab3ESJW4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 19 May 2013 05:22:56 -0400
+Date: Sun, 19 May 2013 11:22:21 +0200
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [PATCH] KVM/MIPS32: Export min_low_pfn.
+Message-ID: <20130519092221.GD24568@linux-mips.org>
+References: <n>
+ <1368824818-22503-1-git-send-email-sanjayl@kymasys.com>
+ <5196A458.7080400@gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1368805518-2634-17-git-send-email-jiang.liu@huawei.com>
+In-Reply-To: <5196A458.7080400@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiang Liu <liuj97@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Haavard Skinnemoen <hskinnemoen@gmail.com>
-Message-ID: <20130518193356.3vEH_CL4IebXXcaUWh5R7S5yiemOadbMruaGD6Eir0w@z>
+To: David Daney <ddaney.cavm@gmail.com>, David Howells <dhowells@redhat.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, Michal Simek <monstr@monstr.eu>, microblaze-uclinux@itee.uq.edu.au, Chen Liqin <liqin.chen@sunplusct.com>, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Cc: Sanjay Lal <sanjayl@kymasys.com>, linux-mips@linux-mips.org, kvm@vger.kernel.org, gleb@redhat.com, mtosatti@redhat.com
+Message-ID: <20130519092221.EvrpDev71ZYLDDkyWg9tImCNe7x94m_i-7cSZNTjMcI@z>
 
-Around Fri 17 May 2013 23:45:18 +0800 or thereabout, Jiang Liu wrote:
-> As suggested by David Howells <dhowells@redhat.com>, use
-> asm-generic/param.h and uapi/asm-generic/param.h for AVR32.
+On Fri, May 17, 2013 at 02:42:48PM -0700, David Daney wrote:
+
+> On 05/17/2013 02:06 PM, Sanjay Lal wrote:
+> >The KVM module uses the standard MIPS cache management routines, which use min_low_pfn.
+> >This creates and indirect dependency, requiring min_low_pfn to be exported.
+> >
+> >Signed-off-by: Sanjay Lal <sanjayl@kymasys.com>
+> >---
+> >  arch/mips/kernel/mips_ksyms.c | 6 ++++++
+> >  1 file changed, 6 insertions(+)
+> >
+> >diff --git a/arch/mips/kernel/mips_ksyms.c b/arch/mips/kernel/mips_ksyms.c
+> >index 6e58e97..0299472 100644
+> >--- a/arch/mips/kernel/mips_ksyms.c
+> >+++ b/arch/mips/kernel/mips_ksyms.c
+> >@@ -14,6 +14,7 @@
+> >  #include <linux/mm.h>
+> >  #include <asm/uaccess.h>
+> >  #include <asm/ftrace.h>
+> >+#include <linux/bootmem.h>
+> >
+> >  extern void *__bzero(void *__s, size_t __count);
+> >  extern long __strncpy_from_user_nocheck_asm(char *__to,
+> >@@ -60,3 +61,8 @@ EXPORT_SYMBOL(invalid_pte_table);
+> >  /* _mcount is defined in arch/mips/kernel/mcount.S */
+> >  EXPORT_SYMBOL(_mcount);
+> >  #endif
+> >+
+> >+/* The KVM module uses the standard MIPS cache functions which use
+> >+ * min_low_pfn, requiring it to be exported.
+
+The comment is wrong.  min_low_pfn is being referenced by pfn_valid() which
+is implemented (simplified for purposes of this discussion) like:
+
+int pfn_valid(unsigned long pfn)
+{
+	return pfn >= min_low_pfn && pfn < max_mapnr;
+}
+
+> >+ */
+> >+EXPORT_SYMBOL(min_low_pfn);
 > 
-> It also fixes building warnings caused by redifinitions of HZ:
-> In file included from /ws/linux/kernel/linux.git/include/uapi/linux/param.h:4,
->                  from include/linux/timex.h:63,
->                  from include/linux/jiffies.h:8,
->                  from include/linux/ktime.h:25,
->                  from include/linux/timer.h:5,
->                  from include/linux/workqueue.h:8,
->                  from include/linux/srcu.h:34,
->                  from include/linux/notifier.h:15,
->                  from include/linux/memory_hotplug.h:6,
->                  from include/linux/mmzone.h:777,
->                  from include/linux/gfp.h:4,
->                  from arch/avr32/mm/init.c:10:
-> /ws/linux/kernel/linux.git/arch/avr32/include/asm/param.h:6:1: warning: "HZ" redefined
-> In file included from /ws/linux/kernel/linux.git/arch/avr32/include/asm/param.h:4,
->                  from /ws/linux/kernel/linux.git/include/uapi/linux/param.h:4,
->                  from include/linux/timex.h:63,
->                  from include/linux/jiffies.h:8,
->                  from include/linux/ktime.h:25,
->                  from include/linux/timer.h:5,
->                  from include/linux/workqueue.h:8,
->                  from include/linux/srcu.h:34,
->                  from include/linux/notifier.h:15,
->                  from include/linux/memory_hotplug.h:6,
->                  from include/linux/mmzone.h:777,
->                  from include/linux/gfp.h:4,
->                  from arch/avr32/mm/init.c:10:
-> /ws/linux/kernel/linux.git/arch/avr32/include/uapi/asm/param.h:6:1: warning: this is the location of the previous definition
+> I think I asked this before, but I don't remember the answer:
 > 
-> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-> Cc: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-> Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
-> Cc: linux-kernel@vger.kernel.org
+> Why not put EXPORT_SYMBOL(min_low_pfn) in mm/bootmem.c adjacent to
+> where the symbol is defined?
+> 
+> Cluttering up the kernel with multiple architectures all doing
+> architecture specific exports of the same symbol is not a clean way
+> of doing things.
+> 
+> The second time something needs to be done, it should be factored
+> out into common code.
 
-Thanks, I'll pull this into the linux-avr32 tree. I'm in the mountains right
-now, but will make a pull request early next week.
+pfn_valid() should return 1 if for the pfn passed as the argment a struct
+page exists in mem_map[] - this only affects the flatmem case.  However
+it is possible that min_low_pfn is bigger than ARCH_PFN_OFFSET in which
+case pfn_valid might return 0 even though it should have returned 1.
 
-Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+So I fixed the issue like:
 
-> ---
->  arch/avr32/include/asm/Kbuild       |  1 +
->  arch/avr32/include/asm/param.h      |  9 ---------
->  arch/avr32/include/uapi/asm/Kbuild  |  1 +
->  arch/avr32/include/uapi/asm/param.h | 18 ------------------
->  4 files changed, 2 insertions(+), 27 deletions(-)
->  delete mode 100644 arch/avr32/include/asm/param.h
->  delete mode 100644 arch/avr32/include/uapi/asm/param.h
+static inline int pfn_valid(unsigned long pfn)
+{
+	return pfn >= ARCH_PFN_OFFSET && pfn < max_mapnr;
+}
 
-<snipp diff>
+frv, ia64, metag, microblaze, score and sh are also implementing pfn_valid
+referencing min_low_pfn.
 
--- 
-HcE
+Time to move pfn_valid() to asm-generic, fix the min_low_pfn /
+ARCH_PFN_OFFSET issue and while at it, harden it against multiple
+evaluation of its arguments?
+
+  Ralf
