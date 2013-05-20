@@ -1,74 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:30390 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752000Ab3ESUjx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 19 May 2013 16:39:53 -0400
-Date: Sun, 19 May 2013 23:35:51 +0300
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [PATCH v2 10/10] kernel: might_fault does not imply might_sleep
-Message-ID: <20130519203551.GA27708@redhat.com>
-References: <cover.1368702323.git.mst@redhat.com>
- <1f85dc8e6a0149677563a2dfb4cef9a9c7eaa391.1368702323.git.mst@redhat.com>
- <20130516184041.GP19669@dyad.programming.kicks-ass.net>
- <20130519093526.GD19883@redhat.com>
- <1368966844.6828.111.camel@gandalf.local.home>
- <20130519133418.GA24381@redhat.com>
- <1368979579.6828.114.camel@gandalf.local.home>
- <20130519164009.GA2434@redhat.com>
- <1368995002.6828.117.camel@gandalf.local.home>
+Received: from service87.mimecast.com ([91.220.42.44]:39939 "EHLO
+	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756460Ab3ETLDu convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 May 2013 07:03:50 -0400
+Message-ID: <519A030D.1030809@arm.com>
+Date: Mon, 20 May 2013 12:03:41 +0100
+From: Jonathan Austin <jonathan.austin@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1368995002.6828.117.camel@gandalf.local.home>
+Subject: Re: [PATCHv4] arm: Preserve the user r/w register TPIDRURW on context
+ switch and fork
+References: <518AA19B.2020209@dawncrow.de> <51979801.7010903@dawncrow.de>
+In-Reply-To: <51979801.7010903@dawncrow.de>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, David Howells <dhowells@redhat.com>, Hirokazu Takata <takata@linux-m32r.org>, Michal Simek <monstr@monstr.eu>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, microblaze-uclinux@itee.uq.edu.au, linux-am33-list@redhat.com, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org
-Message-ID: <20130519203551.KMfPfFxfFYPpbuWHvPXBTZhgOtvIbaYEoBnyTUcdP9A@z>
+To: =?UTF-8?B?QW5kcsOpIEhlbnRzY2hlbA==?= <nerv@dawncrow.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, Will Deacon <Will.Deacon@arm.com>
+Message-ID: <20130520110341.eLnbmHk2U4-QdjPiJCTPIa78lgdTjgpWOcmjHUiUO-c@z>
 
-On Sun, May 19, 2013 at 04:23:22PM -0400, Steven Rostedt wrote:
-> On Sun, 2013-05-19 at 19:40 +0300, Michael S. Tsirkin wrote:
-> 
-> > OK I get it. So let me correct myself. The simple code
-> > that does something like this under a spinlock:
-> > >       preempt_disable
-> > >       pagefault_disable
-> > >       error = copy_to_user
-> > >       pagefault_enable
-> > >       preempt_enable
-> > >
-> > is not doing anything wrong and should not get a warning,
-> > as long as error is handled correctly later.
-> > Right?
-> 
-> I came in mid thread and I don't know the context.
+Hi André
 
-The context is that I want to change might_fault
-from might_sleep to
-might_sleep_if(!in_atomic())
-so that above does not trigger warnings even with
-CONFIG_DEBUG_ATOMIC_SLEEP enabled.
+On 18/05/13 16:02, André Hentschel wrote:
+> Am 08.05.2013 21:03, schrieb André Hentschel:
+>> From: =?UTF-8?q?Andr=C3=A9=20Hentschel?= <nerv@dawncrow.de>
+>>
+
+This is strangely formatted for me too, and I use a different client 
+from Will so I'm not sure that the problem is just at our end...
+
+(Also see that the list archive has weird formatting:
+http://lists.infradead.org/pipermail/linux-arm-kernel/2013-May/167325.html )
+
+Your first couple of patches didn't come out strangely formatted, so I'm 
+not really sure what's going on.
+
+>> Since commit 6a1c53124aa1 the user writeable TLS register was zeroed to
+>> prevent it from being used as a covert channel between two tasks.
+>>
+>> There are more and more applications coming to WinRT, Wine could support them,
+>> but mostly they expect to have the thread environment block (TEB) in TPIDRURW.
+>>
+>> This patch preserves that register per thread instead of clearing it.
+>> Unlike the TPIDRURO, which is already switched, the TPIDRURW
+>> can be updated from userspace so needs careful treatment in the case that we
+>> modify TPIDRURW and call fork(). To avoid this we must always read
+>> TPIDRURW in copy_thread.
+>>
+>> Signed-off-by: André Hentschel <nerv@dawncrow.de>
+>> Signed-off-by: Will Deacon <will.deacon@arm.com>
+>> Signed-off-by: Jonathan Austin <jonathan.austin@arm.com>
+>>
+>
+> Hi,
+> I'm not yet very familiar with the development process here,
+> am i getting no feedback on v4 because of the mergewindow being closed?
+> Or is there another reason? Sry for being impatient.
+>
+
+This is a feature, not a fix, so most likely it'll be included at the 
+next merge window. For that to happen it should be in Russell's tree 
+around the middle of this cycle.
+
+Can you please rebase on 3.10-rc2 (when it happens) and post one more 
+version? After that, assuming nobody else has any final comments, you 
+could put it in to Russell's patch system...
+
+Just as a hint - one thing you might have done to increase the chances 
+of getting comments to clarify what's different between v3 and v4 - as a 
+way to make life easier for reviewers you can highlight the differences 
+between versions after the "---" (where you currently have the 
+description of why there are so many S-o-Bs).
+
+Hope that helps,
+Jonny
 
 
-> Anyway, the above
-> looks to me as you just don't want to sleep.
 
-Exactly. upstream we can just do pagefault_disable but to make
-this code -rt ready it's best to do preempt_disable as well.
-
-> If you try to copy data to
-> user space that happens not to be currently mapped for any reason, you
-> will get an error. Even if the address space is completely valid. Is
-> that what you want?
-> 
-> -- Steve
-> 
-
-Yes, this is by design.
-We detect that and bounce the work to a thread outside
-any locks.
-
-Thanks,
-
--- 
-MST
