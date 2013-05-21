@@ -1,38 +1,46 @@
-From: Greg KH <greg@kroah.com>
-Subject: Re: Get rid of cpuinit?
-Date: Mon, 20 May 2013 16:12:03 -0700
-Message-ID: <20130520231203.GA21682@kroah.com>
-References: <519AA53F.1020107@zytor.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Stephen Boyd <sboyd@codeaurora.org>
+Subject: [PATCH] ARM: smp: Drop RCU_NONIDLE usage in cpu_die()
+Date: Mon, 20 May 2013 17:57:16 -0700
+Message-ID: <1369097836-19756-1-git-send-email-sboyd@codeaurora.org>
+References: <20130501005523.GN3780@linux.vnet.ibm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from out2-smtp.messagingengine.com ([66.111.4.26]:52240 "EHLO
-	out2-smtp.messagingengine.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1756021Ab3ETXMH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 20 May 2013 19:12:07 -0400
-Content-Disposition: inline
-In-Reply-To: <519AA53F.1020107@zytor.com>
+Received: from wolverine02.qualcomm.com ([199.106.114.251]:53212 "EHLO
+	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755655Ab3EUA5Q (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 May 2013 20:57:16 -0400
+In-Reply-To: <20130501005523.GN3780@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Kevin Hilman <khilman@linaro.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Magnus Damm <magnus.damm@gmail.com>, Russell King <linux@arm.linux.org.uk>
 
-On Mon, May 20, 2013 at 03:35:43PM -0700, H. Peter Anvin wrote:
-> We have gotten rid of devinit markup.  A recent patch of Linus' makes me
-> wonder if we similarly should get rid of cpuinit markup?
-> 
-> Just as with devices, the CPU hotplug machinery has been leveraged to
-> support a number of pieces of functionality such as suspend, which means
-> that on anything but the most embedded systems this functionality is
-> likely needed anyway.
-> 
-> On x86-64, for an "allyesconfig" build, the total amount of space in all
-> the .cpu* sections combined is 100K.
+Before f7b861b (arm: Use generic idle loop, 2013-03-21) ARM would
+kill the CPU within the rcu idle section. Now that the
+rcu_idle_enter()/exit() pair have been pushed lower down in the
+idle loop this is no longer true and so using RCU_NONIDLE here is
+no longer necessary and also harmful because RCU is not actually
+idle at this point.
 
-No objection from me on removing it, it just causes problems from what I
-can tell.
+Cc: Russell King <linux@arm.linux.org.uk>
+Acked-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+Signed-off-by: Stephen Boyd <sboyd@codeaurora.org>
+---
+ arch/arm/kernel/smp.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-thanks,
-
-greg k-h
+diff --git a/arch/arm/kernel/smp.c b/arch/arm/kernel/smp.c
+index 4619177..78f1eb5 100644
+--- a/arch/arm/kernel/smp.c
++++ b/arch/arm/kernel/smp.c
+@@ -233,7 +233,7 @@ void __ref cpu_die(void)
+ 	mb();
+ 
+ 	/* Tell __cpu_die() that this CPU is now safe to dispose of */
+-	RCU_NONIDLE(complete(&cpu_died));
++	complete(&cpu_died);
+ 
+ 	/*
+ 	 * actual CPU shutdown procedure is at least platform (if not
+-- 
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum,
+hosted by The Linux Foundation
