@@ -1,52 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ams-iport-2.cisco.com ([144.254.224.141]:59329 "EHLO
-	ams-iport-2.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752655Ab3EUHsz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 May 2013 03:48:55 -0400
-From: Hans Verkuil <hansverk@cisco.com>
+Received: from foo.stuge.se ([212.116.89.98]:56786 "EHLO foo.stuge.se"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753167Ab3EUKUc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 21 May 2013 06:20:32 -0400
+Message-ID: <20130521101349.30660.qmail@stuge.se>
+Date: Tue, 21 May 2013 12:13:49 +0200
+From: Peter Stuge <peter@stuge.se>
 Subject: Re: [PATCH] Finally eradicate CONFIG_HOTPLUG
-Date: Tue, 21 May 2013 09:38:42 +0200
 References: <20130521134935.d18c3f5c23485fb5ddabc365@canb.auug.org.au>
-In-Reply-To: <20130521134935.d18c3f5c23485fb5ddabc365@canb.auug.org.au>
 MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Message-ID: <201305210938.43064.hansverk@cisco.com>
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="ibTvN161/egqYuK8"
+Content-Disposition: inline
+In-Reply-To: <20130521134935.d18c3f5c23485fb5ddabc365@canb.auug.org.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, Doug Thompson <dougthompson@xmission.com>, linux-edac@vger.kernel.org, Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-pcmcia@lists.infradead.org, Hans Verkuil <hans.verkuil@cisco.com>, Steven Whitehouse <swhiteho@redhat.com>, cluster-devel@redhat.com, Arnd Bergmann <arnd@arndb.de>, Pavel Machek <pavel@ucw.cz>, "Rafael J. Wysocki" <rjw@sisk.pl>, linux-pm@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20130521073842.jK2Mw0eNA-_QbTutzfTMOUqqQTIMRRPvMEX-0-Mk3FU@z>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@sisk.pl>, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, linux-pm@vger.kernel.org, linux-pci@vger.kernel.org, linux-pcmcia@lists.infradead.org, LKML <linux-kernel@vger.kernel.org>, cluster-devel@redhat.com, linux-mm@kvack.org, Hans Verkuil <hans.verkuil@cisco.com>, Pavel Machek <pavel@ucw.cz>, Doug Thompson <dougthompson@xmission.com>, Bjorn Helgaas <bhelgaas@google.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Whitehouse <swhiteho@redhat.com>, linux-arm-kernel@lists.infradead.org, linux-edac@vger.kernel.org
+Message-ID: <20130521101349.J8vm4_Ayc98h8XFzttCLEOzkEJcnkY8uY_wIUf4amAE@z>
 
-On Tue 21 May 2013 05:49:35 Stephen Rothwell wrote:
-> Ever since commit 45f035ab9b8f ("CONFIG_HOTPLUG should be always on"),
-> it has been basically impossible to build a kernel with CONFIG_HOTPLUG
-> turned off.  Remove all the remaining references to it.
-> 
-> Cc: linux-arch@vger.kernel.org
-> Cc: Russell King <linux@arm.linux.org.uk>
-> Cc: linux-arm-kernel@lists.infradead.org
-> Cc: Doug Thompson <dougthompson@xmission.com>
-> Cc: linux-edac@vger.kernel.org
-> Cc: Bjorn Helgaas <bhelgaas@google.com>
-> Cc: linux-pci@vger.kernel.org
-> Cc: linux-pcmcia@lists.infradead.org
-> Cc: Hans Verkuil <hans.verkuil@cisco.com>
-> Cc: Steven Whitehouse <swhiteho@redhat.com>
-> Cc: cluster-devel@redhat.com
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: Pavel Machek <pavel@ucw.cz>
-> Cc: "Rafael J. Wysocki" <rjw@sisk.pl>
-> Cc: linux-pm@vger.kernel.org
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: linux-mm@kvack.org
-> Signed-off-by: Stephen Rothwell <sfr@canb.auug.org.au>
 
-For drivers/staging/media/go7007/go7007.txt:
+--ibTvN161/egqYuK8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Acked-by: Hans Verkuil <hans.verkuil@cisco.com>
+Are you changing the code to have HOTPLUG always -on- or -off- ?
 
-Regards,
+=46rom the commit message I had expected always -on-.
 
-	Hans
+
+Stephen Rothwell wrote:
+> --- a/include/asm-generic/vmlinux.lds.h
+> +++ b/include/asm-generic/vmlinux.lds.h
+> @@ -68,14 +68,6 @@
+>   * are handled as text/data or they can be discarded (which
+>   * often happens at runtime)
+>   */
+> -#ifdef CONFIG_HOTPLUG
+> -#define DEV_KEEP(sec)    *(.dev##sec)
+> -#define DEV_DISCARD(sec)
+> -#else
+> -#define DEV_KEEP(sec)
+> -#define DEV_DISCARD(sec) *(.dev##sec)
+> -#endif
+> -
+>  #ifdef CONFIG_HOTPLUG_CPU
+>  #define CPU_KEEP(sec)    *(.cpu##sec)
+>  #define CPU_DISCARD(sec)
+> @@ -182,8 +174,6 @@
+>  	*(.data)							\
+>  	*(.ref.data)							\
+>  	*(.data..shared_aligned) /* percpu related */			\
+> -	DEV_KEEP(init.data)						\
+> -	DEV_KEEP(exit.data)						\
+=2E.
+> @@ -503,7 +489,6 @@
+>  /* init and exit section handling */
+>  #define INIT_DATA							\
+>  	*(.init.data)							\
+> -	DEV_DISCARD(init.data)						\
+
+Shouldn't the effect of one of the above remain?
+
+
+//Peter
+
+--ibTvN161/egqYuK8
+Content-Type: application/pgp-signature
+Content-Disposition: inline
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.11 (GNU/Linux)
+
+iD8DBQFRm0jdhR3Q0dhIfEgRAtAtAKDxeofcdUGqWjn2AyXb/CxbZP4X8ACgvEte
+zomgM5roARu65KybTU/PIcM=
+=bMNu
+-----END PGP SIGNATURE-----
+
+--ibTvN161/egqYuK8--
