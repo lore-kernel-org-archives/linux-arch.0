@@ -1,79 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:39939 "EHLO
-	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756460Ab3ETLDu convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 May 2013 07:03:50 -0400
-Message-ID: <519A030D.1030809@arm.com>
-Date: Mon, 20 May 2013 12:03:41 +0100
-From: Jonathan Austin <jonathan.austin@arm.com>
+Received: from ams-iport-2.cisco.com ([144.254.224.141]:59329 "EHLO
+	ams-iport-2.cisco.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752655Ab3EUHsz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 May 2013 03:48:55 -0400
+From: Hans Verkuil <hansverk@cisco.com>
+Subject: Re: [PATCH] Finally eradicate CONFIG_HOTPLUG
+Date: Tue, 21 May 2013 09:38:42 +0200
+References: <20130521134935.d18c3f5c23485fb5ddabc365@canb.auug.org.au>
+In-Reply-To: <20130521134935.d18c3f5c23485fb5ddabc365@canb.auug.org.au>
 MIME-Version: 1.0
-Subject: Re: [PATCHv4] arm: Preserve the user r/w register TPIDRURW on context
- switch and fork
-References: <518AA19B.2020209@dawncrow.de> <51979801.7010903@dawncrow.de>
-In-Reply-To: <51979801.7010903@dawncrow.de>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 8BIT
+Content-Type: Text/Plain;
+  charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201305210938.43064.hansverk@cisco.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?UTF-8?B?QW5kcsOpIEhlbnRzY2hlbA==?= <nerv@dawncrow.de>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, Will Deacon <Will.Deacon@arm.com>
-Message-ID: <20130520110341.eLnbmHk2U4-QdjPiJCTPIa78lgdTjgpWOcmjHUiUO-c@z>
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, Doug Thompson <dougthompson@xmission.com>, linux-edac@vger.kernel.org, Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-pcmcia@lists.infradead.org, Hans Verkuil <hans.verkuil@cisco.com>, Steven Whitehouse <swhiteho@redhat.com>, cluster-devel@redhat.com, Arnd Bergmann <arnd@arndb.de>, Pavel Machek <pavel@ucw.cz>, "Rafael J. Wysocki" <rjw@sisk.pl>, linux-pm@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20130521073842.jK2Mw0eNA-_QbTutzfTMOUqqQTIMRRPvMEX-0-Mk3FU@z>
 
-Hi André
+On Tue 21 May 2013 05:49:35 Stephen Rothwell wrote:
+> Ever since commit 45f035ab9b8f ("CONFIG_HOTPLUG should be always on"),
+> it has been basically impossible to build a kernel with CONFIG_HOTPLUG
+> turned off.  Remove all the remaining references to it.
+> 
+> Cc: linux-arch@vger.kernel.org
+> Cc: Russell King <linux@arm.linux.org.uk>
+> Cc: linux-arm-kernel@lists.infradead.org
+> Cc: Doug Thompson <dougthompson@xmission.com>
+> Cc: linux-edac@vger.kernel.org
+> Cc: Bjorn Helgaas <bhelgaas@google.com>
+> Cc: linux-pci@vger.kernel.org
+> Cc: linux-pcmcia@lists.infradead.org
+> Cc: Hans Verkuil <hans.verkuil@cisco.com>
+> Cc: Steven Whitehouse <swhiteho@redhat.com>
+> Cc: cluster-devel@redhat.com
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Pavel Machek <pavel@ucw.cz>
+> Cc: "Rafael J. Wysocki" <rjw@sisk.pl>
+> Cc: linux-pm@vger.kernel.org
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: linux-mm@kvack.org
+> Signed-off-by: Stephen Rothwell <sfr@canb.auug.org.au>
 
-On 18/05/13 16:02, André Hentschel wrote:
-> Am 08.05.2013 21:03, schrieb André Hentschel:
->> From: =?UTF-8?q?Andr=C3=A9=20Hentschel?= <nerv@dawncrow.de>
->>
+For drivers/staging/media/go7007/go7007.txt:
 
-This is strangely formatted for me too, and I use a different client 
-from Will so I'm not sure that the problem is just at our end...
+Acked-by: Hans Verkuil <hans.verkuil@cisco.com>
 
-(Also see that the list archive has weird formatting:
-http://lists.infradead.org/pipermail/linux-arm-kernel/2013-May/167325.html )
+Regards,
 
-Your first couple of patches didn't come out strangely formatted, so I'm 
-not really sure what's going on.
-
->> Since commit 6a1c53124aa1 the user writeable TLS register was zeroed to
->> prevent it from being used as a covert channel between two tasks.
->>
->> There are more and more applications coming to WinRT, Wine could support them,
->> but mostly they expect to have the thread environment block (TEB) in TPIDRURW.
->>
->> This patch preserves that register per thread instead of clearing it.
->> Unlike the TPIDRURO, which is already switched, the TPIDRURW
->> can be updated from userspace so needs careful treatment in the case that we
->> modify TPIDRURW and call fork(). To avoid this we must always read
->> TPIDRURW in copy_thread.
->>
->> Signed-off-by: André Hentschel <nerv@dawncrow.de>
->> Signed-off-by: Will Deacon <will.deacon@arm.com>
->> Signed-off-by: Jonathan Austin <jonathan.austin@arm.com>
->>
->
-> Hi,
-> I'm not yet very familiar with the development process here,
-> am i getting no feedback on v4 because of the mergewindow being closed?
-> Or is there another reason? Sry for being impatient.
->
-
-This is a feature, not a fix, so most likely it'll be included at the 
-next merge window. For that to happen it should be in Russell's tree 
-around the middle of this cycle.
-
-Can you please rebase on 3.10-rc2 (when it happens) and post one more 
-version? After that, assuming nobody else has any final comments, you 
-could put it in to Russell's patch system...
-
-Just as a hint - one thing you might have done to increase the chances 
-of getting comments to clarify what's different between v3 and v4 - as a 
-way to make life easier for reviewers you can highlight the differences 
-between versions after the "---" (where you currently have the 
-description of why there are so many S-o-Bs).
-
-Hope that helps,
-Jonny
-
-
-
+	Hans
