@@ -1,145 +1,98 @@
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [PATCH v2 10/10] kernel: might_fault does not imply might_sleep
-Date: Tue, 21 May 2013 16:28:59 +0300
-Message-ID: <20130521132859.GA3730@redhat.com>
-References: <cover.1368702323.git.mst@redhat.com>
- <1f85dc8e6a0149677563a2dfb4cef9a9c7eaa391.1368702323.git.mst@redhat.com>
- <20130516184041.GP19669@dyad.programming.kicks-ass.net>
- <20130519093526.GD19883@redhat.com>
- <20130521115734.GA9554@twins.programming.kicks-ass.net>
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [PATCH] Finally eradicate CONFIG_HOTPLUG
+Date: Wed, 22 May 2013 10:04:47 +1000
+Message-ID: <20130522100447.0f04799ea138a2f391d38850@canb.auug.org.au>
+References: <20130521134935.d18c3f5c23485fb5ddabc365@canb.auug.org.au>
+	<20130521101349.30660.qmail@stuge.se>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA256";
+ boundary="Signature=_Wed__22_May_2013_10_04_47_+1000_=wBw7x16m+7LHjz1"
 Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20130521115734.GA9554@twins.programming.kicks-ass.net>
+In-Reply-To: <20130521101349.30660.qmail@stuge.se>
 Sender: owner-linux-mm@kvack.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-kernel@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, David Howells <dhowells@redhat.com>, Hirokazu Takata <takata@linux-m32r.org>, Michal Simek <monstr@monstr.eu>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, microblaze-uclinux@itee.uq.edu.au, linux-am33-list@redhat.com, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@
+To: Peter Stuge <peter@stuge.se>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@sisk.pl>, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, linux-pm@vger.kernel.org, linux-pci@vger.kernel.org, linux-pcmcia@lists.infradead.org, LKML <linux-kernel@vger.kernel.org>, cluster-devel@redhat.com, linux-mm@kvack.org, Hans Verkuil <hans.verkuil@cisco.com>, Pavel Machek <pavel@ucw.cz>, Doug Thompson <dougthompson@xmission.com>, Bjorn Helgaas <bhelgaas@google.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Whitehouse <swhiteho@redhat.com>, linux-arm-kernel@lists.infradead.org, linux-edac@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, May 21, 2013 at 01:57:34PM +0200, Peter Zijlstra wrote:
-> On Sun, May 19, 2013 at 12:35:26PM +0300, Michael S. Tsirkin wrote:
-> > > > --- a/include/linux/kernel.h
-> > > > +++ b/include/linux/kernel.h
-> > > > @@ -198,7 +198,6 @@ void might_fault(void);
-> > > >  #else
-> > > >  static inline void might_fault(void)
-> > > >  {
-> > > > -	might_sleep();
-> > > 
-> > > This removes potential resched points for PREEMPT_VOLUNTARY -- was that
-> > > intentional?
-> > 
-> > No it's a bug. Thanks for pointing this out.
-> > OK so I guess it should be might_sleep_if(!in_atomic())
-> > and this means might_fault would have to move from linux/kernel.h to
-> > linux/uaccess.h, since in_atomic() is in linux/hardirq.h
-> > 
-> > Makes sense?
-> 
-> So the only difference between PROVE_LOCKING and not should be the
-> might_lock_read() thing; so how about something like this?
+--Signature=_Wed__22_May_2013_10_04_47_+1000_=wBw7x16m+7LHjz1
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-I was drafting something like this, yes.
-There are a bunch of trivial fixes in all arches
-to make this work, will post soon.
+Hi Peter,
 
-> ---
->  include/linux/kernel.h  |  7 ++-----
->  include/linux/uaccess.h | 26 ++++++++++++++++++++++++++
->  mm/memory.c             | 14 ++------------
->  3 files changed, 30 insertions(+), 17 deletions(-)
-> 
-> diff --git a/include/linux/kernel.h b/include/linux/kernel.h
-> index e96329c..70812f4 100644
-> --- a/include/linux/kernel.h
-> +++ b/include/linux/kernel.h
-> @@ -194,12 +194,9 @@ extern int _cond_resched(void);
->  	})
->  
->  #ifdef CONFIG_PROVE_LOCKING
-> -void might_fault(void);
-> +void might_fault_lockdep(void);
->  #else
-> -static inline void might_fault(void)
-> -{
-> -	might_sleep();
-> -}
-> +static inline void might_fault_lockdep(void) { }
->  #endif
->  
->  extern struct atomic_notifier_head panic_notifier_list;
-> diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
-> index 5ca0951..50a2cc9 100644
-> --- a/include/linux/uaccess.h
-> +++ b/include/linux/uaccess.h
-> @@ -38,6 +38,32 @@ static inline void pagefault_enable(void)
->  	preempt_check_resched();
->  }
->  
-> +static inline bool __can_fault(void)
-> +{
-> +	/*
-> +	 * Some code (nfs/sunrpc) uses socket ops on kernel memory while
-> +	 * holding the mmap_sem, this is safe because kernel memory doesn't
-> +	 * get paged out, therefore we'll never actually fault, and the
-> +	 * below annotations will generate false positives.
-> +	 */
-> +	if (segment_eq(get_fs(), KERNEL_DS))
-> +		return false;
-> +
-> +	if (in_atomic() /* || pagefault_disabled() */)
-> +		return false;
-> +
-> +	return true;
-> +}
-> +
-> +static inline void might_fault(void)
-> +{
-> +	if (!__can_fault())
-> +		return;
-> +
-> +	might_sleep();
-> +	might_fault_lockdep();
-> +}
-> +
->  #ifndef ARCH_HAS_NOCACHE_UACCESS
->  
->  static inline unsigned long __copy_from_user_inatomic_nocache(void *to,
-> diff --git a/mm/memory.c b/mm/memory.c
-> index 6dc1882..266610c 100644
-> --- a/mm/memory.c
-> +++ b/mm/memory.c
-> @@ -4211,19 +4211,9 @@ void print_vma_addr(char *prefix, unsigned long ip)
->  }
->  
->  #ifdef CONFIG_PROVE_LOCKING
-> -void might_fault(void)
-> +void might_fault_lockdep(void)
->  {
->  	/*
-> -	 * Some code (nfs/sunrpc) uses socket ops on kernel memory while
-> -	 * holding the mmap_sem, this is safe because kernel memory doesn't
-> -	 * get paged out, therefore we'll never actually fault, and the
-> -	 * below annotations will generate false positives.
-> -	 */
-> -	if (segment_eq(get_fs(), KERNEL_DS))
-> -		return;
-> -
-> -	might_sleep();
-> -	/*
->  	 * it would be nicer only to annotate paths which are not under
->  	 * pagefault_disable, however that requires a larger audit and
->  	 * providing helpers like get_user_atomic.
-> @@ -4231,7 +4221,7 @@ void might_fault(void)
->  	if (!in_atomic() && current->mm)
->  		might_lock_read(&current->mm->mmap_sem);
->  }
-> -EXPORT_SYMBOL(might_fault);
-> +EXPORT_SYMBOL(might_fault_lockdep);
->  #endif
->  
->  #if defined(CONFIG_TRANSPARENT_HUGEPAGE) || defined(CONFIG_HUGETLBFS)
+On Tue, 21 May 2013 12:13:49 +0200 Peter Stuge <peter@stuge.se> wrote:
+>
+> Are you changing the code to have HOTPLUG always -on- or -off- ?
+>=20
+> From the commit message I had expected always -on-.
+
+Yes, it has been that way for some time.
+
+> Stephen Rothwell wrote:
+> > --- a/include/asm-generic/vmlinux.lds.h
+> > +++ b/include/asm-generic/vmlinux.lds.h
+> > @@ -68,14 +68,6 @@
+> >   * are handled as text/data or they can be discarded (which
+> >   * often happens at runtime)
+> >   */
+> > -#ifdef CONFIG_HOTPLUG
+> > -#define DEV_KEEP(sec)    *(.dev##sec)
+> > -#define DEV_DISCARD(sec)
+> > -#else
+> > -#define DEV_KEEP(sec)
+> > -#define DEV_DISCARD(sec) *(.dev##sec)
+> > -#endif
+> > -
+> >  #ifdef CONFIG_HOTPLUG_CPU
+> >  #define CPU_KEEP(sec)    *(.cpu##sec)
+> >  #define CPU_DISCARD(sec)
+> > @@ -182,8 +174,6 @@
+> >  	*(.data)							\
+> >  	*(.ref.data)							\
+> >  	*(.data..shared_aligned) /* percpu related */			\
+> > -	DEV_KEEP(init.data)						\
+> > -	DEV_KEEP(exit.data)						\
+> ..
+> > @@ -503,7 +489,6 @@
+> >  /* init and exit section handling */
+> >  #define INIT_DATA							\
+> >  	*(.init.data)							\
+> > -	DEV_DISCARD(init.data)						\
+>=20
+> Shouldn't the effect of one of the above remain?
+
+As far as I can tell, all references to devinit and devexit have now been
+removed from the kernel, so nothing will generate code in these sections
+any more, so the linker script no longer needs to deal with them at all.
+
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+
+--Signature=_Wed__22_May_2013_10_04_47_+1000_=wBw7x16m+7LHjz1
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2.0.20 (GNU/Linux)
+
+iQIcBAEBCAAGBQJRnAujAAoJEECxmPOUX5FE43kP/iMW3Iv5i8CzfoTqtisfnOaO
+/Qc/thrqJ07kJBde5H9oybNG82xHc/YS1TH+fOIIcunxwBB/7S6zwTzsfXB93igr
+x6IenkWyWgQfZRSi70eiXib3l0FYMhDQJE+cL4QAKpzs2TFta29iwjLpIq/UuCg2
+lePFgoYzGCg/ru7zdDRnft6BbhlDXF4XkZoDyUN91fOz4UOUI2JijpKYNT73IbF+
+WR8Nql4qLt6PM5c098ON6ZTgxOqD5RfW78Yrvc6diiEpFkJR7qoK1ZwBspUGjrAL
+WXP5GypWkjr1nptwuGVHs/z5Ys/YA49bnB43DVFkr3Srr5yqioTykgVADeReu743
+jclJU2pAATg8xcAytGChbS7/6oQu/QyzmkbzSVQ2n/ksjNZ1XFYKwm0HRQEMG7tu
+jJ2qyqFiCz235RG4W1wzY/aTnJAttbhU10Z4q/uRukSCNWPU/l5RxsS/Ht3D4TSg
+Wrr/sWV7dyU57HIhWbSdNkTo0vTu9eCOLZxfAHEES7IDyALPlqWiMsbhwjK4Eu2M
+XiXrrJYTlMWzODDpmppZtfZ6ilqXufO7Rf/8A8Tmu8RMlMGC3+7IEsfWnWNARV+2
+6WU6RZZ3xZTWkj6x7/mqFYWCOIEvVt80H+6OP+IdLzHixsgA63wSDyqk8bKbH7hb
+HssnJPfgyuLYX5tQPgac
+=CHuz
+-----END PGP SIGNATURE-----
+
+--Signature=_Wed__22_May_2013_10_04_47_+1000_=wBw7x16m+7LHjz1--
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
