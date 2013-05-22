@@ -1,42 +1,50 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [PATCH v2 00/10] uaccess: better might_sleep/might_fault
-	behavior
-Date: Wed, 22 May 2013 14:41:24 +0100
-Message-ID: <20130522134124.GD18614@n2100.arm.linux.org.uk>
-References: <cover.1368702323.git.mst@redhat.com> <201305221125.36284.arnd@arndb.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 07/10] powerpc: uaccess s/might_sleep/might_fault/
+Date: Wed, 22 May 2013 15:59:01 +0200
+Message-ID: <201305221559.01806.arnd@arndb.de>
+References: <cover.1368702323.git.mst@redhat.com> <2aa6c3da21a28120126732b5e0b4ecd6cba8ca3b.1368702323.git.mst@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <kvm-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <201305221125.36284.arnd@arndb.de>
-Sender: kvm-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "Michael S. Tsirkin" <mst@redhat.com>, linux-m32r-ja@ml.linux-m32r.org, kvm@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, David Howells <dhowells@redhat.com>, linux-mm@kvack.org, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, linux-am33-list@redhat.com, Hirokazu Takata <takata@linux-m32r.org>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, microblaze-uclinux@itee.uq.edu.au, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Michal Simek <monstr@monstr.eu>, linux-m32r@ml.linux-m32r.org, linux-kernel@vger.kernel.org, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, linuxppc-dev@lists.ozlabs.org
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <2aa6c3da21a28120126732b5e0b4ecd6cba8ca3b.1368702323.git.mst@redhat.com>
+Sender: owner-linux-mm@kvack.org
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: linux-kernel@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, David Howells <dhowells@redhat.com>, Hirokazu Takata <takata@linux-m32r.org>, Michal Simek <monstr@monstr.eu>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, microblaze-uclinux@itee.uq.edu.au, linux-am33-list@redhat.com, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 22, 2013 at 11:25:36AM +0200, Arnd Bergmann wrote:
-> Given the most commonly used functions and a couple of architectures
-> I'm familiar with, these are the ones that currently call might_fault()
+On Thursday 16 May 2013, Michael S. Tsirkin wrote:
+> @@ -178,7 +178,7 @@ do {                                                                \
+>         long __pu_err;                                          \
+>         __typeof__(*(ptr)) __user *__pu_addr = (ptr);           \
+>         if (!is_kernel_addr((unsigned long)__pu_addr))          \
+> -               might_sleep();                                  \
+> +               might_fault();                                  \
+>         __chk_user_ptr(ptr);                                    \
+>         __put_user_size((x), __pu_addr, (size), __pu_err);      \
+>         __pu_err;                                               \
 > 
-> 			x86-32	x86-64	arm	arm64	powerpc	s390	generic
-> copy_to_user		-	x	-	-	-	x	x
-> copy_from_user		-	x	-	-	-	x	x
-> put_user		x	x	x	x	x	x	x
-> get_user		x	x	x	x	x	x	x
-> __copy_to_user		x	x	-	-	x	-	-
-> __copy_from_user	x	x	-	-	x	-	-
-> __put_user		-	-	x	-	x	-	-
-> __get_user		-	-	x	-	x	-	-
-> 
-> WTF?
 
-I think your table is rather screwed - especially on ARM.  Tell me -
-how can __copy_to_user() use might_fault() but copy_to_user() not when
-copy_to_user() is implemented using __copy_to_user() ?  Same for
-copy_from_user() but the reverse argument - there's nothing special
-in our copy_from_user() which would make it do might_fault() when
-__copy_from_user() wouldn't.
+Another observation:
 
-The correct position for ARM is: our (__)?(pu|ge)t_user all use
-might_fault(), but (__)?copy_(to|from)_user do not.  Neither does
-(__)?clear_user.  We might want to fix those to use might_fault().
+	if (!is_kernel_addr((unsigned long)__pu_addr))
+		might_sleep();
+
+is almost the same as
+
+	might_fault();
+
+except that it does not call might_lock_read().
+
+The version above may have been put there intentionally and correctly, but
+if you want to replace it with might_fault(), you should remove the
+"if ()" condition.
+
+	Arnd
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
