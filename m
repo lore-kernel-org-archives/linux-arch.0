@@ -1,29 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:40197 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753055Ab3EVLhs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 May 2013 07:37:48 -0400
-Date: Wed, 22 May 2013 13:37:36 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v3 2/3] mutex: add support for wound/wait style locks, v3
-Message-ID: <20130522113736.GO18810@twins.programming.kicks-ass.net>
-References: <20130428165914.17075.57751.stgit@patser>
- <20130428170407.17075.80082.stgit@patser>
- <20130430191422.GA5763@phenom.ffwll.local>
- <519CA976.9000109@canonical.com>
+Received: from youngberry.canonical.com ([91.189.89.112]:45632 "EHLO
+	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753055Ab3EVLro (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 May 2013 07:47:44 -0400
+Message-ID: <519CB05E.3060903@canonical.com>
+Date: Wed, 22 May 2013 13:47:42 +0200
+From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <519CA976.9000109@canonical.com>
+Subject: Re: [PATCH v3 2/3] mutex: add support for wound/wait style locks,
+ v3
+References: <20130428165914.17075.57751.stgit@patser> <20130428170407.17075.80082.stgit@patser> <20130430191422.GA5763@phenom.ffwll.local> <519CA976.9000109@canonical.com> <20130522113736.GO18810@twins.programming.kicks-ass.net>
+In-Reply-To: <20130522113736.GO18810@twins.programming.kicks-ass.net>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+To: Peter Zijlstra <peterz@infradead.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robclark@gmail.com, rostedt@goodmis.org, tglx@linutronix.de, mingo@elte.hu, linux-media@vger.kernel.org, Dave Airlie <airlied@redhat.com>
-Message-ID: <20130522113736.uw_Pv-4aWqr14NbV9wa3XkI7MNP4MjiZA6HF7vlNVF0@z>
+Message-ID: <20130522114742.XiogOzJveBoYAfBBOqmkg5Pzmi8yTCtvYif2Tw9ekIQ@z>
 
-> Are there any issues left? I included the patch you wrote for injecting -EDEADLK too
-> in my tree. The overwhelming silence makes me think there are either none, or
-> nobody cared enough to review it. :(
+Op 22-05-13 13:37, Peter Zijlstra schreef:
+>> Are there any issues left? I included the patch you wrote for injecting -EDEADLK too
+>> in my tree. The overwhelming silence makes me think there are either none, or
+>> nobody cared enough to review it. :(
+> It didn't manage to reach my inbox it seems,.. I can only find a debug
+> patch in this thread.
+>
+Odd, maybe in your spam folder?
+It arrived on all mailing lists, so I have no idea why you were left out.
 
-It didn't manage to reach my inbox it seems,.. I can only find a debug
-patch in this thread.
+http://www.spinics.net/lists/linux-arch/msg21425.html
+
+
+~Maarten
