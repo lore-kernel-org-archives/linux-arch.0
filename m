@@ -1,100 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from haggis.pcug.org.au ([203.10.76.10]:57293 "EHLO
-	members.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752809Ab3EVAFA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 May 2013 20:05:00 -0400
-Date: Wed, 22 May 2013 10:04:47 +1000
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCH] Finally eradicate CONFIG_HOTPLUG
-Message-ID: <20130522100447.0f04799ea138a2f391d38850@canb.auug.org.au>
-In-Reply-To: <20130521101349.30660.qmail@stuge.se>
-References: <20130521134935.d18c3f5c23485fb5ddabc365@canb.auug.org.au>
-	<20130521101349.30660.qmail@stuge.se>
-Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA256";
- boundary="Signature=_Wed__22_May_2013_10_04_47_+1000_=wBw7x16m+7LHjz1"
+Received: from moutng.kundenserver.de ([212.227.126.187]:55124 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752255Ab3EVJ0t (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 May 2013 05:26:49 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 00/10] uaccess: better might_sleep/might_fault behavior
+Date: Wed, 22 May 2013 11:25:36 +0200
+References: <cover.1368702323.git.mst@redhat.com>
+In-Reply-To: <cover.1368702323.git.mst@redhat.com>
+MIME-Version: 1.0
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201305221125.36284.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Stuge <peter@stuge.se>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@sisk.pl>, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, linux-pm@vger.kernel.org, linux-pci@vger.kernel.org, linux-pcmcia@lists.infradead.org, LKML <linux-kernel@vger.kernel.org>, cluster-devel@redhat.com, linux-mm@kvack.org, Hans Verkuil <hans.verkuil@cisco.com>, Pavel Machek <pavel@ucw.cz>, Doug Thompson <dougthompson@xmission.com>, Bjorn Helgaas <bhelgaas@google.com>, Andrew Morton <akpm@linux-foundation.org>, Steven Whitehouse <swhiteho@redhat.com>, linux-arm-kernel@lists.infradead.org, linux-edac@vger.kernel.org
-Message-ID: <20130522000447.ZZbTikmmBmJRy9vehLzLqe6PA0eN5Wld7AP2Hf6RjGo@z>
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: linux-kernel@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, David Howells <dhowells@redhat.com>, Hirokazu Takata <takata@linux-m32r.org>, Michal Simek <monstr@monstr.eu>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, microblaze-uclinux@itee.uq.edu.au, linux-am33-list@redhat.com, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org
+Message-ID: <20130522092536.zMyfYuiWfcl3hDpMrPR0u0kdZtpexZKQi1qVZQ3A4rM@z>
 
---Signature=_Wed__22_May_2013_10_04_47_+1000_=wBw7x16m+7LHjz1
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+On Thursday 16 May 2013, Michael S. Tsirkin wrote:
+> This improves the might_fault annotations used
+> by uaccess routines:
+> 
+> 1. The only reason uaccess routines might sleep
+>    is if they fault. Make this explicit for
+>    all architectures.
+> 2. Accesses (e.g through socket ops) to kernel memory
+>    with KERNEL_DS like net/sunrpc does will never sleep.
+>    Remove an unconditinal might_sleep in the inline
+>    might_fault in kernel.h
+>    (used when PROVE_LOCKING is not set).
+> 3. Accesses with pagefault_disable return EFAULT
+>    but won't cause caller to sleep.
+>    Check for that and avoid might_sleep when
+>    PROVE_LOCKING is set.
+> 
+> I'd like these changes to go in for the benefit of
+> the vhost driver where we want to call socket ops
+> under a spinlock, and fall back on slower thread handler
+> on error.
 
-Hi Peter,
+Hi Michael,
 
-On Tue, 21 May 2013 12:13:49 +0200 Peter Stuge <peter@stuge.se> wrote:
->
-> Are you changing the code to have HOTPLUG always -on- or -off- ?
->=20
-> From the commit message I had expected always -on-.
+I have recently stumbled over a related topic, which is the highly
+inconsistent placement of might_fault() or might_sleep() in certain
+classes of uaccess functions. Your patches seem completely reasonable,
+but it would be good to also fix the other problem, at least on
+the architectures we most care about.
 
-Yes, it has been that way for some time.
+Given the most commonly used functions and a couple of architectures
+I'm familiar with, these are the ones that currently call might_fault()
 
-> Stephen Rothwell wrote:
-> > --- a/include/asm-generic/vmlinux.lds.h
-> > +++ b/include/asm-generic/vmlinux.lds.h
-> > @@ -68,14 +68,6 @@
-> >   * are handled as text/data or they can be discarded (which
-> >   * often happens at runtime)
-> >   */
-> > -#ifdef CONFIG_HOTPLUG
-> > -#define DEV_KEEP(sec)    *(.dev##sec)
-> > -#define DEV_DISCARD(sec)
-> > -#else
-> > -#define DEV_KEEP(sec)
-> > -#define DEV_DISCARD(sec) *(.dev##sec)
-> > -#endif
-> > -
-> >  #ifdef CONFIG_HOTPLUG_CPU
-> >  #define CPU_KEEP(sec)    *(.cpu##sec)
-> >  #define CPU_DISCARD(sec)
-> > @@ -182,8 +174,6 @@
-> >  	*(.data)							\
-> >  	*(.ref.data)							\
-> >  	*(.data..shared_aligned) /* percpu related */			\
-> > -	DEV_KEEP(init.data)						\
-> > -	DEV_KEEP(exit.data)						\
-> ..
-> > @@ -503,7 +489,6 @@
-> >  /* init and exit section handling */
-> >  #define INIT_DATA							\
-> >  	*(.init.data)							\
-> > -	DEV_DISCARD(init.data)						\
->=20
-> Shouldn't the effect of one of the above remain?
+			x86-32	x86-64	arm	arm64	powerpc	s390	generic
+copy_to_user		-	x	-	-	-	x	x
+copy_from_user		-	x	-	-	-	x	x
+put_user		x	x	x	x	x	x	x
+get_user		x	x	x	x	x	x	x
+__copy_to_user		x	x	-	-	x	-	-
+__copy_from_user	x	x	-	-	x	-	-
+__put_user		-	-	x	-	x	-	-
+__get_user		-	-	x	-	x	-	-
 
-As far as I can tell, all references to devinit and devexit have now been
-removed from the kernel, so nothing will generate code in these sections
-any more, so the linker script no longer needs to deal with them at all.
+WTF?
 
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
+Calling might_fault() for every __get_user/__put_user is rather expensive
+because it turns what should be a single instruction (plus fixup) into an
+external function call.
 
---Signature=_Wed__22_May_2013_10_04_47_+1000_=wBw7x16m+7LHjz1
-Content-Type: application/pgp-signature
+My feeling is that we should do might_fault() only in access_ok() to get
+the right balance.
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.20 (GNU/Linux)
-
-iQIcBAEBCAAGBQJRnAujAAoJEECxmPOUX5FE43kP/iMW3Iv5i8CzfoTqtisfnOaO
-/Qc/thrqJ07kJBde5H9oybNG82xHc/YS1TH+fOIIcunxwBB/7S6zwTzsfXB93igr
-x6IenkWyWgQfZRSi70eiXib3l0FYMhDQJE+cL4QAKpzs2TFta29iwjLpIq/UuCg2
-lePFgoYzGCg/ru7zdDRnft6BbhlDXF4XkZoDyUN91fOz4UOUI2JijpKYNT73IbF+
-WR8Nql4qLt6PM5c098ON6ZTgxOqD5RfW78Yrvc6diiEpFkJR7qoK1ZwBspUGjrAL
-WXP5GypWkjr1nptwuGVHs/z5Ys/YA49bnB43DVFkr3Srr5yqioTykgVADeReu743
-jclJU2pAATg8xcAytGChbS7/6oQu/QyzmkbzSVQ2n/ksjNZ1XFYKwm0HRQEMG7tu
-jJ2qyqFiCz235RG4W1wzY/aTnJAttbhU10Z4q/uRukSCNWPU/l5RxsS/Ht3D4TSg
-Wrr/sWV7dyU57HIhWbSdNkTo0vTu9eCOLZxfAHEES7IDyALPlqWiMsbhwjK4Eu2M
-XiXrrJYTlMWzODDpmppZtfZ6ilqXufO7Rf/8A8Tmu8RMlMGC3+7IEsfWnWNARV+2
-6WU6RZZ3xZTWkj6x7/mqFYWCOIEvVt80H+6OP+IdLzHixsgA63wSDyqk8bKbH7hb
-HssnJPfgyuLYX5tQPgac
-=CHuz
------END PGP SIGNATURE-----
-
---Signature=_Wed__22_May_2013_10_04_47_+1000_=wBw7x16m+7LHjz1--
+	Arnd
