@@ -1,58 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f170.google.com ([209.85.223.170]:50456 "EHLO
-	mail-ie0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758356Ab3EWKpB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 May 2013 06:45:01 -0400
-Received: by mail-ie0-f170.google.com with SMTP id aq17so8206310iec.15
-        for <linux-arch@vger.kernel.org>; Thu, 23 May 2013 03:45:00 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <519DDDB2.80800@canonical.com>
-References: <20130428165914.17075.57751.stgit@patser>
-	<20130428170407.17075.80082.stgit@patser>
-	<20130430191422.GA5763@phenom.ffwll.local>
-	<519CA976.9000109@canonical.com>
-	<20130522161831.GQ18810@twins.programming.kicks-ass.net>
-	<519CFF56.90600@canonical.com>
-	<519DDDB2.80800@canonical.com>
-Date: Thu, 23 May 2013 12:45:00 +0200
-Message-ID: <CAKMK7uF=0aW4dY_0bmUox1N-kmQvXRr2-x3NBjL2VGO4grW6fQ@mail.gmail.com>
-Subject: Re: [Linaro-mm-sig] [PATCH v3 2/3] mutex: add support for wound/wait
- style locks, v3
-From: Daniel Vetter <daniel.vetter@ffwll.ch>
-Content-Type: text/plain; charset=ISO-8859-1
+Received: from mail-we0-f170.google.com ([74.125.82.170]:54416 "EHLO
+	mail-we0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758057Ab3EWRIJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 May 2013 13:08:09 -0400
+Received: by mail-we0-f170.google.com with SMTP id u59so1698458wes.29
+        for <linux-arch@vger.kernel.org>; Thu, 23 May 2013 10:08:08 -0700 (PDT)
+From: Steve Capper <steve.capper@linaro.org>
+Subject: [PATCH 00/11] HugeTLB and THP support for ARM64.
+Date: Thu, 23 May 2013 18:07:47 +0100
+Message-ID: <1369328878-11706-1-git-send-email-steve.capper@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, x86@kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, dri-devel <dri-devel@lists.freedesktop.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, rob clark <robclark@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, Dave Airlie <airlied@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
-Message-ID: <20130523104500.fwRb7UXtGxFgNV6vh1CWzytzhWhSe8aS_AoypjFSvCo@z>
+To: linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Cc: Michal Hocko <mhocko@suse.cz>, Ken Chen <kenchen@google.com>, Mel Gorman <mgorman@suse.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, patches@linaro.org, Steve Capper <steve.capper@linaro.org>
+Message-ID: <20130523170747.BayinwnEbIAe4xMpp5HEo41yJ7fZX6ys2uKfqXYVFUw@z>
 
-On Thu, May 23, 2013 at 11:13 AM, Maarten Lankhorst
-<maarten.lankhorst@canonical.com> wrote:
->> 2. Do you really want to drop the *_slow variants?
->> Doing so might reduce debugging slightly. I like method #2 in ww-mutex-design.txt, it makes it very clear why you
->> would handle the *_slow case differently anyway.
-> As you pointed out, we wouldn't lose much debugging information.
-> The same checks could be done in the normal variant with
-> WARN_ON(ctx->lock && ctx->lock != lock);
-> WARN_ON(ctx->lock && ctx->acquired > 0);
+This series brings huge pages and transparent huge pages to ARM64.
+The functionality is very similar to x86, and a lot of code that can
+be used by both ARM64 and x86 is brought into mm to avoid the need
+for code duplication.
 
-s/lock/contending_lock/ I guess. But yeah, I should have more
-carefully read Peter's suggestion to fold in some of the ww_slow debug
-checks, we can indeed keep the important debug checks even when
-dropping slow. Silly me should be less sloppy.
+One notable difference from x86 is that ARM64 supports normal pages
+that are 64KB. When 64KB pages are enabled, huge page and
+transparent huge pages are 512MB only, otherwise the sizes match
+x86.
 
-> But it boils down to ww_mutex_lock_slow returning void instead of int __must_check from ww_mutex_lock.
->
-> Maybe add inlines for *_slow, that use the ww_mutex_lock functions, and check ctx->lock == lock in debugging mode?
+This series applies to 3.10-rc2.
 
-So either we keep the _slow versions or drop the __must_check for
-ww_mutex_lock. In both cases the ww mutex user needs to think a bit
-what to do, and I don't there's much we can do in the implementation
-(beside all the existing debug support we have) to help. So now I'm
-leaning more towards dropping the _slow variants to avoid interface
-proliferation.
--Daniel
---
-Daniel Vetter
-Software Engineer, Intel Corporation
-+41 (0) 79 365 57 48 - http://blog.ffwll.ch
+I've tested this under the ARMv8 Fast model and the x86 code has
+been tested in a KVM guest. libhugetlbfs was used for testing under
+both architectures.
+
+Changelog:
+Patch:
+   * pud_large usage replaced with pud_huge for general hugetlb
+     code imported into mm.
+   * comments tidied up for bit swap of PTE_FILE, PTE_PROT_NONE.
+
+RFC v2:
+   * PROT_NONE support added for HugeTLB and THP.
+   * pmd_modify implementation fixed.
+   * Superfluous huge dcache flushing code removed.
+   * Simplified (and corrected) MAX_ORDER raise for THP && 64KB
+     pages.
+   * The MAX_ORDER check in huge_mm.h has been corrected.
+
+---
+
+Steve Capper (11):
+  mm: hugetlb: Copy huge_pmd_share from x86 to mm.
+  x86: mm: Remove x86 version of huge_pmd_share.
+  mm: hugetlb: Copy general hugetlb code from x86 to mm.
+  x86: mm: Remove general hugetlb code from x86.
+  mm: thp: Correct the HPAGE_PMD_ORDER check.
+  ARM64: mm: Restore memblock limit when map_mem finished.
+  ARM64: mm: Make PAGE_NONE pages read only and no-execute.
+  ARM64: mm: Swap PTE_FILE and PTE_PROT_NONE bits.
+  ARM64: mm: HugeTLB support.
+  ARM64: mm: Raise MAX_ORDER for 64KB pages and THP.
+  ARM64: mm: THP support.
+
+ arch/arm64/Kconfig                     |  17 +++
+ arch/arm64/include/asm/hugetlb.h       | 117 ++++++++++++++++++
+ arch/arm64/include/asm/pgtable-hwdef.h |  12 ++
+ arch/arm64/include/asm/pgtable.h       |  84 +++++++++++--
+ arch/arm64/include/asm/tlb.h           |   6 +
+ arch/arm64/include/asm/tlbflush.h      |   2 +
+ arch/arm64/mm/Makefile                 |   1 +
+ arch/arm64/mm/fault.c                  |  19 +--
+ arch/arm64/mm/hugetlbpage.c            |  70 +++++++++++
+ arch/arm64/mm/mmu.c                    |  19 ++-
+ arch/x86/Kconfig                       |   6 +
+ arch/x86/mm/hugetlbpage.c              | 187 ----------------------------
+ include/linux/huge_mm.h                |   2 +-
+ include/linux/hugetlb.h                |   4 +
+ mm/hugetlb.c                           | 219 +++++++++++++++++++++++++++++++--
+ 15 files changed, 537 insertions(+), 228 deletions(-)
+ create mode 100644 arch/arm64/include/asm/hugetlb.h
+ create mode 100644 arch/arm64/mm/hugetlbpage.c
+
+-- 
+1.8.1.4
+
