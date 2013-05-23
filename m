@@ -1,278 +1,722 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:10246 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751649Ab3EWH6b (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 May 2013 03:58:31 -0400
-Message-ID: <519DCBEF.3090208@asianux.com>
-Date: Thu, 23 May 2013 15:57:35 +0800
-From: Chen Gang <gang.chen@asianux.com>
+Received: from youngberry.canonical.com ([91.189.89.112]:53066 "EHLO
+	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757661Ab3EWJN2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 May 2013 05:13:28 -0400
+Message-ID: <519DDDB2.80800@canonical.com>
+Date: Thu, 23 May 2013 11:13:22 +0200
+From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
 MIME-Version: 1.0
-Subject: [PATCH] arch: configuration, deleting 'CONFIG_BUG' since always need
- it.
+Subject: Re: [PATCH v3 2/3] mutex: add support for wound/wait style locks,
+ v3
+References: <20130428165914.17075.57751.stgit@patser> <20130428170407.17075.80082.stgit@patser> <20130430191422.GA5763@phenom.ffwll.local> <519CA976.9000109@canonical.com> <20130522161831.GQ18810@twins.programming.kicks-ass.net> <519CFF56.90600@canonical.com>
+In-Reply-To: <519CFF56.90600@canonical.com>
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>, hskinnemoen@gmail.com, egtvedt@samfundet.no, Mike Frysinger <vapier@gentoo.org>, ysato@users.sourceforge.jp, rkuo@codeaurora.org, jejb@parisc-linux.org, deller@gmx.de, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "paulus@samba.org" <paulus@samba.org>, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux390@de.ibm.com, lethal@linux-sh.org, jdike@addtoit.com, richard@nod.at, Thomas Gleixner <tglx@linutronix.de>, "mingo@redhat.com" <mingo@redhat.com>, hpa@zytor.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Serge Hallyn <serge.hallyn@canonical.com>, paulmck@linux.vnet.ibm.com, Frederic Weisbecker <fweisbec@gmail.com>, David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, akinobu.mita@gmail.com, Catalin Marinas <Catalin.Marinas@arm.com>, walken@google.com, Will Deacon <will.deacon@arm.com>, Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, uclinux-dist-devel@blackfin.uclinux.org, linux-hexagon@vger.kernel.org, linux-parisc@vger.kernel.org, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net, linux-arch@vger.kernel.org
-Message-ID: <20130523075735.yiA15PQ1eSWszFIfZl0l6pFJdzdD5MPHGmaRZiQuwEo@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robclark@gmail.com, rostedt@goodmis.org, tglx@linutronix.de, mingo@elte.hu, linux-media@vger.kernel.org, Dave Airlie <airlied@redhat.com>
+Message-ID: <20130523091322.Za4GW9EiC2IFIy0C4J9AzA4KUXqnLkWmzjYUtn4cBHk@z>
+
+Op 22-05-13 19:24, Maarten Lankhorst schreef:
+> Hey,
+>
+> Op 22-05-13 18:18, Peter Zijlstra schreef:
+>> On Wed, May 22, 2013 at 01:18:14PM +0200, Maarten Lankhorst wrote:
+>>
+>> Lacking the actual msg atm, I'm going to paste in here...
+> Thanks for taking the time to review.
+>>> Subject: [PATCH v3 2/3] mutex: add support for wound/wait style locks, v3
+>>> From: Maarten Lankhorst <maarten.lankhorst@xxxxxxxxxxxxx>
+>>>
+>>> Changes since RFC patch v1:
+>>>  - Updated to use atomic_long instead of atomic, since the reservation_id was a long.
+>>>  - added mutex_reserve_lock_slow and mutex_reserve_lock_intr_slow
+>>>  - removed mutex_locked_set_reservation_id (or w/e it was called)
+>>> Changes since RFC patch v2:
+>>>  - remove use of __mutex_lock_retval_arg, add warnings when using wrong combination of
+>>>    mutex_(,reserve_)lock/unlock.
+>>> Changes since v1:
+>>>  - Add __always_inline to __mutex_lock_common, otherwise reservation paths can be
+>>>    triggered from normal locks, because __builtin_constant_p might evaluate to false
+>>>    for the constant 0 in that case. Tests for this have been added in the next patch.
+>>>  - Updated documentation slightly.
+>>> Changes since v2:
+>>>  - Renamed everything to ww_mutex. (mlankhorst)
+>>>  - Added ww_acquire_ctx and ww_class. (mlankhorst)
+>>>  - Added a lot of checks for wrong api usage. (mlankhorst)
+>>>  - Documentation updates. (danvet)
+>>>
+>>> Signed-off-by: Maarten Lankhorst <maarten.lankhorst@xxxxxxxxxxxxx>
+>>> Signed-off-by: Daniel Vetter <daniel.vetter@xxxxxxxx>
+>>> ---
+>>>  Documentation/ww-mutex-design.txt |  322 +++++++++++++++++++++++++++
+>>>  include/linux/mutex-debug.h       |    1 
+>>>  include/linux/mutex.h             |  257 +++++++++++++++++++++
+>>>  kernel/mutex.c                    |  445 ++++++++++++++++++++++++++++++++++++-
+>>>  lib/debug_locks.c                 |    2 
+>>>  5 files changed, 1010 insertions(+), 17 deletions(-)
+>>>  create mode 100644 Documentation/ww-mutex-design.txt
+>>>
+>>> diff --git a/Documentation/ww-mutex-design.txt b/Documentation/ww-mutex-design.txt
+>>> new file mode 100644
+>>> index 0000000..154bae3
+>>> --- /dev/null
+>>> +++ b/Documentation/ww-mutex-design.txt
+>>> @@ -0,0 +1,322 @@
+>>> +Wait/Wound Deadlock-Proof Mutex Design
+>>> +======================================
+>>> +
+>>> +Please read mutex-design.txt first, as it applies to wait/wound mutexes too.
+>>> +
+>>> +Motivation for WW-Mutexes
+>>> +-------------------------
+>>> +
+>>> +GPU's do operations that commonly involve many buffers.  Those buffers
+>>> +can be shared across contexts/processes, exist in different memory
+>>> +domains (for example VRAM vs system memory), and so on.  And with
+>>> +PRIME / dmabuf, they can even be shared across devices.  So there are
+>>> +a handful of situations where the driver needs to wait for buffers to
+>>> +become ready.  If you think about this in terms of waiting on a buffer
+>>> +mutex for it to become available, this presents a problem because
+>>> +there is no way to guarantee that buffers appear in a execbuf/batch in
+>>> +the same order in all contexts.  That is directly under control of
+>>> +userspace, and a result of the sequence of GL calls that an application
+>>> +makes.	Which results in the potential for deadlock.  The problem gets
+>>> +more complex when you consider that the kernel may need to migrate the
+>>> +buffer(s) into VRAM before the GPU operates on the buffer(s), which
+>>> +may in turn require evicting some other buffers (and you don't want to
+>>> +evict other buffers which are already queued up to the GPU), but for a
+>>> +simplified understanding of the problem you can ignore this.
+>>> +
+>>> +The algorithm that TTM came up with for dealing with this problem is quite
+>>> +simple.  For each group of buffers (execbuf) that need to be locked, the caller
+>>> +would be assigned a unique reservation id/ticket, from a global counter.  In
+>>> +case of deadlock while locking all the buffers associated with a execbuf, the
+>>> +one with the lowest reservation ticket (i.e. the oldest task) wins, and the one
+>>> +with the higher reservation id (i.e. the younger task) unlocks all of the
+>>> +buffers that it has already locked, and then tries again.
+>>> +
+>>> +In the RDBMS literature this deadlock handling approach is called wait/wound:
+>>> +The older tasks waits until it can acquire the contended lock. The younger tasks
+>>> +needs to back off and drop all the locks it is currently holding, i.e. the
+>>> +younger task is wounded.
+>>> +
+>>> +Concepts
+>>> +--------
+>>> +
+>>> +Compared to normal mutexes two additional concepts/objects show up in the lock
+>>> +interface for w/w mutexes:
+>>> +
+>>> +Acquire context: To ensure eventual forward progress it is important the a task
+>>> +trying to acquire locks doesn't grab a new reservation id, but keeps the one it
+>>> +acquired when starting the lock acquisition. This ticket is stored in the
+>>> +acquire context. Furthermore the acquire context keeps track of debugging state
+>>> +to catch w/w mutex interface abuse.
+>>> +
+>>> +W/w class: In contrast to normal mutexes the lock class needs to be explicit for
+>>> +w/w mutexes, since it is required to initialize the acquire context.
+>>> +
+>>> +Furthermore there are three different classe of w/w lock acquire functions:
+>>> +- Normal lock acquisition with a context, using ww_mutex_lock
+>>> +- Slowpath lock acquisition on the contending lock, used by the wounded task
+>>> +  after having dropped all already acquired locks. These functions have the
+>>> +  _slow postfix.
+>> See below, I don't see the need for this interface.
+>>
+>>> +- Functions to only acquire a single w/w mutex, which results in the exact same
+>>> +  semantics as a normal mutex. These functions have the _single postfix.
+>> This is missing rationale.
+> trylock_single is useful when iterating over a list, and you want to evict a bo, but only the first one that can be acquired.
+> lock_single is useful when only a single bo needs to be acquired, for example to lock a buffer during mmap.
+>
+>>> +
+>>> +Of course, all the usual variants for handling wake-ups due to signals are also
+>>> +provided.
+>>> +
+>>> +Usage
+>>> +-----
+>>> +
+>>> +Three different ways to acquire locks within the same w/w class. Common
+>>> +definitions for methods 1&2.
+>>> +
+>>> +static DEFINE_WW_CLASS(ww_class);
+>>> +
+>>> +struct obj {
+>>> +	sct ww_mutex lock;
+>>> +	/* obj data */
+>>> +};
+>>> +
+>>> +struct obj_entry {
+>>> +	struct list_head *list;
+>>> +	struct obj *obj;
+>>> +};
+>>> +
+>>> +Method 1, using a list in execbuf->buffers that's not allowed to be reordered.
+>>> +This is useful if a list of required objects is already tracked somewhere.
+>>> +Furthermore the lock helper can use propagate the -EALREADY return code back to
+>>> +the caller as a signal that an object is twice on the list. This is useful if
+>>> +the list is constructed from userspace input and the ABI requires userspace to
+>>> +no have duplicate entries (e.g. for a gpu commandbuffer submission ioctl).
+>>> +
+>>> +int lock_objs(struct list_head *list, struct ww_acquire_ctx *ctx)
+>>> +{
+>>> +	struct obj *res_obj = NULL;
+>>> +	struct obj_entry *contended_entry = NULL;
+>>> +	struct obj_entry *entry;
+>>> +
+>>> +	ww_acquire_init(ctx, &ww_class);
+>>> +
+>>> +retry:
+>>> +	list_for_each_entry (list, entry) {
+>>> +		if (entry == res_obj) {
+>>> +			res_obj = NULL;
+>>> +			continue;
+>>> +		}
+>>> +		ret = ww_mutex_lock(&entry->obj->lock, ctx);
+>>> +		if (ret < 0) {
+>>> +			contended_obj = entry;
+>>> +			goto err;
+>>> +		}
+>>> +	}
+>>> +
+>>> +	ww_acquire_done(ctx);
+>>> +	return 0;
+>>> +
+>>> +err:
+>>> +	list_for_each_entry_continue_reverse (list, contended_entry, entry)
+>>> +		ww_mutex_unlock(&entry->obj->lock);
+>>> +
+>>> +	if (res_obj)
+>>> +		ww_mutex_unlock(&res_obj->lock);
+>>> +
+>>> +	if (ret == -EDEADLK) {
+>>> +		/* we lost out in a seqno race, lock and retry.. */
+>>> +		ww_mutex_lock_slow(&contended_entry->obj->lock, ctx);
+>> I missing the need for ww_mutex_lock_slow(). AFAICT we should be able to tell
+>> its the first lock in the ctx and thus we cannot possibly deadlock.
+> Theoretically true, but that would require always setting ctx->acquired correctly.
+> Plus that would weaken the checks. Without ww_mutex_lock_slow you can not
+> say for sure all mutexes have been unlocked, and tell that what you say is really true.
+>
+>>> +		res_obj = contended_entry->obj;
+>>> +		goto retry;
+>>> +	}
+>>> +	ww_acquire_fini(ctx);
+>>> +
+>>> +	return ret;
+>>> +}
+>>> +
+>> ... you certainly went all out on documentation.
+>>
+>>> diff --git a/include/linux/mutex-debug.h b/include/linux/mutex-debug.h
+>>> index 731d77d..4ac8b19 100644
+>>> --- a/include/linux/mutex-debug.h
+>>> +++ b/include/linux/mutex-debug.h
+>>> @@ -3,6 +3,7 @@
+>>>  
+>>>  #include <linux/linkage.h>
+>>>  #include <linux/lockdep.h>
+>>> +#include <linux/debug_locks.h>
+>>>  
+>>>  /*
+>>>   * Mutexes - debugging helpers:
+>>> diff --git a/include/linux/mutex.h b/include/linux/mutex.h
+>>> index 9121595..004f863 100644
+>>> --- a/include/linux/mutex.h
+>>> +++ b/include/linux/mutex.h
+>>> @@ -74,6 +74,35 @@ struct mutex_waiter {
+>>>  #endif
+>>>  };
+>>>  
+>>> +struct ww_class {
+>>> +	atomic_long_t stamp;
+>>> +	struct lock_class_key acquire_key;
+>>> +	struct lock_class_key mutex_key;
+>>> +	const char *acquire_name;
+>>> +	const char *mutex_name;
+>>> +};
+>>> +
+>>> +struct ww_acquire_ctx {
+>>> +	struct task_struct *task;
+>>> +	unsigned long stamp;
+>>> +#ifdef CONFIG_DEBUG_MUTEXES
+>>> +	unsigned acquired, done_acquire;
+>>> +	struct ww_class *ww_class;
+>>> +	struct ww_mutex *contending_lock;
+>>> +#endif
+>>> +#ifdef CONFIG_DEBUG_LOCK_ALLOC
+>>> +	struct lockdep_map dep_map;
+>>> +#endif
+>>> +};
+>>> +
+>>> +struct ww_mutex {
+>>> +	struct mutex base;
+>>> +	struct ww_acquire_ctx *ctx;
+>>> +#ifdef CONFIG_DEBUG_MUTEXES
+>>> +	struct ww_class *ww_class;
+>>> +#endif
+>>> +};
+>>> +
+>>> @@ -167,6 +236,192 @@ extern int __must_check mutex_lock_killable(struct mutex *lock);
+>>>   */
+>>>  extern int mutex_trylock(struct mutex *lock);
+>>>  extern void mutex_unlock(struct mutex *lock);
+>>> +
+>>> +/**
+>>> + * ww_acquire_init - initialize a w/w acquire context
+>>> + * @ctx: w/w acquire context to initialize
+>>> + * @ww_class: w/w class of the context
+>>> + *
+>>> + * Initializes an context to acquire multiple mutexes of the given w/w class.
+>>> + *
+>>> + * Context-based w/w mutex acquiring can be done in any order whatsoever within
+>>> + * a given lock class. Deadlocks will be detected and handled with the
+>>> + * wait/wound logic.
+>>> + *
+>>> + * Mixing of context-based w/w mutex acquiring and single w/w mutex locking can
+>>> + * result in undetected deadlocks and is so forbidden. Mixing different contexts
+>>> + * for the same w/w class when acquiring mutexes can also result in undetected
+>>> + * deadlocks, and is hence also forbidden.
+>>> + *
+>>> + * Nesting of acquire contexts for _different_ w/w classes is possible, subject
+>>> + * to the usual locking rules between different lock classes.
+>>> + *
+>>> + * An acquire context must be release by the same task before the memory is
+>>> + * freed with ww_acquire_fini. It is recommended to allocate the context itself
+>>> + * on the stack.
+>>> + */
+>>> +static inline void ww_acquire_init(struct ww_acquire_ctx *ctx,
+>>> +				   struct ww_class *ww_class)
+>>> +{
+>>> +	ctx->task = current;
+>>> +	do {
+>>> +		ctx->stamp = atomic_long_inc_return(&ww_class->stamp);
+>>> +	} while (unlikely(!ctx->stamp));
+>> I suppose we'll figure something out when this becomes a bottleneck. Ideally
+>> we'd do something like:
+>>
+>>  ctx->stamp = local_clock();
+>>
+>> but for now we cannot guarantee that's not jiffies, and I suppose that's a tad
+>> too coarse to work for this.
+> This might mess up when 2 cores happen to return exactly the same time, how do you choose a winner in that case?
+> EDIT: Using pointer address like you suggested below is fine with me. ctx pointer would be static enough.
+>
+>> Also, why is 0 special?
+> Oops, 0 is no longer special.
+>
+> I used to set the samp directly on the lock, so 0 used to mean no ctx set.
+>>> +#ifdef CONFIG_DEBUG_MUTEXES
+>>> +	ctx->ww_class = ww_class;
+>>> +	ctx->acquired = ctx->done_acquire = 0;
+>>> +	ctx->contending_lock = NULL;
+>>> +#endif
+>>> +#ifdef CONFIG_DEBUG_LOCK_ALLOC
+>>> +	debug_check_no_locks_freed((void *)ctx, sizeof(*ctx));
+>>> +	lockdep_init_map(&ctx->dep_map, ww_class->acquire_name,
+>>> +			 &ww_class->acquire_key, 0);
+>>> +	mutex_acquire(&ctx->dep_map, 0, 0, _RET_IP_);
+>>> +#endif
+>>> +}
+>>> +/**
+>>> + * ww_mutex_trylock_single - tries to acquire the w/w mutex without acquire context
+>>> + * @lock: mutex to lock
+>>> + *
+>>> + * Trylocks a mutex without acquire context, so no deadlock detection is
+>>> + * possible. Returns 0 if the mutex has been acquired.
+>>> + *
+>>> + * Unlocking the mutex must happen with a call to ww_mutex_unlock_single.
+>>> + */
+>>> +static inline int __must_check ww_mutex_trylock_single(struct ww_mutex *lock)
+>>> +{
+>>> +	return mutex_trylock(&lock->base);
+>>> +}
+>> trylocks can never deadlock they don't block per definition, I don't see the
+>> point of the _single() thing here.
+> I called it single because they weren't annotated into any ctx. I can drop the _single suffix though,
+> but you'd still need to unlock with unlock_single, or we need to remove that distinction altogether,
+> lose a few lockdep checks and only have a one unlock function.
+>
+>>> +/**
+>>> + * ww_mutex_lock_single - acquire the w/w mutex without acquire context
+>>> + * @lock: mutex to lock
+>>> + *
+>>> + * Locks a mutex without acquire context, so no deadlock detection is
+>>> + * possible.
+>>> + *
+>>> + * Unlocking the mutex must happen with a call to ww_mutex_unlock_single.
+>>> + */
+>>> +static inline void ww_mutex_lock_single(struct ww_mutex *lock)
+>>> +{
+>>> +	mutex_lock(&lock->base);
+>>> +}
+>> as per the above, I'm missing the rationale for having this.
+>>
+>>> diff --git a/kernel/mutex.c b/kernel/mutex.c
+>>> index 84a5f07..66807c7 100644
+>>> --- a/kernel/mutex.c
+>>> +++ b/kernel/mutex.c
+>>> @@ -127,16 +127,156 @@ void __sched mutex_unlock(struct mutex *lock)
+>>>  
+>>>  EXPORT_SYMBOL(mutex_unlock);
+>>>  
+>>> +/**
+>>> + * ww_mutex_unlock - release the w/w mutex
+>>> + * @lock: the mutex to be released
+>>> + *
+>>> + * Unlock a mutex that has been locked by this task previously
+>>> + * with ww_mutex_lock* using an acquire context. It is forbidden to release the
+>>> + * locks after releasing the acquire context.
+>>> + *
+>>> + * This function must not be used in interrupt context. Unlocking
+>>> + * of a unlocked mutex is not allowed.
+>>> + *
+>>> + * Note that locks acquired with one of the ww_mutex_lock*single variant must be
+>>> + * unlocked with ww_mutex_unlock_single.
+>>> + */
+>>> +void __sched ww_mutex_unlock(struct ww_mutex *lock)
+>>> +{
+>>> +	/*
+>>> +	 * The unlocking fastpath is the 0->1 transition from 'locked'
+>>> +	 * into 'unlocked' state:
+>>> +	 */
+>>> +#ifdef CONFIG_DEBUG_MUTEXES
+>>> +	DEBUG_LOCKS_WARN_ON(!lock->ctx);
+>>> +	if (lock->ctx) {
+>>> +		DEBUG_LOCKS_WARN_ON(!lock->ctx->acquired);
+>>> +		if (lock->ctx->acquired > 0)
+>>> +			lock->ctx->acquired--;
+>>> +	}
+>>> +#endif
+>>> +	lock->ctx = NULL;
+>> barriers should always have a comment explaining the exact ordering and the
+>> pairing barrier's location.
+>>
+>>> +	smp_mb__before_atomic_inc();
+>>> +
+>>> +#ifndef CONFIG_DEBUG_MUTEXES
+>>> +	/*
+>>> +	 * When debugging is enabled we must not clear the owner before time,
+>>> +	 * the slow path will always be taken, and that clears the owner field
+>>> +	 * after verifying that it was indeed current.
+>>> +	 */
+>>> +	mutex_clear_owner(&lock->base);
+>>> +#endif
+>>> +	__mutex_fastpath_unlock(&lock->base.count, __mutex_unlock_slowpath);
+>>> +}
+>>> +EXPORT_SYMBOL(ww_mutex_unlock);
+>>> +
+>>> +static inline int __sched
+>>> +__mutex_lock_check_stamp(struct mutex *lock, struct ww_acquire_ctx *ctx)
+>>> +{
+>>> +	struct ww_mutex *ww = container_of(lock, struct ww_mutex, base);
+>>> +	struct ww_acquire_ctx *hold_ctx = ACCESS_ONCE(ww->ctx);
+>>> +
+>>> +	if (!hold_ctx)
+>>> +		return 0;
+>>> +
+>>> +	if (unlikely(ctx->stamp == hold_ctx->stamp))
+>>> +		return -EALREADY;
+>> Why compare stamps? I expected: ctx == hold_ctx here.
+> Because the check just below it compares stamps too, having the same check
+> would make it clear that when ctx->stamp - hold_ctx->stamp == 0 is not expected.
+>
+>>> +
+>>> +	if (unlikely(ctx->stamp - hold_ctx->stamp <= LONG_MAX)) {
+>> Why not simply write: ctx->stamp > hold_ctx->stamp ?
+> To handle the wraparound case on 32-bits?
+>> If we need to deal with equal stamps from different contexts we could tie-break
+>> based on ctx address or so, but seeing its a global counter from the class,
+>> that shouldn't happen for now.
+> Sounds good enough to me.
+>
+>>> +#ifdef CONFIG_DEBUG_MUTEXES
+>>> +		DEBUG_LOCKS_WARN_ON(ctx->contending_lock);
+>>> +		ctx->contending_lock = ww;
+>>> +#endif
+>>> +		return -EDEADLK;
+>>> +	}
+>>> +
+>>> +	return 0;
+>>> +}
+>>> +
+>>> +static __always_inline void ww_mutex_lock_acquired(struct ww_mutex *ww,
+>>> +						   struct ww_acquire_ctx *ww_ctx,
+>>> +						   bool ww_slow)
+>>> +{
+>>> +#ifdef CONFIG_DEBUG_MUTEXES
+>>> +	/*
+>>> +	 * If this WARN_ON triggers, you used mutex_lock to acquire,
+>>> +	 * but released with ww_mutex_unlock in this call.
+>>> +	 */
+>>> +	DEBUG_LOCKS_WARN_ON(ww->ctx);
+>>> +
+>>> +	/*
+>>> +	 * Not quite done after ww_acquire_done() ?
+>>> +	 */
+>>> +	DEBUG_LOCKS_WARN_ON(ww_ctx->done_acquire);
+>>> +
+>>> +	if (ww_slow) {
+>> s/ww_slow/!ww_ctx->acquired/
+>>
+>>> +		DEBUG_LOCKS_WARN_ON(ww_ctx->contending_lock != ww);
+>>> +		ww_ctx->contending_lock = NULL;
+>>> +	} else
+>>> +		DEBUG_LOCKS_WARN_ON(ww_ctx->contending_lock);
+>>> +
+>>> +
+>>> +	/*
+>>> +	 * Naughty, using a different class can lead to undefined behavior!
+>>> +	 */
+>>> +	DEBUG_LOCKS_WARN_ON(ww_ctx->ww_class != ww->ww_class);
+>>> +
+>>> +	if (ww_slow)
+>>> +		DEBUG_LOCKS_WARN_ON(ww_ctx->acquired > 0);
+>>> +
+>>> +	ww_ctx->acquired++;
+>>> +#endif
+>>> +}
+>>> +
+>>> +/*
+>>> + * after acquiring lock with fastpath or when we lost out in contested
+>>> + * slowpath, set ctx and wake up any waiters so they can recheck.
+>>> + *
+>>> + * This function is never called when CONFIG_DEBUG_LOCK_ALLOC is set,
+>>> + * as the fastpath and opportunistic spinning are disabled in that case.
+>>> + */
+>>> +static __always_inline void
+>>> +ww_mutex_set_context_fastpath(struct ww_mutex *lock,
+>>> +			       struct ww_acquire_ctx *ctx)
+>>> +{
+>>> +	unsigned long flags;
+>>> +	struct mutex_waiter *cur;
+>>> +
+>>> +	ww_mutex_lock_acquired(lock, ctx, false);
+>>> +
+>>> +	lock->ctx = ctx;
+>>  missing comment
+> Yeah, this was patched up as per danvet's command, moved the smp_mb__after upwards, and added a full smp_mb after setting lock->ctx.
+>>> +	smp_mb__after_atomic_dec();
+>>> +
+>>> +	/*
+>>> +	 * Check if lock is contended, if not there is nobody to wake up
+>>> +	 */
+>>> +	if (likely(atomic_read(&lock->base.count) == 0))
+>>> +		return;
+>>> +
+>>> +	/*
+>>> +	 * Uh oh, we raced in fastpath, wake up everyone in this case,
+>>> +	 * so they can see the new ctx
+>>> +	 */
+>>> +	spin_lock_mutex(&lock->base.wait_lock, flags);
+>>> +	list_for_each_entry(cur, &lock->base.wait_list, list) {
+>>> +		debug_mutex_wake_waiter(&lock->base, cur);
+>>> +		wake_up_process(cur->task);
+>>> +	}
+>>> +	spin_unlock_mutex(&lock->base.wait_lock, flags);
+>>> +}
+>>> +
+>>>  /*
+>>>   * Lock a mutex (possibly interruptible), slowpath:
+>>>   */
+>>> -static inline int __sched
+>>> +static __always_inline int __sched
+>>>  __mutex_lock_common(struct mutex *lock, long state, unsigned int subclass,
+>>> -		    struct lockdep_map *nest_lock, unsigned long ip)
+>>> +		    struct lockdep_map *nest_lock, unsigned long ip,
+>>> +		    struct ww_acquire_ctx *ww_ctx, bool ww_slow)
+>>>  {
+>>>  	struct task_struct *task = current;
+>>>  	struct mutex_waiter waiter;
+>>>  	unsigned long flags;
+>>> +	int ret;
+>>>  
+>>>  	preempt_disable();
+>>>  	mutex_acquire_nest(&lock->dep_map, subclass, 0, nest_lock, ip);
+>>> @@ -163,6 +303,14 @@ __mutex_lock_common(struct mutex *lock, long state, unsigned int subclass,
+>>>  	for (;;) {
+>>>  		struct task_struct *owner;
+>>>  
+>>> +		if (!__builtin_constant_p(ww_ctx == NULL) && !ww_slow) {
+>> Since we _know_ ww_ctx isn't NULL, we can trivially do: s/ww_slow/!ww_ctx->acquired/
+>>
+>>> +			struct ww_mutex *ww;
+>>> +
+>>> +			ww = container_of(lock, struct ww_mutex, base);
+>>> +			if (ACCESS_ONCE(ww->ctx))
+>> What's the point of this ACCESS_ONCE()?
+> Break out of the spin_on_owner loop. Without taking spin_lock_mutex there is no guarantee that the
+> contents of ww->ctx are valid or sane in any way, so there's no way to check if we ought to back off or not.
+>
+>
+>>> +				break;
+>>> +		}
+>>> +
+>>>  		/*
+>>>  		 * If there's an owner, wait for it to either
+>>>  		 * release the lock or go to sleep.
+>>> @@ -173,6 +321,13 @@ __mutex_lock_common(struct mutex *lock, long state, unsigned int subclass,
+>>>  
+>>>  		if (atomic_cmpxchg(&lock->count, 1, 0) == 1) {
+>>>  			lock_acquired(&lock->dep_map, ip);
+>> Should this not also have a __builtin_constant_p(ww_ctx == NULL) ?
+> ww_slow should not be set to non-zero when ww_ctx == NULL.
+>
+>>> +			if (ww_slow) {
+>>> +				struct ww_mutex *ww;
+>>> +				ww = container_of(lock, struct ww_mutex, base);
+>>> +
+>>> +				ww_mutex_set_context_fastpath(ww, ww_ctx);
+>>> +			}
+>>> +
+>>>  			mutex_set_owner(lock);
+>>>  			preempt_enable();
+>>>  			return 0;
+>>> @@ -228,15 +383,16 @@ __mutex_lock_common(struct mutex *lock, long state, unsigned int subclass,
+>>>  		 * TASK_UNINTERRUPTIBLE case.)
+>>>  		 */
+>>>  		if (unlikely(signal_pending_state(state, task))) {
+>>> -			mutex_remove_waiter(lock, &waiter,
+>>> -					    task_thread_info(task));
+>>> -			mutex_release(&lock->dep_map, 1, ip);
+>>> -			spin_unlock_mutex(&lock->wait_lock, flags);
+>>> +			ret = -EINTR;
+>>> +			goto err;
+>>> +		}
+>>>  
+>>> -			debug_mutex_free_waiter(&waiter);
+>>> -			preempt_enable();
+>>> -			return -EINTR;
+>>> +		if (!__builtin_constant_p(ww_ctx == NULL) && !ww_slow) {
+>>> +			ret = __mutex_lock_check_stamp(lock, ww_ctx);
+>>> +			if (ret)
+>>> +				goto err;
+>>>  		}
+>>> +
+>>>  		__set_task_state(task, state);
+>>>  
+>>>  		/* didn't get the lock, go to sleep: */
+>>> @@ -251,6 +407,30 @@ done:
+>>>  	mutex_remove_waiter(lock, &waiter, current_thread_info());
+>>>  	mutex_set_owner(lock);
+>>>  
+>>> +	if (!__builtin_constant_p(ww_ctx == NULL)) {
+>>> +		struct ww_mutex *ww = container_of(lock,
+>>> +						      struct ww_mutex,
+>>> +						      base);
+>>> +		struct mutex_waiter *cur;
+>>> +
+>>> +		/*
+>>> +		 * This branch gets optimized out for the common case,
+>>> +		 * and is only important for ww_mutex_lock.
+>>> +		 */
+>>> +
+>>> +		ww_mutex_lock_acquired(ww, ww_ctx, ww_slow);
+>>> +		ww->ctx = ww_ctx;
+>>> +
+>>> +		/*
+>>> +		 * Give any possible sleeping processes the chance to wake up,
+>>> +		 * so they can recheck if they have to back off.
+>>> +		 */
+>>> +		list_for_each_entry(cur, &lock->wait_list, list) {
+>>> +			debug_mutex_wake_waiter(lock, cur);
+>>> +			wake_up_process(cur->task);
+>>> +		}
+>>> +	}
+>>> +
+>>>  	/* set it to 0 if there are no waiters left: */
+>>>  	if (likely(list_empty(&lock->wait_list)))
+>>>  		atomic_set(&lock->count, 0);
+>>> @@ -261,6 +441,14 @@ done:
+>>>  	preempt_enable();
+>>>  
+>>>  	return 0;
+>>> +
+>>> +err:
+>>> +	mutex_remove_waiter(lock, &waiter, task_thread_info(task));
+>>> +	spin_unlock_mutex(&lock->wait_lock, flags);
+>>> +	debug_mutex_free_waiter(&waiter);
+>>> +	mutex_release(&lock->dep_map, 1, ip);
+>>> +	preempt_enable();
+>>> +	return ret;
+>>>  }
+>>>  
+>>>  #ifdef CONFIG_DEBUG_LOCK_ALLOC
+>>> @@ -268,7 +456,8 @@ void __sched
+>>>  mutex_lock_nested(struct mutex *lock, unsigned int subclass)
+>>>  {
+>>>  	might_sleep();
+>>> -	__mutex_lock_common(lock, TASK_UNINTERRUPTIBLE, subclass, NULL, _RET_IP_);
+>>> +	__mutex_lock_common(lock, TASK_UNINTERRUPTIBLE,
+>>> +			    subclass, NULL, _RET_IP_, 0, 0);
+>>>  }
+>> The pendant in me has to tell you 4x that NULL != 0 :-)
+>>
+>>> +EXPORT_SYMBOL_GPL(ww_mutex_lock);
+>>> +EXPORT_SYMBOL_GPL(ww_mutex_lock_interruptible);
+>>> +EXPORT_SYMBOL_GPL(ww_mutex_lock_slow);
+>>> +EXPORT_SYMBOL_GPL(ww_mutex_lock_slow_interruptible);
+>> Now having to do the _slow stuff saves lines and interface complexity!
+> It will also reduce useful debugging information returned a little. Danvet answered it better than me.
+>
+>>> @@ -401,20 +738,39 @@ __mutex_lock_slowpath(atomic_t *lock_count)
+>>>  {
+>>>  	struct mutex *lock = container_of(lock_count, struct mutex, count);
+>>>  
+>>> -	__mutex_lock_common(lock, TASK_UNINTERRUPTIBLE, 0, NULL, _RET_IP_);
+>>> +	__mutex_lock_common(lock, TASK_UNINTERRUPTIBLE, 0,
+>>> +			    NULL, _RET_IP_, 0, 0);
+>>>  }
+>>>  
+>>>  static noinline int __sched
+>>>  __mutex_lock_killable_slowpath(struct mutex *lock)
+>>>  {
+>>> -	return __mutex_lock_common(lock, TASK_KILLABLE, 0, NULL, _RET_IP_);
+>>> +	return __mutex_lock_common(lock, TASK_KILLABLE, 0,
+>>> +				   NULL, _RET_IP_, 0, 0);
+>>>  }
+>>>  
+>>>  static noinline int __sched
+>>>  __mutex_lock_interruptible_slowpath(struct mutex *lock)
+>>>  {
+>>> -	return __mutex_lock_common(lock, TASK_INTERRUPTIBLE, 0, NULL, _RET_IP_);
+>>> +	return __mutex_lock_common(lock, TASK_INTERRUPTIBLE, 0,
+>>> +				   NULL, _RET_IP_, 0, 0);
+>>>  }
+>> A few more cases where NULL != 0 :-)
+> But yeah, so open questions..
+>
+> 1. Do you still want to get rid of the _single variants, even though doing so would slightly reduce debugging?
+This is not as disastrous as I originally thought.
+lock_single needs to be kept, unlock_single can be removed without consequences.
+trylock_single could then be renamed to trylock, since it's no longer paired with unlock_single.
+
+It will prevent unlock and unlock_single from being mismatched, because the same code would get executed.
+Calling the mutex_unlock function directly on a ww_mutex must then be forbidden, as it's only an implementation detail.
 
 
-The crazy user can unset 'CONFIG_BUG' in menuconfig: "> General setup >
-Configure standard kernel features (expert users) > BUG() Support".
+> 2. Do you really want to drop the *_slow variants?
+> Doing so might reduce debugging slightly. I like method #2 in ww-mutex-design.txt, it makes it very clear why you
+> would handle the *_slow case differently anyway.
+As you pointed out, we wouldn't lose much debugging information.
+The same checks could be done in the normal variant with
+WARN_ON(ctx->lock && ctx->lock != lock);
+WARN_ON(ctx->lock && ctx->acquired > 0);
 
-But in fact, we always need it, and quite a few of architectures have
-already implemented it (e.g. alpha, arc, arm, avr32, blackfin, cris,
-frv, ia64, m68k, mips, mn10300, parisc, powerpc, s390, sh, sparc, x86).
+But it boils down to ww_mutex_lock_slow returning void instead of int __must_check from ww_mutex_lock.
 
-And kernel also already has prepared a default effective implementation
-for the architectures which is unwilling to implement it by themselves
-(e.g. arm64, c6x, h8300, hexagon, m32r, metag, microblaze, openrisc,
-score, tile, um, unicore32, xtensa).
+Maybe add inlines for *_slow, that use the ww_mutex_lock functions, and check ctx->lock == lock in debugging mode?
+> 3. is a smp_mb needed to serialize lock->ctx with the atomic_read?
+>
+> (mutex locked in fastpath, which is typically an atomic_dec operation)
+> smp_mb__after_atomic_dec();
+> lock->ctx = ..;
+> smp_mb();
+> if (atomic_read(lock->count) == 0) return;
+>
+> feels a bit like overkill to me.
+>
+> ~Maarten
 
-So need get rid of 'CONFIG_BUG', and let it always enabled everywhere.
-
-
-Signed-off-by: Chen Gang <gang.chen@asianux.com>
----
- arch/arm/Kconfig          |    1 -
- arch/avr32/Kconfig        |    1 -
- arch/blackfin/Kconfig     |    1 -
- arch/h8300/Kconfig        |    1 -
- arch/hexagon/Kconfig      |    1 -
- arch/parisc/Kconfig       |    2 --
- arch/powerpc/Kconfig      |    1 -
- arch/s390/Kconfig         |    2 +-
- arch/sh/Kconfig           |    2 +-
- arch/um/Kconfig.common    |    1 -
- arch/x86/Kconfig          |    1 -
- include/asm-generic/bug.h |   29 -----------------------------
- init/Kconfig              |   10 ----------
- lib/Kconfig.debug         |    2 +-
- 14 files changed, 3 insertions(+), 52 deletions(-)
-
-diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index a7fc5ea..ea4a146 100644
---- a/arch/arm/Kconfig
-+++ b/arch/arm/Kconfig
-@@ -265,7 +265,6 @@ config PHYS_OFFSET
- 
- config GENERIC_BUG
- 	def_bool y
--	depends on BUG
- 
- source "init/Kconfig"
- 
-diff --git a/arch/avr32/Kconfig b/arch/avr32/Kconfig
-index bdc3558..7c9005a 100644
---- a/arch/avr32/Kconfig
-+++ b/arch/avr32/Kconfig
-@@ -55,7 +55,6 @@ config GENERIC_CALIBRATE_DELAY
- 
- config GENERIC_BUG
- 	def_bool y
--	depends on BUG
- 
- source "init/Kconfig"
- 
-diff --git a/arch/blackfin/Kconfig b/arch/blackfin/Kconfig
-index a117652..637dc42 100644
---- a/arch/blackfin/Kconfig
-+++ b/arch/blackfin/Kconfig
-@@ -47,7 +47,6 @@ config GENERIC_CSUM
- 
- config GENERIC_BUG
- 	def_bool y
--	depends on BUG
- 
- config ZONE_DMA
- 	def_bool y
-diff --git a/arch/h8300/Kconfig b/arch/h8300/Kconfig
-index 303e4f9..88848da 100644
---- a/arch/h8300/Kconfig
-+++ b/arch/h8300/Kconfig
-@@ -56,7 +56,6 @@ config GENERIC_CALIBRATE_DELAY
- 
- config GENERIC_BUG
-         bool
--        depends on BUG
- 
- config TIME_LOW_RES
- 	bool
-diff --git a/arch/hexagon/Kconfig b/arch/hexagon/Kconfig
-index 33a9792..f50cc8f 100644
---- a/arch/hexagon/Kconfig
-+++ b/arch/hexagon/Kconfig
-@@ -84,7 +84,6 @@ config STACKTRACE_SUPPORT
- 
- config GENERIC_BUG
- 	def_bool y
--	depends on BUG
- 
- menu "Machine selection"
- 
-diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
-index 6507dab..5de1f8c 100644
---- a/arch/parisc/Kconfig
-+++ b/arch/parisc/Kconfig
-@@ -10,7 +10,6 @@ config PARISC
- 	select RTC_CLASS
- 	select RTC_DRV_GENERIC
- 	select INIT_ALL_POSSIBLE
--	select BUG
- 	select HAVE_PERF_EVENTS
- 	select GENERIC_ATOMIC64 if !64BIT
- 	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
-@@ -62,7 +61,6 @@ config ARCH_HAS_ILOG2_U64
- config GENERIC_BUG
- 	bool
- 	default y
--	depends on BUG
- 
- config GENERIC_HWEIGHT
- 	bool
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index c33e3ad..34f4ca9 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -187,7 +187,6 @@ config AUDIT_ARCH
- config GENERIC_BUG
- 	bool
- 	default y
--	depends on BUG
- 
- config SYS_SUPPORTS_APM_EMULATION
- 	default y if PMAC_APM_EMU
-diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-index da183c5..5d7b3db 100644
---- a/arch/s390/Kconfig
-+++ b/arch/s390/Kconfig
-@@ -29,7 +29,7 @@ config GENERIC_HWEIGHT
- 	def_bool y
- 
- config GENERIC_BUG
--	def_bool y if BUG
-+	def_bool y
- 
- config GENERIC_BUG_RELATIVE_POINTERS
- 	def_bool y
-diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
-index 8c868cf..d555e7f 100644
---- a/arch/sh/Kconfig
-+++ b/arch/sh/Kconfig
-@@ -84,7 +84,7 @@ config RWSEM_XCHGADD_ALGORITHM
- 
- config GENERIC_BUG
- 	def_bool y
--	depends on BUG && SUPERH32
-+	depends on SUPERH32
- 
- config GENERIC_CSUM
- 	def_bool y
-diff --git a/arch/um/Kconfig.common b/arch/um/Kconfig.common
-index bceee66..7aae42a 100644
---- a/arch/um/Kconfig.common
-+++ b/arch/um/Kconfig.common
-@@ -53,7 +53,6 @@ config GENERIC_CALIBRATE_DELAY
- config GENERIC_BUG
- 	bool
- 	default y
--	depends on BUG
- 
- config HZ
- 	int
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 723e42e..a36e1b4 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -166,7 +166,6 @@ config GENERIC_ISA_DMA
- 
- config GENERIC_BUG
- 	def_bool y
--	depends on BUG
- 	select GENERIC_BUG_RELATIVE_POINTERS if X86_64
- 
- config GENERIC_BUG_RELATIVE_POINTERS
-diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-index 7d10f96..5d50903 100644
---- a/include/asm-generic/bug.h
-+++ b/include/asm-generic/bug.h
-@@ -12,8 +12,6 @@
- #ifndef __ASSEMBLY__
- #include <linux/kernel.h>
- 
--#ifdef CONFIG_BUG
--
- #ifdef CONFIG_GENERIC_BUG
- struct bug_entry {
- #ifndef CONFIG_GENERIC_BUG_RELATIVE_POINTERS
-@@ -106,33 +104,6 @@ extern void warn_slowpath_null(const char *file, const int line);
- 	unlikely(__ret_warn_on);					\
- })
- 
--#else /* !CONFIG_BUG */
--#ifndef HAVE_ARCH_BUG
--#define BUG() do {} while(0)
--#endif
--
--#ifndef HAVE_ARCH_BUG_ON
--#define BUG_ON(condition) do { if (condition) ; } while(0)
--#endif
--
--#ifndef HAVE_ARCH_WARN_ON
--#define WARN_ON(condition) ({						\
--	int __ret_warn_on = !!(condition);				\
--	unlikely(__ret_warn_on);					\
--})
--#endif
--
--#ifndef WARN
--#define WARN(condition, format...) ({					\
--	int __ret_warn_on = !!(condition);				\
--	unlikely(__ret_warn_on);					\
--})
--#endif
--
--#define WARN_TAINT(condition, taint, format...) WARN_ON(condition)
--
--#endif
--
- #define WARN_ON_ONCE(condition)	({				\
- 	static bool __section(.data.unlikely) __warned;		\
- 	int __ret_warn_once = !!(condition);			\
-diff --git a/init/Kconfig b/init/Kconfig
-index 7fb26a6..bc1dd49 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -1360,16 +1360,6 @@ config PRINTK
- 	  very difficult to diagnose system problems, saying N here is
- 	  strongly discouraged.
- 
--config BUG
--	bool "BUG() support" if EXPERT
--	default y
--	help
--          Disabling this option eliminates support for BUG and WARN, reducing
--          the size of your kernel image and potentially quietly ignoring
--          numerous fatal conditions. You should only consider disabling this
--          option for embedded systems with no facilities for reporting errors.
--          Just say Y.
--
- config ELF_CORE
- 	depends on COREDUMP
- 	default y
-diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-index 566cf2b..54b3251 100644
---- a/lib/Kconfig.debug
-+++ b/lib/Kconfig.debug
-@@ -700,7 +700,7 @@ config HAVE_DEBUG_BUGVERBOSE
- 
- config DEBUG_BUGVERBOSE
- 	bool "Verbose BUG() reporting (adds 70K)" if DEBUG_KERNEL && EXPERT
--	depends on BUG && (GENERIC_BUG || HAVE_DEBUG_BUGVERBOSE)
-+	depends on GENERIC_BUG || HAVE_DEBUG_BUGVERBOSE
- 	default y
- 	help
- 	  Say Y here to make BUG() panics output the file name and line number
--- 
-1.7.7.6
