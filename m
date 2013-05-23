@@ -1,50 +1,87 @@
 From: Steve Capper <steve.capper@linaro.org>
-Subject: [PATCH 10/11] ARM64: mm: Raise MAX_ORDER for 64KB pages and THP.
-Date: Thu, 23 May 2013 18:07:57 +0100
-Message-ID: <1369328878-11706-11-git-send-email-steve.capper@linaro.org>
+Subject: [PATCH 08/11] ARM64: mm: Swap PTE_FILE and PTE_PROT_NONE bits.
+Date: Thu, 23 May 2013 18:07:55 +0100
+Message-ID: <1369328878-11706-9-git-send-email-steve.capper@linaro.org>
 References: <1369328878-11706-1-git-send-email-steve.capper@linaro.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f181.google.com ([209.85.212.181]:54605 "EHLO
-	mail-wi0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758026Ab3EWRI1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 May 2013 13:08:27 -0400
-Received: by mail-wi0-f181.google.com with SMTP id hi5so2224582wib.2
-        for <linux-arch@vger.kernel.org>; Thu, 23 May 2013 10:08:26 -0700 (PDT)
+Received: from mail-wi0-f182.google.com ([209.85.212.182]:46189 "EHLO
+	mail-wi0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758062Ab3EWRI3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 May 2013 13:08:29 -0400
+Received: by mail-wi0-f182.google.com with SMTP id c10so2223526wiw.3
+        for <linux-arch@vger.kernel.org>; Thu, 23 May 2013 10:08:28 -0700 (PDT)
 In-Reply-To: <1369328878-11706-1-git-send-email-steve.capper@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Michal Hocko <mhocko@suse.cz>, Ken Chen <kenchen@google.com>, Mel Gorman <mgorman@suse.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, patches@linaro.org, Steve Capper <steve.capper@linaro.org>
 
-The buddy allocator has a default MAX_ORDER of 11, which is too
-low to allocate enough memory for 512MB Transparent HugePages if
-our base page size is 64KB.
+Under ARM64, PTEs can be broadly categorised as follows:
+   - Present and valid: Bit #0 is set. The PTE is valid and memory
+     access to the region may fault.
 
-This patch introduces MAX_ZONE_ORDER and sets it to 14 when 64KB
-pages are used in conjuction with THP, otherwise the default value
-of 11 is used.
+   - Present and invalid: Bit #0 is clear and bit #1 is set.
+     Represents present memory with PROT_NONE protection. The PTE
+     is an invalid entry, and the user fault handler will raise a
+     SIGSEGV.
+
+   - Not present (file): Bits #0 and #1 are clear, bit #2 is set.
+     Memory represented has been paged out. The PTE is an invalid
+     entry, and the fault handler will try and re-populate the
+     memory where necessary.
+
+Huge PTEs are block descriptors that have bit #1 clear. If we wish
+to represent PROT_NONE huge PTEs we then run into a problem as
+there is no way to distinguish between regular and huge PTEs if we
+set bit #1.
+
+As huge PTEs are always present, the meaning of bits #1 and #2 can
+be swapped for invalid PTEs. This patch swaps the PTE_FILE and
+PTE_PROT_NONE constants, allowing us to represent PROT_NONE huge
+PTEs.
 
 Signed-off-by: Steve Capper <steve.capper@linaro.org>
 Acked-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- arch/arm64/Kconfig | 5 +++++
- 1 file changed, 5 insertions(+)
+ arch/arm64/include/asm/pgtable.h | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index cd6eca8..10607d6 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -191,6 +191,11 @@ config ARCH_WANT_HUGE_PMD_SHARE
+diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
+index 77b09d6..8867282 100644
+--- a/arch/arm64/include/asm/pgtable.h
++++ b/arch/arm64/include/asm/pgtable.h
+@@ -25,8 +25,8 @@
+  * Software defined PTE bits definition.
+  */
+ #define PTE_VALID		(_AT(pteval_t, 1) << 0)
+-#define PTE_PROT_NONE		(_AT(pteval_t, 1) << 1)	/* only when !PTE_VALID */
+-#define PTE_FILE		(_AT(pteval_t, 1) << 2)	/* only when !pte_present() */
++#define PTE_FILE		(_AT(pteval_t, 1) << 1)	/* only when !pte_present() */
++#define PTE_PROT_NONE		(_AT(pteval_t, 1) << 2)	/* only when !PTE_VALID */
+ #define PTE_DIRTY		(_AT(pteval_t, 1) << 55)
+ #define PTE_SPECIAL		(_AT(pteval_t, 1) << 56)
  
- source "mm/Kconfig"
+@@ -281,8 +281,8 @@ extern pgd_t idmap_pg_dir[PTRS_PER_PGD];
  
-+config FORCE_MAX_ZONEORDER
-+	int
-+	default "14" if (ARM64_64K_PAGES && TRANSPARENT_HUGEPAGE)
-+	default "11"
-+
- endmenu
+ /*
+  * Encode and decode a swap entry:
+- *	bits 0-1:	present (must be zero)
+- *	bit  2:		PTE_FILE
++ *	bits 0, 2:	present (must both be zero)
++ *	bit  1:		PTE_FILE
+  *	bits 3-8:	swap type
+  *	bits 9-63:	swap offset
+  */
+@@ -306,8 +306,8 @@ extern pgd_t idmap_pg_dir[PTRS_PER_PGD];
  
- menu "Boot options"
+ /*
+  * Encode and decode a file entry:
+- *	bits 0-1:	present (must be zero)
+- *	bit  2:		PTE_FILE
++ *	bits 0, 2:	present (must both be zero)
++ *	bit  1:		PTE_FILE
+  *	bits 3-63:	file offset / PAGE_SIZE
+  */
+ #define pte_file(pte)		(pte_val(pte) & PTE_FILE)
 -- 
 1.8.1.4
