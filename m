@@ -1,367 +1,85 @@
 From: Steve Capper <steve.capper@linaro.org>
-Subject: [PATCH 09/11] ARM64: mm: HugeTLB support.
-Date: Thu, 23 May 2013 18:07:56 +0100
-Message-ID: <1369328878-11706-10-git-send-email-steve.capper@linaro.org>
+Subject: [PATCH 06/11] ARM64: mm: Restore memblock limit when map_mem finished.
+Date: Thu, 23 May 2013 18:07:53 +0100
+Message-ID: <1369328878-11706-7-git-send-email-steve.capper@linaro.org>
 References: <1369328878-11706-1-git-send-email-steve.capper@linaro.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f179.google.com ([74.125.82.179]:44477 "EHLO
-	mail-we0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758028Ab3EWRIZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 May 2013 13:08:25 -0400
-Received: by mail-we0-f179.google.com with SMTP id m46so2285393wev.10
-        for <linux-arch@vger.kernel.org>; Thu, 23 May 2013 10:08:24 -0700 (PDT)
+Received: from mail-wg0-f41.google.com ([74.125.82.41]:63211 "EHLO
+	mail-wg0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758092Ab3EWRIU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 May 2013 13:08:20 -0400
+Received: by mail-wg0-f41.google.com with SMTP id c11so3581527wgh.2
+        for <linux-arch@vger.kernel.org>; Thu, 23 May 2013 10:08:18 -0700 (PDT)
 In-Reply-To: <1369328878-11706-1-git-send-email-steve.capper@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Michal Hocko <mhocko@suse.cz>, Ken Chen <kenchen@google.com>, Mel Gorman <mgorman@suse.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, patches@linaro.org, Steve Capper <steve.capper@linaro.org>
 
-Add huge page support to ARM64, different huge page sizes are
-supported depending on the size of normal pages:
+In paging_init the memblock limit is set to restrict any addresses
+returned by early_alloc to fit within the initial direct kernel
+mapping in swapper_pg_dir. This allows map_mem to allocate puds,
+pmds and ptes from the initial direct kernel mapping.
 
-PAGE_SIZE is 4KB:
-   2MB - (pmds) these can be allocated at any time.
-1024MB - (puds) usually allocated on bootup with the command line
-         with something like: hugepagesz=1G hugepages=6
+The limit stays low after paging_init() though, meaning any
+bootmem allocations will be from a restricted subset of memory.
+Gigabyte huge pages, for instance, are normally allocated from
+bootmem as their order (18) is too large for the default buddy
+allocator (MAX_ORDER = 11).
 
-PAGE_SIZE is 64KB:
- 512MB - (pmds) usually allocated on bootup via command line.
+This patch restores the memblock limit when map_mem has finished,
+allowing gigabyte huge pages (and other objects) to be allocated
+from all of bootmem.
 
 Signed-off-by: Steve Capper <steve.capper@linaro.org>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- arch/arm64/Kconfig                     |   9 +++
- arch/arm64/include/asm/hugetlb.h       | 117 +++++++++++++++++++++++++++++++++
- arch/arm64/include/asm/pgtable-hwdef.h |   8 +++
- arch/arm64/include/asm/pgtable.h       |  13 +++-
- arch/arm64/mm/Makefile                 |   1 +
- arch/arm64/mm/fault.c                  |  19 ++----
- arch/arm64/mm/hugetlbpage.c            |  70 ++++++++++++++++++++
- 7 files changed, 220 insertions(+), 17 deletions(-)
- create mode 100644 arch/arm64/include/asm/hugetlb.h
- create mode 100644 arch/arm64/mm/hugetlbpage.c
+ arch/arm64/mm/mmu.c | 19 +++++++++++++------
+ 1 file changed, 13 insertions(+), 6 deletions(-)
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 56b3f6d..cd6eca8 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -180,6 +180,15 @@ config HW_PERF_EVENTS
- 	  Enable hardware performance counter support for perf events. If
- 	  disabled, perf events will use software events only.
+diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
+index eeecc9c..9fa027b 100644
+--- a/arch/arm64/mm/mmu.c
++++ b/arch/arm64/mm/mmu.c
+@@ -297,6 +297,16 @@ static void __init map_mem(void)
+ {
+ 	struct memblock_region *reg;
  
-+config SYS_SUPPORTS_HUGETLBFS
-+	def_bool y
++	/*
++	 * Temporarily limit the memblock range. We need to do this as
++	 * create_mapping requires puds, pmds and ptes to be allocated from
++	 * memory addressable from the initial direct kernel mapping.
++	 *
++	 * The initial direct kernel mapping, located at swapper_pg_dir,
++	 * gives us PGDIR_SIZE memory starting from PHYS_OFFSET (aligned).
++	 */
++	memblock_set_current_limit((PHYS_OFFSET & PGDIR_MASK) + PGDIR_SIZE);
 +
-+config ARCH_WANT_GENERAL_HUGETLB
-+	def_bool y
-+
-+config ARCH_WANT_HUGE_PMD_SHARE
-+	def_bool y if !ARM64_64K_PAGES
-+
- source "mm/Kconfig"
+ 	/* map all the memory banks */
+ 	for_each_memblock(memory, reg) {
+ 		phys_addr_t start = reg->base;
+@@ -307,6 +317,9 @@ static void __init map_mem(void)
  
- endmenu
-diff --git a/arch/arm64/include/asm/hugetlb.h b/arch/arm64/include/asm/hugetlb.h
-new file mode 100644
-index 0000000..5b7ca8a
---- /dev/null
-+++ b/arch/arm64/include/asm/hugetlb.h
-@@ -0,0 +1,117 @@
-+/*
-+ * arch/arm64/include/asm/hugetlb.h
-+ *
-+ * Copyright (C) 2013 Linaro Ltd.
-+ *
-+ * Based on arch/x86/include/asm/hugetlb.h
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-+ */
+ 		create_mapping(start, __phys_to_virt(start), end - start);
+ 	}
 +
-+#ifndef __ASM_HUGETLB_H
-+#define __ASM_HUGETLB_H
-+
-+#include <asm-generic/hugetlb.h>
-+#include <asm/page.h>
-+
-+static inline pte_t huge_ptep_get(pte_t *ptep)
-+{
-+	return *ptep;
-+}
-+
-+static inline void set_huge_pte_at(struct mm_struct *mm, unsigned long addr,
-+				   pte_t *ptep, pte_t pte)
-+{
-+	set_pte_at(mm, addr, ptep, pte);
-+}
-+
-+static inline void huge_ptep_clear_flush(struct vm_area_struct *vma,
-+					 unsigned long addr, pte_t *ptep)
-+{
-+	ptep_clear_flush(vma, addr, ptep);
-+}
-+
-+static inline void huge_ptep_set_wrprotect(struct mm_struct *mm,
-+					   unsigned long addr, pte_t *ptep)
-+{
-+	ptep_set_wrprotect(mm, addr, ptep);
-+}
-+
-+static inline pte_t huge_ptep_get_and_clear(struct mm_struct *mm,
-+					    unsigned long addr, pte_t *ptep)
-+{
-+	return ptep_get_and_clear(mm, addr, ptep);
-+}
-+
-+static inline int huge_ptep_set_access_flags(struct vm_area_struct *vma,
-+					     unsigned long addr, pte_t *ptep,
-+					     pte_t pte, int dirty)
-+{
-+	return ptep_set_access_flags(vma, addr, ptep, pte, dirty);
-+}
-+
-+static inline void hugetlb_free_pgd_range(struct mmu_gather *tlb,
-+					  unsigned long addr, unsigned long end,
-+					  unsigned long floor,
-+					  unsigned long ceiling)
-+{
-+	free_pgd_range(tlb, addr, end, floor, ceiling);
-+}
-+
-+static inline int is_hugepage_only_range(struct mm_struct *mm,
-+					 unsigned long addr, unsigned long len)
-+{
-+	return 0;
-+}
-+
-+static inline int prepare_hugepage_range(struct file *file,
-+					 unsigned long addr, unsigned long len)
-+{
-+	struct hstate *h = hstate_file(file);
-+	if (len & ~huge_page_mask(h))
-+		return -EINVAL;
-+	if (addr & ~huge_page_mask(h))
-+		return -EINVAL;
-+	return 0;
-+}
-+
-+static inline void hugetlb_prefault_arch_hook(struct mm_struct *mm)
-+{
-+}
-+
-+static inline int huge_pte_none(pte_t pte)
-+{
-+	return pte_none(pte);
-+}
-+
-+static inline pte_t huge_pte_wrprotect(pte_t pte)
-+{
-+	return pte_wrprotect(pte);
-+}
-+
-+static inline int arch_prepare_hugepage(struct page *page)
-+{
-+	return 0;
-+}
-+
-+static inline void arch_release_hugepage(struct page *page)
-+{
-+}
-+
-+static inline void arch_clear_hugepage_flags(struct page *page)
-+{
-+	clear_bit(PG_dcache_clean, &page->flags);
-+}
-+
-+#endif /* __ASM_HUGETLB_H */
-diff --git a/arch/arm64/include/asm/pgtable-hwdef.h b/arch/arm64/include/asm/pgtable-hwdef.h
-index 75fd13d..e6e0a0d 100644
---- a/arch/arm64/include/asm/pgtable-hwdef.h
-+++ b/arch/arm64/include/asm/pgtable-hwdef.h
-@@ -25,12 +25,19 @@
- /*
-  * Hardware page table definitions.
-  *
-+ * Level 1 descriptor (PUD).
-+ */
-+
-+#define PUD_TABLE_BIT		(_AT(pgdval_t, 1) << 1)
-+
-+/*
-  * Level 2 descriptor (PMD).
-  */
- #define PMD_TYPE_MASK		(_AT(pmdval_t, 3) << 0)
- #define PMD_TYPE_FAULT		(_AT(pmdval_t, 0) << 0)
- #define PMD_TYPE_TABLE		(_AT(pmdval_t, 3) << 0)
- #define PMD_TYPE_SECT		(_AT(pmdval_t, 1) << 0)
-+#define PMD_TABLE_BIT		(_AT(pmdval_t, 1) << 1)
- 
- /*
-  * Section
-@@ -53,6 +60,7 @@
- #define PTE_TYPE_MASK		(_AT(pteval_t, 3) << 0)
- #define PTE_TYPE_FAULT		(_AT(pteval_t, 0) << 0)
- #define PTE_TYPE_PAGE		(_AT(pteval_t, 3) << 0)
-+#define PTE_TABLE_BIT		(_AT(pteval_t, 1) << 1)
- #define PTE_USER		(_AT(pteval_t, 1) << 6)		/* AP[1] */
- #define PTE_RDONLY		(_AT(pteval_t, 1) << 7)		/* AP[2] */
- #define PTE_SHARED		(_AT(pteval_t, 3) << 8)		/* SH[1:0], inner shareable */
-diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
-index 8867282..7476896 100644
---- a/arch/arm64/include/asm/pgtable.h
-+++ b/arch/arm64/include/asm/pgtable.h
-@@ -173,8 +173,17 @@ static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
- /*
-  * Huge pte definitions.
-  */
--#define pte_huge(pte)		((pte_val(pte) & PTE_TYPE_MASK) == PTE_TYPE_HUGEPAGE)
--#define pte_mkhuge(pte)		(__pte((pte_val(pte) & ~PTE_TYPE_MASK) | PTE_TYPE_HUGEPAGE))
-+#define pte_huge(pte)		(!(pte_val(pte) & PTE_TABLE_BIT))
-+#define pte_mkhuge(pte)		(__pte(pte_val(pte) & ~PTE_TABLE_BIT))
-+
-+/*
-+ * Hugetlb definitions.
-+ */
-+#define HUGE_MAX_HSTATE		2
-+#define HPAGE_SHIFT		PMD_SHIFT
-+#define HPAGE_SIZE		(_AC(1, UL) << HPAGE_SHIFT)
-+#define HPAGE_MASK		(~(HPAGE_SIZE - 1))
-+#define HUGETLB_PAGE_ORDER	(HPAGE_SHIFT - PAGE_SHIFT)
- 
- #define __HAVE_ARCH_PTE_SPECIAL
- 
-diff --git a/arch/arm64/mm/Makefile b/arch/arm64/mm/Makefile
-index 3140a2a..b51d364 100644
---- a/arch/arm64/mm/Makefile
-+++ b/arch/arm64/mm/Makefile
-@@ -2,3 +2,4 @@ obj-y				:= dma-mapping.o extable.o fault.o init.o \
- 				   cache.o copypage.o flush.o \
- 				   ioremap.o mmap.o pgd.o mmu.o \
- 				   context.o tlb.o proc.o
-+obj-$(CONFIG_HUGETLB_PAGE)	+= hugetlbpage.o
-diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
-index 98af6e7..29bf387 100644
---- a/arch/arm64/mm/fault.c
-+++ b/arch/arm64/mm/fault.c
-@@ -364,17 +364,6 @@ static int __kprobes do_translation_fault(unsigned long addr,
++	/* Limit no longer required. */
++	memblock_set_current_limit(MEMBLOCK_ALLOC_ANYWHERE);
  }
  
  /*
-- * Some section permission faults need to be handled gracefully.  They can
-- * happen due to a __{get,put}_user during an oops.
-- */
--static int do_sect_fault(unsigned long addr, unsigned int esr,
--			 struct pt_regs *regs)
--{
--	do_bad_area(addr, esr, regs);
--	return 0;
--}
+@@ -317,12 +330,6 @@ void __init paging_init(void)
+ {
+ 	void *zero_page;
+ 
+-	/*
+-	 * Maximum PGDIR_SIZE addressable via the initial direct kernel
+-	 * mapping in swapper_pg_dir.
+-	 */
+-	memblock_set_current_limit((PHYS_OFFSET & PGDIR_MASK) + PGDIR_SIZE);
 -
--/*
-  * This abort handler always returns "fault".
-  */
- static int do_bad(unsigned long addr, unsigned int esr, struct pt_regs *regs)
-@@ -397,12 +386,12 @@ static struct fault_info {
- 	{ do_translation_fault,	SIGSEGV, SEGV_MAPERR,	"level 2 translation fault"	},
- 	{ do_page_fault,	SIGSEGV, SEGV_MAPERR,	"level 3 translation fault"	},
- 	{ do_bad,		SIGBUS,  0,		"reserved access flag fault"	},
--	{ do_bad,		SIGSEGV, SEGV_ACCERR,	"level 1 access flag fault"	},
--	{ do_bad,		SIGSEGV, SEGV_ACCERR,	"level 2 access flag fault"	},
-+	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 1 access flag fault"	},
-+	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 2 access flag fault"	},
- 	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 3 access flag fault"	},
- 	{ do_bad,		SIGBUS,  0,		"reserved permission fault"	},
--	{ do_bad,		SIGSEGV, SEGV_ACCERR,	"level 1 permission fault"	},
--	{ do_sect_fault,	SIGSEGV, SEGV_ACCERR,	"level 2 permission fault"	},
-+	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 1 permission fault"	},
-+	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 2 permission fault"	},
- 	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 3 permission fault"	},
- 	{ do_bad,		SIGBUS,  0,		"synchronous external abort"	},
- 	{ do_bad,		SIGBUS,  0,		"asynchronous external abort"	},
-diff --git a/arch/arm64/mm/hugetlbpage.c b/arch/arm64/mm/hugetlbpage.c
-new file mode 100644
-index 0000000..2fc8258
---- /dev/null
-+++ b/arch/arm64/mm/hugetlbpage.c
-@@ -0,0 +1,70 @@
-+/*
-+ * arch/arm64/mm/hugetlbpage.c
-+ *
-+ * Copyright (C) 2013 Linaro Ltd.
-+ *
-+ * Based on arch/x86/mm/hugetlbpage.c.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-+ */
-+
-+#include <linux/init.h>
-+#include <linux/fs.h>
-+#include <linux/mm.h>
-+#include <linux/hugetlb.h>
-+#include <linux/pagemap.h>
-+#include <linux/err.h>
-+#include <linux/sysctl.h>
-+#include <asm/mman.h>
-+#include <asm/tlb.h>
-+#include <asm/tlbflush.h>
-+#include <asm/pgalloc.h>
-+
-+#ifndef CONFIG_ARCH_WANT_HUGE_PMD_SHARE
-+int huge_pmd_unshare(struct mm_struct *mm, unsigned long *addr, pte_t *ptep)
-+{
-+	return 0;
-+}
-+#endif
-+
-+struct page *follow_huge_addr(struct mm_struct *mm, unsigned long address,
-+			      int write)
-+{
-+	return ERR_PTR(-EINVAL);
-+}
-+
-+int pmd_huge(pmd_t pmd)
-+{
-+	return !(pmd_val(pmd) & PMD_TABLE_BIT);
-+}
-+
-+int pud_huge(pud_t pud)
-+{
-+	return !(pud_val(pud) & PUD_TABLE_BIT);
-+}
-+
-+static __init int setup_hugepagesz(char *opt)
-+{
-+	unsigned long ps = memparse(opt, &opt);
-+	if (ps == PMD_SIZE) {
-+		hugetlb_add_hstate(PMD_SHIFT - PAGE_SHIFT);
-+	} else if (ps == PUD_SIZE) {
-+		hugetlb_add_hstate(PUD_SHIFT - PAGE_SHIFT);
-+	} else {
-+		pr_err("hugepagesz: Unsupported page size %lu M\n", ps >> 20);
-+		return 0;
-+	}
-+	return 1;
-+}
-+__setup("hugepagesz=", setup_hugepagesz);
+ 	init_mem_pgprot();
+ 	map_mem();
+ 
 -- 
 1.8.1.4
