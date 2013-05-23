@@ -1,240 +1,278 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.8]:50891 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756940Ab3EVVGA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 May 2013 17:06:00 -0400
-Message-ID: <519D32E2.5050102@dawncrow.de>
-Date: Wed, 22 May 2013 23:04:34 +0200
-From: =?ISO-8859-15?Q?Andr=E9_Hentschel?= <nerv@dawncrow.de>
+Received: from intranet.asianux.com ([58.214.24.6]:10246 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751649Ab3EWH6b (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 May 2013 03:58:31 -0400
+Message-ID: <519DCBEF.3090208@asianux.com>
+Date: Thu, 23 May 2013 15:57:35 +0800
+From: Chen Gang <gang.chen@asianux.com>
 MIME-Version: 1.0
-Subject: [PATCH v5] arm: Preserve the user r/w register TPIDRURW on context
- switch and fork
-Content-Type: text/plain; charset=ISO-8859-15
-Content-Transfer-Encoding: 8bit
+Subject: [PATCH] arch: configuration, deleting 'CONFIG_BUG' since always need
+ it.
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, Will Deacon <will.deacon@arm.com>, Jonathan Austin <jonathan.austin@arm.com>
-Message-ID: <20130522210434.dopNXMjptbMqk6u61MYqZlnD0rTTAGRyGLHkPM9bSUg@z>
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>, hskinnemoen@gmail.com, egtvedt@samfundet.no, Mike Frysinger <vapier@gentoo.org>, ysato@users.sourceforge.jp, rkuo@codeaurora.org, jejb@parisc-linux.org, deller@gmx.de, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "paulus@samba.org" <paulus@samba.org>, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux390@de.ibm.com, lethal@linux-sh.org, jdike@addtoit.com, richard@nod.at, Thomas Gleixner <tglx@linutronix.de>, "mingo@redhat.com" <mingo@redhat.com>, hpa@zytor.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Serge Hallyn <serge.hallyn@canonical.com>, paulmck@linux.vnet.ibm.com, Frederic Weisbecker <fweisbec@gmail.com>, David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, akinobu.mita@gmail.com, Catalin Marinas <Catalin.Marinas@arm.com>, walken@google.com, Will Deacon <will.deacon@arm.com>, Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, uclinux-dist-devel@blackfin.uclinux.org, linux-hexagon@vger.kernel.org, linux-parisc@vger.kernel.org, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net, linux-arch@vger.kernel.org
+Message-ID: <20130523075735.yiA15PQ1eSWszFIfZl0l6pFJdzdD5MPHGmaRZiQuwEo@z>
 
-From: André Hentschel <nerv@dawncrow.de>
 
-Since commit 6a1c53124aa1 the user writeable TLS register was zeroed to
-prevent it from being used as a covert channel between two tasks.
+The crazy user can unset 'CONFIG_BUG' in menuconfig: "> General setup >
+Configure standard kernel features (expert users) > BUG() Support".
 
-There are more and more applications coming to Windows RT,
-Wine could support them, but mostly they expect to have
-the thread environment block (TEB) in TPIDRURW.
+But in fact, we always need it, and quite a few of architectures have
+already implemented it (e.g. alpha, arc, arm, avr32, blackfin, cris,
+frv, ia64, m68k, mips, mn10300, parisc, powerpc, s390, sh, sparc, x86).
 
-This patch preserves that register per thread instead of clearing it.
-Unlike the TPIDRURO, which is already switched, the TPIDRURW
-can be updated from userspace so needs careful treatment in the case that we
-modify TPIDRURW and call fork(). To avoid this we must always read
-TPIDRURW in copy_thread.
+And kernel also already has prepared a default effective implementation
+for the architectures which is unwilling to implement it by themselves
+(e.g. arm64, c6x, h8300, hexagon, m32r, metag, microblaze, openrisc,
+score, tile, um, unicore32, xtensa).
 
-Signed-off-by: André Hentschel <nerv@dawncrow.de>
-Signed-off-by: Will Deacon <will.deacon@arm.com>
-Signed-off-by: Jonathan Austin <jonathan.austin@arm.com> 
+So need get rid of 'CONFIG_BUG', and let it always enabled everywhere.
 
+
+Signed-off-by: Chen Gang <gang.chen@asianux.com>
 ---
-This patch is against Linux 3.10-rc2 (c7788792a5e7b0d5d7f96d0766b4cb6112d47d75)
+ arch/arm/Kconfig          |    1 -
+ arch/avr32/Kconfig        |    1 -
+ arch/blackfin/Kconfig     |    1 -
+ arch/h8300/Kconfig        |    1 -
+ arch/hexagon/Kconfig      |    1 -
+ arch/parisc/Kconfig       |    2 --
+ arch/powerpc/Kconfig      |    1 -
+ arch/s390/Kconfig         |    2 +-
+ arch/sh/Kconfig           |    2 +-
+ arch/um/Kconfig.common    |    1 -
+ arch/x86/Kconfig          |    1 -
+ include/asm-generic/bug.h |   29 -----------------------------
+ init/Kconfig              |   10 ----------
+ lib/Kconfig.debug         |    2 +-
+ 14 files changed, 3 insertions(+), 52 deletions(-)
 
-v2: rework and fixup of v1, based on a suggested patch by Will Deacon
-v3: total rework and fixup of v2
-v4: removed condition on assembler instruction,
-    adapted my code to kernel-style, both based on comments by Will Deacon
-v5: rebased v4 on 3.10-rc2 and adding this version history
-
-As suggested by Jonathan Austin, i'll send this patch to RMK's patch tracker in
-case there are no more comments on it.
-
-Why so much Signed-off-bys? Some History:
-The first patch had performance issues pointed out by Russel King,
-so Will Deacon jumped in to help me with that. The second one again
-had performance issues and the missing copy_thread part was uncovered.
-After some iterations by me, Jonathan Austin proposed a patch and
-Russel King sent his idea of the assembler part. All this was finally
-merged and refined into this patch.
-Thanks to everyone!
-
- arch/arm/include/asm/thread_info.h |  2 +-
- arch/arm/include/asm/tls.h         | 40 +++++++++++++++++++++++++-------------
- arch/arm/kernel/entry-armv.S       |  4 ++--
- arch/arm/kernel/process.c          |  4 +++-
- arch/arm/kernel/ptrace.c           |  2 +-
- arch/arm/kernel/traps.c            |  4 ++--
- 6 files changed, 36 insertions(+), 20 deletions(-)
-
-diff --git a/arch/arm/include/asm/thread_info.h b/arch/arm/include/asm/thread_info.h
-index 1995d1a..214d415 100644
---- a/arch/arm/include/asm/thread_info.h
-+++ b/arch/arm/include/asm/thread_info.h
-@@ -58,7 +58,7 @@ struct thread_info {
- 	struct cpu_context_save	cpu_context;	/* cpu context */
- 	__u32			syscall;	/* syscall number */
- 	__u8			used_cp[16];	/* thread used copro */
--	unsigned long		tp_value;
-+	unsigned long		tp_value[2];	/* TLS registers */
- #ifdef CONFIG_CRUNCH
- 	struct crunch_state	crunchstate;
- #endif
-diff --git a/arch/arm/include/asm/tls.h b/arch/arm/include/asm/tls.h
-index 73409e6..83259b8 100644
---- a/arch/arm/include/asm/tls.h
-+++ b/arch/arm/include/asm/tls.h
-@@ -2,27 +2,30 @@
- #define __ASMARM_TLS_H
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index a7fc5ea..ea4a146 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -265,7 +265,6 @@ config PHYS_OFFSET
  
- #ifdef __ASSEMBLY__
--	.macro set_tls_none, tp, tmp1, tmp2
-+#include <asm/asm-offsets.h>
-+	.macro switch_tls_none, base, tp, tpuser, tmp1, tmp2
- 	.endm
+ config GENERIC_BUG
+ 	def_bool y
+-	depends on BUG
  
--	.macro set_tls_v6k, tp, tmp1, tmp2
-+	.macro switch_tls_v6k, base, tp, tpuser, tmp1, tmp2
-+	mrc	p15, 0, \tmp2, c13, c0, 2	@ get the user r/w register
- 	mcr	p15, 0, \tp, c13, c0, 3		@ set TLS register
--	mov	\tmp1, #0
--	mcr	p15, 0, \tmp1, c13, c0, 2	@ clear user r/w TLS register
-+	mcr	p15, 0, \tpuser, c13, c0, 2	@ and the user r/w register
-+	str	\tmp2, [\base, #TI_TP_VALUE + 4] @ save it
- 	.endm
+ source "init/Kconfig"
  
--	.macro set_tls_v6, tp, tmp1, tmp2
-+	.macro switch_tls_v6, base, tp, tpuser, tmp1, tmp2
- 	ldr	\tmp1, =elf_hwcap
- 	ldr	\tmp1, [\tmp1, #0]
- 	mov	\tmp2, #0xffff0fff
- 	tst	\tmp1, #HWCAP_TLS		@ hardware TLS available?
--	mcrne	p15, 0, \tp, c13, c0, 3		@ yes, set TLS register
--	movne	\tmp1, #0
--	mcrne	p15, 0, \tmp1, c13, c0, 2	@ clear user r/w TLS register
- 	streq	\tp, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
-+	mrcne	p15, 0, \tmp2, c13, c0, 2	@ get the user r/w register
-+	mcrne	p15, 0, \tp, c13, c0, 3		@ yes, set TLS register
-+	mcrne	p15, 0, \tpuser, c13, c0, 2	@ set user r/w register
-+	strne	\tmp2, [\base, #TI_TP_VALUE + 4] @ save it
- 	.endm
+diff --git a/arch/avr32/Kconfig b/arch/avr32/Kconfig
+index bdc3558..7c9005a 100644
+--- a/arch/avr32/Kconfig
++++ b/arch/avr32/Kconfig
+@@ -55,7 +55,6 @@ config GENERIC_CALIBRATE_DELAY
  
--	.macro set_tls_software, tp, tmp1, tmp2
-+	.macro switch_tls_software, base, tp, tpuser, tmp1, tmp2
- 	mov	\tmp1, #0xffff0fff
- 	str	\tp, [\tmp1, #-15]		@ set TLS value at 0xffff0ff0
- 	.endm
-@@ -31,19 +34,30 @@
- #ifdef CONFIG_TLS_REG_EMUL
- #define tls_emu		1
- #define has_tls_reg		1
--#define set_tls		set_tls_none
-+#define switch_tls	switch_tls_none
- #elif defined(CONFIG_CPU_V6)
- #define tls_emu		0
- #define has_tls_reg		(elf_hwcap & HWCAP_TLS)
--#define set_tls		set_tls_v6
-+#define switch_tls	switch_tls_v6
- #elif defined(CONFIG_CPU_32v6K)
- #define tls_emu		0
- #define has_tls_reg		1
--#define set_tls		set_tls_v6k
-+#define switch_tls	switch_tls_v6k
- #else
- #define tls_emu		0
- #define has_tls_reg		0
--#define set_tls		set_tls_software
-+#define switch_tls	switch_tls_software
- #endif
+ config GENERIC_BUG
+ 	def_bool y
+-	depends on BUG
  
-+#ifndef __ASSEMBLY__
-+static inline unsigned long get_tpuser(void)
-+{
-+	unsigned long reg = 0;
-+
-+	if (has_tls_reg && !tls_emu)
-+		__asm__("mrc p15, 0, %0, c13, c0, 2" : "=r" (reg));
-+
-+	return reg;
-+}
-+#endif
- #endif	/* __ASMARM_TLS_H */
-diff --git a/arch/arm/kernel/entry-armv.S b/arch/arm/kernel/entry-armv.S
-index 582b405..ee1d257 100644
---- a/arch/arm/kernel/entry-armv.S
-+++ b/arch/arm/kernel/entry-armv.S
-@@ -685,15 +685,15 @@ ENTRY(__switch_to)
-  UNWIND(.fnstart	)
-  UNWIND(.cantunwind	)
- 	add	ip, r1, #TI_CPU_SAVE
--	ldr	r3, [r2, #TI_TP_VALUE]
-  ARM(	stmia	ip!, {r4 - sl, fp, sp, lr} )	@ Store most regs on stack
-  THUMB(	stmia	ip!, {r4 - sl, fp}	   )	@ Store most regs on stack
-  THUMB(	str	sp, [ip], #4		   )
-  THUMB(	str	lr, [ip], #4		   )
-+	ldrd	r4, r5, [r2, #TI_TP_VALUE]
- #ifdef CONFIG_CPU_USE_DOMAINS
- 	ldr	r6, [r2, #TI_CPU_DOMAIN]
- #endif
--	set_tls	r3, r4, r5
-+	switch_tls r1, r4, r5, r3, r7
- #if defined(CONFIG_CC_STACKPROTECTOR) && !defined(CONFIG_SMP)
- 	ldr	r7, [r2, #TI_TASK]
- 	ldr	r8, =__stack_chk_guard
-diff --git a/arch/arm/kernel/process.c b/arch/arm/kernel/process.c
-index f219703..0870641 100644
---- a/arch/arm/kernel/process.c
-+++ b/arch/arm/kernel/process.c
-@@ -39,6 +39,7 @@
- #include <asm/thread_notify.h>
- #include <asm/stacktrace.h>
- #include <asm/mach/time.h>
-+#include <asm/tls.h>
+ source "init/Kconfig"
  
- #ifdef CONFIG_CC_STACKPROTECTOR
- #include <linux/stackprotector.h>
-@@ -343,7 +344,8 @@ copy_thread(unsigned long clone_flags, unsigned long stack_start,
- 	clear_ptrace_hw_breakpoint(p);
+diff --git a/arch/blackfin/Kconfig b/arch/blackfin/Kconfig
+index a117652..637dc42 100644
+--- a/arch/blackfin/Kconfig
++++ b/arch/blackfin/Kconfig
+@@ -47,7 +47,6 @@ config GENERIC_CSUM
  
- 	if (clone_flags & CLONE_SETTLS)
--		thread->tp_value = childregs->ARM_r3;
-+		thread->tp_value[0] = childregs->ARM_r3;
-+	thread->tp_value[1] = get_tpuser();
+ config GENERIC_BUG
+ 	def_bool y
+-	depends on BUG
  
- 	thread_notify(THREAD_NOTIFY_COPY, thread);
+ config ZONE_DMA
+ 	def_bool y
+diff --git a/arch/h8300/Kconfig b/arch/h8300/Kconfig
+index 303e4f9..88848da 100644
+--- a/arch/h8300/Kconfig
++++ b/arch/h8300/Kconfig
+@@ -56,7 +56,6 @@ config GENERIC_CALIBRATE_DELAY
  
-diff --git a/arch/arm/kernel/ptrace.c b/arch/arm/kernel/ptrace.c
-index 03deeff..2bc1514 100644
---- a/arch/arm/kernel/ptrace.c
-+++ b/arch/arm/kernel/ptrace.c
-@@ -849,7 +849,7 @@ long arch_ptrace(struct task_struct *child, long request,
- #endif
+ config GENERIC_BUG
+         bool
+-        depends on BUG
  
- 		case PTRACE_GET_THREAD_AREA:
--			ret = put_user(task_thread_info(child)->tp_value,
-+			ret = put_user(task_thread_info(child)->tp_value[0],
- 				       datap);
- 			break;
+ config TIME_LOW_RES
+ 	bool
+diff --git a/arch/hexagon/Kconfig b/arch/hexagon/Kconfig
+index 33a9792..f50cc8f 100644
+--- a/arch/hexagon/Kconfig
++++ b/arch/hexagon/Kconfig
+@@ -84,7 +84,6 @@ config STACKTRACE_SUPPORT
  
-diff --git a/arch/arm/kernel/traps.c b/arch/arm/kernel/traps.c
-index 18b32e8..517bfd4 100644
---- a/arch/arm/kernel/traps.c
-+++ b/arch/arm/kernel/traps.c
-@@ -581,7 +581,7 @@ asmlinkage int arm_syscall(int no, struct pt_regs *regs)
- 		return regs->ARM_r0;
+ config GENERIC_BUG
+ 	def_bool y
+-	depends on BUG
  
- 	case NR(set_tls):
--		thread->tp_value = regs->ARM_r0;
-+		thread->tp_value[0] = regs->ARM_r0;
- 		if (tls_emu)
- 			return 0;
- 		if (has_tls_reg) {
-@@ -699,7 +699,7 @@ static int get_tp_trap(struct pt_regs *regs, unsigned int instr)
- 	int reg = (instr >> 12) & 15;
- 	if (reg == 15)
- 		return 1;
--	regs->uregs[reg] = current_thread_info()->tp_value;
-+	regs->uregs[reg] = current_thread_info()->tp_value[0];
- 	regs->ARM_pc += 4;
- 	return 0;
- }
+ menu "Machine selection"
+ 
+diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
+index 6507dab..5de1f8c 100644
+--- a/arch/parisc/Kconfig
++++ b/arch/parisc/Kconfig
+@@ -10,7 +10,6 @@ config PARISC
+ 	select RTC_CLASS
+ 	select RTC_DRV_GENERIC
+ 	select INIT_ALL_POSSIBLE
+-	select BUG
+ 	select HAVE_PERF_EVENTS
+ 	select GENERIC_ATOMIC64 if !64BIT
+ 	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
+@@ -62,7 +61,6 @@ config ARCH_HAS_ILOG2_U64
+ config GENERIC_BUG
+ 	bool
+ 	default y
+-	depends on BUG
+ 
+ config GENERIC_HWEIGHT
+ 	bool
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index c33e3ad..34f4ca9 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -187,7 +187,6 @@ config AUDIT_ARCH
+ config GENERIC_BUG
+ 	bool
+ 	default y
+-	depends on BUG
+ 
+ config SYS_SUPPORTS_APM_EMULATION
+ 	default y if PMAC_APM_EMU
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index da183c5..5d7b3db 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -29,7 +29,7 @@ config GENERIC_HWEIGHT
+ 	def_bool y
+ 
+ config GENERIC_BUG
+-	def_bool y if BUG
++	def_bool y
+ 
+ config GENERIC_BUG_RELATIVE_POINTERS
+ 	def_bool y
+diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
+index 8c868cf..d555e7f 100644
+--- a/arch/sh/Kconfig
++++ b/arch/sh/Kconfig
+@@ -84,7 +84,7 @@ config RWSEM_XCHGADD_ALGORITHM
+ 
+ config GENERIC_BUG
+ 	def_bool y
+-	depends on BUG && SUPERH32
++	depends on SUPERH32
+ 
+ config GENERIC_CSUM
+ 	def_bool y
+diff --git a/arch/um/Kconfig.common b/arch/um/Kconfig.common
+index bceee66..7aae42a 100644
+--- a/arch/um/Kconfig.common
++++ b/arch/um/Kconfig.common
+@@ -53,7 +53,6 @@ config GENERIC_CALIBRATE_DELAY
+ config GENERIC_BUG
+ 	bool
+ 	default y
+-	depends on BUG
+ 
+ config HZ
+ 	int
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 723e42e..a36e1b4 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -166,7 +166,6 @@ config GENERIC_ISA_DMA
+ 
+ config GENERIC_BUG
+ 	def_bool y
+-	depends on BUG
+ 	select GENERIC_BUG_RELATIVE_POINTERS if X86_64
+ 
+ config GENERIC_BUG_RELATIVE_POINTERS
+diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+index 7d10f96..5d50903 100644
+--- a/include/asm-generic/bug.h
++++ b/include/asm-generic/bug.h
+@@ -12,8 +12,6 @@
+ #ifndef __ASSEMBLY__
+ #include <linux/kernel.h>
+ 
+-#ifdef CONFIG_BUG
+-
+ #ifdef CONFIG_GENERIC_BUG
+ struct bug_entry {
+ #ifndef CONFIG_GENERIC_BUG_RELATIVE_POINTERS
+@@ -106,33 +104,6 @@ extern void warn_slowpath_null(const char *file, const int line);
+ 	unlikely(__ret_warn_on);					\
+ })
+ 
+-#else /* !CONFIG_BUG */
+-#ifndef HAVE_ARCH_BUG
+-#define BUG() do {} while(0)
+-#endif
+-
+-#ifndef HAVE_ARCH_BUG_ON
+-#define BUG_ON(condition) do { if (condition) ; } while(0)
+-#endif
+-
+-#ifndef HAVE_ARCH_WARN_ON
+-#define WARN_ON(condition) ({						\
+-	int __ret_warn_on = !!(condition);				\
+-	unlikely(__ret_warn_on);					\
+-})
+-#endif
+-
+-#ifndef WARN
+-#define WARN(condition, format...) ({					\
+-	int __ret_warn_on = !!(condition);				\
+-	unlikely(__ret_warn_on);					\
+-})
+-#endif
+-
+-#define WARN_TAINT(condition, taint, format...) WARN_ON(condition)
+-
+-#endif
+-
+ #define WARN_ON_ONCE(condition)	({				\
+ 	static bool __section(.data.unlikely) __warned;		\
+ 	int __ret_warn_once = !!(condition);			\
+diff --git a/init/Kconfig b/init/Kconfig
+index 7fb26a6..bc1dd49 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1360,16 +1360,6 @@ config PRINTK
+ 	  very difficult to diagnose system problems, saying N here is
+ 	  strongly discouraged.
+ 
+-config BUG
+-	bool "BUG() support" if EXPERT
+-	default y
+-	help
+-          Disabling this option eliminates support for BUG and WARN, reducing
+-          the size of your kernel image and potentially quietly ignoring
+-          numerous fatal conditions. You should only consider disabling this
+-          option for embedded systems with no facilities for reporting errors.
+-          Just say Y.
+-
+ config ELF_CORE
+ 	depends on COREDUMP
+ 	default y
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index 566cf2b..54b3251 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -700,7 +700,7 @@ config HAVE_DEBUG_BUGVERBOSE
+ 
+ config DEBUG_BUGVERBOSE
+ 	bool "Verbose BUG() reporting (adds 70K)" if DEBUG_KERNEL && EXPERT
+-	depends on BUG && (GENERIC_BUG || HAVE_DEBUG_BUGVERBOSE)
++	depends on GENERIC_BUG || HAVE_DEBUG_BUGVERBOSE
+ 	default y
+ 	help
+ 	  Say Y here to make BUG() panics output the file name and line number
 -- 
-1.8.1.2
+1.7.7.6
