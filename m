@@ -1,44 +1,40 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
+From: Mark Salter <msalter@redhat.com>
 Subject: Re: possible problem with generic asm/types.h
-Date: Sat, 25 May 2013 18:39:11 +0200
-Message-ID: <CAMuHMdVkz7ToYU39s4daT6fh0ztetZdgaKZqNJDxMcoO==6e4w@mail.gmail.com>
+Date: Sat, 25 May 2013 12:43:57 -0400
+Message-ID: <1369500237.25297.68.camel@t520.redhat.com>
 References: <1369494858.25297.58.camel@t520.redhat.com>
-	<CAMuHMdVqFdbv88qDgHAGB7kmBFEwPZWVhr27KqUgiqhrUrga+A@mail.gmail.com>
-	<1369499831.25297.67.camel@t520.redhat.com>
+	 <CAMuHMdVqFdbv88qDgHAGB7kmBFEwPZWVhr27KqUgiqhrUrga+A@mail.gmail.com>
+	 <1369499831.25297.67.camel@t520.redhat.com>
+	 <CAMuHMdVkz7ToYU39s4daT6fh0ztetZdgaKZqNJDxMcoO==6e4w@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f173.google.com ([209.85.223.173]:37438 "EHLO
-	mail-ie0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757142Ab3EYQjM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 25 May 2013 12:39:12 -0400
-Received: by mail-ie0-f173.google.com with SMTP id k5so15194046iea.18
-        for <linux-arch@vger.kernel.org>; Sat, 25 May 2013 09:39:11 -0700 (PDT)
-In-Reply-To: <1369499831.25297.67.camel@t520.redhat.com>
+Received: from mx1.redhat.com ([209.132.183.28]:8100 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757204Ab3EYQoH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 25 May 2013 12:44:07 -0400
+In-Reply-To: <CAMuHMdVkz7ToYU39s4daT6fh0ztetZdgaKZqNJDxMcoO==6e4w@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Salter <msalter@redhat.com>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
 Cc: Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>
 
-On Sat, May 25, 2013 at 6:37 PM, Mark Salter <msalter@redhat.com> wrote:
->> No. Inside the kernel, all 64-bit platforms use int-ll64.h.
->
-> Except for alpha and ia64...
+On Sat, 2013-05-25 at 18:39 +0200, Geert Uytterhoeven wrote:
+> On Sat, May 25, 2013 at 6:37 PM, Mark Salter <msalter@redhat.com> wrote:
+> >> No. Inside the kernel, all 64-bit platforms use int-ll64.h.
+> >
+> > Except for alpha and ia64...
+> 
+> Nope:
+> 
+> $ git grep int-l arch/{alpha,ia64}/include/asm/types.h
+> arch/alpha/include/asm/types.h:#include <asm-generic/int-ll64.h>
+> arch/ia64/include/asm/types.h:#include <asm-generic/int-ll64.h>
+> $
 
-Nope:
+Hmm.
 
-$ git grep int-l arch/{alpha,ia64}/include/asm/types.h
-arch/alpha/include/asm/types.h:#include <asm-generic/int-ll64.h>
-arch/ia64/include/asm/types.h:#include <asm-generic/int-ll64.h>
-$
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+$ git grep int-l arch/{alpha,ia64}/include/uapi/asm/types.h
+arch/alpha/include/uapi/asm/types.h:#include <asm-generic/int-l64.h>
+arch/ia64/include/uapi/asm/types.h:#include <asm-generic/int-l64.h>
