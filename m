@@ -1,42 +1,46 @@
 From: Chen Gang <gang.chen@asianux.com>
-Subject: [PATCH] arch: alpha: kernel: sprintf(), the minimal buffer length
- is 20 for "0xffffffffffffffff\n"
-Date: Sun, 26 May 2013 18:09:07 +0800
-Message-ID: <51A1DF43.5090503@asianux.com>
+Subject: [PATCH] arch: arm64: kernel: sprintf(), 'str' needs additional 1
+ byte for failure processing
+Date: Sun, 26 May 2013 18:28:03 +0800
+Message-ID: <51A1E3B3.4060901@asianux.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-alpha-owner@vger.kernel.org>
-Sender: linux-alpha-owner@vger.kernel.org
-To: rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com
-Cc: linux-alpha@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from intranet.asianux.com ([58.214.24.6]:13081 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752038Ab3EZK2z (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 26 May 2013 06:28:55 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <will.deacon@arm.com>, vgupta@synopsys.com, Tony Lindgren <tony@atomide.com>, Santosh Shilimkar <santosh.shilimkar@ti.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
 
-For 'opcode_str' in sprintf(), the maximize length of format "0x%llx\n"
-is 20 ("0xffffffffffffffff\n"), so need define 'opcode_str' at least 20
-length.
+When failure occurs at the last looping cycle (when 'i == 0'), it will
+print "bad PC value" instead of "(%08x) ", which needs additional 1
+byte.
 
-Or the big number comes, it will cause issue.
-
+If not add 1 byte, the str will not be NUL terminated, and the next
+printk() will cause issue.
 
 Signed-off-by: Chen Gang <gang.chen@asianux.com>
 ---
- arch/alpha/kernel/err_marvel.c |    2 +-
+ arch/arm64/kernel/traps.c |    2 +-
  1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/arch/alpha/kernel/err_marvel.c b/arch/alpha/kernel/err_marvel.c
-index ae54ad9..2310082 100644
---- a/arch/alpha/kernel/err_marvel.c
-+++ b/arch/alpha/kernel/err_marvel.c
-@@ -275,7 +275,7 @@ marvel_print_po7_uncrr_sym(u64 uncrr_sym, u64 valid_mask)
- static void
- marvel_print_po7_ugbge_sym(u64 ugbge_sym)
+diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
+index 61d7dd2..c2f68d2 100644
+--- a/arch/arm64/kernel/traps.c
++++ b/arch/arm64/kernel/traps.c
+@@ -100,7 +100,7 @@ static void dump_instr(const char *lvl, struct pt_regs *regs)
  {
--	char opcode_str[10];
-+	char opcode_str[20];
+ 	unsigned long addr = instruction_pointer(regs);
+ 	mm_segment_t fs;
+-	char str[sizeof("00000000 ") * 5 + 2 + 1], *p = str;
++	char str[sizeof("00000000 ") * 5 + 2 + 1 + 1], *p = str;
+ 	int i;
  
- #define IO7__PO7_UGBGE_SYM__UPH_PKT_OFF__S	(6)
- #define IO7__PO7_UGBGE_SYM__UPH_PKT_OFF__M	(0xfffffffful)
+ 	/*
 -- 
 1.7.7.6
