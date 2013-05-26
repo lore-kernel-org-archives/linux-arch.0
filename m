@@ -1,94 +1,132 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f43.google.com ([209.85.160.43]:54241 "EHLO
-	mail-pb0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752899Ab3EZNlt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 26 May 2013 09:41:49 -0400
+Received: from mail-pd0-f182.google.com ([209.85.192.182]:48643 "EHLO
+	mail-pd0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753757Ab3EZNmr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 26 May 2013 09:42:47 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v8, part3 06/14] mm, acornfb: use free_reserved_area() to simplify code
-Date: Sun, 26 May 2013 21:38:34 +0800
-Message-ID: <1369575522-26405-7-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v8, part3 10/14] mm: use a dedicated lock to protect totalram_pages and zone->managed_pages
+Date: Sun, 26 May 2013 21:38:38 +0800
+Message-ID: <1369575522-26405-11-git-send-email-jiang.liu@huawei.com>
 In-Reply-To: <1369575522-26405-1-git-send-email-jiang.liu@huawei.com>
 References: <1369575522-26405-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Florian Tobias Schandinat <FlorianSchandinat@gmx.de>, linux-fbdev@vger.kernel.org
-Message-ID: <20130526133834.YwTk3FEiFlq_PBTS_CWjcgmzPPd6oW3qiTDV-ZqlOEI@z>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Michel Lespinasse <walken@google.com>, Rik van Riel <riel@redhat.com>
+Message-ID: <20130526133838.PHU6snhA8kCsRfbrEhIdoU77e4qx4XT7NH_RZzuCIPk@z>
 
-Use common help function free_reserved_area() to simplify code.
+Currently lock_memory_hotplug()/unlock_memory_hotplug() are used to
+protect totalram_pages and zone->managed_pages. Other than the memory
+hotplug driver, totalram_pages and zone->managed_pages may also be
+modified at runtime by other drivers, such as Xen balloon,
+virtio_balloon etc. For those cases, memory hotplug lock is a little
+too heavy, so introduce a dedicated lock to protect totalram_pages
+and zone->managed_pages.
+
+Now we have a simplified locking rules totalram_pages and
+zone->managed_pages as:
+1) no locking for read accesses because they are unsigned long.
+2) no locking for write accesses at boot time in single-threaded context.
+3) serialize write accesses at runtime by acquiring the dedicated
+   managed_page_count_lock.
+
+Also adjust zone->managed_pages when freeing reserved pages into the
+buddy system, to keep totalram_pages and zone->managed_pages in
+consistence.
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Florian Tobias Schandinat <FlorianSchandinat@gmx.de>
-Cc: linux-fbdev@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Mel Gorman <mgorman@suse.de>
+Cc: Michel Lespinasse <walken@google.com>
+Cc: Rik van Riel <riel@redhat.com>
+Cc: Minchan Kim <minchan@kernel.org>
+Cc: linux-mm@kvack.org (open list:MEMORY MANAGEMENT)
+Cc: linux-kernel@vger.kernel.org (open list)
 ---
- drivers/video/acornfb.c | 45 ++++++---------------------------------------
- 1 file changed, 6 insertions(+), 39 deletions(-)
+ include/linux/mm.h     |  6 ++----
+ include/linux/mmzone.h | 14 ++++++++++----
+ mm/page_alloc.c        | 12 ++++++++++++
+ 3 files changed, 24 insertions(+), 8 deletions(-)
 
-diff --git a/drivers/video/acornfb.c b/drivers/video/acornfb.c
-index 6488a73..8f7374f 100644
---- a/drivers/video/acornfb.c
-+++ b/drivers/video/acornfb.c
-@@ -1180,42 +1180,6 @@ static int acornfb_detect_monitortype(void)
- 	return 4;
- }
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index a56bcaa..bfe3686 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -1309,6 +1309,7 @@ extern void free_initmem(void);
+  */
+ extern unsigned long free_reserved_area(void *start, void *end,
+ 					int poison, char *s);
++
+ #ifdef	CONFIG_HIGHMEM
+ /*
+  * Free a highmem page into the buddy system, adjusting totalhigh_pages
+@@ -1317,10 +1318,7 @@ extern unsigned long free_reserved_area(void *start, void *end,
+ extern void free_highmem_page(struct page *page);
+ #endif
  
--/*
-- * This enables the unused memory to be freed on older Acorn machines.
-- * We are freeing memory on behalf of the architecture initialisation
-- * code here.
-- */
--static inline void
--free_unused_pages(unsigned int virtual_start, unsigned int virtual_end)
+-static inline void adjust_managed_page_count(struct page *page, long count)
 -{
--	int mb_freed = 0;
--
--	/*
--	 * Align addresses
--	 */
--	virtual_start = PAGE_ALIGN(virtual_start);
--	virtual_end = PAGE_ALIGN(virtual_end);
--
--	while (virtual_start < virtual_end) {
--		struct page *page;
--
--		/*
--		 * Clear page reserved bit,
--		 * set count to 1, and free
--		 * the page.
--		 */
--		page = virt_to_page(virtual_start);
--		ClearPageReserved(page);
--		init_page_count(page);
--		free_page(virtual_start);
--
--		virtual_start += PAGE_SIZE;
--		mb_freed += PAGE_SIZE / 1024;
--	}
--
--	printk("acornfb: freed %dK memory\n", mb_freed);
+-	totalram_pages += count;
 -}
--
- static int acornfb_probe(struct platform_device *dev)
- {
- 	unsigned long size;
-@@ -1312,10 +1276,13 @@ static int acornfb_probe(struct platform_device *dev)
- #endif
- #if defined(HAS_VIDC)
- 	/*
--	 * Archimedes/A5000 machines use a fixed address for their
--	 * framebuffers.  Free unused pages
-+	 * We are freeing memory on behalf of the architecture initialisation
-+	 * code here. Archimedes/A5000 machines use a fixed address for their
-+	 * framebuffers.
- 	 */
--	free_unused_pages(PAGE_OFFSET + size, PAGE_OFFSET + MAX_SIZE);
-+	free_reserved_area((void *)(PAGE_OFFSET + size),
-+			   (void *)PAGE_ALIGN(PAGE_OFFSET + MAX_SIZE),
-+			   -1, "acornfb");
- #endif
++extern void adjust_managed_page_count(struct page *page, long count);
  
- 	fb_info.fix.smem_len = size;
+ /* Free the reserved page into the buddy system, so it gets managed. */
+ static inline void __free_reserved_page(struct page *page)
+diff --git a/include/linux/mmzone.h b/include/linux/mmzone.h
+index 131989a..178f166 100644
+--- a/include/linux/mmzone.h
++++ b/include/linux/mmzone.h
+@@ -474,10 +474,16 @@ struct zone {
+ 	 * frequently read in proximity to zone->lock.  It's good to
+ 	 * give them a chance of being in the same cacheline.
+ 	 *
+-	 * Write access to present_pages and managed_pages at runtime should
+-	 * be protected by lock_memory_hotplug()/unlock_memory_hotplug().
+-	 * Any reader who can't tolerant drift of present_pages and
+-	 * managed_pages should hold memory hotplug lock to get a stable value.
++	 * Write access to present_pages at runtime should be protected by
++	 * lock_memory_hotplug()/unlock_memory_hotplug().  Any reader who can't
++	 * tolerant drift of present_pages should hold memory hotplug lock to
++	 * get a stable value.
++	 *
++	 * Read access to managed_pages should be safe because it's unsigned
++	 * long. Write access to zone->managed_pages and totalram_pages are
++	 * protected by managed_page_count_lock at runtime. Idealy only
++	 * adjust_managed_page_count() should be used instead of directly
++	 * touching zone->managed_pages and totalram_pages.
+ 	 */
+ 	unsigned long		spanned_pages;
+ 	unsigned long		present_pages;
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index 9b50e6a..924c099 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -103,6 +103,9 @@ nodemask_t node_states[NR_NODE_STATES] __read_mostly = {
+ };
+ EXPORT_SYMBOL(node_states);
+ 
++/* Protect totalram_pages and zone->managed_pages */
++static DEFINE_SPINLOCK(managed_page_count_lock);
++
+ unsigned long totalram_pages __read_mostly;
+ unsigned long totalreserve_pages __read_mostly;
+ /*
+@@ -5231,6 +5234,15 @@ early_param("movablecore", cmdline_parse_movablecore);
+ 
+ #endif /* CONFIG_HAVE_MEMBLOCK_NODE_MAP */
+ 
++void adjust_managed_page_count(struct page *page, long count)
++{
++	spin_lock(&managed_page_count_lock);
++	page_zone(page)->managed_pages += count;
++	totalram_pages += count;
++	spin_unlock(&managed_page_count_lock);
++}
++EXPORT_SYMBOL(adjust_managed_page_count);
++
+ unsigned long free_reserved_area(void *start, void *end, int poison, char *s)
+ {
+ 	void *pos;
 -- 
 1.8.1.2
 
