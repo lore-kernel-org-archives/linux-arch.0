@@ -1,61 +1,105 @@
-From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v8, part3 14/14] mm: report available pages as "MemTotal" for each NUMA node
-Date: Sun, 26 May 2013 21:38:42 +0800
-Message-ID: <1369575522-26405-15-git-send-email-jiang.liu@huawei.com>
-References: <1369575522-26405-1-git-send-email-jiang.liu@huawei.com>
+From: Liu Jiang <liuj97@gmail.com>
+Subject: Re: [PATCH v5, part4 16/41] mm/blackfin: prepare for removing num_physpages
+ and simplify mem_init()
+Date: Sun, 26 May 2013 21:55:34 +0800
+Message-ID: <51A21456.50400@gmail.com>
+References: <1368028298-7401-1-git-send-email-jiang.liu@huawei.com> <1368028298-7401-17-git-send-email-jiang.liu@huawei.com> <CAJxxZ0Ous_4_QCM7dyDkDHyHiLiib3Gr70Z22-ac0u275shfSQ@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1369575522-26405-1-git-send-email-jiang.liu@huawei.com>
+In-Reply-To: <CAJxxZ0Ous_4_QCM7dyDkDHyHiLiib3Gr70Z22-ac0u275shfSQ@mail.gmail.com>
 Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Sonic Zhang <sonic.adi@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <james.bottomley@hansenpartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Linux Kernel <linux-kernel@vger.kernel.org>, Mike Frysinger <vapier@gentoo.org>, Bob Liu <lliubbo@gmail.com>, uclinux-dist-devel <uclinux-dist-devel@blackfin.uclinux.org>
 List-Id: linux-arch.vger.kernel.org
 
-As reported by https://bugzilla.kernel.org/show_bug.cgi?id=53501,
-"MemTotal" from /proc/meminfo means memory pages managed by the buddy
-system (managed_pages), but "MemTotal" from /sys/.../node/nodex/meminfo
-means physical pages present (present_pages) within the NUMA node.
-There's a difference between managed_pages and present_pages due to
-bootmem allocator and reserved pages.
+On Sat 25 May 2013 09:25:47 PM CST, Sonic Zhang wrote:
+> Hi Jiang
+>
+> On Wed, May 8, 2013 at 11:51 PM, Jiang Liu <liuj97@gmail.com> wrote:
+>> Prepare for removing num_physpages and simplify mem_init().
+>>
+>> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+>> Cc: Mike Frysinger <vapier@gentoo.org>
+>> Cc: Bob Liu <lliubbo@gmail.com>
+>> Cc: uclinux-dist-devel@blackfin.uclinux.org
+>> Cc: linux-kernel@vger.kernel.org
+>> ---
+>>  arch/blackfin/mm/init.c |   38 ++++++--------------------------------
+>>  1 file changed, 6 insertions(+), 32 deletions(-)
+>>
+>> diff --git a/arch/blackfin/mm/init.c b/arch/blackfin/mm/init.c
+>> index 1cc8607..e4b6e11 100644
+>> --- a/arch/blackfin/mm/init.c
+>> +++ b/arch/blackfin/mm/init.c
+>> @@ -90,43 +90,17 @@ asmlinkage void __init init_pda(void)
+>>
+>>  void __init mem_init(void)
+>>  {
+>> -       unsigned int codek = 0, datak = 0, initk = 0;
+>> -       unsigned int reservedpages = 0, freepages = 0;
+>> -       unsigned long tmp;
+>> -       unsigned long start_mem = memory_start;
+>> -       unsigned long end_mem = memory_end;
+>> +       char buf[64];
+>>
+>> -       end_mem &= PAGE_MASK;
+>> -       high_memory = (void *)end_mem;
+>> -
+>> -       start_mem = PAGE_ALIGN(start_mem);
+>> -       max_mapnr = num_physpages = MAP_NR(high_memory);
+>> -       printk(KERN_DEBUG "Kernel managed physical pages: %lu\n", num_physpages);
+>> +       high_memory = (void *)(memory_end & PAGE_MASK);
+>> +       max_mapnr = MAP_NR(high_memory);
+>> +       printk(KERN_DEBUG "Kernel managed physical pages: %lu\n", max_mapnr);
+>>
+>>         /* This will put all low memory onto the freelists. */
+>>         free_all_bootmem();
+>>
+>> -       reservedpages = 0;
+>> -       for (tmp = ARCH_PFN_OFFSET; tmp < max_mapnr; tmp++)
+>> -               if (PageReserved(pfn_to_page(tmp)))
+>> -                       reservedpages++;
+>> -       freepages =  max_mapnr - ARCH_PFN_OFFSET - reservedpages;
+>> -
+>> -       /* do not count in kernel image between _rambase and _ramstart */
+>> -       reservedpages -= (_ramstart - _rambase) >> PAGE_SHIFT;
+>> -#if (defined(CONFIG_BFIN_EXTMEM_ICACHEABLE) && ANOMALY_05000263)
+>> -       reservedpages += (_ramend - memory_end - DMA_UNCACHED_REGION) >> PAGE_SHIFT;
+>> -#endif
+>> -
+>> -       codek = (_etext - _stext) >> 10;
+>> -       initk = (__init_end - __init_begin) >> 10;
+>> -       datak = ((_ramstart - _rambase) >> 10) - codek - initk;
+>> -
+>> -       printk(KERN_INFO
+>> -            "Memory available: %luk/%luk RAM, "
+>> -               "(%uk init code, %uk kernel code, %uk data, %uk dma, %uk reserved)\n",
+>> -               (unsigned long) freepages << (PAGE_SHIFT-10), (_ramend - CONFIG_PHY_RAM_BASE_ADDRESS) >> 10,
+>> -               initk, codek, datak, DMA_UNCACHED_REGION >> 10, (reservedpages << (PAGE_SHIFT-10)));
+>
+> You can't remove all these memory information for blackfin. They are
+> useful on blackfin platform.
+>
+> Regards,
+>
+> Sonic
 
-And Documentation/filesystems/proc.txt says
-    MemTotal: Total usable ram (i.e. physical ram minus a few reserved
-              bits and the kernel binary code)
+Hi Sonic,
+           Thanks for review!
+           We are not trying to remove these code, but replacing it 
+with a generic
+helper function mem_init_print_info(), which will print similar (actual 
+more info)
+boot message. I have no blackfin platforms to generate a real boot 
+message,
+so could only share an example boot messages on x86:
+Memory: 7744624K/8074824K available (6969K kernel code, 1011K data, 
+2828K rodata, 1016K init, 9640K bss, 330200K reserved)
 
-So change /sys/.../node/nodex/meminfo to report available pages within
-the node as "MemTotal".
-
-Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Reported-by: sworddragon2@aol.com
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Mel Gorman <mgorman@suse.de>
-Cc: Minchan Kim <minchan@kernel.org>
-Cc: linux-mm@kvack.org
-Cc: linux-kernel@vger.kernel.org
----
- mm/page_alloc.c | 6 +++++-
- 1 file changed, 5 insertions(+), 1 deletion(-)
-
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 5b27db4..c9568aa 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -2930,9 +2930,13 @@ EXPORT_SYMBOL(si_meminfo);
- #ifdef CONFIG_NUMA
- void si_meminfo_node(struct sysinfo *val, int nid)
- {
-+	int zone_type;		/* needs to be signed */
-+	unsigned long managed_pages = 0;
- 	pg_data_t *pgdat = NODE_DATA(nid);
- 
--	val->totalram = pgdat->node_present_pages;
-+	for (zone_type = 0; zone_type < MAX_NR_ZONES; zone_type++)
-+		managed_pages += pgdat->node_zones[zone_type].managed_pages;
-+	val->totalram = managed_pages;
- 	val->freeram = node_page_state(nid, NR_FREE_PAGES);
- #ifdef CONFIG_HIGHMEM
- 	val->totalhigh = pgdat->node_zones[ZONE_HIGHMEM].managed_pages;
--- 
-1.8.1.2
+Regards!
+Gerry
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
