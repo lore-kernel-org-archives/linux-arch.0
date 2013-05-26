@@ -1,17 +1,21 @@
 From: Max Filippov <jcmvbkbc@gmail.com>
 Subject: TLB and PTE coherency during munmap
-Date: Sun, 26 May 2013 06:42:40 +0400
-Message-ID: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com>
+Date: Sun, 26 May 2013 06:50:46 +0400
+Message-ID: <CAMo8BfJie1Y49QeSJ+JTQb9WsYJkMMkb1BkKz2Gzy3T7V6ogHA@mail.gmail.com>
+References: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oa0-f51.google.com ([209.85.219.51]:60746 "EHLO
-	mail-oa0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758832Ab3EZCmk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 25 May 2013 22:42:40 -0400
+Received: from mail-oa0-f46.google.com ([209.85.219.46]:58242 "EHLO
+	mail-oa0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758497Ab3EZCuq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 25 May 2013 22:50:46 -0400
+Received: by mail-oa0-f46.google.com with SMTP id h2so7625862oag.5
+        for <linux-arch@vger.kernel.org>; Sat, 25 May 2013 19:50:46 -0700 (PDT)
+In-Reply-To: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-mm@vger.kernel.org, linux-xtensa@linux-xtensa.org
+To: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-xtensa@linux-xtensa.org
 Cc: Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>
 
 Hello arch and mm people.
