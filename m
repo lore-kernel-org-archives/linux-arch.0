@@ -1,40 +1,54 @@
-From: Mark Salter <msalter@redhat.com>
-Subject: Re: possible problem with generic asm/types.h
-Date: Sat, 25 May 2013 12:43:57 -0400
-Message-ID: <1369500237.25297.68.camel@t520.redhat.com>
-References: <1369494858.25297.58.camel@t520.redhat.com>
-	 <CAMuHMdVqFdbv88qDgHAGB7kmBFEwPZWVhr27KqUgiqhrUrga+A@mail.gmail.com>
-	 <1369499831.25297.67.camel@t520.redhat.com>
-	 <CAMuHMdVkz7ToYU39s4daT6fh0ztetZdgaKZqNJDxMcoO==6e4w@mail.gmail.com>
+From: Max Filippov <jcmvbkbc@gmail.com>
+Subject: TLB and PTE coherency during munmap
+Date: Sun, 26 May 2013 06:42:40 +0400
+Message-ID: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:8100 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757204Ab3EYQoH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 25 May 2013 12:44:07 -0400
-In-Reply-To: <CAMuHMdVkz7ToYU39s4daT6fh0ztetZdgaKZqNJDxMcoO==6e4w@mail.gmail.com>
+Received: from mail-oa0-f51.google.com ([209.85.219.51]:60746 "EHLO
+	mail-oa0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758832Ab3EZCmk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 25 May 2013 22:42:40 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>
+To: linux-arch@vger.kernel.org, linux-mm@vger.kernel.org, linux-xtensa@linux-xtensa.org
+Cc: Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>
 
-On Sat, 2013-05-25 at 18:39 +0200, Geert Uytterhoeven wrote:
-> On Sat, May 25, 2013 at 6:37 PM, Mark Salter <msalter@redhat.com> wrote:
-> >> No. Inside the kernel, all 64-bit platforms use int-ll64.h.
-> >
-> > Except for alpha and ia64...
-> 
-> Nope:
-> 
-> $ git grep int-l arch/{alpha,ia64}/include/asm/types.h
-> arch/alpha/include/asm/types.h:#include <asm-generic/int-ll64.h>
-> arch/ia64/include/asm/types.h:#include <asm-generic/int-ll64.h>
-> $
+Hello arch and mm people.
 
-Hmm.
+Is it intentional that threads of a process that invoked munmap syscall
+can see TLB entries pointing to already freed pages, or it is a bug?
 
-$ git grep int-l arch/{alpha,ia64}/include/uapi/asm/types.h
-arch/alpha/include/uapi/asm/types.h:#include <asm-generic/int-l64.h>
-arch/ia64/include/uapi/asm/types.h:#include <asm-generic/int-l64.h>
+I'm talking about zap_pmd_range and zap_pte_range:
+
+      zap_pmd_range
+        zap_pte_range
+          arch_enter_lazy_mmu_mode
+            ptep_get_and_clear_full
+            tlb_remove_tlb_entry
+            __tlb_remove_page
+          arch_leave_lazy_mmu_mode
+        cond_resched
+
+With the default arch_{enter,leave}_lazy_mmu_mode, tlb_remove_tlb_entry
+and __tlb_remove_page there is a loop in the zap_pte_range that clears
+PTEs and frees corresponding pages, but doesn't flush TLB, and
+surrounding loop in the zap_pmd_range that calls cond_resched. If a thread
+of the same process gets scheduled then it is able to see TLB entries
+pointing to already freed physical pages.
+
+I've noticed that with xtensa arch when I added a test before returning to
+userspace checking that TLB contents agrees with page tables of the
+current mm. This check reliably fires with the LTP test mtest05 that
+maps, unmaps and accesses memory from multiple threads.
+
+Is there anything wrong in my description, maybe something specific to
+my arch, or this issue really exists?
+
+I've also noticed that there are a lot of arches with default implementations
+of the involved functions, does that mean that any/all of them have this
+issue too?
+
+-- 
+Thanks.
+-- Max
