@@ -1,47 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:30884 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751835Ab3EZKJ6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 26 May 2013 06:09:58 -0400
-Message-ID: <51A1DF43.5090503@asianux.com>
-Date: Sun, 26 May 2013 18:09:07 +0800
-From: Chen Gang <gang.chen@asianux.com>
-MIME-Version: 1.0
-Subject: [PATCH] arch: alpha: kernel: sprintf(), the minimal buffer length
- is 20 for "0xffffffffffffffff\n"
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Received: from mail-pb0-f46.google.com ([209.85.160.46]:38398 "EHLO
+	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753591Ab3EZNl4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 26 May 2013 09:41:56 -0400
+From: Jiang Liu <liuj97@gmail.com>
+Subject: [PATCH v8, part3 07/14] mm: fix some trivial typos in comments
+Date: Sun, 26 May 2013 21:38:35 +0800
+Message-ID: <1369575522-26405-8-git-send-email-jiang.liu@huawei.com>
+In-Reply-To: <1369575522-26405-1-git-send-email-jiang.liu@huawei.com>
+References: <1369575522-26405-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com
-Cc: linux-alpha@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20130526100907.0S-nGiIZH7u8UnshdMNd1_eMMwIOc2M4KcJGM8U2b5I@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Tang Chen <tangchen@cn.fujitsu.com>, Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>, Marek Szyprowski <m.szyprowski@samsung.com>
+Message-ID: <20130526133835.8M_DLB0GkLPeS-mUPDckAraX1WJ_NYxv9Qrm5gpEbgM@z>
 
+Fix some trivial typos in comments.
 
-For 'opcode_str' in sprintf(), the maximize length of format "0x%llx\n"
-is 20 ("0xffffffffffffffff\n"), so need define 'opcode_str' at least 20
-length.
-
-Or the big number comes, it will cause issue.
-
-
-Signed-off-by: Chen Gang <gang.chen@asianux.com>
+Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+Cc: Wen Congyang <wency@cn.fujitsu.com>
+Cc: Tang Chen <tangchen@cn.fujitsu.com>
+Cc: Jiang Liu <jiang.liu@huawei.com>
+Cc: Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>
+Cc: Mel Gorman <mgorman@suse.de>
+Cc: Minchan Kim <minchan@kernel.org>
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>
+Cc: linux-mm@kvack.org
+Cc: linux-kernel@vger.kernel.org
 ---
- arch/alpha/kernel/err_marvel.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ mm/memory_hotplug.c | 2 +-
+ mm/page_alloc.c     | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/alpha/kernel/err_marvel.c b/arch/alpha/kernel/err_marvel.c
-index ae54ad9..2310082 100644
---- a/arch/alpha/kernel/err_marvel.c
-+++ b/arch/alpha/kernel/err_marvel.c
-@@ -275,7 +275,7 @@ marvel_print_po7_uncrr_sym(u64 uncrr_sym, u64 valid_mask)
- static void
- marvel_print_po7_ugbge_sym(u64 ugbge_sym)
+diff --git a/mm/memory_hotplug.c b/mm/memory_hotplug.c
+index f6e8050..0845ee1 100644
+--- a/mm/memory_hotplug.c
++++ b/mm/memory_hotplug.c
+@@ -309,7 +309,7 @@ static int __meminit move_pfn_range_left(struct zone *z1, struct zone *z2,
+ 	/* can't move pfns which are higher than @z2 */
+ 	if (end_pfn > zone_end_pfn(z2))
+ 		goto out_fail;
+-	/* the move out part mast at the left most of @z2 */
++	/* the move out part must be at the left most of @z2 */
+ 	if (start_pfn > z2->zone_start_pfn)
+ 		goto out_fail;
+ 	/* must included/overlap */
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index d70d474..3666458 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -2871,7 +2871,7 @@ EXPORT_SYMBOL(free_pages_exact);
+  * nr_free_zone_pages() counts the number of counts pages which are beyond the
+  * high watermark within all zones at or below a given zone index.  For each
+  * zone, the number of pages is calculated as:
+- *     present_pages - high_pages
++ *     managed_pages - high_pages
+  */
+ static unsigned long nr_free_zone_pages(int offset)
  {
--	char opcode_str[10];
-+	char opcode_str[20];
- 
- #define IO7__PO7_UGBGE_SYM__UPH_PKT_OFF__S	(6)
- #define IO7__PO7_UGBGE_SYM__UPH_PKT_OFF__M	(0xfffffffful)
 -- 
-1.7.7.6
+1.8.1.2
+
