@@ -1,91 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oa0-f46.google.com ([209.85.219.46]:55361 "EHLO
-	mail-oa0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754372Ab3EYNZs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 25 May 2013 09:25:48 -0400
+Received: from intranet.asianux.com ([58.214.24.6]:17615 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750946Ab3EZIvQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 26 May 2013 04:51:16 -0400
+Message-ID: <51A1CCCE.1020103@asianux.com>
+Date: Sun, 26 May 2013 16:50:22 +0800
+From: Chen Gang <gang.chen@asianux.com>
 MIME-Version: 1.0
-In-Reply-To: <1368028298-7401-17-git-send-email-jiang.liu@huawei.com>
-References: <1368028298-7401-1-git-send-email-jiang.liu@huawei.com>
-	<1368028298-7401-17-git-send-email-jiang.liu@huawei.com>
-Date: Sat, 25 May 2013 21:25:47 +0800
-Message-ID: <CAJxxZ0Ous_4_QCM7dyDkDHyHiLiib3Gr70Z22-ac0u275shfSQ@mail.gmail.com>
-Subject: Re: [PATCH v5, part4 16/41] mm/blackfin: prepare for removing
- num_physpages and simplify mem_init()
-From: Sonic Zhang <sonic.adi@gmail.com>
+Subject: [PATCH] arch: x86: platform: mrst: pr_err() need notice that 'sdev->modalias'
+ may not a NUL terminated string.
 Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiang Liu <liuj97@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@hansenpartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, Linux Kernel <linux-kernel@vger.kernel.org>, Mike Frysinger <vapier@gentoo.org>, Bob Liu <lliubbo@gmail.com>, uclinux-dist-devel <uclinux-dist-devel@blackfin.uclinux.org>
-Message-ID: <20130525132547.63zQ_RyCaRwZhGfJlxvyfTiMJbCPeBSoutPBcwMASV0@z>
+To: Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: "mingo@redhat.com" <mingo@redhat.com>, Greg KH <gregkh@linuxfoundation.org>, sebastian@breakpoint.cc, zhangyanfei@cn.fujitsu.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20130526085022.9sswgBcdDQUolP9oCGP8mktp2REX21VqjbA4JkmtEvI@z>
 
-Hi Jiang
 
-On Wed, May 8, 2013 at 11:51 PM, Jiang Liu <liuj97@gmail.com> wrote:
-> Prepare for removing num_physpages and simplify mem_init().
->
-> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-> Cc: Mike Frysinger <vapier@gentoo.org>
-> Cc: Bob Liu <lliubbo@gmail.com>
-> Cc: uclinux-dist-devel@blackfin.uclinux.org
-> Cc: linux-kernel@vger.kernel.org
-> ---
->  arch/blackfin/mm/init.c |   38 ++++++--------------------------------
->  1 file changed, 6 insertions(+), 32 deletions(-)
->
-> diff --git a/arch/blackfin/mm/init.c b/arch/blackfin/mm/init.c
-> index 1cc8607..e4b6e11 100644
-> --- a/arch/blackfin/mm/init.c
-> +++ b/arch/blackfin/mm/init.c
-> @@ -90,43 +90,17 @@ asmlinkage void __init init_pda(void)
->
->  void __init mem_init(void)
->  {
-> -       unsigned int codek = 0, datak = 0, initk = 0;
-> -       unsigned int reservedpages = 0, freepages = 0;
-> -       unsigned long tmp;
-> -       unsigned long start_mem = memory_start;
-> -       unsigned long end_mem = memory_end;
-> +       char buf[64];
->
-> -       end_mem &= PAGE_MASK;
-> -       high_memory = (void *)end_mem;
-> -
-> -       start_mem = PAGE_ALIGN(start_mem);
-> -       max_mapnr = num_physpages = MAP_NR(high_memory);
-> -       printk(KERN_DEBUG "Kernel managed physical pages: %lu\n", num_physpages);
-> +       high_memory = (void *)(memory_end & PAGE_MASK);
-> +       max_mapnr = MAP_NR(high_memory);
-> +       printk(KERN_DEBUG "Kernel managed physical pages: %lu\n", max_mapnr);
->
->         /* This will put all low memory onto the freelists. */
->         free_all_bootmem();
->
-> -       reservedpages = 0;
-> -       for (tmp = ARCH_PFN_OFFSET; tmp < max_mapnr; tmp++)
-> -               if (PageReserved(pfn_to_page(tmp)))
-> -                       reservedpages++;
-> -       freepages =  max_mapnr - ARCH_PFN_OFFSET - reservedpages;
-> -
-> -       /* do not count in kernel image between _rambase and _ramstart */
-> -       reservedpages -= (_ramstart - _rambase) >> PAGE_SHIFT;
-> -#if (defined(CONFIG_BFIN_EXTMEM_ICACHEABLE) && ANOMALY_05000263)
-> -       reservedpages += (_ramend - memory_end - DMA_UNCACHED_REGION) >> PAGE_SHIFT;
-> -#endif
-> -
-> -       codek = (_etext - _stext) >> 10;
-> -       initk = (__init_end - __init_begin) >> 10;
-> -       datak = ((_ramstart - _rambase) >> 10) - codek - initk;
-> -
-> -       printk(KERN_INFO
-> -            "Memory available: %luk/%luk RAM, "
-> -               "(%uk init code, %uk kernel code, %uk data, %uk dma, %uk reserved)\n",
-> -               (unsigned long) freepages << (PAGE_SHIFT-10), (_ramend - CONFIG_PHY_RAM_BASE_ADDRESS) >> 10,
-> -               initk, codek, datak, DMA_UNCACHED_REGION >> 10, (reservedpages << (PAGE_SHIFT-10)));
+According to the areas which use "%16.16s" within this file, the
+'sdev->modalias' may not always be a NUL terminated string.
 
-You can't remove all these memory information for blackfin. They are
-useful on blackfin platform.
+So need use "%.16s" instead of "%s" in pr_err(), or may cause issue.
 
-Regards,
+Signed-off-by: Chen Gang <gang.chen@asianux.com>
+---
+ arch/x86/platform/mrst/mrst.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-Sonic
+diff --git a/arch/x86/platform/mrst/mrst.c b/arch/x86/platform/mrst/mrst.c
+index a0a0a43..e2e069c 100644
+--- a/arch/x86/platform/mrst/mrst.c
++++ b/arch/x86/platform/mrst/mrst.c
+@@ -746,7 +746,7 @@ static void __init intel_scu_spi_device_register(struct spi_board_info *sdev)
+ 
+ 	new_dev = kzalloc(sizeof(*sdev), GFP_KERNEL);
+ 	if (!new_dev) {
+-		pr_err("failed to alloc mem for delayed spi dev %s\n",
++		pr_err("failed to alloc mem for delayed spi dev %.16s\n",
+ 			sdev->modalias);
+ 		return;
+ 	}
+-- 
+1.7.7.6
