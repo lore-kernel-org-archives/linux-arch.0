@@ -1,242 +1,556 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f51.google.com ([209.85.160.51]:50198 "EHLO
-	mail-pb0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753555Ab3EZNnE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 26 May 2013 09:43:04 -0400
+Received: from mail-pd0-f176.google.com ([209.85.192.176]:62299 "EHLO
+	mail-pd0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753345Ab3EZNlW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 26 May 2013 09:41:22 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v8, part3 12/14] mm: correctly update zone->mamaged_pages
-Date: Sun, 26 May 2013 21:38:40 +0800
-Message-ID: <1369575522-26405-13-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v8, part3 02/14] mm: enhance free_reserved_area() to support poisoning memory with zero
+Date: Sun, 26 May 2013 21:38:30 +0800
+Message-ID: <1369575522-26405-3-git-send-email-jiang.liu@huawei.com>
 In-Reply-To: <1369575522-26405-1-git-send-email-jiang.liu@huawei.com>
 References: <1369575522-26405-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Rusty Russell <rusty@rustcorp.com.au>, "Michael S. Tsirkin" <mst@redhat.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Jeremy Fitzhardinge <jeremy@goop.org>, Tang Chen <tangchen@cn.fujitsu.com>, Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>, virtualization@lists.linux-foundation.org, xen-devel@lists.xensource.com
-Message-ID: <20130526133840.IPk1WtrhK54a-USV1A9TTVKihU5Bao8yi9_GFbk7BkY@z>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>
+Message-ID: <20130526133830.L4SVf1Xx8uH-7Y952B3DJ-yUZhDnDittICyWS8Eoo7Q@z>
 
-Enhance adjust_managed_page_count() to adjust totalhigh_pages for
-highmem pages. And change code which directly adjusts totalram_pages
-to use adjust_managed_page_count() because it adjusts totalram_pages,
-totalhigh_pages and zone->managed_pages altogether in a safe way.
-
-Remove inc_totalhigh_pages() and dec_totalhigh_pages() from xen/balloon
-driver bacause adjust_managed_page_count() has already adjusted
-totalhigh_pages.
-
-This patch also fixes two bugs:
-1) enhances virtio_balloon driver to adjust totalhigh_pages when
-   reserve/unreserve pages.
-2) enhance memory_hotplug.c to adjust totalhigh_pages when hot-removing
-   memory.
-
-We still need to deal with modifications of totalram_pages in file
-arch/powerpc/platforms/pseries/cmm.c, but need help from PPC experts.
+Address more review comments from last round of code review.
+1) Enhance free_reserved_area() to support poisoning freed memory with
+   pattern '0'. This could be used to get rid of poison_init_mem()
+   on ARM64.
+2) A previous patch has disabled memory poison for initmem on s390
+   by mistake, so restore to the original behavior.
+3) Remove redundant PAGE_ALIGN() when calling free_reserved_area().
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Chris Metcalf <cmetcalf@tilera.com>
-Cc: Rusty Russell <rusty@rustcorp.com.au>
-Cc: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Cc: Jeremy Fitzhardinge <jeremy@goop.org>
-Cc: Wen Congyang <wency@cn.fujitsu.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Tang Chen <tangchen@cn.fujitsu.com>
-Cc: Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>
-Cc: Mel Gorman <mgorman@suse.de>
-Cc: Minchan Kim <minchan@kernel.org>
-Cc: linux-kernel@vger.kernel.org
-Cc: virtualization@lists.linux-foundation.org
-Cc: xen-devel@lists.xensource.com
-Cc: linux-mm@kvack.org
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
 ---
- drivers/virtio/virtio_balloon.c |  8 +++++---
- drivers/xen/balloon.c           | 23 +++++------------------
- mm/hugetlb.c                    |  2 +-
- mm/memory_hotplug.c             | 16 +++-------------
- mm/page_alloc.c                 | 10 +++++-----
- 5 files changed, 19 insertions(+), 40 deletions(-)
+ arch/alpha/kernel/sys_nautilus.c | 2 +-
+ arch/alpha/mm/init.c             | 4 ++--
+ arch/arc/mm/init.c               | 4 ++--
+ arch/arm/mm/init.c               | 8 ++++----
+ arch/arm64/mm/init.c             | 4 ++--
+ arch/avr32/mm/init.c             | 4 ++--
+ arch/blackfin/mm/init.c          | 4 ++--
+ arch/c6x/mm/init.c               | 4 ++--
+ arch/cris/mm/init.c              | 2 +-
+ arch/frv/mm/init.c               | 4 ++--
+ arch/h8300/mm/init.c             | 4 ++--
+ arch/ia64/mm/init.c              | 2 +-
+ arch/m32r/mm/init.c              | 4 ++--
+ arch/m68k/mm/init.c              | 4 ++--
+ arch/microblaze/mm/init.c        | 4 ++--
+ arch/openrisc/mm/init.c          | 4 ++--
+ arch/parisc/mm/init.c            | 4 ++--
+ arch/powerpc/kernel/kvm.c        | 9 ++-------
+ arch/powerpc/mm/mem.c            | 2 +-
+ arch/s390/mm/init.c              | 2 +-
+ arch/sh/mm/init.c                | 4 ++--
+ arch/um/kernel/mem.c             | 2 +-
+ arch/unicore32/mm/init.c         | 4 ++--
+ arch/xtensa/mm/init.c            | 4 ++--
+ include/linux/mm.h               | 7 ++++---
+ mm/page_alloc.c                  | 2 +-
+ 26 files changed, 49 insertions(+), 53 deletions(-)
 
-diff --git a/drivers/virtio/virtio_balloon.c b/drivers/virtio/virtio_balloon.c
-index bd3ae32..6649968 100644
---- a/drivers/virtio/virtio_balloon.c
-+++ b/drivers/virtio/virtio_balloon.c
-@@ -148,7 +148,7 @@ static void fill_balloon(struct virtio_balloon *vb, size_t num)
- 		}
- 		set_page_pfns(vb->pfns + vb->num_pfns, page);
- 		vb->num_pages += VIRTIO_BALLOON_PAGES_PER_PAGE;
--		totalram_pages--;
-+		adjust_managed_page_count(page, -1);
+diff --git a/arch/alpha/kernel/sys_nautilus.c b/arch/alpha/kernel/sys_nautilus.c
+index 891bd27..837c0fa 100644
+--- a/arch/alpha/kernel/sys_nautilus.c
++++ b/arch/alpha/kernel/sys_nautilus.c
+@@ -239,7 +239,7 @@ nautilus_init_pci(void)
+ 		memtop = pci_mem;
+ 	if (memtop > alpha_mv.min_mem_address) {
+ 		free_reserved_area(__va(alpha_mv.min_mem_address),
+-				   __va(memtop), 0, NULL);
++				   __va(memtop), -1, NULL);
+ 		printk("nautilus_init_pci: %ldk freed\n",
+ 			(memtop - alpha_mv.min_mem_address) >> 10);
  	}
- 
- 	/* Did we get any? */
-@@ -160,11 +160,13 @@ static void fill_balloon(struct virtio_balloon *vb, size_t num)
- static void release_pages_by_pfn(const u32 pfns[], unsigned int num)
+diff --git a/arch/alpha/mm/init.c b/arch/alpha/mm/init.c
+index d54848d..218c29c 100644
+--- a/arch/alpha/mm/init.c
++++ b/arch/alpha/mm/init.c
+@@ -319,13 +319,13 @@ mem_init(void)
+ void
+ free_initmem(void)
  {
- 	unsigned int i;
-+	struct page *page;
- 
- 	/* Find pfns pointing at start of each page, get pages and free them. */
- 	for (i = 0; i < num; i += VIRTIO_BALLOON_PAGES_PER_PAGE) {
--		balloon_page_free(balloon_pfn_to_page(pfns[i]));
--		totalram_pages++;
-+		page = balloon_pfn_to_page(pfns[i]);
-+		balloon_page_free(page);
-+		adjust_managed_page_count(page, 1);
- 	}
+-	free_initmem_default(0);
++	free_initmem_default(-1);
  }
  
-diff --git a/drivers/xen/balloon.c b/drivers/xen/balloon.c
-index 930fb68..c8aab4e 100644
---- a/drivers/xen/balloon.c
-+++ b/drivers/xen/balloon.c
-@@ -89,14 +89,6 @@ EXPORT_SYMBOL_GPL(balloon_stats);
- /* We increase/decrease in batches which fit in a page */
- static xen_pfn_t frame_list[PAGE_SIZE / sizeof(unsigned long)];
- 
--#ifdef CONFIG_HIGHMEM
--#define inc_totalhigh_pages() (totalhigh_pages++)
--#define dec_totalhigh_pages() (totalhigh_pages--)
--#else
--#define inc_totalhigh_pages() do {} while (0)
--#define dec_totalhigh_pages() do {} while (0)
--#endif
--
- /* List of ballooned pages, threaded through the mem_map array. */
- static LIST_HEAD(ballooned_pages);
- 
-@@ -132,9 +124,7 @@ static void __balloon_append(struct page *page)
- static void balloon_append(struct page *page)
+ #ifdef CONFIG_BLK_DEV_INITRD
+ void
+ free_initrd_mem(unsigned long start, unsigned long end)
  {
- 	__balloon_append(page);
--	if (PageHighMem(page))
--		dec_totalhigh_pages();
--	totalram_pages--;
-+	adjust_managed_page_count(page, -1);
+-	free_reserved_area((void *)start, (void *)end, 0, "initrd");
++	free_reserved_area((void *)start, (void *)end, -1, "initrd");
+ }
+ #endif
+diff --git a/arch/arc/mm/init.c b/arch/arc/mm/init.c
+index dce02e4..f9c7077 100644
+--- a/arch/arc/mm/init.c
++++ b/arch/arc/mm/init.c
+@@ -146,13 +146,13 @@ void __init mem_init(void)
+  */
+ void __init_refok free_initmem(void)
+ {
+-	free_initmem_default(0);
++	free_initmem_default(-1);
  }
  
- /* balloon_retrieve: rescue a page from the balloon, if it is not empty. */
-@@ -151,13 +141,12 @@ static struct page *balloon_retrieve(bool prefer_highmem)
- 		page = list_entry(ballooned_pages.next, struct page, lru);
- 	list_del(&page->lru);
- 
--	if (PageHighMem(page)) {
-+	if (PageHighMem(page))
- 		balloon_stats.balloon_high--;
--		inc_totalhigh_pages();
--	} else
-+	else
- 		balloon_stats.balloon_low--;
- 
--	totalram_pages++;
-+	adjust_managed_page_count(page, 1);
- 
- 	return page;
+ #ifdef CONFIG_BLK_DEV_INITRD
+ void __init free_initrd_mem(unsigned long start, unsigned long end)
+ {
+-	free_reserved_area((void *)start, (void *)end, 0, "initrd");
++	free_reserved_area((void *)start, (void *)end, -1, "initrd");
  }
-@@ -372,9 +361,7 @@ static enum bp_state increase_reservation(unsigned long nr_pages)
  #endif
  
- 		/* Relinquish the page back to the allocator. */
--		ClearPageReserved(page);
--		init_page_count(page);
--		__free_page(page);
-+		__free_reserved_page(page);
- 	}
+diff --git a/arch/arm/mm/init.c b/arch/arm/mm/init.c
+index 59d6f76..f223394 100644
+--- a/arch/arm/mm/init.c
++++ b/arch/arm/mm/init.c
+@@ -600,7 +600,7 @@ void __init mem_init(void)
  
- 	balloon_stats.current_pages += rc;
-diff --git a/mm/hugetlb.c b/mm/hugetlb.c
-index f8feeec..95c5a6b 100644
---- a/mm/hugetlb.c
-+++ b/mm/hugetlb.c
-@@ -1246,7 +1246,7 @@ static void __init gather_bootmem_prealloc(void)
- 		 * side-effects, like CommitLimit going negative.
- 		 */
- 		if (h->order > (MAX_ORDER - 1))
--			totalram_pages += 1 << h->order;
-+			adjust_managed_page_count(page, 1 << h->order);
- 	}
+ #ifdef CONFIG_SA1111
+ 	/* now that our DMA memory is actually so designated, we can free it */
+-	free_reserved_area(__va(PHYS_PFN_OFFSET), swapper_pg_dir, 0, NULL);
++	free_reserved_area(__va(PHYS_PFN_OFFSET), swapper_pg_dir, -1, NULL);
+ #endif
+ 
+ 	free_highpages();
+@@ -728,12 +728,12 @@ void free_initmem(void)
+ 	extern char __tcm_start, __tcm_end;
+ 
+ 	poison_init_mem(&__tcm_start, &__tcm_end - &__tcm_start);
+-	free_reserved_area(&__tcm_start, &__tcm_end, 0, "TCM link");
++	free_reserved_area(&__tcm_start, &__tcm_end, -1, "TCM link");
+ #endif
+ 
+ 	poison_init_mem(__init_begin, __init_end - __init_begin);
+ 	if (!machine_is_integrator() && !machine_is_cintegrator())
+-		free_initmem_default(0);
++		free_initmem_default(-1);
  }
  
-diff --git a/mm/memory_hotplug.c b/mm/memory_hotplug.c
-index 1a16ea0..7244e67 100644
---- a/mm/memory_hotplug.c
-+++ b/mm/memory_hotplug.c
-@@ -772,20 +772,13 @@ EXPORT_SYMBOL_GPL(__online_page_set_limits);
- 
- void __online_page_increment_counters(struct page *page)
+ #ifdef CONFIG_BLK_DEV_INITRD
+@@ -744,7 +744,7 @@ void free_initrd_mem(unsigned long start, unsigned long end)
  {
--	totalram_pages++;
--
--#ifdef CONFIG_HIGHMEM
--	if (PageHighMem(page))
--		totalhigh_pages++;
--#endif
-+	adjust_managed_page_count(page, 1);
- }
- EXPORT_SYMBOL_GPL(__online_page_increment_counters);
- 
- void __online_page_free(struct page *page)
- {
--	ClearPageReserved(page);
--	init_page_count(page);
--	__free_page(page);
-+	__free_reserved_page(page);
- }
- EXPORT_SYMBOL_GPL(__online_page_free);
- 
-@@ -983,7 +976,6 @@ int __ref online_pages(unsigned long pfn, unsigned long nr_pages, int online_typ
- 		return ret;
+ 	if (!keep_initrd) {
+ 		poison_init_mem((void *)start, PAGE_ALIGN(end) - start);
+-		free_reserved_area((void *)start, (void *)end, 0, "initrd");
++		free_reserved_area((void *)start, (void *)end, -1, "initrd");
  	}
+ }
  
--	zone->managed_pages += onlined_pages;
- 	zone->present_pages += onlined_pages;
+diff --git a/arch/arm64/mm/init.c b/arch/arm64/mm/init.c
+index 6041e40..997c634 100644
+--- a/arch/arm64/mm/init.c
++++ b/arch/arm64/mm/init.c
+@@ -387,7 +387,7 @@ void __init mem_init(void)
+ void free_initmem(void)
+ {
+ 	poison_init_mem(__init_begin, __init_end - __init_begin);
+-	free_initmem_default(0);
++	free_initmem_default(-1);
+ }
  
- 	pgdat_resize_lock(zone->zone_pgdat, &flags);
-@@ -1572,15 +1564,13 @@ repeat:
- 	/* reset pagetype flags and makes migrate type to be MOVABLE */
- 	undo_isolate_page_range(start_pfn, end_pfn, MIGRATE_MOVABLE);
- 	/* removal success */
--	zone->managed_pages -= offlined_pages;
-+	adjust_managed_page_count(pfn_to_page(start_pfn), -offlined_pages);
- 	zone->present_pages -= offlined_pages;
+ #ifdef CONFIG_BLK_DEV_INITRD
+@@ -398,7 +398,7 @@ void free_initrd_mem(unsigned long start, unsigned long end)
+ {
+ 	if (!keep_initrd) {
+ 		poison_init_mem((void *)start, PAGE_ALIGN(end) - start);
+-		free_reserved_area((void *)start, (void *)end, 0, "initrd");
++		free_reserved_area((void *)start, (void *)end, -1, "initrd");
+ 	}
+ }
  
- 	pgdat_resize_lock(zone->zone_pgdat, &flags);
- 	zone->zone_pgdat->node_present_pages -= offlined_pages;
- 	pgdat_resize_unlock(zone->zone_pgdat, &flags);
+diff --git a/arch/avr32/mm/init.c b/arch/avr32/mm/init.c
+index 5a79fa0..b079e04 100644
+--- a/arch/avr32/mm/init.c
++++ b/arch/avr32/mm/init.c
+@@ -148,12 +148,12 @@ void __init mem_init(void)
  
--	totalram_pages -= offlined_pages;
+ void free_initmem(void)
+ {
+-	free_initmem_default(0);
++	free_initmem_default(-1);
+ }
+ 
+ #ifdef CONFIG_BLK_DEV_INITRD
+ void free_initrd_mem(unsigned long start, unsigned long end)
+ {
+-	free_reserved_area((void *)start, (void *)end, 0, "initrd");
++	free_reserved_area((void *)start, (void *)end, -1, "initrd");
+ }
+ #endif
+diff --git a/arch/blackfin/mm/init.c b/arch/blackfin/mm/init.c
+index 8e9eab2..fa241f5 100644
+--- a/arch/blackfin/mm/init.c
++++ b/arch/blackfin/mm/init.c
+@@ -133,7 +133,7 @@ void __init mem_init(void)
+ void __init free_initrd_mem(unsigned long start, unsigned long end)
+ {
+ #ifndef CONFIG_MPU
+-	free_reserved_area((void *)start, (void *)end, 0, "initrd");
++	free_reserved_area((void *)start, (void *)end, -1, "initrd");
+ #endif
+ }
+ #endif
+@@ -141,7 +141,7 @@ void __init free_initrd_mem(unsigned long start, unsigned long end)
+ void __init_refok free_initmem(void)
+ {
+ #if defined CONFIG_RAMKERNEL && !defined CONFIG_MPU
+-	free_initmem_default(0);
++	free_initmem_default(-1);
+ 	if (memory_start == (unsigned long)(&__init_end))
+ 		memory_start = (unsigned long)(&__init_begin);
+ #endif
+diff --git a/arch/c6x/mm/init.c b/arch/c6x/mm/init.c
+index 97914e5..7f25bef 100644
+--- a/arch/c6x/mm/init.c
++++ b/arch/c6x/mm/init.c
+@@ -77,11 +77,11 @@ void __init mem_init(void)
+ #ifdef CONFIG_BLK_DEV_INITRD
+ void __init free_initrd_mem(unsigned long start, unsigned long end)
+ {
+-	free_reserved_area((void *)start, (void *)end, 0, "initrd");
++	free_reserved_area((void *)start, (void *)end, -1, "initrd");
+ }
+ #endif
+ 
+ void __init free_initmem(void)
+ {
+-	free_initmem_default(0);
++	free_initmem_default(-1);
+ }
+diff --git a/arch/cris/mm/init.c b/arch/cris/mm/init.c
+index 9ac8094..8fec263 100644
+--- a/arch/cris/mm/init.c
++++ b/arch/cris/mm/init.c
+@@ -65,5 +65,5 @@ mem_init(void)
+ void 
+ free_initmem(void)
+ {
+-	free_initmem_default(0);
++	free_initmem_default(-1);
+ }
+diff --git a/arch/frv/mm/init.c b/arch/frv/mm/init.c
+index a67f3a5..8ba9d22 100644
+--- a/arch/frv/mm/init.c
++++ b/arch/frv/mm/init.c
+@@ -162,7 +162,7 @@ void __init mem_init(void)
+ void free_initmem(void)
+ {
+ #if defined(CONFIG_RAMKERNEL) && !defined(CONFIG_PROTECT_KERNEL)
+-	free_initmem_default(0);
++	free_initmem_default(-1);
+ #endif
+ } /* end free_initmem() */
+ 
+@@ -173,6 +173,6 @@ void free_initmem(void)
+ #ifdef CONFIG_BLK_DEV_INITRD
+ void __init free_initrd_mem(unsigned long start, unsigned long end)
+ {
+-	free_reserved_area((void *)start, (void *)end, 0, "initrd");
++	free_reserved_area((void *)start, (void *)end, -1, "initrd");
+ } /* end free_initrd_mem() */
+ #endif
+diff --git a/arch/h8300/mm/init.c b/arch/h8300/mm/init.c
+index 57e03c5..c831f1d 100644
+--- a/arch/h8300/mm/init.c
++++ b/arch/h8300/mm/init.c
+@@ -161,7 +161,7 @@ void __init mem_init(void)
+ #ifdef CONFIG_BLK_DEV_INITRD
+ void free_initrd_mem(unsigned long start, unsigned long end)
+ {
+-	free_reserved_area((void *)start, (void *)end, 0, "initrd");
++	free_reserved_area((void *)start, (void *)end, -1, "initrd");
+ }
+ #endif
+ 
+@@ -169,7 +169,7 @@ void
+ free_initmem(void)
+ {
+ #ifdef CONFIG_RAMKERNEL
+-	free_initmem_default(0);
++	free_initmem_default(-1);
+ #endif
+ }
+ 
+diff --git a/arch/ia64/mm/init.c b/arch/ia64/mm/init.c
+index da568c2..f8a4f38 100644
+--- a/arch/ia64/mm/init.c
++++ b/arch/ia64/mm/init.c
+@@ -155,7 +155,7 @@ void
+ free_initmem (void)
+ {
+ 	free_reserved_area(ia64_imva(__init_begin), ia64_imva(__init_end),
+-			   0, "unused kernel");
++			   -1, "unused kernel");
+ }
+ 
+ void __init
+diff --git a/arch/m32r/mm/init.c b/arch/m32r/mm/init.c
+index d80412d..cca87d9 100644
+--- a/arch/m32r/mm/init.c
++++ b/arch/m32r/mm/init.c
+@@ -181,7 +181,7 @@ void __init mem_init(void)
+  *======================================================================*/
+ void free_initmem(void)
+ {
+-	free_initmem_default(0);
++	free_initmem_default(-1);
+ }
+ 
+ #ifdef CONFIG_BLK_DEV_INITRD
+@@ -191,6 +191,6 @@ void free_initmem(void)
+  *======================================================================*/
+ void free_initrd_mem(unsigned long start, unsigned long end)
+ {
+-	free_reserved_area((void *)start, (void *)end, 0, "initrd");
++	free_reserved_area((void *)start, (void *)end, -1, "initrd");
+ }
+ #endif
+diff --git a/arch/m68k/mm/init.c b/arch/m68k/mm/init.c
+index 95de725..ab0b54c 100644
+--- a/arch/m68k/mm/init.c
++++ b/arch/m68k/mm/init.c
+@@ -110,7 +110,7 @@ void __init paging_init(void)
+ void free_initmem(void)
+ {
+ #ifndef CONFIG_MMU_SUN3
+-	free_initmem_default(0);
++	free_initmem_default(-1);
+ #endif /* CONFIG_MMU_SUN3 */
+ }
+ 
+@@ -202,6 +202,6 @@ void __init mem_init(void)
+ #ifdef CONFIG_BLK_DEV_INITRD
+ void free_initrd_mem(unsigned long start, unsigned long end)
+ {
+-	free_reserved_area((void *)start, (void *)end, 0, "initrd");
++	free_reserved_area((void *)start, (void *)end, -1, "initrd");
+ }
+ #endif
+diff --git a/arch/microblaze/mm/init.c b/arch/microblaze/mm/init.c
+index d7b8ada..d149e0e 100644
+--- a/arch/microblaze/mm/init.c
++++ b/arch/microblaze/mm/init.c
+@@ -235,13 +235,13 @@ void __init setup_memory(void)
+ #ifdef CONFIG_BLK_DEV_INITRD
+ void free_initrd_mem(unsigned long start, unsigned long end)
+ {
+-	free_reserved_area((void *)start, (void *)end, 0, "initrd");
++	free_reserved_area((void *)start, (void *)end, -1, "initrd");
+ }
+ #endif
+ 
+ void free_initmem(void)
+ {
+-	free_initmem_default(0);
++	free_initmem_default(-1);
+ }
+ 
+ void __init mem_init(void)
+diff --git a/arch/openrisc/mm/init.c b/arch/openrisc/mm/init.c
+index ab11332..c371e4a 100644
+--- a/arch/openrisc/mm/init.c
++++ b/arch/openrisc/mm/init.c
+@@ -261,11 +261,11 @@ void __init mem_init(void)
+ #ifdef CONFIG_BLK_DEV_INITRD
+ void free_initrd_mem(unsigned long start, unsigned long end)
+ {
+-	free_reserved_area((void *)start, (void *)end, 0, "initrd");
++	free_reserved_area((void *)start, (void *)end, -1, "initrd");
+ }
+ #endif
+ 
+ void free_initmem(void)
+ {
+-	free_initmem_default(0);
++	free_initmem_default(-1);
+ }
+diff --git a/arch/parisc/mm/init.c b/arch/parisc/mm/init.c
+index 8fa4183..e6ad98d 100644
+--- a/arch/parisc/mm/init.c
++++ b/arch/parisc/mm/init.c
+@@ -532,7 +532,7 @@ void free_initmem(void)
+ 	 * pages are no-longer executable */
+ 	flush_icache_range(init_begin, init_end);
+ 	
+-	num_physpages += free_initmem_default(0);
++	num_physpages += free_initmem_default(-1);
+ 
+ 	/* set up a new led state on systems shipped LED State panel */
+ 	pdc_chassis_send_status(PDC_CHASSIS_DIRECT_BCOMPLETE);
+@@ -1101,7 +1101,7 @@ void flush_tlb_all(void)
+ #ifdef CONFIG_BLK_DEV_INITRD
+ void free_initrd_mem(unsigned long start, unsigned long end)
+ {
+-	num_physpages += free_reserved_area((void *)start, (void *)end, 0,
++	num_physpages += free_reserved_area((void *)start, (void *)end, -1,
+ 					    "initrd");
+ }
+ #endif
+diff --git a/arch/powerpc/kernel/kvm.c b/arch/powerpc/kernel/kvm.c
+index 5e4830a..db28032 100644
+--- a/arch/powerpc/kernel/kvm.c
++++ b/arch/powerpc/kernel/kvm.c
+@@ -750,13 +750,8 @@ EXPORT_SYMBOL_GPL(kvm_hypercall);
+ 
+ static __init void kvm_free_tmp(void)
+ {
+-	unsigned long start, end;
 -
- 	init_per_zone_wmark_min();
+-	start = (ulong)&kvm_tmp[kvm_tmp_index + (PAGE_SIZE - 1)] & PAGE_MASK;
+-	end = (ulong)&kvm_tmp[ARRAY_SIZE(kvm_tmp)] & PAGE_MASK;
+-
+-	/* Free the tmp space we don't need */
+-	free_reserved_area((void *)start, (void *)end, 0, NULL);
++	free_reserved_area(&kvm_tmp[kvm_tmp_index],
++			   &kvm_tmp[ARRAY_SIZE(kvm_tmp)], -1, NULL);
+ }
  
- 	if (!populated_zone(zone)) {
+ static int __init kvm_guest_init(void)
+diff --git a/arch/powerpc/mm/mem.c b/arch/powerpc/mm/mem.c
+index 347c5b1..7f47a05 100644
+--- a/arch/powerpc/mm/mem.c
++++ b/arch/powerpc/mm/mem.c
+@@ -407,7 +407,7 @@ void free_initmem(void)
+ #ifdef CONFIG_BLK_DEV_INITRD
+ void __init free_initrd_mem(unsigned long start, unsigned long end)
+ {
+-	free_reserved_area((void *)start, (void *)end, 0, "initrd");
++	free_reserved_area((void *)start, (void *)end, -1, "initrd");
+ }
+ #endif
+ 
+diff --git a/arch/s390/mm/init.c b/arch/s390/mm/init.c
+index 0878c89..bf01d18 100644
+--- a/arch/s390/mm/init.c
++++ b/arch/s390/mm/init.c
+@@ -166,7 +166,7 @@ void __init mem_init(void)
+ 
+ void free_initmem(void)
+ {
+-	free_initmem_default(0);
++	free_initmem_default(POISON_FREE_INITMEM);
+ }
+ 
+ #ifdef CONFIG_BLK_DEV_INITRD
+diff --git a/arch/sh/mm/init.c b/arch/sh/mm/init.c
+index b892a9b..d3af56b 100644
+--- a/arch/sh/mm/init.c
++++ b/arch/sh/mm/init.c
+@@ -499,13 +499,13 @@ void __init mem_init(void)
+ 
+ void free_initmem(void)
+ {
+-	free_initmem_default(0);
++	free_initmem_default(-1);
+ }
+ 
+ #ifdef CONFIG_BLK_DEV_INITRD
+ void free_initrd_mem(unsigned long start, unsigned long end)
+ {
+-	free_reserved_area((void *)start, (void *)end, 0, "initrd");
++	free_reserved_area((void *)start, (void *)end, -1, "initrd");
+ }
+ #endif
+ 
+diff --git a/arch/um/kernel/mem.c b/arch/um/kernel/mem.c
+index 2aa7a24..8ff0b7a 100644
+--- a/arch/um/kernel/mem.c
++++ b/arch/um/kernel/mem.c
+@@ -244,7 +244,7 @@ void free_initmem(void)
+ #ifdef CONFIG_BLK_DEV_INITRD
+ void free_initrd_mem(unsigned long start, unsigned long end)
+ {
+-	free_reserved_area((void *)start, (void *)end, 0, "initrd");
++	free_reserved_area((void *)start, (void *)end, -1, "initrd");
+ }
+ #endif
+ 
+diff --git a/arch/unicore32/mm/init.c b/arch/unicore32/mm/init.c
+index 220755c..df9b8ab 100644
+--- a/arch/unicore32/mm/init.c
++++ b/arch/unicore32/mm/init.c
+@@ -476,7 +476,7 @@ void __init mem_init(void)
+ 
+ void free_initmem(void)
+ {
+-	free_initmem_default(0);
++	free_initmem_default(-1);
+ }
+ 
+ #ifdef CONFIG_BLK_DEV_INITRD
+@@ -486,7 +486,7 @@ static int keep_initrd;
+ void free_initrd_mem(unsigned long start, unsigned long end)
+ {
+ 	if (!keep_initrd)
+-		free_reserved_area((void *)start, (void *)end, 0, "initrd");
++		free_reserved_area((void *)start, (void *)end, -1, "initrd");
+ }
+ 
+ static int __init keepinitrd_setup(char *__unused)
+diff --git a/arch/xtensa/mm/init.c b/arch/xtensa/mm/init.c
+index 4d658ef..026d29b 100644
+--- a/arch/xtensa/mm/init.c
++++ b/arch/xtensa/mm/init.c
+@@ -214,11 +214,11 @@ extern int initrd_is_mapped;
+ void free_initrd_mem(unsigned long start, unsigned long end)
+ {
+ 	if (initrd_is_mapped)
+-		free_reserved_area((void *)start, (void *)end, 0, "initrd");
++		free_reserved_area((void *)start, (void *)end, -1, "initrd");
+ }
+ #endif
+ 
+ void free_initmem(void)
+ {
+-	free_initmem_default(0);
++	free_initmem_default(-1);
+ }
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 771769f..a56bcaa 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -1304,7 +1304,7 @@ extern void free_initmem(void);
+ /*
+  * Free reserved pages within range [PAGE_ALIGN(start), end & PAGE_MASK)
+  * into the buddy system. The freed pages will be poisoned with pattern
+- * "poison" if it's non-zero.
++ * "poison" if it's within range [0, UCHAR_MAX].
+  * Return pages freed into the buddy system.
+  */
+ extern unsigned long free_reserved_area(void *start, void *end,
+@@ -1344,8 +1344,9 @@ static inline void mark_page_reserved(struct page *page)
+ 
+ /*
+  * Default method to free all the __init memory into the buddy system.
+- * The freed pages will be poisoned with pattern "poison" if it is
+- * non-zero. Return pages freed into the buddy system.
++ * The freed pages will be poisoned with pattern "poison" if it's within
++ * range [0, UCHAR_MAX].
++ * Return pages freed into the buddy system.
+  */
+ static inline unsigned long free_initmem_default(int poison)
+ {
 diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 403afa6..5b27db4 100644
+index 39f66e7..d70d474 100644
 --- a/mm/page_alloc.c
 +++ b/mm/page_alloc.c
-@@ -783,11 +783,7 @@ void __init init_cma_reserved_pageblock(struct page *page)
- 	set_page_refcounted(page);
- 	set_pageblock_migratetype(page, MIGRATE_CMA);
- 	__free_pages(page, pageblock_order);
--	totalram_pages += pageblock_nr_pages;
--#ifdef CONFIG_HIGHMEM
--	if (PageHighMem(page))
--		totalhigh_pages += pageblock_nr_pages;
--#endif
-+	adjust_managed_page_count(page, pageblock_nr_pages);
- }
- #endif
- 
-@@ -5232,6 +5228,10 @@ void adjust_managed_page_count(struct page *page, long count)
- 	spin_lock(&managed_page_count_lock);
- 	page_zone(page)->managed_pages += count;
- 	totalram_pages += count;
-+#ifdef	CONFIG_HIGHMEM
-+	if (PageHighMem(page))
-+		totalhigh_pages += count;
-+#endif
- 	spin_unlock(&managed_page_count_lock);
- }
- EXPORT_SYMBOL(adjust_managed_page_count);
+@@ -5239,7 +5239,7 @@ unsigned long free_reserved_area(void *start, void *end, int poison, char *s)
+ 	start = (void *)PAGE_ALIGN((unsigned long)start);
+ 	end = (void *)((unsigned long)end & PAGE_MASK);
+ 	for (pos = start; pos < end; pos += PAGE_SIZE, pages++) {
+-		if (poison)
++		if ((unsigned int)poison <= 0xFF)
+ 			memset(pos, poison, PAGE_SIZE);
+ 		free_reserved_page(virt_to_page(pos));
+ 	}
 -- 
 1.8.1.2
 
