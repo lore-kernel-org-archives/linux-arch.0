@@ -1,38 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oa0-f50.google.com ([209.85.219.50]:48668 "EHLO
-	mail-oa0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754799Ab3E0QTy convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 May 2013 12:19:54 -0400
+Received: from merlin.infradead.org ([205.233.59.134]:46925 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752566Ab3E0Qfh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 May 2013 12:35:37 -0400
+Date: Mon, 27 May 2013 18:35:30 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v3-resend 00/11] uaccess: better might_sleep/might_fault
+ behavior
+Message-ID: <20130527163530.GB19373@twins.programming.kicks-ass.net>
+References: <1369575487-26176-1-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
-In-Reply-To: <51A34A0D.5070407@asianux.com>
-References: <51A34A0D.5070407@asianux.com>
-Date: Mon, 27 May 2013 20:19:53 +0400
-Message-ID: <CAMo8BfKmZjH5ysA=d9xpDAR8kb_WoXFinBQ9nMMGRLmnpjQYcA@mail.gmail.com>
-Subject: Re: [PATCH] arch: xtensa: include: asm: compiling issue, need
- cmpxchg64() defined.
-From: Max Filippov <jcmvbkbc@gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1369575487-26176-1-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chen Gang <gang.chen@asianux.com>
-Cc: chris@zankel.net, linux-xtensa@linux-xtensa.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20130527161953.zsF1MNqRY0e-d4ltGPmUmhG6HB1_zs2UC4wl5JQpOPs@z>
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org
+Message-ID: <20130527163530.o0n4-CdrOwARIe1jeaBDwxR0C03DwZNY1bnFgfQOEdE@z>
 
-On Mon, May 27, 2013 at 3:57 PM, Chen Gang <gang.chen@asianux.com> wrote:
->
-> When compiling with 'allmodconfig', some of drivers need cmpxchg64(),
-> xtensa does not supply 64-bit implementation for 'xchg', so use the
-> 'generic' implementation.
->
-> e.g. (for next-20130527 tree):
->   drivers/block/blockconsole.c:164:2: error: implicit declaration of function ‘cmpxchg64’ [-Werror=implicit-function-declaration]
->
-> Signed-off-by: Chen Gang <gang.chen@asianux.com>
-> ---
->  arch/xtensa/include/asm/cmpxchg.h |    1 +
->  1 files changed, 1 insertions(+), 0 deletions(-)
+On Sun, May 26, 2013 at 05:21:30PM +0300, Michael S. Tsirkin wrote:
+> If the changes look good, would sched maintainers
+> please consider merging them through sched/core because of the
+> interaction with the scheduler?
+> 
+> Please review, and consider for 3.11.
 
-Taken to the xtensa-fixes tree. Thanks.
-
--- Max
+I'll stick them in my queue, we'll see if anything falls over ;-)
