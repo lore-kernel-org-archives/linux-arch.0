@@ -1,86 +1,86 @@
 From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH v2] PowerPC: kernel: need return the related error code
- when failure occurs
-Date: Mon, 27 May 2013 18:01:13 +0800
-Message-ID: <51A32EE9.1030704@asianux.com>
-References: <519B0ACA.6090008@asianux.com> <20130521081031.GA29303@iris.ozlabs.ibm.com> <519B3855.6050201@asianux.com> <519B3C72.9060405@asianux.com>
+Subject: Re: [PATCH v2] arm64: kernel: compiling issue, need delete read_current_timer().
+Date: Mon, 27 May 2013 18:02:40 +0800
+Message-ID: <51A32F40.1050309@asianux.com>
+References: <5199C725.8050102@asianux.com> <168084c28e8ba5124c05553e97463172@localhost> <20130520095606.GH31359@mudshark.cambridge.arm.com> <519AF2DC.2040200@asianux.com> <20130521085325.GB10453@mudshark.cambridge.arm.com> <519B425D.4030806@asianux.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <519B3C72.9060405@asianux.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Paul Mackerras <paulus@samba.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, zhangyanfei@cn.fujitsu.com, Jiri Kosina <jkosina@suse.cz>, Michael Ellerman <michael@ellerman.id.au>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from intranet.asianux.com ([58.214.24.6]:41201 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755907Ab3E0KDb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 May 2013 06:03:31 -0400
+In-Reply-To: <519B425D.4030806@asianux.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Will Deacon <will.deacon@arm.com>, Marc Zyngier <Marc.Zyngier@arm.com>
+Cc: Catalin Marinas <Catalin.Marinas@arm.com>, Santosh Shilimkar <santosh.shilimkar@ti.com>, Tony Lindgren <tony@atomide.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
 Hello Maintainers:
 
-Please help check this patch whether is OK, when you have time.
+Please help check this patch whether OK, when you have time.
 
 Thanks.
 
-On 05/21/2013 05:20 PM, Chen Gang wrote:
+On 05/21/2013 05:46 PM, Chen Gang wrote:
 > 
-> When error occurs, need return the related error code to let upper
-> caller know about it.
+> Under arm64, we will calibrate the delay loop statically using a known
+> timer frequency, so delete read_current_timer(), or it will cause
+> compiling issue with allmodconfig.
 > 
-> ppc_md.nvram_size() can return the error code (e.g. core99_nvram_size()
-> in 'arch/powerpc/platforms/powermac/nvram.c').
-> 
-> Also set ret value when only need it, so can save structions for normal
-> cases.
-> 
-> The original related patch: "f9ce299 [PATCH] powerpc: fix large nvram
-> access".
+> The related error:
+>   ERROR: "read_current_timer" [lib/rbtree_test.ko] undefined!
+>   ERROR: "read_current_timer" [lib/interval_tree_test.ko] undefined!
+>   ERROR: "read_current_timer" [fs/ext4/ext4.ko] undefined!
+>   ERROR: "read_current_timer" [crypto/tcrypt.ko] undefined!
 > 
 > 
 > Signed-off-by: Chen Gang <gang.chen@asianux.com>
 > ---
->  arch/powerpc/kernel/nvram_64.c |   20 ++++++++++++++------
->  1 files changed, 14 insertions(+), 6 deletions(-)
+>  arch/arm64/include/asm/timex.h |    6 +++---
+>  arch/arm64/kernel/time.c       |    6 ------
+>  2 files changed, 3 insertions(+), 9 deletions(-)
 > 
-> diff --git a/arch/powerpc/kernel/nvram_64.c b/arch/powerpc/kernel/nvram_64.c
-> index 48fbc2b..8213ee1 100644
-> --- a/arch/powerpc/kernel/nvram_64.c
-> +++ b/arch/powerpc/kernel/nvram_64.c
-> @@ -84,22 +84,30 @@ static ssize_t dev_nvram_read(struct file *file, char __user *buf,
->  	char *tmp = NULL;
->  	ssize_t size;
+> diff --git a/arch/arm64/include/asm/timex.h b/arch/arm64/include/asm/timex.h
+> index b24a31a..81a076e 100644
+> --- a/arch/arm64/include/asm/timex.h
+> +++ b/arch/arm64/include/asm/timex.h
+> @@ -16,14 +16,14 @@
+>  #ifndef __ASM_TIMEX_H
+>  #define __ASM_TIMEX_H
 >  
-> -	ret = -ENODEV;
-> -	if (!ppc_md.nvram_size)
-> +	if (!ppc_md.nvram_size) {
-> +		ret = -ENODEV;
->  		goto out;
-> +	}
->  
-> -	ret = 0;
->  	size = ppc_md.nvram_size();
-> -	if (*ppos >= size || size < 0)
-> +	if (size < 0) {
-> +		ret = size;
-> +		goto out;
-> +	}
+> +#include <asm/arch_timer.h>
 > +
-> +	if (*ppos >= size) {
-> +		ret = 0;
->  		goto out;
-> +	}
+>  /*
+>   * Use the current timer as a cycle counter since this is what we use for
+>   * the delay loop.
+>   */
+> -#define get_cycles()	({ cycles_t c; read_current_timer(&c); c; })
+> +#define get_cycles()	arch_counter_get_cntvct()
 >  
->  	count = min_t(size_t, count, size - *ppos);
->  	count = min(count, PAGE_SIZE);
+>  #include <asm-generic/timex.h>
 >  
-> -	ret = -ENOMEM;
->  	tmp = kmalloc(count, GFP_KERNEL);
-> -	if (!tmp)
-> +	if (!tmp) {
-> +		ret = -ENOMEM;
->  		goto out;
-> +	}
+> -#define ARCH_HAS_READ_CURRENT_TIMER
+> -
+>  #endif
+> diff --git a/arch/arm64/kernel/time.c b/arch/arm64/kernel/time.c
+> index a551f88..03dc371 100644
+> --- a/arch/arm64/kernel/time.c
+> +++ b/arch/arm64/kernel/time.c
+> @@ -68,12 +68,6 @@ unsigned long long notrace sched_clock(void)
+>  	return arch_timer_read_counter() * sched_clock_mult;
+>  }
 >  
->  	ret = ppc_md.nvram_read(tmp, count, ppos);
->  	if (ret <= 0)
+> -int read_current_timer(unsigned long *timer_value)
+> -{
+> -	*timer_value = arch_timer_read_counter();
+> -	return 0;
+> -}
+> -
+>  void __init time_init(void)
+>  {
+>  	u32 arch_timer_rate;
 > 
 
 
