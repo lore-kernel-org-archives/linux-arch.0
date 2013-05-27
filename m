@@ -1,116 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:27776 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752923Ab3EZOVu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 26 May 2013 10:21:50 -0400
-Date: Sun, 26 May 2013 17:21:30 +0300
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v3-resend 00/11] uaccess: better might_sleep/might_fault
- behavior
-Message-ID: <1369575487-26176-1-git-send-email-mst@redhat.com>
+Received: from intranet.asianux.com ([58.214.24.6]:7996 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750841Ab3E0E6A (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 May 2013 00:58:00 -0400
+Message-ID: <51A2E7A5.5000904@asianux.com>
+Date: Mon, 27 May 2013 12:57:09 +0800
+From: Chen Gang <gang.chen@asianux.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Subject: [PATCH] arch: parisc: kernel: memory overflow, 'name' length is too
+ short for using
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org
-Message-ID: <20130526142130.15ZDwuSBJ4JwV2dMFdXzC3voRW6n-mHxMCjSfak27Ck@z>
+To: "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>
+Cc: Parisc List <linux-parisc@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20130527045709.oAWluPRMDO7QoMtCSus8n01_Ni4dCLTUd_SKcJ42JL8@z>
 
-I seem to have mis-sent v3.  Trying again with same patches after
-fixing the message id for the cover letter. I hope the duplicates
-that are thus created don't inconvenience people too much.
-If they do, I apologize.
-I have pared down the Cc list to reduce the noise.
-sched maintainers are Cc'd on all patches since that's
-the tree I aim for with these patches.
 
-This improves the might_fault annotations used
-by uaccess routines:
+'path.bc[i]' can be asigned by PCI_SLOT() which can '> 10', so sizeof(6
+* "%u:" + "%u" + '\0') may be 21.
 
-1. The only reason uaccess routines might sleep
-   is if they fault. Make this explicit for
-   all architectures.
-2. a voluntary preempt point in uaccess functions
-   means compiler can't inline them efficiently,
-   this breaks assumptions that they are very
-   fast and small that e.g. net code seems to make.
-   remove this preempt point so behaviour
-   matches what callers assume.
-3. Accesses (e.g through socket ops) to kernel memory
-   with KERNEL_DS like net/sunrpc does will never sleep.
-   Remove an unconditinal might_sleep in the inline
-   might_fault in kernel.h
-   (used when PROVE_LOCKING is not set).
-4. Accesses with pagefault_disable return EFAULT
-   but won't cause caller to sleep.
-   Check for that and avoid might_sleep when
-   PROVE_LOCKING is set.
+Since 'name' length is 20, it may be memory overflow.
 
-I'd like these changes to go in for 3.11:
-besides a general benefit of improved
-consistency and performance, I would also like them
-for the vhost driver where we want to call socket ops
-under a spinlock, and fall back on slower thread handler
-on error.
+And 'path.bc[i]' is 'unsigned char' for printing, we can be sure the
+max length of 'name' must be less than 28.
 
-If the changes look good, would sched maintainers
-please consider merging them through sched/core because of the
-interaction with the scheduler?
+So simplify thinking, we can use 28 instead of 20 directly, and do not
+think of whether 'patchc.bc[i]' can '> 100'.
 
-Please review, and consider for 3.11.
 
-Note on arch code updates:
-I tested x86_64 code.
-Other architectures were build-tested.
-I don't have cross-build environment for arm64, tile, microblaze and
-mn10300 architectures. arm64 and tile got acks.
-The arch changes look generally safe enough
-but would appreciate review/acks from arch maintainers.
-core changes naturally need acks from sched maintainers.
+Signed-off-by: Chen Gang <gang.chen@asianux.com>
+---
+ arch/parisc/kernel/drivers.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-Version 1 of this change was titled
-	x86: uaccess s/might_sleep/might_fault/
-
-Changes from v2:
-	add a patch removing a colunatry preempt point
-	in uaccess functions when PREEMPT_VOLUNATRY is set.
-		Addresses comments by Arnd Bergmann,
-		and Peter Zijlstra.
-	comment on future possible simplifications in the git log
-		for the powerpc patch. Addresses a comment
-		by Arnd Bergmann.
-	
-Changes from v1:
-	add more architectures
-	fix might_fault() scheduling differently depending
-	on CONFIG_PROVE_LOCKING, as suggested by Ingo
-
-Michael S. Tsirkin (11):
-  asm-generic: uaccess s/might_sleep/might_fault/
-  arm64: uaccess s/might_sleep/might_fault/
-  frv: uaccess s/might_sleep/might_fault/
-  m32r: uaccess s/might_sleep/might_fault/
-  microblaze: uaccess s/might_sleep/might_fault/
-  mn10300: uaccess s/might_sleep/might_fault/
-  powerpc: uaccess s/might_sleep/might_fault/
-  tile: uaccess s/might_sleep/might_fault/
-  x86: uaccess s/might_sleep/might_fault/
-  kernel: drop voluntary schedule from might_fault
-  kernel: uaccess in atomic with pagefault_disable
-
- arch/arm64/include/asm/uaccess.h      |  4 ++--
- arch/frv/include/asm/uaccess.h        |  4 ++--
- arch/m32r/include/asm/uaccess.h       | 12 ++++++------
- arch/microblaze/include/asm/uaccess.h |  6 +++---
- arch/mn10300/include/asm/uaccess.h    |  4 ++--
- arch/powerpc/include/asm/uaccess.h    | 16 ++++++++--------
- arch/tile/include/asm/uaccess.h       |  2 +-
- arch/x86/include/asm/uaccess_64.h     |  2 +-
- include/asm-generic/uaccess.h         | 10 +++++-----
- include/linux/kernel.h                |  7 ++-----
- mm/memory.c                           | 10 +++++++---
- 11 files changed, 39 insertions(+), 38 deletions(-)
-
+diff --git a/arch/parisc/kernel/drivers.c b/arch/parisc/kernel/drivers.c
+index 5709c5e..14285ca 100644
+--- a/arch/parisc/kernel/drivers.c
++++ b/arch/parisc/kernel/drivers.c
+@@ -394,7 +394,7 @@ EXPORT_SYMBOL(print_pci_hwpath);
+ static void setup_bus_id(struct parisc_device *padev)
+ {
+ 	struct hardware_path path;
+-	char name[20];
++	char name[28];
+ 	char *output = name;
+ 	int i;
+ 
 -- 
-MST
+1.7.7.6
