@@ -1,88 +1,74 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
+From: Chen Gang <gang.chen@asianux.com>
 Subject: Re: [PATCH] arch: s390: appldata: using strncpy() instead of sprintf()
-Date: Mon, 27 May 2013 10:34:15 +0200
-Message-ID: <CAMuHMdXTW3QOxfAfqQXdbSpP4R83srFf7eMfu5fA-75S_Mujsg@mail.gmail.com>
-References: <51A2CC07.5010100@asianux.com>
+Date: Mon, 27 May 2013 17:06:11 +0800
+Message-ID: <51A32203.1090003@asianux.com>
+References: <51A2CC07.5010100@asianux.com> <CAMuHMdXTW3QOxfAfqQXdbSpP4R83srFf7eMfu5fA-75S_Mujsg@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f49.google.com ([209.85.160.49]:45012 "EHLO
-	mail-pb0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757123Ab3E0IeP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 May 2013 04:34:15 -0400
-In-Reply-To: <51A2CC07.5010100@asianux.com>
+Received: from intranet.asianux.com ([58.214.24.6]:58960 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752436Ab3E0JHC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 May 2013 05:07:02 -0400
+In-Reply-To: <CAMuHMdXTW3QOxfAfqQXdbSpP4R83srFf7eMfu5fA-75S_Mujsg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chen Gang <gang.chen@asianux.com>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
 Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, jang@linux.vnet.ibm.com, linux390@de.ibm.com, linux-s390@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, "kernel-janitors@vger.kernel.org" <kernel-janitors@vger.kernel.org>
 
-On Mon, May 27, 2013 at 4:59 AM, Chen Gang <gang.chen@asianux.com> wrote:
-> 'buf[2]' is 2 bytes length, and sprintf() will append '\0' at the end
-> of string "?\n", so original implementation is memory overflow.
+On 05/27/2013 04:34 PM, Geert Uytterhoeven wrote:
+>> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+>> > ---
+>> >  arch/s390/appldata/appldata_base.c |    5 +++--
+>> >  1 files changed, 3 insertions(+), 2 deletions(-)
+>> >
+>> > diff --git a/arch/s390/appldata/appldata_base.c b/arch/s390/appldata/appldata_base.c
+>> > index bae0f40..566ea87 100644
+>> > --- a/arch/s390/appldata/appldata_base.c
+>> > +++ b/arch/s390/appldata/appldata_base.c
+>> > @@ -212,7 +212,8 @@ appldata_timer_handler(ctl_table *ctl, int write,
+>> >                 return 0;
+>> >         }
+>> >         if (!write) {
+>> > -               len = sprintf(buf, appldata_timer_active ? "1\n" : "0\n");
+> Before, len was always 2. The string was zero-terminated but the zero was
+> not returned to user space, which is OK.
+> 
 
-Nice catch!
+I guess, the original API did not treat it as a zero-terminated string,
+it is more like a 'protocol' contents for 'write' or '!write' between
+kernel mode and user mode.
 
-> Need use strncpy() instead of sprintf().
+At least the kernel did not treat it as a zero-terminated string, we can
+reference the '!write' work flow to know about it.
 
-Or memcpy(), as the string is always 2 bytes?
-Of course that would break future extension with multi-digit responses, but in
-that case, the buffer size needs to be expanded, too.
 
-Anyway, this code needed some more brain cycles to actually understand
-what's it doing, and whether it's correct. So I guess it's ripe for more
-refactoring...
+>> > +               len = strncpy(buf, appldata_timer_active ? "1\n" : "0\n",
+>> > +                                                               sizeof(buf));
+> Oops, strncpy() doesn't return a size, but a pointer! So this doesn't work.
+> I guess you haven't compiled this?
+> http://kernel.org/pub/tools/crosstool/files/bin/
+> 
 
-> Signed-off-by: Chen Gang <gang.chen@asianux.com>
-> ---
->  arch/s390/appldata/appldata_base.c |    5 +++--
->  1 files changed, 3 insertions(+), 2 deletions(-)
->
-> diff --git a/arch/s390/appldata/appldata_base.c b/arch/s390/appldata/appldata_base.c
-> index bae0f40..566ea87 100644
-> --- a/arch/s390/appldata/appldata_base.c
-> +++ b/arch/s390/appldata/appldata_base.c
-> @@ -212,7 +212,8 @@ appldata_timer_handler(ctl_table *ctl, int write,
->                 return 0;
->         }
->         if (!write) {
-> -               len = sprintf(buf, appldata_timer_active ? "1\n" : "0\n");
+Oh, it is my fault, I need compile it for a basic checking.
 
-Before, len was always 2. The string was zero-terminated but the zero was
-not returned to user space, which is OK.
+>> >                 if (len > *lenp)
+>> >                         len = *lenp;
+>> >                 if (copy_to_user(buffer, buf, len))
+> What about creating a "uprintf()" that formats strings to a userspace buffer?
+> 
 
-> +               len = strncpy(buf, appldata_timer_active ? "1\n" : "0\n",
-> +                                                               sizeof(buf));
+Hmm... maybe it is a good idea for processing the zero-terminated string
+from kernel mode to user mode, but I guess, for our case, it is not a
+zero-terminated string, so...
 
-Oops, strncpy() doesn't return a size, but a pointer! So this doesn't work.
-I guess you haven't compiled this?
-http://kernel.org/pub/tools/crosstool/files/bin/
 
->                 if (len > *lenp)
->                         len = *lenp;
->                 if (copy_to_user(buffer, buf, len))
+All together, thank you very much for your checking, I should send patch v2.
 
-What about creating a "uprintf()" that formats strings to a userspace buffer?
 
-> @@ -317,7 +318,7 @@ appldata_generic_handler(ctl_table *ctl, int write,
->                 return 0;
->         }
->         if (!write) {
-> -               len = sprintf(buf, ops->active ? "1\n" : "0\n");
-> +               len = strncpy(buf, ops->active ? "1\n" : "0\n", sizeof(buf));
+Thanks.
+-- 
+Chen Gang
 
-Same here.
-
->                 if (len > *lenp)
->                         len = *lenp;
->                 if (copy_to_user(buffer, buf, len)) {
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Asianux Corporation
