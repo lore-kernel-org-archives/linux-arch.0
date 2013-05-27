@@ -1,39 +1,30 @@
-From: Gerald Schaefer <gerald.schaefer@de.ibm.com>
-Subject: Re: [PATCH v2] arch: s390: appldata: using strncpy() and strnlen()
- instead of sprintf()
-Date: Mon, 27 May 2013 18:23:06 +0200
-Message-ID: <20130527182306.3bd8a252@thinkpad>
-References: <51A2CC07.5010100@asianux.com>
-	<CAMuHMdXTW3QOxfAfqQXdbSpP4R83srFf7eMfu5fA-75S_Mujsg@mail.gmail.com>
-	<51A32D81.2010105@asianux.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v3-resend 00/11] uaccess: better might_sleep/might_fault
+ behavior
+Date: Mon, 27 May 2013 18:35:30 +0200
+Message-ID: <20130527163530.GB19373@twins.programming.kicks-ass.net>
+References: <1369575487-26176-1-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:32805 "EHLO
-	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752526Ab3E0QXO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 May 2013 12:23:14 -0400
-Received: from /spool/local
-	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <gerald.schaefer@de.ibm.com>;
-	Mon, 27 May 2013 17:18:40 +0100
-In-Reply-To: <51A32D81.2010105@asianux.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Chen Gang <gang.chen@asianux.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm.com, linux-s390@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, "kernel-janitors@vger.kernel.org" <kernel-janitors@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <1369575487-26176-1-git-send-email-mst@redhat.com>
+Sender: owner-linux-mm@kvack.org
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-mm@kvack.org, kvm@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, 27 May 2013 17:55:13 +0800
-Chen Gang <gang.chen@asianux.com> wrote:
+On Sun, May 26, 2013 at 05:21:30PM +0300, Michael S. Tsirkin wrote:
+> If the changes look good, would sched maintainers
+> please consider merging them through sched/core because of the
+> interaction with the scheduler?
+> 
+> Please review, and consider for 3.11.
 
-> 
-> 'buf[2]' is 2 bytes length, and sprintf() will append '\0' at the end
-> of string "?\n", so original implementation is memory overflow.
-> 
-> Need use strncpy() and strnlen() instead of sprintf().
-> 
-> 
-> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+I'll stick them in my queue, we'll see if anything falls over ;-)
 
-Applied, thanks.
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
