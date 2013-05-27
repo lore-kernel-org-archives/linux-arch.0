@@ -1,91 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:14094 "EHLO
+Received: from intranet.asianux.com ([58.214.24.6]:41249 "EHLO
 	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755862Ab3E0KCE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 May 2013 06:02:04 -0400
-Message-ID: <51A32EE9.1030704@asianux.com>
-Date: Mon, 27 May 2013 18:01:13 +0800
+	with ESMTP id S1755907Ab3E0KFM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 May 2013 06:05:12 -0400
+Message-ID: <51A32FA5.3080200@asianux.com>
+Date: Mon, 27 May 2013 18:04:21 +0800
 From: Chen Gang <gang.chen@asianux.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v2] PowerPC: kernel: need return the related error code
- when failure occurs
-References: <519B0ACA.6090008@asianux.com> <20130521081031.GA29303@iris.ozlabs.ibm.com> <519B3855.6050201@asianux.com> <519B3C72.9060405@asianux.com>
-In-Reply-To: <519B3C72.9060405@asianux.com>
-Content-Type: text/plain; charset=UTF-8
+Subject: Re: [PATCH] arm64: kernel: compiling issue, need 'EXPORT_SYMBOL(clear_page)'
+References: <5199CCF9.4030305@asianux.com>
+In-Reply-To: <5199CCF9.4030305@asianux.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Mackerras <paulus@samba.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, zhangyanfei@cn.fujitsu.com, Jiri Kosina <jkosina@suse.cz>, Michael Ellerman <michael@ellerman.id.au>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20130527100113.cDygxtfpwwkvYS-QRVASLmcVDw_fCucT1RYKe21LaXg@z>
+To: Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Tony Lindgren <tony@atomide.com>, "olof@lixom.net" <olof@lixom.net>, Santosh Shilimkar <santosh.shilimkar@ti.com>, "nico@linaro.org" <nico@linaro.org>
+Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20130527100421.ndP6GHR7tMBmSCxt8wQHgU_i2t0GMO0pfTVOL8FsCdw@z>
 
 Hello Maintainers:
 
-Please help check this patch whether is OK, when you have time.
+Please help check this patch whether OK, when you have time.
+
 
 Thanks.
 
-On 05/21/2013 05:20 PM, Chen Gang wrote:
+On 05/20/2013 03:12 PM, Chen Gang wrote:
 > 
-> When error occurs, need return the related error code to let upper
-> caller know about it.
+> Need 'EXPORT_SYMBOL(clear_page)' if building with allmodconfig.
 > 
-> ppc_md.nvram_size() can return the error code (e.g. core99_nvram_size()
-> in 'arch/powerpc/platforms/powermac/nvram.c').
-> 
-> Also set ret value when only need it, so can save structions for normal
-> cases.
-> 
-> The original related patch: "f9ce299 [PATCH] powerpc: fix large nvram
-> access".
+> The related errors:
+>   ERROR: "clear_page" [fs/ocfs2/dlm/ocfs2_dlm.ko] undefined!
+>   ERROR: "clear_page" [fs/ntfs/ntfs.ko] undefined!
+>   ERROR: "clear_page" [fs/gfs2/gfs2.ko] undefined!
+>   ERROR: "clear_page" [fs/fuse/fuse.ko] undefined!
+>   ERROR: "clear_page" [fs/ext3/ext3.ko] undefined!
+>   ERROR: "clear_page" [fs/ext2/ext2.ko] undefined!
+>   ERROR: "clear_page" [fs/exofs/libore.ko] undefined!
+>   ERROR: "clear_page" [fs/exofs/exofs.ko] undefined!
+>   ERROR: "clear_page" [drivers/block/brd.ko] undefined!
 > 
 > 
 > Signed-off-by: Chen Gang <gang.chen@asianux.com>
 > ---
->  arch/powerpc/kernel/nvram_64.c |   20 ++++++++++++++------
->  1 files changed, 14 insertions(+), 6 deletions(-)
+>  arch/arm64/kernel/arm64ksyms.c |    1 +
+>  1 files changed, 1 insertions(+), 0 deletions(-)
 > 
-> diff --git a/arch/powerpc/kernel/nvram_64.c b/arch/powerpc/kernel/nvram_64.c
-> index 48fbc2b..8213ee1 100644
-> --- a/arch/powerpc/kernel/nvram_64.c
-> +++ b/arch/powerpc/kernel/nvram_64.c
-> @@ -84,22 +84,30 @@ static ssize_t dev_nvram_read(struct file *file, char __user *buf,
->  	char *tmp = NULL;
->  	ssize_t size;
+> diff --git a/arch/arm64/kernel/arm64ksyms.c b/arch/arm64/kernel/arm64ksyms.c
+> index 7df1aad..41b4f62 100644
+> --- a/arch/arm64/kernel/arm64ksyms.c
+> +++ b/arch/arm64/kernel/arm64ksyms.c
+> @@ -34,6 +34,7 @@ EXPORT_SYMBOL(__strnlen_user);
+>  EXPORT_SYMBOL(__strncpy_from_user);
 >  
-> -	ret = -ENODEV;
-> -	if (!ppc_md.nvram_size)
-> +	if (!ppc_md.nvram_size) {
-> +		ret = -ENODEV;
->  		goto out;
-> +	}
+>  EXPORT_SYMBOL(copy_page);
+> +EXPORT_SYMBOL(clear_page);
 >  
-> -	ret = 0;
->  	size = ppc_md.nvram_size();
-> -	if (*ppos >= size || size < 0)
-> +	if (size < 0) {
-> +		ret = size;
-> +		goto out;
-> +	}
-> +
-> +	if (*ppos >= size) {
-> +		ret = 0;
->  		goto out;
-> +	}
->  
->  	count = min_t(size_t, count, size - *ppos);
->  	count = min(count, PAGE_SIZE);
->  
-> -	ret = -ENOMEM;
->  	tmp = kmalloc(count, GFP_KERNEL);
-> -	if (!tmp)
-> +	if (!tmp) {
-> +		ret = -ENOMEM;
->  		goto out;
-> +	}
->  
->  	ret = ppc_md.nvram_read(tmp, count, ppos);
->  	if (ret <= 0)
+>  EXPORT_SYMBOL(__copy_from_user);
+>  EXPORT_SYMBOL(__copy_to_user);
 > 
 
 
