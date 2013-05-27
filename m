@@ -1,47 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:44592 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753616Ab3E0GbT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 May 2013 02:31:19 -0400
-Message-ID: <51A2FD85.6080808@asianux.com>
-Date: Mon, 27 May 2013 14:30:29 +0800
-From: Chen Gang <gang.chen@asianux.com>
+Received: from merlin.infradead.org ([205.233.59.134]:36939 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756934Ab3E0IWI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 May 2013 04:22:08 -0400
+Date: Mon, 27 May 2013 10:21:49 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v3 2/3] mutex: add support for wound/wait style locks, v3
+Message-ID: <20130527082149.GE2781@laptop>
+References: <20130428165914.17075.57751.stgit@patser>
+ <20130428170407.17075.80082.stgit@patser>
+ <20130430191422.GA5763@phenom.ffwll.local>
+ <519CA976.9000109@canonical.com>
+ <20130522161831.GQ18810@twins.programming.kicks-ass.net>
+ <519CFF56.90600@canonical.com>
 MIME-Version: 1.0
-Subject: [PATCH] arch: ia64: kernel: flow control, need use 'return' instead
- of 'break'
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <519CFF56.90600@canonical.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tony.luck@intel.com, fenghua.yu@intel.com, Rusty Russell <rusty@rustcorp.com.au>
-Cc: linux-ia64@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20130527063029.vkd2EjT4fRupoCMeFf_3sb0iBBRg1YNQbeLM3Yl75N4@z>
+To: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robclark@gmail.com, rostedt@goodmis.org, tglx@linutronix.de, mingo@elte.hu, linux-media@vger.kernel.org, Dave Airlie <airlied@redhat.com>
+Message-ID: <20130527082149.C6yBfDH1hqlRvTDYt8TowhnmZb7BbpSFXWziRA7sgvM@z>
+
+On Wed, May 22, 2013 at 07:24:38PM +0200, Maarten Lankhorst wrote:
+> >> +static inline void ww_acquire_init(struct ww_acquire_ctx *ctx,
+> >> +				   struct ww_class *ww_class)
+> >> +{
+> >> +	ctx->task = current;
+> >> +	do {
+> >> +		ctx->stamp = atomic_long_inc_return(&ww_class->stamp);
+> >> +	} while (unlikely(!ctx->stamp));
+> > I suppose we'll figure something out when this becomes a bottleneck. Ideally
+> > we'd do something like:
+> >
+> >  ctx->stamp = local_clock();
+> >
+> > but for now we cannot guarantee that's not jiffies, and I suppose that's a tad
+> > too coarse to work for this.
+> This might mess up when 2 cores happen to return exactly the same time, how do you choose a winner in that case?
+> EDIT: Using pointer address like you suggested below is fine with me. ctx pointer would be static enough.
+
+Right, but for now I suppose the 'global' atomic is ok, if/when we find
+it hurts performance we can revisit. I was just spewing ideas :-)
+
+> > Also, why is 0 special?
+> Oops, 0 is no longer special.
+> 
+> I used to set the samp directly on the lock, so 0 used to mean no ctx set.
+
+Ah, ok :-)
+
+> >> +static inline int __must_check ww_mutex_trylock_single(struct ww_mutex *lock)
+> >> +{
+> >> +	return mutex_trylock(&lock->base);
+> >> +}
+> > trylocks can never deadlock they don't block per definition, I don't see the
+> > point of the _single() thing here.
+> I called it single because they weren't annotated into any ctx. I can drop the _single suffix though,
+> but you'd still need to unlock with unlock_single, or we need to remove that distinction altogether,
+> lose a few lockdep checks and only have a one unlock function.
+
+Again, early.. monday.. would a trylock, even if successful still need
+the ctx?
 
 
-In this case, the original author did not provide the related reason
-string for die_if_kernel(), so the 'buf' is not initialized.
-
-The original author wants to generic a 'SIGSEGV' and 'return', not want
-to 'break' to fall to die.
-
-
-Signed-off-by: Chen Gang <gang.chen@asianux.com>
----
- arch/ia64/kernel/traps.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
-
-diff --git a/arch/ia64/kernel/traps.c b/arch/ia64/kernel/traps.c
-index f7f9f9c..d3636e6 100644
---- a/arch/ia64/kernel/traps.c
-+++ b/arch/ia64/kernel/traps.c
-@@ -630,7 +630,7 @@ ia64_fault (unsigned long vector, unsigned long isr, unsigned long ifa,
- 		printk(KERN_ERR "  iip - 0x%lx, ifa - 0x%lx, isr - 0x%lx\n",
- 		       iip, ifa, isr);
- 		force_sig(SIGSEGV, current);
--		break;
-+		return;
- 
- 	      case 46:
- 		printk(KERN_ERR "Unexpected IA-32 intercept trap (Trap 46)\n");
--- 
-1.7.7.6
