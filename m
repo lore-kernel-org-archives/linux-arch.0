@@ -1,74 +1,65 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH] arch: s390: appldata: using strncpy() instead of sprintf()
-Date: Mon, 27 May 2013 17:06:11 +0800
-Message-ID: <51A32203.1090003@asianux.com>
-References: <51A2CC07.5010100@asianux.com> <CAMuHMdXTW3QOxfAfqQXdbSpP4R83srFf7eMfu5fA-75S_Mujsg@mail.gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v3 2/3] mutex: add support for wound/wait style locks, v3
+Date: Mon, 27 May 2013 11:13:33 +0200
+Message-ID: <20130527091333.GH2781@laptop>
+References: <20130428165914.17075.57751.stgit@patser>
+ <20130428170407.17075.80082.stgit@patser>
+ <20130430191422.GA5763@phenom.ffwll.local>
+ <519CA976.9000109@canonical.com>
+ <20130522161831.GQ18810@twins.programming.kicks-ass.net>
+ <519CFF56.90600@canonical.com>
+ <20130527080019.GD2781@laptop>
+ <51A318BF.7010109@canonical.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:58960 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752436Ab3E0JHC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 May 2013 05:07:02 -0400
-In-Reply-To: <CAMuHMdXTW3QOxfAfqQXdbSpP4R83srFf7eMfu5fA-75S_Mujsg@mail.gmail.com>
+Received: from merlin.infradead.org ([205.233.59.134]:38486 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753668Ab3E0JNv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 May 2013 05:13:51 -0400
+Content-Disposition: inline
+In-Reply-To: <51A318BF.7010109@canonical.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, jang@linux.vnet.ibm.com, linux390@de.ibm.com, linux-s390@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, "kernel-janitors@vger.kernel.org" <kernel-janitors@vger.kernel.org>
+To: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robclark@gmail.com, rostedt@goodmis.org, tglx@linutronix.de, mingo@elte.hu, linux-media@vger.kernel.org, Dave Airlie <airlied@redhat.com>
 
-On 05/27/2013 04:34 PM, Geert Uytterhoeven wrote:
->> Signed-off-by: Chen Gang <gang.chen@asianux.com>
->> > ---
->> >  arch/s390/appldata/appldata_base.c |    5 +++--
->> >  1 files changed, 3 insertions(+), 2 deletions(-)
->> >
->> > diff --git a/arch/s390/appldata/appldata_base.c b/arch/s390/appldata/appldata_base.c
->> > index bae0f40..566ea87 100644
->> > --- a/arch/s390/appldata/appldata_base.c
->> > +++ b/arch/s390/appldata/appldata_base.c
->> > @@ -212,7 +212,8 @@ appldata_timer_handler(ctl_table *ctl, int write,
->> >                 return 0;
->> >         }
->> >         if (!write) {
->> > -               len = sprintf(buf, appldata_timer_active ? "1\n" : "0\n");
-> Before, len was always 2. The string was zero-terminated but the zero was
-> not returned to user space, which is OK.
+On Mon, May 27, 2013 at 10:26:39AM +0200, Maarten Lankhorst wrote:
+> Op 27-05-13 10:00, Peter Zijlstra schreef:
+> > On Wed, May 22, 2013 at 07:24:38PM +0200, Maarten Lankhorst wrote:
+> >>>> +- Functions to only acquire a single w/w mutex, which results in the exact same
+> >>>> +  semantics as a normal mutex. These functions have the _single postfix.
+> >>> This is missing rationale.
+> >> trylock_single is useful when iterating over a list, and you want to evict a bo, but only the first one that can be acquired.
+> >> lock_single is useful when only a single bo needs to be acquired, for example to lock a buffer during mmap.
+> > OK, so given that its still early, monday and I haven't actually spend
+> > much time thinking on this; would it be possible to make:
+> > ww_mutex_lock(.ctx=NULL) act like ww_mutex_lock_single()?
+> >
+> > The idea is that if we don't provide a ctx, we'll get a different
+> > lockdep annotation; mutex_lock() vs mutex_lock_nest_lock(). So if we
+> > then go and make a mistake, lockdep should warn us.
+> >
+> > Would that work or should I stock up on morning juice?
+> >
+> It's easy to merge unlock_single and unlock, which I did in the next version I'll post.
+> Lockdep will already warn if ww_mutex_lock and ww_mutex_lock_single are both
+> used. ww_test_block_context and ww_test_context_block in lib/locking-selftest.c
+> are the testcases for this.
 > 
+> The locking paths are too different, it will end up with doing "if (ctx == NULL) mutex_lock(); else ww_mutex_lock();"
 
-I guess, the original API did not treat it as a zero-terminated string,
-it is more like a 'protocol' contents for 'write' or '!write' between
-kernel mode and user mode.
+I was more thinking like:
 
-At least the kernel did not treat it as a zero-terminated string, we can
-reference the '!write' work flow to know about it.
+int __sched ww_mutex_lock(struct ww_mutex *lock, struct ww_acquire_ctx *ctx)
+{
+	might_sleep();
+	return __mutex_lock_common(&lock->base, TASK_UNINTERRUPTIBLE, 0,
+				   ctx ? ctx->dep_map : NULL, _RET_IP_,
+				   ctx, 0);
+}
 
+That should make ww_mutex_lock(.ctx=NULL) equivalent to
+mutex_lock(&lock->base), no?
 
->> > +               len = strncpy(buf, appldata_timer_active ? "1\n" : "0\n",
->> > +                                                               sizeof(buf));
-> Oops, strncpy() doesn't return a size, but a pointer! So this doesn't work.
-> I guess you haven't compiled this?
-> http://kernel.org/pub/tools/crosstool/files/bin/
-> 
-
-Oh, it is my fault, I need compile it for a basic checking.
-
->> >                 if (len > *lenp)
->> >                         len = *lenp;
->> >                 if (copy_to_user(buffer, buf, len))
-> What about creating a "uprintf()" that formats strings to a userspace buffer?
-> 
-
-Hmm... maybe it is a good idea for processing the zero-terminated string
-from kernel mode to user mode, but I guess, for our case, it is not a
-zero-terminated string, so...
-
-
-All together, thank you very much for your checking, I should send patch v2.
-
-
-Thanks.
--- 
-Chen Gang
-
-Asianux Corporation
+Anyway, implementation aside, it would again reduce the interface some.
