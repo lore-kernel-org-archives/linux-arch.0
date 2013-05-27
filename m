@@ -1,67 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:41249 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755907Ab3E0KFM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 May 2013 06:05:12 -0400
-Message-ID: <51A32FA5.3080200@asianux.com>
-Date: Mon, 27 May 2013 18:04:21 +0800
-From: Chen Gang <gang.chen@asianux.com>
+Received: from mail-lb0-f180.google.com ([209.85.217.180]:47833 "EHLO
+	mail-lb0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932403Ab3E0N5M (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 May 2013 09:57:12 -0400
+Received: by mail-lb0-f180.google.com with SMTP id r10so6723441lbi.39
+        for <linux-arch@vger.kernel.org>; Mon, 27 May 2013 06:57:11 -0700 (PDT)
+Message-ID: <51A36633.2030905@cogentembedded.com>
+Date: Mon, 27 May 2013 17:57:07 +0400
+From: Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH] arm64: kernel: compiling issue, need 'EXPORT_SYMBOL(clear_page)'
-References: <5199CCF9.4030305@asianux.com>
-In-Reply-To: <5199CCF9.4030305@asianux.com>
-Content-Type: text/plain; charset=ISO-8859-1
+Subject: Re: [PATCH v8, part3 12/14] mm: correctly update zone->mamaged_pages
+References: <1369575522-26405-1-git-send-email-jiang.liu@huawei.com> <1369575522-26405-13-git-send-email-jiang.liu@huawei.com>
+In-Reply-To: <1369575522-26405-13-git-send-email-jiang.liu@huawei.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Tony Lindgren <tony@atomide.com>, "olof@lixom.net" <olof@lixom.net>, Santosh Shilimkar <santosh.shilimkar@ti.com>, "nico@linaro.org" <nico@linaro.org>
-Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20130527100421.ndP6GHR7tMBmSCxt8wQHgU_i2t0GMO0pfTVOL8FsCdw@z>
+To: Jiang Liu <liuj97@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Rusty Russell <rusty@rustcorp.com.au>, "Michael S. Tsirkin" <mst@redhat.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Jeremy Fitzhardinge <jeremy@goop.org>, Tang Chen <tangchen@cn.fujitsu.com>, Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>, virtualization@lists.linux-foundation.org, xen-devel@lists.xensource.com
+Message-ID: <20130527135707.tny6_iPqRQdLmo8_8ogT7pYv6irZXxSk4KOXr17C7L0@z>
 
-Hello Maintainers:
+On 26-05-2013 17:38, Jiang Liu wrote:
 
-Please help check this patch whether OK, when you have time.
+    Typo in the subject: s/mamaged_pages/managed_pages/.
 
+> Enhance adjust_managed_page_count() to adjust totalhigh_pages for
+> highmem pages. And change code which directly adjusts totalram_pages
+> to use adjust_managed_page_count() because it adjusts totalram_pages,
+> totalhigh_pages and zone->managed_pages altogether in a safe way.
 
-Thanks.
+> Remove inc_totalhigh_pages() and dec_totalhigh_pages() from xen/balloon
+> driver bacause adjust_managed_page_count() has already adjusted
+> totalhigh_pages.
 
-On 05/20/2013 03:12 PM, Chen Gang wrote:
-> 
-> Need 'EXPORT_SYMBOL(clear_page)' if building with allmodconfig.
-> 
-> The related errors:
->   ERROR: "clear_page" [fs/ocfs2/dlm/ocfs2_dlm.ko] undefined!
->   ERROR: "clear_page" [fs/ntfs/ntfs.ko] undefined!
->   ERROR: "clear_page" [fs/gfs2/gfs2.ko] undefined!
->   ERROR: "clear_page" [fs/fuse/fuse.ko] undefined!
->   ERROR: "clear_page" [fs/ext3/ext3.ko] undefined!
->   ERROR: "clear_page" [fs/ext2/ext2.ko] undefined!
->   ERROR: "clear_page" [fs/exofs/libore.ko] undefined!
->   ERROR: "clear_page" [fs/exofs/exofs.ko] undefined!
->   ERROR: "clear_page" [drivers/block/brd.ko] undefined!
-> 
-> 
-> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+> This patch also fixes two bugs:
+> 1) enhances virtio_balloon driver to adjust totalhigh_pages when
+>     reserve/unreserve pages.
+> 2) enhance memory_hotplug.c to adjust totalhigh_pages when hot-removing
+>     memory.
+
+> We still need to deal with modifications of totalram_pages in file
+> arch/powerpc/platforms/pseries/cmm.c, but need help from PPC experts.
+
+> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+> Cc: Chris Metcalf <cmetcalf@tilera.com>
+> Cc: Rusty Russell <rusty@rustcorp.com.au>
+> Cc: "Michael S. Tsirkin" <mst@redhat.com>
+> Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+> Cc: Jeremy Fitzhardinge <jeremy@goop.org>
+> Cc: Wen Congyang <wency@cn.fujitsu.com>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Tang Chen <tangchen@cn.fujitsu.com>
+> Cc: Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>
+> Cc: Mel Gorman <mgorman@suse.de>
+> Cc: Minchan Kim <minchan@kernel.org>
+> Cc: linux-kernel@vger.kernel.org
+> Cc: virtualization@lists.linux-foundation.org
+> Cc: xen-devel@lists.xensource.com
+> Cc: linux-mm@kvack.org
 > ---
->  arch/arm64/kernel/arm64ksyms.c |    1 +
->  1 files changed, 1 insertions(+), 0 deletions(-)
-> 
-> diff --git a/arch/arm64/kernel/arm64ksyms.c b/arch/arm64/kernel/arm64ksyms.c
-> index 7df1aad..41b4f62 100644
-> --- a/arch/arm64/kernel/arm64ksyms.c
-> +++ b/arch/arm64/kernel/arm64ksyms.c
-> @@ -34,6 +34,7 @@ EXPORT_SYMBOL(__strnlen_user);
->  EXPORT_SYMBOL(__strncpy_from_user);
->  
->  EXPORT_SYMBOL(copy_page);
-> +EXPORT_SYMBOL(clear_page);
->  
->  EXPORT_SYMBOL(__copy_from_user);
->  EXPORT_SYMBOL(__copy_to_user);
-> 
+>   drivers/virtio/virtio_balloon.c |  8 +++++---
+>   drivers/xen/balloon.c           | 23 +++++------------------
+>   mm/hugetlb.c                    |  2 +-
+>   mm/memory_hotplug.c             | 16 +++-------------
+>   mm/page_alloc.c                 | 10 +++++-----
+>   5 files changed, 19 insertions(+), 40 deletions(-)
 
+> diff --git a/drivers/virtio/virtio_balloon.c b/drivers/virtio/virtio_balloon.c
+> index bd3ae32..6649968 100644
+> --- a/drivers/virtio/virtio_balloon.c
+> +++ b/drivers/virtio/virtio_balloon.c
+[...]
+> @@ -160,11 +160,13 @@ static void fill_balloon(struct virtio_balloon *vb, size_t num)
+>   static void release_pages_by_pfn(const u32 pfns[], unsigned int num)
+>   {
+>   	unsigned int i;
+> +	struct page *page;
 
--- 
-Chen Gang
+    Why not declare it right in the *for* loop? You could use intializer 
+then...
 
-Asianux Corporation
+>
+>   	/* Find pfns pointing at start of each page, get pages and free them. */
+>   	for (i = 0; i < num; i += VIRTIO_BALLOON_PAGES_PER_PAGE) {
+> -		balloon_page_free(balloon_pfn_to_page(pfns[i]));
+> -		totalram_pages++;
+> +		page = balloon_pfn_to_page(pfns[i]);
+> +		balloon_page_free(page);
+> +		adjust_managed_page_count(page, 1);
+>   	}
+>   }
+>
+[...]
+
+WBR, Sergei
+
