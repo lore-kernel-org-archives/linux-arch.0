@@ -1,18 +1,27 @@
 From: Wanpeng Li <liwanp@linux.vnet.ibm.com>
-Subject: Re: [PATCH v8, part3 12/14] mm: correctly update zone->mamaged_pages
+Subject: Re: [PATCH v8,
+	part3 12/14] mm: correctly update zone->mamaged_pages
 Date: Mon, 27 May 2013 08:52:31 +0800
-Message-ID: <5556.69651735133$1369615980@news.gmane.org>
+Message-ID: <2483.99898778207$1369616121@news.gmane.org>
 References: <1369575522-26405-1-git-send-email-jiang.liu@huawei.com>
- <1369575522-26405-13-git-send-email-jiang.liu@huawei.com>
+	<1369575522-26405-13-git-send-email-jiang.liu@huawei.com>
 Reply-To: Wanpeng Li <liwanp@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <xen-devel-bounces@lists.xen.org>
 Content-Disposition: inline
 In-Reply-To: <1369575522-26405-13-git-send-email-jiang.liu@huawei.com>
-Sender: owner-linux-mm@kvack.org
+List-Unsubscribe: <http://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
+	<mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
+List-Post: <mailto:xen-devel@lists.xen.org>
+List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
+List-Subscribe: <http://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
+	<mailto:xen-devel-request@lists.xen.org?subject=subscribe>
+Sender: xen-devel-bounces@lists.xen.org
+Errors-To: xen-devel-bounces@lists.xen.org
 To: Jiang Liu <liuj97@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Rusty Russell <rusty@rustcorp.com.au>, "Michael S. Tsirkin" <mst@redhat.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Jeremy Fitzhardinge <jeremy@goop.org>, Tang
+Cc: Jeremy Fitzhardinge <jeremy@goop.org>, "Michael S. Tsirkin" <mst@redhat.com>, Tang Chen <tangchen@cn.fujitsu.com>, James Bottomley <James.Bottomley@HansenPartnership.com>, linux-mm@kvack.org, Michal Hocko <mhocko@suse.cz>, linux-arch@vger.kernel.org, xen-devel@lists.xensource.com, Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Mark Salter <msalter@redhat.com>, Wen Congyang <wency@cn.fujitsu.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Rusty Russell <rusty@rustcorp.com.au>, Chris Metcalf <cmetcalf@tilera.com>, Jianguo Wu <wujianguo@huawei.com>, virtualization@lists.linux-foundation.org, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, David Howells <dhowells@redhat.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, linux-kernel@vger.kernel.org, Minchan Kim <minchan@kernel.org>, David Rientjes <rientjes@google.com>
 List-Id: linux-arch.vger.kernel.org
 
 On Sun, May 26, 2013 at 09:38:40PM +0800, Jiang Liu wrote:
@@ -252,9 +261,3 @@ Wanpeng Li
 >the body to majordomo@kvack.org.  For more info on Linux MM,
 >see: http://www.linux-mm.org/ .
 >Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
