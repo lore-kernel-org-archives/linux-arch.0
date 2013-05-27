@@ -1,59 +1,81 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: [PATCH v2] arch: s390: appldata: using strncpy() and strnlen() instead
- of sprintf()
-Date: Mon, 27 May 2013 17:55:13 +0800
-Message-ID: <51A32D81.2010105@asianux.com>
-References: <51A2CC07.5010100@asianux.com> <CAMuHMdXTW3QOxfAfqQXdbSpP4R83srFf7eMfu5fA-75S_Mujsg@mail.gmail.com>
+From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Subject: Re: [PATCH v3 2/3] mutex: add support for wound/wait style locks,
+ v3
+Date: Mon, 27 May 2013 11:58:39 +0200
+Message-ID: <51A32E4F.6010500@canonical.com>
+References: <20130428165914.17075.57751.stgit@patser> <20130428170407.17075.80082.stgit@patser> <20130430191422.GA5763@phenom.ffwll.local> <519CA976.9000109@canonical.com> <20130522161831.GQ18810@twins.programming.kicks-ass.net> <519CFF56.90600@canonical.com> <20130527080019.GD2781@laptop> <51A318BF.7010109@canonical.com> <20130527091333.GH2781@laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:22175 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756004Ab3E0J4E (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 May 2013 05:56:04 -0400
-In-Reply-To: <CAMuHMdXTW3QOxfAfqQXdbSpP4R83srFf7eMfu5fA-75S_Mujsg@mail.gmail.com>
+Received: from youngberry.canonical.com ([91.189.89.112]:49778 "EHLO
+	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756527Ab3E0J6p (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 May 2013 05:58:45 -0400
+In-Reply-To: <20130527091333.GH2781@laptop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, jang@linux.vnet.ibm.com, linux390@de.ibm.com, linux-s390@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, "kernel-janitors@vger.kernel.org" <kernel-janitors@vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robclark@gmail.com, rostedt@goodmis.org, tglx@linutronix.de, mingo@elte.hu, linux-media@vger.kernel.org, Dave Airlie <airlied@redhat.com>
 
+Op 27-05-13 11:13, Peter Zijlstra schreef:
+> On Mon, May 27, 2013 at 10:26:39AM +0200, Maarten Lankhorst wrote:
+>> Op 27-05-13 10:00, Peter Zijlstra schreef:
+>>> On Wed, May 22, 2013 at 07:24:38PM +0200, Maarten Lankhorst wrote:
+>>>>>> +- Functions to only acquire a single w/w mutex, which results in the exact same
+>>>>>> +  semantics as a normal mutex. These functions have the _single postfix.
+>>>>> This is missing rationale.
+>>>> trylock_single is useful when iterating over a list, and you want to evict a bo, but only the first one that can be acquired.
+>>>> lock_single is useful when only a single bo needs to be acquired, for example to lock a buffer during mmap.
+>>> OK, so given that its still early, monday and I haven't actually spend
+>>> much time thinking on this; would it be possible to make:
+>>> ww_mutex_lock(.ctx=NULL) act like ww_mutex_lock_single()?
+>>>
+>>> The idea is that if we don't provide a ctx, we'll get a different
+>>> lockdep annotation; mutex_lock() vs mutex_lock_nest_lock(). So if we
+>>> then go and make a mistake, lockdep should warn us.
+>>>
+>>> Would that work or should I stock up on morning juice?
+>>>
+>> It's easy to merge unlock_single and unlock, which I did in the next version I'll post.
+>> Lockdep will already warn if ww_mutex_lock and ww_mutex_lock_single are both
+>> used. ww_test_block_context and ww_test_context_block in lib/locking-selftest.c
+>> are the testcases for this.
+>>
+>> The locking paths are too different, it will end up with doing "if (ctx == NULL) mutex_lock(); else ww_mutex_lock();"
+> I was more thinking like:
+>
+> int __sched ww_mutex_lock(struct ww_mutex *lock, struct ww_acquire_ctx *ctx)
+> {
+> 	might_sleep();
+> 	return __mutex_lock_common(&lock->base, TASK_UNINTERRUPTIBLE, 0,
+> 				   ctx ? ctx->dep_map : NULL, _RET_IP_,
+> 				   ctx, 0);
+> }
+>
+> That should make ww_mutex_lock(.ctx=NULL) equivalent to
+> mutex_lock(&lock->base), no?
+>
+> Anyway, implementation aside, it would again reduce the interface some.
+>
+It doesn't work like that. __builtin_constant_p(ctx == NULL) will evaluate to false in __mutex_lock_common, even if you call ww_mutex_lock(lock, NULL);
+gcc cannot prove at compile time whether ctx == NULL is true or false for the __mutex_lock_common inlining here, so __builtin_constant_p() will return false.
 
-'buf[2]' is 2 bytes length, and sprintf() will append '\0' at the end
-of string "?\n", so original implementation is memory overflow.
+And again, that's just saying
 
-Need use strncpy() and strnlen() instead of sprintf().
+ww_mutex_lock() {
+if (ctx)
+original ww_mutex_lock's slowpath(lock, ctx);
+else
+mutex_lock's slowpath(lock->base);
+}
 
+And the next version will already remove unlock_single, and this is the implementation for lock_single currently:
+static inline void ww_mutex_lock_single(struct ww_mutex *lock)
+{
+    mutex_lock(&lock->base);
+}
 
-Signed-off-by: Chen Gang <gang.chen@asianux.com>
----
- arch/s390/appldata/appldata_base.c |    7 +++++--
- 1 files changed, 5 insertions(+), 2 deletions(-)
+So why do you want to merge it?
 
-diff --git a/arch/s390/appldata/appldata_base.c b/arch/s390/appldata/appldata_base.c
-index bae0f40..87a2209 100644
---- a/arch/s390/appldata/appldata_base.c
-+++ b/arch/s390/appldata/appldata_base.c
-@@ -212,7 +212,9 @@ appldata_timer_handler(ctl_table *ctl, int write,
- 		return 0;
- 	}
- 	if (!write) {
--		len = sprintf(buf, appldata_timer_active ? "1\n" : "0\n");
-+		strncpy(buf, appldata_timer_active ? "1\n" : "0\n",
-+			ARRAY_SIZE(buf));
-+		len = strnlen(buf, ARRAY_SIZE(buf));
- 		if (len > *lenp)
- 			len = *lenp;
- 		if (copy_to_user(buffer, buf, len))
-@@ -317,7 +319,8 @@ appldata_generic_handler(ctl_table *ctl, int write,
- 		return 0;
- 	}
- 	if (!write) {
--		len = sprintf(buf, ops->active ? "1\n" : "0\n");
-+		strncpy(buf, ops->active ? "1\n" : "0\n", ARRAY_SIZE(buf));
-+		len = strnlen(buf, ARRAY_SIZE(buf));
- 		if (len > *lenp)
- 			len = *lenp;
- 		if (copy_to_user(buffer, buf, len)) {
--- 
-1.7.7.6
+~Maarten
