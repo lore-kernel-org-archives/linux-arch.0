@@ -1,42 +1,48 @@
 From: Chen Gang <gang.chen@asianux.com>
-Subject: [PATCH v2] arch: blackfin: kernel: using strlcpy() instead of strncpy()
-Date: Mon, 27 May 2013 09:51:55 +0800
-Message-ID: <51A2BC3B.4040908@asianux.com>
-References: <51A1B419.5000704@asianux.com>
+Subject: [PATCH v2] arch: arm64: kernel: sprintf(), 'str' needs additional
+ 1 byte for failure processing
+Date: Mon, 27 May 2013 10:00:12 +0800
+Message-ID: <51A2BE2C.2000004@asianux.com>
+References: <51A1E3B3.4060901@asianux.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:13453 "EHLO
+Received: from intranet.asianux.com ([58.214.24.6]:61916 "EHLO
 	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755718Ab3E0Bwp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 26 May 2013 21:52:45 -0400
-In-Reply-To: <51A1B419.5000704@asianux.com>
+	with ESMTP id S1755718Ab3E0CBC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 26 May 2013 22:01:02 -0400
+In-Reply-To: <51A1E3B3.4060901@asianux.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mike Frysinger <vapier@gentoo.org>, Paul Mundt <lethal@linux-sh.org>, realmz paranoid <realmz6@gmail.com>, Geert Uytterhoeven <geert@linux-m68k.org>, monstr@monstr.eu, "uclinux-dist-devel@blackfin.uclinux.org" <uclinux-dist-devel@blackfin.uclinux.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <will.deacon@arm.com>, vgupta@synopsys.com, Tony Lindgren <tony@atomide.com>, Santosh Shilimkar <santosh.shilimkar@ti.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
 
-For NULL terminated string, need always be sure of ended by zero.
+When failure occurs at the last looping cycle (when 'i == 0'), it will
+print "bad PC value" instead of "(%08x) ", which needs additional 1
+byte.
 
-Just use strlcpy() instead of strncpy().
+If not add 1 byte, the 'str' may be memory overflow.
 
 
 Signed-off-by: Chen Gang <gang.chen@asianux.com>
 ---
- arch/blackfin/kernel/setup.c |    2 +-
+ arch/arm64/kernel/traps.c |    2 +-
  1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/arch/blackfin/kernel/setup.c b/arch/blackfin/kernel/setup.c
-index 107b306..c731ec7 100644
---- a/arch/blackfin/kernel/setup.c
-+++ b/arch/blackfin/kernel/setup.c
-@@ -1458,5 +1458,5 @@ void __init cmdline_init(const char *r0)
+diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
+index 61d7dd2..c2f68d2 100644
+--- a/arch/arm64/kernel/traps.c
++++ b/arch/arm64/kernel/traps.c
+@@ -100,7 +100,7 @@ static void dump_instr(const char *lvl, struct pt_regs *regs)
  {
- 	early_shadow_stamp();
- 	if (r0)
--		strncpy(command_line, r0, COMMAND_LINE_SIZE);
-+		strlcpy(command_line, r0, COMMAND_LINE_SIZE);
- }
+ 	unsigned long addr = instruction_pointer(regs);
+ 	mm_segment_t fs;
+-	char str[sizeof("00000000 ") * 5 + 2 + 1], *p = str;
++	char str[sizeof("00000000 ") * 5 + 2 + 1 + 1], *p = str;
+ 	int i;
+ 
+ 	/*
 -- 
 1.7.7.6
