@@ -1,70 +1,50 @@
-From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Subject: Re: [PATCH v3 2/3] mutex: add support for wound/wait style locks,
- v3
-Date: Mon, 27 May 2013 13:24:00 +0200
-Message-ID: <51A34250.6040601@canonical.com>
-References: <20130428165914.17075.57751.stgit@patser> <20130428170407.17075.80082.stgit@patser> <20130430191422.GA5763@phenom.ffwll.local> <519CA976.9000109@canonical.com> <20130522161831.GQ18810@twins.programming.kicks-ass.net> <519CFF56.90600@canonical.com> <20130527082149.GE2781@laptop> <51A32F0E.9000206@canonical.com> <20130527102457.GA4341@laptop> <51A33AD0.4030406@canonical.com> <20130527111557.GB4341@laptop>
+From: Chen Gang <gang.chen@asianux.com>
+Subject: [PATCH] arch: xtensa: include: asm: compiling issue, need cmpxchg64()
+ defined.
+Date: Mon, 27 May 2013 19:57:01 +0800
+Message-ID: <51A34A0D.5070407@asianux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from youngberry.canonical.com ([91.189.89.112]:50204 "EHLO
-	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755866Ab3E0LYG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 May 2013 07:24:06 -0400
-In-Reply-To: <20130527111557.GB4341@laptop>
+Received: from intranet.asianux.com ([58.214.24.6]:18733 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755498Ab3E0L5w (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 May 2013 07:57:52 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robclark@gmail.com, rostedt@goodmis.org, tglx@linutronix.de, mingo@elte.hu, linux-media@vger.kernel.org, Dave Airlie <airlied@redhat.com>
+To: chris@zankel.net, jcmvbkbc@gmail.com
+Cc: linux-xtensa@linux-xtensa.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-Op 27-05-13 13:15, Peter Zijlstra schreef:
-> On Mon, May 27, 2013 at 12:52:00PM +0200, Maarten Lankhorst wrote:
->> The reason ttm needed it was because there was another lock that interacted
->> with the ctx lock in a weird way. The ww lock it was using was inverted with another
->> lock, so it had to grab that lock first, perform a trylock on the ww lock, and if that failed
->> unlock the lock, wait for it to be unlocked, then retry the same thing again.
->> I'm so glad I managed to fix that mess, if you really need ww_mutex_trylock with a ctx,
->> it's an indication your locking is wrong.
->>
->> For ww_mutex_trylock with a context to be of any use you would also need to return
->> 0 or a -errno, (-EDEADLK, -EBUSY (already locked by someone else), or -EALREADY).
->> This would make the trylock very different from other trylocks, and very confusing because
->> if (ww_mutex_trylock(lock, ctx)) would not do what you would think it would do.
-> Yuck ;-)
->
-> Anyway, what I was thinking of is something like:
->
-> 	T0		T1
->
-> 	try A
-> 			lock B
-> 	lock B
-> 			lock A
->
-> Now, if for some reason T1 won the lottery such that T0 would have to be
-> wounded, T0's context would indicate its the first entry and not return
-> -EDEADLK.
-And this sounds like something lockdep is designed to complain about.
 
-Nothing stops you from doing try A then doing try B, which would be the correct way to deal with this situation.
-Why would you trylock one, and then not do the same for another?
+When compiling with 'allmodconfig', some of drivers need cmpxchg64(),
+xtensa does not supply 64-bit implementation for 'xchg', so use the
+'generic' implementation.
 
-> OTOH, anybody doing creative things like that might well deserve
-> whatever they get ;-)
-Indeed!
+e.g. (for next-20130527 tree):
+  drivers/block/blockconsole.c:164:2: error: implicit declaration of fu=
+nction =91cmpxchg64=92 [-Werror=3Dimplicit-function-declaration]
 
->>> The thing is; if there could exist something like:
->>>
->>>   ww_mutex_trylock(struct ww_mutex *, struct ww_acquire_ctx *ctx);
->>>
->>> Then we should not now take away that name and make it mean something
->>> else; namely: ww_mutex_trylock_single().
->>>
->>> Unless we want to allow .ctx=NULL to mean _single.
->>>
->>> As to why I proposed that (.ctx=NULL meaning _single); I suppose because
->>> I'm a minimalist at heart.
->> Minimalism isn't bad, it's just knowing when to sto
-> :-)
->
+Signed-off-by: Chen Gang <gang.chen@asianux.com>
+---
+ arch/xtensa/include/asm/cmpxchg.h |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
+
+diff --git a/arch/xtensa/include/asm/cmpxchg.h b/arch/xtensa/include/as=
+m/cmpxchg.h
+index d9ab131..370b26f 100644
+--- a/arch/xtensa/include/asm/cmpxchg.h
++++ b/arch/xtensa/include/asm/cmpxchg.h
+@@ -93,6 +93,7 @@ static inline unsigned long __cmpxchg_local(volatile =
+void *ptr,
+ 	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o=
+),\
+ 			(unsigned long)(n), sizeof(*(ptr))))
+ #define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o=
+), (n))
++#define cmpxchg64(ptr, o, n)    cmpxchg64_local((ptr), (o), (n))
+=20
+ /*
+  * xchg_u32
+--=20
+1.7.7.6
