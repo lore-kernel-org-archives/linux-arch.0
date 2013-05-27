@@ -1,86 +1,58 @@
 From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH v2] arm64: kernel: compiling issue, need delete read_current_timer().
-Date: Mon, 27 May 2013 18:02:40 +0800
-Message-ID: <51A32F40.1050309@asianux.com>
-References: <5199C725.8050102@asianux.com> <168084c28e8ba5124c05553e97463172@localhost> <20130520095606.GH31359@mudshark.cambridge.arm.com> <519AF2DC.2040200@asianux.com> <20130521085325.GB10453@mudshark.cambridge.arm.com> <519B425D.4030806@asianux.com>
+Subject: Re: [PATCH] arm64: kernel: compiling issue, need 'EXPORT_SYMBOL(clear_page)'
+Date: Mon, 27 May 2013 18:04:21 +0800
+Message-ID: <51A32FA5.3080200@asianux.com>
+References: <5199CCF9.4030305@asianux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:41201 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755907Ab3E0KDb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 May 2013 06:03:31 -0400
-In-Reply-To: <519B425D.4030806@asianux.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>, Marc Zyngier <Marc.Zyngier@arm.com>
-Cc: Catalin Marinas <Catalin.Marinas@arm.com>, Santosh Shilimkar <santosh.shilimkar@ti.com>, Tony Lindgren <tony@atomide.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <5199CCF9.4030305@asianux.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Tony Lindgren <tony@atomide.com>, "olof@lixom.net" <olof@lixom.net>, Santosh Shilimkar <santosh.shilimkar@ti.com>, "nico@linaro.org" <nico@linaro.org>
+Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
 Hello Maintainers:
 
 Please help check this patch whether OK, when you have time.
 
+
 Thanks.
 
-On 05/21/2013 05:46 PM, Chen Gang wrote:
+On 05/20/2013 03:12 PM, Chen Gang wrote:
 > 
-> Under arm64, we will calibrate the delay loop statically using a known
-> timer frequency, so delete read_current_timer(), or it will cause
-> compiling issue with allmodconfig.
+> Need 'EXPORT_SYMBOL(clear_page)' if building with allmodconfig.
 > 
-> The related error:
->   ERROR: "read_current_timer" [lib/rbtree_test.ko] undefined!
->   ERROR: "read_current_timer" [lib/interval_tree_test.ko] undefined!
->   ERROR: "read_current_timer" [fs/ext4/ext4.ko] undefined!
->   ERROR: "read_current_timer" [crypto/tcrypt.ko] undefined!
+> The related errors:
+>   ERROR: "clear_page" [fs/ocfs2/dlm/ocfs2_dlm.ko] undefined!
+>   ERROR: "clear_page" [fs/ntfs/ntfs.ko] undefined!
+>   ERROR: "clear_page" [fs/gfs2/gfs2.ko] undefined!
+>   ERROR: "clear_page" [fs/fuse/fuse.ko] undefined!
+>   ERROR: "clear_page" [fs/ext3/ext3.ko] undefined!
+>   ERROR: "clear_page" [fs/ext2/ext2.ko] undefined!
+>   ERROR: "clear_page" [fs/exofs/libore.ko] undefined!
+>   ERROR: "clear_page" [fs/exofs/exofs.ko] undefined!
+>   ERROR: "clear_page" [drivers/block/brd.ko] undefined!
 > 
 > 
 > Signed-off-by: Chen Gang <gang.chen@asianux.com>
 > ---
->  arch/arm64/include/asm/timex.h |    6 +++---
->  arch/arm64/kernel/time.c       |    6 ------
->  2 files changed, 3 insertions(+), 9 deletions(-)
+>  arch/arm64/kernel/arm64ksyms.c |    1 +
+>  1 files changed, 1 insertions(+), 0 deletions(-)
 > 
-> diff --git a/arch/arm64/include/asm/timex.h b/arch/arm64/include/asm/timex.h
-> index b24a31a..81a076e 100644
-> --- a/arch/arm64/include/asm/timex.h
-> +++ b/arch/arm64/include/asm/timex.h
-> @@ -16,14 +16,14 @@
->  #ifndef __ASM_TIMEX_H
->  #define __ASM_TIMEX_H
+> diff --git a/arch/arm64/kernel/arm64ksyms.c b/arch/arm64/kernel/arm64ksyms.c
+> index 7df1aad..41b4f62 100644
+> --- a/arch/arm64/kernel/arm64ksyms.c
+> +++ b/arch/arm64/kernel/arm64ksyms.c
+> @@ -34,6 +34,7 @@ EXPORT_SYMBOL(__strnlen_user);
+>  EXPORT_SYMBOL(__strncpy_from_user);
 >  
-> +#include <asm/arch_timer.h>
-> +
->  /*
->   * Use the current timer as a cycle counter since this is what we use for
->   * the delay loop.
->   */
-> -#define get_cycles()	({ cycles_t c; read_current_timer(&c); c; })
-> +#define get_cycles()	arch_counter_get_cntvct()
+>  EXPORT_SYMBOL(copy_page);
+> +EXPORT_SYMBOL(clear_page);
 >  
->  #include <asm-generic/timex.h>
->  
-> -#define ARCH_HAS_READ_CURRENT_TIMER
-> -
->  #endif
-> diff --git a/arch/arm64/kernel/time.c b/arch/arm64/kernel/time.c
-> index a551f88..03dc371 100644
-> --- a/arch/arm64/kernel/time.c
-> +++ b/arch/arm64/kernel/time.c
-> @@ -68,12 +68,6 @@ unsigned long long notrace sched_clock(void)
->  	return arch_timer_read_counter() * sched_clock_mult;
->  }
->  
-> -int read_current_timer(unsigned long *timer_value)
-> -{
-> -	*timer_value = arch_timer_read_counter();
-> -	return 0;
-> -}
-> -
->  void __init time_init(void)
->  {
->  	u32 arch_timer_rate;
+>  EXPORT_SYMBOL(__copy_from_user);
+>  EXPORT_SYMBOL(__copy_to_user);
 > 
 
 
