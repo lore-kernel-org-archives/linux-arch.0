@@ -1,34 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:37075 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756499Ab3E0IaD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 May 2013 04:30:03 -0400
-Date: Mon, 27 May 2013 10:29:48 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v3 2/3] mutex: add support for wound/wait style locks, v3
-Message-ID: <20130527082948.GF2781@laptop>
-References: <20130428165914.17075.57751.stgit@patser>
- <20130428170407.17075.80082.stgit@patser>
- <20130430191422.GA5763@phenom.ffwll.local>
- <519CA976.9000109@canonical.com>
- <20130522161831.GQ18810@twins.programming.kicks-ass.net>
- <CAKMK7uHYPdUgbuXAHCZi7xMQUUF8EU5z3F09ZkvGmm33iYtjPA@mail.gmail.com>
+Received: from intranet.asianux.com ([58.214.24.6]:14094 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755862Ab3E0KCE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 May 2013 06:02:04 -0400
+Message-ID: <51A32EE9.1030704@asianux.com>
+Date: Mon, 27 May 2013 18:01:13 +0800
+From: Chen Gang <gang.chen@asianux.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAKMK7uHYPdUgbuXAHCZi7xMQUUF8EU5z3F09ZkvGmm33iYtjPA@mail.gmail.com>
+Subject: Re: [PATCH v2] PowerPC: kernel: need return the related error code
+ when failure occurs
+References: <519B0ACA.6090008@asianux.com> <20130521081031.GA29303@iris.ozlabs.ibm.com> <519B3855.6050201@asianux.com> <519B3C72.9060405@asianux.com>
+In-Reply-To: <519B3C72.9060405@asianux.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Daniel Vetter <daniel@ffwll.ch>
-Cc: Maarten Lankhorst <maarten.lankhorst@canonical.com>, linux-arch@vger.kernel.org, x86@kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, dri-devel <dri-devel@lists.freedesktop.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, rob clark <robclark@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, Dave Airlie <airlied@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
-Message-ID: <20130527082948.vke5lDbrQqLFxrSssT2VD1cdGPhz5aX5A5cFcZTxhhc@z>
+To: Paul Mackerras <paulus@samba.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, zhangyanfei@cn.fujitsu.com, Jiri Kosina <jkosina@suse.cz>, Michael Ellerman <michael@ellerman.id.au>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20130527100113.cDygxtfpwwkvYS-QRVASLmcVDw_fCucT1RYKe21LaXg@z>
 
-On Wed, May 22, 2013 at 06:49:04PM +0200, Daniel Vetter wrote:
-> - _slow functions can check whether all acquire locks have been
-> released and whether the caller is indeed blocking on the contending
-> lock. Not doing so could either result in needless spinning instead of
-> blocking (when blocking on the wrong lock) or in deadlocks (when not
-> dropping all acquired).
+Hello Maintainers:
 
-We could add ww_mutex_assert_context_empty() or somesuch so that
-paranoid people have a means of expressing themselves :-)
+Please help check this patch whether is OK, when you have time.
+
+Thanks.
+
+On 05/21/2013 05:20 PM, Chen Gang wrote:
+> 
+> When error occurs, need return the related error code to let upper
+> caller know about it.
+> 
+> ppc_md.nvram_size() can return the error code (e.g. core99_nvram_size()
+> in 'arch/powerpc/platforms/powermac/nvram.c').
+> 
+> Also set ret value when only need it, so can save structions for normal
+> cases.
+> 
+> The original related patch: "f9ce299 [PATCH] powerpc: fix large nvram
+> access".
+> 
+> 
+> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+> ---
+>  arch/powerpc/kernel/nvram_64.c |   20 ++++++++++++++------
+>  1 files changed, 14 insertions(+), 6 deletions(-)
+> 
+> diff --git a/arch/powerpc/kernel/nvram_64.c b/arch/powerpc/kernel/nvram_64.c
+> index 48fbc2b..8213ee1 100644
+> --- a/arch/powerpc/kernel/nvram_64.c
+> +++ b/arch/powerpc/kernel/nvram_64.c
+> @@ -84,22 +84,30 @@ static ssize_t dev_nvram_read(struct file *file, char __user *buf,
+>  	char *tmp = NULL;
+>  	ssize_t size;
+>  
+> -	ret = -ENODEV;
+> -	if (!ppc_md.nvram_size)
+> +	if (!ppc_md.nvram_size) {
+> +		ret = -ENODEV;
+>  		goto out;
+> +	}
+>  
+> -	ret = 0;
+>  	size = ppc_md.nvram_size();
+> -	if (*ppos >= size || size < 0)
+> +	if (size < 0) {
+> +		ret = size;
+> +		goto out;
+> +	}
+> +
+> +	if (*ppos >= size) {
+> +		ret = 0;
+>  		goto out;
+> +	}
+>  
+>  	count = min_t(size_t, count, size - *ppos);
+>  	count = min(count, PAGE_SIZE);
+>  
+> -	ret = -ENOMEM;
+>  	tmp = kmalloc(count, GFP_KERNEL);
+> -	if (!tmp)
+> +	if (!tmp) {
+> +		ret = -ENOMEM;
+>  		goto out;
+> +	}
+>  
+>  	ret = ppc_md.nvram_read(tmp, count, ppos);
+>  	if (ret <= 0)
+> 
+
+
+-- 
+Chen Gang
+
+Asianux Corporation
