@@ -1,42 +1,35 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: [PATCH] arch: ia64: kernel: flow control, need use 'return' instead
- of 'break'
-Date: Mon, 27 May 2013 14:30:29 +0800
-Message-ID: <51A2FD85.6080808@asianux.com>
+From: Sebastian Andrzej Siewior <sebastian@breakpoint.cc>
+Subject: Re: [PATCH] arch: x86: platform: mrst: pr_err() need notice that
+ 'sdev->modalias' may not a NUL terminated string.
+Date: Mon, 27 May 2013 09:06:35 +0200
+Message-ID: <20130527070634.GA1494@breakpoint.cc>
+References: <51A1CCCE.1020103@asianux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-ia64-owner@vger.kernel.org>
-Sender: linux-ia64-owner@vger.kernel.org
-To: tony.luck@intel.com, fenghua.yu@intel.com, Rusty Russell <rusty@rustcorp.com.au>
-Cc: linux-ia64@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from Chamillionaire.breakpoint.cc ([80.244.247.6]:37379 "EHLO
+	Chamillionaire.breakpoint.cc" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1756607Ab3E0HG7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 27 May 2013 03:06:59 -0400
+Content-Disposition: inline
+In-Reply-To: <51A1CCCE.1020103@asianux.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Chen Gang <gang.chen@asianux.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "mingo@redhat.com" <mingo@redhat.com>, Greg KH <gregkh@linuxfoundation.org>, zhangyanfei@cn.fujitsu.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
+On Sun, May 26, 2013 at 04:50:22PM +0800, Chen Gang wrote:
+> 
+> According to the areas which use "%16.16s" within this file, the
+> 'sdev->modalias' may not always be a NUL terminated string.
+> 
+> So need use "%.16s" instead of "%s" in pr_err(), or may cause issue.
 
-In this case, the original author did not provide the related reason
-string for die_if_kernel(), so the 'buf' is not initialized.
+No. spi_match_id() expects a NULL terminated string and I would be suprised if
+it would be otherwise. Therefore moorsetown or this files has to learn to NULL
+terminate its strings.
 
-The original author wants to generic a 'SIGSEGV' and 'return', not want
-to 'break' to fall to die.
+> Signed-off-by: Chen Gang <gang.chen@asianux.com>
 
-
-Signed-off-by: Chen Gang <gang.chen@asianux.com>
----
- arch/ia64/kernel/traps.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
-
-diff --git a/arch/ia64/kernel/traps.c b/arch/ia64/kernel/traps.c
-index f7f9f9c..d3636e6 100644
---- a/arch/ia64/kernel/traps.c
-+++ b/arch/ia64/kernel/traps.c
-@@ -630,7 +630,7 @@ ia64_fault (unsigned long vector, unsigned long isr, unsigned long ifa,
- 		printk(KERN_ERR "  iip - 0x%lx, ifa - 0x%lx, isr - 0x%lx\n",
- 		       iip, ifa, isr);
- 		force_sig(SIGSEGV, current);
--		break;
-+		return;
- 
- 	      case 46:
- 		printk(KERN_ERR "Unexpected IA-32 intercept trap (Trap 46)\n");
--- 
-1.7.7.6
+Sebastian
