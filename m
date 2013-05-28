@@ -1,48 +1,41 @@
 From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH] arch: xtensa: include: asm: compiling issue, need cmpxchg64()
- defined.
-Date: Tue, 28 May 2013 12:57:15 +0800
-Message-ID: <51A4392B.5090402@asianux.com>
-References: <51A34A0D.5070407@asianux.com> <CAMo8BfKmZjH5ysA=d9xpDAR8kb_WoXFinBQ9nMMGRLmnpjQYcA@mail.gmail.com>
+Subject: Re: [PATCH v2] arch: s390: appldata: using strncpy() and strnlen()
+ instead of sprintf()
+Date: Tue, 28 May 2013 12:58:14 +0800
+Message-ID: <51A43966.7080309@asianux.com>
+References: <51A2CC07.5010100@asianux.com> <CAMuHMdXTW3QOxfAfqQXdbSpP4R83srFf7eMfu5fA-75S_Mujsg@mail.gmail.com> <51A32D81.2010105@asianux.com> <20130527182306.3bd8a252@thinkpad>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=GB2312
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:46941 "EHLO
+Received: from intranet.asianux.com ([58.214.24.6]:46951 "EHLO
 	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754650Ab3E1E6H (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 May 2013 00:58:07 -0400
-In-Reply-To: <CAMo8BfKmZjH5ysA=d9xpDAR8kb_WoXFinBQ9nMMGRLmnpjQYcA@mail.gmail.com>
+	with ESMTP id S932124Ab3E1E7G (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 May 2013 00:59:06 -0400
+In-Reply-To: <20130527182306.3bd8a252@thinkpad>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Max Filippov <jcmvbkbc@gmail.com>
-Cc: chris@zankel.net, linux-xtensa@linux-xtensa.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: Gerald Schaefer <gerald.schaefer@de.ibm.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm.com, linux-s390@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, "kernel-janitors@vger.kernel.org" <kernel-janitors@vger.kernel.org>
 
-On 05/28/2013 12:19 AM, Max Filippov wrote:
-> On Mon, May 27, 2013 at 3:57 PM, Chen Gang <gang.chen@asianux.com> wr=
-ote:
->>
->> When compiling with 'allmodconfig', some of drivers need cmpxchg64()=
-,
->> xtensa does not supply 64-bit implementation for 'xchg', so use the
->> 'generic' implementation.
->>
->> e.g. (for next-20130527 tree):
->>   drivers/block/blockconsole.c:164:2: error: implicit declaration of=
- function =A1=AEcmpxchg64=A1=AF [-Werror=3Dimplicit-function-declaratio=
-n]
->>
->> Signed-off-by: Chen Gang <gang.chen@asianux.com>
->> ---
->>  arch/xtensa/include/asm/cmpxchg.h |    1 +
->>  1 files changed, 1 insertions(+), 0 deletions(-)
->=20
-> Taken to the xtensa-fixes tree. Thanks.
->=20
+On 05/28/2013 12:23 AM, Gerald Schaefer wrote:
+> On Mon, 27 May 2013 17:55:13 +0800
+> Chen Gang <gang.chen@asianux.com> wrote:
+> 
+>> > 
+>> > 'buf[2]' is 2 bytes length, and sprintf() will append '\0' at the end
+>> > of string "?\n", so original implementation is memory overflow.
+>> > 
+>> > Need use strncpy() and strnlen() instead of sprintf().
+>> > 
+>> > 
+>> > Signed-off-by: Chen Gang <gang.chen@asianux.com>
+> Applied, thanks.
+> 
 
-Thank you too.
+Thank you, too.
 
---=20
+-- 
 Chen Gang
 
 Asianux Corporation
