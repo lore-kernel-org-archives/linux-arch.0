@@ -1,46 +1,73 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] arch: configuration,
- deleting 'CONFIG_BUG' since always need it.
-Date: Tue, 28 May 2013 17:43:52 +0200
-Message-ID: <201305281743.52649.arnd@arndb.de>
-References: <519DCBEF.3090208@asianux.com> <20130528081910.GA29557@gmail.com>
- <51A4C564.4040301@zytor.com>
+From: Gerald Schaefer <gerald.schaefer@de.ibm.com>
+Subject: Re: [PATCH v2] arch: s390: appldata: using strncpy() and strnlen()
+ instead of sprintf()
+Date: Tue, 28 May 2013 18:03:27 +0200
+Message-ID: <20130528180327.6e6171f0@thinkpad>
+References: <51A48EE9.2040401@asianux.com>
+	<51A32D81.2010105@asianux.com>
+	<51A2CC07.5010100@asianux.com>
+	<CAMuHMdXTW3QOxfAfqQXdbSpP4R83srFf7eMfu5fA-75S_Mujsg@mail.gmail.com>
+	<4310.1369736553@warthog.procyon.org.uk>
+	<5895.1369743429@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <51A4C564.4040301@zytor.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Catalin Marinas <Catalin.Marinas@arm.com>, Linux-sh list <linux-sh@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Chen Gang <gang.chen@asianux.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "paulus@samba.org" <paulus@samba.org>, Michel Lespinasse <walken@google.com>, Ingo Molnar <mingo@kernel.org>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Linux-Arch <linux-arch@vger.kernel.org>, linux-s390@vger.kernel.org, Russell King - ARM Linux <linux@arm.linux.org.uk>, Yoshinori Sato <ysato@users.sourceforge.jp>, Richard Weinberger <richard@nod.at>, Helge Deller <deller@gmx.de>, the arch/x86 maintainers <x86@kernel.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, "mingo@redhat.com" <mingo@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Frederic Weisbecker <fweisbec@gmail.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, H?vard
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e06smtp15.uk.ibm.com ([195.75.94.111]:50911 "EHLO
+	e06smtp15.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S934722Ab3E1QDf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 May 2013 12:03:35 -0400
+Received: from /spool/local
+	by e06smtp15.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <gerald.schaefer@de.ibm.com>;
+	Tue, 28 May 2013 16:59:38 +0100
+In-Reply-To: <5895.1369743429@warthog.procyon.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Howells <dhowells@redhat.com>
+Cc: Chen Gang <gang.chen@asianux.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm.com, linux-s390@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, "kernel-janitors@vger.kernel.org" <kernel-janitors@vger.kernel.org>
 
-On Tuesday 28 May 2013, H. Peter Anvin wrote:
-> On 05/28/2013 01:19 AM, Ingo Molnar wrote:
-> > 
-> > So I think the same principle applies to it as to any other debugging 
-> > code: it's fine to be able to turn debugging off. It's a performance 
-> > versus kernel robustness/determinism trade-off.
-> > 
+On Tue, 28 May 2013 13:17:09 +0100
+David Howells <dhowells@redhat.com> wrote:
+
+> Chen Gang <gang.chen@asianux.com> wrote:
 > 
-> I suspect, rather, that BUG() should turn into a trap (or jump to a
-> death routine) under any circumstances.  The one thing that can be
-> omitted for small configurations are the annotations, which only serve
-> to output a more human-readable error message.
+> > Your suggestion will improve the speed, but may merge "transferring
+> > 'protocol' data" and "processing 'protocol' data" together.
+> 
+> Look at it this way: You're having to step very carefully because you are
+> fully expecting the strings not to be NUL-terminated.  Therefore you probably
+> avoid using string functions if you can.
+> 
+> In fact, looking at the code, why are you copying the data through an
+> intermediate buffer at all?  Why not just copy directly to userspace:
+> 
+> 	int len;
+> 	char buf[2];
+> 
+> 	if (!*lenp || *ppos) {
+> 		*lenp = 0;
+> 		return 0;
+> 	}
+> 	if (!write) {
+> -		len = sprintf(buf, appldata_timer_active ? "1\n" : "0\n");
+> +		const char *ptr = appldata_timer_active ? "1\n" : "0\n";
+> +		size_t len = 2;
+> 		if (len > *lenp)
+> 			len = *lenp;
+> 		if (copy_to_user(buffer, buf, len))
+> 			return -EFAULT;
+> 		goto out;
+> 	}
+> 
+> Put like that, it's fairly obvious what is going on.
 
-Right, that is what the patch I just posted does.
+Yes, we could do that for !write, but we can't get rid of the buffer
+completely, as we need it for the other case and copy_from_user().
+I have already applied the v2 version from Chen Gang, as it fixes the
+overflow bug, and the affected code is not performance critical at all.
+I like the improved readability of your approach, but the patch is already
+on its way to Martins "for-linus" branch, and I think it's "good enough".
 
-On a related note, I found that WARN_ON() can no longer be compiled
-out since there is already code that relies on the side-effects of
-the condition. I assume that was an intentional change I missed,
-since it used to be defined so that you could remove it completely.
-
-	Arnd
+Thanks for all the feedback to this little piece of very old (and partly
+ugly) code from my very first Linux device driver :-)
