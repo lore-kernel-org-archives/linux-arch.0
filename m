@@ -1,94 +1,317 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp1040.oracle.com ([156.151.31.81]:29728 "EHLO
-	userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934279Ab3E1Ofo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 May 2013 10:35:44 -0400
-Date: Tue, 28 May 2013 10:34:59 -0400
-From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Subject: Re: TLB and PTE coherency during munmap
-Message-ID: <20130528143459.GN724@phenom.dumpdata.com>
-References: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com>
- <CAMo8BfJie1Y49QeSJ+JTQb9WsYJkMMkb1BkKz2Gzy3T7V6ogHA@mail.gmail.com>
+Received: from adelie.canonical.com ([91.189.90.139]:46474 "EHLO
+	adelie.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S934359Ab3E1OtL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 May 2013 10:49:11 -0400
+Subject: [PATCH v4 1/4] arch: make __mutex_fastpath_lock_retval return whether
+ fastpath succeeded or not.
+From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Date: Tue, 28 May 2013 16:48:33 +0200
+Message-ID: <20130528144833.4538.16154.stgit@patser>
+In-Reply-To: <20130528144420.4538.70725.stgit@patser>
+References: <20130528144420.4538.70725.stgit@patser>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAMo8BfJie1Y49QeSJ+JTQb9WsYJkMMkb1BkKz2Gzy3T7V6ogHA@mail.gmail.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Max Filippov <jcmvbkbc@gmail.com>
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-xtensa@linux-xtensa.org, Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>
-Message-ID: <20130528143459.OjY4i_I6qu4y1Y6Y7-2qJiffKP0MQiPzDXXpt7jxXTI@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, peterz@infradead.org, x86@kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robclark@gmail.com, rostedt@goodmis.org, daniel@ffwll.ch, tglx@linutronix.de, mingo@elte.hu, linux-media@vger.kernel.org
+Message-ID: <20130528144833.6FgeMzd9mXV6q1Thmru0jkS4_eHE3KQUOAGL3vl8xkI@z>
 
-On Sun, May 26, 2013 at 06:50:46AM +0400, Max Filippov wrote:
-> Hello arch and mm people.
-> 
-> Is it intentional that threads of a process that invoked munmap syscall
-> can see TLB entries pointing to already freed pages, or it is a bug?
-> 
-> I'm talking about zap_pmd_range and zap_pte_range:
-> 
->       zap_pmd_range
->         zap_pte_range
->           arch_enter_lazy_mmu_mode
->             ptep_get_and_clear_full
->             tlb_remove_tlb_entry
->             __tlb_remove_page
->           arch_leave_lazy_mmu_mode
->         cond_resched
-> 
-> With the default arch_{enter,leave}_lazy_mmu_mode, tlb_remove_tlb_entry
-> and __tlb_remove_page there is a loop in the zap_pte_range that clears
-> PTEs and frees corresponding pages, but doesn't flush TLB, and
-> surrounding loop in the zap_pmd_range that calls cond_resched. If a thread
-> of the same process gets scheduled then it is able to see TLB entries
-> pointing to already freed physical pages.
+This will allow me to call functions that have multiple arguments if fastpath fails.
+This is required to support ticket mutexes, because they need to be able to pass an
+extra argument to the fail function.
 
-The idea behind the lazy MMU subsystem is that it does not need to flush
-the TLB all the time and allow one to do PTE manipulations in a "batch mode".
-Meaning there are stray entries - and one has to be diligient about not using them.
+Originally I duplicated the functions, by adding __mutex_fastpath_lock_retval_arg.
+This ended up being just a duplication of the existing function, so a way to test
+if fastpath was called ended up being better.
 
-Here is the relvant comment from the Linux header:
-                                                                            
-/*                                                                              
- * A facility to provide lazy MMU batching.  This allows PTE updates and        
- * page invalidations to be delayed until a call to leave lazy MMU mode         
- * is issued.  Some architectures may benefit from doing this, and it is        
- * beneficial for both shadow and direct mode hypervisors, which may batch      
- * the PTE updates which happen during this window.  Note that using this       
- * interface requires that read hazards be removed from the code.  A read       
- * hazard could result in the direct mode hypervisor case, since the actual     
- * write to the page tables may not yet have taken place, so reads though       
- * a raw PTE pointer after it has been modified are not guaranteed to be        
- * up to date.  This mode can only be entered and left under the protection of  
- * the page table locks for all page tables which may be modified.  In the UP   
- * case, this is required so that preemption is disabled, and in the SMP case,  
- * it must synchronize the delayed page table writes properly on other CPUs.    
- */                                      
+This also cleaned up the reservation mutex patch some by being able to call an
+atomic_set instead of atomic_xchg, and making it easier to detect if the wrong
+unlock function was previously used.
 
-This means that eventually when arch_leave_lazy_mmu_mode or
-arch_flush_lazy_mmu_mode is called, the PTE updates _should_ be flushed
-(aka, TLB flush if needed on the altered PTE entries).
+Changes since v1, pointed out by Francesco Lavra:
+- fix a small comment issue in mutex_32.h
+- fix the __mutex_fastpath_lock_retval macro for mutex-null.h
 
-> 
-> I've noticed that with xtensa arch when I added a test before returning to
-> userspace checking that TLB contents agrees with page tables of the
-> current mm. This check reliably fires with the LTP test mtest05 that
-> maps, unmaps and accesses memory from multiple threads.
-> 
-> Is there anything wrong in my description, maybe something specific to
-> my arch, or this issue really exists?
-> 
-> I've also noticed that there are a lot of arches with default implementations
-> of the involved functions, does that mean that any/all of them have this
-> issue too?
-> 
-> -- 
-> Thanks.
-> -- Max
-> 
-> --
-> To unsubscribe, send a message with 'unsubscribe linux-mm' in
-> the body to majordomo@kvack.org.  For more info on Linux MM,
-> see: http://www.linux-mm.org/ .
-> Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
-> 
+Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+---
+ arch/ia64/include/asm/mutex.h    |   10 ++++------
+ arch/powerpc/include/asm/mutex.h |   10 ++++------
+ arch/sh/include/asm/mutex-llsc.h |    4 ++--
+ arch/x86/include/asm/mutex_32.h  |   11 ++++-------
+ arch/x86/include/asm/mutex_64.h  |   11 ++++-------
+ include/asm-generic/mutex-dec.h  |   10 ++++------
+ include/asm-generic/mutex-null.h |    2 +-
+ include/asm-generic/mutex-xchg.h |   10 ++++------
+ kernel/mutex.c                   |   32 ++++++++++++++------------------
+ 9 files changed, 41 insertions(+), 59 deletions(-)
+
+diff --git a/arch/ia64/include/asm/mutex.h b/arch/ia64/include/asm/mutex.h
+index bed73a6..f41e66d 100644
+--- a/arch/ia64/include/asm/mutex.h
++++ b/arch/ia64/include/asm/mutex.h
+@@ -29,17 +29,15 @@ __mutex_fastpath_lock(atomic_t *count, void (*fail_fn)(atomic_t *))
+  *  __mutex_fastpath_lock_retval - try to take the lock by moving the count
+  *                                 from 1 to a 0 value
+  *  @count: pointer of type atomic_t
+- *  @fail_fn: function to call if the original value was not 1
+  *
+- * Change the count from 1 to a value lower than 1, and call <fail_fn> if
+- * it wasn't 1 originally. This function returns 0 if the fastpath succeeds,
+- * or anything the slow path function returns.
++ * Change the count from 1 to a value lower than 1. This function returns 0
++ * if the fastpath succeeds, or -1 otherwise.
+  */
+ static inline int
+-__mutex_fastpath_lock_retval(atomic_t *count, int (*fail_fn)(atomic_t *))
++__mutex_fastpath_lock_retval(atomic_t *count)
+ {
+ 	if (unlikely(ia64_fetchadd4_acq(count, -1) != 1))
+-		return fail_fn(count);
++		return -1;
+ 	return 0;
+ }
+ 
+diff --git a/arch/powerpc/include/asm/mutex.h b/arch/powerpc/include/asm/mutex.h
+index 5399f7e..127ab23 100644
+--- a/arch/powerpc/include/asm/mutex.h
++++ b/arch/powerpc/include/asm/mutex.h
+@@ -82,17 +82,15 @@ __mutex_fastpath_lock(atomic_t *count, void (*fail_fn)(atomic_t *))
+  *  __mutex_fastpath_lock_retval - try to take the lock by moving the count
+  *                                 from 1 to a 0 value
+  *  @count: pointer of type atomic_t
+- *  @fail_fn: function to call if the original value was not 1
+  *
+- * Change the count from 1 to a value lower than 1, and call <fail_fn> if
+- * it wasn't 1 originally. This function returns 0 if the fastpath succeeds,
+- * or anything the slow path function returns.
++ * Change the count from 1 to a value lower than 1. This function returns 0
++ * if the fastpath succeeds, or -1 otherwise.
+  */
+ static inline int
+-__mutex_fastpath_lock_retval(atomic_t *count, int (*fail_fn)(atomic_t *))
++__mutex_fastpath_lock_retval(atomic_t *count)
+ {
+ 	if (unlikely(__mutex_dec_return_lock(count) < 0))
+-		return fail_fn(count);
++		return -1;
+ 	return 0;
+ }
+ 
+diff --git a/arch/sh/include/asm/mutex-llsc.h b/arch/sh/include/asm/mutex-llsc.h
+index 090358a..dad29b6 100644
+--- a/arch/sh/include/asm/mutex-llsc.h
++++ b/arch/sh/include/asm/mutex-llsc.h
+@@ -37,7 +37,7 @@ __mutex_fastpath_lock(atomic_t *count, void (*fail_fn)(atomic_t *))
+ }
+ 
+ static inline int
+-__mutex_fastpath_lock_retval(atomic_t *count, int (*fail_fn)(atomic_t *))
++__mutex_fastpath_lock_retval(atomic_t *count)
+ {
+ 	int __done, __res;
+ 
+@@ -51,7 +51,7 @@ __mutex_fastpath_lock_retval(atomic_t *count, int (*fail_fn)(atomic_t *))
+ 		: "t");
+ 
+ 	if (unlikely(!__done || __res != 0))
+-		__res = fail_fn(count);
++		__res = -1;
+ 
+ 	return __res;
+ }
+diff --git a/arch/x86/include/asm/mutex_32.h b/arch/x86/include/asm/mutex_32.h
+index 03f90c8..0208c3c 100644
+--- a/arch/x86/include/asm/mutex_32.h
++++ b/arch/x86/include/asm/mutex_32.h
+@@ -42,17 +42,14 @@ do {								\
+  *  __mutex_fastpath_lock_retval - try to take the lock by moving the count
+  *                                 from 1 to a 0 value
+  *  @count: pointer of type atomic_t
+- *  @fail_fn: function to call if the original value was not 1
+  *
+- * Change the count from 1 to a value lower than 1, and call <fail_fn> if it
+- * wasn't 1 originally. This function returns 0 if the fastpath succeeds,
+- * or anything the slow path function returns
++ * Change the count from 1 to a value lower than 1. This function returns 0
++ * if the fastpath succeeds, or -1 otherwise.
+  */
+-static inline int __mutex_fastpath_lock_retval(atomic_t *count,
+-					       int (*fail_fn)(atomic_t *))
++static inline int __mutex_fastpath_lock_retval(atomic_t *count)
+ {
+ 	if (unlikely(atomic_dec_return(count) < 0))
+-		return fail_fn(count);
++		return -1;
+ 	else
+ 		return 0;
+ }
+diff --git a/arch/x86/include/asm/mutex_64.h b/arch/x86/include/asm/mutex_64.h
+index 68a87b0..2c543ff 100644
+--- a/arch/x86/include/asm/mutex_64.h
++++ b/arch/x86/include/asm/mutex_64.h
+@@ -37,17 +37,14 @@ do {								\
+  *  __mutex_fastpath_lock_retval - try to take the lock by moving the count
+  *                                 from 1 to a 0 value
+  *  @count: pointer of type atomic_t
+- *  @fail_fn: function to call if the original value was not 1
+  *
+- * Change the count from 1 to a value lower than 1, and call <fail_fn> if
+- * it wasn't 1 originally. This function returns 0 if the fastpath succeeds,
+- * or anything the slow path function returns
++ * Change the count from 1 to a value lower than 1. This function returns 0
++ * if the fastpath succeeds, or -1 otherwise.
+  */
+-static inline int __mutex_fastpath_lock_retval(atomic_t *count,
+-					       int (*fail_fn)(atomic_t *))
++static inline int __mutex_fastpath_lock_retval(atomic_t *count)
+ {
+ 	if (unlikely(atomic_dec_return(count) < 0))
+-		return fail_fn(count);
++		return -1;
+ 	else
+ 		return 0;
+ }
+diff --git a/include/asm-generic/mutex-dec.h b/include/asm-generic/mutex-dec.h
+index f104af7..d4f9fb4 100644
+--- a/include/asm-generic/mutex-dec.h
++++ b/include/asm-generic/mutex-dec.h
+@@ -28,17 +28,15 @@ __mutex_fastpath_lock(atomic_t *count, void (*fail_fn)(atomic_t *))
+  *  __mutex_fastpath_lock_retval - try to take the lock by moving the count
+  *                                 from 1 to a 0 value
+  *  @count: pointer of type atomic_t
+- *  @fail_fn: function to call if the original value was not 1
+  *
+- * Change the count from 1 to a value lower than 1, and call <fail_fn> if
+- * it wasn't 1 originally. This function returns 0 if the fastpath succeeds,
+- * or anything the slow path function returns.
++ * Change the count from 1 to a value lower than 1. This function returns 0
++ * if the fastpath succeeds, or -1 otherwise.
+  */
+ static inline int
+-__mutex_fastpath_lock_retval(atomic_t *count, int (*fail_fn)(atomic_t *))
++__mutex_fastpath_lock_retval(atomic_t *count)
+ {
+ 	if (unlikely(atomic_dec_return(count) < 0))
+-		return fail_fn(count);
++		return -1;
+ 	return 0;
+ }
+ 
+diff --git a/include/asm-generic/mutex-null.h b/include/asm-generic/mutex-null.h
+index e1bbbc7..61069ed 100644
+--- a/include/asm-generic/mutex-null.h
++++ b/include/asm-generic/mutex-null.h
+@@ -11,7 +11,7 @@
+ #define _ASM_GENERIC_MUTEX_NULL_H
+ 
+ #define __mutex_fastpath_lock(count, fail_fn)		fail_fn(count)
+-#define __mutex_fastpath_lock_retval(count, fail_fn)	fail_fn(count)
++#define __mutex_fastpath_lock_retval(count)		(-1)
+ #define __mutex_fastpath_unlock(count, fail_fn)		fail_fn(count)
+ #define __mutex_fastpath_trylock(count, fail_fn)	fail_fn(count)
+ #define __mutex_slowpath_needs_to_unlock()		1
+diff --git a/include/asm-generic/mutex-xchg.h b/include/asm-generic/mutex-xchg.h
+index c04e0db..f169ec0 100644
+--- a/include/asm-generic/mutex-xchg.h
++++ b/include/asm-generic/mutex-xchg.h
+@@ -39,18 +39,16 @@ __mutex_fastpath_lock(atomic_t *count, void (*fail_fn)(atomic_t *))
+  *  __mutex_fastpath_lock_retval - try to take the lock by moving the count
+  *                                 from 1 to a 0 value
+  *  @count: pointer of type atomic_t
+- *  @fail_fn: function to call if the original value was not 1
+  *
+- * Change the count from 1 to a value lower than 1, and call <fail_fn> if it
+- * wasn't 1 originally. This function returns 0 if the fastpath succeeds,
+- * or anything the slow path function returns
++ * Change the count from 1 to a value lower than 1. This function returns 0
++ * if the fastpath succeeds, or -1 otherwise.
+  */
+ static inline int
+-__mutex_fastpath_lock_retval(atomic_t *count, int (*fail_fn)(atomic_t *))
++__mutex_fastpath_lock_retval(atomic_t *count)
+ {
+ 	if (unlikely(atomic_xchg(count, 0) != 1))
+ 		if (likely(atomic_xchg(count, -1) != 1))
+-			return fail_fn(count);
++			return -1;
+ 	return 0;
+ }
+ 
+diff --git a/kernel/mutex.c b/kernel/mutex.c
+index 52f2301..84a5f07 100644
+--- a/kernel/mutex.c
++++ b/kernel/mutex.c
+@@ -351,10 +351,10 @@ __mutex_unlock_slowpath(atomic_t *lock_count)
+  * mutex_lock_interruptible() and mutex_trylock().
+  */
+ static noinline int __sched
+-__mutex_lock_killable_slowpath(atomic_t *lock_count);
++__mutex_lock_killable_slowpath(struct mutex *lock);
+ 
+ static noinline int __sched
+-__mutex_lock_interruptible_slowpath(atomic_t *lock_count);
++__mutex_lock_interruptible_slowpath(struct mutex *lock);
+ 
+ /**
+  * mutex_lock_interruptible - acquire the mutex, interruptible
+@@ -372,12 +372,12 @@ int __sched mutex_lock_interruptible(struct mutex *lock)
+ 	int ret;
+ 
+ 	might_sleep();
+-	ret =  __mutex_fastpath_lock_retval
+-			(&lock->count, __mutex_lock_interruptible_slowpath);
+-	if (!ret)
++	ret =  __mutex_fastpath_lock_retval(&lock->count);
++	if (likely(!ret)) {
+ 		mutex_set_owner(lock);
+-
+-	return ret;
++		return 0;
++	} else
++		return __mutex_lock_interruptible_slowpath(lock);
+ }
+ 
+ EXPORT_SYMBOL(mutex_lock_interruptible);
+@@ -387,12 +387,12 @@ int __sched mutex_lock_killable(struct mutex *lock)
+ 	int ret;
+ 
+ 	might_sleep();
+-	ret = __mutex_fastpath_lock_retval
+-			(&lock->count, __mutex_lock_killable_slowpath);
+-	if (!ret)
++	ret = __mutex_fastpath_lock_retval(&lock->count);
++	if (likely(!ret)) {
+ 		mutex_set_owner(lock);
+-
+-	return ret;
++		return 0;
++	} else
++		return __mutex_lock_killable_slowpath(lock);
+ }
+ EXPORT_SYMBOL(mutex_lock_killable);
+ 
+@@ -405,18 +405,14 @@ __mutex_lock_slowpath(atomic_t *lock_count)
+ }
+ 
+ static noinline int __sched
+-__mutex_lock_killable_slowpath(atomic_t *lock_count)
++__mutex_lock_killable_slowpath(struct mutex *lock)
+ {
+-	struct mutex *lock = container_of(lock_count, struct mutex, count);
+-
+ 	return __mutex_lock_common(lock, TASK_KILLABLE, 0, NULL, _RET_IP_);
+ }
+ 
+ static noinline int __sched
+-__mutex_lock_interruptible_slowpath(atomic_t *lock_count)
++__mutex_lock_interruptible_slowpath(struct mutex *lock)
+ {
+-	struct mutex *lock = container_of(lock_count, struct mutex, count);
+-
+ 	return __mutex_lock_common(lock, TASK_INTERRUPTIBLE, 0, NULL, _RET_IP_);
+ }
+ #endif
+
