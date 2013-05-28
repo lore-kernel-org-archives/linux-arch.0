@@ -1,52 +1,86 @@
 From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH v2] arch: s390: appldata: using strncpy() and strnlen()
- instead of sprintf()
-Date: Tue, 28 May 2013 19:03:05 +0800
-Message-ID: <51A48EE9.2040401@asianux.com>
-References: <51A32D81.2010105@asianux.com> <51A2CC07.5010100@asianux.com> <CAMuHMdXTW3QOxfAfqQXdbSpP4R83srFf7eMfu5fA-75S_Mujsg@mail.gmail.com> <4310.1369736553@warthog.procyon.org.uk>
+Subject: Re: [PATCH v2] arch: arm64: kernel: sprintf(), 'str' needs additional
+ 1 byte for failure processing
+Date: Tue, 28 May 2013 19:21:01 +0800
+Message-ID: <51A4931D.9090209@asianux.com>
+References: <51A1E3B3.4060901@asianux.com> <51A2BE2C.2000004@asianux.com> <20130528104250.GE10474@mudshark.cambridge.arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:41164 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932547Ab3E1LD4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 May 2013 07:03:56 -0400
-In-Reply-To: <4310.1369736553@warthog.procyon.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, jang@linux.vnet.ibm.com, linux390@de.ibm.com, linux-s390@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, "kernel-janitors@vger.kernel.org" <kernel-janitors@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20130528104250.GE10474@mudshark.cambridge.arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: Catalin Marinas <Catalin.Marinas@arm.com>, "vgupta@synopsys.com" <vgupta@synopsys.com>, Tony Lindgren <tony@atomide.com>, Santosh Shilimkar <santosh.shilimkar@ti.com>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 05/28/2013 06:22 PM, David Howells wrote:
-> Chen Gang <gang.chen@asianux.com> wrote:
+On 05/28/2013 06:42 PM, Will Deacon wrote:
+> Hello,
 > 
->> > -		len = sprintf(buf, appldata_timer_active ? "1\n" : "0\n");
->> > +		strncpy(buf, appldata_timer_active ? "1\n" : "0\n",
->> > +			ARRAY_SIZE(buf));
->> > +		len = strnlen(buf, ARRAY_SIZE(buf));
-> Since the strings here are a fixed, preknown size, you should use memcpy (or
-> just fill in the array directly which would likely take fewer instructions
-> since the strings are so short and vary by one character) and hard-code the
-> length or use sizeof() instead of strnlen().
+> On Mon, May 27, 2013 at 03:00:12AM +0100, Chen Gang wrote:
+>> > 
+>> > When failure occurs at the last looping cycle (when 'i == 0'), it will
+>> > print "bad PC value" instead of "(%08x) ", which needs additional 1
+>> > byte.
+>> > 
+>> > If not add 1 byte, the 'str' may be memory overflow.
+>> > 
+>> > 
+>> > Signed-off-by: Chen Gang <gang.chen@asianux.com>
+>> > ---
+>> >  arch/arm64/kernel/traps.c |    2 +-
+>> >  1 files changed, 1 insertions(+), 1 deletions(-)
+>> > 
+>> > diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
+>> > index 61d7dd2..c2f68d2 100644
+>> > --- a/arch/arm64/kernel/traps.c
+>> > +++ b/arch/arm64/kernel/traps.c
+>> > @@ -100,7 +100,7 @@ static void dump_instr(const char *lvl, struct pt_regs *regs)
+>> >  {
+>> >  	unsigned long addr = instruction_pointer(regs);
+>> >  	mm_segment_t fs;
+>> > -	char str[sizeof("00000000 ") * 5 + 2 + 1], *p = str;
+>> > +	char str[sizeof("00000000 ") * 5 + 2 + 1 + 1], *p = str;
+>> >  	int i;
+> Whilst this code is difficult to follow, I don't think it's incorrect.
+> The size of the str array is:
+> 
+> 	sizeof("00000000 ") = 8 ('0's) + 1 (space) + 1 (NUL) = 10 bytes
 
-I treat it "?\n" as a 'protocol' between kernel mode and user mode, the
-original issue is about transferring 'protocol' data. the patch wants to
-fix the issue, independent of 'protocol'.
+Oh, it is my fault, I miss the "1 (NUL)".
 
-appldata_timer_handler() itself has already separated "transferring
-'protocol' data" from "processing 'protocol' data" (but not let the
-"processing 'protocol' data" in another new function)
+> 	*5 = 50 bytes
+> 	+2 (for the two brackets when i == 0) = 52 bytes
+> 	+1 (this is for the "bad PC value") = 53 bytes
+> 
+> In the worst case (when the PC is bad) we print:
+> 
+> 	"%08x " x4 = (8 + 1 + 1) *4 = 40 bytes
 
-Your suggestion will improve the speed, but may merge "transferring
-'protocol' data" and "processing 'protocol' data" together.
+Actually, it is 36 bytes, for sprintf() return the length excluding NUL.
 
-So if the performance is not quite important in this location, it is
-still reasonable to follow with the original author's willing
-(especially what he/she has done sounds reasonable too).
+  (although, we still need notice the last NUL)
 
 
-Thanks.
+> 	"bad PC value" = 12 + 1 = 13 bytes
+> 
+> so again, 53 bytes.
+>
+
+So again, 49 bytes. ;-)
+
+
+> .. or have I missed a character somewhere?
+> 
+
+NO, I missed characters, but you 'find' more characters. :-)
+
+
+All together, this patch is incorrect, original implementation will not
+cause issue.
+
+
+Thanks
 -- 
 Chen Gang
 
