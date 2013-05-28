@@ -1,50 +1,46 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: TLB and PTE coherency during munmap
-Date: Tue, 28 May 2013 16:23:46 +0100
-Message-ID: <CAHkRjk5Hm9zQJ0xWupoPcQotoXabcUsM9QmQDFXorei9CV7Heg@mail.gmail.com>
-References: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com>
- <CAMo8BfJie1Y49QeSJ+JTQb9WsYJkMMkb1BkKz2Gzy3T7V6ogHA@mail.gmail.com> <20130528151634.GA30672@dhcp22.suse.cz>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] arch: configuration,
+ deleting 'CONFIG_BUG' since always need it.
+Date: Tue, 28 May 2013 17:43:52 +0200
+Message-ID: <201305281743.52649.arnd@arndb.de>
+References: <519DCBEF.3090208@asianux.com> <20130528081910.GA29557@gmail.com>
+ <51A4C564.4040301@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f179.google.com ([209.85.192.179]:32963 "EHLO
-	mail-pd0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934329Ab3E1PYH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 May 2013 11:24:07 -0400
-Received: by mail-pd0-f179.google.com with SMTP id q11so7713423pdj.24
-        for <linux-arch@vger.kernel.org>; Tue, 28 May 2013 08:24:06 -0700 (PDT)
-In-Reply-To: <20130528151634.GA30672@dhcp22.suse.cz>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@suse.cz>
-Cc: Max Filippov <jcmvbkbc@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, linux-xtensa@linux-xtensa.org, Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <51A4C564.4040301@zytor.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Catalin Marinas <Catalin.Marinas@arm.com>, Linux-sh list <linux-sh@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Chen Gang <gang.chen@asianux.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "paulus@samba.org" <paulus@samba.org>, Michel Lespinasse <walken@google.com>, Ingo Molnar <mingo@kernel.org>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Linux-Arch <linux-arch@vger.kernel.org>, linux-s390@vger.kernel.org, Russell King - ARM Linux <linux@arm.linux.org.uk>, Yoshinori Sato <ysato@users.sourceforge.jp>, Richard Weinberger <richard@nod.at>, Helge Deller <deller@gmx.de>, the arch/x86 maintainers <x86@kernel.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, "mingo@redhat.com" <mingo@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Frederic Weisbecker <fweisbec@gmail.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, H?vard
+List-Id: linux-arch.vger.kernel.org
 
-On 28 May 2013 16:16, Michal Hocko <mhocko@suse.cz> wrote:
-> On Sun 26-05-13 06:50:46, Max Filippov wrote:
->> Is it intentional that threads of a process that invoked munmap syscall
->> can see TLB entries pointing to already freed pages, or it is a bug?
->>
->> I'm talking about zap_pmd_range and zap_pte_range:
->>
->>       zap_pmd_range
->>         zap_pte_range
->>           arch_enter_lazy_mmu_mode
->>             ptep_get_and_clear_full
->>             tlb_remove_tlb_entry
->>             __tlb_remove_page
->>           arch_leave_lazy_mmu_mode
->>         cond_resched
->>
->> With the default arch_{enter,leave}_lazy_mmu_mode, tlb_remove_tlb_entry
->> and __tlb_remove_page there is a loop in the zap_pte_range that clears
->> PTEs and frees corresponding pages,
->
-> The page is not freed at that time (at least not for the generic
-> mmu_gather implementation). It is stored into mmu_gather and then freed
-> along with the tlb flush in tlb_flush_mmu.
+On Tuesday 28 May 2013, H. Peter Anvin wrote:
+> On 05/28/2013 01:19 AM, Ingo Molnar wrote:
+> > 
+> > So I think the same principle applies to it as to any other debugging 
+> > code: it's fine to be able to turn debugging off. It's a performance 
+> > versus kernel robustness/determinism trade-off.
+> > 
+> 
+> I suspect, rather, that BUG() should turn into a trap (or jump to a
+> death routine) under any circumstances.  The one thing that can be
+> omitted for small configurations are the annotations, which only serve
+> to output a more human-readable error message.
 
-Actually for the UP case, the page gets freed in __tlb_remove_page()
-since tlb_fast_mode() is 1.
+Right, that is what the patch I just posted does.
 
---
-Catalin
+On a related note, I found that WARN_ON() can no longer be compiled
+out since there is already code that relies on the side-effects of
+the condition. I assume that was an intentional change I missed,
+since it used to be defined so that you could remove it completely.
+
+	Arnd
