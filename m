@@ -1,45 +1,29 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: Get rid of cpuinit?
-Date: Tue, 28 May 2013 11:20:38 +0200
-Message-ID: <20130528092038.GC32068@gmail.com>
-References: <519AA53F.1020107@zytor.com>
- <20130520231203.GA21682@kroah.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH v2] arch: s390: appldata: using strncpy() and strnlen() instead of sprintf()
+Date: Tue, 28 May 2013 11:22:33 +0100
+Message-ID: <4310.1369736553@warthog.procyon.org.uk>
+References: <51A32D81.2010105@asianux.com> <51A2CC07.5010100@asianux.com> <CAMuHMdXTW3QOxfAfqQXdbSpP4R83srFf7eMfu5fA-75S_Mujsg@mail.gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f169.google.com ([209.85.212.169]:33485 "EHLO
-	mail-wi0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933724Ab3E1JUm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 May 2013 05:20:42 -0400
-Content-Disposition: inline
-In-Reply-To: <20130520231203.GA21682@kroah.com>
+Received: from mx1.redhat.com ([209.132.183.28]:27840 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755617Ab3E1KWv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 28 May 2013 06:22:51 -0400
+In-Reply-To: <51A32D81.2010105@asianux.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg KH <greg@kroah.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>
+To: Chen Gang <gang.chen@asianux.com>
+Cc: dhowells@redhat.com, Geert Uytterhoeven <geert@linux-m68k.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, jang@linux.vnet.ibm.com, linux390@de.ibm.com, linux-s390@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, "kernel-janitors@vger.kernel.org" <kernel-janitors@vger.kernel.org>
 
+Chen Gang <gang.chen@asianux.com> wrote:
 
-* Greg KH <greg@kroah.com> wrote:
+> -		len = sprintf(buf, appldata_timer_active ? "1\n" : "0\n");
+> +		strncpy(buf, appldata_timer_active ? "1\n" : "0\n",
+> +			ARRAY_SIZE(buf));
+> +		len = strnlen(buf, ARRAY_SIZE(buf));
 
-> On Mon, May 20, 2013 at 03:35:43PM -0700, H. Peter Anvin wrote:
-> > We have gotten rid of devinit markup.  A recent patch of Linus' makes me
-> > wonder if we similarly should get rid of cpuinit markup?
-> > 
-> > Just as with devices, the CPU hotplug machinery has been leveraged to
-> > support a number of pieces of functionality such as suspend, which means
-> > that on anything but the most embedded systems this functionality is
-> > likely needed anyway.
-> > 
-> > On x86-64, for an "allyesconfig" build, the total amount of space in all
-> > the .cpu* sections combined is 100K.
-> 
-> No objection from me on removing it, it just causes problems from what I
-> can tell.
+Since the strings here are a fixed, preknown size, you should use memcpy (or
+just fill in the array directly which would likely take fewer instructions
+since the strings are so short and vary by one character) and hard-code the
+length or use sizeof() instead of strnlen().
 
-Indeed, there's a steady trickle of mis-annotated cpuinit sections, and no 
-real tooling to make the annotations automatic or so in most of the cases. 
-Manual simply does not seem to work in this case.
-
-Thanks,
-
-	Ingo
+David
