@@ -1,73 +1,42 @@
-From: Gerald Schaefer <gerald.schaefer@de.ibm.com>
-Subject: Re: [PATCH v2] arch: s390: appldata: using strncpy() and strnlen()
- instead of sprintf()
-Date: Tue, 28 May 2013 18:03:27 +0200
-Message-ID: <20130528180327.6e6171f0@thinkpad>
-References: <51A48EE9.2040401@asianux.com>
-	<51A32D81.2010105@asianux.com>
-	<51A2CC07.5010100@asianux.com>
-	<CAMuHMdXTW3QOxfAfqQXdbSpP4R83srFf7eMfu5fA-75S_Mujsg@mail.gmail.com>
-	<4310.1369736553@warthog.procyon.org.uk>
-	<5895.1369743429@warthog.procyon.org.uk>
+From: "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+Subject: Re: [PATCH] arch: configuration,
+ deleting 'CONFIG_BUG' since always need it.
+Date: Tue, 28 May 2013 09:06:48 -0700
+Message-ID: <51A4D618.3080208@zytor.com>
+References: <519DCBEF.3090208@asianux.com> <20130528081910.GA29557@gmail.com>
+	<51A4C564.4040301@zytor.com> <201305281743.52649.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp15.uk.ibm.com ([195.75.94.111]:50911 "EHLO
-	e06smtp15.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934722Ab3E1QDf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 May 2013 12:03:35 -0400
-Received: from /spool/local
-	by e06smtp15.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <gerald.schaefer@de.ibm.com>;
-	Tue, 28 May 2013 16:59:38 +0100
-In-Reply-To: <5895.1369743429@warthog.procyon.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Chen Gang <gang.chen@asianux.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm.com, linux-s390@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, "kernel-janitors@vger.kernel.org" <kernel-janitors@vger.kernel.org>
+Return-path: <uclinux-dist-devel-bounces-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org>
+In-Reply-To: <201305281743.52649.arnd-r2nGTMty4D4@public.gmane.org>
+List-Unsubscribe: <https://blackfin.uclinux.org/mailman/options/uclinux-dist-devel>,
+	<mailto:uclinux-dist-devel-request-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://blackfin.uclinux.org/pipermail/uclinux-dist-devel>
+List-Post: <mailto:uclinux-dist-devel-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org>
+List-Help: <mailto:uclinux-dist-devel-request-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org?subject=help>
+List-Subscribe: <https://blackfin.uclinux.org/mailman/listinfo/uclinux-dist-devel>,
+	<mailto:uclinux-dist-devel-request-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org?subject=subscribe>
+Sender: uclinux-dist-devel-bounces-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org
+Errors-To: uclinux-dist-devel-bounces-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org
+To: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+Cc: Linux-sh list <linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Catalin Marinas <Catalin.Marinas-5wv7dgnIgG8@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, Chen Gang <gang.chen-bOixZGp5f+dBDgjK7y7TUQ@public.gmane.org>, Heiko Carstens <heiko.carstens-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org>, "paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org" <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, Michel Lespinasse <walken-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Ingo Molnar <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Hans-Christian Egtvedt <egtvedt-BrfabpQBY5qlHtIdYg32fQ@public.gmane.org>, Linux-Arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Russell King - ARM Linux <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Yoshinori Sato <ysato-Rn4VEauK+AKRv+LV9MX5uooqe+aC9MnS@public.gmane.org>, Richard Weinberger <richard-/L3Ra7n9ekc@public.gmane.org>, Helge Deller <deller-Mmb7MZpHnFY@public.gmane.org>, the arch/x86 maintainers <x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "James E.J. Bottomley" <jejb-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>, "mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org" <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 28 May 2013 13:17:09 +0100
-David Howells <dhowells@redhat.com> wrote:
+On 05/28/2013 08:43 AM, Arnd Bergmann wrote:
+> 
+> Right, that is what the patch I just posted does.
+> 
+> On a related note, I found that WARN_ON() can no longer be compiled
+> out since there is already code that relies on the side-effects of
+> the condition. I assume that was an intentional change I missed,
+> since it used to be defined so that you could remove it completely.
+> 
 
-> Chen Gang <gang.chen@asianux.com> wrote:
-> 
-> > Your suggestion will improve the speed, but may merge "transferring
-> > 'protocol' data" and "processing 'protocol' data" together.
-> 
-> Look at it this way: You're having to step very carefully because you are
-> fully expecting the strings not to be NUL-terminated.  Therefore you probably
-> avoid using string functions if you can.
-> 
-> In fact, looking at the code, why are you copying the data through an
-> intermediate buffer at all?  Why not just copy directly to userspace:
-> 
-> 	int len;
-> 	char buf[2];
-> 
-> 	if (!*lenp || *ppos) {
-> 		*lenp = 0;
-> 		return 0;
-> 	}
-> 	if (!write) {
-> -		len = sprintf(buf, appldata_timer_active ? "1\n" : "0\n");
-> +		const char *ptr = appldata_timer_active ? "1\n" : "0\n";
-> +		size_t len = 2;
-> 		if (len > *lenp)
-> 			len = *lenp;
-> 		if (copy_to_user(buffer, buf, len))
-> 			return -EFAULT;
-> 		goto out;
-> 	}
-> 
-> Put like that, it's fairly obvious what is going on.
+It is possible to define WARN_ON() as:
 
-Yes, we could do that for !write, but we can't get rid of the buffer
-completely, as we need it for the other case and copy_from_user().
-I have already applied the v2 version from Chen Gang, as it fixes the
-overflow bug, and the affected code is not performance critical at all.
-I like the improved readability of your approach, but the patch is already
-on its way to Martins "for-linus" branch, and I think it's "good enough".
+#define WARN_ON(x) ((void)(x))
 
-Thanks for all the feedback to this little piece of very old (and partly
-ugly) code from my very first Linux device driver :-)
+... which preserves side effects.
+
+	-hpa
