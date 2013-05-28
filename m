@@ -1,49 +1,33 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH v2] arch: s390: appldata: using strncpy() and strnlen() instead of sprintf()
-Date: Tue, 28 May 2013 13:17:09 +0100
-Message-ID: <5895.1369743429@warthog.procyon.org.uk>
-References: <51A48EE9.2040401@asianux.com> <51A32D81.2010105@asianux.com> <51A2CC07.5010100@asianux.com> <CAMuHMdXTW3QOxfAfqQXdbSpP4R83srFf7eMfu5fA-75S_Mujsg@mail.gmail.com> <4310.1369736553@warthog.procyon.org.uk>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:17071 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S933730Ab3E1MRp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 28 May 2013 08:17:45 -0400
-In-Reply-To: <51A48EE9.2040401@asianux.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Chen Gang <gang.chen@asianux.com>
-Cc: dhowells@redhat.com, Geert Uytterhoeven <geert@linux-m68k.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, jang@linux.vnet.ibm.com, linux390@de.ibm.com, linux-s390@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, "kernel-janitors@vger.kernel.org" <kernel-janitors@vger.kernel.org>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v8, part3 03/14] mm/ARM64: kill poison_init_mem()
+Date: Tue, 28 May 2013 14:43:37 +0100
+Message-ID: <20130528134336.GA15546@arm.com>
+References: <1369575522-26405-1-git-send-email-jiang.liu@huawei.com>
+ <1369575522-26405-4-git-send-email-jiang.liu@huawei.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <1369575522-26405-4-git-send-email-jiang.liu@huawei.com>
+Sender: owner-linux-mm@kvack.org
+To: Jiang Liu <liuj97@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, "msalter@redhat.com" <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-k>
+List-Id: linux-arch.vger.kernel.org
 
-Chen Gang <gang.chen@asianux.com> wrote:
+On Sun, May 26, 2013 at 02:38:31PM +0100, Jiang Liu wrote:
+> Use free_reserved_area() to poison initmem memory pages and kill
+> poison_init_mem() on ARM64.
+> 
+> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will.deacon@arm.com>
+> Cc: linux-arm-kernel@lists.infradead.org
+> Cc: linux-kernel@vger.kernel.org
 
-> Your suggestion will improve the speed, but may merge "transferring
-> 'protocol' data" and "processing 'protocol' data" together.
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
 
-Look at it this way: You're having to step very carefully because you are
-fully expecting the strings not to be NUL-terminated.  Therefore you probably
-avoid using string functions if you can.
-
-In fact, looking at the code, why are you copying the data through an
-intermediate buffer at all?  Why not just copy directly to userspace:
-
-	int len;
-	char buf[2];
-
-	if (!*lenp || *ppos) {
-		*lenp = 0;
-		return 0;
-	}
-	if (!write) {
--		len = sprintf(buf, appldata_timer_active ? "1\n" : "0\n");
-+		const char *ptr = appldata_timer_active ? "1\n" : "0\n";
-+		size_t len = 2;
-		if (len > *lenp)
-			len = *lenp;
-		if (copy_to_user(buffer, buf, len))
-			return -EFAULT;
-		goto out;
-	}
-
-Put like that, it's fairly obvious what is going on.
-
-David
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
