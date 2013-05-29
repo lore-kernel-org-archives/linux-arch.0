@@ -1,63 +1,79 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: [PATCH] arch: blackfin: kernel: memory overflow, 'namebuf' length
- need be more than 256
-Date: Wed, 29 May 2013 18:07:02 +0800
-Message-ID: <51A5D346.4010007@asianux.com>
-References: <51A5CDB4.9000204@asianux.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: TLB and PTE coherency during munmap
+Date: Wed, 29 May 2013 11:15:33 +0100
+Message-ID: <20130529101533.GF17767@MacBook-Pro.local>
+References: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com>
+ <CAHkRjk4ZNwZvf_Cv+HqfMManodCkEpCPdZokPQ68z3nVG8-+wg@mail.gmail.com>
+ <51A580E0.10300@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:20990 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965230Ab3E2KHy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 06:07:54 -0400
-In-Reply-To: <51A5CDB4.9000204@asianux.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Mike Frysinger <vapier@gentoo.org>, anton.vorontsov@linaro.org, Richard Kuo <rkuo@codeaurora.org>, jesper.nilsson@axis.com
-Cc: Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, "uclinux-dist-devel@blackfin.uclinux.org" <uclinux-dist-devel@blackfin.uclinux.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <51A580E0.10300@gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Max Filippov <jcmvbkbc@gmail.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>
+List-Id: linux-arch.vger.kernel.org
 
+On Wed, May 29, 2013 at 05:15:28AM +0100, Max Filippov wrote:
+> On Tue, May 28, 2013 at 6:35 PM, Catalin Marinas <catalin.marinas@arm.com> wrote:
+> > On 26 May 2013 03:42, Max Filippov <jcmvbkbc@gmail.com> wrote:
+> >> Is it intentional that threads of a process that invoked munmap syscall
+> >> can see TLB entries pointing to already freed pages, or it is a bug?
+> >
+> > If it happens, this would be a bug. It means that a process can access
+> > a physical page that has been allocated to something else, possibly
+> > kernel data.
+> >
+> >> I'm talking about zap_pmd_range and zap_pte_range:
+> >>
+> >>       zap_pmd_range
+> >>         zap_pte_range
+> >>           arch_enter_lazy_mmu_mode
+> >>             ptep_get_and_clear_full
+> >>             tlb_remove_tlb_entry
+> >>             __tlb_remove_page
+> >>           arch_leave_lazy_mmu_mode
+> >>         cond_resched
+> >>
+> >> With the default arch_{enter,leave}_lazy_mmu_mode, tlb_remove_tlb_entry
+> >> and __tlb_remove_page there is a loop in the zap_pte_range that clears
+> >> PTEs and frees corresponding pages, but doesn't flush TLB, and
+> >> surrounding loop in the zap_pmd_range that calls cond_resched. If a thread
+> >> of the same process gets scheduled then it is able to see TLB entries
+> >> pointing to already freed physical pages.
+> >
+> > It looks to me like cond_resched() here introduces a possible bug but
+> > it depends on the actual arch code, especially the
+> > __tlb_remove_tlb_entry() function. On ARM we record the range in
+> > tlb_remove_tlb_entry() and queue the pages to be removed in
+> > __tlb_remove_page(). It pretty much acts like tlb_fast_mode() == 0
+> > even for the UP case (which is also needed for hardware speculative
+> > TLB loads). The tlb_finish_mmu() takes care of whatever pages are left
+> > to be freed.
+> >
+> > With a dummy __tlb_remove_tlb_entry() and tlb_fast_mode() == 1,
+> > cond_resched() in zap_pmd_range() would cause problems.
+> 
+> So, looks like most architectures in the UP configuration should have
+> this issue (unless they flush TLB in the switch_mm, even when switching
+> to the same mm):
 
-The 'name' length in decode_address() may be 255, after call d_path()
-successfully.
+switch_mm() wouldn't be called if switching to the same mm. You could do
+it in switch_to() but it's not efficient (or before returning to user
+space on the same processor).
 
-So for decode_address(), the input 'buf' need be more than 256, or may
-memory overflow.
+Do you happen to have a user-space test for this? Something like one
+thread does an mmap(), writes some poison value, munmap(). The other
+thread keeps checking the poison value while trapping and ignoring any
+SIGSEGV. If it's working correctly, the second thread should either get
+a SIGSEGV or read the poison value.
 
-For simply thinking of, use 'namebuf[512]' instead of 'namebuf[150]'
-which will pass to decode_address() as input 'buf'.
-
-Also better use macro instead of hard code number when processing
-symbols work.
-
-
-Signed-off-by: Chen Gang <gang.chen@asianux.com>
----
- arch/blackfin/kernel/trace.c |    4 ++--
- 1 files changed, 2 insertions(+), 2 deletions(-)
-
-diff --git a/arch/blackfin/kernel/trace.c b/arch/blackfin/kernel/trace.c
-index c36efa0..4fecd3e 100644
---- a/arch/blackfin/kernel/trace.c
-+++ b/arch/blackfin/kernel/trace.c
-@@ -37,7 +37,7 @@ void decode_address(char *buf, unsigned long address)
- 	const char *symname;
- 	char *modname;
- 	char *delim = ":";
--	char namebuf[128];
-+	char namebuf[KSYM_NAME_LEN];
- #endif
- 
- 	buf += sprintf(buf, "<0x%08lx> ", address);
-@@ -845,7 +845,7 @@ void dump_bfin_mem(struct pt_regs *fp)
- 
- void show_regs(struct pt_regs *fp)
- {
--	char buf[150];
-+	char buf[512];
- 	struct irqaction *action;
- 	unsigned int i;
- 	unsigned long flags = 0;
 -- 
-1.7.7.6
+Catalin
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
