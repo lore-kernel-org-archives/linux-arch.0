@@ -1,35 +1,40 @@
-From: Mikael Pettersson <mikpe@it.uu.se>
-Subject: RE: A bug about system call on ARM
-Date: Wed, 29 May 2013 10:54:27 +0200
-Message-ID: <20901.49731.549060.203528@pilspetsen.it.uu.se>
-References: <35FD53F367049845BC99AC72306C23D1610991B85B@CNBJMBX05.corpusers.net>
-	<CAFLxGvy39xWdZmtiVHP+y=zH1coCVmMuREcmD25wSb=w-VK7Xg@mail.gmail.com>
-	<35FD53F367049845BC99AC72306C23D1610991B85D@CNBJMBX05.corpusers.net>
-	<35FD53F367049845BC99AC72306C23D1610991B85E@CNBJMBX05.corpusers.net>
+From: Chen Gang <gang.chen@asianux.com>
+Subject: [PATCH] arch: blackfin: kernel: sprintf(), need avoid NUL for '%s'
+Date: Wed, 29 May 2013 17:43:16 +0800
+Message-ID: <51A5CDB4.9000204@asianux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <35FD53F367049845BC99AC72306C23D1610991B85E@CNBJMBX05.corpusers.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Wang, Yalin" <Yalin.Wang@sonymobile.com>
-Cc: 'richard -rw- weinberger' <richard.weinberger@gmail.com>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>
+To: Mike Frysinger <vapier@gentoo.org>, anton.vorontsov@linaro.org, Richard Kuo <rkuo@codeaurora.org>, jesper.nilsson@axis.com
+Cc: Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, "uclinux-dist-devel@blackfin.uclinux.org" <uclinux-dist-devel@blackfin.uclinux.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Wang, Yalin writes:
- > Hi  
- > 
- > I have download the latest linux kernel code  3.9.4
- > And Compare with  3.4.0 kernel .
- > 
- > It seems there is no change for this part ,
- > So it will still happen .
- > Does anyone know who is responsible for  arm arch part kernel code ?
 
-A quick look in MAINTAINNERS would have told you:
+When it is kernel symbol, the 'modname' will be NUL, and the 'symname'
+contents the valid name.
 
-ARM PORT
-...
-L:      linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
+So for sprintf(), need avoid NUL for '%s'.
 
-Please direct ARM-specific questions to that list.
+
+Signed-off-by: Chen Gang <gang.chen@asianux.com>
+---
+ arch/blackfin/kernel/trace.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/arch/blackfin/kernel/trace.c b/arch/blackfin/kernel/trace.c
+index c36efa0..11f98bb 100644
+--- a/arch/blackfin/kernel/trace.c
++++ b/arch/blackfin/kernel/trace.c
+@@ -51,7 +51,7 @@ void decode_address(char *buf, unsigned long address)
+ 		if (!modname)
+ 			modname = delim = "";
+ 		sprintf(buf, "{ %s%s%s%s + 0x%lx }",
+-			delim, modname, delim, symname,
++			delim, modname ? : "kernel", delim, symname,
+ 			(unsigned long)offset);
+ 		return;
+ 	}
+-- 
+1.7.7.6
