@@ -1,139 +1,79 @@
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v6, part4 22/41] mm/IA64: prepare for removing num_physpages and simplify mem_init()
-Date: Wed, 29 May 2013 21:57:40 +0800
-Message-ID: <1369835879-23553-23-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v6, part4 24/41] mm/m68k: prepare for removing num_physpages and simplify mem_init()
+Date: Wed, 29 May 2013 21:57:42 +0800
+Message-ID: <1369835879-23553-25-git-send-email-jiang.liu@huawei.com>
 References: <1369835879-23553-1-git-send-email-jiang.liu@huawei.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1369835879-23553-1-git-send-email-jiang.liu@huawei.com>
 Sender: owner-linux-mm@kvack.org
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Zhang Yanfei <zhangyanfei@cn.fujitsu.com>, linux-ia64@vger.kernel.org
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k@lists.linux-m68k.org
 List-Id: linux-arch.vger.kernel.org
 
 Prepare for removing num_physpages and simplify mem_init().
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Zhang Yanfei <zhangyanfei@cn.fujitsu.com>
-Cc: linux-ia64@vger.kernel.org
+Acked-by: Greg Ungerer <gerg@uclinux.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: linux-m68k@lists.linux-m68k.org
 Cc: linux-kernel@vger.kernel.org
 ---
- arch/ia64/mm/contig.c    | 11 -----------
- arch/ia64/mm/discontig.c |  3 ---
- arch/ia64/mm/init.c      | 27 +--------------------------
- 3 files changed, 1 insertion(+), 40 deletions(-)
+ arch/m68k/mm/init.c | 31 ++-----------------------------
+ 1 file changed, 2 insertions(+), 29 deletions(-)
 
-diff --git a/arch/ia64/mm/contig.c b/arch/ia64/mm/contig.c
-index 955fd25..b975c8b 100644
---- a/arch/ia64/mm/contig.c
-+++ b/arch/ia64/mm/contig.c
-@@ -295,14 +295,6 @@ find_memory (void)
- 	alloc_per_cpu_data();
- }
- 
--static int count_pages(u64 start, u64 end, void *arg)
--{
--	unsigned long *count = arg;
--
--	*count += (end - start) >> PAGE_SHIFT;
--	return 0;
--}
--
- /*
-  * Set up the page tables.
-  */
-@@ -313,9 +305,6 @@ paging_init (void)
- 	unsigned long max_dma;
- 	unsigned long max_zone_pfns[MAX_NR_ZONES];
- 
--	num_physpages = 0;
--	efi_memmap_walk(count_pages, &num_physpages);
--
- 	memset(max_zone_pfns, 0, sizeof(max_zone_pfns));
- #ifdef CONFIG_ZONE_DMA
- 	max_dma = virt_to_phys((void *) MAX_DMA_ADDRESS) >> PAGE_SHIFT;
-diff --git a/arch/ia64/mm/discontig.c b/arch/ia64/mm/discontig.c
-index 254ae8e..3aef17c 100644
---- a/arch/ia64/mm/discontig.c
-+++ b/arch/ia64/mm/discontig.c
-@@ -37,7 +37,6 @@ struct early_node_data {
- 	struct ia64_node_data *node_data;
- 	unsigned long pernode_addr;
- 	unsigned long pernode_size;
--	unsigned long num_physpages;
- #ifdef CONFIG_ZONE_DMA
- 	unsigned long num_dma_physpages;
- #endif
-@@ -732,7 +731,6 @@ static __init int count_node_pages(unsigned long start, unsigned long len, int n
+diff --git a/arch/m68k/mm/init.c b/arch/m68k/mm/init.c
+index 614c60a..397a884 100644
+--- a/arch/m68k/mm/init.c
++++ b/arch/m68k/mm/init.c
+@@ -149,33 +149,11 @@ void __init print_memmap(void)
+ void __init mem_init(void)
  {
- 	unsigned long end = start + len;
- 
--	mem_data[node].num_physpages += len >> PAGE_SHIFT;
- #ifdef CONFIG_ZONE_DMA
- 	if (start <= __pa(MAX_DMA_ADDRESS))
- 		mem_data[node].num_dma_physpages +=
-@@ -778,7 +776,6 @@ void __init paging_init(void)
- #endif
- 
- 	for_each_online_node(node) {
--		num_physpages += mem_data[node].num_physpages;
- 		pfn_offset = mem_data[node].min_pfn;
- 
- #ifdef CONFIG_VIRTUAL_MEM_MAP
-diff --git a/arch/ia64/mm/init.c b/arch/ia64/mm/init.c
-index d141f7e..2d372b4 100644
---- a/arch/ia64/mm/init.c
-+++ b/arch/ia64/mm/init.c
-@@ -545,19 +545,6 @@ int __init register_active_ranges(u64 start, u64 len, int nid)
- 	return 0;
- }
- 
--static int __init
--count_reserved_pages(u64 start, u64 end, void *arg)
--{
--	unsigned long num_reserved = 0;
--	unsigned long *count = arg;
--
--	for (; start < end; start += PAGE_SIZE)
--		if (PageReserved(virt_to_page(start)))
--			++num_reserved;
--	*count += num_reserved;
--	return 0;
--}
--
- int
- find_max_min_low_pfn (u64 start, u64 end, void *arg)
- {
-@@ -596,7 +583,6 @@ __setup("nolwsys", nolwsys_setup);
- void __init
- mem_init (void)
- {
--	long reserved_pages, codesize, datasize, initsize;
  	pg_data_t *pgdat;
+-	int codepages = 0;
+-	int datapages = 0;
+-	int initpages = 0;
  	int i;
  
-@@ -624,18 +610,7 @@ mem_init (void)
- 		if (pgdat->bdata->node_bootmem_map)
- 			free_all_bootmem_node(pgdat);
+ 	/* this will put all memory onto the freelists */
+-	num_physpages = 0;
+-	for_each_online_pgdat(pgdat) {
+-		num_physpages += pgdat->node_present_pages;
+-
++	for_each_online_pgdat(pgdat)
+ 		free_all_bootmem_node(pgdat);
+-		for (i = 0; i < pgdat->node_spanned_pages; i++) {
+-			struct page *page = pgdat->node_mem_map + i;
+-			char *addr = page_to_virt(page);
+-
+-			if (!PageReserved(page))
+-				continue;
+-			if (addr >= _text &&
+-			    addr < _etext)
+-				codepages++;
+-			else if (addr >= __init_begin &&
+-				 addr < __init_end)
+-				initpages++;
+-			else
+-				datapages++;
+-		}
+-	}
  
--	reserved_pages = 0;
--	efi_memmap_walk(count_reserved_pages, &reserved_pages);
--
--	codesize =  (unsigned long) _etext - (unsigned long) _stext;
--	datasize =  (unsigned long) _edata - (unsigned long) _etext;
--	initsize =  (unsigned long) __init_end - (unsigned long) __init_begin;
--
--	printk(KERN_INFO "Memory: %luk/%luk available (%luk code, %luk reserved, "
--	       "%luk data, %luk init)\n", nr_free_pages() << (PAGE_SHIFT - 10),
--	       num_physpages << (PAGE_SHIFT - 10), codesize >> 10,
--	       reserved_pages << (PAGE_SHIFT - 10), datasize >> 10, initsize >> 10);
--
+ #if defined(CONFIG_MMU) && !defined(CONFIG_SUN3) && !defined(CONFIG_COLDFIRE)
+ 	/* insert pointer tables allocated so far into the tablelist */
+@@ -190,12 +168,7 @@ void __init mem_init(void)
+ 		init_pointer_table((unsigned long)zero_pgtable);
+ #endif
+ 
+-	pr_info("Memory: %luk/%luk available (%dk kernel code, %dk data, %dk init)\n",
+-	       nr_free_pages() << (PAGE_SHIFT-10),
+-	       totalram_pages << (PAGE_SHIFT-10),
+-	       codepages << (PAGE_SHIFT-10),
+-	       datapages << (PAGE_SHIFT-10),
+-	       initpages << (PAGE_SHIFT-10));
 +	mem_init_print_info(NULL);
+ 	print_memmap();
+ }
  
- 	/*
- 	 * For fsyscall entrpoints with no light-weight handler, use the ordinary
 -- 
 1.8.1.2
 
