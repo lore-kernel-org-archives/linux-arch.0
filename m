@@ -1,73 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f52.google.com ([209.85.160.52]:51142 "EHLO
-	mail-pb0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S966253Ab3E2N6O (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 09:58:14 -0400
+Received: from mail-pa0-f51.google.com ([209.85.220.51]:36673 "EHLO
+	mail-pa0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S966624Ab3E2OAW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 10:00:22 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v6, part4 01/41] vmlinux.lds: add comments for global variables and clean up useless declarations
-Date: Wed, 29 May 2013 21:57:19 +0800
-Message-ID: <1369835879-23553-2-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v6, part4 37/41] mm/um: prepare for removing num_physpages and simplify mem_init()
+Date: Wed, 29 May 2013 21:57:55 +0800
+Message-ID: <1369835879-23553-38-git-send-email-jiang.liu@huawei.com>
 In-Reply-To: <1369835879-23553-1-git-send-email-jiang.liu@huawei.com>
 References: <1369835879-23553-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20130529135719.Q0H7fey1orAYcfXc7Vye92-5guXhRA5SsCdM2JAiFkY@z>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, user-mode-linux-devel@lists.sourceforge.net
+Message-ID: <20130529135755.a0zs5dbN0k50bOPXvGrvg2AIf4b3JXBSvo4R5cCy7V0@z>
 
-This patch documents global variables exported from vmlinux.lds.
-1) Add comments about usage guidelines for global variables exported
-   from vmlinux.lds.S.
-2) Remove unused __initdata_begin[] and __initdata_end[].
+Prepare for removing num_physpages and simplify mem_init().
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org
+Cc: Jeff Dike <jdike@addtoit.com>
+Cc: Richard Weinberger <richard@nod.at>
+Cc: user-mode-linux-devel@lists.sourceforge.net
 Cc: linux-kernel@vger.kernel.org
 ---
- include/asm-generic/sections.h | 21 ++++++++++++++++++++-
- 1 file changed, 20 insertions(+), 1 deletion(-)
+ arch/um/kernel/mem.c | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
 
-diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
-index c1a1216..f1a24b5 100644
---- a/include/asm-generic/sections.h
-+++ b/include/asm-generic/sections.h
-@@ -3,6 +3,26 @@
+diff --git a/arch/um/kernel/mem.c b/arch/um/kernel/mem.c
+index b0c7630..7ddb64b 100644
+--- a/arch/um/kernel/mem.c
++++ b/arch/um/kernel/mem.c
+@@ -70,10 +70,8 @@ void __init mem_init(void)
+ #ifdef CONFIG_HIGHMEM
+ 	setup_highmem(end_iomem, highmem);
+ #endif
+-	num_physpages = totalram_pages;
+ 	max_pfn = totalram_pages;
+-	printk(KERN_INFO "Memory: %luk available\n",
+-	       nr_free_pages() << (PAGE_SHIFT-10));
++	mem_init_print_info(NULL);
+ 	kmalloc_ok = 1;
+ }
  
- /* References to section boundaries */
- 
-+/*
-+ * Usage guidelines:
-+ * _text, _data: architecture specific, don't use them in arch-independent code
-+ * [_stext, _etext]: contains .text.* sections, may also contain .rodata.*
-+ *                   and/or .init.* sections
-+ * [_sdata, _edata]: contains .data.* sections, may also contain .rodata.*
-+ *                   and/or .init.* sections.
-+ * [__start_rodata, __end_rodata]: contains .rodata.* sections
-+ * [__init_begin, __init_end]: contains .init.* sections, but .init.text.*
-+ *                   may be out of this range on some architectures.
-+ * [_sinittext, _einittext]: contains .init.text.* sections
-+ * [__bss_start, __bss_stop]: contains BSS sections
-+ *
-+ * Following global variables are optional and may be unavailable on some
-+ * architectures and/or kernel configurations.
-+ *	_text, _data
-+ *	__kprobes_text_start, __kprobes_text_end
-+ *	__entry_text_start, __entry_text_end
-+ *	__ctors_start, __ctors_end
-+ */
- extern char _text[], _stext[], _etext[];
- extern char _data[], _sdata[], _edata[];
- extern char __bss_start[], __bss_stop[];
-@@ -12,7 +32,6 @@ extern char _end[];
- extern char __per_cpu_load[], __per_cpu_start[], __per_cpu_end[];
- extern char __kprobes_text_start[], __kprobes_text_end[];
- extern char __entry_text_start[], __entry_text_end[];
--extern char __initdata_begin[], __initdata_end[];
- extern char __start_rodata[], __end_rodata[];
- 
- /* Start and end of .ctors section - used for constructor calls. */
 -- 
 1.8.1.2
 
