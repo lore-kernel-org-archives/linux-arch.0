@@ -1,72 +1,142 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH] mm: Fix the TLB range flushed when __tlb_remove_page() runs out of slots
-Date: Wed, 29 May 2013 18:26:13 +0530
-Message-ID: <1369832173-15088-1-git-send-email-vgupta@synopsys.com>
+From: Liu Jiang <liuj97@gmail.com>
+Subject: Re: [PATCH v5, part4 12/41] mm/ARC: prepare for removing num_physpages
+ and simplify mem_init()
+Date: Wed, 29 May 2013 21:05:43 +0800
+Message-ID: <51A5FD27.5080903@gmail.com>
+References: <1368028298-7401-1-git-send-email-jiang.liu@huawei.com> <1368028298-7401-13-git-send-email-jiang.liu@huawei.com> <51A5BF3A.2070108@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtp3.synopsys.com ([198.182.44.81]:37023 "EHLO
-	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965690Ab3E2M4j (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 08:56:39 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Andrew Morton <akpm@linux-foundation.org>, Mel Gorman <mgorman@suse.de>, Hugh Dickins <hughd@google.com>, Rik van Riel <riel@redhat.com>, David Rientjes <rientjes@google.com>, Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Max Filippov <jcmvbkbc@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <51A5BF3A.2070108@synopsys.com>
+Sender: owner-linux-mm@kvack.org
+To: Vineet Gupta <vineet.gupta1@synopsys.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <james.bottomley@hansenpartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, Rob Herring <rob.herring@calxeda.com>
+List-Id: linux-arch.vger.kernel.org
 
-zap_pte_range loops from @addr to @end. In the middle, if it runs out of
-batching slots, TLB entries needs to be flushed for @start to @interim,
-NOT @interim to @end.
+On Wed 29 May 2013 04:41:30 PM CST, Vineet Gupta wrote:
+> Hi Jiang,
+>
+> On 05/08/2013 09:21 PM, Jiang Liu wrote:
+>> Prepare for removing num_physpages and simplify mem_init().
+>>
+>> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+>> Cc: Vineet Gupta <vgupta@synopsys.com>
+>> Cc: James Hogan <james.hogan@imgtec.com>
+>> Cc: Rob Herring <rob.herring@calxeda.com>
+>> Cc: linux-kernel@vger.kernel.org
+>> ---
+>>  arch/arc/mm/init.c |   36 +++---------------------------------
+>>  1 file changed, 3 insertions(+), 33 deletions(-)
+>>
+>> diff --git a/arch/arc/mm/init.c b/arch/arc/mm/init.c
+>> index 78d8c31..8ba6562 100644
+>> --- a/arch/arc/mm/init.c
+>> +++ b/arch/arc/mm/init.c
+>> @@ -74,7 +74,7 @@ void __init setup_arch_memory(void)
+>>  	/* Last usable page of low mem (no HIGHMEM yet for ARC port) */
+>>  	max_low_pfn = max_pfn = PFN_DOWN(end_mem);
+>>
+>> -	max_mapnr = num_physpages = max_low_pfn - min_low_pfn;
+>> +	max_mapnr = max_low_pfn - min_low_pfn;
+>>
+>>  	/*------------- reserve kernel image -----------------------*/
+>>  	memblock_reserve(CONFIG_LINUX_LINK_BASE,
+>> @@ -84,7 +84,7 @@ void __init setup_arch_memory(void)
+>>
+>>  	/*-------------- node setup --------------------------------*/
+>>  	memset(zones_size, 0, sizeof(zones_size));
+>> -	zones_size[ZONE_NORMAL] = num_physpages;
+>> +	zones_size[ZONE_NORMAL] = max_low_pfn - min_low_pfn;
+>>
+>>  	/*
+>>  	 * We can't use the helper free_area_init(zones[]) because it uses
+>> @@ -106,39 +106,9 @@ void __init setup_arch_memory(void)
+>>   */
+>>  void __init mem_init(void)
+>>  {
+>> -	int codesize, datasize, initsize, reserved_pages, free_pages;
+>> -	int tmp;
+>> -
+>>  	high_memory = (void *)(CONFIG_LINUX_LINK_BASE + arc_mem_sz);
+>> -
+>>  	free_all_bootmem();
+>> -
+>
+> What baseline is this code against, since mainline looks like following:
+>
+>        high_memory = (void *)(CONFIG_LINUX_LINK_BASE + arc_mem_sz);
+>
+>        totalram_pages = free_all_bootmem();
+>
+> So I would handve expected the following
+>
+> -       totalram_pages = free_all_bootmem();
+> +	free_all_bootmem();
+>
+> Aha, you missed out CCing all maintainers on "[PATCH v7, part3 14/16]" or rather
+> "[PATCH v8, part3 13/14]" - and it is difficult to dig this out from all the
+> patches that fly by on linux-arch.
+>
+> Same goes for "[PATCH v8, part3 01/14]" and "[PATCH v8, part3 02/14]"
+Hi Vineet,
+      This patchset is based on Andrew's mmotm tree, there are some 
+differences
+between mmotm and the upstream kernel, sorry for the inconvenience.
+      Once I sent those common patches to all related maintainers, but 
+the CC list
+is too long and also caused other troubles. Next time I will send all 
+patches to
+linux-arch maillist.
 
-Since ARC port doesn't use page free batching I can't test it myself but
-this seems like the right thing to do.
-Observed this when working on a fix for the issue at thread:
-	http://www.spinics.net/lists/linux-arch/msg21736.html
+>
+>> -	/* count all reserved pages [kernel code/data/mem_map..] */
+>> -	reserved_pages = 0;
+>> -	for (tmp = 0; tmp < max_mapnr; tmp++)
+>> -		if (PageReserved(mem_map + tmp))
+>> -			reserved_pages++;
+>> -
+>> -	/* XXX: nr_free_pages() is equivalent */
+>> -	free_pages = max_mapnr - reserved_pages;
+>> -
+>> -	/*
+>> -	 * For the purpose of display below, split the "reserve mem"
+>> -	 * kernel code/data is already shown explicitly,
+>> -	 * Show any other reservations (mem_map[ ] et al)
+>> -	 */
+>> -	reserved_pages -= (((unsigned int)_end - CONFIG_LINUX_LINK_BASE) >>
+>> -								PAGE_SHIFT);
+>> -
+>> -	codesize = _etext - _text;
+>> -	datasize = _end - _etext;
+>> -	initsize = __init_end - __init_begin;
+>> -
+>> -	pr_info("Memory Available: %dM / %ldM (%dK code, %dK data, %dK init, %dK reserv)\n",
+>> -		PAGES_TO_MB(free_pages),
+>> -		TO_MB(arc_mem_sz),
+>> -		TO_KB(codesize), TO_KB(datasize), TO_KB(initsize),
+>> -		PAGES_TO_KB(reserved_pages));
+>> +	mem_init_print_info(NULL);
+>>  }
+>>
+>>  /*
+>>
+>
+> The Changes look OK though. I managed to build your github tree (mem_init_v5
+> branch). And it seems to work ok.
+>
+> Acked-by: Vineet Gupta <vgupta@synopsys.com>   # for arch/arc
+Thanks for review and tests!
+Regards!
+Gerry
 
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Mel Gorman <mgorman@suse.de>
-Cc: Hugh Dickins <hughd@google.com>
-Cc: Rik van Riel <riel@redhat.com>
-Cc: David Rientjes <rientjes@google.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-mm@kvack.org
-Cc: linux-arch@vger.kernel.org <linux-arch@vger.kernel.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Max Filippov <jcmvbkbc@gmail.com>
----
- mm/memory.c |    9 ++++++---
- 1 file changed, 6 insertions(+), 3 deletions(-)
+>
+> Thx
+> -Vineet
 
-diff --git a/mm/memory.c b/mm/memory.c
-index 6dc1882..d9d5fd9 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -1110,6 +1110,7 @@ static unsigned long zap_pte_range(struct mmu_gather *tlb,
- 	spinlock_t *ptl;
- 	pte_t *start_pte;
- 	pte_t *pte;
-+	unsigned long range_start = addr;
- 
- again:
- 	init_rss_vec(rss);
-@@ -1215,12 +1216,14 @@ again:
- 		force_flush = 0;
- 
- #ifdef HAVE_GENERIC_MMU_GATHER
--		tlb->start = addr;
--		tlb->end = end;
-+		tlb->start = range_start;
-+		tlb->end = addr;
- #endif
- 		tlb_flush_mmu(tlb);
--		if (addr != end)
-+		if (addr != end) {
-+			range_start = addr;
- 			goto again;
-+		}
- 	}
- 
- 	return addr;
--- 
-1.7.10.4
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
