@@ -1,76 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f53.google.com ([209.85.160.53]:35384 "EHLO
-	mail-pb0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S966655Ab3E2Op4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 10:45:56 -0400
+Received: from mail-pb0-f43.google.com ([209.85.160.43]:46856 "EHLO
+	mail-pb0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S966381Ab3E2Op2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 10:45:28 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH, v2 12/13] mm/alpha: unify mem_init() for both UMA and NUMA architectures
-Date: Wed, 29 May 2013 22:44:51 +0800
-Message-ID: <1369838692-26860-13-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH, v2 04/13] mm/m32r: prepare for killing free_all_bootmem_node()
+Date: Wed, 29 May 2013 22:44:43 +0800
+Message-ID: <1369838692-26860-5-git-send-email-jiang.liu@huawei.com>
 In-Reply-To: <1369838692-26860-1-git-send-email-jiang.liu@huawei.com>
 References: <1369838692-26860-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org
-Message-ID: <20130529144451.8FcZ0kyYBTXCCanUx9DyUa2H7VWxL_PsLLRcWvHwW2c@z>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Hirokazu Takata <takata@linux-m32r.org>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org
+Message-ID: <20130529144443.TNdS4pu-mlhV7WQksZpJWnt6xH7JwYkJXaIccOMKjV4@z>
 
-Now mem_init() for both Alpha UMA and Alpha NUMA are the same,
-so unify it to reduce duplicated code.
+Prepare for killing free_all_bootmem_node() by using
+free_all_bootmem().
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Richard Henderson <rth@twiddle.net>
-Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Cc: Matt Turner <mattst88@gmail.com>
-Cc: linux-alpha@vger.kernel.org
+Cc: Hirokazu Takata <takata@linux-m32r.org>
+Cc: linux-m32r@ml.linux-m32r.org
+Cc: linux-m32r-ja@ml.linux-m32r.org
 Cc: linux-kernel@vger.kernel.org
 ---
- arch/alpha/mm/init.c |  7 ++-----
- arch/alpha/mm/numa.c | 10 ----------
- 2 files changed, 2 insertions(+), 15 deletions(-)
+ arch/m32r/mm/init.c | 17 ++++-------------
+ 1 file changed, 4 insertions(+), 13 deletions(-)
 
-diff --git a/arch/alpha/mm/init.c b/arch/alpha/mm/init.c
-index af91010..a1bea91 100644
---- a/arch/alpha/mm/init.c
-+++ b/arch/alpha/mm/init.c
-@@ -276,17 +276,14 @@ srm_paging_stop (void)
- }
- #endif
+diff --git a/arch/m32r/mm/init.c b/arch/m32r/mm/init.c
+index a4f8d93..0d4146f 100644
+--- a/arch/m32r/mm/init.c
++++ b/arch/m32r/mm/init.c
+@@ -111,28 +111,19 @@ void __init paging_init(void)
+  *======================================================================*/
+ void __init mem_init(void)
+ {
+-	int nid;
+ #ifndef CONFIG_MMU
+ 	extern unsigned long memory_end;
+-#endif
  
 -#ifndef CONFIG_DISCONTIGMEM
- void __init
- mem_init(void)
- {
--	max_mapnr = max_low_pfn;
--	free_all_bootmem();
-+	set_max_mapnr(max_low_pfn);
- 	high_memory = (void *) __va(max_low_pfn * PAGE_SIZE);
+-	max_mapnr = get_num_physpages();
+-#endif	/* CONFIG_DISCONTIGMEM */
 -
+-#ifdef CONFIG_MMU
+-	high_memory = (void *)__va(PFN_PHYS(MAX_LOW_PFN(0)));
+-#else
+ 	high_memory = (void *)(memory_end & PAGE_MASK);
++#else
++	high_memory = (void *)__va(PFN_PHYS(MAX_LOW_PFN(0)));
+ #endif /* CONFIG_MMU */
+ 
+ 	/* clear the zero-page */
+ 	memset(empty_zero_page, 0, PAGE_SIZE);
+ 
+-	/* this will put all low memory onto the freelists */
+-	for_each_online_node(nid)
+-		free_all_bootmem_node(NODE_DATA(nid));
+-
++	set_max_mapnr(get_num_physpages());
 +	free_all_bootmem();
  	mem_init_print_info(NULL);
  }
--#endif /* CONFIG_DISCONTIGMEM */
  
- void
- free_initmem(void)
-diff --git a/arch/alpha/mm/numa.c b/arch/alpha/mm/numa.c
-index 0894b3a8..d543d71 100644
---- a/arch/alpha/mm/numa.c
-+++ b/arch/alpha/mm/numa.c
-@@ -319,13 +319,3 @@ void __init paging_init(void)
- 	/* Initialize the kernel's ZERO_PGE. */
- 	memset((void *)ZERO_PGE, 0, PAGE_SIZE);
- }
--
--void __init mem_init(void)
--{
--	high_memory = (void *) __va(max_low_pfn << PAGE_SHIFT);
--	free_all_bootmem();
--	mem_init_print_info(NULL);
--#if 0
--	mem_stress();
--#endif
--}
 -- 
 1.8.1.2
 
