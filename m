@@ -1,126 +1,106 @@
-From: "Wang, Yalin" <Yalin.Wang@sonymobile.com>
-Subject: RE: A bug about system call on ARM
-Date: Wed, 29 May 2013 15:37:49 +0800
-Message-ID: <35FD53F367049845BC99AC72306C23D1610991B85D@CNBJMBX05.corpusers.net>
-References: <35FD53F367049845BC99AC72306C23D1610991B85B@CNBJMBX05.corpusers.net>
- <CAFLxGvy39xWdZmtiVHP+y=zH1coCVmMuREcmD25wSb=w-VK7Xg@mail.gmail.com>
+From: Chen Gang <gang.chen@asianux.com>
+Subject: Re: [PATCH v2] arch: s390: appldata: using strncpy() and strnlen()
+ instead of sprintf()
+Date: Wed, 29 May 2013 15:47:09 +0800
+Message-ID: <51A5B27D.2050702@asianux.com>
+References: <51A48EE9.2040401@asianux.com> <51A32D81.2010105@asianux.com> <51A2CC07.5010100@asianux.com> <CAMuHMdXTW3QOxfAfqQXdbSpP4R83srFf7eMfu5fA-75S_Mujsg@mail.gmail.com> <4310.1369736553@warthog.procyon.org.uk> <5895.1369743429@warthog.procyon.org.uk> <51A559CB.3020804@asianux.com> <20130529063020.GG23932@mwanda> <51A5AE3D.5080106@asianux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cnbjrel02.sonyericsson.com ([219.141.167.166]:17095 "EHLO
-	cnbjrel02.sonyericsson.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S935097Ab3E2Hhy convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 29 May 2013 03:37:54 -0400
-In-Reply-To: <CAFLxGvy39xWdZmtiVHP+y=zH1coCVmMuREcmD25wSb=w-VK7Xg@mail.gmail.com>
-Content-Language: en-US
+Received: from intranet.asianux.com ([58.214.24.6]:55399 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S935105Ab3E2HsA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 03:48:00 -0400
+In-Reply-To: <51A5AE3D.5080106@asianux.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'richard -rw- weinberger' <richard.weinberger@gmail.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: Dan Carpenter <dan.carpenter@oracle.com>
+Cc: David Howells <dhowells@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, jang@linux.vnet.ibm.com, linux390@de.ibm.com, linux-s390@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, "kernel-janitors@vger.kernel.org" <kernel-janitors@vger.kernel.org>
 
-Hi  Richard,
+On 05/29/2013 03:29 PM, Chen Gang wrote:
+> On 05/29/2013 02:30 PM, Dan Carpenter wrote:
+>> On Wed, May 29, 2013 at 09:28:43AM +0800, Chen Gang wrote:
+>>
+>>>> diff --git a/arch/s390/appldata/appldata_base.c b/arch/s390/appldata/appldata_base.c
+>>>> index bae0f40..27f200d 100644
+>>>> --- a/arch/s390/appldata/appldata_base.c
+>>>> +++ b/arch/s390/appldata/appldata_base.c
+>>>> @@ -212,10 +212,9 @@ appldata_timer_handler(ctl_table *ctl, int write,
+>>>>  		return 0;
+>>>>  	}
+>>>>  	if (!write) {
+>>>> -		len = sprintf(buf, appldata_timer_active ? "1\n" : "0\n");
+>>>> -		if (len > *lenp)
+>>>> -			len = *lenp;
+>>>> -		if (copy_to_user(buffer, buf, len))
+>>>> +		if (copy_to_user(buffer,
+>>>> +				 appldata_timer_active ? "1\n" : "0\n",
+>>>> +				 min(2, *lenp))
+>> I don't have a cross compiler set up, but this will generate a
+>> warning, I think.  min_t() is needed.
+> 
+> Yes, it even can not pass compiling: need additional ')' for 'if'.
+> 
+> The new fix is below, (for pass compiling, also need fix the incorrect
+> declaration, which I have already sent an individual patch for it).
+> 
 
-Thanks for your reply ,
-I will make a check for this .
+Excuse me, the diff v2 is word wrap, if really need it, please edit it.
 
+If necessary, I will send the related patch for it.
 
------Original Message-----
-From: richard -rw- weinberger [mailto:richard.weinberger@gmail.com] 
-Sent: Wednesday, May 29, 2013 3:35 PM
-To: Wang, Yalin
-Cc: linux-arch@vger.kernel.org; linux-kernel@vger.kernel.org
-Subject: Re: A bug about system call on ARM
+Thanks.
 
-Hi!
-
-On Wed, May 29, 2013 at 8:52 AM, Wang, Yalin <Yalin.Wang@sonymobile.com> wrote:
-> Hi  all,
->
-> I am a new comer to this mailing list , I am happy to join this 
-> community .
->
-> I have a bug reported from our android phones which is caused by  the system call .
-> It seems like kernel bugs from my view .
-
-Is this a unmodified Linux kernel from kernel.org? In other works, no (half broken) board support package from your hardware vendor?
-Did you try a more recent kernel? (At least 3.4.47).
-Maybe your problem is already known and fixed...
-
-> Crash in  file  arch\arm\kernel\ entry-common.S
->
-> /***************************************************************/
->
-> ENTRY(vector_swi)
->         sub     sp, sp, #S_FRAME_SIZE
->         stmia   sp, {r0 - r12}                  @ Calling r0 - r12
->  ARM(   add     r8, sp, #S_PC           )
->  ARM(   stmdb   r8, {sp, lr}^           )       @ Calling sp, lr
->  THUMB( mov     r8, sp                  )
->  THUMB( store_user_sp_lr r8, r10, S_SP  )       @ calling sp, lr
->         mrs     r8, spsr                        @ called from non-FIQ mode, so ok.
->         str     lr, [sp, #S_PC]                 @ Save calling PC
->         str     r8, [sp, #S_PSR]                @ Save CPSR
->         str     r0, [sp, #S_OLD_R0]             @ Save OLD_R0
->         zero_fp
->
->         /*
->          * Get the system call number.
->          */
->
-> #if defined(CONFIG_OABI_COMPAT)
->
->         /*
->          * If we have CONFIG_OABI_COMPAT then we need to look at the swi
->          * value to determine if it is an EABI or an old ABI call.
->          */
-> #ifdef CONFIG_ARM_THUMB
->         tst     r8, #PSR_T_BIT
->         movne   r10, #0                         @ no thumb OABI emulation
->         ldreq   r10, [lr, #-4]                  @ get SWI instruction          // crash at this instruction, when get SWI instruction
-> #else
->         ldr     r10, [lr, #-4]                  @ get SWI instruction
->   A710( and     ip, r10, #0x0f000000            @ check for SWI         )
->   A710( teq     ip, #0x0f000000                                         )
->   A710( bne     .Larm710bug                                             )
-> #endif
-> #ifdef CONFIG_CPU_ENDIAN_BE8
->         rev     r10, r10                        @ little endian instruction
-> #endif
->
-> /*********************************************************************
-> ******************************/
->
-> Then reason why it will crash when get SWI instruction is maybe This 
-> page is clear to aged by kernel, But this MMU fault happpened in 
-> kernel, So the kernel do_page_fault function will not clear this page 
-> to young, So that  will crash .
->
-> It should poll this page to make it present or the fault should be 
-> handled by fixup section , Anyway, this place should not crash by kernel .
->
-> The kernel version I used  is  3.4.0
-> I have add the kernel log and the call stack recovered  by trace32 
-> tools Pls have a look at it .
->
->
-> Thanks .
->
->
->
-> Sony Mobile Communications
-> Tel: +86 10 5966 9819
-> Phone: 18610323092
-> Address: No.16 Guangshun South Street, Chaoyang, Beijing, P.R.C.
->
-> sonymobile.com
->
->
->
+> -----------------------------diff v2 begin------------------------------
+> 
+> diff --git a/arch/s390/appldata/appldata_base.c
+> b/arch/s390/appldata/appldata_base.c
+> index bae0f40..b0915b4 100644
+> --- a/arch/s390/appldata/appldata_base.c
+> +++ b/arch/s390/appldata/appldata_base.c
+> @@ -212,10 +212,9 @@ appldata_timer_handler(ctl_table *ctl, int write,
+>  		return 0;
+>  	}
+>  	if (!write) {
+> -		len = sprintf(buf, appldata_timer_active ? "1\n" : "0\n");
+> -		if (len > *lenp)
+> -			len = *lenp;
+> -		if (copy_to_user(buffer, buf, len))
+> +		if (copy_to_user(buffer,
+> +				 appldata_timer_active ? "1\n" : "0\n",
+> +				 min_t(size_t, 2, *lenp)))
+>  			return -EFAULT;
+>  		goto out;
+>  	}
+> diff --git a/arch/s390/include/asm/pgtable.h
+> b/arch/s390/include/asm/pgtable.h
+> index 172209c..ed88890 100644
+> --- a/arch/s390/include/asm/pgtable.h
+> +++ b/arch/s390/include/asm/pgtable.h
+> @@ -1348,7 +1348,7 @@ static inline pmd_t pmd_mkwrite(pmd_t pmd)
+>  #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+> 
+>  #define __HAVE_ARCH_PGTABLE_DEPOSIT
+> -extern void pgtable_trans_huge_deposit(struct mm_struct *mm, , pmd_t *pmdp,
+> +extern void pgtable_trans_huge_deposit(struct mm_struct *mm, pmd_t *pmdp,
+>  				       pgtable_t pgtable);
+> 
+>  #define __HAVE_ARCH_PGTABLE_WITHDRAW
+> 
+> 
+> -----------------------------diff v2 end--------------------------------
+> 
+> 
+> For cross compiler, I use fedora 16/17, can yum update binutils-*
+> to get many platform cross-compilers (s390, powerpc, arm, xtensa, ...).
+> 
+> 
+> Thanks.
+> 
 
 
+-- 
+Chen Gang
 
---
-Thanks,
-//richard
+Asianux Corporation
