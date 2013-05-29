@@ -1,74 +1,84 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH v2] arch: s390: appldata: using strncpy() and strnlen()
- instead of sprintf()
-Date: Wed, 29 May 2013 09:40:55 +0800
-Message-ID: <51A55CA7.4040703@asianux.com>
-References: <51A48EE9.2040401@asianux.com> <51A32D81.2010105@asianux.com> <51A2CC07.5010100@asianux.com> <CAMuHMdXTW3QOxfAfqQXdbSpP4R83srFf7eMfu5fA-75S_Mujsg@mail.gmail.com> <4310.1369736553@warthog.procyon.org.uk> <5895.1369743429@warthog.procyon.org.uk> <20130528180327.6e6171f0@thinkpad>
+From: Max Filippov <jcmvbkbc@gmail.com>
+Subject: Re: TLB and PTE coherency during munmap
+Date: Wed, 29 May 2013 07:23:52 +0400
+Message-ID: <CAMo8BfLNt07PM87eV-xT+VnLVvmxrryWw4QBX6G4p-gy1Wb70w@mail.gmail.com>
+References: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com>
+	<CAMo8BfJie1Y49QeSJ+JTQb9WsYJkMMkb1BkKz2Gzy3T7V6ogHA@mail.gmail.com>
+	<20130528143459.GN724@phenom.dumpdata.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:40224 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934257Ab3E2Blq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 May 2013 21:41:46 -0400
-In-Reply-To: <20130528180327.6e6171f0@thinkpad>
+Received: from mail-ob0-f181.google.com ([209.85.214.181]:41079 "EHLO
+	mail-ob0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759346Ab3E2DXx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 May 2013 23:23:53 -0400
+Received: by mail-ob0-f181.google.com with SMTP id 16so723722obc.40
+        for <linux-arch@vger.kernel.org>; Tue, 28 May 2013 20:23:52 -0700 (PDT)
+In-Reply-To: <20130528143459.GN724@phenom.dumpdata.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Gerald Schaefer <gerald.schaefer@de.ibm.com>
-Cc: David Howells <dhowells@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm.com, linux-s390@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, "kernel-janitors@vger.kernel.org" <kernel-janitors@vger.kernel.org>, wharms@bfs.de
+To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-xtensa@linux-xtensa.org, Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>
 
-On 05/29/2013 12:03 AM, Gerald Schaefer wrote:
-> On Tue, 28 May 2013 13:17:09 +0100
-> David Howells <dhowells@redhat.com> wrote:
-> 
->> > Chen Gang <gang.chen@asianux.com> wrote:
->> > 
->>> > > Your suggestion will improve the speed, but may merge "transferring
->>> > > 'protocol' data" and "processing 'protocol' data" together.
->> > 
->> > Look at it this way: You're having to step very carefully because you are
->> > fully expecting the strings not to be NUL-terminated.  Therefore you probably
->> > avoid using string functions if you can.
->> > 
->> > In fact, looking at the code, why are you copying the data through an
->> > intermediate buffer at all?  Why not just copy directly to userspace:
->> > 
->> > 	int len;
->> > 	char buf[2];
->> > 
->> > 	if (!*lenp || *ppos) {
->> > 		*lenp = 0;
->> > 		return 0;
->> > 	}
->> > 	if (!write) {
->> > -		len = sprintf(buf, appldata_timer_active ? "1\n" : "0\n");
->> > +		const char *ptr = appldata_timer_active ? "1\n" : "0\n";
->> > +		size_t len = 2;
->> > 		if (len > *lenp)
->> > 			len = *lenp;
->> > 		if (copy_to_user(buffer, buf, len))
->> > 			return -EFAULT;
->> > 		goto out;
->> > 	}
->> > 
->> > Put like that, it's fairly obvious what is going on.
-> Yes, we could do that for !write, but we can't get rid of the buffer
-> completely, as we need it for the other case and copy_from_user().
-> I have already applied the v2 version from Chen Gang, as it fixes the
-> overflow bug, and the affected code is not performance critical at all.
-> I like the improved readability of your approach, but the patch is already
-> on its way to Martins "for-linus" branch, and I think it's "good enough".
-> 
-> Thanks for all the feedback to this little piece of very old (and partly
-> ugly) code from my very first Linux device driver :-)
-> 
+On Tue, May 28, 2013 at 6:34 PM, Konrad Rzeszutek Wilk
+<konrad.wilk@oracle.com> wrote:
+> On Sun, May 26, 2013 at 06:50:46AM +0400, Max Filippov wrote:
+>> Hello arch and mm people.
+>>
+>> Is it intentional that threads of a process that invoked munmap syscall
+>> can see TLB entries pointing to already freed pages, or it is a bug?
+>>
+>> I'm talking about zap_pmd_range and zap_pte_range:
+>>
+>>       zap_pmd_range
+>>         zap_pte_range
+>>           arch_enter_lazy_mmu_mode
+>>             ptep_get_and_clear_full
+>>             tlb_remove_tlb_entry
+>>             __tlb_remove_page
+>>           arch_leave_lazy_mmu_mode
+>>         cond_resched
+>>
+>> With the default arch_{enter,leave}_lazy_mmu_mode, tlb_remove_tlb_entry
+>> and __tlb_remove_page there is a loop in the zap_pte_range that clears
+>> PTEs and frees corresponding pages, but doesn't flush TLB, and
+>> surrounding loop in the zap_pmd_range that calls cond_resched. If a thread
+>> of the same process gets scheduled then it is able to see TLB entries
+>> pointing to already freed physical pages.
+>
+> The idea behind the lazy MMU subsystem is that it does not need to flush
+> the TLB all the time and allow one to do PTE manipulations in a "batch mode".
+> Meaning there are stray entries - and one has to be diligient about not using them.
 
-OK, thank you. and thank all related feedback from Geert, Walter, David
+Yes, I got it, IOW TLB entries must either be flushed before userspace can
+see them, or the underlying pages must not be freed.
 
+> Here is the relvant comment from the Linux header:
+>
+> /*
+>  * A facility to provide lazy MMU batching.  This allows PTE updates and
+>  * page invalidations to be delayed until a call to leave lazy MMU mode
+>  * is issued.  Some architectures may benefit from doing this, and it is
+>  * beneficial for both shadow and direct mode hypervisors, which may batch
+>  * the PTE updates which happen during this window.  Note that using this
+>  * interface requires that read hazards be removed from the code.  A read
+>  * hazard could result in the direct mode hypervisor case, since the actual
+>  * write to the page tables may not yet have taken place, so reads though
+>  * a raw PTE pointer after it has been modified are not guaranteed to be
+>  * up to date.  This mode can only be entered and left under the protection of
+>  * the page table locks for all page tables which may be modified.  In the UP
+>  * case, this is required so that preemption is disabled, and in the SMP case,
+>  * it must synchronize the delayed page table writes properly on other CPUs.
+>  */
+>
+> This means that eventually when arch_leave_lazy_mmu_mode or
+> arch_flush_lazy_mmu_mode is called, the PTE updates _should_ be flushed
+> (aka, TLB flush if needed on the altered PTE entries).
 
-Thanks.
+Should (: But I only see powerpc, sparc and x86 defining
+__HAVE_ARCH_ENTER_LAZY_MMU_MODE, so this does not apply to all
+remaining arches.
+
 -- 
-Chen Gang
-
-Asianux Corporation
+Thanks.
+-- Max
