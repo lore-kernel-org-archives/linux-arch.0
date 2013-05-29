@@ -1,42 +1,54 @@
-From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH, v2 4/5] mm/microblaze: clean up unused VALID_PAGE()
-Date: Wed, 29 May 2013 23:08:55 +0800
-Message-ID: <1369840136-1491-5-git-send-email-jiang.liu@huawei.com>
-References: <1369840136-1491-1-git-send-email-jiang.liu@huawei.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1369840136-1491-1-git-send-email-jiang.liu@huawei.com>
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Michal Simek <monstr@monstr.eu>, microblaze-uclinux@itee.uq.edu.au
-List-Id: linux-arch.vger.kernel.org
+From: Johannes Weiner <hannes@cmpxchg.org>
+Subject: Re: [patch 1/2] mm: fincore()
+Date: Wed, 29 May 2013 13:32:23 -0400
+Message-ID: <20130529173223.GE15721@cmpxchg.org>
+References: <87a9rbh7b4.fsf@rustcorp.com.au>
+ <20130211162701.GB13218@cmpxchg.org>
+ <20130211141239.f4decf03.akpm@linux-foundation.org>
+ <20130215063450.GA24047@cmpxchg.org>
+ <20130215132738.c85c9eda.akpm@linux-foundation.org>
+ <20130215231304.GB23930@cmpxchg.org>
+ <20130215154235.0fb36f53.akpm@linux-foundation.org>
+ <87621skhtc.fsf@rustcorp.com.au>
+ <20130529145312.GE3955@alap2.anarazel.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from zene.cmpxchg.org ([85.214.230.12]:45812 "EHLO zene.cmpxchg.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932471Ab3E2Rcd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 29 May 2013 13:32:33 -0400
+Content-Disposition: inline
+In-Reply-To: <20130529145312.GE3955@alap2.anarazel.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andres Freund <andres@2ndquadrant.com>
+Cc: Rusty Russell <rusty@rustcorp.com.au>, Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Nick Piggin <npiggin@suse.de>, Stewart Smith <stewart@flamingspork.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org
 
-VALID_PAGE() has been removed from kernel long time ago, so clean up it.
+On Wed, May 29, 2013 at 04:53:12PM +0200, Andres Freund wrote:
+> On 2013-02-16 14:53:43 +1030, Rusty Russell wrote:
+> > Andrew Morton <akpm@linux-foundation.org> writes:
+> > > On Fri, 15 Feb 2013 18:13:04 -0500
+> > > Johannes Weiner <hannes@cmpxchg.org> wrote:
+> > >> I dunno.  The byte vector might not be optimal but its worst cases
+> > >> seem more attractive, is just as extensible, and dead simple to use.
+> > >
+> > > But I think "which pages from this 4TB file are in core" will not be an
+> > > uncommon usage, and writing a gig of memory to find three pages is just
+> > > awful.
+> > 
+> > Actually, I don't know of any usage for this call.
+> 
+> [months later, catching up]
+> 
+> I do. Postgres' could really use something like that for making saner
+> assumptions about the cost of doing an index/heap scan. postgres doesn't
+> use mmap() and mmaping larger files into memory isn't all that cheap
+> (32bit...) so having fincore would be nice.
 
-Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Michal Simek <monstr@monstr.eu>
-Cc: microblaze-uclinux@itee.uq.edu.au
-Cc: linux-kernel@vger.kernel.org
----
- arch/microblaze/include/asm/page.h | 1 -
- 1 file changed, 1 deletion(-)
+How much of the areas you want to use it against is usually cached?
+I.e. are those 4TB files with 3 cached pages?
 
-diff --git a/arch/microblaze/include/asm/page.h b/arch/microblaze/include/asm/page.h
-index 85a5ae8..fd85087 100644
---- a/arch/microblaze/include/asm/page.h
-+++ b/arch/microblaze/include/asm/page.h
-@@ -168,7 +168,6 @@ extern int page_is_ram(unsigned long pfn);
- #  else /* CONFIG_MMU */
- #  define ARCH_PFN_OFFSET	(memory_start >> PAGE_SHIFT)
- #  define pfn_valid(pfn)	((pfn) < (max_mapnr + ARCH_PFN_OFFSET))
--#  define VALID_PAGE(page) 	((page - mem_map) < max_mapnr)
- #  endif /* CONFIG_MMU */
- 
- # endif /* __ASSEMBLY__ */
--- 
-1.8.1.2
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+I do wonder if we should just have two separate interfaces.  Ugly, but
+I don't really see how the two requirements (dense but many holes
+vs. huge sparse areas) could be acceptably met with one interface.
