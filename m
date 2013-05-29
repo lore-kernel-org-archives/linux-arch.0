@@ -1,51 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:63790 "EHLO
+Received: from intranet.asianux.com ([58.214.24.6]:47604 "EHLO
 	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965467Ab3E2KwV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 06:52:21 -0400
-Message-ID: <51A5DDB0.50504@asianux.com>
-Date: Wed, 29 May 2013 18:51:28 +0800
+	with ESMTP id S965542Ab3E2LFB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 07:05:01 -0400
+Message-ID: <51A5E0A9.70605@asianux.com>
+Date: Wed, 29 May 2013 19:04:09 +0800
 From: Chen Gang <gang.chen@asianux.com>
 MIME-Version: 1.0
-Subject: [PATCH] arch: alpha: kernel: using memcpy() instead of strcpy()
+Subject: [PATCH] arch: alpha: kernel: typo issue, using '1' instead of '11'
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, Thomas Gleixner <tglx@linutronix.de>, Frederic Weisbecker <fweisbec@gmail.com>, josh@joshtriplett.org, srivatsa.bhat@linux.vnet.ibm.com
 Cc: Greg KH <gregkh@linuxfoundation.org>, linux-alpha@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20130529105128.leHfd0aBoG8JHAbZlNULzLNsh-Hx2ZLRUzkWyMAepOQ@z>
+Message-ID: <20130529110409.md3soayAQpVcq79XRwOsI6E7nZB-r_ZLuAjVRh247hc@z>
 
 
-When sending message in send_secondary_console_msg(), the length is not
-include the NUL byte, and also not copy NUL to 'ipc_buffer'.
+For sending message:
 
-When receive message in recv_secondary_console_msg(), the 'cnt' also
-excludes NUL.
+        *(unsigned int *)&cpu->ipc_buffer[0] = len;
+        cp1 = (char *) &cpu->ipc_buffer[1];
 
-So when get string from ipc_buffer, it may not be NUL terminated.
+But for receive message:
 
-Then use memcpy() instead of strcpy(), and set last byte NUL.
+                cnt = cpu->ipc_buffer[0] >> 32;
+                ...
+                       cp1 = (char *) &cpu->ipc_buffer[11];
+
+They are not pairs, it is typo issue of the redundency '1'.
+
+So need use '1' instead of '11'.
 
 
 Signed-off-by: Chen Gang <gang.chen@asianux.com>
 ---
- arch/alpha/kernel/smp.c |    3 ++-
- 1 files changed, 2 insertions(+), 1 deletions(-)
+ arch/alpha/kernel/smp.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
 diff --git a/arch/alpha/kernel/smp.c b/arch/alpha/kernel/smp.c
-index 7b60834..d3d2040 100644
+index 7b60834..8beb6b2 100644
 --- a/arch/alpha/kernel/smp.c
 +++ b/arch/alpha/kernel/smp.c
-@@ -266,7 +266,8 @@ recv_secondary_console_msg(void)
+@@ -264,7 +264,7 @@ recv_secondary_console_msg(void)
+ 		if (cnt <= 0 || cnt >= 80)
+ 			strcpy(buf, "<<< BOGUS MSG >>>");
  		else {
- 			cp1 = (char *) &cpu->ipc_buffer[11];
+-			cp1 = (char *) &cpu->ipc_buffer[11];
++			cp1 = (char *) &cpu->ipc_buffer[1];
  			cp2 = buf;
--			strcpy(cp2, cp1);
-+			memcpy(cp2, cp1, cnt);
-+			cp2[cnt] = '\0';
+ 			strcpy(cp2, cp1);
  			
- 			while ((cp2 = strchr(cp2, '\r')) != 0) {
- 				*cp2 = ' ';
 -- 
 1.7.7.6
