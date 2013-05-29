@@ -1,53 +1,59 @@
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH, v2 01/13] mm: introduce helper function set_max_mapnr()
-Date: Wed, 29 May 2013 22:44:40 +0800
-Message-ID: <1369838692-26860-2-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH, v2 03/13] mm/IA64: prepare for killing free_all_bootmem_node()
+Date: Wed, 29 May 2013 22:44:42 +0800
+Message-ID: <1369838692-26860-4-git-send-email-jiang.liu@huawei.com>
 References: <1369838692-26860-1-git-send-email-jiang.liu@huawei.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1369838692-26860-1-git-send-email-jiang.liu@huawei.com>
 Sender: owner-linux-mm@kvack.org
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Mauro Carvalho Chehab <mchehab@redhat.com>, "David S. Miller" <davem@davemloft.net>, Mark Brown <broonie@opensource.wolfsonmicro.com>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Tang Chen <tangchen@cn.fujitsu.com>, linux-ia64@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Introduce an helper function set_max_mapnr() to set global variable
-max_mapnr.
-
-Also unify condition compilation for max_mapnr with
-CONFIG_NEED_MULTIPLE_NODES instead of CONFIG_DISCONTIGMEM.
+Prepare for killing free_all_bootmem_node() by using
+free_all_bootmem().
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Mauro Carvalho Chehab <mchehab@redhat.com>
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: Mark Brown <broonie@opensource.wolfsonmicro.com>
-Cc: linux-mm@kvack.org
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: Tang Chen <tangchen@cn.fujitsu.com>
+Cc: David Rientjes <rientjes@google.com>
+Cc: linux-ia64@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org
 ---
- include/linux/mm.h | 9 ++++++++-
- 1 file changed, 8 insertions(+), 1 deletion(-)
+ arch/ia64/mm/init.c | 9 ++-------
+ 1 file changed, 2 insertions(+), 7 deletions(-)
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 7e39aa1..bde812e 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -25,8 +25,15 @@ struct file_ra_state;
- struct user_struct;
- struct writeback_control;
+diff --git a/arch/ia64/mm/init.c b/arch/ia64/mm/init.c
+index 2d372b4..b6f7f43 100644
+--- a/arch/ia64/mm/init.c
++++ b/arch/ia64/mm/init.c
+@@ -583,7 +583,6 @@ __setup("nolwsys", nolwsys_setup);
+ void __init
+ mem_init (void)
+ {
+-	pg_data_t *pgdat;
+ 	int i;
  
--#ifndef CONFIG_DISCONTIGMEM          /* Don't use mapnrs, do it properly */
-+#ifndef CONFIG_NEED_MULTIPLE_NODES	/* Don't use mapnrs, do it properly */
- extern unsigned long max_mapnr;
-+
-+static inline void set_max_mapnr(unsigned long limit)
-+{
-+	max_mapnr = limit;
-+}
-+#else
-+static inline void set_max_mapnr(unsigned long limit) { }
+ 	BUG_ON(PTRS_PER_PGD * sizeof(pgd_t) != PAGE_SIZE);
+@@ -601,15 +600,11 @@ mem_init (void)
+ 
+ #ifdef CONFIG_FLATMEM
+ 	BUG_ON(!mem_map);
+-	max_mapnr = max_low_pfn;
  #endif
  
- extern unsigned long totalram_pages;
++	set_max_mapnr(max_low_pfn);
+ 	high_memory = __va(max_low_pfn * PAGE_SIZE);
+-
+-	for_each_online_pgdat(pgdat)
+-		if (pgdat->bdata->node_bootmem_map)
+-			free_all_bootmem_node(pgdat);
+-
++	free_all_bootmem();
+ 	mem_init_print_info(NULL);
+ 
+ 	/*
 -- 
 1.8.1.2
 
