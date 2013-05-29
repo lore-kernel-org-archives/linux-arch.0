@@ -1,47 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f46.google.com ([209.85.220.46]:62398 "EHLO
-	mail-pa0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S966987Ab3E2PJ0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 11:09:26 -0400
+Received: from mail-pb0-f45.google.com ([209.85.160.45]:49274 "EHLO
+	mail-pb0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S966961Ab3E2PJU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 11:09:20 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH, v2 5/5] mm/unicore32: fix stale comment about VALID_PAGE()
-Date: Wed, 29 May 2013 23:08:56 +0800
-Message-ID: <1369840136-1491-6-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH, v2 3/5] mm/CRIS: clean up unused VALID_PAGE()
+Date: Wed, 29 May 2013 23:08:54 +0800
+Message-ID: <1369840136-1491-4-git-send-email-jiang.liu@huawei.com>
 In-Reply-To: <1369840136-1491-1-git-send-email-jiang.liu@huawei.com>
 References: <1369840136-1491-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130529150856.y0d05AaiwXfCENdieQoTGD0mzdfKWU2SgCly_roqbtw@z>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mikael Starvik <starvik@axis.com>, linux-cris-kernel@axis.com
+Message-ID: <20130529150854.KPZqXQ-jiwuTx_NavpsEvk0mZVw2BOBm-IzLQ_Klg1I@z>
 
-VALID_PAGE() has been removed from kernel long time ago,
-so fix the comment.
+VALID_PAGE() has been removed from kernel long time ago, so clean up it.
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Acked-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
+Cc: Mikael Starvik <starvik@axis.com>
+Cc: Jiang Liu <jiang.liu@huawei.com>
+Cc: linux-cris-kernel@axis.com
 Cc: linux-kernel@vger.kernel.org
 ---
- arch/unicore32/include/asm/memory.h | 6 ------
- 1 file changed, 6 deletions(-)
+ arch/cris/include/asm/page.h | 1 -
+ 1 file changed, 1 deletion(-)
 
-diff --git a/arch/unicore32/include/asm/memory.h b/arch/unicore32/include/asm/memory.h
-index 5eddb99..debafc4 100644
---- a/arch/unicore32/include/asm/memory.h
-+++ b/arch/unicore32/include/asm/memory.h
-@@ -98,12 +98,6 @@
- /*
-  * Conversion between a struct page and a physical address.
-  *
-- * Note: when converting an unknown physical address to a
-- * struct page, the resulting pointer must be validated
-- * using VALID_PAGE().  It must return an invalid struct page
-- * for any physical address not corresponding to a system
-- * RAM address.
-- *
-  *  page_to_pfn(page)	convert a struct page * to a PFN number
-  *  pfn_to_page(pfn)	convert a _valid_ PFN number to struct page *
-  *
+diff --git a/arch/cris/include/asm/page.h b/arch/cris/include/asm/page.h
+index be45ee3..dfc53f9 100644
+--- a/arch/cris/include/asm/page.h
++++ b/arch/cris/include/asm/page.h
+@@ -51,7 +51,6 @@ typedef struct page *pgtable_t;
+  */ 
+ 
+ #define virt_to_page(kaddr)    (mem_map + (((unsigned long)(kaddr) - PAGE_OFFSET) >> PAGE_SHIFT))
+-#define VALID_PAGE(page)       (((page) - mem_map) < max_mapnr)
+ #define virt_addr_valid(kaddr)	pfn_valid((unsigned)(kaddr) >> PAGE_SHIFT)
+ 
+ /* convert a page (based on mem_map and forward) to a physical address
 -- 
 1.8.1.2
 
