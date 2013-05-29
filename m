@@ -1,40 +1,70 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: [PATCH] arch: blackfin: kernel: sprintf(), need avoid NUL for '%s'
-Date: Wed, 29 May 2013 17:43:16 +0800
-Message-ID: <51A5CDB4.9000204@asianux.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: A bug about system call on ARM
+Date: Wed, 29 May 2013 10:48:27 +0100
+Message-ID: <20130529094826.GD13095@mudshark.cambridge.arm.com>
+References: <35FD53F367049845BC99AC72306C23D1610991B85B@CNBJMBX05.corpusers.net>
+ <CAFLxGvy39xWdZmtiVHP+y=zH1coCVmMuREcmD25wSb=w-VK7Xg@mail.gmail.com>
+ <35FD53F367049845BC99AC72306C23D1610991B85D@CNBJMBX05.corpusers.net>
+ <35FD53F367049845BC99AC72306C23D1610991B85E@CNBJMBX05.corpusers.net>
+ <CAFLxGvyy=73dGQqG8W6SXZah7WQZ4gJAeeHXN8opKaOuG-5yUQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Mike Frysinger <vapier@gentoo.org>, anton.vorontsov@linaro.org, Richard Kuo <rkuo@codeaurora.org>, jesper.nilsson@axis.com
-Cc: Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, "uclinux-dist-devel@blackfin.uclinux.org" <uclinux-dist-devel@blackfin.uclinux.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:40369 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S964948Ab3E2Js7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 29 May 2013 05:48:59 -0400
+Content-Disposition: inline
+In-Reply-To: <CAFLxGvyy=73dGQqG8W6SXZah7WQZ4gJAeeHXN8opKaOuG-5yUQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: richard -rw- weinberger <richard.weinberger@gmail.com>
+Cc: "Wang, Yalin" <Yalin.Wang@sonymobile.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
+Hello,
 
-When it is kernel symbol, the 'modname' will be NUL, and the 'symname'
-contents the valid name.
+On Wed, May 29, 2013 at 09:46:42AM +0100, richard -rw- weinberger wrote:
+> On Wed, May 29, 2013 at 10:24 AM, Wang, Yalin <Yalin.Wang@sonymobile.com> wrote:
+> > I have download the latest linux kernel code  3.9.4
+> > And Compare with  3.4.0 kernel .
+> >
+> > It seems there is no change for this part ,
+> > So it will still happen .
+> > Does anyone know who is responsible for  arm arch part kernel code ?
+> 
+> See MAINTAINERS file.
+> CC'ing linux-arm-kernel@lists.infradead.org
 
-So for sprintf(), need avoid NUL for '%s'.
+Cheers for adding us to CC.
 
+> >> #ifdef CONFIG_ARM_THUMB
+> >>         tst     r8, #PSR_T_BIT
+> >>         movne   r10, #0                         @ no thumb OABI emulation
+> >>         ldreq   r10, [lr, #-4]                  @ get SWI instruction          // crash at this instruction, when get SWI instruction
 
-Signed-off-by: Chen Gang <gang.chen@asianux.com>
----
- arch/blackfin/kernel/trace.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+Do you have the panic log please? Also, which SoC are you using and how are
+you reproducing this?
 
-diff --git a/arch/blackfin/kernel/trace.c b/arch/blackfin/kernel/trace.c
-index c36efa0..11f98bb 100644
---- a/arch/blackfin/kernel/trace.c
-+++ b/arch/blackfin/kernel/trace.c
-@@ -51,7 +51,7 @@ void decode_address(char *buf, unsigned long address)
- 		if (!modname)
- 			modname = delim = "";
- 		sprintf(buf, "{ %s%s%s%s + 0x%lx }",
--			delim, modname, delim, symname,
-+			delim, modname ? : "kernel", delim, symname,
- 			(unsigned long)offset);
- 		return;
- 	}
--- 
-1.7.7.6
+> >>         ldr     r10, [lr, #-4]                  @ get SWI instruction
+> >>   A710( and     ip, r10, #0x0f000000            @ check for SWI         )
+> >>   A710( teq     ip, #0x0f000000                                         )
+> >>   A710( bne     .Larm710bug                                             )
+> >> #endif
+> >> #ifdef CONFIG_CPU_ENDIAN_BE8
+> >>         rev     r10, r10                        @ little endian instruction
+> >> #endif
+> >>
+> >> /*********************************************************************
+> >> ******************************/
+> >>
+> >> Then reason why it will crash when get SWI instruction is maybe This
+> >> page is clear to aged by kernel, But this MMU fault happpened in
+> >> kernel, So the kernel do_page_fault function will not clear this page
+> >> to young, So that  will crash .
+
+Sounds like we might need some USER annotations around the instruction
+loads, but we should also rework the code so that we re-enable interrupts
+first.
+
+Will
