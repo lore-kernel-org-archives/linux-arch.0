@@ -1,97 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtp3.synopsys.com ([198.182.44.81]:35716 "EHLO
+Received: from us01smtp3.synopsys.com ([198.182.44.81]:36573 "EHLO
 	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965781Ab3E2MKU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 08:10:20 -0400
-Message-ID: <51A5EDE2.2040603@synopsys.com>
-Date: Wed, 29 May 2013 17:30:34 +0530
+	with ESMTP id S965536Ab3E2Mme (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 08:42:34 -0400
+Message-ID: <51A5F7A7.5020604@synopsys.com>
+Date: Wed, 29 May 2013 18:12:15 +0530
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
 MIME-Version: 1.0
 Subject: Re: TLB and PTE coherency during munmap
-References: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com> <CAHkRjk4ZNwZvf_Cv+HqfMManodCkEpCPdZokPQ68z3nVG8-+wg@mail.gmail.com>
-In-Reply-To: <CAHkRjk4ZNwZvf_Cv+HqfMManodCkEpCPdZokPQ68z3nVG8-+wg@mail.gmail.com>
+References: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com> <CAMo8BfJie1Y49QeSJ+JTQb9WsYJkMMkb1BkKz2Gzy3T7V6ogHA@mail.gmail.com> <51A45861.1010008@gmail.com> <20130529122728.GA27176@twins.programming.kicks-ass.net>
+In-Reply-To: <20130529122728.GA27176@twins.programming.kicks-ass.net>
 Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Max Filippov <jcmvbkbc@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm@kvack.org, linux-xtensa@linux-xtensa.org, Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>
-Message-ID: <20130529120034.CmKwhS_XMeuiRt98AOURhlOUNHSwD3amfNR3OW1w8LQ@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Max Filippov <jcmvbkbc@gmail.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, Ralf Baechle <ralf@linux-mips.org>, Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>, linux-xtensa@linux-xtensa.org, Hugh Dickins <hughd@google.com>
+Message-ID: <20130529124215.PSyeeZJF0g47gB32tXUDtRi9iHozRjTwBffxnaHiFkQ@z>
 
-[Resending with fixed linux-mm address]
-
-On 05/28/2013 08:05 PM, Catalin Marinas wrote:
-> Max,
-> 
-> On 26 May 2013 03:42, Max Filippov <jcmvbkbc@gmail.com> wrote:
->> Hello arch and mm people.
+On 05/29/2013 05:57 PM, Peter Zijlstra wrote:
+> On Tue, May 28, 2013 at 11:10:25AM +0400, Max Filippov wrote:
+>> On Sun, May 26, 2013 at 6:50 AM, Max Filippov <jcmvbkbc@gmail.com> wrote:
+>>> Hello arch and mm people.
+>>>
+>>> Is it intentional that threads of a process that invoked munmap syscall
+>>> can see TLB entries pointing to already freed pages, or it is a bug?
+>>>
+>>> I'm talking about zap_pmd_range and zap_pte_range:
+>>>
+>>>       zap_pmd_range
+>>>         zap_pte_range
+>>>           arch_enter_lazy_mmu_mode
+>>>             ptep_get_and_clear_full
+>>>             tlb_remove_tlb_entry
+>>>             __tlb_remove_page
+>>>           arch_leave_lazy_mmu_mode
+>>>         cond_resched
+>>>
+>>> With the default arch_{enter,leave}_lazy_mmu_mode, tlb_remove_tlb_entry
+>>> and __tlb_remove_page there is a loop in the zap_pte_range that clears
+>>> PTEs and frees corresponding pages, but doesn't flush TLB, and
+>>> surrounding loop in the zap_pmd_range that calls cond_resched. If a thread
+>>> of the same process gets scheduled then it is able to see TLB entries
+>>> pointing to already freed physical pages.
+>>>
+>>> I've noticed that with xtensa arch when I added a test before returning to
+>>> userspace checking that TLB contents agrees with page tables of the
+>>> current mm. This check reliably fires with the LTP test mtest05 that
+>>> maps, unmaps and accesses memory from multiple threads.
+>>>
+>>> Is there anything wrong in my description, maybe something specific to
+>>> my arch, or this issue really exists?
 >>
->> Is it intentional that threads of a process that invoked munmap syscall
->> can see TLB entries pointing to already freed pages, or it is a bug?
-> 
-> If it happens, this would be a bug. It means that a process can access
-> a physical page that has been allocated to something else, possibly
-> kernel data.
-> 
->> I'm talking about zap_pmd_range and zap_pte_range:
+>> Hi,
 >>
->>       zap_pmd_range
->>         zap_pte_range
->>           arch_enter_lazy_mmu_mode
->>             ptep_get_and_clear_full
->>             tlb_remove_tlb_entry
->>             __tlb_remove_page
->>           arch_leave_lazy_mmu_mode
->>         cond_resched
+>> I've made similar checking function for MIPS (because qemu is my only choice
+>> and it simulates MIPS TLB) and ran my tests on mips-malta machine in qemu.
+>> With MIPS I can also see this issue. I hope I did it right, the patch at the
+>> bottom is for the reference. The test I run and the diagnostic output are as
+>> follows:
 >>
->> With the default arch_{enter,leave}_lazy_mmu_mode, tlb_remove_tlb_entry
->> and __tlb_remove_page there is a loop in the zap_pte_range that clears
->> PTEs and frees corresponding pages, but doesn't flush TLB, and
->> surrounding loop in the zap_pmd_range that calls cond_resched. If a thread
->> of the same process gets scheduled then it is able to see TLB entries
->> pointing to already freed physical pages.
+>> To me it looks like the cond_resched in the zap_pmd_range is the root cause
+>> of this issue (let alone SMP case for now). It was introduced in the commit
+>>
+>> commit 97a894136f29802da19a15541de3c019e1ca147e
+>> Author: Peter Zijlstra <a.p.zijlstra@chello.nl>
+>> Date:   Tue May 24 17:12:04 2011 -0700
+>>
+>>     mm: Remove i_mmap_lock lockbreak
+>>
+>> Peter, Kamezawa, other reviewers of that commit, could you please comment?
 > 
-> It looks to me like cond_resched() here introduces a possible bug but
-> it depends on the actual arch code, especially the
-> __tlb_remove_tlb_entry() function. On ARM we record the range in
-> tlb_remove_tlb_entry() and queue the pages to be removed in
-> __tlb_remove_page(). It pretty much acts like tlb_fast_mode() == 0
-> even for the UP case (which is also needed for hardware speculative
-> TLB loads). The tlb_finish_mmu() takes care of whatever pages are left
-> to be freed.
+> Are you all running UP systems? I suppose the preemptible muck
+> invalidated the assumption that UP systems are 'easy'.
 > 
-> With a dummy __tlb_remove_tlb_entry() and tlb_fast_mode() == 1,
-> cond_resched() in zap_pmd_range() would cause problems.
+> If you make tlb_fast_mode() return an unconditional false, does it all
+> work again?
 > 
-> I think possible workarounds:
-> 
-> 1. tlb_fast_mode() always returning 0.
 
-This might add needless page free batching logic so not very lucrative.
+It seems tlb_fast_mode() only affects the page free batching and won't affect the
+TLB flush themselves unless ofcourse the batching runs out of space.
 
-> 2. add a tlb_flush_mmu(tlb) before cond_resched() in zap_pmd_range().
-
-For !fullmm flushes it might be no-op on some arches (atleast on ARC) as we use
-tlb_end_vma() to do TLB range flush. And flushing the entire TLB would be
-excessive though.
-
-Actually zap_pte_range() already has logic to flush the TLB range (if batching
-runs out of space). Can we re-use that infrastructure to make sure zap_pte_range()
-does it's share of TLB flushing before returning and going into cond_resched().
-
-However with that, we need to prevent tlb_end_vma()/tlb_finish_mmu() from
-duplicating the range flush - which can be done by clearing tlb->need_flush.
-
-Now simplistically this will cause even the fullmm flushes (simple ASID increment
-on ARC/ARM..) to become TLB walks to flush the individual entries so we can do
-this for only for !fullmm, assuming that cond_resched() can potentially cause an
-exit'ing task's thread to be scheduled in and reuse the entries.
-
-Let me go off cook a patch to see if this might work.
+FWIW, prior to your commit d16dfc550f5326 "mm: mmu_gather rework"
+tlb_finish_mmu() right before the need_resced() which would have handled the
+current situation. My proposal - please see my earlier email in thread is to reuse
+the force_flush logic in zap_pte_range() to do this.
 
 -Vineet
-
-
-
-
-
