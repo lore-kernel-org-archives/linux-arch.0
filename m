@@ -1,106 +1,56 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH v2] arch: s390: appldata: using strncpy() and strnlen()
- instead of sprintf()
-Date: Wed, 29 May 2013 15:47:09 +0800
-Message-ID: <51A5B27D.2050702@asianux.com>
-References: <51A48EE9.2040401@asianux.com> <51A32D81.2010105@asianux.com> <51A2CC07.5010100@asianux.com> <CAMuHMdXTW3QOxfAfqQXdbSpP4R83srFf7eMfu5fA-75S_Mujsg@mail.gmail.com> <4310.1369736553@warthog.procyon.org.uk> <5895.1369743429@warthog.procyon.org.uk> <51A559CB.3020804@asianux.com> <20130529063020.GG23932@mwanda> <51A5AE3D.5080106@asianux.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:55399 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S935105Ab3E2HsA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 03:48:00 -0400
-In-Reply-To: <51A5AE3D.5080106@asianux.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Dan Carpenter <dan.carpenter@oracle.com>
-Cc: David Howells <dhowells@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, jang@linux.vnet.ibm.com, linux390@de.ibm.com, linux-s390@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, "kernel-janitors@vger.kernel.org" <kernel-janitors@vger.kernel.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: [PATCH/RFC] sh: Always link in helper functions extracted from libgcc
+Date: Wed, 29 May 2013 10:16:48 +0200
+Message-ID: <1369815408-12719-1-git-send-email-geert@linux-m68k.org>
+Return-path: <linux-sh-owner@vger.kernel.org>
+Sender: linux-sh-owner@vger.kernel.org
+To: Paul Mundt <lethal@linux-sh.org>
+Cc: linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 05/29/2013 03:29 PM, Chen Gang wrote:
-> On 05/29/2013 02:30 PM, Dan Carpenter wrote:
->> On Wed, May 29, 2013 at 09:28:43AM +0800, Chen Gang wrote:
->>
->>>> diff --git a/arch/s390/appldata/appldata_base.c b/arch/s390/appldata/appldata_base.c
->>>> index bae0f40..27f200d 100644
->>>> --- a/arch/s390/appldata/appldata_base.c
->>>> +++ b/arch/s390/appldata/appldata_base.c
->>>> @@ -212,10 +212,9 @@ appldata_timer_handler(ctl_table *ctl, int write,
->>>>  		return 0;
->>>>  	}
->>>>  	if (!write) {
->>>> -		len = sprintf(buf, appldata_timer_active ? "1\n" : "0\n");
->>>> -		if (len > *lenp)
->>>> -			len = *lenp;
->>>> -		if (copy_to_user(buffer, buf, len))
->>>> +		if (copy_to_user(buffer,
->>>> +				 appldata_timer_active ? "1\n" : "0\n",
->>>> +				 min(2, *lenp))
->> I don't have a cross compiler set up, but this will generate a
->> warning, I think.  min_t() is needed.
-> 
-> Yes, it even can not pass compiling: need additional ')' for 'if'.
-> 
-> The new fix is below, (for pass compiling, also need fix the incorrect
-> declaration, which I have already sent an individual patch for it).
-> 
+E.g. landisk_defconfig, which has CONFIG_NTFS_FS=m:
 
-Excuse me, the diff v2 is word wrap, if really need it, please edit it.
+ERROR: "__ashrdi3" [fs/ntfs/ntfs.ko] undefined!
 
-If necessary, I will send the related patch for it.
+For "lib-y", if no symbols in a compilation unit are referenced by other
+units, the compilation unit will not be included in vmlinux.
+This breaks modules that do reference those symbols.
 
-Thanks.
+Use "obj-y" instead to fix this.
 
-> -----------------------------diff v2 begin------------------------------
-> 
-> diff --git a/arch/s390/appldata/appldata_base.c
-> b/arch/s390/appldata/appldata_base.c
-> index bae0f40..b0915b4 100644
-> --- a/arch/s390/appldata/appldata_base.c
-> +++ b/arch/s390/appldata/appldata_base.c
-> @@ -212,10 +212,9 @@ appldata_timer_handler(ctl_table *ctl, int write,
->  		return 0;
->  	}
->  	if (!write) {
-> -		len = sprintf(buf, appldata_timer_active ? "1\n" : "0\n");
-> -		if (len > *lenp)
-> -			len = *lenp;
-> -		if (copy_to_user(buffer, buf, len))
-> +		if (copy_to_user(buffer,
-> +				 appldata_timer_active ? "1\n" : "0\n",
-> +				 min_t(size_t, 2, *lenp)))
->  			return -EFAULT;
->  		goto out;
->  	}
-> diff --git a/arch/s390/include/asm/pgtable.h
-> b/arch/s390/include/asm/pgtable.h
-> index 172209c..ed88890 100644
-> --- a/arch/s390/include/asm/pgtable.h
-> +++ b/arch/s390/include/asm/pgtable.h
-> @@ -1348,7 +1348,7 @@ static inline pmd_t pmd_mkwrite(pmd_t pmd)
->  #ifdef CONFIG_TRANSPARENT_HUGEPAGE
-> 
->  #define __HAVE_ARCH_PGTABLE_DEPOSIT
-> -extern void pgtable_trans_huge_deposit(struct mm_struct *mm, , pmd_t *pmdp,
-> +extern void pgtable_trans_huge_deposit(struct mm_struct *mm, pmd_t *pmdp,
->  				       pgtable_t pgtable);
-> 
->  #define __HAVE_ARCH_PGTABLE_WITHDRAW
-> 
-> 
-> -----------------------------diff v2 end--------------------------------
-> 
-> 
-> For cross compiler, I use fedora 16/17, can yum update binutils-*
-> to get many platform cross-compilers (s390, powerpc, arm, xtensa, ...).
-> 
-> 
-> Thanks.
-> 
+Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+---
+http://kisskb.ellerman.id.au/kisskb/buildresult/8838077/
 
+This doesn't fix all cases. There are others, e.g. udivsi3.
+This is also not limited to sh, many architectures handle this in the same
+way.
 
+A simple solution is to unconditionally include all helper functions.
+A more complex solution is to make the choice of "lib-y" or "obj-y" depend
+on CONFIG_MODULES:
+  obj-$(CONFIG_MODULES) += ...
+  lib-y($CONFIG_MODULES) += ...
+  
+What do you think?
+Thanks for your comments!
+
+ arch/sh/lib/Makefile |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/arch/sh/lib/Makefile b/arch/sh/lib/Makefile
+index 7b95f29..3baff31 100644
+--- a/arch/sh/lib/Makefile
++++ b/arch/sh/lib/Makefile
+@@ -6,7 +6,7 @@ lib-y  = delay.o memmove.o memchr.o \
+ 	 checksum.o strlen.o div64.o div64-generic.o
+ 
+ # Extracted from libgcc
+-lib-y += movmem.o ashldi3.o ashrdi3.o lshrdi3.o \
++obj-y += movmem.o ashldi3.o ashrdi3.o lshrdi3.o \
+ 	 ashlsi3.o ashrsi3.o ashiftrt.o lshrsi3.o \
+ 	 udiv_qrnnd.o
+ 
 -- 
-Chen Gang
+1.7.0.4
 
-Asianux Corporation
