@@ -1,144 +1,96 @@
-From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Subject: Re: [PATCH v4 3/4] mutex: Add ww tests to lib/locking-selftest.c.
- v4
-Date: Tue, 28 May 2013 23:12:04 +0200
-Message-ID: <51A51DA4.7010805@canonical.com>
-References: <20130528144420.4538.70725.stgit@patser> <20130528144845.4538.93485.stgit@patser> <20130528191847.GE15743@phenom.ffwll.local>
+From: Chen Gang <gang.chen@asianux.com>
+Subject: Re: [PATCH v2] arch: s390: appldata: using strncpy() and strnlen()
+ instead of sprintf()
+Date: Wed, 29 May 2013 09:28:43 +0800
+Message-ID: <51A559CB.3020804@asianux.com>
+References: <51A48EE9.2040401@asianux.com> <51A32D81.2010105@asianux.com> <51A2CC07.5010100@asianux.com> <CAMuHMdXTW3QOxfAfqQXdbSpP4R83srFf7eMfu5fA-75S_Mujsg@mail.gmail.com> <4310.1369736553@warthog.procyon.org.uk> <5895.1369743429@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20130528191847.GE15743@phenom.ffwll.local>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, peterz@infradead.org, x86@kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robclark@gmail.com, rostedt@goodmis.org, tglx@linutronix.de, mingo@elte.hu, linux-media@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from intranet.asianux.com ([58.214.24.6]:34556 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932863Ab3E2B3j (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 May 2013 21:29:39 -0400
+In-Reply-To: <5895.1369743429@warthog.procyon.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Howells <dhowells@redhat.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, jang@linux.vnet.ibm.com, linux390@de.ibm.com, linux-s390@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, "kernel-janitors@vger.kernel.org" <kernel-janitors@vger.kernel.org>
 
-Op 28-05-13 21:18, Daniel Vetter schreef:
-> On Tue, May 28, 2013 at 04:48:45PM +0200, Maarten Lankhorst wrote:
->> This stresses the lockdep code in some ways specifically useful to
->> ww_mutexes. It adds checks for most of the common locking errors.
->>
->> Changes since v1:
->>  - Add tests to verify reservation_id is untouched.
->>  - Use L() and U() macros where possible.
->>
->> Changes since v2:
->>  - Use the ww_mutex api directly.
->>  - Use macros for most of the code.
->> Changes since v3:
->>  - Rework tests for the api changes.
->>
->> <snip>
->>
->> +static void ww_test_normal(void)
->> +{
->> +	int ret;
->> +
->> +	WWAI(&t);
->> +
->> +	/*
->> +	 * test if ww_id is kept identical if not
->> +	 * called with any of the ww_* locking calls
->> +	 */
->> +
->> +	/* mutex_lock (and indirectly, mutex_lock_nested) */
->> +	o.ctx = (void *)~0UL;
->> +	mutex_lock(&o.base);
->> +	mutex_unlock(&o.base);
->> +	WARN_ON(o.ctx != (void *)~0UL);
->> +
->> +	/* mutex_lock_interruptible (and *_nested) */
->> +	o.ctx = (void *)~0UL;
->> +	ret = mutex_lock_interruptible(&o.base);
->> +	if (!ret)
->> +		mutex_unlock(&o.base);
->> +	else
->> +		WARN_ON(1);
->> +	WARN_ON(o.ctx != (void *)~0UL);
->> +
->> +	/* mutex_lock_killable (and *_nested) */
->> +	o.ctx = (void *)~0UL;
->> +	ret = mutex_lock_killable(&o.base);
->> +	if (!ret)
->> +		mutex_unlock(&o.base);
->> +	else
->> +		WARN_ON(1);
->> +	WARN_ON(o.ctx != (void *)~0UL);
->> +
->> +	/* trylock, succeeding */
->> +	o.ctx = (void *)~0UL;
->> +	ret = mutex_trylock(&o.base);
->> +	WARN_ON(!ret);
->> +	if (ret)
->> +		mutex_unlock(&o.base);
->> +	else
->> +		WARN_ON(1);
->> +	WARN_ON(o.ctx != (void *)~0UL);
->> +
->> +	/* trylock, failing */
->> +	o.ctx = (void *)~0UL;
->> +	mutex_lock(&o.base);
->> +	ret = mutex_trylock(&o.base);
->> +	WARN_ON(ret);
->> +	mutex_unlock(&o.base);
->> +	WARN_ON(o.ctx != (void *)~0UL);
->> +
->> +	/* nest_lock */
->> +	o.ctx = (void *)~0UL;
->> +	mutex_lock_nest_lock(&o.base, &t);
->> +	mutex_unlock(&o.base);
->> +	WARN_ON(o.ctx != (void *)~0UL);
->> +}
-> Since we don't really allow this any more (instead allow ww_mutex_lock
-> without context) do we need this test here really?
-Yes. This test verifies all the normal locking paths are not affected by the ww_ctx changes.
+On 05/28/2013 08:17 PM, David Howells wrote:
+> Chen Gang <gang.chen@asianux.com> wrote:
+> 
+>> Your suggestion will improve the speed, but may merge "transferring
+>> 'protocol' data" and "processing 'protocol' data" together.
+> 
+> Look at it this way: You're having to step very carefully because you are
+> fully expecting the strings not to be NUL-terminated.  Therefore you probably
+> avoid using string functions if you can.
+> 
+> In fact, looking at the code, why are you copying the data through an
+> intermediate buffer at all?  Why not just copy directly to userspace:
+> 
+> 	int len;
+> 	char buf[2];
+> 
+> 	if (!*lenp || *ppos) {
+> 		*lenp = 0;
+> 		return 0;
+> 	}
+> 	if (!write) {
+> -		len = sprintf(buf, appldata_timer_active ? "1\n" : "0\n");
+> +		const char *ptr = appldata_timer_active ? "1\n" : "0\n";
+> +		size_t len = 2;
+> 		if (len > *lenp)
+> 			len = *lenp;
+> 		if (copy_to_user(buffer, buf, len))
 
->> +
->> +static void ww_test_two_contexts(void)
->> +{
->> +	WWAI(&t);
->> +	WWAI(&t2);
->> +}
->> +
->> +static void ww_test_context_unlock_twice(void)
->> +{
->> +	WWAI(&t);
->> +	WWAD(&t);
->> +	WWAF(&t);
->> +	WWAF(&t);
->> +}
->> +
->> +static void ww_test_object_unlock_twice(void)
->> +{
->> +	WWL1(&o);
->> +	WWU(&o);
->> +	WWU(&o);
->> +}
->> +
->> +static void ww_test_spin_nest_unlocked(void)
->> +{
->> +	raw_spin_lock_nest_lock(&lock_A, &o.base);
->> +	U(A);
->> +}
-> I don't quite see the point of this one here ...
-It's a lockdep test that was missing. o.base is not locked. So lock_A is being nested into an unlocked lock, resulting in a lockdep error.
+may: "if (copy_to_user(buffer, ptr, len))" ?
 
->> +
->> +static void ww_test_unneeded_slow(void)
->> +{
->> +	int ret;
->> +
->> +	WWAI(&t);
->> +
->> +	ww_mutex_lock_slow(&o, &t);
->> +}
-> I think checking the _slow debug stuff would be neat, i.e.
-> - fail/success tests for properly unlocking all held locks
-> - fail/success tests for lock_slow acquiring the right lock.
->
-> Otherwise I didn't spot anything that seems missing in these self-tests
-> here.
->
-Yes it would be nice, doing so is left as an excercise for the reviewer, who failed to raise this point sooner. ;-)
+:-)
 
-~Maarten
+> 			return -EFAULT;
+> 		goto out;
+> 	}
+> 
+> Put like that, it's fairly obvious what is going on.
+> 
+
+It seems well fixed (still independent of processing 'protocol' data).
+
+:-)
+
+
+And how about below:
+
+-------------------------------diff begin------------------------------
+
+
+diff --git a/arch/s390/appldata/appldata_base.c b/arch/s390/appldata/appldata_base.c
+index bae0f40..27f200d 100644
+--- a/arch/s390/appldata/appldata_base.c
++++ b/arch/s390/appldata/appldata_base.c
+@@ -212,10 +212,9 @@ appldata_timer_handler(ctl_table *ctl, int write,
+ 		return 0;
+ 	}
+ 	if (!write) {
+-		len = sprintf(buf, appldata_timer_active ? "1\n" : "0\n");
+-		if (len > *lenp)
+-			len = *lenp;
+-		if (copy_to_user(buffer, buf, len))
++		if (copy_to_user(buffer,
++				 appldata_timer_active ? "1\n" : "0\n",
++				 min(2, *lenp))
+ 			return -EFAULT;
+ 		goto out;
+ 	}
+
+-------------------------------diff end--------------------------------
+
+
+Thanks
+-- 
+Chen Gang
+
+Asianux Corporation
