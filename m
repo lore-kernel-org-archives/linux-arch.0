@@ -1,54 +1,89 @@
-From: Johannes Weiner <hannes@cmpxchg.org>
-Subject: Re: [patch 1/2] mm: fincore()
-Date: Wed, 29 May 2013 13:32:23 -0400
-Message-ID: <20130529173223.GE15721@cmpxchg.org>
-References: <87a9rbh7b4.fsf@rustcorp.com.au>
- <20130211162701.GB13218@cmpxchg.org>
- <20130211141239.f4decf03.akpm@linux-foundation.org>
- <20130215063450.GA24047@cmpxchg.org>
- <20130215132738.c85c9eda.akpm@linux-foundation.org>
- <20130215231304.GB23930@cmpxchg.org>
- <20130215154235.0fb36f53.akpm@linux-foundation.org>
- <87621skhtc.fsf@rustcorp.com.au>
- <20130529145312.GE3955@alap2.anarazel.de>
+From: Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>
+Subject: Re: [PATCH, v2 13/13] mm/m68k: fix build warning of unused variable
+Date: Wed, 29 May 2013 21:43:45 +0400
+Message-ID: <51A63E51.2060202@cogentembedded.com>
+References: <1369838692-26860-1-git-send-email-jiang.liu@huawei.com> <1369838692-26860-14-git-send-email-jiang.liu@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zene.cmpxchg.org ([85.214.230.12]:45812 "EHLO zene.cmpxchg.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932471Ab3E2Rcd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 29 May 2013 13:32:33 -0400
-Content-Disposition: inline
-In-Reply-To: <20130529145312.GE3955@alap2.anarazel.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andres Freund <andres@2ndquadrant.com>
-Cc: Rusty Russell <rusty@rustcorp.com.au>, Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Nick Piggin <npiggin@suse.de>, Stewart Smith <stewart@flamingspork.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1369838692-26860-14-git-send-email-jiang.liu@huawei.com>
+Sender: owner-linux-mm@kvack.org
+To: Jiang Liu <liuj97@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Greg Ungerer <gerg@uclinux.org>, Thadeu Lima de Souza Cascardo <cascardo@holoscopio.com>, linux-m68k@lists.linux-m68k.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 29, 2013 at 04:53:12PM +0200, Andres Freund wrote:
-> On 2013-02-16 14:53:43 +1030, Rusty Russell wrote:
-> > Andrew Morton <akpm@linux-foundation.org> writes:
-> > > On Fri, 15 Feb 2013 18:13:04 -0500
-> > > Johannes Weiner <hannes@cmpxchg.org> wrote:
-> > >> I dunno.  The byte vector might not be optimal but its worst cases
-> > >> seem more attractive, is just as extensible, and dead simple to use.
-> > >
-> > > But I think "which pages from this 4TB file are in core" will not be an
-> > > uncommon usage, and writing a gig of memory to find three pages is just
-> > > awful.
-> > 
-> > Actually, I don't know of any usage for this call.
-> 
-> [months later, catching up]
-> 
-> I do. Postgres' could really use something like that for making saner
-> assumptions about the cost of doing an index/heap scan. postgres doesn't
-> use mmap() and mmaping larger files into memory isn't all that cheap
-> (32bit...) so having fincore would be nice.
+Hello.
 
-How much of the areas you want to use it against is usually cached?
-I.e. are those 4TB files with 3 cached pages?
+On 05/29/2013 06:44 PM, Jiang Liu wrote:
 
-I do wonder if we should just have two separate interfaces.  Ugly, but
-I don't really see how the two requirements (dense but many holes
-vs. huge sparse areas) could be acceptably met with one interface.
+> Fix build warning of unused variable:
+> arch/m68k/mm/init.c: In function 'mem_init':
+> arch/m68k/mm/init.c:151:6: warning: unused variable 'i' [-Wunused-variable]
+>
+> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+> Cc: Greg Ungerer <gerg@uclinux.org>
+> Cc: Thadeu Lima de Souza Cascardo <cascardo@holoscopio.com>
+> Cc: linux-m68k@lists.linux-m68k.org
+> Cc: linux-kernel@vger.kernel.org
+> ---
+>   arch/m68k/mm/init.c | 13 ++++++++-----
+>   1 file changed, 8 insertions(+), 5 deletions(-)
+>
+> diff --git a/arch/m68k/mm/init.c b/arch/m68k/mm/init.c
+> index 6e0a938..6b4baa6 100644
+> --- a/arch/m68k/mm/init.c
+> +++ b/arch/m68k/mm/init.c
+> @@ -146,14 +146,11 @@ void __init print_memmap(void)
+>   		MLK_ROUNDUP(__bss_start, __bss_stop));
+>   }
+>   
+> -void __init mem_init(void)
+> +static inline void init_pointer_tables(void)
+>   {
+> +#if defined(CONFIG_MMU) && !defined(CONFIG_SUN3) && !defined(CONFIG_COLDFIRE)
+
+    #ifdef's in the function bodies are frowned upon, this should better be:
+
+#if defined(CONFIG_MMU) && !defined(CONFIG_SUN3) && !defined(CONFIG_COLDFIRE)
+
+static inline void init_pointer_tables(void)
+{
+[...]
+}
+#else
+static inline void init_pointer_tables(void) {}
+#endif
+
+>   	int i;
+>   
+> -	/* this will put all memory onto the freelists */
+> -	free_all_bootmem();
+> -
+> -#if defined(CONFIG_MMU) && !defined(CONFIG_SUN3) && !defined(CONFIG_COLDFIRE)
+>   	/* insert pointer tables allocated so far into the tablelist */
+>   	init_pointer_table((unsigned long)kernel_pg_dir);
+>   	for (i = 0; i < PTRS_PER_PGD; i++) {
+> @@ -165,7 +162,13 @@ void __init mem_init(void)
+>   	if (zero_pgtable)
+>   		init_pointer_table((unsigned long)zero_pgtable);
+>   #endif
+> +}
+>   
+> +void __init mem_init(void)
+> +{
+> +	/* this will put all memory onto the freelists */
+> +	free_all_bootmem();
+> +	init_pointer_tables();
+>   	mem_init_print_info(NULL);
+>   	print_memmap();
+>   }
+
+WBR, Sergei
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
