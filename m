@@ -1,64 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f47.google.com ([209.85.220.47]:50432 "EHLO
-	mail-pa0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S966381Ab3E2OpV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 10:45:21 -0400
-From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH, v2 02/13] mm/AVR32: prepare for killing free_all_bootmem_node()
-Date: Wed, 29 May 2013 22:44:41 +0800
-Message-ID: <1369838692-26860-3-git-send-email-jiang.liu@huawei.com>
-In-Reply-To: <1369838692-26860-1-git-send-email-jiang.liu@huawei.com>
-References: <1369838692-26860-1-git-send-email-jiang.liu@huawei.com>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:47231 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S966245Ab3E2Owm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 29 May 2013 10:52:42 -0400
+Date: Wed, 29 May 2013 15:51:58 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH] mm: Fix the TLB range flushed when __tlb_remove_page()
+ runs out of slots
+Message-ID: <20130529145158.GN17767@MacBook-Pro.local>
+References: <1369832173-15088-1-git-send-email-vgupta@synopsys.com>
+ <20130529140319.GK17767@MacBook-Pro.local>
+ <51A60BE5.7010905@synopsys.com>
+ <20130529142907.GM17767@MacBook-Pro.local>
+ <51A61252.9040508@synopsys.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <51A61252.9040508@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>
-Message-ID: <20130529144441.FI979h37qal5xmcMOhMsabIjTfLhZYqLt2Iq3CIpDJY@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Mel Gorman <mgorman@suse.de>, Hugh Dickins <hughd@google.com>, Rik van Riel <riel@redhat.com>, David Rientjes <rientjes@google.com>, Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Max Filippov <jcmvbkbc@gmail.com>
+Message-ID: <20130529145158.WOx_olFL7In48dhfytIJf2YCJC4Z4IS3I8Oksi0CljU@z>
 
-Prepare for killing free_all_bootmem_node() by using
-free_all_bootmem() instead.
+On Wed, May 29, 2013 at 03:36:02PM +0100, Vineet Gupta wrote:
+> On 05/29/2013 07:59 PM, Catalin Marinas wrote:
+> > On Wed, May 29, 2013 at 03:08:37PM +0100, Vineet Gupta wrote:
+> >> On 05/29/2013 07:33 PM, Catalin Marinas wrote:
+> >>> On Wed, May 29, 2013 at 01:56:13PM +0100, Vineet Gupta wrote:
+> >>>> zap_pte_range loops from @addr to @end. In the middle, if it runs out of
+> >>>> batching slots, TLB entries needs to be flushed for @start to @interim,
+> >>>> NOT @interim to @end.
+> >>>>
+> >>>> Since ARC port doesn't use page free batching I can't test it myself but
+> >>>> this seems like the right thing to do.
+> >>>> Observed this when working on a fix for the issue at thread:
+> >>>> 	http://www.spinics.net/lists/linux-arch/msg21736.html
+> >>>>
+> >>>> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+> >>>> Cc: Andrew Morton <akpm@linux-foundation.org>
+> >>>> Cc: Mel Gorman <mgorman@suse.de>
+> >>>> Cc: Hugh Dickins <hughd@google.com>
+> >>>> Cc: Rik van Riel <riel@redhat.com>
+> >>>> Cc: David Rientjes <rientjes@google.com>
+> >>>> Cc: Peter Zijlstra <peterz@infradead.org>
+> >>>> Cc: linux-mm@kvack.org
+> >>>> Cc: linux-arch@vger.kernel.org <linux-arch@vger.kernel.org>
+> >>>> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> >>>> Cc: Max Filippov <jcmvbkbc@gmail.com>
+> >>>> ---
+> >>>>  mm/memory.c |    9 ++++++---
+> >>>>  1 file changed, 6 insertions(+), 3 deletions(-)
+> >>>>
+> >>>> diff --git a/mm/memory.c b/mm/memory.c
+> >>>> index 6dc1882..d9d5fd9 100644
+> >>>> --- a/mm/memory.c
+> >>>> +++ b/mm/memory.c
+> >>>> @@ -1110,6 +1110,7 @@ static unsigned long zap_pte_range(struct mmu_gather *tlb,
+> >>>>  	spinlock_t *ptl;
+> >>>>  	pte_t *start_pte;
+> >>>>  	pte_t *pte;
+> >>>> +	unsigned long range_start = addr;
+> >>>>  
+> >>>>  again:
+> >>>>  	init_rss_vec(rss);
+> >>>> @@ -1215,12 +1216,14 @@ again:
+> >>>>  		force_flush = 0;
+> >>>>  
+> >>>>  #ifdef HAVE_GENERIC_MMU_GATHER
+> >>>> -		tlb->start = addr;
+> >>>> -		tlb->end = end;
+> >>>> +		tlb->start = range_start;
+> >>>> +		tlb->end = addr;
+> >>>>  #endif
+> >>>>  		tlb_flush_mmu(tlb);
+> >>>> -		if (addr != end)
+> >>>> +		if (addr != end) {
+> >>>> +			range_start = addr;
+> >>>>  			goto again;
+> >>>> +		}
+> >>>>  	}
+> >>> Isn't this code only run if force_flush != 0? force_flush is set to
+> >>> !__tlb_remove_page() and this function always returns 1 on (generic TLB)
+> >>> UP since tlb_fast_mode() is 1. There is no batching on UP with the
+> >>> generic TLB code.
+> >> Correct ! That's why the changelog says I couldn't test it on ARC port itself :-)
+> >>
+> >> However based on the other discussion (Max's TLB/PTE inconsistency), as I started
+> >> writing code to reuse this block to flush the TLB even for non forced case, I
+> >> realized that what this is doing is incorrect and won't work for the general flushing.
+> > An alternative would be to make sure the above block is always called
+> > when tlb_fast_mode():
+> >
+> > diff --git a/mm/memory.c b/mm/memory.c
+> > index 6dc1882..f8b1f30 100644
+> > --- a/mm/memory.c
+> > +++ b/mm/memory.c
+> > @@ -1211,7 +1211,7 @@ again:
+> >  	 * the PTE lock to avoid doing the potential expensive TLB invalidate
+> >  	 * and page-free while holding it.
+> >  	 */
+> > -	if (force_flush) {
+> > +	if (force_flush || tlb_fast_mode(tlb)) {
+> >  		force_flush = 0;
+> 
+> I agree with tlb_fast_mode() addition (to solve Max's issue). The problem however
+> is that when we hit this at the end of loop - @addr is already pointing to @end so
+> range flush gets start = end - not what we really intended.
 
-Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
-Cc: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-Cc: linux-kernel@vger.kernel.org
----
- arch/avr32/mm/init.c | 21 +++++----------------
- 1 file changed, 5 insertions(+), 16 deletions(-)
+OK. So for this part your patch looks fine.
 
-diff --git a/arch/avr32/mm/init.c b/arch/avr32/mm/init.c
-index 0fc04b9..def5391 100644
---- a/arch/avr32/mm/init.c
-+++ b/arch/avr32/mm/init.c
-@@ -103,23 +103,12 @@ void __init mem_init(void)
- 	pg_data_t *pgdat;
- 
- 	high_memory = NULL;
-+	for_each_online_pgdat(pgdat)
-+		high_memory = max_t(void *, high_memory,
-+				    __va(pgdat_end_pfn(pgdat) << PAGE_SHIFT));
- 
--	/* this will put all low memory onto the freelists */
--	for_each_online_pgdat(pgdat) {
--		void *node_high_memory;
--
--		if (pgdat->node_spanned_pages != 0)
--			free_all_bootmem_node(pgdat);
--
--		node_high_memory = (void *)((pgdat->node_start_pfn
--					     + pgdat->node_spanned_pages)
--					    << PAGE_SHIFT);
--		if (node_high_memory > high_memory)
--			high_memory = node_high_memory;
--	}
--
--	max_mapnr = MAP_NR(high_memory);
--
-+	set_max_mapnr(MAP_NR(high_memory));
-+	free_all_bootmem();
- 	mem_init_print_info(NULL);
- }
- 
--- 
-1.8.1.2
-
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
