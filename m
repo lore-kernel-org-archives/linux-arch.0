@@ -1,69 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f43.google.com ([209.85.160.43]:46856 "EHLO
-	mail-pb0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S966381Ab3E2Op2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 10:45:28 -0400
+Received: from mail-pd0-f174.google.com ([209.85.192.174]:52867 "EHLO
+	mail-pd0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S966482Ab3E2Opt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 10:45:49 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH, v2 04/13] mm/m32r: prepare for killing free_all_bootmem_node()
-Date: Wed, 29 May 2013 22:44:43 +0800
-Message-ID: <1369838692-26860-5-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH, v2 10/13] mm/SH: prepare for killing free_all_bootmem_node()
+Date: Wed, 29 May 2013 22:44:49 +0800
+Message-ID: <1369838692-26860-11-git-send-email-jiang.liu@huawei.com>
 In-Reply-To: <1369838692-26860-1-git-send-email-jiang.liu@huawei.com>
 References: <1369838692-26860-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Hirokazu Takata <takata@linux-m32r.org>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org
-Message-ID: <20130529144443.TNdS4pu-mlhV7WQksZpJWnt6xH7JwYkJXaIccOMKjV4@z>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Paul Mundt <lethal@linux-sh.org>, Tang Chen <tangchen@cn.fujitsu.com>, linux-sh@vger.kernel.org
+Message-ID: <20130529144449.uB36nfWbx7r55dIMb8zD9AXZNTGnQZ-9IToKzuuK5zA@z>
 
 Prepare for killing free_all_bootmem_node() by using
 free_all_bootmem().
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Hirokazu Takata <takata@linux-m32r.org>
-Cc: linux-m32r@ml.linux-m32r.org
-Cc: linux-m32r-ja@ml.linux-m32r.org
+Cc: Paul Mundt <lethal@linux-sh.org>
+Cc: Wen Congyang <wency@cn.fujitsu.com>
+Cc: Tang Chen <tangchen@cn.fujitsu.com>
+Cc: linux-sh@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org
 ---
- arch/m32r/mm/init.c | 17 ++++-------------
- 1 file changed, 4 insertions(+), 13 deletions(-)
+ arch/sh/mm/init.c | 16 ++++------------
+ 1 file changed, 4 insertions(+), 12 deletions(-)
 
-diff --git a/arch/m32r/mm/init.c b/arch/m32r/mm/init.c
-index a4f8d93..0d4146f 100644
---- a/arch/m32r/mm/init.c
-+++ b/arch/m32r/mm/init.c
-@@ -111,28 +111,19 @@ void __init paging_init(void)
-  *======================================================================*/
- void __init mem_init(void)
- {
--	int nid;
- #ifndef CONFIG_MMU
- 	extern unsigned long memory_end;
--#endif
+diff --git a/arch/sh/mm/init.c b/arch/sh/mm/init.c
+index c9a517c..33890fd 100644
+--- a/arch/sh/mm/init.c
++++ b/arch/sh/mm/init.c
+@@ -412,19 +412,11 @@ void __init mem_init(void)
+ 	iommu_init();
  
--#ifndef CONFIG_DISCONTIGMEM
--	max_mapnr = get_num_physpages();
--#endif	/* CONFIG_DISCONTIGMEM */
+ 	high_memory = NULL;
++	for_each_online_pgdat(pgdat)
++		high_memory = max_t(void *, high_memory,
++				    __va(pgdat_end_pfn(pgdat) << PAGE_SHIFT));
+ 
+-	for_each_online_pgdat(pgdat) {
+-		void *node_high_memory;
 -
--#ifdef CONFIG_MMU
--	high_memory = (void *)__va(PFN_PHYS(MAX_LOW_PFN(0)));
--#else
- 	high_memory = (void *)(memory_end & PAGE_MASK);
-+#else
-+	high_memory = (void *)__va(PFN_PHYS(MAX_LOW_PFN(0)));
- #endif /* CONFIG_MMU */
- 
- 	/* clear the zero-page */
- 	memset(empty_zero_page, 0, PAGE_SIZE);
- 
--	/* this will put all low memory onto the freelists */
--	for_each_online_node(nid)
--		free_all_bootmem_node(NODE_DATA(nid));
+-		if (pgdat->node_spanned_pages)
+-			free_all_bootmem_node(pgdat);
 -
-+	set_max_mapnr(get_num_physpages());
+-		node_high_memory = (void *)__va((pgdat->node_start_pfn +
+-						 pgdat->node_spanned_pages) <<
+-						 PAGE_SHIFT);
+-		if (node_high_memory > high_memory)
+-			high_memory = node_high_memory;
+-	}
 +	free_all_bootmem();
- 	mem_init_print_info(NULL);
- }
  
+ 	/* Set this up early, so we can take care of the zero page */
+ 	cpu_cache_init();
 -- 
 1.8.1.2
 
