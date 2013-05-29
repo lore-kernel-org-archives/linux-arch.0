@@ -1,79 +1,89 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH] arch: blackfin: kernel: memory overflow, 'namebuf' length
- need be more than 256
-Date: Wed, 29 May 2013 13:30:05 +0200
-Message-ID: <CAMuHMdV17ZuCAdZq4vc+Av=r4b02OvjiEeRPxkq=7VrO3C7MSA@mail.gmail.com>
-References: <51A5CDB4.9000204@asianux.com>
-	<51A5D346.4010007@asianux.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: TLB and PTE coherency during munmap
+Date: Wed, 29 May 2013 17:23:14 +0530
+Message-ID: <51A5EC2A.4070903@synopsys.com>
+References: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com> <CAHkRjk4ZNwZvf_Cv+HqfMManodCkEpCPdZokPQ68z3nVG8-+wg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f169.google.com ([209.85.192.169]:57442 "EHLO
-	mail-pd0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965500Ab3E2LaG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 07:30:06 -0400
-In-Reply-To: <51A5D346.4010007@asianux.com>
+Received: from us02smtp2.synopsys.com ([198.182.60.77]:56138 "EHLO
+	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965418Ab3E2Lxs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 07:53:48 -0400
+In-Reply-To: <CAHkRjk4ZNwZvf_Cv+HqfMManodCkEpCPdZokPQ68z3nVG8-+wg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chen Gang <gang.chen@asianux.com>
-Cc: Mike Frysinger <vapier@gentoo.org>, Anton Vorontsov <anton.vorontsov@linaro.org>, Richard Kuo <rkuo@codeaurora.org>, Jesper Nilsson <jesper.nilsson@axis.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, "uclinux-dist-devel@blackfin.uclinux.org" <uclinux-dist-devel@blackfin.uclinux.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Max Filippov <jcmvbkbc@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm@vger.kernel.org, linux-xtensa@linux-xtensa.org, Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>
 
-On Wed, May 29, 2013 at 12:07 PM, Chen Gang <gang.chen@asianux.com> wrote:
-> The 'name' length in decode_address() may be 255, after call d_path()
-> successfully.
->
-> So for decode_address(), the input 'buf' need be more than 256, or may
-> memory overflow.
->
-> For simply thinking of, use 'namebuf[512]' instead of 'namebuf[150]'
-> which will pass to decode_address() as input 'buf'.
->
-> Also better use macro instead of hard code number when processing
-> symbols work.
->
->
-> Signed-off-by: Chen Gang <gang.chen@asianux.com>
-> ---
->  arch/blackfin/kernel/trace.c |    4 ++--
->  1 files changed, 2 insertions(+), 2 deletions(-)
->
-> diff --git a/arch/blackfin/kernel/trace.c b/arch/blackfin/kernel/trace.c
-> index c36efa0..4fecd3e 100644
-> --- a/arch/blackfin/kernel/trace.c
-> +++ b/arch/blackfin/kernel/trace.c
-> @@ -37,7 +37,7 @@ void decode_address(char *buf, unsigned long address)
->         const char *symname;
->         char *modname;
->         char *delim = ":";
-> -       char namebuf[128];
-> +       char namebuf[KSYM_NAME_LEN];
->  #endif
->
->         buf += sprintf(buf, "<0x%08lx> ", address);
-> @@ -845,7 +845,7 @@ void dump_bfin_mem(struct pt_regs *fp)
->
->  void show_regs(struct pt_regs *fp)
->  {
-> -       char buf[150];
-> +       char buf[512];
+On 05/28/2013 08:05 PM, Catalin Marinas wrote:
+> Max,
+> 
+> On 26 May 2013 03:42, Max Filippov <jcmvbkbc@gmail.com> wrote:
+>> Hello arch and mm people.
+>>
+>> Is it intentional that threads of a process that invoked munmap syscall
+>> can see TLB entries pointing to already freed pages, or it is a bug?
+> 
+> If it happens, this would be a bug. It means that a process can access
+> a physical page that has been allocated to something else, possibly
+> kernel data.
+> 
+>> I'm talking about zap_pmd_range and zap_pte_range:
+>>
+>>       zap_pmd_range
+>>         zap_pte_range
+>>           arch_enter_lazy_mmu_mode
+>>             ptep_get_and_clear_full
+>>             tlb_remove_tlb_entry
+>>             __tlb_remove_page
+>>           arch_leave_lazy_mmu_mode
+>>         cond_resched
+>>
+>> With the default arch_{enter,leave}_lazy_mmu_mode, tlb_remove_tlb_entry
+>> and __tlb_remove_page there is a loop in the zap_pte_range that clears
+>> PTEs and frees corresponding pages, but doesn't flush TLB, and
+>> surrounding loop in the zap_pmd_range that calls cond_resched. If a thread
+>> of the same process gets scheduled then it is able to see TLB entries
+>> pointing to already freed physical pages.
+> 
+> It looks to me like cond_resched() here introduces a possible bug but
+> it depends on the actual arch code, especially the
+> __tlb_remove_tlb_entry() function. On ARM we record the range in
+> tlb_remove_tlb_entry() and queue the pages to be removed in
+> __tlb_remove_page(). It pretty much acts like tlb_fast_mode() == 0
+> even for the UP case (which is also needed for hardware speculative
+> TLB loads). The tlb_finish_mmu() takes care of whatever pages are left
+> to be freed.
+> 
+> With a dummy __tlb_remove_tlb_entry() and tlb_fast_mode() == 1,
+> cond_resched() in zap_pmd_range() would cause problems.
+> 
+> I think possible workarounds:
+> 
+> 1. tlb_fast_mode() always returning 0.
 
-This will increase stack usage a lot. And this function calls decode_address(),
-which allocates another buffer on the stack.
+This might add needless page free batching logic so not very lucrative.
 
-However, as this is in debug code which is (never?) called concurrently, both
-buffers can be made static?
+> 2. add a tlb_flush_mmu(tlb) before cond_resched() in zap_pmd_range().
 
->         struct irqaction *action;
->         unsigned int i;
->         unsigned long flags = 0;
+For !fullmm flushes it might be no-op on some arches (atleast on ARC) as we use
+tlb_end_vma() to do TLB range flush. And flushing the entire TLB would be
+excessive though.
 
-Gr{oetje,eeting}s,
+Actually zap_pte_range() already has logic to flush the TLB range (if batching
+runs out of space). Can we re-use that infrastructure to make sure zap_pte_range()
+does it's share of TLB flushing before returning and going into cond_resched().
 
-                        Geert
+However with that, we need to prevent tlb_end_vma()/tlb_finish_mmu() from
+duplicating the range flush - which can be done by clearing tlb->need_flush.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+Now simplistically this will cause even the fullmm flushes (simple ASID increment
+on ARC/ARM..) to become TLB walks to flush the individual entries so we can do
+this for only for !fullmm, assuming that cond_resched() can potentially cause an
+exit'ing task's thread to be scheduled in and reuse the entries.
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Let me go off cook a patch to see if this might work.
+
+-Vineet
