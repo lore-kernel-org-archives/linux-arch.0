@@ -1,53 +1,78 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH] arch: blackfin: kernel: memory overflow, 'namebuf' length
- need be more than 256
-Date: Wed, 29 May 2013 20:06:31 +0800
-Message-ID: <51A5EF47.4080101@asianux.com>
-References: <51A5CDB4.9000204@asianux.com> <51A5D346.4010007@asianux.com> <CAMuHMdV17ZuCAdZq4vc+Av=r4b02OvjiEeRPxkq=7VrO3C7MSA@mail.gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: TLB and PTE coherency during munmap
+Date: Wed, 29 May 2013 14:27:28 +0200
+Message-ID: <20130529122728.GA27176@twins.programming.kicks-ass.net>
+References: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com>
+ <CAMo8BfJie1Y49QeSJ+JTQb9WsYJkMMkb1BkKz2Gzy3T7V6ogHA@mail.gmail.com>
+ <51A45861.1010008@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:16635 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965859Ab3E2MHp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 08:07:45 -0400
-In-Reply-To: <CAMuHMdV17ZuCAdZq4vc+Av=r4b02OvjiEeRPxkq=7VrO3C7MSA@mail.gmail.com>
+Received: from merlin.infradead.org ([205.233.59.134]:52614 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965969Ab3E2M1r (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 08:27:47 -0400
+Content-Disposition: inline
+In-Reply-To: <51A45861.1010008@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Chen Gang <gang.chen@asianux.com>, Mike Frysinger <vapier@gentoo.org>, Anton Vorontsov <anton.vorontsov@linaro.org>, Richard Kuo <rkuo@codeaurora.org>, Jesper Nilsson <jesper.nilsson@axis.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, "uclinux-dist-devel@blackfin.uclinux.org" <uclinux-dist-devel@blackfin.uclinux.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: Max Filippov <jcmvbkbc@gmail.com>
+Cc: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, Ralf Baechle <ralf@linux-mips.org>, Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>, linux-xtensa@linux-xtensa.org, Hugh Dickins <hughd@google.com>
 
-On 05/29/2013 07:30 PM, Geert Uytterhoeven wrote:
->>  void show_regs(struct pt_regs *fp)
->> >  {
->> > -       char buf[150];
->> > +       char buf[512];
-> This will increase stack usage a lot. And this function calls decode_address(),
-> which allocates another buffer on the stack.
+On Tue, May 28, 2013 at 11:10:25AM +0400, Max Filippov wrote:
+> On Sun, May 26, 2013 at 6:50 AM, Max Filippov <jcmvbkbc@gmail.com> wrote:
+> > Hello arch and mm people.
+> >
+> > Is it intentional that threads of a process that invoked munmap syscall
+> > can see TLB entries pointing to already freed pages, or it is a bug?
+> >
+> > I'm talking about zap_pmd_range and zap_pte_range:
+> >
+> >       zap_pmd_range
+> >         zap_pte_range
+> >           arch_enter_lazy_mmu_mode
+> >             ptep_get_and_clear_full
+> >             tlb_remove_tlb_entry
+> >             __tlb_remove_page
+> >           arch_leave_lazy_mmu_mode
+> >         cond_resched
+> >
+> > With the default arch_{enter,leave}_lazy_mmu_mode, tlb_remove_tlb_entry
+> > and __tlb_remove_page there is a loop in the zap_pte_range that clears
+> > PTEs and frees corresponding pages, but doesn't flush TLB, and
+> > surrounding loop in the zap_pmd_range that calls cond_resched. If a thread
+> > of the same process gets scheduled then it is able to see TLB entries
+> > pointing to already freed physical pages.
+> >
+> > I've noticed that with xtensa arch when I added a test before returning to
+> > userspace checking that TLB contents agrees with page tables of the
+> > current mm. This check reliably fires with the LTP test mtest05 that
+> > maps, unmaps and accesses memory from multiple threads.
+> >
+> > Is there anything wrong in my description, maybe something specific to
+> > my arch, or this issue really exists?
 > 
-
-Can it have a risk to cause the related stack used up ? (excuse me, I
-don't know the system or thread stack size of blackfin).
-
-If so, we really need save some byes (e.g. buf[300] ...), at least. But
-I'm not sure whether it still has the risk too.
-
-
-> However, as this is in debug code which is (never?) called concurrently, both
-> buffers can be made static?
+> Hi,
 > 
+> I've made similar checking function for MIPS (because qemu is my only choice
+> and it simulates MIPS TLB) and ran my tests on mips-malta machine in qemu.
+> With MIPS I can also see this issue. I hope I did it right, the patch at the
+> bottom is for the reference. The test I run and the diagnostic output are as
+> follows:
+> 
+> To me it looks like the cond_resched in the zap_pmd_range is the root cause
+> of this issue (let alone SMP case for now). It was introduced in the commit
+> 
+> commit 97a894136f29802da19a15541de3c019e1ca147e
+> Author: Peter Zijlstra <a.p.zijlstra@chello.nl>
+> Date:   Tue May 24 17:12:04 2011 -0700
+> 
+>     mm: Remove i_mmap_lock lockbreak
+> 
+> Peter, Kamezawa, other reviewers of that commit, could you please comment?
 
-trap_c() may call show_regs(), and can multiple traps occur at the same
-time ?
+Are you all running UP systems? I suppose the preemptible muck
+invalidated the assumption that UP systems are 'easy'.
 
-It seems it can (but I am not quite sure): for trap_c() only use stack
-variables, and "cpu = raw_smp_processor_id()".
-
-
-
-Thanks.
--- 
-Chen Gang
-
-Asianux Corporation
+If you make tlb_fast_mode() return an unconditional false, does it all
+work again?
