@@ -1,35 +1,50 @@
-From: richard -rw- weinberger <richard.weinberger@gmail.com>
-Subject: Re: A bug about system call on ARM
-Date: Wed, 29 May 2013 09:34:38 +0200
-Message-ID: <CAFLxGvy39xWdZmtiVHP+y=zH1coCVmMuREcmD25wSb=w-VK7Xg@mail.gmail.com>
+From: "Wang, Yalin" <Yalin.Wang@sonymobile.com>
+Subject: RE: A bug about system call on ARM
+Date: Wed, 29 May 2013 15:37:49 +0800
+Message-ID: <35FD53F367049845BC99AC72306C23D1610991B85D@CNBJMBX05.corpusers.net>
 References: <35FD53F367049845BC99AC72306C23D1610991B85B@CNBJMBX05.corpusers.net>
+ <CAFLxGvy39xWdZmtiVHP+y=zH1coCVmMuREcmD25wSb=w-VK7Xg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f172.google.com ([74.125.82.172]:46873 "EHLO
-	mail-we0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S935084Ab3E2Hej (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 03:34:39 -0400
-In-Reply-To: <35FD53F367049845BC99AC72306C23D1610991B85B@CNBJMBX05.corpusers.net>
+Received: from cnbjrel02.sonyericsson.com ([219.141.167.166]:17095 "EHLO
+	cnbjrel02.sonyericsson.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S935097Ab3E2Hhy convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 29 May 2013 03:37:54 -0400
+In-Reply-To: <CAFLxGvy39xWdZmtiVHP+y=zH1coCVmMuREcmD25wSb=w-VK7Xg@mail.gmail.com>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Wang, Yalin" <Yalin.Wang@sonymobile.com>
+To: 'richard -rw- weinberger' <richard.weinberger@gmail.com>
 Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+
+Hi  Richard,
+
+Thanks for your reply ,
+I will make a check for this .
+
+
+-----Original Message-----
+From: richard -rw- weinberger [mailto:richard.weinberger@gmail.com] 
+Sent: Wednesday, May 29, 2013 3:35 PM
+To: Wang, Yalin
+Cc: linux-arch@vger.kernel.org; linux-kernel@vger.kernel.org
+Subject: Re: A bug about system call on ARM
 
 Hi!
 
 On Wed, May 29, 2013 at 8:52 AM, Wang, Yalin <Yalin.Wang@sonymobile.com> wrote:
 > Hi  all,
 >
-> I am a new comer to this mailing list ,
-> I am happy to join this community .
+> I am a new comer to this mailing list , I am happy to join this 
+> community .
 >
 > I have a bug reported from our android phones which is caused by  the system call .
 > It seems like kernel bugs from my view .
 
-Is this a unmodified Linux kernel from kernel.org? In other works, no
-(half broken) board support package
-from your hardware vendor?
+Is this a unmodified Linux kernel from kernel.org? In other works, no (half broken) board support package from your hardware vendor?
 Did you try a more recent kernel? (At least 3.4.47).
 Maybe your problem is already known and fixed...
 
@@ -74,20 +89,20 @@ Maybe your problem is already known and fixed...
 >         rev     r10, r10                        @ little endian instruction
 > #endif
 >
-> /***************************************************************************************************/
+> /*********************************************************************
+> ******************************/
 >
-> Then reason why it will crash when get SWI instruction is maybe
-> This page is clear to aged by kernel,
-> But this MMU fault happpened in kernel,
-> So the kernel do_page_fault function will not clear this page to young,
-> So that  will crash .
+> Then reason why it will crash when get SWI instruction is maybe This 
+> page is clear to aged by kernel, But this MMU fault happpened in 
+> kernel, So the kernel do_page_fault function will not clear this page 
+> to young, So that  will crash .
 >
-> It should poll this page to make it present or the fault should be handled by fixup section ,
-> Anyway, this place should not crash by kernel .
+> It should poll this page to make it present or the fault should be 
+> handled by fixup section , Anyway, this place should not crash by kernel .
 >
 > The kernel version I used  is  3.4.0
-> I have add the kernel log and the call stack recovered  by trace32 tools
-> Pls have a look at it .
+> I have add the kernel log and the call stack recovered  by trace32 
+> tools Pls have a look at it .
 >
 >
 > Thanks .
