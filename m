@@ -1,37 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us02smtp2.synopsys.com ([198.182.60.77]:50786 "EHLO
-	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965117Ab3E2IwY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 04:52:24 -0400
-Message-ID: <51A5C1AE.6000805@synopsys.com>
-Date: Wed, 29 May 2013 14:21:58 +0530
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Received: from smtp1.uu.se ([130.238.7.54]:60991 "EHLO smtp1.uu.se"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S965039Ab3E2JHr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 29 May 2013 05:07:47 -0400
 MIME-Version: 1.0
-Subject: Re: [PATCH v8, part3 02/14] mm: enhance free_reserved_area() to support
- poisoning memory with zero
-References: <1369575522-26405-1-git-send-email-jiang.liu@huawei.com> <1369575522-26405-3-git-send-email-jiang.liu@huawei.com>
-In-Reply-To: <1369575522-26405-3-git-send-email-jiang.liu@huawei.com>
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
+Message-ID: <20901.49731.549060.203528@pilspetsen.it.uu.se>
+Date: Wed, 29 May 2013 10:54:27 +0200
+From: Mikael Pettersson <mikpe@it.uu.se>
+Subject: RE: A bug about system call on ARM
+In-Reply-To: <35FD53F367049845BC99AC72306C23D1610991B85E@CNBJMBX05.corpusers.net>
+References: <35FD53F367049845BC99AC72306C23D1610991B85B@CNBJMBX05.corpusers.net>
+	<CAFLxGvy39xWdZmtiVHP+y=zH1coCVmMuREcmD25wSb=w-VK7Xg@mail.gmail.com>
+	<35FD53F367049845BC99AC72306C23D1610991B85D@CNBJMBX05.corpusers.net>
+	<35FD53F367049845BC99AC72306C23D1610991B85E@CNBJMBX05.corpusers.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiang Liu <liuj97@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>
-Message-ID: <20130529085158.yqIpQPxNZFzMIAYrXznMNLOoRxsk69TIwF8HWdlSsME@z>
+To: "Wang, Yalin" <Yalin.Wang@sonymobile.com>
+Cc: 'richard -rw- weinberger' <richard.weinberger@gmail.com>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>
+Message-ID: <20130529085427.hkrAu4-oEyACQH6LqBRaX60192DkEtcB2kpUXB3OnwA@z>
 
-On 05/26/2013 07:08 PM, Jiang Liu wrote:
-> Address more review comments from last round of code review.
-> 1) Enhance free_reserved_area() to support poisoning freed memory with
->    pattern '0'. This could be used to get rid of poison_init_mem()
->    on ARM64.
-> 2) A previous patch has disabled memory poison for initmem on s390
->    by mistake, so restore to the original behavior.
-> 3) Remove redundant PAGE_ALIGN() when calling free_reserved_area().
-> 
-> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+Wang, Yalin writes:
+ > Hi  
+ > 
+ > I have download the latest linux kernel code  3.9.4
+ > And Compare with  3.4.0 kernel .
+ > 
+ > It seems there is no change for this part ,
+ > So it will still happen .
+ > Does anyone know who is responsible for  arm arch part kernel code ?
 
-Can you apply these to you github v5 branch as well !
+A quick look in MAINTAINNERS would have told you:
 
-Thx,
--Vineet
+ARM PORT
+...
+L:      linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
 
+Please direct ARM-specific questions to that list.
