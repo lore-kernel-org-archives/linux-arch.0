@@ -1,79 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:41034 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S965320Ab3E2KQZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 29 May 2013 06:16:25 -0400
-Date: Wed, 29 May 2013 11:15:33 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: TLB and PTE coherency during munmap
-Message-ID: <20130529101533.GF17767@MacBook-Pro.local>
-References: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com>
- <CAHkRjk4ZNwZvf_Cv+HqfMManodCkEpCPdZokPQ68z3nVG8-+wg@mail.gmail.com>
- <51A580E0.10300@gmail.com>
+Received: from intranet.asianux.com ([58.214.24.6]:63790 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965467Ab3E2KwV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 06:52:21 -0400
+Message-ID: <51A5DDB0.50504@asianux.com>
+Date: Wed, 29 May 2013 18:51:28 +0800
+From: Chen Gang <gang.chen@asianux.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <51A580E0.10300@gmail.com>
+Subject: [PATCH] arch: alpha: kernel: using memcpy() instead of strcpy()
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Max Filippov <jcmvbkbc@gmail.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>
-Message-ID: <20130529101533.Ta9i7hna3axoPdFLeeDFwfTadm5S9b5U5uy4FS4q5ww@z>
+To: rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, Thomas Gleixner <tglx@linutronix.de>, Frederic Weisbecker <fweisbec@gmail.com>, josh@joshtriplett.org, srivatsa.bhat@linux.vnet.ibm.com
+Cc: Greg KH <gregkh@linuxfoundation.org>, linux-alpha@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20130529105128.leHfd0aBoG8JHAbZlNULzLNsh-Hx2ZLRUzkWyMAepOQ@z>
 
-On Wed, May 29, 2013 at 05:15:28AM +0100, Max Filippov wrote:
-> On Tue, May 28, 2013 at 6:35 PM, Catalin Marinas <catalin.marinas@arm.com> wrote:
-> > On 26 May 2013 03:42, Max Filippov <jcmvbkbc@gmail.com> wrote:
-> >> Is it intentional that threads of a process that invoked munmap syscall
-> >> can see TLB entries pointing to already freed pages, or it is a bug?
-> >
-> > If it happens, this would be a bug. It means that a process can access
-> > a physical page that has been allocated to something else, possibly
-> > kernel data.
-> >
-> >> I'm talking about zap_pmd_range and zap_pte_range:
-> >>
-> >>       zap_pmd_range
-> >>         zap_pte_range
-> >>           arch_enter_lazy_mmu_mode
-> >>             ptep_get_and_clear_full
-> >>             tlb_remove_tlb_entry
-> >>             __tlb_remove_page
-> >>           arch_leave_lazy_mmu_mode
-> >>         cond_resched
-> >>
-> >> With the default arch_{enter,leave}_lazy_mmu_mode, tlb_remove_tlb_entry
-> >> and __tlb_remove_page there is a loop in the zap_pte_range that clears
-> >> PTEs and frees corresponding pages, but doesn't flush TLB, and
-> >> surrounding loop in the zap_pmd_range that calls cond_resched. If a thread
-> >> of the same process gets scheduled then it is able to see TLB entries
-> >> pointing to already freed physical pages.
-> >
-> > It looks to me like cond_resched() here introduces a possible bug but
-> > it depends on the actual arch code, especially the
-> > __tlb_remove_tlb_entry() function. On ARM we record the range in
-> > tlb_remove_tlb_entry() and queue the pages to be removed in
-> > __tlb_remove_page(). It pretty much acts like tlb_fast_mode() == 0
-> > even for the UP case (which is also needed for hardware speculative
-> > TLB loads). The tlb_finish_mmu() takes care of whatever pages are left
-> > to be freed.
-> >
-> > With a dummy __tlb_remove_tlb_entry() and tlb_fast_mode() == 1,
-> > cond_resched() in zap_pmd_range() would cause problems.
-> 
-> So, looks like most architectures in the UP configuration should have
-> this issue (unless they flush TLB in the switch_mm, even when switching
-> to the same mm):
 
-switch_mm() wouldn't be called if switching to the same mm. You could do
-it in switch_to() but it's not efficient (or before returning to user
-space on the same processor).
+When sending message in send_secondary_console_msg(), the length is not
+include the NUL byte, and also not copy NUL to 'ipc_buffer'.
 
-Do you happen to have a user-space test for this? Something like one
-thread does an mmap(), writes some poison value, munmap(). The other
-thread keeps checking the poison value while trapping and ignoring any
-SIGSEGV. If it's working correctly, the second thread should either get
-a SIGSEGV or read the poison value.
+When receive message in recv_secondary_console_msg(), the 'cnt' also
+excludes NUL.
 
+So when get string from ipc_buffer, it may not be NUL terminated.
+
+Then use memcpy() instead of strcpy(), and set last byte NUL.
+
+
+Signed-off-by: Chen Gang <gang.chen@asianux.com>
+---
+ arch/alpha/kernel/smp.c |    3 ++-
+ 1 files changed, 2 insertions(+), 1 deletions(-)
+
+diff --git a/arch/alpha/kernel/smp.c b/arch/alpha/kernel/smp.c
+index 7b60834..d3d2040 100644
+--- a/arch/alpha/kernel/smp.c
++++ b/arch/alpha/kernel/smp.c
+@@ -266,7 +266,8 @@ recv_secondary_console_msg(void)
+ 		else {
+ 			cp1 = (char *) &cpu->ipc_buffer[11];
+ 			cp2 = buf;
+-			strcpy(cp2, cp1);
++			memcpy(cp2, cp1, cnt);
++			cp2[cnt] = '\0';
+ 			
+ 			while ((cp2 = strchr(cp2, '\r')) != 0) {
+ 				*cp2 = ' ';
 -- 
-Catalin
+1.7.7.6
