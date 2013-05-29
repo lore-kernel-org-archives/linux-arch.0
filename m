@@ -1,21 +1,20 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
 Subject: Re: TLB and PTE coherency during munmap
-Date: Wed, 29 May 2013 17:23:14 +0530
-Message-ID: <51A5EC2A.4070903@synopsys.com>
+Date: Wed, 29 May 2013 17:30:34 +0530
+Message-ID: <51A5EDE2.2040603@synopsys.com>
 References: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com> <CAHkRjk4ZNwZvf_Cv+HqfMManodCkEpCPdZokPQ68z3nVG8-+wg@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us02smtp2.synopsys.com ([198.182.60.77]:56138 "EHLO
-	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965418Ab3E2Lxs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 07:53:48 -0400
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <CAHkRjk4ZNwZvf_Cv+HqfMManodCkEpCPdZokPQ68z3nVG8-+wg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: owner-linux-mm@kvack.org
 To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Max Filippov <jcmvbkbc@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm@vger.kernel.org, linux-xtensa@linux-xtensa.org, Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>
+Cc: Max Filippov <jcmvbkbc@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm@kvack.org, linux-xtensa@linux-xtensa.org, Chris Zankel <chris@zankel.net>, Marc
+ Gauthier <Marc.Gauthier@tensilica.com>
+List-Id: linux-arch.vger.kernel.org
+
+[Resending with fixed linux-mm address]
 
 On 05/28/2013 08:05 PM, Catalin Marinas wrote:
 > Max,
@@ -87,3 +86,13 @@ exit'ing task's thread to be scheduled in and reuse the entries.
 Let me go off cook a patch to see if this might work.
 
 -Vineet
+
+
+
+
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
