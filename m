@@ -1,125 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f175.google.com ([209.85.192.175]:58196 "EHLO
-	mail-pd0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S966580Ab3E2OAB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 10:00:01 -0400
+Received: from mail-pb0-f43.google.com ([209.85.160.43]:47463 "EHLO
+	mail-pb0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S966515Ab3E2N7j (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 09:59:39 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v6, part4 31/41] mm/ppc: prepare for removing num_physpages and simplify mem_init()
-Date: Wed, 29 May 2013 21:57:49 +0800
-Message-ID: <1369835879-23553-32-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH v6, part4 25/41] mm/metag: prepare for removing num_physpages and simplify mem_init()
+Date: Wed, 29 May 2013 21:57:43 +0800
+Message-ID: <1369835879-23553-26-git-send-email-jiang.liu@huawei.com>
 In-Reply-To: <1369835879-23553-1-git-send-email-jiang.liu@huawei.com>
 References: <1369835879-23553-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20130529135749.G4f7AaS8cTNtX3hrZ8xuXS5i0LYW0OOraa_P0FOXVdE@z>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130529135743.5BDocDlbp2puWIaq-1xqA90Z6HNGY3LObckQ2cDWrlI@z>
 
 Prepare for removing num_physpages and simplify mem_init().
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: linuxppc-dev@lists.ozlabs.org
-Cc: linux-kernel@vger.kernel.org
 ---
- arch/powerpc/mm/mem.c | 56 +++++++++++----------------------------------------
- 1 file changed, 12 insertions(+), 44 deletions(-)
+ arch/metag/mm/init.c | 8 +-------
+ 1 file changed, 1 insertion(+), 7 deletions(-)
 
-diff --git a/arch/powerpc/mm/mem.c b/arch/powerpc/mm/mem.c
-index 3bcfc0d..49c18b6 100644
---- a/arch/powerpc/mm/mem.c
-+++ b/arch/powerpc/mm/mem.c
-@@ -299,46 +299,27 @@ void __init paging_init(void)
- 
- void __init mem_init(void)
- {
--#ifdef CONFIG_NEED_MULTIPLE_NODES
--	int nid;
--#endif
--	pg_data_t *pgdat;
--	unsigned long i;
--	struct page *page;
--	unsigned long reservedpages = 0, codesize, initsize, datasize, bsssize;
--
- #ifdef CONFIG_SWIOTLB
- 	swiotlb_init(0);
- #endif
- 
--	num_physpages = memblock_phys_mem_size() >> PAGE_SHIFT;
- 	high_memory = (void *) __va(max_low_pfn * PAGE_SIZE);
- 
- #ifdef CONFIG_NEED_MULTIPLE_NODES
--        for_each_online_node(nid) {
--		if (NODE_DATA(nid)->node_spanned_pages != 0) {
--			printk("freeing bootmem node %d\n", nid);
--			free_all_bootmem_node(NODE_DATA(nid));
--		}
-+	{
-+		pg_data_t *pgdat;
-+
-+		for_each_online_pgdat(pgdat)
-+			if (pgdat->node_spanned_pages != 0) {
-+				printk("freeing bootmem node %d\n",
-+					pgdat->node_id);
-+				free_all_bootmem_node(pgdat);
-+			}
- 	}
- #else
- 	max_mapnr = max_pfn;
- 	free_all_bootmem();
- #endif
--	for_each_online_pgdat(pgdat) {
--		for (i = 0; i < pgdat->node_spanned_pages; i++) {
--			if (!pfn_valid(pgdat->node_start_pfn + i))
--				continue;
--			page = pgdat_page_nr(pgdat, i);
--			if (PageReserved(page))
--				reservedpages++;
--		}
--	}
--
--	codesize = (unsigned long)&_sdata - (unsigned long)&_stext;
--	datasize = (unsigned long)&_edata - (unsigned long)&_sdata;
--	initsize = (unsigned long)&__init_end - (unsigned long)&__init_begin;
--	bsssize = (unsigned long)&__bss_stop - (unsigned long)&__bss_start;
- 
- #ifdef CONFIG_HIGHMEM
- 	{
-@@ -348,13 +329,9 @@ void __init mem_init(void)
- 		for (pfn = highmem_mapnr; pfn < max_mapnr; ++pfn) {
- 			phys_addr_t paddr = (phys_addr_t)pfn << PAGE_SHIFT;
- 			struct page *page = pfn_to_page(pfn);
--			if (memblock_is_reserved(paddr))
--				continue;
--			free_highmem_page(page);
--			reservedpages--;
-+			if (!memblock_is_reserved(paddr))
-+				free_highmem_page(page);
- 		}
--		printk(KERN_DEBUG "High memory: %luk\n",
--		       totalhigh_pages << (PAGE_SHIFT-10));
- 	}
+diff --git a/arch/metag/mm/init.c b/arch/metag/mm/init.c
+index ce81d7c..e0862b7 100644
+--- a/arch/metag/mm/init.c
++++ b/arch/metag/mm/init.c
+@@ -388,22 +388,16 @@ void __init mem_init(void)
+ 	reset_all_zones_managed_pages();
+ 	for (tmp = highstart_pfn; tmp < highend_pfn; tmp++)
+ 		free_highmem_page(pfn_to_page(tmp));
+-	num_physpages += totalhigh_pages;
  #endif /* CONFIG_HIGHMEM */
  
-@@ -367,16 +344,7 @@ void __init mem_init(void)
- 		(mfspr(SPRN_TLB1CFG) & TLBnCFG_N_ENTRY) - 1;
- #endif
+ 	for_each_online_node(nid) {
+ 		pg_data_t *pgdat = NODE_DATA(nid);
  
--	printk(KERN_INFO "Memory: %luk/%luk available (%luk kernel code, "
--	       "%luk reserved, %luk data, %luk bss, %luk init)\n",
--		nr_free_pages() << (PAGE_SHIFT-10),
--		num_physpages << (PAGE_SHIFT-10),
--		codesize >> 10,
--		reservedpages << (PAGE_SHIFT-10),
--		datasize >> 10,
--		bsssize >> 10,
--		initsize >> 10);
+-		num_physpages += pgdat->node_present_pages;
+-
+ 		if (pgdat->node_spanned_pages)
+ 			free_all_bootmem_node(pgdat);
+ 	}
+ 
+-	pr_info("Memory: %luk/%luk available\n",
+-		(unsigned long)nr_free_pages() << (PAGE_SHIFT - 10),
+-		num_physpages << (PAGE_SHIFT - 10));
 -
 +	mem_init_print_info(NULL);
- #ifdef CONFIG_PPC32
- 	pr_info("Kernel virtual memory layout:\n");
- 	pr_info("  * 0x%08lx..0x%08lx  : fixmap\n", FIXADDR_START, FIXADDR_TOP);
+ 	show_mem(0);
+ 
+ 	return;
 -- 
 1.8.1.2
 
