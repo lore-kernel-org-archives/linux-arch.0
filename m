@@ -1,61 +1,125 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from juliette.telenet-ops.be ([195.130.137.74]:53083 "EHLO
-	juliette.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965050Ab3E2IRA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 04:17:00 -0400
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH/RFC] sh: Always link in helper functions extracted from libgcc
-Date: Wed, 29 May 2013 10:16:48 +0200
-Message-ID: <1369815408-12719-1-git-send-email-geert@linux-m68k.org>
+Received: from us02smtp1.synopsys.com ([198.182.60.75]:53935 "EHLO
+	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965086Ab3E2ImR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 04:42:17 -0400
+Message-ID: <51A5BF3A.2070108@synopsys.com>
+Date: Wed, 29 May 2013 14:11:30 +0530
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH v5, part4 12/41] mm/ARC: prepare for removing num_physpages
+ and simplify mem_init()
+References: <1368028298-7401-1-git-send-email-jiang.liu@huawei.com> <1368028298-7401-13-git-send-email-jiang.liu@huawei.com>
+In-Reply-To: <1368028298-7401-13-git-send-email-jiang.liu@huawei.com>
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Mundt <lethal@linux-sh.org>
-Cc: linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>
-Message-ID: <20130529081648.j_6TZOV6hupvZDuHTpBEJEp4ztJH1hcel-mGIUWX5qM@z>
+To: Jiang Liu <liuj97@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, Rob Herring <rob.herring@calxeda.com>
+Message-ID: <20130529084130.We-d5UnTxQkSARm0UiMVNLrGYwTQrOPfXX0vB5SRdd4@z>
 
-E.g. landisk_defconfig, which has CONFIG_NTFS_FS=m:
+Hi Jiang,
 
-ERROR: "__ashrdi3" [fs/ntfs/ntfs.ko] undefined!
+On 05/08/2013 09:21 PM, Jiang Liu wrote:
+> Prepare for removing num_physpages and simplify mem_init().
+> 
+> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+> Cc: Vineet Gupta <vgupta@synopsys.com>
+> Cc: James Hogan <james.hogan@imgtec.com>
+> Cc: Rob Herring <rob.herring@calxeda.com>
+> Cc: linux-kernel@vger.kernel.org
+> ---
+>  arch/arc/mm/init.c |   36 +++---------------------------------
+>  1 file changed, 3 insertions(+), 33 deletions(-)
+> 
+> diff --git a/arch/arc/mm/init.c b/arch/arc/mm/init.c
+> index 78d8c31..8ba6562 100644
+> --- a/arch/arc/mm/init.c
+> +++ b/arch/arc/mm/init.c
+> @@ -74,7 +74,7 @@ void __init setup_arch_memory(void)
+>  	/* Last usable page of low mem (no HIGHMEM yet for ARC port) */
+>  	max_low_pfn = max_pfn = PFN_DOWN(end_mem);
+>  
+> -	max_mapnr = num_physpages = max_low_pfn - min_low_pfn;
+> +	max_mapnr = max_low_pfn - min_low_pfn;
+>  
+>  	/*------------- reserve kernel image -----------------------*/
+>  	memblock_reserve(CONFIG_LINUX_LINK_BASE,
+> @@ -84,7 +84,7 @@ void __init setup_arch_memory(void)
+>  
+>  	/*-------------- node setup --------------------------------*/
+>  	memset(zones_size, 0, sizeof(zones_size));
+> -	zones_size[ZONE_NORMAL] = num_physpages;
+> +	zones_size[ZONE_NORMAL] = max_low_pfn - min_low_pfn;
+>  
+>  	/*
+>  	 * We can't use the helper free_area_init(zones[]) because it uses
+> @@ -106,39 +106,9 @@ void __init setup_arch_memory(void)
+>   */
+>  void __init mem_init(void)
+>  {
+> -	int codesize, datasize, initsize, reserved_pages, free_pages;
+> -	int tmp;
+> -
+>  	high_memory = (void *)(CONFIG_LINUX_LINK_BASE + arc_mem_sz);
+> -
+>  	free_all_bootmem();
+> -
 
-For "lib-y", if no symbols in a compilation unit are referenced by other
-units, the compilation unit will not be included in vmlinux.
-This breaks modules that do reference those symbols.
+What baseline is this code against, since mainline looks like following:
 
-Use "obj-y" instead to fix this.
+       high_memory = (void *)(CONFIG_LINUX_LINK_BASE + arc_mem_sz);
 
-Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
----
-http://kisskb.ellerman.id.au/kisskb/buildresult/8838077/
+       totalram_pages = free_all_bootmem();
 
-This doesn't fix all cases. There are others, e.g. udivsi3.
-This is also not limited to sh, many architectures handle this in the same
-way.
+So I would have expected the following
 
-A simple solution is to unconditionally include all helper functions.
-A more complex solution is to make the choice of "lib-y" or "obj-y" depend
-on CONFIG_MODULES:
-  obj-$(CONFIG_MODULES) += ...
-  lib-y($CONFIG_MODULES) += ...
-  
-What do you think?
-Thanks for your comments!
+-       totalram_pages = free_all_bootmem();
++	free_all_bootmem();
 
- arch/sh/lib/Makefile |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+Aha, you missed out CCing all maintainers on "[PATCH v7, part3 14/16]" or rather
+"[PATCH v8, part3 13/14]" - and it is difficult to dig this out from all the
+patches that fly by on linux-arch.
 
-diff --git a/arch/sh/lib/Makefile b/arch/sh/lib/Makefile
-index 7b95f29..3baff31 100644
---- a/arch/sh/lib/Makefile
-+++ b/arch/sh/lib/Makefile
-@@ -6,7 +6,7 @@ lib-y  = delay.o memmove.o memchr.o \
- 	 checksum.o strlen.o div64.o div64-generic.o
- 
- # Extracted from libgcc
--lib-y += movmem.o ashldi3.o ashrdi3.o lshrdi3.o \
-+obj-y += movmem.o ashldi3.o ashrdi3.o lshrdi3.o \
- 	 ashlsi3.o ashrsi3.o ashiftrt.o lshrsi3.o \
- 	 udiv_qrnnd.o
- 
--- 
-1.7.0.4
+Same goes for "[PATCH v8, part3 01/14]" and "[PATCH v8, part3 02/14]"
 
+> -	/* count all reserved pages [kernel code/data/mem_map..] */
+> -	reserved_pages = 0;
+> -	for (tmp = 0; tmp < max_mapnr; tmp++)
+> -		if (PageReserved(mem_map + tmp))
+> -			reserved_pages++;
+> -
+> -	/* XXX: nr_free_pages() is equivalent */
+> -	free_pages = max_mapnr - reserved_pages;
+> -
+> -	/*
+> -	 * For the purpose of display below, split the "reserve mem"
+> -	 * kernel code/data is already shown explicitly,
+> -	 * Show any other reservations (mem_map[ ] et al)
+> -	 */
+> -	reserved_pages -= (((unsigned int)_end - CONFIG_LINUX_LINK_BASE) >>
+> -								PAGE_SHIFT);
+> -
+> -	codesize = _etext - _text;
+> -	datasize = _end - _etext;
+> -	initsize = __init_end - __init_begin;
+> -
+> -	pr_info("Memory Available: %dM / %ldM (%dK code, %dK data, %dK init, %dK reserv)\n",
+> -		PAGES_TO_MB(free_pages),
+> -		TO_MB(arc_mem_sz),
+> -		TO_KB(codesize), TO_KB(datasize), TO_KB(initsize),
+> -		PAGES_TO_KB(reserved_pages));
+> +	mem_init_print_info(NULL);
+>  }
+>  
+>  /*
+> 
+
+The Changes look OK though. I managed to build your github tree (mem_init_v5
+branch). And it seems to work ok.
+
+Acked-by: Vineet Gupta <vgupta@synopsys.com>   # for arch/arc
+
+Thx
+-Vineet
