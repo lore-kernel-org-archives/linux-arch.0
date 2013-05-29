@@ -1,37 +1,142 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:52989 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759549Ab3E2Mru (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 08:47:50 -0400
-Date: Wed, 29 May 2013 14:47:40 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: TLB and PTE coherency during munmap
-Message-ID: <20130529124740.GB27176@twins.programming.kicks-ass.net>
-References: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com>
- <CAMo8BfJie1Y49QeSJ+JTQb9WsYJkMMkb1BkKz2Gzy3T7V6ogHA@mail.gmail.com>
- <51A45861.1010008@gmail.com>
- <20130529122728.GA27176@twins.programming.kicks-ass.net>
- <51A5F7A7.5020604@synopsys.com>
+Received: from mail-pd0-f174.google.com ([209.85.192.174]:50683 "EHLO
+	mail-pd0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S934837Ab3E2NFt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 09:05:49 -0400
+Message-ID: <51A5FD27.5080903@gmail.com>
+Date: Wed, 29 May 2013 21:05:43 +0800
+From: Liu Jiang <liuj97@gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <51A5F7A7.5020604@synopsys.com>
+Subject: Re: [PATCH v5, part4 12/41] mm/ARC: prepare for removing num_physpages
+ and simplify mem_init()
+References: <1368028298-7401-1-git-send-email-jiang.liu@huawei.com> <1368028298-7401-13-git-send-email-jiang.liu@huawei.com> <51A5BF3A.2070108@synopsys.com>
+In-Reply-To: <51A5BF3A.2070108@synopsys.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Max Filippov <jcmvbkbc@gmail.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, Ralf Baechle <ralf@linux-mips.org>, Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>, linux-xtensa@linux-xtensa.org, Hugh Dickins <hughd@google.com>
-Message-ID: <20130529124740.SVYiISAfuLIykDRpiDQE2fGF-KQLIlJnEZfDNNJDdjs@z>
+To: Vineet Gupta <vineet.gupta1@synopsys.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <james.bottomley@hansenpartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, Rob Herring <rob.herring@calxeda.com>
+Message-ID: <20130529130543.VcLM-S7bsXj3n63XPBNuBTqP4YEAOX1yFXPxbaQuzEc@z>
 
-On Wed, May 29, 2013 at 06:12:15PM +0530, Vineet Gupta wrote:
-> It seems tlb_fast_mode() only affects the page free batching and won't affect the
-> TLB flush themselves unless ofcourse the batching runs out of space.
+On Wed 29 May 2013 04:41:30 PM CST, Vineet Gupta wrote:
+> Hi Jiang,
+>
+> On 05/08/2013 09:21 PM, Jiang Liu wrote:
+>> Prepare for removing num_physpages and simplify mem_init().
+>>
+>> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+>> Cc: Vineet Gupta <vgupta@synopsys.com>
+>> Cc: James Hogan <james.hogan@imgtec.com>
+>> Cc: Rob Herring <rob.herring@calxeda.com>
+>> Cc: linux-kernel@vger.kernel.org
+>> ---
+>>  arch/arc/mm/init.c |   36 +++---------------------------------
+>>  1 file changed, 3 insertions(+), 33 deletions(-)
+>>
+>> diff --git a/arch/arc/mm/init.c b/arch/arc/mm/init.c
+>> index 78d8c31..8ba6562 100644
+>> --- a/arch/arc/mm/init.c
+>> +++ b/arch/arc/mm/init.c
+>> @@ -74,7 +74,7 @@ void __init setup_arch_memory(void)
+>>  	/* Last usable page of low mem (no HIGHMEM yet for ARC port) */
+>>  	max_low_pfn = max_pfn = PFN_DOWN(end_mem);
+>>
+>> -	max_mapnr = num_physpages = max_low_pfn - min_low_pfn;
+>> +	max_mapnr = max_low_pfn - min_low_pfn;
+>>
+>>  	/*------------- reserve kernel image -----------------------*/
+>>  	memblock_reserve(CONFIG_LINUX_LINK_BASE,
+>> @@ -84,7 +84,7 @@ void __init setup_arch_memory(void)
+>>
+>>  	/*-------------- node setup --------------------------------*/
+>>  	memset(zones_size, 0, sizeof(zones_size));
+>> -	zones_size[ZONE_NORMAL] = num_physpages;
+>> +	zones_size[ZONE_NORMAL] = max_low_pfn - min_low_pfn;
+>>
+>>  	/*
+>>  	 * We can't use the helper free_area_init(zones[]) because it uses
+>> @@ -106,39 +106,9 @@ void __init setup_arch_memory(void)
+>>   */
+>>  void __init mem_init(void)
+>>  {
+>> -	int codesize, datasize, initsize, reserved_pages, free_pages;
+>> -	int tmp;
+>> -
+>>  	high_memory = (void *)(CONFIG_LINUX_LINK_BASE + arc_mem_sz);
+>> -
+>>  	free_all_bootmem();
+>> -
+>
+> What baseline is this code against, since mainline looks like following:
+>
+>        high_memory = (void *)(CONFIG_LINUX_LINK_BASE + arc_mem_sz);
+>
+>        totalram_pages = free_all_bootmem();
+>
+> So I would handve expected the following
+>
+> -       totalram_pages = free_all_bootmem();
+> +	free_all_bootmem();
+>
+> Aha, you missed out CCing all maintainers on "[PATCH v7, part3 14/16]" or rather
+> "[PATCH v8, part3 13/14]" - and it is difficult to dig this out from all the
+> patches that fly by on linux-arch.
+>
+> Same goes for "[PATCH v8, part3 01/14]" and "[PATCH v8, part3 02/14]"
+Hi Vineet,
+      This patchset is based on Andrew's mmotm tree, there are some 
+differences
+between mmotm and the upstream kernel, sorry for the inconvenience.
+      Once I sent those common patches to all related maintainers, but 
+the CC list
+is too long and also caused other troubles. Next time I will send all 
+patches to
+linux-arch maillist.
 
-It does, it will keep the pages around until after a flush. So you'll no
-longer free pages before having done a TLB flush.
+>
+>> -	/* count all reserved pages [kernel code/data/mem_map..] */
+>> -	reserved_pages = 0;
+>> -	for (tmp = 0; tmp < max_mapnr; tmp++)
+>> -		if (PageReserved(mem_map + tmp))
+>> -			reserved_pages++;
+>> -
+>> -	/* XXX: nr_free_pages() is equivalent */
+>> -	free_pages = max_mapnr - reserved_pages;
+>> -
+>> -	/*
+>> -	 * For the purpose of display below, split the "reserve mem"
+>> -	 * kernel code/data is already shown explicitly,
+>> -	 * Show any other reservations (mem_map[ ] et al)
+>> -	 */
+>> -	reserved_pages -= (((unsigned int)_end - CONFIG_LINUX_LINK_BASE) >>
+>> -								PAGE_SHIFT);
+>> -
+>> -	codesize = _etext - _text;
+>> -	datasize = _end - _etext;
+>> -	initsize = __init_end - __init_begin;
+>> -
+>> -	pr_info("Memory Available: %dM / %ldM (%dK code, %dK data, %dK init, %dK reserv)\n",
+>> -		PAGES_TO_MB(free_pages),
+>> -		TO_MB(arc_mem_sz),
+>> -		TO_KB(codesize), TO_KB(datasize), TO_KB(initsize),
+>> -		PAGES_TO_KB(reserved_pages));
+>> +	mem_init_print_info(NULL);
+>>  }
+>>
+>>  /*
+>>
+>
+> The Changes look OK though. I managed to build your github tree (mem_init_v5
+> branch). And it seems to work ok.
+>
+> Acked-by: Vineet Gupta <vgupta@synopsys.com>   # for arch/arc
+Thanks for review and tests!
+Regards!
+Gerry
 
-> FWIW, prior to your commit d16dfc550f5326 "mm: mmu_gather rework"
-> tlb_finish_mmu() right before the need_resced() which would have handled the
-> current situation. My proposal - please see my earlier email in thread is to reuse
-> the force_flush logic in zap_pte_range() to do this.
+>
+> Thx
+> -Vineet
 
-I don't have earlier emails as my lkml folder is somewhat broken atm :/
+
