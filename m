@@ -1,127 +1,160 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH v5, part4 12/41] mm/ARC: prepare for removing num_physpages
- and simplify mem_init()
-Date: Wed, 29 May 2013 14:11:30 +0530
-Message-ID: <51A5BF3A.2070108@synopsys.com>
-References: <1368028298-7401-1-git-send-email-jiang.liu@huawei.com> <1368028298-7401-13-git-send-email-jiang.liu@huawei.com>
+From: richard -rw- weinberger <richard.weinberger@gmail.com>
+Subject: Re: A bug about system call on ARM
+Date: Wed, 29 May 2013 10:46:42 +0200
+Message-ID: <CAFLxGvyy=73dGQqG8W6SXZah7WQZ4gJAeeHXN8opKaOuG-5yUQ@mail.gmail.com>
+References: <35FD53F367049845BC99AC72306C23D1610991B85B@CNBJMBX05.corpusers.net>
+	<CAFLxGvy39xWdZmtiVHP+y=zH1coCVmMuREcmD25wSb=w-VK7Xg@mail.gmail.com>
+	<35FD53F367049845BC99AC72306C23D1610991B85D@CNBJMBX05.corpusers.net>
+	<35FD53F367049845BC99AC72306C23D1610991B85E@CNBJMBX05.corpusers.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1368028298-7401-13-git-send-email-jiang.liu@huawei.com>
-Sender: owner-linux-mm@kvack.org
-To: Jiang Liu <liuj97@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, Rob
- Herring <rob.herring@calxeda.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ob0-f177.google.com ([209.85.214.177]:38234 "EHLO
+	mail-ob0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965080Ab3E2Iqn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 04:46:43 -0400
+In-Reply-To: <35FD53F367049845BC99AC72306C23D1610991B85E@CNBJMBX05.corpusers.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Wang, Yalin" <Yalin.Wang@sonymobile.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
-Hi Jiang,
+On Wed, May 29, 2013 at 10:24 AM, Wang, Yalin <Yalin.Wang@sonymobile.com> wrote:
+> Hi
+>
+> I have download the latest linux kernel code  3.9.4
+> And Compare with  3.4.0 kernel .
+>
+> It seems there is no change for this part ,
+> So it will still happen .
+> Does anyone know who is responsible for  arm arch part kernel code ?
 
-On 05/08/2013 09:21 PM, Jiang Liu wrote:
-> Prepare for removing num_physpages and simplify mem_init().
-> 
-> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-> Cc: Vineet Gupta <vgupta@synopsys.com>
-> Cc: James Hogan <james.hogan@imgtec.com>
-> Cc: Rob Herring <rob.herring@calxeda.com>
-> Cc: linux-kernel@vger.kernel.org
-> ---
->  arch/arc/mm/init.c |   36 +++---------------------------------
->  1 file changed, 3 insertions(+), 33 deletions(-)
-> 
-> diff --git a/arch/arc/mm/init.c b/arch/arc/mm/init.c
-> index 78d8c31..8ba6562 100644
-> --- a/arch/arc/mm/init.c
-> +++ b/arch/arc/mm/init.c
-> @@ -74,7 +74,7 @@ void __init setup_arch_memory(void)
->  	/* Last usable page of low mem (no HIGHMEM yet for ARC port) */
->  	max_low_pfn = max_pfn = PFN_DOWN(end_mem);
->  
-> -	max_mapnr = num_physpages = max_low_pfn - min_low_pfn;
-> +	max_mapnr = max_low_pfn - min_low_pfn;
->  
->  	/*------------- reserve kernel image -----------------------*/
->  	memblock_reserve(CONFIG_LINUX_LINK_BASE,
-> @@ -84,7 +84,7 @@ void __init setup_arch_memory(void)
->  
->  	/*-------------- node setup --------------------------------*/
->  	memset(zones_size, 0, sizeof(zones_size));
-> -	zones_size[ZONE_NORMAL] = num_physpages;
-> +	zones_size[ZONE_NORMAL] = max_low_pfn - min_low_pfn;
->  
->  	/*
->  	 * We can't use the helper free_area_init(zones[]) because it uses
-> @@ -106,39 +106,9 @@ void __init setup_arch_memory(void)
->   */
->  void __init mem_init(void)
->  {
-> -	int codesize, datasize, initsize, reserved_pages, free_pages;
-> -	int tmp;
-> -
->  	high_memory = (void *)(CONFIG_LINUX_LINK_BASE + arc_mem_sz);
-> -
->  	free_all_bootmem();
-> -
+See MAINTAINERS file.
+CC'ing linux-arm-kernel@lists.infradead.org
 
-What baseline is this code against, since mainline looks like following:
+>
+> Thanks
+>
+>
+> -----Original Message-----
+> From: Wang, Yalin
+> Sent: Wednesday, May 29, 2013 3:38 PM
+> To: 'richard -rw- weinberger'
+> Cc: linux-arch@vger.kernel.org; linux-kernel@vger.kernel.org
+> Subject: RE: A bug about system call on ARM
+>
+> Hi  Richard,
+>
+> Thanks for your reply ,
+> I will make a check for this .
+>
+>
+> -----Original Message-----
+> From: richard -rw- weinberger [mailto:richard.weinberger@gmail.com]
+> Sent: Wednesday, May 29, 2013 3:35 PM
+> To: Wang, Yalin
+> Cc: linux-arch@vger.kernel.org; linux-kernel@vger.kernel.org
+> Subject: Re: A bug about system call on ARM
+>
+> Hi!
+>
+> On Wed, May 29, 2013 at 8:52 AM, Wang, Yalin <Yalin.Wang@sonymobile.com> wrote:
+>> Hi  all,
+>>
+>> I am a new comer to this mailing list , I am happy to join this
+>> community .
+>>
+>> I have a bug reported from our android phones which is caused by  the system call .
+>> It seems like kernel bugs from my view .
+>
+> Is this a unmodified Linux kernel from kernel.org? In other works, no (half broken) board support package from your hardware vendor?
+> Did you try a more recent kernel? (At least 3.4.47).
+> Maybe your problem is already known and fixed...
+>
+>> Crash in  file  arch\arm\kernel\ entry-common.S
+>>
+>> /***************************************************************/
+>>
+>> ENTRY(vector_swi)
+>>         sub     sp, sp, #S_FRAME_SIZE
+>>         stmia   sp, {r0 - r12}                  @ Calling r0 - r12
+>>  ARM(   add     r8, sp, #S_PC           )
+>>  ARM(   stmdb   r8, {sp, lr}^           )       @ Calling sp, lr
+>>  THUMB( mov     r8, sp                  )
+>>  THUMB( store_user_sp_lr r8, r10, S_SP  )       @ calling sp, lr
+>>         mrs     r8, spsr                        @ called from non-FIQ mode, so ok.
+>>         str     lr, [sp, #S_PC]                 @ Save calling PC
+>>         str     r8, [sp, #S_PSR]                @ Save CPSR
+>>         str     r0, [sp, #S_OLD_R0]             @ Save OLD_R0
+>>         zero_fp
+>>
+>>         /*
+>>          * Get the system call number.
+>>          */
+>>
+>> #if defined(CONFIG_OABI_COMPAT)
+>>
+>>         /*
+>>          * If we have CONFIG_OABI_COMPAT then we need to look at the swi
+>>          * value to determine if it is an EABI or an old ABI call.
+>>          */
+>> #ifdef CONFIG_ARM_THUMB
+>>         tst     r8, #PSR_T_BIT
+>>         movne   r10, #0                         @ no thumb OABI emulation
+>>         ldreq   r10, [lr, #-4]                  @ get SWI instruction          // crash at this instruction, when get SWI instruction
+>> #else
+>>         ldr     r10, [lr, #-4]                  @ get SWI instruction
+>>   A710( and     ip, r10, #0x0f000000            @ check for SWI         )
+>>   A710( teq     ip, #0x0f000000                                         )
+>>   A710( bne     .Larm710bug                                             )
+>> #endif
+>> #ifdef CONFIG_CPU_ENDIAN_BE8
+>>         rev     r10, r10                        @ little endian instruction
+>> #endif
+>>
+>> /*********************************************************************
+>> ******************************/
+>>
+>> Then reason why it will crash when get SWI instruction is maybe This
+>> page is clear to aged by kernel, But this MMU fault happpened in
+>> kernel, So the kernel do_page_fault function will not clear this page
+>> to young, So that  will crash .
+>>
+>> It should poll this page to make it present or the fault should be
+>> handled by fixup section , Anyway, this place should not crash by kernel .
+>>
+>> The kernel version I used  is  3.4.0
+>> I have add the kernel log and the call stack recovered  by trace32
+>> tools Pls have a look at it .
+>>
+>>
+>> Thanks .
+>>
+>>
+>>
+>> Sony Mobile Communications
+>> Tel: +86 10 5966 9819
+>> Phone: 18610323092
+>> Address: No.16 Guangshun South Street, Chaoyang, Beijing, P.R.C.
+>>
+>> sonymobile.com
+>>
+>>
+>>
+>
+>
+>
+> --
+> Thanks,
+> //richard
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
 
-       high_memory = (void *)(CONFIG_LINUX_LINK_BASE + arc_mem_sz);
 
-       totalram_pages = free_all_bootmem();
-
-So I would have expected the following
-
--       totalram_pages = free_all_bootmem();
-+	free_all_bootmem();
-
-Aha, you missed out CCing all maintainers on "[PATCH v7, part3 14/16]" or rather
-"[PATCH v8, part3 13/14]" - and it is difficult to dig this out from all the
-patches that fly by on linux-arch.
-
-Same goes for "[PATCH v8, part3 01/14]" and "[PATCH v8, part3 02/14]"
-
-> -	/* count all reserved pages [kernel code/data/mem_map..] */
-> -	reserved_pages = 0;
-> -	for (tmp = 0; tmp < max_mapnr; tmp++)
-> -		if (PageReserved(mem_map + tmp))
-> -			reserved_pages++;
-> -
-> -	/* XXX: nr_free_pages() is equivalent */
-> -	free_pages = max_mapnr - reserved_pages;
-> -
-> -	/*
-> -	 * For the purpose of display below, split the "reserve mem"
-> -	 * kernel code/data is already shown explicitly,
-> -	 * Show any other reservations (mem_map[ ] et al)
-> -	 */
-> -	reserved_pages -= (((unsigned int)_end - CONFIG_LINUX_LINK_BASE) >>
-> -								PAGE_SHIFT);
-> -
-> -	codesize = _etext - _text;
-> -	datasize = _end - _etext;
-> -	initsize = __init_end - __init_begin;
-> -
-> -	pr_info("Memory Available: %dM / %ldM (%dK code, %dK data, %dK init, %dK reserv)\n",
-> -		PAGES_TO_MB(free_pages),
-> -		TO_MB(arc_mem_sz),
-> -		TO_KB(codesize), TO_KB(datasize), TO_KB(initsize),
-> -		PAGES_TO_KB(reserved_pages));
-> +	mem_init_print_info(NULL);
->  }
->  
->  /*
-> 
-
-The Changes look OK though. I managed to build your github tree (mem_init_v5
-branch). And it seems to work ok.
-
-Acked-by: Vineet Gupta <vgupta@synopsys.com>   # for arch/arc
-
-Thx
--Vineet
 
 --
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Thanks,
+//richard
