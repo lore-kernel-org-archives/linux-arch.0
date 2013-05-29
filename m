@@ -1,59 +1,45 @@
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH, v2 02/13] mm/AVR32: prepare for killing free_all_bootmem_node()
-Date: Wed, 29 May 2013 22:44:41 +0800
-Message-ID: <1369838692-26860-3-git-send-email-jiang.liu@huawei.com>
+Subject: [PATCH, v2 05/13] mm/m68k: prepare for killing free_all_bootmem_node()
+Date: Wed, 29 May 2013 22:44:44 +0800
+Message-ID: <1369838692-26860-6-git-send-email-jiang.liu@huawei.com>
 References: <1369838692-26860-1-git-send-email-jiang.liu@huawei.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1369838692-26860-1-git-send-email-jiang.liu@huawei.com>
 Sender: owner-linux-mm@kvack.org
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Greg Ungerer <gerg@uclinux.org>, linux-m68k@lists.linux-m68k.org
 List-Id: linux-arch.vger.kernel.org
 
 Prepare for killing free_all_bootmem_node() by using
-free_all_bootmem() instead.
+free_all_bootmem().
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
-Cc: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Greg Ungerer <gerg@uclinux.org>
+Cc: linux-m68k@lists.linux-m68k.org
 Cc: linux-kernel@vger.kernel.org
 ---
- arch/avr32/mm/init.c | 21 +++++----------------
- 1 file changed, 5 insertions(+), 16 deletions(-)
+ arch/m68k/mm/init.c | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
 
-diff --git a/arch/avr32/mm/init.c b/arch/avr32/mm/init.c
-index 0fc04b9..def5391 100644
---- a/arch/avr32/mm/init.c
-+++ b/arch/avr32/mm/init.c
-@@ -103,23 +103,12 @@ void __init mem_init(void)
- 	pg_data_t *pgdat;
+diff --git a/arch/m68k/mm/init.c b/arch/m68k/mm/init.c
+index 397a884..6e0a938 100644
+--- a/arch/m68k/mm/init.c
++++ b/arch/m68k/mm/init.c
+@@ -148,12 +148,10 @@ void __init print_memmap(void)
  
- 	high_memory = NULL;
-+	for_each_online_pgdat(pgdat)
-+		high_memory = max_t(void *, high_memory,
-+				    __va(pgdat_end_pfn(pgdat) << PAGE_SHIFT));
+ void __init mem_init(void)
+ {
+-	pg_data_t *pgdat;
+ 	int i;
  
--	/* this will put all low memory onto the freelists */
--	for_each_online_pgdat(pgdat) {
--		void *node_high_memory;
--
--		if (pgdat->node_spanned_pages != 0)
--			free_all_bootmem_node(pgdat);
--
--		node_high_memory = (void *)((pgdat->node_start_pfn
--					     + pgdat->node_spanned_pages)
--					    << PAGE_SHIFT);
--		if (node_high_memory > high_memory)
--			high_memory = node_high_memory;
--	}
--
--	max_mapnr = MAP_NR(high_memory);
--
-+	set_max_mapnr(MAP_NR(high_memory));
+ 	/* this will put all memory onto the freelists */
+-	for_each_online_pgdat(pgdat)
+-		free_all_bootmem_node(pgdat);
 +	free_all_bootmem();
- 	mem_init_print_info(NULL);
- }
  
+ #if defined(CONFIG_MMU) && !defined(CONFIG_SUN3) && !defined(CONFIG_COLDFIRE)
+ 	/* insert pointer tables allocated so far into the tablelist */
 -- 
 1.8.1.2
 
