@@ -1,79 +1,51 @@
-From: Andres Freund <andres@2ndquadrant.com>
-Subject: Re: [patch 1/2] mm: fincore()
-Date: Wed, 29 May 2013 19:52:23 +0200
-Message-ID: <20130529175222.GC4678@awork2.anarazel.de>
-References: <87a9rbh7b4.fsf@rustcorp.com.au>
- <20130211162701.GB13218@cmpxchg.org>
- <20130211141239.f4decf03.akpm@linux-foundation.org>
- <20130215063450.GA24047@cmpxchg.org>
- <20130215132738.c85c9eda.akpm@linux-foundation.org>
- <20130215231304.GB23930@cmpxchg.org>
- <20130215154235.0fb36f53.akpm@linux-foundation.org>
- <87621skhtc.fsf@rustcorp.com.au>
- <20130529145312.GE3955@alap2.anarazel.de>
- <20130529173223.GE15721@cmpxchg.org>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: TLB and PTE coherency during munmap
+Date: Wed, 29 May 2013 23:04:35 +0100
+Message-ID: <CAHkRjk7GeAyuMWM2B-sxDZL5qZ6Lgmh_v+vuf98+6hdro5B7ng@mail.gmail.com>
+References: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com>
+ <CAMo8BfJie1Y49QeSJ+JTQb9WsYJkMMkb1BkKz2Gzy3T7V6ogHA@mail.gmail.com>
+ <51A45861.1010008@gmail.com> <20130529122728.GA27176@twins.programming.kicks-ass.net>
+ <51A5F7A7.5020604@synopsys.com> <20130529175125.GJ12193@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.10]:58308 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934979Ab3E2Rwe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 13:52:34 -0400
-Content-Disposition: inline
-In-Reply-To: <20130529173223.GE15721@cmpxchg.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Johannes Weiner <hannes@cmpxchg.org>
-Cc: Rusty Russell <rusty@rustcorp.com.au>, Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Nick Piggin <npiggin@kernel.dk>, Stewart Smith <stewart@flamingspork.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20130529175125.GJ12193@twins.programming.kicks-ass.net>
+Sender: owner-linux-mm@kvack.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Max Filippov <jcmvbkbc@gmail.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Ralf Baechle <ralf@linux-mips.org>, Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>, linux-xtensa@linux-xtensa.org, Hugh Dickins <hughd@google.com>
+List-Id: linux-arch.vger.kernel.org
 
-On 2013-05-29 13:32:23 -0400, Johannes Weiner wrote:
-> On Wed, May 29, 2013 at 04:53:12PM +0200, Andres Freund wrote:
-> > On 2013-02-16 14:53:43 +1030, Rusty Russell wrote:
-> > > Andrew Morton <akpm@linux-foundation.org> writes:
-> > > > On Fri, 15 Feb 2013 18:13:04 -0500
-> > > > Johannes Weiner <hannes@cmpxchg.org> wrote:
-> > > >> I dunno.  The byte vector might not be optimal but its worst cases
-> > > >> seem more attractive, is just as extensible, and dead simple to use.
-> > > >
-> > > > But I think "which pages from this 4TB file are in core" will not be an
-> > > > uncommon usage, and writing a gig of memory to find three pages is just
-> > > > awful.
-> > > 
-> > > Actually, I don't know of any usage for this call.
-> > 
-> > [months later, catching up]
-> > 
-> > I do. Postgres' could really use something like that for making saner
-> > assumptions about the cost of doing an index/heap scan. postgres doesn't
-> > use mmap() and mmaping larger files into memory isn't all that cheap
-> > (32bit...) so having fincore would be nice.
+On 29 May 2013 18:51, Peter Zijlstra <peterz@infradead.org> wrote:
+> --- a/mm/memory.c
+> +++ b/mm/memory.c
+> @@ -384,6 +384,21 @@ void tlb_remove_table(struct mmu_gather *tlb, void *table)
+>
+>  #endif /* CONFIG_HAVE_RCU_TABLE_FREE */
+>
+> +static inline void cond_resched_tlb(struct mmu_gather *tlb)
+> +{
+> +#ifndef CONFIG_PREEMPT
+> +       /*
+> +        * For full preempt kernels we must do regular batching like
+> +        * SMP, see tlb_fast_mode(). For !PREEMPT we can 'cheat' and
+> +        * do a flush before our voluntary 'yield'.
+> +        */
+> +       if (need_resched()) {
+> +               tlb_flush_mmu(tlb);
+> +               cond_resched();
+> +       }
+> +#endif
+> +}
 
-> How much of the areas you want to use it against is usually cached?
-> I.e. are those 4TB files with 3 cached pages?
+Does it matter that in the CONFIG_PREEMPT case, you no longer call
+cond_resched()? I guess we can just rely on the kernel full preemption
+to reschedule as needed.
 
-Hard to say in general. The point is exactly that we don't know. If
-there's nothing of a large index in memory and we estimate that we want
-20% of a table we sure won't do an indexscan. If its all in memory?
-Different story.
-For that usecase its not actually important that we get a 100% accurate
-result although I, from my limited understanding, don't really see that
-helping much.
+--
+Catalin
 
-(Yes, there are some problems with cache warming here)
-
-> I do wonder if we should just have two separate interfaces.  Ugly, but
-> I don't really see how the two requirements (dense but many holes
-> vs. huge sparse areas) could be acceptably met with one interface.
-
-The difference would be how the information would be encoded, right? Not
-sure how the passed in memory could be sized in some run length encoded
-scheme. What I could imagine is specifying the granularity we want
-information about, but thats probably too specific.
-
-Greetings,
-
-Andres Freund
-
--- 
- Andres Freund	                   http://www.2ndQuadrant.com/
- PostgreSQL Development, 24x7 Support, Training & Services
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
