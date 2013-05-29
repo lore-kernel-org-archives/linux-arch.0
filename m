@@ -1,83 +1,125 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:46249 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S966606Ab3E2OED (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 29 May 2013 10:04:03 -0400
-Date: Wed, 29 May 2013 15:03:19 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH] mm: Fix the TLB range flushed when __tlb_remove_page()
- runs out of slots
-Message-ID: <20130529140319.GK17767@MacBook-Pro.local>
-References: <1369832173-15088-1-git-send-email-vgupta@synopsys.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1369832173-15088-1-git-send-email-vgupta@synopsys.com>
+Received: from mail-pd0-f175.google.com ([209.85.192.175]:58196 "EHLO
+	mail-pd0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S966580Ab3E2OAB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 10:00:01 -0400
+From: Jiang Liu <liuj97@gmail.com>
+Subject: [PATCH v6, part4 31/41] mm/ppc: prepare for removing num_physpages and simplify mem_init()
+Date: Wed, 29 May 2013 21:57:49 +0800
+Message-ID: <1369835879-23553-32-git-send-email-jiang.liu@huawei.com>
+In-Reply-To: <1369835879-23553-1-git-send-email-jiang.liu@huawei.com>
+References: <1369835879-23553-1-git-send-email-jiang.liu@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Mel Gorman <mgorman@suse.de>, Hugh Dickins <hughd@google.com>, Rik van Riel <riel@redhat.com>, David Rientjes <rientjes@google.com>, Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Max Filippov <jcmvbkbc@gmail.com>
-Message-ID: <20130529140319.07on1gt9ZpOv48OEQf848u9D5zyh2JSQIbtrtc4lARw@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20130529135749.G4f7AaS8cTNtX3hrZ8xuXS5i0LYW0OOraa_P0FOXVdE@z>
 
-On Wed, May 29, 2013 at 01:56:13PM +0100, Vineet Gupta wrote:
-> zap_pte_range loops from @addr to @end. In the middle, if it runs out of
-> batching slots, TLB entries needs to be flushed for @start to @interim,
-> NOT @interim to @end.
-> 
-> Since ARC port doesn't use page free batching I can't test it myself but
-> this seems like the right thing to do.
-> Observed this when working on a fix for the issue at thread:
-> 	http://www.spinics.net/lists/linux-arch/msg21736.html
-> 
-> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Mel Gorman <mgorman@suse.de>
-> Cc: Hugh Dickins <hughd@google.com>
-> Cc: Rik van Riel <riel@redhat.com>
-> Cc: David Rientjes <rientjes@google.com>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: linux-mm@kvack.org
-> Cc: linux-arch@vger.kernel.org <linux-arch@vger.kernel.org>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Max Filippov <jcmvbkbc@gmail.com>
-> ---
->  mm/memory.c |    9 ++++++---
->  1 file changed, 6 insertions(+), 3 deletions(-)
-> 
-> diff --git a/mm/memory.c b/mm/memory.c
-> index 6dc1882..d9d5fd9 100644
-> --- a/mm/memory.c
-> +++ b/mm/memory.c
-> @@ -1110,6 +1110,7 @@ static unsigned long zap_pte_range(struct mmu_gather *tlb,
->  	spinlock_t *ptl;
->  	pte_t *start_pte;
->  	pte_t *pte;
-> +	unsigned long range_start = addr;
->  
->  again:
->  	init_rss_vec(rss);
-> @@ -1215,12 +1216,14 @@ again:
->  		force_flush = 0;
->  
->  #ifdef HAVE_GENERIC_MMU_GATHER
-> -		tlb->start = addr;
-> -		tlb->end = end;
-> +		tlb->start = range_start;
-> +		tlb->end = addr;
->  #endif
->  		tlb_flush_mmu(tlb);
-> -		if (addr != end)
-> +		if (addr != end) {
-> +			range_start = addr;
->  			goto again;
-> +		}
->  	}
+Prepare for removing num_physpages and simplify mem_init().
 
-Isn't this code only run if force_flush != 0? force_flush is set to
-!__tlb_remove_page() and this function always returns 1 on (generic TLB)
-UP since tlb_fast_mode() is 1. There is no batching on UP with the
-generic TLB code.
+Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: linux-kernel@vger.kernel.org
+---
+ arch/powerpc/mm/mem.c | 56 +++++++++++----------------------------------------
+ 1 file changed, 12 insertions(+), 44 deletions(-)
 
+diff --git a/arch/powerpc/mm/mem.c b/arch/powerpc/mm/mem.c
+index 3bcfc0d..49c18b6 100644
+--- a/arch/powerpc/mm/mem.c
++++ b/arch/powerpc/mm/mem.c
+@@ -299,46 +299,27 @@ void __init paging_init(void)
+ 
+ void __init mem_init(void)
+ {
+-#ifdef CONFIG_NEED_MULTIPLE_NODES
+-	int nid;
+-#endif
+-	pg_data_t *pgdat;
+-	unsigned long i;
+-	struct page *page;
+-	unsigned long reservedpages = 0, codesize, initsize, datasize, bsssize;
+-
+ #ifdef CONFIG_SWIOTLB
+ 	swiotlb_init(0);
+ #endif
+ 
+-	num_physpages = memblock_phys_mem_size() >> PAGE_SHIFT;
+ 	high_memory = (void *) __va(max_low_pfn * PAGE_SIZE);
+ 
+ #ifdef CONFIG_NEED_MULTIPLE_NODES
+-        for_each_online_node(nid) {
+-		if (NODE_DATA(nid)->node_spanned_pages != 0) {
+-			printk("freeing bootmem node %d\n", nid);
+-			free_all_bootmem_node(NODE_DATA(nid));
+-		}
++	{
++		pg_data_t *pgdat;
++
++		for_each_online_pgdat(pgdat)
++			if (pgdat->node_spanned_pages != 0) {
++				printk("freeing bootmem node %d\n",
++					pgdat->node_id);
++				free_all_bootmem_node(pgdat);
++			}
+ 	}
+ #else
+ 	max_mapnr = max_pfn;
+ 	free_all_bootmem();
+ #endif
+-	for_each_online_pgdat(pgdat) {
+-		for (i = 0; i < pgdat->node_spanned_pages; i++) {
+-			if (!pfn_valid(pgdat->node_start_pfn + i))
+-				continue;
+-			page = pgdat_page_nr(pgdat, i);
+-			if (PageReserved(page))
+-				reservedpages++;
+-		}
+-	}
+-
+-	codesize = (unsigned long)&_sdata - (unsigned long)&_stext;
+-	datasize = (unsigned long)&_edata - (unsigned long)&_sdata;
+-	initsize = (unsigned long)&__init_end - (unsigned long)&__init_begin;
+-	bsssize = (unsigned long)&__bss_stop - (unsigned long)&__bss_start;
+ 
+ #ifdef CONFIG_HIGHMEM
+ 	{
+@@ -348,13 +329,9 @@ void __init mem_init(void)
+ 		for (pfn = highmem_mapnr; pfn < max_mapnr; ++pfn) {
+ 			phys_addr_t paddr = (phys_addr_t)pfn << PAGE_SHIFT;
+ 			struct page *page = pfn_to_page(pfn);
+-			if (memblock_is_reserved(paddr))
+-				continue;
+-			free_highmem_page(page);
+-			reservedpages--;
++			if (!memblock_is_reserved(paddr))
++				free_highmem_page(page);
+ 		}
+-		printk(KERN_DEBUG "High memory: %luk\n",
+-		       totalhigh_pages << (PAGE_SHIFT-10));
+ 	}
+ #endif /* CONFIG_HIGHMEM */
+ 
+@@ -367,16 +344,7 @@ void __init mem_init(void)
+ 		(mfspr(SPRN_TLB1CFG) & TLBnCFG_N_ENTRY) - 1;
+ #endif
+ 
+-	printk(KERN_INFO "Memory: %luk/%luk available (%luk kernel code, "
+-	       "%luk reserved, %luk data, %luk bss, %luk init)\n",
+-		nr_free_pages() << (PAGE_SHIFT-10),
+-		num_physpages << (PAGE_SHIFT-10),
+-		codesize >> 10,
+-		reservedpages << (PAGE_SHIFT-10),
+-		datasize >> 10,
+-		bsssize >> 10,
+-		initsize >> 10);
+-
++	mem_init_print_info(NULL);
+ #ifdef CONFIG_PPC32
+ 	pr_info("Kernel virtual memory layout:\n");
+ 	pr_info("  * 0x%08lx..0x%08lx  : fixmap\n", FIXADDR_START, FIXADDR_TOP);
 -- 
-Catalin
+1.8.1.2
+
