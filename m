@@ -1,44 +1,70 @@
 From: Chen Gang <gang.chen@asianux.com>
-Subject: [PATCH] arch: frv: kernel: using strncmp() instead of memcmp()
-Date: Thu, 30 May 2013 11:13:33 +0800
-Message-ID: <51A6C3DD.70209@asianux.com>
+Subject: [PATCH] arch: sparc: prom: looping issue, need additional length
+ check in the outside looping
+Date: Thu, 30 May 2013 11:35:22 +0800
+Message-ID: <51A6C8FA.3080408@asianux.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:8458 "EHLO
+Received: from intranet.asianux.com ([58.214.24.6]:45006 "EHLO
 	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759396Ab3E3DOZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 23:14:25 -0400
+	with ESMTP id S966739Ab3E3DgQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 23:36:16 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "dhowells@redhat.com" <dhowells@redhat.com>, ak@linux.intel.com, Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Greg KH <gregkh@linuxfoundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: David Miller <davem@davemloft.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>
+Cc: sparclinux@vger.kernel.org
 
 
-'cmdline' is a NUL terminated string, when its length < 4, memcmp()
-will cause memory access out of boundary.
+When "cp >= barg_buf + BARG_LEN-2", it breaks internel looping 'while',
+but outside loop 'for' still has effect, so "*cp++ = ' '" will continue
+repeating which may cause memory overflow.
 
-So need use strncmp() instead of memcmp().
+So need additional length check for it in the outside looping.
+
+Also beautify the related code which found by "./scripts/checkpatch.pl"
 
 
 Signed-off-by: Chen Gang <gang.chen@asianux.com>
 ---
- arch/frv/kernel/setup.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ arch/sparc/prom/bootstr_32.c |   12 +++++++-----
+ 1 files changed, 7 insertions(+), 5 deletions(-)
 
-diff --git a/arch/frv/kernel/setup.c b/arch/frv/kernel/setup.c
-index a513647..622d5ee 100644
---- a/arch/frv/kernel/setup.c
-+++ b/arch/frv/kernel/setup.c
-@@ -735,7 +735,7 @@ static void __init parse_cmdline_early(char *cmdline)
- 		/* "mem=XXX[kKmM]" sets SDRAM size to <mem>, overriding the value we worked
- 		 * out from the SDRAM controller mask register
- 		 */
--		if (!memcmp(cmdline, "mem=", 4)) {
-+		if (!strncmp(cmdline, "mem=", 4)) {
- 			unsigned long long mem_size;
+diff --git a/arch/sparc/prom/bootstr_32.c b/arch/sparc/prom/bootstr_32.c
+index f5ec32e..d2b49d2 100644
+--- a/arch/sparc/prom/bootstr_32.c
++++ b/arch/sparc/prom/bootstr_32.c
+@@ -23,23 +23,25 @@ prom_getbootargs(void)
+ 		return barg_buf;
+ 	}
  
- 			mem_size = memparse(cmdline + 4, &cmdline);
+-	switch(prom_vers) {
++	switch (prom_vers) {
+ 	case PROM_V0:
+ 		cp = barg_buf;
+ 		/* Start from 1 and go over fd(0,0,0)kernel */
+-		for(iter = 1; iter < 8; iter++) {
++		for (iter = 1; iter < 8; iter++) {
+ 			arg = (*(romvec->pv_v0bootargs))->argv[iter];
+ 			if (arg == NULL)
+ 				break;
+-			while(*arg != 0) {
++			while (*arg != 0) {
+ 				/* Leave place for space and null. */
+-				if(cp >= barg_buf + BARG_LEN-2){
++				if (cp >= barg_buf + BARG_LEN - 2)
+ 					/* We might issue a warning here. */
+ 					break;
+-				}
+ 				*cp++ = *arg++;
+ 			}
+ 			*cp++ = ' ';
++			if (cp >= barg_buf + BARG_LEN - 1)
++				/* We might issue a warning here. */
++				break;
+ 		}
+ 		*cp = 0;
+ 		break;
 -- 
 1.7.7.6
