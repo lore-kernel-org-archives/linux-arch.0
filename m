@@ -1,45 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:58492 "EHLO
+Received: from intranet.asianux.com ([58.214.24.6]:39783 "EHLO
 	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754763Ab3E3BTf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 21:19:35 -0400
-Message-ID: <51A6A8F3.2030200@asianux.com>
-Date: Thu, 30 May 2013 09:18:43 +0800
+	with ESMTP id S965859Ab3E3CgZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 May 2013 22:36:25 -0400
+Message-ID: <51A6BAF6.4010901@asianux.com>
+Date: Thu, 30 May 2013 10:35:34 +0800
 From: Chen Gang <gang.chen@asianux.com>
 MIME-Version: 1.0
-Subject: [PATCH] arch: parisc: kernel: using strlcpy() instead of strcpy()
+Subject: [PATCH] arch: ia64: hp: sim: sprintf() memory overflow, need really
+ use the default value just as it has already said.
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, udknight@gmail.com
-Cc: Greg KH <gregkh@linuxfoundation.org>, Parisc List <linux-parisc@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20130530011843.U0X6LhDhCvfFAo7CUJtyS0TE6iSaaaYCpicXHoMqLzI@z>
+To: tony.luck@intel.com, fenghua.yu@intel.com
+Cc: linux-ia64@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20130530023534.Swb-h9nib_rbGCO4I3Mz0cmJmNnyeFuzpqQP46NomzY@z>
 
 
-'boot_args' is an input args, and 'boot_command_line' has a fix length.
+When "strlen(s) > MAX_ROOT_LEN", it has already said to use the default
+value, but in fact, it still use the input value.
 
-So need use strlcpy() instead of strcpy() to avoid memory overflow.
+If happens, next sprintf() for 'fname' in simscsi_queuecommand_lck()
+may be memory overflow.
 
 
 Signed-off-by: Chen Gang <gang.chen@asianux.com>
 ---
- arch/parisc/kernel/setup.c |    3 ++-
- 1 files changed, 2 insertions(+), 1 deletions(-)
+ arch/ia64/hp/sim/simscsi.c |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/parisc/kernel/setup.c b/arch/parisc/kernel/setup.c
-index 60c1ae6..7349a3f 100644
---- a/arch/parisc/kernel/setup.c
-+++ b/arch/parisc/kernel/setup.c
-@@ -69,7 +69,8 @@ void __init setup_cmdline(char **cmdline_p)
- 		/* called from hpux boot loader */
- 		boot_command_line[0] = '\0';
- 	} else {
--		strcpy(boot_command_line, (char *)__va(boot_args[1]));
-+		strlcpy(boot_command_line, (char *)__va(boot_args[1]),
-+			COMMAND_LINE_SIZE);
+diff --git a/arch/ia64/hp/sim/simscsi.c b/arch/ia64/hp/sim/simscsi.c
+index 331de72..3a428f1 100644
+--- a/arch/ia64/hp/sim/simscsi.c
++++ b/arch/ia64/hp/sim/simscsi.c
+@@ -88,8 +88,8 @@ simscsi_setup (char *s)
+ 	if (strlen(s) > MAX_ROOT_LEN) {
+ 		printk(KERN_ERR "simscsi_setup: prefix too long---using default %s\n",
+ 		       simscsi_root);
+-	}
+-	simscsi_root = s;
++	} else
++		simscsi_root = s;
+ 	return 1;
+ }
  
- #ifdef CONFIG_BLK_DEV_INITRD
- 		if (boot_args[2] != 0) /* did palo pass us a ramdisk? */
 -- 
 1.7.7.6
