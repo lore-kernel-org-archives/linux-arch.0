@@ -1,56 +1,82 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: A bug about system call on ARM
-Date: Thu, 30 May 2013 10:09:49 +0100
-Message-ID: <20130530090949.GC7483@mudshark.cambridge.arm.com>
-References: <35FD53F367049845BC99AC72306C23D1610991B85B@CNBJMBX05.corpusers.net>
- <CAFLxGvy39xWdZmtiVHP+y=zH1coCVmMuREcmD25wSb=w-VK7Xg@mail.gmail.com>
- <35FD53F367049845BC99AC72306C23D1610991B85D@CNBJMBX05.corpusers.net>
- <35FD53F367049845BC99AC72306C23D1610991B85E@CNBJMBX05.corpusers.net>
- <CAFLxGvyy=73dGQqG8W6SXZah7WQZ4gJAeeHXN8opKaOuG-5yUQ@mail.gmail.com>
- <20130529094826.GD13095@mudshark.cambridge.arm.com>
- <35FD53F367049845BC99AC72306C23D1610991B865@CNBJMBX05.corpusers.net>
- <35FD53F367049845BC99AC72306C23D1610991B866@CNBJMBX05.corpusers.net>
+From: Chen Gang <gang.chen@asianux.com>
+Subject: [PATCH] arch: m68k: include: asm: the 3rd parameter of 'insl' and
+ 'outsl' need '<< 2'
+Date: Thu, 30 May 2013 17:39:21 +0800
+Message-ID: <51A71E49.1000707@asianux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:65498 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-FAIL-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1030209Ab3E3JLB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 May 2013 05:11:01 -0400
-Content-Disposition: inline
-In-Reply-To: <35FD53F367049845BC99AC72306C23D1610991B866@CNBJMBX05.corpusers.net>
+Received: from intranet.asianux.com ([58.214.24.6]:56837 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751666Ab3E3JkP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 May 2013 05:40:15 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Wang, Yalin" <Yalin.Wang@sonymobile.com>
-Cc: 'richard -rw- weinberger' <richard.weinberger@gmail.com>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'linux-arm-kernel@lists.infradead.org'" <linux-arm-kernel@lists.infradead.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>, gerg@uclinux.org, schmitz@debian.org, Sam Ravnborg <sam@ravnborg.org>
+Cc: Greg KH <gregkh@linuxfoundation.org>, linux-m68k@lists.linux-m68k.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On Thu, May 30, 2013 at 02:41:42AM +0100, Wang, Yalin wrote:
-> Hi  Will,
 
-Hello,
+According to the original implementation in 2009, 'insl' and 'outsl'
+need '<< 2'.
 
-> Have you received the log files?
+Also add '#ifdef' to avoid multiple defination, and beautify code to
+pass "./scripts/checkpatch.pl"
 
-Yep, and you seem to be completely correct: CPU0 ages the page from which
-CPU1 just executed a system call, so we explode trying to load the swi
-instruction in order to retrieve the immediate.
+The related git number:
+  for parport.h: "4914802 m68k,m68knommu: merge header files" in 2009
+  for io_mm.h: "84b16b7 m68k/atari: ROM port ISA adapter support" in Apr 6 2013
 
-> And is there someone looking at this issue now ?
+The related warning (make EXTRA_CFLAG=-W ARCH=m68k allmodconfig):
+  arch/m68k/include/asm/parport.h:14:0: warning: "insl" redefined [enabled by default]
+  arch/m68k/include/asm/io_mm.h:403:0: note: this is the location of the previous definition
+  arch/m68k/include/asm/parport.h:15:0: warning: "outsl" redefined [enabled by default]
+  arch/m68k/include/asm/io_mm.h:406:0: note: this is the location of the previous definition
 
-It's on my list, but I'm pretty busy right now and OABI-compat isn't high
-priority. Are you actually running OABI binaries? If not, you can simply
-turn that option off (in fact, a quick fix to this issue is to make that
-depend on !SMP).
 
-> This issue happened on Qcom Scorpoin CPUs,
-> And  it just happened in our stability test occasionally .
-> 
-> If you have some patch for this issue,
-> I can do the test for it .
+Signed-off-by: Chen Gang <gang.chen@asianux.com>
+---
+ arch/m68k/include/asm/io_mm.h   |    5 +++--
+ arch/m68k/include/asm/parport.h |    9 +++++++--
+ 2 files changed, 10 insertions(+), 4 deletions(-)
 
-I'll have a look at cooking something which uses an exception table entry
-to rewind the PC and retry the system call. That's simpler than directly
-injecting a user page fault from the system call path.
-
-Will
+diff --git a/arch/m68k/include/asm/io_mm.h b/arch/m68k/include/asm/io_mm.h
+index ffdf54f4..66be3b2 100644
+--- a/arch/m68k/include/asm/io_mm.h
++++ b/arch/m68k/include/asm/io_mm.h
+@@ -400,10 +400,11 @@ static inline void isa_delay(void)
+ 
+ #define insb(port, buf, nr)	((port) < 1024 ? isa_rom_insb((port), (buf), (nr)) : isa_insb((port), (buf), (nr)))
+ #define insw(port, buf, nr)	((port) < 1024 ? isa_rom_insw((port), (buf), (nr)) : isa_insw((port), (buf), (nr)))
+-#define insl			isa_insl
++#define insl(port, buf, len)	isa_insb((port), (buf), (len) << 2)
++
+ #define outsb(port, buf, nr)	((port) < 1024 ? isa_rom_outsb((port), (buf), (nr)) : isa_outsb((port), (buf), (nr)))
+ #define outsw(port, buf, nr)	((port) < 1024 ? isa_rom_outsw((port), (buf), (nr)) : isa_outsw((port), (buf), (nr)))
+-#define outsl			isa_outsl
++#define outsl(port, buf, len)	isa_outsb((port), (buf), (len) << 2)
+ 
+ #define readb(addr)		in_8(addr)
+ #define writeb(val, addr)	out_8((addr), (val))
+diff --git a/arch/m68k/include/asm/parport.h b/arch/m68k/include/asm/parport.h
+index 5ea75e6..e8e4a2a 100644
+--- a/arch/m68k/include/asm/parport.h
++++ b/arch/m68k/include/asm/parport.h
+@@ -11,8 +11,13 @@
+ #ifndef _ASM_M68K_PARPORT_H
+ #define _ASM_M68K_PARPORT_H 1
+ 
+-#define insl(port,buf,len)   isa_insb(port,buf,(len)<<2)
+-#define outsl(port,buf,len)  isa_outsb(port,buf,(len)<<2)
++#ifndef insl
++#define insl(port, buf, len)   isa_insb((port), (buf), (len) << 2)
++#endif
++
++#ifndef outsl
++#define outsl(port, buf, len)  isa_outsb((port), (buf), (len) << 2)
++#endif
+ 
+ /* no dma, or IRQ autoprobing */
+ static int parport_pc_find_isa_ports (int autoirq, int autodma);
+-- 
+1.7.7.6
