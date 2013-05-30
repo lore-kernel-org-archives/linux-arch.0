@@ -1,71 +1,123 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: TLB and PTE coherency during munmap
-Date: Thu, 30 May 2013 13:03:21 +0200
-Message-ID: <20130530110321.GO12193@twins.programming.kicks-ass.net>
-References: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com>
- <CAMo8BfJie1Y49QeSJ+JTQb9WsYJkMMkb1BkKz2Gzy3T7V6ogHA@mail.gmail.com>
- <51A45861.1010008@gmail.com>
- <20130529122728.GA27176@twins.programming.kicks-ass.net>
- <51A5F7A7.5020604@synopsys.com>
- <20130529175125.GJ12193@twins.programming.kicks-ass.net>
- <51A6DDF5.2000406@synopsys.com>
- <20130530065627.GL12193@twins.programming.kicks-ass.net>
- <51A6F923.6010709@synopsys.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: A bug about system call on ARM
+Date: Thu, 30 May 2013 12:41:12 +0100
+Message-ID: <20130530114112.GH7483@mudshark.cambridge.arm.com>
+References: <35FD53F367049845BC99AC72306C23D1610991B85B@CNBJMBX05.corpusers.net>
+ <CAFLxGvy39xWdZmtiVHP+y=zH1coCVmMuREcmD25wSb=w-VK7Xg@mail.gmail.com>
+ <35FD53F367049845BC99AC72306C23D1610991B85D@CNBJMBX05.corpusers.net>
+ <35FD53F367049845BC99AC72306C23D1610991B85E@CNBJMBX05.corpusers.net>
+ <CAFLxGvyy=73dGQqG8W6SXZah7WQZ4gJAeeHXN8opKaOuG-5yUQ@mail.gmail.com>
+ <20130529094826.GD13095@mudshark.cambridge.arm.com>
+ <35FD53F367049845BC99AC72306C23D1610991B865@CNBJMBX05.corpusers.net>
+ <35FD53F367049845BC99AC72306C23D1610991B866@CNBJMBX05.corpusers.net>
+ <20130530090949.GC7483@mudshark.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 Content-Disposition: inline
-In-Reply-To: <51A6F923.6010709@synopsys.com>
-Sender: owner-linux-mm@kvack.org
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Max Filippov <jcmvbkbc@gmail.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, Ralf Baechle <ralf@linux-mips.org>, Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>, linux-xtensa@linux-xtensa.org, Hugh Dickins <hughd@google.com>
+In-Reply-To: <20130530090949.GC7483@mudshark.cambridge.arm.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: "Wang, Yalin" <Yalin.Wang@sonymobile.com>
+Cc: 'richard -rw- weinberger' <richard.weinberger@gmail.com>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'linux-arm-kernel@lists.infradead.org'" <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, May 30, 2013 at 12:30:51PM +0530, Vineet Gupta wrote:
-> On 05/30/2013 12:26 PM, Peter Zijlstra wrote:
-> > On Thu, May 30, 2013 at 10:34:53AM +0530, Vineet Gupta wrote:
-> >> On 05/29/2013 11:21 PM, Peter Zijlstra wrote:
-> >>
-> >> BTW, since we are on the topic, it seems that we are missing tlb_fast_mode() in
-> >> one spot - unless it is tied to rcu table free stuff.
-> >>
-> >> -------------->
-> >> From: Vineet Gupta <vgupta@synopsys.com>
-> >> Date: Thu, 30 May 2013 10:25:30 +0530
-> >> Subject: [PATCH] mm: tlb_fast_mode check missing in tlb_finish_mmu()
-> >>
-> >> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-> >> ---
-> >>  mm/memory.c |    3 +++
-> >>  1 file changed, 3 insertions(+)
-> >>
-> >> diff --git a/mm/memory.c b/mm/memory.c
-> >> index d9d5fd9..569ffe1 100644
-> >> --- a/mm/memory.c
-> >> +++ b/mm/memory.c
-> >> @@ -269,6 +269,9 @@ void tlb_finish_mmu(struct mmu_gather *tlb, unsigned long
-> >> start, unsigned long e
-> >>      /* keep the page table cache within bounds */
-> >>      check_pgt_cache();
-> >>  
-> >> +    if (tlb_fast_mode(tlb))
-> >> +        return;
-> >> +
-> >>      for (batch = tlb->local.next; batch; batch = next) {
-> >>          next = batch->next;
-> >>          free_pages((unsigned long)batch, 0);
-> > Yes I think that is possible. It would shrink the code a little when
-> > fast_mode was unconditionally 1 -- ie. simple UP ;-).
+On Thu, May 30, 2013 at 10:09:49AM +0100, Will Deacon wrote:
+> On Thu, May 30, 2013 at 02:41:42AM +0100, Wang, Yalin wrote:
+> > If you have some patch for this issue,
+> > I can do the test for it .
 > 
-> Exactly ! Can you please revert with a Reviewed-by/Acked-by so I can formally send
-> it over to linux-mm list.
+> I'll have a look at cooking something which uses an exception table entry
+> to rewind the PC and retry the system call. That's simpler than directly
+> injecting a user page fault from the system call path.
 
-s/revert/reply/?
+Ok, please can you try the following?
 
-Acked-by: Peter Zijlstra <peterz@infradead.org>
+Will
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+--->8
+
+diff --git a/arch/arm/kernel/entry-common.S b/arch/arm/kernel/entry-common.S
+index bc5bc0a..855926e 100644
+--- a/arch/arm/kernel/entry-common.S
++++ b/arch/arm/kernel/entry-common.S
+@@ -361,6 +361,15 @@ ENTRY(vector_swi)
+ 	str	r8, [sp, #S_PSR]		@ Save CPSR
+ 	str	r0, [sp, #S_OLD_R0]		@ Save OLD_R0
+ 	zero_fp
++	enable_irq
++	ct_user_exit
++
++#ifdef CONFIG_ALIGNMENT_TRAP
++	ldr	ip, __cr_alignment
++	ldr	ip, [ip]
++	mcr	p15, 0, ip, c1, c0		@ update control register
++#endif
++	get_thread_info tsk
+ 
+ 	/*
+ 	 * Get the system call number.
+@@ -375,9 +384,9 @@ ENTRY(vector_swi)
+ #ifdef CONFIG_ARM_THUMB
+ 	tst	r8, #PSR_T_BIT
+ 	movne	r10, #0				@ no thumb OABI emulation
+-	ldreq	r10, [lr, #-4]			@ get SWI instruction
++ USER(	ldreq	r10, [lr, #-4]		)	@ get SWI instruction
+ #else
+-	ldr	r10, [lr, #-4]			@ get SWI instruction
++ USER(	ldr	r10, [lr, #-4]		)	@ get SWI instruction
+ #endif
+ #ifdef CONFIG_CPU_ENDIAN_BE8
+ 	rev	r10, r10			@ little endian instruction
+@@ -392,22 +401,13 @@ ENTRY(vector_swi)
+ 	/* Legacy ABI only, possibly thumb mode. */
+ 	tst	r8, #PSR_T_BIT			@ this is SPSR from save_user_regs
+ 	addne	scno, r7, #__NR_SYSCALL_BASE	@ put OS number in
+-	ldreq	scno, [lr, #-4]
++ USER(	ldreq	scno, [lr, #-4]		)
+ 
+ #else
+ 	/* Legacy ABI only. */
+-	ldr	scno, [lr, #-4]			@ get SWI instruction
+-#endif
+-
+-#ifdef CONFIG_ALIGNMENT_TRAP
+-	ldr	ip, __cr_alignment
+-	ldr	ip, [ip]
+-	mcr	p15, 0, ip, c1, c0		@ update control register
++ USER(	ldr	scno, [lr, #-4]		)	@ get SWI instruction
+ #endif
+-	enable_irq
+-	ct_user_exit
+ 
+-	get_thread_info tsk
+ 	adr	tbl, sys_call_table		@ load syscall table pointer
+ 
+ #if defined(CONFIG_OABI_COMPAT)
+@@ -442,6 +442,18 @@ local_restart:
+ 	eor	r0, scno, #__NR_SYSCALL_BASE	@ put OS number back
+ 	bcs	arm_syscall	
+ 	b	sys_ni_syscall			@ not private func
++
++#if defined(CONFIG_OABI_COMPAT) || !defined(CONFIG_AEABI)
++	/*
++	 * We may have faulted trying to load the SWI instruction due to
++	 * concurrent page aging on another CPU. In this case, return
++	 * back to the swi instruction and fault the page back.
++	 */
++9001:
++	sub	lr, lr, #4
++	str	lr, [sp, #S_PC]
++	b	ret_fast_syscall
++#endif
+ ENDPROC(vector_swi)
+ 
+ 	/*
