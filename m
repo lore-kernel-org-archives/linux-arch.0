@@ -1,49 +1,56 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH] arch: m68k: math-emu: unsigned issue, 'unsigned long'
- will never be less than zero.
-Date: Thu, 30 May 2013 16:08:54 +0800
-Message-ID: <51A70916.40101@asianux.com>
-References: <51A6F0C6.9050806@asianux.com> <m2a9ndndu5.fsf@linux-m68k.org>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: A bug about system call on ARM
+Date: Thu, 30 May 2013 10:09:49 +0100
+Message-ID: <20130530090949.GC7483@mudshark.cambridge.arm.com>
+References: <35FD53F367049845BC99AC72306C23D1610991B85B@CNBJMBX05.corpusers.net>
+ <CAFLxGvy39xWdZmtiVHP+y=zH1coCVmMuREcmD25wSb=w-VK7Xg@mail.gmail.com>
+ <35FD53F367049845BC99AC72306C23D1610991B85D@CNBJMBX05.corpusers.net>
+ <35FD53F367049845BC99AC72306C23D1610991B85E@CNBJMBX05.corpusers.net>
+ <CAFLxGvyy=73dGQqG8W6SXZah7WQZ4gJAeeHXN8opKaOuG-5yUQ@mail.gmail.com>
+ <20130529094826.GD13095@mudshark.cambridge.arm.com>
+ <35FD53F367049845BC99AC72306C23D1610991B865@CNBJMBX05.corpusers.net>
+ <35FD53F367049845BC99AC72306C23D1610991B866@CNBJMBX05.corpusers.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-m68k-owner@vger.kernel.org>
-In-Reply-To: <m2a9ndndu5.fsf@linux-m68k.org>
-Sender: linux-m68k-owner@vger.kernel.org
-To: Andreas Schwab <schwab@linux-m68k.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k@lists.linux-m68k.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:65498 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-FAIL-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1030209Ab3E3JLB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 30 May 2013 05:11:01 -0400
+Content-Disposition: inline
+In-Reply-To: <35FD53F367049845BC99AC72306C23D1610991B866@CNBJMBX05.corpusers.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Wang, Yalin" <Yalin.Wang@sonymobile.com>
+Cc: 'richard -rw- weinberger' <richard.weinberger@gmail.com>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'linux-arm-kernel@lists.infradead.org'" <linux-arm-kernel@lists.infradead.org>
 
-On 05/30/2013 03:09 PM, Andreas Schwab wrote:
-> Chen Gang <gang.chen@asianux.com> writes:
+On Thu, May 30, 2013 at 02:41:42AM +0100, Wang, Yalin wrote:
+> Hi  Will,
+
+Hello,
+
+> Have you received the log files?
+
+Yep, and you seem to be completely correct: CPU0 ages the page from which
+CPU1 just executed a system call, so we explode trying to load the swi
+instruction in order to retrieve the immediate.
+
+> And is there someone looking at this issue now ?
+
+It's on my list, but I'm pretty busy right now and OABI-compat isn't high
+priority. Are you actually running OABI binaries? If not, you can simply
+turn that option off (in fact, a quick fix to this issue is to make that
+depend on !SMP).
+
+> This issue happened on Qcom Scorpoin CPUs,
+> And  it just happened in our stability test occasionally .
 > 
->> > 'oldmant.m32[1]' is 'unsigned long' which never '< 0', and the original
->> > author wanted to check the highest bit whether set.
->> >
->> > So need type cast form 'unsigned long' to 'long'.
-> Better to make the bit test explicit, since it is not a sign bit.
-> 
+> If you have some patch for this issue,
+> I can do the test for it .
 
-That sounds good.
+I'll have a look at cooking something which uses an exception table entry
+to rewind the PC and retry the system call. That's simpler than directly
+injecting a user page fault from the system call path.
 
-
->> > diff --git a/arch/m68k/math-emu/fp_arith.c b/arch/m68k/math-emu/fp_arith.c
->> > index 08f286d..ef013c5 100644
->> > --- a/arch/m68k/math-emu/fp_arith.c
->> > +++ b/arch/m68k/math-emu/fp_arith.c
->> > @@ -519,7 +519,7 @@ static void fp_roundint(struct fp_ext *dest, int mode)
->> >  				return;
->> >  			break;
->> >  		case 0x401e:
->> > -			if (!(oldmant.m32[1] >= 0))
->> > +			if (!((long)oldmant.m32[1] >= 0))
-> 			if (oldmant.m32[1] & 0x80000000)
-
-OK, I will send patch v2.
-
-
-Thanks.
--- 
-Chen Gang
-
-Asianux Corporation
+Will
