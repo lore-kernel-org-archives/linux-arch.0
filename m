@@ -1,56 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f44.google.com ([209.85.160.44]:40625 "EHLO
-	mail-pb0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757594Ab3E3PG6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 May 2013 11:06:58 -0400
-Date: Thu, 30 May 2013 23:06:36 +0800
-From: Wang YanQing <udknight@gmail.com>
-Subject: Re: [PATCH] arch: parisc: kernel: using strlcpy() instead of strcpy()
-Message-ID: <20130530150636.GA2121@udknight>
-References: <51A6A8F3.2030200@asianux.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <51A6A8F3.2030200@asianux.com>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:60234 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757599Ab3E3V6r (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 May 2013 17:58:47 -0400
+Date: Thu, 30 May 2013 14:58:44 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH v8, part3 06/14] mm, acornfb: use free_reserved_area()
+ to simplify code
+Message-ID: <20130530145844.902b3a947c1f7430c1c2ecf5@linux-foundation.org>
+In-Reply-To: <1369575522-26405-7-git-send-email-jiang.liu@huawei.com>
+References: <1369575522-26405-1-git-send-email-jiang.liu@huawei.com>
+	<1369575522-26405-7-git-send-email-jiang.liu@huawei.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chen Gang <gang.chen@asianux.com>
-Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Greg KH <gregkh@linuxfoundation.org>, Parisc List <linux-parisc@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20130530150636.YUOUDcm29KdNYjpo0mKzNw9Cb5xcKn2wSFG-aKvqWQc@z>
+To: Jiang Liu <liuj97@gmail.com>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Florian Tobias Schandinat <FlorianSchandinat@gmx.de>, linux-fbdev@vger.kernel.org
+Message-ID: <20130530215844.tpmb4jtY4_NqRvQH9Xg21JMqLLnUGIZG5tbM4qrMmP8@z>
 
-On Thu, May 30, 2013 at 09:18:43AM +0800, Chen Gang wrote:
-> 
-> 'boot_args' is an input args, and 'boot_command_line' has a fix length.
-> 
-> So need use strlcpy() instead of strcpy() to avoid memory overflow.
-> 
-> 
-> Signed-off-by: Chen Gang <gang.chen@asianux.com>
-> ---
->  arch/parisc/kernel/setup.c |    3 ++-
->  1 files changed, 2 insertions(+), 1 deletions(-)
-> 
-> diff --git a/arch/parisc/kernel/setup.c b/arch/parisc/kernel/setup.c
-> index 60c1ae6..7349a3f 100644
-> --- a/arch/parisc/kernel/setup.c
-> +++ b/arch/parisc/kernel/setup.c
-> @@ -69,7 +69,8 @@ void __init setup_cmdline(char **cmdline_p)
->  		/* called from hpux boot loader */
->  		boot_command_line[0] = '\0';
->  	} else {
-> -		strcpy(boot_command_line, (char *)__va(boot_args[1]));
-> +		strlcpy(boot_command_line, (char *)__va(boot_args[1]),
-> +			COMMAND_LINE_SIZE);
+On Sun, 26 May 2013 21:38:34 +0800 Jiang Liu <liuj97@gmail.com> wrote:
 
-What about add 
-boot_command_line[COMMAND_LINE_SIZE - 1] = '\0';
-to protect the following another strcpy?
+> Use common help function free_reserved_area() to simplify code.
 
-"
-strcpy(command_line, boot_command_line);
-"
->  
->  #ifdef CONFIG_BLK_DEV_INITRD
->  		if (boot_args[2] != 0) /* did palo pass us a ramdisk? */
-> -- 
-> 1.7.7.6
+http://ozlabs.org/~akpm/mmots/broken-out/drivers-video-acornfbc-remove-dead-code.patch
+removes all the code which your patch alters.
