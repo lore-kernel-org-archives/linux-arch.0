@@ -1,94 +1,203 @@
-From: "Wang, Yalin" <Yalin.Wang@sonymobile.com>
-Subject: =?gb2312?B?tPC4tDogQSBidWcgYWJvdXQgc3lzdGVtIGNhbGwgb24gQVJN?=
-Date: Thu, 30 May 2013 20:22:56 +0800
-Message-ID: <ih0015wu30o5nq4ajf437rl7.1369916575726@email.android.com>
+From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Subject: Re: [PATCH v4 2/4] mutex: add support for wound/wait style locks,
+ v5
+Date: Thu, 30 May 2013 16:08:54 +0200
+Message-ID: <51A75D76.5090700@canonical.com>
+References: <20130528144420.4538.70725.stgit@patser> <20130528144839.4538.39821.stgit@patser> <CAAQKjZMPw7Lnn7VFYVkN_ViJgTzREy_uSTFXKHRnEEzo+_=yRg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="gb2312"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Language: en-US
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: 'richard -rw- weinberger' <richard.weinberger@gmail.com>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'linux-arm-kernel@lists.infradead.org'" <linux-arm-kernel@lists.infradead.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from youngberry.canonical.com ([91.189.89.112]:43081 "EHLO
+	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754666Ab3E3OI6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 May 2013 10:08:58 -0400
+In-Reply-To: <CAAQKjZMPw7Lnn7VFYVkN_ViJgTzREy_uSTFXKHRnEEzo+_=yRg@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Inki Dae <inki.dae@samsung.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, peterz@infradead.org, x86@kernel.org, DRI mailing list <dri-devel@lists.freedesktop.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, robclark@gmail.com, rostedt@goodmis.org, tglx@linutronix.de, mingo@elte.hu, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
 
-SGkgV2lsbCwNCg0KaSBzZWUgeW91ciBzb2x1dGlvbiwNCmkgV2lsbCB0ZXN0IGl0IHRvbW9ycm93
-LA0KYW5kIHJlcG9ydCB0aGUgcmVzdWx0IHRvIHlvdSBBU0FQIQ0KDQpUaGFuayBmb3IgeW91ciBo
-ZWxwIHZlcnkgbXVjaC4NCg0KU2VudCBmcm9tIE1veGllciBNYWlsDQooaHR0cDovL3d3dy5tb3hp
-ZXIuY29tKQ0KDQoNCi0tLS0tINPKvP7Urbz+IC0tLS0tDQq3orz+yMs6IFdpbGwgRGVhY29uIDx3
-aWxsLmRlYWNvbkBhcm0uY29tPg0KytW8/sjLOiAiV2FuZywgWWFsaW4iIDxZYWxpbi5XYW5nQHNv
-bnltb2JpbGUuY29tPg0Ks63LzTogJ3JpY2hhcmQgLXJ3LSB3ZWluYmVyZ2VyJyA8cmljaGFyZC53
-ZWluYmVyZ2VyQGdtYWlsLmNvbT4sICInbGludXgtYXJjaEB2Z2VyLmtlcm5lbC5vcmcnIiA8bGlu
-dXgtYXJjaEB2Z2VyLmtlcm5lbC5vcmc+LCAiJ2xpbnV4LWtlcm5lbEB2Z2VyLmtlcm5lbC5vcmcn
-IiA8bGludXgta2VybmVsQHZnZXIua2VybmVsLm9yZz4sICInbGludXgtYXJtLWtlcm5lbEBsaXN0
-cy5pbmZyYWRlYWQub3JnJyIgPGxpbnV4LWFybS1rZXJuZWxAbGlzdHMuaW5mcmFkZWFkLm9yZz4N
-Creiy83KsbzkOiAyMDEzLTUtMzAgMTk6NDENCtb3zOI6IFJlOiBBIGJ1ZyBhYm91dCBzeXN0ZW0g
-Y2FsbCBvbiBBUk0NCg0KDQoNCk9uIFRodSwgTWF5IDMwLCAyMDEzIGF0IDEwOjA5OjQ5QU0gKzAx
-MDAsIFdpbGwgRGVhY29uIHdyb3RlOg0KPiBPbiBUaHUsIE1heSAzMCwgMjAxMyBhdCAwMjo0MTo0
-MkFNICswMTAwLCBXYW5nLCBZYWxpbiB3cm90ZToNCj4gPiBJZiB5b3UgaGF2ZSBzb21lIHBhdGNo
-IGZvciB0aGlzIGlzc3VlLA0KPiA+IEkgY2FuIGRvIHRoZSB0ZXN0IGZvciBpdCAuDQo+DQo+IEkn
-bGwgaGF2ZSBhIGxvb2sgYXQgY29va2luZyBzb21ldGhpbmcgd2hpY2ggdXNlcyBhbiBleGNlcHRp
-b24gdGFibGUgZW50cnkNCj4gdG8gcmV3aW5kIHRoZSBQQyBhbmQgcmV0cnkgdGhlIHN5c3RlbSBj
-YWxsLiBUaGF0J3Mgc2ltcGxlciB0aGFuIGRpcmVjdGx5DQo+IGluamVjdGluZyBhIHVzZXIgcGFn
-ZSBmYXVsdCBmcm9tIHRoZSBzeXN0ZW0gY2FsbCBwYXRoLg0KDQpPaywgcGxlYXNlIGNhbiB5b3Ug
-dHJ5IHRoZSBmb2xsb3dpbmc/DQoNCldpbGwNCg0KLS0tPjgNCg0KZGlmZiAtLWdpdCBhL2FyY2gv
-YXJtL2tlcm5lbC9lbnRyeS1jb21tb24uUyBiL2FyY2gvYXJtL2tlcm5lbC9lbnRyeS1jb21tb24u
-Uw0KaW5kZXggYmM1YmMwYS4uODU1OTI2ZSAxMDA2NDQNCi0tLSBhL2FyY2gvYXJtL2tlcm5lbC9l
-bnRyeS1jb21tb24uUw0KKysrIGIvYXJjaC9hcm0va2VybmVsL2VudHJ5LWNvbW1vbi5TDQpAQCAt
-MzYxLDYgKzM2MSwxNSBAQCBFTlRSWSh2ZWN0b3Jfc3dpKQ0KICAgICAgICBzdHIgICAgIHI4LCBb
-c3AsICNTX1BTUl0gICAgICAgICAgICAgICAgQCBTYXZlIENQU1INCiAgICAgICAgc3RyICAgICBy
-MCwgW3NwLCAjU19PTERfUjBdICAgICAgICAgICAgIEAgU2F2ZSBPTERfUjANCiAgICAgICAgemVy
-b19mcA0KKyAgICAgICBlbmFibGVfaXJxDQorICAgICAgIGN0X3VzZXJfZXhpdA0KKw0KKyNpZmRl
-ZiBDT05GSUdfQUxJR05NRU5UX1RSQVANCisgICAgICAgbGRyICAgICBpcCwgX19jcl9hbGlnbm1l
-bnQNCisgICAgICAgbGRyICAgICBpcCwgW2lwXQ0KKyAgICAgICBtY3IgICAgIHAxNSwgMCwgaXAs
-IGMxLCBjMCAgICAgICAgICAgICAgQCB1cGRhdGUgY29udHJvbCByZWdpc3Rlcg0KKyNlbmRpZg0K
-KyAgICAgICBnZXRfdGhyZWFkX2luZm8gdHNrDQoNCiAgICAgICAgLyoNCiAgICAgICAgICogR2V0
-IHRoZSBzeXN0ZW0gY2FsbCBudW1iZXIuDQpAQCAtMzc1LDkgKzM4NCw5IEBAIEVOVFJZKHZlY3Rv
-cl9zd2kpDQogI2lmZGVmIENPTkZJR19BUk1fVEhVTUINCiAgICAgICAgdHN0ICAgICByOCwgI1BT
-Ul9UX0JJVA0KICAgICAgICBtb3ZuZSAgIHIxMCwgIzAgICAgICAgICAgICAgICAgICAgICAgICAg
-QCBubyB0aHVtYiBPQUJJIGVtdWxhdGlvbg0KLSAgICAgICBsZHJlcSAgIHIxMCwgW2xyLCAjLTRd
-ICAgICAgICAgICAgICAgICAgQCBnZXQgU1dJIGluc3RydWN0aW9uDQorIFVTRVIoIGxkcmVxICAg
-cjEwLCBbbHIsICMtNF0gICAgICAgICAgKSAgICAgICBAIGdldCBTV0kgaW5zdHJ1Y3Rpb24NCiAj
-ZWxzZQ0KLSAgICAgICBsZHIgICAgIHIxMCwgW2xyLCAjLTRdICAgICAgICAgICAgICAgICAgQCBn
-ZXQgU1dJIGluc3RydWN0aW9uDQorIFVTRVIoIGxkciAgICAgcjEwLCBbbHIsICMtNF0gICAgICAg
-ICAgKSAgICAgICBAIGdldCBTV0kgaW5zdHJ1Y3Rpb24NCiAjZW5kaWYNCiAjaWZkZWYgQ09ORklH
-X0NQVV9FTkRJQU5fQkU4DQogICAgICAgIHJldiAgICAgcjEwLCByMTAgICAgICAgICAgICAgICAg
-ICAgICAgICBAIGxpdHRsZSBlbmRpYW4gaW5zdHJ1Y3Rpb24NCkBAIC0zOTIsMjIgKzQwMSwxMyBA
-QCBFTlRSWSh2ZWN0b3Jfc3dpKQ0KICAgICAgICAvKiBMZWdhY3kgQUJJIG9ubHksIHBvc3NpYmx5
-IHRodW1iIG1vZGUuICovDQogICAgICAgIHRzdCAgICAgcjgsICNQU1JfVF9CSVQgICAgICAgICAg
-ICAgICAgICBAIHRoaXMgaXMgU1BTUiBmcm9tIHNhdmVfdXNlcl9yZWdzDQogICAgICAgIGFkZG5l
-ICAgc2NubywgcjcsICNfX05SX1NZU0NBTExfQkFTRSAgICBAIHB1dCBPUyBudW1iZXIgaW4NCi0g
-ICAgICAgbGRyZXEgICBzY25vLCBbbHIsICMtNF0NCisgVVNFUiggbGRyZXEgICBzY25vLCBbbHIs
-ICMtNF0gICAgICAgICApDQoNCiAjZWxzZQ0KICAgICAgICAvKiBMZWdhY3kgQUJJIG9ubHkuICov
-DQotICAgICAgIGxkciAgICAgc2NubywgW2xyLCAjLTRdICAgICAgICAgICAgICAgICBAIGdldCBT
-V0kgaW5zdHJ1Y3Rpb24NCi0jZW5kaWYNCi0NCi0jaWZkZWYgQ09ORklHX0FMSUdOTUVOVF9UUkFQ
-DQotICAgICAgIGxkciAgICAgaXAsIF9fY3JfYWxpZ25tZW50DQotICAgICAgIGxkciAgICAgaXAs
-IFtpcF0NCi0gICAgICAgbWNyICAgICBwMTUsIDAsIGlwLCBjMSwgYzAgICAgICAgICAgICAgIEAg
-dXBkYXRlIGNvbnRyb2wgcmVnaXN0ZXINCisgVVNFUiggbGRyICAgICBzY25vLCBbbHIsICMtNF0g
-ICAgICAgICApICAgICAgIEAgZ2V0IFNXSSBpbnN0cnVjdGlvbg0KICNlbmRpZg0KLSAgICAgICBl
-bmFibGVfaXJxDQotICAgICAgIGN0X3VzZXJfZXhpdA0KDQotICAgICAgIGdldF90aHJlYWRfaW5m
-byB0c2sNCiAgICAgICAgYWRyICAgICB0YmwsIHN5c19jYWxsX3RhYmxlICAgICAgICAgICAgIEAg
-bG9hZCBzeXNjYWxsIHRhYmxlIHBvaW50ZXINCg0KICNpZiBkZWZpbmVkKENPTkZJR19PQUJJX0NP
-TVBBVCkNCkBAIC00NDIsNiArNDQyLDE4IEBAIGxvY2FsX3Jlc3RhcnQ6DQogICAgICAgIGVvciAg
-ICAgcjAsIHNjbm8sICNfX05SX1NZU0NBTExfQkFTRSAgICBAIHB1dCBPUyBudW1iZXIgYmFjaw0K
-ICAgICAgICBiY3MgICAgIGFybV9zeXNjYWxsDQogICAgICAgIGIgICAgICAgc3lzX25pX3N5c2Nh
-bGwgICAgICAgICAgICAgICAgICBAIG5vdCBwcml2YXRlIGZ1bmMNCisNCisjaWYgZGVmaW5lZChD
-T05GSUdfT0FCSV9DT01QQVQpIHx8ICFkZWZpbmVkKENPTkZJR19BRUFCSSkNCisgICAgICAgLyoN
-CisgICAgICAgICogV2UgbWF5IGhhdmUgZmF1bHRlZCB0cnlpbmcgdG8gbG9hZCB0aGUgU1dJIGlu
-c3RydWN0aW9uIGR1ZSB0bw0KKyAgICAgICAgKiBjb25jdXJyZW50IHBhZ2UgYWdpbmcgb24gYW5v
-dGhlciBDUFUuIEluIHRoaXMgY2FzZSwgcmV0dXJuDQorICAgICAgICAqIGJhY2sgdG8gdGhlIHN3
-aSBpbnN0cnVjdGlvbiBhbmQgZmF1bHQgdGhlIHBhZ2UgYmFjay4NCisgICAgICAgICovDQorOTAw
-MToNCisgICAgICAgc3ViICAgICBsciwgbHIsICM0DQorICAgICAgIHN0ciAgICAgbHIsIFtzcCwg
-I1NfUENdDQorICAgICAgIGIgICAgICAgcmV0X2Zhc3Rfc3lzY2FsbA0KKyNlbmRpZg0KIEVORFBS
-T0ModmVjdG9yX3N3aSkNCg0KICAgICAgICAvKg0KX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX18KbGludXgtYXJtLWtlcm5lbCBtYWlsaW5nIGxpc3QKbGludXgt
-YXJtLWtlcm5lbEBsaXN0cy5pbmZyYWRlYWQub3JnCmh0dHA6Ly9saXN0cy5pbmZyYWRlYWQub3Jn
-L21haWxtYW4vbGlzdGluZm8vbGludXgtYXJtLWtlcm5lbAo=
+Op 29-05-13 12:33, Inki Dae schreef:
+> Hi,
+>
+> Just minor comments
+>
+> +Usage
+>> +-----
+>> +
+>> +Three different ways to acquire locks within the same w/w class. Common
+>> +definitions for methods #1 and #2:
+>> +
+>> +static DEFINE_WW_CLASS(ww_class);
+>> +
+>> +struct obj {
+>> +       struct ww_mutex lock;
+>> +       /* obj data */
+>> +};
+>> +
+>> +struct obj_entry {
+>> +       struct list_head *list;
+>> +       struct obj *obj;
+>> +};
+>> +
+>> +Method 1, using a list in execbuf->buffers that's not allowed to be
+>> reordered.
+>> +This is useful if a list of required objects is already tracked somewhere.
+>> +Furthermore the lock helper can use propagate the -EALREADY return code
+>> back to
+>> +the caller as a signal that an object is twice on the list. This is
+>> useful if
+>> +the list is constructed from userspace input and the ABI requires
+>> userspace to
+>> +not have duplicate entries (e.g. for a gpu commandbuffer submission
+>> ioctl).
+>> +
+>> +int lock_objs(struct list_head *list, struct ww_acquire_ctx *ctx)
+>> +{
+>> +       struct obj *res_obj = NULL;
+>> +       struct obj_entry *contended_entry = NULL;
+>> +       struct obj_entry *entry;
+>> +
+>> +       ww_acquire_init(ctx, &ww_class);
+>> +
+>> +retry:
+>> +       list_for_each_entry (list, entry) {
+>> +               if (entry == res_obj) {
+>>
+Indeed, documentation was wrong. With the below diff it should almost compile now.
+I really don't want to know if it really does, it's meant to be documentation!
+
+diff --git a/Documentation/ww-mutex-design.txt b/Documentation/ww-mutex-design.txt
+index 8bd1761..379739c 100644
+--- a/Documentation/ww-mutex-design.txt
++++ b/Documentation/ww-mutex-design.txt
+@@ -100,7 +100,7 @@ struct obj {
+ };
+ 
+ struct obj_entry {
+-	struct list_head *list;
++	struct list_head head;
+ 	struct obj *obj;
+ };
+ 
+@@ -120,14 +120,14 @@ int lock_objs(struct list_head *list, struct ww_acquire_ctx *ctx)
+ 	ww_acquire_init(ctx, &ww_class);
+ 
+ retry:
+-	list_for_each_entry (list, entry) {
+-		if (entry == res_obj) {
++	list_for_each_entry (entry, list, head) {
++		if (entry->obj == res_obj) {
+ 			res_obj = NULL;
+ 			continue;
+ 		}
+ 		ret = ww_mutex_lock(&entry->obj->lock, ctx);
+ 		if (ret < 0) {
+-			contended_obj = entry;
++			contended_entry = entry;
+ 			goto err;
+ 		}
+ 	}
+@@ -136,7 +136,7 @@ retry:
+ 	return 0;
+ 
+ err:
+-	list_for_each_entry_continue_reverse (list, contended_entry, entry)
++	list_for_each_entry_continue_reverse (entry, list, head)
+ 		ww_mutex_unlock(&entry->obj->lock);
+ 
+ 	if (res_obj)
+@@ -163,13 +163,13 @@ int lock_objs(struct list_head *list, struct ww_acquire_ctx *ctx)
+ 
+ 	ww_acquire_init(ctx, &ww_class);
+ 
+-	list_for_each_entry (list, entry) {
++	list_for_each_entry (entry, list, head) {
+ 		ret = ww_mutex_lock(&entry->obj->lock, ctx);
+ 		if (ret < 0) {
+ 			entry2 = entry;
+ 
+-			list_for_each_entry_continue_reverse (list, entry2)
+-				ww_mutex_unlock(&entry->obj->lock);
++			list_for_each_entry_continue_reverse (entry2, list, head)
++				ww_mutex_unlock(&entry2->obj->lock);
+ 
+ 			if (ret != -EDEADLK) {
+ 				ww_acquire_fini(ctx);
+@@ -184,8 +184,8 @@ int lock_objs(struct list_head *list, struct ww_acquire_ctx *ctx)
+ 			 * buf->next to the first unlocked entry,
+ 			 * restarting the for loop.
+ 			 */
+-			list_del(&entry->list);
+-			list_add(&entry->list, list);
++			list_del(&entry->head);
++			list_add(&entry->head, list);
+ 		}
+ 	}
+ 
+@@ -199,7 +199,7 @@ void unlock_objs(struct list_head *list, struct ww_acquire_ctx *ctx)
+ {
+ 	struct obj_entry *entry;
+ 
+-	list_for_each_entry (list, entry)
++	list_for_each_entry (entry, list, head)
+ 		ww_mutex_unlock(&entry->obj->lock);
+ 
+ 	ww_acquire_fini(ctx);
+@@ -244,22 +244,21 @@ struct obj {
+ 
+ static DEFINE_WW_CLASS(ww_class);
+ 
+-void __unlock_objs(struct list_head *list, struct ww_acquire_ctx *ctx)
++void __unlock_objs(struct list_head *list)
+ {
+-	struct obj entry;
++	struct obj *entry, *temp;
+ 
+-	for_each_safe (list, entry) {
++	list_for_each_entry_safe (entry, temp, list, locked_list) {
+ 		/* need to do that before unlocking, since only the current lock holder is
+ 		allowed to use object */
+-		list_del(entry->locked_list);
++		list_del(&entry->locked_list);
+ 		ww_mutex_unlock(entry->ww_mutex)
+ 	}
+ }
+ 
+ void lock_objs(struct list_head *list, struct ww_acquire_ctx *ctx)
+ {
+-	struct list_head locked_buffers;
+-	struct obj obj = NULL, entry;
++	struct obj *obj;
+ 
+ 	ww_acquire_init(ctx, &ww_class);
+ 
+@@ -275,15 +274,15 @@ retry:
+ 			continue;
+ 		}
+ 		if (ret == -EDEADLK) {
+-			__unlock_objs(list, ctx);
++			__unlock_objs(list);
+ 
+ 			ww_mutex_lock_slow(obj, ctx);
+-			list_add(locked_buffers, entry->locked_list);
++			list_add(&entry->locked_list, list);
+ 			goto retry;
+ 		}
+ 
+ 		/* locked a new object, add it to the list */
+-		list_add(locked_buffers, entry->locked_list);
++		list_add_tail(&entry->locked_list, list);
+ 	}
+ 
+ 	ww_acquire_done(ctx);
+@@ -292,7 +291,7 @@ retry:
+ 
+ void unlock_objs(struct list_head *list, struct ww_acquire_ctx *ctx)
+ {
+-	__unlock_objs(list, ctx);
++	__unlock_objs(list);
+ 	ww_acquire_fini(ctx);
+ }
+ 
