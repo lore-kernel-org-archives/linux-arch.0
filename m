@@ -1,148 +1,38 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: TLB and PTE coherency during munmap
-Date: Thu, 30 May 2013 08:56:27 +0200
-Message-ID: <20130530065627.GL12193@twins.programming.kicks-ass.net>
-References: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com>
- <CAMo8BfJie1Y49QeSJ+JTQb9WsYJkMMkb1BkKz2Gzy3T7V6ogHA@mail.gmail.com>
- <51A45861.1010008@gmail.com>
- <20130529122728.GA27176@twins.programming.kicks-ass.net>
- <51A5F7A7.5020604@synopsys.com>
- <20130529175125.GJ12193@twins.programming.kicks-ass.net>
- <51A6DDF5.2000406@synopsys.com>
+From: Tejun Heo <tj@kernel.org>
+Subject: Re: [PATCH, v2 11/13] mm: kill free_all_bootmem_node()
+Date: Thu, 30 May 2013 16:02:33 +0900
+Message-ID: <20130530070226.GC22604@mtj.dyndns.org>
+References: <1369838692-26860-1-git-send-email-jiang.liu@huawei.com>
+ <1369838692-26860-12-git-send-email-jiang.liu@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pb0-f44.google.com ([209.85.160.44]:37573 "EHLO
+	mail-pb0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S967563Ab3E3HCj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 May 2013 03:02:39 -0400
 Content-Disposition: inline
-In-Reply-To: <51A6DDF5.2000406@synopsys.com>
-Sender: owner-linux-mm@kvack.org
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Max Filippov <jcmvbkbc@gmail.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, Ralf Baechle <ralf@linux-mips.org>, Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>, linux-xtensa@linux-xtensa.org, Hugh Dickins <hughd@google.com>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <1369838692-26860-12-git-send-email-jiang.liu@huawei.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Jiang Liu <liuj97@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Johannes Weiner <hannes@cmpxchg.org>, "David S. Miller" <davem@davemloft.net>, Yinghai Lu <yinghai@kernel.org>
 
-On Thu, May 30, 2013 at 10:34:53AM +0530, Vineet Gupta wrote:
-> On 05/29/2013 11:21 PM, Peter Zijlstra wrote:
-> > What about something like this?
-> >
-> > ---
-> >  include/asm-generic/tlb.h | 11 ++++++++++-
-> >  mm/memory.c               | 17 ++++++++++++++++-
-> >  2 files changed, 26 insertions(+), 2 deletions(-)
-> >
-> > diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-> > index b1b1fa6..651b1cf 100644
-> > --- a/include/asm-generic/tlb.h
-> > +++ b/include/asm-generic/tlb.h
-> > @@ -116,6 +116,7 @@ struct mmu_gather {
-> >  
-> >  static inline int tlb_fast_mode(struct mmu_gather *tlb)
-> >  {
-> > +#ifndef CONFIG_PREEMPT
-> >  #ifdef CONFIG_SMP
-> >  	return tlb->fast_mode;
-> >  #else
-> > @@ -124,7 +125,15 @@ static inline int tlb_fast_mode(struct mmu_gather *tlb)
-> >  	 * and page free order so much..
-> >  	 */
-> >  	return 1;
-> > -#endif
-> > +#endif /* CONFIG_SMP */
-> > +#else  /* CONFIG_PREEMPT */
-> > +	/*
-> > +	 * Since mmu_gather is preemptible, preemptible kernels are like SMP
-> > +	 * kernels, we must batch to make sure we invalidate TLBs before we
-> > +	 * free the pages.
-> > +	 */
-> > +	return 0;
-> > +#endif /* CONFIG_PREEMPT */
-> >  }
+On Wed, May 29, 2013 at 10:44:50PM +0800, Jiang Liu wrote:
+> Now nobody makes use of free_all_bootmem_node(), kill it.
 > 
-> So this adds the page batching logic to small/simpler UP systems - but it's
-> necessary evil :-(
+> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Johannes Weiner <hannes@cmpxchg.org>
+> Cc: "David S. Miller" <davem@davemloft.net>
+> Cc: Yinghai Lu <yinghai@kernel.org>
+> Cc: Tejun Heo <tj@kernel.org>
+> Cc: linux-kernel@vger.kernel.org
+> Cc: linux-mm@kvack.org
 
-Well, only if you have CONFIG_PREEMPT=y, at which point UP isn't really
-_that_ simply anymore really.
+Acked-by: Tejun Heo <tj@kernel.org>
 
-> >  void tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, bool fullmm);
-> > diff --git a/mm/memory.c b/mm/memory.c
-> > index 6dc1882..e915af2 100644
-> > --- a/mm/memory.c
-> > +++ b/mm/memory.c
-> > @@ -384,6 +384,21 @@ void tlb_remove_table(struct mmu_gather *tlb, void *table)
-> >  
-> >  #endif /* CONFIG_HAVE_RCU_TABLE_FREE */
-> >  
-> > +static inline void cond_resched_tlb(struct mmu_gather *tlb)
-> > +{
-> > +#ifndef CONFIG_PREEMPT
-> > +	/*
-> > +	 * For full preempt kernels we must do regular batching like
-> > +	 * SMP, see tlb_fast_mode(). For !PREEMPT we can 'cheat' and
-> > +	 * do a flush before our voluntary 'yield'.
-> > +	 */
-> > +	if (need_resched()) {
-> 
-> This is really neat: w/o this check, a @fullmm flush (exit/execve) would have
-> suffered multiple full TLB flushes in the loop, now you do that only if a
-> scheduling was needed - meaning only in the case when we have the potential race
-> condition which Max was seeing. Cool !
+Thanks.
 
-Glad you like it ;-)
-
-> > +		tlb_flush_mmu(tlb);
-> > +		cond_resched();
-> > +	}
-> > +#endif
-> > +}
-> > +
-> >  /*
-> >   * If a p?d_bad entry is found while walking page tables, report
-> >   * the error, before resetting entry to p?d_none.  Usually (but
-> > @@ -1264,7 +1279,7 @@ static inline unsigned long zap_pmd_range(struct mmu_gather *tlb,
-> >  			goto next;
-> >  		next = zap_pte_range(tlb, vma, pmd, addr, next, details);
-> >  next:
-> > -		cond_resched();
-> > +		cond_resched_tlb(tlb);
-> >  	} while (pmd++, addr = next, addr != end);
-> >  
-> >  	return addr;
-> 
-> BTW, since we are on the topic, it seems that we are missing tlb_fast_mode() in
-> one spot - unless it is tied to rcu table free stuff.
-> 
-> -------------->
-> From: Vineet Gupta <vgupta@synopsys.com>
-> Date: Thu, 30 May 2013 10:25:30 +0530
-> Subject: [PATCH] mm: tlb_fast_mode check missing in tlb_finish_mmu()
-> 
-> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-> ---
->  mm/memory.c |    3 +++
->  1 file changed, 3 insertions(+)
-> 
-> diff --git a/mm/memory.c b/mm/memory.c
-> index d9d5fd9..569ffe1 100644
-> --- a/mm/memory.c
-> +++ b/mm/memory.c
-> @@ -269,6 +269,9 @@ void tlb_finish_mmu(struct mmu_gather *tlb, unsigned long
-> start, unsigned long e
->      /* keep the page table cache within bounds */
->      check_pgt_cache();
->  
-> +    if (tlb_fast_mode(tlb))
-> +        return;
-> +
->      for (batch = tlb->local.next; batch; batch = next) {
->          next = batch->next;
->          free_pages((unsigned long)batch, 0);
-
-Yes I think that is possible. It would shrink the code a little when
-fast_mode was unconditionally 1 -- ie. simple UP ;-).
-
-
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+-- 
+tejun
