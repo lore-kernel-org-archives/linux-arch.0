@@ -1,40 +1,105 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: [PATCH] arch: parisc: kernel: using strlcpy() instead of strcpy()
-Date: Thu, 30 May 2013 09:18:43 +0800
-Message-ID: <51A6A8F3.2030200@asianux.com>
+From: "Wang, Yalin" <Yalin.Wang@sonymobile.com>
+Subject: RE: A bug about system call on ARM
+Date: Thu, 30 May 2013 09:41:42 +0800
+Message-ID: <35FD53F367049845BC99AC72306C23D1610991B866@CNBJMBX05.corpusers.net>
+References: <35FD53F367049845BC99AC72306C23D1610991B85B@CNBJMBX05.corpusers.net>
+ <CAFLxGvy39xWdZmtiVHP+y=zH1coCVmMuREcmD25wSb=w-VK7Xg@mail.gmail.com>
+ <35FD53F367049845BC99AC72306C23D1610991B85D@CNBJMBX05.corpusers.net>
+ <35FD53F367049845BC99AC72306C23D1610991B85E@CNBJMBX05.corpusers.net>
+ <CAFLxGvyy=73dGQqG8W6SXZah7WQZ4gJAeeHXN8opKaOuG-5yUQ@mail.gmail.com>
+ <20130529094826.GD13095@mudshark.cambridge.arm.com>
+ <35FD53F367049845BC99AC72306C23D1610991B865@CNBJMBX05.corpusers.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-parisc-owner@vger.kernel.org>
-Sender: linux-parisc-owner@vger.kernel.org
-To: "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, udknight@gmail.com
-Cc: Greg KH <gregkh@linuxfoundation.org>, Parisc List <linux-parisc@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from cnbjrel01.sonyericsson.com ([219.141.167.165]:11343 "EHLO
+	cnbjrel01.sonyericsson.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1759787Ab3E3Blr convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 29 May 2013 21:41:47 -0400
+In-Reply-To: <35FD53F367049845BC99AC72306C23D1610991B865@CNBJMBX05.corpusers.net>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Wang, Yalin" <Yalin.Wang@sonymobile.com>, 'Will Deacon' <will.deacon@arm.com>, 'richard -rw- weinberger' <richard.weinberger@gmail.com>
+Cc: "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'linux-arm-kernel@lists.infradead.org'" <linux-arm-kernel@lists.infradead.org>
 
+Hi  Will,
 
-'boot_args' is an input args, and 'boot_command_line' has a fix length.
+Have you received the log files?
 
-So need use strlcpy() instead of strcpy() to avoid memory overflow.
+And is there someone looking at this issue now ?
+This issue happened on Qcom Scorpoin CPUs,
+And  it just happened in our stability test occasionally .
 
+If you have some patch for this issue,
+I can do the test for it .
 
-Signed-off-by: Chen Gang <gang.chen@asianux.com>
----
- arch/parisc/kernel/setup.c |    3 ++-
- 1 files changed, 2 insertions(+), 1 deletions(-)
+Thanks for your help very much !
 
-diff --git a/arch/parisc/kernel/setup.c b/arch/parisc/kernel/setup.c
-index 60c1ae6..7349a3f 100644
---- a/arch/parisc/kernel/setup.c
-+++ b/arch/parisc/kernel/setup.c
-@@ -69,7 +69,8 @@ void __init setup_cmdline(char **cmdline_p)
- 		/* called from hpux boot loader */
- 		boot_command_line[0] = '\0';
- 	} else {
--		strcpy(boot_command_line, (char *)__va(boot_args[1]));
-+		strlcpy(boot_command_line, (char *)__va(boot_args[1]),
-+			COMMAND_LINE_SIZE);
- 
- #ifdef CONFIG_BLK_DEV_INITRD
- 		if (boot_args[2] != 0) /* did palo pass us a ramdisk? */
--- 
-1.7.7.6
+-----Original Message-----
+From: Wang, Yalin 
+Sent: Wednesday, May 29, 2013 5:51 PM
+To: 'Will Deacon'; richard -rw- weinberger
+Cc: linux-arch@vger.kernel.org; linux-kernel@vger.kernel.org; linux-arm-kernel@lists.infradead.org
+Subject: RE: A bug about system call on ARM
+
+Hi 
+
+This is kernel.log  and  the stack which is recovered by Trace32 tools.
+Please have a look at it .
+
+Thanks 
+
+-----Original Message-----
+From: Will Deacon [mailto:will.deacon@arm.com]
+Sent: Wednesday, May 29, 2013 5:48 PM
+To: richard -rw- weinberger
+Cc: Wang, Yalin; linux-arch@vger.kernel.org; linux-kernel@vger.kernel.org; linux-arm-kernel@lists.infradead.org
+Subject: Re: A bug about system call on ARM
+
+Hello,
+
+On Wed, May 29, 2013 at 09:46:42AM +0100, richard -rw- weinberger wrote:
+> On Wed, May 29, 2013 at 10:24 AM, Wang, Yalin <Yalin.Wang@sonymobile.com> wrote:
+> > I have download the latest linux kernel code  3.9.4 And Compare with
+> > 3.4.0 kernel .
+> >
+> > It seems there is no change for this part , So it will still happen 
+> > .
+> > Does anyone know who is responsible for  arm arch part kernel code ?
+> 
+> See MAINTAINERS file.
+> CC'ing linux-arm-kernel@lists.infradead.org
+
+Cheers for adding us to CC.
+
+> >> #ifdef CONFIG_ARM_THUMB
+> >>         tst     r8, #PSR_T_BIT
+> >>         movne   r10, #0                         @ no thumb OABI emulation
+> >>         ldreq   r10, [lr, #-4]                  @ get SWI instruction          // crash at this instruction, when get SWI instruction
+
+Do you have the panic log please? Also, which SoC are you using and how are you reproducing this?
+
+> >>         ldr     r10, [lr, #-4]                  @ get SWI instruction
+> >>   A710( and     ip, r10, #0x0f000000            @ check for SWI         )
+> >>   A710( teq     ip, #0x0f000000                                         )
+> >>   A710( bne     .Larm710bug                                             )
+> >> #endif
+> >> #ifdef CONFIG_CPU_ENDIAN_BE8
+> >>         rev     r10, r10                        @ little endian instruction
+> >> #endif
+> >>
+> >> /******************************************************************
+> >> ***
+> >> ******************************/
+> >>
+> >> Then reason why it will crash when get SWI instruction is maybe 
+> >> This page is clear to aged by kernel, But this MMU fault happpened 
+> >> in kernel, So the kernel do_page_fault function will not clear this 
+> >> page to young, So that  will crash .
+
+Sounds like we might need some USER annotations around the instruction loads, but we should also rework the code so that we re-enable interrupts first.
+
+Will
