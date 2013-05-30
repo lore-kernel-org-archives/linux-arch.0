@@ -1,22 +1,12 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: A bug about system call on ARM
-Date: Thu, 30 May 2013 12:41:12 +0100
-Message-ID: <20130530114112.GH7483@mudshark.cambridge.arm.com>
-References: <35FD53F367049845BC99AC72306C23D1610991B85B@CNBJMBX05.corpusers.net>
- <CAFLxGvy39xWdZmtiVHP+y=zH1coCVmMuREcmD25wSb=w-VK7Xg@mail.gmail.com>
- <35FD53F367049845BC99AC72306C23D1610991B85D@CNBJMBX05.corpusers.net>
- <35FD53F367049845BC99AC72306C23D1610991B85E@CNBJMBX05.corpusers.net>
- <CAFLxGvyy=73dGQqG8W6SXZah7WQZ4gJAeeHXN8opKaOuG-5yUQ@mail.gmail.com>
- <20130529094826.GD13095@mudshark.cambridge.arm.com>
- <35FD53F367049845BC99AC72306C23D1610991B865@CNBJMBX05.corpusers.net>
- <35FD53F367049845BC99AC72306C23D1610991B866@CNBJMBX05.corpusers.net>
- <20130530090949.GC7483@mudshark.cambridge.arm.com>
+From: "Wang, Yalin" <Yalin.Wang@sonymobile.com>
+Subject: =?gb2312?B?tPC4tDogQSBidWcgYWJvdXQgc3lzdGVtIGNhbGwgb24gQVJN?=
+Date: Thu, 30 May 2013 20:22:56 +0800
+Message-ID: <ih0015wu30o5nq4ajf437rl7.1369916575726@email.android.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="gb2312"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <20130530090949.GC7483@mudshark.cambridge.arm.com>
+Content-Language: en-US
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -26,98 +16,79 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: "Wang, Yalin" <Yalin.Wang@sonymobile.com>
+To: Will Deacon <will.deacon@arm.com>
 Cc: 'richard -rw- weinberger' <richard.weinberger@gmail.com>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'linux-arm-kernel@lists.infradead.org'" <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, May 30, 2013 at 10:09:49AM +0100, Will Deacon wrote:
-> On Thu, May 30, 2013 at 02:41:42AM +0100, Wang, Yalin wrote:
-> > If you have some patch for this issue,
-> > I can do the test for it .
-> 
-> I'll have a look at cooking something which uses an exception table entry
-> to rewind the PC and retry the system call. That's simpler than directly
-> injecting a user page fault from the system call path.
-
-Ok, please can you try the following?
-
-Will
-
---->8
-
-diff --git a/arch/arm/kernel/entry-common.S b/arch/arm/kernel/entry-common.S
-index bc5bc0a..855926e 100644
---- a/arch/arm/kernel/entry-common.S
-+++ b/arch/arm/kernel/entry-common.S
-@@ -361,6 +361,15 @@ ENTRY(vector_swi)
- 	str	r8, [sp, #S_PSR]		@ Save CPSR
- 	str	r0, [sp, #S_OLD_R0]		@ Save OLD_R0
- 	zero_fp
-+	enable_irq
-+	ct_user_exit
-+
-+#ifdef CONFIG_ALIGNMENT_TRAP
-+	ldr	ip, __cr_alignment
-+	ldr	ip, [ip]
-+	mcr	p15, 0, ip, c1, c0		@ update control register
-+#endif
-+	get_thread_info tsk
- 
- 	/*
- 	 * Get the system call number.
-@@ -375,9 +384,9 @@ ENTRY(vector_swi)
- #ifdef CONFIG_ARM_THUMB
- 	tst	r8, #PSR_T_BIT
- 	movne	r10, #0				@ no thumb OABI emulation
--	ldreq	r10, [lr, #-4]			@ get SWI instruction
-+ USER(	ldreq	r10, [lr, #-4]		)	@ get SWI instruction
- #else
--	ldr	r10, [lr, #-4]			@ get SWI instruction
-+ USER(	ldr	r10, [lr, #-4]		)	@ get SWI instruction
- #endif
- #ifdef CONFIG_CPU_ENDIAN_BE8
- 	rev	r10, r10			@ little endian instruction
-@@ -392,22 +401,13 @@ ENTRY(vector_swi)
- 	/* Legacy ABI only, possibly thumb mode. */
- 	tst	r8, #PSR_T_BIT			@ this is SPSR from save_user_regs
- 	addne	scno, r7, #__NR_SYSCALL_BASE	@ put OS number in
--	ldreq	scno, [lr, #-4]
-+ USER(	ldreq	scno, [lr, #-4]		)
- 
- #else
- 	/* Legacy ABI only. */
--	ldr	scno, [lr, #-4]			@ get SWI instruction
--#endif
--
--#ifdef CONFIG_ALIGNMENT_TRAP
--	ldr	ip, __cr_alignment
--	ldr	ip, [ip]
--	mcr	p15, 0, ip, c1, c0		@ update control register
-+ USER(	ldr	scno, [lr, #-4]		)	@ get SWI instruction
- #endif
--	enable_irq
--	ct_user_exit
- 
--	get_thread_info tsk
- 	adr	tbl, sys_call_table		@ load syscall table pointer
- 
- #if defined(CONFIG_OABI_COMPAT)
-@@ -442,6 +442,18 @@ local_restart:
- 	eor	r0, scno, #__NR_SYSCALL_BASE	@ put OS number back
- 	bcs	arm_syscall	
- 	b	sys_ni_syscall			@ not private func
-+
-+#if defined(CONFIG_OABI_COMPAT) || !defined(CONFIG_AEABI)
-+	/*
-+	 * We may have faulted trying to load the SWI instruction due to
-+	 * concurrent page aging on another CPU. In this case, return
-+	 * back to the swi instruction and fault the page back.
-+	 */
-+9001:
-+	sub	lr, lr, #4
-+	str	lr, [sp, #S_PC]
-+	b	ret_fast_syscall
-+#endif
- ENDPROC(vector_swi)
- 
- 	/*
+SGkgV2lsbCwNCg0KaSBzZWUgeW91ciBzb2x1dGlvbiwNCmkgV2lsbCB0ZXN0IGl0IHRvbW9ycm93
+LA0KYW5kIHJlcG9ydCB0aGUgcmVzdWx0IHRvIHlvdSBBU0FQIQ0KDQpUaGFuayBmb3IgeW91ciBo
+ZWxwIHZlcnkgbXVjaC4NCg0KU2VudCBmcm9tIE1veGllciBNYWlsDQooaHR0cDovL3d3dy5tb3hp
+ZXIuY29tKQ0KDQoNCi0tLS0tINPKvP7Urbz+IC0tLS0tDQq3orz+yMs6IFdpbGwgRGVhY29uIDx3
+aWxsLmRlYWNvbkBhcm0uY29tPg0KytW8/sjLOiAiV2FuZywgWWFsaW4iIDxZYWxpbi5XYW5nQHNv
+bnltb2JpbGUuY29tPg0Ks63LzTogJ3JpY2hhcmQgLXJ3LSB3ZWluYmVyZ2VyJyA8cmljaGFyZC53
+ZWluYmVyZ2VyQGdtYWlsLmNvbT4sICInbGludXgtYXJjaEB2Z2VyLmtlcm5lbC5vcmcnIiA8bGlu
+dXgtYXJjaEB2Z2VyLmtlcm5lbC5vcmc+LCAiJ2xpbnV4LWtlcm5lbEB2Z2VyLmtlcm5lbC5vcmcn
+IiA8bGludXgta2VybmVsQHZnZXIua2VybmVsLm9yZz4sICInbGludXgtYXJtLWtlcm5lbEBsaXN0
+cy5pbmZyYWRlYWQub3JnJyIgPGxpbnV4LWFybS1rZXJuZWxAbGlzdHMuaW5mcmFkZWFkLm9yZz4N
+Creiy83KsbzkOiAyMDEzLTUtMzAgMTk6NDENCtb3zOI6IFJlOiBBIGJ1ZyBhYm91dCBzeXN0ZW0g
+Y2FsbCBvbiBBUk0NCg0KDQoNCk9uIFRodSwgTWF5IDMwLCAyMDEzIGF0IDEwOjA5OjQ5QU0gKzAx
+MDAsIFdpbGwgRGVhY29uIHdyb3RlOg0KPiBPbiBUaHUsIE1heSAzMCwgMjAxMyBhdCAwMjo0MTo0
+MkFNICswMTAwLCBXYW5nLCBZYWxpbiB3cm90ZToNCj4gPiBJZiB5b3UgaGF2ZSBzb21lIHBhdGNo
+IGZvciB0aGlzIGlzc3VlLA0KPiA+IEkgY2FuIGRvIHRoZSB0ZXN0IGZvciBpdCAuDQo+DQo+IEkn
+bGwgaGF2ZSBhIGxvb2sgYXQgY29va2luZyBzb21ldGhpbmcgd2hpY2ggdXNlcyBhbiBleGNlcHRp
+b24gdGFibGUgZW50cnkNCj4gdG8gcmV3aW5kIHRoZSBQQyBhbmQgcmV0cnkgdGhlIHN5c3RlbSBj
+YWxsLiBUaGF0J3Mgc2ltcGxlciB0aGFuIGRpcmVjdGx5DQo+IGluamVjdGluZyBhIHVzZXIgcGFn
+ZSBmYXVsdCBmcm9tIHRoZSBzeXN0ZW0gY2FsbCBwYXRoLg0KDQpPaywgcGxlYXNlIGNhbiB5b3Ug
+dHJ5IHRoZSBmb2xsb3dpbmc/DQoNCldpbGwNCg0KLS0tPjgNCg0KZGlmZiAtLWdpdCBhL2FyY2gv
+YXJtL2tlcm5lbC9lbnRyeS1jb21tb24uUyBiL2FyY2gvYXJtL2tlcm5lbC9lbnRyeS1jb21tb24u
+Uw0KaW5kZXggYmM1YmMwYS4uODU1OTI2ZSAxMDA2NDQNCi0tLSBhL2FyY2gvYXJtL2tlcm5lbC9l
+bnRyeS1jb21tb24uUw0KKysrIGIvYXJjaC9hcm0va2VybmVsL2VudHJ5LWNvbW1vbi5TDQpAQCAt
+MzYxLDYgKzM2MSwxNSBAQCBFTlRSWSh2ZWN0b3Jfc3dpKQ0KICAgICAgICBzdHIgICAgIHI4LCBb
+c3AsICNTX1BTUl0gICAgICAgICAgICAgICAgQCBTYXZlIENQU1INCiAgICAgICAgc3RyICAgICBy
+MCwgW3NwLCAjU19PTERfUjBdICAgICAgICAgICAgIEAgU2F2ZSBPTERfUjANCiAgICAgICAgemVy
+b19mcA0KKyAgICAgICBlbmFibGVfaXJxDQorICAgICAgIGN0X3VzZXJfZXhpdA0KKw0KKyNpZmRl
+ZiBDT05GSUdfQUxJR05NRU5UX1RSQVANCisgICAgICAgbGRyICAgICBpcCwgX19jcl9hbGlnbm1l
+bnQNCisgICAgICAgbGRyICAgICBpcCwgW2lwXQ0KKyAgICAgICBtY3IgICAgIHAxNSwgMCwgaXAs
+IGMxLCBjMCAgICAgICAgICAgICAgQCB1cGRhdGUgY29udHJvbCByZWdpc3Rlcg0KKyNlbmRpZg0K
+KyAgICAgICBnZXRfdGhyZWFkX2luZm8gdHNrDQoNCiAgICAgICAgLyoNCiAgICAgICAgICogR2V0
+IHRoZSBzeXN0ZW0gY2FsbCBudW1iZXIuDQpAQCAtMzc1LDkgKzM4NCw5IEBAIEVOVFJZKHZlY3Rv
+cl9zd2kpDQogI2lmZGVmIENPTkZJR19BUk1fVEhVTUINCiAgICAgICAgdHN0ICAgICByOCwgI1BT
+Ul9UX0JJVA0KICAgICAgICBtb3ZuZSAgIHIxMCwgIzAgICAgICAgICAgICAgICAgICAgICAgICAg
+QCBubyB0aHVtYiBPQUJJIGVtdWxhdGlvbg0KLSAgICAgICBsZHJlcSAgIHIxMCwgW2xyLCAjLTRd
+ICAgICAgICAgICAgICAgICAgQCBnZXQgU1dJIGluc3RydWN0aW9uDQorIFVTRVIoIGxkcmVxICAg
+cjEwLCBbbHIsICMtNF0gICAgICAgICAgKSAgICAgICBAIGdldCBTV0kgaW5zdHJ1Y3Rpb24NCiAj
+ZWxzZQ0KLSAgICAgICBsZHIgICAgIHIxMCwgW2xyLCAjLTRdICAgICAgICAgICAgICAgICAgQCBn
+ZXQgU1dJIGluc3RydWN0aW9uDQorIFVTRVIoIGxkciAgICAgcjEwLCBbbHIsICMtNF0gICAgICAg
+ICAgKSAgICAgICBAIGdldCBTV0kgaW5zdHJ1Y3Rpb24NCiAjZW5kaWYNCiAjaWZkZWYgQ09ORklH
+X0NQVV9FTkRJQU5fQkU4DQogICAgICAgIHJldiAgICAgcjEwLCByMTAgICAgICAgICAgICAgICAg
+ICAgICAgICBAIGxpdHRsZSBlbmRpYW4gaW5zdHJ1Y3Rpb24NCkBAIC0zOTIsMjIgKzQwMSwxMyBA
+QCBFTlRSWSh2ZWN0b3Jfc3dpKQ0KICAgICAgICAvKiBMZWdhY3kgQUJJIG9ubHksIHBvc3NpYmx5
+IHRodW1iIG1vZGUuICovDQogICAgICAgIHRzdCAgICAgcjgsICNQU1JfVF9CSVQgICAgICAgICAg
+ICAgICAgICBAIHRoaXMgaXMgU1BTUiBmcm9tIHNhdmVfdXNlcl9yZWdzDQogICAgICAgIGFkZG5l
+ICAgc2NubywgcjcsICNfX05SX1NZU0NBTExfQkFTRSAgICBAIHB1dCBPUyBudW1iZXIgaW4NCi0g
+ICAgICAgbGRyZXEgICBzY25vLCBbbHIsICMtNF0NCisgVVNFUiggbGRyZXEgICBzY25vLCBbbHIs
+ICMtNF0gICAgICAgICApDQoNCiAjZWxzZQ0KICAgICAgICAvKiBMZWdhY3kgQUJJIG9ubHkuICov
+DQotICAgICAgIGxkciAgICAgc2NubywgW2xyLCAjLTRdICAgICAgICAgICAgICAgICBAIGdldCBT
+V0kgaW5zdHJ1Y3Rpb24NCi0jZW5kaWYNCi0NCi0jaWZkZWYgQ09ORklHX0FMSUdOTUVOVF9UUkFQ
+DQotICAgICAgIGxkciAgICAgaXAsIF9fY3JfYWxpZ25tZW50DQotICAgICAgIGxkciAgICAgaXAs
+IFtpcF0NCi0gICAgICAgbWNyICAgICBwMTUsIDAsIGlwLCBjMSwgYzAgICAgICAgICAgICAgIEAg
+dXBkYXRlIGNvbnRyb2wgcmVnaXN0ZXINCisgVVNFUiggbGRyICAgICBzY25vLCBbbHIsICMtNF0g
+ICAgICAgICApICAgICAgIEAgZ2V0IFNXSSBpbnN0cnVjdGlvbg0KICNlbmRpZg0KLSAgICAgICBl
+bmFibGVfaXJxDQotICAgICAgIGN0X3VzZXJfZXhpdA0KDQotICAgICAgIGdldF90aHJlYWRfaW5m
+byB0c2sNCiAgICAgICAgYWRyICAgICB0YmwsIHN5c19jYWxsX3RhYmxlICAgICAgICAgICAgIEAg
+bG9hZCBzeXNjYWxsIHRhYmxlIHBvaW50ZXINCg0KICNpZiBkZWZpbmVkKENPTkZJR19PQUJJX0NP
+TVBBVCkNCkBAIC00NDIsNiArNDQyLDE4IEBAIGxvY2FsX3Jlc3RhcnQ6DQogICAgICAgIGVvciAg
+ICAgcjAsIHNjbm8sICNfX05SX1NZU0NBTExfQkFTRSAgICBAIHB1dCBPUyBudW1iZXIgYmFjaw0K
+ICAgICAgICBiY3MgICAgIGFybV9zeXNjYWxsDQogICAgICAgIGIgICAgICAgc3lzX25pX3N5c2Nh
+bGwgICAgICAgICAgICAgICAgICBAIG5vdCBwcml2YXRlIGZ1bmMNCisNCisjaWYgZGVmaW5lZChD
+T05GSUdfT0FCSV9DT01QQVQpIHx8ICFkZWZpbmVkKENPTkZJR19BRUFCSSkNCisgICAgICAgLyoN
+CisgICAgICAgICogV2UgbWF5IGhhdmUgZmF1bHRlZCB0cnlpbmcgdG8gbG9hZCB0aGUgU1dJIGlu
+c3RydWN0aW9uIGR1ZSB0bw0KKyAgICAgICAgKiBjb25jdXJyZW50IHBhZ2UgYWdpbmcgb24gYW5v
+dGhlciBDUFUuIEluIHRoaXMgY2FzZSwgcmV0dXJuDQorICAgICAgICAqIGJhY2sgdG8gdGhlIHN3
+aSBpbnN0cnVjdGlvbiBhbmQgZmF1bHQgdGhlIHBhZ2UgYmFjay4NCisgICAgICAgICovDQorOTAw
+MToNCisgICAgICAgc3ViICAgICBsciwgbHIsICM0DQorICAgICAgIHN0ciAgICAgbHIsIFtzcCwg
+I1NfUENdDQorICAgICAgIGIgICAgICAgcmV0X2Zhc3Rfc3lzY2FsbA0KKyNlbmRpZg0KIEVORFBS
+T0ModmVjdG9yX3N3aSkNCg0KICAgICAgICAvKg0KX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX18KbGludXgtYXJtLWtlcm5lbCBtYWlsaW5nIGxpc3QKbGludXgt
+YXJtLWtlcm5lbEBsaXN0cy5pbmZyYWRlYWQub3JnCmh0dHA6Ly9saXN0cy5pbmZyYWRlYWQub3Jn
+L21haWxtYW4vbGlzdGluZm8vbGludXgtYXJtLWtlcm5lbAo=
