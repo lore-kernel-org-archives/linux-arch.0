@@ -1,60 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from kiruna.synopsys.com ([198.182.44.80]:38957 "EHLO
-	kiruna.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S967723Ab3E3HDR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 May 2013 03:03:17 -0400
-Message-ID: <51A6F923.6010709@synopsys.com>
-Date: Thu, 30 May 2013 12:30:51 +0530
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Received: from intranet.asianux.com ([58.214.24.6]:32634 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S967723Ab3E3IW3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 May 2013 04:22:29 -0400
+Message-ID: <51A70C10.6000408@asianux.com>
+Date: Thu, 30 May 2013 16:21:36 +0800
+From: Chen Gang <gang.chen@asianux.com>
 MIME-Version: 1.0
-Subject: Re: TLB and PTE coherency during munmap
-References: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com> <CAMo8BfJie1Y49QeSJ+JTQb9WsYJkMMkb1BkKz2Gzy3T7V6ogHA@mail.gmail.com> <51A45861.1010008@gmail.com> <20130529122728.GA27176@twins.programming.kicks-ass.net> <51A5F7A7.5020604@synopsys.com> <20130529175125.GJ12193@twins.programming.kicks-ass.net> <51A6DDF5.2000406@synopsys.com> <20130530065627.GL12193@twins.programming.kicks-ass.net>
-In-Reply-To: <20130530065627.GL12193@twins.programming.kicks-ass.net>
-Content-Type: text/plain; charset="ISO-8859-1"
+Subject: [PATCH v2] arch: m68k: math-emu: unsigned issue, 'unsigned long'
+ will never be less than zero
+References: <51A6F0C6.9050806@asianux.com> <m2a9ndndu5.fsf@linux-m68k.org>
+In-Reply-To: <m2a9ndndu5.fsf@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Max Filippov <jcmvbkbc@gmail.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, Ralf Baechle <ralf@linux-mips.org>, Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>, linux-xtensa@linux-xtensa.org, Hugh Dickins <hughd@google.com>
-Message-ID: <20130530070051.iu3aSmtPhv5P1v872OeVtp3Ka2v2f2VGObPZRoa0TRk@z>
+To: Andreas Schwab <schwab@linux-m68k.org>, Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: linux-m68k@lists.linux-m68k.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20130530082136.5W3ay2RtMzKsxxpzuI5nRZwzreZ0HePAzWTgNJlg3Zc@z>
 
-On 05/30/2013 12:26 PM, Peter Zijlstra wrote:
-> On Thu, May 30, 2013 at 10:34:53AM +0530, Vineet Gupta wrote:
->> On 05/29/2013 11:21 PM, Peter Zijlstra wrote:
->>
->> BTW, since we are on the topic, it seems that we are missing tlb_fast_mode() in
->> one spot - unless it is tied to rcu table free stuff.
->>
->> -------------->
->> From: Vineet Gupta <vgupta@synopsys.com>
->> Date: Thu, 30 May 2013 10:25:30 +0530
->> Subject: [PATCH] mm: tlb_fast_mode check missing in tlb_finish_mmu()
->>
->> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
->> ---
->>  mm/memory.c |    3 +++
->>  1 file changed, 3 insertions(+)
->>
->> diff --git a/mm/memory.c b/mm/memory.c
->> index d9d5fd9..569ffe1 100644
->> --- a/mm/memory.c
->> +++ b/mm/memory.c
->> @@ -269,6 +269,9 @@ void tlb_finish_mmu(struct mmu_gather *tlb, unsigned long
->> start, unsigned long e
->>      /* keep the page table cache within bounds */
->>      check_pgt_cache();
->>  
->> +    if (tlb_fast_mode(tlb))
->> +        return;
->> +
->>      for (batch = tlb->local.next; batch; batch = next) {
->>          next = batch->next;
->>          free_pages((unsigned long)batch, 0);
-> Yes I think that is possible. It would shrink the code a little when
-> fast_mode was unconditionally 1 -- ie. simple UP ;-).
 
-Exactly ! Can you please revert with a Reviewed-by/Acked-by so I can formally send
-it over to linux-mm list.
+'oldmant.m32[1]' is 'unsigned long' which never '< 0', and the original
+author wanted to check the highest bit whether set.
 
-Thx,
--Vineet
+So need make the bit test explicit (which is better than type cast form
+'unsigned long' to 'long').
+
+The related warning: (with EXTRA_CFLAGS=-W ARCH=m68k for allmodconfig)
+  arch/m68k/math-emu/fp_arith.c:522:4: warning: comparison of unsigned expression >= 0 is always true [-Wtype-limits]
+
+
+
+Signed-off-by: Chen Gang <gang.chen@asianux.com>
+---
+ arch/m68k/math-emu/fp_arith.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/arch/m68k/math-emu/fp_arith.c b/arch/m68k/math-emu/fp_arith.c
+index 08f286d..239eb19 100644
+--- a/arch/m68k/math-emu/fp_arith.c
++++ b/arch/m68k/math-emu/fp_arith.c
+@@ -519,7 +519,7 @@ static void fp_roundint(struct fp_ext *dest, int mode)
+ 				return;
+ 			break;
+ 		case 0x401e:
+-			if (!(oldmant.m32[1] >= 0))
++			if (oldmant.m32[1] & 0x80000000)
+ 				return;
+ 			if (oldmant.m32[0] & 1)
+ 				break;
+-- 
+1.7.7.6
