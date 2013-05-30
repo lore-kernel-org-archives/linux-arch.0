@@ -1,17 +1,21 @@
-From: Wang YanQing <udknight@gmail.com>
+From: Kyle McMartin <kmcmarti@redhat.com>
 Subject: Re: [PATCH] arch: parisc: kernel: using strlcpy() instead of strcpy()
-Date: Thu, 30 May 2013 23:06:36 +0800
-Message-ID: <20130530150636.GA2121@udknight>
+Date: Thu, 30 May 2013 11:35:51 -0400
+Message-ID: <20130530153551.GN19205@redacted.bos.redhat.com>
 References: <51A6A8F3.2030200@asianux.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-parisc-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:16689 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S933196Ab3E3PgG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 30 May 2013 11:36:06 -0400
 Content-Disposition: inline
 In-Reply-To: <51A6A8F3.2030200@asianux.com>
-Sender: linux-parisc-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Chen Gang <gang.chen@asianux.com>
-Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Greg KH <gregkh@linuxfoundation.org>, Parisc List <linux-parisc@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, udknight@gmail.com, Greg KH <gregkh@linuxfoundation.org>, Parisc List <linux-parisc@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
 On Thu, May 30, 2013 at 09:18:43AM +0800, Chen Gang wrote:
 > 
@@ -19,33 +23,13 @@ On Thu, May 30, 2013 at 09:18:43AM +0800, Chen Gang wrote:
 > 
 > So need use strlcpy() instead of strcpy() to avoid memory overflow.
 > 
-> 
-> Signed-off-by: Chen Gang <gang.chen@asianux.com>
-> ---
->  arch/parisc/kernel/setup.c |    3 ++-
->  1 files changed, 2 insertions(+), 1 deletions(-)
-> 
-> diff --git a/arch/parisc/kernel/setup.c b/arch/parisc/kernel/setup.c
-> index 60c1ae6..7349a3f 100644
-> --- a/arch/parisc/kernel/setup.c
-> +++ b/arch/parisc/kernel/setup.c
-> @@ -69,7 +69,8 @@ void __init setup_cmdline(char **cmdline_p)
->  		/* called from hpux boot loader */
->  		boot_command_line[0] = '\0';
->  	} else {
-> -		strcpy(boot_command_line, (char *)__va(boot_args[1]));
-> +		strlcpy(boot_command_line, (char *)__va(boot_args[1]),
-> +			COMMAND_LINE_SIZE);
 
-What about add 
-boot_command_line[COMMAND_LINE_SIZE - 1] = '\0';
-to protect the following another strcpy?
+This is basically impossible, since boot_args is fixed in size by palo,
+initialized to zero, and length checked in the bootloader. It's also
+only 256+4 bytes compared to the 1024 bytes set aside for
+boot_command_line.
 
-"
-strcpy(command_line, boot_command_line);
-"
->  
->  #ifdef CONFIG_BLK_DEV_INITRD
->  		if (boot_args[2] != 0) /* did palo pass us a ramdisk? */
-> -- 
-> 1.7.7.6
+That said, it's harmless to use strlcpy here, and obviously (more)
+correct. Thanks!
+
+Acked-by: Kyle McMartin <kyle@mcmartin.ca>
