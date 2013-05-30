@@ -1,48 +1,60 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: [PATCH] arch: m68k: math-emu: unsigned issue, 'unsigned long' will
- never be less than zero.
-Date: Thu, 30 May 2013 14:25:10 +0800
-Message-ID: <51A6F0C6.9050806@asianux.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: TLB and PTE coherency during munmap
+Date: Thu, 30 May 2013 08:48:25 +0200
+Message-ID: <20130530064825.GK12193@twins.programming.kicks-ass.net>
+References: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com>
+ <CAMo8BfJie1Y49QeSJ+JTQb9WsYJkMMkb1BkKz2Gzy3T7V6ogHA@mail.gmail.com>
+ <51A45861.1010008@gmail.com>
+ <20130529122728.GA27176@twins.programming.kicks-ass.net>
+ <51A5F7A7.5020604@synopsys.com>
+ <20130529175125.GJ12193@twins.programming.kicks-ass.net>
+ <CAHkRjk7GeAyuMWM2B-sxDZL5qZ6Lgmh_v+vuf98+6hdro5B7ng@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:2319 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S966921Ab3E3G0C (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 May 2013 02:26:02 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: linux-m68k@lists.linux-m68k.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <CAHkRjk7GeAyuMWM2B-sxDZL5qZ6Lgmh_v+vuf98+6hdro5B7ng@mail.gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Max Filippov <jcmvbkbc@gmail.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Ralf Baechle <ralf@linux-mips.org>, Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>, linux-xtensa@linux-xtensa.org, Hugh Dickins <hughd@google.com>
+List-Id: linux-arch.vger.kernel.org
 
+On Wed, May 29, 2013 at 11:04:35PM +0100, Catalin Marinas wrote:
+> On 29 May 2013 18:51, Peter Zijlstra <peterz@infradead.org> wrote:
+> > --- a/mm/memory.c
+> > +++ b/mm/memory.c
+> > @@ -384,6 +384,21 @@ void tlb_remove_table(struct mmu_gather *tlb, void *table)
+> >
+> >  #endif /* CONFIG_HAVE_RCU_TABLE_FREE */
+> >
+> > +static inline void cond_resched_tlb(struct mmu_gather *tlb)
+> > +{
+> > +#ifndef CONFIG_PREEMPT
+> > +       /*
+> > +        * For full preempt kernels we must do regular batching like
+> > +        * SMP, see tlb_fast_mode(). For !PREEMPT we can 'cheat' and
+> > +        * do a flush before our voluntary 'yield'.
+> > +        */
+> > +       if (need_resched()) {
+> > +               tlb_flush_mmu(tlb);
+> > +               cond_resched();
+> > +       }
+> > +#endif
+> > +}
+> 
+> Does it matter that in the CONFIG_PREEMPT case, you no longer call
+> cond_resched()? I guess we can just rely on the kernel full preemption
+> to reschedule as needed.
 
-'oldmant.m32[1]' is 'unsigned long' which never '< 0', and the original
-author wanted to check the highest bit whether set.
+Exactly, the preempt_enable from the spin_unlock in pte_unmap_unlock()
+will most likely immediately trigger a preemption.
 
-So need type cast form 'unsigned long' to 'long'.
+And since we do full batching for PREEMPT doing extra flushes would be
+detrimental for performance -- however unlikely it is we'll still see
+the need_resched() there.
 
-The related warning: (with EXTRA_CFLAGS=-W ARCH=m68k for allmodconfig)
-  arch/m68k/math-emu/fp_arith.c:522:4: warning: comparison of unsigned expression >= 0 is always true [-Wtype-limits]
-
-
-Signed-off-by: Chen Gang <gang.chen@asianux.com>
----
- arch/m68k/math-emu/fp_arith.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
-
-diff --git a/arch/m68k/math-emu/fp_arith.c b/arch/m68k/math-emu/fp_arith.c
-index 08f286d..ef013c5 100644
---- a/arch/m68k/math-emu/fp_arith.c
-+++ b/arch/m68k/math-emu/fp_arith.c
-@@ -519,7 +519,7 @@ static void fp_roundint(struct fp_ext *dest, int mode)
- 				return;
- 			break;
- 		case 0x401e:
--			if (!(oldmant.m32[1] >= 0))
-+			if (!((long)oldmant.m32[1] >= 0))
- 				return;
- 			if (oldmant.m32[0] & 1)
- 				break;
--- 
-1.7.7.6
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
