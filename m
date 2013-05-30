@@ -1,203 +1,51 @@
-From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Subject: Re: [PATCH v4 2/4] mutex: add support for wound/wait style locks,
- v5
-Date: Thu, 30 May 2013 16:08:54 +0200
-Message-ID: <51A75D76.5090700@canonical.com>
-References: <20130528144420.4538.70725.stgit@patser> <20130528144839.4538.39821.stgit@patser> <CAAQKjZMPw7Lnn7VFYVkN_ViJgTzREy_uSTFXKHRnEEzo+_=yRg@mail.gmail.com>
+From: Wang YanQing <udknight@gmail.com>
+Subject: Re: [PATCH] arch: parisc: kernel: using strlcpy() instead of strcpy()
+Date: Thu, 30 May 2013 23:06:36 +0800
+Message-ID: <20130530150636.GA2121@udknight>
+References: <51A6A8F3.2030200@asianux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from youngberry.canonical.com ([91.189.89.112]:43081 "EHLO
-	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754666Ab3E3OI6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 May 2013 10:08:58 -0400
-In-Reply-To: <CAAQKjZMPw7Lnn7VFYVkN_ViJgTzREy_uSTFXKHRnEEzo+_=yRg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Inki Dae <inki.dae@samsung.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, peterz@infradead.org, x86@kernel.org, DRI mailing list <dri-devel@lists.freedesktop.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, robclark@gmail.com, rostedt@goodmis.org, tglx@linutronix.de, mingo@elte.hu, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-parisc-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <51A6A8F3.2030200@asianux.com>
+Sender: linux-parisc-owner@vger.kernel.org
+To: Chen Gang <gang.chen@asianux.com>
+Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Greg KH <gregkh@linuxfoundation.org>, Parisc List <linux-parisc@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Op 29-05-13 12:33, Inki Dae schreef:
-> Hi,
->
-> Just minor comments
->
-> +Usage
->> +-----
->> +
->> +Three different ways to acquire locks within the same w/w class. Common
->> +definitions for methods #1 and #2:
->> +
->> +static DEFINE_WW_CLASS(ww_class);
->> +
->> +struct obj {
->> +       struct ww_mutex lock;
->> +       /* obj data */
->> +};
->> +
->> +struct obj_entry {
->> +       struct list_head *list;
->> +       struct obj *obj;
->> +};
->> +
->> +Method 1, using a list in execbuf->buffers that's not allowed to be
->> reordered.
->> +This is useful if a list of required objects is already tracked somewhere.
->> +Furthermore the lock helper can use propagate the -EALREADY return code
->> back to
->> +the caller as a signal that an object is twice on the list. This is
->> useful if
->> +the list is constructed from userspace input and the ABI requires
->> userspace to
->> +not have duplicate entries (e.g. for a gpu commandbuffer submission
->> ioctl).
->> +
->> +int lock_objs(struct list_head *list, struct ww_acquire_ctx *ctx)
->> +{
->> +       struct obj *res_obj = NULL;
->> +       struct obj_entry *contended_entry = NULL;
->> +       struct obj_entry *entry;
->> +
->> +       ww_acquire_init(ctx, &ww_class);
->> +
->> +retry:
->> +       list_for_each_entry (list, entry) {
->> +               if (entry == res_obj) {
->>
-Indeed, documentation was wrong. With the below diff it should almost compile now.
-I really don't want to know if it really does, it's meant to be documentation!
+On Thu, May 30, 2013 at 09:18:43AM +0800, Chen Gang wrote:
+> 
+> 'boot_args' is an input args, and 'boot_command_line' has a fix length.
+> 
+> So need use strlcpy() instead of strcpy() to avoid memory overflow.
+> 
+> 
+> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+> ---
+>  arch/parisc/kernel/setup.c |    3 ++-
+>  1 files changed, 2 insertions(+), 1 deletions(-)
+> 
+> diff --git a/arch/parisc/kernel/setup.c b/arch/parisc/kernel/setup.c
+> index 60c1ae6..7349a3f 100644
+> --- a/arch/parisc/kernel/setup.c
+> +++ b/arch/parisc/kernel/setup.c
+> @@ -69,7 +69,8 @@ void __init setup_cmdline(char **cmdline_p)
+>  		/* called from hpux boot loader */
+>  		boot_command_line[0] = '\0';
+>  	} else {
+> -		strcpy(boot_command_line, (char *)__va(boot_args[1]));
+> +		strlcpy(boot_command_line, (char *)__va(boot_args[1]),
+> +			COMMAND_LINE_SIZE);
 
-diff --git a/Documentation/ww-mutex-design.txt b/Documentation/ww-mutex-design.txt
-index 8bd1761..379739c 100644
---- a/Documentation/ww-mutex-design.txt
-+++ b/Documentation/ww-mutex-design.txt
-@@ -100,7 +100,7 @@ struct obj {
- };
- 
- struct obj_entry {
--	struct list_head *list;
-+	struct list_head head;
- 	struct obj *obj;
- };
- 
-@@ -120,14 +120,14 @@ int lock_objs(struct list_head *list, struct ww_acquire_ctx *ctx)
- 	ww_acquire_init(ctx, &ww_class);
- 
- retry:
--	list_for_each_entry (list, entry) {
--		if (entry == res_obj) {
-+	list_for_each_entry (entry, list, head) {
-+		if (entry->obj == res_obj) {
- 			res_obj = NULL;
- 			continue;
- 		}
- 		ret = ww_mutex_lock(&entry->obj->lock, ctx);
- 		if (ret < 0) {
--			contended_obj = entry;
-+			contended_entry = entry;
- 			goto err;
- 		}
- 	}
-@@ -136,7 +136,7 @@ retry:
- 	return 0;
- 
- err:
--	list_for_each_entry_continue_reverse (list, contended_entry, entry)
-+	list_for_each_entry_continue_reverse (entry, list, head)
- 		ww_mutex_unlock(&entry->obj->lock);
- 
- 	if (res_obj)
-@@ -163,13 +163,13 @@ int lock_objs(struct list_head *list, struct ww_acquire_ctx *ctx)
- 
- 	ww_acquire_init(ctx, &ww_class);
- 
--	list_for_each_entry (list, entry) {
-+	list_for_each_entry (entry, list, head) {
- 		ret = ww_mutex_lock(&entry->obj->lock, ctx);
- 		if (ret < 0) {
- 			entry2 = entry;
- 
--			list_for_each_entry_continue_reverse (list, entry2)
--				ww_mutex_unlock(&entry->obj->lock);
-+			list_for_each_entry_continue_reverse (entry2, list, head)
-+				ww_mutex_unlock(&entry2->obj->lock);
- 
- 			if (ret != -EDEADLK) {
- 				ww_acquire_fini(ctx);
-@@ -184,8 +184,8 @@ int lock_objs(struct list_head *list, struct ww_acquire_ctx *ctx)
- 			 * buf->next to the first unlocked entry,
- 			 * restarting the for loop.
- 			 */
--			list_del(&entry->list);
--			list_add(&entry->list, list);
-+			list_del(&entry->head);
-+			list_add(&entry->head, list);
- 		}
- 	}
- 
-@@ -199,7 +199,7 @@ void unlock_objs(struct list_head *list, struct ww_acquire_ctx *ctx)
- {
- 	struct obj_entry *entry;
- 
--	list_for_each_entry (list, entry)
-+	list_for_each_entry (entry, list, head)
- 		ww_mutex_unlock(&entry->obj->lock);
- 
- 	ww_acquire_fini(ctx);
-@@ -244,22 +244,21 @@ struct obj {
- 
- static DEFINE_WW_CLASS(ww_class);
- 
--void __unlock_objs(struct list_head *list, struct ww_acquire_ctx *ctx)
-+void __unlock_objs(struct list_head *list)
- {
--	struct obj entry;
-+	struct obj *entry, *temp;
- 
--	for_each_safe (list, entry) {
-+	list_for_each_entry_safe (entry, temp, list, locked_list) {
- 		/* need to do that before unlocking, since only the current lock holder is
- 		allowed to use object */
--		list_del(entry->locked_list);
-+		list_del(&entry->locked_list);
- 		ww_mutex_unlock(entry->ww_mutex)
- 	}
- }
- 
- void lock_objs(struct list_head *list, struct ww_acquire_ctx *ctx)
- {
--	struct list_head locked_buffers;
--	struct obj obj = NULL, entry;
-+	struct obj *obj;
- 
- 	ww_acquire_init(ctx, &ww_class);
- 
-@@ -275,15 +274,15 @@ retry:
- 			continue;
- 		}
- 		if (ret == -EDEADLK) {
--			__unlock_objs(list, ctx);
-+			__unlock_objs(list);
- 
- 			ww_mutex_lock_slow(obj, ctx);
--			list_add(locked_buffers, entry->locked_list);
-+			list_add(&entry->locked_list, list);
- 			goto retry;
- 		}
- 
- 		/* locked a new object, add it to the list */
--		list_add(locked_buffers, entry->locked_list);
-+		list_add_tail(&entry->locked_list, list);
- 	}
- 
- 	ww_acquire_done(ctx);
-@@ -292,7 +291,7 @@ retry:
- 
- void unlock_objs(struct list_head *list, struct ww_acquire_ctx *ctx)
- {
--	__unlock_objs(list, ctx);
-+	__unlock_objs(list);
- 	ww_acquire_fini(ctx);
- }
- 
+What about add 
+boot_command_line[COMMAND_LINE_SIZE - 1] = '\0';
+to protect the following another strcpy?
+
+"
+strcpy(command_line, boot_command_line);
+"
+>  
+>  #ifdef CONFIG_BLK_DEV_INITRD
+>  		if (boot_args[2] != 0) /* did palo pass us a ramdisk? */
+> -- 
+> 1.7.7.6
