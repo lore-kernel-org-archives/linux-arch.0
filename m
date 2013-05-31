@@ -1,28 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:60234 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757599Ab3E3V6r (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 May 2013 17:58:47 -0400
-Date: Thu, 30 May 2013 14:58:44 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v8, part3 06/14] mm, acornfb: use free_reserved_area()
- to simplify code
-Message-ID: <20130530145844.902b3a947c1f7430c1c2ecf5@linux-foundation.org>
-In-Reply-To: <1369575522-26405-7-git-send-email-jiang.liu@huawei.com>
-References: <1369575522-26405-1-git-send-email-jiang.liu@huawei.com>
-	<1369575522-26405-7-git-send-email-jiang.liu@huawei.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from mail-ve0-f179.google.com ([209.85.128.179]:39190 "EHLO
+	mail-ve0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751222Ab3EaB02 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 May 2013 21:26:28 -0400
+Received: by mail-ve0-f179.google.com with SMTP id d10so705772vea.38
+        for <linux-arch@vger.kernel.org>; Thu, 30 May 2013 18:26:28 -0700 (PDT)
+MIME-Version: 1.0
+In-Reply-To: <20130529101533.GF17767@MacBook-Pro.local>
+References: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com>
+	<CAHkRjk4ZNwZvf_Cv+HqfMManodCkEpCPdZokPQ68z3nVG8-+wg@mail.gmail.com>
+	<51A580E0.10300@gmail.com>
+	<20130529101533.GF17767@MacBook-Pro.local>
+Date: Fri, 31 May 2013 05:26:27 +0400
+Message-ID: <CAMo8BfJt3dnx8NYT66dKfkLyjwPzHAhe0Rs21+Q-pG6OXA2GLA@mail.gmail.com>
+Subject: Re: TLB and PTE coherency during munmap
+From: Max Filippov <jcmvbkbc@gmail.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiang Liu <liuj97@gmail.com>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Florian Tobias Schandinat <FlorianSchandinat@gmx.de>, linux-fbdev@vger.kernel.org
-Message-ID: <20130530215844.tpmb4jtY4_NqRvQH9Xg21JMqLLnUGIZG5tbM4qrMmP8@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>
+Message-ID: <20130531012627.aX3ZiD7yVmkVwdBey5d9nfm05KP5asagMqw0696aaR0@z>
 
-On Sun, 26 May 2013 21:38:34 +0800 Jiang Liu <liuj97@gmail.com> wrote:
+On Wed, May 29, 2013 at 2:15 PM, Catalin Marinas
+<catalin.marinas@arm.com> wrote:
+> On Wed, May 29, 2013 at 05:15:28AM +0100, Max Filippov wrote:
+>> On Tue, May 28, 2013 at 6:35 PM, Catalin Marinas <catalin.marinas@arm.com> wrote:
+>> > On 26 May 2013 03:42, Max Filippov <jcmvbkbc@gmail.com> wrote:
+>> >> Is it intentional that threads of a process that invoked munmap syscall
+>> >> can see TLB entries pointing to already freed pages, or it is a bug?
+>> >
+>> > If it happens, this would be a bug. It means that a process can access
+>> > a physical page that has been allocated to something else, possibly
+>> > kernel data.
+>> >
+>> >> I'm talking about zap_pmd_range and zap_pte_range:
+>> >>
+>> >>       zap_pmd_range
+>> >>         zap_pte_range
+>> >>           arch_enter_lazy_mmu_mode
+>> >>             ptep_get_and_clear_full
+>> >>             tlb_remove_tlb_entry
+>> >>             __tlb_remove_page
+>> >>           arch_leave_lazy_mmu_mode
+>> >>         cond_resched
+>> >>
+>> >> With the default arch_{enter,leave}_lazy_mmu_mode, tlb_remove_tlb_entry
+>> >> and __tlb_remove_page there is a loop in the zap_pte_range that clears
+>> >> PTEs and frees corresponding pages, but doesn't flush TLB, and
+>> >> surrounding loop in the zap_pmd_range that calls cond_resched. If a thread
+>> >> of the same process gets scheduled then it is able to see TLB entries
+>> >> pointing to already freed physical pages.
+>> >
+>> > It looks to me like cond_resched() here introduces a possible bug but
+>> > it depends on the actual arch code, especially the
+>> > __tlb_remove_tlb_entry() function. On ARM we record the range in
+>> > tlb_remove_tlb_entry() and queue the pages to be removed in
+>> > __tlb_remove_page(). It pretty much acts like tlb_fast_mode() == 0
+>> > even for the UP case (which is also needed for hardware speculative
+>> > TLB loads). The tlb_finish_mmu() takes care of whatever pages are left
+>> > to be freed.
+>> >
+>> > With a dummy __tlb_remove_tlb_entry() and tlb_fast_mode() == 1,
+>> > cond_resched() in zap_pmd_range() would cause problems.
+>>
+>> So, looks like most architectures in the UP configuration should have
+>> this issue (unless they flush TLB in the switch_mm, even when switching
+>> to the same mm):
+>
+> switch_mm() wouldn't be called if switching to the same mm. You could do
 
-> Use common help function free_reserved_area() to simplify code.
+Hmm... Strange, but as far as I can tell from the context_switch it would.
 
-http://ozlabs.org/~akpm/mmots/broken-out/drivers-video-acornfbc-remove-dead-code.patch
-removes all the code which your patch alters.
+> it in switch_to() but it's not efficient (or before returning to user
+> space on the same processor).
+>
+> Do you happen to have a user-space test for this? Something like one
+
+I only had mtest05 from LTP that triggered TLB/PTE inconsistency, but
+not anything that would really try to peek at the freed page. I can make
+such test though.
+
+> thread does an mmap(), writes some poison value, munmap(). The other
+> thread keeps checking the poison value while trapping and ignoring any
+> SIGSEGV. If it's working correctly, the second thread should either get
+> a SIGSEGV or read the poison value.
+
+-- 
+Thanks.
+-- Max
