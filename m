@@ -1,30 +1,50 @@
-From: Jiang Liu <liuj97@gmail.com>
-Subject: Re: [PATCH v8, part3 06/14] mm, acornfb: use free_reserved_area()
- to simplify code
-Date: Fri, 31 May 2013 12:31:15 +0800
-Message-ID: <51A82793.4080204@gmail.com>
-References: <1369575522-26405-1-git-send-email-jiang.liu@huawei.com> <1369575522-26405-7-git-send-email-jiang.liu@huawei.com> <20130530145844.902b3a947c1f7430c1c2ecf5@linux-foundation.org>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: TLB and PTE coherency during munmap
+Date: Fri, 31 May 2013 09:55:08 +0200
+Message-ID: <20130531075508.GE27176@twins.programming.kicks-ass.net>
+References: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com>
+ <CAMo8BfJie1Y49QeSJ+JTQb9WsYJkMMkb1BkKz2Gzy3T7V6ogHA@mail.gmail.com>
+ <51A45861.1010008@gmail.com>
+ <20130529122728.GA27176@twins.programming.kicks-ass.net>
+ <51A5F7A7.5020604@synopsys.com>
+ <20130529175125.GJ12193@twins.programming.kicks-ass.net>
+ <CAMo8BfJtkEtf9RKsGRnOnZ5zbJQz5tW4HeDfydFq_ZnrFr8opw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20130530145844.902b3a947c1f7430c1c2ecf5@linux-foundation.org>
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <james.bottomley@hansenpartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Florian Tobias Schandinat <florianschandinat@gmx.de>, linux-fbdev@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:34222 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751028Ab3EaHz1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 31 May 2013 03:55:27 -0400
+Content-Disposition: inline
+In-Reply-To: <CAMo8BfJtkEtf9RKsGRnOnZ5zbJQz5tW4HeDfydFq_ZnrFr8opw@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Max Filippov <jcmvbkbc@gmail.com>
+Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, Ralf Baechle <ralf@linux-mips.org>, Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>, linux-xtensa@linux-xtensa.org, Hugh Dickins <hughd@google.com>
 
-On Fri 31 May 2013 05:58:44 AM CST, Andrew Morton wrote:
-> On Sun, 26 May 2013 21:38:34 +0800 Jiang Liu <liuj97@gmail.com> wrote:
->
->> Use common help function free_reserved_area() to simplify code.
->
-> http://ozlabs.org/~akpm/mmots/broken-out/drivers-video-acornfbc-remove-dead-code.patch
-> removes all the code which your patch alters.
-Thanks Andrew, please just drop that patch.
+On Fri, May 31, 2013 at 08:09:17AM +0400, Max Filippov wrote:
+> Hi Peter,
+> 
+> On Wed, May 29, 2013 at 9:51 PM, Peter Zijlstra <peterz@infradead.org> wrote:
+> > What about something like this?
+> 
+> With that patch I still get mtest05 firing my TLB/PTE incoherency check
+> in the UP PREEMPT_VOLUNTARY configuration. This happens after
+> zap_pte_range completion in the end of unmap_region because of
+> rescheduling called in the following call chain:
+> 
+> unmap_region
+>   free_pgtables
+>     unlink_anon_vmas
+>       lock_anon_vma_root
+>         down_write
+>           might_sleep
+>             might_resched
+>               _cond_resched
+> 
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Hurm, yeah. Catching all regular blocking primitives and making it
+maintainable is going to be a problem :/
+
+I suppose the easiest thing is simply killing fast_mode for now/
