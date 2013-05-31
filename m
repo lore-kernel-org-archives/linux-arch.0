@@ -1,50 +1,76 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: TLB and PTE coherency during munmap
-Date: Fri, 31 May 2013 09:55:08 +0200
-Message-ID: <20130531075508.GE27176@twins.programming.kicks-ass.net>
-References: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com>
- <CAMo8BfJie1Y49QeSJ+JTQb9WsYJkMMkb1BkKz2Gzy3T7V6ogHA@mail.gmail.com>
- <51A45861.1010008@gmail.com>
- <20130529122728.GA27176@twins.programming.kicks-ass.net>
- <51A5F7A7.5020604@synopsys.com>
- <20130529175125.GJ12193@twins.programming.kicks-ass.net>
- <CAMo8BfJtkEtf9RKsGRnOnZ5zbJQz5tW4HeDfydFq_ZnrFr8opw@mail.gmail.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: A bug about system call on ARM
+Date: Fri, 31 May 2013 09:45:08 +0100
+Message-ID: <20130531084508.GA4928@mudshark.cambridge.arm.com>
+References: <CAFLxGvy39xWdZmtiVHP+y=zH1coCVmMuREcmD25wSb=w-VK7Xg@mail.gmail.com>
+ <35FD53F367049845BC99AC72306C23D1610991B85D@CNBJMBX05.corpusers.net>
+ <35FD53F367049845BC99AC72306C23D1610991B85E@CNBJMBX05.corpusers.net>
+ <CAFLxGvyy=73dGQqG8W6SXZah7WQZ4gJAeeHXN8opKaOuG-5yUQ@mail.gmail.com>
+ <20130529094826.GD13095@mudshark.cambridge.arm.com>
+ <35FD53F367049845BC99AC72306C23D1610991B865@CNBJMBX05.corpusers.net>
+ <35FD53F367049845BC99AC72306C23D1610991B866@CNBJMBX05.corpusers.net>
+ <20130530090949.GC7483@mudshark.cambridge.arm.com>
+ <20130530114112.GH7483@mudshark.cambridge.arm.com>
+ <alpine.LFD.2.03.1305302319430.30828@syhkavp.arg>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:34222 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751028Ab3EaHz1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 31 May 2013 03:55:27 -0400
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:59689 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751404Ab3EaIpo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 31 May 2013 04:45:44 -0400
 Content-Disposition: inline
-In-Reply-To: <CAMo8BfJtkEtf9RKsGRnOnZ5zbJQz5tW4HeDfydFq_ZnrFr8opw@mail.gmail.com>
+In-Reply-To: <alpine.LFD.2.03.1305302319430.30828@syhkavp.arg>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Max Filippov <jcmvbkbc@gmail.com>
-Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, Ralf Baechle <ralf@linux-mips.org>, Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>, linux-xtensa@linux-xtensa.org, Hugh Dickins <hughd@google.com>
+To: Nicolas Pitre <nico@fluxnic.net>
+Cc: "Wang, Yalin" <Yalin.Wang@sonymobile.com>, 'richard -rw- weinberger' <richard.weinberger@gmail.com>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'linux-arm-kernel@lists.infradead.org'" <linux-arm-kernel@lists.infradead.org>
 
-On Fri, May 31, 2013 at 08:09:17AM +0400, Max Filippov wrote:
-> Hi Peter,
+On Fri, May 31, 2013 at 04:54:56AM +0100, Nicolas Pitre wrote:
+> On Thu, 30 May 2013, Will Deacon wrote:
 > 
-> On Wed, May 29, 2013 at 9:51 PM, Peter Zijlstra <peterz@infradead.org> wrote:
-> > What about something like this?
+> > On Thu, May 30, 2013 at 10:09:49AM +0100, Will Deacon wrote:
+> > > On Thu, May 30, 2013 at 02:41:42AM +0100, Wang, Yalin wrote:
+> > > > If you have some patch for this issue,
+> > > > I can do the test for it .
+> > > 
+> > > I'll have a look at cooking something which uses an exception table entry
+> > > to rewind the PC and retry the system call. That's simpler than directly
+> > > injecting a user page fault from the system call path.
+> > 
+> > Ok, please can you try the following?
+> > 
+> > Will
+> > 
+> > --->8
+> > 
+> > diff --git a/arch/arm/kernel/entry-common.S b/arch/arm/kernel/entry-common.S
+> > index bc5bc0a..855926e 100644
+> > --- a/arch/arm/kernel/entry-common.S
+> > +++ b/arch/arm/kernel/entry-common.S
+> > @@ -361,6 +361,15 @@ ENTRY(vector_swi)
+> >  	str	r8, [sp, #S_PSR]		@ Save CPSR
+> >  	str	r0, [sp, #S_OLD_R0]		@ Save OLD_R0
+> >  	zero_fp
+> > +	enable_irq
+> > +	ct_user_exit
+> > +
+> > +#ifdef CONFIG_ALIGNMENT_TRAP
+> > +	ldr	ip, __cr_alignment
+> > +	ldr	ip, [ip]
+> > +	mcr	p15, 0, ip, c1, c0		@ update control register
+> > +#endif
 > 
-> With that patch I still get mtest05 firing my TLB/PTE incoherency check
-> in the UP PREEMPT_VOLUNTARY configuration. This happens after
-> zap_pte_range completion in the end of unmap_region because of
-> rescheduling called in the following call chain:
-> 
-> unmap_region
->   free_pgtables
->     unlink_anon_vmas
->       lock_anon_vma_root
->         down_write
->           might_sleep
->             might_resched
->               _cond_resched
-> 
+> This is wrong.  you must set up the align bit in the control register 
+> _before_ enabling IRQs or an IRQ handler might run without alignment 
+> fixup.
 
-Hurm, yeah. Catching all regular blocking primitives and making it
-maintainable is going to be a problem :/
+Okey doke, I can fix that up. I thought it was only needed for the network
+layer, but I suppose they have interrupts over there too :)
 
-I suppose the easiest thing is simply killing fast_mode for now/
+> Otherwise the patch looks good to me.
+
+Thanks Nicolas.
+
+Will
