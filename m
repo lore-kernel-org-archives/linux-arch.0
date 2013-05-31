@@ -1,71 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relais.videotron.ca ([24.201.245.36]:44444 "EHLO
-	relais.videotron.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750825Ab3EaDy6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 May 2013 23:54:58 -0400
-MIME-version: 1.0
-Content-transfer-encoding: 7BIT
-Content-type: TEXT/PLAIN; CHARSET=US-ASCII
-Date: Thu, 30 May 2013 23:54:56 -0400 (EDT)
-From: Nicolas Pitre <nico@fluxnic.net>
-Subject: Re: A bug about system call on ARM
-In-reply-to: <20130530114112.GH7483@mudshark.cambridge.arm.com>
-Message-ID: <alpine.LFD.2.03.1305302319430.30828@syhkavp.arg>
-References: <35FD53F367049845BC99AC72306C23D1610991B85B@CNBJMBX05.corpusers.net>
- <CAFLxGvy39xWdZmtiVHP+y=zH1coCVmMuREcmD25wSb=w-VK7Xg@mail.gmail.com>
- <35FD53F367049845BC99AC72306C23D1610991B85D@CNBJMBX05.corpusers.net>
- <35FD53F367049845BC99AC72306C23D1610991B85E@CNBJMBX05.corpusers.net>
- <CAFLxGvyy=73dGQqG8W6SXZah7WQZ4gJAeeHXN8opKaOuG-5yUQ@mail.gmail.com>
- <20130529094826.GD13095@mudshark.cambridge.arm.com>
- <35FD53F367049845BC99AC72306C23D1610991B865@CNBJMBX05.corpusers.net>
- <35FD53F367049845BC99AC72306C23D1610991B866@CNBJMBX05.corpusers.net>
- <20130530090949.GC7483@mudshark.cambridge.arm.com>
- <20130530114112.GH7483@mudshark.cambridge.arm.com>
+Received: from mail-pb0-f43.google.com ([209.85.160.43]:45092 "EHLO
+	mail-pb0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750873Ab3EaEbU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 31 May 2013 00:31:20 -0400
+Message-ID: <51A82793.4080204@gmail.com>
+Date: Fri, 31 May 2013 12:31:15 +0800
+From: Jiang Liu <liuj97@gmail.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH v8, part3 06/14] mm, acornfb: use free_reserved_area()
+ to simplify code
+References: <1369575522-26405-1-git-send-email-jiang.liu@huawei.com> <1369575522-26405-7-git-send-email-jiang.liu@huawei.com> <20130530145844.902b3a947c1f7430c1c2ecf5@linux-foundation.org>
+In-Reply-To: <20130530145844.902b3a947c1f7430c1c2ecf5@linux-foundation.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: "Wang, Yalin" <Yalin.Wang@sonymobile.com>, 'richard -rw- weinberger' <richard.weinberger@gmail.com>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'linux-arm-kernel@lists.infradead.org'" <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20130531035456.XRIgk9V4fBTMwqfuwCmhPNTF3l4PHw_vou0J2oOilgs@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <james.bottomley@hansenpartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Florian Tobias Schandinat <florianschandinat@gmx.de>, linux-fbdev@vger.kernel.org
+Message-ID: <20130531043115.hrV-gMhOhjgNw6nHWHmen6dhAW_X5c94PgIZYoqqes8@z>
 
-On Thu, 30 May 2013, Will Deacon wrote:
+On Fri 31 May 2013 05:58:44 AM CST, Andrew Morton wrote:
+> On Sun, 26 May 2013 21:38:34 +0800 Jiang Liu <liuj97@gmail.com> wrote:
+>
+>> Use common help function free_reserved_area() to simplify code.
+>
+> http://ozlabs.org/~akpm/mmots/broken-out/drivers-video-acornfbc-remove-dead-code.patch
+> removes all the code which your patch alters.
+Thanks Andrew, please just drop that patch.
 
-> On Thu, May 30, 2013 at 10:09:49AM +0100, Will Deacon wrote:
-> > On Thu, May 30, 2013 at 02:41:42AM +0100, Wang, Yalin wrote:
-> > > If you have some patch for this issue,
-> > > I can do the test for it .
-> > 
-> > I'll have a look at cooking something which uses an exception table entry
-> > to rewind the PC and retry the system call. That's simpler than directly
-> > injecting a user page fault from the system call path.
-> 
-> Ok, please can you try the following?
-> 
-> Will
-> 
-> --->8
-> 
-> diff --git a/arch/arm/kernel/entry-common.S b/arch/arm/kernel/entry-common.S
-> index bc5bc0a..855926e 100644
-> --- a/arch/arm/kernel/entry-common.S
-> +++ b/arch/arm/kernel/entry-common.S
-> @@ -361,6 +361,15 @@ ENTRY(vector_swi)
->  	str	r8, [sp, #S_PSR]		@ Save CPSR
->  	str	r0, [sp, #S_OLD_R0]		@ Save OLD_R0
->  	zero_fp
-> +	enable_irq
-> +	ct_user_exit
-> +
-> +#ifdef CONFIG_ALIGNMENT_TRAP
-> +	ldr	ip, __cr_alignment
-> +	ldr	ip, [ip]
-> +	mcr	p15, 0, ip, c1, c0		@ update control register
-> +#endif
-
-This is wrong.  you must set up the align bit in the control register 
-_before_ enabling IRQs or an IRQ handler might run without alignment 
-fixup.
-
-Otherwise the patch looks good to me.
-
-
-Nicolas
