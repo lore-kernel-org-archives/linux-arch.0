@@ -1,45 +1,45 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH v2] arch: m68k: math-emu: unsigned issue, 'unsigned long'
- will never be less than zero
-Date: Fri, 31 May 2013 11:12:27 +0200
-Message-ID: <CAMuHMdWOxh_YvQyid-PiN7FsM=OC=0YWOzJb86pKaQn3HrjaQw@mail.gmail.com>
-References: <51A6F0C6.9050806@asianux.com>
-	<m2a9ndndu5.fsf@linux-m68k.org>
-	<51A70C10.6000408@asianux.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: [PATCH 0/2] mm: fixlets
+Date: Fri, 31 May 2013 16:23:48 +0530
+Message-ID: <1369997630-6522-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f171.google.com ([209.85.192.171]:52992 "EHLO
-	mail-pd0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753266Ab3EaJM2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 31 May 2013 05:12:28 -0400
-In-Reply-To: <51A70C10.6000408@asianux.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Chen Gang <gang.chen@asianux.com>
-Cc: Andreas Schwab <schwab@linux-m68k.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Content-Type: text/plain
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Max Filippov <jcmvbkbc@gmail.com>, Vineet  Gupta <Vineet.Gupta1@synopsys.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, May 30, 2013 at 10:21 AM, Chen Gang <gang.chen@asianux.com> wrote:
-> 'oldmant.m32[1]' is 'unsigned long' which never '< 0', and the original
-> author wanted to check the highest bit whether set.
->
-> So need make the bit test explicit (which is better than type cast form
-> 'unsigned long' to 'long').
->
-> The related warning: (with EXTRA_CFLAGS=-W ARCH=m68k for allmodconfig)
->   arch/m68k/math-emu/fp_arith.c:522:4: warning: comparison of unsigned expression >= 0 is always true [-Wtype-limits]
->
-> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+Hi Andrew,
 
-Thanks, applied and queued for 3.11!
+Max Filippov reported a generic MM issue with PTE/TLB coherency
+@ http://www.spinics.net/lists/linux-arch/msg21736.html
 
-Gr{oetje,eeting}s,
+While the fix for issue is still being discussed, sending over a bunch
+mm fixlets which we found in due course.
 
-                        Geert
+Infact, 1/2 looks like stable material as orig code was flushing wrong range
+from TLB - wherever used.
+
+Please consider applying.
+
+Thx,
+-Vineet
+
+
+Vineet Gupta (2):
+  mm: Fix the TLB range flushed when __tlb_remove_page() runs out of
+    slots
+  mm: tlb_fast_mode check missing in tlb_finish_mmu()
+
+ mm/memory.c |   12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
+
+-- 
+1.7.10.4
 
 --
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
