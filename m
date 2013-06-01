@@ -1,78 +1,135 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hermes.synopsys.com ([198.182.44.81]:48346 "EHLO
-	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754873Ab3EaK4L (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 31 May 2013 06:56:11 -0400
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 1/2] mm: Fix the TLB range flushed when __tlb_remove_page() runs out of slots
-Date: Fri, 31 May 2013 16:23:49 +0530
-Message-ID: <1369997630-6522-2-git-send-email-vgupta@synopsys.com>
-In-Reply-To: <1369997630-6522-1-git-send-email-vgupta@synopsys.com>
-References: <1369997630-6522-1-git-send-email-vgupta@synopsys.com>
+Received: from mail-pb0-f49.google.com ([209.85.160.49]:47474 "EHLO
+	mail-pb0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757035Ab3FAAii (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 31 May 2013 20:38:38 -0400
+Message-ID: <51A94281.7050708@biophys.uni-duesseldorf.de>
+Date: Sat, 01 Jun 2013 12:38:25 +1200
+From: schmitz <schmitz@biophys.uni-duesseldorf.de>
 MIME-Version: 1.0
-Content-Type: text/plain
+Subject: Re: [PATCH] arch: m68k: include: asm: the 3rd parameter of 'insl'
+ and 'outsl' need '<< 2'
+References: <51A71E49.1000707@asianux.com> <CAMuHMdUz8o4d=RiAMW8-pCrnZyfoH9EETVqjcb7E1GqCgYmQ7g@mail.gmail.com> <51A93FA0.1050203@biophys.uni-duesseldorf.de>
+In-Reply-To: <51A93FA0.1050203@biophys.uni-duesseldorf.de>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Max Filippov <jcmvbkbc@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Mel Gorman <mgorman@suse.de>, Hugh Dickins <hughd@google.com>, Rik van Riel <riel@redhat.com>, David Rientjes <rientjes@google.com>, Peter Zijlstra <peterz@infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Alex Shi <alex.shi@intel.com>
-Message-ID: <20130531105349.rQnFClICnoq6eCpoa_0cQ5wvlAsdrY65Xg_XFbtMdQc@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Chen Gang <gang.chen@asianux.com>, Greg Ungerer <gerg@uclinux.org>, schmitz@debian.org, Sam Ravnborg <sam@ravnborg.org>, Greg KH <gregkh@linuxfoundation.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20130601003825.O5LFrujAI35J2xsZKus5SWAGu-fOHEW6iDJ4C82L4a4@z>
 
-zap_pte_range loops from @addr to @end. In the middle, if it runs out of
-batching slots, TLB entries needs to be flushed for @start to @interim,
-NOT @interim to @end.
+All,
+> Geert ,
+>>>
+>>> The related git number:
+>>>   for parport.h: "4914802 m68k,m68knommu: merge header files" in 2009
+>>>   for io_mm.h: "84b16b7 m68k/atari: ROM port ISA adapter support" in 
+>>> Apr 6 2013
+>>>
+>>> The related warning (make EXTRA_CFLAG=-W ARCH=m68k allmodconfig):
+>>>   arch/m68k/include/asm/parport.h:14:0: warning: "insl" redefined 
+>>> [enabled by default]
+>>>   arch/m68k/include/asm/io_mm.h:403:0: note: this is the location of 
+>>> the previous definition
+>>>   arch/m68k/include/asm/parport.h:15:0: warning: "outsl" redefined 
+>>> [enabled by default]
+>>>   arch/m68k/include/asm/io_mm.h:406:0: note: this is the location of 
+>>> the previous definition
+>>>     
+> Is that the same problem Thorsten reported recently? parport.h should 
+> either use what the arch io.h include defined, or (in the case of Q40 
+> on m68k) undef and redefine as needed.
+It appears this is the same issue, see message ID 
+loom.20130511T171757-995@post.gmane.org to linux-m68k (May 12th, by 
+Thorsten Glaser).
 
-Since ARC port doesn't use page free batching I can't test it myself but
-this seems like the right thing to do.
-Observed this when working on a fix for the issue at thread:
-	http://www.spinics.net/lists/linux-arch/msg21736.html
+This _only_ applies to use of insl/outsl macros in parport_pc.h, which 
+is only used by Q40 on m68k. I see no reason to change anything in io.h 
+to cope with this warning.
 
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Mel Gorman <mgorman@suse.de>
-Cc: Hugh Dickins <hughd@google.com>
-Cc: Rik van Riel <riel@redhat.com>
-Cc: David Rientjes <rientjes@google.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-mm@kvack.org
-Cc: linux-arch@vger.kernel.org <linux-arch@vger.kernel.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Max Filippov <jcmvbkbc@gmail.com>
-Cc: Alex Shi <alex.shi@intel.com>
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
----
- mm/memory.c |    9 ++++++---
- 1 file changed, 6 insertions(+), 3 deletions(-)
+Cheers,
 
-diff --git a/mm/memory.c b/mm/memory.c
-index 6dc1882..d9d5fd9 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -1110,6 +1110,7 @@ static unsigned long zap_pte_range(struct mmu_gather *tlb,
- 	spinlock_t *ptl;
- 	pte_t *start_pte;
- 	pte_t *pte;
-+	unsigned long range_start = addr;
- 
- again:
- 	init_rss_vec(rss);
-@@ -1215,12 +1216,14 @@ again:
- 		force_flush = 0;
- 
- #ifdef HAVE_GENERIC_MMU_GATHER
--		tlb->start = addr;
--		tlb->end = end;
-+		tlb->start = range_start;
-+		tlb->end = addr;
- #endif
- 		tlb_flush_mmu(tlb);
--		if (addr != end)
-+		if (addr != end) {
-+			range_start = addr;
- 			goto again;
-+		}
- 	}
- 
- 	return addr;
--- 
-1.7.10.4
+    Michael
+
+>>>
+>>> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+>>> ---
+>>>  arch/m68k/include/asm/io_mm.h   |    5 +++--
+>>>  arch/m68k/include/asm/parport.h |    9 +++++++--
+>>>  2 files changed, 10 insertions(+), 4 deletions(-)
+>>>
+>>> diff --git a/arch/m68k/include/asm/io_mm.h 
+>>> b/arch/m68k/include/asm/io_mm.h
+>>> index ffdf54f4..66be3b2 100644
+>>> --- a/arch/m68k/include/asm/io_mm.h
+>>> +++ b/arch/m68k/include/asm/io_mm.h
+>>> @@ -400,10 +400,11 @@ static inline void isa_delay(void)
+>>>
+>>>  #define insb(port, buf, nr)    ((port) < 1024 ? 
+>>> isa_rom_insb((port), (buf), (nr)) : isa_insb((port), (buf), (nr)))
+>>>  #define insw(port, buf, nr)    ((port) < 1024 ? 
+>>> isa_rom_insw((port), (buf), (nr)) : isa_insw((port), (buf), (nr)))
+>>> -#define insl                   isa_insl
+>>> +#define insl(port, buf, len)   isa_insb((port), (buf), (len) << 2)
+>>>     
+>>
+>> Oops, changes from 32-bit accesses to byte accesses?
+>>   
+>
+> That's in the Atari specific branch - please explain why you think 
+> this needs to be done. Has this patch been tested by running on 
+> ARAnyM, at least?
+>
+> Unless this has  been properly  tested on Atari (hardware), please 
+> leave as-is.
+>
+>>  
+>>>  #define outsb(port, buf, nr)   ((port) < 1024 ? 
+>>> isa_rom_outsb((port), (buf), (nr)) : isa_outsb((port), (buf), (nr)))
+>>>  #define outsw(port, buf, nr)   ((port) < 1024 ? 
+>>> isa_rom_outsw((port), (buf), (nr)) : isa_outsw((port), (buf), (nr)))
+>>> -#define outsl                  isa_outsl
+>>> +#define outsl(port, buf, len)  isa_outsb((port), (buf), (len) << 2)
+>>>
+>>>  #define readb(addr)            in_8(addr)
+>>>  #define writeb(val, addr)      out_8((addr), (val))
+>>> diff --git a/arch/m68k/include/asm/parport.h 
+>>> b/arch/m68k/include/asm/parport.h
+>>> index 5ea75e6..e8e4a2a 100644
+>>> --- a/arch/m68k/include/asm/parport.h
+>>> +++ b/arch/m68k/include/asm/parport.h
+>>> @@ -11,8 +11,13 @@
+>>>  #ifndef _ASM_M68K_PARPORT_H
+>>>  #define _ASM_M68K_PARPORT_H 1
+>>>
+>>> -#define insl(port,buf,len)   isa_insb(port,buf,(len)<<2)
+>>> -#define outsl(port,buf,len)  isa_outsb(port,buf,(len)<<2)
+>>> +#ifndef insl
+>>> +#define insl(port, buf, len)   isa_insb((port), (buf), (len) << 2)
+>>> +#endif
+>>> +
+>>> +#ifndef outsl
+>>> +#define outsl(port, buf, len)  isa_outsb((port), (buf), (len) << 2)
+>>> +#endif
+>>>     
+> I think that should read
+> #undef insl
+> #define insl(port,buf,len) isa_insb(port,buf,(len)<<2)
+>
+> instead. I distinctly remember this brought up a few weeks ago.
+>> Now the (re)definitions are identical to the originals, so they can just
+>> be removed. But the ones in <asm/io.h> are not correct anymore, IMHO.
+>>   
+> Seconded.
+>
+> Cheers,
+>
+>    Michael
+>
+>
+> -- 
+> To unsubscribe from this list: send the line "unsubscribe linux-m68k" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
 
