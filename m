@@ -1,46 +1,23 @@
-From: Uwe =?iso-8859-1?Q?Kleine-K=F6nig?=
-	<u.kleine-koenig@pengutronix.de>
-Subject: Re: [PATCH v2] arch/*/asm/include/bitops.h: api issue, find_*_bit()
- defination are different with each other
-Date: Wed, 5 Jun 2013 15:02:22 +0200
-Message-ID: <20130605130222.GL23140@pengutronix.de>
-References: <51AE8FEF.1020809@asianux.com>
- <51AE903C.6010806@asianux.com>
- <51AE909D.9080006@asianux.com>
- <20130605071915.GK23140@pengutronix.de>
- <51AF225A.5020703@asianux.com>
+From: "Mr. William Billington" <info@live.com>
+Subject: Re: Project For You
+Date: Mon, 03 Jun 2013 01:36:41 +0200
+Message-ID: <20130602232912.1E02D2A08AB8@mail.vicepresidencia.gob.ec>
+Reply-To: williambillington@wildblue.net
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from metis.ext.pengutronix.de ([92.198.50.35]:45529 "EHLO
-	metis.ext.pengutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752388Ab3FENCa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jun 2013 09:02:30 -0400
-Content-Disposition: inline
-In-Reply-To: <51AF225A.5020703@asianux.com>
+Received: from msgw.vicepresidencia.gob.ec ([190.152.249.126]:55843 "EHLO
+	msgw.vicepresidencia.gob.ec" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753783Ab3FFDIz convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 5 Jun 2013 23:08:55 -0400
+Content-Description: Mail message body
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chen Gang <gang.chen@asianux.com>
-Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, Geert Uytterhoeven <geert@linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+To: Recipients <info@live.com>
 
-Hello,
+This is based on blind trust, hoping that you will expand my wishes as desired. I have US$200 Million for charity projects. You will be getting 20% of total funds as your commission if interested.
 
-On Wed, Jun 05, 2013 at 07:34:50PM +0800, Chen Gang wrote:
-> >> +extern unsigned long  _find_first_zero_bit_le(const void *p,
-> > doesn't checkpatch critizise the double space in the line above?
-> >=20
->=20
-> Thank you very much for your carefully checking (could you tell me ho=
-w
-> do you find it ?)  :-)
-I have no tool for that, it just catched my eye.
-
-Best regards
-Uwe
-
---=20
-Pengutronix e.K.                           | Uwe Kleine-K=F6nig        =
-    |
-Industrial Linux Solutions                 | http://www.pengutronix.de/=
-  |
+Regards,
+Mr. William Billington
