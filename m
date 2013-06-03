@@ -1,41 +1,75 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH v2] arch: m68k: math-emu: unsigned issue, 'unsigned long'
- will never be less than zero
-Date: Mon, 3 Jun 2013 11:13:06 +0200
-Message-ID: <CAMuHMdXrxAajOqfZd4iQRC2pKHE8KAZOVsZRfeyMWLHRt0NVUg@mail.gmail.com>
-References: <51A6F0C6.9050806@asianux.com>
-	<m2a9ndndu5.fsf@linux-m68k.org>
-	<51A70C10.6000408@asianux.com>
-	<CAMuHMdWOxh_YvQyid-PiN7FsM=OC=0YWOzJb86pKaQn3HrjaQw@mail.gmail.com>
-	<51AC5D7C.2000905@asianux.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: TLB and PTE coherency during munmap
+Date: Mon, 3 Jun 2013 11:16:21 +0200
+Message-ID: <20130603091621.GA23320@gmail.com>
+References: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com>
+ <CAMo8BfJie1Y49QeSJ+JTQb9WsYJkMMkb1BkKz2Gzy3T7V6ogHA@mail.gmail.com>
+ <51A45861.1010008@gmail.com>
+ <20130529122728.GA27176@twins.programming.kicks-ass.net>
+ <51A5F7A7.5020604@synopsys.com>
+ <20130529175125.GJ12193@twins.programming.kicks-ass.net>
+ <CAMo8BfJtkEtf9RKsGRnOnZ5zbJQz5tW4HeDfydFq_ZnrFr8opw@mail.gmail.com>
+ <20130603090501.GI5910@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f178.google.com ([209.85.192.178]:61357 "EHLO
-	mail-pd0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754963Ab3FCJNH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Jun 2013 05:13:07 -0400
-In-Reply-To: <51AC5D7C.2000905@asianux.com>
+Received: from mail-we0-f169.google.com ([74.125.82.169]:42052 "EHLO
+	mail-we0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751100Ab3FCJQ0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Jun 2013 05:16:26 -0400
+Received: by mail-we0-f169.google.com with SMTP id n57so380312wev.28
+        for <linux-arch@vger.kernel.org>; Mon, 03 Jun 2013 02:16:24 -0700 (PDT)
+Content-Disposition: inline
+In-Reply-To: <20130603090501.GI5910@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chen Gang <gang.chen@asianux.com>
-Cc: Andreas Schwab <schwab@linux-m68k.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Max Filippov <jcmvbkbc@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, Ralf Baechle <ralf@linux-mips.org>, Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>, linux-xtensa@linux-xtensa.org, Hugh Dickins <hughd@google.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
 
-On Mon, Jun 3, 2013 at 11:10 AM, Chen Gang <gang.chen@asianux.com> wrote:
->> Thanks, applied and queued for 3.11!
->>
->
-> Thank you too, and pardon: what is '3.11' ?  :-)
 
-Linux v3.11.
+* Peter Zijlstra <peterz@infradead.org> wrote:
 
-Gr{oetje,eeting}s,
+> On Fri, May 31, 2013 at 08:09:17AM +0400, Max Filippov wrote:
+> > Hi Peter,
+> > 
+> > On Wed, May 29, 2013 at 9:51 PM, Peter Zijlstra <peterz@infradead.org> wrote:
+> > > What about something like this?
+> > 
+> > With that patch I still get mtest05 firing my TLB/PTE incoherency 
+> > check in the UP PREEMPT_VOLUNTARY configuration. This happens after 
+> > zap_pte_range completion in the end of unmap_region because of 
+> > rescheduling called in the following call chain:
+> 
+> OK, so there two options; completely kill off fast-mode or something 
+> like the below where we add magic to the scheduler :/
+> 
+> I'm aware people might object to something like the below -- but since 
+> its a possibility I thought we ought to at least mention it.
+> 
+> For those new to the thread; the problem is that since the introduction 
+> of preemptible mmu_gather the traditional UP fast-mode is broken. 
+> Fast-mode is where we free the pages first and flush TLBs later. This is 
+> not a problem if there's no concurrency, but obviously if you can 
+> preempt there now is.
+> 
+> I think I prefer completely killing off fast-mode esp. since UP seems to 
+> go the way of the Dodo and it does away with an exception in the 
+> mmu_gather code.
+> 
+> Anyway; opinions? Linus, Thomas, Ingo?
 
-                        Geert
+Since UP kernels have not been packaged up by major distros for years, and 
+since the live-patching of SMP kernels (the SMP alternative-instructions 
+patching machinery) does away with a big chunk of the SMP cost, I guess UP 
+kernels are slowly becoming like TINY_RCU: interesting but not really a 
+primary design goal?
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+( Another reason for reducing SMP vs. UP complexity in this area would be
+  the fact that we had a few bad regressions lately - the TLB code is not
+  getting simpler, and bugs are getting discovered and fixed slower. )
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+At least that's the x86 perspective. ARM might still see it differently?
+
+Thanks,
+
+	Ingo
