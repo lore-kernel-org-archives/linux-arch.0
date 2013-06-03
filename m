@@ -1,66 +1,64 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: A bug about system call on ARM
-Date: Mon, 3 Jun 2013 11:45:34 +0100
-Message-ID: <20130603104534.GL18614@n2100.arm.linux.org.uk>
-References: <35FD53F367049845BC99AC72306C23D1610991B85D@CNBJMBX05.corpusers.net> <35FD53F367049845BC99AC72306C23D1610991B85E@CNBJMBX05.corpusers.net> <CAFLxGvyy=73dGQqG8W6SXZah7WQZ4gJAeeHXN8opKaOuG-5yUQ@mail.gmail.com> <20130529094826.GD13095@mudshark.cambridge.arm.com> <35FD53F367049845BC99AC72306C23D1610991B865@CNBJMBX05.corpusers.net> <35FD53F367049845BC99AC72306C23D1610991B866@CNBJMBX05.corpusers.net> <20130530090949.GC7483@mudshark.cambridge.arm.com> <20130530114112.GH7483@mudshark.cambridge.arm.com> <20130603101809.GK18614@n2100.arm.linux.org.uk> <20130603102723.GD32242@mudshark.cambridge.arm.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH] arch: m68k: include: asm: the 3rd parameter of 'insl' and
+ 'outsl' need '<< 2'
+Date: Mon, 3 Jun 2013 12:48:18 +0200
+Message-ID: <CAMuHMdVLA_zgeGxTTzfXnBYZiihH3w+LLcW0cRzVk_dvkFojgg@mail.gmail.com>
+References: <51A71E49.1000707@asianux.com>
+	<CAMuHMdUz8o4d=RiAMW8-pCrnZyfoH9EETVqjcb7E1GqCgYmQ7g@mail.gmail.com>
+	<51A93FA0.1050203@biophys.uni-duesseldorf.de>
+	<51A94281.7050708@biophys.uni-duesseldorf.de>
+	<51AC6472.3060606@asianux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:33999 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753081Ab3FCKpp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Jun 2013 06:45:45 -0400
-Content-Disposition: inline
-In-Reply-To: <20130603102723.GD32242@mudshark.cambridge.arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: "Wang, Yalin" <Yalin.Wang@sonymobile.com>, 'richard -rw- weinberger' <richard.weinberger@gmail.com>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'linux-arm-kernel@lists.infradead.org'" <linux-arm-kernel@lists.infradead.org>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-m68k-owner@vger.kernel.org>
+In-Reply-To: <51AC6472.3060606@asianux.com>
+Sender: linux-m68k-owner@vger.kernel.org
+To: Chen Gang <gang.chen@asianux.com>
+Cc: schmitz <schmitz@biophys.uni-duesseldorf.de>, Greg Ungerer <gerg@uclinux.org>, schmitz@debian.org, Sam Ravnborg <sam@ravnborg.org>, Greg KH <gregkh@linuxfoundation.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jun 03, 2013 at 11:27:23AM +0100, Will Deacon wrote:
-> Hi Russell,
-> 
-> On Mon, Jun 03, 2013 at 11:18:09AM +0100, Russell King - ARM Linux wrote:
-> > On Thu, May 30, 2013 at 12:41:12PM +0100, Will Deacon wrote:
-> > > +#if defined(CONFIG_OABI_COMPAT) || !defined(CONFIG_AEABI)
-> > > +	/*
-> > > +	 * We may have faulted trying to load the SWI instruction due to
-> > > +	 * concurrent page aging on another CPU. In this case, return
-> > > +	 * back to the swi instruction and fault the page back.
-> > > +	 */
-> > > +9001:
-> > > +	sub	lr, lr, #4
-> > > +	str	lr, [sp, #S_PC]
-> > > +	b	ret_fast_syscall
-> > > +#endif
-> > 
-> > The comment is wrong.  If we get here, it means that the fault from
-> > trying to loading the instruction can't be fixed up.  Arguably, that
-> > should result in a SIGSEGV being sent immediately, but we'll get to
-> > that when we then try to re-load the instruction.
-> 
-> Why would we kill the application in this case? The reported problem is
-> where one CPU ages the page containing the swi instruction (mkold =>
-> clears L_PTE_YOUNG => write 0 to the pte) in between the other CPU executing
-> the swi and the kernel trying to read the immediate. The VMA is fine.
+On Mon, Jun 3, 2013 at 11:40 AM, Chen Gang <gang.chen@asianux.com> wrote:
+> On 06/01/2013 08:38 AM, schmitz wrote:
+>>>>> The related git number:
+>>>>>   for parport.h: "4914802 m68k,m68knommu: merge header files" in 2009
+>>>>>   for io_mm.h: "84b16b7 m68k/atari: ROM port ISA adapter support" in
+>>>>> Apr 6 2013
+>>>>>
+>>>>> The related warning (make EXTRA_CFLAG=-W ARCH=m68k allmodconfig):
+>>>>>   arch/m68k/include/asm/parport.h:14:0: warning: "insl" redefined
+>>>>> [enabled by default]
+>>>>>   arch/m68k/include/asm/io_mm.h:403:0: note: this is the location of
+>>>>> the previous definition
+>>>>>   arch/m68k/include/asm/parport.h:15:0: warning: "outsl" redefined
+>>>>> [enabled by default]
+>>>>>   arch/m68k/include/asm/io_mm.h:406:0: note: this is the location of
+>>>>> the previous definition
+>>>>>
+>>> Is that the same problem Thorsten reported recently? parport.h should
+>>> either use what the arch io.h include defined, or (in the case of Q40
+>>> on m68k) undef and redefine as needed.
+>> It appears this is the same issue, see message ID
+>> loom.20130511T171757-995@post.gmane.org to linux-m68k (May 12th, by
+>> Thorsten Glaser).
+>>
+>> This _only_ applies to use of insl/outsl macros in parport_pc.h, which
+>> is only used by Q40 on m68k. I see no reason to change anything in io.h
+>> to cope with this warning.
+>
+> It sounds reasonable.
+>
+> And excuse me, could you provide the related link directly ?  I don't
+> know how to see the detail of 'loom.20130511T171757-995@post.gmane.org'.
 
-If you mark the instruction was a user-accessing instruction, the kernel
-will handle the resulting exception, trying to make the page accessible.
-If it is successful, then execution resumes as normal at the faulting
-instruction and continues as if nothing happened.
+http://www.spinics.net/lists/linux-m68k/msg06041.html
 
-If it can't make the page accessible (eg, out of memory) the exception
-handler path (your code above) will be called instead.  Normal action in
-that case would be for a system call to return -EFAULT, but in this case
-we can't know what the syscall was, so we don't know if userspace will
-even pay attention to the returned error code.  In any case, if the page
-is no longer accessible, it's going to end up being killed by a SEGV
-when we eventually return to userspace anyway.
+Gr{oetje,eeting}s,
 
-> > What it means is that the page we were trying to execute has been
-> > unmapped beneath us.
-> 
-> Yes, as a result of the kernel aging it.
+                        Geert
 
-No - see above.  The exception path is for more serious conditions than
-that.
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
