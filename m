@@ -1,149 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:52410 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753180Ab3FCJFm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Jun 2013 05:05:42 -0400
-Date: Mon, 3 Jun 2013 11:05:01 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: TLB and PTE coherency during munmap
-Message-ID: <20130603090501.GI5910@twins.programming.kicks-ass.net>
-References: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com>
- <CAMo8BfJie1Y49QeSJ+JTQb9WsYJkMMkb1BkKz2Gzy3T7V6ogHA@mail.gmail.com>
- <51A45861.1010008@gmail.com>
- <20130529122728.GA27176@twins.programming.kicks-ass.net>
- <51A5F7A7.5020604@synopsys.com>
- <20130529175125.GJ12193@twins.programming.kicks-ass.net>
- <CAMo8BfJtkEtf9RKsGRnOnZ5zbJQz5tW4HeDfydFq_ZnrFr8opw@mail.gmail.com>
+Received: from mail-ob0-f170.google.com ([209.85.214.170]:50548 "EHLO
+	mail-ob0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752418Ab3FCJQs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Jun 2013 05:16:48 -0400
+Received: by mail-ob0-f170.google.com with SMTP id ef5so6835829obb.29
+        for <linux-arch@vger.kernel.org>; Mon, 03 Jun 2013 02:16:47 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAMo8BfJtkEtf9RKsGRnOnZ5zbJQz5tW4HeDfydFq_ZnrFr8opw@mail.gmail.com>
+In-Reply-To: <CAMo8BfJt3dnx8NYT66dKfkLyjwPzHAhe0Rs21+Q-pG6OXA2GLA@mail.gmail.com>
+References: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com>
+	<CAHkRjk4ZNwZvf_Cv+HqfMManodCkEpCPdZokPQ68z3nVG8-+wg@mail.gmail.com>
+	<51A580E0.10300@gmail.com>
+	<20130529101533.GF17767@MacBook-Pro.local>
+	<CAMo8BfJt3dnx8NYT66dKfkLyjwPzHAhe0Rs21+Q-pG6OXA2GLA@mail.gmail.com>
+Date: Mon, 3 Jun 2013 13:16:47 +0400
+Message-ID: <CAMo8BfKQTKCTuMFfhAhAe3OeeT47MZALW9NnH073VC+EGiUUTQ@mail.gmail.com>
+Subject: Re: TLB and PTE coherency during munmap
+From: Max Filippov <jcmvbkbc@gmail.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Max Filippov <jcmvbkbc@gmail.com>
-Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, Ralf Baechle <ralf@linux-mips.org>, Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>, linux-xtensa@linux-xtensa.org, Hugh Dickins <hughd@google.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>
-Message-ID: <20130603090501.0NbCoh2qDf3xucYQjhWtb7WqoXsK172LSvv5LyJbdcU@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>
+Message-ID: <20130603091647.9F1C7wlR4AFqWZmGcX5wSnpoMfcc51kTz8ZQv3hTQHs@z>
 
-On Fri, May 31, 2013 at 08:09:17AM +0400, Max Filippov wrote:
-> Hi Peter,
-> 
-> On Wed, May 29, 2013 at 9:51 PM, Peter Zijlstra <peterz@infradead.org> wrote:
-> > What about something like this?
-> 
-> With that patch I still get mtest05 firing my TLB/PTE incoherency check
-> in the UP PREEMPT_VOLUNTARY configuration. This happens after
-> zap_pte_range completion in the end of unmap_region because of
-> rescheduling called in the following call chain:
+On Fri, May 31, 2013 at 5:26 AM, Max Filippov <jcmvbkbc@gmail.com> wrote:
+> On Wed, May 29, 2013 at 2:15 PM, Catalin Marinas
+> <catalin.marinas@arm.com> wrote:
+>> On Wed, May 29, 2013 at 05:15:28AM +0100, Max Filippov wrote:
+>>> On Tue, May 28, 2013 at 6:35 PM, Catalin Marinas <catalin.marinas@arm.com> wrote:
+>>> > On 26 May 2013 03:42, Max Filippov <jcmvbkbc@gmail.com> wrote:
+>>> >> Is it intentional that threads of a process that invoked munmap syscall
+>>> >> can see TLB entries pointing to already freed pages, or it is a bug?
+>>> >
+>>> > If it happens, this would be a bug. It means that a process can access
+>>> > a physical page that has been allocated to something else, possibly
+>>> > kernel data.
+>>> >
+>>> >> I'm talking about zap_pmd_range and zap_pte_range:
+>>> >>
+>>> >>       zap_pmd_range
+>>> >>         zap_pte_range
+>>> >>           arch_enter_lazy_mmu_mode
+>>> >>             ptep_get_and_clear_full
+>>> >>             tlb_remove_tlb_entry
+>>> >>             __tlb_remove_page
+>>> >>           arch_leave_lazy_mmu_mode
+>>> >>         cond_resched
+>>> >>
+>>> >> With the default arch_{enter,leave}_lazy_mmu_mode, tlb_remove_tlb_entry
+>>> >> and __tlb_remove_page there is a loop in the zap_pte_range that clears
+>>> >> PTEs and frees corresponding pages, but doesn't flush TLB, and
+>>> >> surrounding loop in the zap_pmd_range that calls cond_resched. If a thread
+>>> >> of the same process gets scheduled then it is able to see TLB entries
+>>> >> pointing to already freed physical pages.
+>>> >
+>>> > It looks to me like cond_resched() here introduces a possible bug but
+>>> > it depends on the actual arch code, especially the
+>>> > __tlb_remove_tlb_entry() function. On ARM we record the range in
+>>> > tlb_remove_tlb_entry() and queue the pages to be removed in
+>>> > __tlb_remove_page(). It pretty much acts like tlb_fast_mode() == 0
+>>> > even for the UP case (which is also needed for hardware speculative
+>>> > TLB loads). The tlb_finish_mmu() takes care of whatever pages are left
+>>> > to be freed.
+>>> >
+>>> > With a dummy __tlb_remove_tlb_entry() and tlb_fast_mode() == 1,
+>>> > cond_resched() in zap_pmd_range() would cause problems.
+>>>
+>>> So, looks like most architectures in the UP configuration should have
+>>> this issue (unless they flush TLB in the switch_mm, even when switching
+>>> to the same mm):
+>>
+>> switch_mm() wouldn't be called if switching to the same mm. You could do
+>
+> Hmm... Strange, but as far as I can tell from the context_switch it would.
+>
+>> it in switch_to() but it's not efficient (or before returning to user
+>> space on the same processor).
+>>
+>> Do you happen to have a user-space test for this? Something like one
+>
+> I only had mtest05 from LTP that triggered TLB/PTE inconsistency, but
+> not anything that would really try to peek at the freed page. I can make
+> such test though.
+>
+>> thread does an mmap(), writes some poison value, munmap(). The other
+>> thread keeps checking the poison value while trapping and ignoring any
+>> SIGSEGV. If it's working correctly, the second thread should either get
+>> a SIGSEGV or read the poison value.
 
-OK, so there two options; completely kill off fast-mode or something like the
-below where we add magic to the scheduler :/
+I've made a number of such tests and had them running for a couple of
+days. Checking thread never read anything other than poison value so far.
 
-I'm aware people might object to something like the below -- but since its a
-possibility I thought we ought to at least mention it.
-
-For those new to the thread; the problem is that since the introduction of
-preemptible mmu_gather the traditional UP fast-mode is broken. Fast-mode is
-where we free the pages first and flush TLBs later. This is not a problem if
-there's no concurrency, but obviously if you can preempt there now is.
-
-I think I prefer completely killing off fast-mode esp. since UP seems to go the
-way of the Dodo and it does away with an exception in the mmu_gather code.
-
-Anyway; opinions? Linus, Thomas, Ingo?
-
----
-nclude/asm-generic/tlb.h | 19 +++++++++++++++----
- include/linux/sched.h     |  1 +
- kernel/sched/core.c       |  9 +++++++++
- mm/memory.c               |  3 +++
- 4 files changed, 28 insertions(+), 4 deletions(-)
-
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index b1b1fa6..8d84154 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -116,15 +116,26 @@ struct mmu_gather {
- 
- static inline int tlb_fast_mode(struct mmu_gather *tlb)
- {
-+#ifdef CONFIG_PREEMPT
-+	/*
-+	 * We don't want to add to the schedule fast path for preemptible
-+	 * kernels; disable fast mode unconditionally.
-+	 */
-+	return 0;
-+#endif
-+
- #ifdef CONFIG_SMP
-+	/*
-+	 * We can only use fast mode if there's a single CPU online;
-+	 * otherwise SMP might trip over stale TLB entries.
-+	 */
- 	return tlb->fast_mode;
--#else
-+#endif
-+
- 	/*
--	 * For UP we don't need to worry about TLB flush
--	 * and page free order so much..
-+	 * Non-preempt UP can do fast mode unconditionally.
- 	 */
- 	return 1;
--#endif
- }
- 
- void tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, bool fullmm);
-diff --git a/include/linux/sched.h b/include/linux/sched.h
-index 178a8d9..3dc6930 100644
---- a/include/linux/sched.h
-+++ b/include/linux/sched.h
-@@ -1416,6 +1416,7 @@ struct task_struct {
- 	unsigned int	sequential_io;
- 	unsigned int	sequential_io_avg;
- #endif
-+	struct mmu_gather *tlb;
- };
- 
- /* Future-safe accessor for struct task_struct's cpus_allowed. */
-diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index 36f85be..6829b78 100644
---- a/kernel/sched/core.c
-+++ b/kernel/sched/core.c
-@@ -2374,6 +2374,15 @@ static void __sched __schedule(void)
- 	struct rq *rq;
- 	int cpu;
- 
-+#ifndef CONFIG_PREEMPT
-+	/*
-+	 * We always force batched mmu_gather for preemptible kernels in order
-+	 * to minimize scheduling delays. See tlb_fast_mode().
-+	 */
-+	if (current->tlb && tlb_fast_mode(current->tlb))
-+		tlb_flush_mmu(current->tlb);
-+#endif
-+
- need_resched:
- 	preempt_disable();
- 	cpu = smp_processor_id();
-diff --git a/mm/memory.c b/mm/memory.c
-index d7d54a1..8925578 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -230,6 +230,7 @@ void tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, bool fullmm)
- #ifdef CONFIG_HAVE_RCU_TABLE_FREE
- 	tlb->batch = NULL;
- #endif
-+	current->tlb = tlb;
- }
- 
- void tlb_flush_mmu(struct mmu_gather *tlb)
-@@ -274,6 +275,8 @@ void tlb_finish_mmu(struct mmu_gather *tlb, unsigned long start, unsigned long e
- 		free_pages((unsigned long)batch, 0);
- 	}
- 	tlb->local.next = NULL;
-+
-+	current->tlb = NULL;
- }
- 
- /* __tlb_remove_page
-
+-- 
+Thanks.
+-- Max
