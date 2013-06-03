@@ -1,42 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:54045 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757120Ab3FCKFC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Jun 2013 06:05:02 -0400
-Date: Mon, 3 Jun 2013 12:04:44 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: TLB and PTE coherency during munmap
-Message-ID: <20130603100444.GB8923@twins.programming.kicks-ass.net>
-References: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com>
- <CAMo8BfJie1Y49QeSJ+JTQb9WsYJkMMkb1BkKz2Gzy3T7V6ogHA@mail.gmail.com>
- <51A45861.1010008@gmail.com>
- <20130529122728.GA27176@twins.programming.kicks-ass.net>
- <51A5F7A7.5020604@synopsys.com>
- <20130529175125.GJ12193@twins.programming.kicks-ass.net>
- <CAMo8BfJtkEtf9RKsGRnOnZ5zbJQz5tW4HeDfydFq_ZnrFr8opw@mail.gmail.com>
- <20130603090501.GI5910@twins.programming.kicks-ass.net>
- <20130603091621.GA23320@gmail.com>
- <CAHkRjk7D=PAMgaqjGQ0t3e5Ftob2Z248uexvKGb0tWpycEMK6Q@mail.gmail.com>
+Received: from mail-pb0-f50.google.com ([209.85.160.50]:61015 "EHLO
+	mail-pb0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754363Ab3FCKsT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Jun 2013 06:48:19 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAHkRjk7D=PAMgaqjGQ0t3e5Ftob2Z248uexvKGb0tWpycEMK6Q@mail.gmail.com>
+In-Reply-To: <51AC6472.3060606@asianux.com>
+References: <51A71E49.1000707@asianux.com>
+	<CAMuHMdUz8o4d=RiAMW8-pCrnZyfoH9EETVqjcb7E1GqCgYmQ7g@mail.gmail.com>
+	<51A93FA0.1050203@biophys.uni-duesseldorf.de>
+	<51A94281.7050708@biophys.uni-duesseldorf.de>
+	<51AC6472.3060606@asianux.com>
+Date: Mon, 3 Jun 2013 12:48:18 +0200
+Message-ID: <CAMuHMdVLA_zgeGxTTzfXnBYZiihH3w+LLcW0cRzVk_dvkFojgg@mail.gmail.com>
+Subject: Re: [PATCH] arch: m68k: include: asm: the 3rd parameter of 'insl' and
+ 'outsl' need '<< 2'
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Ingo Molnar <mingo@kernel.org>, Max Filippov <jcmvbkbc@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Ralf Baechle <ralf@linux-mips.org>, Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>, linux-xtensa@linux-xtensa.org, Hugh Dickins <hughd@google.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20130603100444.smWU5miDybtU56irgKFJIcR5iOzx67yUJ7L9ZonhuPU@z>
+To: Chen Gang <gang.chen@asianux.com>
+Cc: schmitz <schmitz@biophys.uni-duesseldorf.de>, Greg Ungerer <gerg@uclinux.org>, schmitz@debian.org, Sam Ravnborg <sam@ravnborg.org>, Greg KH <gregkh@linuxfoundation.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20130603104818.cgoDPtQRgNH4Qr9ZxcZvgiMhtmM_Pyq0Cjbz-SQb-oo@z>
 
-On Mon, Jun 03, 2013 at 11:01:39AM +0100, Catalin Marinas wrote:
-> On ARM there is a lot of ongoing work on single zImage for multiple
-> SoCs and this implies SMP kernels. There is an SMP_ON_UP feature which
-> does run-time code patching to optimise the UP case in a few places.
-> 
-> Regarding tlb_fast_mode(), the ARM-specific implementation is always 0
-> on ARMv7 even if UP because of speculative TLB loads (the MMU could
-> pretty much act as a separate processor).
+On Mon, Jun 3, 2013 at 11:40 AM, Chen Gang <gang.chen@asianux.com> wrote:
+> On 06/01/2013 08:38 AM, schmitz wrote:
+>>>>> The related git number:
+>>>>>   for parport.h: "4914802 m68k,m68knommu: merge header files" in 2009
+>>>>>   for io_mm.h: "84b16b7 m68k/atari: ROM port ISA adapter support" in
+>>>>> Apr 6 2013
+>>>>>
+>>>>> The related warning (make EXTRA_CFLAG=-W ARCH=m68k allmodconfig):
+>>>>>   arch/m68k/include/asm/parport.h:14:0: warning: "insl" redefined
+>>>>> [enabled by default]
+>>>>>   arch/m68k/include/asm/io_mm.h:403:0: note: this is the location of
+>>>>> the previous definition
+>>>>>   arch/m68k/include/asm/parport.h:15:0: warning: "outsl" redefined
+>>>>> [enabled by default]
+>>>>>   arch/m68k/include/asm/io_mm.h:406:0: note: this is the location of
+>>>>> the previous definition
+>>>>>
+>>> Is that the same problem Thorsten reported recently? parport.h should
+>>> either use what the arch io.h include defined, or (in the case of Q40
+>>> on m68k) undef and redefine as needed.
+>> It appears this is the same issue, see message ID
+>> loom.20130511T171757-995@post.gmane.org to linux-m68k (May 12th, by
+>> Thorsten Glaser).
+>>
+>> This _only_ applies to use of insl/outsl macros in parport_pc.h, which
+>> is only used by Q40 on m68k. I see no reason to change anything in io.h
+>> to cope with this warning.
+>
+> It sounds reasonable.
+>
+> And excuse me, could you provide the related link directly ?  I don't
+> know how to see the detail of 'loom.20130511T171757-995@post.gmane.org'.
 
-Oh right.. I should really refresh the mmu_gather unification patches so
-all archs are using the generic code.
+http://www.spinics.net/lists/linux-m68k/msg06041.html
 
-/me ups on todo list.
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
