@@ -1,48 +1,43 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: TLB and PTE coherency during munmap
-Date: Mon, 3 Jun 2013 11:09:21 +0100
-Message-ID: <20130603100921.GA25367@localhost.cambridge.arm.com>
-References: <CAMo8BfJie1Y49QeSJ+JTQb9WsYJkMMkb1BkKz2Gzy3T7V6ogHA@mail.gmail.com>
- <51A45861.1010008@gmail.com>
- <20130529122728.GA27176@twins.programming.kicks-ass.net>
- <51A5F7A7.5020604@synopsys.com>
- <20130529175125.GJ12193@twins.programming.kicks-ass.net>
- <CAMo8BfJtkEtf9RKsGRnOnZ5zbJQz5tW4HeDfydFq_ZnrFr8opw@mail.gmail.com>
- <20130603090501.GI5910@twins.programming.kicks-ass.net>
- <20130603091621.GA23320@gmail.com>
- <CAHkRjk7D=PAMgaqjGQ0t3e5Ftob2Z248uexvKGb0tWpycEMK6Q@mail.gmail.com>
- <20130603100444.GB8923@twins.programming.kicks-ass.net>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: A bug about system call on ARM
+Date: Mon, 3 Jun 2013 11:18:09 +0100
+Message-ID: <20130603101809.GK18614@n2100.arm.linux.org.uk>
+References: <35FD53F367049845BC99AC72306C23D1610991B85B@CNBJMBX05.corpusers.net> <CAFLxGvy39xWdZmtiVHP+y=zH1coCVmMuREcmD25wSb=w-VK7Xg@mail.gmail.com> <35FD53F367049845BC99AC72306C23D1610991B85D@CNBJMBX05.corpusers.net> <35FD53F367049845BC99AC72306C23D1610991B85E@CNBJMBX05.corpusers.net> <CAFLxGvyy=73dGQqG8W6SXZah7WQZ4gJAeeHXN8opKaOuG-5yUQ@mail.gmail.com> <20130529094826.GD13095@mudshark.cambridge.arm.com> <35FD53F367049845BC99AC72306C23D1610991B865@CNBJMBX05.corpusers.net> <35FD53F367049845BC99AC72306C23D1610991B866@CNBJMBX05.corpusers.net> <20130530090949.GC7483@mudshark.cambridge.arm.com> <20130530114112.GH7483@mudshark.cambridge.arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:57024 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753097Ab3FCKJa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Jun 2013 06:09:30 -0400
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:33964 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755503Ab3FCKSV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Jun 2013 06:18:21 -0400
 Content-Disposition: inline
-In-Reply-To: <20130603100444.GB8923@twins.programming.kicks-ass.net>
+In-Reply-To: <20130530114112.GH7483@mudshark.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Ingo Molnar <mingo@kernel.org>, Max Filippov <jcmvbkbc@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Ralf Baechle <ralf@linux-mips.org>, Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, Hugh Dickins <hughd@google.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
+To: Will Deacon <will.deacon@arm.com>
+Cc: "Wang, Yalin" <Yalin.Wang@sonymobile.com>, 'richard -rw- weinberger' <richard.weinberger@gmail.com>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'linux-arm-kernel@lists.infradead.org'" <linux-arm-kernel@lists.infradead.org>
 
-On Mon, Jun 03, 2013 at 11:04:44AM +0100, Peter Zijlstra wrote:
-> On Mon, Jun 03, 2013 at 11:01:39AM +0100, Catalin Marinas wrote:
-> > On ARM there is a lot of ongoing work on single zImage for multiple
-> > SoCs and this implies SMP kernels. There is an SMP_ON_UP feature which
-> > does run-time code patching to optimise the UP case in a few places.
-> > 
-> > Regarding tlb_fast_mode(), the ARM-specific implementation is always 0
-> > on ARMv7 even if UP because of speculative TLB loads (the MMU could
-> > pretty much act as a separate processor).
-> 
-> Oh right.. I should really refresh the mmu_gather unification patches so
-> all archs are using the generic code.
+On Thu, May 30, 2013 at 12:41:12PM +0100, Will Deacon wrote:
+> +#if defined(CONFIG_OABI_COMPAT) || !defined(CONFIG_AEABI)
+> +	/*
+> +	 * We may have faulted trying to load the SWI instruction due to
+> +	 * concurrent page aging on another CPU. In this case, return
+> +	 * back to the swi instruction and fault the page back.
+> +	 */
+> +9001:
+> +	sub	lr, lr, #4
+> +	str	lr, [sp, #S_PC]
+> +	b	ret_fast_syscall
+> +#endif
 
-That would be great! I'll help with testing/review (or if it needs
-anything else) from an arm/arm64 perspective.
+The comment is wrong.  If we get here, it means that the fault from
+trying to loading the instruction can't be fixed up.  Arguably, that
+should result in a SIGSEGV being sent immediately, but we'll get to
+that when we then try to re-load the instruction.
 
-Thanks.
+What it means is that the page we were trying to execute has been
+unmapped beneath us.
 
--- 
-Catalin
+BTW, I notice that the kernel oops was never posted to the list, so it's
+impossible for other people following this thread to see what the real
+problem is...
