@@ -1,33 +1,60 @@
 From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH v2] arch: m68k: math-emu: unsigned issue, 'unsigned long'
- will never be less than zero
-Date: Mon, 03 Jun 2013 17:22:52 +0800
-Message-ID: <51AC606C.7060401@asianux.com>
-References: <51A6F0C6.9050806@asianux.com> <m2a9ndndu5.fsf@linux-m68k.org> <51A70C10.6000408@asianux.com> <CAMuHMdWOxh_YvQyid-PiN7FsM=OC=0YWOzJb86pKaQn3HrjaQw@mail.gmail.com> <51AC5D7C.2000905@asianux.com> <CAMuHMdXrxAajOqfZd4iQRC2pKHE8KAZOVsZRfeyMWLHRt0NVUg@mail.gmail.com>
+Subject: Re: [PATCH] arch: m68k: include: asm: the 3rd parameter of 'insl'
+ and 'outsl' need '<< 2'
+Date: Mon, 03 Jun 2013 17:40:02 +0800
+Message-ID: <51AC6472.3060606@asianux.com>
+References: <51A71E49.1000707@asianux.com> <CAMuHMdUz8o4d=RiAMW8-pCrnZyfoH9EETVqjcb7E1GqCgYmQ7g@mail.gmail.com> <51A93FA0.1050203@biophys.uni-duesseldorf.de> <51A94281.7050708@biophys.uni-duesseldorf.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:40733 "EHLO
+Received: from intranet.asianux.com ([58.214.24.6]:21487 "EHLO
 	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755734Ab3FCJXp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Jun 2013 05:23:45 -0400
-In-Reply-To: <CAMuHMdXrxAajOqfZd4iQRC2pKHE8KAZOVsZRfeyMWLHRt0NVUg@mail.gmail.com>
+	with ESMTP id S1754150Ab3FCJkw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Jun 2013 05:40:52 -0400
+In-Reply-To: <51A94281.7050708@biophys.uni-duesseldorf.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Andreas Schwab <schwab@linux-m68k.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: schmitz <schmitz@biophys.uni-duesseldorf.de>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Greg Ungerer <gerg@uclinux.org>, schmitz@debian.org, Sam Ravnborg <sam@ravnborg.org>, Greg KH <gregkh@linuxfoundation.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On 06/03/2013 05:13 PM, Geert Uytterhoeven wrote:
-> On Mon, Jun 3, 2013 at 11:10 AM, Chen Gang <gang.chen@asianux.com> wrote:
->>> >> Thanks, applied and queued for 3.11!
->>> >>
->> >
->> > Thank you too, and pardon: what is '3.11' ?  :-)
-> Linux v3.11.
+On 06/01/2013 08:38 AM, schmitz wrote:
+> All,
+>> Geert ,
+>>>>
+>>>> The related git number:
+>>>>   for parport.h: "4914802 m68k,m68knommu: merge header files" in 2009
+>>>>   for io_mm.h: "84b16b7 m68k/atari: ROM port ISA adapter support" in
+>>>> Apr 6 2013
+>>>>
+>>>> The related warning (make EXTRA_CFLAG=-W ARCH=m68k allmodconfig):
+>>>>   arch/m68k/include/asm/parport.h:14:0: warning: "insl" redefined
+>>>> [enabled by default]
+>>>>   arch/m68k/include/asm/io_mm.h:403:0: note: this is the location of
+>>>> the previous definition
+>>>>   arch/m68k/include/asm/parport.h:15:0: warning: "outsl" redefined
+>>>> [enabled by default]
+>>>>   arch/m68k/include/asm/io_mm.h:406:0: note: this is the location of
+>>>> the previous definition
+>>>>     
+>> Is that the same problem Thorsten reported recently? parport.h should
+>> either use what the arch io.h include defined, or (in the case of Q40
+>> on m68k) undef and redefine as needed.
+> It appears this is the same issue, see message ID
+> loom.20130511T171757-995@post.gmane.org to linux-m68k (May 12th, by
+> Thorsten Glaser).
+> 
+> This _only_ applies to use of insl/outsl macros in parport_pc.h, which
+> is only used by Q40 on m68k. I see no reason to change anything in io.h
+> to cope with this warning.
 
-OK, thanks.
+It sounds reasonable.
 
+And excuse me, could you provide the related link directly ?  I don't
+know how to see the detail of 'loom.20130511T171757-995@post.gmane.org'.
+
+
+Thanks.
 -- 
 Chen Gang
 
