@@ -1,61 +1,49 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH] arch: m68k: include: asm: the 3rd parameter of 'insl'
- and 'outsl' need '<< 2'
-Date: Mon, 03 Jun 2013 17:40:02 +0800
-Message-ID: <51AC6472.3060606@asianux.com>
-References: <51A71E49.1000707@asianux.com> <CAMuHMdUz8o4d=RiAMW8-pCrnZyfoH9EETVqjcb7E1GqCgYmQ7g@mail.gmail.com> <51A93FA0.1050203@biophys.uni-duesseldorf.de> <51A94281.7050708@biophys.uni-duesseldorf.de>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: A bug about system call on ARM
+Date: Mon, 3 Jun 2013 10:54:25 +0100
+Message-ID: <20130603095425.GA32242@mudshark.cambridge.arm.com>
+References: <35FD53F367049845BC99AC72306C23D1610991B865@CNBJMBX05.corpusers.net>
+ <35FD53F367049845BC99AC72306C23D1610991B866@CNBJMBX05.corpusers.net>
+ <20130530090949.GC7483@mudshark.cambridge.arm.com>
+ <20130530114112.GH7483@mudshark.cambridge.arm.com>
+ <35FD53F367049845BC99AC72306C23D1610991B86D@CNBJMBX05.corpusers.net>
+ <20130531084638.GB4928@mudshark.cambridge.arm.com>
+ <35FD53F367049845BC99AC72306C23D1610991B874@CNBJMBX05.corpusers.net>
+ <20130531111305.GI4928@mudshark.cambridge.arm.com>
+ <35FD53F367049845BC99AC72306C23D1610991B876@CNBJMBX05.corpusers.net>
+ <35FD53F367049845BC99AC72306C23D1610991B87B@CNBJMBX05.corpusers.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:21487 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754150Ab3FCJkw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Jun 2013 05:40:52 -0400
-In-Reply-To: <51A94281.7050708@biophys.uni-duesseldorf.de>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:56745 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-FAIL-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1755981Ab3FCJzj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Jun 2013 05:55:39 -0400
+Content-Disposition: inline
+In-Reply-To: <35FD53F367049845BC99AC72306C23D1610991B87B@CNBJMBX05.corpusers.net>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: schmitz <schmitz@biophys.uni-duesseldorf.de>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Greg Ungerer <gerg@uclinux.org>, schmitz@debian.org, Sam Ravnborg <sam@ravnborg.org>, Greg KH <gregkh@linuxfoundation.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: "Wang, Yalin" <Yalin.Wang@sonymobile.com>
+Cc: 'richard -rw- weinberger' <richard.weinberger@gmail.com>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'linux-arm-kernel@lists.infradead.org'" <linux-arm-kernel@lists.infradead.org>
 
-On 06/01/2013 08:38 AM, schmitz wrote:
-> All,
->> Geert ,
->>>>
->>>> The related git number:
->>>>   for parport.h: "4914802 m68k,m68knommu: merge header files" in 2009
->>>>   for io_mm.h: "84b16b7 m68k/atari: ROM port ISA adapter support" in
->>>> Apr 6 2013
->>>>
->>>> The related warning (make EXTRA_CFLAG=-W ARCH=m68k allmodconfig):
->>>>   arch/m68k/include/asm/parport.h:14:0: warning: "insl" redefined
->>>> [enabled by default]
->>>>   arch/m68k/include/asm/io_mm.h:403:0: note: this is the location of
->>>> the previous definition
->>>>   arch/m68k/include/asm/parport.h:15:0: warning: "outsl" redefined
->>>> [enabled by default]
->>>>   arch/m68k/include/asm/io_mm.h:406:0: note: this is the location of
->>>> the previous definition
->>>>     
->> Is that the same problem Thorsten reported recently? parport.h should
->> either use what the arch io.h include defined, or (in the case of Q40
->> on m68k) undef and redefine as needed.
-> It appears this is the same issue, see message ID
-> loom.20130511T171757-995@post.gmane.org to linux-m68k (May 12th, by
-> Thorsten Glaser).
+On Mon, Jun 03, 2013 at 06:25:26AM +0100, Wang, Yalin wrote:
+> Hi  Will,
 > 
-> This _only_ applies to use of insl/outsl macros in parport_pc.h, which
-> is only used by Q40 on m68k. I see no reason to change anything in io.h
-> to cope with this warning.
+> I have a question about this patch .
+> 
+> If the user space is thumb mode,
+> The PC should be rewind by 2 bytes,
+> So the fix_up code should be 
+> 
+> Sub lr, lr, #2 .
+> 
+> 
+> Am I right ?
 
-It sounds reasonable.
+No, because we don't have OABI-compat support for Thumb applications and
+force everything down the EABI path instead.
 
-And excuse me, could you provide the related link directly ?  I don't
-know how to see the detail of 'loom.20130511T171757-995@post.gmane.org'.
+Did you manage to test the patch?
 
-
-Thanks.
--- 
-Chen Gang
-
-Asianux Corporation
+Will
