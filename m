@@ -1,155 +1,87 @@
-From: Michal Simek <michal.simek@xilinx.com>
-Subject: [PATCH] dma-mapping: Add BUG_ON for uninitialized dma_ops
-Date: Mon,  3 Jun 2013 14:44:43 +0200
-Message-ID: <f35c5051a207b0a117f2fff27365d0ea892d1610.1370263476.git.michal.simek@xilinx.com>
-Content-Type: multipart/signed;
-    boundary="=_mimegpg-monstr-desktop-27049-1370263483-0001";
-    micalg=pgp-sha1; protocol="application/pgp-signature"
+From: "Wang, Yalin" <Yalin.Wang@sonymobile.com>
+Subject: RE: A bug about system call on ARM
+Date: Tue, 4 Jun 2013 13:33:20 +0800
+Message-ID: <35FD53F367049845BC99AC72306C23D1610991B883@CNBJMBX05.corpusers.net>
+References: <35FD53F367049845BC99AC72306C23D1610991B865@CNBJMBX05.corpusers.net>
+ <35FD53F367049845BC99AC72306C23D1610991B866@CNBJMBX05.corpusers.net>
+ <20130530090949.GC7483@mudshark.cambridge.arm.com>
+ <20130530114112.GH7483@mudshark.cambridge.arm.com>
+ <35FD53F367049845BC99AC72306C23D1610991B86D@CNBJMBX05.corpusers.net>
+ <20130531084638.GB4928@mudshark.cambridge.arm.com>
+ <35FD53F367049845BC99AC72306C23D1610991B874@CNBJMBX05.corpusers.net>
+ <20130531111305.GI4928@mudshark.cambridge.arm.com>
+ <35FD53F367049845BC99AC72306C23D1610991B876@CNBJMBX05.corpusers.net>
+ <35FD53F367049845BC99AC72306C23D1610991B87B@CNBJMBX05.corpusers.net>
+ <20130603095425.GA32242@mudshark.cambridge.arm.com>
+ <35FD53F367049845BC99AC72306C23D1610991B87E@CNBJMBX05.corpusers.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f41.google.com ([74.125.82.41]:60788 "EHLO
-	mail-wg0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752841Ab3FCMos (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Jun 2013 08:44:48 -0400
-Received: by mail-wg0-f41.google.com with SMTP id k13so2651795wgh.2
-        for <linux-arch@vger.kernel.org>; Mon, 03 Jun 2013 05:44:46 -0700 (PDT)
+Received: from cnbjrel01.sonyericsson.com ([219.141.167.165]:17969 "EHLO
+	cnbjrel01.sonyericsson.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752545Ab3FDFdZ convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 4 Jun 2013 01:33:25 -0400
+In-Reply-To: <35FD53F367049845BC99AC72306C23D1610991B87E@CNBJMBX05.corpusers.net>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Michal Simek <monstr@monstr.eu>, Michal Simek <michal.simek@xilinx.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+To: 'Will Deacon' <will.deacon@arm.com>
+Cc: 'richard -rw- weinberger' <richard.weinberger@gmail.com>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'linux-arm-kernel@lists.infradead.org'" <linux-arm-kernel@lists.infradead.org>
 
-This is a MIME GnuPG-signed message.  If you see this text, it means that
-your E-mail or Usenet software does not support MIME signed messages.
-The Internet standard for MIME PGP messages, RFC 2015, was published in 1996.
-To open this message correctly you will need to install E-mail or Usenet
-software that supports modern Internet standards.
+Hi  Will,
 
---=_mimegpg-monstr-desktop-27049-1370263483-0001
+Could I know  what's your git branch is  mainly used for ?
 
-Check that dma_ops are initialized correctly.
-
-Signed-off-by: Michal Simek <michal.simek@xilinx.com>
----
-Functions dma_mmap_attrs(), dma_get_sgtable_attrs()
-already have this checking.
-
----
- include/asm-generic/dma-mapping-common.h | 12 ++++++++++++
- 1 file changed, 12 insertions(+)
-
-diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-generic/dma-mapping-common.h
-index de8bf89..d430cab 100644
---- a/include/asm-generic/dma-mapping-common.h
-+++ b/include/asm-generic/dma-mapping-common.h
-@@ -16,6 +16,7 @@ static inline dma_addr_t dma_map_single_attrs(struct device *dev, void *ptr,
- 	dma_addr_t addr;
-
- 	kmemcheck_mark_initialized(ptr, size);
-+	BUG_ON(!ops);
- 	BUG_ON(!valid_dma_direction(dir));
- 	addr = ops->map_page(dev, virt_to_page(ptr),
- 			     (unsigned long)ptr & ~PAGE_MASK, size,
-@@ -33,6 +34,7 @@ static inline void dma_unmap_single_attrs(struct device *dev, dma_addr_t addr,
- {
- 	struct dma_map_ops *ops = get_dma_ops(dev);
-
-+	BUG_ON(!ops);
- 	BUG_ON(!valid_dma_direction(dir));
- 	if (ops->unmap_page)
- 		ops->unmap_page(dev, addr, size, dir, attrs);
-@@ -49,6 +51,7 @@ static inline int dma_map_sg_attrs(struct device *dev, struct scatterlist *sg,
-
- 	for_each_sg(sg, s, nents, i)
- 		kmemcheck_mark_initialized(sg_virt(s), s->length);
-+	BUG_ON(!ops);
- 	BUG_ON(!valid_dma_direction(dir));
- 	ents = ops->map_sg(dev, sg, nents, dir, attrs);
- 	debug_dma_map_sg(dev, sg, nents, ents, dir);
-@@ -62,6 +65,7 @@ static inline void dma_unmap_sg_attrs(struct device *dev, struct scatterlist *sg
- {
- 	struct dma_map_ops *ops = get_dma_ops(dev);
-
-+	BUG_ON(!ops);
- 	BUG_ON(!valid_dma_direction(dir));
- 	debug_dma_unmap_sg(dev, sg, nents, dir);
- 	if (ops->unmap_sg)
-@@ -76,6 +80,7 @@ static inline dma_addr_t dma_map_page(struct device *dev, struct page *page,
- 	dma_addr_t addr;
-
- 	kmemcheck_mark_initialized(page_address(page) + offset, size);
-+	BUG_ON(!ops);
- 	BUG_ON(!valid_dma_direction(dir));
- 	addr = ops->map_page(dev, page, offset, size, dir, NULL);
- 	debug_dma_map_page(dev, page, offset, size, dir, addr, false);
-@@ -88,6 +93,7 @@ static inline void dma_unmap_page(struct device *dev, dma_addr_t addr,
- {
- 	struct dma_map_ops *ops = get_dma_ops(dev);
-
-+	BUG_ON(!ops);
- 	BUG_ON(!valid_dma_direction(dir));
- 	if (ops->unmap_page)
- 		ops->unmap_page(dev, addr, size, dir, NULL);
-@@ -100,6 +106,7 @@ static inline void dma_sync_single_for_cpu(struct device *dev, dma_addr_t addr,
- {
- 	struct dma_map_ops *ops = get_dma_ops(dev);
-
-+	BUG_ON(!ops);
- 	BUG_ON(!valid_dma_direction(dir));
- 	if (ops->sync_single_for_cpu)
- 		ops->sync_single_for_cpu(dev, addr, size, dir);
-@@ -112,6 +119,7 @@ static inline void dma_sync_single_for_device(struct device *dev,
- {
- 	struct dma_map_ops *ops = get_dma_ops(dev);
-
-+	BUG_ON(!ops);
- 	BUG_ON(!valid_dma_direction(dir));
- 	if (ops->sync_single_for_device)
- 		ops->sync_single_for_device(dev, addr, size, dir);
-@@ -126,6 +134,7 @@ static inline void dma_sync_single_range_for_cpu(struct device *dev,
- {
- 	const struct dma_map_ops *ops = get_dma_ops(dev);
-
-+	BUG_ON(!ops);
- 	BUG_ON(!valid_dma_direction(dir));
- 	if (ops->sync_single_for_cpu)
- 		ops->sync_single_for_cpu(dev, addr + offset, size, dir);
-@@ -140,6 +149,7 @@ static inline void dma_sync_single_range_for_device(struct device *dev,
- {
- 	const struct dma_map_ops *ops = get_dma_ops(dev);
-
-+	BUG_ON(!ops);
- 	BUG_ON(!valid_dma_direction(dir));
- 	if (ops->sync_single_for_device)
- 		ops->sync_single_for_device(dev, addr + offset, size, dir);
-@@ -152,6 +162,7 @@ dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
- {
- 	struct dma_map_ops *ops = get_dma_ops(dev);
-
-+	BUG_ON(!ops);
- 	BUG_ON(!valid_dma_direction(dir));
- 	if (ops->sync_sg_for_cpu)
- 		ops->sync_sg_for_cpu(dev, sg, nelems, dir);
-@@ -164,6 +175,7 @@ dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
- {
- 	struct dma_map_ops *ops = get_dma_ops(dev);
-
-+	BUG_ON(!ops);
- 	BUG_ON(!valid_dma_direction(dir));
- 	if (ops->sync_sg_for_device)
- 		ops->sync_sg_for_device(dev, sg, nelems, dir);
---
-1.8.2.3
+https://git.kernel.org/cgit/linux/kernel/git/will/linux.git
 
 
---=_mimegpg-monstr-desktop-27049-1370263483-0001
-Content-Type: application/pgp-signature
-Content-Transfer-Encoding: 7bit
+I mean if the branch is used for ARM arch maintenance ?
+If yes, I think I can send future bugs about ARM to you directly,
+And do not need ping-pang in the mail list .
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.10 (GNU/Linux)
+Thanks for your help .
 
-iEYEABECAAYFAlGsj7sACgkQykllyylKDCF+BwCfcGw7D+F0LY0QF1D+qM5u7+ZG
-vkUAoJpumEj7S5dkgR5NCQ+QIaoI6yWd
-=PNeh
------END PGP SIGNATURE-----
+-----Original Message-----
+From: Wang, Yalin 
+Sent: Monday, June 03, 2013 5:58 PM
+To: 'Will Deacon'
+Cc: 'richard -rw- weinberger'; 'linux-arch@vger.kernel.org'; 'linux-kernel@vger.kernel.org'; 'linux-arm-kernel@lists.infradead.org'
+Subject: RE: A bug about system call on ARM
 
---=_mimegpg-monstr-desktop-27049-1370263483-0001--
+Hi  Will
+
+Oh  I see,
+Thanks for your reply 
+
+Yes ,  we are testing for it ,
+But need some time to wait for the result , Because The stability test need some time to reproduce this issue , And this issue doesn't reproduce 100% .
+
+
+-----Original Message-----
+From: Will Deacon [mailto:will.deacon@arm.com]
+Sent: Monday, June 03, 2013 5:54 PM
+To: Wang, Yalin
+Cc: 'richard -rw- weinberger'; 'linux-arch@vger.kernel.org'; 'linux-kernel@vger.kernel.org'; 'linux-arm-kernel@lists.infradead.org'
+Subject: Re: A bug about system call on ARM
+
+On Mon, Jun 03, 2013 at 06:25:26AM +0100, Wang, Yalin wrote:
+> Hi  Will,
+> 
+> I have a question about this patch .
+> 
+> If the user space is thumb mode,
+> The PC should be rewind by 2 bytes,
+> So the fix_up code should be
+> 
+> Sub lr, lr, #2 .
+> 
+> 
+> Am I right ?
+
+No, because we don't have OABI-compat support for Thumb applications and force everything down the EABI path instead.
+
+Did you manage to test the patch?
+
+Will
