@@ -1,69 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f50.google.com ([209.85.160.50]:61015 "EHLO
-	mail-pb0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754363Ab3FCKsT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Jun 2013 06:48:19 -0400
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:47154 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-FAIL-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1751317Ab3FDItr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 Jun 2013 04:49:47 -0400
+Date: Tue, 4 Jun 2013 09:48:32 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: A bug about system call on ARM
+Message-ID: <20130604084832.GA27516@mudshark.cambridge.arm.com>
+References: <20130530114112.GH7483@mudshark.cambridge.arm.com>
+ <35FD53F367049845BC99AC72306C23D1610991B86D@CNBJMBX05.corpusers.net>
+ <20130531084638.GB4928@mudshark.cambridge.arm.com>
+ <35FD53F367049845BC99AC72306C23D1610991B874@CNBJMBX05.corpusers.net>
+ <20130531111305.GI4928@mudshark.cambridge.arm.com>
+ <35FD53F367049845BC99AC72306C23D1610991B876@CNBJMBX05.corpusers.net>
+ <35FD53F367049845BC99AC72306C23D1610991B87B@CNBJMBX05.corpusers.net>
+ <20130603095425.GA32242@mudshark.cambridge.arm.com>
+ <35FD53F367049845BC99AC72306C23D1610991B87E@CNBJMBX05.corpusers.net>
+ <35FD53F367049845BC99AC72306C23D1610991B883@CNBJMBX05.corpusers.net>
 MIME-Version: 1.0
-In-Reply-To: <51AC6472.3060606@asianux.com>
-References: <51A71E49.1000707@asianux.com>
-	<CAMuHMdUz8o4d=RiAMW8-pCrnZyfoH9EETVqjcb7E1GqCgYmQ7g@mail.gmail.com>
-	<51A93FA0.1050203@biophys.uni-duesseldorf.de>
-	<51A94281.7050708@biophys.uni-duesseldorf.de>
-	<51AC6472.3060606@asianux.com>
-Date: Mon, 3 Jun 2013 12:48:18 +0200
-Message-ID: <CAMuHMdVLA_zgeGxTTzfXnBYZiihH3w+LLcW0cRzVk_dvkFojgg@mail.gmail.com>
-Subject: Re: [PATCH] arch: m68k: include: asm: the 3rd parameter of 'insl' and
- 'outsl' need '<< 2'
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <35FD53F367049845BC99AC72306C23D1610991B883@CNBJMBX05.corpusers.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chen Gang <gang.chen@asianux.com>
-Cc: schmitz <schmitz@biophys.uni-duesseldorf.de>, Greg Ungerer <gerg@uclinux.org>, schmitz@debian.org, Sam Ravnborg <sam@ravnborg.org>, Greg KH <gregkh@linuxfoundation.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20130603104818.cgoDPtQRgNH4Qr9ZxcZvgiMhtmM_Pyq0Cjbz-SQb-oo@z>
+To: "Wang, Yalin" <Yalin.Wang@sonymobile.com>
+Cc: 'richard -rw- weinberger' <richard.weinberger@gmail.com>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'linux-arm-kernel@lists.infradead.org'" <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20130604084832.bS5rTHHlfWlyIjNl8Za7DhQ90kLa7OzvVP5_10EQkPo@z>
 
-On Mon, Jun 3, 2013 at 11:40 AM, Chen Gang <gang.chen@asianux.com> wrote:
-> On 06/01/2013 08:38 AM, schmitz wrote:
->>>>> The related git number:
->>>>>   for parport.h: "4914802 m68k,m68knommu: merge header files" in 2009
->>>>>   for io_mm.h: "84b16b7 m68k/atari: ROM port ISA adapter support" in
->>>>> Apr 6 2013
->>>>>
->>>>> The related warning (make EXTRA_CFLAG=-W ARCH=m68k allmodconfig):
->>>>>   arch/m68k/include/asm/parport.h:14:0: warning: "insl" redefined
->>>>> [enabled by default]
->>>>>   arch/m68k/include/asm/io_mm.h:403:0: note: this is the location of
->>>>> the previous definition
->>>>>   arch/m68k/include/asm/parport.h:15:0: warning: "outsl" redefined
->>>>> [enabled by default]
->>>>>   arch/m68k/include/asm/io_mm.h:406:0: note: this is the location of
->>>>> the previous definition
->>>>>
->>> Is that the same problem Thorsten reported recently? parport.h should
->>> either use what the arch io.h include defined, or (in the case of Q40
->>> on m68k) undef and redefine as needed.
->> It appears this is the same issue, see message ID
->> loom.20130511T171757-995@post.gmane.org to linux-m68k (May 12th, by
->> Thorsten Glaser).
->>
->> This _only_ applies to use of insl/outsl macros in parport_pc.h, which
->> is only used by Q40 on m68k. I see no reason to change anything in io.h
->> to cope with this warning.
->
-> It sounds reasonable.
->
-> And excuse me, could you provide the related link directly ?  I don't
-> know how to see the detail of 'loom.20130511T171757-995@post.gmane.org'.
+On Tue, Jun 04, 2013 at 06:33:20AM +0100, Wang, Yalin wrote:
+> Hi  Will,
 
-http://www.spinics.net/lists/linux-m68k/msg06041.html
+Hello,
 
-Gr{oetje,eeting}s,
+> Could I know  what's your git branch is  mainly used for ?
+> 
+> https://git.kernel.org/cgit/linux/kernel/git/will/linux.git
+> 
+> 
+> I mean if the branch is used for ARM arch maintenance ?
 
-                        Geert
+I send most of my patches via Russell, and the tree above is where I keep my
+patches whilst they're not yet in mainline.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+> If yes, I think I can send future bugs about ARM to you directly,
+> And do not need ping-pang in the mail list .
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Quite the opposite! Having discussions on the mailing list is key to how the
+kernel is developed, so please continue to send questions, bug reports and
+patches there. As has been pointed out previously in this thread, you need
+to choose the right list in the first place, rather than just sending to
+LKML.
+
+Of course, you can always CC me on arm/arm64 patches if you like.
+
+Cheers,
+
+Will
