@@ -1,37 +1,31 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH 1/1] KVM: add kvm_para_available to asm-generic/kvm_para.h
-Date: Tue, 4 Jun 2013 12:33:19 +0100
-Message-ID: <CAAG0J98B=TiJXkrK2dF8DaWQjoHwkk+k7CXiN1XJ5VHQFkowFA@mail.gmail.com>
-References: <1369222162-4857-1-git-send-email-james.hogan@imgtec.com>
-	<20130604090508.GL4725@redhat.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: TLB and PTE coherency during munmap
+Date: Wed, 5 Jun 2013 09:05:03 +0900 (PWT)
+Message-ID: <alpine.LFD.2.03.1306050904160.28129@pixel.linux-foundation.org>
+References: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com> <CAMo8BfJie1Y49QeSJ+JTQb9WsYJkMMkb1BkKz2Gzy3T7V6ogHA@mail.gmail.com> <51A45861.1010008@gmail.com> <20130529122728.GA27176@twins.programming.kicks-ass.net> <51A5F7A7.5020604@synopsys.com>
+ <20130529175125.GJ12193@twins.programming.kicks-ass.net> <CAMo8BfJtkEtf9RKsGRnOnZ5zbJQz5tW4HeDfydFq_ZnrFr8opw@mail.gmail.com> <20130603090501.GI5910@twins.programming.kicks-ass.net> <20130604095258.GL8923@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bk0-f47.google.com ([209.85.214.47]:51259 "EHLO
-	mail-bk0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752888Ab3FDLdU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 Jun 2013 07:33:20 -0400
-Received: by mail-bk0-f47.google.com with SMTP id jg9so63706bkc.6
-        for <linux-arch@vger.kernel.org>; Tue, 04 Jun 2013 04:33:19 -0700 (PDT)
-In-Reply-To: <20130604090508.GL4725@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Gleb Natapov <gleb@redhat.com>
-Cc: kvm@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Marcelo Tosatti <mtosatti@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20130604095258.GL8923@twins.programming.kicks-ass.net>
+Sender: owner-linux-mm@kvack.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Max Filippov <jcmvbkbc@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, Ralf Baechle <ralf@linux-mips.org>, Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>, linux-xtensa@linux-xtensa.org, Hugh Dickins <hughd@google.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Tony Luck <tony.luck@intel.com>
+List-Id: linux-arch.vger.kernel.org
 
-On 4 June 2013 10:05, Gleb Natapov <gleb@redhat.com> wrote:
-> On Wed, May 22, 2013 at 12:29:22PM +0100, James Hogan wrote:
->> According to include/uapi/linux/kvm_para.h architectures should define
->> kvm_para_available, so add an implementation to asm-generic/kvm_para.h
->> which just returns false.
->>
-> What is this fixing? The only user of kvm_para_available() that can
-> benefit from this is in sound/pci/intel8x0.c, but I do not see follow up
-> patch to use it there.
 
-It was an unintentional config with mips + kvm + intel8x0 that hit it
-(I think I accidentally based my mips config off an x86_64 config).
-Kind of equivalent to a randconfig build failure I suppose.
 
-Cheers
-James
+On Tue, 4 Jun 2013, Peter Zijlstra wrote:
+> 
+> And here's the patch that makes fast mode go *poof*..
+
+Let's just do this. Mind sending a patch with proper changelog and 
+sign-off?
+
+             Linus
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
