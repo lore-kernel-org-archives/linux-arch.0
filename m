@@ -1,196 +1,122 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: [PATCH] arch/*/asm/include/bitops.h: api issue, find_*_bit() defination
- are different with each other
-Date: Wed, 05 Jun 2013 09:10:07 +0800
-Message-ID: <51AE8FEF.1020809@asianux.com>
+From: Uwe =?iso-8859-1?Q?Kleine-K=F6nig?=
+	<u.kleine-koenig@pengutronix.de>
+Subject: Re: [PATCH v2] arch/*/asm/include/bitops.h: api issue, find_*_bit()
+ defination are different with each other
+Date: Wed, 5 Jun 2013 09:19:15 +0200
+Message-ID: <20130605071915.GK23140@pengutronix.de>
+References: <51AE8FEF.1020809@asianux.com>
+ <51AE903C.6010806@asianux.com>
+ <51AE909D.9080006@asianux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-m68k-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <51AE909D.9080006@asianux.com>
 Sender: linux-m68k-owner@vger.kernel.org
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>, Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: Chen Gang <gang.chen@asianux.com>
+Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, Geert Uytterhoeven <geert@linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
+Hello,
 
-For arm and m68k, they customize find_*_bit(), but the API is different
-with 'generic'.
+On Wed, Jun 05, 2013 at 09:13:01AM +0800, Chen Gang wrote:
+>=20
+> For arm and m68k, they customize find_*_bit(), but the API is differe=
+nt
+> with 'generic'.
+>=20
+> avr32, s390, and unicore32 also customize find_*_bit(), but the API i=
+s
+> the same with 'generic', and the left architectures all use 'generic'=
+=2E
+>=20
+> So need change arm and m68k related API to match the 'generic', then
+> all another modules can face same public API for various architecture=
+s.
+>=20
+> Also beautify code and comments to pass "./scripts/checkpatch.pl"
+>=20
+>=20
+> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+> ---
+>  arch/arm/include/asm/bitops.h  |   26 ++++++++++++++++++--------
+>  arch/arm/lib/findbit.S         |   14 ++++++++++----
+>  arch/m68k/include/asm/bitops.h |   25 ++++++++++++++-----------
+>  3 files changed, 42 insertions(+), 23 deletions(-)
+>=20
+> diff --git a/arch/arm/include/asm/bitops.h b/arch/arm/include/asm/bit=
+ops.h
+> index e691ec9..10566c8 100644
+> --- a/arch/arm/include/asm/bitops.h
+> +++ b/arch/arm/include/asm/bitops.h
+> @@ -161,18 +161,28 @@ extern int _test_and_change_bit(int nr, volatil=
+e unsigned long * p);
+>  /*
+>   * Little endian assembly bitops.  nr =3D 0 -> byte 0 bit 0.
+>   */
+> -extern int _find_first_zero_bit_le(const void * p, unsigned size);
+> -extern int _find_next_zero_bit_le(const void * p, int size, int offs=
+et);
+> -extern int _find_first_bit_le(const unsigned long *p, unsigned size)=
+;
+> -extern int _find_next_bit_le(const unsigned long *p, int size, int o=
+ffset);
+> +extern unsigned long  _find_first_zero_bit_le(const void *p,
+doesn't checkpatch critizise the double space in the line above?
 
-avr32, s390, and unicore32 also customize find_*_bit(), but the API is
-the same with 'generic', and the left architectures all use 'generic'.
-
-So need change arm and m68k related API to match the 'generic', then
-all another modules can face same public API for various architectures.
-
-Also beautify code and comments to pass "./scripts/checkpatch.pl"
-
-
-Signed-off-by: Chen Gang <gang.chen@asianux.com>
----
- arch/arm/include/asm/bitops.h  |   26 ++++++++++++++++++--------
- arch/arm/lib/findbit.S         |   14 ++++++++++----
- arch/m68k/include/asm/bitops.h |   25 ++++++++++++++-----------
- 3 files changed, 42 insertions(+), 23 deletions(-)
-
-diff --git a/arch/arm/include/asm/bitops.h b/arch/arm/include/asm/bitops.h
-index e691ec9..10566c8 100644
---- a/arch/arm/include/asm/bitops.h
-+++ b/arch/arm/include/asm/bitops.h
-@@ -161,18 +161,28 @@ extern int _test_and_change_bit(int nr, volatile
-unsigned long * p);
- /*
-  * Little endian assembly bitops.  nr = 0 -> byte 0 bit 0.
-  */
--extern int _find_first_zero_bit_le(const void * p, unsigned size);
--extern int _find_next_zero_bit_le(const void * p, int size, int offset);
--extern int _find_first_bit_le(const unsigned long *p, unsigned size);
--extern int _find_next_bit_le(const unsigned long *p, int size, int offset);
-+extern unsigned long  _find_first_zero_bit_le(const void *p,
-+						unsigned long size);
-+extern unsigned long _find_next_zero_bit_le(const void *p, unsigned
+> +						unsigned long size);
+> +extern unsigned long _find_next_zero_bit_le(const void *p, unsigned =
 long size,
-+						unsigned long offset);
-+extern unsigned long _find_first_bit_le(const unsigned long *p,
-+						unsigned long size);
-+extern unsigned long _find_next_bit_le(const unsigned long *p,
-+						unsigned long size,
-+						unsigned long offset);
-
- /*
-  * Big endian assembly bitops.  nr = 0 -> byte 3 bit 0.
-  */
--extern int _find_first_zero_bit_be(const void * p, unsigned size);
--extern int _find_next_zero_bit_be(const void * p, int size, int offset);
--extern int _find_first_bit_be(const unsigned long *p, unsigned size);
--extern int _find_next_bit_be(const unsigned long *p, int size, int offset);
-+extern unsigned long _find_first_zero_bit_be(const void *p,
-+						unsigned long size);
-+extern unsigned long _find_next_zero_bit_be(const void *p, unsigned
+> +						unsigned long offset);
+> +extern unsigned long _find_first_bit_le(const unsigned long *p,
+> +						unsigned long size);
+> +extern unsigned long _find_next_bit_le(const unsigned long *p,
+> +						unsigned long size,
+> +						unsigned long offset);
+> =20
+>  /*
+>   * Big endian assembly bitops.  nr =3D 0 -> byte 3 bit 0.
+>   */
+> -extern int _find_first_zero_bit_be(const void * p, unsigned size);
+> -extern int _find_next_zero_bit_be(const void * p, int size, int offs=
+et);
+> -extern int _find_first_bit_be(const unsigned long *p, unsigned size)=
+;
+> -extern int _find_next_bit_be(const unsigned long *p, int size, int o=
+ffset);
+> +extern unsigned long _find_first_zero_bit_be(const void *p,
+> +						unsigned long size);
+> +extern unsigned long _find_next_zero_bit_be(const void *p, unsigned =
 long size,
-+						unsigned long offset);
-+extern unsigned long _find_first_bit_be(const unsigned long *p,
-+						unsigned long size);
-+extern unsigned long _find_next_bit_be(const unsigned long *p,
-+						unsigned long size,
-+						unsigned long offset);
+> +						unsigned long offset);
+> +extern unsigned long _find_first_bit_be(const unsigned long *p,
+> +						unsigned long size);
+> +extern unsigned long _find_next_bit_be(const unsigned long *p,
+> +						unsigned long size,
+> +						unsigned long offset);
+> =20
+>  #ifndef CONFIG_SMP
+>  /*
+> diff --git a/arch/arm/lib/findbit.S b/arch/arm/lib/findbit.S
+> index 64f6bc1..9e3263a 100644
+> --- a/arch/arm/lib/findbit.S
+> +++ b/arch/arm/lib/findbit.S
+> @@ -19,7 +19,8 @@
+> =20
+>  /*
+>   * Purpose  : Find a 'zero' bit
+> - * Prototype: int find_first_zero_bit(void *addr, unsigned int maxbi=
+t);
+> + * Prototype: unsigned long  find_first_zero_bit(const void *p,
+here is another one.
 
- #ifndef CONFIG_SMP
- /*
-diff --git a/arch/arm/lib/findbit.S b/arch/arm/lib/findbit.S
-index 64f6bc1..9e3263a 100644
---- a/arch/arm/lib/findbit.S
-+++ b/arch/arm/lib/findbit.S
-@@ -19,7 +19,8 @@
+Best regards
+Uwe
 
- /*
-  * Purpose  : Find a 'zero' bit
-- * Prototype: int find_first_zero_bit(void *addr, unsigned int maxbit);
-+ * Prototype: unsigned long  find_first_zero_bit(const void *p,
-+ *						unsigned long size);
-  */
- ENTRY(_find_first_zero_bit_le)
- 		teq	r1, #0	
-@@ -40,7 +41,9 @@ ENDPROC(_find_first_zero_bit_le)
 
- /*
-  * Purpose  : Find next 'zero' bit
-- * Prototype: int find_next_zero_bit(void *addr, unsigned int maxbit,
-int offset)
-+ * Prototype: unsigned long find_next_zero_bit(const void *p,
-+ *						unsigned long size,
-+ *						unsigned long offset);
-  */
- ENTRY(_find_next_zero_bit_le)
- 		teq	r1, #0
-@@ -60,7 +63,8 @@ ENDPROC(_find_next_zero_bit_le)
-
- /*
-  * Purpose  : Find a 'one' bit
-- * Prototype: int find_first_bit(const unsigned long *addr, unsigned
-int maxbit);
-+ * Prototype: unsigned long find_first_bit(const unsigned long *p,
-+ *					unsigned long size);
-  */
- ENTRY(_find_first_bit_le)
- 		teq	r1, #0	
-@@ -81,7 +85,9 @@ ENDPROC(_find_first_bit_le)
-
- /*
-  * Purpose  : Find next 'one' bit
-- * Prototype: int find_next_zero_bit(void *addr, unsigned int maxbit,
-int offset)
-+ * Prototype: unsigned long find_next_bit(const unsigned long *p,
-+ *					unsigned long size,
-+ *					unsigned long offset);
-  */
- ENTRY(_find_next_bit_le)
- 		teq	r1, #0
-diff --git a/arch/m68k/include/asm/bitops.h b/arch/m68k/include/asm/bitops.h
-index c6baa91..b1d8752 100644
---- a/arch/m68k/include/asm/bitops.h
-+++ b/arch/m68k/include/asm/bitops.h
-@@ -320,11 +320,11 @@ static inline int
-bfchg_mem_test_and_change_bit(int nr,
- #include <asm-generic/bitops/ffz.h>
- #else
-
--static inline int find_first_zero_bit(const unsigned long *vaddr,
--				      unsigned size)
-+static inline unsigned long find_first_zero_bit(const unsigned long *vaddr,
-+				      unsigned long size)
- {
- 	const unsigned long *p = vaddr;
--	int res = 32;
-+	unsigned int res = 32;
- 	unsigned int words;
- 	unsigned long num;
-
-@@ -346,11 +346,12 @@ out:
- }
- #define find_first_zero_bit find_first_zero_bit
-
--static inline int find_next_zero_bit(const unsigned long *vaddr, int size,
--				     int offset)
-+static inline unsigned long find_next_zero_bit(const unsigned long *vaddr,
-+						unsigned long size,
-+						unsigned long offset)
- {
- 	const unsigned long *p = vaddr + (offset >> 5);
--	int bit = offset & 31UL, res;
-+	unsigned int bit = offset & 31UL, res;
-
- 	if (offset >= size)
- 		return size;
-@@ -376,10 +377,11 @@ static inline int find_next_zero_bit(const
-unsigned long *vaddr, int size,
- }
- #define find_next_zero_bit find_next_zero_bit
-
--static inline int find_first_bit(const unsigned long *vaddr, unsigned size)
-+static inline unsigned long find_first_bit(const unsigned long *vaddr,
-+						unsigned long size)
- {
- 	const unsigned long *p = vaddr;
--	int res = 32;
-+	unsigned int res = 32;
- 	unsigned int words;
- 	unsigned long num;
-
-@@ -401,11 +403,12 @@ out:
- }
- #define find_first_bit find_first_bit
-
--static inline int find_next_bit(const unsigned long *vaddr, int size,
--				int offset)
-+static inline unsigned long find_next_bit(const unsigned long *vaddr,
-+						unsigned long size,
-+						unsigned long offset)
- {
- 	const unsigned long *p = vaddr + (offset >> 5);
--	int bit = offset & 31UL, res;
-+	unsigned int bit = offset & 31UL, res;
-
- 	if (offset >= size)
- 		return size;
--- 
-1.7.7.6
+--=20
+Pengutronix e.K.                           | Uwe Kleine-K=F6nig        =
+    |
+Industrial Linux Solutions                 | http://www.pengutronix.de/=
+  |
