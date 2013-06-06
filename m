@@ -1,271 +1,142 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:48018 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753912Ab3FEK1i (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jun 2013 06:27:38 -0400
-Date: Wed, 5 Jun 2013 12:26:50 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH] arch, mm: Remove tlb_fast_mode()
-Message-ID: <20130605102650.GU8923@twins.programming.kicks-ass.net>
-References: <CAMo8BfL4QfJrfejNKmBDhAVdmE=_Ys6MVUH5Xa3w_mU41hwx0A@mail.gmail.com>
- <CAMo8BfJie1Y49QeSJ+JTQb9WsYJkMMkb1BkKz2Gzy3T7V6ogHA@mail.gmail.com>
- <51A45861.1010008@gmail.com>
- <20130529122728.GA27176@twins.programming.kicks-ass.net>
- <51A5F7A7.5020604@synopsys.com>
- <20130529175125.GJ12193@twins.programming.kicks-ass.net>
- <CAMo8BfJtkEtf9RKsGRnOnZ5zbJQz5tW4HeDfydFq_ZnrFr8opw@mail.gmail.com>
- <20130603090501.GI5910@twins.programming.kicks-ass.net>
- <20130604095258.GL8923@twins.programming.kicks-ass.net>
- <alpine.LFD.2.03.1306050904160.28129@pixel.linux-foundation.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.2.03.1306050904160.28129@pixel.linux-foundation.org>
+Received: from zene.cmpxchg.org ([85.214.230.12]:46799 "EHLO zene.cmpxchg.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755319Ab3FFDKA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 5 Jun 2013 23:10:00 -0400
+From: Johannes Weiner <hannes@cmpxchg.org>
+Subject: [patch 1/2] arch: invoke oom-killer from page fault
+Date: Wed,  5 Jun 2013 23:09:52 -0400
+Message-ID: <1370488193-4747-1-git-send-email-hannes@cmpxchg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Max Filippov <jcmvbkbc@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org, Ralf Baechle <ralf@linux-mips.org>, Chris Zankel <chris@zankel.net>, Marc Gauthier <Marc.Gauthier@tensilica.com>, linux-xtensa@linux-xtensa.org, Hugh Dickins <hughd@google.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Tony Luck <tony.luck@intel.com>
-Message-ID: <20130605102650.AoD7sWcGKcfNwUmXdfXIpoXZwTHMTx49O0lJzsVzZek@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Michal Hocko <mhocko@suse.cz>, David Rientjes <rientjes@google.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130606030952.eVnazxvWoVCbVTDfGIy405m1ZiGwygJwBpsCCHjimzg@z>
 
-On Wed, Jun 05, 2013 at 09:05:03AM +0900, Linus Torvalds wrote:
-> 
-> 
-> On Tue, 4 Jun 2013, Peter Zijlstra wrote:
-> > 
-> > And here's the patch that makes fast mode go *poof*..
-> 
-> Let's just do this. Mind sending a patch with proper changelog and 
-> sign-off?
+Since '1c0fe6e mm: invoke oom-killer from page fault', page fault
+handlers should not directly kill faulting tasks in an out of memory
+condition.  Instead, they should be invoking the OOM killer to pick
+the right task.  Convert the remaining architectures.
 
-Sure, as an extra I even compile tested it! ;-) (including arm and
-ia64).
-
+Signed-off-by: Johannes Weiner <hannes@cmpxchg.org>
 ---
-Subject: arch, mm: Remove tlb_fast_mode()
-From: Peter Zijlstra <peterz@infradead.org>
+ arch/arc/mm/fault.c      | 6 ++++--
+ arch/metag/mm/fault.c    | 6 ++++--
+ arch/mn10300/mm/fault.c  | 7 ++++---
+ arch/openrisc/mm/fault.c | 8 ++++----
+ arch/score/mm/fault.c    | 8 ++++----
+ arch/tile/mm/fault.c     | 8 ++++----
+ 6 files changed, 24 insertions(+), 19 deletions(-)
 
-Since the introduction of preemptible mmu_gather TLB fast mode has been
-broken. TLB fast mode relies on there being absolutely no concurrency;
-it frees pages first and invalidates TLBs later.
-
-However now we can get concurrency and stuff goes *bang*.
-
-This patch removes all tlb_fast_mode() code; it was found the better
-option vs trying to patch the hole by entangling tlb invalidation with
-the scheduler.
-
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Russell King <linux@arm.linux.org.uk>
-Cc: Tony Luck <tony.luck@intel.com>
-Reported-by: Max Filippov <jcmvbkbc@gmail.com>
-Signed-off-by: Peter Zijlstra <peterz@infradead.org>
----
- arch/arm/include/asm/tlb.h  |   27 ++++-----------------------
- arch/ia64/include/asm/tlb.h |   41 ++++++++---------------------------------
- include/asm-generic/tlb.h   |   17 +----------------
- mm/memory.c                 |    9 ---------
- 4 files changed, 13 insertions(+), 81 deletions(-)
-
---- a/arch/arm/include/asm/tlb.h
-+++ b/arch/arm/include/asm/tlb.h
-@@ -33,18 +33,6 @@
- #include <asm/pgalloc.h>
- #include <asm/tlbflush.h>
+diff --git a/arch/arc/mm/fault.c b/arch/arc/mm/fault.c
+index c0decc1..d5ec60a 100644
+--- a/arch/arc/mm/fault.c
++++ b/arch/arc/mm/fault.c
+@@ -207,8 +207,10 @@ out_of_memory:
+ 	}
+ 	up_read(&mm->mmap_sem);
  
--/*
-- * We need to delay page freeing for SMP as other CPUs can access pages
-- * which have been removed but not yet had their TLB entries invalidated.
-- * Also, as ARMv7 speculative prefetch can drag new entries into the TLB,
-- * we need to apply this same delaying tactic to ensure correct operation.
-- */
--#if defined(CONFIG_SMP) || defined(CONFIG_CPU_32v7)
--#define tlb_fast_mode(tlb)	0
--#else
--#define tlb_fast_mode(tlb)	1
--#endif
--
- #define MMU_GATHER_BUNDLE	8
+-	if (user_mode(regs))
+-		do_group_exit(SIGKILL);	/* This will never return */
++	if (user_mode(regs)) {
++		pagefault_out_of_memory();
++		return;
++	}
  
- /*
-@@ -112,12 +100,10 @@ static inline void __tlb_alloc_page(stru
- static inline void tlb_flush_mmu(struct mmu_gather *tlb)
- {
- 	tlb_flush(tlb);
--	if (!tlb_fast_mode(tlb)) {
--		free_pages_and_swap_cache(tlb->pages, tlb->nr);
--		tlb->nr = 0;
--		if (tlb->pages == tlb->local)
--			__tlb_alloc_page(tlb);
--	}
-+	free_pages_and_swap_cache(tlb->pages, tlb->nr);
-+	tlb->nr = 0;
-+	if (tlb->pages == tlb->local)
-+		__tlb_alloc_page(tlb);
- }
+ 	goto no_context;
  
- static inline void
-@@ -178,11 +164,6 @@ tlb_end_vma(struct mmu_gather *tlb, stru
+diff --git a/arch/metag/mm/fault.c b/arch/metag/mm/fault.c
+index 2c75bf7..8fddf46 100644
+--- a/arch/metag/mm/fault.c
++++ b/arch/metag/mm/fault.c
+@@ -224,8 +224,10 @@ do_sigbus:
+ 	 */
+ out_of_memory:
+ 	up_read(&mm->mmap_sem);
+-	if (user_mode(regs))
+-		do_group_exit(SIGKILL);
++	if (user_mode(regs)) {
++		pagefault_out_of_memory();
++		return 1;
++	}
  
- static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
- {
--	if (tlb_fast_mode(tlb)) {
--		free_page_and_swap_cache(page);
--		return 1; /* avoid calling tlb_flush_mmu */
--	}
--
- 	tlb->pages[tlb->nr++] = page;
- 	VM_BUG_ON(tlb->nr > tlb->max);
- 	return tlb->max - tlb->nr;
---- a/arch/ia64/include/asm/tlb.h
-+++ b/arch/ia64/include/asm/tlb.h
-@@ -46,12 +46,6 @@
- #include <asm/tlbflush.h>
- #include <asm/machvec.h>
+ no_context:
+ 	/* Are we prepared to handle this kernel fault?  */
+diff --git a/arch/mn10300/mm/fault.c b/arch/mn10300/mm/fault.c
+index d48a84f..8a2e6de 100644
+--- a/arch/mn10300/mm/fault.c
++++ b/arch/mn10300/mm/fault.c
+@@ -345,9 +345,10 @@ no_context:
+  */
+ out_of_memory:
+ 	up_read(&mm->mmap_sem);
+-	printk(KERN_ALERT "VM: killing process %s\n", tsk->comm);
+-	if ((fault_code & MMUFCR_xFC_ACCESS) == MMUFCR_xFC_ACCESS_USR)
+-		do_exit(SIGKILL);
++	if ((fault_code & MMUFCR_xFC_ACCESS) == MMUFCR_xFC_ACCESS_USR) {
++		pagefault_out_of_memory();
++		return;
++	}
+ 	goto no_context;
  
--#ifdef CONFIG_SMP
--# define tlb_fast_mode(tlb)	((tlb)->nr == ~0U)
--#else
--# define tlb_fast_mode(tlb)	(1)
--#endif
--
- /*
-  * If we can't allocate a page to make a big batch of page pointers
-  * to work on, then just handle a few from the on-stack structure.
-@@ -60,7 +54,7 @@
+ do_sigbus:
+diff --git a/arch/openrisc/mm/fault.c b/arch/openrisc/mm/fault.c
+index e2bfafc..4a41f84 100644
+--- a/arch/openrisc/mm/fault.c
++++ b/arch/openrisc/mm/fault.c
+@@ -267,10 +267,10 @@ out_of_memory:
+ 	__asm__ __volatile__("l.nop 1");
  
- struct mmu_gather {
- 	struct mm_struct	*mm;
--	unsigned int		nr;		/* == ~0U => fast mode */
-+	unsigned int		nr;
- 	unsigned int		max;
- 	unsigned char		fullmm;		/* non-zero means full mm flush */
- 	unsigned char		need_flush;	/* really unmapped some PTEs? */
-@@ -103,6 +97,7 @@ extern struct ia64_tr_entry *ia64_idtrs[
- static inline void
- ia64_tlb_flush_mmu (struct mmu_gather *tlb, unsigned long start, unsigned long end)
- {
-+	unsigned long i;
- 	unsigned int nr;
+ 	up_read(&mm->mmap_sem);
+-	printk("VM: killing process %s\n", tsk->comm);
+-	if (user_mode(regs))
+-		do_exit(SIGKILL);
+-	goto no_context;
++	if (!user_mode(regs))
++		goto no_context;
++	pagefault_out_of_memory();
++	return;
  
- 	if (!tlb->need_flush)
-@@ -141,13 +136,11 @@ ia64_tlb_flush_mmu (struct mmu_gather *t
+ do_sigbus:
+ 	up_read(&mm->mmap_sem);
+diff --git a/arch/score/mm/fault.c b/arch/score/mm/fault.c
+index 47b600e..6b18fb0 100644
+--- a/arch/score/mm/fault.c
++++ b/arch/score/mm/fault.c
+@@ -172,10 +172,10 @@ out_of_memory:
+ 		down_read(&mm->mmap_sem);
+ 		goto survive;
+ 	}
+-	printk("VM: killing process %s\n", tsk->comm);
+-	if (user_mode(regs))
+-		do_group_exit(SIGKILL);
+-	goto no_context;
++	if (!user_mode(regs))
++		goto no_context;
++	pagefault_out_of_memory();
++	return;
  
- 	/* lastly, release the freed pages */
- 	nr = tlb->nr;
--	if (!tlb_fast_mode(tlb)) {
--		unsigned long i;
--		tlb->nr = 0;
--		tlb->start_addr = ~0UL;
--		for (i = 0; i < nr; ++i)
--			free_page_and_swap_cache(tlb->pages[i]);
--	}
-+
-+	tlb->nr = 0;
-+	tlb->start_addr = ~0UL;
-+	for (i = 0; i < nr; ++i)
-+		free_page_and_swap_cache(tlb->pages[i]);
- }
+ do_sigbus:
+ 	up_read(&mm->mmap_sem);
+diff --git a/arch/tile/mm/fault.c b/arch/tile/mm/fault.c
+index 3d2b81c..f7f99f9 100644
+--- a/arch/tile/mm/fault.c
++++ b/arch/tile/mm/fault.c
+@@ -573,10 +573,10 @@ out_of_memory:
+ 		down_read(&mm->mmap_sem);
+ 		goto survive;
+ 	}
+-	pr_alert("VM: killing process %s\n", tsk->comm);
+-	if (!is_kernel_mode)
+-		do_group_exit(SIGKILL);
+-	goto no_context;
++	if (is_kernel_mode)
++		goto no_context;
++	pagefault_out_of_memory();
++	return 0;
  
- static inline void __tlb_alloc_page(struct mmu_gather *tlb)
-@@ -167,20 +160,7 @@ tlb_gather_mmu(struct mmu_gather *tlb, s
- 	tlb->mm = mm;
- 	tlb->max = ARRAY_SIZE(tlb->local);
- 	tlb->pages = tlb->local;
--	/*
--	 * Use fast mode if only 1 CPU is online.
--	 *
--	 * It would be tempting to turn on fast-mode for full_mm_flush as well.  But this
--	 * doesn't work because of speculative accesses and software prefetching: the page
--	 * table of "mm" may (and usually is) the currently active page table and even
--	 * though the kernel won't do any user-space accesses during the TLB shoot down, a
--	 * compiler might use speculation or lfetch.fault on what happens to be a valid
--	 * user-space address.  This in turn could trigger a TLB miss fault (or a VHPT
--	 * walk) and re-insert a TLB entry we just removed.  Slow mode avoids such
--	 * problems.  (We could make fast-mode work by switching the current task to a
--	 * different "mm" during the shootdown.) --davidm 08/02/2002
--	 */
--	tlb->nr = (num_online_cpus() == 1) ? ~0U : 0;
-+	tlb->nr = 0;
- 	tlb->fullmm = full_mm_flush;
- 	tlb->start_addr = ~0UL;
- }
-@@ -214,11 +194,6 @@ static inline int __tlb_remove_page(stru
- {
- 	tlb->need_flush = 1;
- 
--	if (tlb_fast_mode(tlb)) {
--		free_page_and_swap_cache(page);
--		return 1; /* avoid calling tlb_flush_mmu */
--	}
--
- 	if (!tlb->nr && tlb->pages == tlb->local)
- 		__tlb_alloc_page(tlb);
- 
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -97,11 +97,9 @@ struct mmu_gather {
- 	unsigned long		start;
- 	unsigned long		end;
- 	unsigned int		need_flush : 1,	/* Did free PTEs */
--				fast_mode  : 1; /* No batching   */
--
- 	/* we are in the middle of an operation to clear
- 	 * a full mm and can make some optimizations */
--	unsigned int		fullmm : 1,
-+				fullmm : 1,
- 	/* we have performed an operation which
- 	 * requires a complete flush of the tlb */
- 				need_flush_all : 1;
-@@ -114,19 +112,6 @@ struct mmu_gather {
- 
- #define HAVE_GENERIC_MMU_GATHER
- 
--static inline int tlb_fast_mode(struct mmu_gather *tlb)
--{
--#ifdef CONFIG_SMP
--	return tlb->fast_mode;
--#else
--	/*
--	 * For UP we don't need to worry about TLB flush
--	 * and page free order so much..
--	 */
--	return 1;
--#endif
--}
--
- void tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, bool fullmm);
- void tlb_flush_mmu(struct mmu_gather *tlb);
- void tlb_finish_mmu(struct mmu_gather *tlb, unsigned long start,
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -220,7 +220,6 @@ void tlb_gather_mmu(struct mmu_gather *t
- 	tlb->start	= -1UL;
- 	tlb->end	= 0;
- 	tlb->need_flush = 0;
--	tlb->fast_mode  = (num_possible_cpus() == 1);
- 	tlb->local.next = NULL;
- 	tlb->local.nr   = 0;
- 	tlb->local.max  = ARRAY_SIZE(tlb->__pages);
-@@ -244,9 +243,6 @@ void tlb_flush_mmu(struct mmu_gather *tl
- 	tlb_table_flush(tlb);
- #endif
- 
--	if (tlb_fast_mode(tlb))
--		return;
--
- 	for (batch = &tlb->local; batch; batch = batch->next) {
- 		free_pages_and_swap_cache(batch->pages, batch->nr);
- 		batch->nr = 0;
-@@ -288,11 +284,6 @@ int __tlb_remove_page(struct mmu_gather
- 
- 	VM_BUG_ON(!tlb->need_flush);
- 
--	if (tlb_fast_mode(tlb)) {
--		free_page_and_swap_cache(page);
--		return 1; /* avoid calling tlb_flush_mmu() */
--	}
--
- 	batch = tlb->active;
- 	batch->pages[batch->nr++] = page;
- 	if (batch->nr == batch->max) {
+ do_sigbus:
+ 	up_read(&mm->mmap_sem);
+-- 
+1.8.2.3
 
