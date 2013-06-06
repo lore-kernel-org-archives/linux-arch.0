@@ -1,34 +1,28 @@
 From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH] arch: m68k: include: asm: the 3rd parameter of 'insl'
- and 'outsl' need '<< 2'
-Date: Thu, 06 Jun 2013 16:38:24 +0800
-Message-ID: <51B04A80.7050001@asianux.com>
-References: <51A71E49.1000707@asianux.com> <CAMuHMdUz8o4d=RiAMW8-pCrnZyfoH9EETVqjcb7E1GqCgYmQ7g@mail.gmail.com> <51A93FA0.1050203@biophys.uni-duesseldorf.de> <51A94281.7050708@biophys.uni-duesseldorf.de> <51AC6472.3060606@asianux.com> <CAMuHMdVLA_zgeGxTTzfXnBYZiihH3w+LLcW0cRzVk_dvkFojgg@mail.gmail.com> <51AE87DF.5000301@asianux.com> <51AEE7C0.9060206@biophys.uni-duesseldorf.de>
+Subject: Re: [PATCH v2] arch/*/asm/include/bitops.h: api issue, find_*_bit()
+ defination are different with each other
+Date: Thu, 06 Jun 2013 16:38:57 +0800
+Message-ID: <51B04AA1.40403@asianux.com>
+References: <51AE8FEF.1020809@asianux.com> <51AE903C.6010806@asianux.com> <51AE909D.9080006@asianux.com> <20130605071915.GK23140@pengutronix.de> <51AF225A.5020703@asianux.com> <20130605130222.GL23140@pengutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-m68k-owner@vger.kernel.org>
-In-Reply-To: <51AEE7C0.9060206@biophys.uni-duesseldorf.de>
-Sender: linux-m68k-owner@vger.kernel.org
-To: schmitz <schmitz@biophys.uni-duesseldorf.de>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Greg Ungerer <gerg@uclinux.org>, schmitz@debian.org, Sam Ravnborg <sam@ravnborg.org>, Greg KH <gregkh@linuxfoundation.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Thorsten Glaser <tg@mirbsd.de>
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20130605130222.GL23140@pengutronix.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: =?UTF-8?B?VXdlIEtsZWluZS1Lw7ZuaWc=?= <u.kleine-koenig@pengutronix.de>
+Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, Geert Uytterhoeven <geert@linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 06/05/2013 03:24 PM, schmitz wrote:
->> It seems already has another related patch for it, and it is just
->> applying.
->>
->> So need I send it again ?
->>
->>   
-> I think Thorsten submitted a patch to that effect? If so, yours should
-> not be necessary.
+On 06/05/2013 09:02 PM, Uwe =EF=BF=BD wrote:
+>> Thank you very much for your carefully checking (could you tell me h=
+ow
+>> > do you find it ?)  :-)
+> I have no tool for that, it just catched my eye
 
-OK, thanks.
+OK, thank again for your carefully checking.
 
-And also thank Geert.
-
--- 
+--=20
 Chen Gang
 
 Asianux Corporation
