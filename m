@@ -1,37 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:9863 "EHLO
+Received: from intranet.asianux.com ([58.214.24.6]:9889 "EHLO
 	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754583Ab3FFIjQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Jun 2013 04:39:16 -0400
-Message-ID: <51B04A80.7050001@asianux.com>
-Date: Thu, 06 Jun 2013 16:38:24 +0800
+	with ESMTP id S1757706Ab3FFIjr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Jun 2013 04:39:47 -0400
+Message-ID: <51B04AA1.40403@asianux.com>
+Date: Thu, 06 Jun 2013 16:38:57 +0800
 From: Chen Gang <gang.chen@asianux.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH] arch: m68k: include: asm: the 3rd parameter of 'insl'
- and 'outsl' need '<< 2'
-References: <51A71E49.1000707@asianux.com> <CAMuHMdUz8o4d=RiAMW8-pCrnZyfoH9EETVqjcb7E1GqCgYmQ7g@mail.gmail.com> <51A93FA0.1050203@biophys.uni-duesseldorf.de> <51A94281.7050708@biophys.uni-duesseldorf.de> <51AC6472.3060606@asianux.com> <CAMuHMdVLA_zgeGxTTzfXnBYZiihH3w+LLcW0cRzVk_dvkFojgg@mail.gmail.com> <51AE87DF.5000301@asianux.com> <51AEE7C0.9060206@biophys.uni-duesseldorf.de>
-In-Reply-To: <51AEE7C0.9060206@biophys.uni-duesseldorf.de>
+Subject: Re: [PATCH v2] arch/*/asm/include/bitops.h: api issue, find_*_bit()
+ defination are different with each other
+References: <51AE8FEF.1020809@asianux.com> <51AE903C.6010806@asianux.com> <51AE909D.9080006@asianux.com> <20130605071915.GK23140@pengutronix.de> <51AF225A.5020703@asianux.com> <20130605130222.GL23140@pengutronix.de>
+In-Reply-To: <20130605130222.GL23140@pengutronix.de>
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: schmitz <schmitz@biophys.uni-duesseldorf.de>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Greg Ungerer <gerg@uclinux.org>, schmitz@debian.org, Sam Ravnborg <sam@ravnborg.org>, Greg KH <gregkh@linuxfoundation.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Thorsten Glaser <tg@mirbsd.de>
-Message-ID: <20130606083824.-45ukdYzqzJ5k9ch51fWsiJ8_qW3Cbv-TkOoqbdDaYs@z>
+To: =?UTF-8?B?VXdlIEtsZWluZS1Lw7ZuaWc=?= <u.kleine-koenig@pengutronix.de>
+Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, Geert Uytterhoeven <geert@linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20130606083857.ZHivgwshkUawe5AB63X0S6Cw8oknUo5XHRMMsmdRnBA@z>
 
-On 06/05/2013 03:24 PM, schmitz wrote:
->> It seems already has another related patch for it, and it is just
->> applying.
->>
->> So need I send it again ?
->>
->>   
-> I think Thorsten submitted a patch to that effect? If so, yours should
-> not be necessary.
+On 06/05/2013 09:02 PM, Uwe � wrote:
+>> Thank you very much for your carefully checking (could you tell me how
+>> > do you find it ?)  :-)
+> I have no tool for that, it just catched my eye
 
-OK, thanks.
-
-And also thank Geert.
+OK, thank again for your carefully checking.
 
 -- 
 Chen Gang
