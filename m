@@ -1,124 +1,285 @@
-From: Johannes Weiner <hannes@cmpxchg.org>
-Subject: Re: [patch 2/2] memcg: do not sleep on OOM waitqueue with full
- charge context
-Date: Thu, 6 Jun 2013 20:02:22 -0400
-Message-ID: <20130607000222.GT15576@cmpxchg.org>
-References: <1370488193-4747-1-git-send-email-hannes@cmpxchg.org>
- <1370488193-4747-2-git-send-email-hannes@cmpxchg.org>
- <alpine.DEB.2.02.1306052058340.25115@chino.kir.corp.google.com>
- <20130606053315.GB9406@cmpxchg.org>
- <20130606173355.GB27226@cmpxchg.org>
- <alpine.DEB.2.02.1306061308320.9493@chino.kir.corp.google.com>
- <20130606215425.GM15721@cmpxchg.org>
- <alpine.DEB.2.02.1306061507330.15503@chino.kir.corp.google.com>
+From: Jonathan Austin <jonathan.austin@arm.com>
+Subject: Re: [PATCH v5] arm: Preserve the user r/w register TPIDRURW on context
+ switch and fork
+Date: Fri, 07 Jun 2013 20:05:37 +0100
+Message-ID: <51B22F01.3030905@arm.com>
+References: <519D32E2.5050102@dawncrow.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.02.1306061507330.15503@chino.kir.corp.google.com>
-Sender: owner-linux-mm@kvack.org
-To: David Rientjes <rientjes@google.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.cz>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8;
+	format=flowed
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from service87.mimecast.com ([91.220.42.44]:44571 "EHLO
+	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756046Ab3FGTF5 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jun 2013 15:05:57 -0400
+In-Reply-To: <519D32E2.5050102@dawncrow.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: =?UTF-8?B?QW5kcsOpIEhlbnRzY2hlbA==?= <nerv@dawncrow.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, Will Deacon <Will.Deacon@arm.com>
 
-On Thu, Jun 06, 2013 at 03:18:37PM -0700, David Rientjes wrote:
-> On Thu, 6 Jun 2013, Johannes Weiner wrote:
-> 
-> > > I don't understand why memcg is unique in this regard and it doesn't 
-> > > affect the page allocator as well on system oom conditions.  Ignoring 
-> > > memecg, all allocating processes will loop forever in the page allocator 
-> > > unless there are atypical gfp flags waiting for memory to be available, 
-> > > only one will call the oom killer at a time, a process is selected and 
-> > > killed, and the oom killer defers until that process exists because it 
-> > > finds TIF_MEMDIE.  Why is memcg charging any different?
-> > 
-> > The allocator wakes up kswapd, global OOMs are rarer, with physical
-> > memory the line to OOM is blurrier than with the memcg hard limit?
-> > 
-> > Anyway, I'm not aware of bug reports in the global case, but there are
-> > bug reports for the memcg case and we have a decent understanding of
-> > those deadlocks.  So can we stay focussed and fix this, please?
-> > 
-> 
-> Could you point me to those bug reports?  As far as I know, we have never 
-> encountered them so it would be surprising to me that we're running with a 
-> potential landmine and have seemingly never hit it.
+Hi Andr=C3=A9
 
-Sure thing: https://lkml.org/lkml/2012/11/21/497
+This looks good to go - I've tested this version of the patch too (on=20
+Versatile Express)
 
-During that thread Michal pinned down the problem to i_mutex being
-held by the OOM invoking task, which the selected victim is trying to
-acquire.
+The next step is to put it in to Russell's patch system. This is the wa=
+y=20
+Russell manages (small/non-pull-request) things that need to go in to=20
+his tree.
 
-> > > > Reported-by: Reported-by: azurIt <azurit@pobox.sk>
-> > > > Debugged-by: Michal Hocko <mhocko@suse.cz>
-> > > > Reported-by: David Rientjes <rientjes@google.com>
-> > > 
-> > > What exactly did I report?  This isn't at all what 
-> > > memory.oom_delay_millisecs is about, which is a failure of userspace to 
-> > > respond to the condition and react in time, not because it's stuck on any 
-> > > lock.  We still need that addition regardless of what you're doing here.
-> > 
-> > Oh, tell me how getting stuck indefinitely on a lock will not result
-> > in "a failure to react in time".  This is some seriously misguided
-> > pedantry.
-> > 
-> 
-> It certainly would, but it's not the point that memory.oom_delay_millisecs 
-> was intended to address.  memory.oom_delay_millisecs would simply delay 
-> calling mem_cgroup_out_of_memory() unless userspace can't free memory or 
-> increase the memory limit in time.  Obviously that delay isn't going to 
-> magically address any lock dependency issues.
+There are instructions on using the patch-system here:
+http://www.arm.linux.org.uk/developer/patches/info.php
 
-The delayed fallback would certainly resolve the issue of the
-userspace handler getting stuck, be it due to memory shortness or due
-to locks.
+If you're using git-format-patch and git-send-email then the main point=
+=20
+to note is the need to add the KernelVersion: tag described in that=20
+documentation and also that Russell doesn't want '[Patch]' tags in=20
+subject lines.
 
-However, it would not solve the part of the problem where the OOM
-killing kernel task is holding locks that the victim requires to exit.
+There's a form for creating yourself an account on the patch system at=20
+http://www.arm.linux.org.uk/developer/patches/add.php - I'm not actuall=
+y=20
+sure that an account is necessary to submit via email - but I *do* have=
+=20
+one and I've only ever used email so I suspect it might be!
 
-We are definitely looking at multiple related issues, that's why I'm
-trying to fix them step by step.
+Hope that helps,
 
-> > And yes, you talked about deadlocking potential other than the handler
-> > itself OOMing, I quote from
-> > <alpine.DEB.2.02.1305301338430.20389@chino.kir.corp.google.com>:
-> > 
-> > "Unresponsiveness isn't necessarily only because of memory
-> >  constraints, you may have your oom notifier in a parent cgroup that
-> >  isn't oom.  If a process is stuck on mm->mmap_sem in the oom cgroup,
-> >  though, the oom notifier may not be able to scrape /proc/pid and
-> >  attain necessary information in making an oom kill decision."
-> > 
-> > These are your words, and my patch sets out to fix the described
-> > problem,
-> 
-> I can review this patch apart from memory.oom_delay_millisecs using the 
-> examples in your changelog, but this isn't the problem statement for my 
-> patch.  The paragraph above is describing one way that an oom handler may 
-> encounter issues, it's not the only way and it's not a way that we have 
-> ever faced on our production servers with memcg.  I just didn't think the 
-> above was me reporting a bug, perhaps you took it that way.
+Jonny
 
-Please do consider this fix individually.  It's good to know that you
-didn't run into this particular issue on your machines so far, but
-since you described the problem you must have arrived at the same
-conclusion by just reading the code, which was good enough for me.
-Again, I can just remove your Reported-by: if you don't think it's
-justified.
-
-> The point I'm trying to make is that your patch doesn't reduce our need 
-> for memory.oom_delay_millisecs as described in the thread for that patch.
-
-It does not.  But it does fix a problem that came up during the
-discussion and it does fix a problem that you may hit at a random
-point in time regardless of the memory.oom_delay_millisecs patch.
-
-I'm sorry for the confusion this created, but yes, it's a separate
-albeit related issue.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+On 22/05/13 22:04, Andr=C3=A9 Hentschel wrote:
+> From: Andr=C3=A9 Hentschel <nerv@dawncrow.de>
+>
+> Since commit 6a1c53124aa1 the user writeable TLS register was zeroed =
+to
+> prevent it from being used as a covert channel between two tasks.
+>
+> There are more and more applications coming to Windows RT,
+> Wine could support them, but mostly they expect to have
+> the thread environment block (TEB) in TPIDRURW.
+>
+> This patch preserves that register per thread instead of clearing it.
+> Unlike the TPIDRURO, which is already switched, the TPIDRURW
+> can be updated from userspace so needs careful treatment in the case =
+that we
+> modify TPIDRURW and call fork(). To avoid this we must always read
+> TPIDRURW in copy_thread.
+>
+> Signed-off-by: Andr=C3=A9 Hentschel <nerv@dawncrow.de>
+> Signed-off-by: Will Deacon <will.deacon@arm.com>
+> Signed-off-by: Jonathan Austin <jonathan.austin@arm.com>
+>
+> ---
+> This patch is against Linux 3.10-rc2 (c7788792a5e7b0d5d7f96d0766b4cb6=
+112d47d75)
+>
+> v2: rework and fixup of v1, based on a suggested patch by Will Deacon
+> v3: total rework and fixup of v2
+> v4: removed condition on assembler instruction,
+>      adapted my code to kernel-style, both based on comments by Will =
+Deacon
+> v5: rebased v4 on 3.10-rc2 and adding this version history
+>
+> As suggested by Jonathan Austin, i'll send this patch to RMK's patch =
+tracker in
+> case there are no more comments on it.
+>
+> Why so much Signed-off-bys? Some History:
+> The first patch had performance issues pointed out by Russel King,
+> so Will Deacon jumped in to help me with that. The second one again
+> had performance issues and the missing copy_thread part was uncovered=
+=2E
+> After some iterations by me, Jonathan Austin proposed a patch and
+> Russel King sent his idea of the assembler part. All this was finally
+> merged and refined into this patch.
+> Thanks to everyone!
+>
+>   arch/arm/include/asm/thread_info.h |  2 +-
+>   arch/arm/include/asm/tls.h         | 40 +++++++++++++++++++++++++--=
+-----------
+>   arch/arm/kernel/entry-armv.S       |  4 ++--
+>   arch/arm/kernel/process.c          |  4 +++-
+>   arch/arm/kernel/ptrace.c           |  2 +-
+>   arch/arm/kernel/traps.c            |  4 ++--
+>   6 files changed, 36 insertions(+), 20 deletions(-)
+>
+> diff --git a/arch/arm/include/asm/thread_info.h b/arch/arm/include/as=
+m/thread_info.h
+> index 1995d1a..214d415 100644
+> --- a/arch/arm/include/asm/thread_info.h
+> +++ b/arch/arm/include/asm/thread_info.h
+> @@ -58,7 +58,7 @@ struct thread_info {
+>   	struct cpu_context_save	cpu_context;	/* cpu context */
+>   	__u32			syscall;	/* syscall number */
+>   	__u8			used_cp[16];	/* thread used copro */
+> -	unsigned long		tp_value;
+> +	unsigned long		tp_value[2];	/* TLS registers */
+>   #ifdef CONFIG_CRUNCH
+>   	struct crunch_state	crunchstate;
+>   #endif
+> diff --git a/arch/arm/include/asm/tls.h b/arch/arm/include/asm/tls.h
+> index 73409e6..83259b8 100644
+> --- a/arch/arm/include/asm/tls.h
+> +++ b/arch/arm/include/asm/tls.h
+> @@ -2,27 +2,30 @@
+>   #define __ASMARM_TLS_H
+>
+>   #ifdef __ASSEMBLY__
+> -	.macro set_tls_none, tp, tmp1, tmp2
+> +#include <asm/asm-offsets.h>
+> +	.macro switch_tls_none, base, tp, tpuser, tmp1, tmp2
+>   	.endm
+>
+> -	.macro set_tls_v6k, tp, tmp1, tmp2
+> +	.macro switch_tls_v6k, base, tp, tpuser, tmp1, tmp2
+> +	mrc	p15, 0, \tmp2, c13, c0, 2	@ get the user r/w register
+>   	mcr	p15, 0, \tp, c13, c0, 3		@ set TLS register
+> -	mov	\tmp1, #0
+> -	mcr	p15, 0, \tmp1, c13, c0, 2	@ clear user r/w TLS register
+> +	mcr	p15, 0, \tpuser, c13, c0, 2	@ and the user r/w register
+> +	str	\tmp2, [\base, #TI_TP_VALUE + 4] @ save it
+>   	.endm
+>
+> -	.macro set_tls_v6, tp, tmp1, tmp2
+> +	.macro switch_tls_v6, base, tp, tpuser, tmp1, tmp2
+>   	ldr	\tmp1, =3Delf_hwcap
+>   	ldr	\tmp1, [\tmp1, #0]
+>   	mov	\tmp2, #0xffff0fff
+>   	tst	\tmp1, #HWCAP_TLS		@ hardware TLS available?
+> -	mcrne	p15, 0, \tp, c13, c0, 3		@ yes, set TLS register
+> -	movne	\tmp1, #0
+> -	mcrne	p15, 0, \tmp1, c13, c0, 2	@ clear user r/w TLS register
+>   	streq	\tp, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
+> +	mrcne	p15, 0, \tmp2, c13, c0, 2	@ get the user r/w register
+> +	mcrne	p15, 0, \tp, c13, c0, 3		@ yes, set TLS register
+> +	mcrne	p15, 0, \tpuser, c13, c0, 2	@ set user r/w register
+> +	strne	\tmp2, [\base, #TI_TP_VALUE + 4] @ save it
+>   	.endm
+>
+> -	.macro set_tls_software, tp, tmp1, tmp2
+> +	.macro switch_tls_software, base, tp, tpuser, tmp1, tmp2
+>   	mov	\tmp1, #0xffff0fff
+>   	str	\tp, [\tmp1, #-15]		@ set TLS value at 0xffff0ff0
+>   	.endm
+> @@ -31,19 +34,30 @@
+>   #ifdef CONFIG_TLS_REG_EMUL
+>   #define tls_emu		1
+>   #define has_tls_reg		1
+> -#define set_tls		set_tls_none
+> +#define switch_tls	switch_tls_none
+>   #elif defined(CONFIG_CPU_V6)
+>   #define tls_emu		0
+>   #define has_tls_reg		(elf_hwcap & HWCAP_TLS)
+> -#define set_tls		set_tls_v6
+> +#define switch_tls	switch_tls_v6
+>   #elif defined(CONFIG_CPU_32v6K)
+>   #define tls_emu		0
+>   #define has_tls_reg		1
+> -#define set_tls		set_tls_v6k
+> +#define switch_tls	switch_tls_v6k
+>   #else
+>   #define tls_emu		0
+>   #define has_tls_reg		0
+> -#define set_tls		set_tls_software
+> +#define switch_tls	switch_tls_software
+>   #endif
+>
+> +#ifndef __ASSEMBLY__
+> +static inline unsigned long get_tpuser(void)
+> +{
+> +	unsigned long reg =3D 0;
+> +
+> +	if (has_tls_reg && !tls_emu)
+> +		__asm__("mrc p15, 0, %0, c13, c0, 2" : "=3Dr" (reg));
+> +
+> +	return reg;
+> +}
+> +#endif
+>   #endif	/* __ASMARM_TLS_H */
+> diff --git a/arch/arm/kernel/entry-armv.S b/arch/arm/kernel/entry-arm=
+v.S
+> index 582b405..ee1d257 100644
+> --- a/arch/arm/kernel/entry-armv.S
+> +++ b/arch/arm/kernel/entry-armv.S
+> @@ -685,15 +685,15 @@ ENTRY(__switch_to)
+>    UNWIND(.fnstart	)
+>    UNWIND(.cantunwind	)
+>   	add	ip, r1, #TI_CPU_SAVE
+> -	ldr	r3, [r2, #TI_TP_VALUE]
+>    ARM(	stmia	ip!, {r4 - sl, fp, sp, lr} )	@ Store most regs on stack
+>    THUMB(	stmia	ip!, {r4 - sl, fp}	   )	@ Store most regs on stack
+>    THUMB(	str	sp, [ip], #4		   )
+>    THUMB(	str	lr, [ip], #4		   )
+> +	ldrd	r4, r5, [r2, #TI_TP_VALUE]
+>   #ifdef CONFIG_CPU_USE_DOMAINS
+>   	ldr	r6, [r2, #TI_CPU_DOMAIN]
+>   #endif
+> -	set_tls	r3, r4, r5
+> +	switch_tls r1, r4, r5, r3, r7
+>   #if defined(CONFIG_CC_STACKPROTECTOR) && !defined(CONFIG_SMP)
+>   	ldr	r7, [r2, #TI_TASK]
+>   	ldr	r8, =3D__stack_chk_guard
+> diff --git a/arch/arm/kernel/process.c b/arch/arm/kernel/process.c
+> index f219703..0870641 100644
+> --- a/arch/arm/kernel/process.c
+> +++ b/arch/arm/kernel/process.c
+> @@ -39,6 +39,7 @@
+>   #include <asm/thread_notify.h>
+>   #include <asm/stacktrace.h>
+>   #include <asm/mach/time.h>
+> +#include <asm/tls.h>
+>
+>   #ifdef CONFIG_CC_STACKPROTECTOR
+>   #include <linux/stackprotector.h>
+> @@ -343,7 +344,8 @@ copy_thread(unsigned long clone_flags, unsigned l=
+ong stack_start,
+>   	clear_ptrace_hw_breakpoint(p);
+>
+>   	if (clone_flags & CLONE_SETTLS)
+> -		thread->tp_value =3D childregs->ARM_r3;
+> +		thread->tp_value[0] =3D childregs->ARM_r3;
+> +	thread->tp_value[1] =3D get_tpuser();
+>
+>   	thread_notify(THREAD_NOTIFY_COPY, thread);
+>
+> diff --git a/arch/arm/kernel/ptrace.c b/arch/arm/kernel/ptrace.c
+> index 03deeff..2bc1514 100644
+> --- a/arch/arm/kernel/ptrace.c
+> +++ b/arch/arm/kernel/ptrace.c
+> @@ -849,7 +849,7 @@ long arch_ptrace(struct task_struct *child, long =
+request,
+>   #endif
+>
+>   		case PTRACE_GET_THREAD_AREA:
+> -			ret =3D put_user(task_thread_info(child)->tp_value,
+> +			ret =3D put_user(task_thread_info(child)->tp_value[0],
+>   				       datap);
+>   			break;
+>
+> diff --git a/arch/arm/kernel/traps.c b/arch/arm/kernel/traps.c
+> index 18b32e8..517bfd4 100644
+> --- a/arch/arm/kernel/traps.c
+> +++ b/arch/arm/kernel/traps.c
+> @@ -581,7 +581,7 @@ asmlinkage int arm_syscall(int no, struct pt_regs=
+ *regs)
+>   		return regs->ARM_r0;
+>
+>   	case NR(set_tls):
+> -		thread->tp_value =3D regs->ARM_r0;
+> +		thread->tp_value[0] =3D regs->ARM_r0;
+>   		if (tls_emu)
+>   			return 0;
+>   		if (has_tls_reg) {
+> @@ -699,7 +699,7 @@ static int get_tp_trap(struct pt_regs *regs, unsi=
+gned int instr)
+>   	int reg =3D (instr >> 12) & 15;
+>   	if (reg =3D=3D 15)
+>   		return 1;
+> -	regs->uregs[reg] =3D current_thread_info()->tp_value;
+> +	regs->uregs[reg] =3D current_thread_info()->tp_value[0];
+>   	regs->ARM_pc +=3D 4;
+>   	return 0;
+>   }
+>
