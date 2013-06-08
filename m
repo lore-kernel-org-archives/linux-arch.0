@@ -1,39 +1,99 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [PATCH v5] arm: Preserve the user r/w register TPIDRURW on
-	context switch and fork
-Date: Fri, 7 Jun 2013 21:28:18 +0100
-Message-ID: <20130607202818.GB18614@n2100.arm.linux.org.uk>
-References: <519D32E2.5050102@dawncrow.de> <51B22F01.3030905@arm.com>
+From: Chen Gang <gang.chen@asianux.com>
+Subject: Re: [PATCH v2] arm64: kernel: compiling issue, need delete read_current_timer().
+Date: Sat, 08 Jun 2013 12:37:30 +0800
+Message-ID: <51B2B50A.1050305@asianux.com>
+References: <5199C725.8050102@asianux.com> <168084c28e8ba5124c05553e97463172@localhost> <20130520095606.GH31359@mudshark.cambridge.arm.com> <519AF2DC.2040200@asianux.com> <20130521085325.GB10453@mudshark.cambridge.arm.com> <519B425D.4030806@asianux.com> <51A32F40.1050309@asianux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:39098 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755868Ab3FGU21 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jun 2013 16:28:27 -0400
-Content-Disposition: inline
-In-Reply-To: <51B22F01.3030905@arm.com>
+Received: from intranet.asianux.com ([58.214.24.6]:33458 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750732Ab3FHEiV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 8 Jun 2013 00:38:21 -0400
+In-Reply-To: <51A32F40.1050309@asianux.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jonathan Austin <jonathan.austin@arm.com>
-Cc: =?iso-8859-1?Q?Andr=E9?= Hentschel <nerv@dawncrow.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, Will Deacon <Will.Deacon@arm.com>
+To: Will Deacon <will.deacon@arm.com>, Marc Zyngier <Marc.Zyngier@arm.com>
+Cc: Catalin Marinas <Catalin.Marinas@arm.com>, Santosh Shilimkar <santosh.shilimkar@ti.com>, Tony Lindgren <tony@atomide.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On Fri, Jun 07, 2013 at 08:05:37PM +0100, Jonathan Austin wrote:
-> If you're using git-format-patch and git-send-email then the main point  
-> to note is the need to add the KernelVersion: tag described in that  
-> documentation and also that Russell doesn't want '[Patch]' tags in  
-> subject lines.
+Hello Maintainers:
 
-The main thing is the kernelversion: tag, which can appear anywhere before
-the patch diff itself.  [PATCH] stuff in the subject line is ignored and
-removed.
+Please help check it, when you have time.
 
-> There's a form for creating yourself an account on the patch system at  
-> http://www.arm.linux.org.uk/developer/patches/add.php - I'm not actually  
-> sure that an account is necessary to submit via email - but I *do* have  
-> one and I've only ever used email so I suspect it might be!
+Thanks.
 
-Yes, the system automatically creates an "account" on the initial email -
-it's not really an "account" from the email side, but just a name/email
-association with the patch itself, which can then be "converted" to an
-"account" for the website by the addition of a password.
+On 05/27/2013 06:02 PM, Chen Gang wrote:
+> Hello Maintainers:
+> 
+> Please help check this patch whether OK, when you have time.
+> 
+> Thanks.
+> 
+> On 05/21/2013 05:46 PM, Chen Gang wrote:
+>>
+>> Under arm64, we will calibrate the delay loop statically using a known
+>> timer frequency, so delete read_current_timer(), or it will cause
+>> compiling issue with allmodconfig.
+>>
+>> The related error:
+>>   ERROR: "read_current_timer" [lib/rbtree_test.ko] undefined!
+>>   ERROR: "read_current_timer" [lib/interval_tree_test.ko] undefined!
+>>   ERROR: "read_current_timer" [fs/ext4/ext4.ko] undefined!
+>>   ERROR: "read_current_timer" [crypto/tcrypt.ko] undefined!
+>>
+>>
+>> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+>> ---
+>>  arch/arm64/include/asm/timex.h |    6 +++---
+>>  arch/arm64/kernel/time.c       |    6 ------
+>>  2 files changed, 3 insertions(+), 9 deletions(-)
+>>
+>> diff --git a/arch/arm64/include/asm/timex.h b/arch/arm64/include/asm/timex.h
+>> index b24a31a..81a076e 100644
+>> --- a/arch/arm64/include/asm/timex.h
+>> +++ b/arch/arm64/include/asm/timex.h
+>> @@ -16,14 +16,14 @@
+>>  #ifndef __ASM_TIMEX_H
+>>  #define __ASM_TIMEX_H
+>>  
+>> +#include <asm/arch_timer.h>
+>> +
+>>  /*
+>>   * Use the current timer as a cycle counter since this is what we use for
+>>   * the delay loop.
+>>   */
+>> -#define get_cycles()	({ cycles_t c; read_current_timer(&c); c; })
+>> +#define get_cycles()	arch_counter_get_cntvct()
+>>  
+>>  #include <asm-generic/timex.h>
+>>  
+>> -#define ARCH_HAS_READ_CURRENT_TIMER
+>> -
+>>  #endif
+>> diff --git a/arch/arm64/kernel/time.c b/arch/arm64/kernel/time.c
+>> index a551f88..03dc371 100644
+>> --- a/arch/arm64/kernel/time.c
+>> +++ b/arch/arm64/kernel/time.c
+>> @@ -68,12 +68,6 @@ unsigned long long notrace sched_clock(void)
+>>  	return arch_timer_read_counter() * sched_clock_mult;
+>>  }
+>>  
+>> -int read_current_timer(unsigned long *timer_value)
+>> -{
+>> -	*timer_value = arch_timer_read_counter();
+>> -	return 0;
+>> -}
+>> -
+>>  void __init time_init(void)
+>>  {
+>>  	u32 arch_timer_rate;
+>>
+> 
+> 
+
+
+-- 
+Chen Gang
+
+Asianux Corporation
