@@ -1,45 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:36452 "EHLO
+Received: from intranet.asianux.com ([58.214.24.6]:61367 "EHLO
 	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750886Ab3FHGbG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 8 Jun 2013 02:31:06 -0400
-Message-ID: <51B2CF75.1090207@asianux.com>
-Date: Sat, 08 Jun 2013 14:30:13 +0800
+	with ESMTP id S1751935Ab3FHKI5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 8 Jun 2013 06:08:57 -0400
+Message-ID: <51B30285.6020503@asianux.com>
+Date: Sat, 08 Jun 2013 18:08:05 +0800
 From: Chen Gang <gang.chen@asianux.com>
 MIME-Version: 1.0
-Subject: [PATCH] arch: x86: include: asm: need 'unsigned' type cast for atomic_clear_mask()
+Subject: [Suggestion] arch/*/include/asm/bitops.h: about __set_bit() API.
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>, "mingo@redhat.com" <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: the arch/x86 maintainers <x86@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, shli@fusionio.com, "dhowells@redhat.com" <dhowells@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20130608063013.lZ3V7rCLKicrM0qN4j_Zd6LNk_DSuSXGKPstPw-CGSk@z>
+To: rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, "dhowells@redhat.com" <dhowells@redhat.com>, tony.luck@intel.com, fenghua.yu@intel.com, yasutake.koichi@jp.panasonic.com
+Cc: linux-alpha@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-ia64@vger.kernel.org, linux-am33-list@redhat.com, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20130608100805.aJBo7Zm7nn9ISROjtNHOixf1TfU4NFmoLYgbsZi3UQM@z>
+
+Hello Maintainers:
 
 
-atomic_set_mask() has already have 'unsigned' type case, and
-atomic_clear_mask() is the pair of atomic_set_mask().
+Several architectures have different __set_bit() API to others, in
+standard API, 2nd param of __set_bit() is 'unsigned long *', but:
 
-So it also need 'unsigned' type case.
+  in 'min10300', it is 'unsigned char *',
+  in 'ia64' and 'alpha', they are 'int' or 'unsigned int'.
+
+If another sub-systems did not notice it, it may lead them to make
+mistakes.
+
+It seems related maintainer intended to implement it like that.
+
+So could related maintainers provide the reason for it, so more guys
+(e.g. me) can learn about it (at least can avoid related mistakes).
 
 
-Signed-off-by: Chen Gang <gang.chen@asianux.com>
----
- arch/x86/include/asm/atomic.h |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+The related information in arch sub-system:
 
-diff --git a/arch/x86/include/asm/atomic.h b/arch/x86/include/asm/atomic.h
-index 722aa3b..5b5cf52 100644
---- a/arch/x86/include/asm/atomic.h
-+++ b/arch/x86/include/asm/atomic.h
-@@ -255,7 +255,7 @@ static inline void atomic_or_long(unsigned long *v1, unsigned long v2)
- /* These are x86-specific, used by some header files */
- #define atomic_clear_mask(mask, addr)				\
- 	asm volatile(LOCK_PREFIX "andl %0,%1"			\
--		     : : "r" (~(mask)), "m" (*(addr)) : "memory")
-+		     : : "r" (~(unsigned)(mask)), "m" (*(addr)) : "memory")
- 
- #define atomic_set_mask(mask, addr)				\
- 	asm volatile(LOCK_PREFIX "orl %0,%1"			\
+using 'unsigned char *':
+  ./mn10300/include/asm/bitops.h:28:#define __set_bit(nr, addr)					\
+
+using 'unsigned int *', implicitly: 
+  ./ia64/include/asm/bitops.h:63:__set_bit (int nr, volatile void *addr)
+
+using 'int *', implicitly: (need use 'unsigned', at least)
+  ./alpha/include/asm/bitops.h:49:__set_bit(unsigned long nr, volatile void * addr)
+
+using 'unsigned long *' implicitly:
+  ./frv/include/asm/bitops.h:164:static inline void __set_bit(unsigned long nr, volatile void *addr)
+  
+standard API:  
+  ./h8300/include/asm/bitops.h:74:#define __set_bit(nr,addr)    set_bit((nr),(addr))
+  ./m68k/include/asm/bitops.h:67:#define __set_bit(nr, vaddr)	set_bit(nr, vaddr)
+  ./arc/include/asm/bitops.h:293:static inline void __set_bit(unsigned long nr, volatile unsigned long *m)
+  ./sh/include/asm/bitops-op32.h:20:static inline void __set_bit(int nr, volatile unsigned long *addr)
+  ./hexagon/include/asm/bitops.h:151:static inline void __set_bit(int nr, volatile unsigned long *addr)
+  ./s390/include/asm/bitops.h:212:static inline void __set_bit(unsigned long nr, volatile unsigned long *ptr)
+  ./x86/include/asm/bitops.h:84:static inline void __set_bit(int nr, volatile unsigned long *addr)
+  (others use 'generic')
+
+
+Thanks.
 -- 
-1.7.7.6
+Chen Gang
+
+Asianux Corporation
