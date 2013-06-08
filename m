@@ -1,66 +1,57 @@
 From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH] arch: asm-geniric: for atomic_set_mask() 1st param, use
- 'unsigned int' instead of 'unsigned long'
-Date: Sat, 08 Jun 2013 16:37:30 +0800
-Message-ID: <51B2ED4A.3060504@asianux.com>
-References: <51B2E262.3030603@asianux.com> <CAMuHMdVg12Wm4fZYDdgV0m4+Bo76hm=nckGtSkobRfbsmNo2wA@mail.gmail.com>
+Subject: [Suggestion] arch/*/include/asm/bitops.h: about __set_bit() API.
+Date: Sat, 08 Jun 2013 18:08:05 +0800
+Message-ID: <51B30285.6020503@asianux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:28999 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751475Ab3FHIiX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 8 Jun 2013 04:38:23 -0400
-In-Reply-To: <CAMuHMdVg12Wm4fZYDdgV0m4+Bo76hm=nckGtSkobRfbsmNo2wA@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Mike Frysinger <vapier@gentoo.org>, Hirokazu Takata <takata@linux-m32r.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, realmz paranoid <realmz6@gmail.com>, linux390@de.ibm.com, "uclinux-dist-devel@blackfin.uclinux.org" <uclinux-dist-devel@blackfin.uclinux.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, linux-s390@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>
+Return-path: <linux-alpha-owner@vger.kernel.org>
+Sender: linux-alpha-owner@vger.kernel.org
+To: rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, "dhowells@redhat.com" <dhowells@redhat.com>, tony.luck@intel.com, fenghua.yu@intel.com, yasutake.koichi@jp.panasonic.com
+Cc: linux-alpha@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-ia64@vger.kernel.org, linux-am33-list@redhat.com, Linux-Arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 06/08/2013 04:31 PM, Geert Uytterhoeven wrote:
-> Haven't done a real review, but my eye fell on it:
-> 
+Hello Maintainers:
 
-Thank you for your review, firstly.
 
-> On Sat, Jun 8, 2013 at 9:50 AM, Chen Gang <gang.chen@asianux.com> wrote:
->> > diff --git a/arch/m32r/include/asm/atomic.h b/arch/m32r/include/asm/atomic.h
->> > index 0d81697..233c743 100644
->> > --- a/arch/m32r/include/asm/atomic.h
->> > +++ b/arch/m32r/include/asm/atomic.h
->> > @@ -264,7 +264,7 @@ static __inline__ int __atomic_add_unless(atomic_t *v, int a, int u)
->> >  }
->> >
->> >
->> > -static __inline__ void atomic_clear_mask(unsigned long  mask, atomic_t *addr)
->> > +static __inline__ void atomic_clear_mask(unsigned int mask, atomic_t *addr)
->> >  {
->> >         unsigned long flags;
->> >         unsigned long tmp;
-> Shouldn't this become "unsigned int tmp" for consistency, too?
-> 
+Several architectures have different __set_bit() API to others, in
+standard API, 2nd param of __set_bit() is 'unsigned long *', but:
 
-It seems better. (although I guess: for 'm32r', both 'long' and 'int'
-are 32-bit).
+  in 'min10300', it is 'unsigned char *',
+  in 'ia64' and 'alpha', they are 'int' or 'unsigned int'.
 
-I will wait for 1 day at least, if no additional suggestions or
-completions, I will send patch v2.
+If another sub-systems did not notice it, it may lead them to make
+mistakes.
 
->> > @@ -286,7 +286,7 @@ static __inline__ void atomic_clear_mask(unsigned long  mask, atomic_t *addr)
->> >         local_irq_restore(flags);
->> >  }
->> >
->> > -static __inline__ void atomic_set_mask(unsigned long  mask, atomic_t *addr)
->> > +static __inline__ void atomic_set_mask(unsigned int mask, atomic_t *addr)
->> >  {
->> >         unsigned long flags;
->> >         unsigned long tmp;
-> Likewise.
-> 
-> There may be other places that need changes.
+It seems related maintainer intended to implement it like that.
 
-OK, I will check them.
+So could related maintainers provide the reason for it, so more guys
+(e.g. me) can learn about it (at least can avoid related mistakes).
+
+
+The related information in arch sub-system:
+
+using 'unsigned char *':
+  ./mn10300/include/asm/bitops.h:28:#define __set_bit(nr, addr)					\
+
+using 'unsigned int *', implicitly: 
+  ./ia64/include/asm/bitops.h:63:__set_bit (int nr, volatile void *addr)
+
+using 'int *', implicitly: (need use 'unsigned', at least)
+  ./alpha/include/asm/bitops.h:49:__set_bit(unsigned long nr, volatile void * addr)
+
+using 'unsigned long *' implicitly:
+  ./frv/include/asm/bitops.h:164:static inline void __set_bit(unsigned long nr, volatile void *addr)
+  
+standard API:  
+  ./h8300/include/asm/bitops.h:74:#define __set_bit(nr,addr)    set_bit((nr),(addr))
+  ./m68k/include/asm/bitops.h:67:#define __set_bit(nr, vaddr)	set_bit(nr, vaddr)
+  ./arc/include/asm/bitops.h:293:static inline void __set_bit(unsigned long nr, volatile unsigned long *m)
+  ./sh/include/asm/bitops-op32.h:20:static inline void __set_bit(int nr, volatile unsigned long *addr)
+  ./hexagon/include/asm/bitops.h:151:static inline void __set_bit(int nr, volatile unsigned long *addr)
+  ./s390/include/asm/bitops.h:212:static inline void __set_bit(unsigned long nr, volatile unsigned long *ptr)
+  ./x86/include/asm/bitops.h:84:static inline void __set_bit(int nr, volatile unsigned long *addr)
+  (others use 'generic')
 
 
 Thanks.
