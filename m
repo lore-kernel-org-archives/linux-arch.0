@@ -1,43 +1,31 @@
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [PATCH v2] arch: asm-generic: for atomic_set_mask() 1st param,
- use 'unsigned int' instead of 'unsigned long'
-Date: Mon, 10 Jun 2013 11:21:06 +0200
-Message-ID: <20130610092106.GA4697@osiris>
-References: <51B2E262.3030603@asianux.com>
- <CAErSpo5pg0EvJOR9nn3B0d+q0o6zsdwzM41AQx=AHfynRqX3hQ@mail.gmail.com>
- <51B4214E.6090007@asianux.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [PATCH] arch: asm-geniric: for atomic_set_mask() 1st param, use
+ 'unsigned int' instead of 'unsigned long'
+Date: Mon, 10 Jun 2013 11:00:53 -0600
+Message-ID: <CAErSpo57_4SnE0_UwNvRc-M2+JvHmpiYTpQE2rAFUXuBEopvFA@mail.gmail.com>
+References: <51B2E262.3030603@asianux.com> <CAErSpo5pg0EvJOR9nn3B0d+q0o6zsdwzM41AQx=AHfynRqX3hQ@mail.gmail.com>
+ <51B3DFCF.1010509@asianux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <51B4214E.6090007@asianux.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ob0-f177.google.com ([209.85.214.177]:50841 "EHLO
+	mail-ob0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753529Ab3FJRBN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Jun 2013 13:01:13 -0400
+Received: by mail-ob0-f177.google.com with SMTP id ta17so10543425obb.36
+        for <linux-arch@vger.kernel.org>; Mon, 10 Jun 2013 10:01:13 -0700 (PDT)
+In-Reply-To: <51B3DFCF.1010509@asianux.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Chen Gang <gang.chen@asianux.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Mike Frysinger <vapier@gentoo.org>, takata@linux-m32r.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, realmz paranoid <realmz6@gmail.com>, linux390@de.ibm.com, "uclinux-dist-devel@blackfin.uclinux.org" <uclinux-dist-devel@blackfin.uclinux.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, linux-s390@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Marc Gauthier <Marc.Gauthier@tensilica.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: Mike Frysinger <vapier@gentoo.org>, takata@linux-m32r.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, realmz paranoid <realmz6@gmail.com>, linux390@de.ibm.com, "uclinux-dist-devel@blackfin.uclinux.org" <uclinux-dist-devel@blackfin.uclinux.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, linux-s390@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>
 
-On Sun, Jun 09, 2013 at 02:31:42PM +0800, Chen Gang wrote:
-> 
-> atomic_set_mask() and atomic_clear_mask() are the pairs, so the related
-> parameters' type need match with each other.
-> 
-> The type of 'addr->counter' is 'int', so use 'unsigned int' instead
-> of 'unsigned long', and let atomic_set_mask() match atomic_clear_mask().
-> 
-> 
-> For arch sub-system, currently, have 3 types of definition for them:
-> 1st for 'int', 2nd for 'long', 3rd is conflict to use 'int' and 'long'.
-> 
-> At least, better to fix 3rd (conflict using 'int' and 'long').
-> 
-> Signed-off-by: Chen Gang <gang.chen@asianux.com>
-> ---
->  arch/blackfin/include/asm/atomic.h |    4 ++--
->  arch/m32r/include/asm/atomic.h     |    8 ++++----
->  arch/s390/include/asm/atomic.h     |    4 ++--
->  include/asm-generic/atomic.h       |    2 +-
->  4 files changed, 9 insertions(+), 9 deletions(-)
+On Sat, Jun 8, 2013 at 7:52 PM, Chen Gang <gang.chen@asianux.com> wrote:
+> On 06/09/2013 01:49 AM, Bjorn Helgaas wrote:
+>> s/geniric/generic/ in subject
+>>
+>
+> Could you provide more details information ?
 
-For the s390 part:
-
-Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+In your subject line, "geniric" is spelled incorrectly.  The correct
+spelling is "generic."
