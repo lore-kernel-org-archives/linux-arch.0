@@ -1,77 +1,63 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: [PATCH] dma-mapping: Add BUG_ON for uninitialized dma_ops
-Date: Tue, 11 Jun 2013 06:54:18 -0700
-Message-ID: <1370958858.2286.5.camel@dabdike>
-References: <f35c5051a207b0a117f2fff27365d0ea892d1610.1370263476.git.michal.simek@xilinx.com>
-	 <CAErSpo6kss-v0w_1ker__vPqNCRNLx+z8nk+0r=D-40D3TuDCA@mail.gmail.com>
-	 <51B703D7.8050804@samsung.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH v8, part3 10/14] mm: use a dedicated lock to protect
+ totalram_pages and zone->managed_pages
+Date: Tue, 11 Jun 2013 13:00:42 -0700
+Message-ID: <20130611130042.3dec2cc6737f21180bc09bb1@linux-foundation.org>
+References: <1369575522-26405-1-git-send-email-jiang.liu@huawei.com>
+	<1369575522-26405-11-git-send-email-jiang.liu@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-15"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:38727 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751764Ab3FKNyU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 11 Jun 2013 09:54:20 -0400
-In-Reply-To: <51B703D7.8050804@samsung.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Michal Simek <michal.simek@xilinx.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1369575522-26405-11-git-send-email-jiang.liu@huawei.com>
+Sender: owner-linux-mm@kvack.org
+To: Jiang Liu <liuj97@gmail.com>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <James.Bottomley@HansenPartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Michel Lespinasse <walken@google.com>, Rik van Riel <riel@redhat.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2013-06-11 at 13:02 +0200, Marek Szyprowski wrote:
-> Hello,
+On Sun, 26 May 2013 21:38:38 +0800 Jiang Liu <liuj97@gmail.com> wrote:
+
+> Currently lock_memory_hotplug()/unlock_memory_hotplug() are used to
+> protect totalram_pages and zone->managed_pages. Other than the memory
+> hotplug driver, totalram_pages and zone->managed_pages may also be
+> modified at runtime by other drivers, such as Xen balloon,
+> virtio_balloon etc. For those cases, memory hotplug lock is a little
+> too heavy, so introduce a dedicated lock to protect totalram_pages
+> and zone->managed_pages.
 > 
-> On 6/11/2013 4:34 AM, Bjorn Helgaas wrote:
-> > [+cc Marek]
-> >
-> > On Mon, Jun 3, 2013 at 6:44 AM, Michal Simek <michal.simek@xilinx.com> wrote:
-> > > Check that dma_ops are initialized correctly.
-> > >
-> > > Signed-off-by: Michal Simek <michal.simek@xilinx.com>
-> > > ---
-> > > Functions dma_mmap_attrs(), dma_get_sgtable_attrs()
-> > > already have this checking.
-> > >
-> > > ---
-> > >  include/asm-generic/dma-mapping-common.h | 12 ++++++++++++
-> > >  1 file changed, 12 insertions(+)
-> > >
-> > > diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-generic/dma-mapping-common.h
-> > > index de8bf89..d430cab 100644
-> > > --- a/include/asm-generic/dma-mapping-common.h
-> > > +++ b/include/asm-generic/dma-mapping-common.h
-> > > @@ -16,6 +16,7 @@ static inline dma_addr_t dma_map_single_attrs(struct device *dev, void *ptr,
-> > >         dma_addr_t addr;
-> > >
-> > >         kmemcheck_mark_initialized(ptr, size);
-> > > +       BUG_ON(!ops);
-> >
-> > Does this actually help anything?  I expected that if "ops" is NULL,
-> > we would just oops anyway when we attempted to call "ops->map_page()"
-> > because we already trap null pointer dereferences.  At least, when I
-> > tried leaving a pci_bus.ops pointer NULL, I got a nice panic and
-> > backtrace even without adding an explicit BUG_ON().
-> >
-> > I cc'd Marek, who added the similar BUG_ON()s in dma_mmap_attrs() and
-> > dma_get_sgtable_attrs() with d2b7428eb0 and 64ccc9c033.
+> Now we have a simplified locking rules totalram_pages and
+> zone->managed_pages as:
+> 1) no locking for read accesses because they are unsigned long.
+> 2) no locking for write accesses at boot time in single-threaded context.
+> 3) serialize write accesses at runtime by acquiring the dedicated
+>    managed_page_count_lock.
 > 
-> I think that I've copied it from dma_alloc_coherent() in microblaze. You 
-> are right that lack
-> of this check will also trigger oops in ops==NULL case, but I think that 
-> adding explicit check
-> in all functions, which use it, is a good idea. It serves as a kind of 
-> documentation and
-> emphasizes that missing ops is really an issue.
+> Also adjust zone->managed_pages when freeing reserved pages into the
+> buddy system, to keep totalram_pages and zone->managed_pages in
+> consistence.
+> 
+> ...
+>
+> +void adjust_managed_page_count(struct page *page, long count)
+> +{
+> +	spin_lock(&managed_page_count_lock);
+> +	page_zone(page)->managed_pages += count;
+> +	totalram_pages += count;
+> +	spin_unlock(&managed_page_count_lock);
+> +}
+> +EXPORT_SYMBOL(adjust_managed_page_count);
 
-Really, no, it's not a good idea at all.  It invites tons of patches
-littering the code with BUG_ONs where we might possibly get a NULL
-dereference.  All it does is add extra instructions to a code path for
-no actual benefit.
+This is exported to modules but there are no modular callers at this
+time.
 
-If you can answer the question: what more information does the BUG_ON
-give you than the NULL deref Oops would not? then it might be
-reasonable.
+I assume this was done for some forthcoming xen/virtio_balloon/etc
+patches?  If so, it would be better to avoid adding the export until it
+is actually needed.
 
-James
+
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
