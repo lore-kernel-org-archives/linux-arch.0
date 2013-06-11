@@ -1,53 +1,148 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp18.uk.ibm.com ([195.75.94.114]:36044 "EHLO
-	e06smtp18.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752511Ab3FJJYB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Jun 2013 05:24:01 -0400
-Received: from /spool/local
-	by e06smtp18.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
-	Mon, 10 Jun 2013 10:19:01 +0100
-Date: Mon, 10 Jun 2013 11:21:06 +0200
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [PATCH v2] arch: asm-generic: for atomic_set_mask() 1st param,
- use 'unsigned int' instead of 'unsigned long'
-Message-ID: <20130610092106.GA4697@osiris>
-References: <51B2E262.3030603@asianux.com>
- <CAErSpo5pg0EvJOR9nn3B0d+q0o6zsdwzM41AQx=AHfynRqX3hQ@mail.gmail.com>
- <51B4214E.6090007@asianux.com>
+Received: from mail-oa0-f54.google.com ([209.85.219.54]:48621 "EHLO
+	mail-oa0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752945Ab3FKCeX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Jun 2013 22:34:23 -0400
+Received: by mail-oa0-f54.google.com with SMTP id o17so6857229oag.41
+        for <linux-arch@vger.kernel.org>; Mon, 10 Jun 2013 19:34:23 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <51B4214E.6090007@asianux.com>
+In-Reply-To: <f35c5051a207b0a117f2fff27365d0ea892d1610.1370263476.git.michal.simek@xilinx.com>
+References: <f35c5051a207b0a117f2fff27365d0ea892d1610.1370263476.git.michal.simek@xilinx.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Date: Mon, 10 Jun 2013 20:34:03 -0600
+Message-ID: <CAErSpo6kss-v0w_1ker__vPqNCRNLx+z8nk+0r=D-40D3TuDCA@mail.gmail.com>
+Subject: Re: [PATCH] dma-mapping: Add BUG_ON for uninitialized dma_ops
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chen Gang <gang.chen@asianux.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Mike Frysinger <vapier@gentoo.org>, takata@linux-m32r.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, realmz paranoid <realmz6@gmail.com>, linux390@de.ibm.com, "uclinux-dist-devel@blackfin.uclinux.org" <uclinux-dist-devel@blackfin.uclinux.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, linux-s390@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Marc Gauthier <Marc.Gauthier@tensilica.com>
-Message-ID: <20130610092106.kdfBh7OX5Mqmccur5uFv06CHQ52fsXy-rrvKjQkFKjw@z>
+To: Michal Simek <michal.simek@xilinx.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>, Marek Szyprowski <m.szyprowski@samsung.com>
+Message-ID: <20130611023403.GUy38S55NSLzjBQOMERBGy7xvPwklzV-JOzlXNO0lWY@z>
 
-On Sun, Jun 09, 2013 at 02:31:42PM +0800, Chen Gang wrote:
-> 
-> atomic_set_mask() and atomic_clear_mask() are the pairs, so the related
-> parameters' type need match with each other.
-> 
-> The type of 'addr->counter' is 'int', so use 'unsigned int' instead
-> of 'unsigned long', and let atomic_set_mask() match atomic_clear_mask().
-> 
-> 
-> For arch sub-system, currently, have 3 types of definition for them:
-> 1st for 'int', 2nd for 'long', 3rd is conflict to use 'int' and 'long'.
-> 
-> At least, better to fix 3rd (conflict using 'int' and 'long').
-> 
-> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+[+cc Marek]
+
+On Mon, Jun 3, 2013 at 6:44 AM, Michal Simek <michal.simek@xilinx.com> wrote:
+> Check that dma_ops are initialized correctly.
+>
+> Signed-off-by: Michal Simek <michal.simek@xilinx.com>
 > ---
->  arch/blackfin/include/asm/atomic.h |    4 ++--
->  arch/m32r/include/asm/atomic.h     |    8 ++++----
->  arch/s390/include/asm/atomic.h     |    4 ++--
->  include/asm-generic/atomic.h       |    2 +-
->  4 files changed, 9 insertions(+), 9 deletions(-)
+> Functions dma_mmap_attrs(), dma_get_sgtable_attrs()
+> already have this checking.
+>
+> ---
+>  include/asm-generic/dma-mapping-common.h | 12 ++++++++++++
+>  1 file changed, 12 insertions(+)
+>
+> diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-generic/dma-mapping-common.h
+> index de8bf89..d430cab 100644
+> --- a/include/asm-generic/dma-mapping-common.h
+> +++ b/include/asm-generic/dma-mapping-common.h
+> @@ -16,6 +16,7 @@ static inline dma_addr_t dma_map_single_attrs(struct device *dev, void *ptr,
+>         dma_addr_t addr;
+>
+>         kmemcheck_mark_initialized(ptr, size);
+> +       BUG_ON(!ops);
 
-For the s390 part:
+Does this actually help anything?  I expected that if "ops" is NULL,
+we would just oops anyway when we attempted to call "ops->map_page()"
+because we already trap null pointer dereferences.  At least, when I
+tried leaving a pci_bus.ops pointer NULL, I got a nice panic and
+backtrace even without adding an explicit BUG_ON().
 
-Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+I cc'd Marek, who added the similar BUG_ON()s in dma_mmap_attrs() and
+dma_get_sgtable_attrs() with d2b7428eb0 and 64ccc9c033.
 
+>         BUG_ON(!valid_dma_direction(dir));
+>         addr = ops->map_page(dev, virt_to_page(ptr),
+>                              (unsigned long)ptr & ~PAGE_MASK, size,
+> @@ -33,6 +34,7 @@ static inline void dma_unmap_single_attrs(struct device *dev, dma_addr_t addr,
+>  {
+>         struct dma_map_ops *ops = get_dma_ops(dev);
+>
+> +       BUG_ON(!ops);
+>         BUG_ON(!valid_dma_direction(dir));
+>         if (ops->unmap_page)
+>                 ops->unmap_page(dev, addr, size, dir, attrs);
+> @@ -49,6 +51,7 @@ static inline int dma_map_sg_attrs(struct device *dev, struct scatterlist *sg,
+>
+>         for_each_sg(sg, s, nents, i)
+>                 kmemcheck_mark_initialized(sg_virt(s), s->length);
+> +       BUG_ON(!ops);
+>         BUG_ON(!valid_dma_direction(dir));
+>         ents = ops->map_sg(dev, sg, nents, dir, attrs);
+>         debug_dma_map_sg(dev, sg, nents, ents, dir);
+> @@ -62,6 +65,7 @@ static inline void dma_unmap_sg_attrs(struct device *dev, struct scatterlist *sg
+>  {
+>         struct dma_map_ops *ops = get_dma_ops(dev);
+>
+> +       BUG_ON(!ops);
+>         BUG_ON(!valid_dma_direction(dir));
+>         debug_dma_unmap_sg(dev, sg, nents, dir);
+>         if (ops->unmap_sg)
+> @@ -76,6 +80,7 @@ static inline dma_addr_t dma_map_page(struct device *dev, struct page *page,
+>         dma_addr_t addr;
+>
+>         kmemcheck_mark_initialized(page_address(page) + offset, size);
+> +       BUG_ON(!ops);
+>         BUG_ON(!valid_dma_direction(dir));
+>         addr = ops->map_page(dev, page, offset, size, dir, NULL);
+>         debug_dma_map_page(dev, page, offset, size, dir, addr, false);
+> @@ -88,6 +93,7 @@ static inline void dma_unmap_page(struct device *dev, dma_addr_t addr,
+>  {
+>         struct dma_map_ops *ops = get_dma_ops(dev);
+>
+> +       BUG_ON(!ops);
+>         BUG_ON(!valid_dma_direction(dir));
+>         if (ops->unmap_page)
+>                 ops->unmap_page(dev, addr, size, dir, NULL);
+> @@ -100,6 +106,7 @@ static inline void dma_sync_single_for_cpu(struct device *dev, dma_addr_t addr,
+>  {
+>         struct dma_map_ops *ops = get_dma_ops(dev);
+>
+> +       BUG_ON(!ops);
+>         BUG_ON(!valid_dma_direction(dir));
+>         if (ops->sync_single_for_cpu)
+>                 ops->sync_single_for_cpu(dev, addr, size, dir);
+> @@ -112,6 +119,7 @@ static inline void dma_sync_single_for_device(struct device *dev,
+>  {
+>         struct dma_map_ops *ops = get_dma_ops(dev);
+>
+> +       BUG_ON(!ops);
+>         BUG_ON(!valid_dma_direction(dir));
+>         if (ops->sync_single_for_device)
+>                 ops->sync_single_for_device(dev, addr, size, dir);
+> @@ -126,6 +134,7 @@ static inline void dma_sync_single_range_for_cpu(struct device *dev,
+>  {
+>         const struct dma_map_ops *ops = get_dma_ops(dev);
+>
+> +       BUG_ON(!ops);
+>         BUG_ON(!valid_dma_direction(dir));
+>         if (ops->sync_single_for_cpu)
+>                 ops->sync_single_for_cpu(dev, addr + offset, size, dir);
+> @@ -140,6 +149,7 @@ static inline void dma_sync_single_range_for_device(struct device *dev,
+>  {
+>         const struct dma_map_ops *ops = get_dma_ops(dev);
+>
+> +       BUG_ON(!ops);
+>         BUG_ON(!valid_dma_direction(dir));
+>         if (ops->sync_single_for_device)
+>                 ops->sync_single_for_device(dev, addr + offset, size, dir);
+> @@ -152,6 +162,7 @@ dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
+>  {
+>         struct dma_map_ops *ops = get_dma_ops(dev);
+>
+> +       BUG_ON(!ops);
+>         BUG_ON(!valid_dma_direction(dir));
+>         if (ops->sync_sg_for_cpu)
+>                 ops->sync_sg_for_cpu(dev, sg, nelems, dir);
+> @@ -164,6 +175,7 @@ dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
+>  {
+>         struct dma_map_ops *ops = get_dma_ops(dev);
+>
+> +       BUG_ON(!ops);
+>         BUG_ON(!valid_dma_direction(dir));
+>         if (ops->sync_sg_for_device)
+>                 ops->sync_sg_for_device(dev, sg, nelems, dir);
+> --
+> 1.8.2.3
+>
