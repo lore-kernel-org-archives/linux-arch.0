@@ -1,73 +1,52 @@
-From: David Rientjes <rientjes@google.com>
-Subject: Re: [patch 2/2] memcg: do not sleep on OOM waitqueue with full charge
- context
-Date: Tue, 11 Jun 2013 14:57:08 -0700 (PDT)
-Message-ID: <alpine.DEB.2.02.1306111454030.4803@chino.kir.corp.google.com>
-References: <1370488193-4747-1-git-send-email-hannes@cmpxchg.org> <1370488193-4747-2-git-send-email-hannes@cmpxchg.org> <alpine.DEB.2.02.1306052058340.25115@chino.kir.corp.google.com> <20130606053315.GB9406@cmpxchg.org> <20130606173355.GB27226@cmpxchg.org>
- <alpine.DEB.2.02.1306061308320.9493@chino.kir.corp.google.com> <20130606215425.GM15721@cmpxchg.org> <alpine.DEB.2.02.1306061507330.15503@chino.kir.corp.google.com> <20130607000222.GT15576@cmpxchg.org>
+From: Paul Gortmaker <paul.gortmaker@windriver.com>
+Subject: Re: Get rid of cpuinit?
+Date: Tue, 11 Jun 2013 20:31:55 -0400
+Message-ID: <CAP=VYLo047g+U3GJhkObJtNPubFNpHuGUJAF7oOh_7dPtSFd9A@mail.gmail.com>
+References: <519AA53F.1020107@zytor.com> <20130520231203.GA21682@kroah.com> <20130528092038.GC32068@gmail.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20130607000222.GT15576@cmpxchg.org>
-Sender: owner-linux-mm@kvack.org
-To: Johannes Weiner <hannes@cmpxchg.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.cz>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-oa0-f52.google.com ([209.85.219.52]:40493 "EHLO
+	mail-oa0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753444Ab3FLAcZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 11 Jun 2013 20:32:25 -0400
+In-Reply-To: <20130528092038.GC32068@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Greg KH <greg@kroah.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>
 
-On Thu, 6 Jun 2013, Johannes Weiner wrote:
+On Tue, May 28, 2013 at 5:20 AM, Ingo Molnar <mingo@kernel.org> wote:
+>
+> * Greg KH <greg@kroah.com> wrote:
+>
+>> On Mon, May 20, 2013 at 03:35:43PM -0700, H. Peter Anvin wrote:
+>> > We have gotten rid of devinit markup.  A recent patch of Linus' makes me
+>> > wonder if we similarly should get rid of cpuinit markup?
+>> >
+>> > Just as with devices, the CPU hotplug machinery has been leveraged to
+>> > support a number of pieces of functionality such as suspend, which means
+>> > that on anything but the most embedded systems this functionality is
+>> > likely needed anyway.
+>> >
+>> > On x86-64, for an "allyesconfig" build, the total amount of space in all
+>> > the .cpu* sections combined is 100K.
+>>
+>> No objection from me on removing it, it just causes problems from what I
+>> can tell.
+>
+> Indeed, there's a steady trickle of mis-annotated cpuinit sections, and no
+> real tooling to make the annotations automatic or so in most of the cases.
+> Manual simply does not seem to work in this case.
 
-> > Could you point me to those bug reports?  As far as I know, we have never 
-> > encountered them so it would be surprising to me that we're running with a 
-> > potential landmine and have seemingly never hit it.
-> 
-> Sure thing: https://lkml.org/lkml/2012/11/21/497
-> 
+Is anyone actively working on weeding this out?  If not, it is probably
+one of those tree-wide kind of changes that I can volunteer to tackle...
 
-Ok, I think I read most of it, although the lkml.org interface makes it 
-easy to miss some.
-
-> During that thread Michal pinned down the problem to i_mutex being
-> held by the OOM invoking task, which the selected victim is trying to
-> acquire.
-> 
-> > > > > Reported-by: Reported-by: azurIt <azurit@pobox.sk>
-
-Ok, so the key here is that azurIt was able to reliably reproduce this 
-issue and now it has been resurrected after seven months of silence since 
-that thread.  I also notice that azurIt isn't cc'd on this thread.  Do we 
-know if this is still a problem?
-
-We certainly haven't run into any memcg deadlocks like this.
-
-> > It certainly would, but it's not the point that memory.oom_delay_millisecs 
-> > was intended to address.  memory.oom_delay_millisecs would simply delay 
-> > calling mem_cgroup_out_of_memory() unless userspace can't free memory or 
-> > increase the memory limit in time.  Obviously that delay isn't going to 
-> > magically address any lock dependency issues.
-> 
-> The delayed fallback would certainly resolve the issue of the
-> userspace handler getting stuck, be it due to memory shortness or due
-> to locks.
-> 
-> However, it would not solve the part of the problem where the OOM
-> killing kernel task is holding locks that the victim requires to exit.
-> 
-
-Right.
-
-> We are definitely looking at multiple related issues, that's why I'm
-> trying to fix them step by step.
-> 
-
-I guess my question is why this would be addressed now when nobody has 
-reported it recently on any recent kernel and then not cc the person who 
-reported it?
-
-Can anybody, even with an instrumented kernel to make it more probable, 
-reproduce the issue this is addressing?
-
+Paul.
 --
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+
+>
+> Thanks,
+>
+>         Ingo
+> --
