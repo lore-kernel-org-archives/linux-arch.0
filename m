@@ -1,54 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out3-smtp.messagingengine.com ([66.111.4.27]:34686 "EHLO
-	out3-smtp.messagingengine.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1757646Ab3FLBE7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 11 Jun 2013 21:04:59 -0400
-Date: Tue, 11 Jun 2013 17:56:05 -0700
-From: Greg KH <greg@kroah.com>
-Subject: Re: Get rid of cpuinit?
-Message-ID: <20130612005605.GA7469@kroah.com>
-References: <519AA53F.1020107@zytor.com>
- <20130520231203.GA21682@kroah.com>
- <20130528092038.GC32068@gmail.com>
- <CAP=VYLo047g+U3GJhkObJtNPubFNpHuGUJAF7oOh_7dPtSFd9A@mail.gmail.com>
+Received: from mail-pa0-f46.google.com ([209.85.220.46]:49722 "EHLO
+	mail-pa0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757603Ab3FLCSB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 11 Jun 2013 22:18:01 -0400
+Message-ID: <51B7DA51.1000304@gmail.com>
+Date: Wed, 12 Jun 2013 10:17:53 +0800
+From: Jiang Liu <liuj97@gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAP=VYLo047g+U3GJhkObJtNPubFNpHuGUJAF7oOh_7dPtSFd9A@mail.gmail.com>
+Subject: Re: [PATCH v8, part3 10/14] mm: use a dedicated lock to protect totalram_pages
+ and zone->managed_pages
+References: <1369575522-26405-1-git-send-email-jiang.liu@huawei.com> <1369575522-26405-11-git-send-email-jiang.liu@huawei.com> <20130611130042.3dec2cc6737f21180bc09bb1@linux-foundation.org>
+In-Reply-To: <20130611130042.3dec2cc6737f21180bc09bb1@linux-foundation.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Gortmaker <paul.gortmaker@windriver.com>
-Cc: Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20130612005605.zsEPkfXd3FMrB9bTDgfpfZsblNo-Ttzw3xqRqJ6tnm0@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <james.bottomley@hansenpartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Michel Lespinasse <walken@google.com>, Rik van Riel <riel@redhat.com>
+Message-ID: <20130612021753.MYXkQBdceLKhMawLq9K107QBD5R75BC7jY5v5SxT90g@z>
 
-On Tue, Jun 11, 2013 at 08:31:55PM -0400, Paul Gortmaker wrote:
-> On Tue, May 28, 2013 at 5:20 AM, Ingo Molnar <mingo@kernel.org> wote:
-> >
-> > * Greg KH <greg@kroah.com> wrote:
-> >
-> >> On Mon, May 20, 2013 at 03:35:43PM -0700, H. Peter Anvin wrote:
-> >> > We have gotten rid of devinit markup.  A recent patch of Linus' makes me
-> >> > wonder if we similarly should get rid of cpuinit markup?
-> >> >
-> >> > Just as with devices, the CPU hotplug machinery has been leveraged to
-> >> > support a number of pieces of functionality such as suspend, which means
-> >> > that on anything but the most embedded systems this functionality is
-> >> > likely needed anyway.
-> >> >
-> >> > On x86-64, for an "allyesconfig" build, the total amount of space in all
-> >> > the .cpu* sections combined is 100K.
-> >>
-> >> No objection from me on removing it, it just causes problems from what I
-> >> can tell.
-> >
-> > Indeed, there's a steady trickle of mis-annotated cpuinit sections, and no
-> > real tooling to make the annotations automatic or so in most of the cases.
-> > Manual simply does not seem to work in this case.
-> 
-> Is anyone actively working on weeding this out?  If not, it is probably
-> one of those tree-wide kind of changes that I can volunteer to tackle...
+On Wed 12 Jun 2013 04:00:42 AM CST, Andrew Morton wrote:
+> On Sun, 26 May 2013 21:38:38 +0800 Jiang Liu <liuj97@gmail.com> wrote:
+>
+>> Currently lock_memory_hotplug()/unlock_memory_hotplug() are used to
+>> protect totalram_pages and zone->managed_pages. Other than the memory
+>> hotplug driver, totalram_pages and zone->managed_pages may also be
+>> modified at runtime by other drivers, such as Xen balloon,
+>> virtio_balloon etc. For those cases, memory hotplug lock is a little
+>> too heavy, so introduce a dedicated lock to protect totalram_pages
+>> and zone->managed_pages.
+>>
+>> Now we have a simplified locking rules totalram_pages and
+>> zone->managed_pages as:
+>> 1) no locking for read accesses because they are unsigned long.
+>> 2) no locking for write accesses at boot time in single-threaded context.
+>> 3) serialize write accesses at runtime by acquiring the dedicated
+>>    managed_page_count_lock.
+>>
+>> Also adjust zone->managed_pages when freeing reserved pages into the
+>> buddy system, to keep totalram_pages and zone->managed_pages in
+>> consistence.
+>>
+>> ...
+>>
+>> +void adjust_managed_page_count(struct page *page, long count)
+>> +{
+>> +	spin_lock(&managed_page_count_lock);
+>> +	page_zone(page)->managed_pages += count;
+>> +	totalram_pages += count;
+>> +	spin_unlock(&managed_page_count_lock);
+>> +}
+>> +EXPORT_SYMBOL(adjust_managed_page_count);
+>
+> This is exported to modules but there are no modular callers at this
+> time.
+>
+> I assume this was done for some forthcoming xen/virtio_balloon/etc
+> patches?  If so, it would be better to avoid adding the export until it
+> is actually needed.
+Hi Andrew,
+     adjust_managed_page_count() will be used by virtio_balloon and xen 
+balloon
+drivers. Grep mmots tree:
+drivers/virtio/virtio_balloon.c:		adjust_managed_page_count(page, -1);
+drivers/virtio/virtio_balloon.c:		adjust_managed_page_count(page, 1);
+drivers/xen/balloon.c:	adjust_managed_page_count(page, -1);
+drivers/xen/balloon.c:	adjust_managed_page_count(page, 1);
 
-I say go for it.
+So if we un-export it in part3, we need to export in part4 again.
+Regards!
+Gerry
 
-greg k-h
