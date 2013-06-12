@@ -1,35 +1,34 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] dma-mapping: Add BUG_ON for uninitialized dma_ops
-Date: Wed, 12 Jun 2013 17:06:39 +0200
-Message-ID: <201306121706.39368.arnd@arndb.de>
-References: <f35c5051a207b0a117f2fff27365d0ea892d1610.1370263476.git.michal.simek@xilinx.com> <51B703D7.8050804@samsung.com> <1370958858.2286.5.camel@dabdike>
+From: David Rientjes <rientjes-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
+Subject: Re: [patch 2/2] memcg: do not sleep on OOM waitqueue with full charge
+ context
+Date: Wed, 12 Jun 2013 13:12:09 -0700 (PDT)
+Message-ID: <alpine.DEB.2.02.1306121309500.23348@chino.kir.corp.google.com>
+References: <1370488193-4747-1-git-send-email-hannes@cmpxchg.org> <1370488193-4747-2-git-send-email-hannes@cmpxchg.org> <alpine.DEB.2.02.1306052058340.25115@chino.kir.corp.google.com> <20130606053315.GB9406@cmpxchg.org> <20130606173355.GB27226@cmpxchg.org>
+ <alpine.DEB.2.02.1306061308320.9493@chino.kir.corp.google.com> <20130606215425.GM15721@cmpxchg.org> <alpine.DEB.2.02.1306061507330.15503@chino.kir.corp.google.com> <20130607000222.GT15576@cmpxchg.org> <alpine.DEB.2.02.1306111454030.4803@chino.kir.corp.google.com>
+ <20130612082817.GA6706@dhcp22.suse.cz>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:58808 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751483Ab3FLPGp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Jun 2013 11:06:45 -0400
-In-Reply-To: <1370958858.2286.5.camel@dabdike>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@hansenpartnership.com>
-Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Bjorn Helgaas <bhelgaas@google.com>, Michal Simek <michal.simek@xilinx.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, Linux-Arch <linux-arch@vger.kernel.org>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <cgroups-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20130612082817.GA6706-2MMpYkNvuYDjFM9bn6wA6Q@public.gmane.org>
+Sender: cgroups-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Michal Hocko <mhocko-AlSwsSmVLrQ@public.gmane.org>
+Cc: Johannes Weiner <hannes-druUgvl0LCNAfugRpC6u6w@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, cgroups-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tuesday 11 June 2013, James Bottomley wrote:
-> Really, no, it's not a good idea at all.  It invites tons of patches
-> littering the code with BUG_ONs where we might possibly get a NULL
-> dereference.  All it does is add extra instructions to a code path for
-> no actual benefit.
+On Wed, 12 Jun 2013, Michal Hocko wrote:
+
+> > > > > > > Reported-by: Reported-by: azurIt <azurit-Rm0zKEqwvD4@public.gmane.org>
+> > 
+> > Ok, so the key here is that azurIt was able to reliably reproduce this 
+> > issue and now it has been resurrected after seven months of silence since 
+> > that thread.  I also notice that azurIt isn't cc'd on this thread.  Do we 
+> > know if this is still a problem?
 > 
-> If you can answer the question: what more information does the BUG_ON
-> give you than the NULL deref Oops would not? then it might be
-> reasonable.
+> I have backported the patch for his 3.2 and waiting for his feedback.
+> 
 
-The question is if a user can trigger the NULL dereference intentionally,
-in which case they might get the kernel to jump into a  user-provided
-buffer.
-
-	Arnd
+Ok, thanks.  I thought this was only going seven months back when it was 
+reported, I missed that the issue this patch is trying to address goes 
+back a 1 1/2 years to 3.2 and nobody else has reported it.  I think his 
+feedback would be the key, specifically if he can upgrade to a later 
+kernel first.
