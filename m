@@ -1,73 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f46.google.com ([209.85.220.46]:49722 "EHLO
-	mail-pa0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757603Ab3FLCSB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 11 Jun 2013 22:18:01 -0400
-Message-ID: <51B7DA51.1000304@gmail.com>
-Date: Wed, 12 Jun 2013 10:17:53 +0800
-From: Jiang Liu <liuj97@gmail.com>
+Received: from youngberry.canonical.com ([91.189.89.112]:42514 "EHLO
+	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755974Ab3FLHnt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Jun 2013 03:43:49 -0400
+Message-ID: <51B826B2.5000508@canonical.com>
+Date: Wed, 12 Jun 2013 09:43:46 +0200
+From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v8, part3 10/14] mm: use a dedicated lock to protect totalram_pages
- and zone->managed_pages
-References: <1369575522-26405-1-git-send-email-jiang.liu@huawei.com> <1369575522-26405-11-git-send-email-jiang.liu@huawei.com> <20130611130042.3dec2cc6737f21180bc09bb1@linux-foundation.org>
-In-Reply-To: <20130611130042.3dec2cc6737f21180bc09bb1@linux-foundation.org>
-Content-Type: text/plain; charset=UTF-8
+Subject: Re: [PATCH v4 0/4] add mutex wait/wound/style style locks
+References: <20130528144420.4538.70725.stgit@patser>
+In-Reply-To: <20130528144420.4538.70725.stgit@patser>
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, David Rientjes <rientjes@google.com>, Wen Congyang <wency@cn.fujitsu.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, James Bottomley <james.bottomley@hansenpartnership.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, David Howells <dhowells@redhat.com>, Mark Salter <msalter@redhat.com>, Jianguo Wu <wujianguo@huawei.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Michel Lespinasse <walken@google.com>, Rik van Riel <riel@redhat.com>
-Message-ID: <20130612021753.MYXkQBdceLKhMawLq9K107QBD5R75BC7jY5v5SxT90g@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, peterz@infradead.org, x86@kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robclark@gmail.com, rostedt@goodmis.org, tglx@linutronix.de, mingo@elte.hu, linux-media@vger.kernel.org
+Message-ID: <20130612074346.DNSMUlMswOCLcqtickB6TwS7WYnbiRSd2SKSWAYlEJY@z>
 
-On Wed 12 Jun 2013 04:00:42 AM CST, Andrew Morton wrote:
-> On Sun, 26 May 2013 21:38:38 +0800 Jiang Liu <liuj97@gmail.com> wrote:
+Op 28-05-13 16:48, Maarten Lankhorst schreef:
+> Version 4 already?
 >
->> Currently lock_memory_hotplug()/unlock_memory_hotplug() are used to
->> protect totalram_pages and zone->managed_pages. Other than the memory
->> hotplug driver, totalram_pages and zone->managed_pages may also be
->> modified at runtime by other drivers, such as Xen balloon,
->> virtio_balloon etc. For those cases, memory hotplug lock is a little
->> too heavy, so introduce a dedicated lock to protect totalram_pages
->> and zone->managed_pages.
->>
->> Now we have a simplified locking rules totalram_pages and
->> zone->managed_pages as:
->> 1) no locking for read accesses because they are unsigned long.
->> 2) no locking for write accesses at boot time in single-threaded context.
->> 3) serialize write accesses at runtime by acquiring the dedicated
->>    managed_page_count_lock.
->>
->> Also adjust zone->managed_pages when freeing reserved pages into the
->> buddy system, to keep totalram_pages and zone->managed_pages in
->> consistence.
->>
->> ...
->>
->> +void adjust_managed_page_count(struct page *page, long count)
->> +{
->> +	spin_lock(&managed_page_count_lock);
->> +	page_zone(page)->managed_pages += count;
->> +	totalram_pages += count;
->> +	spin_unlock(&managed_page_count_lock);
->> +}
->> +EXPORT_SYMBOL(adjust_managed_page_count);
+> Small api changes since v3:
+> - Remove ww_mutex_unlock_single and ww_mutex_lock_single.
+> - Rename ww_mutex_trylock_single to ww_mutex_trylock.
+> - Remove separate implementations of ww_mutex_lock_slow*, normal
+>   functions can be used. Inline versions still exist for extra
+>   debugging, and to annotate.
+> - Cleanup unneeded memory barriers, add comment to the remaining
+>   smp_mb().
 >
-> This is exported to modules but there are no modular callers at this
-> time.
+> Thanks to Daniel Vetter, Rob Clark and Peter Zijlstra for their feedback.
+> ---
 >
-> I assume this was done for some forthcoming xen/virtio_balloon/etc
-> patches?  If so, it would be better to avoid adding the export until it
-> is actually needed.
-Hi Andrew,
-     adjust_managed_page_count() will be used by virtio_balloon and xen 
-balloon
-drivers. Grep mmots tree:
-drivers/virtio/virtio_balloon.c:		adjust_managed_page_count(page, -1);
-drivers/virtio/virtio_balloon.c:		adjust_managed_page_count(page, 1);
-drivers/xen/balloon.c:	adjust_managed_page_count(page, -1);
-drivers/xen/balloon.c:	adjust_managed_page_count(page, 1);
-
-So if we un-export it in part3, we need to export in part4 again.
-Regards!
-Gerry
-
+> Daniel Vetter (1):
+>       mutex: w/w mutex slowpath debugging
+>
+> Maarten Lankhorst (3):
+>       arch: make __mutex_fastpath_lock_retval return whether fastpath succeeded or not.
+>       mutex: add support for wound/wait style locks, v5
+>       mutex: Add ww tests to lib/locking-selftest.c. v4
+>
+>
+>  Documentation/ww-mutex-design.txt |  344 +++++++++++++++++++++++++++++++
+>  arch/ia64/include/asm/mutex.h     |   10 -
+>  arch/powerpc/include/asm/mutex.h  |   10 -
+>  arch/sh/include/asm/mutex-llsc.h  |    4 
+>  arch/x86/include/asm/mutex_32.h   |   11 -
+>  arch/x86/include/asm/mutex_64.h   |   11 -
+>  include/asm-generic/mutex-dec.h   |   10 -
+>  include/asm-generic/mutex-null.h  |    2 
+>  include/asm-generic/mutex-xchg.h  |   10 -
+>  include/linux/mutex-debug.h       |    1 
+>  include/linux/mutex.h             |  363 +++++++++++++++++++++++++++++++++
+>  kernel/mutex.c                    |  384 ++++++++++++++++++++++++++++++++---
+>  lib/Kconfig.debug                 |   13 +
+>  lib/debug_locks.c                 |    2 
+>  lib/locking-selftest.c            |  410 +++++++++++++++++++++++++++++++++++--
+>  15 files changed, 1492 insertions(+), 93 deletions(-)
+>  create mode 100644 Documentation/ww-mutex-design.txt
+>
+Bump, do you have any feedback peterz?
