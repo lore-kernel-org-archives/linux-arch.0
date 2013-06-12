@@ -1,63 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from youngberry.canonical.com ([91.189.89.112]:42514 "EHLO
-	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755974Ab3FLHnt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Jun 2013 03:43:49 -0400
-Message-ID: <51B826B2.5000508@canonical.com>
-Date: Wed, 12 Jun 2013 09:43:46 +0200
-From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Received: from cantor2.suse.de ([195.135.220.15]:53212 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752011Ab3FLI2V (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 12 Jun 2013 04:28:21 -0400
+Date: Wed, 12 Jun 2013 10:28:17 +0200
+From: Michal Hocko <mhocko@suse.cz>
+Subject: Re: [patch 2/2] memcg: do not sleep on OOM waitqueue with full
+ charge context
+Message-ID: <20130612082817.GA6706@dhcp22.suse.cz>
+References: <1370488193-4747-1-git-send-email-hannes@cmpxchg.org>
+ <1370488193-4747-2-git-send-email-hannes@cmpxchg.org>
+ <alpine.DEB.2.02.1306052058340.25115@chino.kir.corp.google.com>
+ <20130606053315.GB9406@cmpxchg.org>
+ <20130606173355.GB27226@cmpxchg.org>
+ <alpine.DEB.2.02.1306061308320.9493@chino.kir.corp.google.com>
+ <20130606215425.GM15721@cmpxchg.org>
+ <alpine.DEB.2.02.1306061507330.15503@chino.kir.corp.google.com>
+ <20130607000222.GT15576@cmpxchg.org>
+ <alpine.DEB.2.02.1306111454030.4803@chino.kir.corp.google.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v4 0/4] add mutex wait/wound/style style locks
-References: <20130528144420.4538.70725.stgit@patser>
-In-Reply-To: <20130528144420.4538.70725.stgit@patser>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <alpine.DEB.2.02.1306111454030.4803@chino.kir.corp.google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, peterz@infradead.org, x86@kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robclark@gmail.com, rostedt@goodmis.org, tglx@linutronix.de, mingo@elte.hu, linux-media@vger.kernel.org
-Message-ID: <20130612074346.DNSMUlMswOCLcqtickB6TwS7WYnbiRSd2SKSWAYlEJY@z>
+To: David Rientjes <rientjes@google.com>
+Cc: Johannes Weiner <hannes@cmpxchg.org>, Andrew Morton <akpm@linux-foundation.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130612082817.EJvIKTlXDRjV5nqTgxeLKmBvxcVcnxbtiZtR7T1-iv4@z>
 
-Op 28-05-13 16:48, Maarten Lankhorst schreef:
-> Version 4 already?
->
-> Small api changes since v3:
-> - Remove ww_mutex_unlock_single and ww_mutex_lock_single.
-> - Rename ww_mutex_trylock_single to ww_mutex_trylock.
-> - Remove separate implementations of ww_mutex_lock_slow*, normal
->   functions can be used. Inline versions still exist for extra
->   debugging, and to annotate.
-> - Cleanup unneeded memory barriers, add comment to the remaining
->   smp_mb().
->
-> Thanks to Daniel Vetter, Rob Clark and Peter Zijlstra for their feedback.
-> ---
->
-> Daniel Vetter (1):
->       mutex: w/w mutex slowpath debugging
->
-> Maarten Lankhorst (3):
->       arch: make __mutex_fastpath_lock_retval return whether fastpath succeeded or not.
->       mutex: add support for wound/wait style locks, v5
->       mutex: Add ww tests to lib/locking-selftest.c. v4
->
->
->  Documentation/ww-mutex-design.txt |  344 +++++++++++++++++++++++++++++++
->  arch/ia64/include/asm/mutex.h     |   10 -
->  arch/powerpc/include/asm/mutex.h  |   10 -
->  arch/sh/include/asm/mutex-llsc.h  |    4 
->  arch/x86/include/asm/mutex_32.h   |   11 -
->  arch/x86/include/asm/mutex_64.h   |   11 -
->  include/asm-generic/mutex-dec.h   |   10 -
->  include/asm-generic/mutex-null.h  |    2 
->  include/asm-generic/mutex-xchg.h  |   10 -
->  include/linux/mutex-debug.h       |    1 
->  include/linux/mutex.h             |  363 +++++++++++++++++++++++++++++++++
->  kernel/mutex.c                    |  384 ++++++++++++++++++++++++++++++++---
->  lib/Kconfig.debug                 |   13 +
->  lib/debug_locks.c                 |    2 
->  lib/locking-selftest.c            |  410 +++++++++++++++++++++++++++++++++++--
->  15 files changed, 1492 insertions(+), 93 deletions(-)
->  create mode 100644 Documentation/ww-mutex-design.txt
->
-Bump, do you have any feedback peterz?
+On Tue 11-06-13 14:57:08, David Rientjes wrote:
+[...]
+> > > > > > Reported-by: Reported-by: azurIt <azurit@pobox.sk>
+> 
+> Ok, so the key here is that azurIt was able to reliably reproduce this 
+> issue and now it has been resurrected after seven months of silence since 
+> that thread.  I also notice that azurIt isn't cc'd on this thread.  Do we 
+> know if this is still a problem?
+
+I have backported the patch for his 3.2 and waiting for his feedback.
+
+[...]
+-- 
+Michal Hocko
+SUSE Labs
