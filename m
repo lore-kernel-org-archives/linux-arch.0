@@ -1,56 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:18592 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932071Ab3FMCom (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Jun 2013 22:44:42 -0400
-Message-ID: <51B931E7.5050406@asianux.com>
-Date: Thu, 13 Jun 2013 10:43:51 +0800
-From: Chen Gang <gang.chen@asianux.com>
+Received: from cantor2.suse.de ([195.135.220.15]:57134 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755601Ab3FMNs2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 13 Jun 2013 09:48:28 -0400
+Date: Thu, 13 Jun 2013 15:48:26 +0200
+From: Michal Hocko <mhocko@suse.cz>
+Subject: Re: [patch 2/2] memcg: do not sleep on OOM waitqueue with full
+ charge context
+Message-ID: <20130613134826.GE23070@dhcp22.suse.cz>
+References: <20130606173355.GB27226@cmpxchg.org>
+ <alpine.DEB.2.02.1306061308320.9493@chino.kir.corp.google.com>
+ <20130606215425.GM15721@cmpxchg.org>
+ <alpine.DEB.2.02.1306061507330.15503@chino.kir.corp.google.com>
+ <20130607000222.GT15576@cmpxchg.org>
+ <alpine.DEB.2.02.1306111454030.4803@chino.kir.corp.google.com>
+ <20130612082817.GA6706@dhcp22.suse.cz>
+ <alpine.DEB.2.02.1306121309500.23348@chino.kir.corp.google.com>
+ <20130612203705.GB17282@dhcp22.suse.cz>
+ <alpine.DEB.2.02.1306121343500.24902@chino.kir.corp.google.com>
 MIME-Version: 1.0
-Subject: Re: [Suggestion] arch/*/include/asm/bitops.h: about __set_bit() API.
-References: <51B30285.6020503@asianux.com> <CA+8MBbK_nfOhZGsd5wU-hyiwh3pHS5c42eiBfxLpCjDgBKUqJg@mail.gmail.com> <CAMuHMdWVx79L=ErRkNMide6xNqQt1RQr0psN8nqoADeV0h768A@mail.gmail.com>
-In-Reply-To: <CAMuHMdWVx79L=ErRkNMide6xNqQt1RQr0psN8nqoADeV0h768A@mail.gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <alpine.DEB.2.02.1306121343500.24902@chino.kir.corp.google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Tony Luck <tony.luck@gmail.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "dhowells@redhat.com" <dhowells@redhat.com>, "Yu, Fenghua" <fenghua.yu@intel.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, alpha <linux-alpha@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-am33-list@redhat.com, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20130613024351.vxoDOtJCUDWM1WrKrfr7jDHn-inY2T1Wz2K2leDoOy8@z>
+To: David Rientjes <rientjes@google.com>
+Cc: Johannes Weiner <hannes@cmpxchg.org>, Andrew Morton <akpm@linux-foundation.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130613134826.uVaDvTK2NPr2ccoPOxZe8bKANG1DqvCo59xf2i05kGU@z>
 
-On 06/11/2013 03:32 PM, Geert Uytterhoeven wrote:
-> On Tue, Jun 11, 2013 at 12:26 AM, Tony Luck <tony.luck@gmail.com> wrote:
->> > On Sat, Jun 8, 2013 at 3:08 AM, Chen Gang <gang.chen@asianux.com> wrote:
->>> >> using 'unsigned int *', implicitly:
->>> >>   ./ia64/include/asm/bitops.h:63:__set_bit (int nr, volatile void *addr)
->> >
->> > There is some downside on ia64 to your suggestion.  If "addr" is properly
->> > aligned for an "int", but misaligned for a long ... i.e. addr%8 == 4, then I'll
->> > take an unaligned reference trap if I work with long* where the current code
->> > working with int* does not.
->> >
->> > Now perhaps all the callers do guarantee long* alignment?  But I don't know.
->> >
->> > Apart from uniformity, there doesn't see to be any upside to changing this.
-> The address pointers have been supposed to be "long *" for a very long time.
-> Probably alpha (the second official Linux platform) did it
-> differently, and never
-> standardized to "long *".
+On Wed 12-06-13 13:49:47, David Rientjes wrote:
+> On Wed, 12 Jun 2013, Michal Hocko wrote:
+> 
+> > The patch is a big improvement with a minimum code overhead. Blocking
+> > any task which sits on top of an unpredictable amount of locks is just
+> > broken. So regardless how many users are affected we should merge it and
+> > backport to stable trees. The problem is there since ever. We seem to
+> > be surprisingly lucky to not hit this more often.
+> > 
+> 
+> Right now it appears that that number of users is 0 and we're talking 
+> about a problem that was reported in 3.2 that was released a year and a 
+> half ago.  The rules of inclusion in stable also prohibit such a change 
+> from being backported, specifically "It must fix a real bug that bothers 
+> people (not a, "This could be a problem..." type thing)".
 
-Excuse me, I am not quite familiar with the details, but I guess, it is
-about functional feature issues, not (or not only) about bug issues.
+As you can see there is an user seeing this in 3.2. The bug is _real_ and
+I do not see what you are objecting against. Do you really think that
+sitting on a time bomb is preferred more?
 
-For the architectures which can fully support 64-bit OS, excluding ia64
-and alpha, all of them can support setting 64 bits (from 0 to 63) under
-64-bit machine.
+> We have deployed memcg on a very large number of machines and I can run a 
+> query over all software watchdog timeouts that have occurred by 
+> deadlocking on i_mutex during memcg oom.  It returns 0 results.
 
-I am not quite sure whether any sub-systems have already set higher bit
-(> 31) under 64-bit machine, but in the future, it seems they could (at
-least our API supposed so).
+Do you capture /prc/<pid>/stack for each of them to find that your
+deadlock (and you have reported that they happen) was in fact caused by
+a locking issue? These kind of deadlocks might got unnoticed especially
+when the oom is handled by userspace by increasing the limit (my mmecg
+is stuck and increasing the limit a bit always helped).
 
+> > I am not quite sure I understand your reservation about the patch to be
+> > honest. Andrew still hasn't merged this one although 1/2 is in.
+> 
+> Perhaps he is as unconvinced?  The patch adds 100 lines of code, including 
+> fields to task_struct for memcg, for a problem that nobody can reproduce.  
+> My question still stands: can anybody, even with an instrumented kernel to 
+> make it more probable, reproduce the issue this is addressing?
 
-Thanks.
+So the referenced discussion is not sufficient?
+
 -- 
-Chen Gang
-
-Asianux Corporation
+Michal Hocko
+SUSE Labs
