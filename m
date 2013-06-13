@@ -1,33 +1,36 @@
 From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH] arch: asm-geniric: for atomic_set_mask() 1st param, use
- 'unsigned int' instead of 'unsigned long'
-Date: Thu, 13 Jun 2013 09:47:26 +0800
-Message-ID: <51B924AE.40103@asianux.com>
-References: <51B2E262.3030603@asianux.com> <CAErSpo5pg0EvJOR9nn3B0d+q0o6zsdwzM41AQx=AHfynRqX3hQ@mail.gmail.com> <51B3DFCF.1010509@asianux.com> <CAErSpo57_4SnE0_UwNvRc-M2+JvHmpiYTpQE2rAFUXuBEopvFA@mail.gmail.com>
+Subject: Re: [Suggestion] arch/*/include/asm/bitops.h: about __set_bit() API.
+Date: Thu, 13 Jun 2013 10:30:33 +0800
+Message-ID: <51B92EC9.3050003@asianux.com>
+References: <51B30285.6020503@asianux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=GB2312
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAErSpo57_4SnE0_UwNvRc-M2+JvHmpiYTpQE2rAFUXuBEopvFA@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Mike Frysinger <vapier@gentoo.org>, takata@linux-m32r.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, realmz paranoid <realmz6@gmail.com>, linux390@de.ibm.com, "uclinux-dist-devel@blackfin.uclinux.org" <uclinux-dist-devel@blackfin.uclinux.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, linux-s390@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from intranet.asianux.com ([58.214.24.6]:23441 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756600Ab3FMCbX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Jun 2013 22:31:23 -0400
+In-Reply-To: <51B30285.6020503@asianux.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, "dhowells@redhat.com" <dhowells@redhat.com>, tony.luck@intel.com, fenghua.yu@intel.com, yasutake.koichi@jp.panasonic.com
+Cc: linux-alpha@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-ia64@vger.kernel.org, linux-am33-list@redhat.com, Linux-Arch <linux-arch@vger.kernel.org>
 
-On 06/11/2013 01:00 AM, Bjorn Helgaas wrote:
-> On Sat, Jun 8, 2013 at 7:52 PM, Chen Gang <gang.chen@asianux.com> wrote:
->> > On 06/09/2013 01:49 AM, Bjorn Helgaas wrote:
->>> >> s/geniric/generic/ in subject
->>> >>
->> >
->> > Could you provide more details information ?
-> In your subject line, "geniric" is spelled incorrectly.  The correct
-> spelling is "generic."
+On 06/08/2013 06:08 PM, Chen Gang wrote:
+> Several architectures have different __set_bit() API to others, in
+> standard API, 2nd param of __set_bit() is 'unsigned long *', but:
 > 
-> 
+>   in 'min10300', it is 'unsigned char *',
+
+Oh, it is my fault, for 'mn10300' it is no issue, it is not 'unsigned
+char *' (it is a generic one which can match any type).
+
+Also 'min10300' --> 'mn10300'.
+
+
 
 Thanks.
-
 -- 
 Chen Gang
 
