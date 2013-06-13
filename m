@@ -1,50 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f181.google.com ([209.85.192.181]:61853 "EHLO
-	mail-pd0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757995Ab3FLUtu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Jun 2013 16:49:50 -0400
-Received: by mail-pd0-f181.google.com with SMTP id 14so7883452pdj.12
-        for <linux-arch@vger.kernel.org>; Wed, 12 Jun 2013 13:49:49 -0700 (PDT)
-Date: Wed, 12 Jun 2013 13:49:47 -0700 (PDT)
-From: David Rientjes <rientjes@google.com>
-Subject: Re: [patch 2/2] memcg: do not sleep on OOM waitqueue with full charge
- context
-In-Reply-To: <20130612203705.GB17282@dhcp22.suse.cz>
-Message-ID: <alpine.DEB.2.02.1306121343500.24902@chino.kir.corp.google.com>
-References: <alpine.DEB.2.02.1306052058340.25115@chino.kir.corp.google.com> <20130606053315.GB9406@cmpxchg.org> <20130606173355.GB27226@cmpxchg.org> <alpine.DEB.2.02.1306061308320.9493@chino.kir.corp.google.com> <20130606215425.GM15721@cmpxchg.org>
- <alpine.DEB.2.02.1306061507330.15503@chino.kir.corp.google.com> <20130607000222.GT15576@cmpxchg.org> <alpine.DEB.2.02.1306111454030.4803@chino.kir.corp.google.com> <20130612082817.GA6706@dhcp22.suse.cz> <alpine.DEB.2.02.1306121309500.23348@chino.kir.corp.google.com>
- <20130612203705.GB17282@dhcp22.suse.cz>
+Received: from intranet.asianux.com ([58.214.24.6]:50116 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932332Ab3FMBsQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Jun 2013 21:48:16 -0400
+Message-ID: <51B924AE.40103@asianux.com>
+Date: Thu, 13 Jun 2013 09:47:26 +0800
+From: Chen Gang <gang.chen@asianux.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Subject: Re: [PATCH] arch: asm-geniric: for atomic_set_mask() 1st param, use
+ 'unsigned int' instead of 'unsigned long'
+References: <51B2E262.3030603@asianux.com> <CAErSpo5pg0EvJOR9nn3B0d+q0o6zsdwzM41AQx=AHfynRqX3hQ@mail.gmail.com> <51B3DFCF.1010509@asianux.com> <CAErSpo57_4SnE0_UwNvRc-M2+JvHmpiYTpQE2rAFUXuBEopvFA@mail.gmail.com>
+In-Reply-To: <CAErSpo57_4SnE0_UwNvRc-M2+JvHmpiYTpQE2rAFUXuBEopvFA@mail.gmail.com>
+Content-Type: text/plain; charset=GB2312
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@suse.cz>
-Cc: Johannes Weiner <hannes@cmpxchg.org>, Andrew Morton <akpm@linux-foundation.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130612204947.1WVTy5xv3BF727MUaYK53pkdp9sDEw5lXOz963bPl2o@z>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Mike Frysinger <vapier@gentoo.org>, takata@linux-m32r.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, realmz paranoid <realmz6@gmail.com>, linux390@de.ibm.com, "uclinux-dist-devel@blackfin.uclinux.org" <uclinux-dist-devel@blackfin.uclinux.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, linux-s390@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20130613014726.lnYnv5HCdiGHvX0_xAGL54JQDHwicr9corWis2DfGXs@z>
 
-On Wed, 12 Jun 2013, Michal Hocko wrote:
-
-> The patch is a big improvement with a minimum code overhead. Blocking
-> any task which sits on top of an unpredictable amount of locks is just
-> broken. So regardless how many users are affected we should merge it and
-> backport to stable trees. The problem is there since ever. We seem to
-> be surprisingly lucky to not hit this more often.
+On 06/11/2013 01:00 AM, Bjorn Helgaas wrote:
+> On Sat, Jun 8, 2013 at 7:52 PM, Chen Gang <gang.chen@asianux.com> wrote:
+>> > On 06/09/2013 01:49 AM, Bjorn Helgaas wrote:
+>>> >> s/geniric/generic/ in subject
+>>> >>
+>> >
+>> > Could you provide more details information ?
+> In your subject line, "geniric" is spelled incorrectly.  The correct
+> spelling is "generic."
+> 
 > 
 
-Right now it appears that that number of users is 0 and we're talking 
-about a problem that was reported in 3.2 that was released a year and a 
-half ago.  The rules of inclusion in stable also prohibit such a change 
-from being backported, specifically "It must fix a real bug that bothers 
-people (not a, "This could be a problem..." type thing)".
+Thanks.
 
-We have deployed memcg on a very large number of machines and I can run a 
-query over all software watchdog timeouts that have occurred by 
-deadlocking on i_mutex during memcg oom.  It returns 0 results.
+-- 
+Chen Gang
 
-> I am not quite sure I understand your reservation about the patch to be
-> honest. Andrew still hasn't merged this one although 1/2 is in.
-
-Perhaps he is as unconvinced?  The patch adds 100 lines of code, including 
-fields to task_struct for memcg, for a problem that nobody can reproduce.  
-My question still stands: can anybody, even with an instrumented kernel to 
-make it more probable, reproduce the issue this is addressing?
+Asianux Corporation
