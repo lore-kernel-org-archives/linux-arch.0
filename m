@@ -1,51 +1,45 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [Suggestion] arch/*/include/asm/bitops.h: about __set_bit() API.
-Date: Thu, 13 Jun 2013 10:43:51 +0800
-Message-ID: <51B931E7.5050406@asianux.com>
-References: <51B30285.6020503@asianux.com> <CA+8MBbK_nfOhZGsd5wU-hyiwh3pHS5c42eiBfxLpCjDgBKUqJg@mail.gmail.com> <CAMuHMdWVx79L=ErRkNMide6xNqQt1RQr0psN8nqoADeV0h768A@mail.gmail.com>
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: Re: [PATCH] dma-mapping: Add BUG_ON for uninitialized dma_ops
+Date: Thu, 13 Jun 2013 10:51:30 +0200
+Message-ID: <51B98812.80201@samsung.com>
+References: <f35c5051a207b0a117f2fff27365d0ea892d1610.1370263476.git.michal.simek@xilinx.com>
+ <51B703D7.8050804@samsung.com> <1370958858.2286.5.camel@dabdike>
+ <201306121706.39368.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAMuHMdWVx79L=ErRkNMide6xNqQt1RQr0psN8nqoADeV0h768A@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Tony Luck <tony.luck@gmail.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, "dhowells@redhat.com" <dhowells@redhat.com>, "Yu, Fenghua" <fenghua.yu@intel.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, alpha <linux-alpha@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-am33-list@redhat.com, Linux-Arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
-
-On 06/11/2013 03:32 PM, Geert Uytterhoeven wrote:
-> On Tue, Jun 11, 2013 at 12:26 AM, Tony Luck <tony.luck@gmail.com> wrote:
->> > On Sat, Jun 8, 2013 at 3:08 AM, Chen Gang <gang.chen@asianux.com> wrote:
->>> >> using 'unsigned int *', implicitly:
->>> >>   ./ia64/include/asm/bitops.h:63:__set_bit (int nr, volatile void *addr)
->> >
->> > There is some downside on ia64 to your suggestion.  If "addr" is properly
->> > aligned for an "int", but misaligned for a long ... i.e. addr%8 == 4, then I'll
->> > take an unaligned reference trap if I work with long* where the current code
->> > working with int* does not.
->> >
->> > Now perhaps all the callers do guarantee long* alignment?  But I don't know.
->> >
->> > Apart from uniformity, there doesn't see to be any upside to changing this.
-> The address pointers have been supposed to be "long *" for a very long time.
-> Probably alpha (the second official Linux platform) did it
-> differently, and never
-> standardized to "long *".
-
-Excuse me, I am not quite familiar with the details, but I guess, it is
-about functional feature issues, not (or not only) about bug issues.
-
-For the architectures which can fully support 64-bit OS, excluding ia64
-and alpha, all of them can support setting 64 bits (from 0 to 63) under
-64-bit machine.
-
-I am not quite sure whether any sub-systems have already set higher bit
-(> 31) under 64-bit machine, but in the future, it seems they could (at
-least our API supposed so).
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mailout3.w1.samsung.com ([210.118.77.13]:42634 "EHLO
+	mailout3.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756168Ab3FMIve (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 Jun 2013 04:51:34 -0400
+In-reply-to: <201306121706.39368.arnd@arndb.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: James Bottomley <James.Bottomley@hansenpartnership.com>, Bjorn Helgaas <bhelgaas@google.com>, Michal Simek <michal.simek@xilinx.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, Linux-Arch <linux-arch@vger.kernel.org>
 
 
-Thanks.
+On 6/12/2013 5:06 PM, Arnd Bergmann wrote:
+> On Tuesday 11 June 2013, James Bottomley wrote:
+> > Really, no, it's not a good idea at all.  It invites tons of patches
+> > littering the code with BUG_ONs where we might possibly get a NULL
+> > dereference.  All it does is add extra instructions to a code path for
+> > no actual benefit.
+> >
+> > If you can answer the question: what more information does the BUG_ON
+> > give you than the NULL deref Oops would not? then it might be
+> > reasonable.
+>
+> The question is if a user can trigger the NULL dereference intentionally,
+> in which case they might get the kernel to jump into a  user-provided
+> buffer.
+
+I don't any possibility for userspace to alter the ops pointer, so if you
+think that BUG_ON() approach causes additional overhead then I'm fine to
+remove it.
+
+Best regards
 -- 
-Chen Gang
-
-Asianux Corporation
+Marek Szyprowski
+Samsung R&D Institute Poland
