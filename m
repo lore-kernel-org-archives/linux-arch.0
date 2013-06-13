@@ -1,29 +1,52 @@
 From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH v2] arm64: kernel: compiling issue, need delete read_current_timer().
-Date: Thu, 13 Jun 2013 09:13:45 +0800
-Message-ID: <51B91CC9.3050707@asianux.com>
-References: <5199C725.8050102@asianux.com> <168084c28e8ba5124c05553e97463172@localhost> <20130520095606.GH31359@mudshark.cambridge.arm.com> <519AF2DC.2040200@asianux.com> <20130521085325.GB10453@mudshark.cambridge.arm.com> <519B425D.4030806@asianux.com> <51A32F40.1050309@asianux.com> <51B2B50A.1050305@asianux.com> <51B594F2.9030000@arm.com>
+Subject: Re: [PATCH v2] arch: asm-generic: for atomic_set_mask() 1st param,
+ use 'unsigned int' instead of 'unsigned long'
+Date: Thu, 13 Jun 2013 09:19:46 +0800
+Message-ID: <51B91E32.2040502@asianux.com>
+References: <51B2E262.3030603@asianux.com> <CAErSpo5pg0EvJOR9nn3B0d+q0o6zsdwzM41AQx=AHfynRqX3hQ@mail.gmail.com> <51B4214E.6090007@asianux.com> <20130610092106.GA4697@osiris>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=GB2312
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:6075 "EHLO
+Received: from intranet.asianux.com ([58.214.24.6]:53455 "EHLO
 	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755972Ab3FMBOe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Jun 2013 21:14:34 -0400
-In-Reply-To: <51B594F2.9030000@arm.com>
+	with ESMTP id S1756833Ab3FMBUg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Jun 2013 21:20:36 -0400
+In-Reply-To: <20130610092106.GA4697@osiris>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marc Zyngier <marc.zyngier@arm.com>
-Cc: Will Deacon <Will.Deacon@arm.com>, Catalin Marinas <Catalin.Marinas@arm.com>, Santosh Shilimkar <santosh.shilimkar@ti.com>, Tony Lindgren <tony@atomide.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Mike Frysinger <vapier@gentoo.org>, takata@linux-m32r.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, realmz paranoid <realmz6@gmail.com>, linux390@de.ibm.com, "uclinux-dist-devel@blackfin.uclinux.org" <uclinux-dist-devel@blackfin.uclinux.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, linux-s390@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Marc Gauthier <Marc.Gauthier@tensilica.com>
 
-On 06/10/2013 04:57 PM, Marc Zyngier wrote:
-> Sorry for the delay replying. This looks good to me.
+On 06/10/2013 05:21 PM, Heiko Carstens wrote:
+> On Sun, Jun 09, 2013 at 02:31:42PM +0800, Chen Gang wrote:
+>> > 
+>> > atomic_set_mask() and atomic_clear_mask() are the pairs, so the related
+>> > parameters' type need match with each other.
+>> > 
+>> > The type of 'addr->counter' is 'int', so use 'unsigned int' instead
+>> > of 'unsigned long', and let atomic_set_mask() match atomic_clear_mask().
+>> > 
+>> > 
+>> > For arch sub-system, currently, have 3 types of definition for them:
+>> > 1st for 'int', 2nd for 'long', 3rd is conflict to use 'int' and 'long'.
+>> > 
+>> > At least, better to fix 3rd (conflict using 'int' and 'long').
+>> > 
+>> > Signed-off-by: Chen Gang <gang.chen@asianux.com>
+>> > ---
+>> >  arch/blackfin/include/asm/atomic.h |    4 ++--
+>> >  arch/m32r/include/asm/atomic.h     |    8 ++++----
+>> >  arch/s390/include/asm/atomic.h     |    4 ++--
+>> >  include/asm-generic/atomic.h       |    2 +-
+>> >  4 files changed, 9 insertions(+), 9 deletions(-)
+> For the s390 part:
 > 
-> FWIW:
-> Acked-by: Marc Zyngier <marc.zyngier@arm.com>
+> Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+> 
 
-Thanks, also sorry for my delay replying.
+Thank you very much !!
+
 
 -- 
 Chen Gang
