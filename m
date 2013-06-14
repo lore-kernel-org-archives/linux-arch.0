@@ -1,66 +1,85 @@
-From: "Wang, Yalin" <Yalin.Wang@sonymobile.com>
-Subject: RE: A bug about system call on ARM
-Date: Fri, 14 Jun 2013 14:53:14 +0800
-Message-ID: <35FD53F367049845BC99AC72306C23D17B08729316@CNBJMBX05.corpusers.net>
-References: <35FD53F367049845BC99AC72306C23D1610991B865@CNBJMBX05.corpusers.net>
- <35FD53F367049845BC99AC72306C23D1610991B866@CNBJMBX05.corpusers.net>
- <20130530090949.GC7483@mudshark.cambridge.arm.com>
- <20130530114112.GH7483@mudshark.cambridge.arm.com>
- <35FD53F367049845BC99AC72306C23D1610991B86D@CNBJMBX05.corpusers.net>
- <20130531084638.GB4928@mudshark.cambridge.arm.com>
- <35FD53F367049845BC99AC72306C23D1610991B874@CNBJMBX05.corpusers.net>
- <20130531111305.GI4928@mudshark.cambridge.arm.com>
- <35FD53F367049845BC99AC72306C23D1610991B876@CNBJMBX05.corpusers.net>
- <35FD53F367049845BC99AC72306C23D1610991B87B@CNBJMBX05.corpusers.net>
- <20130603095425.GA32242@mudshark.cambridge.arm.com>
+From: Michal Hocko <mhocko@suse.cz>
+Subject: Re: [patch 2/2] memcg: do not sleep on OOM waitqueue with full
+ charge context
+Date: Fri, 14 Jun 2013 11:29:12 +0200
+Message-ID: <20130614092912.GA10084@dhcp22.suse.cz>
+References: <20130606215425.GM15721@cmpxchg.org>
+ <alpine.DEB.2.02.1306061507330.15503@chino.kir.corp.google.com>
+ <20130607000222.GT15576@cmpxchg.org>
+ <alpine.DEB.2.02.1306111454030.4803@chino.kir.corp.google.com>
+ <20130612082817.GA6706@dhcp22.suse.cz>
+ <alpine.DEB.2.02.1306121309500.23348@chino.kir.corp.google.com>
+ <20130612203705.GB17282@dhcp22.suse.cz>
+ <alpine.DEB.2.02.1306121343500.24902@chino.kir.corp.google.com>
+ <20130613134826.GE23070@dhcp22.suse.cz>
+ <alpine.DEB.2.02.1306131330170.8686@chino.kir.corp.google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cnbjrel02.sonyericsson.com ([219.141.167.166]:19893 "EHLO
-	cnbjrel02.sonyericsson.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751621Ab3FNGxU convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 14 Jun 2013 02:53:20 -0400
-In-Reply-To: <20130603095425.GA32242@mudshark.cambridge.arm.com>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: 'Will Deacon' <will.deacon@arm.com>
-Cc: 'richard -rw- weinberger' <richard.weinberger@gmail.com>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'linux-arm-kernel@lists.infradead.org'" <linux-arm-kernel@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <alpine.DEB.2.02.1306131330170.8686@chino.kir.corp.google.com>
+Sender: owner-linux-mm@kvack.org
+To: David Rientjes <rientjes@google.com>
+Cc: Johannes Weiner <hannes@cmpxchg.org>, Andrew Morton <akpm@linux-foundation.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Hi Will,
-
-We have tested the patch,
-It seems ok in the stability test .
-
-We have merged it into our main branch .
-
-Thanks for your patch !
-
------Original Message-----
-From: Will Deacon [mailto:will.deacon@arm.com] 
-Sent: Monday, June 03, 2013 5:54 PM
-To: Wang, Yalin
-Cc: 'richard -rw- weinberger'; 'linux-arch@vger.kernel.org'; 'linux-kernel@vger.kernel.org'; 'linux-arm-kernel@lists.infradead.org'
-Subject: Re: A bug about system call on ARM
-
-On Mon, Jun 03, 2013 at 06:25:26AM +0100, Wang, Yalin wrote:
-> Hi  Will,
+On Thu 13-06-13 13:34:46, David Rientjes wrote:
+> On Thu, 13 Jun 2013, Michal Hocko wrote:
 > 
-> I have a question about this patch .
+> > > Right now it appears that that number of users is 0 and we're talking 
+> > > about a problem that was reported in 3.2 that was released a year and a 
+> > > half ago.  The rules of inclusion in stable also prohibit such a change 
+> > > from being backported, specifically "It must fix a real bug that bothers 
+> > > people (not a, "This could be a problem..." type thing)".
+> > 
+> > As you can see there is an user seeing this in 3.2. The bug is _real_ and
+> > I do not see what you are objecting against. Do you really think that
+> > sitting on a time bomb is preferred more?
+> > 
 > 
-> If the user space is thumb mode,
-> The PC should be rewind by 2 bytes,
-> So the fix_up code should be
-> 
-> Sub lr, lr, #2 .
-> 
-> 
-> Am I right ?
+> Nobody has reported the problem in seven months.  You're patching a kernel 
+> that's 18 months old.  Your "user" hasn't even bothered to respond to your 
+> backport. 
+>
+> This isn't a timebomb.
 
-No, because we don't have OABI-compat support for Thumb applications and force everything down the EABI path instead.
+Doh. This is getting ridiculous! So you are claiming that oom blocking
+while the task might be sitting on an unpredictable amount of locks
+which could block oom victims to die is OK? I would consider it a _bug_
+and I am definitely backporting it to our kernel which is 3.0 based
+whether it end up in the stable or not.
 
-Did you manage to test the patch?
+Whether this is a general stable material I will leave for others (I
+would be voting for it because it definitely makes sense). The real
+regardless how many users suffer from it. The stable-or-not discussion
+shouldn't delay the fix for the current tree though. Or do you disagree
+with the patch itself?
 
-Will
+> > > We have deployed memcg on a very large number of machines and I can run a 
+> > > query over all software watchdog timeouts that have occurred by 
+> > > deadlocking on i_mutex during memcg oom.  It returns 0 results.
+> > 
+> > Do you capture /prc/<pid>/stack for each of them to find that your
+> > deadlock (and you have reported that they happen) was in fact caused by
+> > a locking issue? These kind of deadlocks might got unnoticed especially
+> > when the oom is handled by userspace by increasing the limit (my mmecg
+> > is stuck and increasing the limit a bit always helped).
+> > 
+> 
+> We dump stack traces for every thread on the system to the kernel log for 
+> a software watchdog timeout and capture it over the network for searching 
+> later.  We have not experienced any deadlock that even remotely resembles 
+> the stack traces in the chnagelog.  We do not reproduce this issue.
+
+OK. This could really rule it out for you. The analysis is not really
+trivial because locks might be hidden nicely but having the data is
+definitely useful.
+-- 
+Michal Hocko
+SUSE Labs
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
