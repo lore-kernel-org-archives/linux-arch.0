@@ -1,20 +1,30 @@
-From: Sec Capital Loan <sri_sunarjono@ums.ac.id>
-Subject: Quick Loans
-Date: Mon, 17 Jun 2013 12:46:44 +0700 (WIT)
-Message-ID: <151155211.738078.1371448004577.JavaMail.root__3697.16976206309$1371452511$gmane$org@ums.ac.id>
-Reply-To: Sec Capital Loan <seccapittals@mit.tc>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH v5] arm: Preserve the user r/w register TPIDRURW on
+	context switch and fork
+Date: Mon, 17 Jun 2013 09:26:03 +0100
+Message-ID: <20130617082603.GA2718@n2100.arm.linux.org.uk>
+References: <519D32E2.5050102@dawncrow.de> <51B22F01.3030905@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 96.subnet222-124-208.astinet.telkom.net.id ([222.124.208.96]:46018
-	"EHLO mail.ums.ac.id" rhost-flags-OK-FAIL-OK-OK) by vger.kernel.org
-	with ESMTP id S932144Ab3FQHBe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Jun 2013 03:01:34 -0400
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:43003 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932309Ab3FQI0U (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Jun 2013 04:26:20 -0400
+Content-Disposition: inline
+In-Reply-To: <51B22F01.3030905@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Jonathan Austin <jonathan.austin@arm.com>
+Cc: =?iso-8859-1?Q?Andr=E9?= Hentschel <nerv@dawncrow.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, Will Deacon <Will.Deacon@arm.com>
 
-Do you need a personal or business loan without stress and quick approval? If yes, contact us today as we are currently offering loans at superb interest rate. Our loan is secured and safe,For more information and Application, Please reply to this Email.
+On Fri, Jun 07, 2013 at 08:05:37PM +0100, Jonathan Austin wrote:
+> The next step is to put it in to Russell's patch system. This is the way  
+> Russell manages (small/non-pull-request) things that need to go in to  
+> his tree.
 
-Sincerely,
-Vijay Nath
+And I'm going to drop this patch:
+
+arch/arm/kernel/entry-armv.S:692: Error: selected processor does not support ARM mode `ldrd r4,r5,[r2,#96]'
+
+LDRD is not supported on all the CPUs we have...
