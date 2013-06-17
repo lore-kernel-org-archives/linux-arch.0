@@ -1,30 +1,20 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [PATCH v5] arm: Preserve the user r/w register TPIDRURW on
-	context switch and fork
-Date: Mon, 17 Jun 2013 09:26:03 +0100
-Message-ID: <20130617082603.GA2718@n2100.arm.linux.org.uk>
-References: <519D32E2.5050102@dawncrow.de> <51B22F01.3030905@arm.com>
+From: Sec Capital Loan <alucero@ciudaddemendoza.gov.ar>
+Subject: Quick Loans
+Date: Mon, 17 Jun 2013 07:58:05 -0300 (ART)
+Message-ID: <1488474810.142860.1371466685027.JavaMail.root@ciudaddemendoza.gov.ar>
+Reply-To: Sec Capital Loan <seccapittals@mit.tc>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:43003 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932309Ab3FQI0U (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Jun 2013 04:26:20 -0400
-Content-Disposition: inline
-In-Reply-To: <51B22F01.3030905@arm.com>
+Received: from mail.ciudaddemendoza.gov.ar ([190.15.203.77]:38276 "EHLO
+	ciudaddemendoza.gov.ar" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932390Ab3FQLfb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Jun 2013 07:35:31 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jonathan Austin <jonathan.austin@arm.com>
-Cc: =?iso-8859-1?Q?Andr=E9?= Hentschel <nerv@dawncrow.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, Will Deacon <Will.Deacon@arm.com>
 
-On Fri, Jun 07, 2013 at 08:05:37PM +0100, Jonathan Austin wrote:
-> The next step is to put it in to Russell's patch system. This is the way  
-> Russell manages (small/non-pull-request) things that need to go in to  
-> his tree.
+Do you need a personal or business loan without stress and quick approval? If yes, contact us today as we are currently offering loans at superb interest rate. Our loan is secured and safe,For more information and Application, Please reply to this Email.
 
-And I'm going to drop this patch:
-
-arch/arm/kernel/entry-armv.S:692: Error: selected processor does not support ARM mode `ldrd r4,r5,[r2,#96]'
-
-LDRD is not supported on all the CPUs we have...
+Sincerely,
+Vijay Nath
