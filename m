@@ -1,29 +1,22 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH] arch: blackfin: kernel: sprintf(), need avoid NUL for
- '%s'
-Date: Mon, 17 Jun 2013 09:13:25 +0800
-Message-ID: <51BE62B5.1010302@asianux.com>
-References: <51A5CDB4.9000204@asianux.com> <CAMjpGUf6rvcjNVqk6bB4RRjOSLQjk3de6CEv7rUm3VcMhzGdag@mail.gmail.com>
+From: Sec Capital Loan <jose_carlos@mp.ro.gov.br>
+Subject: Quick Loans
+Date: Mon, 17 Jun 2013 09:24:19 +0530
+Message-ID: <93118980-db80-4ed0-843e-995e04def907@DTI-APL-036.mpro.gov>
+Reply-To: seccapittals@mit.tc
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAMjpGUf6rvcjNVqk6bB4RRjOSLQjk3de6CEv7rUm3VcMhzGdag@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Mike Frysinger <vapier@gentoo.org>
-Cc: anton.vorontsov@linaro.org, Richard Kuo <rkuo@codeaurora.org>, Jesper Nilsson <jesper.nilsson@axis.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, "uclinux-dist-devel@blackfin.uclinux.org" <uclinux-dist-devel@blackfin.uclinux.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ns2.mp.ro.gov.br ([200.101.66.131]:60908 "EHLO
+	mail.mp.ro.gov.br" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751668Ab3FQE2J convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Jun 2013 00:28:09 -0400
+Content-Description: Mail message body
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Recipients <jose_carlos@mp.ro.gov.br>
 
-On 06/16/2013 11:02 AM, Mike Frysinger wrote:
-> i think you mean NULL instead of NUL
-> 
-> that said, the kernel is smart enough to replace NULL with "(null)",
-> so i don't see much point in this patch
+Do you need a personal or business loan without stress and quick approval? If yes, contact us today as we are currently offering loans at superb interest rate. Our loan is secured and safe,For more information and Application, Please reply to this Email.
 
-Oh, really it is, it is my fault (originally, I did not know about it).
-
-Thanks.
--- 
-Chen Gang
-
-Asianux Corporation
+Sincerely,
+Vijay Nath
