@@ -1,206 +1,69 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH v3] arch/*/asm/include/bitops.h: api issue, find_*_bit()
- defination are different with each other
-Date: Tue, 18 Jun 2013 11:33:50 +0800
-Message-ID: <51BFD51E.3040202@asianux.com>
-References: <51AE8FEF.1020809@asianux.com> <51AE903C.6010806@asianux.com> <51AE909D.9080006@asianux.com> <20130605071915.GK23140@pengutronix.de> <51AF225A.5020703@asianux.com> <51B05865.30305@asianux.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v6] arm: Preserve the user r/w register TPIDRURW on
+ context, switch and fork
+Date: Tue, 18 Jun 2013 11:07:15 +0100
+Message-ID: <20130618100715.GA3539@mudshark.cambridge.arm.com>
+References: <51BF8A1C.5070403@dawncrow.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:24000 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753973Ab3FRDel (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Jun 2013 23:34:41 -0400
-In-Reply-To: <51B05865.30305@asianux.com>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:64280 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754164Ab3FRKIc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 18 Jun 2013 06:08:32 -0400
+Content-Disposition: inline
+In-Reply-To: <51BF8A1C.5070403@dawncrow.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?UTF-8?B?VXdlIEtsZWluZS1Lw7ZuaWc=?= <u.kleine-koenig@pengutronix.de>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+To: =?iso-8859-1?Q?Andr=E9?= Hentschel <nerv@dawncrow.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, Jonathan Austin <Jonathan.Austin@arm.com>
 
-Hello related Maintainers:
-
-Please help check this patch when you have time.
-
-Thanks.
-
-On 06/06/2013 05:37 PM, Chen Gang wrote:
-> 
-> For arm and m68k, they customize find_*_bit(), but the API is different
-> with 'generic'.
-> 
-> avr32, s390, and unicore32 also customize find_*_bit(), but the API is
-> the same with 'generic', and the left architectures all use 'generic'.
-> 
-> So need change arm and m68k related API to match the 'generic', then
-> all another modules can face same public API for various architectures.
-> 
-> Also beautify code and comments to pass "./scripts/checkpatch.pl"
-> 
-> 
-> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+On Mon, Jun 17, 2013 at 11:13:48PM +0100, Andr=E9 Hentschel wrote:
+> From: Andr=E9 Hentschel <nerv@dawncrow.de>
+>=20
+> Since commit 6a1c53124aa1 the user writeable TLS register was zeroed =
+to
+> prevent it from being used as a covert channel between two tasks.
+>=20
+> There are more and more applications coming to Windows RT,
+> Wine could support them, but mostly they expect to have
+> the thread environment block (TEB) in TPIDRURW.
+>=20
+> This patch preserves that register per thread instead of clearing it.
+> Unlike the TPIDRURO, which is already switched, the TPIDRURW
+> can be updated from userspace so needs careful treatment in the case =
+that we
+> modify TPIDRURW and call fork(). To avoid this we must always read
+> TPIDRURW in copy_thread.
+>=20
+> Signed-off-by: Andr=E9 Hentschel <nerv@dawncrow.de>
+> Signed-off-by: Will Deacon <will.deacon@arm.com>
+> Signed-off-by: Jonathan Austin <jonathan.austin@arm.com>=20
+>=20
 > ---
->  arch/arm/include/asm/bitops.h  |   26 ++++++++++++++++++--------
->  arch/arm/lib/findbit.S         |   14 ++++++++++----
->  arch/m68k/include/asm/bitops.h |   25 ++++++++++++++-----------
->  3 files changed, 42 insertions(+), 23 deletions(-)
-> 
-> diff --git a/arch/arm/include/asm/bitops.h b/arch/arm/include/asm/bitops.h
-> index e691ec9..83e4d3a 100644
-> --- a/arch/arm/include/asm/bitops.h
-> +++ b/arch/arm/include/asm/bitops.h
-> @@ -161,18 +161,28 @@ extern int _test_and_change_bit(int nr, volatile unsigned long * p);
->  /*
->   * Little endian assembly bitops.  nr = 0 -> byte 0 bit 0.
->   */
-> -extern int _find_first_zero_bit_le(const void * p, unsigned size);
-> -extern int _find_next_zero_bit_le(const void * p, int size, int offset);
-> -extern int _find_first_bit_le(const unsigned long *p, unsigned size);
-> -extern int _find_next_bit_le(const unsigned long *p, int size, int offset);
-> +extern unsigned long _find_first_zero_bit_le(const void *p,
-> +						unsigned long size);
-> +extern unsigned long _find_next_zero_bit_le(const void *p, unsigned long size,
-> +						unsigned long offset);
-> +extern unsigned long _find_first_bit_le(const unsigned long *p,
-> +						unsigned long size);
-> +extern unsigned long _find_next_bit_le(const unsigned long *p,
-> +						unsigned long size,
-> +						unsigned long offset);
->  
->  /*
->   * Big endian assembly bitops.  nr = 0 -> byte 3 bit 0.
->   */
-> -extern int _find_first_zero_bit_be(const void * p, unsigned size);
-> -extern int _find_next_zero_bit_be(const void * p, int size, int offset);
-> -extern int _find_first_bit_be(const unsigned long *p, unsigned size);
-> -extern int _find_next_bit_be(const unsigned long *p, int size, int offset);
-> +extern unsigned long _find_first_zero_bit_be(const void *p,
-> +						unsigned long size);
-> +extern unsigned long _find_next_zero_bit_be(const void *p, unsigned long size,
-> +						unsigned long offset);
-> +extern unsigned long _find_first_bit_be(const unsigned long *p,
-> +						unsigned long size);
-> +extern unsigned long _find_next_bit_be(const unsigned long *p,
-> +						unsigned long size,
-> +						unsigned long offset);
->  
->  #ifndef CONFIG_SMP
->  /*
-> diff --git a/arch/arm/lib/findbit.S b/arch/arm/lib/findbit.S
-> index 64f6bc1..817dd70 100644
-> --- a/arch/arm/lib/findbit.S
-> +++ b/arch/arm/lib/findbit.S
-> @@ -19,7 +19,8 @@
->  
->  /*
->   * Purpose  : Find a 'zero' bit
-> - * Prototype: int find_first_zero_bit(void *addr, unsigned int maxbit);
-> + * Prototype: unsigned long find_first_zero_bit(const void *p,
-> + *						unsigned long size);
->   */
->  ENTRY(_find_first_zero_bit_le)
->  		teq	r1, #0	
-> @@ -40,7 +41,9 @@ ENDPROC(_find_first_zero_bit_le)
->  
->  /*
->   * Purpose  : Find next 'zero' bit
-> - * Prototype: int find_next_zero_bit(void *addr, unsigned int maxbit, int offset)
-> + * Prototype: unsigned long find_next_zero_bit(const void *p,
-> + *						unsigned long size,
-> + *						unsigned long offset);
->   */
->  ENTRY(_find_next_zero_bit_le)
->  		teq	r1, #0
-> @@ -60,7 +63,8 @@ ENDPROC(_find_next_zero_bit_le)
->  
->  /*
->   * Purpose  : Find a 'one' bit
-> - * Prototype: int find_first_bit(const unsigned long *addr, unsigned int maxbit);
-> + * Prototype: unsigned long find_first_bit(const unsigned long *p,
-> + *					unsigned long size);
->   */
->  ENTRY(_find_first_bit_le)
->  		teq	r1, #0	
-> @@ -81,7 +85,9 @@ ENDPROC(_find_first_bit_le)
->  
->  /*
->   * Purpose  : Find next 'one' bit
-> - * Prototype: int find_next_zero_bit(void *addr, unsigned int maxbit, int offset)
-> + * Prototype: unsigned long find_next_bit(const unsigned long *p,
-> + *					unsigned long size,
-> + *					unsigned long offset);
->   */
->  ENTRY(_find_next_bit_le)
->  		teq	r1, #0
-> diff --git a/arch/m68k/include/asm/bitops.h b/arch/m68k/include/asm/bitops.h
-> index c6baa91..b1d8752 100644
-> --- a/arch/m68k/include/asm/bitops.h
-> +++ b/arch/m68k/include/asm/bitops.h
-> @@ -320,11 +320,11 @@ static inline int bfchg_mem_test_and_change_bit(int nr,
->  #include <asm-generic/bitops/ffz.h>
->  #else
->  
-> -static inline int find_first_zero_bit(const unsigned long *vaddr,
-> -				      unsigned size)
-> +static inline unsigned long find_first_zero_bit(const unsigned long *vaddr,
-> +				      unsigned long size)
->  {
->  	const unsigned long *p = vaddr;
-> -	int res = 32;
-> +	unsigned int res = 32;
->  	unsigned int words;
->  	unsigned long num;
->  
-> @@ -346,11 +346,12 @@ out:
->  }
->  #define find_first_zero_bit find_first_zero_bit
->  
-> -static inline int find_next_zero_bit(const unsigned long *vaddr, int size,
-> -				     int offset)
-> +static inline unsigned long find_next_zero_bit(const unsigned long *vaddr,
-> +						unsigned long size,
-> +						unsigned long offset)
->  {
->  	const unsigned long *p = vaddr + (offset >> 5);
-> -	int bit = offset & 31UL, res;
-> +	unsigned int bit = offset & 31UL, res;
->  
->  	if (offset >= size)
->  		return size;
-> @@ -376,10 +377,11 @@ static inline int find_next_zero_bit(const unsigned long *vaddr, int size,
->  }
->  #define find_next_zero_bit find_next_zero_bit
->  
-> -static inline int find_first_bit(const unsigned long *vaddr, unsigned size)
-> +static inline unsigned long find_first_bit(const unsigned long *vaddr,
-> +						unsigned long size)
->  {
->  	const unsigned long *p = vaddr;
-> -	int res = 32;
-> +	unsigned int res = 32;
->  	unsigned int words;
->  	unsigned long num;
->  
-> @@ -401,11 +403,12 @@ out:
->  }
->  #define find_first_bit find_first_bit
->  
-> -static inline int find_next_bit(const unsigned long *vaddr, int size,
-> -				int offset)
-> +static inline unsigned long find_next_bit(const unsigned long *vaddr,
-> +						unsigned long size,
-> +						unsigned long offset)
->  {
->  	const unsigned long *p = vaddr + (offset >> 5);
-> -	int bit = offset & 31UL, res;
-> +	unsigned int bit = offset & 31UL, res;
->  
->  	if (offset >= size)
->  		return size;
-> 
+> This patch is against Linux 3.10-rc6 (7d132055814ef17a6c7b69f342244c4=
+10a5e000f)
+>=20
+> v2: rework and fixup of v1, based on a suggested patch by Will Deacon
+> v3: total rework and fixup of v2
+> v4: removed condition on assembler instruction,
+>     adapted my code to kernel-style, both based on comments by Will D=
+eacon
+> v5: rebased v4 on 3.10-rc2 and adding this version history
+> v6: moved loading the TLS registers to the macros
+>     (fixing the "LDRD is not supported on all the CPUs we have" probl=
+em)
 
+You've changed quite a lot with this version, including the way the mac=
+ro
+parameters are passed. Why not just replace the problematic ldrd with t=
+wo
+ldr instructions and be done with it? I don't think the simple build er=
+ror
+warrants an overhaul of the code we already had.
 
--- 
-Chen Gang
+Cheers,
 
-Asianux Corporation
+Will
