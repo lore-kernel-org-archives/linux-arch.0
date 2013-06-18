@@ -1,257 +1,206 @@
-From: =?ISO-8859-1?Q?Andr=E9_Hentschel?= <nerv@dawncrow.de>
-Subject: [PATCH v6] arm: Preserve the user r/w register TPIDRURW on context,
- switch and fork
-Date: Tue, 18 Jun 2013 00:13:48 +0200
-Message-ID: <51BF8A1C.5070403@dawncrow.de>
+From: Chen Gang <gang.chen@asianux.com>
+Subject: Re: [PATCH v3] arch/*/asm/include/bitops.h: api issue, find_*_bit()
+ defination are different with each other
+Date: Tue, 18 Jun 2013 11:33:50 +0800
+Message-ID: <51BFD51E.3040202@asianux.com>
+References: <51AE8FEF.1020809@asianux.com> <51AE903C.6010806@asianux.com> <51AE909D.9080006@asianux.com> <20130605071915.GK23140@pengutronix.de> <51AF225A.5020703@asianux.com> <51B05865.30305@asianux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="iso-8859-1"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, Jonathan Austin <jonathan.austin@arm.com>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, Will Deacon <will.deacon@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from intranet.asianux.com ([58.214.24.6]:24000 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753973Ab3FRDel (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Jun 2013 23:34:41 -0400
+In-Reply-To: <51B05865.30305@asianux.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: =?UTF-8?B?VXdlIEtsZWluZS1Lw7ZuaWc=?= <u.kleine-koenig@pengutronix.de>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
-From: Andr=E9 Hentschel <nerv@dawncrow.de>
+Hello related Maintainers:
 
-Since commit 6a1c53124aa1 the user writeable TLS register was zeroed to
-prevent it from being used as a covert channel between two tasks.
+Please help check this patch when you have time.
 
-There are more and more applications coming to Windows RT,
-Wine could support them, but mostly they expect to have
-the thread environment block (TEB) in TPIDRURW.
+Thanks.
 
-This patch preserves that register per thread instead of clearing it.
-Unlike the TPIDRURO, which is already switched, the TPIDRURW
-can be updated from userspace so needs careful treatment in the case that we
-modify TPIDRURW and call fork(). To avoid this we must always read
-TPIDRURW in copy_thread.
+On 06/06/2013 05:37 PM, Chen Gang wrote:
+> 
+> For arm and m68k, they customize find_*_bit(), but the API is different
+> with 'generic'.
+> 
+> avr32, s390, and unicore32 also customize find_*_bit(), but the API is
+> the same with 'generic', and the left architectures all use 'generic'.
+> 
+> So need change arm and m68k related API to match the 'generic', then
+> all another modules can face same public API for various architectures.
+> 
+> Also beautify code and comments to pass "./scripts/checkpatch.pl"
+> 
+> 
+> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+> ---
+>  arch/arm/include/asm/bitops.h  |   26 ++++++++++++++++++--------
+>  arch/arm/lib/findbit.S         |   14 ++++++++++----
+>  arch/m68k/include/asm/bitops.h |   25 ++++++++++++++-----------
+>  3 files changed, 42 insertions(+), 23 deletions(-)
+> 
+> diff --git a/arch/arm/include/asm/bitops.h b/arch/arm/include/asm/bitops.h
+> index e691ec9..83e4d3a 100644
+> --- a/arch/arm/include/asm/bitops.h
+> +++ b/arch/arm/include/asm/bitops.h
+> @@ -161,18 +161,28 @@ extern int _test_and_change_bit(int nr, volatile unsigned long * p);
+>  /*
+>   * Little endian assembly bitops.  nr = 0 -> byte 0 bit 0.
+>   */
+> -extern int _find_first_zero_bit_le(const void * p, unsigned size);
+> -extern int _find_next_zero_bit_le(const void * p, int size, int offset);
+> -extern int _find_first_bit_le(const unsigned long *p, unsigned size);
+> -extern int _find_next_bit_le(const unsigned long *p, int size, int offset);
+> +extern unsigned long _find_first_zero_bit_le(const void *p,
+> +						unsigned long size);
+> +extern unsigned long _find_next_zero_bit_le(const void *p, unsigned long size,
+> +						unsigned long offset);
+> +extern unsigned long _find_first_bit_le(const unsigned long *p,
+> +						unsigned long size);
+> +extern unsigned long _find_next_bit_le(const unsigned long *p,
+> +						unsigned long size,
+> +						unsigned long offset);
+>  
+>  /*
+>   * Big endian assembly bitops.  nr = 0 -> byte 3 bit 0.
+>   */
+> -extern int _find_first_zero_bit_be(const void * p, unsigned size);
+> -extern int _find_next_zero_bit_be(const void * p, int size, int offset);
+> -extern int _find_first_bit_be(const unsigned long *p, unsigned size);
+> -extern int _find_next_bit_be(const unsigned long *p, int size, int offset);
+> +extern unsigned long _find_first_zero_bit_be(const void *p,
+> +						unsigned long size);
+> +extern unsigned long _find_next_zero_bit_be(const void *p, unsigned long size,
+> +						unsigned long offset);
+> +extern unsigned long _find_first_bit_be(const unsigned long *p,
+> +						unsigned long size);
+> +extern unsigned long _find_next_bit_be(const unsigned long *p,
+> +						unsigned long size,
+> +						unsigned long offset);
+>  
+>  #ifndef CONFIG_SMP
+>  /*
+> diff --git a/arch/arm/lib/findbit.S b/arch/arm/lib/findbit.S
+> index 64f6bc1..817dd70 100644
+> --- a/arch/arm/lib/findbit.S
+> +++ b/arch/arm/lib/findbit.S
+> @@ -19,7 +19,8 @@
+>  
+>  /*
+>   * Purpose  : Find a 'zero' bit
+> - * Prototype: int find_first_zero_bit(void *addr, unsigned int maxbit);
+> + * Prototype: unsigned long find_first_zero_bit(const void *p,
+> + *						unsigned long size);
+>   */
+>  ENTRY(_find_first_zero_bit_le)
+>  		teq	r1, #0	
+> @@ -40,7 +41,9 @@ ENDPROC(_find_first_zero_bit_le)
+>  
+>  /*
+>   * Purpose  : Find next 'zero' bit
+> - * Prototype: int find_next_zero_bit(void *addr, unsigned int maxbit, int offset)
+> + * Prototype: unsigned long find_next_zero_bit(const void *p,
+> + *						unsigned long size,
+> + *						unsigned long offset);
+>   */
+>  ENTRY(_find_next_zero_bit_le)
+>  		teq	r1, #0
+> @@ -60,7 +63,8 @@ ENDPROC(_find_next_zero_bit_le)
+>  
+>  /*
+>   * Purpose  : Find a 'one' bit
+> - * Prototype: int find_first_bit(const unsigned long *addr, unsigned int maxbit);
+> + * Prototype: unsigned long find_first_bit(const unsigned long *p,
+> + *					unsigned long size);
+>   */
+>  ENTRY(_find_first_bit_le)
+>  		teq	r1, #0	
+> @@ -81,7 +85,9 @@ ENDPROC(_find_first_bit_le)
+>  
+>  /*
+>   * Purpose  : Find next 'one' bit
+> - * Prototype: int find_next_zero_bit(void *addr, unsigned int maxbit, int offset)
+> + * Prototype: unsigned long find_next_bit(const unsigned long *p,
+> + *					unsigned long size,
+> + *					unsigned long offset);
+>   */
+>  ENTRY(_find_next_bit_le)
+>  		teq	r1, #0
+> diff --git a/arch/m68k/include/asm/bitops.h b/arch/m68k/include/asm/bitops.h
+> index c6baa91..b1d8752 100644
+> --- a/arch/m68k/include/asm/bitops.h
+> +++ b/arch/m68k/include/asm/bitops.h
+> @@ -320,11 +320,11 @@ static inline int bfchg_mem_test_and_change_bit(int nr,
+>  #include <asm-generic/bitops/ffz.h>
+>  #else
+>  
+> -static inline int find_first_zero_bit(const unsigned long *vaddr,
+> -				      unsigned size)
+> +static inline unsigned long find_first_zero_bit(const unsigned long *vaddr,
+> +				      unsigned long size)
+>  {
+>  	const unsigned long *p = vaddr;
+> -	int res = 32;
+> +	unsigned int res = 32;
+>  	unsigned int words;
+>  	unsigned long num;
+>  
+> @@ -346,11 +346,12 @@ out:
+>  }
+>  #define find_first_zero_bit find_first_zero_bit
+>  
+> -static inline int find_next_zero_bit(const unsigned long *vaddr, int size,
+> -				     int offset)
+> +static inline unsigned long find_next_zero_bit(const unsigned long *vaddr,
+> +						unsigned long size,
+> +						unsigned long offset)
+>  {
+>  	const unsigned long *p = vaddr + (offset >> 5);
+> -	int bit = offset & 31UL, res;
+> +	unsigned int bit = offset & 31UL, res;
+>  
+>  	if (offset >= size)
+>  		return size;
+> @@ -376,10 +377,11 @@ static inline int find_next_zero_bit(const unsigned long *vaddr, int size,
+>  }
+>  #define find_next_zero_bit find_next_zero_bit
+>  
+> -static inline int find_first_bit(const unsigned long *vaddr, unsigned size)
+> +static inline unsigned long find_first_bit(const unsigned long *vaddr,
+> +						unsigned long size)
+>  {
+>  	const unsigned long *p = vaddr;
+> -	int res = 32;
+> +	unsigned int res = 32;
+>  	unsigned int words;
+>  	unsigned long num;
+>  
+> @@ -401,11 +403,12 @@ out:
+>  }
+>  #define find_first_bit find_first_bit
+>  
+> -static inline int find_next_bit(const unsigned long *vaddr, int size,
+> -				int offset)
+> +static inline unsigned long find_next_bit(const unsigned long *vaddr,
+> +						unsigned long size,
+> +						unsigned long offset)
+>  {
+>  	const unsigned long *p = vaddr + (offset >> 5);
+> -	int bit = offset & 31UL, res;
+> +	unsigned int bit = offset & 31UL, res;
+>  
+>  	if (offset >= size)
+>  		return size;
+> 
 
-Signed-off-by: Andr=E9 Hentschel <nerv@dawncrow.de>
-Signed-off-by: Will Deacon <will.deacon@arm.com>
-Signed-off-by: Jonathan Austin <jonathan.austin@arm.com> =
 
+-- 
+Chen Gang
 
----
-This patch is against Linux 3.10-rc6 (7d132055814ef17a6c7b69f342244c410a5e0=
-00f)
-
-v2: rework and fixup of v1, based on a suggested patch by Will Deacon
-v3: total rework and fixup of v2
-v4: removed condition on assembler instruction,
-    adapted my code to kernel-style, both based on comments by Will Deacon
-v5: rebased v4 on 3.10-rc2 and adding this version history
-v6: moved loading the TLS registers to the macros
-    (fixing the "LDRD is not supported on all the CPUs we have" problem)
-
-Why so much Signed-off-bys? Some History:
-The first patch had performance issues pointed out by Russel King,
-so Will Deacon jumped in to help me with that. The second one again
-had performance issues and the missing copy_thread part was uncovered.
-After some iterations by me, Jonathan Austin proposed a patch and
-Russel King sent his idea of the assembler part. All this was finally
-merged and refined into this patch.
-Thanks to everyone!
-
-
-diff --git a/arch/arm/include/asm/thread_info.h b/arch/arm/include/asm/thre=
-ad_info.h
-index 1995d1a..214d415 100644
---- a/arch/arm/include/asm/thread_info.h
-+++ b/arch/arm/include/asm/thread_info.h
-@@ -58,7 +58,7 @@ struct thread_info {
- 	struct cpu_context_save	cpu_context;	/* cpu context */
- 	__u32			syscall;	/* syscall number */
- 	__u8			used_cp[16];	/* thread used copro */
--	unsigned long		tp_value;
-+	unsigned long		tp_value[2];	/* TLS registers */
- #ifdef CONFIG_CRUNCH
- 	struct crunch_state	crunchstate;
- #endif
-diff --git a/arch/arm/include/asm/tls.h b/arch/arm/include/asm/tls.h
-index 73409e6..3742722 100644
---- a/arch/arm/include/asm/tls.h
-+++ b/arch/arm/include/asm/tls.h
-@@ -2,27 +2,33 @@
- #define __ASMARM_TLS_H
- =
-
- #ifdef __ASSEMBLY__
--	.macro set_tls_none, tp, tmp1, tmp2
-+#include <asm/asm-offsets.h>
-+	.macro switch_tls_none, prev, next, tp, tpuser, tmp1, tmp2
- 	.endm
- =
-
--	.macro set_tls_v6k, tp, tmp1, tmp2
-+	.macro switch_tls_v6k, prev, next, tp, tpuser, tmp1, tmp2
-+	ldrd	\tp, \tpuser, [\next, #TI_TP_VALUE]	@ get the next TLS and user r/w =
-register
-+	mrc	p15, 0, \tmp2, c13, c0, 2	@ get the user r/w register
- 	mcr	p15, 0, \tp, c13, c0, 3		@ set TLS register
--	mov	\tmp1, #0
--	mcr	p15, 0, \tmp1, c13, c0, 2	@ clear user r/w TLS register
-+	mcr	p15, 0, \tpuser, c13, c0, 2	@ and the user r/w register
-+	str	\tmp2, [\prev, #TI_TP_VALUE + 4] @ save it
- 	.endm
- =
-
--	.macro set_tls_v6, tp, tmp1, tmp2
-+	.macro switch_tls_v6, prev, next, tp, tpuser, tmp1, tmp2
- 	ldr	\tmp1, =3Delf_hwcap
- 	ldr	\tmp1, [\tmp1, #0]
- 	mov	\tmp2, #0xffff0fff
-+	ldr	\tp, [\next, #TI_TP_VALUE]	@ get the next TLS register
- 	tst	\tmp1, #HWCAP_TLS		@ hardware TLS available?
--	mcrne	p15, 0, \tp, c13, c0, 3		@ yes, set TLS register
--	movne	\tmp1, #0
--	mcrne	p15, 0, \tmp1, c13, c0, 2	@ clear user r/w TLS register
- 	streq	\tp, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
-+	mrcne	p15, 0, \tmp2, c13, c0, 2	@ get the previous user r/w register
-+	ldrne	\tpuser, [\next, #TI_TP_VALUE + 4]	@ get the next user r/w register
-+	mcrne	p15, 0, \tp, c13, c0, 3		@ yes, set TLS register
-+	mcrne	p15, 0, \tpuser, c13, c0, 2	@ set user r/w register
-+	strne	\tmp2, [\prev, #TI_TP_VALUE + 4] @ save it
- 	.endm
- =
-
--	.macro set_tls_software, tp, tmp1, tmp2
-+	.macro switch_tls_software, prev, next, tp, tpuser, tmp1, tmp2
- 	mov	\tmp1, #0xffff0fff
- 	str	\tp, [\tmp1, #-15]		@ set TLS value at 0xffff0ff0
- 	.endm
-@@ -31,19 +37,30 @@
- #ifdef CONFIG_TLS_REG_EMUL
- #define tls_emu		1
- #define has_tls_reg		1
--#define set_tls		set_tls_none
-+#define switch_tls	switch_tls_none
- #elif defined(CONFIG_CPU_V6)
- #define tls_emu		0
- #define has_tls_reg		(elf_hwcap & HWCAP_TLS)
--#define set_tls		set_tls_v6
-+#define switch_tls	switch_tls_v6
- #elif defined(CONFIG_CPU_32v6K)
- #define tls_emu		0
- #define has_tls_reg		1
--#define set_tls		set_tls_v6k
-+#define switch_tls	switch_tls_v6k
- #else
- #define tls_emu		0
- #define has_tls_reg		0
--#define set_tls		set_tls_software
-+#define switch_tls	switch_tls_software
- #endif
- =
-
-+#ifndef __ASSEMBLY__
-+static inline unsigned long get_tpuser(void)
-+{
-+	unsigned long reg =3D 0;
-+
-+	if (has_tls_reg && !tls_emu)
-+		__asm__("mrc p15, 0, %0, c13, c0, 2" : "=3Dr" (reg));
-+
-+	return reg;
-+}
-+#endif
- #endif	/* __ASMARM_TLS_H */
-diff --git a/arch/arm/kernel/entry-armv.S b/arch/arm/kernel/entry-armv.S
-index 582b405..1484b59 100644
---- a/arch/arm/kernel/entry-armv.S
-+++ b/arch/arm/kernel/entry-armv.S
-@@ -685,7 +685,6 @@ ENTRY(__switch_to)
-  UNWIND(.fnstart	)
-  UNWIND(.cantunwind	)
- 	add	ip, r1, #TI_CPU_SAVE
--	ldr	r3, [r2, #TI_TP_VALUE]
-  ARM(	stmia	ip!, {r4 - sl, fp, sp, lr} )	@ Store most regs on stack
-  THUMB(	stmia	ip!, {r4 - sl, fp}	   )	@ Store most regs on stack
-  THUMB(	str	sp, [ip], #4		   )
-@@ -693,7 +692,7 @@ ENTRY(__switch_to)
- #ifdef CONFIG_CPU_USE_DOMAINS
- 	ldr	r6, [r2, #TI_CPU_DOMAIN]
- #endif
--	set_tls	r3, r4, r5
-+	switch_tls r1, r2, r4, r5, r3, r7
- #if defined(CONFIG_CC_STACKPROTECTOR) && !defined(CONFIG_SMP)
- 	ldr	r7, [r2, #TI_TASK]
- 	ldr	r8, =3D__stack_chk_guard
-diff --git a/arch/arm/kernel/process.c b/arch/arm/kernel/process.c
-index 282de48..a24110f 100644
---- a/arch/arm/kernel/process.c
-+++ b/arch/arm/kernel/process.c
-@@ -39,6 +39,7 @@
- #include <asm/thread_notify.h>
- #include <asm/stacktrace.h>
- #include <asm/mach/time.h>
-+#include <asm/tls.h>
- =
-
- #ifdef CONFIG_CC_STACKPROTECTOR
- #include <linux/stackprotector.h>
-@@ -343,7 +344,8 @@ copy_thread(unsigned long clone_flags, unsigned long st=
-ack_start,
- 	clear_ptrace_hw_breakpoint(p);
- =
-
- 	if (clone_flags & CLONE_SETTLS)
--		thread->tp_value =3D childregs->ARM_r3;
-+		thread->tp_value[0] =3D childregs->ARM_r3;
-+	thread->tp_value[1] =3D get_tpuser();
- =
-
- 	thread_notify(THREAD_NOTIFY_COPY, thread);
- =
-
-diff --git a/arch/arm/kernel/ptrace.c b/arch/arm/kernel/ptrace.c
-index 03deeff..2bc1514 100644
---- a/arch/arm/kernel/ptrace.c
-+++ b/arch/arm/kernel/ptrace.c
-@@ -849,7 +849,7 @@ long arch_ptrace(struct task_struct *child, long reques=
-t,
- #endif
- =
-
- 		case PTRACE_GET_THREAD_AREA:
--			ret =3D put_user(task_thread_info(child)->tp_value,
-+			ret =3D put_user(task_thread_info(child)->tp_value[0],
- 				       datap);
- 			break;
- =
-
-diff --git a/arch/arm/kernel/traps.c b/arch/arm/kernel/traps.c
-index 18b32e8..517bfd4 100644
---- a/arch/arm/kernel/traps.c
-+++ b/arch/arm/kernel/traps.c
-@@ -581,7 +581,7 @@ asmlinkage int arm_syscall(int no, struct pt_regs *regs)
- 		return regs->ARM_r0;
- =
-
- 	case NR(set_tls):
--		thread->tp_value =3D regs->ARM_r0;
-+		thread->tp_value[0] =3D regs->ARM_r0;
- 		if (tls_emu)
- 			return 0;
- 		if (has_tls_reg) {
-@@ -699,7 +699,7 @@ static int get_tp_trap(struct pt_regs *regs, unsigned i=
-nt instr)
- 	int reg =3D (instr >> 12) & 15;
- 	if (reg =3D=3D 15)
- 		return 1;
--	regs->uregs[reg] =3D current_thread_info()->tp_value;
-+	regs->uregs[reg] =3D current_thread_info()->tp_value[0];
- 	regs->ARM_pc +=3D 4;
- 	return 0;
- }
--- =
-
-1.8.1.2
+Asianux Corporation
