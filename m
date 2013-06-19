@@ -1,44 +1,37 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH] arch: sparc: prom: looping issue, need additional length
- check in the outside looping
-Date: Wed, 19 Jun 2013 17:24:20 +0800
-Message-ID: <51C178C4.7030400@asianux.com>
-References: <51A6C8FA.3080408@asianux.com> <20130619.021342.853193458609177361.davem@davemloft.net>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] dma-mapping: Add BUG_ON for uninitialized dma_ops
+Date: Wed, 19 Jun 2013 17:20:46 +0200
+Message-ID: <201306191720.47185.arnd@arndb.de>
+References: <f35c5051a207b0a117f2fff27365d0ea892d1610.1370263476.git.michal.simek@xilinx.com> <201306141636.29390.arnd@arndb.de> <1371226483.2726.19.camel@dabdike>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:60076 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933755Ab3FSJZM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Jun 2013 05:25:12 -0400
-In-Reply-To: <20130619.021342.853193458609177361.davem@davemloft.net>
+Received: from moutng.kundenserver.de ([212.227.126.171]:56486 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756882Ab3FSPUz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Jun 2013 11:20:55 -0400
+In-Reply-To: <1371226483.2726.19.camel@dabdike>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, sam@ravnborg.org, sparclinux@vger.kernel.org
+To: James Bottomley <James.Bottomley@hansenpartnership.com>
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Bjorn Helgaas <bhelgaas@google.com>, Michal Simek <michal.simek@xilinx.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michal Simek <monstr@monstr.eu>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On 06/19/2013 05:13 PM, David Miller wrote:
-> From: Chen Gang <gang.chen@asianux.com>
-> Date: Thu, 30 May 2013 11:35:22 +0800
+On Friday 14 June 2013, James Bottomley wrote:
+> This is the MMAP_PAGE_ZERO exploit.  The original exploit relied on a
+> leaky personality capability clearing mask and was fixed in 2.6.31 by
 > 
->>
->> When "cp >= barg_buf + BARG_LEN-2", it breaks internel looping 'while',
->> but outside loop 'for' still has effect, so "*cp++ = ' '" will continue
->> repeating which may cause memory overflow.
->>
->> So need additional length check for it in the outside looping.
->>
->> Also beautify the related code which found by "./scripts/checkpatch.pl"
+> commit f9fabcb58a6d26d6efde842d1703ac7cfa9427b6
+> Author: Julien Tinnes <jt@cr0.org>
+> Date:   Fri Jun 26 20:27:40 2009 +0200
 > 
-> Applied.
+>     personality: fix PER_CLEAR_ON_SETID
 > 
-> 
+> So it's not really relevant to 3.x kernels, is it?
 
-Thank you very much.
+Probably not. There is always a risk that something like this
+can turn into an exploit, but it needs a combination with a couple
+of other bugs.
 
-
--- 
-Chen Gang
-
-Asianux Corporation
+	Arnd
