@@ -1,57 +1,48 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [RFC PATCH 16/16] x86: locks: remove unused arch_*_relax
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [RFC PATCH 12/16] powerpc: locks: remove unused arch_*_relax
  operations
-Date: Fri, 21 Jun 2013 22:48:02 +0200 (CEST)
-Message-ID: <alpine.DEB.2.02.1306212247460.4013@ionos.tec.linutronix.de>
-References: <1371835057-19335-1-git-send-email-will.deacon@arm.com> <1371835057-19335-17-git-send-email-will.deacon@arm.com>
+Date: Sat, 22 Jun 2013 08:16:00 +1000
+Message-ID: <1371852960.3944.79.camel@pasglop>
+References: <1371835057-19335-1-git-send-email-will.deacon@arm.com>
+	 <1371835057-19335-13-git-send-email-will.deacon@arm.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:41465 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1946077Ab3FUUsE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 21 Jun 2013 16:48:04 -0400
-In-Reply-To: <1371835057-19335-17-git-send-email-will.deacon@arm.com>
+Received: from gate.crashing.org ([63.228.1.57]:59394 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1423527Ab3FUWQI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 21 Jun 2013 18:16:08 -0400
+In-Reply-To: <1371835057-19335-13-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Will Deacon <will.deacon@arm.com>
-Cc: linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: linux-arch@vger.kernel.org
 
-On Fri, 21 Jun 2013, Will Deacon wrote:
-
+On Fri, 2013-06-21 at 18:17 +0100, Will Deacon wrote:
 > The arch_{spin,read,write}_relax macros are not used anywhere in the
 > kernel and are typically just aliases for cpu_relax().
 > 
-> This patch removes the unused definitions for x86.
+> This patch removes the unused definitions for PowerPC.
 > 
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: H. Peter Anvin <hpa@zytor.com>
+Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+
 > Signed-off-by: Will Deacon <will.deacon@arm.com>
-
-Acked-by: Thomas Gleixner <tglx@linutronix.de>
-
-
 > ---
->  arch/x86/include/asm/spinlock.h | 4 ----
+>  arch/powerpc/include/asm/spinlock.h | 4 ----
 >  1 file changed, 4 deletions(-)
 > 
-> diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
-> index 33692ea..1088d8d 100644
-> --- a/arch/x86/include/asm/spinlock.h
-> +++ b/arch/x86/include/asm/spinlock.h
-> @@ -229,10 +229,6 @@ static inline void arch_write_unlock(arch_rwlock_t *rw)
->  #undef WRITE_LOCK_SUB
->  #undef WRITE_LOCK_CMP
+> diff --git a/arch/powerpc/include/asm/spinlock.h b/arch/powerpc/include/asm/spinlock.h
+> index 5b23f91..2d4a841 100644
+> --- a/arch/powerpc/include/asm/spinlock.h
+> +++ b/arch/powerpc/include/asm/spinlock.h
+> @@ -291,9 +291,5 @@ static inline void arch_write_unlock(arch_rwlock_t *rw)
+>  #define arch_read_lock_flags(lock, flags) arch_read_lock(lock)
+>  #define arch_write_lock_flags(lock, flags) arch_write_lock(lock)
 >  
-> -#define arch_spin_relax(lock)	cpu_relax()
-> -#define arch_read_relax(lock)	cpu_relax()
-> -#define arch_write_relax(lock)	cpu_relax()
+> -#define arch_spin_relax(lock)	__spin_yield(lock)
+> -#define arch_read_relax(lock)	__rw_yield(lock)
+> -#define arch_write_relax(lock)	__rw_yield(lock)
 > -
->  /* The {read|write|spin}_lock() on x86 are full memory barriers. */
->  static inline void smp_mb__after_lock(void) { }
->  #define ARCH_HAS_SMP_MB_AFTER_LOCK
-> -- 
-> 1.8.2.2
-> 
-> 
+>  #endif /* __KERNEL__ */
+>  #endif /* __ASM_SPINLOCK_H */
