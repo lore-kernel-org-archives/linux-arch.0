@@ -1,57 +1,201 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: Status of __cpuinit removal
-Date: Sun, 23 Jun 2013 12:15:59 +0200
-Message-ID: <20130623101559.GC19021@gmail.com>
-References: <519AA53F.1020107@zytor.com>
- <20130520231203.GA21682@kroah.com>
- <20130528092038.GC32068@gmail.com>
- <CAP=VYLo047g+U3GJhkObJtNPubFNpHuGUJAF7oOh_7dPtSFd9A@mail.gmail.com>
- <20130612005605.GA7469@kroah.com>
- <20130620174659.GA17945@windriver.com>
+From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Subject: [PATCH 00/45] CPU hotplug: stop_machine()-free CPU hotplug, part 1
+Date: Sun, 23 Jun 2013 19:07:44 +0530
+Message-ID: <20130623133642.19094.16038.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ea0-f176.google.com ([209.85.215.176]:38013 "EHLO
-	mail-ea0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750883Ab3FWKQE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 23 Jun 2013 06:16:04 -0400
-Content-Disposition: inline
-In-Reply-To: <20130620174659.GA17945@windriver.com>
+Received: from e23smtp08.au.ibm.com ([202.81.31.141]:47611 "EHLO
+	e23smtp08.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750944Ab3FWNlR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 23 Jun 2013 09:41:17 -0400
+Received: from /spool/local
+	by e23smtp08.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
+	Sun, 23 Jun 2013 23:38:30 +1000
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Gortmaker <paul.gortmaker@windriver.com>
-Cc: Greg KH <greg@kroah.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>
+To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com
+Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
+
+Hi,
+
+This patchset is a first step towards removing stop_machine() from the
+CPU hotplug offline path. It introduces a set of APIs (as a replacement to
+preempt_disable()/preempt_enable()) to synchronize with CPU hotplug from
+atomic contexts.
+
+The motivation behind getting rid of stop_machine() is to avoid its
+ill-effects, such as performance penalties[1] and the real-time latencies it
+inflicts on the system (and also things involving stop_machine() have often
+been notoriously hard to debug). And in general, getting rid of stop_machine()
+from CPU hotplug also greatly enhances the elegance of the CPU hotplug design
+itself.
+
+Getting rid of stop_machine() involves building the corresponding
+infrastructure in the core CPU hotplug code and converting all places which
+used to depend on the semantics of stop_machine() to synchronize with CPU
+hotplug.
+
+This patchset builds a first-level base infrastructure on which tree-wide
+conversions can be built upon, and also includes the conversions themselves.
+We certainly need a few more careful tree-sweeps to complete the conversion,
+but the goal of this patchset is to introduce the core pieces and to get the
+first batch of conversions in, while covering a reasonable bulk among them.
+
+This patchset also has a debug infrastructure to help with the conversions -
+with the newly introduced CONFIG_DEBUG_HOTPLUG_CPU option turned on, it
+prints warnings whenever the need for a conversion is detected. Patches 4-7
+build this framework. Needless to say, I'd really appreciate if people could
+test kernels with this option turned on and report omissions or better yet,
+send patches to contribute to this effort.
+
+[It is to be noted that this patchset doesn't replace stop_machine() yet,
+so the immediate risk in having an unconverted (or converted) call-site
+is nil, since there is no major functional change involved.]
+
+Once the conversion gets completed, we can finalize on the design of the
+stop_machine() replacement and use that in the core CPU hotplug code. We have
+had some discussions in the past where we debated several different
+designs[2]. We'll revisit that with more ideas once this conversion gets over.
 
 
-* Paul Gortmaker <paul.gortmaker@windriver.com> wrote:
+This patchset applies on current tip:master. It is also available in the
+following git branch:
 
-> As some of you are probably aware, a decision to remove __cpuinit and
-> variants was made, since the cost/complexity outweighs the amount of
-> memory reclaim that it provides.  Details of that decision are at:
-> 
-> 	https://lkml.org/lkml/2013/5/20/589
-> 
-> It seems that the suggestion to do this was partly motivated by the
-> fix in commit 5e427ec2 ("x86: Fix bit corruption at CPU resume time").
-> It is a good example of the nasty type of bugs that can be created
-> with improper use of the various types of __init prefixes.
-> 
-> I have created a patch queue against the latest linux-next tree (Jun20)
-> that removes all the variants of __cpuinit and the asm __CPUINIT variants,
-> and the surrounding infrastructure for section handling of it.  There
-> are no Kconfig changes; this is complex enough.  We can independently
-> revisit later whether keeping CPU_HOTPLUG makes sense or not.
-> 
-> I have done this in 33 commits.  I decided against a giant monolithic
-> patch for several reasons:
+git://github.com/srivatsabhat/linux.git  stop-mch-free-cpuhp-part1-v1
 
-[...]
 
->  scripts/mod/modpost.c                         | 52 ++++------------------
->  307 files changed, 895 insertions(+), 1036 deletions(-)
+Thank you very much!
 
-Cool, thanks Paul for addressing all this!
 
-Thanks,
+References:
+----------
 
-	Ingo
+1. Performance difference between CPU Hotplug with and without
+   stop_machine():
+   http://article.gmane.org/gmane.linux.kernel/1435249
+
+2. Links to discussions around alternative synchronization schemes to
+   replace stop_machine() in the CPU Hotplug code:
+
+   v6: http://lwn.net/Articles/538819/
+   v5: http://lwn.net/Articles/533553/
+   v4: https://lkml.org/lkml/2012/12/11/209
+   v3: https://lkml.org/lkml/2012/12/7/287
+   v2: https://lkml.org/lkml/2012/12/5/322
+   v1: https://lkml.org/lkml/2012/12/4/88
+
+--
+ Srivatsa S. Bhat (45):
+      CPU hotplug: Provide APIs to prevent CPU offline from atomic context
+      CPU hotplug: Clarify the usage of different synchronization APIs
+      Documentation, CPU hotplug: Recommend usage of get/put_online_cpus_atomic()
+      CPU hotplug: Add infrastructure to check lacking hotplug synchronization
+      CPU hotplug: Protect set_cpu_online() to avoid false-positives
+      CPU hotplug: Sprinkle debugging checks to catch locking bugs
+      CPU hotplug: Expose the new debug config option
+      CPU hotplug: Convert preprocessor macros to static inline functions
+      smp: Use get/put_online_cpus_atomic() to prevent CPU offline
+      sched/core: Use get/put_online_cpus_atomic() to prevent CPU offline
+      migration: Use raw_spin_lock/unlock since interrupts are already disabled
+      sched/fair: Use get/put_online_cpus_atomic() to prevent CPU offline
+      timer: Use get/put_online_cpus_atomic() to prevent CPU offline
+      sched/rt: Use get/put_online_cpus_atomic() to prevent CPU offline
+      rcu: Use get/put_online_cpus_atomic() to prevent CPU offline
+      tick-broadcast: Use get/put_online_cpus_atomic() to prevent CPU offline
+      time/clocksource: Use get/put_online_cpus_atomic() to prevent CPU offline
+      softirq: Use get/put_online_cpus_atomic() to prevent CPU offline
+      irq: Use get/put_online_cpus_atomic() to prevent CPU offline
+      net: Use get/put_online_cpus_atomic() to prevent CPU offline
+      block: Use get/put_online_cpus_atomic() to prevent CPU offline
+      percpu_counter: Use get/put_online_cpus_atomic() to prevent CPU offline
+      infiniband: ehca: Use get/put_online_cpus_atomic() to prevent CPU offline
+      [SCSI] fcoe: Use get/put_online_cpus_atomic() to prevent CPU offline
+      staging/octeon: Use get/put_online_cpus_atomic() to prevent CPU offline
+      x86: Use get/put_online_cpus_atomic() to prevent CPU offline
+      perf/x86: Use get/put_online_cpus_atomic() to prevent CPU offline
+      KVM: Use get/put_online_cpus_atomic() to prevent CPU offline
+      kvm/vmx: Use get/put_online_cpus_atomic() to prevent CPU offline
+      x86/xen: Use get/put_online_cpus_atomic() to prevent CPU offline
+      alpha/smp: Use get/put_online_cpus_atomic() to prevent CPU offline
+      blackfin/smp: Use get/put_online_cpus_atomic() to prevent CPU offline
+      cris/smp: Use get/put_online_cpus_atomic() to prevent CPU offline
+      hexagon/smp: Use get/put_online_cpus_atomic() to prevent CPU offline
+      ia64: irq, perfmon: Use get/put_online_cpus_atomic() to prevent CPU offline
+      ia64: smp, tlb: Use get/put_online_cpus_atomic() to prevent CPU offline
+      m32r: Use get/put_online_cpus_atomic() to prevent CPU offline
+      MIPS: Use get/put_online_cpus_atomic() to prevent CPU offline
+      mn10300: Use get/put_online_cpus_atomic() to prevent CPU offline
+      powerpc, irq: Use GFP_ATOMIC allocations in atomic context
+      powerpc: Use get/put_online_cpus_atomic() to prevent CPU offline
+      powerpc: Use get/put_online_cpus_atomic() to avoid false-positive warning
+      sh: Use get/put_online_cpus_atomic() to prevent CPU offline
+      sparc: Use get/put_online_cpus_atomic() to prevent CPU offline
+      tile: Use get/put_online_cpus_atomic() to prevent CPU offline
+
+ Documentation/cpu-hotplug.txt                 |   20 +++-
+ arch/alpha/kernel/smp.c                       |   19 ++--
+ arch/blackfin/mach-common/smp.c               |    4 -
+ arch/cris/arch-v32/kernel/smp.c               |    5 +
+ arch/hexagon/kernel/smp.c                     |    3 +
+ arch/ia64/kernel/irq_ia64.c                   |   15 +++
+ arch/ia64/kernel/perfmon.c                    |    8 +-
+ arch/ia64/kernel/smp.c                        |   12 +-
+ arch/ia64/mm/tlb.c                            |    4 -
+ arch/m32r/kernel/smp.c                        |   16 ++-
+ arch/mips/kernel/cevt-smtc.c                  |    7 +
+ arch/mips/kernel/smp.c                        |   16 ++-
+ arch/mips/kernel/smtc.c                       |   12 ++
+ arch/mips/mm/c-octeon.c                       |    4 -
+ arch/mn10300/mm/cache-smp.c                   |    3 +
+ arch/mn10300/mm/tlb-smp.c                     |   17 ++-
+ arch/powerpc/kernel/irq.c                     |    9 +-
+ arch/powerpc/kernel/machine_kexec_64.c        |    4 -
+ arch/powerpc/kernel/smp.c                     |    4 +
+ arch/powerpc/kvm/book3s_hv.c                  |    5 +
+ arch/powerpc/mm/mmu_context_nohash.c          |    3 +
+ arch/powerpc/oprofile/cell/spu_profiler.c     |    3 +
+ arch/powerpc/oprofile/cell/spu_task_sync.c    |    4 +
+ arch/powerpc/oprofile/op_model_cell.c         |    6 +
+ arch/sh/kernel/smp.c                          |   12 +-
+ arch/sparc/kernel/smp_64.c                    |   12 ++
+ arch/tile/kernel/module.c                     |    3 +
+ arch/tile/kernel/tlb.c                        |   15 +++
+ arch/tile/mm/homecache.c                      |    3 +
+ arch/x86/kernel/apic/io_apic.c                |   21 ++++
+ arch/x86/kernel/cpu/mcheck/therm_throt.c      |    4 -
+ arch/x86/kernel/cpu/perf_event_intel_uncore.c |    6 +
+ arch/x86/kvm/vmx.c                            |   13 +--
+ arch/x86/mm/tlb.c                             |   14 +--
+ arch/x86/xen/mmu.c                            |    9 +-
+ block/blk-softirq.c                           |    3 +
+ drivers/infiniband/hw/ehca/ehca_irq.c         |    5 +
+ drivers/scsi/fcoe/fcoe.c                      |    7 +
+ drivers/staging/octeon/ethernet-rx.c          |    3 +
+ include/linux/cpu.h                           |   27 +++++
+ include/linux/cpumask.h                       |   59 +++++++++++-
+ kernel/cpu.c                                  |  124 +++++++++++++++++++++++++
+ kernel/irq/manage.c                           |    7 +
+ kernel/irq/proc.c                             |    3 +
+ kernel/rcutree.c                              |    4 +
+ kernel/sched/core.c                           |   27 +++++
+ kernel/sched/fair.c                           |   14 +++
+ kernel/sched/rt.c                             |   14 +++
+ kernel/smp.c                                  |   52 ++++++----
+ kernel/softirq.c                              |    3 +
+ kernel/time/clocksource.c                     |    5 +
+ kernel/time/tick-broadcast.c                  |    8 ++
+ kernel/timer.c                                |    4 +
+ lib/Kconfig.debug                             |    9 ++
+ lib/cpumask.c                                 |    8 ++
+ lib/percpu_counter.c                          |    2 
+ net/core/dev.c                                |    9 +-
+ virt/kvm/kvm_main.c                           |    8 +-
+ 58 files changed, 591 insertions(+), 129 deletions(-)
+
+
+Regards,
+Srivatsa S. Bhat
+IBM Linux Technology Center
