@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp01.au.ibm.com ([202.81.31.143]:49440 "EHLO
-	e23smtp01.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751735Ab3FWNqZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 23 Jun 2013 09:46:25 -0400
+Received: from e28smtp03.in.ibm.com ([122.248.162.3]:39900 "EHLO
+	e28smtp03.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752476Ab3FWNqg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 23 Jun 2013 09:46:36 -0400
 Received: from /spool/local
-	by e23smtp01.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp03.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Sun, 23 Jun 2013 23:37:33 +1000
+	Sun, 23 Jun 2013 19:10:37 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH 22/45] percpu_counter: Use get/put_online_cpus_atomic() to
+Subject: [PATCH 23/45] infiniband: ehca: Use get/put_online_cpus_atomic() to
  prevent CPU offline
-Date: Sun, 23 Jun 2013 19:12:59 +0530
-Message-ID: <20130623134256.19094.99231.stgit@srivatsabhat.in.ibm.com>
+Date: Sun, 23 Jun 2013 19:13:14 +0530
+Message-ID: <20130623134311.19094.9528.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130623133642.19094.16038.stgit@srivatsabhat.in.ibm.com>
 References: <20130623133642.19094.16038.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com
-Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20130623134259.ElqX9CEdq0vX_wL-dMmiPtcVNePfVD2y49YprjAKWl8@z>
+Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Hoang-Nam Nguyen <hnguyen@de.ibm.com>, Christoph Raisch <raisch@de.ibm.com>, Roland Dreier <roland@kernel.org>, Sean Hefty <sean.hefty@intel.com>, Hal Rosenstock <hal.rosenstock@gmail.com>, linux-rdma@vger.kernel.org
+Message-ID: <20130623134314.GyBhEaOjfN1thPPx_f8H9d7bCa77BxOtJrhWPGRzEaM@z>
 
 Once stop_machine() is gone from the CPU offline path, we won't be able
 to depend on disabling preemption to prevent CPUs from going offline
@@ -30,31 +30,60 @@ from under us.
 Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going
 offline, while invoking from atomic context.
 
-Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Hoang-Nam Nguyen <hnguyen@de.ibm.com>
+Cc: Christoph Raisch <raisch@de.ibm.com>
+Cc: Roland Dreier <roland@kernel.org>
+Cc: Sean Hefty <sean.hefty@intel.com>
+Cc: Hal Rosenstock <hal.rosenstock@gmail.com>
+Cc: linux-rdma@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- lib/percpu_counter.c |    2 ++
- 1 file changed, 2 insertions(+)
+ drivers/infiniband/hw/ehca/ehca_irq.c |    5 +++++
+ 1 file changed, 5 insertions(+)
 
-diff --git a/lib/percpu_counter.c b/lib/percpu_counter.c
-index ba6085d..9cf9086 100644
---- a/lib/percpu_counter.c
-+++ b/lib/percpu_counter.c
-@@ -98,6 +98,7 @@ s64 __percpu_counter_sum(struct percpu_counter *fbc)
- 	s64 ret;
- 	int cpu;
+diff --git a/drivers/infiniband/hw/ehca/ehca_irq.c b/drivers/infiniband/hw/ehca/ehca_irq.c
+index 8615d7c..ace901e 100644
+--- a/drivers/infiniband/hw/ehca/ehca_irq.c
++++ b/drivers/infiniband/hw/ehca/ehca_irq.c
+@@ -43,6 +43,7 @@
+ 
+ #include <linux/slab.h>
+ #include <linux/smpboot.h>
++#include <linux/cpu.h>
+ 
+ #include "ehca_classes.h"
+ #include "ehca_irq.h"
+@@ -703,6 +704,7 @@ static void queue_comp_task(struct ehca_cq *__cq)
+ 	int cq_jobs;
+ 	unsigned long flags;
  
 +	get_online_cpus_atomic();
- 	raw_spin_lock(&fbc->lock);
- 	ret = fbc->count;
- 	for_each_online_cpu(cpu) {
-@@ -105,6 +106,7 @@ s64 __percpu_counter_sum(struct percpu_counter *fbc)
- 		ret += *pcount;
+ 	cpu_id = find_next_online_cpu(pool);
+ 	BUG_ON(!cpu_online(cpu_id));
+ 
+@@ -720,6 +722,7 @@ static void queue_comp_task(struct ehca_cq *__cq)
+ 		BUG_ON(!cct || !thread);
  	}
- 	raw_spin_unlock(&fbc->lock);
+ 	__queue_comp_task(__cq, cct, thread);
 +	put_online_cpus_atomic();
- 	return ret;
  }
- EXPORT_SYMBOL(__percpu_counter_sum);
+ 
+ static void run_comp_task(struct ehca_cpu_comp_task *cct)
+@@ -759,6 +762,7 @@ static void comp_task_park(unsigned int cpu)
+ 	list_splice_init(&cct->cq_list, &list);
+ 	spin_unlock_irq(&cct->task_lock);
+ 
++	get_online_cpus_atomic();
+ 	cpu = find_next_online_cpu(pool);
+ 	target = per_cpu_ptr(pool->cpu_comp_tasks, cpu);
+ 	thread = *per_cpu_ptr(pool->cpu_comp_threads, cpu);
+@@ -768,6 +772,7 @@ static void comp_task_park(unsigned int cpu)
+ 		__queue_comp_task(cq, target, thread);
+ 	}
+ 	spin_unlock_irq(&target->task_lock);
++	put_online_cpus_atomic();
+ }
+ 
+ static void comp_task_stop(unsigned int cpu, bool online)
 
