@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp07.in.ibm.com ([122.248.162.7]:56588 "EHLO
-	e28smtp07.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751950Ab3FWNmY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 23 Jun 2013 09:42:24 -0400
+Received: from e28smtp05.in.ibm.com ([122.248.162.5]:47869 "EHLO
+	e28smtp05.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752116Ab3FWNnt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 23 Jun 2013 09:43:49 -0400
 Received: from /spool/local
-	by e28smtp07.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp05.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Sun, 23 Jun 2013 19:05:23 +0530
+	Sun, 23 Jun 2013 19:08:46 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH 05/45] CPU hotplug: Protect set_cpu_online() to avoid
- false-positives
-Date: Sun, 23 Jun 2013 19:09:02 +0530
-Message-ID: <20130623133858.19094.70477.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH 10/45] sched/core: Use get/put_online_cpus_atomic() to prevent
+ CPU offline
+Date: Sun, 23 Jun 2013 19:10:27 +0530
+Message-ID: <20130623134020.19094.59333.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130623133642.19094.16038.stgit@srivatsabhat.in.ibm.com>
 References: <20130623133642.19094.16038.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,49 +20,125 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com
-Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>
-Message-ID: <20130623133902.rtzqe3Swv_9OR1l1kiQKp4yjc2eWmMH5OBcSMjrDK3g@z>
+Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>
+Message-ID: <20130623134027.ZiFefZ6JzoLTHqC9_k0oy1C0XcxTY8bK6LPvWkOs_wM@z>
 
-When bringing a secondary CPU online, the task running on the CPU coming up
-sets itself in the cpu_online_mask. This is safe even though this task is not
-the hotplug writer task.
+Once stop_machine() is gone from the CPU offline path, we won't be able
+to depend on disabling preemption to prevent CPUs from going offline
+from under us.
 
-But it is kinda hard to teach this to the CPU hotplug debug infrastructure,
-and if we get it wrong, we risk making the debug code too lenient, risking
-false-negatives.
+Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going
+offline, while invoking from atomic context.
 
-Luckily, all architectures use set_cpu_online() to manipulate the
-cpu_online_mask. So, to avoid false-positive warnings from the CPU hotplug
-debug code, encapsulate the body of set_cpu_online() within
-get/put_online_cpus_atomic().
-
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>
-Cc: "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- kernel/cpu.c |    4 ++++
- 1 file changed, 4 insertions(+)
+ kernel/sched/core.c |   23 +++++++++++++++++++++--
+ 1 file changed, 21 insertions(+), 2 deletions(-)
 
-diff --git a/kernel/cpu.c b/kernel/cpu.c
-index e90d9d7..23df9ba 100644
---- a/kernel/cpu.c
-+++ b/kernel/cpu.c
-@@ -818,10 +818,14 @@ void set_cpu_present(unsigned int cpu, bool present)
- 
- void set_cpu_online(unsigned int cpu, bool online)
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index 195658b..accd550 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -1160,11 +1160,11 @@ void kick_process(struct task_struct *p)
  {
+ 	int cpu;
+ 
+-	preempt_disable();
++	get_online_cpus_atomic();
+ 	cpu = task_cpu(p);
+ 	if ((cpu != smp_processor_id()) && task_curr(p))
+ 		smp_send_reschedule(cpu);
+-	preempt_enable();
++	put_online_cpus_atomic();
+ }
+ EXPORT_SYMBOL_GPL(kick_process);
+ #endif /* CONFIG_SMP */
+@@ -1172,6 +1172,9 @@ EXPORT_SYMBOL_GPL(kick_process);
+ #ifdef CONFIG_SMP
+ /*
+  * ->cpus_allowed is protected by both rq->lock and p->pi_lock
++ *
++ *  Must be called within get/put_online_cpus_atomic(), to prevent
++ *  CPUs from going offline from under us.
+  */
+ static int select_fallback_rq(int cpu, struct task_struct *p)
+ {
+@@ -1245,6 +1248,9 @@ out:
+ 
+ /*
+  * The caller (fork, wakeup) owns p->pi_lock, ->cpus_allowed is stable.
++ *
++ * Must be called within get/put_online_cpus_atomic(), to prevent
++ * CPUs from going offline from under us.
+  */
+ static inline
+ int select_task_rq(struct task_struct *p, int sd_flags, int wake_flags)
+@@ -1489,6 +1495,8 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
+ 	unsigned long flags;
+ 	int cpu, success = 0;
+ 
 +	get_online_cpus_atomic();
 +
- 	if (online)
- 		cpumask_set_cpu(cpu, to_cpumask(cpu_online_bits));
- 	else
- 		cpumask_clear_cpu(cpu, to_cpumask(cpu_online_bits));
+ 	smp_wmb();
+ 	raw_spin_lock_irqsave(&p->pi_lock, flags);
+ 	if (!(p->state & state))
+@@ -1531,6 +1539,7 @@ stat:
+ out:
+ 	raw_spin_unlock_irqrestore(&p->pi_lock, flags);
+ 
++	put_online_cpus_atomic();
+ 	return success;
+ }
+ 
+@@ -1753,6 +1762,8 @@ void wake_up_new_task(struct task_struct *p)
+ 	unsigned long flags;
+ 	struct rq *rq;
+ 
++	get_online_cpus_atomic();
++
+ 	raw_spin_lock_irqsave(&p->pi_lock, flags);
+ #ifdef CONFIG_SMP
+ 	/*
+@@ -1773,6 +1784,8 @@ void wake_up_new_task(struct task_struct *p)
+ 		p->sched_class->task_woken(rq, p);
+ #endif
+ 	task_rq_unlock(rq, p, &flags);
 +
 +	put_online_cpus_atomic();
  }
  
- void set_cpu_active(unsigned int cpu, bool active)
+ #ifdef CONFIG_PREEMPT_NOTIFIERS
+@@ -3886,6 +3899,8 @@ bool __sched yield_to(struct task_struct *p, bool preempt)
+ 	unsigned long flags;
+ 	int yielded = 0;
+ 
++	get_online_cpus_atomic();
++
+ 	local_irq_save(flags);
+ 	rq = this_rq();
+ 
+@@ -3931,6 +3946,8 @@ out_unlock:
+ out_irq:
+ 	local_irq_restore(flags);
+ 
++	put_online_cpus_atomic();
++
+ 	if (yielded > 0)
+ 		schedule();
+ 
+@@ -4331,9 +4348,11 @@ static int migration_cpu_stop(void *data)
+ 	 * The original target cpu might have gone down and we might
+ 	 * be on another cpu but it doesn't matter.
+ 	 */
++	get_online_cpus_atomic();
+ 	local_irq_disable();
+ 	__migrate_task(arg->task, raw_smp_processor_id(), arg->dest_cpu);
+ 	local_irq_enable();
++	put_online_cpus_atomic();
+ 	return 0;
+ }
+ 
 
