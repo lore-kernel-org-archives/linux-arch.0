@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp06.au.ibm.com ([202.81.31.148]:51875 "EHLO
-	e23smtp06.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752923Ab3FWNtv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 23 Jun 2013 09:49:51 -0400
+Received: from e28smtp09.in.ibm.com ([122.248.162.9]:32832 "EHLO
+	e28smtp09.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753015Ab3FWNuV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 23 Jun 2013 09:50:21 -0400
 Received: from /spool/local
-	by e23smtp06.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp09.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Sun, 23 Jun 2013 23:42:38 +1000
+	Sun, 23 Jun 2013 19:15:43 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH 37/45] m32r: Use get/put_online_cpus_atomic() to prevent CPU
- offline
-Date: Sun, 23 Jun 2013 19:16:18 +0530
-Message-ID: <20130623134615.19094.93887.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH 40/45] powerpc,
+ irq: Use GFP_ATOMIC allocations in atomic context
+Date: Sun, 23 Jun 2013 19:17:00 +0530
+Message-ID: <20130623134657.19094.93687.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130623133642.19094.16038.stgit@srivatsabhat.in.ibm.com>
 References: <20130623133642.19094.16038.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,96 +20,37 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com
-Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Hirokazu Takata <takata@linux-m32r.org>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org
-Message-ID: <20130623134618.gyjrMGNpuGbb7ULR8DkfwYsG-pR5Y_N-IeCsDbDpx9E@z>
+Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Ian Munsie <imunsie@au1.ibm.com>Steven Rostedt <rostedt@goodmis.org>, Michael Ellerman <michael@ellerman.id.au>Li Zhong <zhong@linux.vnet.ibm.com>linuxppc-dev@lists.ozlabs.org
+Message-ID: <20130623134700.3LAx7kxD4_okH_Z8_8eI6gi7c4fsoTawAm0T5EmhKgQ@z>
 
-Once stop_machine() is gone from the CPU offline path, we won't be able
-to depend on disabling preemption to prevent CPUs from going offline
-from under us.
+The function migrate_irqs() is called with interrupts disabled
+and hence its not safe to do GFP_KERNEL allocations inside it,
+because they can sleep. So change the gfp mask to GFP_ATOMIC.
 
-Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going
-offline, while invoking from atomic context.
-
-Cc: Hirokazu Takata <takata@linux-m32r.org>
-Cc: linux-m32r@ml.linux-m32r.org
-Cc: linux-m32r-ja@ml.linux-m32r.org
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Ian Munsie <imunsie@au1.ibm.com>
+Cc: Steven Rostedt <rostedt@goodmis.org>
+Cc: Michael Ellerman <michael@ellerman.id.au>
+Cc: Li Zhong <zhong@linux.vnet.ibm.com>
+Cc: linuxppc-dev@lists.ozlabs.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/m32r/kernel/smp.c |   16 ++++++++--------
- 1 file changed, 8 insertions(+), 8 deletions(-)
+ arch/powerpc/kernel/irq.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/m32r/kernel/smp.c b/arch/m32r/kernel/smp.c
-index ce7aea3..ffafdba 100644
---- a/arch/m32r/kernel/smp.c
-+++ b/arch/m32r/kernel/smp.c
-@@ -151,7 +151,7 @@ void smp_flush_cache_all(void)
- 	cpumask_t cpumask;
- 	unsigned long *mask;
+diff --git a/arch/powerpc/kernel/irq.c b/arch/powerpc/kernel/irq.c
+index ea185e0..ca39bac 100644
+--- a/arch/powerpc/kernel/irq.c
++++ b/arch/powerpc/kernel/irq.c
+@@ -412,7 +412,7 @@ void migrate_irqs(void)
+ 	cpumask_var_t mask;
+ 	const struct cpumask *map = cpu_online_mask;
  
--	preempt_disable();
-+	get_online_cpus_atomic();
- 	cpumask_copy(&cpumask, cpu_online_mask);
- 	cpumask_clear_cpu(smp_processor_id(), &cpumask);
- 	spin_lock(&flushcache_lock);
-@@ -162,7 +162,7 @@ void smp_flush_cache_all(void)
- 	while (flushcache_cpumask)
- 		mb();
- 	spin_unlock(&flushcache_lock);
--	preempt_enable();
-+	put_online_cpus_atomic();
- }
+-	alloc_cpumask_var(&mask, GFP_KERNEL);
++	alloc_cpumask_var(&mask, GFP_ATOMIC);
  
- void smp_flush_cache_all_interrupt(void)
-@@ -197,12 +197,12 @@ void smp_flush_tlb_all(void)
- {
- 	unsigned long flags;
- 
--	preempt_disable();
-+	get_online_cpus_atomic();
- 	local_irq_save(flags);
- 	__flush_tlb_all();
- 	local_irq_restore(flags);
- 	smp_call_function(flush_tlb_all_ipi, NULL, 1);
--	preempt_enable();
-+	put_online_cpus_atomic();
- }
- 
- /*==========================================================================*
-@@ -250,7 +250,7 @@ void smp_flush_tlb_mm(struct mm_struct *mm)
- 	unsigned long *mmc;
- 	unsigned long flags;
- 
--	preempt_disable();
-+	get_online_cpus_atomic();
- 	cpu_id = smp_processor_id();
- 	mmc = &mm->context[cpu_id];
- 	cpumask_copy(&cpu_mask, mm_cpumask(mm));
-@@ -268,7 +268,7 @@ void smp_flush_tlb_mm(struct mm_struct *mm)
- 	if (!cpumask_empty(&cpu_mask))
- 		flush_tlb_others(cpu_mask, mm, NULL, FLUSH_ALL);
- 
--	preempt_enable();
-+	put_online_cpus_atomic();
- }
- 
- /*==========================================================================*
-@@ -320,7 +320,7 @@ void smp_flush_tlb_page(struct vm_area_struct *vma, unsigned long va)
- 	unsigned long *mmc;
- 	unsigned long flags;
- 
--	preempt_disable();
-+	get_online_cpus_atomic();
- 	cpu_id = smp_processor_id();
- 	mmc = &mm->context[cpu_id];
- 	cpumask_copy(&cpu_mask, mm_cpumask(mm));
-@@ -341,7 +341,7 @@ void smp_flush_tlb_page(struct vm_area_struct *vma, unsigned long va)
- 	if (!cpumask_empty(&cpu_mask))
- 		flush_tlb_others(cpu_mask, mm, vma, va);
- 
--	preempt_enable();
-+	put_online_cpus_atomic();
- }
- 
- /*==========================================================================*
+ 	for_each_irq_desc(irq, desc) {
+ 		struct irq_data *data;
 
