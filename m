@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp07.au.ibm.com ([202.81.31.140]:46938 "EHLO
-	e23smtp07.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751994Ab3FWNsG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 23 Jun 2013 09:48:06 -0400
+Received: from e28smtp08.in.ibm.com ([122.248.162.8]:52271 "EHLO
+	e28smtp08.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752889Ab3FWNtb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 23 Jun 2013 09:49:31 -0400
 Received: from /spool/local
-	by e23smtp07.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp08.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Sun, 23 Jun 2013 23:36:36 +1000
+	Sun, 23 Jun 2013 19:10:54 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH 29/45] kvm/vmx: Use get/put_online_cpus_atomic() to prevent
- CPU offline
-Date: Sun, 23 Jun 2013 19:14:27 +0530
-Message-ID: <20130623134423.19094.90107.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH 36/45] ia64: smp,
+ tlb: Use get/put_online_cpus_atomic() to prevent CPU offline
+Date: Sun, 23 Jun 2013 19:16:09 +0530
+Message-ID: <20130623134605.19094.47993.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130623133642.19094.16038.stgit@srivatsabhat.in.ibm.com>
 References: <20130623133642.19094.16038.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com
-Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, kvm@vger.kernel.org
-Message-ID: <20130623134427.Wqtxc7xLk_UZcDuU_axTflsCUCfCcQgqINoXnjl0RaM@z>
+Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org
+Message-ID: <20130623134609.iP41EbvX2WJn585RL4bBxgRu2RrqAWffhPudUiHgjhQ@z>
 
 Once stop_machine() is gone from the CPU offline path, we won't be able
 to depend on disabling preemption to prevent CPUs from going offline
@@ -30,74 +30,87 @@ from under us.
 Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going
 offline, while invoking from atomic context.
 
-Cc: Gleb Natapov <gleb@redhat.com>
-Cc: Paolo Bonzini <pbonzini@redhat.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
-Cc: kvm@vger.kernel.org
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: linux-ia64@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/x86/kvm/vmx.c |   13 +++++++------
- 1 file changed, 7 insertions(+), 6 deletions(-)
+ arch/ia64/kernel/smp.c |   12 ++++++------
+ arch/ia64/mm/tlb.c     |    4 ++--
+ 2 files changed, 8 insertions(+), 8 deletions(-)
 
-diff --git a/arch/x86/kvm/vmx.c b/arch/x86/kvm/vmx.c
-index 260a919..4e1e966 100644
---- a/arch/x86/kvm/vmx.c
-+++ b/arch/x86/kvm/vmx.c
-@@ -26,6 +26,7 @@
- #include <linux/mm.h>
- #include <linux/highmem.h>
- #include <linux/sched.h>
+diff --git a/arch/ia64/kernel/smp.c b/arch/ia64/kernel/smp.c
+index 9fcd4e6..25991ba 100644
+--- a/arch/ia64/kernel/smp.c
++++ b/arch/ia64/kernel/smp.c
+@@ -24,6 +24,7 @@
+ #include <linux/init.h>
+ #include <linux/interrupt.h>
+ #include <linux/smp.h>
 +#include <linux/cpu.h>
- #include <linux/moduleparam.h>
- #include <linux/mod_devicetable.h>
- #include <linux/ftrace_event.h>
-@@ -7164,12 +7165,12 @@ static struct kvm_vcpu *vmx_create_vcpu(struct kvm *kvm, unsigned int id)
- 	if (!vmm_exclusive)
- 		kvm_cpu_vmxoff();
+ #include <linux/kernel_stat.h>
+ #include <linux/mm.h>
+ #include <linux/cache.h>
+@@ -259,8 +260,7 @@ smp_flush_tlb_cpumask(cpumask_t xcpumask)
+ 	cpumask_t cpumask = xcpumask;
+ 	int mycpu, cpu, flush_mycpu = 0;
  
--	cpu = get_cpu();
-+	cpu = get_online_cpus_atomic();
- 	vmx_vcpu_load(&vmx->vcpu, cpu);
- 	vmx->vcpu.cpu = cpu;
- 	err = vmx_vcpu_setup(vmx);
- 	vmx_vcpu_put(&vmx->vcpu);
+-	preempt_disable();
+-	mycpu = smp_processor_id();
++	mycpu = get_online_cpus_atomic();
+ 
+ 	for_each_cpu_mask(cpu, cpumask)
+ 		counts[cpu] = local_tlb_flush_counts[cpu].count & 0xffff;
+@@ -280,7 +280,7 @@ smp_flush_tlb_cpumask(cpumask_t xcpumask)
+ 		while(counts[cpu] == (local_tlb_flush_counts[cpu].count & 0xffff))
+ 			udelay(FLUSH_DELAY);
+ 
+-	preempt_enable();
++	put_online_cpus_atomic();
+ }
+ 
+ void
+@@ -293,12 +293,12 @@ void
+ smp_flush_tlb_mm (struct mm_struct *mm)
+ {
+ 	cpumask_var_t cpus;
+-	preempt_disable();
++	get_online_cpus_atomic();
+ 	/* this happens for the common case of a single-threaded fork():  */
+ 	if (likely(mm == current->active_mm && atomic_read(&mm->mm_users) == 1))
+ 	{
+ 		local_finish_flush_tlb_mm(mm);
+-		preempt_enable();
++		put_online_cpus_atomic();
+ 		return;
+ 	}
+ 	if (!alloc_cpumask_var(&cpus, GFP_ATOMIC)) {
+@@ -313,7 +313,7 @@ smp_flush_tlb_mm (struct mm_struct *mm)
+ 	local_irq_disable();
+ 	local_finish_flush_tlb_mm(mm);
+ 	local_irq_enable();
+-	preempt_enable();
++	put_online_cpus_atomic();
+ }
+ 
+ void arch_send_call_function_single_ipi(int cpu)
+diff --git a/arch/ia64/mm/tlb.c b/arch/ia64/mm/tlb.c
+index ed61297..8c55ef5 100644
+--- a/arch/ia64/mm/tlb.c
++++ b/arch/ia64/mm/tlb.c
+@@ -87,11 +87,11 @@ wrap_mmu_context (struct mm_struct *mm)
+ 	 * can't call flush_tlb_all() here because of race condition
+ 	 * with O(1) scheduler [EF]
+ 	 */
+-	cpu = get_cpu(); /* prevent preemption/migration */
++	cpu = get_online_cpus_atomic(); /* prevent preemption/migration */
+ 	for_each_online_cpu(i)
+ 		if (i != cpu)
+ 			per_cpu(ia64_need_tlb_flush, i) = 1;
 -	put_cpu();
 +	put_online_cpus_atomic();
- 	if (err)
- 		goto free_vmcs;
- 	if (vm_need_virtualize_apic_accesses(kvm)) {
-@@ -7706,12 +7707,12 @@ static int nested_vmx_run(struct kvm_vcpu *vcpu, bool launch)
- 
- 	vmx->nested.vmcs01_tsc_offset = vmcs_read64(TSC_OFFSET);
- 
--	cpu = get_cpu();
-+	cpu = get_online_cpus_atomic();
- 	vmx->loaded_vmcs = vmcs02;
- 	vmx_vcpu_put(vcpu);
- 	vmx_vcpu_load(vcpu, cpu);
- 	vcpu->cpu = cpu;
--	put_cpu();
-+	put_online_cpus_atomic();
- 
- 	vmx_segment_cache_clear(vmx);
- 
-@@ -8023,12 +8024,12 @@ static void nested_vmx_vmexit(struct kvm_vcpu *vcpu)
- 	leave_guest_mode(vcpu);
- 	prepare_vmcs12(vcpu, vmcs12);
- 
--	cpu = get_cpu();
-+	cpu = get_online_cpus_atomic();
- 	vmx->loaded_vmcs = &vmx->vmcs01;
- 	vmx_vcpu_put(vcpu);
- 	vmx_vcpu_load(vcpu, cpu);
- 	vcpu->cpu = cpu;
--	put_cpu();
-+	put_online_cpus_atomic();
- 
- 	vmx_segment_cache_clear(vmx);
+ 	local_flush_tlb_all();
+ }
  
 
