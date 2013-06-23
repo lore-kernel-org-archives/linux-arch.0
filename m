@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp03.au.ibm.com ([202.81.31.145]:57242 "EHLO
-	e23smtp03.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751846Ab3FWNmN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 23 Jun 2013 09:42:13 -0400
+Received: from e23smtp04.au.ibm.com ([202.81.31.146]:42959 "EHLO
+	e23smtp04.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751912Ab3FWNnV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 23 Jun 2013 09:43:21 -0400
 Received: from /spool/local
-	by e23smtp03.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp04.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Sun, 23 Jun 2013 23:32:47 +1000
+	Sun, 23 Jun 2013 23:28:55 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH 04/45] CPU hotplug: Add infrastructure to check lacking
- hotplug synchronization
-Date: Sun, 23 Jun 2013 19:08:45 +0530
-Message-ID: <20130623133841.19094.69631.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH 08/45] CPU hotplug: Convert preprocessor macros to static
+ inline functions
+Date: Sun, 23 Jun 2013 19:09:55 +0530
+Message-ID: <20130623133951.19094.35173.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130623133642.19094.16038.stgit@srivatsabhat.in.ibm.com>
 References: <20130623133642.19094.16038.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,155 +20,46 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com
-Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Alex Shi <alex.shi@intel.com>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>
-Message-ID: <20130623133845.6IoQUafmX0lEmnP5hwJf9wRz4NEw2Y-2y5OXI7m8HZc@z>
+Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, "Rafael J. Wysocki" <rjw@sisk.pl>
+Message-ID: <20130623133955.UH0x_vh4Se_v5gVO0i1-mTRlB2xcl7atWJKeJrlwQiI@z>
 
-Add a debugging infrastructure to warn if an atomic hotplug reader has not
-invoked get_online_cpus_atomic() before traversing/accessing the
-cpu_online_mask. Encapsulate these checks under a new debug config option
-DEBUG_HOTPLUG_CPU.
+Convert the macros in the CPU hotplug code to static inline C functions.
 
-This debugging infrastructure proves useful in the tree-wide conversion
-of atomic hotplug readers from preempt_disable() to the new APIs, and
-help us catch the places we missed, much before we actually get rid of
-stop_machine(). We can perhaps remove the debugging checks later on.
-
-Cc: Rusty Russell <rusty@rustcorp.com.au>
-Cc: Alex Shi <alex.shi@intel.com>
-Cc: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
-Cc: Tejun Heo <tj@kernel.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>
-Cc: "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>
+Cc: Tejun Heo <tj@kernel.org>
+Cc: "Rafael J. Wysocki" <rjw@sisk.pl>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- include/linux/cpumask.h |   12 ++++++++
- kernel/cpu.c            |   75 +++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 87 insertions(+)
+ include/linux/cpu.h |    9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
 
-diff --git a/include/linux/cpumask.h b/include/linux/cpumask.h
-index d08e4d2..9197ca4 100644
---- a/include/linux/cpumask.h
-+++ b/include/linux/cpumask.h
-@@ -101,6 +101,18 @@ extern const struct cpumask *const cpu_active_mask;
- #define cpu_active(cpu)		((cpu) == 0)
- #endif
+diff --git a/include/linux/cpu.h b/include/linux/cpu.h
+index e06c3ad..d91919b 100644
+--- a/include/linux/cpu.h
++++ b/include/linux/cpu.h
+@@ -200,10 +200,8 @@ static inline void cpu_hotplug_driver_unlock(void)
  
-+#ifdef CONFIG_DEBUG_HOTPLUG_CPU
-+extern void check_hotplug_safe_cpumask(const struct cpumask *mask);
-+extern void check_hotplug_safe_cpu(unsigned int cpu,
-+				   const struct cpumask *mask);
-+#else
-+static inline void check_hotplug_safe_cpumask(const struct cpumask *mask) { }
-+static inline void check_hotplug_safe_cpu(unsigned int cpu,
-+					  const struct cpumask *mask)
-+{
-+}
-+#endif
-+
- /* verify cpu argument to cpumask_* operators */
- static inline unsigned int cpumask_check(unsigned int cpu)
- {
-diff --git a/kernel/cpu.c b/kernel/cpu.c
-index 860f51a..e90d9d7 100644
---- a/kernel/cpu.c
-+++ b/kernel/cpu.c
-@@ -63,6 +63,72 @@ static struct {
- 	.refcount = 0,
- };
+ #else		/* CONFIG_HOTPLUG_CPU */
  
-+#ifdef CONFIG_DEBUG_HOTPLUG_CPU
-+
-+static DEFINE_PER_CPU(unsigned long, atomic_reader_refcnt);
-+
-+static int current_is_hotplug_safe(const struct cpumask *mask)
-+{
-+
-+	/* If we are not dealing with cpu_online_mask, don't complain. */
-+	if (mask != cpu_online_mask)
-+		return 1;
-+
-+	/* If this is the task doing hotplug, don't complain. */
-+	if (unlikely(current == cpu_hotplug.active_writer))
-+		return 1;
-+
-+	/* If we are in early boot, don't complain. */
-+	if (system_state != SYSTEM_RUNNING)
-+		return 1;
-+
-+	/*
-+	 * Check if the current task is in atomic context and it has
-+	 * invoked get_online_cpus_atomic() to synchronize with
-+	 * CPU Hotplug.
-+	 */
-+	if (preempt_count() || irqs_disabled())
-+		return this_cpu_read(atomic_reader_refcnt);
-+	else
-+		return 1; /* No checks for non-atomic contexts for now */
-+}
-+
-+static inline void warn_hotplug_unsafe(void)
-+{
-+	WARN_ONCE(1, "Must use get/put_online_cpus_atomic() to synchronize"
-+		     " with CPU hotplug\n");
-+}
-+
-+/*
-+ * Check if the task (executing in atomic context) has the required protection
-+ * against CPU hotplug, while accessing the specified cpumask.
-+ */
-+void check_hotplug_safe_cpumask(const struct cpumask *mask)
-+{
-+	if (!current_is_hotplug_safe(mask))
-+		warn_hotplug_unsafe();
-+}
-+EXPORT_SYMBOL_GPL(check_hotplug_safe_cpumask);
-+
-+/*
-+ * Similar to check_hotplug_safe_cpumask(), except that we don't complain
-+ * if the task (executing in atomic context) is testing whether the CPU it
-+ * is executing on is online or not.
-+ *
-+ * (A task executing with preemption disabled on a CPU, automatically prevents
-+ *  offlining that CPU, irrespective of the actual implementation of CPU
-+ *  offline. So we don't enforce holding of get_online_cpus_atomic() for that
-+ *  case).
-+ */
-+void check_hotplug_safe_cpu(unsigned int cpu, const struct cpumask *mask)
-+{
-+	if(!current_is_hotplug_safe(mask) && cpu != smp_processor_id())
-+		warn_hotplug_unsafe();
-+}
-+EXPORT_SYMBOL_GPL(check_hotplug_safe_cpu);
-+
-+#endif
-+
- void get_online_cpus(void)
- {
- 	might_sleep();
-@@ -189,13 +255,22 @@ unsigned int get_online_cpus_atomic(void)
- 	 * from going offline.
- 	 */
- 	preempt_disable();
-+
-+#ifdef CONFIG_DEBUG_HOTPLUG_CPU
-+	this_cpu_inc(atomic_reader_refcnt);
-+#endif
- 	return smp_processor_id();
- }
- EXPORT_SYMBOL_GPL(get_online_cpus_atomic);
+-#define get_online_cpus()	do { } while (0)
+-#define put_online_cpus()	do { } while (0)
+-#define cpu_hotplug_disable()	do { } while (0)
+-#define cpu_hotplug_enable()	do { } while (0)
++static inline void get_online_cpus(void) {}
++static inline void put_online_cpus(void) {}
  
- void put_online_cpus_atomic(void)
+ static inline unsigned int get_online_cpus_atomic(void)
  {
-+
-+#ifdef CONFIG_DEBUG_HOTPLUG_CPU
-+	this_cpu_dec(atomic_reader_refcnt);
-+#endif
+@@ -220,6 +218,9 @@ static inline void put_online_cpus_atomic(void)
  	preempt_enable();
-+
  }
- EXPORT_SYMBOL_GPL(put_online_cpus_atomic);
  
++static inline void cpu_hotplug_disable(void) {}
++static inline void cpu_hotplug_enable(void) {}
++
+ #define hotcpu_notifier(fn, pri)	do { (void)(fn); } while (0)
+ /* These aren't inline functions due to a GCC bug. */
+ #define register_hotcpu_notifier(nb)	({ (void)(nb); 0; })
 
