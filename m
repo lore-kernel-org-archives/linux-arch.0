@@ -1,66 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp04.au.ibm.com ([202.81.31.146]:58647 "EHLO
-	e23smtp04.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750849Ab3FWTCD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 23 Jun 2013 15:02:03 -0400
-Received: from /spool/local
-	by e23smtp04.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Mon, 24 Jun 2013 04:47:36 +1000
-Message-ID: <51C7455B.904@linux.vnet.ibm.com>
-Date: Mon, 24 Jun 2013 00:28:35 +0530
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Received: from ra.se.axis.com ([195.60.68.13]:57304 "EHLO ra.se.axis.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751922Ab3FXGmD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 24 Jun 2013 02:42:03 -0400
+Date: Mon, 24 Jun 2013 08:41:56 +0200
+From: Jesper Nilsson <jesper.nilsson@axis.com>
+Subject: Re: [PATCH 33/45] cris/smp: Use get/put_online_cpus_atomic() to
+ prevent CPU offline
+Message-ID: <20130624064156.GR23735@axis.com>
+References: <20130623133642.19094.16038.stgit@srivatsabhat.in.ibm.com>
+ <20130623134536.19094.52797.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH 07/45] CPU hotplug: Expose the new debug config option
-References: <20130623133642.19094.16038.stgit@srivatsabhat.in.ibm.com> <20130623133928.19094.8259.stgit@srivatsabhat.in.ibm.com> <51C70F82.4030101@cogentembedded.com>
-In-Reply-To: <51C70F82.4030101@cogentembedded.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20130623134536.19094.52797.stgit@srivatsabhat.in.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>
-Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, "Paul E. McKenney" <paul.mckenney@linaro.org>, Akinobu Mita <akinobu.mita@gmail.com>, Catalin Marinas <catalin.marinas@arm.com>
-Message-ID: <20130623185835.mKjUJFBo_1xmPaD1u7DjnQaLOJYcZExF0vnZwcGEkXY@z>
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jespern@axis.com>, linux-cris-kernel@axis.com
+Message-ID: <20130624064156.0-TCtAxAd4PZv00aqPlxFws0iPUN9OSbCWebuB_c1wU@z>
 
-On 06/23/2013 08:38 PM, Sergei Shtylyov wrote:
-> Hello.
+On Sun, Jun 23, 2013 at 07:15:39PM +0530, Srivatsa S. Bhat wrote:
+> Once stop_machine() is gone from the CPU offline path, we won't be able
+> to depend on disabling preemption to prevent CPUs from going offline
+> from under us.
 > 
-> On 23-06-2013 17:39, Srivatsa S. Bhat wrote:
+> Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going
+> offline, while invoking from atomic context.
 > 
->> Now that we have all the pieces of the CPU hotplug debug infrastructure
->> in place, expose the feature by growing a new Kconfig option,
->> CONFIG_DEBUG_HOTPLUG_CPU.
-> 
->> Cc: Andrew Morton <akpm@linux-foundation.org>
->> Cc: "Paul E. McKenney" <paul.mckenney@linaro.org>
->> Cc: Akinobu Mita <akinobu.mita@gmail.com>
->> Cc: Catalin Marinas <catalin.marinas@arm.com>
->> Cc: Michel Lespinasse <walken@google.com>
->> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
->> ---
-> 
->>   lib/Kconfig.debug |    9 +++++++++
->>   1 file changed, 9 insertions(+)
-> 
->> diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
->> index 566cf2b..6be1e72 100644
->> --- a/lib/Kconfig.debug
->> +++ b/lib/Kconfig.debug
->> @@ -512,6 +512,15 @@ config DEBUG_PREEMPT
->>         if kernel code uses it in a preemption-unsafe way. Also, the
->> kernel
->>         will detect preemption count underflows.
->>
->> +config DEBUG_HOTPLUG_CPU
->> +    bool "Debug CPU hotplug"
->> +    depends on HOTPLUG_CPU
->> +    default n
-> 
->     It's the default default, no need to specify it.
-> 
+> Cc: Mikael Starvik <starvik@axis.com>
 
-Ah, I see. Thanks!
+Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
 
-Regards,
-Srivatsa S. Bhat
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: linux-cris-kernel@axis.com
+> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+> ---
+> 
+>  arch/cris/arch-v32/kernel/smp.c |    5 +++++
+>  1 file changed, 5 insertions(+)
+> 
+> diff --git a/arch/cris/arch-v32/kernel/smp.c b/arch/cris/arch-v32/kernel/smp.c
+> index cdd1202..b2d4612 100644
+> --- a/arch/cris/arch-v32/kernel/smp.c
+> +++ b/arch/cris/arch-v32/kernel/smp.c
+> @@ -13,6 +13,7 @@
+>  #include <linux/init.h>
+>  #include <linux/timex.h>
+>  #include <linux/sched.h>
+> +#include <linux/cpu.h>
+>  #include <linux/kernel.h>
+>  #include <linux/cpumask.h>
+>  #include <linux/interrupt.h>
+> @@ -222,6 +223,7 @@ void flush_tlb_common(struct mm_struct* mm, struct vm_area_struct* vma, unsigned
+>  	unsigned long flags;
+>  	cpumask_t cpu_mask;
+>  
+> +	get_online_cpus_atomic();
+>  	spin_lock_irqsave(&tlbstate_lock, flags);
+>  	cpu_mask = (mm == FLUSH_ALL ? cpu_all_mask : *mm_cpumask(mm));
+>  	cpumask_clear_cpu(smp_processor_id(), &cpu_mask);
+> @@ -230,6 +232,7 @@ void flush_tlb_common(struct mm_struct* mm, struct vm_area_struct* vma, unsigned
+>  	flush_addr = addr;
+>  	send_ipi(IPI_FLUSH_TLB, 1, cpu_mask);
+>  	spin_unlock_irqrestore(&tlbstate_lock, flags);
+> +	put_online_cpus_atomic();
+>  }
+>  
+>  void flush_tlb_all(void)
+> @@ -319,10 +322,12 @@ int smp_call_function(void (*func)(void *info), void *info, int wait)
+>  	data.info = info;
+>  	data.wait = wait;
+>  
+> +	get_online_cpus_atomic();
+>  	spin_lock(&call_lock);
+>  	call_data = &data;
+>  	ret = send_ipi(IPI_CALL, wait, cpu_mask);
+>  	spin_unlock(&call_lock);
+> +	put_online_cpus_atomic();
+>  
+>  	return ret;
+>  }
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
 
+/^JN - Jesper Nilsson
+-- 
+               Jesper Nilsson -- jesper.nilsson@axis.com
