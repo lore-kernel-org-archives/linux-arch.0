@@ -1,55 +1,43 @@
-From: Jesper Nilsson <jesper.nilsson@axis.com>
-Subject: Re: [RFC PATCH 06/16] cris: locks: remove unused arch_*_relax
- operations
-Date: Mon, 24 Jun 2013 08:41:28 +0200
-Message-ID: <20130624064128.GQ23735@axis.com>
-References: <1371835057-19335-1-git-send-email-will.deacon@arm.com>
- <1371835057-19335-7-git-send-email-will.deacon@arm.com>
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: [PATCH v2 0/3] make Xilinx System ACE driver arch-independent
+Date: Mon, 24 Jun 2013 12:26:01 +0400
+Message-ID: <1372062364-25861-1-git-send-email-abrodkin@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from anubis.se.axis.com ([195.60.68.12]:47364 "EHLO
-	anubis.se.axis.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751882Ab3FXGsB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jun 2013 02:48:01 -0400
-Content-Disposition: inline
-In-Reply-To: <1371835057-19335-7-git-send-email-will.deacon@arm.com>
+Received: from us01smtp3.synopsys.com ([198.182.44.81]:53934 "EHLO
+	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752506Ab3FXI0W (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jun 2013 04:26:22 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jespern@axis.com>
+To: linux-arch@vger.kernel.org
+Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Mischa Jonker <Mischa.Jonker@synopsys.com>, Grant Likely <grant.likely@secretlab.ca>, Arnd Bergmann <arnd@arndb.de>, Michal Simek <monstr@monstr.eu>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Andy Shevchenko <andy.shevchenko@gmail.com>
 
-On Fri, Jun 21, 2013 at 07:17:27PM +0200, Will Deacon wrote:
-> The arch_{spin,read,write}_relax macros are not used anywhere in the
-> kernel and are typically just aliases for cpu_relax().
-> 
-> This patch removes the unused definitions for Cris.
-> 
-> Cc: Mikael Starvik <starvik@axis.com>
+In v2 I put together 3 patches:
+1. Blind replace of PPC/Microblaze-specific accessors with generic ones.
+2. Fix functions that access data via dedicated register in SystemACE controller
+so now CPU accesses data with native endianess.
+3. Remove dependency on PPC/Microblaze - i.e. make driver arch-independent.
 
-Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
+Alexey Brodkin (3):
+  drivers/block/xsysace - replace in(out)_8/in(out)_be16/in(out)_le16
+    with generic iowrite(read)8/16(be)
+  drivers/block/xsysace - use "_rep" accessors with CPU endianess for
+    data
+  drivers/block - make Xilinx SystemACE driver arch-independent
 
-> Signed-off-by: Will Deacon <will.deacon@arm.com>
-> ---
->  arch/cris/include/arch-v32/arch/spinlock.h | 4 ----
->  1 file changed, 4 deletions(-)
-> 
-> diff --git a/arch/cris/include/arch-v32/arch/spinlock.h b/arch/cris/include/arch-v32/arch/spinlock.h
-> index f132755..bf94cc6 100644
-> --- a/arch/cris/include/arch-v32/arch/spinlock.h
-> +++ b/arch/cris/include/arch-v32/arch/spinlock.h
-> @@ -124,8 +124,4 @@ static  inline int arch_write_trylock(arch_rwlock_t *rw)
->  #define _raw_read_lock_flags(lock, flags) _raw_read_lock(lock)
->  #define _raw_write_lock_flags(lock, flags) _raw_write_lock(lock)
->  
-> -#define arch_spin_relax(lock)	cpu_relax()
-> -#define arch_read_relax(lock)	cpu_relax()
-> -#define arch_write_relax(lock)	cpu_relax()
-> -
->  #endif /* __ASM_ARCH_SPINLOCK_H */
-> -- 
-> 1.8.2.2
+ drivers/block/Kconfig   |    1 -
+ drivers/block/xsysace.c |   74 ++++++++++++++---------------------------------
+ 2 files changed, 21 insertions(+), 54 deletions(-)
 
-/^JN - Jesper Nilsson
+
+Cc: Vineet Gupta <vgupta@synopsys.com>
+Cc: Mischa Jonker <mjonker@synopsys.com>
+Cc: Grant Likely <grant.likely@secretlab.ca>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Michal Simek <monstr@monstr.eu>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Andy Shevchenko <andy.shevchenko@gmail.com>
 -- 
-               Jesper Nilsson -- jesper.nilsson@axis.com
+1.7.10.4
