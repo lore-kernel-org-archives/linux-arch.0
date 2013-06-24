@@ -1,85 +1,48 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH v2] arch: arm64: kernel: add '#ifdef CONFIG_COMPAT' for
- aarch32_break_handler()
-Date: Mon, 24 Jun 2013 18:16:08 +0800
-Message-ID: <51C81C68.5080101@asianux.com>
-References: <51C53C06.7050205@asianux.com> <51C81115.4070803@asianux.com> <20130624101429.GF23779@mudshark.cambridge.arm.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [RFC PATCH 00/16] Remove unused arch_*_relax operations from
+ spinlocks
+Date: Mon, 24 Jun 2013 12:58:25 +0100
+Message-ID: <20130624115825.GJ23779@mudshark.cambridge.arm.com>
+References: <1371835057-19335-1-git-send-email-will.deacon@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:43150 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752023Ab3FXKRA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jun 2013 06:17:00 -0400
-In-Reply-To: <20130624101429.GF23779@mudshark.cambridge.arm.com>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:35837 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751621Ab3FXL65 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 24 Jun 2013 07:58:57 -0400
+Content-Disposition: inline
+In-Reply-To: <1371835057-19335-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Catalin Marinas <Catalin.Marinas@arm.com>, Tony Lindgren <tony@atomide.com>, "olof@lixom.net" <olof@lixom.net>, Santosh Shilimkar <santosh.shilimkar@ti.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Cc: catalin.marinas@arm.com, benh@kernel.crashing.org, tony.luck@intel.com, takata@linux-m32r.org, schwidefsky@de.ibm.com, lethal@linux-sh.org, tglx@linutronix.de, davem@davemloft.net, deller@gmx.de
 
-On 06/24/2013 06:14 PM, Will Deacon wrote:
-> On Mon, Jun 24, 2013 at 10:27:49AM +0100, Chen Gang wrote:
->> >=20
->> > If 'COMPAT' not defined, aarch32_break_handler() cannot pass compi=
-ling,
->> > and it can work independent with 'COMPAT', so remove dummy definit=
-ion.
->> >=20
->> > The related make:
->> >=20
->> >   make ARCH=3Darm64 randconfig
->> >   make ARCH=3Darm64 menuconfig
->> >   make ARCH=3Darm64 V=3D1 EXTRA_CFLAGS=3D-W
-> This sequence isn't really very useful, so I wouldn't bother includin=
-g it in
-> the commit message. You can trigger this issue just by disabling
-> CONFIG_COMPAT.
->=20
+On Fri, Jun 21, 2013 at 06:17:21PM +0100, Will Deacon wrote:
+> This is an RFC cleanup series removing the unused
+> arch_{spin,read,write}_relax macros from (nearly) all architectures that
+> define them. The macros have no users in core code and are typically
+> synonymous with cpu_relax(), the notable exceptions being PowerPC (where
+> the thing is still unused) and S390.
 
-OK, thanks. Next time, I need notice about it.
+So the `no users in core code' part isn't quite true...
 
->> > The related error:
->> >=20
->> >   arch/arm64/kernel/debug-monitors.c:249:5: error: redefinition of=
- =E2=80=98aarch32_break_handler=E2=80=99
->> >   In file included from arch/arm64/kernel/debug-monitors.c:29:0:
->> >   /root/linux-next/arch/arm64/include/asm/debug-monitors.h:89:12: =
-note: previous definition of =E2=80=98aarch32_break_handler=E2=80=99 wa=
-s here
->> >=20
->> >=20
->> >=20
->> > Signed-off-by: Chen Gang <gang.chen@asianux.com>
->> > ---
->> >  arch/arm64/include/asm/debug-monitors.h |    7 -------
->> >  1 files changed, 0 insertions(+), 7 deletions(-)
->> >=20
->> > diff --git a/arch/arm64/include/asm/debug-monitors.h b/arch/arm64/=
-include/asm/debug-monitors.h
->> > index ef8235c..a2232d0 100644
->> > --- a/arch/arm64/include/asm/debug-monitors.h
->> > +++ b/arch/arm64/include/asm/debug-monitors.h
->> > @@ -83,14 +83,7 @@ static inline int reinstall_suspended_bps(struc=
-t pt_regs *regs)
->> >  }
->> >  #endif
->> > =20
->> > -#ifdef CONFIG_COMPAT
->> >  int aarch32_break_handler(struct pt_regs *regs);
->> > -#else
->> > -static int aarch32_break_handler(struct pt_regs *regs)
->> > -{
->> > -	return -EFAULT;
->> > -}
->> > -#endif
-> Code looks fine to me:
->=20
->   Acked-by: Will Deacon <will.deacon@arm.com>
+With GENERIC_LOCKBREAK (arm64, ia64, m32r, parisc, powerpc, s390, sh and
+sparc), we can actually spit out arch_*_relax calls in kernel/spinlock.c
+using some macro concatenation that defeated my grep-fu.
 
-Thanks.
+This only makes a difference on powerpc and s390, so we could either:
 
---=20
-Chen Gang
+  (1) conditionally define the relax macros as cpu_relax in spinlock.c (so
+      the two guys above can have their special versions)
 
-Asianux Corporation
+  (2) Replace the calls with calls to cpu_relax() (although powerpc seems to
+      want to know who owns the lock in order to relax)
+
+  (3) Leave the current code alone for architectures that may select
+      GENERIC_LOCKBREAK
+
+Any other ideas/preferences?
+
+Will
