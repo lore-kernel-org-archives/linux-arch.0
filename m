@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp08.in.ibm.com ([122.248.162.8]:51421 "EHLO
-	e28smtp08.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753180Ab3FYUak (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2013 16:30:40 -0400
+Received: from e23smtp03.au.ibm.com ([202.81.31.145]:48133 "EHLO
+	e23smtp03.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753274Ab3FYUa5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2013 16:30:57 -0400
 Received: from /spool/local
-	by e28smtp08.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp03.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Wed, 26 Jun 2013 01:51:57 +0530
+	Wed, 26 Jun 2013 06:21:28 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 11/45] migration: Use raw_spin_lock/unlock since interrupts
- are already disabled
-Date: Wed, 26 Jun 2013 01:57:17 +0530
-Message-ID: <20130625202717.16593.55189.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 13/45] timer: Use get/put_online_cpus_atomic() to prevent
+ CPU offline
+Date: Wed, 26 Jun 2013 01:57:31 +0530
+Message-ID: <20130625202730.16593.35113.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130625202452.16593.22810.stgit@srivatsabhat.in.ibm.com>
 References: <20130625202452.16593.22810.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,40 +20,57 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com
-Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20130625202717.0nptYI7VponvnjKkSEskWjgTgG6V1p2YIOvmmKIOnfQ@z>
+Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20130625202731.FludiXrqPNGQOMp_zQ8nGyW4ikPb9AQim6910oOxcuQ@z>
 
-We need not use the raw_spin_lock_irqsave/restore primitives because
-all CPU_DYING notifiers run with interrupts disabled. So just use
-raw_spin_lock/unlock.
+Once stop_machine() is gone from the CPU offline path, we won't be able
+to depend on disabling preemption to prevent CPUs from going offline
+from under us.
 
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
+Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going
+offline, while invoking from atomic context.
+
+Cc: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- kernel/sched/core.c |    4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ kernel/timer.c |    4 ++++
+ 1 file changed, 4 insertions(+)
 
-diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index accd550..ff26f54 100644
---- a/kernel/sched/core.c
-+++ b/kernel/sched/core.c
-@@ -4682,14 +4682,14 @@ migration_call(struct notifier_block *nfb, unsigned long action, void *hcpu)
- 	case CPU_DYING:
- 		sched_ttwu_pending();
- 		/* Update our root-domain */
--		raw_spin_lock_irqsave(&rq->lock, flags);
-+		raw_spin_lock(&rq->lock); /* IRQs already disabled */
- 		if (rq->rd) {
- 			BUG_ON(!cpumask_test_cpu(cpu, rq->rd->span));
- 			set_rq_offline(rq);
- 		}
- 		migrate_tasks(cpu);
- 		BUG_ON(rq->nr_running != 1); /* the migration thread */
--		raw_spin_unlock_irqrestore(&rq->lock, flags);
-+		raw_spin_unlock(&rq->lock);
- 		break;
+diff --git a/kernel/timer.c b/kernel/timer.c
+index 15ffdb3..5db594c 100644
+--- a/kernel/timer.c
++++ b/kernel/timer.c
+@@ -729,6 +729,7 @@ __mod_timer(struct timer_list *timer, unsigned long expires,
+ 	timer_stats_timer_set_start_info(timer);
+ 	BUG_ON(!timer->function);
  
- 	case CPU_DEAD:
++	get_online_cpus_atomic();
+ 	base = lock_timer_base(timer, &flags);
+ 
+ 	ret = detach_if_pending(timer, base, false);
+@@ -768,6 +769,7 @@ __mod_timer(struct timer_list *timer, unsigned long expires,
+ 
+ out_unlock:
+ 	spin_unlock_irqrestore(&base->lock, flags);
++	put_online_cpus_atomic();
+ 
+ 	return ret;
+ }
+@@ -926,6 +928,7 @@ void add_timer_on(struct timer_list *timer, int cpu)
+ 
+ 	timer_stats_timer_set_start_info(timer);
+ 	BUG_ON(timer_pending(timer) || !timer->function);
++	get_online_cpus_atomic();
+ 	spin_lock_irqsave(&base->lock, flags);
+ 	timer_set_base(timer, base);
+ 	debug_activate(timer, timer->expires);
+@@ -940,6 +943,7 @@ void add_timer_on(struct timer_list *timer, int cpu)
+ 	 */
+ 	wake_up_nohz_cpu(cpu);
+ 	spin_unlock_irqrestore(&base->lock, flags);
++	put_online_cpus_atomic();
+ }
+ EXPORT_SYMBOL_GPL(add_timer_on);
+ 
 
