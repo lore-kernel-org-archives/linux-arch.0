@@ -1,45 +1,47 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: [PATCH] arch: c6x: platforms: include "asm/special_insns.h" to pass
- compiling
-Date: Tue, 25 Jun 2013 10:05:32 +0800
-Message-ID: <51C8FAEC.10101@asianux.com>
+From: Michael Ellerman <michael@ellerman.id.au>
+Subject: Re: [PATCH 40/45] powerpc, irq: Use GFP_ATOMIC allocations in atomic
+ context
+Date: Tue, 25 Jun 2013 12:08:42 +1000
+Message-ID: <20130625020842.GD14051@concordia>
+References: <20130623133642.19094.16038.stgit@srivatsabhat.in.ibm.com>
+ <20130623134657.19094.93687.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:26546 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751297Ab3FYCGY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jun 2013 22:06:24 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: msalter@redhat.com, a-jacquiot@ti.com
-Cc: jkc@redhat.com, linux-c6x-dev@linux-c6x.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-pm-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20130623134657.19094.93687.stgit@srivatsabhat.in.ibm.com>
+Sender: linux-pm-owner@vger.kernel.org
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Ian Munsie <imunsie@au1.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-Include "asm/special_insns.h" to pass compiling.
+On Sun, Jun 23, 2013 at 07:17:00PM +0530, Srivatsa S. Bhat wrote:
+> The function migrate_irqs() is called with interrupts disabled
+> and hence its not safe to do GFP_KERNEL allocations inside it,
+> because they can sleep. So change the gfp mask to GFP_ATOMIC.
 
-The related error (with allmodconfig):
-  arch/c6x/platforms/plldata.c: In function =91c6472_setup_clocks=92:
-  arch/c6x/platforms/plldata.c:279:2: error: implicit declaration of fu=
-nction =91get_coreid=92 [-Werror=3Dimplicit-function-declaration]
+OK so it gets there via:
+  __stop_machine()
+    take_cpu_down()
+      __cpu_disable()
+        smp_ops->cpu_disable()
+          generic_cpu_disable()
+            migrate_irqs()
 
-Signed-off-by: Chen Gang <gang.chen@asianux.com>
----
- arch/c6x/platforms/plldata.c |    1 +
- 1 files changed, 1 insertions(+), 0 deletions(-)
+> diff --git a/arch/powerpc/kernel/irq.c b/arch/powerpc/kernel/irq.c
+> index ea185e0..ca39bac 100644
+> --- a/arch/powerpc/kernel/irq.c
+> +++ b/arch/powerpc/kernel/irq.c
+> @@ -412,7 +412,7 @@ void migrate_irqs(void)
+>  	cpumask_var_t mask;
+>  	const struct cpumask *map = cpu_online_mask;
+>  
+> -	alloc_cpumask_var(&mask, GFP_KERNEL);
+> +	alloc_cpumask_var(&mask, GFP_ATOMIC);
 
-diff --git a/arch/c6x/platforms/plldata.c b/arch/c6x/platforms/plldata.=
-c
-index 755359e..ddd1441 100644
---- a/arch/c6x/platforms/plldata.c
-+++ b/arch/c6x/platforms/plldata.c
-@@ -20,6 +20,7 @@
- #include <asm/clock.h>
- #include <asm/setup.h>
- #include <asm/irq.h>
-+#include <asm/special_insns.h>
-=20
- /*
-  * Common SoC clock support.
---=20
-1.7.7.6
+We're not checking for allocation failure, which we should be.
+
+But this code is only used on powermac and 85xx, so it should probably
+just be a TODO to fix this up to handle the failure.
+
+cheers
