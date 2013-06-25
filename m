@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp05.in.ibm.com ([122.248.162.5]:53847 "EHLO
-	e28smtp05.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752867Ab3FYUbh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2013 16:31:37 -0400
+Received: from e23smtp07.au.ibm.com ([202.81.31.140]:49521 "EHLO
+	e23smtp07.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753409Ab3FYUcG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2013 16:32:06 -0400
 Received: from /spool/local
-	by e28smtp05.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp07.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Wed, 26 Jun 2013 01:56:31 +0530
+	Wed, 26 Jun 2013 06:20:31 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 16/45] tick-broadcast: Use get/put_online_cpus_atomic() to
- prevent CPU offline
-Date: Wed, 26 Jun 2013 01:58:13 +0530
-Message-ID: <20130625202813.16593.86718.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 18/45] softirq: Use get/put_online_cpus_atomic() to prevent
+ CPU offline
+Date: Wed, 26 Jun 2013 01:58:27 +0530
+Message-ID: <20130625202826.16593.21025.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130625202452.16593.22810.stgit@srivatsabhat.in.ibm.com>
 References: <20130625202452.16593.22810.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com
-Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20130625202813.6EqCY1W02EeYTsr_6h7Nx1xnnUpQpE2HcLg4Bwps7OE@z>
+Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.orgFrederic Weisbecker <fweisbec@gmail.com>, Sedat Dilek <sedat.dilek@gmail.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20130625202827.mpJeR1U1SbaSizEtCtZE11FmbnzrhWYZkqY5Q5tOhow@z>
 
 Once stop_machine() is gone from the CPU offline path, we won't be able
 to depend on disabling preemption to prevent CPUs from going offline
@@ -30,76 +30,37 @@ from under us.
 Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going
 offline, while invoking from atomic context.
 
+Cc: Frederic Weisbecker <fweisbec@gmail.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Sedat Dilek <sedat.dilek@gmail.com>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- kernel/time/tick-broadcast.c |    8 ++++++++
- 1 file changed, 8 insertions(+)
+ kernel/softirq.c |    3 +++
+ 1 file changed, 3 insertions(+)
 
-diff --git a/kernel/time/tick-broadcast.c b/kernel/time/tick-broadcast.c
-index 9d96a54..1e4ac45 100644
---- a/kernel/time/tick-broadcast.c
-+++ b/kernel/time/tick-broadcast.c
-@@ -227,12 +227,14 @@ static void tick_do_broadcast(struct cpumask *mask)
-  */
- static void tick_do_periodic_broadcast(void)
+diff --git a/kernel/softirq.c b/kernel/softirq.c
+index 3d6833f..c289722 100644
+--- a/kernel/softirq.c
++++ b/kernel/softirq.c
+@@ -644,14 +644,17 @@ static void remote_softirq_receive(void *data)
+ 
+ static int __try_remote_softirq(struct call_single_data *cp, int cpu, int softirq)
  {
 +	get_online_cpus_atomic();
- 	raw_spin_lock(&tick_broadcast_lock);
+ 	if (cpu_online(cpu)) {
+ 		cp->func = remote_softirq_receive;
+ 		cp->info = &softirq;
+ 		cp->flags = 0;
  
- 	cpumask_and(tmpmask, cpu_online_mask, tick_broadcast_mask);
- 	tick_do_broadcast(tmpmask);
- 
- 	raw_spin_unlock(&tick_broadcast_lock);
-+	put_online_cpus_atomic();
- }
- 
- /*
-@@ -335,11 +337,13 @@ out:
-  */
- void tick_broadcast_on_off(unsigned long reason, int *oncpu)
- {
-+	get_online_cpus_atomic();
- 	if (!cpumask_test_cpu(*oncpu, cpu_online_mask))
- 		printk(KERN_ERR "tick-broadcast: ignoring broadcast for "
- 		       "offline CPU #%d\n", *oncpu);
- 	else
- 		tick_do_broadcast_on_off(&reason);
-+	put_online_cpus_atomic();
- }
- 
- /*
-@@ -505,6 +509,7 @@ static void tick_handle_oneshot_broadcast(struct clock_event_device *dev)
- 	ktime_t now, next_event;
- 	int cpu, next_cpu = 0;
- 
-+	get_online_cpus_atomic();
- 	raw_spin_lock(&tick_broadcast_lock);
- again:
- 	dev->next_event.tv64 = KTIME_MAX;
-@@ -562,6 +567,7 @@ again:
- 			goto again;
+ 		__smp_call_function_single(cpu, cp, 0);
++		put_online_cpus_atomic();
+ 		return 0;
  	}
- 	raw_spin_unlock(&tick_broadcast_lock);
 +	put_online_cpus_atomic();
+ 	return 1;
  }
- 
- /*
-@@ -756,6 +762,7 @@ void tick_broadcast_switch_to_oneshot(void)
- 	struct clock_event_device *bc;
- 	unsigned long flags;
- 
-+	get_online_cpus_atomic();
- 	raw_spin_lock_irqsave(&tick_broadcast_lock, flags);
- 
- 	tick_broadcast_device.mode = TICKDEV_MODE_ONESHOT;
-@@ -764,6 +771,7 @@ void tick_broadcast_switch_to_oneshot(void)
- 		tick_broadcast_setup_oneshot(bc);
- 
- 	raw_spin_unlock_irqrestore(&tick_broadcast_lock, flags);
-+	put_online_cpus_atomic();
- }
- 
- 
+ #else /* CONFIG_USE_GENERIC_SMP_HELPERS */
 
