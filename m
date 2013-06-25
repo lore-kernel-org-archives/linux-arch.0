@@ -1,54 +1,31 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: [PATCH] arch: mn10300: Kconfig: remove 'KPROBES' options
-Date: Tue, 25 Jun 2013 10:55:18 +0800
-Message-ID: <51C90696.6040407@asianux.com>
+From: Michael Ellerman <michael@ellerman.id.au>
+Subject: Re: [PATCH 40/45] powerpc, irq: Use GFP_ATOMIC allocations in atomic
+ context
+Date: Tue, 25 Jun 2013 12:58:58 +1000
+Message-ID: <20130625025858.GE14051@concordia>
+References: <20130623133642.19094.16038.stgit@srivatsabhat.in.ibm.com>
+ <20130623134657.19094.93687.stgit@srivatsabhat.in.ibm.com>
+ <20130625020842.GD14051@concordia>
+ <1372126384.3944.177.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:32512 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750784Ab3FYC4J (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jun 2013 22:56:09 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "dhowells@redhat.com" <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>
-Cc: linux-am33-list@redhat.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-pm-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1372126384.3944.177.camel@pasglop>
+Sender: linux-pm-owner@vger.kernel.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Paul Mackerras <paulus@samba.org>, Ian Munsie <imunsie@au1.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-Currently, mn10300 does not implement 'KPROBES', so need remove it now,
-or can not pass compiling with allmodconfig.
+On Tue, Jun 25, 2013 at 12:13:04PM +1000, Benjamin Herrenschmidt wrote:
+> On Tue, 2013-06-25 at 12:08 +1000, Michael Ellerman wrote:
+> > We're not checking for allocation failure, which we should be.
+> > 
+> > But this code is only used on powermac and 85xx, so it should probably
+> > just be a TODO to fix this up to handle the failure.
+> 
+> And what can we do if they fail ?
 
-The related error (with allmodconfig):
-  In file included from arch/mn10300/kernel/kprobes.c:20:0:
-  include/linux/kprobes.h: In function =91get_kprobe_ctlblk=92:
-  include/linux/kprobes.h:332:11: error: dereferencing pointer to incom=
-plete type
+Fail up the chain and not unplug the CPU presumably.
 
-Signed-off-by: Chen Gang <gang.chen@asianux.com>
----
- arch/mn10300/Kconfig.debug |   10 ----------
- 1 files changed, 0 insertions(+), 10 deletions(-)
-
-diff --git a/arch/mn10300/Kconfig.debug b/arch/mn10300/Kconfig.debug
-index bdbfd44..624de7d 100644
---- a/arch/mn10300/Kconfig.debug
-+++ b/arch/mn10300/Kconfig.debug
-@@ -24,16 +24,6 @@ config TEST_MISALIGNMENT_HANDLER
- 	  accesses to make sure the misalignment handler deals them with
- 	  correctly.  If it does not, the kernel will throw a BUG.
-=20
--config KPROBES
--	bool "Kprobes"
--	depends on DEBUG_KERNEL
--	help
--	  Kprobes allows you to trap at almost any kernel address and
--	  execute a callback function.  register_kprobe() establishes
--	  a probepoint and specifies the callback.  Kprobes is useful
--	  for kernel debugging, non-intrusive instrumentation and testing.
--	  If in doubt, say "N".
--
- config GDBSTUB
- 	bool "Remote GDB kernel debugging"
- 	depends on DEBUG_KERNEL && DEPRECATED
---=20
-1.7.7.6
+cheers
