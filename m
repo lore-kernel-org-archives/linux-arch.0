@@ -1,57 +1,43 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [Suggestion] arch: avr32: compiler: compiling tools issue
-Date: Tue, 25 Jun 2013 15:43:07 +0800
-Message-ID: <51C94A0B.7070002@asianux.com>
-References: <51C90B06.5070802@asianux.com> <20130625064800.GB23182@samfundet.no>
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [PATCH] arch: s390: kernel: reset 'c->hotpluggable' when failure
+ occurs
+Date: Tue, 25 Jun 2013 11:09:28 +0200
+Message-ID: <20130625090928.GA8981@osiris>
+References: <51C8F685.6000209@asianux.com>
+ <20130625064832.GA4999@osiris>
+ <51C94599.1020707@asianux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:59709 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751211Ab3FYHn7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2013 03:43:59 -0400
-In-Reply-To: <20130625064800.GB23182@samfundet.no>
+Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:53317 "EHLO
+	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751389Ab3FYJJe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2013 05:09:34 -0400
+Received: from /spool/local
+	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
+	Tue, 25 Jun 2013 10:04:17 +0100
+Content-Disposition: inline
+In-Reply-To: <51C94599.1020707@asianux.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-Cc: =?UTF-8?B?SMOldmFyZCBTa2lubmVtb2Vu?= <hskinnemoen@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: Chen Gang <gang.chen@asianux.com>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>, linux390@de.ibm.com, cornelia.huck@de.ibm.com, mtosatti@redhat.com, Thomas Gleixner <tglx@linutronix.de>, linux-s390@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On 06/25/2013 02:48 PM, Hans-Christian Egtvedt wrote:
-> Around Tue 25 Jun 2013 11:14:14 +0800 or thereabout, Chen Gang wrote:
->> > Hello Maintainers:
->> >=20
->> > With allmodconfig, and set "avr32-linux-gnu-" as cross compiler pr=
-efix.
->> >=20
->> > It will report error:
->> >   avr32-linux-gnu-gcc: error: unrecognized command line option =E2=
-=80=98-mno-pic=E2=80=99
->> >   avr32-linux-gnu-gcc: error: unrecognized command line option =E2=
-=80=98-march=3Dap=E2=80=99
->> >=20
->> > The related gcc version:
->> >   [root@dhcp122 linux-next]# rpm -qf /usr/bin/avr32-linux-gnu-gcc
->> >   gcc-avr32-linux-gnu-4.7.1-0.1.20120606.fc17.x86_64
-> Interesting version, 4.7.1.
->=20
->> > Can we say: it is compiler's issue, and I need try to compile the =
-cross
->> > compiler to test it again ?
-> I would assume so, I didn't know Atmel finally pushed all the source =
-code to
-> support avr32-linux from upstream.
->=20
-> I still use a jay old 4.2 based GCC port, which was the last one I us=
-ed when
-> working for Atmel.
+On Tue, Jun 25, 2013 at 03:24:09PM +0800, Chen Gang wrote:
+> On 06/25/2013 02:48 PM, Heiko Carstens wrote:
+> > On Tue, Jun 25, 2013 at 09:46:45AM +0800, Chen Gang wrote:
+> >> > When smp_add_present_cpu() fails, it has reset all things excluding
+> >> > 'c->hotpluggable', so need reset it as original state completely.
+> >> > 
+> >> > +	c->hotpluggable = 0;
+> >> >  	return rc;
+> > No, that doesn't make sense. All cpus on s390 are always hotplugable.
+> > It really doesn't matter if the value of this field is 0 or 1 after
+> > an error.
+> > 
+> 
+> If so, is it better to set 'c->hotpluggable' for all cpus on s390 during
+> initializing ?
 
-Is it possible to use the compiler tools (may from source code and
-compile the compiler tools firstly), to compile the latest upstream
-kernel (e.g next-20130624) for avr32 ?
-
-Thanks.
---=20
-Chen Gang
-
-Asianux Corporation
+No, just leave the code as it is.
