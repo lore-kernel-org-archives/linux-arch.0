@@ -1,54 +1,83 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 15/45] rcu: Use get/put_online_cpus_atomic() to prevent CPU
- offline
-Date: Wed, 26 Jun 2013 01:57:55 +0530
-Message-ID: <20130625202755.16593.67819.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 17/45] time/clocksource: Use get/put_online_cpus_atomic()
+ to prevent CPU offline
+Date: Wed, 26 Jun 2013 01:58:20 +0530
+Message-ID: <20130625202820.16593.17778.stgit@srivatsabhat.in.ibm.com>
 References: <20130625202452.16593.22810.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e28smtp06.in.ibm.com ([122.248.162.6]:59736 "EHLO
+	e28smtp06.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753408Ab3FYUbm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2013 16:31:42 -0400
+Received: from /spool/local
+	by e28smtp06.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
+	Wed, 26 Jun 2013 01:54:11 +0530
 In-Reply-To: <20130625202452.16593.22810.stgit@srivatsabhat.in.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com
-Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Dipankar Sarma <dipankar@in.ibm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com
+Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, John Stultz <john.stultz@linaro.org>, Thomas Gleixner <tglx@linutronix.de>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 
 Once stop_machine() is gone from the CPU offline path, we won't be able
 to depend on disabling preemption to prevent CPUs from going offline
 from under us.
 
-In RCU code, rcu_implicit_dynticks_qs() checks if a CPU is offline,
-while being protected by a spinlock. Use the get/put_online_cpus_atomic()
-APIs to prevent CPUs from going offline, while invoking from atomic context.
+Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going
+offline, while invoking from atomic context.
 
-Cc: Dipankar Sarma <dipankar@in.ibm.com>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: John Stultz <john.stultz@linaro.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- kernel/rcutree.c |    4 ++++
- 1 file changed, 4 insertions(+)
+ kernel/time/clocksource.c |    5 +++++
+ 1 file changed, 5 insertions(+)
 
-diff --git a/kernel/rcutree.c b/kernel/rcutree.c
-index cf3adc6..caeed1a 100644
---- a/kernel/rcutree.c
-+++ b/kernel/rcutree.c
-@@ -2107,6 +2107,8 @@ static void force_qs_rnp(struct rcu_state *rsp, int (*f)(struct rcu_data *))
- 			rcu_initiate_boost(rnp, flags); /* releases rnp->lock */
- 			continue;
- 		}
-+
-+		get_online_cpus_atomic();
- 		cpu = rnp->grplo;
- 		bit = 1;
- 		for (; cpu <= rnp->grphi; cpu++, bit <<= 1) {
-@@ -2114,6 +2116,8 @@ static void force_qs_rnp(struct rcu_state *rsp, int (*f)(struct rcu_data *))
- 			    f(per_cpu_ptr(rsp->rda, cpu)))
- 				mask |= bit;
- 		}
-+		put_online_cpus_atomic();
-+
- 		if (mask != 0) {
+diff --git a/kernel/time/clocksource.c b/kernel/time/clocksource.c
+index e713ef7..c4bbc25 100644
+--- a/kernel/time/clocksource.c
++++ b/kernel/time/clocksource.c
+@@ -30,6 +30,7 @@
+ #include <linux/sched.h> /* for spin_unlock_irq() using preempt_count() m68k */
+ #include <linux/tick.h>
+ #include <linux/kthread.h>
++#include <linux/cpu.h>
  
- 			/* rcu_report_qs_rnp() releases rnp->lock. */
+ #include "tick-internal.h"
+ 
+@@ -252,6 +253,7 @@ static void clocksource_watchdog(unsigned long data)
+ 	int64_t wd_nsec, cs_nsec;
+ 	int next_cpu, reset_pending;
+ 
++	get_online_cpus_atomic();
+ 	spin_lock(&watchdog_lock);
+ 	if (!watchdog_running)
+ 		goto out;
+@@ -329,6 +331,7 @@ static void clocksource_watchdog(unsigned long data)
+ 	add_timer_on(&watchdog_timer, next_cpu);
+ out:
+ 	spin_unlock(&watchdog_lock);
++	put_online_cpus_atomic();
+ }
+ 
+ static inline void clocksource_start_watchdog(void)
+@@ -367,6 +370,7 @@ static void clocksource_enqueue_watchdog(struct clocksource *cs)
+ {
+ 	unsigned long flags;
+ 
++	get_online_cpus_atomic();
+ 	spin_lock_irqsave(&watchdog_lock, flags);
+ 	if (cs->flags & CLOCK_SOURCE_MUST_VERIFY) {
+ 		/* cs is a clocksource to be watched. */
+@@ -386,6 +390,7 @@ static void clocksource_enqueue_watchdog(struct clocksource *cs)
+ 	/* Check if the watchdog timer needs to be started. */
+ 	clocksource_start_watchdog();
+ 	spin_unlock_irqrestore(&watchdog_lock, flags);
++	put_online_cpus_atomic();
+ }
+ 
+ static void clocksource_dequeue_watchdog(struct clocksource *cs)
