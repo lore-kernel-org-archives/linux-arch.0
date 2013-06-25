@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp06.in.ibm.com ([122.248.162.6]:59736 "EHLO
-	e28smtp06.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753408Ab3FYUbm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2013 16:31:42 -0400
+Received: from e23smtp07.au.ibm.com ([202.81.31.140]:49542 "EHLO
+	e23smtp07.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752957Ab3FYUcR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2013 16:32:17 -0400
 Received: from /spool/local
-	by e28smtp06.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp07.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Wed, 26 Jun 2013 01:54:11 +0530
+	Wed, 26 Jun 2013 06:20:43 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 17/45] time/clocksource: Use get/put_online_cpus_atomic()
- to prevent CPU offline
-Date: Wed, 26 Jun 2013 01:58:20 +0530
-Message-ID: <20130625202820.16593.17778.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 19/45] irq: Use get/put_online_cpus_atomic() to prevent CPU
+ offline
+Date: Wed, 26 Jun 2013 01:58:49 +0530
+Message-ID: <20130625202849.16593.84150.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130625202452.16593.22810.stgit@srivatsabhat.in.ibm.com>
 References: <20130625202452.16593.22810.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com
-Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, John Stultz <john.stultz@linaro.org>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20130625202820.YDqDJIZI_UZR9grCujiTQ8w-0SG_GkLvPdJV-D3gwDI@z>
+Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20130625202849.VZjaucUYgrrk-Ejl-qU7uR5nmLabziR0gC99I6cqgn4@z>
 
 Once stop_machine() is gone from the CPU offline path, we won't be able
 to depend on disabling preemption to prevent CPUs from going offline
@@ -30,56 +30,86 @@ from under us.
 Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going
 offline, while invoking from atomic context.
 
-Cc: John Stultz <john.stultz@linaro.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- kernel/time/clocksource.c |    5 +++++
- 1 file changed, 5 insertions(+)
+ kernel/irq/manage.c |    7 +++++++
+ kernel/irq/proc.c   |    3 +++
+ 2 files changed, 10 insertions(+)
 
-diff --git a/kernel/time/clocksource.c b/kernel/time/clocksource.c
-index e713ef7..c4bbc25 100644
---- a/kernel/time/clocksource.c
-+++ b/kernel/time/clocksource.c
-@@ -30,6 +30,7 @@
- #include <linux/sched.h> /* for spin_unlock_irq() using preempt_count() m68k */
- #include <linux/tick.h>
- #include <linux/kthread.h>
+diff --git a/kernel/irq/manage.c b/kernel/irq/manage.c
+index e16caa8..4d89f19 100644
+--- a/kernel/irq/manage.c
++++ b/kernel/irq/manage.c
+@@ -18,6 +18,7 @@
+ #include <linux/sched.h>
+ #include <linux/sched/rt.h>
+ #include <linux/task_work.h>
 +#include <linux/cpu.h>
  
- #include "tick-internal.h"
+ #include "internals.h"
  
-@@ -252,6 +253,7 @@ static void clocksource_watchdog(unsigned long data)
- 	int64_t wd_nsec, cs_nsec;
- 	int next_cpu, reset_pending;
+@@ -202,9 +203,11 @@ int irq_set_affinity(unsigned int irq, const struct cpumask *mask)
+ 	if (!desc)
+ 		return -EINVAL;
  
 +	get_online_cpus_atomic();
- 	spin_lock(&watchdog_lock);
- 	if (!watchdog_running)
- 		goto out;
-@@ -329,6 +331,7 @@ static void clocksource_watchdog(unsigned long data)
- 	add_timer_on(&watchdog_timer, next_cpu);
- out:
- 	spin_unlock(&watchdog_lock);
+ 	raw_spin_lock_irqsave(&desc->lock, flags);
+ 	ret =  __irq_set_affinity_locked(irq_desc_get_irq_data(desc), mask);
+ 	raw_spin_unlock_irqrestore(&desc->lock, flags);
 +	put_online_cpus_atomic();
+ 	return ret;
  }
  
- static inline void clocksource_start_watchdog(void)
-@@ -367,6 +370,7 @@ static void clocksource_enqueue_watchdog(struct clocksource *cs)
- {
+@@ -343,9 +346,11 @@ int irq_select_affinity_usr(unsigned int irq, struct cpumask *mask)
  	unsigned long flags;
+ 	int ret;
  
 +	get_online_cpus_atomic();
- 	spin_lock_irqsave(&watchdog_lock, flags);
- 	if (cs->flags & CLOCK_SOURCE_MUST_VERIFY) {
- 		/* cs is a clocksource to be watched. */
-@@ -386,6 +390,7 @@ static void clocksource_enqueue_watchdog(struct clocksource *cs)
- 	/* Check if the watchdog timer needs to be started. */
- 	clocksource_start_watchdog();
- 	spin_unlock_irqrestore(&watchdog_lock, flags);
+ 	raw_spin_lock_irqsave(&desc->lock, flags);
+ 	ret = setup_affinity(irq, desc, mask);
+ 	raw_spin_unlock_irqrestore(&desc->lock, flags);
 +	put_online_cpus_atomic();
+ 	return ret;
  }
  
- static void clocksource_dequeue_watchdog(struct clocksource *cs)
+@@ -1128,7 +1133,9 @@ __setup_irq(unsigned int irq, struct irq_desc *desc, struct irqaction *new)
+ 		}
+ 
+ 		/* Set default affinity mask once everything is setup */
++		get_online_cpus_atomic();
+ 		setup_affinity(irq, desc, mask);
++		put_online_cpus_atomic();
+ 
+ 	} else if (new->flags & IRQF_TRIGGER_MASK) {
+ 		unsigned int nmsk = new->flags & IRQF_TRIGGER_MASK;
+diff --git a/kernel/irq/proc.c b/kernel/irq/proc.c
+index 19ed5c4..47f9a74 100644
+--- a/kernel/irq/proc.c
++++ b/kernel/irq/proc.c
+@@ -7,6 +7,7 @@
+  */
+ 
+ #include <linux/irq.h>
++#include <linux/cpu.h>
+ #include <linux/gfp.h>
+ #include <linux/proc_fs.h>
+ #include <linux/seq_file.h>
+@@ -441,6 +442,7 @@ int show_interrupts(struct seq_file *p, void *v)
+ 	if (!desc)
+ 		return 0;
+ 
++	get_online_cpus_atomic();
+ 	raw_spin_lock_irqsave(&desc->lock, flags);
+ 	for_each_online_cpu(j)
+ 		any_count |= kstat_irqs_cpu(i, j);
+@@ -477,6 +479,7 @@ int show_interrupts(struct seq_file *p, void *v)
+ 	seq_putc(p, '\n');
+ out:
+ 	raw_spin_unlock_irqrestore(&desc->lock, flags);
++	put_online_cpus_atomic();
+ 	return 0;
+ }
+ #endif
 
