@@ -1,40 +1,29 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: [Suggestion] arch: avr32: compiler: compiling tools issue
-Date: Tue, 25 Jun 2013 11:14:14 +0800
-Message-ID: <51C90B06.5070802@asianux.com>
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: Re: [PATCH v2 0/3] make Xilinx System ACE driver arch-independent
+Date: Tue, 25 Jun 2013 04:15:59 +0000
+Message-ID: <4881796E12491D4BB15146FE0209CE643F5FFB8E@DE02WEMBXB.internal.synopsys.com>
+References: <1372062364-25861-1-git-send-email-abrodkin@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:31345 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751461Ab3FYDPG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jun 2013 23:15:06 -0400
+Received: from alvesta.synopsys.com ([198.182.60.77]:45429 "EHLO
+	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750770Ab3FYEQE convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2013 00:16:04 -0400
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?windows-1252?Q?H=E5vard_Skinnemoen?= <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Mischa Jonker <Mischa.Jonker@synopsys.com>, Grant Likely <grant.likely@secretlab.ca>, Arnd Bergmann <arnd@arndb.de>, Michal Simek <monstr@monstr.eu>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Andy Shevchenko <andy.shevchenko@gmail.com>
 
-Hello Maintainers:
+On 06/24/2013 12:26 PM, Alexey Brodkin wrote:
+> In v2 I put together 3 patches:
+> 1. Blind replace of PPC/Microblaze-specific accessors with generic ones.
+> 2. Fix functions that access data via dedicated register in SystemACE controller
+> so now CPU accesses data with native endianess.
+> 3. Remove dependency on PPC/Microblaze - i.e. make driver arch-independent.
 
-With allmodconfig, and set "avr32-linux-gnu-" as cross compiler prefix.
+Any comments on this patch-set?
 
-It will report error:
-  avr32-linux-gnu-gcc: error: unrecognized command line option =91-mno-=
-pic=92
-  avr32-linux-gnu-gcc: error: unrecognized command line option =91-marc=
-h=3Dap=92
-
-The related gcc version:
-  [root@dhcp122 linux-next]# rpm -qf /usr/bin/avr32-linux-gnu-gcc
-  gcc-avr32-linux-gnu-4.7.1-0.1.20120606.fc17.x86_64
-
-Can we say: it is compiler's issue, and I need try to compile the cross
-compiler to test it again ?
-
-Welcome any additional suggestion or completions.
-
-Thanks.
---
-Chen Gang
-
-Asianux Corporation=20
+-Alexey
