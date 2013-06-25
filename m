@@ -1,24 +1,53 @@
-From: "Adeyemi Peters" <rogerbrine@rotundalaw.com>
-Subject: Compliments!
-Date: Tue, 25 Jun 2013 20:04:00 +0100
-Message-ID: <P3KSZO01IalmlEuef4w00005340@P3KSZO01.ksos.ch>
-Reply-To: ade0peters@gmail.com
+From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Subject: Re: [PATCH 40/45] powerpc, irq: Use GFP_ATOMIC allocations in atomic
+ context
+Date: Wed, 26 Jun 2013 00:50:01 +0530
+Message-ID: <51C9ED61.1060306@linux.vnet.ibm.com>
+References: <20130623133642.19094.16038.stgit@srivatsabhat.in.ibm.com> <20130623134657.19094.93687.stgit@srivatsabhat.in.ibm.com> <20130625020842.GD14051@concordia> <1372126384.3944.177.camel@pasglop> <20130625025858.GE14051@concordia> <1372130007.3944.185.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from adsl-142-211.init7.net ([213.144.142.211]:49234 "EHLO
-	P3KSZO01.ksos.ch" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751102Ab3FYTR4 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2013 15:17:56 -0400
-Content-Description: Mail message body
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "adeopeters@gmail.com" <rogerbrine@rotundalaw.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <1372130007.3944.185.camel@pasglop>
+Sender: netdev-owner@vger.kernel.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Michael Ellerman <michael@ellerman.id.au>, tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Paul Mackerras <paulus@samba.org>, Ian Munsie <imunsie@au1.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-Good day,
+On 06/25/2013 08:43 AM, Benjamin Herrenschmidt wrote:
+> On Tue, 2013-06-25 at 12:58 +1000, Michael Ellerman wrote:
+>> On Tue, Jun 25, 2013 at 12:13:04PM +1000, Benjamin Herrenschmidt wrote:
+>>> On Tue, 2013-06-25 at 12:08 +1000, Michael Ellerman wrote:
+>>>> We're not checking for allocation failure, which we should be.
+>>>>
+>>>> But this code is only used on powermac and 85xx, so it should probably
+>>>> just be a TODO to fix this up to handle the failure.
+>>>
+>>> And what can we do if they fail ?
+>>
+>> Fail up the chain and not unplug the CPU presumably.
+> 
+> BTW. Isn't Srivatsa series removing the need to stop_machine() for
+> unplug ? 
 
-I am Adeyemi Peters from the United Bank for Africa Plc, I have a business proposal worth $8,370,000.00 for you. I need you to help me receive the transfer of this money and invest in your country, We will share the estate in the ratio of 60 to 40 percent. I advise that you keep this email confidential. I shall await your swift response to enable me inform you in details about this business.
+Yes.
+
+That should mean we should be able to use GFP_KERNEL no ?
+
+No, because whatever code was being executed in stop_machine() context
+would still be executed with interrupts disabled. So allocations that
+can sleep would continue to be forbidden in this path.
+
+In the CPU unplug sequence, the CPU_DYING notifications (and the surrounding
+code) is guaranteed to be run:
+a. _on_ the CPU going offline
+b. with interrupts disabled on that CPU.
+
+My patchset will retain these guarantees even after removing stop_machine().
+And these are required for the correct execution of the code in this path,
+since they rely on these semantics.
+
+So I guess I'll retain the patch as it is. Thank you!
 
 Regards,
-Dr. Adeyemi Peters
+Srivatsa S. Bhat
