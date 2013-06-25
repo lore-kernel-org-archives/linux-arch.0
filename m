@@ -1,39 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:28928 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750745Ab3FYBzd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jun 2013 21:55:33 -0400
-Message-ID: <51C8F861.9010101@asianux.com>
-Date: Tue, 25 Jun 2013 09:54:41 +0800
-From: Chen Gang <gang.chen@asianux.com>
+Received: from ozlabs.org ([203.10.76.45]:56329 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751165Ab3FYCIp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 24 Jun 2013 22:08:45 -0400
+Date: Tue, 25 Jun 2013 12:08:42 +1000
+From: Michael Ellerman <michael@ellerman.id.au>
+Subject: Re: [PATCH 40/45] powerpc, irq: Use GFP_ATOMIC allocations in atomic
+ context
+Message-ID: <20130625020842.GD14051@concordia>
+References: <20130623133642.19094.16038.stgit@srivatsabhat.in.ibm.com>
+ <20130623134657.19094.93687.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
-Subject: [Suggestion] arch: s390: mm: the warnings with allmodconfig and "EXTRA_CFLAGS=-W"
-References: <51C8F685.6000209@asianux.com>
-In-Reply-To: <51C8F685.6000209@asianux.com>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20130623134657.19094.93687.stgit@srivatsabhat.in.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: linux390@de.ibm.com, cornelia.huck@de.ibm.com, mtosatti@redhat.com, Thomas Gleixner <tglx@linutronix.de>, linux-s390@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-mm@kvack.org
-Message-ID: <20130625015441.yimPsU9P_MbLl68LALkInHU6BHTrHMbIdSo3M3RUxiM@z>
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Ian Munsie <imunsie@au1.ibm.com>
+Message-ID: <20130625020842.mCFDLDI8u4tC4V6SOf2X8EV1rEKfVRfSfrj3mYfp6K4@z>
 
-Hello Maintainers:
+On Sun, Jun 23, 2013 at 07:17:00PM +0530, Srivatsa S. Bhat wrote:
+> The function migrate_irqs() is called with interrupts disabled
+> and hence its not safe to do GFP_KERNEL allocations inside it,
+> because they can sleep. So change the gfp mask to GFP_ATOMIC.
 
-When allmodconfig for " IBM zSeries model z800 and z900"
+OK so it gets there via:
+  __stop_machine()
+    take_cpu_down()
+      __cpu_disable()
+        smp_ops->cpu_disable()
+          generic_cpu_disable()
+            migrate_irqs()
 
-It will report the related warnings ("EXTRA_CFLAGS=-W"):
-  mm/slub.c:1875:1: warning: ‘deactivate_slab’ uses dynamic stack allocation [enabled by default]
-  mm/slub.c:1941:1: warning: ‘unfreeze_partials.isra.32’ uses dynamic stack allocation [enabled by default]
-  mm/slub.c:2575:1: warning: ‘__slab_free’ uses dynamic stack allocation [enabled by default]
-  mm/slub.c:1582:1: warning: ‘get_partial_node.isra.34’ uses dynamic stack allocation [enabled by default]
-  mm/slub.c:2311:1: warning: ‘__slab_alloc.constprop.42’ uses dynamic stack allocation [enabled by default]
+> diff --git a/arch/powerpc/kernel/irq.c b/arch/powerpc/kernel/irq.c
+> index ea185e0..ca39bac 100644
+> --- a/arch/powerpc/kernel/irq.c
+> +++ b/arch/powerpc/kernel/irq.c
+> @@ -412,7 +412,7 @@ void migrate_irqs(void)
+>  	cpumask_var_t mask;
+>  	const struct cpumask *map = cpu_online_mask;
+>  
+> -	alloc_cpumask_var(&mask, GFP_KERNEL);
+> +	alloc_cpumask_var(&mask, GFP_ATOMIC);
 
-Is it OK ?
+We're not checking for allocation failure, which we should be.
 
+But this code is only used on powermac and 85xx, so it should probably
+just be a TODO to fix this up to handle the failure.
 
-Thanks.
---
-Chen Gang
-
-Asianux Corporation 
+cheers
