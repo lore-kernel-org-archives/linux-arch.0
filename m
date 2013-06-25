@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp05.au.ibm.com ([202.81.31.147]:46034 "EHLO
-	e23smtp05.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752032Ab3FYUb3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2013 16:31:29 -0400
+Received: from e23smtp08.au.ibm.com ([202.81.31.141]:34376 "EHLO
+	e23smtp08.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753715Ab3FYUdw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2013 16:33:52 -0400
 Received: from /spool/local
-	by e23smtp05.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp08.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Wed, 26 Jun 2013 06:25:20 +1000
+	Wed, 26 Jun 2013 06:31:04 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 15/45] rcu: Use get/put_online_cpus_atomic() to prevent CPU
- offline
-Date: Wed, 26 Jun 2013 01:57:55 +0530
-Message-ID: <20130625202755.16593.67819.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 27/45] perf/x86: Use get/put_online_cpus_atomic() to
+ prevent CPU offline
+Date: Wed, 26 Jun 2013 02:00:17 +0530
+Message-ID: <20130625203017.16593.40391.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130625202452.16593.22810.stgit@srivatsabhat.in.ibm.com>
 References: <20130625202452.16593.22810.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,45 +20,67 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com
-Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Dipankar Sarma <dipankar@in.ibm.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20130625202755.Zhwnt368r9jUCOpJd44mpbcBkrMZa_3qHIiv4ESqQNE@z>
+Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul Mackerras <paulus@samba.org>, Ingo Molnar <mingo@redhat.com>, Arnaldo Carvalho de Melo <acme@ghostprotocols.net>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20130625203017.XI5QC3Jcwj1kpjY9TVnqCQSa32mH6T4tDoE-do4d6tg@z>
 
-Once stop_machine() is gone from the CPU offline path, we won't be able
-to depend on disabling preemption to prevent CPUs from going offline
-from under us.
+The CPU_DYING notifier modifies the per-cpu pointer pmu->box, and this can
+race with functions such as uncore_pmu_to_box() and uncore_pci_remove() when
+we remove stop_machine() from the CPU offline path. So protect them using
+get/put_online_cpus_atomic().
 
-In RCU code, rcu_implicit_dynticks_qs() checks if a CPU is offline,
-while being protected by a spinlock. Use the get/put_online_cpus_atomic()
-APIs to prevent CPUs from going offline, while invoking from atomic context.
-
-Cc: Dipankar Sarma <dipankar@in.ibm.com>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Arnaldo Carvalho de Melo <acme@ghostprotocols.net>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- kernel/rcutree.c |    4 ++++
- 1 file changed, 4 insertions(+)
+ arch/x86/kernel/cpu/perf_event_intel_uncore.c |    6 ++++++
+ 1 file changed, 6 insertions(+)
 
-diff --git a/kernel/rcutree.c b/kernel/rcutree.c
-index cf3adc6..caeed1a 100644
---- a/kernel/rcutree.c
-+++ b/kernel/rcutree.c
-@@ -2107,6 +2107,8 @@ static void force_qs_rnp(struct rcu_state *rsp, int (*f)(struct rcu_data *))
- 			rcu_initiate_boost(rnp, flags); /* releases rnp->lock */
- 			continue;
- 		}
-+
-+		get_online_cpus_atomic();
- 		cpu = rnp->grplo;
- 		bit = 1;
- 		for (; cpu <= rnp->grphi; cpu++, bit <<= 1) {
-@@ -2114,6 +2116,8 @@ static void force_qs_rnp(struct rcu_state *rsp, int (*f)(struct rcu_data *))
- 			    f(per_cpu_ptr(rsp->rda, cpu)))
- 				mask |= bit;
- 		}
-+		put_online_cpus_atomic();
-+
- 		if (mask != 0) {
+diff --git a/arch/x86/kernel/cpu/perf_event_intel_uncore.c b/arch/x86/kernel/cpu/perf_event_intel_uncore.c
+index 9dd9975..7c2a064 100644
+--- a/arch/x86/kernel/cpu/perf_event_intel_uncore.c
++++ b/arch/x86/kernel/cpu/perf_event_intel_uncore.c
+@@ -1,3 +1,4 @@
++#include <linux/cpu.h>
+ #include "perf_event_intel_uncore.h"
  
- 			/* rcu_report_qs_rnp() releases rnp->lock. */
+ static struct intel_uncore_type *empty_uncore[] = { NULL, };
+@@ -2630,6 +2631,7 @@ uncore_pmu_to_box(struct intel_uncore_pmu *pmu, int cpu)
+ 	if (box)
+ 		return box;
+ 
++	get_online_cpus_atomic();
+ 	raw_spin_lock(&uncore_box_lock);
+ 	list_for_each_entry(box, &pmu->box_list, list) {
+ 		if (box->phys_id == topology_physical_package_id(cpu)) {
+@@ -2639,6 +2641,7 @@ uncore_pmu_to_box(struct intel_uncore_pmu *pmu, int cpu)
+ 		}
+ 	}
+ 	raw_spin_unlock(&uncore_box_lock);
++	put_online_cpus_atomic();
+ 
+ 	return *per_cpu_ptr(pmu->box, cpu);
+ }
+@@ -3229,6 +3232,7 @@ static void uncore_pci_remove(struct pci_dev *pdev)
+ 	list_del(&box->list);
+ 	raw_spin_unlock(&uncore_box_lock);
+ 
++	get_online_cpus_atomic();
+ 	for_each_possible_cpu(cpu) {
+ 		if (*per_cpu_ptr(pmu->box, cpu) == box) {
+ 			*per_cpu_ptr(pmu->box, cpu) = NULL;
+@@ -3237,6 +3241,8 @@ static void uncore_pci_remove(struct pci_dev *pdev)
+ 	}
+ 
+ 	WARN_ON_ONCE(atomic_read(&box->refcnt) != 1);
++	put_online_cpus_atomic();
++
+ 	kfree(box);
+ }
+ 
 
