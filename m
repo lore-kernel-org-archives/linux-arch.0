@@ -1,56 +1,50 @@
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [Suggestion] arch: s390: mm: the warnings with allmodconfig and
- "EXTRA_CFLAGS=-W"
-Date: Tue, 25 Jun 2013 08:50:06 +0200
-Message-ID: <20130625085006.01a7f368@mschwide>
-References: <51C8F685.6000209@asianux.com>
-	<51C8F861.9010101@asianux.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH] arch: c6x: kernel: include "linux/console.h" when 'VT'
+ and 'DUMMY_CONSOLE' enabled.
+Date: Tue, 25 Jun 2013 09:06:17 +0200
+Message-ID: <CAMuHMdXngNACn+Qfw1ytJkWWLm_BC+g_PTDpHHbUQyeeyVu8Fg@mail.gmail.com>
+References: <51C8F948.2040204@asianux.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <51C8F861.9010101@asianux.com>
-Sender: owner-linux-mm@kvack.org
-To: Chen Gang <gang.chen@asianux.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm.com, cornelia.huck@de.ibm.com, mtosatti@redhat.com, Thomas Gleixner <tglx@linutronix.de>, linux-s390@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-mm@kvack.org
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pb0-f41.google.com ([209.85.160.41]:44587 "EHLO
+	mail-pb0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750775Ab3FYHGR convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2013 03:06:17 -0400
+In-Reply-To: <51C8F948.2040204@asianux.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Chen Gang <gang.chen@asianux.com>, Tony Breeds <tony@bakeyournoodle.com>
+Cc: Mark Salter <msalter@redhat.com>, "a-jacquiot@ti.com" <a-jacquiot@ti.com>, jkc@redhat.com, linux-c6x-dev@linux-c6x.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On Tue, 25 Jun 2013 09:54:41 +0800
-Chen Gang <gang.chen@asianux.com> wrote:
+On Tue, Jun 25, 2013 at 3:58 AM, Chen Gang <gang.chen@asianux.com> wrot=
+e:
+> Need include "linux/console.h" when 'VT' and 'DUMMY_CONSOLE' enabled
+> (e.g allmodconfig).
+>
+> The related error:
+>   arch/c6x/kernel/setup.c: In function =E2=80=98setup_arch=E2=80=99:
+>   arch/c6x/kernel/setup.c:442:2: error: =E2=80=98conswitchp=E2=80=99 =
+undeclared (first use in this function)
+>   arch/c6x/kernel/setup.c:442:2: note: each undeclared identifier is =
+reported only once for each function it appears in
+>   arch/c6x/kernel/setup.c:442:16: error: =E2=80=98dummy_con=E2=80=99 =
+undeclared (first use in this function)
 
-> Hello Maintainers:
->=20
-> When allmodconfig for " IBM zSeries model z800 and z900"
->=20
-> It will report the related warnings ("EXTRA_CFLAGS=3D-W"):
->   mm/slub.c:1875:1: warning: =E2=80=98deactivate_slab=E2=80=99 uses dynam=
-ic stack allocation [enabled by default]
->   mm/slub.c:1941:1: warning: =E2=80=98unfreeze_partials.isra.32=E2=80=99 =
-uses dynamic stack allocation [enabled by default]
->   mm/slub.c:2575:1: warning: =E2=80=98__slab_free=E2=80=99 uses dynamic s=
-tack allocation [enabled by default]
->   mm/slub.c:1582:1: warning: =E2=80=98get_partial_node.isra.34=E2=80=99 u=
-ses dynamic stack allocation [enabled by default]
->   mm/slub.c:2311:1: warning: =E2=80=98__slab_alloc.constprop.42=E2=80=99 =
-uses dynamic stack allocation [enabled by default]
->=20
-> Is it OK ?
+Ah, so you managed to obtain a c6x toolchain. There's none at
+https://www.kernel.org/pub/tools/crosstool/files/bin/x86_64/ yet :-(
 
-Yes, these warnings should be ok. They are enabled by CONFIG_WARN_DYNAMIC_S=
-TACK,
-the purpose is to find all functions with dynamic stack allocations. The ch=
-eck
-if the allocations are truly ok needs to be done manually as the compiler
-can not find out the maximum allocation size automatically.
+Gr{oetje,eeting}s,
 
---=20
-blue skies,
-   Martin.
-
-"Reality continues to ruin my life." - Calvin.
+                        Geert
 
 --
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
+m68k.org
+
+In personal conversations with technical people, I call myself a hacker=
+=2E But
+when I'm talking to journalists I just say "programmer" or something li=
+ke that.
+                                -- Linus Torvalds
