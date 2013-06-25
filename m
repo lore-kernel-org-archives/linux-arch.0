@@ -1,45 +1,40 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 40/45] powerpc, irq: Use GFP_ATOMIC allocations in
- atomic context
-Date: Tue, 25 Jun 2013 13:13:27 +1000
-Message-ID: <1372130007.3944.185.camel@pasglop>
-References: <20130623133642.19094.16038.stgit@srivatsabhat.in.ibm.com>
- <20130623134657.19094.93687.stgit@srivatsabhat.in.ibm.com>
- <20130625020842.GD14051@concordia> <1372126384.3944.177.camel@pasglop>
- <20130625025858.GE14051@concordia>
+From: Chen Gang <gang.chen@asianux.com>
+Subject: [Suggestion] arch: avr32: compiler: compiling tools issue
+Date: Tue, 25 Jun 2013 11:14:14 +0800
+Message-ID: <51C90B06.5070802@asianux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <20130625025858.GE14051@concordia>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Michael Ellerman <michael@ellerman.id.au>
-Cc: peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, Paul Mackerras <paulus@samba.org>, walken@google.com, mingo@kernel.org, linux-arch@vger.kernel.org, vincent.guittot@linaro.org, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, paulmck@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, rusty@rustcorp.com.au, rostedt@goodmis.org, Ian Munsie <imunsie@au1.ibm.com>, namhyung@kernel.org, tglx@linutronix.de, laijs@cn.fujitsu.com, zhong@linux.vnet.ibm.com, netdev@vger.kernel.org, oleg@redhat.com, sbw@mit.edu, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, tj@kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from intranet.asianux.com ([58.214.24.6]:31345 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751461Ab3FYDPG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jun 2013 23:15:06 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: =?windows-1252?Q?H=E5vard_Skinnemoen?= <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On Tue, 2013-06-25 at 12:58 +1000, Michael Ellerman wrote:
-> On Tue, Jun 25, 2013 at 12:13:04PM +1000, Benjamin Herrenschmidt wrote:
-> > On Tue, 2013-06-25 at 12:08 +1000, Michael Ellerman wrote:
-> > > We're not checking for allocation failure, which we should be.
-> > > 
-> > > But this code is only used on powermac and 85xx, so it should probably
-> > > just be a TODO to fix this up to handle the failure.
-> > 
-> > And what can we do if they fail ?
-> 
-> Fail up the chain and not unplug the CPU presumably.
+Hello Maintainers:
 
-BTW. Isn't Srivatsa series removing the need to stop_machine() for
-unplug ? That should mean we should be able to use GFP_KERNEL no ?
+With allmodconfig, and set "avr32-linux-gnu-" as cross compiler prefix.
 
-Cheers,
-Ben.
+It will report error:
+  avr32-linux-gnu-gcc: error: unrecognized command line option =91-mno-=
+pic=92
+  avr32-linux-gnu-gcc: error: unrecognized command line option =91-marc=
+h=3Dap=92
+
+The related gcc version:
+  [root@dhcp122 linux-next]# rpm -qf /usr/bin/avr32-linux-gnu-gcc
+  gcc-avr32-linux-gnu-4.7.1-0.1.20120606.fc17.x86_64
+
+Can we say: it is compiler's issue, and I need try to compile the cross
+compiler to test it again ?
+
+Welcome any additional suggestion or completions.
+
+Thanks.
+--
+Chen Gang
+
+Asianux Corporation=20
