@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp08.au.ibm.com ([202.81.31.141]:34477 "EHLO
-	e23smtp08.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753584Ab3FYUfI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2013 16:35:08 -0400
+Received: from e28smtp01.in.ibm.com ([122.248.162.1]:46962 "EHLO
+	e28smtp01.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753637Ab3FYUeA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2013 16:34:00 -0400
 Received: from /spool/local
-	by e23smtp08.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp01.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Wed, 26 Jun 2013 06:32:20 +1000
+	Wed, 26 Jun 2013 01:57:00 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 32/45] blackfin/smp: Use get/put_online_cpus_atomic() to
- prevent CPU offline
-Date: Wed, 26 Jun 2013 02:01:32 +0530
-Message-ID: <20130625203131.16593.32081.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 28/45] KVM: Use get/put_online_cpus_atomic() to prevent CPU
+ offline
+Date: Wed, 26 Jun 2013 02:00:36 +0530
+Message-ID: <20130625203036.16593.50377.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130625202452.16593.22810.stgit@srivatsabhat.in.ibm.com>
 References: <20130625202452.16593.22810.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com
-Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>, Bob Liu <lliubbo@gmail.com>, Steven Miao <realmz6@gmail.com>, uclinux-dist-devel@blackfin.uclinux.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20130625203132.5WW0gAWODrVH8CDkV3_Sy2LIsn_CHdASv6lTxJc3D9k@z>
+Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20130625203036.82dPIzeoMFdCLmhKOUC_HzR5jOaB_uCFGZGIW0MBXZ4@z>
 
 Once stop_machine() is gone from the CPU offline path, we won't be able
 to depend on disabling preemption to prevent CPUs from going offline
@@ -30,35 +30,49 @@ from under us.
 Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going
 offline, while invoking from atomic context.
 
-Cc: Mike Frysinger <vapier@gentoo.org>
-Cc: Bob Liu <lliubbo@gmail.com>
-Cc: Steven Miao <realmz6@gmail.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: uclinux-dist-devel@blackfin.uclinux.org
+Cc: Gleb Natapov <gleb@redhat.com>
+Cc: Paolo Bonzini <pbonzini@redhat.com>
+Cc: kvm@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/blackfin/mach-common/smp.c |    4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ virt/kvm/kvm_main.c |    8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/arch/blackfin/mach-common/smp.c b/arch/blackfin/mach-common/smp.c
-index 1bc2ce6..11496cd 100644
---- a/arch/blackfin/mach-common/smp.c
-+++ b/arch/blackfin/mach-common/smp.c
-@@ -238,13 +238,13 @@ void smp_send_stop(void)
- {
- 	cpumask_t callmap;
+diff --git a/virt/kvm/kvm_main.c b/virt/kvm/kvm_main.c
+index 302681c..5bbfa30 100644
+--- a/virt/kvm/kvm_main.c
++++ b/virt/kvm/kvm_main.c
+@@ -174,7 +174,7 @@ static bool make_all_cpus_request(struct kvm *kvm, unsigned int req)
  
--	preempt_disable();
-+	get_online_cpus_atomic();
- 	cpumask_copy(&callmap, cpu_online_mask);
- 	cpumask_clear_cpu(smp_processor_id(), &callmap);
- 	if (!cpumask_empty(&callmap))
- 		send_ipi(&callmap, BFIN_IPI_CPU_STOP);
+ 	zalloc_cpumask_var(&cpus, GFP_ATOMIC);
  
--	preempt_enable();
+-	me = get_cpu();
++	me = get_online_cpus_atomic();
+ 	kvm_for_each_vcpu(i, vcpu, kvm) {
+ 		kvm_make_request(req, vcpu);
+ 		cpu = vcpu->cpu;
+@@ -192,7 +192,7 @@ static bool make_all_cpus_request(struct kvm *kvm, unsigned int req)
+ 		smp_call_function_many(cpus, ack_flush, NULL, 1);
+ 	else
+ 		called = false;
+-	put_cpu();
 +	put_online_cpus_atomic();
- 
- 	return;
+ 	free_cpumask_var(cpus);
+ 	return called;
  }
+@@ -1707,11 +1707,11 @@ void kvm_vcpu_kick(struct kvm_vcpu *vcpu)
+ 		++vcpu->stat.halt_wakeup;
+ 	}
+ 
+-	me = get_cpu();
++	me = get_online_cpus_atomic();
+ 	if (cpu != me && (unsigned)cpu < nr_cpu_ids && cpu_online(cpu))
+ 		if (kvm_arch_vcpu_should_kick(vcpu))
+ 			smp_send_reschedule(cpu);
+-	put_cpu();
++	put_online_cpus_atomic();
+ }
+ EXPORT_SYMBOL_GPL(kvm_vcpu_kick);
+ #endif /* !CONFIG_S390 */
 
