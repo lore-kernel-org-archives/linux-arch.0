@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp06.in.ibm.com ([122.248.162.6]:60135 "EHLO
-	e28smtp06.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753297Ab3FYUdM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2013 16:33:12 -0400
+Received: from e28smtp05.in.ibm.com ([122.248.162.5]:54225 "EHLO
+	e28smtp05.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753534Ab3FYUd1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2013 16:33:27 -0400
 Received: from /spool/local
-	by e28smtp06.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp05.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Wed, 26 Jun 2013 01:55:41 +0530
+	Wed, 26 Jun 2013 01:58:21 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 23/45] infiniband: ehca: Use get/put_online_cpus_atomic()
- to prevent CPU offline
-Date: Wed, 26 Jun 2013 01:59:50 +0530
-Message-ID: <20130625202950.16593.10057.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 25/45] staging/octeon: Use get/put_online_cpus_atomic() to
+ prevent CPU offline
+Date: Wed, 26 Jun 2013 02:00:04 +0530
+Message-ID: <20130625203003.16593.38565.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130625202452.16593.22810.stgit@srivatsabhat.in.ibm.com>
 References: <20130625202452.16593.22810.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com
-Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Hoang-Nam Nguyen <hnguyen@de.ibm.com>, Christoph Raisch <raisch@de.ibm.com>, Roland Dreier <roland@kernel.org>, Sean Hefty <sean.hefty@intel.com>, Hal Rosenstock <hal.rosenstock@gmail.com>, linux-rdma@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20130625202950.gABZAm8MS1jIVc27eL1wtdZHwTMX1g8qbxApkjf0IyA@z>
+Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, devel@driverdev.osuosl.org, David Daney <david.daney@cavium.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20130625203004.oOjOFCuBxPAUAwMuHAGDQFhJSIR7auigzcNFTVwVyQA@z>
 
 Once stop_machine() is gone from the CPU offline path, we won't be able
 to depend on disabling preemption to prevent CPUs from going offline
@@ -30,60 +30,41 @@ from under us.
 Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going
 offline, while invoking from atomic context.
 
-Cc: Hoang-Nam Nguyen <hnguyen@de.ibm.com>
-Cc: Christoph Raisch <raisch@de.ibm.com>
-Cc: Roland Dreier <roland@kernel.org>
-Cc: Sean Hefty <sean.hefty@intel.com>
-Cc: Hal Rosenstock <hal.rosenstock@gmail.com>
-Cc: linux-rdma@vger.kernel.org
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: devel@driverdev.osuosl.org
+Acked-by: David Daney <david.daney@cavium.com>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- drivers/infiniband/hw/ehca/ehca_irq.c |    5 +++++
- 1 file changed, 5 insertions(+)
+ drivers/staging/octeon/ethernet-rx.c |    3 +++
+ 1 file changed, 3 insertions(+)
 
-diff --git a/drivers/infiniband/hw/ehca/ehca_irq.c b/drivers/infiniband/hw/ehca/ehca_irq.c
-index 8615d7c..ace901e 100644
---- a/drivers/infiniband/hw/ehca/ehca_irq.c
-+++ b/drivers/infiniband/hw/ehca/ehca_irq.c
-@@ -43,6 +43,7 @@
- 
- #include <linux/slab.h>
- #include <linux/smpboot.h>
+diff --git a/drivers/staging/octeon/ethernet-rx.c b/drivers/staging/octeon/ethernet-rx.c
+index 34afc16..8588b4d 100644
+--- a/drivers/staging/octeon/ethernet-rx.c
++++ b/drivers/staging/octeon/ethernet-rx.c
+@@ -36,6 +36,7 @@
+ #include <linux/prefetch.h>
+ #include <linux/ratelimit.h>
+ #include <linux/smp.h>
 +#include <linux/cpu.h>
+ #include <linux/interrupt.h>
+ #include <net/dst.h>
+ #ifdef CONFIG_XFRM
+@@ -97,6 +98,7 @@ static void cvm_oct_enable_one_cpu(void)
+ 		return;
  
- #include "ehca_classes.h"
- #include "ehca_irq.h"
-@@ -703,6 +704,7 @@ static void queue_comp_task(struct ehca_cq *__cq)
- 	int cq_jobs;
- 	unsigned long flags;
- 
+ 	/* ... if a CPU is available, Turn on NAPI polling for that CPU.  */
 +	get_online_cpus_atomic();
- 	cpu_id = find_next_online_cpu(pool);
- 	BUG_ON(!cpu_online(cpu_id));
- 
-@@ -720,6 +722,7 @@ static void queue_comp_task(struct ehca_cq *__cq)
- 		BUG_ON(!cct || !thread);
+ 	for_each_online_cpu(cpu) {
+ 		if (!cpu_test_and_set(cpu, core_state.cpu_state)) {
+ 			v = smp_call_function_single(cpu, cvm_oct_enable_napi,
+@@ -106,6 +108,7 @@ static void cvm_oct_enable_one_cpu(void)
+ 			break;
+ 		}
  	}
- 	__queue_comp_task(__cq, cct, thread);
 +	put_online_cpus_atomic();
  }
  
- static void run_comp_task(struct ehca_cpu_comp_task *cct)
-@@ -759,6 +762,7 @@ static void comp_task_park(unsigned int cpu)
- 	list_splice_init(&cct->cq_list, &list);
- 	spin_unlock_irq(&cct->task_lock);
- 
-+	get_online_cpus_atomic();
- 	cpu = find_next_online_cpu(pool);
- 	target = per_cpu_ptr(pool->cpu_comp_tasks, cpu);
- 	thread = *per_cpu_ptr(pool->cpu_comp_threads, cpu);
-@@ -768,6 +772,7 @@ static void comp_task_park(unsigned int cpu)
- 		__queue_comp_task(cq, target, thread);
- 	}
- 	spin_unlock_irq(&target->task_lock);
-+	put_online_cpus_atomic();
- }
- 
- static void comp_task_stop(unsigned int cpu, bool online)
+ static void cvm_oct_no_more_work(void)
 
