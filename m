@@ -1,45 +1,51 @@
 From: Chen Gang <gang.chen@asianux.com>
-Subject: [Suggestion] arch: s390: mm: the warnings with allmodconfig and "EXTRA_CFLAGS=-W"
-Date: Tue, 25 Jun 2013 09:54:41 +0800
-Message-ID: <51C8F861.9010101@asianux.com>
-References: <51C8F685.6000209@asianux.com>
+Subject: [PATCH] arch: c6x: kernel: include "linux/console.h" when 'VT' and
+ 'DUMMY_CONSOLE' enabled.
+Date: Tue, 25 Jun 2013 09:58:32 +0800
+Message-ID: <51C8F948.2040204@asianux.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <51C8F685.6000209@asianux.com>
-Sender: owner-linux-mm@kvack.org
-To: Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: linux390@de.ibm.com, cornelia.huck@de.ibm.com, mtosatti@redhat.com, Thomas Gleixner <tglx@linutronix.de>, linux-s390@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-mm@kvack.org
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from intranet.asianux.com ([58.214.24.6]:9601 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751102Ab3FYB7Y (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jun 2013 21:59:24 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: msalter@redhat.com, a-jacquiot@ti.com
+Cc: jkc@redhat.com, linux-c6x-dev@linux-c6x.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-Hello Maintainers:
+Need include "linux/console.h" when 'VT' and 'DUMMY_CONSOLE' enabled
+(e.g allmodconfig).
 
-When allmodconfig for " IBM zSeries model z800 and z900"
+The related error:
+  arch/c6x/kernel/setup.c: In function =91setup_arch=92:
+  arch/c6x/kernel/setup.c:442:2: error: =91conswitchp=92 undeclared (fi=
+rst use in this function)
+  arch/c6x/kernel/setup.c:442:2: note: each undeclared identifier is re=
+ported only once for each function it appears in
+  arch/c6x/kernel/setup.c:442:16: error: =91dummy_con=92 undeclared (fi=
+rst use in this function)
 
-It will report the related warnings ("EXTRA_CFLAGS=3D-W"):
-  mm/slub.c:1875:1: warning: =91deactivate_slab=92 uses dynamic stack all=
-ocation [enabled by default]
-  mm/slub.c:1941:1: warning: =91unfreeze_partials.isra.32=92 uses dynamic=
- stack allocation [enabled by default]
-  mm/slub.c:2575:1: warning: =91__slab_free=92 uses dynamic stack allocat=
-ion [enabled by default]
-  mm/slub.c:1582:1: warning: =91get_partial_node.isra.34=92 uses dynamic =
-stack allocation [enabled by default]
-  mm/slub.c:2311:1: warning: =91__slab_alloc.constprop.42=92 uses dynamic=
- stack allocation [enabled by default]
+Signed-off-by: Chen Gang <gang.chen@asianux.com>
+---
+ arch/c6x/kernel/setup.c |    3 +++
+ 1 files changed, 3 insertions(+), 0 deletions(-)
 
-Is it OK ?
-
-
-Thanks.
---
-Chen Gang
-
-Asianux Corporation=20
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=3Dmailto:"dont@kvack.org"> email@kvack.org </a>
+diff --git a/arch/c6x/kernel/setup.c b/arch/c6x/kernel/setup.c
+index f4e72bd..1411141 100644
+--- a/arch/c6x/kernel/setup.c
++++ b/arch/c6x/kernel/setup.c
+@@ -26,6 +26,9 @@
+ #include <linux/cpu.h>
+ #include <linux/fs.h>
+ #include <linux/of.h>
++#if defined(CONFIG_VT) && defined(CONFIG_DUMMY_CONSOLE)
++#include <linux/console.h>
++#endif
+=20
+=20
+ #include <asm/sections.h>
+--=20
+1.7.7.6
