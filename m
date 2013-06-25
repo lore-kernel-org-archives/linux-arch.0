@@ -1,52 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:56329 "EHLO ozlabs.org"
+Received: from gate.crashing.org ([63.228.1.57]:38949 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751165Ab3FYCIp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 24 Jun 2013 22:08:45 -0400
-Date: Tue, 25 Jun 2013 12:08:42 +1000
-From: Michael Ellerman <michael@ellerman.id.au>
-Subject: Re: [PATCH 40/45] powerpc, irq: Use GFP_ATOMIC allocations in atomic
- context
-Message-ID: <20130625020842.GD14051@concordia>
+	id S1751102Ab3FYCR2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 24 Jun 2013 22:17:28 -0400
+Message-ID: <1372126384.3944.177.camel@pasglop>
+Subject: Re: [PATCH 40/45] powerpc, irq: Use GFP_ATOMIC allocations in
+ atomic context
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Date: Tue, 25 Jun 2013 12:13:04 +1000
+In-Reply-To: <20130625020842.GD14051@concordia>
 References: <20130623133642.19094.16038.stgit@srivatsabhat.in.ibm.com>
- <20130623134657.19094.93687.stgit@srivatsabhat.in.ibm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20130623134657.19094.93687.stgit@srivatsabhat.in.ibm.com>
+	 <20130623134657.19094.93687.stgit@srivatsabhat.in.ibm.com>
+	 <20130625020842.GD14051@concordia>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Ian Munsie <imunsie@au1.ibm.com>
-Message-ID: <20130625020842.mCFDLDI8u4tC4V6SOf2X8EV1rEKfVRfSfrj3mYfp6K4@z>
+To: Michael Ellerman <michael@ellerman.id.au>
+Cc: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Paul Mackerras <paulus@samba.org>, Ian Munsie <imunsie@au1.ibm.com>
+Message-ID: <20130625021304.2R-n4u8jE6V4PEG2qSbyCQ_XsONckEhOL67PVmbcog4@z>
 
-On Sun, Jun 23, 2013 at 07:17:00PM +0530, Srivatsa S. Bhat wrote:
-> The function migrate_irqs() is called with interrupts disabled
-> and hence its not safe to do GFP_KERNEL allocations inside it,
-> because they can sleep. So change the gfp mask to GFP_ATOMIC.
+On Tue, 2013-06-25 at 12:08 +1000, Michael Ellerman wrote:
+> We're not checking for allocation failure, which we should be.
+> 
+> But this code is only used on powermac and 85xx, so it should probably
+> just be a TODO to fix this up to handle the failure.
 
-OK so it gets there via:
-  __stop_machine()
-    take_cpu_down()
-      __cpu_disable()
-        smp_ops->cpu_disable()
-          generic_cpu_disable()
-            migrate_irqs()
+And what can we do if they fail ?
 
-> diff --git a/arch/powerpc/kernel/irq.c b/arch/powerpc/kernel/irq.c
-> index ea185e0..ca39bac 100644
-> --- a/arch/powerpc/kernel/irq.c
-> +++ b/arch/powerpc/kernel/irq.c
-> @@ -412,7 +412,7 @@ void migrate_irqs(void)
->  	cpumask_var_t mask;
->  	const struct cpumask *map = cpu_online_mask;
->  
-> -	alloc_cpumask_var(&mask, GFP_KERNEL);
-> +	alloc_cpumask_var(&mask, GFP_ATOMIC);
+Cheers,
+Ben.
 
-We're not checking for allocation failure, which we should be.
 
-But this code is only used on powermac and 85xx, so it should probably
-just be a TODO to fix this up to handle the failure.
-
-cheers
