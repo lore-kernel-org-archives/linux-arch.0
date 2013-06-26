@@ -1,66 +1,85 @@
 From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH v2] arch: asm-generic: for atomic_set_mask() 1st param,
- use 'unsigned int' instead of 'unsigned long'
-Date: Wed, 26 Jun 2013 10:03:58 +0800
-Message-ID: <51CA4C0E.9050909@asianux.com>
-References: <51B2E262.3030603@asianux.com> <CAErSpo5pg0EvJOR9nn3B0d+q0o6zsdwzM41AQx=AHfynRqX3hQ@mail.gmail.com> <51B4214E.6090007@asianux.com> <20130610092106.GA4697@osiris> <51B91E32.2040502@asianux.com>
+Subject: [PATCH] include/asm-generic/io.h: add 'UML' case just like 'no-MMU'
+Date: Wed, 26 Jun 2013 14:31:20 +0800
+Message-ID: <51CA8AB8.7080504@asianux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=GB2312
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:33177 "EHLO
+Received: from intranet.asianux.com ([58.214.24.6]:28515 "EHLO
 	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750742Ab3FZFcm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Jun 2013 01:32:42 -0400
-In-Reply-To: <51B91E32.2040502@asianux.com>
+	with ESMTP id S1751309Ab3FZGcN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Jun 2013 02:32:13 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "uclinux-dist-devel@blackfin.uclinux.org" <uclinux-dist-devel@blackfin.uclinux.org>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, Bjorn Helgaas <bhelgaas@google.com>, Mike Frysinger <vapier@gentoo.org>, takata@linux-m32r.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, realmz paranoid <realmz6@gmail.com>, linux390@de.ibm.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-s390@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Marc Gauthier <Marc.Gauthier@tensilica.com>, Andrew Morton <akpm@linux-foundation.org>
+To: Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Arnd Bergmann <arnd@arndb.de>
+Cc: dhsharp@google.com, Mark Brown <broonie@opensource.wolfsonmicro.com>, "sfr@canb.auug.org.au" <sfr@canb.auug.org.au>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>, uml-user <user-mode-linux-user@lists.sourceforge.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-Hello Maintainers:
+=46or "User Mode Linux", it may enable 'MMU', but not need implement
+ioremap and iounmap, so "include/asm-generic/io.h" need notice this
+case to keep itself 'generic'.
 
-Firstly thank the s390 maintainers again for their 'Acked-by' (in my
-memory, s390 is the most important business mainframe machine)
+The related error (with allmodconfig, without pcap):
 
-Could another related maintainers give a glance for it, when you have time.
-
-Thanks.
-
-On 06/13/2013 09:19 AM, Chen Gang wrote:
-> On 06/10/2013 05:21 PM, Heiko Carstens wrote:
->> On Sun, Jun 09, 2013 at 02:31:42PM +0800, Chen Gang wrote:
->>>>
->>>> atomic_set_mask() and atomic_clear_mask() are the pairs, so the related
->>>> parameters' type need match with each other.
->>>>
->>>> The type of 'addr->counter' is 'int', so use 'unsigned int' instead
->>>> of 'unsigned long', and let atomic_set_mask() match atomic_clear_mask().
->>>>
->>>>
->>>> For arch sub-system, currently, have 3 types of definition for them:
->>>> 1st for 'int', 2nd for 'long', 3rd is conflict to use 'int' and 'long'.
->>>>
->>>> At least, better to fix 3rd (conflict using 'int' and 'long').
->>>>
->>>> Signed-off-by: Chen Gang <gang.chen@asianux.com>
->>>> ---
->>>>  arch/blackfin/include/asm/atomic.h |    4 ++--
->>>>  arch/m32r/include/asm/atomic.h     |    8 ++++----
->>>>  arch/s390/include/asm/atomic.h     |    4 ++--
->>>>  include/asm-generic/atomic.h       |    2 +-
->>>>  4 files changed, 9 insertions(+), 9 deletions(-)
->> For the s390 part:
->>
->> Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com>
->>
-> 
-> Thank you very much !!
-> 
-> 
+    CC [M]  drivers/ptp/ptp_pch.o
+  drivers/ptp/ptp_pch.c: In function =91pch_remove=92:
+  drivers/ptp/ptp_pch.c:571:3: error: implicit declaration of function =
+=91iounmap=92 [-Werror=3Dimplicit-function-declaration]
+  drivers/ptp/ptp_pch.c: In function =91pch_probe=92:
+  drivers/ptp/ptp_pch.c:621:2: error: implicit declaration of function =
+=91ioremap=92 [-Werror=3Dimplicit-function-declaration]
+  drivers/ptp/ptp_pch.c:621:13: warning: assignment makes pointer from =
+integer without a cast [enabled by default]
+  cc1: some warnings being treated as errors
 
 
--- 
-Chen Gang
+Signed-off-by: Chen Gang <gang.chen@asianux.com>
+---
+ arch/um/include/asm/Kbuild |    1 +
+ include/asm-generic/io.h   |    6 +++---
+ 2 files changed, 4 insertions(+), 3 deletions(-)
 
-Asianux Corporation
+diff --git a/arch/um/include/asm/Kbuild b/arch/um/include/asm/Kbuild
+index b30f34a..a34ea5d 100644
+--- a/arch/um/include/asm/Kbuild
++++ b/arch/um/include/asm/Kbuild
+@@ -3,3 +3,4 @@ generic-y +=3D hw_irq.h irq_regs.h kdebug.h percpu.h se=
+ctions.h topology.h xor.h
+ generic-y +=3D ftrace.h pci.h io.h param.h delay.h mutex.h current.h e=
+xec.h
+ generic-y +=3D switch_to.h clkdev.h
+ generic-y +=3D trace_clock.h
++generic-y +=3D io.h
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index d5afe96..e80331d 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -303,10 +303,10 @@ static inline void *phys_to_virt(unsigned long ad=
+dress)
+ /*
+  * Change "struct page" to physical address.
+  *
+- * This implementation is for the no-MMU case only... if you have an M=
+MU
++ * This implementation is for the no-MMU or UML case only... if you ha=
+ve an MMU
+  * you'll need to provide your own definitions.
+  */
+-#ifndef CONFIG_MMU
++#if !CONFIG_MMU || CONFIG_UML
+ static inline void __iomem *ioremap(phys_addr_t offset, unsigned long =
+size)
+ {
+ 	return (void __iomem*) (unsigned long)offset;
+@@ -325,7 +325,7 @@ static inline void __iomem *ioremap(phys_addr_t off=
+set, unsigned long size)
+ static inline void iounmap(void __iomem *addr)
+ {
+ }
+-#endif /* CONFIG_MMU */
++#endif /* !CONFIG_MMU || CONFIG_UML */
+=20
+ #ifdef CONFIG_HAS_IOPORT
+ #ifndef CONFIG_GENERIC_IOMAP
+--=20
+1.7.7.6
