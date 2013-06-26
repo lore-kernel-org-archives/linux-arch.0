@@ -1,82 +1,52 @@
-From: Richard Weinberger <richard@nod.at>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
 Subject: Re: [PATCH] include/asm-generic/io.h: add 'UML' case just like 'no-MMU'
-Date: Wed, 26 Jun 2013 11:38:17 +0200
-Message-ID: <51CAB689.70008@nod.at>
-References: <51CA8AB8.7080504@asianux.com> <51CA900E.9020407@nod.at> <51CA9E92.4000107@asianux.com> <51CAA0C6.60007@nod.at> <51CAA78C.5040900@asianux.com> <51CAA8D6.9000505@nod.at> <51CAAD1D.8050801@asianux.com> <51CAAE7C.9090003@nod.at> <51CAB556.4070700@asianux.com>
+Date: Wed, 26 Jun 2013 11:48:20 +0200
+Message-ID: <CAMuHMdXw6VYhnNWcVfWc9ssxKTqKFcDbN4WXL5i=eNGy+gXcRA@mail.gmail.com>
+References: <51CA8AB8.7080504@asianux.com>
+	<51CA900E.9020407@nod.at>
+	<51CA9E92.4000107@asianux.com>
+	<51CAA0C6.60007@nod.at>
+	<51CAA78C.5040900@asianux.com>
+	<51CAA8D6.9000505@nod.at>
+	<51CAAD1D.8050801@asianux.com>
+	<51CAAE7C.9090003@nod.at>
+	<51CAB556.4070700@asianux.com>
+	<51CAB689.70008@nod.at>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <51CAB556.4070700@asianux.com>
+In-Reply-To: <51CAB689.70008@nod.at>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Chen Gang <gang.chen@asianux.com>
-Cc: Jeff Dike <jdike@addtoit.com>, Arnd Bergmann <arnd@arndb.de>, dhsharp@google.com, Mark Brown <broonie@opensource.wolfsonmicro.com>, "sfr@canb.auug.org.au" <sfr@canb.auug.org.au>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>, uml-user <user-mode-linux-user@lists.sourceforge.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: Richard Weinberger <richard@nod.at>
+Cc: Chen Gang <gang.chen@asianux.com>, Jeff Dike <jdike@addtoit.com>, Arnd Bergmann <arnd@arndb.de>, David Sharp <dhsharp@google.com>, "sfr@canb.auug.org.au" <sfr@canb.auug.org.au>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>, uml-user <user-mode-linux-user@lists.sourceforge.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Mark Brown <broonie@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Am 26.06.2013 11:33, schrieb Chen Gang:
-> On 06/26/2013 05:03 PM, Richard Weinberger wrote:
->> Am 26.06.2013 10:58, schrieb Chen Gang:
->>>> On 06/26/2013 04:39 PM, Richard Weinberger wrote:
->>>>>>>>>>>>>>>>>>>>>> The drivers internal code has already check the related return value,
->>>>>>>>>>>>>>>>>>>>>> so it is the architecture's duty to 'tell' the driver whether support
->>>>>>>>>>>>>>>>>>>>>> io memory (e.g. define ioremap, but return NULL).
->>>>>>>>>>>>>> It does so already by setting CONFIG_HAS_IOMEM=n
->>>>>>>>>>
->>>>>>>>>> Excuse me, I use "grep -rn ioremap *" under "include/" and "arch/um/"
->>>>>>>>>> directory, but can not find the related definition for 'ioremap'.
->>>>>>>>>>
->>>>>>>>>> Is there another declaration or definition way which I don't know ?
->>>>>>>>>> (maybe it is).
->>>>>> Both UML and s390 (in the !CONFIG_PCI) do not define ioremap() because
->>>>>> without io memory you cannot have a ioremap().
->>>>>>
->>>>
->>>> I assume if ioremap() return NULL, it means "without io memory", is it
->>>> correct ?
->>>>
->>>> If it is correct, "define a dummy ioremap(), and return NULL" is just
->>>> the meaning that you mentioned above.
->>>>
->>>> If so, for UML, it is not requirement, but recommend to define a dummy
->>>> ioremap() which return NULL, so can be generic enough to mach all cases.
->> No.
->> Not setting CONFIG_HAS_IOMEM=y means "This arch has no io memory and therefore no
->> functions to mess with it".
+On Wed, Jun 26, 2013 at 11:38 AM, Richard Weinberger <richard@nod.at> wrote:
+>> Since the API itself already contents the meaning: "return NULL means
+>> the arch has no related io memory",
+
+No, NULL means it could not map the I/O memory.
+
+>> Why not define a generic dummy one in "include/asm-generic/io.h" instead
+>> of "HAS_IOMEM" (which has already spread many various places, and also,
+>> most of new drivers have to know about it).
 >>
-> 
-> Since the API itself already contents the meaning: "return NULL means
-> the arch has no related io memory",
-> 
-> Why not define a generic dummy one in "include/asm-generic/io.h" instead
-> of "HAS_IOMEM" (which has already spread many various places, and also,
-> most of new drivers have to know about it).
-> 
-> e.g: in "include/asm-generic/io.h", if "CONFIG_HAS_IOMEM=n", define a
-> dummy ioremap() which return NULL ... (also need consider more details).
+>> e.g: in "include/asm-generic/io.h", if "CONFIG_HAS_IOMEM=n", define a
+>> dummy ioremap() which return NULL ... (also need consider more details).
+>
+> Because we don't even want to build these drivers and not make them fail while
+> executing io memory related functions.
 
-Because we don't even want to build these drivers and not make them fail while
-executing io memory related functions.
+Indeed, it doesn't make sense to build drivers that cannot work.
+And they may fail in a very bad way.
 
-> 
-> All together, I think: it is the duty of "asm-generic/io.h" to process
-> this issue, not the duty of many drivers and some architectures.
-> 
-> 
->> Let's get back to the real problem,
->> drivers/ptp/ptp_pch.c does not build on UML (and I'm very sure also not on S390).
->> Fix the issue by making it depend on HAS_IOMEM.
->>
-> 
-> At least now, it seems it is the only suitable way to fix this issue.  :-(
-> 
-> 
->> Btw: Did you actually look at this driver? There is *zero* reason to have it on UML.
->> ..like 99.9% of all other drivers which use io memory.
-> 
-> Excuse me, I did not look at the details of this driver. Maybe it just
-> like you said above.
+Gr{oetje,eeting}s,
 
-It is.
+                        Geert
 
-Thanks,
-//richard
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
