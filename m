@@ -1,98 +1,44 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH v2 15/45] rcu: Use get/put_online_cpus_atomic() to
- prevent CPU offline
-Date: Tue, 25 Jun 2013 15:00:26 -0700
-Message-ID: <20130625220026.GG3828@linux.vnet.ibm.com>
-References: <20130625202452.16593.22810.stgit@srivatsabhat.in.ibm.com>
- <20130625202755.16593.67819.stgit@srivatsabhat.in.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: "Wang, Yalin" <Yalin.Wang@sonymobile.com>
+Subject: ARM pagetable setting in Linux
+Date: Wed, 26 Jun 2013 10:41:40 +0800
+Message-ID: <35FD53F367049845BC99AC72306C23D19441BF5863@CNBJMBX05.corpusers.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e39.co.us.ibm.com ([32.97.110.160]:39960 "EHLO
-	e39.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751458Ab3FYWAf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2013 18:00:35 -0400
-Received: from /spool/local
-	by e39.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Tue, 25 Jun 2013 16:00:35 -0600
-Content-Disposition: inline
-In-Reply-To: <20130625202755.16593.67819.stgit@srivatsabhat.in.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Dipankar Sarma <dipankar@in.ibm.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Language: en-US
+Sender: linux-kernel-owner@vger.kernel.org
+To: 'Will Deacon' <will.deacon@arm.com>
+Cc: "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jun 26, 2013 at 01:57:55AM +0530, Srivatsa S. Bhat wrote:
-> Once stop_machine() is gone from the CPU offline path, we won't be able
-> to depend on disabling preemption to prevent CPUs from going offline
-> from under us.
-> 
-> In RCU code, rcu_implicit_dynticks_qs() checks if a CPU is offline,
-> while being protected by a spinlock. Use the get/put_online_cpus_atomic()
-> APIs to prevent CPUs from going offline, while invoking from atomic context.
-
-I am not completely sure that this is needed.  Here is a (quite possibly
-flawed) argument for its not being needed:
-
-o	rcu_gp_init() holds off CPU-hotplug operations during
-	grace-period initialization.  Therefore, RCU will avoid
-	looking for quiescent states from CPUs that were offline
-	(and thus in an extended quiescent state) at the beginning
-	of the grace period.
-
-o	If force_qs_rnp() is looking for a quiescent state from
-	a given CPU, and if it senses that CPU as being offline,
-	then even without synchronization we know that the CPU
-	was offline some time during the current grace period.
-
-	After all, it was online at the beginning of the grace
-	period (otherwise, we would not be looking at it at all),
-	and our later sampling of its state must have therefore
-	happened after the start of the grace period.  Given that
-	the grace period has not yet ended, it also has to happened
-	before the end of the grace period.
-
-o	Therefore, we should be able to sample the offline state
-	without synchronization.
-
-Possible flaws in this argument:  memory ordering, oddnesses in
-the sampling and updates of the cpumask recording which CPUs are
-online, and so on.
-
-Thoughts?
-
-							Thanx, Paul
-
-> Cc: Dipankar Sarma <dipankar@in.ibm.com>
-> Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
-> ---
-> 
->  kernel/rcutree.c |    4 ++++
->  1 file changed, 4 insertions(+)
-> 
-> diff --git a/kernel/rcutree.c b/kernel/rcutree.c
-> index cf3adc6..caeed1a 100644
-> --- a/kernel/rcutree.c
-> +++ b/kernel/rcutree.c
-> @@ -2107,6 +2107,8 @@ static void force_qs_rnp(struct rcu_state *rsp, int (*f)(struct rcu_data *))
->  			rcu_initiate_boost(rnp, flags); /* releases rnp->lock */
->  			continue;
->  		}
-> +
-> +		get_online_cpus_atomic();
->  		cpu = rnp->grplo;
->  		bit = 1;
->  		for (; cpu <= rnp->grphi; cpu++, bit <<= 1) {
-> @@ -2114,6 +2116,8 @@ static void force_qs_rnp(struct rcu_state *rsp, int (*f)(struct rcu_data *))
->  			    f(per_cpu_ptr(rsp->rda, cpu)))
->  				mask |= bit;
->  		}
-> +		put_online_cpus_atomic();
-> +
->  		if (mask != 0) {
-> 
->  			/* rcu_report_qs_rnp() releases rnp->lock. */
-> 
+SGkgIFdpbGwsDQoNCkkgaGF2ZSBhIHF1ZXN0aW9uIGFib3V0ICBhcm0gcGFnZXRhYmxlIHNldHRp
+bmcgaW4gTGludXggLg0KDQpGcm9tIGFybVY2LCAgdGhlcmUgaXMgVFRCUjAgYW5kIFRUQlIxICB0
+cmFuc2xhdGlvbiBiYXNlIGFkZHJlc3MgcmVnaXN0ZXJzICBpbiBtbXUgLg0KQnV0IEkgIGZvdW5k
+IGxpbnV4IG9ubHkgdXNlIFRUQlIwIGZvciB0cmFuc2xhdGlvbiBiYXNlIGFkZHJlc3MgLA0KQ291
+bGQgd2UgdXNlIFRUQlIwIGFuZCBUVEJSMSB0byBzcGxpdCB1c2VyIHRhc2sgYW5kIGtlcm5lbCBw
+YWdldGFibGVzIChzd2FwcGVyX3BnX2RpcinvvJ8gDQoNCkJ1dCBJIGZvdW5kIHRoaXMgbmVlZCBz
+ZXQgVFRCQ1IuTiAgICwNCklmIFBBR0VfT0ZGU0VUPT0weGMwMDAwMDAwICAsICAgc2V0IFRUQkNS
+Lk49MHgyICwNCldpbGwgbm90IHdvcmsgLCBiZWNhdXNlICAgb25seSBlbnN1cmUgMC0tMHgwMEZG
+RkZGRiAgTVZBIHVzZSBUVEJDUjAgDQpBbmQgb3RoZXIgIE1WQeOAgHdpbGwgdXNlIFRUQkNSMSAs
+DQpCdXQgaWYgd2Ugc2V0IFBBR0VfT0ZGU0VUPT0weDgwMDAwMDAwICAoMkdCIHNwbGl0ICkgICwN
+CkFuZCBzZXQgIFRUQkNSLk49MHgxICwNClRoaXMgd2lsbCBtYWtlIHN1cmUgdXNlciB0YXNrIE1W
+QSB1c2UgVFRCQ1IwIGFuZCBrZXJuZWwgIE1WQSANClVzZSBUVEJDUjEgLCB0aGlzICB3aWxsIG1h
+a2Ugc29tZSBpbXByb3ZlbWVudCBmb3IgdGhlIHN5c3RlbSAuDQoNCjEuIEJlY2F1c2Ugd2UgZG9u
+4oCZdCBuZWVkIGNvcHkga2VybmVsIGZpcnN0IOKAk2xldmVsIHBhZ2V0YWJsZXMgaW50byBldmVy
+eSANClVzZXIgdGFza+KAmXMgcGFnZXRhYmxlcyBhbmQgZmx1c2ggdGxiIChmb3IgZXhhbXBsZSBm
+b3JrKCkgYSBuZXcgcHJvY2VzcykuDQoNCjIuIEFuZCBkb27igJl0IG5lZWQgaGFuZGxlIGtlcm5l
+bCBwYWdlIGZhdWx0IGJlY2F1c2UgdGhhdCB1c2VyIHRhc2vigJlzIGtlcm5lbCANClBhZ2V0YWJs
+ZSB3aGVuIGl0IGlzIG5vdCBzZXQgdXAgLCBuZWVkIGNvcHkgYWdhaW4oIGZvciBleGFtcGxlIHZt
+YWxsb2MoKSAgaW9yZW1hcCgpICBrbWFwKCkgIHdpbGwgY2hhbmdlIA0KS2VybmVsIHBhZ2V0YWJs
+ZXMgYW5kIG5lZWQgdXBkYXRlIHRvIGV2ZXJ5IHRhc2sgcGFnZXRhYmxlcyApIC4NCg0KMy4gV2Ug
+IGV2ZW4gY2FuIG9ubHkgYWxsb2NhdGUgOEtCIGZpcnN0IGxldmVsIHBhZ2V0YWJsZXMgZm9yIHVz
+ZXIgdGFzayB0byBzYXZlIA0KTWVtb3J5cyAuDQoNCg0KSSBhbSBub3QgIHN1cmUgaWYgaXRzIHBv
+c3NpYmxlIHRvIGltcGxlbWVudCB0aGlzIG9uIGNvcnRleC1BICBjcHVzID8NCkFuZCBpZiB0aGVy
+ZSBpcyBzb21lIHNpZGUgZWZmZWN0cyBpZiB3ZSB1c2UgdGhpcyBpbiBsaW51eCA/DQoNCklmIHBv
+c3NpYmxlICwgIEkgY2FuIG1ha2UgYSBjaGFuZ2UgdG8gZG8gc29tZSB0ZXN0IC4NCg0KVGhhbmtz
+IGZvciB5b3VyIGhlbHAgLg0KDQoNCg0KDQoNCg0KDQpZYWxpbi5XYW5nDQpTb2Z0d2FyZSBFbmdp
+bmVlciANCk9TIEtlcm5lbCZHcmFwaGljcw0KwqANClNvbnkgTW9iaWxlIENvbW11bmljYXRpb25z
+DQpUZWw6ICs4NiAxMCA1OTY2IDk4MTkNClBob25lOiAxODYxMDMyMzA5Mg0KQWRkcmVzczogTm8u
+MTYgR3VhbmdzaHVuIFNvdXRoIFN0cmVldCwgQ2hhb3lhbmcsIEJlaWppbmcsIFAuUi5DLg0KDQpz
+b255bW9iaWxlLmNvbQ0KwqDCoA0KDQoNCg0K
