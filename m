@@ -1,54 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:54927 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750804Ab3FZE7W (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Jun 2013 00:59:22 -0400
-Message-ID: <51CA5829.9060807@asianux.com>
-Date: Wed, 26 Jun 2013 10:55:37 +0800
-From: Chen Gang <gang.chen@asianux.com>
+Received: from b.ns.miles-group.at ([95.130.255.144]:1660 "EHLO radon.swed.at"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751059Ab3FZHB1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 26 Jun 2013 03:01:27 -0400
+Message-ID: <51CA900E.9020407@nod.at>
+Date: Wed, 26 Jun 2013 08:54:06 +0200
+From: Richard Weinberger <richard@nod.at>
 MIME-Version: 1.0
-Subject: [PATCH] arch: frv: mb93090-mb00: remove '__init' for pci_fixup_umc_ide()
- which used by 'DECLARE_PCI_FIXUP_HEADER'
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Subject: Re: [PATCH] include/asm-generic/io.h: add 'UML' case just like 'no-MMU'
+References: <51CA8AB8.7080504@asianux.com>
+In-Reply-To: <51CA8AB8.7080504@asianux.com>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "dhowells@redhat.com" <dhowells@redhat.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Greg KH <gregkh@linuxfoundation.org>, yinghai@kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20130626025537.0cBMW-Mw7hgaRL_hhXvfNAWyqe9j1NBMWR0YF2oVujA@z>
+To: Chen Gang <gang.chen@asianux.com>
+Cc: Jeff Dike <jdike@addtoit.com>, Arnd Bergmann <arnd@arndb.de>, dhsharp@google.com, Mark Brown <broonie@opensource.wolfsonmicro.com>, "sfr@canb.auug.org.au" <sfr@canb.auug.org.au>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>, uml-user <user-mode-linux-user@lists.sourceforge.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20130626065406.C6fz_S-XoraAbez1xqgj0hnS30TDJ7bQ_-inBV4yJao@z>
 
-pci_fixup_umc_ide() is for 'DECLARE_PCI_FIXUP_HEADER', so need remove
-it from init section to normal section.
+Hi!
 
-The related warning (with allmodconfig):
+Am 26.06.2013 08:31, schrieb Chen Gang:
+> For "User Mode Linux", it may enable 'MMU', but not need implement
+> ioremap and iounmap, so "include/asm-generic/io.h" need notice this
+> case to keep itself 'generic'.
+> 
+> The related error (with allmodconfig, without pcap):
+> 
+>     CC [M]  drivers/ptp/ptp_pch.o
+>   drivers/ptp/ptp_pch.c: In function ‘pch_remove’:
+>   drivers/ptp/ptp_pch.c:571:3: error: implicit declaration of function ‘iounmap’ [-Werror=implicit-function-declaration]
+>   drivers/ptp/ptp_pch.c: In function ‘pch_probe’:
+>   drivers/ptp/ptp_pch.c:621:2: error: implicit declaration of function ‘ioremap’ [-Werror=implicit-function-declaration]
+>   drivers/ptp/ptp_pch.c:621:13: warning: assignment makes pointer from integer without a cast [enabled by default]
+>   cc1: some warnings being treated as errors
+> 
+> 
+> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+> ---
+>  arch/um/include/asm/Kbuild |    1 +
+>  include/asm-generic/io.h   |    6 +++---
+>  2 files changed, 4 insertions(+), 3 deletions(-)
+> 
+> diff --git a/arch/um/include/asm/Kbuild b/arch/um/include/asm/Kbuild
+> index b30f34a..a34ea5d 100644
+> --- a/arch/um/include/asm/Kbuild
+> +++ b/arch/um/include/asm/Kbuild
+> @@ -3,3 +3,4 @@ generic-y += hw_irq.h irq_regs.h kdebug.h percpu.h sections.h topology.h xor.h
+>  generic-y += ftrace.h pci.h io.h param.h delay.h mutex.h current.h exec.h
+>  generic-y += switch_to.h clkdev.h
+>  generic-y += trace_clock.h
+> +generic-y += io.h
 
-  LD      arch/frv/mb93090-mb00/built-in.o
-WARNING: arch/frv/mb93090-mb00/built-in.o(.pci_fixup_header+0x4c): Section mismatch in reference from the variable __pci_fixup_PCI_VENDOR_ID_UMCPCI_DEVICE_ID_UMC_UM8886BFpci_fixup_umc_ide to the function .init.text:pci_fixup_umc_ide()
-The variable __pci_fixup_PCI_VENDOR_ID_UMCPCI_DEVICE_ID_UMC_UM8886BFpci_fixup_umc_ide references
-a function __init pci_fixup_umc_ide().
-This is often seen when error handling in the init function
-uses functionality in the exit path.
-The fix is often to remove the __init annotation of
-pci_fixup_umc_ide() so it may be used outside an exit section.
+We include that file already. See three lines above.
 
+> diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+> index d5afe96..e80331d 100644
+> --- a/include/asm-generic/io.h
+> +++ b/include/asm-generic/io.h
+> @@ -303,10 +303,10 @@ static inline void *phys_to_virt(unsigned long address)
+>  /*
+>   * Change "struct page" to physical address.
+>   *
+> - * This implementation is for the no-MMU case only... if you have an MMU
+> + * This implementation is for the no-MMU or UML case only... if you have an MMU
+>   * you'll need to provide your own definitions.
+>   */
+> -#ifndef CONFIG_MMU
+> +#if !CONFIG_MMU || CONFIG_UML
+>  static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
+>  {
+>  	return (void __iomem*) (unsigned long)offset;
+> @@ -325,7 +325,7 @@ static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
+>  static inline void iounmap(void __iomem *addr)
+>  {
+>  }
+> -#endif /* CONFIG_MMU */
+> +#endif /* !CONFIG_MMU || CONFIG_UML */
+>  
+>  #ifdef CONFIG_HAS_IOPORT
+>  #ifndef CONFIG_GENERIC_IOMAP
+> 
 
-Signed-off-by: Chen Gang <gang.chen@asianux.com>
----
- arch/frv/mb93090-mb00/pci-vdk.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+UML has no io memory but a MMU, so I'd argue that you better fix drivers/ptp/ptp_pch.c dependencies.
+_If_ ptp_pch.c really works without real io memory, you can look what I did in my GENERIC_IO series[1]
+to make nandsim work on UML. Maybe this helps.
 
-diff --git a/arch/frv/mb93090-mb00/pci-vdk.c b/arch/frv/mb93090-mb00/pci-vdk.c
-index 0aa35f0..56a3abf 100644
---- a/arch/frv/mb93090-mb00/pci-vdk.c
-+++ b/arch/frv/mb93090-mb00/pci-vdk.c
-@@ -254,7 +254,7 @@ static void __init pcibios_fixup_peer_bridges(void)
-  * Exceptions for specific devices. Usually work-arounds for fatal design flaws.
-  */
- 
--static void __init pci_fixup_umc_ide(struct pci_dev *d)
-+static void pci_fixup_umc_ide(struct pci_dev *d)
- {
- 	/*
- 	 * UM8886BF IDE controller sets region type bits incorrectly,
--- 
-1.7.7.6
+Thanks,
+//richard
+
+[1] http://lists.infradead.org/pipermail/linux-mtd/2012-February/039701.html
+
