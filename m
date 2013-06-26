@@ -1,45 +1,60 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH v2 15/45] rcu: Use get/put_online_cpus_atomic() to
- prevent CPU offline
-Date: Wed, 26 Jun 2013 11:33:43 -0400
-Message-ID: <1372260823.18733.263.camel@gandalf.local.home>
-References: <20130625202452.16593.22810.stgit@srivatsabhat.in.ibm.com>
-	 <20130625202755.16593.67819.stgit@srivatsabhat.in.ibm.com>
-	 <20130625220026.GG3828@linux.vnet.ibm.com>
-	 <51CAF624.6060004@linux.vnet.ibm.com>
-	 <AE90C24D6B3A694183C094C60CF0A2F6026B72AA@saturn3.aculab.com>
-	 <20130626143424.GN3828@linux.vnet.ibm.com>
-	 <1372258271.18733.256.camel@gandalf.local.home>
-	 <20130626152148.GA4405@mtj.dyndns.org>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [PATCH] arch: frv: mb93090-mb00: remove '__init' for
+ pci_fixup_umc_ide() which used by 'DECLARE_PCI_FIXUP_HEADER'
+Date: Wed, 26 Jun 2013 10:19:14 -0600
+Message-ID: <CAErSpo4dg7cVN1grEuKWvDJkZoJPAaELeh8knqD=s-nd5dsBNw@mail.gmail.com>
+References: <51CA5829.9060807@asianux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-pm-owner@vger.kernel.org>
-In-Reply-To: <20130626152148.GA4405@mtj.dyndns.org>
-Sender: linux-pm-owner@vger.kernel.org
-To: Tejun Heo <tj@kernel.org>
-Cc: paulmck@linux.vnet.ibm.com, David Laight <David.Laight@ACULAB.COM>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, walken@google.com, mingo@kernel.org, linux-arch@vger.kernel.org, vincent.guittot@linaro.org, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, rusty@rustcorp.com.au, namhyung@kernel.org, tglx@linutronix.de, laijs@cn.fujitsu.com, zhong@linux.vnet.ibm.com, netdev@vger.kernel.org, oleg@redhat.com, sbw@mit.edu, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-oa0-f48.google.com ([209.85.219.48]:39804 "EHLO
+	mail-oa0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751501Ab3FZQTf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Jun 2013 12:19:35 -0400
+Received: by mail-oa0-f48.google.com with SMTP id f4so14866932oah.7
+        for <linux-arch@vger.kernel.org>; Wed, 26 Jun 2013 09:19:35 -0700 (PDT)
+In-Reply-To: <51CA5829.9060807@asianux.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Chen Gang <gang.chen@asianux.com>
+Cc: "dhowells@redhat.com" <dhowells@redhat.com>, Greg KH <gregkh@linuxfoundation.org>, Yinghai Lu <yinghai@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On Wed, 2013-06-26 at 08:21 -0700, Tejun Heo wrote:
-> On Wed, Jun 26, 2013 at 10:51:11AM -0400, Steven Rostedt wrote:
-> > > It would also increase the latency of CPU-hotunplug operations.
-> > 
-> > Is that a big deal?
-> 
-> I thought that was the whole deal with this patchset - making cpu
-> hotunplugs lighter and faster mostly for powersaving.  That said, just
-> removing stop_machine call would be a pretty good deal and I don't
-> know how meaningful reducing CPU hotunplug latency is.  Srivatsa?
+On Tue, Jun 25, 2013 at 8:55 PM, Chen Gang <gang.chen@asianux.com> wrote:
+> pci_fixup_umc_ide() is for 'DECLARE_PCI_FIXUP_HEADER', so need remove
+> it from init section to normal section.
+>
+> The related warning (with allmodconfig):
+>
+>   LD      arch/frv/mb93090-mb00/built-in.o
+> WARNING: arch/frv/mb93090-mb00/built-in.o(.pci_fixup_header+0x4c): Section mismatch in reference from the variable __pci_fixup_PCI_VENDOR_ID_UMCPCI_DEVICE_ID_UMC_UM8886BFpci_fixup_umc_ide to the function .init.text:pci_fixup_umc_ide()
+> The variable __pci_fixup_PCI_VENDOR_ID_UMCPCI_DEVICE_ID_UMC_UM8886BFpci_fixup_umc_ide references
+> a function __init pci_fixup_umc_ide().
+> This is often seen when error handling in the init function
+> uses functionality in the exit path.
+> The fix is often to remove the __init annotation of
+> pci_fixup_umc_ide() so it may be used outside an exit section.
+>
+>
+> Signed-off-by: Chen Gang <gang.chen@asianux.com>
 
-I thought the whole deal with this patchset was to remove stop_machine
-from CPU hotplug. Why halt all CPUs just to remove one? stomp_machine()
-is extremely intrusive for the entire system, where as one CPU making
-sure all CPUs schedule isn't very intrusive at all.
+Reviewed-by: Bjorn Helgaas <bhelgaas@google.com>
 
-I didn't think the idea of this patch set was to make CPU hotplug
-faster, just less intrusive to the system.
-
--- Steve
-
-
+> ---
+>  arch/frv/mb93090-mb00/pci-vdk.c |    2 +-
+>  1 files changed, 1 insertions(+), 1 deletions(-)
+>
+> diff --git a/arch/frv/mb93090-mb00/pci-vdk.c b/arch/frv/mb93090-mb00/pci-vdk.c
+> index 0aa35f0..56a3abf 100644
+> --- a/arch/frv/mb93090-mb00/pci-vdk.c
+> +++ b/arch/frv/mb93090-mb00/pci-vdk.c
+> @@ -254,7 +254,7 @@ static void __init pcibios_fixup_peer_bridges(void)
+>   * Exceptions for specific devices. Usually work-arounds for fatal design flaws.
+>   */
+>
+> -static void __init pci_fixup_umc_ide(struct pci_dev *d)
+> +static void pci_fixup_umc_ide(struct pci_dev *d)
+>  {
+>         /*
+>          * UM8886BF IDE controller sets region type bits incorrectly,
+> --
+> 1.7.7.6
