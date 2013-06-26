@@ -1,65 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp07.in.ibm.com ([122.248.162.7]:55067 "EHLO
-	e28smtp07.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752881Ab3FYU30 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jun 2013 16:29:26 -0400
-Received: from /spool/local
-	by e28smtp07.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Wed, 26 Jun 2013 01:52:20 +0530
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 02/45] CPU hotplug: Clarify the usage of different
- synchronization APIs
-Date: Wed, 26 Jun 2013 01:56:01 +0530
-Message-ID: <20130625202601.16593.54501.stgit@srivatsabhat.in.ibm.com>
-In-Reply-To: <20130625202452.16593.22810.stgit@srivatsabhat.in.ibm.com>
-References: <20130625202452.16593.22810.stgit@srivatsabhat.in.ibm.com>
-MIME-Version: 1.0
+Received: from cnbjrel02.sonyericsson.com ([219.141.167.166]:1166 "EHLO
+	cnbjrel02.sonyericsson.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751251Ab3FZCls (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 25 Jun 2013 22:41:48 -0400
+From: "Wang, Yalin" <Yalin.Wang@sonymobile.com>
+Date: Wed, 26 Jun 2013 10:41:40 +0800
+Subject: ARM pagetable setting in Linux 
+Message-ID: <35FD53F367049845BC99AC72306C23D19441BF5863@CNBJMBX05.corpusers.net>
+Content-Language: en-US
 Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: base64
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com
-Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20130625202601.sQ5Siv0TmqQbK5H1mV2RRW6r9ukIulaZSY_K22bdWrY@z>
+To: 'Will Deacon' <will.deacon@arm.com>
+Cc: "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>
+Message-ID: <20130626024140.lvOXE6oq8Ud-J-PHRATuqvg8hNFMFSw3YgTFCL-4EjU@z>
 
-We have quite a few APIs now which help synchronize with CPU hotplug.
-Among them, get/put_online_cpus() is the oldest and the most well-known,
-so no problems there. By extension, its easy to comprehend the new
-set : get/put_online_cpus_atomic().
-
-But there is yet another set, which might appear tempting to use:
-cpu_hotplug_disable()/cpu_hotplug_enable(). Add comments to clarify
-that this latter set is NOT for general use and must be used only in
-specific cases where the requirement is really to _disable_ hotplug
-and not just to synchronize with it.
-
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>
-Cc: "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>
-Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
----
-
- kernel/cpu.c |    7 +++++++
- 1 file changed, 7 insertions(+)
-
-diff --git a/kernel/cpu.c b/kernel/cpu.c
-index 2d03398..860f51a 100644
---- a/kernel/cpu.c
-+++ b/kernel/cpu.c
-@@ -139,6 +139,13 @@ static void cpu_hotplug_done(void)
-  * the 'cpu_hotplug_disabled' flag. The same lock is also acquired by the
-  * hotplug path before performing hotplug operations. So acquiring that lock
-  * guarantees mutual exclusion from any currently running hotplug operations.
-+ *
-+ * Note: In most cases, this is *NOT* the function you need. If you simply
-+ * want to avoid racing with CPU hotplug operations, use get/put_online_cpus()
-+ * or get/put_online_cpus_atomic(), depending on the situation.
-+ *
-+ * This set of functions is reserved for cases where you really wish to
-+ * _disable_ CPU hotplug and not just synchronize with it.
-  */
- void cpu_hotplug_disable(void)
- {
-
+SGkgIFdpbGwsDQoNCkkgaGF2ZSBhIHF1ZXN0aW9uIGFib3V0ICBhcm0gcGFnZXRhYmxlIHNldHRp
+bmcgaW4gTGludXggLg0KDQpGcm9tIGFybVY2LCAgdGhlcmUgaXMgVFRCUjAgYW5kIFRUQlIxICB0
+cmFuc2xhdGlvbiBiYXNlIGFkZHJlc3MgcmVnaXN0ZXJzICBpbiBtbXUgLg0KQnV0IEkgIGZvdW5k
+IGxpbnV4IG9ubHkgdXNlIFRUQlIwIGZvciB0cmFuc2xhdGlvbiBiYXNlIGFkZHJlc3MgLA0KQ291
+bGQgd2UgdXNlIFRUQlIwIGFuZCBUVEJSMSB0byBzcGxpdCB1c2VyIHRhc2sgYW5kIGtlcm5lbCBw
+YWdldGFibGVzIChzd2FwcGVyX3BnX2RpcinvvJ8gDQoNCkJ1dCBJIGZvdW5kIHRoaXMgbmVlZCBz
+ZXQgVFRCQ1IuTiAgICwNCklmIFBBR0VfT0ZGU0VUPT0weGMwMDAwMDAwICAsICAgc2V0IFRUQkNS
+Lk49MHgyICwNCldpbGwgbm90IHdvcmsgLCBiZWNhdXNlICAgb25seSBlbnN1cmUgMC0tMHgwMEZG
+RkZGRiAgTVZBIHVzZSBUVEJDUjAgDQpBbmQgb3RoZXIgIE1WQeOAgHdpbGwgdXNlIFRUQkNSMSAs
+DQpCdXQgaWYgd2Ugc2V0IFBBR0VfT0ZGU0VUPT0weDgwMDAwMDAwICAoMkdCIHNwbGl0ICkgICwN
+CkFuZCBzZXQgIFRUQkNSLk49MHgxICwNClRoaXMgd2lsbCBtYWtlIHN1cmUgdXNlciB0YXNrIE1W
+QSB1c2UgVFRCQ1IwIGFuZCBrZXJuZWwgIE1WQSANClVzZSBUVEJDUjEgLCB0aGlzICB3aWxsIG1h
+a2Ugc29tZSBpbXByb3ZlbWVudCBmb3IgdGhlIHN5c3RlbSAuDQoNCjEuIEJlY2F1c2Ugd2UgZG9u
+4oCZdCBuZWVkIGNvcHkga2VybmVsIGZpcnN0IOKAk2xldmVsIHBhZ2V0YWJsZXMgaW50byBldmVy
+eSANClVzZXIgdGFza+KAmXMgcGFnZXRhYmxlcyBhbmQgZmx1c2ggdGxiIChmb3IgZXhhbXBsZSBm
+b3JrKCkgYSBuZXcgcHJvY2VzcykuDQoNCjIuIEFuZCBkb27igJl0IG5lZWQgaGFuZGxlIGtlcm5l
+bCBwYWdlIGZhdWx0IGJlY2F1c2UgdGhhdCB1c2VyIHRhc2vigJlzIGtlcm5lbCANClBhZ2V0YWJs
+ZSB3aGVuIGl0IGlzIG5vdCBzZXQgdXAgLCBuZWVkIGNvcHkgYWdhaW4oIGZvciBleGFtcGxlIHZt
+YWxsb2MoKSAgaW9yZW1hcCgpICBrbWFwKCkgIHdpbGwgY2hhbmdlIA0KS2VybmVsIHBhZ2V0YWJs
+ZXMgYW5kIG5lZWQgdXBkYXRlIHRvIGV2ZXJ5IHRhc2sgcGFnZXRhYmxlcyApIC4NCg0KMy4gV2Ug
+IGV2ZW4gY2FuIG9ubHkgYWxsb2NhdGUgOEtCIGZpcnN0IGxldmVsIHBhZ2V0YWJsZXMgZm9yIHVz
+ZXIgdGFzayB0byBzYXZlIA0KTWVtb3J5cyAuDQoNCg0KSSBhbSBub3QgIHN1cmUgaWYgaXRzIHBv
+c3NpYmxlIHRvIGltcGxlbWVudCB0aGlzIG9uIGNvcnRleC1BICBjcHVzID8NCkFuZCBpZiB0aGVy
+ZSBpcyBzb21lIHNpZGUgZWZmZWN0cyBpZiB3ZSB1c2UgdGhpcyBpbiBsaW51eCA/DQoNCklmIHBv
+c3NpYmxlICwgIEkgY2FuIG1ha2UgYSBjaGFuZ2UgdG8gZG8gc29tZSB0ZXN0IC4NCg0KVGhhbmtz
+IGZvciB5b3VyIGhlbHAgLg0KDQoNCg0KDQoNCg0KDQpZYWxpbi5XYW5nDQpTb2Z0d2FyZSBFbmdp
+bmVlciANCk9TIEtlcm5lbCZHcmFwaGljcw0KwqANClNvbnkgTW9iaWxlIENvbW11bmljYXRpb25z
+DQpUZWw6ICs4NiAxMCA1OTY2IDk4MTkNClBob25lOiAxODYxMDMyMzA5Mg0KQWRkcmVzczogTm8u
+MTYgR3VhbmdzaHVuIFNvdXRoIFN0cmVldCwgQ2hhb3lhbmcsIEJlaWppbmcsIFAuUi5DLg0KDQpz
+b255bW9iaWxlLmNvbQ0KwqDCoA0KDQoNCg0K
