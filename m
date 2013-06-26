@@ -1,46 +1,95 @@
 From: Chen Gang <gang.chen@asianux.com>
-Subject: [PATCH] arch: m32r: kernel: use 'COPY_UNALIGNED_HWORD' instead of
- 'COPY_UNALIGNED_WORD'
-Date: Wed, 26 Jun 2013 11:58:53 +0800
-Message-ID: <51CA66FD.1010708@asianux.com>
+Subject: Re: [PATCH] arch: s390: kernel: reset 'c->hotpluggable' when failure
+ occurs
+Date: Wed, 26 Jun 2013 09:44:11 +0800
+Message-ID: <51CA476B.3080208@asianux.com>
+References: <51C8F685.6000209@asianux.com> <20130625064832.GA4999@osiris> <51C94599.1020707@asianux.com> <20130625090928.GA8981@osiris> <51C9636F.1050709@asianux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Hirokazu Takata <takata@linux-m32r.org>
-Cc: Rusty Russell <rusty@rustcorp.com.au>, "dhowells@redhat.com" <dhowells@redhat.com>, Sam Ravnborg <sam@ravnborg.org>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from intranet.asianux.com ([58.214.24.6]:7290 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750766Ab3FZFQB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Jun 2013 01:16:01 -0400
+In-Reply-To: <51C9636F.1050709@asianux.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>, linux390@de.ibm.com, cornelia.huck@de.ibm.com, mtosatti@redhat.com, Thomas Gleixner <tglx@linutronix.de>, linux-s390@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-=46or 'hvalue' and 'hlocation', need use 'COPY_UNALIGNED_HWORD' instead
+On 06/25/2013 05:31 PM, Chen Gang wrote:
+> On 06/25/2013 05:09 PM, Heiko Carstens wrote:
+>> On Tue, Jun 25, 2013 at 03:24:09PM +0800, Chen Gang wrote:
+>>> On 06/25/2013 02:48 PM, Heiko Carstens wrote:
+>>>> On Tue, Jun 25, 2013 at 09:46:45AM +0800, Chen Gang wrote:
+>>>>>> When smp_add_present_cpu() fails, it has reset all things excluding
+>>>>>> 'c->hotpluggable', so need reset it as original state completely.
+>>>>>>
+>>>>>> +	c->hotpluggable = 0;
+>>>>>>  	return rc;
+>>>> No, that doesn't make sense. All cpus on s390 are always hotplugable.
+>>>> It really doesn't matter if the value of this field is 0 or 1 after
+>>>> an error.
+>>>>
+>>>
+>>> If so, is it better to set 'c->hotpluggable' for all cpus on s390 during
+>>> initializing ?
+>>
+> No, just leave the code as it is.
+>>
+> 
 
-The related warnings (with allmodconfig)
-    CC      arch/m32r/kernel/module.o
-  arch/m32r/kernel/module.c: In function =91apply_relocate_add=92:
-  arch/m32r/kernel/module.c:127:8: warning: =91*((void *)&hvalue+2)=92 =
-is used uninitialized in this function [-Wuninitialized]
-  arch/m32r/kernel/module.c:127:8: warning: =91*((void *)&hvalue+2)=92 =
-is used uninitialized in this function [-Wuninitialized]
-  arch/m32r/kernel/module.c:127:8: warning: =91*((void *)&hvalue+3)=92 =
-is used uninitialized in this function [-Wuninitialized]
+Please help check the diff below whether is valuable, thanks.
 
-Signed-off-by: Chen Gang <gang.chen@asianux.com>
----
- arch/m32r/kernel/module.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/arch/m32r/kernel/module.c b/arch/m32r/kernel/module.c
-index 38233b6..bcad14c 100644
---- a/arch/m32r/kernel/module.c
-+++ b/arch/m32r/kernel/module.c
-@@ -124,7 +124,7 @@ int apply_relocate_add(Elf32_Shdr *sechdrs,
-                         relocation =3D relocation & 0xffff;
- 			/* RELA must has 0 at relocation field. */
- 			hvalue =3D relocation;
--	    		COPY_UNALIGNED_WORD (hvalue, *hlocation, align);
-+			COPY_UNALIGNED_HWORD(hvalue, *hlocation, align);
- 			break;
- 		case R_M32R_SDA16_RELA:
- 		case R_M32R_LO16_RELA:
---=20
-1.7.7.6
+For architectures which may support 'hotpluggable', can loop all cpus
+during subsys_initcall().
+
+The caller will skip the return value of subsys_initcall(), so can only
+return 0.
+
+--------------------------------diff begin------------------------------
+
+diff --git a/arch/s390/kernel/smp.c b/arch/s390/kernel/smp.c
+index 15a016c..147cc18 100644
+--- a/arch/s390/kernel/smp.c
++++ b/arch/s390/kernel/smp.c
+@@ -1065,8 +1065,9 @@ static int __init s390_smp_init(void)
+ #endif
+ 	for_each_present_cpu(cpu) {
+ 		rc = smp_add_present_cpu(cpu);
+-		if (rc)
+-			return rc;
++		if (unlikely(rc))
++			printk(KERN_WARNING "%s: register_cpu %d failed (%d)\n",
++			       __func__, cpu, rc);
+ 	}
+ 	return 0;
+ }
+
+--------------------------------diff end--------------------------------
+
+
+> Currently we have 3 possible states for 'struct cpu':
+>   initialized, and set hotplugable.
+>   unitialized, and set hotplugable.
+>   unitialized, and unset hotplugable.
+> 
+> Either 2nd or 3rd is inconsistent.
+> 
+> The cpu_is_hotplugable() will be used in kernel/rcutorture.c. I do not
+> know whether it will cause issue or not, but it seems dangerous when
+> __smp_rescan_cpus() has already called, and has some unsucessfull call
+> of smp_add_present_cpu().
+> 
+> Please help check.
+> 
+> Thanks.
+> 
+
+
+-- 
+Chen Gang
+
+Asianux Corporation
