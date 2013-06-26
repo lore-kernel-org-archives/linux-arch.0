@@ -1,68 +1,79 @@
-From: Paolo Bonzini <pbonzini@redhat.com>
-Subject: Re: [PATCH v2 29/45] kvm/vmx: Use get/put_online_cpus_atomic() to
- prevent CPU offline
-Date: Wed, 26 Jun 2013 10:23:48 +0200
-Message-ID: <51CAA514.8050609@redhat.com>
-References: <20130625202452.16593.22810.stgit@srivatsabhat.in.ibm.com> <20130625203043.16593.1600.stgit@srivatsabhat.in.ibm.com> <51CA9C5E.1030609@redhat.com> <51CAA116.2060906@linux.vnet.ibm.com>
+From: Chen Gang <gang.chen@asianux.com>
+Subject: Re: [PATCH] include/asm-generic/io.h: add 'UML' case just like 'no-MMU'
+Date: Wed, 26 Jun 2013 16:34:20 +0800
+Message-ID: <51CAA78C.5040900@asianux.com>
+References: <51CA8AB8.7080504@asianux.com> <51CA900E.9020407@nod.at> <51CA9E92.4000107@asianux.com> <51CAA0C6.60007@nod.at>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <51CAA116.2060906@linux.vnet.ibm.com>
-Sender: netdev-owner@vger.kernel.org
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, kvm@vger.kernel.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <51CAA0C6.60007@nod.at>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Richard Weinberger <richard@nod.at>
+Cc: Jeff Dike <jdike@addtoit.com>, Arnd Bergmann <arnd@arndb.de>, dhsharp@google.com, Mark Brown <broonie@opensource.wolfsonmicro.com>, "sfr@canb.auug.org.au" <sfr@canb.auug.org.au>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>, uml-user <user-mode-linux-user@lists.sourceforge.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Il 26/06/2013 10:06, Srivatsa S. Bhat ha scritto:
-> On 06/26/2013 01:16 PM, Paolo Bonzini wrote:
->> Il 25/06/2013 22:30, Srivatsa S. Bhat ha scritto:
->>> -	cpu = get_cpu();
->>> +	cpu = get_online_cpus_atomic();
->>>  	vmx_vcpu_load(&vmx->vcpu, cpu);
->>>  	vmx->vcpu.cpu = cpu;
->>>  	err = vmx_vcpu_setup(vmx);
->>>  	vmx_vcpu_put(&vmx->vcpu);
->>> -	put_cpu();
->>> +	put_online_cpus_atomic();
->>
->> The new API has a weird name.  Why are you adding new functions instead
->> of just modifying get/put_cpu?
->>
+On 06/26/2013 04:05 PM, Richard Weinberger wrote:
+>>>> >>> diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+>>>> >>> index d5afe96..e80331d 100644
+>>>> >>> --- a/include/asm-generic/io.h
+>>>> >>> +++ b/include/asm-generic/io.h
+>>>> >>> @@ -303,10 +303,10 @@ static inline void *phys_to_virt(unsigned long address)
+>>>> >>>  /*
+>>>> >>>   * Change "struct page" to physical address.
+>>>> >>>   *
+>>>> >>> - * This implementation is for the no-MMU case only... if you have an MMU
+>>>> >>> + * This implementation is for the no-MMU or UML case only... if you have an MMU
+>>>> >>>   * you'll need to provide your own definitions.
+>>>> >>>   */
+>>>> >>> -#ifndef CONFIG_MMU
+>>>> >>> +#if !CONFIG_MMU || CONFIG_UML
+>>>> >>>  static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
+>>>> >>>  {
+>>>> >>>  	return (void __iomem*) (unsigned long)offset;
+>>>> >>> @@ -325,7 +325,7 @@ static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
+>>>> >>>  static inline void iounmap(void __iomem *addr)
+>>>> >>>  {
+>>>> >>>  }
+>>>> >>> -#endif /* CONFIG_MMU */
+>>>> >>> +#endif /* !CONFIG_MMU || CONFIG_UML */
+>>>> >>>  
+>>>> >>>  #ifdef CONFIG_HAS_IOPORT
+>>>> >>>  #ifndef CONFIG_GENERIC_IOMAP
+>>>> >>>
+>>> >>
+>>> >> UML has no io memory but a MMU, so I'd argue that you better fix drivers/ptp/ptp_pch.c dependencies.
+>>> >> _If_ ptp_pch.c really works without real io memory, you can look what I did in my GENERIC_IO series[1]
+>>> >> to make nandsim work on UML. Maybe this helps.
+>>> >>
+>> > 
+>> > But "no io memory" is not the excuse to not define the related dummy
+>> > function.
+> UML has no io memory, period.
+> Same applies for s390, it also includes asm-generic/io.h in the !CONFIG_PCI
+> case.
+> UML and s390 are very special here.
 > 
-> Because the purpose of those two functions are distinctly different
-> from each other.
-> 
-> get/put_cpu() is used to disable preemption on the local CPU. (Which
-> also disables offlining the local CPU during that critical section).
 
-Ok, then I understood correctly... and I acked the other KVM patch.
+Oh, yes, really the same.
 
-However, keeping the code on the local CPU is exactly the point of this
-particular use of get_cpu()/put_cpu().  Why does it need to synchronize
-with offlining of other CPUs?
+>> > The drivers internal code has already check the related return value,
+>> > so it is the architecture's duty to 'tell' the driver whether support
+>> > io memory (e.g. define ioremap, but return NULL).
+> It does so already by setting CONFIG_HAS_IOMEM=n
 
-Paolo
+Excuse me, I use "grep -rn ioremap *" under "include/" and "arch/um/"
+directory, but can not find the related definition for 'ioremap'.
 
-> What this patchset deals with is synchronizing with offline of *any*
-> CPU. Typically, we use get_online_cpus()/put_online_cpus() for that
-> purpose. But they can't be used in atomic context, because they take
-> mutex locks and hence can sleep.
-> 
-> So the code that executes in atomic context and which wants to prevent
-> *any* CPU from going offline, used to disable preemption around its
-> critical section. Disabling preemption prevents stop_machine(), and
-> CPU offline (of *any* CPU) was done via stop_machine(). So disabling
-> preemption disabled any CPU from going offline, as a *side-effect*.
-> 
-> And this patchset prepares the ground for getting rid of stop_machine()
-> in the CPU offline path. Which means, disabling preemption only prevents
-> the *local* CPU from going offline. So if code in atomic context wants
-> to prevent any CPU from going offline, we need a new set of APIs, like
-> get/put_online_cpus(), but which can be invoked from atomic context.
-> That's why I named it as get/put_online_cpus_atomic().
-> 
-> One of the key points here is that we want to preserve get/put_cpu()
-> as it is, since its purpose is different - disable preemption and
-> offline of the local CPU. There is no reason to change that API, its
-> useful as it is.
+Is there another declaration or definition way which I don't know ?
+(maybe it is).
+
+For our case, the ".config" file does not define 'CONFIG_HAS_IOMEM', can
+I assume it means "CONFIG_HAS_IOMEM=n" ?
+
+
+Thanks
+-- 
+Chen Gang
+
+Asianux Corporation
