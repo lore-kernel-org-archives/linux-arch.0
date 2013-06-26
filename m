@@ -1,60 +1,91 @@
-From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: Re: [PATCH] arch: frv: mb93090-mb00: remove '__init' for
- pci_fixup_umc_ide() which used by 'DECLARE_PCI_FIXUP_HEADER'
-Date: Wed, 26 Jun 2013 10:19:14 -0600
-Message-ID: <CAErSpo4dg7cVN1grEuKWvDJkZoJPAaELeh8knqD=s-nd5dsBNw@mail.gmail.com>
-References: <51CA5829.9060807@asianux.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: ARM pagetable setting in Linux
+Date: Wed, 26 Jun 2013 18:16:49 +0100
+Message-ID: <20130626171649.GG10333@mudshark.cambridge.arm.com>
+References: <35FD53F367049845BC99AC72306C23D19441BF5863@CNBJMBX05.corpusers.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oa0-f48.google.com ([209.85.219.48]:39804 "EHLO
-	mail-oa0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751501Ab3FZQTf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Jun 2013 12:19:35 -0400
-Received: by mail-oa0-f48.google.com with SMTP id f4so14866932oah.7
-        for <linux-arch@vger.kernel.org>; Wed, 26 Jun 2013 09:19:35 -0700 (PDT)
-In-Reply-To: <51CA5829.9060807@asianux.com>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:60625 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751893Ab3FZRRR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 26 Jun 2013 13:17:17 -0400
+Content-Disposition: inline
+In-Reply-To: <35FD53F367049845BC99AC72306C23D19441BF5863@CNBJMBX05.corpusers.net>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chen Gang <gang.chen@asianux.com>
-Cc: "dhowells@redhat.com" <dhowells@redhat.com>, Greg KH <gregkh@linuxfoundation.org>, Yinghai Lu <yinghai@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: "Wang, Yalin" <Yalin.Wang@sonymobile.com>
+Cc: "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, linux-arm-kernel@lists.infradead.org
 
-On Tue, Jun 25, 2013 at 8:55 PM, Chen Gang <gang.chen@asianux.com> wrote:
-> pci_fixup_umc_ide() is for 'DECLARE_PCI_FIXUP_HEADER', so need remove
-> it from init section to normal section.
->
-> The related warning (with allmodconfig):
->
->   LD      arch/frv/mb93090-mb00/built-in.o
-> WARNING: arch/frv/mb93090-mb00/built-in.o(.pci_fixup_header+0x4c): Section mismatch in reference from the variable __pci_fixup_PCI_VENDOR_ID_UMCPCI_DEVICE_ID_UMC_UM8886BFpci_fixup_umc_ide to the function .init.text:pci_fixup_umc_ide()
-> The variable __pci_fixup_PCI_VENDOR_ID_UMCPCI_DEVICE_ID_UMC_UM8886BFpci_fixup_umc_ide references
-> a function __init pci_fixup_umc_ide().
-> This is often seen when error handling in the init function
-> uses functionality in the exit path.
-> The fix is often to remove the __init annotation of
-> pci_fixup_umc_ide() so it may be used outside an exit section.
->
->
-> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+[adding the ARM list -- please try and remember to do that in future]
 
-Reviewed-by: Bjorn Helgaas <bhelgaas@google.com>
+On Wed, Jun 26, 2013 at 03:41:40AM +0100, Wang, Yalin wrote:
+> Hi  Will,
 
-> ---
->  arch/frv/mb93090-mb00/pci-vdk.c |    2 +-
->  1 files changed, 1 insertions(+), 1 deletions(-)
->
-> diff --git a/arch/frv/mb93090-mb00/pci-vdk.c b/arch/frv/mb93090-mb00/pci-vdk.c
-> index 0aa35f0..56a3abf 100644
-> --- a/arch/frv/mb93090-mb00/pci-vdk.c
-> +++ b/arch/frv/mb93090-mb00/pci-vdk.c
-> @@ -254,7 +254,7 @@ static void __init pcibios_fixup_peer_bridges(void)
->   * Exceptions for specific devices. Usually work-arounds for fatal design flaws.
->   */
->
-> -static void __init pci_fixup_umc_ide(struct pci_dev *d)
-> +static void pci_fixup_umc_ide(struct pci_dev *d)
->  {
->         /*
->          * UM8886BF IDE controller sets region type bits incorrectly,
-> --
-> 1.7.7.6
+Hello,
+
+> I have a question about  arm pagetable setting in Linux .
+>=20
+> From armV6,  there is TTBR0 and TTBR1  translation base address regis=
+ters  in mmu .
+> But I  found linux only use TTBR0 for translation base address ,
+> Could we use TTBR0 and TTBR1 to split user task and kernel pagetables=
+ (swapper_pg_dir)=EF=BC=9F=20
+>=20
+> But I found this need set TTBCR.N   ,
+> If PAGE_OFFSET=3D=3D0xc0000000  ,   set TTBCR.N=3D0x2 ,
+> Will not work , because   only ensure 0--0x00FFFFFF  MVA use TTBCR0=20
+> And other  MVA=E3=80=80will use TTBCR1 ,
+> But if we set PAGE_OFFSET=3D=3D0x80000000  (2GB split )  ,
+> And set  TTBCR.N=3D0x1 ,
+> This will make sure user task MVA use TTBCR0 and kernel  MVA=20
+> Use TTBCR1 , this  will make some improvement for the system .
+>=20
+> 1. Because we don=E2=80=99t need copy kernel first =E2=80=93level pag=
+etables into every=20
+> User task=E2=80=99s pagetables and flush tlb (for example fork() a ne=
+w process).
+
+Well, you still need the TLB maintenance for setting up CoW, so this wi=
+n is
+probably not very big.
+
+> 2. And don=E2=80=99t need handle kernel page fault because that user =
+task=E2=80=99s kernel=20
+> Pagetable when it is not set up , need copy again( for example vmallo=
+c()  ioremap()  kmap()  will change=20
+> Kernel pagetables and need update to every task pagetables ) .
+
+Is that really a fastpath?
+
+> 3. We  even can only allocate 8KB first level pagetables for user tas=
+k to save=20
+> Memorys .
+
+That would be a nice gain, but there are a number of factors here:
+
+	1. Pre-ARMv6 only have one ttbr, so you'd end up needing to support
+	   both configurations in the same kernel source.
+
+	2. The module area lives below PAGE_OFFSET, so you still have to
+	   deal with that correctly (mitigating some of your earlier points)
+
+	3. PAGE_OFFSET is not fixed at 2GB, so you constrain your use-case
+	   even further.
+
+	4. We do actually use TTBR1 to hold an identity mapping at the
+	   moment. This could probably be fixed, but would require some
+	   thought.
+
+There's undoubtedly other problems that haven't immediately come to me =
+but,
+all in all, I don't think this is a significant enough win to justify t=
+he
+effort and maintenance headache.
+
+Cheers,
+
+Will
