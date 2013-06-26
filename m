@@ -1,91 +1,47 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: ARM pagetable setting in Linux
-Date: Wed, 26 Jun 2013 18:16:49 +0100
-Message-ID: <20130626171649.GG10333@mudshark.cambridge.arm.com>
-References: <35FD53F367049845BC99AC72306C23D19441BF5863@CNBJMBX05.corpusers.net>
+From: Tejun Heo <tj@kernel.org>
+Subject: Re: [PATCH v2 15/45] rcu: Use get/put_online_cpus_atomic() to
+ prevent CPU offline
+Date: Wed, 26 Jun 2013 10:29:48 -0700
+Message-ID: <20130626172948.GD4405@mtj.dyndns.org>
+References: <20130625202452.16593.22810.stgit@srivatsabhat.in.ibm.com>
+ <20130625202755.16593.67819.stgit@srivatsabhat.in.ibm.com>
+ <20130625220026.GG3828@linux.vnet.ibm.com>
+ <51CAF624.6060004@linux.vnet.ibm.com>
+ <AE90C24D6B3A694183C094C60CF0A2F6026B72AA@saturn3.aculab.com>
+ <20130626143424.GN3828@linux.vnet.ibm.com>
+ <1372258271.18733.256.camel@gandalf.local.home>
+ <20130626152148.GA4405@mtj.dyndns.org>
+ <1372260823.18733.263.camel@gandalf.local.home>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:60625 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751893Ab3FZRRR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 26 Jun 2013 13:17:17 -0400
+Received: from mail-qc0-f176.google.com ([209.85.216.176]:56212 "EHLO
+	mail-qc0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752694Ab3FZR36 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Jun 2013 13:29:58 -0400
 Content-Disposition: inline
-In-Reply-To: <35FD53F367049845BC99AC72306C23D19441BF5863@CNBJMBX05.corpusers.net>
-Content-Language: en-US
+In-Reply-To: <1372260823.18733.263.camel@gandalf.local.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Wang, Yalin" <Yalin.Wang@sonymobile.com>
-Cc: "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, linux-arm-kernel@lists.infradead.org
-
-[adding the ARM list -- please try and remember to do that in future]
-
-On Wed, Jun 26, 2013 at 03:41:40AM +0100, Wang, Yalin wrote:
-> Hi  Will,
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: paulmck@linux.vnet.ibm.com, David Laight <David.Laight@ACULAB.COM>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, walken@google.com, mingo@kernel.org, linux-arch@vger.kernel.org, vincent.guittot@linaro.org, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, rusty@rustcorp.com.au, namhyung@kernel.org, tglx@linutronix.de, laijs@cn.fujitsu.com, zhong@linux.vnet.ibm.com, netdev@vger.kernel.org, oleg@redhat.com, sbw@mit.edu, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
 
 Hello,
 
-> I have a question about  arm pagetable setting in Linux .
->=20
-> From armV6,  there is TTBR0 and TTBR1  translation base address regis=
-ters  in mmu .
-> But I  found linux only use TTBR0 for translation base address ,
-> Could we use TTBR0 and TTBR1 to split user task and kernel pagetables=
- (swapper_pg_dir)=EF=BC=9F=20
->=20
-> But I found this need set TTBCR.N   ,
-> If PAGE_OFFSET=3D=3D0xc0000000  ,   set TTBCR.N=3D0x2 ,
-> Will not work , because   only ensure 0--0x00FFFFFF  MVA use TTBCR0=20
-> And other  MVA=E3=80=80will use TTBCR1 ,
-> But if we set PAGE_OFFSET=3D=3D0x80000000  (2GB split )  ,
-> And set  TTBCR.N=3D0x1 ,
-> This will make sure user task MVA use TTBCR0 and kernel  MVA=20
-> Use TTBCR1 , this  will make some improvement for the system .
->=20
-> 1. Because we don=E2=80=99t need copy kernel first =E2=80=93level pag=
-etables into every=20
-> User task=E2=80=99s pagetables and flush tlb (for example fork() a ne=
-w process).
+On Wed, Jun 26, 2013 at 11:33:43AM -0400, Steven Rostedt wrote:
+> I thought the whole deal with this patchset was to remove stop_machine
+> from CPU hotplug. Why halt all CPUs just to remove one? stomp_machine()
+> is extremely intrusive for the entire system, where as one CPU making
+> sure all CPUs schedule isn't very intrusive at all.
+> 
+> I didn't think the idea of this patch set was to make CPU hotplug
+> faster, just less intrusive to the system.
 
-Well, you still need the TLB maintenance for setting up CoW, so this wi=
-n is
-probably not very big.
+Yeap, removal of stop_machine is a great improvement in itself.  ISTR
+mentions of hot-unplug latency but I could be mistaken.  Srivatsa, can
+you please chime in on that?
 
-> 2. And don=E2=80=99t need handle kernel page fault because that user =
-task=E2=80=99s kernel=20
-> Pagetable when it is not set up , need copy again( for example vmallo=
-c()  ioremap()  kmap()  will change=20
-> Kernel pagetables and need update to every task pagetables ) .
+Thanks.
 
-Is that really a fastpath?
-
-> 3. We  even can only allocate 8KB first level pagetables for user tas=
-k to save=20
-> Memorys .
-
-That would be a nice gain, but there are a number of factors here:
-
-	1. Pre-ARMv6 only have one ttbr, so you'd end up needing to support
-	   both configurations in the same kernel source.
-
-	2. The module area lives below PAGE_OFFSET, so you still have to
-	   deal with that correctly (mitigating some of your earlier points)
-
-	3. PAGE_OFFSET is not fixed at 2GB, so you constrain your use-case
-	   even further.
-
-	4. We do actually use TTBR1 to hold an identity mapping at the
-	   moment. This could probably be fixed, but would require some
-	   thought.
-
-There's undoubtedly other problems that haven't immediately come to me =
-but,
-all in all, I don't think this is a significant enough win to justify t=
-he
-effort and maintenance headache.
-
-Cheers,
-
-Will
+-- 
+tejun
