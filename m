@@ -1,91 +1,62 @@
 From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH] arch: s390: kernel: reset 'c->hotpluggable' when failure
- occurs
-Date: Wed, 26 Jun 2013 09:44:11 +0800
-Message-ID: <51CA476B.3080208@asianux.com>
-References: <51C8F685.6000209@asianux.com> <20130625064832.GA4999@osiris> <51C94599.1020707@asianux.com> <20130625090928.GA8981@osiris> <51C9636F.1050709@asianux.com>
+Subject: Re: [PATCH v2] arch: asm-generic: for atomic_set_mask() 1st param,
+ use 'unsigned int' instead of 'unsigned long'
+Date: Wed, 26 Jun 2013 10:03:58 +0800
+Message-ID: <51CA4C0E.9050909@asianux.com>
+References: <51B2E262.3030603@asianux.com> <CAErSpo5pg0EvJOR9nn3B0d+q0o6zsdwzM41AQx=AHfynRqX3hQ@mail.gmail.com> <51B4214E.6090007@asianux.com> <20130610092106.GA4697@osiris> <51B91E32.2040502@asianux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=GB2312
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:7290 "EHLO
+Received: from intranet.asianux.com ([58.214.24.6]:33177 "EHLO
 	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750766Ab3FZFQB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Jun 2013 01:16:01 -0400
-In-Reply-To: <51C9636F.1050709@asianux.com>
+	with ESMTP id S1750742Ab3FZFcm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Jun 2013 01:32:42 -0400
+In-Reply-To: <51B91E32.2040502@asianux.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>, linux390@de.ibm.com, cornelia.huck@de.ibm.com, mtosatti@redhat.com, Thomas Gleixner <tglx@linutronix.de>, linux-s390@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: "uclinux-dist-devel@blackfin.uclinux.org" <uclinux-dist-devel@blackfin.uclinux.org>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, Bjorn Helgaas <bhelgaas@google.com>, Mike Frysinger <vapier@gentoo.org>, takata@linux-m32r.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, realmz paranoid <realmz6@gmail.com>, linux390@de.ibm.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-s390@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Marc Gauthier <Marc.Gauthier@tensilica.com>, Andrew Morton <akpm@linux-foundation.org>
 
-On 06/25/2013 05:31 PM, Chen Gang wrote:
-> On 06/25/2013 05:09 PM, Heiko Carstens wrote:
->> On Tue, Jun 25, 2013 at 03:24:09PM +0800, Chen Gang wrote:
->>> On 06/25/2013 02:48 PM, Heiko Carstens wrote:
->>>> On Tue, Jun 25, 2013 at 09:46:45AM +0800, Chen Gang wrote:
->>>>>> When smp_add_present_cpu() fails, it has reset all things excluding
->>>>>> 'c->hotpluggable', so need reset it as original state completely.
->>>>>>
->>>>>> +	c->hotpluggable = 0;
->>>>>>  	return rc;
->>>> No, that doesn't make sense. All cpus on s390 are always hotplugable.
->>>> It really doesn't matter if the value of this field is 0 or 1 after
->>>> an error.
+Hello Maintainers:
+
+Firstly thank the s390 maintainers again for their 'Acked-by' (in my
+memory, s390 is the most important business mainframe machine)
+
+Could another related maintainers give a glance for it, when you have time.
+
+Thanks.
+
+On 06/13/2013 09:19 AM, Chen Gang wrote:
+> On 06/10/2013 05:21 PM, Heiko Carstens wrote:
+>> On Sun, Jun 09, 2013 at 02:31:42PM +0800, Chen Gang wrote:
 >>>>
->>>
->>> If so, is it better to set 'c->hotpluggable' for all cpus on s390 during
->>> initializing ?
+>>>> atomic_set_mask() and atomic_clear_mask() are the pairs, so the related
+>>>> parameters' type need match with each other.
+>>>>
+>>>> The type of 'addr->counter' is 'int', so use 'unsigned int' instead
+>>>> of 'unsigned long', and let atomic_set_mask() match atomic_clear_mask().
+>>>>
+>>>>
+>>>> For arch sub-system, currently, have 3 types of definition for them:
+>>>> 1st for 'int', 2nd for 'long', 3rd is conflict to use 'int' and 'long'.
+>>>>
+>>>> At least, better to fix 3rd (conflict using 'int' and 'long').
+>>>>
+>>>> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+>>>> ---
+>>>>  arch/blackfin/include/asm/atomic.h |    4 ++--
+>>>>  arch/m32r/include/asm/atomic.h     |    8 ++++----
+>>>>  arch/s390/include/asm/atomic.h     |    4 ++--
+>>>>  include/asm-generic/atomic.h       |    2 +-
+>>>>  4 files changed, 9 insertions(+), 9 deletions(-)
+>> For the s390 part:
 >>
-> No, just leave the code as it is.
+>> Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com>
 >>
 > 
-
-Please help check the diff below whether is valuable, thanks.
-
-
-For architectures which may support 'hotpluggable', can loop all cpus
-during subsys_initcall().
-
-The caller will skip the return value of subsys_initcall(), so can only
-return 0.
-
---------------------------------diff begin------------------------------
-
-diff --git a/arch/s390/kernel/smp.c b/arch/s390/kernel/smp.c
-index 15a016c..147cc18 100644
---- a/arch/s390/kernel/smp.c
-+++ b/arch/s390/kernel/smp.c
-@@ -1065,8 +1065,9 @@ static int __init s390_smp_init(void)
- #endif
- 	for_each_present_cpu(cpu) {
- 		rc = smp_add_present_cpu(cpu);
--		if (rc)
--			return rc;
-+		if (unlikely(rc))
-+			printk(KERN_WARNING "%s: register_cpu %d failed (%d)\n",
-+			       __func__, cpu, rc);
- 	}
- 	return 0;
- }
-
---------------------------------diff end--------------------------------
-
-
-> Currently we have 3 possible states for 'struct cpu':
->   initialized, and set hotplugable.
->   unitialized, and set hotplugable.
->   unitialized, and unset hotplugable.
+> Thank you very much !!
 > 
-> Either 2nd or 3rd is inconsistent.
-> 
-> The cpu_is_hotplugable() will be used in kernel/rcutorture.c. I do not
-> know whether it will cause issue or not, but it seems dangerous when
-> __smp_rescan_cpus() has already called, and has some unsucessfull call
-> of smp_add_present_cpu().
-> 
-> Please help check.
-> 
-> Thanks.
 > 
 
 
