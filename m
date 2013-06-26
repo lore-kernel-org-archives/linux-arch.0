@@ -1,93 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from b.ns.miles-group.at ([95.130.255.144]:1660 "EHLO radon.swed.at"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751059Ab3FZHB1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 26 Jun 2013 03:01:27 -0400
-Message-ID: <51CA900E.9020407@nod.at>
-Date: Wed, 26 Jun 2013 08:54:06 +0200
-From: Richard Weinberger <richard@nod.at>
+Received: from mx1.redhat.com ([209.132.183.28]:10061 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751344Ab3FZIZO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 26 Jun 2013 04:25:14 -0400
+Message-ID: <51CAA514.8050609@redhat.com>
+Date: Wed, 26 Jun 2013 10:23:48 +0200
+From: Paolo Bonzini <pbonzini@redhat.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH] include/asm-generic/io.h: add 'UML' case just like 'no-MMU'
-References: <51CA8AB8.7080504@asianux.com>
-In-Reply-To: <51CA8AB8.7080504@asianux.com>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 8bit
+Subject: Re: [PATCH v2 29/45] kvm/vmx: Use get/put_online_cpus_atomic() to
+ prevent CPU offline
+References: <20130625202452.16593.22810.stgit@srivatsabhat.in.ibm.com> <20130625203043.16593.1600.stgit@srivatsabhat.in.ibm.com> <51CA9C5E.1030609@redhat.com> <51CAA116.2060906@linux.vnet.ibm.com>
+In-Reply-To: <51CAA116.2060906@linux.vnet.ibm.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chen Gang <gang.chen@asianux.com>
-Cc: Jeff Dike <jdike@addtoit.com>, Arnd Bergmann <arnd@arndb.de>, dhsharp@google.com, Mark Brown <broonie@opensource.wolfsonmicro.com>, "sfr@canb.auug.org.au" <sfr@canb.auug.org.au>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>, uml-user <user-mode-linux-user@lists.sourceforge.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20130626065406.C6fz_S-XoraAbez1xqgj0hnS30TDJ7bQ_-inBV4yJao@z>
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, kvm@vger.kernel.org
+Message-ID: <20130626082348.CtqAg5fo_xvk3OvcGCbxONDUUzWlVwrtBHgIY128Uyw@z>
 
-Hi!
-
-Am 26.06.2013 08:31, schrieb Chen Gang:
-> For "User Mode Linux", it may enable 'MMU', but not need implement
-> ioremap and iounmap, so "include/asm-generic/io.h" need notice this
-> case to keep itself 'generic'.
+Il 26/06/2013 10:06, Srivatsa S. Bhat ha scritto:
+> On 06/26/2013 01:16 PM, Paolo Bonzini wrote:
+>> Il 25/06/2013 22:30, Srivatsa S. Bhat ha scritto:
+>>> -	cpu = get_cpu();
+>>> +	cpu = get_online_cpus_atomic();
+>>>  	vmx_vcpu_load(&vmx->vcpu, cpu);
+>>>  	vmx->vcpu.cpu = cpu;
+>>>  	err = vmx_vcpu_setup(vmx);
+>>>  	vmx_vcpu_put(&vmx->vcpu);
+>>> -	put_cpu();
+>>> +	put_online_cpus_atomic();
+>>
+>> The new API has a weird name.  Why are you adding new functions instead
+>> of just modifying get/put_cpu?
+>>
 > 
-> The related error (with allmodconfig, without pcap):
+> Because the purpose of those two functions are distinctly different
+> from each other.
 > 
->     CC [M]  drivers/ptp/ptp_pch.o
->   drivers/ptp/ptp_pch.c: In function ‘pch_remove’:
->   drivers/ptp/ptp_pch.c:571:3: error: implicit declaration of function ‘iounmap’ [-Werror=implicit-function-declaration]
->   drivers/ptp/ptp_pch.c: In function ‘pch_probe’:
->   drivers/ptp/ptp_pch.c:621:2: error: implicit declaration of function ‘ioremap’ [-Werror=implicit-function-declaration]
->   drivers/ptp/ptp_pch.c:621:13: warning: assignment makes pointer from integer without a cast [enabled by default]
->   cc1: some warnings being treated as errors
+> get/put_cpu() is used to disable preemption on the local CPU. (Which
+> also disables offlining the local CPU during that critical section).
+
+Ok, then I understood correctly... and I acked the other KVM patch.
+
+However, keeping the code on the local CPU is exactly the point of this
+particular use of get_cpu()/put_cpu().  Why does it need to synchronize
+with offlining of other CPUs?
+
+Paolo
+
+> What this patchset deals with is synchronizing with offline of *any*
+> CPU. Typically, we use get_online_cpus()/put_online_cpus() for that
+> purpose. But they can't be used in atomic context, because they take
+> mutex locks and hence can sleep.
 > 
+> So the code that executes in atomic context and which wants to prevent
+> *any* CPU from going offline, used to disable preemption around its
+> critical section. Disabling preemption prevents stop_machine(), and
+> CPU offline (of *any* CPU) was done via stop_machine(). So disabling
+> preemption disabled any CPU from going offline, as a *side-effect*.
 > 
-> Signed-off-by: Chen Gang <gang.chen@asianux.com>
-> ---
->  arch/um/include/asm/Kbuild |    1 +
->  include/asm-generic/io.h   |    6 +++---
->  2 files changed, 4 insertions(+), 3 deletions(-)
+> And this patchset prepares the ground for getting rid of stop_machine()
+> in the CPU offline path. Which means, disabling preemption only prevents
+> the *local* CPU from going offline. So if code in atomic context wants
+> to prevent any CPU from going offline, we need a new set of APIs, like
+> get/put_online_cpus(), but which can be invoked from atomic context.
+> That's why I named it as get/put_online_cpus_atomic().
 > 
-> diff --git a/arch/um/include/asm/Kbuild b/arch/um/include/asm/Kbuild
-> index b30f34a..a34ea5d 100644
-> --- a/arch/um/include/asm/Kbuild
-> +++ b/arch/um/include/asm/Kbuild
-> @@ -3,3 +3,4 @@ generic-y += hw_irq.h irq_regs.h kdebug.h percpu.h sections.h topology.h xor.h
->  generic-y += ftrace.h pci.h io.h param.h delay.h mutex.h current.h exec.h
->  generic-y += switch_to.h clkdev.h
->  generic-y += trace_clock.h
-> +generic-y += io.h
+> One of the key points here is that we want to preserve get/put_cpu()
+> as it is, since its purpose is different - disable preemption and
+> offline of the local CPU. There is no reason to change that API, its
+> useful as it is.
 
-We include that file already. See three lines above.
-
-> diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-> index d5afe96..e80331d 100644
-> --- a/include/asm-generic/io.h
-> +++ b/include/asm-generic/io.h
-> @@ -303,10 +303,10 @@ static inline void *phys_to_virt(unsigned long address)
->  /*
->   * Change "struct page" to physical address.
->   *
-> - * This implementation is for the no-MMU case only... if you have an MMU
-> + * This implementation is for the no-MMU or UML case only... if you have an MMU
->   * you'll need to provide your own definitions.
->   */
-> -#ifndef CONFIG_MMU
-> +#if !CONFIG_MMU || CONFIG_UML
->  static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
->  {
->  	return (void __iomem*) (unsigned long)offset;
-> @@ -325,7 +325,7 @@ static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
->  static inline void iounmap(void __iomem *addr)
->  {
->  }
-> -#endif /* CONFIG_MMU */
-> +#endif /* !CONFIG_MMU || CONFIG_UML */
->  
->  #ifdef CONFIG_HAS_IOPORT
->  #ifndef CONFIG_GENERIC_IOMAP
-> 
-
-UML has no io memory but a MMU, so I'd argue that you better fix drivers/ptp/ptp_pch.c dependencies.
-_If_ ptp_pch.c really works without real io memory, you can look what I did in my GENERIC_IO series[1]
-to make nandsim work on UML. Maybe this helps.
-
-Thanks,
-//richard
-
-[1] http://lists.infradead.org/pipermail/linux-mtd/2012-February/039701.html
 
