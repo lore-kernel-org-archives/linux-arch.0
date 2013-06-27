@@ -1,47 +1,48 @@
 From: Chen Gang <gang.chen@asianux.com>
-Subject: [PATCH] arch: m32r: include: asm: add generic ioremap_wc() definition
-Date: Thu, 27 Jun 2013 10:32:31 +0800
-Message-ID: <51CBA43F.9050000@asianux.com>
+Subject: [PATCH v2] arch: s390: kernel: scan all present cpu forcely.
+Date: Thu, 27 Jun 2013 10:43:02 +0800
+Message-ID: <51CBA6B6.1010809@asianux.com>
+References: <51C8F685.6000209@asianux.com> <20130625064832.GA4999@osiris> <51C94599.1020707@asianux.com> <20130625090928.GA8981@osiris>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:50926 "EHLO
+Received: from intranet.asianux.com ([58.214.24.6]:60999 "EHLO
 	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751922Ab3F0CdY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Jun 2013 22:33:24 -0400
+	with ESMTP id S1751799Ab3F0Cnz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Jun 2013 22:43:55 -0400
+In-Reply-To: <20130625090928.GA8981@osiris>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Hirokazu Takata <takata@linux-m32r.org>
-Cc: linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>, linux390@de.ibm.com, cornelia.huck@de.ibm.com, mtosatti@redhat.com, Thomas Gleixner <tglx@linutronix.de>, linux-s390@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-Add generic ioremap_wc() definition, or compiling failed.
+The architectures which may support 'hotpluggable', can scan all cpus
+during subsys_initcall().  the upper caller will skip the return value.
 
-The related error (with allmodconfig):
-
-  drivers/gpu/drm/drm_bufs.c: In function =91drm_addmap_core=92:
-  drivers/gpu/drm/drm_bufs.c:219:5: error: implicit declaration of func=
-tion =91ioremap_wc=92 [-Werror=3Dimplicit-function-declaration]
-  drivers/gpu/drm/drm_bufs.c:219:17: warning: assignment makes pointer =
-from integer without a cast [enabled by default]
+It also can initialize hotpluggable flag of all cpus in time, no matter
+whether any cpus fail or not.
 
 Signed-off-by: Chen Gang <gang.chen@asianux.com>
 ---
- arch/m32r/include/asm/io.h |    1 +
- 1 files changed, 1 insertions(+), 0 deletions(-)
+ arch/s390/kernel/smp.c |    5 +++--
+ 1 files changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/arch/m32r/include/asm/io.h b/arch/m32r/include/asm/io.h
-index 4010f1f..f9f4fb6 100644
---- a/arch/m32r/include/asm/io.h
-+++ b/arch/m32r/include/asm/io.h
-@@ -67,6 +67,7 @@ static inline void __iomem *ioremap(unsigned long off=
-set, unsigned long size)
-=20
- extern void iounmap(volatile void __iomem *addr);
- #define ioremap_nocache(off,size) ioremap(off,size)
-+#define ioremap_wc ioremap_nocache
-=20
- /*
-  * IO bus memory addresses are also 1:1 with the physical address
---=20
+diff --git a/arch/s390/kernel/smp.c b/arch/s390/kernel/smp.c
+index d386c4e..75a118f 100644
+--- a/arch/s390/kernel/smp.c
++++ b/arch/s390/kernel/smp.c
+@@ -1064,8 +1064,9 @@ static int __init s390_smp_init(void)
+ #endif
+ 	for_each_present_cpu(cpu) {
+ 		rc = smp_add_present_cpu(cpu);
+-		if (rc)
+-			return rc;
++		if (unlikely(rc))
++			printk(KERN_WARNING "%s: add cpu %d failed (%d)\n",
++			       __func__, cpu, rc);
+ 	}
+ 	return 0;
+ }
+-- 
 1.7.7.6
