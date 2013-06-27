@@ -1,89 +1,58 @@
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: Re: [PATCH v2 15/45] rcu: Use get/put_online_cpus_atomic() to prevent
- CPU offline
-Date: Thu, 27 Jun 2013 15:36:11 +0530
-Message-ID: <51CC0E93.1080608@linux.vnet.ibm.com>
-References: <20130625202452.16593.22810.stgit@srivatsabhat.in.ibm.com> <20130625202755.16593.67819.stgit@srivatsabhat.in.ibm.com> <20130625220026.GG3828@linux.vnet.ibm.com> <51CAF624.6060004@linux.vnet.ibm.com> <AE90C24D6B3A694183C094C60CF0A2F6026B72AA@saturn3.aculab.com> <20130626143424.GN3828@linux.vnet.ibm.com> <1372258271.18733.256.camel@gandalf.local.home> <20130626152148.GA4405@mtj.dyndns.org> <51CB3159.8000509@linux.vnet.ibm.com> <AE90C24D6B3A694183C094C60CF0A2F6026B72AB@saturn3.aculab.com>
+From: Chen Gang <gang.chen@asianux.com>
+Subject: Re: [PATCH] include/asm-generic/pci.h: include generic "pci-dma-compat.h"
+Date: Thu, 27 Jun 2013 18:14:09 +0800
+Message-ID: <51CC1071.5040802@asianux.com>
+References: <51CBB98D.3040304@asianux.com> <20130627082920.GA14335@darko.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp03.au.ibm.com ([202.81.31.145]:49267 "EHLO
-	e23smtp03.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750752Ab3F0KJk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 06:09:40 -0400
-Received: from /spool/local
-	by e23smtp03.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Thu, 27 Jun 2013 20:00:07 +1000
-In-Reply-To: <AE90C24D6B3A694183C094C60CF0A2F6026B72AB@saturn3.aculab.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Laight <David.Laight@ACULAB.COM>
-Cc: Tejun Heo <tj@kernel.org>, peterz@infradead.org, fweisbec@gmail.com, oleg@redhat.com, walken@google.com, mingo@kernel.org, linux-arch@vger.kernel.org, vincent.guittot@linaro.org, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, paulmck@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, rusty@rustcorp.com.au, Steven Rostedt <rostedt@goodmis.org>, namhyung@kernel.org, tglx@linutronix.de, laijs@cn.fujitsu.com, zhong@linux.vnet.ibm.com, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, sbw@mit.edu, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20130627082920.GA14335@darko.cambridge.arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Will Deacon <Will.Deacon@arm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Hirokazu Takata <takata@linux-m32r.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-m32r-ja@ml.linux-m32r.org" <linux-m32r-ja@ml.linux-m32r.org>, "linux-m32r@ml.linux-m32r.org" <linux-m32r@ml.linux-m32r.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 06/27/2013 02:24 PM, David Laight wrote:
->>>>> It would also increase the latency of CPU-hotunplug operations.
->>>>
->>>> Is that a big deal?
->>>
->>> I thought that was the whole deal with this patchset - making cpu
->>> hotunplugs lighter and faster mostly for powersaving.  That said, just
->>> removing stop_machine call would be a pretty good deal and I don't
->>> know how meaningful reducing CPU hotunplug latency is.  Srivatsa?
->>>
->>
->> Keeping the hotunplug latency is important for suspend/resume, where
->> we take all non-boot CPUs in a loop. That's an interesting use-case
->> where intrusiveness doesn't matter much, but latency does. So yes,
->> making CPU hotplug faster is also one of the goals of this patchset.
-> 
-> If you are removing all but one of the cpu, the you only need
-> one rcu cycle (remove everything from the list first).
-> 
+On 06/27/2013 04:29 PM, Catalin Marinas wrote:
+> On Thu, Jun 27, 2013 at 05:03:25AM +0100, Chen Gang wrote:
+>> > If an architecture need "generic pci.h", it also need generic "pci=
+-dma-
+>> > compat.h",  so recommend to include it in asm-generic directly.
+>> >=20
+>> > And now, for arm64 and m32r, may cause compiling error about it.
+>> >=20
+>> > The related error (with allmodconfig):
+>> >=20
+>> >   drivers/media/usb/b2c2/flexcop-usb.c: In function =E2=80=98flexc=
+op_usb_transfer_exit=E2=80=99:
+>> >   drivers/media/usb/b2c2/flexcop-usb.c:393:3: error: implicit decl=
+aration of function =E2=80=98pci_free_consistent=E2=80=99 [-Werror=3Dim=
+plicit-function-declaration]
+>> >   drivers/media/usb/b2c2/flexcop-usb.c: In function =E2=80=98flexc=
+op_usb_transfer_init=E2=80=99:
+>> >   drivers/media/usb/b2c2/flexcop-usb.c:410:2: error: implicit decl=
+aration of function =E2=80=98pci_alloc_consistent=E2=80=99 [-Werror=3Di=
+mplicit-function-declaration]
+>> >   drivers/media/usb/b2c2/flexcop-usb.c:410:21: warning: assignment=
+ makes pointer from integer without a cast [enabled by default]
+>> >   cc1: some warnings being treated as errors
+>> >=20
+>> >=20
+>> > Signed-off-by: Chen Gang <gang.chen@asianux.com>
+> From the arm64 perspective:
+>=20
+> Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+>=20
 
-Hmm, yeah, but IIRC, back when we discussed this last time[1], we felt that
-would make the code a little bit hard to understand. But I think we can
-give it a shot to see how that goes and decide based on that. So thanks
-for bringing that up again!
+Thanks.
 
-BTW, one thing I'd like to emphasize again here is that we will not use
-the RCU-like concept to have 2 different masks - a stable online mask
-and an actual online mask (this is one of the approaches that we had
-discussed earlier[2]). The reason why we don't wanna go down that path is,
-its hard to determine who can survive by just looking at the stable online
-mask, and who needs to be aware of the actual online mask. That will
-surely lead to more bugs and headache.
+> (but make sure it doesn't break other archs)
 
-So the use of an RCU-like concept here would only be to ensure that all
-preempt-disabled sections complete, and we can switch the synchronization
-scheme to global rwlocks, like what we had proposed earlier[3]. So, that
-still requires call-sites to be converted from preempt_disable() to
-get/put_online_cpus_atomic().
-
-I just wanted to clarify where exactly the RCU concept would fit in,
-in the stop-machine() replacement scheme...
+I will try to check all related archs with allmodconfig (which can also
+find more another patches, and can let me familiar the compiler step by
+step).  ;-)
 
 
-> I'd also guess that you can't suspend a cpu until you can sleep
-> the process that is running on it - so if a process has pre-emption
-> disabled you aren't going to complete suspend until the process
-> sleeps (this wouldn't be true if you suspended the cpu with its
-> current stack - but if suspend is removing the non-boot cpus first
-> it must be doing so from the scheduler idle loop).
-> 
-> If you are doing suspend for aggressive power saving, then all the
-> processes (and processors) will already be idle. However you
-> probably wouldn't want the memory accesses to determine this on
-> a large NUMA system with 1024+ processors.
-> 
-
-References:
-
-[1]. http://lkml.indiana.edu/hypermail/linux/kernel/1212.2/01979.html
-[2]. http://thread.gmane.org/gmane.linux.kernel/1405145/focus=29336
-[3]. http://thread.gmane.org/gmane.linux.documentation/9520/focus=1443258
-     http://thread.gmane.org/gmane.linux.power-management.general/29464/focus=1407948
-
-Regards,
-Srivatsa S. Bhat
+Thanks.
+--=20
+Chen Gang
