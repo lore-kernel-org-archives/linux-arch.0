@@ -1,45 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qa0-f48.google.com ([209.85.216.48]:49006 "EHLO
-	mail-qa0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753078Ab3FZVfG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Jun 2013 17:35:06 -0400
-Date: Wed, 26 Jun 2013 14:34:58 -0700
-From: Tejun Heo <tj@kernel.org>
-Subject: Re: [PATCH v2 15/45] rcu: Use get/put_online_cpus_atomic() to
- prevent CPU offline
-Message-ID: <20130626213458.GC4536@htj.dyndns.org>
-References: <20130625202755.16593.67819.stgit@srivatsabhat.in.ibm.com>
- <20130625220026.GG3828@linux.vnet.ibm.com>
- <51CAF624.6060004@linux.vnet.ibm.com>
- <AE90C24D6B3A694183C094C60CF0A2F6026B72AA@saturn3.aculab.com>
- <20130626143424.GN3828@linux.vnet.ibm.com>
- <1372258271.18733.256.camel@gandalf.local.home>
- <20130626152148.GA4405@mtj.dyndns.org>
- <1372260823.18733.263.camel@gandalf.local.home>
- <20130626172948.GD4405@mtj.dyndns.org>
- <51CB32E0.3040106@linux.vnet.ibm.com>
+Received: from intranet.asianux.com ([58.214.24.6]:16527 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751744Ab3F0CPD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Jun 2013 22:15:03 -0400
+Message-ID: <51CB9FF1.4020308@asianux.com>
+Date: Thu, 27 Jun 2013 10:14:09 +0800
+From: Chen Gang <gang.chen@asianux.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <51CB32E0.3040106@linux.vnet.ibm.com>
+Subject: [PATCH] arch: m32r: include: asm: add generic cmpxchg64() definition
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Cc: Steven Rostedt <rostedt@goodmis.org>, peterz@infradead.org, fweisbec@gmail.com, oleg@redhat.com, walken@google.com, mingo@kernel.org, linux-arch@vger.kernel.org, vincent.guittot@linaro.org, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, paulmck@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, rusty@rustcorp.com.au, namhyung@kernel.org, tglx@linutronix.de, laijs@cn.fujitsu.com, zhong@linux.vnet.ibm.com, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, sbw@mit.edu, David Laight <David.Laight@ACULAB.COM>, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20130626213458.5LBpJ3CRtpPEBx5XVyXtiaCe1a1GEn1A9NA78_tJ1k4@z>
+To: Hirokazu Takata <takata@linux-m32r.org>
+Cc: linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20130627021409.x_VXVSOYPiyRvcZQaUFe6eoMJFAe4xA7Go-57bfAGD4@z>
 
-Hey,
+Need define cmpxchg64(), so use generic one.
 
-On Wed, Jun 26, 2013 at 11:58:48PM +0530, Srivatsa S. Bhat wrote:
-> Yes, we were discussing hot-unplug latency for use-cases such as
-> suspend/resume. We didn't want to make those operations slower in the
-> process of removing stop_machine() from hotplug.
+The related error (with allmodconfig):
 
-Can you please explain why tho?  How much would it help in terms of
-power-saving?  Or are there other issues in taking longer to shut down
-cpus?
+  drivers/block/blockconsole.c: In function ‘bcon_advance_console_bytes’:
+  drivers/block/blockconsole.c:164:2: error: implicit declaration of function ‘cmpxchg64’ [-Werror=implicit-function-declaration]
 
-Thanks.
+Signed-off-by: Chen Gang <gang.chen@asianux.com>
+---
+ arch/m32r/include/asm/cmpxchg.h |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
 
+diff --git a/arch/m32r/include/asm/cmpxchg.h b/arch/m32r/include/asm/cmpxchg.h
+index de651db..a188b03 100644
+--- a/arch/m32r/include/asm/cmpxchg.h
++++ b/arch/m32r/include/asm/cmpxchg.h
+@@ -217,5 +217,6 @@ static inline unsigned long __cmpxchg_local(volatile void *ptr,
+ 	((__typeof__(*(ptr)))__cmpxchg_local((ptr), (unsigned long)(o),	    \
+ 			(unsigned long)(n), sizeof(*(ptr))))
+ #define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
++#define cmpxchg64(ptr, o, n)	cmpxchg64_local((ptr), (o), (n))
+ 
+ #endif /* _ASM_M32R_CMPXCHG_H */
 -- 
-tejun
+1.7.7.6
