@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp01.au.ibm.com ([202.81.31.143]:36823 "EHLO
-	e23smtp01.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754597Ab3F0T6e (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 15:58:34 -0400
+Received: from e23smtp06.au.ibm.com ([202.81.31.148]:57799 "EHLO
+	e23smtp06.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753889Ab3F0T7K (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 15:59:10 -0400
 Received: from /spool/local
-	by e23smtp01.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp06.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 28 Jun 2013 05:49:35 +1000
+	Fri, 28 Jun 2013 05:51:52 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 15/45] sched/rt: Use get/put_online_cpus_atomic() to
+Subject: [PATCH v3 17/45] tick-broadcast: Use get/put_online_cpus_atomic() to
  prevent CPU offline
-Date: Fri, 28 Jun 2013 01:24:59 +0530
-Message-ID: <20130627195458.29830.25978.stgit@srivatsabhat.in.ibm.com>
+Date: Fri, 28 Jun 2013 01:25:37 +0530
+Message-ID: <20130627195536.29830.580.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130627195136.29830.10445.stgit@srivatsabhat.in.ibm.com>
 References: <20130627195136.29830.10445.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com, David.Laight@aculab.com
-Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20130627195459.AVOiM7ltTsu1JJJUpBr1OoeDGT8ZmGtGOTaFrRrjIL8@z>
+Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20130627195537.PzW4z3pDEmX8ieuKD5DrRJalDRhAqMVQlINioNAaFa4@z>
 
 Once stop_machine() is gone from the CPU offline path, we won't be able
 to depend on disabling preemption to prevent CPUs from going offline
@@ -30,94 +30,76 @@ from under us.
 Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going
 offline, while invoking from atomic context.
 
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- kernel/sched/rt.c |   14 ++++++++++++++
- 1 file changed, 14 insertions(+)
+ kernel/time/tick-broadcast.c |    8 ++++++++
+ 1 file changed, 8 insertions(+)
 
-diff --git a/kernel/sched/rt.c b/kernel/sched/rt.c
-index 01970c8..03d9f38 100644
---- a/kernel/sched/rt.c
-+++ b/kernel/sched/rt.c
-@@ -6,6 +6,7 @@
- #include "sched.h"
- 
- #include <linux/slab.h>
-+#include <linux/cpu.h>
- 
- int sched_rr_timeslice = RR_TIMESLICE;
- 
-@@ -28,7 +29,9 @@ static enum hrtimer_restart sched_rt_period_timer(struct hrtimer *timer)
- 		if (!overrun)
- 			break;
- 
-+		get_online_cpus_atomic();
- 		idle = do_sched_rt_period_timer(rt_b, overrun);
-+		put_online_cpus_atomic();
- 	}
- 
- 	return idle ? HRTIMER_NORESTART : HRTIMER_RESTART;
-@@ -547,6 +550,7 @@ static int do_balance_runtime(struct rt_rq *rt_rq)
- 	int i, weight, more = 0;
- 	u64 rt_period;
- 
-+	get_online_cpus_atomic();
- 	weight = cpumask_weight(rd->span);
- 
- 	raw_spin_lock(&rt_b->rt_runtime_lock);
-@@ -588,6 +592,7 @@ next:
- 		raw_spin_unlock(&iter->rt_runtime_lock);
- 	}
- 	raw_spin_unlock(&rt_b->rt_runtime_lock);
-+	put_online_cpus_atomic();
- 
- 	return more;
- }
-@@ -1168,6 +1173,10 @@ static void yield_task_rt(struct rq *rq)
- #ifdef CONFIG_SMP
- static int find_lowest_rq(struct task_struct *task);
- 
-+/*
-+ * Must be called within get/put_online_cpus_atomic(), to prevent CPUs
-+ * from going offline from under us.
-+ */
- static int
- select_task_rq_rt(struct task_struct *p, int sd_flag, int flags)
+diff --git a/kernel/time/tick-broadcast.c b/kernel/time/tick-broadcast.c
+index 9d96a54..1e4ac45 100644
+--- a/kernel/time/tick-broadcast.c
++++ b/kernel/time/tick-broadcast.c
+@@ -227,12 +227,14 @@ static void tick_do_broadcast(struct cpumask *mask)
+  */
+ static void tick_do_periodic_broadcast(void)
  {
-@@ -1561,6 +1570,8 @@ retry:
- 		return 0;
- 	}
- 
 +	get_online_cpus_atomic();
-+
- 	/* We might release rq lock */
- 	get_task_struct(next_task);
+ 	raw_spin_lock(&tick_broadcast_lock);
  
-@@ -1611,6 +1622,7 @@ retry:
- out:
- 	put_task_struct(next_task);
+ 	cpumask_and(tmpmask, cpu_online_mask, tick_broadcast_mask);
+ 	tick_do_broadcast(tmpmask);
  
+ 	raw_spin_unlock(&tick_broadcast_lock);
 +	put_online_cpus_atomic();
- 	return ret;
  }
  
-@@ -1630,6 +1642,7 @@ static int pull_rt_task(struct rq *this_rq)
- 	if (likely(!rt_overloaded(this_rq)))
- 		return 0;
+ /*
+@@ -335,11 +337,13 @@ out:
+  */
+ void tick_broadcast_on_off(unsigned long reason, int *oncpu)
+ {
++	get_online_cpus_atomic();
+ 	if (!cpumask_test_cpu(*oncpu, cpu_online_mask))
+ 		printk(KERN_ERR "tick-broadcast: ignoring broadcast for "
+ 		       "offline CPU #%d\n", *oncpu);
+ 	else
+ 		tick_do_broadcast_on_off(&reason);
++	put_online_cpus_atomic();
+ }
+ 
+ /*
+@@ -505,6 +509,7 @@ static void tick_handle_oneshot_broadcast(struct clock_event_device *dev)
+ 	ktime_t now, next_event;
+ 	int cpu, next_cpu = 0;
  
 +	get_online_cpus_atomic();
- 	for_each_cpu(cpu, this_rq->rd->rto_mask) {
- 		if (this_cpu == cpu)
- 			continue;
-@@ -1695,6 +1708,7 @@ skip:
- 		double_unlock_balance(this_rq, src_rq);
+ 	raw_spin_lock(&tick_broadcast_lock);
+ again:
+ 	dev->next_event.tv64 = KTIME_MAX;
+@@ -562,6 +567,7 @@ again:
+ 			goto again;
  	}
- 
+ 	raw_spin_unlock(&tick_broadcast_lock);
 +	put_online_cpus_atomic();
- 	return ret;
  }
+ 
+ /*
+@@ -756,6 +762,7 @@ void tick_broadcast_switch_to_oneshot(void)
+ 	struct clock_event_device *bc;
+ 	unsigned long flags;
+ 
++	get_online_cpus_atomic();
+ 	raw_spin_lock_irqsave(&tick_broadcast_lock, flags);
+ 
+ 	tick_broadcast_device.mode = TICKDEV_MODE_ONESHOT;
+@@ -764,6 +771,7 @@ void tick_broadcast_switch_to_oneshot(void)
+ 		tick_broadcast_setup_oneshot(bc);
+ 
+ 	raw_spin_unlock_irqrestore(&tick_broadcast_lock, flags);
++	put_online_cpus_atomic();
+ }
+ 
  
 
