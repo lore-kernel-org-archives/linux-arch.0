@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp02.au.ibm.com ([202.81.31.144]:57342 "EHLO
-	e23smtp02.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754554Ab3F0T6w (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 15:58:52 -0400
+Received: from e28smtp05.in.ibm.com ([122.248.162.5]:33736 "EHLO
+	e28smtp05.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754772Ab3F0UAG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 16:00:06 -0400
 Received: from /spool/local
-	by e23smtp02.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp05.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 28 Jun 2013 05:49:10 +1000
+	Fri, 28 Jun 2013 01:24:57 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 16/45] rcu: Use cpu_is_offline_nocheck() to avoid
- false-positive warnings
-Date: Fri, 28 Jun 2013 01:25:17 +0530
-Message-ID: <20130627195517.29830.64108.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 23/45] percpu_counter: Use _nocheck version of
+ for_each_online_cpu()
+Date: Fri, 28 Jun 2013 01:26:41 +0530
+Message-ID: <20130627195641.29830.18825.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130627195136.29830.10445.stgit@srivatsabhat.in.ibm.com>
 References: <20130627195136.29830.10445.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,51 +20,47 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com, David.Laight@aculab.com
-Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Dipankar Sarma <dipankar@in.ibm.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20130627195517.-fIwWiMLWmxPuII9oLTy1fm2GEuWHO8ov4tnv7nfZRE@z>
+Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20130627195641.YSxzWzLwh319J3Stas49jLFzkw54Xr5s1Ls_HVIx66Q@z>
 
-In RCU code, rcu_implicit_dynticks_qs() checks if a CPU is offline,
-while being protected by a spinlock. At first, it appears as if we need to
-use the get/put_online_cpus_atomic() APIs to properly synchronize with CPU
-hotplug, once we get rid of stop_machine(). However, RCU has adequate
-synchronization with CPU hotplug, making that unnecessary. But since the
-locking details are non-trivial, it is hard to teach this to the rudimentary
-hotplug locking validator.
+The percpu-counter-sum code does a for_each_online_cpu() protected
+by a spinlock, which makes it look like it needs to use
+get/put_online_cpus_atomic(), going forward. However, the code has
+adequate synchronization with CPU hotplug, via a hotplug callback
+and the fbc->lock.
 
-So use the _nocheck() variants of the cpu accessor functions to prevent false-
-positive warnings from the CPU hotplug debug code. Also, add a comment
-explaining the hotplug synchronization design used in RCU, so that its easy
-to see why it is justified to use the _nocheck() variants.
+So use for_each_online_cpu_nocheck() to avoid false-positive warnings
+from the hotplug locking validator. And add a comment justifying the
+same.
 
-Cc: Dipankar Sarma <dipankar@in.ibm.com>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Tejun Heo <tj@kernel.org>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- kernel/rcutree.c |   12 +++++++++++-
- 1 file changed, 11 insertions(+), 1 deletion(-)
+ lib/percpu_counter.c |    9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
 
-diff --git a/kernel/rcutree.c b/kernel/rcutree.c
-index cf3adc6..ced28a45 100644
---- a/kernel/rcutree.c
-+++ b/kernel/rcutree.c
-@@ -794,7 +794,17 @@ static int rcu_implicit_dynticks_qs(struct rcu_data *rdp)
- 	if (ULONG_CMP_GE(rdp->rsp->gp_start + 2, jiffies))
- 		return 0;  /* Grace period is not old enough. */
- 	barrier();
--	if (cpu_is_offline(rdp->cpu)) {
-+
+diff --git a/lib/percpu_counter.c b/lib/percpu_counter.c
+index ba6085d..2d80e8a 100644
+--- a/lib/percpu_counter.c
++++ b/lib/percpu_counter.c
+@@ -98,9 +98,16 @@ s64 __percpu_counter_sum(struct percpu_counter *fbc)
+ 	s64 ret;
+ 	int cpu;
+ 
 +	/*
-+	 * It is safe to use the _nocheck() version of cpu_is_offline() here
-+	 * (to avoid false-positive warnings from CPU hotplug debug code),
-+	 * because:
-+	 * 1. rcu_gp_init() holds off CPU hotplug operations during grace
-+	 *    period initialization.
-+	 * 2. The current grace period has not ended yet.
-+	 * So it is safe to sample the offline state without synchronization.
++	 * CPU hotplug synchronization is explicitly handled via the
++	 * hotplug callback, which synchronizes through fbc->lock.
++	 * So it is safe to use the _nocheck() version of
++	 * for_each_online_cpu() here (to avoid false-positive warnings
++	 * from the CPU hotplug debug code).
 +	 */
-+	if (cpu_is_offline_nocheck(rdp->cpu)) {
- 		trace_rcu_fqs(rdp->rsp->name, rdp->gpnum, rdp->cpu, "ofl");
- 		rdp->offline_fqs++;
- 		return 1;
+ 	raw_spin_lock(&fbc->lock);
+ 	ret = fbc->count;
+-	for_each_online_cpu(cpu) {
++	for_each_online_cpu_nocheck(cpu) {
+ 		s32 *pcount = per_cpu_ptr(fbc->counters, cpu);
+ 		ret += *pcount;
+ 	}
 
