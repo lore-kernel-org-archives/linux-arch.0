@@ -1,40 +1,47 @@
-From: Tejun Heo <tj@kernel.org>
-Subject: Re: [PATCH v2 15/45] rcu: Use get/put_online_cpus_atomic() to
- prevent CPU offline
-Date: Wed, 26 Jun 2013 14:34:58 -0700
-Message-ID: <20130626213458.GC4536@htj.dyndns.org>
-References: <20130625202755.16593.67819.stgit@srivatsabhat.in.ibm.com>
- <20130625220026.GG3828@linux.vnet.ibm.com>
- <51CAF624.6060004@linux.vnet.ibm.com>
- <AE90C24D6B3A694183C094C60CF0A2F6026B72AA@saturn3.aculab.com>
- <20130626143424.GN3828@linux.vnet.ibm.com>
- <1372258271.18733.256.camel@gandalf.local.home>
- <20130626152148.GA4405@mtj.dyndns.org>
- <1372260823.18733.263.camel@gandalf.local.home>
- <20130626172948.GD4405@mtj.dyndns.org>
- <51CB32E0.3040106@linux.vnet.ibm.com>
+From: Chen Gang <gang.chen@asianux.com>
+Subject: Re: [PATCH] arch: frv: mb93090-mb00: remove '__init' for pci_fixup_umc_ide()
+ which used by 'DECLARE_PCI_FIXUP_HEADER'
+Date: Thu, 27 Jun 2013 08:21:54 +0800
+Message-ID: <51CB85A2.9040207@asianux.com>
+References: <51CA5829.9060807@asianux.com> <CAErSpo4dg7cVN1grEuKWvDJkZoJPAaELeh8knqD=s-nd5dsBNw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <51CB32E0.3040106@linux.vnet.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Cc: Steven Rostedt <rostedt@goodmis.org>, peterz@infradead.org, fweisbec@gmail.com, oleg@redhat.com, walken@google.com, mingo@kernel.org, linux-arch@vger.kernel.org, vincent.guittot@linaro.org, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, paulmck@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, rusty@rustcorp.com.au, namhyung@kernel.org, tglx@linutronix.de, laijs@cn.fujitsu.com, zhong@linux.vnet.ibm.com, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, sbw@mit.edu, David Laight <David.Laight@ACULAB.COM>, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=GB2312
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from intranet.asianux.com ([58.214.24.6]:39778 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751513Ab3F0AWs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Jun 2013 20:22:48 -0400
+In-Reply-To: <CAErSpo4dg7cVN1grEuKWvDJkZoJPAaELeh8knqD=s-nd5dsBNw@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: "dhowells@redhat.com" <dhowells@redhat.com>, Greg KH <gregkh@linuxfoundation.org>, Yinghai Lu <yinghai@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-Hey,
-
-On Wed, Jun 26, 2013 at 11:58:48PM +0530, Srivatsa S. Bhat wrote:
-> Yes, we were discussing hot-unplug latency for use-cases such as
-> suspend/resume. We didn't want to make those operations slower in the
-> process of removing stop_machine() from hotplug.
-
-Can you please explain why tho?  How much would it help in terms of
-power-saving?  Or are there other issues in taking longer to shut down
-cpus?
+On 06/27/2013 12:19 AM, Bjorn Helgaas wrote:
+> On Tue, Jun 25, 2013 at 8:55 PM, Chen Gang <gang.chen@asianux.com> wrote:
+>> > pci_fixup_umc_ide() is for 'DECLARE_PCI_FIXUP_HEADER', so need remove
+>> > it from init section to normal section.
+>> >
+>> > The related warning (with allmodconfig):
+>> >
+>> >   LD      arch/frv/mb93090-mb00/built-in.o
+>> > WARNING: arch/frv/mb93090-mb00/built-in.o(.pci_fixup_header+0x4c): Section mismatch in reference from the variable __pci_fixup_PCI_VENDOR_ID_UMCPCI_DEVICE_ID_UMC_UM8886BFpci_fixup_umc_ide to the function .init.text:pci_fixup_umc_ide()
+>> > The variable __pci_fixup_PCI_VENDOR_ID_UMCPCI_DEVICE_ID_UMC_UM8886BFpci_fixup_umc_ide references
+>> > a function __init pci_fixup_umc_ide().
+>> > This is often seen when error handling in the init function
+>> > uses functionality in the exit path.
+>> > The fix is often to remove the __init annotation of
+>> > pci_fixup_umc_ide() so it may be used outside an exit section.
+>> >
+>> >
+>> > Signed-off-by: Chen Gang <gang.chen@asianux.com>
+> Reviewed-by: Bjorn Helgaas <bhelgaas@google.com>
+> 
 
 Thanks.
 
 -- 
-tejun
+Chen Gang
+
+Asianux Corporation
