@@ -1,47 +1,43 @@
 From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH] arch: frv: mb93090-mb00: remove '__init' for pci_fixup_umc_ide()
- which used by 'DECLARE_PCI_FIXUP_HEADER'
-Date: Thu, 27 Jun 2013 08:21:54 +0800
-Message-ID: <51CB85A2.9040207@asianux.com>
-References: <51CA5829.9060807@asianux.com> <CAErSpo4dg7cVN1grEuKWvDJkZoJPAaELeh8knqD=s-nd5dsBNw@mail.gmail.com>
+Subject: [PATCH] arch: m32r: include: asm: add kvm_para.h
+Date: Thu, 27 Jun 2013 09:49:53 +0800
+Message-ID: <51CB9A41.20903@asianux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=GB2312
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:39778 "EHLO
+Received: from intranet.asianux.com ([58.214.24.6]:14581 "EHLO
 	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751513Ab3F0AWs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Jun 2013 20:22:48 -0400
-In-Reply-To: <CAErSpo4dg7cVN1grEuKWvDJkZoJPAaELeh8knqD=s-nd5dsBNw@mail.gmail.com>
+	with ESMTP id S1751447Ab3F0Buv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Jun 2013 21:50:51 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: "dhowells@redhat.com" <dhowells@redhat.com>, Greg KH <gregkh@linuxfoundation.org>, Yinghai Lu <yinghai@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: Hirokazu Takata <takata@linux-m32r.org>
+Cc: "dhowells@redhat.com" <dhowells@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Paul McKenney <paulmck@linux.vnet.ibm.com>, "sfr@canb.auug.org.au" <sfr@canb.auug.org.au>, Rusty Russell <rusty@rustcorp.com.au>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-On 06/27/2013 12:19 AM, Bjorn Helgaas wrote:
-> On Tue, Jun 25, 2013 at 8:55 PM, Chen Gang <gang.chen@asianux.com> wrote:
->> > pci_fixup_umc_ide() is for 'DECLARE_PCI_FIXUP_HEADER', so need remove
->> > it from init section to normal section.
->> >
->> > The related warning (with allmodconfig):
->> >
->> >   LD      arch/frv/mb93090-mb00/built-in.o
->> > WARNING: arch/frv/mb93090-mb00/built-in.o(.pci_fixup_header+0x4c): Section mismatch in reference from the variable __pci_fixup_PCI_VENDOR_ID_UMCPCI_DEVICE_ID_UMC_UM8886BFpci_fixup_umc_ide to the function .init.text:pci_fixup_umc_ide()
->> > The variable __pci_fixup_PCI_VENDOR_ID_UMCPCI_DEVICE_ID_UMC_UM8886BFpci_fixup_umc_ide references
->> > a function __init pci_fixup_umc_ide().
->> > This is often seen when error handling in the init function
->> > uses functionality in the exit path.
->> > The fix is often to remove the __init annotation of
->> > pci_fixup_umc_ide() so it may be used outside an exit section.
->> >
->> >
->> > Signed-off-by: Chen Gang <gang.chen@asianux.com>
-> Reviewed-by: Bjorn Helgaas <bhelgaas@google.com>
-> 
+Add kvm_para.h for pass compiling.
 
-Thanks.
+The related error (with allmodconfig):
 
+  In file included from include/linux/kvm_para.h:4:0,
+                   from kernel/watchdog.c:29:
+  include/uapi/linux/kvm_para.h:26:26: fatal error: asm/kvm_para.h: No such file or directory
+
+Signed-off-by: Chen Gang <gang.chen@asianux.com>
+---
+ arch/m32r/include/asm/Kbuild |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
+
+diff --git a/arch/m32r/include/asm/Kbuild b/arch/m32r/include/asm/Kbuild
+index bebdc36..1943db2 100644
+--- a/arch/m32r/include/asm/Kbuild
++++ b/arch/m32r/include/asm/Kbuild
+@@ -1,5 +1,6 @@
+ 
+ generic-y += clkdev.h
+ generic-y += exec.h
++generic-y += kvm_para.h
+ generic-y += module.h
+ generic-y += trace_clock.h
 -- 
-Chen Gang
-
-Asianux Corporation
+1.7.7.6
