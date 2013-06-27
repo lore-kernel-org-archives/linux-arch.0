@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp07.au.ibm.com ([202.81.31.140]:49639 "EHLO
-	e23smtp07.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754535Ab3F0T7a (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 15:59:30 -0400
+Received: from e23smtp02.au.ibm.com ([202.81.31.144]:40427 "EHLO
+	e23smtp02.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755121Ab3F0UCA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 16:02:00 -0400
 Received: from /spool/local
-	by e23smtp07.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp02.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 28 Jun 2013 05:47:51 +1000
+	Fri, 28 Jun 2013 05:52:18 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 19/45] softirq: Use get/put_online_cpus_atomic() to prevent
- CPU offline
-Date: Fri, 28 Jun 2013 01:26:01 +0530
-Message-ID: <20130627195601.29830.15576.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 34/45] hexagon/smp: Use get/put_online_cpus_atomic() to
+ prevent CPU offline
+Date: Fri, 28 Jun 2013 01:28:31 +0530
+Message-ID: <20130627195830.29830.70085.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130627195136.29830.10445.stgit@srivatsabhat.in.ibm.com>
 References: <20130627195136.29830.10445.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com, David.Laight@aculab.com
-Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.orgFrederic Weisbecker <fweisbec@gmail.com>, Sedat Dilek <sedat.dilek@gmail.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20130627195601.Pga3B4e97kfcQw57qkk0qSIOsSWAQzHZ83Y_Au2HJTc@z>
+Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20130627195831.L9I31pTiMn66GHyU4_n3eOjs-44y5EoZUBCQ5IRwwOA@z>
 
 Once stop_machine() is gone from the CPU offline path, we won't be able
 to depend on disabling preemption to prevent CPUs from going offline
@@ -30,37 +30,30 @@ from under us.
 Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going
 offline, while invoking from atomic context.
 
-Cc: Frederic Weisbecker <fweisbec@gmail.com>
+Cc: Richard Kuo <rkuo@codeaurora.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Sedat Dilek <sedat.dilek@gmail.com>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: linux-hexagon@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- kernel/softirq.c |    3 +++
+ arch/hexagon/kernel/smp.c |    3 +++
  1 file changed, 3 insertions(+)
 
-diff --git a/kernel/softirq.c b/kernel/softirq.c
-index 3d6833f..c289722 100644
---- a/kernel/softirq.c
-+++ b/kernel/softirq.c
-@@ -644,14 +644,17 @@ static void remote_softirq_receive(void *data)
- 
- static int __try_remote_softirq(struct call_single_data *cp, int cpu, int softirq)
+diff --git a/arch/hexagon/kernel/smp.c b/arch/hexagon/kernel/smp.c
+index 0e364ca..30d4318 100644
+--- a/arch/hexagon/kernel/smp.c
++++ b/arch/hexagon/kernel/smp.c
+@@ -241,9 +241,12 @@ void smp_send_reschedule(int cpu)
+ void smp_send_stop(void)
  {
+ 	struct cpumask targets;
++
 +	get_online_cpus_atomic();
- 	if (cpu_online(cpu)) {
- 		cp->func = remote_softirq_receive;
- 		cp->info = &softirq;
- 		cp->flags = 0;
- 
- 		__smp_call_function_single(cpu, cp, 0);
-+		put_online_cpus_atomic();
- 		return 0;
- 	}
+ 	cpumask_copy(&targets, cpu_online_mask);
+ 	cpumask_clear_cpu(smp_processor_id(), &targets);
+ 	send_ipi(&targets, IPI_CPU_STOP);
 +	put_online_cpus_atomic();
- 	return 1;
  }
- #else /* CONFIG_USE_GENERIC_SMP_HELPERS */
+ 
+ void arch_send_call_function_single_ipi(int cpu)
 
