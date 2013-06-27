@@ -1,59 +1,71 @@
 From: Chen Gang <gang.chen@asianux.com>
-Subject: [PATCH] include/asm-generic/pci.h: include generic "pci-dma-compat.h"
-Date: Thu, 27 Jun 2013 12:03:25 +0800
-Message-ID: <51CBB98D.3040304@asianux.com>
+Subject: [PATCH] arch: m32r: include: asm: add ioread*_rep() and iowrite*_rep()
+Date: Thu, 27 Jun 2013 12:37:26 +0800
+Message-ID: <51CBC186.3080401@asianux.com>
+References: <51CBA43F.9050000@asianux.com> <51CBAA1E.8000206@asianux.com> <51CBB1A9.5080203@asianux.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=windows-1252
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:30924 "EHLO
+Received: from intranet.asianux.com ([58.214.24.6]:44032 "EHLO
 	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750800Ab3F0EES (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 00:04:18 -0400
+	with ESMTP id S1750960Ab3F0EiU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 00:38:20 -0400
+In-Reply-To: <51CBB1A9.5080203@asianux.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Hirokazu Takata <takata@linux-m32r.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-m32r-ja@ml.linux-m32r.org, linux-m32r@ml.linux-m32r.org
+To: Hirokazu Takata <takata@linux-m32r.org>
+Cc: linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-If an architecture need "generic pci.h", it also need generic "pci-dma-
-compat.h",  so recommend to include it in asm-generic directly.
-
-And now, for arm64 and m32r, may cause compiling error about it.
+add generic ioread*_rep() and iowrite*_rep(), or compiling failed.
 
 The related error (with allmodconfig):
 
-  drivers/media/usb/b2c2/flexcop-usb.c: In function =91flexcop_usb_tran=
-sfer_exit=92:
-  drivers/media/usb/b2c2/flexcop-usb.c:393:3: error: implicit declarati=
-on of function =91pci_free_consistent=92 [-Werror=3Dimplicit-function-d=
-eclaration]
-  drivers/media/usb/b2c2/flexcop-usb.c: In function =91flexcop_usb_tran=
-sfer_init=92:
-  drivers/media/usb/b2c2/flexcop-usb.c:410:2: error: implicit declarati=
-on of function =91pci_alloc_consistent=92 [-Werror=3Dimplicit-function-=
-declaration]
-  drivers/media/usb/b2c2/flexcop-usb.c:410:21: warning: assignment make=
-s pointer from integer without a cast [enabled by default]
-  cc1: some warnings being treated as errors
+    CC [M]  drivers/mtd/nand/nand_base.o
+  drivers/mtd/nand/nand_base.c: In function =91nand_write_buf=92:
+  drivers/mtd/nand/nand_base.c:216:2: error: implicit declaration of fu=
+nction =91iowrite8_rep=92 [-Werror=3Dimplicit-function-declaration]
+  drivers/mtd/nand/nand_base.c: In function =91nand_read_buf=92:
+  drivers/mtd/nand/nand_base.c:231:2: error: implicit declaration of fu=
+nction =91ioread8_rep=92 [-Werror=3Dimplicit-function-declaration]
+  drivers/mtd/nand/nand_base.c: In function =91nand_write_buf16=92:
+  drivers/mtd/nand/nand_base.c:247:2: error: implicit declaration of fu=
+nction =91iowrite16_rep=92 [-Werror=3Dimplicit-function-declaration]
+  drivers/mtd/nand/nand_base.c: In function =91nand_read_buf16=92:
+  drivers/mtd/nand/nand_base.c:263:2: error: implicit declaration of fu=
+nction =91ioread16_rep=92 [-Werror=3Dimplicit-function-declaration]
 
 
 Signed-off-by: Chen Gang <gang.chen@asianux.com>
 ---
- include/asm-generic/pci.h |    2 ++
- 1 files changed, 2 insertions(+), 0 deletions(-)
+ arch/m32r/include/asm/io.h |   14 ++++++++++++++
+ 1 files changed, 14 insertions(+), 0 deletions(-)
 
-diff --git a/include/asm-generic/pci.h b/include/asm-generic/pci.h
-index e80a049..64e2a15 100644
---- a/include/asm-generic/pci.h
-+++ b/include/asm-generic/pci.h
-@@ -6,6 +6,8 @@
- #ifndef _ASM_GENERIC_PCI_H
- #define _ASM_GENERIC_PCI_H
+diff --git a/arch/m32r/include/asm/io.h b/arch/m32r/include/asm/io.h
+index 4010f1f..167d6ed 100644
+--- a/arch/m32r/include/asm/io.h
++++ b/arch/m32r/include/asm/io.h
+@@ -169,6 +169,20 @@ static inline void _writel(unsigned long l, unsign=
+ed long addr)
+ #define iowrite16 writew
+ #define iowrite32 writel
 =20
-+#include <asm-generic/pci-dma-compat.h>
++#define ioread8_rep(p, dst, count) \
++	insb((unsigned long) (p), (dst), (count))
++#define ioread16_rep(p, dst, count) \
++	insw((unsigned long) (p), (dst), (count))
++#define ioread32_rep(p, dst, count) \
++	insl((unsigned long) (p), (dst), (count))
 +
- static inline struct resource *
- pcibios_select_root(struct pci_dev *pdev, struct resource *res)
- {
++#define iowrite8_rep(p, src, count) \
++	outsb((unsigned long) (p), (src), (count))
++#define iowrite16_rep(p, src, count) \
++	outsw((unsigned long) (p), (src), (count))
++#define iowrite32_rep(p, src, count) \
++	outsl((unsigned long) (p), (src), (count))
++
+ #define mmiowb()
+=20
+ #define flush_write_buffers() do { } while (0)  /* M32R_FIXME */
 --=20
 1.7.7.6
