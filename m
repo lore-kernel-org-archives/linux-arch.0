@@ -1,131 +1,222 @@
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: Re: [PATCH v2 2/3] drivers/block/xsysace - use "_rep" accessors
- with CPU endianess for data
-Date: Thu, 27 Jun 2013 13:44:41 +0000
-Message-ID: <4881796E12491D4BB15146FE0209CE643F606E83@DE02WEMBXB.internal.synopsys.com>
-References: <1372062364-25861-1-git-send-email-abrodkin@synopsys.com>
- <1372062364-25861-3-git-send-email-abrodkin@synopsys.com>
- <51C93117.3090809@monstr.eu>
- <4881796E12491D4BB15146FE0209CE643F60030B@DE02WEMBXB.internal.synopsys.com>
- <51CAB4AF.7040407@monstr.eu>
+From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Subject: [PATCH v3 00/45] CPU hotplug: stop_machine()-free CPU hotplug, part 1
+Date: Fri, 28 Jun 2013 01:22:26 +0530
+Message-ID: <20130627195136.29830.10445.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from kiruna.synopsys.com ([198.182.44.80]:61211 "EHLO
-	kiruna.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751569Ab3F0Now convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 09:44:52 -0400
-Content-Language: en-US
+Received: from e23smtp02.au.ibm.com ([202.81.31.144]:42521 "EHLO
+	e23smtp02.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753788Ab3F0Tzy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 15:55:54 -0400
+Received: from /spool/local
+	by e23smtp02.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
+	Fri, 28 Jun 2013 05:46:11 +1000
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "monstr@monstr.eu" <monstr@monstr.eu>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Mischa Jonker <Mischa.Jonker@synopsys.com>, Grant Likely <grant.likely@secretlab.ca>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Andy Shevchenko <andy.shevchenko@gmail.com>
+To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com, David.Laight@aculab.com
+Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On 06/26/2013 01:31 PM, Michal Simek wrote:
-> On 06/25/2013 08:32 AM, Alexey Brodkin wrote:
->> On 06/25/2013 09:58 AM, Michal Simek wrote:
->>> On 06/24/2013 10:26 AM, Alexey Brodkin wrote:
->>>> Initially different data accessors were used for LE abd BE CPUs:
->>>> "ioread16" in "ace_datain_be16" and "ioread16be" in "ace_datain_le16".
->>>> The same with writes.
->>>>
->>>> While it worked in some cases (for example on BE PPC) it didn't work in
->>>> others (LE ARC).
->>>
->>> I am not sure about this. It seems to me that what you need to do
->>> is swapped wires in your hw design to use the same configuration
->>> as is used on ppc and microblaze for data access.
->>   >
->>>> Mentioned functions access data (by 16-bit chunks) from storage (i.e.
->>>> CompactFlash card) via DATABUFREG of Xilinx SystemACE CF controller.
->>>> And to interpret data properly CPU needs to access data in DATABUFREG
->>>> with native endianess.
->>>
->>> I have had a lot of discussions about using native endianess.
->>> This driver supports endian detection on register side
->>> but not on data side.
->>> Is this soft IP? If yes then just swapped wires on bus and use
->>> standard configuration.
->>
->> I don't think there's a wiring problem.
->> For starters "Xilinx SystemACE CF controller" (at least the one I'm
->> dealing with on "Xilinx ML-509" board) is a real hardware IC (with part
->> number XCCACE-TQ144I).
->>
->> And what about your HW? Is your SystemACE controller is a soft-IP?
->
-> bus-> sysace soft IP -> connetion to the real chip(MPD below) -> chip -> CF
->
-> In xilinx mhs file there are MPD pins which are data pins
-> and they are wired like this for 16bit mode
-> PORT fpga_0_SysACE_CompactFlash_SysACE_MPD_pin = fpga_0_SysACE_CompactFlash_SysACE_MPD_pin, DIR = IO, VEC = [15:0]
-> and like this for 8bit mode.
-> PORT SysACE_MPD = SysACE_MPD, DIR = IO, VEC = [7:0]
->
-> I am not sure about configuration but if you have something similar
-> what xilinx has then you should be simple able to change data pins
-> and this will reflect linux driver.
->
-> what configuration do you use?
+Hi,
 
-Well, we have our own BVCI-to-MPU bridge that maps SystemACE interface 
-in CPU memory space (i.e. memory-mapped registers). This bridge also 
-implements data read/write from/to SyatemACE FIFO. And frankly I cannot 
-say how data is transferred to/from this FIFO.
+This patchset is a first step towards removing stop_machine() from the
+CPU hotplug offline path. It introduces a set of APIs (as a replacement to
+preempt_disable()/preempt_enable()) to synchronize with CPU hotplug from
+atomic contexts.
 
-I will need to look into bridge's Verilog to get all specifics.
-but I'm not an expert in HW/Verilog so not sure how useful this 
-excursion might be.
+The motivation behind getting rid of stop_machine() is to avoid its
+ill-effects, such as performance penalties[1] and the real-time latencies it
+inflicts on the system (and also things involving stop_machine() have often
+been notoriously hard to debug). And in general, getting rid of stop_machine()
+from CPU hotplug also greatly enhances the elegance of the CPU hotplug design
+itself.
 
-So no good clarification on this yet, sorry.
+Getting rid of stop_machine() involves building the corresponding
+infrastructure in the core CPU hotplug code and converting all places which
+used to depend on the semantics of stop_machine() to synchronize with CPU
+hotplug.
 
->> As described in corresponding datasheet
->> (http://www.xilinx.com/support/documentation/data_sheets/ds080.pdf)
->> CF-card is connected to this IC directly - so CPU itself doesn't have
->> any connection to CF.
->
-> I am not talking about connection between system ace chip and CF.
-> xilinx configuration is done as I have described above where
-> we can setup data lines order. I haven't done any experiment with it
-> but seems to me straight forward to do it.
->
->> CPU only can access (read/write) SystemACE's registers and by these actions:
->> 1. Config SystemACE or read its configuration and status (registers
->> 0x00-0x1d).
->> 2. Read/write data from/to CF-card (register 0x40).
->>
->> And as long as configuration/status registers access is proven to work I
->> expect access to data via just reads/writes from/to another same
->> register should work as well.
->>
->>> Grant is driver owner and he has to decide if this is acceptable
->>> or not.
->>
->> As far as I may see from latest MAINTAINERS file grant is no longer
->> maintains it. So who may take any decision now? Arnd?
->
-> I should probably assign it to my me as the part of my microblaze
-> responsibility. And xilinx virtex as part of my work for xilinx.
->
-> MAINTAINERS: Update Grant's email address and maintainership
-> sha1: 19624236cce1b33a5d43895a92e3a9d438dc36e2
->
->
->>> I can test it on microblaze hw.
->>
->> Would be very nice and helpful if you give it a shot on Microblaze HW.
->> BTW what is an endianess of this HW? Only BE or both BE/LE?
->
-> 8bit BE/LE 16bit BE. I have one 16bit LE configuration too
-> but before I do testing on real HW let's clear your connection.
+This patchset builds a first-level base infrastructure on which tree-wide
+conversions can be built upon, and also includes the conversions themselves.
+We certainly need a few more careful tree-sweeps to complete the conversion,
+but the goal of this patchset is to introduce the core pieces and to get the
+first batch of conversions in, while covering a reasonable bulk among them.
 
-If this won't take much time I will appreciate if you try proposed patch 
-at least on 1 pair of LE/BE hw.
+This patchset also has a debug infrastructure to help with the conversions -
+with the newly introduced CONFIG_DEBUG_HOTPLUG_CPU option turned on, it
+prints warnings whenever the need for a conversion is detected. Patches 4-7
+build this framework. Needless to say, I'd really appreciate if people could
+test kernels with this option turned on and report omissions or better yet,
+send patches to contribute to this effort.
 
-If it doesn't work then data accessors might need to be implemented the 
-same way they were initially done. And in this case my v1 patch may make 
-sense (replace accessors with generic versions).
+[It is to be noted that this patchset doesn't replace stop_machine() yet,
+so the immediate risk in having an unconverted (or converted) call-site
+is nil, since there is no major functional change involved.]
+
+Once the conversion gets completed, we can finalize on the design of the
+stop_machine() replacement and use that in the core CPU hotplug code. We have
+had some discussions in the past where we debated several different
+designs[2]. We'll revisit that with more ideas once this conversion gets over.
+
+
+This patchset applies on current tip:master. It is also available in the
+following git branch:
+
+git://github.com/srivatsabhat/linux.git  stop-mch-free-cpuhp-part1-v3
+
+
+Thank you very much!
+
+
+Changes in v3:
+-------------
+* Added _nocheck() variants of cpu accessor functions for use in RCU
+  and percpu-counter code. Reworked the RCU and percpu-counter patches
+  accordingly.
+* Dropped the patch related to kvm-vmx, since it was unnecessary.
+* Added changes to r4k_on_each_cpu() in Mips, as pointed out by Ralf Baechle.
+* Added Acks and rebased to current tip/master.
+
+Changes in v2:
+-------------
+* Build-fix for !HOTPLUG_CPU case.
+* Minor code cleanups, and added a few comments.
+
+
+References:
+----------
+
+1. Performance difference between CPU Hotplug with and without
+   stop_machine():
+   http://article.gmane.org/gmane.linux.kernel/1435249
+
+2. Links to discussions around alternative synchronization schemes to
+   replace stop_machine() in the CPU Hotplug code:
+
+   v6: http://lwn.net/Articles/538819/
+   v5: http://lwn.net/Articles/533553/
+   v4: https://lkml.org/lkml/2012/12/11/209
+   v3: http://lwn.net/Articles/528541/
+   v2: https://lkml.org/lkml/2012/12/5/322
+   v1: https://lkml.org/lkml/2012/12/4/88
+       http://lwn.net/Articles/527988/
+
+3. Links to previous versions of this patchset:
+   v2: http://thread.gmane.org/gmane.linux.kernel/1515396
+   v1: http://lwn.net/Articles/556138/
+
+
+--
+ Srivatsa S. Bhat (45):
+      CPU hotplug: Provide APIs to prevent CPU offline from atomic context
+      CPU hotplug: Clarify the usage of different synchronization APIs
+      Documentation, CPU hotplug: Recommend usage of get/put_online_cpus_atomic()
+      CPU hotplug: Add infrastructure to check lacking hotplug synchronization
+      CPU hotplug: Protect set_cpu_online() to avoid false-positives
+      CPU hotplug: Sprinkle debugging checks to catch locking bugs
+      CPU hotplug: Add _nocheck() variants of accessor functions
+      CPU hotplug: Expose the new debug config option
+      CPU hotplug: Convert preprocessor macros to static inline functions
+      smp: Use get/put_online_cpus_atomic() to prevent CPU offline
+      sched/core: Use get/put_online_cpus_atomic() to prevent CPU offline
+      migration: Use raw_spin_lock/unlock since interrupts are already disabled
+      sched/fair: Use get/put_online_cpus_atomic() to prevent CPU offline
+      timer: Use get/put_online_cpus_atomic() to prevent CPU offline
+      sched/rt: Use get/put_online_cpus_atomic() to prevent CPU offline
+      rcu: Use cpu_is_offline_nocheck() to avoid false-positive warnings
+      tick-broadcast: Use get/put_online_cpus_atomic() to prevent CPU offline
+      time/clocksource: Use get/put_online_cpus_atomic() to prevent CPU offline
+      softirq: Use get/put_online_cpus_atomic() to prevent CPU offline
+      irq: Use get/put_online_cpus_atomic() to prevent CPU offline
+      net: Use get/put_online_cpus_atomic() to prevent CPU offline
+      block: Use get/put_online_cpus_atomic() to prevent CPU offline
+      percpu_counter: Use _nocheck version of for_each_online_cpu()
+      infiniband: ehca: Use get/put_online_cpus_atomic() to prevent CPU offline
+      [SCSI] fcoe: Use get/put_online_cpus_atomic() to prevent CPU offline
+      staging/octeon: Use get/put_online_cpus_atomic() to prevent CPU offline
+      x86: Use get/put_online_cpus_atomic() to prevent CPU offline
+      perf/x86: Use get/put_online_cpus_atomic() to prevent CPU offline
+      KVM: Use get/put_online_cpus_atomic() to prevent CPU offline
+      x86/xen: Use get/put_online_cpus_atomic() to prevent CPU offline
+      alpha/smp: Use get/put_online_cpus_atomic() to prevent CPU offline
+      blackfin/smp: Use get/put_online_cpus_atomic() to prevent CPU offline
+      cris/smp: Use get/put_online_cpus_atomic() to prevent CPU offline
+      hexagon/smp: Use get/put_online_cpus_atomic() to prevent CPU offline
+      ia64: irq, perfmon: Use get/put_online_cpus_atomic() to prevent CPU offline
+      ia64: smp, tlb: Use get/put_online_cpus_atomic() to prevent CPU offline
+      m32r: Use get/put_online_cpus_atomic() to prevent CPU offline
+      MIPS: Use get/put_online_cpus_atomic() to prevent CPU offline
+      mn10300: Use get/put_online_cpus_atomic() to prevent CPU offline
+      powerpc, irq: Use GFP_ATOMIC allocations in atomic context
+      powerpc: Use get/put_online_cpus_atomic() to prevent CPU offline
+      powerpc: Use get/put_online_cpus_atomic() to avoid false-positive warning
+      sh: Use get/put_online_cpus_atomic() to prevent CPU offline
+      sparc: Use get/put_online_cpus_atomic() to prevent CPU offline
+      tile: Use get/put_online_cpus_atomic() to prevent CPU offline
+
+ Documentation/cpu-hotplug.txt                 |   20 +++-
+ arch/alpha/kernel/smp.c                       |   19 ++-
+ arch/blackfin/mach-common/smp.c               |    4 -
+ arch/cris/arch-v32/kernel/smp.c               |    5 +
+ arch/hexagon/kernel/smp.c                     |    3 +
+ arch/ia64/kernel/irq_ia64.c                   |   15 +++
+ arch/ia64/kernel/perfmon.c                    |    8 +
+ arch/ia64/kernel/smp.c                        |   12 +-
+ arch/ia64/mm/tlb.c                            |    4 -
+ arch/m32r/kernel/smp.c                        |   16 +--
+ arch/mips/kernel/cevt-smtc.c                  |    7 +
+ arch/mips/kernel/smp.c                        |   16 +--
+ arch/mips/kernel/smtc.c                       |   12 ++
+ arch/mips/mm/c-octeon.c                       |    4 -
+ arch/mips/mm/c-r4k.c                          |    5 +
+ arch/mn10300/mm/cache-smp.c                   |    3 +
+ arch/mn10300/mm/tlb-smp.c                     |   17 ++-
+ arch/powerpc/kernel/irq.c                     |    9 +-
+ arch/powerpc/kernel/machine_kexec_64.c        |    4 -
+ arch/powerpc/kernel/smp.c                     |    4 +
+ arch/powerpc/kvm/book3s_hv.c                  |    5 +
+ arch/powerpc/mm/mmu_context_nohash.c          |    3 +
+ arch/powerpc/oprofile/cell/spu_profiler.c     |    3 +
+ arch/powerpc/oprofile/cell/spu_task_sync.c    |    4 +
+ arch/powerpc/oprofile/op_model_cell.c         |    6 +
+ arch/sh/kernel/smp.c                          |   12 +-
+ arch/sparc/kernel/smp_64.c                    |   12 +-
+ arch/tile/kernel/module.c                     |    3 +
+ arch/tile/kernel/tlb.c                        |   15 +++
+ arch/tile/mm/homecache.c                      |    3 +
+ arch/x86/kernel/apic/io_apic.c                |   21 +++-
+ arch/x86/kernel/cpu/mcheck/therm_throt.c      |    4 -
+ arch/x86/kernel/cpu/perf_event_intel_uncore.c |    6 +
+ arch/x86/mm/tlb.c                             |   14 +--
+ arch/x86/xen/mmu.c                            |    9 +-
+ block/blk-softirq.c                           |    3 +
+ drivers/infiniband/hw/ehca/ehca_irq.c         |    5 +
+ drivers/scsi/fcoe/fcoe.c                      |    7 +
+ drivers/staging/octeon/ethernet-rx.c          |    3 +
+ include/linux/cpu.h                           |   29 +++++
+ include/linux/cpumask.h                       |  118 +++++++++++++++++++++
+ kernel/cpu.c                                  |  138 +++++++++++++++++++++++++
+ kernel/irq/manage.c                           |    7 +
+ kernel/irq/proc.c                             |    3 +
+ kernel/rcutree.c                              |   12 ++
+ kernel/sched/core.c                           |   27 ++++-
+ kernel/sched/fair.c                           |   14 ++-
+ kernel/sched/rt.c                             |   14 +++
+ kernel/smp.c                                  |   52 +++++----
+ kernel/softirq.c                              |    3 +
+ kernel/time/clocksource.c                     |    5 +
+ kernel/time/tick-broadcast.c                  |    8 +
+ kernel/timer.c                                |    4 +
+ lib/Kconfig.debug                             |    8 +
+ lib/cpumask.c                                 |    8 +
+ lib/percpu_counter.c                          |    9 +-
+ net/core/dev.c                                |    9 +-
+ virt/kvm/kvm_main.c                           |    8 +
+ 58 files changed, 674 insertions(+), 127 deletions(-)
+
 
 Regards,
-Alexey
+Srivatsa S. Bhat
+IBM Linux Technology Center
