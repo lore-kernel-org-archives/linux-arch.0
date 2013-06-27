@@ -1,50 +1,81 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH] arch: m32r: include: asm: add ioread*_rep() and iowrite*_rep()
-Date: Thu, 27 Jun 2013 09:07:29 +0200
-Message-ID: <CAMuHMdVCv=MOJ8C4U=QHntQKZ=rThoKvXorgcR6jFRCA8hLULQ@mail.gmail.com>
-References: <51CBA43F.9050000@asianux.com>
-	<51CBAA1E.8000206@asianux.com>
-	<51CBB1A9.5080203@asianux.com>
-	<51CBC186.3080401@asianux.com>
+From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Subject: Re: [PATCH v2 38/45] MIPS: Use get/put_online_cpus_atomic() to prevent
+ CPU offline
+Date: Thu, 27 Jun 2013 12:38:31 +0530
+Message-ID: <51CBE4EF.5040302@linux.vnet.ibm.com>
+References: <20130625202452.16593.22810.stgit@srivatsabhat.in.ibm.com> <20130625203257.16593.15358.stgit@srivatsabhat.in.ibm.com> <20130626133912.GA4559@linux-mips.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f50.google.com ([209.85.160.50]:48880 "EHLO
-	mail-pb0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752241Ab3F0HH3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 03:07:29 -0400
-In-Reply-To: <51CBC186.3080401@asianux.com>
+Received: from e28smtp01.in.ibm.com ([122.248.162.1]:44063 "EHLO
+	e28smtp01.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752268Ab3F0HL4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 03:11:56 -0400
+Received: from /spool/local
+	by e28smtp01.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
+	Thu, 27 Jun 2013 12:34:53 +0530
+In-Reply-To: <20130626133912.GA4559@linux-mips.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chen Gang <gang.chen@asianux.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: Hirokazu Takata <takata@linux-m32r.org>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: Ralf Baechle <ralf@linux-mips.org>
+Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, David Daney <david.daney@cavium.com>, Yong Zhang <yong.zhang0@gmail.com>, Sanjay Lal <sanjayl@kymasys.com>, "Steven J. Hill" <sjhill@mips.com>, John Crispin <blogic@openwrt.org>, Florian Fainelli <florian@openwrt.org>, linux-mips@linux-mips.org
 
-On Thu, Jun 27, 2013 at 6:37 AM, Chen Gang <gang.chen@asianux.com> wrote:
-> --- a/arch/m32r/include/asm/io.h
-> +++ b/arch/m32r/include/asm/io.h
-> @@ -169,6 +169,20 @@ static inline void _writel(unsigned long l, unsigned long addr)
->  #define iowrite16 writew
->  #define iowrite32 writel
->
-> +#define ioread8_rep(p, dst, count) \
-> +       insb((unsigned long) (p), (dst), (count))
+On 06/26/2013 07:09 PM, Ralf Baechle wrote:
+> On Wed, Jun 26, 2013 at 02:02:57AM +0530, Srivatsa S. Bhat wrote:
+> 
+>> Once stop_machine() is gone from the CPU offline path, we won't be able
+>> to depend on disabling preemption to prevent CPUs from going offline
+>> from under us.
+>>
+>> Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going
+>> offline, while invoking from atomic context.
+> 
+> I think the same change also needs to be applied to r4k_on_each_cpu() in
+> arch/mips/mm/c-r4k.c which currently looks like:
+> 
+> static inline void r4k_on_each_cpu(void (*func) (void *info), void *info)
+> {
+>         preempt_disable();
+> 
+> #if !defined(CONFIG_MIPS_MT_SMP) && !defined(CONFIG_MIPS_MT_SMTC)
+>         smp_call_function(func, info, 1);
+> #endif
+>         func(info);
+>         preempt_enable();
+> }
+> 
 
-As ioread8() is mapped to readb() (I/O memory space), not inb() (I/O
-port space),
-ioread8_rep() should map to readsb() (which m32r doesn't have yet
-BTW), not insb().
-For m32r this does matter, as inb() and readb() use different mechanisms
-internally.
+Thanks for pointing this out! I'll include changes to this code in my
+next version.
 
-It seems include/asm-generic/io.h also has this wrong?
+Regards,
+Srivatsa S. Bhat
 
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+> This is a slightly specialized version of on_each_cpu() which only calls
+> out to other CPUs in actual multi-core environments and also - unlike
+> on_each_cpu() doesn't disable interrupts for the sake of better
+> interrupt latencies.
+> 
+> Which reminds me ...
+> 
+> Andrew, I was wondering why did 78eef01b0fae087c5fadbd85dd4fe2918c3a015f
+> [[PATCH] on_each_cpu(): disable local interrupts] disable interrupts?
+> The log is:
+> 
+> ----- snip -----
+>     When on_each_cpu() runs the callback on other CPUs, it runs with local
+>     interrupts disabled.  So we should run the function with local interrupts
+>     disabled on this CPU, too.
+>     
+>     And do the same for UP, so the callback is run in the same environment on bo
+>     UP and SMP.  (strictly it should do preempt_disable() too, but I think
+>     local_irq_disable is sufficiently equivalent).
+> [...]
+> ----- snip -----
+> 
+> I'm not entirely convinced the symmetry between UP and SMP environments is
+> really worth it.  Would anybody mind removing the local_irq_disable() ...
+> local_irq_enable() from on_each_cpu()?
+> 
