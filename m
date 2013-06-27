@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp05.au.ibm.com ([202.81.31.147]:46771 "EHLO
-	e23smtp05.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754375Ab3F0T47 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 15:56:59 -0400
+Received: from e28smtp02.in.ibm.com ([122.248.162.2]:56178 "EHLO
+	e28smtp02.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754379Ab3F0T5t (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 15:57:49 -0400
 Received: from /spool/local
-	by e23smtp05.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp02.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 28 Jun 2013 05:50:48 +1000
+	Fri, 28 Jun 2013 01:19:45 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 06/45] CPU hotplug: Sprinkle debugging checks to catch
- locking bugs
-Date: Fri, 28 Jun 2013 01:23:31 +0530
-Message-ID: <20130627195331.29830.74970.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 11/45] sched/core: Use get/put_online_cpus_atomic() to
+ prevent CPU offline
+Date: Fri, 28 Jun 2013 01:24:25 +0530
+Message-ID: <20130627195425.29830.3829.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130627195136.29830.10445.stgit@srivatsabhat.in.ibm.com>
 References: <20130627195136.29830.10445.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,220 +20,125 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com, David.Laight@aculab.com
-Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Alex Shi <alex.shi@intel.com>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, Joonsoo Kim <js1304@gmail.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20130627195331.htrGoPSsUz6o-4gK1fmQQ_fFrNWuadvpuwk0RaXJS3I@z>
+Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20130627195425.yYG6xvFMaHj2yAwaTMqV_t5IBWYvZVePDU6V3AoQI24@z>
 
-Now that we have a debug infrastructure in place to detect cases where
-get/put_online_cpus_atomic() had to be used, add these checks at the
-right spots to help catch places where we missed converting to the new
-APIs.
+Once stop_machine() is gone from the CPU offline path, we won't be able
+to depend on disabling preemption to prevent CPUs from going offline
+from under us.
 
-Cc: Rusty Russell <rusty@rustcorp.com.au>
-Cc: Alex Shi <alex.shi@intel.com>
-Cc: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
-Cc: Tejun Heo <tj@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Joonsoo Kim <js1304@gmail.com>
+Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going
+offline, while invoking from atomic context.
+
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- include/linux/cpumask.h |   47 +++++++++++++++++++++++++++++++++++++++++++++--
- lib/cpumask.c           |    8 ++++++++
- 2 files changed, 53 insertions(+), 2 deletions(-)
+ kernel/sched/core.c |   23 +++++++++++++++++++++--
+ 1 file changed, 21 insertions(+), 2 deletions(-)
 
-diff --git a/include/linux/cpumask.h b/include/linux/cpumask.h
-index 9197ca4..06d2c36 100644
---- a/include/linux/cpumask.h
-+++ b/include/linux/cpumask.h
-@@ -169,6 +169,7 @@ static inline unsigned int cpumask_any_but(const struct cpumask *mask,
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index 9b1f2e5..9d870bf 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -1160,11 +1160,11 @@ void kick_process(struct task_struct *p)
+ {
+ 	int cpu;
+ 
+-	preempt_disable();
++	get_online_cpus_atomic();
+ 	cpu = task_cpu(p);
+ 	if ((cpu != smp_processor_id()) && task_curr(p))
+ 		smp_send_reschedule(cpu);
+-	preempt_enable();
++	put_online_cpus_atomic();
+ }
+ EXPORT_SYMBOL_GPL(kick_process);
+ #endif /* CONFIG_SMP */
+@@ -1172,6 +1172,9 @@ EXPORT_SYMBOL_GPL(kick_process);
+ #ifdef CONFIG_SMP
+ /*
+  * ->cpus_allowed is protected by both rq->lock and p->pi_lock
++ *
++ *  Must be called within get/put_online_cpus_atomic(), to prevent
++ *  CPUs from going offline from under us.
   */
- static inline unsigned int cpumask_first(const struct cpumask *srcp)
+ static int select_fallback_rq(int cpu, struct task_struct *p)
  {
-+	check_hotplug_safe_cpumask(srcp);
- 	return find_first_bit(cpumask_bits(srcp), nr_cpumask_bits);
- }
+@@ -1245,6 +1248,9 @@ out:
  
-@@ -184,6 +185,8 @@ static inline unsigned int cpumask_next(int n, const struct cpumask *srcp)
- 	/* -1 is a legal arg here. */
- 	if (n != -1)
- 		cpumask_check(n);
-+
-+	check_hotplug_safe_cpumask(srcp);
- 	return find_next_bit(cpumask_bits(srcp), nr_cpumask_bits, n+1);
- }
- 
-@@ -199,6 +202,8 @@ static inline unsigned int cpumask_next_zero(int n, const struct cpumask *srcp)
- 	/* -1 is a legal arg here. */
- 	if (n != -1)
- 		cpumask_check(n);
-+
-+	check_hotplug_safe_cpumask(srcp);
- 	return find_next_zero_bit(cpumask_bits(srcp), nr_cpumask_bits, n+1);
- }
- 
-@@ -288,8 +293,15 @@ static inline void cpumask_clear_cpu(int cpu, struct cpumask *dstp)
-  *
-  * No static inline type checking - see Subtlety (1) above.
+ /*
+  * The caller (fork, wakeup) owns p->pi_lock, ->cpus_allowed is stable.
++ *
++ * Must be called within get/put_online_cpus_atomic(), to prevent
++ * CPUs from going offline from under us.
   */
--#define cpumask_test_cpu(cpu, cpumask) \
--	test_bit(cpumask_check(cpu), cpumask_bits((cpumask)))
-+#define cpumask_test_cpu(cpu, cpumask)				\
-+({								\
-+	int __ret;						\
-+								\
-+	check_hotplug_safe_cpu(cpu, cpumask);			\
-+	__ret = test_bit(cpumask_check(cpu),			\
-+				cpumask_bits((cpumask)));	\
-+	__ret;							\
-+})
+ static inline
+ int select_task_rq(struct task_struct *p, int sd_flags, int wake_flags)
+@@ -1489,6 +1495,8 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
+ 	unsigned long flags;
+ 	int cpu, success = 0;
  
- /**
-  * cpumask_test_and_set_cpu - atomically test and set a cpu in a cpumask
-@@ -349,6 +361,9 @@ static inline int cpumask_and(struct cpumask *dstp,
- 			       const struct cpumask *src1p,
- 			       const struct cpumask *src2p)
- {
-+	check_hotplug_safe_cpumask(src1p);
-+	check_hotplug_safe_cpumask(src2p);
++	get_online_cpus_atomic();
 +
- 	return bitmap_and(cpumask_bits(dstp), cpumask_bits(src1p),
- 				       cpumask_bits(src2p), nr_cpumask_bits);
- }
-@@ -362,6 +377,9 @@ static inline int cpumask_and(struct cpumask *dstp,
- static inline void cpumask_or(struct cpumask *dstp, const struct cpumask *src1p,
- 			      const struct cpumask *src2p)
- {
-+	check_hotplug_safe_cpumask(src1p);
-+	check_hotplug_safe_cpumask(src2p);
-+
- 	bitmap_or(cpumask_bits(dstp), cpumask_bits(src1p),
- 				      cpumask_bits(src2p), nr_cpumask_bits);
- }
-@@ -376,6 +394,9 @@ static inline void cpumask_xor(struct cpumask *dstp,
- 			       const struct cpumask *src1p,
- 			       const struct cpumask *src2p)
- {
-+	check_hotplug_safe_cpumask(src1p);
-+	check_hotplug_safe_cpumask(src2p);
-+
- 	bitmap_xor(cpumask_bits(dstp), cpumask_bits(src1p),
- 				       cpumask_bits(src2p), nr_cpumask_bits);
- }
-@@ -392,6 +413,9 @@ static inline int cpumask_andnot(struct cpumask *dstp,
- 				  const struct cpumask *src1p,
- 				  const struct cpumask *src2p)
- {
-+	check_hotplug_safe_cpumask(src1p);
-+	check_hotplug_safe_cpumask(src2p);
-+
- 	return bitmap_andnot(cpumask_bits(dstp), cpumask_bits(src1p),
- 					  cpumask_bits(src2p), nr_cpumask_bits);
- }
-@@ -404,6 +428,8 @@ static inline int cpumask_andnot(struct cpumask *dstp,
- static inline void cpumask_complement(struct cpumask *dstp,
- 				      const struct cpumask *srcp)
- {
-+	check_hotplug_safe_cpumask(srcp);
-+
- 	bitmap_complement(cpumask_bits(dstp), cpumask_bits(srcp),
- 					      nr_cpumask_bits);
- }
-@@ -416,6 +442,9 @@ static inline void cpumask_complement(struct cpumask *dstp,
- static inline bool cpumask_equal(const struct cpumask *src1p,
- 				const struct cpumask *src2p)
- {
-+	check_hotplug_safe_cpumask(src1p);
-+	check_hotplug_safe_cpumask(src2p);
-+
- 	return bitmap_equal(cpumask_bits(src1p), cpumask_bits(src2p),
- 						 nr_cpumask_bits);
- }
-@@ -428,6 +457,10 @@ static inline bool cpumask_equal(const struct cpumask *src1p,
- static inline bool cpumask_intersects(const struct cpumask *src1p,
- 				     const struct cpumask *src2p)
- {
-+
-+	check_hotplug_safe_cpumask(src1p);
-+	check_hotplug_safe_cpumask(src2p);
-+
- 	return bitmap_intersects(cpumask_bits(src1p), cpumask_bits(src2p),
- 						      nr_cpumask_bits);
- }
-@@ -442,6 +475,9 @@ static inline bool cpumask_intersects(const struct cpumask *src1p,
- static inline int cpumask_subset(const struct cpumask *src1p,
- 				 const struct cpumask *src2p)
- {
-+	check_hotplug_safe_cpumask(src1p);
-+	check_hotplug_safe_cpumask(src2p);
-+
- 	return bitmap_subset(cpumask_bits(src1p), cpumask_bits(src2p),
- 						  nr_cpumask_bits);
- }
-@@ -470,6 +506,12 @@ static inline bool cpumask_full(const struct cpumask *srcp)
-  */
- static inline unsigned int cpumask_weight(const struct cpumask *srcp)
- {
-+	/*
-+	 * Often, we just want to have a rough estimate of the number of
-+	 * online CPUs, without going to the trouble of synchronizing with
-+	 * CPU hotplug. So don't invoke check_hotplug_safe_cpumask() here.
-+	 */
-+
- 	return bitmap_weight(cpumask_bits(srcp), nr_cpumask_bits);
+ 	smp_wmb();
+ 	raw_spin_lock_irqsave(&p->pi_lock, flags);
+ 	if (!(p->state & state))
+@@ -1531,6 +1539,7 @@ stat:
+ out:
+ 	raw_spin_unlock_irqrestore(&p->pi_lock, flags);
+ 
++	put_online_cpus_atomic();
+ 	return success;
  }
  
-@@ -507,6 +549,7 @@ static inline void cpumask_shift_left(struct cpumask *dstp,
- static inline void cpumask_copy(struct cpumask *dstp,
- 				const struct cpumask *srcp)
- {
-+	check_hotplug_safe_cpumask(srcp);
- 	bitmap_copy(cpumask_bits(dstp), cpumask_bits(srcp), nr_cpumask_bits);
- }
+@@ -1744,6 +1753,8 @@ void wake_up_new_task(struct task_struct *p)
+ 	unsigned long flags;
+ 	struct rq *rq;
  
-diff --git a/lib/cpumask.c b/lib/cpumask.c
-index d327b87..481df57 100644
---- a/lib/cpumask.c
-+++ b/lib/cpumask.c
-@@ -7,12 +7,14 @@
- 
- int __first_cpu(const cpumask_t *srcp)
- {
-+	check_hotplug_safe_cpumask(srcp);
- 	return min_t(int, NR_CPUS, find_first_bit(srcp->bits, NR_CPUS));
- }
- EXPORT_SYMBOL(__first_cpu);
- 
- int __next_cpu(int n, const cpumask_t *srcp)
- {
-+	check_hotplug_safe_cpumask(srcp);
- 	return min_t(int, NR_CPUS, find_next_bit(srcp->bits, NR_CPUS, n+1));
- }
- EXPORT_SYMBOL(__next_cpu);
-@@ -20,6 +22,7 @@ EXPORT_SYMBOL(__next_cpu);
- #if NR_CPUS > 64
- int __next_cpu_nr(int n, const cpumask_t *srcp)
- {
-+	check_hotplug_safe_cpumask(srcp);
- 	return min_t(int, nr_cpu_ids,
- 				find_next_bit(srcp->bits, nr_cpu_ids, n+1));
- }
-@@ -37,6 +40,9 @@ EXPORT_SYMBOL(__next_cpu_nr);
- int cpumask_next_and(int n, const struct cpumask *src1p,
- 		     const struct cpumask *src2p)
- {
-+	check_hotplug_safe_cpumask(src1p);
-+	check_hotplug_safe_cpumask(src2p);
++	get_online_cpus_atomic();
 +
- 	while ((n = cpumask_next(n, src1p)) < nr_cpu_ids)
- 		if (cpumask_test_cpu(n, src2p))
- 			break;
-@@ -57,6 +63,8 @@ int cpumask_any_but(const struct cpumask *mask, unsigned int cpu)
- 	unsigned int i;
- 
- 	cpumask_check(cpu);
-+	check_hotplug_safe_cpumask(mask);
+ 	raw_spin_lock_irqsave(&p->pi_lock, flags);
+ #ifdef CONFIG_SMP
+ 	/*
+@@ -1766,6 +1777,8 @@ void wake_up_new_task(struct task_struct *p)
+ 		p->sched_class->task_woken(rq, p);
+ #endif
+ 	task_rq_unlock(rq, p, &flags);
 +
- 	for_each_cpu(i, mask)
- 		if (i != cpu)
- 			break;
++	put_online_cpus_atomic();
+ }
+ 
+ #ifdef CONFIG_PREEMPT_NOTIFIERS
+@@ -3879,6 +3892,8 @@ bool __sched yield_to(struct task_struct *p, bool preempt)
+ 	unsigned long flags;
+ 	int yielded = 0;
+ 
++	get_online_cpus_atomic();
++
+ 	local_irq_save(flags);
+ 	rq = this_rq();
+ 
+@@ -3924,6 +3939,8 @@ out_unlock:
+ out_irq:
+ 	local_irq_restore(flags);
+ 
++	put_online_cpus_atomic();
++
+ 	if (yielded > 0)
+ 		schedule();
+ 
+@@ -4324,9 +4341,11 @@ static int migration_cpu_stop(void *data)
+ 	 * The original target cpu might have gone down and we might
+ 	 * be on another cpu but it doesn't matter.
+ 	 */
++	get_online_cpus_atomic();
+ 	local_irq_disable();
+ 	__migrate_task(arg->task, raw_smp_processor_id(), arg->dest_cpu);
+ 	local_irq_enable();
++	put_online_cpus_atomic();
+ 	return 0;
+ }
+ 
 
