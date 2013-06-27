@@ -1,53 +1,46 @@
 From: Chen Gang <gang.chen@asianux.com>
-Subject: [PATCH] arch: m32r: include: asm: add "dma-mapping-common.h"
-Date: Thu, 27 Jun 2013 12:50:59 +0800
-Message-ID: <51CBC4B3.807@asianux.com>
+Subject: [PATCH] arch: cris: mm: add a code block for variable declaration
+Date: Thu, 27 Jun 2013 14:43:55 +0800
+Message-ID: <51CBDF2B.8090304@asianux.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=windows-1252
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:7692 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750993Ab3F0Evw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 00:51:52 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Hirokazu Takata <takata@linux-m32r.org>
-Cc: "dhowells@redhat.com" <dhowells@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Paul McKenney <paulmck@linux.vnet.ibm.com>, "sfr@canb.auug.org.au" <sfr@canb.auug.org.au>, Rusty Russell <rusty@rustcorp.com.au>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: starvik@axis.com, Jesper Nilsson <jesper.nilsson@axis.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, shaohua.li@fusionio.com, linux-cris-kernel@axis.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Need add generic "dma-mapping-common.h", or compiling may fail.
+Need a code block for variable declaration, or can not pass compiling
+by old C compiler.
 
-The related error (with allmodconfig):
+The new C compiler will report the warning (with allmodconfig):
 
-    CC [M]  net/irda/irlan/irlan_eth.o
-  drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =91vb2_dc=
-_mmap=92:
-  drivers/media/v4l2-core/videobuf2-dma-contig.c:202:2: error: implicit=
- declaration of function =91dma_mmap_coherent=92 [-Werror=3Dimplicit-fu=
-nction-declaration]
-  drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =91vb2_dc=
-_get_base_sgt=92:
-  drivers/media/v4l2-core/videobuf2-dma-contig.c:385:2: error: implicit=
- declaration of function =91dma_get_sgtable=92 [-Werror=3Dimplicit-func=
-tion-declaration]
-
+  arch/cris/mm/fault.c: In function =91do_page_fault=92:
+  arch/cris/mm/fault.c:228:3: warning: ISO C90 forbids mixed declaratio=
+ns and code [-Wdeclaration-after-statement]
 
 Signed-off-by: Chen Gang <gang.chen@asianux.com>
 ---
- arch/m32r/include/asm/Kbuild |    1 +
- 1 files changed, 1 insertions(+), 0 deletions(-)
+ arch/cris/mm/fault.c |    6 ++++--
+ 1 files changed, 4 insertions(+), 2 deletions(-)
 
-diff --git a/arch/m32r/include/asm/Kbuild b/arch/m32r/include/asm/Kbuil=
-d
-index bebdc36..fecca22 100644
---- a/arch/m32r/include/asm/Kbuild
-+++ b/arch/m32r/include/asm/Kbuild
-@@ -1,5 +1,6 @@
+diff --git a/arch/cris/mm/fault.c b/arch/cris/mm/fault.c
+index 73312ab..919ab17c 100644
+--- a/arch/cris/mm/fault.c
++++ b/arch/cris/mm/fault.c
+@@ -225,8 +225,10 @@ retry:
+ 			show_registers(regs);
 =20
- generic-y +=3D clkdev.h
-+generic-y +=3D dma-mapping-common.h
- generic-y +=3D exec.h
- generic-y +=3D module.h
- generic-y +=3D trace_clock.h
+ #ifdef CONFIG_NO_SEGFAULT_TERMINATION
+-		DECLARE_WAIT_QUEUE_HEAD(wq);
+-		wait_event_interruptible(wq, 0 =3D=3D 1);
++		{
++			DECLARE_WAIT_QUEUE_HEAD(wq);
++			wait_event_interruptible(wq, 0 =3D=3D 1);
++		}
+ #else
+ 		info.si_signo =3D SIGSEGV;
+ 		info.si_errno =3D 0;
 --=20
 1.7.7.6
