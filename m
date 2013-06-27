@@ -1,54 +1,89 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH] arch: m32r: include: asm: add "dma-mapping-common.h"
-Date: Thu, 27 Jun 2013 17:40:33 +0800
-Message-ID: <51CC0891.9050704@asianux.com>
-References: <51CBC4B3.807@asianux.com> <2831217.RWPZkclVnp@wuerfel> <51CC0598.2080409@asianux.com>
+From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Subject: Re: [PATCH v2 15/45] rcu: Use get/put_online_cpus_atomic() to prevent
+ CPU offline
+Date: Thu, 27 Jun 2013 15:36:11 +0530
+Message-ID: <51CC0E93.1080608@linux.vnet.ibm.com>
+References: <20130625202452.16593.22810.stgit@srivatsabhat.in.ibm.com> <20130625202755.16593.67819.stgit@srivatsabhat.in.ibm.com> <20130625220026.GG3828@linux.vnet.ibm.com> <51CAF624.6060004@linux.vnet.ibm.com> <AE90C24D6B3A694183C094C60CF0A2F6026B72AA@saturn3.aculab.com> <20130626143424.GN3828@linux.vnet.ibm.com> <1372258271.18733.256.camel@gandalf.local.home> <20130626152148.GA4405@mtj.dyndns.org> <51CB3159.8000509@linux.vnet.ibm.com> <AE90C24D6B3A694183C094C60CF0A2F6026B72AB@saturn3.aculab.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:28044 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751408Ab3F0Jl1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 05:41:27 -0400
-In-Reply-To: <51CC0598.2080409@asianux.com>
+Received: from e23smtp03.au.ibm.com ([202.81.31.145]:49267 "EHLO
+	e23smtp03.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750752Ab3F0KJk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 06:09:40 -0400
+Received: from /spool/local
+	by e23smtp03.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
+	Thu, 27 Jun 2013 20:00:07 +1000
+In-Reply-To: <AE90C24D6B3A694183C094C60CF0A2F6026B72AB@saturn3.aculab.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Hirokazu Takata <takata@linux-m32r.org>, "dhowells@redhat.com" <dhowells@redhat.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, "sfr@canb.auug.org.au" <sfr@canb.auug.org.au>, Rusty Russell <rusty@rustcorp.com.au>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: David Laight <David.Laight@ACULAB.COM>
+Cc: Tejun Heo <tj@kernel.org>, peterz@infradead.org, fweisbec@gmail.com, oleg@redhat.com, walken@google.com, mingo@kernel.org, linux-arch@vger.kernel.org, vincent.guittot@linaro.org, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, paulmck@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, rusty@rustcorp.com.au, Steven Rostedt <rostedt@goodmis.org>, namhyung@kernel.org, tglx@linutronix.de, laijs@cn.fujitsu.com, zhong@linux.vnet.ibm.com, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, sbw@mit.edu, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
 
-On 06/27/2013 05:27 PM, Chen Gang wrote:
-> On 06/27/2013 04:30 PM, Arnd Bergmann wrote:
->> > On Thursday 27 June 2013 12:50:59 Chen Gang wrote:
->>> >> Need add generic "dma-mapping-common.h", or compiling may fail.
->>> >>
->>> >> The related error (with allmodconfig):
->>> >>
->>> >>     CC [M]  net/irda/irlan/irlan_eth.o
->>> >>   drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =E2=
-=80=98vb2_dc_mmap=E2=80=99:
->>> >>   drivers/media/v4l2-core/videobuf2-dma-contig.c:202:2: error: i=
-mplicit declaration of function =E2=80=98dma_mmap_coherent=E2=80=99 [-W=
-error=3Dimplicit-function-declaration]
->>> >>   drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =E2=
-=80=98vb2_dc_get_base_sgt=E2=80=99:
->>> >>   drivers/media/v4l2-core/videobuf2-dma-contig.c:385:2: error: i=
-mplicit declaration of function =E2=80=98dma_get_sgtable=E2=80=99 [-Wer=
-ror=3Dimplicit-function-declaration]
->>> >>
->>> >>
->>> >> Signed-off-by: Chen Gang <gang.chen@asianux.com>
->> >=20
->> > m32r does not provide the "common" version of the dma mapping API,=
- so this
->> > is certainly wrong.
->> >=20
+On 06/27/2013 02:24 PM, David Laight wrote:
+>>>>> It would also increase the latency of CPU-hotunplug operations.
+>>>>
+>>>> Is that a big deal?
+>>>
+>>> I thought that was the whole deal with this patchset - making cpu
+>>> hotunplugs lighter and faster mostly for powersaving.  That said, just
+>>> removing stop_machine call would be a pretty good deal and I don't
+>>> know how meaningful reducing CPU hotunplug latency is.  Srivatsa?
+>>>
+>>
+>> Keeping the hotunplug latency is important for suspend/resume, where
+>> we take all non-boot CPUs in a loop. That's an interesting use-case
+>> where intrusiveness doesn't matter much, but latency does. So yes,
+>> making CPU hotplug faster is also one of the goals of this patchset.
+> 
+> If you are removing all but one of the cpu, the you only need
+> one rcu cycle (remove everything from the list first).
+> 
 
-Oh, sorry, the reply below is incorrect, I will check it, again, thanks=
-=2E
+Hmm, yeah, but IIRC, back when we discussed this last time[1], we felt that
+would make the code a little bit hard to understand. But I think we can
+give it a shot to see how that goes and decide based on that. So thanks
+for bringing that up again!
 
-> But m32r really has pci.h, and also can cause this issue.
+BTW, one thing I'd like to emphasize again here is that we will not use
+the RCU-like concept to have 2 different masks - a stable online mask
+and an actual online mask (this is one of the approaches that we had
+discussed earlier[2]). The reason why we don't wanna go down that path is,
+its hard to determine who can survive by just looking at the stable online
+mask, and who needs to be aware of the actual online mask. That will
+surely lead to more bugs and headache.
+
+So the use of an RCU-like concept here would only be to ensure that all
+preempt-disabled sections complete, and we can switch the synchronization
+scheme to global rwlocks, like what we had proposed earlier[3]. So, that
+still requires call-sites to be converted from preempt_disable() to
+get/put_online_cpus_atomic().
+
+I just wanted to clarify where exactly the RCU concept would fit in,
+in the stop-machine() replacement scheme...
 
 
---=20
-Chen Gang
+> I'd also guess that you can't suspend a cpu until you can sleep
+> the process that is running on it - so if a process has pre-emption
+> disabled you aren't going to complete suspend until the process
+> sleeps (this wouldn't be true if you suspended the cpu with its
+> current stack - but if suspend is removing the non-boot cpus first
+> it must be doing so from the scheduler idle loop).
+> 
+> If you are doing suspend for aggressive power saving, then all the
+> processes (and processors) will already be idle. However you
+> probably wouldn't want the memory accesses to determine this on
+> a large NUMA system with 1024+ processors.
+> 
+
+References:
+
+[1]. http://lkml.indiana.edu/hypermail/linux/kernel/1212.2/01979.html
+[2]. http://thread.gmane.org/gmane.linux.kernel/1405145/focus=29336
+[3]. http://thread.gmane.org/gmane.linux.documentation/9520/focus=1443258
+     http://thread.gmane.org/gmane.linux.power-management.general/29464/focus=1407948
+
+Regards,
+Srivatsa S. Bhat
