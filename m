@@ -1,53 +1,62 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH] include/asm-generic/pci.h: include generic
- "pci-dma-compat.h"
-Date: Thu, 27 Jun 2013 09:29:20 +0100
-Message-ID: <20130627082920.GA14335@darko.cambridge.arm.com>
-References: <51CBB98D.3040304@asianux.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH] arch: m32r: include: asm: add ioread*_rep() and iowrite*_rep()
+Date: Thu, 27 Jun 2013 10:43:46 +0200
+Message-ID: <CAMuHMdX=n4y9o4qBU2jouH0aJP1BcJrgAKZFfgVTBTymWFB=6Q@mail.gmail.com>
+References: <51CBA43F.9050000@asianux.com>
+	<51CBC186.3080401@asianux.com>
+	<CAMuHMdVCv=MOJ8C4U=QHntQKZ=rThoKvXorgcR6jFRCA8hLULQ@mail.gmail.com>
+	<3279444.s8HediXDkj@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:42884 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752569Ab3F0IaW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 27 Jun 2013 04:30:22 -0400
-Content-Disposition: inline
-In-Reply-To: <51CBB98D.3040304@asianux.com>
+Received: from mail-pa0-f42.google.com ([209.85.220.42]:58563 "EHLO
+	mail-pa0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752426Ab3F0Inr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 04:43:47 -0400
+In-Reply-To: <3279444.s8HediXDkj@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chen Gang <gang.chen@asianux.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Will Deacon <Will.Deacon@arm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Hirokazu Takata <takata@linux-m32r.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-m32r-ja@ml.linux-m32r.org" <linux-m32r-ja@ml.linux-m32r.org>, "linux-m32r@ml.linux-m32r.org" <linux-m32r@ml.linux-m32r.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Chen Gang <gang.chen@asianux.com>, Hirokazu Takata <takata@linux-m32r.org>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On Thu, Jun 27, 2013 at 05:03:25AM +0100, Chen Gang wrote:
-> If an architecture need "generic pci.h", it also need generic "pci-dm=
-a-
-> compat.h",  so recommend to include it in asm-generic directly.
->=20
-> And now, for arm64 and m32r, may cause compiling error about it.
->=20
-> The related error (with allmodconfig):
->=20
->   drivers/media/usb/b2c2/flexcop-usb.c: In function =E2=80=98flexcop_=
-usb_transfer_exit=E2=80=99:
->   drivers/media/usb/b2c2/flexcop-usb.c:393:3: error: implicit declara=
-tion of function =E2=80=98pci_free_consistent=E2=80=99 [-Werror=3Dimpli=
-cit-function-declaration]
->   drivers/media/usb/b2c2/flexcop-usb.c: In function =E2=80=98flexcop_=
-usb_transfer_init=E2=80=99:
->   drivers/media/usb/b2c2/flexcop-usb.c:410:2: error: implicit declara=
-tion of function =E2=80=98pci_alloc_consistent=E2=80=99 [-Werror=3Dimpl=
-icit-function-declaration]
->   drivers/media/usb/b2c2/flexcop-usb.c:410:21: warning: assignment ma=
-kes pointer from integer without a cast [enabled by default]
->   cc1: some warnings being treated as errors
->=20
->=20
-> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+On Thu, Jun 27, 2013 at 10:25 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Thursday 27 June 2013 09:07:29 Geert Uytterhoeven wrote:
+>> On Thu, Jun 27, 2013 at 6:37 AM, Chen Gang <gang.chen@asianux.com> wrote:
+>> > --- a/arch/m32r/include/asm/io.h
+>> > +++ b/arch/m32r/include/asm/io.h
+>> > @@ -169,6 +169,20 @@ static inline void _writel(unsigned long l, unsigned long addr)
+>> >  #define iowrite16 writew
+>> >  #define iowrite32 writel
+>> >
+>> > +#define ioread8_rep(p, dst, count) \
+>> > +       insb((unsigned long) (p), (dst), (count))
+>>
+>> As ioread8() is mapped to readb() (I/O memory space), not inb() (I/O
+>> port space),
+>> ioread8_rep() should map to readsb() (which m32r doesn't have yet
+>> BTW), not insb().
+>> For m32r this does matter, as inb() and readb() use different mechanisms
+>> internally.
+>>
+>> It seems include/asm-generic/io.h also has this wrong?
+>
+> Yes, you are right. I thought we had fixed that long ago.
+>
+> Does the patch below look ok to you? Note that none of the architectures
+> using asm-generic/io.h supports PIO access and it works by chance
+> this way, but we should definitely fix it.
+>
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 
-=46rom the arm64 perspective:
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+Gr{oetje,eeting}s,
 
-(but make sure it doesn't break other archs)
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
