@@ -1,16 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp04.au.ibm.com ([202.81.31.146]:47310 "EHLO
-	e23smtp04.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754262Ab3F0T53 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 15:57:29 -0400
+Received: from e28smtp08.in.ibm.com ([122.248.162.8]:57333 "EHLO
+	e28smtp08.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754462Ab3F0T5e (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 15:57:34 -0400
 Received: from /spool/local
-	by e23smtp04.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp08.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 28 Jun 2013 05:42:51 +1000
+	Fri, 28 Jun 2013 01:18:47 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 08/45] CPU hotplug: Expose the new debug config option
-Date: Fri, 28 Jun 2013 01:23:58 +0530
-Message-ID: <20130627195358.29830.48847.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 09/45] CPU hotplug: Convert preprocessor macros to static
+ inline functions
+Date: Fri, 28 Jun 2013 01:24:11 +0530
+Message-ID: <20130627195411.29830.50898.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130627195136.29830.10445.stgit@srivatsabhat.in.ibm.com>
 References: <20130627195136.29830.10445.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -19,42 +20,46 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com, David.Laight@aculab.com
-Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, "Paul E. McKenney" <paul.mckenney@linaro.org>, Akinobu Mita <akinobu.mita@gmail.com>, Catalin Marinas <catalin.marinas@arm.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20130627195358.0iRz279bMexofLZT9IZ-D9PQIV9_VwEIe33USqWLjCM@z>
+Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, "Rafael J. Wysocki" <rjw@sisk.pl>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20130627195411.9Oj8H4GWD4Y_9vtfz3uykPqm6D7EIcOfUBTDQcGqQ7I@z>
 
-Now that we have all the pieces of the CPU hotplug debug infrastructure
-in place, expose the feature by growing a new Kconfig option,
-CONFIG_DEBUG_HOTPLUG_CPU.
+Convert the macros in the CPU hotplug code to static inline C functions.
 
+Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: "Paul E. McKenney" <paul.mckenney@linaro.org>
-Cc: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Michel Lespinasse <walken@google.com>
-Cc: Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>
+Cc: Tejun Heo <tj@kernel.org>
+Cc: "Rafael J. Wysocki" <rjw@sisk.pl>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- lib/Kconfig.debug |    8 ++++++++
- 1 file changed, 8 insertions(+)
+ include/linux/cpu.h |    9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
 
-diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-index 7154f79..42e17f0 100644
---- a/lib/Kconfig.debug
-+++ b/lib/Kconfig.debug
-@@ -512,6 +512,14 @@ config DEBUG_PREEMPT
- 	  if kernel code uses it in a preemption-unsafe way. Also, the kernel
- 	  will detect preemption count underflows.
+diff --git a/include/linux/cpu.h b/include/linux/cpu.h
+index a57b25a..85431a0 100644
+--- a/include/linux/cpu.h
++++ b/include/linux/cpu.h
+@@ -202,10 +202,8 @@ static inline void cpu_hotplug_driver_unlock(void)
  
-+config DEBUG_HOTPLUG_CPU
-+	bool "Debug CPU hotplug"
-+	depends on HOTPLUG_CPU
-+	help
-+	  If you say Y here, the kernel will check all the accesses of
-+	  cpu_online_mask from atomic contexts, and will print warnings if
-+	  the task lacks appropriate synchronization with CPU hotplug.
+ #else		/* CONFIG_HOTPLUG_CPU */
+ 
+-#define get_online_cpus()	do { } while (0)
+-#define put_online_cpus()	do { } while (0)
+-#define cpu_hotplug_disable()	do { } while (0)
+-#define cpu_hotplug_enable()	do { } while (0)
++static inline void get_online_cpus(void) {}
++static inline void put_online_cpus(void) {}
+ 
+ static inline unsigned int get_online_cpus_atomic(void)
+ {
+@@ -222,6 +220,9 @@ static inline void put_online_cpus_atomic(void)
+ 	preempt_enable();
+ }
+ 
++static inline void cpu_hotplug_disable(void) {}
++static inline void cpu_hotplug_enable(void) {}
 +
- config DEBUG_RT_MUTEXES
- 	bool "RT Mutex debugging, deadlock detection"
- 	depends on DEBUG_KERNEL && RT_MUTEXES
+ #define hotcpu_notifier(fn, pri)	do { (void)(fn); } while (0)
+ /* These aren't inline functions due to a GCC bug. */
+ #define register_hotcpu_notifier(nb)	({ (void)(nb); 0; })
 
