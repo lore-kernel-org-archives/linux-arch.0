@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp05.au.ibm.com ([202.81.31.147]:46673 "EHLO
-	e23smtp05.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753849Ab3F0UEX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 16:04:23 -0400
+Received: from e23smtp07.au.ibm.com ([202.81.31.140]:49877 "EHLO
+	e23smtp07.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754981Ab3F0UCg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 16:02:36 -0400
 Received: from /spool/local
-	by e23smtp05.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp07.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 28 Jun 2013 05:58:12 +1000
+	Fri, 28 Jun 2013 05:50:57 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 45/45] tile: Use get/put_online_cpus_atomic() to prevent
- CPU offline
-Date: Fri, 28 Jun 2013 01:30:54 +0530
-Message-ID: <20130627200054.29830.68222.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 36/45] ia64: smp,
+ tlb: Use get/put_online_cpus_atomic() to prevent CPU offline
+Date: Fri, 28 Jun 2013 01:29:07 +0530
+Message-ID: <20130627195907.29830.12505.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130627195136.29830.10445.stgit@srivatsabhat.in.ibm.com>
 References: <20130627195136.29830.10445.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com, David.Laight@aculab.com
-Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20130627200054.ZlTg1MriLIALa7cWiY558K9R0lUzkxzmM3dEObZq8UM@z>
+Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20130627195907.XnbDExdw4nrmk-ZFRzd26J4ZIhaUAbhm2xMlOpAv1lA@z>
 
 Once stop_machine() is gone from the CPU offline path, we won't be able
 to depend on disabling preemption to prevent CPUs from going offline
@@ -30,127 +30,87 @@ from under us.
 Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going
 offline, while invoking from atomic context.
 
-Cc: Chris Metcalf <cmetcalf@tilera.com>
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: linux-ia64@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/tile/kernel/module.c |    3 +++
- arch/tile/kernel/tlb.c    |   15 +++++++++++++++
- arch/tile/mm/homecache.c  |    3 +++
- 3 files changed, 21 insertions(+)
+ arch/ia64/kernel/smp.c |   12 ++++++------
+ arch/ia64/mm/tlb.c     |    4 ++--
+ 2 files changed, 8 insertions(+), 8 deletions(-)
 
-diff --git a/arch/tile/kernel/module.c b/arch/tile/kernel/module.c
-index 4918d91..db7d858 100644
---- a/arch/tile/kernel/module.c
-+++ b/arch/tile/kernel/module.c
-@@ -20,6 +20,7 @@
- #include <linux/fs.h>
- #include <linux/string.h>
- #include <linux/kernel.h>
+diff --git a/arch/ia64/kernel/smp.c b/arch/ia64/kernel/smp.c
+index 9fcd4e6..25991ba 100644
+--- a/arch/ia64/kernel/smp.c
++++ b/arch/ia64/kernel/smp.c
+@@ -24,6 +24,7 @@
+ #include <linux/init.h>
+ #include <linux/interrupt.h>
+ #include <linux/smp.h>
 +#include <linux/cpu.h>
- #include <asm/pgtable.h>
- #include <asm/homecache.h>
- #include <arch/opcode.h>
-@@ -79,8 +80,10 @@ void module_free(struct module *mod, void *module_region)
- 	vfree(module_region);
+ #include <linux/kernel_stat.h>
+ #include <linux/mm.h>
+ #include <linux/cache.h>
+@@ -259,8 +260,7 @@ smp_flush_tlb_cpumask(cpumask_t xcpumask)
+ 	cpumask_t cpumask = xcpumask;
+ 	int mycpu, cpu, flush_mycpu = 0;
  
- 	/* Globally flush the L1 icache. */
-+	get_online_cpus_atomic();
- 	flush_remote(0, HV_FLUSH_EVICT_L1I, cpu_online_mask,
- 		     0, 0, 0, NULL, NULL, 0);
+-	preempt_disable();
+-	mycpu = smp_processor_id();
++	mycpu = get_online_cpus_atomic();
+ 
+ 	for_each_cpu_mask(cpu, cpumask)
+ 		counts[cpu] = local_tlb_flush_counts[cpu].count & 0xffff;
+@@ -280,7 +280,7 @@ smp_flush_tlb_cpumask(cpumask_t xcpumask)
+ 		while(counts[cpu] == (local_tlb_flush_counts[cpu].count & 0xffff))
+ 			udelay(FLUSH_DELAY);
+ 
+-	preempt_enable();
 +	put_online_cpus_atomic();
+ }
  
- 	/*
- 	 * FIXME: If module_region == mod->module_init, trim exception
-diff --git a/arch/tile/kernel/tlb.c b/arch/tile/kernel/tlb.c
-index 3fd54d5..a32b9dd 100644
---- a/arch/tile/kernel/tlb.c
-+++ b/arch/tile/kernel/tlb.c
-@@ -14,6 +14,7 @@
-  */
- 
- #include <linux/cpumask.h>
-+#include <linux/cpu.h>
- #include <linux/module.h>
- #include <linux/hugetlb.h>
- #include <asm/tlbflush.h>
-@@ -35,6 +36,8 @@ void flush_tlb_mm(struct mm_struct *mm)
+ void
+@@ -293,12 +293,12 @@ void
+ smp_flush_tlb_mm (struct mm_struct *mm)
  {
- 	HV_Remote_ASID asids[NR_CPUS];
- 	int i = 0, cpu;
-+
+ 	cpumask_var_t cpus;
+-	preempt_disable();
 +	get_online_cpus_atomic();
- 	for_each_cpu(cpu, mm_cpumask(mm)) {
- 		HV_Remote_ASID *asid = &asids[i++];
- 		asid->y = cpu / smp_topology.width;
-@@ -43,6 +46,7 @@ void flush_tlb_mm(struct mm_struct *mm)
+ 	/* this happens for the common case of a single-threaded fork():  */
+ 	if (likely(mm == current->active_mm && atomic_read(&mm->mm_users) == 1))
+ 	{
+ 		local_finish_flush_tlb_mm(mm);
+-		preempt_enable();
++		put_online_cpus_atomic();
+ 		return;
  	}
- 	flush_remote(0, HV_FLUSH_EVICT_L1I, mm_cpumask(mm),
- 		     0, 0, 0, NULL, asids, i);
+ 	if (!alloc_cpumask_var(&cpus, GFP_ATOMIC)) {
+@@ -313,7 +313,7 @@ smp_flush_tlb_mm (struct mm_struct *mm)
+ 	local_irq_disable();
+ 	local_finish_flush_tlb_mm(mm);
+ 	local_irq_enable();
+-	preempt_enable();
 +	put_online_cpus_atomic();
  }
  
- void flush_tlb_current_task(void)
-@@ -55,8 +59,11 @@ void flush_tlb_page_mm(struct vm_area_struct *vma, struct mm_struct *mm,
- {
- 	unsigned long size = vma_kernel_pagesize(vma);
- 	int cache = (vma->vm_flags & VM_EXEC) ? HV_FLUSH_EVICT_L1I : 0;
-+
-+	get_online_cpus_atomic();
- 	flush_remote(0, cache, mm_cpumask(mm),
- 		     va, size, size, mm_cpumask(mm), NULL, 0);
+ void arch_send_call_function_single_ipi(int cpu)
+diff --git a/arch/ia64/mm/tlb.c b/arch/ia64/mm/tlb.c
+index ed61297..8c55ef5 100644
+--- a/arch/ia64/mm/tlb.c
++++ b/arch/ia64/mm/tlb.c
+@@ -87,11 +87,11 @@ wrap_mmu_context (struct mm_struct *mm)
+ 	 * can't call flush_tlb_all() here because of race condition
+ 	 * with O(1) scheduler [EF]
+ 	 */
+-	cpu = get_cpu(); /* prevent preemption/migration */
++	cpu = get_online_cpus_atomic(); /* prevent preemption/migration */
+ 	for_each_online_cpu(i)
+ 		if (i != cpu)
+ 			per_cpu(ia64_need_tlb_flush, i) = 1;
+-	put_cpu();
 +	put_online_cpus_atomic();
+ 	local_flush_tlb_all();
  }
  
- void flush_tlb_page(struct vm_area_struct *vma, unsigned long va)
-@@ -71,13 +78,18 @@ void flush_tlb_range(struct vm_area_struct *vma,
- 	unsigned long size = vma_kernel_pagesize(vma);
- 	struct mm_struct *mm = vma->vm_mm;
- 	int cache = (vma->vm_flags & VM_EXEC) ? HV_FLUSH_EVICT_L1I : 0;
-+
-+	get_online_cpus_atomic();
- 	flush_remote(0, cache, mm_cpumask(mm), start, end - start, size,
- 		     mm_cpumask(mm), NULL, 0);
-+	put_online_cpus_atomic();
- }
- 
- void flush_tlb_all(void)
- {
- 	int i;
-+
-+	get_online_cpus_atomic();
- 	for (i = 0; ; ++i) {
- 		HV_VirtAddrRange r = hv_inquire_virtual(i);
- 		if (r.size == 0)
-@@ -89,10 +101,13 @@ void flush_tlb_all(void)
- 			     r.start, r.size, HPAGE_SIZE, cpu_online_mask,
- 			     NULL, 0);
- 	}
-+	put_online_cpus_atomic();
- }
- 
- void flush_tlb_kernel_range(unsigned long start, unsigned long end)
- {
-+	get_online_cpus_atomic();
- 	flush_remote(0, HV_FLUSH_EVICT_L1I, cpu_online_mask,
- 		     start, end - start, PAGE_SIZE, cpu_online_mask, NULL, 0);
-+	put_online_cpus_atomic();
- }
-diff --git a/arch/tile/mm/homecache.c b/arch/tile/mm/homecache.c
-index 1ae9119..7ff5bf0 100644
---- a/arch/tile/mm/homecache.c
-+++ b/arch/tile/mm/homecache.c
-@@ -397,9 +397,12 @@ void homecache_change_page_home(struct page *page, int order, int home)
- 	BUG_ON(page_count(page) > 1);
- 	BUG_ON(page_mapcount(page) != 0);
- 	kva = (unsigned long) page_address(page);
-+
-+	get_online_cpus_atomic();
- 	flush_remote(0, HV_FLUSH_EVICT_L2, &cpu_cacheable_map,
- 		     kva, pages * PAGE_SIZE, PAGE_SIZE, cpu_online_mask,
- 		     NULL, 0);
-+	put_online_cpus_atomic();
- 
- 	for (i = 0; i < pages; ++i, kva += PAGE_SIZE) {
- 		pte_t *ptep = virt_to_pte(NULL, kva);
 
