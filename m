@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp05.in.ibm.com ([122.248.162.5]:33736 "EHLO
-	e28smtp05.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754772Ab3F0UAG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 16:00:06 -0400
+Received: from e23smtp07.au.ibm.com ([202.81.31.140]:49639 "EHLO
+	e23smtp07.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754535Ab3F0T7a (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 15:59:30 -0400
 Received: from /spool/local
-	by e28smtp05.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp07.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 28 Jun 2013 01:24:57 +0530
+	Fri, 28 Jun 2013 05:47:51 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 23/45] percpu_counter: Use _nocheck version of
- for_each_online_cpu()
-Date: Fri, 28 Jun 2013 01:26:41 +0530
-Message-ID: <20130627195641.29830.18825.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 19/45] softirq: Use get/put_online_cpus_atomic() to prevent
+ CPU offline
+Date: Fri, 28 Jun 2013 01:26:01 +0530
+Message-ID: <20130627195601.29830.15576.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130627195136.29830.10445.stgit@srivatsabhat.in.ibm.com>
 References: <20130627195136.29830.10445.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,47 +20,47 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com, David.Laight@aculab.com
-Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20130627195641.YSxzWzLwh319J3Stas49jLFzkw54Xr5s1Ls_HVIx66Q@z>
+Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.orgFrederic Weisbecker <fweisbec@gmail.com>, Sedat Dilek <sedat.dilek@gmail.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20130627195601.Pga3B4e97kfcQw57qkk0qSIOsSWAQzHZ83Y_Au2HJTc@z>
 
-The percpu-counter-sum code does a for_each_online_cpu() protected
-by a spinlock, which makes it look like it needs to use
-get/put_online_cpus_atomic(), going forward. However, the code has
-adequate synchronization with CPU hotplug, via a hotplug callback
-and the fbc->lock.
+Once stop_machine() is gone from the CPU offline path, we won't be able
+to depend on disabling preemption to prevent CPUs from going offline
+from under us.
 
-So use for_each_online_cpu_nocheck() to avoid false-positive warnings
-from the hotplug locking validator. And add a comment justifying the
-same.
+Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going
+offline, while invoking from atomic context.
 
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Tejun Heo <tj@kernel.org>
+Cc: Frederic Weisbecker <fweisbec@gmail.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Sedat Dilek <sedat.dilek@gmail.com>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- lib/percpu_counter.c |    9 ++++++++-
- 1 file changed, 8 insertions(+), 1 deletion(-)
+ kernel/softirq.c |    3 +++
+ 1 file changed, 3 insertions(+)
 
-diff --git a/lib/percpu_counter.c b/lib/percpu_counter.c
-index ba6085d..2d80e8a 100644
---- a/lib/percpu_counter.c
-+++ b/lib/percpu_counter.c
-@@ -98,9 +98,16 @@ s64 __percpu_counter_sum(struct percpu_counter *fbc)
- 	s64 ret;
- 	int cpu;
+diff --git a/kernel/softirq.c b/kernel/softirq.c
+index 3d6833f..c289722 100644
+--- a/kernel/softirq.c
++++ b/kernel/softirq.c
+@@ -644,14 +644,17 @@ static void remote_softirq_receive(void *data)
  
-+	/*
-+	 * CPU hotplug synchronization is explicitly handled via the
-+	 * hotplug callback, which synchronizes through fbc->lock.
-+	 * So it is safe to use the _nocheck() version of
-+	 * for_each_online_cpu() here (to avoid false-positive warnings
-+	 * from the CPU hotplug debug code).
-+	 */
- 	raw_spin_lock(&fbc->lock);
- 	ret = fbc->count;
--	for_each_online_cpu(cpu) {
-+	for_each_online_cpu_nocheck(cpu) {
- 		s32 *pcount = per_cpu_ptr(fbc->counters, cpu);
- 		ret += *pcount;
+ static int __try_remote_softirq(struct call_single_data *cp, int cpu, int softirq)
+ {
++	get_online_cpus_atomic();
+ 	if (cpu_online(cpu)) {
+ 		cp->func = remote_softirq_receive;
+ 		cp->info = &softirq;
+ 		cp->flags = 0;
+ 
+ 		__smp_call_function_single(cpu, cp, 0);
++		put_online_cpus_atomic();
+ 		return 0;
  	}
++	put_online_cpus_atomic();
+ 	return 1;
+ }
+ #else /* CONFIG_USE_GENERIC_SMP_HELPERS */
 
