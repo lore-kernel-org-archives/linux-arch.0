@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp07.au.ibm.com ([202.81.31.140]:49877 "EHLO
-	e23smtp07.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754981Ab3F0UCg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 16:02:36 -0400
+Received: from e28smtp09.in.ibm.com ([122.248.162.9]:39973 "EHLO
+	e28smtp09.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754539Ab3F0T7w (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 15:59:52 -0400
 Received: from /spool/local
-	by e23smtp07.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp09.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 28 Jun 2013 05:50:57 +1000
+	Fri, 28 Jun 2013 01:25:08 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 36/45] ia64: smp,
- tlb: Use get/put_online_cpus_atomic() to prevent CPU offline
-Date: Fri, 28 Jun 2013 01:29:07 +0530
-Message-ID: <20130627195907.29830.12505.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 21/45] net: Use get/put_online_cpus_atomic() to prevent CPU
+ offline
+Date: Fri, 28 Jun 2013 01:26:28 +0530
+Message-ID: <20130627195627.29830.19367.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130627195136.29830.10445.stgit@srivatsabhat.in.ibm.com>
 References: <20130627195136.29830.10445.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com, David.Laight@aculab.com
-Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20130627195907.XnbDExdw4nrmk-ZFRzd26J4ZIhaUAbhm2xMlOpAv1lA@z>
+Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Eric Dumazet <edumazet@google.com>, Alexander Duyck <alexander.h.duyck@intel.com>, Cong Wang <xiyou.wangcong@gmail.com>, Ben Hutchings <bhutchings@solarflare.com>netdev@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20130627195628._LSTB6zRwVWVSYvNp_t6maJjJayx0KSsN8GSNKCVrYQ@z>
 
 Once stop_machine() is gone from the CPU offline path, we won't be able
 to depend on disabling preemption to prevent CPUs from going offline
@@ -30,87 +30,74 @@ from under us.
 Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going
 offline, while invoking from atomic context.
 
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: linux-ia64@vger.kernel.org
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Eric Dumazet <edumazet@google.com>
+Cc: Alexander Duyck <alexander.h.duyck@intel.com>
+Cc: Cong Wang <xiyou.wangcong@gmail.com>
+Cc: Ben Hutchings <bhutchings@solarflare.com>
+Cc: netdev@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/ia64/kernel/smp.c |   12 ++++++------
- arch/ia64/mm/tlb.c     |    4 ++--
- 2 files changed, 8 insertions(+), 8 deletions(-)
+ net/core/dev.c |    9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
 
-diff --git a/arch/ia64/kernel/smp.c b/arch/ia64/kernel/smp.c
-index 9fcd4e6..25991ba 100644
---- a/arch/ia64/kernel/smp.c
-+++ b/arch/ia64/kernel/smp.c
-@@ -24,6 +24,7 @@
- #include <linux/init.h>
- #include <linux/interrupt.h>
- #include <linux/smp.h>
-+#include <linux/cpu.h>
- #include <linux/kernel_stat.h>
- #include <linux/mm.h>
- #include <linux/cache.h>
-@@ -259,8 +260,7 @@ smp_flush_tlb_cpumask(cpumask_t xcpumask)
- 	cpumask_t cpumask = xcpumask;
- 	int mycpu, cpu, flush_mycpu = 0;
+diff --git a/net/core/dev.c b/net/core/dev.c
+index faebb39..1530633 100644
+--- a/net/core/dev.c
++++ b/net/core/dev.c
+@@ -3175,7 +3175,7 @@ int netif_rx(struct sk_buff *skb)
+ 		struct rps_dev_flow voidflow, *rflow = &voidflow;
+ 		int cpu;
  
--	preempt_disable();
--	mycpu = smp_processor_id();
-+	mycpu = get_online_cpus_atomic();
+-		preempt_disable();
++		get_online_cpus_atomic();
+ 		rcu_read_lock();
  
- 	for_each_cpu_mask(cpu, cpumask)
- 		counts[cpu] = local_tlb_flush_counts[cpu].count & 0xffff;
-@@ -280,7 +280,7 @@ smp_flush_tlb_cpumask(cpumask_t xcpumask)
- 		while(counts[cpu] == (local_tlb_flush_counts[cpu].count & 0xffff))
- 			udelay(FLUSH_DELAY);
+ 		cpu = get_rps_cpu(skb->dev, skb, &rflow);
+@@ -3185,7 +3185,7 @@ int netif_rx(struct sk_buff *skb)
+ 		ret = enqueue_to_backlog(skb, cpu, &rflow->last_qtail);
  
--	preempt_enable();
-+	put_online_cpus_atomic();
- }
- 
- void
-@@ -293,12 +293,12 @@ void
- smp_flush_tlb_mm (struct mm_struct *mm)
- {
- 	cpumask_var_t cpus;
--	preempt_disable();
-+	get_online_cpus_atomic();
- 	/* this happens for the common case of a single-threaded fork():  */
- 	if (likely(mm == current->active_mm && atomic_read(&mm->mm_users) == 1))
- 	{
- 		local_finish_flush_tlb_mm(mm);
+ 		rcu_read_unlock();
 -		preempt_enable();
 +		put_online_cpus_atomic();
- 		return;
+ 	} else
+ #endif
+ 	{
+@@ -3604,6 +3604,7 @@ int netif_receive_skb(struct sk_buff *skb)
+ 		struct rps_dev_flow voidflow, *rflow = &voidflow;
+ 		int cpu, ret;
+ 
++		get_online_cpus_atomic();
+ 		rcu_read_lock();
+ 
+ 		cpu = get_rps_cpu(skb->dev, skb, &rflow);
+@@ -3611,9 +3612,11 @@ int netif_receive_skb(struct sk_buff *skb)
+ 		if (cpu >= 0) {
+ 			ret = enqueue_to_backlog(skb, cpu, &rflow->last_qtail);
+ 			rcu_read_unlock();
++			put_online_cpus_atomic();
+ 			return ret;
+ 		}
+ 		rcu_read_unlock();
++		put_online_cpus_atomic();
  	}
- 	if (!alloc_cpumask_var(&cpus, GFP_ATOMIC)) {
-@@ -313,7 +313,7 @@ smp_flush_tlb_mm (struct mm_struct *mm)
- 	local_irq_disable();
- 	local_finish_flush_tlb_mm(mm);
- 	local_irq_enable();
--	preempt_enable();
-+	put_online_cpus_atomic();
- }
+ #endif
+ 	return __netif_receive_skb(skb);
+@@ -3991,6 +3994,7 @@ static void net_rps_action_and_irq_enable(struct softnet_data *sd)
+ 		local_irq_enable();
  
- void arch_send_call_function_single_ipi(int cpu)
-diff --git a/arch/ia64/mm/tlb.c b/arch/ia64/mm/tlb.c
-index ed61297..8c55ef5 100644
---- a/arch/ia64/mm/tlb.c
-+++ b/arch/ia64/mm/tlb.c
-@@ -87,11 +87,11 @@ wrap_mmu_context (struct mm_struct *mm)
- 	 * can't call flush_tlb_all() here because of race condition
- 	 * with O(1) scheduler [EF]
- 	 */
--	cpu = get_cpu(); /* prevent preemption/migration */
-+	cpu = get_online_cpus_atomic(); /* prevent preemption/migration */
- 	for_each_online_cpu(i)
- 		if (i != cpu)
- 			per_cpu(ia64_need_tlb_flush, i) = 1;
--	put_cpu();
-+	put_online_cpus_atomic();
- 	local_flush_tlb_all();
- }
+ 		/* Send pending IPI's to kick RPS processing on remote cpus. */
++		get_online_cpus_atomic();
+ 		while (remsd) {
+ 			struct softnet_data *next = remsd->rps_ipi_next;
  
+@@ -3999,6 +4003,7 @@ static void net_rps_action_and_irq_enable(struct softnet_data *sd)
+ 							   &remsd->csd, 0);
+ 			remsd = next;
+ 		}
++		put_online_cpus_atomic();
+ 	} else
+ #endif
+ 		local_irq_enable();
 
