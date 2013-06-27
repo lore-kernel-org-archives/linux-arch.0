@@ -1,62 +1,51 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH] arch: m32r: include: asm: add ioread*_rep() and iowrite*_rep()
-Date: Thu, 27 Jun 2013 10:43:46 +0200
-Message-ID: <CAMuHMdX=n4y9o4qBU2jouH0aJP1BcJrgAKZFfgVTBTymWFB=6Q@mail.gmail.com>
-References: <51CBA43F.9050000@asianux.com>
-	<51CBC186.3080401@asianux.com>
-	<CAMuHMdVCv=MOJ8C4U=QHntQKZ=rThoKvXorgcR6jFRCA8hLULQ@mail.gmail.com>
-	<3279444.s8HediXDkj@wuerfel>
+From: "David Laight" <David.Laight@ACULAB.COM>
+Subject: RE: [PATCH v2 15/45] rcu: Use get/put_online_cpus_atomic() to prevent CPU offline
+Date: Thu, 27 Jun 2013 09:54:41 +0100
+Message-ID: <AE90C24D6B3A694183C094C60CF0A2F6026B72AB@saturn3.aculab.com>
+References: <20130625202452.16593.22810.stgit@srivatsabhat.in.ibm.com> <20130625202755.16593.67819.stgit@srivatsabhat.in.ibm.com> <20130625220026.GG3828@linux.vnet.ibm.com> <51CAF624.6060004@linux.vnet.ibm.com> <AE90C24D6B3A694183C094C60CF0A2F6026B72AA@saturn3.aculab.com> <20130626143424.GN3828@linux.vnet.ibm.com> <1372258271.18733.256.camel@gandalf.local.home> <20130626152148.GA4405@mtj.dyndns.org> <51CB3159.8000509@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f42.google.com ([209.85.220.42]:58563 "EHLO
-	mail-pa0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752426Ab3F0Inr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 04:43:47 -0400
-In-Reply-To: <3279444.s8HediXDkj@wuerfel>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Chen Gang <gang.chen@asianux.com>, Hirokazu Takata <takata@linux-m32r.org>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Content-Type: text/plain;
+	charset="Windows-1252"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-pm-owner@vger.kernel.org>
+Content-class: urn:content-classes:message
+In-Reply-To: <51CB3159.8000509@linux.vnet.ibm.com>
+Sender: linux-pm-owner@vger.kernel.org
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Tejun Heo <tj@kernel.org>
+Cc: Steven Rostedt <rostedt@goodmis.org>, paulmck@linux.vnet.ibm.com, peterz@infradead.org, fweisbec@gmail.com, linux-kernel@vger.kernel.org, walken@google.com, mingo@kernel.org, linux-arch@vger.kernel.org, vincent.guittot@linaro.org, xiaoguangrong@linux.vnet.ibm.com, wangyun@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, rusty@rustcorp.com.au, namhyung@kernel.org, tglx@linutronix.de, laijs@cn.fujitsu.com, zhong@linux.vnet.ibm.com, netdev@vger.kernel.org, oleg@redhat.com, sbw@mit.edu, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jun 27, 2013 at 10:25 AM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Thursday 27 June 2013 09:07:29 Geert Uytterhoeven wrote:
->> On Thu, Jun 27, 2013 at 6:37 AM, Chen Gang <gang.chen@asianux.com> wrote:
->> > --- a/arch/m32r/include/asm/io.h
->> > +++ b/arch/m32r/include/asm/io.h
->> > @@ -169,6 +169,20 @@ static inline void _writel(unsigned long l, unsigned long addr)
->> >  #define iowrite16 writew
->> >  #define iowrite32 writel
->> >
->> > +#define ioread8_rep(p, dst, count) \
->> > +       insb((unsigned long) (p), (dst), (count))
->>
->> As ioread8() is mapped to readb() (I/O memory space), not inb() (I/O
->> port space),
->> ioread8_rep() should map to readsb() (which m32r doesn't have yet
->> BTW), not insb().
->> For m32r this does matter, as inb() and readb() use different mechanisms
->> internally.
->>
->> It seems include/asm-generic/io.h also has this wrong?
->
-> Yes, you are right. I thought we had fixed that long ago.
->
-> Does the patch below look ok to you? Note that none of the architectures
-> using asm-generic/io.h supports PIO access and it works by chance
-> this way, but we should definitely fix it.
->
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> >>> It would also increase the latency of CPU-hotunplug operations.
+> >>
+> >> Is that a big deal?
+> >
+> > I thought that was the whole deal with this patchset - making cpu
+> > hotunplugs lighter and faster mostly for powersaving.  That said, just
+> > removing stop_machine call would be a pretty good deal and I don't
+> > know how meaningful reducing CPU hotunplug latency is.  Srivatsa?
+> >
+> 
+> Keeping the hotunplug latency is important for suspend/resume, where
+> we take all non-boot CPUs in a loop. That's an interesting use-case
+> where intrusiveness doesn't matter much, but latency does. So yes,
+> making CPU hotplug faster is also one of the goals of this patchset.
 
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+If you are removing all but one of the cpu, the you only need
+one rcu cycle (remove everything from the list first).
 
-Gr{oetje,eeting}s,
+I'd also guess that you can't suspend a cpu until you can sleep
+the process that is running on it - so if a process has pre-emption
+disabled you aren't going to complete suspend until the process
+sleeps (this wouldn't be true if you suspended the cpu with its
+current stack - but if suspend is removing the non-boot cpus first
+it must be doing so from the scheduler idle loop).
 
-                        Geert
+If you are doing suspend for aggressive power saving, then all the
+processes (and processors) will already be idle. However you
+probably wouldn't want the memory accesses to determine this on
+a large NUMA system with 1024+ processors.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+	David
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+
+
