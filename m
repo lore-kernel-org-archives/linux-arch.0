@@ -1,56 +1,74 @@
-From: David Howells <dhowells@redhat.com>
-Subject: SCSI vs MN10300: Can get_user() be given an array?
-Date: Fri, 28 Jun 2013 17:39:33 +0100
-Message-ID: <5885.1372437573@warthog.procyon.org.uk>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Subject: Re: SCSI vs MN10300: Can get_user() be given an array?
+Date: Fri, 28 Jun 2013 11:16:59 -0700
+Message-ID: <1372443419.1884.12.camel@dabdike>
+References: <5885.1372437573@warthog.procyon.org.uk>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="ISO-8859-15"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:47389 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754704Ab3F1Qjj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 28 Jun 2013 12:39:39 -0400
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:47015 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751276Ab3F1SRC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 28 Jun 2013 14:17:02 -0400
+In-Reply-To: <5885.1372437573@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-scsi@vger.kernel.org
-Cc: dhowells@redhat.com, Akira Takeuchi <takeuchi.akr@jp.panasonic.com>
+To: David Howells <dhowells@redhat.com>
+Cc: linux-arch@vger.kernel.org, linux-scsi@vger.kernel.org, Akira Takeuchi <takeuchi.akr@jp.panasonic.com>
 
+On Fri, 2013-06-28 at 17:39 +0100, David Howells wrote:
+> The MN10300 arch is throwing up an error in the SCSI driver and I'm not sure
+> whether it needs fixing in the arch - in get_user() - or in the SCSI code.
+> 
+> The problem is this line in sg_scsi_ioctl():
+> 
+> 	if (get_user(opcode, sic->data))
+> 
+> sic points to the following struct:
+> 
+> 	typedef struct scsi_ioctl_command {
+> 		unsigned int inlen;
+> 		unsigned int outlen;
+> 		unsigned char data[0];
+> 	} Scsi_Ioctl_Command;
+> 
+> However, __get_user_check() on MN10300 does this:
+> 
+> 	const __typeof__(ptr) __guc_ptr = (ptr);
+> 
+> which fails with:
+> 
+> 	block/scsi_ioctl.c:450: error: invalid initializer
+> 
+> The question is what is SCSI actually asking get_user() to do?  As far as I
+> can tell, gcc thinks that it's being askied to declare some sort of array
+> here.
 
-The MN10300 arch is throwing up an error in the SCSI driver and I'm not sure
-whether it needs fixing in the arch - in get_user() - or in the SCSI code.
+I'm surprised you need to ask this.  by convention, an array of char is
+usable as a pointer to char *.  The compiler therefore thinks this is a
+legitimate conversion which doesn't need a cast:
 
-The problem is this line in sg_scsi_ioctl():
+	unsigned char *d = sic->data;
 
-	if (get_user(opcode, sic->data))
+Therefore, sic->data should be usable as a char * pointer everywhere.
 
-sic points to the following struct:
+> Should the SCSI driver be changed to:
+> 
+> 	if (get_user(opcode, (unsigned char *)sic->data))
 
-	typedef struct scsi_ioctl_command {
-		unsigned int inlen;
-		unsigned int outlen;
-		unsigned char data[0];
-	} Scsi_Ioctl_Command;
+can we visit reality for a minute?  That proposal would require us to do
+an explicit (unsigned char *) conversion everywhere we use an array as a
+pointer value ... good grief, no!
 
-However, __get_user_check() on MN10300 does this:
+> or should the MN10300 arch be changed to morph the array into a pointer,
+> perhaps with:
+> 
+> 	const __typeof__(ptr[0])* __guc_ptr = (ptr);
 
-	const __typeof__(ptr) __guc_ptr = (ptr);
+Neither.  It should do what every other architecture does, which is:
 
-which fails with:
+	const __typeof__(*(ptr)) *__guc_ptr = (ptr);
 
-	block/scsi_ioctl.c:450: error: invalid initializer
-
-The question is what is SCSI actually asking get_user() to do?  As far as I
-can tell, gcc thinks that it's being askied to declare some sort of array
-here.
-
-Should the SCSI driver be changed to:
-
-	if (get_user(opcode, (unsigned char *)sic->data))
-
-or should the MN10300 arch be changed to morph the array into a pointer,
-perhaps with:
-
-	const __typeof__(ptr[0])* __guc_ptr = (ptr);
-
-or:
-
-	const __typeof__(*ptr)* __guc_ptr = (ptr);
-
-David
+James
