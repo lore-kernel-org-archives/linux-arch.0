@@ -1,94 +1,52 @@
 From: Chen Gang <gang.chen@asianux.com>
-Subject: [PATCH] include/linux/interrupt.h: add dummy irq_set_irq_wake() for
- "!GENERIC_HARDIRQS"
-Date: Fri, 28 Jun 2013 09:23:08 +0800
-Message-ID: <51CCE57C.5000901@asianux.com>
-References: <51C8F685.6000209@asianux.com> <20130625064832.GA4999@osiris> <51C94599.1020707@asianux.com> <20130625090928.GA8981@osiris> <51CBA6B6.1010809@asianux.com> <20130627081845.GA3824@osiris> <51CC046F.2050009@asianux.com>
+Subject: [PATCH] arch: tile: include: asm: add cmpxchg64() definition
+Date: Fri, 28 Jun 2013 09:51:35 +0800
+Message-ID: <51CCEC27.8050508@asianux.com>
+References: <51CA6D21.3090901@asianux.com> <51CC492C.1040105@tilera.com> <51CCD891.8000806@asianux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
+Content-Type: text/plain; charset=GB2312
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:57809 "EHLO
+Received: from intranet.asianux.com ([58.214.24.6]:45166 "EHLO
 	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753743Ab3F1BYC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 21:24:02 -0400
-In-Reply-To: <51CC046F.2050009@asianux.com>
+	with ESMTP id S1753249Ab3F1Bw3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 21:52:29 -0400
+In-Reply-To: <51CCD891.8000806@asianux.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: paul.mckenney@linaro.org, josh@joshtriplett.org, Ben Hutchings <bhutchings@solarflare.com>, decot@googlers.com
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux390@de.ibm.com, linux-s390@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
+To: Chris Metcalf <cmetcalf@tilera.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-Since irq_set_irq_wake() has already declared in header file, when
-GENERIC_HARDIRQS enabled.
+Need add cmpxchg64(), or will cause compiling issue.
 
-Recommend to define the dummy one for GENERIC_HARDIRQS disabled, and
-also let the other related "static inline" functions are independent
-from GENERIC_HARDIRQS.
+Just define it as cmpxchg(), since cmpxchg() can support 8 bytes.
 
-So can avoid the compiling error below, and also let the code simpler
-and clearer.
+The related error (with allmodconfig):
 
-The related compiling error (ARCH=3Ds390 allmodconfig):
-
-  sound/soc/codecs/wm0010.c: In function =91wm0010_spi_probe=92:
-  sound/soc/codecs/wm0010.c:976:2: error: implicit declaration of funct=
-ion =91irq_set_irq_wake=92 [-Werror=3Dimplicit-function-declaration]
-
+  drivers/block/blockconsole.c: In function =A1=AEbcon_advance_console_=
+bytes=A1=AF:
+  drivers/block/blockconsole.c:164:2: error: implicit declaration of fu=
+nction =A1=AEcmpxchg64=A1=AF [-Werror=3Dimplicit-function-declaration]
 
 Signed-off-by: Chen Gang <gang.chen@asianux.com>
 ---
- include/linux/interrupt.h |   23 ++++++++++-------------
- 1 files changed, 10 insertions(+), 13 deletions(-)
+ arch/tile/include/asm/cmpxchg.h |    2 ++
+ 1 files changed, 2 insertions(+), 0 deletions(-)
 
-diff --git a/include/linux/interrupt.h b/include/linux/interrupt.h
-index 5fa5afe..1a311e0 100644
---- a/include/linux/interrupt.h
-+++ b/include/linux/interrupt.h
-@@ -344,16 +344,6 @@ static inline void enable_irq_lockdep_irqrestore(u=
-nsigned int irq, unsigned long
- /* IRQ wakeup (PM) control: */
- extern int irq_set_irq_wake(unsigned int irq, unsigned int on);
+diff --git a/arch/tile/include/asm/cmpxchg.h b/arch/tile/include/asm/cm=
+pxchg.h
+index 276f067..7688c28 100644
+--- a/arch/tile/include/asm/cmpxchg.h
++++ b/arch/tile/include/asm/cmpxchg.h
+@@ -68,6 +68,8 @@ extern unsigned long __cmpxchg_called_with_bad_pointe=
+r(void);
 =20
--static inline int enable_irq_wake(unsigned int irq)
--{
--	return irq_set_irq_wake(irq, 1);
--}
--
--static inline int disable_irq_wake(unsigned int irq)
--{
--	return irq_set_irq_wake(irq, 0);
--}
--
- #else /* !CONFIG_GENERIC_HARDIRQS */
- /*
-  * NOTE: non-genirq architectures, if they want to support the lock
-@@ -370,16 +360,23 @@ static inline int disable_irq_wake(unsigned int i=
-rq)
- 						enable_irq(irq)
- # endif
+ #define tas(ptr) (xchg((ptr), 1))
 =20
--static inline int enable_irq_wake(unsigned int irq)
-+/* IRQ wakeup (PM) control: */
-+static inline int irq_set_irq_wake(unsigned int irq, unsigned int on)
- {
- 	return 0;
- }
-=20
-+#endif /* CONFIG_GENERIC_HARDIRQS */
++#define cmpxchg64(ptr, o, n)		cmpxchg((ptr), (o), (n))
 +
-+static inline int enable_irq_wake(unsigned int irq)
-+{
-+	return irq_set_irq_wake(irq, 1);
-+}
-+
- static inline int disable_irq_wake(unsigned int irq)
- {
--	return 0;
-+	return irq_set_irq_wake(irq, 0);
- }
--#endif /* CONFIG_GENERIC_HARDIRQS */
+ #endif /* __ASSEMBLY__ */
 =20
-=20
- #ifdef CONFIG_IRQ_FORCED_THREADING
+ #endif /* _ASM_TILE_CMPXCHG_H */
 --=20
 1.7.7.6
