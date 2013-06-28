@@ -1,52 +1,85 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: [PATCH] arch: tile: include: asm: add cmpxchg64() definition
-Date: Fri, 28 Jun 2013 09:51:35 +0800
-Message-ID: <51CCEC27.8050508@asianux.com>
-References: <51CA6D21.3090901@asianux.com> <51CC492C.1040105@tilera.com> <51CCD891.8000806@asianux.com>
+From: "Wang, Yalin" <Yalin.Wang@sonymobile.com>
+Subject: RE: ARM pagetable setting in Linux
+Date: Fri, 28 Jun 2013 10:18:48 +0800
+Message-ID: <35FD53F367049845BC99AC72306C23D19441BF5867@CNBJMBX05.corpusers.net>
+References: <35FD53F367049845BC99AC72306C23D19441BF5863@CNBJMBX05.corpusers.net>
+ <20130626171649.GG10333@mudshark.cambridge.arm.com>
+ <20130626175430.GH2718@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=GB2312
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:45166 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753249Ab3F1Bw3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jun 2013 21:52:29 -0400
-In-Reply-To: <51CCD891.8000806@asianux.com>
+Received: from cnbjrel01.sonyericsson.com ([219.141.167.165]:8541 "EHLO
+	cnbjrel01.sonyericsson.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753652Ab3F1CSy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 27 Jun 2013 22:18:54 -0400
+In-Reply-To: <20130626175430.GH2718@n2100.arm.linux.org.uk>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@tilera.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, Will Deacon <will.deacon@arm.com>
+Cc: "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
-Need add cmpxchg64(), or will cause compiling issue.
-
-Just define it as cmpxchg(), since cmpxchg() can support 8 bytes.
-
-The related error (with allmodconfig):
-
-  drivers/block/blockconsole.c: In function =A1=AEbcon_advance_console_=
-bytes=A1=AF:
-  drivers/block/blockconsole.c:164:2: error: implicit declaration of fu=
-nction =A1=AEcmpxchg64=A1=AF [-Werror=3Dimplicit-function-declaration]
-
-Signed-off-by: Chen Gang <gang.chen@asianux.com>
----
- arch/tile/include/asm/cmpxchg.h |    2 ++
- 1 files changed, 2 insertions(+), 0 deletions(-)
-
-diff --git a/arch/tile/include/asm/cmpxchg.h b/arch/tile/include/asm/cm=
-pxchg.h
-index 276f067..7688c28 100644
---- a/arch/tile/include/asm/cmpxchg.h
-+++ b/arch/tile/include/asm/cmpxchg.h
-@@ -68,6 +68,8 @@ extern unsigned long __cmpxchg_called_with_bad_pointe=
-r(void);
-=20
- #define tas(ptr) (xchg((ptr), 1))
-=20
-+#define cmpxchg64(ptr, o, n)		cmpxchg((ptr), (o), (n))
-+
- #endif /* __ASSEMBLY__ */
-=20
- #endif /* _ASM_TILE_CMPXCHG_H */
---=20
-1.7.7.6
+RGVhciAgQm90aCwNCg0KVGhhbmtzIGZvciB5b3VyIHJlcGx5ICwNCg0KbW1tLi4uICAgVGhlIG1l
+YW5pbmcgb2YgdGhlIGZpcnN0IGxldmVsIHBhZ2V0YWJsZXMgbmVlZCBjb3B5IGlzIHRoYXQgOg0K
+DQpodHRwczovL2dpdC5rZXJuZWwub3JnL2NnaXQvbGludXgva2VybmVsL2dpdC93aWxsL2xpbnV4
+LmdpdC90cmVlL2FyY2gvYXJtL21tL2ZhdWx0LmM/aD1taXNjLXBhdGNoZXMNCg0KbGluZTo0NzQg
+ICAoZG9fdHJhbnNsYXRpb25fZmF1bHQoKSkNClRoaXMgaGFwcGVuZWQgaWYgc29tZSBrZXJuZWwg
+ZHJpdmVycyBjYWxsIHZtYWxsb2MgLyBrbWFwIC8gaW9yZW1hcCBmdW5jdGlvbiwNCkl0IGNhbiBo
+YXBwZW4gIGV2ZW4gYWZ0ZXIgZm9yaygpIGEgbmV3IHByb2Nlc3MgLg0KDQoNCg0KaHR0cHM6Ly9n
+aXQua2VybmVsLm9yZy9jZ2l0L2xpbnV4L2tlcm5lbC9naXQvd2lsbC9saW51eC5naXQvdHJlZS9h
+cmNoL2FybS9tbS9wZ2QuYz9oPW1pc2MtcGF0Y2hlcw0KDQpsaW5lOjUwIChwZ2RfYWxsb2MoKSkN
+ClRoaXMganVzdCBoYXBwZW5lZCB3aGVuIGZvcmsoKSBhIG5ldyBwcm9jZXNzIC4NCg0KDQpBbnl3
+YXksIEkgc2VlIHlvdXIgY29uY2VybnMgbm93ICwgDQpJIHdpbGwgaGF2ZSBhIGRpc2N1c3Npb24g
+YWJvdXQgdGhpcyAuDQoNClRoYW5rIHlvdSBib3RoICENCg0KDQotLS0tLU9yaWdpbmFsIE1lc3Nh
+Z2UtLS0tLQ0KRnJvbTogUnVzc2VsbCBLaW5nIC0gQVJNIExpbnV4IFttYWlsdG86bGludXhAYXJt
+LmxpbnV4Lm9yZy51a10gDQpTZW50OiBUaHVyc2RheSwgSnVuZSAyNywgMjAxMyAxOjU1IEFNDQpU
+bzogV2lsbCBEZWFjb24NCkNjOiBXYW5nLCBZYWxpbjsgJ2xpbnV4LWFyY2hAdmdlci5rZXJuZWwu
+b3JnJzsgJ2xpbnV4LWtlcm5lbEB2Z2VyLmtlcm5lbC5vcmcnOyBsaW51eC1hcm0ta2VybmVsQGxp
+c3RzLmluZnJhZGVhZC5vcmcNClN1YmplY3Q6IFJlOiBBUk0gcGFnZXRhYmxlIHNldHRpbmcgaW4g
+TGludXgNCg0KQXMgSSBkb24ndCBoYXZlIHRoZSBvcmlnaW5hbCBtYWlsIChiZWNhdXNlIGl0IHdh
+c24ndCBjb3BpZWQgdG8gdGhlIHJpZ2h0DQpsaXN0KSBJIGNhbid0IHJlcGx5IHRvIHRoZSBvcmln
+aW5hbCBhdXRob3IsIHNvIEknbGwgZG8gaXQgbGlrZSB0aGlzIGluc3RlYWQuDQoNCk9uIFdlZCwg
+SnVuIDI2LCAyMDEzIGF0IDA2OjE2OjQ5UE0gKzAxMDAsIFdpbGwgRGVhY29uIHdyb3RlOg0KPiBb
+YWRkaW5nIHRoZSBBUk0gbGlzdCAtLSBwbGVhc2UgdHJ5IGFuZCByZW1lbWJlciB0byBkbyB0aGF0
+IGluIGZ1dHVyZV0NCj4gDQo+IE9uIFdlZCwgSnVuIDI2LCAyMDEzIGF0IDAzOjQxOjQwQU0gKzAx
+MDAsIFdhbmcsIFlhbGluIHdyb3RlOg0KPiA+IEhpICBXaWxsLA0KPiANCj4gSGVsbG8sDQo+IA0K
+PiA+IEkgaGF2ZSBhIHF1ZXN0aW9uIGFib3V0ICBhcm0gcGFnZXRhYmxlIHNldHRpbmcgaW4gTGlu
+dXggLg0KPiA+IA0KPiA+IEZyb20gYXJtVjYsICB0aGVyZSBpcyBUVEJSMCBhbmQgVFRCUjEgIHRy
+YW5zbGF0aW9uIGJhc2UgYWRkcmVzcyByZWdpc3RlcnMgIGluIG1tdSAuDQo+ID4gQnV0IEkgIGZv
+dW5kIGxpbnV4IG9ubHkgdXNlIFRUQlIwIGZvciB0cmFuc2xhdGlvbiBiYXNlIGFkZHJlc3MgLCAN
+Cj4gPiBDb3VsZCB3ZSB1c2UgVFRCUjAgYW5kIFRUQlIxIHRvIHNwbGl0IHVzZXIgdGFzayBhbmQg
+a2VybmVsIA0KPiA+IHBhZ2V0YWJsZXMgKHN3YXBwZXJfcGdfZGlyKe+8nw0KDQpXZSBkb24ndCB1
+c2UgVFRCUjEgYmVjYXVzZSB0aGUgY29uZmlndXJhYmxlIHBhZ2UgdGFibGUgc3BsaXRzIGJldHdl
+ZW4NClRUQlIwIGFuZCBUVEJSMSBhcmUgbm90IGFwcHJvcHJpYXRlIGZvciBMaW51eCBrZXJuZWxz
+LiAgVGhlIGNvbW1vbiBjb25maWd1cmF0aW9uIGlzIHRvIGhhdmUgM0dCIG9mIHVzZXJzcGFjZSBh
+bmQgMUdCIG9mIGtlcm5lbCBzcGFjZS4NCg0KSG93ZXZlciwgdGhlIFRUQlIgc3BsaXRzIHN1cHBv
+cnRlZCBhcmUgMkdCLCAxR0IsIDUxMk1CIGV0Yy4gIEFzIEkgaGFkIHByaW9yIGtub3dsZWRnZSBv
+ZiBBUk12NiBiZWZvcmUgaXQgd2FzIHJlbGVhc2VkLCBJIHJhaXNlZCB0aGlzIHBvaW50IHdpdGgg
+QVJNIEx0ZCBiZWNhdXNlIEkga25ldyB0aGF0IGl0IHdvdWxkIG5vdCBiZSBhcHByb3ByaWF0ZSBm
+b3IgTGludXguDQpVbmZvcnR1bmF0ZWx5LCB0aGUgcmVzcG9uc2Ugd2FzIGJhc2ljYWxseSB0aGF0
+IHRoZXkgZGlkbid0IHdhbnQgdG8ga25vdy4NClNvLCBhcyB0aGUgaGFyZHdhcmUgcHJvdmlkZWQg
+c3VwcG9ydCBtaXNtYXRjaGVzIHdoYXQgd2Ugd2FudCwgd2UgZG9uJ3QgdXNlIHRoZSBmZWF0dXJl
+Lg0KDQpJdCdzIGFzIHNpbXBsZSBhcyB0aGF0OyBoYWQgd2UgYmVlbiBsaXN0ZW5lZCB0byBhbmQg
+dGhlIGFyY2hpdGVjdHVyZSBhbHRlcmVkIHRvIGRvIHdoYXQgd2UgcmVxdWlyZWQsIHRoZW4gd2Un
+ZCBiZSB1c2luZyBpdC4uLg0KDQo+ID4gMS4gQmVjYXVzZSB3ZSBkb27igJl0IG5lZWQgY29weSBr
+ZXJuZWwgZmlyc3Qg4oCTbGV2ZWwgcGFnZXRhYmxlcyBpbnRvIA0KPiA+IGV2ZXJ5IFVzZXIgdGFz
+a+KAmXMgcGFnZXRhYmxlcyBhbmQgZmx1c2ggdGxiIChmb3IgZXhhbXBsZSBmb3JrKCkgYSBuZXcg
+cHJvY2VzcykuDQo+IA0KPiBXZWxsLCB5b3Ugc3RpbGwgbmVlZCB0aGUgVExCIG1haW50ZW5hbmNl
+IGZvciBzZXR0aW5nIHVwIENvVywgc28gdGhpcyANCj4gd2luIGlzIHByb2JhYmx5IG5vdCB2ZXJ5
+IGJpZy4NCj4gDQo+ID4gMi4gQW5kIGRvbuKAmXQgbmVlZCBoYW5kbGUga2VybmVsIHBhZ2UgZmF1
+bHQgYmVjYXVzZSB0aGF0IHVzZXIgdGFza+KAmXMgDQo+ID4ga2VybmVsIFBhZ2V0YWJsZSB3aGVu
+IGl0IGlzIG5vdCBzZXQgdXAgLCBuZWVkIGNvcHkgYWdhaW4oIGZvciANCj4gPiBleGFtcGxlIHZt
+YWxsb2MoKSAgaW9yZW1hcCgpICBrbWFwKCkgIHdpbGwgY2hhbmdlIEtlcm5lbCBwYWdldGFibGVz
+IGFuZCBuZWVkIHVwZGF0ZSB0byBldmVyeSB0YXNrIHBhZ2V0YWJsZXMgKSAuDQo+IA0KPiBJcyB0
+aGF0IHJlYWxseSBhIGZhc3RwYXRoPw0KDQpObyBpdCBpc24ndCwgYmVjYXVzZSBmb3IgYWxsIG9m
+IHRoZSBhYm92ZSBjYXNlcyB3ZSdyZSB0YWxraW5nIGFib3V0IGNvcHlpbmcNCkwxIHBhZ2UgdGFi
+bGUgZW50cmllcywgbm90IHRoZSBpbmRpdmlkdWFsIEwyIHBhZ2UgdGFibGUgZW50cmllcyBiZXR3
+ZWVuIHRocmVhZHMuDQoNCkV2ZXJ5IHBhZ2UgdGFibGUgYWJvdmUgVEFTS19TSVpFIGdldHMgc2hh
+cmVkIGJldHdlZW4gcHJvY2Vzc2VzLCBhbmQgb25jZSBpdCdzIGJlZW4gc2hhcmVkIHRvIGEgcHJv
+Y2VzcywgYW55IG5ldyBwcm9jZXNzIGZvcmtlZCBmcm9tIHRoYXQgZ2V0cyBpdHMgb3duIHBvaW50
+ZXIgdG8gdGhhdCAybmQgbGV2ZWwgcGFnZSB0YWJsZSBpbW1lZGlhdGVseS4NCg0KU28sIGR1cmlu
+ZyB0aGUgaW5pdGlhbCBib290IHRoZXJlIHdpbGwgYmUgYSBudW1iZXIgb2YgdGhlIEwxIGNvcGll
+cywgYnV0IHRoZSBzeXN0ZW0gd2lsbCBzdGFiaWxpemUgYW5kIHRoZXJlIHdpbGwgYmUgbm8gZnVy
+dGhlciBMMSBmYXVsdGVkIGNvcGllcyBuZWVkZWQuDQo=
