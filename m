@@ -1,91 +1,56 @@
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Re: [PATCH] arch: tile: include: asm: add cmpxchg64() definition
-Date: Fri, 28 Jun 2013 17:09:41 +0200
-Message-ID: <20130628150941.GA22767@linux-mips.org>
-References: <51CA6D21.3090901@asianux.com>
- <51CC492C.1040105@tilera.com>
- <51CCD891.8000806@asianux.com>
- <51CCEC27.8050508@asianux.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+From: David Howells <dhowells@redhat.com>
+Subject: SCSI vs MN10300: Can get_user() be given an array?
+Date: Fri, 28 Jun 2013 17:39:33 +0100
+Message-ID: <5885.1372437573@warthog.procyon.org.uk>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from eddie.linux-mips.org ([78.24.191.182]:33480 "EHLO
-	cvs.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750818Ab3F1PJy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Jun 2013 11:09:54 -0400
-Received: from localhost.localdomain ([127.0.0.1]:56662 "EHLO linux-mips.org"
-        rhost-flags-OK-OK-OK-FAIL) by eddie.linux-mips.org with ESMTP
-        id S6823114Ab3F1PJxoND2q (ORCPT <rfc822;linux-arch@vger.kernel.org>
-        + 1 other); Fri, 28 Jun 2013 17:09:53 +0200
-Content-Disposition: inline
-In-Reply-To: <51CCEC27.8050508@asianux.com>
+Received: from mx1.redhat.com ([209.132.183.28]:47389 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754704Ab3F1Qjj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 28 Jun 2013 12:39:39 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chen Gang <gang.chen@asianux.com>, =?iso-8859-1?Q?J=F6rn?= Engel <joern@logfs.org>
-Cc: Chris Metcalf <cmetcalf@tilera.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Paul Gortmaker <paul.gortmaker@windriver.com>
+To: linux-arch@vger.kernel.org, linux-scsi@vger.kernel.org
+Cc: dhowells@redhat.com, Akira Takeuchi <takeuchi.akr@jp.panasonic.com>
 
-On Fri, Jun 28, 2013 at 09:51:35AM +0800, Chen Gang wrote:
 
-> Need add cmpxchg64(), or will cause compiling issue.
->=20
-> Just define it as cmpxchg(), since cmpxchg() can support 8 bytes.
->=20
-> The related error (with allmodconfig):
->=20
->   drivers/block/blockconsole.c: In function =E2=80=98bcon_advance_con=
-sole_bytes=E2=80=99:
->   drivers/block/blockconsole.c:164:2: error: implicit declaration of =
-function =E2=80=98cmpxchg64=E2=80=99 [-Werror=3Dimplicit-function-decla=
-ration]
->=20
-> Signed-off-by: Chen Gang <gang.chen@asianux.com>
-> ---
->  arch/tile/include/asm/cmpxchg.h |    2 ++
->  1 files changed, 2 insertions(+), 0 deletions(-)
->=20
-> diff --git a/arch/tile/include/asm/cmpxchg.h b/arch/tile/include/asm/=
-cmpxchg.h
-> index 276f067..7688c28 100644
-> --- a/arch/tile/include/asm/cmpxchg.h
-> +++ b/arch/tile/include/asm/cmpxchg.h
-> @@ -68,6 +68,8 @@ extern unsigned long __cmpxchg_called_with_bad_poin=
-ter(void);
-> =20
->  #define tas(ptr) (xchg((ptr), 1))
-> =20
-> +#define cmpxchg64(ptr, o, n)		cmpxchg((ptr), (o), (n))
+The MN10300 arch is throwing up an error in the SCSI driver and I'm not sure
+whether it needs fixing in the arch - in get_user() - or in the SCSI code.
 
-that's broken.  cmpxchg64 is suposed to work on 64 bit operands ONLY.  =
-This
-definition (used by MIPS and Alpha) will work properly:
+The problem is this line in sg_scsi_ioctl():
 
-#define cmpxchg64(ptr, o, n)                                           =
- \
-({                                                                     =
- \
-	BUILD_BUG_ON(sizeof(*(ptr)) !=3D 8);                              \
-	cmpxchg((ptr), (o), (n));                                       \
-})
+	if (get_user(opcode, sic->data))
 
-This should cure blockconsole on Tile but not on MIPS.
+sic points to the following struct:
 
-struct blockconsole {
-=2E..
-           u64 console_bytes;
-=2E..
-};
+	typedef struct scsi_ioctl_command {
+		unsigned int inlen;
+		unsigned int outlen;
+		unsigned char data[0];
+	} Scsi_Ioctl_Command;
 
-static void bcon_advance_console_bytes(struct blockconsole *bc, int byt=
-es)
-{
-	u64 old, new;
-	...
-	} while (cmpxchg64(&bc->console_bytes, old, new) !=3D old);
-}
+However, __get_user_check() on MN10300 does this:
 
-So it's using cmpxchg64() to operate on 64 bit objects - but that's not
-going to work on every architecture.  Many 32 bit architectures only
-provide atomic operations that operate on 32 bit quantities.
+	const __typeof__(ptr) __guc_ptr = (ptr);
 
-  Ralf
+which fails with:
+
+	block/scsi_ioctl.c:450: error: invalid initializer
+
+The question is what is SCSI actually asking get_user() to do?  As far as I
+can tell, gcc thinks that it's being askied to declare some sort of array
+here.
+
+Should the SCSI driver be changed to:
+
+	if (get_user(opcode, (unsigned char *)sic->data))
+
+or should the MN10300 arch be changed to morph the array into a pointer,
+perhaps with:
+
+	const __typeof__(ptr[0])* __guc_ptr = (ptr);
+
+or:
+
+	const __typeof__(*ptr)* __guc_ptr = (ptr);
+
+David
