@@ -1,74 +1,66 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: SCSI vs MN10300: Can get_user() be given an array?
-Date: Fri, 28 Jun 2013 11:16:59 -0700
-Message-ID: <1372443419.1884.12.camel@dabdike>
-References: <5885.1372437573@warthog.procyon.org.uk>
+From: Tejun Heo <tj@kernel.org>
+Subject: Re: [PATCH] WIP: HACK: LPAE, BOOTMEM and NO_BOOTMEM
+Date: Sat, 29 Jun 2013 10:57:43 -0700
+Message-ID: <20130629175743.GA382@mtj.dyndns.org>
+References: <1372467663-31425-1-git-send-email-santosh.shilimkar@ti.com>
+ <20130629152959.GB31339@mtj.dyndns.org>
+ <20130629172123.GA3353@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-15"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:47015 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751276Ab3F1SRC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 28 Jun 2013 14:17:02 -0400
-In-Reply-To: <5885.1372437573@warthog.procyon.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: linux-arch@vger.kernel.org, linux-scsi@vger.kernel.org, Akira Takeuchi <takeuchi.akr@jp.panasonic.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <sparclinux-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20130629172123.GA3353@n2100.arm.linux.org.uk>
+Sender: sparclinux-owner@vger.kernel.org
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: Santosh Shilimkar <santosh.shilimkar@ti.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Nicolas Pitre <nicolas.pitre@linaro.org>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, 2013-06-28 at 17:39 +0100, David Howells wrote:
-> The MN10300 arch is throwing up an error in the SCSI driver and I'm not sure
-> whether it needs fixing in the arch - in get_user() - or in the SCSI code.
-> 
-> The problem is this line in sg_scsi_ioctl():
-> 
-> 	if (get_user(opcode, sic->data))
-> 
-> sic points to the following struct:
-> 
-> 	typedef struct scsi_ioctl_command {
-> 		unsigned int inlen;
-> 		unsigned int outlen;
-> 		unsigned char data[0];
-> 	} Scsi_Ioctl_Command;
-> 
-> However, __get_user_check() on MN10300 does this:
-> 
-> 	const __typeof__(ptr) __guc_ptr = (ptr);
-> 
-> which fails with:
-> 
-> 	block/scsi_ioctl.c:450: error: invalid initializer
-> 
-> The question is what is SCSI actually asking get_user() to do?  As far as I
-> can tell, gcc thinks that it's being askied to declare some sort of array
-> here.
+( Expanding cc list, original thread is at
+  http://thread.gmane.org/gmane.linux.kernel/1518046 )
 
-I'm surprised you need to ask this.  by convention, an array of char is
-usable as a pointer to char *.  The compiler therefore thinks this is a
-legitimate conversion which doesn't need a cast:
+Hello,
 
-	unsigned char *d = sic->data;
-
-Therefore, sic->data should be usable as a char * pointer everywhere.
-
-> Should the SCSI driver be changed to:
+On Sat, Jun 29, 2013 at 06:21:24PM +0100, Russell King - ARM Linux wrote:
+> Unfortunately, that has not been true on ARM - it's very common for
+> there to be an offset on physical memory, sometimes of the order of
+> 3GB or more.  This is because on reset, ARMs start executing the code
+> at physical address zero, which therefore can't be RAM - and there's
+> a desire to avoid complex switching games in hardware to temporarily
+> map ROM there instead of RAM.
 > 
-> 	if (get_user(opcode, (unsigned char *)sic->data))
+> On these SoCs which Santosh is working on, the main physical memory
+> mapping is above 4GB, with just a small alias below 4GB to allow the
+> system to boot without the MMU being on, as they may have more than
+> 4GB of RAM.  As I understand it, the small alias below 4GB is not
+> suitable for use as a "lowmem" mapping.
 
-can we visit reality for a minute?  That proposal would require us to do
-an explicit (unsigned char *) conversion everywhere we use an array as a
-pointer value ... good grief, no!
+Ah, okay, so the @limit which is in physical address can be over 4GB
+even for lowmem mappings and alloc_bootmem takes them in ulongs,
+urghhh....
 
-> or should the MN10300 arch be changed to morph the array into a pointer,
-> perhaps with:
-> 
-> 	const __typeof__(ptr[0])* __guc_ptr = (ptr);
+Given that still about half of the archs aren't using memblock yet, I
+think there are three options.
 
-Neither.  It should do what every other architecture does, which is:
+1. Converting all bootmem interface to use physaddr_t.  But that's
+   what memblock is.
 
-	const __typeof__(*(ptr)) *__guc_ptr = (ptr);
+2. Introducing new interface.  Easier right now but the danger there
+   is that it might end up duplicating most of alloc_bootmem()
+   interface anyway and we'll have yet another variant of early mem
+   allocator to enjoy.
 
-James
+3. Make all generic code use memblock interface instead of bootmem and
+   implement memblock wrapper on archs which don't use memblock yet.
+   We'll probably need to sort out different combinations of
+   HAVE_MEMBLOCK and NO_BOOTMEM.  If this is doable, it probably is
+   the most future proof way.  While it adds new memblock interface
+   built on top of bootmem, it would also allow removing the bootmem
+   interface built on top of memblock - ie. nobootmem.c, which
+   probably is what we should have done from the beginning.
+
+What do you guys think?
+
+Thanks.
+
+-- 
+tejun
