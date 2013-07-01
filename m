@@ -1,57 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f171.google.com ([209.85.223.171]:65370 "EHLO
-	mail-ie0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752055Ab3F2UIN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 29 Jun 2013 16:08:13 -0400
+Received: from intranet.asianux.com ([58.214.24.6]:38621 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751729Ab3GACJn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 30 Jun 2013 22:09:43 -0400
+Message-ID: <51D0E4B3.6080402@asianux.com>
+Date: Mon, 01 Jul 2013 10:08:51 +0800
+From: Chen Gang <gang.chen@asianux.com>
 MIME-Version: 1.0
-In-Reply-To: <20130629195549.GE3353@n2100.arm.linux.org.uk>
-References: <1372467663-31425-1-git-send-email-santosh.shilimkar@ti.com>
-	<20130629152959.GB31339@mtj.dyndns.org>
-	<20130629172123.GA3353@n2100.arm.linux.org.uk>
-	<20130629175743.GA382@mtj.dyndns.org>
-	<CAE9FiQXHuP-n0eZ9wN73V4nSvE+XEExDsx1t50_=YaW+V=LGLg@mail.gmail.com>
-	<20130629195549.GE3353@n2100.arm.linux.org.uk>
-Date: Sat, 29 Jun 2013 13:08:13 -0700
-Message-ID: <CAE9FiQUoVNvWmmTV2+ZkU_nMxFToTHw6QLwp_Z_EjwMzqdLwuA@mail.gmail.com>
-Subject: Re: [PATCH] WIP: HACK: LPAE, BOOTMEM and NO_BOOTMEM
-From: Yinghai Lu <yinghai@kernel.org>
-Content-Type: text/plain; charset=ISO-8859-1
+Subject: Re: [PATCH] arch: tile: include: asm: add cmpxchg64() definition
+References: <51CA6D21.3090901@asianux.com> <51CC492C.1040105@tilera.com> <51CCD891.8000806@asianux.com> <51CCEC27.8050508@asianux.com> <20130628150941.GA22767@linux-mips.org>
+In-Reply-To: <20130628150941.GA22767@linux-mips.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Tejun Heo <tj@kernel.org>, Santosh Shilimkar <santosh.shilimkar@ti.com>, linux-arm-kernel@lists.infradead.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Nicolas Pitre <nicolas.pitre@linaro.org>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, "David S. Miller" <davem@davemloft.net>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, linux-arch@vger.kernel.org
-Message-ID: <20130629200813.rlGVO_6y4Ayw5bjaARnwwiCHOtOy8FloKORyi0ZJIyg@z>
+To: Ralf Baechle <ralf@linux-mips.org>
+Cc: =?UTF-8?B?SsO2cm4gRW5nZWw=?= <joern@logfs.org>, Chris Metcalf <cmetcalf@tilera.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Paul Gortmaker <paul.gortmaker@windriver.com>
+Message-ID: <20130701020851.pwLfgyY_Y_B1INjkI0wVcHeiEuEPOmKQaq4LieEp1mw@z>
 
-On Sat, Jun 29, 2013 at 12:55 PM, Russell King - ARM Linux
-<linux@arm.linux.org.uk> wrote:
-> On Sat, Jun 29, 2013 at 12:29:55PM -0700, Yinghai Lu wrote:
->> >> On these SoCs which Santosh is working on, the main physical memory
->> >> mapping is above 4GB, with just a small alias below 4GB to allow the
->> >> system to boot without the MMU being on, as they may have more than
->> >> 4GB of RAM.  As I understand it, the small alias below 4GB is not
->> >> suitable for use as a "lowmem" mapping.
+
+Firstly thank you very much for replying quickly with details.
+
+On 06/28/2013 11:09 PM, Ralf Baechle wrote:
+> On Fri, Jun 28, 2013 at 09:51:35AM +0800, Chen Gang wrote:
+> 
+>> Need add cmpxchg64(), or will cause compiling issue.
 >>
->> is that 32bit ARM or 64bit ARM?
->
-> Only 32-bit has LPAE.  Such things don't make sense on 64-bit CPUs.
+>> Just define it as cmpxchg(), since cmpxchg() can support 8 bytes.
+>>
+>> The related error (with allmodconfig):
+>>
+>>   drivers/block/blockconsole.c: In function ‘bcon_advance_console_bytes’:
+>>   drivers/block/blockconsole.c:164:2: error: implicit declaration of function ‘cmpxchg64’ [-Werror=implicit-function-declaration]
+>>
+>> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+>> ---
+>>  arch/tile/include/asm/cmpxchg.h |    2 ++
+>>  1 files changed, 2 insertions(+), 0 deletions(-)
+>>
+>> diff --git a/arch/tile/include/asm/cmpxchg.h b/arch/tile/include/asm/cmpxchg.h
+>> index 276f067..7688c28 100644
+>> --- a/arch/tile/include/asm/cmpxchg.h
+>> +++ b/arch/tile/include/asm/cmpxchg.h
+>> @@ -68,6 +68,8 @@ extern unsigned long __cmpxchg_called_with_bad_pointer(void);
+>>  
+>>  #define tas(ptr) (xchg((ptr), 1))
+>>  
+>> +#define cmpxchg64(ptr, o, n)		cmpxchg((ptr), (o), (n))
+> 
+> that's broken.  cmpxchg64 is suposed to work on 64 bit operands ONLY.  This
+> definition (used by MIPS and Alpha) will work properly:
+> 
 
-32bit ARM does not support NO_BOOTMEM yet.
+Oh, really it is. thanks.
 
-arch/arc/Kconfig:       select NO_BOOTMEM
-arch/arm64/Kconfig:     select NO_BOOTMEM
-arch/sparc/Kconfig:     select NO_BOOTMEM
-arch/x86/Kconfig:config NO_BOOTMEM
+> #define cmpxchg64(ptr, o, n)                                            \
+> ({                                                                      \
+> 	BUILD_BUG_ON(sizeof(*(ptr)) != 8);                              \
+> 	cmpxchg((ptr), (o), (n));                                       \
+> })
+> 
+
+I should follow it to send patch v2, thanks.
+
+> This should cure blockconsole on Tile but not on MIPS.
+> 
+> struct blockconsole {
+> ..
+>            u64 console_bytes;
+> ..
+> };
+> 
+> static void bcon_advance_console_bytes(struct blockconsole *bc, int bytes)
+> {
+> 	u64 old, new;
+> 	...
+> 	} while (cmpxchg64(&bc->console_bytes, old, new) != old);
+> }
+> 
+> So it's using cmpxchg64() to operate on 64 bit objects - but that's not
+> going to work on every architecture.  Many 32 bit architectures only
+> provide atomic operations that operate on 32 bit quantities.
+> 
+
+I guess your meaning is:
+
+  cmpxchg64() should be an atomic operation.
+  but on some of 32-bit architectures, they don't implement it as atomic
+    (no lock protected, at least).
+  it may cause issue on these 32-bit architectures.
+
+Is it correct ?
+
+If it is correct, I should continue to try to fix it.
 
 
-so may need to
-1. make 32bit ARM to use NO_BOOTMEM at first.
-
-2 .we can add alloc_memblock as MACRO or inline for bootmem arches,
-
-3. NO_BOOTMEM arches will have alloc_memblock in nobootmem.c
-
-4. replace alloc_bootmem calling with alloc_memblock calling in core code.
-
-Thanks
-
-Yinghai
+Thanks.
+-- 
+Chen Gang
