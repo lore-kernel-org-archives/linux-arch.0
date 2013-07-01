@@ -1,100 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:38621 "EHLO
+Received: from intranet.asianux.com ([58.214.24.6]:54861 "EHLO
 	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751729Ab3GACJn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 30 Jun 2013 22:09:43 -0400
-Message-ID: <51D0E4B3.6080402@asianux.com>
-Date: Mon, 01 Jul 2013 10:08:51 +0800
+	with ESMTP id S1752038Ab3GACoF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 30 Jun 2013 22:44:05 -0400
+Message-ID: <51D0ECC2.3020101@asianux.com>
+Date: Mon, 01 Jul 2013 10:43:14 +0800
 From: Chen Gang <gang.chen@asianux.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH] arch: tile: include: asm: add cmpxchg64() definition
-References: <51CA6D21.3090901@asianux.com> <51CC492C.1040105@tilera.com> <51CCD891.8000806@asianux.com> <51CCEC27.8050508@asianux.com> <20130628150941.GA22767@linux-mips.org>
-In-Reply-To: <20130628150941.GA22767@linux-mips.org>
+Subject: Re: [PATCH] arch: m68k: include: asm: define 'VM_DATA_DEFAULT_FLAGS'
+ no matter whether has 'NOMMU' or not.
+References: <51C548E2.1060104@asianux.com>
+In-Reply-To: <51C548E2.1060104@asianux.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ralf Baechle <ralf@linux-mips.org>
-Cc: =?UTF-8?B?SsO2cm4gRW5nZWw=?= <joern@logfs.org>, Chris Metcalf <cmetcalf@tilera.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Paul Gortmaker <paul.gortmaker@windriver.com>
-Message-ID: <20130701020851.pwLfgyY_Y_B1INjkI0wVcHeiEuEPOmKQaq4LieEp1mw@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, "dhowells@redhat.com" <dhowells@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, davej@redhat.com, Arnd Bergmann <arnd@arndb.de>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20130701024314.R-t_OshqYmlG8_z01vRBtJfkl5MK2C-yzrYgET4StW4@z>
 
+Hello Maintainers:
 
-Firstly thank you very much for replying quickly with details.
-
-On 06/28/2013 11:09 PM, Ralf Baechle wrote:
-> On Fri, Jun 28, 2013 at 09:51:35AM +0800, Chen Gang wrote:
-> 
->> Need add cmpxchg64(), or will cause compiling issue.
->>
->> Just define it as cmpxchg(), since cmpxchg() can support 8 bytes.
->>
->> The related error (with allmodconfig):
->>
->>   drivers/block/blockconsole.c: In function ‘bcon_advance_console_bytes’:
->>   drivers/block/blockconsole.c:164:2: error: implicit declaration of function ‘cmpxchg64’ [-Werror=implicit-function-declaration]
->>
->> Signed-off-by: Chen Gang <gang.chen@asianux.com>
->> ---
->>  arch/tile/include/asm/cmpxchg.h |    2 ++
->>  1 files changed, 2 insertions(+), 0 deletions(-)
->>
->> diff --git a/arch/tile/include/asm/cmpxchg.h b/arch/tile/include/asm/cmpxchg.h
->> index 276f067..7688c28 100644
->> --- a/arch/tile/include/asm/cmpxchg.h
->> +++ b/arch/tile/include/asm/cmpxchg.h
->> @@ -68,6 +68,8 @@ extern unsigned long __cmpxchg_called_with_bad_pointer(void);
->>  
->>  #define tas(ptr) (xchg((ptr), 1))
->>  
->> +#define cmpxchg64(ptr, o, n)		cmpxchg((ptr), (o), (n))
-> 
-> that's broken.  cmpxchg64 is suposed to work on 64 bit operands ONLY.  This
-> definition (used by MIPS and Alpha) will work properly:
-> 
-
-Oh, really it is. thanks.
-
-> #define cmpxchg64(ptr, o, n)                                            \
-> ({                                                                      \
-> 	BUILD_BUG_ON(sizeof(*(ptr)) != 8);                              \
-> 	cmpxchg((ptr), (o), (n));                                       \
-> })
-> 
-
-I should follow it to send patch v2, thanks.
-
-> This should cure blockconsole on Tile but not on MIPS.
-> 
-> struct blockconsole {
-> ..
->            u64 console_bytes;
-> ..
-> };
-> 
-> static void bcon_advance_console_bytes(struct blockconsole *bc, int bytes)
-> {
-> 	u64 old, new;
-> 	...
-> 	} while (cmpxchg64(&bc->console_bytes, old, new) != old);
-> }
-> 
-> So it's using cmpxchg64() to operate on 64 bit objects - but that's not
-> going to work on every architecture.  Many 32 bit architectures only
-> provide atomic operations that operate on 32 bit quantities.
-> 
-
-I guess your meaning is:
-
-  cmpxchg64() should be an atomic operation.
-  but on some of 32-bit architectures, they don't implement it as atomic
-    (no lock protected, at least).
-  it may cause issue on these 32-bit architectures.
-
-Is it correct ?
-
-If it is correct, I should continue to try to fix it.
-
+Please help check the patch whether OK or not, when you have time.
 
 Thanks.
+
+On 06/22/2013 02:49 PM, Chen Gang wrote:
+> 
+> Define 'VM_DATA_DEFAULT_FLAGS' when 'NOMMU' to pass compiling.
+> 
+> So move it from "include/asm/page_mm.h to "include/asm/page.h"
+> 
+> The related make:
+> 
+>   make ARCH=m68k randconfig
+>   make ARCH=m68k menuconfig
+>     choose cross compiler
+>     disable MMU support
+>   make ARCH=m68k V=1 EXTRA_CFLAGS=-W
+> 
+> The related error:
+> 
+>   security/selinux/hooks.c: In function ‘selinux_init’:
+>   security/selinux/hooks.c:5821:21: error: ‘VM_DATA_DEFAULT_FLAGS’ undeclared (first use in this function)
+> 
+> (the attachment is the related .config file)
+> 
+> 
+> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+> ---
+>  arch/m68k/include/asm/page.h    |    3 +++
+>  arch/m68k/include/asm/page_mm.h |    3 ---
+>  2 files changed, 3 insertions(+), 3 deletions(-)
+> 
+> diff --git a/arch/m68k/include/asm/page.h b/arch/m68k/include/asm/page.h
+> index 7c360da..38b024a 100644
+> --- a/arch/m68k/include/asm/page.h
+> +++ b/arch/m68k/include/asm/page.h
+> @@ -48,6 +48,9 @@ extern unsigned long _ramend;
+>  #include <asm/page_no.h>
+>  #endif
+>  
+> +#define VM_DATA_DEFAULT_FLAGS	(VM_READ | VM_WRITE | VM_EXEC | \
+> +				 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
+> +
+>  #include <asm-generic/getorder.h>
+>  
+>  #endif /* _M68K_PAGE_H */
+> diff --git a/arch/m68k/include/asm/page_mm.h b/arch/m68k/include/asm/page_mm.h
+> index 89f2014..5029f73 100644
+> --- a/arch/m68k/include/asm/page_mm.h
+> +++ b/arch/m68k/include/asm/page_mm.h
+> @@ -173,7 +173,4 @@ static inline __attribute_const__ int __virt_to_node_shift(void)
+>  
+>  #endif /* __ASSEMBLY__ */
+>  
+> -#define VM_DATA_DEFAULT_FLAGS	(VM_READ | VM_WRITE | VM_EXEC | \
+> -				 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
+> -
+>  #endif /* _M68K_PAGE_MM_H */
+> 
+
+
 -- 
 Chen Gang
