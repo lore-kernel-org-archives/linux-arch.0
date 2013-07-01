@@ -1,58 +1,86 @@
 From: Chen Gang <gang.chen@asianux.com>
-Subject: [PATCH v2] arch: tile: include: asm: add cmpxchg64() definition
-Date: Mon, 01 Jul 2013 10:21:51 +0800
-Message-ID: <51D0E7BF.9030206@asianux.com>
-References: <51CA6D21.3090901@asianux.com> <51CC492C.1040105@tilera.com> <51CCD891.8000806@asianux.com> <51CCEC27.8050508@asianux.com> <20130628150941.GA22767@linux-mips.org> <51D0E4B3.6080402@asianux.com>
+Subject: Re: [PATCH] arch: m68k: include: asm: define 'VM_DATA_DEFAULT_FLAGS'
+ no matter whether has 'NOMMU' or not.
+Date: Mon, 01 Jul 2013 10:43:14 +0800
+Message-ID: <51D0ECC2.3020101@asianux.com>
+References: <51C548E2.1060104@asianux.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:62174 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751504Ab3GACWn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 30 Jun 2013 22:22:43 -0400
-In-Reply-To: <51D0E4B3.6080402@asianux.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ralf Baechle <ralf@linux-mips.org>
-Cc: =?UTF-8?B?SsO2cm4gRW5nZWw=?= <joern@logfs.org>, Chris Metcalf <cmetcalf@tilera.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Paul Gortmaker <paul.gortmaker@windriver.com>
+Return-path: <linux-m68k-owner@vger.kernel.org>
+In-Reply-To: <51C548E2.1060104@asianux.com>
+Sender: linux-m68k-owner@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, "dhowells@redhat.com" <dhowells@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, davej@redhat.com, Arnd Bergmann <arnd@arndb.de>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Need add cmpxchg64(), or will cause compiling issue.
+Hello Maintainers:
 
-Need define it as cmpxchg() only for 64-bit operation, since cmpxchg()
-can support 8 bytes.
+Please help check the patch whether OK or not, when you have time.
 
-The related error (with allmodconfig):
+Thanks.
 
-  drivers/block/blockconsole.c: In function =E2=80=98bcon_advance_conso=
-le_bytes=E2=80=99:
-  drivers/block/blockconsole.c:164:2: error: implicit declaration of fu=
-nction =E2=80=98cmpxchg64=E2=80=99 [-Werror=3Dimplicit-function-declara=
-tion]
+On 06/22/2013 02:49 PM, Chen Gang wrote:
+>=20
+> Define 'VM_DATA_DEFAULT_FLAGS' when 'NOMMU' to pass compiling.
+>=20
+> So move it from "include/asm/page_mm.h to "include/asm/page.h"
+>=20
+> The related make:
+>=20
+>   make ARCH=3Dm68k randconfig
+>   make ARCH=3Dm68k menuconfig
+>     choose cross compiler
+>     disable MMU support
+>   make ARCH=3Dm68k V=3D1 EXTRA_CFLAGS=3D-W
+>=20
+> The related error:
+>=20
+>   security/selinux/hooks.c: In function =E2=80=98selinux_init=E2=80=99=
+:
+>   security/selinux/hooks.c:5821:21: error: =E2=80=98VM_DATA_DEFAULT_F=
+LAGS=E2=80=99 undeclared (first use in this function)
+>=20
+> (the attachment is the related .config file)
+>=20
+>=20
+> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+> ---
+>  arch/m68k/include/asm/page.h    |    3 +++
+>  arch/m68k/include/asm/page_mm.h |    3 ---
+>  2 files changed, 3 insertions(+), 3 deletions(-)
+>=20
+> diff --git a/arch/m68k/include/asm/page.h b/arch/m68k/include/asm/pag=
+e.h
+> index 7c360da..38b024a 100644
+> --- a/arch/m68k/include/asm/page.h
+> +++ b/arch/m68k/include/asm/page.h
+> @@ -48,6 +48,9 @@ extern unsigned long _ramend;
+>  #include <asm/page_no.h>
+>  #endif
+> =20
+> +#define VM_DATA_DEFAULT_FLAGS	(VM_READ | VM_WRITE | VM_EXEC | \
+> +				 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
+> +
+>  #include <asm-generic/getorder.h>
+> =20
+>  #endif /* _M68K_PAGE_H */
+> diff --git a/arch/m68k/include/asm/page_mm.h b/arch/m68k/include/asm/=
+page_mm.h
+> index 89f2014..5029f73 100644
+> --- a/arch/m68k/include/asm/page_mm.h
+> +++ b/arch/m68k/include/asm/page_mm.h
+> @@ -173,7 +173,4 @@ static inline __attribute_const__ int __virt_to_n=
+ode_shift(void)
+> =20
+>  #endif /* __ASSEMBLY__ */
+> =20
+> -#define VM_DATA_DEFAULT_FLAGS	(VM_READ | VM_WRITE | VM_EXEC | \
+> -				 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
+> -
+>  #endif /* _M68K_PAGE_MM_H */
+>=20
 
-Signed-off-by: Chen Gang <gang.chen@asianux.com>
----
- arch/tile/include/asm/cmpxchg.h |    6 ++++++
- 1 files changed, 6 insertions(+), 0 deletions(-)
 
-diff --git a/arch/tile/include/asm/cmpxchg.h b/arch/tile/include/asm/cm=
-pxchg.h
-index 276f067..1da5bfb 100644
---- a/arch/tile/include/asm/cmpxchg.h
-+++ b/arch/tile/include/asm/cmpxchg.h
-@@ -68,6 +68,12 @@ extern unsigned long __cmpxchg_called_with_bad_point=
-er(void);
-=20
- #define tas(ptr) (xchg((ptr), 1))
-=20
-+#define cmpxchg64(ptr, o, n)						\
-+({									\
-+	BUILD_BUG_ON(sizeof(*(ptr)) !=3D 8);				\
-+	cmpxchg((ptr), (o), (n));					\
-+})
-+
- #endif /* __ASSEMBLY__ */
-=20
- #endif /* _ASM_TILE_CMPXCHG_H */
 --=20
-1.7.7.6
+Chen Gang
