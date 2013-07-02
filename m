@@ -1,86 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:54861 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752038Ab3GACoF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 30 Jun 2013 22:44:05 -0400
-Message-ID: <51D0ECC2.3020101@asianux.com>
-Date: Mon, 01 Jul 2013 10:43:14 +0800
-From: Chen Gang <gang.chen@asianux.com>
+Received: from e23smtp06.au.ibm.com ([202.81.31.148]:60376 "EHLO
+	e23smtp06.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932114Ab3GBFdP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jul 2013 01:33:15 -0400
+Received: from /spool/local
+	by e23smtp06.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <wangyun@linux.vnet.ibm.com>;
+	Tue, 2 Jul 2013 15:25:51 +1000
+Message-ID: <51D2660A.8000401@linux.vnet.ibm.com>
+Date: Tue, 02 Jul 2013 13:32:58 +0800
+From: Michael Wang <wangyun@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH] arch: m68k: include: asm: define 'VM_DATA_DEFAULT_FLAGS'
- no matter whether has 'NOMMU' or not.
-References: <51C548E2.1060104@asianux.com>
-In-Reply-To: <51C548E2.1060104@asianux.com>
+Subject: Re: [PATCH v3 10/45] smp: Use get/put_online_cpus_atomic() to prevent
+ CPU offline
+References: <20130627195136.29830.10445.stgit@srivatsabhat.in.ibm.com> <20130627195418.29830.34958.stgit@srivatsabhat.in.ibm.com>
+In-Reply-To: <20130627195418.29830.34958.stgit@srivatsabhat.in.ibm.com>
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, "dhowells@redhat.com" <dhowells@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, davej@redhat.com, Arnd Bergmann <arnd@arndb.de>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20130701024314.R-t_OshqYmlG8_z01vRBtJfkl5MK2C-yzrYgET4StW4@z>
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com, David.Laight@aculab.com, rostedt@goodmis.org, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Wang YanQing <udknight@gmail.com>, Shaohua Li <shli@fusionio.com>, Jan Beulich <jbeulich@suse.com>, liguang <lig.fnst@cn.fujitsu.com>
+Message-ID: <20130702053258.1uJZHI7Bm1aDCtAzohNjwuBGlKc7AAfDp1hUdgDt-2g@z>
 
-Hello Maintainers:
+Hi, Srivatsa
 
-Please help check the patch whether OK or not, when you have time.
+On 06/28/2013 03:54 AM, Srivatsa S. Bhat wrote:
+[snip]
+> @@ -625,8 +632,9 @@ EXPORT_SYMBOL(on_each_cpu_mask);
+>   * The function might sleep if the GFP flags indicates a non
+>   * atomic allocation is allowed.
+>   *
+> - * Preemption is disabled to protect against CPUs going offline but not online.
+> - * CPUs going online during the call will not be seen or sent an IPI.
+> + * We use get/put_online_cpus_atomic() to protect against CPUs going
+> + * offline but not online. CPUs going online during the call will
+> + * not be seen or sent an IPI.
 
-Thanks.
+I was a little confused about this comment, if the offline-cpu still
+have chances to become online, then there is chances that we will pick
+it from for_each_online_cpu(), isn't it? Did I miss some point?
 
-On 06/22/2013 02:49 PM, Chen Gang wrote:
+Regards,
+Michael Wang
+
+>   *
+>   * You must not call this function with disabled interrupts or
+>   * from a hardware interrupt handler or from a bottom half handler.
+> @@ -641,26 +649,26 @@ void on_each_cpu_cond(bool (*cond_func)(int cpu, void *info),
+>  	might_sleep_if(gfp_flags & __GFP_WAIT);
 > 
-> Define 'VM_DATA_DEFAULT_FLAGS' when 'NOMMU' to pass compiling.
-> 
-> So move it from "include/asm/page_mm.h to "include/asm/page.h"
-> 
-> The related make:
-> 
->   make ARCH=m68k randconfig
->   make ARCH=m68k menuconfig
->     choose cross compiler
->     disable MMU support
->   make ARCH=m68k V=1 EXTRA_CFLAGS=-W
-> 
-> The related error:
-> 
->   security/selinux/hooks.c: In function ‘selinux_init’:
->   security/selinux/hooks.c:5821:21: error: ‘VM_DATA_DEFAULT_FLAGS’ undeclared (first use in this function)
-> 
-> (the attachment is the related .config file)
-> 
-> 
-> Signed-off-by: Chen Gang <gang.chen@asianux.com>
-> ---
->  arch/m68k/include/asm/page.h    |    3 +++
->  arch/m68k/include/asm/page_mm.h |    3 ---
->  2 files changed, 3 insertions(+), 3 deletions(-)
-> 
-> diff --git a/arch/m68k/include/asm/page.h b/arch/m68k/include/asm/page.h
-> index 7c360da..38b024a 100644
-> --- a/arch/m68k/include/asm/page.h
-> +++ b/arch/m68k/include/asm/page.h
-> @@ -48,6 +48,9 @@ extern unsigned long _ramend;
->  #include <asm/page_no.h>
->  #endif
->  
-> +#define VM_DATA_DEFAULT_FLAGS	(VM_READ | VM_WRITE | VM_EXEC | \
-> +				 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
-> +
->  #include <asm-generic/getorder.h>
->  
->  #endif /* _M68K_PAGE_H */
-> diff --git a/arch/m68k/include/asm/page_mm.h b/arch/m68k/include/asm/page_mm.h
-> index 89f2014..5029f73 100644
-> --- a/arch/m68k/include/asm/page_mm.h
-> +++ b/arch/m68k/include/asm/page_mm.h
-> @@ -173,7 +173,4 @@ static inline __attribute_const__ int __virt_to_node_shift(void)
->  
->  #endif /* __ASSEMBLY__ */
->  
-> -#define VM_DATA_DEFAULT_FLAGS	(VM_READ | VM_WRITE | VM_EXEC | \
-> -				 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
-> -
->  #endif /* _M68K_PAGE_MM_H */
+>  	if (likely(zalloc_cpumask_var(&cpus, (gfp_flags|__GFP_NOWARN)))) {
+> -		preempt_disable();
+> +		get_online_cpus_atomic();
+>  		for_each_online_cpu(cpu)
+>  			if (cond_func(cpu, info))
+>  				cpumask_set_cpu(cpu, cpus);
+>  		on_each_cpu_mask(cpus, func, info, wait);
+> -		preempt_enable();
+> +		put_online_cpus_atomic();
+>  		free_cpumask_var(cpus);
+>  	} else {
+>  		/*
+>  		 * No free cpumask, bother. No matter, we'll
+>  		 * just have to IPI them one by one.
+>  		 */
+> -		preempt_disable();
+> +		get_online_cpus_atomic();
+>  		for_each_online_cpu(cpu)
+>  			if (cond_func(cpu, info)) {
+>  				ret = smp_call_function_single(cpu, func,
+>  								info, wait);
+>  				WARN_ON_ONCE(!ret);
+>  			}
+> -		preempt_enable();
+> +		put_online_cpus_atomic();
+>  	}
+>  }
+>  EXPORT_SYMBOL(on_each_cpu_cond);
 > 
 
-
--- 
-Chen Gang
