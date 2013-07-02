@@ -1,65 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f182.google.com ([209.85.223.182]:63184 "EHLO
-	mail-ie0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932219Ab3GBHTv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jul 2013 03:19:51 -0400
+Received: from e23smtp03.au.ibm.com ([202.81.31.145]:45351 "EHLO
+	e23smtp03.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932249Ab3GBI2o (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jul 2013 04:28:44 -0400
+Received: from /spool/local
+	by e23smtp03.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
+	Tue, 2 Jul 2013 18:19:03 +1000
+Message-ID: <51D28E69.9060205@linux.vnet.ibm.com>
+Date: Tue, 02 Jul 2013 13:55:13 +0530
+From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 MIME-Version: 1.0
-In-Reply-To: <51D23766.8000605@asianux.com>
-References: <51CA8AB8.7080504@asianux.com>
-	<51CA900E.9020407@nod.at>
-	<51CA9E92.4000107@asianux.com>
-	<51CAA0C6.60007@nod.at>
-	<51CAA78C.5040900@asianux.com>
-	<51CAA8D6.9000505@nod.at>
-	<51CAAD1D.8050801@asianux.com>
-	<51CAAE7C.9090003@nod.at>
-	<51CAB556.4070700@asianux.com>
-	<51CAB689.70008@nod.at>
-	<CAMuHMdXw6VYhnNWcVfWc9ssxKTqKFcDbN4WXL5i=eNGy+gXcRA@mail.gmail.com>
-	<51CABBDD.403@asianux.com>
-	<51CABFAC.1040505@nod.at>
-	<51CAC0D0.60505@asianux.com>
-	<51D0DE09.4090702@asianux.com>
-	<51D0FAFE.5010500@asianux.com>
-	<51D23766.8000605@asianux.com>
-Date: Tue, 2 Jul 2013 09:19:51 +0200
-Message-ID: <CAMuHMdUvctqqStGE0QKM_BqgK2f6f_E6T=przdYszZo9A_oDzg@mail.gmail.com>
-Subject: Re: [PATCH] include/asm-generic/io.h: add dummy fuctions to support
- 'COMPILE_TEST' in 'asm-generic'.
-From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH v3 10/45] smp: Use get/put_online_cpus_atomic() to prevent
+ CPU offline
+References: <20130627195136.29830.10445.stgit@srivatsabhat.in.ibm.com> <20130627195418.29830.34958.stgit@srivatsabhat.in.ibm.com> <51D2660A.8000401@linux.vnet.ibm.com>
+In-Reply-To: <51D2660A.8000401@linux.vnet.ibm.com>
 Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chen Gang <gang.chen@asianux.com>
-Cc: Richard Weinberger <richard@nod.at>, Arnd Bergmann <arnd@arndb.de>, Jeff Dike <jdike@addtoit.com>, David Sharp <dhsharp@google.com>, "sfr@canb.auug.org.au" <sfr@canb.auug.org.au>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>, uml-user <user-mode-linux-user@lists.sourceforge.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Mark Brown <broonie@kernel.org>, David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, Jiri Kosina <trivial@kernel.org>
-Message-ID: <20130702071951.Z-s5ASS_ZZ8H_SLin0CPwJCSHFV1aMGhH6XD7GnMFbM@z>
+To: Michael Wang <wangyun@linux.vnet.ibm.com>
+Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com, David.Laight@aculab.com, rostedt@goodmis.org, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Wang YanQing <udknight@gmail.com>, Shaohua Li <shli@fusionio.com>, Jan Beulich <jbeulich@suse.com>, liguang <lig.fnst@cn.fujitsu.com>
+Message-ID: <20130702082513.vs8Po14Jt3D0MF38QBHwbCV8Q4nEA37GgDcpoPnxRig@z>
 
-On Tue, Jul 2, 2013 at 4:13 AM, Chen Gang <gang.chen@asianux.com> wrote:
-> 'asm-generic' need provide necessary configuration checking, if can't
-> pass checking, 'asm-generic' shouldn't implement it.
+Hi Michael,
+
+On 07/02/2013 11:02 AM, Michael Wang wrote:
+> Hi, Srivatsa
+> 
+> On 06/28/2013 03:54 AM, Srivatsa S. Bhat wrote:
+> [snip]
+>> @@ -625,8 +632,9 @@ EXPORT_SYMBOL(on_each_cpu_mask);
+>>   * The function might sleep if the GFP flags indicates a non
+>>   * atomic allocation is allowed.
+>>   *
+>> - * Preemption is disabled to protect against CPUs going offline but not online.
+>> - * CPUs going online during the call will not be seen or sent an IPI.
+>> + * We use get/put_online_cpus_atomic() to protect against CPUs going
+>> + * offline but not online. CPUs going online during the call will
+>> + * not be seen or sent an IPI.
+> 
+> I was a little confused about this comment, if the offline-cpu still
+> have chances to become online, then there is chances that we will pick
+> it from for_each_online_cpu(), isn't it? Did I miss some point?
 >
-> For 'COMPILE_TEST', according to its help contents, 'asm-generic' need
-> let it pass configuration checking, and provide related dummy contents
-> for it.
->
-> Part of 'COMPLE_TEST' help contents in "init/Kconfig":
->
->   "...Despite they cannot be loaded there (or even when they load they cannot be used due to missing HW support)..."
->
->
-> Signed-off-by: Chen Gang <gang.chen@asianux.com>
 
-NAKed-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Whether or not the newly onlined CPU is observed in our for_each_online_cpu()
+loop, is dependent on timing. On top of that, there are 2 paths in the code:
+one which uses a temporary cpumask and the other which doesn't. In the former
+case, if a CPU comes online _after_ we populate the temporary cpumask, then
+we won't send an IPI to that cpu, since the temporary cpumask doesn't contain
+that CPU. Whereas, if we observe the newly onlined CPU in the for_each_online_cpu()
+loop itself (either in the former or the latter case), then yes, we will send
+the IPI to that CPU.
 
-Please don't clutter the code with checks for CONFIG_COMPILE_TEST.
+Regards,
+Srivatsa S. Bhat
 
-Gr{oetje,eeting}s,
+> 
+>>   *
+>>   * You must not call this function with disabled interrupts or
+>>   * from a hardware interrupt handler or from a bottom half handler.
+>> @@ -641,26 +649,26 @@ void on_each_cpu_cond(bool (*cond_func)(int cpu, void *info),
+>>  	might_sleep_if(gfp_flags & __GFP_WAIT);
+>>
+>>  	if (likely(zalloc_cpumask_var(&cpus, (gfp_flags|__GFP_NOWARN)))) {
+>> -		preempt_disable();
+>> +		get_online_cpus_atomic();
+>>  		for_each_online_cpu(cpu)
+>>  			if (cond_func(cpu, info))
+>>  				cpumask_set_cpu(cpu, cpus);
+>>  		on_each_cpu_mask(cpus, func, info, wait);
+>> -		preempt_enable();
+>> +		put_online_cpus_atomic();
+>>  		free_cpumask_var(cpus);
+>>  	} else {
+>>  		/*
+>>  		 * No free cpumask, bother. No matter, we'll
+>>  		 * just have to IPI them one by one.
+>>  		 */
+>> -		preempt_disable();
+>> +		get_online_cpus_atomic();
+>>  		for_each_online_cpu(cpu)
+>>  			if (cond_func(cpu, info)) {
+>>  				ret = smp_call_function_single(cpu, func,
+>>  								info, wait);
+>>  				WARN_ON_ONCE(!ret);
+>>  			}
+>> -		preempt_enable();
+>> +		put_online_cpus_atomic();
+>>  	}
+>>  }
+>>  EXPORT_SYMBOL(on_each_cpu_cond);
+>>
+> 
 
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
