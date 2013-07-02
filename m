@@ -1,67 +1,90 @@
-From: Santosh Shilimkar <santosh.shilimkar@ti.com>
-Subject: Re: [PATCH] WIP: HACK: LPAE, BOOTMEM and NO_BOOTMEM
-Date: Mon, 1 Jul 2013 10:10:02 -0400
-Message-ID: <51D18DBA.6090608@ti.com>
-References: <1372467663-31425-1-git-send-email-santosh.shilimkar@ti.com> <20130629152959.GB31339@mtj.dyndns.org> <20130629172123.GA3353@n2100.arm.linux.org.uk> <20130629175743.GA382@mtj.dyndns.org> <CAE9FiQXHuP-n0eZ9wN73V4nSvE+XEExDsx1t50_=YaW+V=LGLg@mail.gmail.com> <20130629195549.GE3353@n2100.arm.linux.org.uk> <CAE9FiQUoVNvWmmTV2+ZkU_nMxFToTHw6QLwp_Z_EjwMzqdLwuA@mail.gmail.com>
+From: Chen Gang <gang.chen@asianux.com>
+Subject: [PATCH] include/asm-generic/io.h: add dummy fuctions to support 'COMPILE_TEST'
+ in 'asm-generic'.
+Date: Tue, 02 Jul 2013 10:13:58 +0800
+Message-ID: <51D23766.8000605@asianux.com>
+References: <51CA8AB8.7080504@asianux.com> <51CA900E.9020407@nod.at> <51CA9E92.4000107@asianux.com> <51CAA0C6.60007@nod.at> <51CAA78C.5040900@asianux.com> <51CAA8D6.9000505@nod.at> <51CAAD1D.8050801@asianux.com> <51CAAE7C.9090003@nod.at> <51CAB556.4070700@asianux.com> <51CAB689.70008@nod.at> <CAMuHMdXw6VYhnNWcVfWc9ssxKTqKFcDbN4WXL5i=eNGy+gXcRA@mail.gmail.com> <51CABBDD.403@asianux.com> <51CABFAC.1040505@nod.at> <51CAC0D0.60505@asianux.com> <51D0DE09.4090702@asianux.com> <51D0FAFE.5010500@asianux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bear.ext.ti.com ([192.94.94.41]:53208 "EHLO bear.ext.ti.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754159Ab3GAOKy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 1 Jul 2013 10:10:54 -0400
-In-Reply-To: <CAE9FiQUoVNvWmmTV2+ZkU_nMxFToTHw6QLwp_Z_EjwMzqdLwuA@mail.gmail.com>
+Received: from intranet.asianux.com ([58.214.24.6]:2858 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750976Ab3GBCOv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Jul 2013 22:14:51 -0400
+In-Reply-To: <51D0FAFE.5010500@asianux.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Tejun Heo <tj@kernel.org>
-Cc: linux-arm-kernel@lists.infradead.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Nicolas Pitre <nicolas.pitre@linaro.org>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, "David S. Miller" <davem@davemloft.net>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, linux-arch@vger.kernel.org
+To: Richard Weinberger <richard@nod.at>, Geert Uytterhoeven <geert@linux-m68k.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: Jeff Dike <jdike@addtoit.com>, David Sharp <dhsharp@google.com>, "sfr@canb.auug.org.au" <sfr@canb.auug.org.au>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>, uml-user <user-mode-linux-user@lists.sourceforge.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Mark Brown <broonie@kernel.org>, David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, 'Jiri Kosina' <trivial@kernel.org>
 
-On Saturday 29 June 2013 04:08 PM, Yinghai Lu wrote:
-> On Sat, Jun 29, 2013 at 12:55 PM, Russell King - ARM Linux
-> <linux@arm.linux.org.uk> wrote:
->> On Sat, Jun 29, 2013 at 12:29:55PM -0700, Yinghai Lu wrote:
->>>>> On these SoCs which Santosh is working on, the main physical memory
->>>>> mapping is above 4GB, with just a small alias below 4GB to allow the
->>>>> system to boot without the MMU being on, as they may have more than
->>>>> 4GB of RAM.  As I understand it, the small alias below 4GB is not
->>>>> suitable for use as a "lowmem" mapping.
->>>
->>> is that 32bit ARM or 64bit ARM?
->>
->> Only 32-bit has LPAE.  Such things don't make sense on 64-bit CPUs.
-> 
-Thanks Russell for clarifying the issue on the thread. Another major
-reason of not being to use 32 bit alias address space for lowmem
-is that address space isn't coherent on the SOC am dealing with.
+'asm-generic' need provide necessary configuration checking, if can't
+pass checking, 'asm-generic' shouldn't implement it.
 
-> 32bit ARM does not support NO_BOOTMEM yet.
-> 
-> arch/arc/Kconfig:       select NO_BOOTMEM
-> arch/arm64/Kconfig:     select NO_BOOTMEM
-> arch/sparc/Kconfig:     select NO_BOOTMEM
-> arch/x86/Kconfig:config NO_BOOTMEM
-> 
-> 
-> so may need to
-> 1. make 32bit ARM to use NO_BOOTMEM at first.
-> 
-Sorry. I should have mentioned that in the change-log. 
-I have been carrying some WIP patches for ARM. Will post them
-on ARM list after finishing remainder of the testing.
+For 'COMPILE_TEST', according to its help contents, 'asm-generic' need
+let it pass configuration checking, and provide related dummy contents
+for it.
 
-> 2 .we can add alloc_memblock as MACRO or inline for bootmem arches,
-> 
-> 3. NO_BOOTMEM arches will have alloc_memblock in nobootmem.c
-> 
-> 4. replace alloc_bootmem calling with alloc_memblock calling in core code.
-> 
-Great that we all agree to see back of nobootmem.c and have a direct
-memblock API. Will be happy to help in conversion to proposed new interfaces
-if I can get the alloc_memblock API and core related changes.
+Part of 'COMPLE_TEST' help contents in "init/Kconfig":
 
-Will be good to know who is going to create proposed memblock API
-so that we all can collaborate in conversion.
+  "...Despite they cannot be loaded there (or even when they load they cannot be used due to missing HW support)..."
 
-Regards,
-Santosh 
+
+Signed-off-by: Chen Gang <gang.chen@asianux.com>
+---
+ include/asm-generic/io.h |   22 ++++++++++++++++++----
+ 1 files changed, 18 insertions(+), 4 deletions(-)
+
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index d5afe96..301ce80 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -303,13 +303,18 @@ static inline void *phys_to_virt(unsigned long address)
+ /*
+  * Change "struct page" to physical address.
+  *
+- * This implementation is for the no-MMU case only... if you have an MMU
+- * you'll need to provide your own definitions.
++ * This for the no-MMU, or no-IOMEM but still try to COMPILE_TEST cases.
++ * if you have an MMU and IOMEM, you'll need to provide your own definitions.
+  */
+-#ifndef CONFIG_MMU
++#if !defined(CONFIG_MMU) || \
++	(!defined(CONFIG_HAS_IOMEM) && defined(CONFIG_COMPILE_TEST))
+ static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
+ {
++#if !defined(CONFIG_MMU)
+ 	return (void __iomem*) (unsigned long)offset;
++#else
++	return NULL;
++#endif
+ }
+ 
+ #define __ioremap(offset, size, flags)	ioremap(offset, size)
+@@ -325,7 +330,7 @@ static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
+ static inline void iounmap(void __iomem *addr)
+ {
+ }
+-#endif /* CONFIG_MMU */
++#endif /* !CONFIG_MMU || (!CONFIG_HAS_IOMEM && CONFIG_COMPILE_TEST) */
+ 
+ #ifdef CONFIG_HAS_IOPORT
+ #ifndef CONFIG_GENERIC_IOMAP
+@@ -341,6 +346,15 @@ static inline void ioport_unmap(void __iomem *p)
+ extern void __iomem *ioport_map(unsigned long port, unsigned int nr);
+ extern void ioport_unmap(void __iomem *p);
+ #endif /* CONFIG_GENERIC_IOMAP */
++#elif defined(CONFIG_COMPILE_TEST) /* CONFIG_HAS_IOPORT */
++static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
++{
++	return NULL;
++}
++
++static inline void ioport_unmap(void __iomem *p)
++{
++}
+ #endif /* CONFIG_HAS_IOPORT */
+ 
+ #ifndef xlate_dev_kmem_ptr
+-- 
+1.7.7.6
