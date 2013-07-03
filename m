@@ -1,114 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp07.au.ibm.com ([202.81.31.140]:60076 "EHLO
-	e23smtp07.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932324Ab3GBKIu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jul 2013 06:08:50 -0400
-Received: from /spool/local
-	by e23smtp07.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <wangyun@linux.vnet.ibm.com>;
-	Tue, 2 Jul 2013 19:57:02 +1000
-Message-ID: <51D2A6A2.207@linux.vnet.ibm.com>
-Date: Tue, 02 Jul 2013 18:08:34 +0800
-From: Michael Wang <wangyun@linux.vnet.ibm.com>
+Received: from moutng.kundenserver.de ([212.227.17.9]:52904 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754838Ab3GCIOp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jul 2013 04:14:45 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] include/asm-generic/io.h: add dummy fuctions to support 'COMPILE_TEST' in 'asm-generic'.
+Date: Wed, 3 Jul 2013 10:14:12 +0200
+References: <51CA8AB8.7080504@asianux.com> <CAMuHMdW58CZ0m-10ibs2Vyh8exqP1nSH+-ZOr5J58tx=uorM+Q@mail.gmail.com> <51D375AA.5060300@asianux.com>
+In-Reply-To: <51D375AA.5060300@asianux.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v3 10/45] smp: Use get/put_online_cpus_atomic() to prevent
- CPU offline
-References: <20130627195136.29830.10445.stgit@srivatsabhat.in.ibm.com> <20130627195418.29830.34958.stgit@srivatsabhat.in.ibm.com> <51D2660A.8000401@linux.vnet.ibm.com> <51D28E69.9060205@linux.vnet.ibm.com> <51D2939C.5090205@linux.vnet.ibm.com> <51D2A289.7070805@linux.vnet.ibm.com>
-In-Reply-To: <51D2A289.7070805@linux.vnet.ibm.com>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: Text/Plain;
+  charset="gb2312"
 Content-Transfer-Encoding: 7bit
+Message-ID: <201307031014.12583.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, walken@google.com, vincent.guittot@linaro.org, laijs@cn.fujitsu.com, David.Laight@aculab.com, rostedt@goodmis.org, xiaoguangrong@linux.vnet.ibm.com, sbw@mit.edu, fweisbec@gmail.com, zhong@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Wang YanQing <udknight@gmail.com>, Shaohua Li <shli@fusionio.com>, Jan Beulich <jbeulich@suse.com>, liguang <lig.fnst@cn.fujitsu.com>
-Message-ID: <20130702100834.1Pw4unthqoErp9bUCDDV-cR-XhF7qUIqg9w4kKxPxGE@z>
+To: Chen Gang <gang.chen@asianux.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Richard Weinberger <richard@nod.at>, Jeff Dike <jdike@addtoit.com>, David Sharp <dhsharp@google.com>, "sfr@canb.auug.org.au" <sfr@canb.auug.org.au>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>, uml-user <user-mode-linux-user@lists.sourceforge.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Mark Brown <broonie@kernel.org>, David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, Jiri Kosina <trivial@kernel.org>
+Message-ID: <20130703081412.vGQMHetwvQMbIUL7E-_jVsMO5ssSaUMuiLG2qIPZcB4@z>
 
-On 07/02/2013 05:51 PM, Srivatsa S. Bhat wrote:
-[snip]
+On Wednesday 03 July 2013, Chen Gang wrote:
+> On 07/02/2013 06:57 PM, Geert Uytterhoeven wrote:
+> > On Tue, Jul 2, 2013 at 10:00 AM, Chen Gang <gang.chen@asianux.com> wrote:
+> >> > On 07/02/2013 03:19 PM, Geert Uytterhoeven wrote:
+> >>> >> On Tue, Jul 2, 2013 at 4:13 AM, Chen Gang <gang.chen@asianux.com> wrote:
+> > I mean that COMPILE_TEST should exist in Kconfig files only.
+> > It's only meant to have more compile coverage, not to "fix" (through #ifdef)
+> > more code to make it compile.
 > 
-> Well, as I said, its timing dependent. We might miss the newly onlined CPU in
-> the for_each_online_cpu() loop itself, based on when exactly the CPU was added
-> to the cpu_online_mask. So you can't exactly pin-point the places where you'll
-> miss the CPU and where you won't. Besides, is it _that_ important? It is after
-> all unpredictable..
+> If so, can we allow the module to 'COMPILE_TEST' under one platform
+> which not support the related HW ?
+> 
+>   e.g. "...Despite they cannot be loaded there (or even when they load
+> they cannot be used due to missing HW support)...".
 
-Sure, it's nothing important ;-)
+There is a reason why ioremap and the associated functions make no
+sense on UML, and it remains important to not provide them here
+so we can find drivers that accidentally use them and are missing
+a dependency on HAS_IOMEM.
+ 
+> 'asm-generic' need provide generic layer to users (both architecture
+> guys and module guys).
 
-I just think this comment:
+No. It's a set of examples for the architectures to look at and
+include if they want to.
 
-+ * We use get/put_online_cpus_atomic() to protect against CPUs going
-+ * offline but not online. CPUs going online during the call will
-+ * not be seen or sent an IPI
+> So for 'default', it can depend on some conditions (e.g. HW support);
+> but for 'generic', it need try to be independent from any conditions.
+> 
+> And it is also necessary for 'generic' to provide the configuration
+> checking features, but this checking must be no negative effect (or
+> consistent) with its 'generic' services.
+> 
+> So it is necessary to check 'NOMMU', 'CONFIG_HAS_IOMEM' ..., but it
+> also necessary to consider about 'COMPILE_TEST' to be consistent with
+> its 'generic' services.
 
-It told people that the cpu could online during the call, but won't get
-IPI, while actually they have a chance to get it, folks haven't look
-inside may missed some thing when use it.
+The important distinction is between drivers we want to enable in
+COMPILE_TEST because they are written in a portable way but are just
+useless if you don't have the hardware, and other drivers that rely
+on an interface and that should not be built when that interface
+is not available.
 
-But it's just self-opinion, so let's put down the discuss :)
-
-Regards,
-Michael Wang
-
-> 
->> The comment position seems like it declaim that during the call of this
->> func, online-cpu won't be seem and send IPI...
->>
-> 
-> Doesn't matter, AFAICS. The key take-away from that whole comment is: nothing is
-> done to prevent CPUs from coming online while the function is running, whereas
-> the online CPUs are guaranteed to remain online throughout the function. In other
-> words, its a weaker form of get_online_cpus()/put_online_cpus(), providing a
-> one-way synchronization (CPU offline).
-> 
-> As long as that idea is conveyed properly, the purpose of that comment is served,
-> IMHO.
-> 
-> Regards,
-> Srivatsa S. Bhat
-> 
-> 
->>>>>   *
->>>>>   * You must not call this function with disabled interrupts or
->>>>>   * from a hardware interrupt handler or from a bottom half handler.
->>>>> @@ -641,26 +649,26 @@ void on_each_cpu_cond(bool (*cond_func)(int cpu, void *info),
->>>>>  	might_sleep_if(gfp_flags & __GFP_WAIT);
->>>>>
->>>>>  	if (likely(zalloc_cpumask_var(&cpus, (gfp_flags|__GFP_NOWARN)))) {
->>>>> -		preempt_disable();
->>>>> +		get_online_cpus_atomic();
->>>>>  		for_each_online_cpu(cpu)
->>>>>  			if (cond_func(cpu, info))
->>>>>  				cpumask_set_cpu(cpu, cpus);
->>>>>  		on_each_cpu_mask(cpus, func, info, wait);
->>>>> -		preempt_enable();
->>>>> +		put_online_cpus_atomic();
->>>>>  		free_cpumask_var(cpus);
->>>>>  	} else {
->>>>>  		/*
->>>>>  		 * No free cpumask, bother. No matter, we'll
->>>>>  		 * just have to IPI them one by one.
->>>>>  		 */
->>>>> -		preempt_disable();
->>>>> +		get_online_cpus_atomic();
->>>>>  		for_each_online_cpu(cpu)
->>>>>  			if (cond_func(cpu, info)) {
->>>>>  				ret = smp_call_function_single(cpu, func,
->>>>>  								info, wait);
->>>>>  				WARN_ON_ONCE(!ret);
->>>>>  			}
->>>>> -		preempt_enable();
->>>>> +		put_online_cpus_atomic();
->>>>>  	}
->>>>>  }
->>>>>  EXPORT_SYMBOL(on_each_cpu_cond);
->>>>>
->>>>
->>>
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
-> 
-
+	Arnd
