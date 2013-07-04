@@ -1,74 +1,119 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] include/asm-generic/io.h: add dummy fuctions to support 'COMPILE_TEST' in 'asm-generic'.
-Date: Thu, 4 Jul 2013 11:25:14 +0200
-Message-ID: <201307041125.15083.arnd@arndb.de>
-References: <20130704011221.GA11230@kroah.com> <20130704061204.GA12148@kroah.com> <51D517A7.6030908@asianux.com>
+From: "M. Barkindo" <valentino_richie931@outlook.com>
+Subject: Confidential: Reply Asap!
+Date: Thu, 4 Jul 2013 11:25:21 +0100
+Message-ID: <535332.51780.bm@smtp212.mail.bf1.yahoo.com>
+Reply-To: <mohammed_barkindo@aol.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
+Content-Type: multipart/mixed;
+	boundary="----=_NextPart_000_00AF_01C2A9A6.1A532FCC"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from nm11-vm1.bullet.mail.bf1.yahoo.com ([98.139.213.152]:23627 "EHLO
+	nm11-vm1.bullet.mail.bf1.yahoo.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752156Ab3GDKbr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jul 2013 06:31:47 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+
+This is a multi-part message in MIME format.
+
+------=_NextPart_000_00AF_01C2A9A6.1A532FCC
+Content-Type: text/plain;
+	charset="Windows-1251"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <51D517A7.6030908@asianux.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Chen Gang <gang.chen@asianux.com>
-Cc: Greg KH <gregkh@linuxfoundation.org>, Steven Rostedt <rostedt@goodmis.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Richard Weinberger <richard@nod.at>, Jeff Dike <jdike@addtoit.com>, David Sharp <dhsharp@google.com>, "sfr@canb.auug.org.au" <sfr@canb.auug.org.au>, Ingo Molnar <mingo@kernel.org>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>, uml-user <user-mode-linux-user@lists.sourceforge.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Mark Brown <broonie@kernel.org>, David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, Jiri Kosina <trivial@kernel.org>, Jiri Slaby <jslaby@suse.cz>
-List-Id: linux-arch.vger.kernel.org
 
-On Thursday 04 July 2013, Chen Gang wrote:
+For confidential reason, a letter has been attached. Review and respond
 
-> --------------------------patch begin----------------------------------
-> 
-> 'asm-generic' need provide necessary configuration checking, if can't
-> pass checking, 'asm-generic' shouldn't implement it.
-> 
-> For 'COMPILE_TEST', according to its help contents, 'asm-generic' need
-> let it pass configuration checking, and provide related dummy contents
-> for it.
-> 
-> Part of 'COMPLE_TEST' help contents in "init/Kconfig":
-> 
->   "...Despite they cannot be loaded there (or even when they load they cannot be used due to missing HW support)..."
-> 
-> One sample for using 'COMPILE_TEST':
-> 
->   'PTP_1588_CLOCK_PCH' in drivers/ptp/Kconfig, which need depend on 'HAS_IOMEM'.
+------=_NextPart_000_00AF_01C2A9A6.1A532FCC
+Content-Type: application/octet-stream;
+	name="Confidential Letter.rtf"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment;
+	filename="Confidential Letter.rtf"
 
-Then please submit a patch that adds the 'depends on HAS_IOMEM' line there.
-That line was clearly left out by accident.
+e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjBcZGVmbGFuZzIwNTd7XGZv
+bnR0Ymx7XGYwXGZuaWxcZmNoYXJzZXQwIENhbGlicmk7fX0NCntcKlxnZW5l
+cmF0b3IgTXNmdGVkaXQgNS40MS4yMS4yNTEwO31cdmlld2tpbmQ0XHVjMVxw
+YXJkXHNsMjc2XHNsbXVsdDFcbGFuZzlcZjBcZnMyMiBOSUdFUklBTiBOQVRJ
+T05BTCBQRVRST0xFVU0gQ09SUE9SQVRJT04gXHBhcg0KXHBhcg0KIEZFREVS
+QUwgTUlOSVNUUlkgT0YgUEVUUk9MVUVNIFJFU09VUkNFUyAoRi5NLlAuUiks
+IFxwYXINCk5FVyBGRURFUkFMIFNFQ1JFVEFSSUFULCBTSEVIVSBTSEFHQVJJ
+IFdBWSAsIEFCVUpBIC5ccGFyDQpMQUdPUyBBTk5FWCBPRkZJQ0UsIExBR09T
+LU5JR0VSSUEuXHBhcg0KIFRlbDogLSArMjM0LTgxMzMwNTA5OTFccGFyDQog
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICBccGFyDQpPdXJSZWY6Tk5QQy9GUk4vMjAx
+MyAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIFxwYXIN
+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgIFxwYXINClxwYXINCkFUVE46IE1BTkFHSU5HIERJUkVDVE9SIFxwYXIN
+ClxwYXINCiAgXHBhcg0KXHBhcg0KREVBUiBTSVIvTUFEQU0sIFxwYXINClxw
+YXINCiAgICAgICAgICAgICAgIFJFUVVFU1RGT1IgQVNTSVNUQU5DRS0gU1RS
+SUNUTFkgQ09ORklERU5USUFMIFxwYXINClxwYXINCiAgXHBhcg0KXHBhcg0K
+IEkgYW0gTXIuIE1vaGFtbWVkIFNhbnVzaSBCYXJraW5kbywgQWNjb3VudGFu
+dCBHZW5lcmFsIE5pZ2VyaWEgTmF0aW9uYWwgUGV0cm9sZXVtIENvcnBvcmF0
+aW9uIGFuZCBhbHNvIGFuZCBhY2NvdW50YW50IHdpdGggRmVkZXJhbCBNaW5p
+c3RyeSBvZiBwZXRyb2xldW0gUmVzb3VyY2VzIChGTVBSKSBhbmQgYSBtZW1i
+ZXIgb2YgYSB0aHJlZS1tYW4gVGVuZGVyIEJvYXJkIGluIGNoYXJnZSBvZiBj
+b250cmFjdCByZXZpZXcgYW5kIHBheW1lbnQgYXBwcm92YWxzLiBJIGNhbWUg
+dG8ga25vdyBvZiB5b3UgaW4gbXkgc2VhcmNoIGZvciBhIHJlbGlhYmxlIHBl
+cnNvbiB0byBoYW5kbGUgYSB2ZXJ5IGNvbmZpZGVudGlhbCB0cmFuc2FjdGlv
+biB0aGF0IGludm9sdmVzIHRoZSB0cmFuc2ZlciBvZiBhIGh1Z2Ugc3VtIG9m
+IG1vbmV5IHRvIGEgZm9yZWlnbiBhY2NvdW50LiBJdCBtYXkgc291bmQgc3Ry
+YW5nZSBidXQgZXhlcmNpc2UgcGF0aWVuY2UgYW5kIHJlYWQgb24uIFRoZXJl
+IHdlcmUgc2VyaWVzIG9mIGNvbnRyYWN0cyBleGVjdXRlZCBieSBhIGNvbnNv
+cnRpdW0gTXVsdGluYXRpb25hbCBpbiB0aGUgT2lsIGluZHVzdHJ5IGluIGZh
+dm91ciBvZiBNaW5pc3RyeSBvZiBQZXRyb2xldW0gUmVzb3VyY2VzIGFtb25n
+IHdoaWNoIHdhczogXHBhcg0KXHBhcg0KICBccGFyDQpccGFyDQoxLiBUaGUg
+ZXh0ZW5zaW9uIG9mIHBpcGVsaW5lIG5ldHdvcmsgd2l0aGluIE5pZ2VyaWEg
+Zm9yIGNydWRlIG9pbCwgRG93biBzdHJlYW0gcHJvZHVjdHMgZGlzdHJpYnV0
+aW9uIGFuZCBzdWJzZXF1ZW50IGV2YWN1YXRpb24tIFVTJCAxOTUgTWlsbGlv
+bi4gXHBhcg0KXHBhcg0KMi4gQ29udHJhY3QgZm9yIHRoZSBUdXJuIGFyb3Vu
+ZCBNYWludGVuYW5jZSAoVEFNKSBvZiB0aGUgdmFyaW91cyByZWZpbmVyaWVz
+IGluIHRoZSBjb3VudHJ5fiBVUyQgMTUyTWlsbGlvbi4gXHBhcg0KXHBhcg0K
+My4gVGhlIGNvbnN0cnVjdGlvbiBvZiB0aGUgS2FkdW5hIFJlZmluZXJ5LCBz
+b21lIGNvbnRyYWN0b3JzIHdoZXJlIHBhaWQgdGhlaXIgY29udHJhY3Qgc3Vt
+IHdoaWxlIHNvbWUgaGFzIG5vdCBiZWVuIHBhaWQgYnkgdGhlIE5pZ2VyaWFu
+IEdvdmVybm1lbnQuIEZldyBkYXlzIGFnbywgdGhlIHByZXNpZGVudCBvZiB0
+aGUgZmVkZXJhbCByZXB1YmxpYyBvZiBOaWdlcmlhIGNhbGxlZCB0byB0aGUg
+QXNvLVJvY2sgVmlsbGEgQWJ1amEsIHdoZXJlIHdlIGhlYWQgbWVldGluZyBj
+b25jZXJuaW5nIGNvbnRyYWN0b3JzIHRoYXQgaGFzIG5vdCBiZWVuIHBhaWQg
+dGhlaXIgY29udHJhY3QgcGF5bWVudHMsIGFmdGVyIHRoZSBtZWV0aW5nLCBo
+ZSB0aGVuIGFza2VkIG1lIHRvIGJlIGluIGNoYXJnZSBieSBwcmVwYXJpbmcg
+dGhlIG5hbWUgb2YgdGhlIGNvbnRyYWN0b3IgdGhhdCBuZWVkZWQgdG8gYmUg
+cGFpZCB0aGVpciBjb250cmFjdCBwYXltZW50cyBhbmQgdGhlbiBzdWJtaXQg
+aXQgdG8gaGltIGZvciBhcHByb3ZhbC4gXHBhcg0KXHBhcg0KICBccGFyDQpc
+cGFyDQpXaHkgYW0gd3JpdGluZyB5b3UgdGhpcyBtYWlsLCBpcyBmb3IgdXMg
+dG8gZG8gdGhpcyBkZWFsLCBiZWNhdXNlIEkgd2lsbCBiZSBhcHByb3Zpbmcg
+dGhlIHN1bSBvZiBVU0QkMzguNU1pbGxpb24gaW4geW91ciBuYW1lIGFuZCBJ
+IHdhbnQgeW91IHRvIGFjdCBhcyBvbmUgb2YgdGhlIGNvbnRyYWN0b3JzIG93
+bmVkIGJ5IHRoZSBOaWdlcmlhbiBHb3Zlcm5tZW50LCBJIHdpbGwgaW5jbHVk
+ZSB5b3VyIG5hbWUgaW4gdGhlIGZpbGUgSSB3aWxsIHN1Ym1pdCB0byB0aGUg
+cHJlc2lkZW5jeSBmb3IgYXBwcm92YWwgYW5kIEkgYW0gcHJlcGFyZWQgdG8g
+Z2l2ZSB5b3UgMzAlIG9mIHRoZSB0b3RhbCBzdW0gYWZ0ZXIgdGhpcyBtb25l
+eSBpcyBiZWVuIHRyYW5zZmVycmVkIHRvIHlvdXIgYmFuayBhY2NvdW50LiBc
+cGFyDQpccGFyDQogIFxwYXINClxwYXINClNpci9NYWRhbSwgaWYgeW91IGFy
+ZSB3aWxsaW5nIHRvIGRvIHRoaXMgZGVhbCB3aXRoIG1lLCBraW5kbHkgY29u
+dGFjdCBtZSB2aWEgdGhlIHRlbGVwaG9uZSBudW1iZXJzIG9yIGVtYWlsIGFk
+ZHJlc3MgYWJvdmUgb3IgdmlhIHRoaXMgYWx0ZXJuYXRpdmUgZW1haWwgYWRk
+cmVzcyAobW9oYW1tZWRiYXJraW5kbzExMUBnbWFpbC5jb20gKSB0aGVuIEkg
+d2lsbCBub3cgdGVsbCB5b3UgdGhlIG5leHQgc3RlcCB0aGF0IHdlIGFyZSBn
+b2luZyB0byBmb2xsb3cgYW5kIHdoYXQgeW91IG5lZWQgdG8gc2VuZCB0byBt
+ZSBmb3IgbWUgdG8gc3RhcnQgcHJvY2Vzc2luZyBhbGwgdGhlIHBhcGVyIHdv
+cmtzIHRvIGJhY2sgdXAgdGhlIGNsYWltIG9mIHRoaXMgVVNEJDM4LjVNLiBQ
+bGVhc2UgZG9uXHJxdW90ZSB0IGZhaWwgdG8gaW5jbHVkZSB5b3VyIHByaXZh
+dGUgY29udGFjdHMgZGV0YWlscy4gUGxlYXNlIGRlc3Ryb3kgdGhpcyBsZXR0
+ZXIsIGlmIHlvdSBhcmUgbm90IHdpbGxpbmcgdG8gZG8gdGhpcyBkZWFsIHdp
+dGggbWUuIEkgd2lsbCBiZSBpbnZlc3RpbmcgbXkgb3duIHNoYXJlIG9mIHRo
+ZSBtb25leSB0aHJvdWdoIHlvdXIgZ3VpZGUgbGluZXMgaW4geW91ciBjb3Vu
+dHJ5IG9yIGlmIHlvdSBoYXZlIGEgY29tcGFueSwgSSBwcmVmZXIgdG8gZ28g
+aW50byBwYXJ0bmVyc2hpcCB3aXRoIHlvdS4gU28gcGxlYXNlIHRyZWF0IHRo
+aXMgZGVhbCB3aXRoIHV0bW9zdCBjb25maWRlbnRpYWxpdHkgaWYgeW91IGFy
+ZSB3aWxsaW5nIHRvIGRvIHRoaXMgZGVhbCB3aXRoIG1lLCBhbmQgYWZ0ZXIg
+YWxsIGRvY3VtZW50YXRpb25zLCBpdCB3aWxsIHRha2UganVzdCA3IGJhbmtp
+bmcgd29ya2luZyBkYXlzIHRvIGNvbmNsdWRlIGV2ZXJ5dGhpbmcuIFxwYXIN
+ClxwYXINCiAgXHBhcg0KXHBhcg0KVGhhbmtzIFxwYXINClxwYXINCiAgXHBh
+cg0KXHBhcg0KWW91cnMgRmFpdGhmdWxseSwgXHBhcg0KXHBhcg0KXHBhcg0K
+ICBccGFyDQpccGFyDQogTXIuIE1vaGFtbWVkIFNhbnVzaSBCYXJraW5kb1xw
+YXINClxwYXINCihGRURFUkFMIE1JTklTVFJZIE9GIFBFVFJPTEVVTSBSRVNP
+VVJDRVMsIE5OUEMpIFxwYXINCn0NCgA=
 
-> Signed-off-by: Chen Gang <gang.chen@asianux.com>
-> ---
->  include/asm-generic/io.h |   22 ++++++++++++++++++----
->  1 files changed, 18 insertions(+), 4 deletions(-)
-> 
-> diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-> index d5afe96..301ce80 100644
-> --- a/include/asm-generic/io.h
-> +++ b/include/asm-generic/io.h
-> @@ -303,13 +303,18 @@ static inline void *phys_to_virt(unsigned long address)
->  /*
->   * Change "struct page" to physical address.
->   *
-> - * This implementation is for the no-MMU case only... if you have an MMU
-> - * you'll need to provide your own definitions.
-> + * This for the no-MMU, or no-IOMEM but still try to COMPILE_TEST cases.
-> + * if you have an MMU and IOMEM, you'll need to provide your own definitions.
->   */
-> -#ifndef CONFIG_MMU
-> +#if !defined(CONFIG_MMU) || \
-> +	(!defined(CONFIG_HAS_IOMEM) && defined(CONFIG_COMPILE_TEST))
->  static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
->  {
-> +#if !defined(CONFIG_MMU)
->  	return (void __iomem*) (unsigned long)offset;
-> +#else
-> +	return NULL;
-> +#endif
->  }
->  
->  #define __ioremap(offset, size, flags)	ioremap(offset, size)
-
-This is wrong for multiple reasons, all of which have been discussed in
-this thread before.
-
-NAK
+------=_NextPart_000_00AF_01C2A9A6.1A532FCC--
