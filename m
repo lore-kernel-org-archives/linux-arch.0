@@ -1,35 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:24132 "EHLO
-	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755264Ab3GDBX3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jul 2013 21:23:29 -0400
-Message-ID: <1372901004.22688.137.camel@gandalf.local.home>
-Subject: Re: [PATCH] include/asm-generic/io.h: add dummy fuctions to support
- 'COMPILE_TEST' in 'asm-generic'.
-From: Steven Rostedt <rostedt@goodmis.org>
-Date: Wed, 03 Jul 2013 21:23:24 -0400
-In-Reply-To: <20130704011221.GA11230@kroah.com>
-References: <51CA8AB8.7080504@asianux.com>
-	 <CAMuHMdW58CZ0m-10ibs2Vyh8exqP1nSH+-ZOr5J58tx=uorM+Q@mail.gmail.com>
-	 <51D375AA.5060300@asianux.com> <201307031014.12583.arnd@arndb.de>
-	 <51D3E440.7090105@asianux.com> <51D4C87E.5070605@asianux.com>
-	 <20130704011221.GA11230@kroah.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
+Received: from moutng.kundenserver.de ([212.227.126.186]:51944 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751400Ab3GDJZv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jul 2013 05:25:51 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] include/asm-generic/io.h: add dummy fuctions to support 'COMPILE_TEST' in 'asm-generic'.
+Date: Thu, 4 Jul 2013 11:25:14 +0200
+References: <20130704011221.GA11230@kroah.com> <20130704061204.GA12148@kroah.com> <51D517A7.6030908@asianux.com>
+In-Reply-To: <51D517A7.6030908@asianux.com>
+MIME-Version: 1.0
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
+Message-ID: <201307041125.15083.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg KH <gregkh@linuxfoundation.org>
-Cc: Chen Gang <gang.chen@asianux.com>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Richard Weinberger <richard@nod.at>, Jeff Dike <jdike@addtoit.com>, David Sharp <dhsharp@google.com>, "sfr@canb.auug.org.au" <sfr@canb.auug.org.au>, Ingo Molnar <mingo@kernel.org>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>, uml-user <user-mode-linux-user@lists.sourceforge.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Mark Brown <broonie@kernel.org>, David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, Jiri Kosina <trivial@kernel.org>, Jiri Slaby <jslaby@suse.cz>
-Message-ID: <20130704012324.E0fdXmu15_fOlXLnYQOoNJ0qBFaSmplKSR1AMoikv60@z>
+To: Chen Gang <gang.chen@asianux.com>
+Cc: Greg KH <gregkh@linuxfoundation.org>, Steven Rostedt <rostedt@goodmis.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Richard Weinberger <richard@nod.at>, Jeff Dike <jdike@addtoit.com>, David Sharp <dhsharp@google.com>, "sfr@canb.auug.org.au" <sfr@canb.auug.org.au>, Ingo Molnar <mingo@kernel.org>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>, uml-user <user-mode-linux-user@lists.sourceforge.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Mark Brown <broonie@kernel.org>, David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, Jiri Kosina <trivial@kernel.org>, Jiri Slaby <jslaby@suse.cz>
+Message-ID: <20130704092514.Leu3biMU6X8ymGpqv3ki_WtaCWTTebV1Ilq4lO4MUKQ@z>
 
-On Wed, 2013-07-03 at 18:12 -0700, Greg KH wrote:
+On Thursday 04 July 2013, Chen Gang wrote:
 
-> confused,
+> --------------------------patch begin----------------------------------
+> 
+> 'asm-generic' need provide necessary configuration checking, if can't
+> pass checking, 'asm-generic' shouldn't implement it.
+> 
+> For 'COMPILE_TEST', according to its help contents, 'asm-generic' need
+> let it pass configuration checking, and provide related dummy contents
+> for it.
+> 
+> Part of 'COMPLE_TEST' help contents in "init/Kconfig":
+> 
+>   "...Despite they cannot be loaded there (or even when they load they cannot be used due to missing HW support)..."
+> 
+> One sample for using 'COMPILE_TEST':
+> 
+>   'PTP_1588_CLOCK_PCH' in drivers/ptp/Kconfig, which need depend on 'HAS_IOMEM'.
 
-Good. I thought I was the only one. Confusion loves company, that way we
-can follow each other around in endless circles.
+Then please submit a patch that adds the 'depends on HAS_IOMEM' line there.
+That line was clearly left out by accident.
 
--- Steve
+> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+> ---
+>  include/asm-generic/io.h |   22 ++++++++++++++++++----
+>  1 files changed, 18 insertions(+), 4 deletions(-)
+> 
+> diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+> index d5afe96..301ce80 100644
+> --- a/include/asm-generic/io.h
+> +++ b/include/asm-generic/io.h
+> @@ -303,13 +303,18 @@ static inline void *phys_to_virt(unsigned long address)
+>  /*
+>   * Change "struct page" to physical address.
+>   *
+> - * This implementation is for the no-MMU case only... if you have an MMU
+> - * you'll need to provide your own definitions.
+> + * This for the no-MMU, or no-IOMEM but still try to COMPILE_TEST cases.
+> + * if you have an MMU and IOMEM, you'll need to provide your own definitions.
+>   */
+> -#ifndef CONFIG_MMU
+> +#if !defined(CONFIG_MMU) || \
+> +	(!defined(CONFIG_HAS_IOMEM) && defined(CONFIG_COMPILE_TEST))
+>  static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
+>  {
+> +#if !defined(CONFIG_MMU)
+>  	return (void __iomem*) (unsigned long)offset;
+> +#else
+> +	return NULL;
+> +#endif
+>  }
+>  
+>  #define __ioremap(offset, size, flags)	ioremap(offset, size)
 
+This is wrong for multiple reasons, all of which have been discussed in
+this thread before.
 
+NAK
