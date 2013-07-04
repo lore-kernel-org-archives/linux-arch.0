@@ -1,119 +1,104 @@
-From: "M. Barkindo" <valentino_richie931@outlook.com>
-Subject: Confidential: Reply Asap!
-Date: Thu, 4 Jul 2013 11:25:21 +0100
-Message-ID: <535332.51780.bm@smtp212.mail.bf1.yahoo.com>
-Reply-To: <mohammed_barkindo@aol.com>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH] mm: add sys_madvise2 and MADV_NAME to name vmas
+Date: Thu, 4 Jul 2013 22:22:32 +0200
+Message-ID: <20130704202232.GA19287@redhat.com>
+References: <1372901537-31033-1-git-send-email-ccross@android.com>
 Mime-Version: 1.0
-Content-Type: multipart/mixed;
-	boundary="----=_NextPart_000_00AF_01C2A9A6.1A532FCC"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from nm11-vm1.bullet.mail.bf1.yahoo.com ([98.139.213.152]:23627 "EHLO
-	nm11-vm1.bullet.mail.bf1.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752156Ab3GDKbr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jul 2013 06:31:47 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <1372901537-31033-1-git-send-email-ccross@android.com>
+Sender: owner-linux-mm@kvack.org
+To: Colin Cross <ccross@android.com>
+Cc: linux-kernel@vger.kernel.org, Kyungmin Park <kmpark@infradead.org>, Christoph Hellwig <hch@infradead.org>, John Stultz <john.stultz@linaro.org>, Rob Landley <rob@landley.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Cyrill Gorcunov <gorcunov@openvz.org>, David Rientjes <rientjes@google.com>, Davidlohr Bueso <dave@gnu.org>, Kees Cook <keescook@chromium.org>, Al Viro <viro@zeniv.linux.org.uk>, Hugh Dickins <hughd@google.com>, Mel Gorman <mgorman@suse.de>, Michel Lespinasse <walken@google.com>, Rik van Riel <riel@redhat.com>, Konstantin Khlebnikov <khlebnikov@openvz.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rusty Russell <rusty@rustcorp.com.au>, "Eric W. Biederman" <ebiederm@xmission.com>, Srikar Dronamraju <srikar@linux.vnet.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-This is a multi-part message in MIME format.
+On 07/03, Colin Cross wrote:
+>
+> The names of named anonymous vmas are shown in /proc/pid/maps
+> as [anon:<name>].  The name of all named vmas are shown in
+> /proc/pid/smaps in a new "Name" field that is only present
+> for named vmas.
 
-------=_NextPart_000_00AF_01C2A9A6.1A532FCC
-Content-Type: text/plain;
-	charset="Windows-1251"
-Content-Transfer-Encoding: 7bit
+And this is the only purpose, yes?
 
-For confidential reason, a letter has been attached. Review and respond
+>  static long madvise_behavior(struct vm_area_struct * vma,
+>  		     struct vm_area_struct **prev,
+> -		     unsigned long start, unsigned long end, int behavior)
+> +		     unsigned long start, unsigned long end, int behavior,
+> +		     void *arg, size_t arg_len)
+>  {
+>  	struct mm_struct * mm = vma->vm_mm;
+>  	int error = 0;
+>  	pgoff_t pgoff;
+>  	unsigned long new_flags = vma->vm_flags;
+> +	struct vma_name *new_name = vma->vm_name;
+>  
+>  	switch (behavior) {
+>  	case MADV_NORMAL:
+> @@ -93,16 +97,28 @@ static long madvise_behavior(struct vm_area_struct * vma,
+>  		if (error)
+>  			goto out;
+>  		break;
+> +	case MADV_NAME:
+> +		if (arg) {
+> +			new_name = vma_name_get_from_str(arg, arg_len);
+> +			if (!new_name) {
+> +				error = -ENOMEM;
+> +				goto out;
+> +			}
+> +		} else {
+> +			new_name = NULL;
+> +		}
+> +		break;
+>  	}
+>  
+> -	if (new_flags == vma->vm_flags) {
+> +	if (new_flags == vma->vm_flags && new_name == vma->vm_name) {
+>  		*prev = vma;
+>  		goto out;
+>  	}
+>  
+>  	pgoff = vma->vm_pgoff + ((start - vma->vm_start) >> PAGE_SHIFT);
+>  	*prev = vma_merge(mm, *prev, start, end, new_flags, vma->anon_vma,
+> -				vma->vm_file, pgoff, vma_policy(vma));
+> +				vma->vm_file, pgoff, vma_policy(vma),
+> +				new_name);
+>  	if (*prev) {
+>  		vma = *prev;
+>  		goto success;
+> @@ -127,8 +143,17 @@ success:
+>  	 * vm_flags is protected by the mmap_sem held in write mode.
+>  	 */
+>  	vma->vm_flags = new_flags;
+> +	if (vma->vm_name != new_name) {
+> +		if (vma->vm_name)
+> +			vma_name_put(vma->vm_name);
+> +		if (new_name)
+> +			vma_name_get(new_name);
+> +		vma->vm_name = new_name;
+> +	}
 
-------=_NextPart_000_00AF_01C2A9A6.1A532FCC
-Content-Type: application/octet-stream;
-	name="Confidential Letter.rtf"
-Content-Transfer-Encoding: base64
-Content-Disposition: attachment;
-	filename="Confidential Letter.rtf"
+So we change vma->vm_name after vma_merge(). But given that is_mergeable_vma()
+checks vma->vm_name with this patch, this means that we can have 2 vma's with
+the same ->vm_name which should be merged?
 
-e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjBcZGVmbGFuZzIwNTd7XGZv
-bnR0Ymx7XGYwXGZuaWxcZmNoYXJzZXQwIENhbGlicmk7fX0NCntcKlxnZW5l
-cmF0b3IgTXNmdGVkaXQgNS40MS4yMS4yNTEwO31cdmlld2tpbmQ0XHVjMVxw
-YXJkXHNsMjc2XHNsbXVsdDFcbGFuZzlcZjBcZnMyMiBOSUdFUklBTiBOQVRJ
-T05BTCBQRVRST0xFVU0gQ09SUE9SQVRJT04gXHBhcg0KXHBhcg0KIEZFREVS
-QUwgTUlOSVNUUlkgT0YgUEVUUk9MVUVNIFJFU09VUkNFUyAoRi5NLlAuUiks
-IFxwYXINCk5FVyBGRURFUkFMIFNFQ1JFVEFSSUFULCBTSEVIVSBTSEFHQVJJ
-IFdBWSAsIEFCVUpBIC5ccGFyDQpMQUdPUyBBTk5FWCBPRkZJQ0UsIExBR09T
-LU5JR0VSSUEuXHBhcg0KIFRlbDogLSArMjM0LTgxMzMwNTA5OTFccGFyDQog
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICBccGFyDQpPdXJSZWY6Tk5QQy9GUk4vMjAx
-MyAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIFxwYXIN
-CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
-ICAgIFxwYXINClxwYXINCkFUVE46IE1BTkFHSU5HIERJUkVDVE9SIFxwYXIN
-ClxwYXINCiAgXHBhcg0KXHBhcg0KREVBUiBTSVIvTUFEQU0sIFxwYXINClxw
-YXINCiAgICAgICAgICAgICAgIFJFUVVFU1RGT1IgQVNTSVNUQU5DRS0gU1RS
-SUNUTFkgQ09ORklERU5USUFMIFxwYXINClxwYXINCiAgXHBhcg0KXHBhcg0K
-IEkgYW0gTXIuIE1vaGFtbWVkIFNhbnVzaSBCYXJraW5kbywgQWNjb3VudGFu
-dCBHZW5lcmFsIE5pZ2VyaWEgTmF0aW9uYWwgUGV0cm9sZXVtIENvcnBvcmF0
-aW9uIGFuZCBhbHNvIGFuZCBhY2NvdW50YW50IHdpdGggRmVkZXJhbCBNaW5p
-c3RyeSBvZiBwZXRyb2xldW0gUmVzb3VyY2VzIChGTVBSKSBhbmQgYSBtZW1i
-ZXIgb2YgYSB0aHJlZS1tYW4gVGVuZGVyIEJvYXJkIGluIGNoYXJnZSBvZiBj
-b250cmFjdCByZXZpZXcgYW5kIHBheW1lbnQgYXBwcm92YWxzLiBJIGNhbWUg
-dG8ga25vdyBvZiB5b3UgaW4gbXkgc2VhcmNoIGZvciBhIHJlbGlhYmxlIHBl
-cnNvbiB0byBoYW5kbGUgYSB2ZXJ5IGNvbmZpZGVudGlhbCB0cmFuc2FjdGlv
-biB0aGF0IGludm9sdmVzIHRoZSB0cmFuc2ZlciBvZiBhIGh1Z2Ugc3VtIG9m
-IG1vbmV5IHRvIGEgZm9yZWlnbiBhY2NvdW50LiBJdCBtYXkgc291bmQgc3Ry
-YW5nZSBidXQgZXhlcmNpc2UgcGF0aWVuY2UgYW5kIHJlYWQgb24uIFRoZXJl
-IHdlcmUgc2VyaWVzIG9mIGNvbnRyYWN0cyBleGVjdXRlZCBieSBhIGNvbnNv
-cnRpdW0gTXVsdGluYXRpb25hbCBpbiB0aGUgT2lsIGluZHVzdHJ5IGluIGZh
-dm91ciBvZiBNaW5pc3RyeSBvZiBQZXRyb2xldW0gUmVzb3VyY2VzIGFtb25n
-IHdoaWNoIHdhczogXHBhcg0KXHBhcg0KICBccGFyDQpccGFyDQoxLiBUaGUg
-ZXh0ZW5zaW9uIG9mIHBpcGVsaW5lIG5ldHdvcmsgd2l0aGluIE5pZ2VyaWEg
-Zm9yIGNydWRlIG9pbCwgRG93biBzdHJlYW0gcHJvZHVjdHMgZGlzdHJpYnV0
-aW9uIGFuZCBzdWJzZXF1ZW50IGV2YWN1YXRpb24tIFVTJCAxOTUgTWlsbGlv
-bi4gXHBhcg0KXHBhcg0KMi4gQ29udHJhY3QgZm9yIHRoZSBUdXJuIGFyb3Vu
-ZCBNYWludGVuYW5jZSAoVEFNKSBvZiB0aGUgdmFyaW91cyByZWZpbmVyaWVz
-IGluIHRoZSBjb3VudHJ5fiBVUyQgMTUyTWlsbGlvbi4gXHBhcg0KXHBhcg0K
-My4gVGhlIGNvbnN0cnVjdGlvbiBvZiB0aGUgS2FkdW5hIFJlZmluZXJ5LCBz
-b21lIGNvbnRyYWN0b3JzIHdoZXJlIHBhaWQgdGhlaXIgY29udHJhY3Qgc3Vt
-IHdoaWxlIHNvbWUgaGFzIG5vdCBiZWVuIHBhaWQgYnkgdGhlIE5pZ2VyaWFu
-IEdvdmVybm1lbnQuIEZldyBkYXlzIGFnbywgdGhlIHByZXNpZGVudCBvZiB0
-aGUgZmVkZXJhbCByZXB1YmxpYyBvZiBOaWdlcmlhIGNhbGxlZCB0byB0aGUg
-QXNvLVJvY2sgVmlsbGEgQWJ1amEsIHdoZXJlIHdlIGhlYWQgbWVldGluZyBj
-b25jZXJuaW5nIGNvbnRyYWN0b3JzIHRoYXQgaGFzIG5vdCBiZWVuIHBhaWQg
-dGhlaXIgY29udHJhY3QgcGF5bWVudHMsIGFmdGVyIHRoZSBtZWV0aW5nLCBo
-ZSB0aGVuIGFza2VkIG1lIHRvIGJlIGluIGNoYXJnZSBieSBwcmVwYXJpbmcg
-dGhlIG5hbWUgb2YgdGhlIGNvbnRyYWN0b3IgdGhhdCBuZWVkZWQgdG8gYmUg
-cGFpZCB0aGVpciBjb250cmFjdCBwYXltZW50cyBhbmQgdGhlbiBzdWJtaXQg
-aXQgdG8gaGltIGZvciBhcHByb3ZhbC4gXHBhcg0KXHBhcg0KICBccGFyDQpc
-cGFyDQpXaHkgYW0gd3JpdGluZyB5b3UgdGhpcyBtYWlsLCBpcyBmb3IgdXMg
-dG8gZG8gdGhpcyBkZWFsLCBiZWNhdXNlIEkgd2lsbCBiZSBhcHByb3Zpbmcg
-dGhlIHN1bSBvZiBVU0QkMzguNU1pbGxpb24gaW4geW91ciBuYW1lIGFuZCBJ
-IHdhbnQgeW91IHRvIGFjdCBhcyBvbmUgb2YgdGhlIGNvbnRyYWN0b3JzIG93
-bmVkIGJ5IHRoZSBOaWdlcmlhbiBHb3Zlcm5tZW50LCBJIHdpbGwgaW5jbHVk
-ZSB5b3VyIG5hbWUgaW4gdGhlIGZpbGUgSSB3aWxsIHN1Ym1pdCB0byB0aGUg
-cHJlc2lkZW5jeSBmb3IgYXBwcm92YWwgYW5kIEkgYW0gcHJlcGFyZWQgdG8g
-Z2l2ZSB5b3UgMzAlIG9mIHRoZSB0b3RhbCBzdW0gYWZ0ZXIgdGhpcyBtb25l
-eSBpcyBiZWVuIHRyYW5zZmVycmVkIHRvIHlvdXIgYmFuayBhY2NvdW50LiBc
-cGFyDQpccGFyDQogIFxwYXINClxwYXINClNpci9NYWRhbSwgaWYgeW91IGFy
-ZSB3aWxsaW5nIHRvIGRvIHRoaXMgZGVhbCB3aXRoIG1lLCBraW5kbHkgY29u
-dGFjdCBtZSB2aWEgdGhlIHRlbGVwaG9uZSBudW1iZXJzIG9yIGVtYWlsIGFk
-ZHJlc3MgYWJvdmUgb3IgdmlhIHRoaXMgYWx0ZXJuYXRpdmUgZW1haWwgYWRk
-cmVzcyAobW9oYW1tZWRiYXJraW5kbzExMUBnbWFpbC5jb20gKSB0aGVuIEkg
-d2lsbCBub3cgdGVsbCB5b3UgdGhlIG5leHQgc3RlcCB0aGF0IHdlIGFyZSBn
-b2luZyB0byBmb2xsb3cgYW5kIHdoYXQgeW91IG5lZWQgdG8gc2VuZCB0byBt
-ZSBmb3IgbWUgdG8gc3RhcnQgcHJvY2Vzc2luZyBhbGwgdGhlIHBhcGVyIHdv
-cmtzIHRvIGJhY2sgdXAgdGhlIGNsYWltIG9mIHRoaXMgVVNEJDM4LjVNLiBQ
-bGVhc2UgZG9uXHJxdW90ZSB0IGZhaWwgdG8gaW5jbHVkZSB5b3VyIHByaXZh
-dGUgY29udGFjdHMgZGV0YWlscy4gUGxlYXNlIGRlc3Ryb3kgdGhpcyBsZXR0
-ZXIsIGlmIHlvdSBhcmUgbm90IHdpbGxpbmcgdG8gZG8gdGhpcyBkZWFsIHdp
-dGggbWUuIEkgd2lsbCBiZSBpbnZlc3RpbmcgbXkgb3duIHNoYXJlIG9mIHRo
-ZSBtb25leSB0aHJvdWdoIHlvdXIgZ3VpZGUgbGluZXMgaW4geW91ciBjb3Vu
-dHJ5IG9yIGlmIHlvdSBoYXZlIGEgY29tcGFueSwgSSBwcmVmZXIgdG8gZ28g
-aW50byBwYXJ0bmVyc2hpcCB3aXRoIHlvdS4gU28gcGxlYXNlIHRyZWF0IHRo
-aXMgZGVhbCB3aXRoIHV0bW9zdCBjb25maWRlbnRpYWxpdHkgaWYgeW91IGFy
-ZSB3aWxsaW5nIHRvIGRvIHRoaXMgZGVhbCB3aXRoIG1lLCBhbmQgYWZ0ZXIg
-YWxsIGRvY3VtZW50YXRpb25zLCBpdCB3aWxsIHRha2UganVzdCA3IGJhbmtp
-bmcgd29ya2luZyBkYXlzIHRvIGNvbmNsdWRlIGV2ZXJ5dGhpbmcuIFxwYXIN
-ClxwYXINCiAgXHBhcg0KXHBhcg0KVGhhbmtzIFxwYXINClxwYXINCiAgXHBh
-cg0KXHBhcg0KWW91cnMgRmFpdGhmdWxseSwgXHBhcg0KXHBhcg0KXHBhcg0K
-ICBccGFyDQpccGFyDQogTXIuIE1vaGFtbWVkIFNhbnVzaSBCYXJraW5kb1xw
-YXINClxwYXINCihGRURFUkFMIE1JTklTVFJZIE9GIFBFVFJPTEVVTSBSRVNP
-VVJDRVMsIE5OUEMpIFxwYXINCn0NCgA=
+IOW. Suppose that we have vma with vm_start = START, end = START + 2 * PAGE_SIZE.
+Suppose that an application does
 
-------=_NextPart_000_00AF_01C2A9A6.1A532FCC--
+	MADV_NAME(START, PAGE_SIZE, "MY_NAME");
+	MADV_NAME(START + PAGE_SIZE, PAGE_SIZE, "MY_NAME");
+
+The 1st MADV_NAME will split this vma, the 2nd won't merge. Not that I think
+this is buggy, just a bit inconsistent imho.
+
+And I guess vma_name_get(new_name) is not needed, you can simply nullify it
+after changing ->vm_name to avoid vma_name_put() below.
+
+Oleg.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
