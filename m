@@ -1,59 +1,28 @@
-From: Greg KH <gregkh@linuxfoundation.org>
+From: Steven Rostedt <rostedt@goodmis.org>
 Subject: Re: [PATCH] include/asm-generic/io.h: add dummy fuctions to support
  'COMPILE_TEST' in 'asm-generic'.
-Date: Wed, 3 Jul 2013 18:12:21 -0700
-Message-ID: <20130704011221.GA11230@kroah.com>
+Date: Wed, 03 Jul 2013 21:23:24 -0400
+Message-ID: <1372901004.22688.137.camel@gandalf.local.home>
 References: <51CA8AB8.7080504@asianux.com>
- <CAMuHMdW58CZ0m-10ibs2Vyh8exqP1nSH+-ZOr5J58tx=uorM+Q@mail.gmail.com>
- <51D375AA.5060300@asianux.com>
- <201307031014.12583.arnd@arndb.de>
- <51D3E440.7090105@asianux.com>
- <51D4C87E.5070605@asianux.com>
+	 <CAMuHMdW58CZ0m-10ibs2Vyh8exqP1nSH+-ZOr5J58tx=uorM+Q@mail.gmail.com>
+	 <51D375AA.5060300@asianux.com> <201307031014.12583.arnd@arndb.de>
+	 <51D3E440.7090105@asianux.com> <51D4C87E.5070605@asianux.com>
+	 <20130704011221.GA11230@kroah.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:41959 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753935Ab3GDBLc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jul 2013 21:11:32 -0400
-Content-Disposition: inline
-In-Reply-To: <51D4C87E.5070605@asianux.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Chen Gang <gang.chen@asianux.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Richard Weinberger <richard@nod.at>, Jeff Dike <jdike@addtoit.com>, David Sharp <dhsharp@google.com>, "sfr@canb.auug.org.au" <sfr@canb.auug.org.au>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>, uml-user <user-mode-linux-user@lists.sourceforge.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Mark Brown <broonie@kernel.org>, David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, Jiri Kosina <trivial@kernel.org>, Jiri Slaby <jslaby@suse.cz>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20130704011221.GA11230@kroah.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Greg KH <gregkh@linuxfoundation.org>
+Cc: Chen Gang <gang.chen@asianux.com>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Richard Weinberger <richard@nod.at>, Jeff Dike <jdike@addtoit.com>, David Sharp <dhsharp@google.com>, "sfr@canb.auug.org.au" <sfr@canb.auug.org.au>, Ingo Molnar <mingo@kernel.org>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>, uml-user <user-mode-linux-user@lists.sourceforge.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Mark Brown <broonie@kernel.org>, David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, Jiri Kosina <trivial@kernel.org>, Jiri Slaby <jslaby@suse.cz>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jul 04, 2013 at 08:57:34AM +0800, Chen Gang wrote:
-> 'asm-generic' neither belongs to architectures nor belongs to modules,
-> it provides public services to both modules and architectures.
+On Wed, 2013-07-03 at 18:12 -0700, Greg KH wrote:
 
-That sentence does not make any sense to me.
+> confused,
 
-> 'COMPILE_TEST=y' will let 'asm-generic' provide self checking sevices to
-> both modules and architectures (especially with allmodconfig and
-> "EXTRA_CFLAGS=-W")
+Good. I thought I was the only one. Confusion loves company, that way we
+can follow each other around in endless circles.
 
-No it doesn't.
-
-> For modules (especially which will run under the specific architecture
-> soon), the developer can find more compiling issues before they really
-> support it.
-
-Huh?
-
-> For architectures, can let modules compile as much as possible (if
-> "COMPILE_TEST=y"), it will give a better check for the architectures.
-> 
-> At present, most of architectures (include various machine/cpu in an
-> architecture) can not pass compiling with 'allmodconfig'. One of the
-> main reasons is the HW of the specific architecture does not support.
-> 
-> It is neither architectures issue nor modules issue, the root cause is:
-> "now, 'asm-generic' doesn't provide the related necessary public
-> services for it".
-
-That's not what asm-generic is for at all.
-
-confused,
-
-greg k-h
+-- Steve
