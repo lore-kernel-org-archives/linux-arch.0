@@ -1,64 +1,139 @@
-From: Colin Cross <ccross@android.com>
-Subject: Re: [PATCH] mm: add sys_madvise2 and MADV_NAME to name vmas
-Date: Wed, 3 Jul 2013 23:32:51 -0700
-Message-ID: <CAMbhsRTKQM1xF7syiy2aFwuqMEuJPPVYzL+Zhu-YKAfDQDRPgQ@mail.gmail.com>
-References: <1372901537-31033-1-git-send-email-ccross@android.com>
-	<87txkaq600.fsf@xmission.com>
+From: Chen Gang <gang.chen@asianux.com>
+Subject: Re: [PATCH] include/asm-generic/io.h: add dummy fuctions to support
+ 'COMPILE_TEST' in 'asm-generic'.
+Date: Thu, 04 Jul 2013 14:35:19 +0800
+Message-ID: <51D517A7.6030908@asianux.com>
+References: <20130704011221.GA11230@kroah.com> <51D4D4A0.6080401@asianux.com> <1372903390.22688.139.camel@gandalf.local.home> <51D4D9A4.3020402@gmail.com> <1372904975.22688.142.camel@gandalf.local.home> <51D4E133.2010201@gmail.com> <1372907201.22688.147.camel@gandalf.local.home> <51D4EB7D.2020809@gmail.com> <20130704040859.GA2869@kroah.com> <51D4FF17.4040503@asianux.com> <20130704061204.GA12148@kroah.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <87txkaq600.fsf@xmission.com>
-Sender: owner-linux-mm@kvack.org
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: lkml <linux-kernel@vger.kernel.org>, Kyungmin Park <kmpark@infradead.org>, Christoph Hellwig <hch@infradead.org>, John Stultz <john.stultz@linaro.org>, Rob Landley <rob@landley.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Cyrill Gorcunov <gorcunov@openvz.org>, David Rientjes <rientjes@google.com>, Davidlohr Bueso <dave@gnu.org>, Kees Cook <keescook@chromium.org>, Al Viro <viro@zeniv.linux.org.uk>, Hugh Dickins <hughd@google.com>, Mel Gorman <mgorman@suse.de>, Michel Lespinasse <walken@google.com>, Rik van Riel <riel@redhat.com>, Konstantin Khlebnikov <khlebnikov@openvz.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rusty Russell <rusty@rustcorp.com.au>, Oleg Nesterov <oleg@redhat.com>, Srikar Dronamraju <srikar@linux.vnet.ibm.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, Anton
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from intranet.asianux.com ([58.214.24.6]:36883 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755148Ab3GDGgN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jul 2013 02:36:13 -0400
+In-Reply-To: <20130704061204.GA12148@kroah.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Greg KH <gregkh@linuxfoundation.org>
+Cc: Steven Rostedt <rostedt@goodmis.org>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Richard Weinberger <richard@nod.at>, Jeff Dike <jdike@addtoit.com>, David Sharp <dhsharp@google.com>, "sfr@canb.auug.org.au" <sfr@canb.auug.org.au>, Ingo Molnar <mingo@kernel.org>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>, uml-user <user-mode-linux-user@lists.sourceforge.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Mark Brown <broonie@kernel.org>, David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, Jiri Kosina <trivial@kernel.org>, Jiri Slaby <jslaby@suse.cz>
 
-On Wed, Jul 3, 2013 at 9:54 PM, Eric W. Biederman <ebiederm@xmission.com> wrote:
-> Colin Cross <ccross@android.com> writes:
->
->> Userspace processes often have multiple allocators that each do
->> anonymous mmaps to get memory.  When examining memory usage of
->> individual processes or systems as a whole, it is useful to be
->> able to break down the various heaps that were allocated by
->> each layer and examine their size, RSS, and physical memory
->> usage.
->
-> What is the advantage of this?  It looks like it is going to add cache
-> line contention (atomic_inc/atomic_dec) to every vma operation
-> especially in the envision use case of heavy vma_name sharing.
->
-> I would expect this will result in a bloated vm_area_struct and a slower
-> mm subsystem.
+On 07/04/2013 02:12 PM, Greg KH wrote:
+> On Thu, Jul 04, 2013 at 12:50:31PM +0800, Chen Gang wrote:
+>> On 07/04/2013 12:08 PM, Greg KH wrote:
+>>>>> config COMPILE_TEST
+>>>>>        bool "Compile also drivers which will not load"
+>>>>>        default n
+>>> This has _nothing_ to do with asm-generic, sorry.  Please don't confuse
+>>> the issue.
+>>
+>> But when I choose allmodconfig, then "COMPILE_TEST=y". this may allow a
+>> module to compile under the architectures which no related HW support.
+>>
+>> When cause compiling issue (HW not support), it is not module's issue,
+>> we can not 'fix' module by force, and it is not architecture's issue,
+>> either.
+>>
+>> So we have to look for who has duty for this issue. At least now, it
+>> seems only 'asm-generic' can be qualified to play this unlucky role.
+> 
+> You seem to not understand what asm-generic is, or does, or I still do
+> not understand what you are proposing.
+> 
 
-The advantage is better tracking of the impact of various userspace
-allocations on the overall system.  Userspace could track allocations
-on its own, but it cannot track things like physical memory usage or
-Kernel SamePage Merging per allocation.
+Maybe both/neither of us.  :-)
 
-The disadvantage is one pointer per vma struct, which would increase
-the size on an allnoconfig x86_64 kernel from 176 to 184, which puts
-the vm_name pointer in the same cache line as vm_file.  For non-named
-vmas there is no other cost.  For named vmas there will be some
-cacheline contention, but no more than caused by the vm_file refcount.
- The refcounting happens at the same time as the vm_file refcounting,
-and I expect most uses of vm_name to be on anonymous memory, so in
-general it will make the cost of named anonymous mappings the same as
-file mappings.
+> Please send a patch showing what you are trying to do here, so that we
+> can properly understand.
+> 
 
-> Have you done any benchmarks that stress the mm subsystem?
+Please help to check the patch below, thanks.
 
-Not yet, but it's on my list.
+--------------------------patch begin----------------------------------
 
-> How can adding glittler to /proc/<pid>/maps and /proc/<pid>/smaps
-> justify putting a hand break on the linux kernel?
+'asm-generic' need provide necessary configuration checking, if can't
+pass checking, 'asm-generic' shouldn't implement it.
 
-I expect "hand break" is overstating the impact.  I could put it
-behind a CONFIG_DEBUG_NAMED_VMAS option, but that seems unnecessary
-since the impact for systems that choose not to use MADV_NAME will be
-tiny.
+For 'COMPILE_TEST', according to its help contents, 'asm-generic' need
+let it pass configuration checking, and provide related dummy contents
+for it.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Part of 'COMPLE_TEST' help contents in "init/Kconfig":
+
+  "...Despite they cannot be loaded there (or even when they load they cannot be used due to missing HW support)..."
+
+One sample for using 'COMPILE_TEST':
+
+  'PTP_1588_CLOCK_PCH' in drivers/ptp/Kconfig, which need depend on 'HAS_IOMEM'.
+
+
+Signed-off-by: Chen Gang <gang.chen@asianux.com>
+---
+ include/asm-generic/io.h |   22 ++++++++++++++++++----
+ 1 files changed, 18 insertions(+), 4 deletions(-)
+
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index d5afe96..301ce80 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -303,13 +303,18 @@ static inline void *phys_to_virt(unsigned long address)
+ /*
+  * Change "struct page" to physical address.
+  *
+- * This implementation is for the no-MMU case only... if you have an MMU
+- * you'll need to provide your own definitions.
++ * This for the no-MMU, or no-IOMEM but still try to COMPILE_TEST cases.
++ * if you have an MMU and IOMEM, you'll need to provide your own definitions.
+  */
+-#ifndef CONFIG_MMU
++#if !defined(CONFIG_MMU) || \
++	(!defined(CONFIG_HAS_IOMEM) && defined(CONFIG_COMPILE_TEST))
+ static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
+ {
++#if !defined(CONFIG_MMU)
+ 	return (void __iomem*) (unsigned long)offset;
++#else
++	return NULL;
++#endif
+ }
+ 
+ #define __ioremap(offset, size, flags)	ioremap(offset, size)
+@@ -325,7 +330,7 @@ static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
+ static inline void iounmap(void __iomem *addr)
+ {
+ }
+-#endif /* CONFIG_MMU */
++#endif /* !CONFIG_MMU || (!CONFIG_HAS_IOMEM && CONFIG_COMPILE_TEST) */
+ 
+ #ifdef CONFIG_HAS_IOPORT
+ #ifndef CONFIG_GENERIC_IOMAP
+@@ -341,6 +346,15 @@ static inline void ioport_unmap(void __iomem *p)
+ extern void __iomem *ioport_map(unsigned long port, unsigned int nr);
+ extern void ioport_unmap(void __iomem *p);
+ #endif /* CONFIG_GENERIC_IOMAP */
++#elif defined(CONFIG_COMPILE_TEST) /* CONFIG_HAS_IOPORT */
++static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
++{
++	return NULL;
++}
++
++static inline void ioport_unmap(void __iomem *p)
++{
++}
+ #endif /* CONFIG_HAS_IOPORT */
+ 
+ #ifndef xlate_dev_kmem_ptr
+-- 
+1.7.7.6
+
+
+
+--------------------------patch end------------------------------------
+
+
+Thanks.
+-- 
+Chen Gang
+
+-- 
+Chen Gang
