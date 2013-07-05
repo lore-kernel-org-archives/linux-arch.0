@@ -1,71 +1,75 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH v2] arch: asm-generic: for atomic_set_mask() 1st param,
- use 'unsigned int' instead of 'unsigned long'
-Date: Fri, 05 Jul 2013 09:11:28 +0800
-Message-ID: <51D61D40.9050500@asianux.com>
-References: <51B2E262.3030603@asianux.com> <CAErSpo5pg0EvJOR9nn3B0d+q0o6zsdwzM41AQx=AHfynRqX3hQ@mail.gmail.com> <51B4214E.6090007@asianux.com> <20130610092106.GA4697@osiris> <51B91E32.2040502@asianux.com> <51CA4C0E.9050909@asianux.com>
+From: Chen Gang F T <chen.gang.flying.transformer@gmail.com>
+Subject: Re: [PATCH] include/asm-generic/io.h: add dummy fuctions to support
+ 'COMPILE_TEST' in 'asm-generic'.
+Date: Fri, 05 Jul 2013 16:01:48 +0800
+Message-ID: <51D67D6C.4080603@gmail.com>
+References: <20130704011221.GA11230@kroah.com> <20130704061204.GA12148@kroah.com> <51D517A7.6030908@asianux.com> <201307041125.15083.arnd@arndb.de> <51D60D53.7050405@gmail.com> <20130705101446.48deb2694f5fcdb060f41e5b@canb.auug.org.au> <51D617E9.8080907@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=GB2312
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:56219 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750959Ab3GEBMV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Jul 2013 21:12:21 -0400
-In-Reply-To: <51CA4C0E.9050909@asianux.com>
+Received: from mail-pb0-f54.google.com ([209.85.160.54]:55094 "EHLO
+	mail-pb0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757088Ab3GEIDM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Jul 2013 04:03:12 -0400
+In-Reply-To: <51D617E9.8080907@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "uclinux-dist-devel@blackfin.uclinux.org" <uclinux-dist-devel@blackfin.uclinux.org>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, Bjorn Helgaas <bhelgaas@google.com>, Mike Frysinger <vapier@gentoo.org>, takata@linux-m32r.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Arnd Bergmann <arnd@arndb.de>, realmz paranoid <realmz6@gmail.com>, linux390@de.ibm.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-s390@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Marc Gauthier <Marc.Gauthier@tensilica.com>, Andrew Morton <akpm@linux-foundation.org>, Greg KH <gregkh@linuxfoundation.org>
+To: Chen Gang <gang.chen@asianux.com>, Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg KH <gregkh@linuxfoundation.org>, Steven Rostedt <rostedt@goodmis.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Richard Weinberger <richard@nod.at>, Jeff Dike <jdike@addtoit.com>, David Sharp <dhsharp@google.com>, Ingo Molnar <mingo@kernel.org>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>, uml-user <user-mode-linux-user@lists.sourceforge.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Mark Brown <broonie@kernel.org>, David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, Jiri Kosina <trivial@kernel.org>, Jiri Slaby <jslaby@suse.cz>
 
-Hello Maintainers:
+Hello All:
 
-Please help check this patch whether OK, when you have time.
+It seems 'asm-generic' dislikes 'mad users' (e.g allmodconfig,
+randconfig, and me).
 
-Thanks.
+I guess the main reason is: 'asm-generic' thinks what mad users talk
+about is useless in real world, so it is just noisy.
 
-On 06/26/2013 10:03 AM, Chen Gang wrote:
-> Hello Maintainers:
+I can understand, at least what I talk about is not for urgent things.
+(maybe 'asm-generic' also thinks it not important either, every members
+have their own opinions).
+
+Next, I still use allmodconfig/randconfig for some architectures which I
+am interested in (and also for learning compilers), but I will skip all
+things which are related with 'asm-generic', since it dislikes me (a mad
+user).
+
+At last, I make an apologize to 'asm-generic' for my mad discussing.
+
+Bye !!
+
+
+On 07/05/2013 08:48 AM, Chen Gang F T wrote:
+> On 07/05/2013 08:14 AM, Stephen Rothwell wrote:
+>> On Fri, 05 Jul 2013 08:03:31 +0800 Chen Gang F T <chen.gang.flying.transformer@gmail.com> wrote:
+>>>>
+>>>> When a module select "COMPILE_TEST=y" (e.g with allmodconfig), it has
+>>>> right to compile under the architecture which no related HW support.
+>>>>
+>>>> If it can not pass compiling, at least it is not the module's issue,
+>>>> neither the architecture's issue.
+>>>>
+>>>> We have to look for who has duty on it. At least now, it seems only
+>>>> 'asm-generic' can be qualified to play this unlucky role.
+>> You keep saying this, but others have told you that this is not the
+>> problem.
+>>
 > 
-> Firstly thank the s390 maintainers again for their 'Acked-by' (in my
-> memory, s390 is the most important business mainframe machine)
+> In real world, it is not the problem.
 > 
-> Could another related maintainers give a glance for it, when you have time.
+> But for 'mad users' (e.g. allmodconfig, randconfig, and me too), they
+> have not provided enough reason for it (prove that is not a problem for
+> 'mad users').
+> 
+> 
+>>>> Could you provide your suggestions or completions for this issue ?
+>> If something doesn't build for a particular config, then either it needs
+>> to be fixed or excluded from building in that particular config.
+> 
+> I agree with you, if get rid of 'COMPILE_TEST'.
 > 
 > Thanks.
-> 
-> On 06/13/2013 09:19 AM, Chen Gang wrote:
->> On 06/10/2013 05:21 PM, Heiko Carstens wrote:
->>> On Sun, Jun 09, 2013 at 02:31:42PM +0800, Chen Gang wrote:
->>>>>
->>>>> atomic_set_mask() and atomic_clear_mask() are the pairs, so the related
->>>>> parameters' type need match with each other.
->>>>>
->>>>> The type of 'addr->counter' is 'int', so use 'unsigned int' instead
->>>>> of 'unsigned long', and let atomic_set_mask() match atomic_clear_mask().
->>>>>
->>>>>
->>>>> For arch sub-system, currently, have 3 types of definition for them:
->>>>> 1st for 'int', 2nd for 'long', 3rd is conflict to use 'int' and 'long'.
->>>>>
->>>>> At least, better to fix 3rd (conflict using 'int' and 'long').
->>>>>
->>>>> Signed-off-by: Chen Gang <gang.chen@asianux.com>
->>>>> ---
->>>>>  arch/blackfin/include/asm/atomic.h |    4 ++--
->>>>>  arch/m32r/include/asm/atomic.h     |    8 ++++----
->>>>>  arch/s390/include/asm/atomic.h     |    4 ++--
->>>>>  include/asm-generic/atomic.h       |    2 +-
->>>>>  4 files changed, 9 insertions(+), 9 deletions(-)
->>> For the s390 part:
->>>
->>> Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com>
->>>
->>
->> Thank you very much !!
->>
->>
-> 
 > 
 
 
