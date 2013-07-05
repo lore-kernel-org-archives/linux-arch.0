@@ -1,49 +1,108 @@
-From: Oleg Nesterov <oleg@redhat.com>
+From: Colin Cross <ccross@android.com>
 Subject: Re: [PATCH] mm: add sys_madvise2 and MADV_NAME to name vmas
-Date: Fri, 5 Jul 2013 18:52:26 +0200
-Message-ID: <20130705165226.GA17120@redhat.com>
-References: <1372901537-31033-1-git-send-email-ccross@android.com> <87txkaq600.fsf@xmission.com> <CAMbhsRTKQM1xF7syiy2aFwuqMEuJPPVYzL+Zhu-YKAfDQDRPgQ@mail.gmail.com>
+Date: Fri, 5 Jul 2013 12:40:50 -0700
+Message-ID: <CAMbhsRRjGjo_-zSigmdsDvY-kfBhmP49bDQzsgHfj5N-y+ZAdw@mail.gmail.com>
+References: <1372901537-31033-1-git-send-email-ccross@android.com>
+	<20130704202232.GA19287@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <CAMbhsRTKQM1xF7syiy2aFwuqMEuJPPVYzL+Zhu-YKAfDQDRPgQ@mail.gmail.com>
+In-Reply-To: <20130704202232.GA19287@redhat.com>
 Sender: owner-linux-mm@kvack.org
-To: Colin Cross <ccross@android.com>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, lkml <linux-kernel@vger.kernel.org>, Kyungmin Park <kmpark@infradead.org>, Christoph Hellwig <hch@infradead.org>, John Stultz <john.stultz@linaro.org>, Rob Landley <rob@landley.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Cyrill Gorcunov <gorcunov@openvz.org>, David Rientjes <rientjes@google.com>, Davidlohr Bueso <dave@gnu.org>, Kees Cook <keescook@chromium.org>, Al Viro <viro@zeniv.linux.org.uk>, Hugh Dickins <hughd@google.com>, Mel Gorman <mgorman@suse.de>, Michel Lespinasse <walken@google.com>, Rik van Riel <riel@redhat.com>, Konstantin Khlebnikov <khlebnikov@openvz.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rusty Russell <rusty@rustcorp.com.au>, Srikar Dronamraju <srikar@linux.vn>
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: lkml <linux-kernel@vger.kernel.org>, Kyungmin Park <kmpark@infradead.org>, Christoph Hellwig <hch@infradead.org>, John Stultz <john.stultz@linaro.org>, Rob Landley <rob@landley.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Cyrill Gorcunov <gorcunov@openvz.org>, David Rientjes <rientjes@google.com>, Davidlohr Bueso <dave@gnu.org>, Kees Cook <keescook@chromium.org>, Al Viro <viro@zeniv.linux.org.uk>, Hugh Dickins <hughd@google.com>, Mel Gorman <mgorman@suse.de>, Michel Lespinasse <walken@google.com>, Rik van Riel <riel@redhat.com>, Konstantin Khlebnikov <khlebnikov@openvz.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rusty Russell <rusty@rustcorp.com.au>, "Eric W. Biederman" <ebiederm@xmission.com>, Srikar Dronamraju <srikar@linux.vnet.ibm.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>An
 List-Id: linux-arch.vger.kernel.org
 
-On 07/03, Colin Cross wrote:
+On Thu, Jul 4, 2013 at 1:22 PM, Oleg Nesterov <oleg@redhat.com> wrote:
+> On 07/03, Colin Cross wrote:
+>>
+>> The names of named anonymous vmas are shown in /proc/pid/maps
+>> as [anon:<name>].  The name of all named vmas are shown in
+>> /proc/pid/smaps in a new "Name" field that is only present
+>> for named vmas.
 >
-> On Wed, Jul 3, 2013 at 9:54 PM, Eric W. Biederman <ebiederm@xmission.com> wrote:
-> > Colin Cross <ccross@android.com> writes:
-> >
-> > What is the advantage of this?  It looks like it is going to add cache
-> > line contention (atomic_inc/atomic_dec) to every vma operation
-> > especially in the envision use case of heavy vma_name sharing.
-> >
-> > I would expect this will result in a bloated vm_area_struct and a slower
-> > mm subsystem.
+> And this is the only purpose, yes?
+
+Yes
+
+>>  static long madvise_behavior(struct vm_area_struct * vma,
+>>                    struct vm_area_struct **prev,
+>> -                  unsigned long start, unsigned long end, int behavior)
+>> +                  unsigned long start, unsigned long end, int behavior,
+>> +                  void *arg, size_t arg_len)
+>>  {
+>>       struct mm_struct * mm = vma->vm_mm;
+>>       int error = 0;
+>>       pgoff_t pgoff;
+>>       unsigned long new_flags = vma->vm_flags;
+>> +     struct vma_name *new_name = vma->vm_name;
+>>
+>>       switch (behavior) {
+>>       case MADV_NORMAL:
+>> @@ -93,16 +97,28 @@ static long madvise_behavior(struct vm_area_struct * vma,
+>>               if (error)
+>>                       goto out;
+>>               break;
+>> +     case MADV_NAME:
+>> +             if (arg) {
+>> +                     new_name = vma_name_get_from_str(arg, arg_len);
+>> +                     if (!new_name) {
+>> +                             error = -ENOMEM;
+>> +                             goto out;
+>> +                     }
+>> +             } else {
+>> +                     new_name = NULL;
+>> +             }
+>> +             break;
+>>       }
+>>
+>> -     if (new_flags == vma->vm_flags) {
+>> +     if (new_flags == vma->vm_flags && new_name == vma->vm_name) {
+>>               *prev = vma;
+>>               goto out;
+>>       }
+>>
+>>       pgoff = vma->vm_pgoff + ((start - vma->vm_start) >> PAGE_SHIFT);
+>>       *prev = vma_merge(mm, *prev, start, end, new_flags, vma->anon_vma,
+>> -                             vma->vm_file, pgoff, vma_policy(vma));
+>> +                             vma->vm_file, pgoff, vma_policy(vma),
+>> +                             new_name);
+>>       if (*prev) {
+>>               vma = *prev;
+>>               goto success;
+>> @@ -127,8 +143,17 @@ success:
+>>        * vm_flags is protected by the mmap_sem held in write mode.
+>>        */
+>>       vma->vm_flags = new_flags;
+>> +     if (vma->vm_name != new_name) {
+>> +             if (vma->vm_name)
+>> +                     vma_name_put(vma->vm_name);
+>> +             if (new_name)
+>> +                     vma_name_get(new_name);
+>> +             vma->vm_name = new_name;
+>> +     }
 >
-> The advantage is better tracking of the impact of various userspace
-> allocations on the overall system.  Userspace could track allocations
-> on its own, but it cannot track things like physical memory usage or
-> Kernel SamePage Merging per allocation.
+> So we change vma->vm_name after vma_merge(). But given that is_mergeable_vma()
+> checks vma->vm_name with this patch, this means that we can have 2 vma's with
+> the same ->vm_name which should be merged?
+>
+> IOW. Suppose that we have vma with vm_start = START, end = START + 2 * PAGE_SIZE.
+> Suppose that an application does
+>
+>         MADV_NAME(START, PAGE_SIZE, "MY_NAME");
+>         MADV_NAME(START + PAGE_SIZE, PAGE_SIZE, "MY_NAME");
+>
+> The 1st MADV_NAME will split this vma, the 2nd won't merge. Not that I think
+> this is buggy, just a bit inconsistent imho.
 
-What I can't understand completely is why do you need the string to
-mark the vma's.
+My intention is that any vmas that would be merged without names would
+be merged if they have the same name.  I copied the logic used for
+vm_flags, but I'll take another look.
 
-Just make it "unsigned long vm_id" and avoid all these complications
-with get/put and "struct vma_name". And afaics you can avoid other
-complications too, the new argumnent for vma_merge() is not really
-needed. This patch would be trivial.
+> And I guess vma_name_get(new_name) is not needed, you can simply nullify it
+> after changing ->vm_name to avoid vma_name_put() below.
 
-> I expect "hand break" is overstating the impact.
-
-The code complexity (and even size) does matter too ;) It is not clear
-if this new feature worth the trouble.
-
-Oleg.
+Good point, I'll fix it in the next version.
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
