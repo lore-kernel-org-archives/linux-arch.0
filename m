@@ -1,151 +1,52 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH, re-send] Always trap on BUG()
-Date: Fri, 5 Jul 2013 17:38:35 +0200
-Message-ID: <201307051738.35930.arnd@arndb.de>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH] mm: add sys_madvise2 and MADV_NAME to name vmas
+Date: Fri, 5 Jul 2013 18:52:26 +0200
+Message-ID: <20130705165226.GA17120@redhat.com>
+References: <1372901537-31033-1-git-send-email-ccross@android.com> <87txkaq600.fsf@xmission.com> <CAMbhsRTKQM1xF7syiy2aFwuqMEuJPPVYzL+Zhu-YKAfDQDRPgQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:52573 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751174Ab3GEPiv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Jul 2013 11:38:51 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Chen Gang <gang.chen@asianux.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@kernel.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <CAMbhsRTKQM1xF7syiy2aFwuqMEuJPPVYzL+Zhu-YKAfDQDRPgQ@mail.gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Colin Cross <ccross@android.com>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, lkml <linux-kernel@vger.kernel.org>, Kyungmin Park <kmpark@infradead.org>, Christoph Hellwig <hch@infradead.org>, John Stultz <john.stultz@linaro.org>, Rob Landley <rob@landley.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Cyrill Gorcunov <gorcunov@openvz.org>, David Rientjes <rientjes@google.com>, Davidlohr Bueso <dave@gnu.org>, Kees Cook <keescook@chromium.org>, Al Viro <viro@zeniv.linux.org.uk>, Hugh Dickins <hughd@google.com>, Mel Gorman <mgorman@suse.de>, Michel Lespinasse <walken@google.com>, Rik van Riel <riel@redhat.com>, Konstantin Khlebnikov <khlebnikov@openvz.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rusty Russell <rusty@rustcorp.com.au>, Srikar Dronamraju <srikar@linux.vn>
+List-Id: linux-arch.vger.kernel.org
 
-I've run some size analyis using the ARM 'multi_v7_defconfig'
-and gcc-4.8, using various definitions for BUG() and BUG_ON(), to
-see how big the size improvement actually gets
+On 07/03, Colin Cross wrote:
+>
+> On Wed, Jul 3, 2013 at 9:54 PM, Eric W. Biederman <ebiederm@xmission.com> wrote:
+> > Colin Cross <ccross@android.com> writes:
+> >
+> > What is the advantage of this?  It looks like it is going to add cache
+> > line contention (atomic_inc/atomic_dec) to every vma operation
+> > especially in the envision use case of heavy vma_name sharing.
+> >
+> > I would expect this will result in a bloated vm_area_struct and a slower
+> > mm subsystem.
+>
+> The advantage is better tracking of the impact of various userspace
+> allocations on the overall system.  Userspace could track allocations
+> on its own, but it cannot track things like physical memory usage or
+> Kernel SamePage Merging per allocation.
 
-1. Baseline: normal bug plus CONFIG_BUG_VERBOSE
-   text    data     bss     dec     hex filename
-3743196  224396  206812 4174404  3fb244 vmlinux-bugverbose
+What I can't understand completely is why do you need the string to
+mark the vma's.
 
-2. disabling CONFIG_BUG_VERBOSE, saving 0.6%
-3716920  224380  206812 4148112  3f4b90 vmlinux-nobugverbose
+Just make it "unsigned long vm_id" and avoid all these complications
+with get/put and "struct vma_name". And afaics you can avoid other
+complications too, the new argumnent for vma_merge() is not really
+needed. This patch would be trivial.
 
-3. #define BUG() panic(__func__), #define BUG_ON(c) if(c) BUG(), saving 1.0%
-3701076  224384  206812 4132272  3f0db0 vmlinux-bug-panicfunc
+> I expect "hand break" is overstating the impact.
 
-3. #define BUG() panic(__func__), #define BUG_ON(c) if(c) BUG(), saving 1.5%
-3678884  224400  206812 4110096  3eb710 vmlinux-bug-panic
+The code complexity (and even size) does matter too ;) It is not clear
+if this new feature worth the trouble.
 
-4. #define BUG() unreachable(), saving 2.1%
-3652636  224384  206812 4083832  3e5078 vmlinux-bug-unreachable
+Oleg.
 
-5. as 4, plus #define BUG_ON(c) if(c) unreachable(), saving 2.2%
-3651108  224380  206812 4082300  3e4a7c vmlinux-bugon-unreachable
-
-6. #define BUG() do{}while(0), saving 2.1%
-3654264  224380  206812 4085456  3e56d0 vmlinux-nobug
-
-7. as 6, plus #define BUG_ON if(0 && (c)) unreachable, saving 2.2%
-3648392  223996  206748 4079136  3e3e20 vmlinux-no-bugon
-
-8. my patch below, saving 1.8%
-3666532  224380  206812 4097724  3e86bc obj-tmp/vmlinux
-
-The gain of doing unreachable and letting the code run off whereever
-is minimal compared to the current state of doing nothing, but it
-avoids the warnings.
-
-Same test using x86_defconfig:
-
-1. CONFIG_BUG=y, CONFIG_BUGVERBOSE=n
-10797859        1395648 1175552 13369059         cbfee3 vmlinux-x86-bug
-
-2. CONFIG_BUG=n, saves 1.0%
-10658553        1395584 1175552 13229689         c9de79 vmlinux-x86-nobug
-
-3. with my patch, saves 0.8%
-10684186        1395584 1175552 13255322         ca429a vmlinux-x86-archbug
-
-Getting 1-2% savings in kernel size seems absolutely worth keeping the
-option, but 0.2-0.4% left for getting reproducible behavior also seems
-worthwhile. The result in the patch below.
-
-This basically loses any of the BUG() reporting, but leaves the
-logic to trap and kill the task in place when CONFIG_BUG is disabled.
-
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org
-Cc: Chen Gang <gang.chen@asianux.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>
-
-diff --git a/arch/arm/include/asm/bug.h b/arch/arm/include/asm/bug.h
-index 7af5c6c..4a5b85d 100644
---- a/arch/arm/include/asm/bug.h
-+++ b/arch/arm/include/asm/bug.h
-@@ -3,8 +3,6 @@
- 
- #include <linux/linkage.h>
- 
--#ifdef CONFIG_BUG
--
- /*
-  * Use a suitable undefined instruction to use for ARM/Thumb2 bug handling.
-  * We need to be careful not to conflict with those used by other modules and
-@@ -54,7 +52,6 @@ do {								\
- #endif  /* CONFIG_DEBUG_BUGVERBOSE */
- 
- #define HAVE_ARCH_BUG
--#endif  /* CONFIG_BUG */
- 
- #include <asm-generic/bug.h>
- 
-diff --git a/arch/x86/include/asm/bug.h b/arch/x86/include/asm/bug.h
-index 2f03ff0..ba38ebb 100644
---- a/arch/x86/include/asm/bug.h
-+++ b/arch/x86/include/asm/bug.h
-@@ -1,7 +1,6 @@
- #ifndef _ASM_X86_BUG_H
- #define _ASM_X86_BUG_H
- 
--#ifdef CONFIG_BUG
- #define HAVE_ARCH_BUG
- 
- #ifdef CONFIG_DEBUG_BUGVERBOSE
-@@ -33,8 +32,6 @@ do {								\
- } while (0)
- #endif
- 
--#endif /* !CONFIG_BUG */
--
- #include <asm-generic/bug.h>
- 
- #endif /* _ASM_X86_BUG_H */
-diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-index 7d10f96..bbd2872 100644
---- a/include/asm-generic/bug.h
-+++ b/include/asm-generic/bug.h
-@@ -112,12 +112,13 @@ extern void warn_slowpath_null(const char *file, const int line);
- #endif
- 
- #ifndef HAVE_ARCH_BUG_ON
--#define BUG_ON(condition) do { if (condition) ; } while(0)
-+#define BUG_ON(condition) do { if (unlikely(condition)) BUG(); } while(0)
- #endif
- 
- #ifndef HAVE_ARCH_WARN_ON
- #define WARN_ON(condition) ({						\
- 	int __ret_warn_on = !!(condition);				\
-+	(void)__ret_warn_on;						\
- 	unlikely(__ret_warn_on);					\
- })
- #endif
-@@ -125,6 +126,8 @@ extern void warn_slowpath_null(const char *file, const int line);
- #ifndef WARN
- #define WARN(condition, format...) ({					\
- 	int __ret_warn_on = !!(condition);				\
-+	if (0 && (__ret_warn_on))					\
-+		printk(format);						\
- 	unlikely(__ret_warn_on);					\
- })
- #endif
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
