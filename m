@@ -1,63 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.186]:63174 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757207Ab3GELOH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Jul 2013 07:14:07 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] include/asm-generic/io.h: add dummy fuctions to support 'COMPILE_TEST' in 'asm-generic'.
-Date: Fri, 5 Jul 2013 13:13:43 +0200
-References: <20130704011221.GA11230@kroah.com> <51D617E9.8080907@gmail.com> <51D67D6C.4080603@gmail.com>
-In-Reply-To: <51D67D6C.4080603@gmail.com>
-MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="utf-8"
+Received: from shards.monkeyblade.net ([149.20.54.216]:45162 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755067Ab3GJUmT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jul 2013 16:42:19 -0400
+Date: Wed, 10 Jul 2013 13:42:16 -0700 (PDT)
+Message-ID: <20130710.134216.1407498845215548973.davem@davemloft.net>
+Subject: Re: [PATCH] arch: sparc: kernel: check the memory length before
+ use strcpy().
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <51C53571.9070403@asianux.com>
+References: <51C53571.9070403@asianux.com>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Message-ID: <201307051313.43491.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chen Gang F T <chen.gang.flying.transformer@gmail.com>
-Cc: Chen Gang <gang.chen@asianux.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Greg KH <gregkh@linuxfoundation.org>, Steven Rostedt <rostedt@goodmis.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Richard Weinberger <richard@nod.at>, Jeff Dike <jdike@addtoit.com>, David Sharp <dhsharp@google.com>, Ingo Molnar <mingo@kernel.org>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>, uml-user <user-mode-linux-user@lists.sourceforge.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Mark Brown <broonie@kernel.org>, David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, Jiri Kosina <trivial@kernel.org>, Jiri Slaby <jslaby@suse.cz>
-Message-ID: <20130705111343.4Xke-rqw1t5413BxQWs6UhsK3efOH5wcQejPzzqzarM@z>
+To: gang.chen@asianux.com
+Cc: sam@ravnborg.org, zhaohongjiang@huawei.com, gregkh@linuxfoundation.org, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20130710204216.syxgWyZEH0iuE2-eXbFQ9oxbPtM3hhu_BbWmhjJftDc@z>
 
-On Friday 05 July 2013, Chen Gang F T wrote:
-> Hello All:
+From: Chen Gang <gang.chen@asianux.com>
+Date: Sat, 22 Jun 2013 13:26:09 +0800
+
 > 
-> It seems 'asm-generic' dislikes 'mad users' (e.g allmodconfig,
-> randconfig, and me).
+> For the related next strcpy(), the destination length is less than 512,
+> but the source maximize length may be 'OPROMMAXPARAM' (4096) which is
+> more than 512.
 > 
-> I guess the main reason is: 'asm-generic' thinks what mad users talk
-> about is useless in real world, so it is just noisy.
+> One work flow may:
+>   openprom_sunos_ioctl() ->  if (cmd == OPROMSETOPT)
+>     getstrings() ->  will alloc buffer with size 'OPROMMAXPARAM'.
+>     opromsetopt() ->  devide the buffer into 'var' and 'value'
+>       of_set_property() -> pass
+>         prom_setprop() -> pass
+>           ldom_set_var()
 > 
-> I can understand, at least what I talk about is not for urgent things.
-> (maybe 'asm-generic' also thinks it not important either, every members
-> have their own opinions).
+> And do not mind the additional 4 alignment buffer increasing, since
+> 'sizeof(pkt) - sizeof(pkt.header)' is 4 alignment at least.
 > 
-> Next, I still use allmodconfig/randconfig for some architectures which I
-> am interested in (and also for learning compilers), but I will skip all
-> things which are related with 'asm-generic', since it dislikes me (a mad
-> user).
+> 
+> Signed-off-by: Chen Gang <gang.chen@asianux.com>
 
-As the asm-generic maintainer I think I have to clarify a few things:
-
-* Build-time fixes for warnings and randconfig errors are good,
-  and you have sent a number of good bug fixes all over the kernel,
-  I definitely welcome getting more of those. In many cases the
-  fix is trivial and obvious, in other cases you need to know
-  much more of the background to understand what the underlying
-  problem is and why you should not just fix the symptom.
-
-* You have made an (understandable) mistake with this particular
-  patch. It would have been nice if you had not made it, but I
-  can see that you are still learning about these things. There
-  is a fine line between what makes sense to be enabled as a
-  'compile test' and what should better be left disabled by
-  Kconfig.
-
-* When experienced developers tell you that you are mistaken, you
-  need to make an effort to understand what the mistake was so you
-  can learn from it and not make the same mistake again. If you
-  make the same mistakes again, maintainers will get annoyed and
-  ignore you (or worse), which is not a good situation to be
-  in when you want to get your patches merged.
-
-	Arnd
+Applied.
