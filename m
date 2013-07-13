@@ -1,85 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ea0-f179.google.com ([209.85.215.179]:57305 "EHLO
-	mail-ea0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757253Ab3GLKPa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jul 2013 06:15:30 -0400
-Date: Fri, 12 Jul 2013 12:15:25 +0200
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH, re-send] Always trap on BUG()
-Message-ID: <20130712101525.GA13552@gmail.com>
-References: <201307051738.35930.arnd@arndb.de>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <201307051738.35930.arnd@arndb.de>
+Received: from g4t0014.houston.hp.com ([15.201.24.17]:42493 "EHLO
+	g4t0014.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757984Ab3GMBeq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jul 2013 21:34:46 -0400
+From: Waiman Long <Waiman.Long@hp.com>
+Subject: [PATCH RFC 2/2] x86 qrwlock: Enable x86 to use queue read/write lock
+Date: Fri, 12 Jul 2013 21:34:09 -0400
+Message-ID: <1373679249-27123-3-git-send-email-Waiman.Long@hp.com>
+In-Reply-To: <1373679249-27123-1-git-send-email-Waiman.Long@hp.com>
+References: <1373679249-27123-1-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Chen Gang <gang.chen@asianux.com>, "H. Peter Anvin" <hpa@zytor.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20130712101525.4x5heeeGD3EDs_uJc-JHk-uSiU-FXxLIIY3EeIS7J0c@z>
+To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: Waiman Long <Waiman.Long@hp.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Richard Weinberger <richard@nod.at>, Catalin Marinas <catalin.marinas@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Matt Fleming <matt.fleming@intel.com>, Herbert Xu <herbert@gondor.apana.org.au>, Akinobu Mita <akinobu.mita@gmail.com>, Rusty Russell <rusty@rustcorp.com.au>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, "Norton, Scott J" <scott.norton@hp.com>
+Message-ID: <20130713013409.WinsIVyHVpYVO2TW1ceysE7U3eEYnfzZqoArnXS_F1U@z>
 
+This patch makes the necessary changes at the x86 architecture specific
+layer to enable the presence of the CONFIG_QUEUE_RWLOCK kernel option
+to replace the plain read/write lock by the queue read/write lock.
 
-* Arnd Bergmann <arnd@arndb.de> wrote:
+Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+---
+ arch/x86/Kconfig                      |    3 +++
+ arch/x86/include/asm/spinlock.h       |    2 ++
+ arch/x86/include/asm/spinlock_types.h |    4 ++++
+ 3 files changed, 9 insertions(+), 0 deletions(-)
 
-> I've run some size analyis using the ARM 'multi_v7_defconfig'
-> and gcc-4.8, using various definitions for BUG() and BUG_ON(), to
-> see how big the size improvement actually gets
-> 
-> 1. Baseline: normal bug plus CONFIG_BUG_VERBOSE
->    text    data     bss     dec     hex filename
-> 3743196  224396  206812 4174404  3fb244 vmlinux-bugverbose
-> 
-> 2. disabling CONFIG_BUG_VERBOSE, saving 0.6%
-> 3716920  224380  206812 4148112  3f4b90 vmlinux-nobugverbose
-> 
-> 3. #define BUG() panic(__func__), #define BUG_ON(c) if(c) BUG(), saving 1.0%
-> 3701076  224384  206812 4132272  3f0db0 vmlinux-bug-panicfunc
-> 
-> 3. #define BUG() panic(__func__), #define BUG_ON(c) if(c) BUG(), saving 1.5%
-> 3678884  224400  206812 4110096  3eb710 vmlinux-bug-panic
-> 
-> 4. #define BUG() unreachable(), saving 2.1%
-> 3652636  224384  206812 4083832  3e5078 vmlinux-bug-unreachable
-> 
-> 5. as 4, plus #define BUG_ON(c) if(c) unreachable(), saving 2.2%
-> 3651108  224380  206812 4082300  3e4a7c vmlinux-bugon-unreachable
-> 
-> 6. #define BUG() do{}while(0), saving 2.1%
-> 3654264  224380  206812 4085456  3e56d0 vmlinux-nobug
-> 
-> 7. as 6, plus #define BUG_ON if(0 && (c)) unreachable, saving 2.2%
-> 3648392  223996  206748 4079136  3e3e20 vmlinux-no-bugon
-> 
-> 8. my patch below, saving 1.8%
-> 3666532  224380  206812 4097724  3e86bc obj-tmp/vmlinux
-> 
-> The gain of doing unreachable and letting the code run off whereever
-> is minimal compared to the current state of doing nothing, but it
-> avoids the warnings.
-> 
-> Same test using x86_defconfig:
-> 
-> 1. CONFIG_BUG=y, CONFIG_BUGVERBOSE=n
-> 10797859        1395648 1175552 13369059         cbfee3 vmlinux-x86-bug
-> 
-> 2. CONFIG_BUG=n, saves 1.0%
-> 10658553        1395584 1175552 13229689         c9de79 vmlinux-x86-nobug
-> 
-> 3. with my patch, saves 0.8%
-> 10684186        1395584 1175552 13255322         ca429a vmlinux-x86-archbug
-> 
-> Getting 1-2% savings in kernel size seems absolutely worth keeping the
-> option, but 0.2-0.4% left for getting reproducible behavior also seems
-> worthwhile. The result in the patch below.
-> 
-> This basically loses any of the BUG() reporting, but leaves the
-> logic to trap and kill the task in place when CONFIG_BUG is disabled.
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index b32ebf9..638dbaa 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -2344,6 +2344,9 @@ config X86_DMA_REMAP
+ 	bool
+ 	depends on STA2X11
+ 
++config ARCH_QUEUE_RWLOCK
++	def_bool y
++
+ source "net/Kconfig"
+ 
+ source "drivers/Kconfig"
+diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
+index 33692ea..613a4ff 100644
+--- a/arch/x86/include/asm/spinlock.h
++++ b/arch/x86/include/asm/spinlock.h
+@@ -137,6 +137,7 @@ static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+ 		cpu_relax();
+ }
+ 
++#ifndef CONFIG_QUEUE_RWLOCK
+ /*
+  * Read-write spinlocks, allowing multiple readers
+  * but only one writer.
+@@ -219,6 +220,7 @@ static inline void arch_write_unlock(arch_rwlock_t *rw)
+ 	asm volatile(LOCK_PREFIX WRITE_LOCK_ADD(%1) "%0"
+ 		     : "+m" (rw->write) : "i" (RW_LOCK_BIAS) : "memory");
+ }
++#endif /* CONFIG_QUEUE_RWLOCK */
+ 
+ #define arch_read_lock_flags(lock, flags) arch_read_lock(lock)
+ #define arch_write_lock_flags(lock, flags) arch_write_lock(lock)
+diff --git a/arch/x86/include/asm/spinlock_types.h b/arch/x86/include/asm/spinlock_types.h
+index ad0ad07..afacd36 100644
+--- a/arch/x86/include/asm/spinlock_types.h
++++ b/arch/x86/include/asm/spinlock_types.h
+@@ -28,6 +28,10 @@ typedef struct arch_spinlock {
+ 
+ #define __ARCH_SPIN_LOCK_UNLOCKED	{ { 0 } }
+ 
++#ifdef CONFIG_QUEUE_RWLOCK
++#include <asm-generic/qrwlock.h>
++#else
+ #include <asm/rwlock.h>
++#endif
+ 
+ #endif /* _ASM_X86_SPINLOCK_TYPES_H */
+-- 
+1.7.1
 
-This also kills a boatload of compiler warnings when CONFIG_BUG is 
-disabled.
-
-Acked-by: Ingo Molnar <mingo@kernel.org>
-
-Thanks,
-
-	Ingo
