@@ -1,97 +1,141 @@
-From: =?ISO-8859-1?Q?Andr=E9_Hentschel?= <nerv@dawncrow.de>
-Subject: arm: Only load TLS values when needed
-Date: Mon, 15 Jul 2013 19:14:57 +0200
-Message-ID: <51E42E11.1010903@dawncrow.de>
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH RFC 1/2] qrwlock: A queue read/write lock implementation
+Date: Mon, 15 Jul 2013 16:44:32 -0400
+Message-ID: <51E45F30.5070707@hp.com>
+References: <1373679249-27123-1-git-send-email-Waiman.Long@hp.com>  <1373679249-27123-2-git-send-email-Waiman.Long@hp.com> <1373899141.17876.145.camel@gandalf.local.home>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:52939 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751958Ab3GORPE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jul 2013 13:15:04 -0400
+Received: from g1t0027.austin.hp.com ([15.216.28.34]:27635 "EHLO
+	g1t0027.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754391Ab3GOUou (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jul 2013 16:44:50 -0400
+In-Reply-To: <1373899141.17876.145.camel@gandalf.local.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Jonathan Austin <jonathan.austin@arm.com>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Richard Weinberger <richard@nod.at>, Catalin Marinas <catalin.marinas@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Matt Fleming <matt.fleming@intel.com>, Herbert Xu <herbert@gondor.apana.org.au>, Akinobu Mita <akinobu.mita@gmail.com>, Rusty Russell <rusty@rustcorp.com.au>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, "Norton, Scott J" <scott.norton@hp.com>
 
-=46rom: Andr=E9 Hentschel <nerv@dawncrow.de>
+On 07/15/2013 10:39 AM, Steven Rostedt wrote:
+> On Fri, 2013-07-12 at 21:34 -0400, Waiman Long wrote:
+>
+>> Signed-off-by: Waiman Long<Waiman.Long@hp.com>
+>> ---
+>>
+>> +/*
+>> + * The queue read/write lock data structure
+>> + * The reader stealing flag, if sea,t will enable reader at the head of the
+> "sea,t"?
 
-This patch intents to reduce loading instructions when the resulting va=
-lue is not used.
-It's a follow up on a4780adeefd042482f624f5e0d577bf9cdcbb760
+Should be "if set,". Thank for spotting the typo. It will be fixed in 
+the next version.
 
-Signed-off-by: Andr=E9 Hentschel <nerv@dawncrow.de>
+>> +/**
+>> + * wait_in_queue - Add to queue and wait until it is at the head
+>> + * @lock: Pointer to queue read/writer lock structure
+>> + * @node: Node pointer to be added to the queue
+>> + */
+>> +static __always_inline void
+>> +wait_in_queue(struct qrwlock *lock, struct qrwnode *node)
+>> +{
+>> +	struct qrwnode *prev;
+>> +
+>> +	node->next = NULL;
+>> +	node->wait = true;
+>> +	barrier();
+>> +	prev = xchg(&lock->waitq, node);
+> "barrier()" isn't needed, as xchg() is a full blown smp_mb(), it also
+> acts as a compiler barrier.
 
----
-This patch is against Linux 3.11-rc1 (ad81f0545ef01ea651886dddac4bef6ce=
-c930092)
+Will remove barrier().
 
-Thanks to everyone who helped me with a4780adeefd042482f624f5e0d577bf9c=
-dcbb760
+>> +/*
+>> + * queue_read_trylock - try to acquire read lock of a queue read/write lock
+>> + * @lock : Pointer to queue read/writer lock structure
+>> + * Return: 1 if lock acquired, 0 if failed
+>> + */
+>> +int queue_read_trylock(struct qrwlock *lock)
+>> +{
+>> +	struct qrwlock old, new;
+>> +
+>> +	old.rw = ACCESS_ONCE(lock->rw);
+>> +	if (unlikely(old.writer))
+>> +		return 0;
+>> +	new.rw = old.rw;
+>> +	new.readers++;
+>> +
+>> +	if (cmpxchg(&lock->rw, old.rw, new.rw) == old.rw)
+>> +		return 1;
+>> +	cpu_relax();
+> What's the cpu_relax() for? It's not in a loop.
 
-diff --git a/arch/arm/include/asm/tls.h b/arch/arm/include/asm/tls.h
-index 83259b8..3742722 100644
---- a/arch/arm/include/asm/tls.h
-+++ b/arch/arm/include/asm/tls.h
-@@ -3,29 +3,32 @@
-=20
- #ifdef __ASSEMBLY__
- #include <asm/asm-offsets.h>
--	.macro switch_tls_none, base, tp, tpuser, tmp1, tmp2
-+	.macro switch_tls_none, prev, next, tp, tpuser, tmp1, tmp2
- 	.endm
-=20
--	.macro switch_tls_v6k, base, tp, tpuser, tmp1, tmp2
-+	.macro switch_tls_v6k, prev, next, tp, tpuser, tmp1, tmp2
-+	ldrd	\tp, \tpuser, [\next, #TI_TP_VALUE]	@ get the next TLS and user =
-r/w register
- 	mrc	p15, 0, \tmp2, c13, c0, 2	@ get the user r/w register
- 	mcr	p15, 0, \tp, c13, c0, 3		@ set TLS register
- 	mcr	p15, 0, \tpuser, c13, c0, 2	@ and the user r/w register
--	str	\tmp2, [\base, #TI_TP_VALUE + 4] @ save it
-+	str	\tmp2, [\prev, #TI_TP_VALUE + 4] @ save it
- 	.endm
-=20
--	.macro switch_tls_v6, base, tp, tpuser, tmp1, tmp2
-+	.macro switch_tls_v6, prev, next, tp, tpuser, tmp1, tmp2
- 	ldr	\tmp1, =3Delf_hwcap
- 	ldr	\tmp1, [\tmp1, #0]
- 	mov	\tmp2, #0xffff0fff
-+	ldr	\tp, [\next, #TI_TP_VALUE]	@ get the next TLS register
- 	tst	\tmp1, #HWCAP_TLS		@ hardware TLS available?
- 	streq	\tp, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
--	mrcne	p15, 0, \tmp2, c13, c0, 2	@ get the user r/w register
-+	mrcne	p15, 0, \tmp2, c13, c0, 2	@ get the previous user r/w register
-+	ldrne	\tpuser, [\next, #TI_TP_VALUE + 4]	@ get the next user r/w regi=
-ster
- 	mcrne	p15, 0, \tp, c13, c0, 3		@ yes, set TLS register
- 	mcrne	p15, 0, \tpuser, c13, c0, 2	@ set user r/w register
--	strne	\tmp2, [\base, #TI_TP_VALUE + 4] @ save it
-+	strne	\tmp2, [\prev, #TI_TP_VALUE + 4] @ save it
- 	.endm
-=20
--	.macro switch_tls_software, base, tp, tpuser, tmp1, tmp2
-+	.macro switch_tls_software, prev, next, tp, tpuser, tmp1, tmp2
- 	mov	\tmp1, #0xffff0fff
- 	str	\tp, [\tmp1, #-15]		@ set TLS value at 0xffff0ff0
- 	.endm
-diff --git a/arch/arm/kernel/entry-armv.S b/arch/arm/kernel/entry-armv.=
-S
-index a39cfc2a1..1484b59 100644
---- a/arch/arm/kernel/entry-armv.S
-+++ b/arch/arm/kernel/entry-armv.S
-@@ -689,12 +689,10 @@ ENTRY(__switch_to)
-  THUMB(	stmia	ip!, {r4 - sl, fp}	   )	@ Store most regs on stack
-  THUMB(	str	sp, [ip], #4		   )
-  THUMB(	str	lr, [ip], #4		   )
--	ldr	r4, [r2, #TI_TP_VALUE]
--	ldr	r5, [r2, #TI_TP_VALUE + 4]
- #ifdef CONFIG_CPU_USE_DOMAINS
- 	ldr	r6, [r2, #TI_CPU_DOMAIN]
- #endif
--	switch_tls r1, r4, r5, r3, r7
-+	switch_tls r1, r2, r4, r5, r3, r7
- #if defined(CONFIG_CC_STACKPROTECTOR) && !defined(CONFIG_SMP)
- 	ldr	r7, [r2, #TI_TASK]
- 	ldr	r8, =3D__stack_chk_guard
+I put a cpu_relax() after each cacheline contention event. You are right 
+that we don't need a cpu_relax() in the trylock() function here.
+
+>
+>> +	return 0;
+>> +}
+>> +EXPORT_SYMBOL(queue_read_trylock);
+>> +
+>> +/**
+>> + * queue_write_lock - acquire write lock of a queue read/write lock
+>> + * @lock : Pointer to queue read/writer lock structure
+>> + */
+>> +void queue_write_lock(struct qrwlock *lock)
+>> +{
+>> +	struct qrwnode node, *next;
+>> +
+>> +	if (likely(!ACCESS_ONCE(lock->writer))) {
+>> +		/*
+>> +		 * Atomically set the writer to 1, then wait until reader
+>> +		 * count goes to 0.
+>> +		 */
+>> +		if (xchg(&lock->writer, 1) == 0) {
+>> +			while (ACCESS_ONCE(lock->readers))
+>> +				cpu_relax();
+>> +			return;
+>> +		}
+>> +		cpu_relax();
+> Another cpu_relax() outside of a loop.
+
+I can remove that one too.
+
+>> +
+>> +/**
+>> + * queue_write_trylock - try to acquire write lock of a queue read/write lock
+>> + * @lock : Pointer to queue read/writer lock structure
+>> + * Return: 1 if lock acquired, 0 if failed
+>> + */
+>> +int queue_write_trylock(struct qrwlock *lock)
+>> +{
+>> +	struct qrwlock old, new;
+>> +
+>> +	old.rw = ACCESS_ONCE(lock->rw);
+>> +	if (!old.rw) {
+>> +		/*
+>> +		 * Atomically set the writer to 1 if readers = 0
+>> +		 */
+>> +		new.rw = old.rw;
+>> +		new.writer = 1;
+>> +		if (cmpxchg(&lock->rw, old.rw, new.rw) == old.rw)
+>> +			return 1;
+>> +		cpu_relax();
+> Again the cpu_relax with no loop.
+
+Ditto.
+
+>> +	}
+>> +	return 0;
+>> +}
+>> +EXPORT_SYMBOL(queue_write_trylock);
+> I haven't seen anything bad about this with a quick review. But it
+> should have a more thorough review to check all corner cases.
+>
+> -- Steve
+>
+
+Thank for your time.
+
+Regards,
+Longman
