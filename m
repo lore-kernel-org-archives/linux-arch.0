@@ -1,248 +1,136 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH RFC 1/2] qrwlock: A queue read/write lock implementation
-Date: Mon, 15 Jul 2013 21:19:31 -0400
-Message-ID: <51E49FA3.4030202@hp.com>
-References: <1373679249-27123-1-git-send-email-Waiman.Long@hp.com> <1373679249-27123-2-git-send-email-Waiman.Long@hp.com> <alpine.DEB.2.02.1307151657540.11918@ionos.tec.linutronix.de>
+From: Jonathan Austin <jonathan.austin@arm.com>
+Subject: Re: arm: Only load TLS values when needed
+Date: Tue, 16 Jul 2013 18:31:23 +0100
+Message-ID: <51E5836B.1010904@arm.com>
+References: <51E42E11.1010903@dawncrow.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8;
+	format=flowed
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g1t0028.austin.hp.com ([15.216.28.35]:40648 "EHLO
-	g1t0028.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754127Ab3GPBTr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jul 2013 21:19:47 -0400
-In-Reply-To: <alpine.DEB.2.02.1307151657540.11918@ionos.tec.linutronix.de>
+Received: from service87.mimecast.com ([91.220.42.44]:34778 "EHLO
+	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754926Ab3GPRbh convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Jul 2013 13:31:37 -0400
+In-Reply-To: <51E42E11.1010903@dawncrow.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Richard Weinberger <richard@nod.at>, Catalin Marinas <catalin.marinas@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Matt Fleming <matt.fleming@intel.com>, Herbert Xu <herbert@gondor.apana.org.au>, Akinobu Mita <akinobu.mita@gmail.com>, Rusty Russell <rusty@rustcorp.com.au>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, "Norton, Scott J" <scott.norton@hp.com>
+To: =?UTF-8?B?QW5kcsOpIEhlbnRzY2hlbA==?= <nerv@dawncrow.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>
 
-On 07/15/2013 06:31 PM, Thomas Gleixner wrote:
-> On Fri, 12 Jul 2013, Waiman Long wrote:
+Hi Andr=C3=A9,
+
+On 15/07/13 18:14, Andr=C3=A9 Hentschel wrote:
+> From: Andr=C3=A9 Hentschel <nerv@dawncrow.de>
 >
->> In term of single-thread performance (no contention), a 256K
->> lock/unlock loop was run on a 2.4GHz Westmere x86-64 CPU. The following
->> table shows the average time for a single lock/unlock sequence:
->>
->> Lock Type		Time (ns)
->> ---------		---------
->> Ticket spinlock		  15.7
->> Read lock		  17.0
->> Write lock		  17.2
->> Queue read lock		  31.1
->> Queue write lock	  13.6
->>
->> While the queue read lock is almost double the time of a read lock
->> or spinlock, the queue write lock is the fastest of them all. The
->> execution time can probably be reduced a bit by allowing inlining of
->> the lock fast paths like the other locks.
-> So you have the writer side faster than the ticket lock, but what
-> about the reader side? And what about the contended case? What about
-> high frequent readers with low frequent writers cases?
-
-Yes, the queue read lock is almost twice the time of a read lock. I am 
-trying to find way to reduce that.
-
->> To see how the queue write lock can be used as a replacement for ticket
->> spinlock (just like rwsem can be used as replacement of mutex), the
->> mb_cache_spinlock in fs/mbcache.c, which is a bottleneck in the disk
->> workload (ext4 FS) of the AIM7 benchmark, was converted to both a queue
->> write lock and a regular write lock. When running on a 8-socket 80-core
->> DL980 system, the performance improvement was shown in the table below.
->>
->> +-----------------+------------+------------+-----------+---------+
->> |  Configuration  |  Mean JPM  |  Mean JPM  | Mean JPM  | qrwlock |
->> |                 |Vanilla 3.10|3.10-qrwlock|3.10-rwlock| %Change |
->> +-----------------+-----------------------------------------------+
->> |                 |              User Range 10 - 100              |
->> +-----------------+-----------------------------------------------+
->> | 8 nodes, HT off |   441374   |   532774   |  637205   | +20.7%  |
->> | 8 nodes, HT on  |   449373   |   584387   |  641965   | +30.1%  |
->> +-----------------+-----------------------------------------------+
->> |                 |              User Range 200 - 1000            |
->> +-----------------+-----------------------------------------------+
->> | 8 nodes, HT off |   226870   |   354490   |  371593   | +56.3%  |
->> | 8 nodes, HT on  |   205997   |   314891   |  306378   | +52.9%  |
->> +-----------------+-----------------------------------------------+
->> |                 |              User Range 1100 - 2000           |
->> +-----------------+-----------------------------------------------+
->> | 8 nodes, HT off |   208234   |   321420   |  343694   | +54.4%  |
->> | 8 nodes, HT on  |   199612   |   297853   |  252569   | +49.2%  |
->> +-----------------+------------+------------+-----------+---------+
->>
->> Apparently, the regular read/write lock performs even better than
->> the queue read/write lock in some cases.  This is probably due to the
-> The regular rwlock performs better in most cases. This is the full
-> list comparing both against the ticket lock.
+> This patch intents to reduce loading instructions when the resulting =
+value is not used.
+> It's a follow up on a4780adeefd042482f624f5e0d577bf9cdcbb760
 >
->      qrlock  	   rwlock
->      +20.7  	   +44.4
->      +30.1  	   +42.9
+
+Have you done any benchmarking to see that this has any real impact? Or=
+=20
+tested on a !Vv6k system? It looks possible that the only case where=20
+this will perform better is where we're using switch_tls_none or=20
+switch_tls_software (both rare cases, I think) and there's some change=20
+it will make things worse in other cases?
+
+One of the reasons for Russell's suggestion of placing the ldrd (which=20
+became the two ldr instructions you've removed from __switch_to, in=20
+order to maintain building for older cores) where it is was in order to=
+=20
+reduce the chance of pipeline stalls.
+
+As I've pointed out below, there is some risk that changing that has=20
+implications for the v6 only case below (and the v6k case is now more=20
+prone to stalls with !CONFIG_CPU_USE_DOMAINS, but newer cores should=20
+have more advanced scheduling to avoid such issues anyway...)
+
+> Signed-off-by: Andr=C3=A9 Hentschel <nerv@dawncrow.de>
 >
->      +56.3  	   +63.3
->      +52.9  	   +48.8
+> ---
+> This patch is against Linux 3.11-rc1 (ad81f0545ef01ea651886dddac4bef6=
+cec930092)
 >
->      +54.4  	   +65.1
->      +49.2  	   +26.5
+> Thanks to everyone who helped me with a4780adeefd042482f624f5e0d577bf=
+9cdcbb760
 >
-> So you try to sell that qrwlock as a replacement for ticket spinlocks,
-> while at the same time you omit the fact that we have an even better
-> implementation (except for the last test case) already in the
-> kernel. What's the point of this exercise?
-
-The main point is that the regular rwlock is not fair while the queue 
-rwlock is close to as fair as the ticket spinlock. The LWN article 
-http://lwn.net/Articles/364583/ mentioned about eliminating rwlock 
-altogether precisely because of this unfairness as it can cause livelock 
-in certain scenerio. I also saw slides to advise again using rwlock 
-because of this.
-
->> fact that mb_cache_spinlock is in a separate cache line from the data
->> being manipulated.
-> This is not about probably. What has the fact that the spinlock is in
-> a different cache line to do with the replacement by a different
-> implementation? Exactly nothing.
+> diff --git a/arch/arm/include/asm/tls.h b/arch/arm/include/asm/tls.h
+> index 83259b8..3742722 100644
+> --- a/arch/arm/include/asm/tls.h
+> +++ b/arch/arm/include/asm/tls.h
+> @@ -3,29 +3,32 @@
 >
-> All three candidates ticket spinlocks, qrwlocks and rwlocks are in a
-> different cache line than the data which is protected by it.
+>   #ifdef __ASSEMBLY__
+>   #include <asm/asm-offsets.h>
+> -	.macro switch_tls_none, base, tp, tpuser, tmp1, tmp2
+> +	.macro switch_tls_none, prev, next, tp, tpuser, tmp1, tmp2
+>   	.endm
 >
-> So what makes the performance difference between the three
-> implementations? Definitely not the cache line association as that is
-> the same for all implementations. And just for the record, we have
-> tools to measure that.
+> -	.macro switch_tls_v6k, base, tp, tpuser, tmp1, tmp2
+> +	.macro switch_tls_v6k, prev, next, tp, tpuser, tmp1, tmp2
+> +	ldrd	\tp, \tpuser, [\next, #TI_TP_VALUE]	@ get the next TLS and use=
+r r/w register
+>   	mrc	p15, 0, \tmp2, c13, c0, 2	@ get the user r/w register
+>   	mcr	p15, 0, \tp, c13, c0, 3		@ set TLS register
+>   	mcr	p15, 0, \tpuser, c13, c0, 2	@ and the user r/w register
+> -	str	\tmp2, [\base, #TI_TP_VALUE + 4] @ save it
+> +	str	\tmp2, [\prev, #TI_TP_VALUE + 4] @ save it
+>   	.endm
 >
-> We really need proper explanations and not some guess based drivel to
-> assess that.
+> -	.macro switch_tls_v6, base, tp, tpuser, tmp1, tmp2
+> +	.macro switch_tls_v6, prev, next, tp, tpuser, tmp1, tmp2
+>   	ldr	\tmp1, =3Delf_hwcap
+>   	ldr	\tmp1, [\tmp1, #0]
+>   	mov	\tmp2, #0xffff0fff
+> +	ldr	\tp, [\next, #TI_TP_VALUE]	@ get the next TLS register
+>   	tst	\tmp1, #HWCAP_TLS		@ hardware TLS available?
+>   	streq	\tp, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
+> -	mrcne	p15, 0, \tmp2, c13, c0, 2	@ get the user r/w register
+> +	mrcne	p15, 0, \tmp2, c13, c0, 2	@ get the previous user r/w registe=
+r
+> +	ldrne	\tpuser, [\next, #TI_TP_VALUE + 4]	@ get the next user r/w re=
+gister
+>   	mcrne	p15, 0, \tp, c13, c0, 3		@ yes, set TLS register
+>   	mcrne	p15, 0, \tpuser, c13, c0, 2	@ set user r/w register
 
-I will collect more data about that.
+Now we've only got one instruction between the store and the load and=20
+risk stalling the pipeline...
 
-> Further down you write in the code:
+Dave M cautiously says "The ancient advice was that one instruction was=
+=20
+enough" but this is very core dependent... I wonder if anyone has a goo=
+d=20
+idea about whether this is an issue here...?
+
+> -	strne	\tmp2, [\base, #TI_TP_VALUE + 4] @ save it
+> +	strne	\tmp2, [\prev, #TI_TP_VALUE + 4] @ save it
+>   	.endm
 >
->> + * Compared with regular read/write lock, the queue read/write lock has
->> + * has the following advantages:
->> + * 1. It is more deterministic. Even though there is a slight chance of
-> Why is it more deterministic than the existing implementation?
-
-Deterministic means that that a process can acquire a lock within a 
-reasonable time period without being starved for a long time. The 
-qrwlock grants lock in FIFO order in most cases. That is what I mean by 
-being more deterministic.
-
+> -	.macro switch_tls_software, base, tp, tpuser, tmp1, tmp2
+> +	.macro switch_tls_software, prev, next, tp, tpuser, tmp1, tmp2
+>   	mov	\tmp1, #0xffff0fff
+>   	str	\tp, [\tmp1, #-15]		@ set TLS value at 0xffff0ff0
+>   	.endm
+> diff --git a/arch/arm/kernel/entry-armv.S b/arch/arm/kernel/entry-arm=
+v.S
+> index a39cfc2a1..1484b59 100644
+> --- a/arch/arm/kernel/entry-armv.S
+> +++ b/arch/arm/kernel/entry-armv.S
+> @@ -689,12 +689,10 @@ ENTRY(__switch_to)
+>    THUMB(	stmia	ip!, {r4 - sl, fp}	   )	@ Store most regs on stack
+>    THUMB(	str	sp, [ip], #4		   )
+>    THUMB(	str	lr, [ip], #4		   )
+> -	ldr	r4, [r2, #TI_TP_VALUE]
+> -	ldr	r5, [r2, #TI_TP_VALUE + 4]
+>   #ifdef CONFIG_CPU_USE_DOMAINS
+>   	ldr	r6, [r2, #TI_CPU_DOMAIN]
+>   #endif
+> -	switch_tls r1, r4, r5, r3, r7
+> +	switch_tls r1, r2, r4, r5, r3, r7
+>   #if defined(CONFIG_CC_STACKPROTECTOR) && !defined(CONFIG_SMP)
+>   	ldr	r7, [r2, #TI_TASK]
+>   	ldr	r8, =3D__stack_chk_guard
 >
->> + *    stealing the lock if come at the right moment, the granting of the
->> + *    lock is mostly in FIFO order.
->> + * 2. It is faster in high contention situation.
-> Again, why is it faster?
 
-The current rwlock implementation suffers from a thundering herd 
-problem. When many readers are waiting for the lock hold by a writer, 
-they will all jump in more or less at the same time when the writer 
-releases the lock. That is not the case with qrwlock. It has been shown 
-in many cases that avoiding this thundering herd problem can lead to 
-better performance.
-
->> + * The only downside is that the lock is 4 bytes larger in 32-bit systems
->> + * and 12 bytes larger in 64-bit systems.
->> + *
->> + * There are two queues for writers. The writer field of the lock is a
->> + * one-slot waiting queue. The writers that follows will have to wait
->> + * in the combined reader/writer queue (waitq).
->> + *
->> + * Compared with x86 ticket spinlock, the queue read/write lock is faster
->> + * in high contention situation. The writer lock is also faster in single
->> + * thread operations. Therefore, queue read/write lock can be considered as
->> + * a replacement for those spinlocks that are highly contended as long as
->> + * an increase in lock size is not an issue.
-> So is it faster in the general case or only for the high contention or
-> single thread operation cases?
->
-> And you still miss to explain WHY it is faster. Can you please explain
-> proper WHY it is faster and WHY we can't apply that technique you
-> implemented for qrwlocks to writer only locks (aka spinlocks) with a
-> smaller lock size?
-
-I will try to collect more data to justify the usefulness of qrwlock.
-
->> Looking at the fserver and new_fserver workloads (ext4 FS) where the
->> journal->j_state_lock (a read/write lock) is a bottleneck especially
->> when HT is on, we see a slight different story. The j_state_lock is
->> an embedded read/write lock which is in the same cacheline as some
->> of the data being manipulated. The replacement by a queue read/write
->> lock gives the following improvement.
-> Again, the fact that the lock is embedded and in the same cache line
-> is not explaining anything here. Especially not why this is only
-> relevant when HT is enabled. Please provide profound arguments backed
-> by solid data collected with the proper tools.
-
-It is the thundering herd problem that I mentioned above which can cause 
-a lot of cacheline bouncing. If the process that got the lock try to 
-access data around the lock, it can be slowed down by quite a lot.
-
->> +--------------------+-------------+--------------+---------------+
->> |      Workload      |mean % change|mean % change |mean % change  |
->> |                    |10-100 users |200-1000 users|1100-2000 users|
->> +--------------------+-------------+--------------+---------------+
->> |fserver (HT off)    |    +0.3%    |    -0.1%     |    +1.9%      |
->> |fserver (HT on)     |    -0.1%    |   +32.2%     |   +34.7%      |
->> |new_fserver (HT on) |    +0.8%    |    +0.9%     |    +0.9%      |
->> |new_fserver (HT off)|    -1.2%    |   +29.8%     |   +40.5%      |
->> +--------------------+-------------+--------------+---------------+
-> So fserver gets a 34% improvement for HT ON, while new_fserver gets a
-> 40% improvement for HT OFF. Any useful explanations except that the HT
-> on/off annotations are swapped?
->
-> Without explanations this is completely useless, really.
-
-The reason is that rwlock contention accounts for only 1-2% of total CPU 
-time when HT is off. When HT is on, the contention account for more than 
-20%. That is why there isn't that much difference with HT off. I should 
-have listed the perf data in the commit message. I will do that in the 
-next version.
-
-> And again we want to see the behaviour on machines which do not have a
-> gazillion of sockets before we enable this unconditionally, as you try
-> to do in the next patch. Just get it: 8 socket machines are nice toys,
-> but 99% of the users do not have one.
->
-> Aside of that, you are replacing all RW locks unconditionally by this
-> new fangled thing, but did you actually run tests which look at other
-> rwlock usage sites than the particular one you care about?
-
-Users have the choice of using the old rwlock or the queue rwlock by 
-selecting or unselecting the QUEUE_RWLOCK config parameter. I am not 
-forcing the unconditional replacement of rwlock by qrwlock.
-
-I will collect more data for the other use cases.
-
-> I really doubt that. Why? Because it depends on the workload. And
-> fserver triggers high frequency writers on the j_state_lock. But
-> there are enough usage sites of rwlocks where the writer frequency is
-> extremly low. So how does the almost doubled reader time affect those
-> users of rwlocks?
->
-> And reading further down your patch, I can confirm my suspicion.
->
->> +void queue_write_lock(struct qrwlock *lock)
->> +{
-> ....
->> +	/*
->> +	 * At the head of the wait queue now, wait until no writer is pending
->> +	 * and then atomically set it again.
->> +	 */
-> You are optimizing for the high frequency writer case. And that's not
-> the primary use case for rwlocks. That's the special use case for the
-> jbd2 journal_state_lock which CANNOT be generalized for all other
-> rwlock usage sites.
-
-It is true that this lock is kind of optimized for writers. For reader 
-heavy code, the performance may not be as good as the rwlock for 
-uncontended cases. However, I do believe that the fairness attribute of 
-the qrwlock far outweigh the slight performance overhead of read 
-lock/unlock. Furthermore, the lock/unlock sequence contributes only a 
-very tiny percentage of total CPU time in uncontended cases. A slight 
-increase may not really have a material impact on performance. Again, as 
-promised, I will try to collect some more performance data for reader 
-heavy usage cases.
-
-Regards,
-Longman
+Jonny
