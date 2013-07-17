@@ -1,47 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:46157 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754823Ab3GOWhC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 15 Jul 2013 18:37:02 -0400
-Message-ID: <51E47924.9030005@zytor.com>
-Date: Mon, 15 Jul 2013 15:35:16 -0700
-From: "H. Peter Anvin" <hpa@zytor.com>
+Received: from usmamail.tilera.com ([12.216.194.151]:7997 "EHLO
+	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933167Ab3GQQqV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jul 2013 12:46:21 -0400
+Message-ID: <51E6CA5B.6030501@tilera.com>
+Date: Wed, 17 Jul 2013 12:46:19 -0400
+From: Chris Metcalf <cmetcalf@tilera.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH, re-send] Always trap on BUG()
-References: <201307051738.35930.arnd@arndb.de> <20130715151612.9499c2b2ad40e88d183a4600@linux-foundation.org> <20130715222755.GY24642@n2100.arm.linux.org.uk>
-In-Reply-To: <20130715222755.GY24642@n2100.arm.linux.org.uk>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Subject: Re: [PATCH v2] arch: tile: include: asm: add cmpxchg64() definition
+References: <51CA6D21.3090901@asianux.com> <51CC492C.1040105@tilera.com> <51CCD891.8000806@asianux.com> <51CCEC27.8050508@asianux.com> <20130628150941.GA22767@linux-mips.org> <51D0E4B3.6080402@asianux.com> <51D0E7BF.9030206@asianux.com>
+In-Reply-To: <51D0E7BF.9030206@asianux.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Chen Gang <gang.chen@asianux.com>, Ingo Molnar <mingo@kernel.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Geert Uytterhoeven <geert@linux-m68k.org>
-Message-ID: <20130715223516.8US-m4T3UEmHt2Gbb1M5Ipoj09KQe_w1JGr5vVUlvuc@z>
+To: Chen Gang <gang.chen@asianux.com>
+Cc: Ralf Baechle <ralf@linux-mips.org>, =?UTF-8?B?SsO2cm4gRW5nZWw=?= <joern@logfs.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Paul Gortmaker <paul.gortmaker@windriver.com>
+Message-ID: <20130717164619.ud3SsiVNR_ScMqP6cbApd9W-fCV6-YKiSnCi5TTlycM@z>
 
-On 07/15/2013 03:27 PM, Russell King - ARM Linux wrote:
-> On Mon, Jul 15, 2013 at 03:16:12PM -0700, Andrew Morton wrote:
->> I've been thinking for a while that CONFIG_BUG=n is a pretty dumb thing
->> to do, and that maintaining it (and trying to fix the warnings it
->> produces) aren't worth the effort and that we should remove the whole
->> thing.  Perhaps your patch changes that calculus, dunno.  Please discuss.
-> 
-> This isn't about introducing "CONFIG_BUG=n" - this is about making a
-> kernel with CONFIG_BUG=n build without producing tonnes and tonnes of
-> warnings, as it does today.  It makes building randconfig pretty
-> useless to find what could be more important warnings.
-> 
+On 6/30/2013 10:21 PM, Chen Gang wrote:
+> Need add cmpxchg64(), or will cause compiling issue.
+>
+> Need define it as cmpxchg() only for 64-bit operation, since cmpxchg()
+> can support 8 bytes.
+>
+> The related error (with allmodconfig):
+>
+>   drivers/block/blockconsole.c: In function ‘bcon_advance_console_bytes’:
+>   drivers/block/blockconsole.c:164:2: error: implicit declaration of function ‘cmpxchg64’ [-Werror=implicit-function-declaration]
+>
+> Signed-off-by: Chen Gang <gang.chen@asianux.com>
 
-Well, there are three alternatives here, right:
+Thanks, taken into the tile tree.
 
-1. We can use unreachable(), which means that the compiler can assume it
-never happens.
-
-2. We can trap without metadata.
-
-3. We can trap with metadata (current CONFIG_BUG=y).
-
-I am *guessing* this does 2, but it isn't clear.
-
-	-hpa
-
+-- 
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
 
