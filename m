@@ -1,102 +1,135 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH RFC 1/2] qrwlock: A queue read/write lock implementation
-Date: Thu, 18 Jul 2013 09:42:04 +0200
-Message-ID: <20130718074204.GA22623@gmail.com>
-References: <1373679249-27123-1-git-send-email-Waiman.Long@hp.com>
- <1373679249-27123-2-git-send-email-Waiman.Long@hp.com>
- <alpine.DEB.2.02.1307151657540.11918@ionos.tec.linutronix.de>
- <51E49FA3.4030202@hp.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH RFC 1/2] qrwlock: A queue read/write lock
+ implementation
+Date: Thu, 18 Jul 2013 12:22:10 +0200 (CEST)
+Message-ID: <alpine.DEB.2.02.1307181210330.4089@ionos.tec.linutronix.de>
+References: <1373679249-27123-1-git-send-email-Waiman.Long@hp.com> <1373679249-27123-2-git-send-email-Waiman.Long@hp.com> <alpine.DEB.2.02.1307151657540.11918@ionos.tec.linutronix.de> <51E49FA3.4030202@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ee0-f41.google.com ([74.125.83.41]:42711 "EHLO
-	mail-ee0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751325Ab3GRHmK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jul 2013 03:42:10 -0400
-Content-Disposition: inline
+Received: from www.linutronix.de ([62.245.132.108]:41862 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758029Ab3GRKWV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jul 2013 06:22:21 -0400
 In-Reply-To: <51E49FA3.4030202@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Waiman Long <waiman.long@hp.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Richard Weinberger <richard@nod.at>, Catalin Marinas <catalin.marinas@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Matt Fleming <matt.fleming@intel.com>, Herbert Xu <herbert@gondor.apana.org.au>, Akinobu Mita <akinobu.mita@gmail.com>, Rusty Russell <rusty@rustcorp.com.au>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, Norton, Sc
+Cc: Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Richard Weinberger <richard@nod.at>, Catalin Marinas <catalin.marinas@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Matt Fleming <matt.fleming@intel.com>, Herbert Xu <herbert@gondor.apana.org.au>, Akinobu Mita <akinobu.mita@gmail.com>, Rusty Russell <rusty@rustcorp.com.au>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, "Norton, Scott J" <scott.norton@hp.com>
 
+Waiman,
 
-* Waiman Long <waiman.long@hp.com> wrote:
+On Mon, 15 Jul 2013, Waiman Long wrote:
+> On 07/15/2013 06:31 PM, Thomas Gleixner wrote:
+> > On Fri, 12 Jul 2013, Waiman Long wrote:
+> > > Apparently, the regular read/write lock performs even better than
+> > > the queue read/write lock in some cases.  This is probably due to the
+> > The regular rwlock performs better in most cases. This is the full
+> > list comparing both against the ticket lock.
+> > 
+> >      qrlock  	   rwlock
+> >      +20.7  	   +44.4
+> >      +30.1  	   +42.9
+> > 
+> >      +56.3  	   +63.3
+> >      +52.9  	   +48.8
+> > 
+> >      +54.4  	   +65.1
+> >      +49.2  	   +26.5
+> > 
+> > So you try to sell that qrwlock as a replacement for ticket spinlocks,
+> > while at the same time you omit the fact that we have an even better
+> > implementation (except for the last test case) already in the
+> > kernel. What's the point of this exercise?
+> 
+> The main point is that the regular rwlock is not fair while the
+> queue rwlock is close to as fair as the ticket spinlock. The LWN
+> article http://lwn.net/Articles/364583/ mentioned about eliminating
+> rwlock altogether precisely because of this unfairness as it can
+> cause livelock in certain scenerio. I also saw slides to advise
+> again using rwlock because of this.
 
-> >
-> >>+ *    stealing the lock if come at the right moment, the granting of the
-> >>+ *    lock is mostly in FIFO order.
-> >>+ * 2. It is faster in high contention situation.
-> >
+I'm well aware of this. But that does not explain anything of what I
+asked.
+
+> > > + * has the following advantages:
+> > > + * 1. It is more deterministic. Even though there is a slight chance
+> > > of
+> > Why is it more deterministic than the existing implementation?
+> 
+> Deterministic means that that a process can acquire a lock within a
+> reasonable time period without being starved for a long time. The qrwlock
+> grants lock in FIFO order in most cases. That is what I mean by being more
+> deterministic.
+
+That's exactly the kind of explanation we want to have in the code and
+the changelog.
+
+> > 
+> > > + *    stealing the lock if come at the right moment, the granting of
+> > > the
+> > > + *    lock is mostly in FIFO order.
+> > > + * 2. It is faster in high contention situation.
 > > Again, why is it faster?
 > 
-> The current rwlock implementation suffers from a thundering herd 
-> problem. When many readers are waiting for the lock hold by a writer, 
-> they will all jump in more or less at the same time when the writer 
-> releases the lock. That is not the case with qrwlock. It has been shown 
-> in many cases that avoiding this thundering herd problem can lead to 
-> better performance.
+> The current rwlock implementation suffers from a thundering herd problem.
+> When many readers are waiting for the lock hold by a writer, they will all
+> jump in more or less at the same time when the writer releases the lock.
+> That is not the case with qrwlock. It has been shown in many cases that
+> avoiding this thundering herd problem can lead to better performance.
 
-Btw., it's possible to further optimize this "writer releases the lock to 
-multiple readers spinning" thundering herd scenario in the classic 
-read_lock() case, without changing the queueing model.
+That makes sense and wants to be documented as well. You could have
+avoided a lot of the discussion if you had included these details
+right away.
 
-Right now read_lock() fast path is a single atomic instruction. When a 
-writer releases the lock then it makes it available to all readers and 
-each reader will execute a LOCK DEC instruction which will succeed.
+> > > + * an increase in lock size is not an issue.
+> > So is it faster in the general case or only for the high contention or
+> > single thread operation cases?
+> > 
+> > And you still miss to explain WHY it is faster. Can you please explain
+> > proper WHY it is faster and WHY we can't apply that technique you
+> > implemented for qrwlocks to writer only locks (aka spinlocks) with a
+> > smaller lock size?
+> 
+> I will try to collect more data to justify the usefulness of qrwlock.
 
-This is the relevant code in arch/x86/lib/rwlock.S [edited for 
-readability]:
+And please provide a proper argument why we can't use the same
+technique for spinlocks.
 
-__read_lock_failed():
+> > Aside of that, you are replacing all RW locks unconditionally by this
+> > new fangled thing, but did you actually run tests which look at other
+> > rwlock usage sites than the particular one you care about?
+> 
+> Users have the choice of using the old rwlock or the queue rwlock by
+> selecting or unselecting the QUEUE_RWLOCK config parameter. I am not
+> forcing the unconditional replacement of rwlock by qrwlock.
 
-0:      LOCK_PREFIX
-        READ_LOCK_SIZE(inc) (%__lock_ptr)
+Looking at patch 2/2:
 
-1:      rep; nop
-        READ_LOCK_SIZE(cmp) $1, (%__lock_ptr)
-        js      1b
++config ARCH_QUEUE_RWLOCK
++       def_bool y
 
-        LOCK_PREFIX READ_LOCK_SIZE(dec) (%__lock_ptr)
-        js      0b
+What's conditional about that? Where is the choice?
 
-        ret
+> > You are optimizing for the high frequency writer case. And that's not
+> > the primary use case for rwlocks. That's the special use case for the
+> > jbd2 journal_state_lock which CANNOT be generalized for all other
+> > rwlock usage sites.
+> 
+> It is true that this lock is kind of optimized for writers. For
+> reader heavy code, the performance may not be as good as the rwlock
+> for uncontended cases. However, I do believe that the fairness
+> attribute of the qrwlock far outweigh the slight performance
+> overhead of read lock/unlock.  Furthermore, the lock/unlock sequence
+> contributes only a very tiny percentage of total CPU time in
+> uncontended cases. A slight increase may not really have a material
+> impact on performance. Again, as promised, I will try to collect
+> some more performance data for reader heavy usage cases.
 
-This is where we could optimize: instead of signalling to each reader that 
-it's fine to decrease the count and letting dozens of readers do that on 
-the same cache-line, which ping-pongs around the numa cross-connect 
-touching every other CPU as they execute the LOCK DEC instruction, we 
-could let the _writer_ modify the count on unlock in essence, to the exact 
-value that readers expect.
-
-Since read_lock() can never abort this should be relatively 
-straightforward: the INC above could be left out, and the writer side 
-needs to detect that there are no other writers waiting and can set the 
-count to 'reader locked' value - which the readers will detect without 
-modifying the cache line:
-
-__read_lock_failed():
-
-0:      rep; nop
-        READ_LOCK_SIZE(cmp) $1, (%__lock_ptr)
-        js      0b
-
-        ret
-
-(Unless I'm missing something that is.)
-
-That way the current write_unlock() followed by a 'thundering herd' of 
-__read_lock_failed() atomic accesses is transformed into an efficient 
-read-only broadcast of information with only a single update to the 
-cacheline: the writer-updated cacheline propagates in parallel to every 
-CPU and is cached there.
-
-On typical hardware this will be broadcast to all CPUs as part of regular 
-MESI invalidation bus traffic.
-
-reader unlock will still have to modify the cacheline, so rwlocks will 
-still have a fundamental scalability limit even in the read-only usecase.
+Yes, please. We really need this information and if it turns out, that
+it does not affect reader heavy sides, I have no objections against
+the technology itself.
 
 Thanks,
 
-	Ingo
+	tglx
