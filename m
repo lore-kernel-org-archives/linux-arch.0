@@ -1,205 +1,80 @@
 From: Waiman Long <waiman.long@hp.com>
 Subject: Re: [PATCH RFC 1/2] qrwlock: A queue read/write lock implementation
-Date: Fri, 19 Jul 2013 11:30:13 -0400
-Message-ID: <51E95B85.8090003@hp.com>
-References: <1373679249-27123-1-git-send-email-Waiman.Long@hp.com> <1373679249-27123-2-git-send-email-Waiman.Long@hp.com> <alpine.DEB.2.02.1307151657540.11918@ionos.tec.linutronix.de> <51E49FA3.4030202@hp.com> <20130718074204.GA22623@gmail.com> <51E7F03A.4090305@hp.com> <20130719084023.GB25784@gmail.com>
+Date: Fri, 19 Jul 2013 11:43:27 -0400
+Message-ID: <51E95E9F.4070507@hp.com>
+References: <20130718184626.24697.qmail@science.horizon.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t0015.houston.hp.com ([15.201.24.18]:11460 "EHLO
-	g4t0015.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755427Ab3GSPaX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 19 Jul 2013 11:30:23 -0400
-In-Reply-To: <20130719084023.GB25784@gmail.com>
+Received: from g4t0016.houston.hp.com ([15.201.24.19]:4273 "EHLO
+	g4t0016.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1760309Ab3GSPn3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 19 Jul 2013 11:43:29 -0400
+In-Reply-To: <20130718184626.24697.qmail@science.horizon.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Richard Weinberger <richard@nod.at>, Catalin Marinas <catalin.marinas@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Matt Fleming <matt.fleming@intel.com>, Herbert Xu <herbert@gondor.apana.org.au>, Akinobu Mita <akinobu.mita@gmail.com>, Rusty Russell <rusty@rustcorp.com.au>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, Norton, Sc
+To: George Spelvin <linux@horizon.com>
+Cc: JBeulich@novell.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de
 
-On 07/19/2013 04:40 AM, Ingo Molnar wrote:
-> * Waiman Long<waiman.long@hp.com>  wrote:
+On 07/18/2013 02:46 PM, George Spelvin wrote:
+>> Thank for the revision, I will make such a change in the next version of
+>> my patch.
+> I'm relying on you to correct any technical errors in my description.
+> I just meant "something more like this", not impose that exact wording.
 >
->> On 07/18/2013 03:42 AM, Ingo Molnar wrote:
->>> * Waiman Long<waiman.long@hp.com>   wrote:
->>>
->>>>>> + *    stealing the lock if come at the right moment, the granting of the
->>>>>> + *    lock is mostly in FIFO order.
->>>>>> + * 2. It is faster in high contention situation.
->>>>> Again, why is it faster?
->>>> The current rwlock implementation suffers from a thundering herd
->>>> problem. When many readers are waiting for the lock hold by a writer,
->>>> they will all jump in more or less at the same time when the writer
->>>> releases the lock. That is not the case with qrwlock. It has been shown
->>>> in many cases that avoiding this thundering herd problem can lead to
->>>> better performance.
->>> Btw., it's possible to further optimize this "writer releases the lock to
->>> multiple readers spinning" thundering herd scenario in the classic
->>> read_lock() case, without changing the queueing model.
->>>
->>> Right now read_lock() fast path is a single atomic instruction. When a
->>> writer releases the lock then it makes it available to all readers and
->>> each reader will execute a LOCK DEC instruction which will succeed.
->>>
->>> This is the relevant code in arch/x86/lib/rwlock.S [edited for
->>> readability]:
->>>
->>> __read_lock_failed():
->>>
->>> 0:      LOCK_PREFIX
->>>          READ_LOCK_SIZE(inc) (%__lock_ptr)
->>>
->>> 1:      rep; nop
->>>          READ_LOCK_SIZE(cmp) $1, (%__lock_ptr)
->>>          js      1b
->>>
->>>          LOCK_PREFIX READ_LOCK_SIZE(dec) (%__lock_ptr)
->>>          js      0b
->>>
->>>          ret
->>>
->>> This is where we could optimize: instead of signalling to each reader that
->>> it's fine to decrease the count and letting dozens of readers do that on
->>> the same cache-line, which ping-pongs around the numa cross-connect
->>> touching every other CPU as they execute the LOCK DEC instruction, we
->>> could let the _writer_ modify the count on unlock in essence, to the exact
->>> value that readers expect.
->>>
->>> Since read_lock() can never abort this should be relatively
->>> straightforward: the INC above could be left out, and the writer side
->>> needs to detect that there are no other writers waiting and can set the
->>> count to 'reader locked' value - which the readers will detect without
->>> modifying the cache line:
->>>
->>> __read_lock_failed():
->>>
->>> 0:      rep; nop
->>>          READ_LOCK_SIZE(cmp) $1, (%__lock_ptr)
->>>          js      0b
->>>
->>>          ret
->>>
->>> (Unless I'm missing something that is.)
->>>
->>> That way the current write_unlock() followed by a 'thundering herd' of
->>> __read_lock_failed() atomic accesses is transformed into an efficient
->>> read-only broadcast of information with only a single update to the
->>> cacheline: the writer-updated cacheline propagates in parallel to every
->>> CPU and is cached there.
->>>
->>> On typical hardware this will be broadcast to all CPUs as part of regular
->>> MESI invalidation bus traffic.
->>>
->>> reader unlock will still have to modify the cacheline, so rwlocks will
->>> still have a fundamental scalability limit even in the read-only usecase.
->> I think that will work. The only drawback that I can see is the fairness
->> argument. The current read/write lock implementation is unfair to the
->> writer. That change will make it even more unfair to the writer and
->> there is no easy way to detect a waiting writer unless we change the
->> structure to add such a field. As a result, a steady stream of readers
->> will have a higher chance of blocking out a writer indefinitely.
-> The effect will have to be measured - but I don't think it's particularly
-> hard to tune the fairness balance between readers and writers: the change
-> I suggested would only affect the case when a writer already holding the
-> lock unlocks it.
+>> As I said in my response to Ingo, that change will make the lock more
+>> unfair to the writers. However, I can run some tests to find out the
+>> performance impact of such a way on the benchmarks that I used.
+> You can do a lot with the basic structure if you're willing to
+> go to XADD in the _lock_failed handlers.
 >
-> But when a writer already holds the lock it can decide to pass that lock
-> to another writer-spinning instead of unlocking to all readers. This too
-> should be relatively straightforward to implement because neither
-> read_lock() nor write_lock() can abort and race.
+> Adding writer priority is possible, but at least some call sites have
+> to be reader-priority because they're recursive or are in interrupts,
+> and readers don't disable interrupts.
 >
-> Instead of doing:
+> The basic solution is for writers to first detect if they're the *first*
+> writer.  If a write lock fails, look and see if it's>  -RW_LOCK_BIAS.
 >
-> static inline void arch_write_unlock(arch_rwlock_t *rw)
-> {
->          asm volatile(LOCK_PREFIX WRITE_LOCK_ADD(%1) "%0"
->                       : "+m" (rw->write) : "i" (RW_LOCK_BIAS) : "memory");
-> }
+> If not, drop it and spin reading until it's>= 0, then try again.
+> (Possibly with XADD this time to combine the acquire and add.)
 >
-> the current owner could check whether there are other writers waiting and
-> could drop into a slowpath that passes ownership to one of the writers via
-> toggling bit 30 or so. This reduces the max number of writers by a factor
-> of 2.
+> But when we *are* the first writer, subtract an additional -RW_LOCK_BIAS/2.
+> This tells pending readers "writer wating, back off!".
 >
-> But I'd implement this only if it proves to be a problem in practice.
 >
-> I'd strongly suggest to first address the thundering herd problem of
-> write_unlock() and see how it affects scalability - before totally
-> replacing it all with a new, fundamentally heavier locking primitive!
+> What readers do when they see that bit set in rwlock->lock-1 depends on
+> whether they're fair or unfair:
 >
-> Thanks,
+> - Fair readers re-increment the lock and spin waiting for it to become>
+>    -RW_LOCK_BIAS/2, at which point they try to reacquire.
+> - Unfair readers say "ah, that means I can go ahead, thank you!".
 >
-> 	Ingo
-I had run some performance tests using the fserver and new_fserver 
-benchmarks
-(on ext4 filesystems) of the AIM7 test suite on a 80-core DL980 with
-HT on. The following kernels were used:
+>
+> A waiting writer waits for the lock to equal -RW_LOCK_BIAS/2, meaning
+> all readers have left.  Then it adds -RW_LOCK_BIAS/2, meaning "write
+> lock taken" and goes ahead.
+>
+> At this point, there is a thundering horde while the held-off readers
+> get back in line.  But hopefully it overlaps with the writer's lock tenure.
+>
+> When the writer drops its lock, the waiting readers go ahead, and the
+> spinning writers advance in a thundering horde to contend for first place.
+> (Again, the latency for this is hopefully covered by the readers'
+> lock tenure.)
 
-1. Modified 3.10.1 kernel with mb_cache_spinlock in fs/mbcache.c
-    replaced by a rwlock
-2. Modified 3.10.1 kernel + modified __read_lock_failed code as suggested
-    by Ingo
-3. Modified 3.10.1 kernel + queue read/write lock
-4. Modified 3.10.1 kernel + queue read/write lock in classic read/write
-    lock behavior
+Thank for the suggestion. What you have proposed will be somewhat 
+similar to what my new code is doing with readers/writers spinning on 
+the cacheline without the waiting queue. I need to run some tests to see 
+if it can really help.
 
-The last one is with the read lock stealing flag set in the qrwlock
-structure to give priority to readers and behave more like the classic
-read/write lock with less fairness.
+> I count 531 calls to read_lock in the kernel (10 of them are in
+> lib/locking-selftest.c, called RL).  I don't have any idea how difficult
+> it would be to divide them into read_lock_fair and read_lock_unfair.
 
-The following table shows the averaged results in the 200-1000
-user ranges:
-
-+-----------------+--------+--------+--------+--------+
-|  Kernel         |    1   |    2   |    3   |   4    |
-+-----------------+--------+--------+--------+--------+
-| fserver JPM     | 245598 | 274457 | 403348 | 411941 |
-| % change from 1 |   0%   | +11.8% | +64.2% | +67.7% |
-+-----------------+--------+--------+--------+--------+
-| new-fserver JPM | 231549 | 269807 | 399093 | 399418 |
-| % change from 1 |   0%   | +16.5% | +72.4% | +72.5% |
-+-----------------+--------+--------+--------+--------+
-
-The following table shows the averaged results in the 1100-2000
-user ranges:
-
-+-----------------+--------+--------+--------+--------+
-|  Kernel         |    1   |    2   |    3   |   4    |
-+-----------------+--------+--------+--------+--------+
-| fserver JPM     | 230295 | 263562 | 347161 | 333908 |
-| % change from 1 |   0%   | +14.5% | +50.8% | +45.0% |
-+-----------------+--------+--------+--------+--------+
-| new-fserver JPM | 241154 | 274571 | 338166 | 369550 |
-| % change from 1 |   0%   | +13.9% | +40.2% | +53.2% |
-+-----------------+--------+--------+--------+--------+
-
-For these 2 benchmarks, the read/write lock bottleneck is in the
-j_state_lock of the journal_s structure in include/linux/jbd2.h.
-
-The following table show the amount of CPU time spent on the slowpaths
-of the read and write lock for each of the different kernels listed
-above as reported by perf with the fserver benchmark at 1500 users:
-
-+-----------------+--------+--------+--------+--------+
-|  Kernel         |    1   |    2   |    3   |   4    |
-+-----------------+--------+--------+--------+--------+
-| Read slowpath   | 16.9%  | 12.2%  | 11.7%  | 15.3%  |
-| Write slowpath  | 13.3%  | 11.5%  | 0.02%  | 0.09%  |
-+-----------------+--------+--------+--------+--------+
-
-The small write slowpath numbers indicates that it is a reader heavy
-lock with writers probably holding the lock a lot longer than the
-readers.
-
-It can be seen that the Ingo's changes does improve performance by
-about 10-15% in this reader-heavy high contention scenario. It also 
-reduces the read slowpath time relative to the write slowpath. However,
-the queue read/write lock can improve performance by more than 50%. The
-queue read/write lock is also much more fair to the writers as the
-writers waiting time drop significantly.
-
-In low contention situation, all the 4 kernels perform similarly with
-1-2% performance variation and so it is hard to draw conclusion.
+What I have in mind is to have 2 separate rwlock initializers - one for 
+fair and one for reader-bias behavior. So the lock owners can decide 
+what behavior do they want with a one line change.
 
 Regards,
 Longman
