@@ -1,70 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ea0-f176.google.com ([209.85.215.176]:52196 "EHLO
-	mail-ea0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756799Ab3GVKeH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jul 2013 06:34:07 -0400
-Date: Mon, 22 Jul 2013 12:34:02 +0200
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH RFC 1/2] qrwlock: A queue read/write lock implementation
-Message-ID: <20130722103402.GA1991@gmail.com>
-References: <1373679249-27123-1-git-send-email-Waiman.Long@hp.com>
- <1373679249-27123-2-git-send-email-Waiman.Long@hp.com>
- <alpine.DEB.2.02.1307151657540.11918@ionos.tec.linutronix.de>
- <51E49FA3.4030202@hp.com>
- <20130718074204.GA22623@gmail.com>
- <51E7F03A.4090305@hp.com>
- <20130719084023.GB25784@gmail.com>
- <51E95B85.8090003@hp.com>
+Received: from terminus.zytor.com ([198.137.202.10]:57575 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756075Ab3GWJzS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 23 Jul 2013 05:55:18 -0400
+Message-ID: <51EE52BE.5080204@zytor.com>
+Date: Tue, 23 Jul 2013 02:54:06 -0700
+From: "H. Peter Anvin" <hpa@zytor.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <51E95B85.8090003@hp.com>
+Subject: Re: [PATCH, re-send] Always trap on BUG()
+References: <201307051738.35930.arnd@arndb.de> <20130715151612.9499c2b2ad40e88d183a4600@linux-foundation.org> <20130715222755.GY24642@n2100.arm.linux.org.uk> <51E47924.9030005@zytor.com> <20130723093628.GC19786@gmail.com>
+In-Reply-To: <20130723093628.GC19786@gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <waiman.long@hp.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Richard Weinberger <richard@nod.at>, Catalin Marinas <catalin.marinas@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Matt Fleming <matt.fleming@intel.com>, Herbert Xu <herbert@gondor.apana.org.au>, Akinobu Mita <akinobu.mita@gmail.com>, Rusty Russell <rusty@rustcorp.com.au>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, "Norton, Scott J" <scott.norton@hp.com>, George Spelvin <linux@horizon.com>
-Message-ID: <20130722103402.URTBbjKyNxPZquavD6vK_5PJ0zOhOg8AxmmrohhscXQ@z>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Chen Gang <gang.chen@asianux.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Geert Uytterhoeven <geert@linux-m68k.org>
+Message-ID: <20130723095406.j2JlnyBqb6MTDbsNaopKTOKIBwogMzVfOHTzoDbR1hY@z>
 
-
-* Waiman Long <waiman.long@hp.com> wrote:
-
-> I had run some performance tests using the fserver and new_fserver 
-> benchmarks (on ext4 filesystems) of the AIM7 test suite on a 80-core 
-> DL980 with HT on. The following kernels were used:
+On 07/23/2013 02:36 AM, Ingo Molnar wrote:
+>>
+>> Well, there are three alternatives here, right:
+>>
+>> 1. We can use unreachable(), which means that the compiler can assume it
+>> never happens.
 > 
-> 1. Modified 3.10.1 kernel with mb_cache_spinlock in fs/mbcache.c
->    replaced by a rwlock
-> 2. Modified 3.10.1 kernel + modified __read_lock_failed code as suggested
->    by Ingo
-> 3. Modified 3.10.1 kernel + queue read/write lock
-> 4. Modified 3.10.1 kernel + queue read/write lock in classic read/write
->    lock behavior
+> AFAICS this is dangerous as it loses warnings and moves execution into 
+> la-la-land without any obvious sign at the C level.
 > 
-> The last one is with the read lock stealing flag set in the qrwlock
-> structure to give priority to readers and behave more like the classic
-> read/write lock with less fairness.
-> 
-> The following table shows the averaged results in the 200-1000
-> user ranges:
-> 
-> +-----------------+--------+--------+--------+--------+
-> |  Kernel         |    1   |    2   |    3   |   4    |
-> +-----------------+--------+--------+--------+--------+
-> | fserver JPM     | 245598 | 274457 | 403348 | 411941 |
-> | % change from 1 |   0%   | +11.8% | +64.2% | +67.7% |
-> +-----------------+--------+--------+--------+--------+
-> | new-fserver JPM | 231549 | 269807 | 399093 | 399418 |
-> | % change from 1 |   0%   | +16.5% | +72.4% | +72.5% |
-> +-----------------+--------+--------+--------+--------+
 
-So it's not just herding that is a problem.
+Extremely dangerous.
 
-I'm wondering, how sensitive is this particular benchmark to fairness? 
-I.e. do the 200-1000 simulated users each perform the same number of ops, 
-so that any smearing of execution time via unfairness gets amplified?
+	-hpa
 
-I.e. does steady-state throughput go up by 60%+ too with your changes?
-
-Thanks,
-
-	Ingo
