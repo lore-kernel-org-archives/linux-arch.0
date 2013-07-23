@@ -1,68 +1,65 @@
 From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH RFC 1/2] qrwlock: A queue read/write lock implementation
-Date: Mon, 22 Jul 2013 12:34:02 +0200
-Message-ID: <20130722103402.GA1991@gmail.com>
-References: <1373679249-27123-1-git-send-email-Waiman.Long@hp.com>
- <1373679249-27123-2-git-send-email-Waiman.Long@hp.com>
- <alpine.DEB.2.02.1307151657540.11918@ionos.tec.linutronix.de>
- <51E49FA3.4030202@hp.com>
- <20130718074204.GA22623@gmail.com>
- <51E7F03A.4090305@hp.com>
- <20130719084023.GB25784@gmail.com>
- <51E95B85.8090003@hp.com>
+Subject: Re: [PATCH, re-send] Always trap on BUG()
+Date: Tue, 23 Jul 2013 11:36:28 +0200
+Message-ID: <20130723093628.GC19786@gmail.com>
+References: <201307051738.35930.arnd@arndb.de>
+ <20130715151612.9499c2b2ad40e88d183a4600@linux-foundation.org>
+ <20130715222755.GY24642@n2100.arm.linux.org.uk>
+ <51E47924.9030005@zytor.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ea0-f176.google.com ([209.85.215.176]:52196 "EHLO
-	mail-ea0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756799Ab3GVKeH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jul 2013 06:34:07 -0400
+Received: from mail-ee0-f47.google.com ([74.125.83.47]:58270 "EHLO
+	mail-ee0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754916Ab3GWJgc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jul 2013 05:36:32 -0400
 Content-Disposition: inline
-In-Reply-To: <51E95B85.8090003@hp.com>
+In-Reply-To: <51E47924.9030005@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <waiman.long@hp.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Richard Weinberger <richard@nod.at>, Catalin Marinas <catalin.marinas@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Matt Fleming <matt.fleming@intel.com>, Herbert Xu <herbert@gondor.apana.org.au>, Akinobu Mita <akinobu.mita@gmail.com>, Rusty Russell <rusty@rustcorp.com.au>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, Norton, Sc
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Chen Gang <gang.chen@asianux.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Geert Uytterhoeven <geert@linux-m68k.org>
 
 
-* Waiman Long <waiman.long@hp.com> wrote:
+* H. Peter Anvin <hpa@zytor.com> wrote:
 
-> I had run some performance tests using the fserver and new_fserver 
-> benchmarks (on ext4 filesystems) of the AIM7 test suite on a 80-core 
-> DL980 with HT on. The following kernels were used:
+> On 07/15/2013 03:27 PM, Russell King - ARM Linux wrote:
+> > On Mon, Jul 15, 2013 at 03:16:12PM -0700, Andrew Morton wrote:
+> >> I've been thinking for a while that CONFIG_BUG=n is a pretty dumb thing
+> >> to do, and that maintaining it (and trying to fix the warnings it
+> >> produces) aren't worth the effort and that we should remove the whole
+> >> thing.  Perhaps your patch changes that calculus, dunno.  Please discuss.
+> > 
+> > This isn't about introducing "CONFIG_BUG=n" - this is about making a
+> > kernel with CONFIG_BUG=n build without producing tonnes and tonnes of
+> > warnings, as it does today.  It makes building randconfig pretty
+> > useless to find what could be more important warnings.
+> > 
 > 
-> 1. Modified 3.10.1 kernel with mb_cache_spinlock in fs/mbcache.c
->    replaced by a rwlock
-> 2. Modified 3.10.1 kernel + modified __read_lock_failed code as suggested
->    by Ingo
-> 3. Modified 3.10.1 kernel + queue read/write lock
-> 4. Modified 3.10.1 kernel + queue read/write lock in classic read/write
->    lock behavior
+> Well, there are three alternatives here, right:
 > 
-> The last one is with the read lock stealing flag set in the qrwlock
-> structure to give priority to readers and behave more like the classic
-> read/write lock with less fairness.
-> 
-> The following table shows the averaged results in the 200-1000
-> user ranges:
-> 
-> +-----------------+--------+--------+--------+--------+
-> |  Kernel         |    1   |    2   |    3   |   4    |
-> +-----------------+--------+--------+--------+--------+
-> | fserver JPM     | 245598 | 274457 | 403348 | 411941 |
-> | % change from 1 |   0%   | +11.8% | +64.2% | +67.7% |
-> +-----------------+--------+--------+--------+--------+
-> | new-fserver JPM | 231549 | 269807 | 399093 | 399418 |
-> | % change from 1 |   0%   | +16.5% | +72.4% | +72.5% |
-> +-----------------+--------+--------+--------+--------+
+> 1. We can use unreachable(), which means that the compiler can assume it
+> never happens.
 
-So it's not just herding that is a problem.
+AFAICS this is dangerous as it loses warnings and moves execution into 
+la-la-land without any obvious sign at the C level.
 
-I'm wondering, how sensitive is this particular benchmark to fairness? 
-I.e. do the 200-1000 simulated users each perform the same number of ops, 
-so that any smearing of execution time via unfairness gets amplified?
+> 2. We can trap without metadata.
 
-I.e. does steady-state throughput go up by 60%+ too with your changes?
+This is what the patch does.
+
+> 3. We can trap with metadata (current CONFIG_BUG=y).
+
+That is still kept with the patch.
+
+> I am *guessing* this does 2, but it isn't clear.
+
+Yes, that's what it does - and I think it's the best of all worlds:
+
+Acked-by: Ingo Molnar <mingo@kernel.org>
+
+(the crazies can keep a separate patch to remove even more of BUG() to win 
+a K or two.)
 
 Thanks,
 
