@@ -1,52 +1,76 @@
-From: Colin Cross <ccross@android.com>
-Subject: Re: [PATCH] mm: add sys_madvise2 and MADV_NAME to name vmas
-Date: Wed, 24 Jul 2013 13:05:09 -0700
-Message-ID: <CAMbhsRQo6f5UnxmibrJPkmKbMscBAYq88y7vKtnxd5ctE=xvSA@mail.gmail.com>
-References: <1372901537-31033-1-git-send-email-ccross@android.com>
-	<20130704202232.GA19287@redhat.com>
-	<CAMbhsRRjGjo_-zSigmdsDvY-kfBhmP49bDQzsgHfj5N-y+ZAdw@mail.gmail.com>
-	<20130724094035.GA28894@hal>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20130724094035.GA28894@hal>
-Sender: owner-linux-mm@kvack.org
-To: Jan Glauber <jan.glauber@gmail.com>
-Cc: Oleg Nesterov <oleg@redhat.com>, lkml <linux-kernel@vger.kernel.org>, Kyungmin Park <kmpark@infradead.org>, Christoph Hellwig <hch@infradead.org>, John Stultz <john.stultz@linaro.org>, Rob Landley <rob@landley.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Cyrill Gorcunov <gorcunov@openvz.org>, David Rientjes <rientjes@google.com>, Davidlohr Bueso <dave@gnu.org>, Kees Cook <keescook@chromium.org>, Al Viro <viro@zeniv.linux.org.uk>, Hugh Dickins <hughd@google.com>, Mel Gorman <mgorman@suse.de>, Michel Lespinasse <walken@google.com>, Rik van Riel <riel@redhat.com>, Konstantin Khlebnikov <khlebnikov@openvz.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rusty Russell <rusty@rustcorp.com.au>, "Eric W. Biederman" <ebiederm@xmission.com>, Srikar Dronamraju <srikar@linux.vnet.ibm.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>Mi
-List-Id: linux-arch.vger.kernel.org
+From: Waiman Long <Waiman.Long@hp.com>
+Subject: [PATCH v2 0/3] qrwlock: Introducing a queue read/write lock implementation
+Date: Wed, 24 Jul 2013 16:12:23 -0400
+Message-ID: <1374696746-40184-1-git-send-email-Waiman.Long@hp.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from g1t0029.austin.hp.com ([15.216.28.36]:31651 "EHLO
+	g1t0029.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752070Ab3GXUNO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jul 2013 16:13:14 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: Waiman Long <Waiman.Long@hp.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Richard Weinberger <richard@nod.at>, Catalin Marinas <catalin.marinas@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Matt Fleming <matt.fleming@intel.com>, Herbert Xu <herbert@gondor.apana.org.au>, Akinobu Mita <akinobu.mita@gmail.com>, Rusty Russell <rusty@rustcorp.com.au>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Harvey Harrison <harvey.harrison@gmail.com>, Chandramouleeswaran, As
 
-On Wed, Jul 24, 2013 at 2:40 AM, Jan Glauber <jan.glauber@gmail.com> wrote:
-> On Fri, Jul 05, 2013 at 12:40:50PM -0700, Colin Cross wrote:
->> On Thu, Jul 4, 2013 at 1:22 PM, Oleg Nesterov <oleg@redhat.com> wrote:
->> > On 07/03, Colin Cross wrote:
->> >>
->> >> The names of named anonymous vmas are shown in /proc/pid/maps
->> >> as [anon:<name>].  The name of all named vmas are shown in
->> >> /proc/pid/smaps in a new "Name" field that is only present
->> >> for named vmas.
->> >
->> > And this is the only purpose, yes?
->>
->
-> The heuristics used for the thread stack annotation is not working always:
->
-> https://lkml.org/lkml/2013/6/26/256
->
-> Maybe we can get rid of the heuristic if there is an explicit interface to
-> mark vma's?
->
-> OTOH, a new flag bit instead of a string would be enough to mark the thread
-> stacks correctly.
+v1->v2:
+ - Improve lock fastpath performance.
+ - Optionally provide classic read/write lock behavior for backward
+   compatibility.
+ - Use xadd instead of cmpxchg for fair reader code path to make it
+   immute to reader contention.
+ - Run more performance testing.
 
-I noticed this possibility when looking at the stack naming code, but
-I didn't have any evidence that it actually happens.  As my patch is
-written (as well as the new version, see
-http://permalink.gmane.org/gmane.linux.kernel.mm/103228) it will
-ignore any vma that found a name any other way, but it could be
-changed to override the automatic stack naming.
+As mentioned in the LWN article http://lwn.net/Articles/364583/, the
+classic read/write lock suffer from an unfairness problem that it is
+possible for a stream of incoming readers to block a waiting writer
+from getting the lock for a long time. Also, a waiting reader/writer
+contending a rwlock in local memory will have a higher chance of
+acquiring the lock than a reader/writer in remote node.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+This patch set introduces a queue-based read/write lock implementation
+that can largely solve this unfairness problem while, at the same
+time, can optionally provide the classic read/write lock behavior
+for those locks that need it. This new queue read/write lock is both
+fairer than the classic read/write lock and will be faster in lock
+contention situations.
+
+The queue write lock can also be used as a replacement for ticket
+spinlocks that are highly contended if lock size increase is not
+an issue.
+
+There is no change in the interface. By just selecting the QUEUE_RWLOCK
+config parameter during the configuration phase, the classic read/write
+lock will be replaced by the new queue read/write lock. This will
+made the systems more deterministic and faster in lock contention
+situations. In uncontended cases, the queue read/write lock may be
+a bit slower than the classic one depending on the exact mix of read
+and write locking primitives. Given the fact that locking overhead is
+typically a very small percentage of the total CPU time in uncontended
+cases, there won't be any noticeable degraduation in performance with
+this replacement.
+
+This patch set currently provides queue read/write lock support on
+x86 architecture only. Support for other architectures can be added
+later on once proper testing is done.
+
+Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+
+Waiman Long (3):
+  qrwlock: A queue read/write lock implementation
+  qrwlock x86: Enable x86 to use queue read/write lock
+  qrwlock: Optionally enable classic read/write lock behavior
+
+ arch/x86/Kconfig                      |    3 +
+ arch/x86/include/asm/spinlock.h       |    2 +
+ arch/x86/include/asm/spinlock_types.h |    4 +
+ include/asm-generic/qrwlock.h         |  251 +++++++++++++++++++++++++++++++++
+ include/linux/rwlock.h                |   15 ++
+ include/linux/rwlock_types.h          |   12 ++-
+ include/linux/spinlock_types.h        |    4 +
+ lib/Kconfig                           |   23 +++
+ lib/Makefile                          |    1 +
+ lib/qrwlock.c                         |  194 +++++++++++++++++++++++++
+ lib/spinlock_debug.c                  |   20 +++
+ 11 files changed, 528 insertions(+), 1 deletions(-)
+ create mode 100644 include/asm-generic/qrwlock.h
+ create mode 100644 lib/qrwlock.c
