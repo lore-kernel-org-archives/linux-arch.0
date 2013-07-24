@@ -1,41 +1,46 @@
-From: TC@zimbra.relato.net.br, idthida.choun@gmail.com
-Subject: Letter Of Intent
-Date: Wed, 24 Jul 2013 12:00:11 +0700
-Message-ID: <20130724050055.7EA9156D7DE@zimbra.relato.net.br>
-Reply-To: thida.choun@yahoo.com
+From: Jan Glauber <jan.glauber@gmail.com>
+Subject: Re: [PATCH] mm: add sys_madvise2 and MADV_NAME to name vmas
+Date: Wed, 24 Jul 2013 11:40:36 +0200
+Message-ID: <20130724094035.GA28894@hal>
+References: <1372901537-31033-1-git-send-email-ccross@android.com>
+ <20130704202232.GA19287@redhat.com>
+ <CAMbhsRRjGjo_-zSigmdsDvY-kfBhmP49bDQzsgHfj5N-y+ZAdw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from host53-147.brs.com.br ([177.11.53.147]:59302 "EHLO
-	zimbra.relato.net.br" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1750887Ab3GXFBK convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jul 2013 01:01:10 -0400
-Received: from localhost (localhost [127.0.0.1])
-	by zimbra.relato.net.br (Postfix) with ESMTP id 6B89C56D7DE
-	for <linux-arch@vger.kernel.org>; Wed, 24 Jul 2013 02:00:57 -0300 (BRT)
-Received: from zimbra.relato.net.br ([127.0.0.1])
-	by localhost (zimbra.relato.net.br [127.0.0.1]) (amavisd-new, port 10032)
-	with ESMTP id XPiqMETYKVKC for <linux-arch@vger.kernel.org>;
-	Wed, 24 Jul 2013 02:00:57 -0300 (BRT)
-Received: from localhost (localhost [127.0.0.1])
-	by zimbra.relato.net.br (Postfix) with ESMTP id 2881B56D912
-	for <linux-arch@vger.kernel.org>; Wed, 24 Jul 2013 02:00:57 -0300 (BRT)
-Received: from zimbra.relato.net.br ([127.0.0.1])
-	by localhost (zimbra.relato.net.br [127.0.0.1]) (amavisd-new, port 10026)
-	with ESMTP id tWe-KkuYlfRX for <linux-arch@vger.kernel.org>;
-	Wed, 24 Jul 2013 02:00:57 -0300 (BRT)
-Received: from [10.9.87.214] (unknown [192.168.6.2])
-	by zimbra.relato.net.br (Postfix) with ESMTP id 7EA9156D7DE
-	for <linux-arch@vger.kernel.org>; Wed, 24 Jul 2013 02:00:54 -0300 (BRT)
-Content-Description: Mail message body
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <CAMbhsRRjGjo_-zSigmdsDvY-kfBhmP49bDQzsgHfj5N-y+ZAdw@mail.gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Colin Cross <ccross@android.com>
+Cc: Oleg Nesterov <oleg@redhat.com>, lkml <linux-kernel@vger.kernel.org>, Kyungmin Park <kmpark@infradead.org>, Christoph Hellwig <hch@infradead.org>, John Stultz <john.stultz@linaro.org>, Rob Landley <rob@landley.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Cyrill Gorcunov <gorcunov@openvz.org>, David Rientjes <rientjes@google.com>, Davidlohr Bueso <dave@gnu.org>, Kees Cook <keescook@chromium.org>, Al Viro <viro@zeniv.linux.org.uk>, Hugh Dickins <hughd@google.com>, Mel Gorman <mgorman@suse.de>, Michel Lespinasse <walken@google.com>, Rik van Riel <riel@redhat.com>, Konstantin Khlebnikov <khlebnikov@openvz.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rusty Russell <rusty@rustcorp.com.au>, "Eric W. Biederman" <ebiederm@xmission.com>, Srikar Dronamraju <srikar@linux.vnet.ibm.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>Mich
+List-Id: linux-arch.vger.kernel.org
 
-Dear Friend
+On Fri, Jul 05, 2013 at 12:40:50PM -0700, Colin Cross wrote:
+> On Thu, Jul 4, 2013 at 1:22 PM, Oleg Nesterov <oleg@redhat.com> wrote:
+> > On 07/03, Colin Cross wrote:
+> >>
+> >> The names of named anonymous vmas are shown in /proc/pid/maps
+> >> as [anon:<name>].  The name of all named vmas are shown in
+> >> /proc/pid/smaps in a new "Name" field that is only present
+> >> for named vmas.
+> >
+> > And this is the only purpose, yes?
+> 
 
-It is my interest to contact you in respect of our client from your country who died 3 years ago leaving some huge amount of money in our bank without any next of kin or link to his family. I shall explain in details when I read your reply.You are my first contact, I shall wait for days and if I do not hear from you. I shall continue with my search,
+The heuristics used for the thread stack annotation is not working always:
 
-Thanks.
-Thida Choun
+https://lkml.org/lkml/2013/6/26/256
+
+Maybe we can get rid of the heuristic if there is an explicit interface to
+mark vma's?
+
+OTOH, a new flag bit instead of a string would be enough to mark the thread
+stacks correctly.
+
+--Jan
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
