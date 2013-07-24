@@ -1,88 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t0016.houston.hp.com ([15.201.24.19]:23475 "EHLO
-	g4t0016.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934085Ab3GWXye (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jul 2013 19:54:34 -0400
-Message-ID: <51EF17A4.5040300@hp.com>
-Date: Tue, 23 Jul 2013 19:54:12 -0400
+Received: from g1t0026.austin.hp.com ([15.216.28.33]:29155 "EHLO
+	g1t0026.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752810Ab3GXAD4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jul 2013 20:03:56 -0400
+Message-ID: <51EF19D8.2090307@hp.com>
+Date: Tue, 23 Jul 2013 20:03:36 -0400
 From: Waiman Long <waiman.long@hp.com>
 MIME-Version: 1.0
 Subject: Re: [PATCH RFC 1/2] qrwlock: A queue read/write lock implementation
-References: <1373679249-27123-1-git-send-email-Waiman.Long@hp.com> <1373679249-27123-2-git-send-email-Waiman.Long@hp.com> <alpine.DEB.2.02.1307151657540.11918@ionos.tec.linutronix.de> <51E49FA3.4030202@hp.com> <alpine.DEB.2.02.1307181210330.4089@ionos.tec.linutronix.de> <51E7F95B.9050202@hp.com> <51EB74C7.7060503@linux.vnet.ibm.com>
-In-Reply-To: <51EB74C7.7060503@linux.vnet.ibm.com>
+References: <1373679249-27123-1-git-send-email-Waiman.Long@hp.com> <1373679249-27123-2-git-send-email-Waiman.Long@hp.com> <alpine.DEB.2.02.1307151657540.11918@ionos.tec.linutronix.de> <51E49FA3.4030202@hp.com> <20130718074204.GA22623@gmail.com> <51E7F03A.4090305@hp.com> <20130719084023.GB25784@gmail.com> <51E95B85.8090003@hp.com> <20130722103402.GA1991@gmail.com>
+In-Reply-To: <20130722103402.GA1991@gmail.com>
 Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Richard Weinberger <richard@nod.at>, Catalin Marinas <catalin.marinas@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Matt Fleming <matt.fleming@intel.com>, Herbert Xu <herbert@gondor.apana.org.au>, Akinobu Mita <akinobu.mita@gmail.com>, Rusty Russell <rusty@rustcorp.com.au>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, "Norton, Scott J" <scott.norton@hp.com>
-Message-ID: <20130723235412.zpgZl0br0bxr-7suE57ZfHqjrVoc30Ug3PlBWt2M2JY@z>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Richard Weinberger <richard@nod.at>, Catalin Marinas <catalin.marinas@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Matt Fleming <matt.fleming@intel.com>, Herbert Xu <herbert@gondor.apana.org.au>, Akinobu Mita <akinobu.mita@gmail.com>, Rusty Russell <rusty@rustcorp.com.au>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, "Norton, Scott J" <scott.norton@hp.com>, George Spelvin <linux@horizon.com>
+Message-ID: <20130724000336.Cu2CiAGG95GmFQJ2NVavNpyC3bRSEm_eZqTfrlfvx0c@z>
 
-On 07/21/2013 01:42 AM, Raghavendra K T wrote:
-> On 07/18/2013 07:49 PM, Waiman Long wrote:
->> On 07/18/2013 06:22 AM, Thomas Gleixner wrote:
->>> Waiman,
->>>
->>> On Mon, 15 Jul 2013, Waiman Long wrote:
->>>> On 07/15/2013 06:31 PM, Thomas Gleixner wrote:
->>>>> On Fri, 12 Jul 2013, Waiman Long wrote:
-> [...]
->>>
->>>>>> + * an increase in lock size is not an issue.
->>>>> So is it faster in the general case or only for the high 
->>>>> contention or
->>>>> single thread operation cases?
->>>>>
->>>>> And you still miss to explain WHY it is faster. Can you please 
->>>>> explain
->>>>> proper WHY it is faster and WHY we can't apply that technique you
->>>>> implemented for qrwlocks to writer only locks (aka spinlocks) with a
->>>>> smaller lock size?
->>>> I will try to collect more data to justify the usefulness of qrwlock.
->>> And please provide a proper argument why we can't use the same
->>> technique for spinlocks.
+On 07/22/2013 06:34 AM, Ingo Molnar wrote:
+> * Waiman Long<waiman.long@hp.com>  wrote:
+>
+>> I had run some performance tests using the fserver and new_fserver
+>> benchmarks (on ext4 filesystems) of the AIM7 test suite on a 80-core
+>> DL980 with HT on. The following kernels were used:
 >>
->> Of course, we can use the same technique for spinlock. Since we only
->> need 1 bit for lock, we could combine the lock bit with the queue
->> address with a little bit more overhead in term of coding and speed.
->> That will make the new lock 4 bytes in size for 32-bit code & 8 bytes
->> for 64-bit code. That could solve a lot of performance problem that we
->> have with spinlock. However, I am aware that increasing the size of
->> spinlock (for 64-bit systems) may break a lot of inherent alignment in
->> many of the data structures. That is why I am not proposing such a
->> change right now. But if there is enough interest, we could certainly go
->> ahead and see how things go.
+>> 1. Modified 3.10.1 kernel with mb_cache_spinlock in fs/mbcache.c
+>>     replaced by a rwlock
+>> 2. Modified 3.10.1 kernel + modified __read_lock_failed code as suggested
+>>     by Ingo
+>> 3. Modified 3.10.1 kernel + queue read/write lock
+>> 4. Modified 3.10.1 kernel + queue read/write lock in classic read/write
+>>     lock behavior
+>>
+>> The last one is with the read lock stealing flag set in the qrwlock
+>> structure to give priority to readers and behave more like the classic
+>> read/write lock with less fairness.
+>>
+>> The following table shows the averaged results in the 200-1000
+>> user ranges:
+>>
+>> +-----------------+--------+--------+--------+--------+
+>> |  Kernel         |    1   |    2   |    3   |   4    |
+>> +-----------------+--------+--------+--------+--------+
+>> | fserver JPM     | 245598 | 274457 | 403348 | 411941 |
+>> | % change from 1 |   0%   | +11.8% | +64.2% | +67.7% |
+>> +-----------------+--------+--------+--------+--------+
+>> | new-fserver JPM | 231549 | 269807 | 399093 | 399418 |
+>> | % change from 1 |   0%   | +16.5% | +72.4% | +72.5% |
+>> +-----------------+--------+--------+--------+--------+
+> So it's not just herding that is a problem.
 >
-> keeping apart the lock size part, for spinlocks, is it that
->  fastpath overhead is less significant in low contention scenarios for
-> qlocks?
-
-Fastpath speed is an important consideration for accepting changes to 
-lock, especially if the critical section is short. This is the 
-impression that I got so far. When the critical section is long, 
-however, the speed of the fastpath will be less important.
-
-> Also let me know if you have POC implementation for the spinlocks that
-> you can share. I am happy to test that.
-
-I don't any POC implementation for the spinlocks as I am aware that any 
-increase in spinlock size will cause it hard to get merged. I could make 
-one after I finish the current set of patches that I am working on.
-
-> sorry. different context:
-> apart from AIM7 fserver, is there any other benchmark to exercise this
-> qrwlock series? (to help in the testing).
+> I'm wondering, how sensitive is this particular benchmark to fairness?
+> I.e. do the 200-1000 simulated users each perform the same number of ops,
+> so that any smearing of execution time via unfairness gets amplified?
 >
-For the AIM7 test suite, the fserver & new_fserver with ext4 are the 
-best ones for exercising the qrwlock series, but you do need to have a 
-lot of cores to see the effect. I haven't try to find other suitable 
-benchmark tests yet.
+> I.e. does steady-state throughput go up by 60%+ too with your changes?
 
-Actually, improving fserver and new_fserver performance is not my 
-primary objective. My primary goal is to have a fair rwlock 
-implementation that can be used to replace selected spinlocks that is in 
-high contention without losing the fairness attribute of the ticket 
-spinlock, just like the replacement of mutex by rwsem.
+For this particular benchmark, there are interplay of different locks 
+that determine the overall performance of the system. Yes, I got steady 
+state performance gain of 60%+ with the qrwlock change with the modified 
+mbcache.c. Without the modified mbcache.c file, the performance gain 
+drop to 20-30%. I am still trying to find out more about the performance 
+variations in different situations.
 
 Regards,
 Longman
