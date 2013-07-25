@@ -1,58 +1,44 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [RFC 11/14] powerpc: Eliminate NO_IRQ usage
-Date: Thu, 25 Jul 2013 23:58:10 +0200
-Message-ID: <CAMuHMdV=pSG+CtvGqr1c9nDKeHCU0cVQcFkfAo5iMMna2HOvZg@mail.gmail.com>
-References: <1326313337-24603-1-git-send-email-grant.likely@secretlab.ca>
-	<1326313337-24603-12-git-send-email-grant.likely@secretlab.ca>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH, re-send] Always trap on BUG()
+Date: Fri, 26 Jul 2013 00:05:02 +0200
+Message-ID: <20130725220502.GI18254@gmail.com>
+References: <201307051738.35930.arnd@arndb.de>
+ <20130715151612.9499c2b2ad40e88d183a4600@linux-foundation.org>
+ <20130715222755.GY24642@n2100.arm.linux.org.uk>
+ <51E47924.9030005@zytor.com>
+ <20130723093628.GC19786@gmail.com>
+ <51EF1936.7090801@asianux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f172.google.com ([209.85.192.172]:38104 "EHLO
-	mail-pd0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754001Ab3GYV6L (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Jul 2013 17:58:11 -0400
-In-Reply-To: <1326313337-24603-12-git-send-email-grant.likely@secretlab.ca>
+Received: from mail-ee0-f51.google.com ([74.125.83.51]:41977 "EHLO
+	mail-ee0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754186Ab3GYWFI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Jul 2013 18:05:08 -0400
+Content-Disposition: inline
+In-Reply-To: <51EF1936.7090801@asianux.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Grant Likely <grant.likely@secretlab.ca>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Rob Herring <rob.herring@calxeda.com>, Thomas Gleixner <tglx@linutronix.de>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Russell King <linux@arm.linux.org.uk>, Stephen Rothwell <sfr@canb.auug.org.au>, Linux-Next <linux-next@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: Chen Gang <gang.chen@asianux.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Geert Uytterhoeven <geert@linux-m68k.org>
 
-On Wed, Jan 11, 2012 at 9:22 PM, Grant Likely <grant.likely@secretlab.ca> wrote:
-> NO_IRQ is evil.  Stop using it in arch/powerpc and powerpc device drivers
+* Chen Gang <gang.chen@asianux.com> wrote:
 
-> diff --git a/sound/soc/fsl/fsl_ssi.c b/sound/soc/fsl/fsl_ssi.c
-> index 3e06696..55c6ff9 100644
-> --- a/sound/soc/fsl/fsl_ssi.c
-> +++ b/sound/soc/fsl/fsl_ssi.c
-> @@ -666,7 +666,7 @@ static int __devinit fsl_ssi_probe(struct platform_device *pdev)
->         ssi_private->ssi_phys = res.start;
->
->         ssi_private->irq = irq_of_parse_and_map(np, 0);
-> -       if (ssi_private->irq == NO_IRQ) {
-> +       if (!ssi_private->irq) {
->                 dev_err(&pdev->dev, "no irq for node %s\n", np->full_name);
->                 ret = -ENXIO;
->                 goto error_iomap;
+> On 07/23/2013 05:36 PM, Ingo Molnar wrote:
+> > 
+> > (the crazies can keep a separate patch to remove even more of BUG() to win 
+> > a K or two.)
+> > 
+> 
+> Excuse me, my English is not quite well, I do not quite understand your
+> meaning, could you please repeat again in details or say more clearly ?
 
-What's the plan with this patch?
+I meant: those people who'd like to have the tiny 
+additional space savings offered by !CONFIG_BUG (and are 
+crazy enough to live with non-determinism in exchange for a 
+measly payment of 1 KB), can apply a separate, out of tree 
+patch just fine and don't need upstream kernel support.
 
-This is now failing on xtensa, as it's one of the architectures that doesn't
-define NO_IRQ. Only arm, c6x, mn10300, openrisc, parisc, powerpc, and sparc
-define it.
+Thanks,
 
-sound/soc/fsl/fsl_ssi.c:705:26: error: 'NO_IRQ' undeclared (first use
-in this function)
-make[4]: *** [sound/soc/fsl/fsl_ssi.o] Error 1
-
-http://kisskb.ellerman.id.au/kisskb/buildresult/9187959/
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+	Ingo
