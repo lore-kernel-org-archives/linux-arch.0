@@ -1,143 +1,58 @@
-From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v2 3/3] qrwlock: Optionally enable classic read/write lock behavior
-Date: Wed, 24 Jul 2013 16:12:26 -0400
-Message-ID: <1374696746-40184-4-git-send-email-Waiman.Long@hp.com>
-References: <1374696746-40184-1-git-send-email-Waiman.Long@hp.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1374696746-40184-1-git-send-email-Waiman.Long@hp.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: Waiman Long <Waiman.Long@hp.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Richard Weinberger <richard@nod.at>, Catalin Marinas <catalin.marinas@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Matt Fleming <matt.fleming@intel.com>, Herbert Xu <herbert@gondor.apana.org.au>, Akinobu Mita <akinobu.mita@gmail.com>, Rusty Russell <rusty@rustcorp.com.au>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Harvey Harrison <harvey.harrison@gmail.com>, Chandramouleeswaran, As
-List-Id: linux-arch.vger.kernel.org
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [RFC 11/14] powerpc: Eliminate NO_IRQ usage
+Date: Thu, 25 Jul 2013 23:58:10 +0200
+Message-ID: <CAMuHMdV=pSG+CtvGqr1c9nDKeHCU0cVQcFkfAo5iMMna2HOvZg@mail.gmail.com>
+References: <1326313337-24603-1-git-send-email-grant.likely@secretlab.ca>
+	<1326313337-24603-12-git-send-email-grant.likely@secretlab.ca>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pd0-f172.google.com ([209.85.192.172]:38104 "EHLO
+	mail-pd0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754001Ab3GYV6L (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Jul 2013 17:58:11 -0400
+In-Reply-To: <1326313337-24603-12-git-send-email-grant.likely@secretlab.ca>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Grant Likely <grant.likely@secretlab.ca>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Rob Herring <rob.herring@calxeda.com>, Thomas Gleixner <tglx@linutronix.de>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Russell King <linux@arm.linux.org.uk>, Stephen Rothwell <sfr@canb.auug.org.au>, Linux-Next <linux-next@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-By default, queue read/write lock is fair with respect to both the
-readers and writers. However, there are situations where a bias
-towards readers can increase throughput especially for reader-heavy
-situations. There may also be cases where deviation from the classic
-read/write lock behavior may cause problem like recursive read lock
-in an interrupt handler with a waiting writer. Using the classic
-behavior, however, will cause the queue read/write lock to lose some
-of the fairness attribute that it has.
+On Wed, Jan 11, 2012 at 9:22 PM, Grant Likely <grant.likely@secretlab.ca> wrote:
+> NO_IRQ is evil.  Stop using it in arch/powerpc and powerpc device drivers
 
-This patch enables lock owners to decide what behavior do they want
-for their read/write lock by using the appropriate initializer. Two
-types of initializers will be provided:
-1. Default - fair to both readers and writers
-2. Classic - readers that come after a waiting writer can steal
-	     the lock
+> diff --git a/sound/soc/fsl/fsl_ssi.c b/sound/soc/fsl/fsl_ssi.c
+> index 3e06696..55c6ff9 100644
+> --- a/sound/soc/fsl/fsl_ssi.c
+> +++ b/sound/soc/fsl/fsl_ssi.c
+> @@ -666,7 +666,7 @@ static int __devinit fsl_ssi_probe(struct platform_device *pdev)
+>         ssi_private->ssi_phys = res.start;
+>
+>         ssi_private->irq = irq_of_parse_and_map(np, 0);
+> -       if (ssi_private->irq == NO_IRQ) {
+> +       if (!ssi_private->irq) {
+>                 dev_err(&pdev->dev, "no irq for node %s\n", np->full_name);
+>                 ret = -ENXIO;
+>                 goto error_iomap;
 
-The classic initializers have a "_classic" suffix. If the queue
-read/write lock feature is not enabled, the classic initializer will
-be the same as the default initializer.
+What's the plan with this patch?
 
-Signed-off-by: Waiman Long <Waiman.Long@hp.com>
----
- include/linux/rwlock.h         |   15 +++++++++++++++
- include/linux/rwlock_types.h   |   12 +++++++++++-
- include/linux/spinlock_types.h |    4 ++++
- lib/spinlock_debug.c           |   20 ++++++++++++++++++++
- 4 files changed, 50 insertions(+), 1 deletions(-)
+This is now failing on xtensa, as it's one of the architectures that doesn't
+define NO_IRQ. Only arm, c6x, mn10300, openrisc, parisc, powerpc, and sparc
+define it.
 
-diff --git a/include/linux/rwlock.h b/include/linux/rwlock.h
-index bc2994e..234305a 100644
---- a/include/linux/rwlock.h
-+++ b/include/linux/rwlock.h
-@@ -23,9 +23,24 @@ do {								\
- 								\
- 	__rwlock_init((lock), #lock, &__key);			\
- } while (0)
-+
-+# ifdef CONFIG_QUEUE_RWLOCK
-+  extern void __rwlock_init_classic(rwlock_t *lock, const char *name,
-+				    struct lock_class_key *key);
-+#  define rwlock_init_classic(lock)				\
-+do {								\
-+	static struct lock_class_key __key;			\
-+								\
-+	__rwlock_init_classic((lock), #lock, &__key);		\
-+} while (0)
-+# else
-+#  define __rwlock_init_classic(l,n,k)	__rwlock_init(l,n,k)
-+# endif /* CONFIG_QUEUE_RWLOCK */
- #else
- # define rwlock_init(lock)					\
- 	do { *(lock) = __RW_LOCK_UNLOCKED(lock); } while (0)
-+# define rwlock_init_classic(lock)				\
-+	do { *(lock) = __RW_LOCK_UNLOCKED_CLASSIC(lock); } while (0)
- #endif
- 
- #ifdef CONFIG_DEBUG_SPINLOCK
-diff --git a/include/linux/rwlock_types.h b/include/linux/rwlock_types.h
-index cc0072e..0b1bd3b 100644
---- a/include/linux/rwlock_types.h
-+++ b/include/linux/rwlock_types.h
-@@ -37,12 +37,22 @@ typedef struct {
- 				.owner = SPINLOCK_OWNER_INIT,		\
- 				.owner_cpu = -1,			\
- 				RW_DEP_MAP_INIT(lockname) }
-+#define __RW_LOCK_UNLOCKED_CLASSIC(lockname)				\
-+	(rwlock_t)	{	.raw_lock = __ARCH_RW_LOCK_UNLOCKED_CLASSIC,\
-+				.magic = RWLOCK_MAGIC,			\
-+				.owner = SPINLOCK_OWNER_INIT,		\
-+				.owner_cpu = -1,			\
-+				RW_DEP_MAP_INIT(lockname) }
- #else
- #define __RW_LOCK_UNLOCKED(lockname) \
- 	(rwlock_t)	{	.raw_lock = __ARCH_RW_LOCK_UNLOCKED,	\
- 				RW_DEP_MAP_INIT(lockname) }
-+#define __RW_LOCK_UNLOCKED_CLASSIC(lockname) \
-+	(rwlock_t)	{	.raw_lock = __ARCH_RW_LOCK_UNLOCKED_CLASSIC,\
-+				RW_DEP_MAP_INIT(lockname) }
- #endif
- 
--#define DEFINE_RWLOCK(x)	rwlock_t x = __RW_LOCK_UNLOCKED(x)
-+#define DEFINE_RWLOCK(x)	 rwlock_t x = __RW_LOCK_UNLOCKED(x)
-+#define DEFINE_RWLOCK_CLASSIC(x) rwlock_t x = __RW_LOCK_UNLOCKED_CLASSIC(x)
- 
- #endif /* __LINUX_RWLOCK_TYPES_H */
-diff --git a/include/linux/spinlock_types.h b/include/linux/spinlock_types.h
-index 73548eb..ff5554f 100644
---- a/include/linux/spinlock_types.h
-+++ b/include/linux/spinlock_types.h
-@@ -85,4 +85,8 @@ typedef struct spinlock {
- 
- #include <linux/rwlock_types.h>
- 
-+#ifndef	__ARCH_RW_LOCK_UNLOCKED_CLASSIC
-+#define	__ARCH_RW_LOCK_UNLOCKED_CLASSIC	__ARCH_RW_LOCK_UNLOCKED
-+#endif
-+
- #endif /* __LINUX_SPINLOCK_TYPES_H */
-diff --git a/lib/spinlock_debug.c b/lib/spinlock_debug.c
-index 0374a59..a765f17 100644
---- a/lib/spinlock_debug.c
-+++ b/lib/spinlock_debug.c
-@@ -49,6 +49,26 @@ void __rwlock_init(rwlock_t *lock, const char *name,
- 
- EXPORT_SYMBOL(__rwlock_init);
- 
-+#ifdef CONFIG_QUEUE_RWLOCK
-+void __rwlock_init_classic(rwlock_t *lock, const char *name,
-+			   struct lock_class_key *key)
-+{
-+#ifdef CONFIG_DEBUG_LOCK_ALLOC
-+	/*
-+	 * Make sure we are not reinitializing a held lock:
-+	 */
-+	debug_check_no_locks_freed((void *)lock, sizeof(*lock));
-+	lockdep_init_map(&lock->dep_map, name, key, 0);
-+#endif
-+	lock->raw_lock = (arch_rwlock_t) __ARCH_RW_LOCK_UNLOCKED_CLASSIC;
-+	lock->magic = RWLOCK_MAGIC;
-+	lock->owner = SPINLOCK_OWNER_INIT;
-+	lock->owner_cpu = -1;
-+}
-+
-+EXPORT_SYMBOL(__rwlock_init_classic);
-+#endif /* CONFIG_QUEUE_RWLOCK */
-+
- static void spin_dump(raw_spinlock_t *lock, const char *msg)
- {
- 	struct task_struct *owner = NULL;
--- 
-1.7.1
+sound/soc/fsl/fsl_ssi.c:705:26: error: 'NO_IRQ' undeclared (first use
+in this function)
+make[4]: *** [sound/soc/fsl/fsl_ssi.o] Error 1
+
+http://kisskb.ellerman.id.au/kisskb/buildresult/9187959/
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
