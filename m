@@ -1,45 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from comal.ext.ti.com ([198.47.26.152]:49494 "EHLO comal.ext.ti.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756722Ab3GYXQL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 25 Jul 2013 19:16:11 -0400
-Message-ID: <51F1B17F.30902@ti.com>
-Date: Thu, 25 Jul 2013 19:15:11 -0400
-From: Santosh Shilimkar <santosh.shilimkar@ti.com>
+Received: from intranet.asianux.com ([58.214.24.6]:13613 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755560Ab3GZBGT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Jul 2013 21:06:19 -0400
+Message-ID: <51F1CB4D.2020301@asianux.com>
+Date: Fri, 26 Jul 2013 09:05:17 +0800
+From: Chen Gang <gang.chen@asianux.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH] WIP: HACK: LPAE, BOOTMEM and NO_BOOTMEM
-References: <1372467663-31425-1-git-send-email-santosh.shilimkar@ti.com> <20130629152959.GB31339@mtj.dyndns.org> <20130629172123.GA3353@n2100.arm.linux.org.uk> <20130629175743.GA382@mtj.dyndns.org> <CAE9FiQXHuP-n0eZ9wN73V4nSvE+XEExDsx1t50_=YaW+V=LGLg@mail.gmail.com> <20130629195549.GE3353@n2100.arm.linux.org.uk> <CAE9FiQUoVNvWmmTV2+ZkU_nMxFToTHw6QLwp_Z_EjwMzqdLwuA@mail.gmail.com> <51D18DBA.6090608@ti.com> <51F1A7AA.8080700@ti.com> <20130725223658.GJ26107@mtj.dyndns.org>
-In-Reply-To: <20130725223658.GJ26107@mtj.dyndns.org>
-Content-Type: text/plain; charset="ISO-8859-1"
+Subject: Re: [PATCH, re-send] Always trap on BUG()
+References: <201307051738.35930.arnd@arndb.de> <20130715151612.9499c2b2ad40e88d183a4600@linux-foundation.org> <20130715222755.GY24642@n2100.arm.linux.org.uk> <51E47924.9030005@zytor.com> <20130723093628.GC19786@gmail.com> <51EF1936.7090801@asianux.com> <20130725220502.GI18254@gmail.com>
+In-Reply-To: <20130725220502.GI18254@gmail.com>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tejun Heo <tj@kernel.org>
-Cc: Yinghai Lu <yinghai@kernel.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Nicolas Pitre <nicolas.pitre@linaro.org>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, "David S. Miller" <davem@davemloft.net>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, linux-arch@vger.kernel.org
-Message-ID: <20130725231511.kS0g4jqLiGzpkdjxZCeKehmFSjKNsdNR_eAgKdV7B5E@z>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Geert Uytterhoeven <geert@linux-m68k.org>
+Message-ID: <20130726010517.7sXNf-iVBYapdXlQoye0EVLVrd_X5JgoRjM80klUT8c@z>
 
-On Thursday 25 July 2013 06:36 PM, Tejun Heo wrote:
-> Hello,
+On 07/26/2013 06:05 AM, Ingo Molnar wrote:
+> * Chen Gang <gang.chen@asianux.com> wrote:
 > 
-> On Thu, Jul 25, 2013 at 06:33:14PM -0400, Santosh Shilimkar wrote:
->> Any comments here. I would like to know your plan for the new
->> API. You might have seen on the ARM no-bootmem thread, we started to
->> move ARM to nobootmem with Russell's help.
+>> On 07/23/2013 05:36 PM, Ingo Molnar wrote:
+>>>
+>>> (the crazies can keep a separate patch to remove even more of BUG() to win 
+>>> a K or two.)
+>>>
+>>
+>> Excuse me, my English is not quite well, I do not quite understand your
+>> meaning, could you please repeat again in details or say more clearly ?
 > 
-> Ooh, the plan sounds good to me and I was thinking you were gonna do
-> it?
+> I meant: those people who'd like to have the tiny 
+> additional space savings offered by !CONFIG_BUG (and are 
+> crazy enough to live with non-determinism in exchange for a 
+> measly payment of 1 KB), can apply a separate, out of tree 
+> patch just fine and don't need upstream kernel support.
 > 
-Wooo..
 
-Sorry if I wasn't clear before, but I need help to at least have new
-memblock API support since I am not familiar with memblock code. 
-I could help in adaptation to the new API for ARM arch and
-core kernel code.
-
-Let me know your thoughts.
-
-Regards,
-Santosh
+Thank you for your reply in details.
 
 
-
+Thanks
+-- 
+Chen Gang
