@@ -1,45 +1,120 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:13613 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755560Ab3GZBGT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Jul 2013 21:06:19 -0400
-Message-ID: <51F1CB4D.2020301@asianux.com>
-Date: Fri, 26 Jul 2013 09:05:17 +0800
-From: Chen Gang <gang.chen@asianux.com>
+Received: from cantor2.suse.de ([195.135.220.15]:56931 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755325Ab3GZNAr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 26 Jul 2013 09:00:47 -0400
+Date: Fri, 26 Jul 2013 15:00:43 +0200
+From: Michal Hocko <mhocko@suse.cz>
+Subject: Re: [patch 1/6] arch: mm: remove obsolete init OOM protection
+Message-ID: <20130726130043.GC17761@dhcp22.suse.cz>
+References: <1374791138-15665-1-git-send-email-hannes@cmpxchg.org>
+ <1374791138-15665-2-git-send-email-hannes@cmpxchg.org>
 MIME-Version: 1.0
-Subject: Re: [PATCH, re-send] Always trap on BUG()
-References: <201307051738.35930.arnd@arndb.de> <20130715151612.9499c2b2ad40e88d183a4600@linux-foundation.org> <20130715222755.GY24642@n2100.arm.linux.org.uk> <51E47924.9030005@zytor.com> <20130723093628.GC19786@gmail.com> <51EF1936.7090801@asianux.com> <20130725220502.GI18254@gmail.com>
-In-Reply-To: <20130725220502.GI18254@gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1374791138-15665-2-git-send-email-hannes@cmpxchg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Geert Uytterhoeven <geert@linux-m68k.org>
-Message-ID: <20130726010517.7sXNf-iVBYapdXlQoye0EVLVrd_X5JgoRjM80klUT8c@z>
+To: Johannes Weiner <hannes@cmpxchg.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, azurIt <azurit@pobox.sk>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130726130043.C3HGNKJlf0_qxjutc5xpNEhn8kxQ17Bjl1dUs2emUe4@z>
 
-On 07/26/2013 06:05 AM, Ingo Molnar wrote:
-> * Chen Gang <gang.chen@asianux.com> wrote:
+On Thu 25-07-13 18:25:33, Johannes Weiner wrote:
+> Back before smart OOM killing, when faulting tasks where killed
+> directly on allocation failures, the arch-specific fault handlers
+> needed special protection for the init process.
 > 
->> On 07/23/2013 05:36 PM, Ingo Molnar wrote:
->>>
->>> (the crazies can keep a separate patch to remove even more of BUG() to win 
->>> a K or two.)
->>>
->>
->> Excuse me, my English is not quite well, I do not quite understand your
->> meaning, could you please repeat again in details or say more clearly ?
+> Now that all fault handlers call into the generic OOM killer (609838c
+> "mm: invoke oom-killer from remaining unconverted page fault
+> handlers"), which already provides init protection, the arch-specific
+> leftovers can be removed.
 > 
-> I meant: those people who'd like to have the tiny 
-> additional space savings offered by !CONFIG_BUG (and are 
-> crazy enough to live with non-determinism in exchange for a 
-> measly payment of 1 KB), can apply a separate, out of tree 
-> patch just fine and don't need upstream kernel support.
+> Signed-off-by: Johannes Weiner <hannes@cmpxchg.org>
+
+Looks good to me
+Reviewed-by: Michal Hocko <mhocko@suse.cz>
+
+> ---
+>  arch/arc/mm/fault.c   | 5 -----
+>  arch/score/mm/fault.c | 6 ------
+>  arch/tile/mm/fault.c  | 6 ------
+>  3 files changed, 17 deletions(-)
+> 
+> diff --git a/arch/arc/mm/fault.c b/arch/arc/mm/fault.c
+> index 0fd1f0d..6b0bb41 100644
+> --- a/arch/arc/mm/fault.c
+> +++ b/arch/arc/mm/fault.c
+> @@ -122,7 +122,6 @@ good_area:
+>  			goto bad_area;
+>  	}
+>  
+> -survive:
+>  	/*
+>  	 * If for any reason at all we couldn't handle the fault,
+>  	 * make sure we exit gracefully rather than endlessly redo
+> @@ -201,10 +200,6 @@ no_context:
+>  	die("Oops", regs, address);
+>  
+>  out_of_memory:
+> -	if (is_global_init(tsk)) {
+> -		yield();
+> -		goto survive;
+> -	}
+>  	up_read(&mm->mmap_sem);
+>  
+>  	if (user_mode(regs)) {
+> diff --git a/arch/score/mm/fault.c b/arch/score/mm/fault.c
+> index 6b18fb0..4b71a62 100644
+> --- a/arch/score/mm/fault.c
+> +++ b/arch/score/mm/fault.c
+> @@ -100,7 +100,6 @@ good_area:
+>  			goto bad_area;
+>  	}
+>  
+> -survive:
+>  	/*
+>  	* If for any reason at all we couldn't handle the fault,
+>  	* make sure we exit gracefully rather than endlessly redo
+> @@ -167,11 +166,6 @@ no_context:
+>  	*/
+>  out_of_memory:
+>  	up_read(&mm->mmap_sem);
+> -	if (is_global_init(tsk)) {
+> -		yield();
+> -		down_read(&mm->mmap_sem);
+> -		goto survive;
+> -	}
+>  	if (!user_mode(regs))
+>  		goto no_context;
+>  	pagefault_out_of_memory();
+> diff --git a/arch/tile/mm/fault.c b/arch/tile/mm/fault.c
+> index f7f99f9..ac553ee 100644
+> --- a/arch/tile/mm/fault.c
+> +++ b/arch/tile/mm/fault.c
+> @@ -430,7 +430,6 @@ good_area:
+>  			goto bad_area;
+>  	}
+>  
+> - survive:
+>  	/*
+>  	 * If for any reason at all we couldn't handle the fault,
+>  	 * make sure we exit gracefully rather than endlessly redo
+> @@ -568,11 +567,6 @@ no_context:
+>   */
+>  out_of_memory:
+>  	up_read(&mm->mmap_sem);
+> -	if (is_global_init(tsk)) {
+> -		yield();
+> -		down_read(&mm->mmap_sem);
+> -		goto survive;
+> -	}
+>  	if (is_kernel_mode)
+>  		goto no_context;
+>  	pagefault_out_of_memory();
+> -- 
+> 1.8.3.2
 > 
 
-Thank you for your reply in details.
-
-
-Thanks
 -- 
-Chen Gang
+Michal Hocko
+SUSE Labs
