@@ -1,53 +1,40 @@
-From: Santosh Shilimkar <santosh.shilimkar@ti.com>
-Subject: Re: [PATCH] WIP: HACK: LPAE, BOOTMEM and NO_BOOTMEM
-Date: Thu, 25 Jul 2013 19:15:11 -0400
-Message-ID: <51F1B17F.30902@ti.com>
-References: <1372467663-31425-1-git-send-email-santosh.shilimkar@ti.com>
- <20130629152959.GB31339@mtj.dyndns.org>
- <20130629172123.GA3353@n2100.arm.linux.org.uk>
- <20130629175743.GA382@mtj.dyndns.org>
- <CAE9FiQXHuP-n0eZ9wN73V4nSvE+XEExDsx1t50_=YaW+V=LGLg@mail.gmail.com>
- <20130629195549.GE3353@n2100.arm.linux.org.uk>
- <CAE9FiQUoVNvWmmTV2+ZkU_nMxFToTHw6QLwp_Z_EjwMzqdLwuA@mail.gmail.com>
- <51D18DBA.6090608@ti.com> <51F1A7AA.8080700@ti.com>
- <20130725223658.GJ26107@mtj.dyndns.org>
+From: Chen Gang <gang.chen@asianux.com>
+Subject: Re: [PATCH, re-send] Always trap on BUG()
+Date: Fri, 26 Jul 2013 09:05:17 +0800
+Message-ID: <51F1CB4D.2020301@asianux.com>
+References: <201307051738.35930.arnd@arndb.de> <20130715151612.9499c2b2ad40e88d183a4600@linux-foundation.org> <20130715222755.GY24642@n2100.arm.linux.org.uk> <51E47924.9030005@zytor.com> <20130723093628.GC19786@gmail.com> <51EF1936.7090801@asianux.com> <20130725220502.GI18254@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20130725223658.GJ26107@mtj.dyndns.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Tejun Heo <tj@kernel.org>
-Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, linux-arch@vger.kernel.org, Russell King - ARM Linux <linux@arm.linux.org.uk>, Sam Ravnborg <sam@ravnborg.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "H. Peter Anvin" <hpa@zytor.com>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, Andrew Morton <akpm@linux-foundation.org>, Yinghai Lu <yinghai@kernel.org>, "David S. Miller" <davem@davemloft.net>, linux-arm-kernel@lists.infradead.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20130725220502.GI18254@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ingo Molnar <mingo@kernel.org>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, Geert Uytterhoeven <geert@linux-m68k.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thursday 25 July 2013 06:36 PM, Tejun Heo wrote:
-> Hello,
+On 07/26/2013 06:05 AM, Ingo Molnar wrote:
+> * Chen Gang <gang.chen@asianux.com> wrote:
 > 
-> On Thu, Jul 25, 2013 at 06:33:14PM -0400, Santosh Shilimkar wrote:
->> Any comments here. I would like to know your plan for the new
->> API. You might have seen on the ARM no-bootmem thread, we started to
->> move ARM to nobootmem with Russell's help.
+>> On 07/23/2013 05:36 PM, Ingo Molnar wrote:
+>>>
+>>> (the crazies can keep a separate patch to remove even more of BUG() to win 
+>>> a K or two.)
+>>>
+>>
+>> Excuse me, my English is not quite well, I do not quite understand your
+>> meaning, could you please repeat again in details or say more clearly ?
 > 
-> Ooh, the plan sounds good to me and I was thinking you were gonna do
-> it?
+> I meant: those people who'd like to have the tiny 
+> additional space savings offered by !CONFIG_BUG (and are 
+> crazy enough to live with non-determinism in exchange for a 
+> measly payment of 1 KB), can apply a separate, out of tree 
+> patch just fine and don't need upstream kernel support.
 > 
-Wooo..
 
-Sorry if I wasn't clear before, but I need help to at least have new
-memblock API support since I am not familiar with memblock code. 
-I could help in adaptation to the new API for ARM arch and
-core kernel code.
+Thank you for your reply in details.
 
-Let me know your thoughts.
 
-Regards,
-Santosh
+Thanks
+-- 
+Chen Gang
