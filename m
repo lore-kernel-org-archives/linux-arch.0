@@ -1,42 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:32808 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751153Ab3G2XrA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Jul 2013 19:47:00 -0400
-Date: Mon, 29 Jul 2013 16:46:58 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
+Received: from out1-smtp.messagingengine.com ([66.111.4.25]:43785 "EHLO
+	out1-smtp.messagingengine.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751272Ab3G3AQN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 29 Jul 2013 20:16:13 -0400
+Date: Mon, 29 Jul 2013 17:16:11 -0700
+From: Greg KH <greg@kroah.com>
 Subject: Re: [PATCH] mm: Fix the TLB range flushed when __tlb_remove_page()
  runs out of slots
-Message-ID: <20130729164658.0dfa1ff602bc131fe2ec0b1b@linux-foundation.org>
-In-Reply-To: <20130729.164106.943996066712571180.davem@davemloft.net>
+Message-ID: <20130730001611.GA15007@kroah.com>
 References: <1369832173-15088-1-git-send-email-vgupta@synopsys.com>
-	<20130729.164106.943996066712571180.davem@davemloft.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+ <20130729.164106.943996066712571180.davem@davemloft.net>
+ <20130729164658.0dfa1ff602bc131fe2ec0b1b@linux-foundation.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20130729164658.0dfa1ff602bc131fe2ec0b1b@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: Vineet.Gupta1@synopsys.com, linux-mm@kvack.org, linux-kernel@vger.kernel.org, mgorman@suse.de, hughd@google.com, riel@redhat.com, rientjes@google.com, peterz@infradead.org, linux-arch@vger.kernel.org, catalin.marinas@arm.com, jcmvbkbc@gmail.com, Greg KH <greg@kroah.com>, stable@vger.kernel.org
-Message-ID: <20130729234658.j-MrjLSJ20_46d87pBDiEgevX7Ll_cCae7TRg6VkVa0@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: David Miller <davem@davemloft.net>, Vineet.Gupta1@synopsys.com, linux-mm@kvack.org, linux-kernel@vger.kernel.org, mgorman@suse.de, hughd@google.com, riel@redhat.com, rientjes@google.com, peterz@infradead.org, linux-arch@vger.kernel.org, catalin.marinas@arm.com, jcmvbkbc@gmail.com, stable@vger.kernel.org
+Message-ID: <20130730001611.4p3qco24nuiH5F78CrYSFdNCQPTIw3Ao5R2Av3Y2oNU@z>
 
-On Mon, 29 Jul 2013 16:41:06 -0700 (PDT) David Miller <davem@davemloft.net> wrote:
-
-> From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-> Date: Wed, 29 May 2013 18:26:13 +0530
+On Mon, Jul 29, 2013 at 04:46:58PM -0700, Andrew Morton wrote:
+> On Mon, 29 Jul 2013 16:41:06 -0700 (PDT) David Miller <davem@davemloft.net> wrote:
 > 
-> > zap_pte_range loops from @addr to @end. In the middle, if it runs out of
-> > batching slots, TLB entries needs to be flushed for @start to @interim,
-> > NOT @interim to @end.
+> > From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+> > Date: Wed, 29 May 2013 18:26:13 +0530
 > > 
-> > Since ARC port doesn't use page free batching I can't test it myself but
-> > this seems like the right thing to do.
-> > Observed this when working on a fix for the issue at thread:
-> > 	http://www.spinics.net/lists/linux-arch/msg21736.html
+> > > zap_pte_range loops from @addr to @end. In the middle, if it runs out of
+> > > batching slots, TLB entries needs to be flushed for @start to @interim,
+> > > NOT @interim to @end.
+> > > 
+> > > Since ARC port doesn't use page free batching I can't test it myself but
+> > > this seems like the right thing to do.
+> > > Observed this when working on a fix for the issue at thread:
+> > > 	http://www.spinics.net/lists/linux-arch/msg21736.html
+> > > 
+> > > Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 > > 
-> > Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+> > As this bug can cause pretty serious memory corruption, I'd like to
+> > see this submitted to -stable.
 > 
-> As this bug can cause pretty serious memory corruption, I'd like to
-> see this submitted to -stable.
+> Greg, e6c495a96ce02574e765d5140039a64c8d4e8c9e from mainline, please.
 
-Greg, e6c495a96ce02574e765d5140039a64c8d4e8c9e from mainline, please.
+Now applied to 3.10-stable, thanks.
+
+greg k-h
