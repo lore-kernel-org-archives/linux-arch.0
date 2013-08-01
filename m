@@ -1,124 +1,80 @@
 From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v3 3/3] qrwlock: Enable fair queue read/write lock behavior
-Date: Wed, 31 Jul 2013 20:00:59 -0400
-Message-ID: <1375315259-29392-4-git-send-email-Waiman.Long@hp.com>
+Subject: [PATCH v3 2/3] qrwlock x86: Enable x86 to use queue read/write lock
+Date: Wed, 31 Jul 2013 20:00:58 -0400
+Message-ID: <1375315259-29392-3-git-send-email-Waiman.Long@hp.com>
 References: <1375315259-29392-1-git-send-email-Waiman.Long@hp.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g1t0026.austin.hp.com ([15.216.28.33]:28442 "EHLO
-	g1t0026.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751772Ab3HAABd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 31 Jul 2013 20:01:33 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1375315259-29392-1-git-send-email-Waiman.Long@hp.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
 Cc: Waiman Long <Waiman.Long@hp.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Richard Weinberger <richard@nod.at>, Catalin Marinas <catalin.marinas@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Matt Fleming <matt.fleming@intel.com>, Herbert Xu <herbert@gondor.apana.org.au>, Akinobu Mita <akinobu.mita@gmail.com>, Rusty Russell <rusty@rustcorp.com.au>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Harvey Harrison <harvey.harrison@gmail.com>, Chandramouleeswaran, As
+List-Id: linux-arch.vger.kernel.org
 
-By default, queue rwlock is fair among writers and gives preference
-to readers allowing them to steal lock even if a writer is
-waiting. However, there is a desire to have a fair variant of
-rwlock that is more deterministic. To enable this, fair variants
-of lock initializers are added by this patch to allow lock owners
-to choose to use fair rwlock. These newly added initializers all
-have the _fair or _FAIR suffix to indicate the desire to use a fair
-rwlock. If the QUEUE_RWLOCK config option is not selected, the fair
-rwlock initializers will be the same as the regular ones.
+This patch makes the necessary changes at the x86 architecture specific
+layer to enable the presence of the CONFIG_QUEUE_RWLOCK kernel option
+which can be used to replace the classic read/write lock by the queue
+read/write lock.
+
+The turning on of ARCH_QUEUE_RWLOCK config option does not mean that
+the classic read/write lock will be replaced. It only means that the
+architecture supports the replacement. Actual replacement will only
+happen if the QUEUE_RWLOCK config option is also set.
 
 Signed-off-by: Waiman Long <Waiman.Long@hp.com>
 ---
- include/linux/rwlock.h       |   15 +++++++++++++++
- include/linux/rwlock_types.h |   13 +++++++++++++
- lib/spinlock_debug.c         |   19 +++++++++++++++++++
- 3 files changed, 47 insertions(+), 0 deletions(-)
+ arch/x86/Kconfig                      |    3 +++
+ arch/x86/include/asm/spinlock.h       |    2 ++
+ arch/x86/include/asm/spinlock_types.h |    4 ++++
+ 3 files changed, 9 insertions(+), 0 deletions(-)
 
-diff --git a/include/linux/rwlock.h b/include/linux/rwlock.h
-index bc2994e..5f2628b 100644
---- a/include/linux/rwlock.h
-+++ b/include/linux/rwlock.h
-@@ -23,9 +23,24 @@ do {								\
- 								\
- 	__rwlock_init((lock), #lock, &__key);			\
- } while (0)
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index b32ebf9..638dbaa 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -2344,6 +2344,9 @@ config X86_DMA_REMAP
+ 	bool
+ 	depends on STA2X11
+ 
++config ARCH_QUEUE_RWLOCK
++	def_bool y
 +
-+# ifdef CONFIG_QUEUE_RWLOCK
-+extern void __rwlock_init_fair(rwlock_t *lock, const char *name,
-+			       struct lock_class_key *key);
-+#  define rwlock_init_fair(lock)				\
-+do {								\
-+	static struct lock_class_key __key;			\
-+								\
-+	__rwlock_init_fair((lock), #lock, &__key);		\
-+} while (0)
-+# else
-+#  define __rwlock_init_fair(l, n, k)	__rwlock_init(l, n, k)
-+# endif /* CONFIG_QUEUE_RWLOCK */
- #else
- # define rwlock_init(lock)					\
- 	do { *(lock) = __RW_LOCK_UNLOCKED(lock); } while (0)
-+# define rwlock_init_fair(lock)				\
-+	do { *(lock) = __RW_LOCK_UNLOCKED_FAIR(lock); } while (0)
- #endif
+ source "net/Kconfig"
  
- #ifdef CONFIG_DEBUG_SPINLOCK
-diff --git a/include/linux/rwlock_types.h b/include/linux/rwlock_types.h
-index cc0072e..d27c812 100644
---- a/include/linux/rwlock_types.h
-+++ b/include/linux/rwlock_types.h
-@@ -37,12 +37,25 @@ typedef struct {
- 				.owner = SPINLOCK_OWNER_INIT,		\
- 				.owner_cpu = -1,			\
- 				RW_DEP_MAP_INIT(lockname) }
-+#define __RW_LOCK_UNLOCKED_FAIR(lockname)				\
-+	(rwlock_t)	{	.raw_lock = __ARCH_RW_LOCK_UNLOCKED_FAIR,\
-+				.magic = RWLOCK_MAGIC,			\
-+				.owner = SPINLOCK_OWNER_INIT,		\
-+				.owner_cpu = -1,			\
-+				RW_DEP_MAP_INIT(lockname) }
- #else
- #define __RW_LOCK_UNLOCKED(lockname) \
- 	(rwlock_t)	{	.raw_lock = __ARCH_RW_LOCK_UNLOCKED,	\
- 				RW_DEP_MAP_INIT(lockname) }
-+#define __RW_LOCK_UNLOCKED_FAIR(lockname) \
-+	(rwlock_t)	{	.raw_lock = __ARCH_RW_LOCK_UNLOCKED_FAIR,\
-+				RW_DEP_MAP_INIT(lockname) }
- #endif
+ source "drivers/Kconfig"
+diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
+index 33692ea..613a4ff 100644
+--- a/arch/x86/include/asm/spinlock.h
++++ b/arch/x86/include/asm/spinlock.h
+@@ -137,6 +137,7 @@ static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+ 		cpu_relax();
+ }
  
- #define DEFINE_RWLOCK(x)	rwlock_t x = __RW_LOCK_UNLOCKED(x)
-+#define DEFINE_RWLOCK_FAIR(x)	rwlock_t x = __RW_LOCK_UNLOCKED_FAIR(x)
++#ifndef CONFIG_QUEUE_RWLOCK
+ /*
+  * Read-write spinlocks, allowing multiple readers
+  * but only one writer.
+@@ -219,6 +220,7 @@ static inline void arch_write_unlock(arch_rwlock_t *rw)
+ 	asm volatile(LOCK_PREFIX WRITE_LOCK_ADD(%1) "%0"
+ 		     : "+m" (rw->write) : "i" (RW_LOCK_BIAS) : "memory");
+ }
++#endif /* CONFIG_QUEUE_RWLOCK */
  
-+#ifndef	__ARCH_RW_LOCK_UNLOCKED_FAIR
-+#define	__ARCH_RW_LOCK_UNLOCKED_FAIR	__ARCH_RW_LOCK_UNLOCKED
-+#endif
- #endif /* __LINUX_RWLOCK_TYPES_H */
-diff --git a/lib/spinlock_debug.c b/lib/spinlock_debug.c
-index 0374a59..d6ef7ce 100644
---- a/lib/spinlock_debug.c
-+++ b/lib/spinlock_debug.c
-@@ -49,6 +49,25 @@ void __rwlock_init(rwlock_t *lock, const char *name,
+ #define arch_read_lock_flags(lock, flags) arch_read_lock(lock)
+ #define arch_write_lock_flags(lock, flags) arch_write_lock(lock)
+diff --git a/arch/x86/include/asm/spinlock_types.h b/arch/x86/include/asm/spinlock_types.h
+index ad0ad07..afacd36 100644
+--- a/arch/x86/include/asm/spinlock_types.h
++++ b/arch/x86/include/asm/spinlock_types.h
+@@ -28,6 +28,10 @@ typedef struct arch_spinlock {
  
- EXPORT_SYMBOL(__rwlock_init);
+ #define __ARCH_SPIN_LOCK_UNLOCKED	{ { 0 } }
  
 +#ifdef CONFIG_QUEUE_RWLOCK
-+void __rwlock_init_fair(rwlock_t *lock, const char *name,
-+			struct lock_class_key *key)
-+{
-+#ifdef CONFIG_DEBUG_LOCK_ALLOC
-+	/*
-+	 * Make sure we are not reinitializing a held lock:
-+	 */
-+	debug_check_no_locks_freed((void *)lock, sizeof(*lock));
-+	lockdep_init_map(&lock->dep_map, name, key, 0);
++#include <asm-generic/qrwlock.h>
++#else
+ #include <asm/rwlock.h>
 +#endif
-+	lock->raw_lock = (arch_rwlock_t) __ARCH_RW_LOCK_UNLOCKED_FAIR;
-+	lock->magic = RWLOCK_MAGIC;
-+	lock->owner = SPINLOCK_OWNER_INIT;
-+	lock->owner_cpu = -1;
-+}
-+EXPORT_SYMBOL(__rwlock_init_fair);
-+#endif /* CONFIG_QUEUE_RWLOCK */
-+
- static void spin_dump(raw_spinlock_t *lock, const char *msg)
- {
- 	struct task_struct *owner = NULL;
+ 
+ #endif /* _ASM_X86_SPINLOCK_TYPES_H */
 -- 
 1.7.1
