@@ -1,8 +1,8 @@
 From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH RFC 1/2] qspinlock: Introducing a 4-byte queue spinlock
  implementation
-Date: Thu, 1 Aug 2013 12:12:56 +0200
-Message-ID: <20130801101256.GM3008@twins.programming.kicks-ass.net>
+Date: Thu, 1 Aug 2013 12:14:24 +0200
+Message-ID: <20130801101424.GN3008@twins.programming.kicks-ass.net>
 References: <1375324631-32868-1-git-send-email-Waiman.Long@hp.com>
  <1375324631-32868-2-git-send-email-Waiman.Long@hp.com>
  <20130801094029.GK3008@twins.programming.kicks-ass.net>
@@ -10,10 +10,10 @@ References: <1375324631-32868-1-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:33293 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:33335 "EHLO
 	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753784Ab3HAKNW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Aug 2013 06:13:22 -0400
+	with ESMTP id S1751900Ab3HAKOm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Aug 2013 06:14:42 -0400
 Content-Disposition: inline
 In-Reply-To: <51FA3455.1000607@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
@@ -24,13 +24,10 @@ Cc: Waiman Long <Waiman.Long@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo
 On Thu, Aug 01, 2013 at 03:41:33PM +0530, Raghavendra K T wrote:
 > It is exactly 16k-1 not 15k
 > That is because CPU_CODE of 1 to 16k represents cpu 0..16k-1
+> 
 
-From what I know big systems are usually build with power-of-two
-factors. Although I suppose with a ring fabric you could have an
-arbitrary number of nodes.
+More specifically:
 
-Anyway, I've heard SGI talk about 4K cpu systems, 8K cpu systems and 16K
-cpu systems, I've not heard them talk about 16K-n systems.
++       BUILD_BUG_ON(CONFIG_NR_CPUS >= MAX_CPUS);
 
-Also, as in other parts of the reply I send, this limitation seems
-completely unnecessary.
+Our NR_CPUS is very much a power of two.
