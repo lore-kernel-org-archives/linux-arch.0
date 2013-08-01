@@ -1,115 +1,82 @@
-From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH RFC 2/2] qspinlock x86: Enable x86 to use queue spinlock
-Date: Wed, 31 Jul 2013 22:37:11 -0400
-Message-ID: <1375324631-32868-3-git-send-email-Waiman.Long@hp.com>
-References: <1375324631-32868-1-git-send-email-Waiman.Long@hp.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1375324631-32868-1-git-send-email-Waiman.Long@hp.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: Waiman Long <Waiman.Long@hp.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Richard Weinberger <richard@nod.at>, Catalin Marinas <catalin.marinas@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Matt Fleming <matt.fleming@intel.com>, Herbert Xu <herbert@gondor.apana.org.au>, Akinobu Mita <akinobu.mita@gmail.com>, Rusty Russell <rusty@rustcorp.com.au>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Harvey Harrison <harvey.harrison@gmail.com>, Chandramouleeswaran, As
-List-Id: linux-arch.vger.kernel.org
+From: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
+Subject: Re: [PATCH RFC 1/2] qspinlock: Introducing a 4-byte queue spinlock
+ implementation
+Date: Thu, 01 Aug 2013 15:41:33 +0530
+Message-ID: <51FA3455.1000607@linux.vnet.ibm.com>
+References: <1375324631-32868-1-git-send-email-Waiman.Long@hp.com> <1375324631-32868-2-git-send-email-Waiman.Long@hp.com> <20130801094029.GK3008@twins.programming.kicks-ass.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e23smtp08.au.ibm.com ([202.81.31.141]:54324 "EHLO
+	e23smtp08.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751418Ab3HAKFf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Aug 2013 06:05:35 -0400
+Received: from /spool/local
+	by e23smtp08.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <raghavendra.kt@linux.vnet.ibm.com>;
+	Thu, 1 Aug 2013 20:02:19 +1000
+In-Reply-To: <20130801094029.GK3008@twins.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Waiman Long <Waiman.Long@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Richard Weinberger <richard@nod.at>, Catalin Marinas <catalin.marinas@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Matt Fleming <matt.fleming@intel.com>, Herbert Xu <herbert@gondor.apana.org.au>, Akinobu Mita <akinobu.mita@gmail.com>, Rusty Russell <rusty@rustcorp.com.au>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, George Spelvin <linux@horizon.com>, Harvey Harrison <harvey.ha>
 
-This patch makes the necessary changes at the x86 architecture specific
-layer to enable the presence of the CONFIG_QUEUE_SPINLOCK kernel option
-which can be used to replace the ticket spinlock by the queue spinlock.
+On 08/01/2013 03:10 PM, Peter Zijlstra wrote:
+> On Wed, Jul 31, 2013 at 10:37:10PM -0400, Waiman Long wrote:
+>
+> OK, so over-all I rather like the thing. It might be good to include a
+> link to some MCS lock description, sadly wikipedia doesn't have an
+> article on the concept :/
+>
+> http://www.cise.ufl.edu/tr/DOC/REP-1992-71.pdf
+>
+> That seems like nice (short-ish) write-up of the general algorithm.
+>
+>> +typedef struct qspinlock {
+>> +	union {
+>> +		struct {
+>> +			u8	locked;		/* Bit lock */
+>> +			u8	reserved;
+>> +			u16	qcode;		/* Wait queue code */
+>> +		};
+>> +		u32		qlock;
+>> +	};
+>> +} arch_spinlock_t;
+>
+>> +static __always_inline void queue_spin_unlock(struct qspinlock *lock)
+>> +{
+>> +	barrier();
+>> +	ACCESS_ONCE(lock->locked) = 0;
+>
+> Its always good to add comments with barriers..
+>
+>> +	smp_wmb();
+>> +}
+>
+>> +/*
+>> + * The queue node structure
+>> + */
+>> +struct qnode {
+>> +	struct qnode	*next;
+>> +	u8		 wait;		/* Waiting flag	*/
+>> +	u8		 used;		/* Used flag	*/
+>> +#ifdef	CONFIG_DEBUG_SPINLOCK
+>> +	u16		 cpu_nr;	/* CPU number	*/
+>> +	void		*lock;		/* Lock address */
+>> +#endif
+>> +};
+>> +
+>> +/*
+>> + * The 16-bit wait queue code is divided into the following 2 fields:
+>> + * Bits 0-1 : queue node index
+>> + * Bits 2-15: cpu number + 1
+>> + *
+>> + * The current implementation will allow a maximum of (1<<14)-1 = 16383 CPUs.
+>
+> I haven't yet read far enough to figure out why you need the -1 thing,
+> but effectively you're restricted to 15k due to this.
+>
 
-The turning on of ARCH_QUEUE_SPINLOCK config option does not mean
-that the ticket spinlock will be replaced. It only means that the
-architecture supports the replacement. Actual replacement will only
-happen if the QUEUE_SPINLOCK config option is also set.
-
-Signed-off-by: Waiman Long <Waiman.Long@hp.com>
----
- arch/x86/Kconfig                      |    3 +++
- arch/x86/include/asm/spinlock.h       |    2 ++
- arch/x86/include/asm/spinlock_types.h |    4 ++++
- arch/x86/kernel/paravirt-spinlocks.c  |   10 ++++++++++
- 4 files changed, 19 insertions(+), 0 deletions(-)
-
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index b32ebf9..8531e47 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -2344,6 +2344,9 @@ config X86_DMA_REMAP
- 	bool
- 	depends on STA2X11
- 
-+config ARCH_QUEUE_SPINLOCK
-+	def_bool y
-+
- source "net/Kconfig"
- 
- source "drivers/Kconfig"
-diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
-index 33692ea..0ea805d 100644
---- a/arch/x86/include/asm/spinlock.h
-+++ b/arch/x86/include/asm/spinlock.h
-@@ -34,6 +34,7 @@
- # define UNLOCK_LOCK_PREFIX
- #endif
- 
-+#ifndef CONFIG_QUEUE_SPINLOCK
- /*
-  * Ticket locks are conceptually two parts, one indicating the current head of
-  * the queue, and the other indicating the current tail. The lock is acquired
-@@ -130,6 +131,7 @@ static __always_inline void arch_spin_lock_flags(arch_spinlock_t *lock,
- }
- 
- #endif	/* CONFIG_PARAVIRT_SPINLOCKS */
-+#endif	/* !CONFIG_QUEUE_SPINLOCK */
- 
- static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
- {
-diff --git a/arch/x86/include/asm/spinlock_types.h b/arch/x86/include/asm/spinlock_types.h
-index ad0ad07..8a7721e 100644
---- a/arch/x86/include/asm/spinlock_types.h
-+++ b/arch/x86/include/asm/spinlock_types.h
-@@ -7,6 +7,9 @@
- 
- #include <linux/types.h>
- 
-+#ifdef CONFIG_QUEUE_SPINLOCK
-+# include <asm-generic/qspinlock.h>
-+#else
- #if (CONFIG_NR_CPUS < 256)
- typedef u8  __ticket_t;
- typedef u16 __ticketpair_t;
-@@ -27,6 +30,7 @@ typedef struct arch_spinlock {
- } arch_spinlock_t;
- 
- #define __ARCH_SPIN_LOCK_UNLOCKED	{ { 0 } }
-+#endif
- 
- #include <asm/rwlock.h>
- 
-diff --git a/arch/x86/kernel/paravirt-spinlocks.c b/arch/x86/kernel/paravirt-spinlocks.c
-index 676b8c7..75569cb 100644
---- a/arch/x86/kernel/paravirt-spinlocks.c
-+++ b/arch/x86/kernel/paravirt-spinlocks.c
-@@ -15,6 +15,15 @@ default_spin_lock_flags(arch_spinlock_t *lock, unsigned long flags)
- 
- struct pv_lock_ops pv_lock_ops = {
- #ifdef CONFIG_SMP
-+# ifdef CONFIG_QUEUE_SPINLOCK
-+	.spin_is_locked = queue_spin_is_locked,
-+	.spin_is_contended = queue_spin_is_contended,
-+
-+	.spin_lock = queue_spin_lock,
-+	.spin_lock_flags = default_spin_lock_flags,
-+	.spin_trylock = queue_spin_trylock,
-+	.spin_unlock = queue_spin_unlock,
-+# else
- 	.spin_is_locked = __ticket_spin_is_locked,
- 	.spin_is_contended = __ticket_spin_is_contended,
- 
-@@ -22,6 +31,7 @@ struct pv_lock_ops pv_lock_ops = {
- 	.spin_lock_flags = default_spin_lock_flags,
- 	.spin_trylock = __ticket_spin_trylock,
- 	.spin_unlock = __ticket_spin_unlock,
-+# endif
- #endif
- };
- EXPORT_SYMBOL(pv_lock_ops);
--- 
-1.7.1
+It is exactly 16k-1 not 15k
+That is because CPU_CODE of 1 to 16k represents cpu 0..16k-1
