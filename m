@@ -1,54 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp03.au.ibm.com ([202.81.31.145]:58715 "EHLO
-	e23smtp03.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752649Ab3HBCyZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Aug 2013 22:54:25 -0400
-Received: from /spool/local
-	by e23smtp03.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <raghavendra.kt@linux.vnet.ibm.com>;
-	Fri, 2 Aug 2013 12:43:52 +1000
-Message-ID: <51FB20D0.5070306@linux.vnet.ibm.com>
-Date: Fri, 02 Aug 2013 08:30:32 +0530
-From: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
+Received: from devils.ext.ti.com ([198.47.26.153]:55146 "EHLO
+	devils.ext.ti.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751297Ab3HBVGt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 2 Aug 2013 17:06:49 -0400
+Message-ID: <51FC1F3A.8090201@ti.com>
+Date: Fri, 2 Aug 2013 17:06:02 -0400
+From: Santosh Shilimkar <santosh.shilimkar@ti.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH RFC 1/2] qspinlock: Introducing a 4-byte queue spinlock
- implementation
-References: <1375324631-32868-1-git-send-email-Waiman.Long@hp.com> <1375324631-32868-2-git-send-email-Waiman.Long@hp.com> <51FAC3BA.9050705@linux.vnet.ibm.com> <51FACE78.9070901@hp.com>
-In-Reply-To: <51FACE78.9070901@hp.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Subject: Re: [PATCH] WIP: HACK: LPAE, BOOTMEM and NO_BOOTMEM
+References: <20130629152959.GB31339@mtj.dyndns.org> <20130629172123.GA3353@n2100.arm.linux.org.uk> <20130629175743.GA382@mtj.dyndns.org> <CAE9FiQXHuP-n0eZ9wN73V4nSvE+XEExDsx1t50_=YaW+V=LGLg@mail.gmail.com> <20130629195549.GE3353@n2100.arm.linux.org.uk> <CAE9FiQUoVNvWmmTV2+ZkU_nMxFToTHw6QLwp_Z_EjwMzqdLwuA@mail.gmail.com> <51D18DBA.6090608@ti.com> <51F1A7AA.8080700@ti.com> <20130725223658.GJ26107@mtj.dyndns.org> <51F1B17F.30902@ti.com> <20130726030812.GB30195@mtj.dyndns.org>
+In-Reply-To: <20130726030812.GB30195@mtj.dyndns.org>
+Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <waiman.long@hp.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Richard Weinberger <richard@nod.at>, Catalin Marinas <catalin.marinas@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Matt Fleming <matt.fleming@intel.com>, Herbert Xu <herbert@gondor.apana.org.au>, Akinobu Mita <akinobu.mita@gmail.com>, Rusty Russell <rusty@rustcorp.com.au>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, George Spelvin <linux@horizon.com>, Harvey Harrison <harvey.harrison@gmail.com>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, "Norton, Scott J" <scott.norton@hp.com>
-Message-ID: <20130802030032.8fhKqEteu0MImYH0k0CykxUsrONDi9431uz-C8m8NT4@z>
+To: Tejun Heo <tj@kernel.org>
+Cc: Yinghai Lu <yinghai@kernel.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Nicolas Pitre <nicolas.pitre@linaro.org>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, "David S. Miller" <davem@davemloft.net>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, linux-arch@vger.kernel.org
+Message-ID: <20130802210602.nTWg4sVwiw0WRwIys_e2uht0QzmpGUKTElg-urWYF2w@z>
 
-On 08/02/2013 02:39 AM, Waiman Long wrote:
-> On 08/01/2013 04:23 PM, Raghavendra K T wrote:
->> On 08/01/2013 08:07 AM, Waiman Long wrote:
-[..]
+Tejun,
+
+On Thursday 25 July 2013 11:08 PM, Tejun Heo wrote:
+> Hello,
+> 
+> On Thu, Jul 25, 2013 at 07:15:11PM -0400, Santosh Shilimkar wrote:
+>> Sorry if I wasn't clear before, but I need help to at least have new
+>> memblock API support since I am not familiar with memblock code. 
+>> I could help in adaptation to the new API for ARM arch and
+>> core kernel code.
 >>
->> Though I could see some gains in overcommit, but it hurted undercommit
->> in some workloads :(.
->
-> The gcc 4.4.7 compiler that I used in my test machine has the tendency
-> of allocating stack space for variables instead of using registers when
-> a loop is present. So I try to avoid having loop in the fast path. Also
-> the count itself is rather arbitrary. For the first pass, I would like
-> to make thing simple. We can always enhance it once it is accepted and
-> merged.
+>> Let me know your thoughts.
+> 
+> Unfortunately, I'm currently a bit too occupied to work on it myself.
+> Any volunteers?
+> 
+Looking at the situation, how about proceeding with patch updating
+the bootmem API signatures to use phys_addr_t  which can unblock me
+to get my machine working.
 
-Yes. agree.
+Introduction of new API, conversions of core kernel code and then
+arches moving away from bootmem is going to take significant time
+anyways. I will continue my effort to get ARM port moved to no-bootmem
+and get that merged.
 
->>
->> I have not yet tested on bigger machine. I hope that bigger machine will
->> see significant undercommit improvements.
->>
->
-> Thank for running the test. I am a bit confused about the terminology.
-> What exactly do undercommit and overcommit mean?
->
+Let me know how to make progress here. Appreciate your help on the subject.
 
-Undercommit means I meant total #vcpu < #pcpus in virtual env. so
-overcommit should not be an issue in baremetal.
+Regards,
+Santosh
 
