@@ -1,44 +1,33 @@
-From: Johannes Weiner <hannes@cmpxchg.org>
-Subject: Re: [patch 2/6] arch: mm: do not invoke OOM killer on kernel fault
- OOM
-Date: Thu, 1 Aug 2013 17:59:24 -0400
-Message-ID: <20130801215924.GO715@cmpxchg.org>
-References: <1374791138-15665-1-git-send-email-hannes@cmpxchg.org>
- <1374791138-15665-3-git-send-email-hannes@cmpxchg.org>
- <51F6BB3D.6000700@gmail.com>
+From: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
+Subject: Re: [PATCH RFC 1/2] qspinlock: Introducing a 4-byte queue spinlock
+ implementation
+Date: Fri, 02 Aug 2013 08:24:21 +0530
+Message-ID: <51FB1F5D.1020005@linux.vnet.ibm.com>
+References: <1375324631-32868-1-git-send-email-Waiman.Long@hp.com> <1375324631-32868-2-git-send-email-Waiman.Long@hp.com> <51FAC3BA.9050705@linux.vnet.ibm.com> <20130801204710.GH27162@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <51F6BB3D.6000700@gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: KOSAKI Motohiro <kosaki.motohiro@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.cz>, David Rientjes <rientjes@google.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, azurIt <azurit@pobox.sk>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e23smtp06.au.ibm.com ([202.81.31.148]:39168 "EHLO
+	e23smtp06.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751620Ab3HBCsV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Aug 2013 22:48:21 -0400
+Received: from /spool/local
+	by e23smtp06.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <raghavendra.kt@linux.vnet.ibm.com>;
+	Fri, 2 Aug 2013 12:40:13 +1000
+In-Reply-To: <20130801204710.GH27162@twins.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Waiman Long <Waiman.Long@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Richard Weinberger <richard@nod.at>, Catalin Marinas <catalin.marinas@arm.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Matt Fleming <matt.fleming@intel.com>, Herbert Xu <herbert@gondor.apana.org.au>, Akinobu Mita <akinobu.mita@gmail.com>, Rusty Russell <rusty@rustcorp.com.au>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, George Spelvin <linux@horizon.com>, Harvey Harrison <harvey.ha>
 
-On Mon, Jul 29, 2013 at 02:58:05PM -0400, KOSAKI Motohiro wrote:
-> (7/25/13 6:25 PM), Johannes Weiner wrote:
-> > Kernel faults are expected to handle OOM conditions gracefully (gup,
-> > uaccess etc.), so they should never invoke the OOM killer.  Reserve
-> > this for faults triggered in user context when it is the only option.
-> > 
-> > Most architectures already do this, fix up the remaining few.
-> > 
-> > Signed-off-by: Johannes Weiner <hannes@cmpxchg.org>
-> 
-> OK. but now almost all arch have the same page fault handler. So, I think
-> we can implement arch generic page fault handler in future. Ah, ok, never
-> mind if you are not interest.
+On 08/02/2013 02:17 AM, Peter Zijlstra wrote:
+> On Fri, Aug 02, 2013 at 01:53:22AM +0530, Raghavendra K T wrote:
+>
+> You need to learn to trim your replies.. I already stopped reading that
+> paravirt thread because of it. Soon I'll introduce you to my /dev/null
+> mail reader.
+>
 
-Well, I'm already working towards it ;-) Still a long way to go,
-though to fully replace them with generic code...
-
-> Acked-by: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
-
-Thanks!
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+will be more careful next time.
