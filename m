@@ -1,119 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f41.google.com ([209.85.220.41]:40238 "EHLO
-	mail-pa0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754146Ab3HECWb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 Aug 2013 22:22:31 -0400
-Message-ID: <51FF0C1A.3020907@gmail.com>
-Date: Mon, 05 Aug 2013 10:21:14 +0800
-From: Chen Gang F T <chen.gang.flying.transformer@gmail.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH] arch: m68k: include: asm: define 'VM_DATA_DEFAULT_FLAGS'
- no matter whether has 'NOMMU' or not.
-References: <51C548E2.1060104@asianux.com> <51D0ECC2.3020101@asianux.com> <51FF01E7.5020105@uclinux.org>
-In-Reply-To: <51FF01E7.5020105@uclinux.org>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Received: from li226-30.members.linode.com ([173.255.216.30]:59978 "EHLO
+	mail.cooperteam.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752566Ab3HEGaT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 Aug 2013 02:30:19 -0400
+From: Christopher James Halse Rogers
+	<christopher.halse.rogers@canonical.com>
+Subject: [PATCH] dma-buf: Expose buffer size to userspace
+Date: Mon,  5 Aug 2013 16:22:00 +1000
+Message-ID: <1375683720-4748-1-git-send-email-christopher.halse.rogers@canonical.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg Ungerer <gerg@uclinux.org>
-Cc: Chen Gang <gang.chen@asianux.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, "dhowells@redhat.com" <dhowells@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, davej@redhat.com, Arnd Bergmann <arnd@arndb.de>, linux-m68k <linux-m68k@lists.linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20130805022114.g0m41jvmOJcxI0lv8BG1kkvkWgxoIch70wzo1rm1hjk@z>
+To: linux-kernel@vger.kernel.org
+Cc: linaro-mm-sig@lists.linaro.org, dri-devel@lists.freedesktop.org, linux-media@vger.kernel.org, linux-arch@vger.kernel.org, robclark@gmail.com, maarten.lankhorst@canonical.com, sumit.semwal@linaro.org, Christopher James Halse Rogers <christopher.halse.rogers@canonical.com>
+Message-ID: <20130805062200.-jEpM_vHbd7mNPweyG8a3_3-w0Qjij-7T8w5Pg_Kmiw@z>
 
-On 08/05/2013 09:37 AM, Greg Ungerer wrote:
-> Hi Chen Gang,
-> 
-> On 01/07/13 12:43, Chen Gang wrote:
->> Hello Maintainers:
->>
->> Please help check the patch whether OK or not, when you have time.
->>
->> Thanks.
->>
->> On 06/22/2013 02:49 PM, Chen Gang wrote:
->>>
->>> Define 'VM_DATA_DEFAULT_FLAGS' when 'NOMMU' to pass compiling.
->>>
->>> So move it from "include/asm/page_mm.h to "include/asm/page.h"
->>>
->>> The related make:
->>>
->>>   make ARCH=m68k randconfig
->>>   make ARCH=m68k menuconfig
->>>     choose cross compiler
->>>     disable MMU support
->>>   make ARCH=m68k V=1 EXTRA_CFLAGS=-W
->>>
->>> The related error:
->>>
->>>   security/selinux/hooks.c: In function ‘selinux_init’:
->>>   security/selinux/hooks.c:5821:21: error: ‘VM_DATA_DEFAULT_FLAGS’ undeclared (first use in this function)
->>>
->>> (the attachment is the related .config file)
->>>
->>>
->>> Signed-off-by: Chen Gang <gang.chen@asianux.com>
-> 
-> I am fine with this:
-> 
-> Acked-by: Greg Ungerer <gerg@uclinux.org>
-> 
+Each dma-buf has an associated size and it's reasonable for userspace
+to want to know what it is.
 
-Thank you very much.
+Since userspace already has an fd, expose the size using the
+size = lseek(fd, SEEK_END, 0); lseek(fd, SEEK_CUR, 0);
+idiom.
 
-> Do you want me to add this to the m68knommu git tree, and push to
-> Linus?
-> 
+Signed-off-by: Christopher James Halse Rogers <christopher.halse.rogers@canonical.com>
+---
 
-Yeah, thank you.
+I've run into a point in the radeon DRM userspace where I need the
+size of a dma-buf. I could add a radeon-specific mechanism to get that,
+but this seems like something that would be more generally useful.
 
-:-)
+I'm not entirely sure about supporting both SEEK_END and SEEK_CUR; this
+is somewhat of an abuse of lseek, as seeking obviously doesn't make sense.
+It's the obivous idiom for getting the size of what's on the other end of a
+file descriptor, though.
 
-> Regards
-> Greg
-> 
-> 
->>> ---
->>>  arch/m68k/include/asm/page.h    |    3 +++
->>>  arch/m68k/include/asm/page_mm.h |    3 ---
->>>  2 files changed, 3 insertions(+), 3 deletions(-)
->>>
->>> diff --git a/arch/m68k/include/asm/page.h b/arch/m68k/include/asm/page.h
->>> index 7c360da..38b024a 100644
->>> --- a/arch/m68k/include/asm/page.h
->>> +++ b/arch/m68k/include/asm/page.h
->>> @@ -48,6 +48,9 @@ extern unsigned long _ramend;
->>>  #include <asm/page_no.h>
->>>  #endif
->>>  
->>> +#define VM_DATA_DEFAULT_FLAGS	(VM_READ | VM_WRITE | VM_EXEC | \
->>> +				 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
->>> +
->>>  #include <asm-generic/getorder.h>
->>>  
->>>  #endif /* _M68K_PAGE_H */
->>> diff --git a/arch/m68k/include/asm/page_mm.h b/arch/m68k/include/asm/page_mm.h
->>> index 89f2014..5029f73 100644
->>> --- a/arch/m68k/include/asm/page_mm.h
->>> +++ b/arch/m68k/include/asm/page_mm.h
->>> @@ -173,7 +173,4 @@ static inline __attribute_const__ int __virt_to_node_shift(void)
->>>  
->>>  #endif /* __ASSEMBLY__ */
->>>  
->>> -#define VM_DATA_DEFAULT_FLAGS	(VM_READ | VM_WRITE | VM_EXEC | \
->>> -				 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
->>> -
->>>  #endif /* _M68K_PAGE_MM_H */
->>>
->>
->>
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
-> 
+I didn't notice anywhere to document this; Documentation/dma-buf-api didn't
+seem like the right place. Is there somewhere I've overlooked?
 
+ drivers/base/dma-buf.c | 28 ++++++++++++++++++++++++++++
+ 1 file changed, 28 insertions(+)
 
+diff --git a/drivers/base/dma-buf.c b/drivers/base/dma-buf.c
+index 6687ba7..c33a857 100644
+--- a/drivers/base/dma-buf.c
++++ b/drivers/base/dma-buf.c
+@@ -77,9 +77,36 @@ static int dma_buf_mmap_internal(struct file *file, struct vm_area_struct *vma)
+ 	return dmabuf->ops->mmap(dmabuf, vma);
+ }
+ 
++static loff_t dma_buf_llseek(struct file *file, loff_t offset, int whence)
++{
++	struct dma_buf *dmabuf;
++	loff_t base;
++
++	if (!is_dma_buf_file(file))
++		return -EBADF;
++
++	dmabuf = file->private_data;
++
++	/* only support discovering the end of the buffer,
++	   but also allow SEEK_SET to maintain the idiomatic
++	   SEEK_END(0), SEEK_CUR(0) pattern */
++	if (whence == SEEK_END)
++		base = dmabuf->size;
++	else if (whence == SEEK_SET)
++		base = 0;
++	else
++		return -EINVAL;
++
++	if (offset != 0)
++		return -EINVAL;
++
++	return base + offset;
++}
++
+ static const struct file_operations dma_buf_fops = {
+ 	.release	= dma_buf_release,
+ 	.mmap		= dma_buf_mmap_internal,
++	.llseek		= dma_buf_llseek,
+ };
+ 
+ /*
+@@ -133,6 +160,7 @@ struct dma_buf *dma_buf_export_named(void *priv, const struct dma_buf_ops *ops,
+ 	dmabuf->exp_name = exp_name;
+ 
+ 	file = anon_inode_getfile("dmabuf", &dma_buf_fops, dmabuf, flags);
++	file->f_mode |= FMODE_LSEEK;
+ 
+ 	dmabuf->file = file;
+ 
 -- 
-Chen Gang
+1.8.3.2
+
