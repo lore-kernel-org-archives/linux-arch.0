@@ -1,47 +1,111 @@
-From: Santosh Shilimkar <santosh.shilimkar@ti.com>
-Subject: Re: [PATCH] WIP: HACK: LPAE, BOOTMEM and NO_BOOTMEM
-Date: Mon, 5 Aug 2013 11:47:52 -0400
-Message-ID: <51FFC928.8020603@ti.com>
-References: <20130629195549.GE3353@n2100.arm.linux.org.uk> <CAE9FiQUoVNvWmmTV2+ZkU_nMxFToTHw6QLwp_Z_EjwMzqdLwuA@mail.gmail.com> <51D18DBA.6090608@ti.com> <51F1A7AA.8080700@ti.com> <20130725223658.GJ26107@mtj.dyndns.org> <51F1B17F.30902@ti.com> <20130726030812.GB30195@mtj.dyndns.org> <51FC1F3A.8090201@ti.com> <20130805150127.GC19631@mtj.dyndns.org> <51FFC4EA.40908@ti.com> <20130805153822.GD19631@mtj.dyndns.org>
+From: Johannes Weiner <hannes@cmpxchg.org>
+Subject: Re: [patch 7/7] mm: memcg: do not trap chargers with full callstack
+ on OOM
+Date: Mon, 5 Aug 2013 16:56:04 -0400
+Message-ID: <20130805205604.GC715@cmpxchg.org>
+References: <1375549200-19110-1-git-send-email-hannes@cmpxchg.org>
+ <1375549200-19110-8-git-send-email-hannes@cmpxchg.org>
+ <20130805095429.GJ10146@dhcp22.suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from comal.ext.ti.com ([198.47.26.152]:49520 "EHLO comal.ext.ti.com"
+Received: from zene.cmpxchg.org ([85.214.230.12]:51952 "EHLO zene.cmpxchg.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752547Ab3HEPss (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 5 Aug 2013 11:48:48 -0400
-In-Reply-To: <20130805153822.GD19631@mtj.dyndns.org>
+	id S1753013Ab3HEU4Q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 5 Aug 2013 16:56:16 -0400
+Content-Disposition: inline
+In-Reply-To: <20130805095429.GJ10146@dhcp22.suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tejun Heo <tj@kernel.org>
-Cc: Yinghai Lu <yinghai@kernel.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Nicolas Pitre <nicolas.pitre@linaro.org>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, "David S. Miller" <davem@davemloft.net>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, linux-arch@vger.kernel.org
+To: Michal Hocko <mhocko@suse.cz>
+Cc: Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, azurIt <azurit@pobox.sk>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Monday 05 August 2013 11:38 AM, Tejun Heo wrote:
-> Hello,
+On Mon, Aug 05, 2013 at 11:54:29AM +0200, Michal Hocko wrote:
+> On Sat 03-08-13 13:00:00, Johannes Weiner wrote:
+> > The memcg OOM handling is incredibly fragile and can deadlock.  When a
+> > task fails to charge memory, it invokes the OOM killer and loops right
+> > there in the charge code until it succeeds.  Comparably, any other
+> > task that enters the charge path at this point will go to a waitqueue
+> > right then and there and sleep until the OOM situation is resolved.
+> > The problem is that these tasks may hold filesystem locks and the
+> > mmap_sem; locks that the selected OOM victim may need to exit.
+> > 
+> > For example, in one reported case, the task invoking the OOM killer
+> > was about to charge a page cache page during a write(), which holds
+> > the i_mutex.  The OOM killer selected a task that was just entering
+> > truncate() and trying to acquire the i_mutex:
+> > 
+> > OOM invoking task:
+> > [<ffffffff8110a9c1>] mem_cgroup_handle_oom+0x241/0x3b0
+> > [<ffffffff8110b5ab>] T.1146+0x5ab/0x5c0
+> > [<ffffffff8110c22e>] mem_cgroup_cache_charge+0xbe/0xe0
+> > [<ffffffff810ca28c>] add_to_page_cache_locked+0x4c/0x140
+> > [<ffffffff810ca3a2>] add_to_page_cache_lru+0x22/0x50
+> > [<ffffffff810ca45b>] grab_cache_page_write_begin+0x8b/0xe0
+> > [<ffffffff81193a18>] ext3_write_begin+0x88/0x270
+> > [<ffffffff810c8fc6>] generic_file_buffered_write+0x116/0x290
+> > [<ffffffff810cb3cc>] __generic_file_aio_write+0x27c/0x480
+> > [<ffffffff810cb646>] generic_file_aio_write+0x76/0xf0           # takes ->i_mutex
+> > [<ffffffff8111156a>] do_sync_write+0xea/0x130
+> > [<ffffffff81112183>] vfs_write+0xf3/0x1f0
+> > [<ffffffff81112381>] sys_write+0x51/0x90
+> > [<ffffffff815b5926>] system_call_fastpath+0x18/0x1d
+> > [<ffffffffffffffff>] 0xffffffffffffffff
+> > 
+> > OOM kill victim:
+> > [<ffffffff811109b8>] do_truncate+0x58/0xa0              # takes i_mutex
+> > [<ffffffff81121c90>] do_last+0x250/0xa30
+> > [<ffffffff81122547>] path_openat+0xd7/0x440
+> > [<ffffffff811229c9>] do_filp_open+0x49/0xa0
+> > [<ffffffff8110f7d6>] do_sys_open+0x106/0x240
+> > [<ffffffff8110f950>] sys_open+0x20/0x30
+> > [<ffffffff815b5926>] system_call_fastpath+0x18/0x1d
+> > [<ffffffffffffffff>] 0xffffffffffffffff
+> > 
+> > The OOM handling task will retry the charge indefinitely while the OOM
+> > killed task is not releasing any resources.
+> > 
+> > A similar scenario can happen when the kernel OOM killer for a memcg
+> > is disabled and a userspace task is in charge of resolving OOM
+> > situations.  In this case, ALL tasks that enter the OOM path will be
+> > made to sleep on the OOM waitqueue and wait for userspace to free
+> > resources or increase the group's limit.  But a userspace OOM handler
+> > is prone to deadlock itself on the locks held by the waiting tasks.
+> > For example one of the sleeping tasks may be stuck in a brk() call
+> > with the mmap_sem held for writing but the userspace handler, in order
+> > to pick an optimal victim, may need to read files from /proc/<pid>,
+> > which tries to acquire the same mmap_sem for reading and deadlocks.
+> > 
+> > This patch changes the way tasks behave after detecting a memcg OOM
+> > and makes sure nobody loops or sleeps with locks held:
+> > 
+> > 1. When OOMing in a user fault, invoke the OOM killer and restart the
+> >    fault instead of looping on the charge attempt.  This way, the OOM
+> >    victim can not get stuck on locks the looping task may hold.
+> > 
+> > 2. When OOMing in a user fault but somebody else is handling it
+> >    (either the kernel OOM killer or a userspace handler), don't go to
+> >    sleep in the charge context.  Instead, remember the OOMing memcg in
+> >    the task struct and then fully unwind the page fault stack with
+> >    -ENOMEM.  pagefault_out_of_memory() will then call back into the
+> >    memcg code to check if the -ENOMEM came from the memcg, and then
+> >    either put the task to sleep on the memcg's OOM waitqueue or just
+> >    restart the fault.  The OOM victim can no longer get stuck on any
+> >    lock a sleeping task may hold.
+> > 
+> > Reported-by: Reported-by: azurIt <azurit@pobox.sk>
+> > Debugged-by: Michal Hocko <mhocko@suse.cz>
+> > Signed-off-by: Johannes Weiner <hannes@cmpxchg.org>
 > 
-> On Mon, Aug 05, 2013 at 11:29:46AM -0400, Santosh Shilimkar wrote:
->> So looks like I am bit confused here. The current memblock_alloc()
->> API just returns the physical address which not mapped memory.
-> 
-> The memory returned by memblock is mapped if the memory area being
-> allocated can be mappable.  To access, the address just needs to be
-> converted to va.
-> 
->> Most of the bootmem users including core code expects the
->> mapped memory pointer which the code can directly operate on.
->> So the current memblock_alloc() isn't going to help. The nobootmem.c
->> has __alloc_memory_core_early() which is actually used by most of
->> the bootmem wrappers to achieve the same. So my assumption was
->> that we need an equivalent exported memblock API.
->>
->> What am I missing?
-> 
-> Oh, you weren't.  I was.  I thought we already had full interface
-> implemented.  Yeah, it looks like we need to build something new
-> around memblock / __alloc_memory_core_early().
-> 
-Exactly. This is what actually I referred as the new API.
+> I was thinking whether we should add task_in_memcg_oom into return to
+> the userspace path just in case but this should be OK for now and new
+> users of mem_cgroup_enable_oom will be fought against hard.
 
-Regards,
-Santosh
+Absolutely, I would have liked it to be at the lowest possible point
+in the stack as well, but this seemed like a good trade off.  And I
+expect the sites enabling and disabling memcg OOM killing to be fairly
+static.
+
+> Acked-by: Michal Hocko <mhocko@suse.cz>
+
+Thanks!
