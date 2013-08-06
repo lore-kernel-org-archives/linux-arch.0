@@ -1,47 +1,35 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [patch 1/7] arch: mm: remove obsolete init OOM protection
-Date: Tue, 6 Aug 2013 12:04:48 +0530
-Message-ID: <52009908.3070609@synopsys.com>
-References: <1375549200-19110-1-git-send-email-hannes@cmpxchg.org> <1375549200-19110-2-git-send-email-hannes@cmpxchg.org>
+From: Wenzhou Ourvis <chogm2013@mea.gov.lk>
+Subject: Congratulations!!!
+Date: Tue, 6 Aug 2013 18:12:33 +0530 (IST)
+Message-ID: <32736035.1232.1375792953913.JavaMail.root@vije.mea.gov.lk>
+Reply-To: Wenzhou Ourvis <dr.dennis24@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1375549200-19110-2-git-send-email-hannes@cmpxchg.org>
-Sender: owner-linux-mm@kvack.org
-To: Johannes Weiner <hannes@cmpxchg.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.cz>, David Rientjes <rientjes@google.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, azurIt <azurit@pobox.sk>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from vije.mea.gov.lk ([203.115.21.154]:33716 "EHLO vije.mea.gov.lk"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755245Ab3HFPM1 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Aug 2013 11:12:27 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 
-Hi Johannes,
 
-Thk for the cleanup.
 
-On 08/03/2013 10:29 PM, Johannes Weiner wrote:
-> Back before smart OOM killing, when faulting tasks where killed
-> directly on allocation failures, the arch-specific fault handlers
-> needed special protection for the init process.
-> 
-> Now that all fault handlers call into the generic OOM killer (609838c
-> "mm: invoke oom-killer from remaining unconverted page fault
-> handlers"), which already provides init protection, the arch-specific
-> leftovers can be removed.
-> 
-> Signed-off-by: Johannes Weiner <hannes@cmpxchg.org>
-> Reviewed-by: Michal Hocko <mhocko@suse.cz>
-> Acked-by: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
-> ---
->  arch/arc/mm/fault.c   | 5 -----
->  arch/score/mm/fault.c | 6 ------
->  arch/tile/mm/fault.c  | 6 ------
->  3 files changed, 17 deletions(-)
+Dear E-mail User,
 
-Acked-by: Vineet Gupta <vgupta@synopsys.com>  [arch/arc bits]
+ Your email address with MICROS ID: IDJT-32238-EHI-676GI-8ED emerge as =
+our second place winner of=20
+$750,000.00 plus a brand new Range Rover SUV from the Wenzhou Ourvis El=
+ectrical Co, ltd=E2=84=A2 promotion.
 
--Vineet
+Kindly confirm your status by logging to our official website below.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Company's Website    : www.wenzhou-ourvis.com
+Winner Username      : win2
+Winner Password      : quhj13
+
+fill your claims processing form through the company website:
+
+Regards.
+European Announcer=C2=A9
