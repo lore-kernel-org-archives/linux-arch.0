@@ -1,46 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from alvesta.synopsys.com ([198.182.60.77]:51744 "EHLO
-	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751779Ab3HFGfO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Aug 2013 02:35:14 -0400
-Message-ID: <52009908.3070609@synopsys.com>
-Date: Tue, 6 Aug 2013 12:04:48 +0530
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-MIME-Version: 1.0
-Subject: Re: [patch 1/7] arch: mm: remove obsolete init OOM protection
-References: <1375549200-19110-1-git-send-email-hannes@cmpxchg.org> <1375549200-19110-2-git-send-email-hannes@cmpxchg.org>
-In-Reply-To: <1375549200-19110-2-git-send-email-hannes@cmpxchg.org>
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Received: from mail-pd0-f180.google.com ([209.85.192.180]:44091 "EHLO
+	mail-pd0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933144Ab3HGNnh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Aug 2013 09:43:37 -0400
+From: Akinobu Mita <akinobu.mita@gmail.com>
+Subject: [PATCH 1/2] hexagon: fix return type of ffs()
+Date: Wed,  7 Aug 2013 22:42:38 +0900
+Message-ID: <1375882959-26853-1-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Johannes Weiner <hannes@cmpxchg.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.cz>, David Rientjes <rientjes@google.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, azurIt <azurit@pobox.sk>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130806063448.DFldcRYplkDL28kmShDXHGiK2R-J9MMTMO52xXnRyFc@z>
+To: linux-kernel@vger.kernel.org
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, linux-cris-kernel@axis.com, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20130807134238.xomB8SMLBACaKANs8Xbc6q5ee8u22MDCcwjzOVdfXRY@z>
 
-Hi Johannes,
+The return type of ffs() is 'int' on all architectures except cris and
+hexagon.  This unifies the return type to 'int'.
 
-Thk for the cleanup.
+The problem I'm seeing is that the following line generates a warning
+on cris and hexagon because of the mismatch between format '%u' and
+return type of ffs().
 
-On 08/03/2013 10:29 PM, Johannes Weiner wrote:
-> Back before smart OOM killing, when faulting tasks where killed
-> directly on allocation failures, the arch-specific fault handlers
-> needed special protection for the init process.
-> 
-> Now that all fault handlers call into the generic OOM killer (609838c
-> "mm: invoke oom-killer from remaining unconverted page fault
-> handlers"), which already provides init protection, the arch-specific
-> leftovers can be removed.
-> 
-> Signed-off-by: Johannes Weiner <hannes@cmpxchg.org>
-> Reviewed-by: Michal Hocko <mhocko@suse.cz>
-> Acked-by: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
-> ---
->  arch/arc/mm/fault.c   | 5 -----
->  arch/score/mm/fault.c | 6 ------
->  arch/tile/mm/fault.c  | 6 ------
->  3 files changed, 17 deletions(-)
+	printk("bits in OOB size: %u\n",	ffs(ns->geom.oobsz) - 1);
 
-Acked-by: Vineet Gupta <vgupta@synopsys.com>  [arch/arc bits]
+But removing this warning by casting to 'int' looks odd, so I suggest
+unifying the return type of ffs() on all architectures.
 
--Vineet
+Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
+Reported-by: Fengguang Wu <fengguang.wu@intel.com>
+Cc: Mikael Starvik <starvik@axis.com>
+Cc: Jesper Nilsson <jesper.nilsson@axis.com>
+Cc: linux-cris-kernel@axis.com
+Cc: Richard Kuo <rkuo@codeaurora.org>
+Cc: linux-hexagon@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+---
+This patch is not compile tested yet, because I couldn't find cross
+compiler for hexagon.
+
+ arch/hexagon/include/asm/bitops.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/hexagon/include/asm/bitops.h b/arch/hexagon/include/asm/bitops.h
+index 9b1e4af..80e34a6 100644
+--- a/arch/hexagon/include/asm/bitops.h
++++ b/arch/hexagon/include/asm/bitops.h
+@@ -234,7 +234,7 @@ static inline long fls(int x)
+  * the libc and compiler builtin ffs routines, therefore
+  * differs in spirit from the above ffz (man ffs).
+  */
+-static inline long ffs(int x)
++static inline int ffs(int x)
+ {
+ 	int r;
+ 
+-- 
+1.8.3.1
+
