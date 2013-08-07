@@ -1,35 +1,52 @@
-From: Wenzhou Ourvis <chogm2013@mea.gov.lk>
-Subject: Congratulations!!!
-Date: Tue, 6 Aug 2013 18:12:33 +0530 (IST)
-Message-ID: <32736035.1232.1375792953913.JavaMail.root@vije.mea.gov.lk>
-Reply-To: Wenzhou Ourvis <dr.dennis24@gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from vije.mea.gov.lk ([203.115.21.154]:33716 "EHLO vije.mea.gov.lk"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755245Ab3HFPM1 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Aug 2013 11:12:27 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+From: Akinobu Mita <akinobu.mita@gmail.com>
+Subject: [PATCH 1/2] hexagon: fix return type of ffs()
+Date: Wed,  7 Aug 2013 22:42:38 +0900
+Message-ID: <1375882959-26853-1-git-send-email-akinobu.mita@gmail.com>
+Return-path: <linux-hexagon-owner@vger.kernel.org>
+Sender: linux-hexagon-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, linux-cris-kernel@axis.com, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
+The return type of ffs() is 'int' on all architectures except cris and
+hexagon.  This unifies the return type to 'int'.
 
+The problem I'm seeing is that the following line generates a warning
+on cris and hexagon because of the mismatch between format '%u' and
+return type of ffs().
 
-Dear E-mail User,
+	printk("bits in OOB size: %u\n",	ffs(ns->geom.oobsz) - 1);
 
- Your email address with MICROS ID: IDJT-32238-EHI-676GI-8ED emerge as =
-our second place winner of=20
-$750,000.00 plus a brand new Range Rover SUV from the Wenzhou Ourvis El=
-ectrical Co, ltd=E2=84=A2 promotion.
+But removing this warning by casting to 'int' looks odd, so I suggest
+unifying the return type of ffs() on all architectures.
 
-Kindly confirm your status by logging to our official website below.
+Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
+Reported-by: Fengguang Wu <fengguang.wu@intel.com>
+Cc: Mikael Starvik <starvik@axis.com>
+Cc: Jesper Nilsson <jesper.nilsson@axis.com>
+Cc: linux-cris-kernel@axis.com
+Cc: Richard Kuo <rkuo@codeaurora.org>
+Cc: linux-hexagon@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+---
+This patch is not compile tested yet, because I couldn't find cross
+compiler for hexagon.
 
-Company's Website    : www.wenzhou-ourvis.com
-Winner Username      : win2
-Winner Password      : quhj13
+ arch/hexagon/include/asm/bitops.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-fill your claims processing form through the company website:
-
-Regards.
-European Announcer=C2=A9
+diff --git a/arch/hexagon/include/asm/bitops.h b/arch/hexagon/include/asm/bitops.h
+index 9b1e4af..80e34a6 100644
+--- a/arch/hexagon/include/asm/bitops.h
++++ b/arch/hexagon/include/asm/bitops.h
+@@ -234,7 +234,7 @@ static inline long fls(int x)
+  * the libc and compiler builtin ffs routines, therefore
+  * differs in spirit from the above ffz (man ffs).
+  */
+-static inline long ffs(int x)
++static inline int ffs(int x)
+ {
+ 	int r;
+ 
+-- 
+1.8.3.1
