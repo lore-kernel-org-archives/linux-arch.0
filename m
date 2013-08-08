@@ -1,7 +1,7 @@
 From: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Subject: [PATCH 3/4] asm-generic: Add missing include guards
-Date: Thu,  8 Aug 2013 21:07:01 +0000
-Message-ID: <1375996022-8298-4-git-send-email-linux@rasmusvillemoes.dk>
+Subject: [PATCH 2/4] asm-generic: Use different include guards
+Date: Thu,  8 Aug 2013 21:07:00 +0000
+Message-ID: <1375996022-8298-3-git-send-email-linux@rasmusvillemoes.dk>
 References: <1375996022-8298-1-git-send-email-linux@rasmusvillemoes.dk>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1375996022-8298-1-git-send-email-linux@rasmusvillemoes.dk>
@@ -10,67 +10,45 @@ To: Arnd Bergmann <arnd@arndb.de>, Roland McGrath <roland@redhat.com>, Oleg Nest
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Rasmus Villemoes <linux@rasmusvillemoes.dk>
 List-Id: linux-arch.vger.kernel.org
 
-Add include guards to include/asm-generic/{ide_iops,unistd,xor}.h.
+For consistency, use different include guards in
+include/asm-generic/dma-mapping-{broken,common}.h, even though it is
+unlikely (if not outright a bug) to ever include both.
 
 Signed-off-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
 ---
- include/asm-generic/ide_iops.h |    4 ++++
- include/asm-generic/unistd.h   |    5 +++++
- include/asm-generic/xor.h      |    4 ++++
- 3 files changed, 13 insertions(+)
+ include/asm-generic/dma-mapping-broken.h |    6 +++---
+ include/asm-generic/dma-mapping-common.h |    4 ++--
+ 2 files changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/include/asm-generic/ide_iops.h b/include/asm-generic/ide_iops.h
-index 1b91d06..cfe2ab8 100644
---- a/include/asm-generic/ide_iops.h
-+++ b/include/asm-generic/ide_iops.h
-@@ -1,4 +1,6 @@
- /* Generic I/O and MEMIO string operations.  */
-+#ifndef _ASM_GENERIC_IDE_IOPS_H
-+#define _ASM_GENERIC_IDE_IOPS_H
+diff --git a/include/asm-generic/dma-mapping-broken.h b/include/asm-generic/dma-mapping-broken.h
+index 6c32af9..34621ea 100644
+--- a/include/asm-generic/dma-mapping-broken.h
++++ b/include/asm-generic/dma-mapping-broken.h
+@@ -1,5 +1,5 @@
+-#ifndef _ASM_GENERIC_DMA_MAPPING_H
+-#define _ASM_GENERIC_DMA_MAPPING_H
++#ifndef _ASM_GENERIC_DMA_MAPPING_BROKEN_H
++#define _ASM_GENERIC_DMA_MAPPING_BROKEN_H
  
- #define __ide_insw	insw
- #define __ide_insl	insl
-@@ -36,3 +38,5 @@ static __inline__ void __ide_mm_outsl(void __iomem * port, void *addr, u32 count
- 		addr += 4;
- 	}
- }
-+
-+#endif /* _ASM_GENERIC_IDE_IOPS_H */
-diff --git a/include/asm-generic/unistd.h b/include/asm-generic/unistd.h
-index cccc86e..0cff2e9 100644
---- a/include/asm-generic/unistd.h
-+++ b/include/asm-generic/unistd.h
-@@ -1,3 +1,6 @@
-+#ifndef _ASM_GENERIC_UNISTD_H
-+#define _ASM_GENERIC_UNISTD_H
-+
- #include <uapi/asm-generic/unistd.h>
- #include <linux/export.h>
+ /* define the dma api to allow compilation but not linking of
+  * dma dependent code.  Code that depends on the dma-mapping
+@@ -92,4 +92,4 @@ extern void
+ dma_cache_sync(struct device *dev, void *vaddr, size_t size,
+ 	       enum dma_data_direction direction);
  
-@@ -10,3 +13,5 @@
- #define __ARCH_WANT_STAT64
- #define __ARCH_WANT_SYS_LLSEEK
- #endif
-+
-+#endif /* _ASM_GENERIC_UNISTD_H */
-diff --git a/include/asm-generic/xor.h b/include/asm-generic/xor.h
-index b4d8432..d063878 100644
---- a/include/asm-generic/xor.h
-+++ b/include/asm-generic/xor.h
-@@ -12,6 +12,8 @@
-  * (for example /usr/src/linux/COPYING); if not, write to the Free
-  * Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-  */
-+#ifndef _ASM_GENERIC_XOR_H
-+#define _ASM_GENERIC_XOR_H
+-#endif /* _ASM_GENERIC_DMA_MAPPING_H */
++#endif /* _ASM_GENERIC_DMA_MAPPING_BROKEN_H */
+diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-generic/dma-mapping-common.h
+index de8bf89..2ae73e6 100644
+--- a/include/asm-generic/dma-mapping-common.h
++++ b/include/asm-generic/dma-mapping-common.h
+@@ -1,5 +1,5 @@
+-#ifndef _ASM_GENERIC_DMA_MAPPING_H
+-#define _ASM_GENERIC_DMA_MAPPING_H
++#ifndef _ASM_GENERIC_DMA_MAPPING_COMMON_H
++#define _ASM_GENERIC_DMA_MAPPING_COMMON_H
  
- #include <linux/prefetch.h>
- 
-@@ -716,3 +718,5 @@ static struct xor_block_template xor_block_32regs_p __maybe_unused = {
- 		xor_speed(&xor_block_32regs);	\
- 		xor_speed(&xor_block_32regs_p);	\
- 	} while (0)
-+
-+#endif /* _ASM_GENERIC_XOR_H */
+ #include <linux/kmemcheck.h>
+ #include <linux/bug.h>
 -- 
 1.7.9.5
