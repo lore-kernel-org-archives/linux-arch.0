@@ -1,65 +1,31 @@
-From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH 2/2] cris: fix return type of ffs()
-Date: Wed,  7 Aug 2013 22:42:39 +0900
-Message-ID: <1375882959-26853-2-git-send-email-akinobu.mita@gmail.com>
-References: <1375882959-26853-1-git-send-email-akinobu.mita@gmail.com>
-Return-path: <linux-hexagon-owner@vger.kernel.org>
-In-Reply-To: <1375882959-26853-1-git-send-email-akinobu.mita@gmail.com>
-Sender: linux-hexagon-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, linux-cris-kernel@axis.com, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: "Mr. Raymond Khumalo" <asmaind@dnet.net.id>
+Subject: Your  Attention Is Needed
+Date: Thu, 8 Aug 2013 23:51:23 +0700 (WIT)
+Message-ID: <9f4bad57a739916d9819962269d252bf.squirrel@newwebmail.dnet.net.id>
+Reply-To: mrraymondkhumalo13@gmail.com
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp3.dnet.net.id ([202.148.1.233]:53179 "EHLO
+	smtp3.dnet.net.id" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757993Ab3HHRXq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Aug 2013 13:23:46 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 
-The return type of ffs() is 'int' on all architectures except cris and
-hexagon.  This unifies the return type to 'int'.
 
-The problem I'm seeing is that the following line generates a warning
-on cris and hexagon because of the mismatch between format '%u' and
-return type of ffs().
 
-	printk("bits in OOB size: %u\n",	ffs(ns->geom.oobsz) - 1);
 
-But removing this warning by casting to 'int' looks odd, so I suggest
-unifying the return type of ffs() on all architectures.
+I am.  Mr. Raymond Khumalo, Head
 
-Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Reported-by: Fengguang Wu <fengguang.wu@intel.com>
-Cc: Mikael Starvik <starvik@axis.com>
-Cc: Jesper Nilsson <jesper.nilsson@axis.com>
-Cc: linux-cris-kernel@axis.com
-Cc: Richard Kuo <rkuo@codeaurora.org>
-Cc: linux-hexagon@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
----
- arch/cris/include/arch-v10/arch/bitops.h | 2 +-
- arch/cris/include/arch-v32/arch/bitops.h | 2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+Accounts Management Section, of a
 
-diff --git a/arch/cris/include/arch-v10/arch/bitops.h b/arch/cris/include/arch-v10/arch/bitops.h
-index 03d9cfd..cc37a22 100644
---- a/arch/cris/include/arch-v10/arch/bitops.h
-+++ b/arch/cris/include/arch-v10/arch/bitops.h
-@@ -65,7 +65,7 @@ static inline unsigned long __ffs(unsigned long word)
-  * differs in spirit from the above ffz (man ffs).
-  */
- 
--static inline unsigned long kernel_ffs(unsigned long w)
-+static inline int kernel_ffs(unsigned long w)
- {
- 	return w ? cris_swapwbrlz (w) + 1 : 0;
- }
-diff --git a/arch/cris/include/arch-v32/arch/bitops.h b/arch/cris/include/arch-v32/arch/bitops.h
-index 147689d6..a5d0963 100644
---- a/arch/cris/include/arch-v32/arch/bitops.h
-+++ b/arch/cris/include/arch-v32/arch/bitops.h
-@@ -55,7 +55,7 @@ __ffs(unsigned long w)
- /*
-  * Find First Bit that is set.
-  */
--static inline unsigned long
-+static inline int
- kernel_ffs(unsigned long w)
- {
- 	return w ? cris_swapwbrlz (w) + 1 : 0;
--- 
-1.8.3.1
+well-known
+Bank here in South Africa. Can i
+
+trust you on a transaction deal worth
+US$10,000,000.if interested contact
+
+me for details Email:
+mrraymondkhumalo13@gmail.com
