@@ -1,62 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f172.google.com ([74.125.82.172]:43483 "EHLO
-	mail-we0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S966629Ab3HHVI1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Aug 2013 17:08:27 -0400
-Received: by mail-we0-f172.google.com with SMTP id t61so3010913wes.3
-        for <linux-arch@vger.kernel.org>; Thu, 08 Aug 2013 14:08:26 -0700 (PDT)
-From: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Subject: [PATCH 2/4] asm-generic: Use different include guards
-Date: Thu,  8 Aug 2013 21:07:00 +0000
-Message-ID: <1375996022-8298-3-git-send-email-linux@rasmusvillemoes.dk>
-In-Reply-To: <1375996022-8298-1-git-send-email-linux@rasmusvillemoes.dk>
-References: <1375996022-8298-1-git-send-email-linux@rasmusvillemoes.dk>
+Received: from gmmr1.centrum.cz ([46.255.225.252]:34915 "EHLO gmmr1.centrum.cz"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S965445Ab3HIJGO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 9 Aug 2013 05:06:14 -0400
+Subject: =?utf-8?q?Re=3A_=5Bpatch_0=2F7=5D_improve_memcg_oom_killer_robustness_v2?=
+Date: Fri, 09 Aug 2013 11:06:11 +0200
+From: "azurIt" <azurit@pobox.sk>
+References: <1375549200-19110-1-git-send-email-hannes@cmpxchg.org> <20130803170831.GB23319@cmpxchg.org>
+In-Reply-To: <20130803170831.GB23319@cmpxchg.org>
+MIME-Version: 1.0
+Message-ID: <20130809110611.907DBC2B@pobox.sk>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Roland McGrath <roland@redhat.com>, Oleg Nesterov <oleg@redhat.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Message-ID: <20130808210700.sXF8Xxse6GXZrLRYBPJ4406dxGWADlEtxYan8oWs4S8@z>
+To: =?utf-8?q?Johannes_Weiner?= <hannes@cmpxchg.org>
+Cc: =?utf-8?q?Andrew_Morton?= <akpm@linux-foundation.org>, =?utf-8?q?Michal_Hocko?= <mhocko@suse.cz>, =?utf-8?q?David_Rientjes?= <rientjes@google.com>, =?utf-8?q?KAMEZAWA_Hiroyuki?= <kamezawa.hiroyu@jp.fujitsu.com>, =?utf-8?q?KOSAKI_Motohiro?= <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130809090611.NanEW-y8MFz1hr1StFl2PcJbv1XMgY985kax6zPYQWM@z>
 
-For consistency, use different include guards in
-include/asm-generic/dma-mapping-{broken,common}.h, even though it is
-unlikely (if not outright a bug) to ever include both.
+>Hi azur,
+>
+>here is the x86-only rollup of the series for 3.2.
+>
+>Thanks!
+>Johannes
 
-Signed-off-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
----
- include/asm-generic/dma-mapping-broken.h |    6 +++---
- include/asm-generic/dma-mapping-common.h |    4 ++--
- 2 files changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/include/asm-generic/dma-mapping-broken.h b/include/asm-generic/dma-mapping-broken.h
-index 6c32af9..34621ea 100644
---- a/include/asm-generic/dma-mapping-broken.h
-+++ b/include/asm-generic/dma-mapping-broken.h
-@@ -1,5 +1,5 @@
--#ifndef _ASM_GENERIC_DMA_MAPPING_H
--#define _ASM_GENERIC_DMA_MAPPING_H
-+#ifndef _ASM_GENERIC_DMA_MAPPING_BROKEN_H
-+#define _ASM_GENERIC_DMA_MAPPING_BROKEN_H
- 
- /* define the dma api to allow compilation but not linking of
-  * dma dependent code.  Code that depends on the dma-mapping
-@@ -92,4 +92,4 @@ extern void
- dma_cache_sync(struct device *dev, void *vaddr, size_t size,
- 	       enum dma_data_direction direction);
- 
--#endif /* _ASM_GENERIC_DMA_MAPPING_H */
-+#endif /* _ASM_GENERIC_DMA_MAPPING_BROKEN_H */
-diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-generic/dma-mapping-common.h
-index de8bf89..2ae73e6 100644
---- a/include/asm-generic/dma-mapping-common.h
-+++ b/include/asm-generic/dma-mapping-common.h
-@@ -1,5 +1,5 @@
--#ifndef _ASM_GENERIC_DMA_MAPPING_H
--#define _ASM_GENERIC_DMA_MAPPING_H
-+#ifndef _ASM_GENERIC_DMA_MAPPING_COMMON_H
-+#define _ASM_GENERIC_DMA_MAPPING_COMMON_H
- 
- #include <linux/kmemcheck.h>
- #include <linux/bug.h>
--- 
-1.7.9.5
 
+Hi Johannes,
+
+i'm running kernel with this new patch for 1 day now without any problems! Will report back in few weeks or months or in case of any problems occures. Thank you!
+
+azur
