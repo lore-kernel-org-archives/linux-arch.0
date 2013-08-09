@@ -1,29 +1,21 @@
-From: "azurIt" <azurit-Rm0zKEqwvD4@public.gmane.org>
-Subject: =?utf-8?q?Re=3A_=5Bpatch_0=2F7=5D_improve_memcg_oom_killer_robustness_v2?=
-Date: Fri, 09 Aug 2013 11:06:11 +0200
-Message-ID: <20130809110611.907DBC2B@pobox.sk>
-References: <1375549200-19110-1-git-send-email-hannes@cmpxchg.org> <20130803170831.GB23319@cmpxchg.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Return-path: <cgroups-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20130803170831.GB23319-druUgvl0LCNAfugRpC6u6w@public.gmane.org>
-Sender: cgroups-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: =?utf-8?q?Johannes_Weiner?= <hannes-druUgvl0LCNAfugRpC6u6w@public.gmane.org>
-Cc: =?utf-8?q?Andrew_Morton?= <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, =?utf-8?q?Michal_Hocko?= <mhocko-AlSwsSmVLrQ@public.gmane.org>, =?utf-8?q?David_Rientjes?= <rientjes-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, =?utf-8?q?KAMEZAWA_Hiroyuki?= <kamezawa.hiroyu-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, =?utf-8?q?KOSAKI_Motohiro?= <kosaki.motohiro-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, cgroups-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+From: Andi Kleen <andi@firstfloor.org>
+Subject: RFC: Use single pass kallsyms
+Date: Fri,  9 Aug 2013 09:03:16 -0700
+Message-ID: <1376064199-8296-1-git-send-email-andi@firstfloor.org>
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, david.daney@cavium.com
 List-Id: linux-arch.vger.kernel.org
 
->Hi azur,
->
->here is the x86-only rollup of the series for 3.2.
->
->Thanks!
->Johannes
+This is my attempt to avoid extra link steps for kallsyms.
 
+Originally for LTO (where it gives dramatic build time improvements),
+but it also gives a nice build speedup on a standard build (-10s on my laptop)
 
+Even with this we still link two times (one more for modpost), but this
+may be eventually fixable too.
 
-Hi Johannes,
+Right now this is an RFC, I'm particularly interested in testing
+on more architectures.
 
-i'm running kernel with this new patch for 1 day now without any problems! Will report back in few weeks or months or in case of any problems occures. Thank you!
-
-azur
