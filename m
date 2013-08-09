@@ -1,76 +1,29 @@
-From: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Subject: [PATCH 4/4] asm-generic: Fix typo in comment after #endif
-Date: Thu,  8 Aug 2013 21:07:02 +0000
-Message-ID: <1375996022-8298-5-git-send-email-linux@rasmusvillemoes.dk>
-References: <1375996022-8298-1-git-send-email-linux@rasmusvillemoes.dk>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1375996022-8298-1-git-send-email-linux@rasmusvillemoes.dk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>, Roland McGrath <roland@redhat.com>, Oleg Nesterov <oleg@redhat.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Rasmus Villemoes <linux@rasmusvillemoes.dk>
+From: "azurIt" <azurit-Rm0zKEqwvD4@public.gmane.org>
+Subject: =?utf-8?q?Re=3A_=5Bpatch_0=2F7=5D_improve_memcg_oom_killer_robustness_v2?=
+Date: Fri, 09 Aug 2013 11:06:11 +0200
+Message-ID: <20130809110611.907DBC2B@pobox.sk>
+References: <1375549200-19110-1-git-send-email-hannes@cmpxchg.org> <20130803170831.GB23319@cmpxchg.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Return-path: <cgroups-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20130803170831.GB23319-druUgvl0LCNAfugRpC6u6w@public.gmane.org>
+Sender: cgroups-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: =?utf-8?q?Johannes_Weiner?= <hannes-druUgvl0LCNAfugRpC6u6w@public.gmane.org>
+Cc: =?utf-8?q?Andrew_Morton?= <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, =?utf-8?q?Michal_Hocko?= <mhocko-AlSwsSmVLrQ@public.gmane.org>, =?utf-8?q?David_Rientjes?= <rientjes-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, =?utf-8?q?KAMEZAWA_Hiroyuki?= <kamezawa.hiroyu-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, =?utf-8?q?KOSAKI_Motohiro?= <kosaki.motohiro-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, cgroups-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-Fix the comment so that it matches the actual name of the include
-guard used.
+>Hi azur,
+>
+>here is the x86-only rollup of the series for 3.2.
+>
+>Thanks!
+>Johannes
 
-Signed-off-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
----
- include/asm-generic/bitops/arch_hweight.h |    2 +-
- include/asm-generic/bitops/atomic.h       |    2 +-
- include/asm-generic/pci_iomap.h           |    2 +-
- include/asm-generic/signal.h              |    2 +-
- include/asm-generic/vga.h                 |    2 +-
- 5 files changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/include/asm-generic/bitops/arch_hweight.h b/include/asm-generic/bitops/arch_hweight.h
-index 6a211f4..d6be0af 100644
---- a/include/asm-generic/bitops/arch_hweight.h
-+++ b/include/asm-generic/bitops/arch_hweight.h
-@@ -22,4 +22,4 @@ static inline unsigned long __arch_hweight64(__u64 w)
- {
- 	return __sw_hweight64(w);
- }
--#endif /* _ASM_GENERIC_BITOPS_HWEIGHT_H_ */
-+#endif /* _ASM_GENERIC_BITOPS_ARCH_HWEIGHT_H_ */
-diff --git a/include/asm-generic/bitops/atomic.h b/include/asm-generic/bitops/atomic.h
-index 9ae6c34..d3ac7d5 100644
---- a/include/asm-generic/bitops/atomic.h
-+++ b/include/asm-generic/bitops/atomic.h
-@@ -186,4 +186,4 @@ static inline int test_and_change_bit(int nr, volatile unsigned long *addr)
- 	return (old & mask) != 0;
- }
- 
--#endif /* _ASM_GENERIC_BITOPS_ATOMIC_H */
-+#endif /* _ASM_GENERIC_BITOPS_ATOMIC_H_ */
-diff --git a/include/asm-generic/pci_iomap.h b/include/asm-generic/pci_iomap.h
-index ce37349..0b5f271 100644
---- a/include/asm-generic/pci_iomap.h
-+++ b/include/asm-generic/pci_iomap.h
-@@ -32,4 +32,4 @@ static inline void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned lon
- }
- #endif
- 
--#endif /* __ASM_GENERIC_IO_H */
-+#endif /* __ASM_GENERIC_PCI_IOMAP_H */
-diff --git a/include/asm-generic/signal.h b/include/asm-generic/signal.h
-index d840c90..1fc827f 100644
---- a/include/asm-generic/signal.h
-+++ b/include/asm-generic/signal.h
-@@ -11,4 +11,4 @@
- #undef __HAVE_ARCH_SIG_BITOPS
- 
- #endif /* __ASSEMBLY__ */
--#endif /* _ASM_GENERIC_SIGNAL_H */
-+#endif /* __ASM_GENERIC_SIGNAL_H */
-diff --git a/include/asm-generic/vga.h b/include/asm-generic/vga.h
-index 36c8ff5..93b8a80 100644
---- a/include/asm-generic/vga.h
-+++ b/include/asm-generic/vga.h
-@@ -21,4 +21,4 @@
- #define vga_readb(x) (*(x))
- #define vga_writeb(x, y) (*(y) = (x))
- 
--#endif /* _ASM_GENERIC_VGA_H */
-+#endif /* __ASM_GENERIC_VGA_H */
--- 
-1.7.9.5
+
+Hi Johannes,
+
+i'm running kernel with this new patch for 1 day now without any problems! Will report back in few weeks or months or in case of any problems occures. Thank you!
+
+azur
