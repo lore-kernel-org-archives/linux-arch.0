@@ -1,122 +1,71 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v3 0/3] qrwlock: Introducing a queue read/write lock
- implementation
-Date: Wed, 14 Aug 2013 12:20:41 +0200
-Message-ID: <20130814102041.GG10849@gmail.com>
-References: <1375315259-29392-1-git-send-email-Waiman.Long@hp.com>
- <520A811A.7080907@hp.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [RFC][PATCH 0/5] preempt_count rework
+Date: Wed, 14 Aug 2013 15:15:39 +0200
+Message-ID: <20130814131539.790947874@chello.nl>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <520A811A.7080907@hp.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Waiman Long <waiman.long@hp.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Matt Fleming <matt.fleming@intel.com>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Harvey Harrison <harvey.harrison@gmail.com>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, "Norton, Scott J" <scott.norton@hp.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>
+Cc: Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
+These patches optimize preempt_enable by firstly folding the preempt and
+need_resched tests into one -- this should work for all architectures. And
+secondly by providing per-arch preempt_count implementations; with x86 using
+per-cpu preempt_count for fastest access.
 
-* Waiman Long <waiman.long@hp.com> wrote:
+These patches have so far only been compiled for defconfig-x86_64 +
+CONFIG_PREEMPT=y and boot tested with kvm -smp 4 upto wanting to mount root.
 
-> On 07/31/2013 08:00 PM, Waiman Long wrote:
-> >v2->v3:
-> >  - Make read lock stealing the default and fair rwlock an option with
-> >    a different initializer.
-> >  - In queue_read_lock_slowpath(), check irq_count() and force spinning
-> >    and lock stealing in interrupt context.
-> >  - Unify the fair and classic read-side code path, and make write-side
-> >    to use cmpxchg with 2 different writer states. This slows down the
-> >    write lock fastpath to make the read side more efficient, but is
-> >    still slightly faster than a spinlock.
-> >
-> >v1->v2:
-> >  - Improve lock fastpath performance.
-> >  - Optionally provide classic read/write lock behavior for backward
-> >    compatibility.
-> >  - Use xadd instead of cmpxchg for fair reader code path to make it
-> >    immute to reader contention.
-> >  - Run more performance testing.
-> >
-> >As mentioned in the LWN article http://lwn.net/Articles/364583/, the
-> >classic read/write lock suffer from an unfairness problem that it is
-> >possible for a stream of incoming readers to block a waiting writer
-> >from getting the lock for a long time. Also, a waiting reader/writer
-> >contending a rwlock in local memory will have a higher chance of
-> >acquiring the lock than a reader/writer in remote node.
-> >
-> >This patch set introduces a queue-based read/write lock implementation
-> >that can largely solve this unfairness problem if the lock owners
-> >choose to use the fair variant of the lock. The queue rwlock has two
-> >variants selected at initialization time - classic (with read lock
-> >stealing) and fair (to both readers and writers). The classic rwlock
-> >is the default.
-> >
-> >The read lock slowpath will check if the reader is in an interrupt
-> >context. If so, it will force lock spinning and stealing without
-> >waiting in a queue. This is to ensure the read lock will be granted
-> >as soon as possible.
-> >
-> >Even the classic rwlock is fairer than the current version as there
-> >is a higher chance for writers to get the lock and is fair among
-> >the writers.
-> >
-> >The queue write lock can also be used as a replacement for ticket
-> >spinlocks that are highly contended if lock size increase is not
-> >an issue.
-> >
-> >There is no change in the interface. By just selecting the QUEUE_RWLOCK
-> >config parameter during the configuration phase, the classic read/write
-> >lock will be replaced by the new queue read/write lock. This will
-> >made the systems more deterministic and faster in lock contention
-> >situations. In uncontended cases, the queue read/write lock may be
-> >a bit slower than the classic one depending on the exact mix of read
-> >and write locking primitives. Given the fact that locking overhead is
-> >typically a very small percentage of the total CPU time in uncontended
-> >cases, there won't be any noticeable degradation in performance with
-> >this replacement.
-> >
-> >This patch set currently provides queue read/write lock support on
-> >x86 architecture only. Support for other architectures can be added
-> >later on once proper testing is done.
-> >
-> >Signed-off-by: Waiman Long<Waiman.Long@hp.com>
-> >
-> >Waiman Long (3):
-> >   qrwlock: A queue read/write lock implementation
-> >   qrwlock x86: Enable x86 to use queue read/write lock
-> >   qrwlock: Enable fair queue read/write lock behavior
-> >
-> >  arch/x86/Kconfig                      |    3 +
-> >  arch/x86/include/asm/spinlock.h       |    2 +
-> >  arch/x86/include/asm/spinlock_types.h |    4 +
-> >  include/asm-generic/qrwlock.h         |  239 ++++++++++++++++++++++++++++++++
-> >  include/linux/rwlock.h                |   15 ++
-> >  include/linux/rwlock_types.h          |   13 ++
-> >  lib/Kconfig                           |   23 +++
-> >  lib/Makefile                          |    1 +
-> >  lib/qrwlock.c                         |  242 +++++++++++++++++++++++++++++++++
-> >  lib/spinlock_debug.c                  |   19 +++
-> >  10 files changed, 561 insertions(+), 0 deletions(-)
-> >  create mode 100644 include/asm-generic/qrwlock.h
-> >  create mode 100644 lib/qrwlock.c
-> 
-> I would like to share with you a rwlock related system crash that I 
-> encountered during my testing with hackbench on an 80-core DL980. The 
-> kernel crash because of a "watchdog detected hard lockup on cpu 79". The 
-> crashing CPU was running "write_lock_irq(&tasklist_lock)" in 
-> forget_original_parent() of the exit code path when I interrupted the 
-> hackbench which was spawning thousands of processes. Apparently, the 
-> remote CPU was not able to get the lock for a sufficient long time due 
-> to the unfairness of the rwlock which I think my version of queue rwlock 
-> will be able to alleviate this issue.
-> 
-> So far, I was not able to reproduce the crash. I will try to see if I 
-> could more consistently reproduce it.
+It still needs asm volatile("call preempt_schedule": : :"memory"); as per
+Andi's other patches to avoid the C calling convention cluttering the
+preempt_enable() sites.
 
-Was it an actual crash/lockup, or a longish hang followed by a lock 
-detector splat followed by the system eventually recovering back to 
-working order?
-
-Thanks,
-
-	Ingo
+---
+ arch/alpha/include/asm/Kbuild      |  1 +
+ arch/arc/include/asm/Kbuild        |  1 +
+ arch/arm/include/asm/Kbuild        |  1 +
+ arch/arm64/include/asm/Kbuild      |  1 +
+ arch/avr32/include/asm/Kbuild      |  1 +
+ arch/blackfin/include/asm/Kbuild   |  1 +
+ arch/c6x/include/asm/Kbuild        |  1 +
+ arch/cris/include/asm/Kbuild       |  1 +
+ arch/frv/include/asm/Kbuild        |  1 +
+ arch/h8300/include/asm/Kbuild      |  1 +
+ arch/hexagon/include/asm/Kbuild    |  1 +
+ arch/ia64/include/asm/Kbuild       |  1 +
+ arch/m32r/include/asm/Kbuild       |  1 +
+ arch/m68k/include/asm/Kbuild       |  1 +
+ arch/metag/include/asm/Kbuild      |  1 +
+ arch/microblaze/include/asm/Kbuild |  1 +
+ arch/mips/include/asm/Kbuild       |  1 +
+ arch/mn10300/include/asm/Kbuild    |  1 +
+ arch/openrisc/include/asm/Kbuild   |  1 +
+ arch/parisc/include/asm/Kbuild     |  1 +
+ arch/powerpc/include/asm/Kbuild    |  1 +
+ arch/s390/include/asm/Kbuild       |  1 +
+ arch/score/include/asm/Kbuild      |  1 +
+ arch/sh/include/asm/Kbuild         |  1 +
+ arch/sparc/include/asm/Kbuild      |  1 +
+ arch/tile/include/asm/Kbuild       |  1 +
+ arch/um/include/asm/Kbuild         |  1 +
+ arch/unicore32/include/asm/Kbuild  |  1 +
+ arch/x86/include/asm/thread_info.h |  5 ++---
+ arch/x86/kernel/asm-offsets.c      |  1 -
+ arch/x86/kernel/cpu/common.c       |  5 +++++
+ arch/x86/kernel/entry_32.S         |  7 ++-----
+ arch/x86/kernel/entry_64.S         |  4 +---
+ arch/x86/kernel/process_32.c       | 10 ++++++++++
+ arch/x86/kernel/process_64.c       | 10 ++++++++++
+ arch/xtensa/include/asm/Kbuild     |  1 +
+ include/linux/preempt.h            | 49 ++++++++++++++++++++++++++++++++++++++-----------
+ include/linux/sched.h              |  2 +-
+ include/linux/thread_info.h        |  1 +
+ include/trace/events/sched.h       |  2 +-
+ init/main.c                        |  2 +-
+ kernel/context_tracking.c          |  3 +--
+ kernel/cpu/idle.c                  | 10 ++++++++++
+ kernel/sched/core.c                | 31 +++++++++++++++++++------------
+ kernel/softirq.c                   |  4 ++--
+ kernel/timer.c                     |  8 ++++----
+ lib/smp_processor_id.c             |  3 +--
+ 47 files changed, 138 insertions(+), 48 deletions(-)
