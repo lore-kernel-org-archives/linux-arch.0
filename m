@@ -1,223 +1,132 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC][PATCH 0/5] preempt_count rework
-Date: Wed, 14 Aug 2013 19:31:19 +0200
-Message-ID: <20130814173119.GC21191@laptop.programming.kicks-ass.net>
-References: <20130814131539.790947874@chello.nl>
- <520B8A81.1080405@zytor.com>
- <20130814160416.GI24092@twins.programming.kicks-ass.net>
+From: =?UTF-8?B?QW5kcsOpIEhlbnRzY2hlbA==?= <nerv@dawncrow.de>
+Subject: Re: arm: Only load TLS values when needed
+Date: Wed, 14 Aug 2013 23:21:37 +0200
+Message-ID: <520BF4E1.8040708@dawncrow.de>
+References: <51E42E11.1010903@dawncrow.de> <51E5836B.1010904@arm.com> <51E59E8F.1060501@dawncrow.de> <51E67B98.9040101@arm.com> <51E6F532.1030004@dawncrow.de> <520B8F37.4040609@dawncrow.de> <520BAE58.3060600@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:32822 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759967Ab3HNRb3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Aug 2013 13:31:29 -0400
-Content-Disposition: inline
-In-Reply-To: <20130814160416.GI24092@twins.programming.kicks-ass.net>
+Received: from moutng.kundenserver.de ([212.227.126.171]:52051 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933191Ab3HNVVm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Aug 2013 17:21:42 -0400
+In-Reply-To: <520BAE58.3060600@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andi Kleen <ak@linux.intel.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Jonathan Austin <jonathan.austin@arm.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On Wed, Aug 14, 2013 at 06:04:16PM +0200, Peter Zijlstra wrote:
-> OK, so something like the below would cure the worst of that I suppose.
-> It compiles but doesn't boot; must've done something wrong.
-> 
-> Someone please look at it because my asm-foo blows. I pretty much
-> copy/pasted this from asm/percpu.h.
+Am 14.08.2013 18:20, schrieb Jonathan Austin:
+> Hi Andr=C3=A9,
+>=20
+> On 14/08/13 15:07, Andr=C3=A9 Hentschel wrote:
+>> Hi Jonathan,
+>> Any updates on this?
+>>
+>=20
+> I was holding out to see the version with ldrd at the top, as discuss=
+ed below - I never saw a version with that change? I'd meant to ping yo=
+u to see if that was coming, sorry.
+>=20
+>=20
+> [...]
+>>>> [...]
+>>>>>> Now we've only got one instruction between the store and the loa=
+d
+>>>>>> and risk stalling the pipeline...
+>>>>>>
+>>>>>> Dave M cautiously says "The ancient advice was that one instruct=
+ion
+>>>>>> was enough" but this is very core dependent... I wonder if anyon=
+e
+>>>>>> has a good idea about whether this is an issue here...?
+>>>>>
+>>>>> We could use a ldrd at the top, that'd be nearly what we have rig=
+ht
+>>>>> now, don't we?
+>>>>
+>>>> Yea, that'd be good - as far as I can see from an 1136 TRM, the ld=
+rd *may* be two cycles (depending on alignment of the words) but the ld=
+r and ldrne will always be two cycles. Ahhh, the joys of modifying the =
+fast path ;)
+>=20
+> Was expecting to see something that reflected this discussion,
 
-OK, another hatchet job, now with bits borrowed from Andi's
-voluntary-preempt v1. This one actually boots.
+Ah ok, i misunderstood that, sry.
+Something like that?
+
+=46rom: Andr=C3=A9 Hentschel <nerv@dawncrow.de>
+
+This patch intents to reduce loading instructions when the resulting va=
+lue is not used.
+It's a follow up on a4780adeefd042482f624f5e0d577bf9cdcbb760
+
+Signed-off-by: Andr=C3=A9 Hentschel <nerv@dawncrow.de>
 
 ---
---- a/arch/x86/include/asm/calling.h
-+++ b/arch/x86/include/asm/calling.h
-@@ -48,6 +48,8 @@ For 32-bit we have the following convent
- 
- #include <asm/dwarf2.h>
- 
-+#ifdef CONFIG_X86_64
-+
- /*
-  * 64-bit system call stack frame layout defines and helpers,
-  * for assembly code:
-@@ -192,3 +194,51 @@ For 32-bit we have the following convent
- 	.macro icebp
- 	.byte 0xf1
+This patch is against 28fbc8b6a29c849a3f03a6b05010d4b584055665
+
+diff --git a/arch/arm/include/asm/tls.h b/arch/arm/include/asm/tls.h
+index 83259b8..31743f7 100644
+--- a/arch/arm/include/asm/tls.h
++++ b/arch/arm/include/asm/tls.h
+@@ -3,29 +3,31 @@
+=20
+ #ifdef __ASSEMBLY__
+ #include <asm/asm-offsets.h>
+-	.macro switch_tls_none, base, tp, tpuser, tmp1, tmp2
++	.macro switch_tls_none, prev, next, tp, tpuser, tmp1, tmp2
  	.endm
-+
-+#else /* CONFIG_X86_64 */
-+
-+/*
-+ * For 32bit only simplified versions of SAVE_ALL/RESTORE_ALL. These
-+ * are different from the entry_32.S versions in not changing the segment
-+ * registers. So only suitable for in kernel use, not when transitioning
-+ * from or to user space. The resulting stack frame is not a standard
-+ * pt_regs frame. The main use case is calling C code from assembler
-+ * when all the registers need to be preserved.
-+ */
-+
-+	.macro SAVE_ALL
-+	pushl_cfi %eax
-+	CFI_REL_OFFSET eax, 0
-+	pushl_cfi %ebp
-+	CFI_REL_OFFSET ebp, 0
-+	pushl_cfi %edi
-+	CFI_REL_OFFSET edi, 0
-+	pushl_cfi %esi
-+	CFI_REL_OFFSET esi, 0
-+	pushl_cfi %edx
-+	CFI_REL_OFFSET edx, 0
-+	pushl_cfi %ecx
-+	CFI_REL_OFFSET ecx, 0
-+	pushl_cfi %ebx
-+	CFI_REL_OFFSET ebx, 0
-+	.endm
-+
-+	.macro RESTORE_ALL
-+	popl_cfi %ebx
-+	CFI_RESTORE ebx
-+	popl_cfi %ecx
-+	CFI_RESTORE ecx
-+	popl_cfi %edx
-+	CFI_RESTORE edx
-+	popl_cfi %esi
-+	CFI_RESTORE esi
-+	popl_cfi %edi
-+	CFI_RESTORE edi
-+	popl_cfi %ebp
-+	CFI_RESTORE ebp
-+	popl_cfi %eax
-+	CFI_RESTORE eax
-+	.endm
-+
-+#endif /* CONFIG_X86_64 */
-+
---- a/arch/x86/include/asm/preempt.h
-+++ b/arch/x86/include/asm/preempt.h
-@@ -20,6 +20,28 @@ static __always_inline int *preempt_coun
- 	return &__raw_get_cpu_var(__preempt_count);
- }
- 
-+#define __preempt_count_add(x) do {		\
-+	asm volatile("addl %1," __percpu_arg(0)	\
-+		: "+m" (__preempt_count) 	\
-+		: "ri" ((int)x) 		\
-+		: "memory"); 			\
-+} while (0)
-+
-+#define __preempt_count_sub(x) do {		\
-+	asm volatile("subl %1," __percpu_arg(0)	\
-+		: "+m" (__preempt_count) 	\
-+		: "ri" ((int)x) 		\
-+		: "memory"); 			\
-+} while (0)
-+
-+#define __preempt_enable() do {				\
-+	asm volatile("\nsubl $1," __percpu_arg(0)	\
-+		     "\njnz 1f"				\
-+		     "\ncall __preempt_schedule"	\
-+		     "\n1:" 				\
-+		: "+m" (__preempt_count) : : "memory");	\
-+} while (0)
-+
- /*
-  * must be macros to avoid header recursion hell
-  */
---- a/arch/x86/kernel/Makefile
-+++ b/arch/x86/kernel/Makefile
-@@ -36,6 +36,8 @@ obj-y			+= tsc.o io_delay.o rtc.o
- obj-y			+= pci-iommu_table.o
- obj-y			+= resource.o
- 
-+obj-$(CONFIG_PREEMPT)	+= preempt.o
-+
- obj-y				+= process.o
- obj-y				+= i387.o xsave.o
- obj-y				+= ptrace.o
---- /dev/null
-+++ b/arch/x86/kernel/preempt.S
-@@ -0,0 +1,25 @@
-+
-+#include <linux/linkage.h>
-+#include <asm/dwarf2.h>
-+#include <asm/asm.h>
-+#include <asm/calling.h>
-+
-+ENTRY(__preempt_schedule)
-+	CFI_STARTPROC
-+	SAVE_ALL
-+	call preempt_schedule
-+	RESTORE_ALL
-+	ret
-+	CFI_ENDPROC
-+
-+#ifdef CONFIG_CONTEXT_TRACKING
-+
-+ENTRY(__preempt_schedule_context)
-+	CFI_STARTPROC
-+	SAVE_ALL
-+	call preempt_schedule_context
-+	RESTORE_ALL
-+	ret
-+	CFI_ENDPROC
-+
-+#endif
---- a/include/asm-generic/preempt.h
-+++ b/include/asm-generic/preempt.h
-@@ -17,6 +17,9 @@ static __always_inline int *preempt_coun
- 	return &current_thread_info()->preempt_count;
- }
- 
-+#define __preempt_count_add(x)	do { current_thread_info()->preempt_count += (x); } while (0)
-+#define __preempt_count_sub(x)  __preempt_count_add(-(x))
-+
- /*
-  * must be macros to avoid header recursion hell
-  */
---- a/include/linux/preempt.h
-+++ b/include/linux/preempt.h
-@@ -45,8 +45,8 @@ static __always_inline bool test_preempt
-   extern void add_preempt_count(int val);
-   extern void sub_preempt_count(int val);
- #else
--# define add_preempt_count(val)	do { *preempt_count_ptr() += (val); } while (0)
--# define sub_preempt_count(val)	do { *preempt_count_ptr() -= (val); } while (0)
-+# define add_preempt_count(val)	__preempt_count_add(val)
-+# define sub_preempt_count(val)	__preempt_count_sub(val)
+=20
+-	.macro switch_tls_v6k, base, tp, tpuser, tmp1, tmp2
++	.macro switch_tls_v6k, prev, next, tp, tpuser, tmp1, tmp2
++	ldrd	\tp, \tpuser, [\next, #TI_TP_VALUE]	@ get the next TLS and user =
+r/w register
+ 	mrc	p15, 0, \tmp2, c13, c0, 2	@ get the user r/w register
+ 	mcr	p15, 0, \tp, c13, c0, 3		@ set TLS register
+ 	mcr	p15, 0, \tpuser, c13, c0, 2	@ and the user r/w register
+-	str	\tmp2, [\base, #TI_TP_VALUE + 4] @ save it
++	str	\tmp2, [\prev, #TI_TP_VALUE + 4] @ save it
+ 	.endm
+=20
+-	.macro switch_tls_v6, base, tp, tpuser, tmp1, tmp2
++	.macro switch_tls_v6, prev, next, tp, tpuser, tmp1, tmp2
++	ldrd	\tp, \tpuser, [\next, #TI_TP_VALUE]
+ 	ldr	\tmp1, =3Delf_hwcap
+ 	ldr	\tmp1, [\tmp1, #0]
+ 	mov	\tmp2, #0xffff0fff
+ 	tst	\tmp1, #HWCAP_TLS		@ hardware TLS available?
+ 	streq	\tp, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
+-	mrcne	p15, 0, \tmp2, c13, c0, 2	@ get the user r/w register
++	mrcne	p15, 0, \tmp2, c13, c0, 2	@ get the previous user r/w register
+ 	mcrne	p15, 0, \tp, c13, c0, 3		@ yes, set TLS register
+ 	mcrne	p15, 0, \tpuser, c13, c0, 2	@ set user r/w register
+-	strne	\tmp2, [\base, #TI_TP_VALUE + 4] @ save it
++	strne	\tmp2, [\prev, #TI_TP_VALUE + 4] @ save it
+ 	.endm
+=20
+-	.macro switch_tls_software, base, tp, tpuser, tmp1, tmp2
++	.macro switch_tls_software, prev, next, tp, tpuser, tmp1, tmp2
+ 	mov	\tmp1, #0xffff0fff
+ 	str	\tp, [\tmp1, #-15]		@ set TLS value at 0xffff0ff0
+ 	.endm
+diff --git a/arch/arm/kernel/entry-armv.S b/arch/arm/kernel/entry-armv.=
+S
+index d40d0ef..11112de 100644
+--- a/arch/arm/kernel/entry-armv.S
++++ b/arch/arm/kernel/entry-armv.S
+@@ -689,12 +689,10 @@ ENTRY(__switch_to)
+  THUMB(	stmia	ip!, {r4 - sl, fp}	   )	@ Store most regs on stack
+  THUMB(	str	sp, [ip], #4		   )
+  THUMB(	str	lr, [ip], #4		   )
+-	ldr	r4, [r2, #TI_TP_VALUE]
+-	ldr	r5, [r2, #TI_TP_VALUE + 4]
+ #ifdef CONFIG_CPU_USE_DOMAINS
+ 	ldr	r6, [r2, #TI_CPU_DOMAIN]
  #endif
- 
- #define inc_preempt_count() add_preempt_count(1)
-@@ -64,7 +64,7 @@ do { \
- 
- #ifdef CONFIG_CONTEXT_TRACKING
- 
--void preempt_schedule_context(void);
-+asmlinkage void preempt_schedule_context(void);
- 
- #define preempt_check_resched_context() \
- do { \
-@@ -101,17 +101,19 @@ do { \
- 
- #define preempt_enable_no_resched()	sched_preempt_enable_no_resched()
- 
-+#ifndef __preempt_enable
- #define preempt_enable() \
- do { \
- 	preempt_enable_no_resched(); \
- 	preempt_check_resched(); \
- } while (0)
-+#else
-+#define preempt_enable() __preempt_enable()
-+#endif
- 
- /* For debugging and tracer internals only! */
--#define add_preempt_count_notrace(val)			\
--	do { *preempt_count_ptr() += (val); } while (0)
--#define sub_preempt_count_notrace(val)			\
--	do { *preempt_count_ptr() -= (val); } while (0)
-+#define add_preempt_count_notrace(val)	__preempt_count_add(val)
-+#define sub_preempt_count_notrace(val)	__preempt_count_sub(val)
- #define inc_preempt_count_notrace() add_preempt_count_notrace(1)
- #define dec_preempt_count_notrace() sub_preempt_count_notrace(1)
- 
+-	switch_tls r1, r4, r5, r3, r7
++	switch_tls r1, r2, r4, r5, r3, r7
+ #if defined(CONFIG_CC_STACKPROTECTOR) && !defined(CONFIG_SMP)
+ 	ldr	r7, [r2, #TI_TASK]
+ 	ldr	r8, =3D__stack_chk_guard
