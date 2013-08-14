@@ -1,36 +1,50 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
+From: Andi Kleen <ak@linux.intel.com>
 Subject: Re: [RFC][PATCH 0/5] preempt_count rework
-Date: Wed, 14 Aug 2013 09:58:07 -0700
-Message-ID: <520BB71F.6000701@zytor.com>
-References: <20130814131539.790947874@chello.nl> <520B8A81.1080405@zytor.com> <1376494751.7355.28.camel@marge.simpson.net> <20130814160632.GJ24092@twins.programming.kicks-ass.net> <520BACEA.50604@zytor.com> <20130814165227.GA21191@laptop.programming.kicks-ass.net>
+Date: Wed, 14 Aug 2013 10:12:16 -0700
+Message-ID: <20130814171216.GP23412@tassilo.jf.intel.com>
+References: <20130814131539.790947874@chello.nl>
+ <20130814164827.GN23412@tassilo.jf.intel.com>
+ <20130814165505.GB21191@laptop.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:47045 "EHLO mail.zytor.com"
+Received: from mga11.intel.com ([192.55.52.93]:3316 "EHLO mga11.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932885Ab3HNQ64 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 14 Aug 2013 12:58:56 -0400
-In-Reply-To: <20130814165227.GA21191@laptop.programming.kicks-ass.net>
+	id S1759356Ab3HNRMV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 14 Aug 2013 13:12:21 -0400
+Content-Disposition: inline
+In-Reply-To: <20130814165505.GB21191@laptop.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
-Cc: Mike Galbraith <bitbucket@online.de>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andi Kleen <ak@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On 08/14/2013 09:52 AM, Peter Zijlstra wrote:
+On Wed, Aug 14, 2013 at 06:55:05PM +0200, Peter Zijlstra wrote:
+> On Wed, Aug 14, 2013 at 09:48:27AM -0700, Andi Kleen wrote:
 > 
-> Oh curses, this is because lea can't do segment offsets? So there's no
-> sane way to get addresses of per-cpu variables.
+> > FWIW I removed the user_schedule in v2 because I don't need it anymore.
+> > Feel free to pick it up from v1 though.
 > 
-> Because ideally we'd have something like:
-> 
->   lea %gs:__percpu_runqueues,%rax
-> 
-> So in this case it makes sense to also store the actual pointer; how
-> unfortunate.
-> 
+> Ah, I had a quick look through your v2 because I got a link into it from
+> Ingo but didn't find it. I'll have to ask Google to locate this v1. I
 
-Correct; the segment offset is not part of the effective address, even
-in 64-bit mode.
+Sorry, it's the thread starting with
 
-	-hpa
+http://permalink.gmane.org/gmane.linux.kernel/1541950
+
+I also pushed the branch to git://git.kernel.org/pub/scm/linux/kernel/git/ak/linux-misc.git
+
+uaccess-opt311 is v1
+uaccess-opt311-2 is v2 (without user_schedule)
+
+
+> suppose that's what's wrong with my last patch. It directly does a call
+> preempt_schedule -- which I had hoped would work due to its asmlinkage,
+> but apparently there's more to it.
+
+preempt_schedule does not preserve registers, so yes that would
+explain a lot of problems.
+
+-Andi
+-- 
+ak@linux.intel.com -- Speaking for myself only
