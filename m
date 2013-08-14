@@ -1,60 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.186]:60656 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758769Ab3HNPj1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Aug 2013 11:39:27 -0400
-Message-ID: <1376494751.7355.28.camel@marge.simpson.net>
-Subject: Re: [RFC][PATCH 0/5] preempt_count rework
-From: Mike Galbraith <bitbucket@online.de>
-Date: Wed, 14 Aug 2013 17:39:11 +0200
-In-Reply-To: <520B8A81.1080405@zytor.com>
-References: <20130814131539.790947874@chello.nl>
-	 <520B8A81.1080405@zytor.com>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Mime-Version: 1.0
+Received: from mail-ee0-f45.google.com ([74.125.83.45]:47537 "EHLO
+	mail-ee0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1760018Ab3HNP54 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Aug 2013 11:57:56 -0400
+Date: Wed, 14 Aug 2013 17:57:51 +0200
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH v3 0/3] qrwlock: Introducing a queue read/write lock
+ implementation
+Message-ID: <20130814155751.GA17821@gmail.com>
+References: <1375315259-29392-1-git-send-email-Waiman.Long@hp.com>
+ <520A811A.7080907@hp.com>
+ <20130814102041.GG10849@gmail.com>
+ <520BA109.1000501@hp.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <520BA109.1000501@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andi Kleen <ak@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20130814153911._racKPeuisPdfnu6tWBtQquQ_cQkXuPmIwOVpU0Ml14@z>
+To: Waiman Long <waiman.long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Matt Fleming <matt.fleming@intel.com>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Harvey Harrison <harvey.harrison@gmail.com>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, "Norton, Scott J" <scott.norton@hp.com>
+Message-ID: <20130814155751.pOdxTh6pz_c3s-I_tvRT4clJ_-PzndR_S_2FyFdjIdg@z>
 
-On Wed, 2013-08-14 at 06:47 -0700, H. Peter Anvin wrote:
 
-> On x86, you never want to take the address of a percpu variable if you
-> can avoid it, as you end up generating code like:
+* Waiman Long <waiman.long@hp.com> wrote:
+
+> On 08/14/2013 06:20 AM, Ingo Molnar wrote:
+> >* Waiman Long<waiman.long@hp.com>  wrote:
+> >
+> >>
+> >>I would like to share with you a rwlock related system crash that I
+> >>encountered during my testing with hackbench on an 80-core DL980. The
+> >>kernel crash because of a "watchdog detected hard lockup on cpu 79". The
+> >>crashing CPU was running "write_lock_irq(&tasklist_lock)" in
+> >>forget_original_parent() of the exit code path when I interrupted the
+> >>hackbench which was spawning thousands of processes. Apparently, the
+> >>remote CPU was not able to get the lock for a sufficient long time due
+> >>to the unfairness of the rwlock which I think my version of queue rwlock
+> >>will be able to alleviate this issue.
+> >>
+> >>So far, I was not able to reproduce the crash. I will try to see if I
+> >>could more consistently reproduce it.
+> >Was it an actual crash/lockup, or a longish hang followed by a lock
+> >detector splat followed by the system eventually recovering back to
+> >working order?
+> >
+> >Thanks,
+> >
+> >	Ingo
 > 
-> 	movq %fs:0,%rax
-> 	subl $1,(%rax)
+> It was an actual crash initiated by the NMI handler. I think the
+> system was in a halt state after that.
 
-Hmmm..
+Could be a CONFIG_BOOTPARAM_HARDLOCKUP_PANIC_VALUE=1 kernel?
 
-#define cpu_rq(cpu)             (&per_cpu(runqueues, (cpu)))
-#define this_rq()               (&__get_cpu_var(runqueues))
+Thanks,
 
-ffffffff81438c7f:       48 c7 c3 80 11 01 00    mov    $0x11180,%rbx
-        /*
-         * this_rq must be evaluated again because prev may have moved
-         * CPUs since it called schedule(), thus the 'rq' on its stack
-         * frame will be invalid.
-         */
-        finish_task_switch(this_rq(), prev);
-ffffffff81438c86:       e8 25 b4 c0 ff          callq  ffffffff810440b0 <finish_task_switch>
-                 * The context switch have flipped the stack from under us
-                 * and restored the local variables which were saved when
-                 * this task called schedule() in the past. prev == current
-                 * is still correct, but it can be moved to another cpu/rq.
-                 */
-                cpu = smp_processor_id();
-ffffffff81438c8b:       65 8b 04 25 b8 c5 00    mov    %gs:0xc5b8,%eax
-ffffffff81438c92:       00
-                rq = cpu_rq(cpu);
-ffffffff81438c93:       48 98                   cltq
-ffffffff81438c95:       48 03 1c c5 00 f3 bb    add    -0x7e440d00(,%rax,8),%rbx
-
-..so could the rq = cpu_rq(cpu) sequence be improved cycle expenditure
-wise by squirreling rq pointer away in a percpu this_rq, and replacing
-cpu_rq(cpu) above with a __this_cpu_read(this_rq) version of this_rq()?
-
--Mike
-
+	Ingo
