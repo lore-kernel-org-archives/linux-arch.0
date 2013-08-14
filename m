@@ -1,72 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.11.231]:46753 "EHLO
-	smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759953Ab3HNQG3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Aug 2013 12:06:29 -0400
-Message-ID: <520BAAEF.80100@codeaurora.org>
-Date: Wed, 14 Aug 2013 11:06:07 -0500
-From: Richard Kuo <rkuo@codeaurora.org>
+Received: from mga03.intel.com ([143.182.124.21]:54045 "EHLO mga03.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1760105Ab3HNQsw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 14 Aug 2013 12:48:52 -0400
+Date: Wed, 14 Aug 2013 09:48:27 -0700
+From: Andi Kleen <ak@linux.intel.com>
+Subject: Re: [RFC][PATCH 0/5] preempt_count rework
+Message-ID: <20130814164827.GN23412@tassilo.jf.intel.com>
+References: <20130814131539.790947874@chello.nl>
 MIME-Version: 1.0
-Subject: Re: [PATCH 1/2] hexagon: fix return type of ffs()
-References: <1375882959-26853-1-git-send-email-akinobu.mita@gmail.com>
-In-Reply-To: <1375882959-26853-1-git-send-email-akinobu.mita@gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20130814131539.790947874@chello.nl>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: linux-kernel@vger.kernel.org, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, linux-cris-kernel@axis.com, linux-hexagon@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20130814160607.z_U-dYMKIwRXysUVlbQVnc3aesITwfTvtzH7MHK9a_o@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20130814164827.r-SeEBTltNSwg0P0FR3bpKMWRm95em-alrZDg4o6txI@z>
 
-On 08/07/2013 08:42 AM, Akinobu Mita wrote:
-> The return type of ffs() is 'int' on all architectures except cris and
-> hexagon.  This unifies the return type to 'int'.
->
-> The problem I'm seeing is that the following line generates a warning
-> on cris and hexagon because of the mismatch between format '%u' and
-> return type of ffs().
->
-> 	printk("bits in OOB size: %u\n",	ffs(ns->geom.oobsz) - 1);
->
-> But removing this warning by casting to 'int' looks odd, so I suggest
-> unifying the return type of ffs() on all architectures.
->
-> Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-> Reported-by: Fengguang Wu <fengguang.wu@intel.com>
-> Cc: Mikael Starvik <starvik@axis.com>
-> Cc: Jesper Nilsson <jesper.nilsson@axis.com>
-> Cc: linux-cris-kernel@axis.com
-> Cc: Richard Kuo <rkuo@codeaurora.org>
-> Cc: linux-hexagon@vger.kernel.org
-> Cc: linux-arch@vger.kernel.org
-> ---
-> This patch is not compile tested yet, because I couldn't find cross
-> compiler for hexagon.
->
->   arch/hexagon/include/asm/bitops.h | 2 +-
->   1 file changed, 1 insertion(+), 1 deletion(-)
->
-> diff --git a/arch/hexagon/include/asm/bitops.h b/arch/hexagon/include/asm/bitops.h
-> index 9b1e4af..80e34a6 100644
-> --- a/arch/hexagon/include/asm/bitops.h
-> +++ b/arch/hexagon/include/asm/bitops.h
-> @@ -234,7 +234,7 @@ static inline long fls(int x)
->    * the libc and compiler builtin ffs routines, therefore
->    * differs in spirit from the above ffz (man ffs).
->    */
-> -static inline long ffs(int x)
-> +static inline int ffs(int x)
->   {
->   	int r;
->   
+On Wed, Aug 14, 2013 at 03:15:39PM +0200, Peter Zijlstra wrote:
+> These patches optimize preempt_enable by firstly folding the preempt and
+> need_resched tests into one -- this should work for all architectures. And
+> secondly by providing per-arch preempt_count implementations; with x86 using
+> per-cpu preempt_count for fastest access.
+> 
+> These patches have so far only been compiled for defconfig-x86_64 +
+> CONFIG_PREEMPT=y and boot tested with kvm -smp 4 upto wanting to mount root.
+> 
+> It still needs asm volatile("call preempt_schedule": : :"memory"); as per
+> Andi's other patches to avoid the C calling convention cluttering the
+> preempt_enable() sites.
 
-For Hexagon:
+FWIW I removed the user_schedule in v2 because I don't need it anymore.
+Feel free to pick it up from v1 though.
 
-Acked-by: Richard Kuo <rkuo@codeaurora.org>
+It needs two patches: the one adding SAVE_ALL for 32bit and
+the parts of the put_user() patch adding user_schedule
 
--- 
+When it's not used in user_ anymore it should probably 
+be renamed too, to preempt_schedule or somesuch,
+and probably moved to a different file.
 
-Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum,
-hosted by The Linux Foundation
+-Andi
 
