@@ -1,29 +1,54 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [RFC][PATCH 0/5] preempt_count rework
-Date: Wed, 14 Aug 2013 08:43:12 -0700
-Message-ID: <520BA590.2030808@zytor.com>
-References: <20130814131539.790947874@chello.nl>  <520B8A81.1080405@zytor.com> <1376494751.7355.28.camel@marge.simpson.net>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH v3 0/3] qrwlock: Introducing a queue read/write lock
+ implementation
+Date: Wed, 14 Aug 2013 17:57:51 +0200
+Message-ID: <20130814155751.GA17821@gmail.com>
+References: <1375315259-29392-1-git-send-email-Waiman.Long@hp.com>
+ <520A811A.7080907@hp.com>
+ <20130814102041.GG10849@gmail.com>
+ <520BA109.1000501@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:46348 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750896Ab3HNPoc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 14 Aug 2013 11:44:32 -0400
-In-Reply-To: <1376494751.7355.28.camel@marge.simpson.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Mike Galbraith <bitbucket@online.de>
-Cc: Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andi Kleen <ak@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <520BA109.1000501@hp.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Waiman Long <waiman.long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Matt Fleming <matt.fleming@intel.com>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Harvey Harrison <harvey.harrison@gmail.com>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, "Norton, Scott J" <scott.norton@hp.com>
+List-Id: linux-arch.vger.kernel.org
 
-On 08/14/2013 08:39 AM, Mike Galbraith wrote:
+
+* Waiman Long <waiman.long@hp.com> wrote:
+
+> On 08/14/2013 06:20 AM, Ingo Molnar wrote:
+> >* Waiman Long<waiman.long@hp.com>  wrote:
+> >
+> >>
+> >>I would like to share with you a rwlock related system crash that I
+> >>encountered during my testing with hackbench on an 80-core DL980. The
+> >>kernel crash because of a "watchdog detected hard lockup on cpu 79". The
+> >>crashing CPU was running "write_lock_irq(&tasklist_lock)" in
+> >>forget_original_parent() of the exit code path when I interrupted the
+> >>hackbench which was spawning thousands of processes. Apparently, the
+> >>remote CPU was not able to get the lock for a sufficient long time due
+> >>to the unfairness of the rwlock which I think my version of queue rwlock
+> >>will be able to alleviate this issue.
+> >>
+> >>So far, I was not able to reproduce the crash. I will try to see if I
+> >>could more consistently reproduce it.
+> >Was it an actual crash/lockup, or a longish hang followed by a lock
+> >detector splat followed by the system eventually recovering back to
+> >working order?
+> >
+> >Thanks,
+> >
+> >	Ingo
 > 
-> ..so could the rq = cpu_rq(cpu) sequence be improved cycle expenditure
-> wise by squirreling rq pointer away in a percpu this_rq, and replacing
-> cpu_rq(cpu) above with a __this_cpu_read(this_rq) version of this_rq()?
-> 
+> It was an actual crash initiated by the NMI handler. I think the
+> system was in a halt state after that.
 
-Yes.
+Could be a CONFIG_BOOTPARAM_HARDLOCKUP_PANIC_VALUE=1 kernel?
 
-	-hpa
+Thanks,
+
+	Ingo
