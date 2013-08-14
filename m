@@ -1,39 +1,42 @@
-From: Andi Kleen <ak@linux.intel.com>
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [RFC][PATCH 0/5] preempt_count rework
-Date: Wed, 14 Aug 2013 09:48:27 -0700
-Message-ID: <20130814164827.GN23412@tassilo.jf.intel.com>
+Date: Wed, 14 Aug 2013 18:52:27 +0200
+Message-ID: <20130814165227.GA21191@laptop.programming.kicks-ass.net>
 References: <20130814131539.790947874@chello.nl>
+ <520B8A81.1080405@zytor.com>
+ <1376494751.7355.28.camel@marge.simpson.net>
+ <20130814160632.GJ24092@twins.programming.kicks-ass.net>
+ <520BACEA.50604@zytor.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:60235 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932867Ab3HNQwj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Aug 2013 12:52:39 -0400
 Content-Disposition: inline
-In-Reply-To: <20130814131539.790947874@chello.nl>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <520BACEA.50604@zytor.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Mike Galbraith <bitbucket@online.de>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andi Kleen <ak@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Wed, Aug 14, 2013 at 03:15:39PM +0200, Peter Zijlstra wrote:
-> These patches optimize preempt_enable by firstly folding the preempt and
-> need_resched tests into one -- this should work for all architectures. And
-> secondly by providing per-arch preempt_count implementations; with x86 using
-> per-cpu preempt_count for fastest access.
+On Wed, Aug 14, 2013 at 09:14:34AM -0700, H. Peter Anvin wrote:
+> Even so, this_rq() uses __get_cpu_var() and takes its address, which
+> turns into a sequence like:
 > 
-> These patches have so far only been compiled for defconfig-x86_64 +
-> CONFIG_PREEMPT=y and boot tested with kvm -smp 4 upto wanting to mount root.
+> 	leaq __percpu_runqueues(%rip),%rax
+> 	addq %gs:this_cpu_off,%rax
 > 
-> It still needs asm volatile("call preempt_schedule": : :"memory"); as per
-> Andi's other patches to avoid the C calling convention cluttering the
-> preempt_enable() sites.
+> ... which is better than the above but still more heavyweight than it
+> would be if the pointer was itself a percpu variable.
 
-FWIW I removed the user_schedule in v2 because I don't need it anymore.
-Feel free to pick it up from v1 though.
+Oh curses, this is because lea can't do segment offsets? So there's no
+sane way to get addresses of per-cpu variables.
 
-It needs two patches: the one adding SAVE_ALL for 32bit and
-the parts of the put_user() patch adding user_schedule
+Because ideally we'd have something like:
 
-When it's not used in user_ anymore it should probably 
-be renamed too, to preempt_schedule or somesuch,
-and probably moved to a different file.
+  lea %gs:__percpu_runqueues,%rax
 
--Andi
+So in this case it makes sense to also store the actual pointer; how
+unfortunate.
