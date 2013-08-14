@@ -1,123 +1,66 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC][PATCH 0/5] preempt_count rework
-Date: Wed, 14 Aug 2013 18:04:16 +0200
-Message-ID: <20130814160416.GI24092@twins.programming.kicks-ass.net>
-References: <20130814131539.790947874@chello.nl>
- <520B8A81.1080405@zytor.com>
+From: Richard Kuo <rkuo@codeaurora.org>
+Subject: Re: [PATCH 1/2] hexagon: fix return type of ffs()
+Date: Wed, 14 Aug 2013 11:06:07 -0500
+Message-ID: <520BAAEF.80100@codeaurora.org>
+References: <1375882959-26853-1-git-send-email-akinobu.mita@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:58582 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758765Ab3HNQE3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Aug 2013 12:04:29 -0400
-Content-Disposition: inline
-In-Reply-To: <520B8A81.1080405@zytor.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andi Kleen <ak@linux.intel.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1375882959-26853-1-git-send-email-akinobu.mita@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: linux-kernel@vger.kernel.org, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, linux-cris-kernel@axis.com, linux-hexagon@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Aug 14, 2013 at 06:47:45AM -0700, H. Peter Anvin wrote:
+On 08/07/2013 08:42 AM, Akinobu Mita wrote:
+> The return type of ffs() is 'int' on all architectures except cris and
+> hexagon.  This unifies the return type to 'int'.
+>
+> The problem I'm seeing is that the following line generates a warning
+> on cris and hexagon because of the mismatch between format '%u' and
+> return type of ffs().
+>
+> 	printk("bits in OOB size: %u\n",	ffs(ns->geom.oobsz) - 1);
+>
+> But removing this warning by casting to 'int' looks odd, so I suggest
+> unifying the return type of ffs() on all architectures.
+>
+> Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
+> Reported-by: Fengguang Wu <fengguang.wu@intel.com>
+> Cc: Mikael Starvik <starvik@axis.com>
+> Cc: Jesper Nilsson <jesper.nilsson@axis.com>
+> Cc: linux-cris-kernel@axis.com
+> Cc: Richard Kuo <rkuo@codeaurora.org>
+> Cc: linux-hexagon@vger.kernel.org
+> Cc: linux-arch@vger.kernel.org
+> ---
+> This patch is not compile tested yet, because I couldn't find cross
+> compiler for hexagon.
+>
+>   arch/hexagon/include/asm/bitops.h | 2 +-
+>   1 file changed, 1 insertion(+), 1 deletion(-)
+>
+> diff --git a/arch/hexagon/include/asm/bitops.h b/arch/hexagon/include/asm/bitops.h
+> index 9b1e4af..80e34a6 100644
+> --- a/arch/hexagon/include/asm/bitops.h
+> +++ b/arch/hexagon/include/asm/bitops.h
+> @@ -234,7 +234,7 @@ static inline long fls(int x)
+>    * the libc and compiler builtin ffs routines, therefore
+>    * differs in spirit from the above ffz (man ffs).
+>    */
+> -static inline long ffs(int x)
+> +static inline int ffs(int x)
+>   {
+>   	int r;
+>   
 
-> I still don't see this using a decrement of the percpu variable
-> anywhere.  The C compiler doesn't know how to generate those, so if I'm
-> not completely wet we will end up relying on sub_preempt_count()...
-> which, because it relies on taking the address of the percpu variable
-> will generate absolutely horrific code.
-> 
-> On x86, you never want to take the address of a percpu variable if you
-> can avoid it, as you end up generating code like:
-> 
-> 	movq %fs:0,%rax
-> 	subl $1,(%rax)
-> 
+For Hexagon:
 
-Urgh,. yes you're right. I keep forgetting GCC doesn't know how to merge
-those :/
+Acked-by: Richard Kuo <rkuo@codeaurora.org>
 
-OK, so something like the below would cure the worst of that I suppose.
-It compiles but doesn't boot; must've done something wrong.
+-- 
 
-Someone please look at it because my asm-foo blows. I pretty much
-copy/pasted this from asm/percpu.h.
-
----
---- a/arch/x86/include/asm/preempt.h
-+++ b/arch/x86/include/asm/preempt.h
-@@ -20,6 +20,28 @@ static __always_inline int *preempt_coun
- 	return &__raw_get_cpu_var(__preempt_count);
- }
- 
-+#define __preempt_count_add(x) do {		\
-+	asm("addl %1," __percpu_arg(0)		\
-+		: "+m" (__preempt_count) 	\
-+		: "ri" ((int)x) 		\
-+		: "memory"); 			\
-+} while (0)
-+
-+#define __preempt_count_sub(x) do {		\
-+	asm("subl %1," __percpu_arg(0)		\
-+		: "+m" (__preempt_count) 	\
-+		: "ri" ((int)x) 		\
-+		: "memory"); 			\
-+} while (0)
-+
-+#define preempt_enable() do {			\
-+	asm("\nsubl $1," __percpu_arg(0)	\
-+	    "\njnz 1f"				\
-+	    "\ncall preempt_schedule"		\
-+	    "\n1:" : "+m" (__preempt_count)	\
-+		   : : "memory");		\
-+} while (0)
-+
- /*
-  * must be macros to avoid header recursion hell
-  */
---- a/include/asm-generic/preempt.h
-+++ b/include/asm-generic/preempt.h
-@@ -17,6 +17,9 @@ static __always_inline int *preempt_coun
- 	return &current_thread_info()->preempt_count;
- }
- 
-+#define __preempt_count_add(x)	do { current_thread_info()->preempt_count += (x); } while (0)
-+#define __preempt_count_sub(x)  __preempt_count_add(-(x))
-+
- /*
-  * must be macros to avoid header recursion hell
-  */
---- a/include/linux/preempt.h
-+++ b/include/linux/preempt.h
-@@ -45,8 +45,8 @@ static __always_inline bool test_preempt
-   extern void add_preempt_count(int val);
-   extern void sub_preempt_count(int val);
- #else
--# define add_preempt_count(val)	do { *preempt_count_ptr() += (val); } while (0)
--# define sub_preempt_count(val)	do { *preempt_count_ptr() -= (val); } while (0)
-+# define add_preempt_count(val)	__preempt_count_add(val)
-+# define sub_preempt_count(val)	__preempt_count_sub(val)
- #endif
- 
- #define inc_preempt_count() add_preempt_count(1)
-@@ -101,17 +101,17 @@ do { \
- 
- #define preempt_enable_no_resched()	sched_preempt_enable_no_resched()
- 
-+#ifndef preempt_enable
- #define preempt_enable() \
- do { \
- 	preempt_enable_no_resched(); \
- 	preempt_check_resched(); \
- } while (0)
-+#endif
- 
- /* For debugging and tracer internals only! */
--#define add_preempt_count_notrace(val)			\
--	do { *preempt_count_ptr() += (val); } while (0)
--#define sub_preempt_count_notrace(val)			\
--	do { *preempt_count_ptr() -= (val); } while (0)
-+#define add_preempt_count_notrace(val)	__preempt_count_add(val)
-+#define sub_preempt_count_notrace(val)	__preempt_count_sub(val)
- #define inc_preempt_count_notrace() add_preempt_count_notrace(1)
- #define dec_preempt_count_notrace() sub_preempt_count_notrace(1)
- 
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum,
+hosted by The Linux Foundation
