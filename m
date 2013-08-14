@@ -1,59 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ee0-f45.google.com ([74.125.83.45]:47537 "EHLO
-	mail-ee0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760018Ab3HNP54 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Aug 2013 11:57:56 -0400
-Date: Wed, 14 Aug 2013 17:57:51 +0200
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v3 0/3] qrwlock: Introducing a queue read/write lock
- implementation
-Message-ID: <20130814155751.GA17821@gmail.com>
-References: <1375315259-29392-1-git-send-email-Waiman.Long@hp.com>
- <520A811A.7080907@hp.com>
- <20130814102041.GG10849@gmail.com>
- <520BA109.1000501@hp.com>
+Received: from smtp.codeaurora.org ([198.145.11.231]:46753 "EHLO
+	smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759953Ab3HNQG3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Aug 2013 12:06:29 -0400
+Message-ID: <520BAAEF.80100@codeaurora.org>
+Date: Wed, 14 Aug 2013 11:06:07 -0500
+From: Richard Kuo <rkuo@codeaurora.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <520BA109.1000501@hp.com>
+Subject: Re: [PATCH 1/2] hexagon: fix return type of ffs()
+References: <1375882959-26853-1-git-send-email-akinobu.mita@gmail.com>
+In-Reply-To: <1375882959-26853-1-git-send-email-akinobu.mita@gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <waiman.long@hp.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Matt Fleming <matt.fleming@intel.com>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Harvey Harrison <harvey.harrison@gmail.com>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, "Norton, Scott J" <scott.norton@hp.com>
-Message-ID: <20130814155751.pOdxTh6pz_c3s-I_tvRT4clJ_-PzndR_S_2FyFdjIdg@z>
+To: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: linux-kernel@vger.kernel.org, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, linux-cris-kernel@axis.com, linux-hexagon@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20130814160607.z_U-dYMKIwRXysUVlbQVnc3aesITwfTvtzH7MHK9a_o@z>
 
+On 08/07/2013 08:42 AM, Akinobu Mita wrote:
+> The return type of ffs() is 'int' on all architectures except cris and
+> hexagon.  This unifies the return type to 'int'.
+>
+> The problem I'm seeing is that the following line generates a warning
+> on cris and hexagon because of the mismatch between format '%u' and
+> return type of ffs().
+>
+> 	printk("bits in OOB size: %u\n",	ffs(ns->geom.oobsz) - 1);
+>
+> But removing this warning by casting to 'int' looks odd, so I suggest
+> unifying the return type of ffs() on all architectures.
+>
+> Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
+> Reported-by: Fengguang Wu <fengguang.wu@intel.com>
+> Cc: Mikael Starvik <starvik@axis.com>
+> Cc: Jesper Nilsson <jesper.nilsson@axis.com>
+> Cc: linux-cris-kernel@axis.com
+> Cc: Richard Kuo <rkuo@codeaurora.org>
+> Cc: linux-hexagon@vger.kernel.org
+> Cc: linux-arch@vger.kernel.org
+> ---
+> This patch is not compile tested yet, because I couldn't find cross
+> compiler for hexagon.
+>
+>   arch/hexagon/include/asm/bitops.h | 2 +-
+>   1 file changed, 1 insertion(+), 1 deletion(-)
+>
+> diff --git a/arch/hexagon/include/asm/bitops.h b/arch/hexagon/include/asm/bitops.h
+> index 9b1e4af..80e34a6 100644
+> --- a/arch/hexagon/include/asm/bitops.h
+> +++ b/arch/hexagon/include/asm/bitops.h
+> @@ -234,7 +234,7 @@ static inline long fls(int x)
+>    * the libc and compiler builtin ffs routines, therefore
+>    * differs in spirit from the above ffz (man ffs).
+>    */
+> -static inline long ffs(int x)
+> +static inline int ffs(int x)
+>   {
+>   	int r;
+>   
 
-* Waiman Long <waiman.long@hp.com> wrote:
+For Hexagon:
 
-> On 08/14/2013 06:20 AM, Ingo Molnar wrote:
-> >* Waiman Long<waiman.long@hp.com>  wrote:
-> >
-> >>
-> >>I would like to share with you a rwlock related system crash that I
-> >>encountered during my testing with hackbench on an 80-core DL980. The
-> >>kernel crash because of a "watchdog detected hard lockup on cpu 79". The
-> >>crashing CPU was running "write_lock_irq(&tasklist_lock)" in
-> >>forget_original_parent() of the exit code path when I interrupted the
-> >>hackbench which was spawning thousands of processes. Apparently, the
-> >>remote CPU was not able to get the lock for a sufficient long time due
-> >>to the unfairness of the rwlock which I think my version of queue rwlock
-> >>will be able to alleviate this issue.
-> >>
-> >>So far, I was not able to reproduce the crash. I will try to see if I
-> >>could more consistently reproduce it.
-> >Was it an actual crash/lockup, or a longish hang followed by a lock
-> >detector splat followed by the system eventually recovering back to
-> >working order?
-> >
-> >Thanks,
-> >
-> >	Ingo
-> 
-> It was an actual crash initiated by the NMI handler. I think the
-> system was in a halt state after that.
+Acked-by: Richard Kuo <rkuo@codeaurora.org>
 
-Could be a CONFIG_BOOTPARAM_HARDLOCKUP_PANIC_VALUE=1 kernel?
+-- 
 
-Thanks,
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum,
+hosted by The Linux Foundation
 
-	Ingo
