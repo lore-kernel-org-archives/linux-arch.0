@@ -1,182 +1,320 @@
-From: Jonathan Austin <jonathan.austin@arm.com>
-Subject: Re: arm: Only load TLS values when needed
-Date: Thu, 15 Aug 2013 18:29:30 +0100
-Message-ID: <520D0FFA.1060508@arm.com>
-References: <51E42E11.1010903@dawncrow.de> <51E5836B.1010904@arm.com> <51E59E8F.1060501@dawncrow.de> <51E67B98.9040101@arm.com> <51E6F532.1030004@dawncrow.de> <520B8F37.4040609@dawncrow.de> <520BAE58.3060600@arm.com> <520BF4E1.8040708@dawncrow.de>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [Bug] Reproducible data corruption on i5-3340M: Please revert 53a59fc67!
+Date: Thu, 15 Aug 2013 11:00:03 -0700
+Message-ID: <CA+55aFxuUrcod=X2t2yqR_zJ4s1uaCsGB-p1oLTQrG+y+Z2PbA@mail.gmail.com>
+References: <52050382.9060802@gmail.com>
+	<520BB225.8030807@gmail.com>
+	<20130814174039.GA24033@dhcp22.suse.cz>
+	<CA+55aFwAz7GdcB6nC0Th42y8eAM591sKO1=mYh5SWgyuDdHzcA@mail.gmail.com>
+	<20130814182756.GD24033@dhcp22.suse.cz>
+	<CA+55aFxB6Wyj3G3Ju8E7bjH-706vi3vysuATUZ13h1tdYbCbnQ@mail.gmail.com>
+	<520C9E78.2020401@gmail.com>
+	<CA+55aFy2D2hTc_ina1DvungsCL4WU2OTM=bnVb8sDyDcGVCBEQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8;
-	format=flowed
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:41340 "EHLO
-	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757786Ab3HOR3q convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Aug 2013 13:29:46 -0400
-In-Reply-To: <520BF4E1.8040708@dawncrow.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: =?UTF-8?B?QW5kcsOpIEhlbnRzY2hlbA==?= <nerv@dawncrow.de>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Russell King <linux@arm.linux.org.uk>
+Content-Type: multipart/mixed; boundary=047d7b86f33e54649404e4003e67
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <CA+55aFy2D2hTc_ina1DvungsCL4WU2OTM=bnVb8sDyDcGVCBEQ@mail.gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Ben Tebulin <tebulin@googlemail.com>
+Cc: Michal Hocko <mhocko@suse.cz>, Mel Gorman <mgorman@suse.de>, Johannes Weiner <hannes@cmpxchg.org>, Balbir Singh <bsingharora@gmail.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-mm <linux-mm@kvack.org>, Rik van Riel <riel@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Andr=C3=A9
+--047d7b86f33e54649404e4003e67
+Content-Type: text/plain; charset=UTF-8
 
-(I've put RMK and LAKML back on Cc: they got dropped somewhere along th=
-e=20
-way)
-
-On 14/08/13 22:21, Andr=C3=A9 Hentschel wrote:
->>>>> [...]
->>>>>>> Now we've only got one instruction between the store and the lo=
-ad
->>>>>>> and risk stalling the pipeline...
->>>>>>>
->>>>>>> Dave M cautiously says "The ancient advice was that one instruc=
-tion
->>>>>>> was enough" but this is very core dependent... I wonder if anyo=
-ne
->>>>>>> has a good idea about whether this is an issue here...?
->>>>>>
->>>>>> We could use a ldrd at the top, that'd be nearly what we have ri=
-ght
->>>>>> now, don't we?
->>>>>
->>>>> Yea, that'd be good - as far as I can see from an 1136 TRM, the l=
-drd *may* be two cycles (depending on alignment of the words) but the l=
-dr and ldrne will always be two cycles. Ahhh, the joys of modifying the=
- fast path ;)
+On Thu, Aug 15, 2013 at 5:02 AM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+> On Thu, Aug 15, 2013 at 2:25 AM, Ben Tebulin <tebulin@googlemail.com> wrote:
 >>
->> Was expecting to see something that reflected this discussion,
+>> I just cherry-picked e6c495a96ce0 into 3.9.11 and 3.7.10.
+>> Unfortunately this does _not resolve_ my issue (too good to be true) :-(
 >
-> Ah ok, i misunderstood that, sry.
-> Something like that?
+> Ho humm. I've found at least one other bug, but that one only affects
+> hugepages. Do you perhaps have transparent hugepages enabled? But even
+> then it looks quite unlikely.
 >
-> From: Andr=C3=A9 Hentschel <nerv@dawncrow.de>
->
-> This patch intents to reduce loading instructions when the resulting =
-value is not used.
-> It's a follow up on a4780adeefd042482f624f5e0d577bf9cdcbb760
->
+> I'll think about this some more. I'm not happy with how that
+> particular whole TLB flushing hack was done, but I need to sleep on
+> this.
 
-You caught me just before running away for a week of holiday, but I've=20
-managed to squeeze in a bit of testing - hope this helps - I'll try to=20
-be clear about what I have/haven't tested so you can judge for yourself=
-=20
-how much weight to give this.
+Ok, so I've slept on it, and here's my current thinking.
 
-What I've tested:
+The bugs in the TLB handling were all about missing or confused
+updates to the TLB range, and the thing is, they were missing or
+confused because you had to do really confusing things, and remember
+to set the range properly.
 
-* Apply your code to 3.11-rc5
-* Boot on Integrator CP (1176 r1p0) and run a full Debian Wheezy init
+And that is because the interface is horrible.
 
---> It works!
+This patch tries to fix the interface instead of trying to patch up
+the individual places that *should* set the range some particular way.
+Sadly, that means that I had to change the calling convention for
+"tlb_gather_mmu()", so the patch is larger than I'd like. But it's all
+very straightforward:
 
-I also applied the following diff and rebuilt to check that we were=20
-really testing the V6 NOT V6K path here:
+ (1) instead of passing "fullmm" to tlb_gather_mmu(), pass the
+start/end address.
 
-diff --git a/arch/arm/include/asm/tls.h b/arch/arm/include/asm/tls.h
-index 31743f7..71dfe82 100644
---- a/arch/arm/include/asm/tls.h
-+++ b/arch/arm/include/asm/tls.h
-@@ -43,6 +43,7 @@
-  #define switch_tls     switch_tls_v6
-  #elif defined(CONFIG_CPU_32v6K)
-  #define tls_emu                0
-+#error
-  #define has_tls_reg            1
-  #define switch_tls     switch_tls_v6k
-  #else
+     A range of 0 to ~0ul implies "fullmm", and we calculate that with
+"!(start | (end+1))"
 
-What I've *not* tested:
-* As this CPU does not have the tls register, I haven't run any tests=20
-that try to read/write it, but we wouldn't expect that to work, right?
-* Haven't tried a V7 platform, as I understand you've already done that=
-=2E
-* Haven't verified it still builds for v4 (which was the problem for=20
-ldrd in the past and now we've put it back, so that's important)
-* Performance impact
+ (2) Because access to start/end now becomes an internal API, the
+patch makes *all* TLB gather implementations do this.
 
-I think it'd be good if you can verify the bottom two points -=20
-especially the ldrd one: perhaps Russell can tell you which platform it=
-=20
-broke on before?
+     So I added start/end fields to the tlb_gather structure as necessary.
 
-So, that's a
-Tested-by: Jonathan Austin <jonathan.austin@arm.com>
+     Note that some architectures already had "start_range/end_range"
+values, and I left those alone (because the new start/end might work a
+bit differently), but it's very possible that those could be removed,
+and they'd just use the "generic" start/end values. I'm cc'ing the
+arch list to see what the reaction to this all is.
 
-If you want it :)
-Hope that helps,
+ (3) I removed all the other games with start/end, because now
+start/end is _always_ valid.
 
-Jonny
+     Notably, if any caller of "tlb_flush_mmu()" forgets to update the
+start/end fields (like I think the hugetlb case did), it is no longer
+a bug. The start/end will have been set up by the initialization of
+TLB gather, so we're all good.
 
-> Signed-off-by: Andr=C3=A9 Hentschel <nerv@dawncrow.de>
->
-> ---
-> This patch is against 28fbc8b6a29c849a3f03a6b05010d4b584055665
->
-> diff --git a/arch/arm/include/asm/tls.h b/arch/arm/include/asm/tls.h
-> index 83259b8..31743f7 100644
-> --- a/arch/arm/include/asm/tls.h
-> +++ b/arch/arm/include/asm/tls.h
-> @@ -3,29 +3,31 @@
->
->   #ifdef __ASSEMBLY__
->   #include <asm/asm-offsets.h>
-> -	.macro switch_tls_none, base, tp, tpuser, tmp1, tmp2
-> +	.macro switch_tls_none, prev, next, tp, tpuser, tmp1, tmp2
->   	.endm
->
-> -	.macro switch_tls_v6k, base, tp, tpuser, tmp1, tmp2
-> +	.macro switch_tls_v6k, prev, next, tp, tpuser, tmp1, tmp2
-> +	ldrd	\tp, \tpuser, [\next, #TI_TP_VALUE]	@ get the next TLS and use=
-r r/w register
->   	mrc	p15, 0, \tmp2, c13, c0, 2	@ get the user r/w register
->   	mcr	p15, 0, \tp, c13, c0, 3		@ set TLS register
->   	mcr	p15, 0, \tpuser, c13, c0, 2	@ and the user r/w register
-> -	str	\tmp2, [\base, #TI_TP_VALUE + 4] @ save it
-> +	str	\tmp2, [\prev, #TI_TP_VALUE + 4] @ save it
->   	.endm
->
-> -	.macro switch_tls_v6, base, tp, tpuser, tmp1, tmp2
-> +	.macro switch_tls_v6, prev, next, tp, tpuser, tmp1, tmp2
-> +	ldrd	\tp, \tpuser, [\next, #TI_TP_VALUE]
->   	ldr	\tmp1, =3Delf_hwcap
->   	ldr	\tmp1, [\tmp1, #0]
->   	mov	\tmp2, #0xffff0fff
->   	tst	\tmp1, #HWCAP_TLS		@ hardware TLS available?
->   	streq	\tp, [\tmp2, #-15]		@ set TLS value at 0xffff0ff0
-> -	mrcne	p15, 0, \tmp2, c13, c0, 2	@ get the user r/w register
-> +	mrcne	p15, 0, \tmp2, c13, c0, 2	@ get the previous user r/w registe=
-r
->   	mcrne	p15, 0, \tp, c13, c0, 3		@ yes, set TLS register
->   	mcrne	p15, 0, \tpuser, c13, c0, 2	@ set user r/w register
-> -	strne	\tmp2, [\base, #TI_TP_VALUE + 4] @ save it
-> +	strne	\tmp2, [\prev, #TI_TP_VALUE + 4] @ save it
->   	.endm
->
-> -	.macro switch_tls_software, base, tp, tpuser, tmp1, tmp2
-> +	.macro switch_tls_software, prev, next, tp, tpuser, tmp1, tmp2
->   	mov	\tmp1, #0xffff0fff
->   	str	\tp, [\tmp1, #-15]		@ set TLS value at 0xffff0ff0
->   	.endm
-> diff --git a/arch/arm/kernel/entry-armv.S b/arch/arm/kernel/entry-arm=
-v.S
-> index d40d0ef..11112de 100644
-> --- a/arch/arm/kernel/entry-armv.S
-> +++ b/arch/arm/kernel/entry-armv.S
-> @@ -689,12 +689,10 @@ ENTRY(__switch_to)
->    THUMB(	stmia	ip!, {r4 - sl, fp}	   )	@ Store most regs on stack
->    THUMB(	str	sp, [ip], #4		   )
->    THUMB(	str	lr, [ip], #4		   )
-> -	ldr	r4, [r2, #TI_TP_VALUE]
-> -	ldr	r5, [r2, #TI_TP_VALUE + 4]
->   #ifdef CONFIG_CPU_USE_DOMAINS
->   	ldr	r6, [r2, #TI_CPU_DOMAIN]
->   #endif
-> -	switch_tls r1, r4, r5, r3, r7
-> +	switch_tls r1, r2, r4, r5, r3, r7
->   #if defined(CONFIG_CC_STACKPROTECTOR) && !defined(CONFIG_SMP)
->   	ldr	r7, [r2, #TI_TASK]
->   	ldr	r8, =3D__stack_chk_guard
->
->
->
+ (4) The ONE exception to (3) is the zap_pte_range() case in
+mm/memory.c, which used to do all the special start/end games, and now
+instead just updates start/end to be the "chunk" it just worked on
+before flushing the TLB, and the "rest of the area" afterwards.
+
+Even that special (4) case is simpler now, imho, exactly because
+start/end is a valid range at all points (it used to be that it wasn't
+a valid range the first time, since it wasn't set up initially). So
+now that code in case (4) makes more sense, but more importantly, now
+it should be just an optimization - we *could* have dropped all the
+start/end updates, but then we'd just ask the TLB to be flushed for
+the whole original range every time.
+
+Anyway. I've booted this, and I'm writing this email with a kernel
+running this, BUT:
+
+ - I have not compile-tested anything but x86-64, so the non-generic
+TLB gather changes are all just done blindly. They are very
+straightforward, but still..
+
+ - I have no idea whether this will fix the problem Ben sees, but I
+feel happier about the code, because now any place that forgets to set
+up start/end will work just fine, because they are always valid. Ben,
+please test. I'm worried that the problem you see is something even
+more fundamentally wrong with the whole "oops, must flush in the
+middle" logic, but I'm _hoping_ this fixes it.
+
+ - This patch is against current git, so to apply you need to have
+that commit e6c495a96ce0 cherry-picked to older kernels first. But
+other than that I don't think this code has changed, so it should
+apply cleanly.
+
+Comments? Especially s390, ARM, ia64, sh and um that I edited blindly...
+
+                          Linus
+
+--047d7b86f33e54649404e4003e67
+Content-Type: application/octet-stream; name="patch.diff"
+Content-Disposition: attachment; filename="patch.diff"
+Content-Transfer-Encoding: base64
+X-Attachment-Id: f_hke9v45z0
+
+IGFyY2gvYXJtL2luY2x1ZGUvYXNtL3RsYi5oICAgfCAgNyArKysrKy0tCiBhcmNoL2FybTY0L2lu
+Y2x1ZGUvYXNtL3RsYi5oIHwgIDcgKysrKystLQogYXJjaC9pYTY0L2luY2x1ZGUvYXNtL3RsYi5o
+ICB8ICA5ICsrKysrKy0tLQogYXJjaC9zMzkwL2luY2x1ZGUvYXNtL3RsYi5oICB8ICA4ICsrKysr
+Ky0tCiBhcmNoL3NoL2luY2x1ZGUvYXNtL3RsYi5oICAgIHwgIDYgKysrKy0tCiBhcmNoL3VtL2lu
+Y2x1ZGUvYXNtL3RsYi5oICAgIHwgIDYgKysrKy0tCiBmcy9leGVjLmMgICAgICAgICAgICAgICAg
+ICAgIHwgIDQgKystLQogaW5jbHVkZS9hc20tZ2VuZXJpYy90bGIuaCAgICB8ICAyICstCiBtbS9o
+dWdldGxiLmMgICAgICAgICAgICAgICAgIHwgIDIgKy0KIG1tL21lbW9yeS5jICAgICAgICAgICAg
+ICAgICAgfCAzNiArKysrKysrKysrKysrKysrKysrKystLS0tLS0tLS0tLS0tLS0KIG1tL21tYXAu
+YyAgICAgICAgICAgICAgICAgICAgfCAgNCArKy0tCiAxMSBmaWxlcyBjaGFuZ2VkLCA1NyBpbnNl
+cnRpb25zKCspLCAzNCBkZWxldGlvbnMoLSkKCmRpZmYgLS1naXQgYS9hcmNoL2FybS9pbmNsdWRl
+L2FzbS90bGIuaCBiL2FyY2gvYXJtL2luY2x1ZGUvYXNtL3RsYi5oCmluZGV4IDQ2ZTdjZmIzZTcy
+MS4uMGJhZjdmMGQ5Mzk0IDEwMDY0NAotLS0gYS9hcmNoL2FybS9pbmNsdWRlL2FzbS90bGIuaAor
+KysgYi9hcmNoL2FybS9pbmNsdWRlL2FzbS90bGIuaApAQCAtNDMsNiArNDMsNyBAQCBzdHJ1Y3Qg
+bW11X2dhdGhlciB7CiAJc3RydWN0IG1tX3N0cnVjdAkqbW07CiAJdW5zaWduZWQgaW50CQlmdWxs
+bW07CiAJc3RydWN0IHZtX2FyZWFfc3RydWN0CSp2bWE7CisJdW5zaWduZWQgbG9uZwkJc3RhcnQs
+IGVuZDsKIAl1bnNpZ25lZCBsb25nCQlyYW5nZV9zdGFydDsKIAl1bnNpZ25lZCBsb25nCQlyYW5n
+ZV9lbmQ7CiAJdW5zaWduZWQgaW50CQlucjsKQEAgLTEwNywxMCArMTA4LDEyIEBAIHN0YXRpYyBp
+bmxpbmUgdm9pZCB0bGJfZmx1c2hfbW11KHN0cnVjdCBtbXVfZ2F0aGVyICp0bGIpCiB9CiAKIHN0
+YXRpYyBpbmxpbmUgdm9pZAotdGxiX2dhdGhlcl9tbXUoc3RydWN0IG1tdV9nYXRoZXIgKnRsYiwg
+c3RydWN0IG1tX3N0cnVjdCAqbW0sIHVuc2lnbmVkIGludCBmdWxsbW0pCit0bGJfZ2F0aGVyX21t
+dShzdHJ1Y3QgbW11X2dhdGhlciAqdGxiLCBzdHJ1Y3QgbW1fc3RydWN0ICptbSwgdW5zaWduZWQg
+bG9uZyBzdGFydCwgdW5zaWduZWQgbG9uZyBlbmQpCiB7CiAJdGxiLT5tbSA9IG1tOwotCXRsYi0+
+ZnVsbG1tID0gZnVsbG1tOworCXRsYi0+ZnVsbG1tID0gIShzdGFydCB8IChlbmQrMSkpOworCXRs
+Yi0+c3RhcnQgPSBzdGFydDsKKwl0bGItPmVuZCA9IGVuZDsKIAl0bGItPnZtYSA9IE5VTEw7CiAJ
+dGxiLT5tYXggPSBBUlJBWV9TSVpFKHRsYi0+bG9jYWwpOwogCXRsYi0+cGFnZXMgPSB0bGItPmxv
+Y2FsOwpkaWZmIC0tZ2l0IGEvYXJjaC9hcm02NC9pbmNsdWRlL2FzbS90bGIuaCBiL2FyY2gvYXJt
+NjQvaW5jbHVkZS9hc20vdGxiLmgKaW5kZXggNDZiM2JlYjRiNzczLi5lM2M0ZWYxNDQxYjYgMTAw
+NjQ0Ci0tLSBhL2FyY2gvYXJtNjQvaW5jbHVkZS9hc20vdGxiLmgKKysrIGIvYXJjaC9hcm02NC9p
+bmNsdWRlL2FzbS90bGIuaApAQCAtMzUsNiArMzUsNyBAQCBzdHJ1Y3QgbW11X2dhdGhlciB7CiAJ
+c3RydWN0IG1tX3N0cnVjdAkqbW07CiAJdW5zaWduZWQgaW50CQlmdWxsbW07CiAJc3RydWN0IHZt
+X2FyZWFfc3RydWN0CSp2bWE7CisJdW5zaWduZWQgbG9uZwkJc3RhcnQsIGVuZDsKIAl1bnNpZ25l
+ZCBsb25nCQlyYW5nZV9zdGFydDsKIAl1bnNpZ25lZCBsb25nCQlyYW5nZV9lbmQ7CiAJdW5zaWdu
+ZWQgaW50CQlucjsKQEAgLTk3LDEwICs5OCwxMiBAQCBzdGF0aWMgaW5saW5lIHZvaWQgdGxiX2Zs
+dXNoX21tdShzdHJ1Y3QgbW11X2dhdGhlciAqdGxiKQogfQogCiBzdGF0aWMgaW5saW5lIHZvaWQK
+LXRsYl9nYXRoZXJfbW11KHN0cnVjdCBtbXVfZ2F0aGVyICp0bGIsIHN0cnVjdCBtbV9zdHJ1Y3Qg
+Km1tLCB1bnNpZ25lZCBpbnQgZnVsbG1tKQordGxiX2dhdGhlcl9tbXUoc3RydWN0IG1tdV9nYXRo
+ZXIgKnRsYiwgc3RydWN0IG1tX3N0cnVjdCAqbW0sIHVuc2lnbmVkIGxvbmcgc3RhcnQsIHVuc2ln
+bmVkIGxvZ24gZW5kKQogewogCXRsYi0+bW0gPSBtbTsKLQl0bGItPmZ1bGxtbSA9IGZ1bGxtbTsK
+Kwl0bGItPmZ1bGxtbSA9ICEoc3RhcnQgfCAoZW5kKzEpKTsKKwl0bGItPnN0YXJ0ID0gc3RhcnQ7
+CisJdGxiLT5lbmQgPSBlbmQ7CiAJdGxiLT52bWEgPSBOVUxMOwogCXRsYi0+bWF4ID0gQVJSQVlf
+U0laRSh0bGItPmxvY2FsKTsKIAl0bGItPnBhZ2VzID0gdGxiLT5sb2NhbDsKZGlmZiAtLWdpdCBh
+L2FyY2gvaWE2NC9pbmNsdWRlL2FzbS90bGIuaCBiL2FyY2gvaWE2NC9pbmNsdWRlL2FzbS90bGIu
+aAppbmRleCBlZjNhOWRlMDE5NTQuLmJjNWVmYzdjM2YzZiAxMDA2NDQKLS0tIGEvYXJjaC9pYTY0
+L2luY2x1ZGUvYXNtL3RsYi5oCisrKyBiL2FyY2gvaWE2NC9pbmNsdWRlL2FzbS90bGIuaApAQCAt
+MjIsNyArMjIsNyBAQAogICogdW5tYXBwaW5nIGEgcG9ydGlvbiBvZiB0aGUgdmlydHVhbCBhZGRy
+ZXNzIHNwYWNlLCB0aGVzZSBob29rcyBhcmUgY2FsbGVkIGFjY29yZGluZyB0bwogICogdGhlIGZv
+bGxvd2luZyB0ZW1wbGF0ZToKICAqCi0gKgl0bGIgPC0gdGxiX2dhdGhlcl9tbXUobW0sIGZ1bGxf
+bW1fZmx1c2gpOwkvLyBzdGFydCB1bm1hcCBmb3IgYWRkcmVzcyBzcGFjZSBNTQorICoJdGxiIDwt
+IHRsYl9nYXRoZXJfbW11KG1tLCBzdGFydCwgZW5kKTsJCS8vIHN0YXJ0IHVubWFwIGZvciBhZGRy
+ZXNzIHNwYWNlIE1NCiAgKgl7CiAgKgkgIGZvciBlYWNoIHZtYSB0aGF0IG5lZWRzIGEgc2hvb3Rk
+b3duIGRvIHsKICAqCSAgICB0bGJfc3RhcnRfdm1hKHRsYiwgdm1hKTsKQEAgLTU4LDYgKzU4LDcg
+QEAgc3RydWN0IG1tdV9nYXRoZXIgewogCXVuc2lnbmVkIGludAkJbWF4OwogCXVuc2lnbmVkIGNo
+YXIJCWZ1bGxtbTsJCS8qIG5vbi16ZXJvIG1lYW5zIGZ1bGwgbW0gZmx1c2ggKi8KIAl1bnNpZ25l
+ZCBjaGFyCQluZWVkX2ZsdXNoOwkvKiByZWFsbHkgdW5tYXBwZWQgc29tZSBQVEVzPyAqLworCXVu
+c2lnbmVkIGxvbmcJCXN0YXJ0LCBlbmQ7CiAJdW5zaWduZWQgbG9uZwkJc3RhcnRfYWRkcjsKIAl1
+bnNpZ25lZCBsb25nCQllbmRfYWRkcjsKIAlzdHJ1Y3QgcGFnZQkJKipwYWdlczsKQEAgLTE1NSwx
+MyArMTU2LDE1IEBAIHN0YXRpYyBpbmxpbmUgdm9pZCBfX3RsYl9hbGxvY19wYWdlKHN0cnVjdCBt
+bXVfZ2F0aGVyICp0bGIpCiAKIAogc3RhdGljIGlubGluZSB2b2lkCi10bGJfZ2F0aGVyX21tdShz
+dHJ1Y3QgbW11X2dhdGhlciAqdGxiLCBzdHJ1Y3QgbW1fc3RydWN0ICptbSwgdW5zaWduZWQgaW50
+IGZ1bGxfbW1fZmx1c2gpCit0bGJfZ2F0aGVyX21tdShzdHJ1Y3QgbW11X2dhdGhlciAqdGxiLCBz
+dHJ1Y3QgbW1fc3RydWN0ICptbSwgdW5zaWduZWQgbG9uZyBzdGFydCwgdW5zaWduZWQgbG9uZyBl
+bmQpCiB7CiAJdGxiLT5tbSA9IG1tOwogCXRsYi0+bWF4ID0gQVJSQVlfU0laRSh0bGItPmxvY2Fs
+KTsKIAl0bGItPnBhZ2VzID0gdGxiLT5sb2NhbDsKIAl0bGItPm5yID0gMDsKLQl0bGItPmZ1bGxt
+bSA9IGZ1bGxfbW1fZmx1c2g7CisJdGxiLT5mdWxsbW0gPSAhKHN0YXJ0IHwgKGVuZCsxKSk7CisJ
+dGxiLT5zdGFydCA9IHN0YXJ0OworCXRsYi0+ZW5kID0gZW5kOwogCXRsYi0+c3RhcnRfYWRkciA9
+IH4wVUw7CiB9CiAKZGlmZiAtLWdpdCBhL2FyY2gvczM5MC9pbmNsdWRlL2FzbS90bGIuaCBiL2Fy
+Y2gvczM5MC9pbmNsdWRlL2FzbS90bGIuaAppbmRleCBiNzVkN2Q2ODY2ODQuLjIzYTY0ZDI1ZjJi
+MSAxMDA2NDQKLS0tIGEvYXJjaC9zMzkwL2luY2x1ZGUvYXNtL3RsYi5oCisrKyBiL2FyY2gvczM5
+MC9pbmNsdWRlL2FzbS90bGIuaApAQCAtMzIsNiArMzIsNyBAQCBzdHJ1Y3QgbW11X2dhdGhlciB7
+CiAJc3RydWN0IG1tX3N0cnVjdCAqbW07CiAJc3RydWN0IG1tdV90YWJsZV9iYXRjaCAqYmF0Y2g7
+CiAJdW5zaWduZWQgaW50IGZ1bGxtbTsKKwl1bnNpZ25lZCBsb25nIHN0YXJ0LCB1bnNpZ25lZCBs
+b25nIGVuZDsKIH07CiAKIHN0cnVjdCBtbXVfdGFibGVfYmF0Y2ggewpAQCAtNDgsMTAgKzQ5LDEz
+IEBAIGV4dGVybiB2b2lkIHRsYl9yZW1vdmVfdGFibGUoc3RydWN0IG1tdV9nYXRoZXIgKnRsYiwg
+dm9pZCAqdGFibGUpOwogCiBzdGF0aWMgaW5saW5lIHZvaWQgdGxiX2dhdGhlcl9tbXUoc3RydWN0
+IG1tdV9nYXRoZXIgKnRsYiwKIAkJCQkgIHN0cnVjdCBtbV9zdHJ1Y3QgKm1tLAotCQkJCSAgdW5z
+aWduZWQgaW50IGZ1bGxfbW1fZmx1c2gpCisJCQkJICB1bnNpZ25lZCBsb25nIHN0YXJ0LAorCQkJ
+CSAgdW5zaWduZWQgbG9uZyBlbmQpCiB7CiAJdGxiLT5tbSA9IG1tOwotCXRsYi0+ZnVsbG1tID0g
+ZnVsbF9tbV9mbHVzaDsKKwl0bGItPnN0YXJ0ID0gc3RhcnQ7CisJdGxiLT5lbmQgPSBlbmQ7CisJ
+dGxiLT5mdWxsbW0gPSAhKHN0YXJ0IHwgKGVuZCsxKSk7CiAJdGxiLT5iYXRjaCA9IE5VTEw7CiAJ
+aWYgKHRsYi0+ZnVsbG1tKQogCQlfX3RsYl9mbHVzaF9tbShtbSk7CmRpZmYgLS1naXQgYS9hcmNo
+L3NoL2luY2x1ZGUvYXNtL3RsYi5oIGIvYXJjaC9zaC9pbmNsdWRlL2FzbS90bGIuaAppbmRleCBl
+NjFkNDNkOWY2ODkuLjQ3NzQ1YjI1NTcyMSAxMDA2NDQKLS0tIGEvYXJjaC9zaC9pbmNsdWRlL2Fz
+bS90bGIuaAorKysgYi9hcmNoL3NoL2luY2x1ZGUvYXNtL3RsYi5oCkBAIC0zNiwxMCArMzYsMTIg
+QEAgc3RhdGljIGlubGluZSB2b2lkIGluaXRfdGxiX2dhdGhlcihzdHJ1Y3QgbW11X2dhdGhlciAq
+dGxiKQogfQogCiBzdGF0aWMgaW5saW5lIHZvaWQKLXRsYl9nYXRoZXJfbW11KHN0cnVjdCBtbXVf
+Z2F0aGVyICp0bGIsIHN0cnVjdCBtbV9zdHJ1Y3QgKm1tLCB1bnNpZ25lZCBpbnQgZnVsbF9tbV9m
+bHVzaCkKK3RsYl9nYXRoZXJfbW11KHN0cnVjdCBtbXVfZ2F0aGVyICp0bGIsIHN0cnVjdCBtbV9z
+dHJ1Y3QgKm1tLCB1bnNpZ25lZCBsb25nIHN0YXJ0LCB1bnNpZ25lZCBsb2duIGVuZCkKIHsKIAl0
+bGItPm1tID0gbW07Ci0JdGxiLT5mdWxsbW0gPSBmdWxsX21tX2ZsdXNoOworCXRsYi0+c3RhcnQg
+PSBzdGFydDsKKwl0bGItPmVuZCA9IGVuZDsKKwl0bGItPmZ1bGxtbSA9ICEoc3RhcnQgfCAoZW5k
+KzEpKTsKIAogCWluaXRfdGxiX2dhdGhlcih0bGIpOwogfQpkaWZmIC0tZ2l0IGEvYXJjaC91bS9p
+bmNsdWRlL2FzbS90bGIuaCBiL2FyY2gvdW0vaW5jbHVkZS9hc20vdGxiLmgKaW5kZXggNGZlYmFj
+ZDFhOGExLi4yOWIwMzAxYzE4YWEgMTAwNjQ0Ci0tLSBhL2FyY2gvdW0vaW5jbHVkZS9hc20vdGxi
+LmgKKysrIGIvYXJjaC91bS9pbmNsdWRlL2FzbS90bGIuaApAQCAtNDUsMTAgKzQ1LDEyIEBAIHN0
+YXRpYyBpbmxpbmUgdm9pZCBpbml0X3RsYl9nYXRoZXIoc3RydWN0IG1tdV9nYXRoZXIgKnRsYikK
+IH0KIAogc3RhdGljIGlubGluZSB2b2lkCi10bGJfZ2F0aGVyX21tdShzdHJ1Y3QgbW11X2dhdGhl
+ciAqdGxiLCBzdHJ1Y3QgbW1fc3RydWN0ICptbSwgdW5zaWduZWQgaW50IGZ1bGxfbW1fZmx1c2gp
+Cit0bGJfZ2F0aGVyX21tdShzdHJ1Y3QgbW11X2dhdGhlciAqdGxiLCBzdHJ1Y3QgbW1fc3RydWN0
+ICptbSwgdW5zaWduZWQgbG9uZyBzdGFydCwgdW5zaWduZWQgbG9uZyBlbmQpCiB7CiAJdGxiLT5t
+bSA9IG1tOwotCXRsYi0+ZnVsbG1tID0gZnVsbF9tbV9mbHVzaDsKKwl0bGItPnN0YXJ0ID0gc3Rh
+cnQ7CisJdGxiLT5lbmQgPSBlbmQ7CisJdGxiLT5mdWxsbW0gPSAhKHN0YXJ0IHwgKGVuZCsxKSk7
+CiAKIAlpbml0X3RsYl9nYXRoZXIodGxiKTsKIH0KZGlmZiAtLWdpdCBhL2ZzL2V4ZWMuYyBiL2Zz
+L2V4ZWMuYwppbmRleCA5YzczZGVmODc2NDIuLmZkNzc0YzdjYjQ4MyAxMDA2NDQKLS0tIGEvZnMv
+ZXhlYy5jCisrKyBiL2ZzL2V4ZWMuYwpAQCAtNjA4LDcgKzYwOCw3IEBAIHN0YXRpYyBpbnQgc2hp
+ZnRfYXJnX3BhZ2VzKHN0cnVjdCB2bV9hcmVhX3N0cnVjdCAqdm1hLCB1bnNpZ25lZCBsb25nIHNo
+aWZ0KQogCQlyZXR1cm4gLUVOT01FTTsKIAogCWxydV9hZGRfZHJhaW4oKTsKLQl0bGJfZ2F0aGVy
+X21tdSgmdGxiLCBtbSwgMCk7CisJdGxiX2dhdGhlcl9tbXUoJnRsYiwgbW0sIG9sZF9zdGFydCwg
+b2xkX2VuZCk7CiAJaWYgKG5ld19lbmQgPiBvbGRfc3RhcnQpIHsKIAkJLyoKIAkJICogd2hlbiB0
+aGUgb2xkIGFuZCBuZXcgcmVnaW9ucyBvdmVybGFwIGNsZWFyIGZyb20gbmV3X2VuZC4KQEAgLTYy
+NSw3ICs2MjUsNyBAQCBzdGF0aWMgaW50IHNoaWZ0X2FyZ19wYWdlcyhzdHJ1Y3Qgdm1fYXJlYV9z
+dHJ1Y3QgKnZtYSwgdW5zaWduZWQgbG9uZyBzaGlmdCkKIAkJZnJlZV9wZ2RfcmFuZ2UoJnRsYiwg
+b2xkX3N0YXJ0LCBvbGRfZW5kLCBuZXdfZW5kLAogCQkJdm1hLT52bV9uZXh0ID8gdm1hLT52bV9u
+ZXh0LT52bV9zdGFydCA6IFVTRVJfUEdUQUJMRVNfQ0VJTElORyk7CiAJfQotCXRsYl9maW5pc2hf
+bW11KCZ0bGIsIG5ld19lbmQsIG9sZF9lbmQpOworCXRsYl9maW5pc2hfbW11KCZ0bGIsIG9sZF9z
+dGFydCwgb2xkX2VuZCk7CiAKIAkvKgogCSAqIFNocmluayB0aGUgdm1hIHRvIGp1c3QgdGhlIG5l
+dyByYW5nZS4gIEFsd2F5cyBzdWNjZWVkcy4KZGlmZiAtLWdpdCBhL2luY2x1ZGUvYXNtLWdlbmVy
+aWMvdGxiLmggYi9pbmNsdWRlL2FzbS1nZW5lcmljL3RsYi5oCmluZGV4IDEzODIxYzMzOWE0MS4u
+NTY3MmQ3ZWExZmEwIDEwMDY0NAotLS0gYS9pbmNsdWRlL2FzbS1nZW5lcmljL3RsYi5oCisrKyBi
+L2luY2x1ZGUvYXNtLWdlbmVyaWMvdGxiLmgKQEAgLTExMiw3ICsxMTIsNyBAQCBzdHJ1Y3QgbW11
+X2dhdGhlciB7CiAKICNkZWZpbmUgSEFWRV9HRU5FUklDX01NVV9HQVRIRVIKIAotdm9pZCB0bGJf
+Z2F0aGVyX21tdShzdHJ1Y3QgbW11X2dhdGhlciAqdGxiLCBzdHJ1Y3QgbW1fc3RydWN0ICptbSwg
+Ym9vbCBmdWxsbW0pOwordm9pZCB0bGJfZ2F0aGVyX21tdShzdHJ1Y3QgbW11X2dhdGhlciAqdGxi
+LCBzdHJ1Y3QgbW1fc3RydWN0ICptbSwgdW5zaWduZWQgbG9uZyBzdGFydCwgdW5zaWduZWQgbG9u
+ZyBlbmQpOwogdm9pZCB0bGJfZmx1c2hfbW11KHN0cnVjdCBtbXVfZ2F0aGVyICp0bGIpOwogdm9p
+ZCB0bGJfZmluaXNoX21tdShzdHJ1Y3QgbW11X2dhdGhlciAqdGxiLCB1bnNpZ25lZCBsb25nIHN0
+YXJ0LAogCQkJCQkJCXVuc2lnbmVkIGxvbmcgZW5kKTsKZGlmZiAtLWdpdCBhL21tL2h1Z2V0bGIu
+YyBiL21tL2h1Z2V0bGIuYwppbmRleCA4M2FmZjBhNGQwOTMuLmI2MGYzMzA4MGEyOCAxMDA2NDQK
+LS0tIGEvbW0vaHVnZXRsYi5jCisrKyBiL21tL2h1Z2V0bGIuYwpAQCAtMjQ5MCw3ICsyNDkwLDcg
+QEAgdm9pZCB1bm1hcF9odWdlcGFnZV9yYW5nZShzdHJ1Y3Qgdm1fYXJlYV9zdHJ1Y3QgKnZtYSwg
+dW5zaWduZWQgbG9uZyBzdGFydCwKIAogCW1tID0gdm1hLT52bV9tbTsKIAotCXRsYl9nYXRoZXJf
+bW11KCZ0bGIsIG1tLCAwKTsKKwl0bGJfZ2F0aGVyX21tdSgmdGxiLCBtbSwgc3RhcnQsIGVuZCk7
+CiAJX191bm1hcF9odWdlcGFnZV9yYW5nZSgmdGxiLCB2bWEsIHN0YXJ0LCBlbmQsIHJlZl9wYWdl
+KTsKIAl0bGJfZmluaXNoX21tdSgmdGxiLCBzdGFydCwgZW5kKTsKIH0KZGlmZiAtLWdpdCBhL21t
+L21lbW9yeS5jIGIvbW0vbWVtb3J5LmMKaW5kZXggNDAyNjg0MTA3MzJhLi5hZjg0YmMwZWMxN2Mg
+MTAwNjQ0Ci0tLSBhL21tL21lbW9yeS5jCisrKyBiL21tL21lbW9yeS5jCkBAIC0yMDksMTQgKzIw
+OSwxNSBAQCBzdGF0aWMgaW50IHRsYl9uZXh0X2JhdGNoKHN0cnVjdCBtbXVfZ2F0aGVyICp0bGIp
+CiAgKgl0ZWFyLWRvd24gZnJvbSBAbW0uIFRoZSBAZnVsbG1tIGFyZ3VtZW50IGlzIHVzZWQgd2hl
+biBAbW0gaXMgd2l0aG91dAogICoJdXNlcnMgYW5kIHdlJ3JlIGdvaW5nIHRvIGRlc3Ryb3kgdGhl
+IGZ1bGwgYWRkcmVzcyBzcGFjZSAoZXhpdC9leGVjdmUpLgogICovCi12b2lkIHRsYl9nYXRoZXJf
+bW11KHN0cnVjdCBtbXVfZ2F0aGVyICp0bGIsIHN0cnVjdCBtbV9zdHJ1Y3QgKm1tLCBib29sIGZ1
+bGxtbSkKK3ZvaWQgdGxiX2dhdGhlcl9tbXUoc3RydWN0IG1tdV9nYXRoZXIgKnRsYiwgc3RydWN0
+IG1tX3N0cnVjdCAqbW0sIHVuc2lnbmVkIGxvbmcgc3RhcnQsIHVuc2lnbmVkIGxvbmcgZW5kKQog
+ewogCXRsYi0+bW0gPSBtbTsKIAotCXRsYi0+ZnVsbG1tICAgICA9IGZ1bGxtbTsKKwkvKiBJcyBp
+dCBmcm9tIDAgdG8gfjA/ICovCisJdGxiLT5mdWxsbW0gICAgID0gIShzdGFydCB8IChlbmQrMSkp
+OwogCXRsYi0+bmVlZF9mbHVzaF9hbGwgPSAwOwotCXRsYi0+c3RhcnQJPSAtMVVMOwotCXRsYi0+
+ZW5kCT0gMDsKKwl0bGItPnN0YXJ0CT0gc3RhcnQ7CisJdGxiLT5lbmQJPSBlbmQ7CiAJdGxiLT5u
+ZWVkX2ZsdXNoID0gMDsKIAl0bGItPmxvY2FsLm5leHQgPSBOVUxMOwogCXRsYi0+bG9jYWwubnIg
+ICA9IDA7CkBAIC0yNTYsOCArMjU3LDYgQEAgdm9pZCB0bGJfZmluaXNoX21tdShzdHJ1Y3QgbW11
+X2dhdGhlciAqdGxiLCB1bnNpZ25lZCBsb25nIHN0YXJ0LCB1bnNpZ25lZCBsb25nIGUKIHsKIAlz
+dHJ1Y3QgbW11X2dhdGhlcl9iYXRjaCAqYmF0Y2gsICpuZXh0OwogCi0JdGxiLT5zdGFydCA9IHN0
+YXJ0OwotCXRsYi0+ZW5kICAgPSBlbmQ7CiAJdGxiX2ZsdXNoX21tdSh0bGIpOwogCiAJLyoga2Vl
+cCB0aGUgcGFnZSB0YWJsZSBjYWNoZSB3aXRoaW4gYm91bmRzICovCkBAIC0xMDk5LDcgKzEwOTgs
+NiBAQCBzdGF0aWMgdW5zaWduZWQgbG9uZyB6YXBfcHRlX3JhbmdlKHN0cnVjdCBtbXVfZ2F0aGVy
+ICp0bGIsCiAJc3BpbmxvY2tfdCAqcHRsOwogCXB0ZV90ICpzdGFydF9wdGU7CiAJcHRlX3QgKnB0
+ZTsKLQl1bnNpZ25lZCBsb25nIHJhbmdlX3N0YXJ0ID0gYWRkcjsKIAogYWdhaW46CiAJaW5pdF9y
+c3NfdmVjKHJzcyk7CkBAIC0xMjA1LDE3ICsxMjAzLDI1IEBAIGFnYWluOgogCSAqIGFuZCBwYWdl
+LWZyZWUgd2hpbGUgaG9sZGluZyBpdC4KIAkgKi8KIAlpZiAoZm9yY2VfZmx1c2gpIHsKKwkJdW5z
+aWduZWQgbG9uZyBvbGRfZW5kOworCiAJCWZvcmNlX2ZsdXNoID0gMDsKIAotI2lmZGVmIEhBVkVf
+R0VORVJJQ19NTVVfR0FUSEVSCi0JCXRsYi0+c3RhcnQgPSByYW5nZV9zdGFydDsKKwkJLyoKKwkJ
+ICogRmx1c2ggdGhlIFRMQiBqdXN0IGZvciB0aGUgcHJldmlvdXMgc2VnbWVudCwKKwkJICogdGhl
+biB1cGRhdGUgdGhlIHJhbmdlIHRvIGJlIHRoZSByZW1haW5pbmcKKwkJICogVExCIHJhbmdlLgor
+CQkgKi8KKwkJb2xkX2VuZCA9IHRsYi0+ZW5kOwogCQl0bGItPmVuZCA9IGFkZHI7Ci0jZW5kaWYK
+KwogCQl0bGJfZmx1c2hfbW11KHRsYik7Ci0JCWlmIChhZGRyICE9IGVuZCkgewotCQkJcmFuZ2Vf
+c3RhcnQgPSBhZGRyOworCisJCXRsYi0+c3RhcnQgPSBhZGRyOworCQl0bGItPmVuZCA9IG9sZF9l
+bmQ7CisKKwkJaWYgKGFkZHIgIT0gZW5kKQogCQkJZ290byBhZ2FpbjsKLQkJfQogCX0KIAogCXJl
+dHVybiBhZGRyOwpAQCAtMTQwMCw3ICsxNDA2LDcgQEAgdm9pZCB6YXBfcGFnZV9yYW5nZShzdHJ1
+Y3Qgdm1fYXJlYV9zdHJ1Y3QgKnZtYSwgdW5zaWduZWQgbG9uZyBzdGFydCwKIAl1bnNpZ25lZCBs
+b25nIGVuZCA9IHN0YXJ0ICsgc2l6ZTsKIAogCWxydV9hZGRfZHJhaW4oKTsKLQl0bGJfZ2F0aGVy
+X21tdSgmdGxiLCBtbSwgMCk7CisJdGxiX2dhdGhlcl9tbXUoJnRsYiwgbW0sIHN0YXJ0LCBlbmQp
+OwogCXVwZGF0ZV9oaXdhdGVyX3JzcyhtbSk7CiAJbW11X25vdGlmaWVyX2ludmFsaWRhdGVfcmFu
+Z2Vfc3RhcnQobW0sIHN0YXJ0LCBlbmQpOwogCWZvciAoIDsgdm1hICYmIHZtYS0+dm1fc3RhcnQg
+PCBlbmQ7IHZtYSA9IHZtYS0+dm1fbmV4dCkKQEAgLTE0MjYsNyArMTQzMiw3IEBAIHN0YXRpYyB2
+b2lkIHphcF9wYWdlX3JhbmdlX3NpbmdsZShzdHJ1Y3Qgdm1fYXJlYV9zdHJ1Y3QgKnZtYSwgdW5z
+aWduZWQgbG9uZyBhZGRyCiAJdW5zaWduZWQgbG9uZyBlbmQgPSBhZGRyZXNzICsgc2l6ZTsKIAog
+CWxydV9hZGRfZHJhaW4oKTsKLQl0bGJfZ2F0aGVyX21tdSgmdGxiLCBtbSwgMCk7CisJdGxiX2dh
+dGhlcl9tbXUoJnRsYiwgbW0sIGFkZHJlc3MsIGVuZCk7CiAJdXBkYXRlX2hpd2F0ZXJfcnNzKG1t
+KTsKIAltbXVfbm90aWZpZXJfaW52YWxpZGF0ZV9yYW5nZV9zdGFydChtbSwgYWRkcmVzcywgZW5k
+KTsKIAl1bm1hcF9zaW5nbGVfdm1hKCZ0bGIsIHZtYSwgYWRkcmVzcywgZW5kLCBkZXRhaWxzKTsK
+ZGlmZiAtLWdpdCBhL21tL21tYXAuYyBiL21tL21tYXAuYwppbmRleCAxZWRiYWEzMTM2YzMuLmY5
+Yzk3ZDEwYjg3MyAxMDA2NDQKLS0tIGEvbW0vbW1hcC5jCisrKyBiL21tL21tYXAuYwpAQCAtMjMz
+Niw3ICsyMzM2LDcgQEAgc3RhdGljIHZvaWQgdW5tYXBfcmVnaW9uKHN0cnVjdCBtbV9zdHJ1Y3Qg
+Km1tLAogCXN0cnVjdCBtbXVfZ2F0aGVyIHRsYjsKIAogCWxydV9hZGRfZHJhaW4oKTsKLQl0bGJf
+Z2F0aGVyX21tdSgmdGxiLCBtbSwgMCk7CisJdGxiX2dhdGhlcl9tbXUoJnRsYiwgbW0sIHN0YXJ0
+LCBlbmQpOwogCXVwZGF0ZV9oaXdhdGVyX3JzcyhtbSk7CiAJdW5tYXBfdm1hcygmdGxiLCB2bWEs
+IHN0YXJ0LCBlbmQpOwogCWZyZWVfcGd0YWJsZXMoJnRsYiwgdm1hLCBwcmV2ID8gcHJldi0+dm1f
+ZW5kIDogRklSU1RfVVNFUl9BRERSRVNTLApAQCAtMjcwOSw3ICsyNzA5LDcgQEAgdm9pZCBleGl0
+X21tYXAoc3RydWN0IG1tX3N0cnVjdCAqbW0pCiAKIAlscnVfYWRkX2RyYWluKCk7CiAJZmx1c2hf
+Y2FjaGVfbW0obW0pOwotCXRsYl9nYXRoZXJfbW11KCZ0bGIsIG1tLCAxKTsKKwl0bGJfZ2F0aGVy
+X21tdSgmdGxiLCBtbSwgMCwgLTEpOwogCS8qIHVwZGF0ZV9oaXdhdGVyX3JzcyhtbSkgaGVyZT8g
+YnV0IG5vYm9keSBzaG91bGQgYmUgbG9va2luZyAqLwogCS8qIFVzZSAtMSBoZXJlIHRvIGVuc3Vy
+ZSBhbGwgVk1BcyBpbiB0aGUgbW0gYXJlIHVubWFwcGVkICovCiAJdW5tYXBfdm1hcygmdGxiLCB2
+bWEsIDAsIC0xKTsK
+--047d7b86f33e54649404e4003e67--
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
