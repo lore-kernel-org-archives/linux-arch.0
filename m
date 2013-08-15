@@ -1,45 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([143.182.124.21]:54045 "EHLO mga03.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1760105Ab3HNQsw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 14 Aug 2013 12:48:52 -0400
-Date: Wed, 14 Aug 2013 09:48:27 -0700
-From: Andi Kleen <ak@linux.intel.com>
-Subject: Re: [RFC][PATCH 0/5] preempt_count rework
-Message-ID: <20130814164827.GN23412@tassilo.jf.intel.com>
-References: <20130814131539.790947874@chello.nl>
+Received: from mail-ee0-f52.google.com ([74.125.83.52]:61498 "EHLO
+	mail-ee0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753605Ab3HOL7Z (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Aug 2013 07:59:25 -0400
+Received: by mail-ee0-f52.google.com with SMTP id c41so321663eek.11
+        for <linux-arch@vger.kernel.org>; Thu, 15 Aug 2013 04:59:24 -0700 (PDT)
+Date: Thu, 15 Aug 2013 13:59:32 +0200
+From: Daniel Vetter <daniel@ffwll.ch>
+Subject: Re: [PATCH] dma-buf: Expose buffer size to userspace
+Message-ID: <20130815115932.GC776@phenom.ffwll.local>
+References: <1375683720-4748-1-git-send-email-christopher.halse.rogers@canonical.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20130814131539.790947874@chello.nl>
+In-Reply-To: <1375683720-4748-1-git-send-email-christopher.halse.rogers@canonical.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20130814164827.r-SeEBTltNSwg0P0FR3bpKMWRm95em-alrZDg4o6txI@z>
+To: Christopher James Halse Rogers <christopher.halse.rogers@canonical.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robclark@gmail.com, linux-media@vger.kernel.org
+Message-ID: <20130815115932.83He_Mj9mN4Icr_SlmB8BEPPgmkz6Pdxc0OAtZyTRuw@z>
 
-On Wed, Aug 14, 2013 at 03:15:39PM +0200, Peter Zijlstra wrote:
-> These patches optimize preempt_enable by firstly folding the preempt and
-> need_resched tests into one -- this should work for all architectures. And
-> secondly by providing per-arch preempt_count implementations; with x86 using
-> per-cpu preempt_count for fastest access.
+On Mon, Aug 05, 2013 at 04:22:00PM +1000, Christopher James Halse Rogers wrote:
+> Each dma-buf has an associated size and it's reasonable for userspace
+> to want to know what it is.
 > 
-> These patches have so far only been compiled for defconfig-x86_64 +
-> CONFIG_PREEMPT=y and boot tested with kvm -smp 4 upto wanting to mount root.
+> Since userspace already has an fd, expose the size using the
+> size = lseek(fd, SEEK_END, 0); lseek(fd, SEEK_CUR, 0);
+> idiom.
 > 
-> It still needs asm volatile("call preempt_schedule": : :"memory"); as per
-> Andi's other patches to avoid the C calling convention cluttering the
-> preempt_enable() sites.
+> Signed-off-by: Christopher James Halse Rogers <christopher.halse.rogers@canonical.com>
 
-FWIW I removed the user_schedule in v2 because I don't need it anymore.
-Feel free to pick it up from v1 though.
+Yeah, loosk good to me and rather useful, so (with the dma-buf docs
+improved as suggested below):
 
-It needs two patches: the one adding SAVE_ALL for 32bit and
-the parts of the put_user() patch adding user_schedule
+Reviewed-by: Daniel Vetter <daniel.vetter@ffwll.ch>
 
-When it's not used in user_ anymore it should probably 
-be renamed too, to preempt_schedule or somesuch,
-and probably moved to a different file.
+I've also written some small prime tests in igt, so also:
 
--Andi
+Tested-by: Daniel Vetter <daniel.vetter@ffwll.ch>
 
+> ---
+> 
+> I've run into a point in the radeon DRM userspace where I need the
+> size of a dma-buf. I could add a radeon-specific mechanism to get that,
+> but this seems like something that would be more generally useful.
+> 
+> I'm not entirely sure about supporting both SEEK_END and SEEK_CUR; this
+> is somewhat of an abuse of lseek, as seeking obviously doesn't make sense.
+> It's the obivous idiom for getting the size of what's on the other end of a
+> file descriptor, though.
+> 
+> I didn't notice anywhere to document this; Documentation/dma-buf-api didn't
+> seem like the right place. Is there somewhere I've overlooked?
+
+I think adding a section about various other userspace interfaces exposed
+below the mmap support section would be good. Feel free to squash in the
+belo diff for v2.
+
+Cheers, Daniel
+
+diff --git a/Documentation/dma-buf-sharing.txt b/Documentation/dma-buf-sharing.txt
+index 0b23261..b3a8aa2 100644
+--- a/Documentation/dma-buf-sharing.txt
++++ b/Documentation/dma-buf-sharing.txt
+@@ -407,6 +407,18 @@ Being able to mmap an export dma-buf buffer object has 2 main use-cases:
+    interesting ways depending upong the exporter (if userspace starts depending
+    upon this implicit synchronization).
+ 
++Other Interfaces Exposed to Userspace on the dma-buf FD
++------------------------------------------------------
++
++- Since kernel 3.12 the dma-buf FD supports the llseek system call, but only
++  with offset=0 and whence=SEEK_END|SEEK_SET. SEEK_SET is supported to allowe
++  the usual size discover pattern size = SEEK_END(0); SEEK_SET(0). Every other
++  llseek operation will report -EINVAL.
++
++  If llseek on dma-buf FDs isn't support the kernel will report -ESPIPE for all
++  cases. Userspace can use this to detect support for discovering the dma-buf
++  size using llsee.
++
+ Miscellaneous notes
+ -------------------
+-- 
+Daniel Vetter
+Software Engineer, Intel Corporation
++41 (0) 79 365 57 48 - http://blog.ffwll.ch
