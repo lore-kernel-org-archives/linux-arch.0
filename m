@@ -1,324 +1,151 @@
 From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Subject: Re: [PATCH] fence: dma-buf cross-device synchronization (v13)
-Date: Thu, 15 Aug 2013 15:57:53 +0200
-Message-ID: <520CDE61.5080106@canonical.com>
-References: <20130815111630.3926.28372.stgit@patser> <CA+GA0_ucAAa0RLSL-QpUsX8QPQ=5PvqHkS4EUb3zTfCtYo9xqA@mail.gmail.com>
+Subject: Re: [RFC PATCH] fence: dma-buf cross-device synchronization (v12)
+Date: Thu, 15 Aug 2013 16:27:47 +0200
+Message-ID: <520CE563.8060108@canonical.com>
+References: <20130729140519.25868.86479.stgit@patser> <CAF6AEGtTB05-Jf1sN9RxSak6EW77Et2HM1xr=gzLHLyc9VLYOQ@mail.gmail.com> <520CB88A.9080401@canonical.com> <CAF6AEGsNYN_tu7wvzWhjkNS5XYmet9Q7MB9fC26yrSsSDEoqHw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from youngberry.canonical.com ([91.189.89.112]:42472 "EHLO
-	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756840Ab3HON5z (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Aug 2013 09:57:55 -0400
-In-Reply-To: <CA+GA0_ucAAa0RLSL-QpUsX8QPQ=5PvqHkS4EUb3zTfCtYo9xqA@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: =?UTF-8?B?TWFyY2luIMWabHVzYXJ6?= <marcin.slusarz@gmail.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robdclark@gmail.com, daniel@ffwll.ch, linux-media@vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAF6AEGsNYN_tu7wvzWhjkNS5XYmet9Q7MB9fC26yrSsSDEoqHw@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Rob Clark <robdclark@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robclark@gmail.com, linux-media@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Op 15-08-13 14:45, Marcin =C5=9Alusarz schreef:
-> 2013/8/15 Maarten Lankhorst <maarten.lankhorst@canonical.com>:
->> A fence can be attached to a buffer which is being filled or consume=
-d
->> by hw, to allow userspace to pass the buffer without waiting to anot=
-her
->> device.  For example, userspace can call page_flip ioctl to display =
-the
->> next frame of graphics after kicking the GPU but while the GPU is st=
-ill
->> rendering.  The display device sharing the buffer with the GPU would
->> attach a callback to get notified when the GPU's rendering-complete =
-IRQ
->> fires, to update the scan-out address of the display, without having=
- to
->> wake up userspace.
+Op 15-08-13 15:14, Rob Clark schreef:
+> On Thu, Aug 15, 2013 at 7:16 AM, Maarten Lankhorst
+> <maarten.lankhorst@canonical.com> wrote:
+>> Op 12-08-13 17:43, Rob Clark schreef:
+>>> On Mon, Jul 29, 2013 at 10:05 AM, Maarten Lankhorst
+>>> <maarten.lankhorst@canonical.com> wrote:
+>>>> +
+> [snip]
+>>>> +/**
+>>>> + * fence_add_callback - add a callback to be called when the fence
+>>>> + * is signaled
+>>>> + * @fence:     [in]    the fence to wait on
+>>>> + * @cb:                [in]    the callback to register
+>>>> + * @func:      [in]    the function to call
+>>>> + * @priv:      [in]    the argument to pass to function
+>>>> + *
+>>>> + * cb will be initialized by fence_add_callback, no initialization
+>>>> + * by the caller is required. Any number of callbacks can be registered
+>>>> + * to a fence, but a callback can only be registered to one fence at a time.
+>>>> + *
+>>>> + * Note that the callback can be called from an atomic context.  If
+>>>> + * fence is already signaled, this function will return -ENOENT (and
+>>>> + * *not* call the callback)
+>>>> + *
+>>>> + * Add a software callback to the fence. Same restrictions apply to
+>>>> + * refcount as it does to fence_wait, however the caller doesn't need to
+>>>> + * keep a refcount to fence afterwards: when software access is enabled,
+>>>> + * the creator of the fence is required to keep the fence alive until
+>>>> + * after it signals with fence_signal. The callback itself can be called
+>>>> + * from irq context.
+>>>> + *
+>>>> + */
+>>>> +int fence_add_callback(struct fence *fence, struct fence_cb *cb,
+>>>> +                      fence_func_t func, void *priv)
+>>>> +{
+>>>> +       unsigned long flags;
+>>>> +       int ret = 0;
+>>>> +       bool was_set;
+>>>> +
+>>>> +       if (WARN_ON(!fence || !func))
+>>>> +               return -EINVAL;
+>>>> +
+>>>> +       if (test_bit(FENCE_FLAG_SIGNALED_BIT, &fence->flags))
+>>>> +               return -ENOENT;
+>>>> +
+>>>> +       spin_lock_irqsave(fence->lock, flags);
+>>>> +
+>>>> +       was_set = test_and_set_bit(FENCE_FLAG_ENABLE_SIGNAL_BIT, &fence->flags);
+>>>> +
+>>>> +       if (test_bit(FENCE_FLAG_SIGNALED_BIT, &fence->flags))
+>>>> +               ret = -ENOENT;
+>>>> +       else if (!was_set && !fence->ops->enable_signaling(fence)) {
+>>>> +               __fence_signal(fence);
+>>>> +               ret = -ENOENT;
+>>>> +       }
+>>>> +
+>>>> +       if (!ret) {
+>>>> +               cb->func = func;
+>>>> +               cb->priv = priv;
+>>>> +               list_add_tail(&cb->node, &fence->cb_list);
+>>> since the user is providing the 'struct fence_cb', why not drop the
+>>> priv & func args, and have some cb-initialize macro, ie.
+>>>
+>>> INIT_FENCE_CB(&foo->fence, cbfxn);
+>>>
+>>> and I guess we can just drop priv and let the user embed fence in
+>>> whatever structure they like.  Ie. make it look a bit how work_struct
+>>> works.
+>> I don't mind killing priv. But a INIT_FENCE_CB macro is silly, when all it would do is set cb->func.
+>> So passing it as  an argument to fence_add_callback is fine, unless you have a better reason to
+>> do so.
 >>
->> A driver must allocate a fence context for each execution ring that =
-can
->> run in parallel. The function for this takes an argument with how ma=
-ny
->> contexts to allocate:
->>   + fence_context_alloc()
->>
->> A fence is transient, one-shot deal.  It is allocated and attached
->> to one or more dma-buf's.  When the one that attached it is done, wi=
-th
->> the pending operation, it can signal the fence:
->>   + fence_signal()
->>
->> To have a rough approximation whether a fence is fired, call:
->>   + fence_is_signaled()
->>
->> The dma-buf-mgr handles tracking, and waiting on, the fences associa=
-ted
->> with a dma-buf.
->>
->> The one pending on the fence can add an async callback:
->>   + fence_add_callback()
->>
->> The callback can optionally be cancelled with:
->>   + fence_remove_callback()
->>
->> To wait synchronously, optionally with a timeout:
->>   + fence_wait()
->>   + fence_wait_timeout()
->>
->> A default software-only implementation is provided, which can be use=
-d
->> by drivers attaching a fence to a buffer when they have no other mea=
-ns
->> for hw sync.  But a memory backed fence is also envisioned, because =
-it
->> is common that GPU's can write to, or poll on some memory location f=
-or
->> synchronization.  For example:
->>
->>   fence =3D custom_get_fence(...);
->>   if ((seqno_fence =3D to_seqno_fence(fence)) !=3D NULL) {
->>     dma_buf *fence_buf =3D fence->sync_buf;
->>     get_dma_buf(fence_buf);
->>
->>     ... tell the hw the memory location to wait ...
->>     custom_wait_on(fence_buf, fence->seqno_ofs, fence->seqno);
->>   } else {
->>     /* fall-back to sw sync * /
->>     fence_add_callback(fence, my_cb);
->>   }
->>
->> On SoC platforms, if some other hw mechanism is provided for synchro=
-nizing
->> between IP blocks, it could be supported as an alternate implementat=
-ion
->> with it's own fence ops in a similar way.
->>
->> enable_signaling callback is used to provide sw signaling in case a =
-cpu
->> waiter is requested or no compatible hardware signaling could be use=
-d.
->>
->> The intention is to provide a userspace interface (presumably via ev=
-entfd)
->> later, to be used in conjunction with dma-buf's mmap support for sw =
-access
->> to buffers (or for userspace apps that would prefer to do their own
->> synchronization).
->>
->> v1: Original
->> v2: After discussion w/ danvet and mlankhorst on #dri-devel, we deci=
-ded
->>     that dma-fence didn't need to care about the sw->hw signaling pa=
-th
->>     (it can be handled same as sw->sw case), and therefore the fence=
-->ops
->>     can be simplified and more handled in the core.  So remove the s=
-ignal,
->>     add_callback, cancel_callback, and wait ops, and replace with a =
-simple
->>     enable_signaling() op which can be used to inform a fence suppor=
-ting
->>     hw->hw signaling that one or more devices which do not support h=
-w
->>     signaling are waiting (and therefore it should enable an irq or =
-do
->>     whatever is necessary in order that the CPU is notified when the
->>     fence is passed).
->> v3: Fix locking fail in attach_fence() and get_fence()
->> v4: Remove tie-in w/ dma-buf..  after discussion w/ danvet and mlank=
-orst
->>     we decided that we need to be able to attach one fence to N dma-=
-buf's,
->>     so using the list_head in dma-fence struct would be problematic.
->> v5: [ Maarten Lankhorst ] Updated for dma-bikeshed-fence and dma-buf=
--manager.
->> v6: [ Maarten Lankhorst ] I removed dma_fence_cancel_callback and so=
-me comments
->>     about checking if fence fired or not. This is broken by design.
->>     waitqueue_active during destruction is now fatal, since the sign=
-aller
->>     should be holding a reference in enable_signalling until it sign=
-alled
->>     the fence. Pass the original dma_fence_cb along, and call __remo=
-ve_wait
->>     in the dma_fence_callback handler, so that no cleanup needs to b=
-e
->>     performed.
->> v7: [ Maarten Lankhorst ] Set cb->func and only enable sw signaling =
-if
->>     fence wasn't signaled yet, for example for hardware fences that =
-may
->>     choose to signal blindly.
->> v8: [ Maarten Lankhorst ] Tons of tiny fixes, moved __dma_fence_init=
- to
->>     header and fixed include mess. dma-fence.h now includes dma-buf.=
-h
->>     All members are now initialized, so kmalloc can be used for
->>     allocating a dma-fence. More documentation added.
->> v9: Change compiler bitfields to flags, change return type of
->>     enable_signaling to bool. Rework dma_fence_wait. Added
->>     dma_fence_is_signaled and dma_fence_wait_timeout.
->>     s/dma// and change exports to non GPL. Added fence_is_signaled a=
-nd
->>     fence_enable_sw_signaling calls, add ability to override default
->>     wait operation.
->> v10: remove event_queue, use a custom list, export try_to_wake_up fr=
-om
->>     scheduler. Remove fence lock and use a global spinlock instead,
->>     this should hopefully remove all the locking headaches I was hav=
-ing
->>     on trying to implement this. enable_signaling is called with thi=
-s
->>     lock held.
->> v11:
->>     Use atomic ops for flags, lifting the need for some spin_lock_ir=
-qsaves.
->>     However I kept the guarantee that after fence_signal returns, it=
- is
->>     guaranteed that enable_signaling has either been called to compl=
-etion,
->>     or will not be called any more.
->>
->>     Add contexts and seqno to base fence implementation. This allows=
- you
->>     to wait for less fences, by testing for seqno + signaled, and th=
-en only
->>     wait on the later fence.
->>
->>     Add FENCE_TRACE, FENCE_WARN, and FENCE_ERR. This makes debugging=
- easier.
->>     An CONFIG_DEBUG_FENCE will be added to turn off the FENCE_TRACE
->>     spam, and another runtime option can turn it off at runtime.
->> v12:
->>     Add CONFIG_FENCE_TRACE. Add missing documentation for the fence-=
->context
->>     and fence->seqno members.
->> v13:
->>     Fixup CONFIG_FENCE_TRACE kconfig description.
->>     Move fence_context_alloc to fence.
->>     Simplify fence_later.
->>     Kill priv member to fence_cb.
->> Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
->> ---
->>  Documentation/DocBook/device-drivers.tmpl |    2
->>  drivers/base/Kconfig                      |   10 +
->>  drivers/base/Makefile                     |    2
->>  drivers/base/fence.c                      |  312 ++++++++++++++++++=
-++++++++
->>  include/linux/fence.h                     |  344 ++++++++++++++++++=
-+++++++++++
->>  5 files changed, 669 insertions(+), 1 deletion(-)
->>  create mode 100644 drivers/base/fence.c
->>  create mode 100644 include/linux/fence.h
->>
->> diff --git a/Documentation/DocBook/device-drivers.tmpl b/Documentati=
-on/DocBook/device-drivers.tmpl
->> index fe397f9..95d0db9 100644
->> --- a/Documentation/DocBook/device-drivers.tmpl
->> +++ b/Documentation/DocBook/device-drivers.tmpl
->> @@ -126,6 +126,8 @@ X!Edrivers/base/interface.c
->>       </sect1>
->>       <sect1><title>Device Drivers DMA Management</title>
->>  !Edrivers/base/dma-buf.c
->> +!Edrivers/base/fence.c
->> +!Iinclude/linux/fence.h
->>  !Edrivers/base/reservation.c
->>  !Iinclude/linux/reservation.h
->>  !Edrivers/base/dma-coherent.c
->> diff --git a/drivers/base/Kconfig b/drivers/base/Kconfig
->> index 5daa259..2bf0add 100644
->> --- a/drivers/base/Kconfig
->> +++ b/drivers/base/Kconfig
->> @@ -200,6 +200,16 @@ config DMA_SHARED_BUFFER
->>           APIs extension; the file's descriptor can then be passed o=
-n to other
->>           driver.
->>
->> +config FENCE_TRACE
->> +       bool "Enable verbose FENCE_TRACE messages"
->> +       default n
-> "default n" is superfluous
-But it's used a lot in the kernel:
+>> INIT_WORK seems to have a bit more initialization than us, it seems work can be more complicated
+>> than callbacks, because the callbacks can only be called once and work can be rescheduled multiple times.
+> yeah, INIT_WORK does more.. although maybe some day we want
+> INIT_FENCE_CB to do more (ie. if we add some debug features to help
+> catch misuse of fence/fence-cb's).  And if nothing else, having it
+> look a bit like other constructs that we have in the kernel seems
+> useful.  And with my point below, you'd want INIT_FENCE_CB to do a
+> INIT_LIST_HEAD(), so it is (very) slightly more than just setting the
+> fxn ptr.
+I don't think list is a good idea for that.
+>>> maybe also, if (!list_empty(&cb->node) return -EBUSY?
+>> I think checking for list_empty(cb->node) is a terrible idea. This is no different from any other list corruption,
+>> and it's a programming error. Not a runtime error. :-)
+> I was thinking for crtc and page-flip, embed the fence_cb in the crtc.
+>  You should only use the cb once at a time, but in this case you might
+> want to re-use it for the next page flip.  Having something to catch
+> cb mis-use in this sort of scenario seems useful.
+>
+> maybe how I am thinking to use fence_cb is not quite what you had in
+> mind.  I'm not sure.  I was trying to think how I could just directly
+> use fence/fence_cb in msm for everything (imported dmabuf or just
+> regular 'ol gem buffers).
 
-~/linux$ git grep default.y\$ | wc -l
-1292
-~/linux$ git grep default.n\$ | wc -l
-697
 
->> ...
->> +void release_fence(struct kref *kref)
-> All functions, except this one, follow "fence_$something" pattern.
-> Passing kref is a bit odd.
-This function is not intended to be called directly. It's used by fence=
-_put.
->> ....
->> +/**
->> + * fence_remove_callback - remove a callback from the signaling lis=
-t
->> + * @fence:     [in]    the fence to wait on
->> + * @cb:                [in]    the callback to remove
->> + *
->> + * Remove a previously queued callback from the fence. This functio=
-n returns
->> + * true is the callback is succesfully removed, or false if the fen=
-ce has
-> true _if_ the callback is...
-Oh wow, I had to read that 3 times to spot that typo after you pointed =
-it out. :P
->> ...
->> +
->> +extern void release_fence(struct kref *kref);
->> +
->> +/**
->> + * fence_put - decreases refcount of the fence
->> + * @fence:     [in]    fence to reduce refcount of
->> + */
->> +static inline void fence_put(struct fence *fence)
->> +{
->> +       if (WARN_ON(!fence))
->> +               return;
->> +       kref_put(&fence->refcount, release_fence);
->> +}
->> +
->> +int fence_signal(struct fence *fence);
->> +int __fence_signal(struct fence *fence);
->> +long fence_default_wait(struct fence *fence, bool intr, signed long=
- timeout);
->> +int fence_add_callback(struct fence *fence, struct fence_cb *cb,
->> +                      fence_func_t func, void *priv);
->> +bool fence_remove_callback(struct fence *fence, struct fence_cb *cb=
-);
->> +void fence_enable_sw_signaling(struct fence *fence);
-> Some functions are documented in the header and some only in the sour=
-ce file.
-> Why not move all API docs into the header?
-The declarations are put next to the code. The inlines are defined in t=
-he headers,
-so they get documented there.
->> +
->> +/**
->> + * fence_is_signaled - Return an indication if the fence is signale=
-d yet.
->> + * @fence:     [in]    the fence to check
->> + *
->> + * Returns true if the fence was already signaled, false if not. Si=
-nce this
->> + * function doesn't enable signaling, it is not guaranteed to ever =
-return true
->> + * If fence_add_callback, fence_wait or fence_enable_sw_signaling
->> + * haven't been called before.
->> + *
->> + * It's recommended for seqno fences to call fence_signal when the
->> + * operation is complete, it makes it possible to prevent issues fr=
-om
->> + * wraparound between time of issue and time of use by checking the=
- return
->> + * value of this function before calling hardware-specific wait ins=
-tructions.
->> + */
->> +static inline bool
->> +fence_is_signaled(struct fence *fence)
-> Shouldn't it be "fence_was_signaled"?
-No, unless you believe the fence ended up in a state where it is signal=
-ed, and now no longer is. ;)
-
-~Maarten
+>> cb->node.next/prev may be NULL, which would fail with this check. The contents of cb->node are undefined
+>> before fence_add_callback is called. Calling fence_remove_callback on a fence that hasn't been added is
+>> undefined too. Calling fence_remove_callback works, but I'm thinking of changing the list_del_init to list_del,
+>> which would make calling fence_remove_callback twice a fatal error if CONFIG_DEBUG_LIST is enabled,
+>> and a possible memory corruption otherwise.
+>>>> ...
+>>>> +
+> [snip]
+>>>> +
+>>>> +/**
+>>>> + * fence context counter: each execution context should have its own
+>>>> + * fence context, this allows checking if fences belong to the same
+>>>> + * context or not. One device can have multiple separate contexts,
+>>>> + * and they're used if some engine can run independently of another.
+>>>> + */
+>>>> +extern atomic_t fence_context_counter;
+>>> context-alloc should not be in the critical path.. I'd think probably
+>>> drop the extern and inline, and make fence_context_counter static
+>>> inside the .c
+>> Shrug, your bikeshed. I'll fix it shortly.
+>>>> +
+>>>> +static inline unsigned fence_context_alloc(unsigned num)
+>>> well, this is actually allocating 'num' contexts, so
+>>> 'fence_context_alloc()' sounds a bit funny.. or at least to me it
+>>> sounds from the name like it allocates a single context
+>> Sorry, max number of bikesheds reached. :P
+> well, names are important to convey meaning, and not confusing users
+> of the API..  but fence_context*s*_alloc() also sounds a bit funny.
+> So I could live w/ just some kerneldoc.  Ie. move the doc about
+> fence_counter_contex down and make it doc about the function.  That
+> was a bit my point about moving the function into the .c and making
+> fence_context_counter static.. ie. I don't think it was your intention
+> that anyone accesses fence_counter_context directly, so better to
+> document the function and make fence_counter_context the internal
+> implementation detail.
+>
+> Anyways, some of this is a bit nit-picky, but since fence is going to
+> be something used by many different drivers/subsystems, I guess it is
+> worthwhile to nit-pick over the API.
+I guess. But I couldn't come up with a better name either. v14 has added some kernel docs for this function.
