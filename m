@@ -1,59 +1,43 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v3 0/3] qrwlock: Introducing a queue read/write lock implementation
-Date: Fri, 16 Aug 2013 18:47:35 -0400
-Message-ID: <520EAC07.5050106@hp.com>
-References: <1375315259-29392-1-git-send-email-Waiman.Long@hp.com> <520A811A.7080907@hp.com> <20130814102041.GG10849@gmail.com> <520BA109.1000501@hp.com> <20130814155751.GA17821@gmail.com>
+From: Tony Luck <tony.luck@gmail.com>
+Subject: Re: [Bug] Reproducible data corruption on i5-3340M: Please continue
+ your great work! :-)
+Date: Fri, 16 Aug 2013 16:40:57 -0700
+Message-ID: <CA+8MBbK7UTHvaU4NtSaKHepTwF0-_BpW-zq3wKgvtAh-VDqOVA@mail.gmail.com>
+References: <52050382.9060802@gmail.com>
+	<520BB225.8030807@gmail.com>
+	<20130814174039.GA24033@dhcp22.suse.cz>
+	<CA+55aFwAz7GdcB6nC0Th42y8eAM591sKO1=mYh5SWgyuDdHzcA@mail.gmail.com>
+	<20130814182756.GD24033@dhcp22.suse.cz>
+	<CA+55aFxB6Wyj3G3Ju8E7bjH-706vi3vysuATUZ13h1tdYbCbnQ@mail.gmail.com>
+	<520C9E78.2020401@gmail.com>
+	<CA+55aFy2D2hTc_ina1DvungsCL4WU2OTM=bnVb8sDyDcGVCBEQ@mail.gmail.com>
+	<CA+55aFxuUrcod=X2t2yqR_zJ4s1uaCsGB-p1oLTQrG+y+Z2PbA@mail.gmail.com>
+	<520D5ED2.9040403@gmail.com>
+	<CA+55aFwFx7uhtDTX5vfiYRo+keLmuvxvSFupU4nB8g1KCN-WVg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20130814155751.GA17821@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Matt Fleming <matt.fleming@intel.com>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Harvey Harrison <harvey.harrison@gmail.com>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, "Norton, Scott J" <scott.norton@hp.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <CA+55aFwFx7uhtDTX5vfiYRo+keLmuvxvSFupU4nB8g1KCN-WVg@mail.gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Ben Tebulin <tebulin@googlemail.com>, Michal Hocko <mhocko@suse.cz>, Mel Gorman <mgorman@suse.de>, Johannes Weiner <hannes@cmpxchg.org>, Balbir Singh <bsingharora@gmail.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-mm <linux-mm@kvack.org>, Rik van Riel <riel@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 08/14/2013 11:57 AM, Ingo Molnar wrote:
-> * Waiman Long<waiman.long@hp.com>  wrote:
->
->> On 08/14/2013 06:20 AM, Ingo Molnar wrote:
->>> * Waiman Long<waiman.long@hp.com>   wrote:
->>>
->>>> I would like to share with you a rwlock related system crash that I
->>>> encountered during my testing with hackbench on an 80-core DL980. The
->>>> kernel crash because of a "watchdog detected hard lockup on cpu 79". The
->>>> crashing CPU was running "write_lock_irq(&tasklist_lock)" in
->>>> forget_original_parent() of the exit code path when I interrupted the
->>>> hackbench which was spawning thousands of processes. Apparently, the
->>>> remote CPU was not able to get the lock for a sufficient long time due
->>>> to the unfairness of the rwlock which I think my version of queue rwlock
->>>> will be able to alleviate this issue.
->>>>
->>>> So far, I was not able to reproduce the crash. I will try to see if I
->>>> could more consistently reproduce it.
->>> Was it an actual crash/lockup, or a longish hang followed by a lock
->>> detector splat followed by the system eventually recovering back to
->>> working order?
->>>
->>> Thanks,
->>>
->>> 	Ingo
->> It was an actual crash initiated by the NMI handler. I think the
->> system was in a halt state after that.
-> Could be a CONFIG_BOOTPARAM_HARDLOCKUP_PANIC_VALUE=1 kernel?
->
-> Thanks,
->
-> 	Ingo
+On Thu, Aug 15, 2013 at 5:33 PM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+> I'll probably delay committing it until tomorrow, in the hope that
+> somebody using one of the other architectures will at least ack that
+> it compiles. I'm re-attaching the patch (with the two "logn" -> "long"
+> fixes) just to encourage that. Hint hint, everybody..
 
-My test system was a RHEL6.4 system. The 3.10 kernel config file was 
-based on the original RHEL6.4 config file. So yes, the 
-CONFIG_BOOTPARAM_HARDLOCKUP_PANIC_VALUE parameter was set.
+I see I'm too late to supply an Ack for the commit, because it is already in.
+But just for completeness sake - all my ia64 configs build OK, and the couple
+that get boot tested still appear to be working too.
 
-I also found that when I bump the process count up to about 30k range, 
-interrupting the main hack_bench process may not cause the other spawned 
-process to die out. I will further investigate this phenomenon later 
-next week.
+-Tony
 
-Regards,
-Longman
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
