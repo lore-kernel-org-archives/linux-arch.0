@@ -1,8 +1,8 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
+From: richard -rw- weinberger <richard.weinberger@gmail.com>
 Subject: Re: [Bug] Reproducible data corruption on i5-3340M: Please continue
  your great work! :-)
-Date: Fri, 16 Aug 2013 16:22:17 +1000
-Message-ID: <20130816162217.dfd6b88266b772d893f90bb8@canb.auug.org.au>
+Date: Fri, 16 Aug 2013 09:55:52 +0200
+Message-ID: <CAFLxGvyHFtEKh4x0_3Sjgus9O++48BL0hzNbKadK2JoA1k3O9Q@mail.gmail.com>
 References: <52050382.9060802@gmail.com>
 	<520BB225.8030807@gmail.com>
 	<20130814174039.GA24033@dhcp22.suse.cz>
@@ -15,62 +15,29 @@ References: <52050382.9060802@gmail.com>
 	<520D5ED2.9040403@gmail.com>
 	<CA+55aFwFx7uhtDTX5vfiYRo+keLmuvxvSFupU4nB8g1KCN-WVg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA256";
- boundary="Signature=_Fri__16_Aug_2013_16_22_17_+1000_gwq8T6YN=ISaACzP"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from haggis.pcug.org.au ([203.10.76.10]:60865 "EHLO
-	members.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752101Ab3HPGWd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Aug 2013 02:22:33 -0400
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <CA+55aFwFx7uhtDTX5vfiYRo+keLmuvxvSFupU4nB8g1KCN-WVg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: owner-linux-mm@kvack.org
 To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Ben Tebulin <tebulin@googlemail.com>, Michal Hocko <mhocko@suse.cz>, Mel Gorman <mgorman@suse.de>, Johannes Weiner <hannes@cmpxchg.org>, Balbir Singh <bsingharora@gmail.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-mm <linux-mm@kvack.org>, Rik van Riel <riel@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
---Signature=_Fri__16_Aug_2013_16_22_17_+1000_gwq8T6YN=ISaACzP
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-
-Hi Linus,
-
-On Thu, 15 Aug 2013 17:33:28 -0700 Linus Torvalds <torvalds@linux-foundatio=
-n.org> wrote:
->
+On Fri, Aug 16, 2013 at 2:33 AM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
 > I'll probably delay committing it until tomorrow, in the hope that
 > somebody using one of the other architectures will at least ack that
 > it compiles. I'm re-attaching the patch (with the two "logn" -> "long"
 > fixes) just to encourage that. Hint hint, everybody..
 
-I built all the (major) PowerPC defconfigs, allnoconfig and allmodconfig
-and they built as well as they did before this patch (i.e. some failed
-for other reasons).  I have not done any boot testing on PowerPC.=20
+/me tested arch/um, so far everything looks good. :-)
 
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
+-- 
+Thanks,
+//richard
 
---Signature=_Fri__16_Aug_2013_16_22_17_+1000_gwq8T6YN=ISaACzP
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.20 (GNU/Linux)
-
-iQIbBAEBCAAGBQJSDcUgAAoJEECxmPOUX5FEosoP+IStSdd54sfyppn5kkBhxf80
-k8Bn0fIY9WNsaxjlY+cXfValHQiuUBPGmi3V8/42JETlVBDgFzhFPidDZRB1qW2+
-ABNE8GiU0lztpkLijCTOzJmttY/5P+lqPhv22MjBcGSStUCgoUdB1hYYLGHmsWQL
-2olYRNk9GPowIpCc8zdAGzC9JS4boi52xKYZVLsmuxu7+4hjO+J+oDu9s7JqRJHK
-jkgtGfHPuknpQYCzlhio/qWrf8oW8Q7y9qFqoa0bgioIW1Sp4g3917xmNo8qk9wO
-eHvCISosLzwOuOxUvXVyqsuvCbAnV6wq13UYwhCeVO6w326GGQ6wGNSxB1kLIpvT
-yE2DEhvAD7ai/88u2j83wv7TNxW39l39M0eWrT6SUhoIi13qAaG+f8n7KC1vn0c3
-KmL2I+/3Xr0SUHsJzPLCMP/x7HmiH++eAng5FYX4COLbmkqmPvZeFg5g/BpodI4S
-8xa1ftygy1YNkO1epPY3gY3+asnBPLYXFnRvleI7ASJ3b332oUDs0+HdU1JFpzrd
-snn/5/CiOXXg6ivRZ2GSUjht2lZcFalOwpX1Y/NJGaJdaPvYmeqcXNlLde7kdnHw
-ktAwfK6f3CvCedO9azkZ87yiey18SEA5wsWKA0tF3SD9r8lUfRZKC3kZwZjxfNBq
-DEH56qoP4SLlMLxOZVM=
-=fXUB
------END PGP SIGNATURE-----
-
---Signature=_Fri__16_Aug_2013_16_22_17_+1000_gwq8T6YN=ISaACzP--
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
