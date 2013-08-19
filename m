@@ -1,705 +1,357 @@
 From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Subject: [RFC PATCH] drm/nouveau: rework to new fence interface
-Date: Mon, 19 Aug 2013 12:11:49 +0200
-Message-ID: <5211EF65.9050207@canonical.com>
+Subject: [RFC PATCH] drm/radeon: rework to new fence interface
+Date: Mon, 19 Aug 2013 12:17:41 +0200
+Message-ID: <5211F0C5.2040705@canonical.com>
 References: <20130815124308.14812.58197.stgit@patser>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from youngberry.canonical.com ([91.189.89.112]:37181 "EHLO
+Received: from youngberry.canonical.com ([91.189.89.112]:37228 "EHLO
 	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750852Ab3HSKLw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Aug 2013 06:11:52 -0400
+	with ESMTP id S1750887Ab3HSKRm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Aug 2013 06:17:42 -0400
 In-Reply-To: <20130815124308.14812.58197.stgit@patser>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: dri-devel@lists.freedesktop.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linaro-mm-sig@lists.linaro.org, linux-media@vger.kernel.org, Ben Skeggs <bskeggs@redhat.com>
-
-nouveau was a bit tricky, it has no support for interrupts on <nv84, so I added
-an extra call to nouveau_fence_update in nouveau_fence_emit to increase
-the chance slightly that deferred work gets triggered.
-
-This patch depends on the vblank locking fix for the definitions of
-nouveau_event_enable_locked and nouveau_event_disable_locked.
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linaro-mm-sig@lists.linaro.org, linux-media@vger.kernel.org, Alex Deucher <alexander.deucher@amd.com>
 
 Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
 ---
-
-diff --git a/drivers/gpu/drm/nouveau/nouveau_fence.c b/drivers/gpu/drm/nouveau/nouveau_fence.c
-index be31499..78714e4 100644
---- a/drivers/gpu/drm/nouveau/nouveau_fence.c
-+++ b/drivers/gpu/drm/nouveau/nouveau_fence.c
-@@ -35,88 +35,115 @@
+diff --git a/drivers/gpu/drm/radeon/radeon.h b/drivers/gpu/drm/radeon/radeon.h
+index 9f19259..971284e 100644
+--- a/drivers/gpu/drm/radeon/radeon.h
++++ b/drivers/gpu/drm/radeon/radeon.h
+@@ -64,6 +64,7 @@
+ #include <linux/wait.h>
+ #include <linux/list.h>
+ #include <linux/kref.h>
++#include <linux/fence.h>
  
- #include <engine/fifo.h>
+ #include <ttm/ttm_bo_api.h>
+ #include <ttm/ttm_bo_driver.h>
+@@ -114,9 +115,6 @@ extern int radeon_aspm;
+ /* max number of rings */
+ #define RADEON_NUM_RINGS			6
  
--struct fence_work {
--	struct work_struct base;
--	struct list_head head;
--	void (*func)(void *);
--	void *data;
--};
-+static const struct fence_ops nouveau_fence_ops_uevent;
-+static const struct fence_ops nouveau_fence_ops_legacy;
+-/* fence seq are set to this number when signaled */
+-#define RADEON_FENCE_SIGNALED_SEQ		0LL
+-
+ /* internal ring indices */
+ /* r1xx+ has gfx CP ring */
+ #define RADEON_RING_TYPE_GFX_INDEX	0
+@@ -285,12 +283,15 @@ struct radeon_fence_driver {
+ };
  
- static void
- nouveau_fence_signal(struct nouveau_fence *fence)
- {
--	struct fence_work *work, *temp;
-+	__fence_signal(&fence->base);
-+	list_del(&fence->head);
- 
--	list_for_each_entry_safe(work, temp, &fence->work, head) {
--		schedule_work(&work->base);
--		list_del(&work->head);
-+	if (fence->base.ops == &nouveau_fence_ops_uevent &&
-+	    fence->event.head.next) {
-+		struct nouveau_event *event;
+ struct radeon_fence {
++	struct fence base;
 +
-+		list_del(&fence->event.head);
-+		fence->event.head.next = NULL;
+ 	struct radeon_device		*rdev;
+-	struct kref			kref;
+ 	/* protected by radeon_fence.lock */
+ 	uint64_t			seq;
+ 	/* RB, DMA, etc. */
+ 	unsigned			ring;
 +
-+		event = container_of(fence->base.lock, typeof(*event), lock);
-+		if (!--event->index[0].refs)
-+			event->disable(event, 0);
++	wait_queue_t fence_wake;
+ };
+ 
+ int radeon_fence_driver_start_ring(struct radeon_device *rdev, int ring);
+@@ -2039,6 +2040,7 @@ struct radeon_device {
+ 	struct radeon_mman		mman;
+ 	struct radeon_fence_driver	fence_drv[RADEON_NUM_RINGS];
+ 	wait_queue_head_t		fence_queue;
++	unsigned			fence_context;
+ 	struct mutex			ring_lock;
+ 	struct radeon_ring		ring[RADEON_NUM_RINGS];
+ 	bool				ib_pool_ready;
+@@ -2117,11 +2119,6 @@ u32 cik_mm_rdoorbell(struct radeon_device *rdev, u32 offset);
+ void cik_mm_wdoorbell(struct radeon_device *rdev, u32 offset, u32 v);
+ 
+ /*
+- * Cast helper
+- */
+-#define to_radeon_fence(p) ((struct radeon_fence *)(p))
+-
+-/*
+  * Registers read & write functions.
+  */
+ #define RREG8(reg) readb((rdev->rmmio) + (reg))
+diff --git a/drivers/gpu/drm/radeon/radeon_device.c b/drivers/gpu/drm/radeon/radeon_device.c
+index 63398ae..d76a187 100644
+--- a/drivers/gpu/drm/radeon/radeon_device.c
++++ b/drivers/gpu/drm/radeon/radeon_device.c
+@@ -1150,6 +1150,7 @@ int radeon_device_init(struct radeon_device *rdev,
+ 	for (i = 0; i < RADEON_NUM_RINGS; i++) {
+ 		rdev->ring[i].idx = i;
  	}
++	rdev->fence_context = fence_context_alloc(RADEON_NUM_RINGS);
  
--	fence->channel = NULL;
--	list_del(&fence->head);
-+	fence_put(&fence->base);
- }
+ 	DRM_INFO("initializing kernel modesetting (%s 0x%04X:0x%04X 0x%04X:0x%04X).\n",
+ 		radeon_family_name[rdev->family], pdev->vendor, pdev->device,
+diff --git a/drivers/gpu/drm/radeon/radeon_fence.c b/drivers/gpu/drm/radeon/radeon_fence.c
+index ddb8f8e..92a1576 100644
+--- a/drivers/gpu/drm/radeon/radeon_fence.c
++++ b/drivers/gpu/drm/radeon/radeon_fence.c
+@@ -39,6 +39,15 @@
+ #include "radeon.h"
+ #include "radeon_trace.h"
  
- void
- nouveau_fence_context_del(struct nouveau_fence_chan *fctx)
- {
- 	struct nouveau_fence *fence, *fnext;
--	spin_lock(&fctx->lock);
--	list_for_each_entry_safe(fence, fnext, &fctx->pending, head) {
++static const struct fence_ops radeon_fence_ops;
 +
-+	spin_lock_irq(fctx->lock);
-+	list_for_each_entry_safe(fence, fnext, &fctx->pending, head)
- 		nouveau_fence_signal(fence);
--	}
--	spin_unlock(&fctx->lock);
-+	spin_unlock_irq(fctx->lock);
- }
- 
- void
--nouveau_fence_context_new(struct nouveau_fence_chan *fctx)
-+nouveau_fence_context_new(struct nouveau_channel *chan, struct nouveau_fence_chan *fctx)
- {
-+	struct nouveau_fifo *pfifo = nouveau_fifo(chan->drm->device);
++#define to_radeon_fence(p) \
++	({								\
++		struct radeon_fence *__f;				\
++		__f = container_of((p), struct radeon_fence, base);	\
++		__f->base.ops == &radeon_fence_ops ? __f : NULL;	\
++	})
 +
-+	fctx->lock = &pfifo->uevent->lock;
- 	INIT_LIST_HEAD(&fctx->flip);
- 	INIT_LIST_HEAD(&fctx->pending);
--	spin_lock_init(&fctx->lock);
- }
- 
-+struct nouveau_fence_work {
-+	struct work_struct work;
-+	struct fence_cb cb;
-+	void (*func)(void *);
-+	void *data;
-+};
-+
- static void
- nouveau_fence_work_handler(struct work_struct *kwork)
+ /*
+  * Fences
+  * Fences mark an event in the GPUs pipeline and are used
+@@ -111,14 +120,17 @@ int radeon_fence_emit(struct radeon_device *rdev,
+ 		      struct radeon_fence **fence,
+ 		      int ring)
  {
--	struct fence_work *work = container_of(kwork, typeof(*work), base);
-+	struct nouveau_fence_work *work = container_of(kwork, typeof(*work), work);
- 	work->func(work->data);
- 	kfree(work);
++	u64 seq = ++rdev->fence_drv[ring].sync_seq[ring];
++
+ 	/* we are protected by the ring emission mutex */
+ 	*fence = kmalloc(sizeof(struct radeon_fence), GFP_KERNEL);
+ 	if ((*fence) == NULL) {
+ 		return -ENOMEM;
+ 	}
+-	kref_init(&((*fence)->kref));
++	__fence_init(&(*fence)->base, &radeon_fence_ops,
++		     &rdev->fence_queue.lock, rdev->fence_context + ring, seq);
+ 	(*fence)->rdev = rdev;
+-	(*fence)->seq = ++rdev->fence_drv[ring].sync_seq[ring];
++	(*fence)->seq = seq;
+ 	(*fence)->ring = ring;
+ 	radeon_fence_ring_emit(rdev, ring, *fence);
+ 	trace_radeon_fence_emit(rdev->ddev, (*fence)->seq);
+@@ -126,15 +138,38 @@ int radeon_fence_emit(struct radeon_device *rdev,
  }
  
-+static void nouveau_fence_work_cb(struct fence *fence, struct fence_cb *cb)
+ /**
+- * radeon_fence_process - process a fence
++ * radeon_fence_check_signaled - callback from fence_queue
+  *
+- * @rdev: radeon_device pointer
+- * @ring: ring index the fence is associated with
+- *
+- * Checks the current fence value and wakes the fence queue
+- * if the sequence number has increased (all asics).
++ * this function is called with fence_queue lock held, which is also used
++ * for the fence locking itself, so unlocked variants are used for
++ * fence_signal, and remove_wait_queue.
+  */
+-void radeon_fence_process(struct radeon_device *rdev, int ring)
++static int radeon_fence_check_signaled(wait_queue_t *wait, unsigned mode, int flags, void *key)
 +{
-+	struct nouveau_fence_work *work = container_of(cb, typeof(*work), cb);
++	struct radeon_fence *fence;
++	u64 seq;
 +
-+	schedule_work(&work->work);
++	fence = container_of(wait, struct radeon_fence, fence_wake);
++
++	seq = atomic64_read(&fence->rdev->fence_drv[fence->ring].last_seq);
++	if (seq >= fence->seq) {
++		int ret = __fence_signal(&fence->base);
++
++		if (!ret)
++			FENCE_TRACE(&fence->base, "signaled from irq context\n");
++		else
++			FENCE_TRACE(&fence->base, "was already signaled\n");
++
++		/* probably a bad idea to call this from the irq handler, so lets not.. */
++		atomic_dec(&fence->rdev->irq.ring_int[fence->ring]);
++		__remove_wait_queue(&fence->rdev->fence_queue, &fence->fence_wake);
++		fence_put(&fence->base);
++	} else
++		FENCE_TRACE(&fence->base, "pending\n");
++	return 0;
 +}
 +
-+/*
-+ * In an ideal world, read would not assume the channel context is still alive.
-+ * This function may be called from another device, running into free memory as a
-+ * result. The drm node should still be there, so we can derive the index from
-+ * the fence context.
-+ */
-+static bool nouveau_fence_is_signaled(struct fence *f)
-+{
-+	struct nouveau_fence *fence = container_of(f, struct nouveau_fence, base);
-+	struct nouveau_channel *chan = fence->channel;
-+	struct nouveau_fence_chan *fctx = chan->fence;
-+
-+	return (int)(fctx->read(chan) - fence->base.seqno) >= 0;
-+}
-+
- void
- nouveau_fence_work(struct nouveau_fence *fence,
- 		   void (*func)(void *), void *data)
++static bool __radeon_fence_process(struct radeon_device *rdev, int ring)
  {
--	struct nouveau_channel *chan = fence->channel;
--	struct nouveau_fence_chan *fctx;
--	struct fence_work *work = NULL;
-+	struct nouveau_fence_work *work;
- 
--	if (nouveau_fence_done(fence)) {
--		func(data);
--		return;
--	}
-+	if (fence_is_signaled(&fence->base))
-+		goto err;
- 
--	fctx = chan->fence;
- 	work = kmalloc(sizeof(*work), GFP_KERNEL);
- 	if (!work) {
- 		WARN_ON(nouveau_fence_wait(fence, false, false));
--		func(data);
--		return;
--	}
--
--	spin_lock(&fctx->lock);
--	if (!fence->channel) {
--		spin_unlock(&fctx->lock);
--		kfree(work);
--		func(data);
--		return;
-+		goto err;
- 	}
- 
--	INIT_WORK(&work->base, nouveau_fence_work_handler);
-+	INIT_WORK(&work->work, nouveau_fence_work_handler);
- 	work->func = func;
- 	work->data = data;
--	list_add(&work->head, &fence->work);
--	spin_unlock(&fctx->lock);
-+
-+	if (fence_add_callback(&fence->base, &work->cb, nouveau_fence_work_cb) < 0)
-+		goto err_free;
-+	return;
-+
-+err_free:
-+	kfree(work);
-+err:
-+	func(data);
- }
- 
- static void
-@@ -125,33 +152,44 @@ nouveau_fence_update(struct nouveau_channel *chan)
- 	struct nouveau_fence_chan *fctx = chan->fence;
- 	struct nouveau_fence *fence, *fnext;
- 
--	spin_lock(&fctx->lock);
-+	u32 seq = fctx->read(chan);
-+
- 	list_for_each_entry_safe(fence, fnext, &fctx->pending, head) {
--		if (fctx->read(chan) < fence->sequence)
-+		if ((int)(seq - fence->base.seqno) < 0)
- 			break;
- 
- 		nouveau_fence_signal(fence);
--		nouveau_fence_unref(&fence);
- 	}
--	spin_unlock(&fctx->lock);
- }
- 
- int
- nouveau_fence_emit(struct nouveau_fence *fence, struct nouveau_channel *chan)
- {
- 	struct nouveau_fence_chan *fctx = chan->fence;
-+	struct nouveau_fifo *pfifo = nouveau_fifo(chan->drm->device);
-+	struct nouveau_fifo_chan *fifo = (void*)chan->object;
-+	struct nouveau_fence_priv *priv = (void*)chan->drm->fence;
- 	int ret;
- 
- 	fence->channel  = chan;
- 	fence->timeout  = jiffies + (15 * DRM_HZ);
--	fence->sequence = ++fctx->sequence;
-+
-+	if (priv->uevent)
-+		__fence_init(&fence->base, &nouveau_fence_ops_uevent,
-+			    &pfifo->uevent->lock,
-+			    priv->context_base + fifo->chid, ++fctx->sequence);
-+	else
-+		__fence_init(&fence->base, &nouveau_fence_ops_legacy,
-+			    &pfifo->uevent->lock,
-+			    priv->context_base + fifo->chid, ++fctx->sequence);
- 
- 	ret = fctx->emit(fence);
- 	if (!ret) {
--		kref_get(&fence->kref);
--		spin_lock(&fctx->lock);
-+		fence_get(&fence->base);
-+		spin_lock_irq(fctx->lock);
-+		nouveau_fence_update(chan);
- 		list_add_tail(&fence->head, &fctx->pending);
--		spin_unlock(&fctx->lock);
-+		spin_unlock_irq(fctx->lock);
- 	}
- 
- 	return ret;
-@@ -160,107 +198,71 @@ nouveau_fence_emit(struct nouveau_fence *fence, struct nouveau_channel *chan)
- bool
- nouveau_fence_done(struct nouveau_fence *fence)
- {
--	if (fence->channel)
-+	if (fence->base.ops == &nouveau_fence_ops_legacy ||
-+	    fence->base.ops == &nouveau_fence_ops_uevent) {
-+		struct nouveau_fence_chan *fctx;
-+		unsigned long flags;
-+
-+		if (test_bit(FENCE_FLAG_SIGNALED_BIT, &fence->base.flags))
-+			return true;
-+
-+		fctx = fence->channel->fence;
-+		spin_lock_irqsave(fctx->lock, flags);
- 		nouveau_fence_update(fence->channel);
--	return !fence->channel;
-+		spin_unlock_irqrestore(fctx->lock, flags);
-+	}
-+	return fence_is_signaled(&fence->base);
- }
- 
--struct nouveau_fence_uevent {
--	struct nouveau_eventh handler;
--	struct nouveau_fence_priv *priv;
--};
--
--static int
--nouveau_fence_wait_uevent_handler(struct nouveau_eventh *event, int index)
-+static long
-+nouveau_fence_wait_legacy(struct fence *f, bool intr, long wait)
- {
--	struct nouveau_fence_uevent *uevent =
--		container_of(event, struct nouveau_fence_uevent, handler);
--	wake_up_all(&uevent->priv->waiting);
--	return NVKM_EVENT_KEEP;
--}
-+	struct nouveau_fence *fence = container_of(f, typeof(*fence), base);
-+	unsigned long sleep_time = NSEC_PER_MSEC / 1000;
-+	unsigned long t = jiffies, timeout = t + wait;
- 
--static int
--nouveau_fence_wait_uevent(struct nouveau_fence *fence, bool intr)
-+	while (!nouveau_fence_done(fence)) {
-+		ktime_t kt;
- 
--{
--	struct nouveau_channel *chan = fence->channel;
--	struct nouveau_fifo *pfifo = nouveau_fifo(chan->drm->device);
--	struct nouveau_fence_priv *priv = chan->drm->fence;
--	struct nouveau_fence_uevent uevent = {
--		.handler.func = nouveau_fence_wait_uevent_handler,
--		.priv = priv,
--	};
--	int ret = 0;
-+		t = jiffies;
- 
--	nouveau_event_get(pfifo->uevent, 0, &uevent.handler);
--
--	if (fence->timeout) {
--		unsigned long timeout = fence->timeout - jiffies;
--
--		if (time_before(jiffies, fence->timeout)) {
--			if (intr) {
--				ret = wait_event_interruptible_timeout(
--						priv->waiting,
--						nouveau_fence_done(fence),
--						timeout);
--			} else {
--				ret = wait_event_timeout(priv->waiting,
--						nouveau_fence_done(fence),
--						timeout);
--			}
-+		if (wait != MAX_SCHEDULE_TIMEOUT && time_after_eq(t, timeout)) {
-+			__set_current_state(TASK_RUNNING);
-+			return 0;
+ 	uint64_t seq, last_seq, last_emitted;
+ 	unsigned count_loop = 0;
+@@ -190,25 +225,24 @@ void radeon_fence_process(struct radeon_device *rdev, int ring)
  		}
+ 	} while (atomic64_xchg(&rdev->fence_drv[ring].last_seq, seq) > seq);
  
--		if (ret >= 0) {
--			fence->timeout = jiffies + ret;
--			if (time_after_eq(jiffies, fence->timeout))
--				ret = -EBUSY;
--		}
--	} else {
--		if (intr) {
--			ret = wait_event_interruptible(priv->waiting,
--					nouveau_fence_done(fence));
--		} else {
--			wait_event(priv->waiting, nouveau_fence_done(fence));
--		}
-+		__set_current_state(intr ? TASK_INTERRUPTIBLE :
-+					   TASK_UNINTERRUPTIBLE);
-+
-+		kt = ktime_set(0, sleep_time);
-+		schedule_hrtimeout(&kt, HRTIMER_MODE_REL);
-+		sleep_time *= 2;
-+		if (sleep_time > NSEC_PER_MSEC)
-+			sleep_time = NSEC_PER_MSEC;
-+
-+		if (intr && signal_pending(current))
-+			return -ERESTARTSYS;
- 	}
- 
--	nouveau_event_put(pfifo->uevent, 0, &uevent.handler);
--	if (unlikely(ret < 0))
--		return ret;
-+	__set_current_state(TASK_RUNNING);
- 
--	return 0;
-+	return timeout - t;
- }
- 
--int
--nouveau_fence_wait(struct nouveau_fence *fence, bool lazy, bool intr)
-+static int
-+nouveau_fence_wait_busy(struct nouveau_fence *fence, bool intr)
- {
--	struct nouveau_channel *chan = fence->channel;
--	struct nouveau_fence_priv *priv = chan ? chan->drm->fence : NULL;
--	unsigned long sleep_time = NSEC_PER_MSEC / 1000;
--	ktime_t t;
- 	int ret = 0;
- 
--	while (priv && priv->uevent && lazy && !nouveau_fence_done(fence)) {
--		ret = nouveau_fence_wait_uevent(fence, intr);
--		if (ret < 0)
--			return ret;
+-	if (wake) {
++	if (wake)
+ 		rdev->fence_drv[ring].last_activity = jiffies;
+-		wake_up_all(&rdev->fence_queue);
 -	}
--
- 	while (!nouveau_fence_done(fence)) {
--		if (fence->timeout && time_after_eq(jiffies, fence->timeout)) {
-+		if (time_after_eq(jiffies, fence->timeout)) {
- 			ret = -EBUSY;
- 			break;
- 		}
- 
--		__set_current_state(intr ? TASK_INTERRUPTIBLE :
--					   TASK_UNINTERRUPTIBLE);
--		if (lazy) {
--			t = ktime_set(0, sleep_time);
--			schedule_hrtimeout(&t, HRTIMER_MODE_REL);
--			sleep_time *= 2;
--			if (sleep_time > NSEC_PER_MSEC)
--				sleep_time = NSEC_PER_MSEC;
--		}
-+		__set_current_state(intr ?
-+				    TASK_INTERRUPTIBLE :
-+				    TASK_UNINTERRUPTIBLE);
- 
- 		if (intr && signal_pending(current)) {
- 			ret = -ERESTARTSYS;
-@@ -273,14 +275,31 @@ nouveau_fence_wait(struct nouveau_fence *fence, bool lazy, bool intr)
++	return wake;
  }
  
- int
-+nouveau_fence_wait(struct nouveau_fence *fence, bool lazy, bool intr)
-+{
-+	long ret;
-+
-+	if (!lazy)
-+		return nouveau_fence_wait_busy(fence, intr);
-+
-+	ret = fence_wait_timeout(&fence->base, intr, 15 * DRM_HZ);
-+	if (ret < 0)
-+		return ret;
-+	else if (!ret)
-+		return -EBUSY;
-+	else
-+		return 0;
-+}
-+
-+int
- nouveau_fence_sync(struct nouveau_fence *fence, struct nouveau_channel *chan)
+ /**
+- * radeon_fence_destroy - destroy a fence
++ * radeon_fence_process - process a fence
+  *
+- * @kref: fence kref
++ * @rdev: radeon_device pointer
++ * @ring: ring index the fence is associated with
+  *
+- * Frees the fence object (all asics).
++ * Checks the current fence value and wakes the fence queue
++ * if the sequence number has increased (all asics).
+  */
+-static void radeon_fence_destroy(struct kref *kref)
++void radeon_fence_process(struct radeon_device *rdev, int ring)
  {
- 	struct nouveau_fence_chan *fctx = chan->fence;
--	struct nouveau_channel *prev;
- 	int ret = 0;
- 
--	prev = fence ? fence->channel : NULL;
--	if (prev) {
-+	if (fence) {
-+		struct nouveau_channel *prev = fence->channel;
-+
- 		if (unlikely(prev != chan && !nouveau_fence_done(fence))) {
- 			ret = fctx->sync(fence, prev, chan);
- 			if (unlikely(ret))
-@@ -291,25 +310,18 @@ nouveau_fence_sync(struct nouveau_fence *fence, struct nouveau_channel *chan)
- 	return ret;
- }
- 
--static void
--nouveau_fence_del(struct kref *kref)
--{
--	struct nouveau_fence *fence = container_of(kref, typeof(*fence), kref);
+-	struct radeon_fence *fence;
+-
+-	fence = container_of(kref, struct radeon_fence, kref);
 -	kfree(fence);
--}
--
- void
- nouveau_fence_unref(struct nouveau_fence **pfence)
- {
- 	if (*pfence)
--		kref_put(&(*pfence)->kref, nouveau_fence_del);
-+		fence_put(&(*pfence)->base);
- 	*pfence = NULL;
++	if (__radeon_fence_process(rdev, ring))
++		wake_up_all(&rdev->fence_queue);
  }
  
- struct nouveau_fence *
- nouveau_fence_ref(struct nouveau_fence *fence)
+ /**
+@@ -239,6 +273,49 @@ static bool radeon_fence_seq_signaled(struct radeon_device *rdev,
+ 	return false;
+ }
+ 
++static bool __radeon_fence_signaled(struct fence *f)
++{
++	struct radeon_fence *fence = to_radeon_fence(f);
++
++	return radeon_fence_seq_signaled(fence->rdev, fence->seq, fence->ring);
++}
++
++/**
++ * radeon_fence_enable_signaling - enable signalling on fence
++ * @fence: fence
++ *
++ * This function is called with fence_queue lock held, and adds a callback
++ * to fence_queue that checks if this fence is signaled, and if so it
++ * signals the fence and removes itself.
++ */
++static bool radeon_fence_enable_signaling(struct fence *f)
++{
++	struct radeon_fence *fence = to_radeon_fence(f);
++
++	if (atomic64_read(&fence->rdev->fence_drv[fence->ring].last_seq) >= fence->seq ||
++	    !fence->rdev->ddev->irq_enabled)
++		return false;
++
++	radeon_irq_kms_sw_irq_get(fence->rdev, fence->ring);
++
++	if (__radeon_fence_process(fence->rdev, fence->ring))
++		wake_up_all_locked(&fence->rdev->fence_queue);
++
++	/* did fence get signaled after we enabled the sw irq? */
++	if (atomic64_read(&fence->rdev->fence_drv[fence->ring].last_seq) >= fence->seq) {
++		radeon_irq_kms_sw_irq_put(fence->rdev, fence->ring);
++		return false;
++	}
++
++	fence->fence_wake.flags = 0;
++	fence->fence_wake.private = NULL;
++	fence->fence_wake.func = radeon_fence_check_signaled;
++	__add_wait_queue(&fence->rdev->fence_queue, &fence->fence_wake);
++	fence_get(f);
++
++	return true;
++}
++
+ /**
+  * radeon_fence_signaled - check if a fence has signaled
+  *
+@@ -252,11 +329,13 @@ bool radeon_fence_signaled(struct radeon_fence *fence)
+ 	if (!fence) {
+ 		return true;
+ 	}
+-	if (fence->seq == RADEON_FENCE_SIGNALED_SEQ) {
+-		return true;
+-	}
++
+ 	if (radeon_fence_seq_signaled(fence->rdev, fence->seq, fence->ring)) {
+-		fence->seq = RADEON_FENCE_SIGNALED_SEQ;
++		int ret;
++
++		ret = fence_signal(&fence->base);
++		if (!ret)
++			FENCE_TRACE(&fence->base, "signaled from radeon_fence_signaled\n");
+ 		return true;
+ 	}
+ 	return false;
+@@ -379,7 +458,7 @@ static int radeon_fence_wait_seq(struct radeon_device *rdev, u64 target_seq,
+  * radeon_fence_wait - wait for a fence to signal
+  *
+  * @fence: radeon fence object
+- * @intr: use interruptable sleep
++ * @intr: use interruptible sleep
+  *
+  * Wait for the requested fence to signal (all asics).
+  * @intr selects whether to use interruptable (true) or non-interruptable
+@@ -390,17 +469,17 @@ int radeon_fence_wait(struct radeon_fence *fence, bool intr)
+ {
+ 	int r;
+ 
+-	if (fence == NULL) {
+-		WARN(1, "Querying an invalid fence : %p !\n", fence);
+-		return -EINVAL;
+-	}
++	if (test_bit(FENCE_FLAG_SIGNALED_BIT, &fence->base.flags))
++		return 0;
+ 
+ 	r = radeon_fence_wait_seq(fence->rdev, fence->seq,
+ 				  fence->ring, intr, true);
+ 	if (r) {
+ 		return r;
+ 	}
+-	fence->seq = RADEON_FENCE_SIGNALED_SEQ;
++	r = fence_signal(&fence->base);
++	if (!r)
++		FENCE_TRACE(&fence->base, "signaled from fence_wait\n");
+ 	return 0;
+ }
+ 
+@@ -567,8 +646,8 @@ int radeon_fence_wait_any(struct radeon_device *rdev,
+ 			continue;
+ 		}
+ 
+-		if (fences[i]->seq == RADEON_FENCE_SIGNALED_SEQ) {
+-			/* something was allready signaled */
++		if (test_bit(FENCE_FLAG_SIGNALED_BIT, &fences[i]->base.flags)) {
++			/* already signaled */
+ 			return 0;
+ 		}
+ 
+@@ -641,7 +720,7 @@ int radeon_fence_wait_empty_locked(struct radeon_device *rdev, int ring)
+  */
+ struct radeon_fence *radeon_fence_ref(struct radeon_fence *fence)
  {
 -	kref_get(&fence->kref);
 +	fence_get(&fence->base);
  	return fence;
  }
  
-@@ -327,9 +339,7 @@ nouveau_fence_new(struct nouveau_channel *chan, bool sysmem,
- 	if (!fence)
- 		return -ENOMEM;
+@@ -657,9 +736,8 @@ void radeon_fence_unref(struct radeon_fence **fence)
+ 	struct radeon_fence *tmp = *fence;
  
--	INIT_LIST_HEAD(&fence->work);
- 	fence->sysmem = sysmem;
--	kref_init(&fence->kref);
+ 	*fence = NULL;
+-	if (tmp) {
+-		kref_put(&tmp->kref, radeon_fence_destroy);
+-	}
++	if (tmp)
++		fence_put(&tmp->base);
+ }
  
- 	ret = nouveau_fence_emit(fence, chan);
- 	if (ret)
-@@ -338,3 +348,64 @@ nouveau_fence_new(struct nouveau_channel *chan, bool sysmem,
- 	*pfence = fence;
- 	return ret;
+ /**
+@@ -947,3 +1025,10 @@ int radeon_debugfs_fence_init(struct radeon_device *rdev)
+ 	return 0;
+ #endif
  }
 +
-+
-+static bool nouveau_fence_no_signaling(struct fence *f)
-+{
-+	/*
-+	 * This needs uevents to work correctly, but fence_add_callback relies on
-+	 * being able to enable signaling. It will still get signaled eventually,
-+	 * just not right away.
-+	 */
-+	if (nouveau_fence_is_signaled(f))
-+		return false;
-+
-+	return true;
-+}
-+
-+static const struct fence_ops nouveau_fence_ops_legacy = {
-+	.enable_signaling = nouveau_fence_no_signaling,
-+	.signaled = nouveau_fence_is_signaled,
-+	.wait = nouveau_fence_wait_legacy,
-+	.release = NULL
-+};
-+
-+static int
-+nouveau_fence_wait_uevent_handler(struct nouveau_eventh *event, int index)
-+{
-+	struct nouveau_fence *fence =
-+		container_of(event, struct nouveau_fence, event);
-+
-+	if (nouveau_fence_is_signaled(&fence->base))
-+		nouveau_fence_signal(fence);
-+
-+	/*
-+	 * NVKM_EVENT_DROP is never appropriate here, nouveau_fence_signal
-+	 * will unlink and free the event if needed.
-+	 */
-+	return NVKM_EVENT_KEEP;
-+}
-+
-+static bool nouveau_fence_enable_signaling(struct fence *f)
-+{
-+	struct nouveau_fence *fence = container_of(f, struct nouveau_fence, base);
-+	struct nouveau_event *event = container_of(f->lock, struct nouveau_event, lock);
-+
-+	nouveau_event_enable_locked(event, 0);
-+	if (nouveau_fence_is_signaled(f)) {
-+		nouveau_event_disable_locked(event, 0, 1);
-+		return false;
-+	}
-+
-+	list_add_tail(&fence->event.head, &event->index[0].list);
-+	fence->event.func = nouveau_fence_wait_uevent_handler;
-+
-+	return true;
-+}
-+
-+static const struct fence_ops nouveau_fence_ops_uevent = {
-+	.enable_signaling = nouveau_fence_enable_signaling,
-+	.signaled = nouveau_fence_is_signaled,
++static const struct fence_ops radeon_fence_ops = {
++	.enable_signaling = radeon_fence_enable_signaling,
++	.signaled = __radeon_fence_signaled,
 +	.wait = fence_default_wait,
-+	.release = NULL
++	.release = NULL,
 +};
-diff --git a/drivers/gpu/drm/nouveau/nouveau_fence.h b/drivers/gpu/drm/nouveau/nouveau_fence.h
-index c57bb61..1df933c 100644
---- a/drivers/gpu/drm/nouveau/nouveau_fence.h
-+++ b/drivers/gpu/drm/nouveau/nouveau_fence.h
-@@ -1,18 +1,20 @@
- #ifndef __NOUVEAU_FENCE_H__
- #define __NOUVEAU_FENCE_H__
- 
-+#include <linux/fence.h>
-+
- struct nouveau_drm;
- 
- struct nouveau_fence {
-+	struct fence base;
-+
- 	struct list_head head;
--	struct list_head work;
--	struct kref kref;
-+	struct nouveau_eventh event;
- 
- 	bool sysmem;
- 
- 	struct nouveau_channel *channel;
- 	unsigned long timeout;
--	u32 sequence;
- };
- 
- int  nouveau_fence_new(struct nouveau_channel *, bool sysmem,
-@@ -38,8 +40,9 @@ struct nouveau_fence_chan {
- 	int  (*emit32)(struct nouveau_channel *, u64, u32);
- 	int  (*sync32)(struct nouveau_channel *, u64, u32);
- 
--	spinlock_t lock;
-+	spinlock_t *lock;
- 	u32 sequence;
-+	u32 context;
- };
- 
- struct nouveau_fence_priv {
-@@ -49,13 +52,14 @@ struct nouveau_fence_priv {
- 	int  (*context_new)(struct nouveau_channel *);
- 	void (*context_del)(struct nouveau_channel *);
- 
--	wait_queue_head_t waiting;
- 	bool uevent;
-+
-+	u32 contexts, context_base;
- };
- 
- #define nouveau_fence(drm) ((struct nouveau_fence_priv *)(drm)->fence)
- 
--void nouveau_fence_context_new(struct nouveau_fence_chan *);
-+void nouveau_fence_context_new(struct nouveau_channel *, struct nouveau_fence_chan *);
- void nouveau_fence_context_del(struct nouveau_fence_chan *);
- 
- int nv04_fence_create(struct nouveau_drm *);
-diff --git a/drivers/gpu/drm/nouveau/nv04_fence.c b/drivers/gpu/drm/nouveau/nv04_fence.c
-index 94eadd1..997c541 100644
---- a/drivers/gpu/drm/nouveau/nv04_fence.c
-+++ b/drivers/gpu/drm/nouveau/nv04_fence.c
-@@ -43,7 +43,7 @@ nv04_fence_emit(struct nouveau_fence *fence)
- 	int ret = RING_SPACE(chan, 2);
- 	if (ret == 0) {
- 		BEGIN_NV04(chan, NvSubSw, 0x0150, 1);
--		OUT_RING  (chan, fence->sequence);
-+		OUT_RING  (chan, fence->base.seqno);
- 		FIRE_RING (chan);
- 	}
- 	return ret;
-@@ -77,7 +77,7 @@ nv04_fence_context_new(struct nouveau_channel *chan)
- {
- 	struct nv04_fence_chan *fctx = kzalloc(sizeof(*fctx), GFP_KERNEL);
- 	if (fctx) {
--		nouveau_fence_context_new(&fctx->base);
-+		nouveau_fence_context_new(chan, &fctx->base);
- 		fctx->base.emit = nv04_fence_emit;
- 		fctx->base.sync = nv04_fence_sync;
- 		fctx->base.read = nv04_fence_read;
-diff --git a/drivers/gpu/drm/nouveau/nv10_fence.c b/drivers/gpu/drm/nouveau/nv10_fence.c
-index 06f434f..e8f73f7 100644
---- a/drivers/gpu/drm/nouveau/nv10_fence.c
-+++ b/drivers/gpu/drm/nouveau/nv10_fence.c
-@@ -36,7 +36,7 @@ nv10_fence_emit(struct nouveau_fence *fence)
- 	int ret = RING_SPACE(chan, 2);
- 	if (ret == 0) {
- 		BEGIN_NV04(chan, 0, NV10_SUBCHAN_REF_CNT, 1);
--		OUT_RING  (chan, fence->sequence);
-+		OUT_RING  (chan, fence->base.seqno);
- 		FIRE_RING (chan);
- 	}
- 	return ret;
-@@ -74,7 +74,7 @@ nv10_fence_context_new(struct nouveau_channel *chan)
- 	if (!fctx)
- 		return -ENOMEM;
- 
--	nouveau_fence_context_new(&fctx->base);
-+	nouveau_fence_context_new(chan, &fctx->base);
- 	fctx->base.emit = nv10_fence_emit;
- 	fctx->base.read = nv10_fence_read;
- 	fctx->base.sync = nv10_fence_sync;
-diff --git a/drivers/gpu/drm/nouveau/nv17_fence.c b/drivers/gpu/drm/nouveau/nv17_fence.c
-index 22aa996..e404bab 100644
---- a/drivers/gpu/drm/nouveau/nv17_fence.c
-+++ b/drivers/gpu/drm/nouveau/nv17_fence.c
-@@ -83,7 +83,7 @@ nv17_fence_context_new(struct nouveau_channel *chan)
- 	if (!fctx)
- 		return -ENOMEM;
- 
--	nouveau_fence_context_new(&fctx->base);
-+	nouveau_fence_context_new(chan, &fctx->base);
- 	fctx->base.emit = nv10_fence_emit;
- 	fctx->base.read = nv10_fence_read;
- 	fctx->base.sync = nv17_fence_sync;
-diff --git a/drivers/gpu/drm/nouveau/nv50_fence.c b/drivers/gpu/drm/nouveau/nv50_fence.c
-index 0ee3638..19f6fcc 100644
---- a/drivers/gpu/drm/nouveau/nv50_fence.c
-+++ b/drivers/gpu/drm/nouveau/nv50_fence.c
-@@ -47,7 +47,7 @@ nv50_fence_context_new(struct nouveau_channel *chan)
- 	if (!fctx)
- 		return -ENOMEM;
- 
--	nouveau_fence_context_new(&fctx->base);
-+	nouveau_fence_context_new(chan, &fctx->base);
- 	fctx->base.emit = nv10_fence_emit;
- 	fctx->base.read = nv10_fence_read;
- 	fctx->base.sync = nv17_fence_sync;
-diff --git a/drivers/gpu/drm/nouveau/nv84_fence.c b/drivers/gpu/drm/nouveau/nv84_fence.c
-index 9fd475c..8a06727 100644
---- a/drivers/gpu/drm/nouveau/nv84_fence.c
-+++ b/drivers/gpu/drm/nouveau/nv84_fence.c
-@@ -89,7 +89,7 @@ nv84_fence_emit(struct nouveau_fence *fence)
- 	else
- 		addr += fctx->vma.offset;
- 
--	return fctx->base.emit32(chan, addr, fence->sequence);
-+	return fctx->base.emit32(chan, addr, fence->base.seqno);
- }
- 
- static int
-@@ -105,7 +105,7 @@ nv84_fence_sync(struct nouveau_fence *fence,
- 	else
- 		addr += fctx->vma.offset;
- 
--	return fctx->base.sync32(chan, addr, fence->sequence);
-+	return fctx->base.sync32(chan, addr, fence->base.seqno);
- }
- 
- static u32
-@@ -149,12 +149,14 @@ nv84_fence_context_new(struct nouveau_channel *chan)
- 	if (!fctx)
- 		return -ENOMEM;
- 
--	nouveau_fence_context_new(&fctx->base);
-+	nouveau_fence_context_new(chan, &fctx->base);
- 	fctx->base.emit = nv84_fence_emit;
- 	fctx->base.sync = nv84_fence_sync;
- 	fctx->base.read = nv84_fence_read;
- 	fctx->base.emit32 = nv84_fence_emit32;
- 	fctx->base.sync32 = nv84_fence_sync32;
-+	fctx->base.sequence = nv84_fence_read(chan);
-+	fctx->base.context = priv->base.context_base + fifo->chid;
- 
- 	ret = nouveau_bo_vma_add(priv->bo, client->vm, &fctx->vma);
- 	if (ret == 0) {
-@@ -239,7 +241,8 @@ nv84_fence_create(struct nouveau_drm *drm)
- 	priv->base.context_new = nv84_fence_context_new;
- 	priv->base.context_del = nv84_fence_context_del;
- 
--	init_waitqueue_head(&priv->base.waiting);
-+	priv->base.contexts = pfifo->max + 1;
-+	priv->base.context_base = fence_context_alloc(priv->base.contexts);
- 	priv->base.uevent = true;
- 
- 	ret = nouveau_bo_new(drm->dev, 16 * (pfifo->max + 1), 0,
