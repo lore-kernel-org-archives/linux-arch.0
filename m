@@ -1,42 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ve0-f182.google.com ([209.85.128.182]:47354 "EHLO
-	mail-ve0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756171Ab3HQAJc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Aug 2013 20:09:32 -0400
+Received: from outgoing.email.vodafone.de ([139.7.28.128]:61871 "EHLO
+	outgoing.email.vodafone.de" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751455Ab3HSMor (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 19 Aug 2013 08:44:47 -0400
+Message-ID: <5212112C.70808@vodafone.de>
+Date: Mon, 19 Aug 2013 14:35:56 +0200
+From: =?ISO-8859-1?Q?Christian_K=F6nig?= <deathsimple@vodafone.de>
 MIME-Version: 1.0
-In-Reply-To: <CA+55aFwFx7uhtDTX5vfiYRo+keLmuvxvSFupU4nB8g1KCN-WVg@mail.gmail.com>
-References: <52050382.9060802@gmail.com>
-	<520BB225.8030807@gmail.com>
-	<20130814174039.GA24033@dhcp22.suse.cz>
-	<CA+55aFwAz7GdcB6nC0Th42y8eAM591sKO1=mYh5SWgyuDdHzcA@mail.gmail.com>
-	<20130814182756.GD24033@dhcp22.suse.cz>
-	<CA+55aFxB6Wyj3G3Ju8E7bjH-706vi3vysuATUZ13h1tdYbCbnQ@mail.gmail.com>
-	<520C9E78.2020401@gmail.com>
-	<CA+55aFy2D2hTc_ina1DvungsCL4WU2OTM=bnVb8sDyDcGVCBEQ@mail.gmail.com>
-	<CA+55aFxuUrcod=X2t2yqR_zJ4s1uaCsGB-p1oLTQrG+y+Z2PbA@mail.gmail.com>
-	<520D5ED2.9040403@gmail.com>
-	<CA+55aFwFx7uhtDTX5vfiYRo+keLmuvxvSFupU4nB8g1KCN-WVg@mail.gmail.com>
-Date: Fri, 16 Aug 2013 16:40:57 -0700
-Message-ID: <CA+8MBbK7UTHvaU4NtSaKHepTwF0-_BpW-zq3wKgvtAh-VDqOVA@mail.gmail.com>
-Subject: Re: [Bug] Reproducible data corruption on i5-3340M: Please continue
- your great work! :-)
-From: Tony Luck <tony.luck@gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
+Subject: Re: [RFC PATCH] drm/radeon: rework to new fence interface
+References: <20130815124308.14812.58197.stgit@patser> <5211F0C5.2040705@canonical.com>
+In-Reply-To: <5211F0C5.2040705@canonical.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Ben Tebulin <tebulin@googlemail.com>, Michal Hocko <mhocko@suse.cz>, Mel Gorman <mgorman@suse.de>, Johannes Weiner <hannes@cmpxchg.org>, Balbir Singh <bsingharora@gmail.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-mm <linux-mm@kvack.org>, Rik van Riel <riel@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20130816234057.J0tBcVr1us0ODUx1zhYI1_1V4KoPwzlppushk94rp6Q@z>
+To: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Cc: dri-devel@lists.freedesktop.org, linux-arch@vger.kernel.org, linaro-mm-sig@lists.linaro.org, Alex Deucher <alexander.deucher@amd.com>, linux-kernel@vger.kernel.org, linux-media@vger.kernel.org
+Message-ID: <20130819123556.QD45HvFabVARZ1g1WcNHqC8g67oO6j1wV__QNLdnt0U@z>
 
-On Thu, Aug 15, 2013 at 5:33 PM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
-> I'll probably delay committing it until tomorrow, in the hope that
-> somebody using one of the other architectures will at least ack that
-> it compiles. I'm re-attaching the patch (with the two "logn" -> "long"
-> fixes) just to encourage that. Hint hint, everybody..
+Am 19.08.2013 12:17, schrieb Maarten Lankhorst:
+> [SNIP]
+> @@ -190,25 +225,24 @@ void radeon_fence_process(struct radeon_device *rdev, int ring)
+>   		}
+>   	} while (atomic64_xchg(&rdev->fence_drv[ring].last_seq, seq) > seq);
+>   
+> -	if (wake) {
+> +	if (wake)
+>   		rdev->fence_drv[ring].last_activity = jiffies;
+> -		wake_up_all(&rdev->fence_queue);
+> -	}
+> +	return wake;
+>   }
 
-I see I'm too late to supply an Ack for the commit, because it is already in.
-But just for completeness sake - all my ia64 configs build OK, and the couple
-that get boot tested still appear to be working too.
+Very bad idea, when sequence numbers change, you always want to wake up 
+the whole fence queue here.
 
--Tony
+> [SNIP]
+> +/**
+> + * radeon_fence_enable_signaling - enable signalling on fence
+> + * @fence: fence
+> + *
+> + * This function is called with fence_queue lock held, and adds a callback
+> + * to fence_queue that checks if this fence is signaled, and if so it
+> + * signals the fence and removes itself.
+> + */
+> +static bool radeon_fence_enable_signaling(struct fence *f)
+> +{
+> +	struct radeon_fence *fence = to_radeon_fence(f);
+> +
+> +	if (atomic64_read(&fence->rdev->fence_drv[fence->ring].last_seq) >= fence->seq ||
+> +	    !fence->rdev->ddev->irq_enabled)
+> +		return false;
+> +
+
+Do I get that right that you rely on IRQs to be enabled and working 
+here? Cause that would be a quite bad idea from the conceptual side.
+
+> +	radeon_irq_kms_sw_irq_get(fence->rdev, fence->ring);
+> +
+> +	if (__radeon_fence_process(fence->rdev, fence->ring))
+> +		wake_up_all_locked(&fence->rdev->fence_queue);
+> +
+> +	/* did fence get signaled after we enabled the sw irq? */
+> +	if (atomic64_read(&fence->rdev->fence_drv[fence->ring].last_seq) >= fence->seq) {
+> +		radeon_irq_kms_sw_irq_put(fence->rdev, fence->ring);
+> +		return false;
+> +	}
+> +
+> +	fence->fence_wake.flags = 0;
+> +	fence->fence_wake.private = NULL;
+> +	fence->fence_wake.func = radeon_fence_check_signaled;
+> +	__add_wait_queue(&fence->rdev->fence_queue, &fence->fence_wake);
+> +	fence_get(f);
+> +
+> +	return true;
+> +}
+> +
+>   /**
+>    * radeon_fence_signaled - check if a fence has signaled
+>    *
+>
+
+Christian.
