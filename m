@@ -1,45 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:39145 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751492Ab3HUNDz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 21 Aug 2013 09:03:55 -0400
-In-Reply-To: <alpine.DEB.2.10.1308211452260.31430@tglase.lan.tarent.de>
-References: <1377073172-3662-1-git-send-email-richard@nod.at> <alpine.DEB.2.10.1308211452260.31430@tglase.lan.tarent.de>
-MIME-Version: 1.0
-Content-Type: text/plain;
- charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Received: from mail-ob0-f170.google.com ([209.85.214.170]:60927 "EHLO
+	mail-ob0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752100Ab3HURZO convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Aug 2013 13:25:14 -0400
+Received: by mail-ob0-f170.google.com with SMTP id eh20so1398922obb.15
+        for <linux-arch@vger.kernel.org>; Wed, 21 Aug 2013 10:25:13 -0700 (PDT)
+Date: Wed, 21 Aug 2013 12:25:11 -0500
+From: Rob Landley <rob@landley.net>
 Subject: Re: [RFC] Get rid of SUBARCH
-From: "H. Peter Anvin" <hpa@zytor.com>
-Date: Wed, 21 Aug 2013 14:58:04 +0200
-Message-ID: <7813eeb3-8f96-4d3d-87ec-f2a880122804@email.android.com>
+In-Reply-To: <CAMuHMdWk-EPTNmPB1O1+F7YVQLjhQsFJznYwA3t6UCGUU1T9PQ@mail.gmail.com>
+	(from geert@linux-m68k.org on Wed Aug 21 07:07:33 2013)
+Message-ID: <1377105911.2737.94@driftwood>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii; DelSp=Yes; Format=Flowed
+Content-Disposition: inline
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thorsten Glaser <t.glaser@tarent.de>, Richard Weinberger <richard@nod.at>
-Cc: linux-arch@vger.kernel.org, mmarek@suse.cz, geert@linux-m68k.org, ralf@linux-mips.org, lethal@linux-sh.org, jdike@addtoit.com, gxt@mprc.pku.edu.cn, tglx@linutronix.de, mingo@redhat.com, x86@kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@vger.kernel.org, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net
-Message-ID: <20130821125804.0YCI35ivKhCNuZmX4RPN5T7vE-hre0V3D18RkrJSL-s@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Richard Weinberger <richard@nod.at>, Linux-Arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.cz>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Jeff Dike <jdike@addtoit.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, Linux-sh list <linux-sh@vger.kernel.org>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>
+Message-ID: <20130821172511.lGuUDjj0jXZa8wWHfPc-rdds9fd77A_DSfAPX7P2zWI@z>
 
-If ARCH doesn't match uname for some definition of match?
+On 08/21/2013 07:07:33 AM, Geert Uytterhoeven wrote:
+> On Wed, Aug 21, 2013 at 10:19 AM, Richard Weinberger <richard@nod.at>  
+> wrote:
+> > This series is an attempt to remove the SUBARCH make parameter.
+> > It as introduced at the times of Linux 2.5 for UML to tell the UML
+> > build system what the real architecture is.
+> >
+> > But we actually don't need SUBARCH, we can store this information
+> > in the .config file.
+> 
+> Haha, now you have OS_ARCH (shouldn't that be called HOST_ARCH?)  
+> instead,
+> which is available only for UM?
+> 
+> > The series touches also m68k, sh, mips and unicore32.
+> > These architectures magically select a cross compiler if ARCH !=  
+> SUBARCH.
+> > Do really need that behavior?
+> 
+> This does remove functionality.
+> It allows to build a kernel using e.g. "make ARCH=m68k".
 
-Thorsten Glaser <t.glaser@tarent.de> wrote:
->On Wed, 21 Aug 2013, Richard Weinberger wrote:
->
->> The series touches also m68k, sh, mips and unicore32.
->> These architectures magically select a cross compiler if ARCH !=
->SUBARCH.
->> Do really need that behavior?
->
->Not precisely that, but it’s very common in m68k land
->to just cross-build kernels with
->
->$ make ARCH=m68k menuconfig
->$ make ARCH=m68k
->
->Maybe a generalising of that feature, and making it
->independent of SUBARCH (which can then die)?
->
->bye,
->//mirabilos
+   make ARCH=m68k CROSS_COMPILE=m68k-
+   make ARCH=arm CROSS_COMPILE=armv5l-
+   make ARCH=sparc CROSS_COMPILE=sparc-
+   make ARCH=ppc CROSS_COMPILE=powerpc-
+   make ARCH=sh CROSS_COMPILE=sh4-
+   make ARCH=mips CROSS_COMPILE=mipsel-
+   make ARCH=x86 CROSS_COMPILE=i686-
+   make ARCH=alpha CROSS_COMPILE=alpha-
 
--- 
-Sent from my mobile phone. Please excuse brevity and lack of formatting.
+Works the same way on all the targets I've tried so far. You specify  
+the architecture, you specify the cross compiler prefix, you feed it a  
+config file, you build.
+
+(If a target supplies its own default cross compiler prefix I just have  
+to override it with what mine's called anyway...)
+
+> Perhaps this can be moved to generic code? Most (not all!)  
+> cross-toolchains
+> are called $ARCH-{unknown-,}linux{,-gnu}.
+> Exceptions are e.g. am33_2.0-linux and bfin-uclinux.
+
+The linaro toolchain is arm-linux-gnueabihf- and the one on kernel.org  
+is arm-unknown-linux-gnueabi- and the one I build is armv5l- (because  
+the FSF's  
+$ARCH-unknown-gnu-format-tuple-all-hail-stallman-gnu-gnu-gnu-dammit-gcc  
+is just nuts: why would I say -linux- in a linux-to-linux toolchain? Do  
+windows toolchains say -windows-?)
+
+Other toolchain sources use other prefixes (-unknown- is often  
+-$VENDORNAME-), and then of course there's llvm... which is why you  
+specify CROSS_COMPILE= on the make command line.
+
+Rob
