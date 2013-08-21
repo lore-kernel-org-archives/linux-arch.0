@@ -1,40 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ugs.tarent.de ([193.107.123.165]:56112 "EHLO ugs.tarent.de"
+Received: from terminus.zytor.com ([198.137.202.10]:39145 "EHLO mail.zytor.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751690Ab3HUNA4 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Aug 2013 09:00:56 -0400
-Date: Wed, 21 Aug 2013 14:53:30 +0200 (CEST)
-From: Thorsten Glaser <t.glaser@tarent.de>
-Subject: Re: [RFC] Get rid of SUBARCH
-In-Reply-To: <1377073172-3662-1-git-send-email-richard@nod.at>
-Message-ID: <alpine.DEB.2.10.1308211452260.31430@tglase.lan.tarent.de>
-References: <1377073172-3662-1-git-send-email-richard@nod.at>
+	id S1751492Ab3HUNDz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 21 Aug 2013 09:03:55 -0400
+In-Reply-To: <alpine.DEB.2.10.1308211452260.31430@tglase.lan.tarent.de>
+References: <1377073172-3662-1-git-send-email-richard@nod.at> <alpine.DEB.2.10.1308211452260.31430@tglase.lan.tarent.de>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain;
+ charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Subject: Re: [RFC] Get rid of SUBARCH
+From: "H. Peter Anvin" <hpa@zytor.com>
+Date: Wed, 21 Aug 2013 14:58:04 +0200
+Message-ID: <7813eeb3-8f96-4d3d-87ec-f2a880122804@email.android.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Weinberger <richard@nod.at>
-Cc: linux-arch@vger.kernel.org, mmarek@suse.cz, geert@linux-m68k.org, ralf@linux-mips.org, lethal@linux-sh.org, jdike@addtoit.com, gxt@mprc.pku.edu.cn, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net
-Message-ID: <20130821125330.ixXk4_p4ksS7B4XGUlvrYHDljQXl33-HrTxstGwJ_zA@z>
+To: Thorsten Glaser <t.glaser@tarent.de>, Richard Weinberger <richard@nod.at>
+Cc: linux-arch@vger.kernel.org, mmarek@suse.cz, geert@linux-m68k.org, ralf@linux-mips.org, lethal@linux-sh.org, jdike@addtoit.com, gxt@mprc.pku.edu.cn, tglx@linutronix.de, mingo@redhat.com, x86@kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@vger.kernel.org, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net
+Message-ID: <20130821125804.0YCI35ivKhCNuZmX4RPN5T7vE-hre0V3D18RkrJSL-s@z>
 
-On Wed, 21 Aug 2013, Richard Weinberger wrote:
+If ARCH doesn't match uname for some definition of match?
 
-> The series touches also m68k, sh, mips and unicore32.
-> These architectures magically select a cross compiler if ARCH != SUBARCH.
-> Do really need that behavior?
+Thorsten Glaser <t.glaser@tarent.de> wrote:
+>On Wed, 21 Aug 2013, Richard Weinberger wrote:
+>
+>> The series touches also m68k, sh, mips and unicore32.
+>> These architectures magically select a cross compiler if ARCH !=
+>SUBARCH.
+>> Do really need that behavior?
+>
+>Not precisely that, but it’s very common in m68k land
+>to just cross-build kernels with
+>
+>$ make ARCH=m68k menuconfig
+>$ make ARCH=m68k
+>
+>Maybe a generalising of that feature, and making it
+>independent of SUBARCH (which can then die)?
+>
+>bye,
+>//mirabilos
 
-Not precisely that, but it’s very common in m68k land
-to just cross-build kernels with
-
-$ make ARCH=m68k menuconfig
-$ make ARCH=m68k
-
-Maybe a generalising of that feature, and making it
-independent of SUBARCH (which can then die)?
-
-bye,
-//mirabilos
 -- 
-[16:04:33] bkix: "veni vidi violini"
-[16:04:45] bkix: "ich kam, sah und vergeigte"...
+Sent from my mobile phone. Please excuse brevity and lack of formatting.
