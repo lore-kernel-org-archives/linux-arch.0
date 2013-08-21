@@ -1,57 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f51.google.com ([209.85.160.51]:60054 "EHLO
-	mail-pb0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751273Ab3HUMHd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Aug 2013 08:07:33 -0400
-MIME-Version: 1.0
-In-Reply-To: <1377073172-3662-1-git-send-email-richard@nod.at>
-References: <1377073172-3662-1-git-send-email-richard@nod.at>
-Date: Wed, 21 Aug 2013 14:07:33 +0200
-Message-ID: <CAMuHMdWk-EPTNmPB1O1+F7YVQLjhQsFJznYwA3t6UCGUU1T9PQ@mail.gmail.com>
+Received: from ugs.tarent.de ([193.107.123.165]:56112 "EHLO ugs.tarent.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751690Ab3HUNA4 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Aug 2013 09:00:56 -0400
+Date: Wed, 21 Aug 2013 14:53:30 +0200 (CEST)
+From: Thorsten Glaser <t.glaser@tarent.de>
 Subject: Re: [RFC] Get rid of SUBARCH
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
+In-Reply-To: <1377073172-3662-1-git-send-email-richard@nod.at>
+Message-ID: <alpine.DEB.2.10.1308211452260.31430@tglase.lan.tarent.de>
+References: <1377073172-3662-1-git-send-email-richard@nod.at>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Richard Weinberger <richard@nod.at>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.cz>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Jeff Dike <jdike@addtoit.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, Linux-sh list <linux-sh@vger.kernel.org>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>
-Message-ID: <20130821120733.JiVGKo7csKC35BW812yy0DodgeLR6wbL_9TceB5ntVE@z>
+Cc: linux-arch@vger.kernel.org, mmarek@suse.cz, geert@linux-m68k.org, ralf@linux-mips.org, lethal@linux-sh.org, jdike@addtoit.com, gxt@mprc.pku.edu.cn, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net
+Message-ID: <20130821125330.ixXk4_p4ksS7B4XGUlvrYHDljQXl33-HrTxstGwJ_zA@z>
 
-On Wed, Aug 21, 2013 at 10:19 AM, Richard Weinberger <richard@nod.at> wrote:
-> This series is an attempt to remove the SUBARCH make parameter.
-> It as introduced at the times of Linux 2.5 for UML to tell the UML
-> build system what the real architecture is.
->
-> But we actually don't need SUBARCH, we can store this information
-> in the .config file.
-
-Haha, now you have OS_ARCH (shouldn't that be called HOST_ARCH?) instead,
-which is available only for UM?
+On Wed, 21 Aug 2013, Richard Weinberger wrote:
 
 > The series touches also m68k, sh, mips and unicore32.
 > These architectures magically select a cross compiler if ARCH != SUBARCH.
 > Do really need that behavior?
 
-This does remove functionality.
-It allows to build a kernel using e.g. "make ARCH=m68k".
+Not precisely that, but it’s very common in m68k land
+to just cross-build kernels with
 
-Perhaps this can be moved to generic code? Most (not all!) cross-toolchains
-are called $ARCH-{unknown-,}linux{,-gnu}.
-Exceptions are e.g. am33_2.0-linux and bfin-uclinux.
+$ make ARCH=m68k menuconfig
+$ make ARCH=m68k
 
-> [PATCH 1/8] um: Create defconfigs for i386 and x86_64
-> [PATCH 3/8] um: Remove old defconfig
+Maybe a generalising of that feature, and making it
+independent of SUBARCH (which can then die)?
 
-Why not merge these two, so git copy/rename detection will show only the real
-changes?
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+bye,
+//mirabilos
+-- 
+[16:04:33] bkix: "veni vidi violini"
+[16:04:45] bkix: "ich kam, sah und vergeigte"...
