@@ -1,54 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from jacques.telenet-ops.be ([195.130.132.50]:44818 "EHLO
-	jacques.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750933Ab3HTLBa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Aug 2013 07:01:30 -0400
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH 1/2] Documentation/printk-formats.txt: No casts needed for u64/s64
-Date: Tue, 20 Aug 2013 13:01:15 +0200
-Message-ID: <1376996476-12027-1-git-send-email-geert@linux-m68k.org>
+Received: from b.ns.miles-group.at ([95.130.255.144]:1660 "EHLO radon.swed.at"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751422Ab3HUI02 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 21 Aug 2013 04:26:28 -0400
+From: Richard Weinberger <richard@nod.at>
+Subject: [RFC] Get rid of SUBARCH
+Date: Wed, 21 Aug 2013 10:19:24 +0200
+Message-ID: <1377073172-3662-1-git-send-email-richard@nod.at>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Randy Dunlap <rdunlap@xenotime.net>, Al Viro <viro@zeniv.linux.org.uk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, linux-doc@vger.kernel.org
-Message-ID: <20130820110115.B11wHXjhgEVN3YSgF4oE0ZPdlVBAe2LmTJVNxhHNXAw@z>
+To: linux-arch@vger.kernel.org
+Cc: mmarek@suse.cz, geert@linux-m68k.org, ralf@linux-mips.org, lethal@linux-sh.org, jdike@addtoit.com, gxt@mprc.pku.edu.cn, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net
+Message-ID: <20130821081924.HaMYUcfmTsH6v5_BInTbvzaLZtrtFvcd5R_mBOUhwxQ@z>
 
-Now all 64-bit architectures have been converted to int-ll64.h in kernel
-space, casting to (unsigned) long long is no longer needed when formatting
-u64/s64.
+This series is an attempt to remove the SUBARCH make parameter.
+It as introduced at the times of Linux 2.5 for UML to tell the UML
+build system what the real architecture is.
 
-For backwards compatibility, alpha, ia64, mips64, and powerpc64 still use
-int-l64.h in userspace.
+But we actually don't need SUBARCH, we can store this information
+in the .config file.
+i386_defconfig will produce a kernel for x86, and x86_64_defconfig
+for x86_64. There is no need to specify SUBARCH.
+With this patchset applied you can build UML always with "make linux ARCH=um"
+and it will produce the an image for the architecture specified in your .config.
+Currenlty "make linux ARCH=um" will alter your .config to match the detected SUBARCH
+whith sucks and causes problems on automated build systems.
 
-Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Acked-by: Randy Dunlap <rdunlap@xenotime.net>
-Cc: linux-doc@vger.kernel.org
----
-This is the documentation part of more than two year old
-"asm/types.h: All architectures use int-ll64.h in kernelspace"
-(https://lkml.org/lkml/2011/8/13/104)
+The series touches also m68k, sh, mips and unicore32.
+These architectures magically select a cross compiler if ARCH != SUBARCH.
+Do really need that behavior?
 
- Documentation/printk-formats.txt |    4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+[PATCH 1/8] um: Create defconfigs for i386 and x86_64
+[PATCH 2/8] um: Do not use SUBARCH
+[PATCH 3/8] um: Remove old defconfig
+[PATCH 4/8] m68k: Do not use SUBARCH
+[PATCH 5/8] sh: Do not use SUBARCH
+[PATCH 6/8] mips: Do not use SUBARCH
+[PATCH 7/8] unicore32: Do not use SUBARCH
+[PATCH 8/8] Makefile: Remove SUBARCH
 
-diff --git a/Documentation/printk-formats.txt b/Documentation/printk-formats.txt
-index 3e8cb73..41aaed7 100644
---- a/Documentation/printk-formats.txt
-+++ b/Documentation/printk-formats.txt
-@@ -185,11 +185,11 @@ struct va_format:
- 
- u64 SHOULD be printed with %llu/%llx, (unsigned long long):
- 
--	printk("%llu", (unsigned long long)u64_var);
-+	printk("%llu", u64_var);
- 
- s64 SHOULD be printed with %lld/%llx, (long long):
- 
--	printk("%lld", (long long)s64_var);
-+	printk("%lld", s64_var);
- 
- If <type> is dependent on a config option for its size (e.g., sector_t,
- blkcnt_t) or is architecture-dependent for its size (e.g., tcflag_t), use a
--- 
-1.7.9.5
-
+Thanks,
+//richard
