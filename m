@@ -1,31 +1,77 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [RFC] Get rid of SUBARCH
-Date: Wed, 21 Aug 2013 21:51:57 +0200
-Message-ID: <20130821195157.GA18191@merkur.ravnborg.org>
-References: <1377073172-3662-1-git-send-email-richard@nod.at> <CAMuHMdWk-EPTNmPB1O1+F7YVQLjhQsFJznYwA3t6UCGUU1T9PQ@mail.gmail.com>
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [PATCH 1/8] um: Create defconfigs for i386 and x86_64
+Date: Thu, 22 Aug 2013 14:55:49 +1000
+Message-ID: <20130822145549.7d2de2bd1209fdc850df3198@canb.auug.org.au>
+References: <1377073172-3662-1-git-send-email-richard@nod.at>
+	<1377073172-3662-2-git-send-email-richard@nod.at>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-sh-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAMuHMdWk-EPTNmPB1O1+F7YVQLjhQsFJznYwA3t6UCGUU1T9PQ@mail.gmail.com>
-Sender: linux-sh-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Richard Weinberger <richard@nod.at>, Linux-Arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.cz>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Jeff Dike <jdike@addtoit.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, Linux-sh list <linux-sh@vger.kernel.org>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA256";
+ boundary="Signature=_Thu__22_Aug_2013_14_55_49_+1000_BCiP2jO/bmXN.v6F"
+Return-path: <linux-m68k-owner@vger.kernel.org>
+In-Reply-To: <1377073172-3662-2-git-send-email-richard@nod.at>
+Sender: linux-m68k-owner@vger.kernel.org
+To: Richard Weinberger <richard@nod.at>
+Cc: linux-arch@vger.kernel.org, mmarek@suse.cz, geert@linux-m68k.org, ralf@linux-mips.org, lethal@linux-sh.org, jdike@addtoit.com, gxt@mprc.pku.edu.cn, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, Ramkumar Ramachandra <artagnon@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-> 
-> > The series touches also m68k, sh, mips and unicore32.
-> > These architectures magically select a cross compiler if ARCH != SUBARCH.
-> > Do really need that behavior?
-> 
-> This does remove functionality.
-> It allows to build a kernel using e.g. "make ARCH=m68k".
-> 
-> Perhaps this can be moved to generic code? Most (not all!) cross-toolchains
-> are called $ARCH-{unknown-,}linux{,-gnu}.
-> Exceptions are e.g. am33_2.0-linux and bfin-uclinux.
+--Signature=_Thu__22_Aug_2013_14_55_49_+1000_BCiP2jO/bmXN.v6F
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Today you can specify CROSS_COMPILE in Kconfig.
-With this we should be able to remove these hacks.
+Hi Richard,
 
-	Sam
+On Wed, 21 Aug 2013 10:19:25 +0200 Richard Weinberger <richard@nod.at> wrot=
+e:
+>
+> Instead of having one defconfig for both i386 and x86_64
+> we have now two.
+> This is the first step to get rid of SUBARCH.
+>=20
+> This patch is based on: https://lkml.org/lkml/2013/7/4/396
+>=20
+> Cc: Ramkumar Ramachandra <artagnon@gmail.com>
+> Signed-off-by: Richard Weinberger <richard@nod.at>
+> ---
+>  arch/um/configs/i386_defconfig   | 954 +++++++++++++++++++++++++++++++++=
+++++++
+>  arch/um/configs/x86_64_defconfig | 943 +++++++++++++++++++++++++++++++++=
++++++
+>  2 files changed, 1897 insertions(+)
+>  create mode 100644 arch/um/configs/i386_defconfig
+>  create mode 100644 arch/um/configs/x86_64_defconfig
+
+Can these still work if put through "make savedefconfig" like other
+architectures defconfig files?  I did a test and they produce files that
+are only 74-75 lines long and the resulting files produced the
+same .config when used in place of their originals.  But I only did that
+test on an X86_64 host, so I just don't know if there is some strangeness
+of um that would stop us using them.
+
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+
+--Signature=_Thu__22_Aug_2013_14_55_49_+1000_BCiP2jO/bmXN.v6F
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2.0.20 (GNU/Linux)
+
+iQIcBAEBCAAGBQJSFZnVAAoJEECxmPOUX5FECykQAKVdAw7YgUXXddRw5aV5pmAy
+NbV0hO6Ier1fY06b+DTdFHXEokRtDxQBqLzxS3DjjQK4c8qjyiwpdJOu7PM//wxv
+NRKtSrI1S6idf0bJJ+Z4n9t+FxlE41bxusf7/mUt6E4s8HFwYvGgpZ8/QUuPLGqY
+mocdz9cxpqfJehtiC8zG7BBH/Lw+y3LyXf12Eyjq0IH41qPICl+sX0D0M/tRCdhI
+gr2lGiq/N8KbtT86RnMI1n82D3JlM6wFgjt7OTozNgeHnYFOrW82LDWQFfstWuqg
+D4X2sGShjq1T6dKXDTtAKAE/BsmQ75UVSCfCJz2HV92KUH/heBs0g2uU2gnGREv/
+5dSRMCsSeRaKPOZCUQR3gll43u/Es90algPNEPQc3fwpataeQu0qeZxGrDm+6j48
+Qt9P20WJVWd/yF8QRsM0IwgFXuHJQdzvHz4dm6NJdRNRCgllT/rL3AjkcnUmD/jV
+uSXGD+WHgky45KIL3jofpZNNmllUn3KLJJN8AS45oZqBWoIRRAQv19287SnMUNav
+kq0ThN7zXMV5bS2xb1t1CHnL5ir/6xoVow8P/d+0To6vQFJhGjlnm2YwXDx0qRqs
+aNPVSiS+STbr915+8jObTSLF9zqEpXgw14B6uL0Zn+tnlMXYKy/CvO66iM9qdutj
+qQDs44nuuEim20i4E0EX
+=mHOY
+-----END PGP SIGNATURE-----
+
+--Signature=_Thu__22_Aug_2013_14_55_49_+1000_BCiP2jO/bmXN.v6F--
