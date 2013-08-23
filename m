@@ -1,117 +1,71 @@
 From: Frantisek Hrbata <fhrbata@redhat.com>
-Subject: Re: [RFC PATCH 0/4] add support for gcov format introduced in gcc 4.7
-Date: Fri, 23 Aug 2013 18:15:32 +0200
-Message-ID: <20130823161532.GA2336@localhost.localdomain>
+Subject: Re: [RFC PATCH 1/4] gcov: move gcov structs definitions to a gcc
+ version specific file
+Date: Fri, 23 Aug 2013 18:50:45 +0200
+Message-ID: <20130823165045.GB2336@localhost.localdomain>
 References: <1377247176-13537-1-git-send-email-fhrbata@redhat.com>
- <52177AD7.1030709@linux.vnet.ibm.com>
+ <1377247176-13537-2-git-send-email-fhrbata@redhat.com>
+ <52177B46.6070404@linux.vnet.ibm.com>
 Reply-To: Frantisek Hrbata <fhrbata@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <52177AD7.1030709@linux.vnet.ibm.com>
+In-Reply-To: <52177B46.6070404@linux.vnet.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
-Cc: linux-kernel@vger.kernel.org, jstancek@redhat.com, keescook@chromium.org, Christophe Guillon <christophe.guillon@st.com>, rusty@rustcorp.com.au, linux-arch@vger.kernel.org, arnd@arndb.de, mgahagan@redhat.com, agospoda@redhat.com
+Cc: linux-kernel@vger.kernel.org, jstancek@redhat.com, keescook@chromium.org, peter.oberparleiter@de.ibm.com, rusty@rustcorp.com.au, linux-arch@vger.kernel.org, arnd@arndb.de, mgahagan@redhat.com, agospoda@redhat.com
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Aug 23, 2013 at 05:08:07PM +0200, Peter Oberparleiter wrote:
+On Fri, Aug 23, 2013 at 05:09:58PM +0200, Peter Oberparleiter wrote:
 > On 23.08.2013 10:39, Frantisek Hrbata wrote:
-> > This is an attempt to bring support for modified gcov format in gcc 4.7 to
-> > the kernel. It tries to leverage the existing layout/abstraction, which was
-> > designed keeping in mind that the gcov format could change, but some changes had
-> > to be make. Mostly because the current model does not take into account that
-> > even the core gcov structures, like gcov_info, could change. One part that could
-> > be problematic is the addition of the .init_array section for constructors.
+> > Since also the gcov structures(gcov_info, gcov_fn_info, gcov_ctr_info) can
+> > change between gcc releases, as shown in gcc 4.7, they cannot be defined in a
+> > common header and need to be moved to a specific gcc implemention file. This
+> > also requires to make the gcov_info structure opaque for the common code and to
+> > introduce simple helpers for accessing data inside gcov_info.
 > 
-> It appears that gcc 4.7 support for gcov-kernel is quite important to a
-> number of people, at least that is what I derive from the fact that I
-> now know of 3 people who've been working on this support separately from
-> each other: you, myself (I've been close to posting my own version to
-> LKML) and Christophe Guillon.
+> I've taken a similar approach in my version, although I stopped at isolating
+> the code that handles the linked list. I like your version better since it's
+> more consistent.
 
-First, thank you for your quick reply. Second, great, I was worried there is no
-interest to have the new format supported, because it's quite some time gcc 4.7
-is out.
+:) I also have doubts with the list "abstraction", it isn't very nice. I tried
+to keep the changes as simple as possible in the generic code. I'm not sayint it
+is the right approach, but your design is pretty good, so I had no urges to
+change it more deeper. I'm of course open to any suggestions.
 
 > 
-> It's apparent now that I made a mistake delaying the discussion of the
-> effort for too long, but I think your posting the patches opens up a
-> good opportunity to combine the best of all previous efforts.
-
-To be honest I ran into this problem 14 days ago when I was asked to take a
-look. So I cannot say I know everything about gcov format and stuff around it.
-I mostly followed your original code after I got some idea of the gcov in-memory
-layout. Meaning, I'm glad that there is also yours and Christophe's code and
-I for sure welcome the "combine the best of all previous efforts" approach, even
-if it means dropping my code :).
-
+> > diff --git a/kernel/gcov/gcc_3_4.c b/kernel/gcov/gcc_3_4.c
+> > index ae5bb42..27bc88a 100644
+> > --- a/kernel/gcov/gcc_3_4.c
+> > +++ b/kernel/gcov/gcc_3_4.c
+> > @@ -21,6 +21,121 @@
+> >  #include <linux/vmalloc.h>
+> >  #include "gcov.h"
+> > 
+> > +#define GCOV_COUNTERS		5
 > 
-> Most of your code looks very familiar. There's one feature missing though
-> that Christophe brought up as a requirement: the ability for gcov-kernel
-> to cope with kernel modules being compiled with GCC versions implementing
-> a different gcov format (apparently this can happen in some embedded
-> setups).
+> The value for GCOV_COUNTERS has been changed with GCC 4.3. Before it was 5,
+> starting with GCC 4.3 the value is 8. While this is not strictly necessary, I'm
+> wondering if this should be added here to prevent any unwanted side-effects.
 
-Here follows quote from the gcc/gcov-io.h file
+Yes I was thinking about this two. My first idea was to use some define, maybe
+in the Makefile during the gcc version check and set the number of counters
+properly later based on this define. Something like
 
-<quote>
-Coverage information is held in two files.  A notes file, which is
-generated by the compiler, and a data file, which is generated by
-the program under test.  Both files use a similar structure.  We do
-not attempt to make these files backwards compatible with previous
-versions, as you only need coverage information when developing a
-program.  We do hold version information, so that mismatches can be
-detected, and we use a format that allows tools to skip information
-they do not understand or are not interested in.
-</quote>
+#if GCOV_GCC_VERIONS >= 0430
+#define GCOV_COUNTERS 8
+#elif ...
 
-Also from my experience, I would expect that the gcov will be used during
-development, meaning re-compilation isn't a big problem here. I for sure can be
-missing something and I'm by no means saying it wouldn't be useful feature. Just
-that it would complite things a little bit.
+for the gcc_3_4.c implementation.
 
-> 
-> Christophe proposed run-time version checking and a file-ops type function
-> table which is chosen based on info->version. I found this approach
-> somewhat intrusive and this would also not have covered the case where a
-> new GCC versions was used to compile kernel modules for which the base
-> kernel has no support. I tried to solve this requirement by combining
-> two changes:
-> 
-> 1) make the gcov-format generated by gcov-kernel compile-time configurable
-> 2) separate the gcov-format specific code into a loadable kernel module
+But I'm not sure what the new counters are good for and if they are really
+needed for the coverage info. This would require deeper understanding what
+and how the types of counters are used. At this point a simply did not change the
+value for the format before gcc 4.7, because each counter type has a tag and
+this should be backward compatible. We only miss the new counters. Again this is
+something that probably deserves more attention. Thanks for pointing this out!
 
-So if I understand it correctly you would separate the input
-format(gcov_info) from the output(gcda files). Meaning no matter which gcc
-compiled the module you can select the gcda format. And even if the kernel does
-not know the new format you can simply compile a module supporting it, instead
-of the whole kernel.
-
-Can you please give me an example why this is needed? As I wrote I'm not that
-familiar with gcov and I'm probably missing something, but I do not understand
-why this(handling several versions at runtime, not only the one used by gcc
-during compilation) is useful(note my comment above about the gcov used during
-development).
-
-> 
-> This way, the gcov-format specific part of gcov-kernel could be replaced
-> when working with a different version GCC. I'll post the corresponding
-> patches as reply in another mail.
-
-Great, I will take a look, but it may take me some time :).
-
-> 
-> Back to your patches: I tested them and they work fine on s390x when
-> compiled with GCC 4.3.4 and 4.7.2. I'll provide some more specific
-> comments as replies to your patch-mails.
-
-Many thanks!
-
-> 
-> 
-> Regards,
->   Peter Oberparleiter
 > 
 > -- 
 > Peter Oberparleiter
