@@ -1,85 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f49.google.com ([209.85.160.49]:33890 "EHLO
-	mail-pb0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753350Ab3HWNWw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 23 Aug 2013 09:22:52 -0400
+Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:38196 "EHLO
+	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755057Ab3HWPKB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 23 Aug 2013 11:10:01 -0400
+Received: from /spool/local
+	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <oberpar@linux.vnet.ibm.com>;
+	Fri, 23 Aug 2013 16:03:16 +0100
+Message-ID: <52177B46.6070404@linux.vnet.ibm.com>
+Date: Fri, 23 Aug 2013 17:09:58 +0200
+From: Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
 MIME-Version: 1.0
-In-Reply-To: <CAMuHMdW0EE9MiwoOzvg_2VBf5QvYpgJ8bHsjV1HL8iN5HyhxYA@mail.gmail.com>
-References: <1326313337-24603-1-git-send-email-grant.likely@secretlab.ca>
-	<1326313337-24603-12-git-send-email-grant.likely@secretlab.ca>
-	<CAMuHMdV=pSG+CtvGqr1c9nDKeHCU0cVQcFkfAo5iMMna2HOvZg@mail.gmail.com>
-	<CACxGe6s3wit88ynuzYsBZBvijHmAfJNeY9LH2T5S9iY7kJtg=w@mail.gmail.com>
-	<CAMuHMdW0EE9MiwoOzvg_2VBf5QvYpgJ8bHsjV1HL8iN5HyhxYA@mail.gmail.com>
-Date: Fri, 23 Aug 2013 15:22:51 +0200
-Message-ID: <CAMuHMdXtzwRY7VJe2EUssEPwGbFHwuHkwqbA+pi4N_Eujx3sNA@mail.gmail.com>
-Subject: Re: [RFC 11/14] powerpc: Eliminate NO_IRQ usage
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
+Subject: Re: [RFC PATCH 1/4] gcov: move gcov structs definitions to a gcc
+ version specific file
+References: <1377247176-13537-1-git-send-email-fhrbata@redhat.com> <1377247176-13537-2-git-send-email-fhrbata@redhat.com>
+In-Reply-To: <1377247176-13537-2-git-send-email-fhrbata@redhat.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Grant Likely <grant.likely@secretlab.ca>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Rob Herring <rob.herring@calxeda.com>, Thomas Gleixner <tglx@linutronix.de>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Russell King <linux@arm.linux.org.uk>, Stephen Rothwell <sfr@canb.auug.org.au>, Linux-Next <linux-next@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>
-Message-ID: <20130823132251.EFWd4S64oZVk2nHuDfaAQ21jVUgL6SLhoRzZ4nnn-Vg@z>
+To: Frantisek Hrbata <fhrbata@redhat.com>
+Cc: linux-kernel@vger.kernel.org, jstancek@redhat.com, keescook@chromium.org, peter.oberparleiter@de.ibm.com, rusty@rustcorp.com.au, linux-arch@vger.kernel.org, arnd@arndb.de, mgahagan@redhat.com, agospoda@redhat.com
+Message-ID: <20130823150958.fHcvAuHAxSWJzYWNK495LxFAgPNej2sAvfeLdiUejcU@z>
 
-On Fri, Aug 23, 2013 at 3:18 PM, Geert Uytterhoeven
-<geert@linux-m68k.org> wrote:
-> On Fri, Jul 26, 2013 at 5:56 AM, Grant Likely <grant.likely@secretlab.ca> wrote:
->> On Thu, Jul 25, 2013 at 3:58 PM, Geert Uytterhoeven
->> <geert@linux-m68k.org> wrote:
->>> On Wed, Jan 11, 2012 at 9:22 PM, Grant Likely <grant.likely@secretlab.ca> wrote:
->>>> NO_IRQ is evil.  Stop using it in arch/powerpc and powerpc device drivers
->>>
->>>> diff --git a/sound/soc/fsl/fsl_ssi.c b/sound/soc/fsl/fsl_ssi.c
->>>> index 3e06696..55c6ff9 100644
->>>> --- a/sound/soc/fsl/fsl_ssi.c
->>>> +++ b/sound/soc/fsl/fsl_ssi.c
->>>> @@ -666,7 +666,7 @@ static int __devinit fsl_ssi_probe(struct platform_device *pdev)
->>>>         ssi_private->ssi_phys = res.start;
->>>>
->>>>         ssi_private->irq = irq_of_parse_and_map(np, 0);
->>>> -       if (ssi_private->irq == NO_IRQ) {
->>>> +       if (!ssi_private->irq) {
->>>>                 dev_err(&pdev->dev, "no irq for node %s\n", np->full_name);
->>>>                 ret = -ENXIO;
->>>>                 goto error_iomap;
->>>
->>> What's the plan with this patch?
->>>
->>> This is now failing on xtensa, as it's one of the architectures that doesn't
->>> define NO_IRQ. Only arm, c6x, mn10300, openrisc, parisc, powerpc, and sparc
->>> define it.
->>
->> Wow. I'd pretty much dropped that patch because I didn't have time to
->> chase it down. It should be pursued though.
->>
->> In that particular case it is safe I think to apply the change. PPC
->> defines NO_IRQ to be 0 anyway.
->
-> Note that we still have arches that define it as nonzero:
->
-> arch/arm/include/asm/irq.h:#define NO_IRQ ((unsigned int)(-1))
-> arch/mn10300/include/asm/irq.h:#define NO_IRQ INT_MAX
-> arch/openrisc/include/asm/irq.h:#define NO_IRQ (-1)
-> arch/parisc/include/asm/irq.h:#define NO_IRQ (-1)
-> arch/sparc/include/asm/irq_32.h:#define NO_IRQ 0xffffffff
-> arch/sparc/include/asm/irq_64.h:#define NO_IRQ 0xffffffff
->
-> Only c6x and powerpc use zero, and thus are ready to drop NO_IRQ.
+On 23.08.2013 10:39, Frantisek Hrbata wrote:
+> Since also the gcov structures(gcov_info, gcov_fn_info, gcov_ctr_info) can
+> change between gcc releases, as shown in gcc 4.7, they cannot be defined in a
+> common header and need to be moved to a specific gcc implemention file. This
+> also requires to make the gcov_info structure opaque for the common code and to
+> introduce simple helpers for accessing data inside gcov_info.
 
-s390 just gained "NO_IRQ support" in -next, in commit
-e15a9dcfdec29786d1830c5b7beaf02a288a89e1 ("s390: convert interrupt
-handling to use generic hardirq"):
+I've taken a similar approach in my version, although I stopped at isolating
+the code that handles the linked list. I like your version better since it's
+more consistent.
 
-/* This number is used when no interrupt has been assigned */
-#define NO_IRQ         0
+> diff --git a/kernel/gcov/gcc_3_4.c b/kernel/gcov/gcc_3_4.c
+> index ae5bb42..27bc88a 100644
+> --- a/kernel/gcov/gcc_3_4.c
+> +++ b/kernel/gcov/gcc_3_4.c
+> @@ -21,6 +21,121 @@
+>  #include <linux/vmalloc.h>
+>  #include "gcov.h"
+> 
+> +#define GCOV_COUNTERS		5
 
-Gr{oetje,eeting}s,
+The value for GCOV_COUNTERS has been changed with GCC 4.3. Before it was 5,
+starting with GCC 4.3 the value is 8. While this is not strictly necessary, I'm
+wondering if this should be added here to prevent any unwanted side-effects.
 
-                        Geert
+-- 
+Peter Oberparleiter
+Linux on System z Development - IBM Germany
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
