@@ -1,71 +1,108 @@
 From: Frantisek Hrbata <fhrbata@redhat.com>
-Subject: Re: [RFC PATCH 1/4] gcov: move gcov structs definitions to a gcc
- version specific file
-Date: Fri, 23 Aug 2013 18:50:45 +0200
-Message-ID: <20130823165045.GB2336@localhost.localdomain>
+Subject: Re: [RFC PATCH 4/4] kernel: add support for init_array constructors
+Date: Fri, 23 Aug 2013 18:55:28 +0200
+Message-ID: <20130823165528.GC2336@localhost.localdomain>
 References: <1377247176-13537-1-git-send-email-fhrbata@redhat.com>
- <1377247176-13537-2-git-send-email-fhrbata@redhat.com>
- <52177B46.6070404@linux.vnet.ibm.com>
+ <1377247176-13537-5-git-send-email-fhrbata@redhat.com>
+ <52177C1B.60107@linux.vnet.ibm.com>
 Reply-To: Frantisek Hrbata <fhrbata@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:8388 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754866Ab3HWQzu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 23 Aug 2013 12:55:50 -0400
 Content-Disposition: inline
-In-Reply-To: <52177B46.6070404@linux.vnet.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
+In-Reply-To: <52177C1B.60107@linux.vnet.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
-Cc: linux-kernel@vger.kernel.org, jstancek@redhat.com, keescook@chromium.org, peter.oberparleiter@de.ibm.com, rusty@rustcorp.com.au, linux-arch@vger.kernel.org, arnd@arndb.de, mgahagan@redhat.com, agospoda@redhat.com
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, jstancek@redhat.com, keescook@chromium.org, rusty@rustcorp.com.au, linux-arch@vger.kernel.org, arnd@arndb.de, mgahagan@redhat.com, agospoda@redhat.com
 
-On Fri, Aug 23, 2013 at 05:09:58PM +0200, Peter Oberparleiter wrote:
+On Fri, Aug 23, 2013 at 05:13:31PM +0200, Peter Oberparleiter wrote:
 > On 23.08.2013 10:39, Frantisek Hrbata wrote:
-> > Since also the gcov structures(gcov_info, gcov_fn_info, gcov_ctr_info) can
-> > change between gcc releases, as shown in gcc 4.7, they cannot be defined in a
-> > common header and need to be moved to a specific gcc implemention file. This
-> > also requires to make the gcov_info structure opaque for the common code and to
-> > introduce simple helpers for accessing data inside gcov_info.
-> 
-> I've taken a similar approach in my version, although I stopped at isolating
-> the code that handles the linked list. I like your version better since it's
-> more consistent.
-
-:) I also have doubts with the list "abstraction", it isn't very nice. I tried
-to keep the changes as simple as possible in the generic code. I'm not sayint it
-is the right approach, but your design is pretty good, so I had no urges to
-change it more deeper. I'm of course open to any suggestions.
-
-> 
-> > diff --git a/kernel/gcov/gcc_3_4.c b/kernel/gcov/gcc_3_4.c
-> > index ae5bb42..27bc88a 100644
-> > --- a/kernel/gcov/gcc_3_4.c
-> > +++ b/kernel/gcov/gcc_3_4.c
-> > @@ -21,6 +21,121 @@
-> >  #include <linux/vmalloc.h>
-> >  #include "gcov.h"
+> > This adds the .init_array section as yet another section with constructors. This
+> > is needed because gcc is adding __gcov_init calls to .init_array.
 > > 
-> > +#define GCOV_COUNTERS		5
+> > Signed-off-by: Frantisek Hrbata <fhrbata@redhat.com>
+> > ---
+> >  include/asm-generic/vmlinux.lds.h | 1 +
+> >  include/linux/module.h            | 2 ++
+> >  kernel/module.c                   | 6 ++++++
+> >  3 files changed, 9 insertions(+)
+> > 
+> > diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+> > index 69732d2..c55d8d9 100644
+> > --- a/include/asm-generic/vmlinux.lds.h
+> > +++ b/include/asm-generic/vmlinux.lds.h
+> > @@ -468,6 +468,7 @@
+> >  #define KERNEL_CTORS()	. = ALIGN(8);			   \
+> >  			VMLINUX_SYMBOL(__ctors_start) = .; \
+> >  			*(.ctors)			   \
+> > +			*(.init_array)			   \
 > 
-> The value for GCOV_COUNTERS has been changed with GCC 4.3. Before it was 5,
-> starting with GCC 4.3 the value is 8. While this is not strictly necessary, I'm
-> wondering if this should be added here to prevent any unwanted side-effects.
+> This is exactly how I (would) have done it.
+> 
+> >  			VMLINUX_SYMBOL(__ctors_end) = .;
+> >  #else
+> >  #define KERNEL_CTORS()
+> > diff --git a/include/linux/module.h b/include/linux/module.h
+> > index 46f1ea0..89ff829 100644
+> > --- a/include/linux/module.h
+> > +++ b/include/linux/module.h
+> > @@ -374,6 +374,8 @@ struct module
+> >  	/* Constructor functions. */
+> >  	ctor_fn_t *ctors;
+> >  	unsigned int num_ctors;
+> > +	ctor_fn_t *init_array;
+> > +	unsigned int num_init_array;
+> 
+> I think it would be safe to re-use the ctors-related fields here. Each GCC
+> version will only ever create either of .ctors or .init_array, but never
+> both. 
+> The only case where separate fields would be required, would be when
+> linking a kernel module from multiple object files compiled with different
+> versions of GCC.
 
-Yes I was thinking about this two. My first idea was to use some define, maybe
-in the Makefile during the gcc version check and set the number of counters
-properly later based on this define. Something like
+Ah ok, I was not aware of this.
 
-#if GCOV_GCC_VERIONS >= 0430
-#define GCOV_COUNTERS 8
-#elif ...
+> 
+> >  #endif
+> >  };
+> >  #ifndef MODULE_ARCH_INIT
+> > diff --git a/kernel/module.c b/kernel/module.c
+> > index 2069158..581ae89 100644
+> > --- a/kernel/module.c
+> > +++ b/kernel/module.c
+> > @@ -2760,6 +2760,9 @@ static void find_module_sections(struct module *mod, struct load_info *info)
+> >  #ifdef CONFIG_CONSTRUCTORS
+> >  	mod->ctors = section_objs(info, ".ctors",
+> >  				  sizeof(*mod->ctors), &mod->num_ctors);
+> 
+> When reusing mod->ctors, you could check for mod->ctors == NULL here and
+> fill in the values from section_objs(".init_array").
 
-for the gcc_3_4.c implementation.
+Yes, in the case that we only have .ctors or .init_array section, this sounds
+as the right approach.
 
-But I'm not sure what the new counters are good for and if they are really
-needed for the coverage info. This would require deeper understanding what
-and how the types of counters are used. At this point a simply did not change the
-value for the format before gcc 4.7, because each counter type has a tag and
-this should be backward compatible. We only miss the new counters. Again this is
-something that probably deserves more attention. Thanks for pointing this out!
-
+> 
+> > +	mod->init_array = section_objs(info, ".init_array",
+> > +				  sizeof(*mod->init_array),
+> > +				  &mod->num_init_array);
+> >  #endif
+> > 
+> >  #ifdef CONFIG_TRACEPOINTS
+> > @@ -3024,6 +3027,9 @@ static void do_mod_ctors(struct module *mod)
+> > 
+> >  	for (i = 0; i < mod->num_ctors; i++)
+> >  		mod->ctors[i]();
+> > +
+> > +	for (i = 0; i < mod->num_init_array; i++)
+> > +		mod->init_array[i]();
+> >  #endif
+> >  }
+> > 
 > 
 > -- 
 > Peter Oberparleiter
