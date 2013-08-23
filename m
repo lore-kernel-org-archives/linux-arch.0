@@ -1,62 +1,44 @@
-From: Rob Landley <rob@landley.net>
-Subject: Re: [RFC] Get rid of SUBARCH
-Date: Thu, 22 Aug 2013 16:32:55 -0500
-Message-ID: <1377207175.2737.113@driftwood>
-References: <52167AB8.4060206@gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; DelSp=Yes; Format=Flowed
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-sh-owner@vger.kernel.org>
-In-Reply-To: <52167AB8.4060206@gmail.com> (from ddaney.cavm@gmail.com on Thu
-	Aug 22 15:55:20 2013)
-Content-Disposition: inline
-Sender: linux-sh-owner@vger.kernel.org
-To: David Daney <ddaney.cavm@gmail.com>
-Cc: Richard Weinberger <richard@nod.at>, Geert Uytterhoeven <geert@linux-m68k.org>, Sam Ravnborg <sam@ravnborg.org>, Linux-Arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.cz>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Jeff Dike <jdike@addtoit.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, Linux-sh list <linux-sh@vger.kernel.org>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>
-List-Id: linux-arch.vger.kernel.org
+From: Frantisek Hrbata <fhrbata@redhat.com>
+Subject: [RFC PATCH 0/4] add support for gcov format introduced in gcc 4.7
+Date: Fri, 23 Aug 2013 10:39:32 +0200
+Message-ID: <1377247176-13537-1-git-send-email-fhrbata@redhat.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:16888 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754743Ab3HWIjs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 23 Aug 2013 04:39:48 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: jstancek@redhat.com, keescook@chromium.org, peter.oberparleiter@de.ibm.com, rusty@rustcorp.com.au, linux-arch@vger.kernel.org, arnd@arndb.de, mgahagan@redhat.com, agospoda@redhat.com
 
-On 08/22/2013 03:55:20 PM, David Daney wrote:
-> On 08/22/2013 01:41 PM, Rob Landley wrote:
->> On 08/22/2013 07:58:26 AM, Geert Uytterhoeven wrote:
->>> On Wed, Aug 21, 2013 at 9:51 PM, Sam Ravnborg <sam@ravnborg.org>  
->>> wrote:
->>> >> > The series touches also m68k, sh, mips and unicore32.
->>> >> > These architectures magically select a cross compiler if ARCH  
->>> !=
->>> SUBARCH.
->>> >> > Do really need that behavior?
->>> >>
->>> >> This does remove functionality.
->>> >> It allows to build a kernel using e.g. "make ARCH=m68k".
->>> >>
->>> >> Perhaps this can be moved to generic code? Most (not all!)
->>> cross-toolchains
->>> >> are called $ARCH-{unknown-,}linux{,-gnu}.
->>> >> Exceptions are e.g. am33_2.0-linux and bfin-uclinux.
->>> >
->>> > Today you can specify CROSS_COMPILE in Kconfig.
->>> > With this we should be able to remove these hacks.
->>> 
->>> The correct CROSS_COMPILE value depends on the host environment, not
->>> on the target configuration.
->> 
->> Actually it depends on _both_.
->> 
-> 
-> I think the important issue is not the exact dependencies of the  
-> value of CROSS_COMPILE, but rather that it varies enough that  
-> automatically choosing a value based on SUBARCH often gives the wrong  
-> result.
-> 
-> Removing SUBARCH and setting CROSS_COMPILE either from the make  
-> command line (or environment) or the config file, is a good idea  
-> because it simplifies the build system, makes things clearer, and  
-> yields more predictable results.
-> 
-> David Daney
+This is an attempt to bring support for modified gcov format in gcc 4.7 to
+the kernel. It tries to leverage the existing layout/abstraction, which was
+designed keeping in mind that the gcov format could change, but some changes had
+to be make. Mostly because the current model does not take into account that
+even the core gcov structures, like gcov_info, could change. One part that could
+be problematic is the addition of the .init_array section for constructors.
 
-Agreed. Expecting the build to guess the right $CROSS_COMPILE is like  
-expecting it to guess the right $PATH. It should be specified, not  
-heuristically probed.
+Tested with lcov and seems to be working fine, giving similar results as for the
+older format.
 
-Rob
+Frantisek Hrbata (4):
+  gcov: move gcov structs definitions to a gcc version specific file
+  gcov: add support for gcc 4.7 gcov format
+  gcov: compile specific gcov implementation based on gcc version
+  kernel: add support for init_array constructors
+
+ include/asm-generic/vmlinux.lds.h |   1 +
+ include/linux/module.h            |   2 +
+ kernel/gcov/Makefile              |   5 +-
+ kernel/gcov/base.c                |  32 +-
+ kernel/gcov/fs.c                  |  27 +-
+ kernel/gcov/gcc_3_4.c             | 115 +++++++
+ kernel/gcov/gcc_4_7.c             | 612 ++++++++++++++++++++++++++++++++++++++
+ kernel/gcov/gcov.h                |  65 +---
+ kernel/module.c                   |   6 +
+ 9 files changed, 784 insertions(+), 81 deletions(-)
+ create mode 100644 kernel/gcov/gcc_4_7.c
+
+-- 
+1.8.3.1
