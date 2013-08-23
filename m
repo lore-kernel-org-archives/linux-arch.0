@@ -1,100 +1,122 @@
 From: Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
-Subject: Re: [RFC PATCH 4/4] kernel: add support for init_array constructors
-Date: Fri, 23 Aug 2013 17:13:31 +0200
-Message-ID: <52177C1B.60107@linux.vnet.ibm.com>
-References: <1377247176-13537-1-git-send-email-fhrbata@redhat.com> <1377247176-13537-5-git-send-email-fhrbata@redhat.com>
+Subject: Re: [RFC PATCH 3/4] gcov: compile specific gcov implementation based
+ on gcc version
+Date: Fri, 23 Aug 2013 17:15:19 +0200
+Message-ID: <52177C87.4090003@linux.vnet.ibm.com>
+References: <1377247176-13537-1-git-send-email-fhrbata@redhat.com> <1377247176-13537-4-git-send-email-fhrbata@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp12.uk.ibm.com ([195.75.94.108]:33708 "EHLO
-	e06smtp12.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754406Ab3HWPNg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 23 Aug 2013 11:13:36 -0400
+Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:34496 "EHLO
+	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753221Ab3HWPPX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 23 Aug 2013 11:15:23 -0400
 Received: from /spool/local
-	by e06smtp12.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <oberpar@linux.vnet.ibm.com>;
-	Fri, 23 Aug 2013 16:07:18 +0100
-In-Reply-To: <1377247176-13537-5-git-send-email-fhrbata@redhat.com>
+	Fri, 23 Aug 2013 16:08:38 +0100
+In-Reply-To: <1377247176-13537-4-git-send-email-fhrbata@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Frantisek Hrbata <fhrbata@redhat.com>
 Cc: linux-kernel@vger.kernel.org, jstancek@redhat.com, keescook@chromium.org, rusty@rustcorp.com.au, linux-arch@vger.kernel.org, arnd@arndb.de, mgahagan@redhat.com, agospoda@redhat.com
 
 On 23.08.2013 10:39, Frantisek Hrbata wrote:
-> This adds the .init_array section as yet another section with constructors. This
-> is needed because gcc is adding __gcov_init calls to .init_array.
-> 
-> Signed-off-by: Frantisek Hrbata <fhrbata@redhat.com>
-> ---
->  include/asm-generic/vmlinux.lds.h | 1 +
->  include/linux/module.h            | 2 ++
->  kernel/module.c                   | 6 ++++++
->  3 files changed, 9 insertions(+)
-> 
-> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-> index 69732d2..c55d8d9 100644
-> --- a/include/asm-generic/vmlinux.lds.h
-> +++ b/include/asm-generic/vmlinux.lds.h
-> @@ -468,6 +468,7 @@
->  #define KERNEL_CTORS()	. = ALIGN(8);			   \
->  			VMLINUX_SYMBOL(__ctors_start) = .; \
->  			*(.ctors)			   \
-> +			*(.init_array)			   \
+> Compile the correct gcov implementation file for a specific gcc version. In
+> the future, if another file is added, the conditions will need to be somehow
+> adjusted to if-elif-else case, but at this point the simple cc-ifversion should
+> be enough.
 
-This is exactly how I (would) have done it.
+Looks good, though I think this could be merged into the main 4.7 format patch,
+since without it, the 4.7 code will never be reached.
 
->  			VMLINUX_SYMBOL(__ctors_end) = .;
->  #else
->  #define KERNEL_CTORS()
-> diff --git a/include/linux/module.h b/include/linux/module.h
-> index 46f1ea0..89ff829 100644
-> --- a/include/linux/module.h
-> +++ b/include/linux/module.h
-> @@ -374,6 +374,8 @@ struct module
->  	/* Constructor functions. */
->  	ctor_fn_t *ctors;
->  	unsigned int num_ctors;
-> +	ctor_fn_t *init_array;
-> +	unsigned int num_init_array;
+Also it is my understanding that there are some distribution-specific versions
+of GCC that include the 4.7. gcov format code but report GCC version 4.6. With
+the auto-detection code implemented like this, gcov-kernel won't work correctly.
+For that purpose I've implemented a configuration option to allow users to
+force a specific version of gcov format.
 
-I think it would be safe to re-use the ctors-related fields here. Each GCC
-version will only ever create either of .ctors or .init_array, but never
-both. The only case where separate fields would be required, would be when
-linking a kernel module from multiple object files compiled with different
-versions of GCC.
+I'm attaching the corresponding patch below:
 
->  #endif
->  };
->  #ifndef MODULE_ARCH_INIT
-> diff --git a/kernel/module.c b/kernel/module.c
-> index 2069158..581ae89 100644
-> --- a/kernel/module.c
-> +++ b/kernel/module.c
-> @@ -2760,6 +2760,9 @@ static void find_module_sections(struct module *mod, struct load_info *info)
->  #ifdef CONFIG_CONSTRUCTORS
->  	mod->ctors = section_objs(info, ".ctors",
->  				  sizeof(*mod->ctors), &mod->num_ctors);
+---
+kernel: gcov: make data format configurable
 
-When reusing mod->ctors, you could check for mod->ctors == NULL here and
-fill in the values from section_objs(".init_array").
+Make the format of the generated gcov data configurable. This may be
+required for example for pre-4.7 GCCs that contain the 4.7 gcov data
+format changes.
 
-> +	mod->init_array = section_objs(info, ".init_array",
-> +				  sizeof(*mod->init_array),
-> +				  &mod->num_init_array);
->  #endif
-> 
->  #ifdef CONFIG_TRACEPOINTS
-> @@ -3024,6 +3027,9 @@ static void do_mod_ctors(struct module *mod)
-> 
->  	for (i = 0; i < mod->num_ctors; i++)
->  		mod->ctors[i]();
-> +
-> +	for (i = 0; i < mod->num_init_array; i++)
-> +		mod->init_array[i]();
->  #endif
->  }
-> 
+Signed-off-by: Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
+---
+ kernel/gcov/Kconfig  |   30 ++++++++++++++++++++++++++++++
+ kernel/gcov/Makefile |   21 +++++++++++++++++++--
+ 2 files changed, 49 insertions(+), 2 deletions(-)
+
+--- a/kernel/gcov/Kconfig
++++ b/kernel/gcov/Kconfig
+@@ -46,4 +46,34 @@ config GCOV_PROFILE_ALL
+ 	larger and run slower. Also be sure to exclude files from profiling
+ 	which are not linked to the kernel image to prevent linker errors.
+
++choice
++	prompt "Specify GCOV format"
++	depends on GCOV_KERNEL
++	default GCOV_FORMAT_AUTODETECT
++	---help---
++	The gcov format is usually determined by the GCC version, but there are
++	exceptions where format changes are integrated in lower-version GCCs.
++	In such a case use this option to adjust the format used in the kernel
++	accordingly.
++
++	If unsure, choose "Autodetect".
++
++config GCOV_FORMAT_AUTODETECT
++	bool "Autodetect"
++	---help---
++	Select this option to use the format that corresponds to your GCC
++	version.
++
++config GCOV_FORMAT_3_4
++	bool "GCC 3.4 format"
++	---help---
++	Select this option to use the format defined by GCC 3.4.
++
++config GCOV_FORMAT_4_7
++	bool "GCC 4.7 format"
++	---help---
++	Select this option to use the format defined by GCC 4.7.
++
++endchoice
++
+ endmenu
+--- a/kernel/gcov/Makefile
++++ b/kernel/gcov/Makefile
+@@ -1,5 +1,22 @@
+ ccflags-y := -DSRCTREE='"$(srctree)"' -DOBJTREE='"$(objtree)"'
+
++# if-lt
++# Usage VAR := $(call if-lt, $(a), $(b))
++# Returns 1 if (a < b)
++if-lt = $(shell [ $(1) -lt $(2) ] && echo 1)
++
++ifeq ($(CONFIG_GCOV_FORMAT_3_4),y)
++  cc-ver := 0304
++else ifeq ($(CONFIG_GCOV_FORMAT_4_7),y)
++  cc-ver := 0407
++else
++  cc-ver := $(call cc-version)
++endif
++
+ obj-$(CONFIG_GCOV_KERNEL) := base.o fs.o
+-obj-$(CONFIG_GCOV_KERNEL) += $(call cc-ifversion, -lt, 0407, gcc_3_4.o)
+-obj-$(CONFIG_GCOV_KERNEL) += $(call cc-ifversion, -ge, 0407, gcc_4_7.o)
++
++ifeq ($(call if-lt, $(cc-ver), 0407),1)
++  obj-$(CONFIG_GCOV_KERNEL) += gcc_3_4.o
++else
++  obj-$(CONFIG_GCOV_KERNEL) += gcc_4_7.o
++endif
+
 
 -- 
 Peter Oberparleiter
