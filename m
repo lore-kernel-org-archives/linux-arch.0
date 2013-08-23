@@ -1,80 +1,73 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [RFC 11/14] powerpc: Eliminate NO_IRQ usage
-Date: Fri, 23 Aug 2013 15:22:51 +0200
-Message-ID: <CAMuHMdXtzwRY7VJe2EUssEPwGbFHwuHkwqbA+pi4N_Eujx3sNA@mail.gmail.com>
-References: <1326313337-24603-1-git-send-email-grant.likely@secretlab.ca>
-	<1326313337-24603-12-git-send-email-grant.likely@secretlab.ca>
-	<CAMuHMdV=pSG+CtvGqr1c9nDKeHCU0cVQcFkfAo5iMMna2HOvZg@mail.gmail.com>
-	<CACxGe6s3wit88ynuzYsBZBvijHmAfJNeY9LH2T5S9iY7kJtg=w@mail.gmail.com>
-	<CAMuHMdW0EE9MiwoOzvg_2VBf5QvYpgJ8bHsjV1HL8iN5HyhxYA@mail.gmail.com>
+From: Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
+Subject: Re: [RFC PATCH 0/4] add support for gcov format introduced in gcc
+ 4.7
+Date: Fri, 23 Aug 2013 17:08:07 +0200
+Message-ID: <52177AD7.1030709@linux.vnet.ibm.com>
+References: <1377247176-13537-1-git-send-email-fhrbata@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-next-owner@vger.kernel.org>
-In-Reply-To: <CAMuHMdW0EE9MiwoOzvg_2VBf5QvYpgJ8bHsjV1HL8iN5HyhxYA@mail.gmail.com>
-Sender: linux-next-owner@vger.kernel.org
-To: Grant Likely <grant.likely@secretlab.ca>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Rob Herring <rob.herring@calxeda.com>, Thomas Gleixner <tglx@linutronix.de>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Russell King <linux@arm.linux.org.uk>, Stephen Rothwell <sfr@canb.auug.org.au>, Linux-Next <linux-next@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e06smtp16.uk.ibm.com ([195.75.94.112]:49415 "EHLO
+	e06smtp16.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752926Ab3HWPIN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 23 Aug 2013 11:08:13 -0400
+Received: from /spool/local
+	by e06smtp16.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <oberpar@linux.vnet.ibm.com>;
+	Fri, 23 Aug 2013 16:01:30 +0100
+In-Reply-To: <1377247176-13537-1-git-send-email-fhrbata@redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Frantisek Hrbata <fhrbata@redhat.com>
+Cc: linux-kernel@vger.kernel.org, jstancek@redhat.com, keescook@chromium.org, Christophe Guillon <christophe.guillon@st.com>, rusty@rustcorp.com.au, linux-arch@vger.kernel.org, arnd@arndb.de, mgahagan@redhat.com, agospoda@redhat.com
 
-On Fri, Aug 23, 2013 at 3:18 PM, Geert Uytterhoeven
-<geert@linux-m68k.org> wrote:
-> On Fri, Jul 26, 2013 at 5:56 AM, Grant Likely <grant.likely@secretlab.ca> wrote:
->> On Thu, Jul 25, 2013 at 3:58 PM, Geert Uytterhoeven
->> <geert@linux-m68k.org> wrote:
->>> On Wed, Jan 11, 2012 at 9:22 PM, Grant Likely <grant.likely@secretlab.ca> wrote:
->>>> NO_IRQ is evil.  Stop using it in arch/powerpc and powerpc device drivers
->>>
->>>> diff --git a/sound/soc/fsl/fsl_ssi.c b/sound/soc/fsl/fsl_ssi.c
->>>> index 3e06696..55c6ff9 100644
->>>> --- a/sound/soc/fsl/fsl_ssi.c
->>>> +++ b/sound/soc/fsl/fsl_ssi.c
->>>> @@ -666,7 +666,7 @@ static int __devinit fsl_ssi_probe(struct platform_device *pdev)
->>>>         ssi_private->ssi_phys = res.start;
->>>>
->>>>         ssi_private->irq = irq_of_parse_and_map(np, 0);
->>>> -       if (ssi_private->irq == NO_IRQ) {
->>>> +       if (!ssi_private->irq) {
->>>>                 dev_err(&pdev->dev, "no irq for node %s\n", np->full_name);
->>>>                 ret = -ENXIO;
->>>>                 goto error_iomap;
->>>
->>> What's the plan with this patch?
->>>
->>> This is now failing on xtensa, as it's one of the architectures that doesn't
->>> define NO_IRQ. Only arm, c6x, mn10300, openrisc, parisc, powerpc, and sparc
->>> define it.
->>
->> Wow. I'd pretty much dropped that patch because I didn't have time to
->> chase it down. It should be pursued though.
->>
->> In that particular case it is safe I think to apply the change. PPC
->> defines NO_IRQ to be 0 anyway.
->
-> Note that we still have arches that define it as nonzero:
->
-> arch/arm/include/asm/irq.h:#define NO_IRQ ((unsigned int)(-1))
-> arch/mn10300/include/asm/irq.h:#define NO_IRQ INT_MAX
-> arch/openrisc/include/asm/irq.h:#define NO_IRQ (-1)
-> arch/parisc/include/asm/irq.h:#define NO_IRQ (-1)
-> arch/sparc/include/asm/irq_32.h:#define NO_IRQ 0xffffffff
-> arch/sparc/include/asm/irq_64.h:#define NO_IRQ 0xffffffff
->
-> Only c6x and powerpc use zero, and thus are ready to drop NO_IRQ.
+On 23.08.2013 10:39, Frantisek Hrbata wrote:
+> This is an attempt to bring support for modified gcov format in gcc 4.7 to
+> the kernel. It tries to leverage the existing layout/abstraction, which was
+> designed keeping in mind that the gcov format could change, but some changes had
+> to be make. Mostly because the current model does not take into account that
+> even the core gcov structures, like gcov_info, could change. One part that could
+> be problematic is the addition of the .init_array section for constructors.
 
-s390 just gained "NO_IRQ support" in -next, in commit
-e15a9dcfdec29786d1830c5b7beaf02a288a89e1 ("s390: convert interrupt
-handling to use generic hardirq"):
+It appears that gcc 4.7 support for gcov-kernel is quite important to a
+number of people, at least that is what I derive from the fact that I
+now know of 3 people who've been working on this support separately from
+each other: you, myself (I've been close to posting my own version to
+LKML) and Christophe Guillon.
 
-/* This number is used when no interrupt has been assigned */
-#define NO_IRQ         0
+It's apparent now that I made a mistake delaying the discussion of the
+effort for too long, but I think your posting the patches opens up a
+good opportunity to combine the best of all previous efforts.
 
-Gr{oetje,eeting}s,
+Most of your code looks very familiar. There's one feature missing though
+that Christophe brought up as a requirement: the ability for gcov-kernel
+to cope with kernel modules being compiled with GCC versions implementing
+a different gcov format (apparently this can happen in some embedded
+setups).
 
-                        Geert
+Christophe proposed run-time version checking and a file-ops type function
+table which is chosen based on info->version. I found this approach
+somewhat intrusive and this would also not have covered the case where a
+new GCC versions was used to compile kernel modules for which the base
+kernel has no support. I tried to solve this requirement by combining
+two changes:
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+1) make the gcov-format generated by gcov-kernel compile-time configurable
+2) separate the gcov-format specific code into a loadable kernel module
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+This way, the gcov-format specific part of gcov-kernel could be replaced
+when working with a different version GCC. I'll post the corresponding
+patches as reply in another mail.
+
+Back to your patches: I tested them and they work fine on s390x when
+compiled with GCC 4.3.4 and 4.7.2. I'll provide some more specific
+comments as replies to your patch-mails.
+
+
+Regards,
+  Peter Oberparleiter
+
+-- 
+Peter Oberparleiter
+Linux on System z Development - IBM Germany
