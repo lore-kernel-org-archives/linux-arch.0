@@ -1,14 +1,14 @@
 From: Christoph Lameter <cl@linux.com>
-Subject: [guv 09/16] s390: __get_cpu_var conversion
-Date: Fri, 23 Aug 2013 19:02:18 +0000
-Message-ID: <00000140ac8e32bf-e6cc0f7d-d601-40b2-813b-914eb6925f7b-000000@email.amazonses.com>
+Subject: [guv 12/16] sparc: __get_cpu_var conversion
+Date: Fri, 23 Aug 2013 19:02:13 +0000
+Message-ID: <00000140ac8e2da8-5377b093-cdf2-434d-bf64-4fdca4f741b0-000000@email.amazonses.com>
 References: <20130823190135.726207430@linux.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a10-13.smtp-out.amazonses.com ([54.240.10.13]:40060 "EHLO
-	a10-13.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754551Ab3HWTQ6 (ORCPT
+Received: from a9-66.smtp-out.amazonses.com ([54.240.9.66]:50857 "EHLO
+	a9-66.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755944Ab3HWTSM (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 23 Aug 2013 15:16:58 -0400
+	Fri, 23 Aug 2013 15:18:12 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Tejun Heo <tj@kernel.org>
@@ -16,297 +16,335 @@ Cc: akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <sroste
 
 Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Index: linux/arch/s390/include/asm/irq.h
+Index: linux/arch/sparc/include/asm/cpudata_32.h
 ===================================================================
---- linux.orig/arch/s390/include/asm/irq.h	2013-08-22 14:49:17.339583428 -0500
-+++ linux/arch/s390/include/asm/irq.h	2013-08-22 14:49:17.327583548 -0500
-@@ -55,7 +55,7 @@ DECLARE_PER_CPU_SHARED_ALIGNED(struct ir
+--- linux.orig/arch/sparc/include/asm/cpudata_32.h	2013-08-22 14:34:54.000000000 -0500
++++ linux/arch/sparc/include/asm/cpudata_32.h	2013-08-22 14:37:15.942964723 -0500
+@@ -26,6 +26,6 @@ typedef struct {
  
- static __always_inline void inc_irq_stat(enum interruption_class irq)
- {
--	__get_cpu_var(irq_stat).irqs[irq]++;
-+	__this_cpu_inc(irq_stat.irqs[irq]);
- }
+ DECLARE_PER_CPU(cpuinfo_sparc, __cpu_data);
+ #define cpu_data(__cpu) per_cpu(__cpu_data, (__cpu))
+-#define local_cpu_data() __get_cpu_var(__cpu_data)
++#define local_cpu_data() __this_cpu_read(__cpu_data)
  
- struct ext_code {
-Index: linux/arch/s390/include/asm/cputime.h
+ #endif /* _SPARC_CPUDATA_H */
+Index: linux/arch/sparc/include/asm/cpudata_64.h
 ===================================================================
---- linux.orig/arch/s390/include/asm/cputime.h	2013-08-22 14:49:17.339583428 -0500
-+++ linux/arch/s390/include/asm/cputime.h	2013-08-22 14:49:17.327583548 -0500
-@@ -187,7 +187,7 @@ cputime64_t s390_get_idle_time(int cpu);
+--- linux.orig/arch/sparc/include/asm/cpudata_64.h	2013-08-22 14:34:54.000000000 -0500
++++ linux/arch/sparc/include/asm/cpudata_64.h	2013-08-22 14:37:15.942964723 -0500
+@@ -33,7 +33,7 @@ typedef struct {
  
- static inline int s390_nohz_delay(int cpu)
- {
--	return __get_cpu_var(s390_idle).nohz_delay != 0;
-+	return __this_cpu_read(s390_idle.nohz_delay) != 0;
- }
+ DECLARE_PER_CPU(cpuinfo_sparc, __cpu_data);
+ #define cpu_data(__cpu)		per_cpu(__cpu_data, (__cpu))
+-#define local_cpu_data()	__get_cpu_var(__cpu_data)
++#define local_cpu_data()	__this_cpu_read(__cpu_data)
  
- #define arch_needs_cpu(cpu) s390_nohz_delay(cpu)
-Index: linux/arch/s390/kernel/kprobes.c
+ extern const struct seq_operations cpuinfo_op;
+ 
+Index: linux/arch/sparc/kernel/kprobes.c
 ===================================================================
---- linux.orig/arch/s390/kernel/kprobes.c	2013-08-22 14:49:17.339583428 -0500
-+++ linux/arch/s390/kernel/kprobes.c	2013-08-22 14:49:17.327583548 -0500
-@@ -212,9 +212,9 @@ static void __kprobes disable_singlestep
-  */
- static void __kprobes push_kprobe(struct kprobe_ctlblk *kcb, struct kprobe *p)
- {
--	kcb->prev_kprobe.kp = __get_cpu_var(current_kprobe);
-+	kcb->prev_kprobe.kp = __this_cpu_read(current_kprobe);
- 	kcb->prev_kprobe.status = kcb->kprobe_status;
--	__get_cpu_var(current_kprobe) = p;
-+	__this_cpu_write(current_kprobe, p);
- }
+--- linux.orig/arch/sparc/kernel/kprobes.c	2013-08-22 14:34:54.000000000 -0500
++++ linux/arch/sparc/kernel/kprobes.c	2013-08-22 14:37:15.942964723 -0500
+@@ -82,7 +82,7 @@ static void __kprobes save_previous_kpro
  
- /*
-@@ -224,7 +224,7 @@ static void __kprobes push_kprobe(struct
-  */
- static void __kprobes pop_kprobe(struct kprobe_ctlblk *kcb)
+ static void __kprobes restore_previous_kprobe(struct kprobe_ctlblk *kcb)
  {
 -	__get_cpu_var(current_kprobe) = kcb->prev_kprobe.kp;
 +	__this_cpu_write(current_kprobe, kcb->prev_kprobe.kp);
  	kcb->kprobe_status = kcb->prev_kprobe.status;
+ 	kcb->kprobe_orig_tnpc = kcb->prev_kprobe.orig_tnpc;
+ 	kcb->kprobe_orig_tstate_pil = kcb->prev_kprobe.orig_tstate_pil;
+@@ -91,7 +91,7 @@ static void __kprobes restore_previous_k
+ static void __kprobes set_current_kprobe(struct kprobe *p, struct pt_regs *regs,
+ 				struct kprobe_ctlblk *kcb)
+ {
+-	__get_cpu_var(current_kprobe) = p;
++	__this_cpu_write(current_kprobe, p);
+ 	kcb->kprobe_orig_tnpc = regs->tnpc;
+ 	kcb->kprobe_orig_tstate_pil = (regs->tstate & TSTATE_PIL);
+ }
+@@ -154,7 +154,7 @@ static int __kprobes kprobe_handler(stru
+ 				ret = 1;
+ 				goto no_kprobe;
+ 			}
+-			p = __get_cpu_var(current_kprobe);
++			p = __this_cpu_read(current_kprobe);
+ 			if (p->break_handler && p->break_handler(p, regs))
+ 				goto ss_probe;
+ 		}
+Index: linux/arch/sparc/kernel/leon_smp.c
+===================================================================
+--- linux.orig/arch/sparc/kernel/leon_smp.c	2013-08-22 14:34:54.000000000 -0500
++++ linux/arch/sparc/kernel/leon_smp.c	2013-08-22 14:37:15.942964723 -0500
+@@ -354,7 +354,7 @@ static void leon_ipi_resched(int cpu)
+ 
+ void leonsmp_ipi_interrupt(void)
+ {
+-	struct leon_ipi_work *work = &__get_cpu_var(leon_ipi_work);
++	struct leon_ipi_work *work = this_cpu_ptr(&leon_ipi_work);
+ 
+ 	if (work->single) {
+ 		work->single = 0;
+Index: linux/arch/sparc/kernel/nmi.c
+===================================================================
+--- linux.orig/arch/sparc/kernel/nmi.c	2013-08-22 14:34:54.000000000 -0500
++++ linux/arch/sparc/kernel/nmi.c	2013-08-22 14:37:15.942964723 -0500
+@@ -111,20 +111,20 @@ notrace __kprobes void perfctr_irq(int i
+ 		pcr_ops->write_pcr(0, pcr_ops->pcr_nmi_disable);
+ 
+ 	sum = local_cpu_data().irq0_irqs;
+-	if (__get_cpu_var(nmi_touch)) {
+-		__get_cpu_var(nmi_touch) = 0;
++	if (__this_cpu_read(nmi_touch)) {
++		__this_cpu_write(nmi_touch, 0);
+ 		touched = 1;
+ 	}
+-	if (!touched && __get_cpu_var(last_irq_sum) == sum) {
++	if (!touched && __this_cpu_read(last_irq_sum) == sum) {
+ 		__this_cpu_inc(alert_counter);
+ 		if (__this_cpu_read(alert_counter) == 30 * nmi_hz)
+ 			die_nmi("BUG: NMI Watchdog detected LOCKUP",
+ 				regs, panic_on_timeout);
+ 	} else {
+-		__get_cpu_var(last_irq_sum) = sum;
++		__this_cpu_write(last_irq_sum, sum);
+ 		__this_cpu_write(alert_counter, 0);
+ 	}
+-	if (__get_cpu_var(wd_enabled)) {
++	if (__this_cpu_read(wd_enabled)) {
+ 		pcr_ops->write_pic(0, pcr_ops->nmi_picl_value(nmi_hz));
+ 		pcr_ops->write_pcr(0, pcr_ops->pcr_nmi_enable);
+ 	}
+@@ -166,7 +166,7 @@ static void report_broken_nmi(int cpu, i
+ void stop_nmi_watchdog(void *unused)
+ {
+ 	pcr_ops->write_pcr(0, pcr_ops->pcr_nmi_disable);
+-	__get_cpu_var(wd_enabled) = 0;
++	__this_cpu_write(wd_enabled, 0);
+ 	atomic_dec(&nmi_active);
  }
  
-@@ -305,7 +305,7 @@ static int __kprobes kprobe_handler(stru
- 		enable_singlestep(kcb, regs, (unsigned long) p->ainsn.insn);
- 		return 1;
- 	} else if (kprobe_running()) {
--		p = __get_cpu_var(current_kprobe);
-+		p = __this_cpu_read(current_kprobe);
- 		if (p->break_handler && p->break_handler(p, regs)) {
- 			/*
- 			 * Continuation after the jprobe completed and
-Index: linux/arch/s390/kernel/nmi.c
-===================================================================
---- linux.orig/arch/s390/kernel/nmi.c	2013-08-22 14:49:17.339583428 -0500
-+++ linux/arch/s390/kernel/nmi.c	2013-08-22 14:49:17.327583548 -0500
-@@ -53,8 +53,8 @@ void s390_handle_mcck(void)
- 	 */
- 	local_irq_save(flags);
- 	local_mcck_disable();
--	mcck = __get_cpu_var(cpu_mcck);
--	memset(&__get_cpu_var(cpu_mcck), 0, sizeof(struct mcck_struct));
-+	mcck = __this_cpu_read(cpu_mcck);
-+	memset(this_cpu_ptr(&cpu_mcck), 0, sizeof(struct mcck_struct));
- 	clear_thread_flag(TIF_MCCK_PENDING);
- 	local_mcck_enable();
- 	local_irq_restore(flags);
-@@ -256,7 +256,7 @@ void notrace s390_do_machine_check(struc
- 	nmi_enter();
- 	inc_irq_stat(NMI_NMI);
- 	mci = (struct mci *) &S390_lowcore.mcck_interruption_code;
--	mcck = &__get_cpu_var(cpu_mcck);
-+	mcck = this_cpu_ptr(&cpu_mcck);
- 	umode = user_mode(regs);
+@@ -219,7 +219,7 @@ error:
  
- 	if (mci->sd) {
-Index: linux/arch/s390/kernel/perf_cpum_cf.c
-===================================================================
---- linux.orig/arch/s390/kernel/perf_cpum_cf.c	2013-08-22 14:49:17.339583428 -0500
-+++ linux/arch/s390/kernel/perf_cpum_cf.c	2013-08-22 14:49:17.331583508 -0500
-@@ -173,7 +173,7 @@ static int validate_ctr_auth(const struc
-  */
- static void cpumf_pmu_enable(struct pmu *pmu)
+ void start_nmi_watchdog(void *unused)
  {
--	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
- 	int err;
+-	__get_cpu_var(wd_enabled) = 1;
++	__this_cpu_write(wd_enabled, 1);
+ 	atomic_inc(&nmi_active);
  
- 	if (cpuhw->flags & PMU_F_ENABLED)
-@@ -196,7 +196,7 @@ static void cpumf_pmu_enable(struct pmu
-  */
- static void cpumf_pmu_disable(struct pmu *pmu)
+ 	pcr_ops->write_pcr(0, pcr_ops->pcr_nmi_disable);
+@@ -230,7 +230,7 @@ void start_nmi_watchdog(void *unused)
+ 
+ static void nmi_adjust_hz_one(void *unused)
  {
--	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
- 	int err;
- 	u64 inactive;
- 
-@@ -230,7 +230,7 @@ static void cpumf_measurement_alert(stru
+-	if (!__get_cpu_var(wd_enabled))
++	if (!__this_cpu_read(wd_enabled))
  		return;
  
- 	inc_irq_stat(IRQEXT_CMC);
--	cpuhw = &__get_cpu_var(cpu_hw_events);
-+	cpuhw = this_cpu_ptr(&cpu_hw_events);
- 
- 	/* Measurement alerts are shared and might happen when the PMU
- 	 * is not reserved.  Ignore these alerts in this case. */
-@@ -250,7 +250,7 @@ static void cpumf_measurement_alert(stru
- #define PMC_RELEASE   1
- static void setup_pmc_cpu(void *flags)
+ 	pcr_ops->write_pcr(0, pcr_ops->pcr_nmi_disable);
+Index: linux/arch/sparc/kernel/pci_sun4v.c
+===================================================================
+--- linux.orig/arch/sparc/kernel/pci_sun4v.c	2013-08-22 14:34:54.000000000 -0500
++++ linux/arch/sparc/kernel/pci_sun4v.c	2013-08-22 14:37:15.942964723 -0500
+@@ -48,7 +48,7 @@ static int iommu_batch_initialized;
+ /* Interrupts must be disabled.  */
+ static inline void iommu_batch_start(struct device *dev, unsigned long prot, unsigned long entry)
  {
--	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
+-	struct iommu_batch *p = &__get_cpu_var(iommu_batch);
++	struct iommu_batch *p = this_cpu_ptr(&iommu_batch);
  
- 	switch (*((int *) flags)) {
- 	case PMC_INIT:
-@@ -481,7 +481,7 @@ static void cpumf_pmu_read(struct perf_e
+ 	p->dev		= dev;
+ 	p->prot		= prot;
+@@ -94,7 +94,7 @@ static long iommu_batch_flush(struct iom
  
- static void cpumf_pmu_start(struct perf_event *event, int flags)
+ static inline void iommu_batch_new_entry(unsigned long entry)
  {
--	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
+-	struct iommu_batch *p = &__get_cpu_var(iommu_batch);
++	struct iommu_batch *p = this_cpu_ptr(&iommu_batch);
+ 
+ 	if (p->entry + p->npages == entry)
+ 		return;
+@@ -106,7 +106,7 @@ static inline void iommu_batch_new_entry
+ /* Interrupts must be disabled.  */
+ static inline long iommu_batch_add(u64 phys_page)
+ {
+-	struct iommu_batch *p = &__get_cpu_var(iommu_batch);
++	struct iommu_batch *p = this_cpu_ptr(&iommu_batch);
+ 
+ 	BUG_ON(p->npages >= PGLIST_NENTS);
+ 
+@@ -120,7 +120,7 @@ static inline long iommu_batch_add(u64 p
+ /* Interrupts must be disabled.  */
+ static inline long iommu_batch_end(void)
+ {
+-	struct iommu_batch *p = &__get_cpu_var(iommu_batch);
++	struct iommu_batch *p = this_cpu_ptr(&iommu_batch);
+ 
+ 	BUG_ON(p->npages >= PGLIST_NENTS);
+ 
+Index: linux/arch/sparc/kernel/perf_event.c
+===================================================================
+--- linux.orig/arch/sparc/kernel/perf_event.c	2013-08-22 14:34:54.000000000 -0500
++++ linux/arch/sparc/kernel/perf_event.c	2013-08-22 14:37:15.946964681 -0500
+@@ -1013,7 +1013,7 @@ static void update_pcrs_for_enable(struc
+ 
+ static void sparc_pmu_enable(struct pmu *pmu)
+ {
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 	int i;
+ 
+ 	if (cpuc->enabled)
+@@ -1031,7 +1031,7 @@ static void sparc_pmu_enable(struct pmu
+ 
+ static void sparc_pmu_disable(struct pmu *pmu)
+ {
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 	int i;
+ 
+ 	if (!cpuc->enabled)
+@@ -1065,7 +1065,7 @@ static int active_event_index(struct cpu
+ 
+ static void sparc_pmu_start(struct perf_event *event, int flags)
+ {
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 	int idx = active_event_index(cpuc, event);
+ 
+ 	if (flags & PERF_EF_RELOAD) {
+@@ -1080,7 +1080,7 @@ static void sparc_pmu_start(struct perf_
+ 
+ static void sparc_pmu_stop(struct perf_event *event, int flags)
+ {
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 	int idx = active_event_index(cpuc, event);
+ 
+ 	if (!(event->hw.state & PERF_HES_STOPPED)) {
+@@ -1096,7 +1096,7 @@ static void sparc_pmu_stop(struct perf_e
+ 
+ static void sparc_pmu_del(struct perf_event *event, int _flags)
+ {
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 	unsigned long flags;
+ 	int i;
+ 
+@@ -1133,7 +1133,7 @@ static void sparc_pmu_del(struct perf_ev
+ 
+ static void sparc_pmu_read(struct perf_event *event)
+ {
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 	int idx = active_event_index(cpuc, event);
  	struct hw_perf_event *hwc = &event->hw;
  
- 	if (WARN_ON_ONCE(!(hwc->state & PERF_HES_STOPPED)))
-@@ -512,7 +512,7 @@ static void cpumf_pmu_start(struct perf_
+@@ -1145,7 +1145,7 @@ static DEFINE_MUTEX(pmc_grab_mutex);
  
- static void cpumf_pmu_stop(struct perf_event *event, int flags)
+ static void perf_stop_nmi_watchdog(void *unused)
  {
--	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
- 	struct hw_perf_event *hwc = &event->hw;
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 	int i;
  
- 	if (!(hwc->state & PERF_HES_STOPPED)) {
-@@ -533,7 +533,7 @@ static void cpumf_pmu_stop(struct perf_e
+ 	stop_nmi_watchdog(NULL);
+@@ -1356,7 +1356,7 @@ static int collect_events(struct perf_ev
  
- static int cpumf_pmu_add(struct perf_event *event, int flags)
+ static int sparc_pmu_add(struct perf_event *event, int ef_flags)
  {
--	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 	int n0, ret = -EAGAIN;
+ 	unsigned long flags;
  
- 	/* Check authorization for the counter set to which this
- 	 * counter belongs.
-@@ -557,7 +557,7 @@ static int cpumf_pmu_add(struct perf_eve
- 
- static void cpumf_pmu_del(struct perf_event *event, int flags)
- {
--	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
- 
- 	cpumf_pmu_stop(event, PERF_EF_UPDATE);
- 
-@@ -581,7 +581,7 @@ static void cpumf_pmu_del(struct perf_ev
+@@ -1498,7 +1498,7 @@ static int sparc_pmu_event_init(struct p
   */
- static void cpumf_pmu_start_txn(struct pmu *pmu)
+ static void sparc_pmu_start_txn(struct pmu *pmu)
  {
 -	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
 +	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
  
  	perf_pmu_disable(pmu);
- 	cpuhw->flags |= PERF_EVENT_TXN;
-@@ -595,7 +595,7 @@ static void cpumf_pmu_start_txn(struct p
+ 	cpuhw->group_flag |= PERF_EVENT_TXN;
+@@ -1511,7 +1511,7 @@ static void sparc_pmu_start_txn(struct p
   */
- static void cpumf_pmu_cancel_txn(struct pmu *pmu)
+ static void sparc_pmu_cancel_txn(struct pmu *pmu)
  {
 -	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
 +	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
  
- 	WARN_ON(cpuhw->tx_state != cpuhw->state);
- 
-@@ -610,7 +610,7 @@ static void cpumf_pmu_cancel_txn(struct
+ 	cpuhw->group_flag &= ~PERF_EVENT_TXN;
+ 	perf_pmu_enable(pmu);
+@@ -1524,13 +1524,13 @@ static void sparc_pmu_cancel_txn(struct
   */
- static int cpumf_pmu_commit_txn(struct pmu *pmu)
+ static int sparc_pmu_commit_txn(struct pmu *pmu)
  {
--	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
- 	u64 state;
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 	int n;
  
- 	/* check if the updated state can be scheduled */
-Index: linux/arch/s390/kernel/processor.c
+ 	if (!sparc_pmu)
+ 		return -EINVAL;
+ 
+-	cpuc = &__get_cpu_var(cpu_hw_events);
++	cpuc = this_cpu_ptr(&cpu_hw_events);
+ 	n = cpuc->n_events;
+ 	if (check_excludes(cpuc->event, 0, n))
+ 		return -EINVAL;
+@@ -1601,7 +1601,7 @@ static int __kprobes perf_event_nmi_hand
+ 
+ 	regs = args->regs;
+ 
+-	cpuc = &__get_cpu_var(cpu_hw_events);
++	cpuc = this_cpu_ptr(&cpu_hw_events);
+ 
+ 	/* If the PMU has the TOE IRQ enable bits, we need to do a
+ 	 * dummy write to the %pcr to clear the overflow bits and thus
+Index: linux/arch/sparc/kernel/sun4d_smp.c
 ===================================================================
---- linux.orig/arch/s390/kernel/processor.c	2013-08-22 14:49:17.339583428 -0500
-+++ linux/arch/s390/kernel/processor.c	2013-08-22 14:49:17.331583508 -0500
-@@ -23,8 +23,8 @@ static DEFINE_PER_CPU(struct cpuid, cpu_
-  */
- void cpu_init(void)
+--- linux.orig/arch/sparc/kernel/sun4d_smp.c	2013-08-22 14:34:54.000000000 -0500
++++ linux/arch/sparc/kernel/sun4d_smp.c	2013-08-22 14:37:15.946964681 -0500
+@@ -204,7 +204,7 @@ static void __init smp4d_ipi_init(void)
+ 
+ void sun4d_ipi_interrupt(void)
  {
--	struct s390_idle_data *idle = &__get_cpu_var(s390_idle);
--	struct cpuid *id = &__get_cpu_var(cpu_id);
-+	struct s390_idle_data *idle = this_cpu_ptr(&s390_idle);
-+	struct cpuid *id = this_cpu_ptr(&cpu_id);
+-	struct sun4d_ipi_work *work = &__get_cpu_var(sun4d_ipi_work);
++	struct sun4d_ipi_work *work = this_cpu_ptr(&sun4d_ipi_work);
  
- 	get_cpu_id(id);
- 	atomic_inc(&init_mm.mm_count);
-Index: linux/arch/s390/kernel/time.c
+ 	if (work->single) {
+ 		work->single = 0;
+Index: linux/arch/sparc/kernel/time_64.c
 ===================================================================
---- linux.orig/arch/s390/kernel/time.c	2013-08-22 14:49:17.339583428 -0500
-+++ linux/arch/s390/kernel/time.c	2013-08-22 14:49:17.331583508 -0500
-@@ -93,7 +93,7 @@ void clock_comparator_work(void)
+--- linux.orig/arch/sparc/kernel/time_64.c	2013-08-22 14:34:54.000000000 -0500
++++ linux/arch/sparc/kernel/time_64.c	2013-08-22 14:37:15.946964681 -0500
+@@ -766,7 +766,7 @@ void setup_sparc64_timer(void)
+ 			     : /* no outputs */
+ 			     : "r" (pstate));
  
- 	S390_lowcore.clock_comparator = -1ULL;
- 	set_clock_comparator(S390_lowcore.clock_comparator);
--	cd = &__get_cpu_var(comparators);
-+	cd = this_cpu_ptr(&comparators);
- 	cd->event_handler(cd);
+-	sevt = &__get_cpu_var(sparc64_events);
++	sevt = this_cpu_ptr(&sparc64_events);
+ 
+ 	memcpy(sevt, &sparc64_clockevent, sizeof(*sevt));
+ 	sevt->cpumask = cpumask_of(smp_processor_id());
+Index: linux/arch/sparc/mm/tlb.c
+===================================================================
+--- linux.orig/arch/sparc/mm/tlb.c	2013-08-22 14:34:54.000000000 -0500
++++ linux/arch/sparc/mm/tlb.c	2013-08-22 14:37:15.946964681 -0500
+@@ -53,14 +53,14 @@ out:
+ 
+ void arch_enter_lazy_mmu_mode(void)
+ {
+-	struct tlb_batch *tb = &__get_cpu_var(tlb_batch);
++	struct tlb_batch *tb = this_cpu_ptr(&tlb_batch);
+ 
+ 	tb->active = 1;
  }
  
-@@ -363,7 +363,7 @@ EXPORT_SYMBOL(get_sync_clock);
-  */
- static void disable_sync_clock(void *dummy)
+ void arch_leave_lazy_mmu_mode(void)
  {
--	atomic_t *sw_ptr = &__get_cpu_var(clock_sync_word);
-+	atomic_t *sw_ptr = this_cpu_ptr(&clock_sync_word);
- 	/*
- 	 * Clear the in-sync bit 2^31. All get_sync_clock calls will
- 	 * fail until the sync bit is turned back on. In addition
-@@ -380,7 +380,7 @@ static void disable_sync_clock(void *dum
-  */
- static void enable_sync_clock(void)
- {
--	atomic_t *sw_ptr = &__get_cpu_var(clock_sync_word);
-+	atomic_t *sw_ptr = this_cpu_ptr(&clock_sync_word);
- 	atomic_set_mask(0x80000000, sw_ptr);
- }
+-	struct tlb_batch *tb = &__get_cpu_var(tlb_batch);
++	struct tlb_batch *tb = this_cpu_ptr(&tlb_batch);
  
-Index: linux/arch/s390/kernel/vtime.c
-===================================================================
---- linux.orig/arch/s390/kernel/vtime.c	2013-08-22 14:49:17.339583428 -0500
-+++ linux/arch/s390/kernel/vtime.c	2013-08-22 14:49:17.331583508 -0500
-@@ -153,7 +153,7 @@ EXPORT_SYMBOL_GPL(vtime_account_system);
- 
- void __kprobes vtime_stop_cpu(void)
- {
--	struct s390_idle_data *idle = &__get_cpu_var(s390_idle);
-+	struct s390_idle_data *idle = this_cpu_ptr(&s390_idle);
- 	unsigned long long idle_time;
- 	unsigned long psw_mask;
- 
-Index: linux/arch/s390/oprofile/hwsampler.c
-===================================================================
---- linux.orig/arch/s390/oprofile/hwsampler.c	2013-08-22 14:49:17.339583428 -0500
-+++ linux/arch/s390/oprofile/hwsampler.c	2013-08-22 14:49:17.331583508 -0500
-@@ -228,7 +228,7 @@ static inline unsigned long *trailer_ent
- static void hws_ext_handler(struct ext_code ext_code,
- 			    unsigned int param32, unsigned long param64)
- {
--	struct hws_cpu_buffer *cb = &__get_cpu_var(sampler_cpu_buffer);
-+	struct hws_cpu_buffer *cb = this_cpu_ptr(&sampler_cpu_buffer);
- 
- 	if (!(param32 & CPU_MF_INT_SF_MASK))
- 		return;
-Index: linux/arch/s390/pci/pci.c
-===================================================================
---- linux.orig/arch/s390/pci/pci.c	2013-08-22 14:49:17.339583428 -0500
-+++ linux/arch/s390/pci/pci.c	2013-08-22 14:49:17.335583467 -0500
-@@ -409,7 +409,7 @@ static DEFINE_PER_CPU(unsigned long, nex
- 
- static void zpci_irq_handler(struct airq_struct *airq)
- {
--	unsigned long sbit, mbit, last = 0, start = __get_cpu_var(next_sbit);
-+	unsigned long sbit, mbit, last = 0, start = __this_cpu_read(next_sbit);
- 	int rescan = 0, max = aisb_max;
- 	struct zdev_irq_map *imap;
- 
-@@ -460,7 +460,7 @@ scan:
- 	}
- out:
- 	/* store next device bit to scan */
--	__get_cpu_var(next_sbit) = (++last >= aisb_max) ? 0 : last;
-+	__this_cpu_write(next_sbit, (++last >= aisb_max) ? 0 : last);
- }
- 
- /* msi_vecs - number of requested interrupts, 0 place function to error state */
-Index: linux/arch/s390/kernel/irq.c
-===================================================================
---- linux.orig/arch/s390/kernel/irq.c	2013-08-08 02:54:34.344984334 -0500
-+++ linux/arch/s390/kernel/irq.c	2013-08-22 14:53:32.025028108 -0500
-@@ -250,7 +250,7 @@ void __irq_entry do_extint(struct pt_reg
- 	kstat_incr_irqs_this_cpu(EXTERNAL_INTERRUPT, NULL);
- 	ext_code = *(struct ext_code *) &regs->int_code;
- 	if (ext_code.code != 0x1004)
--		__get_cpu_var(s390_idle).nohz_delay = 1;
-+		__this_cpu_write(s390_idle.nohz_delay, 1);
- 
- 	index = ext_hash(ext_code.code);
- 	rcu_read_lock();
+ 	if (tb->tlb_nr)
+ 		flush_tlb_pending();
