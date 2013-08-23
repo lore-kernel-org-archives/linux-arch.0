@@ -1,68 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f176.google.com ([209.85.214.176]:51678 "EHLO
-	mail-ob0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754028Ab3HVVdH convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Aug 2013 17:33:07 -0400
-Received: by mail-ob0-f176.google.com with SMTP id uz19so4647549obc.21
-        for <linux-arch@vger.kernel.org>; Thu, 22 Aug 2013 14:33:05 -0700 (PDT)
-Date: Thu, 22 Aug 2013 16:32:55 -0500
-From: Rob Landley <rob@landley.net>
-Subject: Re: [RFC] Get rid of SUBARCH
-In-Reply-To: <52167AB8.4060206@gmail.com> (from ddaney.cavm@gmail.com on Thu
-	Aug 22 15:55:20 2013)
-Message-ID: <1377207175.2737.113@driftwood>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; DelSp=Yes; Format=Flowed
-Content-Disposition: inline
-Content-Transfer-Encoding: 8BIT
+Received: from mx1.redhat.com ([209.132.183.28]:45526 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755123Ab3HWIj4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 23 Aug 2013 04:39:56 -0400
+From: Frantisek Hrbata <fhrbata@redhat.com>
+Subject: [RFC PATCH 3/4] gcov: compile specific gcov implementation based on gcc version
+Date: Fri, 23 Aug 2013 10:39:35 +0200
+Message-ID: <1377247176-13537-4-git-send-email-fhrbata@redhat.com>
+In-Reply-To: <1377247176-13537-1-git-send-email-fhrbata@redhat.com>
+References: <1377247176-13537-1-git-send-email-fhrbata@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Daney <ddaney.cavm@gmail.com>
-Cc: Richard Weinberger <richard@nod.at>, Geert Uytterhoeven <geert@linux-m68k.org>, Sam Ravnborg <sam@ravnborg.org>, Linux-Arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.cz>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Jeff Dike <jdike@addtoit.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, Linux-sh list <linux-sh@vger.kernel.org>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>
-Message-ID: <20130822213255.gK8qLVH1vzmmgZMX3-8ZtA8LdSbDFWw0L3H7WgZ7jeA@z>
+To: linux-kernel@vger.kernel.org
+Cc: jstancek@redhat.com, keescook@chromium.org, peter.oberparleiter@de.ibm.com, rusty@rustcorp.com.au, linux-arch@vger.kernel.org, arnd@arndb.de, mgahagan@redhat.com, agospoda@redhat.com
+Message-ID: <20130823083935.rmjB3z0u4rSCY53M9exbsZYpnVRSHpI1RJYNzzXsHow@z>
 
-On 08/22/2013 03:55:20 PM, David Daney wrote:
-> On 08/22/2013 01:41 PM, Rob Landley wrote:
->> On 08/22/2013 07:58:26 AM, Geert Uytterhoeven wrote:
->>> On Wed, Aug 21, 2013 at 9:51 PM, Sam Ravnborg <sam@ravnborg.org>  
->>> wrote:
->>> >> > The series touches also m68k, sh, mips and unicore32.
->>> >> > These architectures magically select a cross compiler if ARCH  
->>> !=
->>> SUBARCH.
->>> >> > Do really need that behavior?
->>> >>
->>> >> This does remove functionality.
->>> >> It allows to build a kernel using e.g. "make ARCH=m68k".
->>> >>
->>> >> Perhaps this can be moved to generic code? Most (not all!)
->>> cross-toolchains
->>> >> are called $ARCH-{unknown-,}linux{,-gnu}.
->>> >> Exceptions are e.g. am33_2.0-linux and bfin-uclinux.
->>> >
->>> > Today you can specify CROSS_COMPILE in Kconfig.
->>> > With this we should be able to remove these hacks.
->>> 
->>> The correct CROSS_COMPILE value depends on the host environment, not
->>> on the target configuration.
->> 
->> Actually it depends on _both_.
->> 
-> 
-> I think the important issue is not the exact dependencies of the  
-> value of CROSS_COMPILE, but rather that it varies enough that  
-> automatically choosing a value based on SUBARCH often gives the wrong  
-> result.
-> 
-> Removing SUBARCH and setting CROSS_COMPILE either from the make  
-> command line (or environment) or the config file, is a good idea  
-> because it simplifies the build system, makes things clearer, and  
-> yields more predictable results.
-> 
-> David Daney
+Compile the correct gcov implementation file for a specific gcc version. In
+the future, if another file is added, the conditions will need to be somehow
+adjusted to if-elif-else case, but at this point the simple cc-ifversion should
+be enough.
 
-Agreed. Expecting the build to guess the right $CROSS_COMPILE is like  
-expecting it to guess the right $PATH. It should be specified, not  
-heuristically probed.
+Signed-off-by: Frantisek Hrbata <fhrbata@redhat.com>
+---
+ kernel/gcov/Makefile | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
-Rob
+diff --git a/kernel/gcov/Makefile b/kernel/gcov/Makefile
+index e97ca59..d57b712 100644
+--- a/kernel/gcov/Makefile
++++ b/kernel/gcov/Makefile
+@@ -1,3 +1,6 @@
+ ccflags-y := -DSRCTREE='"$(srctree)"' -DOBJTREE='"$(objtree)"'
+ 
+-obj-$(CONFIG_GCOV_KERNEL) := base.o fs.o gcc_3_4.o
++obj-$(CONFIG_GCOV_KERNEL) := base.o fs.o
++
++obj-$(CONFIG_GCOV_KERNEL) += $(call cc-ifversion, -ge, 0407, gcc_4_7.o)
++obj-$(CONFIG_GCOV_KERNEL) += $(call cc-ifversion, -lt, 0407, gcc_3_4.o)
+-- 
+1.8.3.1
+
