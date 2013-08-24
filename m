@@ -1,258 +1,138 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from b232-35.smtp-out.amazonses.com ([199.127.232.35]:28279 "EHLO
-	b232-35.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755292Ab3HWTLt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 23 Aug 2013 15:11:49 -0400
-Message-ID: <00000140ac8e312e-2aaf6eb0-cd09-4e71-8986-4e595dc079aa-000000@email.amazonses.com>
-Date: Fri, 23 Aug 2013 19:02:19 +0000
-From: Christoph Lameter <cl@linux.com>
-Subject: [guv 08/16] mips: __get_cpu_var conversion
-References: <20130823190135.726207430@linux.com>
+Received: from mx1.redhat.com ([209.132.183.28]:61785 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755360Ab3HXTOi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 24 Aug 2013 15:14:38 -0400
+Date: Sat, 24 Aug 2013 21:12:27 +0200
+From: Frantisek Hrbata <fhrbata@redhat.com>
+Subject: Re: [RFC PATCH 3/4] gcov: compile specific gcov implementation based
+ on gcc version
+Message-ID: <20130824191227.GA2365@localhost.localdomain>
+Reply-To: Frantisek Hrbata <fhrbata@redhat.com>
+References: <1377247176-13537-1-git-send-email-fhrbata@redhat.com>
+ <1377247176-13537-4-git-send-email-fhrbata@redhat.com>
+ <52177C87.4090003@linux.vnet.ibm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <52177C87.4090003@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
-Message-ID: <20130823190219.jA7eDNhOCy-dxtagFOGY-n3CgV0Y7cP8inSfcEY2hyU@z>
+To: Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, jstancek@redhat.com, keescook@chromium.org, rusty@rustcorp.com.au, linux-arch@vger.kernel.org, arnd@arndb.de, mgahagan@redhat.com, agospoda@redhat.com
+Message-ID: <20130824191227.b10Hq5e2zu37JSHk8lAFeT3_A9JhYJ7ElZtIDrTbcL8@z>
 
-Signed-off-by: Christoph Lameter <cl@linux.com>
+On Fri, Aug 23, 2013 at 05:15:19PM +0200, Peter Oberparleiter wrote:
+> On 23.08.2013 10:39, Frantisek Hrbata wrote:
+> > Compile the correct gcov implementation file for a specific gcc version. In
+> > the future, if another file is added, the conditions will need to be somehow
+> > adjusted to if-elif-else case, but at this point the simple cc-ifversion should
+> > be enough.
+> 
+> Looks good, though I think this could be merged into the main 4.7 format patch,
+> since without it, the 4.7 code will never be reached.
 
-Index: linux/arch/mips/include/asm/fpu_emulator.h
-===================================================================
---- linux.orig/arch/mips/include/asm/fpu_emulator.h	2013-08-22 14:18:23.138568266 -0500
-+++ linux/arch/mips/include/asm/fpu_emulator.h	2013-08-22 14:18:23.130568348 -0500
-@@ -43,7 +43,7 @@ DECLARE_PER_CPU(struct mips_fpu_emulator
- #define MIPS_FPU_EMU_INC_STATS(M)					\
- do {									\
- 	preempt_disable();						\
--	__local_inc(&__get_cpu_var(fpuemustats).M);			\
-+	__this_cpu_inc(fpuemustats.M);					\
- 	preempt_enable();						\
- } while (0)
- 
-Index: linux/arch/mips/cavium-octeon/octeon-irq.c
-===================================================================
---- linux.orig/arch/mips/cavium-octeon/octeon-irq.c	2013-08-22 14:17:32.000000000 -0500
-+++ linux/arch/mips/cavium-octeon/octeon-irq.c	2013-08-22 14:18:54.210250887 -0500
-@@ -264,13 +264,13 @@ static void octeon_irq_ciu_enable_local(
- 	unsigned long *pen;
- 	unsigned long flags;
- 	union octeon_ciu_chip_data cd;
--	raw_spinlock_t *lock = &__get_cpu_var(octeon_irq_ciu_spinlock);
-+	raw_spinlock_t *lock = this_cpu_ptr(&octeon_irq_ciu_spinlock);
- 
- 	cd.p = irq_data_get_irq_chip_data(data);
- 
- 	raw_spin_lock_irqsave(lock, flags);
- 	if (cd.s.line == 0) {
--		pen = &__get_cpu_var(octeon_irq_ciu0_en_mirror);
-+		pen = this_cpu_ptr(&octeon_irq_ciu0_en_mirror);
- 		__set_bit(cd.s.bit, pen);
- 		/*
- 		 * Must be visible to octeon_irq_ip{2,3}_ciu() before
-@@ -279,7 +279,7 @@ static void octeon_irq_ciu_enable_local(
- 		wmb();
- 		cvmx_write_csr(CVMX_CIU_INTX_EN0(cvmx_get_core_num() * 2), *pen);
- 	} else {
--		pen = &__get_cpu_var(octeon_irq_ciu1_en_mirror);
-+		pen = this_cpu_ptr(&octeon_irq_ciu1_en_mirror);
- 		__set_bit(cd.s.bit, pen);
- 		/*
- 		 * Must be visible to octeon_irq_ip{2,3}_ciu() before
-@@ -296,13 +296,13 @@ static void octeon_irq_ciu_disable_local
- 	unsigned long *pen;
- 	unsigned long flags;
- 	union octeon_ciu_chip_data cd;
--	raw_spinlock_t *lock = &__get_cpu_var(octeon_irq_ciu_spinlock);
-+	raw_spinlock_t *lock = this_cpu_ptr(&octeon_irq_ciu_spinlock);
- 
- 	cd.p = irq_data_get_irq_chip_data(data);
- 
- 	raw_spin_lock_irqsave(lock, flags);
- 	if (cd.s.line == 0) {
--		pen = &__get_cpu_var(octeon_irq_ciu0_en_mirror);
-+		pen = this_cpu_ptr(&octeon_irq_ciu0_en_mirror);
- 		__clear_bit(cd.s.bit, pen);
- 		/*
- 		 * Must be visible to octeon_irq_ip{2,3}_ciu() before
-@@ -311,7 +311,7 @@ static void octeon_irq_ciu_disable_local
- 		wmb();
- 		cvmx_write_csr(CVMX_CIU_INTX_EN0(cvmx_get_core_num() * 2), *pen);
- 	} else {
--		pen = &__get_cpu_var(octeon_irq_ciu1_en_mirror);
-+		pen = this_cpu_ptr(&octeon_irq_ciu1_en_mirror);
- 		__clear_bit(cd.s.bit, pen);
- 		/*
- 		 * Must be visible to octeon_irq_ip{2,3}_ciu() before
-@@ -431,11 +431,11 @@ static void octeon_irq_ciu_enable_local_
- 
- 	if (cd.s.line == 0) {
- 		int index = cvmx_get_core_num() * 2;
--		set_bit(cd.s.bit, &__get_cpu_var(octeon_irq_ciu0_en_mirror));
-+		set_bit(cd.s.bit, this_cpu_ptr(&octeon_irq_ciu0_en_mirror));
- 		cvmx_write_csr(CVMX_CIU_INTX_EN0_W1S(index), mask);
- 	} else {
- 		int index = cvmx_get_core_num() * 2 + 1;
--		set_bit(cd.s.bit, &__get_cpu_var(octeon_irq_ciu1_en_mirror));
-+		set_bit(cd.s.bit, this_cpu_ptr(&octeon_irq_ciu1_en_mirror));
- 		cvmx_write_csr(CVMX_CIU_INTX_EN1_W1S(index), mask);
- 	}
- }
-@@ -450,11 +450,11 @@ static void octeon_irq_ciu_disable_local
- 
- 	if (cd.s.line == 0) {
- 		int index = cvmx_get_core_num() * 2;
--		clear_bit(cd.s.bit, &__get_cpu_var(octeon_irq_ciu0_en_mirror));
-+		clear_bit(cd.s.bit, this_cpu_ptr(&octeon_irq_ciu0_en_mirror));
- 		cvmx_write_csr(CVMX_CIU_INTX_EN0_W1C(index), mask);
- 	} else {
- 		int index = cvmx_get_core_num() * 2 + 1;
--		clear_bit(cd.s.bit, &__get_cpu_var(octeon_irq_ciu1_en_mirror));
-+		clear_bit(cd.s.bit, this_cpu_ptr(&octeon_irq_ciu1_en_mirror));
- 		cvmx_write_csr(CVMX_CIU_INTX_EN1_W1C(index), mask);
- 	}
- }
-@@ -1063,7 +1063,7 @@ static void octeon_irq_ip2_ciu(void)
- 	const unsigned long core_id = cvmx_get_core_num();
- 	u64 ciu_sum = cvmx_read_csr(CVMX_CIU_INTX_SUM0(core_id * 2));
- 
--	ciu_sum &= __get_cpu_var(octeon_irq_ciu0_en_mirror);
-+	ciu_sum &= __this_cpu_read(octeon_irq_ciu0_en_mirror);
- 	if (likely(ciu_sum)) {
- 		int bit = fls64(ciu_sum) - 1;
- 		int irq = octeon_irq_ciu_to_irq[0][bit];
-@@ -1080,7 +1080,7 @@ static void octeon_irq_ip3_ciu(void)
- {
- 	u64 ciu_sum = cvmx_read_csr(CVMX_CIU_INT_SUM1);
- 
--	ciu_sum &= __get_cpu_var(octeon_irq_ciu1_en_mirror);
-+	ciu_sum &= __this_cpu_read(octeon_irq_ciu1_en_mirror);
- 	if (likely(ciu_sum)) {
- 		int bit = fls64(ciu_sum) - 1;
- 		int irq = octeon_irq_ciu_to_irq[1][bit];
-@@ -1129,10 +1129,10 @@ static void octeon_irq_init_ciu_percpu(v
- 	int coreid = cvmx_get_core_num();
- 
- 
--	__get_cpu_var(octeon_irq_ciu0_en_mirror) = 0;
--	__get_cpu_var(octeon_irq_ciu1_en_mirror) = 0;
-+	__this_cpu_write(octeon_irq_ciu0_en_mirror, 0);
-+	__this_cpu_write(octeon_irq_ciu1_en_mirror, 0);
- 	wmb();
--	raw_spin_lock_init(&__get_cpu_var(octeon_irq_ciu_spinlock));
-+	raw_spin_lock_init(this_cpu_ptr(&octeon_irq_ciu_spinlock));
- 	/*
- 	 * Disable All CIU Interrupts. The ones we need will be
- 	 * enabled later.  Read the SUM register so we know the write
-Index: linux/arch/mips/kernel/kprobes.c
-===================================================================
---- linux.orig/arch/mips/kernel/kprobes.c	2013-08-22 14:17:32.000000000 -0500
-+++ linux/arch/mips/kernel/kprobes.c	2013-08-22 14:18:54.210250887 -0500
-@@ -224,7 +224,7 @@ static void save_previous_kprobe(struct
- 
- static void restore_previous_kprobe(struct kprobe_ctlblk *kcb)
- {
--	__get_cpu_var(current_kprobe) = kcb->prev_kprobe.kp;
-+	__this_cpu_write(current_kprobe, kcb->prev_kprobe.kp);
- 	kcb->kprobe_status = kcb->prev_kprobe.status;
- 	kcb->kprobe_old_SR = kcb->prev_kprobe.old_SR;
- 	kcb->kprobe_saved_SR = kcb->prev_kprobe.saved_SR;
-@@ -234,7 +234,7 @@ static void restore_previous_kprobe(stru
- static void set_current_kprobe(struct kprobe *p, struct pt_regs *regs,
- 			       struct kprobe_ctlblk *kcb)
- {
--	__get_cpu_var(current_kprobe) = p;
-+	__this_cpu_write(current_kprobe, p);
- 	kcb->kprobe_saved_SR = kcb->kprobe_old_SR = (regs->cp0_status & ST0_IE);
- 	kcb->kprobe_saved_epc = regs->cp0_epc;
- }
-@@ -385,7 +385,7 @@ static int __kprobes kprobe_handler(stru
- 				ret = 1;
- 				goto no_kprobe;
- 			}
--			p = __get_cpu_var(current_kprobe);
-+			p = __this_cpu_read(current_kprobe);
- 			if (p->break_handler && p->break_handler(p, regs))
- 				goto ss_probe;
- 		}
-Index: linux/arch/mips/kernel/perf_event_mipsxx.c
-===================================================================
---- linux.orig/arch/mips/kernel/perf_event_mipsxx.c	2013-08-22 14:17:32.000000000 -0500
-+++ linux/arch/mips/kernel/perf_event_mipsxx.c	2013-08-22 14:18:54.210250887 -0500
-@@ -340,7 +340,7 @@ static int mipsxx_pmu_alloc_counter(stru
- 
- static void mipsxx_pmu_enable_event(struct hw_perf_event *evt, int idx)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 
- 	WARN_ON(idx < 0 || idx >= mipspmu.num_counters);
- 
-@@ -360,7 +360,7 @@ static void mipsxx_pmu_enable_event(stru
- 
- static void mipsxx_pmu_disable_event(int idx)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	unsigned long flags;
- 
- 	WARN_ON(idx < 0 || idx >= mipspmu.num_counters);
-@@ -460,7 +460,7 @@ static void mipspmu_stop(struct perf_eve
- 
- static int mipspmu_add(struct perf_event *event, int flags)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	struct hw_perf_event *hwc = &event->hw;
- 	int idx;
- 	int err = 0;
-@@ -496,7 +496,7 @@ out:
- 
- static void mipspmu_del(struct perf_event *event, int flags)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	struct hw_perf_event *hwc = &event->hw;
- 	int idx = hwc->idx;
- 
-@@ -1270,7 +1270,7 @@ static int __hw_perf_event_init(struct p
- 
- static void pause_local_counters(void)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	int ctr = mipspmu.num_counters;
- 	unsigned long flags;
- 
-@@ -1286,7 +1286,7 @@ static void pause_local_counters(void)
- 
- static void resume_local_counters(void)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	int ctr = mipspmu.num_counters;
- 
- 	do {
-@@ -1297,7 +1297,7 @@ static void resume_local_counters(void)
- 
- static int mipsxx_pmu_handle_shared_irq(void)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	struct perf_sample_data data;
- 	unsigned int counters = mipspmu.num_counters;
- 	u64 counter;
-Index: linux/arch/mips/kernel/smp-bmips.c
-===================================================================
---- linux.orig/arch/mips/kernel/smp-bmips.c	2013-08-22 14:17:32.000000000 -0500
-+++ linux/arch/mips/kernel/smp-bmips.c	2013-08-22 14:18:54.214250846 -0500
-@@ -304,7 +304,7 @@ static irqreturn_t bmips_ipi_interrupt(i
- 	int action, cpu = irq - IPI0_IRQ;
- 
- 	spin_lock_irqsave(&ipi_lock, flags);
--	action = __get_cpu_var(ipi_action_mask);
-+	action = __this_cpu_read(ipi_action_mask);
- 	per_cpu(ipi_action_mask, cpu) = 0;
- 	clear_c0_cause(cpu ? C_SW1 : C_SW0);
- 	spin_unlock_irqrestore(&ipi_lock, flags);
+Sure, I can merge these two patches.
 
+> 
+> Also it is my understanding that there are some distribution-specific versions
+> of GCC that include the 4.7. gcov format code but report GCC version 4.6. With
+> the auto-detection code implemented like this, gcov-kernel won't work correctly.
+> For that purpose I've implemented a configuration option to allow users to
+> force a specific version of gcov format.
+
+Ah, I was not aware of this inconsistency in versioning. This raises a question
+if it would not be better to deal directly with version in the gcov_info
+instead of these config options. This would of course mean some kind of gcov
+operations callbacks per gcov version(you already mentioned the file
+operations approach).
+
+> 
+> I'm attaching the corresponding patch below:
+> 
+> ---
+> kernel: gcov: make data format configurable
+> 
+> Make the format of the generated gcov data configurable. This may be
+> required for example for pre-4.7 GCCs that contain the 4.7 gcov data
+> format changes.
+> 
+> Signed-off-by: Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
+> ---
+>  kernel/gcov/Kconfig  |   30 ++++++++++++++++++++++++++++++
+>  kernel/gcov/Makefile |   21 +++++++++++++++++++--
+>  2 files changed, 49 insertions(+), 2 deletions(-)
+> 
+> --- a/kernel/gcov/Kconfig
+> +++ b/kernel/gcov/Kconfig
+> @@ -46,4 +46,34 @@ config GCOV_PROFILE_ALL
+>  	larger and run slower. Also be sure to exclude files from profiling
+>  	which are not linked to the kernel image to prevent linker errors.
+> 
+> +choice
+> +	prompt "Specify GCOV format"
+> +	depends on GCOV_KERNEL
+> +	default GCOV_FORMAT_AUTODETECT
+> +	---help---
+> +	The gcov format is usually determined by the GCC version, but there are
+> +	exceptions where format changes are integrated in lower-version GCCs.
+> +	In such a case use this option to adjust the format used in the kernel
+> +	accordingly.
+> +
+> +	If unsure, choose "Autodetect".
+> +
+> +config GCOV_FORMAT_AUTODETECT
+> +	bool "Autodetect"
+> +	---help---
+> +	Select this option to use the format that corresponds to your GCC
+> +	version.
+> +
+> +config GCOV_FORMAT_3_4
+> +	bool "GCC 3.4 format"
+> +	---help---
+> +	Select this option to use the format defined by GCC 3.4.
+> +
+> +config GCOV_FORMAT_4_7
+> +	bool "GCC 4.7 format"
+> +	---help---
+> +	Select this option to use the format defined by GCC 4.7.
+> +
+> +endchoice
+> +
+>  endmenu
+> --- a/kernel/gcov/Makefile
+> +++ b/kernel/gcov/Makefile
+> @@ -1,5 +1,22 @@
+>  ccflags-y := -DSRCTREE='"$(srctree)"' -DOBJTREE='"$(objtree)"'
+> 
+> +# if-lt
+> +# Usage VAR := $(call if-lt, $(a), $(b))
+> +# Returns 1 if (a < b)
+> +if-lt = $(shell [ $(1) -lt $(2) ] && echo 1)
+> +
+> +ifeq ($(CONFIG_GCOV_FORMAT_3_4),y)
+> +  cc-ver := 0304
+> +else ifeq ($(CONFIG_GCOV_FORMAT_4_7),y)
+> +  cc-ver := 0407
+> +else
+> +  cc-ver := $(call cc-version)
+> +endif
+> +
+>  obj-$(CONFIG_GCOV_KERNEL) := base.o fs.o
+> -obj-$(CONFIG_GCOV_KERNEL) += $(call cc-ifversion, -lt, 0407, gcc_3_4.o)
+> -obj-$(CONFIG_GCOV_KERNEL) += $(call cc-ifversion, -ge, 0407, gcc_4_7.o)
+> +
+> +ifeq ($(call if-lt, $(cc-ver), 0407),1)
+> +  obj-$(CONFIG_GCOV_KERNEL) += gcc_3_4.o
+> +else
+> +  obj-$(CONFIG_GCOV_KERNEL) += gcc_4_7.o
+> +endif
+> 
+> 
+> -- 
+> Peter Oberparleiter
+> Linux on System z Development - IBM Germany
+> 
+
+-- 
+Frantisek Hrbata
