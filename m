@@ -1,18 +1,13 @@
 From: Christoph Lameter <cl@linux.com>
-Subject: [guv v2 18/31] s390: Replace __get_cpu_var uses
-Date: Mon, 26 Aug 2013 20:44:40 +0000
-Message-ID: <00000140bc5f0c04-e8f49653-cc6a-4841-99ca-f89e07c359ed-000000@email.amazonses.com>
+Subject: [guv v2 23/31] tile: Replace __get_cpu_var uses
+Date: Mon, 26 Aug 2013 20:56:17 +0000
+Message-ID: <00000140bc69acdb-3b2967b0-e224-424b-ad08-973515704be6-000000@email.amazonses.com>
 References: <20130826204351.725357339@linux.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a9-99.smtp-out.amazonses.com ([54.240.9.99]:38586 "EHLO
-	a9-99.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751617Ab3HZVB6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 26 Aug 2013 17:01:58 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm.com, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+Cc: akpm@linuxfoundation.org, Chris Metcalf <cmetcalf@tilera.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 __get_cpu_var() is used for multiple purposes in the kernel source. One of them is
 address calculation via the form &__get_cpu_var(x). This calculates the address for
@@ -114,297 +109,310 @@ Transformations done to __get_cpu_var()
 
 Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Index: linux/arch/s390/include/asm/irq.h
+Index: linux/arch/tile/include/asm/irqflags.h
 ===================================================================
---- linux.orig/arch/s390/include/asm/irq.h	2013-08-22 14:49:17.339583428 -0500
-+++ linux/arch/s390/include/asm/irq.h	2013-08-22 14:49:17.327583548 -0500
-@@ -55,7 +55,7 @@ DECLARE_PER_CPU_SHARED_ALIGNED(struct ir
+--- linux.orig/arch/tile/include/asm/irqflags.h	2013-08-22 14:39:14.000000000 -0500
++++ linux/arch/tile/include/asm/irqflags.h	2013-08-22 14:39:57.453305409 -0500
+@@ -134,7 +134,7 @@ DECLARE_PER_CPU(unsigned long long, inte
  
- static __always_inline void inc_irq_stat(enum interruption_class irq)
- {
--	__get_cpu_var(irq_stat).irqs[irq]++;
-+	__this_cpu_inc(irq_stat.irqs[irq]);
- }
+ /* Re-enable all maskable interrupts. */
+ #define arch_local_irq_enable() \
+-	interrupt_mask_reset_mask(__get_cpu_var(interrupts_enabled_mask))
++	interrupt_mask_reset_mask(__this_cpu_read(interrupts_enabled_mask))
  
- struct ext_code {
-Index: linux/arch/s390/include/asm/cputime.h
+ /* Disable or enable interrupts based on flag argument. */
+ #define arch_local_irq_restore(disabled) do { \
+@@ -161,7 +161,7 @@ DECLARE_PER_CPU(unsigned long long, inte
+ 
+ /* Prevent the given interrupt from being enabled next time we enable irqs. */
+ #define arch_local_irq_mask(interrupt) \
+-	(__get_cpu_var(interrupts_enabled_mask) &= ~(1ULL << (interrupt)))
++	(__this_cpu_read(interrupts_enabled_mask) &= ~(1ULL << (interrupt)))
+ 
+ /* Prevent the given interrupt from being enabled immediately. */
+ #define arch_local_irq_mask_now(interrupt) do { \
+@@ -171,7 +171,7 @@ DECLARE_PER_CPU(unsigned long long, inte
+ 
+ /* Allow the given interrupt to be enabled next time we enable irqs. */
+ #define arch_local_irq_unmask(interrupt) \
+-	(__get_cpu_var(interrupts_enabled_mask) |= (1ULL << (interrupt)))
++	(__this_cpu_read(interrupts_enabled_mask) |= (1ULL << (interrupt)))
+ 
+ /* Allow the given interrupt to be enabled immediately, if !irqs_disabled. */
+ #define arch_local_irq_unmask_now(interrupt) do { \
+Index: linux/arch/tile/include/asm/mmu_context.h
 ===================================================================
---- linux.orig/arch/s390/include/asm/cputime.h	2013-08-22 14:49:17.339583428 -0500
-+++ linux/arch/s390/include/asm/cputime.h	2013-08-22 14:49:17.327583548 -0500
-@@ -187,7 +187,7 @@ cputime64_t s390_get_idle_time(int cpu);
- 
- static inline int s390_nohz_delay(int cpu)
- {
--	return __get_cpu_var(s390_idle).nohz_delay != 0;
-+	return __this_cpu_read(s390_idle.nohz_delay) != 0;
- }
- 
- #define arch_needs_cpu(cpu) s390_nohz_delay(cpu)
-Index: linux/arch/s390/kernel/kprobes.c
-===================================================================
---- linux.orig/arch/s390/kernel/kprobes.c	2013-08-22 14:49:17.339583428 -0500
-+++ linux/arch/s390/kernel/kprobes.c	2013-08-22 14:49:17.327583548 -0500
-@@ -212,9 +212,9 @@ static void __kprobes disable_singlestep
-  */
- static void __kprobes push_kprobe(struct kprobe_ctlblk *kcb, struct kprobe *p)
- {
--	kcb->prev_kprobe.kp = __get_cpu_var(current_kprobe);
-+	kcb->prev_kprobe.kp = __this_cpu_read(current_kprobe);
- 	kcb->prev_kprobe.status = kcb->kprobe_status;
--	__get_cpu_var(current_kprobe) = p;
-+	__this_cpu_write(current_kprobe, p);
- }
- 
- /*
-@@ -224,7 +224,7 @@ static void __kprobes push_kprobe(struct
-  */
- static void __kprobes pop_kprobe(struct kprobe_ctlblk *kcb)
- {
--	__get_cpu_var(current_kprobe) = kcb->prev_kprobe.kp;
-+	__this_cpu_write(current_kprobe, kcb->prev_kprobe.kp);
- 	kcb->kprobe_status = kcb->prev_kprobe.status;
- }
- 
-@@ -305,7 +305,7 @@ static int __kprobes kprobe_handler(stru
- 		enable_singlestep(kcb, regs, (unsigned long) p->ainsn.insn);
- 		return 1;
- 	} else if (kprobe_running()) {
--		p = __get_cpu_var(current_kprobe);
-+		p = __this_cpu_read(current_kprobe);
- 		if (p->break_handler && p->break_handler(p, regs)) {
- 			/*
- 			 * Continuation after the jprobe completed and
-Index: linux/arch/s390/kernel/nmi.c
-===================================================================
---- linux.orig/arch/s390/kernel/nmi.c	2013-08-22 14:49:17.339583428 -0500
-+++ linux/arch/s390/kernel/nmi.c	2013-08-22 14:49:17.327583548 -0500
-@@ -53,8 +53,8 @@ void s390_handle_mcck(void)
+--- linux.orig/arch/tile/include/asm/mmu_context.h	2013-08-22 14:39:14.000000000 -0500
++++ linux/arch/tile/include/asm/mmu_context.h	2013-08-22 14:39:57.453305409 -0500
+@@ -84,7 +84,7 @@ static inline void enter_lazy_tlb(struct
+ 	 * clear any pending DMA interrupts.
  	 */
- 	local_irq_save(flags);
- 	local_mcck_disable();
--	mcck = __get_cpu_var(cpu_mcck);
--	memset(&__get_cpu_var(cpu_mcck), 0, sizeof(struct mcck_struct));
-+	mcck = __this_cpu_read(cpu_mcck);
-+	memset(this_cpu_ptr(&cpu_mcck), 0, sizeof(struct mcck_struct));
- 	clear_thread_flag(TIF_MCCK_PENDING);
- 	local_mcck_enable();
- 	local_irq_restore(flags);
-@@ -256,7 +256,7 @@ void notrace s390_do_machine_check(struc
- 	nmi_enter();
- 	inc_irq_stat(NMI_NMI);
- 	mci = (struct mci *) &S390_lowcore.mcck_interruption_code;
--	mcck = &__get_cpu_var(cpu_mcck);
-+	mcck = this_cpu_ptr(&cpu_mcck);
- 	umode = user_mode(regs);
- 
- 	if (mci->sd) {
-Index: linux/arch/s390/kernel/perf_cpum_cf.c
-===================================================================
---- linux.orig/arch/s390/kernel/perf_cpum_cf.c	2013-08-22 14:49:17.339583428 -0500
-+++ linux/arch/s390/kernel/perf_cpum_cf.c	2013-08-22 14:49:17.331583508 -0500
-@@ -173,7 +173,7 @@ static int validate_ctr_auth(const struc
-  */
- static void cpumf_pmu_enable(struct pmu *pmu)
- {
--	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
- 	int err;
- 
- 	if (cpuhw->flags & PMU_F_ENABLED)
-@@ -196,7 +196,7 @@ static void cpumf_pmu_enable(struct pmu
-  */
- static void cpumf_pmu_disable(struct pmu *pmu)
- {
--	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
- 	int err;
- 	u64 inactive;
- 
-@@ -230,7 +230,7 @@ static void cpumf_measurement_alert(stru
- 		return;
- 
- 	inc_irq_stat(IRQEXT_CMC);
--	cpuhw = &__get_cpu_var(cpu_hw_events);
-+	cpuhw = this_cpu_ptr(&cpu_hw_events);
- 
- 	/* Measurement alerts are shared and might happen when the PMU
- 	 * is not reserved.  Ignore these alerts in this case. */
-@@ -250,7 +250,7 @@ static void cpumf_measurement_alert(stru
- #define PMC_RELEASE   1
- static void setup_pmc_cpu(void *flags)
- {
--	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
- 
- 	switch (*((int *) flags)) {
- 	case PMC_INIT:
-@@ -481,7 +481,7 @@ static void cpumf_pmu_read(struct perf_e
- 
- static void cpumf_pmu_start(struct perf_event *event, int flags)
- {
--	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
- 	struct hw_perf_event *hwc = &event->hw;
- 
- 	if (WARN_ON_ONCE(!(hwc->state & PERF_HES_STOPPED)))
-@@ -512,7 +512,7 @@ static void cpumf_pmu_start(struct perf_
- 
- static void cpumf_pmu_stop(struct perf_event *event, int flags)
- {
--	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
- 	struct hw_perf_event *hwc = &event->hw;
- 
- 	if (!(hwc->state & PERF_HES_STOPPED)) {
-@@ -533,7 +533,7 @@ static void cpumf_pmu_stop(struct perf_e
- 
- static int cpumf_pmu_add(struct perf_event *event, int flags)
- {
--	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
- 
- 	/* Check authorization for the counter set to which this
- 	 * counter belongs.
-@@ -557,7 +557,7 @@ static int cpumf_pmu_add(struct perf_eve
- 
- static void cpumf_pmu_del(struct perf_event *event, int flags)
- {
--	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
- 
- 	cpumf_pmu_stop(event, PERF_EF_UPDATE);
- 
-@@ -581,7 +581,7 @@ static void cpumf_pmu_del(struct perf_ev
-  */
- static void cpumf_pmu_start_txn(struct pmu *pmu)
- {
--	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
- 
- 	perf_pmu_disable(pmu);
- 	cpuhw->flags |= PERF_EVENT_TXN;
-@@ -595,7 +595,7 @@ static void cpumf_pmu_start_txn(struct p
-  */
- static void cpumf_pmu_cancel_txn(struct pmu *pmu)
- {
--	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
- 
- 	WARN_ON(cpuhw->tx_state != cpuhw->state);
- 
-@@ -610,7 +610,7 @@ static void cpumf_pmu_cancel_txn(struct
-  */
- static int cpumf_pmu_commit_txn(struct pmu *pmu)
- {
--	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
- 	u64 state;
- 
- 	/* check if the updated state can be scheduled */
-Index: linux/arch/s390/kernel/processor.c
-===================================================================
---- linux.orig/arch/s390/kernel/processor.c	2013-08-22 14:49:17.339583428 -0500
-+++ linux/arch/s390/kernel/processor.c	2013-08-22 14:49:17.331583508 -0500
-@@ -23,8 +23,8 @@ static DEFINE_PER_CPU(struct cpuid, cpu_
-  */
- void cpu_init(void)
- {
--	struct s390_idle_data *idle = &__get_cpu_var(s390_idle);
--	struct cpuid *id = &__get_cpu_var(cpu_id);
-+	struct s390_idle_data *idle = this_cpu_ptr(&s390_idle);
-+	struct cpuid *id = this_cpu_ptr(&cpu_id);
- 
- 	get_cpu_id(id);
- 	atomic_inc(&init_mm.mm_count);
-Index: linux/arch/s390/kernel/time.c
-===================================================================
---- linux.orig/arch/s390/kernel/time.c	2013-08-22 14:49:17.339583428 -0500
-+++ linux/arch/s390/kernel/time.c	2013-08-22 14:49:17.331583508 -0500
-@@ -93,7 +93,7 @@ void clock_comparator_work(void)
- 
- 	S390_lowcore.clock_comparator = -1ULL;
- 	set_clock_comparator(S390_lowcore.clock_comparator);
--	cd = &__get_cpu_var(comparators);
-+	cd = this_cpu_ptr(&comparators);
- 	cd->event_handler(cd);
+ 	if (current->thread.tile_dma_state.enabled)
+-		install_page_table(mm->pgd, __get_cpu_var(current_asid));
++		install_page_table(mm->pgd, __this_cpu_read(current_asid));
+ #endif
  }
  
-@@ -363,7 +363,7 @@ EXPORT_SYMBOL(get_sync_clock);
+@@ -96,12 +96,12 @@ static inline void switch_mm(struct mm_s
+ 		int cpu = smp_processor_id();
+ 
+ 		/* Pick new ASID. */
+-		int asid = __get_cpu_var(current_asid) + 1;
++		int asid = __this_cpu_read(current_asid) + 1;
+ 		if (asid > max_asid) {
+ 			asid = min_asid;
+ 			local_flush_tlb();
+ 		}
+-		__get_cpu_var(current_asid) = asid;
++		__this_cpu_read(current_asid) = asid;
+ 
+ 		/* Clear cpu from the old mm, and set it in the new one. */
+ 		cpumask_clear_cpu(cpu, mm_cpumask(prev));
+Index: linux/arch/tile/kernel/irq.c
+===================================================================
+--- linux.orig/arch/tile/kernel/irq.c	2013-08-22 14:39:14.000000000 -0500
++++ linux/arch/tile/kernel/irq.c	2013-08-22 14:39:57.453305409 -0500
+@@ -77,7 +77,7 @@ static DEFINE_SPINLOCK(available_irqs_lo
   */
- static void disable_sync_clock(void *dummy)
+ void tile_dev_intr(struct pt_regs *regs, int intnum)
  {
--	atomic_t *sw_ptr = &__get_cpu_var(clock_sync_word);
-+	atomic_t *sw_ptr = this_cpu_ptr(&clock_sync_word);
- 	/*
- 	 * Clear the in-sync bit 2^31. All get_sync_clock calls will
- 	 * fail until the sync bit is turned back on. In addition
-@@ -380,7 +380,7 @@ static void disable_sync_clock(void *dum
-  */
- static void enable_sync_clock(void)
- {
--	atomic_t *sw_ptr = &__get_cpu_var(clock_sync_word);
-+	atomic_t *sw_ptr = this_cpu_ptr(&clock_sync_word);
- 	atomic_set_mask(0x80000000, sw_ptr);
- }
+-	int depth = __get_cpu_var(irq_depth)++;
++	int depth = __this_cpu_inc_return(irq_depth) - 1;
+ 	unsigned long original_irqs;
+ 	unsigned long remaining_irqs;
+ 	struct pt_regs *old_regs;
+@@ -124,7 +124,7 @@ void tile_dev_intr(struct pt_regs *regs,
  
-Index: linux/arch/s390/kernel/vtime.c
-===================================================================
---- linux.orig/arch/s390/kernel/vtime.c	2013-08-22 14:49:17.339583428 -0500
-+++ linux/arch/s390/kernel/vtime.c	2013-08-22 14:49:17.331583508 -0500
-@@ -153,7 +153,7 @@ EXPORT_SYMBOL_GPL(vtime_account_system);
+ 		/* Count device irqs; Linux IPIs are counted elsewhere. */
+ 		if (irq != IRQ_RESCHEDULE)
+-			__get_cpu_var(irq_stat).irq_dev_intr_count++;
++			__this_cpu_inc(irq_stat.irq_dev_intr_count);
  
- void __kprobes vtime_stop_cpu(void)
- {
--	struct s390_idle_data *idle = &__get_cpu_var(s390_idle);
-+	struct s390_idle_data *idle = this_cpu_ptr(&s390_idle);
- 	unsigned long long idle_time;
- 	unsigned long psw_mask;
- 
-Index: linux/arch/s390/oprofile/hwsampler.c
-===================================================================
---- linux.orig/arch/s390/oprofile/hwsampler.c	2013-08-22 14:49:17.339583428 -0500
-+++ linux/arch/s390/oprofile/hwsampler.c	2013-08-22 14:49:17.331583508 -0500
-@@ -228,7 +228,7 @@ static inline unsigned long *trailer_ent
- static void hws_ext_handler(struct ext_code ext_code,
- 			    unsigned int param32, unsigned long param64)
- {
--	struct hws_cpu_buffer *cb = &__get_cpu_var(sampler_cpu_buffer);
-+	struct hws_cpu_buffer *cb = this_cpu_ptr(&sampler_cpu_buffer);
- 
- 	if (!(param32 & CPU_MF_INT_SF_MASK))
- 		return;
-Index: linux/arch/s390/pci/pci.c
-===================================================================
---- linux.orig/arch/s390/pci/pci.c	2013-08-22 14:49:17.339583428 -0500
-+++ linux/arch/s390/pci/pci.c	2013-08-22 14:49:17.335583467 -0500
-@@ -409,7 +409,7 @@ static DEFINE_PER_CPU(unsigned long, nex
- 
- static void zpci_irq_handler(struct airq_struct *airq)
- {
--	unsigned long sbit, mbit, last = 0, start = __get_cpu_var(next_sbit);
-+	unsigned long sbit, mbit, last = 0, start = __this_cpu_read(next_sbit);
- 	int rescan = 0, max = aisb_max;
- 	struct zdev_irq_map *imap;
- 
-@@ -460,7 +460,7 @@ scan:
+ 		generic_handle_irq(irq);
  	}
- out:
- 	/* store next device bit to scan */
--	__get_cpu_var(next_sbit) = (++last >= aisb_max) ? 0 : last;
-+	__this_cpu_write(next_sbit, (++last >= aisb_max) ? 0 : last);
+@@ -135,9 +135,9 @@ void tile_dev_intr(struct pt_regs *regs,
+ 	 * handling.
+ 	 */
+ 	if (depth == 0)
+-		unmask_irqs(~__get_cpu_var(irq_disable_mask));
++		unmask_irqs(~__this_cpu_read(irq_disable_mask));
+ 
+-	__get_cpu_var(irq_depth)--;
++	__this_cpu_dec(irq_depth);
+ 
+ 	/*
+ 	 * Track time spent against the current process again and
+@@ -155,7 +155,7 @@ void tile_dev_intr(struct pt_regs *regs,
+ static void tile_irq_chip_enable(struct irq_data *d)
+ {
+ 	get_cpu_var(irq_disable_mask) &= ~(1UL << d->irq);
+-	if (__get_cpu_var(irq_depth) == 0)
++	if (__this_cpu_read(irq_depth) == 0)
+ 		unmask_irqs(1UL << d->irq);
+ 	put_cpu_var(irq_disable_mask);
+ }
+@@ -201,7 +201,7 @@ static void tile_irq_chip_ack(struct irq
+  */
+ static void tile_irq_chip_eoi(struct irq_data *d)
+ {
+-	if (!(__get_cpu_var(irq_disable_mask) & (1UL << d->irq)))
++	if (!(__this_cpu_read(irq_disable_mask) & (1UL << d->irq)))
+ 		unmask_irqs(1UL << d->irq);
  }
  
- /* msi_vecs - number of requested interrupts, 0 place function to error state */
-Index: linux/arch/s390/kernel/irq.c
+Index: linux/arch/tile/kernel/messaging.c
 ===================================================================
---- linux.orig/arch/s390/kernel/irq.c	2013-08-08 02:54:34.344984334 -0500
-+++ linux/arch/s390/kernel/irq.c	2013-08-22 14:53:32.025028108 -0500
-@@ -250,7 +250,7 @@ void __irq_entry do_extint(struct pt_reg
- 	kstat_incr_irqs_this_cpu(EXTERNAL_INTERRUPT, NULL);
- 	ext_code = *(struct ext_code *) &regs->int_code;
- 	if (ext_code.code != 0x1004)
--		__get_cpu_var(s390_idle).nohz_delay = 1;
-+		__this_cpu_write(s390_idle.nohz_delay, 1);
+--- linux.orig/arch/tile/kernel/messaging.c	2013-08-22 14:39:14.000000000 -0500
++++ linux/arch/tile/kernel/messaging.c	2013-08-22 14:39:57.453305409 -0500
+@@ -28,7 +28,7 @@ static DEFINE_PER_CPU(HV_MsgState, msg_s
+ void init_messaging(void)
+ {
+ 	/* Allocate storage for messages in kernel space */
+-	HV_MsgState *state = &__get_cpu_var(msg_state);
++	HV_MsgState *state = this_cpu_ptr(&msg_state);
+ 	int rc = hv_register_message_state(state);
+ 	if (rc != HV_OK)
+ 		panic("hv_register_message_state: error %d", rc);
+@@ -68,7 +68,7 @@ void hv_message_intr(struct pt_regs *reg
+ #endif
  
- 	index = ext_hash(ext_code.code);
- 	rcu_read_lock();
+ 	while (1) {
+-		rmi = hv_receive_message(__get_cpu_var(msg_state),
++		rmi = hv_receive_message(__this_cpu_read(msg_state),
+ 					 (HV_VirtAddr) message,
+ 					 sizeof(message));
+ 		if (rmi.msglen == 0)
+@@ -96,7 +96,7 @@ void hv_message_intr(struct pt_regs *reg
+ 			struct hv_driver_cb *cb =
+ 				(struct hv_driver_cb *)him->intarg;
+ 			cb->callback(cb, him->intdata);
+-			__get_cpu_var(irq_stat).irq_hv_msg_count++;
++			__this_cpu_inc(irq_stat.irq_hv_msg_count);
+ 		}
+ 	}
+ 
+Index: linux/arch/tile/kernel/process.c
+===================================================================
+--- linux.orig/arch/tile/kernel/process.c	2013-08-22 14:39:14.000000000 -0500
++++ linux/arch/tile/kernel/process.c	2013-08-22 14:39:57.453305409 -0500
+@@ -63,7 +63,7 @@ early_param("idle", idle_setup);
+ 
+ void arch_cpu_idle(void)
+ {
+-	__get_cpu_var(irq_stat).idle_timestamp = jiffies;
++	__this_cpu_write(irq_stat.idle_timestamp, jiffies);
+ 	_cpu_idle();
+ }
+ 
+Index: linux/arch/tile/kernel/setup.c
+===================================================================
+--- linux.orig/arch/tile/kernel/setup.c	2013-08-22 14:39:14.000000000 -0500
++++ linux/arch/tile/kernel/setup.c	2013-08-22 14:39:57.453305409 -0500
+@@ -1119,7 +1119,7 @@ static void __init validate_hv(void)
+ 	 * various asid variables to their appropriate initial states.
+ 	 */
+ 	asid_range = hv_inquire_asid(0);
+-	__get_cpu_var(current_asid) = min_asid = asid_range.start;
++	__this_cpu_write(current_asid, min_asid = asid_range.start);
+ 	max_asid = asid_range.start + asid_range.size - 1;
+ 
+ 	if (hv_confstr(HV_CONFSTR_CHIP_MODEL, (HV_VirtAddr)chip_model,
+Index: linux/arch/tile/kernel/single_step.c
+===================================================================
+--- linux.orig/arch/tile/kernel/single_step.c	2013-08-22 14:39:14.000000000 -0500
++++ linux/arch/tile/kernel/single_step.c	2013-08-22 14:39:57.453305409 -0500
+@@ -732,7 +732,7 @@ static DEFINE_PER_CPU(unsigned long, ss_
+ 
+ void gx_singlestep_handle(struct pt_regs *regs, int fault_num)
+ {
+-	unsigned long *ss_pc = &__get_cpu_var(ss_saved_pc);
++	unsigned long *ss_pc = this_cpu_ptr(&ss_saved_pc);
+ 	struct thread_info *info = (void *)current_thread_info();
+ 	int is_single_step = test_ti_thread_flag(info, TIF_SINGLESTEP);
+ 	unsigned long control = __insn_mfspr(SPR_SINGLE_STEP_CONTROL_K);
+@@ -758,7 +758,7 @@ void gx_singlestep_handle(struct pt_regs
+ 
+ void single_step_once(struct pt_regs *regs)
+ {
+-	unsigned long *ss_pc = &__get_cpu_var(ss_saved_pc);
++	unsigned long *ss_pc = this_cpu_ptr(&ss_saved_pc);
+ 	unsigned long control = __insn_mfspr(SPR_SINGLE_STEP_CONTROL_K);
+ 
+ 	*ss_pc = regs->pc;
+Index: linux/arch/tile/kernel/smp.c
+===================================================================
+--- linux.orig/arch/tile/kernel/smp.c	2013-08-22 14:39:14.000000000 -0500
++++ linux/arch/tile/kernel/smp.c	2013-08-22 14:39:57.453305409 -0500
+@@ -176,7 +176,7 @@ void flush_icache_range(unsigned long st
+ /* Called when smp_send_reschedule() triggers IRQ_RESCHEDULE. */
+ static irqreturn_t handle_reschedule_ipi(int irq, void *token)
+ {
+-	__get_cpu_var(irq_stat).irq_resched_count++;
++	__this_cpu_inc(irq_stat.irq_resched_count);
+ 	scheduler_ipi();
+ 
+ 	return IRQ_HANDLED;
+Index: linux/arch/tile/kernel/smpboot.c
+===================================================================
+--- linux.orig/arch/tile/kernel/smpboot.c	2013-08-22 14:39:14.000000000 -0500
++++ linux/arch/tile/kernel/smpboot.c	2013-08-22 14:39:57.453305409 -0500
+@@ -41,7 +41,7 @@ void __init smp_prepare_boot_cpu(void)
+ 	int cpu = smp_processor_id();
+ 	set_cpu_online(cpu, 1);
+ 	set_cpu_present(cpu, 1);
+-	__get_cpu_var(cpu_state) = CPU_ONLINE;
++	__this_cpu_write(cpu_state, CPU_ONLINE);
+ 
+ 	init_messaging();
+ }
+@@ -156,7 +156,7 @@ static void start_secondary(void)
+ 	/* printk(KERN_DEBUG "Initializing CPU#%d\n", cpuid); */
+ 
+ 	/* Initialize the current asid for our first page table. */
+-	__get_cpu_var(current_asid) = min_asid;
++	__this_cpu_write(current_asid, min_asid);
+ 
+ 	/* Set up this thread as another owner of the init_mm */
+ 	atomic_inc(&init_mm.mm_count);
+@@ -199,7 +199,7 @@ void online_secondary(void)
+ 	notify_cpu_starting(smp_processor_id());
+ 
+ 	set_cpu_online(smp_processor_id(), 1);
+-	__get_cpu_var(cpu_state) = CPU_ONLINE;
++	__this_cpu_write(cpu_state, CPU_ONLINE);
+ 
+ 	/* Set up tile-specific state for this cpu. */
+ 	setup_cpu(0);
+Index: linux/arch/tile/kernel/time.c
+===================================================================
+--- linux.orig/arch/tile/kernel/time.c	2013-08-22 14:39:14.000000000 -0500
++++ linux/arch/tile/kernel/time.c	2013-08-22 14:39:57.453305409 -0500
+@@ -161,7 +161,7 @@ static DEFINE_PER_CPU(struct clock_event
+ 
+ void setup_tile_timer(void)
+ {
+-	struct clock_event_device *evt = &__get_cpu_var(tile_timer);
++	struct clock_event_device *evt = this_cpu_ptr(&tile_timer);
+ 
+ 	/* Fill in fields that are speed-specific. */
+ 	clockevents_calc_mult_shift(evt, cycles_per_sec, TILE_MINSEC);
+@@ -181,7 +181,7 @@ void setup_tile_timer(void)
+ void do_timer_interrupt(struct pt_regs *regs, int fault_num)
+ {
+ 	struct pt_regs *old_regs = set_irq_regs(regs);
+-	struct clock_event_device *evt = &__get_cpu_var(tile_timer);
++	struct clock_event_device *evt = this_cpu_ptr(&tile_timer);
+ 
+ 	/*
+ 	 * Mask the timer interrupt here, since we are a oneshot timer
+@@ -193,7 +193,7 @@ void do_timer_interrupt(struct pt_regs *
+ 	irq_enter();
+ 
+ 	/* Track interrupt count. */
+-	__get_cpu_var(irq_stat).irq_timer_count++;
++	__this_cpu_inc(irq_stat.irq_timer_count);
+ 
+ 	/* Call the generic timer handler */
+ 	evt->event_handler(evt);
+@@ -234,6 +234,6 @@ cycles_t ns2cycles(unsigned long nsecs)
+ 	 * We do not have to disable preemption here as each core has the same
+ 	 * clock frequency.
+ 	 */
+-	struct clock_event_device *dev = &__raw_get_cpu_var(tile_timer);
++	struct clock_event_device *dev = __this_cpu_ptr(&tile_timer);
+ 	return ((u64)nsecs * dev->mult) >> dev->shift;
+ }
+Index: linux/arch/tile/mm/highmem.c
+===================================================================
+--- linux.orig/arch/tile/mm/highmem.c	2013-08-22 14:39:14.000000000 -0500
++++ linux/arch/tile/mm/highmem.c	2013-08-22 14:39:57.453305409 -0500
+@@ -103,7 +103,7 @@ static void kmap_atomic_register(struct
+ 	spin_lock(&amp_lock);
+ 
+ 	/* With interrupts disabled, now fill in the per-cpu info. */
+-	amp = &__get_cpu_var(amps).per_type[type];
++	amp = this_cpu_ptr(&amps.per_type[type]);
+ 	amp->page = page;
+ 	amp->cpu = smp_processor_id();
+ 	amp->va = va;
+Index: linux/arch/tile/mm/init.c
+===================================================================
+--- linux.orig/arch/tile/mm/init.c	2013-08-22 14:39:14.000000000 -0500
++++ linux/arch/tile/mm/init.c	2013-08-22 14:39:57.453305409 -0500
+@@ -625,14 +625,14 @@ static void __init kernel_physical_mappi
+ 	interrupt_mask_set_mask(-1ULL);
+ 	rc = flush_and_install_context(__pa(pgtables),
+ 				       init_pgprot((unsigned long)pgtables),
+-				       __get_cpu_var(current_asid),
++				       __this_cpu_read(current_asid),
+ 				       cpumask_bits(my_cpu_mask));
+ 	interrupt_mask_restore_mask(irqmask);
+ 	BUG_ON(rc != 0);
+ 
+ 	/* Copy the page table back to the normal swapper_pg_dir. */
+ 	memcpy(pgd_base, pgtables, sizeof(pgtables));
+-	__install_page_table(pgd_base, __get_cpu_var(current_asid),
++	__install_page_table(pgd_base, __this_cpu_read(current_asid),
+ 			     swapper_pgprot);
+ 
+ 	/*
