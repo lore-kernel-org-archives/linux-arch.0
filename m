@@ -1,18 +1,18 @@
 From: Christoph Lameter <cl@linux.com>
-Subject: [guv v2 27/31] sh: Replace __get_cpu_var uses throughout the kernel
-Date: Mon, 26 Aug 2013 21:56:18 +0000
-Message-ID: <00000140bca09c50-26aada97-96a9-423b-936b-15a296842a76-000000@email.amazonses.com>
+Subject: [guv v2 28/31] arc: Replace __get_cpu_var uses throughout the kernel
+Date: Mon, 26 Aug 2013 21:56:17 +0000
+Message-ID: <00000140bca09c39-5b837fed-8e34-417d-a62d-031f0b5c8107-000000@email.amazonses.com>
 References: <20130826204351.725357339@linux.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a9-42.smtp-out.amazonses.com ([54.240.9.42]:54949 "EHLO
-	a9-42.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752316Ab3HZV4T (ORCPT
+Received: from a193-30.smtp-out.amazonses.com ([199.255.193.30]:26170 "EHLO
+	a193-30.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752233Ab3HZWFo (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 26 Aug 2013 17:56:19 -0400
+	Mon, 26 Aug 2013 18:05:44 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+Cc: akpm@linuxfoundation.org, Vineet Gupta <vgupta@synopsys.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
 
 __get_cpu_var() is used for multiple purposes in the kernel source. One of them is
 address calculation via the form &__get_cpu_var(x). This calculates the address for
@@ -114,51 +114,11 @@ Transformations done to __get_cpu_var()
 
 
 
-Index: linux/arch/sh/kernel/hw_breakpoint.c
+Index: linux/arch/arc/kernel/kprobes.c
 ===================================================================
---- linux.orig/arch/sh/kernel/hw_breakpoint.c	2013-08-26 13:25:18.000000000 -0500
-+++ linux/arch/sh/kernel/hw_breakpoint.c	2013-08-26 13:28:32.265604741 -0500
-@@ -52,7 +52,7 @@ int arch_install_hw_breakpoint(struct pe
- 	int i;
- 
- 	for (i = 0; i < sh_ubc->num_events; i++) {
--		struct perf_event **slot = &__get_cpu_var(bp_per_reg[i]);
-+		struct perf_event **slot = this_cpu_ptr(&bp_per_reg[i]);
- 
- 		if (!*slot) {
- 			*slot = bp;
-@@ -84,7 +84,7 @@ void arch_uninstall_hw_breakpoint(struct
- 	int i;
- 
- 	for (i = 0; i < sh_ubc->num_events; i++) {
--		struct perf_event **slot = &__get_cpu_var(bp_per_reg[i]);
-+		struct perf_event **slot = this_cpu_ptr(&bp_per_reg[i]);
- 
- 		if (*slot == bp) {
- 			*slot = NULL;
-Index: linux/arch/sh/kernel/kprobes.c
-===================================================================
---- linux.orig/arch/sh/kernel/kprobes.c	2013-08-26 13:25:18.000000000 -0500
-+++ linux/arch/sh/kernel/kprobes.c	2013-08-26 13:28:32.265604741 -0500
-@@ -102,7 +102,7 @@ int __kprobes kprobe_handle_illslot(unsi
- 
- void __kprobes arch_remove_kprobe(struct kprobe *p)
- {
--	struct kprobe *saved = &__get_cpu_var(saved_next_opcode);
-+	struct kprobe *saved = this_cpu_ptr(&saved_next_opcode);
- 
- 	if (saved->addr) {
- 		arch_disarm_kprobe(p);
-@@ -111,7 +111,7 @@ void __kprobes arch_remove_kprobe(struct
- 		saved->addr = NULL;
- 		saved->opcode = 0;
- 
--		saved = &__get_cpu_var(saved_next_opcode2);
-+		saved = this_cpu_ptr(&saved_next_opcode2);
- 		if (saved->addr) {
- 			arch_disarm_kprobe(saved);
- 
-@@ -129,14 +129,14 @@ static void __kprobes save_previous_kpro
+--- linux.orig/arch/arc/kernel/kprobes.c	2013-08-26 13:28:53.000000000 -0500
++++ linux/arch/arc/kernel/kprobes.c	2013-08-26 13:29:19.285103021 -0500
+@@ -87,13 +87,13 @@ static void __kprobes save_previous_kpro
  
  static void __kprobes restore_previous_kprobe(struct kprobe_ctlblk *kcb)
  {
@@ -167,150 +127,32 @@ Index: linux/arch/sh/kernel/kprobes.c
  	kcb->kprobe_status = kcb->prev_kprobe.status;
  }
  
- static void __kprobes set_current_kprobe(struct kprobe *p, struct pt_regs *regs,
- 					 struct kprobe_ctlblk *kcb)
+ static inline void __kprobes set_current_kprobe(struct kprobe *p)
  {
 -	__get_cpu_var(current_kprobe) = p;
 +	__this_cpu_write(current_kprobe, p);
  }
  
- /*
-@@ -146,15 +146,15 @@ static void __kprobes set_current_kprobe
-  */
- static void __kprobes prepare_singlestep(struct kprobe *p, struct pt_regs *regs)
- {
--	__get_cpu_var(saved_current_opcode).addr = (kprobe_opcode_t *)regs->pc;
-+	__this_cpu_write(saved_current_opcode.addr, (kprobe_opcode_t *)regs->pc);
+ static void __kprobes resume_execution(struct kprobe *p, unsigned long addr,
+@@ -237,7 +237,7 @@ int __kprobes arc_kprobe_handler(unsigne
  
- 	if (p != NULL) {
- 		struct kprobe *op1, *op2;
- 
- 		arch_disarm_kprobe(p);
- 
--		op1 = &__get_cpu_var(saved_next_opcode);
--		op2 = &__get_cpu_var(saved_next_opcode2);
-+		op1 = this_cpu_ptr(&saved_next_opcode);
-+		op2 = this_cpu_ptr(&saved_next_opcode2);
- 
- 		if (OPCODE_JSR(p->opcode) || OPCODE_JMP(p->opcode)) {
- 			unsigned int reg_nr = ((p->opcode >> 8) & 0x000F);
-@@ -249,7 +249,7 @@ static int __kprobes kprobe_handler(stru
- 			kcb->kprobe_status = KPROBE_REENTER;
- 			return 1;
- 		} else {
--			p = __get_cpu_var(current_kprobe);
-+			p = __this_cpu_read(current_kprobe);
- 			if (p->break_handler && p->break_handler(p, regs)) {
- 				goto ss_probe;
- 			}
-@@ -336,9 +336,9 @@ int __kprobes trampoline_probe_handler(s
- 			continue;
- 
- 		if (ri->rp && ri->rp->handler) {
--			__get_cpu_var(current_kprobe) = &ri->rp->kp;
-+			__this_cpu_write(current_kprobe, &ri->rp->kp);
- 			ri->rp->handler(ri, regs);
--			__get_cpu_var(current_kprobe) = NULL;
-+			__this_cpu_write(current_kprobe, NULL);
- 		}
- 
- 		orig_ret_address = (unsigned long)ri->ret_addr;
-@@ -383,19 +383,19 @@ static int __kprobes post_kprobe_handler
- 		cur->post_handler(cur, regs, 0);
- 	}
- 
--	p = &__get_cpu_var(saved_next_opcode);
-+	p = this_cpu_ptr(&saved_next_opcode);
- 	if (p->addr) {
- 		arch_disarm_kprobe(p);
- 		p->addr = NULL;
- 		p->opcode = 0;
- 
--		addr = __get_cpu_var(saved_current_opcode).addr;
--		__get_cpu_var(saved_current_opcode).addr = NULL;
-+		addr = __this_cpu_read(saved_current_opcode).addr;
-+		__this_cpu_write(saved_current_opcode.addr, NULL);
- 
- 		p = get_kprobe(addr);
- 		arch_arm_kprobe(p);
- 
--		p = &__get_cpu_var(saved_next_opcode2);
-+		p = this_cpu_ptr(&saved_next_opcode2);
- 		if (p->addr) {
- 			arch_disarm_kprobe(p);
- 			p->addr = NULL;
-@@ -511,7 +511,7 @@ int __kprobes kprobe_exceptions_notify(s
- 				if (kprobe_handler(args->regs)) {
- 					ret = NOTIFY_STOP;
- 				} else {
--					p = __get_cpu_var(current_kprobe);
-+					p = __this_cpu_read(current_kprobe);
- 					if (p->break_handler &&
- 					    p->break_handler(p, args->regs))
- 						ret = NOTIFY_STOP;
-Index: linux/arch/sh/kernel/localtimer.c
+ 		return 1;
+ 	} else if (kprobe_running()) {
+-		p = __get_cpu_var(current_kprobe);
++		p = __this_cpu_read(current_kprobe);
+ 		if (p->break_handler && p->break_handler(p, regs)) {
+ 			setup_singlestep(p, regs);
+ 			kcb->kprobe_status = KPROBE_HIT_SS;
+Index: linux/arch/arc/kernel/time.c
 ===================================================================
---- linux.orig/arch/sh/kernel/localtimer.c	2013-08-26 13:25:18.000000000 -0500
-+++ linux/arch/sh/kernel/localtimer.c	2013-08-26 13:28:32.265604741 -0500
-@@ -32,7 +32,7 @@ static DEFINE_PER_CPU(struct clock_event
-  */
- void local_timer_interrupt(void)
- {
--	struct clock_event_device *clk = &__get_cpu_var(local_clockevent);
-+	struct clock_event_device *clk = this_cpu_ptr(&local_clockevent);
+--- linux.orig/arch/arc/kernel/time.c	2013-08-26 13:28:53.000000000 -0500
++++ linux/arch/arc/kernel/time.c	2013-08-26 13:29:19.285103021 -0500
+@@ -206,7 +206,7 @@ static DEFINE_PER_CPU(struct clock_event
  
- 	irq_enter();
+ static irqreturn_t timer_irq_handler(int irq, void *dev_id)
+ {
+-	struct clock_event_device *clk = &__get_cpu_var(arc_clockevent_device);
++	struct clock_event_device *clk = this_cpu_ptr(&arc_clockevent_device);
+ 
+ 	arc_timer_event_ack(clk->mode == CLOCK_EVT_MODE_PERIODIC);
  	clk->event_handler(clk);
-Index: linux/arch/sh/kernel/perf_event.c
-===================================================================
---- linux.orig/arch/sh/kernel/perf_event.c	2013-08-26 13:25:18.000000000 -0500
-+++ linux/arch/sh/kernel/perf_event.c	2013-08-26 13:28:32.265604741 -0500
-@@ -227,7 +227,7 @@ again:
- 
- static void sh_pmu_stop(struct perf_event *event, int flags)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	struct hw_perf_event *hwc = &event->hw;
- 	int idx = hwc->idx;
- 
-@@ -245,7 +245,7 @@ static void sh_pmu_stop(struct perf_even
- 
- static void sh_pmu_start(struct perf_event *event, int flags)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	struct hw_perf_event *hwc = &event->hw;
- 	int idx = hwc->idx;
- 
-@@ -262,7 +262,7 @@ static void sh_pmu_start(struct perf_eve
- 
- static void sh_pmu_del(struct perf_event *event, int flags)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 
- 	sh_pmu_stop(event, PERF_EF_UPDATE);
- 	__clear_bit(event->hw.idx, cpuc->used_mask);
-@@ -272,7 +272,7 @@ static void sh_pmu_del(struct perf_event
- 
- static int sh_pmu_add(struct perf_event *event, int flags)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	struct hw_perf_event *hwc = &event->hw;
- 	int idx = hwc->idx;
- 	int ret = -EAGAIN;
-Index: linux/arch/sh/kernel/smp.c
-===================================================================
---- linux.orig/arch/sh/kernel/smp.c	2013-08-26 13:25:18.000000000 -0500
-+++ linux/arch/sh/kernel/smp.c	2013-08-26 13:28:32.265604741 -0500
-@@ -111,7 +111,7 @@ void play_dead_common(void)
- 	irq_ctx_exit(raw_smp_processor_id());
- 	mb();
- 
--	__get_cpu_var(cpu_state) = CPU_DEAD;
-+	__this_cpu_write(cpu_state, CPU_DEAD);
- 	local_irq_disable();
- }
- 
