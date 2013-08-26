@@ -1,110 +1,93 @@
-From: =?UTF-8?B?QW5kcsOpIEhlbnRzY2hlbA==?= <nerv@dawncrow.de>
-Subject: Re: arm: Only load TLS values when needed
-Date: Mon, 26 Aug 2013 21:19:27 +0200
-Message-ID: <521BAA3F.4050703@dawncrow.de>
-References: <51E42E11.1010903@dawncrow.de> <51E5836B.1010904@arm.com> <51E59E8F.1060501@dawncrow.de> <51E67B98.9040101@arm.com> <51E6F532.1030004@dawncrow.de> <520B8F37.4040609@dawncrow.de> <520BAE58.3060600@arm.com> <520BF4E1.8040708@dawncrow.de> <520D0FFA.1060508@arm.com> <520D1D9D.2040706@dawncrow.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:59045 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751669Ab3HZTT6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 26 Aug 2013 15:19:58 -0400
-In-Reply-To: <520D1D9D.2040706@dawncrow.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Jonathan Austin <jonathan.austin@arm.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Russell King <linux@arm.linux.org.uk>
+From: Christoph Lameter <cl@linux.com>
+Subject: [guv v2 03/31] Coccinelle script for __get_cpu_var conversion
+Date: Mon, 26 Aug 2013 20:16:16 +0000
+Message-ID: <00000140bc450c5e-5d281c7d-3555-49e2-8933-267f04e7541b-000000@email.amazonses.com>
+References: <20130826200843.526699195@linux.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Tejun Heo <tj@kernel.org>
+Cc: akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Am 15.08.2013 20:27, schrieb Andr=C3=A9 Hentschel:
-> Hi Jonathan,
->=20
-> Am 15.08.2013 19:29, schrieb Jonathan Austin:
->> Hi Andr=C3=A9
->> What I've *not* tested:
->> * As this CPU does not have the tls register, I haven't run any test=
-s that try to read/write it, but we wouldn't expect that to work, right=
-?
->> * Haven't tried a V7 platform, as I understand you've already done t=
-hat.
->> * Haven't verified it still builds for v4 (which was the problem for=
- ldrd in the past and now we've put it back, so that's important)
->=20
-> It shouldn't matter as v4 would not use the v6 codepath, would it?
->=20
->> * Performance impact
->=20
-> I only could test it on v7, would be interesting to see some v6, v5, =
-=2E.. "benchmarks", though.
->=20
+Much of the work was done by this coccinelle script.
 
-I did some "benchmarks" on my pandaboard(armv7) and it turns out that l=
-drd is slightly slower than two ldr.
-So with this in mind the best thing is most likely the easiest one, so =
-what about this untested patch below?
-(It intends to improve the situation for tls_none and tls_software)
+Wont catch everything (since coccinelle aborts when it no longer can make
+sense out of macros, sigh) but it covers a lot of ground.
 
-diff --git a/arch/arm/include/asm/tls.h b/arch/arm/include/asm/tls.h
-index 83259b8..1dd50f8 100644
---- a/arch/arm/include/asm/tls.h
-+++ b/arch/arm/include/asm/tls.h
-@@ -3,17 +3,21 @@
-=20
- #ifdef __ASSEMBLY__
- #include <asm/asm-offsets.h>
--	.macro switch_tls_none, base, tp, tpuser, tmp1, tmp2
-+	.macro switch_tls_none, prev, next, tp, tpuser, tmp1, tmp2
- 	.endm
-=20
--	.macro switch_tls_v6k, base, tp, tpuser, tmp1, tmp2
-+	.macro switch_tls_v6k, prev, next, tp, tpuser, tmp1, tmp2
-+	ldr	\tp, [\next, #TI_TP_VALUE]
-+	ldr	\tpuser, [\next, #TI_TP_VALUE + 4]
- 	mrc	p15, 0, \tmp2, c13, c0, 2	@ get the user r/w register
- 	mcr	p15, 0, \tp, c13, c0, 3		@ set TLS register
- 	mcr	p15, 0, \tpuser, c13, c0, 2	@ and the user r/w register
--	str	\tmp2, [\base, #TI_TP_VALUE + 4] @ save it
-+	str	\tmp2, [\prev, #TI_TP_VALUE + 4] @ save it
- 	.endm
-=20
--	.macro switch_tls_v6, base, tp, tpuser, tmp1, tmp2
-+	.macro switch_tls_v6, prev, next, tp, tpuser, tmp1, tmp2
-+	ldr	\tp, [\next, #TI_TP_VALUE]
-+	ldr	\tpuser, [\next, #TI_TP_VALUE + 4]
- 	ldr	\tmp1, =3Delf_hwcap
- 	ldr	\tmp1, [\tmp1, #0]
- 	mov	\tmp2, #0xffff0fff
-@@ -22,10 +26,11 @@
- 	mrcne	p15, 0, \tmp2, c13, c0, 2	@ get the user r/w register
- 	mcrne	p15, 0, \tp, c13, c0, 3		@ yes, set TLS register
- 	mcrne	p15, 0, \tpuser, c13, c0, 2	@ set user r/w register
--	strne	\tmp2, [\base, #TI_TP_VALUE + 4] @ save it
-+	strne	\tmp2, [\prev, #TI_TP_VALUE + 4] @ save it
- 	.endm
-=20
--	.macro switch_tls_software, base, tp, tpuser, tmp1, tmp2
-+	.macro switch_tls_software, prev, next, tp, tpuser, tmp1, tmp2
-+	ldr	\tp, [\next, #TI_TP_VALUE]
- 	mov	\tmp1, #0xffff0fff
- 	str	\tp, [\tmp1, #-15]		@ set TLS value at 0xffff0ff0
- 	.endm
-diff --git a/arch/arm/kernel/entry-armv.S b/arch/arm/kernel/entry-armv.=
-S
-index 9cbe70c..4df8976 100644
---- a/arch/arm/kernel/entry-armv.S
-+++ b/arch/arm/kernel/entry-armv.S
-@@ -690,12 +690,10 @@ ENTRY(__switch_to)
-  THUMB(	stmia	ip!, {r4 - sl, fp}	   )	@ Store most regs on stack
-  THUMB(	str	sp, [ip], #4		   )
-  THUMB(	str	lr, [ip], #4		   )
--	ldr	r4, [r2, #TI_TP_VALUE]
--	ldr	r5, [r2, #TI_TP_VALUE + 4]
- #ifdef CONFIG_CPU_USE_DOMAINS
- 	ldr	r6, [r2, #TI_CPU_DOMAIN]
- #endif
--	switch_tls r1, r4, r5, r3, r7
-+	switch_tls r1, r2, r4, r5, r3, r7
- #if defined(CONFIG_CC_STACKPROTECTOR) && !defined(CONFIG_SMP)
- 	ldr	r7, [r2, #TI_TASK]
- 	ldr	r8, =3D__stack_chk_guard
+Signed-off-by: Christoph Lameter <cl@linux.com>
+
+Index: linux/scripts/coccinelle/convert/__get_cpu_var.cocci
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux/scripts/coccinelle/convert/__get_cpu_var.cocci	2013-08-22 14:41:13.976518846 -0500
+@@ -0,0 +1,70 @@
++// Convert all &__get_cpu_var to this_cpu_ptr
++//
++// _get_cpu_var is defined as:
++//
++// #define __get_cpu_var(var) (*this_cpu_ptr(&(var)))
++//
++//&__get_cpu_var() is therefore
++//
++//	this_cpu_ptr(&var);
++//
++// The use of this_cpu_ptr() instead of __get_cpu_var clarifies
++// that we are relocating a per cpu offset and that there are
++// no get/put semantics involved.
++//
++//
++// Convert all &__get_cpu_vars (and also related functions)
++// to this_cpu_ptr(). Multiple transformations are provided
++// to be able to beautify the source a bit.
++//
++// Christoph Lameter <cl@linux.com> August 20, 2013
++//
++
++@A@ expression E; @@
++
++...
++-(&__get_cpu_var(E))
+++this_cpu_ptr(&E)
++...
++
++@B@ expression E; @@
++
++...
++-(&__raw_get_cpu_var(E))
+++__this_cpu_ptr(&E)
++...
++
++@C@ expression E; @@
++
++...
++-&__get_cpu_var(E)
+++this_cpu_ptr(&E)
++...
++
++@D@ expression E; @@
++
++...
++-&__raw_get_cpu_var(E)
+++__this_cpu_ptr(&E)
++...
++
++@A2@ expression E; @@
++
++-(&__get_cpu_var(E))
+++this_cpu_ptr(&E)
++
++@B2@ expression E; @@
++
++-(&__raw_get_cpu_var(E))
+++__this_cpu_ptr(&E)
++
++@C2@ expression E; @@
++
++-&__get_cpu_var(E)
+++this_cpu_ptr(&E)
++
++@D2@ expression E; @@
++
++-&__raw_get_cpu_var(E)
+++__this_cpu_ptr(&E)
++
