@@ -1,58 +1,53 @@
-From: Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
-Subject: Re: [RFC PATCH 0/4] add support for gcov format introduced in gcc
- 4.7
-Date: Mon, 26 Aug 2013 16:19:35 +0200
-Message-ID: <521B63F7.9050409@linux.vnet.ibm.com>
-References: <1377247176-13537-1-git-send-email-fhrbata@redhat.com> <52177AD7.1030709@linux.vnet.ibm.com> <20130823161532.GA2336@localhost.localdomain> <CAFiDJ5_S9Y_9t4kmkh5a9vK8bZFf1ZispTiWxj7PybxJpvYZ3w@mail.gmail.com>
+From: Christoph Lameter <cl@linux.com>
+Subject: Re: [guv 04/16] core: Convert __get_cpu_var uses
+Date: Mon, 26 Aug 2013 15:20:09 +0000
+Message-ID: <00000140bb35f38a-99d5d8ab-6672-42e8-9e91-55cb231c693d-000000@email.amazonses.com>
+References: <20130823190135.726207430@linux.com> <00000140ac8e2bdd-f0151a00-88ca-4d0b-adbc-007c514b6856-000000@email.amazonses.com> <20130826141849.GA6276@home.goodmis.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp17.uk.ibm.com ([195.75.94.113]:38887 "EHLO
-	e06smtp17.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751723Ab3HZOTg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 26 Aug 2013 10:19:36 -0400
-Received: from /spool/local
-	by e06smtp17.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <oberpar@linux.vnet.ibm.com>;
-	Mon, 26 Aug 2013 15:14:30 +0100
-In-Reply-To: <CAFiDJ5_S9Y_9t4kmkh5a9vK8bZFf1ZispTiWxj7PybxJpvYZ3w@mail.gmail.com>
+Received: from b232-35.smtp-out.amazonses.com ([199.127.232.35]:11953 "EHLO
+	b232-35.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751857Ab3HZP3r (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 26 Aug 2013 11:29:47 -0400
+In-Reply-To: <20130826141849.GA6276@home.goodmis.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "LF.Tan" <lftan.linux@gmail.com>
-Cc: Frantisek Hrbata <fhrbata@redhat.com>, linux-kernel@vger.kernel.org, jstancek@redhat.com, keescook@chromium.org, Christophe Guillon <christophe.guillon@st.com>, rusty@rustcorp.com.au, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, mgahagan@redhat.com, agospoda@redhat.com
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On 26.08.2013 13:39, LF.Tan wrote:
-> Hi all
-> 
-> I am interested to enable Gcov on my platform (on a target board). I
-> have tried to apply the 4 patches submitted by Frantisek Hrbata. But,
-> the *.gcda is always empty. Note, I am using GCC 4.7.3.
-> 
-> I have followed the steps in Documentation/gcov.txt. I've mounted the
-> NFS filesystem and it has access to the kernel build directory on host
-> machine.The path for the kernel source in host and target are same.
-> 
-> Let said my kernel module is under drivers/misc,
-> drivers/misc/module.ko. Turn on Gcov in drivers/misc/Makefile.
-> 
-> 1. mount -t debugfs none /sys/kernel/debug/
-> 2. insmod <PATH>/module.ko
-> 3. Perform some actions to excute code in module.ko
-> 4. rmmod <PATH>/module.ko
-> 5. Check /sys/kernel/debug/gcov/<PATH>/drivers/misc/. There is a soft
-> link of module.gcno (I check the soft link is working), but
-> module.gcda is empty.
+On Mon, 26 Aug 2013, Steven Rostedt wrote:
 
-Are you sure they are empty? .gcda files report a file size of 0 as many
-virtual files do, but you can read data from them nevertheless. You could
-try running "cat" on them to copy their contents for example.
+> As Tejun said, each commit needs its own change log. Never expect a
+> change lgo from another commit to be read for changes in this commit.
 
-> Any step is incorrect or missing? Or anyone know how to enable GCOV on
-> target board? Please advice.
-> I would like to enable GCOV in arch/ code as well.
-> Thank you very much.
+I can copy the intro into each of the patches?
 
--- 
-Peter Oberparleiter
-Linux on System z Development - IBM Germany
+> > Index: linux/kernel/time/tick-oneshot.c
+> > Index: linux/kernel/trace/ftrace.c
+> > Index: linux/kernel/user-return-notifier.c
+> > Index: linux/kernel/watchdog.c
+> > Index: linux/lib/radix-tree.c
+> > Index: linux/mm/memcontrol.c
+> > Index: linux/mm/memory-failure.c
+> > Index: linux/mm/page-writeback.c
+> > Index: linux/mm/swap.c
+> > Index: linux/mm/vmalloc.c
+> > Index: linux/mm/vmstat.c
+> > Index: linux/net/core/dev.c
+> > Index: linux/net/core/drop_monitor.c
+> > Index: linux/net/core/skbuff.c
+> > Index: linux/net/ipv4/tcp_output.c
+> > Index: linux/net/rds/ib_rdma.c
+> > Index: linux/kernel/timer.c
+> > Index: linux/kernel/trace/trace.c
+>
+> This patch needs to be broken up per subsystem. Or are you just looking
+> for acks from all the maintainers here and you'll pull it in. If that's
+> the case, you should have Cc'd each of the maintainers of the files that
+> this touches.
+
+I did a breakout by arch, then core and drivers. How fine grained do you
+want them? This touches a significant portion of the kernel source.
+There could be quite a number of maintainers involved.
