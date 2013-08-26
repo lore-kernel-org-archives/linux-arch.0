@@ -1,41 +1,393 @@
 From: Christoph Lameter <cl@linux.com>
-Subject: [guv v2 02/31] percpu: Make __verify_pcu_ptr handle per cpu pointers to arrays
-Date: Mon, 26 Aug 2013 20:41:18 +0000
-Message-ID: <00000140bc5bf84a-56dd6082-f1d6-4cee-b8dd-cc4e5c27a911-000000@email.amazonses.com>
-References: <20130826204138.307369532@linux.com>
+Subject: [guv v2 14/31] drivers: Replace __get_cpu_var uses
+Date: Mon, 26 Aug 2013 20:44:39 +0000
+Message-ID: <00000140bc5f0931-53fcf3dd-0664-4c09-a08b-3ce72d4d5f5b-000000@email.amazonses.com>
+References: <20130826204351.725357339@linux.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a9-54.smtp-out.amazonses.com ([54.240.9.54]:46180 "EHLO
-	a9-54.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751653Ab3HZUsG (ORCPT
+Received: from a9-92.smtp-out.amazonses.com ([54.240.9.92]:45740 "EHLO
+	a9-92.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751712Ab3HZUtw (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 26 Aug 2013 16:48:06 -0400
+	Mon, 26 Aug 2013 16:49:52 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Tejun Heo <tj@kernel.org>
 Cc: akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
 
-__verify_pcpu_ptr() will cause a compilation failure if the type of the
-pointer is a pointer to a fixed array of objects. Adding zero to the
-pointer converts the type of pointer to that pointing to a single
-object of the array.
+__get_cpu_var() is used for multiple purposes in the kernel source. One of them is
+address calculation via the form &__get_cpu_var(x). This calculates the address for
+the instance of the percpu variable of the current processor based on an offset.
+
+Others usage cases are for storing and retrieving data from the current processors percpu area.
+__get_cpu_var() can be used as an lvalue when writing data or on the right side of an assignment.
+
+__get_cpu_var() is defined as :
+
+
+#define __get_cpu_var(var) (*this_cpu_ptr(&(var)))
+
+
+
+__get_cpu_var() always only does a address determination. However, store and retrieve operations
+could use a segment prefix (or global register on other platforms) to avoid the address calculation.
+
+this_cpu_write() and this_cpu_read() can directly take an offset into a percpu area and use
+optimized assembly code to read and write per cpu variables.
+
+
+This patch converts __get_cpu_var into either and explicit address calculation using this_cpu_ptr()
+or into a use of this_cpu operations that use the offset. Thereby address calcualtions are avoided
+and less registers are used when code is generated.
+
+At the end of the patchset all uses of __get_cpu_var have been removed so the macro is removed too.
+
+The patchset includes passes over all arches as well. Once these operations are used throughout then
+specialized macros can be defined in non -x86 arches as well in order to optimize per cpu access by
+f.e. using a global register that may be set to the per cpu base.
+
+
+
+
+Transformations done to __get_cpu_var()
+
+
+1. Determine the address of the percpu instance of the current processor.
+
+	DEFINE_PER_CPU(int, y);
+	int *x = &__get_cpu_var(y);
+
+    Converts to
+
+	int *x = this_cpu_ptr(&y);
+
+
+2. Same as #1 but this time an array structure is involved.
+
+	DEFINE_PER_CPU(int, y[20]);
+	int *x = __get_cpu_var(y);
+
+    Converts to
+
+	int *x = this_cpu_ptr(y);
+
+
+3. Retrieve the content of the current processors instance of a per cpu variable.
+
+	DEFINE_PER_CPU(int, u);
+	int x = __get_cpu_var(y)
+
+   Converts to
+
+	int x = __this_cpu_read(y);
+
+
+4. Retrieve the content of a percpu struct
+
+	DEFINE_PER_CPU(struct mystruct, y);
+	struct mystruct x = __get_cpu_var(y);
+
+   Converts to
+
+	memcpy(this_cpu_ptr(&y), x, sizeof(x));
+
+
+5. Assignment to a per cpu variable
+
+	DEFINE_PER_CPU(int, y)
+	__get_cpu_var(y) = x;
+
+   Converts to
+
+	this_cpu_write(y, x);
+
+
+6. Increment/Decrement etc of a per cpu variable
+
+	DEFINE_PER_CPU(int, y);
+	__get_cpu_var(y)++
+
+   Converts to
+
+	this_cpu_inc(y)
+
+
 
 Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Index: linux/include/linux/percpu-defs.h
+Index: linux/drivers/char/random.c
 ===================================================================
---- linux.orig/include/linux/percpu-defs.h	2013-08-22 13:39:04.000000000 -0500
-+++ linux/include/linux/percpu-defs.h	2013-08-22 13:41:15.333140537 -0500
-@@ -22,9 +22,12 @@
-  * Macro which verifies @ptr is a percpu pointer without evaluating
-  * @ptr.  This is to be used in percpu accessors to verify that the
-  * input parameter is a percpu pointer.
-+ *
-+ * + 0 is required in order to convert the pointer type from a
-+ * potential array type to a pointer to a single item of the array.
-  */
- #define __verify_pcpu_ptr(ptr)	do {					\
--	const void __percpu *__vpp_verify = (typeof(ptr))NULL;		\
-+	const void __percpu *__vpp_verify = (typeof((ptr) + 0))NULL;	\
- 	(void)__vpp_verify;						\
- } while (0)
+--- linux.orig/drivers/char/random.c	2013-08-22 14:16:11.335913933 -0500
++++ linux/drivers/char/random.c	2013-08-22 14:16:11.319914096 -0500
+@@ -744,7 +744,7 @@ static DEFINE_PER_CPU(struct fast_pool,
+ void add_interrupt_randomness(int irq, int irq_flags)
+ {
+ 	struct entropy_store	*r;
+-	struct fast_pool	*fast_pool = &__get_cpu_var(irq_randomness);
++	struct fast_pool	*fast_pool = this_cpu_ptr(&irq_randomness);
+ 	struct pt_regs		*regs = get_irq_regs();
+ 	unsigned long		now = jiffies;
+ 	__u32			input[4], cycles = get_cycles();
+Index: linux/drivers/clocksource/metag_generic.c
+===================================================================
+--- linux.orig/drivers/clocksource/metag_generic.c	2013-08-22 14:16:11.335913933 -0500
++++ linux/drivers/clocksource/metag_generic.c	2013-08-22 14:16:11.323914055 -0500
+@@ -90,7 +90,7 @@ static struct clocksource clocksource_me
  
+ static irqreturn_t metag_timer_interrupt(int irq, void *dummy)
+ {
+-	struct clock_event_device *evt = &__get_cpu_var(local_clockevent);
++	struct clock_event_device *evt = this_cpu_ptr(&local_clockevent);
+ 
+ 	evt->event_handler(evt);
+ 
+Index: linux/drivers/cpuidle/governors/ladder.c
+===================================================================
+--- linux.orig/drivers/cpuidle/governors/ladder.c	2013-08-22 14:16:11.335913933 -0500
++++ linux/drivers/cpuidle/governors/ladder.c	2013-08-22 14:16:11.323914055 -0500
+@@ -66,7 +66,7 @@ static inline void ladder_do_selection(s
+ static int ladder_select_state(struct cpuidle_driver *drv,
+ 				struct cpuidle_device *dev)
+ {
+-	struct ladder_device *ldev = &__get_cpu_var(ladder_devices);
++	struct ladder_device *ldev = this_cpu_ptr(&ladder_devices);
+ 	struct ladder_device_state *last_state;
+ 	int last_residency, last_idx = ldev->last_state_idx;
+ 	int latency_req = pm_qos_request(PM_QOS_CPU_DMA_LATENCY);
+@@ -170,7 +170,7 @@ static int ladder_enable_device(struct c
+  */
+ static void ladder_reflect(struct cpuidle_device *dev, int index)
+ {
+-	struct ladder_device *ldev = &__get_cpu_var(ladder_devices);
++	struct ladder_device *ldev = this_cpu_ptr(&ladder_devices);
+ 	if (index > 0)
+ 		ldev->last_state_idx = index;
+ }
+Index: linux/drivers/cpuidle/governors/menu.c
+===================================================================
+--- linux.orig/drivers/cpuidle/governors/menu.c	2013-08-22 14:16:11.335913933 -0500
++++ linux/drivers/cpuidle/governors/menu.c	2013-08-22 14:16:11.323914055 -0500
+@@ -258,7 +258,7 @@ again:
+  */
+ static int menu_select(struct cpuidle_driver *drv, struct cpuidle_device *dev)
+ {
+-	struct menu_device *data = &__get_cpu_var(menu_devices);
++	struct menu_device *data = this_cpu_ptr(&menu_devices);
+ 	int latency_req = pm_qos_request(PM_QOS_CPU_DMA_LATENCY);
+ 	int i;
+ 	int multiplier;
+@@ -342,7 +342,7 @@ static int menu_select(struct cpuidle_dr
+  */
+ static void menu_reflect(struct cpuidle_device *dev, int index)
+ {
+-	struct menu_device *data = &__get_cpu_var(menu_devices);
++	struct menu_device *data = this_cpu_ptr(&menu_devices);
+ 	data->last_state_idx = index;
+ 	if (index >= 0)
+ 		data->needs_update = 1;
+@@ -355,7 +355,7 @@ static void menu_reflect(struct cpuidle_
+  */
+ static void menu_update(struct cpuidle_driver *drv, struct cpuidle_device *dev)
+ {
+-	struct menu_device *data = &__get_cpu_var(menu_devices);
++	struct menu_device *data = this_cpu_ptr(&menu_devices);
+ 	int last_idx = data->last_state_idx;
+ 	unsigned int last_idle_us = cpuidle_get_last_residency(dev);
+ 	struct cpuidle_state *target = &drv->states[last_idx];
+Index: linux/drivers/leds/trigger/ledtrig-cpu.c
+===================================================================
+--- linux.orig/drivers/leds/trigger/ledtrig-cpu.c	2013-08-22 14:16:11.335913933 -0500
++++ linux/drivers/leds/trigger/ledtrig-cpu.c	2013-08-22 14:16:11.323914055 -0500
+@@ -46,7 +46,7 @@ static DEFINE_PER_CPU(struct led_trigger
+  */
+ void ledtrig_cpu(enum cpu_led_event ledevt)
+ {
+-	struct led_trigger_cpu *trig = &__get_cpu_var(cpu_trig);
++	struct led_trigger_cpu *trig = this_cpu_ptr(&cpu_trig);
+ 
+ 	/* Locate the correct CPU LED */
+ 	switch (ledevt) {
+Index: linux/drivers/net/ethernet/tile/tilegx.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/tile/tilegx.c	2013-08-22 14:16:11.335913933 -0500
++++ linux/drivers/net/ethernet/tile/tilegx.c	2013-08-22 14:16:11.323914055 -0500
+@@ -368,7 +368,7 @@ static void tile_net_pop_all_buffers(int
+ /* Provide linux buffers to mPIPE. */
+ static void tile_net_provide_needed_buffers(void)
+ {
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 
+ 	while (info->num_needed_small_buffers != 0) {
+ 		if (!tile_net_provide_buffer(true))
+@@ -407,7 +407,7 @@ static inline bool filter_packet(struct
+ static void tile_net_receive_skb(struct net_device *dev, struct sk_buff *skb,
+ 				 gxio_mpipe_idesc_t *idesc, unsigned long len)
+ {
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 	struct tile_net_priv *priv = netdev_priv(dev);
+ 
+ 	/* Encode the actual packet length. */
+@@ -435,7 +435,7 @@ static void tile_net_receive_skb(struct
+ /* Handle a packet.  Return true if "processed", false if "filtered". */
+ static bool tile_net_handle_packet(gxio_mpipe_idesc_t *idesc)
+ {
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 	struct net_device *dev = tile_net_devs_for_channel[idesc->channel];
+ 	uint8_t l2_offset;
+ 	void *va;
+@@ -498,7 +498,7 @@ static bool tile_net_handle_packet(gxio_
+  */
+ static int tile_net_poll(struct napi_struct *napi, int budget)
+ {
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 	unsigned int work = 0;
+ 	gxio_mpipe_idesc_t *idesc;
+ 	int i, n;
+@@ -536,7 +536,7 @@ done:
+ /* Handle an ingress interrupt on the current cpu. */
+ static irqreturn_t tile_net_handle_ingress_irq(int irq, void *unused)
+ {
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 	napi_schedule(&info->napi);
+ 	return IRQ_HANDLED;
+ }
+@@ -597,7 +597,7 @@ static enum hrtimer_restart tile_net_han
+ /* Make sure the egress timer is scheduled. */
+ static void tile_net_schedule_egress_timer(void)
+ {
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 
+ 	if (!info->egress_timer_scheduled) {
+ 		hrtimer_start(&info->egress_timer,
+@@ -614,7 +614,7 @@ static void tile_net_schedule_egress_tim
+  */
+ static enum hrtimer_restart tile_net_handle_egress_timer(struct hrtimer *t)
+ {
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 	unsigned long irqflags;
+ 	bool pending = false;
+ 	int i;
+@@ -649,7 +649,7 @@ static enum hrtimer_restart tile_net_han
+  */
+ static void tile_net_update_cpu(void *arg)
+ {
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 	struct net_device *dev = arg;
+ 
+ 	if (!info->has_iqueue)
+@@ -1572,7 +1572,7 @@ static void tso_egress(struct net_device
+  */
+ static int tile_net_tx_tso(struct sk_buff *skb, struct net_device *dev)
+ {
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 	struct tile_net_priv *priv = netdev_priv(dev);
+ 	int channel = priv->echannel;
+ 	struct tile_net_egress *egress = &egress_for_echannel[channel];
+@@ -1638,7 +1638,7 @@ static unsigned int tile_net_tx_frags(st
+ /* Help the kernel transmit a packet. */
+ static int tile_net_tx(struct sk_buff *skb, struct net_device *dev)
+ {
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 	struct tile_net_priv *priv = netdev_priv(dev);
+ 	struct tile_net_egress *egress = &egress_for_echannel[priv->echannel];
+ 	gxio_mpipe_equeue_t *equeue = egress->equeue;
+@@ -1869,7 +1869,7 @@ static void tile_net_dev_init(const char
+ /* Per-cpu module initialization. */
+ static void tile_net_init_module_percpu(void *unused)
+ {
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 	int my_cpu = smp_processor_id();
+ 
+ 	info->has_iqueue = false;
+Index: linux/drivers/net/ethernet/tile/tilepro.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/tile/tilepro.c	2013-08-22 14:16:11.335913933 -0500
++++ linux/drivers/net/ethernet/tile/tilepro.c	2013-08-22 14:16:11.327914014 -0500
+@@ -1078,13 +1078,13 @@ static void tile_net_register(void *dev_
+ 	PDEBUG("tile_net_register(queue_id %d)\n", queue_id);
+ 
+ 	if (!strcmp(dev->name, "xgbe0"))
+-		info = &__get_cpu_var(hv_xgbe0);
++		info = this_cpu_ptr(&hv_xgbe0);
+ 	else if (!strcmp(dev->name, "xgbe1"))
+-		info = &__get_cpu_var(hv_xgbe1);
++		info = this_cpu_ptr(&hv_xgbe1);
+ 	else if (!strcmp(dev->name, "gbe0"))
+-		info = &__get_cpu_var(hv_gbe0);
++		info = this_cpu_ptr(&hv_gbe0);
+ 	else if (!strcmp(dev->name, "gbe1"))
+-		info = &__get_cpu_var(hv_gbe1);
++		info = this_cpu_ptr(&hv_gbe1);
+ 	else
+ 		BUG();
+ 
+Index: linux/drivers/oprofile/cpu_buffer.c
+===================================================================
+--- linux.orig/drivers/oprofile/cpu_buffer.c	2013-08-22 14:16:11.335913933 -0500
++++ linux/drivers/oprofile/cpu_buffer.c	2013-08-22 14:16:11.327914014 -0500
+@@ -45,7 +45,7 @@ unsigned long oprofile_get_cpu_buffer_si
+ 
+ void oprofile_cpu_buffer_inc_smpl_lost(void)
+ {
+-	struct oprofile_cpu_buffer *cpu_buf = &__get_cpu_var(op_cpu_buffer);
++	struct oprofile_cpu_buffer *cpu_buf = this_cpu_ptr(&op_cpu_buffer);
+ 
+ 	cpu_buf->sample_lost_overflow++;
+ }
+@@ -297,7 +297,7 @@ __oprofile_add_ext_sample(unsigned long
+ 			  unsigned long event, int is_kernel,
+ 			  struct task_struct *task)
+ {
+-	struct oprofile_cpu_buffer *cpu_buf = &__get_cpu_var(op_cpu_buffer);
++	struct oprofile_cpu_buffer *cpu_buf = this_cpu_ptr(&op_cpu_buffer);
+ 	unsigned long backtrace = oprofile_backtrace_depth;
+ 
+ 	/*
+@@ -357,7 +357,7 @@ oprofile_write_reserve(struct op_entry *
+ {
+ 	struct op_sample *sample;
+ 	int is_kernel = !user_mode(regs);
+-	struct oprofile_cpu_buffer *cpu_buf = &__get_cpu_var(op_cpu_buffer);
++	struct oprofile_cpu_buffer *cpu_buf = this_cpu_ptr(&op_cpu_buffer);
+ 
+ 	cpu_buf->sample_received++;
+ 
+@@ -412,13 +412,13 @@ int oprofile_write_commit(struct op_entr
+ 
+ void oprofile_add_pc(unsigned long pc, int is_kernel, unsigned long event)
+ {
+-	struct oprofile_cpu_buffer *cpu_buf = &__get_cpu_var(op_cpu_buffer);
++	struct oprofile_cpu_buffer *cpu_buf = this_cpu_ptr(&op_cpu_buffer);
+ 	log_sample(cpu_buf, pc, 0, is_kernel, event, NULL);
+ }
+ 
+ void oprofile_add_trace(unsigned long pc)
+ {
+-	struct oprofile_cpu_buffer *cpu_buf = &__get_cpu_var(op_cpu_buffer);
++	struct oprofile_cpu_buffer *cpu_buf = this_cpu_ptr(&op_cpu_buffer);
+ 
+ 	if (!cpu_buf->tracing)
+ 		return;
+Index: linux/drivers/oprofile/timer_int.c
+===================================================================
+--- linux.orig/drivers/oprofile/timer_int.c	2013-08-22 14:16:11.335913933 -0500
++++ linux/drivers/oprofile/timer_int.c	2013-08-22 14:16:11.327914014 -0500
+@@ -32,7 +32,7 @@ static enum hrtimer_restart oprofile_hrt
+ 
+ static void __oprofile_hrtimer_start(void *unused)
+ {
+-	struct hrtimer *hrtimer = &__get_cpu_var(oprofile_hrtimer);
++	struct hrtimer *hrtimer = this_cpu_ptr(&oprofile_hrtimer);
+ 
+ 	if (!ctr_running)
+ 		return;
