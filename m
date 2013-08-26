@@ -1,18 +1,13 @@
 From: Christoph Lameter <cl@linux.com>
-Subject: [guv v2 04/31] net: Replace __get_cpu_var uses
-Date: Mon, 26 Aug 2013 20:44:35 +0000
-Message-ID: <00000140bc5ef9df-d7f75909-a25e-4471-84b2-dfbec07117b0-000000@email.amazonses.com>
+Subject: [guv v2 07/31] mm: Replace __get_cpu_var uses
+Date: Mon, 26 Aug 2013 20:44:38 +0000
+Message-ID: <00000140bc5f0313-84b1748d-fe8e-4b02-bff9-60ec7fdbe984-000000@email.amazonses.com>
 References: <20130826204351.725357339@linux.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a9-74.smtp-out.amazonses.com ([54.240.9.74]:46999 "EHLO
-	a9-74.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751978Ab3HZUoi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 26 Aug 2013 16:44:38 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
 To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, "David S. Miller" <davem@davemloft.net>, netdev@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+Cc: akpm@linuxfoundation.org, akpm@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 __get_cpu_var() is used for multiple purposes in the kernel source. One of them is
 address calculation via the form &__get_cpu_var(x). This calculates the address for
@@ -112,170 +107,126 @@ Transformations done to __get_cpu_var()
 
 Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Index: linux/net/core/dev.c
+Index: linux/lib/radix-tree.c
 ===================================================================
---- linux.orig/net/core/dev.c	2013-08-26 14:16:59.000000000 -0500
-+++ linux/net/core/dev.c	2013-08-26 14:18:37.214005168 -0500
-@@ -2129,7 +2129,7 @@ static inline void __netif_reschedule(st
- 	unsigned long flags;
- 
- 	local_irq_save(flags);
--	sd = &__get_cpu_var(softnet_data);
-+	sd = this_cpu_ptr(&softnet_data);
- 	q->next_sched = NULL;
- 	*sd->output_queue_tailp = q;
- 	sd->output_queue_tailp = &q->next_sched;
-@@ -2151,7 +2151,7 @@ void dev_kfree_skb_irq(struct sk_buff *s
- 		unsigned long flags;
- 
- 		local_irq_save(flags);
--		sd = &__get_cpu_var(softnet_data);
-+		sd = this_cpu_ptr(&softnet_data);
- 		skb->next = sd->completion_queue;
- 		sd->completion_queue = skb;
- 		raise_softirq_irqoff(NET_TX_SOFTIRQ);
-@@ -3111,7 +3111,7 @@ static void rps_trigger_softirq(void *da
- static int rps_ipi_queued(struct softnet_data *sd)
- {
- #ifdef CONFIG_RPS
--	struct softnet_data *mysd = &__get_cpu_var(softnet_data);
-+	struct softnet_data *mysd = this_cpu_ptr(&softnet_data);
- 
- 	if (sd != mysd) {
- 		sd->rps_ipi_next = mysd->rps_ipi_list;
-@@ -3138,7 +3138,7 @@ static bool skb_flow_limit(struct sk_buf
- 	if (qlen < (netdev_max_backlog >> 1))
- 		return false;
- 
--	sd = &__get_cpu_var(softnet_data);
-+	sd = this_cpu_ptr(&softnet_data);
- 
- 	rcu_read_lock();
- 	fl = rcu_dereference(sd->flow_limit);
-@@ -3280,7 +3280,7 @@ EXPORT_SYMBOL(netif_rx_ni);
- 
- static void net_tx_action(struct softirq_action *h)
- {
--	struct softnet_data *sd = &__get_cpu_var(softnet_data);
-+	struct softnet_data *sd = this_cpu_ptr(&softnet_data);
- 
- 	if (sd->completion_queue) {
- 		struct sk_buff *clist;
-@@ -3700,7 +3700,7 @@ EXPORT_SYMBOL(netif_receive_skb);
- static void flush_backlog(void *arg)
- {
- 	struct net_device *dev = arg;
--	struct softnet_data *sd = &__get_cpu_var(softnet_data);
-+	struct softnet_data *sd = this_cpu_ptr(&softnet_data);
- 	struct sk_buff *skb, *tmp;
- 
- 	rps_lock(sd);
-@@ -4146,7 +4146,7 @@ void __napi_schedule(struct napi_struct
- 	unsigned long flags;
- 
- 	local_irq_save(flags);
--	____napi_schedule(&__get_cpu_var(softnet_data), n);
-+	____napi_schedule(this_cpu_ptr(&softnet_data), n);
- 	local_irq_restore(flags);
- }
- EXPORT_SYMBOL(__napi_schedule);
-@@ -4274,7 +4274,7 @@ EXPORT_SYMBOL(netif_napi_del);
- 
- static void net_rx_action(struct softirq_action *h)
- {
--	struct softnet_data *sd = &__get_cpu_var(softnet_data);
-+	struct softnet_data *sd = this_cpu_ptr(&softnet_data);
- 	unsigned long time_limit = jiffies + 2;
- 	int budget = netdev_budget;
- 	void *have;
-Index: linux/net/core/drop_monitor.c
-===================================================================
---- linux.orig/net/core/drop_monitor.c	2013-08-26 14:16:59.000000000 -0500
-+++ linux/net/core/drop_monitor.c	2013-08-26 14:18:37.218005126 -0500
-@@ -142,7 +142,7 @@ static void trace_drop_common(struct sk_
- 	unsigned long flags;
- 
- 	local_irq_save(flags);
--	data = &__get_cpu_var(dm_cpu_data);
-+	data = this_cpu_ptr(&dm_cpu_data);
- 	spin_lock(&data->lock);
- 	dskb = data->skb;
- 
-Index: linux/net/core/skbuff.c
-===================================================================
---- linux.orig/net/core/skbuff.c	2013-08-26 14:16:59.000000000 -0500
-+++ linux/net/core/skbuff.c	2013-08-26 14:18:37.218005126 -0500
-@@ -371,7 +371,7 @@ static void *__netdev_alloc_frag(unsigne
- 	unsigned long flags;
- 
- 	local_irq_save(flags);
--	nc = &__get_cpu_var(netdev_alloc_cache);
-+	nc = this_cpu_ptr(&netdev_alloc_cache);
- 	if (unlikely(!nc->frag.page)) {
- refill:
- 		for (order = NETDEV_FRAG_PAGE_MAX_ORDER; ;) {
-Index: linux/net/ipv4/syncookies.c
-===================================================================
---- linux.orig/net/ipv4/syncookies.c	2013-08-26 14:16:59.000000000 -0500
-+++ linux/net/ipv4/syncookies.c	2013-08-26 14:18:37.210005210 -0500
-@@ -44,7 +44,7 @@ static DEFINE_PER_CPU(__u32 [16 + 5 + SH
- static u32 cookie_hash(__be32 saddr, __be32 daddr, __be16 sport, __be16 dport,
- 		       u32 count, int c)
- {
--	__u32 *tmp = __get_cpu_var(ipv4_cookie_scratch);
-+	__u32 *tmp = this_cpu_ptr(ipv4_cookie_scratch);
- 
- 	memcpy(tmp + 4, syncookie_secret[c], sizeof(syncookie_secret[c]));
- 	tmp[0] = (__force u32)saddr;
-Index: linux/net/ipv4/tcp_output.c
-===================================================================
---- linux.orig/net/ipv4/tcp_output.c	2013-08-26 14:16:59.000000000 -0500
-+++ linux/net/ipv4/tcp_output.c	2013-08-26 14:18:37.218005126 -0500
-@@ -810,7 +810,7 @@ void tcp_wfree(struct sk_buff *skb)
- 
- 		/* queue this socket to tasklet queue */
- 		local_irq_save(flags);
--		tsq = &__get_cpu_var(tsq_tasklet);
-+		tsq = this_cpu_ptr(&tsq_tasklet);
- 		list_add(&tp->tsq_node, &tsq->head);
- 		tasklet_schedule(&tsq->tasklet);
- 		local_irq_restore(flags);
-Index: linux/net/ipv6/syncookies.c
-===================================================================
---- linux.orig/net/ipv6/syncookies.c	2013-08-26 14:16:59.000000000 -0500
-+++ linux/net/ipv6/syncookies.c	2013-08-26 14:18:37.214005168 -0500
-@@ -66,7 +66,7 @@ static DEFINE_PER_CPU(__u32 [16 + 5 + SH
- static u32 cookie_hash(const struct in6_addr *saddr, const struct in6_addr *daddr,
- 		       __be16 sport, __be16 dport, u32 count, int c)
- {
--	__u32 *tmp = __get_cpu_var(ipv6_cookie_scratch);
-+	__u32 *tmp = this_cpu_ptr(ipv6_cookie_scratch);
- 
- 	/*
- 	 * we have 320 bits of information to hash, copy in the remaining
-Index: linux/net/rds/ib_rdma.c
-===================================================================
---- linux.orig/net/rds/ib_rdma.c	2013-08-26 14:16:59.000000000 -0500
-+++ linux/net/rds/ib_rdma.c	2013-08-26 14:18:37.218005126 -0500
-@@ -267,7 +267,7 @@ static inline struct rds_ib_mr *rds_ib_r
- 	unsigned long *flag;
+--- linux.orig/lib/radix-tree.c	2013-08-26 14:24:48.000000000 -0500
++++ linux/lib/radix-tree.c	2013-08-26 14:25:30.709616290 -0500
+@@ -215,7 +215,7 @@ radix_tree_node_alloc(struct radix_tree_
+ 		 * succeed in getting a node here (and never reach
+ 		 * kmem_cache_alloc)
+ 		 */
+-		rtp = &__get_cpu_var(radix_tree_preloads);
++		rtp = this_cpu_ptr(&radix_tree_preloads);
+ 		if (rtp->nr) {
+ 			ret = rtp->nodes[rtp->nr - 1];
+ 			rtp->nodes[rtp->nr - 1] = NULL;
+@@ -271,14 +271,14 @@ int radix_tree_preload(gfp_t gfp_mask)
+ 	int ret = -ENOMEM;
  
  	preempt_disable();
--	flag = &__get_cpu_var(clean_list_grace);
-+	flag = this_cpu_ptr(&clean_list_grace);
- 	set_bit(CLEAN_LIST_BUSY_BIT, flag);
- 	ret = llist_del_first(&pool->clean_list);
- 	if (ret)
-Index: linux/include/net/netfilter/nf_conntrack.h
+-	rtp = &__get_cpu_var(radix_tree_preloads);
++	rtp = this_cpu_ptr(&radix_tree_preloads);
+ 	while (rtp->nr < ARRAY_SIZE(rtp->nodes)) {
+ 		preempt_enable();
+ 		node = kmem_cache_alloc(radix_tree_node_cachep, gfp_mask);
+ 		if (node == NULL)
+ 			goto out;
+ 		preempt_disable();
+-		rtp = &__get_cpu_var(radix_tree_preloads);
++		rtp = this_cpu_ptr(&radix_tree_preloads);
+ 		if (rtp->nr < ARRAY_SIZE(rtp->nodes))
+ 			rtp->nodes[rtp->nr++] = node;
+ 		else
+Index: linux/mm/memcontrol.c
 ===================================================================
---- linux.orig/include/net/netfilter/nf_conntrack.h	2013-08-26 14:23:46.000000000 -0500
-+++ linux/include/net/netfilter/nf_conntrack.h	2013-08-26 14:24:17.190395755 -0500
-@@ -243,7 +243,7 @@ extern s16 (*nf_ct_nat_offset)(const str
- DECLARE_PER_CPU(struct nf_conn, nf_conntrack_untracked);
- static inline struct nf_conn *nf_ct_untracked_get(void)
+--- linux.orig/mm/memcontrol.c	2013-08-26 14:24:48.000000000 -0500
++++ linux/mm/memcontrol.c	2013-08-26 14:25:30.713616248 -0500
+@@ -2398,7 +2398,7 @@ static void drain_stock(struct memcg_sto
+  */
+ static void drain_local_stock(struct work_struct *dummy)
  {
--	return &__raw_get_cpu_var(nf_conntrack_untracked);
-+	return __this_cpu_ptr(&nf_conntrack_untracked);
+-	struct memcg_stock_pcp *stock = &__get_cpu_var(memcg_stock);
++	struct memcg_stock_pcp *stock = this_cpu_ptr(&memcg_stock);
+ 	drain_stock(stock);
+ 	clear_bit(FLUSHING_CACHED_CHARGE, &stock->flags);
  }
- extern void nf_ct_untracked_status_or(unsigned long bits);
+Index: linux/mm/memory-failure.c
+===================================================================
+--- linux.orig/mm/memory-failure.c	2013-08-26 14:24:48.000000000 -0500
++++ linux/mm/memory-failure.c	2013-08-26 14:25:30.713616248 -0500
+@@ -1279,7 +1279,7 @@ static void memory_failure_work_func(str
+ 	unsigned long proc_flags;
+ 	int gotten;
  
+-	mf_cpu = &__get_cpu_var(memory_failure_cpu);
++	mf_cpu = this_cpu_ptr(&memory_failure_cpu);
+ 	for (;;) {
+ 		spin_lock_irqsave(&mf_cpu->lock, proc_flags);
+ 		gotten = kfifo_get(&mf_cpu->fifo, &entry);
+Index: linux/mm/page-writeback.c
+===================================================================
+--- linux.orig/mm/page-writeback.c	2013-08-26 14:24:48.000000000 -0500
++++ linux/mm/page-writeback.c	2013-08-26 14:25:30.713616248 -0500
+@@ -1487,7 +1487,7 @@ void balance_dirty_pages_ratelimited(str
+ 	 * 1000+ tasks, all of them start dirtying pages at exactly the same
+ 	 * time, hence all honoured too large initial task->nr_dirtied_pause.
+ 	 */
+-	p =  &__get_cpu_var(bdp_ratelimits);
++	p =  this_cpu_ptr(&bdp_ratelimits);
+ 	if (unlikely(current->nr_dirtied >= ratelimit))
+ 		*p = 0;
+ 	else if (unlikely(*p >= ratelimit_pages)) {
+@@ -1499,7 +1499,7 @@ void balance_dirty_pages_ratelimited(str
+ 	 * short-lived tasks (eg. gcc invocations in a kernel build) escaping
+ 	 * the dirty throttling and livelock other long-run dirtiers.
+ 	 */
+-	p = &__get_cpu_var(dirty_throttle_leaks);
++	p = this_cpu_ptr(&dirty_throttle_leaks);
+ 	if (*p > 0 && current->nr_dirtied < ratelimit) {
+ 		unsigned long nr_pages_dirtied;
+ 		nr_pages_dirtied = min(*p, ratelimit - current->nr_dirtied);
+Index: linux/mm/swap.c
+===================================================================
+--- linux.orig/mm/swap.c	2013-08-26 14:24:48.000000000 -0500
++++ linux/mm/swap.c	2013-08-26 14:25:30.717616206 -0500
+@@ -359,7 +359,7 @@ void rotate_reclaimable_page(struct page
+ 
+ 		page_cache_get(page);
+ 		local_irq_save(flags);
+-		pvec = &__get_cpu_var(lru_rotate_pvecs);
++		pvec = this_cpu_ptr(&lru_rotate_pvecs);
+ 		if (!pagevec_add(pvec, page))
+ 			pagevec_move_tail(pvec);
+ 		local_irq_restore(flags);
+Index: linux/mm/vmalloc.c
+===================================================================
+--- linux.orig/mm/vmalloc.c	2013-08-26 14:24:48.000000000 -0500
++++ linux/mm/vmalloc.c	2013-08-26 14:25:30.717616206 -0500
+@@ -1487,7 +1487,7 @@ void vfree(const void *addr)
+ 	if (!addr)
+ 		return;
+ 	if (unlikely(in_interrupt())) {
+-		struct vfree_deferred *p = &__get_cpu_var(vfree_deferred);
++		struct vfree_deferred *p = this_cpu_ptr(&vfree_deferred);
+ 		if (llist_add((struct llist_node *)addr, &p->list))
+ 			schedule_work(&p->wq);
+ 	} else
+Index: linux/mm/vmstat.c
+===================================================================
+--- linux.orig/mm/vmstat.c	2013-08-26 14:24:48.000000000 -0500
++++ linux/mm/vmstat.c	2013-08-26 14:25:30.717616206 -0500
+@@ -1178,7 +1178,7 @@ int sysctl_stat_interval __read_mostly =
+ static void vmstat_update(struct work_struct *w)
+ {
+ 	refresh_cpu_vm_stats(smp_processor_id());
+-	schedule_delayed_work(&__get_cpu_var(vmstat_work),
++	schedule_delayed_work(this_cpu_ptr(&vmstat_work),
+ 		round_jiffies_relative(sysctl_stat_interval));
+ }
+ 
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
