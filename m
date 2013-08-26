@@ -1,178 +1,47 @@
-From: Christoph Lameter <cl@linux.com>
-Subject: [guv v2 30/31] metag: Replace __get_cpu_var uses
-Date: Mon, 26 Aug 2013 21:56:17 +0000
-Message-ID: <00000140bca09c47-54b56d47-a2ca-4f4d-969f-c868d11eb31d-000000@email.amazonses.com>
-References: <20130826204351.725357339@linux.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, James Hogan <james.hogan@imgtec.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Chris Metcalf <cmetcalf@tilera.com>
+Subject: Re: [guv v2 23/31] tile: Replace __get_cpu_var uses
+Date: Mon, 26 Aug 2013 18:22:27 -0400
+Message-ID: <521BD523.3040706@tilera.com>
+References: <20130826204351.725357339@linux.com> <00000140bc69acdb-3b2967b0-e224-424b-ad08-973515704be6-000000@email.amazonses.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from usmamail.tilera.com ([12.216.194.151]:48996 "EHLO
+	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752093Ab3HZWWY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 26 Aug 2013 18:22:24 -0400
+In-Reply-To: <00000140bc69acdb-3b2967b0-e224-424b-ad08-973515704be6-000000@email.amazonses.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christoph Lameter <cl@linux.com>
+Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
 
-__get_cpu_var() is used for multiple purposes in the kernel source. One of them is
-address calculation via the form &__get_cpu_var(x). This calculates the address for
-the instance of the percpu variable of the current processor based on an offset.
+On 8/26/2013 4:56 PM, Christoph Lameter wrote:
+> Index: linux/arch/tile/include/asm/irqflags.h
+> ===================================================================
+> --- linux.orig/arch/tile/include/asm/irqflags.h	2013-08-22 14:39:14.000000000 -0500
+> +++ linux/arch/tile/include/asm/irqflags.h	2013-08-22 14:39:57.453305409 -0500
 
-Others usage cases are for storing and retrieving data from the current processors percpu area.
-__get_cpu_var() can be used as an lvalue when writing data or on the right side of an assignment.
+Nack to the changes to this file, with all due respect :-), since I have conflicting changes in the linux-tile tree that also remove all uses of __get_cpu_var from this file.  Note that there are places in this file where "this_cpu_and", etc., make sense; I don't know if it makes sense for your script to be looking for this kind of thing more generally.
 
-__get_cpu_var() is defined as :
+> -		__get_cpu_var(current_asid) = asid;
+> +		__this_cpu_read(current_asid) = asid;
 
+This should be __this_cpu_write(current_asid, asid).  You caught this idiom elsewhere so not sure if it was a script bug that caused it to be missed here?
 
-#define __get_cpu_var(var) (*this_cpu_ptr(&(var)))
+> -	int depth = __get_cpu_var(irq_depth)++;
+> +	int depth = __this_cpu_inc_return(irq_depth) - 1;
 
+I would omit the "-1" here and instead change the one test of "depth == 0" to be "depth == 1".
 
+> -	__get_cpu_var(current_asid) = min_asid = asid_range.start;
+> +	__this_cpu_write(current_asid, min_asid = asid_range.start);
 
-__get_cpu_var() always only does a address determination. However, store and retrieve operations
-could use a segment prefix (or global register on other platforms) to avoid the address calculation.
+This was ugly before but now it's much worse :-)  Please just split it into an assignment to min_asid, then use __this_cpu_write() with min_asid.  Thanks.
 
-this_cpu_write() and this_cpu_read() can directly take an offset into a percpu area and use
-optimized assembly code to read and write per cpu variables.
+The rest is fine.  Would it make more sense for me to fold all these changes into the tile tree and just have it meet in linux-next?  There are certainly a bunch of other changes staged there which likely also include more uses of __get_cpu_var...
 
-
-This patch converts __get_cpu_var into either and explicit address calculation using this_cpu_ptr()
-or into a use of this_cpu operations that use the offset. Thereby address calcualtions are avoided
-and less registers are used when code is generated.
-
-At the end of the patchset all uses of __get_cpu_var have been removed so the macro is removed too.
-
-The patchset includes passes over all arches as well. Once these operations are used throughout then
-specialized macros can be defined in non -x86 arches as well in order to optimize per cpu access by
-f.e. using a global register that may be set to the per cpu base.
-
-
-
-
-Transformations done to __get_cpu_var()
-
-
-1. Determine the address of the percpu instance of the current processor.
-
-	DEFINE_PER_CPU(int, y);
-	int *x = &__get_cpu_var(y);
-
-    Converts to
-
-	int *x = this_cpu_ptr(&y);
-
-
-2. Same as #1 but this time an array structure is involved.
-
-	DEFINE_PER_CPU(int, y[20]);
-	int *x = __get_cpu_var(y);
-
-    Converts to
-
-	int *x = this_cpu_ptr(y);
-
-
-3. Retrieve the content of the current processors instance of a per cpu variable.
-
-	DEFINE_PER_CPU(int, u);
-	int x = __get_cpu_var(y)
-
-   Converts to
-
-	int x = __this_cpu_read(y);
-
-
-4. Retrieve the content of a percpu struct
-
-	DEFINE_PER_CPU(struct mystruct, y);
-	struct mystruct x = __get_cpu_var(y);
-
-   Converts to
-
-	memcpy(this_cpu_ptr(&y), x, sizeof(x));
-
-
-5. Assignment to a per cpu variable
-
-	DEFINE_PER_CPU(int, y)
-	__get_cpu_var(y) = x;
-
-   Converts to
-
-	this_cpu_write(y, x);
-
-
-6. Increment/Decrement etc of a per cpu variable
-
-	DEFINE_PER_CPU(int, y);
-	__get_cpu_var(y)++
-
-   Converts to
-
-	this_cpu_inc(y)
-
-
-
-Signed-off-by: Christoph Lameter <cl@linux.com>
-
-Index: linux/arch/metag/kernel/perf/perf_event.c
-===================================================================
---- linux.orig/arch/metag/kernel/perf/perf_event.c	2013-08-26 13:30:45.220186762 -0500
-+++ linux/arch/metag/kernel/perf/perf_event.c	2013-08-26 13:30:45.216186804 -0500
-@@ -258,7 +258,7 @@ int metag_pmu_event_set_period(struct pe
- 
- static void metag_pmu_start(struct perf_event *event, int flags)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	struct hw_perf_event *hwc = &event->hw;
- 	int idx = hwc->idx;
- 
-@@ -306,7 +306,7 @@ static void metag_pmu_stop(struct perf_e
- 
- static int metag_pmu_add(struct perf_event *event, int flags)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	struct hw_perf_event *hwc = &event->hw;
- 	int idx = 0, ret = 0;
- 
-@@ -348,7 +348,7 @@ out:
- 
- static void metag_pmu_del(struct perf_event *event, int flags)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	struct hw_perf_event *hwc = &event->hw;
- 	int idx = hwc->idx;
- 
-@@ -607,7 +607,7 @@ static int _hw_perf_event_init(struct pe
- 
- static void metag_pmu_enable_counter(struct hw_perf_event *event, int idx)
- {
--	struct cpu_hw_events *events = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *events = this_cpu_ptr(&cpu_hw_events);
- 	unsigned int config = event->config;
- 	unsigned int tmp = config & 0xf0;
- 	unsigned long flags;
-@@ -680,7 +680,7 @@ unlock:
- 
- static void metag_pmu_disable_counter(struct hw_perf_event *event, int idx)
- {
--	struct cpu_hw_events *events = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *events = this_cpu_ptr(&cpu_hw_events);
- 	unsigned int tmp = 0;
- 	unsigned long flags;
- 
-@@ -728,7 +728,7 @@ out:
- 
- static void metag_pmu_write_counter(int idx, u32 val)
- {
--	struct cpu_hw_events *events = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *events = this_cpu_ptr(&cpu_hw_events);
- 	u32 tmp = 0;
- 	unsigned long flags;
- 
-@@ -761,7 +761,7 @@ static int metag_pmu_event_map(int idx)
- static irqreturn_t metag_pmu_counter_overflow(int irq, void *dev)
- {
- 	int idx = (int)dev;
--	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
- 	struct perf_event *event = cpuhw->events[idx];
- 	struct hw_perf_event *hwc = &event->hw;
- 	struct pt_regs *regs = get_irq_regs();
+-- 
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
