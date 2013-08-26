@@ -1,18 +1,13 @@
 From: Christoph Lameter <cl@linux.com>
-Subject: [guv v2 28/31] arc: Replace __get_cpu_var uses throughout the kernel
+Subject: [guv v2 30/31] metag: Replace __get_cpu_var uses
 Date: Mon, 26 Aug 2013 21:56:17 +0000
-Message-ID: <00000140bca09c39-5b837fed-8e34-417d-a62d-031f0b5c8107-000000@email.amazonses.com>
+Message-ID: <00000140bca09c47-54b56d47-a2ca-4f4d-969f-c868d11eb31d-000000@email.amazonses.com>
 References: <20130826204351.725357339@linux.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a193-30.smtp-out.amazonses.com ([199.255.193.30]:26170 "EHLO
-	a193-30.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752233Ab3HZWFo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 26 Aug 2013 18:05:44 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, Vineet Gupta <vgupta@synopsys.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+Cc: akpm@linuxfoundation.org, James Hogan <james.hogan@imgtec.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 __get_cpu_var() is used for multiple purposes in the kernel source. One of them is
 address calculation via the form &__get_cpu_var(x). This calculates the address for
@@ -112,47 +107,72 @@ Transformations done to __get_cpu_var()
 
 
 
+Signed-off-by: Christoph Lameter <cl@linux.com>
 
-
-Index: linux/arch/arc/kernel/kprobes.c
+Index: linux/arch/metag/kernel/perf/perf_event.c
 ===================================================================
---- linux.orig/arch/arc/kernel/kprobes.c	2013-08-26 13:28:53.000000000 -0500
-+++ linux/arch/arc/kernel/kprobes.c	2013-08-26 13:29:19.285103021 -0500
-@@ -87,13 +87,13 @@ static void __kprobes save_previous_kpro
+--- linux.orig/arch/metag/kernel/perf/perf_event.c	2013-08-26 13:30:45.220186762 -0500
++++ linux/arch/metag/kernel/perf/perf_event.c	2013-08-26 13:30:45.216186804 -0500
+@@ -258,7 +258,7 @@ int metag_pmu_event_set_period(struct pe
  
- static void __kprobes restore_previous_kprobe(struct kprobe_ctlblk *kcb)
+ static void metag_pmu_start(struct perf_event *event, int flags)
  {
--	__get_cpu_var(current_kprobe) = kcb->prev_kprobe.kp;
-+	__this_cpu_write(current_kprobe, kcb->prev_kprobe.kp);
- 	kcb->kprobe_status = kcb->prev_kprobe.status;
- }
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 	struct hw_perf_event *hwc = &event->hw;
+ 	int idx = hwc->idx;
  
- static inline void __kprobes set_current_kprobe(struct kprobe *p)
+@@ -306,7 +306,7 @@ static void metag_pmu_stop(struct perf_e
+ 
+ static int metag_pmu_add(struct perf_event *event, int flags)
  {
--	__get_cpu_var(current_kprobe) = p;
-+	__this_cpu_write(current_kprobe, p);
- }
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 	struct hw_perf_event *hwc = &event->hw;
+ 	int idx = 0, ret = 0;
  
- static void __kprobes resume_execution(struct kprobe *p, unsigned long addr,
-@@ -237,7 +237,7 @@ int __kprobes arc_kprobe_handler(unsigne
+@@ -348,7 +348,7 @@ out:
  
- 		return 1;
- 	} else if (kprobe_running()) {
--		p = __get_cpu_var(current_kprobe);
-+		p = __this_cpu_read(current_kprobe);
- 		if (p->break_handler && p->break_handler(p, regs)) {
- 			setup_singlestep(p, regs);
- 			kcb->kprobe_status = KPROBE_HIT_SS;
-Index: linux/arch/arc/kernel/time.c
-===================================================================
---- linux.orig/arch/arc/kernel/time.c	2013-08-26 13:28:53.000000000 -0500
-+++ linux/arch/arc/kernel/time.c	2013-08-26 13:29:19.285103021 -0500
-@@ -206,7 +206,7 @@ static DEFINE_PER_CPU(struct clock_event
- 
- static irqreturn_t timer_irq_handler(int irq, void *dev_id)
+ static void metag_pmu_del(struct perf_event *event, int flags)
  {
--	struct clock_event_device *clk = &__get_cpu_var(arc_clockevent_device);
-+	struct clock_event_device *clk = this_cpu_ptr(&arc_clockevent_device);
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 	struct hw_perf_event *hwc = &event->hw;
+ 	int idx = hwc->idx;
  
- 	arc_timer_event_ack(clk->mode == CLOCK_EVT_MODE_PERIODIC);
- 	clk->event_handler(clk);
+@@ -607,7 +607,7 @@ static int _hw_perf_event_init(struct pe
+ 
+ static void metag_pmu_enable_counter(struct hw_perf_event *event, int idx)
+ {
+-	struct cpu_hw_events *events = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *events = this_cpu_ptr(&cpu_hw_events);
+ 	unsigned int config = event->config;
+ 	unsigned int tmp = config & 0xf0;
+ 	unsigned long flags;
+@@ -680,7 +680,7 @@ unlock:
+ 
+ static void metag_pmu_disable_counter(struct hw_perf_event *event, int idx)
+ {
+-	struct cpu_hw_events *events = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *events = this_cpu_ptr(&cpu_hw_events);
+ 	unsigned int tmp = 0;
+ 	unsigned long flags;
+ 
+@@ -728,7 +728,7 @@ out:
+ 
+ static void metag_pmu_write_counter(int idx, u32 val)
+ {
+-	struct cpu_hw_events *events = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *events = this_cpu_ptr(&cpu_hw_events);
+ 	u32 tmp = 0;
+ 	unsigned long flags;
+ 
+@@ -761,7 +761,7 @@ static int metag_pmu_event_map(int idx)
+ static irqreturn_t metag_pmu_counter_overflow(int irq, void *dev)
+ {
+ 	int idx = (int)dev;
+-	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
+ 	struct perf_event *event = cpuhw->events[idx];
+ 	struct hw_perf_event *hwc = &event->hw;
+ 	struct pt_regs *regs = get_irq_regs();
