@@ -1,65 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:26221 "EHLO
-	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756568Ab3HZPbi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 26 Aug 2013 11:31:38 -0400
-Date: Mon, 26 Aug 2013 11:31:34 -0400
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [guv 04/16] core: Convert __get_cpu_var uses
-Message-ID: <20130826113134.5306379d@gandalf.local.home>
-In-Reply-To: <00000140bb35f38a-99d5d8ab-6672-42e8-9e91-55cb231c693d-000000@email.amazonses.com>
-References: <20130823190135.726207430@linux.com>
-	<00000140ac8e2bdd-f0151a00-88ca-4d0b-adbc-007c514b6856-000000@email.amazonses.com>
-	<20130826141849.GA6276@home.goodmis.org>
-	<00000140bb35f38a-99d5d8ab-6672-42e8-9e91-55cb231c693d-000000@email.amazonses.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from a9-78.smtp-out.amazonses.com ([54.240.9.78]:42786 "EHLO
+	a9-78.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752336Ab3HZUQS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 26 Aug 2013 16:16:18 -0400
+Message-ID: <00000140bc450c5e-5d281c7d-3555-49e2-8933-267f04e7541b-000000@email.amazonses.com>
+Date: Mon, 26 Aug 2013 20:16:16 +0000
+From: Christoph Lameter <cl@linux.com>
+Subject: [guv v2 03/31] Coccinelle script for __get_cpu_var conversion
+References: <20130826200843.526699195@linux.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Lameter <cl@linux.com>
-Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130826153134.o0LZ4s5CsnxRBA7T2QnEZDEbEnRiGRAXUMMQWFMuBS8@z>
+To: Tejun Heo <tj@kernel.org>
+Cc: akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+Message-ID: <20130826201616.v2P4P5MKaDpSE0V74kpEwgIL4uLkfuW51wxF9f1lKlY@z>
 
-On Mon, 26 Aug 2013 15:20:09 +0000
-Christoph Lameter <cl@linux.com> wrote:
+Much of the work was done by this coccinelle script.
 
-> On Mon, 26 Aug 2013, Steven Rostedt wrote:
-> 
-> > As Tejun said, each commit needs its own change log. Never expect a
-> > change lgo from another commit to be read for changes in this commit.
-> 
-> I can copy the intro into each of the patches?
+Wont catch everything (since coccinelle aborts when it no longer can make
+sense out of macros, sigh) but it covers a lot of ground.
 
-That probably would be fine.
+Signed-off-by: Christoph Lameter <cl@linux.com>
 
-
-> >
-> > This patch needs to be broken up per subsystem. Or are you just looking
-> > for acks from all the maintainers here and you'll pull it in. If that's
-> > the case, you should have Cc'd each of the maintainers of the files that
-> > this touches.
-> 
-> I did a breakout by arch, then core and drivers. How fine grained do you
-> want them? This touches a significant portion of the kernel source.
-> There could be quite a number of maintainers involved.
-
-If you plan on sending the patch, then just get an ack for each of the
-maintainers that this code touches. At least Cc them. Yeah, there are a
-significant number of maintainers but not that many that it will cause
-the email to be bounced from LKML for too many Cc's.
-
-An Acked-by from David Miller will cover all of net/ subsystem. Maybe
-make that a separate patch?
-
-I can do the tracing patches.
-
-Thomas Gleixner can ack all the timing changes.
-
-Peter Zijlstra and Ingo Molnar can do the rest of the kernel/ changes.
-
-I assume that Andrew Morton can take care of the mm/ changes and
-perhaps even the radix tree changes.
-
--- Steve
+Index: linux/scripts/coccinelle/convert/__get_cpu_var.cocci
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux/scripts/coccinelle/convert/__get_cpu_var.cocci	2013-08-22 14:41:13.976518846 -0500
+@@ -0,0 +1,70 @@
++// Convert all &__get_cpu_var to this_cpu_ptr
++//
++// _get_cpu_var is defined as:
++//
++// #define __get_cpu_var(var) (*this_cpu_ptr(&(var)))
++//
++//&__get_cpu_var() is therefore
++//
++//	this_cpu_ptr(&var);
++//
++// The use of this_cpu_ptr() instead of __get_cpu_var clarifies
++// that we are relocating a per cpu offset and that there are
++// no get/put semantics involved.
++//
++//
++// Convert all &__get_cpu_vars (and also related functions)
++// to this_cpu_ptr(). Multiple transformations are provided
++// to be able to beautify the source a bit.
++//
++// Christoph Lameter <cl@linux.com> August 20, 2013
++//
++
++@A@ expression E; @@
++
++...
++-(&__get_cpu_var(E))
+++this_cpu_ptr(&E)
++...
++
++@B@ expression E; @@
++
++...
++-(&__raw_get_cpu_var(E))
+++__this_cpu_ptr(&E)
++...
++
++@C@ expression E; @@
++
++...
++-&__get_cpu_var(E)
+++this_cpu_ptr(&E)
++...
++
++@D@ expression E; @@
++
++...
++-&__raw_get_cpu_var(E)
+++__this_cpu_ptr(&E)
++...
++
++@A2@ expression E; @@
++
++-(&__get_cpu_var(E))
+++this_cpu_ptr(&E)
++
++@B2@ expression E; @@
++
++-(&__raw_get_cpu_var(E))
+++__this_cpu_ptr(&E)
++
++@C2@ expression E; @@
++
++-&__get_cpu_var(E)
+++this_cpu_ptr(&E)
++
++@D2@ expression E; @@
++
++-&__raw_get_cpu_var(E)
+++__this_cpu_ptr(&E)
++
 
