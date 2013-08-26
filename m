@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from a9-62.smtp-out.amazonses.com ([54.240.9.62]:35723 "EHLO
-	a9-62.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752341Ab3HZUtz (ORCPT
+Received: from a10-51.smtp-out.amazonses.com ([54.240.10.51]:44930 "EHLO
+	a10-51.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752431Ab3HZUul (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 26 Aug 2013 16:49:55 -0400
-Message-ID: <00000140bc5f0749-fc84c079-fa85-429d-8622-77482738335c-000000@email.amazonses.com>
-Date: Mon, 26 Aug 2013 20:44:39 +0000
+	Mon, 26 Aug 2013 16:50:41 -0400
+Message-ID: <00000140bc5f0038-9d4e10dd-49f0-4fe4-8e24-138c455d65c6-000000@email.amazonses.com>
+Date: Mon, 26 Aug 2013 20:44:37 +0000
 From: Christoph Lameter <cl@linux.com>
-Subject: [guv v2 13/31] kernel misc: Replace __get_cpu_var uses
+Subject: [guv v2 09/31] block: Replace __get_cpu_var uses
 References: <20130826204351.725357339@linux.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
-Message-ID: <20130826204439.bRGsnxdRKm5gz0wK-52iVxO7SJILg8tO1Xv3UGsFENg@z>
+Cc: akpm@linuxfoundation.org, Jens Axboe <axboe@kernel.dk>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+Message-ID: <20130826204437.nPclTk7ABdDuVIgl97ftXTQ-B0PErAo6v_CtGOsOh0s@z>
 
 __get_cpu_var() is used for multiple purposes in the kernel source. One of them is
 address calculation via the form &__get_cpu_var(x). This calculates the address for
@@ -111,77 +111,90 @@ Transformations done to __get_cpu_var()
 
 	this_cpu_inc(y)
 
-
 Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Index: linux/kernel/printk/printk.c
+Index: linux/block/blk-iopoll.c
 ===================================================================
---- linux.orig/kernel/printk/printk.c	2013-08-26 14:30:25.846490787 -0500
-+++ linux/kernel/printk/printk.c	2013-08-26 14:30:25.846490787 -0500
-@@ -2441,7 +2441,7 @@ static void wake_up_klogd_work_func(stru
- 	int pending = __this_cpu_xchg(printk_pending, 0);
- 
- 	if (pending & PRINTK_PENDING_SCHED) {
--		char *buf = __get_cpu_var(printk_sched_buf);
-+		char *buf = this_cpu_ptr(printk_sched_buf);
- 		printk(KERN_WARNING "[sched_delayed] %s", buf);
- 	}
- 
-@@ -2459,7 +2459,7 @@ void wake_up_klogd(void)
- 	preempt_disable();
- 	if (waitqueue_active(&log_wait)) {
- 		this_cpu_or(printk_pending, PRINTK_PENDING_WAKEUP);
--		irq_work_queue(&__get_cpu_var(wake_up_klogd_work));
-+		irq_work_queue(this_cpu_ptr(&wake_up_klogd_work));
- 	}
- 	preempt_enable();
- }
-@@ -2472,14 +2472,14 @@ int printk_sched(const char *fmt, ...)
- 	int r;
+--- linux.orig/block/blk-iopoll.c	2013-08-26 14:36:07.858875667 -0500
++++ linux/block/blk-iopoll.c	2013-08-26 14:36:07.850875751 -0500
+@@ -35,7 +35,7 @@ void blk_iopoll_sched(struct blk_iopoll
+ 	unsigned long flags;
  
  	local_irq_save(flags);
--	buf = __get_cpu_var(printk_sched_buf);
-+	buf = this_cpu_ptr(printk_sched_buf);
- 
- 	va_start(args, fmt);
- 	r = vsnprintf(buf, PRINTK_BUF_SIZE, fmt, args);
- 	va_end(args);
- 
- 	__this_cpu_or(printk_pending, PRINTK_PENDING_SCHED);
--	irq_work_queue(&__get_cpu_var(wake_up_klogd_work));
-+	irq_work_queue(this_cpu_ptr(&wake_up_klogd_work));
+-	list_add_tail(&iop->list, &__get_cpu_var(blk_cpu_iopoll));
++	list_add_tail(&iop->list, this_cpu_ptr(&blk_cpu_iopoll));
+ 	__raise_softirq_irqoff(BLOCK_IOPOLL_SOFTIRQ);
  	local_irq_restore(flags);
+ }
+@@ -79,7 +79,7 @@ EXPORT_SYMBOL(blk_iopoll_complete);
  
- 	return r;
-Index: linux/kernel/smp.c
-===================================================================
---- linux.orig/kernel/smp.c	2013-08-26 14:30:25.846490787 -0500
-+++ linux/kernel/smp.c	2013-08-26 14:30:25.846490787 -0500
-@@ -172,7 +172,7 @@ void generic_exec_single(int cpu, struct
-  */
- void generic_smp_call_function_single_interrupt(void)
+ static void blk_iopoll_softirq(struct softirq_action *h)
  {
--	struct call_single_queue *q = &__get_cpu_var(call_single_queue);
-+	struct call_single_queue *q = this_cpu_ptr(&call_single_queue);
- 	LIST_HEAD(list);
+-	struct list_head *list = &__get_cpu_var(blk_cpu_iopoll);
++	struct list_head *list = this_cpu_ptr(&blk_cpu_iopoll);
+ 	int rearm = 0, budget = blk_iopoll_budget;
+ 	unsigned long start_time = jiffies;
  
- 	/*
-@@ -252,7 +252,7 @@ int smp_call_function_single(int cpu, sm
- 			struct call_single_data *csd = &d;
+@@ -201,7 +201,7 @@ static int blk_iopoll_cpu_notify(struct
  
- 			if (!wait)
--				csd = &__get_cpu_var(csd_data);
-+				csd = this_cpu_ptr(&csd_data);
- 
- 			csd_lock(csd);
- 
-@@ -401,7 +401,7 @@ void smp_call_function_many(const struct
- 		return;
+ 		local_irq_disable();
+ 		list_splice_init(&per_cpu(blk_cpu_iopoll, cpu),
+-				 &__get_cpu_var(blk_cpu_iopoll));
++				 this_cpu_ptr(&blk_cpu_iopoll));
+ 		__raise_softirq_irqoff(BLOCK_IOPOLL_SOFTIRQ);
+ 		local_irq_enable();
  	}
+Index: linux/block/blk-softirq.c
+===================================================================
+--- linux.orig/block/blk-softirq.c	2013-08-26 14:36:07.858875667 -0500
++++ linux/block/blk-softirq.c	2013-08-26 14:36:07.854875709 -0500
+@@ -23,7 +23,7 @@ static void blk_done_softirq(struct soft
+ 	struct list_head *cpu_list, local_list;
  
--	cfd = &__get_cpu_var(cfd_data);
-+	cfd = this_cpu_ptr(&cfd_data);
+ 	local_irq_disable();
+-	cpu_list = &__get_cpu_var(blk_cpu_done);
++	cpu_list = this_cpu_ptr(&blk_cpu_done);
+ 	list_replace_init(cpu_list, &local_list);
+ 	local_irq_enable();
  
- 	cpumask_and(cfd->cpumask, mask, cpu_online_mask);
- 	cpumask_clear_cpu(this_cpu, cfd->cpumask);
+@@ -44,7 +44,7 @@ static void trigger_softirq(void *data)
+ 	struct list_head *list;
+ 
+ 	local_irq_save(flags);
+-	list = &__get_cpu_var(blk_cpu_done);
++	list = this_cpu_ptr(&blk_cpu_done);
+ 	list_add_tail(&rq->csd.list, list);
+ 
+ 	if (list->next == &rq->csd.list)
+@@ -90,7 +90,7 @@ static int blk_cpu_notify(struct notifie
+ 
+ 		local_irq_disable();
+ 		list_splice_init(&per_cpu(blk_cpu_done, cpu),
+-				 &__get_cpu_var(blk_cpu_done));
++				 this_cpu_ptr(&blk_cpu_done));
+ 		raise_softirq_irqoff(BLOCK_SOFTIRQ);
+ 		local_irq_enable();
+ 	}
+@@ -135,7 +135,7 @@ void __blk_complete_request(struct reque
+ 	if (ccpu == cpu || shared) {
+ 		struct list_head *list;
+ do_local:
+-		list = &__get_cpu_var(blk_cpu_done);
++		list = this_cpu_ptr(&blk_cpu_done);
+ 		list_add_tail(&req->csd.list, list);
+ 
+ 		/*
+Index: linux/fs/fscache/object.c
+===================================================================
+--- linux.orig/fs/fscache/object.c	2013-08-26 14:36:07.858875667 -0500
++++ linux/fs/fscache/object.c	2013-08-26 14:36:07.854875709 -0500
+@@ -796,7 +796,7 @@ void fscache_enqueue_object(struct fscac
+  */
+ bool fscache_object_sleep_till_congested(signed long *timeoutp)
+ {
+-	wait_queue_head_t *cong_wq = &__get_cpu_var(fscache_object_cong_wait);
++	wait_queue_head_t *cong_wq = this_cpu_ptr(&fscache_object_cong_wait);
+ 	DEFINE_WAIT(wait);
+ 
+ 	if (fscache_object_congested())
 
