@@ -1,144 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:47622 "EHLO
-	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757121Ab3HZM4G (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 26 Aug 2013 08:56:06 -0400
-Received: from /spool/local
-	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <oberpar@linux.vnet.ibm.com>;
-	Mon, 26 Aug 2013 13:49:16 +0100
-Message-ID: <521B5064.3000605@linux.vnet.ibm.com>
-Date: Mon, 26 Aug 2013 14:56:04 +0200
-From: Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
+Received: from a194-81.smtp-out.amazonses.com ([199.255.194.81]:50670 "EHLO
+	a194-81.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752418Ab3HZPbY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 26 Aug 2013 11:31:24 -0400
+Date: Mon, 26 Aug 2013 15:21:56 +0000
+From: Christoph Lameter <cl@linux.com>
+Subject: Re: [guv 00/16] [RFC] percpu: Replace __get_cpu_var uses throughout
+ the kernel
+In-Reply-To: <20130823200514.GA11391@mtj.dyndns.org>
+Message-ID: <00000140bb37931e-fbfdfad2-8241-40cc-b053-7c53d54a9728-000000@email.amazonses.com>
+References: <00000140ac8debd6-6f9e64f9-1107-4336-91ef-77cdf764b96a-000000@email.amazonses.com> <20130823200514.GA11391@mtj.dyndns.org>
 MIME-Version: 1.0
-Subject: Re: [RFC PATCH 3/4] gcov: compile specific gcov implementation based
- on gcc version
-References: <1377247176-13537-1-git-send-email-fhrbata@redhat.com> <1377247176-13537-4-git-send-email-fhrbata@redhat.com> <52177C87.4090003@linux.vnet.ibm.com> <20130824191227.GA2365@localhost.localdomain>
-In-Reply-To: <20130824191227.GA2365@localhost.localdomain>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Frantisek Hrbata <fhrbata@redhat.com>
-Cc: linux-kernel@vger.kernel.org, jstancek@redhat.com, keescook@chromium.org, rusty@rustcorp.com.au, linux-arch@vger.kernel.org, arnd@arndb.de, mgahagan@redhat.com, agospoda@redhat.com
-Message-ID: <20130826125604.Xc_AGPMHQGdbJxciTC_dM0nkNx43ZLkCnUKBWG0rPoQ@z>
+To: Tejun Heo <tj@kernel.org>
+Cc: akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+Message-ID: <20130826152156.BFWnkO27dTEnlAhC9nJfq1rQKR3HAOJSypw4IcW52qc@z>
 
-On 24.08.2013 21:12, Frantisek Hrbata wrote:
-> On Fri, Aug 23, 2013 at 05:15:19PM +0200, Peter Oberparleiter wrote:
->> Also it is my understanding that there are some distribution-specific versions
->> of GCC that include the 4.7. gcov format code but report GCC version 4.6. With
->> the auto-detection code implemented like this, gcov-kernel won't work correctly.
->> For that purpose I've implemented a configuration option to allow users to
->> force a specific version of gcov format.
-> 
-> Ah, I was not aware of this inconsistency in versioning. This raises a question
-> if it would not be better to deal directly with version in the gcov_info
-> instead of these config options. This would of course mean some kind of gcov
-> operations callbacks per gcov version(you already mentioned the file
-> operations approach).
+On Fri, 23 Aug 2013, Tejun Heo wrote:
 
-Using the version information from gcov_info would make the support easier to use,
-but I see 2 problems with this approach:
+> * It would be a lot easier to route the patches if each had cc's to
+>   the maintainers of the affected subsystems.
 
-1. How do you decide which version applies to any given gcov_info struct?
-Since gcov_info is opaque this would require a compatibility check inside
-the version specific code. And each version specific code assumes a different
-layout for gcov_info, so in an (unlikely) worst case scenario, the compatibility
-check might fail (false positive or access beyond end of data structure) due to
-these differences
+So the drivers patch needs to CC all driver maintainers?
 
-2. There's no easy way to "force" compatibility, for example in the case
-mentioned above where a GCC 4.6 produces GCC 4.7 gcov format data.
+There must be some easier way to get this done.
 
->> I'm attaching the corresponding patch below:
->>
->> ---
->> kernel: gcov: make data format configurable
->>
->> Make the format of the generated gcov data configurable. This may be
->> required for example for pre-4.7 GCCs that contain the 4.7 gcov data
->> format changes.
->>
->> Signed-off-by: Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
->> ---
->>  kernel/gcov/Kconfig  |   30 ++++++++++++++++++++++++++++++
->>  kernel/gcov/Makefile |   21 +++++++++++++++++++--
->>  2 files changed, 49 insertions(+), 2 deletions(-)
->>
->> --- a/kernel/gcov/Kconfig
->> +++ b/kernel/gcov/Kconfig
->> @@ -46,4 +46,34 @@ config GCOV_PROFILE_ALL
->>  	larger and run slower. Also be sure to exclude files from profiling
->>  	which are not linked to the kernel image to prevent linker errors.
->>
->> +choice
->> +	prompt "Specify GCOV format"
->> +	depends on GCOV_KERNEL
->> +	default GCOV_FORMAT_AUTODETECT
->> +	---help---
->> +	The gcov format is usually determined by the GCC version, but there are
->> +	exceptions where format changes are integrated in lower-version GCCs.
->> +	In such a case use this option to adjust the format used in the kernel
->> +	accordingly.
->> +
->> +	If unsure, choose "Autodetect".
->> +
->> +config GCOV_FORMAT_AUTODETECT
->> +	bool "Autodetect"
->> +	---help---
->> +	Select this option to use the format that corresponds to your GCC
->> +	version.
->> +
->> +config GCOV_FORMAT_3_4
->> +	bool "GCC 3.4 format"
->> +	---help---
->> +	Select this option to use the format defined by GCC 3.4.
->> +
->> +config GCOV_FORMAT_4_7
->> +	bool "GCC 4.7 format"
->> +	---help---
->> +	Select this option to use the format defined by GCC 4.7.
->> +
->> +endchoice
->> +
->>  endmenu
->> --- a/kernel/gcov/Makefile
->> +++ b/kernel/gcov/Makefile
->> @@ -1,5 +1,22 @@
->>  ccflags-y := -DSRCTREE='"$(srctree)"' -DOBJTREE='"$(objtree)"'
->>
->> +# if-lt
->> +# Usage VAR := $(call if-lt, $(a), $(b))
->> +# Returns 1 if (a < b)
->> +if-lt = $(shell [ $(1) -lt $(2) ] && echo 1)
->> +
->> +ifeq ($(CONFIG_GCOV_FORMAT_3_4),y)
->> +  cc-ver := 0304
->> +else ifeq ($(CONFIG_GCOV_FORMAT_4_7),y)
->> +  cc-ver := 0407
->> +else
->> +  cc-ver := $(call cc-version)
->> +endif
->> +
->>  obj-$(CONFIG_GCOV_KERNEL) := base.o fs.o
->> -obj-$(CONFIG_GCOV_KERNEL) += $(call cc-ifversion, -lt, 0407, gcc_3_4.o)
->> -obj-$(CONFIG_GCOV_KERNEL) += $(call cc-ifversion, -ge, 0407, gcc_4_7.o)
->> +
->> +ifeq ($(call if-lt, $(cc-ver), 0407),1)
->> +  obj-$(CONFIG_GCOV_KERNEL) += gcc_3_4.o
->> +else
->> +  obj-$(CONFIG_GCOV_KERNEL) += gcc_4_7.o
->> +endif
->>
->>
->> -- 
->> Peter Oberparleiter
->> Linux on System z Development - IBM Germany
->>
-> 
+> * Dunno what's the convention around conccinelle scripts but do we
+>   need to keep them around if the accessor being converted gets
+>   removed at the end of the series?
+>
+> How do you want to route the patches?  I'm gonna apply the second
+> patch which updates __verify_pcpu_ptr() to the percpu tree right away
+> and push it to Linus early during the merge window so that pushing
+> other patches through different trees from there on isn't too painful.
 
-
--- 
-Peter Oberparleiter
-Linux on System z Development - IBM Germany
+Not sure how to do this. Thats why its an RFC. I cced Andrew because he
+usually knows how to deal with massive patches like this.
 
