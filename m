@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from a10-13.smtp-out.amazonses.com ([54.240.10.13]:55611 "EHLO
-	a10-13.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752160Ab3HZUzx (ORCPT
+Received: from b232-35.smtp-out.amazonses.com ([199.127.232.35]:44932 "EHLO
+	b232-35.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752911Ab3HZUyQ (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 26 Aug 2013 16:55:53 -0400
-Message-ID: <00000140bc5f0925-9b66638b-9a5e-48b0-ad71-86c89b619085-000000@email.amazonses.com>
-Date: Mon, 26 Aug 2013 20:44:39 +0000
+	Mon, 26 Aug 2013 16:54:16 -0400
+Message-ID: <00000140bc5f0313-84b1748d-fe8e-4b02-bff9-60ec7fdbe984-000000@email.amazonses.com>
+Date: Mon, 26 Aug 2013 20:44:38 +0000
 From: Christoph Lameter <cl@linux.com>
-Subject: [guv v2 12/31] watchdog: Replace __get_cpu_var uses
+Subject: [guv v2 07/31] mm: Replace __get_cpu_var uses
 References: <20130826204351.725357339@linux.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, Wim Van Sebroeck <wim@iguana.be>, linux-watchdog@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
-Message-ID: <20130826204439.1ife_-dqWK9fsRNdTMC8ga1GHF7SNyhoS7oyxPd2tL0@z>
+Cc: akpm@linuxfoundation.org, akpm@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+Message-ID: <20130826204438.rzCckYJl43iC37t-D2Fv_bUqNCneO9go28iyg0rB1Sk@z>
 
 __get_cpu_var() is used for multiple purposes in the kernel source. One of them is
 address calculation via the form &__get_cpu_var(x). This calculates the address for
@@ -113,37 +113,121 @@ Transformations done to __get_cpu_var()
 
 Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Index: linux/kernel/watchdog.c
+Index: linux/lib/radix-tree.c
 ===================================================================
---- linux.orig/kernel/watchdog.c	2013-08-26 14:28:39.000000000 -0500
-+++ linux/kernel/watchdog.c	2013-08-26 14:29:34.471034451 -0500
-@@ -174,8 +174,8 @@ EXPORT_SYMBOL(touch_nmi_watchdog);
+--- linux.orig/lib/radix-tree.c	2013-08-26 14:24:48.000000000 -0500
++++ linux/lib/radix-tree.c	2013-08-26 14:25:30.709616290 -0500
+@@ -215,7 +215,7 @@ radix_tree_node_alloc(struct radix_tree_
+ 		 * succeed in getting a node here (and never reach
+ 		 * kmem_cache_alloc)
+ 		 */
+-		rtp = &__get_cpu_var(radix_tree_preloads);
++		rtp = this_cpu_ptr(&radix_tree_preloads);
+ 		if (rtp->nr) {
+ 			ret = rtp->nodes[rtp->nr - 1];
+ 			rtp->nodes[rtp->nr - 1] = NULL;
+@@ -271,14 +271,14 @@ int radix_tree_preload(gfp_t gfp_mask)
+ 	int ret = -ENOMEM;
  
- void touch_softlockup_watchdog_sync(void)
+ 	preempt_disable();
+-	rtp = &__get_cpu_var(radix_tree_preloads);
++	rtp = this_cpu_ptr(&radix_tree_preloads);
+ 	while (rtp->nr < ARRAY_SIZE(rtp->nodes)) {
+ 		preempt_enable();
+ 		node = kmem_cache_alloc(radix_tree_node_cachep, gfp_mask);
+ 		if (node == NULL)
+ 			goto out;
+ 		preempt_disable();
+-		rtp = &__get_cpu_var(radix_tree_preloads);
++		rtp = this_cpu_ptr(&radix_tree_preloads);
+ 		if (rtp->nr < ARRAY_SIZE(rtp->nodes))
+ 			rtp->nodes[rtp->nr++] = node;
+ 		else
+Index: linux/mm/memcontrol.c
+===================================================================
+--- linux.orig/mm/memcontrol.c	2013-08-26 14:24:48.000000000 -0500
++++ linux/mm/memcontrol.c	2013-08-26 14:25:30.713616248 -0500
+@@ -2398,7 +2398,7 @@ static void drain_stock(struct memcg_sto
+  */
+ static void drain_local_stock(struct work_struct *dummy)
  {
--	__raw_get_cpu_var(softlockup_touch_sync) = true;
--	__raw_get_cpu_var(watchdog_touch_ts) = 0;
-+	__this_cpu_write(softlockup_touch_sync, 1);
-+	__this_cpu_write(watchdog_touch_ts, 0);
+-	struct memcg_stock_pcp *stock = &__get_cpu_var(memcg_stock);
++	struct memcg_stock_pcp *stock = this_cpu_ptr(&memcg_stock);
+ 	drain_stock(stock);
+ 	clear_bit(FLUSHING_CACHED_CHARGE, &stock->flags);
+ }
+Index: linux/mm/memory-failure.c
+===================================================================
+--- linux.orig/mm/memory-failure.c	2013-08-26 14:24:48.000000000 -0500
++++ linux/mm/memory-failure.c	2013-08-26 14:25:30.713616248 -0500
+@@ -1279,7 +1279,7 @@ static void memory_failure_work_func(str
+ 	unsigned long proc_flags;
+ 	int gotten;
+ 
+-	mf_cpu = &__get_cpu_var(memory_failure_cpu);
++	mf_cpu = this_cpu_ptr(&memory_failure_cpu);
+ 	for (;;) {
+ 		spin_lock_irqsave(&mf_cpu->lock, proc_flags);
+ 		gotten = kfifo_get(&mf_cpu->fifo, &entry);
+Index: linux/mm/page-writeback.c
+===================================================================
+--- linux.orig/mm/page-writeback.c	2013-08-26 14:24:48.000000000 -0500
++++ linux/mm/page-writeback.c	2013-08-26 14:25:30.713616248 -0500
+@@ -1487,7 +1487,7 @@ void balance_dirty_pages_ratelimited(str
+ 	 * 1000+ tasks, all of them start dirtying pages at exactly the same
+ 	 * time, hence all honoured too large initial task->nr_dirtied_pause.
+ 	 */
+-	p =  &__get_cpu_var(bdp_ratelimits);
++	p =  this_cpu_ptr(&bdp_ratelimits);
+ 	if (unlikely(current->nr_dirtied >= ratelimit))
+ 		*p = 0;
+ 	else if (unlikely(*p >= ratelimit_pages)) {
+@@ -1499,7 +1499,7 @@ void balance_dirty_pages_ratelimited(str
+ 	 * short-lived tasks (eg. gcc invocations in a kernel build) escaping
+ 	 * the dirty throttling and livelock other long-run dirtiers.
+ 	 */
+-	p = &__get_cpu_var(dirty_throttle_leaks);
++	p = this_cpu_ptr(&dirty_throttle_leaks);
+ 	if (*p > 0 && current->nr_dirtied < ratelimit) {
+ 		unsigned long nr_pages_dirtied;
+ 		nr_pages_dirtied = min(*p, ratelimit - current->nr_dirtied);
+Index: linux/mm/swap.c
+===================================================================
+--- linux.orig/mm/swap.c	2013-08-26 14:24:48.000000000 -0500
++++ linux/mm/swap.c	2013-08-26 14:25:30.717616206 -0500
+@@ -359,7 +359,7 @@ void rotate_reclaimable_page(struct page
+ 
+ 		page_cache_get(page);
+ 		local_irq_save(flags);
+-		pvec = &__get_cpu_var(lru_rotate_pvecs);
++		pvec = this_cpu_ptr(&lru_rotate_pvecs);
+ 		if (!pagevec_add(pvec, page))
+ 			pagevec_move_tail(pvec);
+ 		local_irq_restore(flags);
+Index: linux/mm/vmalloc.c
+===================================================================
+--- linux.orig/mm/vmalloc.c	2013-08-26 14:24:48.000000000 -0500
++++ linux/mm/vmalloc.c	2013-08-26 14:25:30.717616206 -0500
+@@ -1487,7 +1487,7 @@ void vfree(const void *addr)
+ 	if (!addr)
+ 		return;
+ 	if (unlikely(in_interrupt())) {
+-		struct vfree_deferred *p = &__get_cpu_var(vfree_deferred);
++		struct vfree_deferred *p = this_cpu_ptr(&vfree_deferred);
+ 		if (llist_add((struct llist_node *)addr, &p->list))
+ 			schedule_work(&p->wq);
+ 	} else
+Index: linux/mm/vmstat.c
+===================================================================
+--- linux.orig/mm/vmstat.c	2013-08-26 14:24:48.000000000 -0500
++++ linux/mm/vmstat.c	2013-08-26 14:25:30.717616206 -0500
+@@ -1178,7 +1178,7 @@ int sysctl_stat_interval __read_mostly =
+ static void vmstat_update(struct work_struct *w)
+ {
+ 	refresh_cpu_vm_stats(smp_processor_id());
+-	schedule_delayed_work(&__get_cpu_var(vmstat_work),
++	schedule_delayed_work(this_cpu_ptr(&vmstat_work),
+ 		round_jiffies_relative(sysctl_stat_interval));
  }
  
- #ifdef CONFIG_HARDLOCKUP_DETECTOR
-@@ -341,7 +341,7 @@ static void watchdog_set_prio(unsigned i
- 
- static void watchdog_enable(unsigned int cpu)
- {
--	struct hrtimer *hrtimer = &__raw_get_cpu_var(watchdog_hrtimer);
-+	struct hrtimer *hrtimer = __this_cpu_ptr(&watchdog_hrtimer);
- 
- 	/* kick off the timer for the hardlockup detector */
- 	hrtimer_init(hrtimer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-@@ -361,7 +361,7 @@ static void watchdog_enable(unsigned int
- 
- static void watchdog_disable(unsigned int cpu)
- {
--	struct hrtimer *hrtimer = &__raw_get_cpu_var(watchdog_hrtimer);
-+	struct hrtimer *hrtimer = __this_cpu_ptr(&watchdog_hrtimer);
- 
- 	watchdog_set_prio(SCHED_NORMAL, 0);
- 	hrtimer_cancel(hrtimer);
 
