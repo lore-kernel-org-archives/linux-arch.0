@@ -1,138 +1,160 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:61785 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755360Ab3HXTOi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 24 Aug 2013 15:14:38 -0400
-Date: Sat, 24 Aug 2013 21:12:27 +0200
-From: Frantisek Hrbata <fhrbata@redhat.com>
-Subject: Re: [RFC PATCH 3/4] gcov: compile specific gcov implementation based
- on gcc version
-Message-ID: <20130824191227.GA2365@localhost.localdomain>
-Reply-To: Frantisek Hrbata <fhrbata@redhat.com>
-References: <1377247176-13537-1-git-send-email-fhrbata@redhat.com>
- <1377247176-13537-4-git-send-email-fhrbata@redhat.com>
- <52177C87.4090003@linux.vnet.ibm.com>
+Received: from mail-qc0-f172.google.com ([209.85.216.172]:39118 "EHLO
+	mail-qc0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756837Ab3HZLjt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 26 Aug 2013 07:39:49 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <52177C87.4090003@linux.vnet.ibm.com>
+In-Reply-To: <20130823161532.GA2336@localhost.localdomain>
+References: <1377247176-13537-1-git-send-email-fhrbata@redhat.com>
+	<52177AD7.1030709@linux.vnet.ibm.com>
+	<20130823161532.GA2336@localhost.localdomain>
+Date: Mon, 26 Aug 2013 19:39:48 +0800
+Message-ID: <CAFiDJ5_S9Y_9t4kmkh5a9vK8bZFf1ZispTiWxj7PybxJpvYZ3w@mail.gmail.com>
+Subject: Re: [RFC PATCH 0/4] add support for gcov format introduced in gcc 4.7
+From: "LF.Tan" <lftan.linux@gmail.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
-Cc: linux-kernel@vger.kernel.org, jstancek@redhat.com, keescook@chromium.org, rusty@rustcorp.com.au, linux-arch@vger.kernel.org, arnd@arndb.de, mgahagan@redhat.com, agospoda@redhat.com
-Message-ID: <20130824191227.b10Hq5e2zu37JSHk8lAFeT3_A9JhYJ7ElZtIDrTbcL8@z>
+To: Frantisek Hrbata <fhrbata@redhat.com>
+Cc: Peter Oberparleiter <oberpar@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, jstancek@redhat.com, keescook@chromium.org, Christophe Guillon <christophe.guillon@st.com>, rusty@rustcorp.com.au, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, mgahagan@redhat.com, agospoda@redhat.com
+Message-ID: <20130826113948.t3wsdo2ygEprykYK0yw3PIuGIxnxO3_Rkih-AxXzUBI@z>
 
-On Fri, Aug 23, 2013 at 05:15:19PM +0200, Peter Oberparleiter wrote:
-> On 23.08.2013 10:39, Frantisek Hrbata wrote:
-> > Compile the correct gcov implementation file for a specific gcc version. In
-> > the future, if another file is added, the conditions will need to be somehow
-> > adjusted to if-elif-else case, but at this point the simple cc-ifversion should
-> > be enough.
-> 
-> Looks good, though I think this could be merged into the main 4.7 format patch,
-> since without it, the 4.7 code will never be reached.
+Hi all
 
-Sure, I can merge these two patches.
+I am interested to enable Gcov on my platform (on a target board). I
+have tried to apply the 4 patches submitted by Frantisek Hrbata. But,
+the *.gcda is always empty. Note, I am using GCC 4.7.3.
 
-> 
-> Also it is my understanding that there are some distribution-specific versions
-> of GCC that include the 4.7. gcov format code but report GCC version 4.6. With
-> the auto-detection code implemented like this, gcov-kernel won't work correctly.
-> For that purpose I've implemented a configuration option to allow users to
-> force a specific version of gcov format.
+I have followed the steps in Documentation/gcov.txt. I've mounted the
+NFS filesystem and it has access to the kernel build directory on host
+machine.The path for the kernel source in host and target are same.
 
-Ah, I was not aware of this inconsistency in versioning. This raises a question
-if it would not be better to deal directly with version in the gcov_info
-instead of these config options. This would of course mean some kind of gcov
-operations callbacks per gcov version(you already mentioned the file
-operations approach).
+Let said my kernel module is under drivers/misc,
+drivers/misc/module.ko. Turn on Gcov in drivers/misc/Makefile.
 
-> 
-> I'm attaching the corresponding patch below:
-> 
-> ---
-> kernel: gcov: make data format configurable
-> 
-> Make the format of the generated gcov data configurable. This may be
-> required for example for pre-4.7 GCCs that contain the 4.7 gcov data
-> format changes.
-> 
-> Signed-off-by: Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
-> ---
->  kernel/gcov/Kconfig  |   30 ++++++++++++++++++++++++++++++
->  kernel/gcov/Makefile |   21 +++++++++++++++++++--
->  2 files changed, 49 insertions(+), 2 deletions(-)
-> 
-> --- a/kernel/gcov/Kconfig
-> +++ b/kernel/gcov/Kconfig
-> @@ -46,4 +46,34 @@ config GCOV_PROFILE_ALL
->  	larger and run slower. Also be sure to exclude files from profiling
->  	which are not linked to the kernel image to prevent linker errors.
-> 
-> +choice
-> +	prompt "Specify GCOV format"
-> +	depends on GCOV_KERNEL
-> +	default GCOV_FORMAT_AUTODETECT
-> +	---help---
-> +	The gcov format is usually determined by the GCC version, but there are
-> +	exceptions where format changes are integrated in lower-version GCCs.
-> +	In such a case use this option to adjust the format used in the kernel
-> +	accordingly.
-> +
-> +	If unsure, choose "Autodetect".
-> +
-> +config GCOV_FORMAT_AUTODETECT
-> +	bool "Autodetect"
-> +	---help---
-> +	Select this option to use the format that corresponds to your GCC
-> +	version.
-> +
-> +config GCOV_FORMAT_3_4
-> +	bool "GCC 3.4 format"
-> +	---help---
-> +	Select this option to use the format defined by GCC 3.4.
-> +
-> +config GCOV_FORMAT_4_7
-> +	bool "GCC 4.7 format"
-> +	---help---
-> +	Select this option to use the format defined by GCC 4.7.
-> +
-> +endchoice
-> +
->  endmenu
-> --- a/kernel/gcov/Makefile
-> +++ b/kernel/gcov/Makefile
-> @@ -1,5 +1,22 @@
->  ccflags-y := -DSRCTREE='"$(srctree)"' -DOBJTREE='"$(objtree)"'
-> 
-> +# if-lt
-> +# Usage VAR := $(call if-lt, $(a), $(b))
-> +# Returns 1 if (a < b)
-> +if-lt = $(shell [ $(1) -lt $(2) ] && echo 1)
-> +
-> +ifeq ($(CONFIG_GCOV_FORMAT_3_4),y)
-> +  cc-ver := 0304
-> +else ifeq ($(CONFIG_GCOV_FORMAT_4_7),y)
-> +  cc-ver := 0407
-> +else
-> +  cc-ver := $(call cc-version)
-> +endif
-> +
->  obj-$(CONFIG_GCOV_KERNEL) := base.o fs.o
-> -obj-$(CONFIG_GCOV_KERNEL) += $(call cc-ifversion, -lt, 0407, gcc_3_4.o)
-> -obj-$(CONFIG_GCOV_KERNEL) += $(call cc-ifversion, -ge, 0407, gcc_4_7.o)
-> +
-> +ifeq ($(call if-lt, $(cc-ver), 0407),1)
-> +  obj-$(CONFIG_GCOV_KERNEL) += gcc_3_4.o
-> +else
-> +  obj-$(CONFIG_GCOV_KERNEL) += gcc_4_7.o
-> +endif
-> 
-> 
-> -- 
-> Peter Oberparleiter
-> Linux on System z Development - IBM Germany
-> 
+1. mount -t debugfs none /sys/kernel/debug/
+2. insmod <PATH>/module.ko
+3. Perform some actions to excute code in module.ko
+4. rmmod <PATH>/module.ko
+5. Check /sys/kernel/debug/gcov/<PATH>/drivers/misc/. There is a soft
+link of module.gcno (I check the soft link is working), but
+module.gcda is empty.
 
--- 
-Frantisek Hrbata
+Any step is incorrect or missing? Or anyone know how to enable GCOV on
+target board? Please advice.
+I would like to enable GCOV in arch/ code as well.
+Thank you very much.
+
+Cheers.
+
+On Sat, Aug 24, 2013 at 12:15 AM, Frantisek Hrbata <fhrbata@redhat.com> wrote:
+> On Fri, Aug 23, 2013 at 05:08:07PM +0200, Peter Oberparleiter wrote:
+>> On 23.08.2013 10:39, Frantisek Hrbata wrote:
+>> > This is an attempt to bring support for modified gcov format in gcc 4.7 to
+>> > the kernel. It tries to leverage the existing layout/abstraction, which was
+>> > designed keeping in mind that the gcov format could change, but some changes had
+>> > to be make. Mostly because the current model does not take into account that
+>> > even the core gcov structures, like gcov_info, could change. One part that could
+>> > be problematic is the addition of the .init_array section for constructors.
+>>
+>> It appears that gcc 4.7 support for gcov-kernel is quite important to a
+>> number of people, at least that is what I derive from the fact that I
+>> now know of 3 people who've been working on this support separately from
+>> each other: you, myself (I've been close to posting my own version to
+>> LKML) and Christophe Guillon.
+>
+> First, thank you for your quick reply. Second, great, I was worried there is no
+> interest to have the new format supported, because it's quite some time gcc 4.7
+> is out.
+>
+>>
+>> It's apparent now that I made a mistake delaying the discussion of the
+>> effort for too long, but I think your posting the patches opens up a
+>> good opportunity to combine the best of all previous efforts.
+>
+> To be honest I ran into this problem 14 days ago when I was asked to take a
+> look. So I cannot say I know everything about gcov format and stuff around it.
+> I mostly followed your original code after I got some idea of the gcov in-memory
+> layout. Meaning, I'm glad that there is also yours and Christophe's code and
+> I for sure welcome the "combine the best of all previous efforts" approach, even
+> if it means dropping my code :).
+>
+>>
+>> Most of your code looks very familiar. There's one feature missing though
+>> that Christophe brought up as a requirement: the ability for gcov-kernel
+>> to cope with kernel modules being compiled with GCC versions implementing
+>> a different gcov format (apparently this can happen in some embedded
+>> setups).
+>
+> Here follows quote from the gcc/gcov-io.h file
+>
+> <quote>
+> Coverage information is held in two files.  A notes file, which is
+> generated by the compiler, and a data file, which is generated by
+> the program under test.  Both files use a similar structure.  We do
+> not attempt to make these files backwards compatible with previous
+> versions, as you only need coverage information when developing a
+> program.  We do hold version information, so that mismatches can be
+> detected, and we use a format that allows tools to skip information
+> they do not understand or are not interested in.
+> </quote>
+>
+> Also from my experience, I would expect that the gcov will be used during
+> development, meaning re-compilation isn't a big problem here. I for sure can be
+> missing something and I'm by no means saying it wouldn't be useful feature. Just
+> that it would complite things a little bit.
+>
+>>
+>> Christophe proposed run-time version checking and a file-ops type function
+>> table which is chosen based on info->version. I found this approach
+>> somewhat intrusive and this would also not have covered the case where a
+>> new GCC versions was used to compile kernel modules for which the base
+>> kernel has no support. I tried to solve this requirement by combining
+>> two changes:
+>>
+>> 1) make the gcov-format generated by gcov-kernel compile-time configurable
+>> 2) separate the gcov-format specific code into a loadable kernel module
+>
+> So if I understand it correctly you would separate the input
+> format(gcov_info) from the output(gcda files). Meaning no matter which gcc
+> compiled the module you can select the gcda format. And even if the kernel does
+> not know the new format you can simply compile a module supporting it, instead
+> of the whole kernel.
+>
+> Can you please give me an example why this is needed? As I wrote I'm not that
+> familiar with gcov and I'm probably missing something, but I do not understand
+> why this(handling several versions at runtime, not only the one used by gcc
+> during compilation) is useful(note my comment above about the gcov used during
+> development).
+>
+>>
+>> This way, the gcov-format specific part of gcov-kernel could be replaced
+>> when working with a different version GCC. I'll post the corresponding
+>> patches as reply in another mail.
+>
+> Great, I will take a look, but it may take me some time :).
+>
+>>
+>> Back to your patches: I tested them and they work fine on s390x when
+>> compiled with GCC 4.3.4 and 4.7.2. I'll provide some more specific
+>> comments as replies to your patch-mails.
+>
+> Many thanks!
+>
+>>
+>>
+>> Regards,
+>>   Peter Oberparleiter
+>>
+>> --
+>> Peter Oberparleiter
+>> Linux on System z Development - IBM Germany
+>>
+>
+> --
+> Frantisek Hrbata
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
