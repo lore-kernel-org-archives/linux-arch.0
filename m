@@ -1,65 +1,110 @@
-From: Tejun Heo <tj@kernel.org>
-Subject: Re: [guv 00/16] [RFC] percpu: Replace __get_cpu_var uses throughout
- the kernel
-Date: Mon, 26 Aug 2013 14:18:00 -0400
-Message-ID: <20130826181800.GA25997@mtj.dyndns.org>
-References: <00000140ac8debd6-6f9e64f9-1107-4336-91ef-77cdf764b96a-000000@email.amazonses.com>
- <20130823200514.GA11391@mtj.dyndns.org>
- <00000140bb37931e-fbfdfad2-8241-40cc-b053-7c53d54a9728-000000@email.amazonses.com>
+From: =?UTF-8?B?QW5kcsOpIEhlbnRzY2hlbA==?= <nerv@dawncrow.de>
+Subject: Re: arm: Only load TLS values when needed
+Date: Mon, 26 Aug 2013 21:19:27 +0200
+Message-ID: <521BAA3F.4050703@dawncrow.de>
+References: <51E42E11.1010903@dawncrow.de> <51E5836B.1010904@arm.com> <51E59E8F.1060501@dawncrow.de> <51E67B98.9040101@arm.com> <51E6F532.1030004@dawncrow.de> <520B8F37.4040609@dawncrow.de> <520BAE58.3060600@arm.com> <520BF4E1.8040708@dawncrow.de> <520D0FFA.1060508@arm.com> <520D1D9D.2040706@dawncrow.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qa0-f47.google.com ([209.85.216.47]:54443 "EHLO
-	mail-qa0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751841Ab3HZSSE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 26 Aug 2013 14:18:04 -0400
-Content-Disposition: inline
-In-Reply-To: <00000140bb37931e-fbfdfad2-8241-40cc-b053-7c53d54a9728-000000@email.amazonses.com>
+Received: from moutng.kundenserver.de ([212.227.126.171]:59045 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751669Ab3HZTT6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 26 Aug 2013 15:19:58 -0400
+In-Reply-To: <520D1D9D.2040706@dawncrow.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Lameter <cl@linux.com>
-Cc: akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+To: Jonathan Austin <jonathan.austin@arm.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Russell King <linux@arm.linux.org.uk>
 
-Hey, Christoph.
+Am 15.08.2013 20:27, schrieb Andr=C3=A9 Hentschel:
+> Hi Jonathan,
+>=20
+> Am 15.08.2013 19:29, schrieb Jonathan Austin:
+>> Hi Andr=C3=A9
+>> What I've *not* tested:
+>> * As this CPU does not have the tls register, I haven't run any test=
+s that try to read/write it, but we wouldn't expect that to work, right=
+?
+>> * Haven't tried a V7 platform, as I understand you've already done t=
+hat.
+>> * Haven't verified it still builds for v4 (which was the problem for=
+ ldrd in the past and now we've put it back, so that's important)
+>=20
+> It shouldn't matter as v4 would not use the v6 codepath, would it?
+>=20
+>> * Performance impact
+>=20
+> I only could test it on v7, would be interesting to see some v6, v5, =
+=2E.. "benchmarks", though.
+>=20
 
-On Mon, Aug 26, 2013 at 03:21:56PM +0000, Christoph Lameter wrote:
-> On Fri, 23 Aug 2013, Tejun Heo wrote:
-> 
-> > * It would be a lot easier to route the patches if each had cc's to
-> >   the maintainers of the affected subsystems.
-> 
-> So the drivers patch needs to CC all driver maintainers?
+I did some "benchmarks" on my pandaboard(armv7) and it turns out that l=
+drd is slightly slower than two ldr.
+So with this in mind the best thing is most likely the easiest one, so =
+what about this untested patch below?
+(It intends to improve the situation for tls_none and tls_software)
 
-There usually is a maintainer for a whole lot of similar drivers - one
-for infiniband, one for v4l and so on, so the list usually isn't that
-long.
-
-> There must be some easier way to get this done.
-
-It can be consolidated and pushed as a single series either through
-the percpu tree or -mm but it still at least needs to inform the
-people working on the affected code and get the confirmations where
-possible.
-
-> Not sure how to do this. Thats why its an RFC. I cced Andrew because he
-> usually knows how to deal with massive patches like this.
-
-It can go two ways.
-
-* Split further so that the patches can be merged through separate
-  branches so that they converge on the next merge window where the
-  leftovers can be taken care of and further dependent changes merged.
-
-* Get acks from most maintainers and push the changes as a single
-  series through either percpu tree or -mm.  The benefits of going
-  through -mm is that -mm floats on top of all changes scheduled for
-  the next merge window, so if the changes in question are likely to
-  conflict with other changes in various subsystems scheduled for the
-  next merge window, -mm is easier.  Given the nature of the changes,
-  I don't think going through percpu or -mm would make much
-  difference.
-
-Thanks.
-
--- 
-tejun
+diff --git a/arch/arm/include/asm/tls.h b/arch/arm/include/asm/tls.h
+index 83259b8..1dd50f8 100644
+--- a/arch/arm/include/asm/tls.h
++++ b/arch/arm/include/asm/tls.h
+@@ -3,17 +3,21 @@
+=20
+ #ifdef __ASSEMBLY__
+ #include <asm/asm-offsets.h>
+-	.macro switch_tls_none, base, tp, tpuser, tmp1, tmp2
++	.macro switch_tls_none, prev, next, tp, tpuser, tmp1, tmp2
+ 	.endm
+=20
+-	.macro switch_tls_v6k, base, tp, tpuser, tmp1, tmp2
++	.macro switch_tls_v6k, prev, next, tp, tpuser, tmp1, tmp2
++	ldr	\tp, [\next, #TI_TP_VALUE]
++	ldr	\tpuser, [\next, #TI_TP_VALUE + 4]
+ 	mrc	p15, 0, \tmp2, c13, c0, 2	@ get the user r/w register
+ 	mcr	p15, 0, \tp, c13, c0, 3		@ set TLS register
+ 	mcr	p15, 0, \tpuser, c13, c0, 2	@ and the user r/w register
+-	str	\tmp2, [\base, #TI_TP_VALUE + 4] @ save it
++	str	\tmp2, [\prev, #TI_TP_VALUE + 4] @ save it
+ 	.endm
+=20
+-	.macro switch_tls_v6, base, tp, tpuser, tmp1, tmp2
++	.macro switch_tls_v6, prev, next, tp, tpuser, tmp1, tmp2
++	ldr	\tp, [\next, #TI_TP_VALUE]
++	ldr	\tpuser, [\next, #TI_TP_VALUE + 4]
+ 	ldr	\tmp1, =3Delf_hwcap
+ 	ldr	\tmp1, [\tmp1, #0]
+ 	mov	\tmp2, #0xffff0fff
+@@ -22,10 +26,11 @@
+ 	mrcne	p15, 0, \tmp2, c13, c0, 2	@ get the user r/w register
+ 	mcrne	p15, 0, \tp, c13, c0, 3		@ yes, set TLS register
+ 	mcrne	p15, 0, \tpuser, c13, c0, 2	@ set user r/w register
+-	strne	\tmp2, [\base, #TI_TP_VALUE + 4] @ save it
++	strne	\tmp2, [\prev, #TI_TP_VALUE + 4] @ save it
+ 	.endm
+=20
+-	.macro switch_tls_software, base, tp, tpuser, tmp1, tmp2
++	.macro switch_tls_software, prev, next, tp, tpuser, tmp1, tmp2
++	ldr	\tp, [\next, #TI_TP_VALUE]
+ 	mov	\tmp1, #0xffff0fff
+ 	str	\tp, [\tmp1, #-15]		@ set TLS value at 0xffff0ff0
+ 	.endm
+diff --git a/arch/arm/kernel/entry-armv.S b/arch/arm/kernel/entry-armv.=
+S
+index 9cbe70c..4df8976 100644
+--- a/arch/arm/kernel/entry-armv.S
++++ b/arch/arm/kernel/entry-armv.S
+@@ -690,12 +690,10 @@ ENTRY(__switch_to)
+  THUMB(	stmia	ip!, {r4 - sl, fp}	   )	@ Store most regs on stack
+  THUMB(	str	sp, [ip], #4		   )
+  THUMB(	str	lr, [ip], #4		   )
+-	ldr	r4, [r2, #TI_TP_VALUE]
+-	ldr	r5, [r2, #TI_TP_VALUE + 4]
+ #ifdef CONFIG_CPU_USE_DOMAINS
+ 	ldr	r6, [r2, #TI_CPU_DOMAIN]
+ #endif
+-	switch_tls r1, r4, r5, r3, r7
++	switch_tls r1, r2, r4, r5, r3, r7
+ #if defined(CONFIG_CC_STACKPROTECTOR) && !defined(CONFIG_SMP)
+ 	ldr	r7, [r2, #TI_TASK]
+ 	ldr	r8, =3D__stack_chk_guard
