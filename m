@@ -1,22 +1,44 @@
 From: Christoph Lameter <cl@linux.com>
-Subject: Re: [guv v2 02/31] percpu: Make __verify_pcu_ptr handle per cpu
- pointers to arrays
-Date: Mon, 26 Aug 2013 21:06:16 +0000
-Message-ID: <00000140bc72d488-cede7e7a-fef2-41a6-8355-2dc481b6b665-000000@email.amazonses.com>
-References: <20130826204138.307369532@linux.com> <00000140bc5bf84a-56dd6082-f1d6-4cee-b8dd-cc4e5c27a911-000000@email.amazonses.com>
-Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Subject: [guv v2 31/31] Remove __get_cpu_var and __raw_get_cpu_var macros
+Date: Mon, 26 Aug 2013 21:16:16 +0000
+Message-ID: <00000140bc7bfb1f-c50e3577-e101-4c19-8950-044fc4e8d140-000000@email.amazonses.com>
+References: <20130826204351.725357339@linux.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a193-30.smtp-out.amazonses.com ([199.255.193.30]:56815 "EHLO
-	a193-30.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751712Ab3HZVPx (ORCPT
+Received: from a9-42.smtp-out.amazonses.com ([54.240.9.42]:53940 "EHLO
+	a9-42.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752356Ab3HZVQS (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 26 Aug 2013 17:15:53 -0400
-In-Reply-To: <00000140bc5bf84a-56dd6082-f1d6-4cee-b8dd-cc4e5c27a911-000000@email.amazonses.com>
+	Mon, 26 Aug 2013 17:16:18 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Tejun Heo <tj@kernel.org>
 Cc: akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
 
-Sorry about the dups. I had an " missing in an CC statement which caused
-the mailer to continue to allocate memory until it went oom.
+No user is left in the kernel source tree. Therefore we can
+drop the definitions.
+
+Signed-off-by: Christoph Lameter <cl@linux.com>
+
+Index: linux/include/asm-generic/percpu.h
+===================================================================
+--- linux.orig/include/asm-generic/percpu.h	2013-08-26 14:40:32.528082727 -0500
++++ linux/include/asm-generic/percpu.h	2013-08-26 14:40:32.520082812 -0500
+@@ -65,9 +65,6 @@ extern unsigned long __per_cpu_offset[NR
+ #define this_cpu_ptr(ptr) __this_cpu_ptr(ptr)
+ #endif
+ 
+-#define __get_cpu_var(var) (*this_cpu_ptr(&(var)))
+-#define __raw_get_cpu_var(var) (*__this_cpu_ptr(&(var)))
+-
+ #ifdef CONFIG_HAVE_SETUP_PER_CPU_AREA
+ extern void setup_per_cpu_areas(void);
+ #endif
+@@ -80,8 +77,6 @@ extern void setup_per_cpu_areas(void);
+ })
+ 
+ #define per_cpu(var, cpu)	(*((void)(cpu), VERIFY_PERCPU_PTR(&(var))))
+-#define __get_cpu_var(var)	(*VERIFY_PERCPU_PTR(&(var)))
+-#define __raw_get_cpu_var(var)	(*VERIFY_PERCPU_PTR(&(var)))
+ #define this_cpu_ptr(ptr)	per_cpu_ptr(ptr, 0)
+ #define __this_cpu_ptr(ptr)	this_cpu_ptr(ptr)
+ 
