@@ -1,52 +1,161 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH 3/4] asm-generic: Add missing include guards
-Date: Tue, 27 Aug 2013 14:08:44 +0100
-Message-ID: <521CA4DC.6010506@imgtec.com>
-References: <1375996022-8298-1-git-send-email-linux@rasmusvillemoes.dk> <1375996022-8298-4-git-send-email-linux@rasmusvillemoes.dk>
+From: Frantisek Hrbata <fhrbata@redhat.com>
+Subject: Re: [RFC PATCH 3/4] gcov: compile specific gcov implementation based
+ on gcc version
+Date: Tue, 27 Aug 2013 15:23:58 +0200
+Message-ID: <20130827132358.GA2418@localhost.localdomain>
+References: <1377247176-13537-1-git-send-email-fhrbata@redhat.com>
+ <1377247176-13537-4-git-send-email-fhrbata@redhat.com>
+ <52177C87.4090003@linux.vnet.ibm.com>
+ <20130824191227.GA2365@localhost.localdomain>
+ <521B5064.3000605@linux.vnet.ibm.com>
+Reply-To: Frantisek Hrbata <fhrbata@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:14700 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753028Ab3H0NI5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 27 Aug 2013 09:08:57 -0400
-In-Reply-To: <1375996022-8298-4-git-send-email-linux@rasmusvillemoes.dk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-Cc: Arnd Bergmann <arnd@arndb.de>, Roland McGrath <roland@redhat.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <521B5064.3000605@linux.vnet.ibm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, jstancek@redhat.com, keescook@chromium.org, rusty@rustcorp.com.au, linux-arch@vger.kernel.org, arnd@arndb.de, mgahagan@redhat.com, agospoda@redhat.com
+List-Id: linux-arch.vger.kernel.org
 
-On 08/08/13 22:07, Rasmus Villemoes wrote:
-> Add include guards to include/asm-generic/{ide_iops,unistd,xor}.h.
+On Mon, Aug 26, 2013 at 02:56:04PM +0200, Peter Oberparleiter wrote:
+> On 24.08.2013 21:12, Frantisek Hrbata wrote:
+> > On Fri, Aug 23, 2013 at 05:15:19PM +0200, Peter Oberparleiter wrote:
+> >> Also it is my understanding that there are some distribution-specific versions
+> >> of GCC that include the 4.7. gcov format code but report GCC version 4.6. With
+> >> the auto-detection code implemented like this, gcov-kernel won't work correctly.
+> >> For that purpose I've implemented a configuration option to allow users to
+> >> force a specific version of gcov format.
+> > 
+> > Ah, I was not aware of this inconsistency in versioning. This raises a question
+> > if it would not be better to deal directly with version in the gcov_info
+> > instead of these config options. This would of course mean some kind of gcov
+> > operations callbacks per gcov version(you already mentioned the file
+> > operations approach).
 > 
-> Signed-off-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-> ---
->  include/asm-generic/ide_iops.h |    4 ++++
->  include/asm-generic/unistd.h   |    5 +++++
->  include/asm-generic/xor.h      |    4 ++++
->  3 files changed, 13 insertions(+)
+> Using the version information from gcov_info would make the support easier to use,
+> but I see 2 problems with this approach:
 > 
-> diff --git a/include/asm-generic/unistd.h b/include/asm-generic/unistd.h
-> index cccc86e..0cff2e9 100644
-> --- a/include/asm-generic/unistd.h
-> +++ b/include/asm-generic/unistd.h
-> @@ -1,3 +1,6 @@
-> +#ifndef _ASM_GENERIC_UNISTD_H
-> +#define _ASM_GENERIC_UNISTD_H
-> +
->  #include <uapi/asm-generic/unistd.h>
->  #include <linux/export.h>
->  
-> @@ -10,3 +13,5 @@
->  #define __ARCH_WANT_STAT64
->  #define __ARCH_WANT_SYS_LLSEEK
->  #endif
-> +
-> +#endif /* _ASM_GENERIC_UNISTD_H */
+> 1. How do you decide which version applies to any given gcov_info struct?
+> Since gcov_info is opaque this would require a compatibility check inside
+> the version specific code. And each version specific code assumes a different
+> layout for gcov_info, so in an (unlikely) worst case scenario, the compatibility
+> check might fail (false positive or access beyond end of data structure) due to
+> these differences
+> 
+> 2. There's no easy way to "force" compatibility, for example in the case
+> mentioned above where a GCC 4.6 produces GCC 4.7 gcov format data.
 
-I think the lack of include guards in unistd.h is intentional. See for
-example the very end of arch/metag/kernel/sys_metag.c.
+Yes, you are right of course. Problem imho is that user-space program is always
+linked with the correct libgcov. Meaning the gcov structures and the code
+dumping the gcda are tied and known(compatible) at the compilation(link) time.
+So there is no need to deal with different gcov_info layouts. After a little bit
+more thinking the "per gcov_info version callbacks" does not seem as the right
+way to go anymore. At this point I think the easier and probably the safest way
+would be the module approach as you originally proposed. Anyway I would leave
+this aside for now and we will see if someone requests this in the future. 
 
-Cheers
-James
+For now I would propose to simply support only one gcov version at the time.
+Meaning if you want to use gcov, compile your kernel and modules with the same
+gcc version. And add the possibility to explicitly select gcov version(3.4 or
+4.7) during configuration as you proposed in your patch.
+
+IMHO this should be a good start :)
+
+> 
+> >> I'm attaching the corresponding patch below:
+> >>
+> >> ---
+> >> kernel: gcov: make data format configurable
+> >>
+> >> Make the format of the generated gcov data configurable. This may be
+> >> required for example for pre-4.7 GCCs that contain the 4.7 gcov data
+> >> format changes.
+> >>
+> >> Signed-off-by: Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
+> >> ---
+> >>  kernel/gcov/Kconfig  |   30 ++++++++++++++++++++++++++++++
+> >>  kernel/gcov/Makefile |   21 +++++++++++++++++++--
+> >>  2 files changed, 49 insertions(+), 2 deletions(-)
+> >>
+> >> --- a/kernel/gcov/Kconfig
+> >> +++ b/kernel/gcov/Kconfig
+> >> @@ -46,4 +46,34 @@ config GCOV_PROFILE_ALL
+> >>  	larger and run slower. Also be sure to exclude files from profiling
+> >>  	which are not linked to the kernel image to prevent linker errors.
+> >>
+> >> +choice
+> >> +	prompt "Specify GCOV format"
+> >> +	depends on GCOV_KERNEL
+> >> +	default GCOV_FORMAT_AUTODETECT
+> >> +	---help---
+> >> +	The gcov format is usually determined by the GCC version, but there are
+> >> +	exceptions where format changes are integrated in lower-version GCCs.
+> >> +	In such a case use this option to adjust the format used in the kernel
+> >> +	accordingly.
+> >> +
+> >> +	If unsure, choose "Autodetect".
+> >> +
+> >> +config GCOV_FORMAT_AUTODETECT
+> >> +	bool "Autodetect"
+> >> +	---help---
+> >> +	Select this option to use the format that corresponds to your GCC
+> >> +	version.
+> >> +
+> >> +config GCOV_FORMAT_3_4
+> >> +	bool "GCC 3.4 format"
+> >> +	---help---
+> >> +	Select this option to use the format defined by GCC 3.4.
+> >> +
+> >> +config GCOV_FORMAT_4_7
+> >> +	bool "GCC 4.7 format"
+> >> +	---help---
+> >> +	Select this option to use the format defined by GCC 4.7.
+> >> +
+> >> +endchoice
+> >> +
+> >>  endmenu
+> >> --- a/kernel/gcov/Makefile
+> >> +++ b/kernel/gcov/Makefile
+> >> @@ -1,5 +1,22 @@
+> >>  ccflags-y := -DSRCTREE='"$(srctree)"' -DOBJTREE='"$(objtree)"'
+> >>
+> >> +# if-lt
+> >> +# Usage VAR := $(call if-lt, $(a), $(b))
+> >> +# Returns 1 if (a < b)
+> >> +if-lt = $(shell [ $(1) -lt $(2) ] && echo 1)
+> >> +
+> >> +ifeq ($(CONFIG_GCOV_FORMAT_3_4),y)
+> >> +  cc-ver := 0304
+> >> +else ifeq ($(CONFIG_GCOV_FORMAT_4_7),y)
+> >> +  cc-ver := 0407
+> >> +else
+> >> +  cc-ver := $(call cc-version)
+> >> +endif
+> >> +
+> >>  obj-$(CONFIG_GCOV_KERNEL) := base.o fs.o
+> >> -obj-$(CONFIG_GCOV_KERNEL) += $(call cc-ifversion, -lt, 0407, gcc_3_4.o)
+> >> -obj-$(CONFIG_GCOV_KERNEL) += $(call cc-ifversion, -ge, 0407, gcc_4_7.o)
+> >> +
+> >> +ifeq ($(call if-lt, $(cc-ver), 0407),1)
+> >> +  obj-$(CONFIG_GCOV_KERNEL) += gcc_3_4.o
+> >> +else
+> >> +  obj-$(CONFIG_GCOV_KERNEL) += gcc_4_7.o
+> >> +endif
+> >>
+> >>
+> >> -- 
+> >> Peter Oberparleiter
+> >> Linux on System z Development - IBM Germany
+> >>
+> > 
+> 
+> 
+> -- 
+> Peter Oberparleiter
+> Linux on System z Development - IBM Germany
+> 
+
+-- 
+Frantisek Hrbata
