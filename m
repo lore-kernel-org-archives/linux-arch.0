@@ -1,50 +1,87 @@
-From: Christoph Lameter <cl@linux.com>
-Subject: Re: [guv v2 20/31] powerpc: Replace __get_cpu_var uses
-Date: Tue, 27 Aug 2013 15:37:16 +0000
-Message-ID: <00000140c06bf6b1-9f28d658-680c-4ce8-a27b-62312a7ced6f-000000@email.amazonses.com>
-References: <20130826204351.725357339@linux.com> <00000140bc5f248c-92262df9-6616-4a69-b8c1-16a412386d6c-000000@email.amazonses.com> <CAMuHMdUXSRQrPMYb3wH7RjH9J_L_yeXku=OfvZ79vc29c9cX7g@mail.gmail.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 4/4] usb: chipidea: USB_CHIPIDEA should depend on HAS_DMA
+Date: Tue, 27 Aug 2013 21:26:54 +0200
+Message-ID: <CAMuHMdVxvubhh3Ky=XxJd0+YydxooWGAth7WqgFA5=LnzQkJ3Q@mail.gmail.com>
+References: <1376857245-2088-1-git-send-email-geert@linux-m68k.org>
+	<1376857245-2088-4-git-send-email-geert@linux-m68k.org>
+	<20130819012400.GA2895@shlinux1.ap.freescale.net>
+	<20130827191623.GY3005@radagast>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a9-92.smtp-out.amazonses.com ([54.240.9.92]:53708 "EHLO
-	a9-92.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753977Ab3H0Pmg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 27 Aug 2013 11:42:36 -0400
-In-Reply-To: <CAMuHMdUXSRQrPMYb3wH7RjH9J_L_yeXku=OfvZ79vc29c9cX7g@mail.gmail.com>
+Received: from mail-pa0-f43.google.com ([209.85.220.43]:62036 "EHLO
+	mail-pa0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753469Ab3H0T0z (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 Aug 2013 15:26:55 -0400
+In-Reply-To: <20130827191623.GY3005@radagast>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Linux-Arch <linux-arch@vger.kernel.org>, Steven Rostedt <srostedt@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: Felipe Balbi <balbi@ti.com>
+Cc: Peter Chen <peter.chen@freescale.com>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, USB list <linux-usb@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Dan Williams <djbw@fb.com>, Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On Tue, 27 Aug 2013, Geert Uytterhoeven wrote:
+On Tue, Aug 27, 2013 at 9:16 PM, Felipe Balbi <balbi@ti.com> wrote:
+> On Mon, Aug 19, 2013 at 09:24:01AM +0800, Peter Chen wrote:
+>> On Sun, Aug 18, 2013 at 10:20:44PM +0200, Geert Uytterhoeven wrote:
+>> > If NO_DMA=y:
+>> >
+>> > drivers/built-in.o: In function `dma_set_coherent_mask':
+>> > include/linux/dma-mapping.h:93: undefined reference to `dma_supported'
+>> >
+>> > Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+>> > ---
+>> >  drivers/usb/chipidea/Kconfig |    2 +-
+>> >  1 file changed, 1 insertion(+), 1 deletion(-)
+>> >
+>> > diff --git a/drivers/usb/chipidea/Kconfig b/drivers/usb/chipidea/Kconfig
+>> > index d1bd8ef..dbd5232 100644
+>> > --- a/drivers/usb/chipidea/Kconfig
+>> > +++ b/drivers/usb/chipidea/Kconfig
+>> > @@ -1,6 +1,6 @@
+>> >  config USB_CHIPIDEA
+>> >     tristate "ChipIdea Highspeed Dual Role Controller"
+>> > -   depends on USB || USB_GADGET
+>> > +   depends on (USB || USB_GADGET) && HAS_DMA
+>> >     help
+>> >       Say Y here if your system has a dual role high speed USB
+>> >       controller based on ChipIdea silicon IP. Currently, only the
+>>
+>> I can't understand why the DMA can't be changed to fix this instead
+>> of changing every driver?
+>
+> I'm with you. It'd be nicer to just provide empty stubs when !HAS_DMA
 
-> On Mon, Aug 26, 2013 at 10:44 PM, Christoph Lameter <cl@linux.com> wrote:
-> > __get_cpu_var() is used for multiple purposes in the kernel source. One of them is
-> > address calculation via the form &__get_cpu_var(x). This calculates the address for
-> > the instance of the percpu variable of the current processor based on an offset.
-> >
-> > Others usage cases are for storing and retrieving data from the current processors percpu area.
->
-> use cases
->
-> > __get_cpu_var() always only does a address determination. However, store and retrieve operations
->
-> an address
->
-> > This patch converts __get_cpu_var into either and explicit address calculation using this_cpu_ptr()
->
-> an explicit
->
-> > 4. Retrieve the content of a percpu struct
-> >
-> >         DEFINE_PER_CPU(struct mystruct, y);
-> >         struct mystruct x = __get_cpu_var(y);
-> >
-> >    Converts to
-> >
-> >         memcpy(this_cpu_ptr(&y), x, sizeof(x));
->
-> Let's hope the actual code copies in the other direction ;-)
+That would give us drivers that compile but don't work.
+Not having stubs is intentional, cfr. the comment at the top of
+include/asm-generic/dma-mapping-broken.h:
 
-Ok fixed that as well.
+/* define the dma api to allow compilation but not linking of
+ * dma dependent code.  Code that depends on the dma-mapping
+ * API needs to set 'depends on HAS_DMA' in its Kconfig
+ */
+
+and the comments in the commit that introduced it:
+
+commit 1b0fac45878bb88759eec347c273285195649ff7
+Author: Dan Williams <dan.j.williams@intel.com>
+Date:   Sun Jul 15 23:40:26 2007 -0700
+
+    dma-mapping: prevent dma dependent code from linking on !HAS_DMA archs
+
+    Continuing the work started in 411f0f3edc141a582190d3605cadd1d993abb6df ...
+
+    This enables code with a dma path, that compiles away, to build without
+    requiring additional code factoring.  It also prevents code that calls
+    dma_alloc_coherent and dma_free_coherent from linking whereas previously
+    the code would hit a BUG() at run time.  Finally, it allows archs that set
+    !HAS_DMA to delete their asm/dma-mapping.h file.
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
