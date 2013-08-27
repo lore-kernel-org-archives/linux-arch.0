@@ -1,38 +1,50 @@
 From: Christoph Lameter <cl@linux.com>
-Subject: Re: [guv 00/16] [RFC] percpu: Replace __get_cpu_var uses throughout
- the kernel
-Date: Tue, 27 Aug 2013 15:39:46 +0000
-Message-ID: <00000140c06e3bb2-08a0bbe9-d7dd-4130-a65e-283f36ffb6f0-000000@email.amazonses.com>
-References: <00000140ac8debd6-6f9e64f9-1107-4336-91ef-77cdf764b96a-000000@email.amazonses.com> <20130827145738.92ade046470e4f1887d54cbf@canb.auug.org.au>
+Subject: Re: [guv v2 20/31] powerpc: Replace __get_cpu_var uses
+Date: Tue, 27 Aug 2013 15:37:16 +0000
+Message-ID: <00000140c06bf6b1-9f28d658-680c-4ce8-a27b-62312a7ced6f-000000@email.amazonses.com>
+References: <20130826204351.725357339@linux.com> <00000140bc5f248c-92262df9-6616-4a69-b8c1-16a412386d6c-000000@email.amazonses.com> <CAMuHMdUXSRQrPMYb3wH7RjH9J_L_yeXku=OfvZ79vc29c9cX7g@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a10-63.smtp-out.amazonses.com ([54.240.10.63]:32774 "EHLO
-	a10-63.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751570Ab3H0Pjr (ORCPT
+Received: from a9-92.smtp-out.amazonses.com ([54.240.9.92]:53708 "EHLO
+	a9-92.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753977Ab3H0Pmg (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 27 Aug 2013 11:39:47 -0400
-In-Reply-To: <20130827145738.92ade046470e4f1887d54cbf@canb.auug.org.au>
+	Tue, 27 Aug 2013 11:42:36 -0400
+In-Reply-To: <CAMuHMdUXSRQrPMYb3wH7RjH9J_L_yeXku=OfvZ79vc29c9cX7g@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Linux-Arch <linux-arch@vger.kernel.org>, Steven Rostedt <srostedt@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-On Tue, 27 Aug 2013, Stephen Rothwell wrote:
+On Tue, 27 Aug 2013, Geert Uytterhoeven wrote:
 
-> Hi Christoph,
->
-> On Fri, 23 Aug 2013 19:01:56 +0000 Christoph Lameter <cl@linux.com> wrote:
+> On Mon, Aug 26, 2013 at 10:44 PM, Christoph Lameter <cl@linux.com> wrote:
+> > __get_cpu_var() is used for multiple purposes in the kernel source. One of them is
+> > address calculation via the form &__get_cpu_var(x). This calculates the address for
+> > the instance of the percpu variable of the current processor based on an offset.
 > >
-> > At the end of the patchset all uses of __get_cpu_var have been removed so the macro is removed too.
+> > Others usage cases are for storing and retrieving data from the current processors percpu area.
 >
-> However you get these to Linus, please do not do this last step until the
-> following merge window.  I can pretty much guarantee that new usages will
-> be added between the generation of the patch set and their integration.
+> use cases
+>
+> > __get_cpu_var() always only does a address determination. However, store and retrieve operations
+>
+> an address
+>
+> > This patch converts __get_cpu_var into either and explicit address calculation using this_cpu_ptr()
+>
+> an explicit
+>
+> > 4. Retrieve the content of a percpu struct
+> >
+> >         DEFINE_PER_CPU(struct mystruct, y);
+> >         struct mystruct x = __get_cpu_var(y);
+> >
+> >    Converts to
+> >
+> >         memcpy(this_cpu_ptr(&y), x, sizeof(x));
+>
+> Let's hope the actual code copies in the other direction ;-)
 
-Ok then lets hold this particular patch until 3.13.
-
-> Its also helpful (to me, at least) if these can be routed via various
-> subsystem trees to lower the number of conflicts ...
-
-Ok will do.
+Ok fixed that as well.
