@@ -1,39 +1,53 @@
-From: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-Subject: Re: [guv v2 25/31] avr32: Replace __get_cpu_var uses
-Date: Tue, 27 Aug 2013 08:58:53 +0200
-Message-ID: <20130827065853.GA2153@samfundet.no>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [guv v2 20/31] powerpc: Replace __get_cpu_var uses
+Date: Tue, 27 Aug 2013 10:44:06 +0200
+Message-ID: <CAMuHMdUXSRQrPMYb3wH7RjH9J_L_yeXku=OfvZ79vc29c9cX7g@mail.gmail.com>
 References: <20130826204351.725357339@linux.com>
- <00000140bc69acd0-a726b027-118a-48bd-a832-a6454a9dfe04-000000@email.amazonses.com>
+	<00000140bc5f248c-92262df9-6616-4a69-b8c1-16a412386d6c-000000@email.amazonses.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <00000140bc69acd0-a726b027-118a-48bd-a832-a6454a9dfe04-000000@email.amazonses.com>
+In-Reply-To: <00000140bc5f248c-92262df9-6616-4a69-b8c1-16a412386d6c-000000@email.amazonses.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Christoph Lameter <cl@linux.com>
-Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, Haavard Skinnemoen <hskinnemoen@gmail.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Linux-Arch <linux-arch@vger.kernel.org>, Steven Rostedt <srostedt@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Around Mon 26 Aug 2013 20:56:16 +0000 or thereabout, Christoph Lameter wrote:
+On Mon, Aug 26, 2013 at 10:44 PM, Christoph Lameter <cl@linux.com> wrote:
+> __get_cpu_var() is used for multiple purposes in the kernel source. One of them is
+> address calculation via the form &__get_cpu_var(x). This calculates the address for
+> the instance of the percpu variable of the current processor based on an offset.
+>
+> Others usage cases are for storing and retrieving data from the current processors percpu area.
 
-<snipp reasoning>
+use cases
 
-> Index: linux/arch/avr32/kernel/kprobes.c
-> ===================================================================
-> --- linux.orig/arch/avr32/kernel/kprobes.c	2013-08-26 13:25:18.000000000 -0500
-> +++ linux/arch/avr32/kernel/kprobes.c	2013-08-26 13:27:09.758485808 -0500
-> @@ -104,7 +104,7 @@ static void __kprobes resume_execution(s
->  
->  static void __kprobes set_current_kprobe(struct kprobe *p)
->  {
-> -	__get_cpu_var(current_kprobe) = p;
-> +	__this_cpu_write(current_kprobe, p);
->  }
->  
->  static int __kprobes kprobe_handler(struct pt_regs *regs)
+> __get_cpu_var() always only does a address determination. However, store and retrieve operations
 
-Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+an address
 
--- 
-mvh
-Hans-Christian Egtvedt
+> This patch converts __get_cpu_var into either and explicit address calculation using this_cpu_ptr()
+
+an explicit
+
+> 4. Retrieve the content of a percpu struct
+>
+>         DEFINE_PER_CPU(struct mystruct, y);
+>         struct mystruct x = __get_cpu_var(y);
+>
+>    Converts to
+>
+>         memcpy(this_cpu_ptr(&y), x, sizeof(x));
+
+Let's hope the actual code copies in the other direction ;-)
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
