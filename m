@@ -1,65 +1,39 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [guv 00/16] [RFC] percpu: Replace __get_cpu_var uses throughout
- the kernel
-Date: Tue, 27 Aug 2013 14:57:38 +1000
-Message-ID: <20130827145738.92ade046470e4f1887d54cbf@canb.auug.org.au>
-References: <00000140ac8debd6-6f9e64f9-1107-4336-91ef-77cdf764b96a-000000@email.amazonses.com>
+From: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+Subject: Re: [guv v2 25/31] avr32: Replace __get_cpu_var uses
+Date: Tue, 27 Aug 2013 08:58:53 +0200
+Message-ID: <20130827065853.GA2153@samfundet.no>
+References: <20130826204351.725357339@linux.com>
+ <00000140bc69acd0-a726b027-118a-48bd-a832-a6454a9dfe04-000000@email.amazonses.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA256";
- boundary="Signature=_Tue__27_Aug_2013_14_57_38_+1000_1Evf/1470jYKAaZr"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from haggis.pcug.org.au ([203.10.76.10]:50602 "EHLO
-	members.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752538Ab3H0E5t (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 Aug 2013 00:57:49 -0400
-In-Reply-To: <00000140ac8debd6-6f9e64f9-1107-4336-91ef-77cdf764b96a-000000@email.amazonses.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Lameter <cl@linux.com>
-Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
-
---Signature=_Tue__27_Aug_2013_14_57_38_+1000_1Evf/1470jYKAaZr
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+In-Reply-To: <00000140bc69acd0-a726b027-118a-48bd-a832-a6454a9dfe04-000000@email.amazonses.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Christoph Lameter <cl@linux.com>
+Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, Haavard Skinnemoen <hskinnemoen@gmail.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Hi Christoph,
+Around Mon 26 Aug 2013 20:56:16 +0000 or thereabout, Christoph Lameter wrote:
 
-On Fri, 23 Aug 2013 19:01:56 +0000 Christoph Lameter <cl@linux.com> wrote:
->
-> At the end of the patchset all uses of __get_cpu_var have been removed so=
- the macro is removed too.
+<snipp reasoning>
 
-However you get these to Linus, please do not do this last step until the
-following merge window.  I can pretty much guarantee that new usages will
-be added between the generation of the patch set and their integration.
+> Index: linux/arch/avr32/kernel/kprobes.c
+> ===================================================================
+> --- linux.orig/arch/avr32/kernel/kprobes.c	2013-08-26 13:25:18.000000000 -0500
+> +++ linux/arch/avr32/kernel/kprobes.c	2013-08-26 13:27:09.758485808 -0500
+> @@ -104,7 +104,7 @@ static void __kprobes resume_execution(s
+>  
+>  static void __kprobes set_current_kprobe(struct kprobe *p)
+>  {
+> -	__get_cpu_var(current_kprobe) = p;
+> +	__this_cpu_write(current_kprobe, p);
+>  }
+>  
+>  static int __kprobes kprobe_handler(struct pt_regs *regs)
 
-Its also helpful (to me, at least) if these can be routed via various
-subsystem trees to lower the number of conflicts ...
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
+Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
 
---Signature=_Tue__27_Aug_2013_14_57_38_+1000_1Evf/1470jYKAaZr
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.20 (GNU/Linux)
-
-iQIcBAEBCAAGBQJSHDHGAAoJEECxmPOUX5FE2JQP+QFZ+YX/JhkUiG7x62rWIrrz
-ETeNt4X58mCvPg/gMCODiLPKuKKwZlmgWzgHbYm5hRJffSuJTfiuEc9TaFOa3+nw
-wsbfg1/c4Vv6iIvzRhcEFwFQZV5oYqKYB6QuR8X7UycjhecH7FyGnQYfkKqLsYRF
-oJVCzy9O2Gvax3rmG4tqHfJoIKO3KL1ausCphIjUi09W3XsfnZMehtw1eQOVHn9i
-IbzknBoaox8iQSVuF/eViW3FL4rxvlYP9pmVupna0U4HNum1ZawrLt4IXKnsDI2k
-KubOWmZVh4wcJqr3zc0uEbjiJBy+9GsPSUBxuN3IJBqKAadUcsxkMdr24R+ODUJA
-zCRq8Mopo8zHukHDtiMb5Zqod+pmCUihXXMk3ymH/1SydOCE5l8EfrfXJT5HftPE
-u7T6P0nXyV+d217t4UpiDSW0SWFORGvWCYmwfJ2tMBnEgtF8t560A2V/Yuk8Geup
-j+bB1QYKkAtG/PnPYPFCvGivkendF1b/1ByC6jyIlmwyaj3GlvkzlTqsjQUcCoS2
-zWlhwvxnn3mM8c0/NhlNnDhRY2wWftagQ+QHQhXhPpBBSGNv+2KuefGE+u0VTC8y
-XgRDXEz/T40gFOe4zIrb4OHJirG3TcJ/ECaRsSR93LQJiVGFm4luO5EgGqNkmWEE
-TAq5rBnSGciHFHBp16dk
-=RIEh
------END PGP SIGNATURE-----
-
---Signature=_Tue__27_Aug_2013_14_57_38_+1000_1Evf/1470jYKAaZr--
+-- 
+mvh
+Hans-Christian Egtvedt
