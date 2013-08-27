@@ -1,44 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cassarossa.samfundet.no ([193.35.52.29]:37196 "EHLO
-	cassarossa.samfundet.no" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752057Ab3H0G7I (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 Aug 2013 02:59:08 -0400
-Date: Tue, 27 Aug 2013 08:58:53 +0200
-From: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-Subject: Re: [guv v2 25/31] avr32: Replace __get_cpu_var uses
-Message-ID: <20130827065853.GA2153@samfundet.no>
-References: <20130826204351.725357339@linux.com>
- <00000140bc69acd0-a726b027-118a-48bd-a832-a6454a9dfe04-000000@email.amazonses.com>
+Received: from mail-pd0-f173.google.com ([209.85.192.173]:41127 "EHLO
+	mail-pd0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752744Ab3H0IoH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 Aug 2013 04:44:07 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <00000140bc69acd0-a726b027-118a-48bd-a832-a6454a9dfe04-000000@email.amazonses.com>
+In-Reply-To: <00000140bc5f248c-92262df9-6616-4a69-b8c1-16a412386d6c-000000@email.amazonses.com>
+References: <20130826204351.725357339@linux.com>
+	<00000140bc5f248c-92262df9-6616-4a69-b8c1-16a412386d6c-000000@email.amazonses.com>
+Date: Tue, 27 Aug 2013 10:44:06 +0200
+Message-ID: <CAMuHMdUXSRQrPMYb3wH7RjH9J_L_yeXku=OfvZ79vc29c9cX7g@mail.gmail.com>
+Subject: Re: [guv v2 20/31] powerpc: Replace __get_cpu_var uses
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christoph Lameter <cl@linux.com>
-Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, Haavard Skinnemoen <hskinnemoen@gmail.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
-Message-ID: <20130827065853.XkXiTiRakpTnbAg_6t-30R0qtEQNGeHMliBeEa6lMcQ@z>
+Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Linux-Arch <linux-arch@vger.kernel.org>, Steven Rostedt <srostedt@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20130827084406.ceT-qwdEkXRW9Dg_VDc9XX81rnEwgXScCkauoWrKpqs@z>
 
-Around Mon 26 Aug 2013 20:56:16 +0000 or thereabout, Christoph Lameter wrote:
+On Mon, Aug 26, 2013 at 10:44 PM, Christoph Lameter <cl@linux.com> wrote:
+> __get_cpu_var() is used for multiple purposes in the kernel source. One of them is
+> address calculation via the form &__get_cpu_var(x). This calculates the address for
+> the instance of the percpu variable of the current processor based on an offset.
+>
+> Others usage cases are for storing and retrieving data from the current processors percpu area.
 
-<snipp reasoning>
+use cases
 
-> Index: linux/arch/avr32/kernel/kprobes.c
-> ===================================================================
-> --- linux.orig/arch/avr32/kernel/kprobes.c	2013-08-26 13:25:18.000000000 -0500
-> +++ linux/arch/avr32/kernel/kprobes.c	2013-08-26 13:27:09.758485808 -0500
-> @@ -104,7 +104,7 @@ static void __kprobes resume_execution(s
->  
->  static void __kprobes set_current_kprobe(struct kprobe *p)
->  {
-> -	__get_cpu_var(current_kprobe) = p;
-> +	__this_cpu_write(current_kprobe, p);
->  }
->  
->  static int __kprobes kprobe_handler(struct pt_regs *regs)
+> __get_cpu_var() always only does a address determination. However, store and retrieve operations
 
-Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+an address
 
--- 
-mvh
-Hans-Christian Egtvedt
+> This patch converts __get_cpu_var into either and explicit address calculation using this_cpu_ptr()
+
+an explicit
+
+> 4. Retrieve the content of a percpu struct
+>
+>         DEFINE_PER_CPU(struct mystruct, y);
+>         struct mystruct x = __get_cpu_var(y);
+>
+>    Converts to
+>
+>         memcpy(this_cpu_ptr(&y), x, sizeof(x));
+
+Let's hope the actual code copies in the other direction ;-)
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
