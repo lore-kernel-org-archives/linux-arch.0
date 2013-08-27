@@ -1,47 +1,67 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: Re: [guv v2 23/31] tile: Replace __get_cpu_var uses
-Date: Mon, 26 Aug 2013 18:22:27 -0400
-Message-ID: <521BD523.3040706@tilera.com>
-References: <20130826204351.725357339@linux.com> <00000140bc69acdb-3b2967b0-e224-424b-ad08-973515704be6-000000@email.amazonses.com>
+From: "LF.Tan" <lftan.linux@gmail.com>
+Subject: Re: [RFC PATCH 0/4] add support for gcov format introduced in gcc 4.7
+Date: Tue, 27 Aug 2013 10:38:32 +0800
+Message-ID: <CAFiDJ5_buV4TK3wd7Nk62++mtwMAnEa2Xar0ZpRZmQ3RY9LO+g@mail.gmail.com>
+References: <1377247176-13537-1-git-send-email-fhrbata@redhat.com>
+	<52177AD7.1030709@linux.vnet.ibm.com>
+	<20130823161532.GA2336@localhost.localdomain>
+	<CAFiDJ5_S9Y_9t4kmkh5a9vK8bZFf1ZispTiWxj7PybxJpvYZ3w@mail.gmail.com>
+	<521B63F7.9050409@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([12.216.194.151]:48996 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752093Ab3HZWWY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 26 Aug 2013 18:22:24 -0400
-In-Reply-To: <00000140bc69acdb-3b2967b0-e224-424b-ad08-973515704be6-000000@email.amazonses.com>
+Received: from mail-qe0-f43.google.com ([209.85.128.43]:39061 "EHLO
+	mail-qe0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751807Ab3H0Cid (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 26 Aug 2013 22:38:33 -0400
+In-Reply-To: <521B63F7.9050409@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Lameter <cl@linux.com>
-Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+To: Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
+Cc: Frantisek Hrbata <fhrbata@redhat.com>, linux-kernel@vger.kernel.org, jstancek@redhat.com, keescook@chromium.org, Christophe Guillon <christophe.guillon@st.com>, rusty@rustcorp.com.au, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, mgahagan@redhat.com, agospoda@redhat.com
 
-On 8/26/2013 4:56 PM, Christoph Lameter wrote:
-> Index: linux/arch/tile/include/asm/irqflags.h
-> ===================================================================
-> --- linux.orig/arch/tile/include/asm/irqflags.h	2013-08-22 14:39:14.000000000 -0500
-> +++ linux/arch/tile/include/asm/irqflags.h	2013-08-22 14:39:57.453305409 -0500
+Hi Peter
 
-Nack to the changes to this file, with all due respect :-), since I have conflicting changes in the linux-tile tree that also remove all uses of __get_cpu_var from this file.  Note that there are places in this file where "this_cpu_and", etc., make sense; I don't know if it makes sense for your script to be looking for this kind of thing more generally.
+I can get the gcda for the kernel loadable module now. Yes, the
+virtual file is with size 0 and I saw the file is empty with 'vi'
+command. But, it has data with 'cat' or 'hexdump' command.
 
-> -		__get_cpu_var(current_asid) = asid;
-> +		__this_cpu_read(current_asid) = asid;
+Thanks.
 
-This should be __this_cpu_write(current_asid, asid).  You caught this idiom elsewhere so not sure if it was a script bug that caused it to be missed here?
-
-> -	int depth = __get_cpu_var(irq_depth)++;
-> +	int depth = __this_cpu_inc_return(irq_depth) - 1;
-
-I would omit the "-1" here and instead change the one test of "depth == 0" to be "depth == 1".
-
-> -	__get_cpu_var(current_asid) = min_asid = asid_range.start;
-> +	__this_cpu_write(current_asid, min_asid = asid_range.start);
-
-This was ugly before but now it's much worse :-)  Please just split it into an assignment to min_asid, then use __this_cpu_write() with min_asid.  Thanks.
-
-The rest is fine.  Would it make more sense for me to fold all these changes into the tile tree and just have it meet in linux-next?  There are certainly a bunch of other changes staged there which likely also include more uses of __get_cpu_var...
-
--- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+On Mon, Aug 26, 2013 at 10:19 PM, Peter Oberparleiter
+<oberpar@linux.vnet.ibm.com> wrote:
+> On 26.08.2013 13:39, LF.Tan wrote:
+>> Hi all
+>>
+>> I am interested to enable Gcov on my platform (on a target board). I
+>> have tried to apply the 4 patches submitted by Frantisek Hrbata. But,
+>> the *.gcda is always empty. Note, I am using GCC 4.7.3.
+>>
+>> I have followed the steps in Documentation/gcov.txt. I've mounted the
+>> NFS filesystem and it has access to the kernel build directory on host
+>> machine.The path for the kernel source in host and target are same.
+>>
+>> Let said my kernel module is under drivers/misc,
+>> drivers/misc/module.ko. Turn on Gcov in drivers/misc/Makefile.
+>>
+>> 1. mount -t debugfs none /sys/kernel/debug/
+>> 2. insmod <PATH>/module.ko
+>> 3. Perform some actions to excute code in module.ko
+>> 4. rmmod <PATH>/module.ko
+>> 5. Check /sys/kernel/debug/gcov/<PATH>/drivers/misc/. There is a soft
+>> link of module.gcno (I check the soft link is working), but
+>> module.gcda is empty.
+>
+> Are you sure they are empty? .gcda files report a file size of 0 as many
+> virtual files do, but you can read data from them nevertheless. You could
+> try running "cat" on them to copy their contents for example.
+>
+>> Any step is incorrect or missing? Or anyone know how to enable GCOV on
+>> target board? Please advice.
+>> I would like to enable GCOV in arch/ code as well.
+>> Thank you very much.
+>
+> --
+> Peter Oberparleiter
+> Linux on System z Development - IBM Germany
+>
