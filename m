@@ -1,641 +1,448 @@
-From: Frantisek Hrbata <fhrbata@redhat.com>
-Subject: Re: [RFC PATCH 2/4] gcov: add support for gcc 4.7 gcov format
-Date: Tue, 27 Aug 2013 15:41:43 +0200
-Message-ID: <20130827134143.GC2418@localhost.localdomain>
-References: <1377247176-13537-1-git-send-email-fhrbata@redhat.com>
- <1377247176-13537-3-git-send-email-fhrbata@redhat.com>
- <52177BD3.1020303@linux.vnet.ibm.com>
- <20130823210015.GA2352@localhost.localdomain>
- <521B4DD6.6090808@linux.vnet.ibm.com>
-Reply-To: Frantisek Hrbata <fhrbata@redhat.com>
+From: Christoph Lameter <cl@linux.com>
+Subject: Re: [guv v2 23/31] tile: Replace __get_cpu_var uses
+Date: Tue, 27 Aug 2013 14:48:14 +0000
+Message-ID: <00000140c03f13d6-07480caf-b5b0-440b-af95-04878ee9f46c-000000@email.amazonses.com>
+References: <20130826204351.725357339@linux.com> <00000140bc69acdb-3b2967b0-e224-424b-ad08-973515704be6-000000@email.amazonses.com> <521BD523.3040706@tilera.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <521B4DD6.6090808@linux.vnet.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
-Cc: linux-kernel@vger.kernel.org, jstancek@redhat.com, keescook@chromium.org, rusty@rustcorp.com.au, linux-arch@vger.kernel.org, arnd@arndb.de, mgahagan@redhat.com, agospoda@redhat.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from a9-58.smtp-out.amazonses.com ([54.240.9.58]:51386 "EHLO
+	a9-58.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753082Ab3H0OsQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 27 Aug 2013 10:48:16 -0400
+In-Reply-To: <521BD523.3040706@tilera.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Chris Metcalf <cmetcalf@tilera.com>
+Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
 
-On Mon, Aug 26, 2013 at 02:45:10PM +0200, Peter Oberparleiter wrote:
-> On 23.08.2013 23:00, Frantisek Hrbata wrote:
-> > On Fri, Aug 23, 2013 at 05:12:19PM +0200, Peter Oberparleiter wrote:
-> >> On 23.08.2013 10:39, Frantisek Hrbata wrote:
-> >>> The gcov in-memory format changed in gcc 4.7. The biggest change, which
-> >>> requires this special implementation, is that gcov_info no longer contains
-> >>> array of counters for each counter type for all functions and gcov_fn_info is
-> >>> not used for mapping of function's counters to these arrays(offset). Now each
-> >>> gcov_fn_info contans it's counters, which makes things a little bit easier.
-> >>
-> >> By now I've come to the conclusion that I may have over-engineered
-> >> gcov_iter_next in the original GCC 3.4 implementation. This became especially
-> >> apparent when someone tried to adjust that code to also work with a specific
-> >> android GCC version - adding a simple field to the output file format required
-> >> major complex changes.
-> >>
-> >> Therefore in my version of the GCC 4.7 support, I opted to replace this logic
-> >> with the simpler approach of generating the gcov data file in-memory during
-> >> open (gcov_iter_new) and reducing gcov_iter_next/gcov_iter_write to simple
-> >> copy-from-buffer functions.
-> > 
-> > Yes, this seems reasonable and much easier approach to me, but we will end up
-> > with three copies of one gcov(gcda) file data in memory: data from gcc, our
-> > buffer and the buffer in seq file. But I guess this is not a big problem,
-> > unless someone opens a huge amount of gcda files in parallel. Generally I
-> > like this idea. This will be also probably faster then writing 1 or 2 ints per
-> > one iter write.
-> 
-> You're right about the data being in multiple buffers for the time that a .gcda
-> file is opened, but as you mentioned, this shouldn't be a problem since usually
-> only one .gcda file is open at a time. Also the reduction in code complexity is
-> in my opinion well worth it.
+On Mon, 26 Aug 2013, Chris Metcalf wrote:
 
-agreed
+> On 8/26/2013 4:56 PM, Christoph Lameter wrote:
+> > Index: linux/arch/tile/include/asm/irqflags.h
+> > ===================================================================
+> > --- linux.orig/arch/tile/include/asm/irqflags.h	2013-08-22 14:39:14.000000000 -0500
+> > +++ linux/arch/tile/include/asm/irqflags.h	2013-08-22 14:39:57.453305409 -0500
+>
+> Nack to the changes to this file, with all due respect :-), since I have conflicting changes in the linux-tile tree that also remove all uses of __get_cpu_var from this file.  Note that there are places in this file where "this_cpu_and", etc., make sense; I don't know if it makes sense for your script to be looking for this kind of thing more generally.
 
-> 
-> >> Since I can see the need to change the format code again in the future,
-> >> I think it would be easier to simplify this part of the code correspondingly.
-> >> I'm adding my version of this part of the implementation as discussion input
-> >> below (the relevant part starts at convert_to_gcda()).
-> > 
-> > I have really only two nits to the code(please see below). I spent some time
-> > checking the new seq/iter implementation and it seems ok to me. Generally I like
-> > how simple this change is done.
-> > 
-> >>
-> >> ---
-> >> kernel: gcov: add support for gcc 4.7 gcov format
-> >>
-> >> GCC 4.7 changed the format of gcov related data structures, both
-> >> on-disk and in memory. Add support for the new format.
-> >>
-> >> Signed-off-by: Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
-> >> ---
-> >>  kernel/gcov/Makefile  |    4
-> >>  kernel/gcov/gcc_4_7.c |  510 ++++++++++++++++++++++++++++++++++++++++++++++++++
-> >>  2 files changed, 513 insertions(+), 1 deletion(-)
-> >>
-> >> --- a/kernel/gcov/Makefile
-> >> +++ b/kernel/gcov/Makefile
-> >> @@ -1,3 +1,5 @@
-> >>  ccflags-y := -DSRCTREE='"$(srctree)"' -DOBJTREE='"$(objtree)"'
-> >>
-> >> -obj-$(CONFIG_GCOV_KERNEL) := base.o fs.o gcc_3_4.o
-> >> +obj-$(CONFIG_GCOV_KERNEL) := base.o fs.o
-> >> +obj-$(CONFIG_GCOV_KERNEL) += $(call cc-ifversion, -lt, 0407, gcc_3_4.o)
-> >> +obj-$(CONFIG_GCOV_KERNEL) += $(call cc-ifversion, -ge, 0407, gcc_4_7.o)
-> >> --- /dev/null
-> >> +++ b/kernel/gcov/gcc_4_7.c
-> >> @@ -0,0 +1,510 @@
-> >> +/*
-> >> + *  This code provides functions to handle gcc's profiling data format
-> >> + *  introduced with gcc 4.7. Future versions of gcc may change the gcov
-> >> + *  format (as happened before), so all format-specific information needs
-> >> + *  to be kept modular and easily exchangeable.
-> >> + *
-> >> + *  This file is based on gcc-internal definitions. Functions and data
-> >> + *  structures are defined to be compatible with gcc counterparts.
-> >> + *  For a better understanding, refer to gcc source: gcc/gcov-io.h.
-> >> + *
-> >> + *    Copyright IBM Corp. 2013
-> >> + *    Author(s): Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
-> >> + *
-> >> + *    Uses gcc-internal data definitions.
-> >> + */
-> >> +
-> >> +#include <linux/errno.h>
-> >> +#include <linux/slab.h>
-> >> +#include <linux/string.h>
-> >> +#include <linux/seq_file.h>
-> >> +#include <linux/vmalloc.h>
-> >> +#include <linux/types.h>
-> >> +#include "gcov.h"
-> >> +
-> >> +/*
-> >> + * Profiling data types used for gcc 4.7 and above - these are defined by
-> >> + * gcc and need to be kept as close to the original definition as possible to
-> >> + * remain compatible.
-> >> + */
-> >> +#define GCOV_COUNTERS		8
-> >> +#define GCOV_DATA_MAGIC		((unsigned int) 0x67636461)
-> >> +#define GCOV_TAG_FUNCTION	((unsigned int) 0x01000000)
-> >> +#define GCOV_TAG_COUNTER_BASE	((unsigned int) 0x01a10000)
-> >> +#define GCOV_TAG_FOR_COUNTER(count)					\
-> >> +	(GCOV_TAG_COUNTER_BASE + ((unsigned int) (count) << 17))
-> >> +
-> >> +#if BITS_PER_LONG >= 64
-> >> +typedef long gcov_type;
-> >> +#else
-> >> +typedef long long gcov_type;
-> >> +#endif
-> >> +
-> >> +/**
-> >> + * struct gcov_ctr_info - profiling data per function and counter type
-> >> + * @num: number of counter values for this type
-> >> + * @values: array of counter values for this type
-> >> + *
-> >> + * This data is generated by gcc during compilation and doesn't change
-> >> + * at run-time with the exception of the values array.
-> >> + */
-> >> +struct gcov_ctr_info {
-> >> +	unsigned int	num;
-> >> +	gcov_type	*values;
-> >> +};
-> >> +
-> >> +/**
-> >> + * struct gcov_fn_info - profiling meta data per function
-> >> + * @key: comdat key
-> >> + * @ident: object file-unique function identifier
-> >> + * @lineno_checksum: function lineno_checksum
-> >> + * @cfg_checksum: function cfg_checksum
-> >> + * @ctrs: counters
-> >> + *
-> >> + * This data is generated by gcc during compilation and doesn't change
-> >> + * at run-time.
-> >> + */
-> >> +struct gcov_fn_info {
-> >> +	const struct gcov_info *key;
-> >> +	unsigned int ident;
-> >> +	unsigned int lineno_checksum;
-> >> +	unsigned int cfg_checksum;
-> >> +	struct gcov_ctr_info ctrs[0];
-> >> +};
-> >> +
-> >> +typedef void (*gcov_merge_fn)(gcov_type *, unsigned int);
-> >> +
-> >> +/**
-> >> + * struct gcov_info - profiling data per object file
-> >> + * @version: gcov version magic indicating the gcc version used for compilation
-> >> + * @next: list head for a singly-linked list
-> >> + * @stamp: time stamp
-> >> + * @filename: name of the associated gcov data file
-> >> + * @merge: functions for merging counts per counter type or null for unused
-> >> + * @n_functions: number of instrumented functions
-> >> + * @functions: function data
-> >> + *
-> >> + * This data is generated by gcc during compilation and doesn't change
-> >> + * at run-time with the exception of the next pointer.
-> >> + */
-> >> +struct gcov_info {
-> >> +	unsigned int			version;
-> >> +	struct gcov_info		*next;
-> >> +	unsigned int			stamp;
-> >> +	const char			*filename;
-> >> +	gcov_merge_fn			merge[GCOV_COUNTERS];
-> >> +	unsigned int			n_functions;
-> >> +	struct gcov_fn_info		**functions;
-> > 
-> > I can see that you removed the const part. I was thinking about it too, because
-> > it requires ugly cast-const-away code in the gcov_info_dup and it is imho not
-> > necessary, but I left the original definition from gcc anyway.
-> 
-> The kernel's usage of gcov_info is slightly different from the GCC's internal
-> one, so a slight divergence should be ok from my point of view, especially
-> considering that the outcome (dropping a const declaration) is the same.
+Ok. Dropped that part.
 
-agreed
+> > -		__get_cpu_var(current_asid) = asid;
+> > +		__this_cpu_read(current_asid) = asid;
+>
+> This should be __this_cpu_write(current_asid, asid).  You caught this
+> idiom elsewhere so not sure if it was a script bug that caused it to be
+> missed here?
 
-> 
-> > 
-> >> +};
-> >> +
-> >> +/* Symbolic links to be created for each profiling data file. */
-> >> +const struct gcov_link gcov_link[] = {
-> >> +	{ OBJ_TREE, "gcno" },	/* Link to .gcno file in $(objtree). */
-> >> +	{ 0, NULL},
-> >> +};
-> >> +
-> >> +/*
-> >> + * Determine whether a counter is active. Based on gcc magic. Doesn't change
-> >> + * at run-time.
-> >> + */
-> >> +static int counter_active(struct gcov_info *info, unsigned int type)
-> >> +{
-> >> +	return info->merge[type] != NULL;
-> >> +}
-> >> +
-> >> +/* Determine number of active counters. Based on gcc magic. */
-> >> +static unsigned int num_counter_active(struct gcov_info *info)
-> >> +{
-> >> +	unsigned int i;
-> >> +	unsigned int result = 0;
-> >> +
-> >> +	for (i = 0; i < GCOV_COUNTERS; i++) {
-> >> +		if (counter_active(info, i))
-> >> +			result++;
-> >> +	}
-> >> +	return result;
-> >> +}
-> >> +
-> >> +/**
-> >> + * gcov_info_reset - reset profiling data to zero
-> >> + * @info: profiling data set
-> >> + */
-> >> +void gcov_info_reset(struct gcov_info *info)
-> >> +{
-> >> +	unsigned int active = num_counter_active(info);
-> >> +	unsigned int f, i;
-> >> +	struct gcov_ctr_info *ctr;
-> >> +
-> >> +	for (f = 0; f < info->n_functions; f++) {
-> >> +		for (i = 0; i < active; i++) {
-> >> +			ctr = &info->functions[f]->ctrs[i];
-> >> +			memset(ctr->values, 0, ctr->num * sizeof(gcov_type));
-> >> +		}
-> >> +	}
-> >> +}
-> >> +
-> >> +/**
-> >> + * gcov_info_is_compatible - check if profiling data can be added
-> >> + * @info1: first profiling data set
-> >> + * @info2: second profiling data set
-> >> + *
-> >> + * Returns non-zero if profiling data can be added, zero otherwise.
-> >> + */
-> >> +int gcov_info_is_compatible(struct gcov_info *info1, struct gcov_info *info2)
-> >> +{
-> >> +	return (info1->stamp == info2->stamp);
-> >> +}
-> >> +
-> >> +/**
-> >> + * gcov_info_add - add up profiling data
-> >> + * @dest: profiling data set to which data is added
-> >> + * @source: profiling data set which is added
-> >> + *
-> >> + * Adds profiling counts of @source to @dest.
-> >> + */
-> >> +void gcov_info_add(struct gcov_info *dest, struct gcov_info *source)
-> >> +{
-> >> +	unsigned int active = num_counter_active(dest);
-> >> +	unsigned int f, i, j;
-> >> +
-> >> +	for (f = 0; f < dest->n_functions; f++) {
-> >> +		for (i = 0; i < active; i++) {
-> >> +			struct gcov_ctr_info *d_ctr =
-> >> +				&dest->functions[f]->ctrs[i];
-> >> +			struct gcov_ctr_info *s_ctr =
-> >> +				&source->functions[f]->ctrs[i];
-> >> +
-> >> +			for (j = 0; j < d_ctr->num; j++) {
-> >> +				d_ctr->values[j] += s_ctr->values[j];
-> >> +			}
-> >> +		}
-> >> +	}
-> >> +}
-> >> +
-> >> +/**
-> >> + * gcov_info_dup - duplicate profiling data set
-> >> + * @info: profiling data set to duplicate
-> >> + *
-> >> + * Return newly allocated duplicate on success, %NULL on error.
-> >> + */
-> >> +struct gcov_info *gcov_info_dup(struct gcov_info *info)
-> >> +{
-> >> +	struct gcov_info *dup;
-> >> +	unsigned int active = num_counter_active(info);
-> >> +	unsigned int i, j;
-> >> +
-> >> +	/* Duplicate gcov_info. */
-> >> +	dup = kzalloc(sizeof(struct gcov_info), GFP_KERNEL);
-> >> +	if (!dup)
-> >> +		return NULL;
-> >> +	dup->version		= info->version;
-> >> +	dup->stamp		= info->stamp;
-> >> +	dup->n_functions	= info->n_functions;
-> >> +	memcpy(dup->merge, info->merge, sizeof(dup->merge));
-> >> +	/* Duplicate filename. */
-> >> +	dup->filename		= kstrdup(info->filename, GFP_KERNEL);
-> >> +	if (!dup->filename)
-> >> +		goto err_free;
-> >> +	/* Duplicate table of functions. */
-> >> +	dup->functions = kzalloc(sizeof(struct gcov_fn_info *) *
-> >> +				 info->n_functions, GFP_KERNEL);
-> >> +	if (!dup->functions)
-> >> +		goto err_free;
-> >> +	for (i = 0; i < info->n_functions; i++) {
-> >> +		struct gcov_fn_info *src_fn = info->functions[i];
-> >> +		struct gcov_fn_info *dest_fn;
-> >> +
-> >> +		/* Duplicate gcov_fn_info. */
-> >> +		dup->functions[i] = kzalloc(sizeof(struct gcov_fn_info) +
-> >> +					    sizeof(struct gcov_ctr_info) *
-> >> +					    active, GFP_KERNEL);
-> >> +		if (!dup->functions[i])
-> >> +			goto err_free;
-> >> +		dest_fn = dup->functions[i];
-> >> +		dest_fn->ident			= src_fn->ident;
-> >> +		dest_fn->lineno_checksum	= src_fn->lineno_checksum;
-> >> +		dest_fn->cfg_checksum		= src_fn->cfg_checksum;
-> >> +
-> >> +		for (j = 0; j < active; j++) {
-> >> +			struct gcov_ctr_info *src_ctr = &src_fn->ctrs[j];
-> >> +			struct gcov_ctr_info *dest_ctr = &dest_fn->ctrs[j];
-> >> +			size_t size = sizeof(gcov_type) * src_ctr->num;
-> >> +
-> >> +			/* Duplicate gcov_ctr_info. */
-> >> +			dest_ctr->num		= src_ctr->num;
-> >> +			dest_ctr->values	= vmalloc(size);
-> >                                                   ^^^^^^^
-> > Does the vmalloc make sense here? The counters are allocated per function, so I
-> > expect they will be pretty small compared when there was one "huge" array for
-> > each counter type for all functions per gcov_info. Meaning here we will not
-> > consume a "big" continuous block of phys memory. I'm just currious and maybe I'm
-> > missing something. Anyway this is just a nit.
-> 
-> Good point. Previously the sizes to be allocated here could be as large as 64k.
-> Now the largest I see for 3.10 on an s390x system is ~3k. On the other hand
-> since we're not on a performance critical path, staying with vmalloc might just
-> be safer.
+No these cases were rare and had to be fixed up manually. Missed that one.
 
-agreed, this makes sense
+> > -	int depth = __get_cpu_var(irq_depth)++;
+> > +	int depth = __this_cpu_inc_return(irq_depth) - 1;
+>
+> I would omit the "-1" here and instead change the one test of "depth == 0" to be "depth == 1".
 
-> 
-> >> +			if (!dest_ctr->values)
-> >> +				goto err_free;
-> >> +			memcpy(dest_ctr->values, src_ctr->values, size);
-> >> +		}
-> >> +	}
-> >> +	return dup;
-> >> +
-> >> +err_free:
-> >> +	gcov_info_free(dup);
-> >> +	return NULL;
-> >> +}
-> >> +
-> >> +/**
-> >> + * gcov_info_free - release memory for profiling data set duplicate
-> >> + * @info: profiling data set duplicate to free
-> >> + */
-> >> +void gcov_info_free(struct gcov_info *info)
-> >> +{
-> >> +	unsigned int active = num_counter_active(info);
-> >> +	unsigned int i, j;
-> >> +
-> >> +	if (info->functions) {
-> >> +		for (i = 0; i < info->n_functions; i++) {
-> >> +			if (!info->functions[i])
-> >> +				continue;
-> >> +			for (j = 0; j < active; j++)
-> >> +				vfree(info->functions[i]->ctrs[j].values);
-> >> +			kfree(info->functions[i]);
-> >> +		}
-> >> +	}
-> >> +	kfree(info->functions);
-> >> +	kfree(info->filename);
-> >> +	kfree(info);
-> >> +}
-> >> +
-> >> +#define ITER_STRIDE	PAGE_SIZE
-> >> +
-> >> +/**
-> >> + * struct gcov_iterator - specifies current file position in logical records
-> >> + * @buffer: buffer containing file data
-> >> + * @size: size of buffer
-> >> + * @pos: current position in file
-> >> + */
-> >> +struct gcov_iterator {
-> >> +	struct gcov_info *info;
-> >> +	void *buffer;
-> >> +	size_t size;
-> >> +	loff_t pos;
-> >> +};
-> >> +
-> >> +/**
-> >> + * store_gcov_u32 - store 32 bit number in gcov format to buffer
-> >> + * @buffer: target buffer or NULL
-> >> + * @off: offset into the buffer
-> >> + * @v: value to be stored
-> >> + *
-> >> + * Number format defined by gcc: numbers are recorded in the 32 bit
-> >> + * unsigned binary form of the endianness of the machine generating the
-> >> + * file. Returns the number of bytes stored. If @buffer is %NULL, doesn't
-> >> + * store anything.
-> >> + */
-> >> +static size_t store_gcov_u32(void *buffer, size_t off, u32 v)
-> >> +{
-> >> +	u32 *data;
-> >> +
-> >> +	if (buffer) {
-> >> +		data = buffer + off;
-> >> +		*data = v;
-> >> +	}
-> >> +
-> >> +	return sizeof(*data);
-> >> +}
-> >> +
-> >> +/**
-> >> + * store_gcov_u64 - store 64 bit number in gcov format to buffer
-> >> + * @buffer: target buffer or NULL
-> >> + * @off: offset into the buffer
-> >> + * @v: value to be stored
-> >> + *
-> >> + * Number format defined by gcc: numbers are recorded in the 32 bit
-> >> + * unsigned binary form of the endianness of the machine generating the
-> >> + * file. 64 bit numbers are stored as two 32 bit numbers, the low part
-> >> + * first. Returns the number of bytes stored. If @buffer is %NULL, doesn't store
-> >> + * anything.
-> >> + */
-> >> +static size_t store_gcov_u64(void *buffer, size_t off, u64 v)
-> >> +{
-> >> +	u32 *data;
-> >> +
-> >> +	if (buffer) {
-> >> +		data = buffer + off;
-> >> +
-> >> +		data[0] = (v & 0xffffffffUL);
-> >> +		data[1] = (v >> 32);
-> >> +	}
-> >> +
-> >> +	return sizeof(*data) * 2;
-> >> +}
-> >> +
-> >> +/**
-> >> + * get_ctr_type - return type of specified counter
-> >> + * @info: profiling data set
-> >> + * @num: index into list of active counters
-> >> + *
-> >> + * Returns the type of the specified counter.
-> >> + */
-> >> +static int get_ctr_type(struct gcov_info *info, unsigned int num)
-> >> +{
-> >> +	unsigned int type;
-> >> +
-> >> +	for (type = 0; type < GCOV_COUNTERS; type++) {
-> >> +		if (counter_active(info, type)) {
-> >> +			if (num == 0)
-> >> +				break;
-> >> +			num--;
-> >> +		}
-> >> +	}
-> >> +
-> >> +	return type;
-> >> +}
-> >> +
-> >> +/**
-> >> + * convert_to_gcda - convert profiling data set to gcda file format
-> >> + * @buffer: the buffer to store file data or %NULL if no data should be stored
-> >> + * @info: profiling data set to be converted
-> >> + *
-> >> + * Returns the number of bytes that were/would have been stored into the buffer.
-> >> + */
-> >> +static size_t convert_to_gcda(char *buffer, struct gcov_info *info)
-> >> +{
-> >> +	unsigned int active = num_counter_active(info);
-> >> +	unsigned int i, j, k;
-> >> +	size_t pos = 0;
-> >> +
-> >> +	/* File header. */
-> >> +	pos += store_gcov_u32(buffer, pos, GCOV_DATA_MAGIC);
-> >> +	pos += store_gcov_u32(buffer, pos, info->version);
-> >> +	pos += store_gcov_u32(buffer, pos, info->stamp);
-> >> +
-> >> +	for (i = 0; i < info->n_functions; i++) {
-> >> +		struct gcov_fn_info *fn = info->functions[i];
-> >> +
-> >> +		/* Function record. */
-> >> +		pos += store_gcov_u32(buffer, pos, GCOV_TAG_FUNCTION);
-> >> +		pos += store_gcov_u32(buffer, pos, 3);
-> >> +		pos += store_gcov_u32(buffer, pos, fn->ident);
-> >> +		pos += store_gcov_u32(buffer, pos, fn->lineno_checksum);
-> >> +		pos += store_gcov_u32(buffer, pos, fn->cfg_checksum);
-> >> +
-> >> +		for (j = 0; j < active; j++) {
-> >> +			struct gcov_ctr_info *ctr = &fn->ctrs[j];
-> >> +			int type = get_ctr_type(info, j);
-> >> +
-> >> +			/* Counter record. */
-> >> +			pos += store_gcov_u32(buffer, pos,
-> >> +					      GCOV_TAG_FOR_COUNTER(type));
-> >> +			pos += store_gcov_u32(buffer, pos, ctr->num * 2);
-> >> +
-> >> +			for (k = 0; k < ctr->num; k++) {
-> >> +				pos += store_gcov_u64(buffer, pos,
-> >> +						      ctr->values[k]);
-> >> +			}
-> >> +		}
-> >> +
-> >> +
-> >> +	}
-> >> +
-> >> +	return pos;
-> >> +}
-> >> +
-> >> +/**
-> >> + * gcov_iter_new - allocate and initialize profiling data iterator
-> >> + * @info: profiling data set to be iterated
-> >> + *
-> >> + * Return file iterator on success, %NULL otherwise.
-> >> + */
-> >> +struct gcov_iterator *gcov_iter_new(struct gcov_info *info)
-> >> +{
-> >> +	struct gcov_iterator *iter;
-> >> +
-> >> +	iter = kzalloc(sizeof(struct gcov_iterator), GFP_KERNEL);
-> >> +	if (!iter)
-> >> +		goto err_free;
-> >> +
-> >> +	iter->info = info;
-> >> +	/* Dry-run to get the actual buffer size. */
-> >> +	iter->size = convert_to_gcda(NULL, info);
-> >> +	iter->buffer = vmalloc(iter->size);
-> >> +	if (!iter->buffer)
-> >> +		goto err_free;
-> >> +
-> >> +	convert_to_gcda(iter->buffer, info);
-> >> +
-> >> +	return iter;
-> >> +
-> >> +err_free:
-> >> +	kfree(iter);
-> >> +	return NULL;
-> >> +}
-> >> +
-> >> +/**
-> >> + * gcov_iter_free - release memory for iterator
-> >> + * @iter: file iterator to free
-> >> + */
-> >> +void gcov_iter_free(struct gcov_iterator *iter)
-> >> +{
-> >> +	vfree(iter->buffer);
-> >> +	kfree(iter);
-> >> +}
-> >> +
-> >> +/**
-> >> + * gcov_iter_get_info - return profiling data set for given file iterator
-> >> + * @iter: file iterator
-> >> + */
-> >> +struct gcov_info *gcov_iter_get_info(struct gcov_iterator *iter)
-> >> +{
-> >> +	return iter->info;
-> >> +}
-> >> +
-> >> +/**
-> >> + * gcov_iter_start - reset file iterator to starting position
-> >> + * @iter: file iterator
-> >> + */
-> >> +void gcov_iter_start(struct gcov_iterator *iter)
-> >> +{
-> >> +	iter->pos = 0;
-> >> +}
-> >> +
-> >> +/**
-> >> + * gcov_iter_next - advance file iterator to next logical record
-> >> + * @iter: file iterator
-> >> + *
-> >> + * Return zero if new position is valid, non-zero if iterator has reached end.
-> >> + */
-> >> +int gcov_iter_next(struct gcov_iterator *iter)
-> >> +{
-> >> +	if (iter->pos < iter->size)
-> >> +		iter->pos += ITER_STRIDE;
-> >> +	if (iter->pos >= iter->size)
-> >> +		return -EINVAL;
-> >> +
-> >> +	return 0;
-> >> +}
-> >> +
-> >> +/**
-> >> + * gcov_iter_write - write data for current pos to seq_file
-> >> + * @iter: file iterator
-> >> + * @seq: seq_file handle
-> >> + *
-> >> + * Return zero on success, non-zero otherwise.
-> >> + */
-> >> +int gcov_iter_write(struct gcov_iterator *iter, struct seq_file *seq)
-> >> +{
-> >> +	size_t len;
-> >> +
-> >> +	if (iter->pos >= iter->size)
-> >> +		return -EINVAL;
-> >> +
-> >> +	len = ITER_STRIDE;
-> >> +	if (iter->pos + len > iter->size)
-> >> +		len = iter->size - iter->pos;
-> >> +
-> >> +	seq_write(seq, iter->buffer + iter->pos, len);
-> >> +
-> >> +	return 0;
-> >> +}
-> >> +
-> >> +/**
-> >> + * gcov_info_get_filename - return name of the associated gcov data file
-> >> + * @info: profiling data set
-> >> + */
-> >> +const char *gcov_info_get_filename(struct gcov_info *info)
-> >> +{
-> >> +	return info->filename;
-> >> +}
-> >>
-> >> -- 
-> >> Peter Oberparleiter
-> >> Linux on System z Development - IBM Germany
-> 
-> 
-> -- 
-> Peter Oberparleiter
-> Linux on System z Development - IBM Germany
-> 
+Ok.
 
--- 
-Frantisek Hrbata
+ > -	__get_cpu_var(current_asid) = min_asid = asid_range.start;
+> > +	__this_cpu_write(current_asid, min_asid = asid_range.start);
+>
+> This was ugly before but now it's much worse :-)  Please just split it
+> into an assignment to min_asid, then use __this_cpu_write() with
+> min_asid.  Thanks.
+
+Ok.
+
+> The rest is fine.  Would it make more sense for me to fold all these
+> changes into the tile tree and just have it meet in linux-next?  There
+> are certainly a bunch of other changes staged there which likely also
+> include more uses of __get_cpu_var...
+
+Yes. Please stage this patch for the next merge window.
+
+Fixed up patch follows:
+
+
+Subject: tile: Replace __get_cpu_var uses
+Cc: Chris Metcalf <cmetcalf@tilera.com>
+
+__get_cpu_var() is used for multiple purposes in the kernel source. One of them is
+address calculation via the form &__get_cpu_var(x). This calculates the address for
+the instance of the percpu variable of the current processor based on an offset.
+
+Others usage cases are for storing and retrieving data from the current processors percpu area.
+__get_cpu_var() can be used as an lvalue when writing data or on the right side of an assignment.
+
+__get_cpu_var() is defined as :
+
+
+#define __get_cpu_var(var) (*this_cpu_ptr(&(var)))
+
+
+
+__get_cpu_var() always only does a address determination. However, store and retrieve operations
+could use a segment prefix (or global register on other platforms) to avoid the address calculation.
+
+this_cpu_write() and this_cpu_read() can directly take an offset into a percpu area and use
+optimized assembly code to read and write per cpu variables.
+
+
+This patch converts __get_cpu_var into either and explicit address calculation using this_cpu_ptr()
+or into a use of this_cpu operations that use the offset. Thereby address calcualtions are avoided
+and less registers are used when code is generated.
+
+At the end of the patchset all uses of __get_cpu_var have been removed so the macro is removed too.
+
+The patchset includes passes over all arches as well. Once these operations are used throughout then
+specialized macros can be defined in non -x86 arches as well in order to optimize per cpu access by
+f.e. using a global register that may be set to the per cpu base.
+
+
+
+
+Transformations done to __get_cpu_var()
+
+
+1. Determine the address of the percpu instance of the current processor.
+
+	DEFINE_PER_CPU(int, y);
+	int *x = &__get_cpu_var(y);
+
+    Converts to
+
+	int *x = this_cpu_ptr(&y);
+
+
+2. Same as #1 but this time an array structure is involved.
+
+	DEFINE_PER_CPU(int, y[20]);
+	int *x = __get_cpu_var(y);
+
+    Converts to
+
+	int *x = this_cpu_ptr(y);
+
+
+3. Retrieve the content of the current processors instance of a per cpu variable.
+
+	DEFINE_PER_CPU(int, u);
+	int x = __get_cpu_var(y)
+
+   Converts to
+
+	int x = __this_cpu_read(y);
+
+
+4. Retrieve the content of a percpu struct
+
+	DEFINE_PER_CPU(struct mystruct, y);
+	struct mystruct x = __get_cpu_var(y);
+
+   Converts to
+
+	memcpy(this_cpu_ptr(&y), x, sizeof(x));
+
+
+5. Assignment to a per cpu variable
+
+	DEFINE_PER_CPU(int, y)
+	__get_cpu_var(y) = x;
+
+   Converts to
+
+	this_cpu_write(y, x);
+
+
+6. Increment/Decrement etc of a per cpu variable
+
+	DEFINE_PER_CPU(int, y);
+	__get_cpu_var(y)++
+
+   Converts to
+
+	this_cpu_inc(y)
+
+
+
+Signed-off-by: Christoph Lameter <cl@linux.com>
+
+Index: linux/arch/tile/include/asm/mmu_context.h
+===================================================================
+--- linux.orig/arch/tile/include/asm/mmu_context.h	2013-08-27 09:42:50.925976615 -0500
++++ linux/arch/tile/include/asm/mmu_context.h	2013-08-27 09:42:50.913976738 -0500
+@@ -84,7 +84,7 @@ static inline void enter_lazy_tlb(struct
+ 	 * clear any pending DMA interrupts.
+ 	 */
+ 	if (current->thread.tile_dma_state.enabled)
+-		install_page_table(mm->pgd, __get_cpu_var(current_asid));
++		install_page_table(mm->pgd, __this_cpu_read(current_asid));
+ #endif
+ }
+
+@@ -96,12 +96,12 @@ static inline void switch_mm(struct mm_s
+ 		int cpu = smp_processor_id();
+
+ 		/* Pick new ASID. */
+-		int asid = __get_cpu_var(current_asid) + 1;
++		int asid = __this_cpu_read(current_asid) + 1;
+ 		if (asid > max_asid) {
+ 			asid = min_asid;
+ 			local_flush_tlb();
+ 		}
+-		__get_cpu_var(current_asid) = asid;
++		__this_cpu_write(current_asid, asid);
+
+ 		/* Clear cpu from the old mm, and set it in the new one. */
+ 		cpumask_clear_cpu(cpu, mm_cpumask(prev));
+Index: linux/arch/tile/kernel/irq.c
+===================================================================
+--- linux.orig/arch/tile/kernel/irq.c	2013-08-27 09:42:50.925976615 -0500
++++ linux/arch/tile/kernel/irq.c	2013-08-27 09:44:04.321219883 -0500
+@@ -77,7 +77,7 @@ static DEFINE_SPINLOCK(available_irqs_lo
+  */
+ void tile_dev_intr(struct pt_regs *regs, int intnum)
+ {
+-	int depth = __get_cpu_var(irq_depth)++;
++	int depth = __this_cpu_inc_return(irq_depth);
+ 	unsigned long original_irqs;
+ 	unsigned long remaining_irqs;
+ 	struct pt_regs *old_regs;
+@@ -124,7 +124,7 @@ void tile_dev_intr(struct pt_regs *regs,
+
+ 		/* Count device irqs; Linux IPIs are counted elsewhere. */
+ 		if (irq != IRQ_RESCHEDULE)
+-			__get_cpu_var(irq_stat).irq_dev_intr_count++;
++			__this_cpu_inc(irq_stat.irq_dev_intr_count);
+
+ 		generic_handle_irq(irq);
+ 	}
+@@ -134,10 +134,10 @@ void tile_dev_intr(struct pt_regs *regs,
+ 	 * including any that were reenabled during interrupt
+ 	 * handling.
+ 	 */
+-	if (depth == 0)
+-		unmask_irqs(~__get_cpu_var(irq_disable_mask));
++	if (depth == 1)
++		unmask_irqs(~__this_cpu_read(irq_disable_mask));
+
+-	__get_cpu_var(irq_depth)--;
++	__this_cpu_dec(irq_depth);
+
+ 	/*
+ 	 * Track time spent against the current process again and
+@@ -155,7 +155,7 @@ void tile_dev_intr(struct pt_regs *regs,
+ static void tile_irq_chip_enable(struct irq_data *d)
+ {
+ 	get_cpu_var(irq_disable_mask) &= ~(1UL << d->irq);
+-	if (__get_cpu_var(irq_depth) == 0)
++	if (__this_cpu_read(irq_depth) == 0)
+ 		unmask_irqs(1UL << d->irq);
+ 	put_cpu_var(irq_disable_mask);
+ }
+@@ -201,7 +201,7 @@ static void tile_irq_chip_ack(struct irq
+  */
+ static void tile_irq_chip_eoi(struct irq_data *d)
+ {
+-	if (!(__get_cpu_var(irq_disable_mask) & (1UL << d->irq)))
++	if (!(__this_cpu_read(irq_disable_mask) & (1UL << d->irq)))
+ 		unmask_irqs(1UL << d->irq);
+ }
+
+Index: linux/arch/tile/kernel/messaging.c
+===================================================================
+--- linux.orig/arch/tile/kernel/messaging.c	2013-08-27 09:42:50.925976615 -0500
++++ linux/arch/tile/kernel/messaging.c	2013-08-27 09:42:50.913976738 -0500
+@@ -28,7 +28,7 @@ static DEFINE_PER_CPU(HV_MsgState, msg_s
+ void init_messaging(void)
+ {
+ 	/* Allocate storage for messages in kernel space */
+-	HV_MsgState *state = &__get_cpu_var(msg_state);
++	HV_MsgState *state = this_cpu_ptr(&msg_state);
+ 	int rc = hv_register_message_state(state);
+ 	if (rc != HV_OK)
+ 		panic("hv_register_message_state: error %d", rc);
+@@ -68,7 +68,7 @@ void hv_message_intr(struct pt_regs *reg
+ #endif
+
+ 	while (1) {
+-		rmi = hv_receive_message(__get_cpu_var(msg_state),
++		rmi = hv_receive_message(__this_cpu_read(msg_state),
+ 					 (HV_VirtAddr) message,
+ 					 sizeof(message));
+ 		if (rmi.msglen == 0)
+@@ -96,7 +96,7 @@ void hv_message_intr(struct pt_regs *reg
+ 			struct hv_driver_cb *cb =
+ 				(struct hv_driver_cb *)him->intarg;
+ 			cb->callback(cb, him->intdata);
+-			__get_cpu_var(irq_stat).irq_hv_msg_count++;
++			__this_cpu_inc(irq_stat.irq_hv_msg_count);
+ 		}
+ 	}
+
+Index: linux/arch/tile/kernel/process.c
+===================================================================
+--- linux.orig/arch/tile/kernel/process.c	2013-08-27 09:42:50.925976615 -0500
++++ linux/arch/tile/kernel/process.c	2013-08-27 09:42:50.913976738 -0500
+@@ -63,7 +63,7 @@ early_param("idle", idle_setup);
+
+ void arch_cpu_idle(void)
+ {
+-	__get_cpu_var(irq_stat).idle_timestamp = jiffies;
++	__this_cpu_write(irq_stat.idle_timestamp, jiffies);
+ 	_cpu_idle();
+ }
+
+Index: linux/arch/tile/kernel/setup.c
+===================================================================
+--- linux.orig/arch/tile/kernel/setup.c	2013-08-27 09:42:50.925976615 -0500
++++ linux/arch/tile/kernel/setup.c	2013-08-27 09:44:57.600670623 -0500
+@@ -1119,7 +1119,8 @@ static void __init validate_hv(void)
+ 	 * various asid variables to their appropriate initial states.
+ 	 */
+ 	asid_range = hv_inquire_asid(0);
+-	__get_cpu_var(current_asid) = min_asid = asid_range.start;
++	min_asid = asid_range.start;
++	__this_cpu_write(current_asid, min_asid);
+ 	max_asid = asid_range.start + asid_range.size - 1;
+
+ 	if (hv_confstr(HV_CONFSTR_CHIP_MODEL, (HV_VirtAddr)chip_model,
+Index: linux/arch/tile/kernel/single_step.c
+===================================================================
+--- linux.orig/arch/tile/kernel/single_step.c	2013-08-27 09:42:50.925976615 -0500
++++ linux/arch/tile/kernel/single_step.c	2013-08-27 09:42:50.917976698 -0500
+@@ -732,7 +732,7 @@ static DEFINE_PER_CPU(unsigned long, ss_
+
+ void gx_singlestep_handle(struct pt_regs *regs, int fault_num)
+ {
+-	unsigned long *ss_pc = &__get_cpu_var(ss_saved_pc);
++	unsigned long *ss_pc = this_cpu_ptr(&ss_saved_pc);
+ 	struct thread_info *info = (void *)current_thread_info();
+ 	int is_single_step = test_ti_thread_flag(info, TIF_SINGLESTEP);
+ 	unsigned long control = __insn_mfspr(SPR_SINGLE_STEP_CONTROL_K);
+@@ -758,7 +758,7 @@ void gx_singlestep_handle(struct pt_regs
+
+ void single_step_once(struct pt_regs *regs)
+ {
+-	unsigned long *ss_pc = &__get_cpu_var(ss_saved_pc);
++	unsigned long *ss_pc = this_cpu_ptr(&ss_saved_pc);
+ 	unsigned long control = __insn_mfspr(SPR_SINGLE_STEP_CONTROL_K);
+
+ 	*ss_pc = regs->pc;
+Index: linux/arch/tile/kernel/smp.c
+===================================================================
+--- linux.orig/arch/tile/kernel/smp.c	2013-08-27 09:42:50.925976615 -0500
++++ linux/arch/tile/kernel/smp.c	2013-08-27 09:42:50.917976698 -0500
+@@ -176,7 +176,7 @@ void flush_icache_range(unsigned long st
+ /* Called when smp_send_reschedule() triggers IRQ_RESCHEDULE. */
+ static irqreturn_t handle_reschedule_ipi(int irq, void *token)
+ {
+-	__get_cpu_var(irq_stat).irq_resched_count++;
++	__this_cpu_inc(irq_stat.irq_resched_count);
+ 	scheduler_ipi();
+
+ 	return IRQ_HANDLED;
+Index: linux/arch/tile/kernel/smpboot.c
+===================================================================
+--- linux.orig/arch/tile/kernel/smpboot.c	2013-08-27 09:42:50.925976615 -0500
++++ linux/arch/tile/kernel/smpboot.c	2013-08-27 09:42:50.917976698 -0500
+@@ -41,7 +41,7 @@ void __init smp_prepare_boot_cpu(void)
+ 	int cpu = smp_processor_id();
+ 	set_cpu_online(cpu, 1);
+ 	set_cpu_present(cpu, 1);
+-	__get_cpu_var(cpu_state) = CPU_ONLINE;
++	__this_cpu_write(cpu_state, CPU_ONLINE);
+
+ 	init_messaging();
+ }
+@@ -156,7 +156,7 @@ static void start_secondary(void)
+ 	/* printk(KERN_DEBUG "Initializing CPU#%d\n", cpuid); */
+
+ 	/* Initialize the current asid for our first page table. */
+-	__get_cpu_var(current_asid) = min_asid;
++	__this_cpu_write(current_asid, min_asid);
+
+ 	/* Set up this thread as another owner of the init_mm */
+ 	atomic_inc(&init_mm.mm_count);
+@@ -199,7 +199,7 @@ void online_secondary(void)
+ 	notify_cpu_starting(smp_processor_id());
+
+ 	set_cpu_online(smp_processor_id(), 1);
+-	__get_cpu_var(cpu_state) = CPU_ONLINE;
++	__this_cpu_write(cpu_state, CPU_ONLINE);
+
+ 	/* Set up tile-specific state for this cpu. */
+ 	setup_cpu(0);
+Index: linux/arch/tile/kernel/time.c
+===================================================================
+--- linux.orig/arch/tile/kernel/time.c	2013-08-27 09:42:50.925976615 -0500
++++ linux/arch/tile/kernel/time.c	2013-08-27 09:42:50.917976698 -0500
+@@ -161,7 +161,7 @@ static DEFINE_PER_CPU(struct clock_event
+
+ void setup_tile_timer(void)
+ {
+-	struct clock_event_device *evt = &__get_cpu_var(tile_timer);
++	struct clock_event_device *evt = this_cpu_ptr(&tile_timer);
+
+ 	/* Fill in fields that are speed-specific. */
+ 	clockevents_calc_mult_shift(evt, cycles_per_sec, TILE_MINSEC);
+@@ -181,7 +181,7 @@ void setup_tile_timer(void)
+ void do_timer_interrupt(struct pt_regs *regs, int fault_num)
+ {
+ 	struct pt_regs *old_regs = set_irq_regs(regs);
+-	struct clock_event_device *evt = &__get_cpu_var(tile_timer);
++	struct clock_event_device *evt = this_cpu_ptr(&tile_timer);
+
+ 	/*
+ 	 * Mask the timer interrupt here, since we are a oneshot timer
+@@ -193,7 +193,7 @@ void do_timer_interrupt(struct pt_regs *
+ 	irq_enter();
+
+ 	/* Track interrupt count. */
+-	__get_cpu_var(irq_stat).irq_timer_count++;
++	__this_cpu_inc(irq_stat.irq_timer_count);
+
+ 	/* Call the generic timer handler */
+ 	evt->event_handler(evt);
+@@ -234,6 +234,6 @@ cycles_t ns2cycles(unsigned long nsecs)
+ 	 * We do not have to disable preemption here as each core has the same
+ 	 * clock frequency.
+ 	 */
+-	struct clock_event_device *dev = &__raw_get_cpu_var(tile_timer);
++	struct clock_event_device *dev = __this_cpu_ptr(&tile_timer);
+ 	return ((u64)nsecs * dev->mult) >> dev->shift;
+ }
+Index: linux/arch/tile/mm/highmem.c
+===================================================================
+--- linux.orig/arch/tile/mm/highmem.c	2013-08-27 09:42:50.925976615 -0500
++++ linux/arch/tile/mm/highmem.c	2013-08-27 09:42:50.917976698 -0500
+@@ -103,7 +103,7 @@ static void kmap_atomic_register(struct
+ 	spin_lock(&amp_lock);
+
+ 	/* With interrupts disabled, now fill in the per-cpu info. */
+-	amp = &__get_cpu_var(amps).per_type[type];
++	amp = this_cpu_ptr(&amps.per_type[type]);
+ 	amp->page = page;
+ 	amp->cpu = smp_processor_id();
+ 	amp->va = va;
+Index: linux/arch/tile/mm/init.c
+===================================================================
+--- linux.orig/arch/tile/mm/init.c	2013-08-27 09:42:50.925976615 -0500
++++ linux/arch/tile/mm/init.c	2013-08-27 09:42:50.917976698 -0500
+@@ -625,14 +625,14 @@ static void __init kernel_physical_mappi
+ 	interrupt_mask_set_mask(-1ULL);
+ 	rc = flush_and_install_context(__pa(pgtables),
+ 				       init_pgprot((unsigned long)pgtables),
+-				       __get_cpu_var(current_asid),
++				       __this_cpu_read(current_asid),
+ 				       cpumask_bits(my_cpu_mask));
+ 	interrupt_mask_restore_mask(irqmask);
+ 	BUG_ON(rc != 0);
+
+ 	/* Copy the page table back to the normal swapper_pg_dir. */
+ 	memcpy(pgd_base, pgtables, sizeof(pgtables));
+-	__install_page_table(pgd_base, __get_cpu_var(current_asid),
++	__install_page_table(pgd_base, __this_cpu_read(current_asid),
+ 			     swapper_pgprot);
+
+ 	/*
