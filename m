@@ -1,18 +1,13 @@
 From: Christoph Lameter <cl@linux.com>
-Subject: [gcv v3 32/35] arc: Replace __get_cpu_var uses
+Subject: [gcv v3 28/35] blackfin: Replace __get_cpu_var uses
 Date: Wed, 28 Aug 2013 19:48:15 +0000
-Message-ID: <00000140c6781cab-d0df0392-b65b-4213-8be0-1e4a04f67fb2-000000@email.amazonses.com>
+Message-ID: <00000140c6781be0-4ba169f7-2448-48bc-b062-2a51f381ea0c-000000@email.amazonses.com>
 References: <20130828193457.140443630@linux.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from b232-35.smtp-out.amazonses.com ([199.127.232.35]:14325 "EHLO
-	b232-35.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755430Ab3H1T5j (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 28 Aug 2013 15:57:39 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, Vineet Gupta <vgupta@synopsys.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+Cc: akpm@linuxfoundation.org, Mike Frysinger <vapier@gentoo.org>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 __get_cpu_var() is used for multiple purposes in the kernel source. One of them is
 address calculation via the form &__get_cpu_var(x). This calculates the address for
@@ -112,48 +107,101 @@ Transformations done to __get_cpu_var()
 
 
 
-Acked-by: Vineet Gupta <vgupta@synopsys.com>
-Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Index: linux/arch/arc/kernel/kprobes.c
+
+Index: linux/arch/blackfin/include/asm/ipipe.h
 ===================================================================
---- linux.orig/arch/arc/kernel/kprobes.c	2013-08-26 13:28:53.000000000 -0500
-+++ linux/arch/arc/kernel/kprobes.c	2013-08-26 13:29:19.285103021 -0500
-@@ -87,13 +87,13 @@ static void __kprobes save_previous_kpro
- 
- static void __kprobes restore_previous_kprobe(struct kprobe_ctlblk *kcb)
- {
--	__get_cpu_var(current_kprobe) = kcb->prev_kprobe.kp;
-+	__this_cpu_write(current_kprobe, kcb->prev_kprobe.kp);
- 	kcb->kprobe_status = kcb->prev_kprobe.status;
+--- linux.orig/arch/blackfin/include/asm/ipipe.h	2013-08-26 13:25:18.000000000 -0500
++++ linux/arch/blackfin/include/asm/ipipe.h	2013-08-26 13:26:23.578979325 -0500
+@@ -157,7 +157,7 @@ static inline unsigned long __ipipe_ffnz
  }
  
- static inline void __kprobes set_current_kprobe(struct kprobe *p)
- {
--	__get_cpu_var(current_kprobe) = p;
-+	__this_cpu_write(current_kprobe, p);
- }
+ #define __ipipe_do_root_xirq(ipd, irq)					\
+-	((ipd)->irqs[irq].handler(irq, &__raw_get_cpu_var(__ipipe_tick_regs)))
++	((ipd)->irqs[irq].handler(irq, __this_cpu_ptr(&__ipipe_tick_regs)))
  
- static void __kprobes resume_execution(struct kprobe *p, unsigned long addr,
-@@ -237,7 +237,7 @@ int __kprobes arc_kprobe_handler(unsigne
- 
- 		return 1;
- 	} else if (kprobe_running()) {
--		p = __get_cpu_var(current_kprobe);
-+		p = __this_cpu_read(current_kprobe);
- 		if (p->break_handler && p->break_handler(p, regs)) {
- 			setup_singlestep(p, regs);
- 			kcb->kprobe_status = KPROBE_HIT_SS;
-Index: linux/arch/arc/kernel/time.c
+ #define __ipipe_run_irqtail(irq)  /* Must be a macro */			\
+ 	do {								\
+Index: linux/arch/blackfin/kernel/perf_event.c
 ===================================================================
---- linux.orig/arch/arc/kernel/time.c	2013-08-26 13:28:53.000000000 -0500
-+++ linux/arch/arc/kernel/time.c	2013-08-26 13:29:19.285103021 -0500
-@@ -206,7 +206,7 @@ static DEFINE_PER_CPU(struct clock_event
+--- linux.orig/arch/blackfin/kernel/perf_event.c	2013-08-26 13:25:18.000000000 -0500
++++ linux/arch/blackfin/kernel/perf_event.c	2013-08-26 13:26:23.578979325 -0500
+@@ -300,7 +300,7 @@ again:
  
- static irqreturn_t timer_irq_handler(int irq, void *dev_id)
+ static void bfin_pmu_stop(struct perf_event *event, int flags)
  {
--	struct clock_event_device *clk = &__get_cpu_var(arc_clockevent_device);
-+	struct clock_event_device *clk = this_cpu_ptr(&arc_clockevent_device);
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 	struct hw_perf_event *hwc = &event->hw;
+ 	int idx = hwc->idx;
  
- 	arc_timer_event_ack(clk->mode == CLOCK_EVT_MODE_PERIODIC);
- 	clk->event_handler(clk);
+@@ -318,7 +318,7 @@ static void bfin_pmu_stop(struct perf_ev
+ 
+ static void bfin_pmu_start(struct perf_event *event, int flags)
+ {
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 	struct hw_perf_event *hwc = &event->hw;
+ 	int idx = hwc->idx;
+ 
+@@ -335,7 +335,7 @@ static void bfin_pmu_start(struct perf_e
+ 
+ static void bfin_pmu_del(struct perf_event *event, int flags)
+ {
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 
+ 	bfin_pmu_stop(event, PERF_EF_UPDATE);
+ 	__clear_bit(event->hw.idx, cpuc->used_mask);
+@@ -345,7 +345,7 @@ static void bfin_pmu_del(struct perf_eve
+ 
+ static int bfin_pmu_add(struct perf_event *event, int flags)
+ {
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 	struct hw_perf_event *hwc = &event->hw;
+ 	int idx = hwc->idx;
+ 	int ret = -EAGAIN;
+@@ -429,7 +429,7 @@ static int bfin_pmu_event_init(struct pe
+ 
+ static void bfin_pmu_enable(struct pmu *pmu)
+ {
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 	struct perf_event *event;
+ 	struct hw_perf_event *hwc;
+ 	int i;
+Index: linux/arch/blackfin/mach-common/ints-priority.c
+===================================================================
+--- linux.orig/arch/blackfin/mach-common/ints-priority.c	2013-08-26 13:25:18.000000000 -0500
++++ linux/arch/blackfin/mach-common/ints-priority.c	2013-08-26 13:26:23.578979325 -0500
+@@ -1675,12 +1675,12 @@ asmlinkage int __ipipe_grab_irq(int vec,
+ 		bfin_write_TIMER_STATUS(1); /* Latch TIMIL0 */
+ #endif
+ 		/* This is basically what we need from the register frame. */
+-		__raw_get_cpu_var(__ipipe_tick_regs).ipend = regs->ipend;
+-		__raw_get_cpu_var(__ipipe_tick_regs).pc = regs->pc;
++		__this_cpu_write(__ipipe_tick_regs.ipend, regs->ipend);
++		__this_cpu_write(__ipipe_tick_regs.pc, regs->pc);
+ 		if (this_domain != ipipe_root_domain)
+-			__raw_get_cpu_var(__ipipe_tick_regs).ipend &= ~0x10;
++			__this_cpu_and(__ipipe_tick_regs.ipend, ~0x10);
+ 		else
+-			__raw_get_cpu_var(__ipipe_tick_regs).ipend |= 0x10;
++			__this_cpu_or(__ipipe_tick_regs.ipend, 0x10);
+ 	}
+ 
+ 	/*
+Index: linux/arch/blackfin/mach-common/smp.c
+===================================================================
+--- linux.orig/arch/blackfin/mach-common/smp.c	2013-08-26 13:25:18.000000000 -0500
++++ linux/arch/blackfin/mach-common/smp.c	2013-08-26 13:26:23.578979325 -0500
+@@ -146,7 +146,7 @@ static irqreturn_t ipi_handler_int1(int
+ 
+ 	platform_clear_ipi(cpu, IRQ_SUPPLE_1);
+ 
+-	bfin_ipi_data = &__get_cpu_var(bfin_ipi);
++	bfin_ipi_data = this_cpu_ptr(&bfin_ipi);
+ 	while ((pending = atomic_xchg(&bfin_ipi_data->bits, 0)) != 0) {
+ 		msg = 0;
+ 		do {
