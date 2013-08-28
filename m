@@ -1,53 +1,47 @@
-From: Christoph Lameter <cl@linux.com>
+From: Chris Metcalf <cmetcalf@tilera.com>
 Subject: Re: [guv v2 23/31] tile: Replace __get_cpu_var uses
-Date: Wed, 28 Aug 2013 17:54:24 +0000
-Message-ID: <00000140c60fe2a0-aff878d7-06b3-4fe8-b97f-b319183f3f52-000000@email.amazonses.com>
-References: <20130826204351.725357339@linux.com> <00000140bc69acdb-3b2967b0-e224-424b-ad08-973515704be6-000000@email.amazonses.com> <521BD523.3040706@tilera.com> <00000140c03f13d6-07480caf-b5b0-440b-af95-04878ee9f46c-000000@email.amazonses.com>
- <521E312C.2050004@tilera.com>
+Date: Wed, 28 Aug 2013 14:13:41 -0400
+Message-ID: <521E3DD5.6020409@tilera.com>
+References: <20130826204351.725357339@linux.com> <00000140bc69acdb-3b2967b0-e224-424b-ad08-973515704be6-000000@email.amazonses.com> <521BD523.3040706@tilera.com> <00000140c03f13d6-07480caf-b5b0-440b-af95-04878ee9f46c-000000@email.amazonses.com> <521E312C.2050004@tilera.com> <00000140c60fe2a0-aff878d7-06b3-4fe8-b97f-b319183f3f52-000000@email.amazonses.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a194-81.smtp-out.amazonses.com ([199.255.194.81]:29917 "EHLO
-	a194-81.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753047Ab3H1SDq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 28 Aug 2013 14:03:46 -0400
-In-Reply-To: <521E312C.2050004@tilera.com>
+Received: from usmamail.tilera.com ([12.216.194.151]:44567 "EHLO
+	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753901Ab3H1SNm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Aug 2013 14:13:42 -0400
+In-Reply-To: <00000140c60fe2a0-aff878d7-06b3-4fe8-b97f-b319183f3f52-000000@email.amazonses.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@tilera.com>
+To: Christoph Lameter <cl@linux.com>
 Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
 
-On Wed, 28 Aug 2013, Chris Metcalf wrote:
+On 8/28/2013 1:54 PM, Christoph Lameter wrote:
+> On Wed, 28 Aug 2013, Chris Metcalf wrote:
+>> In addition, I applied the following commit to clean up the remaining
+>> uses that are currently only being carried in the linux-tile tree.
+> You are going to merge these changes right? I can drop the tile patch from
+> my series?
 
-> Taken into the tile tree, with one extra change; in
-> arch/tile/kernel/messaging.c, using "__this_cpu_read(msg_state)"
-> generated warnings ("'pscr_ret__.opaque[1u]' is used uninitialized in
-> this function", etc), since msg_state is a struct, so I changed it to be
-> "*__this_cpu_ptr(&msg_state)".  Interrupts are disabled here so
-> preemption is not a concern.
+Yes, I am, so please feel free to drop it.
 
-Well yes. __this_cpu_read can only be used to read scalars. If you want to
-transfer a struct then memcpy needs to be used (or the compiler can do
-that for you like above).
+> One small issue below:
+>
+>> diff --git a/arch/tile/kernel/time.c b/arch/tile/kernel/time.c
+>> index a7a41a1..30c2c34 100644
+>> --- a/arch/tile/kernel/time.c
+>> +++ b/arch/tile/kernel/time.c
+>> @@ -286,7 +286,7 @@ static int _set_clock_rate_barrier;
+>>  static int _set_clock_rate(void *arg)
+>>  {
+>>         struct _set_clock_rate_args *args = arg;
+>> -       struct clock_event_device *evt = &__get_cpu_var(tile_timer);
+>> +       struct clock_event_device *evt = get_cpu_ptr(&tile_timer);
+> 					^^^^ this_cpu_ptr
 
-> In addition, I applied the following commit to clean up the remaining
-> uses that are currently only being carried in the linux-tile tree.
+Thanks, good catch.  Annoying to have preemption disabled forever otherwise :-)
 
-You are going to merge these changes right? I can drop the tile patch from
-my series?
-
-
-One small issue below:
-
-> diff --git a/arch/tile/kernel/time.c b/arch/tile/kernel/time.c
-> index a7a41a1..30c2c34 100644
-> --- a/arch/tile/kernel/time.c
-> +++ b/arch/tile/kernel/time.c
-> @@ -286,7 +286,7 @@ static int _set_clock_rate_barrier;
->  static int _set_clock_rate(void *arg)
->  {
->         struct _set_clock_rate_args *args = arg;
-> -       struct clock_event_device *evt = &__get_cpu_var(tile_timer);
-> +       struct clock_event_device *evt = get_cpu_ptr(&tile_timer);
-					^^^^ this_cpu_ptr
+-- 
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
