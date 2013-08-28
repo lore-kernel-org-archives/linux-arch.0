@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from a10-51.smtp-out.amazonses.com ([54.240.10.51]:59061 "EHLO
-	a10-51.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755239Ab3H1TsR (ORCPT
+Received: from a9-78.smtp-out.amazonses.com ([54.240.9.78]:41415 "EHLO
+	a9-78.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755183Ab3H1TsQ (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 28 Aug 2013 15:48:17 -0400
-Message-ID: <00000140c6781cfa-5624d7f6-8021-42d1-a6ab-d98d2a20d763-000000@email.amazonses.com>
-Date: Wed, 28 Aug 2013 19:48:16 +0000
+	Wed, 28 Aug 2013 15:48:16 -0400
+Message-ID: <00000140c6781c2f-3662e9d5-678c-4103-88e9-b96dfa5f4022-000000@email.amazonses.com>
+Date: Wed, 28 Aug 2013 19:48:15 +0000
 From: Christoph Lameter <cl@linux.com>
-Subject: [gcv v3 19/35] drivers: Replace __get_cpu_var uses
+Subject: [gcv v3 16/35] drivers/oprofile: Replace __get_cpu_var uses
 References: <20130828193457.140443630@linux.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, James Hogan <james.hogan@imgtec.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
-Message-ID: <20130828194816.nQqRZ4mbEVzG3IxUh3EPLkz9x8XpLkMoCffhyH26tlA@z>
+Cc: akpm@linuxfoundation.org, Robert Richter <rric@kernel.org>, oprofile-list@lists.sf.net, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+Message-ID: <20130828194815.-kxZbkknWsOJucfkmdfNJz5Fi7m0BARD5H5vc_s43sA@z>
 
 __get_cpu_var() is used for multiple purposes in the kernel source. One of them is
 address calculation via the form &__get_cpu_var(x). This calculates the address for
@@ -115,17 +115,64 @@ Transformations done to __get_cpu_var()
 
 Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Index: linux/drivers/clocksource/metag_generic.c
+Index: linux/drivers/oprofile/cpu_buffer.c
 ===================================================================
---- linux.orig/drivers/clocksource/metag_generic.c	2013-08-27 14:47:06.602928492 -0500
-+++ linux/drivers/clocksource/metag_generic.c	2013-08-27 14:47:06.594928572 -0500
-@@ -90,7 +90,7 @@ static struct clocksource clocksource_me
+--- linux.orig/drivers/oprofile/cpu_buffer.c	2013-08-27 14:36:45.000000000 -0500
++++ linux/drivers/oprofile/cpu_buffer.c	2013-08-27 14:37:04.284928047 -0500
+@@ -45,7 +45,7 @@ unsigned long oprofile_get_cpu_buffer_si
  
- static irqreturn_t metag_timer_interrupt(int irq, void *dummy)
+ void oprofile_cpu_buffer_inc_smpl_lost(void)
  {
--	struct clock_event_device *evt = &__get_cpu_var(local_clockevent);
-+	struct clock_event_device *evt = this_cpu_ptr(&local_clockevent);
+-	struct oprofile_cpu_buffer *cpu_buf = &__get_cpu_var(op_cpu_buffer);
++	struct oprofile_cpu_buffer *cpu_buf = this_cpu_ptr(&op_cpu_buffer);
  
- 	evt->event_handler(evt);
+ 	cpu_buf->sample_lost_overflow++;
+ }
+@@ -297,7 +297,7 @@ __oprofile_add_ext_sample(unsigned long
+ 			  unsigned long event, int is_kernel,
+ 			  struct task_struct *task)
+ {
+-	struct oprofile_cpu_buffer *cpu_buf = &__get_cpu_var(op_cpu_buffer);
++	struct oprofile_cpu_buffer *cpu_buf = this_cpu_ptr(&op_cpu_buffer);
+ 	unsigned long backtrace = oprofile_backtrace_depth;
  
+ 	/*
+@@ -357,7 +357,7 @@ oprofile_write_reserve(struct op_entry *
+ {
+ 	struct op_sample *sample;
+ 	int is_kernel = !user_mode(regs);
+-	struct oprofile_cpu_buffer *cpu_buf = &__get_cpu_var(op_cpu_buffer);
++	struct oprofile_cpu_buffer *cpu_buf = this_cpu_ptr(&op_cpu_buffer);
+ 
+ 	cpu_buf->sample_received++;
+ 
+@@ -412,13 +412,13 @@ int oprofile_write_commit(struct op_entr
+ 
+ void oprofile_add_pc(unsigned long pc, int is_kernel, unsigned long event)
+ {
+-	struct oprofile_cpu_buffer *cpu_buf = &__get_cpu_var(op_cpu_buffer);
++	struct oprofile_cpu_buffer *cpu_buf = this_cpu_ptr(&op_cpu_buffer);
+ 	log_sample(cpu_buf, pc, 0, is_kernel, event, NULL);
+ }
+ 
+ void oprofile_add_trace(unsigned long pc)
+ {
+-	struct oprofile_cpu_buffer *cpu_buf = &__get_cpu_var(op_cpu_buffer);
++	struct oprofile_cpu_buffer *cpu_buf = this_cpu_ptr(&op_cpu_buffer);
+ 
+ 	if (!cpu_buf->tracing)
+ 		return;
+Index: linux/drivers/oprofile/timer_int.c
+===================================================================
+--- linux.orig/drivers/oprofile/timer_int.c	2013-08-27 14:36:45.000000000 -0500
++++ linux/drivers/oprofile/timer_int.c	2013-08-27 14:37:04.284928047 -0500
+@@ -32,7 +32,7 @@ static enum hrtimer_restart oprofile_hrt
+ 
+ static void __oprofile_hrtimer_start(void *unused)
+ {
+-	struct hrtimer *hrtimer = &__get_cpu_var(oprofile_hrtimer);
++	struct hrtimer *hrtimer = this_cpu_ptr(&oprofile_hrtimer);
+ 
+ 	if (!ctr_running)
+ 		return;
 
