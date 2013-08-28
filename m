@@ -1,18 +1,13 @@
 From: Christoph Lameter <cl@linux.com>
-Subject: [gcv v3 12/35] watchdog: Replace __get_cpu_var uses
-Date: Wed, 28 Aug 2013 19:48:14 +0000
-Message-ID: <00000140c6781711-904ca320-545b-48d2-abfa-c3d8a9d273b9-000000@email.amazonses.com>
+Subject: [gcv v3 16/35] drivers/oprofile: Replace __get_cpu_var uses
+Date: Wed, 28 Aug 2013 19:48:15 +0000
+Message-ID: <00000140c6781c2f-3662e9d5-678c-4103-88e9-b96dfa5f4022-000000@email.amazonses.com>
 References: <20130828193457.140443630@linux.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a9-58.smtp-out.amazonses.com ([54.240.9.58]:60907 "EHLO
-	a9-58.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754543Ab3H1TsP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 28 Aug 2013 15:48:15 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, Wim Van Sebroeck <wim@iguana.be>, linux-watchdog@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+Cc: akpm@linuxfoundation.org, Robert Richter <rric@kernel.org>, oprofile-list@lists.sf.net, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 __get_cpu_var() is used for multiple purposes in the kernel source. One of them is
 address calculation via the form &__get_cpu_var(x). This calculates the address for
@@ -110,38 +105,67 @@ Transformations done to __get_cpu_var()
 
 	this_cpu_inc(y)
 
+
+
 Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Index: linux/kernel/watchdog.c
+Index: linux/drivers/oprofile/cpu_buffer.c
 ===================================================================
---- linux.orig/kernel/watchdog.c	2013-08-26 14:28:39.000000000 -0500
-+++ linux/kernel/watchdog.c	2013-08-26 14:29:34.471034451 -0500
-@@ -174,8 +174,8 @@ EXPORT_SYMBOL(touch_nmi_watchdog);
+--- linux.orig/drivers/oprofile/cpu_buffer.c	2013-08-27 14:36:45.000000000 -0500
++++ linux/drivers/oprofile/cpu_buffer.c	2013-08-27 14:37:04.284928047 -0500
+@@ -45,7 +45,7 @@ unsigned long oprofile_get_cpu_buffer_si
  
- void touch_softlockup_watchdog_sync(void)
+ void oprofile_cpu_buffer_inc_smpl_lost(void)
  {
--	__raw_get_cpu_var(softlockup_touch_sync) = true;
--	__raw_get_cpu_var(watchdog_touch_ts) = 0;
-+	__this_cpu_write(softlockup_touch_sync, 1);
-+	__this_cpu_write(watchdog_touch_ts, 0);
+-	struct oprofile_cpu_buffer *cpu_buf = &__get_cpu_var(op_cpu_buffer);
++	struct oprofile_cpu_buffer *cpu_buf = this_cpu_ptr(&op_cpu_buffer);
+ 
+ 	cpu_buf->sample_lost_overflow++;
+ }
+@@ -297,7 +297,7 @@ __oprofile_add_ext_sample(unsigned long
+ 			  unsigned long event, int is_kernel,
+ 			  struct task_struct *task)
+ {
+-	struct oprofile_cpu_buffer *cpu_buf = &__get_cpu_var(op_cpu_buffer);
++	struct oprofile_cpu_buffer *cpu_buf = this_cpu_ptr(&op_cpu_buffer);
+ 	unsigned long backtrace = oprofile_backtrace_depth;
+ 
+ 	/*
+@@ -357,7 +357,7 @@ oprofile_write_reserve(struct op_entry *
+ {
+ 	struct op_sample *sample;
+ 	int is_kernel = !user_mode(regs);
+-	struct oprofile_cpu_buffer *cpu_buf = &__get_cpu_var(op_cpu_buffer);
++	struct oprofile_cpu_buffer *cpu_buf = this_cpu_ptr(&op_cpu_buffer);
+ 
+ 	cpu_buf->sample_received++;
+ 
+@@ -412,13 +412,13 @@ int oprofile_write_commit(struct op_entr
+ 
+ void oprofile_add_pc(unsigned long pc, int is_kernel, unsigned long event)
+ {
+-	struct oprofile_cpu_buffer *cpu_buf = &__get_cpu_var(op_cpu_buffer);
++	struct oprofile_cpu_buffer *cpu_buf = this_cpu_ptr(&op_cpu_buffer);
+ 	log_sample(cpu_buf, pc, 0, is_kernel, event, NULL);
  }
  
- #ifdef CONFIG_HARDLOCKUP_DETECTOR
-@@ -341,7 +341,7 @@ static void watchdog_set_prio(unsigned i
- 
- static void watchdog_enable(unsigned int cpu)
+ void oprofile_add_trace(unsigned long pc)
  {
--	struct hrtimer *hrtimer = &__raw_get_cpu_var(watchdog_hrtimer);
-+	struct hrtimer *hrtimer = __this_cpu_ptr(&watchdog_hrtimer);
+-	struct oprofile_cpu_buffer *cpu_buf = &__get_cpu_var(op_cpu_buffer);
++	struct oprofile_cpu_buffer *cpu_buf = this_cpu_ptr(&op_cpu_buffer);
  
- 	/* kick off the timer for the hardlockup detector */
- 	hrtimer_init(hrtimer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-@@ -361,7 +361,7 @@ static void watchdog_enable(unsigned int
+ 	if (!cpu_buf->tracing)
+ 		return;
+Index: linux/drivers/oprofile/timer_int.c
+===================================================================
+--- linux.orig/drivers/oprofile/timer_int.c	2013-08-27 14:36:45.000000000 -0500
++++ linux/drivers/oprofile/timer_int.c	2013-08-27 14:37:04.284928047 -0500
+@@ -32,7 +32,7 @@ static enum hrtimer_restart oprofile_hrt
  
- static void watchdog_disable(unsigned int cpu)
+ static void __oprofile_hrtimer_start(void *unused)
  {
--	struct hrtimer *hrtimer = &__raw_get_cpu_var(watchdog_hrtimer);
-+	struct hrtimer *hrtimer = __this_cpu_ptr(&watchdog_hrtimer);
+-	struct hrtimer *hrtimer = &__get_cpu_var(oprofile_hrtimer);
++	struct hrtimer *hrtimer = this_cpu_ptr(&oprofile_hrtimer);
  
- 	watchdog_set_prio(SCHED_NORMAL, 0);
- 	hrtimer_cancel(hrtimer);
+ 	if (!ctr_running)
+ 		return;
