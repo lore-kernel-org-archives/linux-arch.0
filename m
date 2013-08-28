@@ -1,12 +1,12 @@
 From: Christoph Lameter <cl@linux.com>
-Subject: [gcv v3 16/35] drivers/oprofile: Replace __get_cpu_var uses
-Date: Wed, 28 Aug 2013 19:48:15 +0000
-Message-ID: <00000140c6781c2f-3662e9d5-678c-4103-88e9-b96dfa5f4022-000000@email.amazonses.com>
+Subject: [gcv v3 09/35] block: Replace __get_cpu_var uses
+Date: Wed, 28 Aug 2013 19:48:13 +0000
+Message-ID: <00000140c67817f0-d574ddf2-41bf-46a4-be6b-5e27c479cb40-000000@email.amazonses.com>
 References: <20130828193457.140443630@linux.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, Robert Richter <rric@kernel.org>, oprofile-list@lists.sf.net, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+Cc: akpm@linuxfoundation.org, Jens Axboe <axboe@kernel.dk>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 __get_cpu_var() is used for multiple purposes in the kernel source. One of them is
@@ -105,67 +105,89 @@ Transformations done to __get_cpu_var()
 
 	this_cpu_inc(y)
 
-
-
 Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Index: linux/drivers/oprofile/cpu_buffer.c
+Index: linux/block/blk-iopoll.c
 ===================================================================
---- linux.orig/drivers/oprofile/cpu_buffer.c	2013-08-27 14:36:45.000000000 -0500
-+++ linux/drivers/oprofile/cpu_buffer.c	2013-08-27 14:37:04.284928047 -0500
-@@ -45,7 +45,7 @@ unsigned long oprofile_get_cpu_buffer_si
+--- linux.orig/block/blk-iopoll.c	2013-08-26 14:36:07.858875667 -0500
++++ linux/block/blk-iopoll.c	2013-08-26 14:36:07.850875751 -0500
+@@ -35,7 +35,7 @@ void blk_iopoll_sched(struct blk_iopoll
+ 	unsigned long flags;
  
- void oprofile_cpu_buffer_inc_smpl_lost(void)
- {
--	struct oprofile_cpu_buffer *cpu_buf = &__get_cpu_var(op_cpu_buffer);
-+	struct oprofile_cpu_buffer *cpu_buf = this_cpu_ptr(&op_cpu_buffer);
- 
- 	cpu_buf->sample_lost_overflow++;
+ 	local_irq_save(flags);
+-	list_add_tail(&iop->list, &__get_cpu_var(blk_cpu_iopoll));
++	list_add_tail(&iop->list, this_cpu_ptr(&blk_cpu_iopoll));
+ 	__raise_softirq_irqoff(BLOCK_IOPOLL_SOFTIRQ);
+ 	local_irq_restore(flags);
  }
-@@ -297,7 +297,7 @@ __oprofile_add_ext_sample(unsigned long
- 			  unsigned long event, int is_kernel,
- 			  struct task_struct *task)
+@@ -79,7 +79,7 @@ EXPORT_SYMBOL(blk_iopoll_complete);
+ 
+ static void blk_iopoll_softirq(struct softirq_action *h)
  {
--	struct oprofile_cpu_buffer *cpu_buf = &__get_cpu_var(op_cpu_buffer);
-+	struct oprofile_cpu_buffer *cpu_buf = this_cpu_ptr(&op_cpu_buffer);
- 	unsigned long backtrace = oprofile_backtrace_depth;
+-	struct list_head *list = &__get_cpu_var(blk_cpu_iopoll);
++	struct list_head *list = this_cpu_ptr(&blk_cpu_iopoll);
+ 	int rearm = 0, budget = blk_iopoll_budget;
+ 	unsigned long start_time = jiffies;
  
- 	/*
-@@ -357,7 +357,7 @@ oprofile_write_reserve(struct op_entry *
- {
- 	struct op_sample *sample;
- 	int is_kernel = !user_mode(regs);
--	struct oprofile_cpu_buffer *cpu_buf = &__get_cpu_var(op_cpu_buffer);
-+	struct oprofile_cpu_buffer *cpu_buf = this_cpu_ptr(&op_cpu_buffer);
+@@ -201,7 +201,7 @@ static int blk_iopoll_cpu_notify(struct
  
- 	cpu_buf->sample_received++;
- 
-@@ -412,13 +412,13 @@ int oprofile_write_commit(struct op_entr
- 
- void oprofile_add_pc(unsigned long pc, int is_kernel, unsigned long event)
- {
--	struct oprofile_cpu_buffer *cpu_buf = &__get_cpu_var(op_cpu_buffer);
-+	struct oprofile_cpu_buffer *cpu_buf = this_cpu_ptr(&op_cpu_buffer);
- 	log_sample(cpu_buf, pc, 0, is_kernel, event, NULL);
- }
- 
- void oprofile_add_trace(unsigned long pc)
- {
--	struct oprofile_cpu_buffer *cpu_buf = &__get_cpu_var(op_cpu_buffer);
-+	struct oprofile_cpu_buffer *cpu_buf = this_cpu_ptr(&op_cpu_buffer);
- 
- 	if (!cpu_buf->tracing)
- 		return;
-Index: linux/drivers/oprofile/timer_int.c
+ 		local_irq_disable();
+ 		list_splice_init(&per_cpu(blk_cpu_iopoll, cpu),
+-				 &__get_cpu_var(blk_cpu_iopoll));
++				 this_cpu_ptr(&blk_cpu_iopoll));
+ 		__raise_softirq_irqoff(BLOCK_IOPOLL_SOFTIRQ);
+ 		local_irq_enable();
+ 	}
+Index: linux/block/blk-softirq.c
 ===================================================================
---- linux.orig/drivers/oprofile/timer_int.c	2013-08-27 14:36:45.000000000 -0500
-+++ linux/drivers/oprofile/timer_int.c	2013-08-27 14:37:04.284928047 -0500
-@@ -32,7 +32,7 @@ static enum hrtimer_restart oprofile_hrt
+--- linux.orig/block/blk-softirq.c	2013-08-26 14:36:07.858875667 -0500
++++ linux/block/blk-softirq.c	2013-08-26 14:36:07.854875709 -0500
+@@ -23,7 +23,7 @@ static void blk_done_softirq(struct soft
+ 	struct list_head *cpu_list, local_list;
  
- static void __oprofile_hrtimer_start(void *unused)
+ 	local_irq_disable();
+-	cpu_list = &__get_cpu_var(blk_cpu_done);
++	cpu_list = this_cpu_ptr(&blk_cpu_done);
+ 	list_replace_init(cpu_list, &local_list);
+ 	local_irq_enable();
+ 
+@@ -44,7 +44,7 @@ static void trigger_softirq(void *data)
+ 	struct list_head *list;
+ 
+ 	local_irq_save(flags);
+-	list = &__get_cpu_var(blk_cpu_done);
++	list = this_cpu_ptr(&blk_cpu_done);
+ 	list_add_tail(&rq->csd.list, list);
+ 
+ 	if (list->next == &rq->csd.list)
+@@ -90,7 +90,7 @@ static int blk_cpu_notify(struct notifie
+ 
+ 		local_irq_disable();
+ 		list_splice_init(&per_cpu(blk_cpu_done, cpu),
+-				 &__get_cpu_var(blk_cpu_done));
++				 this_cpu_ptr(&blk_cpu_done));
+ 		raise_softirq_irqoff(BLOCK_SOFTIRQ);
+ 		local_irq_enable();
+ 	}
+@@ -135,7 +135,7 @@ void __blk_complete_request(struct reque
+ 	if (ccpu == cpu || shared) {
+ 		struct list_head *list;
+ do_local:
+-		list = &__get_cpu_var(blk_cpu_done);
++		list = this_cpu_ptr(&blk_cpu_done);
+ 		list_add_tail(&req->csd.list, list);
+ 
+ 		/*
+Index: linux/fs/fscache/object.c
+===================================================================
+--- linux.orig/fs/fscache/object.c	2013-08-26 14:36:07.858875667 -0500
++++ linux/fs/fscache/object.c	2013-08-26 14:36:07.854875709 -0500
+@@ -796,7 +796,7 @@ void fscache_enqueue_object(struct fscac
+  */
+ bool fscache_object_sleep_till_congested(signed long *timeoutp)
  {
--	struct hrtimer *hrtimer = &__get_cpu_var(oprofile_hrtimer);
-+	struct hrtimer *hrtimer = this_cpu_ptr(&oprofile_hrtimer);
+-	wait_queue_head_t *cong_wq = &__get_cpu_var(fscache_object_cong_wait);
++	wait_queue_head_t *cong_wq = this_cpu_ptr(&fscache_object_cong_wait);
+ 	DEFINE_WAIT(wait);
  
- 	if (!ctr_running)
- 		return;
+ 	if (fscache_object_congested())
