@@ -1,100 +1,185 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:4537 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752677Ab3H1NzK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 28 Aug 2013 09:55:10 -0400
-Date: Wed, 28 Aug 2013 15:54:59 +0200
-From: Frantisek Hrbata <fhrbata@redhat.com>
-Subject: Re: [RFC PATCH 3/4] gcov: compile specific gcov implementation based
- on gcc version
-Message-ID: <20130828135459.GA2329@localhost.localdomain>
-Reply-To: Frantisek Hrbata <fhrbata@redhat.com>
-References: <1377247176-13537-1-git-send-email-fhrbata@redhat.com>
- <1377247176-13537-4-git-send-email-fhrbata@redhat.com>
- <52177C87.4090003@linux.vnet.ibm.com>
- <52177DE8.6090704@linux.vnet.ibm.com>
- <20130824194413.GB2365@localhost.localdomain>
- <521B62AF.2030408@linux.vnet.ibm.com>
- <20130827133439.GB2418@localhost.localdomain>
- <521DFF1D.4020908@linux.vnet.ibm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <521DFF1D.4020908@linux.vnet.ibm.com>
+Received: from a9-74.smtp-out.amazonses.com ([54.240.9.74]:33588 "EHLO
+	a9-74.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754782Ab3H1Tqi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 28 Aug 2013 15:46:38 -0400
+Message-ID: <00000140c6769b90-da79f4e0-706c-4e05-a5b9-19b346136e5e-000000@email.amazonses.com>
+Date: Wed, 28 Aug 2013 19:46:36 +0000
+From: Christoph Lameter <cl@linux.com>
+Subject: [gcv v3 34/35] metag: Replace __get_cpu_var uses
+References: <20130828193457.140443630@linux.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
-Cc: linux-kernel@vger.kernel.org, jstancek@redhat.com, keescook@chromium.org, rusty@rustcorp.com.au, linux-arch@vger.kernel.org, arnd@arndb.de, mgahagan@redhat.com, agospoda@redhat.com, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20130828135459.xACK_UwNh1YJGUwngMngbmKVj4gIhnPhdKQzOKfWGZw@z>
+To: Tejun Heo <tj@kernel.org>
+Cc: akpm@linuxfoundation.org, James Hogan <james.hogan@imgtec.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+Message-ID: <20130828194636.56jJpscD60mXoVS4vWm7fvJwnZSsvL58qXinwa_N-zA@z>
 
-On Wed, Aug 28, 2013 at 03:46:05PM +0200, Peter Oberparleiter wrote:
-> On 27.08.2013 15:34, Frantisek Hrbata wrote:
-> > On Mon, Aug 26, 2013 at 04:14:07PM +0200, Peter Oberparleiter wrote:
-> >> On 24.08.2013 21:44, Frantisek Hrbata wrote:
-> >>> On Fri, Aug 23, 2013 at 05:21:12PM +0200, Peter Oberparleiter wrote:
-> >>>> On 23.08.2013 17:15, Peter Oberparleiter wrote:
-> >>>>> On 23.08.2013 10:39, Frantisek Hrbata wrote:
-> >>>>>> Compile the correct gcov implementation file for a specific gcc version. In
-> >>>>>> the future, if another file is added, the conditions will need to be somehow
-> >>>>>> adjusted to if-elif-else case, but at this point the simple cc-ifversion should
-> >>>>>> be enough.
-> >>>>
-> >>>> As promised, I'm also adding the patch that makes the format-specific part
-> >>>> of gcov-kernel a loadable kernel module:
-> >>>>
-> >>>> ---
-> >>>> kernel: gcov: make format-specific code loadable
-> >>>>
-> >>>> Turn the format-specific part of gcov-kernel into a loadable kernel
-> >>>> module. This enables the use of gcov-kernel with kernel modules
-> >>>> that were compiled with a version of GCC that produces a different
-> >>>> gcov format when compared to the version of GCC that was used to
-> >>>> compile the kernel.
-> >>>
-> >>> If I understand it correctly, this would mean that you will be able to use only
-> >>> one implementation of gcov format at the time. Meaning you will be able to get
-> >>> coverage data for module, but not for kernel if it was compiled with different
-> >>> gcc(gcda format). This is probably ok if you work only on your module, but I'm
-> >>> not sure this is generally the right approach. In this case I would probably
-> >>> rather see some support for more gcov formats at the same time(e.g. set of
-> >>> callback operations per gcov version). Again I'm probably missing something, but
-> >>> I still cannot see reason why to add such feature. If you want gcov support just
-> >>> compile your kernel and modules with the same gcc version(gcda format). But if
-> >>> this is really needed maybe it would be better to consider some parallel support
-> >>> for more gcov formats based on the gcov_info version.
-> >>
-> >> The callback approach has other drawbacks (see previous mail).
-> > 
-> > Agreed, I did not realized these problems for the first time when I was thinking
-> > about the callback approach.
-> > 	
-> >>
-> >>> Would it be possible to add support for the modified gcc 4.7 gcov format and
-> >>> deal with this later? I can incorporate your changes: iter to use buffer,
-> >>> .init_array for modules and possibility to explicitly select the gcda format.
-> >>> In this case we will have at least the basic support in kernel. This is just me
-> >>> thinking out loud.
-> >>
-> >> I think that's an approach I can live with. Maybe the need for a multi-version
-> >> support will surface again later in a more refined form, but until then there
-> >> should be no reason to delay base GCC 4.7 support any further.
-> > 
-> > Great. I can incorporate the changes you proposed and post V2. Or do you prefer
-> > to post it by your self? Based on the info and patches you already provided I
-> > guess you already have something ready. Simply what suits you best :).
-> 
-> If it's not too much hassle, I'd prefer that you post V2 of your patches. Also
-> I guess it would make sense to put Andrew Morton on CC since the initial
-> gcov-patches were picked up by him.
+__get_cpu_var() is used for multiple purposes in the kernel source. One of them is
+address calculation via the form &__get_cpu_var(x). This calculates the address for
+the instance of the percpu variable of the current processor based on an offset.
 
-Ok, no problem. I will prepare v2. Again many thanks Peter for your help and
-input. It's really appreciated.
+Other use cases are for storing and retrieving data from the current processors percpu area.
+__get_cpu_var() can be used as an lvalue when writing data or on the right side of an assignment.
 
-> 
-> -- 
-> Peter Oberparleiter
-> Linux on System z Development - IBM Germany
-> 
+__get_cpu_var() is defined as :
 
--- 
-Frantisek Hrbata
+
+#define __get_cpu_var(var) (*this_cpu_ptr(&(var)))
+
+
+
+__get_cpu_var() always only does an address determination. However, store and retrieve operations
+could use a segment prefix (or global register on other platforms) to avoid the address calculation.
+
+this_cpu_write() and this_cpu_read() can directly take an offset into a percpu area and use
+optimized assembly code to read and write per cpu variables.
+
+
+This patch converts __get_cpu_var into either an explicit address calculation using this_cpu_ptr()
+or into a use of this_cpu operations that use the offset. Thereby address calcualtions are avoided
+and less registers are used when code is generated.
+
+At the end of the patchset all uses of __get_cpu_var have been removed so the macro is removed too.
+
+The patchset includes passes over all arches as well. Once these operations are used throughout then
+specialized macros can be defined in non -x86 arches as well in order to optimize per cpu access by
+f.e. using a global register that may be set to the per cpu base.
+
+
+
+
+Transformations done to __get_cpu_var()
+
+
+1. Determine the address of the percpu instance of the current processor.
+
+	DEFINE_PER_CPU(int, y);
+	int *x = &__get_cpu_var(y);
+
+    Converts to
+
+	int *x = this_cpu_ptr(&y);
+
+
+2. Same as #1 but this time an array structure is involved.
+
+	DEFINE_PER_CPU(int, y[20]);
+	int *x = __get_cpu_var(y);
+
+    Converts to
+
+	int *x = this_cpu_ptr(y);
+
+
+3. Retrieve the content of the current processors instance of a per cpu variable.
+
+	DEFINE_PER_CPU(int, u);
+	int x = __get_cpu_var(y)
+
+   Converts to
+
+	int x = __this_cpu_read(y);
+
+
+4. Retrieve the content of a percpu struct
+
+	DEFINE_PER_CPU(struct mystruct, y);
+	struct mystruct x = __get_cpu_var(y);
+
+   Converts to
+
+	memcpy(this_cpu_ptr(&x), y, sizeof(x));
+
+
+5. Assignment to a per cpu variable
+
+	DEFINE_PER_CPU(int, y)
+	__get_cpu_var(y) = x;
+
+   Converts to
+
+	this_cpu_write(y, x);
+
+
+6. Increment/Decrement etc of a per cpu variable
+
+	DEFINE_PER_CPU(int, y);
+	__get_cpu_var(y)++
+
+   Converts to
+
+	this_cpu_inc(y)
+
+
+Acked-by: James Hogan <james.hogan@imgtec.com>
+Signed-off-by: Christoph Lameter <cl@linux.com>
+
+Index: linux/arch/metag/kernel/perf/perf_event.c
+===================================================================
+--- linux.orig/arch/metag/kernel/perf/perf_event.c	2013-08-26 13:30:45.220186762 -0500
++++ linux/arch/metag/kernel/perf/perf_event.c	2013-08-26 13:30:45.216186804 -0500
+@@ -258,7 +258,7 @@ int metag_pmu_event_set_period(struct pe
+ 
+ static void metag_pmu_start(struct perf_event *event, int flags)
+ {
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 	struct hw_perf_event *hwc = &event->hw;
+ 	int idx = hwc->idx;
+ 
+@@ -306,7 +306,7 @@ static void metag_pmu_stop(struct perf_e
+ 
+ static int metag_pmu_add(struct perf_event *event, int flags)
+ {
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 	struct hw_perf_event *hwc = &event->hw;
+ 	int idx = 0, ret = 0;
+ 
+@@ -348,7 +348,7 @@ out:
+ 
+ static void metag_pmu_del(struct perf_event *event, int flags)
+ {
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 	struct hw_perf_event *hwc = &event->hw;
+ 	int idx = hwc->idx;
+ 
+@@ -607,7 +607,7 @@ static int _hw_perf_event_init(struct pe
+ 
+ static void metag_pmu_enable_counter(struct hw_perf_event *event, int idx)
+ {
+-	struct cpu_hw_events *events = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *events = this_cpu_ptr(&cpu_hw_events);
+ 	unsigned int config = event->config;
+ 	unsigned int tmp = config & 0xf0;
+ 	unsigned long flags;
+@@ -680,7 +680,7 @@ unlock:
+ 
+ static void metag_pmu_disable_counter(struct hw_perf_event *event, int idx)
+ {
+-	struct cpu_hw_events *events = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *events = this_cpu_ptr(&cpu_hw_events);
+ 	unsigned int tmp = 0;
+ 	unsigned long flags;
+ 
+@@ -728,7 +728,7 @@ out:
+ 
+ static void metag_pmu_write_counter(int idx, u32 val)
+ {
+-	struct cpu_hw_events *events = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *events = this_cpu_ptr(&cpu_hw_events);
+ 	u32 tmp = 0;
+ 	unsigned long flags;
+ 
+@@ -761,7 +761,7 @@ static int metag_pmu_event_map(int idx)
+ static irqreturn_t metag_pmu_counter_overflow(int irq, void *dev)
+ {
+ 	int idx = (int)dev;
+-	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
+ 	struct perf_event *event = cpuhw->events[idx];
+ 	struct hw_perf_event *hwc = &event->hw;
+ 	struct pt_regs *regs = get_irq_regs();
+
