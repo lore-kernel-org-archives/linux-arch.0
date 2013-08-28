@@ -1,26 +1,36 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [guv 12/16] sparc: __get_cpu_var conversion
-Date: Tue, 27 Aug 2013 16:04:18 -0400 (EDT)
-Message-ID: <20130827.160418.496317549649654714.davem@davemloft.net>
-References: <20130823190135.726207430@linux.com>
-	<00000140ac8e2da8-5377b093-cdf2-434d-bf64-4fdca4f741b0-000000@email.amazonses.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [guv v2 28/31] arc: Replace __get_cpu_var uses throughout the
+ kernel
+Date: Wed, 28 Aug 2013 04:24:59 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA23075140D73@IN01WEMBXA.internal.synopsys.com>
+References: <20130826204351.725357339@linux.com>
+ <00000140bca09c39-5b837fed-8e34-417d-a62d-031f0b5c8107-000000@email.amazonses.com>
+ <521C2A9F.3070400@synopsys.com>
+ <00000140c05d28b7-f0a2bc86-fe85-40f7-b627-32664cd616a4-000000@email.amazonses.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:59429 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752103Ab3H0UEU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 Aug 2013 16:04:20 -0400
-In-Reply-To: <00000140ac8e2da8-5377b093-cdf2-434d-bf64-4fdca4f741b0-000000@email.amazonses.com>
+Received: from us02smtp1.synopsys.com ([198.182.60.75]:52876 "EHLO
+	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752784Ab3H1EZF convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Aug 2013 00:25:05 -0400
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: cl@linux.com
-Cc: tj@kernel.org, akpm@linuxfoundation.org, linux-arch@vger.kernel.org, srostedt@redhat.com, linux-kernel@vger.kernel.org
+To: Christoph Lameter <cl@linux.com>
+Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Tejun Heo <tj@kernel.org>, "akpm@linuxfoundation.org" <akpm@linuxfoundation.org>, lkml <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-From: Christoph Lameter <cl@linux.com>
-Date: Fri, 23 Aug 2013 19:02:13 +0000
+On 08/27/2013 08:51 PM, Christoph Lameter wrote:
+> On Tue, 27 Aug 2013, Vineet Gupta wrote:
+>
+>> The other thread about merging logistics doesn't seem to have concluded yet so for
+>> now I'll let it sit with you - please let me know if it needs to be routed via the
+>> arc tree.
+> Please route via the arc tree. I will marge the last patch when all the
+> bits are in.
+>
 
-> Signed-off-by: Christoph Lameter <cl@linux.com>
+Done - although it is missing you SOB line ?
 
-Acked-by: David S. Miller <davem@davemloft.net>
+-Vineet
