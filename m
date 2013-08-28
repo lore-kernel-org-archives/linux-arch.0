@@ -1,20 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from a10-51.smtp-out.amazonses.com ([54.240.10.51]:59061 "EHLO
-	a10-51.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755006Ab3H1Tqi (ORCPT
+Received: from a9-58.smtp-out.amazonses.com ([54.240.9.58]:60906 "EHLO
+	a9-58.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754532Ab3H1TsP (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 28 Aug 2013 15:46:38 -0400
-Message-ID: <00000140c6769b64-d89632ed-a7d3-4f5b-a4b2-cbda1f461718-000000@email.amazonses.com>
-Date: Wed, 28 Aug 2013 19:46:36 +0000
+	Wed, 28 Aug 2013 15:48:15 -0400
+Message-ID: <00000140c67817f0-d574ddf2-41bf-46a4-be6b-5e27c479cb40-000000@email.amazonses.com>
+Date: Wed, 28 Aug 2013 19:48:13 +0000
 From: Christoph Lameter <cl@linux.com>
-Subject: [gcv v3 20/35] zcache/zsmalloc: Replace __get_cpu_var uses
+Subject: [gcv v3 09/35] block: Replace __get_cpu_var uses
 References: <20130828193457.140443630@linux.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, Dan Magenheimer <dan.magenheimer@oracle.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
-Message-ID: <20130828194636.ZDHaHtnsgQgYnrWnwi0MGrRnY46OL8wtQbhuk4OWo7Q@z>
-
+Cc: akpm@linuxfoundation.org, Jens Axboe <axboe@kernel.dk>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+Message-ID: <20130828194813.QTBZG9x_1BDR1wbkLVKdYYNqgBl-rc8qX38Me-CiEWI@z>
 
 __get_cpu_var() is used for multiple purposes in the kernel source. One of them is
 address calculation via the form &__get_cpu_var(x). This calculates the address for
@@ -112,94 +111,90 @@ Transformations done to __get_cpu_var()
 
 	this_cpu_inc(y)
 
-
-
 Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Index: linux/drivers/staging/zcache/ramster/ramster.c
+Index: linux/block/blk-iopoll.c
 ===================================================================
---- linux.orig/drivers/staging/zcache/ramster/ramster.c	2013-08-22 14:14:40.400841754 -0500
-+++ linux/drivers/staging/zcache/ramster/ramster.c	2013-08-22 14:15:51.000000000 -0500
-@@ -82,7 +82,7 @@ static struct flushlist_node *ramster_fl
- 	struct flushlist_node *flnode = NULL;
- 	struct ramster_preload *kp;
+--- linux.orig/block/blk-iopoll.c	2013-08-26 14:36:07.858875667 -0500
++++ linux/block/blk-iopoll.c	2013-08-26 14:36:07.850875751 -0500
+@@ -35,7 +35,7 @@ void blk_iopoll_sched(struct blk_iopoll
+ 	unsigned long flags;
  
--	kp = &__get_cpu_var(ramster_preloads);
-+	kp = this_cpu_ptr(&ramster_preloads);
- 	flnode = kp->flnode;
- 	BUG_ON(flnode == NULL);
- 	kp->flnode = NULL;
-@@ -109,7 +109,7 @@ int ramster_do_preload_flnode(struct tme
- 	BUG_ON(!irqs_disabled());
- 	if (unlikely(ramster_flnode_cache == NULL))
- 		BUG();
--	kp = &__get_cpu_var(ramster_preloads);
-+	kp = this_cpu_ptr(&ramster_preloads);
- 	flnode = kmem_cache_alloc(ramster_flnode_cache, GFP_ATOMIC);
- 	if (unlikely(flnode == NULL) && kp->flnode == NULL)
- 		BUG();  /* FIXME handle more gracefully, but how??? */
-@@ -478,8 +478,8 @@ int ramster_remotify_pageframe(bool eph)
- 	struct tmem_handle th[2];
- 	unsigned int zsize[2];
+ 	local_irq_save(flags);
+-	list_add_tail(&iop->list, &__get_cpu_var(blk_cpu_iopoll));
++	list_add_tail(&iop->list, this_cpu_ptr(&blk_cpu_iopoll));
+ 	__raise_softirq_irqoff(BLOCK_IOPOLL_SOFTIRQ);
+ 	local_irq_restore(flags);
+ }
+@@ -79,7 +79,7 @@ EXPORT_SYMBOL(blk_iopoll_complete);
  
--	tmpmem[0] = __get_cpu_var(ramster_remoteputmem1);
--	tmpmem[1] = __get_cpu_var(ramster_remoteputmem2);
-+	tmpmem[0] = __this_cpu_read(ramster_remoteputmem1);
-+	tmpmem[1] = __this_cpu_read(ramster_remoteputmem2);
- 	local_bh_disable();
- 	zbuds = zbud_make_zombie_lru(&th[0], &tmpmem[0], &zsize[0], eph);
- 	/* now OK to release lock set in caller */
-Index: linux/drivers/staging/zcache/zcache-main.c
-===================================================================
---- linux.orig/drivers/staging/zcache/zcache-main.c	2013-08-22 14:14:40.400841754 -0500
-+++ linux/drivers/staging/zcache/zcache-main.c	2013-08-22 14:15:51.000000000 -0500
-@@ -250,7 +250,7 @@ static struct tmem_objnode *zcache_objno
- 	struct zcache_preload *kp;
- 	int i;
- 
--	kp = &__get_cpu_var(zcache_preloads);
-+	kp = this_cpu_ptr(&zcache_preloads);
- 	for (i = 0; i < ARRAY_SIZE(kp->objnodes); i++) {
- 		objnode = kp->objnodes[i];
- 		if (objnode != NULL) {
-@@ -275,7 +275,7 @@ static struct tmem_obj *zcache_obj_alloc
- 	struct tmem_obj *obj = NULL;
- 	struct zcache_preload *kp;
- 
--	kp = &__get_cpu_var(zcache_preloads);
-+	kp = this_cpu_ptr(&zcache_preloads);
- 	obj = kp->obj;
- 	BUG_ON(obj == NULL);
- 	kp->obj = NULL;
-@@ -531,7 +531,7 @@ void *zcache_pampd_create(char *data, un
- 	/* pre-allocate per-cpu metadata */
- 	BUG_ON(zcache_objnode_cache == NULL);
- 	BUG_ON(zcache_obj_cache == NULL);
--	kp = &__get_cpu_var(zcache_preloads);
-+	kp = this_cpu_ptr(&zcache_preloads);
- 	for (i = 0; i < ARRAY_SIZE(kp->objnodes); i++) {
- 		objnode = kp->objnodes[i];
- 		if (objnode == NULL) {
-@@ -761,7 +761,7 @@ static DEFINE_PER_CPU(unsigned char *, z
- static void zcache_compress(struct page *from, void **out_va, unsigned *out_len)
+ static void blk_iopoll_softirq(struct softirq_action *h)
  {
- 	int ret;
--	unsigned char *dmem = __get_cpu_var(zcache_dstmem);
-+	unsigned char *dmem = __this_cpu_read(zcache_dstmem);
- 	char *from_va;
+-	struct list_head *list = &__get_cpu_var(blk_cpu_iopoll);
++	struct list_head *list = this_cpu_ptr(&blk_cpu_iopoll);
+ 	int rearm = 0, budget = blk_iopoll_budget;
+ 	unsigned long start_time = jiffies;
  
- 	BUG_ON(!irqs_disabled());
-Index: linux/drivers/staging/zsmalloc/zsmalloc-main.c
+@@ -201,7 +201,7 @@ static int blk_iopoll_cpu_notify(struct
+ 
+ 		local_irq_disable();
+ 		list_splice_init(&per_cpu(blk_cpu_iopoll, cpu),
+-				 &__get_cpu_var(blk_cpu_iopoll));
++				 this_cpu_ptr(&blk_cpu_iopoll));
+ 		__raise_softirq_irqoff(BLOCK_IOPOLL_SOFTIRQ);
+ 		local_irq_enable();
+ 	}
+Index: linux/block/blk-softirq.c
 ===================================================================
---- linux.orig/drivers/staging/zsmalloc/zsmalloc-main.c	2013-08-22 14:14:29.000000000 -0500
-+++ linux/drivers/staging/zsmalloc/zsmalloc-main.c	2013-08-22 14:15:51.000000000 -0500
-@@ -1028,7 +1028,7 @@ void zs_unmap_object(struct zs_pool *poo
- 	class = &pool->size_class[class_idx];
- 	off = obj_idx_to_offset(page, obj_idx, class->size);
+--- linux.orig/block/blk-softirq.c	2013-08-26 14:36:07.858875667 -0500
++++ linux/block/blk-softirq.c	2013-08-26 14:36:07.854875709 -0500
+@@ -23,7 +23,7 @@ static void blk_done_softirq(struct soft
+ 	struct list_head *cpu_list, local_list;
  
--	area = &__get_cpu_var(zs_map_area);
-+	area = this_cpu_ptr(&zs_map_area);
- 	if (off + class->size <= PAGE_SIZE)
- 		kunmap_atomic(area->vm_addr);
- 	else {
+ 	local_irq_disable();
+-	cpu_list = &__get_cpu_var(blk_cpu_done);
++	cpu_list = this_cpu_ptr(&blk_cpu_done);
+ 	list_replace_init(cpu_list, &local_list);
+ 	local_irq_enable();
+ 
+@@ -44,7 +44,7 @@ static void trigger_softirq(void *data)
+ 	struct list_head *list;
+ 
+ 	local_irq_save(flags);
+-	list = &__get_cpu_var(blk_cpu_done);
++	list = this_cpu_ptr(&blk_cpu_done);
+ 	list_add_tail(&rq->csd.list, list);
+ 
+ 	if (list->next == &rq->csd.list)
+@@ -90,7 +90,7 @@ static int blk_cpu_notify(struct notifie
+ 
+ 		local_irq_disable();
+ 		list_splice_init(&per_cpu(blk_cpu_done, cpu),
+-				 &__get_cpu_var(blk_cpu_done));
++				 this_cpu_ptr(&blk_cpu_done));
+ 		raise_softirq_irqoff(BLOCK_SOFTIRQ);
+ 		local_irq_enable();
+ 	}
+@@ -135,7 +135,7 @@ void __blk_complete_request(struct reque
+ 	if (ccpu == cpu || shared) {
+ 		struct list_head *list;
+ do_local:
+-		list = &__get_cpu_var(blk_cpu_done);
++		list = this_cpu_ptr(&blk_cpu_done);
+ 		list_add_tail(&req->csd.list, list);
+ 
+ 		/*
+Index: linux/fs/fscache/object.c
+===================================================================
+--- linux.orig/fs/fscache/object.c	2013-08-26 14:36:07.858875667 -0500
++++ linux/fs/fscache/object.c	2013-08-26 14:36:07.854875709 -0500
+@@ -796,7 +796,7 @@ void fscache_enqueue_object(struct fscac
+  */
+ bool fscache_object_sleep_till_congested(signed long *timeoutp)
+ {
+-	wait_queue_head_t *cong_wq = &__get_cpu_var(fscache_object_cong_wait);
++	wait_queue_head_t *cong_wq = this_cpu_ptr(&fscache_object_cong_wait);
+ 	DEFINE_WAIT(wait);
+ 
+ 	if (fscache_object_congested())
 
