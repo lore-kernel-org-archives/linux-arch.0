@@ -1,20 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from a9-70.smtp-out.amazonses.com ([54.240.9.70]:36130 "EHLO
-	a9-70.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755403Ab3H1UNz (ORCPT
+Received: from a193-30.smtp-out.amazonses.com ([199.255.193.30]:31940 "EHLO
+	a193-30.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754993Ab3H1UQK (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 28 Aug 2013 16:13:55 -0400
-Message-ID: <00000140c688e916-ddb57313-75d3-4200-8529-3e8f72c8c1bf-000000@email.amazonses.com>
+	Wed, 28 Aug 2013 16:16:10 -0400
+Message-ID: <00000140c688e9a9-deb83537-5b88-46a3-a175-ad9eb68df121-000000@email.amazonses.com>
 Date: Wed, 28 Aug 2013 20:06:37 +0000
 From: Christoph Lameter <cl@linux.com>
-Subject: [gcv v3 15/35] drivers/cpuidle: Replace __get_cpu_var uses
+Subject: [gcv v3 33/35] parisc: Replace __get_cpu_var uses
 References: <20130828193457.140443630@linux.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, "Rafael J. Wysocki" <rjw@sisk.pl>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
-Message-ID: <20130828200637.WSoY6BmW2cEaHL2EenU3mO0tCoPjX-4suFJCyOm3yfo@z>
-
+Cc: akpm@linuxfoundation.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+Message-ID: <20130828200637.KNNY719QyAzIbH34RPMRIijmIlgmcakrGbNtFWS4ObI@z>
 
 __get_cpu_var() is used for multiple purposes in the kernel source. One of them is
 address calculation via the form &__get_cpu_var(x). This calculates the address for
@@ -114,59 +113,30 @@ Transformations done to __get_cpu_var()
 
 
 
-Signed-off-by: Christoph Lameter <cl@linux.com>
-
-Index: linux/drivers/cpuidle/governors/ladder.c
+Index: linux/arch/parisc/lib/memcpy.c
 ===================================================================
---- linux.orig/drivers/cpuidle/governors/ladder.c	2013-08-27 14:31:00.000000000 -0500
-+++ linux/drivers/cpuidle/governors/ladder.c	2013-08-27 14:34:26.170362548 -0500
-@@ -66,7 +66,7 @@ static inline void ladder_do_selection(s
- static int ladder_select_state(struct cpuidle_driver *drv,
- 				struct cpuidle_device *dev)
- {
--	struct ladder_device *ldev = &__get_cpu_var(ladder_devices);
-+	struct ladder_device *ldev = this_cpu_ptr(&ladder_devices);
- 	struct ladder_device_state *last_state;
- 	int last_residency, last_idx = ldev->last_state_idx;
- 	int latency_req = pm_qos_request(PM_QOS_CPU_DMA_LATENCY);
-@@ -170,7 +170,7 @@ static int ladder_enable_device(struct c
-  */
- static void ladder_reflect(struct cpuidle_device *dev, int index)
- {
--	struct ladder_device *ldev = &__get_cpu_var(ladder_devices);
-+	struct ladder_device *ldev = this_cpu_ptr(&ladder_devices);
- 	if (index > 0)
- 		ldev->last_state_idx = index;
- }
-Index: linux/drivers/cpuidle/governors/menu.c
+--- linux.orig/arch/parisc/lib/memcpy.c	2013-08-26 13:28:53.000000000 -0500
++++ linux/arch/parisc/lib/memcpy.c	2013-08-26 13:30:41.656224744 -0500
+@@ -470,7 +470,7 @@ static unsigned long pa_memcpy(void *dst
+ 		return 0;
+ 
+ 	/* if a load or store fault occured we can get the faulty addr */
+-	d = &__get_cpu_var(exception_data);
++	d = this_cpu_ptr(&exception_data);
+ 	fault_addr = d->fault_addr;
+ 
+ 	/* error in load or store? */
+Index: linux/arch/parisc/mm/fault.c
 ===================================================================
---- linux.orig/drivers/cpuidle/governors/menu.c	2013-08-27 14:31:00.000000000 -0500
-+++ linux/drivers/cpuidle/governors/menu.c	2013-08-27 14:34:26.170362548 -0500
-@@ -258,7 +258,7 @@ again:
-  */
- static int menu_select(struct cpuidle_driver *drv, struct cpuidle_device *dev)
- {
--	struct menu_device *data = &__get_cpu_var(menu_devices);
-+	struct menu_device *data = this_cpu_ptr(&menu_devices);
- 	int latency_req = pm_qos_request(PM_QOS_CPU_DMA_LATENCY);
- 	int i;
- 	int multiplier;
-@@ -342,7 +342,7 @@ static int menu_select(struct cpuidle_dr
-  */
- static void menu_reflect(struct cpuidle_device *dev, int index)
- {
--	struct menu_device *data = &__get_cpu_var(menu_devices);
-+	struct menu_device *data = this_cpu_ptr(&menu_devices);
- 	data->last_state_idx = index;
- 	if (index >= 0)
- 		data->needs_update = 1;
-@@ -355,7 +355,7 @@ static void menu_reflect(struct cpuidle_
-  */
- static void menu_update(struct cpuidle_driver *drv, struct cpuidle_device *dev)
- {
--	struct menu_device *data = &__get_cpu_var(menu_devices);
-+	struct menu_device *data = this_cpu_ptr(&menu_devices);
- 	int last_idx = data->last_state_idx;
- 	unsigned int last_idle_us = cpuidle_get_last_residency(dev);
- 	struct cpuidle_state *target = &drv->states[last_idx];
+--- linux.orig/arch/parisc/mm/fault.c	2013-08-26 13:28:53.000000000 -0500
++++ linux/arch/parisc/mm/fault.c	2013-08-26 13:30:41.656224744 -0500
+@@ -145,7 +145,7 @@ int fixup_exception(struct pt_regs *regs
+ 	fix = search_exception_tables(regs->iaoq[0]);
+ 	if (fix) {
+ 		struct exception_data *d;
+-		d = &__get_cpu_var(exception_data);
++		d = this_cpu_ptr(&exception_data);
+ 		d->fault_ip = regs->iaoq[0];
+ 		d->fault_space = regs->isr;
+ 		d->fault_addr = regs->ior;
 
