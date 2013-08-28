@@ -1,18 +1,13 @@
 From: Christoph Lameter <cl@linux.com>
-Subject: [gcv v3 27/35] arm: Replace __get_cpu_var uses
-Date: Wed, 28 Aug 2013 19:48:23 +0000
-Message-ID: <00000140c67834c9-cc2bec76-2d70-48d1-a35b-6e2d5dedf22b-000000@email.amazonses.com>
+Subject: [gcv v3 10/35] rcu: Replace __get_cpu_var uses
+Date: Wed, 28 Aug 2013 19:48:17 +0000
+Message-ID: <00000140c67825ee-d9e3a1ca-2e81-4868-8c8c-36ba965f7202-000000@email.amazonses.com>
 References: <20130828193457.140443630@linux.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a9-58.smtp-out.amazonses.com ([54.240.9.58]:60907 "EHLO
-	a9-58.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755183Ab3H1TsY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 28 Aug 2013 15:48:24 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+Cc: akpm@linuxfoundation.org, Dipankar Sarma <dipankar@in.ibm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 __get_cpu_var() is used for multiple purposes in the kernel source. One of them is
 address calculation via the form &__get_cpu_var(x). This calculates the address for
@@ -110,296 +105,161 @@ Transformations done to __get_cpu_var()
 
 	this_cpu_inc(y)
 
-
-
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
 Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Index: linux/arch/arm/kernel/hw_breakpoint.c
+Index: linux/kernel/rcutree.c
 ===================================================================
---- linux.orig/arch/arm/kernel/hw_breakpoint.c	2013-08-26 13:48:40.956794980 -0500
-+++ linux/arch/arm/kernel/hw_breakpoint.c	2013-08-26 13:48:40.952795024 -0500
-@@ -344,13 +344,13 @@ int arch_install_hw_breakpoint(struct pe
- 		/* Breakpoint */
- 		ctrl_base = ARM_BASE_BCR;
- 		val_base = ARM_BASE_BVR;
--		slots = (struct perf_event **)__get_cpu_var(bp_on_reg);
-+		slots = (struct perf_event **)__this_cpu_read(bp_on_reg);
- 		max_slots = core_num_brps;
- 	} else {
- 		/* Watchpoint */
- 		ctrl_base = ARM_BASE_WCR;
- 		val_base = ARM_BASE_WVR;
--		slots = (struct perf_event **)__get_cpu_var(wp_on_reg);
-+		slots = (struct perf_event **)__this_cpu_read(wp_on_reg);
- 		max_slots = core_num_wrps;
- 	}
+--- linux.orig/kernel/rcutree.c	2013-08-26 14:27:35.000000000 -0500
++++ linux/kernel/rcutree.c	2013-08-26 14:28:13.959886770 -0500
+@@ -383,7 +383,7 @@ static void rcu_eqs_enter(bool user)
+ 	long long oldval;
+ 	struct rcu_dynticks *rdtp;
  
-@@ -396,12 +396,12 @@ void arch_uninstall_hw_breakpoint(struct
- 	if (info->ctrl.type == ARM_BREAKPOINT_EXECUTE) {
- 		/* Breakpoint */
- 		base = ARM_BASE_BCR;
--		slots = (struct perf_event **)__get_cpu_var(bp_on_reg);
-+		slots = (struct perf_event **)__this_cpu_read(bp_on_reg);
- 		max_slots = core_num_brps;
- 	} else {
- 		/* Watchpoint */
- 		base = ARM_BASE_WCR;
--		slots = (struct perf_event **)__get_cpu_var(wp_on_reg);
-+		slots = (struct perf_event **)__this_cpu_read(wp_on_reg);
- 		max_slots = core_num_wrps;
- 	}
+-	rdtp = &__get_cpu_var(rcu_dynticks);
++	rdtp = this_cpu_ptr(&rcu_dynticks);
+ 	oldval = rdtp->dynticks_nesting;
+ 	WARN_ON_ONCE((oldval & DYNTICK_TASK_NEST_MASK) == 0);
+ 	if ((oldval & DYNTICK_TASK_NEST_MASK) == DYNTICK_TASK_NEST_VALUE)
+@@ -443,7 +443,7 @@ void rcu_user_enter_after_irq(void)
+ 	struct rcu_dynticks *rdtp;
  
-@@ -697,7 +697,7 @@ static void watchpoint_handler(unsigned
- 	struct arch_hw_breakpoint *info;
- 	struct arch_hw_breakpoint_ctrl ctrl;
+ 	local_irq_save(flags);
+-	rdtp = &__get_cpu_var(rcu_dynticks);
++	rdtp = this_cpu_ptr(&rcu_dynticks);
+ 	/* Ensure this irq is interrupting a non-idle RCU state.  */
+ 	WARN_ON_ONCE(!(rdtp->dynticks_nesting & DYNTICK_TASK_MASK));
+ 	rdtp->dynticks_nesting = 1;
+@@ -474,7 +474,7 @@ void rcu_irq_exit(void)
+ 	struct rcu_dynticks *rdtp;
  
--	slots = (struct perf_event **)__get_cpu_var(wp_on_reg);
-+	slots = (struct perf_event **)__this_cpu_read(wp_on_reg);
+ 	local_irq_save(flags);
+-	rdtp = &__get_cpu_var(rcu_dynticks);
++	rdtp = this_cpu_ptr(&rcu_dynticks);
+ 	oldval = rdtp->dynticks_nesting;
+ 	rdtp->dynticks_nesting--;
+ 	WARN_ON_ONCE(rdtp->dynticks_nesting < 0);
+@@ -523,7 +523,7 @@ static void rcu_eqs_exit(bool user)
+ 	struct rcu_dynticks *rdtp;
+ 	long long oldval;
  
- 	for (i = 0; i < core_num_wrps; ++i) {
- 		rcu_read_lock();
-@@ -768,7 +768,7 @@ static void watchpoint_single_step_handl
- 	struct perf_event *wp, **slots;
- 	struct arch_hw_breakpoint *info;
+-	rdtp = &__get_cpu_var(rcu_dynticks);
++	rdtp = this_cpu_ptr(&rcu_dynticks);
+ 	oldval = rdtp->dynticks_nesting;
+ 	WARN_ON_ONCE(oldval < 0);
+ 	if (oldval & DYNTICK_TASK_NEST_MASK)
+@@ -581,7 +581,7 @@ void rcu_user_exit_after_irq(void)
+ 	struct rcu_dynticks *rdtp;
  
--	slots = (struct perf_event **)__get_cpu_var(wp_on_reg);
-+	slots = (struct perf_event **)__this_cpu_read(wp_on_reg);
+ 	local_irq_save(flags);
+-	rdtp = &__get_cpu_var(rcu_dynticks);
++	rdtp = this_cpu_ptr(&rcu_dynticks);
+ 	/* Ensure we are interrupting an RCU idle mode. */
+ 	WARN_ON_ONCE(rdtp->dynticks_nesting & DYNTICK_TASK_NEST_MASK);
+ 	rdtp->dynticks_nesting += DYNTICK_TASK_EXIT_IDLE;
+@@ -615,7 +615,7 @@ void rcu_irq_enter(void)
+ 	long long oldval;
  
- 	for (i = 0; i < core_num_wrps; ++i) {
- 		rcu_read_lock();
-@@ -802,7 +802,7 @@ static void breakpoint_handler(unsigned
- 	struct arch_hw_breakpoint *info;
- 	struct arch_hw_breakpoint_ctrl ctrl;
- 
--	slots = (struct perf_event **)__get_cpu_var(bp_on_reg);
-+	slots = (struct perf_event **)__this_cpu_read(bp_on_reg);
- 
- 	/* The exception entry code places the amended lr in the PC. */
- 	addr = regs->ARM_pc;
-Index: linux/arch/arm/kernel/kprobes.c
-===================================================================
---- linux.orig/arch/arm/kernel/kprobes.c	2013-08-26 13:48:40.956794980 -0500
-+++ linux/arch/arm/kernel/kprobes.c	2013-08-26 13:48:40.952795024 -0500
-@@ -171,13 +171,13 @@ static void __kprobes save_previous_kpro
- 
- static void __kprobes restore_previous_kprobe(struct kprobe_ctlblk *kcb)
+ 	local_irq_save(flags);
+-	rdtp = &__get_cpu_var(rcu_dynticks);
++	rdtp = this_cpu_ptr(&rcu_dynticks);
+ 	oldval = rdtp->dynticks_nesting;
+ 	rdtp->dynticks_nesting++;
+ 	WARN_ON_ONCE(rdtp->dynticks_nesting == 0);
+@@ -635,7 +635,7 @@ void rcu_irq_enter(void)
+  */
+ void rcu_nmi_enter(void)
  {
--	__get_cpu_var(current_kprobe) = kcb->prev_kprobe.kp;
-+	__this_cpu_write(current_kprobe, kcb->prev_kprobe.kp);
- 	kcb->kprobe_status = kcb->prev_kprobe.status;
+-	struct rcu_dynticks *rdtp = &__get_cpu_var(rcu_dynticks);
++	struct rcu_dynticks *rdtp = this_cpu_ptr(&rcu_dynticks);
+ 
+ 	if (rdtp->dynticks_nmi_nesting == 0 &&
+ 	    (atomic_read(&rdtp->dynticks) & 0x1))
+@@ -657,7 +657,7 @@ void rcu_nmi_enter(void)
+  */
+ void rcu_nmi_exit(void)
+ {
+-	struct rcu_dynticks *rdtp = &__get_cpu_var(rcu_dynticks);
++	struct rcu_dynticks *rdtp = this_cpu_ptr(&rcu_dynticks);
+ 
+ 	if (rdtp->dynticks_nmi_nesting == 0 ||
+ 	    --rdtp->dynticks_nmi_nesting != 0)
+@@ -680,7 +680,7 @@ int rcu_is_cpu_idle(void)
+ 	int ret;
+ 
+ 	preempt_disable();
+-	ret = (atomic_read(&__get_cpu_var(rcu_dynticks).dynticks) & 0x1) == 0;
++	ret = (atomic_read(this_cpu_ptr(&rcu_dynticks.dynticks)) & 0x1) == 0;
+ 	preempt_enable();
+ 	return ret;
+ }
+@@ -718,7 +718,7 @@ bool rcu_lockdep_current_cpu_online(void
+ 	if (in_nmi())
+ 		return 1;
+ 	preempt_disable();
+-	rdp = &__get_cpu_var(rcu_sched_data);
++	rdp = this_cpu_ptr(&rcu_sched_data);
+ 	rnp = rdp->mynode;
+ 	ret = (rdp->grpmask & rnp->qsmaskinit) ||
+ 	      !rcu_scheduler_fully_active;
+@@ -738,7 +738,7 @@ EXPORT_SYMBOL_GPL(rcu_lockdep_current_cp
+  */
+ static int rcu_is_cpu_rrupt_from_idle(void)
+ {
+-	return __get_cpu_var(rcu_dynticks).dynticks_nesting <= 1;
++	return __this_cpu_read(rcu_dynticks.dynticks_nesting) <= 1;
  }
  
- static void __kprobes set_current_kprobe(struct kprobe *p)
+ /*
+Index: linux/kernel/rcutree_plugin.h
+===================================================================
+--- linux.orig/kernel/rcutree_plugin.h	2013-08-26 14:27:35.000000000 -0500
++++ linux/kernel/rcutree_plugin.h	2013-08-26 14:28:13.963886728 -0500
+@@ -662,7 +662,7 @@ static void rcu_preempt_check_callbacks(
+ 
+ static void rcu_preempt_do_callbacks(void)
  {
--	__get_cpu_var(current_kprobe) = p;
-+	__this_cpu_write(current_kprobe, p);
+-	rcu_do_batch(&rcu_preempt_state, &__get_cpu_var(rcu_preempt_data));
++	rcu_do_batch(&rcu_preempt_state, this_cpu_ptr(&rcu_preempt_data));
  }
  
- static void __kprobes
-@@ -421,10 +421,10 @@ static __used __kprobes void *trampoline
- 			continue;
- 
- 		if (ri->rp && ri->rp->handler) {
--			__get_cpu_var(current_kprobe) = &ri->rp->kp;
-+			__this_cpu_write(current_kprobe, &ri->rp->kp);
- 			get_kprobe_ctlblk()->kprobe_status = KPROBE_HIT_ACTIVE;
- 			ri->rp->handler(ri, regs);
--			__get_cpu_var(current_kprobe) = NULL;
-+			__this_cpu_write(current_kprobe, NULL);
- 		}
- 
- 		orig_ret_address = (unsigned long)ri->ret_addr;
-Index: linux/arch/arm/kernel/perf_event_cpu.c
-===================================================================
---- linux.orig/arch/arm/kernel/perf_event_cpu.c	2013-08-26 13:48:40.956794980 -0500
-+++ linux/arch/arm/kernel/perf_event_cpu.c	2013-08-26 13:48:40.952795024 -0500
-@@ -68,7 +68,7 @@ EXPORT_SYMBOL_GPL(perf_num_counters);
- 
- static struct pmu_hw_events *cpu_pmu_get_cpu_events(void)
+ #endif /* #ifdef CONFIG_RCU_BOOST */
+@@ -1334,7 +1334,7 @@ static void invoke_rcu_callbacks_kthread
+  */
+ static bool rcu_is_callbacks_kthread(void)
  {
--	return &__get_cpu_var(cpu_hw_events);
-+	return this_cpu_ptr(&cpu_hw_events);
+-	return __get_cpu_var(rcu_cpu_kthread_task) == current;
++	return __this_cpu_read(rcu_cpu_kthread_task) == current;
  }
  
- static void cpu_pmu_free_irq(struct arm_pmu *cpu_pmu)
-Index: linux/arch/arm/kvm/arm.c
-===================================================================
---- linux.orig/arch/arm/kvm/arm.c	2013-08-26 13:48:40.956794980 -0500
-+++ linux/arch/arm/kvm/arm.c	2013-08-26 13:48:40.952795024 -0500
-@@ -65,7 +65,7 @@ static bool vgic_present;
- static void kvm_arm_set_running_vcpu(struct kvm_vcpu *vcpu)
+ #define RCU_BOOST_DELAY_JIFFIES DIV_ROUND_UP(CONFIG_RCU_BOOST_DELAY * HZ, 1000)
+@@ -1384,8 +1384,8 @@ static int rcu_spawn_one_boost_kthread(s
+ 
+ static void rcu_kthread_do_work(void)
  {
- 	BUG_ON(preemptible());
--	__get_cpu_var(kvm_arm_running_vcpu) = vcpu;
-+	__this_cpu_write(kvm_arm_running_vcpu, vcpu);
+-	rcu_do_batch(&rcu_sched_state, &__get_cpu_var(rcu_sched_data));
+-	rcu_do_batch(&rcu_bh_state, &__get_cpu_var(rcu_bh_data));
++	rcu_do_batch(&rcu_sched_state, this_cpu_ptr(&rcu_sched_data));
++	rcu_do_batch(&rcu_bh_state, this_cpu_ptr(&rcu_bh_data));
+ 	rcu_preempt_do_callbacks();
  }
  
- /**
-@@ -75,7 +75,7 @@ static void kvm_arm_set_running_vcpu(str
- struct kvm_vcpu *kvm_arm_get_running_vcpu(void)
+@@ -1404,7 +1404,7 @@ static void rcu_cpu_kthread_park(unsigne
+ 
+ static int rcu_cpu_kthread_should_run(unsigned int cpu)
  {
- 	BUG_ON(preemptible());
--	return __get_cpu_var(kvm_arm_running_vcpu);
-+	return __this_cpu_read(kvm_arm_running_vcpu);
+-	return __get_cpu_var(rcu_cpu_has_work);
++	return __this_cpu_read(rcu_cpu_has_work);
  }
  
- /**
-@@ -811,7 +811,7 @@ static void cpu_init_hyp_mode(void *dumm
- 
- 	boot_pgd_ptr = kvm_mmu_get_boot_httbr();
- 	pgd_ptr = kvm_mmu_get_httbr();
--	stack_page = __get_cpu_var(kvm_arm_hyp_stack_page);
-+	stack_page = __this_cpu_read(kvm_arm_hyp_stack_page);
- 	hyp_stack_ptr = stack_page + PAGE_SIZE;
- 	vector_ptr = (unsigned long)__kvm_hyp_vector;
- 
-Index: linux/arch/arm64/kernel/debug-monitors.c
-===================================================================
---- linux.orig/arch/arm64/kernel/debug-monitors.c	2013-08-26 13:48:40.956794980 -0500
-+++ linux/arch/arm64/kernel/debug-monitors.c	2013-08-26 13:48:40.952795024 -0500
-@@ -98,11 +98,11 @@ void enable_debug_monitors(enum debug_el
- 
- 	WARN_ON(preemptible());
- 
--	if (local_inc_return(&__get_cpu_var(mde_ref_count)) == 1)
-+	if (this_cpu_inc_return(mde_ref_count) == 1)
- 		enable = DBG_MDSCR_MDE;
- 
- 	if (el == DBG_ACTIVE_EL1 &&
--	    local_inc_return(&__get_cpu_var(kde_ref_count)) == 1)
-+	    this_cpu_inc_return(kde_ref_count) == 1)
- 		enable |= DBG_MDSCR_KDE;
- 
- 	if (enable && debug_enabled) {
-@@ -118,11 +118,11 @@ void disable_debug_monitors(enum debug_e
- 
- 	WARN_ON(preemptible());
- 
--	if (local_dec_and_test(&__get_cpu_var(mde_ref_count)))
-+	if (local_dec_and_test(this_cpu_ptr(&mde_ref_count)))
- 		disable = ~DBG_MDSCR_MDE;
- 
- 	if (el == DBG_ACTIVE_EL1 &&
--	    local_dec_and_test(&__get_cpu_var(kde_ref_count)))
-+	    local_dec_and_test(this_cpu_ptr(&kde_ref_count)))
- 		disable &= ~DBG_MDSCR_KDE;
- 
- 	if (disable) {
-Index: linux/arch/arm64/kernel/hw_breakpoint.c
-===================================================================
---- linux.orig/arch/arm64/kernel/hw_breakpoint.c	2013-08-26 13:48:40.956794980 -0500
-+++ linux/arch/arm64/kernel/hw_breakpoint.c	2013-08-26 13:48:40.952795024 -0500
-@@ -184,14 +184,14 @@ int arch_install_hw_breakpoint(struct pe
- 		/* Breakpoint */
- 		ctrl_reg = AARCH64_DBG_REG_BCR;
- 		val_reg = AARCH64_DBG_REG_BVR;
--		slots = __get_cpu_var(bp_on_reg);
-+		slots = __this_cpu_read(bp_on_reg);
- 		max_slots = core_num_brps;
- 		reg_enable = !debug_info->bps_disabled;
- 	} else {
- 		/* Watchpoint */
- 		ctrl_reg = AARCH64_DBG_REG_WCR;
- 		val_reg = AARCH64_DBG_REG_WVR;
--		slots = __get_cpu_var(wp_on_reg);
-+		slots = __this_cpu_read(wp_on_reg);
- 		max_slots = core_num_wrps;
- 		reg_enable = !debug_info->wps_disabled;
- 	}
-@@ -230,12 +230,12 @@ void arch_uninstall_hw_breakpoint(struct
- 	if (info->ctrl.type == ARM_BREAKPOINT_EXECUTE) {
- 		/* Breakpoint */
- 		base = AARCH64_DBG_REG_BCR;
--		slots = __get_cpu_var(bp_on_reg);
-+		slots = __this_cpu_read(bp_on_reg);
- 		max_slots = core_num_brps;
- 	} else {
- 		/* Watchpoint */
- 		base = AARCH64_DBG_REG_WCR;
--		slots = __get_cpu_var(wp_on_reg);
-+		slots = __this_cpu_read(wp_on_reg);
- 		max_slots = core_num_wrps;
- 	}
- 
-@@ -505,11 +505,11 @@ static void toggle_bp_registers(int reg,
- 
- 	switch (reg) {
- 	case AARCH64_DBG_REG_BCR:
--		slots = __get_cpu_var(bp_on_reg);
-+		slots = __this_cpu_read(bp_on_reg);
- 		max_slots = core_num_brps;
- 		break;
- 	case AARCH64_DBG_REG_WCR:
--		slots = __get_cpu_var(wp_on_reg);
-+		slots = __this_cpu_read(wp_on_reg);
- 		max_slots = core_num_wrps;
- 		break;
- 	default:
-@@ -546,7 +546,7 @@ static int breakpoint_handler(unsigned l
- 	struct debug_info *debug_info;
- 	struct arch_hw_breakpoint_ctrl ctrl;
- 
--	slots = (struct perf_event **)__get_cpu_var(bp_on_reg);
-+	slots = (struct perf_event **)__this_cpu_read(bp_on_reg);
- 	addr = instruction_pointer(regs);
- 	debug_info = &current->thread.debug;
- 
-@@ -596,7 +596,7 @@ unlock:
- 			user_enable_single_step(current);
- 	} else {
- 		toggle_bp_registers(AARCH64_DBG_REG_BCR, DBG_ACTIVE_EL1, 0);
--		kernel_step = &__get_cpu_var(stepping_kernel_bp);
-+		kernel_step = this_cpu_ptr(&stepping_kernel_bp);
- 
- 		if (*kernel_step != ARM_KERNEL_STEP_NONE)
- 			return 0;
-@@ -623,7 +623,7 @@ static int watchpoint_handler(unsigned l
- 	struct arch_hw_breakpoint *info;
- 	struct arch_hw_breakpoint_ctrl ctrl;
- 
--	slots = (struct perf_event **)__get_cpu_var(wp_on_reg);
-+	slots = (struct perf_event **)__this_cpu_read(wp_on_reg);
- 	debug_info = &current->thread.debug;
- 
- 	for (i = 0; i < core_num_wrps; ++i) {
-@@ -698,7 +698,7 @@ unlock:
- 			user_enable_single_step(current);
- 	} else {
- 		toggle_bp_registers(AARCH64_DBG_REG_WCR, DBG_ACTIVE_EL1, 0);
--		kernel_step = &__get_cpu_var(stepping_kernel_bp);
-+		kernel_step = this_cpu_ptr(&stepping_kernel_bp);
- 
- 		if (*kernel_step != ARM_KERNEL_STEP_NONE)
- 			return 0;
-@@ -722,7 +722,7 @@ int reinstall_suspended_bps(struct pt_re
- 	struct debug_info *debug_info = &current->thread.debug;
- 	int handled_exception = 0, *kernel_step;
- 
--	kernel_step = &__get_cpu_var(stepping_kernel_bp);
-+	kernel_step = this_cpu_ptr(&stepping_kernel_bp);
- 
- 	/*
- 	 * Called from single-step exception handler.
-Index: linux/arch/arm64/kernel/perf_event.c
-===================================================================
---- linux.orig/arch/arm64/kernel/perf_event.c	2013-08-26 13:48:40.956794980 -0500
-+++ linux/arch/arm64/kernel/perf_event.c	2013-08-26 13:48:40.952795024 -0500
-@@ -1041,7 +1041,7 @@ static irqreturn_t armv8pmu_handle_irq(i
- 	 */
- 	regs = get_irq_regs();
- 
--	cpuc = &__get_cpu_var(cpu_hw_events);
-+	cpuc = this_cpu_ptr(&cpu_hw_events);
- 	for (idx = 0; idx < cpu_pmu->num_events; ++idx) {
- 		struct perf_event *event = cpuc->events[idx];
- 		struct hw_perf_event *hwc;
-@@ -1254,7 +1254,7 @@ device_initcall(register_pmu_driver);
- 
- static struct pmu_hw_events *armpmu_get_cpu_events(void)
+ /*
+@@ -1414,8 +1414,8 @@ static int rcu_cpu_kthread_should_run(un
+  */
+ static void rcu_cpu_kthread(unsigned int cpu)
  {
--	return &__get_cpu_var(cpu_hw_events);
-+	return this_cpu_ptr(&cpu_hw_events);
- }
+-	unsigned int *statusp = &__get_cpu_var(rcu_cpu_kthread_status);
+-	char work, *workp = &__get_cpu_var(rcu_cpu_has_work);
++	unsigned int *statusp = this_cpu_ptr(&rcu_cpu_kthread_status);
++	char work, *workp = this_cpu_ptr(&rcu_cpu_has_work);
+ 	int spincnt;
  
- static void __init cpu_pmu_init(struct arm_pmu *armpmu)
+ 	for (spincnt = 0; spincnt < 10; spincnt++) {
