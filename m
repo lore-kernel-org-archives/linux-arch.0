@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from a194-81.smtp-out.amazonses.com ([199.255.194.81]:41565 "EHLO
 	a194-81.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755761Ab3H1T5u (ORCPT
+	by vger.kernel.org with ESMTP id S1755718Ab3H1T5q (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 28 Aug 2013 15:57:50 -0400
-Message-ID: <00000140c67829e7-5d1c0f4a-3231-4421-b54e-d0db135b505a-000000@email.amazonses.com>
-Date: Wed, 28 Aug 2013 19:48:20 +0000
+	Wed, 28 Aug 2013 15:57:46 -0400
+Message-ID: <00000140c67817eb-b582280a-f059-499f-a24c-a11f3d59b86e-000000@email.amazonses.com>
+Date: Wed, 28 Aug 2013 19:48:14 +0000
 From: Christoph Lameter <cl@linux.com>
-Subject: [gcv v3 26/35] sparc: Replace __get_cpu_var uses
+Subject: [gcv v3 06/35] scheduler: Replace __get_cpu_var uses
 References: <20130828193457.140443630@linux.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
-Message-ID: <20130828194820.s5KpW2ZtjHaaLwsTh30VdaLhnOZcpmhZJHsW-vabjvg@z>
+Cc: akpm@linuxfoundation.org, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+Message-ID: <20130828194814.ikc4m2qiPWS7G15Ve2MLZjavP1Vky60ptOSq9FHwEAg@z>
 
 __get_cpu_var() is used for multiple purposes in the kernel source. One of them is
 address calculation via the form &__get_cpu_var(x). This calculates the address for
@@ -112,339 +112,224 @@ Transformations done to __get_cpu_var()
 	this_cpu_inc(y)
 
 
-Acked-by: David S. Miller <davem@davemloft.net>
 Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Index: linux/arch/sparc/include/asm/cpudata_32.h
+Index: linux/include/linux/kernel_stat.h
 ===================================================================
---- linux.orig/arch/sparc/include/asm/cpudata_32.h	2013-08-22 14:34:54.000000000 -0500
-+++ linux/arch/sparc/include/asm/cpudata_32.h	2013-08-22 14:37:15.942964723 -0500
-@@ -26,6 +26,6 @@ typedef struct {
+--- linux.orig/include/linux/kernel_stat.h	2013-08-26 14:21:39.000000000 -0500
++++ linux/include/linux/kernel_stat.h	2013-08-26 14:23:08.883120293 -0500
+@@ -47,8 +47,8 @@ DECLARE_PER_CPU(struct kernel_stat, ksta
+ DECLARE_PER_CPU(struct kernel_cpustat, kernel_cpustat);
  
- DECLARE_PER_CPU(cpuinfo_sparc, __cpu_data);
- #define cpu_data(__cpu) per_cpu(__cpu_data, (__cpu))
--#define local_cpu_data() __get_cpu_var(__cpu_data)
-+#define local_cpu_data() __this_cpu_read(__cpu_data)
+ /* Must have preemption disabled for this to be meaningful. */
+-#define kstat_this_cpu (&__get_cpu_var(kstat))
+-#define kcpustat_this_cpu (&__get_cpu_var(kernel_cpustat))
++#define kstat_this_cpu this_cpu_ptr(&kstat)
++#define kcpustat_this_cpu this_cpu_ptr(&kernel_cpustat)
+ #define kstat_cpu(cpu) per_cpu(kstat, cpu)
+ #define kcpustat_cpu(cpu) per_cpu(kernel_cpustat, cpu)
  
- #endif /* _SPARC_CPUDATA_H */
-Index: linux/arch/sparc/include/asm/cpudata_64.h
+Index: linux/kernel/events/callchain.c
 ===================================================================
---- linux.orig/arch/sparc/include/asm/cpudata_64.h	2013-08-22 14:34:54.000000000 -0500
-+++ linux/arch/sparc/include/asm/cpudata_64.h	2013-08-22 14:37:15.942964723 -0500
-@@ -33,7 +33,7 @@ typedef struct {
+--- linux.orig/kernel/events/callchain.c	2013-08-26 14:21:39.000000000 -0500
++++ linux/kernel/events/callchain.c	2013-08-26 14:23:08.875120379 -0500
+@@ -134,7 +134,7 @@ static struct perf_callchain_entry *get_
+ 	int cpu;
+ 	struct callchain_cpus_entries *entries;
  
- DECLARE_PER_CPU(cpuinfo_sparc, __cpu_data);
- #define cpu_data(__cpu)		per_cpu(__cpu_data, (__cpu))
--#define local_cpu_data()	__get_cpu_var(__cpu_data)
-+#define local_cpu_data()	__this_cpu_read(__cpu_data)
+-	*rctx = get_recursion_context(__get_cpu_var(callchain_recursion));
++	*rctx = get_recursion_context(this_cpu_ptr(callchain_recursion));
+ 	if (*rctx == -1)
+ 		return NULL;
  
- extern const struct seq_operations cpuinfo_op;
- 
-Index: linux/arch/sparc/kernel/kprobes.c
-===================================================================
---- linux.orig/arch/sparc/kernel/kprobes.c	2013-08-22 14:34:54.000000000 -0500
-+++ linux/arch/sparc/kernel/kprobes.c	2013-08-22 14:37:15.942964723 -0500
-@@ -82,7 +82,7 @@ static void __kprobes save_previous_kpro
- 
- static void __kprobes restore_previous_kprobe(struct kprobe_ctlblk *kcb)
+@@ -150,7 +150,7 @@ static struct perf_callchain_entry *get_
+ static void
+ put_callchain_entry(int rctx)
  {
--	__get_cpu_var(current_kprobe) = kcb->prev_kprobe.kp;
-+	__this_cpu_write(current_kprobe, kcb->prev_kprobe.kp);
- 	kcb->kprobe_status = kcb->prev_kprobe.status;
- 	kcb->kprobe_orig_tnpc = kcb->prev_kprobe.orig_tnpc;
- 	kcb->kprobe_orig_tstate_pil = kcb->prev_kprobe.orig_tstate_pil;
-@@ -91,7 +91,7 @@ static void __kprobes restore_previous_k
- static void __kprobes set_current_kprobe(struct kprobe *p, struct pt_regs *regs,
- 				struct kprobe_ctlblk *kcb)
- {
--	__get_cpu_var(current_kprobe) = p;
-+	__this_cpu_write(current_kprobe, p);
- 	kcb->kprobe_orig_tnpc = regs->tnpc;
- 	kcb->kprobe_orig_tstate_pil = (regs->tstate & TSTATE_PIL);
- }
-@@ -154,7 +154,7 @@ static int __kprobes kprobe_handler(stru
- 				ret = 1;
- 				goto no_kprobe;
- 			}
--			p = __get_cpu_var(current_kprobe);
-+			p = __this_cpu_read(current_kprobe);
- 			if (p->break_handler && p->break_handler(p, regs))
- 				goto ss_probe;
- 		}
-Index: linux/arch/sparc/kernel/leon_smp.c
-===================================================================
---- linux.orig/arch/sparc/kernel/leon_smp.c	2013-08-22 14:34:54.000000000 -0500
-+++ linux/arch/sparc/kernel/leon_smp.c	2013-08-22 14:37:15.942964723 -0500
-@@ -354,7 +354,7 @@ static void leon_ipi_resched(int cpu)
- 
- void leonsmp_ipi_interrupt(void)
- {
--	struct leon_ipi_work *work = &__get_cpu_var(leon_ipi_work);
-+	struct leon_ipi_work *work = this_cpu_ptr(&leon_ipi_work);
- 
- 	if (work->single) {
- 		work->single = 0;
-Index: linux/arch/sparc/kernel/nmi.c
-===================================================================
---- linux.orig/arch/sparc/kernel/nmi.c	2013-08-22 14:34:54.000000000 -0500
-+++ linux/arch/sparc/kernel/nmi.c	2013-08-22 14:37:15.942964723 -0500
-@@ -111,20 +111,20 @@ notrace __kprobes void perfctr_irq(int i
- 		pcr_ops->write_pcr(0, pcr_ops->pcr_nmi_disable);
- 
- 	sum = local_cpu_data().irq0_irqs;
--	if (__get_cpu_var(nmi_touch)) {
--		__get_cpu_var(nmi_touch) = 0;
-+	if (__this_cpu_read(nmi_touch)) {
-+		__this_cpu_write(nmi_touch, 0);
- 		touched = 1;
- 	}
--	if (!touched && __get_cpu_var(last_irq_sum) == sum) {
-+	if (!touched && __this_cpu_read(last_irq_sum) == sum) {
- 		__this_cpu_inc(alert_counter);
- 		if (__this_cpu_read(alert_counter) == 30 * nmi_hz)
- 			die_nmi("BUG: NMI Watchdog detected LOCKUP",
- 				regs, panic_on_timeout);
- 	} else {
--		__get_cpu_var(last_irq_sum) = sum;
-+		__this_cpu_write(last_irq_sum, sum);
- 		__this_cpu_write(alert_counter, 0);
- 	}
--	if (__get_cpu_var(wd_enabled)) {
-+	if (__this_cpu_read(wd_enabled)) {
- 		pcr_ops->write_pic(0, pcr_ops->nmi_picl_value(nmi_hz));
- 		pcr_ops->write_pcr(0, pcr_ops->pcr_nmi_enable);
- 	}
-@@ -166,7 +166,7 @@ static void report_broken_nmi(int cpu, i
- void stop_nmi_watchdog(void *unused)
- {
- 	pcr_ops->write_pcr(0, pcr_ops->pcr_nmi_disable);
--	__get_cpu_var(wd_enabled) = 0;
-+	__this_cpu_write(wd_enabled, 0);
- 	atomic_dec(&nmi_active);
+-	put_recursion_context(__get_cpu_var(callchain_recursion), rctx);
++	put_recursion_context(this_cpu_ptr(callchain_recursion), rctx);
  }
  
-@@ -219,7 +219,7 @@ error:
- 
- void start_nmi_watchdog(void *unused)
- {
--	__get_cpu_var(wd_enabled) = 1;
-+	__this_cpu_write(wd_enabled, 1);
- 	atomic_inc(&nmi_active);
- 
- 	pcr_ops->write_pcr(0, pcr_ops->pcr_nmi_disable);
-@@ -230,7 +230,7 @@ void start_nmi_watchdog(void *unused)
- 
- static void nmi_adjust_hz_one(void *unused)
- {
--	if (!__get_cpu_var(wd_enabled))
-+	if (!__this_cpu_read(wd_enabled))
+ struct perf_callchain_entry *
+Index: linux/kernel/events/core.c
+===================================================================
+--- linux.orig/kernel/events/core.c	2013-08-26 14:21:39.000000000 -0500
++++ linux/kernel/events/core.c	2013-08-26 14:23:08.875120379 -0500
+@@ -238,10 +238,10 @@ void perf_sample_event_took(u64 sample_l
  		return;
  
- 	pcr_ops->write_pcr(0, pcr_ops->pcr_nmi_disable);
-Index: linux/arch/sparc/kernel/pci_sun4v.c
-===================================================================
---- linux.orig/arch/sparc/kernel/pci_sun4v.c	2013-08-22 14:34:54.000000000 -0500
-+++ linux/arch/sparc/kernel/pci_sun4v.c	2013-08-22 14:37:15.942964723 -0500
-@@ -48,7 +48,7 @@ static int iommu_batch_initialized;
- /* Interrupts must be disabled.  */
- static inline void iommu_batch_start(struct device *dev, unsigned long prot, unsigned long entry)
+ 	/* decay the counter by 1 average sample */
+-	local_samples_len = __get_cpu_var(running_sample_length);
++	local_samples_len = __this_cpu_read(running_sample_length);
+ 	local_samples_len -= local_samples_len/NR_ACCUMULATED_SAMPLES;
+ 	local_samples_len += sample_len_ns;
+-	__get_cpu_var(running_sample_length) = local_samples_len;
++	__this_cpu_write(running_sample_length, local_samples_len);
+ 
+ 	/*
+ 	 * note: this will be biased artifically low until we have
+@@ -865,7 +865,7 @@ static DEFINE_PER_CPU(struct list_head,
+ static void perf_pmu_rotate_start(struct pmu *pmu)
  {
--	struct iommu_batch *p = &__get_cpu_var(iommu_batch);
-+	struct iommu_batch *p = this_cpu_ptr(&iommu_batch);
+ 	struct perf_cpu_context *cpuctx = this_cpu_ptr(pmu->pmu_cpu_context);
+-	struct list_head *head = &__get_cpu_var(rotation_list);
++	struct list_head *head = this_cpu_ptr(&rotation_list);
  
- 	p->dev		= dev;
- 	p->prot		= prot;
-@@ -94,7 +94,7 @@ static long iommu_batch_flush(struct iom
+ 	WARN_ON(!irqs_disabled());
  
- static inline void iommu_batch_new_entry(unsigned long entry)
+@@ -2321,7 +2321,7 @@ void __perf_event_task_sched_out(struct
+ 	 * to check if we have to switch out PMU state.
+ 	 * cgroup event are system-wide mode only
+ 	 */
+-	if (atomic_read(&__get_cpu_var(perf_cgroup_events)))
++	if (atomic_read(this_cpu_ptr(&perf_cgroup_events)))
+ 		perf_cgroup_sched_out(task, next);
+ }
+ 
+@@ -2566,11 +2566,11 @@ void __perf_event_task_sched_in(struct t
+ 	 * to check if we have to switch in PMU state.
+ 	 * cgroup event are system-wide mode only
+ 	 */
+-	if (atomic_read(&__get_cpu_var(perf_cgroup_events)))
++	if (atomic_read(this_cpu_ptr(&perf_cgroup_events)))
+ 		perf_cgroup_sched_in(prev, task);
+ 
+ 	/* check for system-wide branch_stack events */
+-	if (atomic_read(&__get_cpu_var(perf_branch_stack_events)))
++	if (atomic_read(this_cpu_ptr(&perf_branch_stack_events)))
+ 		perf_branch_stack_sched_in(prev, task);
+ }
+ 
+@@ -2811,7 +2811,7 @@ done:
+ #ifdef CONFIG_NO_HZ_FULL
+ bool perf_event_can_stop_tick(void)
  {
--	struct iommu_batch *p = &__get_cpu_var(iommu_batch);
-+	struct iommu_batch *p = this_cpu_ptr(&iommu_batch);
+-	if (list_empty(&__get_cpu_var(rotation_list)))
++	if (list_empty(this_cpu_ptr(&rotation_list)))
+ 		return true;
+ 	else
+ 		return false;
+@@ -2820,7 +2820,7 @@ bool perf_event_can_stop_tick(void)
  
- 	if (p->entry + p->npages == entry)
- 		return;
-@@ -106,7 +106,7 @@ static inline void iommu_batch_new_entry
- /* Interrupts must be disabled.  */
- static inline long iommu_batch_add(u64 phys_page)
+ void perf_event_task_tick(void)
  {
--	struct iommu_batch *p = &__get_cpu_var(iommu_batch);
-+	struct iommu_batch *p = this_cpu_ptr(&iommu_batch);
- 
- 	BUG_ON(p->npages >= PGLIST_NENTS);
- 
-@@ -120,7 +120,7 @@ static inline long iommu_batch_add(u64 p
- /* Interrupts must be disabled.  */
- static inline long iommu_batch_end(void)
+-	struct list_head *head = &__get_cpu_var(rotation_list);
++	struct list_head *head = this_cpu_ptr(&rotation_list);
+ 	struct perf_cpu_context *cpuctx, *tmp;
+ 	struct perf_event_context *ctx;
+ 	int throttled;
+@@ -5414,7 +5414,7 @@ static void do_perf_sw_event(enum perf_t
+ 				    struct perf_sample_data *data,
+ 				    struct pt_regs *regs)
  {
--	struct iommu_batch *p = &__get_cpu_var(iommu_batch);
-+	struct iommu_batch *p = this_cpu_ptr(&iommu_batch);
+-	struct swevent_htable *swhash = &__get_cpu_var(swevent_htable);
++	struct swevent_htable *swhash = this_cpu_ptr(&swevent_htable);
+ 	struct perf_event *event;
+ 	struct hlist_head *head;
  
- 	BUG_ON(p->npages >= PGLIST_NENTS);
+@@ -5433,7 +5433,7 @@ end:
  
-Index: linux/arch/sparc/kernel/perf_event.c
-===================================================================
---- linux.orig/arch/sparc/kernel/perf_event.c	2013-08-22 14:34:54.000000000 -0500
-+++ linux/arch/sparc/kernel/perf_event.c	2013-08-22 14:37:15.946964681 -0500
-@@ -1013,7 +1013,7 @@ static void update_pcrs_for_enable(struc
- 
- static void sparc_pmu_enable(struct pmu *pmu)
+ int perf_swevent_get_recursion_context(void)
  {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	int i;
+-	struct swevent_htable *swhash = &__get_cpu_var(swevent_htable);
++	struct swevent_htable *swhash = this_cpu_ptr(&swevent_htable);
  
- 	if (cpuc->enabled)
-@@ -1031,7 +1031,7 @@ static void sparc_pmu_enable(struct pmu
+ 	return get_recursion_context(swhash->recursion);
+ }
+@@ -5441,7 +5441,7 @@ EXPORT_SYMBOL_GPL(perf_swevent_get_recur
  
- static void sparc_pmu_disable(struct pmu *pmu)
+ inline void perf_swevent_put_recursion_context(int rctx)
  {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	int i;
+-	struct swevent_htable *swhash = &__get_cpu_var(swevent_htable);
++	struct swevent_htable *swhash = this_cpu_ptr(&swevent_htable);
  
- 	if (!cpuc->enabled)
-@@ -1065,7 +1065,7 @@ static int active_event_index(struct cpu
+ 	put_recursion_context(swhash->recursion, rctx);
+ }
+@@ -5470,7 +5470,7 @@ static void perf_swevent_read(struct per
  
- static void sparc_pmu_start(struct perf_event *event, int flags)
+ static int perf_swevent_add(struct perf_event *event, int flags)
  {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	int idx = active_event_index(cpuc, event);
- 
- 	if (flags & PERF_EF_RELOAD) {
-@@ -1080,7 +1080,7 @@ static void sparc_pmu_start(struct perf_
- 
- static void sparc_pmu_stop(struct perf_event *event, int flags)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	int idx = active_event_index(cpuc, event);
- 
- 	if (!(event->hw.state & PERF_HES_STOPPED)) {
-@@ -1096,7 +1096,7 @@ static void sparc_pmu_stop(struct perf_e
- 
- static void sparc_pmu_del(struct perf_event *event, int _flags)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	unsigned long flags;
- 	int i;
- 
-@@ -1133,7 +1133,7 @@ static void sparc_pmu_del(struct perf_ev
- 
- static void sparc_pmu_read(struct perf_event *event)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	int idx = active_event_index(cpuc, event);
+-	struct swevent_htable *swhash = &__get_cpu_var(swevent_htable);
++	struct swevent_htable *swhash = this_cpu_ptr(&swevent_htable);
  	struct hw_perf_event *hwc = &event->hw;
+ 	struct hlist_head *head;
  
-@@ -1145,7 +1145,7 @@ static DEFINE_MUTEX(pmc_grab_mutex);
- 
- static void perf_stop_nmi_watchdog(void *unused)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	int i;
- 
- 	stop_nmi_watchdog(NULL);
-@@ -1356,7 +1356,7 @@ static int collect_events(struct perf_ev
- 
- static int sparc_pmu_add(struct perf_event *event, int ef_flags)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	int n0, ret = -EAGAIN;
- 	unsigned long flags;
- 
-@@ -1498,7 +1498,7 @@ static int sparc_pmu_event_init(struct p
-  */
- static void sparc_pmu_start_txn(struct pmu *pmu)
- {
--	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
- 
- 	perf_pmu_disable(pmu);
- 	cpuhw->group_flag |= PERF_EVENT_TXN;
-@@ -1511,7 +1511,7 @@ static void sparc_pmu_start_txn(struct p
-  */
- static void sparc_pmu_cancel_txn(struct pmu *pmu)
- {
--	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
- 
- 	cpuhw->group_flag &= ~PERF_EVENT_TXN;
- 	perf_pmu_enable(pmu);
-@@ -1524,13 +1524,13 @@ static void sparc_pmu_cancel_txn(struct
-  */
- static int sparc_pmu_commit_txn(struct pmu *pmu)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	int n;
- 
- 	if (!sparc_pmu)
- 		return -EINVAL;
- 
--	cpuc = &__get_cpu_var(cpu_hw_events);
-+	cpuc = this_cpu_ptr(&cpu_hw_events);
- 	n = cpuc->n_events;
- 	if (check_excludes(cpuc->event, 0, n))
- 		return -EINVAL;
-@@ -1601,7 +1601,7 @@ static int __kprobes perf_event_nmi_hand
- 
- 	regs = args->regs;
- 
--	cpuc = &__get_cpu_var(cpu_hw_events);
-+	cpuc = this_cpu_ptr(&cpu_hw_events);
- 
- 	/* If the PMU has the TOE IRQ enable bits, we need to do a
- 	 * dummy write to the %pcr to clear the overflow bits and thus
-Index: linux/arch/sparc/kernel/sun4d_smp.c
+Index: linux/kernel/sched/cputime.c
 ===================================================================
---- linux.orig/arch/sparc/kernel/sun4d_smp.c	2013-08-22 14:34:54.000000000 -0500
-+++ linux/arch/sparc/kernel/sun4d_smp.c	2013-08-22 14:37:15.946964681 -0500
-@@ -204,7 +204,7 @@ static void __init smp4d_ipi_init(void)
+--- linux.orig/kernel/sched/cputime.c	2013-08-26 14:21:39.000000000 -0500
++++ linux/kernel/sched/cputime.c	2013-08-26 14:23:08.879120335 -0500
+@@ -121,7 +121,7 @@ static inline void task_group_account_fi
+ 	 * is the only cgroup, then nothing else should be necessary.
+ 	 *
+ 	 */
+-	__get_cpu_var(kernel_cpustat).cpustat[index] += tmp;
++	__this_cpu_add(kernel_cpustat.cpustat[index], tmp);
  
- void sun4d_ipi_interrupt(void)
- {
--	struct sun4d_ipi_work *work = &__get_cpu_var(sun4d_ipi_work);
-+	struct sun4d_ipi_work *work = this_cpu_ptr(&sun4d_ipi_work);
- 
- 	if (work->single) {
- 		work->single = 0;
-Index: linux/arch/sparc/kernel/time_64.c
-===================================================================
---- linux.orig/arch/sparc/kernel/time_64.c	2013-08-22 14:34:54.000000000 -0500
-+++ linux/arch/sparc/kernel/time_64.c	2013-08-22 14:37:15.946964681 -0500
-@@ -766,7 +766,7 @@ void setup_sparc64_timer(void)
- 			     : /* no outputs */
- 			     : "r" (pstate));
- 
--	sevt = &__get_cpu_var(sparc64_events);
-+	sevt = this_cpu_ptr(&sparc64_events);
- 
- 	memcpy(sevt, &sparc64_clockevent, sizeof(*sevt));
- 	sevt->cpumask = cpumask_of(smp_processor_id());
-Index: linux/arch/sparc/mm/tlb.c
-===================================================================
---- linux.orig/arch/sparc/mm/tlb.c	2013-08-22 14:34:54.000000000 -0500
-+++ linux/arch/sparc/mm/tlb.c	2013-08-22 14:37:15.946964681 -0500
-@@ -53,14 +53,14 @@ out:
- 
- void arch_enter_lazy_mmu_mode(void)
- {
--	struct tlb_batch *tb = &__get_cpu_var(tlb_batch);
-+	struct tlb_batch *tb = this_cpu_ptr(&tlb_batch);
- 
- 	tb->active = 1;
+ 	cpuacct_account_field(p, index, tmp);
  }
+Index: linux/kernel/sched/fair.c
+===================================================================
+--- linux.orig/kernel/sched/fair.c	2013-08-26 14:21:39.000000000 -0500
++++ linux/kernel/sched/fair.c	2013-08-26 14:23:08.879120335 -0500
+@@ -5057,7 +5057,7 @@ static int load_balance(int this_cpu, st
+ 	struct sched_group *group;
+ 	struct rq *busiest;
+ 	unsigned long flags;
+-	struct cpumask *cpus = __get_cpu_var(load_balance_mask);
++	struct cpumask *cpus = this_cpu_ptr(load_balance_mask);
  
- void arch_leave_lazy_mmu_mode(void)
+ 	struct lb_env env = {
+ 		.sd		= sd,
+Index: linux/kernel/sched/rt.c
+===================================================================
+--- linux.orig/kernel/sched/rt.c	2013-08-26 14:21:39.000000000 -0500
++++ linux/kernel/sched/rt.c	2013-08-26 14:23:08.883120293 -0500
+@@ -1389,7 +1389,7 @@ static DEFINE_PER_CPU(cpumask_var_t, loc
+ static int find_lowest_rq(struct task_struct *task)
  {
--	struct tlb_batch *tb = &__get_cpu_var(tlb_batch);
-+	struct tlb_batch *tb = this_cpu_ptr(&tlb_batch);
+ 	struct sched_domain *sd;
+-	struct cpumask *lowest_mask = __get_cpu_var(local_cpu_mask);
++	struct cpumask *lowest_mask = this_cpu_ptr(local_cpu_mask);
+ 	int this_cpu = smp_processor_id();
+ 	int cpu      = task_cpu(task);
  
- 	if (tb->tlb_nr)
- 		flush_tlb_pending();
+Index: linux/kernel/sched/sched.h
+===================================================================
+--- linux.orig/kernel/sched/sched.h	2013-08-26 14:21:39.000000000 -0500
++++ linux/kernel/sched/sched.h	2013-08-26 14:23:08.883120293 -0500
+@@ -538,10 +538,10 @@ static inline int cpu_of(struct rq *rq)
+ DECLARE_PER_CPU(struct rq, runqueues);
+ 
+ #define cpu_rq(cpu)		(&per_cpu(runqueues, (cpu)))
+-#define this_rq()		(&__get_cpu_var(runqueues))
++#define this_rq()		this_cpu_ptr(&runqueues)
+ #define task_rq(p)		cpu_rq(task_cpu(p))
+ #define cpu_curr(cpu)		(cpu_rq(cpu)->curr)
+-#define raw_rq()		(&__raw_get_cpu_var(runqueues))
++#define raw_rq()		__this_cpu_ptr(&runqueues)
+ 
+ static inline u64 rq_clock(struct rq *rq)
+ {
+Index: linux/kernel/user-return-notifier.c
+===================================================================
+--- linux.orig/kernel/user-return-notifier.c	2013-08-26 14:21:39.000000000 -0500
++++ linux/kernel/user-return-notifier.c	2013-08-26 14:23:08.883120293 -0500
+@@ -14,7 +14,7 @@ static DEFINE_PER_CPU(struct hlist_head,
+ void user_return_notifier_register(struct user_return_notifier *urn)
+ {
+ 	set_tsk_thread_flag(current, TIF_USER_RETURN_NOTIFY);
+-	hlist_add_head(&urn->link, &__get_cpu_var(return_notifier_list));
++	hlist_add_head(&urn->link, this_cpu_ptr(&return_notifier_list));
+ }
+ EXPORT_SYMBOL_GPL(user_return_notifier_register);
+ 
+@@ -25,7 +25,7 @@ EXPORT_SYMBOL_GPL(user_return_notifier_r
+ void user_return_notifier_unregister(struct user_return_notifier *urn)
+ {
+ 	hlist_del(&urn->link);
+-	if (hlist_empty(&__get_cpu_var(return_notifier_list)))
++	if (hlist_empty(this_cpu_ptr(&return_notifier_list)))
+ 		clear_tsk_thread_flag(current, TIF_USER_RETURN_NOTIFY);
+ }
+ EXPORT_SYMBOL_GPL(user_return_notifier_unregister);
 
