@@ -1,187 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from a9-62.smtp-out.amazonses.com ([54.240.9.62]:51056 "EHLO
-	a9-62.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754315Ab3H1Tza (ORCPT
+Received: from a9-66.smtp-out.amazonses.com ([54.240.9.66]:52956 "EHLO
+	a9-66.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754616Ab3H1Tza (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
 	Wed, 28 Aug 2013 15:55:30 -0400
-Message-ID: <00000140c678248b-c13f2d24-e3fa-4624-a82d-cb59fb31e3d2-000000@email.amazonses.com>
-Date: Wed, 28 Aug 2013 19:48:17 +0000
+Message-ID: <00000140c67816e2-389f9e0e-7dc7-45e1-a811-051c363df431-000000@email.amazonses.com>
+Date: Wed, 28 Aug 2013 19:48:13 +0000
 From: Christoph Lameter <cl@linux.com>
-Subject: [gcv v3 13/35] kernel misc: Replace __get_cpu_var uses
+Subject: [gcv v3 03/35] Coccinelle script for __get_cpu_var conversion
 References: <20130828193457.140443630@linux.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Tejun Heo <tj@kernel.org>
 Cc: akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
-Message-ID: <20130828194817.rQGlj5WKofiOC8K6g93KSkvSj64aS-0OmYHBawn_qnY@z>
+Message-ID: <20130828194813.06p6bgNcTOAxq1FOLlItAma_agbTVsgteydhd9tBkFM@z>
 
-__get_cpu_var() is used for multiple purposes in the kernel source. One of them is
-address calculation via the form &__get_cpu_var(x). This calculates the address for
-the instance of the percpu variable of the current processor based on an offset.
+Much of the work was done by this coccinelle script.
 
-Other use cases are for storing and retrieving data from the current processors percpu area.
-__get_cpu_var() can be used as an lvalue when writing data or on the right side of an assignment.
-
-__get_cpu_var() is defined as :
-
-
-#define __get_cpu_var(var) (*this_cpu_ptr(&(var)))
-
-
-
-__get_cpu_var() always only does an address determination. However, store and retrieve operations
-could use a segment prefix (or global register on other platforms) to avoid the address calculation.
-
-this_cpu_write() and this_cpu_read() can directly take an offset into a percpu area and use
-optimized assembly code to read and write per cpu variables.
-
-
-This patch converts __get_cpu_var into either an explicit address calculation using this_cpu_ptr()
-or into a use of this_cpu operations that use the offset. Thereby address calcualtions are avoided
-and less registers are used when code is generated.
-
-At the end of the patchset all uses of __get_cpu_var have been removed so the macro is removed too.
-
-The patchset includes passes over all arches as well. Once these operations are used throughout then
-specialized macros can be defined in non -x86 arches as well in order to optimize per cpu access by
-f.e. using a global register that may be set to the per cpu base.
-
-
-
-
-Transformations done to __get_cpu_var()
-
-
-1. Determine the address of the percpu instance of the current processor.
-
-	DEFINE_PER_CPU(int, y);
-	int *x = &__get_cpu_var(y);
-
-    Converts to
-
-	int *x = this_cpu_ptr(&y);
-
-
-2. Same as #1 but this time an array structure is involved.
-
-	DEFINE_PER_CPU(int, y[20]);
-	int *x = __get_cpu_var(y);
-
-    Converts to
-
-	int *x = this_cpu_ptr(y);
-
-
-3. Retrieve the content of the current processors instance of a per cpu variable.
-
-	DEFINE_PER_CPU(int, u);
-	int x = __get_cpu_var(y)
-
-   Converts to
-
-	int x = __this_cpu_read(y);
-
-
-4. Retrieve the content of a percpu struct
-
-	DEFINE_PER_CPU(struct mystruct, y);
-	struct mystruct x = __get_cpu_var(y);
-
-   Converts to
-
-	memcpy(this_cpu_ptr(&x), y, sizeof(x));
-
-
-5. Assignment to a per cpu variable
-
-	DEFINE_PER_CPU(int, y)
-	__get_cpu_var(y) = x;
-
-   Converts to
-
-	this_cpu_write(y, x);
-
-
-6. Increment/Decrement etc of a per cpu variable
-
-	DEFINE_PER_CPU(int, y);
-	__get_cpu_var(y)++
-
-   Converts to
-
-	this_cpu_inc(y)
-
+Wont catch everything (since coccinelle aborts when it no longer can make
+sense out of macros, sigh) but it covers a lot of ground.
 
 Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Index: linux/kernel/printk/printk.c
+Index: linux/scripts/coccinelle/convert/__get_cpu_var.cocci
 ===================================================================
---- linux.orig/kernel/printk/printk.c	2013-08-26 14:30:25.846490787 -0500
-+++ linux/kernel/printk/printk.c	2013-08-26 14:30:25.846490787 -0500
-@@ -2441,7 +2441,7 @@ static void wake_up_klogd_work_func(stru
- 	int pending = __this_cpu_xchg(printk_pending, 0);
- 
- 	if (pending & PRINTK_PENDING_SCHED) {
--		char *buf = __get_cpu_var(printk_sched_buf);
-+		char *buf = this_cpu_ptr(printk_sched_buf);
- 		printk(KERN_WARNING "[sched_delayed] %s", buf);
- 	}
- 
-@@ -2459,7 +2459,7 @@ void wake_up_klogd(void)
- 	preempt_disable();
- 	if (waitqueue_active(&log_wait)) {
- 		this_cpu_or(printk_pending, PRINTK_PENDING_WAKEUP);
--		irq_work_queue(&__get_cpu_var(wake_up_klogd_work));
-+		irq_work_queue(this_cpu_ptr(&wake_up_klogd_work));
- 	}
- 	preempt_enable();
- }
-@@ -2472,14 +2472,14 @@ int printk_sched(const char *fmt, ...)
- 	int r;
- 
- 	local_irq_save(flags);
--	buf = __get_cpu_var(printk_sched_buf);
-+	buf = this_cpu_ptr(printk_sched_buf);
- 
- 	va_start(args, fmt);
- 	r = vsnprintf(buf, PRINTK_BUF_SIZE, fmt, args);
- 	va_end(args);
- 
- 	__this_cpu_or(printk_pending, PRINTK_PENDING_SCHED);
--	irq_work_queue(&__get_cpu_var(wake_up_klogd_work));
-+	irq_work_queue(this_cpu_ptr(&wake_up_klogd_work));
- 	local_irq_restore(flags);
- 
- 	return r;
-Index: linux/kernel/smp.c
-===================================================================
---- linux.orig/kernel/smp.c	2013-08-26 14:30:25.846490787 -0500
-+++ linux/kernel/smp.c	2013-08-26 14:30:25.846490787 -0500
-@@ -172,7 +172,7 @@ void generic_exec_single(int cpu, struct
-  */
- void generic_smp_call_function_single_interrupt(void)
- {
--	struct call_single_queue *q = &__get_cpu_var(call_single_queue);
-+	struct call_single_queue *q = this_cpu_ptr(&call_single_queue);
- 	LIST_HEAD(list);
- 
- 	/*
-@@ -252,7 +252,7 @@ int smp_call_function_single(int cpu, sm
- 			struct call_single_data *csd = &d;
- 
- 			if (!wait)
--				csd = &__get_cpu_var(csd_data);
-+				csd = this_cpu_ptr(&csd_data);
- 
- 			csd_lock(csd);
- 
-@@ -401,7 +401,7 @@ void smp_call_function_many(const struct
- 		return;
- 	}
- 
--	cfd = &__get_cpu_var(cfd_data);
-+	cfd = this_cpu_ptr(&cfd_data);
- 
- 	cpumask_and(cfd->cpumask, mask, cpu_online_mask);
- 	cpumask_clear_cpu(this_cpu, cfd->cpumask);
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux/scripts/coccinelle/convert/__get_cpu_var.cocci	2013-08-22 14:41:13.976518846 -0500
+@@ -0,0 +1,70 @@
++// Convert all &__get_cpu_var to this_cpu_ptr
++//
++// _get_cpu_var is defined as:
++//
++// #define __get_cpu_var(var) (*this_cpu_ptr(&(var)))
++//
++//&__get_cpu_var() is therefore
++//
++//	this_cpu_ptr(&var);
++//
++// The use of this_cpu_ptr() instead of __get_cpu_var clarifies
++// that we are relocating a per cpu offset and that there are
++// no get/put semantics involved.
++//
++//
++// Convert all &__get_cpu_vars (and also related functions)
++// to this_cpu_ptr(). Multiple transformations are provided
++// to be able to beautify the source a bit.
++//
++// Christoph Lameter <cl@linux.com> August 20, 2013
++//
++
++@A@ expression E; @@
++
++...
++-(&__get_cpu_var(E))
+++this_cpu_ptr(&E)
++...
++
++@B@ expression E; @@
++
++...
++-(&__raw_get_cpu_var(E))
+++__this_cpu_ptr(&E)
++...
++
++@C@ expression E; @@
++
++...
++-&__get_cpu_var(E)
+++this_cpu_ptr(&E)
++...
++
++@D@ expression E; @@
++
++...
++-&__raw_get_cpu_var(E)
+++__this_cpu_ptr(&E)
++...
++
++@A2@ expression E; @@
++
++-(&__get_cpu_var(E))
+++this_cpu_ptr(&E)
++
++@B2@ expression E; @@
++
++-(&__raw_get_cpu_var(E))
+++__this_cpu_ptr(&E)
++
++@C2@ expression E; @@
++
++-&__get_cpu_var(E)
+++this_cpu_ptr(&E)
++
++@D2@ expression E; @@
++
++-&__raw_get_cpu_var(E)
+++__this_cpu_ptr(&E)
++
 
