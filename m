@@ -1,30 +1,13 @@
 From: Christoph Lameter <cl@linux.com>
-Subject: [gcv v3 00/35] percpu v3: Replace __get_cpu_var
-Date: Wed, 28 Aug 2013 19:34:45 +0000
-Message-ID: <00000140c66bc35e-0dd2d091-0f50-4afc-b79a-15f9fc190cef-000000@email.amazonses.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a9-50.smtp-out.amazonses.com ([54.240.9.50]:41245 "EHLO
-	a9-50.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753390Ab3H1Tob (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 28 Aug 2013 15:44:31 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [gcv v3 34/35] metag: Replace __get_cpu_var uses
+Date: Wed, 28 Aug 2013 19:46:36 +0000
+Message-ID: <00000140c6769b90-da79f4e0-706c-4e05-a5b9-19b346136e5e-000000@email.amazonses.com>
+References: <20130828193457.140443630@linux.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
-
-V2->V3:
-- Numerous corrections
-- Patch flow will be through individual maintainers tree. Rest will be merged
-  via percpu tree.
-- Break up the drivers patch into patches for individual maintainer domains
-- The patches are available via git from git://gentwo.org/christoph gcv
-- Drop tile arch portion since that one is going to be merged by Chris Metcalf.
-
-V1->V2:
- - Break up larger patches.
- - CC maintainers
- - Include description in each patch.
+Cc: akpm@linuxfoundation.org, James Hogan <james.hogan@imgtec.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 __get_cpu_var() is used for multiple purposes in the kernel source. One of them is
 address calculation via the form &__get_cpu_var(x). This calculates the address for
@@ -48,7 +31,7 @@ optimized assembly code to read and write per cpu variables.
 
 
 This patch converts __get_cpu_var into either an explicit address calculation using this_cpu_ptr()
-or into a use of this_cpu operations that use the offset. Thereby address calculations are avoided
+or into a use of this_cpu operations that use the offset. Thereby address calcualtions are avoided
 and less registers are used when code is generated.
 
 At the end of the patchset all uses of __get_cpu_var have been removed so the macro is removed too.
@@ -123,16 +106,73 @@ Transformations done to __get_cpu_var()
 	this_cpu_inc(y)
 
 
-These conversions lead to some savings in code size.
+Acked-by: James Hogan <james.hogan@imgtec.com>
+Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Before
-
-size arch/x86/boot/bzImage
-   text	   data	    bss	    dec	    hex	filename
-3996624	      0	      0	3996624	 3cfbd0	arch/x86/boot/bzImage
-
-After
-
-size arch/x86/boot/bzImage
-   text	   data	    bss	    dec	    hex	filename
-3995840	      0	      0	3995840	 3cf8c0	arch/x86/boot/bzImage
+Index: linux/arch/metag/kernel/perf/perf_event.c
+===================================================================
+--- linux.orig/arch/metag/kernel/perf/perf_event.c	2013-08-26 13:30:45.220186762 -0500
++++ linux/arch/metag/kernel/perf/perf_event.c	2013-08-26 13:30:45.216186804 -0500
+@@ -258,7 +258,7 @@ int metag_pmu_event_set_period(struct pe
+ 
+ static void metag_pmu_start(struct perf_event *event, int flags)
+ {
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 	struct hw_perf_event *hwc = &event->hw;
+ 	int idx = hwc->idx;
+ 
+@@ -306,7 +306,7 @@ static void metag_pmu_stop(struct perf_e
+ 
+ static int metag_pmu_add(struct perf_event *event, int flags)
+ {
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 	struct hw_perf_event *hwc = &event->hw;
+ 	int idx = 0, ret = 0;
+ 
+@@ -348,7 +348,7 @@ out:
+ 
+ static void metag_pmu_del(struct perf_event *event, int flags)
+ {
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 	struct hw_perf_event *hwc = &event->hw;
+ 	int idx = hwc->idx;
+ 
+@@ -607,7 +607,7 @@ static int _hw_perf_event_init(struct pe
+ 
+ static void metag_pmu_enable_counter(struct hw_perf_event *event, int idx)
+ {
+-	struct cpu_hw_events *events = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *events = this_cpu_ptr(&cpu_hw_events);
+ 	unsigned int config = event->config;
+ 	unsigned int tmp = config & 0xf0;
+ 	unsigned long flags;
+@@ -680,7 +680,7 @@ unlock:
+ 
+ static void metag_pmu_disable_counter(struct hw_perf_event *event, int idx)
+ {
+-	struct cpu_hw_events *events = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *events = this_cpu_ptr(&cpu_hw_events);
+ 	unsigned int tmp = 0;
+ 	unsigned long flags;
+ 
+@@ -728,7 +728,7 @@ out:
+ 
+ static void metag_pmu_write_counter(int idx, u32 val)
+ {
+-	struct cpu_hw_events *events = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *events = this_cpu_ptr(&cpu_hw_events);
+ 	u32 tmp = 0;
+ 	unsigned long flags;
+ 
+@@ -761,7 +761,7 @@ static int metag_pmu_event_map(int idx)
+ static irqreturn_t metag_pmu_counter_overflow(int irq, void *dev)
+ {
+ 	int idx = (int)dev;
+-	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
+ 	struct perf_event *event = cpuhw->events[idx];
+ 	struct hw_perf_event *hwc = &event->hw;
+ 	struct pt_regs *regs = get_irq_regs();
