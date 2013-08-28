@@ -1,14 +1,18 @@
 From: Christoph Lameter <cl@linux.com>
-Subject: [gcv v3 15/35] drivers/cpuidle: Replace __get_cpu_var uses
+Subject: [gcv v3 30/35] alpha: Replace __get_cpu_var
 Date: Wed, 28 Aug 2013 20:06:37 +0000
-Message-ID: <00000140c688e916-ddb57313-75d3-4200-8529-3e8f72c8c1bf-000000@email.amazonses.com>
+Message-ID: <00000140c688e912-a1d59ddd-3670-4914-b8c0-24f38155084b-000000@email.amazonses.com>
 References: <20130828193457.140443630@linux.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from a194-110.smtp-out.amazonses.com ([199.255.194.110]:47639 "EHLO
+	a194-110.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754199Ab3H1UQI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 28 Aug 2013 16:16:08 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, "Rafael J. Wysocki" <rjw@sisk.pl>, Daniel Lezcano <daniel.lezcano@linaro.org>, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
-
+Cc: akpm@linuxfoundation.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
 
 __get_cpu_var() is used for multiple purposes in the kernel source. One of them is
 address calculation via the form &__get_cpu_var(x). This calculates the address for
@@ -108,58 +112,88 @@ Transformations done to __get_cpu_var()
 
 
 
-Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Index: linux/drivers/cpuidle/governors/ladder.c
+Index: linux/arch/alpha/kernel/perf_event.c
 ===================================================================
---- linux.orig/drivers/cpuidle/governors/ladder.c	2013-08-27 14:31:00.000000000 -0500
-+++ linux/drivers/cpuidle/governors/ladder.c	2013-08-27 14:34:26.170362548 -0500
-@@ -66,7 +66,7 @@ static inline void ladder_do_selection(s
- static int ladder_select_state(struct cpuidle_driver *drv,
- 				struct cpuidle_device *dev)
- {
--	struct ladder_device *ldev = &__get_cpu_var(ladder_devices);
-+	struct ladder_device *ldev = this_cpu_ptr(&ladder_devices);
- 	struct ladder_device_state *last_state;
- 	int last_residency, last_idx = ldev->last_state_idx;
- 	int latency_req = pm_qos_request(PM_QOS_CPU_DMA_LATENCY);
-@@ -170,7 +170,7 @@ static int ladder_enable_device(struct c
+--- linux.orig/arch/alpha/kernel/perf_event.c	2013-08-26 13:55:35.904436503 -0500
++++ linux/arch/alpha/kernel/perf_event.c	2013-08-26 13:55:35.896436587 -0500
+@@ -422,7 +422,7 @@ static void maybe_change_configuration(s
   */
- static void ladder_reflect(struct cpuidle_device *dev, int index)
+ static int alpha_pmu_add(struct perf_event *event, int flags)
  {
--	struct ladder_device *ldev = &__get_cpu_var(ladder_devices);
-+	struct ladder_device *ldev = this_cpu_ptr(&ladder_devices);
- 	if (index > 0)
- 		ldev->last_state_idx = index;
- }
-Index: linux/drivers/cpuidle/governors/menu.c
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 	struct hw_perf_event *hwc = &event->hw;
+ 	int n0;
+ 	int ret;
+@@ -474,7 +474,7 @@ static int alpha_pmu_add(struct perf_eve
+  */
+ static void alpha_pmu_del(struct perf_event *event, int flags)
+ {
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 	struct hw_perf_event *hwc = &event->hw;
+ 	unsigned long irq_flags;
+ 	int j;
+@@ -522,7 +522,7 @@ static void alpha_pmu_read(struct perf_e
+ static void alpha_pmu_stop(struct perf_event *event, int flags)
+ {
+ 	struct hw_perf_event *hwc = &event->hw;
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 
+ 	if (!(hwc->state & PERF_HES_STOPPED)) {
+ 		cpuc->idx_mask &= ~(1UL<<hwc->idx);
+@@ -542,7 +542,7 @@ static void alpha_pmu_stop(struct perf_e
+ static void alpha_pmu_start(struct perf_event *event, int flags)
+ {
+ 	struct hw_perf_event *hwc = &event->hw;
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 
+ 	if (WARN_ON_ONCE(!(hwc->state & PERF_HES_STOPPED)))
+ 		return;
+@@ -713,7 +713,7 @@ static int alpha_pmu_event_init(struct p
+  */
+ static void alpha_pmu_enable(struct pmu *pmu)
+ {
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 
+ 	if (cpuc->enabled)
+ 		return;
+@@ -739,7 +739,7 @@ static void alpha_pmu_enable(struct pmu
+ 
+ static void alpha_pmu_disable(struct pmu *pmu)
+ {
+-	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
++	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+ 
+ 	if (!cpuc->enabled)
+ 		return;
+@@ -804,7 +804,7 @@ static void alpha_perf_event_irq_handler
+ 	int idx, j;
+ 
+ 	__this_cpu_inc(irq_pmi_count);
+-	cpuc = &__get_cpu_var(cpu_hw_events);
++	cpuc = this_cpu_ptr(&cpu_hw_events);
+ 
+ 	/* Completely counting through the PMC's period to trigger a new PMC
+ 	 * overflow interrupt while in this interrupt routine is utterly
+Index: linux/arch/alpha/kernel/time.c
 ===================================================================
---- linux.orig/drivers/cpuidle/governors/menu.c	2013-08-27 14:31:00.000000000 -0500
-+++ linux/drivers/cpuidle/governors/menu.c	2013-08-27 14:34:26.170362548 -0500
-@@ -258,7 +258,7 @@ again:
-  */
- static int menu_select(struct cpuidle_driver *drv, struct cpuidle_device *dev)
+--- linux.orig/arch/alpha/kernel/time.c	2013-08-26 13:55:35.904436503 -0500
++++ linux/arch/alpha/kernel/time.c	2013-08-26 13:55:35.896436587 -0500
+@@ -86,9 +86,9 @@ unsigned long est_cycle_freq;
+ 
+ DEFINE_PER_CPU(u8, irq_work_pending);
+ 
+-#define set_irq_work_pending_flag()  __get_cpu_var(irq_work_pending) = 1
+-#define test_irq_work_pending()      __get_cpu_var(irq_work_pending)
+-#define clear_irq_work_pending()     __get_cpu_var(irq_work_pending) = 0
++#define set_irq_work_pending_flag()  __this_cpu_write(irq_work_pending, 1)
++#define test_irq_work_pending()      __this_cpu_read(irq_work_pending)
++#define clear_irq_work_pending()     __this_cpu_writeirq_work_pending, 0)
+ 
+ void arch_irq_work_raise(void)
  {
--	struct menu_device *data = &__get_cpu_var(menu_devices);
-+	struct menu_device *data = this_cpu_ptr(&menu_devices);
- 	int latency_req = pm_qos_request(PM_QOS_CPU_DMA_LATENCY);
- 	int i;
- 	int multiplier;
-@@ -342,7 +342,7 @@ static int menu_select(struct cpuidle_dr
-  */
- static void menu_reflect(struct cpuidle_device *dev, int index)
- {
--	struct menu_device *data = &__get_cpu_var(menu_devices);
-+	struct menu_device *data = this_cpu_ptr(&menu_devices);
- 	data->last_state_idx = index;
- 	if (index >= 0)
- 		data->needs_update = 1;
-@@ -355,7 +355,7 @@ static void menu_reflect(struct cpuidle_
-  */
- static void menu_update(struct cpuidle_driver *drv, struct cpuidle_device *dev)
- {
--	struct menu_device *data = &__get_cpu_var(menu_devices);
-+	struct menu_device *data = this_cpu_ptr(&menu_devices);
- 	int last_idx = data->last_state_idx;
- 	unsigned int last_idle_us = cpuidle_get_last_residency(dev);
- 	struct cpuidle_state *target = &drv->states[last_idx];
