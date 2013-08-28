@@ -1,12 +1,12 @@
 From: Christoph Lameter <cl@linux.com>
-Subject: [gcv v3 26/35] sparc: Replace __get_cpu_var uses
-Date: Wed, 28 Aug 2013 19:48:20 +0000
-Message-ID: <00000140c67829e7-5d1c0f4a-3231-4421-b54e-d0db135b505a-000000@email.amazonses.com>
+Subject: [gcv v3 17/35] drivers/net/ethernet/tile: Replace __get_cpu_var uses
+Date: Wed, 28 Aug 2013 19:48:16 +0000
+Message-ID: <00000140c6782172-b4abbb03-14bc-411f-adb4-50f2f0b252a9-000000@email.amazonses.com>
 References: <20130828193457.140443630@linux.com>
-Return-path: <sparclinux-owner@vger.kernel.org>
-Sender: sparclinux-owner@vger.kernel.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+Cc: akpm@linuxfoundation.org, Chris Metcalf <cmetcalf@tilera.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 __get_cpu_var() is used for multiple purposes in the kernel source. One of them is
@@ -106,339 +106,131 @@ Transformations done to __get_cpu_var()
 	this_cpu_inc(y)
 
 
-Acked-by: David S. Miller <davem@davemloft.net>
+
 Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Index: linux/arch/sparc/include/asm/cpudata_32.h
+Index: linux/drivers/net/ethernet/tile/tilegx.c
 ===================================================================
---- linux.orig/arch/sparc/include/asm/cpudata_32.h	2013-08-22 14:34:54.000000000 -0500
-+++ linux/arch/sparc/include/asm/cpudata_32.h	2013-08-22 14:37:15.942964723 -0500
-@@ -26,6 +26,6 @@ typedef struct {
- 
- DECLARE_PER_CPU(cpuinfo_sparc, __cpu_data);
- #define cpu_data(__cpu) per_cpu(__cpu_data, (__cpu))
--#define local_cpu_data() __get_cpu_var(__cpu_data)
-+#define local_cpu_data() __this_cpu_read(__cpu_data)
- 
- #endif /* _SPARC_CPUDATA_H */
-Index: linux/arch/sparc/include/asm/cpudata_64.h
-===================================================================
---- linux.orig/arch/sparc/include/asm/cpudata_64.h	2013-08-22 14:34:54.000000000 -0500
-+++ linux/arch/sparc/include/asm/cpudata_64.h	2013-08-22 14:37:15.942964723 -0500
-@@ -33,7 +33,7 @@ typedef struct {
- 
- DECLARE_PER_CPU(cpuinfo_sparc, __cpu_data);
- #define cpu_data(__cpu)		per_cpu(__cpu_data, (__cpu))
--#define local_cpu_data()	__get_cpu_var(__cpu_data)
-+#define local_cpu_data()	__this_cpu_read(__cpu_data)
- 
- extern const struct seq_operations cpuinfo_op;
- 
-Index: linux/arch/sparc/kernel/kprobes.c
-===================================================================
---- linux.orig/arch/sparc/kernel/kprobes.c	2013-08-22 14:34:54.000000000 -0500
-+++ linux/arch/sparc/kernel/kprobes.c	2013-08-22 14:37:15.942964723 -0500
-@@ -82,7 +82,7 @@ static void __kprobes save_previous_kpro
- 
- static void __kprobes restore_previous_kprobe(struct kprobe_ctlblk *kcb)
+--- linux.orig/drivers/net/ethernet/tile/tilegx.c	2013-08-27 14:39:22.471612150 -0500
++++ linux/drivers/net/ethernet/tile/tilegx.c	2013-08-27 14:39:22.463612231 -0500
+@@ -368,7 +368,7 @@ static void tile_net_pop_all_buffers(int
+ /* Provide linux buffers to mPIPE. */
+ static void tile_net_provide_needed_buffers(void)
  {
--	__get_cpu_var(current_kprobe) = kcb->prev_kprobe.kp;
-+	__this_cpu_write(current_kprobe, kcb->prev_kprobe.kp);
- 	kcb->kprobe_status = kcb->prev_kprobe.status;
- 	kcb->kprobe_orig_tnpc = kcb->prev_kprobe.orig_tnpc;
- 	kcb->kprobe_orig_tstate_pil = kcb->prev_kprobe.orig_tstate_pil;
-@@ -91,7 +91,7 @@ static void __kprobes restore_previous_k
- static void __kprobes set_current_kprobe(struct kprobe *p, struct pt_regs *regs,
- 				struct kprobe_ctlblk *kcb)
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 
+ 	while (info->num_needed_small_buffers != 0) {
+ 		if (!tile_net_provide_buffer(true))
+@@ -407,7 +407,7 @@ static inline bool filter_packet(struct
+ static void tile_net_receive_skb(struct net_device *dev, struct sk_buff *skb,
+ 				 gxio_mpipe_idesc_t *idesc, unsigned long len)
  {
--	__get_cpu_var(current_kprobe) = p;
-+	__this_cpu_write(current_kprobe, p);
- 	kcb->kprobe_orig_tnpc = regs->tnpc;
- 	kcb->kprobe_orig_tstate_pil = (regs->tstate & TSTATE_PIL);
- }
-@@ -154,7 +154,7 @@ static int __kprobes kprobe_handler(stru
- 				ret = 1;
- 				goto no_kprobe;
- 			}
--			p = __get_cpu_var(current_kprobe);
-+			p = __this_cpu_read(current_kprobe);
- 			if (p->break_handler && p->break_handler(p, regs))
- 				goto ss_probe;
- 		}
-Index: linux/arch/sparc/kernel/leon_smp.c
-===================================================================
---- linux.orig/arch/sparc/kernel/leon_smp.c	2013-08-22 14:34:54.000000000 -0500
-+++ linux/arch/sparc/kernel/leon_smp.c	2013-08-22 14:37:15.942964723 -0500
-@@ -354,7 +354,7 @@ static void leon_ipi_resched(int cpu)
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 	struct tile_net_priv *priv = netdev_priv(dev);
  
- void leonsmp_ipi_interrupt(void)
+ 	/* Encode the actual packet length. */
+@@ -435,7 +435,7 @@ static void tile_net_receive_skb(struct
+ /* Handle a packet.  Return true if "processed", false if "filtered". */
+ static bool tile_net_handle_packet(gxio_mpipe_idesc_t *idesc)
  {
--	struct leon_ipi_work *work = &__get_cpu_var(leon_ipi_work);
-+	struct leon_ipi_work *work = this_cpu_ptr(&leon_ipi_work);
- 
- 	if (work->single) {
- 		work->single = 0;
-Index: linux/arch/sparc/kernel/nmi.c
-===================================================================
---- linux.orig/arch/sparc/kernel/nmi.c	2013-08-22 14:34:54.000000000 -0500
-+++ linux/arch/sparc/kernel/nmi.c	2013-08-22 14:37:15.942964723 -0500
-@@ -111,20 +111,20 @@ notrace __kprobes void perfctr_irq(int i
- 		pcr_ops->write_pcr(0, pcr_ops->pcr_nmi_disable);
- 
- 	sum = local_cpu_data().irq0_irqs;
--	if (__get_cpu_var(nmi_touch)) {
--		__get_cpu_var(nmi_touch) = 0;
-+	if (__this_cpu_read(nmi_touch)) {
-+		__this_cpu_write(nmi_touch, 0);
- 		touched = 1;
- 	}
--	if (!touched && __get_cpu_var(last_irq_sum) == sum) {
-+	if (!touched && __this_cpu_read(last_irq_sum) == sum) {
- 		__this_cpu_inc(alert_counter);
- 		if (__this_cpu_read(alert_counter) == 30 * nmi_hz)
- 			die_nmi("BUG: NMI Watchdog detected LOCKUP",
- 				regs, panic_on_timeout);
- 	} else {
--		__get_cpu_var(last_irq_sum) = sum;
-+		__this_cpu_write(last_irq_sum, sum);
- 		__this_cpu_write(alert_counter, 0);
- 	}
--	if (__get_cpu_var(wd_enabled)) {
-+	if (__this_cpu_read(wd_enabled)) {
- 		pcr_ops->write_pic(0, pcr_ops->nmi_picl_value(nmi_hz));
- 		pcr_ops->write_pcr(0, pcr_ops->pcr_nmi_enable);
- 	}
-@@ -166,7 +166,7 @@ static void report_broken_nmi(int cpu, i
- void stop_nmi_watchdog(void *unused)
- {
- 	pcr_ops->write_pcr(0, pcr_ops->pcr_nmi_disable);
--	__get_cpu_var(wd_enabled) = 0;
-+	__this_cpu_write(wd_enabled, 0);
- 	atomic_dec(&nmi_active);
- }
- 
-@@ -219,7 +219,7 @@ error:
- 
- void start_nmi_watchdog(void *unused)
- {
--	__get_cpu_var(wd_enabled) = 1;
-+	__this_cpu_write(wd_enabled, 1);
- 	atomic_inc(&nmi_active);
- 
- 	pcr_ops->write_pcr(0, pcr_ops->pcr_nmi_disable);
-@@ -230,7 +230,7 @@ void start_nmi_watchdog(void *unused)
- 
- static void nmi_adjust_hz_one(void *unused)
- {
--	if (!__get_cpu_var(wd_enabled))
-+	if (!__this_cpu_read(wd_enabled))
- 		return;
- 
- 	pcr_ops->write_pcr(0, pcr_ops->pcr_nmi_disable);
-Index: linux/arch/sparc/kernel/pci_sun4v.c
-===================================================================
---- linux.orig/arch/sparc/kernel/pci_sun4v.c	2013-08-22 14:34:54.000000000 -0500
-+++ linux/arch/sparc/kernel/pci_sun4v.c	2013-08-22 14:37:15.942964723 -0500
-@@ -48,7 +48,7 @@ static int iommu_batch_initialized;
- /* Interrupts must be disabled.  */
- static inline void iommu_batch_start(struct device *dev, unsigned long prot, unsigned long entry)
- {
--	struct iommu_batch *p = &__get_cpu_var(iommu_batch);
-+	struct iommu_batch *p = this_cpu_ptr(&iommu_batch);
- 
- 	p->dev		= dev;
- 	p->prot		= prot;
-@@ -94,7 +94,7 @@ static long iommu_batch_flush(struct iom
- 
- static inline void iommu_batch_new_entry(unsigned long entry)
- {
--	struct iommu_batch *p = &__get_cpu_var(iommu_batch);
-+	struct iommu_batch *p = this_cpu_ptr(&iommu_batch);
- 
- 	if (p->entry + p->npages == entry)
- 		return;
-@@ -106,7 +106,7 @@ static inline void iommu_batch_new_entry
- /* Interrupts must be disabled.  */
- static inline long iommu_batch_add(u64 phys_page)
- {
--	struct iommu_batch *p = &__get_cpu_var(iommu_batch);
-+	struct iommu_batch *p = this_cpu_ptr(&iommu_batch);
- 
- 	BUG_ON(p->npages >= PGLIST_NENTS);
- 
-@@ -120,7 +120,7 @@ static inline long iommu_batch_add(u64 p
- /* Interrupts must be disabled.  */
- static inline long iommu_batch_end(void)
- {
--	struct iommu_batch *p = &__get_cpu_var(iommu_batch);
-+	struct iommu_batch *p = this_cpu_ptr(&iommu_batch);
- 
- 	BUG_ON(p->npages >= PGLIST_NENTS);
- 
-Index: linux/arch/sparc/kernel/perf_event.c
-===================================================================
---- linux.orig/arch/sparc/kernel/perf_event.c	2013-08-22 14:34:54.000000000 -0500
-+++ linux/arch/sparc/kernel/perf_event.c	2013-08-22 14:37:15.946964681 -0500
-@@ -1013,7 +1013,7 @@ static void update_pcrs_for_enable(struc
- 
- static void sparc_pmu_enable(struct pmu *pmu)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	int i;
- 
- 	if (cpuc->enabled)
-@@ -1031,7 +1031,7 @@ static void sparc_pmu_enable(struct pmu
- 
- static void sparc_pmu_disable(struct pmu *pmu)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	int i;
- 
- 	if (!cpuc->enabled)
-@@ -1065,7 +1065,7 @@ static int active_event_index(struct cpu
- 
- static void sparc_pmu_start(struct perf_event *event, int flags)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	int idx = active_event_index(cpuc, event);
- 
- 	if (flags & PERF_EF_RELOAD) {
-@@ -1080,7 +1080,7 @@ static void sparc_pmu_start(struct perf_
- 
- static void sparc_pmu_stop(struct perf_event *event, int flags)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	int idx = active_event_index(cpuc, event);
- 
- 	if (!(event->hw.state & PERF_HES_STOPPED)) {
-@@ -1096,7 +1096,7 @@ static void sparc_pmu_stop(struct perf_e
- 
- static void sparc_pmu_del(struct perf_event *event, int _flags)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	unsigned long flags;
- 	int i;
- 
-@@ -1133,7 +1133,7 @@ static void sparc_pmu_del(struct perf_ev
- 
- static void sparc_pmu_read(struct perf_event *event)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	int idx = active_event_index(cpuc, event);
- 	struct hw_perf_event *hwc = &event->hw;
- 
-@@ -1145,7 +1145,7 @@ static DEFINE_MUTEX(pmc_grab_mutex);
- 
- static void perf_stop_nmi_watchdog(void *unused)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	int i;
- 
- 	stop_nmi_watchdog(NULL);
-@@ -1356,7 +1356,7 @@ static int collect_events(struct perf_ev
- 
- static int sparc_pmu_add(struct perf_event *event, int ef_flags)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	int n0, ret = -EAGAIN;
- 	unsigned long flags;
- 
-@@ -1498,7 +1498,7 @@ static int sparc_pmu_event_init(struct p
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 	struct net_device *dev = tile_net_devs_for_channel[idesc->channel];
+ 	uint8_t l2_offset;
+ 	void *va;
+@@ -498,7 +498,7 @@ static bool tile_net_handle_packet(gxio_
   */
- static void sparc_pmu_start_txn(struct pmu *pmu)
+ static int tile_net_poll(struct napi_struct *napi, int budget)
  {
--	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
- 
- 	perf_pmu_disable(pmu);
- 	cpuhw->group_flag |= PERF_EVENT_TXN;
-@@ -1511,7 +1511,7 @@ static void sparc_pmu_start_txn(struct p
-  */
- static void sparc_pmu_cancel_txn(struct pmu *pmu)
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 	unsigned int work = 0;
+ 	gxio_mpipe_idesc_t *idesc;
+ 	int i, n;
+@@ -536,7 +536,7 @@ done:
+ /* Handle an ingress interrupt on the current cpu. */
+ static irqreturn_t tile_net_handle_ingress_irq(int irq, void *unused)
  {
--	struct cpu_hw_events *cpuhw = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuhw = this_cpu_ptr(&cpu_hw_events);
- 
- 	cpuhw->group_flag &= ~PERF_EVENT_TXN;
- 	perf_pmu_enable(pmu);
-@@ -1524,13 +1524,13 @@ static void sparc_pmu_cancel_txn(struct
-  */
- static int sparc_pmu_commit_txn(struct pmu *pmu)
- {
--	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
-+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
- 	int n;
- 
- 	if (!sparc_pmu)
- 		return -EINVAL;
- 
--	cpuc = &__get_cpu_var(cpu_hw_events);
-+	cpuc = this_cpu_ptr(&cpu_hw_events);
- 	n = cpuc->n_events;
- 	if (check_excludes(cpuc->event, 0, n))
- 		return -EINVAL;
-@@ -1601,7 +1601,7 @@ static int __kprobes perf_event_nmi_hand
- 
- 	regs = args->regs;
- 
--	cpuc = &__get_cpu_var(cpu_hw_events);
-+	cpuc = this_cpu_ptr(&cpu_hw_events);
- 
- 	/* If the PMU has the TOE IRQ enable bits, we need to do a
- 	 * dummy write to the %pcr to clear the overflow bits and thus
-Index: linux/arch/sparc/kernel/sun4d_smp.c
-===================================================================
---- linux.orig/arch/sparc/kernel/sun4d_smp.c	2013-08-22 14:34:54.000000000 -0500
-+++ linux/arch/sparc/kernel/sun4d_smp.c	2013-08-22 14:37:15.946964681 -0500
-@@ -204,7 +204,7 @@ static void __init smp4d_ipi_init(void)
- 
- void sun4d_ipi_interrupt(void)
- {
--	struct sun4d_ipi_work *work = &__get_cpu_var(sun4d_ipi_work);
-+	struct sun4d_ipi_work *work = this_cpu_ptr(&sun4d_ipi_work);
- 
- 	if (work->single) {
- 		work->single = 0;
-Index: linux/arch/sparc/kernel/time_64.c
-===================================================================
---- linux.orig/arch/sparc/kernel/time_64.c	2013-08-22 14:34:54.000000000 -0500
-+++ linux/arch/sparc/kernel/time_64.c	2013-08-22 14:37:15.946964681 -0500
-@@ -766,7 +766,7 @@ void setup_sparc64_timer(void)
- 			     : /* no outputs */
- 			     : "r" (pstate));
- 
--	sevt = &__get_cpu_var(sparc64_events);
-+	sevt = this_cpu_ptr(&sparc64_events);
- 
- 	memcpy(sevt, &sparc64_clockevent, sizeof(*sevt));
- 	sevt->cpumask = cpumask_of(smp_processor_id());
-Index: linux/arch/sparc/mm/tlb.c
-===================================================================
---- linux.orig/arch/sparc/mm/tlb.c	2013-08-22 14:34:54.000000000 -0500
-+++ linux/arch/sparc/mm/tlb.c	2013-08-22 14:37:15.946964681 -0500
-@@ -53,14 +53,14 @@ out:
- 
- void arch_enter_lazy_mmu_mode(void)
- {
--	struct tlb_batch *tb = &__get_cpu_var(tlb_batch);
-+	struct tlb_batch *tb = this_cpu_ptr(&tlb_batch);
- 
- 	tb->active = 1;
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 	napi_schedule(&info->napi);
+ 	return IRQ_HANDLED;
  }
- 
- void arch_leave_lazy_mmu_mode(void)
+@@ -597,7 +597,7 @@ static enum hrtimer_restart tile_net_han
+ /* Make sure the egress timer is scheduled. */
+ static void tile_net_schedule_egress_timer(void)
  {
--	struct tlb_batch *tb = &__get_cpu_var(tlb_batch);
-+	struct tlb_batch *tb = this_cpu_ptr(&tlb_batch);
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
  
- 	if (tb->tlb_nr)
- 		flush_tlb_pending();
-
+ 	if (!info->egress_timer_scheduled) {
+ 		hrtimer_start(&info->egress_timer,
+@@ -614,7 +614,7 @@ static void tile_net_schedule_egress_tim
+  */
+ static enum hrtimer_restart tile_net_handle_egress_timer(struct hrtimer *t)
+ {
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 	unsigned long irqflags;
+ 	bool pending = false;
+ 	int i;
+@@ -649,7 +649,7 @@ static enum hrtimer_restart tile_net_han
+  */
+ static void tile_net_update_cpu(void *arg)
+ {
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 	struct net_device *dev = arg;
+ 
+ 	if (!info->has_iqueue)
+@@ -1572,7 +1572,7 @@ static void tso_egress(struct net_device
+  */
+ static int tile_net_tx_tso(struct sk_buff *skb, struct net_device *dev)
+ {
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 	struct tile_net_priv *priv = netdev_priv(dev);
+ 	int channel = priv->echannel;
+ 	struct tile_net_egress *egress = &egress_for_echannel[channel];
+@@ -1638,7 +1638,7 @@ static unsigned int tile_net_tx_frags(st
+ /* Help the kernel transmit a packet. */
+ static int tile_net_tx(struct sk_buff *skb, struct net_device *dev)
+ {
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 	struct tile_net_priv *priv = netdev_priv(dev);
+ 	struct tile_net_egress *egress = &egress_for_echannel[priv->echannel];
+ 	gxio_mpipe_equeue_t *equeue = egress->equeue;
+@@ -1869,7 +1869,7 @@ static void tile_net_dev_init(const char
+ /* Per-cpu module initialization. */
+ static void tile_net_init_module_percpu(void *unused)
+ {
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 	int my_cpu = smp_processor_id();
+ 
+ 	info->has_iqueue = false;
+Index: linux/drivers/net/ethernet/tile/tilepro.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/tile/tilepro.c	2013-08-27 14:39:22.471612150 -0500
++++ linux/drivers/net/ethernet/tile/tilepro.c	2013-08-27 14:39:22.463612231 -0500
+@@ -1078,13 +1078,13 @@ static void tile_net_register(void *dev_
+ 	PDEBUG("tile_net_register(queue_id %d)\n", queue_id);
+ 
+ 	if (!strcmp(dev->name, "xgbe0"))
+-		info = &__get_cpu_var(hv_xgbe0);
++		info = this_cpu_ptr(&hv_xgbe0);
+ 	else if (!strcmp(dev->name, "xgbe1"))
+-		info = &__get_cpu_var(hv_xgbe1);
++		info = this_cpu_ptr(&hv_xgbe1);
+ 	else if (!strcmp(dev->name, "gbe0"))
+-		info = &__get_cpu_var(hv_gbe0);
++		info = this_cpu_ptr(&hv_gbe0);
+ 	else if (!strcmp(dev->name, "gbe1"))
+-		info = &__get_cpu_var(hv_gbe1);
++		info = this_cpu_ptr(&hv_gbe1);
+ 	else
+ 		BUG();
+ 
