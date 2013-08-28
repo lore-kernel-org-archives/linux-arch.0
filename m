@@ -1,20 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from a9-97.smtp-out.amazonses.com ([54.240.9.97]:45594 "EHLO
-	a9-97.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754729Ab3H1TzI (ORCPT
+Received: from b232-35.smtp-out.amazonses.com ([199.127.232.35]:14325 "EHLO
+	b232-35.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755430Ab3H1T5n (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 28 Aug 2013 15:55:08 -0400
-Message-ID: <00000140c67829e5-34f81443-fc07-41e9-b3e9-7563551162cd-000000@email.amazonses.com>
-Date: Wed, 28 Aug 2013 19:48:20 +0000
+	Wed, 28 Aug 2013 15:57:43 -0400
+Message-ID: <00000140c6782172-b4abbb03-14bc-411f-adb4-50f2f0b252a9-000000@email.amazonses.com>
+Date: Wed, 28 Aug 2013 19:48:16 +0000
 From: Christoph Lameter <cl@linux.com>
-Subject: [gcv v3 14/35] drivers/char: Replace __get_cpu_var uses
+Subject: [gcv v3 17/35] drivers/net/ethernet/tile: Replace __get_cpu_var uses
 References: <20130828193457.140443630@linux.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
-Message-ID: <20130828194820.xfHk_xjd2epkLjOKstkF98vYRBlRlPFMhAKgpdE1AyE@z>
-
+Cc: akpm@linuxfoundation.org, Chris Metcalf <cmetcalf@tilera.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+Message-ID: <20130828194816.f4raphIIZY4Zr6of2gzt4-qWQxk_Jv0t1DUvGvAhBVs@z>
 
 __get_cpu_var() is used for multiple purposes in the kernel source. One of them is
 address calculation via the form &__get_cpu_var(x). This calculates the address for
@@ -116,17 +115,129 @@ Transformations done to __get_cpu_var()
 
 Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Index: linux/drivers/char/random.c
+Index: linux/drivers/net/ethernet/tile/tilegx.c
 ===================================================================
---- linux.orig/drivers/char/random.c	2013-08-27 14:31:00.000000000 -0500
-+++ linux/drivers/char/random.c	2013-08-27 14:31:34.275916299 -0500
-@@ -744,7 +744,7 @@ static DEFINE_PER_CPU(struct fast_pool,
- void add_interrupt_randomness(int irq, int irq_flags)
+--- linux.orig/drivers/net/ethernet/tile/tilegx.c	2013-08-27 14:39:22.471612150 -0500
++++ linux/drivers/net/ethernet/tile/tilegx.c	2013-08-27 14:39:22.463612231 -0500
+@@ -368,7 +368,7 @@ static void tile_net_pop_all_buffers(int
+ /* Provide linux buffers to mPIPE. */
+ static void tile_net_provide_needed_buffers(void)
  {
- 	struct entropy_store	*r;
--	struct fast_pool	*fast_pool = &__get_cpu_var(irq_randomness);
-+	struct fast_pool	*fast_pool = this_cpu_ptr(&irq_randomness);
- 	struct pt_regs		*regs = get_irq_regs();
- 	unsigned long		now = jiffies;
- 	__u32			input[4], cycles = get_cycles();
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 
+ 	while (info->num_needed_small_buffers != 0) {
+ 		if (!tile_net_provide_buffer(true))
+@@ -407,7 +407,7 @@ static inline bool filter_packet(struct
+ static void tile_net_receive_skb(struct net_device *dev, struct sk_buff *skb,
+ 				 gxio_mpipe_idesc_t *idesc, unsigned long len)
+ {
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 	struct tile_net_priv *priv = netdev_priv(dev);
+ 
+ 	/* Encode the actual packet length. */
+@@ -435,7 +435,7 @@ static void tile_net_receive_skb(struct
+ /* Handle a packet.  Return true if "processed", false if "filtered". */
+ static bool tile_net_handle_packet(gxio_mpipe_idesc_t *idesc)
+ {
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 	struct net_device *dev = tile_net_devs_for_channel[idesc->channel];
+ 	uint8_t l2_offset;
+ 	void *va;
+@@ -498,7 +498,7 @@ static bool tile_net_handle_packet(gxio_
+  */
+ static int tile_net_poll(struct napi_struct *napi, int budget)
+ {
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 	unsigned int work = 0;
+ 	gxio_mpipe_idesc_t *idesc;
+ 	int i, n;
+@@ -536,7 +536,7 @@ done:
+ /* Handle an ingress interrupt on the current cpu. */
+ static irqreturn_t tile_net_handle_ingress_irq(int irq, void *unused)
+ {
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 	napi_schedule(&info->napi);
+ 	return IRQ_HANDLED;
+ }
+@@ -597,7 +597,7 @@ static enum hrtimer_restart tile_net_han
+ /* Make sure the egress timer is scheduled. */
+ static void tile_net_schedule_egress_timer(void)
+ {
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 
+ 	if (!info->egress_timer_scheduled) {
+ 		hrtimer_start(&info->egress_timer,
+@@ -614,7 +614,7 @@ static void tile_net_schedule_egress_tim
+  */
+ static enum hrtimer_restart tile_net_handle_egress_timer(struct hrtimer *t)
+ {
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 	unsigned long irqflags;
+ 	bool pending = false;
+ 	int i;
+@@ -649,7 +649,7 @@ static enum hrtimer_restart tile_net_han
+  */
+ static void tile_net_update_cpu(void *arg)
+ {
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 	struct net_device *dev = arg;
+ 
+ 	if (!info->has_iqueue)
+@@ -1572,7 +1572,7 @@ static void tso_egress(struct net_device
+  */
+ static int tile_net_tx_tso(struct sk_buff *skb, struct net_device *dev)
+ {
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 	struct tile_net_priv *priv = netdev_priv(dev);
+ 	int channel = priv->echannel;
+ 	struct tile_net_egress *egress = &egress_for_echannel[channel];
+@@ -1638,7 +1638,7 @@ static unsigned int tile_net_tx_frags(st
+ /* Help the kernel transmit a packet. */
+ static int tile_net_tx(struct sk_buff *skb, struct net_device *dev)
+ {
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 	struct tile_net_priv *priv = netdev_priv(dev);
+ 	struct tile_net_egress *egress = &egress_for_echannel[priv->echannel];
+ 	gxio_mpipe_equeue_t *equeue = egress->equeue;
+@@ -1869,7 +1869,7 @@ static void tile_net_dev_init(const char
+ /* Per-cpu module initialization. */
+ static void tile_net_init_module_percpu(void *unused)
+ {
+-	struct tile_net_info *info = &__get_cpu_var(per_cpu_info);
++	struct tile_net_info *info = this_cpu_ptr(&per_cpu_info);
+ 	int my_cpu = smp_processor_id();
+ 
+ 	info->has_iqueue = false;
+Index: linux/drivers/net/ethernet/tile/tilepro.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/tile/tilepro.c	2013-08-27 14:39:22.471612150 -0500
++++ linux/drivers/net/ethernet/tile/tilepro.c	2013-08-27 14:39:22.463612231 -0500
+@@ -1078,13 +1078,13 @@ static void tile_net_register(void *dev_
+ 	PDEBUG("tile_net_register(queue_id %d)\n", queue_id);
+ 
+ 	if (!strcmp(dev->name, "xgbe0"))
+-		info = &__get_cpu_var(hv_xgbe0);
++		info = this_cpu_ptr(&hv_xgbe0);
+ 	else if (!strcmp(dev->name, "xgbe1"))
+-		info = &__get_cpu_var(hv_xgbe1);
++		info = this_cpu_ptr(&hv_xgbe1);
+ 	else if (!strcmp(dev->name, "gbe0"))
+-		info = &__get_cpu_var(hv_gbe0);
++		info = this_cpu_ptr(&hv_gbe0);
+ 	else if (!strcmp(dev->name, "gbe1"))
+-		info = &__get_cpu_var(hv_gbe1);
++		info = this_cpu_ptr(&hv_gbe1);
+ 	else
+ 		BUG();
+ 
 
