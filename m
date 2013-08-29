@@ -1,67 +1,47 @@
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [gcv v3 06/35] scheduler: Replace __get_cpu_var uses
-Date: Thu, 29 Aug 2013 14:30:53 -0400
-Message-ID: <20130829143053.3fc2caa8@gandalf.local.home>
+Subject: Re: [gcv v3 08/35] tracing: Replace __get_cpu_var uses
+Date: Thu, 29 Aug 2013 17:26:22 -0400
+Message-ID: <20130829172622.3b458a80@gandalf.local.home>
 References: <20130828193457.140443630@linux.com>
-	<00000140c67817eb-b582280a-f059-499f-a24c-a11f3d59b86e-000000@email.amazonses.com>
-	<20130829075818.GW10002@twins.programming.kicks-ass.net>
-	<20130829100143.GA29672@gmail.com>
-	<00000140cb02576f-e106763c-d382-4b66-bb85-d7a9cb266b81-000000@email.amazonses.com>
-	<20130829173256.GB6276@home.goodmis.org>
-	<00000140cb49bdde-1279ffb0-5c49-400d-970c-a481d527e98a-000000@email.amazonses.com>
+	<00000140c6781ceb-6c3e93f5-45d6-4b04-8034-e7cd4b5a77b5-000000@email.amazonses.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <00000140cb49bdde-1279ffb0-5c49-400d-970c-a481d527e98a-000000@email.amazonses.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:20015 "EHLO
+	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751755Ab3H2V0Z convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Aug 2013 17:26:25 -0400
+In-Reply-To: <00000140c6781ceb-6c3e93f5-45d6-4b04-8034-e7cd4b5a77b5-000000@email.amazonses.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Christoph Lameter <cl@linux.com>
-Cc: Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, Ingo Molnar <mingo@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>
-List-Id: linux-arch.vger.kernel.org
+Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, Frederic Weisbecker <fweisbec@gmail.com>, Ingo Molnar <mingo@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Thu, 29 Aug 2013 18:15:43 +0000
-Christoph Lameter <cl@linux.com> wrote:
+On Wed, 28 Aug 2013 19:48:16 +0000
 
-> On Thu, 29 Aug 2013, Steven Rostedt wrote:
-> 
-> Its not really an atomic operation in the classic sense.
+> Index: linux/kernel/trace/trace.c
+> =3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
+> --- linux.orig/kernel/trace/trace.c	2013-08-26 14:25:53.000000000 -05=
+00
+> +++ linux/kernel/trace/trace.c	2013-08-26 14:26:29.464993617 -0500
+> @@ -1676,7 +1676,7 @@ static void __ftrace_trace_stack(struct
+>  	 */
+>  	barrier();
+>  	if (use_stack =3D=3D 1) {
+> -		trace.entries		=3D &__get_cpu_var(ftrace_stack).calls[0];
+> +		trace.entries		=3D this_cpu_ptr(ftrace_stack.calls);
+>  		trace.max_entries	=3D FTRACE_STACK_MAX_ENTRIES;
+> =20
+>  		if (regs)
 
-It doesn't need to be atomic, it could mean it is used within atomic
-locations. Basically, "can't be interrupted here". I just said
-"something like", it didn't even need to be that.
 
-> 
-> this_cpu_no_preempt_check_read ?
+This patch fails to build:
 
-I would make it much shorter. You could use "raw_this_cpu_read()",
-which usually means "no checks here". Or, "this_cpu_read_nopreempt()".
-
-> 
-> The problem that I have is also that a kernel with preemption is not
-> something that see anywhere these days. Looks more like an academic
-> exercise? Does this really matter? All the distro I see use
-
-Um, my paycheck depends on PREEMPT_RT working. And there's a lot of
-interest in real PREEMPT by audio folks. It's no more an
-academic exercise than people wanting really low kernel latency.
-
-> PREEMPT_VOLUNTARY. Performance degradation is significant if massive
-> amounts of checks and preempt disable/enable points are added to the
-> kernel.
-
-They are usually disabled for production systems. But we run a bunch of
-tests with the debug checks enabled, which catch bugs before we ship a
-kernel for a production system.
-
-> 
-> Do we agree that it is necessary and useful to add another variant of
-> this_cpu ops for this? The concern of having too many variants is no
-> longer there? Adding another variant is not that difficult just code
-> intensive.
-
-How many places use the this_cpu_*() without preemption disabled? I
-wouldn't think there's many. I never complained about another variant,
-so you need to ask those that have. The tough question for me is what
-that variant name should be ;-)
+kernel/trace/trace.c: In function =E2=80=98__ftrace_trace_stack=E2=80=99=
+:
+kernel/trace/trace.c:1679:20: error: cast specifies array type
 
 -- Steve
