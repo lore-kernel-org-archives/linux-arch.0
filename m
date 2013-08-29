@@ -1,28 +1,92 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [gcv v3 32/35] arc: Replace __get_cpu_var uses
-Date: Thu, 29 Aug 2013 06:33:07 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075140F60@IN01WEMBXA.internal.synopsys.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [gcv v3 06/35] scheduler: Replace __get_cpu_var uses
+Date: Thu, 29 Aug 2013 09:58:18 +0200
+Message-ID: <20130829075818.GW10002@twins.programming.kicks-ass.net>
 References: <20130828193457.140443630@linux.com>
- <00000140c6781cab-d0df0392-b65b-4213-8be0-1e4a04f67fb2-000000@email.amazonses.com>
+ <00000140c67817eb-b582280a-f059-499f-a24c-a11f3d59b86e-000000@email.amazonses.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us02smtp2.synopsys.com ([198.182.60.77]:60566 "EHLO
-	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751895Ab3H2GfU convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Aug 2013 02:35:20 -0400
-Content-Language: en-US
+Received: from merlin.infradead.org ([205.233.59.134]:57832 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752643Ab3H2H62 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Aug 2013 03:58:28 -0400
+Content-Disposition: inline
+In-Reply-To: <00000140c67817eb-b582280a-f059-499f-a24c-a11f3d59b86e-000000@email.amazonses.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christoph Lameter <cl@linux.com>
-Cc: Tejun Heo <tj@kernel.org>, "akpm@linuxfoundation.org" <akpm@linuxfoundation.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Steven Rostedt <srostedt@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, Ingo Molnar <mingo@redhat.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>
 
-On 08/29/2013 01:18 AM, Christoph Lameter wrote:
-> Acked-by: Vineet Gupta <vgupta@synopsys.com>
-> Signed-off-by: Christoph Lameter <cl@linux.com>
+On Wed, Aug 28, 2013 at 07:48:14PM +0000, Christoph Lameter wrote:
+> Transformations done to __get_cpu_var()
+> 
+> 
+> 1. Determine the address of the percpu instance of the current processor.
+> 
+> 	DEFINE_PER_CPU(int, y);
+> 	int *x = &__get_cpu_var(y);
+> 
+>     Converts to
+> 
+> 	int *x = this_cpu_ptr(&y);
+> 
+> 
+> 2. Same as #1 but this time an array structure is involved.
+> 
+> 	DEFINE_PER_CPU(int, y[20]);
+> 	int *x = __get_cpu_var(y);
+> 
+>     Converts to
+> 
+> 	int *x = this_cpu_ptr(y);
+> 
+> 
+> 3. Retrieve the content of the current processors instance of a per cpu variable.
+> 
+> 	DEFINE_PER_CPU(int, u);
+> 	int x = __get_cpu_var(y)
+> 
+>    Converts to
+> 
+> 	int x = __this_cpu_read(y);
+> 
 
-Applied to for-next.
+This looses a preemption debug check, so NAK
 
-Thx,
--Vineet
+> 4. Retrieve the content of a percpu struct
+> 
+> 	DEFINE_PER_CPU(struct mystruct, y);
+> 	struct mystruct x = __get_cpu_var(y);
+> 
+>    Converts to
+> 
+> 	memcpy(this_cpu_ptr(&x), y, sizeof(x));
+> 
+> 5. Assignment to a per cpu variable
+> 
+> 	DEFINE_PER_CPU(int, y)
+> 	__get_cpu_var(y) = x;
+> 
+>    Converts to
+> 
+> 	this_cpu_write(y, x);
+> 
+
+This too looses a preemption debug check, NAK
+
+> 6. Increment/Decrement etc of a per cpu variable
+> 
+> 	DEFINE_PER_CPU(int, y);
+> 	__get_cpu_var(y)++
+> 
+>    Converts to
+> 
+> 	this_cpu_inc(y)
+> 
+
+Lo and behold.. no preemption checks again.
+
+
+Seriously first fix the debug and validation bits of the *this_cpu*
+stuff.
