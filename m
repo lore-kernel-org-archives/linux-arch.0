@@ -1,68 +1,26 @@
-From: Linus Walleij <linus.walleij@linaro.org>
-Subject: Re: [PATCH] include/asm-generic/gpio.h: remove the call for
- __gpio_get_value() and __gpio_set_value() when GPIOLIB disabled
-Date: Thu, 29 Aug 2013 14:08:12 +0200
-Message-ID: <CACRpkdazBtZfWdGA71WV20oZn2NYXDGExDmDkrv_TrRnhOmxQg@mail.gmail.com>
-References: <521B2917.6040908@asianux.com>
+From: Christoph Lameter <cl@linux.com>
+Subject: Re: [guv v2 08/31] tracing: Replace __get_cpu_var uses
+Date: Thu, 29 Aug 2013 16:35:07 +0000
+Message-ID: <00000140caeda84d-60e4dd5d-f119-4c9f-8d2e-d0d316e241b9-000000@email.amazonses.com>
+References: <20130826204351.725357339@linux.com> <00000140bc5f00c2-8e9ffffa-de46-4329-aef3-317c258828bd-000000@email.amazonses.com> <20130828154804.20f4dde6@gandalf.local.home>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-gpio-owner@vger.kernel.org>
-In-Reply-To: <521B2917.6040908@asianux.com>
-Sender: linux-gpio-owner@vger.kernel.org
-To: Chen Gang <gang.chen@asianux.com>, Grant Likely <grant.likely@linaro.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Arnd Bergmann <arnd@arndb.de>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from a9-78.smtp-out.amazonses.com ([54.240.9.78]:44342 "EHLO
+	a9-78.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753613Ab3H2QfJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 29 Aug 2013 12:35:09 -0400
+In-Reply-To: <20130828154804.20f4dde6@gandalf.local.home>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, Frederic Weisbecker <fweisbec@gmail.com>, Ingo Molnar <mingo@redhat.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
 
-On Mon, Aug 26, 2013 at 12:08 PM, Chen Gang <gang.chen@asianux.com> wrote:
+On Wed, 28 Aug 2013, Steven Rostedt wrote:
 
-> When GPIOLIB disabled, __gpio_get_value() and __gpio_set_value() will
-> not implement, so need remove them, or compiling fails.
+> You should limit the width of the change log to 76 characters.
 >
-> e.g. (allmodconfig for h8300)
->
->     CC      arch/h8300/kernel/h8300_ksyms.o
->   In file included from arch/h8300/include/generated/asm/gpio.h:1:0,
->                    from arch/h8300/kernel/h8300_ksyms.c:17:
->   include/asm-generic/gpio.h: In function 'gpio_get_value_cansleep':
->   include/asm-generic/gpio.h:270:2: error: implicit declaration of function '__gpio_get_value' [-Werror=implicit-function-declaration]
->     return __gpio_get_value(gpio);
->     ^
->
-> For __gpio_get_value(), according to its implementation, it is enough
-> to use "return 0" instead of, and for __gpio_set_value(), just remove
-> directly.
->
->
-> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+> I fixed it for now.
 
-NAK, this is not how you do it. This fallback path is for GENERIC_GPIO
-without GPIOLIB. Including it from a file indicates that you *are*
-using GENERIC_GPIO when GPIOLIB is not activated. It can not be
-used to stub out gpiolib.
-
-This is a better alternative: let h8300 select
-ARCH_HAVE_CUSTOM_GPIO_H
-
-This is quite common:
-$ git grep ARCH_HAVE_CUSTOM_GPIO_H
-arch/arm/Kconfig:       select ARCH_HAVE_CUSTOM_GPIO_H
-arch/avr32/Kconfig:     select ARCH_HAVE_CUSTOM_GPIO_H
-arch/blackfin/Kconfig:  select ARCH_HAVE_CUSTOM_GPIO_H
-arch/m68k/Kconfig.cpu:  select ARCH_HAVE_CUSTOM_GPIO_H
-arch/mips/Kconfig:      select ARCH_HAVE_CUSTOM_GPIO_H
-arch/sh/Kconfig:        select ARCH_HAVE_CUSTOM_GPIO_H
-arch/unicore32/Kconfig: select ARCH_HAVE_CUSTOM_GPIO_H
-
-Then put your stubs for __gpio_get_value() etc in
-arch/h8300/include/asm/gpio.h
-
-This way the h8300 will have a stub implementation if GPIOLIB
-is not selected.
-
-Be sure to put a comment about this in that file.
-
-Note: I'm still a bit rookie as GPIO maintainer so if Grant or
-Russell tells me I'm telling you wrong things: listen to them.
-
-Yours,
-Linus Walleij
+Ok. I have to do that to all patches though. Next rollup.
