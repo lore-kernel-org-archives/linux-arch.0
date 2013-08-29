@@ -1,75 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oa0-f43.google.com ([209.85.219.43]:33954 "EHLO
-	mail-oa0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753436Ab3H2MIO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Aug 2013 08:08:14 -0400
-Received: by mail-oa0-f43.google.com with SMTP id i10so408476oag.16
-        for <linux-arch@vger.kernel.org>; Thu, 29 Aug 2013 05:08:13 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <521B2917.6040908@asianux.com>
-References: <521B2917.6040908@asianux.com>
-Date: Thu, 29 Aug 2013 14:08:12 +0200
-Message-ID: <CACRpkdazBtZfWdGA71WV20oZn2NYXDGExDmDkrv_TrRnhOmxQg@mail.gmail.com>
-Subject: Re: [PATCH] include/asm-generic/gpio.h: remove the call for
- __gpio_get_value() and __gpio_set_value() when GPIOLIB disabled
-From: Linus Walleij <linus.walleij@linaro.org>
-Content-Type: text/plain; charset=ISO-8859-1
+Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:14477 "EHLO
+	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756529Ab3H2Sa4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Aug 2013 14:30:56 -0400
+Date: Thu, 29 Aug 2013 14:30:53 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [gcv v3 06/35] scheduler: Replace __get_cpu_var uses
+Message-ID: <20130829143053.3fc2caa8@gandalf.local.home>
+In-Reply-To: <00000140cb49bdde-1279ffb0-5c49-400d-970c-a481d527e98a-000000@email.amazonses.com>
+References: <20130828193457.140443630@linux.com>
+	<00000140c67817eb-b582280a-f059-499f-a24c-a11f3d59b86e-000000@email.amazonses.com>
+	<20130829075818.GW10002@twins.programming.kicks-ass.net>
+	<20130829100143.GA29672@gmail.com>
+	<00000140cb02576f-e106763c-d382-4b66-bb85-d7a9cb266b81-000000@email.amazonses.com>
+	<20130829173256.GB6276@home.goodmis.org>
+	<00000140cb49bdde-1279ffb0-5c49-400d-970c-a481d527e98a-000000@email.amazonses.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chen Gang <gang.chen@asianux.com>, Grant Likely <grant.likely@linaro.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Arnd Bergmann <arnd@arndb.de>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20130829120812.dVNWpnPgIMGk1BNIOjPUMBPaxX1YXI0xg_epHTRzDZY@z>
+To: Christoph Lameter <cl@linux.com>
+Cc: Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, Ingo Molnar <mingo@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20130829183053.2chm-4TIlWchLLb_73V_abO3DpdExuwH-6aKoXycU3I@z>
 
-On Mon, Aug 26, 2013 at 12:08 PM, Chen Gang <gang.chen@asianux.com> wrote:
+On Thu, 29 Aug 2013 18:15:43 +0000
+Christoph Lameter <cl@linux.com> wrote:
 
-> When GPIOLIB disabled, __gpio_get_value() and __gpio_set_value() will
-> not implement, so need remove them, or compiling fails.
->
-> e.g. (allmodconfig for h8300)
->
->     CC      arch/h8300/kernel/h8300_ksyms.o
->   In file included from arch/h8300/include/generated/asm/gpio.h:1:0,
->                    from arch/h8300/kernel/h8300_ksyms.c:17:
->   include/asm-generic/gpio.h: In function 'gpio_get_value_cansleep':
->   include/asm-generic/gpio.h:270:2: error: implicit declaration of function '__gpio_get_value' [-Werror=implicit-function-declaration]
->     return __gpio_get_value(gpio);
->     ^
->
-> For __gpio_get_value(), according to its implementation, it is enough
-> to use "return 0" instead of, and for __gpio_set_value(), just remove
-> directly.
->
->
-> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+> On Thu, 29 Aug 2013, Steven Rostedt wrote:
+> 
+> Its not really an atomic operation in the classic sense.
 
-NAK, this is not how you do it. This fallback path is for GENERIC_GPIO
-without GPIOLIB. Including it from a file indicates that you *are*
-using GENERIC_GPIO when GPIOLIB is not activated. It can not be
-used to stub out gpiolib.
+It doesn't need to be atomic, it could mean it is used within atomic
+locations. Basically, "can't be interrupted here". I just said
+"something like", it didn't even need to be that.
 
-This is a better alternative: let h8300 select
-ARCH_HAVE_CUSTOM_GPIO_H
+> 
+> this_cpu_no_preempt_check_read ?
 
-This is quite common:
-$ git grep ARCH_HAVE_CUSTOM_GPIO_H
-arch/arm/Kconfig:       select ARCH_HAVE_CUSTOM_GPIO_H
-arch/avr32/Kconfig:     select ARCH_HAVE_CUSTOM_GPIO_H
-arch/blackfin/Kconfig:  select ARCH_HAVE_CUSTOM_GPIO_H
-arch/m68k/Kconfig.cpu:  select ARCH_HAVE_CUSTOM_GPIO_H
-arch/mips/Kconfig:      select ARCH_HAVE_CUSTOM_GPIO_H
-arch/sh/Kconfig:        select ARCH_HAVE_CUSTOM_GPIO_H
-arch/unicore32/Kconfig: select ARCH_HAVE_CUSTOM_GPIO_H
+I would make it much shorter. You could use "raw_this_cpu_read()",
+which usually means "no checks here". Or, "this_cpu_read_nopreempt()".
 
-Then put your stubs for __gpio_get_value() etc in
-arch/h8300/include/asm/gpio.h
+> 
+> The problem that I have is also that a kernel with preemption is not
+> something that see anywhere these days. Looks more like an academic
+> exercise? Does this really matter? All the distro I see use
 
-This way the h8300 will have a stub implementation if GPIOLIB
-is not selected.
+Um, my paycheck depends on PREEMPT_RT working. And there's a lot of
+interest in real PREEMPT by audio folks. It's no more an
+academic exercise than people wanting really low kernel latency.
 
-Be sure to put a comment about this in that file.
+> PREEMPT_VOLUNTARY. Performance degradation is significant if massive
+> amounts of checks and preempt disable/enable points are added to the
+> kernel.
 
-Note: I'm still a bit rookie as GPIO maintainer so if Grant or
-Russell tells me I'm telling you wrong things: listen to them.
+They are usually disabled for production systems. But we run a bunch of
+tests with the debug checks enabled, which catch bugs before we ship a
+kernel for a production system.
 
-Yours,
-Linus Walleij
+> 
+> Do we agree that it is necessary and useful to add another variant of
+> this_cpu ops for this? The concern of having too many variants is no
+> longer there? Adding another variant is not that difficult just code
+> intensive.
+
+How many places use the this_cpu_*() without preemption disabled? I
+wouldn't think there's many. I never complained about another variant,
+so you need to ask those that have. The tough question for me is what
+that variant name should be ;-)
+
+-- Steve
