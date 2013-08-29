@@ -1,103 +1,29 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [gcv v3 06/35] scheduler: Replace __get_cpu_var uses
-Date: Thu, 29 Aug 2013 12:01:43 +0200
-Message-ID: <20130829100143.GA29672@gmail.com>
-References: <20130828193457.140443630@linux.com>
- <00000140c67817eb-b582280a-f059-499f-a24c-a11f3d59b86e-000000@email.amazonses.com>
- <20130829075818.GW10002@twins.programming.kicks-ass.net>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [gcv v3 19/35] drivers: Replace __get_cpu_var uses
+Date: Thu, 29 Aug 2013 11:30:43 +0100
+Message-ID: <521F22D3.5070602@imgtec.com>
+References: <20130828193457.140443630@linux.com> <00000140c6781cfa-5624d7f6-8021-42d1-a6ab-d98d2a20d763-000000@email.amazonses.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ee0-f54.google.com ([74.125.83.54]:61582 "EHLO
-	mail-ee0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752982Ab3H2KBs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Aug 2013 06:01:48 -0400
-Content-Disposition: inline
-In-Reply-To: <20130829075818.GW10002@twins.programming.kicks-ass.net>
+Received: from multi.imgtec.com ([194.200.65.239]:54325 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753394Ab3H2KcN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 29 Aug 2013 06:32:13 -0400
+In-Reply-To: <00000140c6781cfa-5624d7f6-8021-42d1-a6ab-d98d2a20d763-000000@email.amazonses.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Christoph Lameter <cl@linux.com>, Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, Ingo Molnar <mingo@redhat.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>
+To: Christoph Lameter <cl@linux.com>
+Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
 
+On 28/08/13 20:48, Christoph Lameter wrote:
+> Signed-off-by: Christoph Lameter <cl@linux.com>
 
-* Peter Zijlstra <peterz@infradead.org> wrote:
+Acked-by: James Hogan <james.hogan@imgtec.com>
 
-> On Wed, Aug 28, 2013 at 07:48:14PM +0000, Christoph Lameter wrote:
-> > Transformations done to __get_cpu_var()
-> > 
-> > 
-> > 1. Determine the address of the percpu instance of the current processor.
-> > 
-> > 	DEFINE_PER_CPU(int, y);
-> > 	int *x = &__get_cpu_var(y);
-> > 
-> >     Converts to
-> > 
-> > 	int *x = this_cpu_ptr(&y);
-> > 
-> > 
-> > 2. Same as #1 but this time an array structure is involved.
-> > 
-> > 	DEFINE_PER_CPU(int, y[20]);
-> > 	int *x = __get_cpu_var(y);
-> > 
-> >     Converts to
-> > 
-> > 	int *x = this_cpu_ptr(y);
-> > 
-> > 
-> > 3. Retrieve the content of the current processors instance of a per cpu variable.
-> > 
-> > 	DEFINE_PER_CPU(int, u);
-> > 	int x = __get_cpu_var(y)
-> > 
-> >    Converts to
-> > 
-> > 	int x = __this_cpu_read(y);
-> > 
-> 
-> This looses a preemption debug check, so NAK
-> 
-> > 4. Retrieve the content of a percpu struct
-> > 
-> > 	DEFINE_PER_CPU(struct mystruct, y);
-> > 	struct mystruct x = __get_cpu_var(y);
-> > 
-> >    Converts to
-> > 
-> > 	memcpy(this_cpu_ptr(&x), y, sizeof(x));
-> > 
-> > 5. Assignment to a per cpu variable
-> > 
-> > 	DEFINE_PER_CPU(int, y)
-> > 	__get_cpu_var(y) = x;
-> > 
-> >    Converts to
-> > 
-> > 	this_cpu_write(y, x);
-> > 
-> 
-> This too looses a preemption debug check, NAK
-> 
-> > 6. Increment/Decrement etc of a per cpu variable
-> > 
-> > 	DEFINE_PER_CPU(int, y);
-> > 	__get_cpu_var(y)++
-> > 
-> >    Converts to
-> > 
-> > 	this_cpu_inc(y)
-> > 
-> 
-> Lo and behold.. no preemption checks again.
-> 
-> 
-> Seriously first fix the debug and validation bits of the *this_cpu* 
-> stuff.
+Let me know if you want me to take this metag_generic.c and the
+arch/metag one through the metag tree.
 
-Note that most of the other 'gcv' patches have these problems as well, so 
-it's a NAK from me as well for most of the other patches as well ...
-
-Thanks,
-
-	Ingo
+Cheers
+James
