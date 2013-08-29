@@ -1,150 +1,28 @@
-From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Subject: Re: [guv v2 08/31] tracing: Replace __get_cpu_var uses
-Date: Thu, 29 Aug 2013 12:44:02 +0900
-Message-ID: <521EC382.5070406@hitachi.com>
-References: <20130826204351.725357339@linux.com> <00000140bc5f00c2-8e9ffffa-de46-4329-aef3-317c258828bd-000000@email.amazonses.com> <20130828154804.20f4dde6@gandalf.local.home>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [gcv v3 32/35] arc: Replace __get_cpu_var uses
+Date: Thu, 29 Aug 2013 06:33:07 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA23075140F60@IN01WEMBXA.internal.synopsys.com>
+References: <20130828193457.140443630@linux.com>
+ <00000140c6781cab-d0df0392-b65b-4213-8be0-1e4a04f67fb2-000000@email.amazonses.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20130828154804.20f4dde6@gandalf.local.home>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: Christoph Lameter <cl@linux.com>, Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, Frederic Weisbecker <fweisbec@gmail.com>, Ingo Molnar <mingo@redhat.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from us02smtp2.synopsys.com ([198.182.60.77]:60566 "EHLO
+	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751895Ab3H2GfU convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Aug 2013 02:35:20 -0400
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christoph Lameter <cl@linux.com>
+Cc: Tejun Heo <tj@kernel.org>, "akpm@linuxfoundation.org" <akpm@linuxfoundation.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Steven Rostedt <srostedt@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-(2013/08/29 4:48), Steven Rostedt wrote:
-> On Mon, 26 Aug 2013 20:44:37 +0000
-> Christoph Lameter <cl@linux.com> wrote:
-> 
->> __get_cpu_var() is used for multiple purposes in the kernel source. One of them is
->> address calculation via the form &__get_cpu_var(x). This calculates the address for
->> the instance of the percpu variable of the current processor based on an offset.
->>
->> Others usage cases are for storing and retrieving data from the current processors percpu area.
->> __get_cpu_var() can be used as an lvalue when writing data or on the right side of an assignment.
->>
->> __get_cpu_var() is defined as :
->>
->>
->> #define __get_cpu_var(var) (*this_cpu_ptr(&(var)))
->>
->>
->>
->> __get_cpu_var() always only does a address determination. However, store and retrieve operations
->> could use a segment prefix (or global register on other platforms) to avoid the address calculation.
->>
->> this_cpu_write() and this_cpu_read() can directly take an offset into a percpu area and use
->> optimized assembly code to read and write per cpu variables.
->>
->>
->> This patch converts __get_cpu_var into either and explicit address calculation using this_cpu_ptr()
->> or into a use of this_cpu operations that use the offset. Thereby address calcualtions are avoided
->> and less registers are used when code is generated.
->>
->> At the end of the patchset all uses of __get_cpu_var have been removed so the macro is removed too.
->>
->> The patchset includes passes over all arches as well. Once these operations are used throughout then
->> specialized macros can be defined in non -x86 arches as well in order to optimize per cpu access by
->> f.e. using a global register that may be set to the per cpu base.
-> 
-> You should limit the width of the change log to 76 characters.
-> 
-> I fixed it for now.
-> 
->>
->>
->>
->>
->> Transformations done to __get_cpu_var()
->>
->>
->> 1. Determine the address of the percpu instance of the current processor.
->>
->> 	DEFINE_PER_CPU(int, y);
->> 	int *x = &__get_cpu_var(y);
->>
->>     Converts to
->>
->> 	int *x = this_cpu_ptr(&y);
->>
->>
->> 2. Same as #1 but this time an array structure is involved.
->>
->> 	DEFINE_PER_CPU(int, y[20]);
->> 	int *x = __get_cpu_var(y);
->>
->>     Converts to
->>
->> 	int *x = this_cpu_ptr(y);
->>
->>
->> 3. Retrieve the content of the current processors instance of a per cpu variable.
->>
->> 	DEFINE_PER_CPU(int, u);
->> 	int x = __get_cpu_var(y)
->>
->>    Converts to
->>
->> 	int x = __this_cpu_read(y);
->>
->>
->> 4. Retrieve the content of a percpu struct
->>
->> 	DEFINE_PER_CPU(struct mystruct, y);
->> 	struct mystruct x = __get_cpu_var(y);
->>
->>    Converts to
->>
->> 	memcpy(this_cpu_ptr(&y), x, sizeof(x));
->>
->>
->> 5. Assignment to a per cpu variable
->>
->> 	DEFINE_PER_CPU(int, y)
->> 	__get_cpu_var(y) = x;
->>
->>    Converts to
->>
->> 	this_cpu_write(y, x);
->>
->>
->> 6. Increment/Decrement etc of a per cpu variable
->>
->> 	DEFINE_PER_CPU(int, y);
->> 	__get_cpu_var(y)++
->>
->>    Converts to
->>
->> 	this_cpu_inc(y)
->>
->>
->> Signed-off-by: Christoph Lameter <cl@linux.com>
->>
->> Index: linux/include/linux/kprobes.h
->> ===================================================================
->> --- linux.orig/include/linux/kprobes.h	2013-08-26 14:25:53.000000000 -0500
->> +++ linux/include/linux/kprobes.h	2013-08-26 14:26:29.460993659 -0500
->> @@ -329,7 +329,7 @@ static inline void reset_current_kprobe(
->>  
->>  static inline struct kprobe_ctlblk *get_kprobe_ctlblk(void)
->>  {
->> -	return (&__get_cpu_var(kprobe_ctlblk));
->> +	return this_cpu_ptr(&kprobe_ctlblk);
->>  }
-> 
-> Masami,
-> 
-> Can you give me an Acked-by: for this.
-> 
+On 08/29/2013 01:18 AM, Christoph Lameter wrote:
+> Acked-by: Vineet Gupta <vgupta@synopsys.com>
+> Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Thanks for pinging me ;)
+Applied to for-next.
 
-Acked-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-
-Thank you,
--- 
-Masami HIRAMATSU
-IT Management Research Dept. Linux Technology Center
-Hitachi, Ltd., Yokohama Research Laboratory
-E-mail: masami.hiramatsu.pt@hitachi.com
+Thx,
+-Vineet
