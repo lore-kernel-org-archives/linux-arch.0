@@ -1,72 +1,104 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:14477 "EHLO
-	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756529Ab3H2Sa4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Aug 2013 14:30:56 -0400
-Date: Thu, 29 Aug 2013 14:30:53 -0400
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [gcv v3 06/35] scheduler: Replace __get_cpu_var uses
-Message-ID: <20130829143053.3fc2caa8@gandalf.local.home>
-In-Reply-To: <00000140cb49bdde-1279ffb0-5c49-400d-970c-a481d527e98a-000000@email.amazonses.com>
-References: <20130828193457.140443630@linux.com>
-	<00000140c67817eb-b582280a-f059-499f-a24c-a11f3d59b86e-000000@email.amazonses.com>
-	<20130829075818.GW10002@twins.programming.kicks-ass.net>
-	<20130829100143.GA29672@gmail.com>
-	<00000140cb02576f-e106763c-d382-4b66-bb85-d7a9cb266b81-000000@email.amazonses.com>
-	<20130829173256.GB6276@home.goodmis.org>
-	<00000140cb49bdde-1279ffb0-5c49-400d-970c-a481d527e98a-000000@email.amazonses.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Received: from intranet.asianux.com ([58.214.24.6]:63731 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753276Ab3H3BwA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Aug 2013 21:52:00 -0400
+Message-ID: <521FFA7E.5090106@asianux.com>
+Date: Fri, 30 Aug 2013 09:50:54 +0800
+From: Chen Gang <gang.chen@asianux.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH] include/asm-generic/gpio.h: remove the call for __gpio_get_value()
+ and __gpio_set_value() when GPIOLIB disabled
+References: <521B2917.6040908@asianux.com> <CACRpkdazBtZfWdGA71WV20oZn2NYXDGExDmDkrv_TrRnhOmxQg@mail.gmail.com>
+In-Reply-To: <CACRpkdazBtZfWdGA71WV20oZn2NYXDGExDmDkrv_TrRnhOmxQg@mail.gmail.com>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Lameter <cl@linux.com>
-Cc: Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, Ingo Molnar <mingo@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20130829183053.2chm-4TIlWchLLb_73V_abO3DpdExuwH-6aKoXycU3I@z>
+To: Linus Walleij <linus.walleij@linaro.org>
+Cc: Grant Likely <grant.likely@linaro.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>
+Message-ID: <20130830015054.0Xn7KUlUGcFRC5r90_Z2fC-t6-huyt-vPhEwpOeJdBA@z>
 
-On Thu, 29 Aug 2013 18:15:43 +0000
-Christoph Lameter <cl@linux.com> wrote:
-
-> On Thu, 29 Aug 2013, Steven Rostedt wrote:
+On 08/29/2013 08:08 PM, Linus Walleij wrote:
+> On Mon, Aug 26, 2013 at 12:08 PM, Chen Gang <gang.chen@asianux.com> wrote:
 > 
-> Its not really an atomic operation in the classic sense.
-
-It doesn't need to be atomic, it could mean it is used within atomic
-locations. Basically, "can't be interrupted here". I just said
-"something like", it didn't even need to be that.
-
+>> When GPIOLIB disabled, __gpio_get_value() and __gpio_set_value() will
+>> not implement, so need remove them, or compiling fails.
+>>
+>> e.g. (allmodconfig for h8300)
+>>
+>>     CC      arch/h8300/kernel/h8300_ksyms.o
+>>   In file included from arch/h8300/include/generated/asm/gpio.h:1:0,
+>>                    from arch/h8300/kernel/h8300_ksyms.c:17:
+>>   include/asm-generic/gpio.h: In function 'gpio_get_value_cansleep':
+>>   include/asm-generic/gpio.h:270:2: error: implicit declaration of function '__gpio_get_value' [-Werror=implicit-function-declaration]
+>>     return __gpio_get_value(gpio);
+>>     ^
+>>
+>> For __gpio_get_value(), according to its implementation, it is enough
+>> to use "return 0" instead of, and for __gpio_set_value(), just remove
+>> directly.
+>>
+>>
+>> Signed-off-by: Chen Gang <gang.chen@asianux.com>
 > 
-> this_cpu_no_preempt_check_read ?
-
-I would make it much shorter. You could use "raw_this_cpu_read()",
-which usually means "no checks here". Or, "this_cpu_read_nopreempt()".
-
+> NAK, this is not how you do it. This fallback path is for GENERIC_GPIO
+> without GPIOLIB. Including it from a file indicates that you *are*
+> using GENERIC_GPIO when GPIOLIB is not activated. It can not be
+> used to stub out gpiolib.
 > 
-> The problem that I have is also that a kernel with preemption is not
-> something that see anywhere these days. Looks more like an academic
-> exercise? Does this really matter? All the distro I see use
 
-Um, my paycheck depends on PREEMPT_RT working. And there's a lot of
-interest in real PREEMPT by audio folks. It's no more an
-academic exercise than people wanting really low kernel latency.
+Hmm... what you said above sounds reasonable to me (at least, it can be
+acceptable).
 
-> PREEMPT_VOLUNTARY. Performance degradation is significant if massive
-> amounts of checks and preempt disable/enable points are added to the
-> kernel.
 
-They are usually disabled for production systems. But we run a bunch of
-tests with the debug checks enabled, which catch bugs before we ship a
-kernel for a production system.
-
+> This is a better alternative: let h8300 select
+> ARCH_HAVE_CUSTOM_GPIO_H
 > 
-> Do we agree that it is necessary and useful to add another variant of
-> this_cpu ops for this? The concern of having too many variants is no
-> longer there? Adding another variant is not that difficult just code
-> intensive.
+> This is quite common:
+> $ git grep ARCH_HAVE_CUSTOM_GPIO_H
+> arch/arm/Kconfig:       select ARCH_HAVE_CUSTOM_GPIO_H
+> arch/avr32/Kconfig:     select ARCH_HAVE_CUSTOM_GPIO_H
+> arch/blackfin/Kconfig:  select ARCH_HAVE_CUSTOM_GPIO_H
+> arch/m68k/Kconfig.cpu:  select ARCH_HAVE_CUSTOM_GPIO_H
+> arch/mips/Kconfig:      select ARCH_HAVE_CUSTOM_GPIO_H
+> arch/sh/Kconfig:        select ARCH_HAVE_CUSTOM_GPIO_H
+> arch/unicore32/Kconfig: select ARCH_HAVE_CUSTOM_GPIO_H
+> 
+> Then put your stubs for __gpio_get_value() etc in
+> arch/h8300/include/asm/gpio.h
+> 
+> This way the h8300 will have a stub implementation if GPIOLIB
+> is not selected.
+> 
+> Be sure to put a comment about this in that file.
+> 
 
-How many places use the this_cpu_*() without preemption disabled? I
-wouldn't think there's many. I never complained about another variant,
-so you need to ask those that have. The tough question for me is what
-that variant name should be ;-)
+That sounds a standard way for it, thanks.
 
--- Steve
+Hmm... but for h8300, it seems it may not include "gpio.h" which is just
+discussing about it with Geert in another thread (it seems what he said
+is correct, and now I am just proving it).
+
+Thanks.
+
+
+> Note: I'm still a bit rookie as GPIO maintainer so if Grant or
+> Russell tells me I'm telling you wrong things: listen to them.
+> 
+
+Thank you for your modesty and honesty.
+
+And welcome other members' suggestions or completions.
+
+
+Thanks.
+
+> Yours,
+> Linus Walleij
+> 
+> 
+
+
+-- 
+Chen Gang
