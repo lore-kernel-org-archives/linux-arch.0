@@ -1,81 +1,39 @@
-From: Max Filippov <jcmvbkbc@gmail.com>
-Subject: [PATCH v2 11/11] xtensa: remove CCOUNT_PER_JIFFY
-Date: Fri, 30 Aug 2013 19:35:03 +0400
-Message-ID: <1377876903-27860-12-git-send-email-jcmvbkbc@gmail.com>
-References: <1377876903-27860-1-git-send-email-jcmvbkbc@gmail.com>
+From: Chris Metcalf <cmetcalf@tilera.com>
+Subject: Re: [guv v2 23/31] tile: Replace __get_cpu_var uses
+Date: Fri, 30 Aug 2013 12:01:15 -0400
+Message-ID: <5220C1CB.7050007@tilera.com>
+References: <20130826204351.725357339@linux.com> <00000140bc69acdb-3b2967b0-e224-424b-ad08-973515704be6-000000@email.amazonses.com> <521BD523.3040706@tilera.com> <00000140c03f13d6-07480caf-b5b0-440b-af95-04878ee9f46c-000000@email.amazonses.com> <521E312C.2050004@tilera.com> <00000140c60fe2a0-aff878d7-06b3-4fe8-b97f-b319183f3f52-000000@email.amazonses.com> <521E3DD5.6020409@tilera.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f169.google.com ([209.85.217.169]:60664 "EHLO
-	mail-lb0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756603Ab3H3Pfb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 Aug 2013 11:35:31 -0400
-Received: by mail-lb0-f169.google.com with SMTP id z5so1336820lbh.28
-        for <linux-arch@vger.kernel.org>; Fri, 30 Aug 2013 08:35:29 -0700 (PDT)
-In-Reply-To: <1377876903-27860-1-git-send-email-jcmvbkbc@gmail.com>
+Received: from usmamail.tilera.com ([12.216.194.151]:29355 "EHLO
+	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756260Ab3H3QBR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 Aug 2013 12:01:17 -0400
+In-Reply-To: <521E3DD5.6020409@tilera.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Zankel <chris@zankel.net>
-Cc: Marc Gauthier <marc@tensilica.com>, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Baruch Siach <baruch@tkos.co.il>, Max Filippov <jcmvbkbc@gmail.com>
+To: Christoph Lameter <cl@linux.com>
+Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
 
-From: Baruch Siach <baruch@tkos.co.il>
+On 8/28/2013 2:13 PM, Chris Metcalf wrote:
+> On 8/28/2013 1:54 PM, Christoph Lameter wrote:
+>> On Wed, 28 Aug 2013, Chris Metcalf wrote:
+>>> In addition, I applied the following commit to clean up the remaining
+>>> uses that are currently only being carried in the linux-tile tree.
+>> You are going to merge these changes right? I can drop the tile patch from
+>> my series?
+> Yes, I am, so please feel free to drop it.
 
-Use ccount_freq directly to make the code a little more readable.
+Given the nacks from Peter Ziljstra and Ingo Molnar, I'm changing my mind and dropping this patch from my tree, so please continue to include arch/tile in your tree as you figure out how you want to restructure the overall series.
 
-Signed-off-by: Baruch Siach <baruch@tkos.co.il>
-Signed-off-by: Max Filippov <jcmvbkbc@gmail.com>
----
- arch/xtensa/include/asm/timex.h |    1 -
- arch/xtensa/kernel/setup.c      |    4 ++--
- arch/xtensa/kernel/time.c       |    4 ++--
- 3 files changed, 4 insertions(+), 5 deletions(-)
+I reviewed the one commit in the linux-tile tree that added new __get_cpu_var uses (kprobes support), and concluded the code can safely use __this_cpu_write etc (and in fact the generic reset_current_kprobe method already does so), so I modified the code not to use __get_cpu_var.  So there shouldn't be any new uses from the tile tree after the merge window opens.
 
-diff --git a/arch/xtensa/include/asm/timex.h b/arch/xtensa/include/asm/timex.h
-index 86aca77..27fa3c1 100644
---- a/arch/xtensa/include/asm/timex.h
-+++ b/arch/xtensa/include/asm/timex.h
-@@ -36,7 +36,6 @@
- #endif
- 
- extern unsigned long ccount_freq;
--#define CCOUNT_PER_JIFFY (ccount_freq / HZ)
- 
- typedef unsigned long long cycles_t;
- 
-diff --git a/arch/xtensa/kernel/setup.c b/arch/xtensa/kernel/setup.c
-index 42a8bba..4a8f027 100644
---- a/arch/xtensa/kernel/setup.c
-+++ b/arch/xtensa/kernel/setup.c
-@@ -585,8 +585,8 @@ c_show(struct seq_file *f, void *slot)
- 		     "bogomips\t: %lu.%02lu\n",
- 		     XCHAL_BUILD_UNIQUE_ID,
- 		     XCHAL_HAVE_BE ?  "big" : "little",
--		     CCOUNT_PER_JIFFY/(1000000/HZ),
--		     (CCOUNT_PER_JIFFY/(10000/HZ)) % 100,
-+		     ccount_freq/1000000,
-+		     (ccount_freq/10000) % 100,
- 		     loops_per_jiffy/(500000/HZ),
- 		     (loops_per_jiffy/(5000/HZ)) % 100);
- 
-diff --git a/arch/xtensa/kernel/time.c b/arch/xtensa/kernel/time.c
-index a65cb38..9af3dd8 100644
---- a/arch/xtensa/kernel/time.c
-+++ b/arch/xtensa/kernel/time.c
-@@ -130,7 +130,7 @@ void __init time_init(void)
- #else
- 	ccount_freq = CONFIG_XTENSA_CPU_CLOCK*1000000UL;
- #endif
--	clocksource_register_hz(&ccount_clocksource, CCOUNT_PER_JIFFY * HZ);
-+	clocksource_register_hz(&ccount_clocksource, ccount_freq);
- 
- 	ccount_timer.evt.cpumask = cpumask_of(0);
- 	ccount_timer.evt.irq = irq_create_mapping(NULL, LINUX_TIMER_INT);
-@@ -164,7 +164,7 @@ irqreturn_t timer_interrupt (int irq, void *dev_id)
- #ifndef CONFIG_GENERIC_CALIBRATE_DELAY
- void calibrate_delay(void)
- {
--	loops_per_jiffy = CCOUNT_PER_JIFFY;
-+	loops_per_jiffy = ccount_freq / HZ;
- 	printk("Calibrating delay loop (skipped)... "
- 	       "%lu.%02lu BogoMIPS preset\n",
- 	       loops_per_jiffy/(1000000/HZ),
+Their concerns feel particularly relevant to arch/tile since one of the commits queued for the merge window is support for preemption :-)
+
+Thanks!
+
 -- 
-1.7.7.6
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
