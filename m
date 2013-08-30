@@ -1,50 +1,53 @@
 From: Max Filippov <jcmvbkbc@gmail.com>
-Subject: [PATCH v2 03/11] xtensa: fix __delay for small loop count
-Date: Fri, 30 Aug 2013 19:34:55 +0400
-Message-ID: <1377876903-27860-4-git-send-email-jcmvbkbc@gmail.com>
+Subject: [PATCH v2 04/11] xtensa: fix build warning
+Date: Fri, 30 Aug 2013 19:34:56 +0400
+Message-ID: <1377876903-27860-5-git-send-email-jcmvbkbc@gmail.com>
 References: <1377876903-27860-1-git-send-email-jcmvbkbc@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f43.google.com ([209.85.215.43]:54635 "EHLO
-	mail-la0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756563Ab3H3PfR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 Aug 2013 11:35:17 -0400
-Received: by mail-la0-f43.google.com with SMTP id ep20so1690238lab.30
-        for <linux-arch@vger.kernel.org>; Fri, 30 Aug 2013 08:35:16 -0700 (PDT)
+Received: from mail-lb0-f174.google.com ([209.85.217.174]:44334 "EHLO
+	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756548Ab3H3PfT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 Aug 2013 11:35:19 -0400
+Received: by mail-lb0-f174.google.com with SMTP id w6so1992074lbh.33
+        for <linux-arch@vger.kernel.org>; Fri, 30 Aug 2013 08:35:17 -0700 (PDT)
 In-Reply-To: <1377876903-27860-1-git-send-email-jcmvbkbc@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Chris Zankel <chris@zankel.net>
 Cc: Marc Gauthier <marc@tensilica.com>, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Max Filippov <jcmvbkbc@gmail.com>
 
-Avoid __delay counter underflow for loop counts < 2.
+This fixes the following build warnings:
+
+arch/xtensa/mm/misc.S: Assembler messages:
+arch/xtensa/mm/misc.S:143: Warning: value 0xffffffff30000106 truncated to 0x30000106
+arch/xtensa/mm/misc.S:197: Warning: value 0xffffffff30000106 truncated to 0x30000106
 
 Signed-off-by: Max Filippov <jcmvbkbc@gmail.com>
 ---
-Changes v1->v2:
-- make __delay fix more explicit for constant delays less than 2;
+ arch/xtensa/mm/misc.S |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
- arch/xtensa/include/asm/delay.h |    9 ++++++---
- 1 files changed, 6 insertions(+), 3 deletions(-)
-
-diff --git a/arch/xtensa/include/asm/delay.h b/arch/xtensa/include/asm/delay.h
-index 3899610..742b89f 100644
---- a/arch/xtensa/include/asm/delay.h
-+++ b/arch/xtensa/include/asm/delay.h
-@@ -19,9 +19,12 @@ extern unsigned long loops_per_jiffy;
+diff --git a/arch/xtensa/mm/misc.S b/arch/xtensa/mm/misc.S
+index d97ed1b..1f68558 100644
+--- a/arch/xtensa/mm/misc.S
++++ b/arch/xtensa/mm/misc.S
+@@ -140,7 +140,7 @@ ENTRY(clear_user_page)
  
- static inline void __delay(unsigned long loops)
- {
--	/* 2 cycles per loop. */
--	__asm__ __volatile__ ("1: addi %0, %0, -2; bgeui %0, 2, 1b"
--			      : "=r" (loops) : "0" (loops));
-+	if (__builtin_constant_p(loops) && loops < 2)
-+		__asm__ __volatile__ ("nop");
-+	else if (loops >= 2)
-+		/* 2 cycles per loop. */
-+		__asm__ __volatile__ ("1: addi %0, %0, -2; bgeui %0, 2, 1b"
-+				: "+r" (loops));
- }
+ 	/* Setup a temporary DTLB with the color of the VPN */
  
- /* For SMP/NUMA systems, change boot_cpu_data to something like
+-	movi	a4, -PAGE_OFFSET + (PAGE_KERNEL | _PAGE_HW_WRITE)
++	movi	a4, ((PAGE_KERNEL | _PAGE_HW_WRITE) - PAGE_OFFSET) & 0xffffffff
+ 	movi	a5, TLBTEMP_BASE_1			# virt
+ 	add	a6, a2, a4				# ppn
+ 	add	a2, a5, a3				# add 'color'
+@@ -194,7 +194,7 @@ ENTRY(copy_user_page)
+ 	or	a9, a9, a8
+ 	slli	a4, a4, PAGE_SHIFT
+ 	s32i	a9, a5, PAGE_FLAGS
+-	movi	a5, -PAGE_OFFSET + (PAGE_KERNEL | _PAGE_HW_WRITE)
++	movi	a5, ((PAGE_KERNEL | _PAGE_HW_WRITE) - PAGE_OFFSET) & 0xffffffff
+ 
+ 	beqz	a6, 1f
+ 
 -- 
 1.7.7.6
