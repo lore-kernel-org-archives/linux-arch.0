@@ -1,111 +1,76 @@
 From: Max Filippov <jcmvbkbc@gmail.com>
-Subject: [PATCH v2 05/11] xtensa: check thread flags atomically on return from user exception
-Date: Fri, 30 Aug 2013 19:34:57 +0400
-Message-ID: <1377876903-27860-6-git-send-email-jcmvbkbc@gmail.com>
+Subject: [PATCH v2 10/11] xtensa: fix !CONFIG_XTENSA_CALIBRATE_CCOUNT build failure
+Date: Fri, 30 Aug 2013 19:35:02 +0400
+Message-ID: <1377876903-27860-11-git-send-email-jcmvbkbc@gmail.com>
 References: <1377876903-27860-1-git-send-email-jcmvbkbc@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f50.google.com ([209.85.215.50]:58834 "EHLO
-	mail-la0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756563Ab3H3PfV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 Aug 2013 11:35:21 -0400
-Received: by mail-la0-f50.google.com with SMTP id es20so1693987lab.9
-        for <linux-arch@vger.kernel.org>; Fri, 30 Aug 2013 08:35:19 -0700 (PDT)
+Received: from mail-la0-f51.google.com ([209.85.215.51]:53996 "EHLO
+	mail-la0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756599Ab3H3Pfa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 Aug 2013 11:35:30 -0400
+Received: by mail-la0-f51.google.com with SMTP id es20so1679155lab.10
+        for <linux-arch@vger.kernel.org>; Fri, 30 Aug 2013 08:35:27 -0700 (PDT)
 In-Reply-To: <1377876903-27860-1-git-send-email-jcmvbkbc@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Chris Zankel <chris@zankel.net>
-Cc: Marc Gauthier <marc@tensilica.com>, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Max Filippov <jcmvbkbc@gmail.com>
+Cc: Marc Gauthier <marc@tensilica.com>, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Baruch Siach <baruch@tkos.co.il>, Max Filippov <jcmvbkbc@gmail.com>
 
-Check pending signals and rescheduling thread flags with interrupts
-disabled, and don't enable them if no flags are set. Call
-trace_hardirqs_on after thread flags handling, so that rescheduling is
-done and hardirqs tracking flag is updated in the correct task context.
+From: Baruch Siach <baruch@tkos.co.il>
 
+Commits 925f5532 (xtensa: ccount based clockevent implementation) and e3f43291
+(xtensa: ccount based sched_clock) introduced users of ccount_freq. This
+variable doesn't exist when CONFIG_XTENSA_CALIBRATE_CCOUNT is disabled. Add
+ccount_freq definition in this case.
+
+Reported-by: Chen Gang <gang.chen@asianux.com>
+Signed-off-by: Baruch Siach <baruch@tkos.co.il>
 Signed-off-by: Max Filippov <jcmvbkbc@gmail.com>
 ---
-Changes v1->v2:
-- remove unneeded call to trace_hardirqs_off from the loop after
-  rsil a2, LOCKLEVEL
+ arch/xtensa/include/asm/timex.h |    5 -----
+ arch/xtensa/kernel/time.c       |    4 ++--
+ 2 files changed, 2 insertions(+), 7 deletions(-)
 
- arch/xtensa/kernel/entry.S |   39 +++++++++++++++++++++------------------
- 1 files changed, 21 insertions(+), 18 deletions(-)
-
-diff --git a/arch/xtensa/kernel/entry.S b/arch/xtensa/kernel/entry.S
-index 9298742..03709ef 100644
---- a/arch/xtensa/kernel/entry.S
-+++ b/arch/xtensa/kernel/entry.S
-@@ -423,29 +423,14 @@ common_exception:
- 	.global common_exception_return
- common_exception_return:
- 
--#ifdef CONFIG_TRACE_IRQFLAGS
--	l32i	a4, a1, PT_DEPC
--	/* Double exception means we came here with an exception
--	 * while PS.EXCM was set, i.e. interrupts disabled.
--	 */
--	bgeui	a4, VALID_DOUBLE_EXCEPTION_ADDRESS, 1f
--	l32i	a4, a1, PT_EXCCAUSE
--	bnei	a4, EXCCAUSE_LEVEL1_INTERRUPT, 1f
--	/* We came here with an interrupt means interrupts were enabled
--	 * and we'll reenable them on return.
--	 */
--	movi	a4, trace_hardirqs_on
--	callx4	a4
- 1:
--#endif
-+	rsil	a2, LOCKLEVEL
- 
- 	/* Jump if we are returning from kernel exceptions. */
- 
--1:	l32i	a3, a1, PT_PS
-+	l32i	a3, a1, PT_PS
- 	_bbci.l	a3, PS_UM_BIT, 4f
- 
--	rsil	a2, 0
--
- 	/* Specific to a user exception exit:
- 	 * We need to check some flags for signal handling and rescheduling,
- 	 * and have to restore WB and WS, extra states, and all registers
-@@ -465,6 +450,7 @@ common_exception_return:
- 
- 	/* Call do_signal() */
- 
-+	rsil	a2, 0
- 	movi	a4, do_notify_resume	# int do_notify_resume(struct pt_regs*)
- 	mov	a6, a1
- 	callx4	a4
-@@ -472,6 +458,7 @@ common_exception_return:
- 
- 3:	/* Reschedule */
- 
-+	rsil	a2, 0
- 	movi	a4, schedule	# void schedule (void)
- 	callx4	a4
- 	j	1b
-@@ -483,7 +470,23 @@ common_exception_return:
- 	movi	a4, check_tlb_sanity
- 	callx4	a4
+diff --git a/arch/xtensa/include/asm/timex.h b/arch/xtensa/include/asm/timex.h
+index 69f9017..86aca77 100644
+--- a/arch/xtensa/include/asm/timex.h
++++ b/arch/xtensa/include/asm/timex.h
+@@ -35,13 +35,8 @@
+ # error "Bad timer number for Linux configurations!"
  #endif
--4:	/* Restore optional registers. */
-+4:
-+#ifdef CONFIG_TRACE_IRQFLAGS
-+	l32i	a4, a1, PT_DEPC
-+	/* Double exception means we came here with an exception
-+	 * while PS.EXCM was set, i.e. interrupts disabled.
-+	 */
-+	bgeui	a4, VALID_DOUBLE_EXCEPTION_ADDRESS, 1f
-+	l32i	a4, a1, PT_EXCCAUSE
-+	bnei	a4, EXCCAUSE_LEVEL1_INTERRUPT, 1f
-+	/* We came here with an interrupt means interrupts were enabled
-+	 * and we'll reenable them on return.
-+	 */
-+	movi	a4, trace_hardirqs_on
-+	callx4	a4
-+1:
-+#endif
-+	/* Restore optional registers. */
  
- 	load_xtregs_opt a1 a2 a4 a5 a6 a7 PT_XTREGS_OPT
+-#ifdef CONFIG_XTENSA_CALIBRATE_CCOUNT
+ extern unsigned long ccount_freq;
+ #define CCOUNT_PER_JIFFY (ccount_freq / HZ)
+-#else
+-#define CCOUNT_PER_JIFFY (CONFIG_XTENSA_CPU_CLOCK*(1000000UL/HZ))
+-#endif
+-
+ 
+ typedef unsigned long long cycles_t;
+ 
+diff --git a/arch/xtensa/kernel/time.c b/arch/xtensa/kernel/time.c
+index 24bb0c17..a65cb38 100644
+--- a/arch/xtensa/kernel/time.c
++++ b/arch/xtensa/kernel/time.c
+@@ -29,9 +29,7 @@
+ #include <asm/timex.h>
+ #include <asm/platform.h>
+ 
+-#ifdef CONFIG_XTENSA_CALIBRATE_CCOUNT
+ unsigned long ccount_freq;		/* ccount Hz */
+-#endif
+ 
+ static cycle_t ccount_read(struct clocksource *cs)
+ {
+@@ -129,6 +127,8 @@ void __init time_init(void)
+ 	platform_calibrate_ccount();
+ 	printk("%d.%02d MHz\n", (int)ccount_freq/1000000,
+ 			(int)(ccount_freq/10000)%100);
++#else
++	ccount_freq = CONFIG_XTENSA_CPU_CLOCK*1000000UL;
+ #endif
+ 	clocksource_register_hz(&ccount_clocksource, CCOUNT_PER_JIFFY * HZ);
  
 -- 
 1.7.7.6
