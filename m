@@ -1,104 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:63731 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753276Ab3H3BwA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Aug 2013 21:52:00 -0400
-Message-ID: <521FFA7E.5090106@asianux.com>
-Date: Fri, 30 Aug 2013 09:50:54 +0800
-From: Chen Gang <gang.chen@asianux.com>
+Received: from gmmr1.centrum.cz ([46.255.225.252]:54759 "EHLO gmmr1.centrum.cz"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751616Ab3H3T6z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 30 Aug 2013 15:58:55 -0400
+Subject: =?utf-8?q?Re=3A_=5Bpatch_0=2F7=5D_improve_memcg_oom_killer_robustness_v2?=
+Date: Fri, 30 Aug 2013 21:58:52 +0200
+From: "azurIt" <azurit@pobox.sk>
+References: <1375549200-19110-1-git-send-email-hannes@cmpxchg.org> <20130803170831.GB23319@cmpxchg.org>
+In-Reply-To: <20130803170831.GB23319@cmpxchg.org>
 MIME-Version: 1.0
-Subject: Re: [PATCH] include/asm-generic/gpio.h: remove the call for __gpio_get_value()
- and __gpio_set_value() when GPIOLIB disabled
-References: <521B2917.6040908@asianux.com> <CACRpkdazBtZfWdGA71WV20oZn2NYXDGExDmDkrv_TrRnhOmxQg@mail.gmail.com>
-In-Reply-To: <CACRpkdazBtZfWdGA71WV20oZn2NYXDGExDmDkrv_TrRnhOmxQg@mail.gmail.com>
+Message-ID: <20130830215852.3E5D3D66@pobox.sk>
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Walleij <linus.walleij@linaro.org>
-Cc: Grant Likely <grant.likely@linaro.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>
-Message-ID: <20130830015054.0Xn7KUlUGcFRC5r90_Z2fC-t6-huyt-vPhEwpOeJdBA@z>
+To: =?utf-8?q?Johannes_Weiner?= <hannes@cmpxchg.org>
+Cc: =?utf-8?q?Andrew_Morton?= <akpm@linux-foundation.org>, =?utf-8?q?Michal_Hocko?= <mhocko@suse.cz>, =?utf-8?q?David_Rientjes?= <rientjes@google.com>, =?utf-8?q?KAMEZAWA_Hiroyuki?= <kamezawa.hiroyu@jp.fujitsu.com>, =?utf-8?q?KOSAKI_Motohiro?= <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130830195852.Wra05RhqYsHmBZqymZ406FFqWu0Qohj2G3r18qfGe4E@z>
 
-On 08/29/2013 08:08 PM, Linus Walleij wrote:
-> On Mon, Aug 26, 2013 at 12:08 PM, Chen Gang <gang.chen@asianux.com> wrote:
-> 
->> When GPIOLIB disabled, __gpio_get_value() and __gpio_set_value() will
->> not implement, so need remove them, or compiling fails.
->>
->> e.g. (allmodconfig for h8300)
->>
->>     CC      arch/h8300/kernel/h8300_ksyms.o
->>   In file included from arch/h8300/include/generated/asm/gpio.h:1:0,
->>                    from arch/h8300/kernel/h8300_ksyms.c:17:
->>   include/asm-generic/gpio.h: In function 'gpio_get_value_cansleep':
->>   include/asm-generic/gpio.h:270:2: error: implicit declaration of function '__gpio_get_value' [-Werror=implicit-function-declaration]
->>     return __gpio_get_value(gpio);
->>     ^
->>
->> For __gpio_get_value(), according to its implementation, it is enough
->> to use "return 0" instead of, and for __gpio_set_value(), just remove
->> directly.
->>
->>
->> Signed-off-by: Chen Gang <gang.chen@asianux.com>
-> 
-> NAK, this is not how you do it. This fallback path is for GENERIC_GPIO
-> without GPIOLIB. Including it from a file indicates that you *are*
-> using GENERIC_GPIO when GPIOLIB is not activated. It can not be
-> used to stub out gpiolib.
-> 
-
-Hmm... what you said above sounds reasonable to me (at least, it can be
-acceptable).
+>Hi azur,
+>
+>here is the x86-only rollup of the series for 3.2.
+>
+>Thanks!
+>Johannes
+>---
 
 
-> This is a better alternative: let h8300 select
-> ARCH_HAVE_CUSTOM_GPIO_H
-> 
-> This is quite common:
-> $ git grep ARCH_HAVE_CUSTOM_GPIO_H
-> arch/arm/Kconfig:       select ARCH_HAVE_CUSTOM_GPIO_H
-> arch/avr32/Kconfig:     select ARCH_HAVE_CUSTOM_GPIO_H
-> arch/blackfin/Kconfig:  select ARCH_HAVE_CUSTOM_GPIO_H
-> arch/m68k/Kconfig.cpu:  select ARCH_HAVE_CUSTOM_GPIO_H
-> arch/mips/Kconfig:      select ARCH_HAVE_CUSTOM_GPIO_H
-> arch/sh/Kconfig:        select ARCH_HAVE_CUSTOM_GPIO_H
-> arch/unicore32/Kconfig: select ARCH_HAVE_CUSTOM_GPIO_H
-> 
-> Then put your stubs for __gpio_get_value() etc in
-> arch/h8300/include/asm/gpio.h
-> 
-> This way the h8300 will have a stub implementation if GPIOLIB
-> is not selected.
-> 
-> Be sure to put a comment about this in that file.
-> 
+Johannes,
 
-That sounds a standard way for it, thanks.
+unfortunately, one problem arises: I have (again) cgroup which cannot be deleted :( it's a user who had very high memory usage and was reaching his limit very often. Do you need any info which i can gather now?
 
-Hmm... but for h8300, it seems it may not include "gpio.h" which is just
-discussing about it with Geert in another thread (it seems what he said
-is correct, and now I am just proving it).
-
-Thanks.
-
-
-> Note: I'm still a bit rookie as GPIO maintainer so if Grant or
-> Russell tells me I'm telling you wrong things: listen to them.
-> 
-
-Thank you for your modesty and honesty.
-
-And welcome other members' suggestions or completions.
-
-
-Thanks.
-
-> Yours,
-> Linus Walleij
-> 
-> 
-
-
--- 
-Chen Gang
+azur
