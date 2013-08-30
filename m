@@ -1,90 +1,149 @@
-From: Vineet Gupta <vineetg76@gmail.com>
-Subject: Re: [PATCH] Kconfig.debug: Add FRAME_POINTER anti-dependency for
- ARC
-Date: Fri, 30 Aug 2013 13:18:29 +0530
-Message-ID: <52204E4D.3030602@synopsys.com>
-References: <1377592285-21148-1-git-send-email-vgupta@synopsys.com> <521F662F.4050003@intel.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [gcv v3 27/35] arm: Replace __get_cpu_var uses
+Date: Fri, 30 Aug 2013 11:01:05 +0100
+Message-ID: <20130830100105.GF25628@mudshark.cambridge.arm.com>
+References: <20130828193457.140443630@linux.com>
+ <00000140c67834c9-cc2bec76-2d70-48d1-a35b-6e2d5dedf22b-000000@email.amazonses.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f50.google.com ([209.85.220.50]:36053 "EHLO
-	mail-pa0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753969Ab3H3Hsh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 Aug 2013 03:48:37 -0400
-In-Reply-To: <521F662F.4050003@intel.com>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:42602 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754102Ab3H3KB2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 30 Aug 2013 06:01:28 -0400
+Content-Disposition: inline
+In-Reply-To: <00000140c67834c9-cc2bec76-2d70-48d1-a35b-6e2d5dedf22b-000000@email.amazonses.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, Dave Hansen <dave.hansen@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, "Paul E. McKenney" <paul.mckenney@linaro.org>, Catalin Marinas <catalin.marinas@arm.com>, Michel Lespinasse <walken@google.com>, "David S. Miller" <davem@davemloft.net>, Paul Mundt <lethal@linux-sh.org>, Arnd Bergmann <arnd@arndb.de>, Chris Metcalf <cmetcalf@tilera.com>
+To: Christoph Lameter <cl@linux.com>
+Cc: Tejun Heo <tj@kernel.org>, "akpm@linuxfoundation.org" <akpm@linuxfoundation.org>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Steven Rostedt <srostedt@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-[+linux-arch and other arch maintainers]
+Hi Christoph,
 
-On 08/29/2013 08:48 PM, Dave Hansen wrote:
-> On 08/27/2013 01:31 AM, Vineet Gupta wrote:
->> Frame pointer on ARC doesn't serve the conventional purpose of stack
->> unwinding due to the typical way ABI designates it's usage.
->> Thus it's explicit usage on ARC is discouraged (gcc is free to use it,
->> for some tricky stack frames even if -fomit-frame-pointer)
-> ...
->> diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
->> index 1501aa5..c971f3a 100644
->> --- a/lib/Kconfig.debug
->> +++ b/lib/Kconfig.debug
->> @@ -908,7 +908,7 @@ config LOCKDEP
->>  	bool
->>  	depends on DEBUG_KERNEL && TRACE_IRQFLAGS_SUPPORT && STACKTRACE_SUPPORT && LOCKDEP_SUPPORT
->>  	select STACKTRACE
->> -	select FRAME_POINTER if !MIPS && !PPC && !ARM_UNWIND && !S390 && !MICROBLAZE
->> +	select FRAME_POINTER if !MIPS && !PPC && !ARM_UNWIND && !S390 && !MICROBLAZE && !ARC
->>  	select KALLSYMS
->>  	select KALLSYMS_ALL
-> 
-> I assume you're sending this my way since getmaintainer.pl has me tagged
-> I moved a bunch of code in there. :)
-> 
-> The Kconfig.debug stuff has no real maintainer.  It would probably be OK
-> if you just stick this in your architecture's next git pull request.
-> 
-> Although, it would be nice if someone, at some point, actually
-> abstracted that out so that the individual architectures could take care
-> of this without editing the main files:
-> 
-> # Kconfig.debug:
-> 
-> config ARCH_FRAME_POINTER_UNAVAILABLE
-> 	def_bool y
-> ...
-> select FRAME_POINTER if !ARCH_FRAME_POINTER_UNAVAILABLE
-> 
-> # arch/.../Kconfig
-> 
-> select ARCH_FRAME_POINTER_UNAVAILABLE
-> 
-> 
+Sorry for the delay in looking at this, I've been on holiday for a week=
+=2E
+Comments inline.
 
-I thought about this a bit. So adding ARCH_FRAME_POINTER_UNAVAILABLE does help
-cleanup the anti-dependency list for say LATENCY_TOP for (MIPS, PPC, S390,
-MICROBLAZE, ARM_UNWIND, ARC), but we are still stuck with keeping both
-ARCH_WANT_FRAME_POINTERS and ARCH_FRAME_POINTER_UNAVAILABLE.
+On Wed, Aug 28, 2013 at 08:48:23PM +0100, Christoph Lameter wrote:
+> Transformations done to __get_cpu_var()
+>=20
+>=20
+> 1. Determine the address of the percpu instance of the current proces=
+sor.
+>=20
+>         DEFINE_PER_CPU(int, y);
+>         int *x =3D &__get_cpu_var(y);
+>=20
+>     Converts to
+>=20
+>         int *x =3D this_cpu_ptr(&y);
+>=20
+>=20
+> 2. Same as #1 but this time an array structure is involved.
+>=20
+>         DEFINE_PER_CPU(int, y[20]);
+>         int *x =3D __get_cpu_var(y);
+>=20
+>     Converts to
+>=20
+>         int *x =3D this_cpu_ptr(y);
 
-If we had ARCH_FRAME_POINTER_UNAVAILABLE (def_bool n), we could potentially remove
-ARCH_FRAME_POINTER too:
+This is the flavour we have for ARM's hw_breakpoint code, where we have=
+ an
+array of perf_event * instead of int...
 
-1. arches which explicitly select ARCH_FRAME_POINTER (xtensa, parisc, arm64, x86,
-unicore32, tile) could just drop that select.
+> Index: linux/arch/arm/kernel/hw_breakpoint.c
+> =3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
+> --- linux.orig/arch/arm/kernel/hw_breakpoint.c  2013-08-26 13:48:40.9=
+56794980 -0500
+> +++ linux/arch/arm/kernel/hw_breakpoint.c       2013-08-26 13:48:40.9=
+52795024 -0500
+> @@ -344,13 +344,13 @@ int arch_install_hw_breakpoint(struct pe
+>                 /* Breakpoint */
+>                 ctrl_base =3D ARM_BASE_BCR;
+>                 val_base =3D ARM_BASE_BVR;
+> -               slots =3D (struct perf_event **)__get_cpu_var(bp_on_r=
+eg);
+> +               slots =3D (struct perf_event **)__this_cpu_read(bp_on=
+_reg);
 
-2. Others which add themselves to config FRAME_POINTER depends on (CRIS, M68K,
-FRV, UML, AVR32, SUPERH, BLACKFIN, MN10300, METAG) can simply be removed form that
-list.
+=2E..so I don't think this is quite right, and indeed, we get a bunch o=
+f errors
+from GCC:
 
-3. Other who want to inhibit FP obviously select it (MIPS, PPC, S390, MICROBLAZE,
-ARM_UNWIND, ARC)
+arch/arm/kernel/hw_breakpoint.c: In function =E2=80=98arch_install_hw_b=
+reakpoint=E2=80=99:
+arch/arm/kernel/hw_breakpoint.c:347:33: error: incompatible types when =
+assigning to type =E2=80=98struct perf_event *[16]=E2=80=99 from type =E2=
+=80=98struct perf_event **=E2=80=99
+arch/arm/kernel/hw_breakpoint.c:347:1: error: incompatible types when a=
+ssigning to type =E2=80=98struct perf_event *[16]=E2=80=99 from type =E2=
+=80=98struct perf_event **=E2=80=99
+arch/arm/kernel/hw_breakpoint.c:347:1: error: incompatible types when a=
+ssigning to type =E2=80=98struct perf_event *[16]=E2=80=99 from type =E2=
+=80=98struct perf_event **=E2=80=99
+arch/arm/kernel/hw_breakpoint.c:347:1: error: incompatible types when a=
+ssigning to type =E2=80=98struct perf_event *[16]=E2=80=99 from type =E2=
+=80=98struct perf_event **=E2=80=99
 
-The issue is some (sparc, c6x...) which are neither in #1 or #2, and not present
-in anti-dependency list either. e.g. With sparc64_defconfig FP is not present, but
-if I enable LATENCY_TOP, FP is enabled. For such cases, what do we make default ?
+changing to match your recipe still doesn't work, however:
 
-This seemed so trivial to do to begin with :-)
+arch/arm/kernel/hw_breakpoint.c: In function =E2=80=98arch_install_hw_b=
+reakpoint=E2=80=99:
+arch/arm/kernel/hw_breakpoint.c:347:33: error: cast specifies array typ=
+e
 
--Vineet
+> Index: linux/arch/arm64/kernel/debug-monitors.c
+> =3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
+> --- linux.orig/arch/arm64/kernel/debug-monitors.c       2013-08-26 13=
+:48:40.956794980 -0500
+> +++ linux/arch/arm64/kernel/debug-monitors.c    2013-08-26 13:48:40.9=
+52795024 -0500
+> @@ -98,11 +98,11 @@ void enable_debug_monitors(enum debug_el
+>=20
+>         WARN_ON(preemptible());
+>=20
+> -       if (local_inc_return(&__get_cpu_var(mde_ref_count)) =3D=3D 1)
+> +       if (this_cpu_inc_return(mde_ref_count) =3D=3D 1)
+>                 enable =3D DBG_MDSCR_MDE;
+
+I'm not sure that this is safe. We rely on local_inc_return to be atomi=
+c
+with respect to the current CPU, which will end up being a wrapper arou=
+nd
+atomic64_inc_return. However, this_cpu_inc_return simply uses a lock, s=
+o
+other people accessing the count in a different manner (local_dec_and_t=
+est
+below) may break local atomicity unless we start disabling interrupts o=
+r
+something horrible like that.
+=20
+>         if (el =3D=3D DBG_ACTIVE_EL1 &&
+> -           local_inc_return(&__get_cpu_var(kde_ref_count)) =3D=3D 1)
+> +           this_cpu_inc_return(kde_ref_count) =3D=3D 1)
+>                 enable |=3D DBG_MDSCR_KDE;
+>=20
+>         if (enable && debug_enabled) {
+> @@ -118,11 +118,11 @@ void disable_debug_monitors(enum debug_e
+>=20
+>         WARN_ON(preemptible());
+>=20
+> -       if (local_dec_and_test(&__get_cpu_var(mde_ref_count)))
+> +       if (local_dec_and_test(this_cpu_ptr(&mde_ref_count)))
+>                 disable =3D ~DBG_MDSCR_MDE;
+>=20
+>         if (el =3D=3D DBG_ACTIVE_EL1 &&
+> -           local_dec_and_test(&__get_cpu_var(kde_ref_count)))
+> +           local_dec_and_test(this_cpu_ptr(&kde_ref_count)))
+>                 disable &=3D ~DBG_MDSCR_KDE;
+>=20
+>         if (disable) {
+
+Will
