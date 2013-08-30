@@ -1,99 +1,64 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH] include/asm-generic/gpio.h: remove the call for __gpio_get_value()
- and __gpio_set_value() when GPIOLIB disabled
-Date: Fri, 30 Aug 2013 09:50:54 +0800
-Message-ID: <521FFA7E.5090106@asianux.com>
-References: <521B2917.6040908@asianux.com> <CACRpkdazBtZfWdGA71WV20oZn2NYXDGExDmDkrv_TrRnhOmxQg@mail.gmail.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [gcv v3 06/35] scheduler: Replace __get_cpu_var uses
+Date: Fri, 30 Aug 2013 08:54:18 +0200
+Message-ID: <20130830065418.GA13867@gmail.com>
+References: <20130828193457.140443630@linux.com>
+ <00000140c67817eb-b582280a-f059-499f-a24c-a11f3d59b86e-000000@email.amazonses.com>
+ <20130829075818.GW10002@twins.programming.kicks-ass.net>
+ <20130829100143.GA29672@gmail.com>
+ <00000140cb02576f-e106763c-d382-4b66-bb85-d7a9cb266b81-000000@email.amazonses.com>
+ <20130829173256.GB6276@home.goodmis.org>
+ <00000140cb49bdde-1279ffb0-5c49-400d-970c-a481d527e98a-000000@email.amazonses.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-gpio-owner@vger.kernel.org>
-In-Reply-To: <CACRpkdazBtZfWdGA71WV20oZn2NYXDGExDmDkrv_TrRnhOmxQg@mail.gmail.com>
-Sender: linux-gpio-owner@vger.kernel.org
-To: Linus Walleij <linus.walleij@linaro.org>
-Cc: Grant Likely <grant.likely@linaro.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ee0-f46.google.com ([74.125.83.46]:57778 "EHLO
+	mail-ee0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753978Ab3H3GyX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 Aug 2013 02:54:23 -0400
+Content-Disposition: inline
+In-Reply-To: <00000140cb49bdde-1279ffb0-5c49-400d-970c-a481d527e98a-000000@email.amazonses.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christoph Lameter <cl@linux.com>
+Cc: Steven Rostedt <rostedt@goodmis.org>, Peter Zijlstra <peterz@infradead.org>, Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, Ingo Molnar <mingo@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>
 
-On 08/29/2013 08:08 PM, Linus Walleij wrote:
-> On Mon, Aug 26, 2013 at 12:08 PM, Chen Gang <gang.chen@asianux.com> wrote:
+
+* Christoph Lameter <cl@linux.com> wrote:
+
+> On Thu, 29 Aug 2013, Steven Rostedt wrote:
 > 
->> When GPIOLIB disabled, __gpio_get_value() and __gpio_set_value() will
->> not implement, so need remove them, or compiling fails.
->>
->> e.g. (allmodconfig for h8300)
->>
->>     CC      arch/h8300/kernel/h8300_ksyms.o
->>   In file included from arch/h8300/include/generated/asm/gpio.h:1:0,
->>                    from arch/h8300/kernel/h8300_ksyms.c:17:
->>   include/asm-generic/gpio.h: In function 'gpio_get_value_cansleep':
->>   include/asm-generic/gpio.h:270:2: error: implicit declaration of function '__gpio_get_value' [-Werror=implicit-function-declaration]
->>     return __gpio_get_value(gpio);
->>     ^
->>
->> For __gpio_get_value(), according to its implementation, it is enough
->> to use "return 0" instead of, and for __gpio_set_value(), just remove
->> directly.
->>
->>
->> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+> > On Thu, Aug 29, 2013 at 04:57:43PM +0000, Christoph Lameter wrote:
+> > >
+> > > We could add a ____this_cpu variant that would be used in the cases we do
+> > > not want preemption checks? There should not be too many but it will
+> > > mean a whole lot of new definitions in percpu.h.
+> >
+> > Let's get away from underscores as they are meaningless.
+> >
+> > A this_cpu_atomic() or other descriptive name would be much more
+> > appropriate.
 > 
-> NAK, this is not how you do it. This fallback path is for GENERIC_GPIO
-> without GPIOLIB. Including it from a file indicates that you *are*
-> using GENERIC_GPIO when GPIOLIB is not activated. It can not be
-> used to stub out gpiolib.
+> Its not really an atomic operation in the classic sense.
 > 
-
-Hmm... what you said above sounds reasonable to me (at least, it can be
-acceptable).
-
-
-> This is a better alternative: let h8300 select
-> ARCH_HAVE_CUSTOM_GPIO_H
+> this_cpu_no_preempt_check_read ?
 > 
-> This is quite common:
-> $ git grep ARCH_HAVE_CUSTOM_GPIO_H
-> arch/arm/Kconfig:       select ARCH_HAVE_CUSTOM_GPIO_H
-> arch/avr32/Kconfig:     select ARCH_HAVE_CUSTOM_GPIO_H
-> arch/blackfin/Kconfig:  select ARCH_HAVE_CUSTOM_GPIO_H
-> arch/m68k/Kconfig.cpu:  select ARCH_HAVE_CUSTOM_GPIO_H
-> arch/mips/Kconfig:      select ARCH_HAVE_CUSTOM_GPIO_H
-> arch/sh/Kconfig:        select ARCH_HAVE_CUSTOM_GPIO_H
-> arch/unicore32/Kconfig: select ARCH_HAVE_CUSTOM_GPIO_H
+> The problem that I have is also that a kernel with preemption is not 
+> something that see anywhere these days. Looks more like an academic 
+> exercise? Does this really matter? All the distro I see use 
+> PREEMPT_VOLUNTARY. Performance degradation is significant if massive 
+> amounts of checks and preempt disable/enable points are added to the 
+> kernel.
 > 
-> Then put your stubs for __gpio_get_value() etc in
-> arch/h8300/include/asm/gpio.h
-> 
-> This way the h8300 will have a stub implementation if GPIOLIB
-> is not selected.
-> 
-> Be sure to put a comment about this in that file.
-> 
+> Do we agree that it is necessary and useful to add another variant of 
+> this_cpu ops for this? The concern of having too many variants is no 
+> longer there? Adding another variant is not that difficult just code 
+> intensive.
 
-That sounds a standard way for it, thanks.
+Just stop the lame excuses and fix it already. This has come up in the 
+past and you know it: you were told to fix the this_cpu debug checks by 
+Linus as well, yet you didn't ... Don't send crap you know is broken.
 
-Hmm... but for h8300, it seems it may not include "gpio.h" which is just
-discussing about it with Geert in another thread (it seems what he said
-is correct, and now I am just proving it).
+Thanks,
 
-Thanks.
-
-
-> Note: I'm still a bit rookie as GPIO maintainer so if Grant or
-> Russell tells me I'm telling you wrong things: listen to them.
-> 
-
-Thank you for your modesty and honesty.
-
-And welcome other members' suggestions or completions.
-
-
-Thanks.
-
-> Yours,
-> Linus Walleij
-> 
-> 
-
-
--- 
-Chen Gang
+	Ingo
