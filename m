@@ -1,296 +1,405 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [gcv v3 10/35] rcu: Replace __get_cpu_var uses
-Date: Sat, 31 Aug 2013 13:36:00 -0700
-Message-ID: <20130831203559.GY3871@linux.vnet.ibm.com>
-References: <20130828193457.140443630@linux.com>
- <00000140c67825ee-d9e3a1ca-2e81-4868-8c8c-36ba965f7202-000000@email.amazonses.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+Subject: Re: [PATCH 03/25] avr32: Use Kbuild infrastructure to handle
+ asm-generic headers
+Date: Sun, 1 Sep 2013 22:55:51 +0200
+Message-ID: <20130901205551.GA21140@samfundet.no>
+References: <20121013022632.024527228@goodmis.org>
+ <20121013022952.855483404@goodmis.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e31.co.us.ibm.com ([32.97.110.149]:57871 "EHLO
-	e31.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754382Ab3HaUgN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 31 Aug 2013 16:36:13 -0400
-Received: from /spool/local
-	by e31.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Sat, 31 Aug 2013 14:36:13 -0600
+Received: from cassarossa.samfundet.no ([193.35.52.29]:36750 "EHLO
+	cassarossa.samfundet.no" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753071Ab3IAUz4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 1 Sep 2013 16:55:56 -0400
 Content-Disposition: inline
-In-Reply-To: <00000140c67825ee-d9e3a1ca-2e81-4868-8c8c-36ba965f7202-000000@email.amazonses.com>
+In-Reply-To: <20121013022952.855483404@goodmis.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Lameter <cl@linux.com>
-Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, Dipankar Sarma <dipankar@in.ibm.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Haavard Skinnemoen <hskinnemoen@gmail.com>
 
-On Wed, Aug 28, 2013 at 07:48:17PM +0000, Christoph Lameter wrote:
-> __get_cpu_var() is used for multiple purposes in the kernel source. One of them is
-> address calculation via the form &__get_cpu_var(x). This calculates the address for
-> the instance of the percpu variable of the current processor based on an offset.
-> 
-> Other use cases are for storing and retrieving data from the current processors percpu area.
-> __get_cpu_var() can be used as an lvalue when writing data or on the right side of an assignment.
-> 
-> __get_cpu_var() is defined as :
-> 
-> 
-> #define __get_cpu_var(var) (*this_cpu_ptr(&(var)))
-> 
-> 
-> 
-> __get_cpu_var() always only does an address determination. However, store and retrieve operations
-> could use a segment prefix (or global register on other platforms) to avoid the address calculation.
-> 
-> this_cpu_write() and this_cpu_read() can directly take an offset into a percpu area and use
-> optimized assembly code to read and write per cpu variables.
-> 
-> 
-> This patch converts __get_cpu_var into either an explicit address calculation using this_cpu_ptr()
-> or into a use of this_cpu operations that use the offset. Thereby address calcualtions are avoided
-> and less registers are used when code is generated.
-> 
-> At the end of the patchset all uses of __get_cpu_var have been removed so the macro is removed too.
-> 
-> The patchset includes passes over all arches as well. Once these operations are used throughout then
-> specialized macros can be defined in non -x86 arches as well in order to optimize per cpu access by
-> f.e. using a global register that may be set to the per cpu base.
-> 
-> 
-> 
-> 
-> Transformations done to __get_cpu_var()
-> 
-> 
-> 1. Determine the address of the percpu instance of the current processor.
-> 
-> 	DEFINE_PER_CPU(int, y);
-> 	int *x = &__get_cpu_var(y);
-> 
->     Converts to
-> 
-> 	int *x = this_cpu_ptr(&y);
-> 
-> 
-> 2. Same as #1 but this time an array structure is involved.
-> 
-> 	DEFINE_PER_CPU(int, y[20]);
-> 	int *x = __get_cpu_var(y);
-> 
->     Converts to
-> 
-> 	int *x = this_cpu_ptr(y);
-> 
-> 
-> 3. Retrieve the content of the current processors instance of a per cpu variable.
-> 
-> 	DEFINE_PER_CPU(int, u);
-> 	int x = __get_cpu_var(y)
-> 
->    Converts to
-> 
-> 	int x = __this_cpu_read(y);
-> 
-> 
-> 4. Retrieve the content of a percpu struct
-> 
-> 	DEFINE_PER_CPU(struct mystruct, y);
-> 	struct mystruct x = __get_cpu_var(y);
-> 
->    Converts to
-> 
-> 	memcpy(this_cpu_ptr(&x), y, sizeof(x));
-> 
-> 
-> 5. Assignment to a per cpu variable
-> 
-> 	DEFINE_PER_CPU(int, y)
-> 	__get_cpu_var(y) = x;
-> 
->    Converts to
-> 
-> 	this_cpu_write(y, x);
-> 
-> 
-> 6. Increment/Decrement etc of a per cpu variable
-> 
-> 	DEFINE_PER_CPU(int, y);
-> 	__get_cpu_var(y)++
-> 
->    Converts to
-> 
-> 	this_cpu_inc(y)
-> 
-> Signed-off-by: Christoph Lameter <cl@linux.com>
+Around Fri 12 Oct 2012 22:26:35 -0400 or thereabout, Steven Rostedt wrote:
 
-Queued for 3.13.  I had to rework for conflicts, please see below for
-the update patch.
+Hello Steven,
 
-							Thanx, Paul
+> Use Kbuild infrastructure to handle the asm-generic headers
+> and remove the wrapper headers that call them.
+> 
+> This only affects headers that do nothing but include the generic
+> equivalent. It does not touch any header that does a little more.
 
-------------------------------------------------------------------------
+Thank you for cleaning. A bit old this patch (yikes, almost a year), but I
+cleaned it up a bit, and added it to my for-linus branch.
 
-diff --git a/kernel/rcutree.c b/kernel/rcutree.c
-index a51985e..fccb6e8 100644
---- a/kernel/rcutree.c
-+++ b/kernel/rcutree.c
-@@ -400,7 +400,7 @@ static void rcu_eqs_enter(bool user)
- 	long long oldval;
- 	struct rcu_dynticks *rdtp;
- 
--	rdtp = &__get_cpu_var(rcu_dynticks);
-+	rdtp = this_cpu_ptr(&rcu_dynticks);
- 	oldval = rdtp->dynticks_nesting;
- 	WARN_ON_ONCE((oldval & DYNTICK_TASK_NEST_MASK) == 0);
- 	if ((oldval & DYNTICK_TASK_NEST_MASK) == DYNTICK_TASK_NEST_VALUE)
-@@ -428,7 +428,7 @@ void rcu_idle_enter(void)
- 
- 	local_irq_save(flags);
- 	rcu_eqs_enter(false);
--	rcu_sysidle_enter(&__get_cpu_var(rcu_dynticks), 0);
-+	rcu_sysidle_enter(this_cpu_ptr(&rcu_dynticks), 0);
- 	local_irq_restore(flags);
- }
- EXPORT_SYMBOL_GPL(rcu_idle_enter);
-@@ -471,7 +471,7 @@ void rcu_irq_exit(void)
- 	struct rcu_dynticks *rdtp;
- 
- 	local_irq_save(flags);
--	rdtp = &__get_cpu_var(rcu_dynticks);
-+	rdtp = this_cpu_ptr(&rcu_dynticks);
- 	oldval = rdtp->dynticks_nesting;
- 	rdtp->dynticks_nesting--;
- 	WARN_ON_ONCE(rdtp->dynticks_nesting < 0);
-@@ -521,7 +521,7 @@ static void rcu_eqs_exit(bool user)
- 	struct rcu_dynticks *rdtp;
- 	long long oldval;
- 
--	rdtp = &__get_cpu_var(rcu_dynticks);
-+	rdtp = this_cpu_ptr(&rcu_dynticks);
- 	oldval = rdtp->dynticks_nesting;
- 	WARN_ON_ONCE(oldval < 0);
- 	if (oldval & DYNTICK_TASK_NEST_MASK)
-@@ -548,7 +548,7 @@ void rcu_idle_exit(void)
- 
- 	local_irq_save(flags);
- 	rcu_eqs_exit(false);
--	rcu_sysidle_exit(&__get_cpu_var(rcu_dynticks), 0);
-+	rcu_sysidle_exit(this_cpu_ptr(&rcu_dynticks), 0);
- 	local_irq_restore(flags);
- }
- EXPORT_SYMBOL_GPL(rcu_idle_exit);
-@@ -592,7 +592,7 @@ void rcu_irq_enter(void)
- 	long long oldval;
- 
- 	local_irq_save(flags);
--	rdtp = &__get_cpu_var(rcu_dynticks);
-+	rdtp = this_cpu_ptr(&rcu_dynticks);
- 	oldval = rdtp->dynticks_nesting;
- 	rdtp->dynticks_nesting++;
- 	WARN_ON_ONCE(rdtp->dynticks_nesting == 0);
-@@ -613,7 +613,7 @@ void rcu_irq_enter(void)
-  */
- void rcu_nmi_enter(void)
- {
--	struct rcu_dynticks *rdtp = &__get_cpu_var(rcu_dynticks);
-+	struct rcu_dynticks *rdtp = this_cpu_ptr(&rcu_dynticks);
- 
- 	if (rdtp->dynticks_nmi_nesting == 0 &&
- 	    (atomic_read(&rdtp->dynticks) & 0x1))
-@@ -635,7 +635,7 @@ void rcu_nmi_enter(void)
-  */
- void rcu_nmi_exit(void)
- {
--	struct rcu_dynticks *rdtp = &__get_cpu_var(rcu_dynticks);
-+	struct rcu_dynticks *rdtp = this_cpu_ptr(&rcu_dynticks);
- 
- 	if (rdtp->dynticks_nmi_nesting == 0 ||
- 	    --rdtp->dynticks_nmi_nesting != 0)
-@@ -658,7 +658,7 @@ int rcu_is_cpu_idle(void)
- 	int ret;
- 
- 	preempt_disable();
--	ret = (atomic_read(&__get_cpu_var(rcu_dynticks).dynticks) & 0x1) == 0;
-+	ret = (atomic_read(this_cpu_ptr(&rcu_dynticks).dynticks) & 0x1) == 0;
- 	preempt_enable();
- 	return ret;
- }
-@@ -696,7 +696,7 @@ bool rcu_lockdep_current_cpu_online(void)
- 	if (in_nmi())
- 		return 1;
- 	preempt_disable();
--	rdp = &__get_cpu_var(rcu_sched_data);
-+	rdp = this_cpu_ptr(&rcu_sched_data);
- 	rnp = rdp->mynode;
- 	ret = (rdp->grpmask & rnp->qsmaskinit) ||
- 	      !rcu_scheduler_fully_active;
-@@ -716,7 +716,7 @@ EXPORT_SYMBOL_GPL(rcu_lockdep_current_cpu_online);
-  */
- static int rcu_is_cpu_rrupt_from_idle(void)
- {
--	return __get_cpu_var(rcu_dynticks).dynticks_nesting <= 1;
-+	return __this_cpu_read(rcu_dynticks.dynticks_nesting) <= 1;
- }
- 
- /*
-diff --git a/kernel/rcutree_plugin.h b/kernel/rcutree_plugin.h
-index 7661875..e90b9c8 100644
---- a/kernel/rcutree_plugin.h
-+++ b/kernel/rcutree_plugin.h
-@@ -660,7 +660,7 @@ static void rcu_preempt_check_callbacks(int cpu)
- 
- static void rcu_preempt_do_callbacks(void)
- {
--	rcu_do_batch(&rcu_preempt_state, &__get_cpu_var(rcu_preempt_data));
-+	rcu_do_batch(&rcu_preempt_state, this_cpu_ptr(&rcu_preempt_data));
- }
- 
- #endif /* #ifdef CONFIG_RCU_BOOST */
-@@ -1332,7 +1332,7 @@ static void invoke_rcu_callbacks_kthread(void)
-  */
- static bool rcu_is_callbacks_kthread(void)
- {
--	return __get_cpu_var(rcu_cpu_kthread_task) == current;
-+	return __this_cpu_read(rcu_cpu_kthread_task) == current;
- }
- 
- #define RCU_BOOST_DELAY_JIFFIES DIV_ROUND_UP(CONFIG_RCU_BOOST_DELAY * HZ, 1000)
-@@ -1382,8 +1382,8 @@ static int rcu_spawn_one_boost_kthread(struct rcu_state *rsp,
- 
- static void rcu_kthread_do_work(void)
- {
--	rcu_do_batch(&rcu_sched_state, &__get_cpu_var(rcu_sched_data));
--	rcu_do_batch(&rcu_bh_state, &__get_cpu_var(rcu_bh_data));
-+	rcu_do_batch(&rcu_sched_state, this_cpu_ptr(&rcu_sched_data));
-+	rcu_do_batch(&rcu_bh_state, this_cpu_ptr(&rcu_bh_data));
- 	rcu_preempt_do_callbacks();
- }
- 
-@@ -1402,7 +1402,7 @@ static void rcu_cpu_kthread_park(unsigned int cpu)
- 
- static int rcu_cpu_kthread_should_run(unsigned int cpu)
- {
--	return __get_cpu_var(rcu_cpu_has_work);
-+	return __this_cpu_read(rcu_cpu_has_work);
- }
- 
- /*
-@@ -1412,8 +1412,8 @@ static int rcu_cpu_kthread_should_run(unsigned int cpu)
-  */
- static void rcu_cpu_kthread(unsigned int cpu)
- {
--	unsigned int *statusp = &__get_cpu_var(rcu_cpu_kthread_status);
--	char work, *workp = &__get_cpu_var(rcu_cpu_has_work);
-+	unsigned int *statusp = this_cpu_ptr(&rcu_cpu_kthread_status);
-+	char work, *workp = this_cpu_ptr(&rcu_cpu_has_work);
- 	int spincnt;
- 
- 	for (spincnt = 0; spincnt < 10; spincnt++) {
-@@ -1638,7 +1638,7 @@ static bool rcu_try_advance_all_cbs(void)
- {
- 	bool cbs_ready = false;
- 	struct rcu_data *rdp;
--	struct rcu_dynticks *rdtp = &__get_cpu_var(rcu_dynticks);
-+	struct rcu_dynticks *rdtp = this_cpu_ptr(&rcu_dynticks);
- 	struct rcu_node *rnp;
- 	struct rcu_state *rsp;
- 
+> Cc: linux-kbuild@vger.kernel.org
+> Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
+> Cc: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+> Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
+> ---
+>  arch/avr32/include/asm/Kbuild              |   27 +++++++++++++++++++++++++++
+>  arch/avr32/include/asm/bitsperlong.h       |    1 -
+>  arch/avr32/include/asm/cputime.h           |    6 ------
+>  arch/avr32/include/asm/delay.h             |    1 -
+>  arch/avr32/include/asm/device.h            |    7 -------
+>  arch/avr32/include/asm/div64.h             |    6 ------
+>  arch/avr32/include/asm/emergency-restart.h |    6 ------
+>  arch/avr32/include/asm/errno.h             |    6 ------
+>  arch/avr32/include/asm/fcntl.h             |    6 ------
+>  arch/avr32/include/asm/futex.h             |    6 ------
+>  arch/avr32/include/asm/ioctl.h             |    6 ------
+>  arch/avr32/include/asm/ioctls.h            |    6 ------
+>  arch/avr32/include/asm/irq_regs.h          |    1 -
+>  arch/avr32/include/asm/kvm_para.h          |    1 -
+>  arch/avr32/include/asm/local.h             |    6 ------
+>  arch/avr32/include/asm/local64.h           |    1 -
+>  arch/avr32/include/asm/mman.h              |    1 -
+>  arch/avr32/include/asm/percpu.h            |    6 ------
+>  arch/avr32/include/asm/poll.h              |    1 -
+>  arch/avr32/include/asm/resource.h          |    6 ------
+>  arch/avr32/include/asm/scatterlist.h       |    6 ------
+>  arch/avr32/include/asm/sections.h          |    6 ------
+>  arch/avr32/include/asm/siginfo.h           |    6 ------
+>  arch/avr32/include/asm/statfs.h            |    6 ------
+>  arch/avr32/include/asm/topology.h          |    6 ------
+>  arch/avr32/include/asm/xor.h               |    6 ------
+>  arch/cris/include/asm/ipcbuf.h             |    1 -
+>  27 files changed, 27 insertions(+), 117 deletions(-)
+>  delete mode 100644 arch/avr32/include/asm/bitsperlong.h
+>  delete mode 100644 arch/avr32/include/asm/cputime.h
+>  delete mode 100644 arch/avr32/include/asm/delay.h
+>  delete mode 100644 arch/avr32/include/asm/device.h
+>  delete mode 100644 arch/avr32/include/asm/div64.h
+>  delete mode 100644 arch/avr32/include/asm/emergency-restart.h
+>  delete mode 100644 arch/avr32/include/asm/errno.h
+>  delete mode 100644 arch/avr32/include/asm/fcntl.h
+>  delete mode 100644 arch/avr32/include/asm/futex.h
+>  delete mode 100644 arch/avr32/include/asm/ioctl.h
+>  delete mode 100644 arch/avr32/include/asm/ioctls.h
+>  delete mode 100644 arch/avr32/include/asm/irq_regs.h
+>  delete mode 100644 arch/avr32/include/asm/kvm_para.h
+>  delete mode 100644 arch/avr32/include/asm/local.h
+>  delete mode 100644 arch/avr32/include/asm/local64.h
+>  delete mode 100644 arch/avr32/include/asm/mman.h
+>  delete mode 100644 arch/avr32/include/asm/percpu.h
+>  delete mode 100644 arch/avr32/include/asm/poll.h
+>  delete mode 100644 arch/avr32/include/asm/resource.h
+>  delete mode 100644 arch/avr32/include/asm/scatterlist.h
+>  delete mode 100644 arch/avr32/include/asm/sections.h
+>  delete mode 100644 arch/avr32/include/asm/siginfo.h
+>  delete mode 100644 arch/avr32/include/asm/statfs.h
+>  delete mode 100644 arch/avr32/include/asm/topology.h
+>  delete mode 100644 arch/avr32/include/asm/xor.h
+>  delete mode 100644 arch/cris/include/asm/ipcbuf.h
+> 
+> diff --git a/arch/avr32/include/asm/Kbuild b/arch/avr32/include/asm/Kbuild
+> index be0433e..40573ee 100644
+> --- a/arch/avr32/include/asm/Kbuild
+> +++ b/arch/avr32/include/asm/Kbuild
+> @@ -4,3 +4,30 @@ generic-y	+= clkdev.h
+>  generic-y	+= exec.h
+>  
+>  header-y	+= cachectl.h
+> +
+> +generic-y	+= bitsperlong.h
+> +generic-y	+= cputime.h
+> +generic-y	+= delay.h
+> +generic-y	+= device.h
+> +generic-y	+= div64.h
+> +generic-y	+= emergency-restart.h
+> +generic-y	+= errno.h
+> +generic-y	+= fcntl.h
+> +generic-y	+= futex.h
+> +generic-y	+= ioctl.h
+> +generic-y	+= ioctls.h
+> +generic-y	+= ipcbuf.h
+> +generic-y	+= irq_regs.h
+> +generic-y	+= kvm_para.h
+> +generic-y	+= local64.h
+> +generic-y	+= local.h
+> +generic-y	+= mman.h
+> +generic-y	+= percpu.h
+> +generic-y	+= poll.h
+> +generic-y	+= resource.h
+> +generic-y	+= scatterlist.h
+> +generic-y	+= sections.h
+> +generic-y	+= siginfo.h
+> +generic-y	+= statfs.h
+> +generic-y	+= topology.h
+> +generic-y	+= xor.h
+> diff --git a/arch/avr32/include/asm/bitsperlong.h b/arch/avr32/include/asm/bitsperlong.h
+> deleted file mode 100644
+> index 6dc0bb0..0000000
+> --- a/arch/avr32/include/asm/bitsperlong.h
+> +++ /dev/null
+> @@ -1 +0,0 @@
+> -#include <asm-generic/bitsperlong.h>
+> diff --git a/arch/avr32/include/asm/cputime.h b/arch/avr32/include/asm/cputime.h
+> deleted file mode 100644
+> index e87e0f8..0000000
+> --- a/arch/avr32/include/asm/cputime.h
+> +++ /dev/null
+> @@ -1,6 +0,0 @@
+> -#ifndef __ASM_AVR32_CPUTIME_H
+> -#define __ASM_AVR32_CPUTIME_H
+> -
+> -#include <asm-generic/cputime.h>
+> -
+> -#endif /* __ASM_AVR32_CPUTIME_H */
+> diff --git a/arch/avr32/include/asm/delay.h b/arch/avr32/include/asm/delay.h
+> deleted file mode 100644
+> index 9670e12..0000000
+> --- a/arch/avr32/include/asm/delay.h
+> +++ /dev/null
+> @@ -1 +0,0 @@
+> -#include <asm-generic/delay.h>
+> diff --git a/arch/avr32/include/asm/device.h b/arch/avr32/include/asm/device.h
+> deleted file mode 100644
+> index d8f9872..0000000
+> --- a/arch/avr32/include/asm/device.h
+> +++ /dev/null
+> @@ -1,7 +0,0 @@
+> -/*
+> - * Arch specific extensions to struct device
+> - *
+> - * This file is released under the GPLv2
+> - */
+> -#include <asm-generic/device.h>
+> -
+> diff --git a/arch/avr32/include/asm/div64.h b/arch/avr32/include/asm/div64.h
+> deleted file mode 100644
+> index d7ddd4f..0000000
+> --- a/arch/avr32/include/asm/div64.h
+> +++ /dev/null
+> @@ -1,6 +0,0 @@
+> -#ifndef __ASM_AVR32_DIV64_H
+> -#define __ASM_AVR32_DIV64_H
+> -
+> -#include <asm-generic/div64.h>
+> -
+> -#endif /* __ASM_AVR32_DIV64_H */
+> diff --git a/arch/avr32/include/asm/emergency-restart.h b/arch/avr32/include/asm/emergency-restart.h
+> deleted file mode 100644
+> index 3e7e014..0000000
+> --- a/arch/avr32/include/asm/emergency-restart.h
+> +++ /dev/null
+> @@ -1,6 +0,0 @@
+> -#ifndef __ASM_AVR32_EMERGENCY_RESTART_H
+> -#define __ASM_AVR32_EMERGENCY_RESTART_H
+> -
+> -#include <asm-generic/emergency-restart.h>
+> -
+> -#endif /* __ASM_AVR32_EMERGENCY_RESTART_H */
+> diff --git a/arch/avr32/include/asm/errno.h b/arch/avr32/include/asm/errno.h
+> deleted file mode 100644
+> index 558a724..0000000
+> --- a/arch/avr32/include/asm/errno.h
+> +++ /dev/null
+> @@ -1,6 +0,0 @@
+> -#ifndef __ASM_AVR32_ERRNO_H
+> -#define __ASM_AVR32_ERRNO_H
+> -
+> -#include <asm-generic/errno.h>
+> -
+> -#endif /* __ASM_AVR32_ERRNO_H */
+> diff --git a/arch/avr32/include/asm/fcntl.h b/arch/avr32/include/asm/fcntl.h
+> deleted file mode 100644
+> index 14c0c44..0000000
+> --- a/arch/avr32/include/asm/fcntl.h
+> +++ /dev/null
+> @@ -1,6 +0,0 @@
+> -#ifndef __ASM_AVR32_FCNTL_H
+> -#define __ASM_AVR32_FCNTL_H
+> -
+> -#include <asm-generic/fcntl.h>
+> -
+> -#endif /* __ASM_AVR32_FCNTL_H */
+> diff --git a/arch/avr32/include/asm/futex.h b/arch/avr32/include/asm/futex.h
+> deleted file mode 100644
+> index 10419f1..0000000
+> --- a/arch/avr32/include/asm/futex.h
+> +++ /dev/null
+> @@ -1,6 +0,0 @@
+> -#ifndef __ASM_AVR32_FUTEX_H
+> -#define __ASM_AVR32_FUTEX_H
+> -
+> -#include <asm-generic/futex.h>
+> -
+> -#endif /* __ASM_AVR32_FUTEX_H */
+> diff --git a/arch/avr32/include/asm/ioctl.h b/arch/avr32/include/asm/ioctl.h
+> deleted file mode 100644
+> index c8472c1..0000000
+> --- a/arch/avr32/include/asm/ioctl.h
+> +++ /dev/null
+> @@ -1,6 +0,0 @@
+> -#ifndef __ASM_AVR32_IOCTL_H
+> -#define __ASM_AVR32_IOCTL_H
+> -
+> -#include <asm-generic/ioctl.h>
+> -
+> -#endif /* __ASM_AVR32_IOCTL_H */
+> diff --git a/arch/avr32/include/asm/ioctls.h b/arch/avr32/include/asm/ioctls.h
+> deleted file mode 100644
+> index 909cf66..0000000
+> --- a/arch/avr32/include/asm/ioctls.h
+> +++ /dev/null
+> @@ -1,6 +0,0 @@
+> -#ifndef __ASM_AVR32_IOCTLS_H
+> -#define __ASM_AVR32_IOCTLS_H
+> -
+> -#include <asm-generic/ioctls.h>
+> -
+> -#endif /* __ASM_AVR32_IOCTLS_H */
+> diff --git a/arch/avr32/include/asm/irq_regs.h b/arch/avr32/include/asm/irq_regs.h
+> deleted file mode 100644
+> index 3dd9c0b..0000000
+> --- a/arch/avr32/include/asm/irq_regs.h
+> +++ /dev/null
+> @@ -1 +0,0 @@
+> -#include <asm-generic/irq_regs.h>
+> diff --git a/arch/avr32/include/asm/kvm_para.h b/arch/avr32/include/asm/kvm_para.h
+> deleted file mode 100644
+> index 14fab8f..0000000
+> --- a/arch/avr32/include/asm/kvm_para.h
+> +++ /dev/null
+> @@ -1 +0,0 @@
+> -#include <asm-generic/kvm_para.h>
+> diff --git a/arch/avr32/include/asm/local.h b/arch/avr32/include/asm/local.h
+> deleted file mode 100644
+> index 1c16196..0000000
+> --- a/arch/avr32/include/asm/local.h
+> +++ /dev/null
+> @@ -1,6 +0,0 @@
+> -#ifndef __ASM_AVR32_LOCAL_H
+> -#define __ASM_AVR32_LOCAL_H
+> -
+> -#include <asm-generic/local.h>
+> -
+> -#endif /* __ASM_AVR32_LOCAL_H */
+> diff --git a/arch/avr32/include/asm/local64.h b/arch/avr32/include/asm/local64.h
+> deleted file mode 100644
+> index 36c93b5..0000000
+> --- a/arch/avr32/include/asm/local64.h
+> +++ /dev/null
+> @@ -1 +0,0 @@
+> -#include <asm-generic/local64.h>
+> diff --git a/arch/avr32/include/asm/mman.h b/arch/avr32/include/asm/mman.h
+> deleted file mode 100644
+> index 8eebf89..0000000
+> --- a/arch/avr32/include/asm/mman.h
+> +++ /dev/null
+> @@ -1 +0,0 @@
+> -#include <asm-generic/mman.h>
+> diff --git a/arch/avr32/include/asm/percpu.h b/arch/avr32/include/asm/percpu.h
+> deleted file mode 100644
+> index 69227b4..0000000
+> --- a/arch/avr32/include/asm/percpu.h
+> +++ /dev/null
+> @@ -1,6 +0,0 @@
+> -#ifndef __ASM_AVR32_PERCPU_H
+> -#define __ASM_AVR32_PERCPU_H
+> -
+> -#include <asm-generic/percpu.h>
+> -
+> -#endif /* __ASM_AVR32_PERCPU_H */
+> diff --git a/arch/avr32/include/asm/poll.h b/arch/avr32/include/asm/poll.h
+> deleted file mode 100644
+> index c98509d..0000000
+> --- a/arch/avr32/include/asm/poll.h
+> +++ /dev/null
+> @@ -1 +0,0 @@
+> -#include <asm-generic/poll.h>
+> diff --git a/arch/avr32/include/asm/resource.h b/arch/avr32/include/asm/resource.h
+> deleted file mode 100644
+> index c6dd101..0000000
+> --- a/arch/avr32/include/asm/resource.h
+> +++ /dev/null
+> @@ -1,6 +0,0 @@
+> -#ifndef __ASM_AVR32_RESOURCE_H
+> -#define __ASM_AVR32_RESOURCE_H
+> -
+> -#include <asm-generic/resource.h>
+> -
+> -#endif /* __ASM_AVR32_RESOURCE_H */
+> diff --git a/arch/avr32/include/asm/scatterlist.h b/arch/avr32/include/asm/scatterlist.h
+> deleted file mode 100644
+> index a5902d9..0000000
+> --- a/arch/avr32/include/asm/scatterlist.h
+> +++ /dev/null
+> @@ -1,6 +0,0 @@
+> -#ifndef __ASM_AVR32_SCATTERLIST_H
+> -#define __ASM_AVR32_SCATTERLIST_H
+> -
+> -#include <asm-generic/scatterlist.h>
+> -
+> -#endif /* __ASM_AVR32_SCATTERLIST_H */
+> diff --git a/arch/avr32/include/asm/sections.h b/arch/avr32/include/asm/sections.h
+> deleted file mode 100644
+> index aa14252..0000000
+> --- a/arch/avr32/include/asm/sections.h
+> +++ /dev/null
+> @@ -1,6 +0,0 @@
+> -#ifndef __ASM_AVR32_SECTIONS_H
+> -#define __ASM_AVR32_SECTIONS_H
+> -
+> -#include <asm-generic/sections.h>
+> -
+> -#endif /* __ASM_AVR32_SECTIONS_H */
+> diff --git a/arch/avr32/include/asm/siginfo.h b/arch/avr32/include/asm/siginfo.h
+> deleted file mode 100644
+> index 5ee93f4..0000000
+> --- a/arch/avr32/include/asm/siginfo.h
+> +++ /dev/null
+> @@ -1,6 +0,0 @@
+> -#ifndef _AVR32_SIGINFO_H
+> -#define _AVR32_SIGINFO_H
+> -
+> -#include <asm-generic/siginfo.h>
+> -
+> -#endif
+> diff --git a/arch/avr32/include/asm/statfs.h b/arch/avr32/include/asm/statfs.h
+> deleted file mode 100644
+> index 2961bd1..0000000
+> --- a/arch/avr32/include/asm/statfs.h
+> +++ /dev/null
+> @@ -1,6 +0,0 @@
+> -#ifndef __ASM_AVR32_STATFS_H
+> -#define __ASM_AVR32_STATFS_H
+> -
+> -#include <asm-generic/statfs.h>
+> -
+> -#endif /* __ASM_AVR32_STATFS_H */
+> diff --git a/arch/avr32/include/asm/topology.h b/arch/avr32/include/asm/topology.h
+> deleted file mode 100644
+> index 5b766cb..0000000
+> --- a/arch/avr32/include/asm/topology.h
+> +++ /dev/null
+> @@ -1,6 +0,0 @@
+> -#ifndef __ASM_AVR32_TOPOLOGY_H
+> -#define __ASM_AVR32_TOPOLOGY_H
+> -
+> -#include <asm-generic/topology.h>
+> -
+> -#endif /* __ASM_AVR32_TOPOLOGY_H */
+> diff --git a/arch/avr32/include/asm/xor.h b/arch/avr32/include/asm/xor.h
+> deleted file mode 100644
+> index 99c87aa..0000000
+> --- a/arch/avr32/include/asm/xor.h
+> +++ /dev/null
+> @@ -1,6 +0,0 @@
+> -#ifndef _ASM_XOR_H
+> -#define _ASM_XOR_H
+> -
+> -#include <asm-generic/xor.h>
+> -
+> -#endif
+> diff --git a/arch/cris/include/asm/ipcbuf.h b/arch/cris/include/asm/ipcbuf.h
+> deleted file mode 100644
+> index 84c7e51..0000000
+> --- a/arch/cris/include/asm/ipcbuf.h
+> +++ /dev/null
+> @@ -1 +0,0 @@
+> -#include <asm-generic/ipcbuf.h>
+-- 
+mvh
+Hans-Christian Egtvedt
