@@ -1,65 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us02smtp2.synopsys.com ([198.182.60.77]:38819 "EHLO
-	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753938Ab3IBItI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Sep 2013 04:49:08 -0400
-Message-ID: <522450ED.1020704@synopsys.com>
-Date: Mon, 2 Sep 2013 14:18:45 +0530
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Received: from multi.imgtec.com ([194.200.65.239]:34581 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1758573Ab3IBI4D (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 2 Sep 2013 04:56:03 -0400
+Message-ID: <5224529D.10009@imgtec.com>
+Date: Mon, 2 Sep 2013 09:55:57 +0100
+From: James Hogan <james.hogan@imgtec.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH] Kconfig.debug: Add FRAME_POINTER anti-dependency for
- ARC
-References: <1377592285-21148-1-git-send-email-vgupta@synopsys.com> <521F662F.4050003@intel.com> <52204E4D.3030602@synopsys.com> <5220B83A.6070709@intel.com>
-In-Reply-To: <5220B83A.6070709@intel.com>
+Subject: Re: [PATCH 13/25] mips: Use Kbuild infrastructure to handle asm-generic
+ headers
+References: <20121013022632.024527228@goodmis.org> <20121013022954.289710602@goodmis.org>
+In-Reply-To: <20121013022954.289710602@goodmis.org>
 Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, Dave Hansen <dave.hansen@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, "Paul E. McKenney" <paul.mckenney@linaro.org>, Catalin Marinas <catalin.marinas@arm.com>, Michel Lespinasse <walken@google.com>, "David S. Miller" <davem@davemloft.net>, Paul Mundt <lethal@linux-sh.org>, Arnd Bergmann <arnd@arndb.de>, Chris Metcalf <cmetcalf@tilera.com>
-Message-ID: <20130902084845.VWwo12dcGI7RJyLfmtwY_IA61liCWPwGbaQrHM7djW4@z>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Ralf Baechle <ralf@linux-mips.org>
+Message-ID: <20130902085557.abBOmu0Sh3aahR-8H_9MGDWV1tWUGheF1nlEPWU7Qx0@z>
 
-On 08/30/2013 08:50 PM, Dave Hansen wrote:
-> On 08/30/2013 12:48 AM, Vineet Gupta wrote:
->> If we had ARCH_FRAME_POINTER_UNAVAILABLE (def_bool n), we could potentially remove
->> ARCH_FRAME_POINTER too:
-
->> The issue is some (sparc, c6x...) which are neither in #1 or #2, and not present
->> in anti-dependency list either. e.g. With sparc64_defconfig FP is not present, but
->> if I enable LATENCY_TOP, FP is enabled. For such cases, what do we make default ?
+On 13/10/12 03:26, Steven Rostedt wrote:
+> From: Steven Rostedt <srostedt@redhat.com>
 > 
-> You can list multiple defaults if you want, or have them depend on other
-> config variables:
+> Use Kbuild infrastructure to handle the asm-generic headers
+> and remove the wrapper headers that call them.
 > 
-> config FOO
-> 	default BAR
-> 
-> or
-> 
-> config FOO
-> 	default y if BAR
-> 	default n if BAZ
-> 
-> ARCH_FRAME_POINTER_UNAVAILABLE doesn't make much sense if
-> FRAME_POINTER=n, right?  You can have it just plain depend on
-> FRAME_POINTER, I think.
+> This only affects headers that do nothing but include the generic
+> equivalent. It does not touch any header that does a little more.
 
+Hi Steven,
 
-I think I was not very clear with the problem description.
+Please see "MIPS: use generic-y where possible" already queued in -next.
+cad3b624853b6f34f19693b9812df0d473a6fd40
+https://patchwork.linux-mips.org/patch/5581/
 
-With a defbool 'n', FP will be by default enabled and arches not interested in FP
-will select ARCH_FRAME_POINTER_UNAVAILABLE. e.g. SPARC, so far so good.
+Also note, as I said in the commit message:
+>     We can't do the same for uapi/asm/kvm_para.h because it's presence is
+>     explicitly checked in include/uapi/linux/Kbuild to decide whether to add
+>     kvm_para.h to header-y.
 
-That however means that LATENCYTOP enabled in sparc64_defconfig will now build
-with !FP, whereas as of today it enables FP (and SPARC code must be OK with FP
-enabling in this config). So, we are changing semantics here, which might still be
-OK, but I'll only trust arch maintainers' NOD. So the change is not just
-mechanical from that perspective.
+so I guess that may need fixing first before half of these patches can
+be accepted.
 
-My point is, before I cook the patch-set we must be in agreement to this
-semantical change.
-
--Vineet
-
-
+Cheers
+James
 
