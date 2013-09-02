@@ -1,44 +1,32 @@
-From: "azurIt" <azurit@pobox.sk>
-Subject: =?utf-8?q?Re=3A_=5Bpatch_0=2F7=5D_improve_memcg_oom_killer_robustness_v2?=
-Date: Mon, 02 Sep 2013 12:38:02 +0200
-Message-ID: <20130902123802.5B8E8CB1@pobox.sk>
-References: <1375549200-19110-1-git-send-email-hannes@cmpxchg.org>, <20130803170831.GB23319@cmpxchg.org> <20130830215852.3E5D3D66@pobox.sk>
+From: Mutoni Williams <mutoni_w@hotmail.com>
+Subject: Hallo..........
+Date: Mon, 2 Sep 2013 08:33:05 -0700 (PDT)
+Message-ID: <1378135985.44511.YahooMailBasic__40180.557446047$1378136404$gmane$org@web163905.mail.gq1.yahoo.com>
+Reply-To: mutoniwilliam@yahoo.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20130830215852.3E5D3D66@pobox.sk>
-Sender: owner-linux-mm@kvack.org
-To: azurIt <azurit@pobox.sk>, =?utf-8?q?Johannes_Weiner?= <hannes@cmpxchg.org>
-Cc: =?utf-8?q?Andrew_Morton?= <akpm@linux-foundation.org>, =?utf-8?q?Michal_Hocko?= <mhocko@suse.cz>, =?utf-8?q?David_Rientjes?= <rientjes@google.com>, =?utf-8?q?KAMEZAWA_Hiroyuki?= <kamezawa.hiroyu@jp.fujitsu.com>, =?utf-8?q?KOSAKI_Motohiro?= <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
-
->>Hi azur,
->>
->>here is the x86-only rollup of the series for 3.2.
->>
->>Thanks!
->>Johannes
->>---
->
->
->Johannes,
->
->unfortunately, one problem arises: I have (again) cgroup which cannot be=
- deleted :( it's a user who had very high memory usage and was reaching h=
-is limit very often. Do you need any info which i can gather now?
->
->azur
->
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from nm12-vm2.bullet.mail.gq1.yahoo.com ([98.136.218.189]:21014 "EHLO
+	nm12-vm2.bullet.mail.gq1.yahoo.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1758760Ab3IBPjx convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 2 Sep 2013 11:39:53 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 
 
-Now i can definitely confirm that problem is NOT fixed :( it happened aga=
-in but i don't have any data because i already disabled all debug output.
-
-azur
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=3Dmailto:"dont@kvack.org"> email@kvack.org </a>
+Hello,How are you,I hope you're well,my name is Mutoni,I'm medium heigh=
+t and fair in complexion,i love,caring and I decided to contact you.I r=
+eally want to have a good relationship with you.Next I have a special s=
+omething I want to discuss with you,and tell you more about my self.Hop=
+e hear from you soon.I know age will not be a bearier to our relationsh=
+ip,I will give my best. Yours,Miss.Mutoni.
+=20
+Hallo,Wie geht es dir,ich hoffe,du bist gut,mein Name ist Mutoni, ich m=
+ittlerer H=F6he und Messe in Teint bin,ich liebe,f=FCrsorgliche und ich=
+ beschlossen,you.I kontaktieren wirklich wollen,eine gute Beziehung mit=
+ Ihnen haben.Weiter habe ich eine besondere etwas m=F6chte ich mit Ihne=
+n zu besprechen haben,und erfahren Sie mehr =FCber meine self.Hope von =
+Ihnen zu h=F6ren soon.i wissen Alter wird kein bearier,unsere Beziehung=
+ zu sein, werde ich mein Bestes geben.Yours,Miss.Mutoni.
