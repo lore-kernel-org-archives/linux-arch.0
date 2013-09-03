@@ -1,7 +1,7 @@
 From: Christoph Lameter <cl@linux.com>
-Subject: [gcv v4 01/38] x86: Use this_cpu_inc/dec for debug registers
-Date: Tue, 3 Sep 2013 19:00:19 +0000
-Message-ID: <00000140e532655f-5b528d65-4709-41c7-8506-591afa94dbbd-000000@email.amazonses.com>
+Subject: [gcv v4 02/38] percpu: Make __verify_pcu_ptr handle per cpu pointers to arrays
+Date: Tue, 3 Sep 2013 19:00:20 +0000
+Message-ID: <00000140e53266ac-e4579140-3a1e-47a1-a338-e66fcacfdeb9-000000@email.amazonses.com>
 References: <20130903190014.794420260@linux.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
@@ -9,42 +9,28 @@ To: Tejun Heo <tj@kernel.org>
 Cc: akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-I think this patch already exists in one form or another in some x86 tree.
+__verify_pcpu_ptr() will cause a compilation failure if the type of the
+pointer is a pointer to a fixed array of objects. Adding zero to the
+pointer converts the type of pointer to that pointing to a single
+object of the array.
 
 Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Index: linux/arch/x86/include/asm/debugreg.h
+Index: linux/include/linux/percpu-defs.h
 ===================================================================
---- linux.orig/arch/x86/include/asm/debugreg.h	2013-08-06 13:52:23.740092873 -0500
-+++ linux/arch/x86/include/asm/debugreg.h	2013-08-06 13:52:23.740092873 -0500
-@@ -97,11 +97,11 @@ extern void hw_breakpoint_restore(void);
- DECLARE_PER_CPU(int, debug_stack_usage);
- static inline void debug_stack_usage_inc(void)
- {
--	__get_cpu_var(debug_stack_usage)++;
-+	__this_cpu_inc(debug_stack_usage);
- }
- static inline void debug_stack_usage_dec(void)
- {
--	__get_cpu_var(debug_stack_usage)--;
-+	__this_cpu_dec(debug_stack_usage);
- }
- int is_debug_stack(unsigned long addr);
- void debug_stack_set_zero(void);
-Index: linux/arch/x86/kernel/cpu/common.c
-===================================================================
---- linux.orig/arch/x86/kernel/cpu/common.c	2013-07-19 09:06:36.850047837 -0500
-+++ linux/arch/x86/kernel/cpu/common.c	2013-08-06 13:54:36.426384889 -0500
-@@ -1144,9 +1144,9 @@ DEFINE_PER_CPU(int, debug_stack_usage);
+--- linux.orig/include/linux/percpu-defs.h	2013-08-22 13:39:04.000000000 -0500
++++ linux/include/linux/percpu-defs.h	2013-08-22 13:41:15.333140537 -0500
+@@ -22,9 +22,12 @@
+  * Macro which verifies @ptr is a percpu pointer without evaluating
+  * @ptr.  This is to be used in percpu accessors to verify that the
+  * input parameter is a percpu pointer.
++ *
++ * + 0 is required in order to convert the pointer type from a
++ * potential array type to a pointer to a single item of the array.
+  */
+ #define __verify_pcpu_ptr(ptr)	do {					\
+-	const void __percpu *__vpp_verify = (typeof(ptr))NULL;		\
++	const void __percpu *__vpp_verify = (typeof((ptr) + 0))NULL;	\
+ 	(void)__vpp_verify;						\
+ } while (0)
  
- int is_debug_stack(unsigned long addr)
- {
--	return __get_cpu_var(debug_stack_usage) ||
--		(addr <= __get_cpu_var(debug_stack_addr) &&
--		 addr > (__get_cpu_var(debug_stack_addr) - DEBUG_STKSZ));
-+	return __this_cpu_read(debug_stack_usage) ||
-+		(addr <= __this_cpu_read(debug_stack_addr) &&
-+		 addr > (__this_cpu_read(debug_stack_addr) - DEBUG_STKSZ));
- }
- 
- DEFINE_PER_CPU(u32, debug_idt_ctr);
