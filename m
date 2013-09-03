@@ -1,17 +1,18 @@
 From: Christoph Lameter <cl@linux.com>
-Subject: [gcv v4 16/38] kernel misc: Replace __get_cpu_var uses
+Subject: [gcv v4 17/38] drivers/char: Replace __get_cpu_var uses
 Date: Tue, 3 Sep 2013 21:22:20 +0000
-Message-ID: <00000140e5b466e9-8fc50475-3e47-4ae2-a714-4b3e8e73e627-000000@email.amazonses.com>
+Message-ID: <00000140e5b466fe-ea203ef6-139a-46a1-8733-e9c52f4e6df9-000000@email.amazonses.com>
 References: <20130903190014.794420260@linux.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a9-78.smtp-out.amazonses.com ([54.240.9.78]:34692 "EHLO
-	a9-78.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1760803Ab3ICVWW (ORCPT
+Received: from a9-58.smtp-out.amazonses.com ([54.240.9.58]:41732 "EHLO
+	a9-58.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1759990Ab3ICVWW (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Sep 2013 17:22:22 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>
+Cc: akpm@linuxfoundation.org, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>
+
 
 __get_cpu_var() is used for multiple purposes in the kernel source. One of them is
 address calculation via the form &__get_cpu_var(x). This calculates the address for
@@ -110,75 +111,19 @@ Transformations done to __get_cpu_var()
 	this_cpu_inc(y)
 
 
+
 Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Index: linux/kernel/printk/printk.c
+Index: linux/drivers/char/random.c
 ===================================================================
---- linux.orig/kernel/printk/printk.c	2013-08-26 14:30:25.846490787 -0500
-+++ linux/kernel/printk/printk.c	2013-08-26 14:30:25.846490787 -0500
-@@ -2441,7 +2441,7 @@ static void wake_up_klogd_work_func(stru
- 	int pending = __this_cpu_xchg(printk_pending, 0);
- 
- 	if (pending & PRINTK_PENDING_SCHED) {
--		char *buf = __get_cpu_var(printk_sched_buf);
-+		char *buf = this_cpu_ptr(printk_sched_buf);
- 		printk(KERN_WARNING "[sched_delayed] %s", buf);
- 	}
- 
-@@ -2459,7 +2459,7 @@ void wake_up_klogd(void)
- 	preempt_disable();
- 	if (waitqueue_active(&log_wait)) {
- 		this_cpu_or(printk_pending, PRINTK_PENDING_WAKEUP);
--		irq_work_queue(&__get_cpu_var(wake_up_klogd_work));
-+		irq_work_queue(this_cpu_ptr(&wake_up_klogd_work));
- 	}
- 	preempt_enable();
- }
-@@ -2472,14 +2472,14 @@ int printk_sched(const char *fmt, ...)
- 	int r;
- 
- 	local_irq_save(flags);
--	buf = __get_cpu_var(printk_sched_buf);
-+	buf = this_cpu_ptr(printk_sched_buf);
- 
- 	va_start(args, fmt);
- 	r = vsnprintf(buf, PRINTK_BUF_SIZE, fmt, args);
- 	va_end(args);
- 
- 	__this_cpu_or(printk_pending, PRINTK_PENDING_SCHED);
--	irq_work_queue(&__get_cpu_var(wake_up_klogd_work));
-+	irq_work_queue(this_cpu_ptr(&wake_up_klogd_work));
- 	local_irq_restore(flags);
- 
- 	return r;
-Index: linux/kernel/smp.c
-===================================================================
---- linux.orig/kernel/smp.c	2013-08-26 14:30:25.846490787 -0500
-+++ linux/kernel/smp.c	2013-08-26 14:30:25.846490787 -0500
-@@ -172,7 +172,7 @@ void generic_exec_single(int cpu, struct
-  */
- void generic_smp_call_function_single_interrupt(void)
+--- linux.orig/drivers/char/random.c	2013-08-27 14:31:00.000000000 -0500
++++ linux/drivers/char/random.c	2013-08-27 14:31:34.275916299 -0500
+@@ -744,7 +744,7 @@ static DEFINE_PER_CPU(struct fast_pool,
+ void add_interrupt_randomness(int irq, int irq_flags)
  {
--	struct call_single_queue *q = &__get_cpu_var(call_single_queue);
-+	struct call_single_queue *q = this_cpu_ptr(&call_single_queue);
- 	LIST_HEAD(list);
- 
- 	/*
-@@ -252,7 +252,7 @@ int smp_call_function_single(int cpu, sm
- 			struct call_single_data *csd = &d;
- 
- 			if (!wait)
--				csd = &__get_cpu_var(csd_data);
-+				csd = this_cpu_ptr(&csd_data);
- 
- 			csd_lock(csd);
- 
-@@ -401,7 +401,7 @@ void smp_call_function_many(const struct
- 		return;
- 	}
- 
--	cfd = &__get_cpu_var(cfd_data);
-+	cfd = this_cpu_ptr(&cfd_data);
- 
- 	cpumask_and(cfd->cpumask, mask, cpu_online_mask);
- 	cpumask_clear_cpu(this_cpu, cfd->cpumask);
+ 	struct entropy_store	*r;
+-	struct fast_pool	*fast_pool = &__get_cpu_var(irq_randomness);
++	struct fast_pool	*fast_pool = this_cpu_ptr(&irq_randomness);
+ 	struct pt_regs		*regs = get_irq_regs();
+ 	unsigned long		now = jiffies;
+ 	__u32			input[4], cycles = get_cycles();
