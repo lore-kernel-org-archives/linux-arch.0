@@ -1,48 +1,24 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH -next] m68k/m68knommu: Implement __get_user_unaligned/__put_user_unaligned()
-Date: Tue,  3 Sep 2013 11:30:34 +0200
-Message-ID: <1378200634-24716-1-git-send-email-geert@linux-m68k.org>
+From: Christoph Lameter <cl@linux.com>
+Subject: Re: [guv v2 04/31] net: Replace __get_cpu_var uses
+Date: Tue, 3 Sep 2013 14:21:07 +0000
+Message-ID: <00000140e432c014-26be929a-a2f1-4064-8147-0efcb5dc3bec-000000@email.amazonses.com>
+References: <00000140bc5ef9df-d7f75909-a25e-4471-84b2-dfbec07117b0-000000@email.amazonses.com> <20130826204351.725357339@linux.com> <7435.1378157706@warthog.procyon.org.uk> <20130902.203355.117341085023152754.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-m68k-owner@vger.kernel.org>
-Sender: linux-m68k-owner@vger.kernel.org
-To: linux-m68k@lists.linux-m68k.org, linux-arch@vger.kernel.org
-Cc: linux-next@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from a9-74.smtp-out.amazonses.com ([54.240.9.74]:56624 "EHLO
+	a9-74.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753275Ab3ICOVJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Sep 2013 10:21:09 -0400
+In-Reply-To: <20130902.203355.117341085023152754.davem@davemloft.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Miller <davem@davemloft.net>
+Cc: dhowells@redhat.com, tj@kernel.org, akpm@linuxfoundation.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org, srostedt@redhat.com, linux-kernel@vger.kernel.org
 
-fs/btrfs/ioctl.c: In function =E2=80=98btrfs_ioctl_file_extent_same=E2=80=
-=99:
-fs/btrfs/ioctl.c:2802: error: implicit declaration of function =E2=80=98=
-__put_user_unaligned=E2=80=99
+On Mon, 2 Sep 2013, David Miller wrote:
 
-Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
----
-http://kisskb.ellerman.id.au/kisskb/buildresult/9455452/
+> It really will cache pre-computed __thread pointer calculations across
+> sched().
 
-Btrfs is the first user of __put_user_unaligned() outside the compat co=
-de,
-hence now all 32-bit architectures should make sure to implement this, =
-too.
-
- arch/m68k/include/asm/uaccess.h |    7 +++++++
- 1 file changed, 7 insertions(+)
-
-diff --git a/arch/m68k/include/asm/uaccess.h b/arch/m68k/include/asm/ua=
-ccess.h
-index 639c731..3fadc4a 100644
---- a/arch/m68k/include/asm/uaccess.h
-+++ b/arch/m68k/include/asm/uaccess.h
-@@ -3,3 +3,10 @@
- #else
- #include <asm/uaccess_mm.h>
- #endif
-+
-+#ifdef CONFIG_CPU_HAS_NO_UNALIGNED
-+#include <asm-generic/uaccess-unaligned.h>
-+#else
-+#define __get_user_unaligned(x, ptr)	__get_user((x), (ptr))
-+#define __put_user_unaligned(x, ptr)	__put_user((x), (ptr))
-+#endif
---=20
-1.7.9.5
+On x86 the compiler could use the segment prefix and then it may work.
