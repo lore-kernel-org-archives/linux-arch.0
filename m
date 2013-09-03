@@ -1,138 +1,50 @@
 From: Christoph Lameter <cl@linux.com>
-Subject: [gcv v4 00/38] percpu v4: [RFC] Replace __get_cpu_var
-Date: Tue, 3 Sep 2013 19:00:20 +0000
-Message-ID: <00000140e5326413-56d19a1a-4235-403e-b210-bbd387913a83-000000@email.amazonses.com>
+Subject: [gcv v4 01/38] x86: Use this_cpu_inc/dec for debug registers
+Date: Tue, 3 Sep 2013 19:00:19 +0000
+Message-ID: <00000140e532655f-5b528d65-4709-41c7-8506-591afa94dbbd-000000@email.amazonses.com>
+References: <20130903190014.794420260@linux.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Tejun Heo <tj@kernel.org>
 Cc: akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-v3->v4:
-- Back to RFC status. The preemption checks will certainly cause some trouble and
-  the way that raw ops and preemption checks were introduced needs review.
-- Various fixes.
+I think this patch already exists in one form or another in some x86 tree.
 
-V2->V3:
-- Numerous corrections
-- Patch flow will be through individual maintainers tree. Rest will be merged
-  via percpu tree.
-- Break up the drivers patch into patches for individual maintainer domains
-- The patches are available via git from git://gentwo.org/christoph gcv
-- Drop tile arch portion since that one is going to be merged by Chris Metcalf.
+Signed-off-by: Christoph Lameter <cl@linux.com>
 
-V1->V2:
- - Break up larger patches.
- - CC maintainers
- - Include description in each patch.
-
-__get_cpu_var() is used for multiple purposes in the kernel source. One of them is
-address calculation via the form &__get_cpu_var(x). This calculates the address for
-the instance of the percpu variable of the current processor based on an offset.
-
-Other use cases are for storing and retrieving data from the current processors percpu area.
-__get_cpu_var() can be used as an lvalue when writing data or on the right side of an assignment.
-
-__get_cpu_var() is defined as :
-
-
-#define __get_cpu_var(var) (*this_cpu_ptr(&(var)))
-
-
-
-__get_cpu_var() always only does an address determination. However, store and retrieve operations
-could use a segment prefix (or global register on other platforms) to avoid the address calculation.
-
-this_cpu_write() and this_cpu_read() can directly take an offset into a percpu area and use
-optimized assembly code to read and write per cpu variables.
-
-
-This patch converts __get_cpu_var into either an explicit address calculation using this_cpu_ptr()
-or into a use of this_cpu operations that use the offset. Thereby address calculations are avoided
-and less registers are used when code is generated.
-
-At the end of the patchset all uses of __get_cpu_var have been removed so the macro is removed too.
-
-The patchset includes passes over all arches as well. Once these operations are used throughout then
-specialized macros can be defined in non -x86 arches as well in order to optimize per cpu access by
-f.e. using a global register that may be set to the per cpu base.
-
-
-
-
-Transformations done to __get_cpu_var()
-
-
-1. Determine the address of the percpu instance of the current processor.
-
-	DEFINE_PER_CPU(int, y);
-	int *x = &__get_cpu_var(y);
-
-    Converts to
-
-	int *x = this_cpu_ptr(&y);
-
-
-2. Same as #1 but this time an array structure is involved.
-
-	DEFINE_PER_CPU(int, y[20]);
-	int *x = __get_cpu_var(y);
-
-    Converts to
-
-	int *x = this_cpu_ptr(y);
-
-
-3. Retrieve the content of the current processors instance of a per cpu variable.
-
-	DEFINE_PER_CPU(int, u);
-	int x = __get_cpu_var(y)
-
-   Converts to
-
-	int x = __this_cpu_read(y);
-
-
-4. Retrieve the content of a percpu struct
-
-	DEFINE_PER_CPU(struct mystruct, y);
-	struct mystruct x = __get_cpu_var(y);
-
-   Converts to
-
-	memcpy(this_cpu_ptr(&x), y, sizeof(x));
-
-
-5. Assignment to a per cpu variable
-
-	DEFINE_PER_CPU(int, y)
-	__get_cpu_var(y) = x;
-
-   Converts to
-
-	this_cpu_write(y, x);
-
-
-6. Increment/Decrement etc of a per cpu variable
-
-	DEFINE_PER_CPU(int, y);
-	__get_cpu_var(y)++
-
-   Converts to
-
-	this_cpu_inc(y)
-
-
-These conversions lead to some savings in code size.
-
-Before
-
-size arch/x86/boot/bzImage
-   text	   data	    bss	    dec	    hex	filename
-3996624	      0	      0	3996624	 3cfbd0	arch/x86/boot/bzImage
-
-After
-
-size arch/x86/boot/bzImage
-   text	   data	    bss	    dec	    hex	filename
-3995840	      0	      0	3995840	 3cf8c0	arch/x86/boot/bzImage
+Index: linux/arch/x86/include/asm/debugreg.h
+===================================================================
+--- linux.orig/arch/x86/include/asm/debugreg.h	2013-08-06 13:52:23.740092873 -0500
++++ linux/arch/x86/include/asm/debugreg.h	2013-08-06 13:52:23.740092873 -0500
+@@ -97,11 +97,11 @@ extern void hw_breakpoint_restore(void);
+ DECLARE_PER_CPU(int, debug_stack_usage);
+ static inline void debug_stack_usage_inc(void)
+ {
+-	__get_cpu_var(debug_stack_usage)++;
++	__this_cpu_inc(debug_stack_usage);
+ }
+ static inline void debug_stack_usage_dec(void)
+ {
+-	__get_cpu_var(debug_stack_usage)--;
++	__this_cpu_dec(debug_stack_usage);
+ }
+ int is_debug_stack(unsigned long addr);
+ void debug_stack_set_zero(void);
+Index: linux/arch/x86/kernel/cpu/common.c
+===================================================================
+--- linux.orig/arch/x86/kernel/cpu/common.c	2013-07-19 09:06:36.850047837 -0500
++++ linux/arch/x86/kernel/cpu/common.c	2013-08-06 13:54:36.426384889 -0500
+@@ -1144,9 +1144,9 @@ DEFINE_PER_CPU(int, debug_stack_usage);
+ 
+ int is_debug_stack(unsigned long addr)
+ {
+-	return __get_cpu_var(debug_stack_usage) ||
+-		(addr <= __get_cpu_var(debug_stack_addr) &&
+-		 addr > (__get_cpu_var(debug_stack_addr) - DEBUG_STKSZ));
++	return __this_cpu_read(debug_stack_usage) ||
++		(addr <= __this_cpu_read(debug_stack_addr) &&
++		 addr > (__this_cpu_read(debug_stack_addr) - DEBUG_STKSZ));
+ }
+ 
+ DEFINE_PER_CPU(u32, debug_idt_ctr);
