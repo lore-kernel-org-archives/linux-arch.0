@@ -1,18 +1,17 @@
 From: Christoph Lameter <cl@linux.com>
-Subject: [gcv v4 17/38] drivers/char: Replace __get_cpu_var uses
-Date: Tue, 3 Sep 2013 21:22:20 +0000
-Message-ID: <00000140e5b466fe-ea203ef6-139a-46a1-8733-e9c52f4e6df9-000000@email.amazonses.com>
+Subject: [gcv v4 11/38] tracing: Replace __get_cpu_var uses
+Date: Tue, 3 Sep 2013 22:32:20 +0000
+Message-ID: <00000140e5f47e91-ca09bd1f-8531-413f-87bb-2ed839988471-000000@email.amazonses.com>
 References: <20130903190014.794420260@linux.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a9-58.smtp-out.amazonses.com ([54.240.9.58]:41732 "EHLO
-	a9-58.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1759990Ab3ICVWW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Sep 2013 17:22:22 -0400
+Received: from a9-99.smtp-out.amazonses.com ([54.240.9.99]:35428 "EHLO
+	a9-99.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1759870Ab3ICWcW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Sep 2013 18:32:22 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>
-
+Cc: akpm@linuxfoundation.org, Steven Rostedt <rostedt@goodmis.org>, Frederic Weisbecker <fweisbec@gmail.com>, Ingo Molnar <mingo@redhat.com>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>
 
 __get_cpu_var() is used for multiple purposes in the kernel source. One of them is
 address calculation via the form &__get_cpu_var(x). This calculates the address for
@@ -111,19 +110,54 @@ Transformations done to __get_cpu_var()
 	this_cpu_inc(y)
 
 
-
+Acked-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
 Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Index: linux/drivers/char/random.c
+Index: linux/include/linux/kprobes.h
 ===================================================================
---- linux.orig/drivers/char/random.c	2013-08-27 14:31:00.000000000 -0500
-+++ linux/drivers/char/random.c	2013-08-27 14:31:34.275916299 -0500
-@@ -744,7 +744,7 @@ static DEFINE_PER_CPU(struct fast_pool,
- void add_interrupt_randomness(int irq, int irq_flags)
+--- linux.orig/include/linux/kprobes.h	2013-08-26 14:25:53.000000000 -0500
++++ linux/include/linux/kprobes.h	2013-08-26 14:26:29.460993659 -0500
+@@ -329,7 +329,7 @@ static inline void reset_current_kprobe(
+ 
+ static inline struct kprobe_ctlblk *get_kprobe_ctlblk(void)
  {
- 	struct entropy_store	*r;
--	struct fast_pool	*fast_pool = &__get_cpu_var(irq_randomness);
-+	struct fast_pool	*fast_pool = this_cpu_ptr(&irq_randomness);
- 	struct pt_regs		*regs = get_irq_regs();
- 	unsigned long		now = jiffies;
- 	__u32			input[4], cycles = get_cycles();
+-	return (&__get_cpu_var(kprobe_ctlblk));
++	return this_cpu_ptr(&kprobe_ctlblk);
+ }
+ 
+ int register_kprobe(struct kprobe *p);
+Index: linux/kernel/trace/ftrace.c
+===================================================================
+--- linux.orig/kernel/trace/ftrace.c	2013-08-26 14:25:53.000000000 -0500
++++ linux/kernel/trace/ftrace.c	2013-08-26 14:26:29.460993659 -0500
+@@ -870,7 +870,7 @@ function_profile_call(unsigned long ip,
+ 
+ 	local_irq_save(flags);
+ 
+-	stat = &__get_cpu_var(ftrace_profile_stats);
++	stat = this_cpu_ptr(&ftrace_profile_stats);
+ 	if (!stat->hash || !ftrace_profile_enabled)
+ 		goto out;
+ 
+@@ -901,7 +901,7 @@ static void profile_graph_return(struct
+ 	unsigned long flags;
+ 
+ 	local_irq_save(flags);
+-	stat = &__get_cpu_var(ftrace_profile_stats);
++	stat = this_cpu_ptr(&ftrace_profile_stats);
+ 	if (!stat->hash || !ftrace_profile_enabled)
+ 		goto out;
+ 
+Index: linux/kernel/trace/trace.c
+===================================================================
+--- linux.orig/kernel/trace/trace.c	2013-08-26 14:25:53.000000000 -0500
++++ linux/kernel/trace/trace.c	2013-08-26 14:26:29.464993617 -0500
+@@ -1676,7 +1676,7 @@ static void __ftrace_trace_stack(struct
+ 	 */
+ 	barrier();
+ 	if (use_stack == 1) {
+-		trace.entries		= &__get_cpu_var(ftrace_stack).calls[0];
++		trace.entries		= this_cpu_ptr(ftrace_stack.calls);
+ 		trace.max_entries	= FTRACE_STACK_MAX_ENTRIES;
+ 
+ 		if (regs)
