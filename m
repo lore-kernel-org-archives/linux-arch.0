@@ -1,13 +1,17 @@
 From: Christoph Lameter <cl@linux.com>
-Subject: [gcv v4 07/38] net: Replace __get_cpu_var uses
-Date: Tue, 3 Sep 2013 19:12:19 +0000
-Message-ID: <00000140e53d5efc-9761359b-da40-4ee1-91ae-44cc3e3e6a80-000000@email.amazonses.com>
+Subject: [gcv v4 09/38] scheduler: Replace __get_cpu_var uses
+Date: Tue, 3 Sep 2013 19:32:21 +0000
+Message-ID: <00000140e54fb2ed-63aca355-a07b-4a41-95b8-c44baf2e2ec1-000000@email.amazonses.com>
 References: <20130903190014.794420260@linux.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from a9-66.smtp-out.amazonses.com ([54.240.9.66]:59800 "EHLO
+	a9-66.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1756012Ab3ICTcX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Sep 2013 15:32:23 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, "David S. Miller" <davem@davemloft.net>, netdev@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: akpm@linuxfoundation.org, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>
 
 __get_cpu_var() is used for multiple purposes in the kernel source. One of them is
 address calculation via the form &__get_cpu_var(x). This calculates the address for
@@ -105,172 +109,224 @@ Transformations done to __get_cpu_var()
 
 	this_cpu_inc(y)
 
+
 Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Index: linux/net/core/dev.c
+Index: linux/include/linux/kernel_stat.h
 ===================================================================
---- linux.orig/net/core/dev.c	2013-08-26 14:16:59.000000000 -0500
-+++ linux/net/core/dev.c	2013-08-26 14:18:37.214005168 -0500
-@@ -2129,7 +2129,7 @@ static inline void __netif_reschedule(st
- 	unsigned long flags;
+--- linux.orig/include/linux/kernel_stat.h	2013-08-26 14:21:39.000000000 -0500
++++ linux/include/linux/kernel_stat.h	2013-08-26 14:23:08.883120293 -0500
+@@ -47,8 +47,8 @@ DECLARE_PER_CPU(struct kernel_stat, ksta
+ DECLARE_PER_CPU(struct kernel_cpustat, kernel_cpustat);
  
- 	local_irq_save(flags);
--	sd = &__get_cpu_var(softnet_data);
-+	sd = this_cpu_ptr(&softnet_data);
- 	q->next_sched = NULL;
- 	*sd->output_queue_tailp = q;
- 	sd->output_queue_tailp = &q->next_sched;
-@@ -2151,7 +2151,7 @@ void dev_kfree_skb_irq(struct sk_buff *s
- 		unsigned long flags;
+ /* Must have preemption disabled for this to be meaningful. */
+-#define kstat_this_cpu (&__get_cpu_var(kstat))
+-#define kcpustat_this_cpu (&__get_cpu_var(kernel_cpustat))
++#define kstat_this_cpu this_cpu_ptr(&kstat)
++#define kcpustat_this_cpu this_cpu_ptr(&kernel_cpustat)
+ #define kstat_cpu(cpu) per_cpu(kstat, cpu)
+ #define kcpustat_cpu(cpu) per_cpu(kernel_cpustat, cpu)
  
- 		local_irq_save(flags);
--		sd = &__get_cpu_var(softnet_data);
-+		sd = this_cpu_ptr(&softnet_data);
- 		skb->next = sd->completion_queue;
- 		sd->completion_queue = skb;
- 		raise_softirq_irqoff(NET_TX_SOFTIRQ);
-@@ -3111,7 +3111,7 @@ static void rps_trigger_softirq(void *da
- static int rps_ipi_queued(struct softnet_data *sd)
+Index: linux/kernel/events/callchain.c
+===================================================================
+--- linux.orig/kernel/events/callchain.c	2013-08-26 14:21:39.000000000 -0500
++++ linux/kernel/events/callchain.c	2013-08-26 14:23:08.875120379 -0500
+@@ -134,7 +134,7 @@ static struct perf_callchain_entry *get_
+ 	int cpu;
+ 	struct callchain_cpus_entries *entries;
+ 
+-	*rctx = get_recursion_context(__get_cpu_var(callchain_recursion));
++	*rctx = get_recursion_context(this_cpu_ptr(callchain_recursion));
+ 	if (*rctx == -1)
+ 		return NULL;
+ 
+@@ -150,7 +150,7 @@ static struct perf_callchain_entry *get_
+ static void
+ put_callchain_entry(int rctx)
  {
- #ifdef CONFIG_RPS
--	struct softnet_data *mysd = &__get_cpu_var(softnet_data);
-+	struct softnet_data *mysd = this_cpu_ptr(&softnet_data);
- 
- 	if (sd != mysd) {
- 		sd->rps_ipi_next = mysd->rps_ipi_list;
-@@ -3138,7 +3138,7 @@ static bool skb_flow_limit(struct sk_buf
- 	if (qlen < (netdev_max_backlog >> 1))
- 		return false;
- 
--	sd = &__get_cpu_var(softnet_data);
-+	sd = this_cpu_ptr(&softnet_data);
- 
- 	rcu_read_lock();
- 	fl = rcu_dereference(sd->flow_limit);
-@@ -3280,7 +3280,7 @@ EXPORT_SYMBOL(netif_rx_ni);
- 
- static void net_tx_action(struct softirq_action *h)
- {
--	struct softnet_data *sd = &__get_cpu_var(softnet_data);
-+	struct softnet_data *sd = this_cpu_ptr(&softnet_data);
- 
- 	if (sd->completion_queue) {
- 		struct sk_buff *clist;
-@@ -3700,7 +3700,7 @@ EXPORT_SYMBOL(netif_receive_skb);
- static void flush_backlog(void *arg)
- {
- 	struct net_device *dev = arg;
--	struct softnet_data *sd = &__get_cpu_var(softnet_data);
-+	struct softnet_data *sd = this_cpu_ptr(&softnet_data);
- 	struct sk_buff *skb, *tmp;
- 
- 	rps_lock(sd);
-@@ -4146,7 +4146,7 @@ void __napi_schedule(struct napi_struct
- 	unsigned long flags;
- 
- 	local_irq_save(flags);
--	____napi_schedule(&__get_cpu_var(softnet_data), n);
-+	____napi_schedule(this_cpu_ptr(&softnet_data), n);
- 	local_irq_restore(flags);
+-	put_recursion_context(__get_cpu_var(callchain_recursion), rctx);
++	put_recursion_context(this_cpu_ptr(callchain_recursion), rctx);
  }
- EXPORT_SYMBOL(__napi_schedule);
-@@ -4274,7 +4274,7 @@ EXPORT_SYMBOL(netif_napi_del);
  
- static void net_rx_action(struct softirq_action *h)
- {
--	struct softnet_data *sd = &__get_cpu_var(softnet_data);
-+	struct softnet_data *sd = this_cpu_ptr(&softnet_data);
- 	unsigned long time_limit = jiffies + 2;
- 	int budget = netdev_budget;
- 	void *have;
-Index: linux/net/core/drop_monitor.c
+ struct perf_callchain_entry *
+Index: linux/kernel/events/core.c
 ===================================================================
---- linux.orig/net/core/drop_monitor.c	2013-08-26 14:16:59.000000000 -0500
-+++ linux/net/core/drop_monitor.c	2013-08-26 14:18:37.218005126 -0500
-@@ -142,7 +142,7 @@ static void trace_drop_common(struct sk_
- 	unsigned long flags;
+--- linux.orig/kernel/events/core.c	2013-08-26 14:21:39.000000000 -0500
++++ linux/kernel/events/core.c	2013-08-26 14:23:08.875120379 -0500
+@@ -238,10 +238,10 @@ void perf_sample_event_took(u64 sample_l
+ 		return;
  
- 	local_irq_save(flags);
--	data = &__get_cpu_var(dm_cpu_data);
-+	data = this_cpu_ptr(&dm_cpu_data);
- 	spin_lock(&data->lock);
- 	dskb = data->skb;
- 
-Index: linux/net/core/skbuff.c
-===================================================================
---- linux.orig/net/core/skbuff.c	2013-08-26 14:16:59.000000000 -0500
-+++ linux/net/core/skbuff.c	2013-08-26 14:18:37.218005126 -0500
-@@ -371,7 +371,7 @@ static void *__netdev_alloc_frag(unsigne
- 	unsigned long flags;
- 
- 	local_irq_save(flags);
--	nc = &__get_cpu_var(netdev_alloc_cache);
-+	nc = this_cpu_ptr(&netdev_alloc_cache);
- 	if (unlikely(!nc->frag.page)) {
- refill:
- 		for (order = NETDEV_FRAG_PAGE_MAX_ORDER; ;) {
-Index: linux/net/ipv4/syncookies.c
-===================================================================
---- linux.orig/net/ipv4/syncookies.c	2013-08-26 14:16:59.000000000 -0500
-+++ linux/net/ipv4/syncookies.c	2013-08-26 14:18:37.210005210 -0500
-@@ -44,7 +44,7 @@ static DEFINE_PER_CPU(__u32 [16 + 5 + SH
- static u32 cookie_hash(__be32 saddr, __be32 daddr, __be16 sport, __be16 dport,
- 		       u32 count, int c)
- {
--	__u32 *tmp = __get_cpu_var(ipv4_cookie_scratch);
-+	__u32 *tmp = this_cpu_ptr(ipv4_cookie_scratch);
- 
- 	memcpy(tmp + 4, syncookie_secret[c], sizeof(syncookie_secret[c]));
- 	tmp[0] = (__force u32)saddr;
-Index: linux/net/ipv4/tcp_output.c
-===================================================================
---- linux.orig/net/ipv4/tcp_output.c	2013-08-26 14:16:59.000000000 -0500
-+++ linux/net/ipv4/tcp_output.c	2013-08-26 14:18:37.218005126 -0500
-@@ -810,7 +810,7 @@ void tcp_wfree(struct sk_buff *skb)
- 
- 		/* queue this socket to tasklet queue */
- 		local_irq_save(flags);
--		tsq = &__get_cpu_var(tsq_tasklet);
-+		tsq = this_cpu_ptr(&tsq_tasklet);
- 		list_add(&tp->tsq_node, &tsq->head);
- 		tasklet_schedule(&tsq->tasklet);
- 		local_irq_restore(flags);
-Index: linux/net/ipv6/syncookies.c
-===================================================================
---- linux.orig/net/ipv6/syncookies.c	2013-08-26 14:16:59.000000000 -0500
-+++ linux/net/ipv6/syncookies.c	2013-08-26 14:18:37.214005168 -0500
-@@ -66,7 +66,7 @@ static DEFINE_PER_CPU(__u32 [16 + 5 + SH
- static u32 cookie_hash(const struct in6_addr *saddr, const struct in6_addr *daddr,
- 		       __be16 sport, __be16 dport, u32 count, int c)
- {
--	__u32 *tmp = __get_cpu_var(ipv6_cookie_scratch);
-+	__u32 *tmp = this_cpu_ptr(ipv6_cookie_scratch);
+ 	/* decay the counter by 1 average sample */
+-	local_samples_len = __get_cpu_var(running_sample_length);
++	local_samples_len = __this_cpu_read(running_sample_length);
+ 	local_samples_len -= local_samples_len/NR_ACCUMULATED_SAMPLES;
+ 	local_samples_len += sample_len_ns;
+-	__get_cpu_var(running_sample_length) = local_samples_len;
++	__this_cpu_write(running_sample_length, local_samples_len);
  
  	/*
- 	 * we have 320 bits of information to hash, copy in the remaining
-Index: linux/net/rds/ib_rdma.c
-===================================================================
---- linux.orig/net/rds/ib_rdma.c	2013-08-26 14:16:59.000000000 -0500
-+++ linux/net/rds/ib_rdma.c	2013-08-26 14:18:37.218005126 -0500
-@@ -267,7 +267,7 @@ static inline struct rds_ib_mr *rds_ib_r
- 	unsigned long *flag;
- 
- 	preempt_disable();
--	flag = &__get_cpu_var(clean_list_grace);
-+	flag = this_cpu_ptr(&clean_list_grace);
- 	set_bit(CLEAN_LIST_BUSY_BIT, flag);
- 	ret = llist_del_first(&pool->clean_list);
- 	if (ret)
-Index: linux/include/net/netfilter/nf_conntrack.h
-===================================================================
---- linux.orig/include/net/netfilter/nf_conntrack.h	2013-08-26 14:23:46.000000000 -0500
-+++ linux/include/net/netfilter/nf_conntrack.h	2013-08-26 14:24:17.190395755 -0500
-@@ -243,7 +243,7 @@ extern s16 (*nf_ct_nat_offset)(const str
- DECLARE_PER_CPU(struct nf_conn, nf_conntrack_untracked);
- static inline struct nf_conn *nf_ct_untracked_get(void)
+ 	 * note: this will be biased artifically low until we have
+@@ -865,7 +865,7 @@ static DEFINE_PER_CPU(struct list_head,
+ static void perf_pmu_rotate_start(struct pmu *pmu)
  {
--	return &__raw_get_cpu_var(nf_conntrack_untracked);
-+	return __this_cpu_ptr(&nf_conntrack_untracked);
- }
- extern void nf_ct_untracked_status_or(unsigned long bits);
+ 	struct perf_cpu_context *cpuctx = this_cpu_ptr(pmu->pmu_cpu_context);
+-	struct list_head *head = &__get_cpu_var(rotation_list);
++	struct list_head *head = this_cpu_ptr(&rotation_list);
  
+ 	WARN_ON(!irqs_disabled());
+ 
+@@ -2321,7 +2321,7 @@ void __perf_event_task_sched_out(struct
+ 	 * to check if we have to switch out PMU state.
+ 	 * cgroup event are system-wide mode only
+ 	 */
+-	if (atomic_read(&__get_cpu_var(perf_cgroup_events)))
++	if (atomic_read(this_cpu_ptr(&perf_cgroup_events)))
+ 		perf_cgroup_sched_out(task, next);
+ }
+ 
+@@ -2566,11 +2566,11 @@ void __perf_event_task_sched_in(struct t
+ 	 * to check if we have to switch in PMU state.
+ 	 * cgroup event are system-wide mode only
+ 	 */
+-	if (atomic_read(&__get_cpu_var(perf_cgroup_events)))
++	if (atomic_read(this_cpu_ptr(&perf_cgroup_events)))
+ 		perf_cgroup_sched_in(prev, task);
+ 
+ 	/* check for system-wide branch_stack events */
+-	if (atomic_read(&__get_cpu_var(perf_branch_stack_events)))
++	if (atomic_read(this_cpu_ptr(&perf_branch_stack_events)))
+ 		perf_branch_stack_sched_in(prev, task);
+ }
+ 
+@@ -2811,7 +2811,7 @@ done:
+ #ifdef CONFIG_NO_HZ_FULL
+ bool perf_event_can_stop_tick(void)
+ {
+-	if (list_empty(&__get_cpu_var(rotation_list)))
++	if (list_empty(this_cpu_ptr(&rotation_list)))
+ 		return true;
+ 	else
+ 		return false;
+@@ -2820,7 +2820,7 @@ bool perf_event_can_stop_tick(void)
+ 
+ void perf_event_task_tick(void)
+ {
+-	struct list_head *head = &__get_cpu_var(rotation_list);
++	struct list_head *head = this_cpu_ptr(&rotation_list);
+ 	struct perf_cpu_context *cpuctx, *tmp;
+ 	struct perf_event_context *ctx;
+ 	int throttled;
+@@ -5414,7 +5414,7 @@ static void do_perf_sw_event(enum perf_t
+ 				    struct perf_sample_data *data,
+ 				    struct pt_regs *regs)
+ {
+-	struct swevent_htable *swhash = &__get_cpu_var(swevent_htable);
++	struct swevent_htable *swhash = this_cpu_ptr(&swevent_htable);
+ 	struct perf_event *event;
+ 	struct hlist_head *head;
+ 
+@@ -5433,7 +5433,7 @@ end:
+ 
+ int perf_swevent_get_recursion_context(void)
+ {
+-	struct swevent_htable *swhash = &__get_cpu_var(swevent_htable);
++	struct swevent_htable *swhash = this_cpu_ptr(&swevent_htable);
+ 
+ 	return get_recursion_context(swhash->recursion);
+ }
+@@ -5441,7 +5441,7 @@ EXPORT_SYMBOL_GPL(perf_swevent_get_recur
+ 
+ inline void perf_swevent_put_recursion_context(int rctx)
+ {
+-	struct swevent_htable *swhash = &__get_cpu_var(swevent_htable);
++	struct swevent_htable *swhash = this_cpu_ptr(&swevent_htable);
+ 
+ 	put_recursion_context(swhash->recursion, rctx);
+ }
+@@ -5470,7 +5470,7 @@ static void perf_swevent_read(struct per
+ 
+ static int perf_swevent_add(struct perf_event *event, int flags)
+ {
+-	struct swevent_htable *swhash = &__get_cpu_var(swevent_htable);
++	struct swevent_htable *swhash = this_cpu_ptr(&swevent_htable);
+ 	struct hw_perf_event *hwc = &event->hw;
+ 	struct hlist_head *head;
+ 
+Index: linux/kernel/sched/cputime.c
+===================================================================
+--- linux.orig/kernel/sched/cputime.c	2013-08-26 14:21:39.000000000 -0500
++++ linux/kernel/sched/cputime.c	2013-08-26 14:23:08.879120335 -0500
+@@ -121,7 +121,7 @@ static inline void task_group_account_fi
+ 	 * is the only cgroup, then nothing else should be necessary.
+ 	 *
+ 	 */
+-	__get_cpu_var(kernel_cpustat).cpustat[index] += tmp;
++	__this_cpu_add(kernel_cpustat.cpustat[index], tmp);
+ 
+ 	cpuacct_account_field(p, index, tmp);
+ }
+Index: linux/kernel/sched/fair.c
+===================================================================
+--- linux.orig/kernel/sched/fair.c	2013-08-26 14:21:39.000000000 -0500
++++ linux/kernel/sched/fair.c	2013-08-26 14:23:08.879120335 -0500
+@@ -5057,7 +5057,7 @@ static int load_balance(int this_cpu, st
+ 	struct sched_group *group;
+ 	struct rq *busiest;
+ 	unsigned long flags;
+-	struct cpumask *cpus = __get_cpu_var(load_balance_mask);
++	struct cpumask *cpus = this_cpu_ptr(load_balance_mask);
+ 
+ 	struct lb_env env = {
+ 		.sd		= sd,
+Index: linux/kernel/sched/rt.c
+===================================================================
+--- linux.orig/kernel/sched/rt.c	2013-08-26 14:21:39.000000000 -0500
++++ linux/kernel/sched/rt.c	2013-08-26 14:23:08.883120293 -0500
+@@ -1389,7 +1389,7 @@ static DEFINE_PER_CPU(cpumask_var_t, loc
+ static int find_lowest_rq(struct task_struct *task)
+ {
+ 	struct sched_domain *sd;
+-	struct cpumask *lowest_mask = __get_cpu_var(local_cpu_mask);
++	struct cpumask *lowest_mask = this_cpu_ptr(local_cpu_mask);
+ 	int this_cpu = smp_processor_id();
+ 	int cpu      = task_cpu(task);
+ 
+Index: linux/kernel/sched/sched.h
+===================================================================
+--- linux.orig/kernel/sched/sched.h	2013-08-26 14:21:39.000000000 -0500
++++ linux/kernel/sched/sched.h	2013-08-26 14:23:08.883120293 -0500
+@@ -538,10 +538,10 @@ static inline int cpu_of(struct rq *rq)
+ DECLARE_PER_CPU(struct rq, runqueues);
+ 
+ #define cpu_rq(cpu)		(&per_cpu(runqueues, (cpu)))
+-#define this_rq()		(&__get_cpu_var(runqueues))
++#define this_rq()		this_cpu_ptr(&runqueues)
+ #define task_rq(p)		cpu_rq(task_cpu(p))
+ #define cpu_curr(cpu)		(cpu_rq(cpu)->curr)
+-#define raw_rq()		(&__raw_get_cpu_var(runqueues))
++#define raw_rq()		__this_cpu_ptr(&runqueues)
+ 
+ static inline u64 rq_clock(struct rq *rq)
+ {
+Index: linux/kernel/user-return-notifier.c
+===================================================================
+--- linux.orig/kernel/user-return-notifier.c	2013-08-26 14:21:39.000000000 -0500
++++ linux/kernel/user-return-notifier.c	2013-08-26 14:23:08.883120293 -0500
+@@ -14,7 +14,7 @@ static DEFINE_PER_CPU(struct hlist_head,
+ void user_return_notifier_register(struct user_return_notifier *urn)
+ {
+ 	set_tsk_thread_flag(current, TIF_USER_RETURN_NOTIFY);
+-	hlist_add_head(&urn->link, &__get_cpu_var(return_notifier_list));
++	hlist_add_head(&urn->link, this_cpu_ptr(&return_notifier_list));
+ }
+ EXPORT_SYMBOL_GPL(user_return_notifier_register);
+ 
+@@ -25,7 +25,7 @@ EXPORT_SYMBOL_GPL(user_return_notifier_r
+ void user_return_notifier_unregister(struct user_return_notifier *urn)
+ {
+ 	hlist_del(&urn->link);
+-	if (hlist_empty(&__get_cpu_var(return_notifier_list)))
++	if (hlist_empty(this_cpu_ptr(&return_notifier_list)))
+ 		clear_tsk_thread_flag(current, TIF_USER_RETURN_NOTIFY);
+ }
+ EXPORT_SYMBOL_GPL(user_return_notifier_unregister);
