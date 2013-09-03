@@ -1,151 +1,459 @@
 From: Christoph Lameter <cl@linux.com>
-Subject: [gcv v4 05/38] percpu: Add preemption checks to __this_cpu ops
-Date: Tue, 3 Sep 2013 22:33:20 +0000
-Message-ID: <00000140e5f56965-daead878-020f-4dd9-b239-5547db26f274-000000@email.amazonses.com>
+Subject: [gcv v4 08/38] time: Replace __get_cpu_var uses
+Date: Tue, 3 Sep 2013 22:32:20 +0000
+Message-ID: <00000140e5f47ead-c488db44-e7ac-430e-b3d0-f18ec391795d-000000@email.amazonses.com>
 References: <20130903190014.794420260@linux.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a9-42.smtp-out.amazonses.com ([54.240.9.42]:50704 "EHLO
-	a9-42.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755631Ab3ICWdW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Sep 2013 18:33:22 -0400
+Received: from a9-70.smtp-out.amazonses.com ([54.240.9.70]:45267 "EHLO
+	a9-70.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1761165Ab3ICWin (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Sep 2013 18:38:43 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>
+Cc: akpm@linuxfoundation.org, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>
 
-We define a check function in order to avoid trouble with the
-include files. Then the higher level __this_cpu macros are
-modified to involve the check before any operation.
+__get_cpu_var() is used for multiple purposes in the kernel source. One of them is
+address calculation via the form &__get_cpu_var(x). This calculates the address for
+the instance of the percpu variable of the current processor based on an offset.
+
+Other use cases are for storing and retrieving data from the current processors percpu area.
+__get_cpu_var() can be used as an lvalue when writing data or on the right side of an assignment.
+
+__get_cpu_var() is defined as :
+
+
+#define __get_cpu_var(var) (*this_cpu_ptr(&(var)))
+
+
+
+__get_cpu_var() always only does an address determination. However, store and retrieve operations
+could use a segment prefix (or global register on other platforms) to avoid the address calculation.
+
+this_cpu_write() and this_cpu_read() can directly take an offset into a percpu area and use
+optimized assembly code to read and write per cpu variables.
+
+
+This patch converts __get_cpu_var into either an explicit address calculation using this_cpu_ptr()
+or into a use of this_cpu operations that use the offset. Thereby address calculations are avoided
+and less registers are used when code is generated.
+
+At the end of the patch set all uses of __get_cpu_var have been removed so the macro is removed too.
+
+The patch set includes passes over all arches as well. Once these operations are used throughout then
+specialized macros can be defined in non -x86 arches as well in order to optimize per cpu access by
+f.e. using a global register that may be set to the per cpu base.
+
+
+
+
+Transformations done to __get_cpu_var()
+
+
+1. Determine the address of the percpu instance of the current processor.
+
+	DEFINE_PER_CPU(int, y);
+	int *x = &__get_cpu_var(y);
+
+    Converts to
+
+	int *x = this_cpu_ptr(&y);
+
+
+2. Same as #1 but this time an array structure is involved.
+
+	DEFINE_PER_CPU(int, y[20]);
+	int *x = __get_cpu_var(y);
+
+    Converts to
+
+	int *x = this_cpu_ptr(y);
+
+
+3. Retrieve the content of the current processors instance of a per cpu variable.
+
+	DEFINE_PER_CPU(int, y);
+	int x = __get_cpu_var(y)
+
+   Converts to
+
+	int x = __this_cpu_read(y);
+
+
+4. Retrieve the content of a percpu struct
+
+	DEFINE_PER_CPU(struct mystruct, y);
+	struct mystruct x = __get_cpu_var(y);
+
+   Converts to
+
+	memcpy(&x, this_cpu_ptr(&y), sizeof(x));
+
+
+5. Assignment to a per cpu variable
+
+	DEFINE_PER_CPU(int, y)
+	__get_cpu_var(y) = x;
+
+   Converts to
+
+	this_cpu_write(y, x);
+
+
+6. Increment/Decrement etc of a per cpu variable
+
+	DEFINE_PER_CPU(int, y);
+	__get_cpu_var(y)++
+
+   Converts to
+
+	this_cpu_inc(y)
 
 Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Index: linux/include/linux/percpu.h
+Index: linux/kernel/hrtimer.c
 ===================================================================
---- linux.orig/include/linux/percpu.h	2013-09-03 13:38:49.818888738 -0500
-+++ linux/include/linux/percpu.h	2013-09-03 13:38:49.810888819 -0500
-@@ -172,6 +172,12 @@ extern phys_addr_t per_cpu_ptr_to_phys(v
+--- linux.orig/kernel/hrtimer.c	2013-08-26 14:19:14.000000000 -0500
++++ linux/kernel/hrtimer.c	2013-08-26 14:21:24.540227691 -0500
+@@ -597,7 +597,7 @@ hrtimer_force_reprogram(struct hrtimer_c
+ static int hrtimer_reprogram(struct hrtimer *timer,
+ 			     struct hrtimer_clock_base *base)
+ {
+-	struct hrtimer_cpu_base *cpu_base = &__get_cpu_var(hrtimer_bases);
++	struct hrtimer_cpu_base *cpu_base = this_cpu_ptr(&hrtimer_bases);
+ 	ktime_t expires = ktime_sub(hrtimer_get_expires(timer), base->offset);
+ 	int res;
  
- extern void __bad_size_call_parameter(void);
+@@ -680,7 +680,7 @@ static inline ktime_t hrtimer_update_bas
+  */
+ static void retrigger_next_event(void *arg)
+ {
+-	struct hrtimer_cpu_base *base = &__get_cpu_var(hrtimer_bases);
++	struct hrtimer_cpu_base *base = this_cpu_ptr(&hrtimer_bases);
  
-+#ifdef CONFIG_PREEMPT
-+extern void this_cpu_preempt_check(void);
-+#else
-+static inline void this_cpu_preempt_check(void) { }
-+#endif
-+
- #define __pcpu_size_call_return(stem, variable)				\
- ({	typeof(variable) pscr_ret__;					\
- 	__verify_pcpu_ptr(&(variable));					\
-@@ -556,7 +562,7 @@ do {									\
- # ifndef __this_cpu_write_8
- #  define __this_cpu_write_8(pcp, val)	__this_cpu_generic_to_op((pcp), (val), =)
- # endif
--# define __this_cpu_write(pcp, val)	__pcpu_size_call(__this_cpu_write_, (pcp), (val))
-+# define __this_cpu_write(pcp, val)	do { this_cpu_preempt_check();__pcpu_size_call(__this_cpu_write_, (pcp), (val)); } while (0)
- #endif
+ 	if (!hrtimer_hres_active())
+ 		return;
+@@ -954,7 +954,7 @@ remove_hrtimer(struct hrtimer *timer, st
+ 		 */
+ 		debug_deactivate(timer);
+ 		timer_stats_hrtimer_clear_start_info(timer);
+-		reprogram = base->cpu_base == &__get_cpu_var(hrtimer_bases);
++		reprogram = base->cpu_base == this_cpu_ptr(&hrtimer_bases);
+ 		/*
+ 		 * We must preserve the CALLBACK state flag here,
+ 		 * otherwise we could move the timer base in
+@@ -1009,7 +1009,7 @@ int __hrtimer_start_range_ns(struct hrti
+ 	 *
+ 	 * XXX send_remote_softirq() ?
+ 	 */
+-	if (leftmost && new_base->cpu_base == &__get_cpu_var(hrtimer_bases)
++	if (leftmost && new_base->cpu_base == this_cpu_ptr(&hrtimer_bases)
+ 		&& hrtimer_enqueue_reprogram(timer, new_base)) {
+ 		if (wakeup) {
+ 			/*
+@@ -1142,7 +1142,7 @@ EXPORT_SYMBOL_GPL(hrtimer_get_remaining)
+  */
+ ktime_t hrtimer_get_next_event(void)
+ {
+-	struct hrtimer_cpu_base *cpu_base = &__get_cpu_var(hrtimer_bases);
++	struct hrtimer_cpu_base *cpu_base = this_cpu_ptr(&hrtimer_bases);
+ 	struct hrtimer_clock_base *base = cpu_base->clock_base;
+ 	ktime_t delta, mindelta = { .tv64 = KTIME_MAX };
+ 	unsigned long flags;
+@@ -1183,7 +1183,7 @@ static void __hrtimer_init(struct hrtime
  
- #ifndef __this_cpu_add
-@@ -572,7 +578,7 @@ do {									\
- # ifndef __this_cpu_add_8
- #  define __this_cpu_add_8(pcp, val)	__this_cpu_generic_to_op((pcp), (val), +=)
- # endif
--# define __this_cpu_add(pcp, val)	__pcpu_size_call(__this_cpu_add_, (pcp), (val))
-+# define __this_cpu_add(pcp, val)	do { this_cpu_preempt_check();__pcpu_size_call(__this_cpu_add_, (pcp), (val)); } while (0)
- #endif
+ 	memset(timer, 0, sizeof(struct hrtimer));
  
- #ifndef __this_cpu_sub
-@@ -600,7 +606,7 @@ do {									\
- # ifndef __this_cpu_and_8
- #  define __this_cpu_and_8(pcp, val)	__this_cpu_generic_to_op((pcp), (val), &=)
- # endif
--# define __this_cpu_and(pcp, val)	__pcpu_size_call(__this_cpu_and_, (pcp), (val))
-+# define __this_cpu_and(pcp, val)	do { this_cpu_preempt_check();__pcpu_size_call(__this_cpu_and_, (pcp), (val)); } while (0)
- #endif
+-	cpu_base = &__raw_get_cpu_var(hrtimer_bases);
++	cpu_base = __this_cpu_ptr(&hrtimer_bases);
  
- #ifndef __this_cpu_or
-@@ -616,7 +622,7 @@ do {									\
- # ifndef __this_cpu_or_8
- #  define __this_cpu_or_8(pcp, val)	__this_cpu_generic_to_op((pcp), (val), |=)
- # endif
--# define __this_cpu_or(pcp, val)	__pcpu_size_call(__this_cpu_or_, (pcp), (val))
-+# define __this_cpu_or(pcp, val)	do { this_cpu_preempt_check();__pcpu_size_call(__this_cpu_or_, (pcp), (val)); } while (0)
- #endif
+ 	if (clock_id == CLOCK_REALTIME && mode != HRTIMER_MODE_ABS)
+ 		clock_id = CLOCK_MONOTONIC;
+@@ -1226,7 +1226,7 @@ int hrtimer_get_res(const clockid_t whic
+ 	struct hrtimer_cpu_base *cpu_base;
+ 	int base = hrtimer_clockid_to_base(which_clock);
  
- #ifndef __this_cpu_xor
-@@ -632,7 +638,7 @@ do {									\
- # ifndef __this_cpu_xor_8
- #  define __this_cpu_xor_8(pcp, val)	__this_cpu_generic_to_op((pcp), (val), ^=)
- # endif
--# define __this_cpu_xor(pcp, val)	__pcpu_size_call(__this_cpu_xor_, (pcp), (val))
-+# define __this_cpu_xor(pcp, val)	do { this_cpu_preempt_check();__pcpu_size_call(__this_cpu_xor_, (pcp), (val)); } while (0)
- #endif
+-	cpu_base = &__raw_get_cpu_var(hrtimer_bases);
++	cpu_base = __this_cpu_ptr(&hrtimer_bases);
+ 	*tp = ktime_to_timespec(cpu_base->clock_base[base].resolution);
  
- #define __this_cpu_generic_add_return(pcp, val)				\
-@@ -655,7 +661,7 @@ do {									\
- #  define __this_cpu_add_return_8(pcp, val)	__this_cpu_generic_add_return(pcp, val)
- # endif
- # define __this_cpu_add_return(pcp, val)	\
--	__pcpu_size_call_return2(__this_cpu_add_return_, pcp, val)
-+	(this_cpu_preempt_check(),__pcpu_size_call_return2(__this_cpu_add_return_, pcp, val))
- #endif
+ 	return 0;
+@@ -1281,7 +1281,7 @@ static void __run_hrtimer(struct hrtimer
+  */
+ void hrtimer_interrupt(struct clock_event_device *dev)
+ {
+-	struct hrtimer_cpu_base *cpu_base = &__get_cpu_var(hrtimer_bases);
++	struct hrtimer_cpu_base *cpu_base = this_cpu_ptr(&hrtimer_bases);
+ 	ktime_t expires_next, now, entry_time, delta;
+ 	int i, retries = 0;
  
- #define __this_cpu_sub_return(pcp, val)	__this_cpu_add_return(pcp, -(val))
-@@ -683,7 +689,7 @@ do {									\
- #  define __this_cpu_xchg_8(pcp, nval)	__this_cpu_generic_xchg(pcp, nval)
- # endif
- # define __this_cpu_xchg(pcp, nval)	\
--	__pcpu_size_call_return2(__this_cpu_xchg_, (pcp), nval)
-+	(this_cpu_preempt_check(),__pcpu_size_call_return2(__this_cpu_xchg_, (pcp), nval))
- #endif
+@@ -1415,7 +1415,7 @@ static void __hrtimer_peek_ahead_timers(
+ 	if (!hrtimer_hres_active())
+ 		return;
  
- #define __this_cpu_generic_cmpxchg(pcp, oval, nval)			\
-@@ -709,7 +715,7 @@ do {									\
- #  define __this_cpu_cmpxchg_8(pcp, oval, nval)	__this_cpu_generic_cmpxchg(pcp, oval, nval)
- # endif
- # define __this_cpu_cmpxchg(pcp, oval, nval)	\
--	__pcpu_size_call_return2(__this_cpu_cmpxchg_, pcp, oval, nval)
-+	(this_cpu_preempt_check(),__pcpu_size_call_return2(__this_cpu_cmpxchg_, pcp, oval, nval))
- #endif
+-	td = &__get_cpu_var(tick_cpu_device);
++	td = this_cpu_ptr(&tick_cpu_device);
+ 	if (td && td->evtdev)
+ 		hrtimer_interrupt(td->evtdev);
+ }
+@@ -1479,7 +1479,7 @@ void hrtimer_run_pending(void)
+ void hrtimer_run_queues(void)
+ {
+ 	struct timerqueue_node *node;
+-	struct hrtimer_cpu_base *cpu_base = &__get_cpu_var(hrtimer_bases);
++	struct hrtimer_cpu_base *cpu_base = this_cpu_ptr(&hrtimer_bases);
+ 	struct hrtimer_clock_base *base;
+ 	int index, gettime = 1;
  
- #define __this_cpu_generic_cmpxchg_double(pcp1, pcp2, oval1, oval2, nval1, nval2)	\
-@@ -742,7 +748,7 @@ do {									\
- 	__this_cpu_generic_cmpxchg_double(pcp1, pcp2, oval1, oval2, nval1, nval2)
- # endif
- # define __this_cpu_cmpxchg_double(pcp1, pcp2, oval1, oval2, nval1, nval2)	\
--	__pcpu_double_call_return_bool(__this_cpu_cmpxchg_double_, (pcp1), (pcp2), (oval1), (oval2), (nval1), (nval2))
-+	(this_cpu_preempt_check(),__pcpu_double_call_return_bool(__this_cpu_cmpxchg_double_, (pcp1), (pcp2), (oval1), (oval2), (nval1), (nval2)))
- #endif
+@@ -1717,7 +1717,7 @@ static void migrate_hrtimers(int scpu)
  
- /*
-Index: linux/kernel/sched/core.c
+ 	local_irq_disable();
+ 	old_base = &per_cpu(hrtimer_bases, scpu);
+-	new_base = &__get_cpu_var(hrtimer_bases);
++	new_base = this_cpu_ptr(&hrtimer_bases);
+ 	/*
+ 	 * The caller is globally serialized and nobody else
+ 	 * takes two locks at once, deadlock is not possible.
+Index: linux/kernel/irq_work.c
 ===================================================================
---- linux.orig/kernel/sched/core.c	2013-09-03 13:38:49.818888738 -0500
-+++ linux/kernel/sched/core.c	2013-09-03 13:38:49.814888779 -0500
-@@ -2583,6 +2583,27 @@ asmlinkage void __sched preempt_schedule
- 	exception_exit(prev_state);
+--- linux.orig/kernel/irq_work.c	2013-08-26 14:19:14.000000000 -0500
++++ linux/kernel/irq_work.c	2013-08-26 14:21:24.540227691 -0500
+@@ -70,7 +70,7 @@ void irq_work_queue(struct irq_work *wor
+ 	/* Queue the entry and raise the IPI if needed. */
+ 	preempt_disable();
+ 
+-	llist_add(&work->llnode, &__get_cpu_var(irq_work_list));
++	llist_add(&work->llnode, this_cpu_ptr(&irq_work_list));
+ 
+ 	/*
+ 	 * If the work is not "lazy" or the tick is stopped, raise the irq
+@@ -90,7 +90,7 @@ bool irq_work_needs_cpu(void)
+ {
+ 	struct llist_head *this_list;
+ 
+-	this_list = &__get_cpu_var(irq_work_list);
++	this_list = this_cpu_ptr(&irq_work_list);
+ 	if (llist_empty(this_list))
+ 		return false;
+ 
+@@ -115,7 +115,7 @@ static void __irq_work_run(void)
+ 	__this_cpu_write(irq_work_raised, 0);
+ 	barrier();
+ 
+-	this_list = &__get_cpu_var(irq_work_list);
++	this_list = this_cpu_ptr(&irq_work_list);
+ 	if (llist_empty(this_list))
+ 		return;
+ 
+Index: linux/kernel/sched/clock.c
+===================================================================
+--- linux.orig/kernel/sched/clock.c	2013-08-26 14:19:14.000000000 -0500
++++ linux/kernel/sched/clock.c	2013-08-26 14:21:24.540227691 -0500
+@@ -94,7 +94,7 @@ static DEFINE_PER_CPU_SHARED_ALIGNED(str
+ 
+ static inline struct sched_clock_data *this_scd(void)
+ {
+-	return &__get_cpu_var(sched_clock_data);
++	return this_cpu_ptr(&sched_clock_data);
  }
  
-+/*
-+ * This function is called if the kernel is compiled with preempt
-+ * support for each __this_cpu operations. It verifies that
-+ * preemption has been disabled.
-+ *
-+ * The function cannot be a macro due to the low level nature
-+ * of the per cpu header files.
-+ */
-+void this_cpu_preempt_check(void)
-+{
-+	int p;
-+
-+	p = preemptible();
-+	if (p) {
-+		printk(KERN_ERR "__this_cpu but preempt is off."
-+			" Preempt count=%d Interrupts=%d\n",
-+			preempt_count(), irqs_disabled());
-+		dump_stack();
-+	}
-+
-+}
- #endif /* CONFIG_PREEMPT */
+ static inline struct sched_clock_data *cpu_sdc(int cpu)
+Index: linux/kernel/softirq.c
+===================================================================
+--- linux.orig/kernel/softirq.c	2013-08-26 14:19:14.000000000 -0500
++++ linux/kernel/softirq.c	2013-08-26 14:21:24.540227691 -0500
+@@ -466,7 +466,7 @@ static void tasklet_action(struct softir
+ 	local_irq_disable();
+ 	list = __this_cpu_read(tasklet_vec.head);
+ 	__this_cpu_write(tasklet_vec.head, NULL);
+-	__this_cpu_write(tasklet_vec.tail, &__get_cpu_var(tasklet_vec).head);
++	__this_cpu_write(tasklet_vec.tail, this_cpu_ptr(&tasklet_vec.head));
+ 	local_irq_enable();
  
- int default_wake_function(wait_queue_t *curr, unsigned mode, int wake_flags,
+ 	while (list) {
+@@ -501,7 +501,7 @@ static void tasklet_hi_action(struct sof
+ 	local_irq_disable();
+ 	list = __this_cpu_read(tasklet_hi_vec.head);
+ 	__this_cpu_write(tasklet_hi_vec.head, NULL);
+-	__this_cpu_write(tasklet_hi_vec.tail, &__get_cpu_var(tasklet_hi_vec).head);
++	__this_cpu_write(tasklet_hi_vec.tail, this_cpu_ptr(&tasklet_hi_vec.head));
+ 	local_irq_enable();
+ 
+ 	while (list) {
+@@ -618,7 +618,7 @@ EXPORT_PER_CPU_SYMBOL(softirq_work_list)
+ 
+ static void __local_trigger(struct call_single_data *cp, int softirq)
+ {
+-	struct list_head *head = &__get_cpu_var(softirq_work_list[softirq]);
++	struct list_head *head = this_cpu_ptr(&softirq_work_list[softirq]);
+ 
+ 	list_add_tail(&cp->list, head);
+ 
+@@ -718,7 +718,7 @@ static int remote_softirq_cpu_notify(str
+ 			if (list_empty(head))
+ 				continue;
+ 
+-			local_head = &__get_cpu_var(softirq_work_list[i]);
++			local_head = this_cpu_ptr(&softirq_work_list[i]);
+ 			list_splice_init(head, local_head);
+ 			raise_softirq_irqoff(i);
+ 		}
+Index: linux/kernel/time/tick-common.c
+===================================================================
+--- linux.orig/kernel/time/tick-common.c	2013-08-26 14:19:14.000000000 -0500
++++ linux/kernel/time/tick-common.c	2013-08-26 14:21:24.544227649 -0500
+@@ -208,7 +208,7 @@ static void tick_setup_device(struct tic
+ 
+ void tick_install_replacement(struct clock_event_device *newdev)
+ {
+-	struct tick_device *td = &__get_cpu_var(tick_cpu_device);
++	struct tick_device *td = this_cpu_ptr(&tick_cpu_device);
+ 	int cpu = smp_processor_id();
+ 
+ 	clockevents_exchange_device(td->evtdev, newdev);
+@@ -358,14 +358,14 @@ void tick_shutdown(unsigned int *cpup)
+ 
+ void tick_suspend(void)
+ {
+-	struct tick_device *td = &__get_cpu_var(tick_cpu_device);
++	struct tick_device *td = this_cpu_ptr(&tick_cpu_device);
+ 
+ 	clockevents_shutdown(td->evtdev);
+ }
+ 
+ void tick_resume(void)
+ {
+-	struct tick_device *td = &__get_cpu_var(tick_cpu_device);
++	struct tick_device *td = this_cpu_ptr(&tick_cpu_device);
+ 	int broadcast = tick_resume_broadcast();
+ 
+ 	clockevents_set_mode(td->evtdev, CLOCK_EVT_MODE_RESUME);
+Index: linux/kernel/time/tick-oneshot.c
+===================================================================
+--- linux.orig/kernel/time/tick-oneshot.c	2013-08-26 14:19:14.000000000 -0500
++++ linux/kernel/time/tick-oneshot.c	2013-08-26 14:21:24.544227649 -0500
+@@ -59,7 +59,7 @@ void tick_setup_oneshot(struct clock_eve
+  */
+ int tick_switch_to_oneshot(void (*handler)(struct clock_event_device *))
+ {
+-	struct tick_device *td = &__get_cpu_var(tick_cpu_device);
++	struct tick_device *td = this_cpu_ptr(&tick_cpu_device);
+ 	struct clock_event_device *dev = td->evtdev;
+ 
+ 	if (!dev || !(dev->features & CLOCK_EVT_FEAT_ONESHOT) ||
+Index: linux/kernel/time/tick-sched.c
+===================================================================
+--- linux.orig/kernel/time/tick-sched.c	2013-08-26 14:19:14.000000000 -0500
++++ linux/kernel/time/tick-sched.c	2013-08-26 14:21:24.540227691 -0500
+@@ -199,7 +199,7 @@ static void tick_nohz_restart_sched_tick
+  */
+ void tick_nohz_full_check(void)
+ {
+-	struct tick_sched *ts = &__get_cpu_var(tick_cpu_sched);
++	struct tick_sched *ts = this_cpu_ptr(&tick_cpu_sched);
+ 
+ 	if (tick_nohz_full_cpu(smp_processor_id())) {
+ 		if (ts->tick_stopped && !is_idle_task(current)) {
+@@ -225,7 +225,7 @@ static DEFINE_PER_CPU(struct irq_work, n
+ void tick_nohz_full_kick(void)
+ {
+ 	if (tick_nohz_full_cpu(smp_processor_id()))
+-		irq_work_queue(&__get_cpu_var(nohz_full_kick_work));
++		irq_work_queue(this_cpu_ptr(&nohz_full_kick_work));
+ }
+ 
+ static void nohz_full_kick_ipi(void *info)
+@@ -536,7 +536,7 @@ static ktime_t tick_nohz_stop_sched_tick
+ 	unsigned long seq, last_jiffies, next_jiffies, delta_jiffies;
+ 	ktime_t last_update, expires, ret = { .tv64 = 0 };
+ 	unsigned long rcu_delta_jiffies;
+-	struct clock_event_device *dev = __get_cpu_var(tick_cpu_device).evtdev;
++	struct clock_event_device *dev = __this_cpu_read(tick_cpu_device.evtdev);
+ 	u64 time_delta;
+ 
+ 	/* Read jiffies and the time when jiffies were updated last */
+@@ -801,7 +801,7 @@ void tick_nohz_idle_enter(void)
+ 
+ 	local_irq_disable();
+ 
+-	ts = &__get_cpu_var(tick_cpu_sched);
++	ts = this_cpu_ptr(&tick_cpu_sched);
+ 	/*
+ 	 * set ts->inidle unconditionally. even if the system did not
+ 	 * switch to nohz mode the cpu frequency governers rely on the
+@@ -824,7 +824,7 @@ EXPORT_SYMBOL_GPL(tick_nohz_idle_enter);
+  */
+ void tick_nohz_irq_exit(void)
+ {
+-	struct tick_sched *ts = &__get_cpu_var(tick_cpu_sched);
++	struct tick_sched *ts = this_cpu_ptr(&tick_cpu_sched);
+ 
+ 	if (ts->inidle)
+ 		__tick_nohz_idle_enter(ts);
+@@ -839,7 +839,7 @@ void tick_nohz_irq_exit(void)
+  */
+ ktime_t tick_nohz_get_sleep_length(void)
+ {
+-	struct tick_sched *ts = &__get_cpu_var(tick_cpu_sched);
++	struct tick_sched *ts = this_cpu_ptr(&tick_cpu_sched);
+ 
+ 	return ts->sleep_length;
+ }
+@@ -953,7 +953,7 @@ static int tick_nohz_reprogram(struct ti
+  */
+ static void tick_nohz_handler(struct clock_event_device *dev)
+ {
+-	struct tick_sched *ts = &__get_cpu_var(tick_cpu_sched);
++	struct tick_sched *ts = this_cpu_ptr(&tick_cpu_sched);
+ 	struct pt_regs *regs = get_irq_regs();
+ 	ktime_t now = ktime_get();
+ 
+@@ -973,7 +973,7 @@ static void tick_nohz_handler(struct clo
+  */
+ static void tick_nohz_switch_to_nohz(void)
+ {
+-	struct tick_sched *ts = &__get_cpu_var(tick_cpu_sched);
++	struct tick_sched *ts = this_cpu_ptr(&tick_cpu_sched);
+ 	ktime_t next;
+ 
+ 	if (!tick_nohz_enabled)
+@@ -1111,7 +1111,7 @@ early_param("skew_tick", skew_tick);
+  */
+ void tick_setup_sched_timer(void)
+ {
+-	struct tick_sched *ts = &__get_cpu_var(tick_cpu_sched);
++	struct tick_sched *ts = this_cpu_ptr(&tick_cpu_sched);
+ 	ktime_t now = ktime_get();
+ 
+ 	/*
+@@ -1178,7 +1178,7 @@ void tick_clock_notify(void)
+  */
+ void tick_oneshot_notify(void)
+ {
+-	struct tick_sched *ts = &__get_cpu_var(tick_cpu_sched);
++	struct tick_sched *ts = this_cpu_ptr(&tick_cpu_sched);
+ 
+ 	set_bit(0, &ts->check_clocks);
+ }
+@@ -1193,7 +1193,7 @@ void tick_oneshot_notify(void)
+  */
+ int tick_check_oneshot_change(int allow_nohz)
+ {
+-	struct tick_sched *ts = &__get_cpu_var(tick_cpu_sched);
++	struct tick_sched *ts = this_cpu_ptr(&tick_cpu_sched);
+ 
+ 	if (!test_and_clear_bit(0, &ts->check_clocks))
+ 		return 0;
+Index: linux/kernel/timer.c
+===================================================================
+--- linux.orig/kernel/timer.c	2013-08-26 14:19:14.000000000 -0500
++++ linux/kernel/timer.c	2013-08-26 14:21:24.544227649 -0500
+@@ -621,7 +621,7 @@ static inline void debug_assert_init(str
+ static void do_init_timer(struct timer_list *timer, unsigned int flags,
+ 			  const char *name, struct lock_class_key *key)
+ {
+-	struct tvec_base *base = __raw_get_cpu_var(tvec_bases);
++	struct tvec_base *base = __this_cpu_read(tvec_bases);
+ 
+ 	timer->entry.next = NULL;
+ 	timer->base = (void *)((unsigned long)base | flags);
