@@ -1,7 +1,7 @@
-From: Frederic Weisbecker <fweisbec@gmail.com>
+From: Steven Rostedt <rostedt@goodmis.org>
 Subject: Re: [gcv v3 06/35] scheduler: Replace __get_cpu_var uses
-Date: Tue, 3 Sep 2013 16:45:45 +0200
-Message-ID: <CAFTL4hyEuePJC4GG60DqQCfu-JiV9krRCf3FwWAy15Hyzu2AUw@mail.gmail.com>
+Date: Tue, 3 Sep 2013 11:44:54 -0400
+Message-ID: <20130903114454.2a995f41@gandalf.local.home>
 References: <20130828193457.140443630@linux.com>
 	<00000140c67817eb-b582280a-f059-499f-a24c-a11f3d59b86e-000000@email.amazonses.com>
 	<20130829075818.GW10002@twins.programming.kicks-ass.net>
@@ -11,38 +11,51 @@ References: <20130828193457.140443630@linux.com>
 	<00000140cb49bdde-1279ffb0-5c49-400d-970c-a481d527e98a-000000@email.amazonses.com>
 	<20130829143053.3fc2caa8@gandalf.local.home>
 	<00000140e4373c9e-ea44cb7f-985f-4d33-86ed-cfd54ec7327b-000000@email.amazonses.com>
+	<CAFTL4hyEuePJC4GG60DqQCfu-JiV9krRCf3FwWAy15Hyzu2AUw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f54.google.com ([209.85.215.54]:33721 "EHLO
-	mail-la0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754058Ab3ICOpq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Sep 2013 10:45:46 -0400
-In-Reply-To: <00000140e4373c9e-ea44cb7f-985f-4d33-86ed-cfd54ec7327b-000000@email.amazonses.com>
+Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:29221 "EHLO
+	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754332Ab3ICPo6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Sep 2013 11:44:58 -0400
+In-Reply-To: <CAFTL4hyEuePJC4GG60DqQCfu-JiV9krRCf3FwWAy15Hyzu2AUw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Lameter <cl@linux.com>
-Cc: Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, Ingo Molnar <mingo@redhat.com>, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>
+To: Frederic Weisbecker <fweisbec@gmail.com>
+Cc: Christoph Lameter <cl@linux.com>, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, Ingo Molnar <mingo@redhat.com>, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>
 
-2013/9/3 Christoph Lameter <cl@linux.com>:
-> On Thu, 29 Aug 2013, Steven Rostedt wrote:
->
->> How many places use the this_cpu_*() without preemption disabled? I
->> wouldn't think there's many. I never complained about another variant,
->> so you need to ask those that have. The tough question for me is what
->> that variant name should be ;-)
->
-> Tried to add preemption checks but the basic issue is that many of the
-> checks themselves use this_cpu_ops. percpu.h is very basic to the
-> operation of fundamental primitives for preempt etc. Use of a BUG_ON needs
-> a seris of includes in percpu.h that cause more trouble.
->
-> If I switch __this_cpu ops to check for preemption then the logic for
-> preemption etc must use the raw_this_cpu ops.
+On Tue, 3 Sep 2013 16:45:45 +0200
+Frederic Weisbecker <fweisbec@gmail.com> wrote:
 
-IIUC the issue is that preempt debug checks themselves use per cpu
-operations that can result in preempt debug checks? Hence a recursion.
-Do you have an example of that?
+> 2013/9/3 Christoph Lameter <cl@linux.com>:
+> > On Thu, 29 Aug 2013, Steven Rostedt wrote:
+> >
+> >> How many places use the this_cpu_*() without preemption disabled? I
+> >> wouldn't think there's many. I never complained about another variant,
+> >> so you need to ask those that have. The tough question for me is what
+> >> that variant name should be ;-)
+> >
+> > Tried to add preemption checks but the basic issue is that many of the
+> > checks themselves use this_cpu_ops. percpu.h is very basic to the
+> > operation of fundamental primitives for preempt etc. Use of a BUG_ON needs
+> > a seris of includes in percpu.h that cause more trouble.
+> >
+> > If I switch __this_cpu ops to check for preemption then the logic for
+> > preemption etc must use the raw_this_cpu ops.
+> 
+> IIUC the issue is that preempt debug checks themselves use per cpu
+> operations that can result in preempt debug checks? Hence a recursion.
+> Do you have an example of that?
+> 
+> Also in this case this must be fixed anyway given the checks that
+> already exist in smp_processor_id(), __get_cpu_var(), ...
 
-Also in this case this must be fixed anyway given the checks that
-already exist in smp_processor_id(), __get_cpu_var(), ...
+Right, that's why there's a raw_smp_processor_id() and
+__raw_get_cpu_var(). Those two are the ones without checks, and they
+are called by the non "raw" versions after the check is done.
+
+Really, what's so damn hard about this?
+
+-- Steve
