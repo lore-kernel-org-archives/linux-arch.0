@@ -1,40 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gmmr4.centrum.cz ([46.255.227.253]:40781 "EHLO gmmr4.centrum.cz"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754069Ab3IBKtE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 2 Sep 2013 06:49:04 -0400
-Subject: =?utf-8?q?Re=3A_=5Bpatch_0=2F7=5D_improve_memcg_oom_killer_robustness_v2?=
-Date: Mon, 02 Sep 2013 12:38:02 +0200
-From: "azurIt" <azurit@pobox.sk>
-References: <1375549200-19110-1-git-send-email-hannes@cmpxchg.org>, <20130803170831.GB23319@cmpxchg.org> <20130830215852.3E5D3D66@pobox.sk>
-In-Reply-To: <20130830215852.3E5D3D66@pobox.sk>
-MIME-Version: 1.0
-Message-ID: <20130902123802.5B8E8CB1@pobox.sk>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Received: from shards.monkeyblade.net ([149.20.54.216]:41724 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759272Ab3ICD1y (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Sep 2013 23:27:54 -0400
+Date: Mon, 02 Sep 2013 20:33:55 -0700 (PDT)
+Message-ID: <20130902.203355.117341085023152754.davem@davemloft.net>
+Subject: Re: [guv v2 04/31] net: Replace __get_cpu_var uses
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <7435.1378157706@warthog.procyon.org.uk>
+References: <00000140bc5ef9df-d7f75909-a25e-4471-84b2-dfbec07117b0-000000@email.amazonses.com>
+	<20130826204351.725357339@linux.com>
+	<7435.1378157706@warthog.procyon.org.uk>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: azurIt <azurit@pobox.sk>, =?utf-8?q?Johannes_Weiner?= <hannes@cmpxchg.org>
-Cc: =?utf-8?q?Andrew_Morton?= <akpm@linux-foundation.org>, =?utf-8?q?Michal_Hocko?= <mhocko@suse.cz>, =?utf-8?q?David_Rientjes?= <rientjes@google.com>, =?utf-8?q?KAMEZAWA_Hiroyuki?= <kamezawa.hiroyu@jp.fujitsu.com>, =?utf-8?q?KOSAKI_Motohiro?= <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130902103802.yWN1bsSo_u-zxlP0P5tHRGChZcvMR_a8xGLuo1UnDAE@z>
+To: dhowells@redhat.com
+Cc: cl@linux.com, tj@kernel.org, akpm@linuxfoundation.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org, srostedt@redhat.com, linux-kernel@vger.kernel.org
+Message-ID: <20130903033355.wmvckj8mM4o-0iyeJ89tu62vKtXQuid62zWdkBKmuzY@z>
 
->>Hi azur,
->>
->>here is the x86-only rollup of the series for 3.2.
->>
->>Thanks!
->>Johannes
->>---
->
->
->Johannes,
->
->unfortunately, one problem arises: I have (again) cgroup which cannot be deleted :( it's a user who had very high memory usage and was reaching his limit very often. Do you need any info which i can gather now?
->
->azur
->
+From: David Howells <dhowells@redhat.com>
+Date: Mon, 02 Sep 2013 22:35:06 +0100
 
+> Would it be possible to use __thread annotations for per-CPU
+> variables, I wonder?
 
-Now i can definitely confirm that problem is NOT fixed :( it happened again but i don't have any data because i already disabled all debug output.
+Paul Mackerras tried it on powerpc and you can't do it.
 
-azur
+The problem is that there is no way to tell the compiler that sched()
+and similar (potentially) change the thread pointer base.
+
+It really will cache pre-computed __thread pointer calculations across
+sched().
