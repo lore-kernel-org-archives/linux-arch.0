@@ -1,199 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from a9-42.smtp-out.amazonses.com ([54.240.9.42]:45918 "EHLO
-	a9-42.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753889Ab3ICTcX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Sep 2013 15:32:23 -0400
-Message-ID: <00000140e54fb0bf-9197ad52-1637-4a8c-b854-ee1fa9b5fe42-000000@email.amazonses.com>
-Date: Tue, 3 Sep 2013 19:32:21 +0000
-From: Christoph Lameter <cl@linux.com>
-Subject: [gcv v4 12/38] block: Replace __get_cpu_var uses
-References: <20130903190014.794420260@linux.com>
+Received: from zene.cmpxchg.org ([85.214.230.12]:54278 "EHLO zene.cmpxchg.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1760726Ab3ICUtE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 3 Sep 2013 16:49:04 -0400
+Date: Tue, 3 Sep 2013 16:48:50 -0400
+From: Johannes Weiner <hannes@cmpxchg.org>
+Subject: Re: [patch 0/7] improve memcg oom killer robustness v2
+Message-ID: <20130903204850.GA1412@cmpxchg.org>
+References: <1375549200-19110-1-git-send-email-hannes@cmpxchg.org>
+ <20130803170831.GB23319@cmpxchg.org>
+ <20130830215852.3E5D3D66@pobox.sk>
+ <20130902123802.5B8E8CB1@pobox.sk>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20130902123802.5B8E8CB1@pobox.sk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, Jens Axboe <axboe@kernel.dk>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20130903193221.t57A2oKFQ3pdBpbcOY1iwcUYp2sAZMbKHmJENVatArs@z>
+To: azurIt <azurit@pobox.sk>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.cz>, David Rientjes <rientjes@google.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130903204850.OtnfIBBHZsjr7M0GjvtDeDtvU8_wMV3NlEDF_dr7tqg@z>
 
-__get_cpu_var() is used for multiple purposes in the kernel source. One of them is
-address calculation via the form &__get_cpu_var(x). This calculates the address for
-the instance of the percpu variable of the current processor based on an offset.
+Hello azur,
 
-Other use cases are for storing and retrieving data from the current processors percpu area.
-__get_cpu_var() can be used as an lvalue when writing data or on the right side of an assignment.
+On Mon, Sep 02, 2013 at 12:38:02PM +0200, azurIt wrote:
+> >>Hi azur,
+> >>
+> >>here is the x86-only rollup of the series for 3.2.
+> >>
+> >>Thanks!
+> >>Johannes
+> >>---
+> >
+> >
+> >Johannes,
+> >
+> >unfortunately, one problem arises: I have (again) cgroup which cannot be deleted :( it's a user who had very high memory usage and was reaching his limit very often. Do you need any info which i can gather now?
 
-__get_cpu_var() is defined as :
+Did the OOM killer go off in this group?
 
+Was there a warning in the syslog ("Fixing unhandled memcg OOM
+context")?
 
-#define __get_cpu_var(var) (*this_cpu_ptr(&(var)))
+If it happens again, could you check if there are tasks left in the
+cgroup?  And provide /proc/<pid>/stack of the hung task trying to
+delete the cgroup?
 
+> Now i can definitely confirm that problem is NOT fixed :( it happened again but i don't have any data because i already disabled all debug output.
 
+Which debug output?
 
-__get_cpu_var() always only does an address determination. However, store and retrieve operations
-could use a segment prefix (or global register on other platforms) to avoid the address calculation.
+Do you still have access to the syslog?
 
-this_cpu_write() and this_cpu_read() can directly take an offset into a percpu area and use
-optimized assembly code to read and write per cpu variables.
+It's possible that, as your system does not deadlock on the OOMing
+cgroup anymore, you hit a separate bug...
 
-
-This patch converts __get_cpu_var into either an explicit address calculation using this_cpu_ptr()
-or into a use of this_cpu operations that use the offset. Thereby address calculations are avoided
-and less registers are used when code is generated.
-
-At the end of the patch set all uses of __get_cpu_var have been removed so the macro is removed too.
-
-The patch set includes passes over all arches as well. Once these operations are used throughout then
-specialized macros can be defined in non -x86 arches as well in order to optimize per cpu access by
-f.e. using a global register that may be set to the per cpu base.
-
-
-
-
-Transformations done to __get_cpu_var()
-
-
-1. Determine the address of the percpu instance of the current processor.
-
-	DEFINE_PER_CPU(int, y);
-	int *x = &__get_cpu_var(y);
-
-    Converts to
-
-	int *x = this_cpu_ptr(&y);
-
-
-2. Same as #1 but this time an array structure is involved.
-
-	DEFINE_PER_CPU(int, y[20]);
-	int *x = __get_cpu_var(y);
-
-    Converts to
-
-	int *x = this_cpu_ptr(y);
-
-
-3. Retrieve the content of the current processors instance of a per cpu variable.
-
-	DEFINE_PER_CPU(int, y);
-	int x = __get_cpu_var(y)
-
-   Converts to
-
-	int x = __this_cpu_read(y);
-
-
-4. Retrieve the content of a percpu struct
-
-	DEFINE_PER_CPU(struct mystruct, y);
-	struct mystruct x = __get_cpu_var(y);
-
-   Converts to
-
-	memcpy(&x, this_cpu_ptr(&y), sizeof(x));
-
-
-5. Assignment to a per cpu variable
-
-	DEFINE_PER_CPU(int, y)
-	__get_cpu_var(y) = x;
-
-   Converts to
-
-	this_cpu_write(y, x);
-
-
-6. Increment/Decrement etc of a per cpu variable
-
-	DEFINE_PER_CPU(int, y);
-	__get_cpu_var(y)++
-
-   Converts to
-
-	this_cpu_inc(y)
-
-Signed-off-by: Christoph Lameter <cl@linux.com>
-
-Index: linux/block/blk-iopoll.c
-===================================================================
---- linux.orig/block/blk-iopoll.c	2013-08-26 14:36:07.858875667 -0500
-+++ linux/block/blk-iopoll.c	2013-08-26 14:36:07.850875751 -0500
-@@ -35,7 +35,7 @@ void blk_iopoll_sched(struct blk_iopoll
- 	unsigned long flags;
- 
- 	local_irq_save(flags);
--	list_add_tail(&iop->list, &__get_cpu_var(blk_cpu_iopoll));
-+	list_add_tail(&iop->list, this_cpu_ptr(&blk_cpu_iopoll));
- 	__raise_softirq_irqoff(BLOCK_IOPOLL_SOFTIRQ);
- 	local_irq_restore(flags);
- }
-@@ -79,7 +79,7 @@ EXPORT_SYMBOL(blk_iopoll_complete);
- 
- static void blk_iopoll_softirq(struct softirq_action *h)
- {
--	struct list_head *list = &__get_cpu_var(blk_cpu_iopoll);
-+	struct list_head *list = this_cpu_ptr(&blk_cpu_iopoll);
- 	int rearm = 0, budget = blk_iopoll_budget;
- 	unsigned long start_time = jiffies;
- 
-@@ -201,7 +201,7 @@ static int blk_iopoll_cpu_notify(struct
- 
- 		local_irq_disable();
- 		list_splice_init(&per_cpu(blk_cpu_iopoll, cpu),
--				 &__get_cpu_var(blk_cpu_iopoll));
-+				 this_cpu_ptr(&blk_cpu_iopoll));
- 		__raise_softirq_irqoff(BLOCK_IOPOLL_SOFTIRQ);
- 		local_irq_enable();
- 	}
-Index: linux/block/blk-softirq.c
-===================================================================
---- linux.orig/block/blk-softirq.c	2013-08-26 14:36:07.858875667 -0500
-+++ linux/block/blk-softirq.c	2013-08-26 14:36:07.854875709 -0500
-@@ -23,7 +23,7 @@ static void blk_done_softirq(struct soft
- 	struct list_head *cpu_list, local_list;
- 
- 	local_irq_disable();
--	cpu_list = &__get_cpu_var(blk_cpu_done);
-+	cpu_list = this_cpu_ptr(&blk_cpu_done);
- 	list_replace_init(cpu_list, &local_list);
- 	local_irq_enable();
- 
-@@ -44,7 +44,7 @@ static void trigger_softirq(void *data)
- 	struct list_head *list;
- 
- 	local_irq_save(flags);
--	list = &__get_cpu_var(blk_cpu_done);
-+	list = this_cpu_ptr(&blk_cpu_done);
- 	list_add_tail(&rq->csd.list, list);
- 
- 	if (list->next == &rq->csd.list)
-@@ -90,7 +90,7 @@ static int blk_cpu_notify(struct notifie
- 
- 		local_irq_disable();
- 		list_splice_init(&per_cpu(blk_cpu_done, cpu),
--				 &__get_cpu_var(blk_cpu_done));
-+				 this_cpu_ptr(&blk_cpu_done));
- 		raise_softirq_irqoff(BLOCK_SOFTIRQ);
- 		local_irq_enable();
- 	}
-@@ -135,7 +135,7 @@ void __blk_complete_request(struct reque
- 	if (ccpu == cpu || shared) {
- 		struct list_head *list;
- do_local:
--		list = &__get_cpu_var(blk_cpu_done);
-+		list = this_cpu_ptr(&blk_cpu_done);
- 		list_add_tail(&req->csd.list, list);
- 
- 		/*
-Index: linux/fs/fscache/object.c
-===================================================================
---- linux.orig/fs/fscache/object.c	2013-08-26 14:36:07.858875667 -0500
-+++ linux/fs/fscache/object.c	2013-08-26 14:36:07.854875709 -0500
-@@ -796,7 +796,7 @@ void fscache_enqueue_object(struct fscac
-  */
- bool fscache_object_sleep_till_congested(signed long *timeoutp)
- {
--	wait_queue_head_t *cong_wq = &__get_cpu_var(fscache_object_cong_wait);
-+	wait_queue_head_t *cong_wq = this_cpu_ptr(&fscache_object_cong_wait);
- 	DEFINE_WAIT(wait);
- 
- 	if (fscache_object_congested())
-
+Thanks!
