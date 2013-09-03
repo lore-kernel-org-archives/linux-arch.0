@@ -1,97 +1,33 @@
-From: Christoph Lameter <cl@linux.com>
-Subject: [gcv v4 06/38] Coccinelle script for __get_cpu_var conversion
-Date: Tue, 3 Sep 2013 20:12:19 +0000
-Message-ID: <00000140e5745014-6a1f1168-c5ac-4b91-834a-85fe8875b3fe-000000@email.amazonses.com>
-References: <20130903190014.794420260@linux.com>
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [guv v2 04/31] net: Replace __get_cpu_var uses
+Date: Tue, 03 Sep 2013 21:39:28 +0100
+Message-ID: <7928.1378240768@warthog.procyon.org.uk>
+References: <20130902.203355.117341085023152754.davem@davemloft.net> <00000140bc5ef9df-d7f75909-a25e-4471-84b2-dfbec07117b0-000000@email.amazonses.com> <20130826204351.725357339@linux.com> <7435.1378157706@warthog.procyon.org.uk>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from b232-131.smtp-out.amazonses.com ([199.127.232.131]:30182 "EHLO
-	b232-131.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1759990Ab3ICUVu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Sep 2013 16:21:50 -0400
+Received: from mx1.redhat.com ([209.132.183.28]:3605 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932324Ab3ICUjg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 3 Sep 2013 16:39:36 -0400
+In-Reply-To: <20130902.203355.117341085023152754.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>
+To: David Miller <davem@davemloft.net>
+Cc: dhowells@redhat.com, cl@linux.com, tj@kernel.org, akpm@linuxfoundation.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org, srostedt@redhat.com, linux-kernel@vger.kernel.org
 
-Much of the work was done by this coccinelle script.
+David Miller <davem@davemloft.net> wrote:
 
-Wont catch everything (since coccinelle aborts when it no longer can make
-sense out of macros, sigh) but it covers a lot of ground.
+> > Would it be possible to use __thread annotations for per-CPU
+> > variables, I wonder?
+> 
+> Paul Mackerras tried it on powerpc and you can't do it.
+> 
+> The problem is that there is no way to tell the compiler that sched()
+> and similar (potentially) change the thread pointer base.
+> 
+> It really will cache pre-computed __thread pointer calculations across
+> sched().
 
-Signed-off-by: Christoph Lameter <cl@linux.com>
+Yeah...  I thought there might be something like that - but I could see x86_64
+using %fs as a base.
 
-Index: linux/scripts/coccinelle/convert/__get_cpu_var.cocci
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux/scripts/coccinelle/convert/__get_cpu_var.cocci	2013-08-22 14:41:13.976518846 -0500
-@@ -0,0 +1,70 @@
-+// Convert all &__get_cpu_var to this_cpu_ptr
-+//
-+// _get_cpu_var is defined as:
-+//
-+// #define __get_cpu_var(var) (*this_cpu_ptr(&(var)))
-+//
-+//&__get_cpu_var() is therefore
-+//
-+//	this_cpu_ptr(&var);
-+//
-+// The use of this_cpu_ptr() instead of __get_cpu_var clarifies
-+// that we are relocating a per cpu offset and that there are
-+// no get/put semantics involved.
-+//
-+//
-+// Convert all &__get_cpu_vars (and also related functions)
-+// to this_cpu_ptr(). Multiple transformations are provided
-+// to be able to beautify the source a bit.
-+//
-+// Christoph Lameter <cl@linux.com> August 20, 2013
-+//
-+
-+@A@ expression E; @@
-+
-+...
-+-(&__get_cpu_var(E))
-++this_cpu_ptr(&E)
-+...
-+
-+@B@ expression E; @@
-+
-+...
-+-(&__raw_get_cpu_var(E))
-++__this_cpu_ptr(&E)
-+...
-+
-+@C@ expression E; @@
-+
-+...
-+-&__get_cpu_var(E)
-++this_cpu_ptr(&E)
-+...
-+
-+@D@ expression E; @@
-+
-+...
-+-&__raw_get_cpu_var(E)
-++__this_cpu_ptr(&E)
-+...
-+
-+@A2@ expression E; @@
-+
-+-(&__get_cpu_var(E))
-++this_cpu_ptr(&E)
-+
-+@B2@ expression E; @@
-+
-+-(&__raw_get_cpu_var(E))
-++__this_cpu_ptr(&E)
-+
-+@C2@ expression E; @@
-+
-+-&__get_cpu_var(E)
-++this_cpu_ptr(&E)
-+
-+@D2@ expression E; @@
-+
-+-&__raw_get_cpu_var(E)
-++__this_cpu_ptr(&E)
-+
+David
