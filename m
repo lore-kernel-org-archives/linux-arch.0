@@ -1,27 +1,53 @@
 From: Christoph Lameter <cl@linux.com>
-Subject: Re: [guv v2 04/31] net: Replace __get_cpu_var uses
-Date: Tue, 3 Sep 2013 14:20:08 +0000
-Message-ID: <00000140e431ded7-d71fb5bf-5a5c-418f-83e5-0e6e2f2fea9d-000000@email.amazonses.com>
-References: <00000140bc5ef9df-d7f75909-a25e-4471-84b2-dfbec07117b0-000000@email.amazonses.com> <20130826204351.725357339@linux.com> <7435.1378157706@warthog.procyon.org.uk>
+Subject: Re: [gcv v3 08/35] tracing: Replace __get_cpu_var uses
+Date: Tue, 3 Sep 2013 14:34:04 +0000
+Message-ID: <00000140e43e9da0-5a024162-7eb8-4642-a801-30b8a8153138-000000@email.amazonses.com>
+References: <20130828193457.140443630@linux.com> <00000140c6781ceb-6c3e93f5-45d6-4b04-8034-e7cd4b5a77b5-000000@email.amazonses.com> <20130829172622.3b458a80@gandalf.local.home>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: MULTIPART/MIXED; BOUNDARY="376175846-1778199093-1378218876=:17065"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a9-66.smtp-out.amazonses.com ([54.240.9.66]:48778 "EHLO
-	a9-66.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1760029Ab3ICO1L (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Sep 2013 10:27:11 -0400
-In-Reply-To: <7435.1378157706@warthog.procyon.org.uk>
+Received: from a10-51.smtp-out.amazonses.com ([54.240.10.51]:53259 "EHLO
+	a10-51.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753275Ab3ICOeH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Sep 2013 10:34:07 -0400
+In-Reply-To: <20130829172622.3b458a80@gandalf.local.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, "David S. Miller" <davem@davemloft.net>, netdev@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, Frederic Weisbecker <fweisbec@gmail.com>, Ingo Molnar <mingo@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Mon, 2 Sep 2013, David Howells wrote:
+  This message is in MIME format.  The first part should be readable text,
+  while the remaining parts are likely unreadable without MIME-aware tools.
 
-> Would it be possible to use __thread annotations for per-CPU variables, I
-> wonder?
+--376175846-1778199093-1378218876=:17065
+Content-Type: TEXT/PLAIN; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 
-We already have a __percpu annotation. Looked at __thread a couple of
-years ago but found that support for the kernel segment register was not
-available. If we had __thread then most of the operations could simply be
-provided by the compiler.
+On Thu, 29 Aug 2013, Steven Rostedt wrote:
+
+> On Wed, 28 Aug 2013 19:48:16 +0000
+>
+> > Index: linux/kernel/trace/trace.c
+> > ===================================================================
+> > --- linux.orig/kernel/trace/trace.c	2013-08-26 14:25:53.000000000 -0500
+> > +++ linux/kernel/trace/trace.c	2013-08-26 14:26:29.464993617 -0500
+> > @@ -1676,7 +1676,7 @@ static void __ftrace_trace_stack(struct
+> >  	 */
+> >  	barrier();
+> >  	if (use_stack == 1) {
+> > -		trace.entries		= &__get_cpu_var(ftrace_stack).calls[0];
+> > +		trace.entries		= this_cpu_ptr(ftrace_stack.calls);
+> >  		trace.max_entries	= FTRACE_STACK_MAX_ENTRIES;
+> >
+> >  		if (regs)
+>
+>
+> This patch fails to build:
+>
+> kernel/trace/trace.c: In function ‘__ftrace_trace_stack’:
+> kernel/trace/trace.c:1679:20: error: cast specifies array type
+
+That is because you did not apply the first patch of this series that
+fixes a bug in the macros.
+
+--376175846-1778199093-1378218876=:17065--
