@@ -1,81 +1,48 @@
-From: Christoph Lameter <cl@linux.com>
-Subject: Re: [gcv v3 27/35] arm: Replace __get_cpu_var uses
-Date: Tue, 3 Sep 2013 14:39:57 +0000
-Message-ID: <00000140e4440576-ae4236ee-3073-4f94-b569-d17396e57513-000000@email.amazonses.com>
-References: <20130828193457.140443630@linux.com> <00000140c67834c9-cc2bec76-2d70-48d1-a35b-6e2d5dedf22b-000000@email.amazonses.com> <20130830100105.GF25628@mudshark.cambridge.arm.com>
+From: Frederic Weisbecker <fweisbec@gmail.com>
+Subject: Re: [gcv v3 06/35] scheduler: Replace __get_cpu_var uses
+Date: Tue, 3 Sep 2013 16:45:45 +0200
+Message-ID: <CAFTL4hyEuePJC4GG60DqQCfu-JiV9krRCf3FwWAy15Hyzu2AUw@mail.gmail.com>
+References: <20130828193457.140443630@linux.com>
+	<00000140c67817eb-b582280a-f059-499f-a24c-a11f3d59b86e-000000@email.amazonses.com>
+	<20130829075818.GW10002@twins.programming.kicks-ass.net>
+	<20130829100143.GA29672@gmail.com>
+	<00000140cb02576f-e106763c-d382-4b66-bb85-d7a9cb266b81-000000@email.amazonses.com>
+	<20130829173256.GB6276@home.goodmis.org>
+	<00000140cb49bdde-1279ffb0-5c49-400d-970c-a481d527e98a-000000@email.amazonses.com>
+	<20130829143053.3fc2caa8@gandalf.local.home>
+	<00000140e4373c9e-ea44cb7f-985f-4d33-86ed-cfd54ec7327b-000000@email.amazonses.com>
 Mime-Version: 1.0
-Content-Type: MULTIPART/MIXED; BOUNDARY="376175846-1704481339-1378219230=:17065"
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a9-78.smtp-out.amazonses.com ([54.240.9.78]:48995 "EHLO
-	a9-78.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755057Ab3ICOj7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Sep 2013 10:39:59 -0400
-In-Reply-To: <20130830100105.GF25628@mudshark.cambridge.arm.com>
+Received: from mail-la0-f54.google.com ([209.85.215.54]:33721 "EHLO
+	mail-la0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754058Ab3ICOpq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Sep 2013 10:45:46 -0400
+In-Reply-To: <00000140e4373c9e-ea44cb7f-985f-4d33-86ed-cfd54ec7327b-000000@email.amazonses.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Tejun Heo <tj@kernel.org>, "akpm@linuxfoundation.org" <akpm@linuxfoundation.org>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Steven Rostedt <srostedt@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: Christoph Lameter <cl@linux.com>
+Cc: Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, Ingo Molnar <mingo@redhat.com>, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>
 
-  This message is in MIME format.  The first part should be readable text,
-  while the remaining parts are likely unreadable without MIME-aware tools.
-
---376175846-1704481339-1378219230=:17065
-Content-Type: TEXT/PLAIN; charset=utf-8
-Content-Transfer-Encoding: 8BIT
-
-On Fri, 30 Aug 2013, Will Deacon wrote:
-
-> This is the flavour we have for ARM's hw_breakpoint code, where we have an
-> array of perf_event * instead of int...
+2013/9/3 Christoph Lameter <cl@linux.com>:
+> On Thu, 29 Aug 2013, Steven Rostedt wrote:
 >
-> > Index: linux/arch/arm/kernel/hw_breakpoint.c
-> > ===================================================================
-> > --- linux.orig/arch/arm/kernel/hw_breakpoint.c  2013-08-26 13:48:40.956794980 -0500
-> > +++ linux/arch/arm/kernel/hw_breakpoint.c       2013-08-26 13:48:40.952795024 -0500
-> > @@ -344,13 +344,13 @@ int arch_install_hw_breakpoint(struct pe
-> >                 /* Breakpoint */
-> >                 ctrl_base = ARM_BASE_BCR;
-> >                 val_base = ARM_BASE_BVR;
-> > -               slots = (struct perf_event **)__get_cpu_var(bp_on_reg);
-> > +               slots = (struct perf_event **)__this_cpu_read(bp_on_reg);
+>> How many places use the this_cpu_*() without preemption disabled? I
+>> wouldn't think there's many. I never complained about another variant,
+>> so you need to ask those that have. The tough question for me is what
+>> that variant name should be ;-)
 >
-> ...so I don't think this is quite right, and indeed, we get a bunch of errors
-> from GCC:
+> Tried to add preemption checks but the basic issue is that many of the
+> checks themselves use this_cpu_ops. percpu.h is very basic to the
+> operation of fundamental primitives for preempt etc. Use of a BUG_ON needs
+> a seris of includes in percpu.h that cause more trouble.
 >
-> arch/arm/kernel/hw_breakpoint.c: In function ‘arch_install_hw_breakpoint’:
-> arch/arm/kernel/hw_breakpoint.c:347:33: error: incompatible types when assigning to type ‘struct perf_event *[16]’ from type ‘struct perf_event **’
-> arch/arm/kernel/hw_breakpoint.c:347:1: error: incompatible types when assigning to type ‘struct perf_event *[16]’ from type ‘struct perf_event **’
-> arch/arm/kernel/hw_breakpoint.c:347:1: error: incompatible types when assigning to type ‘struct perf_event *[16]’ from type ‘struct perf_event **’
-> arch/arm/kernel/hw_breakpoint.c:347:1: error: incompatible types when assigning to type ‘struct perf_event *[16]’ from type ‘struct perf_event **’
+> If I switch __this_cpu ops to check for preemption then the logic for
+> preemption etc must use the raw_this_cpu ops.
 
-Did you apply the first patch of this series which is a bug fix?
+IIUC the issue is that preempt debug checks themselves use per cpu
+operations that can result in preempt debug checks? Hence a recursion.
+Do you have an example of that?
 
-> changing to match your recipe still doesn't work, however:
->
-> arch/arm/kernel/hw_breakpoint.c: In function ‘arch_install_hw_breakpoint’:
-> arch/arm/kernel/hw_breakpoint.c:347:33: error: cast specifies array type
-
-Yep that is the macro bug that was fixed in the first patch.
-
-> >
-> >         WARN_ON(preemptible());
-> >
-> > -       if (local_inc_return(&__get_cpu_var(mde_ref_count)) == 1)
-> > +       if (this_cpu_inc_return(mde_ref_count) == 1)
-> >                 enable = DBG_MDSCR_MDE;
->
-> I'm not sure that this is safe. We rely on local_inc_return to be atomic
-> with respect to the current CPU, which will end up being a wrapper around
-> atomic64_inc_return. However, this_cpu_inc_return simply uses a lock, so
-> other people accessing the count in a different manner (local_dec_and_test
-> below) may break local atomicity unless we start disabling interrupts or
-> something horrible like that.
-
-I do not see any special code for ARM for this_cpu_inc_return. The
-fallback solution in the core code is to disable interrupts for the
-inc_return and arch/arm/include/asm/percpu.h includes
-asm-generic/percpu.h.
-
-Where did you see it using a lock?
-
---376175846-1704481339-1378219230=:17065--
+Also in this case this must be fixed anyway given the checks that
+already exist in smp_processor_id(), __get_cpu_var(), ...
