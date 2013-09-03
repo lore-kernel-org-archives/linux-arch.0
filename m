@@ -1,122 +1,269 @@
 From: Christoph Lameter <cl@linux.com>
-Subject: [gcv v4 03/38] Subject; percpu: Add raw_cpu_ops
-Date: Tue, 3 Sep 2013 20:12:19 +0000
-Message-ID: <00000140e5745029-f4163dec-02e5-47a1-a36a-9802ebe0e151-000000@email.amazonses.com>
+Subject: [gcv v4 13/38] rcu: Replace __get_cpu_var uses
+Date: Tue, 3 Sep 2013 20:12:20 +0000
+Message-ID: <00000140e5745041-26a1ab6c-ed21-4fc4-8c76-256783ca81fa-000000@email.amazonses.com>
 References: <20130903190014.794420260@linux.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a9-99.smtp-out.amazonses.com ([54.240.9.99]:60007 "EHLO
-	a9-99.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755623Ab3ICUMZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Sep 2013 16:12:25 -0400
+Received: from a9-54.smtp-out.amazonses.com ([54.240.9.54]:39305 "EHLO
+	a9-54.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755657Ab3ICUTm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Sep 2013 16:19:42 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>
+Cc: akpm@linuxfoundation.org, Dipankar Sarma <dipankar@in.ibm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>
 
-The following patches add preemption checks to __this_cpu ops so we need
-to have an alternative way to use this cpu operations without all checks.
+__get_cpu_var() is used for multiple purposes in the kernel source. One of them is
+address calculation via the form &__get_cpu_var(x). This calculates the address for
+the instance of the percpu variable of the current processor based on an offset.
 
-raw_cpu ops rely on the __this_cpu_xxx_1/2/4/8 operations having no
-preemption checks. We therefore do not have to duplicate these functions
-but can affort to only duplicate the higher level macros.
+Other use cases are for storing and retrieving data from the current processors percpu area.
+__get_cpu_var() can be used as an lvalue when writing data or on the right side of an assignment.
+
+__get_cpu_var() is defined as :
+
+
+#define __get_cpu_var(var) (*this_cpu_ptr(&(var)))
+
+
+
+__get_cpu_var() always only does an address determination. However, store and retrieve operations
+could use a segment prefix (or global register on other platforms) to avoid the address calculation.
+
+this_cpu_write() and this_cpu_read() can directly take an offset into a percpu area and use
+optimized assembly code to read and write per cpu variables.
+
+
+This patch converts __get_cpu_var into either an explicit address calculation using this_cpu_ptr()
+or into a use of this_cpu operations that use the offset. Thereby address calculations are avoided
+and less registers are used when code is generated.
+
+At the end of the patch set all uses of __get_cpu_var have been removed so the macro is removed too.
+
+The patch set includes passes over all arches as well. Once these operations are used throughout then
+specialized macros can be defined in non -x86 arches as well in order to optimize per cpu access by
+f.e. using a global register that may be set to the per cpu base.
+
+
+
+
+Transformations done to __get_cpu_var()
+
+
+1. Determine the address of the percpu instance of the current processor.
+
+	DEFINE_PER_CPU(int, y);
+	int *x = &__get_cpu_var(y);
+
+    Converts to
+
+	int *x = this_cpu_ptr(&y);
+
+
+2. Same as #1 but this time an array structure is involved.
+
+	DEFINE_PER_CPU(int, y[20]);
+	int *x = __get_cpu_var(y);
+
+    Converts to
+
+	int *x = this_cpu_ptr(y);
+
+
+3. Retrieve the content of the current processors instance of a per cpu variable.
+
+	DEFINE_PER_CPU(int, y);
+	int x = __get_cpu_var(y)
+
+   Converts to
+
+	int x = __this_cpu_read(y);
+
+
+4. Retrieve the content of a percpu struct
+
+	DEFINE_PER_CPU(struct mystruct, y);
+	struct mystruct x = __get_cpu_var(y);
+
+   Converts to
+
+	memcpy(&x, this_cpu_ptr(&y), sizeof(x));
+
+
+5. Assignment to a per cpu variable
+
+	DEFINE_PER_CPU(int, y)
+	__get_cpu_var(y) = x;
+
+   Converts to
+
+	this_cpu_write(y, x);
+
+
+6. Increment/Decrement etc of a per cpu variable
+
+	DEFINE_PER_CPU(int, y);
+	__get_cpu_var(y)++
+
+   Converts to
+
+	this_cpu_inc(y)
 
 Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Index: linux/include/linux/percpu.h
+Index: linux/kernel/rcutree.c
 ===================================================================
---- linux.orig/include/linux/percpu.h	2013-09-03 13:31:40.519232161 -0500
-+++ linux/include/linux/percpu.h	2013-09-03 13:37:30.511691516 -0500
-@@ -520,17 +520,7 @@ do {									\
+--- linux.orig/kernel/rcutree.c	2013-08-26 14:27:35.000000000 -0500
++++ linux/kernel/rcutree.c	2013-08-26 14:28:13.959886770 -0500
+@@ -383,7 +383,7 @@ static void rcu_eqs_enter(bool user)
+ 	long long oldval;
+ 	struct rcu_dynticks *rdtp;
+ 
+-	rdtp = &__get_cpu_var(rcu_dynticks);
++	rdtp = this_cpu_ptr(&rcu_dynticks);
+ 	oldval = rdtp->dynticks_nesting;
+ 	WARN_ON_ONCE((oldval & DYNTICK_TASK_NEST_MASK) == 0);
+ 	if ((oldval & DYNTICK_TASK_NEST_MASK) == DYNTICK_TASK_NEST_VALUE)
+@@ -443,7 +443,7 @@ void rcu_user_enter_after_irq(void)
+ 	struct rcu_dynticks *rdtp;
+ 
+ 	local_irq_save(flags);
+-	rdtp = &__get_cpu_var(rcu_dynticks);
++	rdtp = this_cpu_ptr(&rcu_dynticks);
+ 	/* Ensure this irq is interrupting a non-idle RCU state.  */
+ 	WARN_ON_ONCE(!(rdtp->dynticks_nesting & DYNTICK_TASK_MASK));
+ 	rdtp->dynticks_nesting = 1;
+@@ -474,7 +474,7 @@ void rcu_irq_exit(void)
+ 	struct rcu_dynticks *rdtp;
+ 
+ 	local_irq_save(flags);
+-	rdtp = &__get_cpu_var(rcu_dynticks);
++	rdtp = this_cpu_ptr(&rcu_dynticks);
+ 	oldval = rdtp->dynticks_nesting;
+ 	rdtp->dynticks_nesting--;
+ 	WARN_ON_ONCE(rdtp->dynticks_nesting < 0);
+@@ -523,7 +523,7 @@ static void rcu_eqs_exit(bool user)
+ 	struct rcu_dynticks *rdtp;
+ 	long long oldval;
+ 
+-	rdtp = &__get_cpu_var(rcu_dynticks);
++	rdtp = this_cpu_ptr(&rcu_dynticks);
+ 	oldval = rdtp->dynticks_nesting;
+ 	WARN_ON_ONCE(oldval < 0);
+ 	if (oldval & DYNTICK_TASK_NEST_MASK)
+@@ -581,7 +581,7 @@ void rcu_user_exit_after_irq(void)
+ 	struct rcu_dynticks *rdtp;
+ 
+ 	local_irq_save(flags);
+-	rdtp = &__get_cpu_var(rcu_dynticks);
++	rdtp = this_cpu_ptr(&rcu_dynticks);
+ 	/* Ensure we are interrupting an RCU idle mode. */
+ 	WARN_ON_ONCE(rdtp->dynticks_nesting & DYNTICK_TASK_NEST_MASK);
+ 	rdtp->dynticks_nesting += DYNTICK_TASK_EXIT_IDLE;
+@@ -615,7 +615,7 @@ void rcu_irq_enter(void)
+ 	long long oldval;
+ 
+ 	local_irq_save(flags);
+-	rdtp = &__get_cpu_var(rcu_dynticks);
++	rdtp = this_cpu_ptr(&rcu_dynticks);
+ 	oldval = rdtp->dynticks_nesting;
+ 	rdtp->dynticks_nesting++;
+ 	WARN_ON_ONCE(rdtp->dynticks_nesting == 0);
+@@ -635,7 +635,7 @@ void rcu_irq_enter(void)
+  */
+ void rcu_nmi_enter(void)
+ {
+-	struct rcu_dynticks *rdtp = &__get_cpu_var(rcu_dynticks);
++	struct rcu_dynticks *rdtp = this_cpu_ptr(&rcu_dynticks);
+ 
+ 	if (rdtp->dynticks_nmi_nesting == 0 &&
+ 	    (atomic_read(&rdtp->dynticks) & 0x1))
+@@ -657,7 +657,7 @@ void rcu_nmi_enter(void)
+  */
+ void rcu_nmi_exit(void)
+ {
+-	struct rcu_dynticks *rdtp = &__get_cpu_var(rcu_dynticks);
++	struct rcu_dynticks *rdtp = this_cpu_ptr(&rcu_dynticks);
+ 
+ 	if (rdtp->dynticks_nmi_nesting == 0 ||
+ 	    --rdtp->dynticks_nmi_nesting != 0)
+@@ -680,7 +680,7 @@ int rcu_is_cpu_idle(void)
+ 	int ret;
+ 
+ 	preempt_disable();
+-	ret = (atomic_read(&__get_cpu_var(rcu_dynticks).dynticks) & 0x1) == 0;
++	ret = (atomic_read(this_cpu_ptr(&rcu_dynticks.dynticks)) & 0x1) == 0;
+ 	preempt_enable();
+ 	return ret;
+ }
+@@ -718,7 +718,7 @@ bool rcu_lockdep_current_cpu_online(void
+ 	if (in_nmi())
+ 		return 1;
+ 	preempt_disable();
+-	rdp = &__get_cpu_var(rcu_sched_data);
++	rdp = this_cpu_ptr(&rcu_sched_data);
+ 	rnp = rdp->mynode;
+ 	ret = (rdp->grpmask & rnp->qsmaskinit) ||
+ 	      !rcu_scheduler_fully_active;
+@@ -738,7 +738,7 @@ EXPORT_SYMBOL_GPL(rcu_lockdep_current_cp
+  */
+ static int rcu_is_cpu_rrupt_from_idle(void)
+ {
+-	return __get_cpu_var(rcu_dynticks).dynticks_nesting <= 1;
++	return __this_cpu_read(rcu_dynticks.dynticks_nesting) <= 1;
+ }
  
  /*
-  * Generic percpu operations for context that are safe from preemption/interrupts.
-- * Either we do not care about races or the caller has the
-- * responsibility of handling preemption/interrupt issues. Arch code can still
-- * override these instructions since the arch per cpu code may be more
-- * efficient and may actually get race freeness for free (that is the
-- * case for x86 for example).
-- *
-- * If there is no other protection through preempt disable and/or
-- * disabling interupts then one of these RMW operations can show unexpected
-- * behavior because the execution thread was rescheduled on another processor
-- * or an interrupt occurred and the same percpu variable was modified from
-- * the interrupt context.
-+ * These functions verify that preemption has been disabled.
-  */
- #ifndef __this_cpu_read
- # ifndef __this_cpu_read_1
-@@ -755,4 +745,74 @@ do {									\
- 	__pcpu_double_call_return_bool(__this_cpu_cmpxchg_double_, (pcp1), (pcp2), (oval1), (oval2), (nval1), (nval2))
- #endif
+Index: linux/kernel/rcutree_plugin.h
+===================================================================
+--- linux.orig/kernel/rcutree_plugin.h	2013-08-26 14:27:35.000000000 -0500
++++ linux/kernel/rcutree_plugin.h	2013-08-26 14:28:13.963886728 -0500
+@@ -662,7 +662,7 @@ static void rcu_preempt_check_callbacks(
  
-+/*
-+ * Generic percpu operations for context where we do not want to do
-+ * any checks for preemptiosn.
-+ *
-+ * If there is no other protection through preempt disable and/or
-+ * disabling interupts then one of these RMW operations can show unexpected
-+ * behavior because the execution thread was rescheduled on another processor
-+ * or an interrupt occurred and the same percpu variable was modified from
-+ * the interrupt context.
-+ */
-+#ifndef raw_cpu_read
-+# define raw_cpu_read(pcp)	__pcpu_size_call_return(__this_cpu_read_, (pcp))
-+#endif
-+
-+#ifndef raw_cpu_write
-+# define raw_cpu_write(pcp, val)	__pcpu_size_call(__this_cpu_write_, (pcp), (val))
-+#endif
-+
-+#ifndef raw_cpu_add
-+# define raw_cpu_add(pcp, val)	__pcpu_size_call(__this_cpu_add_, (pcp), (val))
-+#endif
-+
-+#ifndef raw_cpu_sub
-+# define raw_cpu_sub(pcp, val)	raw_cpu_add((pcp), -(val))
-+#endif
-+
-+#ifndef raw_cpu_inc
-+# define raw_cpu_inc(pcp)		raw_cpu_add((pcp), 1)
-+#endif
-+
-+#ifndef raw_cpu_dec
-+# define raw_cpu_dec(pcp)		raw_cpu_sub((pcp), 1)
-+#endif
-+
-+#ifndef raw_cpu_and
-+# define raw_cpu_and(pcp, val)	__pcpu_size_call(__this_cpu_and_, (pcp), (val))
-+#endif
-+
-+#ifndef raw_cpu_or
-+# define raw_cpu_or(pcp, val)	__pcpu_size_call(__this_cpu_or_, (pcp), (val))
-+#endif
-+
-+#ifndef raw_cpu_xor
-+# define raw_cpu_xor(pcp, val)	__pcpu_size_call(__this_cpu_xor_, (pcp), (val))
-+#endif
-+
-+#ifndef raw_cpu_add_return
-+# define raw_cpu_add_return(pcp, val)	\
-+	__pcpu_size_call_return2(__this_cpu_add_return_, pcp, val)
-+#endif
-+
-+#define raw_cpu_sub_return(pcp, val)	raw_cpu_add_return(pcp, -(val))
-+#define raw_cpu_inc_return(pcp)	raw_cpu_add_return(pcp, 1)
-+#define raw_cpu_dec_return(pcp)	raw_cpu_add_return(pcp, -1)
-+
-+#ifndef raw_cpu_xchg
-+# define raw_cpu_xchg(pcp, nval)	\
-+	__pcpu_size_call_return2(__this_cpu_xchg_, (pcp), nval)
-+#endif
-+
-+#ifndef raw_cpu_cmpxchg
-+# define raw_cpu_cmpxchg(pcp, oval, nval)	\
-+	__pcpu_size_call_return2(__this_cpu_cmpxchg_, pcp, oval, nval)
-+#endif
-+
-+#ifndef raw_cpu_cmpxchg_double
-+# define raw_cpu_cmpxchg_double(pcp1, pcp2, oval1, oval2, nval1, nval2)	\
-+	__pcpu_double_call_return_bool(__this_cpu_cmpxchg_double_, (pcp1), (pcp2), (oval1), (oval2), (nval1), (nval2))
-+#endif
-+
- #endif /* __LINUX_PERCPU_H */
+ static void rcu_preempt_do_callbacks(void)
+ {
+-	rcu_do_batch(&rcu_preempt_state, &__get_cpu_var(rcu_preempt_data));
++	rcu_do_batch(&rcu_preempt_state, this_cpu_ptr(&rcu_preempt_data));
+ }
+ 
+ #endif /* #ifdef CONFIG_RCU_BOOST */
+@@ -1334,7 +1334,7 @@ static void invoke_rcu_callbacks_kthread
+  */
+ static bool rcu_is_callbacks_kthread(void)
+ {
+-	return __get_cpu_var(rcu_cpu_kthread_task) == current;
++	return __this_cpu_read(rcu_cpu_kthread_task) == current;
+ }
+ 
+ #define RCU_BOOST_DELAY_JIFFIES DIV_ROUND_UP(CONFIG_RCU_BOOST_DELAY * HZ, 1000)
+@@ -1384,8 +1384,8 @@ static int rcu_spawn_one_boost_kthread(s
+ 
+ static void rcu_kthread_do_work(void)
+ {
+-	rcu_do_batch(&rcu_sched_state, &__get_cpu_var(rcu_sched_data));
+-	rcu_do_batch(&rcu_bh_state, &__get_cpu_var(rcu_bh_data));
++	rcu_do_batch(&rcu_sched_state, this_cpu_ptr(&rcu_sched_data));
++	rcu_do_batch(&rcu_bh_state, this_cpu_ptr(&rcu_bh_data));
+ 	rcu_preempt_do_callbacks();
+ }
+ 
+@@ -1404,7 +1404,7 @@ static void rcu_cpu_kthread_park(unsigne
+ 
+ static int rcu_cpu_kthread_should_run(unsigned int cpu)
+ {
+-	return __get_cpu_var(rcu_cpu_has_work);
++	return __this_cpu_read(rcu_cpu_has_work);
+ }
+ 
+ /*
+@@ -1414,8 +1414,8 @@ static int rcu_cpu_kthread_should_run(un
+  */
+ static void rcu_cpu_kthread(unsigned int cpu)
+ {
+-	unsigned int *statusp = &__get_cpu_var(rcu_cpu_kthread_status);
+-	char work, *workp = &__get_cpu_var(rcu_cpu_has_work);
++	unsigned int *statusp = this_cpu_ptr(&rcu_cpu_kthread_status);
++	char work, *workp = this_cpu_ptr(&rcu_cpu_has_work);
+ 	int spincnt;
+ 
+ 	for (spincnt = 0; spincnt < 10; spincnt++) {
