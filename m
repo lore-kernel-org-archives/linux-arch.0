@@ -1,193 +1,122 @@
 From: Christoph Lameter <cl@linux.com>
-Subject: [gcv v4 12/38] block: Replace __get_cpu_var uses
-Date: Tue, 3 Sep 2013 19:32:21 +0000
-Message-ID: <00000140e54fb0bf-9197ad52-1637-4a8c-b854-ee1fa9b5fe42-000000@email.amazonses.com>
+Subject: [gcv v4 03/38] Subject; percpu: Add raw_cpu_ops
+Date: Tue, 3 Sep 2013 20:12:19 +0000
+Message-ID: <00000140e5745029-f4163dec-02e5-47a1-a36a-9802ebe0e151-000000@email.amazonses.com>
 References: <20130903190014.794420260@linux.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from a9-99.smtp-out.amazonses.com ([54.240.9.99]:60007 "EHLO
+	a9-99.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755623Ab3ICUMZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Sep 2013 16:12:25 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, Jens Axboe <axboe@kernel.dk>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>
 
-__get_cpu_var() is used for multiple purposes in the kernel source. One of them is
-address calculation via the form &__get_cpu_var(x). This calculates the address for
-the instance of the percpu variable of the current processor based on an offset.
+The following patches add preemption checks to __this_cpu ops so we need
+to have an alternative way to use this cpu operations without all checks.
 
-Other use cases are for storing and retrieving data from the current processors percpu area.
-__get_cpu_var() can be used as an lvalue when writing data or on the right side of an assignment.
-
-__get_cpu_var() is defined as :
-
-
-#define __get_cpu_var(var) (*this_cpu_ptr(&(var)))
-
-
-
-__get_cpu_var() always only does an address determination. However, store and retrieve operations
-could use a segment prefix (or global register on other platforms) to avoid the address calculation.
-
-this_cpu_write() and this_cpu_read() can directly take an offset into a percpu area and use
-optimized assembly code to read and write per cpu variables.
-
-
-This patch converts __get_cpu_var into either an explicit address calculation using this_cpu_ptr()
-or into a use of this_cpu operations that use the offset. Thereby address calculations are avoided
-and less registers are used when code is generated.
-
-At the end of the patch set all uses of __get_cpu_var have been removed so the macro is removed too.
-
-The patch set includes passes over all arches as well. Once these operations are used throughout then
-specialized macros can be defined in non -x86 arches as well in order to optimize per cpu access by
-f.e. using a global register that may be set to the per cpu base.
-
-
-
-
-Transformations done to __get_cpu_var()
-
-
-1. Determine the address of the percpu instance of the current processor.
-
-	DEFINE_PER_CPU(int, y);
-	int *x = &__get_cpu_var(y);
-
-    Converts to
-
-	int *x = this_cpu_ptr(&y);
-
-
-2. Same as #1 but this time an array structure is involved.
-
-	DEFINE_PER_CPU(int, y[20]);
-	int *x = __get_cpu_var(y);
-
-    Converts to
-
-	int *x = this_cpu_ptr(y);
-
-
-3. Retrieve the content of the current processors instance of a per cpu variable.
-
-	DEFINE_PER_CPU(int, y);
-	int x = __get_cpu_var(y)
-
-   Converts to
-
-	int x = __this_cpu_read(y);
-
-
-4. Retrieve the content of a percpu struct
-
-	DEFINE_PER_CPU(struct mystruct, y);
-	struct mystruct x = __get_cpu_var(y);
-
-   Converts to
-
-	memcpy(&x, this_cpu_ptr(&y), sizeof(x));
-
-
-5. Assignment to a per cpu variable
-
-	DEFINE_PER_CPU(int, y)
-	__get_cpu_var(y) = x;
-
-   Converts to
-
-	this_cpu_write(y, x);
-
-
-6. Increment/Decrement etc of a per cpu variable
-
-	DEFINE_PER_CPU(int, y);
-	__get_cpu_var(y)++
-
-   Converts to
-
-	this_cpu_inc(y)
+raw_cpu ops rely on the __this_cpu_xxx_1/2/4/8 operations having no
+preemption checks. We therefore do not have to duplicate these functions
+but can affort to only duplicate the higher level macros.
 
 Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Index: linux/block/blk-iopoll.c
+Index: linux/include/linux/percpu.h
 ===================================================================
---- linux.orig/block/blk-iopoll.c	2013-08-26 14:36:07.858875667 -0500
-+++ linux/block/blk-iopoll.c	2013-08-26 14:36:07.850875751 -0500
-@@ -35,7 +35,7 @@ void blk_iopoll_sched(struct blk_iopoll
- 	unsigned long flags;
+--- linux.orig/include/linux/percpu.h	2013-09-03 13:31:40.519232161 -0500
++++ linux/include/linux/percpu.h	2013-09-03 13:37:30.511691516 -0500
+@@ -520,17 +520,7 @@ do {									\
  
- 	local_irq_save(flags);
--	list_add_tail(&iop->list, &__get_cpu_var(blk_cpu_iopoll));
-+	list_add_tail(&iop->list, this_cpu_ptr(&blk_cpu_iopoll));
- 	__raise_softirq_irqoff(BLOCK_IOPOLL_SOFTIRQ);
- 	local_irq_restore(flags);
- }
-@@ -79,7 +79,7 @@ EXPORT_SYMBOL(blk_iopoll_complete);
- 
- static void blk_iopoll_softirq(struct softirq_action *h)
- {
--	struct list_head *list = &__get_cpu_var(blk_cpu_iopoll);
-+	struct list_head *list = this_cpu_ptr(&blk_cpu_iopoll);
- 	int rearm = 0, budget = blk_iopoll_budget;
- 	unsigned long start_time = jiffies;
- 
-@@ -201,7 +201,7 @@ static int blk_iopoll_cpu_notify(struct
- 
- 		local_irq_disable();
- 		list_splice_init(&per_cpu(blk_cpu_iopoll, cpu),
--				 &__get_cpu_var(blk_cpu_iopoll));
-+				 this_cpu_ptr(&blk_cpu_iopoll));
- 		__raise_softirq_irqoff(BLOCK_IOPOLL_SOFTIRQ);
- 		local_irq_enable();
- 	}
-Index: linux/block/blk-softirq.c
-===================================================================
---- linux.orig/block/blk-softirq.c	2013-08-26 14:36:07.858875667 -0500
-+++ linux/block/blk-softirq.c	2013-08-26 14:36:07.854875709 -0500
-@@ -23,7 +23,7 @@ static void blk_done_softirq(struct soft
- 	struct list_head *cpu_list, local_list;
- 
- 	local_irq_disable();
--	cpu_list = &__get_cpu_var(blk_cpu_done);
-+	cpu_list = this_cpu_ptr(&blk_cpu_done);
- 	list_replace_init(cpu_list, &local_list);
- 	local_irq_enable();
- 
-@@ -44,7 +44,7 @@ static void trigger_softirq(void *data)
- 	struct list_head *list;
- 
- 	local_irq_save(flags);
--	list = &__get_cpu_var(blk_cpu_done);
-+	list = this_cpu_ptr(&blk_cpu_done);
- 	list_add_tail(&rq->csd.list, list);
- 
- 	if (list->next == &rq->csd.list)
-@@ -90,7 +90,7 @@ static int blk_cpu_notify(struct notifie
- 
- 		local_irq_disable();
- 		list_splice_init(&per_cpu(blk_cpu_done, cpu),
--				 &__get_cpu_var(blk_cpu_done));
-+				 this_cpu_ptr(&blk_cpu_done));
- 		raise_softirq_irqoff(BLOCK_SOFTIRQ);
- 		local_irq_enable();
- 	}
-@@ -135,7 +135,7 @@ void __blk_complete_request(struct reque
- 	if (ccpu == cpu || shared) {
- 		struct list_head *list;
- do_local:
--		list = &__get_cpu_var(blk_cpu_done);
-+		list = this_cpu_ptr(&blk_cpu_done);
- 		list_add_tail(&req->csd.list, list);
- 
- 		/*
-Index: linux/fs/fscache/object.c
-===================================================================
---- linux.orig/fs/fscache/object.c	2013-08-26 14:36:07.858875667 -0500
-+++ linux/fs/fscache/object.c	2013-08-26 14:36:07.854875709 -0500
-@@ -796,7 +796,7 @@ void fscache_enqueue_object(struct fscac
+ /*
+  * Generic percpu operations for context that are safe from preemption/interrupts.
+- * Either we do not care about races or the caller has the
+- * responsibility of handling preemption/interrupt issues. Arch code can still
+- * override these instructions since the arch per cpu code may be more
+- * efficient and may actually get race freeness for free (that is the
+- * case for x86 for example).
+- *
+- * If there is no other protection through preempt disable and/or
+- * disabling interupts then one of these RMW operations can show unexpected
+- * behavior because the execution thread was rescheduled on another processor
+- * or an interrupt occurred and the same percpu variable was modified from
+- * the interrupt context.
++ * These functions verify that preemption has been disabled.
   */
- bool fscache_object_sleep_till_congested(signed long *timeoutp)
- {
--	wait_queue_head_t *cong_wq = &__get_cpu_var(fscache_object_cong_wait);
-+	wait_queue_head_t *cong_wq = this_cpu_ptr(&fscache_object_cong_wait);
- 	DEFINE_WAIT(wait);
+ #ifndef __this_cpu_read
+ # ifndef __this_cpu_read_1
+@@ -755,4 +745,74 @@ do {									\
+ 	__pcpu_double_call_return_bool(__this_cpu_cmpxchg_double_, (pcp1), (pcp2), (oval1), (oval2), (nval1), (nval2))
+ #endif
  
- 	if (fscache_object_congested())
++/*
++ * Generic percpu operations for context where we do not want to do
++ * any checks for preemptiosn.
++ *
++ * If there is no other protection through preempt disable and/or
++ * disabling interupts then one of these RMW operations can show unexpected
++ * behavior because the execution thread was rescheduled on another processor
++ * or an interrupt occurred and the same percpu variable was modified from
++ * the interrupt context.
++ */
++#ifndef raw_cpu_read
++# define raw_cpu_read(pcp)	__pcpu_size_call_return(__this_cpu_read_, (pcp))
++#endif
++
++#ifndef raw_cpu_write
++# define raw_cpu_write(pcp, val)	__pcpu_size_call(__this_cpu_write_, (pcp), (val))
++#endif
++
++#ifndef raw_cpu_add
++# define raw_cpu_add(pcp, val)	__pcpu_size_call(__this_cpu_add_, (pcp), (val))
++#endif
++
++#ifndef raw_cpu_sub
++# define raw_cpu_sub(pcp, val)	raw_cpu_add((pcp), -(val))
++#endif
++
++#ifndef raw_cpu_inc
++# define raw_cpu_inc(pcp)		raw_cpu_add((pcp), 1)
++#endif
++
++#ifndef raw_cpu_dec
++# define raw_cpu_dec(pcp)		raw_cpu_sub((pcp), 1)
++#endif
++
++#ifndef raw_cpu_and
++# define raw_cpu_and(pcp, val)	__pcpu_size_call(__this_cpu_and_, (pcp), (val))
++#endif
++
++#ifndef raw_cpu_or
++# define raw_cpu_or(pcp, val)	__pcpu_size_call(__this_cpu_or_, (pcp), (val))
++#endif
++
++#ifndef raw_cpu_xor
++# define raw_cpu_xor(pcp, val)	__pcpu_size_call(__this_cpu_xor_, (pcp), (val))
++#endif
++
++#ifndef raw_cpu_add_return
++# define raw_cpu_add_return(pcp, val)	\
++	__pcpu_size_call_return2(__this_cpu_add_return_, pcp, val)
++#endif
++
++#define raw_cpu_sub_return(pcp, val)	raw_cpu_add_return(pcp, -(val))
++#define raw_cpu_inc_return(pcp)	raw_cpu_add_return(pcp, 1)
++#define raw_cpu_dec_return(pcp)	raw_cpu_add_return(pcp, -1)
++
++#ifndef raw_cpu_xchg
++# define raw_cpu_xchg(pcp, nval)	\
++	__pcpu_size_call_return2(__this_cpu_xchg_, (pcp), nval)
++#endif
++
++#ifndef raw_cpu_cmpxchg
++# define raw_cpu_cmpxchg(pcp, oval, nval)	\
++	__pcpu_size_call_return2(__this_cpu_cmpxchg_, pcp, oval, nval)
++#endif
++
++#ifndef raw_cpu_cmpxchg_double
++# define raw_cpu_cmpxchg_double(pcp1, pcp2, oval1, oval2, nval1, nval2)	\
++	__pcpu_double_call_return_bool(__this_cpu_cmpxchg_double_, (pcp1), (pcp2), (oval1), (oval2), (nval1), (nval2))
++#endif
++
+ #endif /* __LINUX_PERCPU_H */
