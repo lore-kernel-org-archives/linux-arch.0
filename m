@@ -1,42 +1,79 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH 03/25] avr32: Use Kbuild infrastructure to handle
- asm-generic headers
-Date: Wed, 4 Sep 2013 11:44:26 -0400
-Message-ID: <20130904114426.72b979c5@gandalf.local.home>
-References: <20121013022632.024527228@goodmis.org>
-	<20121013022952.855483404@goodmis.org>
-	<20130901205551.GA21140@samfundet.no>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [gcv v3 27/35] arm: Replace __get_cpu_var uses
+Date: Wed, 4 Sep 2013 18:46:24 +0100
+Message-ID: <20130904174624.GB5599@mudshark.cambridge.arm.com>
+References: <20130828193457.140443630@linux.com>
+ <00000140c67834c9-cc2bec76-2d70-48d1-a35b-6e2d5dedf22b-000000@email.amazonses.com>
+ <20130830100105.GF25628@mudshark.cambridge.arm.com>
+ <00000140e4440576-ae4236ee-3073-4f94-b569-d17396e57513-000000@email.amazonses.com>
+ <20130904093335.GA8007@mudshark.cambridge.arm.com>
+ <00000140e9557be9-1523eeab-c0f6-45a0-881c-9336a8a6cf85-000000@email.amazonses.com>
+ <20130904142324.GD3643@mudshark.cambridge.arm.com>
+ <00000140e97747d2-ee164a4d-d692-409a-a919-083eff3a41ca-000000@email.amazonses.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:18932 "EHLO
-	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934868Ab3IDPo1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Sep 2013 11:44:27 -0400
-In-Reply-To: <20130901205551.GA21140@samfundet.no>
+Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:52948 "EHLO
+	cam-smtp0.cambridge.arm.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1762822Ab3IDRrH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Sep 2013 13:47:07 -0400
+Content-Disposition: inline
+In-Reply-To: <00000140e97747d2-ee164a4d-d692-409a-a919-083eff3a41ca-000000@email.amazonses.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Haavard Skinnemoen <hskinnemoen@gmail.com>
+To: Christoph Lameter <cl@linux.com>
+Cc: Tejun Heo <tj@kernel.org>, "akpm@linuxfoundation.org" <akpm@linuxfoundation.org>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Steven Rostedt <srostedt@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-On Sun, 1 Sep 2013 22:55:51 +0200
-Hans-Christian Egtvedt <egtvedt@samfundet.no> wrote:
+On Wed, Sep 04, 2013 at 03:54:04PM +0100, Christoph Lameter wrote:
+> On Wed, 4 Sep 2013, Will Deacon wrote:
+> 
+> > Hmm, why can't you get interrupted during atomic64_xchg? On ARM, we have the
+> > following sequence:
+> 
+> AFAICT atomic means one uninterruptible action.
 
-> Around Fri 12 Oct 2012 22:26:35 -0400 or thereabout, Steven Rostedt wrote:
-> 
-> Hello Steven,
-> 
-> > Use Kbuild infrastructure to handle the asm-generic headers
-> > and remove the wrapper headers that call them.
-> > 
-> > This only affects headers that do nothing but include the generic
-> > equivalent. It does not touch any header that does a little more.
-> 
-> Thank you for cleaning. A bit old this patch (yikes, almost a year), but I
-> cleaned it up a bit, and added it to my for-linus branch.
-> 
+I think it's more subtle than that, but this is all moot for ARM.
 
-Thanks,
+> >   static inline u64 atomic64_xchg(atomic64_t *ptr, u64 new)
+> >   {
+> >   	u64 result;
+> >   	unsigned long tmp;
+> >
+> >   	smp_mb();
+> >
+> >   	__asm__ __volatile__("@ atomic64_xchg\n"
+> >   "1:	ldrexd	%0, %H0, [%3]\n"
+> >   "	strexd	%1, %4, %H4, [%3]\n"
+> >   "	teq	%1, #0\n"
+> >   "	bne	1b"
+> >   	: "=&r" (result), "=&r" (tmp), "+Qo" (ptr->counter)
+> >   	: "r" (&ptr->counter), "r" (new)
+> >   	: "cc");
+> >
+> >   	smp_mb();
+> >
+> >   	return result;
+> >   }
+> >
+> > which relies on interrupts clearing the exclusive monitor to force us back
+> > around the loop in the inline asm. I could imagine other architectures doing
+> > similar, but only detecting the other writer if it used the same
+> > instructions.
+> 
+> Well I have never done ARM asm but this looks vaguely like a cmpxchg loop?
+> That would either perform an atomic change or fail and retry?
 
--- Steve
+Correct! The strexd instruction can fail if another access clears the
+exclusive monitor.
+
+> If so it still fits the definition of atomic. The change or fail operation
+> is atomic.
+
+On ARM, yes. I'm worried that there may be an architecture where the change-
+or-fail operation would only fail if the access from the interrupt handler
+*also* used that change-or-fail instruction, which isn't the case with
+this_cpu_inc.
+
+I have no idea if such an architecture exists :)
+
+Will
