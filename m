@@ -1,122 +1,106 @@
-From: Christoph Lameter <cl@linux.com>
-Subject: [gcv v4 14/38] percpu: Replace __get_cpu_var uses
-Date: Tue, 3 Sep 2013 22:32:20 +0000
-Message-ID: <00000140e5f47e59-1544fd5d-23d2-4757-ac4e-649678086cf0-000000@email.amazonses.com>
-References: <20130903190014.794420260@linux.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>
-List-Id: linux-arch.vger.kernel.org
+From: Christopher James Halse Rogers
+	<christopher.halse.rogers@canonical.com>
+Subject: [PATCH] dma-buf: Expose buffer size to userspace (v2)
+Date: Wed,  4 Sep 2013 13:15:49 +1000
+Message-ID: <1378264549-9185-1-git-send-email-christopher.halse.rogers@canonical.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from li226-30.members.linode.com ([173.255.216.30]:44728 "EHLO
+	mail.cooperteam.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752537Ab3IDDQN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Sep 2013 23:16:13 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: linaro-mm-sig@lists.linaro.org, dri-devel@lists.freedesktop.org, linux-media@vger.kernel.org, linux-arch@vger.kernel.org, robclark@gmail.com, maarten.lankhorst@canonical.com, sumit.semwal@linaro.org, Christopher James Halse Rogers <christopher.halse.rogers@canonical.com>
 
-__get_cpu_var() is used for multiple purposes in the kernel source. One of them is
-address calculation via the form &__get_cpu_var(x). This calculates the address for
-the instance of the percpu variable of the current processor based on an offset.
+Each dma-buf has an associated size and it's reasonable for userspace
+to want to know what it is.
 
-Other use cases are for storing and retrieving data from the current processors percpu area.
-__get_cpu_var() can be used as an lvalue when writing data or on the right side of an assignment.
+Since userspace already has an fd, expose the size using the
+size = lseek(fd, SEEK_END, 0); lseek(fd, SEEK_CUR, 0);
+idiom.
 
-__get_cpu_var() is defined as :
+v2: Added Daniel's sugeested documentation, with minor fixups
 
+Signed-off-by: Christopher James Halse Rogers <christopher.halse.rogers@canonical.com>
+Reviewed-by: Daniel Vetter <daniel.vetter@ffwll.ch>
+Tested-by: Daniel Vetter <daniel.vetter@ffwll.ch>
+---
+ Documentation/dma-buf-sharing.txt | 12 ++++++++++++
+ drivers/base/dma-buf.c            | 28 ++++++++++++++++++++++++++++
+ 2 files changed, 40 insertions(+)
 
-#define __get_cpu_var(var) (*this_cpu_ptr(&(var)))
-
-
-
-__get_cpu_var() always only does an address determination. However, store and retrieve operations
-could use a segment prefix (or global register on other platforms) to avoid the address calculation.
-
-this_cpu_write() and this_cpu_read() can directly take an offset into a percpu area and use
-optimized assembly code to read and write per cpu variables.
-
-
-This patch converts __get_cpu_var into either an explicit address calculation using this_cpu_ptr()
-or into a use of this_cpu operations that use the offset. Thereby address calculations are avoided
-and less registers are used when code is generated.
-
-At the end of the patch set all uses of __get_cpu_var have been removed so the macro is removed too.
-
-The patch set includes passes over all arches as well. Once these operations are used throughout then
-specialized macros can be defined in non -x86 arches as well in order to optimize per cpu access by
-f.e. using a global register that may be set to the per cpu base.
-
-
-
-
-Transformations done to __get_cpu_var()
-
-
-1. Determine the address of the percpu instance of the current processor.
-
-	DEFINE_PER_CPU(int, y);
-	int *x = &__get_cpu_var(y);
-
-    Converts to
-
-	int *x = this_cpu_ptr(&y);
-
-
-2. Same as #1 but this time an array structure is involved.
-
-	DEFINE_PER_CPU(int, y[20]);
-	int *x = __get_cpu_var(y);
-
-    Converts to
-
-	int *x = this_cpu_ptr(y);
-
-
-3. Retrieve the content of the current processors instance of a per cpu variable.
-
-	DEFINE_PER_CPU(int, y);
-	int x = __get_cpu_var(y)
-
-   Converts to
-
-	int x = __this_cpu_read(y);
-
-
-4. Retrieve the content of a percpu struct
-
-	DEFINE_PER_CPU(struct mystruct, y);
-	struct mystruct x = __get_cpu_var(y);
-
-   Converts to
-
-	memcpy(&x, this_cpu_ptr(&y), sizeof(x));
-
-
-5. Assignment to a per cpu variable
-
-	DEFINE_PER_CPU(int, y)
-	__get_cpu_var(y) = x;
-
-   Converts to
-
-	this_cpu_write(y, x);
-
-
-6. Increment/Decrement etc of a per cpu variable
-
-	DEFINE_PER_CPU(int, y);
-	__get_cpu_var(y)++
-
-   Converts to
-
-	this_cpu_inc(y)
-
-Signed-off-by: Christoph Lameter <cl@linux.com>
-
-Index: linux/include/linux/percpu.h
-===================================================================
---- linux.orig/include/linux/percpu.h	2013-08-26 14:29:49.000000000 -0500
-+++ linux/include/linux/percpu.h	2013-08-26 14:30:18.302570608 -0500
-@@ -28,7 +28,7 @@
-  */
- #define get_cpu_var(var) (*({				\
- 	preempt_disable();				\
--	&__get_cpu_var(var); }))
-+	this_cpu_ptr(&var); }))
+diff --git a/Documentation/dma-buf-sharing.txt b/Documentation/dma-buf-sharing.txt
+index 0b23261..849e982 100644
+--- a/Documentation/dma-buf-sharing.txt
++++ b/Documentation/dma-buf-sharing.txt
+@@ -407,6 +407,18 @@ Being able to mmap an export dma-buf buffer object has 2 main use-cases:
+    interesting ways depending upong the exporter (if userspace starts depending
+    upon this implicit synchronization).
+ 
++Other Interfaces Exposed to Userspace on the dma-buf FD
++------------------------------------------------------
++
++- Since kernel 3.12 the dma-buf FD supports the llseek system call, but only
++  with offset=0 and whence=SEEK_END|SEEK_SET. SEEK_SET is supported to allow
++  the usual size discover pattern size = SEEK_END(0); SEEK_SET(0). Every other
++  llseek operation will report -EINVAL.
++
++  If llseek on dma-buf FDs isn't support the kernel will report -ESPIPE for all
++  cases. Userspace can use this to detect support for discovering the dma-buf
++  size using llseek.
++
+ Miscellaneous notes
+ -------------------
+ 
+diff --git a/drivers/base/dma-buf.c b/drivers/base/dma-buf.c
+index 6687ba7..c33a857 100644
+--- a/drivers/base/dma-buf.c
++++ b/drivers/base/dma-buf.c
+@@ -77,9 +77,36 @@ static int dma_buf_mmap_internal(struct file *file, struct vm_area_struct *vma)
+ 	return dmabuf->ops->mmap(dmabuf, vma);
+ }
+ 
++static loff_t dma_buf_llseek(struct file *file, loff_t offset, int whence)
++{
++	struct dma_buf *dmabuf;
++	loff_t base;
++
++	if (!is_dma_buf_file(file))
++		return -EBADF;
++
++	dmabuf = file->private_data;
++
++	/* only support discovering the end of the buffer,
++	   but also allow SEEK_SET to maintain the idiomatic
++	   SEEK_END(0), SEEK_CUR(0) pattern */
++	if (whence == SEEK_END)
++		base = dmabuf->size;
++	else if (whence == SEEK_SET)
++		base = 0;
++	else
++		return -EINVAL;
++
++	if (offset != 0)
++		return -EINVAL;
++
++	return base + offset;
++}
++
+ static const struct file_operations dma_buf_fops = {
+ 	.release	= dma_buf_release,
+ 	.mmap		= dma_buf_mmap_internal,
++	.llseek		= dma_buf_llseek,
+ };
  
  /*
-  * The weird & is necessary because sparse considers (void)(var) to be
+@@ -133,6 +160,7 @@ struct dma_buf *dma_buf_export_named(void *priv, const struct dma_buf_ops *ops,
+ 	dmabuf->exp_name = exp_name;
+ 
+ 	file = anon_inode_getfile("dmabuf", &dma_buf_fops, dmabuf, flags);
++	file->f_mode |= FMODE_LSEEK;
+ 
+ 	dmabuf->file = file;
+ 
+-- 
+1.8.3.2
