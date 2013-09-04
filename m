@@ -1,48 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gmmr3.centrum.cz ([46.255.225.251]:35171 "EHLO gmmr3.centrum.cz"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1762130Ab3IDISz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 4 Sep 2013 04:18:55 -0400
-Subject: =?utf-8?q?Re=3A_=5Bpatch_0=2F7=5D_improve_memcg_oom_killer_robustness_v2?=
-Date: Wed, 04 Sep 2013 10:18:52 +0200
-From: "azurIt" <azurit@pobox.sk>
-References: <1375549200-19110-1-git-send-email-hannes@cmpxchg.org>, <20130803170831.GB23319@cmpxchg.org>, <20130830215852.3E5D3D66@pobox.sk>, <20130902123802.5B8E8CB1@pobox.sk> <20130903204850.GA1412@cmpxchg.org>
-In-Reply-To: <20130903204850.GA1412@cmpxchg.org>
+Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:51579 "EHLO
+	cam-smtp0.cambridge.arm.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S934597Ab3IDJeI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Sep 2013 05:34:08 -0400
+Date: Wed, 4 Sep 2013 10:33:35 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [gcv v3 27/35] arm: Replace __get_cpu_var uses
+Message-ID: <20130904093335.GA8007@mudshark.cambridge.arm.com>
+References: <20130828193457.140443630@linux.com>
+ <00000140c67834c9-cc2bec76-2d70-48d1-a35b-6e2d5dedf22b-000000@email.amazonses.com>
+ <20130830100105.GF25628@mudshark.cambridge.arm.com>
+ <00000140e4440576-ae4236ee-3073-4f94-b569-d17396e57513-000000@email.amazonses.com>
 MIME-Version: 1.0
-Message-ID: <20130904101852.58E70042@pobox.sk>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
+In-Reply-To: <00000140e4440576-ae4236ee-3073-4f94-b569-d17396e57513-000000@email.amazonses.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?utf-8?q?Johannes_Weiner?= <hannes@cmpxchg.org>
-Cc: =?utf-8?q?Andrew_Morton?= <akpm@linux-foundation.org>, =?utf-8?q?Michal_Hocko?= <mhocko@suse.cz>, =?utf-8?q?David_Rientjes?= <rientjes@google.com>, =?utf-8?q?KAMEZAWA_Hiroyuki?= <kamezawa.hiroyu@jp.fujitsu.com>, =?utf-8?q?KOSAKI_Motohiro?= <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130904081852.FyrVoeEE19ekUtnfLzloIUX14qaNZehuvYS2TWGtHpw@z>
+To: Christoph Lameter <cl@linux.com>
+Cc: Tejun Heo <tj@kernel.org>, "akpm@linuxfoundation.org" <akpm@linuxfoundation.org>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Steven Rostedt <srostedt@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20130904093335.TBvgqLzLEhYBNwCmgaOm_sAJ9qh2v49w1xxu3_HYu5E@z>
 
-> CC: "Andrew Morton" <akpm@linux-foundation.org>, "Michal Hocko" <mhocko@suse.cz>, "David Rientjes" <rientjes@google.com>, "KAMEZAWA Hiroyuki" <kamezawa.hiroyu@jp.fujitsu.com>, "KOSAKI Motohiro" <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
->Hello azur,
->
->On Mon, Sep 02, 2013 at 12:38:02PM +0200, azurIt wrote:
->> >>Hi azur,
->> >>
->> >>here is the x86-only rollup of the series for 3.2.
->> >>
->> >>Thanks!
->> >>Johannes
->> >>---
->> >
->> >
->> >Johannes,
->> >
->> >unfortunately, one problem arises: I have (again) cgroup which cannot be deleted :( it's a user who had very high memory usage and was reaching his limit very often. Do you need any info which i can gather now?
->
->Did the OOM killer go off in this group?
->
->Was there a warning in the syslog ("Fixing unhandled memcg OOM
->context")?
+Hi Christoph,
 
+On Tue, Sep 03, 2013 at 03:39:57PM +0100, Christoph Lameter wrote:
+> On Fri, 30 Aug 2013, Will Deacon wrote:
+> > ...so I don't think this is quite right, and indeed, we get a bunch of errors
+> > from GCC:
+> >
+> > arch/arm/kernel/hw_breakpoint.c: In function ‘arch_install_hw_breakpoint’:
+> > arch/arm/kernel/hw_breakpoint.c:347:33: error: incompatible types when assigning to type ‘struct perf_event *[16]’ from type ‘struct perf_event **’
+> > arch/arm/kernel/hw_breakpoint.c:347:1: error: incompatible types when assigning to type ‘struct perf_event *[16]’ from type ‘struct perf_event **’
+> > arch/arm/kernel/hw_breakpoint.c:347:1: error: incompatible types when assigning to type ‘struct perf_event *[16]’ from type ‘struct perf_event **’
+> > arch/arm/kernel/hw_breakpoint.c:347:1: error: incompatible types when assigning to type ‘struct perf_event *[16]’ from type ‘struct perf_event **’
+> 
+> Did you apply the first patch of this series which is a bug fix?
 
+No, sorry, I didn't see that. Do you have a branch anywhere that I can play
+with?
 
-Ok, i see this message several times in my syslog logs, one of them is also for this unremovable cgroup (but maybe all of them cannot be removed, should i try?). Example of the log is here (don't know where exactly it starts and ends so here is the full kernel log):
-http://watchdog.sk/lkml/oom_syslog.gz
+> > changing to match your recipe still doesn't work, however:
+> >
+> > arch/arm/kernel/hw_breakpoint.c: In function ‘arch_install_hw_breakpoint’:
+> > arch/arm/kernel/hw_breakpoint.c:347:33: error: cast specifies array type
+> 
+> Yep that is the macro bug that was fixed in the first patch.
 
-azur
+Ok. Sorry for the noise.
+
+> > >
+> > >         WARN_ON(preemptible());
+> > >
+> > > -       if (local_inc_return(&__get_cpu_var(mde_ref_count)) == 1)
+> > > +       if (this_cpu_inc_return(mde_ref_count) == 1)
+> > >                 enable = DBG_MDSCR_MDE;
+> >
+> > I'm not sure that this is safe. We rely on local_inc_return to be atomic
+> > with respect to the current CPU, which will end up being a wrapper around
+> > atomic64_inc_return. However, this_cpu_inc_return simply uses a lock, so
+> > other people accessing the count in a different manner (local_dec_and_test
+> > below) may break local atomicity unless we start disabling interrupts or
+> > something horrible like that.
+> 
+> I do not see any special code for ARM for this_cpu_inc_return. The
+> fallback solution in the core code is to disable interrupts for the
+> inc_return and arch/arm/include/asm/percpu.h includes
+> asm-generic/percpu.h.
+> 
+> Where did you see it using a lock?
+
+God knows! You're completely right, and we simply disable interrupts which I
+somehow misread as taking a lock. However, is it guaranteed that mixing
+an atomic64_* access with a this_cpu_inc_return will retain atomicity
+between the two? E.g. if you get interrupted during an atomic64_xchg
+operation, the interrupt handler issues this_cpu_inc_return, then on return
+to the xchg operation it must reissue any reads that had been executed
+prior to the interrupt. This should work on ARM/ARM64 (returning from the
+interrupt will clear the exclusive monitor) but I don't know about other
+architectures.
+
+Will
