@@ -1,20 +1,73 @@
-From: Christoph Lameter <cl@linux.com>
-Subject: Re: [gcv v3 10/35] rcu: Replace __get_cpu_var uses
-Date: Wed, 4 Sep 2013 14:19:59 +0000
-Message-ID: <00000140e95815db-41b26a90-9bc9-490e-a313-e05364a152cb-000000@email.amazonses.com>
-References: <20130828193457.140443630@linux.com> <00000140c67825ee-d9e3a1ca-2e81-4868-8c8c-36ba965f7202-000000@email.amazonses.com> <20130831203559.GY3871@linux.vnet.ibm.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [gcv v3 27/35] arm: Replace __get_cpu_var uses
+Date: Wed, 4 Sep 2013 15:23:24 +0100
+Message-ID: <20130904142324.GD3643@mudshark.cambridge.arm.com>
+References: <20130828193457.140443630@linux.com>
+ <00000140c67834c9-cc2bec76-2d70-48d1-a35b-6e2d5dedf22b-000000@email.amazonses.com>
+ <20130830100105.GF25628@mudshark.cambridge.arm.com>
+ <00000140e4440576-ae4236ee-3073-4f94-b569-d17396e57513-000000@email.amazonses.com>
+ <20130904093335.GA8007@mudshark.cambridge.arm.com>
+ <00000140e9557be9-1523eeab-c0f6-45a0-881c-9336a8a6cf85-000000@email.amazonses.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20130831203559.GY3871@linux.vnet.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, Dipankar Sarma <dipankar@in.ibm.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:51973 "EHLO
+	cam-smtp0.cambridge.arm.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S934867Ab3IDOYK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Sep 2013 10:24:10 -0400
+Content-Disposition: inline
+In-Reply-To: <00000140e9557be9-1523eeab-c0f6-45a0-881c-9336a8a6cf85-000000@email.amazonses.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christoph Lameter <cl@linux.com>
+Cc: Tejun Heo <tj@kernel.org>, "akpm@linuxfoundation.org" <akpm@linuxfoundation.org>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Steven Rostedt <srostedt@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-On Sat, 31 Aug 2013, Paul E. McKenney wrote:
+On Wed, Sep 04, 2013 at 03:17:09PM +0100, Christoph Lameter wrote:
+> On Wed, 4 Sep 2013, Will Deacon wrote:
+> > God knows! You're completely right, and we simply disable interrupts which I
+> > somehow misread as taking a lock. However, is it guaranteed that mixing
+> > an atomic64_* access with a this_cpu_inc_return will retain atomicity
+> > between the two? E.g. if you get interrupted during an atomic64_xchg
+> > operation, the interrupt handler issues this_cpu_inc_return, then on return
+> > to the xchg operation it must reissue any reads that had been executed
+> > prior to the interrupt. This should work on ARM/ARM64 (returning from the
+> > interrupt will clear the exclusive monitor) but I don't know about other
+> > architectures.
+> 
+> You cannot get interrupted during an atomic64_xchg operation. atomic and
+> this_cpu operations are stricly serialzed since both should be behaving
+> like single instructions. __this_cpu ops relax that requirement in case
+> the arch code incurs significant overhead to make that happen. In cases
+> where we know that preemption/interrupt disable etc takes care of things
+> __this_cpu ops come into play.
 
-> Queued for 3.13.  I had to rework for conflicts, please see below for
-> the update patch.
+Hmm, why can't you get interrupted during atomic64_xchg? On ARM, we have the
+following sequence:
 
-Looks fine to me. Can I drop the rcu patches from my patchset?
+  static inline u64 atomic64_xchg(atomic64_t *ptr, u64 new)
+  {
+  	u64 result;
+  	unsigned long tmp;
+  
+  	smp_mb();
+  
+  	__asm__ __volatile__("@ atomic64_xchg\n"
+  "1:	ldrexd	%0, %H0, [%3]\n"
+  "	strexd	%1, %4, %H4, [%3]\n"
+  "	teq	%1, #0\n"
+  "	bne	1b"
+  	: "=&r" (result), "=&r" (tmp), "+Qo" (ptr->counter)
+  	: "r" (&ptr->counter), "r" (new)
+  	: "cc");
+  
+  	smp_mb();
+  
+  	return result;
+  }
+
+which relies on interrupts clearing the exclusive monitor to force us back
+around the loop in the inline asm. I could imagine other architectures doing
+similar, but only detecting the other writer if it used the same
+instructions.
+
+Will
