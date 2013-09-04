@@ -1,76 +1,62 @@
-From: Martin Peres <martin.peres@free.fr>
-Subject: Re: [PATCH] dma-buf: Expose buffer size to userspace (v2)
-Date: Wed, 04 Sep 2013 14:29:24 +0200
-Message-ID: <522727A4.6050109@free.fr>
-References: <1378264549-9185-1-git-send-email-christopher.halse.rogers@canonical.com> <52270A5B.2040600@free.fr> <20130904120504.GB28675@phenom.ffwll.local>
+From: "azurIt" <azurit@pobox.sk>
+Subject: =?utf-8?q?Re=3A_=5Bpatch_0=2F7=5D_improve_memcg_oom_killer_robustness_v2?=
+Date: Wed, 04 Sep 2013 14:39:25 +0200
+Message-ID: <20130904143925.6672E0C4@pobox.sk>
+References: <1375549200-19110-1-git-send-email-hannes@cmpxchg.org>, <20130803170831.GB23319@cmpxchg.org>, <20130830215852.3E5D3D66@pobox.sk>, <20130902123802.5B8E8CB1@pobox.sk>, <20130903204850.GA1412@cmpxchg.org>, <20130904114523.A9F0173C@pobox.sk>, <20130904115741.GA28285@dhcp22.suse.cz>, <20130904141000.0F910EFA@pobox.sk> <20130904122632.GB28285@dhcp22.suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1;
-	format=flowed
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp3-g21.free.fr ([212.27.42.3]:36175 "EHLO smtp3-g21.free.fr"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754209Ab3IDM3l (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 4 Sep 2013 08:29:41 -0400
-In-Reply-To: <20130904120504.GB28675@phenom.ffwll.local>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Christopher James Halse Rogers <christopher.halse.rogers@canonical.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robclark@gmail.com, linux-media@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20130904122632.GB28285@dhcp22.suse.cz>
+Sender: owner-linux-mm@kvack.org
+To: =?utf-8?q?Michal_Hocko?= <mhocko@suse.cz>
+Cc: =?utf-8?q?Johannes_Weiner?= <hannes@cmpxchg.org>, =?utf-8?q?Andrew_Morton?= <akpm@linux-foundation.org>, =?utf-8?q?David_Rientjes?= <rientjes@google.com>, =?utf-8?q?KAMEZAWA_Hiroyuki?= <kamezawa.hiroyu@jp.fujitsu.com>, =?utf-8?q?KOSAKI_Motohiro?= <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Le 04/09/2013 14:05, Daniel Vetter a =E9crit :
-> On Wed, Sep 04, 2013 at 12:24:27PM +0200, Martin Peres wrote:
->> Hi Christopher,
->> Le 04/09/2013 05:15, Christopher James Halse Rogers a =E9crit :
->>> Each dma-buf has an associated size and it's reasonable for userspa=
-ce
->>> to want to know what it is.
->>>
->>> Since userspace already has an fd, expose the size using the
->>> size =3D lseek(fd, SEEK_END, 0); lseek(fd, SEEK_CUR, 0);
->>> idiom.
->>>
->>> v2: Added Daniel's sugeested documentation, with minor fixups
->>>
->>> Signed-off-by: Christopher James Halse Rogers <christopher.halse.ro=
-gers@canonical.com>
->>> Reviewed-by: Daniel Vetter <daniel.vetter@ffwll.ch>
->>> Tested-by: Daniel Vetter <daniel.vetter@ffwll.ch>
->>> ---
->>>   Documentation/dma-buf-sharing.txt | 12 ++++++++++++
->>>   drivers/base/dma-buf.c            | 28 ++++++++++++++++++++++++++=
-++
->>>   2 files changed, 40 insertions(+)
->>>
->>> diff --git a/Documentation/dma-buf-sharing.txt b/Documentation/dma-=
-buf-sharing.txt
->>> index 0b23261..849e982 100644
->>> --- a/Documentation/dma-buf-sharing.txt
->>> +++ b/Documentation/dma-buf-sharing.txt
->>> @@ -407,6 +407,18 @@ Being able to mmap an export dma-buf buffer ob=
-ject has 2 main use-cases:
->>>      interesting ways depending upong the exporter (if userspace st=
-arts depending
->>>      upon this implicit synchronization).
->>> +Other Interfaces Exposed to Userspace on the dma-buf FD
->>> +------------------------------------------------------
->>> +
->>> +- Since kernel 3.12 the dma-buf FD supports the llseek system call=
-, but only
->>> +  with offset=3D0 and whence=3DSEEK_END|SEEK_SET. SEEK_SET is supp=
-orted to allow
->>> +  the usual size discover pattern size =3D SEEK_END(0); SEEK_SET(0=
-). Every other
->>> +  llseek operation will report -EINVAL.
->>> +
->>> +  If llseek on dma-buf FDs isn't support the kernel will report -E=
-SPIPE for all
->> Shouldn't it be "supported" instead of "support"?
->>
->> Anyway, I'm just curious, in which case is it important to know the =
-size?
->> Do we already have a way to get the dimensions (x, y and stripe)?
-> Size is an invariant part of a dma-buf. Everything else wrt metadata =
-isn't
-> tracked in the kernel, so doesn't make much sense to expose it ;-)
-> -Daniel
-ACK, thanks Daniel.
+>> >[...]
+>> >> My script has just detected (and killed) another freezed cgroup. I
+>> >> must say that i'm not 100% sure that cgroup was really freezed but =
+it
+>> >> has 99% or more memory usage for at least 30 seconds (well, or it h=
+as
+>> >> 99% memory usage in both two cases the script was checking it). Her=
+e
+>> >> are stacks of processes inside it before they were killed:
+>> >[...]
+>> >> pid: 26536
+>> >> stack:
+>> >> [<ffffffff81080a45>] refrigerator+0x95/0x160
+>> >> [<ffffffff8106ac2b>] get_signal_to_deliver+0x1cb/0x540
+>> >> [<ffffffff8100188b>] do_signal+0x6b/0x750
+>> >> [<ffffffff81001fc5>] do_notify_resume+0x55/0x80
+>> >> [<ffffffff815cb662>] retint_signal+0x3d/0x7b
+>> >> [<ffffffffffffffff>] 0xffffffffffffffff
+>> >
+>> >[...]
+>> >
+>> >This task is sitting in the refigerator which means it has been froze=
+n
+>> >by the freezer cgroup most probably. I am not familiar with the
+>> >implementation but my recollection is that you have to thaw that grou=
+p
+>> >in order the killed process can pass away.
+>>=20
+>> Yes, my script is freezing the cgroup before killing processes inside
+>> it. Stacks are taken after the freeze, it that problem?
+>
+>I thought you had a problem to remove this particular group...
+
+
+
+No, this one is different from the unremovable one. This was, probably, h=
+anged just like when i was originaly reporting this problem (but, as i sa=
+id, i'm not 100% sure because of reasons i described). Sorry for confusio=
+n.
+
+azur
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=3Dmailto:"dont@kvack.org"> email@kvack.org </a>
