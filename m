@@ -1,69 +1,80 @@
-From: Martin Peres <martin.peres@free.fr>
-Subject: Re: [PATCH] dma-buf: Expose buffer size to userspace (v2)
-Date: Wed, 04 Sep 2013 12:24:27 +0200
-Message-ID: <52270A5B.2040600@free.fr>
-References: <1378264549-9185-1-git-send-email-christopher.halse.rogers@canonical.com>
+From: Alexandre Courbot <acourbot@nvidia.com>
+Subject: [RFC 0/5] New descriptor-based GPIO interface
+Date: Wed, 4 Sep 2013 20:29:24 +0900
+Message-ID: <1378294169-22661-1-git-send-email-acourbot@nvidia.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1;
-	format=flowed
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtpfb2-g21.free.fr ([212.27.42.10]:34175 "EHLO
-	smtpfb2-g21.free.fr" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756240Ab3IDKZU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Sep 2013 06:25:20 -0400
-In-Reply-To: <1378264549-9185-1-git-send-email-christopher.halse.rogers@canonical.com>
+Received: from hqemgate14.nvidia.com ([216.228.121.143]:14241 "EHLO
+	hqemgate14.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757161Ab3IDLa0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Sep 2013 07:30:26 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christopher James Halse Rogers <christopher.halse.rogers@canonical.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robclark@gmail.com, linux-media@vger.kernel.org
+To: Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Grant Likely <grant.likely@linaro.org>, Thierry Reding <thierry.reding@gmail.com>, Stephen Warren <swarren@wwwdotorg.org>
+Cc: gnurou@gmail.com, linux-gpio@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, Alexandre Courbot <acourbot@nvidia.com>
 
-Hi Christopher,
-Le 04/09/2013 05:15, Christopher James Halse Rogers a =E9crit :
-> Each dma-buf has an associated size and it's reasonable for userspace
-> to want to know what it is.
->
-> Since userspace already has an fd, expose the size using the
-> size =3D lseek(fd, SEEK_END, 0); lseek(fd, SEEK_CUR, 0);
-> idiom.
->
-> v2: Added Daniel's sugeested documentation, with minor fixups
->
-> Signed-off-by: Christopher James Halse Rogers <christopher.halse.roge=
-rs@canonical.com>
-> Reviewed-by: Daniel Vetter <daniel.vetter@ffwll.ch>
-> Tested-by: Daniel Vetter <daniel.vetter@ffwll.ch>
-> ---
->   Documentation/dma-buf-sharing.txt | 12 ++++++++++++
->   drivers/base/dma-buf.c            | 28 ++++++++++++++++++++++++++++
->   2 files changed, 40 insertions(+)
->
-> diff --git a/Documentation/dma-buf-sharing.txt b/Documentation/dma-bu=
-f-sharing.txt
-> index 0b23261..849e982 100644
-> --- a/Documentation/dma-buf-sharing.txt
-> +++ b/Documentation/dma-buf-sharing.txt
-> @@ -407,6 +407,18 @@ Being able to mmap an export dma-buf buffer obje=
-ct has 2 main use-cases:
->      interesting ways depending upong the exporter (if userspace star=
-ts depending
->      upon this implicit synchronization).
->  =20
-> +Other Interfaces Exposed to Userspace on the dma-buf FD
-> +------------------------------------------------------
-> +
-> +- Since kernel 3.12 the dma-buf FD supports the llseek system call, =
-but only
-> +  with offset=3D0 and whence=3DSEEK_END|SEEK_SET. SEEK_SET is suppor=
-ted to allow
-> +  the usual size discover pattern size =3D SEEK_END(0); SEEK_SET(0).=
- Every other
-> +  llseek operation will report -EINVAL.
-> +
-> +  If llseek on dma-buf FDs isn't support the kernel will report -ESP=
-IPE for all
-Shouldn't it be "supported" instead of "support"?
+Here is a first RFC for the new GPIO interface. It's terribly overdue, and in
+order to avoid delaying it further I decided to send it as-is instead of being
+even more perfectionist. The main issue I have with it is that it highlights
+some points that could be simplified in gpiolib, some of which require a
+refactoring of gpiolib's clients. I wasn't sure which, of the cleanup or new
+interface, should come first and stayed in this state of confusion for several
+months ; but in the end I believe it's more appropriate to clearly lay the
+interfaces we want to use first, and then refactor the lib accordingly. So
+please be mindful that another round of cleanup, both of gpiolib itself and its
+consumers, should come once a later version of these patches is validated (and
+hopefully merged) and that this series should be considered just another step
+towards gpiolib's sanitization (although I also secretly hope the new interface
+will be deemed useful by itself).
 
-Anyway, I'm just curious, in which case is it important to know the siz=
-e?
-Do we already have a way to get the dimensions (x, y and stripe)?
+Another point that definitely needs more attention is the documentation. I am
+not sure whether the new interface should be described as a couple of sections
+in the existing GPIO documentation (the current approach) or as a new
+documentation file of its own.
+
+The new gpiod public interface is just an export of how gpiolib now works
+internally. By representing GPIOs as opaque descriptors intead of integers, it
+aims at making GPIO usage safer and more coherent with respect to other
+subsystems by using a proper get/put mechanism and ensuring all GPIOs in use at
+a given time are valid. It also makes GPIO acquisition easier for consumers, by
+offering a standard way to bind GPIOs to devices. Finally, it tries to fix some
+of the inconsistencies gpiolib acquired over time, like the incoherent handling
+of active low GPIOs which was only valid when using the sysfs interface.
+
+The old GPIO interface is still accessible and works the same way as before ; I
+do not expect any existing code to break as a result of applying this series
+(which is not extensively tested yet BTW).
+
+TODO (preferably once this batch is validated):
+- Change gpio_get()'s behavior to allow it to return specifiers other than the
+first one for DT-declared GPIOs?
+- Update as many users of the legacy interface as possible to use the new
+interface
+- Simplify gpiolib by removing redundant code and corner-cases (gpio_request
+must die)
+- Try to implement the GPIO fast-path method with gpiod, maybe using the LSB of
+GPIO descriptors as a marker to forge fake descriptors?
+- If possible, completely deprecate and remove the old gpio interface
+
+Alexandre Courbot (5):
+  gpiolib: factorize gpiod_get/set functions
+  gpiolib: export descriptor-based GPIO interface
+  gpiolib: port of_ functions to use gpiod
+  gpiolib: add gpiod_get() and gpiod_put() functions
+  gpiolib: update documentation
+
+ Documentation/gpio.txt        | 119 ++++++++++
+ drivers/gpio/gpiolib-of.c     |  28 ++-
+ drivers/gpio/gpiolib.c        | 525 ++++++++++++++++++++++++++----------------
+ include/asm-generic/gpio.h    | 227 ++++++------------
+ include/linux/gpio.h          |  11 +-
+ include/linux/gpio/consumer.h | 201 ++++++++++++++++
+ include/linux/gpio/driver.h   | 163 +++++++++++++
+ include/linux/of_gpio.h       |  29 ++-
+ 8 files changed, 920 insertions(+), 383 deletions(-)
+ create mode 100644 include/linux/gpio/consumer.h
+ create mode 100644 include/linux/gpio/driver.h
+
+-- 
+1.8.4
