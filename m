@@ -1,199 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hqemgate14.nvidia.com ([216.228.121.143]:14257 "EHLO
-	hqemgate14.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1762432Ab3IDLag (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Sep 2013 07:30:36 -0400
-From: Alexandre Courbot <acourbot@nvidia.com>
-Subject: [RFC 3/5] gpiolib: port of_ functions to use gpiod
-Date: Wed, 4 Sep 2013 20:29:27 +0900
-Message-ID: <1378294169-22661-4-git-send-email-acourbot@nvidia.com>
-In-Reply-To: <1378294169-22661-1-git-send-email-acourbot@nvidia.com>
-References: <1378294169-22661-1-git-send-email-acourbot@nvidia.com>
+Received: from cantor2.suse.de ([195.135.220.15]:52026 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756563Ab3IDL5o (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 4 Sep 2013 07:57:44 -0400
+Date: Wed, 4 Sep 2013 13:57:41 +0200
+From: Michal Hocko <mhocko@suse.cz>
+Subject: Re: [patch 0/7] improve memcg oom killer robustness v2
+Message-ID: <20130904115741.GA28285@dhcp22.suse.cz>
+References: <1375549200-19110-1-git-send-email-hannes@cmpxchg.org>
+ <20130803170831.GB23319@cmpxchg.org>
+ <20130830215852.3E5D3D66@pobox.sk>
+ <20130902123802.5B8E8CB1@pobox.sk>
+ <20130903204850.GA1412@cmpxchg.org>
+ <20130904114523.A9F0173C@pobox.sk>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20130904114523.A9F0173C@pobox.sk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Grant Likely <grant.likely@linaro.org>, Thierry Reding <thierry.reding@gmail.com>, Stephen Warren <swarren@wwwdotorg.org>
-Cc: gnurou@gmail.com, linux-gpio@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, Alexandre Courbot <acourbot@nvidia.com>
-Message-ID: <20130904112927.H4cMyQm5Yam_TiQCEJT9_PL7XM8OsbtlecPnOSMAnTs@z>
+To: azurIt <azurit@pobox.sk>
+Cc: Johannes Weiner <hannes@cmpxchg.org>, Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130904115741.CJh0mkuq8mgyLceo75I3R51G3TE8_DSfYWRQdxtIg0w@z>
 
-Refactor the of_ functions of gpiolib to use the now public gpiod
-interface, and export of_get_named_gpiod() and of_get_gpiod() functions.
+On Wed 04-09-13 11:45:23, azurIt wrote:
+[...]
+> My script has just detected (and killed) another freezed cgroup. I
+> must say that i'm not 100% sure that cgroup was really freezed but it
+> has 99% or more memory usage for at least 30 seconds (well, or it has
+> 99% memory usage in both two cases the script was checking it). Here
+> are stacks of processes inside it before they were killed:
+[...]
+> pid: 26536
+> stack:
+> [<ffffffff81080a45>] refrigerator+0x95/0x160
+> [<ffffffff8106ac2b>] get_signal_to_deliver+0x1cb/0x540
+> [<ffffffff8100188b>] do_signal+0x6b/0x750
+> [<ffffffff81001fc5>] do_notify_resume+0x55/0x80
+> [<ffffffff815cb662>] retint_signal+0x3d/0x7b
+> [<ffffffffffffffff>] 0xffffffffffffffff
 
-Flags are handled internally in the gpiod interface, so these functions
-do not need a flags output parameter contrary to their legacy interface
-counterparts.
+[...]
 
-Signed-off-by: Alexandre Courbot <acourbot@nvidia.com>
----
- drivers/gpio/gpiolib-of.c | 28 +++++++++++++++++-----------
- include/linux/of_gpio.h   | 29 ++++++++++++++++++++++++-----
- 2 files changed, 41 insertions(+), 16 deletions(-)
-
-diff --git a/drivers/gpio/gpiolib-of.c b/drivers/gpio/gpiolib-of.c
-index 665f953..fd60bbc 100644
---- a/drivers/gpio/gpiolib-of.c
-+++ b/drivers/gpio/gpiolib-of.c
-@@ -15,19 +15,21 @@
- #include <linux/errno.h>
- #include <linux/module.h>
- #include <linux/io.h>
--#include <linux/gpio.h>
-+#include <linux/gpio/consumer.h>
- #include <linux/of.h>
- #include <linux/of_address.h>
- #include <linux/of_gpio.h>
- #include <linux/pinctrl/pinctrl.h>
- #include <linux/slab.h>
- 
-+struct gpio_desc;
-+
- /* Private data structure for of_gpiochip_find_and_xlate */
- struct gg_data {
- 	enum of_gpio_flags *flags;
- 	struct of_phandle_args gpiospec;
- 
--	int out_gpio;
-+	struct gpio_desc *out_gpio;
- };
- 
- /* Private function for resolving node pointer to gpio_chip */
-@@ -45,28 +47,31 @@ static int of_gpiochip_find_and_xlate(struct gpio_chip *gc, void *data)
- 	if (ret < 0)
- 		return false;
- 
--	gg_data->out_gpio = ret + gc->base;
-+	gg_data->out_gpio = gpio_to_desc(ret + gc->base);
- 	return true;
- }
- 
- /**
-- * of_get_named_gpio_flags() - Get a GPIO number and flags to use with GPIO API
-+ * of_get_named_gpiod_flags() - Get a GPIO descriptor and flags for GPIO API
-  * @np:		device node to get GPIO from
-  * @propname:	property name containing gpio specifier(s)
-  * @index:	index of the GPIO
-  * @flags:	a flags pointer to fill in
-  *
-- * Returns GPIO number to use with Linux generic GPIO API, or one of the errno
-+ * Returns GPIO descriptor to use with Linux GPIO API, or one of the errno
-  * value on the error condition. If @flags is not NULL the function also fills
-  * in flags for the GPIO.
-  */
--int of_get_named_gpio_flags(struct device_node *np, const char *propname,
--			   int index, enum of_gpio_flags *flags)
-+struct gpio_desc *of_get_named_gpiod_flags(struct device_node *np,
-+		     const char *propname, int index, enum of_gpio_flags *flags)
- {
- 	/* Return -EPROBE_DEFER to support probe() functions to be called
- 	 * later when the GPIO actually becomes available
- 	 */
--	struct gg_data gg_data = { .flags = flags, .out_gpio = -EPROBE_DEFER };
-+	struct gg_data gg_data = {
-+		.flags = flags,
-+		.out_gpio = ERR_PTR(-EPROBE_DEFER)
-+	};
- 	int ret;
- 
- 	/* .of_xlate might decide to not fill in the flags, so clear it. */
-@@ -77,16 +82,17 @@ int of_get_named_gpio_flags(struct device_node *np, const char *propname,
- 					 &gg_data.gpiospec);
- 	if (ret) {
- 		pr_debug("%s: can't parse gpios property\n", __func__);
--		return ret;
-+		return ERR_PTR(ret);
- 	}
- 
- 	gpiochip_find(&gg_data, of_gpiochip_find_and_xlate);
- 
- 	of_node_put(gg_data.gpiospec.np);
--	pr_debug("%s exited with status %d\n", __func__, gg_data.out_gpio);
-+	pr_debug("%s exited with status %d\n", __func__,
-+		 PTR_RET(gg_data.out_gpio));
- 	return gg_data.out_gpio;
- }
--EXPORT_SYMBOL(of_get_named_gpio_flags);
-+EXPORT_SYMBOL(of_get_named_gpiod_flags);
- 
- /**
-  * of_gpio_simple_xlate - translate gpio_spec to the GPIO number and flags
-diff --git a/include/linux/of_gpio.h b/include/linux/of_gpio.h
-index a83dc6f..d71f2cc 100644
---- a/include/linux/of_gpio.h
-+++ b/include/linux/of_gpio.h
-@@ -21,6 +21,7 @@
- #include <linux/of.h>
- 
- struct device_node;
-+struct gpio_desc;
- 
- /*
-  * This is Linux-specific flags. By default controllers' and Linux' mapping
-@@ -47,7 +48,7 @@ static inline struct of_mm_gpio_chip *to_of_mm_gpio_chip(struct gpio_chip *gc)
- 	return container_of(gc, struct of_mm_gpio_chip, gc);
- }
- 
--extern int of_get_named_gpio_flags(struct device_node *np,
-+extern struct gpio_desc *of_get_named_gpiod_flags(struct device_node *np,
- 		const char *list_name, int index, enum of_gpio_flags *flags);
- 
- extern int of_mm_gpiochip_add(struct device_node *np,
-@@ -62,10 +63,10 @@ extern int of_gpio_simple_xlate(struct gpio_chip *gc,
- #else /* CONFIG_OF_GPIO */
- 
- /* Drivers may not strictly depend on the GPIO support, so let them link. */
--static inline int of_get_named_gpio_flags(struct device_node *np,
-+static inline struct gpio_desc *of_get_named_gpiod_flags(struct device_node *np,
- 		const char *list_name, int index, enum of_gpio_flags *flags)
- {
--	return -ENOSYS;
-+	return ERR_PTR(-ENOSYS);
- }
- 
- static inline int of_gpio_simple_xlate(struct gpio_chip *gc,
-@@ -80,6 +81,18 @@ static inline void of_gpiochip_remove(struct gpio_chip *gc) { }
- 
- #endif /* CONFIG_OF_GPIO */
- 
-+static inline int of_get_named_gpio_flags(struct device_node *np,
-+		const char *list_name, int index, enum of_gpio_flags *flags)
-+{
-+	struct gpio_desc *desc;
-+	desc = of_get_named_gpiod_flags(np, list_name, index, flags);
-+
-+	if (IS_ERR(desc))
-+		return PTR_ERR(desc);
-+	else
-+		return desc_to_gpio(desc);
-+}
-+
- /**
-  * of_gpio_named_count() - Count GPIOs for a device
-  * @np:		device node to count GPIOs for
-@@ -117,15 +130,21 @@ static inline int of_gpio_count(struct device_node *np)
- }
- 
- /**
-- * of_get_gpio_flags() - Get a GPIO number and flags to use with GPIO API
-+ * of_get_gpiod_flags() - Get a GPIO descriptor and flags to use with GPIO API
-  * @np:		device node to get GPIO from
-  * @index:	index of the GPIO
-  * @flags:	a flags pointer to fill in
-  *
-- * Returns GPIO number to use with Linux generic GPIO API, or one of the errno
-+ * Returns GPIO descriptor to use with Linux generic GPIO API, or a errno
-  * value on the error condition. If @flags is not NULL the function also fills
-  * in flags for the GPIO.
-  */
-+static inline struct gpio_desc *of_get_gpiod_flags(struct device_node *np,
-+					int index, enum of_gpio_flags *flags)
-+{
-+	return of_get_named_gpiod_flags(np, "gpios", index, flags);
-+}
-+
- static inline int of_get_gpio_flags(struct device_node *np, int index,
- 		      enum of_gpio_flags *flags)
- {
+This task is sitting in the refigerator which means it has been frozen
+by the freezer cgroup most probably. I am not familiar with the
+implementation but my recollection is that you have to thaw that group
+in order the killed process can pass away.
 -- 
-1.8.4
-
+Michal Hocko
+SUSE Labs
