@@ -1,62 +1,36 @@
-From: Alexandre Courbot <gnurou@gmail.com>
-Subject: Re: [RFC 2/5] gpiolib: export descriptor-based GPIO interface
-Date: Thu, 5 Sep 2013 12:45:04 +0900
-Message-ID: <CAAVeFuKJcD4zjiqxvzEr+HeGjs1Tz0oG6rwrNZPGKo-c438=ZQ@mail.gmail.com>
-References: <1378294169-22661-1-git-send-email-acourbot@nvidia.com>
- <1378294169-22661-3-git-send-email-acourbot@nvidia.com> <522790D6.6080803@wwwdotorg.org>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [gcv v3 32/35] arc: Replace __get_cpu_var uses
+Date: Thu, 5 Sep 2013 10:31:24 +0530
+Message-ID: <52281024.20309@synopsys.com>
+References: <20130828193457.140443630@linux.com> <00000140c6781cab-d0df0392-b65b-4213-8be0-1e4a04f67fb2-000000@email.amazonses.com> <C2D7FE5348E1B147BCA15975FBA23075140F60@IN01WEMBXA.internal.synopsys.com> <00000140caf51d3b-0c5ebca6-f4a7-49b8-94c8-fc8b0bde04b8-000000@email.amazonses.com> <5226E55A.3000705@synopsys.com> <00000140e952bc1f-25743208-6728-4ded-b110-9ded0321f723-000000@email.amazonses.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vb0-f52.google.com ([209.85.212.52]:61843 "EHLO
-	mail-vb0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752504Ab3IEDpZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Sep 2013 23:45:25 -0400
-In-Reply-To: <522790D6.6080803@wwwdotorg.org>
+Received: from hermes.synopsys.com ([198.182.44.81]:50441 "EHLO
+	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753553Ab3IEFBl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Sep 2013 01:01:41 -0400
+In-Reply-To: <00000140e952bc1f-25743208-6728-4ded-b110-9ded0321f723-000000@email.amazonses.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Warren <swarren@wwwdotorg.org>
-Cc: Alexandre Courbot <acourbot@nvidia.com>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Grant Likely <grant.likely@linaro.org>, Thierry Reding <thierry.reding@gmail.com>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, linux-doc@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, devicetree@vger.kernel.org
+To: Christoph Lameter <cl@linux.com>
+Cc: Tejun Heo <tj@kernel.org>, "akpm@linuxfoundation.org" <akpm@linuxfoundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Steven Rostedt <srostedt@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-On Thu, Sep 5, 2013 at 4:58 AM, Stephen Warren <swarren@wwwdotorg.org> wrote:
-> On 09/04/2013 05:29 AM, Alexandre Courbot wrote:
->> This patch exports the gpiod_* family of API functions, a safer
->> alternative to the legacy gpio interface. Differences between the gpiod
->> and gpio APIs are:
->>
->> - gpio works with integers, whereas gpiod operates on opaque handlers
->>   which cannot be forged or used before proper acquisition
->> - gpiod get/set functions are aware of the active low state of a GPIO
->> - gpio consumers should now include <linux/gpio/consumer.h> to access
->>   the new interface, whereas chips drivers will use
->>   <linux/gpio/driver.h>
->>
->> The legacy gpio API is now built as inline functions on top of gpiod.
->>
->
->> diff --git a/include/linux/gpio/driver.h b/include/linux/gpio/driver.h
->
->> +struct gpio_chip {
->
->> +     int                     (*get_direction)(struct gpio_chip *chip,
->> +                                             unsigned offset);
->> +     int                     (*direction_input)(struct gpio_chip *chip,
->> +                                             unsigned offset);
->> +     int                     (*get)(struct gpio_chip *chip,
->> +                                             unsigned offset);
->> +     int                     (*direction_output)(struct gpio_chip *chip,
->> +                                             unsigned offset, int value);
->> +     int                     (*set_debounce)(struct gpio_chip *chip,
->> +                                             unsigned offset,
->> +                                             unsigned debounce);
->> +
->> +     void                    (*set)(struct gpio_chip *chip,
->> +                                             unsigned offset, int value);
->> +
->
-> Minor nit: It might be nice to sort/group these entries more cohesively,
-> i.e. get_direction, direction_input, direction_output, get, set,
-> set_debounce?
+On 09/04/2013 07:44 PM, Christoph Lameter wrote:
+> On Wed, 4 Sep 2013, Vineet Gupta wrote:
+> 
+>> Considering other discussions on this thread, shall I drop this from my for-curr
+>> for this merge window ? I don't see any other arch changes to that effect in
+>> latest linux-next.
+> 
+> The required fix of the macros was merged yesterday into upstream.
+> 
 
-Sure, since we are moving this around anyway... :)
+Yes I do see the macro fix in mainline but no discussions related to missing
+preemption debug checks after NAK from Peter/Ingo.
 
-Alex.
+I'm gonna move this one out of my 3.12 merge window queue to my for-next - so not
+dropping it (you can rest assured) but it doesn't look merge ready too. OK ?
+
+-Vineet
