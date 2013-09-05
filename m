@@ -1,36 +1,146 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [gcv v3 32/35] arc: Replace __get_cpu_var uses
-Date: Thu, 5 Sep 2013 10:31:24 +0530
-Message-ID: <52281024.20309@synopsys.com>
-References: <20130828193457.140443630@linux.com> <00000140c6781cab-d0df0392-b65b-4213-8be0-1e4a04f67fb2-000000@email.amazonses.com> <C2D7FE5348E1B147BCA15975FBA23075140F60@IN01WEMBXA.internal.synopsys.com> <00000140caf51d3b-0c5ebca6-f4a7-49b8-94c8-fc8b0bde04b8-000000@email.amazonses.com> <5226E55A.3000705@synopsys.com> <00000140e952bc1f-25743208-6728-4ded-b110-9ded0321f723-000000@email.amazonses.com>
+From: "azurIt" <azurit@pobox.sk>
+Subject: =?utf-8?q?Re=3A_=5Bpatch_0=2F7=5D_improve_memcg_oom_killer_robustness_v2?=
+Date: Thu, 05 Sep 2013 11:14:30 +0200
+Message-ID: <20130905111430.CB1392B4@pobox.sk>
+References: <1375549200-19110-1-git-send-email-hannes@cmpxchg.org>, <20130803170831.GB23319@cmpxchg.org>, <20130830215852.3E5D3D66@pobox.sk>, <20130902123802.5B8E8CB1@pobox.sk>, <20130903204850.GA1412@cmpxchg.org>, <20130904114523.A9F0173C@pobox.sk>, <20130904115741.GA28285@dhcp22.suse.cz>, <20130904141000.0F910EFA@pobox.sk> <20130904122632.GB28285@dhcp22.suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hermes.synopsys.com ([198.182.44.81]:50441 "EHLO
-	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753553Ab3IEFBl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Sep 2013 01:01:41 -0400
-In-Reply-To: <00000140e952bc1f-25743208-6728-4ded-b110-9ded0321f723-000000@email.amazonses.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Lameter <cl@linux.com>
-Cc: Tejun Heo <tj@kernel.org>, "akpm@linuxfoundation.org" <akpm@linuxfoundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Steven Rostedt <srostedt@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20130904122632.GB28285@dhcp22.suse.cz>
+Sender: owner-linux-mm@kvack.org
+To: =?utf-8?q?Michal_Hocko?= <mhocko@suse.cz>
+Cc: =?utf-8?q?Johannes_Weiner?= <hannes@cmpxchg.org>, =?utf-8?q?Andrew_Morton?= <akpm@linux-foundation.org>, =?utf-8?q?David_Rientjes?= <rientjes@google.com>, =?utf-8?q?KAMEZAWA_Hiroyuki?= <kamezawa.hiroyu@jp.fujitsu.com>, =?utf-8?q?KOSAKI_Motohiro?= <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On 09/04/2013 07:44 PM, Christoph Lameter wrote:
-> On Wed, 4 Sep 2013, Vineet Gupta wrote:
-> 
->> Considering other discussions on this thread, shall I drop this from my for-curr
->> for this merge window ? I don't see any other arch changes to that effect in
->> latest linux-next.
-> 
-> The required fix of the macros was merged yesterday into upstream.
-> 
+>> >[...]
+>> >> My script has just detected (and killed) another freezed cgroup. I
+>> >> must say that i'm not 100% sure that cgroup was really freezed but =
+it
+>> >> has 99% or more memory usage for at least 30 seconds (well, or it h=
+as
+>> >> 99% memory usage in both two cases the script was checking it). Her=
+e
+>> >> are stacks of processes inside it before they were killed:
+>> >[...]
+>> >> pid: 26536
+>> >> stack:
+>> >> [<ffffffff81080a45>] refrigerator+0x95/0x160
+>> >> [<ffffffff8106ac2b>] get_signal_to_deliver+0x1cb/0x540
+>> >> [<ffffffff8100188b>] do_signal+0x6b/0x750
+>> >> [<ffffffff81001fc5>] do_notify_resume+0x55/0x80
+>> >> [<ffffffff815cb662>] retint_signal+0x3d/0x7b
+>> >> [<ffffffffffffffff>] 0xffffffffffffffff
+>> >
+>> >[...]
+>> >
+>> >This task is sitting in the refigerator which means it has been froze=
+n
+>> >by the freezer cgroup most probably. I am not familiar with the
+>> >implementation but my recollection is that you have to thaw that grou=
+p
+>> >in order the killed process can pass away.
+>>=20
+>> Yes, my script is freezing the cgroup before killing processes inside
+>> it. Stacks are taken after the freeze, it that problem?
+>
+>I thought you had a problem to remove this particular group...
+>--=20
+>Michal Hocko
+>SUSE Labs
 
-Yes I do see the macro fix in mainline but no discussions related to missing
-preemption debug checks after NAK from Peter/Ingo.
 
-I'm gonna move this one out of my 3.12 merge window queue to my for-next - so not
-dropping it (you can rest assured) but it doesn't look merge ready too. OK ?
 
--Vineet
+
+My script detected another freezed cgroup today, sending stacks. Is there=
+ anything interesting?
+
+
+
+pid: 947
+stack:
+[<ffffffff810ceefe>] sleep_on_page_killable+0xe/0x40
+[<ffffffff810cee57>] __lock_page_killable+0x67/0x70
+[<ffffffff810d1067>] generic_file_aio_read+0x4d7/0x790
+[<ffffffff81116a8a>] do_sync_read+0xea/0x130
+[<ffffffff81117a40>] vfs_read+0xf0/0x220
+[<ffffffff81117c71>] sys_read+0x51/0x90
+[<ffffffff815cbce6>] system_call_fastpath+0x18/0x1d
+[<ffffffffffffffff>] 0xffffffffffffffff
+
+
+pid: 949
+stack:
+[<ffffffff810ceefe>] sleep_on_page_killable+0xe/0x40
+[<ffffffff810cee57>] __lock_page_killable+0x67/0x70
+[<ffffffff810d1067>] generic_file_aio_read+0x4d7/0x790
+[<ffffffff81116a8a>] do_sync_read+0xea/0x130
+[<ffffffff81117a40>] vfs_read+0xf0/0x220
+[<ffffffff81117c71>] sys_read+0x51/0x90
+[<ffffffff815cbce6>] system_call_fastpath+0x18/0x1d
+[<ffffffffffffffff>] 0xffffffffffffffff
+
+
+pid: 985
+stack:
+[<ffffffff810ceefe>] sleep_on_page_killable+0xe/0x40
+n[<ffffffff810cee57>] __lock_page_killable+0x67/0x70
+[<ffffffff810d1067>] generic_file_aio_read+0x4d7/0x790
+[<ffffffff81116a8a>] do_sync_read+0xea/0x130
+[<ffffffff81117a40>] vfs_read+0xf0/0x220
+[<ffffffff81117c71>] sys_read+0x51/0x90
+[<ffffffff815cbce6>] system_call_fastpath+0x18/0x1d
+[<ffffffffffffffff>] 0xffffffffffffffff
+
+
+pid: 987
+stack:
+[<ffffffff810ceefe>] sleep_on_page_killable+0xe/0x40
+[<ffffffff810cee57>] __lock_page_killable+0x67/0x70
+[<ffffffff810d1067>] generic_file_aio_read+0x4d7/0x790
+[<ffffffff81116a8a>] do_sync_read+0xea/0x130
+[<ffffffff81117a40>] vfs_read+0xf0/0x220
+[<ffffffff81117c71>] sys_read+0x51/0x90
+[<ffffffff815cbce6>] system_call_fastpath+0x18/0x1d
+[<ffffffffffffffff>] 0xffffffffffffffff
+
+
+pid: 1031
+stack:
+[<ffffffff8110f255>] mem_cgroup_oom_synchronize+0x165/0x190
+[<ffffffff810d269e>] pagefault_out_of_memory+0xe/0x120
+[<ffffffff81026f5e>] mm_fault_error+0x9e/0x150
+[<ffffffff81027414>] do_page_fault+0x404/0x490
+[<ffffffff815cb7bf>] page_fault+0x1f/0x30
+[<ffffffffffffffff>] 0xffffffffffffffff
+
+
+pid: 1032
+stack:
+[<ffffffffffffffff>] 0xffffffffffffffff
+
+
+pid: 1036
+stack:
+[<ffffffff8110f255>] mem_cgroup_oom_synchronize+0x165/0x190
+[<ffffffff810d269e>] pagefault_out_of_memory+0xe/0x120
+[<ffffffff81026f5e>] mm_fault_error+0x9e/0x150
+[<ffffffff81027414>] do_page_fault+0x404/0x490
+[<ffffffff815cb7bf>] page_fault+0x1f/0x30
+[<ffffffffffffffff>] 0xffffffffffffffff
+
+
+pid: 1038
+stack:
+[<ffffffff8110f255>] mem_cgroup_oom_synchronize+0x165/0x190
+[<ffffffff810d269e>] pagefault_out_of_memory+0xe/0x120
+[<ffffffff81026f5e>] mm_fault_error+0x9e/0x150
+[<ffffffff81027414>] do_page_fault+0x404/0x490
+[<ffffffff815cb7bf>] page_fault+0x1f/0x30
+[<ffffffffffffffff>] 0xffffffffffffffff
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=3Dmailto:"dont@kvack.org"> email@kvack.org </a>
