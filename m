@@ -1,39 +1,51 @@
-From: "azurIt" <azurit@pobox.sk>
-Subject: =?utf-8?q?Re=3A_=5Bpatch_0=2F7=5D_improve_memcg_oom_killer_robustness_v2?=
-Date: Thu, 05 Sep 2013 15:00:44 +0200
-Message-ID: <20130905150044.ED46FBDF@pobox.sk>
-References: <20130904115741.GA28285@dhcp22.suse.cz>, <20130904141000.0F910EFA@pobox.sk>, <20130904122632.GB28285@dhcp22.suse.cz>, <20130905111430.CB1392B4@pobox.sk>, <20130905095331.GA9702@dhcp22.suse.cz>, <20130905121700.546B5881@pobox.sk>, <20130905111742.GC9702@dhcp22.suse.cz>, <20130905134702.C703F65B@pobox.sk>, <20130905120347.GA13666@dhcp22.suse.cz>, <20130905143343.AF56A889@pobox.sk> <20130905124523.GC13666@dhcp22.suse.cz>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [gcv v3 27/35] arm: Replace __get_cpu_var uses
+Date: Thu, 5 Sep 2013 14:03:59 +0100
+Message-ID: <20130905130359.GA22351@mudshark.cambridge.arm.com>
+References: <00000140e4440576-ae4236ee-3073-4f94-b569-d17396e57513-000000@email.amazonses.com>
+ <20130904093335.GA8007@mudshark.cambridge.arm.com>
+ <00000140e9557be9-1523eeab-c0f6-45a0-881c-9336a8a6cf85-000000@email.amazonses.com>
+ <20130904142324.GD3643@mudshark.cambridge.arm.com>
+ <00000140e97747d2-ee164a4d-d692-409a-a919-083eff3a41ca-000000@email.amazonses.com>
+ <20130904174624.GB5599@mudshark.cambridge.arm.com>
+ <00000140ea29d3c8-5110dd9f-9dcf-470f-9b7e-4e7ff0874052-000000@email.amazonses.com>
+ <20130904182113.GD5599@mudshark.cambridge.arm.com>
+ <alpine.DEB.2.02.1309041324530.26497@gentwo.org>
+ <00000140eac4f5fc-9f8c86db-05dd-496f-abf8-63ca3667574f-000000@email.amazonses.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20130905124523.GC13666@dhcp22.suse.cz>
-Sender: owner-linux-mm@kvack.org
-To: =?utf-8?q?Michal_Hocko?= <mhocko@suse.cz>
-Cc: =?utf-8?q?Johannes_Weiner?= <hannes@cmpxchg.org>, =?utf-8?q?Andrew_Morton?= <akpm@linux-foundation.org>, =?utf-8?q?David_Rientjes?= <rientjes@google.com>, =?utf-8?q?KAMEZAWA_Hiroyuki?= <kamezawa.hiroyu@jp.fujitsu.com>, =?utf-8?q?KOSAKI_Motohiro?= <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <00000140eac4f5fc-9f8c86db-05dd-496f-abf8-63ca3667574f-000000@email.amazonses.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Christoph Lameter <cl@linux.com>
+Cc: Tejun Heo <tj@kernel.org>, "akpm@linuxfoundation.org" <akpm@linuxfoundation.org>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Steven Rostedt <srostedt@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
->On Thu 05-09-13 14:33:43, azurIt wrote:
->[...]
->> >Just to be sure I got you right. You have killed all the processes fr=
-om
->> >the group you have sent stacks for, right? If that is the case I am
->> >really curious about processes sitting in sleep_on_page_killable beca=
-use
->> >those are killable by definition.
->>=20
->> Yes, my script killed all of that processes right after taking
->> stack.
->
->OK, _after_ part is important. Has the group gone away after then?
+Hi again Christoph,
 
+On Wed, Sep 04, 2013 at 09:58:31PM +0100, Christoph Lameter wrote:
+> Here is a patch to be applied after the earlier one to convert the local_t
+> use to this_cpu. Not sure if I got the local_dec_and_test conversion
+> right.
 
+[...]
 
-If you mean if it wasn't making problems after killing it's processes, th=
-en yes.
+> @@ -118,11 +117,11 @@ void disable_debug_monitors(enum debug_e
+> 
+>  	WARN_ON(preemptible());
+> 
+> -	if (local_dec_and_test(this_cpu_ptr(&mde_ref_count)))
+> +	if (this_cpu_dec_return(mde_ref_count))
+>  		disable = ~DBG_MDSCR_MDE;
+> 
+>  	if (el == DBG_ACTIVE_EL1 &&
+> -	    local_dec_and_test(this_cpu_ptr(&kde_ref_count)))
+> +	    this_cpu_dec_return(kde_ref_count))
+>  		disable &= ~DBG_MDSCR_KDE;
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=3Dmailto:"dont@kvack.org"> email@kvack.org </a>
+Almost! I think we just need an '== 0' check on the result from the
+decrement, since local_dec_and_test is simply a way to check that we've
+decremented to zero, so this patch would otherwise invert the meaning.
+
+Will
