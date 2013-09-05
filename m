@@ -1,43 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:41351 "EHLO mx2.suse.de"
+Received: from gmmr1.centrum.cz ([46.255.225.252]:45419 "EHLO gmmr1.centrum.cz"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1761641Ab3IEMpY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 5 Sep 2013 08:45:24 -0400
-Date: Thu, 5 Sep 2013 14:45:23 +0200
-From: Michal Hocko <mhocko@suse.cz>
-Subject: Re: [patch 0/7] improve memcg oom killer robustness v2
-Message-ID: <20130905124523.GC13666@dhcp22.suse.cz>
-References: <20130904115741.GA28285@dhcp22.suse.cz>
- <20130904141000.0F910EFA@pobox.sk>
- <20130904122632.GB28285@dhcp22.suse.cz>
- <20130905111430.CB1392B4@pobox.sk>
- <20130905095331.GA9702@dhcp22.suse.cz>
- <20130905121700.546B5881@pobox.sk>
- <20130905111742.GC9702@dhcp22.suse.cz>
- <20130905134702.C703F65B@pobox.sk>
- <20130905120347.GA13666@dhcp22.suse.cz>
- <20130905143343.AF56A889@pobox.sk>
+	id S1751820Ab3IENAr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 5 Sep 2013 09:00:47 -0400
+Subject: =?utf-8?q?Re=3A_=5Bpatch_0=2F7=5D_improve_memcg_oom_killer_robustness_v2?=
+Date: Thu, 05 Sep 2013 15:00:44 +0200
+From: "azurIt" <azurit@pobox.sk>
+References: <20130904115741.GA28285@dhcp22.suse.cz>, <20130904141000.0F910EFA@pobox.sk>, <20130904122632.GB28285@dhcp22.suse.cz>, <20130905111430.CB1392B4@pobox.sk>, <20130905095331.GA9702@dhcp22.suse.cz>, <20130905121700.546B5881@pobox.sk>, <20130905111742.GC9702@dhcp22.suse.cz>, <20130905134702.C703F65B@pobox.sk>, <20130905120347.GA13666@dhcp22.suse.cz>, <20130905143343.AF56A889@pobox.sk> <20130905124523.GC13666@dhcp22.suse.cz>
+In-Reply-To: <20130905124523.GC13666@dhcp22.suse.cz>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20130905143343.AF56A889@pobox.sk>
+Message-ID: <20130905150044.ED46FBDF@pobox.sk>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: azurIt <azurit@pobox.sk>
-Cc: Johannes Weiner <hannes@cmpxchg.org>, Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130905124523.5_fS_NqaWvMeOYEs0AaFmgyCbZeH49PdUE750L8atfk@z>
+To: =?utf-8?q?Michal_Hocko?= <mhocko@suse.cz>
+Cc: =?utf-8?q?Johannes_Weiner?= <hannes@cmpxchg.org>, =?utf-8?q?Andrew_Morton?= <akpm@linux-foundation.org>, =?utf-8?q?David_Rientjes?= <rientjes@google.com>, =?utf-8?q?KAMEZAWA_Hiroyuki?= <kamezawa.hiroyu@jp.fujitsu.com>, =?utf-8?q?KOSAKI_Motohiro?= <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130905130044.MJxsiDsqxnooczwh4SZF5Iq5VIX2SYXFPS0gG7Tozsw@z>
 
-On Thu 05-09-13 14:33:43, azurIt wrote:
-[...]
-> >Just to be sure I got you right. You have killed all the processes from
-> >the group you have sent stacks for, right? If that is the case I am
-> >really curious about processes sitting in sleep_on_page_killable because
-> >those are killable by definition.
-> 
-> Yes, my script killed all of that processes right after taking
-> stack.
+>On Thu 05-09-13 14:33:43, azurIt wrote:
+>[...]
+>> >Just to be sure I got you right. You have killed all the processes from
+>> >the group you have sent stacks for, right? If that is the case I am
+>> >really curious about processes sitting in sleep_on_page_killable because
+>> >those are killable by definition.
+>> 
+>> Yes, my script killed all of that processes right after taking
+>> stack.
+>
+>OK, _after_ part is important. Has the group gone away after then?
 
-OK, _after_ part is important. Has the group gone away after then?
--- 
-Michal Hocko
-SUSE Labs
+
+
+If you mean if it wasn't making problems after killing it's processes, then yes.
