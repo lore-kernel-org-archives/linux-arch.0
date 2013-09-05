@@ -1,76 +1,70 @@
-From: Christoph Lameter <cl@linux.com>
-Subject: Re: [gcv v3 27/35] arm: Replace __get_cpu_var uses
-Date: Wed, 4 Sep 2013 20:58:31 +0000
-Message-ID: <00000140eac4f5fc-9f8c86db-05dd-496f-abf8-63ca3667574f-000000@email.amazonses.com>
-References: <20130828193457.140443630@linux.com> <00000140c67834c9-cc2bec76-2d70-48d1-a35b-6e2d5dedf22b-000000@email.amazonses.com> <20130830100105.GF25628@mudshark.cambridge.arm.com> <00000140e4440576-ae4236ee-3073-4f94-b569-d17396e57513-000000@email.amazonses.com>
- <20130904093335.GA8007@mudshark.cambridge.arm.com> <00000140e9557be9-1523eeab-c0f6-45a0-881c-9336a8a6cf85-000000@email.amazonses.com> <20130904142324.GD3643@mudshark.cambridge.arm.com> <00000140e97747d2-ee164a4d-d692-409a-a919-083eff3a41ca-000000@email.amazonses.com>
- <20130904174624.GB5599@mudshark.cambridge.arm.com> <00000140ea29d3c8-5110dd9f-9dcf-470f-9b7e-4e7ff0874052-000000@email.amazonses.com> <20130904182113.GD5599@mudshark.cambridge.arm.com> <alpine.DEB.2.02.1309041324530.26497@gentwo.org>
+From: Alexandre Courbot <gnurou@gmail.com>
+Subject: Re: [RFC 4/5] gpiolib: add gpiod_get() and gpiod_put() functions
+Date: Thu, 5 Sep 2013 12:44:34 +0900
+Message-ID: <CAAVeFuJCCnx+kY46BTkqTbno-j9YwV=GN3dS1aLzxc+ZYWxEdA@mail.gmail.com>
+References: <1378294169-22661-1-git-send-email-acourbot@nvidia.com>
+ <1378294169-22661-5-git-send-email-acourbot@nvidia.com> <52279082.5010105@wwwdotorg.org>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a10-13.smtp-out.amazonses.com ([54.240.10.13]:57439 "EHLO
-	a10-13.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S932400Ab3IDU6d (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Sep 2013 16:58:33 -0400
-In-Reply-To: <alpine.DEB.2.02.1309041324530.26497@gentwo.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Tejun Heo <tj@kernel.org>, "akpm@linuxfoundation.org" <akpm@linuxfoundation.org>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Steven Rostedt <srostedt@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-gpio-owner@vger.kernel.org>
+In-Reply-To: <52279082.5010105@wwwdotorg.org>
+Sender: linux-gpio-owner@vger.kernel.org
+To: Stephen Warren <swarren@wwwdotorg.org>
+Cc: Alexandre Courbot <acourbot@nvidia.com>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Grant Likely <grant.likely@linaro.org>, Thierry Reding <thierry.reding@gmail.com>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, linux-doc@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, devicetree@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Here is a patch to be applied after the earlier one to convert the local_t
-use to this_cpu. Not sure if I got the local_dec_and_test conversion
-right.
+On Thu, Sep 5, 2013 at 4:56 AM, Stephen Warren <swarren@wwwdotorg.org> wrote:
+> On 09/04/2013 05:29 AM, Alexandre Courbot wrote:
+>> Add gpiod_get() and gpiod_put() functions that provide safer handling of
+>> GPIOs.
+>>
+>> These functions put the GPIO framework in line with the conventions of
+>> other frameworks in the kernel, and help ensure every GPIO is declared
+>> properly and valid while it is used.
+>
+>> diff --git a/include/linux/gpio/consumer.h b/include/linux/gpio/consumer.h
+>
+>> +struct gpio_desc *__must_check gpiod_get(struct device *dev,
+>> +                                      const char *con_id);
+>> +void gpiod_put(struct gpio_desc *desc);
+>
+> It might be nice to add an "int index" parameter to this function. For
+> example, a bit-banged parallel bus protocol driver might have 1
+> chip-select GPIO, 1 clock GPIO, and 8 data GPIOs. gpiod_get(dev, "bus",
+> 0)..gpiod_get(dev, "bus", 7) might be nicer than gpiod_get(dev,
+> "bus0")..gpiod_get(dev, "bus7")? Possibly for client-simplicity,
+> implement both gpiod_get(dev, con_id) (as an inline wrapper for ...) and
+> gpiod_get_index(dev, con_id, index)?
+>
+> In DT terms, this would map to:
+>
+> cs-gpios = <&gpio 3 0>;
+> clock-gpios = <&gpio 5 0>;
+> bus-gpios = <&gpio 10 0 ... &gpio 17 0>;
+>
+> ... and with the mapping table registration mechanism, we could
+> presumably add "int index" to struct gpiod_lookup.
 
+Having the index argument of of_get_named_gpiod_flags() propagated
+into gpiod_get() is something I also thought about (see the cover
+letter), but I really can't make up my mind about it.
 
-Index: linux/arch/arm64/kernel/debug-monitors.c
-===================================================================
---- linux.orig/arch/arm64/kernel/debug-monitors.c	2013-09-04 15:53:53.374943378 -0500
-+++ linux/arch/arm64/kernel/debug-monitors.c	2013-09-04 15:57:19.564792739 -0500
-@@ -27,7 +27,6 @@
- #include <linux/uaccess.h>
+On the one hand, having several GPIO per DT property is already
+allowed, and presumably used in bindings already. It might also make
+sense to have several lines under the same name, e.g. for bitbanging.
 
- #include <asm/debug-monitors.h>
--#include <asm/local.h>
- #include <asm/cputype.h>
- #include <asm/system_misc.h>
+On the other hand, I'm afraid people will abuse this, and group all
+the GPIOs for a device under a single property instead of using proper
+names.
 
-@@ -89,8 +88,8 @@ early_param("nodebugmon", early_debug_di
-  * Keep track of debug users on each core.
-  * The ref counts are per-cpu so we use a local_t type.
-  */
--static DEFINE_PER_CPU(local_t, mde_ref_count);
--static DEFINE_PER_CPU(local_t, kde_ref_count);
-+static DEFINE_PER_CPU(int, mde_ref_count);
-+static DEFINE_PER_CPU(int, kde_ref_count);
+I guess that if we want gpiod to cover all that gpio allows already
+(as the ultimate goal is to superseed the latter) we have no choice
+but support this though. A (possibly cleaner) alternative would be to
+have a get_gpios(device, name, gpio_desc **descs, int nb_desc)
+function that returns all the GPIOs defined under a single property,
+and fails if the number of descriptors does not match nb_desc. If that
+works it would be more tailored towards grouping GPIOs that serve the
+same logical purpose, and discourage the behavior I worried about
+above.
 
- void enable_debug_monitors(enum debug_el el)
- {
-@@ -98,11 +97,11 @@ void enable_debug_monitors(enum debug_el
-
- 	WARN_ON(preemptible());
-
--	if (local_inc_return(this_cpu_ptr(&mde_ref_count)) == 1)
-+	if (this_cpu_inc_return(mde_ref_count) == 1)
- 		enable = DBG_MDSCR_MDE;
-
- 	if (el == DBG_ACTIVE_EL1 &&
--	    local_inc_return(this_cpu_ptr(&kde_ref_count)) == 1)
-+	    this_cpu_inc_return(kde_ref_count) == 1)
- 		enable |= DBG_MDSCR_KDE;
-
- 	if (enable && debug_enabled) {
-@@ -118,11 +117,11 @@ void disable_debug_monitors(enum debug_e
-
- 	WARN_ON(preemptible());
-
--	if (local_dec_and_test(this_cpu_ptr(&mde_ref_count)))
-+	if (this_cpu_dec_return(mde_ref_count))
- 		disable = ~DBG_MDSCR_MDE;
-
- 	if (el == DBG_ACTIVE_EL1 &&
--	    local_dec_and_test(this_cpu_ptr(&kde_ref_count)))
-+	    this_cpu_dec_return(kde_ref_count))
- 		disable &= ~DBG_MDSCR_KDE;
-
- 	if (disable) {
+Alex.
