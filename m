@@ -1,34 +1,35 @@
-From: Christoph Lameter <cl@linux.com>
-Subject: Re: [gcv v3 27/35] arm: Replace __get_cpu_var uses
-Date: Thu, 5 Sep 2013 14:24:25 +0000
-Message-ID: <00000140ee828138-3328099b-149e-433d-8262-0a481806ca85-000000@email.amazonses.com>
-References: <00000140e4440576-ae4236ee-3073-4f94-b569-d17396e57513-000000@email.amazonses.com> <20130904093335.GA8007@mudshark.cambridge.arm.com> <00000140e9557be9-1523eeab-c0f6-45a0-881c-9336a8a6cf85-000000@email.amazonses.com> <20130904142324.GD3643@mudshark.cambridge.arm.com>
- <00000140e97747d2-ee164a4d-d692-409a-a919-083eff3a41ca-000000@email.amazonses.com> <20130904174624.GB5599@mudshark.cambridge.arm.com> <00000140ea29d3c8-5110dd9f-9dcf-470f-9b7e-4e7ff0874052-000000@email.amazonses.com> <20130904182113.GD5599@mudshark.cambridge.arm.com>
- <alpine.DEB.2.02.1309041324530.26497@gentwo.org> <00000140eac4f5fc-9f8c86db-05dd-496f-abf8-63ca3667574f-000000@email.amazonses.com> <20130905130359.GA22351@mudshark.cambridge.arm.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [gcv v3 32/35] arc: Replace __get_cpu_var uses
+Date: Thu, 5 Sep 2013 14:29:49 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA23075141CCD@IN01WEMBXA.internal.synopsys.com>
+References: <20130828193457.140443630@linux.com>
+ <00000140c6781cab-d0df0392-b65b-4213-8be0-1e4a04f67fb2-000000@email.amazonses.com>
+ <C2D7FE5348E1B147BCA15975FBA23075140F60@IN01WEMBXA.internal.synopsys.com>
+ <00000140caf51d3b-0c5ebca6-f4a7-49b8-94c8-fc8b0bde04b8-000000@email.amazonses.com>
+ <5226E55A.3000705@synopsys.com>
+ <00000140e952bc1f-25743208-6728-4ded-b110-9ded0321f723-000000@email.amazonses.com>
+ <52281024.20309@synopsys.com>
+ <00000140ee7e1cf2-bfccaa36-5c54-4513-b7a8-cfa67a476dd7-000000@email.amazonses.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a9-99.smtp-out.amazonses.com ([54.240.9.99]:58507 "EHLO
-	a9-99.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752210Ab3IEOY0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Sep 2013 10:24:26 -0400
-In-Reply-To: <20130905130359.GA22351@mudshark.cambridge.arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Tejun Heo <tj@kernel.org>, "akpm@linuxfoundation.org" <akpm@linuxfoundation.org>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Steven Rostedt <srostedt@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Language: en-US
+Sender: linux-kernel-owner@vger.kernel.org
+To: Christoph Lameter <cl@linux.com>
+Cc: Tejun Heo <tj@kernel.org>, "akpm@linuxfoundation.org" <akpm@linuxfoundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Steven Rostedt <srostedt@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, 5 Sep 2013, Will Deacon wrote:
-
-> >
-> >  	if (el == DBG_ACTIVE_EL1 &&
-> > -	    local_dec_and_test(this_cpu_ptr(&kde_ref_count)))
-> > +	    this_cpu_dec_return(kde_ref_count))
-> >  		disable &= ~DBG_MDSCR_KDE;
+On 09/05/2013 07:49 PM, Christoph Lameter wrote:
+> On Thu, 5 Sep 2013, Vineet Gupta wrote:
 >
-> Almost! I think we just need an '== 0' check on the result from the
-> decrement, since local_dec_and_test is simply a way to check that we've
-> decremented to zero, so this patch would otherwise invert the meaning.
+>> Yes I do see the macro fix in mainline but no discussions related to missing
+>> preemption debug checks after NAK from Peter/Ingo.
+> v4 was posted yesterday with the preemption bug checks.
 
-Ok can you take it from here and modify it? I have no build and test
-environment set up for ARM.
+I see that. IMHO it would be better if all of this gets merged into mainline in
+one cycle.
+I'm a relatively new maintainer so I'm not sure how to handle this. Andrew, Tejun,
+Steven what say you ?
+
+-Vineet
