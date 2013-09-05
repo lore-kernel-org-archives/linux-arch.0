@@ -1,75 +1,139 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f173.google.com ([209.85.220.173]:39251 "EHLO
-	mail-vc0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752412Ab3IEDoz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Sep 2013 23:44:55 -0400
+Received: from gmmr4.centrum.cz ([46.255.227.253]:42749 "EHLO gmmr4.centrum.cz"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1763266Ab3IEJOj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 5 Sep 2013 05:14:39 -0400
+Subject: =?utf-8?q?Re=3A_=5Bpatch_0=2F7=5D_improve_memcg_oom_killer_robustness_v2?=
+Date: Thu, 05 Sep 2013 11:14:30 +0200
+From: "azurIt" <azurit@pobox.sk>
+References: <1375549200-19110-1-git-send-email-hannes@cmpxchg.org>, <20130803170831.GB23319@cmpxchg.org>, <20130830215852.3E5D3D66@pobox.sk>, <20130902123802.5B8E8CB1@pobox.sk>, <20130903204850.GA1412@cmpxchg.org>, <20130904114523.A9F0173C@pobox.sk>, <20130904115741.GA28285@dhcp22.suse.cz>, <20130904141000.0F910EFA@pobox.sk> <20130904122632.GB28285@dhcp22.suse.cz>
+In-Reply-To: <20130904122632.GB28285@dhcp22.suse.cz>
 MIME-Version: 1.0
-In-Reply-To: <52279082.5010105@wwwdotorg.org>
-References: <1378294169-22661-1-git-send-email-acourbot@nvidia.com>
- <1378294169-22661-5-git-send-email-acourbot@nvidia.com> <52279082.5010105@wwwdotorg.org>
-From: Alexandre Courbot <gnurou@gmail.com>
-Date: Thu, 5 Sep 2013 12:44:34 +0900
-Message-ID: <CAAVeFuJCCnx+kY46BTkqTbno-j9YwV=GN3dS1aLzxc+ZYWxEdA@mail.gmail.com>
-Subject: Re: [RFC 4/5] gpiolib: add gpiod_get() and gpiod_put() functions
+Message-ID: <20130905111430.CB1392B4@pobox.sk>
 Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Warren <swarren@wwwdotorg.org>
-Cc: Alexandre Courbot <acourbot@nvidia.com>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Grant Likely <grant.likely@linaro.org>, Thierry Reding <thierry.reding@gmail.com>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, linux-doc@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, devicetree@vger.kernel.org
-Message-ID: <20130905034434.ABuzWiWJolcOJLd6GzOpfUzHipb6gcWG4spZgVIQDMs@z>
+To: =?utf-8?q?Michal_Hocko?= <mhocko@suse.cz>
+Cc: =?utf-8?q?Johannes_Weiner?= <hannes@cmpxchg.org>, =?utf-8?q?Andrew_Morton?= <akpm@linux-foundation.org>, =?utf-8?q?David_Rientjes?= <rientjes@google.com>, =?utf-8?q?KAMEZAWA_Hiroyuki?= <kamezawa.hiroyu@jp.fujitsu.com>, =?utf-8?q?KOSAKI_Motohiro?= <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130905091430.wNTA_sWtIL6CmUb67Ux99PPUzdIsiok6Rlbr6zYlBP8@z>
 
-On Thu, Sep 5, 2013 at 4:56 AM, Stephen Warren <swarren@wwwdotorg.org> wrote:
-> On 09/04/2013 05:29 AM, Alexandre Courbot wrote:
->> Add gpiod_get() and gpiod_put() functions that provide safer handling of
->> GPIOs.
->>
->> These functions put the GPIO framework in line with the conventions of
->> other frameworks in the kernel, and help ensure every GPIO is declared
->> properly and valid while it is used.
+>> >[...]
+>> >> My script has just detected (and killed) another freezed cgroup. I
+>> >> must say that i'm not 100% sure that cgroup was really freezed but it
+>> >> has 99% or more memory usage for at least 30 seconds (well, or it has
+>> >> 99% memory usage in both two cases the script was checking it). Here
+>> >> are stacks of processes inside it before they were killed:
+>> >[...]
+>> >> pid: 26536
+>> >> stack:
+>> >> [<ffffffff81080a45>] refrigerator+0x95/0x160
+>> >> [<ffffffff8106ac2b>] get_signal_to_deliver+0x1cb/0x540
+>> >> [<ffffffff8100188b>] do_signal+0x6b/0x750
+>> >> [<ffffffff81001fc5>] do_notify_resume+0x55/0x80
+>> >> [<ffffffff815cb662>] retint_signal+0x3d/0x7b
+>> >> [<ffffffffffffffff>] 0xffffffffffffffff
+>> >
+>> >[...]
+>> >
+>> >This task is sitting in the refigerator which means it has been frozen
+>> >by the freezer cgroup most probably. I am not familiar with the
+>> >implementation but my recollection is that you have to thaw that group
+>> >in order the killed process can pass away.
+>> 
+>> Yes, my script is freezing the cgroup before killing processes inside
+>> it. Stacks are taken after the freeze, it that problem?
 >
->> diff --git a/include/linux/gpio/consumer.h b/include/linux/gpio/consumer.h
->
->> +struct gpio_desc *__must_check gpiod_get(struct device *dev,
->> +                                      const char *con_id);
->> +void gpiod_put(struct gpio_desc *desc);
->
-> It might be nice to add an "int index" parameter to this function. For
-> example, a bit-banged parallel bus protocol driver might have 1
-> chip-select GPIO, 1 clock GPIO, and 8 data GPIOs. gpiod_get(dev, "bus",
-> 0)..gpiod_get(dev, "bus", 7) might be nicer than gpiod_get(dev,
-> "bus0")..gpiod_get(dev, "bus7")? Possibly for client-simplicity,
-> implement both gpiod_get(dev, con_id) (as an inline wrapper for ...) and
-> gpiod_get_index(dev, con_id, index)?
->
-> In DT terms, this would map to:
->
-> cs-gpios = <&gpio 3 0>;
-> clock-gpios = <&gpio 5 0>;
-> bus-gpios = <&gpio 10 0 ... &gpio 17 0>;
->
-> ... and with the mapping table registration mechanism, we could
-> presumably add "int index" to struct gpiod_lookup.
+>I thought you had a problem to remove this particular group...
+>-- 
+>Michal Hocko
+>SUSE Labs
 
-Having the index argument of of_get_named_gpiod_flags() propagated
-into gpiod_get() is something I also thought about (see the cover
-letter), but I really can't make up my mind about it.
 
-On the one hand, having several GPIO per DT property is already
-allowed, and presumably used in bindings already. It might also make
-sense to have several lines under the same name, e.g. for bitbanging.
 
-On the other hand, I'm afraid people will abuse this, and group all
-the GPIOs for a device under a single property instead of using proper
-names.
 
-I guess that if we want gpiod to cover all that gpio allows already
-(as the ultimate goal is to superseed the latter) we have no choice
-but support this though. A (possibly cleaner) alternative would be to
-have a get_gpios(device, name, gpio_desc **descs, int nb_desc)
-function that returns all the GPIOs defined under a single property,
-and fails if the number of descriptors does not match nb_desc. If that
-works it would be more tailored towards grouping GPIOs that serve the
-same logical purpose, and discourage the behavior I worried about
-above.
+My script detected another freezed cgroup today, sending stacks. Is there anything interesting?
 
-Alex.
+
+
+pid: 947
+stack:
+[<ffffffff810ceefe>] sleep_on_page_killable+0xe/0x40
+[<ffffffff810cee57>] __lock_page_killable+0x67/0x70
+[<ffffffff810d1067>] generic_file_aio_read+0x4d7/0x790
+[<ffffffff81116a8a>] do_sync_read+0xea/0x130
+[<ffffffff81117a40>] vfs_read+0xf0/0x220
+[<ffffffff81117c71>] sys_read+0x51/0x90
+[<ffffffff815cbce6>] system_call_fastpath+0x18/0x1d
+[<ffffffffffffffff>] 0xffffffffffffffff
+
+
+pid: 949
+stack:
+[<ffffffff810ceefe>] sleep_on_page_killable+0xe/0x40
+[<ffffffff810cee57>] __lock_page_killable+0x67/0x70
+[<ffffffff810d1067>] generic_file_aio_read+0x4d7/0x790
+[<ffffffff81116a8a>] do_sync_read+0xea/0x130
+[<ffffffff81117a40>] vfs_read+0xf0/0x220
+[<ffffffff81117c71>] sys_read+0x51/0x90
+[<ffffffff815cbce6>] system_call_fastpath+0x18/0x1d
+[<ffffffffffffffff>] 0xffffffffffffffff
+
+
+pid: 985
+stack:
+[<ffffffff810ceefe>] sleep_on_page_killable+0xe/0x40
+n[<ffffffff810cee57>] __lock_page_killable+0x67/0x70
+[<ffffffff810d1067>] generic_file_aio_read+0x4d7/0x790
+[<ffffffff81116a8a>] do_sync_read+0xea/0x130
+[<ffffffff81117a40>] vfs_read+0xf0/0x220
+[<ffffffff81117c71>] sys_read+0x51/0x90
+[<ffffffff815cbce6>] system_call_fastpath+0x18/0x1d
+[<ffffffffffffffff>] 0xffffffffffffffff
+
+
+pid: 987
+stack:
+[<ffffffff810ceefe>] sleep_on_page_killable+0xe/0x40
+[<ffffffff810cee57>] __lock_page_killable+0x67/0x70
+[<ffffffff810d1067>] generic_file_aio_read+0x4d7/0x790
+[<ffffffff81116a8a>] do_sync_read+0xea/0x130
+[<ffffffff81117a40>] vfs_read+0xf0/0x220
+[<ffffffff81117c71>] sys_read+0x51/0x90
+[<ffffffff815cbce6>] system_call_fastpath+0x18/0x1d
+[<ffffffffffffffff>] 0xffffffffffffffff
+
+
+pid: 1031
+stack:
+[<ffffffff8110f255>] mem_cgroup_oom_synchronize+0x165/0x190
+[<ffffffff810d269e>] pagefault_out_of_memory+0xe/0x120
+[<ffffffff81026f5e>] mm_fault_error+0x9e/0x150
+[<ffffffff81027414>] do_page_fault+0x404/0x490
+[<ffffffff815cb7bf>] page_fault+0x1f/0x30
+[<ffffffffffffffff>] 0xffffffffffffffff
+
+
+pid: 1032
+stack:
+[<ffffffffffffffff>] 0xffffffffffffffff
+
+
+pid: 1036
+stack:
+[<ffffffff8110f255>] mem_cgroup_oom_synchronize+0x165/0x190
+[<ffffffff810d269e>] pagefault_out_of_memory+0xe/0x120
+[<ffffffff81026f5e>] mm_fault_error+0x9e/0x150
+[<ffffffff81027414>] do_page_fault+0x404/0x490
+[<ffffffff815cb7bf>] page_fault+0x1f/0x30
+[<ffffffffffffffff>] 0xffffffffffffffff
+
+
+pid: 1038
+stack:
+[<ffffffff8110f255>] mem_cgroup_oom_synchronize+0x165/0x190
+[<ffffffff810d269e>] pagefault_out_of_memory+0xe/0x120
+[<ffffffff81026f5e>] mm_fault_error+0x9e/0x150
+[<ffffffff81027414>] do_page_fault+0x404/0x490
+[<ffffffff815cb7bf>] page_fault+0x1f/0x30
+[<ffffffffffffffff>] 0xffffffffffffffff
