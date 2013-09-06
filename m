@@ -1,44 +1,69 @@
-From: Kyle McMartin <kyle@infradead.org>
-Subject: Re: [PATCH v2 4/4] kernel: add support for init_array constructors
-Date: Fri, 6 Sep 2013 14:07:51 -0400
-Message-ID: <20130906180751.GD25882@merlin.infradead.org>
-References: <1378305776-3644-1-git-send-email-fhrbata@redhat.com>
- <1378305776-3644-5-git-send-email-fhrbata@redhat.com>
- <87vc2e66kr.fsf@rustcorp.com.au>
- <20130906175118.GB2332@localhost.localdomain>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH tip/core/rcu 8/9] nohz_full: Add full-system-idle state machine
+Date: Fri, 6 Sep 2013 20:50:41 +0200
+Message-ID: <CAMuHMdVS4jGFOuysknJ_4BcdWRrYU=7KVfO8o_gxf-pVg=5gKA@mail.gmail.com>
+References: <20130820024700.GA31075@linux.vnet.ibm.com>
+	<1376966841-31774-1-git-send-email-paulmck@linux.vnet.ibm.com>
+	<1376966841-31774-8-git-send-email-paulmck@linux.vnet.ibm.com>
+	<CAMuHMdWtZAD3G_miFOT9DPZpfTO3nJ9J4aG_zvHV_6eVf2jdQg@mail.gmail.com>
+	<20130906173047.GT3966@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:47887 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750785Ab3IFSH4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Sep 2013 14:07:56 -0400
-Content-Disposition: inline
-In-Reply-To: <20130906175118.GB2332@localhost.localdomain>
+Received: from mail-pb0-f42.google.com ([209.85.160.42]:51834 "EHLO
+	mail-pb0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750891Ab3IFSun (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Sep 2013 14:50:43 -0400
+In-Reply-To: <20130906173047.GT3966@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Frantisek Hrbata <fhrbata@redhat.com>
-Cc: Rusty Russell <rusty@rustcorp.com.au>, linux-kernel@vger.kernel.org, jstancek@redhat.com, keescook@chromium.org, peter.oberparleiter@de.ibm.com, linux-arch@vger.kernel.org, arnd@arndb.de, mgahagan@redhat.com, agospoda@redhat.com, akpm@linux-foundation.org
+To: Paul McKenney <paulmck@linux.vnet.ibm.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, laijs@cn.fujitsu.com, dipankar@in.ibm.com, Andrew Morton <akpm@linux-foundation.org>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, josh@joshtriplett.org, niv@us.ibm.com, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, David Howells <dhowells@redhat.com>, edumazet@google.com, darren@dvhart.com, =?UTF-8?B?RnLDqWTDqXJpYyBXZWlzYmVja2Vy?= <fweisbec@gmail.com>, sbw@mit.edu, Linux-Arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>
 
-On Fri, Sep 06, 2013 at 07:51:18PM +0200, Frantisek Hrbata wrote:
-> > > v2: - reuse mod->ctors for .init_array section for modules, because gcc uses
-> > >       .ctors or .init_array, but not both at the same time
-> > >
-> > > Signed-off-by: Frantisek Hrbata <fhrbata@redhat.com>
-> > 
-> > Might be nice to document which gcc version changed this, so people can
-> > choose whether to cherry-pick this change?
-> 
-> Thank you for pointing this out. As per gcc git this was introduced by commit
-> ef1da80 and released in 4.7 version.
-> 
-> $ git describe --contains ef1da80
-> gcc-4_7_0-release~4358
-> 
-> Do you want me to post v3 with this info included in the descrition?
-> 
+On Fri, Sep 6, 2013 at 7:30 PM, Paul E. McKenney
+<paulmck@linux.vnet.ibm.com> wrote:
+>> Furthermore, it seems only hexagon, metag, mips, and x86 set NR_CPUS to 1
+>> if !SMP. On other architectures, NR_CPUS is not defined and presumed to be 0.
+>
+> Would it make sense to require that NR_CPUS=1 for !SMP?
 
-It actually depends on the combination of binutils/ld and gcc you use, not
-simply which gcc version you use. :/
+Yes, this looks reasonable to me.
 
---Kyle
+> I tried creating a NR_CPUS_REALLY as follows:
+>
+> config NR_CPUS_REALLY
+>         int "Fixed version of NR_CPUS"
+>         default NR_CPUS if NR_CPUS
+>         default 1 if !NR_CPUS
+>
+> But this still gave a warning on the first "default" even though it
+> was not in effect.  I also tried using Kconfig "if":
+
+IIRC, it tries to use the first default first, so the below may work
+(the "if SMP" is probably not needed):
+
+config NR_CPUS_REALLY
+        int "Fixed version of NR_CPUS"
+        default 1 if !SMP
+        default NR_CPUS if SMP
+
+> Defining NR_CPUS=1 if !SMP is looking pretty good to me just now.
+> This would probably have other benefits -- I cannot be the only
+> person who ever wanted this.  ;-)
+
+Sure. I just didn't want to create patches for all architectures without
+having a discussion first.
+
+And it would be nice if it cuould be done in a central place, without
+touching all architectures.
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
