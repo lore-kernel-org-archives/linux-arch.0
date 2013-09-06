@@ -1,32 +1,109 @@
-From: Christoph Lameter <cl@linux.com>
-Subject: Re: [gcv v3 27/35] arm: Replace __get_cpu_var uses
-Date: Fri, 6 Sep 2013 15:39:17 +0000
-Message-ID: <00000140f3ed6950-03760ead-5f78-414c-91e3-e3d40175cc92-000000@email.amazonses.com>
-References: <00000140e97747d2-ee164a4d-d692-409a-a919-083eff3a41ca-000000@email.amazonses.com> <20130904174624.GB5599@mudshark.cambridge.arm.com> <00000140ea29d3c8-5110dd9f-9dcf-470f-9b7e-4e7ff0874052-000000@email.amazonses.com> <20130904182113.GD5599@mudshark.cambridge.arm.com>
- <alpine.DEB.2.02.1309041324530.26497@gentwo.org> <00000140eac4f5fc-9f8c86db-05dd-496f-abf8-63ca3667574f-000000@email.amazonses.com> <20130905130359.GA22351@mudshark.cambridge.arm.com> <00000140ee828138-3328099b-149e-433d-8262-0a481806ca85-000000@email.amazonses.com>
- <20130905172810.GB29219@mudshark.cambridge.arm.com> <00000140ef40d3fc-55c44dfd-7403-43f4-b1fb-d116c55be5a6-000000@email.amazonses.com> <20130906110423.GE30450@mudshark.cambridge.arm.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH tip/core/rcu 8/9] nohz_full: Add full-system-idle state
+ machine
+Date: Fri, 6 Sep 2013 10:30:47 -0700
+Message-ID: <20130906173047.GT3966@linux.vnet.ibm.com>
+References: <20130820024700.GA31075@linux.vnet.ibm.com>
+ <1376966841-31774-1-git-send-email-paulmck@linux.vnet.ibm.com>
+ <1376966841-31774-8-git-send-email-paulmck@linux.vnet.ibm.com>
+ <CAMuHMdWtZAD3G_miFOT9DPZpfTO3nJ9J4aG_zvHV_6eVf2jdQg@mail.gmail.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a9-97.smtp-out.amazonses.com ([54.240.9.97]:55744 "EHLO
-	a9-97.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752749Ab3IFPpU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Sep 2013 11:45:20 -0400
-In-Reply-To: <20130906110423.GE30450@mudshark.cambridge.arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Tejun Heo <tj@kernel.org>, "akpm@linuxfoundation.org" <akpm@linuxfoundation.org>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Steven Rostedt <srostedt@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <CAMuHMdWtZAD3G_miFOT9DPZpfTO3nJ9J4aG_zvHV_6eVf2jdQg@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, laijs@cn.fujitsu.com, dipankar@in.ibm.com, Andrew Morton <akpm@linux-foundation.org>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, josh@joshtriplett.org, niv@us.ibm.com, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, David Howells <dhowells@redhat.com>, edumazet@google.com, darren@dvhart.com, =?iso-8859-1?Q?Fr=E9d=E9ric?= Weisbecker <fweisbec@gmail.com>, sbw@mit.edu, Linux-Arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, 6 Sep 2013, Will Deacon wrote:
+On Fri, Sep 06, 2013 at 10:08:22AM +0200, Geert Uytterhoeven wrote:
+> On Tue, Aug 20, 2013 at 4:47 AM, Paul E. McKenney
+> <paulmck@linux.vnet.ibm.com> wrote:
+> > --- a/kernel/time/Kconfig
+> > +++ b/kernel/time/Kconfig
+> > @@ -157,6 +157,33 @@ config NO_HZ_FULL_SYSIDLE
+> >
+> >          Say N if you are unsure.
+> >
+> > +config NO_HZ_FULL_SYSIDLE_SMALL
+> > +       int "Number of CPUs above which large-system approach is used"
+> > +       depends on NO_HZ_FULL_SYSIDLE
+> > +       range 1 NR_CPUS
+> 
+> This causes "kernel/time/Kconfig:162:warning: range is invalid" on m68k and
+> all other architectures that do not support SMP.
+> 
+> How to reproduce:
+>     make ARCH=m68k defconfig
 
-> Ok, I had a crack at putting something together on top of HEAD, but I still
-> see some errors due to pcpu array types (even with your patch in mainline).
-> I think some of your conversions to __this_cpu_read should use this_cpu_ptr
-> instead, but could you have a quick look at my fixup below please?
+OK, this does complain, but seems to give a reasonable .config file.
+(From what I can tell.)  It would clearly be good to get rid of the
+complaint.
 
-That could be the case since the cocci script does assume a read operation
-is needed if there was no & in front of the __get_cpu_var. This is wrong
-for pointers and arrays.
+> Furthermore, it seems only hexagon, metag, mips, and x86 set NR_CPUS to 1
+> if !SMP. On other architectures, NR_CPUS is not defined and presumed to be 0.
 
-Patch looks fine to me.
+Would it make sense to require that NR_CPUS=1 for !SMP?
+
+> Hence in non-interactive configs (e.g. "make defconfig"),
+> NO_HZ_FULL_SYSIDLE_SMALL will end up as 0.
+> In interactive configs (e.g. "make oldconfig") Kconfig suggest "0" as
+> the default,
+> but refuses to accept it as it doesn't fall within the range 1..0.
+> 
+> How to reproduce:
+>     Remove the "depends on NO_HZ_FULL_SYSIDLE"
+>     make ARCH=powerpc mpc83xx_defconfig
+>     grep NO_HZ_FULL_SYSIDLE_SMALL .config
+>     -> CONFIG_NO_HZ_FULL_SYSIDLE_SMALL=0
+>     sed 's/CONFIG_NO_HZ_FULL_SYSIDLE_SMALL=0//g' -i .config
+>     make ARCH=powerpc oldconfig
+>     -> no value is accepted
+
+If it turns out that there is some reason by NR_CPUS=1 is impossible,
+there are a few things that I could do:
+
+I could just leave the range off, which would allow people to give
+nonsense values.  This would be harmless in the code, for example,
+a negative value would simply disable small-system handling, while
+a too-large value would similarly disable large-system handling.
+Might be a bit obnoxious for the guy who typoed and then wasted a
+kernel build/boot/test cycle, but it is an option.
+
+I could use a small fixed range (say from 1 to 64), which would
+provide at least some checking.  In the unlikely event that someone
+really wants more than 64 CPUs handled with small-system handling,
+we could revisit at that point.
+
+I tried creating a NR_CPUS_REALLY as follows:
+
+config NR_CPUS_REALLY
+	int "Fixed version of NR_CPUS"
+	default NR_CPUS if NR_CPUS
+	default 1 if !NR_CPUS
+
+But this still gave a warning on the first "default" even though it
+was not in effect.  I also tried using Kconfig "if":
+
+if SMP
+config NR_CPUS_REALLY
+	int "Fixed version of NR_CPUS"
+	default NR_CPUS
+endif
+if !SMP
+config NR_CPUS_REALLY
+	int "Fixed version of NR_CPUS"
+	default 1 if !SMP
+endif
+
+However, Kconfig complained about the use of NR_CPUS even though this
+was under an "if" whose condition was not set.  Perhaps someone with
+better Kconfig-fu than I have can come up with something.
+
+Defining NR_CPUS=1 if !SMP is looking pretty good to me just now.
+This would probably have other benefits -- I cannot be the only
+person who ever wanted this.  ;-)
+
+							Thanx, Paul
