@@ -1,66 +1,63 @@
-From: Rusty Russell <rusty@rustcorp.com.au>
-Subject: Re: [PATCH v2 4/4] kernel: add support for init_array constructors
-Date: Fri, 06 Sep 2013 11:43:08 +0930
-Message-ID: <87vc2e66kr.fsf@rustcorp.com.au>
-References: <1378305776-3644-1-git-send-email-fhrbata@redhat.com> <1378305776-3644-5-git-send-email-fhrbata@redhat.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH tip/core/rcu 8/9] nohz_full: Add full-system-idle state machine
+Date: Fri, 6 Sep 2013 10:08:22 +0200
+Message-ID: <CAMuHMdWtZAD3G_miFOT9DPZpfTO3nJ9J4aG_zvHV_6eVf2jdQg@mail.gmail.com>
+References: <20130820024700.GA31075@linux.vnet.ibm.com>
+	<1376966841-31774-1-git-send-email-paulmck@linux.vnet.ibm.com>
+	<1376966841-31774-8-git-send-email-paulmck@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:53559 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753551Ab3IFCXc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 5 Sep 2013 22:23:32 -0400
-In-Reply-To: <1378305776-3644-5-git-send-email-fhrbata@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Frantisek Hrbata <fhrbata@redhat.com>, linux-kernel@vger.kernel.org
-Cc: jstancek@redhat.com, keescook@chromium.org, peter.oberparleiter@de.ibm.com, linux-arch@vger.kernel.org, arnd@arndb.de, mgahagan@redhat.com, agospoda@redhat.com, akpm@linux-foundation.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <1376966841-31774-8-git-send-email-paulmck@linux.vnet.ibm.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, laijs@cn.fujitsu.com, dipankar@in.ibm.com, Andrew Morton <akpm@linux-foundation.org>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, josh@joshtriplett.org, niv@us.ibm.com, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, David Howells <dhowells@redhat.com>, edumazet@google.com, darren@dvhart.com, =?UTF-8?B?RnLDqWTDqXJpYyBXZWlzYmVja2Vy?= <fweisbec@gmail.com>, sbw@mit.edu, Linux-Arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Frantisek Hrbata <fhrbata@redhat.com> writes:
-> This adds the .init_array section as yet another section with constructors. This
-> is needed because gcc could add __gcov_init calls to .init_array or .ctors
-> section, depending on gcc version.
+On Tue, Aug 20, 2013 at 4:47 AM, Paul E. McKenney
+<paulmck@linux.vnet.ibm.com> wrote:
+> --- a/kernel/time/Kconfig
+> +++ b/kernel/time/Kconfig
+> @@ -157,6 +157,33 @@ config NO_HZ_FULL_SYSIDLE
 >
-> v2: - reuse mod->ctors for .init_array section for modules, because gcc uses
->       .ctors or .init_array, but not both at the same time
+>          Say N if you are unsure.
 >
-> Signed-off-by: Frantisek Hrbata <fhrbata@redhat.com>
+> +config NO_HZ_FULL_SYSIDLE_SMALL
+> +       int "Number of CPUs above which large-system approach is used"
+> +       depends on NO_HZ_FULL_SYSIDLE
+> +       range 1 NR_CPUS
 
-Might be nice to document which gcc version changed this, so people can
-choose whether to cherry-pick this change?
+This causes "kernel/time/Kconfig:162:warning: range is invalid" on m68k and
+all other architectures that do not support SMP.
 
-Acked-by: Rusty Russell <rusty@rustcorp.com.au>
+How to reproduce:
+    make ARCH=m68k defconfig
 
-> ---
->  include/asm-generic/vmlinux.lds.h | 1 +
->  kernel/module.c                   | 3 +++
->  2 files changed, 4 insertions(+)
->
-> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-> index 69732d2..c55d8d9 100644
-> --- a/include/asm-generic/vmlinux.lds.h
-> +++ b/include/asm-generic/vmlinux.lds.h
-> @@ -468,6 +468,7 @@
->  #define KERNEL_CTORS()	. = ALIGN(8);			   \
->  			VMLINUX_SYMBOL(__ctors_start) = .; \
->  			*(.ctors)			   \
-> +			*(.init_array)			   \
->  			VMLINUX_SYMBOL(__ctors_end) = .;
->  #else
->  #define KERNEL_CTORS()
-> diff --git a/kernel/module.c b/kernel/module.c
-> index 2069158..bbbd953 100644
-> --- a/kernel/module.c
-> +++ b/kernel/module.c
-> @@ -2760,6 +2760,9 @@ static void find_module_sections(struct module *mod, struct load_info *info)
->  #ifdef CONFIG_CONSTRUCTORS
->  	mod->ctors = section_objs(info, ".ctors",
->  				  sizeof(*mod->ctors), &mod->num_ctors);
-> +	if (!mod->ctors)
-> +		mod->ctors = section_objs(info, ".init_array",
-> +				sizeof(*mod->ctors), &mod->num_ctors);
->  #endif
->  
->  #ifdef CONFIG_TRACEPOINTS
-> -- 
-> 1.8.3.1
+Furthermore, it seems only hexagon, metag, mips, and x86 set NR_CPUS to 1
+if !SMP. On other architectures, NR_CPUS is not defined and presumed to be 0.
+
+Hence in non-interactive configs (e.g. "make defconfig"),
+NO_HZ_FULL_SYSIDLE_SMALL will end up as 0.
+In interactive configs (e.g. "make oldconfig") Kconfig suggest "0" as
+the default,
+but refuses to accept it as it doesn't fall within the range 1..0.
+
+How to reproduce:
+    Remove the "depends on NO_HZ_FULL_SYSIDLE"
+    make ARCH=powerpc mpc83xx_defconfig
+    grep NO_HZ_FULL_SYSIDLE_SMALL .config
+    -> CONFIG_NO_HZ_FULL_SYSIDLE_SMALL=0
+    sed 's/CONFIG_NO_HZ_FULL_SYSIDLE_SMALL=0//g' -i .config
+    make ARCH=powerpc oldconfig
+    -> no value is accepted
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
