@@ -1,30 +1,66 @@
-From: Christoph Lameter <cl@linux.com>
-Subject: Re: [gcv v3 27/35] arm: Replace __get_cpu_var uses
-Date: Thu, 5 Sep 2013 17:52:19 +0000
-Message-ID: <00000140ef40d3fc-55c44dfd-7403-43f4-b1fb-d116c55be5a6-000000@email.amazonses.com>
-References: <00000140e9557be9-1523eeab-c0f6-45a0-881c-9336a8a6cf85-000000@email.amazonses.com> <20130904142324.GD3643@mudshark.cambridge.arm.com> <00000140e97747d2-ee164a4d-d692-409a-a919-083eff3a41ca-000000@email.amazonses.com> <20130904174624.GB5599@mudshark.cambridge.arm.com>
- <00000140ea29d3c8-5110dd9f-9dcf-470f-9b7e-4e7ff0874052-000000@email.amazonses.com> <20130904182113.GD5599@mudshark.cambridge.arm.com> <alpine.DEB.2.02.1309041324530.26497@gentwo.org> <00000140eac4f5fc-9f8c86db-05dd-496f-abf8-63ca3667574f-000000@email.amazonses.com>
- <20130905130359.GA22351@mudshark.cambridge.arm.com> <00000140ee828138-3328099b-149e-433d-8262-0a481806ca85-000000@email.amazonses.com> <20130905172810.GB29219@mudshark.cambridge.arm.com>
+From: Rusty Russell <rusty@rustcorp.com.au>
+Subject: Re: [PATCH v2 4/4] kernel: add support for init_array constructors
+Date: Fri, 06 Sep 2013 11:43:08 +0930
+Message-ID: <87vc2e66kr.fsf@rustcorp.com.au>
+References: <1378305776-3644-1-git-send-email-fhrbata@redhat.com> <1378305776-3644-5-git-send-email-fhrbata@redhat.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a9-78.smtp-out.amazonses.com ([54.240.9.78]:48408 "EHLO
-	a9-78.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753077Ab3IERwV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Sep 2013 13:52:21 -0400
-In-Reply-To: <20130905172810.GB29219@mudshark.cambridge.arm.com>
+Received: from ozlabs.org ([203.10.76.45]:53559 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753551Ab3IFCXc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 5 Sep 2013 22:23:32 -0400
+In-Reply-To: <1378305776-3644-5-git-send-email-fhrbata@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Tejun Heo <tj@kernel.org>, "akpm@linuxfoundation.org" <akpm@linuxfoundation.org>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Steven Rostedt <srostedt@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: Frantisek Hrbata <fhrbata@redhat.com>, linux-kernel@vger.kernel.org
+Cc: jstancek@redhat.com, keescook@chromium.org, peter.oberparleiter@de.ibm.com, linux-arch@vger.kernel.org, arnd@arndb.de, mgahagan@redhat.com, agospoda@redhat.com, akpm@linux-foundation.org
 
-On Thu, 5 Sep 2013, Will Deacon wrote:
-
-> > Ok can you take it from here and modify it? I have no build and test
-> > environment set up for ARM.
+Frantisek Hrbata <fhrbata@redhat.com> writes:
+> This adds the .init_array section as yet another section with constructors. This
+> is needed because gcc could add __gcov_init calls to .init_array or .ctors
+> section, depending on gcc version.
 >
-> Sure. Does that include the original arm/arm64 patches from your v3 series
-> as well as these two fixups?
+> v2: - reuse mod->ctors for .init_array section for modules, because gcc uses
+>       .ctors or .init_array, but not both at the same time
+>
+> Signed-off-by: Frantisek Hrbata <fhrbata@redhat.com>
 
-I think so. Take whatever you can and I will make another pass after the
-merge and pick up anything that was missed.
+Might be nice to document which gcc version changed this, so people can
+choose whether to cherry-pick this change?
+
+Acked-by: Rusty Russell <rusty@rustcorp.com.au>
+
+> ---
+>  include/asm-generic/vmlinux.lds.h | 1 +
+>  kernel/module.c                   | 3 +++
+>  2 files changed, 4 insertions(+)
+>
+> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+> index 69732d2..c55d8d9 100644
+> --- a/include/asm-generic/vmlinux.lds.h
+> +++ b/include/asm-generic/vmlinux.lds.h
+> @@ -468,6 +468,7 @@
+>  #define KERNEL_CTORS()	. = ALIGN(8);			   \
+>  			VMLINUX_SYMBOL(__ctors_start) = .; \
+>  			*(.ctors)			   \
+> +			*(.init_array)			   \
+>  			VMLINUX_SYMBOL(__ctors_end) = .;
+>  #else
+>  #define KERNEL_CTORS()
+> diff --git a/kernel/module.c b/kernel/module.c
+> index 2069158..bbbd953 100644
+> --- a/kernel/module.c
+> +++ b/kernel/module.c
+> @@ -2760,6 +2760,9 @@ static void find_module_sections(struct module *mod, struct load_info *info)
+>  #ifdef CONFIG_CONSTRUCTORS
+>  	mod->ctors = section_objs(info, ".ctors",
+>  				  sizeof(*mod->ctors), &mod->num_ctors);
+> +	if (!mod->ctors)
+> +		mod->ctors = section_objs(info, ".init_array",
+> +				sizeof(*mod->ctors), &mod->num_ctors);
+>  #endif
+>  
+>  #ifdef CONFIG_TRACEPOINTS
+> -- 
+> 1.8.3.1
