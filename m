@@ -1,22 +1,22 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gmmr5.centrum.cz ([46.255.225.250]:38146 "EHLO gmmr5.centrum.cz"
+Received: from gmmr7.centrum.cz ([46.255.225.249]:46233 "EHLO gmmr7.centrum.cz"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755743Ab3IIUSr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 9 Sep 2013 16:18:47 -0400
+	id S1755013Ab3IIVIP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 9 Sep 2013 17:08:15 -0400
 Subject: =?utf-8?q?Re=3A_=5Bpatch_0=2F7=5D_improve_memcg_oom_killer_robustness_v2?=
-Date: Mon, 09 Sep 2013 22:18:39 +0200
+Date: Mon, 09 Sep 2013 23:08:12 +0200
 From: "azurIt" <azurit@pobox.sk>
 References: <1375549200-19110-1-git-send-email-hannes@cmpxchg.org>, <20130803170831.GB23319@cmpxchg.org>, <20130830215852.3E5D3D66@pobox.sk>, <20130902123802.5B8E8CB1@pobox.sk>, <20130903204850.GA1412@cmpxchg.org>, <20130904101852.58E70042@pobox.sk>, <20130905115430.GB856@cmpxchg.org>, <20130909151010.3A3CBC6A@pobox.sk>, <20130909172849.GG856@cmpxchg.org>, <20130909215917.96932098@pobox.sk> <20130909201238.GH856@cmpxchg.org>
 In-Reply-To: <20130909201238.GH856@cmpxchg.org>
 MIME-Version: 1.0
-Message-ID: <20130909221839.B4FBB094@pobox.sk>
+Message-ID: <20130909230812.757131A5@pobox.sk>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: =?utf-8?q?Johannes_Weiner?= <hannes@cmpxchg.org>
 Cc: =?utf-8?q?Andrew_Morton?= <akpm@linux-foundation.org>, =?utf-8?q?Michal_Hocko?= <mhocko@suse.cz>, =?utf-8?q?David_Rientjes?= <rientjes@google.com>, =?utf-8?q?KAMEZAWA_Hiroyuki?= <kamezawa.hiroyu@jp.fujitsu.com>, =?utf-8?q?KOSAKI_Motohiro?= <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130909201839.5dhUQyvKtpr_1vqnqXE6uQlVpIy4z-JqZiZvptiGoyo@z>
+Message-ID: <20130909210812.aOhYW5f71Cx_bS58dpHAEFFN-sBhYuXOQJF2fv9U-9s@z>
 
 >On Mon, Sep 09, 2013 at 09:59:17PM +0200, azurIt wrote:
 >> >On Mon, Sep 09, 2013 at 03:10:10PM +0200, azurIt wrote:
@@ -131,6 +131,8 @@ Message-ID: <20130909201839.5dhUQyvKtpr_1vqnqXE6uQlVpIy4z-JqZiZvptiGoyo@z>
 
 
 
+I'm soooooo sorry Johannes! It was my fault - I had to modify your patch a little because of grsecurity and I did it wrong (24 + 4 apparently isn't 27, haha ;) ).
 
-Here it is:
-http://watchdog.sk/lkml/config
+All compiled fine now, thank you very much. I will install new kernel this night.
+
+azur
