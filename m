@@ -1,7 +1,7 @@
 From: "azurIt" <azurit@pobox.sk>
 Subject: =?utf-8?q?Re=3A_=5Bpatch_0=2F7=5D_improve_memcg_oom_killer_robustness_v2?=
-Date: Mon, 09 Sep 2013 22:18:39 +0200
-Message-ID: <20130909221839.B4FBB094@pobox.sk>
+Date: Mon, 09 Sep 2013 23:08:12 +0200
+Message-ID: <20130909230812.757131A5@pobox.sk>
 References: <1375549200-19110-1-git-send-email-hannes@cmpxchg.org>, <20130803170831.GB23319@cmpxchg.org>, <20130830215852.3E5D3D66@pobox.sk>, <20130902123802.5B8E8CB1@pobox.sk>, <20130903204850.GA1412@cmpxchg.org>, <20130904101852.58E70042@pobox.sk>, <20130905115430.GB856@cmpxchg.org>, <20130909151010.3A3CBC6A@pobox.sk>, <20130909172849.GG856@cmpxchg.org>, <20130909215917.96932098@pobox.sk> <20130909201238.GH856@cmpxchg.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -162,9 +162,14 @@ t
 
 
 
+I'm soooooo sorry Johannes! It was my fault - I had to modify your patch =
+a little because of grsecurity and I did it wrong (24 + 4 apparently isn'=
+t 27, haha ;) ).
 
-Here it is:
-http://watchdog.sk/lkml/config
+All compiled fine now, thank you very much. I will install new kernel thi=
+s night.
+
+azur
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
