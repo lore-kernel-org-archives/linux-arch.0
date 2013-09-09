@@ -1,59 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f178.google.com ([209.85.212.178]:64965 "EHLO
-	mail-wi0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752155Ab3IHKc4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 8 Sep 2013 06:32:56 -0400
-Date: Sun, 8 Sep 2013 12:32:50 +0200
-From: "Yann E. MORIN" <yann.morin.1998@free.fr>
-Subject: Re: [PATCH tip/core/rcu 8/9] nohz_full: Add full-system-idle state
- machine
-Message-ID: <20130908103250.GA3698@free.fr>
-References: <20130820024700.GA31075@linux.vnet.ibm.com>
- <1376966841-31774-1-git-send-email-paulmck@linux.vnet.ibm.com>
- <1376966841-31774-8-git-send-email-paulmck@linux.vnet.ibm.com>
- <CAMuHMdWtZAD3G_miFOT9DPZpfTO3nJ9J4aG_zvHV_6eVf2jdQg@mail.gmail.com>
- <20130906173047.GT3966@linux.vnet.ibm.com>
- <20130907091348.GA3487@free.fr>
- <20130907185710.GF3966@linux.vnet.ibm.com>
+Received: from ozlabs.org ([203.10.76.45]:33730 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751099Ab3IIBUd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 8 Sep 2013 21:20:33 -0400
+From: Rusty Russell <rusty@rustcorp.com.au>
+Subject: Re: [PATCH v2 4/4] kernel: add support for init_array constructors
+In-Reply-To: <20130906180751.GD25882@merlin.infradead.org>
+References: <1378305776-3644-1-git-send-email-fhrbata@redhat.com> <1378305776-3644-5-git-send-email-fhrbata@redhat.com> <87vc2e66kr.fsf@rustcorp.com.au> <20130906175118.GB2332@localhost.localdomain> <20130906180751.GD25882@merlin.infradead.org>
+Date: Mon, 09 Sep 2013 10:44:03 +0930
+Message-ID: <87d2oi6bl0.fsf@rustcorp.com.au>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20130907185710.GF3966@linux.vnet.ibm.com>
+Content-Type: text/plain; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, laijs@cn.fujitsu.com, dipankar@in.ibm.com, Andrew Morton <akpm@linux-foundation.org>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, josh@joshtriplett.org, niv@us.ibm.com, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, David Howells <dhowells@redhat.com>, edumazet@google.com, darren@dvhart.com, =?utf-8?B?RnLDqWTDqXJpYw==?= Weisbecker <fweisbec@gmail.com>, sbw@mit.edu, Linux-Arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>
-Message-ID: <20130908103250.JRC3Y_rNfkHNigVWQcT7m_6DGYbGa8lyvtTiWf45O6w@z>
+To: Kyle McMartin <kyle@infradead.org>, Frantisek Hrbata <fhrbata@redhat.com>
+Cc: linux-kernel@vger.kernel.org, jstancek@redhat.com, keescook@chromium.org, peter.oberparleiter@de.ibm.com, linux-arch@vger.kernel.org, arnd@arndb.de, mgahagan@redhat.com, agospoda@redhat.com, akpm@linux-foundation.org
+Message-ID: <20130909011403.1_onmPNDIei_dhFITk9mbk0ai-FgybltDlAFMr_bSjM@z>
 
-Paul, All,
+Kyle McMartin <kyle@infradead.org> writes:
+> On Fri, Sep 06, 2013 at 07:51:18PM +0200, Frantisek Hrbata wrote:
+>> > > v2: - reuse mod->ctors for .init_array section for modules, because gcc uses
+>> > >       .ctors or .init_array, but not both at the same time
+>> > >
+>> > > Signed-off-by: Frantisek Hrbata <fhrbata@redhat.com>
+>> > 
+>> > Might be nice to document which gcc version changed this, so people can
+>> > choose whether to cherry-pick this change?
+>> 
+>> Thank you for pointing this out. As per gcc git this was introduced by commit
+>> ef1da80 and released in 4.7 version.
+>> 
+>> $ git describe --contains ef1da80
+>> gcc-4_7_0-release~4358
+>> 
+>> Do you want me to post v3 with this info included in the descrition?
+>> 
+>
+> It actually depends on the combination of binutils/ld and gcc you use, not
+> simply which gcc version you use. :/
 
-On 2013-09-07 11:57 -0700, Paul E. McKenney spake thusly:
-> On Sat, Sep 07, 2013 at 11:13:48AM +0200, Yann E. MORIN wrote:
-[--SNIP--]
-> > I'll see if I can come up with a meaningfull construct that fixes your
-> > use-case. Don't hold your breath, though! ;-)
-> 
-> If not, we need to add NR_CPUS to the architectures lacking them...
+Indeed, and seems it was binutils 20110507 which actually handled it
+properly.
 
-Unfortunately, I was not able to come up with anything suitable.
+AFAICT it's theoretically possible to have .ctors and .init_array in a
+module.  Unlikely, but the patch should check for both and refuse to
+load the module in that case.  Otherwise weird things would happen.
 
-I think your proposal to always define NR_CPUS=1 for architectures
-without SMP support is a good solution.
-
-After all, if !SMP because the architecture does not support it, I
-believe it makes sense that NR_CPUS be defined to 1.
-
-Unless NR_CPUS carries with it a hidden meaning about SMP being
-possible, that is, which would probably be wrong anyway, since we have
-SMP for this.
-
-Regards,
-Yann E. MORIN.
-
--- 
-.-----------------.--------------------.------------------.--------------------.
-|  Yann E. MORIN  | Real-Time Embedded | /"\ ASCII RIBBON | Erics' conspiracy: |
-| +33 662 376 056 | Software  Designer | \ / CAMPAIGN     |  ___               |
-| +33 223 225 172 `------------.-------:  X  AGAINST      |  \e/  There is no  |
-| http://ymorin.is-a-geek.org/ | _/*\_ | / \ HTML MAIL    |   v   conspiracy.  |
-'------------------------------^-------^------------------^--------------------'
+Cheers,
+Rusty.
