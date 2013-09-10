@@ -1,275 +1,58 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 3/7] sched, arch: Create asm/preempt.h
-Date: Tue, 10 Sep 2013 15:08:14 +0200
-Message-ID: <20130910132011.191192558@infradead.org>
+Subject: [PATCH 6/7] sched, x86: Provide a per-cpu preempt_count implementation
+Date: Tue, 10 Sep 2013 15:08:17 +0200
+Message-ID: <20130910132011.396291123@infradead.org>
 References: <20130910130811.507933095@infradead.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=peterz-asm-preempt_count.patch
+Content-Disposition: inline; filename=peterz-x86-per-cpu-preempt_count.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>
 Cc: Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-In order to prepare to per-arch implementations of preempt_count move
-the required bits into an asm-generic header and use this for all
-archs.
+Convert x86 to use a per-cpu preemption count. The reason for doing so
+is that accessing per-cpu variables is a lot cheaper than accessing
+thread_info variables.
 
+We still need to save/restore the actual preemption count due to
+PREEMPT_ACTIVE so we place the per-cpu __preempt_count variable in the
+same cache-line as the other hot __switch_to() variables such as
+current_task.
+
+Also rename thread_info::preempt_count to ensure nobody is
+'accidentally' still poking at it.
+
+Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
 Signed-off-by: Peter Zijlstra <peterz@infradead.org>
 ---
- arch/alpha/include/asm/Kbuild      |    1 
- arch/arc/include/asm/Kbuild        |    1 
- arch/arm/include/asm/Kbuild        |    1 
- arch/arm64/include/asm/Kbuild      |    1 
- arch/avr32/include/asm/Kbuild      |    1 
- arch/blackfin/include/asm/Kbuild   |    1 
- arch/c6x/include/asm/Kbuild        |    1 
- arch/cris/include/asm/Kbuild       |    1 
- arch/frv/include/asm/Kbuild        |    1 
- arch/h8300/include/asm/Kbuild      |    1 
- arch/hexagon/include/asm/Kbuild    |    1 
- arch/ia64/include/asm/Kbuild       |    1 
- arch/m32r/include/asm/Kbuild       |    1 
- arch/m68k/include/asm/Kbuild       |    1 
- arch/metag/include/asm/Kbuild      |    1 
- arch/microblaze/include/asm/Kbuild |    1 
- arch/mips/include/asm/Kbuild       |    1 
- arch/mn10300/include/asm/Kbuild    |    1 
- arch/openrisc/include/asm/Kbuild   |    1 
- arch/parisc/include/asm/Kbuild     |    1 
- arch/powerpc/include/asm/Kbuild    |    1 
- arch/s390/include/asm/Kbuild       |    1 
- arch/score/include/asm/Kbuild      |    1 
- arch/sh/include/asm/Kbuild         |    1 
- arch/sparc/include/asm/Kbuild      |    1 
- arch/tile/include/asm/Kbuild       |    1 
- arch/um/include/asm/Kbuild         |    1 
- arch/unicore32/include/asm/Kbuild  |    1 
  arch/x86/include/asm/Kbuild        |    1 
- arch/xtensa/include/asm/Kbuild     |    1 
- include/asm-generic/preempt.h      |   44 +++++++++++++++++++++++++++++++++++++
- include/linux/preempt.h            |   39 --------------------------------
- 32 files changed, 75 insertions(+), 38 deletions(-)
+ arch/x86/include/asm/preempt.h     |  102 +++++++++++++++++++++++++++++++++++++
+ arch/x86/include/asm/thread_info.h |    5 -
+ arch/x86/kernel/asm-offsets.c      |    1 
+ arch/x86/kernel/cpu/common.c       |    5 +
+ arch/x86/kernel/entry_32.S         |    7 --
+ arch/x86/kernel/entry_64.S         |    4 -
+ arch/x86/kernel/process_32.c       |   10 +++
+ arch/x86/kernel/process_64.c       |   10 +++
+ 9 files changed, 132 insertions(+), 13 deletions(-)
 
---- a/arch/alpha/include/asm/Kbuild
-+++ b/arch/alpha/include/asm/Kbuild
-@@ -3,3 +3,4 @@ generic-y += clkdev.h
- 
- generic-y += exec.h
- generic-y += trace_clock.h
-+generic-y += preempt.h
---- a/arch/arc/include/asm/Kbuild
-+++ b/arch/arc/include/asm/Kbuild
-@@ -46,3 +46,4 @@ generic-y += ucontext.h
- generic-y += user.h
- generic-y += vga.h
- generic-y += xor.h
-+generic-y += preempt.h
---- a/arch/arm/include/asm/Kbuild
-+++ b/arch/arm/include/asm/Kbuild
-@@ -33,3 +33,4 @@ generic-y += timex.h
- generic-y += trace_clock.h
- generic-y += types.h
- generic-y += unaligned.h
-+generic-y += preempt.h
---- a/arch/arm64/include/asm/Kbuild
-+++ b/arch/arm64/include/asm/Kbuild
-@@ -50,3 +50,4 @@ generic-y += unaligned.h
- generic-y += user.h
- generic-y += vga.h
- generic-y += xor.h
-+generic-y += preempt.h
---- a/arch/avr32/include/asm/Kbuild
-+++ b/arch/avr32/include/asm/Kbuild
-@@ -3,3 +3,4 @@ generic-y	+= clkdev.h
- generic-y	+= exec.h
- generic-y	+= trace_clock.h
- generic-y	+= param.h
-+generic-y += preempt.h
---- a/arch/blackfin/include/asm/Kbuild
-+++ b/arch/blackfin/include/asm/Kbuild
-@@ -44,3 +44,4 @@ generic-y += ucontext.h
- generic-y += unaligned.h
- generic-y += user.h
- generic-y += xor.h
-+generic-y += preempt.h
---- a/arch/c6x/include/asm/Kbuild
-+++ b/arch/c6x/include/asm/Kbuild
-@@ -56,3 +56,4 @@ generic-y += ucontext.h
- generic-y += user.h
- generic-y += vga.h
- generic-y += xor.h
-+generic-y += preempt.h
---- a/arch/cris/include/asm/Kbuild
-+++ b/arch/cris/include/asm/Kbuild
-@@ -11,3 +11,4 @@ generic-y += module.h
- generic-y += trace_clock.h
- generic-y += vga.h
- generic-y += xor.h
-+generic-y += preempt.h
---- a/arch/frv/include/asm/Kbuild
-+++ b/arch/frv/include/asm/Kbuild
-@@ -2,3 +2,4 @@
- generic-y += clkdev.h
- generic-y += exec.h
- generic-y += trace_clock.h
-+generic-y += preempt.h
---- a/arch/h8300/include/asm/Kbuild
-+++ b/arch/h8300/include/asm/Kbuild
-@@ -6,3 +6,4 @@ generic-y += mmu.h
- generic-y += module.h
- generic-y += trace_clock.h
- generic-y += xor.h
-+generic-y += preempt.h
---- a/arch/hexagon/include/asm/Kbuild
-+++ b/arch/hexagon/include/asm/Kbuild
-@@ -53,3 +53,4 @@ generic-y += types.h
- generic-y += ucontext.h
- generic-y += unaligned.h
- generic-y += xor.h
-+generic-y += preempt.h
---- a/arch/ia64/include/asm/Kbuild
-+++ b/arch/ia64/include/asm/Kbuild
-@@ -3,4 +3,5 @@ generic-y += clkdev.h
- generic-y += exec.h
- generic-y += kvm_para.h
- generic-y += trace_clock.h
-+generic-y += preempt.h
- generic-y += vtime.h
-\ No newline at end of file
---- a/arch/m32r/include/asm/Kbuild
-+++ b/arch/m32r/include/asm/Kbuild
-@@ -3,3 +3,4 @@ generic-y += clkdev.h
- generic-y += exec.h
- generic-y += module.h
- generic-y += trace_clock.h
-+generic-y += preempt.h
---- a/arch/m68k/include/asm/Kbuild
-+++ b/arch/m68k/include/asm/Kbuild
-@@ -31,3 +31,4 @@ generic-y += trace_clock.h
- generic-y += types.h
- generic-y += word-at-a-time.h
- generic-y += xor.h
-+generic-y += preempt.h
---- a/arch/metag/include/asm/Kbuild
-+++ b/arch/metag/include/asm/Kbuild
-@@ -52,3 +52,4 @@ generic-y += unaligned.h
- generic-y += user.h
- generic-y += vga.h
- generic-y += xor.h
-+generic-y += preempt.h
---- a/arch/microblaze/include/asm/Kbuild
-+++ b/arch/microblaze/include/asm/Kbuild
-@@ -3,3 +3,4 @@ generic-y += clkdev.h
- generic-y += exec.h
- generic-y += trace_clock.h
- generic-y += syscalls.h
-+generic-y += preempt.h
---- a/arch/mips/include/asm/Kbuild
-+++ b/arch/mips/include/asm/Kbuild
-@@ -1,2 +1,3 @@
- # MIPS headers
- generic-y += trace_clock.h
-+generic-y += preempt.h
---- a/arch/mn10300/include/asm/Kbuild
-+++ b/arch/mn10300/include/asm/Kbuild
-@@ -2,3 +2,4 @@
- generic-y += clkdev.h
- generic-y += exec.h
- generic-y += trace_clock.h
-+generic-y += preempt.h
---- a/arch/openrisc/include/asm/Kbuild
-+++ b/arch/openrisc/include/asm/Kbuild
-@@ -67,3 +67,4 @@ generic-y += ucontext.h
- generic-y += user.h
- generic-y += word-at-a-time.h
- generic-y += xor.h
-+generic-y += preempt.h
---- a/arch/parisc/include/asm/Kbuild
-+++ b/arch/parisc/include/asm/Kbuild
-@@ -4,3 +4,4 @@ generic-y += word-at-a-time.h auxvec.h u
- 	  div64.h irq_regs.h kdebug.h kvm_para.h local64.h local.h param.h \
- 	  poll.h xor.h clkdev.h exec.h
- generic-y += trace_clock.h
-+generic-y += preempt.h
---- a/arch/powerpc/include/asm/Kbuild
-+++ b/arch/powerpc/include/asm/Kbuild
-@@ -2,4 +2,5 @@
- generic-y += clkdev.h
- generic-y += rwsem.h
- generic-y += trace_clock.h
-+generic-y += preempt.h
- generic-y += vtime.h
-\ No newline at end of file
---- a/arch/s390/include/asm/Kbuild
-+++ b/arch/s390/include/asm/Kbuild
-@@ -2,3 +2,4 @@
- 
- generic-y += clkdev.h
- generic-y += trace_clock.h
-+generic-y += preempt.h
---- a/arch/score/include/asm/Kbuild
-+++ b/arch/score/include/asm/Kbuild
-@@ -4,3 +4,4 @@ header-y +=
- generic-y += clkdev.h
- generic-y += trace_clock.h
- generic-y += xor.h
-+generic-y += preempt.h
---- a/arch/sh/include/asm/Kbuild
-+++ b/arch/sh/include/asm/Kbuild
-@@ -34,3 +34,4 @@ generic-y += termios.h
- generic-y += trace_clock.h
- generic-y += ucontext.h
- generic-y += xor.h
-+generic-y += preempt.h
---- a/arch/sparc/include/asm/Kbuild
-+++ b/arch/sparc/include/asm/Kbuild
-@@ -16,3 +16,4 @@ generic-y += serial.h
- generic-y += trace_clock.h
- generic-y += types.h
- generic-y += word-at-a-time.h
-+generic-y += preempt.h
---- a/arch/tile/include/asm/Kbuild
-+++ b/arch/tile/include/asm/Kbuild
-@@ -37,3 +37,4 @@ generic-y += termios.h
- generic-y += trace_clock.h
- generic-y += types.h
- generic-y += xor.h
-+generic-y += preempt.h
---- a/arch/um/include/asm/Kbuild
-+++ b/arch/um/include/asm/Kbuild
-@@ -3,3 +3,4 @@ generic-y += hw_irq.h irq_regs.h kdebug.
- generic-y += ftrace.h pci.h io.h param.h delay.h mutex.h current.h exec.h
- generic-y += switch_to.h clkdev.h
- generic-y += trace_clock.h
-+generic-y += preempt.h
---- a/arch/unicore32/include/asm/Kbuild
-+++ b/arch/unicore32/include/asm/Kbuild
-@@ -60,3 +60,4 @@ generic-y += unaligned.h
- generic-y += user.h
- generic-y += vga.h
- generic-y += xor.h
-+generic-y += preempt.h
 --- a/arch/x86/include/asm/Kbuild
 +++ b/arch/x86/include/asm/Kbuild
-@@ -5,3 +5,4 @@ genhdr-y += unistd_64.h
+@@ -5,4 +5,3 @@ genhdr-y += unistd_64.h
  genhdr-y += unistd_x32.h
  
  generic-y += clkdev.h
-+generic-y += preempt.h
---- a/arch/xtensa/include/asm/Kbuild
-+++ b/arch/xtensa/include/asm/Kbuild
-@@ -28,3 +28,4 @@ generic-y += termios.h
- generic-y += topology.h
- generic-y += trace_clock.h
- generic-y += xor.h
-+generic-y += preempt.h
+-generic-y += preempt.h
 --- /dev/null
-+++ b/include/asm-generic/preempt.h
-@@ -0,0 +1,44 @@
++++ b/arch/x86/include/asm/preempt.h
+@@ -0,0 +1,102 @@
 +#ifndef __ASM_PREEMPT_H
 +#define __ASM_PREEMPT_H
 +
++#include <asm/percpu.h>
 +#include <linux/thread_info.h>
++
++DECLARE_PER_CPU(int, __preempt_count);
 +
 +/*
 + * We mask the PREEMPT_NEED_RESCHED bit so as not to confuse all current users
@@ -277,13 +60,28 @@ Signed-off-by: Peter Zijlstra <peterz@infradead.org>
 + */
 +static __always_inline int preempt_count(void)
 +{
-+	return current_thread_info()->preempt_count & ~PREEMPT_NEED_RESCHED;
++	return __this_cpu_read_4(__preempt_count) & ~PREEMPT_NEED_RESCHED;
 +}
 +
 +static __always_inline int *preempt_count_ptr(void)
 +{
-+	return &current_thread_info()->preempt_count;
++	return &__raw_get_cpu_var(__preempt_count);
 +}
++
++/*
++ * must be macros to avoid header recursion hell
++ */
++#define task_preempt_count(p) \
++	(task_thread_info(p)->saved_preempt_count & ~PREEMPT_NEED_RESCHED)
++
++#define init_task_preempt_count(p) do { \
++	task_thread_info(p)->saved_preempt_count = 1 | PREEMPT_NEED_RESCHED; \
++} while (0)
++
++#define init_idle_preempt_count(p, cpu) do { \
++	task_thread_info(p)->saved_preempt_count = 0; \
++	per_cpu(__preempt_count, (cpu)) = 0; \
++} while (0)
 +
 +/*
 + * We fold the NEED_RESCHED bit into the preempt count such that
@@ -296,72 +94,178 @@ Signed-off-by: Peter Zijlstra <peterz@infradead.org>
 +
 +static __always_inline void set_preempt_need_resched(void)
 +{
-+	*preempt_count_ptr() &= ~PREEMPT_NEED_RESCHED;
++	__this_cpu_and_4(__preempt_count, ~PREEMPT_NEED_RESCHED);
 +}
 +
 +static __always_inline void clear_preempt_need_resched(void)
 +{
-+	*preempt_count_ptr() |= PREEMPT_NEED_RESCHED;
++	__this_cpu_or_4(__preempt_count, PREEMPT_NEED_RESCHED);
 +}
 +
 +static __always_inline bool test_preempt_need_resched(void)
 +{
-+	return !(*preempt_count_ptr() & PREEMPT_NEED_RESCHED);
++	return !(__this_cpu_read_4(__preempt_count) & PREEMPT_NEED_RESCHED);
++}
++
++/*
++ * The various preempt_count add/sub methods
++ */
++
++static __always_inline void __preempt_count_add(int val)
++{
++	__this_cpu_add_4(__preempt_count, val);
++}
++
++static __always_inline void __preempt_count_sub(int val)
++{
++	__this_cpu_add_4(__preempt_count, -val);
++}
++
++static __always_inline bool __preempt_count_dec_and_test(void)
++{
++	unsigned char c;
++
++	asm ("decl " __percpu_arg(0) "; sete %1"
++			: "+m" (__preempt_count), "=qm" (c));
++
++	return c != 0;
++}
++
++/*
++ * Returns true when we need to resched -- even if we can not.
++ */
++static __always_inline bool need_resched(void)
++{
++	return unlikely(test_preempt_need_resched());
++}
++
++/*
++ * Returns true when we need to resched and can (barring IRQ state).
++ */
++static __always_inline bool should_resched(void)
++{
++	return unlikely(!__this_cpu_read_4(__preempt_count));
 +}
 +
 +#endif /* __ASM_PREEMPT_H */
---- a/include/linux/preempt.h
-+++ b/include/linux/preempt.h
-@@ -6,7 +6,6 @@
-  * preempt_count (used for kernel preemption, interrupt count, etc.)
-  */
+--- a/arch/x86/include/asm/thread_info.h
++++ b/arch/x86/include/asm/thread_info.h
+@@ -28,8 +28,7 @@ struct thread_info {
+ 	__u32			flags;		/* low level flags */
+ 	__u32			status;		/* thread synchronous flags */
+ 	__u32			cpu;		/* current CPU */
+-	int			preempt_count;	/* 0 => preemptable,
+-						   <0 => BUG */
++	int			saved_preempt_count;
+ 	mm_segment_t		addr_limit;
+ 	struct restart_block    restart_block;
+ 	void __user		*sysenter_return;
+@@ -49,7 +48,7 @@ struct thread_info {
+ 	.exec_domain	= &default_exec_domain,	\
+ 	.flags		= 0,			\
+ 	.cpu		= 0,			\
+-	.preempt_count	= INIT_PREEMPT_COUNT,	\
++	.saved_preempt_count = INIT_PREEMPT_COUNT,	\
+ 	.addr_limit	= KERNEL_DS,		\
+ 	.restart_block = {			\
+ 		.fn = do_no_restart_syscall,	\
+--- a/arch/x86/kernel/asm-offsets.c
++++ b/arch/x86/kernel/asm-offsets.c
+@@ -32,7 +32,6 @@ void common(void) {
+ 	OFFSET(TI_flags, thread_info, flags);
+ 	OFFSET(TI_status, thread_info, status);
+ 	OFFSET(TI_addr_limit, thread_info, addr_limit);
+-	OFFSET(TI_preempt_count, thread_info, preempt_count);
  
--#include <linux/thread_info.h>
- #include <linux/linkage.h>
- #include <linux/list.h>
+ 	BLANK();
+ 	OFFSET(crypto_tfm_ctx_offset, crypto_tfm, __crt_ctx);
+--- a/arch/x86/kernel/cpu/common.c
++++ b/arch/x86/kernel/cpu/common.c
+@@ -1095,6 +1095,9 @@ DEFINE_PER_CPU(char *, irq_stack_ptr) =
  
-@@ -16,43 +15,7 @@
-  */
- #define PREEMPT_NEED_RESCHED	0x80000000
+ DEFINE_PER_CPU(unsigned int, irq_count) __visible = -1;
  
--/*
-- * We mask the PREEMPT_NEED_RESCHED bit so as not to confuse all current users
-- * that think a non-zero value indicates we cannot preempt.
-- */
--static __always_inline int preempt_count(void)
--{
--	return current_thread_info()->preempt_count & ~PREEMPT_NEED_RESCHED;
--}
--
--static __always_inline int *preempt_count_ptr(void)
--{
--	return &current_thread_info()->preempt_count;
--}
--
--/*
-- * We fold the NEED_RESCHED bit into the preempt count such that
-- * preempt_enable() can decrement and test for needing to reschedule with a
-- * single instruction.
-- *
-- * We invert the actual bit, so that when the decrement hits 0 we know we both
-- * need to resched (the bit is cleared) and can resched (no preempt count).
-- */
--
--static __always_inline void set_preempt_need_resched(void)
--{
--	*preempt_count_ptr() &= ~PREEMPT_NEED_RESCHED;
--}
--
--static __always_inline void clear_preempt_need_resched(void)
--{
--	*preempt_count_ptr() |= PREEMPT_NEED_RESCHED;
--}
--
--static __always_inline bool test_preempt_need_resched(void)
--{
--	return !(*preempt_count_ptr() & PREEMPT_NEED_RESCHED);
--}
-+#include <asm/preempt.h>
++DEFINE_PER_CPU(int, __preempt_count) = INIT_PREEMPT_COUNT;
++EXPORT_PER_CPU_SYMBOL(__preempt_count);
++
+ DEFINE_PER_CPU(struct task_struct *, fpu_owner_task);
  
- #if defined(CONFIG_DEBUG_PREEMPT) || defined(CONFIG_PREEMPT_TRACER)
-   extern void add_preempt_count(int val);
+ /*
+@@ -1169,6 +1172,8 @@ void debug_stack_reset(void)
+ 
+ DEFINE_PER_CPU(struct task_struct *, current_task) = &init_task;
+ EXPORT_PER_CPU_SYMBOL(current_task);
++DEFINE_PER_CPU(int, __preempt_count) = INIT_PREEMPT_COUNT;
++EXPORT_PER_CPU_SYMBOL(__preempt_count);
+ DEFINE_PER_CPU(struct task_struct *, fpu_owner_task);
+ 
+ #ifdef CONFIG_CC_STACKPROTECTOR
+--- a/arch/x86/kernel/entry_32.S
++++ b/arch/x86/kernel/entry_32.S
+@@ -362,12 +362,9 @@ END(ret_from_exception)
+ #ifdef CONFIG_PREEMPT
+ ENTRY(resume_kernel)
+ 	DISABLE_INTERRUPTS(CLBR_ANY)
+-	cmpl $0,TI_preempt_count(%ebp)	# non-zero preempt_count ?
+-	jnz restore_all
+ need_resched:
+-	movl TI_flags(%ebp), %ecx	# need_resched set ?
+-	testb $_TIF_NEED_RESCHED, %cl
+-	jz restore_all
++	cmpl $0,PER_CPU_VAR(__preempt_count)
++	jnz restore_all
+ 	testl $X86_EFLAGS_IF,PT_EFLAGS(%esp)	# interrupts off (exception path) ?
+ 	jz restore_all
+ 	call preempt_schedule_irq
+--- a/arch/x86/kernel/entry_64.S
++++ b/arch/x86/kernel/entry_64.S
+@@ -1103,10 +1103,8 @@ ENTRY(native_iret)
+ 	/* Returning to kernel space. Check if we need preemption */
+ 	/* rcx:	 threadinfo. interrupts off. */
+ ENTRY(retint_kernel)
+-	cmpl $0,TI_preempt_count(%rcx)
++	cmpl $0,PER_CPU_VAR(__preempt_count)
+ 	jnz  retint_restore_args
+-	bt  $TIF_NEED_RESCHED,TI_flags(%rcx)
+-	jnc  retint_restore_args
+ 	bt   $9,EFLAGS-ARGOFFSET(%rsp)	/* interrupts off? */
+ 	jnc  retint_restore_args
+ 	call preempt_schedule_irq
+--- a/arch/x86/kernel/process_32.c
++++ b/arch/x86/kernel/process_32.c
+@@ -291,6 +291,16 @@ __switch_to(struct task_struct *prev_p,
+ 	if (get_kernel_rpl() && unlikely(prev->iopl != next->iopl))
+ 		set_iopl_mask(next->iopl);
+ 
++#ifdef CONFIG_PREEMPT_COUNT
++	/*
++	 * If it were not for PREEMPT_ACTIVE we could guarantee that the
++	 * preempt_count of all tasks was equal here and this would not be
++	 * needed.
++	 */
++	task_thread_info(prev_p)->saved_preempt_count = __raw_get_cpu_var(__preempt_count);
++	__raw_get_cpu_var(__preempt_count) = task_thread_info(next_p)->saved_preempt_count;
++#endif
++
+ 	/*
+ 	 * Now maybe handle debug registers and/or IO bitmaps
+ 	 */
+--- a/arch/x86/kernel/process_64.c
++++ b/arch/x86/kernel/process_64.c
+@@ -363,6 +363,16 @@ __switch_to(struct task_struct *prev_p,
+ 	this_cpu_write(old_rsp, next->usersp);
+ 	this_cpu_write(current_task, next_p);
+ 
++#ifdef CONFIG_PREEMPT_COUNT
++	/*
++	 * If it were not for PREEMPT_ACTIVE we could guarantee that the
++	 * preempt_count of all tasks was equal here and this would not be
++	 * needed.
++	 */
++	task_thread_info(prev_p)->saved_preempt_count = __raw_get_cpu_var(__preempt_count);
++	__raw_get_cpu_var(__preempt_count) = task_thread_info(next_p)->saved_preempt_count;
++#endif
++
+ 	this_cpu_write(kernel_stack,
+ 		  (unsigned long)task_stack_page(next_p) +
+ 		  THREAD_SIZE - KERNEL_STACK_OFFSET);
