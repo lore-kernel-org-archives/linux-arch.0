@@ -1,108 +1,301 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 0/7] preempt_count rework -v2
-Date: Tue, 10 Sep 2013 18:45:19 +0200
-Message-ID: <20130910164519.GL31370@twins.programming.kicks-ass.net>
+Subject: Re: [PATCH 6/7] sched, x86: Provide a per-cpu preempt_count
+ implementation
+Date: Tue, 10 Sep 2013 18:48:18 +0200
+Message-ID: <20130910164818.GM31370@twins.programming.kicks-ass.net>
 References: <20130910130811.507933095@infradead.org>
- <20130910135152.GD7537@gmail.com>
- <20130910135636.GA8268@gmail.com>
- <CA+55aFwmEQeF+PtM7cuaQ8OkuTS=R4JJ61Wwfv8u-Svo-V3KwQ@mail.gmail.com>
+ <20130910132011.396291123@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:51835 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:51934 "EHLO
 	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753327Ab3IJQpe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Sep 2013 12:45:34 -0400
+	with ESMTP id S1751758Ab3IJQs1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Sep 2013 12:48:27 -0400
 Content-Disposition: inline
-In-Reply-To: <CA+55aFwmEQeF+PtM7cuaQ8OkuTS=R4JJ61Wwfv8u-Svo-V3KwQ@mail.gmail.com>
+In-Reply-To: <20130910132011.396291123@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Ingo Molnar <mingo@kernel.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-
-On Tue, Sep 10, 2013 at 09:34:52AM -0700, Linus Torvalds wrote:
-> On Tue, Sep 10, 2013 at 6:56 AM, Ingo Molnar <mingo@kernel.org> wrote:
-> >
-> > +static __always_inline bool __preempt_count_dec_and_test(void)
-> > +{
-> > +       unsigned char c;
-> > +
-> > +       asm ("decl " __percpu_arg(0) "; sete %1"
-> > +                       : "+m" (__preempt_count), "=qm" (c));
-> > +
-> > +       return c != 0;
-> > +}
-> >
-> > And that's where the sete and test originates from.
-> 
-> We could make this use "asm goto" instead.
-> 
-> An "asm goto" cannot have outputs, but this particular one doesn't
-> _need_ outputs. You could mark the preempt_count memory as an input,
-> and then have a memory clobber. I think you need the memory clobber
-> anyway for that preempt-count thing.
-> 
-> So I _think_ something like
-> 
-> static __always_inline bool __preempt_count_dec_and_test(void)
-> {
->        asm goto("decl " __percpu_arg(0) "\n\t"
->                 "je %l[became_zero]"
->                        : :"m" (__preempt_count):"memory":became_zero);
->        return 0;
-> became_zero:
->        return 1;
-> }
-
-The usage site:
-
-#define preempt_enable() \
-do { \
-	barrier(); \
-	if (unlikely(preempt_count_dec_and_test())) \
-		__preempt_schedule(); \
-} while (0)
-
-Already includes the barrier explicitly, so do we still need the memory
-clobber in that asm goto thing?
-
-That said, your change results in:
-
-  ffffffff8106f420 <kick_process>:
-  ffffffff8106f420:       55                      push   %rbp
-  ffffffff8106f421:       65 ff 04 25 e0 b7 00    incl   %gs:0xb7e0
-  ffffffff8106f428:       00 
-  ffffffff8106f429:       48 89 e5                mov    %rsp,%rbp
-  ffffffff8106f42c:       48 8b 47 08             mov    0x8(%rdi),%rax
-  ffffffff8106f430:       8b 50 18                mov    0x18(%rax),%edx
-  ffffffff8106f433:       65 8b 04 25 1c b0 00    mov    %gs:0xb01c,%eax
-  ffffffff8106f43a:       00 
-  ffffffff8106f43b:       39 c2                   cmp    %eax,%edx
-  ffffffff8106f43d:       74 1b                   je     ffffffff8106f45a <kick_process+0x3a>
-  ffffffff8106f43f:       89 d1                   mov    %edx,%ecx
-  ffffffff8106f441:       48 c7 c0 00 2c 01 00    mov    $0x12c00,%rax
-  ffffffff8106f448:       48 8b 0c cd a0 bc cb    mov    -0x7e344360(,%rcx,8),%rcx
-  ffffffff8106f44f:       81 
-  ffffffff8106f450:       48 3b bc 08 00 08 00    cmp    0x800(%rax,%rcx,1),%rdi
-  ffffffff8106f457:       00 
-  ffffffff8106f458:       74 26                   je     ffffffff8106f480 <kick_process+0x60>
-* ffffffff8106f45a:       65 ff 0c 25 e0 b7 00    decl   %gs:0xb7e0
-  ffffffff8106f461:       00 
-* ffffffff8106f462:       74 0c                   je     ffffffff8106f470 <kick_process+0x50>
-  ffffffff8106f464:       5d                      pop    %rbp
-  ffffffff8106f465:       c3                      retq   
-  ffffffff8106f466:       66 2e 0f 1f 84 00 00    nopw   %cs:0x0(%rax,%rax,1)
-  ffffffff8106f46d:       00 00 00 
-* ffffffff8106f470:       e8 9b b6 f9 ff          callq  ffffffff8100ab10 <___preempt_schedule>
-  ffffffff8106f475:       5d                      pop    %rbp
-  ffffffff8106f476:       c3                      retq   
-  ffffffff8106f477:       66 0f 1f 84 00 00 00    nopw   0x0(%rax,%rax,1)
-  ffffffff8106f47e:       00 00 
-  ffffffff8106f480:       89 d7                   mov    %edx,%edi
-  ffffffff8106f482:       ff 15 b8 e0 ba 00       callq  *0xbae0b8(%rip)        # ffffffff81c1d540 <smp_ops+0x20>
-  ffffffff8106f488:       eb d0                   jmp    ffffffff8106f45a <kick_process+0x3a>
-  ffffffff8106f48a:       66 0f 1f 44 00 00       nopw   0x0(%rax,%rax,1)
+To: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>
+Cc: Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
 
-Which is indeed perfect. So should I go 'fix' the other _and_test()
-functions we have to do this same thing?
+Updated version to include the changes suggested by Eric and the asm
+goto magic from Linus.
+
+---
+Subject: sched, x86: Provide a per-cpu preempt_count implementation
+From: Peter Zijlstra <peterz@infradead.org>
+Date: Wed Aug 14 14:51:00 CEST 2013
+
+Convert x86 to use a per-cpu preemption count. The reason for doing so
+is that accessing per-cpu variables is a lot cheaper than accessing
+thread_info variables.
+
+We still need to save/restore the actual preemption count due to
+PREEMPT_ACTIVE so we place the per-cpu __preempt_count variable in the
+same cache-line as the other hot __switch_to() variables such as
+current_task.
+
+Also rename thread_info::preempt_count to ensure nobody is
+'accidentally' still poking at it.
+
+Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+Signed-off-by: Peter Zijlstra <peterz@infradead.org>
+---
+ arch/x86/include/asm/Kbuild        |    1 
+ arch/x86/include/asm/preempt.h     |  114 +++++++++++++++++++++++++++++++++++++
+ arch/x86/include/asm/thread_info.h |    5 -
+ arch/x86/kernel/asm-offsets.c      |    1 
+ arch/x86/kernel/cpu/common.c       |    5 +
+ arch/x86/kernel/entry_32.S         |    7 --
+ arch/x86/kernel/entry_64.S         |    4 -
+ arch/x86/kernel/process_32.c       |   10 +++
+ arch/x86/kernel/process_64.c       |   10 +++
+ 9 files changed, 144 insertions(+), 13 deletions(-)
+
+--- a/arch/x86/include/asm/Kbuild
++++ b/arch/x86/include/asm/Kbuild
+@@ -5,4 +5,3 @@ genhdr-y += unistd_64.h
+ genhdr-y += unistd_x32.h
+ 
+ generic-y += clkdev.h
+-generic-y += preempt.h
+--- /dev/null
++++ b/arch/x86/include/asm/preempt.h
+@@ -0,0 +1,114 @@
++#ifndef __ASM_PREEMPT_H
++#define __ASM_PREEMPT_H
++
++#include <asm/percpu.h>
++#include <linux/thread_info.h>
++
++DECLARE_PER_CPU(int, __preempt_count);
++
++/*
++ * We mask the PREEMPT_NEED_RESCHED bit so as not to confuse all current users
++ * that think a non-zero value indicates we cannot preempt.
++ */
++static __always_inline int preempt_count(void)
++{
++	return __this_cpu_read_4(__preempt_count) & ~PREEMPT_NEED_RESCHED;
++}
++
++static __always_inline int *preempt_count_ptr(void)
++{
++	return &__raw_get_cpu_var(__preempt_count);
++}
++
++/*
++ * must be macros to avoid header recursion hell
++ */
++#define task_preempt_count(p) \
++	(task_thread_info(p)->saved_preempt_count & ~PREEMPT_NEED_RESCHED)
++
++#define init_task_preempt_count(p) do { \
++	task_thread_info(p)->saved_preempt_count = 1 | PREEMPT_NEED_RESCHED; \
++} while (0)
++
++#define init_idle_preempt_count(p, cpu) do { \
++	task_thread_info(p)->saved_preempt_count = 0; \
++	per_cpu(__preempt_count, (cpu)) = 0; \
++} while (0)
++
++/*
++ * We fold the NEED_RESCHED bit into the preempt count such that
++ * preempt_enable() can decrement and test for needing to reschedule with a
++ * single instruction.
++ *
++ * We invert the actual bit, so that when the decrement hits 0 we know we both
++ * need to resched (the bit is cleared) and can resched (no preempt count).
++ */
++
++static __always_inline void set_preempt_need_resched(void)
++{
++	__this_cpu_and_4(__preempt_count, ~PREEMPT_NEED_RESCHED);
++}
++
++static __always_inline void clear_preempt_need_resched(void)
++{
++	__this_cpu_or_4(__preempt_count, PREEMPT_NEED_RESCHED);
++}
++
++static __always_inline bool test_preempt_need_resched(void)
++{
++	return !(__this_cpu_read_4(__preempt_count) & PREEMPT_NEED_RESCHED);
++}
++
++/*
++ * The various preempt_count add/sub methods
++ */
++
++static __always_inline void __preempt_count_add(int val)
++{
++	__this_cpu_add_4(__preempt_count, val);
++}
++
++static __always_inline void __preempt_count_sub(int val)
++{
++	__this_cpu_add_4(__preempt_count, -val);
++}
++
++#ifdef CC_HAVE_ASM_GOTO
++static __always_inline bool __preempt_count_dec_and_test(void)
++{
++	asm goto("decl " __percpu_arg(0) "\n\t"
++		 "je %l[became_zero]"
++			: :"m" (__preempt_count):"memory":became_zero);
++	return 0;
++became_zero:
++	return 1;
++}
++#else
++static __always_inline bool __preempt_count_dec_and_test(void)
++{
++	unsigned char c;
++
++	asm ("decl " __percpu_arg(0) "; sete %1"
++			: "+m" (__preempt_count), "=qm" (c));
++
++	return c != 0;
++}
++#endif
++
++/*
++ * Returns true when we need to resched -- even if we can not.
++ */
++static __always_inline bool need_resched(void)
++{
++	return unlikely(test_preempt_need_resched());
++}
++
++/*
++ * Returns true when we need to resched and can (barring IRQ state).
++ */
++static __always_inline bool should_resched(void)
++{
++	return unlikely(!__this_cpu_read_4(__preempt_count));
++}
++
++#endif /* __ASM_PREEMPT_H */
+--- a/arch/x86/include/asm/thread_info.h
++++ b/arch/x86/include/asm/thread_info.h
+@@ -28,8 +28,7 @@ struct thread_info {
+ 	__u32			flags;		/* low level flags */
+ 	__u32			status;		/* thread synchronous flags */
+ 	__u32			cpu;		/* current CPU */
+-	int			preempt_count;	/* 0 => preemptable,
+-						   <0 => BUG */
++	int			saved_preempt_count;
+ 	mm_segment_t		addr_limit;
+ 	struct restart_block    restart_block;
+ 	void __user		*sysenter_return;
+@@ -49,7 +48,7 @@ struct thread_info {
+ 	.exec_domain	= &default_exec_domain,	\
+ 	.flags		= 0,			\
+ 	.cpu		= 0,			\
+-	.preempt_count	= INIT_PREEMPT_COUNT,	\
++	.saved_preempt_count = INIT_PREEMPT_COUNT,	\
+ 	.addr_limit	= KERNEL_DS,		\
+ 	.restart_block = {			\
+ 		.fn = do_no_restart_syscall,	\
+--- a/arch/x86/kernel/asm-offsets.c
++++ b/arch/x86/kernel/asm-offsets.c
+@@ -32,7 +32,6 @@ void common(void) {
+ 	OFFSET(TI_flags, thread_info, flags);
+ 	OFFSET(TI_status, thread_info, status);
+ 	OFFSET(TI_addr_limit, thread_info, addr_limit);
+-	OFFSET(TI_preempt_count, thread_info, preempt_count);
+ 
+ 	BLANK();
+ 	OFFSET(crypto_tfm_ctx_offset, crypto_tfm, __crt_ctx);
+--- a/arch/x86/kernel/cpu/common.c
++++ b/arch/x86/kernel/cpu/common.c
+@@ -1095,6 +1095,9 @@ DEFINE_PER_CPU(char *, irq_stack_ptr) =
+ 
+ DEFINE_PER_CPU(unsigned int, irq_count) __visible = -1;
+ 
++DEFINE_PER_CPU(int, __preempt_count) = INIT_PREEMPT_COUNT;
++EXPORT_PER_CPU_SYMBOL(__preempt_count);
++
+ DEFINE_PER_CPU(struct task_struct *, fpu_owner_task);
+ 
+ /*
+@@ -1169,6 +1172,8 @@ void debug_stack_reset(void)
+ 
+ DEFINE_PER_CPU(struct task_struct *, current_task) = &init_task;
+ EXPORT_PER_CPU_SYMBOL(current_task);
++DEFINE_PER_CPU(int, __preempt_count) = INIT_PREEMPT_COUNT;
++EXPORT_PER_CPU_SYMBOL(__preempt_count);
+ DEFINE_PER_CPU(struct task_struct *, fpu_owner_task);
+ 
+ #ifdef CONFIG_CC_STACKPROTECTOR
+--- a/arch/x86/kernel/entry_32.S
++++ b/arch/x86/kernel/entry_32.S
+@@ -362,12 +362,9 @@ END(ret_from_exception)
+ #ifdef CONFIG_PREEMPT
+ ENTRY(resume_kernel)
+ 	DISABLE_INTERRUPTS(CLBR_ANY)
+-	cmpl $0,TI_preempt_count(%ebp)	# non-zero preempt_count ?
+-	jnz restore_all
+ need_resched:
+-	movl TI_flags(%ebp), %ecx	# need_resched set ?
+-	testb $_TIF_NEED_RESCHED, %cl
+-	jz restore_all
++	cmpl $0,PER_CPU_VAR(__preempt_count)
++	jnz restore_all
+ 	testl $X86_EFLAGS_IF,PT_EFLAGS(%esp)	# interrupts off (exception path) ?
+ 	jz restore_all
+ 	call preempt_schedule_irq
+--- a/arch/x86/kernel/entry_64.S
++++ b/arch/x86/kernel/entry_64.S
+@@ -1103,10 +1103,8 @@ ENTRY(native_iret)
+ 	/* Returning to kernel space. Check if we need preemption */
+ 	/* rcx:	 threadinfo. interrupts off. */
+ ENTRY(retint_kernel)
+-	cmpl $0,TI_preempt_count(%rcx)
++	cmpl $0,PER_CPU_VAR(__preempt_count)
+ 	jnz  retint_restore_args
+-	bt  $TIF_NEED_RESCHED,TI_flags(%rcx)
+-	jnc  retint_restore_args
+ 	bt   $9,EFLAGS-ARGOFFSET(%rsp)	/* interrupts off? */
+ 	jnc  retint_restore_args
+ 	call preempt_schedule_irq
+--- a/arch/x86/kernel/process_32.c
++++ b/arch/x86/kernel/process_32.c
+@@ -291,6 +291,16 @@ __switch_to(struct task_struct *prev_p,
+ 	if (get_kernel_rpl() && unlikely(prev->iopl != next->iopl))
+ 		set_iopl_mask(next->iopl);
+ 
++#ifdef CONFIG_PREEMPT_COUNT
++	/*
++	 * If it were not for PREEMPT_ACTIVE we could guarantee that the
++	 * preempt_count of all tasks was equal here and this would not be
++	 * needed.
++	 */
++	task_thread_info(prev_p)->saved_preempt_count = this_cpu_read(__preempt_count);
++	this_cpu_write(__preempt_count, task_thread_info(next_p)->saved_preempt_count);
++#endif
++
+ 	/*
+ 	 * Now maybe handle debug registers and/or IO bitmaps
+ 	 */
+--- a/arch/x86/kernel/process_64.c
++++ b/arch/x86/kernel/process_64.c
+@@ -363,6 +363,16 @@ __switch_to(struct task_struct *prev_p,
+ 	this_cpu_write(old_rsp, next->usersp);
+ 	this_cpu_write(current_task, next_p);
+ 
++#ifdef CONFIG_PREEMPT_COUNT
++	/*
++	 * If it were not for PREEMPT_ACTIVE we could guarantee that the
++	 * preempt_count of all tasks was equal here and this would not be
++	 * needed.
++	 */
++	task_thread_info(prev_p)->saved_preempt_count = this_cpu_read(__preempt_count);
++	this_cpu_write(__preempt_count, task_thread_info(next_p)->saved_preempt_count);
++#endif
++
+ 	this_cpu_write(kernel_stack,
+ 		  (unsigned long)task_stack_page(next_p) +
+ 		  THREAD_SIZE - KERNEL_STACK_OFFSET);
