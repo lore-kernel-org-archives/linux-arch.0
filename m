@@ -1,140 +1,211 @@
-From: Rusty Russell <rusty@rustcorp.com.au>
-Subject: Re: [PATCH v2 4/4] kernel: add support for init_array constructors
-Date: Tue, 10 Sep 2013 15:05:57 +0930
-Message-ID: <878uz544si.fsf@rustcorp.com.au>
-References: <1378305776-3644-1-git-send-email-fhrbata@redhat.com> <1378305776-3644-5-git-send-email-fhrbata@redhat.com> <87vc2e66kr.fsf@rustcorp.com.au> <20130906175118.GB2332@localhost.localdomain> <20130906180751.GD25882@merlin.infradead.org> <87d2oi6bl0.fsf@rustcorp.com.au> <20130909162814.GA2288@localhost.localdomain>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH 7/7] sched, x86: Optimize the preempt_schedule() call
+Date: Tue, 10 Sep 2013 15:08:18 +0200
+Message-ID: <20130910132011.474646746@infradead.org>
+References: <20130910130811.507933095@infradead.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:38765 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751292Ab3IJLr5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 10 Sep 2013 07:47:57 -0400
-In-Reply-To: <20130909162814.GA2288@localhost.localdomain>
+Received: from merlin.infradead.org ([205.233.59.134]:46847 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751098Ab3IJNVX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Sep 2013 09:21:23 -0400
+Content-Disposition: inline; filename=peterz-x86-opt-call.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Frantisek Hrbata <fhrbata@redhat.com>
-Cc: Kyle McMartin <kyle@infradead.org>, linux-kernel@vger.kernel.org, jstancek@redhat.com, keescook@chromium.org, peter.oberparleiter@de.ibm.com, linux-arch@vger.kernel.org, arnd@arndb.de, mgahagan@redhat.com, agospoda@redhat.com, akpm@linux-foundation.org
+To: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>
+Cc: Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>
 
-Frantisek Hrbata <fhrbata@redhat.com> writes:
-> On Mon, Sep 09, 2013 at 10:44:03AM +0930, Rusty Russell wrote:
->> Kyle McMartin <kyle@infradead.org> writes:
->> > On Fri, Sep 06, 2013 at 07:51:18PM +0200, Frantisek Hrbata wrote:
->> >> > > v2: - reuse mod->ctors for .init_array section for modules, because gcc uses
->> >> > >       .ctors or .init_array, but not both at the same time
->> >> > >
->> >> > > Signed-off-by: Frantisek Hrbata <fhrbata@redhat.com>
->> >> > 
->> >> > Might be nice to document which gcc version changed this, so people can
->> >> > choose whether to cherry-pick this change?
->> >> 
->> >> Thank you for pointing this out. As per gcc git this was introduced by commit
->> >> ef1da80 and released in 4.7 version.
->> >> 
->> >> $ git describe --contains ef1da80
->> >> gcc-4_7_0-release~4358
->> >> 
->> >> Do you want me to post v3 with this info included in the descrition?
->> >> 
->> >
->> > It actually depends on the combination of binutils/ld and gcc you use, not
->> > simply which gcc version you use. :/
->> 
->> Indeed, and seems it was binutils 20110507 which actually handled it
->> properly.
->> 
->> AFAICT it's theoretically possible to have .ctors and .init_array in a
->> module.  Unlikely, but the patch should check for both and refuse to
->> load the module in that case.  Otherwise weird things would happen.
->
-> I'm not sure if coexistence of .ctors and .init_array sections should result in
-> denial of module, but I for sure know nothing about this :). Could you maybe
-> privide one example of the "weird thing"?
+Remove the bloat of the C calling convention out of the
+preempt_enable() sites by creating an ASM wrapper which allows us to
+do an asm("call ___preempt_schedule") instead.
 
-Well, if we have both ctors and init_array, and we only call the ctors,
-part of the module will be uninitialized.
+calling.h bits by Andi Kleen
 
-I was thinking about something like the following (based on your
-previous patch).
+Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+Signed-off-by: Peter Zijlstra <peterz@infradead.org>
+---
+ arch/x86/include/asm/calling.h |   50 +++++++++++++++++++++++++++++++++++++++++
+ arch/x86/include/asm/preempt.h |    8 ++++++
+ arch/x86/kernel/Makefile       |    2 +
+ arch/x86/kernel/preempt.S      |   25 ++++++++++++++++++++
+ include/asm-generic/preempt.h  |   10 ++++++++
+ include/linux/preempt.h        |   13 ++++------
+ 6 files changed, 100 insertions(+), 8 deletions(-)
 
-Thoughts?
-Rusty.
-
-From: Frantisek Hrbata <fhrbata@redhat.com>
-Subject: kernel: add support for init_array constructors
-
-This adds the .init_array section as yet another section with constructors. This
-is needed because gcc could add __gcov_init calls to .init_array or .ctors
-section, depending on gcc (and binutils) version .
-
-v2: - reuse mod->ctors for .init_array section for modules, because gcc uses
-      .ctors or .init_array, but not both at the same time
-v3: - fail to load if that does happen somehow.
-
-Signed-off-by: Frantisek Hrbata <fhrbata@redhat.com>
-Signed-off-by: Rusty Russell <rusty@rustcorp.com.au>
-
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 83e2c31..bc2121f 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -473,6 +473,7 @@
- #define KERNEL_CTORS()	. = ALIGN(8);			   \
- 			VMLINUX_SYMBOL(__ctors_start) = .; \
- 			*(.ctors)			   \
-+			*(.init_array)			   \
- 			VMLINUX_SYMBOL(__ctors_end) = .;
- #else
- #define KERNEL_CTORS()
-diff --git a/kernel/module.c b/kernel/module.c
-index dc58274..d3f5a58 100644
---- a/kernel/module.c
-+++ b/kernel/module.c
-@@ -2738,7 +2738,7 @@ static int check_modinfo(struct module *mod, struct load_info *info, int flags)
- 	return 0;
+--- a/arch/x86/include/asm/calling.h
++++ b/arch/x86/include/asm/calling.h
+@@ -48,6 +48,8 @@ For 32-bit we have the following convent
+ 
+ #include <asm/dwarf2.h>
+ 
++#ifdef CONFIG_X86_64
++
+ /*
+  * 64-bit system call stack frame layout defines and helpers,
+  * for assembly code:
+@@ -192,3 +194,51 @@ For 32-bit we have the following convent
+ 	.macro icebp
+ 	.byte 0xf1
+ 	.endm
++
++#else /* CONFIG_X86_64 */
++
++/*
++ * For 32bit only simplified versions of SAVE_ALL/RESTORE_ALL. These
++ * are different from the entry_32.S versions in not changing the segment
++ * registers. So only suitable for in kernel use, not when transitioning
++ * from or to user space. The resulting stack frame is not a standard
++ * pt_regs frame. The main use case is calling C code from assembler
++ * when all the registers need to be preserved.
++ */
++
++	.macro SAVE_ALL
++	pushl_cfi %eax
++	CFI_REL_OFFSET eax, 0
++	pushl_cfi %ebp
++	CFI_REL_OFFSET ebp, 0
++	pushl_cfi %edi
++	CFI_REL_OFFSET edi, 0
++	pushl_cfi %esi
++	CFI_REL_OFFSET esi, 0
++	pushl_cfi %edx
++	CFI_REL_OFFSET edx, 0
++	pushl_cfi %ecx
++	CFI_REL_OFFSET ecx, 0
++	pushl_cfi %ebx
++	CFI_REL_OFFSET ebx, 0
++	.endm
++
++	.macro RESTORE_ALL
++	popl_cfi %ebx
++	CFI_RESTORE ebx
++	popl_cfi %ecx
++	CFI_RESTORE ecx
++	popl_cfi %edx
++	CFI_RESTORE edx
++	popl_cfi %esi
++	CFI_RESTORE esi
++	popl_cfi %edi
++	CFI_RESTORE edi
++	popl_cfi %ebp
++	CFI_RESTORE ebp
++	popl_cfi %eax
++	CFI_RESTORE eax
++	.endm
++
++#endif /* CONFIG_X86_64 */
++
+--- a/arch/x86/include/asm/preempt.h
++++ b/arch/x86/include/asm/preempt.h
+@@ -99,4 +99,12 @@ static __always_inline bool should_resch
+ 	return unlikely(!__this_cpu_read_4(__preempt_count));
  }
  
--static void find_module_sections(struct module *mod, struct load_info *info)
-+static int find_module_sections(struct module *mod, struct load_info *info)
- {
- 	mod->kp = section_objs(info, "__param",
- 			       sizeof(*mod->kp), &mod->num_kp);
-@@ -2768,6 +2768,18 @@ static void find_module_sections(struct module *mod, struct load_info *info)
- #ifdef CONFIG_CONSTRUCTORS
- 	mod->ctors = section_objs(info, ".ctors",
- 				  sizeof(*mod->ctors), &mod->num_ctors);
-+	if (!mod->ctors)
-+		mod->ctors = section_objs(info, ".init_array",
-+				sizeof(*mod->ctors), &mod->num_ctors);
-+	else if (find_sec(info, ".init_array")) {
-+		/*
-+		 * This shouldn't happen with same compiler and binutils
-+		 * building all parts of the module.
-+		 */
-+		printk(KERN_WARNING "%s: has both .ctors and .init_array.\n",
-+		       mod->name);
-+		return -EINVAL;
-+	}
++#ifdef CONFIG_PREEMPT
++#define __preempt_schedule() asm ("call ___preempt_schedule")
++
++#ifdef CONFIG_CONTEXT_TRACKING
++#define __preempt_schedule_context() asm ("call ___preempt_schedule_context")
++#endif
++#endif /* CONFIG_PREEMPT */
++
+ #endif /* __ASM_PREEMPT_H */
+--- a/arch/x86/kernel/Makefile
++++ b/arch/x86/kernel/Makefile
+@@ -36,6 +36,8 @@ obj-y			+= tsc.o io_delay.o rtc.o
+ obj-y			+= pci-iommu_table.o
+ obj-y			+= resource.o
+ 
++obj-$(CONFIG_PREEMPT)	+= preempt.o
++
+ obj-y				+= process.o
+ obj-y				+= i387.o xsave.o
+ obj-y				+= ptrace.o
+--- /dev/null
++++ b/arch/x86/kernel/preempt.S
+@@ -0,0 +1,25 @@
++
++#include <linux/linkage.h>
++#include <asm/dwarf2.h>
++#include <asm/asm.h>
++#include <asm/calling.h>
++
++ENTRY(___preempt_schedule)
++	CFI_STARTPROC
++	SAVE_ALL
++	call preempt_schedule
++	RESTORE_ALL
++	ret
++	CFI_ENDPROC
++
++#ifdef CONFIG_CONTEXT_TRACKING
++
++ENTRY(___preempt_schedule_context)
++	CFI_STARTPROC
++	SAVE_ALL
++	call preempt_schedule_context
++	RESTORE_ALL
++	ret
++	CFI_ENDPROC
++
++#endif
+--- a/include/asm-generic/preempt.h
++++ b/include/asm-generic/preempt.h
+@@ -90,4 +90,14 @@ static __always_inline bool should_resch
+ 	return unlikely(!*preempt_count_ptr());
+ }
+ 
++#ifdef CONFIG_PREEMPT
++extern asmlinkage void preempt_schedule(void);
++#define __preempt_schedule() preempt_schedule()
++
++#ifdef CONFIG_CONTEXT_TRACKING
++extern asmlinkage void preempt_schedule_context(void);
++#define __preempt_schedule_context() preempt_schedule_context()
++#endif
++#endif /* CONFIG_PREEMPT */
++
+ #endif /* __ASM_PREEMPT_H */
+--- a/include/linux/preempt.h
++++ b/include/linux/preempt.h
+@@ -50,18 +50,17 @@ do { \
+ #define preempt_enable_no_resched() sched_preempt_enable_no_resched()
+ 
+ #ifdef CONFIG_PREEMPT
+-asmlinkage void preempt_schedule(void);
+ #define preempt_enable() \
+ do { \
+ 	barrier(); \
+ 	if (unlikely(preempt_count_dec_and_test())) \
+-		preempt_schedule(); \
++		__preempt_schedule(); \
+ } while (0)
+ 
+ #define preempt_check_resched() \
+ do { \
+ 	if (should_resched()) \
+-		preempt_schedule(); \
++		__preempt_schedule(); \
+ } while (0)
+ 
+ #else
+@@ -83,17 +82,15 @@ do { \
+ 
+ #ifdef CONFIG_PREEMPT
+ 
+-#ifdef CONFIG_CONTEXT_TRACKING
+-asmlinkage void preempt_schedule_context(void);
+-#else
+-#define preempt_schedule_context() preempt_schedule()
++#ifndef CONFIG_CONTEXT_TRACKING
++#define __preempt_schedule_context() __preempt_schedule()
  #endif
  
- #ifdef CONFIG_TRACEPOINTS
-@@ -2806,6 +2818,8 @@ static void find_module_sections(struct module *mod, struct load_info *info)
- 
- 	info->debug = section_objs(info, "__verbose",
- 				   sizeof(*info->debug), &info->num_debug);
-+
-+	return 0;
- }
- 
- static int move_module(struct module *mod, struct load_info *info)
-@@ -3263,7 +3277,9 @@ static int load_module(struct load_info *info, const char __user *uargs,
- 
- 	/* Now we've got everything in the final locations, we can
- 	 * find optional sections. */
--	find_module_sections(mod, info);
-+	err = find_module_sections(mod, info);
-+	if (err)
-+		goto free_unload;
- 
- 	err = check_module_license_and_versions(mod);
- 	if (err)
+ #define preempt_enable_notrace() \
+ do { \
+ 	barrier(); \
+ 	if (unlikely(__preempt_count_dec_and_test())) \
+-		preempt_schedule_context(); \
++		__preempt_schedule_context(); \
+ } while (0)
+ #else
+ #define preempt_enable_notrace() preempt_enable_no_resched_notrace()
