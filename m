@@ -1,59 +1,140 @@
-From: Kyle McMartin <kyle@infradead.org>
+From: Rusty Russell <rusty@rustcorp.com.au>
 Subject: Re: [PATCH v2 4/4] kernel: add support for init_array constructors
-Date: Mon, 9 Sep 2013 20:15:29 -0400
-Message-ID: <20130910001529.GE25882@merlin.infradead.org>
-References: <1378305776-3644-1-git-send-email-fhrbata@redhat.com>
- <1378305776-3644-5-git-send-email-fhrbata@redhat.com>
- <87vc2e66kr.fsf@rustcorp.com.au>
- <20130906175118.GB2332@localhost.localdomain>
- <20130906180751.GD25882@merlin.infradead.org>
- <87d2oi6bl0.fsf@rustcorp.com.au>
- <20130909162814.GA2288@localhost.localdomain>
+Date: Tue, 10 Sep 2013 15:05:57 +0930
+Message-ID: <878uz544si.fsf@rustcorp.com.au>
+References: <1378305776-3644-1-git-send-email-fhrbata@redhat.com> <1378305776-3644-5-git-send-email-fhrbata@redhat.com> <87vc2e66kr.fsf@rustcorp.com.au> <20130906175118.GB2332@localhost.localdomain> <20130906180751.GD25882@merlin.infradead.org> <87d2oi6bl0.fsf@rustcorp.com.au> <20130909162814.GA2288@localhost.localdomain>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:35239 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756028Ab3IJAPe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Sep 2013 20:15:34 -0400
-Content-Disposition: inline
+Received: from ozlabs.org ([203.10.76.45]:38765 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751292Ab3IJLr5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 10 Sep 2013 07:47:57 -0400
 In-Reply-To: <20130909162814.GA2288@localhost.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Frantisek Hrbata <fhrbata@redhat.com>
-Cc: Rusty Russell <rusty@rustcorp.com.au>, Kyle McMartin <kyle@infradead.org>, linux-kernel@vger.kernel.org, jstancek@redhat.com, keescook@chromium.org, peter.oberparleiter@de.ibm.com, linux-arch@vger.kernel.org, arnd@arndb.de, mgahagan@redhat.com, agospoda@redhat.com, akpm@linux-foundation.org
+Cc: Kyle McMartin <kyle@infradead.org>, linux-kernel@vger.kernel.org, jstancek@redhat.com, keescook@chromium.org, peter.oberparleiter@de.ibm.com, linux-arch@vger.kernel.org, arnd@arndb.de, mgahagan@redhat.com, agospoda@redhat.com, akpm@linux-foundation.org
 
-On Mon, Sep 09, 2013 at 06:28:14PM +0200, Frantisek Hrbata wrote:
+Frantisek Hrbata <fhrbata@redhat.com> writes:
+> On Mon, Sep 09, 2013 at 10:44:03AM +0930, Rusty Russell wrote:
+>> Kyle McMartin <kyle@infradead.org> writes:
+>> > On Fri, Sep 06, 2013 at 07:51:18PM +0200, Frantisek Hrbata wrote:
+>> >> > > v2: - reuse mod->ctors for .init_array section for modules, because gcc uses
+>> >> > >       .ctors or .init_array, but not both at the same time
+>> >> > >
+>> >> > > Signed-off-by: Frantisek Hrbata <fhrbata@redhat.com>
+>> >> > 
+>> >> > Might be nice to document which gcc version changed this, so people can
+>> >> > choose whether to cherry-pick this change?
+>> >> 
+>> >> Thank you for pointing this out. As per gcc git this was introduced by commit
+>> >> ef1da80 and released in 4.7 version.
+>> >> 
+>> >> $ git describe --contains ef1da80
+>> >> gcc-4_7_0-release~4358
+>> >> 
+>> >> Do you want me to post v3 with this info included in the descrition?
+>> >> 
+>> >
+>> > It actually depends on the combination of binutils/ld and gcc you use, not
+>> > simply which gcc version you use. :/
+>> 
+>> Indeed, and seems it was binutils 20110507 which actually handled it
+>> properly.
+>> 
+>> AFAICT it's theoretically possible to have .ctors and .init_array in a
+>> module.  Unlikely, but the patch should check for both and refuse to
+>> load the module in that case.  Otherwise weird things would happen.
+>
 > I'm not sure if coexistence of .ctors and .init_array sections should result in
 > denial of module, but I for sure know nothing about this :). Could you maybe
 > privide one example of the "weird thing"?
-> 
 
-They shouldn't exist unless placed there intentionally... I suspect a
-call_if_changed Makefile target to regenerated a header would solve this
-problem sufficiently for a given toolchain version.
+Well, if we have both ctors and init_array, and we only call the ctors,
+part of the module will be uninitialized.
 
-A little exposition:
-.init_array and .ctors are laid out on top of each other, with an
-ordering that's a bit complicated... the sort of the ctor functions ends
-up being .ctor.x upwards towards 65535, and .init_array.x downwards
-from 65535 towards 0, with priority 65535-x, so that
+I was thinking about something like the following (based on your
+previous patch).
 
-.init_array.32768 would be called before .ctor.32768.
+Thoughts?
+Rusty.
 
-It's all a complete mess.
+From: Frantisek Hrbata <fhrbata@redhat.com>
+Subject: kernel: add support for init_array constructors
 
-Perhaps if CONFIG_GCOV is on, we should enforce MODVERSIONS and make
-sure the GCC version doesn't change for the running kernel?
+This adds the .init_array section as yet another section with constructors. This
+is needed because gcc could add __gcov_init calls to .init_array or .ctors
+section, depending on gcc (and binutils) version .
 
-Maybe it would be sufficient to just detect what the toolchain supports
-and do that? I have a patch based on the configure.ac in gcc that
-does something like that, which would be trivial to use to generate a
-header based on gcc version.
+v2: - reuse mod->ctors for .init_array section for modules, because gcc uses
+      .ctors or .init_array, but not both at the same time
+v3: - fail to load if that does happen somehow.
 
-> Anyway many thanks for taking time to look at this. Below is my attepmt to
-> implement the check you proposed. 
-> 
-> untested/uncompiled
+Signed-off-by: Frantisek Hrbata <fhrbata@redhat.com>
+Signed-off-by: Rusty Russell <rusty@rustcorp.com.au>
 
-regards, Kyle
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 83e2c31..bc2121f 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -473,6 +473,7 @@
+ #define KERNEL_CTORS()	. = ALIGN(8);			   \
+ 			VMLINUX_SYMBOL(__ctors_start) = .; \
+ 			*(.ctors)			   \
++			*(.init_array)			   \
+ 			VMLINUX_SYMBOL(__ctors_end) = .;
+ #else
+ #define KERNEL_CTORS()
+diff --git a/kernel/module.c b/kernel/module.c
+index dc58274..d3f5a58 100644
+--- a/kernel/module.c
++++ b/kernel/module.c
+@@ -2738,7 +2738,7 @@ static int check_modinfo(struct module *mod, struct load_info *info, int flags)
+ 	return 0;
+ }
+ 
+-static void find_module_sections(struct module *mod, struct load_info *info)
++static int find_module_sections(struct module *mod, struct load_info *info)
+ {
+ 	mod->kp = section_objs(info, "__param",
+ 			       sizeof(*mod->kp), &mod->num_kp);
+@@ -2768,6 +2768,18 @@ static void find_module_sections(struct module *mod, struct load_info *info)
+ #ifdef CONFIG_CONSTRUCTORS
+ 	mod->ctors = section_objs(info, ".ctors",
+ 				  sizeof(*mod->ctors), &mod->num_ctors);
++	if (!mod->ctors)
++		mod->ctors = section_objs(info, ".init_array",
++				sizeof(*mod->ctors), &mod->num_ctors);
++	else if (find_sec(info, ".init_array")) {
++		/*
++		 * This shouldn't happen with same compiler and binutils
++		 * building all parts of the module.
++		 */
++		printk(KERN_WARNING "%s: has both .ctors and .init_array.\n",
++		       mod->name);
++		return -EINVAL;
++	}
+ #endif
+ 
+ #ifdef CONFIG_TRACEPOINTS
+@@ -2806,6 +2818,8 @@ static void find_module_sections(struct module *mod, struct load_info *info)
+ 
+ 	info->debug = section_objs(info, "__verbose",
+ 				   sizeof(*info->debug), &info->num_debug);
++
++	return 0;
+ }
+ 
+ static int move_module(struct module *mod, struct load_info *info)
+@@ -3263,7 +3277,9 @@ static int load_module(struct load_info *info, const char __user *uargs,
+ 
+ 	/* Now we've got everything in the final locations, we can
+ 	 * find optional sections. */
+-	find_module_sections(mod, info);
++	err = find_module_sections(mod, info);
++	if (err)
++		goto free_unload;
+ 
+ 	err = check_module_license_and_versions(mod);
+ 	if (err)
