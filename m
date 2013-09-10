@@ -1,138 +1,520 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gmmr7.centrum.cz ([46.255.225.249]:46233 "EHLO gmmr7.centrum.cz"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755013Ab3IIVIP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 9 Sep 2013 17:08:15 -0400
-Subject: =?utf-8?q?Re=3A_=5Bpatch_0=2F7=5D_improve_memcg_oom_killer_robustness_v2?=
-Date: Mon, 09 Sep 2013 23:08:12 +0200
-From: "azurIt" <azurit@pobox.sk>
-References: <1375549200-19110-1-git-send-email-hannes@cmpxchg.org>, <20130803170831.GB23319@cmpxchg.org>, <20130830215852.3E5D3D66@pobox.sk>, <20130902123802.5B8E8CB1@pobox.sk>, <20130903204850.GA1412@cmpxchg.org>, <20130904101852.58E70042@pobox.sk>, <20130905115430.GB856@cmpxchg.org>, <20130909151010.3A3CBC6A@pobox.sk>, <20130909172849.GG856@cmpxchg.org>, <20130909215917.96932098@pobox.sk> <20130909201238.GH856@cmpxchg.org>
-In-Reply-To: <20130909201238.GH856@cmpxchg.org>
-MIME-Version: 1.0
-Message-ID: <20130909230812.757131A5@pobox.sk>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Received: from merlin.infradead.org ([205.233.59.134]:46872 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752563Ab3IJNV2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Sep 2013 09:21:28 -0400
+Message-ID: <20130910132011.322909578@infradead.org>
+Date: Tue, 10 Sep 2013 15:08:16 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH 5/7] sched: Extract the basic add/sub preempt_count modifiers
+References: <20130910130811.507933095@infradead.org>
+Content-Disposition: inline; filename=peterz-cleanup-preempt.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?utf-8?q?Johannes_Weiner?= <hannes@cmpxchg.org>
-Cc: =?utf-8?q?Andrew_Morton?= <akpm@linux-foundation.org>, =?utf-8?q?Michal_Hocko?= <mhocko@suse.cz>, =?utf-8?q?David_Rientjes?= <rientjes@google.com>, =?utf-8?q?KAMEZAWA_Hiroyuki?= <kamezawa.hiroyu@jp.fujitsu.com>, =?utf-8?q?KOSAKI_Motohiro?= <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130909210812.aOhYW5f71Cx_bS58dpHAEFFN-sBhYuXOQJF2fv9U-9s@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>
+Cc: Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20130910130816.d_zCjd8F3NsmNtQZ3P_FXCu14J_TEtlphha_g3i3Hd8@z>
 
->On Mon, Sep 09, 2013 at 09:59:17PM +0200, azurIt wrote:
->> >On Mon, Sep 09, 2013 at 03:10:10PM +0200, azurIt wrote:
->> >> >Hi azur,
->> >> >
->> >> >On Wed, Sep 04, 2013 at 10:18:52AM +0200, azurIt wrote:
->> >> >> > CC: "Andrew Morton" <akpm@linux-foundation.org>, "Michal Hocko" <mhocko@suse.cz>, "David Rientjes" <rientjes@google.com>, "KAMEZAWA Hiroyuki" <kamezawa.hiroyu@jp.fujitsu.com>, "KOSAKI Motohiro" <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
->> >> >> >Hello azur,
->> >> >> >
->> >> >> >On Mon, Sep 02, 2013 at 12:38:02PM +0200, azurIt wrote:
->> >> >> >> >>Hi azur,
->> >> >> >> >>
->> >> >> >> >>here is the x86-only rollup of the series for 3.2.
->> >> >> >> >>
->> >> >> >> >>Thanks!
->> >> >> >> >>Johannes
->> >> >> >> >>---
->> >> >> >> >
->> >> >> >> >
->> >> >> >> >Johannes,
->> >> >> >> >
->> >> >> >> >unfortunately, one problem arises: I have (again) cgroup which cannot be deleted :( it's a user who had very high memory usage and was reaching his limit very often. Do you need any info which i can gather now?
->> >> >> >
->> >> >> >Did the OOM killer go off in this group?
->> >> >> >
->> >> >> >Was there a warning in the syslog ("Fixing unhandled memcg OOM
->> >> >> >context")?
->> >> >> 
->> >> >> 
->> >> >> 
->> >> >> Ok, i see this message several times in my syslog logs, one of them is also for this unremovable cgroup (but maybe all of them cannot be removed, should i try?). Example of the log is here (don't know where exactly it starts and ends so here is the full kernel log):
->> >> >> http://watchdog.sk/lkml/oom_syslog.gz
->> >> >There is an unfinished OOM invocation here:
->> >> >
->> >> >  Aug 22 13:15:21 server01 kernel: [1251422.715112] Fixing unhandled memcg OOM context set up from:
->> >> >  Aug 22 13:15:21 server01 kernel: [1251422.715191]  [<ffffffff811105c2>] T.1154+0x622/0x8f0
->> >> >  Aug 22 13:15:21 server01 kernel: [1251422.715274]  [<ffffffff8111153e>] mem_cgroup_cache_charge+0xbe/0xe0
->> >> >  Aug 22 13:15:21 server01 kernel: [1251422.715357]  [<ffffffff810cf31c>] add_to_page_cache_locked+0x4c/0x140
->> >> >  Aug 22 13:15:21 server01 kernel: [1251422.715443]  [<ffffffff810cf432>] add_to_page_cache_lru+0x22/0x50
->> >> >  Aug 22 13:15:21 server01 kernel: [1251422.715526]  [<ffffffff810cfdd3>] find_or_create_page+0x73/0xb0
->> >> >  Aug 22 13:15:21 server01 kernel: [1251422.715608]  [<ffffffff811493ba>] __getblk+0xea/0x2c0
->> >> >  Aug 22 13:15:21 server01 kernel: [1251422.715692]  [<ffffffff8114ca73>] __bread+0x13/0xc0
->> >> >  Aug 22 13:15:21 server01 kernel: [1251422.715774]  [<ffffffff81196968>] ext3_get_branch+0x98/0x140
->> >> >  Aug 22 13:15:21 server01 kernel: [1251422.715859]  [<ffffffff81197557>] ext3_get_blocks_handle+0xd7/0xdc0
->> >> >  Aug 22 13:15:21 server01 kernel: [1251422.715942]  [<ffffffff81198304>] ext3_get_block+0xc4/0x120
->> >> >  Aug 22 13:15:21 server01 kernel: [1251422.716023]  [<ffffffff81155c3a>] do_mpage_readpage+0x38a/0x690
->> >> >  Aug 22 13:15:21 server01 kernel: [1251422.716107]  [<ffffffff81155f8f>] mpage_readpage+0x4f/0x70
->> >> >  Aug 22 13:15:21 server01 kernel: [1251422.716188]  [<ffffffff811973a8>] ext3_readpage+0x28/0x60
->> >> >  Aug 22 13:15:21 server01 kernel: [1251422.716268]  [<ffffffff810cfa48>] filemap_fault+0x308/0x560
->> >> >  Aug 22 13:15:21 server01 kernel: [1251422.716350]  [<ffffffff810ef898>] __do_fault+0x78/0x5a0
->> >> >  Aug 22 13:15:21 server01 kernel: [1251422.716433]  [<ffffffff810f2ab4>] handle_pte_fault+0x84/0x940
->> >> >
->> >> >__getblk() has this weird loop where it tries to instantiate the page,
->> >> >frees memory on failure, then retries.  If the memcg goes OOM, the OOM
->> >> >path might be entered multiple times and each time leak the memcg
->> >> >reference of the respective previous OOM invocation.
->> >> >
->> >> >There are a few more find_or_create() sites that do not propagate an
->> >> >error and it's incredibly hard to find out whether they are even taken
->> >> >during a page fault.  It's not practical to annotate them all with
->> >> >memcg OOM toggles, so let's just catch all OOM contexts at the end of
->> >> >handle_mm_fault() and clear them if !VM_FAULT_OOM instead of treating
->> >> >this like an error.
->> >> >
->> >> >azur, here is a patch on top of your modified 3.2.  Note that Michal
->> >> >might be onto something and we are looking at multiple issues here,
->> >> >but the log excert above suggests this fix is required either way.
->> >> 
->> >> 
->> >> 
->> >> 
->> >> Johannes, is this still up to date? Thank you.
->> >
->> >No, please use the following on top of 3.2 (i.e. full replacement, not
->> >incremental to what you have):
->> 
->> 
->> 
->> Unfortunately it didn't compile:
->> 
->> 
->> 
->> 
->>   LD      vmlinux.o
->>   MODPOST vmlinux.o
->> WARNING: modpost: Found 4924 section mismatch(es).
->> To see full details build your kernel with:
->> 'make CONFIG_DEBUG_SECTION_MISMATCH=y'
->>   GEN     .version
->>   CHK     include/generated/compile.h
->>   UPD     include/generated/compile.h
->>   CC      init/version.o
->>   LD      init/built-in.o
->>   LD      .tmp_vmlinux1
->> arch/x86/built-in.o: In function `do_page_fault':
->> (.text+0x26a77): undefined reference to `handle_mm_fault'
->> mm/built-in.o: In function `fixup_user_fault':
->> (.text+0x224d3): undefined reference to `handle_mm_fault'
->> mm/built-in.o: In function `__get_user_pages':
->> (.text+0x24a0f): undefined reference to `handle_mm_fault'
->> make: *** [.tmp_vmlinux1] Error 1
->
->Oops, sorry about that.  Must be configuration dependent because it
->works for me (and handle_mm_fault is obviously defined).
->
->Do you have warnings earlier in the compilation?  You can use make -s
->to filter out everything but warnings.
->
->Or send me your configuration so I can try to reproduce it here.
->
->Thanks!
+Rewrite the preempt_count macros in order to extract the 3 basic
+preempt_count value modifiers:
+
+  __preempt_count_add()
+  __preempt_count_sub()
+
+and the new:
+
+  __preempt_count_dec_and_test()
+
+And since we're at it anyway, replace the unconventional
+$op_preempt_count names with the more conventional preempt_count_$op.
+
+Since these basic operators are equivalent to the previous _notrace()
+variants, do away with the _notrace() versions.
+
+Signed-off-by: Peter Zijlstra <peterz@infradead.org>
+---
+ arch/mips/mm/init.c           |    5 -
+ arch/x86/kernel/traps.c       |    4 -
+ include/asm-generic/preempt.h |   35 +++++++++++++
+ include/linux/hardirq.h       |    8 +--
+ include/linux/preempt.h       |  106 +++++++++++++++++++-----------------------
+ include/linux/sched.h         |    5 -
+ include/linux/uaccess.h       |    8 ---
+ kernel/context_tracking.c     |    2 
+ kernel/sched/core.c           |   29 ++++-------
+ kernel/softirq.c              |   12 ++--
+ 10 files changed, 112 insertions(+), 102 deletions(-)
+
+--- a/arch/mips/mm/init.c
++++ b/arch/mips/mm/init.c
+@@ -124,7 +124,7 @@ void *kmap_coherent(struct page *page, u
+ 
+ 	BUG_ON(Page_dcache_dirty(page));
+ 
+-	inc_preempt_count();
++	pagefault_disable();
+ 	idx = (addr >> PAGE_SHIFT) & (FIX_N_COLOURS - 1);
+ #ifdef CONFIG_MIPS_MT_SMTC
+ 	idx += FIX_N_COLOURS * smp_processor_id() +
+@@ -193,8 +193,7 @@ void kunmap_coherent(void)
+ 	write_c0_entryhi(old_ctx);
+ 	EXIT_CRITICAL(flags);
+ #endif
+-	dec_preempt_count();
+-	preempt_check_resched();
++	pagefault_enable();
+ }
+ 
+ void copy_user_highpage(struct page *to, struct page *from,
+--- a/arch/x86/kernel/traps.c
++++ b/arch/x86/kernel/traps.c
+@@ -88,7 +88,7 @@ static inline void conditional_sti(struc
+ 
+ static inline void preempt_conditional_sti(struct pt_regs *regs)
+ {
+-	inc_preempt_count();
++	preempt_count_inc();
+ 	if (regs->flags & X86_EFLAGS_IF)
+ 		local_irq_enable();
+ }
+@@ -103,7 +103,7 @@ static inline void preempt_conditional_c
+ {
+ 	if (regs->flags & X86_EFLAGS_IF)
+ 		local_irq_disable();
+-	dec_preempt_count();
++	preempt_count_dec();
+ }
+ 
+ static int __kprobes
+--- a/include/asm-generic/preempt.h
++++ b/include/asm-generic/preempt.h
+@@ -55,4 +55,39 @@ static __always_inline bool test_preempt
+ 	return !(*preempt_count_ptr() & PREEMPT_NEED_RESCHED);
+ }
+ 
++/*
++ * The various preempt_count add/sub methods
++ */
++
++static __always_inline void __preempt_count_add(int val)
++{
++	*preempt_count_ptr() += val;
++}
++
++static __always_inline void __preempt_count_sub(int val)
++{
++	*preempt_count_ptr() -= val;
++}
++
++static __always_inline bool __preempt_count_dec_and_test(void)
++{
++	return !--*preempt_count_ptr();
++}
++
++/*
++ * Returns true when we need to resched -- even if we can not.
++ */
++static __always_inline bool need_resched(void)
++{
++	return unlikely(test_preempt_need_resched());
++}
++
++/*
++ * Returns true when we need to resched and can (barring IRQ state).
++ */
++static __always_inline bool should_resched(void)
++{
++	return unlikely(!*preempt_count_ptr());
++}
++
+ #endif /* __ASM_PREEMPT_H */
+--- a/include/linux/hardirq.h
++++ b/include/linux/hardirq.h
+@@ -37,7 +37,7 @@ extern void rcu_nmi_exit(void);
+ #define __irq_enter()					\
+ 	do {						\
+ 		account_irq_enter_time(current);	\
+-		add_preempt_count(HARDIRQ_OFFSET);	\
++		preempt_count_add(HARDIRQ_OFFSET);	\
+ 		trace_hardirq_enter();			\
+ 	} while (0)
+ 
+@@ -53,7 +53,7 @@ extern void irq_enter(void);
+ 	do {						\
+ 		trace_hardirq_exit();			\
+ 		account_irq_exit_time(current);		\
+-		sub_preempt_count(HARDIRQ_OFFSET);	\
++		preempt_count_sub(HARDIRQ_OFFSET);	\
+ 	} while (0)
+ 
+ /*
+@@ -66,7 +66,7 @@ extern void irq_exit(void);
+ 		lockdep_off();					\
+ 		ftrace_nmi_enter();				\
+ 		BUG_ON(in_nmi());				\
+-		add_preempt_count(NMI_OFFSET + HARDIRQ_OFFSET);	\
++		preempt_count_add(NMI_OFFSET + HARDIRQ_OFFSET);	\
+ 		rcu_nmi_enter();				\
+ 		trace_hardirq_enter();				\
+ 	} while (0)
+@@ -76,7 +76,7 @@ extern void irq_exit(void);
+ 		trace_hardirq_exit();				\
+ 		rcu_nmi_exit();					\
+ 		BUG_ON(!in_nmi());				\
+-		sub_preempt_count(NMI_OFFSET + HARDIRQ_OFFSET);	\
++		preempt_count_sub(NMI_OFFSET + HARDIRQ_OFFSET);	\
+ 		ftrace_nmi_exit();				\
+ 		lockdep_on();					\
+ 	} while (0)
+--- a/include/linux/preempt.h
++++ b/include/linux/preempt.h
+@@ -18,97 +18,86 @@
+ #include <asm/preempt.h>
+ 
+ #if defined(CONFIG_DEBUG_PREEMPT) || defined(CONFIG_PREEMPT_TRACER)
+-  extern void add_preempt_count(int val);
+-  extern void sub_preempt_count(int val);
++extern void preempt_count_add(int val);
++extern void preempt_count_sub(int val);
++#define preempt_count_dec_and_test() ({ preempt_count_sub(1); should_resched(); })
+ #else
+-# define add_preempt_count(val)	do { *preempt_count_ptr() += (val); } while (0)
+-# define sub_preempt_count(val)	do { *preempt_count_ptr() -= (val); } while (0)
++#define preempt_count_add(val)	__preempt_count_add(val)
++#define preempt_count_sub(val)	__preempt_count_sub(val)
++#define preempt_count_dec_and_test() __preempt_count_dec_and_test()
+ #endif
+ 
+-#define inc_preempt_count() add_preempt_count(1)
+-#define dec_preempt_count() sub_preempt_count(1)
+-
+-#ifdef CONFIG_PREEMPT
+-
+-asmlinkage void preempt_schedule(void);
+-
+-#define preempt_check_resched() \
+-do { \
+-	if (unlikely(!*preempt_count_ptr())) \
+-		preempt_schedule(); \
+-} while (0)
+-
+-#ifdef CONFIG_CONTEXT_TRACKING
+-
+-void preempt_schedule_context(void);
+-
+-#define preempt_check_resched_context() \
+-do { \
+-	if (unlikely(!*preempt_count_ptr())) \
+-		preempt_schedule_context(); \
+-} while (0)
+-#else
+-
+-#define preempt_check_resched_context() preempt_check_resched()
+-
+-#endif /* CONFIG_CONTEXT_TRACKING */
+-
+-#else /* !CONFIG_PREEMPT */
+-
+-#define preempt_check_resched()		do { } while (0)
+-#define preempt_check_resched_context()	do { } while (0)
+-
+-#endif /* CONFIG_PREEMPT */
++#define __preempt_count_inc() __preempt_count_add(1)
++#define __preempt_count_dec() __preempt_count_sub(1)
+ 
++#define preempt_count_inc() preempt_count_add(1)
++#define preempt_count_dec() preempt_count_sub(1)
+ 
+ #ifdef CONFIG_PREEMPT_COUNT
+ 
+ #define preempt_disable() \
+ do { \
+-	inc_preempt_count(); \
++	preempt_count_inc(); \
+ 	barrier(); \
+ } while (0)
+ 
+ #define sched_preempt_enable_no_resched() \
+ do { \
+ 	barrier(); \
+-	dec_preempt_count(); \
++	preempt_count_dec(); \
+ } while (0)
+ 
+-#define preempt_enable_no_resched()	sched_preempt_enable_no_resched()
++#define preempt_enable_no_resched() sched_preempt_enable_no_resched()
+ 
++#ifdef CONFIG_PREEMPT
++asmlinkage void preempt_schedule(void);
+ #define preempt_enable() \
+ do { \
+-	preempt_enable_no_resched(); \
+-	preempt_check_resched(); \
++	barrier(); \
++	if (unlikely(preempt_count_dec_and_test())) \
++		preempt_schedule(); \
+ } while (0)
+ 
+-/* For debugging and tracer internals only! */
+-#define add_preempt_count_notrace(val)			\
+-	do { *preempt_count_ptr() += (val); } while (0)
+-#define sub_preempt_count_notrace(val)			\
+-	do { *preempt_count_ptr() -= (val); } while (0)
+-#define inc_preempt_count_notrace() add_preempt_count_notrace(1)
+-#define dec_preempt_count_notrace() sub_preempt_count_notrace(1)
++#define preempt_check_resched() \
++do { \
++	if (should_resched()) \
++		preempt_schedule(); \
++} while (0)
++
++#else
++#define preempt_enable() preempt_enable_no_resched()
++#define preempt_check_resched() do { } while (0)
++#endif
+ 
+ #define preempt_disable_notrace() \
+ do { \
+-	inc_preempt_count_notrace(); \
++	__preempt_count_inc(); \
+ 	barrier(); \
+ } while (0)
+ 
+ #define preempt_enable_no_resched_notrace() \
+ do { \
+ 	barrier(); \
+-	dec_preempt_count_notrace(); \
++	__preempt_count_dec(); \
+ } while (0)
+ 
+-/* preempt_check_resched is OK to trace */
++#ifdef CONFIG_PREEMPT
++
++#ifdef CONFIG_CONTEXT_TRACKING
++asmlinkage void preempt_schedule_context(void);
++#else
++#define preempt_schedule_context() preempt_schedule()
++#endif
++
+ #define preempt_enable_notrace() \
+ do { \
+-	preempt_enable_no_resched_notrace(); \
+-	preempt_check_resched_context(); \
++	barrier(); \
++	if (unlikely(__preempt_count_dec_and_test())) \
++		preempt_schedule_context(); \
+ } while (0)
++#else
++#define preempt_enable_notrace() preempt_enable_no_resched_notrace()
++#endif
+ 
+ #else /* !CONFIG_PREEMPT_COUNT */
+ 
+@@ -118,10 +107,11 @@ do { \
+  * that can cause faults and scheduling migrate into our preempt-protected
+  * region.
+  */
+-#define preempt_disable()		barrier()
++#define preempt_disable()			barrier()
+ #define sched_preempt_enable_no_resched()	barrier()
+-#define preempt_enable_no_resched()	barrier()
+-#define preempt_enable()		barrier()
++#define preempt_enable_no_resched()		barrier()
++#define preempt_enable()			barrier()
++#define preempt_check_resched()			do { } while (0)
+ 
+ #define preempt_disable_notrace()		barrier()
+ #define preempt_enable_no_resched_notrace()	barrier()
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -2403,11 +2403,6 @@ static inline int signal_pending_state(l
+ 	return (state & TASK_INTERRUPTIBLE) || __fatal_signal_pending(p);
+ }
+ 
+-static inline int need_resched(void)
+-{
+-	return unlikely(test_preempt_need_resched());
+-}
+-
+ /*
+  * cond_resched() and cond_resched_lock(): latency reduction via
+  * explicit rescheduling in places that are safe. The return
+--- a/include/linux/uaccess.h
++++ b/include/linux/uaccess.h
+@@ -15,7 +15,7 @@
+  */
+ static inline void pagefault_disable(void)
+ {
+-	inc_preempt_count();
++	preempt_count_inc();
+ 	/*
+ 	 * make sure to have issued the store before a pagefault
+ 	 * can hit.
+@@ -30,11 +30,7 @@ static inline void pagefault_enable(void
+ 	 * the pagefault handler again.
+ 	 */
+ 	barrier();
+-	dec_preempt_count();
+-	/*
+-	 * make sure we do..
+-	 */
+-	barrier();
++	preempt_count_dec();
+ 	preempt_check_resched();
+ }
+ 
+--- a/kernel/context_tracking.c
++++ b/kernel/context_tracking.c
+@@ -111,7 +111,7 @@ void context_tracking_user_enter(void)
+  * instead of preempt_schedule() to exit user context if needed before
+  * calling the scheduler.
+  */
+-void __sched notrace preempt_schedule_context(void)
++asmlinkage void __sched notrace preempt_schedule_context(void)
+ {
+ 	enum ctx_state prev_ctx;
+ 
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -2239,7 +2239,7 @@ notrace unsigned long get_parent_ip(unsi
+ #if defined(CONFIG_PREEMPT) && (defined(CONFIG_DEBUG_PREEMPT) || \
+ 				defined(CONFIG_PREEMPT_TRACER))
+ 
+-void __kprobes add_preempt_count(int val)
++void __kprobes preempt_count_add(int val)
+ {
+ #ifdef CONFIG_DEBUG_PREEMPT
+ 	/*
+@@ -2248,7 +2248,7 @@ void __kprobes add_preempt_count(int val
+ 	if (DEBUG_LOCKS_WARN_ON((preempt_count() < 0)))
+ 		return;
+ #endif
+-	*preempt_count_ptr() += val;
++	__preempt_count_add(val);
+ #ifdef CONFIG_DEBUG_PREEMPT
+ 	/*
+ 	 * Spinlock count overflowing soon?
+@@ -2259,9 +2259,9 @@ void __kprobes add_preempt_count(int val
+ 	if (preempt_count() == val)
+ 		trace_preempt_off(CALLER_ADDR0, get_parent_ip(CALLER_ADDR1));
+ }
+-EXPORT_SYMBOL(add_preempt_count);
++EXPORT_SYMBOL(preempt_count_add);
+ 
+-void __kprobes sub_preempt_count(int val)
++void __kprobes preempt_count_sub(int val)
+ {
+ #ifdef CONFIG_DEBUG_PREEMPT
+ 	/*
+@@ -2279,9 +2279,9 @@ void __kprobes sub_preempt_count(int val
+ 
+ 	if (preempt_count() == val)
+ 		trace_preempt_on(CALLER_ADDR0, get_parent_ip(CALLER_ADDR1));
+-	*preempt_count_ptr() -= val;
++	__preempt_count_sub(val);
+ }
+-EXPORT_SYMBOL(sub_preempt_count);
++EXPORT_SYMBOL(preempt_count_sub);
+ 
+ #endif
+ 
+@@ -2545,9 +2545,9 @@ asmlinkage void __sched notrace preempt_
+ 		return;
+ 
+ 	do {
+-		add_preempt_count_notrace(PREEMPT_ACTIVE);
++		__preempt_count_add(PREEMPT_ACTIVE);
+ 		__schedule();
+-		sub_preempt_count_notrace(PREEMPT_ACTIVE);
++		__preempt_count_sub(PREEMPT_ACTIVE);
+ 
+ 		/*
+ 		 * Check again in case we missed a preemption opportunity
+@@ -2574,11 +2574,11 @@ asmlinkage void __sched preempt_schedule
+ 	prev_state = exception_enter();
+ 
+ 	do {
+-		add_preempt_count(PREEMPT_ACTIVE);
++		__preempt_count_add(PREEMPT_ACTIVE);
+ 		local_irq_enable();
+ 		__schedule();
+ 		local_irq_disable();
+-		sub_preempt_count(PREEMPT_ACTIVE);
++		__preempt_count_sub(PREEMPT_ACTIVE);
+ 
+ 		/*
+ 		 * Check again in case we missed a preemption opportunity
+@@ -3818,16 +3818,11 @@ SYSCALL_DEFINE0(sched_yield)
+ 	return 0;
+ }
+ 
+-static inline int should_resched(void)
+-{
+-	return need_resched() && !(preempt_count() & PREEMPT_ACTIVE);
+-}
+-
+ static void __cond_resched(void)
+ {
+-	add_preempt_count(PREEMPT_ACTIVE);
++	preempt_count_add(PREEMPT_ACTIVE);
+ 	__schedule();
+-	sub_preempt_count(PREEMPT_ACTIVE);
++	preempt_count_sub(PREEMPT_ACTIVE);
+ }
+ 
+ int __sched _cond_resched(void)
+--- a/kernel/softirq.c
++++ b/kernel/softirq.c
+@@ -100,7 +100,7 @@ static void __local_bh_disable(unsigned
+ 
+ 	raw_local_irq_save(flags);
+ 	/*
+-	 * The preempt tracer hooks into add_preempt_count and will break
++	 * The preempt tracer hooks into preempt_count_add and will break
+ 	 * lockdep because it calls back into lockdep after SOFTIRQ_OFFSET
+ 	 * is set and before current->softirq_enabled is cleared.
+ 	 * We must manually increment preempt_count here and manually
+@@ -120,7 +120,7 @@ static void __local_bh_disable(unsigned
+ #else /* !CONFIG_TRACE_IRQFLAGS */
+ static inline void __local_bh_disable(unsigned long ip, unsigned int cnt)
+ {
+-	add_preempt_count(cnt);
++	preempt_count_add(cnt);
+ 	barrier();
+ }
+ #endif /* CONFIG_TRACE_IRQFLAGS */
+@@ -139,7 +139,7 @@ static void __local_bh_enable(unsigned i
+ 
+ 	if (softirq_count() == cnt)
+ 		trace_softirqs_on(_RET_IP_);
+-	sub_preempt_count(cnt);
++	preempt_count_sub(cnt);
+ }
+ 
+ /*
+@@ -169,12 +169,12 @@ static inline void _local_bh_enable_ip(u
+ 	 * Keep preemption disabled until we are done with
+ 	 * softirq processing:
+  	 */
+-	sub_preempt_count(SOFTIRQ_DISABLE_OFFSET - 1);
++	preempt_count_sub(SOFTIRQ_DISABLE_OFFSET - 1);
+ 
+ 	if (unlikely(!in_interrupt() && local_softirq_pending()))
+ 		do_softirq();
+ 
+-	dec_preempt_count();
++	preempt_count_dec();
+ #ifdef CONFIG_TRACE_IRQFLAGS
+ 	local_irq_enable();
+ #endif
+@@ -360,7 +360,7 @@ void irq_exit(void)
+ 
+ 	account_irq_exit_time(current);
+ 	trace_hardirq_exit();
+-	sub_preempt_count(HARDIRQ_OFFSET);
++	preempt_count_sub(HARDIRQ_OFFSET);
+ 	if (!in_interrupt() && local_softirq_pending())
+ 		invoke_softirq();
+ 
 
 
-
-I'm soooooo sorry Johannes! It was my fault - I had to modify your patch a little because of grsecurity and I did it wrong (24 + 4 apparently isn't 27, haha ;) ).
-
-All compiled fine now, thank you very much. I will install new kernel this night.
-
-azur
