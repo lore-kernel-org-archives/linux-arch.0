@@ -1,31 +1,155 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 6/7] sched, x86: Provide a per-cpu preempt_count
- implementation
-Date: Tue, 10 Sep 2013 15:27:24 +0200
-Message-ID: <20130910132724.GF31370@twins.programming.kicks-ass.net>
-References: <20130910130811.507933095@infradead.org>
- <20130910132011.396291123@infradead.org>
+From: Frantisek Hrbata <fhrbata@redhat.com>
+Subject: Re: [PATCH v2 4/4] kernel: add support for init_array constructors
+Date: Tue, 10 Sep 2013 15:28:34 +0200
+Message-ID: <20130910132834.GF2259@localhost.localdomain>
+References: <1378305776-3644-1-git-send-email-fhrbata@redhat.com>
+ <1378305776-3644-5-git-send-email-fhrbata@redhat.com>
+ <87vc2e66kr.fsf@rustcorp.com.au>
+ <20130906175118.GB2332@localhost.localdomain>
+ <20130906180751.GD25882@merlin.infradead.org>
+ <87d2oi6bl0.fsf@rustcorp.com.au>
+ <20130909162814.GA2288@localhost.localdomain>
+ <878uz544si.fsf@rustcorp.com.au>
+Reply-To: Frantisek Hrbata <fhrbata@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:47090 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750974Ab3IJN1e (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Sep 2013 09:27:34 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20130910132011.396291123@infradead.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>
-Cc: Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+In-Reply-To: <878uz544si.fsf@rustcorp.com.au>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Rusty Russell <rusty@rustcorp.com.au>
+Cc: Kyle McMartin <kyle@infradead.org>, linux-kernel@vger.kernel.org, jstancek@redhat.com, keescook@chromium.org, peter.oberparleiter@de.ibm.com, linux-arch@vger.kernel.org, arnd@arndb.de, mgahagan@redhat.com, agospoda@redhat.com, akpm@linux-foundation.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Sep 10, 2013 at 03:08:17PM +0200, Peter Zijlstra wrote:
-> @@ -1095,6 +1095,9 @@ DEFINE_PER_CPU(char *, irq_stack_ptr) =
+On Tue, Sep 10, 2013 at 03:05:57PM +0930, Rusty Russell wrote:
+> Frantisek Hrbata <fhrbata@redhat.com> writes:
+> > On Mon, Sep 09, 2013 at 10:44:03AM +0930, Rusty Russell wrote:
+> >> Kyle McMartin <kyle@infradead.org> writes:
+> >> > On Fri, Sep 06, 2013 at 07:51:18PM +0200, Frantisek Hrbata wrote:
+> >> >> > > v2: - reuse mod->ctors for .init_array section for modules, because gcc uses
+> >> >> > >       .ctors or .init_array, but not both at the same time
+> >> >> > >
+> >> >> > > Signed-off-by: Frantisek Hrbata <fhrbata@redhat.com>
+> >> >> > 
+> >> >> > Might be nice to document which gcc version changed this, so people can
+> >> >> > choose whether to cherry-pick this change?
+> >> >> 
+> >> >> Thank you for pointing this out. As per gcc git this was introduced by commit
+> >> >> ef1da80 and released in 4.7 version.
+> >> >> 
+> >> >> $ git describe --contains ef1da80
+> >> >> gcc-4_7_0-release~4358
+> >> >> 
+> >> >> Do you want me to post v3 with this info included in the descrition?
+> >> >> 
+> >> >
+> >> > It actually depends on the combination of binutils/ld and gcc you use, not
+> >> > simply which gcc version you use. :/
+> >> 
+> >> Indeed, and seems it was binutils 20110507 which actually handled it
+> >> properly.
+> >> 
+> >> AFAICT it's theoretically possible to have .ctors and .init_array in a
+> >> module.  Unlikely, but the patch should check for both and refuse to
+> >> load the module in that case.  Otherwise weird things would happen.
+> >
+> > I'm not sure if coexistence of .ctors and .init_array sections should result in
+> > denial of module, but I for sure know nothing about this :). Could you maybe
+> > privide one example of the "weird thing"?
+> 
+> Well, if we have both ctors and init_array, and we only call the ctors,
+> part of the module will be uninitialized.
+> 
+> I was thinking about something like the following (based on your
+> previous patch).
+> 
+> Thoughts?
+> Rusty.
+
+Thank you Rusty, from what I can say it looks ok to me. So I would go with this
+version. Is there anything that needs to be done to consider this as the
+correct version of the 4/4 patch? Meaning should we repost this as v3 or could
+your version of the patch be picked as you posted it?
+
+> 
+> From: Frantisek Hrbata <fhrbata@redhat.com>
+> Subject: kernel: add support for init_array constructors
+> 
+> This adds the .init_array section as yet another section with constructors. This
+> is needed because gcc could add __gcov_init calls to .init_array or .ctors
+> section, depending on gcc (and binutils) version .
+> 
+> v2: - reuse mod->ctors for .init_array section for modules, because gcc uses
+>       .ctors or .init_array, but not both at the same time
+> v3: - fail to load if that does happen somehow.
+> 
+> Signed-off-by: Frantisek Hrbata <fhrbata@redhat.com>
+> Signed-off-by: Rusty Russell <rusty@rustcorp.com.au>
+> 
+> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+> index 83e2c31..bc2121f 100644
+> --- a/include/asm-generic/vmlinux.lds.h
+> +++ b/include/asm-generic/vmlinux.lds.h
+> @@ -473,6 +473,7 @@
+>  #define KERNEL_CTORS()	. = ALIGN(8);			   \
+>  			VMLINUX_SYMBOL(__ctors_start) = .; \
+>  			*(.ctors)			   \
+> +			*(.init_array)			   \
+>  			VMLINUX_SYMBOL(__ctors_end) = .;
+>  #else
+>  #define KERNEL_CTORS()
+> diff --git a/kernel/module.c b/kernel/module.c
+> index dc58274..d3f5a58 100644
+> --- a/kernel/module.c
+> +++ b/kernel/module.c
+> @@ -2738,7 +2738,7 @@ static int check_modinfo(struct module *mod, struct load_info *info, int flags)
+>  	return 0;
+>  }
 >  
->  DEFINE_PER_CPU(unsigned int, irq_count) __visible = -1;
+> -static void find_module_sections(struct module *mod, struct load_info *info)
+> +static int find_module_sections(struct module *mod, struct load_info *info)
+>  {
+>  	mod->kp = section_objs(info, "__param",
+>  			       sizeof(*mod->kp), &mod->num_kp);
+> @@ -2768,6 +2768,18 @@ static void find_module_sections(struct module *mod, struct load_info *info)
+>  #ifdef CONFIG_CONSTRUCTORS
+>  	mod->ctors = section_objs(info, ".ctors",
+>  				  sizeof(*mod->ctors), &mod->num_ctors);
+> +	if (!mod->ctors)
+> +		mod->ctors = section_objs(info, ".init_array",
+> +				sizeof(*mod->ctors), &mod->num_ctors);
+> +	else if (find_sec(info, ".init_array")) {
+> +		/*
+> +		 * This shouldn't happen with same compiler and binutils
+> +		 * building all parts of the module.
+> +		 */
+> +		printk(KERN_WARNING "%s: has both .ctors and .init_array.\n",
+> +		       mod->name);
+> +		return -EINVAL;
+> +	}
+>  #endif
 >  
-> +DEFINE_PER_CPU(int, __preempt_count) = INIT_PREEMPT_COUNT;
-> +EXPORT_PER_CPU_SYMBOL(__preempt_count);
+>  #ifdef CONFIG_TRACEPOINTS
+> @@ -2806,6 +2818,8 @@ static void find_module_sections(struct module *mod, struct load_info *info)
+>  
+>  	info->debug = section_objs(info, "__verbose",
+>  				   sizeof(*info->debug), &info->num_debug);
 > +
+> +	return 0;
+>  }
+>  
+>  static int move_module(struct module *mod, struct load_info *info)
+> @@ -3263,7 +3277,9 @@ static int load_module(struct load_info *info, const char __user *uargs,
+>  
+>  	/* Now we've got everything in the final locations, we can
+>  	 * find optional sections. */
+> -	find_module_sections(mod, info);
+> +	err = find_module_sections(mod, info);
+> +	if (err)
+> +		goto free_unload;
+>  
+>  	err = check_module_license_and_versions(mod);
+>  	if (err)
 
-Note that afaict this patch takes away the reason irq_count exists.
+-- 
+Frantisek Hrbata
