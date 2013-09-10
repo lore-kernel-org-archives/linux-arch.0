@@ -1,63 +1,193 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH 0/7] preempt_count rework -v2
-Date: Tue, 10 Sep 2013 10:06:44 -0700
-Message-ID: <CA+55aFz7WtcdkwKEGoqCzmC9HsY0LPK-oVK_oATYhRnbGq=2GA@mail.gmail.com>
-References: <20130910130811.507933095@infradead.org>
-	<20130910135152.GD7537@gmail.com>
-	<20130910135636.GA8268@gmail.com>
-	<CA+55aFwmEQeF+PtM7cuaQ8OkuTS=R4JJ61Wwfv8u-Svo-V3KwQ@mail.gmail.com>
-	<20130910164519.GL31370@twins.programming.kicks-ass.net>
+From: "azurIt" <azurit@pobox.sk>
+Subject: =?utf-8?q?Re=3A_=5Bpatch_0=2F7=5D_improve_memcg_oom_killer_robustness_v2?=
+Date: Tue, 10 Sep 2013 20:13:59 +0200
+Message-ID: <20130910201359.D0984EFF@pobox.sk>
+References: <1375549200-19110-1-git-send-email-hannes@cmpxchg.org>, <20130803170831.GB23319@cmpxchg.org>, <20130830215852.3E5D3D66@pobox.sk>, <20130902123802.5B8E8CB1@pobox.sk>, <20130903204850.GA1412@cmpxchg.org>, <20130904101852.58E70042@pobox.sk>, <20130905115430.GB856@cmpxchg.org>, <20130909151010.3A3CBC6A@pobox.sk>, <20130909172849.GG856@cmpxchg.org>, <20130909215917.96932098@pobox.sk> <20130909201238.GH856@cmpxchg.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ee0-f44.google.com ([74.125.83.44]:51615 "EHLO
-	mail-ee0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753780Ab3IJRGp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Sep 2013 13:06:45 -0400
-In-Reply-To: <20130910164519.GL31370@twins.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Ingo Molnar <mingo@kernel.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20130909201238.GH856@cmpxchg.org>
+Sender: owner-linux-mm@kvack.org
+To: =?utf-8?q?Johannes_Weiner?= <hannes@cmpxchg.org>
+Cc: =?utf-8?q?Andrew_Morton?= <akpm@linux-foundation.org>, =?utf-8?q?Michal_Hocko?= <mhocko@suse.cz>, =?utf-8?q?David_Rientjes?= <rientjes@google.com>, =?utf-8?q?KAMEZAWA_Hiroyuki?= <kamezawa.hiroyu@jp.fujitsu.com>, =?utf-8?q?KOSAKI_Motohiro?= <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Sep 10, 2013 at 9:45 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+>On Mon, Sep 09, 2013 at 09:59:17PM +0200, azurIt wrote:
+>> >On Mon, Sep 09, 2013 at 03:10:10PM +0200, azurIt wrote:
+>> >> >Hi azur,
+>> >> >
+>> >> >On Wed, Sep 04, 2013 at 10:18:52AM +0200, azurIt wrote:
+>> >> >> > CC: "Andrew Morton" <akpm@linux-foundation.org>, "Michal Hocko=
+" <mhocko@suse.cz>, "David Rientjes" <rientjes@google.com>, "KAMEZAWA Hir=
+oyuki" <kamezawa.hiroyu@jp.fujitsu.com>, "KOSAKI Motohiro" <kosaki.motohi=
+ro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kern=
+el.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+>> >> >> >Hello azur,
+>> >> >> >
+>> >> >> >On Mon, Sep 02, 2013 at 12:38:02PM +0200, azurIt wrote:
+>> >> >> >> >>Hi azur,
+>> >> >> >> >>
+>> >> >> >> >>here is the x86-only rollup of the series for 3.2.
+>> >> >> >> >>
+>> >> >> >> >>Thanks!
+>> >> >> >> >>Johannes
+>> >> >> >> >>---
+>> >> >> >> >
+>> >> >> >> >
+>> >> >> >> >Johannes,
+>> >> >> >> >
+>> >> >> >> >unfortunately, one problem arises: I have (again) cgroup whi=
+ch cannot be deleted :( it's a user who had very high memory usage and wa=
+s reaching his limit very often. Do you need any info which i can gather =
+now?
+>> >> >> >
+>> >> >> >Did the OOM killer go off in this group?
+>> >> >> >
+>> >> >> >Was there a warning in the syslog ("Fixing unhandled memcg OOM
+>> >> >> >context")?
+>> >> >>=20
+>> >> >>=20
+>> >> >>=20
+>> >> >> Ok, i see this message several times in my syslog logs, one of t=
+hem is also for this unremovable cgroup (but maybe all of them cannot be =
+removed, should i try?). Example of the log is here (don't know where exa=
+ctly it starts and ends so here is the full kernel log):
+>> >> >> http://watchdog.sk/lkml/oom_syslog.gz
+>> >> >There is an unfinished OOM invocation here:
+>> >> >
+>> >> >  Aug 22 13:15:21 server01 kernel: [1251422.715112] Fixing unhandl=
+ed memcg OOM context set up from:
+>> >> >  Aug 22 13:15:21 server01 kernel: [1251422.715191]  [<ffffffff811=
+105c2>] T.1154+0x622/0x8f0
+>> >> >  Aug 22 13:15:21 server01 kernel: [1251422.715274]  [<ffffffff811=
+1153e>] mem_cgroup_cache_charge+0xbe/0xe0
+>> >> >  Aug 22 13:15:21 server01 kernel: [1251422.715357]  [<ffffffff810=
+cf31c>] add_to_page_cache_locked+0x4c/0x140
+>> >> >  Aug 22 13:15:21 server01 kernel: [1251422.715443]  [<ffffffff810=
+cf432>] add_to_page_cache_lru+0x22/0x50
+>> >> >  Aug 22 13:15:21 server01 kernel: [1251422.715526]  [<ffffffff810=
+cfdd3>] find_or_create_page+0x73/0xb0
+>> >> >  Aug 22 13:15:21 server01 kernel: [1251422.715608]  [<ffffffff811=
+493ba>] __getblk+0xea/0x2c0
+>> >> >  Aug 22 13:15:21 server01 kernel: [1251422.715692]  [<ffffffff811=
+4ca73>] __bread+0x13/0xc0
+>> >> >  Aug 22 13:15:21 server01 kernel: [1251422.715774]  [<ffffffff811=
+96968>] ext3_get_branch+0x98/0x140
+>> >> >  Aug 22 13:15:21 server01 kernel: [1251422.715859]  [<ffffffff811=
+97557>] ext3_get_blocks_handle+0xd7/0xdc0
+>> >> >  Aug 22 13:15:21 server01 kernel: [1251422.715942]  [<ffffffff811=
+98304>] ext3_get_block+0xc4/0x120
+>> >> >  Aug 22 13:15:21 server01 kernel: [1251422.716023]  [<ffffffff811=
+55c3a>] do_mpage_readpage+0x38a/0x690
+>> >> >  Aug 22 13:15:21 server01 kernel: [1251422.716107]  [<ffffffff811=
+55f8f>] mpage_readpage+0x4f/0x70
+>> >> >  Aug 22 13:15:21 server01 kernel: [1251422.716188]  [<ffffffff811=
+973a8>] ext3_readpage+0x28/0x60
+>> >> >  Aug 22 13:15:21 server01 kernel: [1251422.716268]  [<ffffffff810=
+cfa48>] filemap_fault+0x308/0x560
+>> >> >  Aug 22 13:15:21 server01 kernel: [1251422.716350]  [<ffffffff810=
+ef898>] __do_fault+0x78/0x5a0
+>> >> >  Aug 22 13:15:21 server01 kernel: [1251422.716433]  [<ffffffff810=
+f2ab4>] handle_pte_fault+0x84/0x940
+>> >> >
+>> >> >__getblk() has this weird loop where it tries to instantiate the p=
+age,
+>> >> >frees memory on failure, then retries.  If the memcg goes OOM, the=
+ OOM
+>> >> >path might be entered multiple times and each time leak the memcg
+>> >> >reference of the respective previous OOM invocation.
+>> >> >
+>> >> >There are a few more find_or_create() sites that do not propagate =
+an
+>> >> >error and it's incredibly hard to find out whether they are even t=
+aken
+>> >> >during a page fault.  It's not practical to annotate them all with
+>> >> >memcg OOM toggles, so let's just catch all OOM contexts at the end=
+ of
+>> >> >handle_mm_fault() and clear them if !VM_FAULT_OOM instead of treat=
+ing
+>> >> >this like an error.
+>> >> >
+>> >> >azur, here is a patch on top of your modified 3.2.  Note that Mich=
+al
+>> >> >might be onto something and we are looking at multiple issues here=
+,
+>> >> >but the log excert above suggests this fix is required either way.
+>> >>=20
+>> >>=20
+>> >>=20
+>> >>=20
+>> >> Johannes, is this still up to date? Thank you.
+>> >
+>> >No, please use the following on top of 3.2 (i.e. full replacement, no=
+t
+>> >incremental to what you have):
+>>=20
+>>=20
+>>=20
+>> Unfortunately it didn't compile:
+>>=20
+>>=20
+>>=20
+>>=20
+>>   LD      vmlinux.o
+>>   MODPOST vmlinux.o
+>> WARNING: modpost: Found 4924 section mismatch(es).
+>> To see full details build your kernel with:
+>> 'make CONFIG_DEBUG_SECTION_MISMATCH=3Dy'
+>>   GEN     .version
+>>   CHK     include/generated/compile.h
+>>   UPD     include/generated/compile.h
+>>   CC      init/version.o
+>>   LD      init/built-in.o
+>>   LD      .tmp_vmlinux1
+>> arch/x86/built-in.o: In function `do_page_fault':
+>> (.text+0x26a77): undefined reference to `handle_mm_fault'
+>> mm/built-in.o: In function `fixup_user_fault':
+>> (.text+0x224d3): undefined reference to `handle_mm_fault'
+>> mm/built-in.o: In function `__get_user_pages':
+>> (.text+0x24a0f): undefined reference to `handle_mm_fault'
+>> make: *** [.tmp_vmlinux1] Error 1
 >
-> The usage site:
+>Oops, sorry about that.  Must be configuration dependent because it
+>works for me (and handle_mm_fault is obviously defined).
 >
-> #define preempt_enable() \
-> do { \
->         barrier(); \
->         if (unlikely(preempt_count_dec_and_test())) \
->                 __preempt_schedule(); \
-> } while (0)
+>Do you have warnings earlier in the compilation?  You can use make -s
+>to filter out everything but warnings.
 >
-> Already includes the barrier explicitly, so do we still need the memory
-> clobber in that asm goto thing?
-
-Yeah, you do to be safe, just to let gcc know that it may be changing
-the memory location.
-
-The issue is that because an "asm goto" cannot have outputs, I had to
-change the (correct) "+m" input/output into just a "m" (input).
-
-So without the memory clobber, gcc might decide that the thing doesn't
-actually change the preempt count, and perhaps move a load of that
-across the "asm goto".
-
-Admittedly, that does sound almost impossibly unlikely, but I'd be
-happier being careful.
-
-> That said, your change results in:
+>Or send me your configuration so I can try to reproduce it here.
 >
-> * ffffffff8106f45a:       65 ff 0c 25 e0 b7 00    decl   %gs:0xb7e0
->   ffffffff8106f461:       00
-> * ffffffff8106f462:       74 0c                   je     ffffffff8106f470 <kick_process+0x50>
-...
-> Which is indeed perfect. So should I go 'fix' the other _and_test()
-> functions we have to do this same thing?
+>Thanks!
 
-It would be a good thing to test. There might be downsides with "asm
-goto" (maybe it limits gcc some way), but it does in general save us
-not only two instructions but also a register.
 
-                 Linus
+Johannes,
+
+the server went down early in the morning, the symptoms were similar as b=
+efore - huge I/O. Can't tell what exactly happened since I wasn't able to=
+ login even on the console. But I have some info:
+ - applications were able to write to HDD so it wasn't deadlocked as befo=
+re
+ - here is how it looked on graphs: http://watchdog.sk/lkml/graphs.jpg
+ - server wasn't responding from 6:36, it was down between 6:54 and 7:02 =
+(i had to hard reboot it), I was awoken at 6:36 by really creepy sound fr=
+om my phone ;)
+ - my 'load check' script successfully killed apache at 6:41 but it didn'=
+t help as you can see
+ - i have one screen with info from atop from time 6:44, looks like i/o w=
+as done by init (??!): http://watchdog.sk/lkml/atop.jpg (ignore swap warn=
+ing, i have no swap)
+ - also other type of logs are available
+ - nothing like this happened before
+
+What do you think? I'm now running kernel with your previous patch, not w=
+ith the newest one.
+
+
+azur
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=3Dmailto:"dont@kvack.org"> email@kvack.org </a>
