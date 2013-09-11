@@ -1,67 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f42.google.com ([209.85.220.42]:56854 "EHLO
-	mail-pa0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755748Ab3IKQKN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Sep 2013 12:10:13 -0400
+Received: from mail-pd0-f170.google.com ([209.85.192.170]:53961 "EHLO
+	mail-pd0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756197Ab3IKQIM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Sep 2013 12:08:12 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [RFC PATCH v2 16/25] smp, s390: prepare for killing generic_smp_call_function_single_interrupt()
-Date: Thu, 12 Sep 2013 00:07:20 +0800
-Message-ID: <1378915649-16395-17-git-send-email-liuj97@gmail.com>
+Subject: [RFC PATCH v2 02/25] smp, alpha: kill SMP single function call interrupt
+Date: Thu, 12 Sep 2013 00:07:06 +0800
+Message-ID: <1378915649-16395-3-git-send-email-liuj97@gmail.com>
 In-Reply-To: <1378915649-16395-1-git-send-email-liuj97@gmail.com>
 References: <1378915649-16395-1-git-send-email-liuj97@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Shaohua Li <shli@kernel.org>
-Cc: liuj97@gmail.com, Jiang Liu <jiang.liu@huawei.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, Wang YanQing <udknight@gmail.com>, linux390@de.ibm.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20130911160720.R1wDckMden7Yn5f52D6SW71mQU-UAksgb-G-BjLtlqQ@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Shaohua Li <shli@kernel.org>
+Cc: liuj97@gmail.com, Jiang Liu <jiang.liu@huawei.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, Wang YanQing <udknight@gmail.com>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20130911160706.RXHWriuHgoDIeBWH2r_lt-PceoOKQ0TOKEaF3tJQgoM@z>
 
 From: Jiang Liu <jiang.liu@huawei.com>
+
+Commit 9a46ad6d6df3b54 "smp: make smp_call_function_many() use logic
+similar to smp_call_function_single()" has unified the way to handle
+single and multiple cross-CPU function calls. Now only one interrupt
+is needed for architecture specific code to support generic SMP function
+call interfaces, so kill the redundant single function call interrupt.
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
 Cc: Jiang Liu <liuj97@gmail.com>
 ---
- arch/s390/kernel/smp.c | 10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
+ arch/alpha/kernel/smp.c | 9 +--------
+ 1 file changed, 1 insertion(+), 8 deletions(-)
 
-diff --git a/arch/s390/kernel/smp.c b/arch/s390/kernel/smp.c
-index d386c4e..81ca42a 100644
---- a/arch/s390/kernel/smp.c
-+++ b/arch/s390/kernel/smp.c
-@@ -49,7 +49,7 @@
- 
- enum {
- 	ec_schedule = 0,
--	ec_call_function_single,
-+	ec_call_function,
- 	ec_stop_cpu,
+diff --git a/arch/alpha/kernel/smp.c b/arch/alpha/kernel/smp.c
+index 9dbbcb3..71d5c7d 100644
+--- a/arch/alpha/kernel/smp.c
++++ b/arch/alpha/kernel/smp.c
+@@ -63,7 +63,6 @@ static struct {
+ enum ipi_message_type {
+ 	IPI_RESCHEDULE,
+ 	IPI_CALL_FUNC,
+-	IPI_CALL_FUNC_SINGLE,
+ 	IPI_CPU_STOP,
  };
  
-@@ -437,8 +437,8 @@ static void smp_handle_ext_call(void)
- 		smp_stop_cpu();
- 	if (test_bit(ec_schedule, &bits))
- 		scheduler_ipi();
--	if (test_bit(ec_call_function_single, &bits))
--		generic_smp_call_function_single_interrupt();
-+	if (test_bit(ec_call_function, &bits))
-+		generic_smp_call_function_interrupt();
+@@ -498,7 +497,6 @@ smp_cpus_done(unsigned int max_cpus)
+ 	       ((bogosum + 2500) / (5000/HZ)) % 100);
  }
  
- static void do_ext_call_interrupt(struct ext_code ext_code,
-@@ -453,12 +453,12 @@ void arch_send_call_function_ipi_mask(const struct cpumask *mask)
- 	int cpu;
- 
- 	for_each_cpu(cpu, mask)
--		pcpu_ec_call(pcpu_devices + cpu, ec_call_function_single);
-+		pcpu_ec_call(pcpu_devices + cpu, ec_call_function);
+-
+ void
+ smp_percpu_timer_interrupt(struct pt_regs *regs)
+ {
+@@ -533,7 +531,6 @@ setup_profiling_timer(unsigned int multiplier)
+ 	return -EINVAL;
  }
+ 
+-
+ static void
+ send_ipi_message(const struct cpumask *to_whom, enum ipi_message_type operation)
+ {
+@@ -579,10 +576,6 @@ handle_ipi(struct pt_regs *regs)
+ 			generic_smp_call_function_interrupt();
+ 			break;
+ 
+-		case IPI_CALL_FUNC_SINGLE:
+-			generic_smp_call_function_single_interrupt();
+-			break;
+-
+ 		case IPI_CPU_STOP:
+ 			halt();
+ 
+@@ -633,7 +626,7 @@ void arch_send_call_function_ipi_mask(const struct cpumask *mask)
  
  void arch_send_call_function_single_ipi(int cpu)
  {
--	pcpu_ec_call(pcpu_devices + cpu, ec_call_function_single);
-+	pcpu_ec_call(pcpu_devices + cpu, ec_call_function);
+-	send_ipi_message(cpumask_of(cpu), IPI_CALL_FUNC_SINGLE);
++	send_ipi_message(cpumask_of(cpu), IPI_CALL_FUNC);
  }
  
- #ifndef CONFIG_64BIT
+ static void
 -- 
 1.8.1.2
 
