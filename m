@@ -1,57 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f173.google.com ([209.85.220.173]:59954 "EHLO
-	mail-vc0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754367Ab3IKPdW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Sep 2013 11:33:22 -0400
-MIME-Version: 1.0
-In-Reply-To: <20130911131323.GQ31370@twins.programming.kicks-ass.net>
-References: <20130910130811.507933095@infradead.org>
-	<20130910135152.GD7537@gmail.com>
-	<20130910135636.GA8268@gmail.com>
-	<CA+55aFwmEQeF+PtM7cuaQ8OkuTS=R4JJ61Wwfv8u-Svo-V3KwQ@mail.gmail.com>
-	<20130910164519.GL31370@twins.programming.kicks-ass.net>
-	<CA+55aFz7WtcdkwKEGoqCzmC9HsY0LPK-oVK_oATYhRnbGq=2GA@mail.gmail.com>
-	<20130910212509.GA18147@laptop.programming.kicks-ass.net>
-	<CA+55aFxsEYQPXnoxNXAeSPEkk3uT8iq-_KJVe2M2qZZbtL=cbA@mail.gmail.com>
-	<20130911131323.GQ31370@twins.programming.kicks-ass.net>
-Date: Wed, 11 Sep 2013 08:33:21 -0700
-Message-ID: <CA+55aFyxcHvQUe_h8cyQrNbGJ6-G_NQnK9pVenABLjCF-7WMXg@mail.gmail.com>
-Subject: Re: [PATCH 0/7] preempt_count rework -v2
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Content-Type: text/plain; charset=UTF-8
+Received: from mail-pd0-f173.google.com ([209.85.192.173]:39196 "EHLO
+	mail-pd0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756305Ab3IKQIm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Sep 2013 12:08:42 -0400
+From: Jiang Liu <liuj97@gmail.com>
+Subject: [RFC PATCH v2 07/25] smp, hexagon: kill SMP single function call interrupt
+Date: Thu, 12 Sep 2013 00:07:11 +0800
+Message-ID: <1378915649-16395-8-git-send-email-liuj97@gmail.com>
+In-Reply-To: <1378915649-16395-1-git-send-email-liuj97@gmail.com>
+References: <1378915649-16395-1-git-send-email-liuj97@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Ingo Molnar <mingo@kernel.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20130911153321.mmhWF1Z9apPwNvi1TTWkaFgnBlgVB0mB47hgCXuZZxk@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Shaohua Li <shli@kernel.org>
+Cc: liuj97@gmail.com, Jiang Liu <jiang.liu@huawei.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, Wang YanQing <udknight@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org
+Message-ID: <20130911160711.aS5YAoSgPTZC8g2iOIBIqbK6UPUCddYil0w9Zj2zzQQ@z>
 
-On Wed, Sep 11, 2013 at 6:13 AM, Peter Zijlstra <peterz@infradead.org> wrote:
-> On Tue, Sep 10, 2013 at 02:43:06PM -0700, Linus Torvalds wrote:
->> That said, looking at your patch, I get the *very* strong feeling that
->> we could make a macro that does all the repetitions for us, and then
->> have a
->>
->>   GENERATE_RMW(atomic_sub_and_test, LOCK_PREFIX "subl", "e", "")
->
-> The below seems to compile..
+From: Jiang Liu <jiang.liu@huawei.com>
 
-You have that horrible duplication in the macro itself now, though.
+Commit 9a46ad6d6df3b54 "smp: make smp_call_function_many() use logic
+similar to smp_call_function_single()" has unified the way to handle
+single and multiple cross-CPU function calls. Now only one interrupt
+is needed for architecture specific code to support generic SMP function
+call interfaces, so kill the redundant single function call interrupt.
 
-The only difference between the 4-byte and the 8-byte one is the "l"
-vs "q". And the counter increment/decrement argument (by the caller)
-defines whether it's add/dec/inc. Why not just add those as parameters
-to the macro, and suddenly the macro becomes 10x smaller.
+Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+Cc: Jiang Liu <liuj97@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Shaohua Li <shli@kernel.org>
+Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Ingo Molnar <mingo@elte.hu>
+Cc: Steven Rostedt <rostedt@goodmis.org>
+Cc: Jiri Kosina <trivial@kernel.org>
+Cc: Richard Kuo <rkuo@codeaurora.org>
+Cc: linux-hexagon@vger.kernel.org
+---
+ arch/hexagon/include/asm/smp.h | 1 -
+ arch/hexagon/kernel/smp.c      | 6 +-----
+ 2 files changed, 1 insertion(+), 6 deletions(-)
 
-An excessively complex macro that makes the arguments trivially
-simpler is not worth it.
+diff --git a/arch/hexagon/include/asm/smp.h b/arch/hexagon/include/asm/smp.h
+index 2b9b974..ca171c1 100644
+--- a/arch/hexagon/include/asm/smp.h
++++ b/arch/hexagon/include/asm/smp.h
+@@ -29,7 +29,6 @@ enum ipi_message_type {
+ 	IPI_NOP = 0,
+ 	IPI_RESCHEDULE = 1,
+ 	IPI_CALL_FUNC,
+-	IPI_CALL_FUNC_SINGLE,
+ 	IPI_CPU_STOP,
+ 	IPI_TIMER,
+ };
+diff --git a/arch/hexagon/kernel/smp.c b/arch/hexagon/kernel/smp.c
+index 9faaa94..ff759f2 100644
+--- a/arch/hexagon/kernel/smp.c
++++ b/arch/hexagon/kernel/smp.c
+@@ -64,10 +64,6 @@ static inline void __handle_ipi(unsigned long *ops, struct ipi_data *ipi,
+ 			generic_smp_call_function_interrupt();
+ 			break;
+ 
+-		case IPI_CALL_FUNC_SINGLE:
+-			generic_smp_call_function_single_interrupt();
+-			break;
+-
+ 		case IPI_CPU_STOP:
+ 			/*
+ 			 * call vmstop()
+@@ -248,7 +244,7 @@ void smp_send_stop(void)
+ 
+ void arch_send_call_function_single_ipi(int cpu)
+ {
+-	send_ipi(cpumask_of(cpu), IPI_CALL_FUNC_SINGLE);
++	send_ipi(cpumask_of(cpu), IPI_CALL_FUNC);
+ }
+ 
+ void arch_send_call_function_ipi_mask(const struct cpumask *mask)
+-- 
+1.8.1.2
 
-Especially since that excessive macro complexity now means that your
-macro is useless for things that the *simpler* macro could have done,
-like the bit-test-and-modify cases.
-
-So your complexity actually makes things worse.
-
-So just pass in the operation name and size. Then somebody will use it
-for test_and_set_bit() and friends too.
-
-              Linus
