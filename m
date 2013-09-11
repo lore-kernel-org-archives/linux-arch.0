@@ -1,13 +1,25 @@
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [RFC PATCH v2 17/25] smp, sh: kill SMP single function call interrupt
-Date: Thu, 12 Sep 2013 00:07:21 +0800
-Message-ID: <1378915649-16395-18-git-send-email-liuj97@gmail.com>
+Subject: [RFC PATCH v2 21/25] smp,
+	tile: kill SMP single function call interrupt
+Date: Thu, 12 Sep 2013 00:07:25 +0800
+Message-ID: <1378915649-16395-22-git-send-email-liuj97@gmail.com>
 References: <1378915649-16395-1-git-send-email-liuj97@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
 In-Reply-To: <1378915649-16395-1-git-send-email-liuj97@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>, Paul Mundt <lethal@linux-sh.org>, Shaohua Li <shli@kernel.org>
-Cc: liuj97@gmail.com, Jiang Liu <jiang.liu@huawei.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, Wang YanQing <udknight@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Jeremy Fitzhardinge <jeremy@goop.org>, Shaohua Li <shli@kernel.org>
+Cc: linux-arch@vger.kernel.org, xen-devel@lists.xensource.com, Jiri Kosina <trivial@kernel.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, x86@kernel.org, Wang YanQing <udknight@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@elte.hu>, liuj97@gmail.com, Jiang Liu <jiang.liu@huawei.com>
 List-Id: linux-arch.vger.kernel.org
 
 From: Jiang Liu <jiang.liu@huawei.com>
@@ -21,44 +33,110 @@ call interfaces, so kill the redundant single function call interrupt.
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
 Cc: Jiang Liu <liuj97@gmail.com>
 ---
- arch/sh/include/asm/smp.h | 1 -
- arch/sh/kernel/smp.c      | 5 +----
- 2 files changed, 1 insertion(+), 5 deletions(-)
+ arch/x86/include/asm/xen/events.h |  1 -
+ arch/x86/xen/smp.c                | 38 ++------------------------------------
+ 2 files changed, 2 insertions(+), 37 deletions(-)
 
-diff --git a/arch/sh/include/asm/smp.h b/arch/sh/include/asm/smp.h
-index 78b0d0f4..93ce87b 100644
---- a/arch/sh/include/asm/smp.h
-+++ b/arch/sh/include/asm/smp.h
-@@ -25,7 +25,6 @@ extern int __cpu_logical_map[NR_CPUS];
- enum {
- 	SMP_MSG_FUNCTION,
- 	SMP_MSG_RESCHEDULE,
--	SMP_MSG_FUNCTION_SINGLE,
- 	SMP_MSG_TIMER,
+diff --git a/arch/x86/include/asm/xen/events.h b/arch/x86/include/asm/xen/events.h
+index ca842f2..b1ba559 100644
+--- a/arch/x86/include/asm/xen/events.h
++++ b/arch/x86/include/asm/xen/events.h
+@@ -4,7 +4,6 @@
+ enum ipi_vector {
+ 	XEN_RESCHEDULE_VECTOR,
+ 	XEN_CALL_FUNCTION_VECTOR,
+-	XEN_CALL_FUNCTION_SINGLE_VECTOR,
+ 	XEN_SPIN_UNLOCK_VECTOR,
+ 	XEN_IRQ_WORK_VECTOR,
  
- 	SMP_MSG_NR,	/* must be last */
-diff --git a/arch/sh/kernel/smp.c b/arch/sh/kernel/smp.c
-index 86a7936..c944d5d 100644
---- a/arch/sh/kernel/smp.c
-+++ b/arch/sh/kernel/smp.c
-@@ -282,7 +282,7 @@ void arch_send_call_function_ipi_mask(const struct cpumask *mask)
+diff --git a/arch/x86/xen/smp.c b/arch/x86/xen/smp.c
+index ca92754..6a75302 100644
+--- a/arch/x86/xen/smp.c
++++ b/arch/x86/xen/smp.c
+@@ -46,12 +46,10 @@ struct xen_common_irq {
+ };
+ static DEFINE_PER_CPU(struct xen_common_irq, xen_resched_irq) = { .irq = -1 };
+ static DEFINE_PER_CPU(struct xen_common_irq, xen_callfunc_irq) = { .irq = -1 };
+-static DEFINE_PER_CPU(struct xen_common_irq, xen_callfuncsingle_irq) = { .irq = -1 };
+ static DEFINE_PER_CPU(struct xen_common_irq, xen_irq_work) = { .irq = -1 };
+ static DEFINE_PER_CPU(struct xen_common_irq, xen_debug_irq) = { .irq = -1 };
  
- void arch_send_call_function_single_ipi(int cpu)
+ static irqreturn_t xen_call_function_interrupt(int irq, void *dev_id);
+-static irqreturn_t xen_call_function_single_interrupt(int irq, void *dev_id);
+ static irqreturn_t xen_irq_work_interrupt(int irq, void *dev_id);
+ 
+ /*
+@@ -123,13 +121,6 @@ static void xen_smp_intr_free(unsigned int cpu)
+ 		kfree(per_cpu(xen_debug_irq, cpu).name);
+ 		per_cpu(xen_debug_irq, cpu).name = NULL;
+ 	}
+-	if (per_cpu(xen_callfuncsingle_irq, cpu).irq >= 0) {
+-		unbind_from_irqhandler(per_cpu(xen_callfuncsingle_irq, cpu).irq,
+-				       NULL);
+-		per_cpu(xen_callfuncsingle_irq, cpu).irq = -1;
+-		kfree(per_cpu(xen_callfuncsingle_irq, cpu).name);
+-		per_cpu(xen_callfuncsingle_irq, cpu).name = NULL;
+-	}
+ 	if (xen_hvm_domain())
+ 		return;
+ 
+@@ -178,18 +169,6 @@ static int xen_smp_intr_init(unsigned int cpu)
+ 	per_cpu(xen_debug_irq, cpu).irq = rc;
+ 	per_cpu(xen_debug_irq, cpu).name = debug_name;
+ 
+-	callfunc_name = kasprintf(GFP_KERNEL, "callfuncsingle%d", cpu);
+-	rc = bind_ipi_to_irqhandler(XEN_CALL_FUNCTION_SINGLE_VECTOR,
+-				    cpu,
+-				    xen_call_function_single_interrupt,
+-				    IRQF_DISABLED|IRQF_PERCPU|IRQF_NOBALANCING,
+-				    callfunc_name,
+-				    NULL);
+-	if (rc < 0)
+-		goto fail;
+-	per_cpu(xen_callfuncsingle_irq, cpu).irq = rc;
+-	per_cpu(xen_callfuncsingle_irq, cpu).name = callfunc_name;
+-
+ 	/*
+ 	 * The IRQ worker on PVHVM goes through the native path and uses the
+ 	 * IPI mechanism.
+@@ -551,8 +530,7 @@ static void xen_smp_send_call_function_ipi(const struct cpumask *mask)
+ 
+ static void xen_smp_send_call_function_single_ipi(int cpu)
  {
--	mp_ops->send_ipi(cpu, SMP_MSG_FUNCTION_SINGLE);
-+	mp_ops->send_ipi(cpu, SMP_MSG_FUNCTION);
+-	__xen_send_IPI_mask(cpumask_of(cpu),
+-			  XEN_CALL_FUNCTION_SINGLE_VECTOR);
++	__xen_send_IPI_mask(cpumask_of(cpu), XEN_CALL_FUNCTION_VECTOR);
  }
  
- void smp_timer_broadcast(const struct cpumask *mask)
-@@ -309,9 +309,6 @@ void smp_message_recv(unsigned int msg)
- 	case SMP_MSG_RESCHEDULE:
- 		scheduler_ipi();
+ static inline int xen_map_vector(int vector)
+@@ -564,10 +542,8 @@ static inline int xen_map_vector(int vector)
+ 		xen_vector = XEN_RESCHEDULE_VECTOR;
  		break;
--	case SMP_MSG_FUNCTION_SINGLE:
--		generic_smp_call_function_single_interrupt();
+ 	case CALL_FUNCTION_VECTOR:
+-		xen_vector = XEN_CALL_FUNCTION_VECTOR;
 -		break;
- 	case SMP_MSG_TIMER:
- 		ipi_timer();
+ 	case CALL_FUNCTION_SINGLE_VECTOR:
+-		xen_vector = XEN_CALL_FUNCTION_SINGLE_VECTOR;
++		xen_vector = XEN_CALL_FUNCTION_VECTOR;
  		break;
+ 	case IRQ_WORK_VECTOR:
+ 		xen_vector = XEN_IRQ_WORK_VECTOR;
+@@ -639,16 +615,6 @@ static irqreturn_t xen_call_function_interrupt(int irq, void *dev_id)
+ 	return IRQ_HANDLED;
+ }
+ 
+-static irqreturn_t xen_call_function_single_interrupt(int irq, void *dev_id)
+-{
+-	irq_enter();
+-	generic_smp_call_function_single_interrupt();
+-	inc_irq_stat(irq_call_count);
+-	irq_exit();
+-
+-	return IRQ_HANDLED;
+-}
+-
+ static irqreturn_t xen_irq_work_interrupt(int irq, void *dev_id)
+ {
+ 	irq_enter();
 -- 
 1.8.1.2
