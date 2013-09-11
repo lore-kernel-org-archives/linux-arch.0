@@ -1,13 +1,24 @@
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [RFC PATCH v2 20/25] smp, tile: kill SMP single function call interrupt
-Date: Thu, 12 Sep 2013 00:07:24 +0800
-Message-ID: <1378915649-16395-21-git-send-email-liuj97@gmail.com>
+Subject: [RFC PATCH v2 22/25] smp, x86: kill SMP single function call interrupt
+Date: Thu, 12 Sep 2013 00:07:26 +0800
+Message-ID: <1378915649-16395-23-git-send-email-liuj97@gmail.com>
 References: <1378915649-16395-1-git-send-email-liuj97@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
 In-Reply-To: <1378915649-16395-1-git-send-email-liuj97@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>, Chris Metcalf <cmetcalf@tilera.com>, Shaohua Li <shli@kernel.org>
-Cc: liuj97@gmail.com, Jiang Liu <jiang.liu@huawei.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, Wang YanQing <udknight@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Jeremy Fitzhardinge <jeremy@goop.org>, Shaohua Li <shli@kernel.org>
+Cc: linux-arch@vger.kernel.org, xen-devel@lists.xensource.com, Jiri Kosina <trivial@kernel.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, x86@kernel.org, Wang YanQing <udknight@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@elte.hu>, liuj97@gmail.com, Jiang Liu <jiang.liu@huawei.com>
 List-Id: linux-arch.vger.kernel.org
 
 From: Jiang Liu <jiang.liu@huawei.com>
@@ -21,56 +32,172 @@ call interfaces, so kill the redundant single function call interrupt.
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
 Cc: Jiang Liu <liuj97@gmail.com>
 ---
- arch/tile/include/asm/smp.h | 7 +++----
- arch/tile/kernel/smp.c      | 6 +-----
- 2 files changed, 4 insertions(+), 9 deletions(-)
+ arch/x86/include/asm/entry_arch.h        |  1 -
+ arch/x86/include/asm/hw_irq.h            |  3 ---
+ arch/x86/include/asm/irq_vectors.h       |  7 +++----
+ arch/x86/include/asm/trace/irq_vectors.h |  6 ------
+ arch/x86/kernel/entry_64.S               |  2 --
+ arch/x86/kernel/irqinit.c                |  4 ----
+ arch/x86/kernel/smp.c                    | 24 +-----------------------
+ arch/x86/xen/smp.c                       |  1 -
+ 8 files changed, 4 insertions(+), 44 deletions(-)
 
-diff --git a/arch/tile/include/asm/smp.h b/arch/tile/include/asm/smp.h
-index 1aa759a..4b39184 100644
---- a/arch/tile/include/asm/smp.h
-+++ b/arch/tile/include/asm/smp.h
-@@ -67,19 +67,18 @@ static inline int xy_to_cpu(int x, int y)
- /* Hypervisor message tags sent via the tile send_IPI*() routines. */
- #define MSG_TAG_START_CPU		1
- #define MSG_TAG_STOP_CPU		2
--#define MSG_TAG_CALL_FUNCTION_MANY	3
--#define MSG_TAG_CALL_FUNCTION_SINGLE	4
-+#define MSG_TAG_CALL_FUNCTION		3
+diff --git a/arch/x86/include/asm/entry_arch.h b/arch/x86/include/asm/entry_arch.h
+index dc5fa66..9670cff 100644
+--- a/arch/x86/include/asm/entry_arch.h
++++ b/arch/x86/include/asm/entry_arch.h
+@@ -12,7 +12,6 @@
+ #ifdef CONFIG_SMP
+ BUILD_INTERRUPT(reschedule_interrupt,RESCHEDULE_VECTOR)
+ BUILD_INTERRUPT(call_function_interrupt,CALL_FUNCTION_VECTOR)
+-BUILD_INTERRUPT(call_function_single_interrupt,CALL_FUNCTION_SINGLE_VECTOR)
+ BUILD_INTERRUPT3(irq_move_cleanup_interrupt, IRQ_MOVE_CLEANUP_VECTOR,
+ 		 smp_irq_move_cleanup_interrupt)
+ BUILD_INTERRUPT3(reboot_interrupt, REBOOT_VECTOR, smp_reboot_interrupt)
+diff --git a/arch/x86/include/asm/hw_irq.h b/arch/x86/include/asm/hw_irq.h
+index e4ac559..907cffe 100644
+--- a/arch/x86/include/asm/hw_irq.h
++++ b/arch/x86/include/asm/hw_irq.h
+@@ -75,7 +75,6 @@ extern void reboot_interrupt(void);
+ extern void threshold_interrupt(void);
  
- /* Hook for the generic smp_call_function_many() routine. */
- static inline void arch_send_call_function_ipi_mask(struct cpumask *mask)
- {
--	send_IPI_many(mask, MSG_TAG_CALL_FUNCTION_MANY);
-+	send_IPI_many(mask, MSG_TAG_CALL_FUNCTION);
- }
+ extern void call_function_interrupt(void);
+-extern void call_function_single_interrupt(void);
  
- /* Hook for the generic smp_call_function_single() routine. */
- static inline void arch_send_call_function_single_ipi(int cpu)
- {
--	send_IPI_single(cpu, MSG_TAG_CALL_FUNCTION_SINGLE);
-+	send_IPI_single(cpu, MSG_TAG_CALL_FUNCTION);
- }
+ #ifdef CONFIG_TRACING
+ /* Interrupt handlers registered during init_IRQ */
+@@ -88,7 +87,6 @@ extern void trace_thermal_interrupt(void);
+ extern void trace_reschedule_interrupt(void);
+ extern void trace_threshold_interrupt(void);
+ extern void trace_call_function_interrupt(void);
+-extern void trace_call_function_single_interrupt(void);
+ #define trace_irq_move_cleanup_interrupt  irq_move_cleanup_interrupt
+ #define trace_reboot_interrupt  reboot_interrupt
+ #define trace_kvm_posted_intr_ipi kvm_posted_intr_ipi
+@@ -182,7 +180,6 @@ extern asmlinkage void smp_irq_move_cleanup_interrupt(void);
+ #ifdef CONFIG_SMP
+ extern void smp_reschedule_interrupt(struct pt_regs *);
+ extern void smp_call_function_interrupt(struct pt_regs *);
+-extern void smp_call_function_single_interrupt(struct pt_regs *);
+ #ifdef CONFIG_X86_32
+ extern void smp_invalidate_interrupt(struct pt_regs *);
+ #else
+diff --git a/arch/x86/include/asm/irq_vectors.h b/arch/x86/include/asm/irq_vectors.h
+index 5702d7e..98a302d 100644
+--- a/arch/x86/include/asm/irq_vectors.h
++++ b/arch/x86/include/asm/irq_vectors.h
+@@ -92,10 +92,9 @@
+ #define ERROR_APIC_VECTOR		0xfe
+ #define RESCHEDULE_VECTOR		0xfd
+ #define CALL_FUNCTION_VECTOR		0xfc
+-#define CALL_FUNCTION_SINGLE_VECTOR	0xfb
+-#define THERMAL_APIC_VECTOR		0xfa
+-#define THRESHOLD_APIC_VECTOR		0xf9
+-#define REBOOT_VECTOR			0xf8
++#define THERMAL_APIC_VECTOR		0xfb
++#define THRESHOLD_APIC_VECTOR		0xfa
++#define REBOOT_VECTOR			0xf9
  
- /* Print out the boot string describing which cpus were disabled. */
-diff --git a/arch/tile/kernel/smp.c b/arch/tile/kernel/smp.c
-index cbc73a8..44d7132 100644
---- a/arch/tile/kernel/smp.c
-+++ b/arch/tile/kernel/smp.c
-@@ -134,14 +134,10 @@ void evaluate_message(int tag)
- 		smp_stop_cpu_interrupt();
- 		break;
+ /*
+  * Generic system vector for platform specific use
+diff --git a/arch/x86/include/asm/trace/irq_vectors.h b/arch/x86/include/asm/trace/irq_vectors.h
+index 2874df2..f96dc1b 100644
+--- a/arch/x86/include/asm/trace/irq_vectors.h
++++ b/arch/x86/include/asm/trace/irq_vectors.h
+@@ -78,12 +78,6 @@ DEFINE_IRQ_VECTOR_EVENT(irq_work);
+ DEFINE_IRQ_VECTOR_EVENT(call_function);
  
--	case MSG_TAG_CALL_FUNCTION_MANY: /* Call function on cpumask */
-+	case MSG_TAG_CALL_FUNCTION: /* Call function on cpumask */
- 		generic_smp_call_function_interrupt();
- 		break;
- 
--	case MSG_TAG_CALL_FUNCTION_SINGLE: /* Call function on one other CPU */
--		generic_smp_call_function_single_interrupt();
--		break;
+ /*
+- * call_function_single - called when entering/exiting a call function
+- * single interrupt vector handler
+- */
+-DEFINE_IRQ_VECTOR_EVENT(call_function_single);
 -
- 	default:
- 		panic("Unknown IPI message tag %d", tag);
+-/*
+  * threshold_apic - called when entering/exiting a threshold apic interrupt
+  * vector handler
+  */
+diff --git a/arch/x86/kernel/entry_64.S b/arch/x86/kernel/entry_64.S
+index 1b69951..6d296f1 100644
+--- a/arch/x86/kernel/entry_64.S
++++ b/arch/x86/kernel/entry_64.S
+@@ -1199,8 +1199,6 @@ apicinterrupt THERMAL_APIC_VECTOR \
+ #endif
+ 
+ #ifdef CONFIG_SMP
+-apicinterrupt CALL_FUNCTION_SINGLE_VECTOR \
+-	call_function_single_interrupt smp_call_function_single_interrupt
+ apicinterrupt CALL_FUNCTION_VECTOR \
+ 	call_function_interrupt smp_call_function_interrupt
+ apicinterrupt RESCHEDULE_VECTOR \
+diff --git a/arch/x86/kernel/irqinit.c b/arch/x86/kernel/irqinit.c
+index a2a1fbc..4aa1b8c 100644
+--- a/arch/x86/kernel/irqinit.c
++++ b/arch/x86/kernel/irqinit.c
+@@ -141,10 +141,6 @@ static void __init smp_intr_init(void)
+ 	/* IPI for generic function call */
+ 	alloc_intr_gate(CALL_FUNCTION_VECTOR, call_function_interrupt);
+ 
+-	/* IPI for generic single function call */
+-	alloc_intr_gate(CALL_FUNCTION_SINGLE_VECTOR,
+-			call_function_single_interrupt);
+-
+ 	/* Low priority IPI to cleanup after moving an irq */
+ 	set_intr_gate(IRQ_MOVE_CLEANUP_VECTOR, irq_move_cleanup_interrupt);
+ 	set_bit(IRQ_MOVE_CLEANUP_VECTOR, used_vectors);
+diff --git a/arch/x86/kernel/smp.c b/arch/x86/kernel/smp.c
+index cdaa347..b631e72 100644
+--- a/arch/x86/kernel/smp.c
++++ b/arch/x86/kernel/smp.c
+@@ -129,7 +129,7 @@ static void native_smp_send_reschedule(int cpu)
+ 
+ void native_send_call_func_single_ipi(int cpu)
+ {
+-	apic->send_IPI_mask(cpumask_of(cpu), CALL_FUNCTION_SINGLE_VECTOR);
++	apic->send_IPI_mask(cpumask_of(cpu), CALL_FUNCTION_VECTOR);
+ }
+ 
+ void native_send_call_func_ipi(const struct cpumask *mask)
+@@ -311,28 +311,6 @@ void smp_trace_call_function_interrupt(struct pt_regs *regs)
+ 	exiting_irq();
+ }
+ 
+-static inline void __smp_call_function_single_interrupt(void)
+-{
+-	generic_smp_call_function_single_interrupt();
+-	inc_irq_stat(irq_call_count);
+-}
+-
+-void smp_call_function_single_interrupt(struct pt_regs *regs)
+-{
+-	smp_entering_irq();
+-	__smp_call_function_single_interrupt();
+-	exiting_irq();
+-}
+-
+-void smp_trace_call_function_single_interrupt(struct pt_regs *regs)
+-{
+-	smp_entering_irq();
+-	trace_call_function_single_entry(CALL_FUNCTION_SINGLE_VECTOR);
+-	__smp_call_function_single_interrupt();
+-	trace_call_function_single_exit(CALL_FUNCTION_SINGLE_VECTOR);
+-	exiting_irq();
+-}
+-
+ static int __init nonmi_ipi_setup(char *str)
+ {
+ 	smp_no_nmi_ipi = true;
+diff --git a/arch/x86/xen/smp.c b/arch/x86/xen/smp.c
+index 6a75302..a67b835 100644
+--- a/arch/x86/xen/smp.c
++++ b/arch/x86/xen/smp.c
+@@ -542,7 +542,6 @@ static inline int xen_map_vector(int vector)
+ 		xen_vector = XEN_RESCHEDULE_VECTOR;
  		break;
+ 	case CALL_FUNCTION_VECTOR:
+-	case CALL_FUNCTION_SINGLE_VECTOR:
+ 		xen_vector = XEN_CALL_FUNCTION_VECTOR;
+ 		break;
+ 	case IRQ_WORK_VECTOR:
 -- 
 1.8.1.2
