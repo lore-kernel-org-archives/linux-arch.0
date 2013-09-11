@@ -1,250 +1,350 @@
-From: "azurIt" <azurit@pobox.sk>
-Subject: =?utf-8?q?Re=3A_=5Bpatch_0=2F7=5D_improve_memcg_oom_killer_robustness_v2?=
-Date: Wed, 11 Sep 2013 14:33:05 +0200
-Message-ID: <20130911143305.FFEAD399@pobox.sk>
-References: <20130909172849.GG856@cmpxchg.org>, <20130909215917.96932098@pobox.sk>, <20130909201238.GH856@cmpxchg.org>, <20130910201359.D0984EFF@pobox.sk>, <20130910183740.GI856@cmpxchg.org>, <20130910213253.A1E666C5@pobox.sk>, <20130910201222.GA25972@cmpxchg.org>, <20130910230853.FEEC19B5@pobox.sk>, <20130910211823.GJ856@cmpxchg.org>, <20130910233247.9EDF4DBA@pobox.sk> <20130910220329.GK856@cmpxchg.org>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 0/7] preempt_count rework -v2
+Date: Wed, 11 Sep 2013 15:13:23 +0200
+Message-ID: <20130911131323.GQ31370@twins.programming.kicks-ass.net>
+References: <20130910130811.507933095@infradead.org>
+ <20130910135152.GD7537@gmail.com>
+ <20130910135636.GA8268@gmail.com>
+ <CA+55aFwmEQeF+PtM7cuaQ8OkuTS=R4JJ61Wwfv8u-Svo-V3KwQ@mail.gmail.com>
+ <20130910164519.GL31370@twins.programming.kicks-ass.net>
+ <CA+55aFz7WtcdkwKEGoqCzmC9HsY0LPK-oVK_oATYhRnbGq=2GA@mail.gmail.com>
+ <20130910212509.GA18147@laptop.programming.kicks-ass.net>
+ <CA+55aFxsEYQPXnoxNXAeSPEkk3uT8iq-_KJVe2M2qZZbtL=cbA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20130910220329.GK856@cmpxchg.org>
-Sender: owner-linux-mm@kvack.org
-To: =?utf-8?q?Johannes_Weiner?= <hannes@cmpxchg.org>
-Cc: =?utf-8?q?Andrew_Morton?= <akpm@linux-foundation.org>, =?utf-8?q?Michal_Hocko?= <mhocko@suse.cz>, =?utf-8?q?David_Rientjes?= <rientjes@google.com>, =?utf-8?q?KAMEZAWA_Hiroyuki?= <kamezawa.hiroyu@jp.fujitsu.com>, =?utf-8?q?KOSAKI_Motohiro?= <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:44948 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752813Ab3IKNNi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Sep 2013 09:13:38 -0400
+Content-Disposition: inline
+In-Reply-To: <CA+55aFxsEYQPXnoxNXAeSPEkk3uT8iq-_KJVe2M2qZZbtL=cbA@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Ingo Molnar <mingo@kernel.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
->On Tue, Sep 10, 2013 at 11:32:47PM +0200, azurIt wrote:
->> >On Tue, Sep 10, 2013 at 11:08:53PM +0200, azurIt wrote:
->> >> >On Tue, Sep 10, 2013 at 09:32:53PM +0200, azurIt wrote:
->> >> >> Here is full kernel log between 6:00 and 7:59:
->> >> >> http://watchdog.sk/lkml/kern6.log
->> >> >
->> >> >Wow, your apaches are like the hydra.  Whenever one is OOM killed,
->> >> >more show up!
->> >>=20
->> >>=20
->> >>=20
->> >> Yeah, it's supposed to do this ;)
->
->How are you expecting the machine to recover from an OOM situation,
->though?  I guess I don't really understand what these machines are
->doing.  But if you are overloading them like crazy, isn't that the
->expected outcome?
+On Tue, Sep 10, 2013 at 02:43:06PM -0700, Linus Torvalds wrote:
+> That said, looking at your patch, I get the *very* strong feeling that
+> we could make a macro that does all the repetitions for us, and then
+> have a
+> 
+>   GENERATE_RMW(atomic_sub_and_test, LOCK_PREFIX "subl", "e", "")
 
+The below seems to compile..
 
+---
+ arch/x86/include/asm/atomic.h      |   29 +--------
+ arch/x86/include/asm/atomic64_64.h |   28 +--------
+ arch/x86/include/asm/local.h       |   28 +--------
+ arch/x86/include/asm/addcc.h       |  115 +++++++++++++++++++++++++++++++++++++
+ 4 files changed, 128 insertions(+), 72 deletions(-)
 
-
-
-There's no global OOM, server has enough of memory. OOM is occuring only =
-in cgroups (customers who simply don't want to pay for more memory).
-
-
-
-
->> >> >> >> What do you think? I'm now running kernel with your previous =
-patch, not with the newest one.
->> >> >> >
->> >> >> >Which one exactly?  Can you attach the diff?
->> >> >>=20
->> >> >>=20
->> >> >>=20
->> >> >> I meant, the problem above occured on kernel with your latest pa=
-tch:
->> >> >> http://watchdog.sk/lkml/7-2-memcg-fix.patch
->> >> >
->> >> >The above log has the following callstack:
->> >> >
->> >> >Sep 10 07:59:43 server01 kernel: [ 3846.337628]  [<ffffffff810d19f=
-e>] dump_header+0x7e/0x1e0
->> >> >Sep 10 07:59:43 server01 kernel: [ 3846.337707]  [<ffffffff810d18f=
-f>] ? find_lock_task_mm+0x2f/0x70
->> >> >Sep 10 07:59:43 server01 kernel: [ 3846.337790]  [<ffffffff810d18f=
-f>] ? find_lock_task_mm+0x2f/0x70
->> >> >Sep 10 07:59:43 server01 kernel: [ 3846.337874]  [<ffffffff81094bb=
-0>] ? __css_put+0x50/0x90
->> >> >Sep 10 07:59:43 server01 kernel: [ 3846.337952]  [<ffffffff810d1ec=
-5>] oom_kill_process+0x85/0x2a0
->> >> >Sep 10 07:59:43 server01 kernel: [ 3846.338037]  [<ffffffff810d244=
-8>] mem_cgroup_out_of_memory+0xa8/0xf0
->> >> >Sep 10 07:59:43 server01 kernel: [ 3846.338120]  [<ffffffff8111085=
-8>] T.1154+0x8b8/0x8f0
->> >> >Sep 10 07:59:43 server01 kernel: [ 3846.338201]  [<ffffffff81110fa=
-6>] mem_cgroup_charge_common+0x56/0xa0
->> >> >Sep 10 07:59:43 server01 kernel: [ 3846.338283]  [<ffffffff8111103=
-5>] mem_cgroup_newpage_charge+0x45/0x50
->> >> >Sep 10 07:59:43 server01 kernel: [ 3846.338364]  [<ffffffff810f303=
-9>] handle_pte_fault+0x609/0x940
->> >> >Sep 10 07:59:43 server01 kernel: [ 3846.338451]  [<ffffffff8102ab1=
-f>] ? pte_alloc_one+0x3f/0x50
->> >> >Sep 10 07:59:43 server01 kernel: [ 3846.338532]  [<ffffffff8107e45=
-5>] ? sched_clock_local+0x25/0x90
->> >> >Sep 10 07:59:43 server01 kernel: [ 3846.338617]  [<ffffffff810f34d=
-7>] handle_mm_fault+0x167/0x340
->> >> >Sep 10 07:59:43 server01 kernel: [ 3846.338699]  [<ffffffff8102714=
-b>] do_page_fault+0x13b/0x490
->> >> >Sep 10 07:59:43 server01 kernel: [ 3846.338781]  [<ffffffff810f884=
-8>] ? do_brk+0x208/0x3a0
->> >> >Sep 10 07:59:43 server01 kernel: [ 3846.338865]  [<ffffffff812dba2=
-2>] ? gr_learn_resource+0x42/0x1e0
->> >> >Sep 10 07:59:43 server01 kernel: [ 3846.338951]  [<ffffffff815cb7b=
-f>] page_fault+0x1f/0x30
->> >> >
->> >> >The charge code seems to be directly invoking the OOM killer, whic=
-h is
->> >> >not possible with 7-2-memcg-fix.  Are you sure this is the right p=
-atch
->> >> >for this log?  This _looks_ more like what 7-1-memcg-fix was doing=
-,
->> >> >with a direct kill in the charge context and a fixup later on.
->> >>=20
->> >> I, luckyly, still have the kernel source from which that kernel was=
- build. I tried to re-apply the 7-2-memcg-fix.patch:
->> >>=20
->> >> # patch -p1 --dry-run < 7-2-memcg-fix.patch=20
->> >> patching file arch/x86/mm/fault.c
->> >> Reversed (or previously applied) patch detected!  Assume -R? [n]=20
->> >> Apply anyway? [n]=20
->> >> Skipping patch.
->> >> 4 out of 4 hunks ignored -- saving rejects to file arch/x86/mm/faul=
-t.c.rej
->> >> patching file include/linux/memcontrol.h
->> >> Hunk #1 succeeded at 141 with fuzz 2 (offset 21 lines).
->> >> Hunk #2 succeeded at 391 with fuzz 1 (offset 39 lines).
->> >
->> >Uhm, some of it applied...  I have absolutely no idea what state that
->> >tree is in now...
->>=20
->> I used '--dry-run' so it should be ok :)
->
->Ah, right.
->
->> >> patching file include/linux/mm.h
->> >> Reversed (or previously applied) patch detected!  Assume -R? [n]=20
->> >> Apply anyway? [n]=20
->> >> Skipping patch.
->> >> 1 out of 1 hunk ignored -- saving rejects to file include/linux/mm.=
-h.rej
->> >> patching file include/linux/sched.h
->> >> Reversed (or previously applied) patch detected!  Assume -R? [n]=20
->> >> Apply anyway? [n]=20
->> >> Skipping patch.
->> >> 1 out of 1 hunk ignored -- saving rejects to file include/linux/sch=
-ed.h.rej
->> >> patching file mm/memcontrol.c
->> >> Reversed (or previously applied) patch detected!  Assume -R? [n]=20
->> >> Apply anyway? [n]=20
->> >> Skipping patch.
->> >> 10 out of 10 hunks ignored -- saving rejects to file mm/memcontrol.=
-c.rej
->> >> patching file mm/memory.c
->> >> Reversed (or previously applied) patch detected!  Assume -R? [n]=20
->> >> Apply anyway? [n]=20
->> >> Skipping patch.
->> >> 2 out of 2 hunks ignored -- saving rejects to file mm/memory.c.rej
->> >> patching file mm/oom_kill.c
->> >> Reversed (or previously applied) patch detected!  Assume -R? [n]=20
->> >> Apply anyway? [n]=20
->> >> Skipping patch.
->> >> 1 out of 1 hunk ignored -- saving rejects to file mm/oom_kill.c.rej
->> >>=20
->> >>=20
->> >> Can you tell from this if the source has the right patch?
->> >
->> >Not reliably, I don't think.  Can you send me
->> >
->> >  include/linux/memcontrol.h
->> >  mm/memcontrol.c
->> >  mm/memory.c
->> >  mm/oom_kill.c
->> >
->> >from those sources?
->> >
->> >It might be easier to start the application from scratch...  Keep in
->> >mind that 7-2 was not an incremental fix, you need to remove the
->> >previous memcg patches (as opposed to 7-1).
->>=20
->>=20
->>=20
->> Yes, i used only 7-2 from your patches. Here are the files:
->> http://watchdog.sk/lkml/kernel
->>=20
->> orig - kernel source which was used to build the kernel i was talking =
-about earlier
->> new - newly unpacked and patched 3.2.50 with all of 'my' patches
->
->Ok, thanks!
->
->> Here is how your patch was applied:
->>=20
->> # patch -p1 < 7-2-memcg-fix.patch=20
->> patching file arch/x86/mm/fault.c
->> Hunk #1 succeeded at 944 (offset 102 lines).
->> Hunk #2 succeeded at 970 (offset 102 lines).
->> Hunk #3 succeeded at 1273 with fuzz 1 (offset 212 lines).
->> Hunk #4 succeeded at 1382 (offset 223 lines).
->
->Ah, I forgot about this one.  Could you provide that file (fault.c) as
->well please?
-
-
-
-
-I added it.
-
-
-
-
->> patching file include/linux/memcontrol.h
->> Hunk #1 succeeded at 122 with fuzz 2 (offset 2 lines).
->> Hunk #2 succeeded at 354 (offset 2 lines).
->
->Looks good, still.
->
->> patching file include/linux/mm.h
->> Hunk #1 succeeded at 163 (offset 7 lines).
->> patching file include/linux/sched.h
->> Hunk #1 succeeded at 1644 (offset 76 lines).
->> patching file mm/memcontrol.c
->> Hunk #1 succeeded at 1752 (offset 9 lines).
->> Hunk #2 succeeded at 1777 (offset 9 lines).
->> Hunk #3 succeeded at 1828 (offset 9 lines).
->> Hunk #4 succeeded at 1867 (offset 9 lines).
->> Hunk #5 succeeded at 2256 (offset 9 lines).
->> Hunk #6 succeeded at 2317 (offset 9 lines).
->> Hunk #7 succeeded at 2348 (offset 9 lines).
->> Hunk #8 succeeded at 2411 (offset 9 lines).
->> Hunk #9 succeeded at 2419 (offset 9 lines).
->> Hunk #10 succeeded at 2432 (offset 9 lines).
->> patching file mm/memory.c
->> Hunk #1 succeeded at 3712 (offset 273 lines).
->> Hunk #2 succeeded at 3812 (offset 317 lines).
->> patching file mm/oom_kill.c
->
->These look good as well.
->
->That leaves the weird impossible stack trace.  Did you double check
->that this crash came from a kernel with those exact files?
-
-
-
-Yes i'm sure.
-
-
-
->I'm also confused about the freezer.  You used to freeze cgroups that
->were out of memory in the past, right?  Are you no longer doing this?
-
-
-
-I'm only freezing cgroups which looks like to be stucked because of bugs =
-in kernel (which we are trying to resolve here) and only for a very littl=
-e time until i kill all it's processes.
-
-
-azur
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=3Dmailto:"dont@kvack.org"> email@kvack.org </a>
+Index: linux-2.6/arch/x86/include/asm/atomic.h
+===================================================================
+--- linux-2.6.orig/arch/x86/include/asm/atomic.h
++++ linux-2.6/arch/x86/include/asm/atomic.h
+@@ -6,6 +6,7 @@
+ #include <asm/processor.h>
+ #include <asm/alternative.h>
+ #include <asm/cmpxchg.h>
++#include <asm/addcc.h>
+ 
+ /*
+  * Atomic operations that C can't guarantee us.  Useful for
+@@ -76,12 +77,7 @@ static inline void atomic_sub(int i, ato
+  */
+ static inline int atomic_sub_and_test(int i, atomic_t *v)
+ {
+-	unsigned char c;
+-
+-	asm volatile(LOCK_PREFIX "subl %2,%0; sete %1"
+-		     : "+m" (v->counter), "=qm" (c)
+-		     : "ir" (i) : "memory");
+-	return c;
++	GENERATE_ADDcc(v->counter, -i, LOCK_PREFIX, "e");
+ }
+ 
+ /**
+@@ -118,12 +114,7 @@ static inline void atomic_dec(atomic_t *
+  */
+ static inline int atomic_dec_and_test(atomic_t *v)
+ {
+-	unsigned char c;
+-
+-	asm volatile(LOCK_PREFIX "decl %0; sete %1"
+-		     : "+m" (v->counter), "=qm" (c)
+-		     : : "memory");
+-	return c != 0;
++	GENERATE_ADDcc(v->counter, -1, LOCK_PREFIX, "e");
+ }
+ 
+ /**
+@@ -136,12 +127,7 @@ static inline int atomic_dec_and_test(at
+  */
+ static inline int atomic_inc_and_test(atomic_t *v)
+ {
+-	unsigned char c;
+-
+-	asm volatile(LOCK_PREFIX "incl %0; sete %1"
+-		     : "+m" (v->counter), "=qm" (c)
+-		     : : "memory");
+-	return c != 0;
++	GENERATE_ADDcc(v->counter, 1, LOCK_PREFIX, "e");
+ }
+ 
+ /**
+@@ -155,12 +141,7 @@ static inline int atomic_inc_and_test(at
+  */
+ static inline int atomic_add_negative(int i, atomic_t *v)
+ {
+-	unsigned char c;
+-
+-	asm volatile(LOCK_PREFIX "addl %2,%0; sets %1"
+-		     : "+m" (v->counter), "=qm" (c)
+-		     : "ir" (i) : "memory");
+-	return c;
++	GENERATE_ADDcc(v->counter, i, LOCK_PREFIX, "s");
+ }
+ 
+ /**
+Index: linux-2.6/arch/x86/include/asm/atomic64_64.h
+===================================================================
+--- linux-2.6.orig/arch/x86/include/asm/atomic64_64.h
++++ linux-2.6/arch/x86/include/asm/atomic64_64.h
+@@ -72,12 +72,7 @@ static inline void atomic64_sub(long i,
+  */
+ static inline int atomic64_sub_and_test(long i, atomic64_t *v)
+ {
+-	unsigned char c;
+-
+-	asm volatile(LOCK_PREFIX "subq %2,%0; sete %1"
+-		     : "=m" (v->counter), "=qm" (c)
+-		     : "er" (i), "m" (v->counter) : "memory");
+-	return c;
++	GENERATE_ADDcc(v->counter, -i, LOCK_PREFIX, "e");
+ }
+ 
+ /**
+@@ -116,12 +111,7 @@ static inline void atomic64_dec(atomic64
+  */
+ static inline int atomic64_dec_and_test(atomic64_t *v)
+ {
+-	unsigned char c;
+-
+-	asm volatile(LOCK_PREFIX "decq %0; sete %1"
+-		     : "=m" (v->counter), "=qm" (c)
+-		     : "m" (v->counter) : "memory");
+-	return c != 0;
++	GENERATE_ADDcc(v->counter, -1, LOCK_PREFIX, "e");
+ }
+ 
+ /**
+@@ -134,12 +124,7 @@ static inline int atomic64_dec_and_test(
+  */
+ static inline int atomic64_inc_and_test(atomic64_t *v)
+ {
+-	unsigned char c;
+-
+-	asm volatile(LOCK_PREFIX "incq %0; sete %1"
+-		     : "=m" (v->counter), "=qm" (c)
+-		     : "m" (v->counter) : "memory");
+-	return c != 0;
++	GENERATE_ADDcc(v->counter, 1, LOCK_PREFIX, "e");
+ }
+ 
+ /**
+@@ -153,12 +138,7 @@ static inline int atomic64_inc_and_test(
+  */
+ static inline int atomic64_add_negative(long i, atomic64_t *v)
+ {
+-	unsigned char c;
+-
+-	asm volatile(LOCK_PREFIX "addq %2,%0; sets %1"
+-		     : "=m" (v->counter), "=qm" (c)
+-		     : "er" (i), "m" (v->counter) : "memory");
+-	return c;
++	GENERATE_ADDcc(v->counter, i, LOCK_PREFIX, "s");
+ }
+ 
+ /**
+Index: linux-2.6/arch/x86/include/asm/local.h
+===================================================================
+--- linux-2.6.orig/arch/x86/include/asm/local.h
++++ linux-2.6/arch/x86/include/asm/local.h
+@@ -52,12 +52,7 @@ static inline void local_sub(long i, loc
+  */
+ static inline int local_sub_and_test(long i, local_t *l)
+ {
+-	unsigned char c;
+-
+-	asm volatile(_ASM_SUB "%2,%0; sete %1"
+-		     : "+m" (l->a.counter), "=qm" (c)
+-		     : "ir" (i) : "memory");
+-	return c;
++	GENERATE_ADDcc(l->a.counter, -i, "", "e");
+ }
+ 
+ /**
+@@ -70,12 +65,7 @@ static inline int local_sub_and_test(lon
+  */
+ static inline int local_dec_and_test(local_t *l)
+ {
+-	unsigned char c;
+-
+-	asm volatile(_ASM_DEC "%0; sete %1"
+-		     : "+m" (l->a.counter), "=qm" (c)
+-		     : : "memory");
+-	return c != 0;
++	GENERATE_ADDcc(l->a.counter, -1, "", "e");
+ }
+ 
+ /**
+@@ -88,12 +78,7 @@ static inline int local_dec_and_test(loc
+  */
+ static inline int local_inc_and_test(local_t *l)
+ {
+-	unsigned char c;
+-
+-	asm volatile(_ASM_INC "%0; sete %1"
+-		     : "+m" (l->a.counter), "=qm" (c)
+-		     : : "memory");
+-	return c != 0;
++	GENERATE_ADDcc(l->a.counter, 1, "", "e");
+ }
+ 
+ /**
+@@ -107,12 +92,7 @@ static inline int local_inc_and_test(loc
+  */
+ static inline int local_add_negative(long i, local_t *l)
+ {
+-	unsigned char c;
+-
+-	asm volatile(_ASM_ADD "%2,%0; sets %1"
+-		     : "+m" (l->a.counter), "=qm" (c)
+-		     : "ir" (i) : "memory");
+-	return c;
++	GENERATE_ADDcc(l->a.counter, i, "", "s");
+ }
+ 
+ /**
+Index: linux-2.6/arch/x86/include/asm/addcc.h
+===================================================================
+--- /dev/null
++++ linux-2.6/arch/x86/include/asm/addcc.h
+@@ -0,0 +1,115 @@
++#ifndef _ASM_X86_ADDcc
++#define _ASM_X86_ADDcc
++
++extern void __bad_addcc_size(void);
++
++#ifdef CC_HAVE_ASM_GOTO
++
++#define GENERATE_ADDcc(var, val, lock, cc)				\
++do {									\
++	const int add_ID__ = (__builtin_constant_p(val) &&		\
++			((val) == 1 || (val) == -1)) ? (val) : 0;	\
++									\
++	switch (sizeof(var)) {						\
++	case 4:								\
++		if (add_ID__ == 1) {					\
++			asm volatile goto(lock "incl %0;"		\
++					  "j" cc " %l[cc_label]"	\
++					  : : "m" (var)			\
++					  : "memory" : cc_label);	\
++		} else if (add_ID__ == -1) {				\
++			asm volatile goto(lock "decl %0;"		\
++					  "j" cc " %l[cc_label]"	\
++					  : : "m" (var)			\
++					  : "memory" : cc_label);	\
++		} else {						\
++			asm volatile goto(lock "addl %1, %0;"		\
++					  "j" cc " %l[cc_label]"	\
++					  : : "m" (var), "er" (val)	\
++					  : "memory" : cc_label);	\
++		}							\
++		break;							\
++									\
++	case 8:								\
++		if (add_ID__ == 1) {					\
++			asm volatile goto(lock "incq %0;"		\
++					  "j" cc " %l[cc_label]"	\
++					  : : "m" (var)			\
++					  : "memory" : cc_label);	\
++		} else if (add_ID__ == -1) {				\
++			asm volatile goto(lock "decq %0;"		\
++					  "j" cc " %l[cc_label]"	\
++					  : : "m" (var)			\
++					  : "memory" : cc_label);	\
++		} else {						\
++			asm volatile goto(lock "addq %1, %0;"		\
++					  "j" cc " %l[cc_label]"	\
++					  : : "m" (var), "er" (val)	\
++					  : "memory" : cc_label);	\
++		}							\
++		break;							\
++									\
++	default: __bad_addcc_size();					\
++	}								\
++									\
++	return 0;							\
++cc_label:								\
++	return 1;							\
++} while (0)
++
++#else /* !CC_HAVE_ASM_GOTO */
++
++#define GENERATE_ADDcc(var, val, lock, cc)				\
++do {									\
++	const int add_ID__ = (__builtin_constant_p(val) &&		\
++			((val) == 1 || (val) == -1)) ? (val) : 0;	\
++	char c;								\
++									\
++	switch (sizeof(var)) {						\
++	case 4:								\
++		if (add_ID__ == 1) {					\
++			asm volatile (lock "incl %0;"			\
++					  "set" cc " %1"		\
++					  : "+m" (var), "=qm" (c)	\
++					  : : "memory");		\
++		} else if (add_ID__ == -1) {				\
++			asm volatile (lock "decl %0;"			\
++					  "set" cc " %1"		\
++					  : "+m" (var), "=qm" (c)	\
++					  : : "memory");		\
++		} else {						\
++			asm volatile (lock "addl %2, %0;"		\
++					  "set" cc " %1"		\
++					  : "+m" (var), "=qm" (c)	\
++					  : "er" (val) : "memory");	\
++		}							\
++		break;							\
++									\
++	case 8:								\
++		if (add_ID__ == 1) {					\
++			asm volatile (lock "incq %0;"			\
++					  "set" cc " %1"		\
++					  : "+m" (var), "=qm" (c)	\
++					  : : "memory");		\
++		} else if (add_ID__ == -1) {				\
++			asm volatile (lock "decq %0;"			\
++					  "set" cc " %1"		\
++					  : "+m" (var), "=qm" (c)	\
++					  : : "memory");		\
++		} else {						\
++			asm volatile (lock "addq %2, %0;"		\
++					  "set" cc " %1"		\
++					  : "+m" (var), "=qm" (c)	\
++					  : "er" (val) : "memory");	\
++		}							\
++		break;							\
++									\
++	default: __bad_addcc_size();					\
++	}								\
++									\
++	return c != 0;							\
++} while (0)
++
++#endif /* CC_HAVE_ASM_GOTO */
++
++#endif /* _ASM_X86_ADDcc */
