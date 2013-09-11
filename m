@@ -1,74 +1,48 @@
-From: Rusty Russell <rusty@rustcorp.com.au>
-Subject: Re: [PATCH v2 4/4] kernel: add support for init_array constructors
-Date: Wed, 11 Sep 2013 11:22:59 +0930
-Message-ID: <8761u83z0k.fsf@rustcorp.com.au>
-References: <1378305776-3644-1-git-send-email-fhrbata@redhat.com> <1378305776-3644-5-git-send-email-fhrbata@redhat.com> <87vc2e66kr.fsf@rustcorp.com.au> <20130906175118.GB2332@localhost.localdomain> <20130906180751.GD25882@merlin.infradead.org> <87d2oi6bl0.fsf@rustcorp.com.au> <20130909162814.GA2288@localhost.localdomain> <878uz544si.fsf@rustcorp.com.au> <20130910132834.GF2259@localhost.localdomain>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 2/7] sched: Add NEED_RESCHED to the preempt_count
+Date: Wed, 11 Sep 2013 10:25:30 +0200
+Message-ID: <20130911082530.GN31370@twins.programming.kicks-ass.net>
+References: <20130910130811.507933095@infradead.org>
+ <20130910132011.116593485@infradead.org>
+ <522FCE9D.4010707@amacapital.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:50834 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753868Ab3IKDUm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 10 Sep 2013 23:20:42 -0400
-In-Reply-To: <20130910132834.GF2259@localhost.localdomain>
+Received: from merlin.infradead.org ([205.233.59.134]:39309 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751166Ab3IKIZp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Sep 2013 04:25:45 -0400
+Content-Disposition: inline
+In-Reply-To: <522FCE9D.4010707@amacapital.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Frantisek Hrbata <fhrbata@redhat.com>
-Cc: Kyle McMartin <kyle@infradead.org>, linux-kernel@vger.kernel.org, jstancek@redhat.com, keescook@chromium.org, peter.oberparleiter@de.ibm.com, linux-arch@vger.kernel.org, arnd@arndb.de, mgahagan@redhat.com, agospoda@redhat.com, akpm@linux-foundation.org
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Frantisek Hrbata <fhrbata@redhat.com> writes:
-> On Tue, Sep 10, 2013 at 03:05:57PM +0930, Rusty Russell wrote:
->> Frantisek Hrbata <fhrbata@redhat.com> writes:
->> > On Mon, Sep 09, 2013 at 10:44:03AM +0930, Rusty Russell wrote:
->> >> Kyle McMartin <kyle@infradead.org> writes:
->> >> > On Fri, Sep 06, 2013 at 07:51:18PM +0200, Frantisek Hrbata wrote:
->> >> >> > > v2: - reuse mod->ctors for .init_array section for modules, because gcc uses
->> >> >> > >       .ctors or .init_array, but not both at the same time
->> >> >> > >
->> >> >> > > Signed-off-by: Frantisek Hrbata <fhrbata@redhat.com>
->> >> >> > 
->> >> >> > Might be nice to document which gcc version changed this, so people can
->> >> >> > choose whether to cherry-pick this change?
->> >> >> 
->> >> >> Thank you for pointing this out. As per gcc git this was introduced by commit
->> >> >> ef1da80 and released in 4.7 version.
->> >> >> 
->> >> >> $ git describe --contains ef1da80
->> >> >> gcc-4_7_0-release~4358
->> >> >> 
->> >> >> Do you want me to post v3 with this info included in the descrition?
->> >> >> 
->> >> >
->> >> > It actually depends on the combination of binutils/ld and gcc you use, not
->> >> > simply which gcc version you use. :/
->> >> 
->> >> Indeed, and seems it was binutils 20110507 which actually handled it
->> >> properly.
->> >> 
->> >> AFAICT it's theoretically possible to have .ctors and .init_array in a
->> >> module.  Unlikely, but the patch should check for both and refuse to
->> >> load the module in that case.  Otherwise weird things would happen.
->> >
->> > I'm not sure if coexistence of .ctors and .init_array sections should result in
->> > denial of module, but I for sure know nothing about this :). Could you maybe
->> > privide one example of the "weird thing"?
->> 
->> Well, if we have both ctors and init_array, and we only call the ctors,
->> part of the module will be uninitialized.
->> 
->> I was thinking about something like the following (based on your
->> previous patch).
->> 
->> Thoughts?
->> Rusty.
->
-> Thank you Rusty, from what I can say it looks ok to me. So I would go with this
-> version. Is there anything that needs to be done to consider this as the
-> correct version of the 4/4 patch? Meaning should we repost this as v3 or could
-> your version of the patch be picked as you posted it?
+On Tue, Sep 10, 2013 at 06:59:57PM -0700, Andy Lutomirski wrote:
+> On 09/10/2013 06:08 AM, Peter Zijlstra wrote:
+> > In order to combine the preemption and need_resched test we need to
+> > fold the need_resched information into the preempt_count value.
+> > 
+> > We keep the existing TIF_NEED_RESCHED infrastructure in place but at 3
+> > sites test it and fold its value into preempt_count; namely:
+> > 
+> >  - resched_task() when setting TIF_NEED_RESCHED on the current task
+> >  - scheduler_ipi() when resched_task() sets TIF_NEED_RESCHED on a
+> >                    remote task it follows it up with a reschedule IPI
+> >                    and we can modify the cpu local preempt_count from
+> >                    there.
+> >  - cpu_idle_loop() for when resched_task() found tsk_is_polling().
+> 
+> 
+> It looks like the intel_idle code can get confused if TIF_NEED_RESCHED
+> is set but the preempt resched bit is not -- the need_resched call
+> between monitor and mwait won't notice TIF_NEED_RESCHED.
+> 
+> Is this condition possible?
 
-Take that as posted.  I could push it through my tree, but I think
-you'll want to keep them all together.
+Ah indeed, I'll have to go find all idle loops out there it seems. Now
+if only they were easy to spot :/
 
-Cheers,
-Rusty.
+I was hoping the generic idle thing was good enough, apparently not
+quite. Thanks for spotting that.
