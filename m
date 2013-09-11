@@ -1,13 +1,13 @@
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [RFC PATCH v2 14/25] smp, parisc: kill SMP single function call interrupt
-Date: Thu, 12 Sep 2013 00:07:18 +0800
-Message-ID: <1378915649-16395-15-git-send-email-liuj97@gmail.com>
+Subject: [RFC PATCH v2 15/25] smp, ppc: kill SMP single function call interrupt
+Date: Thu, 12 Sep 2013 00:07:19 +0800
+Message-ID: <1378915649-16395-16-git-send-email-liuj97@gmail.com>
 References: <1378915649-16395-1-git-send-email-liuj97@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1378915649-16395-1-git-send-email-liuj97@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Shaohua Li <shli@kernel.org>
-Cc: liuj97@gmail.com, Jiang Liu <jiang.liu@huawei.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, Wang YanQing <udknight@gmail.com>, linux-parisc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Shaohua Li <shli@kernel.org>
+Cc: liuj97@gmail.com, Jiang Liu <jiang.liu@huawei.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, Wang YanQing <udknight@gmail.com>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 From: Jiang Liu <jiang.liu@huawei.com>
@@ -21,41 +21,73 @@ call interfaces, so kill the redundant single function call interrupt.
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
 Cc: Jiang Liu <liuj97@gmail.com>
 ---
- arch/parisc/kernel/smp.c | 8 +-------
- 1 file changed, 1 insertion(+), 7 deletions(-)
+ arch/powerpc/include/asm/smp.h |  3 +--
+ arch/powerpc/kernel/smp.c      | 12 +-----------
+ 2 files changed, 2 insertions(+), 13 deletions(-)
 
-diff --git a/arch/parisc/kernel/smp.c b/arch/parisc/kernel/smp.c
-index 8a252f2..2b96602 100644
---- a/arch/parisc/kernel/smp.c
-+++ b/arch/parisc/kernel/smp.c
-@@ -72,7 +72,6 @@ enum ipi_message_type {
- 	IPI_NOP=0,
- 	IPI_RESCHEDULE=1,
- 	IPI_CALL_FUNC,
--	IPI_CALL_FUNC_SINGLE,
- 	IPI_CPU_START,
- 	IPI_CPU_STOP,
- 	IPI_CPU_TEST
-@@ -164,11 +163,6 @@ ipi_interrupt(int irq, void *dev_id)
- 				generic_smp_call_function_interrupt();
- 				break;
+diff --git a/arch/powerpc/include/asm/smp.h b/arch/powerpc/include/asm/smp.h
+index 48cfc85..53faa03 100644
+--- a/arch/powerpc/include/asm/smp.h
++++ b/arch/powerpc/include/asm/smp.h
+@@ -119,8 +119,7 @@ extern int cpu_to_core_id(int cpu);
+  * in /proc/interrupts will be wrong!!! --Troy */
+ #define PPC_MSG_CALL_FUNCTION   0
+ #define PPC_MSG_RESCHEDULE      1
+-#define PPC_MSG_CALL_FUNC_SINGLE	2
+-#define PPC_MSG_DEBUGGER_BREAK  3
++#define PPC_MSG_DEBUGGER_BREAK  2
  
--			case IPI_CALL_FUNC_SINGLE:
--				smp_debug(100, KERN_DEBUG "CPU%d IPI_CALL_FUNC_SINGLE\n", this_cpu);
--				generic_smp_call_function_single_interrupt();
--				break;
+ /* for irq controllers that have dedicated ipis per message (4) */
+ extern int smp_request_message_ipi(int virq, int message);
+diff --git a/arch/powerpc/kernel/smp.c b/arch/powerpc/kernel/smp.c
+index 38b0ba6..0c53b10 100644
+--- a/arch/powerpc/kernel/smp.c
++++ b/arch/powerpc/kernel/smp.c
+@@ -123,12 +123,6 @@ static irqreturn_t reschedule_action(int irq, void *data)
+ 	return IRQ_HANDLED;
+ }
+ 
+-static irqreturn_t call_function_single_action(int irq, void *data)
+-{
+-	generic_smp_call_function_single_interrupt();
+-	return IRQ_HANDLED;
+-}
 -
- 			case IPI_CPU_START:
- 				smp_debug(100, KERN_DEBUG "CPU%d IPI_CPU_START\n", this_cpu);
- 				break;
-@@ -260,7 +254,7 @@ void arch_send_call_function_ipi_mask(const struct cpumask *mask)
+ static irqreturn_t debug_ipi_action(int irq, void *data)
+ {
+ 	if (crash_ipi_function_ptr) {
+@@ -146,14 +140,12 @@ static irqreturn_t debug_ipi_action(int irq, void *data)
+ static irq_handler_t smp_ipi_action[] = {
+ 	[PPC_MSG_CALL_FUNCTION] =  call_function_action,
+ 	[PPC_MSG_RESCHEDULE] = reschedule_action,
+-	[PPC_MSG_CALL_FUNC_SINGLE] = call_function_single_action,
+ 	[PPC_MSG_DEBUGGER_BREAK] = debug_ipi_action,
+ };
+ 
+ const char *smp_ipi_name[] = {
+ 	[PPC_MSG_CALL_FUNCTION] =  "ipi call function",
+ 	[PPC_MSG_RESCHEDULE] = "ipi reschedule",
+-	[PPC_MSG_CALL_FUNC_SINGLE] = "ipi call function single",
+ 	[PPC_MSG_DEBUGGER_BREAK] = "ipi debugger",
+ };
+ 
+@@ -225,8 +217,6 @@ irqreturn_t smp_ipi_demux(void)
+ 			generic_smp_call_function_interrupt();
+ 		if (all & (1 << (24 - 8 * PPC_MSG_RESCHEDULE)))
+ 			scheduler_ipi();
+-		if (all & (1 << (24 - 8 * PPC_MSG_CALL_FUNC_SINGLE)))
+-			generic_smp_call_function_single_interrupt();
+ 		if (all & (1 << (24 - 8 * PPC_MSG_DEBUGGER_BREAK)))
+ 			debug_ipi_action(0, NULL);
+ #else
+@@ -257,7 +247,7 @@ EXPORT_SYMBOL_GPL(smp_send_reschedule);
  
  void arch_send_call_function_single_ipi(int cpu)
  {
--	send_IPI_single(cpu, IPI_CALL_FUNC_SINGLE);
-+	send_IPI_single(cpu, IPI_CALL_FUNC);
+-	do_message_pass(cpu, PPC_MSG_CALL_FUNC_SINGLE);
++	do_message_pass(cpu, PPC_MSG_CALL_FUNCTION);
  }
  
- /*
+ void arch_send_call_function_ipi_mask(const struct cpumask *mask)
 -- 
 1.8.1.2
