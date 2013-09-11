@@ -1,289 +1,91 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 0/7] preempt_count rework -v2
-Date: Wed, 11 Sep 2013 20:59:44 +0200
-Message-ID: <20130911185944.GA1798@laptop.programming.kicks-ass.net>
-References: <20130910130811.507933095@infradead.org>
- <20130910135152.GD7537@gmail.com>
- <20130910135636.GA8268@gmail.com>
- <CA+55aFwmEQeF+PtM7cuaQ8OkuTS=R4JJ61Wwfv8u-Svo-V3KwQ@mail.gmail.com>
- <20130910164519.GL31370@twins.programming.kicks-ass.net>
- <CA+55aFz7WtcdkwKEGoqCzmC9HsY0LPK-oVK_oATYhRnbGq=2GA@mail.gmail.com>
- <20130910212509.GA18147@laptop.programming.kicks-ass.net>
- <CA+55aFxsEYQPXnoxNXAeSPEkk3uT8iq-_KJVe2M2qZZbtL=cbA@mail.gmail.com>
- <20130911131323.GQ31370@twins.programming.kicks-ass.net>
- <CA+55aFyxcHvQUe_h8cyQrNbGJ6-G_NQnK9pVenABLjCF-7WMXg@mail.gmail.com>
+From: Johannes Weiner <hannes@cmpxchg.org>
+Subject: Re: [patch 0/7] improve memcg oom killer robustness v2
+Date: Wed, 11 Sep 2013 15:11:50 -0400
+Message-ID: <20130911191150.GN856@cmpxchg.org>
+References: <20130910183740.GI856@cmpxchg.org>
+ <20130910213253.A1E666C5@pobox.sk>
+ <20130910201222.GA25972@cmpxchg.org>
+ <20130910230853.FEEC19B5@pobox.sk>
+ <20130910211823.GJ856@cmpxchg.org>
+ <20130910233247.9EDF4DBA@pobox.sk>
+ <20130910220329.GK856@cmpxchg.org>
+ <20130911143305.FFEAD399@pobox.sk>
+ <20130911180327.GL856@cmpxchg.org>
+ <20130911205448.656D9D7C@pobox.sk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:53927 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752509Ab3IKTAA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Sep 2013 15:00:00 -0400
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <CA+55aFyxcHvQUe_h8cyQrNbGJ6-G_NQnK9pVenABLjCF-7WMXg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Ingo Molnar <mingo@kernel.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+In-Reply-To: <20130911205448.656D9D7C@pobox.sk>
+Sender: owner-linux-mm@kvack.org
+To: azurIt <azurit@pobox.sk>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.cz>, David Rientjes <rientjes@google.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Sep 11, 2013 at 08:33:21AM -0700, Linus Torvalds wrote:
-> An excessively complex macro that makes the arguments trivially
-> simpler is not worth it.
+On Wed, Sep 11, 2013 at 08:54:48PM +0200, azurIt wrote:
+> >On Wed, Sep 11, 2013 at 02:33:05PM +0200, azurIt wrote:
+> >> >On Tue, Sep 10, 2013 at 11:32:47PM +0200, azurIt wrote:
+> >> >> >On Tue, Sep 10, 2013 at 11:08:53PM +0200, azurIt wrote:
+> >> >> >> >On Tue, Sep 10, 2013 at 09:32:53PM +0200, azurIt wrote:
+> >> >> >> >> Here is full kernel log between 6:00 and 7:59:
+> >> >> >> >> http://watchdog.sk/lkml/kern6.log
+> >> >> >> >
+> >> >> >> >Wow, your apaches are like the hydra.  Whenever one is OOM killed,
+> >> >> >> >more show up!
+> >> >> >> 
+> >> >> >> 
+> >> >> >> 
+> >> >> >> Yeah, it's supposed to do this ;)
+> >> >
+> >> >How are you expecting the machine to recover from an OOM situation,
+> >> >though?  I guess I don't really understand what these machines are
+> >> >doing.  But if you are overloading them like crazy, isn't that the
+> >> >expected outcome?
+> >> 
+> >> 
+> >> 
+> >> 
+> >> 
+> >> There's no global OOM, server has enough of memory. OOM is occuring only in cgroups (customers who simply don't want to pay for more memory).
+> >
+> >Yes, sure, but when the cgroups are thrashing, they use the disk and
+> >CPU to the point where the overall system is affected.
+> 
+> 
+> 
+> 
+> Didn't know that there is a disk usage because of this, i never noticed anything yet.
 
-OK, stripped it down further, I couldn't quite see how to collapse the
-unary and binary operator variants though :/
+You said there was heavy IO going on...?
 
----
- arch/x86/include/asm/rmwcc.h       |   62 +++++++++++++++++++++++++++++++++++++
- arch/x86/include/asm/atomic.h      |   29 ++---------------
- arch/x86/include/asm/atomic64_64.h |   28 ++--------------
- arch/x86/include/asm/local.h       |   28 ++--------------
- 4 files changed, 75 insertions(+), 72 deletions(-)
+> >Okay, my suspicion is that the previous patches invoked the OOM killer
+> >right away, whereas in this latest version it's invoked only when the
+> >fault is finished.  Maybe the task that locked the group gets held up
+> >somewhere else and then it takes too long until something is actually
+> >killed.  Meanwhile, every other allocator drops into 5 reclaim cycles
+> >before giving up, which could explain the thrashing.  And on the memcg
+> >level we don't have BDI congestion sleeps like on the global level, so
+> >everybody is backing off from the disk.
+> >
+> >Here is an incremental fix to the latest version, i.e. the one that
+> >livelocked under heavy IO, not the one you are using right now.
+> >
+> >First, it reduces the reclaim retries from 5 to 2, which resembles the
+> >global kswapd + ttfp somewhat.  Next, NOFS/NORETRY allocators are not
+> >allowed to kick off the OOM killer, like in the global case, so that
+> >we don't kill things and give up just because light reclaim can't free
+> >anything.  Last, the memcg is marked under OOM when one task enters
+> >OOM so that not everybody is livelocking in reclaim in a hopeless
+> >situation.
+> 
+> 
+> 
+> Thank you i will boot it this night. I also created a new server load checking and recuing script so i hope i won't be forced to hard reboot the server in case something similar as before happens. Btw, patch didn't apply to 3.2.51, there were probably big changes in memory system (almost all hunks failed). I used 3.2.50 as before.
 
---- /dev/null
-+++ b/arch/x86/include/asm/rmwcc.h
-@@ -0,0 +1,62 @@
-+#ifndef _ASM_X86_RMWcc
-+#define _ASM_X86_RMWcc
-+
-+extern void __bad_rmwcc_nargs(void);
-+
-+#ifdef CC_HAVE_ASM_GOTO
-+
-+#define GENERATE_RMWcc(var, val, op, nargs, arg0, cc)			\
-+do {									\
-+	switch (nargs) {						\
-+	case 0:								\
-+		asm volatile goto (op " " arg0 ";"			\
-+				"j" cc " %l[cc_label]"			\
-+				: : "m" (var)				\
-+				: "memory" : cc_label);			\
-+		break;							\
-+									\
-+	case 1:								\
-+		asm volatile goto (op " %1, " arg0 ";"			\
-+				"j" cc " %l[cc_label]"			\
-+				: : "m" (var), "er" (val)		\
-+				: "memory" : cc_label);			\
-+		break;							\
-+									\
-+	default: __bad_rmwcc_nargs();					\
-+	}								\
-+									\
-+	return 0;							\
-+cc_label:								\
-+	return 1;							\
-+} while (0)
-+
-+#else /* !CC_HAVE_ASM_GOTO */
-+
-+#define GENERATE_RMWcc(var, val, op, nargs, arg0, cc)			\
-+do {									\
-+	char c;								\
-+									\
-+	switch (nargs) {						\
-+	case 0:								\
-+		asm volatile (op " " arg0 ";"				\
-+				"set" cc " %1"				\
-+				: "+m" (var), "=qm" (c)			\
-+				: : "memory");				\
-+		break;							\
-+									\
-+	case 1:								\
-+		asm volatile (op " %2, " arg0 ";"			\
-+				"set" cc " %1"				\
-+				: "+m" (var), "=qm" (c)			\
-+				: "er" (val) : "memory");		\
-+		break;							\
-+									\
-+	default: __bad_rmwcc_nargs();					\
-+	}								\
-+									\
-+	return c != 0;							\
-+} while (0)
-+
-+#endif /* CC_HAVE_ASM_GOTO */
-+
-+#endif /* _ASM_X86_RMWcc */
---- a/arch/x86/include/asm/atomic.h
-+++ b/arch/x86/include/asm/atomic.h
-@@ -6,6 +6,7 @@
- #include <asm/processor.h>
- #include <asm/alternative.h>
- #include <asm/cmpxchg.h>
-+#include <asm/rmwcc.h>
- 
- /*
-  * Atomic operations that C can't guarantee us.  Useful for
-@@ -76,12 +77,7 @@ static inline void atomic_sub(int i, ato
-  */
- static inline int atomic_sub_and_test(int i, atomic_t *v)
- {
--	unsigned char c;
--
--	asm volatile(LOCK_PREFIX "subl %2,%0; sete %1"
--		     : "+m" (v->counter), "=qm" (c)
--		     : "ir" (i) : "memory");
--	return c;
-+	GENERATE_RMWcc(v->counter, i, LOCK_PREFIX "subl", 1, "%0", "e");
- }
- 
- /**
-@@ -118,12 +114,7 @@ static inline void atomic_dec(atomic_t *
-  */
- static inline int atomic_dec_and_test(atomic_t *v)
- {
--	unsigned char c;
--
--	asm volatile(LOCK_PREFIX "decl %0; sete %1"
--		     : "+m" (v->counter), "=qm" (c)
--		     : : "memory");
--	return c != 0;
-+	GENERATE_RMWcc(v->counter, 0, LOCK_PREFIX "decl", 0, "%0", "e");
- }
- 
- /**
-@@ -136,12 +127,7 @@ static inline int atomic_dec_and_test(at
-  */
- static inline int atomic_inc_and_test(atomic_t *v)
- {
--	unsigned char c;
--
--	asm volatile(LOCK_PREFIX "incl %0; sete %1"
--		     : "+m" (v->counter), "=qm" (c)
--		     : : "memory");
--	return c != 0;
-+	GENERATE_RMWcc(v->counter, 0, LOCK_PREFIX "incl", 0, "%0", "e");
- }
- 
- /**
-@@ -155,12 +141,7 @@ static inline int atomic_inc_and_test(at
-  */
- static inline int atomic_add_negative(int i, atomic_t *v)
- {
--	unsigned char c;
--
--	asm volatile(LOCK_PREFIX "addl %2,%0; sets %1"
--		     : "+m" (v->counter), "=qm" (c)
--		     : "ir" (i) : "memory");
--	return c;
-+	GENERATE_RMWcc(v->counter, i, LOCK_PREFIX "addl", 1, "%0", "s");
- }
- 
- /**
---- a/arch/x86/include/asm/atomic64_64.h
-+++ b/arch/x86/include/asm/atomic64_64.h
-@@ -72,12 +72,7 @@ static inline void atomic64_sub(long i,
-  */
- static inline int atomic64_sub_and_test(long i, atomic64_t *v)
- {
--	unsigned char c;
--
--	asm volatile(LOCK_PREFIX "subq %2,%0; sete %1"
--		     : "=m" (v->counter), "=qm" (c)
--		     : "er" (i), "m" (v->counter) : "memory");
--	return c;
-+	GENERATE_RMWcc(v->counter, i, LOCK_PREFIX "subq", 1, "%0", "e");
- }
- 
- /**
-@@ -116,12 +111,7 @@ static inline void atomic64_dec(atomic64
-  */
- static inline int atomic64_dec_and_test(atomic64_t *v)
- {
--	unsigned char c;
--
--	asm volatile(LOCK_PREFIX "decq %0; sete %1"
--		     : "=m" (v->counter), "=qm" (c)
--		     : "m" (v->counter) : "memory");
--	return c != 0;
-+	GENERATE_RMWcc(v->counter, 0, LOCK_PREFIX "decq", 0, "%0", "e");
- }
- 
- /**
-@@ -134,12 +124,7 @@ static inline int atomic64_dec_and_test(
-  */
- static inline int atomic64_inc_and_test(atomic64_t *v)
- {
--	unsigned char c;
--
--	asm volatile(LOCK_PREFIX "incq %0; sete %1"
--		     : "=m" (v->counter), "=qm" (c)
--		     : "m" (v->counter) : "memory");
--	return c != 0;
-+	GENERATE_RMWcc(v->counter, 0, LOCK_PREFIX "incq", 0, "%0", "e");
- }
- 
- /**
-@@ -153,12 +138,7 @@ static inline int atomic64_inc_and_test(
-  */
- static inline int atomic64_add_negative(long i, atomic64_t *v)
- {
--	unsigned char c;
--
--	asm volatile(LOCK_PREFIX "addq %2,%0; sets %1"
--		     : "=m" (v->counter), "=qm" (c)
--		     : "er" (i), "m" (v->counter) : "memory");
--	return c;
-+	GENERATE_RMWcc(v->counter, i, LOCK_PREFIX "addq", 1, "%0", "s");
- }
- 
- /**
---- a/arch/x86/include/asm/local.h
-+++ b/arch/x86/include/asm/local.h
-@@ -52,12 +52,7 @@ static inline void local_sub(long i, loc
-  */
- static inline int local_sub_and_test(long i, local_t *l)
- {
--	unsigned char c;
--
--	asm volatile(_ASM_SUB "%2,%0; sete %1"
--		     : "+m" (l->a.counter), "=qm" (c)
--		     : "ir" (i) : "memory");
--	return c;
-+	GENERATE_RMWcc(l->a.counter, i, _ASM_SUB, 1, "%0", "e");
- }
- 
- /**
-@@ -70,12 +65,7 @@ static inline int local_sub_and_test(lon
-  */
- static inline int local_dec_and_test(local_t *l)
- {
--	unsigned char c;
--
--	asm volatile(_ASM_DEC "%0; sete %1"
--		     : "+m" (l->a.counter), "=qm" (c)
--		     : : "memory");
--	return c != 0;
-+	GENERATE_RMWcc(l->a.counter, 0, _ASM_DEC, 0, "%0", "e");
- }
- 
- /**
-@@ -88,12 +78,7 @@ static inline int local_dec_and_test(loc
-  */
- static inline int local_inc_and_test(local_t *l)
- {
--	unsigned char c;
--
--	asm volatile(_ASM_INC "%0; sete %1"
--		     : "+m" (l->a.counter), "=qm" (c)
--		     : : "memory");
--	return c != 0;
-+	GENERATE_RMWcc(l->a.counter, 0, _ASM_INC, 0, "%0", "e");
- }
- 
- /**
-@@ -107,12 +92,7 @@ static inline int local_inc_and_test(loc
-  */
- static inline int local_add_negative(long i, local_t *l)
- {
--	unsigned char c;
--
--	asm volatile(_ASM_ADD "%2,%0; sets %1"
--		     : "+m" (l->a.counter), "=qm" (c)
--		     : "ir" (i) : "memory");
--	return c;
-+	GENERATE_RMWcc(l->a.counter, i, _ASM_ADD, 1, "%0", "s");
- }
- 
- /**
+Yes, please don't change the test base in the middle of this!
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
