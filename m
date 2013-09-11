@@ -1,89 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f180.google.com ([209.85.192.180]:34161 "EHLO
-	mail-pd0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755166Ab3IKQIZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Sep 2013 12:08:25 -0400
-From: Jiang Liu <liuj97@gmail.com>
-Subject: [RFC PATCH v2 04/25] smp, ARM: kill SMP single function call interrupt
-Date: Thu, 12 Sep 2013 00:07:08 +0800
-Message-ID: <1378915649-16395-5-git-send-email-liuj97@gmail.com>
-In-Reply-To: <1378915649-16395-1-git-send-email-liuj97@gmail.com>
-References: <1378915649-16395-1-git-send-email-liuj97@gmail.com>
+Received: from mail-ve0-f170.google.com ([209.85.128.170]:47268 "EHLO
+	mail-ve0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754999Ab3IKQf3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Sep 2013 12:35:29 -0400
+Received: by mail-ve0-f170.google.com with SMTP id c14so6151033vea.29
+        for <linux-arch@vger.kernel.org>; Wed, 11 Sep 2013 09:35:29 -0700 (PDT)
+MIME-Version: 1.0
+In-Reply-To: <20130911110635.GT26785@twins.programming.kicks-ass.net>
+References: <20130910130811.507933095@infradead.org> <20130910132011.116593485@infradead.org>
+ <522FCE9D.4010707@amacapital.net> <20130911082530.GN31370@twins.programming.kicks-ass.net>
+ <20130911110635.GT26785@twins.programming.kicks-ass.net>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Wed, 11 Sep 2013 09:35:08 -0700
+Message-ID: <CALCETrUECkOZkxao0d1467rEFcSF3jzddNo1awshE4uK-wsWGQ@mail.gmail.com>
+Subject: Re: [PATCH 2/7] sched: Add NEED_RESCHED to the preempt_count
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@arm.linux.org.uk>, Santosh Shilimkar <santosh.shilimkar@ti.com>, Shaohua Li <shli@kernel.org>
-Cc: liuj97@gmail.com, Jiang Liu <jiang.liu@huawei.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, Wang YanQing <udknight@gmail.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20130911160708.mr3rp2d4NgKj7JIHj_hkM2oheD62YIyewvM6KXKIfOY@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Len Brown <lenb@kernel.org>, Vaidyanathan Srinivasan <svaidy@linux.vnet.ibm.com>
+Message-ID: <20130911163508.PLI_X3prhqw-qA-jGTJrnVvCyQuV34xvHNzRXEqlyng@z>
 
-From: Jiang Liu <jiang.liu@huawei.com>
+On Wed, Sep 11, 2013 at 4:06 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+> On Wed, Sep 11, 2013 at 10:25:30AM +0200, Peter Zijlstra wrote:
+>> On Tue, Sep 10, 2013 at 06:59:57PM -0700, Andy Lutomirski wrote:
+>
+>> > It looks like the intel_idle code can get confused if TIF_NEED_RESCHED
+>> > is set but the preempt resched bit is not -- the need_resched call
+>> > between monitor and mwait won't notice TIF_NEED_RESCHED.
+>> >
+>> > Is this condition possible?
+>>
+>> Ah indeed, I'll have to go find all idle loops out there it seems. Now
+>> if only they were easy to spot :/
+>>
+>> I was hoping the generic idle thing was good enough, apparently not
+>> quite. Thanks for spotting that.
+>
+> OK, and the reason I didn't notice is that the entire TS_POLLING thing
+> is completely wrecked so we'll get the interrupt anyway.
+>
 
-Commit 9a46ad6d6df3b54 "smp: make smp_call_function_many() use logic
-similar to smp_call_function_single()" has unified the way to handle
-single and multiple cross-CPU function calls. Now only one interrupt
-is needed for architecture specific code to support generic SMP function
-call interfaces, so kill the redundant single function call interrupt.
+I bet that this improves cross-cpu wakeup latency, too -- the old code
+would presumably wake up the cpu and then immediately interrupt it.
 
-Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
----
- arch/arm/include/asm/hardirq.h |  2 +-
- arch/arm/kernel/smp.c          | 10 +---------
- 2 files changed, 2 insertions(+), 10 deletions(-)
+It might be nice to rename one or both of need_resched and
+test_need_resched, though -- the difference is somewhat inscrutable.
 
-diff --git a/arch/arm/include/asm/hardirq.h b/arch/arm/include/asm/hardirq.h
-index 2740c2a..436e60b 100644
---- a/arch/arm/include/asm/hardirq.h
-+++ b/arch/arm/include/asm/hardirq.h
-@@ -5,7 +5,7 @@
- #include <linux/threads.h>
- #include <asm/irq.h>
- 
--#define NR_IPI	6
-+#define NR_IPI	5
- 
- typedef struct {
- 	unsigned int __softirq_pending;
-diff --git a/arch/arm/kernel/smp.c b/arch/arm/kernel/smp.c
-index 2dc1934..4ea5994 100644
---- a/arch/arm/kernel/smp.c
-+++ b/arch/arm/kernel/smp.c
-@@ -65,7 +65,6 @@ enum ipi_msg_type {
- 	IPI_TIMER,
- 	IPI_RESCHEDULE,
- 	IPI_CALL_FUNC,
--	IPI_CALL_FUNC_SINGLE,
- 	IPI_CPU_STOP,
- };
- 
-@@ -475,7 +474,7 @@ void arch_send_wakeup_ipi_mask(const struct cpumask *mask)
- 
- void arch_send_call_function_single_ipi(int cpu)
- {
--	smp_cross_call(cpumask_of(cpu), IPI_CALL_FUNC_SINGLE);
-+	smp_cross_call(cpumask_of(cpu), IPI_CALL_FUNC);
- }
- 
- static const char *ipi_types[NR_IPI] = {
-@@ -484,7 +483,6 @@ static const char *ipi_types[NR_IPI] = {
- 	S(IPI_TIMER, "Timer broadcast interrupts"),
- 	S(IPI_RESCHEDULE, "Rescheduling interrupts"),
- 	S(IPI_CALL_FUNC, "Function call interrupts"),
--	S(IPI_CALL_FUNC_SINGLE, "Single function call interrupts"),
- 	S(IPI_CPU_STOP, "CPU stop interrupts"),
- };
- 
-@@ -649,12 +647,6 @@ void handle_IPI(int ipinr, struct pt_regs *regs)
- 		irq_exit();
- 		break;
- 
--	case IPI_CALL_FUNC_SINGLE:
--		irq_enter();
--		generic_smp_call_function_single_interrupt();
--		irq_exit();
--		break;
--
- 	case IPI_CPU_STOP:
- 		irq_enter();
- 		ipi_cpu_stop(cpu);
--- 
-1.8.1.2
-
+--Andy
