@@ -1,94 +1,119 @@
-From: Johannes Weiner <hannes@cmpxchg.org>
-Subject: Re: [patch 0/7] improve memcg oom killer robustness v2
-Date: Wed, 11 Sep 2013 16:04:26 -0400
-Message-ID: <20130911200426.GO856@cmpxchg.org>
-References: <20130910201222.GA25972@cmpxchg.org>
- <20130910230853.FEEC19B5@pobox.sk>
- <20130910211823.GJ856@cmpxchg.org>
- <20130910233247.9EDF4DBA@pobox.sk>
- <20130910220329.GK856@cmpxchg.org>
- <20130911143305.FFEAD399@pobox.sk>
- <20130911180327.GL856@cmpxchg.org>
- <20130911205448.656D9D7C@pobox.sk>
- <20130911191150.GN856@cmpxchg.org>
- <20130911214118.7CDF2E71@pobox.sk>
+From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Subject: Re: [RFC PATCH v2 15/25] smp, ppc: kill SMP single function call
+ interrupt
+Date: Thu, 12 Sep 2013 01:33:16 +0530
+Message-ID: <5230CC84.1010503@linux.vnet.ibm.com>
+References: <1378915649-16395-1-git-send-email-liuj97@gmail.com> <1378915649-16395-16-git-send-email-liuj97@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20130911214118.7CDF2E71@pobox.sk>
-Sender: owner-linux-mm@kvack.org
-To: azurIt <azurit@pobox.sk>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.cz>, David Rientjes <rientjes@google.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1378915649-16395-16-git-send-email-liuj97@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Jiang Liu <liuj97@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Shaohua Li <shli@kernel.org>, linux-arch@vger.kernel.org, Jiri Kosina <trivial@kernel.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Wang YanQing <udknight@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, linuxppc-dev@lists.ozlabs.org, Jiang Liu <jiang.liu@huawei.com>, Preeti U Murthy <preeti@linux.vnet.ibm.com>, Deepthi Dharwar <deepthi@linux.vnet.ibm.com>, Vaidyanathan Srinivasan <svaidy@linux.vnet.ibm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Sep 11, 2013 at 09:41:18PM +0200, azurIt wrote:
-> >On Wed, Sep 11, 2013 at 08:54:48PM +0200, azurIt wrote:
-> >> >On Wed, Sep 11, 2013 at 02:33:05PM +0200, azurIt wrote:
-> >> >> >On Tue, Sep 10, 2013 at 11:32:47PM +0200, azurIt wrote:
-> >> >> >> >On Tue, Sep 10, 2013 at 11:08:53PM +0200, azurIt wrote:
-> >> >> >> >> >On Tue, Sep 10, 2013 at 09:32:53PM +0200, azurIt wrote:
-> >> >> >> >> >> Here is full kernel log between 6:00 and 7:59:
-> >> >> >> >> >> http://watchdog.sk/lkml/kern6.log
-> >> >> >> >> >
-> >> >> >> >> >Wow, your apaches are like the hydra.  Whenever one is OOM killed,
-> >> >> >> >> >more show up!
-> >> >> >> >> 
-> >> >> >> >> 
-> >> >> >> >> 
-> >> >> >> >> Yeah, it's supposed to do this ;)
-> >> >> >
-> >> >> >How are you expecting the machine to recover from an OOM situation,
-> >> >> >though?  I guess I don't really understand what these machines are
-> >> >> >doing.  But if you are overloading them like crazy, isn't that the
-> >> >> >expected outcome?
-> >> >> 
-> >> >> 
-> >> >> 
-> >> >> 
-> >> >> 
-> >> >> There's no global OOM, server has enough of memory. OOM is occuring only in cgroups (customers who simply don't want to pay for more memory).
-> >> >
-> >> >Yes, sure, but when the cgroups are thrashing, they use the disk and
-> >> >CPU to the point where the overall system is affected.
-> >> 
-> >> 
-> >> 
-> >> 
-> >> Didn't know that there is a disk usage because of this, i never noticed anything yet.
-> >
-> >You said there was heavy IO going on...?
+On 09/11/2013 09:37 PM, Jiang Liu wrote:
+> From: Jiang Liu <jiang.liu@huawei.com>
 > 
+> Commit 9a46ad6d6df3b54 "smp: make smp_call_function_many() use logic
+> similar to smp_call_function_single()" has unified the way to handle
+> single and multiple cross-CPU function calls. Now only one interrupt
+> is needed for architecture specific code to support generic SMP function
+> call interfaces, so kill the redundant single function call interrupt.
 > 
+> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+> Cc: Jiang Liu <liuj97@gmail.com>
+> ---
+
+It turns out that freeing up the IPI slot in powerpc is very useful, since
+we actually wanted a slot for some other use-case (and there are only 4 slots
+available on powerpc).
+
+Here are the patches which achieve that:
+http://marc.info/?l=linuxppc-embedded&m=137886807502898&w=2
+http://marc.info/?l=linuxppc-embedded&m=137886811502909&w=2
+
+So, can you kindly consider dropping the powerpc patch from your series,
+if that is OK with you? Thanks!
+
+BTW, after doing the powerpc cleanup, even I had thought about killing one
+of the smp-function variants in various architectures, but never got around
+to do it. But now that you have posted the series which does that, I'll try
+to review them.
+
+Thank you!
+
+Regards,
+Srivatsa S. Bhat
+
+>  arch/powerpc/include/asm/smp.h |  3 +--
+>  arch/powerpc/kernel/smp.c      | 12 +-----------
+>  2 files changed, 2 insertions(+), 13 deletions(-)
 > 
-> Yes, there usually was a big IO but it was related to that
-> deadlocking bug in kernel (or i assume it was). I never saw a big IO
-> in normal conditions even when there were lots of OOM in
-> cgroups. I'm even not using swap because of this so i was assuming
-> that lacks of memory is not doing any additional IO (or am i
-> wrong?). And if you mean that last problem with IO from Monday, i
-> don't exactly know what happens but it's really long time when we
-> had so big problem with IO that it disables also root login on
-> console.
-
-The deadlocking problem should be separate from this.
-
-Even without swap, the binaries and libraries of the running tasks can
-get reclaimed (and immediately faulted back from disk, i.e thrashing).
-
-Usually the OOM killer should kick in before tasks cannibalize each
-other like that.
-
-The patch you were using did in fact have the side effect of widening
-the window between tasks entering heavy reclaim and the OOM killer
-kicking in, so it could explain the IO worsening while fixing the dead
-lock problem.
-
-That followup patch tries to narrow this window by quite a bit and
-tries to stop concurrent reclaim when the group is already OOM.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> diff --git a/arch/powerpc/include/asm/smp.h b/arch/powerpc/include/asm/smp.h
+> index 48cfc85..53faa03 100644
+> --- a/arch/powerpc/include/asm/smp.h
+> +++ b/arch/powerpc/include/asm/smp.h
+> @@ -119,8 +119,7 @@ extern int cpu_to_core_id(int cpu);
+>   * in /proc/interrupts will be wrong!!! --Troy */
+>  #define PPC_MSG_CALL_FUNCTION   0
+>  #define PPC_MSG_RESCHEDULE      1
+> -#define PPC_MSG_CALL_FUNC_SINGLE	2
+> -#define PPC_MSG_DEBUGGER_BREAK  3
+> +#define PPC_MSG_DEBUGGER_BREAK  2
+> 
+>  /* for irq controllers that have dedicated ipis per message (4) */
+>  extern int smp_request_message_ipi(int virq, int message);
+> diff --git a/arch/powerpc/kernel/smp.c b/arch/powerpc/kernel/smp.c
+> index 38b0ba6..0c53b10 100644
+> --- a/arch/powerpc/kernel/smp.c
+> +++ b/arch/powerpc/kernel/smp.c
+> @@ -123,12 +123,6 @@ static irqreturn_t reschedule_action(int irq, void *data)
+>  	return IRQ_HANDLED;
+>  }
+> 
+> -static irqreturn_t call_function_single_action(int irq, void *data)
+> -{
+> -	generic_smp_call_function_single_interrupt();
+> -	return IRQ_HANDLED;
+> -}
+> -
+>  static irqreturn_t debug_ipi_action(int irq, void *data)
+>  {
+>  	if (crash_ipi_function_ptr) {
+> @@ -146,14 +140,12 @@ static irqreturn_t debug_ipi_action(int irq, void *data)
+>  static irq_handler_t smp_ipi_action[] = {
+>  	[PPC_MSG_CALL_FUNCTION] =  call_function_action,
+>  	[PPC_MSG_RESCHEDULE] = reschedule_action,
+> -	[PPC_MSG_CALL_FUNC_SINGLE] = call_function_single_action,
+>  	[PPC_MSG_DEBUGGER_BREAK] = debug_ipi_action,
+>  };
+> 
+>  const char *smp_ipi_name[] = {
+>  	[PPC_MSG_CALL_FUNCTION] =  "ipi call function",
+>  	[PPC_MSG_RESCHEDULE] = "ipi reschedule",
+> -	[PPC_MSG_CALL_FUNC_SINGLE] = "ipi call function single",
+>  	[PPC_MSG_DEBUGGER_BREAK] = "ipi debugger",
+>  };
+> 
+> @@ -225,8 +217,6 @@ irqreturn_t smp_ipi_demux(void)
+>  			generic_smp_call_function_interrupt();
+>  		if (all & (1 << (24 - 8 * PPC_MSG_RESCHEDULE)))
+>  			scheduler_ipi();
+> -		if (all & (1 << (24 - 8 * PPC_MSG_CALL_FUNC_SINGLE)))
+> -			generic_smp_call_function_single_interrupt();
+>  		if (all & (1 << (24 - 8 * PPC_MSG_DEBUGGER_BREAK)))
+>  			debug_ipi_action(0, NULL);
+>  #else
+> @@ -257,7 +247,7 @@ EXPORT_SYMBOL_GPL(smp_send_reschedule);
+> 
+>  void arch_send_call_function_single_ipi(int cpu)
+>  {
+> -	do_message_pass(cpu, PPC_MSG_CALL_FUNC_SINGLE);
+> +	do_message_pass(cpu, PPC_MSG_CALL_FUNCTION);
+>  }
+> 
+>  void arch_send_call_function_ipi_mask(const struct cpumask *mask)
+> 
