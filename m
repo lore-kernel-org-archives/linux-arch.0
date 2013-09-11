@@ -1,197 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zene.cmpxchg.org ([85.214.230.12]:54756 "EHLO zene.cmpxchg.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751420Ab3IJWDk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 10 Sep 2013 18:03:40 -0400
-Date: Tue, 10 Sep 2013 18:03:29 -0400
-From: Johannes Weiner <hannes@cmpxchg.org>
-Subject: Re: [patch 0/7] improve memcg oom killer robustness v2
-Message-ID: <20130910220329.GK856@cmpxchg.org>
-References: <20130909172849.GG856@cmpxchg.org>
- <20130909215917.96932098@pobox.sk>
- <20130909201238.GH856@cmpxchg.org>
- <20130910201359.D0984EFF@pobox.sk>
- <20130910183740.GI856@cmpxchg.org>
- <20130910213253.A1E666C5@pobox.sk>
- <20130910201222.GA25972@cmpxchg.org>
- <20130910230853.FEEC19B5@pobox.sk>
- <20130910211823.GJ856@cmpxchg.org>
- <20130910233247.9EDF4DBA@pobox.sk>
+Received: from mail-pb0-f54.google.com ([209.85.160.54]:55388 "EHLO
+	mail-pb0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752631Ab3IKCAB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Sep 2013 22:00:01 -0400
+Received: by mail-pb0-f54.google.com with SMTP id ro12so8384717pbb.13
+        for <linux-arch@vger.kernel.org>; Tue, 10 Sep 2013 18:59:59 -0700 (PDT)
+Message-ID: <522FCE9D.4010707@amacapital.net>
+Date: Tue, 10 Sep 2013 18:59:57 -0700
+From: Andy Lutomirski <luto@amacapital.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20130910233247.9EDF4DBA@pobox.sk>
+Subject: Re: [PATCH 2/7] sched: Add NEED_RESCHED to the preempt_count
+References: <20130910130811.507933095@infradead.org> <20130910132011.116593485@infradead.org>
+In-Reply-To: <20130910132011.116593485@infradead.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: azurIt <azurit@pobox.sk>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.cz>, David Rientjes <rientjes@google.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130910220329.v9Zd612q_Fbik936VHWMPSjpb7sCDh5AzDKTJqoC1hM@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20130911015957._vle95djfr31zo8jP-0YZIFbc3Pbfdyad19NFKQsnQ4@z>
 
-On Tue, Sep 10, 2013 at 11:32:47PM +0200, azurIt wrote:
-> >On Tue, Sep 10, 2013 at 11:08:53PM +0200, azurIt wrote:
-> >> >On Tue, Sep 10, 2013 at 09:32:53PM +0200, azurIt wrote:
-> >> >> Here is full kernel log between 6:00 and 7:59:
-> >> >> http://watchdog.sk/lkml/kern6.log
-> >> >
-> >> >Wow, your apaches are like the hydra.  Whenever one is OOM killed,
-> >> >more show up!
-> >> 
-> >> 
-> >> 
-> >> Yeah, it's supposed to do this ;)
-
-How are you expecting the machine to recover from an OOM situation,
-though?  I guess I don't really understand what these machines are
-doing.  But if you are overloading them like crazy, isn't that the
-expected outcome?
-
-> >> >> >> What do you think? I'm now running kernel with your previous patch, not with the newest one.
-> >> >> >
-> >> >> >Which one exactly?  Can you attach the diff?
-> >> >> 
-> >> >> 
-> >> >> 
-> >> >> I meant, the problem above occured on kernel with your latest patch:
-> >> >> http://watchdog.sk/lkml/7-2-memcg-fix.patch
-> >> >
-> >> >The above log has the following callstack:
-> >> >
-> >> >Sep 10 07:59:43 server01 kernel: [ 3846.337628]  [<ffffffff810d19fe>] dump_header+0x7e/0x1e0
-> >> >Sep 10 07:59:43 server01 kernel: [ 3846.337707]  [<ffffffff810d18ff>] ? find_lock_task_mm+0x2f/0x70
-> >> >Sep 10 07:59:43 server01 kernel: [ 3846.337790]  [<ffffffff810d18ff>] ? find_lock_task_mm+0x2f/0x70
-> >> >Sep 10 07:59:43 server01 kernel: [ 3846.337874]  [<ffffffff81094bb0>] ? __css_put+0x50/0x90
-> >> >Sep 10 07:59:43 server01 kernel: [ 3846.337952]  [<ffffffff810d1ec5>] oom_kill_process+0x85/0x2a0
-> >> >Sep 10 07:59:43 server01 kernel: [ 3846.338037]  [<ffffffff810d2448>] mem_cgroup_out_of_memory+0xa8/0xf0
-> >> >Sep 10 07:59:43 server01 kernel: [ 3846.338120]  [<ffffffff81110858>] T.1154+0x8b8/0x8f0
-> >> >Sep 10 07:59:43 server01 kernel: [ 3846.338201]  [<ffffffff81110fa6>] mem_cgroup_charge_common+0x56/0xa0
-> >> >Sep 10 07:59:43 server01 kernel: [ 3846.338283]  [<ffffffff81111035>] mem_cgroup_newpage_charge+0x45/0x50
-> >> >Sep 10 07:59:43 server01 kernel: [ 3846.338364]  [<ffffffff810f3039>] handle_pte_fault+0x609/0x940
-> >> >Sep 10 07:59:43 server01 kernel: [ 3846.338451]  [<ffffffff8102ab1f>] ? pte_alloc_one+0x3f/0x50
-> >> >Sep 10 07:59:43 server01 kernel: [ 3846.338532]  [<ffffffff8107e455>] ? sched_clock_local+0x25/0x90
-> >> >Sep 10 07:59:43 server01 kernel: [ 3846.338617]  [<ffffffff810f34d7>] handle_mm_fault+0x167/0x340
-> >> >Sep 10 07:59:43 server01 kernel: [ 3846.338699]  [<ffffffff8102714b>] do_page_fault+0x13b/0x490
-> >> >Sep 10 07:59:43 server01 kernel: [ 3846.338781]  [<ffffffff810f8848>] ? do_brk+0x208/0x3a0
-> >> >Sep 10 07:59:43 server01 kernel: [ 3846.338865]  [<ffffffff812dba22>] ? gr_learn_resource+0x42/0x1e0
-> >> >Sep 10 07:59:43 server01 kernel: [ 3846.338951]  [<ffffffff815cb7bf>] page_fault+0x1f/0x30
-> >> >
-> >> >The charge code seems to be directly invoking the OOM killer, which is
-> >> >not possible with 7-2-memcg-fix.  Are you sure this is the right patch
-> >> >for this log?  This _looks_ more like what 7-1-memcg-fix was doing,
-> >> >with a direct kill in the charge context and a fixup later on.
-> >> 
-> >> I, luckyly, still have the kernel source from which that kernel was build. I tried to re-apply the 7-2-memcg-fix.patch:
-> >> 
-> >> # patch -p1 --dry-run < 7-2-memcg-fix.patch 
-> >> patching file arch/x86/mm/fault.c
-> >> Reversed (or previously applied) patch detected!  Assume -R? [n] 
-> >> Apply anyway? [n] 
-> >> Skipping patch.
-> >> 4 out of 4 hunks ignored -- saving rejects to file arch/x86/mm/fault.c.rej
-> >> patching file include/linux/memcontrol.h
-> >> Hunk #1 succeeded at 141 with fuzz 2 (offset 21 lines).
-> >> Hunk #2 succeeded at 391 with fuzz 1 (offset 39 lines).
-> >
-> >Uhm, some of it applied...  I have absolutely no idea what state that
-> >tree is in now...
+On 09/10/2013 06:08 AM, Peter Zijlstra wrote:
+> In order to combine the preemption and need_resched test we need to
+> fold the need_resched information into the preempt_count value.
 > 
-> I used '--dry-run' so it should be ok :)
-
-Ah, right.
-
-> >> patching file include/linux/mm.h
-> >> Reversed (or previously applied) patch detected!  Assume -R? [n] 
-> >> Apply anyway? [n] 
-> >> Skipping patch.
-> >> 1 out of 1 hunk ignored -- saving rejects to file include/linux/mm.h.rej
-> >> patching file include/linux/sched.h
-> >> Reversed (or previously applied) patch detected!  Assume -R? [n] 
-> >> Apply anyway? [n] 
-> >> Skipping patch.
-> >> 1 out of 1 hunk ignored -- saving rejects to file include/linux/sched.h.rej
-> >> patching file mm/memcontrol.c
-> >> Reversed (or previously applied) patch detected!  Assume -R? [n] 
-> >> Apply anyway? [n] 
-> >> Skipping patch.
-> >> 10 out of 10 hunks ignored -- saving rejects to file mm/memcontrol.c.rej
-> >> patching file mm/memory.c
-> >> Reversed (or previously applied) patch detected!  Assume -R? [n] 
-> >> Apply anyway? [n] 
-> >> Skipping patch.
-> >> 2 out of 2 hunks ignored -- saving rejects to file mm/memory.c.rej
-> >> patching file mm/oom_kill.c
-> >> Reversed (or previously applied) patch detected!  Assume -R? [n] 
-> >> Apply anyway? [n] 
-> >> Skipping patch.
-> >> 1 out of 1 hunk ignored -- saving rejects to file mm/oom_kill.c.rej
-> >> 
-> >> 
-> >> Can you tell from this if the source has the right patch?
-> >
-> >Not reliably, I don't think.  Can you send me
-> >
-> >  include/linux/memcontrol.h
-> >  mm/memcontrol.c
-> >  mm/memory.c
-> >  mm/oom_kill.c
-> >
-> >from those sources?
-> >
-> >It might be easier to start the application from scratch...  Keep in
-> >mind that 7-2 was not an incremental fix, you need to remove the
-> >previous memcg patches (as opposed to 7-1).
+> We keep the existing TIF_NEED_RESCHED infrastructure in place but at 3
+> sites test it and fold its value into preempt_count; namely:
 > 
-> 
-> 
-> Yes, i used only 7-2 from your patches. Here are the files:
-> http://watchdog.sk/lkml/kernel
-> 
-> orig - kernel source which was used to build the kernel i was talking about earlier
-> new - newly unpacked and patched 3.2.50 with all of 'my' patches
+>  - resched_task() when setting TIF_NEED_RESCHED on the current task
+>  - scheduler_ipi() when resched_task() sets TIF_NEED_RESCHED on a
+>                    remote task it follows it up with a reschedule IPI
+>                    and we can modify the cpu local preempt_count from
+>                    there.
+>  - cpu_idle_loop() for when resched_task() found tsk_is_polling().
 
-Ok, thanks!
 
-> Here is how your patch was applied:
-> 
-> # patch -p1 < 7-2-memcg-fix.patch 
-> patching file arch/x86/mm/fault.c
-> Hunk #1 succeeded at 944 (offset 102 lines).
-> Hunk #2 succeeded at 970 (offset 102 lines).
-> Hunk #3 succeeded at 1273 with fuzz 1 (offset 212 lines).
-> Hunk #4 succeeded at 1382 (offset 223 lines).
+It looks like the intel_idle code can get confused if TIF_NEED_RESCHED
+is set but the preempt resched bit is not -- the need_resched call
+between monitor and mwait won't notice TIF_NEED_RESCHED.
 
-Ah, I forgot about this one.  Could you provide that file (fault.c) as
-well please?
+Is this condition possible?
 
-> patching file include/linux/memcontrol.h
-> Hunk #1 succeeded at 122 with fuzz 2 (offset 2 lines).
-> Hunk #2 succeeded at 354 (offset 2 lines).
+--Andy
 
-Looks good, still.
-
-> patching file include/linux/mm.h
-> Hunk #1 succeeded at 163 (offset 7 lines).
-> patching file include/linux/sched.h
-> Hunk #1 succeeded at 1644 (offset 76 lines).
-> patching file mm/memcontrol.c
-> Hunk #1 succeeded at 1752 (offset 9 lines).
-> Hunk #2 succeeded at 1777 (offset 9 lines).
-> Hunk #3 succeeded at 1828 (offset 9 lines).
-> Hunk #4 succeeded at 1867 (offset 9 lines).
-> Hunk #5 succeeded at 2256 (offset 9 lines).
-> Hunk #6 succeeded at 2317 (offset 9 lines).
-> Hunk #7 succeeded at 2348 (offset 9 lines).
-> Hunk #8 succeeded at 2411 (offset 9 lines).
-> Hunk #9 succeeded at 2419 (offset 9 lines).
-> Hunk #10 succeeded at 2432 (offset 9 lines).
-> patching file mm/memory.c
-> Hunk #1 succeeded at 3712 (offset 273 lines).
-> Hunk #2 succeeded at 3812 (offset 317 lines).
-> patching file mm/oom_kill.c
-
-These look good as well.
-
-That leaves the weird impossible stack trace.  Did you double check
-that this crash came from a kernel with those exact files?
-
-I'm also confused about the freezer.  You used to freeze cgroups that
-were out of memory in the past, right?  Are you no longer doing this?
