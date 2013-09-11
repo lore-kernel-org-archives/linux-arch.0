@@ -1,42 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f48.google.com ([209.85.160.48]:36634 "EHLO
-	mail-pb0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756716Ab3IKQLj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Sep 2013 12:11:39 -0400
+Received: from mail-pa0-f42.google.com ([209.85.220.42]:56854 "EHLO
+	mail-pa0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755748Ab3IKQKN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Sep 2013 12:10:13 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [RFC PATCH v2 25/25] SMP, trivial: remove unused code from smp_boot.h
-Date: Thu, 12 Sep 2013 00:07:29 +0800
-Message-ID: <1378915649-16395-26-git-send-email-liuj97@gmail.com>
+Subject: [RFC PATCH v2 16/25] smp, s390: prepare for killing generic_smp_call_function_single_interrupt()
+Date: Thu, 12 Sep 2013 00:07:20 +0800
+Message-ID: <1378915649-16395-17-git-send-email-liuj97@gmail.com>
 In-Reply-To: <1378915649-16395-1-git-send-email-liuj97@gmail.com>
 References: <1378915649-16395-1-git-send-email-liuj97@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Shaohua Li <shli@kernel.org>
-Cc: liuj97@gmail.com, Jiang Liu <jiang.liu@huawei.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, Wang YanQing <udknight@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20130911160729.IqW3jbWbL6jm3PdA353WalifxjCwfwJoUgYylWDOBtc@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Shaohua Li <shli@kernel.org>
+Cc: liuj97@gmail.com, Jiang Liu <jiang.liu@huawei.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, Wang YanQing <udknight@gmail.com>, linux390@de.ibm.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20130911160720.R1wDckMden7Yn5f52D6SW71mQU-UAksgb-G-BjLtlqQ@z>
 
 From: Jiang Liu <jiang.liu@huawei.com>
-
-Function smpboot_thread_schedule() is never defined or used,
-so remove it from smp_boot.h.
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
 Cc: Jiang Liu <liuj97@gmail.com>
 ---
- include/linux/smpboot.h | 1 -
- 1 file changed, 1 deletion(-)
+ arch/s390/kernel/smp.c | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/include/linux/smpboot.h b/include/linux/smpboot.h
-index 13e9296..d600afb 100644
---- a/include/linux/smpboot.h
-+++ b/include/linux/smpboot.h
-@@ -47,6 +47,5 @@ struct smp_hotplug_thread {
+diff --git a/arch/s390/kernel/smp.c b/arch/s390/kernel/smp.c
+index d386c4e..81ca42a 100644
+--- a/arch/s390/kernel/smp.c
++++ b/arch/s390/kernel/smp.c
+@@ -49,7 +49,7 @@
  
- int smpboot_register_percpu_thread(struct smp_hotplug_thread *plug_thread);
- void smpboot_unregister_percpu_thread(struct smp_hotplug_thread *plug_thread);
--int smpboot_thread_schedule(void);
+ enum {
+ 	ec_schedule = 0,
+-	ec_call_function_single,
++	ec_call_function,
+ 	ec_stop_cpu,
+ };
  
- #endif
+@@ -437,8 +437,8 @@ static void smp_handle_ext_call(void)
+ 		smp_stop_cpu();
+ 	if (test_bit(ec_schedule, &bits))
+ 		scheduler_ipi();
+-	if (test_bit(ec_call_function_single, &bits))
+-		generic_smp_call_function_single_interrupt();
++	if (test_bit(ec_call_function, &bits))
++		generic_smp_call_function_interrupt();
+ }
+ 
+ static void do_ext_call_interrupt(struct ext_code ext_code,
+@@ -453,12 +453,12 @@ void arch_send_call_function_ipi_mask(const struct cpumask *mask)
+ 	int cpu;
+ 
+ 	for_each_cpu(cpu, mask)
+-		pcpu_ec_call(pcpu_devices + cpu, ec_call_function_single);
++		pcpu_ec_call(pcpu_devices + cpu, ec_call_function);
+ }
+ 
+ void arch_send_call_function_single_ipi(int cpu)
+ {
+-	pcpu_ec_call(pcpu_devices + cpu, ec_call_function_single);
++	pcpu_ec_call(pcpu_devices + cpu, ec_call_function);
+ }
+ 
+ #ifndef CONFIG_64BIT
 -- 
 1.8.1.2
 
