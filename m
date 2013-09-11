@@ -1,86 +1,52 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [PATCH 0/7] preempt_count rework -v2
-Date: Wed, 11 Sep 2013 08:29:22 -0700
-Message-ID: <52308C52.9080003@zytor.com>
-References: <20130910130811.507933095@infradead.org> <20130910135152.GD7537@gmail.com> <20130910135636.GA8268@gmail.com> <CA+55aFwmEQeF+PtM7cuaQ8OkuTS=R4JJ61Wwfv8u-Svo-V3KwQ@mail.gmail.com> <20130910164519.GL31370@twins.programming.kicks-ass.net> <CA+55aFz7WtcdkwKEGoqCzmC9HsY0LPK-oVK_oATYhRnbGq=2GA@mail.gmail.com> <20130910212509.GA18147@laptop.programming.kicks-ass.net> <CA+55aFxsEYQPXnoxNXAeSPEkk3uT8iq-_KJVe2M2qZZbtL=cbA@mail.gmail.com> <20130911131323.GQ31370@twins.programming.kicks-ass.net>
+Date: Wed, 11 Sep 2013 08:33:21 -0700
+Message-ID: <CA+55aFyxcHvQUe_h8cyQrNbGJ6-G_NQnK9pVenABLjCF-7WMXg@mail.gmail.com>
+References: <20130910130811.507933095@infradead.org>
+	<20130910135152.GD7537@gmail.com>
+	<20130910135636.GA8268@gmail.com>
+	<CA+55aFwmEQeF+PtM7cuaQ8OkuTS=R4JJ61Wwfv8u-Svo-V3KwQ@mail.gmail.com>
+	<20130910164519.GL31370@twins.programming.kicks-ass.net>
+	<CA+55aFz7WtcdkwKEGoqCzmC9HsY0LPK-oVK_oATYhRnbGq=2GA@mail.gmail.com>
+	<20130910212509.GA18147@laptop.programming.kicks-ass.net>
+	<CA+55aFxsEYQPXnoxNXAeSPEkk3uT8iq-_KJVe2M2qZZbtL=cbA@mail.gmail.com>
+	<20130911131323.GQ31370@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:52736 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753854Ab3IKPaW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 11 Sep 2013 11:30:22 -0400
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20130911131323.GQ31370@twins.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Peter Zijlstra <peterz@infradead.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andi Kleen <ak@linux.intel.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Cc: Ingo Molnar <mingo@kernel.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 09/11/2013 06:13 AM, Peter Zijlstra wrote:
+On Wed, Sep 11, 2013 at 6:13 AM, Peter Zijlstra <peterz@infradead.org> wrote:
 > On Tue, Sep 10, 2013 at 02:43:06PM -0700, Linus Torvalds wrote:
 >> That said, looking at your patch, I get the *very* strong feeling that
 >> we could make a macro that does all the repetitions for us, and then
 >> have a
 >>
 >>   GENERATE_RMW(atomic_sub_and_test, LOCK_PREFIX "subl", "e", "")
-> 
+>
 > The below seems to compile..
-> 
-> +
-> +#define GENERATE_ADDcc(var, val, lock, cc)				\
-> +do {									\
-> +	const int add_ID__ = (__builtin_constant_p(val) &&		\
-> +			((val) == 1 || (val) == -1)) ? (val) : 0;	\
-> +									\
-> +	switch (sizeof(var)) {						\
-> +	case 4:								\
-> +		if (add_ID__ == 1) {					\
-> +			asm volatile goto(lock "incl %0;"		\
-> +					  "j" cc " %l[cc_label]"	\
-> +					  : : "m" (var)			\
-> +					  : "memory" : cc_label);	\
-> +		} else if (add_ID__ == -1) {				\
-> +			asm volatile goto(lock "decl %0;"		\
-> +					  "j" cc " %l[cc_label]"	\
-> +					  : : "m" (var)			\
-> +					  : "memory" : cc_label);	\
-> +		} else {						\
-> +			asm volatile goto(lock "addl %1, %0;"		\
-> +					  "j" cc " %l[cc_label]"	\
-> +					  : : "m" (var), "er" (val)	\
-> +					  : "memory" : cc_label);	\
-> +		}							\
-> +		break;							\
-> +									\
-> +	case 8:								\
-> +		if (add_ID__ == 1) {					\
-> +			asm volatile goto(lock "incq %0;"		\
-> +					  "j" cc " %l[cc_label]"	\
-> +					  : : "m" (var)			\
-> +					  : "memory" : cc_label);	\
-> +		} else if (add_ID__ == -1) {				\
-> +			asm volatile goto(lock "decq %0;"		\
-> +					  "j" cc " %l[cc_label]"	\
-> +					  : : "m" (var)			\
-> +					  : "memory" : cc_label);	\
-> +		} else {						\
-> +			asm volatile goto(lock "addq %1, %0;"		\
-> +					  "j" cc " %l[cc_label]"	\
-> +					  : : "m" (var), "er" (val)	\
-> +					  : "memory" : cc_label);	\
-> +		}							\
-> +		break;							\
-> +									\
 
-At least in the "asm goto" case you can use:
+You have that horrible duplication in the macro itself now, though.
 
-	lock "add%z0 %1,%0;"
+The only difference between the 4-byte and the 8-byte one is the "l"
+vs "q". And the counter increment/decrement argument (by the caller)
+defines whether it's add/dec/inc. Why not just add those as parameters
+to the macro, and suddenly the macro becomes 10x smaller.
 
-... and skip the switch statement.
+An excessively complex macro that makes the arguments trivially
+simpler is not worth it.
 
-There was a bug in some old (gcc 3.x?) early x86-64 versions which would
-treat %z0 as if it was %Z0 which means it would emit "ll" instead of "q"
-but that doesn't apply to any gcc which has "asm goto"...
+Especially since that excessive macro complexity now means that your
+macro is useless for things that the *simpler* macro could have done,
+like the bit-test-and-modify cases.
 
-	-hpa
+So your complexity actually makes things worse.
+
+So just pass in the operation name and size. Then somebody will use it
+for test_and_set_bit() and friends too.
+
+              Linus
