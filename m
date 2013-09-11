@@ -1,102 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f173.google.com ([209.85.192.173]:49498 "EHLO
-	mail-pd0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756184Ab3IKQIF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Sep 2013 12:08:05 -0400
+Received: from mail-pd0-f180.google.com ([209.85.192.180]:34161 "EHLO
+	mail-pd0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755166Ab3IKQIZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Sep 2013 12:08:25 -0400
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v2 01/25] Revert smp: Fix SMP function call empty cpu mask race
-Date: Thu, 12 Sep 2013 00:07:05 +0800
-Message-ID: <1378915649-16395-2-git-send-email-liuj97@gmail.com>
+Subject: [RFC PATCH v2 04/25] smp, ARM: kill SMP single function call interrupt
+Date: Thu, 12 Sep 2013 00:07:08 +0800
+Message-ID: <1378915649-16395-5-git-send-email-liuj97@gmail.com>
 In-Reply-To: <1378915649-16395-1-git-send-email-liuj97@gmail.com>
 References: <1378915649-16395-1-git-send-email-liuj97@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Shaohua Li <shli@kernel.org>
-Cc: liuj97@gmail.com, Jiang Liu <jiang.liu@huawei.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, Wang YanQing <udknight@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20130911160705.ZwmETLCPOqdkOFfrl_fIKkc8jsUamt9ZIE0zpLiUa10@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@arm.linux.org.uk>, Santosh Shilimkar <santosh.shilimkar@ti.com>, Shaohua Li <shli@kernel.org>
+Cc: liuj97@gmail.com, Jiang Liu <jiang.liu@huawei.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, Wang YanQing <udknight@gmail.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20130911160708.mr3rp2d4NgKj7JIHj_hkM2oheD62YIyewvM6KXKIfOY@z>
 
 From: Jiang Liu <jiang.liu@huawei.com>
 
-Commit f44310b98ddb7 "smp: Fix SMP function call empty cpu mask race"
-introduced field call_function_data->cpumask_ipi to resolve a race
-condition in smp_call_function_many().
-
-Later commit 9a46ad6d6df3 "smp: make smp_call_function_many() use logic
-similar to smp_call_function_single()" fixed the same issue in another
-way when optimizing smp_call_function_many(), which then obsoletes
-changes introduced by commit f44310b98ddb7. So revert it.
+Commit 9a46ad6d6df3b54 "smp: make smp_call_function_many() use logic
+similar to smp_call_function_single()" has unified the way to handle
+single and multiple cross-CPU function calls. Now only one interrupt
+is needed for architecture specific code to support generic SMP function
+call interfaces, so kill the redundant single function call interrupt.
 
 Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-Acked-by: Wang YanQing <udknight@gmail.com>
-Cc: Jiang Liu <liuj97@gmail.com>
 ---
- kernel/smp.c | 16 ++--------------
- 1 file changed, 2 insertions(+), 14 deletions(-)
+ arch/arm/include/asm/hardirq.h |  2 +-
+ arch/arm/kernel/smp.c          | 10 +---------
+ 2 files changed, 2 insertions(+), 10 deletions(-)
 
-diff --git a/kernel/smp.c b/kernel/smp.c
-index fe9f773..a034712 100644
---- a/kernel/smp.c
-+++ b/kernel/smp.c
-@@ -23,7 +23,6 @@ enum {
- struct call_function_data {
- 	struct call_single_data	__percpu *csd;
- 	cpumask_var_t		cpumask;
--	cpumask_var_t		cpumask_ipi;
+diff --git a/arch/arm/include/asm/hardirq.h b/arch/arm/include/asm/hardirq.h
+index 2740c2a..436e60b 100644
+--- a/arch/arm/include/asm/hardirq.h
++++ b/arch/arm/include/asm/hardirq.h
+@@ -5,7 +5,7 @@
+ #include <linux/threads.h>
+ #include <asm/irq.h>
+ 
+-#define NR_IPI	6
++#define NR_IPI	5
+ 
+ typedef struct {
+ 	unsigned int __softirq_pending;
+diff --git a/arch/arm/kernel/smp.c b/arch/arm/kernel/smp.c
+index 2dc1934..4ea5994 100644
+--- a/arch/arm/kernel/smp.c
++++ b/arch/arm/kernel/smp.c
+@@ -65,7 +65,6 @@ enum ipi_msg_type {
+ 	IPI_TIMER,
+ 	IPI_RESCHEDULE,
+ 	IPI_CALL_FUNC,
+-	IPI_CALL_FUNC_SINGLE,
+ 	IPI_CPU_STOP,
  };
  
- static DEFINE_PER_CPU_SHARED_ALIGNED(struct call_function_data, cfd_data);
-@@ -47,9 +46,6 @@ hotplug_cfd(struct notifier_block *nfb, unsigned long action, void *hcpu)
- 		if (!zalloc_cpumask_var_node(&cfd->cpumask, GFP_KERNEL,
- 				cpu_to_node(cpu)))
- 			return notifier_from_errno(-ENOMEM);
--		if (!zalloc_cpumask_var_node(&cfd->cpumask_ipi, GFP_KERNEL,
--				cpu_to_node(cpu)))
--			return notifier_from_errno(-ENOMEM);
- 		cfd->csd = alloc_percpu(struct call_single_data);
- 		if (!cfd->csd) {
- 			free_cpumask_var(cfd->cpumask);
-@@ -64,7 +60,6 @@ hotplug_cfd(struct notifier_block *nfb, unsigned long action, void *hcpu)
- 	case CPU_DEAD:
- 	case CPU_DEAD_FROZEN:
- 		free_cpumask_var(cfd->cpumask);
--		free_cpumask_var(cfd->cpumask_ipi);
- 		free_percpu(cfd->csd);
+@@ -475,7 +474,7 @@ void arch_send_wakeup_ipi_mask(const struct cpumask *mask)
+ 
+ void arch_send_call_function_single_ipi(int cpu)
+ {
+-	smp_cross_call(cpumask_of(cpu), IPI_CALL_FUNC_SINGLE);
++	smp_cross_call(cpumask_of(cpu), IPI_CALL_FUNC);
+ }
+ 
+ static const char *ipi_types[NR_IPI] = {
+@@ -484,7 +483,6 @@ static const char *ipi_types[NR_IPI] = {
+ 	S(IPI_TIMER, "Timer broadcast interrupts"),
+ 	S(IPI_RESCHEDULE, "Rescheduling interrupts"),
+ 	S(IPI_CALL_FUNC, "Function call interrupts"),
+-	S(IPI_CALL_FUNC_SINGLE, "Single function call interrupts"),
+ 	S(IPI_CPU_STOP, "CPU stop interrupts"),
+ };
+ 
+@@ -649,12 +647,6 @@ void handle_IPI(int ipinr, struct pt_regs *regs)
+ 		irq_exit();
  		break;
- #endif
-@@ -255,9 +250,9 @@ int smp_call_function_single(int cpu, smp_call_func_t func, void *info,
- 				csd = &__get_cpu_var(csd_data);
  
- 			csd_lock(csd);
+-	case IPI_CALL_FUNC_SINGLE:
+-		irq_enter();
+-		generic_smp_call_function_single_interrupt();
+-		irq_exit();
+-		break;
 -
- 			csd->func = func;
- 			csd->info = info;
-+
- 			generic_exec_single(cpu, csd, wait);
- 		} else {
- 			err = -ENXIO;	/* CPU not online */
-@@ -410,13 +405,6 @@ void smp_call_function_many(const struct cpumask *mask,
- 	if (unlikely(!cpumask_weight(cfd->cpumask)))
- 		return;
- 
--	/*
--	 * After we put an entry into the list, cfd->cpumask may be cleared
--	 * again when another CPU sends another IPI for a SMP function call, so
--	 * cfd->cpumask will be zero.
--	 */
--	cpumask_copy(cfd->cpumask_ipi, cfd->cpumask);
--
- 	for_each_cpu(cpu, cfd->cpumask) {
- 		struct call_single_data *csd = per_cpu_ptr(cfd->csd, cpu);
- 		struct call_single_queue *dst =
-@@ -433,7 +421,7 @@ void smp_call_function_many(const struct cpumask *mask,
- 	}
- 
- 	/* Send a message to all CPUs in the map */
--	arch_send_call_function_ipi_mask(cfd->cpumask_ipi);
-+	arch_send_call_function_ipi_mask(cfd->cpumask);
- 
- 	if (wait) {
- 		for_each_cpu(cpu, cfd->cpumask) {
+ 	case IPI_CPU_STOP:
+ 		irq_enter();
+ 		ipi_cpu_stop(cpu);
 -- 
 1.8.1.2
 
