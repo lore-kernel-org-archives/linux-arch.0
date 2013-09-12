@@ -1,129 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp01.in.ibm.com ([122.248.162.1]:60364 "EHLO
-	e28smtp01.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756310Ab3IKUHS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Sep 2013 16:07:18 -0400
-Received: from /spool/local
-	by e28smtp01.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Thu, 12 Sep 2013 01:27:40 +0530
-Message-ID: <5230CC84.1010503@linux.vnet.ibm.com>
-Date: Thu, 12 Sep 2013 01:33:16 +0530
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Received: from zene.cmpxchg.org ([85.214.230.12]:54895 "EHLO zene.cmpxchg.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753854Ab3ILM7v (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 12 Sep 2013 08:59:51 -0400
+Date: Thu, 12 Sep 2013 08:59:38 -0400
+From: Johannes Weiner <hannes@cmpxchg.org>
+Subject: Re: [patch 0/7] improve memcg oom killer robustness v2
+Message-ID: <20130912125938.GP856@cmpxchg.org>
+References: <20130803170831.GB23319@cmpxchg.org>
+ <20130830215852.3E5D3D66@pobox.sk>
+ <20130902123802.5B8E8CB1@pobox.sk>
+ <20130903204850.GA1412@cmpxchg.org>
+ <20130904101852.58E70042@pobox.sk>
+ <20130905115430.GB856@cmpxchg.org>
+ <20130905124352.GB13666@dhcp22.suse.cz>
+ <20130905161817.GD856@cmpxchg.org>
+ <20130909123625.GC22212@dhcp22.suse.cz>
+ <20130909125659.GD22212@dhcp22.suse.cz>
 MIME-Version: 1.0
-Subject: Re: [RFC PATCH v2 15/25] smp, ppc: kill SMP single function call
- interrupt
-References: <1378915649-16395-1-git-send-email-liuj97@gmail.com> <1378915649-16395-16-git-send-email-liuj97@gmail.com>
-In-Reply-To: <1378915649-16395-16-git-send-email-liuj97@gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20130909125659.GD22212@dhcp22.suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiang Liu <liuj97@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Shaohua Li <shli@kernel.org>, linux-arch@vger.kernel.org, Jiri Kosina <trivial@kernel.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Wang YanQing <udknight@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, linuxppc-dev@lists.ozlabs.org, Jiang Liu <jiang.liu@huawei.com>, Preeti U Murthy <preeti@linux.vnet.ibm.com>, Deepthi Dharwar <deepthi@linux.vnet.ibm.com>, Vaidyanathan Srinivasan <svaidy@linux.vnet.ibm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Message-ID: <20130911200316.jFHESKlgKOT_G8g_olXE8T-z1L7705r91vyjpeiAM6I@z>
+To: Michal Hocko <mhocko@suse.cz>
+Cc: Glauber Costa <glommer@gmail.com>, azurIt <azurit@pobox.sk>, Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130912125938.qRIFDwhA4XuuHgNW735QQmMBkpsM0V_mgAUoI_PaDrs@z>
 
-On 09/11/2013 09:37 PM, Jiang Liu wrote:
-> From: Jiang Liu <jiang.liu@huawei.com>
+On Mon, Sep 09, 2013 at 02:56:59PM +0200, Michal Hocko wrote:
+> [Adding Glauber - the full patch is here https://lkml.org/lkml/2013/9/5/319]
 > 
-> Commit 9a46ad6d6df3b54 "smp: make smp_call_function_many() use logic
-> similar to smp_call_function_single()" has unified the way to handle
-> single and multiple cross-CPU function calls. Now only one interrupt
-> is needed for architecture specific code to support generic SMP function
-> call interfaces, so kill the redundant single function call interrupt.
+> On Mon 09-09-13 14:36:25, Michal Hocko wrote:
+> > On Thu 05-09-13 12:18:17, Johannes Weiner wrote:
+> > [...]
+> > > From: Johannes Weiner <hannes@cmpxchg.org>
+> > > Subject: [patch] mm: memcg: do not trap chargers with full callstack on OOM
+> > > 
+> > [...]
+> > > 
+> > > To fix this, never do any OOM handling directly in the charge context.
+> > > When an OOM situation is detected, let the task remember the memcg and
+> > > then handle the OOM (kill or wait) only after the page fault stack is
+> > > unwound and about to return to userspace.
+> > 
+> > OK, this is indeed nicer because the oom setup is trivial and the
+> > handling is not split into two parts and everything happens close to
+> > out_of_memory where it is expected.
 > 
-> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-> Cc: Jiang Liu <liuj97@gmail.com>
-> ---
+> Hmm, wait a second. I have completely forgot about the kmem charging
+> path during the review.
+> 
+> So while previously memcg_charge_kmem could have oom killed a
+> task if the it couldn't charge to the u-limit after it managed
+> to charge k-limit, now it would simply fail because there is no
+> mem_cgroup_{enable,disable}_oom around __mem_cgroup_try_charge it relies
+> on. The allocation will fail in the end but I am not sure whether the
+> missing oom is an issue or not for existing use cases.
 
-It turns out that freeing up the IPI slot in powerpc is very useful, since
-we actually wanted a slot for some other use-case (and there are only 4 slots
-available on powerpc).
+Kernel sites should be able to handle -ENOMEM, right?  And if this
+nests inside a userspace fault, it'll still enter OOM.
 
-Here are the patches which achieve that:
-http://marc.info/?l=linuxppc-embedded&m=137886807502898&w=2
-http://marc.info/?l=linuxppc-embedded&m=137886811502909&w=2
+> My original objection about oom triggered from kmem paths was that oom
+> is not kmem aware so the oom decisions might be totally bogus. But we
+> still have that:
 
-So, can you kindly consider dropping the powerpc patch from your series,
-if that is OK with you? Thanks!
+Well, k should be a fraction of u+k on any reasonable setup, so there
+are always appropriate candidates to take down.
 
-BTW, after doing the powerpc cleanup, even I had thought about killing one
-of the smp-function variants in various architectures, but never got around
-to do it. But now that you have posted the series which does that, I'll try
-to review them.
+>         /*
+>          * Conditions under which we can wait for the oom_killer. Those are
+>          * the same conditions tested by the core page allocator
+>          */
+>         may_oom = (gfp & __GFP_FS) && !(gfp & __GFP_NORETRY);
+> 
+>         _memcg = memcg;
+>         ret = __mem_cgroup_try_charge(NULL, gfp, size >> PAGE_SHIFT,
+>                                       &_memcg, may_oom);
+> 
+> I do not mind having may_oom = false unconditionally in that path but I
+> would like to hear fromm Glauber first.
 
-Thank you!
-
-Regards,
-Srivatsa S. Bhat
-
->  arch/powerpc/include/asm/smp.h |  3 +--
->  arch/powerpc/kernel/smp.c      | 12 +-----------
->  2 files changed, 2 insertions(+), 13 deletions(-)
-> 
-> diff --git a/arch/powerpc/include/asm/smp.h b/arch/powerpc/include/asm/smp.h
-> index 48cfc85..53faa03 100644
-> --- a/arch/powerpc/include/asm/smp.h
-> +++ b/arch/powerpc/include/asm/smp.h
-> @@ -119,8 +119,7 @@ extern int cpu_to_core_id(int cpu);
->   * in /proc/interrupts will be wrong!!! --Troy */
->  #define PPC_MSG_CALL_FUNCTION   0
->  #define PPC_MSG_RESCHEDULE      1
-> -#define PPC_MSG_CALL_FUNC_SINGLE	2
-> -#define PPC_MSG_DEBUGGER_BREAK  3
-> +#define PPC_MSG_DEBUGGER_BREAK  2
-> 
->  /* for irq controllers that have dedicated ipis per message (4) */
->  extern int smp_request_message_ipi(int virq, int message);
-> diff --git a/arch/powerpc/kernel/smp.c b/arch/powerpc/kernel/smp.c
-> index 38b0ba6..0c53b10 100644
-> --- a/arch/powerpc/kernel/smp.c
-> +++ b/arch/powerpc/kernel/smp.c
-> @@ -123,12 +123,6 @@ static irqreturn_t reschedule_action(int irq, void *data)
->  	return IRQ_HANDLED;
->  }
-> 
-> -static irqreturn_t call_function_single_action(int irq, void *data)
-> -{
-> -	generic_smp_call_function_single_interrupt();
-> -	return IRQ_HANDLED;
-> -}
-> -
->  static irqreturn_t debug_ipi_action(int irq, void *data)
->  {
->  	if (crash_ipi_function_ptr) {
-> @@ -146,14 +140,12 @@ static irqreturn_t debug_ipi_action(int irq, void *data)
->  static irq_handler_t smp_ipi_action[] = {
->  	[PPC_MSG_CALL_FUNCTION] =  call_function_action,
->  	[PPC_MSG_RESCHEDULE] = reschedule_action,
-> -	[PPC_MSG_CALL_FUNC_SINGLE] = call_function_single_action,
->  	[PPC_MSG_DEBUGGER_BREAK] = debug_ipi_action,
->  };
-> 
->  const char *smp_ipi_name[] = {
->  	[PPC_MSG_CALL_FUNCTION] =  "ipi call function",
->  	[PPC_MSG_RESCHEDULE] = "ipi reschedule",
-> -	[PPC_MSG_CALL_FUNC_SINGLE] = "ipi call function single",
->  	[PPC_MSG_DEBUGGER_BREAK] = "ipi debugger",
->  };
-> 
-> @@ -225,8 +217,6 @@ irqreturn_t smp_ipi_demux(void)
->  			generic_smp_call_function_interrupt();
->  		if (all & (1 << (24 - 8 * PPC_MSG_RESCHEDULE)))
->  			scheduler_ipi();
-> -		if (all & (1 << (24 - 8 * PPC_MSG_CALL_FUNC_SINGLE)))
-> -			generic_smp_call_function_single_interrupt();
->  		if (all & (1 << (24 - 8 * PPC_MSG_DEBUGGER_BREAK)))
->  			debug_ipi_action(0, NULL);
->  #else
-> @@ -257,7 +247,7 @@ EXPORT_SYMBOL_GPL(smp_send_reschedule);
-> 
->  void arch_send_call_function_single_ipi(int cpu)
->  {
-> -	do_message_pass(cpu, PPC_MSG_CALL_FUNC_SINGLE);
-> +	do_message_pass(cpu, PPC_MSG_CALL_FUNCTION);
->  }
-> 
->  void arch_send_call_function_ipi_mask(const struct cpumask *mask)
-> 
-
+The patch I just sent to azur puts this conditional into try_charge(),
+so I'd just change the kmem site to pass `true'.
