@@ -1,45 +1,75 @@
-From: Mike Galbraith <bitbucket@online.de>
-Subject: Re: [PATCH 2/7] sched: Add NEED_RESCHED to the preempt_count
-Date: Thu, 12 Sep 2013 08:01:41 +0200
-Message-ID: <1378965701.10696.36.camel@marge.simpson.net>
-References: <20130910130811.507933095@infradead.org>
-	 <20130910132011.116593485@infradead.org> <522FCE9D.4010707@amacapital.net>
-	 <20130911082530.GN31370@twins.programming.kicks-ass.net>
-	 <20130911110635.GT26785@twins.programming.kicks-ass.net>
-	 <1378906497.5476.97.camel@marge.simpson.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+From: Max Filippov <jcmvbkbc@gmail.com>
+Subject: [PATCH v2] xtensa: define NO_IRQ as 0, remove other definitions
+Date: Thu, 12 Sep 2013 11:17:34 +0400
+Message-ID: <1378970254-29094-1-git-send-email-jcmvbkbc@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:64232 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753123Ab3ILGD5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Sep 2013 02:03:57 -0400
-In-Reply-To: <1378906497.5476.97.camel@marge.simpson.net>
+Received: from mail-la0-f41.google.com ([209.85.215.41]:53134 "EHLO
+	mail-la0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752051Ab3ILHRv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Sep 2013 03:17:51 -0400
+Received: by mail-la0-f41.google.com with SMTP id ec20so8251346lab.14
+        for <linux-arch@vger.kernel.org>; Thu, 12 Sep 2013 00:17:50 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Andy Lutomirski <luto@amacapital.net>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Len Brown <lenb@kernel.org>, Vaidyanathan Srinivasan <svaidy@linux.vnet.ibm.com>
+To: Chris Zankel <chris@zankel.net>
+Cc: Marc Gauthier <marc@tensilica.com>, Baruch Siach <baruch@tkos.co.il>, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Max Filippov <jcmvbkbc@gmail.com>
 
-On Wed, 2013-09-11 at 15:34 +0200, Mike Galbraith wrote: 
-> On Wed, 2013-09-11 at 13:06 +0200, Peter Zijlstra wrote: 
+This fixes the following allmodconfig build error:
 
-> > Mike does it fix the funny you saw?
-> 
-> Yup, modulo test_need_resched() not existing in master.
+sound/soc/fsl/fsl_ssi.c: In function 'fsl_ssi_probe':
+sound/soc/fsl/fsl_ssi.c:939:26: error: 'NO_IRQ' undeclared (first use in this function)
 
-...
+Previous definitions (-1) were correct when used as a hardware IRQ number,
+but are incorrect as a mapped IRQ number.
 
-> while I haven't yet booted Q6600 box, core2
-> Toshiba Satellite lappy is using mwait_idle_with_hints() in master.
+Signed-off-by: Max Filippov <jcmvbkbc@gmail.com>
+---
+ arch/xtensa/include/asm/irq.h                      |    4 ++++
+ .../platforms/xtfpga/include/platform/hardware.h   |    4 ----
+ arch/xtensa/variants/s6000/include/variant/irq.h   |    1 -
+ 3 files changed, 4 insertions(+), 5 deletions(-)
 
-Heh.  Core2 lappy uses mwait_idle_with_hints().. unless you boot
-processor.max_cstate=1 so it doesn't use piece of shite hpet.  Q6600
-always has idle woes, seemingly because box doesn't do deep enough
-cstate to make something (acpi?) happy, despite mwait_idle() having
-worked fine for years.
-
-Seems I need to find the cstate dependency spot, and rap it upside the
-head if I want my core2 boxen to regain happy campers status.
-
--Mike
+diff --git a/arch/xtensa/include/asm/irq.h b/arch/xtensa/include/asm/irq.h
+index 268eec5..56a9503 100644
+--- a/arch/xtensa/include/asm/irq.h
++++ b/arch/xtensa/include/asm/irq.h
+@@ -22,6 +22,10 @@ static inline void variant_irq_enable(unsigned int irq) { }
+ static inline void variant_irq_disable(unsigned int irq) { }
+ #endif
+ 
++#ifndef NO_IRQ
++#define NO_IRQ	0
++#endif
++
+ #ifndef VARIANT_NR_IRQS
+ # define VARIANT_NR_IRQS 0
+ #endif
+diff --git a/arch/xtensa/platforms/xtfpga/include/platform/hardware.h b/arch/xtensa/platforms/xtfpga/include/platform/hardware.h
+index 4060297..42a731b 100644
+--- a/arch/xtensa/platforms/xtfpga/include/platform/hardware.h
++++ b/arch/xtensa/platforms/xtfpga/include/platform/hardware.h
+@@ -15,10 +15,6 @@
+ #ifndef __XTENSA_XTAVNET_HARDWARE_H
+ #define __XTENSA_XTAVNET_HARDWARE_H
+ 
+-/* By default NO_IRQ is defined to 0 in Linux, but we use the
+-   interrupt 0 for UART... */
+-#define NO_IRQ                 -1
+-
+ /* Memory configuration. */
+ 
+ #define PLATFORM_DEFAULT_MEM_START 0x00000000
+diff --git a/arch/xtensa/variants/s6000/include/variant/irq.h b/arch/xtensa/variants/s6000/include/variant/irq.h
+index 97d6fc4..39ca751 100644
+--- a/arch/xtensa/variants/s6000/include/variant/irq.h
++++ b/arch/xtensa/variants/s6000/include/variant/irq.h
+@@ -1,7 +1,6 @@
+ #ifndef _XTENSA_S6000_IRQ_H
+ #define _XTENSA_S6000_IRQ_H
+ 
+-#define NO_IRQ		(-1)
+ #define VARIANT_NR_IRQS 8 /* GPIO interrupts */
+ 
+ extern void variant_irq_enable(unsigned int irq);
+-- 
+1.7.7.6
