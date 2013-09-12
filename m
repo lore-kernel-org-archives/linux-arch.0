@@ -1,51 +1,34 @@
-From: Max Filippov <jcmvbkbc@gmail.com>
-Subject: Re: [PATCH v2] xtensa: define NO_IRQ as 0, remove other definitions
-Date: Thu, 12 Sep 2013 11:43:07 +0400
-Message-ID: <CAMo8Bf+_9pqL+2C-BU5e4S9-jkGNbA-cXu_Rc_V8TcEb_n+BgQ@mail.gmail.com>
-References: <1378970254-29094-1-git-send-email-jcmvbkbc@gmail.com>
-	<CAMuHMdVko5v2vma+spq_XhzaESVNOT5PdBgmEgFZQhRXamNhmw@mail.gmail.com>
+From: Paul Mundt <lethal@linux-sh.org>
+Subject: Re: [RFC PATCH v2 17/25] smp, sh: kill SMP single function call
+ interrupt
+Date: Thu, 12 Sep 2013 17:35:14 +0900
+Message-ID: <20130912083514.GA13647@linux-sh.org>
+References: <1378915649-16395-1-git-send-email-liuj97@gmail.com>
+ <1378915649-16395-18-git-send-email-liuj97@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f175.google.com ([209.85.223.175]:45719 "EHLO
-	mail-ie0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752068Ab3ILHnH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Sep 2013 03:43:07 -0400
-Received: by mail-ie0-f175.google.com with SMTP id e14so431618iej.34
-        for <linux-arch@vger.kernel.org>; Thu, 12 Sep 2013 00:43:07 -0700 (PDT)
-In-Reply-To: <CAMuHMdVko5v2vma+spq_XhzaESVNOT5PdBgmEgFZQhRXamNhmw@mail.gmail.com>
+Received: from sub0000499296.hmk-temp.com ([153.122.6.145]:51585 "EHLO
+	master.linux-sh.org" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1751914Ab3ILIoV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Sep 2013 04:44:21 -0400
+Content-Disposition: inline
+In-Reply-To: <1378915649-16395-18-git-send-email-liuj97@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Chris Zankel <chris@zankel.net>, Marc Gauthier <marc@tensilica.com>, Baruch Siach <baruch@tkos.co.il>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: Jiang Liu <liuj97@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Shaohua Li <shli@kernel.org>, Jiang Liu <jiang.liu@huawei.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, Wang YanQing <udknight@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Thu, Sep 12, 2013 at 11:26 AM, Geert Uytterhoeven
-<geert@linux-m68k.org> wrote:
-> On Thu, Sep 12, 2013 at 9:17 AM, Max Filippov <jcmvbkbc@gmail.com> wrote:
->>
->> sound/soc/fsl/fsl_ssi.c: In function 'fsl_ssi_probe':
->> sound/soc/fsl/fsl_ssi.c:939:26: error: 'NO_IRQ' undeclared (first use in this function)
->>
->> Previous definitions (-1) were correct when used as a hardware IRQ number,
->> but are incorrect as a mapped IRQ number.
->>
->> Signed-off-by: Max Filippov <jcmvbkbc@gmail.com>
->> ---
->>  arch/xtensa/include/asm/irq.h                      |    4 ++++
->>  .../platforms/xtfpga/include/platform/hardware.h   |    4 ----
->>  arch/xtensa/variants/s6000/include/variant/irq.h   |    1 -
->>  3 files changed, 4 insertions(+), 5 deletions(-)
->
-> Shouldn't sound/soc/fsl/fsl_ssi.c be changed instead:
->
-> -if (ssi_private->irq == NO_IRQ) {
-> +if (!ssi_private->irq) {
+On Thu, Sep 12, 2013 at 12:07:21AM +0800, Jiang Liu wrote:
+> From: Jiang Liu <jiang.liu@huawei.com>
+> 
+> Commit 9a46ad6d6df3b54 "smp: make smp_call_function_many() use logic
+> similar to smp_call_function_single()" has unified the way to handle
+> single and multiple cross-CPU function calls. Now only one interrupt
+> is needed for architecture specific code to support generic SMP function
+> call interfaces, so kill the redundant single function call interrupt.
+> 
+> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+> Cc: Jiang Liu <liuj97@gmail.com>
 
-I agree, this needs to be fixed too.
-
-> Cfr. the thread https://lkml.org/lkml/2013/7/25/642
-
-I saw that thread and I don't see that patch applied anywhere.
-
-Thanks.
--- Max
+Acked-by: Paul Mundt <lethal@linux-sh.org>
