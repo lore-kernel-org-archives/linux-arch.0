@@ -1,45 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f49.google.com ([209.85.160.49]:47470 "EHLO
-	mail-pb0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752208Ab3ILTLY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Sep 2013 15:11:24 -0400
-MIME-Version: 1.0
-In-Reply-To: <1379012038-31764-1-git-send-email-msalter@redhat.com>
-References: <1379012038-31764-1-git-send-email-msalter@redhat.com>
-Date: Thu, 12 Sep 2013 21:11:23 +0200
-Message-ID: <CAMuHMdUDsYwJeJQi=yZBY7CfXxhd7RsFUUcZKns8z-5JqX=00g@mail.gmail.com>
+Received: from mx1.redhat.com ([209.132.183.28]:2137 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753638Ab3ILTTs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 12 Sep 2013 15:19:48 -0400
+Message-ID: <1379013584.14495.4.camel@deneb.redhat.com>
 Subject: Re: [PATCH] Kconfig cleanup (PARPORT_PC dependencies)
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
+From: Mark Salter <msalter@redhat.com>
+Date: Thu, 12 Sep 2013 15:19:44 -0400
+In-Reply-To: <52321022.6060907@tilera.com>
+References: <1379012038-31764-1-git-send-email-msalter@redhat.com>
+	 <52321022.6060907@tilera.com>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Salter <msalter@redhat.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@tilera.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <20130912191123.1jz9SfmDCCYP017x8S6W0MsdARp9JNg9h6UkPSGJAAI@z>
+To: Chris Metcalf <cmetcalf@tilera.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130912191944.5s7p30-BjVv5hXAfLCO5ciN3vAxmT_8dCtEnA8R56Y8@z>
 
-On Thu, Sep 12, 2013 at 8:53 PM, Mark Salter <msalter@redhat.com> wrote:
-> Remove messy dependencies from PARPORT_PC by having it depend on one
-> Kconfig symbol (ARCH_MAY_HAVE_PC_PARPORT) and having architectures
-> which need it declare ARCH_MAY_HAVE_PC_PARPORT in arch/*/Kconfig.
-> New architectures are unlikely to need PARPORT_PC, so this avoids
-> having an ever growing list of architectures to exclude. Those
-> architectures which do declare ARCH_MAY_HAVE_PC_PARPORT in this
-> patch are the ones which have an asm/parport.h.
->
-> Signed-off-by: Mark Salter <msalter@redhat.com>
+On Thu, 2013-09-12 at 15:04 -0400, Chris Metcalf wrote:
+> On 9/12/2013 2:53 PM, Mark Salter wrote:
+> > Remove messy dependencies from PARPORT_PC by having it depend on one
+> > Kconfig symbol (ARCH_MAY_HAVE_PC_PARPORT) and having architectures
+> > which need it declare ARCH_MAY_HAVE_PC_PARPORT in arch/*/Kconfig.
+> > New architectures are unlikely to need PARPORT_PC, so this avoids
+> > having an ever growing list of architectures to exclude. Those
+> > architectures which do declare ARCH_MAY_HAVE_PC_PARPORT in this
+> > patch are the ones which have an asm/parport.h.
+> >
+> > Signed-off-by: Mark Salter <msalter@redhat.com>
+> 
+> You can actually omit the arch/tile change, since as far as I know there's no way for tile to have PARPORT_PC.
+> 
 
-Thanks!
+Yeah, I thought that the list of architectures in the patch would end up
+being a superset of what was really needed. Especially for those which
+used the generic parport.h. I can drop tile from this patch but you may
+want to get rid of the parport.h from arch/tile/include/asm/Kbuild.
 
-For the m68k part:
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
