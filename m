@@ -1,87 +1,85 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH 0/7] preempt_count rework -v2
-Date: Thu, 12 Sep 2013 14:25:34 +0200
-Message-ID: <20130912122534.GA18794@gmail.com>
-References: <CA+55aFz7WtcdkwKEGoqCzmC9HsY0LPK-oVK_oATYhRnbGq=2GA@mail.gmail.com>
- <20130910212509.GA18147@laptop.programming.kicks-ass.net>
- <CA+55aFxsEYQPXnoxNXAeSPEkk3uT8iq-_KJVe2M2qZZbtL=cbA@mail.gmail.com>
- <20130911131323.GQ31370@twins.programming.kicks-ass.net>
- <CA+55aFyxcHvQUe_h8cyQrNbGJ6-G_NQnK9pVenABLjCF-7WMXg@mail.gmail.com>
- <20130911185944.GA1798@laptop.programming.kicks-ass.net>
- <CA+55aFxDbqeFumkVApf-L2pi+FQn06GQqQf4rWkzOC4LF=fn=A@mail.gmail.com>
- <20130912022040.GT31370@twins.programming.kicks-ass.net>
- <CA+55aFwdS5-U8UtjZ8qsKyn7ap05MPXMFeU-GXgU2PE5KrCrHg@mail.gmail.com>
- <20130912115155.GV31370@twins.programming.kicks-ass.net>
+From: Johannes Weiner <hannes@cmpxchg.org>
+Subject: Re: [patch 0/7] improve memcg oom killer robustness v2
+Date: Thu, 12 Sep 2013 08:59:38 -0400
+Message-ID: <20130912125938.GP856@cmpxchg.org>
+References: <20130803170831.GB23319@cmpxchg.org>
+ <20130830215852.3E5D3D66@pobox.sk>
+ <20130902123802.5B8E8CB1@pobox.sk>
+ <20130903204850.GA1412@cmpxchg.org>
+ <20130904101852.58E70042@pobox.sk>
+ <20130905115430.GB856@cmpxchg.org>
+ <20130905124352.GB13666@dhcp22.suse.cz>
+ <20130905161817.GD856@cmpxchg.org>
+ <20130909123625.GC22212@dhcp22.suse.cz>
+ <20130909125659.GD22212@dhcp22.suse.cz>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bk0-f54.google.com ([209.85.214.54]:41793 "EHLO
-	mail-bk0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753530Ab3ILMZi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Sep 2013 08:25:38 -0400
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <20130912115155.GV31370@twins.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+In-Reply-To: <20130909125659.GD22212@dhcp22.suse.cz>
+Sender: owner-linux-mm@kvack.org
+To: Michal Hocko <mhocko@suse.cz>
+Cc: Glauber Costa <glommer@gmail.com>, azurIt <azurit@pobox.sk>, Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-
-* Peter Zijlstra <peterz@infradead.org> wrote:
-
-> So the increase is there too, doing a objdump -D on them the first 
-> difference is:
+On Mon, Sep 09, 2013 at 02:56:59PM +0200, Michal Hocko wrote:
+> [Adding Glauber - the full patch is here https://lkml.org/lkml/2013/9/5/319]
 > 
-> 0000000000000660 <do_page_add_anon_rmap>:
->      660:	55                   	push   %rbp
->      661:	48 89 e5             	mov    %rsp,%rbp
->      664:	48 83 ec 20          	sub    $0x20,%rsp
->      668:	48 89 5d f0          	mov    %rbx,-0x10(%rbp)
->      66c:	4c 89 65 f8          	mov    %r12,-0x8(%rbp)
->      670:	48 89 fb             	mov    %rdi,%rbx
->      673:	f0 ff 47 18          	lock incl 0x18(%rdi)
->      677:	0f 94 c0             	sete   %al
->      67a:	84 c0                	test   %al,%al
->      67c:	75 12                	jne    690 <do_page_add_anon_rmap+0x30>
->      67e:	48 8b 5d f0          	mov    -0x10(%rbp),%rbx
->      682:	4c 8b 65 f8          	mov    -0x8(%rbp),%r12
->      686:	c9                   	leaveq 
+> On Mon 09-09-13 14:36:25, Michal Hocko wrote:
+> > On Thu 05-09-13 12:18:17, Johannes Weiner wrote:
+> > [...]
+> > > From: Johannes Weiner <hannes@cmpxchg.org>
+> > > Subject: [patch] mm: memcg: do not trap chargers with full callstack on OOM
+> > > 
+> > [...]
+> > > 
+> > > To fix this, never do any OOM handling directly in the charge context.
+> > > When an OOM situation is detected, let the task remember the memcg and
+> > > then handle the OOM (kill or wait) only after the page fault stack is
+> > > unwound and about to return to userspace.
+> > 
+> > OK, this is indeed nicer because the oom setup is trivial and the
+> > handling is not split into two parts and everything happens close to
+> > out_of_memory where it is expected.
 > 
-> vs.:
+> Hmm, wait a second. I have completely forgot about the kmem charging
+> path during the review.
 > 
-> 0000000000000660 <do_page_add_anon_rmap>:
->      660:	55                   	push   %rbp
->      661:	48 89 e5             	mov    %rsp,%rbp
->      664:	48 83 ec 20          	sub    $0x20,%rsp
->      668:	48 89 5d e0          	mov    %rbx,-0x20(%rbp)
->      66c:	4c 89 65 e8          	mov    %r12,-0x18(%rbp)
->      670:	48 89 fb             	mov    %rdi,%rbx
->      673:	4c 89 6d f0          	mov    %r13,-0x10(%rbp)
->      677:	4c 89 75 f8          	mov    %r14,-0x8(%rbp)
->      67b:	f0 ff 47 18          	lock incl 0x18(%rdi)
->      67f:	74 17                	je     698 <do_page_add_anon_rmap+0x38>
->      681:	48 8b 5d e0          	mov    -0x20(%rbp),%rbx
->      685:	4c 8b 65 e8          	mov    -0x18(%rbp),%r12
->      689:	4c 8b 6d f0          	mov    -0x10(%rbp),%r13
->      68d:	4c 8b 75 f8          	mov    -0x8(%rbp),%r14
->      691:	c9                   	leaveq 
+> So while previously memcg_charge_kmem could have oom killed a
+> task if the it couldn't charge to the u-limit after it managed
+> to charge k-limit, now it would simply fail because there is no
+> mem_cgroup_{enable,disable}_oom around __mem_cgroup_try_charge it relies
+> on. The allocation will fail in the end but I am not sure whether the
+> missing oom is an issue or not for existing use cases.
+
+Kernel sites should be able to handle -ENOMEM, right?  And if this
+nests inside a userspace fault, it'll still enter OOM.
+
+> My original objection about oom triggered from kmem paths was that oom
+> is not kmem aware so the oom decisions might be totally bogus. But we
+> still have that:
+
+Well, k should be a fraction of u+k on any reasonable setup, so there
+are always appropriate candidates to take down.
+
+>         /*
+>          * Conditions under which we can wait for the oom_killer. Those are
+>          * the same conditions tested by the core page allocator
+>          */
+>         may_oom = (gfp & __GFP_FS) && !(gfp & __GFP_NORETRY);
 > 
-> For some obscure (to me) reason the new fangled asm goto construct 
-> generates a bunch of extra MOVs.
+>         _memcg = memcg;
+>         ret = __mem_cgroup_try_charge(NULL, gfp, size >> PAGE_SHIFT,
+>                                       &_memcg, may_oom);
+> 
+> I do not mind having may_oom = false unconditionally in that path but I
+> would like to hear fromm Glauber first.
 
-It adds two pairs of MOVs that shows that R13 and R14 got clobbered, but 
-the change also got rid of of a SETE and a TEST here:
+The patch I just sent to azur puts this conditional into try_charge(),
+so I'd just change the kmem site to pass `true'.
 
->      673:	f0 ff 47 18          	lock incl 0x18(%rdi)
->      677:	0f 94 c0             	sete   %al
->      67a:	84 c0                	test   %al,%al
->      67c:	75 12                	jne    690 <do_page_add_anon_rmap+0x30>
-
-so there's a slight increase in size, but the extra instructions look 
-rather lightweight and it could all go away if asm goto is improved ...
-
-It would all be very sweet if all those clobbers went away.
-
-Thanks,
-
-	Ingo
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
