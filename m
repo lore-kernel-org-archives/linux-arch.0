@@ -1,36 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.snhosting.dk ([87.238.248.203]:43578 "EHLO
-	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755807Ab3ILUcG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Sep 2013 16:32:06 -0400
-Date: Thu, 12 Sep 2013 22:32:04 +0200
-From: Sam Ravnborg <sam@ravnborg.org>
+Received: from mx1.redhat.com ([209.132.183.28]:3939 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753127Ab3ILVWk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 12 Sep 2013 17:22:40 -0400
+Message-ID: <1379020912.14495.23.camel@deneb.redhat.com>
 Subject: Re: [PATCH] Kconfig cleanup (PARPORT_PC dependencies)
-Message-ID: <20130912203204.GA26170@merkur.ravnborg.org>
+From: Mark Salter <msalter@redhat.com>
+Date: Thu, 12 Sep 2013 17:21:52 -0400
+In-Reply-To: <20130912203204.GA26170@merkur.ravnborg.org>
 References: <1379012038-31764-1-git-send-email-msalter@redhat.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1379012038-31764-1-git-send-email-msalter@redhat.com>
+	 <20130912203204.GA26170@merkur.ravnborg.org>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Salter <msalter@redhat.com>
+To: Sam Ravnborg <sam@ravnborg.org>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, tony.luck@intel.com, geert@linux-m68k.org, monstr@monstr.eu, ralf@linux-mips.org, jejb@parisc-linux.org, benh@kernel.crashing.org, lethal@linux-sh.org, davem@davemloft.net, cmetcalf@tilera.com, gxt@mprc.pku.edu.cn, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com
-Message-ID: <20130912203204.0gUD8oaclky-kzv5mLOh7zBduURjZKUVF72cXkZlA2E@z>
+Message-ID: <20130912212152.02dVlHkCQCcEsllYZ9yXDHLMm_R3WBa-_-C5NIiseMw@z>
 
-On Thu, Sep 12, 2013 at 02:53:58PM -0400, Mark Salter wrote:
-> Remove messy dependencies from PARPORT_PC by having it depend on one
-> Kconfig symbol (ARCH_MAY_HAVE_PC_PARPORT) and having architectures
-> which need it declare ARCH_MAY_HAVE_PC_PARPORT in arch/*/Kconfig.
-> New architectures are unlikely to need PARPORT_PC, so this avoids
-> having an ever growing list of architectures to exclude. Those
-> architectures which do declare ARCH_MAY_HAVE_PC_PARPORT in this
-> patch are the ones which have an asm/parport.h.
+On Thu, 2013-09-12 at 22:32 +0200, Sam Ravnborg wrote:
+> It is much nicer if you provide a config symbol only once.
+> And then let the architectures who want it select this symbol.
+> 
+> This is the pattern we use for similar things in many places today,
+> so it is best to follow that pattern.
 
-It is much nicer if you provide a config symbol only once.
-And then let the architectures who want it select this symbol.
+Okay, I'm ahead of you on that. I actually had two versions of the
+patch. The other uses select. If that is the preferred way these
+days, I'll go with it for V2 of the patch.
 
-This is the pattern we use for similar things in many places today,
-so it is best to follow that pattern.
 
-	Sam
