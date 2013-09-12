@@ -1,133 +1,256 @@
-From: Jiang Liu <liuj97@gmail.com>
-Subject: Re: [RFC PATCH v2 15/25] smp, ppc: kill SMP single function call
- interrupt
-Date: Thu, 12 Sep 2013 22:04:35 +0800
-Message-ID: <5231C9F3.4060208@gmail.com>
-References: <1378915649-16395-1-git-send-email-liuj97@gmail.com> <1378915649-16395-16-git-send-email-liuj97@gmail.com> <5230CC84.1010503@linux.vnet.ibm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+From: Mark Salter <msalter@redhat.com>
+Subject: [PATCH] Kconfig cleanup (PARPORT_PC dependencies)
+Date: Thu, 12 Sep 2013 14:53:58 -0400
+Message-ID: <1379012038-31764-1-git-send-email-msalter@redhat.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f50.google.com ([209.85.220.50]:53603 "EHLO
-	mail-pa0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751359Ab3ILOE6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Sep 2013 10:04:58 -0400
-In-Reply-To: <5230CC84.1010503@linux.vnet.ibm.com>
+Received: from mx1.redhat.com ([209.132.183.28]:17438 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753406Ab3ILSzP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 12 Sep 2013 14:55:15 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Shaohua Li <shli@kernel.org>, linux-arch@vger.kernel.org, Jiri Kosina <trivial@kernel.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Wang YanQing <udknight@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, linuxppc-dev@lists.ozlabs.org, Jiang Liu <jiang.liu@huawei.com>, Preeti U Murthy <preeti@linux.vnet.ibm.com>, Deepthi Dharwar <deepthi@linux.vnet.ibm.com>, Vaidyanathan Srinivasan <svaidy@linux.vnet.ibm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, tony.luck@intel.com, geert@linux-m68k.org, monstr@monstr.eu, ralf@linux-mips.org, jejb@parisc-linux.org, benh@kernel.crashing.org, lethal@linux-sh.org, davem@davemloft.net, cmetcalf@tilera.com, gxt@mprc.pku.edu.cn, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, Mark Salter <msalter@redhat.com>
 
-On 09/12/2013 04:03 AM, Srivatsa S. Bhat wrote:
-> On 09/11/2013 09:37 PM, Jiang Liu wrote:
->> From: Jiang Liu <jiang.liu@huawei.com>
->>
->> Commit 9a46ad6d6df3b54 "smp: make smp_call_function_many() use logic
->> similar to smp_call_function_single()" has unified the way to handle
->> single and multiple cross-CPU function calls. Now only one interrupt
->> is needed for architecture specific code to support generic SMP function
->> call interfaces, so kill the redundant single function call interrupt.
->>
->> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
->> Cc: Jiang Liu <liuj97@gmail.com>
->> ---
-> 
-> It turns out that freeing up the IPI slot in powerpc is very useful, since
-> we actually wanted a slot for some other use-case (and there are only 4 slots
-> available on powerpc).
-> 
-> Here are the patches which achieve that:
-> http://marc.info/?l=linuxppc-embedded&m=137886807502898&w=2
-> http://marc.info/?l=linuxppc-embedded&m=137886811502909&w=2
-Hi Srivatsa,
-	That's great and I will drop this patch from my series.
-Could you please to kill call_function_single_action() instead of
-call_function_action()? Please refer to
-http://lkml.org/lkml/2013/9/11/579
-Regards!
-Gerry
+Remove messy dependencies from PARPORT_PC by having it depend on one
+Kconfig symbol (ARCH_MAY_HAVE_PC_PARPORT) and having architectures
+which need it declare ARCH_MAY_HAVE_PC_PARPORT in arch/*/Kconfig.
+New architectures are unlikely to need PARPORT_PC, so this avoids
+having an ever growing list of architectures to exclude. Those
+architectures which do declare ARCH_MAY_HAVE_PC_PARPORT in this
+patch are the ones which have an asm/parport.h.
 
-> 
-> So, can you kindly consider dropping the powerpc patch from your series,
-> if that is OK with you? Thanks!
-> 
-> BTW, after doing the powerpc cleanup, even I had thought about killing one
-> of the smp-function variants in various architectures, but never got around
-> to do it. But now that you have posted the series which does that, I'll try
-> to review them.
-> 
-> Thank you!
-> 
-> Regards,
-> Srivatsa S. Bhat
-> 
->>  arch/powerpc/include/asm/smp.h |  3 +--
->>  arch/powerpc/kernel/smp.c      | 12 +-----------
->>  2 files changed, 2 insertions(+), 13 deletions(-)
->>
->> diff --git a/arch/powerpc/include/asm/smp.h b/arch/powerpc/include/asm/smp.h
->> index 48cfc85..53faa03 100644
->> --- a/arch/powerpc/include/asm/smp.h
->> +++ b/arch/powerpc/include/asm/smp.h
->> @@ -119,8 +119,7 @@ extern int cpu_to_core_id(int cpu);
->>   * in /proc/interrupts will be wrong!!! --Troy */
->>  #define PPC_MSG_CALL_FUNCTION   0
->>  #define PPC_MSG_RESCHEDULE      1
->> -#define PPC_MSG_CALL_FUNC_SINGLE	2
->> -#define PPC_MSG_DEBUGGER_BREAK  3
->> +#define PPC_MSG_DEBUGGER_BREAK  2
->>
->>  /* for irq controllers that have dedicated ipis per message (4) */
->>  extern int smp_request_message_ipi(int virq, int message);
->> diff --git a/arch/powerpc/kernel/smp.c b/arch/powerpc/kernel/smp.c
->> index 38b0ba6..0c53b10 100644
->> --- a/arch/powerpc/kernel/smp.c
->> +++ b/arch/powerpc/kernel/smp.c
->> @@ -123,12 +123,6 @@ static irqreturn_t reschedule_action(int irq, void *data)
->>  	return IRQ_HANDLED;
->>  }
->>
->> -static irqreturn_t call_function_single_action(int irq, void *data)
->> -{
->> -	generic_smp_call_function_single_interrupt();
->> -	return IRQ_HANDLED;
->> -}
->> -
->>  static irqreturn_t debug_ipi_action(int irq, void *data)
->>  {
->>  	if (crash_ipi_function_ptr) {
->> @@ -146,14 +140,12 @@ static irqreturn_t debug_ipi_action(int irq, void *data)
->>  static irq_handler_t smp_ipi_action[] = {
->>  	[PPC_MSG_CALL_FUNCTION] =  call_function_action,
->>  	[PPC_MSG_RESCHEDULE] = reschedule_action,
->> -	[PPC_MSG_CALL_FUNC_SINGLE] = call_function_single_action,
->>  	[PPC_MSG_DEBUGGER_BREAK] = debug_ipi_action,
->>  };
->>
->>  const char *smp_ipi_name[] = {
->>  	[PPC_MSG_CALL_FUNCTION] =  "ipi call function",
->>  	[PPC_MSG_RESCHEDULE] = "ipi reschedule",
->> -	[PPC_MSG_CALL_FUNC_SINGLE] = "ipi call function single",
->>  	[PPC_MSG_DEBUGGER_BREAK] = "ipi debugger",
->>  };
->>
->> @@ -225,8 +217,6 @@ irqreturn_t smp_ipi_demux(void)
->>  			generic_smp_call_function_interrupt();
->>  		if (all & (1 << (24 - 8 * PPC_MSG_RESCHEDULE)))
->>  			scheduler_ipi();
->> -		if (all & (1 << (24 - 8 * PPC_MSG_CALL_FUNC_SINGLE)))
->> -			generic_smp_call_function_single_interrupt();
->>  		if (all & (1 << (24 - 8 * PPC_MSG_DEBUGGER_BREAK)))
->>  			debug_ipi_action(0, NULL);
->>  #else
->> @@ -257,7 +247,7 @@ EXPORT_SYMBOL_GPL(smp_send_reschedule);
->>
->>  void arch_send_call_function_single_ipi(int cpu)
->>  {
->> -	do_message_pass(cpu, PPC_MSG_CALL_FUNC_SINGLE);
->> +	do_message_pass(cpu, PPC_MSG_CALL_FUNCTION);
->>  }
->>
->>  void arch_send_call_function_ipi_mask(const struct cpumask *mask)
->>
-> 
+Signed-off-by: Mark Salter <msalter@redhat.com>
+---
+ arch/alpha/Kconfig      | 3 +++
+ arch/arc/Kconfig        | 3 +++
+ arch/arm/Kconfig        | 3 +++
+ arch/ia64/Kconfig       | 3 +++
+ arch/m68k/Kconfig       | 4 ++++
+ arch/microblaze/Kconfig | 3 +++
+ arch/mips/Kconfig       | 3 +++
+ arch/parisc/Kconfig     | 3 +++
+ arch/powerpc/Kconfig    | 3 +++
+ arch/sh/Kconfig         | 3 +++
+ arch/sparc/Kconfig      | 4 ++++
+ arch/tile/Kconfig       | 3 +++
+ arch/unicore32/Kconfig  | 3 +++
+ arch/x86/Kconfig        | 3 +++
+ drivers/parport/Kconfig | 4 +---
+ 15 files changed, 45 insertions(+), 3 deletions(-)
+
+diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
+index 082d9b4..0f8fa2c 100644
+--- a/arch/alpha/Kconfig
++++ b/arch/alpha/Kconfig
+@@ -520,6 +520,9 @@ config EISA
+ config ARCH_MAY_HAVE_PC_FDC
+ 	def_bool y
+ 
++config ARCH_MAY_HAVE_PC_PARPORT
++	def_bool y
++
+ config SMP
+ 	bool "Symmetric multi-processing support"
+ 	depends on ALPHA_SABLE || ALPHA_LYNX || ALPHA_RAWHIDE || ALPHA_DP264 || ALPHA_WILDFIRE || ALPHA_TITAN || ALPHA_GENERIC || ALPHA_SHARK || ALPHA_MARVEL
+diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+index 68fcbb2..fb24bb2 100644
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@ -70,6 +70,9 @@ config HAVE_LATENCYTOP_SUPPORT
+ config NO_DMA
+ 	def_bool n
+ 
++config ARCH_MAY_HAVE_PC_PARPORT
++	def_bool y
++
+ source "init/Kconfig"
+ source "kernel/Kconfig.freezer"
+ 
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index b5eee26..5ded688 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -71,6 +71,9 @@ config ARM
+ 	  Europe.  There is an ARM Linux project with a web page at
+ 	  <http://www.arm.linux.org.uk/>.
+ 
++config ARCH_MAY_HAVE_PC_PARPORT
++	def_bool y
++
+ config ARM_HAS_SG_CHAIN
+ 	bool
+ 
+diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
+index a86a56d..3ae7dd3 100644
+--- a/arch/ia64/Kconfig
++++ b/arch/ia64/Kconfig
+@@ -126,6 +126,9 @@ config AUDIT_ARCH
+ 	bool
+ 	default y
+ 
++config ARCH_MAY_HAVE_PC_PARPORT
++	def_bool y
++
+ menuconfig PARAVIRT_GUEST
+ 	bool "Paravirtualized guest support"
+ 	depends on BROKEN
+diff --git a/arch/m68k/Kconfig b/arch/m68k/Kconfig
+index 821170e..dadea9a 100644
+--- a/arch/m68k/Kconfig
++++ b/arch/m68k/Kconfig
+@@ -35,6 +35,10 @@ config ARCH_HAS_ILOG2_U32
+ config ARCH_HAS_ILOG2_U64
+ 	bool
+ 
++config ARCH_MAY_HAVE_PC_PARPORT
++	depends on ISA
++	def_bool y
++
+ config GENERIC_HWEIGHT
+ 	bool
+ 	default y
+diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
+index 3f6659c..00c3443 100644
+--- a/arch/microblaze/Kconfig
++++ b/arch/microblaze/Kconfig
+@@ -67,6 +67,9 @@ config LOCKDEP_SUPPORT
+ config HAVE_LATENCYTOP_SUPPORT
+ 	def_bool y
+ 
++config ARCH_MAY_HAVE_PC_PARPORT
++	def_bool y
++
+ source "init/Kconfig"
+ 
+ source "kernel/Kconfig.freezer"
+diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+index 71f15e7..e8d5d33 100644
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -861,6 +861,9 @@ config FW_ARC
+ config ARCH_MAY_HAVE_PC_FDC
+ 	bool
+ 
++config ARCH_MAY_HAVE_PC_PARPORT
++	def_bool y
++
+ config BOOT_RAW
+ 	bool
+ 
+diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
+index aa399a5..d2dcd1b 100644
+--- a/arch/parisc/Kconfig
++++ b/arch/parisc/Kconfig
+@@ -102,6 +102,9 @@ config ARCH_MAY_HAVE_PC_FDC
+ 	depends on BROKEN
+ 	default y
+ 
++config ARCH_MAY_HAVE_PC_PARPORT
++	def_bool y
++
+ source "init/Kconfig"
+ 
+ source "kernel/Kconfig.freezer"
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 6b7530f..e706eea 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -169,6 +169,9 @@ config ARCH_MAY_HAVE_PC_FDC
+ 	bool
+ 	default !PPC_PSERIES || PCI
+ 
++config ARCH_MAY_HAVE_PC_PARPORT
++	def_bool y
++
+ config PPC_OF
+ 	def_bool y
+ 
+diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
+index 1018ed3..f49c057 100644
+--- a/arch/sh/Kconfig
++++ b/arch/sh/Kconfig
+@@ -143,6 +143,9 @@ config HAVE_LATENCYTOP_SUPPORT
+ config ARCH_HAS_ILOG2_U32
+ 	def_bool n
+ 
++config ARCH_MAY_HAVE_PC_PARPORT
++	def_bool y
++
+ config ARCH_HAS_ILOG2_U64
+ 	def_bool n
+ 
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index 1570ad2..493867e 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -197,6 +197,10 @@ config ARCH_MAY_HAVE_PC_FDC
+ 	bool
+ 	default y
+ 
++config ARCH_MAY_HAVE_PC_PARPORT
++	depends on SPARC64 && PCI
++	def_bool y
++
+ config EMULATED_CMPXCHG
+ 	bool
+ 	default y if SPARC32
+diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
+index 932fa14..40c3988 100644
+--- a/arch/tile/Kconfig
++++ b/arch/tile/Kconfig
+@@ -88,6 +88,9 @@ config NEED_DMA_MAP_STATE
+ config ARCH_HAS_DMA_SET_COHERENT_MASK
+ 	bool
+ 
++config ARCH_MAY_HAVE_PC_PARPORT
++	def_bool y
++
+ config LOCKDEP_SUPPORT
+ 	def_bool y
+ 
+diff --git a/arch/unicore32/Kconfig b/arch/unicore32/Kconfig
+index 41bcc00..111df43 100644
+--- a/arch/unicore32/Kconfig
++++ b/arch/unicore32/Kconfig
+@@ -62,6 +62,9 @@ config GENERIC_CALIBRATE_DELAY
+ config ARCH_MAY_HAVE_PC_FDC
+ 	bool
+ 
++config ARCH_MAY_HAVE_PC_PARPORT
++	def_bool y
++
+ config ZONE_DMA
+ 	def_bool y
+ 
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 30c40f0..aef54ff 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -180,6 +180,9 @@ config ARCH_MAY_HAVE_PC_FDC
+ 	def_bool y
+ 	depends on ISA_DMA_API
+ 
++config ARCH_MAY_HAVE_PC_PARPORT
++	def_bool y
++
+ config RWSEM_XCHGADD_ALGORITHM
+ 	def_bool y
+ 
+diff --git a/drivers/parport/Kconfig b/drivers/parport/Kconfig
+index 70694ce..fa005a9 100644
+--- a/drivers/parport/Kconfig
++++ b/drivers/parport/Kconfig
+@@ -35,9 +35,7 @@ if PARPORT
+ 
+ config PARPORT_PC
+ 	tristate "PC-style hardware"
+-	depends on (!SPARC64 || PCI) && !SPARC32 && !M32R && !FRV && !S390 && \
+-		(!M68K || ISA) && !MN10300 && !AVR32 && !BLACKFIN && \
+-		!XTENSA && !CRIS && !H8300
++	depends on ARCH_MAY_HAVE_PC_PARPORT
+ 
+ 	---help---
+ 	  You should say Y here if you have a PC-style parallel port. All
+-- 
+1.8.3.1
