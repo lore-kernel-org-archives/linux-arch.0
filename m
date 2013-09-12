@@ -1,23 +1,18 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
 Subject: Re: [PATCH] Kconfig cleanup (PARPORT_PC dependencies)
-Date: Thu, 12 Sep 2013 15:04:02 -0400
-Message-ID: <52321022.6060907@tilera.com>
+Date: Thu, 12 Sep 2013 21:11:23 +0200
+Message-ID: <CAMuHMdUDsYwJeJQi=yZBY7CfXxhd7RsFUUcZKns8z-5JqX=00g@mail.gmail.com>
 References: <1379012038-31764-1-git-send-email-msalter@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([12.216.194.151]:20185 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754963Ab3ILTEQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Sep 2013 15:04:16 -0400
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1379012038-31764-1-git-send-email-msalter@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Mark Salter <msalter@redhat.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, tony.luck@intel.com, geert@linux-m68k.org, monstr@monstr.eu, ralf@linux-mips.org, jejb@parisc-linux.org, benh@kernel.crashing.org, lethal@linux-sh.org, davem@davemloft.net, gxt@mprc.pku.edu.cn, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@tilera.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+List-Id: linux-arch.vger.kernel.org
 
-On 9/12/2013 2:53 PM, Mark Salter wrote:
+On Thu, Sep 12, 2013 at 8:53 PM, Mark Salter <msalter@redhat.com> wrote:
 > Remove messy dependencies from PARPORT_PC by having it depend on one
 > Kconfig symbol (ARCH_MAY_HAVE_PC_PARPORT) and having architectures
 > which need it declare ARCH_MAY_HAVE_PC_PARPORT in arch/*/Kconfig.
@@ -28,8 +23,18 @@ On 9/12/2013 2:53 PM, Mark Salter wrote:
 >
 > Signed-off-by: Mark Salter <msalter@redhat.com>
 
-You can actually omit the arch/tile change, since as far as I know there's no way for tile to have PARPORT_PC.
+Thanks!
 
--- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+For the m68k part:
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
