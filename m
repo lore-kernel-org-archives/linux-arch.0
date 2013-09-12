@@ -1,40 +1,36 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
+From: Richard Henderson <rth@twiddle.net>
 Subject: Re: [PATCH] Kconfig cleanup (PARPORT_PC dependencies)
-Date: Thu, 12 Sep 2013 21:11:23 +0200
-Message-ID: <CAMuHMdUDsYwJeJQi=yZBY7CfXxhd7RsFUUcZKns8z-5JqX=00g@mail.gmail.com>
+Date: Thu, 12 Sep 2013 12:13:51 -0700
+Message-ID: <5232126F.90907@twiddle.net>
 References: <1379012038-31764-1-git-send-email-msalter@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ob0-f171.google.com ([209.85.214.171]:60827 "EHLO
+	mail-ob0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753321Ab3ILTN7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Sep 2013 15:13:59 -0400
 In-Reply-To: <1379012038-31764-1-git-send-email-msalter@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Mark Salter <msalter@redhat.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@tilera.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, vgupta@synopsys.com, linux@arm.linux.org.uk, tony.luck@intel.com, geert@linux-m68k.org, monstr@monstr.eu, ralf@linux-mips.org, jejb@parisc-linux.org, benh@kernel.crashing.org, lethal@linux-sh.org, davem@davemloft.net, cmetcalf@tilera.com, gxt@mprc.pku.edu.cn, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com
 
-On Thu, Sep 12, 2013 at 8:53 PM, Mark Salter <msalter@redhat.com> wrote:
-> Remove messy dependencies from PARPORT_PC by having it depend on one
-> Kconfig symbol (ARCH_MAY_HAVE_PC_PARPORT) and having architectures
-> which need it declare ARCH_MAY_HAVE_PC_PARPORT in arch/*/Kconfig.
-> New architectures are unlikely to need PARPORT_PC, so this avoids
-> having an ever growing list of architectures to exclude. Those
-> architectures which do declare ARCH_MAY_HAVE_PC_PARPORT in this
-> patch are the ones which have an asm/parport.h.
->
-> Signed-off-by: Mark Salter <msalter@redhat.com>
+On 09/12/2013 11:53 AM, Mark Salter wrote:
+> diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
+> index 082d9b4..0f8fa2c 100644
+> --- a/arch/alpha/Kconfig
+> +++ b/arch/alpha/Kconfig
+> @@ -520,6 +520,9 @@ config EISA
+>  config ARCH_MAY_HAVE_PC_FDC
+>  	def_bool y
+>  
+> +config ARCH_MAY_HAVE_PC_PARPORT
+> +	def_bool y
+> +
 
-Thanks!
+Acked-by: Richard Henderson <rth@twiddle.net>
 
-For the m68k part:
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+r~
