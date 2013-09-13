@@ -1,25 +1,21 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
+From: Josh Boyer <jwboyer@gmail.com>
 Subject: Re: [GIT PULL] Btrfs
-Date: Fri, 13 Sep 2013 14:36:15 +0200
-Message-ID: <CAMuHMdXMDmF4YqMWdGB8LxWsV7wr0koS47xak-isb5KAX-1sNQ@mail.gmail.com>
+Date: Fri, 13 Sep 2013 11:06:20 -0400
+Message-ID: <CA+5PVA6Qon0cskv5wDyiCxSZzc2WjUFmzYmGE0zoNJC5ms1-XQ@mail.gmail.com>
 References: <20130912153629.16487.88969@localhost.localdomain>
 	<CA+5PVA5GogJnewWvdmVo03oZRZDerE=H7BR49Xi1DZQyE_CG4Q@mail.gmail.com>
 	<CAMuHMdWgzQvKkASycHSzpTwi2c3qG+wn52YSr-=c8cDtro7NyQ@mail.gmail.com>
 	<CA+5PVA6Hm6XLdJa=x9TmZnjSH160337i-CM2HGHBpQMf06Bv9w@mail.gmail.com>
 	<20130913121529.GA1437@flint.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f178.google.com ([209.85.192.178]:39083 "EHLO
-	mail-pd0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751847Ab3IMMgQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Sep 2013 08:36:16 -0400
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20130913121529.GA1437@flint.arm.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Josh Boyer <jwboyer@fedoraproject.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Chris Mason <chris.mason@fusionio.com>, Mark Fasheh <mfasheh@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, linux-btrfs <linux-btrfs@vger.kernel.org>, "Linux-Kernel@Vger. Kernel. Org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>, Chris Mason <chris.mason@fusionio.com>, Mark Fasheh <mfasheh@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, linux-btrfs <linux-btrfs@vger.kernel.org>, "Linux-Kernel@Vger. Kernel. Org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Sep 13, 2013 at 2:15 PM, Russell King <rmk@arm.linux.org.uk> wrote:
+On Fri, Sep 13, 2013 at 8:15 AM, Russell King <rmk@arm.linux.org.uk> wrote:
 > On Fri, Sep 13, 2013 at 07:53:21AM -0400, Josh Boyer wrote:
 >> I'm not an ARM expert, so I don't know if ARM should use the
 >> asm-generic implementations, or just use __get_user/__put_user in all
@@ -37,23 +33,14 @@ On Fri, Sep 13, 2013 at 2:15 PM, Russell King <rmk@arm.linux.org.uk> wrote:
 >
 > Can someone enlighten me why we have them?
 
-You removed the answer when trimming the quoted part:
+So while that gets sorted out, would it be safe to just do as Geert
+did on m68k and put:
 
-| "Btrfs is the first user of __put_user_unaligned() outside the compat code,
+#define __put_user_unaligned(x, ptr) __put_user((x), (ptr))
 
- __put_user_unaligned() is used in fs/compat.c, presumably because
-alignment restrictions may differ between 32- and 64-bit versions of the
-same CPU family.
+in arch/arm/include/asm/uaccess.h, and let the normal accessors and
+kernel-side trapping deal with things?  I'm thinking that's a local
+fix until something gets sorted upstream, but I don't want to do it if
+it's going to break things.
 
-No one seems to actully use __get_user_unaligned().
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+josh
