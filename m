@@ -1,57 +1,29 @@
-From: Russell King <rmk@arm.linux.org.uk>
-Subject: Re: [GIT PULL] Btrfs
-Date: Fri, 13 Sep 2013 16:58:36 +0100
-Message-ID: <20130913155835.GA9697@flint.arm.linux.org.uk>
-References: <20130912153629.16487.88969@localhost.localdomain> <CA+5PVA5GogJnewWvdmVo03oZRZDerE=H7BR49Xi1DZQyE_CG4Q@mail.gmail.com> <CAMuHMdWgzQvKkASycHSzpTwi2c3qG+wn52YSr-=c8cDtro7NyQ@mail.gmail.com> <CA+5PVA6Hm6XLdJa=x9TmZnjSH160337i-CM2HGHBpQMf06Bv9w@mail.gmail.com> <20130913121529.GA1437@flint.arm.linux.org.uk> <CA+5PVA6Qon0cskv5wDyiCxSZzc2WjUFmzYmGE0zoNJC5ms1-XQ@mail.gmail.com> <CA+5PVA4NAmFnc3s6CaaDow9P3xLXOiEngHjQ_P5+TEG--LZ9ZQ@mail.gmail.com>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH] Kconfig cleanup (PARPORT_PC dependencies)
+Date: Fri, 13 Sep 2013 18:40:06 +0200
+Message-ID: <20130913164006.GA26267@merkur.ravnborg.org>
+References: <1379012038-31764-1-git-send-email-msalter@redhat.com> <20130912203204.GA26170@merkur.ravnborg.org> <1379020912.14495.23.camel@deneb.redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-btrfs-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <CA+5PVA4NAmFnc3s6CaaDow9P3xLXOiEngHjQ_P5+TEG--LZ9ZQ@mail.gmail.com>
-Sender: linux-btrfs-owner@vger.kernel.org
-To: Josh Boyer <jwboyer@fedoraproject.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Chris Mason <chris.mason@fusionio.com>, Mark Fasheh <mfasheh@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, linux-btrfs <linux-btrfs@vger.kernel.org>, "Linux-Kernel@Vger. Kernel. Org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+In-Reply-To: <1379020912.14495.23.camel@deneb.redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Mark Salter <msalter@redhat.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, tony.luck@intel.com, geert@linux-m68k.org, monstr@monstr.eu, ralf@linux-mips.org, jejb@parisc-linux.org, benh@kernel.crashing.org, lethal@linux-sh.org, davem@davemloft.net, cmetcalf@tilera.com, gxt@mprc.pku.edu.cn, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Sep 13, 2013 at 11:38:15AM -0400, Josh Boyer wrote:
-> On Fri, Sep 13, 2013 at 11:06 AM, Josh Boyer <jwboyer@gmail.com> wrote:
-> > On Fri, Sep 13, 2013 at 8:15 AM, Russell King <rmk@arm.linux.org.uk> wrote:
-> >> On Fri, Sep 13, 2013 at 07:53:21AM -0400, Josh Boyer wrote:
-> >>> I'm not an ARM expert, so I don't know if ARM should use the
-> >>> asm-generic implementations, or just use __get_user/__put_user in all
-> >>> cases.  I've CC'd rmk.
-> >>
-> >> Why do we have uaccess-unaligned.h ?  Normally, these kinds of things
-> >> are spawned by architectures which have problems with unaligned accesses,
-> >> ARM being one of them, but afaik we've never need this.
-> >>
-> >> With the kernel-side trapping of unaligned accesses on older hardware,
-> >> we've always dealt with the normal accessor faulting.
-> >>
-> >> From what I can tell in the git history, these unaligned put_user and
-> >> get_user have existed all the way back to the dawn of git use.
-> >>
-> >> Can someone enlighten me why we have them?
+On Thu, Sep 12, 2013 at 05:21:52PM -0400, Mark Salter wrote:
+> On Thu, 2013-09-12 at 22:32 +0200, Sam Ravnborg wrote:
+> > It is much nicer if you provide a config symbol only once.
+> > And then let the architectures who want it select this symbol.
+> > 
+> > This is the pattern we use for similar things in many places today,
+> > so it is best to follow that pattern.
 > 
-> I somehow fail at email and dropped Russell from CC on accident.  Sigh.
+> Okay, I'm ahead of you on that. I actually had two versions of the
+> patch. The other uses select. If that is the preferred way these
+> days, I'll go with it for V2 of the patch.
+Perfect - please use this.
 
-You're not the first to do that recently.  I'm beginning to think it's
-something someone has written into email clients to make them do in order
-to piss me off.  I mean, it's _hard_ to do - you have to manually edit the
-recipients list to just drop one person.
-
-> > So while that gets sorted out, would it be safe to just do as Geert
-> > did on m68k and put:
-> >
-> > #define __put_user_unaligned(x, ptr) __put_user((x), (ptr))
-> >
-> > in arch/arm/include/asm/uaccess.h, and let the normal accessors and
-> > kernel-side trapping deal with things?  I'm thinking that's a local
-> > fix until something gets sorted upstream, but I don't want to do it if
-> > it's going to break things.
-
-Yep, that should work just fine.
-
--- 
-Russell King
-ARM architecture Linux Kernel maintainer
+	Sam
