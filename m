@@ -1,29 +1,113 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH] Kconfig cleanup (PARPORT_PC dependencies)
-Date: Fri, 13 Sep 2013 18:40:06 +0200
-Message-ID: <20130913164006.GA26267@merkur.ravnborg.org>
-References: <1379012038-31764-1-git-send-email-msalter@redhat.com> <20130912203204.GA26170@merkur.ravnborg.org> <1379020912.14495.23.camel@deneb.redhat.com>
+From: Wang YanQing <udknight@gmail.com>
+Subject: Re: [PATCH v2 01/25] Revert smp: Fix SMP function call empty cpu
+ mask race
+Date: Sat, 14 Sep 2013 12:41:36 +0800
+Message-ID: <20130914044136.GA2944@udknight>
+References: <1378915649-16395-1-git-send-email-liuj97@gmail.com>
+ <1378915649-16395-2-git-send-email-liuj97@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1379020912.14495.23.camel@deneb.redhat.com>
+In-Reply-To: <1378915649-16395-2-git-send-email-liuj97@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mark Salter <msalter@redhat.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, tony.luck@intel.com, geert@linux-m68k.org, monstr@monstr.eu, ralf@linux-mips.org, jejb@parisc-linux.org, benh@kernel.crashing.org, lethal@linux-sh.org, davem@davemloft.net, cmetcalf@tilera.com, gxt@mprc.pku.edu.cn, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com
+To: Jiang Liu <liuj97@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Shaohua Li <shli@kernel.org>, Jiang Liu <jiang.liu@huawei.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Sep 12, 2013 at 05:21:52PM -0400, Mark Salter wrote:
-> On Thu, 2013-09-12 at 22:32 +0200, Sam Ravnborg wrote:
-> > It is much nicer if you provide a config symbol only once.
-> > And then let the architectures who want it select this symbol.
-> > 
-> > This is the pattern we use for similar things in many places today,
-> > so it is best to follow that pattern.
+On Thu, Sep 12, 2013 at 12:07:05AM +0800, Jiang Liu wrote:
+> From: Jiang Liu <jiang.liu@huawei.com>
 > 
-> Okay, I'm ahead of you on that. I actually had two versions of the
-> patch. The other uses select. If that is the preferred way these
-> days, I'll go with it for V2 of the patch.
-Perfect - please use this.
+> Commit f44310b98ddb7 "smp: Fix SMP function call empty cpu mask race"
+> introduced field call_function_data->cpumask_ipi to resolve a race
+> condition in smp_call_function_many().
+> 
+> Later commit 9a46ad6d6df3 "smp: make smp_call_function_many() use logic
+> similar to smp_call_function_single()" fixed the same issue in another
+> way when optimizing smp_call_function_many(), which then obsoletes
+> changes introduced by commit f44310b98ddb7. So revert it.
+> 
+> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+> Acked-by: Wang YanQing <udknight@gmail.com>
+> Cc: Jiang Liu <liuj97@gmail.com>
+> ---
+>  kernel/smp.c | 16 ++--------------
+>  1 file changed, 2 insertions(+), 14 deletions(-)
+> 
+> diff --git a/kernel/smp.c b/kernel/smp.c
+> index fe9f773..a034712 100644
+> --- a/kernel/smp.c
+> +++ b/kernel/smp.c
+> @@ -23,7 +23,6 @@ enum {
+>  struct call_function_data {
+>  	struct call_single_data	__percpu *csd;
+>  	cpumask_var_t		cpumask;
+> -	cpumask_var_t		cpumask_ipi;
+>  };
+>  
+>  static DEFINE_PER_CPU_SHARED_ALIGNED(struct call_function_data, cfd_data);
+> @@ -47,9 +46,6 @@ hotplug_cfd(struct notifier_block *nfb, unsigned long action, void *hcpu)
+>  		if (!zalloc_cpumask_var_node(&cfd->cpumask, GFP_KERNEL,
+>  				cpu_to_node(cpu)))
+>  			return notifier_from_errno(-ENOMEM);
+> -		if (!zalloc_cpumask_var_node(&cfd->cpumask_ipi, GFP_KERNEL,
+> -				cpu_to_node(cpu)))
+> -			return notifier_from_errno(-ENOMEM);
+>  		cfd->csd = alloc_percpu(struct call_single_data);
+>  		if (!cfd->csd) {
+>  			free_cpumask_var(cfd->cpumask);
+> @@ -64,7 +60,6 @@ hotplug_cfd(struct notifier_block *nfb, unsigned long action, void *hcpu)
+>  	case CPU_DEAD:
+>  	case CPU_DEAD_FROZEN:
+>  		free_cpumask_var(cfd->cpumask);
+> -		free_cpumask_var(cfd->cpumask_ipi);
+>  		free_percpu(cfd->csd);
+>  		break;
+>  #endif
+> @@ -255,9 +250,9 @@ int smp_call_function_single(int cpu, smp_call_func_t func, void *info,
+>  				csd = &__get_cpu_var(csd_data);
+>  
+>  			csd_lock(csd);
+> -
+>  			csd->func = func;
+>  			csd->info = info;
+> +
+>  			generic_exec_single(cpu, csd, wait);
+>  		} else {
+>  			err = -ENXIO;	/* CPU not online */
+> @@ -410,13 +405,6 @@ void smp_call_function_many(const struct cpumask *mask,
+>  	if (unlikely(!cpumask_weight(cfd->cpumask)))
+>  		return;
+>  
+> -	/*
+> -	 * After we put an entry into the list, cfd->cpumask may be cleared
+> -	 * again when another CPU sends another IPI for a SMP function call, so
+> -	 * cfd->cpumask will be zero.
+> -	 */
+> -	cpumask_copy(cfd->cpumask_ipi, cfd->cpumask);
+> -
+>  	for_each_cpu(cpu, cfd->cpumask) {
+>  		struct call_single_data *csd = per_cpu_ptr(cfd->csd, cpu);
+>  		struct call_single_queue *dst =
+> @@ -433,7 +421,7 @@ void smp_call_function_many(const struct cpumask *mask,
+>  	}
+>  
+>  	/* Send a message to all CPUs in the map */
+> -	arch_send_call_function_ipi_mask(cfd->cpumask_ipi);
+> +	arch_send_call_function_ipi_mask(cfd->cpumask);
+>  
+>  	if (wait) {
+>  		for_each_cpu(cpu, cfd->cpumask) {
+> -- 
+> 1.8.1.2
+Hi Liu and all
 
-	Sam
+Commit 60c323699bb308404dcb60e8808531e02651578a 
+(kernel/smp.c: free related resources when failure occurs in hotplug_cfd())
+is a fix patch for commit you revert, and it had been merged into mainline.
+
+So could you ajust your patch to revert it together? I don't think we need
+a separate patch to revert 60c323699bb308404dcb60e8808531e02651578a, because
+your patch haven't be merged.
+
+Thanks.
