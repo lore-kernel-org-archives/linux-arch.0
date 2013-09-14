@@ -1,121 +1,63 @@
-From: Wang YanQing <udknight@gmail.com>
-Subject: Re: [PATCH v2 01/25] Revert smp: Fix SMP function call empty cpu
- mask race
-Date: Sat, 14 Sep 2013 12:43:00 +0800
-Message-ID: <20130914044300.GA3438@udknight>
-References: <1378915649-16395-1-git-send-email-liuj97@gmail.com>
- <1378915649-16395-2-git-send-email-liuj97@gmail.com>
- <20130914044136.GA2944@udknight>
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [GIT PULL] Btrfs
+Date: Sat, 14 Sep 2013 11:33:43 +0200
+Message-ID: <20130914093343.GA5094@osiris>
+References: <20130912153629.16487.88969@localhost.localdomain>
+ <CA+5PVA5GogJnewWvdmVo03oZRZDerE=H7BR49Xi1DZQyE_CG4Q@mail.gmail.com>
+ <CAMuHMdWgzQvKkASycHSzpTwi2c3qG+wn52YSr-=c8cDtro7NyQ@mail.gmail.com>
+ <CA+5PVA6Hm6XLdJa=x9TmZnjSH160337i-CM2HGHBpQMf06Bv9w@mail.gmail.com>
+ <20130913121529.GA1437@flint.arm.linux.org.uk>
+ <CA+5PVA6Qon0cskv5wDyiCxSZzc2WjUFmzYmGE0zoNJC5ms1-XQ@mail.gmail.com>
+ <CA+5PVA4NAmFnc3s6CaaDow9P3xLXOiEngHjQ_P5+TEG--LZ9ZQ@mail.gmail.com>
+ <20130913155835.GA9697@flint.arm.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f50.google.com ([209.85.160.50]:57353 "EHLO
-	mail-pb0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751653Ab3INEnY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 14 Sep 2013 00:43:24 -0400
+Received: from e06smtp16.uk.ibm.com ([195.75.94.112]:46133 "EHLO
+	e06smtp16.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751763Ab3INJdt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 14 Sep 2013 05:33:49 -0400
+Received: from /spool/local
+	by e06smtp16.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
+	Sat, 14 Sep 2013 10:26:35 +0100
 Content-Disposition: inline
-In-Reply-To: <20130914044136.GA2944@udknight>
+In-Reply-To: <20130913155835.GA9697@flint.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiang Liu <liuj97@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Shaohua Li <shli@kernel.org>, Jiang Liu <jiang.liu@huawei.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: gang.chen@asianux.com
+To: Russell King <rmk@arm.linux.org.uk>, Josh Boyer <jwboyer@fedoraproject.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Chris Mason <chris.mason@fusionio.com>, Mark Fasheh <mfasheh@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, linux-btrfs <linux-btrfs@vger.kernel.org>, "Linux-Kernel@Vger. Kernel. Org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On Sat, Sep 14, 2013 at 12:41:36PM +0800, Wang YanQing wrote:
-> On Thu, Sep 12, 2013 at 12:07:05AM +0800, Jiang Liu wrote:
-> > From: Jiang Liu <jiang.liu@huawei.com>
+On Fri, Sep 13, 2013 at 04:58:36PM +0100, Russell King wrote:
+> On Fri, Sep 13, 2013 at 11:38:15AM -0400, Josh Boyer wrote:
+> > On Fri, Sep 13, 2013 at 11:06 AM, Josh Boyer <jwboyer@gmail.com> wrote:
+> > > On Fri, Sep 13, 2013 at 8:15 AM, Russell King <rmk@arm.linux.org.uk> wrote:
+> > >> On Fri, Sep 13, 2013 at 07:53:21AM -0400, Josh Boyer wrote:
+> > >>> I'm not an ARM expert, so I don't know if ARM should use the
+> > >>> asm-generic implementations, or just use __get_user/__put_user in all
+> > >>> cases.  I've CC'd rmk.
+> > >>
+> > >> Why do we have uaccess-unaligned.h ?  Normally, these kinds of things
+> > >> are spawned by architectures which have problems with unaligned accesses,
+> > >> ARM being one of them, but afaik we've never need this.
+> > >>
+> > >> With the kernel-side trapping of unaligned accesses on older hardware,
+> > >> we've always dealt with the normal accessor faulting.
+> > >>
+> > >> From what I can tell in the git history, these unaligned put_user and
+> > >> get_user have existed all the way back to the dawn of git use.
+> > >>
+> > >> Can someone enlighten me why we have them?
 > > 
-> > Commit f44310b98ddb7 "smp: Fix SMP function call empty cpu mask race"
-> > introduced field call_function_data->cpumask_ipi to resolve a race
-> > condition in smp_call_function_many().
-> > 
-> > Later commit 9a46ad6d6df3 "smp: make smp_call_function_many() use logic
-> > similar to smp_call_function_single()" fixed the same issue in another
-> > way when optimizing smp_call_function_many(), which then obsoletes
-> > changes introduced by commit f44310b98ddb7. So revert it.
-> > 
-> > Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-> > Acked-by: Wang YanQing <udknight@gmail.com>
-> > Cc: Jiang Liu <liuj97@gmail.com>
-> > ---
-> >  kernel/smp.c | 16 ++--------------
-> >  1 file changed, 2 insertions(+), 14 deletions(-)
-> > 
-> > diff --git a/kernel/smp.c b/kernel/smp.c
-> > index fe9f773..a034712 100644
-> > --- a/kernel/smp.c
-> > +++ b/kernel/smp.c
-> > @@ -23,7 +23,6 @@ enum {
-> >  struct call_function_data {
-> >  	struct call_single_data	__percpu *csd;
-> >  	cpumask_var_t		cpumask;
-> > -	cpumask_var_t		cpumask_ipi;
-> >  };
-> >  
-> >  static DEFINE_PER_CPU_SHARED_ALIGNED(struct call_function_data, cfd_data);
-> > @@ -47,9 +46,6 @@ hotplug_cfd(struct notifier_block *nfb, unsigned long action, void *hcpu)
-> >  		if (!zalloc_cpumask_var_node(&cfd->cpumask, GFP_KERNEL,
-> >  				cpu_to_node(cpu)))
-> >  			return notifier_from_errno(-ENOMEM);
-> > -		if (!zalloc_cpumask_var_node(&cfd->cpumask_ipi, GFP_KERNEL,
-> > -				cpu_to_node(cpu)))
-> > -			return notifier_from_errno(-ENOMEM);
-> >  		cfd->csd = alloc_percpu(struct call_single_data);
-> >  		if (!cfd->csd) {
-> >  			free_cpumask_var(cfd->cpumask);
-> > @@ -64,7 +60,6 @@ hotplug_cfd(struct notifier_block *nfb, unsigned long action, void *hcpu)
-> >  	case CPU_DEAD:
-> >  	case CPU_DEAD_FROZEN:
-> >  		free_cpumask_var(cfd->cpumask);
-> > -		free_cpumask_var(cfd->cpumask_ipi);
-> >  		free_percpu(cfd->csd);
-> >  		break;
-> >  #endif
-> > @@ -255,9 +250,9 @@ int smp_call_function_single(int cpu, smp_call_func_t func, void *info,
-> >  				csd = &__get_cpu_var(csd_data);
-> >  
-> >  			csd_lock(csd);
-> > -
-> >  			csd->func = func;
-> >  			csd->info = info;
-> > +
-> >  			generic_exec_single(cpu, csd, wait);
-> >  		} else {
-> >  			err = -ENXIO;	/* CPU not online */
-> > @@ -410,13 +405,6 @@ void smp_call_function_many(const struct cpumask *mask,
-> >  	if (unlikely(!cpumask_weight(cfd->cpumask)))
-> >  		return;
-> >  
-> > -	/*
-> > -	 * After we put an entry into the list, cfd->cpumask may be cleared
-> > -	 * again when another CPU sends another IPI for a SMP function call, so
-> > -	 * cfd->cpumask will be zero.
-> > -	 */
-> > -	cpumask_copy(cfd->cpumask_ipi, cfd->cpumask);
-> > -
-> >  	for_each_cpu(cpu, cfd->cpumask) {
-> >  		struct call_single_data *csd = per_cpu_ptr(cfd->csd, cpu);
-> >  		struct call_single_queue *dst =
-> > @@ -433,7 +421,7 @@ void smp_call_function_many(const struct cpumask *mask,
-> >  	}
-> >  
-> >  	/* Send a message to all CPUs in the map */
-> > -	arch_send_call_function_ipi_mask(cfd->cpumask_ipi);
-> > +	arch_send_call_function_ipi_mask(cfd->cpumask);
-> >  
-> >  	if (wait) {
-> >  		for_each_cpu(cpu, cfd->cpumask) {
-> > -- 
-> > 1.8.1.2
-> Hi Liu and all
+> > I somehow fail at email and dropped Russell from CC on accident.  Sigh.
 > 
-> Commit 60c323699bb308404dcb60e8808531e02651578a 
-> (kernel/smp.c: free related resources when failure occurs in hotplug_cfd())
-> is a fix patch for commit you revert, and it had been merged into mainline.
-> 
-> So could you ajust your patch to revert it together? I don't think we need
-> a separate patch to revert 60c323699bb308404dcb60e8808531e02651578a, because
-> your patch haven't be merged.
-> 
-> Thanks.
+> You're not the first to do that recently.  I'm beginning to think it's
+> something someone has written into email clients to make them do in order
+> to piss me off.  I mean, it's _hard_ to do - you have to manually edit the
+> recipients list to just drop one person.
 
-Add Cc:gang.chen@asianux.com
+You configured your mail client to generate a "Mail-Followup-To:" header
+field which actively asks other mail clients to remove you from replies.
+So you only get what you ask for... ;)
+
+I think the mutt "metoo" variable will change that, but I don't know
+for sure.
