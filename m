@@ -1,22 +1,22 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gmmr8.centrum.cz ([46.255.227.254]:59074 "EHLO gmmr8.centrum.cz"
+Received: from gmmr2.centrum.cz ([46.255.227.252]:58408 "EHLO gmmr2.centrum.cz"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750905Ab3IPPkm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 16 Sep 2013 11:40:42 -0400
+	id S1750948Ab3IPUwt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 16 Sep 2013 16:52:49 -0400
 Subject: =?utf-8?q?Re=3A_=5Bpatch_0=2F7=5D_improve_memcg_oom_killer_robustness_v2?=
-Date: Mon, 16 Sep 2013 17:40:39 +0200
+Date: Mon, 16 Sep 2013 22:52:46 +0200
 From: "azurIt" <azurit@pobox.sk>
 References: <20130911191150.GN856@cmpxchg.org>, <20130911214118.7CDF2E71@pobox.sk>, <20130911200426.GO856@cmpxchg.org>, <20130914124831.4DD20346@pobox.sk>, <20130916134014.GA3674@dhcp22.suse.cz>, <20130916160119.2E76C2A1@pobox.sk>, <20130916140607.GC3674@dhcp22.suse.cz>, <20130916161316.5113F6E7@pobox.sk>, <20130916145744.GE3674@dhcp22.suse.cz>, <20130916170543.77F1ECB4@pobox.sk> <20130916152548.GF3674@dhcp22.suse.cz>
 In-Reply-To: <20130916152548.GF3674@dhcp22.suse.cz>
 MIME-Version: 1.0
-Message-ID: <20130916174039.203B03C9@pobox.sk>
+Message-ID: <20130916225246.A633145B@pobox.sk>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: =?utf-8?q?Michal_Hocko?= <mhocko@suse.cz>
 Cc: =?utf-8?q?Johannes_Weiner?= <hannes@cmpxchg.org>, =?utf-8?q?Andrew_Morton?= <akpm@linux-foundation.org>, =?utf-8?q?David_Rientjes?= <rientjes@google.com>, =?utf-8?q?KAMEZAWA_Hiroyuki?= <kamezawa.hiroyu@jp.fujitsu.com>, =?utf-8?q?KOSAKI_Motohiro?= <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130916154039.En98-VCJ_6a7ezylBUmkJ81eZIXxopcTDUWDwIrKKVw@z>
+Message-ID: <20130916205246.q7yogNi5S6IYd1YEOUTHs1gX-RDmIwcqQijaUxnfPck@z>
 
 > CC: "Johannes Weiner" <hannes@cmpxchg.org>, "Andrew Morton" <akpm@linux-foundation.org>, "David Rientjes" <rientjes@google.com>, "KAMEZAWA Hiroyuki" <kamezawa.hiroyu@jp.fujitsu.com>, "KOSAKI Motohiro" <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 >On Mon 16-09-13 17:05:43, azurIt wrote:
@@ -43,12 +43,7 @@ Message-ID: <20130916154039.En98-VCJ_6a7ezylBUmkJ81eZIXxopcTDUWDwIrKKVw@z>
 >commands. You can select also some of them (have a look at
 >Documentation/sysrq.txt for more information)
 
-# ls -la /proc/sys/kernel/sysrq 
-ls: cannot access /proc/sys/kernel/sysrq: No such file or directory
 
-ok, so problem is probably here:
-# CONFIG_MAGIC_SYSRQ is not set
-
-I will enable it with next reboot.
+Now it happens again and i was just looking on the server's htop. I'm sure that this time it was only one process (apache) running under user account (not root). It was taking about 100% CPU (about 100% of one core). I was able to kill it by hand inside htop but everything was very slow, server load was immediately on 500. I'm sure it must be related to that Johannes kernel patches because i'm also using i/o throttling in cgroups via Block IO controller so users are unable to create such a huge I/O. I will try to take stacks of processes but i'm not able to identify the problematic process so i will have to take them from *all* apache processes while killing them.
 
 azur
