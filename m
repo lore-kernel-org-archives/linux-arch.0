@@ -1,7 +1,7 @@
 From: "azurIt" <azurit@pobox.sk>
 Subject: =?utf-8?q?Re=3A_=5Bpatch_0=2F7=5D_improve_memcg_oom_killer_robustness_v2?=
-Date: Mon, 16 Sep 2013 17:40:39 +0200
-Message-ID: <20130916174039.203B03C9@pobox.sk>
+Date: Mon, 16 Sep 2013 22:52:46 +0200
+Message-ID: <20130916225246.A633145B@pobox.sk>
 References: <20130911191150.GN856@cmpxchg.org>, <20130911214118.7CDF2E71@pobox.sk>, <20130911200426.GO856@cmpxchg.org>, <20130914124831.4DD20346@pobox.sk>, <20130916134014.GA3674@dhcp22.suse.cz>, <20130916160119.2E76C2A1@pobox.sk>, <20130916140607.GC3674@dhcp22.suse.cz>, <20130916161316.5113F6E7@pobox.sk>, <20130916145744.GE3674@dhcp22.suse.cz>, <20130916170543.77F1ECB4@pobox.sk> <20130916152548.GF3674@dhcp22.suse.cz>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -47,13 +47,17 @@ U or
 >commands. You can select also some of them (have a look at
 >Documentation/sysrq.txt for more information)
 
-# ls -la /proc/sys/kernel/sysrq=20
-ls: cannot access /proc/sys/kernel/sysrq: No such file or directory
 
-ok, so problem is probably here:
-# CONFIG_MAGIC_SYSRQ is not set
-
-I will enable it with next reboot.
+Now it happens again and i was just looking on the server's htop. I'm sur=
+e that this time it was only one process (apache) running under user acco=
+unt (not root). It was taking about 100% CPU (about 100% of one core). I =
+was able to kill it by hand inside htop but everything was very slow, ser=
+ver load was immediately on 500. I'm sure it must be related to that Joha=
+nnes kernel patches because i'm also using i/o throttling in cgroups via =
+Block IO controller so users are unable to create such a huge I/O. I will=
+ try to take stacks of processes but i'm not able to identify the problem=
+atic process so i will have to take them from *all* apache processes whil=
+e killing them.
 
 azur
 
