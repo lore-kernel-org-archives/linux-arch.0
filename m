@@ -1,126 +1,136 @@
-From: "azurIt" <azurit@pobox.sk>
-Subject: =?utf-8?q?Re=3A_=5Bpatch_0=2F7=5D_improve_memcg_oom_killer_robustness_v2?=
-Date: Sat, 14 Sep 2013 12:48:31 +0200
-Message-ID: <20130914124831.4DD20346@pobox.sk>
-References: <20130910201222.GA25972@cmpxchg.org>, <20130910230853.FEEC19B5@pobox.sk>, <20130910211823.GJ856@cmpxchg.org>, <20130910233247.9EDF4DBA@pobox.sk>, <20130910220329.GK856@cmpxchg.org>, <20130911143305.FFEAD399@pobox.sk>, <20130911180327.GL856@cmpxchg.org>, <20130911205448.656D9D7C@pobox.sk>, <20130911191150.GN856@cmpxchg.org>, <20130911214118.7CDF2E71@pobox.sk> <20130911200426.GO856@cmpxchg.org>
+From: Chen Gang <gang.chen@asianux.com>
+Subject: Re: [PATCH v2 01/25] Revert smp: Fix SMP function call empty cpu
+ mask race
+Date: Mon, 16 Sep 2013 10:22:53 +0800
+Message-ID: <52366B7D.7030900@asianux.com>
+References: <1378915649-16395-1-git-send-email-liuj97@gmail.com> <1378915649-16395-2-git-send-email-liuj97@gmail.com> <20130914044136.GA2944@udknight> <20130914044300.GA3438@udknight>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20130911200426.GO856@cmpxchg.org>
-Sender: owner-linux-mm@kvack.org
-To: =?utf-8?q?Johannes_Weiner?= <hannes@cmpxchg.org>
-Cc: =?utf-8?q?Andrew_Morton?= <akpm@linux-foundation.org>, =?utf-8?q?Michal_Hocko?= <mhocko@suse.cz>, =?utf-8?q?David_Rientjes?= <rientjes@google.com>, =?utf-8?q?KAMEZAWA_Hiroyuki?= <kamezawa.hiroyu@jp.fujitsu.com>, =?utf-8?q?KOSAKI_Motohiro?= <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from intranet.asianux.com ([58.214.24.6]:3130 "EHLO
+	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755249Ab3IPCX7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 15 Sep 2013 22:23:59 -0400
+In-Reply-To: <20130914044300.GA3438@udknight>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Wang YanQing <udknight@gmail.com>, Jiang Liu <liuj97@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Shaohua Li <shli@kernel.org>, Jiang Liu <jiang.liu@huawei.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>
 
-> CC: "Andrew Morton" <akpm@linux-foundation.org>, "Michal Hocko" <mhocko=
-@suse.cz>, "David Rientjes" <rientjes@google.com>, "KAMEZAWA Hiroyuki" <k=
-amezawa.hiroyu@jp.fujitsu.com>, "KOSAKI Motohiro" <kosaki.motohiro@jp.fuj=
-itsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, l=
-inux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
->On Wed, Sep 11, 2013 at 09:41:18PM +0200, azurIt wrote:
->> >On Wed, Sep 11, 2013 at 08:54:48PM +0200, azurIt wrote:
->> >> >On Wed, Sep 11, 2013 at 02:33:05PM +0200, azurIt wrote:
->> >> >> >On Tue, Sep 10, 2013 at 11:32:47PM +0200, azurIt wrote:
->> >> >> >> >On Tue, Sep 10, 2013 at 11:08:53PM +0200, azurIt wrote:
->> >> >> >> >> >On Tue, Sep 10, 2013 at 09:32:53PM +0200, azurIt wrote:
->> >> >> >> >> >> Here is full kernel log between 6:00 and 7:59:
->> >> >> >> >> >> http://watchdog.sk/lkml/kern6.log
->> >> >> >> >> >
->> >> >> >> >> >Wow, your apaches are like the hydra.  Whenever one is OO=
-M killed,
->> >> >> >> >> >more show up!
->> >> >> >> >>=20
->> >> >> >> >>=20
->> >> >> >> >>=20
->> >> >> >> >> Yeah, it's supposed to do this ;)
->> >> >> >
->> >> >> >How are you expecting the machine to recover from an OOM situat=
-ion,
->> >> >> >though?  I guess I don't really understand what these machines =
-are
->> >> >> >doing.  But if you are overloading them like crazy, isn't that =
-the
->> >> >> >expected outcome?
->> >> >>=20
->> >> >>=20
->> >> >>=20
->> >> >>=20
->> >> >>=20
->> >> >> There's no global OOM, server has enough of memory. OOM is occur=
-ing only in cgroups (customers who simply don't want to pay for more memo=
-ry).
->> >> >
->> >> >Yes, sure, but when the cgroups are thrashing, they use the disk a=
-nd
->> >> >CPU to the point where the overall system is affected.
->> >>=20
->> >>=20
->> >>=20
->> >>=20
->> >> Didn't know that there is a disk usage because of this, i never not=
-iced anything yet.
->> >
->> >You said there was heavy IO going on...?
->>=20
->>=20
->>=20
->> Yes, there usually was a big IO but it was related to that
->> deadlocking bug in kernel (or i assume it was). I never saw a big IO
->> in normal conditions even when there were lots of OOM in
->> cgroups. I'm even not using swap because of this so i was assuming
->> that lacks of memory is not doing any additional IO (or am i
->> wrong?). And if you mean that last problem with IO from Monday, i
->> don't exactly know what happens but it's really long time when we
->> had so big problem with IO that it disables also root login on
->> console.
->
->The deadlocking problem should be separate from this.
->
->Even without swap, the binaries and libraries of the running tasks can
->get reclaimed (and immediately faulted back from disk, i.e thrashing).
->
->Usually the OOM killer should kick in before tasks cannibalize each
->other like that.
->
->The patch you were using did in fact have the side effect of widening
->the window between tasks entering heavy reclaim and the OOM killer
->kicking in, so it could explain the IO worsening while fixing the dead
->lock problem.
->
->That followup patch tries to narrow this window by quite a bit and
->tries to stop concurrent reclaim when the group is already OOM.
+On 09/14/2013 12:43 PM, Wang YanQing wrote:
+> On Sat, Sep 14, 2013 at 12:41:36PM +0800, Wang YanQing wrote:
+>> On Thu, Sep 12, 2013 at 12:07:05AM +0800, Jiang Liu wrote:
+>>> From: Jiang Liu <jiang.liu@huawei.com>
+>>>
+>>> Commit f44310b98ddb7 "smp: Fix SMP function call empty cpu mask race"
+>>> introduced field call_function_data->cpumask_ipi to resolve a race
+>>> condition in smp_call_function_many().
+>>>
+>>> Later commit 9a46ad6d6df3 "smp: make smp_call_function_many() use logic
+>>> similar to smp_call_function_single()" fixed the same issue in another
+>>> way when optimizing smp_call_function_many(), which then obsoletes
+>>> changes introduced by commit f44310b98ddb7. So revert it.
+>>>
+>>> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
+>>> Acked-by: Wang YanQing <udknight@gmail.com>
+>>> Cc: Jiang Liu <liuj97@gmail.com>
+>>> ---
+>>>  kernel/smp.c | 16 ++--------------
+>>>  1 file changed, 2 insertions(+), 14 deletions(-)
+>>>
+>>> diff --git a/kernel/smp.c b/kernel/smp.c
+>>> index fe9f773..a034712 100644
+>>> --- a/kernel/smp.c
+>>> +++ b/kernel/smp.c
+>>> @@ -23,7 +23,6 @@ enum {
+>>>  struct call_function_data {
+>>>  	struct call_single_data	__percpu *csd;
+>>>  	cpumask_var_t		cpumask;
+>>> -	cpumask_var_t		cpumask_ipi;
+>>>  };
+>>>  
+>>>  static DEFINE_PER_CPU_SHARED_ALIGNED(struct call_function_data, cfd_data);
+>>> @@ -47,9 +46,6 @@ hotplug_cfd(struct notifier_block *nfb, unsigned long action, void *hcpu)
+>>>  		if (!zalloc_cpumask_var_node(&cfd->cpumask, GFP_KERNEL,
+>>>  				cpu_to_node(cpu)))
+>>>  			return notifier_from_errno(-ENOMEM);
+>>> -		if (!zalloc_cpumask_var_node(&cfd->cpumask_ipi, GFP_KERNEL,
+>>> -				cpu_to_node(cpu)))
+>>> -			return notifier_from_errno(-ENOMEM);
+>>>  		cfd->csd = alloc_percpu(struct call_single_data);
+>>>  		if (!cfd->csd) {
+>>>  			free_cpumask_var(cfd->cpumask);
+>>> @@ -64,7 +60,6 @@ hotplug_cfd(struct notifier_block *nfb, unsigned long action, void *hcpu)
+>>>  	case CPU_DEAD:
+>>>  	case CPU_DEAD_FROZEN:
+>>>  		free_cpumask_var(cfd->cpumask);
+>>> -		free_cpumask_var(cfd->cpumask_ipi);
+>>>  		free_percpu(cfd->csd);
+>>>  		break;
+>>>  #endif
+>>> @@ -255,9 +250,9 @@ int smp_call_function_single(int cpu, smp_call_func_t func, void *info,
+>>>  				csd = &__get_cpu_var(csd_data);
+>>>  
+>>>  			csd_lock(csd);
+>>> -
+>>>  			csd->func = func;
+>>>  			csd->info = info;
+>>> +
+>>>  			generic_exec_single(cpu, csd, wait);
+>>>  		} else {
+>>>  			err = -ENXIO;	/* CPU not online */
+>>> @@ -410,13 +405,6 @@ void smp_call_function_many(const struct cpumask *mask,
+>>>  	if (unlikely(!cpumask_weight(cfd->cpumask)))
+>>>  		return;
+>>>  
+>>> -	/*
+>>> -	 * After we put an entry into the list, cfd->cpumask may be cleared
+>>> -	 * again when another CPU sends another IPI for a SMP function call, so
+>>> -	 * cfd->cpumask will be zero.
+>>> -	 */
+>>> -	cpumask_copy(cfd->cpumask_ipi, cfd->cpumask);
+>>> -
+>>>  	for_each_cpu(cpu, cfd->cpumask) {
+>>>  		struct call_single_data *csd = per_cpu_ptr(cfd->csd, cpu);
+>>>  		struct call_single_queue *dst =
+>>> @@ -433,7 +421,7 @@ void smp_call_function_many(const struct cpumask *mask,
+>>>  	}
+>>>  
+>>>  	/* Send a message to all CPUs in the map */
+>>> -	arch_send_call_function_ipi_mask(cfd->cpumask_ipi);
+>>> +	arch_send_call_function_ipi_mask(cfd->cpumask);
+>>>  
+>>>  	if (wait) {
+>>>  		for_each_cpu(cpu, cfd->cpumask) {
+>>> -- 
+>>> 1.8.1.2
+>> Hi Liu and all
+>>
+>> Commit 60c323699bb308404dcb60e8808531e02651578a 
+>> (kernel/smp.c: free related resources when failure occurs in hotplug_cfd())
+>> is a fix patch for commit you revert, and it had been merged into mainline.
+>>
+>> So could you ajust your patch to revert it together? I don't think we need
+>> a separate patch to revert 60c323699bb308404dcb60e8808531e02651578a, because
+>> your patch haven't be merged.
+>>
+>> Thanks.
+> 
+> Add Cc:gang.chen@asianux.com
+
+Thank you, and, I should continue trying to familiar with kernel step by
+step.
+
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
+> 
 
 
+-- 
+Chen Gang
 
-Johannes,
-
-the problem happened again, twice, but i have little more info than befor=
-e.
-
-Here is the first occurence, this night between 5:15 and 5:25:
- - this time i kept opened terminal from other server to this problematic=
- one with htop running
- - when server went down i opened it and saw one process of one user runn=
-ing at the top and taking 97% of CPU (cgroup 1304)
- - everything was stucked so that htop didn't help me much
- - luckily, my new 'load check' script, which i was mentioning before, wa=
-s able to kill apache and everything went to normal (success with it's ve=
-ry first version, wow ;) )
- - i checked some other logs and everything seems to point to cgroup 1304=
-, also kernel log at 5:14-15 is showing hard OOM in that cgroup:
-http://watchdog.sk/lkml/kern7.log
-
-
-Second time it happend between 12:01 and 12:09 but it was in the middle o=
-f the day so i'm not attaching any logs (there will be lots of other junk=
- so it will be harded to read something from it). It was related to diffe=
-rent cgroup than in first time.
-
-azur
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=3Dmailto:"dont@kvack.org"> email@kvack.org </a>
+-- 
+Chen Gang
