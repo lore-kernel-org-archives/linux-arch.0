@@ -1,104 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gmmr2.centrum.cz ([46.255.227.252]:39833 "EHLO gmmr2.centrum.cz"
+Received: from mail.kapsi.fi ([217.30.184.167]:33758 "EHLO mail.kapsi.fi"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753589Ab3INKsj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 14 Sep 2013 06:48:39 -0400
-Subject: =?utf-8?q?Re=3A_=5Bpatch_0=2F7=5D_improve_memcg_oom_killer_robustness_v2?=
-Date: Sat, 14 Sep 2013 12:48:31 +0200
-From: "azurIt" <azurit@pobox.sk>
-References: <20130910201222.GA25972@cmpxchg.org>, <20130910230853.FEEC19B5@pobox.sk>, <20130910211823.GJ856@cmpxchg.org>, <20130910233247.9EDF4DBA@pobox.sk>, <20130910220329.GK856@cmpxchg.org>, <20130911143305.FFEAD399@pobox.sk>, <20130911180327.GL856@cmpxchg.org>, <20130911205448.656D9D7C@pobox.sk>, <20130911191150.GN856@cmpxchg.org>, <20130911214118.7CDF2E71@pobox.sk> <20130911200426.GO856@cmpxchg.org>
-In-Reply-To: <20130911200426.GO856@cmpxchg.org>
+	id S1751292Ab3IPGx2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 16 Sep 2013 02:53:28 -0400
+Message-ID: <5236AAE2.9030104@iki.fi>
+Date: Mon, 16 Sep 2013 09:53:22 +0300
+From: Jussi Kivilinna <jussi.kivilinna@iki.fi>
 MIME-Version: 1.0
-Message-ID: <20130914124831.4DD20346@pobox.sk>
+Subject: Re: [PATCH] crypto: move ablk_helper out of arch/x86
+References: <1379154250-14803-1-git-send-email-ard.biesheuvel@linaro.org>
+In-Reply-To: <1379154250-14803-1-git-send-email-ard.biesheuvel@linaro.org>
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?utf-8?q?Johannes_Weiner?= <hannes@cmpxchg.org>
-Cc: =?utf-8?q?Andrew_Morton?= <akpm@linux-foundation.org>, =?utf-8?q?Michal_Hocko?= <mhocko@suse.cz>, =?utf-8?q?David_Rientjes?= <rientjes@google.com>, =?utf-8?q?KAMEZAWA_Hiroyuki?= <kamezawa.hiroyu@jp.fujitsu.com>, =?utf-8?q?KOSAKI_Motohiro?= <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130914104831.cbJsD1Qxx3t4_e-85v0L8mDrdbe8dUekr3_cWQrLCS0@z>
+To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Cc: linux-crypto@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, herbert@gondor.apana.org.au, mingo@redhat.com, arnd@arndb.de
+Message-ID: <20130916065322.brMFj322wW2i6nju0vKk2XKy_a_7oiq7z5Eezpx-WAo@z>
 
-> CC: "Andrew Morton" <akpm@linux-foundation.org>, "Michal Hocko" <mhocko@suse.cz>, "David Rientjes" <rientjes@google.com>, "KAMEZAWA Hiroyuki" <kamezawa.hiroyu@jp.fujitsu.com>, "KOSAKI Motohiro" <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
->On Wed, Sep 11, 2013 at 09:41:18PM +0200, azurIt wrote:
->> >On Wed, Sep 11, 2013 at 08:54:48PM +0200, azurIt wrote:
->> >> >On Wed, Sep 11, 2013 at 02:33:05PM +0200, azurIt wrote:
->> >> >> >On Tue, Sep 10, 2013 at 11:32:47PM +0200, azurIt wrote:
->> >> >> >> >On Tue, Sep 10, 2013 at 11:08:53PM +0200, azurIt wrote:
->> >> >> >> >> >On Tue, Sep 10, 2013 at 09:32:53PM +0200, azurIt wrote:
->> >> >> >> >> >> Here is full kernel log between 6:00 and 7:59:
->> >> >> >> >> >> http://watchdog.sk/lkml/kern6.log
->> >> >> >> >> >
->> >> >> >> >> >Wow, your apaches are like the hydra.  Whenever one is OOM killed,
->> >> >> >> >> >more show up!
->> >> >> >> >> 
->> >> >> >> >> 
->> >> >> >> >> 
->> >> >> >> >> Yeah, it's supposed to do this ;)
->> >> >> >
->> >> >> >How are you expecting the machine to recover from an OOM situation,
->> >> >> >though?  I guess I don't really understand what these machines are
->> >> >> >doing.  But if you are overloading them like crazy, isn't that the
->> >> >> >expected outcome?
->> >> >> 
->> >> >> 
->> >> >> 
->> >> >> 
->> >> >> 
->> >> >> There's no global OOM, server has enough of memory. OOM is occuring only in cgroups (customers who simply don't want to pay for more memory).
->> >> >
->> >> >Yes, sure, but when the cgroups are thrashing, they use the disk and
->> >> >CPU to the point where the overall system is affected.
->> >> 
->> >> 
->> >> 
->> >> 
->> >> Didn't know that there is a disk usage because of this, i never noticed anything yet.
->> >
->> >You said there was heavy IO going on...?
->> 
->> 
->> 
->> Yes, there usually was a big IO but it was related to that
->> deadlocking bug in kernel (or i assume it was). I never saw a big IO
->> in normal conditions even when there were lots of OOM in
->> cgroups. I'm even not using swap because of this so i was assuming
->> that lacks of memory is not doing any additional IO (or am i
->> wrong?). And if you mean that last problem with IO from Monday, i
->> don't exactly know what happens but it's really long time when we
->> had so big problem with IO that it disables also root login on
->> console.
->
->The deadlocking problem should be separate from this.
->
->Even without swap, the binaries and libraries of the running tasks can
->get reclaimed (and immediately faulted back from disk, i.e thrashing).
->
->Usually the OOM killer should kick in before tasks cannibalize each
->other like that.
->
->The patch you were using did in fact have the side effect of widening
->the window between tasks entering heavy reclaim and the OOM killer
->kicking in, so it could explain the IO worsening while fixing the dead
->lock problem.
->
->That followup patch tries to narrow this window by quite a bit and
->tries to stop concurrent reclaim when the group is already OOM.
+On 14.09.2013 13:24, Ard Biesheuvel wrote:
+> Move the ablk_helper code out of arch/x86 so it can be reused
+> by other architectures. The only x86 specific dependency is
+> a call to irq_fpu_usable(), in the generic case we use
+> !in_interrupt() instead.
+> 
+> Cc: jussi.kivilinna@iki.fi
+> Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+> ---
+> 
+> Any need to split this up between generic/crypto and x86?
+> 
+> 
+>  arch/x86/crypto/Makefile                   |   1 -
+>  arch/x86/crypto/ablk_helper.c              | 149 ----------------------------
+>  arch/x86/crypto/aesni-intel_glue.c         |   2 +-
+>  arch/x86/crypto/camellia_aesni_avx2_glue.c |   2 +-
+>  arch/x86/crypto/camellia_aesni_avx_glue.c  |   2 +-
+>  arch/x86/crypto/cast5_avx_glue.c           |   2 +-
+>  arch/x86/crypto/cast6_avx_glue.c           |   2 +-
+>  arch/x86/crypto/serpent_avx2_glue.c        |   2 +-
+>  arch/x86/crypto/serpent_avx_glue.c         |   2 +-
+>  arch/x86/crypto/serpent_sse2_glue.c        |   2 +-
+>  arch/x86/crypto/twofish_avx_glue.c         |   2 +-
+>  arch/x86/include/asm/crypto/ablk_helper.h  |  38 ++------
+>  crypto/Kconfig                             |  23 +++--
+>  crypto/Makefile                            |   1 +
+>  crypto/ablk_helper.c                       | 150 +++++++++++++++++++++++++++++
+>  include/asm-generic/crypto/ablk_helper.h   |  13 +++
+>  include/crypto/ablk_helper.h               |  31 ++++++
+>  17 files changed, 224 insertions(+), 200 deletions(-)
+>  delete mode 100644 arch/x86/crypto/ablk_helper.c
+>  create mode 100644 crypto/ablk_helper.c
+>  create mode 100644 include/asm-generic/crypto/ablk_helper.h
+>  create mode 100644 include/crypto/ablk_helper.h
+> 
+> diff --git a/arch/x86/crypto/Makefile b/arch/x86/crypto/Makefile
+> index 7d6ba9d..18fda50 100644
+> --- a/arch/x86/crypto/Makefile
+> +++ b/arch/x86/crypto/Makefile
+> @@ -4,7 +4,6 @@
+>  
+>  avx_supported := $(call as-instr,vpxor %xmm0$(comma)%xmm0$(comma)%xmm0,yes,no)
+>  
+> -obj-$(CONFIG_CRYPTO_ABLK_HELPER_X86) += ablk_helper.o
+>  obj-$(CONFIG_CRYPTO_GLUE_HELPER_X86) += glue_helper.o
 
+This part does not apply cleanly to cryptodev tree (git://git.kernel.org/pub/scm/linux/kernel/git/herbert/cryptodev-2.6.git).
 
+> 
+[snip]
+> diff --git a/include/asm-generic/crypto/ablk_helper.h b/include/asm-generic/crypto/ablk_helper.h
+> new file mode 100644
+> index 0000000..ede807f
+> --- /dev/null
+> +++ b/include/asm-generic/crypto/ablk_helper.h
+> @@ -0,0 +1,13 @@
+> +
+> +#include <linux/hardirq.h>
+> +
+> +/*
+> + * ablk_can_run_sync - used by crypto/ablk_helper to decide whether a request
+> + * can be handled synchronously or needs to be queued up.
+> + * 
+> + * Choose in_interrupt() as a reasonable default
+> + */
 
-Johannes,
+Trailing whitespace in above comment block.
 
-the problem happened again, twice, but i have little more info than before.
+ERROR: trailing whitespace
+#702: FILE: include/asm-generic/crypto/ablk_helper.h:7:
++ * $
 
-Here is the first occurence, this night between 5:15 and 5:25:
- - this time i kept opened terminal from other server to this problematic one with htop running
- - when server went down i opened it and saw one process of one user running at the top and taking 97% of CPU (cgroup 1304)
- - everything was stucked so that htop didn't help me much
- - luckily, my new 'load check' script, which i was mentioning before, was able to kill apache and everything went to normal (success with it's very first version, wow ;) )
- - i checked some other logs and everything seems to point to cgroup 1304, also kernel log at 5:14-15 is showing hard OOM in that cgroup:
-http://watchdog.sk/lkml/kern7.log
+Otherwise,
+Acked-by: Jussi Kivilinna <jussi.kivilinna@iki.fi>
 
-
-Second time it happend between 12:01 and 12:09 but it was in the middle of the day so i'm not attaching any logs (there will be lots of other junk so it will be harded to read something from it). It was related to different cgroup than in first time.
-
-azur
