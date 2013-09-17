@@ -1,207 +1,180 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 11/11] sched, x86: Optimize the preempt_schedule() call
-Date: Tue, 17 Sep 2013 11:10:57 +0200
-Message-ID: <20130917091144.096544204@infradead.org>
-References: <20130917082838.218329307@infradead.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=peterz-x86-opt-call.patch
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>
-Cc: Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>
-List-Id: linux-arch.vger.kernel.org
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [RFC PATCH REBASED 2/3] x86: Move fpu_counter into ARCH specific
+ thread_struct
+Date: Tue, 17 Sep 2013 16:04:08 +0530
+Message-ID: <52383020.1090801@synopsys.com>
+References: <1379398639-27403-1-git-send-email-vgupta@synopsys.com> <1379398639-27403-3-git-send-email-vgupta@synopsys.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from alvesta.synopsys.com ([198.182.60.77]:41384 "EHLO
+	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751970Ab3IQKeb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Sep 2013 06:34:31 -0400
+In-Reply-To: <1379398639-27403-3-git-send-email-vgupta@synopsys.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Borislav Petkov <bp@suse.de>, Frederic Weisbecker <fweisbec@gmail.com>, Thomas Gleixner <tglx@linutronix.de>
 
-Remove the bloat of the C calling convention out of the
-preempt_enable() sites by creating an ASM wrapper which allows us to
-do an asm("call ___preempt_schedule") instead.
+[+cc: x86 folks] as the mailer skipped the CC list.
 
-calling.h bits by Andi Kleen
-
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
-Signed-off-by: Peter Zijlstra <peterz@infradead.org>
----
- arch/x86/include/asm/calling.h |   50 +++++++++++++++++++++++++++++++++++++++++
- arch/x86/include/asm/preempt.h |    8 ++++++
- arch/x86/kernel/Makefile       |    2 +
- arch/x86/kernel/preempt.S      |   25 ++++++++++++++++++++
- include/asm-generic/preempt.h  |   10 ++++++++
- include/linux/preempt.h        |   13 ++++------
- 6 files changed, 100 insertions(+), 8 deletions(-)
-
---- a/arch/x86/include/asm/calling.h
-+++ b/arch/x86/include/asm/calling.h
-@@ -48,6 +48,8 @@ For 32-bit we have the following convent
- 
- #include <asm/dwarf2.h>
- 
-+#ifdef CONFIG_X86_64
-+
- /*
-  * 64-bit system call stack frame layout defines and helpers,
-  * for assembly code:
-@@ -192,3 +194,51 @@ For 32-bit we have the following convent
- 	.macro icebp
- 	.byte 0xf1
- 	.endm
-+
-+#else /* CONFIG_X86_64 */
-+
-+/*
-+ * For 32bit only simplified versions of SAVE_ALL/RESTORE_ALL. These
-+ * are different from the entry_32.S versions in not changing the segment
-+ * registers. So only suitable for in kernel use, not when transitioning
-+ * from or to user space. The resulting stack frame is not a standard
-+ * pt_regs frame. The main use case is calling C code from assembler
-+ * when all the registers need to be preserved.
-+ */
-+
-+	.macro SAVE_ALL
-+	pushl_cfi %eax
-+	CFI_REL_OFFSET eax, 0
-+	pushl_cfi %ebp
-+	CFI_REL_OFFSET ebp, 0
-+	pushl_cfi %edi
-+	CFI_REL_OFFSET edi, 0
-+	pushl_cfi %esi
-+	CFI_REL_OFFSET esi, 0
-+	pushl_cfi %edx
-+	CFI_REL_OFFSET edx, 0
-+	pushl_cfi %ecx
-+	CFI_REL_OFFSET ecx, 0
-+	pushl_cfi %ebx
-+	CFI_REL_OFFSET ebx, 0
-+	.endm
-+
-+	.macro RESTORE_ALL
-+	popl_cfi %ebx
-+	CFI_RESTORE ebx
-+	popl_cfi %ecx
-+	CFI_RESTORE ecx
-+	popl_cfi %edx
-+	CFI_RESTORE edx
-+	popl_cfi %esi
-+	CFI_RESTORE esi
-+	popl_cfi %edi
-+	CFI_RESTORE edi
-+	popl_cfi %ebp
-+	CFI_RESTORE ebp
-+	popl_cfi %eax
-+	CFI_RESTORE eax
-+	.endm
-+
-+#endif /* CONFIG_X86_64 */
-+
---- a/arch/x86/include/asm/preempt.h
-+++ b/arch/x86/include/asm/preempt.h
-@@ -99,4 +99,12 @@ static __always_inline bool should_resch
- 	return unlikely(!__this_cpu_read_4(__preempt_count));
- }
- 
-+#ifdef CONFIG_PREEMPT
-+#define __preempt_schedule() asm ("call ___preempt_schedule")
-+
-+#ifdef CONFIG_CONTEXT_TRACKING
-+#define __preempt_schedule_context() asm ("call ___preempt_schedule_context")
-+#endif
-+#endif /* CONFIG_PREEMPT */
-+
- #endif /* __ASM_PREEMPT_H */
---- a/arch/x86/kernel/Makefile
-+++ b/arch/x86/kernel/Makefile
-@@ -36,6 +36,8 @@ obj-y			+= tsc.o io_delay.o rtc.o
- obj-y			+= pci-iommu_table.o
- obj-y			+= resource.o
- 
-+obj-$(CONFIG_PREEMPT)	+= preempt.o
-+
- obj-y				+= process.o
- obj-y				+= i387.o xsave.o
- obj-y				+= ptrace.o
---- /dev/null
-+++ b/arch/x86/kernel/preempt.S
-@@ -0,0 +1,25 @@
-+
-+#include <linux/linkage.h>
-+#include <asm/dwarf2.h>
-+#include <asm/asm.h>
-+#include <asm/calling.h>
-+
-+ENTRY(___preempt_schedule)
-+	CFI_STARTPROC
-+	SAVE_ALL
-+	call preempt_schedule
-+	RESTORE_ALL
-+	ret
-+	CFI_ENDPROC
-+
-+#ifdef CONFIG_CONTEXT_TRACKING
-+
-+ENTRY(___preempt_schedule_context)
-+	CFI_STARTPROC
-+	SAVE_ALL
-+	call preempt_schedule_context
-+	RESTORE_ALL
-+	ret
-+	CFI_ENDPROC
-+
-+#endif
---- a/include/asm-generic/preempt.h
-+++ b/include/asm-generic/preempt.h
-@@ -90,4 +90,14 @@ static __always_inline bool should_resch
- 	return unlikely(!*preempt_count_ptr());
- }
- 
-+#ifdef CONFIG_PREEMPT
-+extern asmlinkage void preempt_schedule(void);
-+#define __preempt_schedule() preempt_schedule()
-+
-+#ifdef CONFIG_CONTEXT_TRACKING
-+extern asmlinkage void preempt_schedule_context(void);
-+#define __preempt_schedule_context() preempt_schedule_context()
-+#endif
-+#endif /* CONFIG_PREEMPT */
-+
- #endif /* __ASM_PREEMPT_H */
---- a/include/linux/preempt.h
-+++ b/include/linux/preempt.h
-@@ -50,18 +50,17 @@ do { \
- #define preempt_enable_no_resched() sched_preempt_enable_no_resched()
- 
- #ifdef CONFIG_PREEMPT
--asmlinkage void preempt_schedule(void);
- #define preempt_enable() \
- do { \
- 	barrier(); \
- 	if (unlikely(preempt_count_dec_and_test())) \
--		preempt_schedule(); \
-+		__preempt_schedule(); \
- } while (0)
- 
- #define preempt_check_resched() \
- do { \
- 	if (should_resched()) \
--		preempt_schedule(); \
-+		__preempt_schedule(); \
- } while (0)
- 
- #else
-@@ -83,17 +82,15 @@ do { \
- 
- #ifdef CONFIG_PREEMPT
- 
--#ifdef CONFIG_CONTEXT_TRACKING
--asmlinkage void preempt_schedule_context(void);
--#else
--#define preempt_schedule_context() preempt_schedule()
-+#ifndef CONFIG_CONTEXT_TRACKING
-+#define __preempt_schedule_context() __preempt_schedule()
- #endif
- 
- #define preempt_enable_notrace() \
- do { \
- 	barrier(); \
- 	if (unlikely(__preempt_count_dec_and_test())) \
--		preempt_schedule_context(); \
-+		__preempt_schedule_context(); \
- } while (0)
- #else
- #define preempt_enable_notrace() preempt_enable_no_resched_notrace()
+On 09/17/2013 11:48 AM, Vineet Gupta wrote:
+> Only a couple of arches (sh/x86) use fpu_counter in task_struct so it
+> can be moved out into ARCH specific thread_struct, reducing the size of
+> task_struct for other arches.
+> 
+> Compile tested i386_defconfig + gcc 4.7.3
+> 
+> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: "H. Peter Anvin" <hpa@zytor.com>
+> Cc: x86@kernel.org
+> Cc: Suresh Siddha <suresh.b.siddha@intel.com>
+> Cc: Borislav Petkov <bp@suse.de>
+> Cc: Vincent Palatin <vpalatin@chromium.org>
+> Cc: Len Brown <len.brown@intel.com>
+> Cc: Al Viro <viro@zeniv.linux.org.uk>
+> Cc: Paul Gortmaker <paul.gortmaker@windriver.com>
+> Cc: Pekka Riikonen <priikone@iki.fi>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Dave Jones <davej@redhat.com>
+> Cc: Frederic Weisbecker <fweisbec@gmail.com>
+> Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+> Cc: linux-kernel@vger.kernel.org
+> ---
+>  arch/x86/include/asm/fpu-internal.h | 10 +++++-----
+>  arch/x86/include/asm/processor.h    |  9 +++++++++
+>  arch/x86/kernel/i387.c              |  2 +-
+>  arch/x86/kernel/process_32.c        |  4 ++--
+>  arch/x86/kernel/process_64.c        |  2 +-
+>  arch/x86/kernel/traps.c             |  2 +-
+>  6 files changed, 19 insertions(+), 10 deletions(-)
+> 
+> diff --git a/arch/x86/include/asm/fpu-internal.h b/arch/x86/include/asm/fpu-internal.h
+> index 4d0bda7..c49a613 100644
+> --- a/arch/x86/include/asm/fpu-internal.h
+> +++ b/arch/x86/include/asm/fpu-internal.h
+> @@ -365,7 +365,7 @@ static inline void drop_fpu(struct task_struct *tsk)
+>  	 * Forget coprocessor state..
+>  	 */
+>  	preempt_disable();
+> -	tsk->fpu_counter = 0;
+> +	tsk->thread.fpu_counter = 0;
+>  	__drop_fpu(tsk);
+>  	clear_used_math();
+>  	preempt_enable();
+> @@ -424,7 +424,7 @@ static inline fpu_switch_t switch_fpu_prepare(struct task_struct *old, struct ta
+>  	 * or if the past 5 consecutive context-switches used math.
+>  	 */
+>  	fpu.preload = tsk_used_math(new) && (use_eager_fpu() ||
+> -					     new->fpu_counter > 5);
+> +					     new->thread.fpu_counter > 5);
+>  	if (__thread_has_fpu(old)) {
+>  		if (!__save_init_fpu(old))
+>  			cpu = ~0;
+> @@ -433,16 +433,16 @@ static inline fpu_switch_t switch_fpu_prepare(struct task_struct *old, struct ta
+>  
+>  		/* Don't change CR0.TS if we just switch! */
+>  		if (fpu.preload) {
+> -			new->fpu_counter++;
+> +			new->thread.fpu_counter++;
+>  			__thread_set_has_fpu(new);
+>  			prefetch(new->thread.fpu.state);
+>  		} else if (!use_eager_fpu())
+>  			stts();
+>  	} else {
+> -		old->fpu_counter = 0;
+> +		old->thread.fpu_counter = 0;
+>  		old->thread.fpu.last_cpu = ~0;
+>  		if (fpu.preload) {
+> -			new->fpu_counter++;
+> +			new->thread.fpu_counter++;
+>  			if (!use_eager_fpu() && fpu_lazy_restore(new, cpu))
+>  				fpu.preload = 0;
+>  			else
+> diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+> index 987c75e..7b034a4 100644
+> --- a/arch/x86/include/asm/processor.h
+> +++ b/arch/x86/include/asm/processor.h
+> @@ -488,6 +488,15 @@ struct thread_struct {
+>  	unsigned long		iopl;
+>  	/* Max allowed port in the bitmap, in bytes: */
+>  	unsigned		io_bitmap_max;
+> +	/*
+> +	 * fpu_counter contains the number of consecutive context switches
+> +	 * that the FPU is used. If this is over a threshold, the lazy fpu
+> +	 * saving becomes unlazy to save the trap. This is an unsigned char
+> +	 * so that after 256 times the counter wraps and the behavior turns
+> +	 * lazy again; this to deal with bursty apps that only use FPU for
+> +	 * a short time
+> +	 */
+> +	unsigned char fpu_counter;
+>  };
+>  
+>  /*
+> diff --git a/arch/x86/kernel/i387.c b/arch/x86/kernel/i387.c
+> index 5d576ab..e8368c6 100644
+> --- a/arch/x86/kernel/i387.c
+> +++ b/arch/x86/kernel/i387.c
+> @@ -100,7 +100,7 @@ void unlazy_fpu(struct task_struct *tsk)
+>  		__save_init_fpu(tsk);
+>  		__thread_fpu_end(tsk);
+>  	} else
+> -		tsk->fpu_counter = 0;
+> +		tsk->thread.fpu_counter = 0;
+>  	preempt_enable();
+>  }
+>  EXPORT_SYMBOL(unlazy_fpu);
+> diff --git a/arch/x86/kernel/process_32.c b/arch/x86/kernel/process_32.c
+> index 884f98f..6af43b0 100644
+> --- a/arch/x86/kernel/process_32.c
+> +++ b/arch/x86/kernel/process_32.c
+> @@ -153,7 +153,7 @@ int copy_thread(unsigned long clone_flags, unsigned long sp,
+>  		childregs->orig_ax = -1;
+>  		childregs->cs = __KERNEL_CS | get_kernel_rpl();
+>  		childregs->flags = X86_EFLAGS_IF | X86_EFLAGS_FIXED;
+> -		p->fpu_counter = 0;
+> +		p->thread.fpu_counter = 0;
+>  		p->thread.io_bitmap_ptr = NULL;
+>  		memset(p->thread.ptrace_bps, 0, sizeof(p->thread.ptrace_bps));
+>  		return 0;
+> @@ -166,7 +166,7 @@ int copy_thread(unsigned long clone_flags, unsigned long sp,
+>  	p->thread.ip = (unsigned long) ret_from_fork;
+>  	task_user_gs(p) = get_user_gs(current_pt_regs());
+>  
+> -	p->fpu_counter = 0;
+> +	p->thread.fpu_counter = 0;
+>  	p->thread.io_bitmap_ptr = NULL;
+>  	tsk = current;
+>  	err = -ENOMEM;
+> diff --git a/arch/x86/kernel/process_64.c b/arch/x86/kernel/process_64.c
+> index bb1dc51..bbab295 100644
+> --- a/arch/x86/kernel/process_64.c
+> +++ b/arch/x86/kernel/process_64.c
+> @@ -163,7 +163,7 @@ int copy_thread(unsigned long clone_flags, unsigned long sp,
+>  	p->thread.sp = (unsigned long) childregs;
+>  	p->thread.usersp = me->thread.usersp;
+>  	set_tsk_thread_flag(p, TIF_FORK);
+> -	p->fpu_counter = 0;
+> +	p->thread.fpu_counter = 0;
+>  	p->thread.io_bitmap_ptr = NULL;
+>  
+>  	savesegment(gs, p->thread.gsindex);
+> diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
+> index 8c8093b..64b980f 100644
+> --- a/arch/x86/kernel/traps.c
+> +++ b/arch/x86/kernel/traps.c
+> @@ -653,7 +653,7 @@ void math_state_restore(void)
+>  		return;
+>  	}
+>  
+> -	tsk->fpu_counter++;
+> +	tsk->thread.fpu_counter++;
+>  }
+>  EXPORT_SYMBOL_GPL(math_state_restore);
+>  
+> 
