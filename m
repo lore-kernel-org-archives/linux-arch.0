@@ -1,62 +1,106 @@
-From: Michal Hocko <mhocko@suse.cz>
-Subject: Re: [patch 0/7] improve memcg oom killer robustness v2
-Date: Tue, 17 Sep 2013 16:10:13 +0200
-Message-ID: <20130917141013.GA30838@dhcp22.suse.cz>
-References: <20130916134014.GA3674@dhcp22.suse.cz>
- <20130916160119.2E76C2A1@pobox.sk>
- <20130916140607.GC3674@dhcp22.suse.cz>
- <20130916161316.5113F6E7@pobox.sk>
- <20130916145744.GE3674@dhcp22.suse.cz>
- <20130916170543.77F1ECB4@pobox.sk>
- <20130916152548.GF3674@dhcp22.suse.cz>
- <20130916225246.A633145B@pobox.sk>
- <20130917000244.GD3278@cmpxchg.org>
- <20130917131535.94E0A843@pobox.sk>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 02/11] sched, rcu: Make RCU use resched_cpu()
+Date: Tue, 17 Sep 2013 16:40:12 +0200
+Message-ID: <20130917144012.GC29354@twins.programming.kicks-ass.net>
+References: <20130917082838.218329307@infradead.org>
+ <20130917091143.449530904@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:49272 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752607Ab3IQOkb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Sep 2013 10:40:31 -0400
 Content-Disposition: inline
-In-Reply-To: <20130917131535.94E0A843@pobox.sk>
-Sender: owner-linux-mm@kvack.org
-To: azurIt <azurit@pobox.sk>
-Cc: Johannes Weiner <hannes@cmpxchg.org>, Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20130917091143.449530904@infradead.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>
+Cc: Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Paul McKenney <paulmck@linux.vnet.ibm.com>, Thomas Meyer <thomas@m3y3r.de>
 
-On Tue 17-09-13 13:15:35, azurIt wrote:
-[...]
-> Is something unusual on this stack?
-> 
-> 
-> [<ffffffff810d1a5e>] dump_header+0x7e/0x1e0
-> [<ffffffff810d195f>] ? find_lock_task_mm+0x2f/0x70
-> [<ffffffff810d1f25>] oom_kill_process+0x85/0x2a0
-> [<ffffffff810d24a8>] mem_cgroup_out_of_memory+0xa8/0xf0
-> [<ffffffff8110fb76>] mem_cgroup_oom_synchronize+0x2e6/0x310
-> [<ffffffff8110efc0>] ? mem_cgroup_uncharge_page+0x40/0x40
-> [<ffffffff810d2703>] pagefault_out_of_memory+0x13/0x130
-> [<ffffffff81026f6e>] mm_fault_error+0x9e/0x150
-> [<ffffffff81027424>] do_page_fault+0x404/0x490
-> [<ffffffff810f952c>] ? do_mmap_pgoff+0x3dc/0x430
-> [<ffffffff815cb87f>] page_fault+0x1f/0x30
+Thomas Meyer reported a UP build fail, should be fixed.
 
-This is a regular memcg OOM killer. Which dumps messages about what is
-going to do. So no, nothing unusual, except if it was like that for ever
-which would mean that oom_kill_process is in the endless loop. But a
-single stack doesn't tell us much.
+---
+Subject: sched, rcu: Make RCU use resched_cpu()
+From: Peter Zijlstra <peterz@infradead.org>
+Date: Tue Sep 17 09:30:55 CEST 2013
 
-Just a note. When you see something hogging a cpu and you are not sure
-whether it might be in an endless loop inside the kernel it makes sense
-to take several snaphosts of the stack trace and see if it changes. If
-not and the process is not sleeping (there is no schedule on the trace)
-then it might be looping somewhere waiting for Godot. If it is sleeping
-then it is slightly harder because you would have to identify what it is
-waiting for which requires to know a deeper context.
--- 
-Michal Hocko
-SUSE Labs
+We're going to deprecate and remove set_need_resched() for it will do
+the wrong thing. Make an exception for RCU and allow it to use
+resched_cpu() which will do the right thing.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>
+Signed-off-by: Peter Zijlstra <peterz@infradead.org>
+---
+ kernel/rcutree.c    |   15 ++++++++++++++-
+ kernel/sched/core.c |   10 ++--------
+ 2 files changed, 16 insertions(+), 9 deletions(-)
+
+--- a/kernel/rcutree.c
++++ b/kernel/rcutree.c
+@@ -898,6 +898,12 @@ static void print_other_cpu_stall(struct
+ 	force_quiescent_state(rsp);  /* Kick them all. */
+ }
+ 
++/*
++ * This function really isn't for public consumption, but RCU is special in
++ * that context switches can allow the state machine to make progress.
++ */
++extern void resched_cpu(int cpu);
++
+ static void print_cpu_stall(struct rcu_state *rsp)
+ {
+ 	int cpu;
+@@ -927,7 +933,14 @@ static void print_cpu_stall(struct rcu_s
+ 				     3 * rcu_jiffies_till_stall_check() + 3;
+ 	raw_spin_unlock_irqrestore(&rnp->lock, flags);
+ 
+-	set_need_resched();  /* kick ourselves to get things going. */
++	/*
++	 * Attempt to revive the RCU machinery by forcing a context switch.
++	 *
++	 * A context switch would normally allow the RCU state machine to make
++	 * progress and it could be we're stuck in kernel space without context
++	 * switches for an entirely unreasonable amount of time.
++	 */
++	resched_cpu(smp_processor_id());
+ }
+ 
+ static void check_cpu_stall(struct rcu_state *rsp, struct rcu_data *rdp)
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -513,12 +513,11 @@ static inline void init_hrtick(void)
+  * might also involve a cross-CPU call to trigger the scheduler on
+  * the target CPU.
+  */
+-#ifdef CONFIG_SMP
+ void resched_task(struct task_struct *p)
+ {
+ 	int cpu;
+ 
+-	assert_raw_spin_locked(&task_rq(p)->lock);
++	lockdep_assert_held(&task_rq(p)->lock);
+ 
+ 	if (test_tsk_need_resched(p))
+ 		return;
+@@ -546,6 +545,7 @@ void resched_cpu(int cpu)
+ 	raw_spin_unlock_irqrestore(&rq->lock, flags);
+ }
+ 
++#ifdef CONFIG_SMP
+ #ifdef CONFIG_NO_HZ_COMMON
+ /*
+  * In the semi idle case, use the nearest busy cpu for migrating timers
+@@ -693,12 +693,6 @@ void sched_avg_update(struct rq *rq)
+ 	}
+ }
+ 
+-#else /* !CONFIG_SMP */
+-void resched_task(struct task_struct *p)
+-{
+-	assert_raw_spin_locked(&task_rq(p)->lock);
+-	set_tsk_need_resched(p);
+-}
+ #endif /* CONFIG_SMP */
+ 
+ #if defined(CONFIG_RT_GROUP_SCHED) || (defined(CONFIG_FAIR_GROUP_SCHED) && \
