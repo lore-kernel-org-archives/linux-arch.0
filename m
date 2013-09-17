@@ -1,61 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:57029 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752751Ab3IQOKS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 17 Sep 2013 10:10:18 -0400
-Date: Tue, 17 Sep 2013 16:10:13 +0200
-From: Michal Hocko <mhocko@suse.cz>
-Subject: Re: [patch 0/7] improve memcg oom killer robustness v2
-Message-ID: <20130917141013.GA30838@dhcp22.suse.cz>
-References: <20130916134014.GA3674@dhcp22.suse.cz>
- <20130916160119.2E76C2A1@pobox.sk>
- <20130916140607.GC3674@dhcp22.suse.cz>
- <20130916161316.5113F6E7@pobox.sk>
- <20130916145744.GE3674@dhcp22.suse.cz>
- <20130916170543.77F1ECB4@pobox.sk>
- <20130916152548.GF3674@dhcp22.suse.cz>
- <20130916225246.A633145B@pobox.sk>
- <20130917000244.GD3278@cmpxchg.org>
- <20130917131535.94E0A843@pobox.sk>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20130917131535.94E0A843@pobox.sk>
+Received: from www.linutronix.de ([62.245.132.108]:54483 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753406Ab3IQSxH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Sep 2013 14:53:07 -0400
+Message-ID: <20130917182350.449685712@linutronix.de>
+Date: Tue, 17 Sep 2013 18:53:04 -0000
+From: Thomas Gleixner <tglx@linutronix.de>
+References: <20130917082838.218329307@infradead.org>
+Subject: [patch 0/6] Make all preempt_count related constants generic
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: azurIt <azurit@pobox.sk>
-Cc: Johannes Weiner <hannes@cmpxchg.org>, Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130917141013.ngRhuE9d8KnH0T0aODiCRBqZKPWuypLjoja9OiUhEVE@z>
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>
+Message-ID: <20130917185304.NQ6FfTseQ8EQFxTNGFpfbr2RVw3u3QmJ-KYIldIN-D0@z>
 
-On Tue 17-09-13 13:15:35, azurIt wrote:
-[...]
-> Is something unusual on this stack?
-> 
-> 
-> [<ffffffff810d1a5e>] dump_header+0x7e/0x1e0
-> [<ffffffff810d195f>] ? find_lock_task_mm+0x2f/0x70
-> [<ffffffff810d1f25>] oom_kill_process+0x85/0x2a0
-> [<ffffffff810d24a8>] mem_cgroup_out_of_memory+0xa8/0xf0
-> [<ffffffff8110fb76>] mem_cgroup_oom_synchronize+0x2e6/0x310
-> [<ffffffff8110efc0>] ? mem_cgroup_uncharge_page+0x40/0x40
-> [<ffffffff810d2703>] pagefault_out_of_memory+0x13/0x130
-> [<ffffffff81026f6e>] mm_fault_error+0x9e/0x150
-> [<ffffffff81027424>] do_page_fault+0x404/0x490
-> [<ffffffff810f952c>] ? do_mmap_pgoff+0x3dc/0x430
-> [<ffffffff815cb87f>] page_fault+0x1f/0x30
+There is no point in having PREEMPT_ACTIVE and HARDIRQ_BITS defined by
+an architecture.
 
-This is a regular memcg OOM killer. Which dumps messages about what is
-going to do. So no, nothing unusual, except if it was like that for ever
-which would mean that oom_kill_process is in the endless loop. But a
-single stack doesn't tell us much.
+The PREEMPT_ACTIVE bit manipulation in the low level entry code is
+historical and has been replaced by preempt_schedule_irq().
 
-Just a note. When you see something hogging a cpu and you are not sure
-whether it might be in an endless loop inside the kernel it makes sense
-to take several snaphosts of the stack trace and see if it changes. If
-not and the process is not sleeping (there is no schedule on the trace)
-then it might be looping somewhere waiting for Godot. If it is sleeping
-then it is slightly harder because you would have to identify what it is
-waiting for which requires to know a deeper context.
--- 
-Michal Hocko
-SUSE Labs
+The HARDIRQ_BITS constant could be 1 in theory because we run all
+interrupt handlers with interrupts disabled nowadays. Though we have
+some palaeontolical drivers (IDE) which still enable interrupts in the
+interrupt handler, so we need to allow at least some limited nesting.
+
+This series converts the remaining low level PREEMPT_ACTIVE users to
+utilize preempt_schedule_irq() and moves the PREEMPT_ACTIVE and
+HARDIRQ_BITS defines to the core code.
+
+I stumbled over this historical left overs while trying to implement a
+lazy interrupt disable scheme (which still has some rough edges due to
+completely braindamaged hardware).
+
+Peter, it would be nice if you could pick that up into your
+preempt/need_resched series.
+
+Thanks,
+
+	tglx
+---
+ arch/alpha/include/asm/thread_info.h      |    2 -
+ arch/arc/include/asm/thread_info.h        |    2 -
+ arch/arm/include/asm/thread_info.h        |    6 ----
+ arch/arm64/include/asm/thread_info.h      |    6 ----
+ arch/avr32/include/asm/thread_info.h      |    2 -
+ arch/blackfin/include/asm/hardirq.h       |    3 --
+ arch/blackfin/include/asm/thread_info.h   |    2 -
+ arch/c6x/include/asm/thread_info.h        |    2 -
+ arch/cris/include/asm/hardirq.h           |   12 --------
+ arch/cris/include/asm/thread_info.h       |    2 -
+ arch/frv/include/asm/thread_info.h        |    2 -
+ arch/h8300/include/asm/hardirq.h          |   12 --------
+ arch/h8300/include/asm/thread_info.h      |    2 -
+ arch/h8300/kernel/entry.S                 |    6 ----
+ arch/hexagon/include/asm/thread_info.h    |    4 --
+ arch/ia64/include/asm/thread_info.h       |    3 --
+ arch/ia64/kernel/entry.S                  |   15 ----------
+ arch/m32r/include/asm/hardirq.h           |   16 -----------
+ arch/m32r/include/asm/thread_info.h       |    2 -
+ arch/m32r/kernel/entry.S                  |    8 -----
+ arch/m68k/include/asm/hardirq.h           |   11 --------
+ arch/m68k/include/asm/thread_info.h       |    2 -
+ arch/metag/include/asm/thread_info.h      |    2 -
+ arch/microblaze/include/asm/thread_info.h |    2 -
+ arch/mips/include/asm/thread_info.h       |    2 -
+ arch/mn10300/include/asm/thread_info.h    |    2 -
+ arch/parisc/include/asm/thread_info.h     |    3 --
+ arch/powerpc/include/asm/thread_info.h    |    2 -
+ arch/s390/include/asm/hardirq.h           |    2 -
+ arch/s390/include/asm/thread_info.h       |    2 -
+ arch/score/include/asm/thread_info.h      |    2 -
+ arch/sh/include/asm/thread_info.h         |    2 -
+ arch/sh/kernel/entry-common.S             |    6 +---
+ arch/sparc/include/asm/hardirq_32.h       |    1 
+ arch/sparc/include/asm/hardirq_64.h       |    2 -
+ arch/sparc/include/asm/thread_info_32.h   |    2 -
+ arch/sparc/include/asm/thread_info_64.h   |    2 -
+ arch/sparc/kernel/rtrap_64.S              |    5 ---
+ arch/tile/include/asm/hardirq.h           |    2 -
+ arch/tile/include/asm/thread_info.h       |    2 -
+ arch/um/include/asm/thread_info.h         |    2 -
+ arch/unicore32/include/asm/thread_info.h  |    6 ----
+ arch/x86/include/asm/thread_info.h        |    2 -
+ arch/xtensa/include/asm/thread_info.h     |    2 -
+ include/linux/preempt_mask.h              |   41 ++++++++----------------------
+ 45 files changed, 17 insertions(+), 201 deletions(-)
+
