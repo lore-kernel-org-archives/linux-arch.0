@@ -1,104 +1,62 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC] Kernel semantics of relaxed MMIO accessors
-Date: Tue, 17 Sep 2013 12:32:43 +0100
-Message-ID: <20130917113243.GB29356@mudshark.cambridge.arm.com>
-References: <20130909114449.GB5426@mudshark.cambridge.arm.com>
+From: Michal Hocko <mhocko@suse.cz>
+Subject: Re: [patch 0/7] improve memcg oom killer robustness v2
+Date: Tue, 17 Sep 2013 16:10:13 +0200
+Message-ID: <20130917141013.GA30838@dhcp22.suse.cz>
+References: <20130916134014.GA3674@dhcp22.suse.cz>
+ <20130916160119.2E76C2A1@pobox.sk>
+ <20130916140607.GC3674@dhcp22.suse.cz>
+ <20130916161316.5113F6E7@pobox.sk>
+ <20130916145744.GE3674@dhcp22.suse.cz>
+ <20130916170543.77F1ECB4@pobox.sk>
+ <20130916152548.GF3674@dhcp22.suse.cz>
+ <20130916225246.A633145B@pobox.sk>
+ <20130917000244.GD3278@cmpxchg.org>
+ <20130917131535.94E0A843@pobox.sk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:37667 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751975Ab3IQLd3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 17 Sep 2013 07:33:29 -0400
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <20130909114449.GB5426@mudshark.cambridge.arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Cc: "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, Catalin Marinas <Catalin.Marinas@arm.com>, "x86@kernel.org" <x86@kernel.org>, "jgunthorpe@obsidianresearch.com" <jgunthorpe@obsidianresearch.com>, "gregory.clement@free-electrons.com" <gregory.clement@free-electrons.com>, "ezequiel.garcia@free-electrons.com" <ezequiel.garcia@free-electrons.com>, "JBottomley@Parallels.com" <JBottomley@Parallels.com>, "npiggin@kernel.dk" <npiggin@kernel.dk>, davem@davemloft.net, linux-kernel@vger.kernel.org
+In-Reply-To: <20130917131535.94E0A843@pobox.sk>
+Sender: owner-linux-mm@kvack.org
+To: azurIt <azurit@pobox.sk>
+Cc: Johannes Weiner <hannes@cmpxchg.org>, Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-[expanding CC list and bumping since the merge window is now over]
+On Tue 17-09-13 13:15:35, azurIt wrote:
+[...]
+> Is something unusual on this stack?
+> 
+> 
+> [<ffffffff810d1a5e>] dump_header+0x7e/0x1e0
+> [<ffffffff810d195f>] ? find_lock_task_mm+0x2f/0x70
+> [<ffffffff810d1f25>] oom_kill_process+0x85/0x2a0
+> [<ffffffff810d24a8>] mem_cgroup_out_of_memory+0xa8/0xf0
+> [<ffffffff8110fb76>] mem_cgroup_oom_synchronize+0x2e6/0x310
+> [<ffffffff8110efc0>] ? mem_cgroup_uncharge_page+0x40/0x40
+> [<ffffffff810d2703>] pagefault_out_of_memory+0x13/0x130
+> [<ffffffff81026f6e>] mm_fault_error+0x9e/0x150
+> [<ffffffff81027424>] do_page_fault+0x404/0x490
+> [<ffffffff810f952c>] ? do_mmap_pgoff+0x3dc/0x430
+> [<ffffffff815cb87f>] page_fault+0x1f/0x30
 
-On Mon, Sep 09, 2013 at 12:44:49PM +0100, Will Deacon wrote:
-> Hello,
-> 
-> During the review of a recent patch to add support for atomic MMIO
-> read-modify-write sequences between drivers on ARM, it was suggested
-> that this code could be made generic and used by other architectures.
-> 
->   http://lists.infradead.org/pipermail/linux-arm-kernel/2013-August/194178.html
-> 
-> However, making this generic requires the availability of relaxed MMIO
-> accessors across all architectures because { readX(); modify(); writeX(); }
-> is an extremely expensive sequence on ARM. This expense is due to heavyweight
-> barriers inside our accessor macros to satisfy the conclusions from this
-> earlier thread with respect to cacheable memory ordering (which do make sense
-> from a driver writer's perspective):
-> 
->   http://www.gossamer-threads.com/lists/linux/kernel/932153?do=post_view_threaded#932153
-> 
-> The problem with relaxed accessors (which is also mentioned in the thread
-> above) is that they don't seem to have well defined semantics across all
-> architectures. For example, the table below illustrates a few architectures
-> and their behaviour in this area (please correct any mistakes or add any
-> interesting architectures):
-> 
-> 
-> Ordered against: | IO (same device) | Cacheable accesses | Spin lock/unlock |
-> -----------------+------------------+--------------------+------------------+
-> ARM/ARM64        |                  |                    |                  |
->   readX/writeX   |        Y         |         Y          |        Y         |
->   _relaxed       |        Y         |         N          |        Y         |
->                  |                  |                    |                  |
-> Alpha            |                  |                    |                  |
->   readX/writeX   |        Y         |         Y          |        Y         |
->   _relaxed       |        N*        |         N          |        Y         |
->                  |                  |                    |                  |
-> PowerPC**        |                  |                    |                  |
->   readX/writeX   |        Y         |         Y          |        Y         |
->   _relaxed       |        Y         |         Y          |        Y         |
->                  |                  |                    |                  |
-> x86              |                  |                    |                  |
->   readX/writeX   |        Y         |         Y          |        Y         |
->   _relaxed***    |        N         |         N          |        Y         |
-> 
-> *   Depends on specific machine afaict.
-> **  _relaxed accessors just #defined as non-relaxed variants, so could be
->     improved.
-> *** Potential for re-ordering by the compiler.
-> 
-> 
-> On top of that, there is the concept of relaxed transactions in PCI-X and
-> PCI-E, which seem to permit re-ordering of accesses to the same address!
-> I think this is also behind the reason that, whilst readX_relaxed is
-> implemented on almost all architectures, writeX_relaxed is very uncommon.
-> 
-> Documentation/memory-barriers.txt states vaguely that readX_relaxed is
-> "not guaranteed to be ordered in any way" whilst
-> Documentation/DocBook/deviceiobook.tmpl explicitly ties the relaxed ordering
-> to IO accesses and DMA writes from a device.
-> 
-> So this email is a bit of a cry for help. I'd like to try and define some
-> common semantics for relaxed I/O accessors so that they can be implemented
-> by all architectures and relied upon by driver writers, including the
-> addition of relaxed writes.
-> 
-> My basic proposal would be to copy the ARM definition of _relaxed accessors
-> (i.e. only relax ordering against cacheable accesses), which is the semantic
-> hinted at by Nick when this was last discussed:
-> 
->   http://www.gossamer-threads.com/lists/linux/kernel/932390?do=post_view_threaded#932390
-> 
-> This should allow for significant performance improvements in drivers which
-> don't care about normal memory ordering most of the time yet do have strict
-> requirements on ordering of I/O accesses (I think this is the common case).
-> 
-> All feedback/suggestions/war stories welcome!
-> 
-> Will
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> 
+This is a regular memcg OOM killer. Which dumps messages about what is
+going to do. So no, nothing unusual, except if it was like that for ever
+which would mean that oom_kill_process is in the endless loop. But a
+single stack doesn't tell us much.
+
+Just a note. When you see something hogging a cpu and you are not sure
+whether it might be in an endless loop inside the kernel it makes sense
+to take several snaphosts of the stack trace and see if it changes. If
+not and the process is not sleeping (there is no schedule on the trace)
+then it might be looping somewhere waiting for Godot. If it is sleeping
+then it is slightly harder because you would have to identify what it is
+waiting for which requires to know a deeper context.
+-- 
+Michal Hocko
+SUSE Labs
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
