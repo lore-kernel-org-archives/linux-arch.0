@@ -1,55 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from alvesta.synopsys.com ([198.182.60.77]:33159 "EHLO
-	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751511Ab3IQGS0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Sep 2013 02:18:26 -0400
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [RFC PATCH REBASED 3/3] sched: Remove ARCH specific fpu_counter from task_struct
-Date: Tue, 17 Sep 2013 11:47:19 +0530
-Message-ID: <1379398639-27403-4-git-send-email-vgupta@synopsys.com>
-In-Reply-To: <1379398639-27403-1-git-send-email-vgupta@synopsys.com>
+Received: from merlin.infradead.org ([205.233.59.134]:42039 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751908Ab3IQI0I (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Sep 2013 04:26:08 -0400
+Date: Tue, 17 Sep 2013 10:25:56 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC PATCH REBASED 1/3] sh: Move fpu_counter into ARCH specific
+ thread_struct
+Message-ID: <20130917082556.GD12926@twins.programming.kicks-ass.net>
 References: <1379398639-27403-1-git-send-email-vgupta@synopsys.com>
+ <1379398639-27403-2-git-send-email-vgupta@synopsys.com>
+ <20130917080017.GC12926@twins.programming.kicks-ass.net>
+ <C2D7FE5348E1B147BCA15975FBA2307514C36B@IN01WEMBXA.internal.synopsys.com>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <C2D7FE5348E1B147BCA15975FBA2307514C36B@IN01WEMBXA.internal.synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org
-Message-ID: <20130917061719.Xado6v5Sb-hTayg9SOx5guCOio-GKArK9WLBDKZrGCw@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org
+Message-ID: <20130917082556.8tCrf8U53E4D0LxEk2W621J3Ai2BeD5GcGp_7nBXgGU@z>
 
-fpu_counter in task_struct was used only by sh/x86.
-Both of these now carry it in ARCH specific thread_struct, hence this
-can now be removed from generic task_struct, shrinking it slightly for
-other arches.
+On Tue, Sep 17, 2013 at 08:14:34AM +0000, Vineet Gupta wrote:
+> For some reason the email to Paul bounced last time as well
+> 
+> --------------->8-----------------------
+> lethal@linux-sh.org<mailto:lethal@linux-sh.org>>: host mail.linux-sh.org[111.68.239.195] said: 550 5.7.1
+>     <lethal@linux-sh.org><mailto:lethal@linux-sh.org>... Relaying denied. Proper authentication required.
+>     (in reply to RCPT TO command)
+> --------------->8-----------------------
+> 
+> Did you get that too after sending this CCed email to him.
 
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>
----
- include/linux/sched.h | 9 ---------
- 1 file changed, 9 deletions(-)
-
-diff --git a/include/linux/sched.h b/include/linux/sched.h
-index 6682da3..78386c1 100644
---- a/include/linux/sched.h
-+++ b/include/linux/sched.h
-@@ -1046,15 +1046,6 @@ struct task_struct {
- 	struct hlist_head preempt_notifiers;
- #endif
- 
--	/*
--	 * fpu_counter contains the number of consecutive context switches
--	 * that the FPU is used. If this is over a threshold, the lazy fpu
--	 * saving becomes unlazy to save the trap. This is an unsigned char
--	 * so that after 256 times the counter wraps and the behavior turns
--	 * lazy again; this to deal with bursty apps that only use FPU for
--	 * a short time
--	 */
--	unsigned char fpu_counter;
- #ifdef CONFIG_BLK_DEV_IO_TRACE
- 	unsigned int btrace_seq;
- #endif
--- 
-1.8.1.2
-
+Yep.. :/ 
