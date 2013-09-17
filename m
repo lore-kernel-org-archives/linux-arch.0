@@ -1,49 +1,38 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH 11/14] s390: locks: remove redundant arch_*_relax operations
-Date: Tue, 17 Sep 2013 16:07:43 +0100
-Message-ID: <1379430466-30520-12-git-send-email-will.deacon@arm.com>
+Subject: [PATCH 10/14] hppa: locks: remove redundant arch_*_relax operations
+Date: Tue, 17 Sep 2013 16:07:42 +0100
+Message-ID: <1379430466-30520-11-git-send-email-will.deacon@arm.com>
 References: <1379430466-30520-1-git-send-email-will.deacon@arm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:41242 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:41236 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752840Ab3IQPID (ORCPT
+	by vger.kernel.org with ESMTP id S1752840Ab3IQPH7 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 17 Sep 2013 11:08:03 -0400
+	Tue, 17 Sep 2013 11:07:59 -0400
 In-Reply-To: <1379430466-30520-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: Will Deacon <will.deacon@arm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Will Deacon <will.deacon@arm.com>, Helge Deller <deller@gmx.de>
 
-Now that the arch_{read,write}_relax macros default to cpu_relax(),
-remove the redundant definitions for S390.
+Now that the arch_{spin,read,write}_relax macros default to cpu_relax(),
+remove the redundant definitions for parisc.
 
-Since S390 provides an arch_spin_relax implementation, that function is
-left alone and additionally defined as a macro, so the LOCKBREAK code
-will pick it up.
-
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Helge Deller <deller@gmx.de>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- arch/s390/include/asm/spinlock.h | 4 +---
- 1 file changed, 1 insertion(+), 3 deletions(-)
+ arch/parisc/include/asm/spinlock.h | 4 ----
+ 1 file changed, 4 deletions(-)
 
-diff --git a/arch/s390/include/asm/spinlock.h b/arch/s390/include/asm/spinlock.h
-index 701fe8c..944f4cd 100644
---- a/arch/s390/include/asm/spinlock.h
-+++ b/arch/s390/include/asm/spinlock.h
-@@ -43,6 +43,7 @@ extern void arch_spin_lock_wait(arch_spinlock_t *);
- extern void arch_spin_lock_wait_flags(arch_spinlock_t *, unsigned long flags);
- extern int arch_spin_trylock_retry(arch_spinlock_t *);
- extern void arch_spin_relax(arch_spinlock_t *lock);
-+#define arch_spin_relax arch_spin_relax
+diff --git a/arch/parisc/include/asm/spinlock.h b/arch/parisc/include/asm/spinlock.h
+index 3516e0b..64f2992 100644
+--- a/arch/parisc/include/asm/spinlock.h
++++ b/arch/parisc/include/asm/spinlock.h
+@@ -191,8 +191,4 @@ static __inline__ int arch_write_can_lock(arch_rwlock_t *rw)
+ #define arch_read_lock_flags(lock, flags) arch_read_lock(lock)
+ #define arch_write_lock_flags(lock, flags) arch_write_lock(lock)
  
- static inline void arch_spin_lock(arch_spinlock_t *lp)
- {
-@@ -170,7 +171,4 @@ static inline int arch_write_trylock(arch_rwlock_t *rw)
- 	return _raw_write_trylock_retry(rw);
- }
- 
+-#define arch_spin_relax(lock)	cpu_relax()
 -#define arch_read_relax(lock)	cpu_relax()
 -#define arch_write_relax(lock)	cpu_relax()
 -
