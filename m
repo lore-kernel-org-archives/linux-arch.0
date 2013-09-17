@@ -1,370 +1,207 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 07/11] sched, arch: Create asm/preempt.h
-Date: Tue, 17 Sep 2013 11:10:53 +0200
-Message-ID: <20130917091143.809146812@infradead.org>
+Subject: [PATCH 11/11] sched, x86: Optimize the preempt_schedule() call
+Date: Tue, 17 Sep 2013 11:10:57 +0200
+Message-ID: <20130917091144.096544204@infradead.org>
 References: <20130917082838.218329307@infradead.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=peterz-asm-preempt_count.patch
+Content-Disposition: inline; filename=peterz-x86-opt-call.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>
 Cc: Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-In order to prepare to per-arch implementations of preempt_count move
-the required bits into an asm-generic header and use this for all
-archs.
+Remove the bloat of the C calling convention out of the
+preempt_enable() sites by creating an ASM wrapper which allows us to
+do an asm("call ___preempt_schedule") instead.
 
+calling.h bits by Andi Kleen
+
+Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
 Signed-off-by: Peter Zijlstra <peterz@infradead.org>
 ---
- arch/alpha/include/asm/Kbuild      |    1 
- arch/arc/include/asm/Kbuild        |    1 
- arch/arm/include/asm/Kbuild        |    1 
- arch/arm64/include/asm/Kbuild      |    1 
- arch/avr32/include/asm/Kbuild      |    1 
- arch/blackfin/include/asm/Kbuild   |    1 
- arch/c6x/include/asm/Kbuild        |    1 
- arch/cris/include/asm/Kbuild       |    1 
- arch/frv/include/asm/Kbuild        |    1 
- arch/h8300/include/asm/Kbuild      |    1 
- arch/hexagon/include/asm/Kbuild    |    1 
- arch/ia64/include/asm/Kbuild       |    1 
- arch/m32r/include/asm/Kbuild       |    1 
- arch/m68k/include/asm/Kbuild       |    1 
- arch/metag/include/asm/Kbuild      |    1 
- arch/microblaze/include/asm/Kbuild |    1 
- arch/mips/include/asm/Kbuild       |    1 
- arch/mn10300/include/asm/Kbuild    |    1 
- arch/openrisc/include/asm/Kbuild   |    1 
- arch/parisc/include/asm/Kbuild     |    1 
- arch/powerpc/include/asm/Kbuild    |    1 
- arch/s390/include/asm/Kbuild       |    1 
- arch/score/include/asm/Kbuild      |    1 
- arch/sh/include/asm/Kbuild         |    1 
- arch/sparc/include/asm/Kbuild      |    1 
- arch/tile/include/asm/Kbuild       |    1 
- arch/um/include/asm/Kbuild         |    1 
- arch/unicore32/include/asm/Kbuild  |    1 
- arch/x86/include/asm/Kbuild        |    1 
- arch/xtensa/include/asm/Kbuild     |    1 
- include/asm-generic/preempt.h      |   44 +++++++++++++++++++++++++++++++++++++
- include/linux/preempt.h            |   39 --------------------------------
- 32 files changed, 75 insertions(+), 38 deletions(-)
+ arch/x86/include/asm/calling.h |   50 +++++++++++++++++++++++++++++++++++++++++
+ arch/x86/include/asm/preempt.h |    8 ++++++
+ arch/x86/kernel/Makefile       |    2 +
+ arch/x86/kernel/preempt.S      |   25 ++++++++++++++++++++
+ include/asm-generic/preempt.h  |   10 ++++++++
+ include/linux/preempt.h        |   13 ++++------
+ 6 files changed, 100 insertions(+), 8 deletions(-)
 
---- a/arch/alpha/include/asm/Kbuild
-+++ b/arch/alpha/include/asm/Kbuild
-@@ -3,3 +3,4 @@ generic-y += clkdev.h
+--- a/arch/x86/include/asm/calling.h
++++ b/arch/x86/include/asm/calling.h
+@@ -48,6 +48,8 @@ For 32-bit we have the following convent
  
- generic-y += exec.h
- generic-y += trace_clock.h
-+generic-y += preempt.h
---- a/arch/arc/include/asm/Kbuild
-+++ b/arch/arc/include/asm/Kbuild
-@@ -46,3 +46,4 @@ generic-y += ucontext.h
- generic-y += user.h
- generic-y += vga.h
- generic-y += xor.h
-+generic-y += preempt.h
---- a/arch/arm/include/asm/Kbuild
-+++ b/arch/arm/include/asm/Kbuild
-@@ -33,3 +33,4 @@ generic-y += timex.h
- generic-y += trace_clock.h
- generic-y += types.h
- generic-y += unaligned.h
-+generic-y += preempt.h
---- a/arch/arm64/include/asm/Kbuild
-+++ b/arch/arm64/include/asm/Kbuild
-@@ -50,3 +50,4 @@ generic-y += unaligned.h
- generic-y += user.h
- generic-y += vga.h
- generic-y += xor.h
-+generic-y += preempt.h
---- a/arch/avr32/include/asm/Kbuild
-+++ b/arch/avr32/include/asm/Kbuild
-@@ -3,3 +3,4 @@ generic-y	+= clkdev.h
- generic-y	+= exec.h
- generic-y	+= trace_clock.h
- generic-y	+= param.h
-+generic-y += preempt.h
---- a/arch/blackfin/include/asm/Kbuild
-+++ b/arch/blackfin/include/asm/Kbuild
-@@ -44,3 +44,4 @@ generic-y += ucontext.h
- generic-y += unaligned.h
- generic-y += user.h
- generic-y += xor.h
-+generic-y += preempt.h
---- a/arch/c6x/include/asm/Kbuild
-+++ b/arch/c6x/include/asm/Kbuild
-@@ -56,3 +56,4 @@ generic-y += ucontext.h
- generic-y += user.h
- generic-y += vga.h
- generic-y += xor.h
-+generic-y += preempt.h
---- a/arch/cris/include/asm/Kbuild
-+++ b/arch/cris/include/asm/Kbuild
-@@ -11,3 +11,4 @@ generic-y += module.h
- generic-y += trace_clock.h
- generic-y += vga.h
- generic-y += xor.h
-+generic-y += preempt.h
---- a/arch/frv/include/asm/Kbuild
-+++ b/arch/frv/include/asm/Kbuild
-@@ -2,3 +2,4 @@
- generic-y += clkdev.h
- generic-y += exec.h
- generic-y += trace_clock.h
-+generic-y += preempt.h
---- a/arch/h8300/include/asm/Kbuild
-+++ b/arch/h8300/include/asm/Kbuild
-@@ -6,3 +6,4 @@ generic-y += mmu.h
- generic-y += module.h
- generic-y += trace_clock.h
- generic-y += xor.h
-+generic-y += preempt.h
---- a/arch/hexagon/include/asm/Kbuild
-+++ b/arch/hexagon/include/asm/Kbuild
-@@ -53,3 +53,4 @@ generic-y += types.h
- generic-y += ucontext.h
- generic-y += unaligned.h
- generic-y += xor.h
-+generic-y += preempt.h
---- a/arch/ia64/include/asm/Kbuild
-+++ b/arch/ia64/include/asm/Kbuild
-@@ -3,4 +3,5 @@ generic-y += clkdev.h
- generic-y += exec.h
- generic-y += kvm_para.h
- generic-y += trace_clock.h
-+generic-y += preempt.h
- generic-y += vtime.h
-\ No newline at end of file
---- a/arch/m32r/include/asm/Kbuild
-+++ b/arch/m32r/include/asm/Kbuild
-@@ -3,3 +3,4 @@ generic-y += clkdev.h
- generic-y += exec.h
- generic-y += module.h
- generic-y += trace_clock.h
-+generic-y += preempt.h
---- a/arch/m68k/include/asm/Kbuild
-+++ b/arch/m68k/include/asm/Kbuild
-@@ -31,3 +31,4 @@ generic-y += trace_clock.h
- generic-y += types.h
- generic-y += word-at-a-time.h
- generic-y += xor.h
-+generic-y += preempt.h
---- a/arch/metag/include/asm/Kbuild
-+++ b/arch/metag/include/asm/Kbuild
-@@ -52,3 +52,4 @@ generic-y += unaligned.h
- generic-y += user.h
- generic-y += vga.h
- generic-y += xor.h
-+generic-y += preempt.h
---- a/arch/microblaze/include/asm/Kbuild
-+++ b/arch/microblaze/include/asm/Kbuild
-@@ -3,3 +3,4 @@ generic-y += clkdev.h
- generic-y += exec.h
- generic-y += trace_clock.h
- generic-y += syscalls.h
-+generic-y += preempt.h
---- a/arch/mips/include/asm/Kbuild
-+++ b/arch/mips/include/asm/Kbuild
-@@ -11,5 +11,6 @@ generic-y += sections.h
- generic-y += segment.h
- generic-y += serial.h
- generic-y += trace_clock.h
-+generic-y += preempt.h
- generic-y += ucontext.h
- generic-y += xor.h
---- a/arch/mn10300/include/asm/Kbuild
-+++ b/arch/mn10300/include/asm/Kbuild
-@@ -2,3 +2,4 @@
- generic-y += clkdev.h
- generic-y += exec.h
- generic-y += trace_clock.h
-+generic-y += preempt.h
---- a/arch/openrisc/include/asm/Kbuild
-+++ b/arch/openrisc/include/asm/Kbuild
-@@ -67,3 +67,4 @@ generic-y += ucontext.h
- generic-y += user.h
- generic-y += word-at-a-time.h
- generic-y += xor.h
-+generic-y += preempt.h
---- a/arch/parisc/include/asm/Kbuild
-+++ b/arch/parisc/include/asm/Kbuild
-@@ -4,3 +4,4 @@ generic-y += word-at-a-time.h auxvec.h u
- 	  div64.h irq_regs.h kdebug.h kvm_para.h local64.h local.h param.h \
- 	  poll.h xor.h clkdev.h exec.h
- generic-y += trace_clock.h
-+generic-y += preempt.h
---- a/arch/powerpc/include/asm/Kbuild
-+++ b/arch/powerpc/include/asm/Kbuild
-@@ -2,4 +2,5 @@
- generic-y += clkdev.h
- generic-y += rwsem.h
- generic-y += trace_clock.h
-+generic-y += preempt.h
- generic-y += vtime.h
-\ No newline at end of file
---- a/arch/s390/include/asm/Kbuild
-+++ b/arch/s390/include/asm/Kbuild
-@@ -2,3 +2,4 @@
+ #include <asm/dwarf2.h>
  
- generic-y += clkdev.h
- generic-y += trace_clock.h
-+generic-y += preempt.h
---- a/arch/score/include/asm/Kbuild
-+++ b/arch/score/include/asm/Kbuild
-@@ -4,3 +4,4 @@ header-y +=
- generic-y += clkdev.h
- generic-y += trace_clock.h
- generic-y += xor.h
-+generic-y += preempt.h
---- a/arch/sh/include/asm/Kbuild
-+++ b/arch/sh/include/asm/Kbuild
-@@ -34,3 +34,4 @@ generic-y += termios.h
- generic-y += trace_clock.h
- generic-y += ucontext.h
- generic-y += xor.h
-+generic-y += preempt.h
---- a/arch/sparc/include/asm/Kbuild
-+++ b/arch/sparc/include/asm/Kbuild
-@@ -16,3 +16,4 @@ generic-y += serial.h
- generic-y += trace_clock.h
- generic-y += types.h
- generic-y += word-at-a-time.h
-+generic-y += preempt.h
---- a/arch/tile/include/asm/Kbuild
-+++ b/arch/tile/include/asm/Kbuild
-@@ -38,3 +38,4 @@ generic-y += termios.h
- generic-y += trace_clock.h
- generic-y += types.h
- generic-y += xor.h
-+generic-y += preempt.h
---- a/arch/um/include/asm/Kbuild
-+++ b/arch/um/include/asm/Kbuild
-@@ -3,3 +3,4 @@ generic-y += hw_irq.h irq_regs.h kdebug.
- generic-y += ftrace.h pci.h io.h param.h delay.h mutex.h current.h exec.h
- generic-y += switch_to.h clkdev.h
- generic-y += trace_clock.h
-+generic-y += preempt.h
---- a/arch/unicore32/include/asm/Kbuild
-+++ b/arch/unicore32/include/asm/Kbuild
-@@ -60,3 +60,4 @@ generic-y += unaligned.h
- generic-y += user.h
- generic-y += vga.h
- generic-y += xor.h
-+generic-y += preempt.h
---- a/arch/x86/include/asm/Kbuild
-+++ b/arch/x86/include/asm/Kbuild
-@@ -5,3 +5,4 @@ genhdr-y += unistd_64.h
- genhdr-y += unistd_x32.h
++#ifdef CONFIG_X86_64
++
+ /*
+  * 64-bit system call stack frame layout defines and helpers,
+  * for assembly code:
+@@ -192,3 +194,51 @@ For 32-bit we have the following convent
+ 	.macro icebp
+ 	.byte 0xf1
+ 	.endm
++
++#else /* CONFIG_X86_64 */
++
++/*
++ * For 32bit only simplified versions of SAVE_ALL/RESTORE_ALL. These
++ * are different from the entry_32.S versions in not changing the segment
++ * registers. So only suitable for in kernel use, not when transitioning
++ * from or to user space. The resulting stack frame is not a standard
++ * pt_regs frame. The main use case is calling C code from assembler
++ * when all the registers need to be preserved.
++ */
++
++	.macro SAVE_ALL
++	pushl_cfi %eax
++	CFI_REL_OFFSET eax, 0
++	pushl_cfi %ebp
++	CFI_REL_OFFSET ebp, 0
++	pushl_cfi %edi
++	CFI_REL_OFFSET edi, 0
++	pushl_cfi %esi
++	CFI_REL_OFFSET esi, 0
++	pushl_cfi %edx
++	CFI_REL_OFFSET edx, 0
++	pushl_cfi %ecx
++	CFI_REL_OFFSET ecx, 0
++	pushl_cfi %ebx
++	CFI_REL_OFFSET ebx, 0
++	.endm
++
++	.macro RESTORE_ALL
++	popl_cfi %ebx
++	CFI_RESTORE ebx
++	popl_cfi %ecx
++	CFI_RESTORE ecx
++	popl_cfi %edx
++	CFI_RESTORE edx
++	popl_cfi %esi
++	CFI_RESTORE esi
++	popl_cfi %edi
++	CFI_RESTORE edi
++	popl_cfi %ebp
++	CFI_RESTORE ebp
++	popl_cfi %eax
++	CFI_RESTORE eax
++	.endm
++
++#endif /* CONFIG_X86_64 */
++
+--- a/arch/x86/include/asm/preempt.h
++++ b/arch/x86/include/asm/preempt.h
+@@ -99,4 +99,12 @@ static __always_inline bool should_resch
+ 	return unlikely(!__this_cpu_read_4(__preempt_count));
+ }
  
- generic-y += clkdev.h
-+generic-y += preempt.h
---- a/arch/xtensa/include/asm/Kbuild
-+++ b/arch/xtensa/include/asm/Kbuild
-@@ -28,3 +28,4 @@ generic-y += termios.h
- generic-y += topology.h
- generic-y += trace_clock.h
- generic-y += xor.h
-+generic-y += preempt.h
++#ifdef CONFIG_PREEMPT
++#define __preempt_schedule() asm ("call ___preempt_schedule")
++
++#ifdef CONFIG_CONTEXT_TRACKING
++#define __preempt_schedule_context() asm ("call ___preempt_schedule_context")
++#endif
++#endif /* CONFIG_PREEMPT */
++
+ #endif /* __ASM_PREEMPT_H */
+--- a/arch/x86/kernel/Makefile
++++ b/arch/x86/kernel/Makefile
+@@ -36,6 +36,8 @@ obj-y			+= tsc.o io_delay.o rtc.o
+ obj-y			+= pci-iommu_table.o
+ obj-y			+= resource.o
+ 
++obj-$(CONFIG_PREEMPT)	+= preempt.o
++
+ obj-y				+= process.o
+ obj-y				+= i387.o xsave.o
+ obj-y				+= ptrace.o
 --- /dev/null
++++ b/arch/x86/kernel/preempt.S
+@@ -0,0 +1,25 @@
++
++#include <linux/linkage.h>
++#include <asm/dwarf2.h>
++#include <asm/asm.h>
++#include <asm/calling.h>
++
++ENTRY(___preempt_schedule)
++	CFI_STARTPROC
++	SAVE_ALL
++	call preempt_schedule
++	RESTORE_ALL
++	ret
++	CFI_ENDPROC
++
++#ifdef CONFIG_CONTEXT_TRACKING
++
++ENTRY(___preempt_schedule_context)
++	CFI_STARTPROC
++	SAVE_ALL
++	call preempt_schedule_context
++	RESTORE_ALL
++	ret
++	CFI_ENDPROC
++
++#endif
+--- a/include/asm-generic/preempt.h
 +++ b/include/asm-generic/preempt.h
-@@ -0,0 +1,44 @@
-+#ifndef __ASM_PREEMPT_H
-+#define __ASM_PREEMPT_H
+@@ -90,4 +90,14 @@ static __always_inline bool should_resch
+ 	return unlikely(!*preempt_count_ptr());
+ }
+ 
++#ifdef CONFIG_PREEMPT
++extern asmlinkage void preempt_schedule(void);
++#define __preempt_schedule() preempt_schedule()
 +
-+#include <linux/thread_info.h>
++#ifdef CONFIG_CONTEXT_TRACKING
++extern asmlinkage void preempt_schedule_context(void);
++#define __preempt_schedule_context() preempt_schedule_context()
++#endif
++#endif /* CONFIG_PREEMPT */
 +
-+/*
-+ * We mask the PREEMPT_NEED_RESCHED bit so as not to confuse all current users
-+ * that think a non-zero value indicates we cannot preempt.
-+ */
-+static __always_inline int preempt_count(void)
-+{
-+	return current_thread_info()->preempt_count & ~PREEMPT_NEED_RESCHED;
-+}
-+
-+static __always_inline int *preempt_count_ptr(void)
-+{
-+	return &current_thread_info()->preempt_count;
-+}
-+
-+/*
-+ * We fold the NEED_RESCHED bit into the preempt count such that
-+ * preempt_enable() can decrement and test for needing to reschedule with a
-+ * single instruction.
-+ *
-+ * We invert the actual bit, so that when the decrement hits 0 we know we both
-+ * need to resched (the bit is cleared) and can resched (no preempt count).
-+ */
-+
-+static __always_inline void set_preempt_need_resched(void)
-+{
-+	*preempt_count_ptr() &= ~PREEMPT_NEED_RESCHED;
-+}
-+
-+static __always_inline void clear_preempt_need_resched(void)
-+{
-+	*preempt_count_ptr() |= PREEMPT_NEED_RESCHED;
-+}
-+
-+static __always_inline bool test_preempt_need_resched(void)
-+{
-+	return !(*preempt_count_ptr() & PREEMPT_NEED_RESCHED);
-+}
-+
-+#endif /* __ASM_PREEMPT_H */
+ #endif /* __ASM_PREEMPT_H */
 --- a/include/linux/preempt.h
 +++ b/include/linux/preempt.h
-@@ -6,7 +6,6 @@
-  * preempt_count (used for kernel preemption, interrupt count, etc.)
-  */
+@@ -50,18 +50,17 @@ do { \
+ #define preempt_enable_no_resched() sched_preempt_enable_no_resched()
  
--#include <linux/thread_info.h>
- #include <linux/linkage.h>
- #include <linux/list.h>
+ #ifdef CONFIG_PREEMPT
+-asmlinkage void preempt_schedule(void);
+ #define preempt_enable() \
+ do { \
+ 	barrier(); \
+ 	if (unlikely(preempt_count_dec_and_test())) \
+-		preempt_schedule(); \
++		__preempt_schedule(); \
+ } while (0)
  
-@@ -16,43 +15,7 @@
-  */
- #define PREEMPT_NEED_RESCHED	0x80000000
+ #define preempt_check_resched() \
+ do { \
+ 	if (should_resched()) \
+-		preempt_schedule(); \
++		__preempt_schedule(); \
+ } while (0)
  
--/*
-- * We mask the PREEMPT_NEED_RESCHED bit so as not to confuse all current users
-- * that think a non-zero value indicates we cannot preempt.
-- */
--static __always_inline int preempt_count(void)
--{
--	return current_thread_info()->preempt_count & ~PREEMPT_NEED_RESCHED;
--}
--
--static __always_inline int *preempt_count_ptr(void)
--{
--	return &current_thread_info()->preempt_count;
--}
--
--/*
-- * We fold the NEED_RESCHED bit into the preempt count such that
-- * preempt_enable() can decrement and test for needing to reschedule with a
-- * single instruction.
-- *
-- * We invert the actual bit, so that when the decrement hits 0 we know we both
-- * need to resched (the bit is cleared) and can resched (no preempt count).
-- */
--
--static __always_inline void set_preempt_need_resched(void)
--{
--	*preempt_count_ptr() &= ~PREEMPT_NEED_RESCHED;
--}
--
--static __always_inline void clear_preempt_need_resched(void)
--{
--	*preempt_count_ptr() |= PREEMPT_NEED_RESCHED;
--}
--
--static __always_inline bool test_preempt_need_resched(void)
--{
--	return !(*preempt_count_ptr() & PREEMPT_NEED_RESCHED);
--}
-+#include <asm/preempt.h>
+ #else
+@@ -83,17 +82,15 @@ do { \
  
- #if defined(CONFIG_DEBUG_PREEMPT) || defined(CONFIG_PREEMPT_TRACER)
-   extern void add_preempt_count(int val);
+ #ifdef CONFIG_PREEMPT
+ 
+-#ifdef CONFIG_CONTEXT_TRACKING
+-asmlinkage void preempt_schedule_context(void);
+-#else
+-#define preempt_schedule_context() preempt_schedule()
++#ifndef CONFIG_CONTEXT_TRACKING
++#define __preempt_schedule_context() __preempt_schedule()
+ #endif
+ 
+ #define preempt_enable_notrace() \
+ do { \
+ 	barrier(); \
+ 	if (unlikely(__preempt_count_dec_and_test())) \
+-		preempt_schedule_context(); \
++		__preempt_schedule_context(); \
+ } while (0)
+ #else
+ #define preempt_enable_notrace() preempt_enable_no_resched_notrace()
