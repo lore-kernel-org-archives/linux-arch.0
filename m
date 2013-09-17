@@ -1,78 +1,109 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 02/11] sched, rcu: Make RCU use resched_cpu()
-Date: Tue, 17 Sep 2013 11:10:48 +0200
-Message-ID: <20130917091143.449530904@infradead.org>
-References: <20130917082838.218329307@infradead.org>
+Subject: [PATCH 00/11] preempt_count rework -v3
+Date: Tue, 17 Sep 2013 11:10:46 +0200
+Message-ID: <20130917082838.218329307@infradead.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=peterz-rcu-resched_cpu.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>
-Cc: Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>
+Cc: Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-We're going to deprecate and remove set_need_resched() for it will do
-the wrong thing. Make an exception for RCU and allow it to use
-resched_cpu() which will do the right thing.
+These patches optimize preempt_enable by firstly folding the preempt and
+need_resched tests into one -- this should work for all architectures. And
+secondly by providing per-arch preempt_count implementations; with x86 using
+per-cpu preempt_count for fastest access.
 
-Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>
-Signed-off-by: Peter Zijlstra <peterz@infradead.org>
----
- kernel/rcutree.c    |   15 ++++++++++++++-
- kernel/sched/core.c |    4 ++--
- 2 files changed, 16 insertions(+), 3 deletions(-)
+These patches have been boot tested on CONFIG_PREEMPT=y x86_64 and survive
+building a x86_64-defconfig kernel.
 
---- a/kernel/rcutree.c
-+++ b/kernel/rcutree.c
-@@ -898,6 +898,12 @@ static void print_other_cpu_stall(struct
- 	force_quiescent_state(rsp);  /* Kick them all. */
- }
- 
-+/*
-+ * This function really isn't for public consumption, but RCU is special in
-+ * that context switches can allow the state machine to make progress.
-+ */
-+extern void resched_cpu(int cpu);
-+
- static void print_cpu_stall(struct rcu_state *rsp)
- {
- 	int cpu;
-@@ -927,7 +933,14 @@ static void print_cpu_stall(struct rcu_s
- 				     3 * rcu_jiffies_till_stall_check() + 3;
- 	raw_spin_unlock_irqrestore(&rnp->lock, flags);
- 
--	set_need_resched();  /* kick ourselves to get things going. */
-+	/*
-+	 * Attempt to revive the RCU machinery by forcing a context switch.
-+	 *
-+	 * A context switch would normally allow the RCU state machine to make
-+	 * progress and it could be we're stuck in kernel space without context
-+	 * switches for an entirely unreasonable amount of time.
-+	 */
-+	resched_cpu(smp_processor_id());
- }
- 
- static void check_cpu_stall(struct rcu_state *rsp, struct rcu_data *rdp)
---- a/kernel/sched/core.c
-+++ b/kernel/sched/core.c
-@@ -513,12 +513,11 @@ static inline void init_hrtick(void)
-  * might also involve a cross-CPU call to trigger the scheduler on
-  * the target CPU.
-  */
--#ifdef CONFIG_SMP
- void resched_task(struct task_struct *p)
- {
- 	int cpu;
- 
--	assert_raw_spin_locked(&task_rq(p)->lock);
-+	lockdep_assert_held(&task_rq(p)->lock);
- 
- 	if (test_tsk_need_resched(p))
- 		return;
-@@ -546,6 +545,7 @@ void resched_cpu(int cpu)
- 	raw_spin_unlock_irqrestore(&rq->lock, flags);
- }
- 
-+#ifdef CONFIG_SMP
- #ifdef CONFIG_NO_HZ_COMMON
- /*
-  * In the semi idle case, use the nearest busy cpu for migrating timers
+   text    data     bss     filename
+11387014  1454776 1187840 defconfig-build/vmlinux.before
+11352294  1454776 1187840 defconfig-build/vmlinux.after
+
+void kick_process(struct task_struct *p)
+{
+	int cpu;
+
+	preempt_disable();
+	cpu = task_cpu(p);
+	if ((cpu != smp_processor_id()) && task_curr(p))
+		smp_send_reschedule(cpu);
+	preempt_enable();
+}
+
+before:
+
+  ffffffff81073f00 <kick_process>:
+  ffffffff81073f00:       55                      push   %rbp
+I ffffffff81073f01:       65 48 8b 04 25 f0 b7    mov    %gs:0xb7f0,%rax
+  ffffffff81073f08:       00 00 
+I ffffffff81073f0a:       83 80 44 e0 ff ff 01    addl   $0x1,-0x1fbc(%rax)
+  ffffffff81073f11:       48 89 e5                mov    %rsp,%rbp
+  ffffffff81073f14:       48 8b 47 08             mov    0x8(%rdi),%rax
+  ffffffff81073f18:       8b 50 18                mov    0x18(%rax),%edx
+  ffffffff81073f1b:       65 8b 04 25 1c b0 00    mov    %gs:0xb01c,%eax
+  ffffffff81073f22:       00 
+  ffffffff81073f23:       39 c2                   cmp    %eax,%edx
+  ffffffff81073f25:       74 1b                   je     ffffffff81073f42 <kick_process+0x42>
+  ffffffff81073f27:       89 d1                   mov    %edx,%ecx
+  ffffffff81073f29:       48 c7 c0 40 2c 01 00    mov    $0x12c40,%rax
+  ffffffff81073f30:       48 8b 0c cd 00 25 cc    mov    -0x7e33db00(,%rcx,8),%rcx
+  ffffffff81073f37:       81 
+  ffffffff81073f38:       48 3b bc 08 00 08 00    cmp    0x800(%rax,%rcx,1),%rdi
+  ffffffff81073f3f:       00 
+  ffffffff81073f40:       74 2e                   je     ffffffff81073f70 <kick_process+0x70>
+D ffffffff81073f42:       65 48 8b 04 25 f0 b7    mov    %gs:0xb7f0,%rax
+  ffffffff81073f49:       00 00 
+D ffffffff81073f4b:       83 a8 44 e0 ff ff 01    subl   $0x1,-0x1fbc(%rax)
+D ffffffff81073f52:       48 8b 80 38 e0 ff ff    mov    -0x1fc8(%rax),%rax
+D ffffffff81073f59:       a8 08                   test   $0x8,%al
+D ffffffff81073f5b:       75 02                   jne    ffffffff81073f5f <kick_process+0x5f>
+  ffffffff81073f5d:       5d                      pop    %rbp
+  ffffffff81073f5e:       c3                      retq   
+D ffffffff81073f5f:       e8 9c 6f 75 00          callq  ffffffff817caf00 <preempt_schedule>
+  ffffffff81073f64:       5d                      pop    %rbp
+  ffffffff81073f65:       c3                      retq   
+  ffffffff81073f66:       66 2e 0f 1f 84 00 00    nopw   %cs:0x0(%rax,%rax,1)
+  ffffffff81073f6d:       00 00 00 
+  ffffffff81073f70:       89 d7                   mov    %edx,%edi
+  ffffffff81073f72:       ff 15 a8 99 ba 00       callq  *0xba99a8(%rip)        # ffffffff81c1d920 <smp_ops+0x20>
+  ffffffff81073f78:       eb c8                   jmp    ffffffff81073f42 <kick_process+0x42>
+  ffffffff81073f7a:       66 0f 1f 44 00 00       nopw   0x0(%rax,%rax,1)
+   
+   
+after:
+   
+  ffffffff8106f5e0 <kick_process>:
+  ffffffff8106f5e0:       55                      push   %rbp
+I ffffffff8106f5e1:       65 ff 04 25 e0 b7 00    incl   %gs:0xb7e0
+  ffffffff8106f5e8:       00 
+  ffffffff8106f5e9:       48 89 e5                mov    %rsp,%rbp
+  ffffffff8106f5ec:       48 8b 47 08             mov    0x8(%rdi),%rax
+  ffffffff8106f5f0:       8b 50 18                mov    0x18(%rax),%edx
+  ffffffff8106f5f3:       65 8b 04 25 1c b0 00    mov    %gs:0xb01c,%eax
+  ffffffff8106f5fa:       00 
+  ffffffff8106f5fb:       39 c2                   cmp    %eax,%edx
+  ffffffff8106f5fd:       74 1b                   je     ffffffff8106f61a <kick_process+0x3a>
+  ffffffff8106f5ff:       89 d1                   mov    %edx,%ecx
+  ffffffff8106f601:       48 c7 c0 40 2c 01 00    mov    $0x12c40,%rax
+  ffffffff8106f608:       48 8b 0c cd 00 25 cc    mov    -0x7e33db00(,%rcx,8),%rcx
+  ffffffff8106f60f:       81 
+  ffffffff8106f610:       48 3b bc 08 00 08 00    cmp    0x800(%rax,%rcx,1),%rdi
+  ffffffff8106f617:       00 
+  ffffffff8106f618:       74 26                   je     ffffffff8106f640 <kick_process+0x60>
+D ffffffff8106f61a:       65 ff 0c 25 e0 b7 00    decl   %gs:0xb7e0
+  ffffffff8106f621:       00 
+D ffffffff8106f622:       74 0c                   je     ffffffff8106f630 <kick_process+0x50>
+  ffffffff8106f624:       5d                      pop    %rbp
+  ffffffff8106f625:       c3                      retq   
+  ffffffff8106f626:       66 2e 0f 1f 84 00 00    nopw   %cs:0x0(%rax,%rax,1)
+  ffffffff8106f62d:       00 00 00 
+D ffffffff8106f630:       e8 fb b4 f9 ff          callq  ffffffff8100ab30 <___preempt_schedule>
+  ffffffff8106f635:       5d                      pop    %rbp
+  ffffffff8106f636:       c3                      retq   
+  ffffffff8106f637:       66 0f 1f 84 00 00 00    nopw   0x0(%rax,%rax,1)
+  ffffffff8106f63e:       00 00 
+  ffffffff8106f640:       89 d7                   mov    %edx,%edi
+  ffffffff8106f642:       ff 15 d8 e2 ba 00       callq  *0xbae2d8(%rip)        # ffffffff81c1d920 <smp_ops+0x20>
+  ffffffff8106f648:       eb d0                   jmp    ffffffff8106f61a <kick_process+0x3a>
+  ffffffff8106f64a:       66 0f 1f 44 00 00       nopw   0x0(%rax,%rax,1)
