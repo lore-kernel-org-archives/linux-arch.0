@@ -1,317 +1,57 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 01/11] x86: Use asm goto to implement better modify_and_test() functions
-Date: Tue, 17 Sep 2013 11:10:47 +0200
-Message-ID: <20130917091143.387880231@infradead.org>
+Subject: [PATCH 03/11] sched: Remove {set,clear}_need_resched
+Date: Tue, 17 Sep 2013 11:10:49 +0200
+Message-ID: <20130917091143.518797685@infradead.org>
 References: <20130917082838.218329307@infradead.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:42998 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:42994 "EHLO
 	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752384Ab3IQJP3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Sep 2013 05:15:29 -0400
-Content-Disposition: inline; filename=peterz-rmwcc.patch
+	with ESMTP id S1752319Ab3IQJP2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Sep 2013 05:15:28 -0400
+Content-Disposition: inline; filename=peterz-tif_need_resched.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>
 Cc: Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>
 
-Linus suggested using asm goto to get rid of the typical SETcc + TEST
-instruction pair -- which also clobbers an extra register -- for our
-typical modify_and_test() functions.
+Preemption semantics are going to change which mandate a change.
 
-Because asm goto doesn't allow output fields it has to include an
-unconditinal memory clobber when it changes a memory variable to force
-a reload.
+All DRM usage sites are already broken and will not be affected (much)
+by this change. DRM people are aware and will remove the last few
+stragglers.
 
-Luckily all atomic ops already imply a compiler barrier to go along
-with their memory barrier semantics.
+For now, leave an empty stub that generates a warning, once all users
+are gone we can remove this.
 
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: airlied@linux.ie
+Cc: daniel.vetter@ffwll.ch
+Cc: paulmck@linux.vnet.ibm.com
 Signed-off-by: Peter Zijlstra <peterz@infradead.org>
 ---
- arch/x86/include/asm/atomic.h      |   29 ++++----------------------
- arch/x86/include/asm/atomic64_64.h |   28 +++----------------------
- arch/x86/include/asm/bitops.h      |   24 +++------------------
- arch/x86/include/asm/local.h       |   28 +++----------------------
- arch/x86/include/asm/rmwcc.h       |   41 +++++++++++++++++++++++++++++++++++++
- 5 files changed, 58 insertions(+), 92 deletions(-)
+ include/linux/thread_info.h |   15 +++++++++++++--
+ 1 file changed, 13 insertions(+), 2 deletions(-)
 
---- a/arch/x86/include/asm/atomic.h
-+++ b/arch/x86/include/asm/atomic.h
-@@ -6,6 +6,7 @@
- #include <asm/processor.h>
- #include <asm/alternative.h>
- #include <asm/cmpxchg.h>
-+#include <asm/rmwcc.h>
+--- a/include/linux/thread_info.h
++++ b/include/linux/thread_info.h
+@@ -104,8 +104,19 @@ static inline int test_ti_thread_flag(st
+ #define test_thread_flag(flag) \
+ 	test_ti_thread_flag(current_thread_info(), flag)
  
+-#define set_need_resched()	set_thread_flag(TIF_NEED_RESCHED)
+-#define clear_need_resched()	clear_thread_flag(TIF_NEED_RESCHED)
++static inline __deprecated void set_need_resched(void)
++{
++	/*
++	 * Use of this function in deprecated.
++	 *
++	 * As of this writing there are only a few users in the DRM tree left
++	 * all of which are wrong and can be removed without causing too much
++	 * grief.
++	 *
++	 * The DRM people are aware and are working on removing the last few
++	 * instances.
++	 */
++}
+ 
+ #if defined TIF_RESTORE_SIGMASK && !defined HAVE_SET_RESTORE_SIGMASK
  /*
-  * Atomic operations that C can't guarantee us.  Useful for
-@@ -76,12 +77,7 @@ static inline void atomic_sub(int i, ato
-  */
- static inline int atomic_sub_and_test(int i, atomic_t *v)
- {
--	unsigned char c;
--
--	asm volatile(LOCK_PREFIX "subl %2,%0; sete %1"
--		     : "+m" (v->counter), "=qm" (c)
--		     : "ir" (i) : "memory");
--	return c;
-+	GEN_BINARY_RMWcc(LOCK_PREFIX "subl", v->counter, i, "%0", "e");
- }
- 
- /**
-@@ -118,12 +114,7 @@ static inline void atomic_dec(atomic_t *
-  */
- static inline int atomic_dec_and_test(atomic_t *v)
- {
--	unsigned char c;
--
--	asm volatile(LOCK_PREFIX "decl %0; sete %1"
--		     : "+m" (v->counter), "=qm" (c)
--		     : : "memory");
--	return c != 0;
-+	GEN_UNARY_RMWcc(LOCK_PREFIX "decl", v->counter, "%0", "e");
- }
- 
- /**
-@@ -136,12 +127,7 @@ static inline int atomic_dec_and_test(at
-  */
- static inline int atomic_inc_and_test(atomic_t *v)
- {
--	unsigned char c;
--
--	asm volatile(LOCK_PREFIX "incl %0; sete %1"
--		     : "+m" (v->counter), "=qm" (c)
--		     : : "memory");
--	return c != 0;
-+	GEN_UNARY_RMWcc(LOCK_PREFIX "incl", v->counter, "%0", "e");
- }
- 
- /**
-@@ -155,12 +141,7 @@ static inline int atomic_inc_and_test(at
-  */
- static inline int atomic_add_negative(int i, atomic_t *v)
- {
--	unsigned char c;
--
--	asm volatile(LOCK_PREFIX "addl %2,%0; sets %1"
--		     : "+m" (v->counter), "=qm" (c)
--		     : "ir" (i) : "memory");
--	return c;
-+	GEN_BINARY_RMWcc(LOCK_PREFIX "addl", v->counter, i, "%0", "s");
- }
- 
- /**
---- a/arch/x86/include/asm/atomic64_64.h
-+++ b/arch/x86/include/asm/atomic64_64.h
-@@ -72,12 +72,7 @@ static inline void atomic64_sub(long i,
-  */
- static inline int atomic64_sub_and_test(long i, atomic64_t *v)
- {
--	unsigned char c;
--
--	asm volatile(LOCK_PREFIX "subq %2,%0; sete %1"
--		     : "=m" (v->counter), "=qm" (c)
--		     : "er" (i), "m" (v->counter) : "memory");
--	return c;
-+	GEN_BINARY_RMWcc(LOCK_PREFIX "subq", v->counter, i, "%0", "e");
- }
- 
- /**
-@@ -116,12 +111,7 @@ static inline void atomic64_dec(atomic64
-  */
- static inline int atomic64_dec_and_test(atomic64_t *v)
- {
--	unsigned char c;
--
--	asm volatile(LOCK_PREFIX "decq %0; sete %1"
--		     : "=m" (v->counter), "=qm" (c)
--		     : "m" (v->counter) : "memory");
--	return c != 0;
-+	GEN_UNARY_RMWcc(LOCK_PREFIX "decq", v->counter, "%0", "e");
- }
- 
- /**
-@@ -134,12 +124,7 @@ static inline int atomic64_dec_and_test(
-  */
- static inline int atomic64_inc_and_test(atomic64_t *v)
- {
--	unsigned char c;
--
--	asm volatile(LOCK_PREFIX "incq %0; sete %1"
--		     : "=m" (v->counter), "=qm" (c)
--		     : "m" (v->counter) : "memory");
--	return c != 0;
-+	GEN_UNARY_RMWcc(LOCK_PREFIX "incq", v->counter, "%0", "e");
- }
- 
- /**
-@@ -153,12 +138,7 @@ static inline int atomic64_inc_and_test(
-  */
- static inline int atomic64_add_negative(long i, atomic64_t *v)
- {
--	unsigned char c;
--
--	asm volatile(LOCK_PREFIX "addq %2,%0; sets %1"
--		     : "=m" (v->counter), "=qm" (c)
--		     : "er" (i), "m" (v->counter) : "memory");
--	return c;
-+	GEN_BINARY_RMWcc(LOCK_PREFIX "addq", v->counter, i, "%0", "s");
- }
- 
- /**
---- a/arch/x86/include/asm/bitops.h
-+++ b/arch/x86/include/asm/bitops.h
-@@ -14,6 +14,7 @@
- 
- #include <linux/compiler.h>
- #include <asm/alternative.h>
-+#include <asm/rmwcc.h>
- 
- #if BITS_PER_LONG == 32
- # define _BITOPS_LONG_SHIFT 5
-@@ -204,12 +205,7 @@ static inline void change_bit(long nr, v
-  */
- static inline int test_and_set_bit(long nr, volatile unsigned long *addr)
- {
--	int oldbit;
--
--	asm volatile(LOCK_PREFIX "bts %2,%1\n\t"
--		     "sbb %0,%0" : "=r" (oldbit), ADDR : "Ir" (nr) : "memory");
--
--	return oldbit;
-+	GEN_BINARY_RMWcc(LOCK_PREFIX "bts", *addr, nr, "%0", "c");
- }
- 
- /**
-@@ -255,13 +251,7 @@ static inline int __test_and_set_bit(lon
-  */
- static inline int test_and_clear_bit(long nr, volatile unsigned long *addr)
- {
--	int oldbit;
--
--	asm volatile(LOCK_PREFIX "btr %2,%1\n\t"
--		     "sbb %0,%0"
--		     : "=r" (oldbit), ADDR : "Ir" (nr) : "memory");
--
--	return oldbit;
-+	GEN_BINARY_RMWcc(LOCK_PREFIX "btr", *addr, nr, "%0", "c");
- }
- 
- /**
-@@ -314,13 +304,7 @@ static inline int __test_and_change_bit(
-  */
- static inline int test_and_change_bit(long nr, volatile unsigned long *addr)
- {
--	int oldbit;
--
--	asm volatile(LOCK_PREFIX "btc %2,%1\n\t"
--		     "sbb %0,%0"
--		     : "=r" (oldbit), ADDR : "Ir" (nr) : "memory");
--
--	return oldbit;
-+	GEN_BINARY_RMWcc(LOCK_PREFIX "btc", *addr, nr, "%0", "c");
- }
- 
- static __always_inline int constant_test_bit(long nr, const volatile unsigned long *addr)
---- a/arch/x86/include/asm/local.h
-+++ b/arch/x86/include/asm/local.h
-@@ -52,12 +52,7 @@ static inline void local_sub(long i, loc
-  */
- static inline int local_sub_and_test(long i, local_t *l)
- {
--	unsigned char c;
--
--	asm volatile(_ASM_SUB "%2,%0; sete %1"
--		     : "+m" (l->a.counter), "=qm" (c)
--		     : "ir" (i) : "memory");
--	return c;
-+	GEN_BINARY_RMWcc(_ASM_SUB, l->a.counter, i, "%0", "e");
- }
- 
- /**
-@@ -70,12 +65,7 @@ static inline int local_sub_and_test(lon
-  */
- static inline int local_dec_and_test(local_t *l)
- {
--	unsigned char c;
--
--	asm volatile(_ASM_DEC "%0; sete %1"
--		     : "+m" (l->a.counter), "=qm" (c)
--		     : : "memory");
--	return c != 0;
-+	GEN_UNARY_RMWcc(_ASM_DEC, l->a.counter, "%0", "e");
- }
- 
- /**
-@@ -88,12 +78,7 @@ static inline int local_dec_and_test(loc
-  */
- static inline int local_inc_and_test(local_t *l)
- {
--	unsigned char c;
--
--	asm volatile(_ASM_INC "%0; sete %1"
--		     : "+m" (l->a.counter), "=qm" (c)
--		     : : "memory");
--	return c != 0;
-+	GEN_UNARY_RMWcc(_ASM_INC, l->a.counter, "%0", "e");
- }
- 
- /**
-@@ -107,12 +92,7 @@ static inline int local_inc_and_test(loc
-  */
- static inline int local_add_negative(long i, local_t *l)
- {
--	unsigned char c;
--
--	asm volatile(_ASM_ADD "%2,%0; sets %1"
--		     : "+m" (l->a.counter), "=qm" (c)
--		     : "ir" (i) : "memory");
--	return c;
-+	GEN_BINARY_RMWcc(_ASM_ADD, l->a.counter, i, "%0", "s");
- }
- 
- /**
---- /dev/null
-+++ b/arch/x86/include/asm/rmwcc.h
-@@ -0,0 +1,41 @@
-+#ifndef _ASM_X86_RMWcc
-+#define _ASM_X86_RMWcc
-+
-+#ifdef CC_HAVE_ASM_GOTO
-+
-+#define __GEN_RMWcc(fullop, var, cc, ...)				\
-+do {									\
-+	asm volatile goto (fullop "; j" cc " %l[cc_label]"		\
-+			: : "m" (var), ## __VA_ARGS__ 			\
-+			: "memory" : cc_label);				\
-+	return 0;							\
-+cc_label:								\
-+	return 1;							\
-+} while (0)
-+
-+#define GEN_UNARY_RMWcc(op, var, arg0, cc) 				\
-+	__GEN_RMWcc(op " " arg0, var, cc)
-+
-+#define GEN_BINARY_RMWcc(op, var, val, arg0, cc)			\
-+	__GEN_RMWcc(op " %1, " arg0, var, cc, "er" (val))
-+
-+#else /* !CC_HAVE_ASM_GOTO */
-+
-+#define __GEN_RMWcc(fullop, var, cc, ...)				\
-+do {									\
-+	char c;								\
-+	asm volatile (fullop "; set" cc " %1"				\
-+			: "+m" (var), "=qm" (c)				\
-+			: __VA_ARGS__ : "memory");			\
-+	return c != 0;							\
-+} while (0)
-+
-+#define GEN_UNARY_RMWcc(op, var, arg0, cc)				\
-+	__GEN_RMWcc(op " " arg0, var, cc)
-+
-+#define GEN_BINARY_RMWcc(op, var, val, arg0, cc)			\
-+	__GEN_RMWcc(op " %2, " arg0, var, cc, "er" (val))
-+
-+#endif /* CC_HAVE_ASM_GOTO */
-+
-+#endif /* _ASM_X86_RMWcc */
