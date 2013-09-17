@@ -1,106 +1,41 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 02/11] sched, rcu: Make RCU use resched_cpu()
-Date: Tue, 17 Sep 2013 16:40:12 +0200
-Message-ID: <20130917144012.GC29354@twins.programming.kicks-ass.net>
-References: <20130917082838.218329307@infradead.org>
- <20130917091143.449530904@infradead.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Will Deacon <will.deacon@arm.com>
+Subject: [PATCH 01/14] ARC: locks: remove redundant arch_*_relax operations
+Date: Tue, 17 Sep 2013 16:07:33 +0100
+Message-ID: <1379430466-30520-2-git-send-email-will.deacon@arm.com>
+References: <1379430466-30520-1-git-send-email-will.deacon@arm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:49272 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752607Ab3IQOkb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Sep 2013 10:40:31 -0400
-Content-Disposition: inline
-In-Reply-To: <20130917091143.449530904@infradead.org>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:41198 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752689Ab3IQPH6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 17 Sep 2013 11:07:58 -0400
+In-Reply-To: <1379430466-30520-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>
-Cc: Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Paul McKenney <paulmck@linux.vnet.ibm.com>, Thomas Meyer <thomas@m3y3r.de>
+To: linux-arch@vger.kernel.org
+Cc: Will Deacon <will.deacon@arm.com>
 
-Thomas Meyer reported a UP build fail, should be fixed.
+Now that the arch_{spin,read,write}_relax macros default to cpu_relax(),
+remove the redundant definitions for ARC.
 
+Acked-by: Vineet Gupta <vgupta@synopsys.com>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
-Subject: sched, rcu: Make RCU use resched_cpu()
-From: Peter Zijlstra <peterz@infradead.org>
-Date: Tue Sep 17 09:30:55 CEST 2013
+ arch/arc/include/asm/spinlock.h | 4 ----
+ 1 file changed, 4 deletions(-)
 
-We're going to deprecate and remove set_need_resched() for it will do
-the wrong thing. Make an exception for RCU and allow it to use
-resched_cpu() which will do the right thing.
-
-Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>
-Signed-off-by: Peter Zijlstra <peterz@infradead.org>
----
- kernel/rcutree.c    |   15 ++++++++++++++-
- kernel/sched/core.c |   10 ++--------
- 2 files changed, 16 insertions(+), 9 deletions(-)
-
---- a/kernel/rcutree.c
-+++ b/kernel/rcutree.c
-@@ -898,6 +898,12 @@ static void print_other_cpu_stall(struct
- 	force_quiescent_state(rsp);  /* Kick them all. */
- }
+diff --git a/arch/arc/include/asm/spinlock.h b/arch/arc/include/asm/spinlock.h
+index f158197..fddced5 100644
+--- a/arch/arc/include/asm/spinlock.h
++++ b/arch/arc/include/asm/spinlock.h
+@@ -137,8 +137,4 @@ static inline void arch_write_unlock(arch_rwlock_t *rw)
+ #define arch_read_lock_flags(lock, flags)	arch_read_lock(lock)
+ #define arch_write_lock_flags(lock, flags)	arch_write_lock(lock)
  
-+/*
-+ * This function really isn't for public consumption, but RCU is special in
-+ * that context switches can allow the state machine to make progress.
-+ */
-+extern void resched_cpu(int cpu);
-+
- static void print_cpu_stall(struct rcu_state *rsp)
- {
- 	int cpu;
-@@ -927,7 +933,14 @@ static void print_cpu_stall(struct rcu_s
- 				     3 * rcu_jiffies_till_stall_check() + 3;
- 	raw_spin_unlock_irqrestore(&rnp->lock, flags);
- 
--	set_need_resched();  /* kick ourselves to get things going. */
-+	/*
-+	 * Attempt to revive the RCU machinery by forcing a context switch.
-+	 *
-+	 * A context switch would normally allow the RCU state machine to make
-+	 * progress and it could be we're stuck in kernel space without context
-+	 * switches for an entirely unreasonable amount of time.
-+	 */
-+	resched_cpu(smp_processor_id());
- }
- 
- static void check_cpu_stall(struct rcu_state *rsp, struct rcu_data *rdp)
---- a/kernel/sched/core.c
-+++ b/kernel/sched/core.c
-@@ -513,12 +513,11 @@ static inline void init_hrtick(void)
-  * might also involve a cross-CPU call to trigger the scheduler on
-  * the target CPU.
-  */
--#ifdef CONFIG_SMP
- void resched_task(struct task_struct *p)
- {
- 	int cpu;
- 
--	assert_raw_spin_locked(&task_rq(p)->lock);
-+	lockdep_assert_held(&task_rq(p)->lock);
- 
- 	if (test_tsk_need_resched(p))
- 		return;
-@@ -546,6 +545,7 @@ void resched_cpu(int cpu)
- 	raw_spin_unlock_irqrestore(&rq->lock, flags);
- }
- 
-+#ifdef CONFIG_SMP
- #ifdef CONFIG_NO_HZ_COMMON
- /*
-  * In the semi idle case, use the nearest busy cpu for migrating timers
-@@ -693,12 +693,6 @@ void sched_avg_update(struct rq *rq)
- 	}
- }
- 
--#else /* !CONFIG_SMP */
--void resched_task(struct task_struct *p)
--{
--	assert_raw_spin_locked(&task_rq(p)->lock);
--	set_tsk_need_resched(p);
--}
- #endif /* CONFIG_SMP */
- 
- #if defined(CONFIG_RT_GROUP_SCHED) || (defined(CONFIG_FAIR_GROUP_SCHED) && \
+-#define arch_spin_relax(lock)	cpu_relax()
+-#define arch_read_relax(lock)	cpu_relax()
+-#define arch_write_relax(lock)	cpu_relax()
+-
+ #endif /* __ASM_SPINLOCK_H */
+-- 
+1.8.2.2
