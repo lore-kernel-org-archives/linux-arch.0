@@ -1,31 +1,94 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC PATCH REBASED 1/3] sh: Move fpu_counter into ARCH specific
- thread_struct
-Date: Tue, 17 Sep 2013 10:25:56 +0200
-Message-ID: <20130917082556.GD12926@twins.programming.kicks-ass.net>
-References: <1379398639-27403-1-git-send-email-vgupta@synopsys.com>
- <1379398639-27403-2-git-send-email-vgupta@synopsys.com>
- <20130917080017.GC12926@twins.programming.kicks-ass.net>
- <C2D7FE5348E1B147BCA15975FBA2307514C36B@IN01WEMBXA.internal.synopsys.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-sh-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <C2D7FE5348E1B147BCA15975FBA2307514C36B@IN01WEMBXA.internal.synopsys.com>
-Sender: linux-sh-owner@vger.kernel.org
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org
+Subject: [PATCH 08/11] sched: Create more preempt_count accessors
+Date: Tue, 17 Sep 2013 11:10:54 +0200
+Message-ID: <20130917091143.876946012@infradead.org>
+References: <20130917082838.218329307@infradead.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline; filename=peterz-task_preempt_count.patch
+Sender: linux-kernel-owner@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>
+Cc: Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Sep 17, 2013 at 08:14:34AM +0000, Vineet Gupta wrote:
-> For some reason the email to Paul bounced last time as well
-> 
-> --------------->8-----------------------
-> lethal@linux-sh.org<mailto:lethal@linux-sh.org>>: host mail.linux-sh.org[111.68.239.195] said: 550 5.7.1
->     <lethal@linux-sh.org><mailto:lethal@linux-sh.org>... Relaying denied. Proper authentication required.
->     (in reply to RCPT TO command)
-> --------------->8-----------------------
-> 
-> Did you get that too after sending this CCed email to him.
+We need a few special preempt_count accessors:
+ - task_preempt_count() for when we're interested in the preemption
+   count of another (non-running) task.
+ - init_task_preempt_count() for properly initializing the preemption
+   count.
+ - init_idle_preempt_count() a special case of the above for the idle
+   threads.
 
-Yep.. :/ 
+With these no generic code ever touches thread_info::preempt_count
+anymore and architectures could choose to remove it.
+
+Signed-off-by: Peter Zijlstra <peterz@infradead.org>
+---
+ include/asm-generic/preempt.h |   14 ++++++++++++++
+ include/trace/events/sched.h  |    2 +-
+ kernel/sched/core.c           |    7 +++----
+ 3 files changed, 18 insertions(+), 5 deletions(-)
+
+--- a/include/asm-generic/preempt.h
++++ b/include/asm-generic/preempt.h
+@@ -18,6 +18,20 @@ static __always_inline int *preempt_coun
+ }
+ 
+ /*
++ * must be macros to avoid header recursion hell
++ */
++#define task_preempt_count(p) \
++	(task_thread_info(p)->preempt_count & ~PREEMPT_NEED_RESCHED)
++
++#define init_task_preempt_count(p) do { \
++	task_thread_info(p)->preempt_count = 1 | PREEMPT_NEED_RESCHED; \
++} while (0)
++
++#define init_idle_preempt_count(p, cpu) do { \
++	task_thread_info(p)->preempt_count = 0; \
++} while (0)
++
++/*
+  * We fold the NEED_RESCHED bit into the preempt count such that
+  * preempt_enable() can decrement and test for needing to reschedule with a
+  * single instruction.
+--- a/include/trace/events/sched.h
++++ b/include/trace/events/sched.h
+@@ -100,7 +100,7 @@ static inline long __trace_sched_switch_
+ 	/*
+ 	 * For all intents and purposes a preempted task is a running task.
+ 	 */
+-	if (task_thread_info(p)->preempt_count & PREEMPT_ACTIVE)
++	if (task_preempt_count(p) & PREEMPT_ACTIVE)
+ 		state = TASK_RUNNING | TASK_STATE_MAX;
+ #endif
+ 
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -996,7 +996,7 @@ void set_task_cpu(struct task_struct *p,
+ 	 * ttwu() will sort out the placement.
+ 	 */
+ 	WARN_ON_ONCE(p->state != TASK_RUNNING && p->state != TASK_WAKING &&
+-			!(task_thread_info(p)->preempt_count & PREEMPT_ACTIVE));
++			!(task_preempt_count(p) & PREEMPT_ACTIVE));
+ 
+ #ifdef CONFIG_LOCKDEP
+ 	/*
+@@ -1743,8 +1743,7 @@ void sched_fork(struct task_struct *p)
+ 	p->on_cpu = 0;
+ #endif
+ #ifdef CONFIG_PREEMPT_COUNT
+-	/* Want to start with kernel preemption disabled. */
+-	task_thread_info(p)->preempt_count = 1;
++	init_task_preempt_count(p);
+ #endif
+ #ifdef CONFIG_SMP
+ 	plist_node_init(&p->pushable_tasks, MAX_PRIO);
+@@ -4237,7 +4236,7 @@ void init_idle(struct task_struct *idle,
+ 	raw_spin_unlock_irqrestore(&rq->lock, flags);
+ 
+ 	/* Set the preempt count _outside_ the spinlocks! */
+-	task_thread_info(idle)->preempt_count = 0;
++	init_idle_preempt_count(idle, cpu);
+ 
+ 	/*
+ 	 * The idle tasks have their own, simple scheduling class:
