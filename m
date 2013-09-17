@@ -1,250 +1,56 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 11/11] sched, x86: Optimize the preempt_schedule() call
-Date: Tue, 17 Sep 2013 22:23:32 +0200
-Message-ID: <20130917202332.GI12926@twins.programming.kicks-ass.net>
-References: <20130917082838.218329307@infradead.org>
- <20130917091144.096544204@infradead.org>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [patch 1/6] hardirq: Make hardirq bits generic
+Date: Tue, 17 Sep 2013 23:24:49 +0200 (CEST)
+Message-ID: <alpine.DEB.2.02.1309172315550.4089@ionos.tec.linutronix.de>
+References: <20130917082838.218329307@infradead.org> <20130917182350.449685712@linutronix.de> <20130917183628.534494408@linutronix.de> <CAMuHMdWgrQf+ULDrZyY5R+vT3GtiWEgpsWxmfk0b5pivN7wBmg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:56391 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753007Ab3IQUXr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Sep 2013 16:23:47 -0400
-Content-Disposition: inline
-In-Reply-To: <20130917091144.096544204@infradead.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>
-Cc: Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-m68k-owner@vger.kernel.org>
+In-Reply-To: <CAMuHMdWgrQf+ULDrZyY5R+vT3GtiWEgpsWxmfk0b5pivN7wBmg@mail.gmail.com>
+Sender: linux-m68k-owner@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Linux-Arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Linux/m68k <linux-m68k@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Another build error by Thomas Meyer.. we need to export the asm symbols.
+On Tue, 17 Sep 2013, Geert Uytterhoeven wrote:
 
----
-Subject: sched, x86: Optimize the preempt_schedule() call
-From: Peter Zijlstra <peterz@infradead.org>
-Date: Wed Aug 14 14:51:00 CEST 2013
+> On Tue, Sep 17, 2013 at 8:53 PM, Thomas Gleixner <tglx@linutronix.de> wrote:
+> > --- linux-2.6.orig/arch/m68k/include/asm/hardirq.h
+> > +++ linux-2.6/arch/m68k/include/asm/hardirq.h
+> > @@ -5,17 +5,6 @@
+> >  #include <linux/cache.h>
+> >  #include <asm/irq.h>
+> >
+> > -#define HARDIRQ_BITS   8
+> 
+> > --- linux-2.6.orig/include/linux/preempt_mask.h
+> > +++ linux-2.6/include/linux/preempt_mask.h
+> > @@ -11,36 +11,22 @@
+> >   * - bits 0-7 are the preemption count (max preemption depth: 256)
+> >   * - bits 8-15 are the softirq count (max # of softirqs: 256)
+> >   *
+> > - * The hardirq count can in theory reach the same as NR_IRQS.
+> > - * In reality, the number of nested IRQS is limited to the stack
+> > - * size as well. For archs with over 1000 IRQS it is not practical
+> > - * to expect that they will all nest. We give a max of 10 bits for
+> > - * hardirq nesting. An arch may choose to give less than 10 bits.
+> > - * m68k expects it to be 8.
+> 
+> m68k needs some changes in arch/m68k/kernel/entry.S, cfr. this check
+> in arch/m68k/kernel/ints.c:
+> 
+>         /* assembly irq entry code relies on this... */
+>         if (HARDIRQ_MASK != 0x00ff0000) {
+>                 extern void hardirq_mask_is_broken(void);
+>                 hardirq_mask_is_broken();
+>         }
+> 
+> Haven't looked into the details yet...
 
-Remove the bloat of the C calling convention out of the
-preempt_enable() sites by creating an ASM wrapper which allows us to
-do an asm("call ___preempt_schedule") instead.
+Whee. Did not notice that one. Though I can't find anything
+interesting in the low level entry code... Looks like some more
+histerical left overs.
 
-calling.h bits by Andi Kleen
+Thanks,
 
-Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
-Signed-off-by: Peter Zijlstra <peterz@infradead.org>
----
- arch/x86/include/asm/calling.h   |   50 +++++++++++++++++++++++++++++++++++++++
- arch/x86/include/asm/preempt.h   |    8 ++++++
- arch/x86/kernel/Makefile         |    2 +
- arch/x86/kernel/i386_ksyms_32.c  |    7 +++++
- arch/x86/kernel/preempt.S        |   25 +++++++++++++++++++
- arch/x86/kernel/x8664_ksyms_64.c |    7 +++++
- include/asm-generic/preempt.h    |   10 +++++++
- include/linux/preempt.h          |   13 +++-------
- 8 files changed, 114 insertions(+), 8 deletions(-)
-
---- a/arch/x86/include/asm/calling.h
-+++ b/arch/x86/include/asm/calling.h
-@@ -48,6 +48,8 @@ For 32-bit we have the following convent
- 
- #include <asm/dwarf2.h>
- 
-+#ifdef CONFIG_X86_64
-+
- /*
-  * 64-bit system call stack frame layout defines and helpers,
-  * for assembly code:
-@@ -192,3 +194,51 @@ For 32-bit we have the following convent
- 	.macro icebp
- 	.byte 0xf1
- 	.endm
-+
-+#else /* CONFIG_X86_64 */
-+
-+/*
-+ * For 32bit only simplified versions of SAVE_ALL/RESTORE_ALL. These
-+ * are different from the entry_32.S versions in not changing the segment
-+ * registers. So only suitable for in kernel use, not when transitioning
-+ * from or to user space. The resulting stack frame is not a standard
-+ * pt_regs frame. The main use case is calling C code from assembler
-+ * when all the registers need to be preserved.
-+ */
-+
-+	.macro SAVE_ALL
-+	pushl_cfi %eax
-+	CFI_REL_OFFSET eax, 0
-+	pushl_cfi %ebp
-+	CFI_REL_OFFSET ebp, 0
-+	pushl_cfi %edi
-+	CFI_REL_OFFSET edi, 0
-+	pushl_cfi %esi
-+	CFI_REL_OFFSET esi, 0
-+	pushl_cfi %edx
-+	CFI_REL_OFFSET edx, 0
-+	pushl_cfi %ecx
-+	CFI_REL_OFFSET ecx, 0
-+	pushl_cfi %ebx
-+	CFI_REL_OFFSET ebx, 0
-+	.endm
-+
-+	.macro RESTORE_ALL
-+	popl_cfi %ebx
-+	CFI_RESTORE ebx
-+	popl_cfi %ecx
-+	CFI_RESTORE ecx
-+	popl_cfi %edx
-+	CFI_RESTORE edx
-+	popl_cfi %esi
-+	CFI_RESTORE esi
-+	popl_cfi %edi
-+	CFI_RESTORE edi
-+	popl_cfi %ebp
-+	CFI_RESTORE ebp
-+	popl_cfi %eax
-+	CFI_RESTORE eax
-+	.endm
-+
-+#endif /* CONFIG_X86_64 */
-+
---- a/arch/x86/include/asm/preempt.h
-+++ b/arch/x86/include/asm/preempt.h
-@@ -95,4 +95,12 @@ static __always_inline bool should_resch
- 	return unlikely(!__this_cpu_read_4(__preempt_count));
- }
- 
-+#ifdef CONFIG_PREEMPT
-+#define __preempt_schedule() asm ("call ___preempt_schedule")
-+
-+#ifdef CONFIG_CONTEXT_TRACKING
-+#define __preempt_schedule_context() asm ("call ___preempt_schedule_context")
-+#endif
-+#endif /* CONFIG_PREEMPT */
-+
- #endif /* __ASM_PREEMPT_H */
---- a/arch/x86/kernel/Makefile
-+++ b/arch/x86/kernel/Makefile
-@@ -36,6 +36,8 @@ obj-y			+= tsc.o io_delay.o rtc.o
- obj-y			+= pci-iommu_table.o
- obj-y			+= resource.o
- 
-+obj-$(CONFIG_PREEMPT)	+= preempt.o
-+
- obj-y				+= process.o
- obj-y				+= i387.o xsave.o
- obj-y				+= ptrace.o
---- a/arch/x86/kernel/i386_ksyms_32.c
-+++ b/arch/x86/kernel/i386_ksyms_32.c
-@@ -37,3 +37,10 @@ EXPORT_SYMBOL(strstr);
- 
- EXPORT_SYMBOL(csum_partial);
- EXPORT_SYMBOL(empty_zero_page);
-+
-+#ifdef CONFIG_PREEMPT
-+EXPORT_SYMBOL(___preempt_schedule);
-+#ifdef CONFIG_CONTEXT_TRACKING
-+EXPORT_SYMBOL(___preempt_schedule_context);
-+#endif
-+#endif
---- /dev/null
-+++ b/arch/x86/kernel/preempt.S
-@@ -0,0 +1,25 @@
-+
-+#include <linux/linkage.h>
-+#include <asm/dwarf2.h>
-+#include <asm/asm.h>
-+#include <asm/calling.h>
-+
-+ENTRY(___preempt_schedule)
-+	CFI_STARTPROC
-+	SAVE_ALL
-+	call preempt_schedule
-+	RESTORE_ALL
-+	ret
-+	CFI_ENDPROC
-+
-+#ifdef CONFIG_CONTEXT_TRACKING
-+
-+ENTRY(___preempt_schedule_context)
-+	CFI_STARTPROC
-+	SAVE_ALL
-+	call preempt_schedule_context
-+	RESTORE_ALL
-+	ret
-+	CFI_ENDPROC
-+
-+#endif
---- a/arch/x86/kernel/x8664_ksyms_64.c
-+++ b/arch/x86/kernel/x8664_ksyms_64.c
-@@ -66,3 +66,10 @@ EXPORT_SYMBOL(empty_zero_page);
- #ifndef CONFIG_PARAVIRT
- EXPORT_SYMBOL(native_load_gs_index);
- #endif
-+
-+#ifdef CONFIG_PREEMPT
-+EXPORT_SYMBOL(___preempt_schedule);
-+#ifdef CONFIG_CONTEXT_TRACKING
-+EXPORT_SYMBOL(___preempt_schedule_context);
-+#endif
-+#endif
---- a/include/asm-generic/preempt.h
-+++ b/include/asm-generic/preempt.h
-@@ -90,4 +90,14 @@ static __always_inline bool should_resch
- 	return unlikely(!*preempt_count_ptr());
- }
- 
-+#ifdef CONFIG_PREEMPT
-+extern asmlinkage void preempt_schedule(void);
-+#define __preempt_schedule() preempt_schedule()
-+
-+#ifdef CONFIG_CONTEXT_TRACKING
-+extern asmlinkage void preempt_schedule_context(void);
-+#define __preempt_schedule_context() preempt_schedule_context()
-+#endif
-+#endif /* CONFIG_PREEMPT */
-+
- #endif /* __ASM_PREEMPT_H */
---- a/include/linux/preempt.h
-+++ b/include/linux/preempt.h
-@@ -50,18 +50,17 @@ do { \
- #define preempt_enable_no_resched() sched_preempt_enable_no_resched()
- 
- #ifdef CONFIG_PREEMPT
--asmlinkage void preempt_schedule(void);
- #define preempt_enable() \
- do { \
- 	barrier(); \
- 	if (unlikely(preempt_count_dec_and_test())) \
--		preempt_schedule(); \
-+		__preempt_schedule(); \
- } while (0)
- 
- #define preempt_check_resched() \
- do { \
- 	if (should_resched()) \
--		preempt_schedule(); \
-+		__preempt_schedule(); \
- } while (0)
- 
- #else
-@@ -83,17 +82,15 @@ do { \
- 
- #ifdef CONFIG_PREEMPT
- 
--#ifdef CONFIG_CONTEXT_TRACKING
--asmlinkage void preempt_schedule_context(void);
--#else
--#define preempt_schedule_context() preempt_schedule()
-+#ifndef CONFIG_CONTEXT_TRACKING
-+#define __preempt_schedule_context() __preempt_schedule()
- #endif
- 
- #define preempt_enable_notrace() \
- do { \
- 	barrier(); \
- 	if (unlikely(__preempt_count_dec_and_test())) \
--		preempt_schedule_context(); \
-+		__preempt_schedule_context(); \
- } while (0)
- #else
- #define preempt_enable_notrace() preempt_enable_no_resched_notrace()
+	tglx
