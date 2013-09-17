@@ -1,28 +1,37 @@
-From: <RichardDElias@wabipyge.onmicrosoft.com>
-Subject: Do not miss a chance!
-Date: Tue, 17 Sep 2013 21:42:31 +0000
-Message-ID: <06e74fb7-f1a5-4172-9b6f-9196d12eb494@DBXPR05MB080.eurprd05.prod.outlook.com>
-Mime-Version: 1.1
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+From: David Miller <davem@davemloft.net>
+Subject: Re: [patch 5/6] sparc: Use preempt_schedule_irq
+Date: Tue, 17 Sep 2013 18:54:28 -0400 (EDT)
+Message-ID: <20130917.185428.2155214782234196428.davem@davemloft.net>
+References: <20130917082838.218329307@infradead.org>
+	<20130917182350.449685712@linutronix.de>
+	<20130917183628.966769884@linutronix.de>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from emea01-am1-ndr.ptr.protection.outlook.com ([157.56.116.104]:49670
-	"EHLO emea01-am1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1753629Ab3IQVmf convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Sep 2013 17:42:35 -0400
+Received: from shards.monkeyblade.net ([149.20.54.216]:43156 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753371Ab3IQWyf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Sep 2013 18:54:35 -0400
+In-Reply-To: <20130917183628.966769884@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: tglx@linutronix.de
+Cc: linux-kernel@vger.kernel.org, peterz@infradead.org, mingo@elte.hu, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, ak@linux.intel.com, hpa@zytor.com, bitbucket@online.de, arjan@linux.intel.com, fweisbec@gmail.com
 
+From: Thomas Gleixner <tglx@linutronix.de>
+Date: Tue, 17 Sep 2013 18:53:08 -0000
 
-		Dear Customer 
+>  		bne,pn			%xcc, kern_fpucheck
+> -		 sethi			%hi(PREEMPT_ACTIVE), %l6
+> -		stw			%l6, [%g6 + TI_PRE_COUNT]
+> -		call			schedule
+> +		call			preempt_schedule_irq
+>  		 nop
 
-Bring back your happiness! Sometimes very little is needed to make a happy life.
-No doctor visits
-Lowest price World Wide 
-Discreet Packaging
+You've put the function call into the delay slot of the branch,
+which you don't want to do.
 
-http://onlinestore221.yolasite.com/store
-
-Best Regards,
-		
+That's, btw, why we indent instructions with an extra space like
+that, to emphasize that it's a delay slot of the preceeding
+branch.
