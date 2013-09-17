@@ -1,48 +1,104 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 00/11] preempt_count rework -v3
-Date: Tue, 17 Sep 2013 13:22:05 +0200
-Message-ID: <20130917112205.GF12926@twins.programming.kicks-ass.net>
-References: <20130917082838.218329307@infradead.org>
- <20130917105344.GA23024@gmail.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [RFC] Kernel semantics of relaxed MMIO accessors
+Date: Tue, 17 Sep 2013 12:32:43 +0100
+Message-ID: <20130917113243.GB29356@mudshark.cambridge.arm.com>
+References: <20130909114449.GB5426@mudshark.cambridge.arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:45205 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752484Ab3IQLWT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Sep 2013 07:22:19 -0400
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:37667 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751975Ab3IQLd3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 17 Sep 2013 07:33:29 -0400
 Content-Disposition: inline
-In-Reply-To: <20130917105344.GA23024@gmail.com>
+In-Reply-To: <20130909114449.GB5426@mudshark.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Cc: "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, Catalin Marinas <Catalin.Marinas@arm.com>, "x86@kernel.org" <x86@kernel.org>, "jgunthorpe@obsidianresearch.com" <jgunthorpe@obsidianresearch.com>, "gregory.clement@free-electrons.com" <gregory.clement@free-electrons.com>, "ezequiel.garcia@free-electrons.com" <ezequiel.garcia@free-electrons.com>, "JBottomley@Parallels.com" <JBottomley@Parallels.com>, "npiggin@kernel.dk" <npiggin@kernel.dk>, davem@davemloft.net, linux-kernel@vger.kernel.org
 
-On Tue, Sep 17, 2013 at 12:53:44PM +0200, Ingo Molnar wrote:
-> 
-> * Peter Zijlstra <peterz@infradead.org> wrote:
-> 
-> > These patches optimize preempt_enable by firstly folding the preempt and
-> > need_resched tests into one -- this should work for all architectures. And
-> > secondly by providing per-arch preempt_count implementations; with x86 using
-> > per-cpu preempt_count for fastest access.
-> > 
-> > These patches have been boot tested on CONFIG_PREEMPT=y x86_64 and survive
-> > building a x86_64-defconfig kernel.
-> > 
-> >    text    data     bss     filename
-> > 11387014  1454776 1187840 defconfig-build/vmlinux.before
-> > 11352294  1454776 1187840 defconfig-build/vmlinux.after
-> 
-> That's a 0.3% size improvement (and most of the improvement is in 
-> hotpaths), despite GCC is being somewhat stupid about not allowing us to 
-> mark asm goto targets as cold paths and thus causes some unnecessary 
-> register shuffling in some cases, right?
+[expanding CC list and bumping since the merge window is now over]
 
-I'm not entire sure where the bloat in 1/11 comes from; several
-functions look like they avoid using stack variables for using more
-registers which create more push/pop on entry/exit paths. Others I'm not
-entirely sure of what happens with.
-
-But it does look like the unlikely() thing still works, even with the
-asm goto, you'll note that the call to schedule_preempt is out-of-line.
+On Mon, Sep 09, 2013 at 12:44:49PM +0100, Will Deacon wrote:
+> Hello,
+> 
+> During the review of a recent patch to add support for atomic MMIO
+> read-modify-write sequences between drivers on ARM, it was suggested
+> that this code could be made generic and used by other architectures.
+> 
+>   http://lists.infradead.org/pipermail/linux-arm-kernel/2013-August/194178.html
+> 
+> However, making this generic requires the availability of relaxed MMIO
+> accessors across all architectures because { readX(); modify(); writeX(); }
+> is an extremely expensive sequence on ARM. This expense is due to heavyweight
+> barriers inside our accessor macros to satisfy the conclusions from this
+> earlier thread with respect to cacheable memory ordering (which do make sense
+> from a driver writer's perspective):
+> 
+>   http://www.gossamer-threads.com/lists/linux/kernel/932153?do=post_view_threaded#932153
+> 
+> The problem with relaxed accessors (which is also mentioned in the thread
+> above) is that they don't seem to have well defined semantics across all
+> architectures. For example, the table below illustrates a few architectures
+> and their behaviour in this area (please correct any mistakes or add any
+> interesting architectures):
+> 
+> 
+> Ordered against: | IO (same device) | Cacheable accesses | Spin lock/unlock |
+> -----------------+------------------+--------------------+------------------+
+> ARM/ARM64        |                  |                    |                  |
+>   readX/writeX   |        Y         |         Y          |        Y         |
+>   _relaxed       |        Y         |         N          |        Y         |
+>                  |                  |                    |                  |
+> Alpha            |                  |                    |                  |
+>   readX/writeX   |        Y         |         Y          |        Y         |
+>   _relaxed       |        N*        |         N          |        Y         |
+>                  |                  |                    |                  |
+> PowerPC**        |                  |                    |                  |
+>   readX/writeX   |        Y         |         Y          |        Y         |
+>   _relaxed       |        Y         |         Y          |        Y         |
+>                  |                  |                    |                  |
+> x86              |                  |                    |                  |
+>   readX/writeX   |        Y         |         Y          |        Y         |
+>   _relaxed***    |        N         |         N          |        Y         |
+> 
+> *   Depends on specific machine afaict.
+> **  _relaxed accessors just #defined as non-relaxed variants, so could be
+>     improved.
+> *** Potential for re-ordering by the compiler.
+> 
+> 
+> On top of that, there is the concept of relaxed transactions in PCI-X and
+> PCI-E, which seem to permit re-ordering of accesses to the same address!
+> I think this is also behind the reason that, whilst readX_relaxed is
+> implemented on almost all architectures, writeX_relaxed is very uncommon.
+> 
+> Documentation/memory-barriers.txt states vaguely that readX_relaxed is
+> "not guaranteed to be ordered in any way" whilst
+> Documentation/DocBook/deviceiobook.tmpl explicitly ties the relaxed ordering
+> to IO accesses and DMA writes from a device.
+> 
+> So this email is a bit of a cry for help. I'd like to try and define some
+> common semantics for relaxed I/O accessors so that they can be implemented
+> by all architectures and relied upon by driver writers, including the
+> addition of relaxed writes.
+> 
+> My basic proposal would be to copy the ARM definition of _relaxed accessors
+> (i.e. only relax ordering against cacheable accesses), which is the semantic
+> hinted at by Nick when this was last discussed:
+> 
+>   http://www.gossamer-threads.com/lists/linux/kernel/932390?do=post_view_threaded#932390
+> 
+> This should allow for significant performance improvements in drivers which
+> don't care about normal memory ordering most of the time yet do have strict
+> requirements on ordering of I/O accesses (I think this is the common case).
+> 
+> All feedback/suggestions/war stories welcome!
+> 
+> Will
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> 
