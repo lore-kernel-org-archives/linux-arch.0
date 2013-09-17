@@ -1,50 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:54493 "EHLO
+Received: from www.linutronix.de ([62.245.132.108]:55019 "EHLO
 	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753492Ab3IQSxJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Sep 2013 14:53:09 -0400
-Message-ID: <20130917183628.646285522@linutronix.de>
-Date: Tue, 17 Sep 2013 18:53:06 -0000
+	with ESMTP id S1753216Ab3IQVYx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Sep 2013 17:24:53 -0400
+Date: Tue, 17 Sep 2013 23:24:49 +0200 (CEST)
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 2/6] h8300: Use schedule_preempt_irq
-References: <20130917082838.218329307@infradead.org>
- <20130917182350.449685712@linutronix.de>
-Content-Disposition: inline; filename=h8300-use-schedule-preempt-irq.patch
+Subject: Re: [patch 1/6] hardirq: Make hardirq bits generic
+In-Reply-To: <CAMuHMdWgrQf+ULDrZyY5R+vT3GtiWEgpsWxmfk0b5pivN7wBmg@mail.gmail.com>
+Message-ID: <alpine.DEB.2.02.1309172315550.4089@ionos.tec.linutronix.de>
+References: <20130917082838.218329307@infradead.org> <20130917182350.449685712@linutronix.de> <20130917183628.534494408@linutronix.de> <CAMuHMdWgrQf+ULDrZyY5R+vT3GtiWEgpsWxmfk0b5pivN7wBmg@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Geert Uytterhoeven <geert@linux-m68k.org>
-Message-ID: <20130917185306.0dAP7Jo2ZcAHgGYULcSbwpmudGMDVbf-XL-ywgJAhvI@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Linux-Arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Linux/m68k <linux-m68k@vger.kernel.org>
+Message-ID: <20130917212449.0J690mbtHUVKIG1xPFiFxFB1QQJz7HIrVqzEA-gASyI@z>
 
-Use the proper function instead of fiddling with PREEMPT_ACTIVE and
-interrupt enable/disable in the low level code.
+On Tue, 17 Sep 2013, Geert Uytterhoeven wrote:
 
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+> On Tue, Sep 17, 2013 at 8:53 PM, Thomas Gleixner <tglx@linutronix.de> wrote:
+> > --- linux-2.6.orig/arch/m68k/include/asm/hardirq.h
+> > +++ linux-2.6/arch/m68k/include/asm/hardirq.h
+> > @@ -5,17 +5,6 @@
+> >  #include <linux/cache.h>
+> >  #include <asm/irq.h>
+> >
+> > -#define HARDIRQ_BITS   8
+> 
+> > --- linux-2.6.orig/include/linux/preempt_mask.h
+> > +++ linux-2.6/include/linux/preempt_mask.h
+> > @@ -11,36 +11,22 @@
+> >   * - bits 0-7 are the preemption count (max preemption depth: 256)
+> >   * - bits 8-15 are the softirq count (max # of softirqs: 256)
+> >   *
+> > - * The hardirq count can in theory reach the same as NR_IRQS.
+> > - * In reality, the number of nested IRQS is limited to the stack
+> > - * size as well. For archs with over 1000 IRQS it is not practical
+> > - * to expect that they will all nest. We give a max of 10 bits for
+> > - * hardirq nesting. An arch may choose to give less than 10 bits.
+> > - * m68k expects it to be 8.
+> 
+> m68k needs some changes in arch/m68k/kernel/entry.S, cfr. this check
+> in arch/m68k/kernel/ints.c:
+> 
+>         /* assembly irq entry code relies on this... */
+>         if (HARDIRQ_MASK != 0x00ff0000) {
+>                 extern void hardirq_mask_is_broken(void);
+>                 hardirq_mask_is_broken();
+>         }
+> 
+> Haven't looked into the details yet...
 
----
- arch/h8300/kernel/entry.S |    6 +-----
- 1 file changed, 1 insertion(+), 5 deletions(-)
+Whee. Did not notice that one. Though I can't find anything
+interesting in the low level entry code... Looks like some more
+histerical left overs.
 
-Index: linux-2.6/arch/h8300/kernel/entry.S
-===================================================================
---- linux-2.6.orig/arch/h8300/kernel/entry.S
-+++ linux-2.6/arch/h8300/kernel/entry.S
-@@ -316,13 +316,9 @@ need_resched:
- 	beq	restore_all:8
- 	mov.b	@(LCCR+1:16,sp),r0l	/* Interrupt Enabled? */
- 	bmi	restore_all:8
--	mov.l	#PREEMPT_ACTIVE,er0
--	mov.l	er0,@(TI_PRE_COUNT:16,er4)
--	andc	#0x7f,ccr
- 	mov.l	sp,er0
- 	jsr	@_set_esp0
--	jsr	@_schedule
--	orc	#0x80,ccr
-+	jsr	@_preempt_schedule_irq
- 	bra	need_resched:8
- #endif
- 
+Thanks,
 
+	tglx
 
