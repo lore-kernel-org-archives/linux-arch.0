@@ -1,86 +1,84 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [patch 6/6] preempt: Make PREEMPT_ACTIVE generic
-Date: Wed, 18 Sep 2013 12:48:35 +0200
-Message-ID: <20130918104835.GH9326@twins.programming.kicks-ass.net>
-References: <20130917082838.218329307@infradead.org>
- <20130917182350.449685712@linutronix.de>
- <20130917183629.090698799@linutronix.de>
+From: "azurIt" <azurit-Rm0zKEqwvD4@public.gmane.org>
+Subject: =?utf-8?q?Re=3A_=5Bpatch_0=2F7=5D_improve_memcg_oom_killer_robustness_v2?=
+Date: Wed, 18 Sep 2013 16:03:04 +0200
+Message-ID: <20130918160304.6EDF2729@pobox.sk>
+References: <20130916134014.GA3674@dhcp22.suse.cz>, <20130916160119.2E76C2A1@pobox.sk>, <20130916140607.GC3674@dhcp22.suse.cz>, <20130916161316.5113F6E7@pobox.sk>, <20130916145744.GE3674@dhcp22.suse.cz>, <20130916170543.77F1ECB4@pobox.sk>, <20130916152548.GF3674@dhcp22.suse.cz>, <20130916225246.A633145B@pobox.sk>, <20130917000244.GD3278@cmpxchg.org>, <20130917131535.94E0A843@pobox.sk> <20130917141013.GA30838@dhcp22.suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:39786 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751810Ab3IRKsv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Sep 2013 06:48:51 -0400
-Content-Disposition: inline
-In-Reply-To: <20130917183629.090698799@linutronix.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Return-path: <cgroups-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20130917141013.GA30838-2MMpYkNvuYDjFM9bn6wA6Q@public.gmane.org>
+Sender: cgroups-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: =?utf-8?q?Michal_Hocko?= <mhocko-AlSwsSmVLrQ@public.gmane.org>
+Cc: =?utf-8?q?Johannes_Weiner?= <hannes-druUgvl0LCNAfugRpC6u6w@public.gmane.org>, =?utf-8?q?Andrew_Morton?= <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, =?utf-8?q?David_Rientjes?= <rientjes-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, =?utf-8?q?KAMEZAWA_Hiroyuki?= <kamezawa.hiroyu-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, =?utf-8?q?KOSAKI_Motohiro?= <kosaki.motohiro-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, cgroups-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Sep 17, 2013 at 06:53:09PM -0000, Thomas Gleixner wrote:
-> No point in having this bit defined by architecture.
->=20
-> Index: linux-2.6/include/linux/preempt_mask.h
-> =3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-> --- linux-2.6.orig/include/linux/preempt_mask.h
-> +++ linux-2.6/include/linux/preempt_mask.h
-> @@ -17,10 +17,11 @@
->   * there are a few palaeontologic drivers which reenable interrupts =
-in
->   * the handler, so we need more than one bit here.
->   *
-> - * PREEMPT_MASK: 0x000000ff
-> - * SOFTIRQ_MASK: 0x0000ff00
-> - * HARDIRQ_MASK: 0x000f0000
-> - *     NMI_MASK: 0x00100000
-> + * PREEMPT_MASK:	0x000000ff
-> + * SOFTIRQ_MASK:	0x0000ff00
-> + * HARDIRQ_MASK:	0x000f0000
-> + *     NMI_MASK:	0x00100000
-> + * PREEMPT_ACTIVE:	0x00200000
->   */
->  #define PREEMPT_BITS	8
->  #define SOFTIRQ_BITS	8
-> @@ -46,15 +47,9 @@
-> =20
->  #define SOFTIRQ_DISABLE_OFFSET	(2 * SOFTIRQ_OFFSET)
-> =20
-> -#ifndef PREEMPT_ACTIVE
->  #define PREEMPT_ACTIVE_BITS	1
->  #define PREEMPT_ACTIVE_SHIFT	(NMI_SHIFT + NMI_BITS)
->  #define PREEMPT_ACTIVE	(__IRQ_MASK(PREEMPT_ACTIVE_BITS) << PREEMPT_A=
-CTIVE_SHIFT)
-> -#endif
-> -
-> -#if PREEMPT_ACTIVE < (1 << (NMI_SHIFT + NMI_BITS))
-> -#error PREEMPT_ACTIVE is too low!
-> -#endif
-> =20
->  #define hardirq_count()	(preempt_count() & HARDIRQ_MASK)
->  #define softirq_count()	(preempt_count() & SOFTIRQ_MASK)
+> CC: "Johannes Weiner" <hannes-druUgvl0LCNAfugRpC6u6w@public.gmane.org>, "Andrew Morton" <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, "David Rientjes" <rientjes-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "KAMEZAWA Hiroyuki" <kamezawa.hiroyu-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, "KOSAKI Motohiro" <kosaki.motohiro-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, cgroups-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+>On Tue 17-09-13 13:15:35, azurIt wrote:
+>[...]
+>> Is something unusual on this stack?
+>> 
+>> 
+>> [<ffffffff810d1a5e>] dump_header+0x7e/0x1e0
+>> [<ffffffff810d195f>] ? find_lock_task_mm+0x2f/0x70
+>> [<ffffffff810d1f25>] oom_kill_process+0x85/0x2a0
+>> [<ffffffff810d24a8>] mem_cgroup_out_of_memory+0xa8/0xf0
+>> [<ffffffff8110fb76>] mem_cgroup_oom_synchronize+0x2e6/0x310
+>> [<ffffffff8110efc0>] ? mem_cgroup_uncharge_page+0x40/0x40
+>> [<ffffffff810d2703>] pagefault_out_of_memory+0x13/0x130
+>> [<ffffffff81026f6e>] mm_fault_error+0x9e/0x150
+>> [<ffffffff81027424>] do_page_fault+0x404/0x490
+>> [<ffffffff810f952c>] ? do_mmap_pgoff+0x3dc/0x430
+>> [<ffffffff815cb87f>] page_fault+0x1f/0x30
+>
+>This is a regular memcg OOM killer. Which dumps messages about what is
+>going to do. So no, nothing unusual, except if it was like that for ever
+>which would mean that oom_kill_process is in the endless loop. But a
+>single stack doesn't tell us much.
+>
+>Just a note. When you see something hogging a cpu and you are not sure
+>whether it might be in an endless loop inside the kernel it makes sense
+>to take several snaphosts of the stack trace and see if it changes. If
+>not and the process is not sleeping (there is no schedule on the trace)
+>then it might be looping somewhere waiting for Godot. If it is sleeping
+>then it is slightly harder because you would have to identify what it is
+>waiting for which requires to know a deeper context.
+>-- 
+>Michal Hocko
+>SUSE Labs
 
-I get:
 
- init/init_task.c:26:4: error: =E2=80=98PREEMPT_ACTIVE=E2=80=99 undecla=
-red here (not in a function)
 
-Because for some obscure reason sched.h doesn't actually include enough=
-=2E
+I was finally able to get stack of problematic process :) I saved it two times from the same process, as Michal suggested (i wasn't able to take more). Here it is:
 
-The below cures things:
+First (doesn't look very helpfull):
+[<ffffffffffffffff>] 0xffffffffffffffff
 
---- a/include/linux/sched.h
-+++ b/include/linux/sched.h
-@@ -22,6 +22,7 @@ struct sched_param {
- #include <linux/errno.h>
- #include <linux/nodemask.h>
- #include <linux/mm_types.h>
-+#include <linux/preempt_mask.h>
-=20
- #include <asm/page.h>
- #include <asm/ptrace.h>
+
+Second:
+[<ffffffff810e17d1>] shrink_zone+0x481/0x650
+[<ffffffff810e2ade>] do_try_to_free_pages+0xde/0x550
+[<ffffffff810e310b>] try_to_free_pages+0x9b/0x120
+[<ffffffff81148ccd>] free_more_memory+0x5d/0x60
+[<ffffffff8114931d>] __getblk+0x14d/0x2c0
+[<ffffffff8114c973>] __bread+0x13/0xc0
+[<ffffffff811968a8>] ext3_get_branch+0x98/0x140
+[<ffffffff81197497>] ext3_get_blocks_handle+0xd7/0xdc0
+[<ffffffff81198244>] ext3_get_block+0xc4/0x120
+[<ffffffff81155b8a>] do_mpage_readpage+0x38a/0x690
+[<ffffffff81155ffb>] mpage_readpages+0xfb/0x160
+[<ffffffff811972bd>] ext3_readpages+0x1d/0x20
+[<ffffffff810d9345>] __do_page_cache_readahead+0x1c5/0x270
+[<ffffffff810d9411>] ra_submit+0x21/0x30
+[<ffffffff810cfb90>] filemap_fault+0x380/0x4f0
+[<ffffffff810ef908>] __do_fault+0x78/0x5a0
+[<ffffffff810f2b24>] handle_pte_fault+0x84/0x940
+[<ffffffff810f354a>] handle_mm_fault+0x16a/0x320
+[<ffffffff8102715b>] do_page_fault+0x13b/0x490
+[<ffffffff815cb87f>] page_fault+0x1f/0x30
+[<ffffffffffffffff>] 0xffffffffffffffff
+
+
+What do you think about it?
+
+azur
