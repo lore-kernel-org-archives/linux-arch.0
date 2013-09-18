@@ -1,83 +1,102 @@
-From: Michal Hocko <mhocko-AlSwsSmVLrQ@public.gmane.org>
-Subject: Re: [patch 0/7] improve memcg oom killer robustness v2
-Date: Wed, 18 Sep 2013 20:36:17 +0200
-Message-ID: <20130918183617.GD3421@dhcp22.suse.cz>
-References: <20130916152548.GF3674@dhcp22.suse.cz>
- <20130916225246.A633145B@pobox.sk>
- <20130917000244.GD3278@cmpxchg.org>
- <20130917131535.94E0A843@pobox.sk>
- <20130917141013.GA30838@dhcp22.suse.cz>
- <20130918160304.6EDF2729@pobox.sk>
- <20130918142400.GA3421@dhcp22.suse.cz>
- <20130918163306.3620C973@pobox.sk>
- <20130918144245.GC3421@dhcp22.suse.cz>
- <20130918200239.DDA96791@pobox.sk>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH 01/11] x86: Use asm goto to implement better
+ modify_and_test() functions
+Date: Wed, 18 Sep 2013 13:44:31 -0500
+Message-ID: <CA+55aFyVZNb3ZrLfh5FkV4E_P5_LE4-LpDHBwFNp=W1H7CnSBg@mail.gmail.com>
+References: <20130917082838.218329307@infradead.org>
+	<20130917091143.387880231@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <cgroups-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20130918200239.DDA96791-Rm0zKEqwvD4@public.gmane.org>
-Sender: cgroups-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: azurIt <azurit-Rm0zKEqwvD4@public.gmane.org>
-Cc: Johannes Weiner <hannes-druUgvl0LCNAfugRpC6u6w@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, David Rientjes <rientjes-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, KOSAKI Motohiro <kosaki.motohiro-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, cgroups-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: multipart/mixed; boundary=047d7b6d7ca4fc731b04e6acd361
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-vc0-f175.google.com ([209.85.220.175]:50385 "EHLO
+	mail-vc0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751606Ab3IRSoe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Sep 2013 14:44:34 -0400
+In-Reply-To: <20130917091143.387880231@infradead.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Ingo Molnar <mingo@kernel.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On Wed 18-09-13 20:02:39, azurIt wrote:
-> > CC: "Johannes Weiner" <hannes-druUgvl0LCNAfugRpC6u6w@public.gmane.org>, "Andrew Morton" <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, "David Rientjes" <rientjes-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "KAMEZAWA Hiroyuki" <kamezawa.hiroyu-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, "KOSAKI Motohiro" <kosaki.motohiro-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, cgroups-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-> >On Wed 18-09-13 16:33:06, azurIt wrote:
-> >> > CC: "Johannes Weiner" <hannes-druUgvl0LCNAfugRpC6u6w@public.gmane.org>, "Andrew Morton" <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, "David Rientjes" <rientjes-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "KAMEZAWA Hiroyuki" <kamezawa.hiroyu-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, "KOSAKI Motohiro" <kosaki.motohiro-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, cgroups-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-> >> >On Wed 18-09-13 16:03:04, azurIt wrote:
-> >> >[..]
-> >> >> I was finally able to get stack of problematic process :) I saved it
-> >> >> two times from the same process, as Michal suggested (i wasn't able to
-> >> >> take more). Here it is:
-> >> >> 
-> >> >> First (doesn't look very helpfull):
-> >> >> [<ffffffffffffffff>] 0xffffffffffffffff
-> >> >
-> >> >No it is not.
-> >> > 
-> >> >> Second:
-> >> >> [<ffffffff810e17d1>] shrink_zone+0x481/0x650
-> >> >> [<ffffffff810e2ade>] do_try_to_free_pages+0xde/0x550
-> >> >> [<ffffffff810e310b>] try_to_free_pages+0x9b/0x120
-> >> >> [<ffffffff81148ccd>] free_more_memory+0x5d/0x60
-> >> >> [<ffffffff8114931d>] __getblk+0x14d/0x2c0
-> >> >> [<ffffffff8114c973>] __bread+0x13/0xc0
-> >> >> [<ffffffff811968a8>] ext3_get_branch+0x98/0x140
-> >> >> [<ffffffff81197497>] ext3_get_blocks_handle+0xd7/0xdc0
-> >> >> [<ffffffff81198244>] ext3_get_block+0xc4/0x120
-> >> >> [<ffffffff81155b8a>] do_mpage_readpage+0x38a/0x690
-> >> >> [<ffffffff81155ffb>] mpage_readpages+0xfb/0x160
-> >> >> [<ffffffff811972bd>] ext3_readpages+0x1d/0x20
-> >> >> [<ffffffff810d9345>] __do_page_cache_readahead+0x1c5/0x270
-> >> >> [<ffffffff810d9411>] ra_submit+0x21/0x30
-> >> >> [<ffffffff810cfb90>] filemap_fault+0x380/0x4f0
-> >> >> [<ffffffff810ef908>] __do_fault+0x78/0x5a0
-> >> >> [<ffffffff810f2b24>] handle_pte_fault+0x84/0x940
-> >> >> [<ffffffff810f354a>] handle_mm_fault+0x16a/0x320
-> >> >> [<ffffffff8102715b>] do_page_fault+0x13b/0x490
-> >> >> [<ffffffff815cb87f>] page_fault+0x1f/0x30
-> >> >> [<ffffffffffffffff>] 0xffffffffffffffff
-> >> >
-> >> >This is the direct reclaim path. You are simply running out of memory
-> >> >globaly. There is no memcg specific code in that trace.
-> >> 
-> >> 
-> >> No, i'm not. Here is htop and server graphs from this case:
-> >
-> >Bahh, right you are. I didn't look at the trace carefully. It is
-> >free_more_memory which calls the direct reclaim shrinking.
-> >
-> >Sorry about the confusion
-> 
-> 
-> Happens again and this time i got 5x this:
-> [<ffffffffffffffff>] 0xffffffffffffffff
-> 
-> :( it's probably looping very fast so i need to have some luck
+--047d7b6d7ca4fc731b04e6acd361
+Content-Type: text/plain; charset=UTF-8
 
-Or it is looping in the userspace.
--- 
-Michal Hocko
-SUSE Labs
+On Tue, Sep 17, 2013 at 4:10 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+> Linus suggested using asm goto to get rid of the typical SETcc + TEST
+> instruction pair -- which also clobbers an extra register -- for our
+> typical modify_and_test() functions.
+
+Thinking about this, we actually have another place in x86 low-level
+code where "asm goto" makes a lot of sense: exception handling for
+__put_user_asm().
+
+I'd love to use it for __get_user_asm() too, but it doesn't work there
+because "asm goto" cannot have outputs (and a get_user obviously needs
+an output - the value it gets). But for put_user(), it seems to be a
+very good match.
+
+The attached patch is ENTIRELY untested, but I did check some of the
+generated assembly language. And the output is absolutely beautiful,
+because now gcc sees the error case directly, so the straight-line
+code is just he single "mov" instruction, no tests, no nothing. The
+exception case will just jump to the local label directly.
+
+Of course, the STAC/CLAC noise is there, and we really should try to
+come up with a better model for that (so that the code that uses
+__put_user() because it wants to do many of them in one go after
+having done one access_ok() check) but that's a separate issue.
+
+hpa, comments? Are you looking at perhaps moving the stac/clac
+instructions out? With this, "filldir()" ends up lookng something like
+
+   ...
+   data32 xchg %ax,%ax  # stac
+   mov    %rcx,0x8(%rax)
+   data32 xchg %ax,%ax  # clac
+   mov    0x10(%rbx),%r13
+   data32 xchg %ax,%ax  # stac
+   mov    %r8,0x0(%r13)
+   data32 xchg %ax,%ax  # clac
+   data32 xchg %ax,%ax  # stac
+   mov    %r12w,0x10(%r13)
+   data32 xchg %ax,%ax  # clac
+   ...
+
+which is a bit sad, since the code really is almost perfect aside from
+the tons of extra nops/stac/clac instructions...
+
+                        Linus
+
+--047d7b6d7ca4fc731b04e6acd361
+Content-Type: application/octet-stream; name="patch.diff"
+Content-Disposition: attachment; filename="patch.diff"
+Content-Transfer-Encoding: base64
+X-Attachment-Id: f_hlqwgcbn0
+
+IGFyY2gveDg2L2luY2x1ZGUvYXNtL3VhY2Nlc3MuaCB8IDE5ICsrKysrKysrKysrKysrKysrKysK
+IDEgZmlsZSBjaGFuZ2VkLCAxOSBpbnNlcnRpb25zKCspCgpkaWZmIC0tZ2l0IGEvYXJjaC94ODYv
+aW5jbHVkZS9hc20vdWFjY2Vzcy5oIGIvYXJjaC94ODYvaW5jbHVkZS9hc20vdWFjY2Vzcy5oCmlu
+ZGV4IDU4MzhmYTkxMWFhMC4uMzM1OTc3MjJjZmMxIDEwMDY0NAotLS0gYS9hcmNoL3g4Ni9pbmNs
+dWRlL2FzbS91YWNjZXNzLmgKKysrIGIvYXJjaC94ODYvaW5jbHVkZS9hc20vdWFjY2Vzcy5oCkBA
+IC00MTEsNiArNDExLDI0IEBAIHN0cnVjdCBfX2xhcmdlX3N0cnVjdCB7IHVuc2lnbmVkIGxvbmcg
+YnVmWzEwMF07IH07CiAgKiB3ZSBkbyBub3Qgd3JpdGUgdG8gYW55IG1lbW9yeSBnY2Mga25vd3Mg
+YWJvdXQsIHNvIHRoZXJlIGFyZSBubwogICogYWxpYXNpbmcgaXNzdWVzLgogICovCisjaWZkZWYg
+Q0NfSEFWRV9BU01fR09UTworI2RlZmluZSBfX3B1dF91c2VyX2FzbSh4LCBhZGRyLCBlcnIsIGl0
+eXBlLCBydHlwZSwgbHR5cGUsIGVycnJldCkJXAorZG8gewlfX2xhYmVsX18gZXJyb3JfbGFiZWw7
+CQkJCQkJXAorCWFzbSBnb3RvKEFTTV9TVEFDICJcbiIJCQkJCQlcCisJCSAiMToJbW92Iml0eXBl
+IiAlInJ0eXBlIjAsJTFcbiIJCQlcCisJCSAiCSIgQVNNX0NMQUMgIlxuIgkJCQkJXAorCQkgX0FT
+TV9FWFRBQkxFKDFiLCVsW2Vycm9yX2xhYmVsXSkJCQlcCisJCSA6IC8qIG5vIG91dHB1dHMgKi8J
+CQkJCVwKKwkJIDogbHR5cGUoeCksICJtIiAoX19tKGFkZHIpKQkJCQlcCisJCSA6IC8qIG5vIGNs
+b2JiZXJzICovCQkJCQlcCisJCSA6IGVycm9yX2xhYmVsKTsJCQkJCVwKKwllcnIgPSAwOwkJCQkJ
+CQlcCisJYnJlYWs7CQkJCQkJCQlcCitlcnJvcl9sYWJlbDoJCQkJCQkJCVwKKwlhc20gdm9sYXRp
+bGUoQVNNX0NMQUMpOwkJCQkJCVwKKwllcnIgPSBlcnJyZXQ7CQkJCQkJCVwKK30gd2hpbGUgKDAp
+CisjZWxzZQogI2RlZmluZSBfX3B1dF91c2VyX2FzbSh4LCBhZGRyLCBlcnIsIGl0eXBlLCBydHlw
+ZSwgbHR5cGUsIGVycnJldCkJXAogCWFzbSB2b2xhdGlsZShBU01fU1RBQyAiXG4iCQkJCQlcCiAJ
+CSAgICAgIjE6CW1vdiJpdHlwZSIgJSJydHlwZSIxLCUyXG4iCQlcCkBAIC00MjIsNiArNDQwLDcg
+QEAgc3RydWN0IF9fbGFyZ2Vfc3RydWN0IHsgdW5zaWduZWQgbG9uZyBidWZbMTAwXTsgfTsKIAkJ
+ICAgICBfQVNNX0VYVEFCTEUoMWIsIDNiKQkJCQlcCiAJCSAgICAgOiAiPXIiKGVycikJCQkJCVwK
+IAkJICAgICA6IGx0eXBlKHgpLCAibSIgKF9fbShhZGRyKSksICJpIiAoZXJycmV0KSwgIjAiIChl
+cnIpKQorI2VuZGlmCiAKICNkZWZpbmUgX19wdXRfdXNlcl9hc21fZXgoeCwgYWRkciwgaXR5cGUs
+IHJ0eXBlLCBsdHlwZSkJCQlcCiAJYXNtIHZvbGF0aWxlKCIxOgltb3YiaXR5cGUiICUicnR5cGUi
+MCwlMVxuIgkJXAo=
+--047d7b6d7ca4fc731b04e6acd361--
