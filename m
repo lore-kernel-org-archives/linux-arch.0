@@ -1,194 +1,114 @@
-From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: Re: [RFC PATCH REBASED 2/3] x86: Move fpu_counter into ARCH specific
- thread_struct
-Date: Wed, 18 Sep 2013 14:15:50 -0400
-Message-ID: <5239EDD6.6010506@windriver.com>
-References: <1379398639-27403-1-git-send-email-vgupta@synopsys.com> <1379398639-27403-3-git-send-email-vgupta@synopsys.com> <5239ECF4.9090603@windriver.com>
+From: Johannes Weiner <hannes-druUgvl0LCNAfugRpC6u6w@public.gmane.org>
+Subject: Re: [patch 0/7] improve memcg oom killer robustness v2
+Date: Wed, 18 Sep 2013 14:19:46 -0400
+Message-ID: <20130918181946.GE856@cmpxchg.org>
+References: <20130916161316.5113F6E7@pobox.sk>
+ <20130916145744.GE3674@dhcp22.suse.cz>
+ <20130916170543.77F1ECB4@pobox.sk>
+ <20130916152548.GF3674@dhcp22.suse.cz>
+ <20130916225246.A633145B@pobox.sk>
+ <20130917000244.GD3278@cmpxchg.org>
+ <20130917131535.94E0A843@pobox.sk>
+ <20130917141013.GA30838@dhcp22.suse.cz>
+ <20130918160304.6EDF2729@pobox.sk>
+ <20130918180455.GD856@cmpxchg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.windriver.com ([147.11.1.11]:63200 "EHLO
-	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752812Ab3IRSPr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Sep 2013 14:15:47 -0400
-In-Reply-To: <5239ECF4.9090603@windriver.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <cgroups-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <20130918180455.GD856-druUgvl0LCNAfugRpC6u6w@public.gmane.org>
+Sender: cgroups-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: azurIt <azurit-Rm0zKEqwvD4@public.gmane.org>
+Cc: Michal Hocko <mhocko-AlSwsSmVLrQ@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, David Rientjes <rientjes-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, KAMEZAWA Hiroyuki <kamezawa.hiroyu-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, KOSAKI Motohiro <kosaki.motohiro-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, cgroups-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-On 13-09-18 02:12 PM, Paul Gortmaker wrote:
-> On 13-09-17 02:17 AM, Vineet Gupta wrote:
->> Only a couple of arches (sh/x86) use fpu_counter in task_struct so it
+On Wed, Sep 18, 2013 at 02:04:55PM -0400, Johannes Weiner wrote:
+> On Wed, Sep 18, 2013 at 04:03:04PM +0200, azurIt wrote:
+> > > CC: "Johannes Weiner" <hannes-druUgvl0LCNAfugRpC6u6w@public.gmane.org>, "Andrew Morton" <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, "David Rientjes" <rientjes-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "KAMEZAWA Hiroyuki" <kamezawa.hiroyu-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, "KOSAKI Motohiro" <kosaki.motohiro-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, cgroups-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+> > >On Tue 17-09-13 13:15:35, azurIt wrote:
+> > >[...]
+> > >> Is something unusual on this stack?
+> > >> 
+> > >> 
+> > >> [<ffffffff810d1a5e>] dump_header+0x7e/0x1e0
+> > >> [<ffffffff810d195f>] ? find_lock_task_mm+0x2f/0x70
+> > >> [<ffffffff810d1f25>] oom_kill_process+0x85/0x2a0
+> > >> [<ffffffff810d24a8>] mem_cgroup_out_of_memory+0xa8/0xf0
+> > >> [<ffffffff8110fb76>] mem_cgroup_oom_synchronize+0x2e6/0x310
+> > >> [<ffffffff8110efc0>] ? mem_cgroup_uncharge_page+0x40/0x40
+> > >> [<ffffffff810d2703>] pagefault_out_of_memory+0x13/0x130
+> > >> [<ffffffff81026f6e>] mm_fault_error+0x9e/0x150
+> > >> [<ffffffff81027424>] do_page_fault+0x404/0x490
+> > >> [<ffffffff810f952c>] ? do_mmap_pgoff+0x3dc/0x430
+> > >> [<ffffffff815cb87f>] page_fault+0x1f/0x30
+> > >
+> > >This is a regular memcg OOM killer. Which dumps messages about what is
+> > >going to do. So no, nothing unusual, except if it was like that for ever
+> > >which would mean that oom_kill_process is in the endless loop. But a
+> > >single stack doesn't tell us much.
+> > >
+> > >Just a note. When you see something hogging a cpu and you are not sure
+> > >whether it might be in an endless loop inside the kernel it makes sense
+> > >to take several snaphosts of the stack trace and see if it changes. If
+> > >not and the process is not sleeping (there is no schedule on the trace)
+> > >then it might be looping somewhere waiting for Godot. If it is sleeping
+> > >then it is slightly harder because you would have to identify what it is
+> > >waiting for which requires to know a deeper context.
+> > >-- 
+> > >Michal Hocko
+> > >SUSE Labs
+> > 
+> > 
+> > 
+> > I was finally able to get stack of problematic process :) I saved it two times from the same process, as Michal suggested (i wasn't able to take more). Here it is:
+> > 
+> > First (doesn't look very helpfull):
+> > [<ffffffffffffffff>] 0xffffffffffffffff
+> > 
+> > 
+> > Second:
+> > [<ffffffff810e17d1>] shrink_zone+0x481/0x650
+> > [<ffffffff810e2ade>] do_try_to_free_pages+0xde/0x550
+> > [<ffffffff810e310b>] try_to_free_pages+0x9b/0x120
+> > [<ffffffff81148ccd>] free_more_memory+0x5d/0x60
+> > [<ffffffff8114931d>] __getblk+0x14d/0x2c0
+> > [<ffffffff8114c973>] __bread+0x13/0xc0
+> > [<ffffffff811968a8>] ext3_get_branch+0x98/0x140
+> > [<ffffffff81197497>] ext3_get_blocks_handle+0xd7/0xdc0
+> > [<ffffffff81198244>] ext3_get_block+0xc4/0x120
+> > [<ffffffff81155b8a>] do_mpage_readpage+0x38a/0x690
+> > [<ffffffff81155ffb>] mpage_readpages+0xfb/0x160
+> > [<ffffffff811972bd>] ext3_readpages+0x1d/0x20
+> > [<ffffffff810d9345>] __do_page_cache_readahead+0x1c5/0x270
+> > [<ffffffff810d9411>] ra_submit+0x21/0x30
+> > [<ffffffff810cfb90>] filemap_fault+0x380/0x4f0
+> > [<ffffffff810ef908>] __do_fault+0x78/0x5a0
+> > [<ffffffff810f2b24>] handle_pte_fault+0x84/0x940
+> > [<ffffffff810f354a>] handle_mm_fault+0x16a/0x320
+> > [<ffffffff8102715b>] do_page_fault+0x13b/0x490
+> > [<ffffffff815cb87f>] page_fault+0x1f/0x30
+> > [<ffffffffffffffff>] 0xffffffffffffffff
 > 
-> Wouldn't it make sense to also have the arch/sh changes here in
-> this same commit then, rather than breaking their build?
-
-Ah, nevermind; I didn't immediately notice that the removal from
-task_struct wasn't done in this patch, since I only was Cc'd on 2/3.
-
-Thanks,
-P.
---
-
+> Ah, crap.  I'm sorry.  You even showed us this exact trace before in
+> another context, but I did not fully realize what __getblk() is doing.
 > 
-> Paul.
-> --
+> My subsequent patches made a charge attempt return -ENOMEM without
+> reclaim if the memcg is under OOM.  And so the reason you have these
+> reclaim livelocks is because __getblk never fails on -ENOMEM.  When
+> the allocation returns -ENOMEM, it invokes GLOBAL DIRECT RECLAIM and
+> tries again in an endless loop.  The memcg code would previously just
+> loop inside the charge, reclaiming and killing, until the allocation
+> succeeded.  But the new code relies on the fault stack being unwound
+> to complete the OOM kill.  And since the stack is not unwound with
+> __getblk() looping around the allocation there is no more memcg
+> reclaim AND no memcg OOM kill, thus no chance of exiting.
 > 
->> can be moved out into ARCH specific thread_struct, reducing the size of
->> task_struct for other arches.
->>
->> Compile tested i386_defconfig + gcc 4.7.3
->>
->> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
->> Cc: Thomas Gleixner <tglx@linutronix.de>
->> Cc: Ingo Molnar <mingo@redhat.com>
->> Cc: Peter Zijlstra <peterz@infradead.org>
->> Cc: "H. Peter Anvin" <hpa@zytor.com>
->> Cc: x86@kernel.org
->> Cc: Suresh Siddha <suresh.b.siddha@intel.com>
->> Cc: Borislav Petkov <bp@suse.de>
->> Cc: Vincent Palatin <vpalatin@chromium.org>
->> Cc: Len Brown <len.brown@intel.com>
->> Cc: Al Viro <viro@zeniv.linux.org.uk>
->> Cc: Paul Gortmaker <paul.gortmaker@windriver.com>
->> Cc: Pekka Riikonen <priikone@iki.fi>
->> Cc: Andrew Morton <akpm@linux-foundation.org>
->> Cc: Dave Jones <davej@redhat.com>
->> Cc: Frederic Weisbecker <fweisbec@gmail.com>
->> Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
->> Cc: linux-kernel@vger.kernel.org
->> ---
->>  arch/x86/include/asm/fpu-internal.h | 10 +++++-----
->>  arch/x86/include/asm/processor.h    |  9 +++++++++
->>  arch/x86/kernel/i387.c              |  2 +-
->>  arch/x86/kernel/process_32.c        |  4 ++--
->>  arch/x86/kernel/process_64.c        |  2 +-
->>  arch/x86/kernel/traps.c             |  2 +-
->>  6 files changed, 19 insertions(+), 10 deletions(-)
->>
->> diff --git a/arch/x86/include/asm/fpu-internal.h b/arch/x86/include/asm/fpu-internal.h
->> index 4d0bda7..c49a613 100644
->> --- a/arch/x86/include/asm/fpu-internal.h
->> +++ b/arch/x86/include/asm/fpu-internal.h
->> @@ -365,7 +365,7 @@ static inline void drop_fpu(struct task_struct *tsk)
->>  	 * Forget coprocessor state..
->>  	 */
->>  	preempt_disable();
->> -	tsk->fpu_counter = 0;
->> +	tsk->thread.fpu_counter = 0;
->>  	__drop_fpu(tsk);
->>  	clear_used_math();
->>  	preempt_enable();
->> @@ -424,7 +424,7 @@ static inline fpu_switch_t switch_fpu_prepare(struct task_struct *old, struct ta
->>  	 * or if the past 5 consecutive context-switches used math.
->>  	 */
->>  	fpu.preload = tsk_used_math(new) && (use_eager_fpu() ||
->> -					     new->fpu_counter > 5);
->> +					     new->thread.fpu_counter > 5);
->>  	if (__thread_has_fpu(old)) {
->>  		if (!__save_init_fpu(old))
->>  			cpu = ~0;
->> @@ -433,16 +433,16 @@ static inline fpu_switch_t switch_fpu_prepare(struct task_struct *old, struct ta
->>  
->>  		/* Don't change CR0.TS if we just switch! */
->>  		if (fpu.preload) {
->> -			new->fpu_counter++;
->> +			new->thread.fpu_counter++;
->>  			__thread_set_has_fpu(new);
->>  			prefetch(new->thread.fpu.state);
->>  		} else if (!use_eager_fpu())
->>  			stts();
->>  	} else {
->> -		old->fpu_counter = 0;
->> +		old->thread.fpu_counter = 0;
->>  		old->thread.fpu.last_cpu = ~0;
->>  		if (fpu.preload) {
->> -			new->fpu_counter++;
->> +			new->thread.fpu_counter++;
->>  			if (!use_eager_fpu() && fpu_lazy_restore(new, cpu))
->>  				fpu.preload = 0;
->>  			else
->> diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
->> index 987c75e..7b034a4 100644
->> --- a/arch/x86/include/asm/processor.h
->> +++ b/arch/x86/include/asm/processor.h
->> @@ -488,6 +488,15 @@ struct thread_struct {
->>  	unsigned long		iopl;
->>  	/* Max allowed port in the bitmap, in bytes: */
->>  	unsigned		io_bitmap_max;
->> +	/*
->> +	 * fpu_counter contains the number of consecutive context switches
->> +	 * that the FPU is used. If this is over a threshold, the lazy fpu
->> +	 * saving becomes unlazy to save the trap. This is an unsigned char
->> +	 * so that after 256 times the counter wraps and the behavior turns
->> +	 * lazy again; this to deal with bursty apps that only use FPU for
->> +	 * a short time
->> +	 */
->> +	unsigned char fpu_counter;
->>  };
->>  
->>  /*
->> diff --git a/arch/x86/kernel/i387.c b/arch/x86/kernel/i387.c
->> index 5d576ab..e8368c6 100644
->> --- a/arch/x86/kernel/i387.c
->> +++ b/arch/x86/kernel/i387.c
->> @@ -100,7 +100,7 @@ void unlazy_fpu(struct task_struct *tsk)
->>  		__save_init_fpu(tsk);
->>  		__thread_fpu_end(tsk);
->>  	} else
->> -		tsk->fpu_counter = 0;
->> +		tsk->thread.fpu_counter = 0;
->>  	preempt_enable();
->>  }
->>  EXPORT_SYMBOL(unlazy_fpu);
->> diff --git a/arch/x86/kernel/process_32.c b/arch/x86/kernel/process_32.c
->> index 884f98f..6af43b0 100644
->> --- a/arch/x86/kernel/process_32.c
->> +++ b/arch/x86/kernel/process_32.c
->> @@ -153,7 +153,7 @@ int copy_thread(unsigned long clone_flags, unsigned long sp,
->>  		childregs->orig_ax = -1;
->>  		childregs->cs = __KERNEL_CS | get_kernel_rpl();
->>  		childregs->flags = X86_EFLAGS_IF | X86_EFLAGS_FIXED;
->> -		p->fpu_counter = 0;
->> +		p->thread.fpu_counter = 0;
->>  		p->thread.io_bitmap_ptr = NULL;
->>  		memset(p->thread.ptrace_bps, 0, sizeof(p->thread.ptrace_bps));
->>  		return 0;
->> @@ -166,7 +166,7 @@ int copy_thread(unsigned long clone_flags, unsigned long sp,
->>  	p->thread.ip = (unsigned long) ret_from_fork;
->>  	task_user_gs(p) = get_user_gs(current_pt_regs());
->>  
->> -	p->fpu_counter = 0;
->> +	p->thread.fpu_counter = 0;
->>  	p->thread.io_bitmap_ptr = NULL;
->>  	tsk = current;
->>  	err = -ENOMEM;
->> diff --git a/arch/x86/kernel/process_64.c b/arch/x86/kernel/process_64.c
->> index bb1dc51..bbab295 100644
->> --- a/arch/x86/kernel/process_64.c
->> +++ b/arch/x86/kernel/process_64.c
->> @@ -163,7 +163,7 @@ int copy_thread(unsigned long clone_flags, unsigned long sp,
->>  	p->thread.sp = (unsigned long) childregs;
->>  	p->thread.usersp = me->thread.usersp;
->>  	set_tsk_thread_flag(p, TIF_FORK);
->> -	p->fpu_counter = 0;
->> +	p->thread.fpu_counter = 0;
->>  	p->thread.io_bitmap_ptr = NULL;
->>  
->>  	savesegment(gs, p->thread.gsindex);
->> diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
->> index 8c8093b..64b980f 100644
->> --- a/arch/x86/kernel/traps.c
->> +++ b/arch/x86/kernel/traps.c
->> @@ -653,7 +653,7 @@ void math_state_restore(void)
->>  		return;
->>  	}
->>  
->> -	tsk->fpu_counter++;
->> +	tsk->thread.fpu_counter++;
->>  }
->>  EXPORT_SYMBOL_GPL(math_state_restore);
->>  
->>
+> That code is weird but really old, so it may take a while to evaluate
+> all the callers as to whether this can be changed.
+> 
+> In the meantime, I would just allow __getblk to bypass the memcg limit
+> when it still can't charge after reclaim.  Does the below get your
+> machine back on track?
+
+Scratch that.  The idea is reasonable but the implementation is not
+fully cooked yet.  I'll send you an update.
