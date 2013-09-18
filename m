@@ -1,82 +1,69 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch 1/6] hardirq: Make hardirq bits generic
-Date: Wed, 18 Sep 2013 16:06:47 +0200 (CEST)
-Message-ID: <alpine.DEB.2.02.1309181159520.4089@ionos.tec.linutronix.de>
-References: <20130917082838.218329307@infradead.org> <20130917182350.449685712@linutronix.de> <20130917183628.534494408@linutronix.de> <CAMuHMdWgrQf+ULDrZyY5R+vT3GtiWEgpsWxmfk0b5pivN7wBmg@mail.gmail.com>
- <alpine.DEB.2.02.1309172315550.4089@ionos.tec.linutronix.de>
+From: Michal Hocko <mhocko@suse.cz>
+Subject: Re: [patch 0/7] improve memcg oom killer robustness v2
+Date: Wed, 18 Sep 2013 16:24:00 +0200
+Message-ID: <20130918142400.GA3421@dhcp22.suse.cz>
+References: <20130916140607.GC3674@dhcp22.suse.cz>
+ <20130916161316.5113F6E7@pobox.sk>
+ <20130916145744.GE3674@dhcp22.suse.cz>
+ <20130916170543.77F1ECB4@pobox.sk>
+ <20130916152548.GF3674@dhcp22.suse.cz>
+ <20130916225246.A633145B@pobox.sk>
+ <20130917000244.GD3278@cmpxchg.org>
+ <20130917131535.94E0A843@pobox.sk>
+ <20130917141013.GA30838@dhcp22.suse.cz>
+ <20130918160304.6EDF2729@pobox.sk>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-m68k-owner@vger.kernel.org>
-In-Reply-To: <alpine.DEB.2.02.1309172315550.4089@ionos.tec.linutronix.de>
-Sender: linux-m68k-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Linux-Arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Linux/m68k <linux-m68k@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20130918160304.6EDF2729@pobox.sk>
+Sender: owner-linux-mm@kvack.org
+To: azurIt <azurit@pobox.sk>
+Cc: Johannes Weiner <hannes@cmpxchg.org>, Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 17 Sep 2013, Thomas Gleixner wrote:
-
-> On Tue, 17 Sep 2013, Geert Uytterhoeven wrote:
+On Wed 18-09-13 16:03:04, azurIt wrote:
+[..]
+> I was finally able to get stack of problematic process :) I saved it
+> two times from the same process, as Michal suggested (i wasn't able to
+> take more). Here it is:
 > 
-> > On Tue, Sep 17, 2013 at 8:53 PM, Thomas Gleixner <tglx@linutronix.de> wrote:
-> > > --- linux-2.6.orig/arch/m68k/include/asm/hardirq.h
-> > > +++ linux-2.6/arch/m68k/include/asm/hardirq.h
-> > > @@ -5,17 +5,6 @@
-> > >  #include <linux/cache.h>
-> > >  #include <asm/irq.h>
-> > >
-> > > -#define HARDIRQ_BITS   8
-> > 
-> > > --- linux-2.6.orig/include/linux/preempt_mask.h
-> > > +++ linux-2.6/include/linux/preempt_mask.h
-> > > @@ -11,36 +11,22 @@
-> > >   * - bits 0-7 are the preemption count (max preemption depth: 256)
-> > >   * - bits 8-15 are the softirq count (max # of softirqs: 256)
-> > >   *
-> > > - * The hardirq count can in theory reach the same as NR_IRQS.
-> > > - * In reality, the number of nested IRQS is limited to the stack
-> > > - * size as well. For archs with over 1000 IRQS it is not practical
-> > > - * to expect that they will all nest. We give a max of 10 bits for
-> > > - * hardirq nesting. An arch may choose to give less than 10 bits.
-> > > - * m68k expects it to be 8.
-> > 
-> > m68k needs some changes in arch/m68k/kernel/entry.S, cfr. this check
-> > in arch/m68k/kernel/ints.c:
-> > 
-> >         /* assembly irq entry code relies on this... */
-> >         if (HARDIRQ_MASK != 0x00ff0000) {
-> >                 extern void hardirq_mask_is_broken(void);
-> >                 hardirq_mask_is_broken();
-> >         }
-> > 
-> > Haven't looked into the details yet...
-> 
-> Whee. Did not notice that one. Though I can't find anything
-> interesting in the low level entry code... Looks like some more
-> histerical left overs.
+> First (doesn't look very helpfull):
+> [<ffffffffffffffff>] 0xffffffffffffffff
 
-Duh. With brain awake I can see it.
+No it is not.
+ 
+> Second:
+> [<ffffffff810e17d1>] shrink_zone+0x481/0x650
+> [<ffffffff810e2ade>] do_try_to_free_pages+0xde/0x550
+> [<ffffffff810e310b>] try_to_free_pages+0x9b/0x120
+> [<ffffffff81148ccd>] free_more_memory+0x5d/0x60
+> [<ffffffff8114931d>] __getblk+0x14d/0x2c0
+> [<ffffffff8114c973>] __bread+0x13/0xc0
+> [<ffffffff811968a8>] ext3_get_branch+0x98/0x140
+> [<ffffffff81197497>] ext3_get_blocks_handle+0xd7/0xdc0
+> [<ffffffff81198244>] ext3_get_block+0xc4/0x120
+> [<ffffffff81155b8a>] do_mpage_readpage+0x38a/0x690
+> [<ffffffff81155ffb>] mpage_readpages+0xfb/0x160
+> [<ffffffff811972bd>] ext3_readpages+0x1d/0x20
+> [<ffffffff810d9345>] __do_page_cache_readahead+0x1c5/0x270
+> [<ffffffff810d9411>] ra_submit+0x21/0x30
+> [<ffffffff810cfb90>] filemap_fault+0x380/0x4f0
+> [<ffffffff810ef908>] __do_fault+0x78/0x5a0
+> [<ffffffff810f2b24>] handle_pte_fault+0x84/0x940
+> [<ffffffff810f354a>] handle_mm_fault+0x16a/0x320
+> [<ffffffff8102715b>] do_page_fault+0x13b/0x490
+> [<ffffffff815cb87f>] page_fault+0x1f/0x30
+> [<ffffffffffffffff>] 0xffffffffffffffff
 
-The low level entry code is fiddling with preempt_count by adding
-HARDIRQ_OFFSET to it to keep track of nested interrupts. If the count
-goes to 0, it invokes do_softirq(). And you have another safety guard:
+This is the direct reclaim path. You are simply running out of memory
+globaly. There is no memcg specific code in that trace.
+-- 
+Michal Hocko
+SUSE Labs
 
-ret_from_last_interrupt:
-        moveq   #(~ALLOWINT>>8)&0xff,%d0
-	andb    %sp@(PT_OFF_SR),%d0
-	jne     2b
-
-That's due to the irq priority level stuff, which results in nested
-interrupts depending on the level of the serviced interrupt, right?
-And that's why you fiddle yourself with the HARDIRQ bits in the
-preempt count to prevent the core code from calling do_softirq().
-
-Though this scheme also prevents that other parts of irq_exit() are
-working correctly, because they depend on the hardirq count being
-zero, e.g. the nohz code.
-
-Needs more thoughts how to fix that w/o wasting precious bits for the
-HARDIRQ count.
-
-Thanks,
-
-	tglx
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
