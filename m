@@ -1,27 +1,28 @@
-From: <ROBERTMELDRUM@wabipyge.onmicrosoft.com>
-Subject: Sometimes things happen much quicker than you would love to.
-Date: Thu, 19 Sep 2013 06:18:34 +0000
-Message-ID: <fb82f6b4-1430-4051-b41c-0dd60fe557f6@DBXPR05MB109.eurprd05.prod.outlook.com>
-Mime-Version: 1.1
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from emea01-db3-ndr.ptr.protection.outlook.com ([157.56.120.101]:46098
-	"EHLO emea01-am1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752470Ab3ISGSs convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Sep 2013 02:18:48 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+From: Andi Kleen <ak@linux.intel.com>
+Subject: Re: [PATCH 01/11] x86: Use asm goto to implement better
+ modify_and_test() functions
+Date: Thu, 19 Sep 2013 01:31:02 -0700
+Message-ID: <20130919083102.GB11427@tassilo.jf.intel.com>
+References: <20130917082838.218329307@infradead.org>
+ <20130917091143.387880231@infradead.org>
+ <CA+55aFyVZNb3ZrLfh5FkV4E_P5_LE4-LpDHBwFNp=W1H7CnSBg@mail.gmail.com>
+ <4ec87843-c29a-401a-a54f-2cd4d61fba62@email.android.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <4ec87843-c29a-401a-a54f-2cd4d61fba62@email.android.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
+On Wed, Sep 18, 2013 at 02:02:37PM -0500, H. Peter Anvin wrote:
+> Yes, a bit sad.  We allow bracketing with the get/put_user_try/catch blocks, but that is x86-specific.
+> 
+> I don't think a generic option is possible without compiler support, but it might be possible to do better than we do know.
 
-		Dear Customer 
+Letting the compiler do it is a bit risky, because it may open it up for
+really large blocks, thus defeating the security advantages.
 
-Why missing moments with your loved ones when you have the solution at one click distance?
-
-Never miss a moment again
-
-http://onlinestore15.webnode.com/shop
-
-Best Regards, 
-		
+-Andi
