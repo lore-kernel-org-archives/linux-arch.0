@@ -1,132 +1,65 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH 01/11] x86: Use asm goto to implement better
- modify_and_test() functions
-Date: Thu, 19 Sep 2013 11:39:54 +0200
-Message-ID: <20130919093954.GD14112@gmail.com>
-References: <20130917082838.218329307@infradead.org>
- <20130917091143.387880231@infradead.org>
- <CA+55aFyVZNb3ZrLfh5FkV4E_P5_LE4-LpDHBwFNp=W1H7CnSBg@mail.gmail.com>
- <4ec87843-c29a-401a-a54f-2cd4d61fba62@email.android.com>
- <20130919083102.GB11427@tassilo.jf.intel.com>
+From: Frantisek Hrbata <fhrbata@redhat.com>
+Subject: Re: [PATCH v2 2/4] gcov: add support for gcc 4.7 gcov format
+Date: Thu, 19 Sep 2013 12:12:14 +0200
+Message-ID: <20130919101214.GA2313@localhost.localdomain>
+References: <1378305776-3644-1-git-send-email-fhrbata@redhat.com>
+ <1378305776-3644-3-git-send-email-fhrbata@redhat.com>
+ <20130918142259.8c504e7cfbc8318a0550a891@linux-foundation.org>
+ <1379539625.1787.77.camel@joe-AO722>
+ <20130918143127.8dbdf6bc5e9d076a87cb2582@linux-foundation.org>
+Reply-To: Frantisek Hrbata <fhrbata@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bk0-f54.google.com ([209.85.214.54]:48199 "EHLO
-	mail-bk0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751629Ab3ISJj6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Sep 2013 05:39:58 -0400
+Received: from mx1.redhat.com ([209.132.183.28]:37200 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751717Ab3ISKMb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 19 Sep 2013 06:12:31 -0400
 Content-Disposition: inline
-In-Reply-To: <20130919083102.GB11427@tassilo.jf.intel.com>
+In-Reply-To: <20130918143127.8dbdf6bc5e9d076a87cb2582@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andi Kleen <ak@linux.intel.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Joe Perches <joe@perches.com>, linux-kernel@vger.kernel.org, jstancek@redhat.com, keescook@chromium.org, peter.oberparleiter@de.ibm.com, rusty@rustcorp.com.au, linux-arch@vger.kernel.org, arnd@arndb.de, mgahagan@redhat.com, agospoda@redhat.com
 
-
-* Andi Kleen <ak@linux.intel.com> wrote:
-
-> On Wed, Sep 18, 2013 at 02:02:37PM -0500, H. Peter Anvin wrote:
->
-> > Yes, a bit sad.  We allow bracketing with the get/put_user_try/catch 
-> > blocks, but that is x86-specific. I don't think a generic option is 
-> > possible without compiler support, but it might be possible to do 
-> > better than we do know.
+On Wed, Sep 18, 2013 at 02:31:27PM -0700, Andrew Morton wrote:
+> On Wed, 18 Sep 2013 14:27:05 -0700 Joe Perches <joe@perches.com> wrote:
 > 
-> Letting the compiler do it is a bit risky, because it may open it up for 
-> really large blocks, thus defeating the security advantages.
+> > On Wed, 2013-09-18 at 14:22 -0700, Andrew Morton wrote:
+> > > On Wed,  4 Sep 2013 16:42:54 +0200 Frantisek Hrbata <fhrbata@redhat.com> wrote:
+> > > > The gcov in-memory format changed in gcc 4.7. The biggest change, which
+> > > > requires this special implementation, is that gcov_info no longer contains
+> > > > array of counters for each counter type for all functions and gcov_fn_info is
+> > > > not used for mapping of function's counters to these arrays(offset). Now each
+> > > > gcov_fn_info contans it's counters, which makes things a little bit easier.
+> > > > 
+> > > > This is heavily based on the previous gcc_3_4.c implementation and patches
+> > > > provided by Peter Oberparleiter. Specially the buffer gcda implementation for
+> > > > iterator.
+> > > 
+> > > A couple of little tweaks:
+> > []
+> > > +++ a/kernel/gcov/gcc_4_7.c
+> > []
+> > > @@ -267,8 +266,8 @@ struct gcov_info *gcov_info_dup(struct g
+> > >  	if (!dup->filename)
+> > >  		goto err_free;
+> > >  
+> > > -	dup->functions = kzalloc(sizeof(struct gcov_fn_info *) *
+> > > -			info->n_functions, GFP_KERNEL);
+> > > +	dup->functions = kcalloc(sizeof(struct gcov_fn_info *),
+> > > +				 info->n_functions, GFP_KERNEL);
+> > 
+> > kcalloc(n, size_t, flags)
+> > 
+> > 	dup->functions = kcalloc(info->n_functions,
+> > 				 sizeof(struct gcov_fn_info *), GFP_KERNEL);
+> > 
+> 
+> Already did that after checkpatch whined at me.  Stupid thing.
 
-Yeah, the compiler could cover other pointer dereferences in the put_user 
-block and that won't result in any visible breakage, so it's difficult to 
-prevent the compiler doing it accidentally or even intentionally.
+Many thanks Andrew and I'm really sorry about the "style problems". Lesson well
+learned: use checkpatch before posting.
 
-Then again the many repeated STAC/CLAC sequences are really not nice.
-
-So maybe we could add some macro magic to generate better assembly here - 
-if we coded up a __put_user_2field() primitive then we could already 
-optimize the filldir() case:
-
-before:
-
-        if (__put_user(d_ino, &dirent->d_ino))
-                goto efault;
-        if (__put_user(reclen, &dirent->d_reclen))
-                goto efault;
-        if (copy_to_user(dirent->d_name, name, namlen))
-                goto efault;
-        if (__put_user(0, dirent->d_name + namlen))
-                goto efault;
-        if (__put_user(d_type, (char __user *) dirent + reclen - 1))
-                goto efault;
-
-after:
-
-        if (__put_user_2field(d_ino, &dirent->d_ino, reclen, &dirent->d_reclen))
-                goto efault;
-        if (copy_to_user(dirent->d_name, name, namlen))
-                goto efault;
-        if (__put_user_2field(0, dirent->d_name + namlen, d_type, (char __user *) dirent + reclen - 1)))
-                goto efault;
-
-That cuts down the inlined STAC/CLAC pairs from 4 to 2.
-
-__put_user_2field() would be some truly disgusting (but hidden from most 
-people) macro and assembly magic.
-
-We could also add __put_user_4field() and slightly reorder filldir():
-
-        if (__put_user_4field(	d_ino,		&dirent->d_ino,
-				reclen,		&dirent->d_reclen,
-        			0,		dirent->d_name + namlen,
-				d_type,		(char __user *) dirent + reclen - 1)))
-                goto efault;
-
-        if (copy_to_user(dirent->d_name, name, namlen))
-                goto efault;
-
-That would reduce the inlined STAC/CLAC pairs to a minimal 1 (only one of 
-which would be visible in the filldir() disassembly).
-
-In theory we could do something generic:
-
-        if (__put_user_fields(	4,
-				d_ino,		&dirent->d_ino,
-				reclen,		&dirent->d_reclen,
-        			0,		 dirent->d_name + namlen,
-				d_type,		(char __user *)dirent + reclen-1 ))
-                goto efault;
-
-        if (copy_to_user(dirent->d_name, name, namlen))
-                goto efault;
-
-and implement it up to 4 or so. It will be some truly disgusting lowlevel 
-code (especially due to the size variations which could make it explode 
-combinatorically), with some generic header fallback that utilizes 
-existing put_user primitives.
-
-But it's solvable IMO, if we want to solve it. On the high level it's also 
-more readable in a fashion and hence perhaps a bit less fragile than our 
-usual __put_user() patterns.
-
-Btw., while at it we could also maybe fix the assignment ordering and use 
-copy_to_user() naming:
-
-        if (__copy_to_user_fields(4,
-
-			&dirent->d_ino,				d_ino,
-			&dirent->d_reclen,			reclen,		
-        		dirent->d_name + namlen,		0,
-			(char __user *)dirent + reclen-1,	d_type	))
-
-                goto efault;
-
-        if (copy_to_user(dirent->d_name, name, namlen))
-                goto efault;
-
-That would make it even more readable.
-
-(Thinking about the macro tricks needed for something like this gave me a 
-bad headache though.)
-
-Thanks,
-
-	Ingo
+-- 
+Frantisek Hrbata
