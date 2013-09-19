@@ -1,56 +1,27 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v2 2/4] gcov: add support for gcc 4.7 gcov format
-Date: Wed, 18 Sep 2013 14:31:27 -0700
-Message-ID: <20130918143127.8dbdf6bc5e9d076a87cb2582@linux-foundation.org>
-References: <1378305776-3644-1-git-send-email-fhrbata@redhat.com>
-	<1378305776-3644-3-git-send-email-fhrbata@redhat.com>
-	<20130918142259.8c504e7cfbc8318a0550a891@linux-foundation.org>
-	<1379539625.1787.77.camel@joe-AO722>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+From: <ROBERTMELDRUM@wabipyge.onmicrosoft.com>
+Subject: Sometimes things happen much quicker than you would love to.
+Date: Thu, 19 Sep 2013 06:18:34 +0000
+Message-ID: <fb82f6b4-1430-4051-b41c-0dd60fe557f6@DBXPR05MB109.eurprd05.prod.outlook.com>
+Mime-Version: 1.1
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:46717 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751873Ab3IRVb3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Sep 2013 17:31:29 -0400
-In-Reply-To: <1379539625.1787.77.camel@joe-AO722>
+Received: from emea01-db3-ndr.ptr.protection.outlook.com ([157.56.120.101]:46098
+	"EHLO emea01-am1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1752470Ab3ISGSs convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Sep 2013 02:18:48 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Joe Perches <joe@perches.com>
-Cc: Frantisek Hrbata <fhrbata@redhat.com>, linux-kernel@vger.kernel.org, jstancek@redhat.com, keescook@chromium.org, peter.oberparleiter@de.ibm.com, rusty@rustcorp.com.au, linux-arch@vger.kernel.org, arnd@arndb.de, mgahagan@redhat.com, agospoda@redhat.com
 
-On Wed, 18 Sep 2013 14:27:05 -0700 Joe Perches <joe@perches.com> wrote:
 
-> On Wed, 2013-09-18 at 14:22 -0700, Andrew Morton wrote:
-> > On Wed,  4 Sep 2013 16:42:54 +0200 Frantisek Hrbata <fhrbata@redhat.com> wrote:
-> > > The gcov in-memory format changed in gcc 4.7. The biggest change, which
-> > > requires this special implementation, is that gcov_info no longer contains
-> > > array of counters for each counter type for all functions and gcov_fn_info is
-> > > not used for mapping of function's counters to these arrays(offset). Now each
-> > > gcov_fn_info contans it's counters, which makes things a little bit easier.
-> > > 
-> > > This is heavily based on the previous gcc_3_4.c implementation and patches
-> > > provided by Peter Oberparleiter. Specially the buffer gcda implementation for
-> > > iterator.
-> > 
-> > A couple of little tweaks:
-> []
-> > +++ a/kernel/gcov/gcc_4_7.c
-> []
-> > @@ -267,8 +266,8 @@ struct gcov_info *gcov_info_dup(struct g
-> >  	if (!dup->filename)
-> >  		goto err_free;
-> >  
-> > -	dup->functions = kzalloc(sizeof(struct gcov_fn_info *) *
-> > -			info->n_functions, GFP_KERNEL);
-> > +	dup->functions = kcalloc(sizeof(struct gcov_fn_info *),
-> > +				 info->n_functions, GFP_KERNEL);
-> 
-> kcalloc(n, size_t, flags)
-> 
-> 	dup->functions = kcalloc(info->n_functions,
-> 				 sizeof(struct gcov_fn_info *), GFP_KERNEL);
-> 
+		Dear Customer 
 
-Already did that after checkpatch whined at me.  Stupid thing.
+Why missing moments with your loved ones when you have the solution at one click distance?
+
+Never miss a moment again
+
+http://onlinestore15.webnode.com/shop
+
+Best Regards, 
+		
