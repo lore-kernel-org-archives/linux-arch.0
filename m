@@ -1,93 +1,421 @@
-From: Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
-Subject: Re: [PATCH v2 2/4] gcov: add support for gcc 4.7 gcov format
-Date: Thu, 19 Sep 2013 12:31:54 +0200
-Message-ID: <523AD29A.3080705@linux.vnet.ibm.com>
-References: <1378305776-3644-1-git-send-email-fhrbata@redhat.com> <1378305776-3644-3-git-send-email-fhrbata@redhat.com> <523ABE10.6060802@linux.vnet.ibm.com> <20130919102137.GB2313@localhost.localdomain>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [patch 1/6] hardirq: Make hardirq bits generic
+Date: Thu, 19 Sep 2013 17:14:57 +0200 (CEST)
+Message-ID: <alpine.DEB.2.02.1309191652480.4089@ionos.tec.linutronix.de>
+References: <20130917082838.218329307@infradead.org> <20130917182350.449685712@linutronix.de> <20130917183628.534494408@linutronix.de> <CAMuHMdWgrQf+ULDrZyY5R+vT3GtiWEgpsWxmfk0b5pivN7wBmg@mail.gmail.com> <alpine.DEB.2.02.1309172315550.4089@ionos.tec.linutronix.de>
+ <alpine.DEB.2.02.1309181159520.4089@ionos.tec.linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp13.uk.ibm.com ([195.75.94.109]:39213 "EHLO
-	e06smtp13.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751869Ab3ISKbl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Sep 2013 06:31:41 -0400
-Received: from /spool/local
-	by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <oberpar@linux.vnet.ibm.com>;
-	Thu, 19 Sep 2013 11:31:39 +0100
-In-Reply-To: <20130919102137.GB2313@localhost.localdomain>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Frantisek Hrbata <fhrbata@redhat.com>
-Cc: linux-kernel@vger.kernel.org, jstancek@redhat.com, keescook@chromium.org, peter.oberparleiter@de.ibm.com, rusty@rustcorp.com.au, linux-arch@vger.kernel.org, arnd@arndb.de, mgahagan@redhat.com, agospoda@redhat.com, akpm@linux-foundation.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <alpine.DEB.2.02.1309181159520.4089@ionos.tec.linutronix.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Linux-Arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Linux/m68k <linux-m68k@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 19.09.2013 12:21, Frantisek Hrbata wrote:
-> On Thu, Sep 19, 2013 at 11:04:16AM +0200, Peter Oberparleiter wrote:
->> On 04.09.2013 16:42, Frantisek Hrbata wrote:
->>> The gcov in-memory format changed in gcc 4.7. The biggest change, w=
-hich
->>> requires this special implementation, is that gcov_info no longer c=
-ontains
->>> array of counters for each counter type for all functions and gcov_=
-fn_info is
->>> not used for mapping of function's counters to these arrays(offset)=
-=2E Now each
->>> gcov_fn_info contans it's counters, which makes things a little bit=
- easier.
->>>
->>> This is heavily based on the previous gcc_3_4.c implementation and =
-patches
->>> provided by Peter Oberparleiter. Specially the buffer gcda implemen=
-tation for
->>> iterator.
->>>
->>> v2: - removed const definition for gcov_fn_info in gcov_info
->>>     - use vmalloc for counter values in gcov_info_dup
->>>     - use iter buffer for gcda
->>>
->>> Signed-off-by: Frantisek Hrbata <fhrbata@redhat.com>
->>
->> The patch is missing an include statement:
->>
->>   CC      kernel/gcov/gcc_4_7.o
->> kernel/gcov/gcc_4_7.c: In function =91gcov_info_dup=92:
->> kernel/gcov/gcc_4_7.c:293:4: error: implicit declaration of function=
- =91vmalloc=92 [-Werror=3Dimplicit-function-declaration]
->> kernel/gcov/gcc_4_7.c:293:20: warning: assignment makes pointer from=
- integer without a cast [enabled by default]
->>
->> With that added, it compiles and works with gcc 4.3.4 and 4.7.2 on
->> kernel 3.21-rc1 on s390x.
->>
->> --- a/kernel/gcov/gcc_4_7.c
->> +++ b/kernel/gcov/gcc_4_7.c
->> @@ -15,6 +15,7 @@
->>  #include <linux/slab.h>
->>  #include <linux/string.h>
->>  #include <linux/seq_file.h>
->> +#include <linux/vmalloc.h>
->>  #include "gcov.h"
->>
->>  #define GCOV_COUNTERS			8
->>
->=20
-> Hi Peter,
->=20
-> I'm sorry I missed that. Many thanks. In addition, do you have any ot=
-her
-> objedtions to the code? Andrew already added the patches to the -mm t=
-ree.
-> Andrew, should I post a follow up patch adding the vmalloc.h include =
-or is it
-> possible to fix it directly as you did for the previous patches?=20
-> Again I'm sorry for the inconvenience.
+Geert,
 
-With the fix applied I have no further objections.
+On Wed, 18 Sep 2013, Thomas Gleixner wrote:
+> The low level entry code is fiddling with preempt_count by adding
+> HARDIRQ_OFFSET to it to keep track of nested interrupts. If the count
+> goes to 0, it invokes do_softirq(). And you have another safety guard:
+> 
+> ret_from_last_interrupt:
+>         moveq   #(~ALLOWINT>>8)&0xff,%d0
+> 	andb    %sp@(PT_OFF_SR),%d0
+> 	jne     2b
+> 
+> That's due to the irq priority level stuff, which results in nested
+> interrupts depending on the level of the serviced interrupt, right?
+> And that's why you fiddle yourself with the HARDIRQ bits in the
+> preempt count to prevent the core code from calling do_softirq().
+> 
+> Though this scheme also prevents that other parts of irq_exit() are
+> working correctly, because they depend on the hardirq count being
+> zero, e.g. the nohz code.
+> 
+> Needs more thoughts how to fix that w/o wasting precious bits for the
+> HARDIRQ count.
 
-Reviewed-by: Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
+So after staring a while into the m68k code I came up with the
+following (untested and uncompiled) solution:
 
-Thanks!
+Instead of doing the HARDIRQ fiddling and the softirq handling from
+the low level entry code, I provided an irq_exit_nested() variant
+which has an argument to tell the core code, that it shouldn't invoke
+softirq handling and the nohz exit code. That way 4 HARDIRQ bits in
+preempt_count() should be sufficient and we can move them around as we
+see fit without being bound by some magic asm code fiddling with it.
 
---=20
-Peter Oberparleiter
-Linux on System z Development - IBM Germany
+By modifying do_IRQ to return an indicator whether this is the last
+irq in the chain, we can also simplify the asm code significantly.
+
+Can you have a look with m68k eyes on that please? I'm sure that my
+vague memory of the 68k ASM tricked me into doing something
+fundamentally wrong :)
+
+Thanks,
+
+	tglx
+---
+Subject: m68k: Deal with interrupt nesting in the core code
+From: Thomas Gleixner <tglx@linutronix.de>
+Date: Wed, 18 Sep 2013 11:56:58 +0200
+
+m68k increments the HARDIRQ part of preempt_count in the low level
+interrupt entry code, which prevents the core code from restructuring
+the preempt_count layout.
+
+This is done to prevent softirq invocation for
+nested interrupts. The nesting can happen due to the interrupt
+priority scheme of the 68k.
+
+This patch removes the low level handling and moves it to the
+interrupt core code by providing an irq_exit_nested() variant. The
+nested argument to this function tells the core code whether to invoke
+softirqs or not.
+
+Also let do_IRQ() and the other handler variants return the nest
+indicator so the low level entry code can utilize this to select
+either immediate return or the expensive work functions.
+
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+---
+ arch/m68k/include/asm/irq.h      |    2 +-
+ arch/m68k/kernel/entry.S         |   36 +++++++++---------------------------
+ arch/m68k/kernel/ints.c          |    6 ------
+ arch/m68k/kernel/irq.c           |    7 ++++---
+ arch/m68k/platform/68000/entry.S |   19 ++++++-------------
+ arch/m68k/platform/68000/ints.c  |    7 +++----
+ arch/m68k/platform/68360/entry.S |   25 ++++++++-----------------
+ arch/m68k/q40/q40ints.c          |   12 ++++++------
+ include/linux/hardirq.h          |    1 +
+ kernel/softirq.c                 |   15 +++++++++++----
+ 10 files changed, 49 insertions(+), 81 deletions(-)
+
+Index: linux-2.6/arch/m68k/include/asm/irq.h
+===================================================================
+--- linux-2.6.orig/arch/m68k/include/asm/irq.h
++++ linux-2.6/arch/m68k/include/asm/irq.h
+@@ -74,7 +74,7 @@ extern unsigned int irq_canonicalize(uns
+ #define irq_canonicalize(irq)  (irq)
+ #endif /* !(CONFIG_M68020 || CONFIG_M68030 || CONFIG_M68040 || CONFIG_M68060) */
+ 
+-asmlinkage void do_IRQ(int irq, struct pt_regs *regs);
++asmlinkage int do_IRQ(int irq, struct pt_regs *regs);
+ extern atomic_t irq_err_count;
+ 
+ #endif /* _M68K_IRQ_H_ */
+Index: linux-2.6/arch/m68k/kernel/entry.S
+===================================================================
+--- linux-2.6.orig/arch/m68k/kernel/entry.S
++++ linux-2.6/arch/m68k/kernel/entry.S
+@@ -274,9 +274,6 @@ do_delayed_trace:
+ 
+ ENTRY(auto_inthandler)
+ 	SAVE_ALL_INT
+-	GET_CURRENT(%d0)
+-	movel	%d0,%a1
+-	addqb	#1,%a1@(TINFO_PREEMPT+1)
+ 					|  put exception # in d0
+ 	bfextu	%sp@(PT_OFF_FORMATVEC){#4,#10},%d0
+ 	subw	#VEC_SPUR,%d0
+@@ -284,34 +281,22 @@ ENTRY(auto_inthandler)
+ 	movel	%sp,%sp@-
+ 	movel	%d0,%sp@-		|  put vector # on stack
+ auto_irqhandler_fixup = . + 2
+-	jsr	do_IRQ			|  process the IRQ
++	jsr	do_IRQ			|  process the IRQ, returns nest level
+ 	addql	#8,%sp			|  pop parameters off stack
+ 
+ ret_from_interrupt:
+-	movel	%curptr@(TASK_STACK),%a1
+-	subqb	#1,%a1@(TINFO_PREEMPT+1)
+-	jeq	ret_from_last_interrupt
+-2:	RESTORE_ALL
+-
+-	ALIGN
+-ret_from_last_interrupt:
+-	moveq	#(~ALLOWINT>>8)&0xff,%d0
+-	andb	%sp@(PT_OFF_SR),%d0
+-	jne	2b
+-
+-	/* check if we need to do software interrupts */
+-	tstl	irq_stat+CPUSTAT_SOFTIRQ_PENDING
++	/*
++	 * Only the last interrupt leaving the kernel goes through the
++	 * various exception return checks.
++	 */
++	cmpl	#0, %d0
+ 	jeq	.Lret_from_exception
+-	pea	ret_from_exception
+-	jra	do_softirq
++	RESTORE_ALL
+ 
+ /* Handler for user defined interrupt vectors */
+ 
+ ENTRY(user_inthandler)
+ 	SAVE_ALL_INT
+-	GET_CURRENT(%d0)
+-	movel	%d0,%a1
+-	addqb	#1,%a1@(TINFO_PREEMPT+1)
+ 					|  put exception # in d0
+ 	bfextu	%sp@(PT_OFF_FORMATVEC){#4,#10},%d0
+ user_irqvec_fixup = . + 2
+@@ -319,13 +304,10 @@ user_irqvec_fixup = . + 2
+ 
+ 	movel	%sp,%sp@-
+ 	movel	%d0,%sp@-		|  put vector # on stack
+-	jsr	do_IRQ			|  process the IRQ
++	jsr	do_IRQ			|  process the IRQ, returns nest level
+ 	addql	#8,%sp			|  pop parameters off stack
+ 
+-	movel	%curptr@(TASK_STACK),%a1
+-	subqb	#1,%a1@(TINFO_PREEMPT+1)
+-	jeq	ret_from_last_interrupt
+-	RESTORE_ALL
++	jra	ret_from_interrupt
+ 
+ /* Handler for uninitialized and spurious interrupts */
+ 
+Index: linux-2.6/arch/m68k/kernel/ints.c
+===================================================================
+--- linux-2.6.orig/arch/m68k/kernel/ints.c
++++ linux-2.6/arch/m68k/kernel/ints.c
+@@ -58,12 +58,6 @@ void __init init_IRQ(void)
+ {
+ 	int i;
+ 
+-	/* assembly irq entry code relies on this... */
+-	if (HARDIRQ_MASK != 0x00ff0000) {
+-		extern void hardirq_mask_is_broken(void);
+-		hardirq_mask_is_broken();
+-	}
+-
+ 	for (i = IRQ_AUTO_1; i <= IRQ_AUTO_7; i++)
+ 		irq_set_chip_and_handler(i, &auto_irq_chip, handle_simple_irq);
+ 
+Index: linux-2.6/arch/m68k/kernel/irq.c
+===================================================================
+--- linux-2.6.orig/arch/m68k/kernel/irq.c
++++ linux-2.6/arch/m68k/kernel/irq.c
+@@ -17,18 +17,19 @@
+ #include <linux/seq_file.h>
+ #include <asm/traps.h>
+ 
+-asmlinkage void do_IRQ(int irq, struct pt_regs *regs)
++asmlinkage int do_IRQ(int irq, struct pt_regs *regs)
+ {
+ 	struct pt_regs *oldregs = set_irq_regs(regs);
++	int nested = regs->sr & ~ALLOWINT;
+ 
+ 	irq_enter();
+ 	generic_handle_irq(irq);
+-	irq_exit();
++	irq_exit_nested(nested);
+ 
+ 	set_irq_regs(oldregs);
++	return nested;
+ }
+ 
+-
+ /* The number of spurious interrupts */
+ atomic_t irq_err_count;
+ 
+Index: linux-2.6/arch/m68k/platform/68000/entry.S
+===================================================================
+--- linux-2.6.orig/arch/m68k/platform/68000/entry.S
++++ linux-2.6/arch/m68k/platform/68000/entry.S
+@@ -217,20 +217,13 @@ inthandler:
+ 	bra	ret_from_interrupt
+ 
+ ret_from_interrupt:
+-	jeq	1f
+-2:
+-	RESTORE_ALL
+-1:
+-	moveb	%sp@(PT_OFF_SR), %d0
+-	and	#7, %d0
+-	jhi	2b
+-
+-	/* check if we need to do software interrupts */
++	/*
++	 * Only the last interrupt leaving the kernel goes through the
++	 * various exception return checks.
++	 */
++	cmpl	#0, %d0
+ 	jeq	ret_from_exception
+-
+-	pea	ret_from_exception
+-	jra	do_softirq
+-
++	RESTORE_ALL
+ 
+ /*
+  * Handler for uninitialized and spurious interrupts.
+Index: linux-2.6/arch/m68k/platform/68000/ints.c
+===================================================================
+--- linux-2.6.orig/arch/m68k/platform/68000/ints.c
++++ linux-2.6/arch/m68k/platform/68000/ints.c
+@@ -74,11 +74,9 @@ asmlinkage irqreturn_t inthandler7(void)
+  * into one vector and look in the blasted mask register...
+  * This code is designed to be fast, almost constant time, not clean!
+  */
+-void process_int(int vec, struct pt_regs *fp)
++int process_int(int vec, struct pt_regs *fp)
+ {
+-	int irq;
+-	int mask;
+-
++	int irq, mask, nested =fp->sr & ~ALLOWINT;
+ 	unsigned long pend = ISR;
+ 
+ 	while (pend) {
+@@ -128,6 +126,7 @@ void process_int(int vec, struct pt_regs
+ 		do_IRQ(irq, fp);
+ 		pend &= ~mask;
+ 	}
++	return nested;
+ }
+ 
+ static void intc_irq_unmask(struct irq_data *d)
+Index: linux-2.6/arch/m68k/platform/68360/entry.S
+===================================================================
+--- linux-2.6.orig/arch/m68k/platform/68360/entry.S
++++ linux-2.6/arch/m68k/platform/68360/entry.S
+@@ -132,26 +132,17 @@ inthandler:
+ 
+ 	movel	%sp,%sp@-
+ 	movel	%d0,%sp@- 		/*  put vector # on stack*/
+-	jbsr	do_IRQ			/*  process the IRQ*/
+-3:     	addql	#8,%sp			/*  pop parameters off stack*/
+-	bra	ret_from_interrupt
++	jbsr	do_IRQ			/*  process the IRQ, returns nest level */
++     	addql	#8,%sp			/*  pop parameters off stack*/
+ 
+ ret_from_interrupt:
+-	jeq	1f
+-2:
+-	RESTORE_ALL
+-1:
+-	moveb	%sp@(PT_OFF_SR), %d0
+-	and	#7, %d0
+-	jhi	2b
+-	/* check if we need to do software interrupts */
+-
+-	movel	irq_stat+CPUSTAT_SOFTIRQ_PENDING,%d0
++	/*
++	 * Only the last interrupt leaving the kernel goes through the
++	 * various exception return checks.
++	 */
++	cmpl	#0, %d0
+ 	jeq	ret_from_exception
+-
+-	pea	ret_from_exception
+-	jra	do_softirq
+-
++	RESTORE_ALL
+ 
+ /*
+  * Handler for uninitialized and spurious interrupts.
+Index: linux-2.6/arch/m68k/q40/q40ints.c
+===================================================================
+--- linux-2.6.orig/arch/m68k/q40/q40ints.c
++++ linux-2.6/arch/m68k/q40/q40ints.c
+@@ -202,10 +202,10 @@ static int aliased_irq=0;  /* how many t
+ 
+ 
+ /* got interrupt, dispatch to ISA or keyboard/timer IRQs */
+-static void q40_irq_handler(unsigned int irq, struct pt_regs *fp)
++static int q40_irq_handler(unsigned int irq, struct pt_regs *fp)
+ {
+ 	unsigned mir, mer;
+-	int i;
++	int i, nested = fp->sr & ~ALLOWINT;
+ 
+ //repeat:
+ 	mir = master_inb(IIRQ_REG);
+@@ -213,14 +213,14 @@ static void q40_irq_handler(unsigned int
+ 	if ((mir & Q40_IRQ_EXT_MASK) &&
+ 	    (master_inb(EIRQ_REG) & Q40_IRQ6_MASK)) {
+ 		floppy_hardint();
+-		return;
++		return nested;
+ 	}
+ #endif
+ 	switch (irq) {
+ 	case 4:
+ 	case 6:
+ 		do_IRQ(Q40_IRQ_SAMPLE, fp);
+-		return;
++		return nested;
+ 	}
+ 	if (mir & Q40_IRQ_FRAME_MASK) {
+ 		do_IRQ(Q40_IRQ_FRAME, fp);
+@@ -277,7 +277,7 @@ static void q40_irq_handler(unsigned int
+ #endif
+ 				}
+ // used to do 'goto repeat;' here, this delayed bh processing too long
+-				return;
++				return nested;
+ 			}
+ 		}
+ 		if (mer && ccleirq > 0 && !aliased_irq) {
+@@ -291,7 +291,7 @@ static void q40_irq_handler(unsigned int
+ 	if (mir & Q40_IRQ_KEYB_MASK)
+ 		do_IRQ(Q40_IRQ_KEYBOARD, fp);
+ 
+-	return;
++	return nested;
+ }
+ 
+ void q40_irq_enable(struct irq_data *data)
+Index: linux-2.6/include/linux/hardirq.h
+===================================================================
+--- linux-2.6.orig/include/linux/hardirq.h
++++ linux-2.6/include/linux/hardirq.h
+@@ -55,6 +55,7 @@ extern void irq_enter(void);
+ /*
+  * Exit irq context and process softirqs if needed:
+  */
++extern void irq_exit_nested(bool nested);
+ extern void irq_exit(void);
+ 
+ #define nmi_enter()						\
+Index: linux-2.6/kernel/softirq.c
+===================================================================
+--- linux-2.6.orig/kernel/softirq.c
++++ linux-2.6/kernel/softirq.c
+@@ -350,7 +350,7 @@ static inline void tick_irq_exit(void)
+ /*
+  * Exit an interrupt context. Process softirqs if needed and possible:
+  */
+-void irq_exit(void)
++void irq_exit_nested(bool nested)
+ {
+ #ifndef __ARCH_IRQ_EXIT_IRQS_DISABLED
+ 	local_irq_disable();
+@@ -361,13 +361,20 @@ void irq_exit(void)
+ 	account_irq_exit_time(current);
+ 	trace_hardirq_exit();
+ 	sub_preempt_count(HARDIRQ_OFFSET);
+-	if (!in_interrupt() && local_softirq_pending())
+-		invoke_softirq();
+ 
+-	tick_irq_exit();
++	if (!nested) {
++		if (!in_interrupt() && local_softirq_pending())
++			invoke_softirq();
++		tick_irq_exit();
++	}
+ 	rcu_irq_exit();
+ }
+ 
++void irq_exit(void)
++{
++	irq_exit_nested(false);
++}
++
+ /*
+  * This function must run with irqs disabled!
+  */
