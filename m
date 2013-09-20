@@ -1,36 +1,65 @@
-From: Linus Walleij <linus.walleij@linaro.org>
-Subject: Re: [RFC 1/5] gpiolib: factorize gpiod_get/set functions
-Date: Fri, 20 Sep 2013 10:36:34 +0200
-Message-ID: <CACRpkdZrjM0cQm8AXNDnaSh2Tp5BVcevDUObFg87cUTEmJxc1w@mail.gmail.com>
-References: <1378294169-22661-1-git-send-email-acourbot@nvidia.com>
-	<1378294169-22661-2-git-send-email-acourbot@nvidia.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [patch 1/6] hardirq: Make hardirq bits generic
+Date: Fri, 20 Sep 2013 11:26:13 +0200 (CEST)
+Message-ID: <alpine.DEB.2.02.1309201124211.4089@ionos.tec.linutronix.de>
+References: <20130917082838.218329307@infradead.org> <20130917182350.449685712@linutronix.de> <20130917183628.534494408@linutronix.de> <CAMuHMdWgrQf+ULDrZyY5R+vT3GtiWEgpsWxmfk0b5pivN7wBmg@mail.gmail.com> <alpine.DEB.2.02.1309172315550.4089@ionos.tec.linutronix.de>
+ <alpine.DEB.2.02.1309181159520.4089@ionos.tec.linutronix.de> <alpine.DEB.2.02.1309191652480.4089@ionos.tec.linutronix.de> <87txhg3ftx.fsf@igel.home> <CAMuHMdW-YBroi6GezUP-KQBVRAcmYtUQERvBC=ekmemopDhVow@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f173.google.com ([209.85.214.173]:52255 "EHLO
-	mail-ob0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754226Ab3ITIge (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Sep 2013 04:36:34 -0400
-Received: by mail-ob0-f173.google.com with SMTP id vb8so136381obc.4
-        for <linux-arch@vger.kernel.org>; Fri, 20 Sep 2013 01:36:34 -0700 (PDT)
-In-Reply-To: <1378294169-22661-2-git-send-email-acourbot@nvidia.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Alexandre Courbot <acourbot@nvidia.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Grant Likely <grant.likely@linaro.org>, Thierry Reding <thierry.reding@gmail.com>, Stephen Warren <swarren@wwwdotorg.org>, Alexandre Courbot <gnurou@gmail.com>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-m68k-owner@vger.kernel.org>
+In-Reply-To: <CAMuHMdW-YBroi6GezUP-KQBVRAcmYtUQERvBC=ekmemopDhVow@mail.gmail.com>
+Sender: linux-m68k-owner@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Andreas Schwab <schwab@linux-m68k.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Linux-Arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Linux/m68k <linux-m68k@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Sep 4, 2013 at 1:29 PM, Alexandre Courbot <acourbot@nvidia.com> wrote:
+On Thu, 19 Sep 2013, Geert Uytterhoeven wrote:
 
-> gpiod_get/set functions share common code between their regular and
-> cansleep variants. The exporting of the gpiod interface will make
-> the situation worse. This patch factorizes the common code to avoid code
-> redundancy.
->
-> Signed-off-by: Alexandre Courbot <acourbot@nvidia.com>
+> On Thu, Sep 19, 2013 at 7:02 PM, Andreas Schwab <schwab@linux-m68k.org> wrote:
+> > Thomas Gleixner <tglx@linutronix.de> writes:
+> >> +     /*
+> >> +      * Only the last interrupt leaving the kernel goes through the
+> >> +      * various exception return checks.
+> >> +      */
+> >> +     cmpl    #0, %d0
+> >         tstl    %d0
+> 
+> arch/m68k/kernel/built-in.o: In function `bad_inthandler':
+> (.text+0x2a6): undefined reference to `ret_from_last_interrupt'
+> 
+> I came up with the quick (whitespace-damaged-gmail) fix below.
+> Or should we handle the nesting in handle_badint(), too?
 
-I don't see why this patch should be RFC?
+Hmm, probably yes. If a badint gets interrupted by a good one, you
+would fail to go through ret_from_exception.
+ 
+> --- a/arch/m68k/kernel/entry.S
+> +++ b/arch/m68k/kernel/entry.S
+> @@ -313,17 +313,11 @@ user_irqvec_fixup = . + 2
+> 
+>  ENTRY(bad_inthandler)
+>         SAVE_ALL_INT
+> -       GET_CURRENT(%d0)
+> -       movel   %d0,%a1
+> -       addqb   #1,%a1@(TINFO_PREEMPT+1)
+> 
+>         movel   %sp,%sp@-
+>         jsr     handle_badint
+>         addql   #4,%sp
+> 
+> -       movel   %curptr@(TASK_STACK),%a1
+> -       subqb   #1,%a1@(TINFO_PREEMPT+1)
+> -       jeq     ret_from_last_interrupt
+>         RESTORE_ALL
+> 
+> However, the resulting kernel hangs (on ARAnyM) after starting userspace:
+> 
+> | INIT: version 2.86 booting
 
-I just rebased and applied it, it's a clean and nice refactoring.
+Hmm.
+ 
+> I'll have a deeper look when I have some more time...
 
-Yours,
-Linus Walleij
+Thanks a lot!
+
+       tglx
