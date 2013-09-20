@@ -1,65 +1,25 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch 1/6] hardirq: Make hardirq bits generic
-Date: Fri, 20 Sep 2013 11:26:13 +0200 (CEST)
-Message-ID: <alpine.DEB.2.02.1309201124211.4089@ionos.tec.linutronix.de>
-References: <20130917082838.218329307@infradead.org> <20130917182350.449685712@linutronix.de> <20130917183628.534494408@linutronix.de> <CAMuHMdWgrQf+ULDrZyY5R+vT3GtiWEgpsWxmfk0b5pivN7wBmg@mail.gmail.com> <alpine.DEB.2.02.1309172315550.4089@ionos.tec.linutronix.de>
- <alpine.DEB.2.02.1309181159520.4089@ionos.tec.linutronix.de> <alpine.DEB.2.02.1309191652480.4089@ionos.tec.linutronix.de> <87txhg3ftx.fsf@igel.home> <CAMuHMdW-YBroi6GezUP-KQBVRAcmYtUQERvBC=ekmemopDhVow@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-m68k-owner@vger.kernel.org>
-In-Reply-To: <CAMuHMdW-YBroi6GezUP-KQBVRAcmYtUQERvBC=ekmemopDhVow@mail.gmail.com>
-Sender: linux-m68k-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Andreas Schwab <schwab@linux-m68k.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Linux-Arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Linux/m68k <linux-m68k@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+From: <KeithASmith@robertdanton.onmicrosoft.com>
+Subject: Exclusive offer, feel it for real
+Date: Fri, 20 Sep 2013 17:17:03 +0000
+Message-ID: <ce7d0922-e014-4e64-9899-02866f8bad15@DBXPR01MB048.eurprd01.prod.exchangelabs.com>
+Mime-Version: 1.1
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from emea01-db3-ndr.ptr.protection.outlook.com ([157.56.120.103]:49905
+	"EHLO emea01-am1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1752817Ab3ITRRE convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Sep 2013 13:17:04 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 19 Sep 2013, Geert Uytterhoeven wrote:
 
-> On Thu, Sep 19, 2013 at 7:02 PM, Andreas Schwab <schwab@linux-m68k.org> wrote:
-> > Thomas Gleixner <tglx@linutronix.de> writes:
-> >> +     /*
-> >> +      * Only the last interrupt leaving the kernel goes through the
-> >> +      * various exception return checks.
-> >> +      */
-> >> +     cmpl    #0, %d0
-> >         tstl    %d0
-> 
-> arch/m68k/kernel/built-in.o: In function `bad_inthandler':
-> (.text+0x2a6): undefined reference to `ret_from_last_interrupt'
-> 
-> I came up with the quick (whitespace-damaged-gmail) fix below.
-> Or should we handle the nesting in handle_badint(), too?
+		Dear Customer 
 
-Hmm, probably yes. If a badint gets interrupted by a good one, you
-would fail to go through ret_from_exception.
- 
-> --- a/arch/m68k/kernel/entry.S
-> +++ b/arch/m68k/kernel/entry.S
-> @@ -313,17 +313,11 @@ user_irqvec_fixup = . + 2
-> 
->  ENTRY(bad_inthandler)
->         SAVE_ALL_INT
-> -       GET_CURRENT(%d0)
-> -       movel   %d0,%a1
-> -       addqb   #1,%a1@(TINFO_PREEMPT+1)
-> 
->         movel   %sp,%sp@-
->         jsr     handle_badint
->         addql   #4,%sp
-> 
-> -       movel   %curptr@(TASK_STACK),%a1
-> -       subqb   #1,%a1@(TINFO_PREEMPT+1)
-> -       jeq     ret_from_last_interrupt
->         RESTORE_ALL
-> 
-> However, the resulting kernel hangs (on ARAnyM) after starting userspace:
-> 
-> | INIT: version 2.86 booting
+Doubling your money before you have even started playing!
 
-Hmm.
- 
-> I'll have a deeper look when I have some more time...
+http://t.co/HTmm1FkTRf
 
-Thanks a lot!
-
-       tglx
+Best Regards, 
+		
