@@ -1,33 +1,32 @@
-From: Linus Walleij <linus.walleij@linaro.org>
-Subject: Re: [RFC 0/5] New descriptor-based GPIO interface
-Date: Fri, 20 Sep 2013 23:23:46 +0200
-Message-ID: <CACRpkdbFhORYnAUf+BMXtL1LezL7gPJ6gKQnqwvKZjqqCt3A4Q@mail.gmail.com>
-References: <1378294169-22661-1-git-send-email-acourbot@nvidia.com>
-	<CACRpkdYjkDf7c9VxfDTHtFx_upWWRAK8vpXTkrkrRsMjErq1dQ@mail.gmail.com>
-	<20130920193254.GA19130@mithrandir>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [patch 2/6] h8300: Use schedule_preempt_irq
+Date: Fri, 20 Sep 2013 23:46:42 +0200 (CEST)
+Message-ID: <alpine.DEB.2.02.1309202346212.4089@ionos.tec.linutronix.de>
+References: <20130917082838.218329307@infradead.org> <20130917182350.449685712@linutronix.de> <20130917183628.646285522@linutronix.de> <20130920174144.GA30356@roeck-us.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f171.google.com ([209.85.214.171]:46779 "EHLO
-	mail-ob0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754739Ab3ITVXq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Sep 2013 17:23:46 -0400
-Received: by mail-ob0-f171.google.com with SMTP id wm4so1256044obc.30
-        for <linux-arch@vger.kernel.org>; Fri, 20 Sep 2013 14:23:46 -0700 (PDT)
-In-Reply-To: <20130920193254.GA19130@mithrandir>
+Received: from www.linutronix.de ([62.245.132.108]:44039 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752249Ab3ITVqq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Sep 2013 17:46:46 -0400
+In-Reply-To: <20130920174144.GA30356@roeck-us.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thierry Reding <thierry.reding@gmail.com>
-Cc: Alexandre Courbot <acourbot@nvidia.com>, Mika Westerberg <mika.westerberg@linux.intel.com>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Mathias Nyman <mathias.nyman@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Grant Likely <grant.likely@linaro.org>, Stephen Warren <swarren@wwwdotorg.org>, Alexandre Courbot <gnurou@gmail.com>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
+To: Guenter Roeck <linux@roeck-us.net>
+Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Arjanvan@roeck-us.net
 
-On Fri, Sep 20, 2013 at 9:32 PM, Thierry Reding
-<thierry.reding@gmail.com> wrote:
+On Fri, 20 Sep 2013, Guenter Roeck wrote:
 
-> Given that it seems like there won't be a linux-next from September 28
-> until close to the next merge window, it would be good to get this into
-> linux-next before that so that the series can receive broader testing.
+> On Tue, Sep 17, 2013 at 06:53:06PM -0000, Thomas Gleixner wrote:
+> > Use the proper function instead of fiddling with PREEMPT_ACTIVE and
+> > interrupt enable/disable in the low level code.
+> > 
+> > Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+> > Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+> > Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+> > 
+> This will result in a conflict in -next as h8300 support has been removed
+> there, and I'll send a pull request to Linus in the next commit window.
 
-Good point. Alexandre: ready when you are.
-
-Yours,
-Linus Walleij
+An easy to resolve one methinks :)
