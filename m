@@ -1,33 +1,147 @@
-From: Alexandre Courbot <gnurou@gmail.com>
-Subject: Re: [RFC 1/5] gpiolib: factorize gpiod_get/set functions
-Date: Sat, 21 Sep 2013 21:39:14 +0900
-Message-ID: <CAAVeFu+mxhfK1rqO3jcx2FSJ4bCGjHDQ7ouSP1qK99RrMaHXjg@mail.gmail.com>
-References: <1378294169-22661-1-git-send-email-acourbot@nvidia.com>
- <1378294169-22661-2-git-send-email-acourbot@nvidia.com> <CACRpkdZrjM0cQm8AXNDnaSh2Tp5BVcevDUObFg87cUTEmJxc1w@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <CACRpkdZrjM0cQm8AXNDnaSh2Tp5BVcevDUObFg87cUTEmJxc1w@mail.gmail.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Linus Walleij <linus.walleij@linaro.org>
-Cc: Alexandre Courbot <acourbot@nvidia.com>, Arnd Bergmann <arnd@arndb.de>, Grant Likely <grant.likely@linaro.org>, Thierry Reding <thierry.reding@gmail.com>, Stephen Warren <swarren@wwwdotorg.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+From: Max Filippov <jcmvbkbc@gmail.com>
+Subject: [PATCH] xtensa: fix fast_syscall_spill_registers_fixup
+Date: Mon, 23 Sep 2013 04:56:36 +0400
+Message-ID: <1379897796-29725-1-git-send-email-jcmvbkbc@gmail.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-la0-f49.google.com ([209.85.215.49]:37342 "EHLO
+	mail-la0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752393Ab3IWA4v (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Sep 2013 20:56:51 -0400
+Received: by mail-la0-f49.google.com with SMTP id ev20so1951181lab.8
+        for <linux-arch@vger.kernel.org>; Sun, 22 Sep 2013 17:56:49 -0700 (PDT)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Chris Zankel <chris@zankel.net>
+Cc: Marc Gauthier <marc@tensilica.com>, Baruch Siach <baruch@tkos.co.il>, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Max Filippov <jcmvbkbc@gmail.com>
 
-On Fri, Sep 20, 2013 at 5:36 PM, Linus Walleij <linus.walleij@linaro.org> wrote:
-> On Wed, Sep 4, 2013 at 1:29 PM, Alexandre Courbot <acourbot@nvidia.com> wrote:
->
->> gpiod_get/set functions share common code between their regular and
->> cansleep variants. The exporting of the gpiod interface will make
->> the situation worse. This patch factorizes the common code to avoid code
->> redundancy.
->>
->> Signed-off-by: Alexandre Courbot <acourbot@nvidia.com>
->
-> I don't see why this patch should be RFC?
->
-> I just rebased and applied it, it's a clean and nice refactoring.
+fast_syscall_spill_registers_fixup was not correctly updated by the
+'keep a3 and excsave1 on entry to exception handlers' patch: it doesn't
+preserve a3 that it gets on entry, breaking _spill_registers in case of
+page fault on stack during register spilling, leading to unhandled
+exception in kernel mode.
 
-Oh yeah, I just sent it with the others, but please feel free to apply
-it as-is. It should be fine.
+Preserve a3 by saving it in the original _spill_registers stack frame's
+a3 during exception handling and restoring it afterwards.
 
-Alex.
+Also fix comments and function bounds annotations.
+
+Reported-by: Baruch Siach <baruch@tkos.co.il>
+Signed-off-by: Max Filippov <jcmvbkbc@gmail.com>
+Tested-by: Baruch Siach <baruch@tkos.co.il>
+---
+
+Chris, please consider pushing this patch for 3.12
+
+ arch/xtensa/kernel/entry.S |   49 ++++++++++++++++++++++++++-----------------
+ 1 files changed, 30 insertions(+), 19 deletions(-)
+
+diff --git a/arch/xtensa/kernel/entry.S b/arch/xtensa/kernel/entry.S
+index de1dfa1..21dbe6b 100644
+--- a/arch/xtensa/kernel/entry.S
++++ b/arch/xtensa/kernel/entry.S
+@@ -1122,7 +1122,7 @@ ENDPROC(fast_syscall_spill_registers)
+  * a3: exctable, original value in excsave1
+  */
+ 
+-fast_syscall_spill_registers_fixup:
++ENTRY(fast_syscall_spill_registers_fixup)
+ 
+ 	rsr	a2, windowbase	# get current windowbase (a2 is saved)
+ 	xsr	a0, depc	# restore depc and a0
+@@ -1134,22 +1134,26 @@ fast_syscall_spill_registers_fixup:
+ 	 */
+ 
+ 	xsr	a3, excsave1	# get spill-mask
+-	slli	a2, a3, 1	# shift left by one
++	slli	a3, a3, 1	# shift left by one
+ 
+-	slli	a3, a2, 32-WSBITS
+-	src	a2, a2, a3	# a1 = xxwww1yyxxxwww1yy......
++	slli	a2, a3, 32-WSBITS
++	src	a2, a3, a2	# a2 = xxwww1yyxxxwww1yy......
+ 	wsr	a2, windowstart	# set corrected windowstart
+ 
+-	rsr	a3, excsave1
+-	l32i	a2, a3, EXC_TABLE_DOUBLE_SAVE	# restore a2
+-	l32i	a3, a3, EXC_TABLE_PARAM	# original WB (in user task)
++	srli	a3, a3, 1
++	rsr	a2, excsave1
++	l32i	a2, a2, EXC_TABLE_DOUBLE_SAVE	# restore a2
++	xsr	a2, excsave1
++	s32i	a3, a2, EXC_TABLE_DOUBLE_SAVE	# save a3
++	l32i	a3, a2, EXC_TABLE_PARAM	# original WB (in user task)
++	xsr	a2, excsave1
+ 
+ 	/* Return to the original (user task) WINDOWBASE.
+ 	 * We leave the following frame behind:
+ 	 * a0, a1, a2	same
+-	 * a3:		trashed (saved in excsave_1)
++	 * a3:		trashed (saved in EXC_TABLE_DOUBLE_SAVE)
+ 	 * depc:	depc (we have to return to that address)
+-	 * excsave_1:	a3
++	 * excsave_1:	exctable
+ 	 */
+ 
+ 	wsr	a3, windowbase
+@@ -1159,9 +1163,9 @@ fast_syscall_spill_registers_fixup:
+ 	 *  a0: return address
+ 	 *  a1: used, stack pointer
+ 	 *  a2: kernel stack pointer
+-	 *  a3: available, saved in EXCSAVE_1
++	 *  a3: available
+ 	 *  depc: exception address
+-	 *  excsave: a3
++	 *  excsave: exctable
+ 	 * Note: This frame might be the same as above.
+ 	 */
+ 
+@@ -1181,9 +1185,12 @@ fast_syscall_spill_registers_fixup:
+ 	rsr	a0, exccause
+ 	addx4	a0, a0, a3              	# find entry in table
+ 	l32i	a0, a0, EXC_TABLE_FAST_USER     # load handler
++	l32i	a3, a3, EXC_TABLE_DOUBLE_SAVE
+ 	jx	a0
+ 
+-fast_syscall_spill_registers_fixup_return:
++ENDPROC(fast_syscall_spill_registers_fixup)
++
++ENTRY(fast_syscall_spill_registers_fixup_return)
+ 
+ 	/* When we return here, all registers have been restored (a2: DEPC) */
+ 
+@@ -1191,13 +1198,13 @@ fast_syscall_spill_registers_fixup_return:
+ 
+ 	/* Restore fixup handler. */
+ 
+-	xsr	a3, excsave1
+-	movi	a2, fast_syscall_spill_registers_fixup
+-	s32i	a2, a3, EXC_TABLE_FIXUP
+-	s32i	a0, a3, EXC_TABLE_DOUBLE_SAVE
+-	rsr	a2, windowbase
+-	s32i	a2, a3, EXC_TABLE_PARAM
+-	l32i	a2, a3, EXC_TABLE_KSTK
++	rsr	a2, excsave1
++	s32i	a3, a2, EXC_TABLE_DOUBLE_SAVE
++	movi	a3, fast_syscall_spill_registers_fixup
++	s32i	a3, a2, EXC_TABLE_FIXUP
++	rsr	a3, windowbase
++	s32i	a3, a2, EXC_TABLE_PARAM
++	l32i	a2, a2, EXC_TABLE_KSTK
+ 
+ 	/* Load WB at the time the exception occurred. */
+ 
+@@ -1206,8 +1213,12 @@ fast_syscall_spill_registers_fixup_return:
+ 	wsr	a3, windowbase
+ 	rsync
+ 
++	rsr	a3, excsave1
++	l32i	a3, a3, EXC_TABLE_DOUBLE_SAVE
++
+ 	rfde
+ 
++ENDPROC(fast_syscall_spill_registers_fixup_return)
+ 
+ /*
+  * spill all registers.
+-- 
+1.7.7.6
