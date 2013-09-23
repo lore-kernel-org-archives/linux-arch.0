@@ -1,53 +1,120 @@
-From: Mika Westerberg <mika.westerberg-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>
-Subject: Re: [RFC 0/5] New descriptor-based GPIO interface
-Date: Mon, 23 Sep 2013 13:21:35 +0300
-Message-ID: <20130923102134.GB28875@intel.com>
-References: <1378294169-22661-1-git-send-email-acourbot@nvidia.com>
- <CACRpkdYjkDf7c9VxfDTHtFx_upWWRAK8vpXTkrkrRsMjErq1dQ@mail.gmail.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH 02/11] sched, rcu: Make RCU use resched_cpu()
+Date: Mon, 23 Sep 2013 09:55:40 -0700
+Message-ID: <20130923165540.GP9093@linux.vnet.ibm.com>
+References: <20130917082838.218329307@infradead.org>
+ <20130917091143.449530904@infradead.org>
+ <20130917144012.GC29354@twins.programming.kicks-ass.net>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e37.co.us.ibm.com ([32.97.110.158]:44069 "EHLO
+	e37.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752728Ab3IWRFM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Sep 2013 13:05:12 -0400
+Received: from /spool/local
+	by e37.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Mon, 23 Sep 2013 10:56:48 -0600
 Content-Disposition: inline
-In-Reply-To: <CACRpkdYjkDf7c9VxfDTHtFx_upWWRAK8vpXTkrkrRsMjErq1dQ-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
-Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>
-Cc: Alexandre Courbot <acourbot-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>, "Rafael J. Wysocki" <rafael.j.wysocki-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Mathias Nyman <mathias.nyman-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Grant Likely <grant.likely-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Thierry Reding <thierry.reding-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Stephen Warren <swarren-3lzwWm7+Weoh9ZMKESR00Q@public.gmane.org>, Alexandre Courbot <gnurou-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, "linux-gpio-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-gpio-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20130917144012.GC29354@twins.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Thomas Meyer <thomas@m3y3r.de>
 
-On Fri, Sep 20, 2013 at 08:06:00PM +0200, Linus Walleij wrote:
-> On Wed, Sep 4, 2013 at 1:29 PM, Alexandre Courbot <acourbot-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org> wrote:
+On Tue, Sep 17, 2013 at 04:40:12PM +0200, Peter Zijlstra wrote:
+> Thomas Meyer reported a UP build fail, should be fixed.
 > 
-> > Here is a first RFC for the new GPIO interface.
+> ---
+> Subject: sched, rcu: Make RCU use resched_cpu()
+> From: Peter Zijlstra <peterz@infradead.org>
+> Date: Tue Sep 17 09:30:55 CEST 2013
 > 
-> I'm quite happy with this, and given that all DT-implementations will start
-> to use it from day 1 I'll happily merge it when you think it's tested enough.
+> We're going to deprecate and remove set_need_resched() for it will do
+> the wrong thing. Make an exception for RCU and allow it to use
+> resched_cpu() which will do the right thing.
 > 
-> On my wishlist is to also switch over the ACPI GPIO driver:
-> drivers/gpio/gpiolib-acpi.c to use the descriptors directly, so
-> I'd like one of the ACPI folks to have a look at this patch set
-> and see how it looks from their angle.
+> Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>
+> Signed-off-by: Peter Zijlstra <peterz@infradead.org>
+
+Queued for 3.13, thank you!
+
+							Thanx, Paul
+
+> ---
+>  kernel/rcutree.c    |   15 ++++++++++++++-
+>  kernel/sched/core.c |   10 ++--------
+>  2 files changed, 16 insertions(+), 9 deletions(-)
 > 
-> Mika, Rafael, Mathias, and either of you guys have a look
-> at this?
-
-Apart from the con_id thing I commented, I don't see huge problems
-converting the ACPI GPIO helpers to this new interface.
-
-One thing that is special to ACPI is that we have two kind of GPIO
-"connections":
-
-	GpioIo - a normal GPIO that the driver can toggle or read values
-
-	GpioInt - this is specifically used as a GPIO interrupt
-
-The drivers should be able to distinguish between the two. Currently we
-have an extra parameter in acpi_get_gpio_by_index(..., &info) that can be
-used for this. However, with the new gpiod_get() I'm not sure how we are
-supposed to do this now?
-
-Anyway, that shouldn't prevent merging this patch set. I'm sure that we can
-come up with some working solution :-)
---
-To unsubscribe from this list: send the line "unsubscribe devicetree" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> --- a/kernel/rcutree.c
+> +++ b/kernel/rcutree.c
+> @@ -898,6 +898,12 @@ static void print_other_cpu_stall(struct
+>  	force_quiescent_state(rsp);  /* Kick them all. */
+>  }
+> 
+> +/*
+> + * This function really isn't for public consumption, but RCU is special in
+> + * that context switches can allow the state machine to make progress.
+> + */
+> +extern void resched_cpu(int cpu);
+> +
+>  static void print_cpu_stall(struct rcu_state *rsp)
+>  {
+>  	int cpu;
+> @@ -927,7 +933,14 @@ static void print_cpu_stall(struct rcu_s
+>  				     3 * rcu_jiffies_till_stall_check() + 3;
+>  	raw_spin_unlock_irqrestore(&rnp->lock, flags);
+> 
+> -	set_need_resched();  /* kick ourselves to get things going. */
+> +	/*
+> +	 * Attempt to revive the RCU machinery by forcing a context switch.
+> +	 *
+> +	 * A context switch would normally allow the RCU state machine to make
+> +	 * progress and it could be we're stuck in kernel space without context
+> +	 * switches for an entirely unreasonable amount of time.
+> +	 */
+> +	resched_cpu(smp_processor_id());
+>  }
+> 
+>  static void check_cpu_stall(struct rcu_state *rsp, struct rcu_data *rdp)
+> --- a/kernel/sched/core.c
+> +++ b/kernel/sched/core.c
+> @@ -513,12 +513,11 @@ static inline void init_hrtick(void)
+>   * might also involve a cross-CPU call to trigger the scheduler on
+>   * the target CPU.
+>   */
+> -#ifdef CONFIG_SMP
+>  void resched_task(struct task_struct *p)
+>  {
+>  	int cpu;
+> 
+> -	assert_raw_spin_locked(&task_rq(p)->lock);
+> +	lockdep_assert_held(&task_rq(p)->lock);
+> 
+>  	if (test_tsk_need_resched(p))
+>  		return;
+> @@ -546,6 +545,7 @@ void resched_cpu(int cpu)
+>  	raw_spin_unlock_irqrestore(&rq->lock, flags);
+>  }
+> 
+> +#ifdef CONFIG_SMP
+>  #ifdef CONFIG_NO_HZ_COMMON
+>  /*
+>   * In the semi idle case, use the nearest busy cpu for migrating timers
+> @@ -693,12 +693,6 @@ void sched_avg_update(struct rq *rq)
+>  	}
+>  }
+> 
+> -#else /* !CONFIG_SMP */
+> -void resched_task(struct task_struct *p)
+> -{
+> -	assert_raw_spin_locked(&task_rq(p)->lock);
+> -	set_tsk_need_resched(p);
+> -}
+>  #endif /* CONFIG_SMP */
+> 
+>  #if defined(CONFIG_RT_GROUP_SCHED) || (defined(CONFIG_FAIR_GROUP_SCHED) && \
+> 
+> 
