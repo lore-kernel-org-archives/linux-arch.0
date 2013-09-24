@@ -1,51 +1,136 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH 02/11] sched, rcu: Make RCU use resched_cpu()
-Date: Tue, 24 Sep 2013 06:37:42 -0700
-Message-ID: <20130924133742.GY9093@linux.vnet.ibm.com>
-References: <20130917082838.218329307@infradead.org>
- <20130917091143.449530904@infradead.org>
- <20130917144012.GC29354@twins.programming.kicks-ass.net>
- <20130923165540.GP9093@linux.vnet.ibm.com>
- <20130923211827.GA7032@linux.vnet.ibm.com>
- <20130924080706.GI9326@twins.programming.kicks-ass.net>
-Reply-To: paulmck@linux.vnet.ibm.com
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Christoph Lameter <cl@linux.com>
+Subject: [pchecks v2 1/2] Subject; percpu: Add raw_cpu_ops
+Date: Tue, 24 Sep 2013 15:41:41 +0000
+Message-ID: <0000014150a2131e-b4520b78-01e6-4a4b-b2ac-db17d4bd0d93-000000@email.amazonses.com>
+References: <20130924154159.855373283@linux.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e39.co.us.ibm.com ([32.97.110.160]:40040 "EHLO
-	e39.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751354Ab3IXNht (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Sep 2013 09:37:49 -0400
-Received: from /spool/local
-	by e39.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Tue, 24 Sep 2013 07:37:48 -0600
-Content-Disposition: inline
-In-Reply-To: <20130924080706.GI9326@twins.programming.kicks-ass.net>
+Received: from a9-74.smtp-out.amazonses.com ([54.240.9.74]:33376 "EHLO
+	a9-74.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751559Ab3IXPlm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 24 Sep 2013 11:41:42 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Thomas Gleixner <tglx@linutronix.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Thomas Meyer <thomas@m3y3r.de>
+To: Tejun Heo <tj@kernel.org>
+Cc: akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>
 
-On Tue, Sep 24, 2013 at 10:07:06AM +0200, Peter Zijlstra wrote:
-> On Mon, Sep 23, 2013 at 02:18:27PM -0700, Paul E. McKenney wrote:
-> > Passes light testing, but I am confused about why the change to
-> > resched_task() when only resched_cpu() is invoked elsewhere in the patch.
-> > Enlightenment?
-> > > > -#ifdef CONFIG_SMP
-> > > >  void resched_task(struct task_struct *p)
-> > > >  {
-> > > >  	int cpu;
-> > > > 
-> > > > -	assert_raw_spin_locked(&task_rq(p)->lock);
-> > > > +	lockdep_assert_held(&task_rq(p)->lock);
-> > > > 
-> > > >  	if (test_tsk_need_resched(p))
-> > > >  		return;
-> 
-> That one? Fly by fixup I suppose.. the lockdep check is cheaper as it
-> compiles away for !lockdep kernels, also its more correct.
+The following patches will add preemption checks to __this_cpu ops so we
+need to have an alternative way to use this cpu operations without
+preemption checks.
 
-OK, happy to carry it, just wanted to make sure it was supposed to be there.
+raw_cpu ops rely on the __this_cpu_xxx_1/2/4/8 operations having no
+preemption checks. We therefore do not have to duplicate these functions
+but can affort to only duplicate the higher level macros.
 
-							Thanx, Paul
+Also add raw_cpu_ptr for symmetries sake.
+
+Signed-off-by: Christoph Lameter <cl@linux.com>
+
+Index: linux/include/linux/percpu.h
+===================================================================
+--- linux.orig/include/linux/percpu.h	2013-09-23 10:20:05.050535801 -0500
++++ linux/include/linux/percpu.h	2013-09-23 10:20:05.050535801 -0500
+@@ -139,6 +139,9 @@ extern int __init pcpu_page_first_chunk(
+ 				pcpu_fc_populate_pte_fn_t populate_pte_fn);
+ #endif
+ 
++/* For symmetries sake. */
++#define raw_cpu_ptr __this_cpu_ptr
++
+ /*
+  * Use this to get to a cpu's version of the per-cpu object
+  * dynamically allocated. Non-atomic access to the current CPU's
+@@ -520,17 +523,7 @@ do {									\
+ 
+ /*
+  * Generic percpu operations for context that are safe from preemption/interrupts.
+- * Either we do not care about races or the caller has the
+- * responsibility of handling preemption/interrupt issues. Arch code can still
+- * override these instructions since the arch per cpu code may be more
+- * efficient and may actually get race freeness for free (that is the
+- * case for x86 for example).
+- *
+- * If there is no other protection through preempt disable and/or
+- * disabling interupts then one of these RMW operations can show unexpected
+- * behavior because the execution thread was rescheduled on another processor
+- * or an interrupt occurred and the same percpu variable was modified from
+- * the interrupt context.
++ * These functions verify that preemption has been disabled.
+  */
+ #ifndef __this_cpu_read
+ # ifndef __this_cpu_read_1
+@@ -755,4 +748,74 @@ do {									\
+ 	__pcpu_double_call_return_bool(__this_cpu_cmpxchg_double_, (pcp1), (pcp2), (oval1), (oval2), (nval1), (nval2))
+ #endif
+ 
++/*
++ * Generic percpu operations for context where we do not want to do
++ * any checks for preemptiosn.
++ *
++ * If there is no other protection through preempt disable and/or
++ * disabling interupts then one of these RMW operations can show unexpected
++ * behavior because the execution thread was rescheduled on another processor
++ * or an interrupt occurred and the same percpu variable was modified from
++ * the interrupt context.
++ */
++#ifndef raw_cpu_read
++# define raw_cpu_read(pcp)	__pcpu_size_call_return(__this_cpu_read_, (pcp))
++#endif
++
++#ifndef raw_cpu_write
++# define raw_cpu_write(pcp, val)	__pcpu_size_call(__this_cpu_write_, (pcp), (val))
++#endif
++
++#ifndef raw_cpu_add
++# define raw_cpu_add(pcp, val)	__pcpu_size_call(__this_cpu_add_, (pcp), (val))
++#endif
++
++#ifndef raw_cpu_sub
++# define raw_cpu_sub(pcp, val)	raw_cpu_add((pcp), -(val))
++#endif
++
++#ifndef raw_cpu_inc
++# define raw_cpu_inc(pcp)		raw_cpu_add((pcp), 1)
++#endif
++
++#ifndef raw_cpu_dec
++# define raw_cpu_dec(pcp)		raw_cpu_sub((pcp), 1)
++#endif
++
++#ifndef raw_cpu_and
++# define raw_cpu_and(pcp, val)	__pcpu_size_call(__this_cpu_and_, (pcp), (val))
++#endif
++
++#ifndef raw_cpu_or
++# define raw_cpu_or(pcp, val)	__pcpu_size_call(__this_cpu_or_, (pcp), (val))
++#endif
++
++#ifndef raw_cpu_xor
++# define raw_cpu_xor(pcp, val)	__pcpu_size_call(__this_cpu_xor_, (pcp), (val))
++#endif
++
++#ifndef raw_cpu_add_return
++# define raw_cpu_add_return(pcp, val)	\
++	__pcpu_size_call_return2(__this_cpu_add_return_, pcp, val)
++#endif
++
++#define raw_cpu_sub_return(pcp, val)	raw_cpu_add_return(pcp, -(val))
++#define raw_cpu_inc_return(pcp)	raw_cpu_add_return(pcp, 1)
++#define raw_cpu_dec_return(pcp)	raw_cpu_add_return(pcp, -1)
++
++#ifndef raw_cpu_xchg
++# define raw_cpu_xchg(pcp, nval)	\
++	__pcpu_size_call_return2(__this_cpu_xchg_, (pcp), nval)
++#endif
++
++#ifndef raw_cpu_cmpxchg
++# define raw_cpu_cmpxchg(pcp, oval, nval)	\
++	__pcpu_size_call_return2(__this_cpu_cmpxchg_, pcp, oval, nval)
++#endif
++
++#ifndef raw_cpu_cmpxchg_double
++# define raw_cpu_cmpxchg_double(pcp1, pcp2, oval1, oval2, nval1, nval2)	\
++	__pcpu_double_call_return_bool(__this_cpu_cmpxchg_double_, (pcp1), (pcp2), (oval1), (oval2), (nval1), (nval2))
++#endif
++
+ #endif /* __LINUX_PERCPU_H */
