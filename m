@@ -1,97 +1,27 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [pchecks v2 2/2] percpu: Add preemption checks to __this_cpu ops
-Date: Tue, 24 Sep 2013 19:10:29 +0200
-Message-ID: <20130924171029.GB10261@gmail.com>
-References: <20130924154159.855373283@linux.com>
- <0000014150a21408-2d759c49-6a9e-4553-956f-2d4b53e710f8-000000@email.amazonses.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: <DebraPENNEY@rufyrily.onmicrosoft.com>
+Subject: Let the moment last as much as you want.
+Date: Tue, 24 Sep 2013 22:59:08 +0000
+Message-ID: <df834f43-dd3a-4f18-be15-5dc71f38d842@AMXPR03MB056.eurprd03.prod.outlook.com>
+Mime-Version: 1.1
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bk0-f54.google.com ([209.85.214.54]:39252 "EHLO
-	mail-bk0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754015Ab3IXRKd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Sep 2013 13:10:33 -0400
-Content-Disposition: inline
-In-Reply-To: <0000014150a21408-2d759c49-6a9e-4553-956f-2d4b53e710f8-000000@email.amazonses.com>
+Received: from emea01-am1-ndr.ptr.protection.outlook.com ([157.56.116.105]:16023
+	"EHLO emea01-am1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1754599Ab3IXW7K convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Sep 2013 18:59:10 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Lameter <cl@linux.com>
-Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>
 
 
-* Christoph Lameter <cl@linux.com> wrote:
+		Dear Customer,
 
-> Index: linux/lib/smp_processor_id.c
-> ===================================================================
-> --- linux.orig/lib/smp_processor_id.c	2013-09-24 10:06:26.000000000 -0500
-> +++ linux/lib/smp_processor_id.c	2013-09-24 10:14:19.412825970 -0500
-> @@ -7,7 +7,7 @@
->  #include <linux/kallsyms.h>
->  #include <linux/sched.h>
->  
-> -notrace unsigned int debug_smp_processor_id(void)
-> +notrace static unsigned int check_preemption(char *what)
->  {
->  	unsigned long preempt_count = preempt_count();
->  	int this_cpu = raw_smp_processor_id();
-> @@ -39,8 +39,8 @@ notrace unsigned int debug_smp_processor
->  	if (!printk_ratelimit())
->  		goto out_enable;
->  
-> -	printk(KERN_ERR "BUG: using smp_processor_id() in preemptible [%08x] "
-> -			"code: %s/%d\n",
-> +	printk(KERN_ERR "BUG: using %s in preemptible [%08x] "
-> +			"code: %s/%d\n", what,
->  			preempt_count() - 1, current->comm, current->pid);
->  	print_symbol("caller is %s\n", (long)__builtin_return_address(0));
->  	dump_stack();
-> @@ -51,5 +51,18 @@ out:
->  	return this_cpu;
->  }
->  
-> +notrace unsigned int debug_smp_processor_id(void)
-> +{
-> +	return check_preemption("smp_processor_id()");
-> +
-> +}
->  EXPORT_SYMBOL(debug_smp_processor_id);
->  
-> +notrace void __this_cpu_preempt_check(void)
-> +{
-> +#ifdef CONFIG_THIS_CPU_PREEMPTION_CHECK
-> +	check_preemption("__this_cpu operation");
-> +#endif
-> +}
-> +EXPORT_SYMBOL(__this_cpu_preempt_check);
+Sometimes things happen much quicker than you would love to.
 
-Ok, this variant looks pretty good, modulo testing. I'd do:
+Let the moment last as much as you want.
 
-  s/check_preemption/check_preemption_disabled
+http://translate.googleusercontent.com/translate_c?depth=1&hl=auto&sl=de&url=www.google.co.ck&u=http://onlineshop63.yolasite.com/store&usg=ALkJrhjsEp2wEy6D4p3zB8y4lFpDcS7xmg
 
-but that's a minor detail.
-
-> +config DEBUG_THIS_CPU_OPERATIONS
-> +	bool "Debug __this_cpu operations"
-> +	depends on DEBUG_PREEMPT
-> +	default n
-> +	help
-> +	  Enables preemption checks for __this_cpu macros. These
-> +	  are macros to generate single instruction operations on
-> +	  per cpu data. The option only affects the __this_cpu variant
-> +	  which is used when fallback to multiple instructions without
-> +	  other synchronization is possible. A verification is then
-> +	  done to make sure that the thread cannot be preempted.
-
-I don't think there's a need to make this a separate preemption debug 
-option: smp_processor_id() is really just a subset of the checks.
-
-So please just put it under CONFIG_DEBUG_PREEMPT, there's no need to add 
-yet another x2 to the kernel Kconfig space. Maybe extend the DEBUG_PREEMPT 
-help text to explain that it also checks __this_cpu ops.
-
-That will remove the #ifdef from lib/smp_processor_id.c and will simplify 
-debugging a bit as well.
-
-Thanks,
-
-	Ingo
+Best Regards, 
+		
