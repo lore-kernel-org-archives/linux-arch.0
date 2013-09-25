@@ -1,38 +1,44 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [RFC PATCH v2 03/25] smp, ARC: kill SMP single function call
- interrupt
-Date: Wed, 25 Sep 2013 17:01:41 +0530
-Message-ID: <5242C99D.2010401@synopsys.com>
-References: <1378915649-16395-1-git-send-email-liuj97@gmail.com> <1378915649-16395-4-git-send-email-liuj97@gmail.com>
+From: Christoph Lameter <cl@linux.com>
+Subject: Re: [pchecks v2 2/2] percpu: Add preemption checks to __this_cpu
+ ops
+Date: Wed, 25 Sep 2013 16:40:07 +0000
+Message-ID: <0000014155fdd6cf-d54da8b8-2198-40ce-8831-4559971e69f0-000000@email.amazonses.com>
+References: <20130924154159.855373283@linux.com> <0000014150a21408-2d759c49-6a9e-4553-956f-2d4b53e710f8-000000@email.amazonses.com> <20130924171029.GB10261@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from kiruna.synopsys.com ([198.182.44.80]:63755 "EHLO
-	kiruna.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750832Ab3IYLeP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Sep 2013 07:34:15 -0400
-In-Reply-To: <1378915649-16395-4-git-send-email-liuj97@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Jiang Liu <liuj97@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Shaohua Li <shli@kernel.org>
-Cc: Jiang Liu <jiang.liu@huawei.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, Wang YanQing <udknight@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Noam Camus <noamc@ezchip.com>, Gilad Ben Yossef <giladb@ezchip.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20130924171029.GB10261@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 09/11/2013 09:37 PM, Jiang Liu wrote:
-> From: Jiang Liu <jiang.liu@huawei.com>
-> 
-> Commit 9a46ad6d6df3b54 "smp: make smp_call_function_many() use logic
-> similar to smp_call_function_single()" has unified the way to handle
-> single and multiple cross-CPU function calls. Now only one interrupt
-> is needed for architecture specific code to support generic SMP function
-> call interfaces, so kill the redundant single function call interrupt.
-> 
-> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-> Cc: Jiang Liu <liuj97@gmail.com>
+On Tue, 24 Sep 2013, Ingo Molnar wrote:
 
-Verified that it works for ARC too.
+> Ok, this variant looks pretty good, modulo testing. I'd do:
+>
+>   s/check_preemption/check_preemption_disabled
+>
+> but that's a minor detail.
 
-Acked-by: Vineet Gupta <vgupta@synopsys.com>
+Sure.
 
-Thx,
--Vineet
+> > +config DEBUG_THIS_CPU_OPERATIONS
+> > +	bool "Debug __this_cpu operations"
+> > +	depends on DEBUG_PREEMPT
+> > +	default n
+> > +	help
+> > +	  Enables preemption checks for __this_cpu macros. These
+> > +	  are macros to generate single instruction operations on
+> > +	  per cpu data. The option only affects the __this_cpu variant
+> > +	  which is used when fallback to multiple instructions without
+> > +	  other synchronization is possible. A verification is then
+> > +	  done to make sure that the thread cannot be preempted.
+>
+> I don't think there's a need to make this a separate preemption debug
+> option: smp_processor_id() is really just a subset of the checks.
+
+I think this is necessary since it seems that the discussions on how to do
+the raw_cpu conversions may take some time. If we enable it by default
+then there will be numerous new log messages. That way a developer can
+enable it for working on this.
