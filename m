@@ -1,118 +1,57 @@
-From: "azurIt" <azurit-Rm0zKEqwvD4@public.gmane.org>
-Subject: =?utf-8?q?Re=3A_=5Bpatch_0=2F7=5D_improve_memcg_oom_killer_robustness_v2?=
-Date: Fri, 27 Sep 2013 04:04:23 +0200
-Message-ID: <20130927040423.FBF382D2@pobox.sk>
-References: <20130916152548.GF3674@dhcp22.suse.cz>, <20130916225246.A633145B@pobox.sk>, <20130917000244.GD3278@cmpxchg.org>, <20130917131535.94E0A843@pobox.sk>, <20130917141013.GA30838@dhcp22.suse.cz>, <20130918160304.6EDF2729@pobox.sk>, <20130918180455.GD856@cmpxchg.org>, <20130918181946.GE856@cmpxchg.org>, <20130918195504.GF856@cmpxchg.org>, <20130926185459.E5D2987F@pobox.sk> <20130926192743.GP856@cmpxchg.org>
+From: Christophe Guillon <christophe.guillon@st.com>
+Subject: Re: [PATCH v2 0/4] add support for gcov format introduced in gcc 4.7
+Date: Thu, 26 Sep 2013 23:11:28 +0000 (UTC)
+Message-ID: <loom.20130927T010952-341@post.gmane.org>
+References: <1378305776-3644-1-git-send-email-fhrbata@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Return-path: <cgroups-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20130926192743.GP856-druUgvl0LCNAfugRpC6u6w@public.gmane.org>
-Sender: cgroups-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: =?utf-8?q?Johannes_Weiner?= <hannes-druUgvl0LCNAfugRpC6u6w@public.gmane.org>
-Cc: =?utf-8?q?Michal_Hocko?= <mhocko-AlSwsSmVLrQ@public.gmane.org>, =?utf-8?q?Andrew_Morton?= <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, =?utf-8?q?David_Rientjes?= <rientjes-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, =?utf-8?q?KAMEZAWA_Hiroyuki?= <kamezawa.hiroyu-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, =?utf-8?q?KOSAKI_Motohiro?= <kosaki.motohiro-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, cgroups-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from plane.gmane.org ([80.91.229.3]:35581 "EHLO plane.gmane.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751953Ab3I0IUN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 27 Sep 2013 04:20:13 -0400
+Received: from list by plane.gmane.org with local (Exim 4.69)
+	(envelope-from <glka-linux-arch@m.gmane.org>)
+	id 1VPTHS-00049V-Tv
+	for linux-arch@vger.kernel.org; Fri, 27 Sep 2013 10:20:07 +0200
+Received: from 95.172.68.146 ([95.172.68.146])
+        by main.gmane.org with esmtp (Gmexim 0.1 (Debian))
+        id 1AlnuQ-0007hv-00
+        for <linux-arch@vger.kernel.org>; Fri, 27 Sep 2013 10:20:06 +0200
+Received: from christophe.guillon by 95.172.68.146 with local (Gmexim 0.1 (Debian))
+        id 1AlnuQ-0007hv-00
+        for <linux-arch@vger.kernel.org>; Fri, 27 Sep 2013 10:20:06 +0200
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
 
-> CC: "Michal Hocko" <mhocko-AlSwsSmVLrQ@public.gmane.org>, "Andrew Morton" <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, "David Rientjes" <rientjes-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "KAMEZAWA Hiroyuki" <kamezawa.hiroyu-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, "KOSAKI Motohiro" <kosaki.motohiro-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, cgroups-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
->Hi azur,
->
->On Thu, Sep 26, 2013 at 06:54:59PM +0200, azurIt wrote:
->> On Wed, Sep 18, 2013 at 02:19:46PM -0400, Johannes Weiner wrote:
->> >Here is an update.  Full replacement on top of 3.2 since we tried a
->> >dead end and it would be more painful to revert individual changes.
->> >
->> >The first bug you had was the same task entering OOM repeatedly and
->> >leaking the memcg reference, thus creating undeletable memcgs.  My
->> >fixup added a condition that if the task already set up an OOM context
->> >in that fault, another charge attempt would immediately return -ENOMEM
->> >without even trying reclaim anymore.  This dropped __getblk() into an
->> >endless loop of waking the flushers and performing global reclaim and
->> >memcg returning -ENOMEM regardless of free memory.
->> >
->> >The update now basically only changes this -ENOMEM to bypass, so that
->> >the memory is not accounted and the limit ignored.  OOM killed tasks
->> >are granted the same right, so that they can exit quickly and release
->> >memory.  Likewise, we want a task that hit the OOM condition also to
->> >finish the fault quickly so that it can invoke the OOM killer.
->> >
->> >Does the following work for you, azur?
->> 
->> 
->> Johannes,
->> 
->> bad news everyone! :(
->> 
->> Unfortunaely, two different problems appears today:
->> 
->> 1.) This looks like my very original problem - stucked processes inside one cgroup. I took stacks from all of them over time but server was very slow so i had to kill them soon:
->> http://watchdog.sk/lkmlmemcg-bug-9.tar.gz
->> 
->> 2.) This was just like my last problem where few processes were doing huge i/o. As sever was almost unoperable i barely killed them so no more info here, sorry.
->
-From one of the tasks:
->
->1380213238/11210/stack:[<ffffffff810528f1>] sys_sched_yield+0x41/0x70
->1380213238/11210/stack:[<ffffffff81148ef1>] free_more_memory+0x21/0x60
->1380213238/11210/stack:[<ffffffff8114957d>] __getblk+0x14d/0x2c0
->1380213238/11210/stack:[<ffffffff81198a2b>] ext3_getblk+0xeb/0x240
->1380213238/11210/stack:[<ffffffff8119d2df>] ext3_find_entry+0x13f/0x480
->1380213238/11210/stack:[<ffffffff8119dd6d>] ext3_lookup+0x4d/0x120
->1380213238/11210/stack:[<ffffffff81122a55>] d_alloc_and_lookup+0x45/0x90
->1380213238/11210/stack:[<ffffffff81122ff8>] do_lookup+0x278/0x390
->1380213238/11210/stack:[<ffffffff81124c40>] path_lookupat+0x120/0x800
->1380213238/11210/stack:[<ffffffff81125355>] do_path_lookup+0x35/0xd0
->1380213238/11210/stack:[<ffffffff811254d9>] user_path_at_empty+0x59/0xb0
->1380213238/11210/stack:[<ffffffff81125541>] user_path_at+0x11/0x20
->1380213238/11210/stack:[<ffffffff81115b70>] sys_faccessat+0xd0/0x200
->1380213238/11210/stack:[<ffffffff81115cb8>] sys_access+0x18/0x20
->1380213238/11210/stack:[<ffffffff815ccc26>] system_call_fastpath+0x18/0x1d
->
->Should have seen this coming... it's still in that braindead
->__getblk() loop, only from a syscall this time (no OOM path).  The
->group's memory.stat looks like this:
->
->cache 0
->rss 0
->mapped_file 0
->pgpgin 0
->pgpgout 0
->swap 0
->pgfault 0
->pgmajfault 0
->inactive_anon 0
->active_anon 0
->inactive_file 0
->active_file 0
->unevictable 0
->hierarchical_memory_limit 209715200
->hierarchical_memsw_limit 209715200
->total_cache 0
->total_rss 209715200
->total_mapped_file 0
->total_pgpgin 1028153297
->total_pgpgout 1028102097
->total_swap 0
->total_pgfault 1352903120
->total_pgmajfault 45342
->total_inactive_anon 0
->total_active_anon 209715200
->total_inactive_file 0
->total_active_file 0
->total_unevictable 0
->
->with anonymous pages to the limit and you probably don't have any swap
->space enabled to anything in the group.
->
->I guess there is no way around annotating that __getblk() loop.  The
->best solution right now is probably to use __GFP_NOFAIL.  For one, we
->can let the allocation bypass the memcg limit if reclaim can't make
->progress.  But also, the loop is then actually happening inside the
->page allocator, where it should happen, and not around ad-hoc direct
->reclaim in buffer.c.
->
->Can you try this on top of our ever-growing stack of patches?
+Frantisek Hrbata <fhrbata <at> redhat.com> writes:
 
+> 
+> This is an attempt to bring support for modified gcov format in gcc 4.7 
+to
+> the kernel. It tries to leverage the existing layout/abstraction, which 
+was
+> designed keeping in mind that the gcov format could change, but some 
+changes had
+> to be make. Mostly because the current model does not take into account 
+that
+> even the core gcov structures, like gcov_info, could change. One part 
+that could
+> be problematic is the addition of the .init_array section for 
+constructors.
+> 
+> Tested with lcov and seems to be working fine, giving similar results as 
+for the
+> older format.
+> 
+> v2: Included suggestions/code provided by Peter Oberparleiter. Detailed
+>     description in patches.
+> 
 
-Installed, thank you!
+With suggested changes, verified on:
+- gcc ARM 4.6.2
+- gcc ARM 4.6.3
 
-azur
+Christophe
