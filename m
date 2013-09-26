@@ -1,66 +1,32 @@
-From: Ramkumar Ramachandra <artagnon@gmail.com>
+From: Richard Weinberger <richard@nod.at>
 Subject: Re: [PATCH 2/8] um: Do not use SUBARCH
-Date: Thu, 26 Sep 2013 16:10:19 +0530
-Message-ID: <CALkWK0kCrQ9hPABD_XQ9QFG-vByP+xZWZs+RkVK77+cX7Odz7g@mail.gmail.com>
-References: <1377073172-3662-1-git-send-email-richard@nod.at> <1377073172-3662-3-git-send-email-richard@nod.at>
+Date: Thu, 26 Sep 2013 12:44:53 +0200
+Message-ID: <52441025.9030308@nod.at>
+References: <1377073172-3662-1-git-send-email-richard@nod.at> <1377073172-3662-3-git-send-email-richard@nod.at> <CALkWK0kCrQ9hPABD_XQ9QFG-vByP+xZWZs+RkVK77+cX7Odz7g@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-sh-owner@vger.kernel.org>
-In-Reply-To: <1377073172-3662-3-git-send-email-richard@nod.at>
-Sender: linux-sh-owner@vger.kernel.org
-To: Richard Weinberger <richard@nod.at>
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from b.ns.miles-group.at ([95.130.255.144]:1660 "EHLO radon.swed.at"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1755398Ab3IZKo5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Sep 2013 06:44:57 -0400
+In-Reply-To: <CALkWK0kCrQ9hPABD_XQ9QFG-vByP+xZWZs+RkVK77+cX7Odz7g@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ramkumar Ramachandra <artagnon@gmail.com>
 Cc: linux-arch@vger.kernel.org, Michal Marek <mmarek@suse.cz>, geert@linux-m68k.org, ralf@linux-mips.org, lethal@linux-sh.org, Jeff Dike <jdike@addtoit.com>, gxt@mprc.pku.edu.cn, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-kbuild@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, linux-m68k@lists.linux-m68k.org, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net
-List-Id: linux-arch.vger.kernel.org
 
-Richard Weinberger wrote:
-> This patch is based on: https://lkml.org/lkml/2013/7/4/396
+Am 26.09.2013 12:40, schrieb Ramkumar Ramachandra:
+> Richard Weinberger wrote:
+> Forget all that. What matters is that upstream is still broken, and
+> users are suffering. Despite a reasonable fix being submitted in July.
 
-This is the original patch I sent across in July.
+So, what exactly is broken in upstream?
+make defconfig works as it always did.
 
-> diff --git a/arch/um/Makefile b/arch/um/Makefile
-> index 133f7de..5bc7892 100644
-> --- a/arch/um/Makefile
-> +++ b/arch/um/Makefile
-> @@ -8,6 +8,8 @@
->
->  ARCH_DIR := arch/um
->  OS := $(shell uname -s)
-> +OS_ARCH := $(shell uname -m)
-> +
->  # We require bash because the vmlinux link and loader script cpp use bash
->  # features.
->  SHELL := /bin/bash
-> @@ -20,15 +22,14 @@ core-y                      += $(ARCH_DIR)/kernel/          \
->
->  MODE_INCLUDE   += -I$(srctree)/$(ARCH_DIR)/include/shared/skas
->
-> -HEADER_ARCH    := $(SUBARCH)
-> -
-> -# Additional ARCH settings for x86
-> -ifeq ($(SUBARCH),i386)
-> -        HEADER_ARCH := x86
-> -endif
-> -ifeq ($(SUBARCH),x86_64)
-> -        HEADER_ARCH := x86
-> -       KBUILD_CFLAGS += -mcmodel=large
-> +# Currently we support only i386 and x86_64, if you port UML to another arch
-> +# add another if branch...
-> +ifeq ($(OS_ARCH),x86_64)
-> +       HEADER_ARCH := x86
-> +       KBUILD_DEFCONFIG := x86_64_defconfig
-> +else
-> +       HEADER_ARCH := x86
-> +       KBUILD_DEFCONFIG := i386_defconfig
->  endif
+make defconfig ARCH=um SUBARCH=x86 (or SUBARCH=i386) will create a defconfig for 32bit.
+make defconfig ARCH=um SUBARCH=x86_64 one for 64bit.
 
-I honestly don't get why this approach is superior to the original
-one. In the original, I could set SUBARCH to whatever target
-architecture and attempt to build user-mode Linux. Fact that it is
-only implemented for i386 and x86_64 aside, keeping a SUBARCH means
-that it's possible to build a 32-bit kernel on a 64-bit machine and
-vice-versa. If you want stuff to work automagically (ie. in the 90%
-case), you have to shell out to uname -m to figure out the host's real
-architecture. Which both versions do sufficiently well.
-
-Forget all that. What matters is that upstream is still broken, and
-users are suffering. Despite a reasonable fix being submitted in July.
+Thanks,
+//richard
