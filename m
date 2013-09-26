@@ -1,45 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from b.ns.miles-group.at ([95.130.255.144]:1660 "EHLO radon.swed.at"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1753168Ab3IZPE0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Sep 2013 11:04:26 -0400
-Message-ID: <52444CED.40401@nod.at>
-Date: Thu, 26 Sep 2013 17:04:13 +0200
-From: Richard Weinberger <richard@nod.at>
-MIME-Version: 1.0
-Subject: Re: [PATCH 2/8] um: Do not use SUBARCH
-References: <1377073172-3662-1-git-send-email-richard@nod.at> <1377073172-3662-3-git-send-email-richard@nod.at> <CALkWK0kCrQ9hPABD_XQ9QFG-vByP+xZWZs+RkVK77+cX7Odz7g@mail.gmail.com> <52441025.9030308@nod.at> <CALkWK0k5neR50h+AWEF5AgnpbgWMitZUnbv_caVzt6HiUA6mXg@mail.gmail.com> <52441407.9010603@nod.at> <CALkWK0=FG4COEjv5+mu1JRiiFQ2k6vop1mhFPmAT4bjtYeK6nA@mail.gmail.com> <52442108.1020304@nod.at> <CALkWK0nm=9n7DiV0MaGKVLMs=vxAiiQUx=OFuOg-DinkdMej5A@mail.gmail.com> <CALkWK0ndMtyQxE0uK4H-Ly6oy+tRn-SFc=_1WoC2QAp2uy0dtw@mail.gmail.com> <CAMuHMdU3LdDhbp_AKjD7b8Wytbqfp29DrPwTdtwQa2hUNdcy3Q@mail.gmail.com> <524443AC.3040409@nod.at> <CALkWK0kcd03t9W4O24wiVBQ8SZQ8ZcrbvQaUkcCm+y5n=d1wPw@mail.gmail.com>
-In-Reply-To: <CALkWK0kcd03t9W4O24wiVBQ8SZQ8ZcrbvQaUkcCm+y5n=d1wPw@mail.gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:53936 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752353Ab3IZPNt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Sep 2013 11:13:49 -0400
+From: Will Deacon <will.deacon@arm.com>
+Subject: [RFC PATCH 4/4] lib: lockref: use relaxed cmpxchg64 variant for lockless updates
+Date: Thu, 26 Sep 2013 16:13:31 +0100
+Message-ID: <1380208411-31403-4-git-send-email-will.deacon@arm.com>
+In-Reply-To: <1380208411-31403-1-git-send-email-will.deacon@arm.com>
+References: <1380208411-31403-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ramkumar Ramachandra <artagnon@gmail.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.cz>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Jeff Dike <jdike@addtoit.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, Linux-sh list <linux-sh@vger.kernel.org>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>
-Message-ID: <20130926150413.PQQk2_AW9Z8q9Wd73NAAK1iYUCekSnDYwFxEEesq8-M@z>
+To: linux-kernel@vger.kernel.org
+Cc: tony.luck@intel.com, torvalds@linux-foundation.org, linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Waiman Long <Waiman.Long@hp.com>
+Message-ID: <20130926151331.P6pWUOHWz3NIlm8tyaGd_S7nVvlnvvxszv-tCBN9mzs@z>
 
-Am 26.09.2013 16:36, schrieb Ramkumar Ramachandra:
-> Richard Weinberger wrote:
->>> Sorry for chiming in, but... what about cross compiling?
->>> SUBARCH=x86 should give you a 32-bit ia32 kernel, right?
->>
->> Correct.
->> Users expect from SUBARCH=x86 a i386 32bit UML kernel.
-> 
-> This is an insane expectation. This is kernel convention (it has
-> nothing to do with uml):
+The 64-bit cmpxchg operation on the lockref is ordered by virtue of
+hazarding between the cmpxchg operation and the reference count
+manipulation. On weakly ordered memory architectures (such as ARM), it
+can be of great benefit to omit the barrier instructions where they are
+not needed.
 
-Hmm, looks like I missed commit ffee0de411, thanks for pointing that out.
-Before ffee0de411 "make defconfig ARCH=x86" produced a 32bit defconfig.
-Now it produces a x86_64 defconfig.
+This patch moves the lockless lockref code over to the new
+cmpxchg64_relaxed operation, which doesn't provide barrier semantics.
 
-As UML is a variant of x86 it makes not much sense to do things the other
-way around even if we break assumptions.
+Cc: Waiman Long <Waiman.Long@hp.com>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+---
 
-And, of course, this makes your patch valid.
-Can you also please ensure that your new defconfigs are minimal?
-See make savedefconfig.
+So here's a quick stab at allowing the memory barrier semantics to be
+avoided on weakly ordered architectures. This helps ARM, but it would be
+interesting to see if ia64 gets a boost too (although I've not relaxed
+their cmpxchg because there is uapi stuff involved that I wasn't
+comfortable refactoring).
 
-Thanks,
-//richard
+ lib/lockref.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/lib/lockref.c b/lib/lockref.c
+index 677d036..6d896ab 100644
+--- a/lib/lockref.c
++++ b/lib/lockref.c
+@@ -14,8 +14,9 @@
+ 	while (likely(arch_spin_value_unlocked(old.lock.rlock.raw_lock))) {  	\
+ 		struct lockref new = old, prev = old;				\
+ 		CODE								\
+-		old.lock_count = cmpxchg64(&lockref->lock_count,		\
+-					   old.lock_count, new.lock_count);	\
++		old.lock_count = cmpxchg64_relaxed(&lockref->lock_count,	\
++						   old.lock_count,		\
++						   new.lock_count);		\
+ 		if (likely(old.lock_count == prev.lock_count)) {		\
+ 			SUCCESS;						\
+ 		}								\
+-- 
+1.8.2.2
 
