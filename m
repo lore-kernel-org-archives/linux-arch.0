@@ -1,42 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f173.google.com ([209.85.220.173]:62714 "EHLO
-	mail-vc0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751193Ab3IZPeF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Sep 2013 11:34:05 -0400
+Received: from mail-ie0-f179.google.com ([209.85.223.179]:40496 "EHLO
+	mail-ie0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753105Ab3IZQHf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Sep 2013 12:07:35 -0400
 MIME-Version: 1.0
-In-Reply-To: <1380208411-31403-1-git-send-email-will.deacon@arm.com>
-References: <1380208411-31403-1-git-send-email-will.deacon@arm.com>
-Date: Thu, 26 Sep 2013 08:34:04 -0700
-Message-ID: <CA+55aFzCiOxpgdJagSVdsBYEU66zBSBXZpnU5-jvQpAX6T7SiA@mail.gmail.com>
-Subject: Re: [RFC PATCH 1/4] asm-generic: cmpxchg: implement dummy
- cmpxchg64_relaxed operation
-From: Linus Torvalds <torvalds@linux-foundation.org>
+In-Reply-To: <52444CED.40401@nod.at>
+References: <1377073172-3662-1-git-send-email-richard@nod.at>
+ <1377073172-3662-3-git-send-email-richard@nod.at> <CALkWK0kCrQ9hPABD_XQ9QFG-vByP+xZWZs+RkVK77+cX7Odz7g@mail.gmail.com>
+ <52441025.9030308@nod.at> <CALkWK0k5neR50h+AWEF5AgnpbgWMitZUnbv_caVzt6HiUA6mXg@mail.gmail.com>
+ <52441407.9010603@nod.at> <CALkWK0=FG4COEjv5+mu1JRiiFQ2k6vop1mhFPmAT4bjtYeK6nA@mail.gmail.com>
+ <52442108.1020304@nod.at> <CALkWK0nm=9n7DiV0MaGKVLMs=vxAiiQUx=OFuOg-DinkdMej5A@mail.gmail.com>
+ <CALkWK0ndMtyQxE0uK4H-Ly6oy+tRn-SFc=_1WoC2QAp2uy0dtw@mail.gmail.com>
+ <CAMuHMdU3LdDhbp_AKjD7b8Wytbqfp29DrPwTdtwQa2hUNdcy3Q@mail.gmail.com>
+ <524443AC.3040409@nod.at> <CALkWK0kcd03t9W4O24wiVBQ8SZQ8ZcrbvQaUkcCm+y5n=d1wPw@mail.gmail.com>
+ <52444CED.40401@nod.at>
+From: Ramkumar Ramachandra <artagnon@gmail.com>
+Date: Thu, 26 Sep 2013 21:36:54 +0530
+Message-ID: <CALkWK0=u8CdtmbaOtA5=jxuWsei2ZQhxDwSsnhAR=ZRBNyoH6Q@mail.gmail.com>
+Subject: Re: [PATCH 2/8] um: Do not use SUBARCH
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20130926153404.FYTQkHE70d_gY5mO6hivd2grulfQWWW_Qm-lSXpF8R4@z>
+To: Richard Weinberger <richard@nod.at>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.cz>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Jeff Dike <jdike@addtoit.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, Linux-sh list <linux-sh@vger.kernel.org>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>
+Message-ID: <20130926160654.jLd-u_vSsJrV36UNAa1TgY97999mKuPQAmPwV0QpMvk@z>
 
-On Thu, Sep 26, 2013 at 8:13 AM, Will Deacon <will.deacon@arm.com> wrote:
->
-> This patch implements a dummy implementation for asm-generic, falling
-> back to the usual cmpxchg64 code.
+Richard Weinberger wrote:
+> And, of course, this makes your patch valid.
+> Can you also please ensure that your new defconfigs are minimal?
 
-I don't like the "let's add dummy operations for everybody who doesn't
-care" when it is this specialized.
+Yeah, it's close to a minimal configuration for the 3.10 kernel
+(latest at the time of patch submission). I was aiming to minimize the
+diff between the current defconfig and the two new defconfigs in
+configs/. The slim diffstat does the talking:
 
-I'd much rather just add a single
+ arch/um/Kconfig.common                          |   5 -
+ arch/um/Makefile                                |  11 ++
+ arch/um/{defconfig => configs/i386_defconfig}   | 209 +++++++++++++-------
+ arch/um/{defconfig => configs/x86_64_defconfig} | 250 +++++++++++++++---------
+ arch/x86/um/Kconfig                             |   5 +
+ 5 files changed, 306 insertions(+), 174 deletions(-)
+ copy arch/um/{defconfig => configs/i386_defconfig} (86%)
+ rename arch/um/{defconfig => configs/x86_64_defconfig} (83%)
 
-   #ifndef cmpxchg64_relaxed
-   # define cmpxchg64_relaxed cmpxchg64
-   #endif
+If we find some deficiencies, we can always update it. For now, please
+commit these two patches.
 
-to the LOCKREF code, and then ARM (and others) can define it as they wish.
-
-And *if* anybody else ever realizes that they want this outside of the
-lockref code, let's look at doing that then. Right now I don't know of
-any users, and I'd be leery of people using this willy-nilly, because
-very few people really understand memory ordering.
-
-               Linus
+Thanks.
