@@ -1,47 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:53931 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751672Ab3IZPNs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Sep 2013 11:13:48 -0400
-From: Will Deacon <will.deacon@arm.com>
-Subject: [RFC PATCH 1/4] asm-generic: cmpxchg: implement dummy cmpxchg64_relaxed operation
-Date: Thu, 26 Sep 2013 16:13:28 +0100
-Message-ID: <1380208411-31403-1-git-send-email-will.deacon@arm.com>
+Received: from mail-vc0-f173.google.com ([209.85.220.173]:62714 "EHLO
+	mail-vc0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751193Ab3IZPeF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Sep 2013 11:34:05 -0400
+MIME-Version: 1.0
+In-Reply-To: <1380208411-31403-1-git-send-email-will.deacon@arm.com>
+References: <1380208411-31403-1-git-send-email-will.deacon@arm.com>
+Date: Thu, 26 Sep 2013 08:34:04 -0700
+Message-ID: <CA+55aFzCiOxpgdJagSVdsBYEU66zBSBXZpnU5-jvQpAX6T7SiA@mail.gmail.com>
+Subject: Re: [RFC PATCH 1/4] asm-generic: cmpxchg: implement dummy
+ cmpxchg64_relaxed operation
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: tony.luck@intel.com, torvalds@linux-foundation.org, linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20130926151328.tc13uGhmKJ3mZaYNrjC-hOr_e4QDaKhu-tzrImHq6QM@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20130926153404.FYTQkHE70d_gY5mO6hivd2grulfQWWW_Qm-lSXpF8R4@z>
 
-cmpxchg64_relaxed can be used to provide barrier-less semantics for a
-64-bit cmpxchg operation in cases where the strong memory ordering is
-not required.
+On Thu, Sep 26, 2013 at 8:13 AM, Will Deacon <will.deacon@arm.com> wrote:
+>
+> This patch implements a dummy implementation for asm-generic, falling
+> back to the usual cmpxchg64 code.
 
-This patch implements a dummy implementation for asm-generic, falling
-back to the usual cmpxchg64 code.
+I don't like the "let's add dummy operations for everybody who doesn't
+care" when it is this specialized.
 
-Cc: Arnd Bergmann <arnd@arndb.de>
-Signed-off-by: Will Deacon <will.deacon@arm.com>
----
- include/asm-generic/cmpxchg.h | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
+I'd much rather just add a single
 
-diff --git a/include/asm-generic/cmpxchg.h b/include/asm-generic/cmpxchg.h
-index 811fb1e..298b9d4 100644
---- a/include/asm-generic/cmpxchg.h
-+++ b/include/asm-generic/cmpxchg.h
-@@ -102,7 +102,8 @@ unsigned long __xchg(unsigned long x, volatile void *ptr, int size)
- #define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
- #endif
- 
--#define cmpxchg(ptr, o, n)	cmpxchg_local((ptr), (o), (n))
--#define cmpxchg64(ptr, o, n)	cmpxchg64_local((ptr), (o), (n))
-+#define cmpxchg(ptr, o, n)		cmpxchg_local((ptr), (o), (n))
-+#define cmpxchg64(ptr, o, n)		cmpxchg64_local((ptr), (o), (n))
-+#define cmpxchg64_relaxed(ptr, o, n)	cmpxchg64((ptr), (o), (n))
- 
- #endif /* __ASM_GENERIC_CMPXCHG_H */
--- 
-1.8.2.2
+   #ifndef cmpxchg64_relaxed
+   # define cmpxchg64_relaxed cmpxchg64
+   #endif
 
+to the LOCKREF code, and then ARM (and others) can define it as they wish.
+
+And *if* anybody else ever realizes that they want this outside of the
+lockref code, let's look at doing that then. Right now I don't know of
+any users, and I'd be leery of people using this willy-nilly, because
+very few people really understand memory ordering.
+
+               Linus
