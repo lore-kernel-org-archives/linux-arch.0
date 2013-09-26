@@ -1,44 +1,64 @@
-From: Ramkumar Ramachandra <artagnon@gmail.com>
-Subject: Re: [PATCH 2/8] um: Do not use SUBARCH
-Date: Thu, 26 Sep 2013 21:36:54 +0530
-Message-ID: <CALkWK0=u8CdtmbaOtA5=jxuWsei2ZQhxDwSsnhAR=ZRBNyoH6Q@mail.gmail.com>
-References: <1377073172-3662-1-git-send-email-richard@nod.at>
- <1377073172-3662-3-git-send-email-richard@nod.at> <CALkWK0kCrQ9hPABD_XQ9QFG-vByP+xZWZs+RkVK77+cX7Odz7g@mail.gmail.com>
- <52441025.9030308@nod.at> <CALkWK0k5neR50h+AWEF5AgnpbgWMitZUnbv_caVzt6HiUA6mXg@mail.gmail.com>
- <52441407.9010603@nod.at> <CALkWK0=FG4COEjv5+mu1JRiiFQ2k6vop1mhFPmAT4bjtYeK6nA@mail.gmail.com>
- <52442108.1020304@nod.at> <CALkWK0nm=9n7DiV0MaGKVLMs=vxAiiQUx=OFuOg-DinkdMej5A@mail.gmail.com>
- <CALkWK0ndMtyQxE0uK4H-Ly6oy+tRn-SFc=_1WoC2QAp2uy0dtw@mail.gmail.com>
- <CAMuHMdU3LdDhbp_AKjD7b8Wytbqfp29DrPwTdtwQa2hUNdcy3Q@mail.gmail.com>
- <524443AC.3040409@nod.at> <CALkWK0kcd03t9W4O24wiVBQ8SZQ8ZcrbvQaUkcCm+y5n=d1wPw@mail.gmail.com>
- <52444CED.40401@nod.at>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-sh-owner@vger.kernel.org>
-In-Reply-To: <52444CED.40401@nod.at>
-Sender: linux-sh-owner@vger.kernel.org
-To: Richard Weinberger <richard@nod.at>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>, Michal Marek <mmarek@suse.cz>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Jeff Dike <jdike@addtoit.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, Linux-sh list <linux-sh@vger.kernel.org>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>
-List-Id: linux-arch.vger.kernel.org
+From: Will Deacon <will.deacon@arm.com>
+Subject: [PATCH v2] lib: lockref: allow relaxed cmpxchg64 variant for lockless updates
+Date: Thu, 26 Sep 2013 17:27:00 +0100
+Message-ID: <1380212820-6803-1-git-send-email-will.deacon@arm.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:55484 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752771Ab3IZQ1k (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Sep 2013 12:27:40 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: tony.luck@intel.com, torvalds@linux-foundation.org, linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Waiman Long <Waiman.Long@hp.com>
 
-Richard Weinberger wrote:
-> And, of course, this makes your patch valid.
-> Can you also please ensure that your new defconfigs are minimal?
+The 64-bit cmpxchg operation on the lockref is ordered by virtue of
+hazarding between the cmpxchg operation and the reference count
+manipulation. On weakly ordered memory architectures (such as ARM), it
+can be of great benefit to omit the barrier instructions where they are
+not needed.
 
-Yeah, it's close to a minimal configuration for the 3.10 kernel
-(latest at the time of patch submission). I was aiming to minimize the
-diff between the current defconfig and the two new defconfigs in
-configs/. The slim diffstat does the talking:
+This patch moves the lockless lockref code over to a cmpxchg64_relaxed
+operation, which doesn't provide barrier semantics. If the operation
+isn't defined, we simply #define it as the usual 64-bit cmpxchg macro.
 
- arch/um/Kconfig.common                          |   5 -
- arch/um/Makefile                                |  11 ++
- arch/um/{defconfig => configs/i386_defconfig}   | 209 +++++++++++++-------
- arch/um/{defconfig => configs/x86_64_defconfig} | 250 +++++++++++++++---------
- arch/x86/um/Kconfig                             |   5 +
- 5 files changed, 306 insertions(+), 174 deletions(-)
- copy arch/um/{defconfig => configs/i386_defconfig} (86%)
- rename arch/um/{defconfig => configs/x86_64_defconfig} (83%)
+Cc: Waiman Long <Waiman.Long@hp.com>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+---
+ lib/lockref.c | 13 +++++++++++--
+ 1 file changed, 11 insertions(+), 2 deletions(-)
 
-If we find some deficiencies, we can always update it. For now, please
-commit these two patches.
-
-Thanks.
+diff --git a/lib/lockref.c b/lib/lockref.c
+index 677d036..e294ae4 100644
+--- a/lib/lockref.c
++++ b/lib/lockref.c
+@@ -4,6 +4,14 @@
+ #ifdef CONFIG_CMPXCHG_LOCKREF
+ 
+ /*
++ * Allow weakly-ordered memory architectures to provide barrier-less
++ * cmpxchg semantics for lockref updates.
++ */
++#ifndef cmpxchg64_relaxed
++# define cmpxchg64_relaxed cmpxchg64
++#endif
++
++/*
+  * Note that the "cmpxchg()" reloads the "old" value for the
+  * failure case.
+  */
+@@ -14,8 +22,9 @@
+ 	while (likely(arch_spin_value_unlocked(old.lock.rlock.raw_lock))) {  	\
+ 		struct lockref new = old, prev = old;				\
+ 		CODE								\
+-		old.lock_count = cmpxchg64(&lockref->lock_count,		\
+-					   old.lock_count, new.lock_count);	\
++		old.lock_count = cmpxchg64_relaxed(&lockref->lock_count,	\
++						   old.lock_count,		\
++						   new.lock_count);		\
+ 		if (likely(old.lock_count == prev.lock_count)) {		\
+ 			SUCCESS;						\
+ 		}								\
+-- 
+1.8.2.2
