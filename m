@@ -1,51 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from a9-54.smtp-out.amazonses.com ([54.240.9.54]:38546 "EHLO
-	a9-54.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751283Ab3IYQkJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 25 Sep 2013 12:40:09 -0400
-Date: Wed, 25 Sep 2013 16:40:07 +0000
-From: Christoph Lameter <cl@linux.com>
-Subject: Re: [pchecks v2 2/2] percpu: Add preemption checks to __this_cpu
- ops
-In-Reply-To: <20130924171029.GB10261@gmail.com>
-Message-ID: <0000014155fdd6cf-d54da8b8-2198-40ce-8831-4559971e69f0-000000@email.amazonses.com>
-References: <20130924154159.855373283@linux.com> <0000014150a21408-2d759c49-6a9e-4553-956f-2d4b53e710f8-000000@email.amazonses.com> <20130924171029.GB10261@gmail.com>
+Received: from mail-ie0-f182.google.com ([209.85.223.182]:53936 "EHLO
+	mail-ie0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755712Ab3IZKlA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Sep 2013 06:41:00 -0400
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+In-Reply-To: <1377073172-3662-3-git-send-email-richard@nod.at>
+References: <1377073172-3662-1-git-send-email-richard@nod.at> <1377073172-3662-3-git-send-email-richard@nod.at>
+From: Ramkumar Ramachandra <artagnon@gmail.com>
+Date: Thu, 26 Sep 2013 16:10:19 +0530
+Message-ID: <CALkWK0kCrQ9hPABD_XQ9QFG-vByP+xZWZs+RkVK77+cX7Odz7g@mail.gmail.com>
+Subject: Re: [PATCH 2/8] um: Do not use SUBARCH
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20130925164007.PIgu6oPG3HjDDvWA-IR8ctlIyzj6oqn-tJjXa11caKg@z>
+To: Richard Weinberger <richard@nod.at>
+Cc: linux-arch@vger.kernel.org, Michal Marek <mmarek@suse.cz>, geert@linux-m68k.org, ralf@linux-mips.org, lethal@linux-sh.org, Jeff Dike <jdike@addtoit.com>, gxt@mprc.pku.edu.cn, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-kbuild@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, linux-m68k@lists.linux-m68k.org, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net
+Message-ID: <20130926104019.npFoXbHwNkC4T6I2XKC2DxdLBDrXsVPeD_0X5fbZJFQ@z>
 
-On Tue, 24 Sep 2013, Ingo Molnar wrote:
+Richard Weinberger wrote:
+> This patch is based on: https://lkml.org/lkml/2013/7/4/396
 
-> Ok, this variant looks pretty good, modulo testing. I'd do:
+This is the original patch I sent across in July.
+
+> diff --git a/arch/um/Makefile b/arch/um/Makefile
+> index 133f7de..5bc7892 100644
+> --- a/arch/um/Makefile
+> +++ b/arch/um/Makefile
+> @@ -8,6 +8,8 @@
 >
->   s/check_preemption/check_preemption_disabled
+>  ARCH_DIR := arch/um
+>  OS := $(shell uname -s)
+> +OS_ARCH := $(shell uname -m)
+> +
+>  # We require bash because the vmlinux link and loader script cpp use bash
+>  # features.
+>  SHELL := /bin/bash
+> @@ -20,15 +22,14 @@ core-y                      += $(ARCH_DIR)/kernel/          \
 >
-> but that's a minor detail.
-
-Sure.
-
-> > +config DEBUG_THIS_CPU_OPERATIONS
-> > +	bool "Debug __this_cpu operations"
-> > +	depends on DEBUG_PREEMPT
-> > +	default n
-> > +	help
-> > +	  Enables preemption checks for __this_cpu macros. These
-> > +	  are macros to generate single instruction operations on
-> > +	  per cpu data. The option only affects the __this_cpu variant
-> > +	  which is used when fallback to multiple instructions without
-> > +	  other synchronization is possible. A verification is then
-> > +	  done to make sure that the thread cannot be preempted.
+>  MODE_INCLUDE   += -I$(srctree)/$(ARCH_DIR)/include/shared/skas
 >
-> I don't think there's a need to make this a separate preemption debug
-> option: smp_processor_id() is really just a subset of the checks.
+> -HEADER_ARCH    := $(SUBARCH)
+> -
+> -# Additional ARCH settings for x86
+> -ifeq ($(SUBARCH),i386)
+> -        HEADER_ARCH := x86
+> -endif
+> -ifeq ($(SUBARCH),x86_64)
+> -        HEADER_ARCH := x86
+> -       KBUILD_CFLAGS += -mcmodel=large
+> +# Currently we support only i386 and x86_64, if you port UML to another arch
+> +# add another if branch...
+> +ifeq ($(OS_ARCH),x86_64)
+> +       HEADER_ARCH := x86
+> +       KBUILD_DEFCONFIG := x86_64_defconfig
+> +else
+> +       HEADER_ARCH := x86
+> +       KBUILD_DEFCONFIG := i386_defconfig
+>  endif
 
-I think this is necessary since it seems that the discussions on how to do
-the raw_cpu conversions may take some time. If we enable it by default
-then there will be numerous new log messages. That way a developer can
-enable it for working on this.
+I honestly don't get why this approach is superior to the original
+one. In the original, I could set SUBARCH to whatever target
+architecture and attempt to build user-mode Linux. Fact that it is
+only implemented for i386 and x86_64 aside, keeping a SUBARCH means
+that it's possible to build a 32-bit kernel on a 64-bit machine and
+vice-versa. If you want stuff to work automagically (ie. in the 90%
+case), you have to shell out to uname -m to figure out the host's real
+architecture. Which both versions do sufficiently well.
 
+Forget all that. What matters is that upstream is still broken, and
+users are suffering. Despite a reasonable fix being submitted in July.
