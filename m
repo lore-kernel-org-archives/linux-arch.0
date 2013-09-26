@@ -1,37 +1,54 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: Will Deacon <will.deacon@arm.com>
 Subject: Re: [RFC PATCH 1/4] asm-generic: cmpxchg: implement dummy
  cmpxchg64_relaxed operation
-Date: Thu, 26 Sep 2013 08:34:04 -0700
-Message-ID: <CA+55aFzCiOxpgdJagSVdsBYEU66zBSBXZpnU5-jvQpAX6T7SiA@mail.gmail.com>
+Date: Thu, 26 Sep 2013 16:53:31 +0100
+Message-ID: <20130926155330.GC4175@mudshark.cambridge.arm.com>
 References: <1380208411-31403-1-git-send-email-will.deacon@arm.com>
+ <CA+55aFzCiOxpgdJagSVdsBYEU66zBSBXZpnU5-jvQpAX6T7SiA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1380208411-31403-1-git-send-email-will.deacon@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will.deacon@arm.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:54837 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750964Ab3IZPxj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Sep 2013 11:53:39 -0400
+Content-Disposition: inline
+In-Reply-To: <CA+55aFzCiOxpgdJagSVdsBYEU66zBSBXZpnU5-jvQpAX6T7SiA@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>
-List-Id: linux-arch.vger.kernel.org
 
-On Thu, Sep 26, 2013 at 8:13 AM, Will Deacon <will.deacon@arm.com> wrote:
->
-> This patch implements a dummy implementation for asm-generic, falling
-> back to the usual cmpxchg64 code.
+On Thu, Sep 26, 2013 at 04:34:04PM +0100, Linus Torvalds wrote:
+> On Thu, Sep 26, 2013 at 8:13 AM, Will Deacon <will.deacon@arm.com> wrote:
+> >
+> > This patch implements a dummy implementation for asm-generic, falling
+> > back to the usual cmpxchg64 code.
+> 
+> I don't like the "let's add dummy operations for everybody who doesn't
+> care" when it is this specialized.
+> 
+> I'd much rather just add a single
+> 
+>    #ifndef cmpxchg64_relaxed
+>    # define cmpxchg64_relaxed cmpxchg64
+>    #endif
+> 
+> to the LOCKREF code, and then ARM (and others) can define it as they wish.
 
-I don't like the "let's add dummy operations for everybody who doesn't
-care" when it is this specialized.
+Okey doke.
 
-I'd much rather just add a single
+> And *if* anybody else ever realizes that they want this outside of the
+> lockref code, let's look at doing that then. Right now I don't know of
+> any users, and I'd be leery of people using this willy-nilly, because
+> very few people really understand memory ordering.
 
-   #ifndef cmpxchg64_relaxed
-   # define cmpxchg64_relaxed cmpxchg64
-   #endif
+Agreed, and I really doubt there are many cases where the cmpxchg hazarding
+works out nicely so as to obviate the need for memory barriers.
 
-to the LOCKREF code, and then ARM (and others) can define it as they wish.
+I'll send a revised patch.
 
-And *if* anybody else ever realizes that they want this outside of the
-lockref code, let's look at doing that then. Right now I don't know of
-any users, and I'd be leery of people using this willy-nilly, because
-very few people really understand memory ordering.
+Cheers,
 
-               Linus
+Will
