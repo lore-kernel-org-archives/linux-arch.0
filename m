@@ -1,59 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:53936 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:53931 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752353Ab3IZPNt (ORCPT
+	by vger.kernel.org with ESMTP id S1751672Ab3IZPNs (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Sep 2013 11:13:49 -0400
+	Thu, 26 Sep 2013 11:13:48 -0400
 From: Will Deacon <will.deacon@arm.com>
-Subject: [RFC PATCH 4/4] lib: lockref: use relaxed cmpxchg64 variant for lockless updates
-Date: Thu, 26 Sep 2013 16:13:31 +0100
-Message-ID: <1380208411-31403-4-git-send-email-will.deacon@arm.com>
-In-Reply-To: <1380208411-31403-1-git-send-email-will.deacon@arm.com>
-References: <1380208411-31403-1-git-send-email-will.deacon@arm.com>
+Subject: [RFC PATCH 1/4] asm-generic: cmpxchg: implement dummy cmpxchg64_relaxed operation
+Date: Thu, 26 Sep 2013 16:13:28 +0100
+Message-ID: <1380208411-31403-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: tony.luck@intel.com, torvalds@linux-foundation.org, linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Waiman Long <Waiman.Long@hp.com>
-Message-ID: <20130926151331.P6pWUOHWz3NIlm8tyaGd_S7nVvlnvvxszv-tCBN9mzs@z>
+Cc: tony.luck@intel.com, torvalds@linux-foundation.org, linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20130926151328.tc13uGhmKJ3mZaYNrjC-hOr_e4QDaKhu-tzrImHq6QM@z>
 
-The 64-bit cmpxchg operation on the lockref is ordered by virtue of
-hazarding between the cmpxchg operation and the reference count
-manipulation. On weakly ordered memory architectures (such as ARM), it
-can be of great benefit to omit the barrier instructions where they are
-not needed.
+cmpxchg64_relaxed can be used to provide barrier-less semantics for a
+64-bit cmpxchg operation in cases where the strong memory ordering is
+not required.
 
-This patch moves the lockless lockref code over to the new
-cmpxchg64_relaxed operation, which doesn't provide barrier semantics.
+This patch implements a dummy implementation for asm-generic, falling
+back to the usual cmpxchg64 code.
 
-Cc: Waiman Long <Waiman.Long@hp.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
-
-So here's a quick stab at allowing the memory barrier semantics to be
-avoided on weakly ordered architectures. This helps ARM, but it would be
-interesting to see if ia64 gets a boost too (although I've not relaxed
-their cmpxchg because there is uapi stuff involved that I wasn't
-comfortable refactoring).
-
- lib/lockref.c | 5 +++--
+ include/asm-generic/cmpxchg.h | 5 +++--
  1 file changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/lib/lockref.c b/lib/lockref.c
-index 677d036..6d896ab 100644
---- a/lib/lockref.c
-+++ b/lib/lockref.c
-@@ -14,8 +14,9 @@
- 	while (likely(arch_spin_value_unlocked(old.lock.rlock.raw_lock))) {  	\
- 		struct lockref new = old, prev = old;				\
- 		CODE								\
--		old.lock_count = cmpxchg64(&lockref->lock_count,		\
--					   old.lock_count, new.lock_count);	\
-+		old.lock_count = cmpxchg64_relaxed(&lockref->lock_count,	\
-+						   old.lock_count,		\
-+						   new.lock_count);		\
- 		if (likely(old.lock_count == prev.lock_count)) {		\
- 			SUCCESS;						\
- 		}								\
+diff --git a/include/asm-generic/cmpxchg.h b/include/asm-generic/cmpxchg.h
+index 811fb1e..298b9d4 100644
+--- a/include/asm-generic/cmpxchg.h
++++ b/include/asm-generic/cmpxchg.h
+@@ -102,7 +102,8 @@ unsigned long __xchg(unsigned long x, volatile void *ptr, int size)
+ #define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
+ #endif
+ 
+-#define cmpxchg(ptr, o, n)	cmpxchg_local((ptr), (o), (n))
+-#define cmpxchg64(ptr, o, n)	cmpxchg64_local((ptr), (o), (n))
++#define cmpxchg(ptr, o, n)		cmpxchg_local((ptr), (o), (n))
++#define cmpxchg64(ptr, o, n)		cmpxchg64_local((ptr), (o), (n))
++#define cmpxchg64_relaxed(ptr, o, n)	cmpxchg64((ptr), (o), (n))
+ 
+ #endif /* __ASM_GENERIC_CMPXCHG_H */
 -- 
 1.8.2.2
 
