@@ -1,123 +1,137 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gmmr3.centrum.cz ([46.255.225.251]:54909 "EHLO gmmr3.centrum.cz"
+Received: from mout.gmx.net ([212.227.15.19]:56797 "EHLO mout.gmx.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750794Ab3I0CEZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Sep 2013 22:04:25 -0400
-Subject: =?utf-8?q?Re=3A_=5Bpatch_0=2F7=5D_improve_memcg_oom_killer_robustness_v2?=
-Date: Fri, 27 Sep 2013 04:04:23 +0200
-From: "azurIt" <azurit@pobox.sk>
-References: <20130916152548.GF3674@dhcp22.suse.cz>, <20130916225246.A633145B@pobox.sk>, <20130917000244.GD3278@cmpxchg.org>, <20130917131535.94E0A843@pobox.sk>, <20130917141013.GA30838@dhcp22.suse.cz>, <20130918160304.6EDF2729@pobox.sk>, <20130918180455.GD856@cmpxchg.org>, <20130918181946.GE856@cmpxchg.org>, <20130918195504.GF856@cmpxchg.org>, <20130926185459.E5D2987F@pobox.sk> <20130926192743.GP856@cmpxchg.org>
-In-Reply-To: <20130926192743.GP856@cmpxchg.org>
+	id S1752630Ab3I0JWp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 27 Sep 2013 05:22:45 -0400
+Received: from [80.171.221.255] ([80.171.221.255]) by mail.gmx.com (mrgmx001)
+ with ESMTPSA (Nemesis) id 0MUpFU-1VM9n41r2q-00Y8UY for
+ <linux-arch@vger.kernel.org>; Fri, 27 Sep 2013 11:22:43 +0200
+Message-ID: <52454E58.3010305@gmx.de>
+Date: Fri, 27 Sep 2013 11:22:32 +0200
+From: =?UTF-8?B?VG9yYWxmIEbDtnJzdGVy?= <toralf.foerster@gmx.de>
 MIME-Version: 1.0
-Message-ID: <20130927040423.FBF382D2@pobox.sk>
+Subject: Re: [PATCH 1/8] um: Create defconfigs for i386 and x86_64
+References: <1377073172-3662-1-git-send-email-richard@nod.at> <1377073172-3662-2-git-send-email-richard@nod.at> <CALkWK0=W38JpZoGVkPYD4qd=+Pt1G7oYPEK_R=c8TAW6W=wxyg@mail.gmail.com> <52440DE0.1030807@nod.at>
+In-Reply-To: <52440DE0.1030807@nod.at>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?utf-8?q?Johannes_Weiner?= <hannes@cmpxchg.org>
-Cc: =?utf-8?q?Michal_Hocko?= <mhocko@suse.cz>, =?utf-8?q?Andrew_Morton?= <akpm@linux-foundation.org>, =?utf-8?q?David_Rientjes?= <rientjes@google.com>, =?utf-8?q?KAMEZAWA_Hiroyuki?= <kamezawa.hiroyu@jp.fujitsu.com>, =?utf-8?q?KOSAKI_Motohiro?= <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130927020423.j_vcrFZvLM2MXZTMAc23RdljGHkcNJx_t1QmriaIqt8@z>
+To: Ramkumar Ramachandra <artagnon@gmail.com>
+Cc: Richard Weinberger <richard@nod.at>, linux-arch@vger.kernel.org, Michal Marek <mmarek@suse.cz>, geert@linux-m68k.org, ralf@linux-mips.org, lethal@linux-sh.org, Jeff Dike <jdike@addtoit.com>, gxt@mprc.pku.edu.cn, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-kbuild@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, linux-m68k@lists.linux-m68k.org, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net
+Message-ID: <20130927092232.2aTaxbOEfMdq4eJc0-ko7vVsfSu82Q7TdBqcsBABRjQ@z>
 
-> CC: "Michal Hocko" <mhocko@suse.cz>, "Andrew Morton" <akpm@linux-foundation.org>, "David Rientjes" <rientjes@google.com>, "KAMEZAWA Hiroyuki" <kamezawa.hiroyu@jp.fujitsu.com>, "KOSAKI Motohiro" <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
->Hi azur,
->
->On Thu, Sep 26, 2013 at 06:54:59PM +0200, azurIt wrote:
->> On Wed, Sep 18, 2013 at 02:19:46PM -0400, Johannes Weiner wrote:
->> >Here is an update.  Full replacement on top of 3.2 since we tried a
->> >dead end and it would be more painful to revert individual changes.
->> >
->> >The first bug you had was the same task entering OOM repeatedly and
->> >leaking the memcg reference, thus creating undeletable memcgs.  My
->> >fixup added a condition that if the task already set up an OOM context
->> >in that fault, another charge attempt would immediately return -ENOMEM
->> >without even trying reclaim anymore.  This dropped __getblk() into an
->> >endless loop of waking the flushers and performing global reclaim and
->> >memcg returning -ENOMEM regardless of free memory.
->> >
->> >The update now basically only changes this -ENOMEM to bypass, so that
->> >the memory is not accounted and the limit ignored.  OOM killed tasks
->> >are granted the same right, so that they can exit quickly and release
->> >memory.  Likewise, we want a task that hit the OOM condition also to
->> >finish the fault quickly so that it can invoke the OOM killer.
->> >
->> >Does the following work for you, azur?
->> 
->> 
->> Johannes,
->> 
->> bad news everyone! :(
->> 
->> Unfortunaely, two different problems appears today:
->> 
->> 1.) This looks like my very original problem - stucked processes inside one cgroup. I took stacks from all of them over time but server was very slow so i had to kill them soon:
->> http://watchdog.sk/lkmlmemcg-bug-9.tar.gz
->> 
->> 2.) This was just like my last problem where few processes were doing huge i/o. As sever was almost unoperable i barely killed them so no more info here, sorry.
->
-From one of the tasks:
->
->1380213238/11210/stack:[<ffffffff810528f1>] sys_sched_yield+0x41/0x70
->1380213238/11210/stack:[<ffffffff81148ef1>] free_more_memory+0x21/0x60
->1380213238/11210/stack:[<ffffffff8114957d>] __getblk+0x14d/0x2c0
->1380213238/11210/stack:[<ffffffff81198a2b>] ext3_getblk+0xeb/0x240
->1380213238/11210/stack:[<ffffffff8119d2df>] ext3_find_entry+0x13f/0x480
->1380213238/11210/stack:[<ffffffff8119dd6d>] ext3_lookup+0x4d/0x120
->1380213238/11210/stack:[<ffffffff81122a55>] d_alloc_and_lookup+0x45/0x90
->1380213238/11210/stack:[<ffffffff81122ff8>] do_lookup+0x278/0x390
->1380213238/11210/stack:[<ffffffff81124c40>] path_lookupat+0x120/0x800
->1380213238/11210/stack:[<ffffffff81125355>] do_path_lookup+0x35/0xd0
->1380213238/11210/stack:[<ffffffff811254d9>] user_path_at_empty+0x59/0xb0
->1380213238/11210/stack:[<ffffffff81125541>] user_path_at+0x11/0x20
->1380213238/11210/stack:[<ffffffff81115b70>] sys_faccessat+0xd0/0x200
->1380213238/11210/stack:[<ffffffff81115cb8>] sys_access+0x18/0x20
->1380213238/11210/stack:[<ffffffff815ccc26>] system_call_fastpath+0x18/0x1d
->
->Should have seen this coming... it's still in that braindead
->__getblk() loop, only from a syscall this time (no OOM path).  The
->group's memory.stat looks like this:
->
->cache 0
->rss 0
->mapped_file 0
->pgpgin 0
->pgpgout 0
->swap 0
->pgfault 0
->pgmajfault 0
->inactive_anon 0
->active_anon 0
->inactive_file 0
->active_file 0
->unevictable 0
->hierarchical_memory_limit 209715200
->hierarchical_memsw_limit 209715200
->total_cache 0
->total_rss 209715200
->total_mapped_file 0
->total_pgpgin 1028153297
->total_pgpgout 1028102097
->total_swap 0
->total_pgfault 1352903120
->total_pgmajfault 45342
->total_inactive_anon 0
->total_active_anon 209715200
->total_inactive_file 0
->total_active_file 0
->total_unevictable 0
->
->with anonymous pages to the limit and you probably don't have any swap
->space enabled to anything in the group.
->
->I guess there is no way around annotating that __getblk() loop.  The
->best solution right now is probably to use __GFP_NOFAIL.  For one, we
->can let the allocation bypass the memcg limit if reclaim can't make
->progress.  But also, the loop is then actually happening inside the
->page allocator, where it should happen, and not around ad-hoc direct
->reclaim in buffer.c.
->
->Can you try this on top of our ever-growing stack of patches?
+On 09/26/2013 12:35 PM, Richard Weinberger wrote:
+> Am 26.09.2013 12:20, schrieb Ramkumar Ramachandra:
+>> Richard Weinberger wrote:
+>>> This patch is based on: https://lkml.org/lkml/2013/7/4/396
+>>>
+>>> Cc: Ramkumar Ramachandra <artagnon@gmail.com>
+>>> Signed-off-by: Richard Weinberger <richard@nod.at>
+>>> ---
+>>>  arch/um/configs/i386_defconfig   | 954 +++++++++++++++++++++++++++++++++++++++
+>>>  arch/um/configs/x86_64_defconfig | 943 ++++++++++++++++++++++++++++++++++++++
+>>>  2 files changed, 1897 insertions(+)
+>>>  create mode 100644 arch/um/configs/i386_defconfig
+>>>  create mode 100644 arch/um/configs/x86_64_defconfig
+>>
+>> First, I'm pissed that the upstream tree doesn't build and run out of
+>> the box months after I submitted a fix in July (and it's September
+>> now). Fact that you dropped my sane patches aside and decided to write
+>> a much larger series aside, user-mode Linux in upstream is broken.
+>> This means that any user who does:
+>>
+>> $ ARCH=um make defconfig
+>> $ ARCH=um make
+>>
+>> will end up with a *broken* Linux _today_. Unless the user is living
+>> in the Stone Age with a 32-bit computer, this is what she will see
+>> when she attempts to boot up Linux:
+
+:-{
+
+Grmpf
+
+There are a lot of 32 bit user land linux installation (beside my own,
+look at the x86 Gentoo world) in the wild - even running on modern 64bit
+CPUs. The simple reason is that those installations run fine and the
+performance "boost" of 64bit often isn't worth a new reinstallation.
+
+--
+the stone-age-Toralf
+
+> 
+> Not here.
+> 
+>> $ file linux
+>> linux: ELF 32-bit LSB  executable, Intel 80386, version 1 (SYSV),
+>> dynamically linked (uses shared libs), for GNU/Linux 2.6.32, not
+>> stripped
+>> $ ./linux ubd0=busybox-rootfs
+>> [...]
+>> Kernel panic - not syncing: No init found.  Try passing init= option
+>> to kernel. See Linux Documentation/init.txt for guidance.
+> 
+> I don't know that rootfs but it looks like there is no init.
+> 
+>> CPU: 0 PID: 1 Comm: swapper Not tainted 3.12.0-rc2-00083-g4b97280 #1
+>> 0b869fbc 08272f87 0b869fdc 0820c5cd 00000001 00000000 00000000 00000000
+>>        0b869fe8 0820c126 08252593 0b869ff8 08059317 00000000 00000001 00000000
+>>        00000000 0b869f94:  [<0805a11c>] show_stack+0x54/0x8c
+>> 0b869fb4:  [<0820e3c8>] dump_stack+0x16/0x1b
+>> 0b869fc8:  [<0820c5cd>] panic+0x67/0x149
+>> 0b869fe0:  [<0820c126>] kernel_init+0xab/0xaf
+>> 0b869fec:  [<08059317>] new_thread_handler+0x63/0x7c
+>> 0b869ffc:  [<00000000>] 0x0
+>>
+>>
+>> EIP: 0023:[<f7717430>] CPU: 0 Not tainted ESP: 002b:ffc386dc EFLAGS: 00000296
+>>     Not tainted
+>> EAX: 00000000 EBX: 000063ba ECX: 00000013 EDX: 000063ba
+>> ESI: 000063b6 EDI: 00000002 EBP: ffc38708 DS: 002b ES: 002b
+>> 0b869f44:  [<0806aff4>] show_regs+0xb4/0xbc
+>> 0b869f70:  [<0805b23b>] panic_exit+0x20/0x36
+>> 0b869f84:  [<0808521b>] notifier_call_chain+0x28/0x4b
+>> 0b869fac:  [<0808526c>] atomic_notifier_call_chain+0x15/0x17
+>> 0b869fbc:  [<0820c5de>] panic+0x78/0x149
+>> 0b869fe0:  [<0820c126>] kernel_init+0xab/0xaf
+>> 0b869fec:  [<08059317>] new_thread_handler+0x63/0x7c
+>> 0b869ffc:  [<00000000>] 0x0
+>>
+>> [1]    25526 abort (core dumped)  linux ubd0=busybox-rootfs
+>>                                                            %
+>>
+>> Rubbish.
+> 
+> UML core dumps at panic() by design.
+> 
+>> When I rebase my original patches (exactly 2 small independent
+>> patches) onto the new upstream, stuff works as usual. If you're not
+>> convinced, try the um-build branch from
+>> https://github.com/artagnon/linux for yourself.
+> 
+>> Are you against accepting good patches and stalling work? What is your
+>> plan exactly?
+> 
+> Sure, my great plan is to destroy Linux. I work for Microsoft. ;-)
+> 
+> Seriously, my plan is to get rid of SUBARCH, that's why I did not push your patches
+> upstream and I've send the rid of SUBARCH patch series.
+> It turned out that other archs depend on SUBARCH too therefore some more thinking is needed.
+> Time passed, merge window closed, $dayjob needed some attention...
+> 
+> That said, your "arch/um: make it work with defconfig and x86_64" patch is also not perfect.
+> "make defconfig ARCH=um SUBARCH=x86" will create x86_64 defconfig, which is wrong and breaks existing
+> setups.
+> Secondly, what stops you from running "make defconfig ARCH=um SUBARCH=x86_64" to run your x86_64 bit
+> userspace?
+> 
+> Thanks,
+> //richard
+> 
 
 
-Installed, thank you!
-
-azur
+-- 
+MfG/Sincerely
+Toralf Förster
+pgp finger print: 7B1A 07F4 EC82 0F90 D4C2 8936 872A E508 7DB6 9DA3
