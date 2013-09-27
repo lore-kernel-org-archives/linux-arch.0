@@ -1,99 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from alvesta.synopsys.com ([198.182.60.77]:36282 "EHLO
-	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750871Ab3I0K6a (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Sep 2013 06:58:30 -0400
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 3/4] ARC: Workaround spinlock livelock in SMP SystemC simulation
-Date: Fri, 27 Sep 2013 16:27:36 +0530
-Message-ID: <1380279457-14299-4-git-send-email-vgupta@synopsys.com>
-In-Reply-To: <1380279457-14299-1-git-send-email-vgupta@synopsys.com>
-References: <1380279457-14299-1-git-send-email-vgupta@synopsys.com>
+Received: from mail-ob0-f171.google.com ([209.85.214.171]:57930 "EHLO
+	mail-ob0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751025Ab3I0MG4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Sep 2013 08:06:56 -0400
+Received: by mail-ob0-f171.google.com with SMTP id wm4so3119089obc.16
+        for <linux-arch@vger.kernel.org>; Fri, 27 Sep 2013 05:06:56 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain
+In-Reply-To: <1380179668-32288-1-git-send-email-acourbot@nvidia.com>
+References: <1380179668-32288-1-git-send-email-acourbot@nvidia.com>
+Date: Fri, 27 Sep 2013 14:06:54 +0200
+Message-ID: <CACRpkdbhywp7_wAhOSzdMe==YoCo0mAcy1mJrdW3bURKWLxQeQ@mail.gmail.com>
+Subject: Re: [PATCH 0/3] New descriptor-based GPIO interface
+From: Linus Walleij <linus.walleij@linaro.org>
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: arc-linux-dev@synopsys.com, u.kleine-koenig@pengutronix.de, Noam Camus <noamc@ezchip.com>, Gilad Ben-Yossef <gilad@benyossef.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20130927105736.-P_wO4Zi0Uh7JqtRl5tsSNHwC3Otu9m_nZrs9Mu45mE@z>
+To: Alexandre Courbot <acourbot@nvidia.com>
+Cc: Grant Likely <grant.likely@linaro.org>, Thierry Reding <thierry.reding@gmail.com>, Stephen Warren <swarren@wwwdotorg.org>, Mika Westerberg <mika.westerberg@linux.intel.com>, Alexandre Courbot <gnurou@gmail.com>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Mathias Nyman <mathias.nyman@linux.intel.com>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20130927120654.CUGCrA6tPKh1MXjhx8lzoRcYw1PlAMgpL2bocF_x1Dg@z>
 
-Some ARC SMP systems lack native atomic R-M-W (LLOCK/SCOND) insns and
-can only use atomic EX insn (reg with mem) to build higher level R-M-W
-primitives. This includes a SystemC based SMP simulation model.
+On Thu, Sep 26, 2013 at 9:14 AM, Alexandre Courbot <acourbot@nvidia.com> wrote:
 
-So rwlocks need to use a protecting spinlock for atomic cmp-n-exchange
-operation to update reader(s)/writer count.
+> Here is a proper patch series for the descriptor-based GPIO interface to be
+> merged into -next. It is rebased on your for-next branch and only slightly
+> changed with respect to the RFC I posted earlier, only more thoroughly tested.
+> The documentation part is missing because I need some more time to rework it
+> (I'm on holidays this week but wanted to get the code into -next before 28th),
+> and anyway at this point I just want to make sure that the extra refactoring
+> does not break any existing code.
+>
+> My hope is to get this into -next before the 28th so this patchset can be
+> effectively tested, even if the new interfaces are not used yet. Since the old
+> integer-based interface now relies on top of gpiod_, this should provide good
+> coverage for both.
 
-The spinlock operation itself looks as follows:
+I've applied it now, but no idea whether it will hit the last -next tree in
+time, hopefully at the very last second ...
 
-	mov reg, 1		; 1=locked, 0=unlocked
-retry:
-	EX reg, [lock]		; load existing, store 1, atomically
-	BREQ reg, 1, rety	; if already locked, retry
-
-In single-threaded simulation, SystemC alternates between the 2 cores
-with "N" insn each based scheduling. Additionally for insn with global
-side effect, such as EX writing to shared mem, a core switch is
-enforced too.
-
-Given that, 2 cores doing a repeated EX on same location, Linux often
-got into a livelock e.g. when both cores were fiddling with tasklist
-lock (gdbserver / hackbench) for read/write respectively as the
-sequence diagram below shows:
-
-           core1                                   core2
-         --------                                --------
-1. spin lock [EX r=0, w=1] - LOCKED
-2. rwlock(Read)            - LOCKED
-3. spin unlock  [ST 0]     - UNLOCKED
-                                         spin lock [EX r=0,w=1] - LOCKED
-                      -- resched core 1----
-
-5. spin lock [EX r=1] - ALREADY-LOCKED
-
-                      -- resched core 2----
-6.                                       rwlock(Write) - READER-LOCKED
-7.                                       spin unlock [ST 0]
-8.                                       rwlock failed, retry again
-
-9.                                       spin lock  [EX r=0, w=1]
-                      -- resched core 1----
-
-10  spinlock locked in #9, retry #5
-11. spin lock [EX gets 1]
-                      -- resched core 2----
-...
-...
-
-The fix was to unlock using the EX insn too (step 7), to trigger another
-SystemC scheduling pass which would let core1 proceed, eliding the
-livelock.
-
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
----
- arch/arc/include/asm/spinlock.h | 9 ++++++++-
- 1 file changed, 8 insertions(+), 1 deletion(-)
-
-diff --git a/arch/arc/include/asm/spinlock.h b/arch/arc/include/asm/spinlock.h
-index f158197..b6a8c2d 100644
---- a/arch/arc/include/asm/spinlock.h
-+++ b/arch/arc/include/asm/spinlock.h
-@@ -45,7 +45,14 @@ static inline int arch_spin_trylock(arch_spinlock_t *lock)
- 
- static inline void arch_spin_unlock(arch_spinlock_t *lock)
- {
--	lock->slock = __ARCH_SPIN_LOCK_UNLOCKED__;
-+	unsigned int tmp = __ARCH_SPIN_LOCK_UNLOCKED__;
-+
-+	__asm__ __volatile__(
-+	"	ex  %0, [%1]		\n"
-+	: "+r" (tmp)
-+	: "r"(&(lock->slock))
-+	: "memory");
-+
- 	smp_mb();
- }
- 
--- 
-1.8.1.2
-
+Yours,
+Linus Walleij
