@@ -1,66 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from b.ns.miles-group.at ([95.130.255.144]:1660 "EHLO radon.swed.at"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752904Ab3I0J01 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 Sep 2013 05:26:27 -0400
-Message-ID: <52454F38.60902@nod.at>
-Date: Fri, 27 Sep 2013 11:26:16 +0200
-From: Richard Weinberger <richard@nod.at>
+Received: from alvesta.synopsys.com ([198.182.60.77]:36288 "EHLO
+	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752349Ab3I0K6i (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Sep 2013 06:58:38 -0400
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: [PATCH 4/4] ARC: Use clockevents_config_and_register over clockevents_register_device
+Date: Fri, 27 Sep 2013 16:27:37 +0530
+Message-ID: <1380279457-14299-5-git-send-email-vgupta@synopsys.com>
+In-Reply-To: <1380279457-14299-1-git-send-email-vgupta@synopsys.com>
+References: <1380279457-14299-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH 1/8] um: Create defconfigs for i386 and x86_64
-References: <1377073172-3662-1-git-send-email-richard@nod.at> <1377073172-3662-2-git-send-email-richard@nod.at> <CALkWK0=W38JpZoGVkPYD4qd=+Pt1G7oYPEK_R=c8TAW6W=wxyg@mail.gmail.com> <52440DE0.1030807@nod.at> <52454E58.3010305@gmx.de>
-In-Reply-To: <52454E58.3010305@gmx.de>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?UTF-8?B?VG9yYWxmIEbDtnJzdGVy?= <toralf.foerster@gmx.de>
-Cc: Ramkumar Ramachandra <artagnon@gmail.com>, linux-arch@vger.kernel.org, Michal Marek <mmarek@suse.cz>, geert@linux-m68k.org, ralf@linux-mips.org, lethal@linux-sh.org, Jeff Dike <jdike@addtoit.com>, gxt@mprc.pku.edu.cn, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-kbuild@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, linux-m68k@lists.linux-m68k.org, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net
-Message-ID: <20130927092616.3U8Q4QjAYy-1xCViJrKzpZXs868yOUdZI5IvNVp6NIQ@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: arc-linux-dev@synopsys.com, u.kleine-koenig@pengutronix.de, Noam Camus <noamc@ezchip.com>, Gilad Ben-Yossef <gilad@benyossef.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <20130927105737.ubu6H873Q9mx5OWdb7nEzrOySXeVxnONr4Xras6-SJQ@z>
 
-Am 27.09.2013 11:22, schrieb Toralf Förster:
-> On 09/26/2013 12:35 PM, Richard Weinberger wrote:
->> Am 26.09.2013 12:20, schrieb Ramkumar Ramachandra:
->>> Richard Weinberger wrote:
->>>> This patch is based on: https://lkml.org/lkml/2013/7/4/396
->>>>
->>>> Cc: Ramkumar Ramachandra <artagnon@gmail.com>
->>>> Signed-off-by: Richard Weinberger <richard@nod.at>
->>>> ---
->>>>  arch/um/configs/i386_defconfig   | 954 +++++++++++++++++++++++++++++++++++++++
->>>>  arch/um/configs/x86_64_defconfig | 943 ++++++++++++++++++++++++++++++++++++++
->>>>  2 files changed, 1897 insertions(+)
->>>>  create mode 100644 arch/um/configs/i386_defconfig
->>>>  create mode 100644 arch/um/configs/x86_64_defconfig
->>>
->>> First, I'm pissed that the upstream tree doesn't build and run out of
->>> the box months after I submitted a fix in July (and it's September
->>> now). Fact that you dropped my sane patches aside and decided to write
->>> a much larger series aside, user-mode Linux in upstream is broken.
->>> This means that any user who does:
->>>
->>> $ ARCH=um make defconfig
->>> $ ARCH=um make
->>>
->>> will end up with a *broken* Linux _today_. Unless the user is living
->>> in the Stone Age with a 32-bit computer, this is what she will see
->>> when she attempts to boot up Linux:
-> 
-> :-{
-> 
-> Grmpf
-> 
-> There are a lot of 32 bit user land linux installation (beside my own,
-> look at the x86 Gentoo world) in the wild - even running on modern 64bit
-> CPUs. The simple reason is that those installations run fine and the
-> performance "boost" of 64bit often isn't worth a new reinstallation.
+From: Uwe Kleine-König <u.kleine-koenig@pengutronix.de>
 
-You *can* of course run 32bit userland on UML. Just create a 32bit UML on x86_64.
+clockevents_config_and_register is more clever and correct than doing it
+by hand; so use it.
 
-make defconfig ARCH=um SUBARCH=i386
-make linux ARCH=um SUBARCH=i386
+[vgupta: fixed build failure due to missing ; in patch]
 
-This will work on x86_64 and x86 hosts.
+Signed-off-by: Uwe Kleine-König <u.kleine-koenig@pengutronix.de>
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+---
+ arch/arc/kernel/time.c | 7 ++-----
+ 1 file changed, 2 insertions(+), 5 deletions(-)
 
-Thanks,
-//richard
+diff --git a/arch/arc/kernel/time.c b/arch/arc/kernel/time.c
+index 0e51e69..3fde7de 100644
+--- a/arch/arc/kernel/time.c
++++ b/arch/arc/kernel/time.c
+@@ -227,12 +227,9 @@ void __attribute__((weak)) arc_local_timer_setup(unsigned int cpu)
+ {
+ 	struct clock_event_device *clk = &per_cpu(arc_clockevent_device, cpu);
+ 
+-	clockevents_calc_mult_shift(clk, arc_get_core_freq(), 5);
+-
+-	clk->max_delta_ns = clockevent_delta2ns(ARC_TIMER_MAX, clk);
+ 	clk->cpumask = cpumask_of(cpu);
+-
+-	clockevents_register_device(clk);
++	clockevents_config_and_register(clk, arc_get_core_freq(),
++					0, ARC_TIMER_MAX);
+ 
+ 	/*
+ 	 * setup the per-cpu timer IRQ handler - for all cpus
+-- 
+1.8.1.2
+
