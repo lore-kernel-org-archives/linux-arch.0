@@ -1,30 +1,49 @@
-From: <KennethEEGGLESTON@robertdanton.onmicrosoft.com>
-Subject: All in one place. Visit today!
-Date: Fri, 27 Sep 2013 22:06:27 +0000
-Message-ID: <49670f09-6af3-4b8b-a56b-8bf2b5d2c7b8@AMSPR01MB067.eurprd01.prod.exchangelabs.com>
-Mime-Version: 1.1
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [pchecks v2 2/2] percpu: Add preemption checks to __this_cpu ops
+Date: Sat, 28 Sep 2013 10:39:52 +0200
+Message-ID: <20130928083952.GB26167@gmail.com>
+References: <20130924154159.855373283@linux.com>
+ <0000014150a21408-2d759c49-6a9e-4553-956f-2d4b53e710f8-000000@email.amazonses.com>
+ <20130924171029.GB10261@gmail.com>
+ <0000014155fdd6cf-d54da8b8-2198-40ce-8831-4559971e69f0-000000@email.amazonses.com>
+ <20130925181146.GA16693@gmail.com>
+ <000001415fb34afc-79a24112-5d3f-431c-b90c-d6cfa1caf27a-000000@email.amazonses.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from emea01-db3-ndr.ptr.protection.outlook.com ([157.56.120.99]:22220
-	"EHLO emea01-db3-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1753925Ab3I0WG3 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Sep 2013 18:06:29 -0400
+Received: from mail-ea0-f175.google.com ([209.85.215.175]:51517 "EHLO
+	mail-ea0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752533Ab3I1Ij4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 28 Sep 2013 04:39:56 -0400
+Content-Disposition: inline
+In-Reply-To: <000001415fb34afc-79a24112-5d3f-431c-b90c-d6cfa1caf27a-000000@email.amazonses.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Christoph Lameter <cl@linux.com>
+Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>
 
 
-		Dear Customer,
+* Christoph Lameter <cl@linux.com> wrote:
 
-There is a lot of people in this world who spend so much time 
-watching their health that they have not the time to enjoy it.
+> On Wed, 25 Sep 2013, Ingo Molnar wrote:
+> 
+> > >
+> > > I think this is necessary since it seems that the discussions on how 
+> > > to do the raw_cpu conversions may take some time. If we enable it by 
+> > > default then there will be numerous new log messages. That way a 
+> > > developer can enable it for working on this.
+> >
+> > Note that for these patches to be eligible for upstream merge any 
+> > extra warnings that trigger must be fixed, regardless of the default 
+> > setting.
+> 
+> That is exactly what this patch does. There will only be warning if the 
+> user enabled them.
 
-No doctor visits
-Lowest price World Wide 
-Discreet Packaging
+You didn't understand me apparently: all warnings that trigger with the 
+debug CONFIG option enabled must be fixed before this can be sent 
+upstream.
 
-http://translate.googleusercontent.com/translate_c?depth=1&hl=auto&sl=de&url=www.google.com.gi&u=http://onlineshop55.yolasite.com/shop&usg=ALkJrhiPIj0JIe5ltgZLyZ-4D3x8QMLv4g
+Thanks,
 
-Best Regards,
-		
+	Ingo
