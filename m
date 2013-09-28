@@ -1,7 +1,7 @@
 From: Ingo Molnar <mingo@kernel.org>
 Subject: Re: [pchecks v2 2/2] percpu: Add preemption checks to __this_cpu ops
-Date: Sat, 28 Sep 2013 10:39:52 +0200
-Message-ID: <20130928083952.GB26167@gmail.com>
+Date: Sat, 28 Sep 2013 10:44:12 +0200
+Message-ID: <20130928084412.GC26167@gmail.com>
 References: <20130924154159.855373283@linux.com>
  <0000014150a21408-2d759c49-6a9e-4553-956f-2d4b53e710f8-000000@email.amazonses.com>
  <20130924171029.GB10261@gmail.com>
@@ -11,10 +11,10 @@ References: <20130924154159.855373283@linux.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ea0-f175.google.com ([209.85.215.175]:51517 "EHLO
-	mail-ea0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752533Ab3I1Ij4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 28 Sep 2013 04:39:56 -0400
+Received: from mail-ea0-f177.google.com ([209.85.215.177]:54258 "EHLO
+	mail-ea0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753048Ab3I1IoQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 28 Sep 2013 04:44:16 -0400
 Content-Disposition: inline
 In-Reply-To: <000001415fb34afc-79a24112-5d3f-431c-b90c-d6cfa1caf27a-000000@email.amazonses.com>
 Sender: linux-arch-owner@vger.kernel.org
@@ -25,24 +25,22 @@ Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, linux-arch@vger.kernel.
 
 * Christoph Lameter <cl@linux.com> wrote:
 
-> On Wed, 25 Sep 2013, Ingo Molnar wrote:
+> > The blind __this_cpu conversions without proper preempt debugging 
+> > cannot continue without first fixing all the fallout of the missing 
+> > debug checks to begin with.
 > 
-> > >
-> > > I think this is necessary since it seems that the discussions on how 
-> > > to do the raw_cpu conversions may take some time. If we enable it by 
-> > > default then there will be numerous new log messages. That way a 
-> > > developer can enable it for working on this.
-> >
-> > Note that for these patches to be eligible for upstream merge any 
-> > extra warnings that trigger must be fixed, regardless of the default 
-> > setting.
-> 
-> That is exactly what this patch does. There will only be warning if the 
-> user enabled them.
+> That will take some time as the feedback from the other patchset 
+> suggests.
 
-You didn't understand me apparently: all warnings that trigger with the 
-debug CONFIG option enabled must be fixed before this can be sent 
-upstream.
+That's the reason why we insisted on __this_cpu*() primitives growing 
+these essential debug checks early on - which you resisted. I had to bring 
+out NAKs for you to see sense and start fixing the mess already - next 
+time around I'll probably have to NAK your changes earlier to prevent such 
+mishaps.
+
+( Note that some false positives were possibly fixed by the use of the 
+  lib/smp_processor_id.c methods to check for preemptability, so the 
+  situation might not be as dire as your first series suggests. )
 
 Thanks,
 
