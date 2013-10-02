@@ -1,27 +1,51 @@
-From: <AndreSnodgrass@morriswatanabe.onmicrosoft.com>
-Subject: Sometimes things happen much quicker than you would love to.
-Date: Wed, 2 Oct 2013 16:57:09 +0000
-Message-ID: <15f36cce-ebac-4325-b5b1-f6c2bb12a8f1@DB3PR01MB043.eurprd01.prod.exchangelabs.com>
-Mime-Version: 1.1
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from emea01-am1-ndr.ptr.protection.outlook.com ([157.56.116.98]:27431
-	"EHLO emea01-am1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1753497Ab3JBQ5L convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Oct 2013 12:57:11 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+From: David Miller <davem@davemloft.net>
+Subject: [PATCH] Fix generic hugetlb pte check return type.
+Date: Wed, 02 Oct 2013 14:25:09 -0400 (EDT)
+Message-ID: <20131002.142509.1450460988268165850.davem@davemloft.net>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Return-path: <sparclinux-owner@vger.kernel.org>
+Sender: sparclinux-owner@vger.kernel.org
+To: sparclinux@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 
-		Dear Customer 
+The include/asm-generic/hugetlb.h stubs that just vector huge_pte_*()
+calls to the pte_*() implementations won't work in certain situations.
 
-Why missing moments with your loved ones when you have the solution at one click distance?
+x86 and sparc, for example, return "unsigned long" from the bit
+checks, and just go "return pte_val(pte) & PTE_BIT_FOO;"
 
-Never miss a moment again
+But since huge_pte_*() returns 'int', if any high bits on 64-bit are
+relevant, they get chopped off.
 
-http://translate.googleusercontent.com/translate_c?depth=1&hl=auto&sl=fr&url=www.google.cg&u=http://onlineshop67.yolasite.com/shop&usg=ALkJrhhAs7XzGasmEXY2PYhiu2T28tjHzg
+The net effect is that we can loop forever trying to COW a huge page,
+because the huge_pte_write() check signals false all the time.
 
-Best Regards, 
-		
+Reported-by: Gurudas Pai <gurudas.pai@oracle.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+
+Anyone mind if I push this through the sparc tree?
+
+diff --git a/include/asm-generic/hugetlb.h b/include/asm-generic/hugetlb.h
+index d06079c..99b490b 100644
+--- a/include/asm-generic/hugetlb.h
++++ b/include/asm-generic/hugetlb.h
+@@ -6,12 +6,12 @@ static inline pte_t mk_huge_pte(struct page *page, pgprot_t pgprot)
+ 	return mk_pte(page, pgprot);
+ }
+ 
+-static inline int huge_pte_write(pte_t pte)
++static inline unsigned long huge_pte_write(pte_t pte)
+ {
+ 	return pte_write(pte);
+ }
+ 
+-static inline int huge_pte_dirty(pte_t pte)
++static inline unsigned long huge_pte_dirty(pte_t pte)
+ {
+ 	return pte_dirty(pte);
+ }
