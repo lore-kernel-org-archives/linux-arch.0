@@ -1,48 +1,43 @@
-From: Christoph Lameter <cl@linux.com>
-Subject: Re: [pchecks v2 2/2] percpu: Add preemption checks to __this_cpu
- ops
-Date: Wed, 2 Oct 2013 15:11:12 +0000
-Message-ID: <0000014179b908eb-29821dc1-7b08-4dd5-b86b-a88c00864249-000000@email.amazonses.com>
-References: <20130924154159.855373283@linux.com> <0000014150a21408-2d759c49-6a9e-4553-956f-2d4b53e710f8-000000@email.amazonses.com> <20130924171029.GB10261@gmail.com> <0000014155fdd6cf-d54da8b8-2198-40ce-8831-4559971e69f0-000000@email.amazonses.com>
- <20130925181146.GA16693@gmail.com> <000001415fb34afc-79a24112-5d3f-431c-b90c-d6cfa1caf27a-000000@email.amazonses.com> <20130928083952.GB26167@gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v4 0/3] qrwlock: Introducing a queue read/write lock
+ implementation
+Date: Wed, 2 Oct 2013 17:19:37 +0200
+Message-ID: <20131002151937.GU3081@twins.programming.kicks-ass.net>
+References: <1380722946-30468-1-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a9-46.smtp-out.amazonses.com ([54.240.9.46]:43543 "EHLO
-	a9-46.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753121Ab3JBPLN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Oct 2013 11:11:13 -0400
-In-Reply-To: <20130928083952.GB26167@gmail.com>
+Received: from merlin.infradead.org ([205.233.59.134]:48938 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752928Ab3JBPUP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Oct 2013 11:20:15 -0400
+Content-Disposition: inline
+In-Reply-To: <1380722946-30468-1-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>
+To: Waiman Long <Waiman.Long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, "Norton, Scott J" <scott.norton@hp.com>
 
-On Sat, 28 Sep 2013, Ingo Molnar wrote:
+On Wed, Oct 02, 2013 at 10:09:03AM -0400, Waiman Long wrote:
+> v3->v4:
+>  - Optimize the fast path with better cold cache behavior and
+>    performance.
+>  - Removing some testing code.
+>  - Make x86 use queue rwlock with no user configuration.
 
->
-> * Christoph Lameter <cl@linux.com> wrote:
->
-> > On Wed, 25 Sep 2013, Ingo Molnar wrote:
-> >
-> > > >
-> > > > I think this is necessary since it seems that the discussions on how
-> > > > to do the raw_cpu conversions may take some time. If we enable it by
-> > > > default then there will be numerous new log messages. That way a
-> > > > developer can enable it for working on this.
-> > >
-> > > Note that for these patches to be eligible for upstream merge any
-> > > extra warnings that trigger must be fixed, regardless of the default
-> > > setting.
-> >
-> > That is exactly what this patch does. There will only be warning if the
-> > user enabled them.
->
-> You didn't understand me apparently: all warnings that trigger with the
-> debug CONFIG option enabled must be fixed before this can be sent
-> upstream.
+>  arch/x86/Kconfig                      |    1 +
+>  arch/x86/include/asm/spinlock.h       |    2 +
+>  arch/x86/include/asm/spinlock_types.h |    4 +
+>  include/asm-generic/qrwlock.h         |  256 +++++++++++++++++++++++++++++++++
+>  include/linux/rwlock.h                |   15 ++
+>  include/linux/rwlock_types.h          |   13 ++
+>  kernel/Kconfig.locks                  |    7 +
+>  lib/Makefile                          |    1 +
+>  lib/qrwlock.c                         |  247 +++++++++++++++++++++++++++++++
+>  lib/spinlock_debug.c                  |   19 +++
+>  10 files changed, 565 insertions(+), 0 deletions(-)
+>  create mode 100644 include/asm-generic/qrwlock.h
+>  create mode 100644 lib/qrwlock.c
 
-This patchset is required to determine the warnings that will be triggered
-and to get the work to address these issues done. The feedback so far
-indicates that there may be lots of discussions regarding the warnings
-that have been discovered so far. Its not realistic to do this in one go.
+
+Where's the ---- for removing the old rwlock from x86?
