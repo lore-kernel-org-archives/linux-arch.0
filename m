@@ -1,14 +1,18 @@
 From: Waiman Long <Waiman.Long@hp.com>
 Subject: [PATCH v4 1/3] qrwlock: A queue read/write lock implementation
 Date: Wed,  2 Oct 2013 10:09:04 -0400
-Message-ID: <1380722946-30468-2-git-send-email-Waiman.Long@hp.com>
+Message-ID: <1380722946-30468-2-git-send-email-Waiman.Long__16799.6469339871$1380723059$gmane$org@hp.com>
 References: <1380722946-30468-1-git-send-email-Waiman.Long@hp.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from g1t0026.austin.hp.com ([15.216.28.33]:29163 "EHLO
+	g1t0026.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753677Ab3JBOJo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Oct 2013 10:09:44 -0400
 In-Reply-To: <1380722946-30468-1-git-send-email-Waiman.Long@hp.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>Thomas Gleixner <tglx@linutronix.de>Ingo Molnar <mingo@redhat.com>"H. Peter Anvin" <hpa@zytor.com>Arnd Bergmann <arnd@arndb.de>
 Cc: Waiman Long <Waiman.Long@hp.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, "Norton, Scott J" <scott.norton@hp.com>
-List-Id: linux-arch.vger.kernel.org
 
 This patch introduces a new read/write lock implementation that put
 waiting readers and writers into a queue instead of actively contending
