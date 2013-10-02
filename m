@@ -1,18 +1,14 @@
 From: Waiman Long <Waiman.Long@hp.com>
 Subject: [PATCH v4 3/3] qrwlock: Enable fair queue read/write lock
 Date: Wed,  2 Oct 2013 10:09:06 -0400
-Message-ID: <1380722946-30468-4-git-send-email-Waiman.Long@hp.com>
+Message-ID: <1380722946-30468-4-git-send-email-Waiman.Long__30063.6409702294$1380723023$gmane$org@hp.com>
 References: <1380722946-30468-1-git-send-email-Waiman.Long@hp.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g1t0027.austin.hp.com ([15.216.28.34]:4842 "EHLO
-	g1t0027.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753728Ab3JBOJs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Oct 2013 10:09:48 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1380722946-30468-1-git-send-email-Waiman.Long@hp.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>Thomas Gleixner <tglx@linutronix.de>Ingo Molnar <mingo@redhat.com>"H. Peter Anvin" <hpa@zytor.com>Arnd Bergmann <arnd@arndb.de>
 Cc: Waiman Long <Waiman.Long@hp.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, "Norton, Scott J" <scott.norton@hp.com>
+List-Id: linux-arch.vger.kernel.org
 
 By default, queue rwlock is fair among writers and gives preference
 to readers allowing them to steal lock even if a writer is
