@@ -1,115 +1,91 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [pchecks v2 2/2] percpu: Add preemption checks to __this_cpu ops
-Date: Thu, 3 Oct 2013 18:44:59 +0200
-Message-ID: <20131003164459.GA32755@gmail.com>
-References: <20130924171029.GB10261@gmail.com>
- <0000014155fdd6cf-d54da8b8-2198-40ce-8831-4559971e69f0-000000@email.amazonses.com>
- <20130925181146.GA16693@gmail.com>
- <000001415fb34afc-79a24112-5d3f-431c-b90c-d6cfa1caf27a-000000@email.amazonses.com>
- <20130928084412.GC26167@gmail.com>
- <0000014179b65a63-512751f8-346a-4621-b6d1-9abd62e781c9-000000@email.amazonses.com>
- <20131003072100.GA5775@gmail.com>
- <000001417eac34d5-43f9e4c6-661b-4329-ab17-4b8a044922c8-000000@email.amazonses.com>
- <20131003153522.GA31978@gmail.com>
- <000001417f0b7a11-76e469b6-2d0c-4726-8611-27a2ada3e3ec-000000@email.amazonses.com>
+From: Rob Herring <robherring2-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Subject: Re: [PATCH 00/21] of: prom.h clean-up and removal
+Date: Thu, 3 Oct 2013 13:08:00 -0500
+Message-ID: <CAL_JsqJZTJwMM=noq7dDz5nhMcBGxiHgCEqxwN9BaqwZbXtbmA@mail.gmail.com>
+References: <1380221456-11192-1-git-send-email-robherring2@gmail.com>
+	<C2D7FE5348E1B147BCA15975FBA2307514EA98@IN01WEMBXA.internal.synopsys.com>
+	<C2D7FE5348E1B147BCA15975FBA2307514F2CE@IN01WEMBXA.internal.synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ea0-f176.google.com ([209.85.215.176]:57006 "EHLO
-	mail-ea0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754127Ab3JCQpE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Oct 2013 12:45:04 -0400
-Content-Disposition: inline
-In-Reply-To: <000001417f0b7a11-76e469b6-2d0c-4726-8611-27a2ada3e3ec-000000@email.amazonses.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Lameter <cl@linux.com>
-Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <C2D7FE5348E1B147BCA15975FBA2307514F2CE-uUKrqVzojAgF5QVroWrzJvufCSb+aD3WLzEdoUbNIic@public.gmane.org>
+Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Vineet Gupta <Vineet.Gupta1-HKixBCOQz3hWk0Htik3J/w@public.gmane.org>
+Cc: "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Grant Likely <grant.likely-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Rob Herring <rob.herring-bsGFqQB8/DxBDgjK7y7TUQ@public.gmane.org>, "linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
+On Thu, Oct 3, 2013 at 4:33 AM, Vineet Gupta <Vineet.Gupta1-HKixBCOQz3jQFizaE/u3fw@public.gmane.org=
+m> wrote:
+> [Trimmed CC list a bit]
+>
+> On 09/27/2013 10:26 AM, Vineet Gupta wrote:
+>> On 09/27/2013 12:21 AM, Rob Herring wrote:
+>>> From: Rob Herring <rob.herring-bsGFqQB8/DxBDgjK7y7TUQ@public.gmane.org>
+>>>
+>>> This is the second series of clean-up for architecture DT code. The=
+ first
+>>> series is here [1].
+>>>
+>>> As the number of DT enabled architectures has grown, there has been=
+ a lot
+>>> of copy/paste duplication of prom.h. The include ordering for prom.=
+h is
+>>> complex and has resulted in many implicit includes. This series cle=
+ans up
+>>> prom.h and removes the dependency of prom.h includes in the core DT=
+ code
+>>> on all architectures except sparc. This removes prom.h on several
+>>> architectures and makes it an architecture specific include on the =
+rest.
+>>>
+>>> Compiled on arm, arm64, microblaze, mips, openrisc, powerpc, sparc,
+>>> xtensa. Mostly defconfigs and some allyesconfigs. The 0-day builder=
+ has
+>>> also caught some issues.
+>>>
+>>> A branch with both series is available here:
+>>> git://sources.calxeda.com/kernel/linux.git dt-cleanup
+>>>
+>> I gave the latest branch a spin - everything looks good except for a=
+ build warning
+>> - and given the const qualifier in the API, I reckon most (if not al=
+l) would see that.
+>>
+>> It seems this was introduced in first series but maybe I failed to n=
+otice then as
+>> I'm sure I booted that code too.
+>>
+>> ------------------>8-----------------------------
+>>   CC      arch/arc/kernel/devtree.o
+>> arch/arc/kernel/devtree.c: In function =91setup_machine_fdt=92:
+>> arch/arc/kernel/devtree.c:50:8: warning: assignment discards =91cons=
+t=92 qualifier
+>> from pointer target type [enabled by default]
+>>   mdesc =3D of_flat_dt_match_machine(NULL, arch_get_next_mach);
+>>         ^
+>> ------------------>8-----------------------------
+>>
+>> ARM propagates the const to callers - upto setup_arch(), but that mi=
+ght not work
+>> for us as we use it to setup a global @machine_desc which is then us=
+ed to dispatch
+>> the callbacks in platform APIs. Semantically it's good if it is cons=
+t but that
+>> would require making it local and propagating to all the users - not=
+ worth the
+>> trouble I suppose.
+>>
+>> What say you !
+>
+> Ping ?
 
-* Christoph Lameter <cl@linux.com> wrote:
+I think this should be const like arm recently fixed. The structure is
+declared const with MACHINE_START which gets dropped.
 
-> On Thu, 3 Oct 2013, Ingo Molnar wrote:
-> 
-> > _You_ added the facility with broken (== non-existent) preemption 
-> > debugging for __this_cpu ops, _you_ caused Peter Zijstra and others to 
-> > waste time due to you ignoring those requests to add debugging. 
-> > Everyone rightfully expected _you_ to fix the problem you introduced.
-> 
-> Oh what __this_cpu ops was doing was clearly documented at the time it 
-> was merged.
-
-In hindsight it was merged prematurely - such things happen. After it was 
-merged multiple people ran into problems: Thomas Gleixner, Peter Zijlstra 
-and myself. IIRC at the Kernel Summit Linus agreed as well that not having 
-__this_cpu() debug ops was a mistake.
-
-If your only argument left is "but it was merged in that inferior form", 
-and you refuse to fix its shortcomings, then our answer is to learn from 
-our mistake and not merge patches from you in the future, until the 
-facility is fixed.
-
-> > And now you blame the victims of your sloppiness, that they should 
-> > have fixed the problem you introduced?
-> 
-> I fix problems that others introduce into my subsystems as well. If 
-> there is a problem then usually someone shows up with patches to address 
-> these.
-> 
-> > People wasting time and the kernel becoming less robust is not a minor 
-> > issue at all.
-> 
-> Well then I would have expected someone to show up with patches 
-> following through on what was discussed. I am no expert on preemption.
-
-If you don't understand the impact of your changes and the fragility it 
-introduces then that's one more reason to not merge more patches from you 
-until you rectify your omissions.
-
-> > As a starting point it would be fine if you tested it on your own 
-> > systems with all relevant debugging enabled...
-> 
-> Ok done that.
-> 
-> > > These two patches will allow this testing to be done. And I do not see
-> > > any mention of technical issues with the code. [...]
-> >
-> > Here's the list of open technical problems:
-> >
-> >  - Lack of testing - you have not stated it whether any warnings 
-> >    trigger with those two patches applied and debugging enabled, on 
-> >    your systems.
-> 
-> I have posted an earlier patchset which includes fixes for the warnings 
-> that were triggered. It described the testing that was done.
-
-That 'earlier' patch set was with a different version of the preemption 
-checks, and it's not at all clear whether the same warnings still trigger 
-with your latest series.
-
-> >  - I pointed out in detail how your last submission was broken in 
-> >    several places which show lack of time and care on the patch 
-> >    series.
-> 
-> This is regarding the garbled subject line in your inbox? So you want me 
-> to fix the quilt tool now? I can just make this a single patch if that 
-> helps?
-
-Other people are able to submit patch series with non-garbled subject 
-lines using Quilt and other tools. You should not blame Quilt for your 
-messed up submission.
-
-> >  - Your statement in the discussion that warnings will trigger with
-> >    the debug option enabled points to an obvious technical problem as 
-> >    well - all warnings known to trigger by you should be fixed by you, 
-> >    as part of the series.
-> 
-> The problem is that you raised more issues related to the fixes that I 
-> posted. I dont think this can be handled in one patchset.
-
-I disagree - but in any case the patch set is not acceptable for upstream 
-in its current form and my NAK stands, until this is fixed.
-
-Thanks,
-
-	Ingo
+Rob
+--
+To unsubscribe from this list: send the line "unsubscribe devicetree" i=
+n
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
