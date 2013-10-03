@@ -1,35 +1,70 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH] Fix generic hugetlb pte check return type.
-Date: Wed, 02 Oct 2013 19:59:27 -0400 (EDT)
-Message-ID: <20131002.195927.381972750426724578.davem@davemloft.net>
-References: <20131002.142509.1450460988268165850.davem@davemloft.net>
-	<alpine.DEB.2.02.1310021531030.18461@chino.kir.corp.google.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [pchecks v2 2/2] percpu: Add preemption checks to __this_cpu ops
+Date: Thu, 3 Oct 2013 09:21:00 +0200
+Message-ID: <20131003072100.GA5775@gmail.com>
+References: <20130924154159.855373283@linux.com>
+ <0000014150a21408-2d759c49-6a9e-4553-956f-2d4b53e710f8-000000@email.amazonses.com>
+ <20130924171029.GB10261@gmail.com>
+ <0000014155fdd6cf-d54da8b8-2198-40ce-8831-4559971e69f0-000000@email.amazonses.com>
+ <20130925181146.GA16693@gmail.com>
+ <000001415fb34afc-79a24112-5d3f-431c-b90c-d6cfa1caf27a-000000@email.amazonses.com>
+ <20130928084412.GC26167@gmail.com>
+ <0000014179b65a63-512751f8-346a-4621-b6d1-9abd62e781c9-000000@email.amazonses.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:51732 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753034Ab3JBX72 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Oct 2013 19:59:28 -0400
-In-Reply-To: <alpine.DEB.2.02.1310021531030.18461@chino.kir.corp.google.com>
+Received: from mail-ea0-f170.google.com ([209.85.215.170]:52429 "EHLO
+	mail-ea0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752010Ab3JCHVF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Oct 2013 03:21:05 -0400
+Content-Disposition: inline
+In-Reply-To: <0000014179b65a63-512751f8-346a-4621-b6d1-9abd62e781c9-000000@email.amazonses.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: rientjes@google.com
-Cc: sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Christoph Lameter <cl@linux.com>
+Cc: Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>
 
-From: David Rientjes <rientjes@google.com>
-Date: Wed, 2 Oct 2013 15:34:48 -0700 (PDT)
 
-> On Wed, 2 Oct 2013, David Miller wrote:
-> 
-> Acked-by: David Rientjes <rientjes@google.com>
-> 
->> ---
->> 
->> Anyone mind if I push this through the sparc tree?
->> 
-> 
-> Makes sense since it's the only arch that appears affected.
+* Christoph Lameter <cl@linux.com> wrote:
 
-Ok, thanks for reviewing.
+> On Sat, 28 Sep 2013, Ingo Molnar wrote:
+> 
+> >
+> > * Christoph Lameter <cl@linux.com> wrote:
+> >
+> > > > The blind __this_cpu conversions without proper preempt debugging 
+> > > > cannot continue without first fixing all the fallout of the 
+> > > > missing debug checks to begin with.
+> > >
+> > > That will take some time as the feedback from the other patchset 
+> > > suggests.
+> >
+> > That's the reason why we insisted on __this_cpu*() primitives growing 
+> > these essential debug checks early on - which you resisted. I had to 
+> > bring out NAKs for you to see sense and start fixing the mess already 
+> > - next time around I'll probably have to NAK your changes earlier to 
+> > prevent such mishaps.
+> 
+> I pointed out the issues that would have to be addressed when the 
+> brought up the issue. It seemed that Steven was working on it, I fixed 
+> some of the problems that he mentioned and then waited. Seems that 
+> nothing was happening on the issue then. Guess it was not that important 
+> to you. [...]
+
+It was important to me and other maintainers as well back then and today 
+as well, as me and others complained about it out numerous times.
+
+What we didn't do was to outright NAK your naked __this_cpu changes 
+straight away and thus prevent them from getting upstream.
+
+I can fix that omission easily: consider all your __this_cpu* patches 
+NAK-ed by me until the (trivial) preemption debug checks are upstream 
+worthy:
+
+  - tested
+  - complete
+  - don't produce false warnings when enabled.
+
+Thanks,
+
+	Ingo
