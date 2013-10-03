@@ -1,27 +1,33 @@
-From: <BillJohnston@markdanton.onmicrosoft.com>
-Subject: Let the moment last as much as you want.
-Date: Thu, 3 Oct 2013 10:38:18 +0000
-Message-ID: <cf628217-fb84-437a-b7ee-16a4e99f2173@DB3PR04MB137.eurprd04.prod.outlook.com>
-Mime-Version: 1.1
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [pchecks v2 2/2] percpu: Add preemption checks to __this_cpu ops
+Date: Thu, 3 Oct 2013 15:55:10 +0200
+Message-ID: <20131003135510.GJ28601@twins.programming.kicks-ass.net>
+References: <20130924154159.855373283@linux.com>
+ <0000014150a21408-2d759c49-6a9e-4553-956f-2d4b53e710f8-000000@email.amazonses.com>
+ <20130924171029.GB10261@gmail.com>
+ <0000014155fdd6cf-d54da8b8-2198-40ce-8831-4559971e69f0-000000@email.amazonses.com>
+ <20130925181146.GA16693@gmail.com>
+ <000001415fb34afc-79a24112-5d3f-431c-b90c-d6cfa1caf27a-000000@email.amazonses.com>
+ <20130928084412.GC26167@gmail.com>
+ <0000014179b65a63-512751f8-346a-4621-b6d1-9abd62e781c9-000000@email.amazonses.com>
+ <20131003072100.GA5775@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from emea01-am1-ndr.ptr.protection.outlook.com ([157.56.116.104]:1967
-	"EHLO emea01-am1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1753834Ab3JCKiU convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Oct 2013 06:38:20 -0400
+Received: from merlin.infradead.org ([205.233.59.134]:46843 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752347Ab3JCNzY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Oct 2013 09:55:24 -0400
+Content-Disposition: inline
+In-Reply-To: <20131003072100.GA5775@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Christoph Lameter <cl@linux.com>, Tejun Heo <tj@kernel.org>, akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>
 
+On Thu, Oct 03, 2013 at 09:21:00AM +0200, Ingo Molnar wrote:
+> It was important to me and other maintainers as well back then and today 
+> as well, as me and others complained about it out numerous times.
 
-		Dear Customer 
-
-Why missing moments with your loved ones when you have the solution at one click distance?
-
-Never miss a moment again
-
-http://translate.googleusercontent.com/translate_c?depth=1&hl=auto&sl=de&url=www.google.com.eg&u=http://myonlineshop2.yolasite.com/shop&usg=ALkJrhhAs7XzGasmEXY2PYhiu2T28tjHzg
-
-Best Regards, 
-		
+I can testify to that; the lack of these preemption checks have wasted
+hours of my and Thomas' time, probably others as well.
