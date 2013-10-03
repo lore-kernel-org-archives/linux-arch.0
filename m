@@ -1,70 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f49.google.com ([209.85.220.49]:63785 "EHLO
-	mail-pa0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753114Ab3JBWev (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Oct 2013 18:34:51 -0400
-Received: by mail-pa0-f49.google.com with SMTP id ld10so1679755pab.22
-        for <linux-arch@vger.kernel.org>; Wed, 02 Oct 2013 15:34:50 -0700 (PDT)
-Date: Wed, 2 Oct 2013 15:34:48 -0700 (PDT)
-From: David Rientjes <rientjes@google.com>
-Subject: Re: [PATCH] Fix generic hugetlb pte check return type.
-In-Reply-To: <20131002.142509.1450460988268165850.davem@davemloft.net>
-Message-ID: <alpine.DEB.2.02.1310021531030.18461@chino.kir.corp.google.com>
-References: <20131002.142509.1450460988268165850.davem@davemloft.net>
+Received: from vaxjo.synopsys.com ([198.182.60.75]:55266 "EHLO
+	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751710Ab3JCJdx convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Oct 2013 05:33:53 -0400
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH 00/21] of: prom.h clean-up and removal
+Date: Thu, 3 Oct 2013 09:33:42 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA2307514F2CE@IN01WEMBXA.internal.synopsys.com>
+References: <1380221456-11192-1-git-send-email-robherring2@gmail.com>
+ <C2D7FE5348E1B147BCA15975FBA2307514EA98@IN01WEMBXA.internal.synopsys.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="Windows-1252"
+Content-Transfer-Encoding: 8BIT
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20131002223448.nm03eUwx0b0ZIO9zvP3n_gHoeYpVj3mAlTlfGSVCAfk@z>
+To: Rob Herring <robherring2@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
+Cc: Grant Likely <grant.likely@linaro.org>, Rob Herring <rob.herring@calxeda.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, James Hogan <james.hogan@imgtec.com>
+Message-ID: <20131003093342.HhSwpKILT465N3Q-xKXUaiOldyawmb_Iist02tPCFOk@z>
 
-On Wed, 2 Oct 2013, David Miller wrote:
+[Trimmed CC list a bit]
 
-> The include/asm-generic/hugetlb.h stubs that just vector huge_pte_*()
-> calls to the pte_*() implementations won't work in certain situations.
-> 
-> x86 and sparc, for example, return "unsigned long" from the bit
-> checks, and just go "return pte_val(pte) & PTE_BIT_FOO;"
-> 
+On 09/27/2013 10:26 AM, Vineet Gupta wrote:
+> On 09/27/2013 12:21 AM, Rob Herring wrote:
+>> From: Rob Herring <rob.herring@calxeda.com>
+>>
+>> This is the second series of clean-up for architecture DT code. The first
+>> series is here [1].
+>>
+>> As the number of DT enabled architectures has grown, there has been a lot
+>> of copy/paste duplication of prom.h. The include ordering for prom.h is
+>> complex and has resulted in many implicit includes. This series cleans up
+>> prom.h and removes the dependency of prom.h includes in the core DT code
+>> on all architectures except sparc. This removes prom.h on several
+>> architectures and makes it an architecture specific include on the rest.
+>>
+>> Compiled on arm, arm64, microblaze, mips, openrisc, powerpc, sparc,
+>> xtensa. Mostly defconfigs and some allyesconfigs. The 0-day builder has
+>> also caught some issues.
+>>
+>> A branch with both series is available here:
+>> git://sources.calxeda.com/kernel/linux.git dt-cleanup
+>>
+> I gave the latest branch a spin - everything looks good except for a build warning
+> - and given the const qualifier in the API, I reckon most (if not all) would see that.
+>
+> It seems this was introduced in first series but maybe I failed to notice then as
+> I'm sure I booted that code too.
+>
+> ------------------>8-----------------------------
+>   CC      arch/arc/kernel/devtree.o
+> arch/arc/kernel/devtree.c: In function ‘setup_machine_fdt’:
+> arch/arc/kernel/devtree.c:50:8: warning: assignment discards ‘const’ qualifier
+> from pointer target type [enabled by default]
+>   mdesc = of_flat_dt_match_machine(NULL, arch_get_next_mach);
+>         ^
+> ------------------>8-----------------------------
+>
+> ARM propagates the const to callers - upto setup_arch(), but that might not work
+> for us as we use it to setup a global @machine_desc which is then used to dispatch
+> the callbacks in platform APIs. Semantically it's good if it is const but that
+> would require making it local and propagating to all the users - not worth the
+> trouble I suppose.
+>
+> What say you !
 
-x86 should be safe since it's known that both _PAGE_BIT_RW and 
-_PAGE_BIT_DIRTY are <= 32.
+Ping ?
 
-> But since huge_pte_*() returns 'int', if any high bits on 64-bit are
-> relevant, they get chopped off.
-> 
-> The net effect is that we can loop forever trying to COW a huge page,
-> because the huge_pte_write() check signals false all the time.
-> 
-> Reported-by: Gurudas Pai <gurudas.pai@oracle.com>
-> Signed-off-by: David S. Miller <davem@davemloft.net>
 
-Acked-by: David Rientjes <rientjes@google.com>
-
-> ---
-> 
-> Anyone mind if I push this through the sparc tree?
-> 
-
-Makes sense since it's the only arch that appears affected.
-
-> diff --git a/include/asm-generic/hugetlb.h b/include/asm-generic/hugetlb.h
-> index d06079c..99b490b 100644
-> --- a/include/asm-generic/hugetlb.h
-> +++ b/include/asm-generic/hugetlb.h
-> @@ -6,12 +6,12 @@ static inline pte_t mk_huge_pte(struct page *page, pgprot_t pgprot)
->  	return mk_pte(page, pgprot);
->  }
->  
-> -static inline int huge_pte_write(pte_t pte)
-> +static inline unsigned long huge_pte_write(pte_t pte)
->  {
->  	return pte_write(pte);
->  }
->  
-> -static inline int huge_pte_dirty(pte_t pte)
-> +static inline unsigned long huge_pte_dirty(pte_t pte)
->  {
->  	return pte_dirty(pte);
->  }
