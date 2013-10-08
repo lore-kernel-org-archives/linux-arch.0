@@ -1,102 +1,212 @@
 From: Richard Weinberger <richard@nod.at>
-Subject: Global do_signal() cleanup
-Date: Tue,  8 Oct 2013 13:27:52 +0200
-Message-ID: <1381231701-4008-1-git-send-email-richard@nod.at>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from b.ns.miles-group.at ([95.130.255.144]:1661 "EHLO radon.swed.at"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1754612Ab3JHL2w (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 Oct 2013 07:28:52 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [PATCH 02/29] arm64: Use get_signal() signal_setup_done()
+Date: Tue,  8 Oct 2013 13:27:54 +0200
+Message-ID: <1381231701-4008-3-git-send-email-richard@nod.at>
+References: <1381231701-4008-1-git-send-email-richard@nod.at>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1381231701-4008-1-git-send-email-richard@nod.at>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, vgupta@synopsys.com, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, vapier@gentoo.org, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, yasutake.koichi@jp.panasonic.com, ralf@linux-mips.org, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, lethal@linux-sh.org, cmetcalf@tilera.com, gxt@mprc.pku.edu.cn, linux-xtensa@linux-xtensa.org, akpm@linux-foundation.org, oleg@redhat.com, tj@kernel.org
+Cc: linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, vgupta@synopsys.com, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, vapier@gentoo.org, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, yasutake.koichi@jp.panasonic.com, ralf@linux-mips.org, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, lethal@linux-sh.org, cmetcalf@tilera.com, gxt@mprc.pku.edu.cn, linux-xtensa@linux-xtensa.org, akpm@linux-foundation.org, oleg@redhat.com, tj@kernel.org, Richard Weinberger <richard@nod.at>
+List-Id: linux-arch.vger.kernel.org
 
-This patch series moves all remaining archs to the get_signal() and
-signal_setup_done() functions. Currently these archs use open coded
-variants of the said functions.  Further, unused parameters get removed
-from get_signal_to_deliver(), tracehook_signal_handler() and signal_delivered().
-After all we save around 350 lines of code. :-)
+Use the more generic functions get_signal() signal_setup_done()
+for signal delivery.
 
-The following archs are _untested_: arc, c6x, hexagon, metag, score, unicore, sh64.
-If someone points me to cross compilers for these arch I'll happily build test them too.
+Signed-off-by: Richard Weinberger <richard@nod.at>
+---
+ arch/arm64/include/asm/signal32.h |  7 +++---
+ arch/arm64/kernel/signal.c        | 48 ++++++++++++++++-----------------------
+ arch/arm64/kernel/signal32.c      |  8 +++----
+ 3 files changed, 27 insertions(+), 36 deletions(-)
 
-Thanks,
-//richard
-
-[PATCH 01/29] arc: Use get_signal() signal_setup_done()
-[PATCH 02/29] arm64: Use get_signal() signal_setup_done()
-[PATCH 03/29] avr32: Use get_signal() signal_setup_done()
-[PATCH 04/29] blackfin: Use get_signal() signal_setup_done()
-[PATCH 05/29] c6x: Use get_signal() signal_setup_done()
-[PATCH 06/29] cris: Use get_signal() signal_setup_done()
-[PATCH 07/29] frv: Use get_signal() signal_setup_done()
-[PATCH 08/29] h8300: Use get_signal() signal_setup_done()
-[PATCH 09/29] hexagon: Use get_signal() signal_setup_done()
-[PATCH 10/29] ia64: Use get_signal() signal_setup_done()
-[PATCH 11/29] m32r: Use get_signal() signal_setup_done()
-[PATCH 12/29] m68k: Use get_signal() signal_setup_done()
-[PATCH 13/29] metag: Use get_signal() signal_setup_done()
-[PATCH 14/29] microblaze: Use get_signal() signal_setup_done()
-[PATCH 15/29] mips: Use get_signal() signal_setup_done()
-[PATCH 16/29] mn10300: Use get_signal() signal_setup_done()
-[PATCH 17/29] openrisc: Use get_signal() signal_setup_done()
-[PATCH 18/29] parisc: Use get_signal() signal_setup_done()
-[PATCH 19/29] powerpc: Use get_signal() signal_setup_done()
-[PATCH 20/29] s390: Use get_signal() signal_setup_done()
-[PATCH 21/29] score: Use get_signal() signal_setup_done()
-[PATCH 22/29] sh: Use get_signal() signal_setup_done()
-[PATCH 23/29] tile: Use get_signal() signal_setup_done()
-[PATCH 24/29] um: Use get_signal() signal_setup_done()
-[PATCH 25/29] unicore32: Use get_signal() signal_setup_done()
-[PATCH 26/29] xtensa: Use get_signal() signal_setup_done()
-[PATCH 27/29] get_signal_to_deliver: remove regs and cookie args
-[PATCH 28/29] tracehook_signal_handler: Remove sig, info, ka and regs
-[PATCH 29/29] Clean up signal_delivered()
-
- arch/arc/kernel/signal.c            |   39 +++++---------
- arch/arm64/include/asm/signal32.h   |    7 +-
- arch/arm64/kernel/signal.c          |   48 +++++++----------
- arch/arm64/kernel/signal32.c        |    8 +-
- arch/avr32/kernel/signal.c          |   43 ++++++---------
- arch/blackfin/kernel/signal.c       |   39 ++++++--------
- arch/c6x/kernel/signal.c            |   43 ++++++---------
- arch/cris/arch-v10/kernel/signal.c  |   79 ++++++++++++----------------
- arch/cris/arch-v32/kernel/signal.c  |   77 ++++++++++------------------
- arch/frv/kernel/signal.c            |   99 ++++++++++++++----------------------
- arch/h8300/kernel/signal.c          |   81 ++++++++++++-----------------
- arch/hexagon/kernel/signal.c        |   45 ++++++----------
- arch/ia64/kernel/signal.c           |   42 ++++++---------
- arch/m32r/kernel/signal.c           |   47 +++++++----------
- arch/m68k/kernel/signal.c           |   63 ++++++++--------------
- arch/metag/kernel/signal.c          |   55 ++++++++------------
- arch/microblaze/kernel/signal.c     |   48 ++++++-----------
- arch/mips/include/asm/abi.h         |   10 +--
- arch/mips/kernel/signal.c           |   66 +++++++++---------------
- arch/mips/kernel/signal32.c         |   39 +++++---------
- arch/mips/kernel/signal_n32.c       |   20 ++-----
- arch/mn10300/kernel/signal.c        |   89 +++++++++++++-------------------
- arch/openrisc/kernel/signal.c       |   53 +++++++------------
- arch/parisc/kernel/signal.c         |   58 ++++++++-------------
- arch/powerpc/kernel/signal.c        |   31 ++++-------
- arch/powerpc/kernel/signal.h        |   12 +---
- arch/powerpc/kernel/signal_32.c     |   38 +++++--------
- arch/powerpc/kernel/signal_64.c     |   27 ++++-----
- arch/s390/kernel/compat_signal.c    |   77 ++++++++++++----------------
- arch/s390/kernel/entry.h            |    4 -
- arch/s390/kernel/signal.c           |   79 +++++++++++-----------------
- arch/score/kernel/signal.c          |   43 ++++++---------
- arch/sh/kernel/signal_32.c          |   79 +++++++++++-----------------
- arch/sh/kernel/signal_64.c          |   82 +++++++++++------------------
- arch/tile/include/asm/compat.h      |    3 -
- arch/tile/kernel/compat_signal.c    |   29 +++++-----
- arch/tile/kernel/signal.c           |   54 ++++++++-----------
- arch/um/include/shared/frame_kern.h |   12 +---
- arch/um/kernel/signal.c             |   27 ++++-----
- arch/unicore32/kernel/signal.c      |   48 +++++++----------
- arch/x86/um/signal.c                |   45 +++++++---------
- arch/xtensa/kernel/signal.c         |   43 +++++----------
- include/linux/signal.h              |    6 --
- include/linux/tracehook.h           |    8 --
- kernel/signal.c                     |   26 +++------
- 45 files changed, 804 insertions(+), 1167 deletions(-)
+diff --git a/arch/arm64/include/asm/signal32.h b/arch/arm64/include/asm/signal32.h
+index 7c275e3..db544f1 100644
+--- a/arch/arm64/include/asm/signal32.h
++++ b/arch/arm64/include/asm/signal32.h
+@@ -26,8 +26,8 @@ extern const compat_ulong_t aarch32_sigret_code[6];
+ 
+ int compat_setup_frame(int usig, struct k_sigaction *ka, sigset_t *set,
+ 		       struct pt_regs *regs);
+-int compat_setup_rt_frame(int usig, struct k_sigaction *ka, siginfo_t *info,
+-			  sigset_t *set, struct pt_regs *regs);
++int compat_setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
++			  struct pt_regs *regs);
+ 
+ void compat_setup_restart_syscall(struct pt_regs *regs);
+ #else
+@@ -38,8 +38,7 @@ static inline int compat_setup_frame(int usid, struct k_sigaction *ka,
+ 	return -ENOSYS;
+ }
+ 
+-static inline int compat_setup_rt_frame(int usig, struct k_sigaction *ka,
+-					siginfo_t *info, sigset_t *set,
++static inline int compat_setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
+ 					struct pt_regs *regs)
+ {
+ 	return -ENOSYS;
+diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
+index 890a591..f6f23dd 100644
+--- a/arch/arm64/kernel/signal.c
++++ b/arch/arm64/kernel/signal.c
+@@ -239,13 +239,13 @@ static void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
+ 	regs->regs[30] = (unsigned long)sigtramp;
+ }
+ 
+-static int setup_rt_frame(int usig, struct k_sigaction *ka, siginfo_t *info,
+-			  sigset_t *set, struct pt_regs *regs)
++static int setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
++			  struct pt_regs *regs)
+ {
+ 	struct rt_sigframe __user *frame;
+ 	int err = 0;
+ 
+-	frame = get_sigframe(ka, regs);
++	frame = get_sigframe(&ksig->ka, regs);
+ 	if (!frame)
+ 		return 1;
+ 
+@@ -255,9 +255,9 @@ static int setup_rt_frame(int usig, struct k_sigaction *ka, siginfo_t *info,
+ 	err |= __save_altstack(&frame->uc.uc_stack, regs->sp);
+ 	err |= setup_sigframe(frame, regs, set);
+ 	if (err == 0) {
+-		setup_return(regs, ka, frame, usig);
+-		if (ka->sa.sa_flags & SA_SIGINFO) {
+-			err |= copy_siginfo_to_user(&frame->info, info);
++		setup_return(regs, &ksig->ka, frame, usig);
++		if (ksig->ka.sa.sa_flags & SA_SIGINFO) {
++			err |= copy_siginfo_to_user(&frame->info, &ksig->info);
+ 			regs->regs[1] = (unsigned long)&frame->info;
+ 			regs->regs[2] = (unsigned long)&frame->uc;
+ 		}
+@@ -277,13 +277,12 @@ static void setup_restart_syscall(struct pt_regs *regs)
+ /*
+  * OK, we're invoking a handler
+  */
+-static void handle_signal(unsigned long sig, struct k_sigaction *ka,
+-			  siginfo_t *info, struct pt_regs *regs)
++static void handle_signal(struct ksignal *ksig, struct pt_regs *regs)
+ {
+ 	struct thread_info *thread = current_thread_info();
+ 	struct task_struct *tsk = current;
+ 	sigset_t *oldset = sigmask_to_save();
+-	int usig = sig;
++	int usig = ksig->sig;
+ 	int ret;
+ 
+ 	/*
+@@ -296,13 +295,12 @@ static void handle_signal(unsigned long sig, struct k_sigaction *ka,
+ 	 * Set up the stack frame
+ 	 */
+ 	if (is_compat_task()) {
+-		if (ka->sa.sa_flags & SA_SIGINFO)
+-			ret = compat_setup_rt_frame(usig, ka, info, oldset,
+-						    regs);
++		if (ksig->ka.sa.sa_flags & SA_SIGINFO)
++			ret = compat_setup_rt_frame(usig, ksig, oldset, regs);
+ 		else
+-			ret = compat_setup_frame(usig, ka, oldset, regs);
++			ret = compat_setup_frame(usig, &ksig->ka, oldset, regs);
+ 	} else {
+-		ret = setup_rt_frame(usig, ka, info, oldset, regs);
++		ret = setup_rt_frame(usig, ksig, oldset, regs);
+ 	}
+ 
+ 	/*
+@@ -310,18 +308,14 @@ static void handle_signal(unsigned long sig, struct k_sigaction *ka,
+ 	 */
+ 	ret |= !valid_user_regs(&regs->user_regs);
+ 
+-	if (ret != 0) {
+-		force_sigsegv(sig, tsk);
+-		return;
+-	}
+-
+ 	/*
+ 	 * Fast forward the stepping logic so we step into the signal
+ 	 * handler.
+ 	 */
+-	user_fastforward_single_step(tsk);
++	if (!ret)
++		user_fastforward_single_step(tsk);
+ 
+-	signal_delivered(sig, info, ka, regs, 0);
++	signal_setup_done(ret, ksig, 0);
+ }
+ 
+ /*
+@@ -336,10 +330,9 @@ static void handle_signal(unsigned long sig, struct k_sigaction *ka,
+ static void do_signal(struct pt_regs *regs)
+ {
+ 	unsigned long continue_addr = 0, restart_addr = 0;
+-	struct k_sigaction ka;
+-	siginfo_t info;
+-	int signr, retval = 0;
++	int retval = 0;
+ 	int syscall = (int)regs->syscallno;
++	struct ksignal ksig;
+ 
+ 	/*
+ 	 * If we were from a system call, check for system call restarting...
+@@ -373,8 +366,7 @@ static void do_signal(struct pt_regs *regs)
+ 	 * Get the signal to deliver. When running under ptrace, at this point
+ 	 * the debugger may change all of our registers.
+ 	 */
+-	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
+-	if (signr > 0) {
++	if (get_signal(&ksig)) {
+ 		/*
+ 		 * Depending on the signal settings, we may need to revert the
+ 		 * decision to restart the system call, but skip this if a
+@@ -384,12 +376,12 @@ static void do_signal(struct pt_regs *regs)
+ 		    (retval == -ERESTARTNOHAND ||
+ 		     retval == -ERESTART_RESTARTBLOCK ||
+ 		     (retval == -ERESTARTSYS &&
+-		      !(ka.sa.sa_flags & SA_RESTART)))) {
++		      !(ksig.ka.sa.sa_flags & SA_RESTART)))) {
+ 			regs->regs[0] = -EINTR;
+ 			regs->pc = continue_addr;
+ 		}
+ 
+-		handle_signal(signr, &ka, &info, regs);
++		handle_signal(&ksig, regs);
+ 		return;
+ 	}
+ 
+diff --git a/arch/arm64/kernel/signal32.c b/arch/arm64/kernel/signal32.c
+index e393174..a577f88 100644
+--- a/arch/arm64/kernel/signal32.c
++++ b/arch/arm64/kernel/signal32.c
+@@ -545,18 +545,18 @@ static int compat_setup_sigframe(struct compat_sigframe __user *sf,
+ /*
+  * 32-bit signal handling routines called from signal.c
+  */
+-int compat_setup_rt_frame(int usig, struct k_sigaction *ka, siginfo_t *info,
++int compat_setup_rt_frame(int usig, struct ksignal *ksig,
+ 			  sigset_t *set, struct pt_regs *regs)
+ {
+ 	struct compat_rt_sigframe __user *frame;
+ 	int err = 0;
+ 
+-	frame = compat_get_sigframe(ka, regs, sizeof(*frame));
++	frame = compat_get_sigframe(&ksig->ka, regs, sizeof(*frame));
+ 
+ 	if (!frame)
+ 		return 1;
+ 
+-	err |= copy_siginfo_to_user32(&frame->info, info);
++	err |= copy_siginfo_to_user32(&frame->info, &ksig->info);
+ 
+ 	__put_user_error(0, &frame->sig.uc.uc_flags, err);
+ 	__put_user_error(0, &frame->sig.uc.uc_link, err);
+@@ -566,7 +566,7 @@ int compat_setup_rt_frame(int usig, struct k_sigaction *ka, siginfo_t *info,
+ 	err |= compat_setup_sigframe(&frame->sig, regs, set);
+ 
+ 	if (err == 0) {
+-		compat_setup_return(regs, ka, frame->sig.retcode, frame, usig);
++		compat_setup_return(regs, &ksig->ka, frame->sig.retcode, frame, usig);
+ 		regs->regs[1] = (compat_ulong_t)(unsigned long)&frame->info;
+ 		regs->regs[2] = (compat_ulong_t)(unsigned long)&frame->sig.uc;
+ 	}
+-- 
+1.8.1.4
