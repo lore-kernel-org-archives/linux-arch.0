@@ -1,39 +1,127 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ea0-f174.google.com ([209.85.215.174]:34114 "EHLO
-	mail-ea0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751717Ab3JHICQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Oct 2013 04:02:16 -0400
-Date: Tue, 8 Oct 2013 10:02:12 +0200
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v2 3/3] sched: Remove ARCH specific fpu_counter from
- task_struct
-Message-ID: <20131008080212.GA6541@gmail.com>
-References: <1381218389-16585-1-git-send-email-vgupta@synopsys.com>
- <1381218389-16585-4-git-send-email-vgupta@synopsys.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1381218389-16585-4-git-send-email-vgupta@synopsys.com>
+Received: from b.ns.miles-group.at ([95.130.255.144]:1669 "EHLO radon.swed.at"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1755046Ab3JHL3C (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 Oct 2013 07:29:02 -0400
+From: Richard Weinberger <richard@nod.at>
+Subject: [PATCH 04/29] blackfin: Use get_signal() signal_setup_done()
+Date: Tue,  8 Oct 2013 13:27:56 +0200
+Message-ID: <1381231701-4008-5-git-send-email-richard@nod.at>
+In-Reply-To: <1381231701-4008-1-git-send-email-richard@nod.at>
+References: <1381231701-4008-1-git-send-email-richard@nod.at>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Paul Mundt <paul.mundt@gmail.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20131008080212.Fjz9NYqw4XvOOJoEKLQ2gg0KKksEkbWgfQqmmYIq5LE@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, vgupta@synopsys.com, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, vapier@gentoo.org, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, yasutake.koichi@jp.panasonic.com, ralf@linux-mips.org, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, lethal@linux-sh.org, cmetcalf@tilera.com, gxt@mprc.pku.edu.cn, linux-xtensa@linux-xtensa.org, akpm@linux-foundation.org, oleg@redhat.com, tj@kernel.org, Richard Weinberger <richard@nod.at>
+Message-ID: <20131008112756.Erb_Fbryl9tEyPHAXTcduOgFNRl5_jsVeQXGWHCTfCI@z>
 
+Use the more generic functions get_signal() signal_setup_done()
+for signal delivery.
 
-* Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
+Signed-off-by: Richard Weinberger <richard@nod.at>
+---
+ arch/blackfin/kernel/signal.c | 39 +++++++++++++++++----------------------
+ 1 file changed, 17 insertions(+), 22 deletions(-)
 
-> From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-> 
-> fpu_counter in task_struct was used only by sh/x86.
-> Both of these now carry it in ARCH specific thread_struct, hence this
-> can now be removed from generic task_struct, shrinking it slightly for
-> other arches.
-> 
-> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+diff --git a/arch/blackfin/kernel/signal.c b/arch/blackfin/kernel/signal.c
+index b022af6..1389cd3 100644
+--- a/arch/blackfin/kernel/signal.c
++++ b/arch/blackfin/kernel/signal.c
+@@ -152,23 +152,22 @@ static inline void *get_sigframe(struct k_sigaction *ka, struct pt_regs *regs,
+ }
+ 
+ static int
+-setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t * info,
+-	       sigset_t * set, struct pt_regs *regs)
++setup_rt_frame(struct ksignal *ksig, sigset_t *set, struct pt_regs *regs)
+ {
+ 	struct rt_sigframe *frame;
+ 	int err = 0;
+ 
+-	frame = get_sigframe(ka, regs, sizeof(*frame));
++	frame = get_sigframe(&ksig->ka, regs, sizeof(*frame));
+ 
+ 	err |= __put_user((current_thread_info()->exec_domain
+ 			   && current_thread_info()->exec_domain->signal_invmap
+-			   && sig < 32
++			   && ksig->sig < 32
+ 			   ? current_thread_info()->exec_domain->
+-			   signal_invmap[sig] : sig), &frame->sig);
++			   signal_invmap[ksig->sig] : ksig->sig), &frame->sig);
+ 
+ 	err |= __put_user(&frame->info, &frame->pinfo);
+ 	err |= __put_user(&frame->uc, &frame->puc);
+-	err |= copy_siginfo_to_user(&frame->info, info);
++	err |= copy_siginfo_to_user(&frame->info, &ksig->info);
+ 
+ 	/* Create the ucontext.  */
+ 	err |= __put_user(0, &frame->uc.uc_flags);
+@@ -183,7 +182,7 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t * info,
+ 	/* Set up registers for signal handler */
+ 	if (current->personality & FDPIC_FUNCPTRS) {
+ 		struct fdpic_func_descriptor __user *funcptr =
+-			(struct fdpic_func_descriptor *) ka->sa.sa_handler;
++			(struct fdpic_func_descriptor *) ksig->ka.sa.sa_handler;
+ 		u32 pc, p3;
+ 		err |= __get_user(pc, &funcptr->text);
+ 		err |= __get_user(p3, &funcptr->GOT);
+@@ -192,7 +191,7 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t * info,
+ 		regs->pc = pc;
+ 		regs->p3 = p3;
+ 	} else
+-		regs->pc = (unsigned long)ka->sa.sa_handler;
++		regs->pc = (unsigned long)ksig->ka.sa.sa_handler;
+ 	wrusp((unsigned long)frame);
+ 	regs->rets = SIGRETURN_STUB;
+ 
+@@ -237,20 +236,19 @@ handle_restart(struct pt_regs *regs, struct k_sigaction *ka, int has_handler)
+  * OK, we're invoking a handler
+  */
+ static void
+-handle_signal(int sig, siginfo_t *info, struct k_sigaction *ka,
+-	      struct pt_regs *regs)
++handle_signal(struct ksignal *ksig, struct pt_regs *regs)
+ {
++	int ret;
++
+ 	/* are we from a system call? to see pt_regs->orig_p0 */
+ 	if (regs->orig_p0 >= 0)
+ 		/* If so, check system call restarting.. */
+-		handle_restart(regs, ka, 1);
++		handle_restart(regs, &ksig->ka, 1);
+ 
+ 	/* set up the stack frame */
+-	if (setup_rt_frame(sig, ka, info, sigmask_to_save(), regs) < 0)
+-		force_sigsegv(sig, current);
+-	else 
+-		signal_delivered(sig, info, ka, regs,
+-				test_thread_flag(TIF_SINGLESTEP));
++	ret = setup_rt_frame(ksig, sigmask_to_save(), regs);
++
++	signal_setup_done(ret, ksig, test_thread_flag(TIF_SINGLESTEP));
+ }
+ 
+ /*
+@@ -264,16 +262,13 @@ handle_signal(int sig, siginfo_t *info, struct k_sigaction *ka,
+  */
+ asmlinkage void do_signal(struct pt_regs *regs)
+ {
+-	siginfo_t info;
+-	int signr;
+-	struct k_sigaction ka;
++	struct ksignal ksig;
+ 
+ 	current->thread.esp0 = (unsigned long)regs;
+ 
+-	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
+-	if (signr > 0) {
++	if (get_signal(&ksig)) {
+ 		/* Whee!  Actually deliver the signal.  */
+-		handle_signal(signr, &info, &ka, regs);
++		handle_signal(&ksig, regs);
+ 		return;
+ 	}
+ 
+-- 
+1.8.1.4
 
-Acked-by: Ingo Molnar <mingo@kernel.org>
-
-Thanks,
-
-	Ingo
