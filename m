@@ -1,34 +1,102 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v2 3/3] sched: Remove ARCH specific fpu_counter from
- task_struct
-Date: Tue, 8 Oct 2013 10:02:12 +0200
-Message-ID: <20131008080212.GA6541@gmail.com>
-References: <1381218389-16585-1-git-send-email-vgupta@synopsys.com>
- <1381218389-16585-4-git-send-email-vgupta@synopsys.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1381218389-16585-4-git-send-email-vgupta@synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Paul Mundt <paul.mundt@gmail.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Richard Weinberger <richard@nod.at>
+Subject: Global do_signal() cleanup
+Date: Tue,  8 Oct 2013 13:27:52 +0200
+Message-ID: <1381231701-4008-1-git-send-email-richard@nod.at>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from b.ns.miles-group.at ([95.130.255.144]:1661 "EHLO radon.swed.at"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1754612Ab3JHL2w (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 Oct 2013 07:28:52 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, vgupta@synopsys.com, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, vapier@gentoo.org, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, yasutake.koichi@jp.panasonic.com, ralf@linux-mips.org, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, lethal@linux-sh.org, cmetcalf@tilera.com, gxt@mprc.pku.edu.cn, linux-xtensa@linux-xtensa.org, akpm@linux-foundation.org, oleg@redhat.com, tj@kernel.org
 
+This patch series moves all remaining archs to the get_signal() and
+signal_setup_done() functions. Currently these archs use open coded
+variants of the said functions.  Further, unused parameters get removed
+from get_signal_to_deliver(), tracehook_signal_handler() and signal_delivered().
+After all we save around 350 lines of code. :-)
 
-* Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
-
-> From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-> 
-> fpu_counter in task_struct was used only by sh/x86.
-> Both of these now carry it in ARCH specific thread_struct, hence this
-> can now be removed from generic task_struct, shrinking it slightly for
-> other arches.
-> 
-> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-
-Acked-by: Ingo Molnar <mingo@kernel.org>
+The following archs are _untested_: arc, c6x, hexagon, metag, score, unicore, sh64.
+If someone points me to cross compilers for these arch I'll happily build test them too.
 
 Thanks,
+//richard
 
-	Ingo
+[PATCH 01/29] arc: Use get_signal() signal_setup_done()
+[PATCH 02/29] arm64: Use get_signal() signal_setup_done()
+[PATCH 03/29] avr32: Use get_signal() signal_setup_done()
+[PATCH 04/29] blackfin: Use get_signal() signal_setup_done()
+[PATCH 05/29] c6x: Use get_signal() signal_setup_done()
+[PATCH 06/29] cris: Use get_signal() signal_setup_done()
+[PATCH 07/29] frv: Use get_signal() signal_setup_done()
+[PATCH 08/29] h8300: Use get_signal() signal_setup_done()
+[PATCH 09/29] hexagon: Use get_signal() signal_setup_done()
+[PATCH 10/29] ia64: Use get_signal() signal_setup_done()
+[PATCH 11/29] m32r: Use get_signal() signal_setup_done()
+[PATCH 12/29] m68k: Use get_signal() signal_setup_done()
+[PATCH 13/29] metag: Use get_signal() signal_setup_done()
+[PATCH 14/29] microblaze: Use get_signal() signal_setup_done()
+[PATCH 15/29] mips: Use get_signal() signal_setup_done()
+[PATCH 16/29] mn10300: Use get_signal() signal_setup_done()
+[PATCH 17/29] openrisc: Use get_signal() signal_setup_done()
+[PATCH 18/29] parisc: Use get_signal() signal_setup_done()
+[PATCH 19/29] powerpc: Use get_signal() signal_setup_done()
+[PATCH 20/29] s390: Use get_signal() signal_setup_done()
+[PATCH 21/29] score: Use get_signal() signal_setup_done()
+[PATCH 22/29] sh: Use get_signal() signal_setup_done()
+[PATCH 23/29] tile: Use get_signal() signal_setup_done()
+[PATCH 24/29] um: Use get_signal() signal_setup_done()
+[PATCH 25/29] unicore32: Use get_signal() signal_setup_done()
+[PATCH 26/29] xtensa: Use get_signal() signal_setup_done()
+[PATCH 27/29] get_signal_to_deliver: remove regs and cookie args
+[PATCH 28/29] tracehook_signal_handler: Remove sig, info, ka and regs
+[PATCH 29/29] Clean up signal_delivered()
+
+ arch/arc/kernel/signal.c            |   39 +++++---------
+ arch/arm64/include/asm/signal32.h   |    7 +-
+ arch/arm64/kernel/signal.c          |   48 +++++++----------
+ arch/arm64/kernel/signal32.c        |    8 +-
+ arch/avr32/kernel/signal.c          |   43 ++++++---------
+ arch/blackfin/kernel/signal.c       |   39 ++++++--------
+ arch/c6x/kernel/signal.c            |   43 ++++++---------
+ arch/cris/arch-v10/kernel/signal.c  |   79 ++++++++++++----------------
+ arch/cris/arch-v32/kernel/signal.c  |   77 ++++++++++------------------
+ arch/frv/kernel/signal.c            |   99 ++++++++++++++----------------------
+ arch/h8300/kernel/signal.c          |   81 ++++++++++++-----------------
+ arch/hexagon/kernel/signal.c        |   45 ++++++----------
+ arch/ia64/kernel/signal.c           |   42 ++++++---------
+ arch/m32r/kernel/signal.c           |   47 +++++++----------
+ arch/m68k/kernel/signal.c           |   63 ++++++++--------------
+ arch/metag/kernel/signal.c          |   55 ++++++++------------
+ arch/microblaze/kernel/signal.c     |   48 ++++++-----------
+ arch/mips/include/asm/abi.h         |   10 +--
+ arch/mips/kernel/signal.c           |   66 +++++++++---------------
+ arch/mips/kernel/signal32.c         |   39 +++++---------
+ arch/mips/kernel/signal_n32.c       |   20 ++-----
+ arch/mn10300/kernel/signal.c        |   89 +++++++++++++-------------------
+ arch/openrisc/kernel/signal.c       |   53 +++++++------------
+ arch/parisc/kernel/signal.c         |   58 ++++++++-------------
+ arch/powerpc/kernel/signal.c        |   31 ++++-------
+ arch/powerpc/kernel/signal.h        |   12 +---
+ arch/powerpc/kernel/signal_32.c     |   38 +++++--------
+ arch/powerpc/kernel/signal_64.c     |   27 ++++-----
+ arch/s390/kernel/compat_signal.c    |   77 ++++++++++++----------------
+ arch/s390/kernel/entry.h            |    4 -
+ arch/s390/kernel/signal.c           |   79 +++++++++++-----------------
+ arch/score/kernel/signal.c          |   43 ++++++---------
+ arch/sh/kernel/signal_32.c          |   79 +++++++++++-----------------
+ arch/sh/kernel/signal_64.c          |   82 +++++++++++------------------
+ arch/tile/include/asm/compat.h      |    3 -
+ arch/tile/kernel/compat_signal.c    |   29 +++++-----
+ arch/tile/kernel/signal.c           |   54 ++++++++-----------
+ arch/um/include/shared/frame_kern.h |   12 +---
+ arch/um/kernel/signal.c             |   27 ++++-----
+ arch/unicore32/kernel/signal.c      |   48 +++++++----------
+ arch/x86/um/signal.c                |   45 +++++++---------
+ arch/xtensa/kernel/signal.c         |   43 +++++----------
+ include/linux/signal.h              |    6 --
+ include/linux/tracehook.h           |    8 --
+ kernel/signal.c                     |   26 +++------
+ 45 files changed, 804 insertions(+), 1167 deletions(-)
