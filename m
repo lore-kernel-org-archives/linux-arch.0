@@ -1,163 +1,71 @@
-From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 11/29] m32r: Use get_signal() signal_setup_done()
-Date: Tue,  8 Oct 2013 13:33:11 +0200
-Message-ID: <1381231994-4192-2-git-send-email-richard@nod.at>
-References: <1381231994-4192-1-git-send-email-richard@nod.at>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1381231994-4192-1-git-send-email-richard@nod.at>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, vgupta@synopsys.com, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, vapier@gentoo.org, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, yasutake.koichi@jp.panasonic.com, ralf@linux-mips.org, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, lethal@linux-sh.org, cmetcalf@tilera.com, gxt@mprc.pku.edu.cn, linux-xtensa@linux-xtensa.org, akpm@linux-foundation.org, oleg@redhat.com, tj@kernel.org, Richard Weinberger <richard@nod.at>
-List-Id: linux-arch.vger.kernel.org
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: Global do_signal() cleanup
+Date: Tue, 08 Oct 2013 15:38:42 +0200
+Message-ID: <52540AE2.4060909@monstr.eu>
+References: <1381231701-4008-1-git-send-email-richard@nod.at>
+Reply-To: monstr@monstr.eu
+Mime-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha1;
+ protocol="application/pgp-signature";
+ boundary="SA5Ph8vhsBrP3AmTBk0tM9TO97CenAh6r"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ea0-f171.google.com ([209.85.215.171]:46439 "EHLO
+	mail-ea0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751896Ab3JHNir (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Oct 2013 09:38:47 -0400
+Received: by mail-ea0-f171.google.com with SMTP id n15so4028713ead.30
+        for <linux-arch@vger.kernel.org>; Tue, 08 Oct 2013 06:38:46 -0700 (PDT)
+In-Reply-To: <1381231701-4008-1-git-send-email-richard@nod.at>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Richard Weinberger <richard@nod.at>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, vgupta@synopsys.com, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, vapier@gentoo.org, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, yasutake.koichi@jp.panasonic.com, ralf@linux-mips.org, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, lethal@linux-sh.org, cmetcalf@tilera.com, gxt@mprc.pku.edu.cn, linux-xtensa@linux-xtensa.org, akpm@linux-foundation.org, oleg@redhat.com, tj@kernel.org
 
-Use the more generic functions get_signal() signal_setup_done()
-for signal delivery.
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--SA5Ph8vhsBrP3AmTBk0tM9TO97CenAh6r
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: quoted-printable
 
-Signed-off-by: Richard Weinberger <richard@nod.at>
----
- arch/m32r/kernel/signal.c | 47 ++++++++++++++++++++---------------------------
- 1 file changed, 20 insertions(+), 27 deletions(-)
+On 10/08/2013 01:27 PM, Richard Weinberger wrote:
+> This patch series moves all remaining archs to the get_signal() and
+> signal_setup_done() functions. Currently these archs use open coded
+> variants of the said functions.  Further, unused parameters get removed=
 
-diff --git a/arch/m32r/kernel/signal.c b/arch/m32r/kernel/signal.c
-index d503568..cce3fd3 100644
---- a/arch/m32r/kernel/signal.c
-+++ b/arch/m32r/kernel/signal.c
-@@ -173,17 +173,17 @@ get_sigframe(struct k_sigaction *ka, unsigned long sp, size_t frame_size)
- 	return (void __user *)((sp - frame_size) & -8ul);
- }
- 
--static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
--			   sigset_t *set, struct pt_regs *regs)
-+static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
-+			  struct pt_regs *regs)
- {
- 	struct rt_sigframe __user *frame;
- 	int err = 0;
--	int signal;
-+	int signal, sig = ksig->sig;
- 
--	frame = get_sigframe(ka, regs->spu, sizeof(*frame));
-+	frame = get_sigframe(&ksig->ka, regs->spu, sizeof(*frame));
- 
- 	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	signal = current_thread_info()->exec_domain
- 		&& current_thread_info()->exec_domain->signal_invmap
-@@ -193,13 +193,13 @@ static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
- 
- 	err |= __put_user(signal, &frame->sig);
- 	if (err)
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	err |= __put_user(&frame->info, &frame->pinfo);
- 	err |= __put_user(&frame->uc, &frame->puc);
--	err |= copy_siginfo_to_user(&frame->info, info);
-+	err |= copy_siginfo_to_user(&frame->info, &ksig->info);
- 	if (err)
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	/* Create the ucontext.  */
- 	err |= __put_user(0, &frame->uc.uc_flags);
-@@ -208,17 +208,17 @@ static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
- 	err |= setup_sigcontext(&frame->uc.uc_mcontext, regs, set->sig[0]);
- 	err |= __copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
- 	if (err)
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	/* Set up to return from userspace.  */
--	regs->lr = (unsigned long)ka->sa.sa_restorer;
-+	regs->lr = (unsigned long)ksig->ka.sa.sa_restorer;
- 
- 	/* Set up registers for signal handler */
- 	regs->spu = (unsigned long)frame;
- 	regs->r0 = signal;	/* Arg for signal handler */
- 	regs->r1 = (unsigned long)&frame->info;
- 	regs->r2 = (unsigned long)&frame->uc;
--	regs->bpc = (unsigned long)ka->sa.sa_handler;
-+	regs->bpc = (unsigned long)ksig->ka.sa.sa_handler;
- 
- 	set_fs(USER_DS);
- 
-@@ -228,10 +228,6 @@ static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
- #endif
- 
- 	return 0;
--
--give_sigsegv:
--	force_sigsegv(sig, current);
--	return -EFAULT;
- }
- 
- static int prev_insn(struct pt_regs *regs)
-@@ -252,9 +248,10 @@ static int prev_insn(struct pt_regs *regs)
-  */
- 
- static void
--handle_signal(unsigned long sig, struct k_sigaction *ka, siginfo_t *info,
--	      struct pt_regs *regs)
-+handle_signal(struct ksignal *ksig, struct pt_regs *regs)
- {
-+	int ret;
-+
- 	/* Are we from a system call? */
- 	if (regs->syscall_nr >= 0) {
- 		/* If so, check system call restarting.. */
-@@ -265,7 +262,7 @@ handle_signal(unsigned long sig, struct k_sigaction *ka, siginfo_t *info,
- 				break;
- 
- 			case -ERESTARTSYS:
--				if (!(ka->sa.sa_flags & SA_RESTART)) {
-+				if (!(ksig->ka.sa.sa_flags & SA_RESTART)) {
- 					regs->r0 = -EINTR;
- 					break;
- 				}
-@@ -278,10 +275,9 @@ handle_signal(unsigned long sig, struct k_sigaction *ka, siginfo_t *info,
- 	}
- 
- 	/* Set up the stack frame */
--	if (setup_rt_frame(sig, ka, info, sigmask_to_save(), regs))
--		return;
-+	ret = setup_rt_frame(ksig, sigmask_to_save(), regs);
- 
--	signal_delivered(sig, info, ka, regs, 0);
-+	signal_setup_done(ret, ksig, 0);
- }
- 
- /*
-@@ -291,9 +287,7 @@ handle_signal(unsigned long sig, struct k_sigaction *ka, siginfo_t *info,
-  */
- static void do_signal(struct pt_regs *regs)
- {
--	siginfo_t info;
--	int signr;
--	struct k_sigaction ka;
-+	struct ksignal ksig;
- 
- 	/*
- 	 * We want the common case to go fast, which
-@@ -304,8 +298,7 @@ static void do_signal(struct pt_regs *regs)
- 	if (!user_mode(regs))
- 		return;
- 
--	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
--	if (signr > 0) {
-+	if (get_signal(&ksig)) {
- 		/* Re-enable any watchpoints before delivering the
- 		 * signal to user space. The processor register will
- 		 * have been cleared if the watchpoint triggered
-@@ -313,7 +306,7 @@ static void do_signal(struct pt_regs *regs)
- 		 */
- 
- 		/* Whee!  Actually deliver the signal.  */
--		handle_signal(signr, &ka, &info, regs);
-+		handle_signal(&ksig, regs);
- 
- 		return;
- 	}
--- 
-1.8.1.4
+> from get_signal_to_deliver(), tracehook_signal_handler() and signal_del=
+ivered().
+> After all we save around 350 lines of code. :-)
+>=20
+> The following archs are _untested_: arc, c6x, hexagon, metag, score, un=
+icore, sh64.
+> If someone points me to cross compilers for these arch I'll happily bui=
+ld test them too.
+
+Any link to the repo and branch with all these patches will be helpful.
+
+Thanks,
+Michal
+
+--=20
+Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel - Microblaze cpu - http://www.monstr.eu/fdt/
+Maintainer of Linux kernel - Xilinx Zynq ARM architecture
+Microblaze U-BOOT custodian and responsible for u-boot arm zynq platform
+
+
+
+--SA5Ph8vhsBrP3AmTBk0tM9TO97CenAh6r
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+Comment: Using GnuPG with Thunderbird - http://www.enigmail.net/
+
+iEYEARECAAYFAlJUCuIACgkQykllyylKDCFhZQCfesCBcVTG2rR0YU4ExRYPyNx4
+IiIAnjMtbaaFcCxhGCL9QcNgfUlE9bba
+=SREd
+-----END PGP SIGNATURE-----
+
+--SA5Ph8vhsBrP3AmTBk0tM9TO97CenAh6r--
