@@ -1,147 +1,140 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zene.cmpxchg.org ([85.214.230.12]:56605 "EHLO zene.cmpxchg.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756238Ab3JGTXw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 7 Oct 2013 15:23:52 -0400
-Date: Mon, 7 Oct 2013 15:23:36 -0400
-From: Johannes Weiner <hannes@cmpxchg.org>
-Subject: Re: [patch 0/7] improve memcg oom killer robustness v2
-Message-ID: <20131007192336.GU856@cmpxchg.org>
-References: <20130917000244.GD3278@cmpxchg.org>
- <20130917131535.94E0A843@pobox.sk>
- <20130917141013.GA30838@dhcp22.suse.cz>
- <20130918160304.6EDF2729@pobox.sk>
- <20130918180455.GD856@cmpxchg.org>
- <20130918181946.GE856@cmpxchg.org>
- <20130918195504.GF856@cmpxchg.org>
- <20130926185459.E5D2987F@pobox.sk>
- <20130926192743.GP856@cmpxchg.org>
- <20131007130149.5F5482D8@pobox.sk>
+Received: from us02smtp1.synopsys.com ([198.182.60.75]:58582 "EHLO
+	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754605Ab3JHHrB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Oct 2013 03:47:01 -0400
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: [PATCH v2 1/3] sh: Move fpu_counter into ARCH specific thread_struct
+Date: Tue, 8 Oct 2013 13:16:27 +0530
+Message-ID: <1381218389-16585-2-git-send-email-vgupta@synopsys.com>
+In-Reply-To: <1381218389-16585-1-git-send-email-vgupta@synopsys.com>
+References: <1381218389-16585-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20131007130149.5F5482D8@pobox.sk>
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: azurIt <azurit@pobox.sk>
-Cc: Michal Hocko <mhocko@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20131007192336.PIwdZiHlgZks0yMz2abR_XHWZXSYNai9vhLTVr6QtKM@z>
+To: Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Paul Mundt <paul.mundt@gmail.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-sh@vger.kernel.org
+Message-ID: <20131008074627.__ip1-v5VuMpiYAfxRuHUq5USlEXF1Yd0WKig6RyPbk@z>
 
-Hi azur,
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
 
-On Mon, Oct 07, 2013 at 01:01:49PM +0200, azurIt wrote:
-> >On Thu, Sep 26, 2013 at 06:54:59PM +0200, azurIt wrote:
-> >> On Wed, Sep 18, 2013 at 02:19:46PM -0400, Johannes Weiner wrote:
-> >> >Here is an update.  Full replacement on top of 3.2 since we tried a
-> >> >dead end and it would be more painful to revert individual changes.
-> >> >
-> >> >The first bug you had was the same task entering OOM repeatedly and
-> >> >leaking the memcg reference, thus creating undeletable memcgs.  My
-> >> >fixup added a condition that if the task already set up an OOM context
-> >> >in that fault, another charge attempt would immediately return -ENOMEM
-> >> >without even trying reclaim anymore.  This dropped __getblk() into an
-> >> >endless loop of waking the flushers and performing global reclaim and
-> >> >memcg returning -ENOMEM regardless of free memory.
-> >> >
-> >> >The update now basically only changes this -ENOMEM to bypass, so that
-> >> >the memory is not accounted and the limit ignored.  OOM killed tasks
-> >> >are granted the same right, so that they can exit quickly and release
-> >> >memory.  Likewise, we want a task that hit the OOM condition also to
-> >> >finish the fault quickly so that it can invoke the OOM killer.
-> >> >
-> >> >Does the following work for you, azur?
-> >> 
-> >> 
-> >> Johannes,
-> >> 
-> >> bad news everyone! :(
-> >> 
-> >> Unfortunaely, two different problems appears today:
-> >> 
-> >> 1.) This looks like my very original problem - stucked processes inside one cgroup. I took stacks from all of them over time but server was very slow so i had to kill them soon:
-> >> http://watchdog.sk/lkmlmemcg-bug-9.tar.gz
-> >> 
-> >> 2.) This was just like my last problem where few processes were doing huge i/o. As sever was almost unoperable i barely killed them so no more info here, sorry.
-> >
-> >From one of the tasks:
-> >
-> >1380213238/11210/stack:[<ffffffff810528f1>] sys_sched_yield+0x41/0x70
-> >1380213238/11210/stack:[<ffffffff81148ef1>] free_more_memory+0x21/0x60
-> >1380213238/11210/stack:[<ffffffff8114957d>] __getblk+0x14d/0x2c0
-> >1380213238/11210/stack:[<ffffffff81198a2b>] ext3_getblk+0xeb/0x240
-> >1380213238/11210/stack:[<ffffffff8119d2df>] ext3_find_entry+0x13f/0x480
-> >1380213238/11210/stack:[<ffffffff8119dd6d>] ext3_lookup+0x4d/0x120
-> >1380213238/11210/stack:[<ffffffff81122a55>] d_alloc_and_lookup+0x45/0x90
-> >1380213238/11210/stack:[<ffffffff81122ff8>] do_lookup+0x278/0x390
-> >1380213238/11210/stack:[<ffffffff81124c40>] path_lookupat+0x120/0x800
-> >1380213238/11210/stack:[<ffffffff81125355>] do_path_lookup+0x35/0xd0
-> >1380213238/11210/stack:[<ffffffff811254d9>] user_path_at_empty+0x59/0xb0
-> >1380213238/11210/stack:[<ffffffff81125541>] user_path_at+0x11/0x20
-> >1380213238/11210/stack:[<ffffffff81115b70>] sys_faccessat+0xd0/0x200
-> >1380213238/11210/stack:[<ffffffff81115cb8>] sys_access+0x18/0x20
-> >1380213238/11210/stack:[<ffffffff815ccc26>] system_call_fastpath+0x18/0x1d
-> >
-> >Should have seen this coming... it's still in that braindead
-> >__getblk() loop, only from a syscall this time (no OOM path).  The
-> >group's memory.stat looks like this:
-> >
-> >cache 0
-> >rss 0
-> >mapped_file 0
-> >pgpgin 0
-> >pgpgout 0
-> >swap 0
-> >pgfault 0
-> >pgmajfault 0
-> >inactive_anon 0
-> >active_anon 0
-> >inactive_file 0
-> >active_file 0
-> >unevictable 0
-> >hierarchical_memory_limit 209715200
-> >hierarchical_memsw_limit 209715200
-> >total_cache 0
-> >total_rss 209715200
-> >total_mapped_file 0
-> >total_pgpgin 1028153297
-> >total_pgpgout 1028102097
-> >total_swap 0
-> >total_pgfault 1352903120
-> >total_pgmajfault 45342
-> >total_inactive_anon 0
-> >total_active_anon 209715200
-> >total_inactive_file 0
-> >total_active_file 0
-> >total_unevictable 0
-> >
-> >with anonymous pages to the limit and you probably don't have any swap
-> >space enabled to anything in the group.
-> >
-> >I guess there is no way around annotating that __getblk() loop.  The
-> >best solution right now is probably to use __GFP_NOFAIL.  For one, we
-> >can let the allocation bypass the memcg limit if reclaim can't make
-> >progress.  But also, the loop is then actually happening inside the
-> >page allocator, where it should happen, and not around ad-hoc direct
-> >reclaim in buffer.c.
-> >
-> >Can you try this on top of our ever-growing stack of patches?
-> 
-> 
-> 
-> 
-> Joahnnes,
-> 
-> looks like the problem is completely resolved :) Thank you, Michal
-> Hocko and everyone involved for help and time.
+Only a couple of arches (sh/x86) use fpu_counter in task_struct so it
+can be moved out into ARCH specific thread_struct, reducing the size of
+task_struct for other arches.
 
-Thanks a lot for your patience.  I will send out the fixes for 3.12.
+Compile tested sh defconfig + sh4-linux-gcc (4.6.3)
 
-> One more thing: I see that your patches are going into 3.12. Is
-> there a chance to get them also into 3.2? Is Ben Hutchings (current
-> maintainer of 3.2 branch) competent to decide this? Should i contact
-> him directly? I can't upgrade to 3.12 because stable grsecurity is
-> for 3.2 and i don't think this will change in near future.
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+Cc: linux-sh@vger.kernel.org
+Cc: Paul Mundt <paul.mundt@gmail.com>
+---
+ arch/sh/include/asm/fpu.h          |  2 +-
+ arch/sh/include/asm/processor_32.h | 10 ++++++++++
+ arch/sh/include/asm/processor_64.h | 10 ++++++++++
+ arch/sh/kernel/cpu/fpu.c           |  2 +-
+ arch/sh/kernel/process_32.c        |  6 +++---
+ 5 files changed, 25 insertions(+), 5 deletions(-)
 
-Yes, I'll send them to stable.  The original OOM killer rework was not
-tagged for stable, but since we have a known deadlock problem, I think
-it makes sense to include them after all.
+diff --git a/arch/sh/include/asm/fpu.h b/arch/sh/include/asm/fpu.h
+index 06c4281aab65..09fc2bc8a790 100644
+--- a/arch/sh/include/asm/fpu.h
++++ b/arch/sh/include/asm/fpu.h
+@@ -46,7 +46,7 @@ static inline void __unlazy_fpu(struct task_struct *tsk, struct pt_regs *regs)
+ 		save_fpu(tsk);
+ 		release_fpu(regs);
+ 	} else
+-		tsk->fpu_counter = 0;
++		tsk->thread.fpu_counter = 0;
+ }
+ 
+ static inline void unlazy_fpu(struct task_struct *tsk, struct pt_regs *regs)
+diff --git a/arch/sh/include/asm/processor_32.h b/arch/sh/include/asm/processor_32.h
+index e699a12cdcca..18e0377f72bb 100644
+--- a/arch/sh/include/asm/processor_32.h
++++ b/arch/sh/include/asm/processor_32.h
+@@ -111,6 +111,16 @@ struct thread_struct {
+ 
+ 	/* Extended processor state */
+ 	union thread_xstate *xstate;
++
++	/*
++	 * fpu_counter contains the number of consecutive context switches
++	 * that the FPU is used. If this is over a threshold, the lazy fpu
++	 * saving becomes unlazy to save the trap. This is an unsigned char
++	 * so that after 256 times the counter wraps and the behavior turns
++	 * lazy again; this to deal with bursty apps that only use FPU for
++	 * a short time
++	 */
++	unsigned char fpu_counter;
+ };
+ 
+ #define INIT_THREAD  {						\
+diff --git a/arch/sh/include/asm/processor_64.h b/arch/sh/include/asm/processor_64.h
+index 1cc7d3197143..eedd4f625d07 100644
+--- a/arch/sh/include/asm/processor_64.h
++++ b/arch/sh/include/asm/processor_64.h
+@@ -126,6 +126,16 @@ struct thread_struct {
+ 
+ 	/* floating point info */
+ 	union thread_xstate *xstate;
++
++	/*
++	 * fpu_counter contains the number of consecutive context switches
++	 * that the FPU is used. If this is over a threshold, the lazy fpu
++	 * saving becomes unlazy to save the trap. This is an unsigned char
++	 * so that after 256 times the counter wraps and the behavior turns
++	 * lazy again; this to deal with bursty apps that only use FPU for
++	 * a short time
++	 */
++	unsigned char fpu_counter;
+ };
+ 
+ #define INIT_MMAP \
+diff --git a/arch/sh/kernel/cpu/fpu.c b/arch/sh/kernel/cpu/fpu.c
+index f8f7af51c128..4e332244ea75 100644
+--- a/arch/sh/kernel/cpu/fpu.c
++++ b/arch/sh/kernel/cpu/fpu.c
+@@ -44,7 +44,7 @@ void __fpu_state_restore(void)
+ 	restore_fpu(tsk);
+ 
+ 	task_thread_info(tsk)->status |= TS_USEDFPU;
+-	tsk->fpu_counter++;
++	tsk->thread.fpu_counter++;
+ }
+ 
+ void fpu_state_restore(struct pt_regs *regs)
+diff --git a/arch/sh/kernel/process_32.c b/arch/sh/kernel/process_32.c
+index ebd3933005b4..2885fc9d9dcd 100644
+--- a/arch/sh/kernel/process_32.c
++++ b/arch/sh/kernel/process_32.c
+@@ -156,7 +156,7 @@ int copy_thread(unsigned long clone_flags, unsigned long usp,
+ #endif
+ 		ti->addr_limit = KERNEL_DS;
+ 		ti->status &= ~TS_USEDFPU;
+-		p->fpu_counter = 0;
++		p->thread.fpu_counter = 0;
+ 		return 0;
+ 	}
+ 	*childregs = *current_pt_regs();
+@@ -189,7 +189,7 @@ __switch_to(struct task_struct *prev, struct task_struct *next)
+ 	unlazy_fpu(prev, task_pt_regs(prev));
+ 
+ 	/* we're going to use this soon, after a few expensive things */
+-	if (next->fpu_counter > 5)
++	if (next->thread.fpu_counter > 5)
+ 		prefetch(next_t->xstate);
+ 
+ #ifdef CONFIG_MMU
+@@ -207,7 +207,7 @@ __switch_to(struct task_struct *prev, struct task_struct *next)
+ 	 * restore of the math state immediately to avoid the trap; the
+ 	 * chances of needing FPU soon are obviously high now
+ 	 */
+-	if (next->fpu_counter > 5)
++	if (next->thread.fpu_counter > 5)
+ 		__fpu_state_restore();
+ 
+ 	return prev;
+-- 
+1.8.1.2
+
