@@ -1,305 +1,152 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH 13/29] metag: Use get_signal() signal_setup_done()
-Date: Wed, 9 Oct 2013 12:09:52 +0100
-Message-ID: <52553980.6020704@imgtec.com>
-References: <1381231994-4192-1-git-send-email-richard@nod.at> <1381231994-4192-4-git-send-email-richard@nod.at>
+From: "azurIt" <azurit-Rm0zKEqwvD4@public.gmane.org>
+Subject: =?utf-8?q?Re=3A_=5Bpatch_0=2F7=5D_improve_memcg_oom_killer_robustness_v2?=
+Date: Wed, 09 Oct 2013 20:44:50 +0200
+Message-ID: <20131009204450.6AB97915@pobox.sk>
+References: <20130917000244.GD3278@cmpxchg.org>, <20130917131535.94E0A843@pobox.sk>, <20130917141013.GA30838@dhcp22.suse.cz>, <20130918160304.6EDF2729@pobox.sk>, <20130918180455.GD856@cmpxchg.org>, <20130918181946.GE856@cmpxchg.org>, <20130918195504.GF856@cmpxchg.org>, <20130926185459.E5D2987F@pobox.sk>, <20130926192743.GP856@cmpxchg.org>, <20131007130149.5F5482D8@pobox.sk> <20131007192336.GU856@cmpxchg.org>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature";
-	boundary="gASKUWF2VMSLkQmVaXPJ5sHL2qD9t9iT2"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1381231994-4192-4-git-send-email-richard@nod.at>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Richard Weinberger <richard@nod.at>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, vgupta@synopsys.com, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, vapier@gentoo.org, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, takata@linux-m32r.org, geert@linux-m68k.org, monstr@monstr.eu, yasutake.koichi@jp.panasonic.com, ralf@linux-mips.org, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, lethal@linux-sh.org, cmetcalf@tilera.com, gxt@mprc.pku.edu.cn, linux-xtensa@linux-xtensa.org, akpm@linux-foundat
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Return-path: <cgroups-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20131007192336.GU856-druUgvl0LCNAfugRpC6u6w@public.gmane.org>
+Sender: cgroups-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: =?utf-8?q?Johannes_Weiner?= <hannes-druUgvl0LCNAfugRpC6u6w@public.gmane.org>
+Cc: =?utf-8?q?Michal_Hocko?= <mhocko-AlSwsSmVLrQ@public.gmane.org>, =?utf-8?q?Andrew_Morton?= <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, =?utf-8?q?David_Rientjes?= <rientjes-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, =?utf-8?q?KAMEZAWA_Hiroyuki?= <kamezawa.hiroyu-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, =?utf-8?q?KOSAKI_Motohiro?= <kosaki.motohiro-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, cgroups-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
---gASKUWF2VMSLkQmVaXPJ5sHL2qD9t9iT2
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: quoted-printable
-
-Hi Richard,
-
-(cc'd linux-metag)
-
-On 08/10/13 12:33, Richard Weinberger wrote:
-> Use the more generic functions get_signal() signal_setup_done()
-> for signal delivery.
->=20
-> Signed-off-by: Richard Weinberger <richard@nod.at>
-> ---
->  arch/metag/kernel/signal.c | 55 ++++++++++++++++++++------------------=
---------
->  1 file changed, 24 insertions(+), 31 deletions(-)
->=20
-> diff --git a/arch/metag/kernel/signal.c b/arch/metag/kernel/signal.c
-> index 3be61cf..9fa27c2 100644
-> --- a/arch/metag/kernel/signal.c
-> +++ b/arch/metag/kernel/signal.c
-> @@ -152,18 +152,18 @@ static void __user *get_sigframe(struct k_sigacti=
-on *ka, unsigned long sp,
->  	return (void __user *)sp;
->  }
-> =20
-> -static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *=
-info,
-> -			  sigset_t *set, struct pt_regs *regs)
-> +static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
-> +			  struct pt_regs *regs)
->  {
->  	struct rt_sigframe __user *frame;
-> -	int err =3D -EFAULT;
-> +	int err;
->  	unsigned long code;
-> =20
-> -	frame =3D get_sigframe(ka, regs->REG_SP, sizeof(*frame));
-> +	frame =3D get_sigframe(&ksig->ka, regs->REG_SP, sizeof(*frame));
->  	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
-> -		goto out;
-> +		return -EFAULT;
-> =20
-> -	err =3D copy_siginfo_to_user(&frame->info, info);
-> +	err =3D copy_siginfo_to_user(&frame->info, &ksig->info);
-> =20
->  	/* Create the ucontext.  */
->  	err |=3D __put_user(0, &frame->uc.uc_flags);
-> @@ -174,7 +174,7 @@ static int setup_rt_frame(int sig, struct k_sigacti=
-on *ka, siginfo_t *info,
->  	err |=3D __copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
-> =20
->  	if (err)
-> -		goto out;
-> +		return -EFAULT;
-> =20
->  	/* Set up to return from userspace.  */
-> =20
-> @@ -187,15 +187,15 @@ static int setup_rt_frame(int sig, struct k_sigac=
-tion *ka, siginfo_t *info,
->  	err |=3D __put_user(code, (unsigned long __user *)(&frame->retcode[1]=
-));
-> =20
->  	if (err)
-> -		goto out;
-> +		return -EFAULT;
-> =20
->  	/* Set up registers for signal handler */
->  	regs->REG_RTP =3D (unsigned long) frame->retcode;
->  	regs->REG_SP =3D (unsigned long) frame + sizeof(*frame);
-> -	regs->REG_ARG1 =3D sig;
-> +	regs->REG_ARG1 =3D ksig->sig;
->  	regs->REG_ARG2 =3D (unsigned long) &frame->info;
->  	regs->REG_ARG3 =3D (unsigned long) &frame->uc;
-> -	regs->REG_PC =3D (unsigned long) ka->sa.sa_handler;
-> +	regs->REG_PC =3D (unsigned long) ksig->ka.sa.sa_handler;
-> =20
->  	pr_debug("SIG deliver (%s:%d): sp=3D%p pc=3D%08x pr=3D%08x\n",
->  		 current->comm, current->pid, frame, regs->REG_PC,
-> @@ -205,24 +205,19 @@ static int setup_rt_frame(int sig, struct k_sigac=
-tion *ka, siginfo_t *info,
->  	 * effective cache flush - directed rather than 'full flush'.
->  	 */
->  	flush_cache_sigtramp(regs->REG_RTP, sizeof(frame->retcode));
-> -out:
-> -	if (err) {
-> -		force_sigsegv(sig, current);
-> -		return -EFAULT;
-> -	}
-> +
->  	return 0;
->  }
-> =20
-> -static void handle_signal(unsigned long sig, siginfo_t *info,
-> -			  struct k_sigaction *ka, struct pt_regs *regs)
-> +static void handle_signal(struct ksignal *ksig, struct pt_regs *regs)
->  {
->  	sigset_t *oldset =3D sigmask_to_save();
-> +	int ret;
-> =20
->  	/* Set up the stack frame */
-> -	if (setup_rt_frame(sig, ka, info, oldset, regs))
-> -		return;
-> +	ret =3D setup_rt_frame(ksig, oldset, regs);
-> =20
-> -	signal_delivered(sig, info, ka, regs, test_thread_flag(TIF_SINGLESTEP=
-));
-> +	signal_setup_done(ret, ksig, test_thread_flag(TIF_SINGLESTEP));
->  }
-> =20
->   /*
-> @@ -235,10 +230,8 @@ static void handle_signal(unsigned long sig, sigin=
-fo_t *info,
->  static int do_signal(struct pt_regs *regs, int syscall)
->  {
->  	unsigned int retval =3D 0, continue_addr =3D 0, restart_addr =3D 0;
-> -	struct k_sigaction ka;
-> -	siginfo_t info;
-> -	int signr;
->  	int restart =3D 0;
-> +	struct ksignal ksig;
-> =20
->  	/*
->  	 * By the end of rt_sigreturn the context describes the point that th=
-e
-> @@ -272,30 +265,30 @@ static int do_signal(struct pt_regs *regs, int sy=
-scall)
->  	}
-> =20
->  	/*
-> -	 * Get the signal to deliver. When running under ptrace, at this poin=
-t
-> -	 * the debugger may change all our registers ...
-> -	 */
-> -	signr =3D get_signal_to_deliver(&info, &ka, regs, NULL);
-> -	/*
->  	 * Depending on the signal settings we may need to revert the decisio=
-n
->  	 * to restart the system call. But skip this if a debugger has chosen=
- to
->  	 * restart at a different PC.
->  	 */
->  	if (regs->REG_PC !=3D restart_addr)
->  		restart =3D 0;
-
-You've reordered the point where a ptrace debugger can change the registe=
-rs
-(get_signal_to_deliver) and the check of whether the PC has been changed =
-by
-the debugger (REG_PC !=3D restart_addr).
-
-I suggest this is changed to do something like 7e243643 (arm: switch to s=
-truct
-ksignal * passing) does, moving the above REG_PC !=3D restart_addr check =
-into
-the restart conditions below.
-
-> -	if (signr > 0) {
-> +
-> +	/*
-> +	 * Get the signal to deliver. When running under ptrace, at this poin=
-t
-> +	 * the debugger may change all our registers ...
-> +	 */
-> +	if (get_signal(&ksig)) {
->  		if (unlikely(restart)) {
->  			if (retval =3D=3D -ERESTARTNOHAND
->  			    || retval =3D=3D -ERESTART_RESTARTBLOCK
->  			    || (retval =3D=3D -ERESTARTSYS
-> -				&& !(ka.sa.sa_flags & SA_RESTART))) {
-> +				&& !(ksig.ka.sa.sa_flags & SA_RESTART))) {
->  				regs->REG_RETVAL =3D -EINTR;
->  				regs->REG_PC =3D continue_addr;
->  			}
->  		}
-> =20
->  		/* Whee! Actually deliver the signal.  */
-> -		handle_signal(signr, &info, &ka, regs);
-> +		handle_signal(&ksig, regs);
->  		return 0;
->  	}
-> =20
->=20
-
-How does the fixup patch below look?
-
-The rest looks good, so other than that problem:
-Acked-by: James Hogan <james.hogan@imgtec.com>
-
-Thanks
-James
-
-diff --git a/arch/metag/kernel/signal.c b/arch/metag/kernel/signal.c
-index 9fa27c2..6f64ea2 100644
---- a/arch/metag/kernel/signal.c
-+++ b/arch/metag/kernel/signal.c
-@@ -265,19 +265,16 @@ static int do_signal(struct pt_regs *regs, int sysc=
-all)
- 	}
-=20
- 	/*
-+	 * Get the signal to deliver. When running under ptrace, at this point
-+	 * the debugger may change all our registers ...
-+	 *
- 	 * Depending on the signal settings we may need to revert the decision
- 	 * to restart the system call. But skip this if a debugger has chosen t=
-o
- 	 * restart at a different PC.
- 	 */
--	if (regs->REG_PC !=3D restart_addr)
--		restart =3D 0;
--
--	/*
--	 * Get the signal to deliver. When running under ptrace, at this point
--	 * the debugger may change all our registers ...
--	 */
- 	if (get_signal(&ksig)) {
--		if (unlikely(restart)) {
-+		/* Handler */
-+		if (unlikely(restart) && regs->REG_PC =3D=3D restart_addr) {
- 			if (retval =3D=3D -ERESTARTNOHAND
- 			    || retval =3D=3D -ERESTART_RESTARTBLOCK
- 			    || (retval =3D=3D -ERESTARTSYS
-@@ -289,19 +286,24 @@ static int do_signal(struct pt_regs *regs, int sysc=
-all)
-=20
- 		/* Whee! Actually deliver the signal.  */
- 		handle_signal(&ksig, regs);
--		return 0;
--	}
--
--	/* Handlerless -ERESTART_RESTARTBLOCK re-enters via restart_syscall */
--	if (unlikely(restart < 0))
--		regs->REG_SYSCALL =3D __NR_restart_syscall;
--
--	/*
--	 * If there's no signal to deliver, we just put the saved sigmask back.=
-
--	 */
--	restore_saved_sigmask();
-+	} else {
-+		/*
-+		 * If there's no signal to deliver, we just put the saved
-+		 * sigmask back.
-+		 */
-+		restore_saved_sigmask();
-=20
--	return restart;
-+		/*
-+		 * Handlerless -ERESTART_RESTARTBLOCK re-enters via
-+		 * restart_syscall
-+		 */
-+		if (unlikely(restart) && regs->REG_PC =3D=3D restart_addr) {
-+			if (restart < 0)
-+				regs->REG_SYSCALL =3D __NR_restart_syscall;
-+			return restart;
-+		}
-+	}
-+	return 0;
- }
-=20
- int do_work_pending(struct pt_regs *regs, unsigned int thread_flags,
+>Hi azur,
+>
+>On Mon, Oct 07, 2013 at 01:01:49PM +0200, azurIt wrote:
+>> >On Thu, Sep 26, 2013 at 06:54:59PM +0200, azurIt wrote:
+>> >> On Wed, Sep 18, 2013 at 02:19:46PM -0400, Johannes Weiner wrote:
+>> >> >Here is an update.  Full replacement on top of 3.2 since we tried a
+>> >> >dead end and it would be more painful to revert individual changes.
+>> >> >
+>> >> >The first bug you had was the same task entering OOM repeatedly and
+>> >> >leaking the memcg reference, thus creating undeletable memcgs.  My
+>> >> >fixup added a condition that if the task already set up an OOM context
+>> >> >in that fault, another charge attempt would immediately return -ENOMEM
+>> >> >without even trying reclaim anymore.  This dropped __getblk() into an
+>> >> >endless loop of waking the flushers and performing global reclaim and
+>> >> >memcg returning -ENOMEM regardless of free memory.
+>> >> >
+>> >> >The update now basically only changes this -ENOMEM to bypass, so that
+>> >> >the memory is not accounted and the limit ignored.  OOM killed tasks
+>> >> >are granted the same right, so that they can exit quickly and release
+>> >> >memory.  Likewise, we want a task that hit the OOM condition also to
+>> >> >finish the fault quickly so that it can invoke the OOM killer.
+>> >> >
+>> >> >Does the following work for you, azur?
+>> >> 
+>> >> 
+>> >> Johannes,
+>> >> 
+>> >> bad news everyone! :(
+>> >> 
+>> >> Unfortunaely, two different problems appears today:
+>> >> 
+>> >> 1.) This looks like my very original problem - stucked processes inside one cgroup. I took stacks from all of them over time but server was very slow so i had to kill them soon:
+>> >> http://watchdog.sk/lkmlmemcg-bug-9.tar.gz
+>> >> 
+>> >> 2.) This was just like my last problem where few processes were doing huge i/o. As sever was almost unoperable i barely killed them so no more info here, sorry.
+>> >
+>> >From one of the tasks:
+>> >
+>> >1380213238/11210/stack:[<ffffffff810528f1>] sys_sched_yield+0x41/0x70
+>> >1380213238/11210/stack:[<ffffffff81148ef1>] free_more_memory+0x21/0x60
+>> >1380213238/11210/stack:[<ffffffff8114957d>] __getblk+0x14d/0x2c0
+>> >1380213238/11210/stack:[<ffffffff81198a2b>] ext3_getblk+0xeb/0x240
+>> >1380213238/11210/stack:[<ffffffff8119d2df>] ext3_find_entry+0x13f/0x480
+>> >1380213238/11210/stack:[<ffffffff8119dd6d>] ext3_lookup+0x4d/0x120
+>> >1380213238/11210/stack:[<ffffffff81122a55>] d_alloc_and_lookup+0x45/0x90
+>> >1380213238/11210/stack:[<ffffffff81122ff8>] do_lookup+0x278/0x390
+>> >1380213238/11210/stack:[<ffffffff81124c40>] path_lookupat+0x120/0x800
+>> >1380213238/11210/stack:[<ffffffff81125355>] do_path_lookup+0x35/0xd0
+>> >1380213238/11210/stack:[<ffffffff811254d9>] user_path_at_empty+0x59/0xb0
+>> >1380213238/11210/stack:[<ffffffff81125541>] user_path_at+0x11/0x20
+>> >1380213238/11210/stack:[<ffffffff81115b70>] sys_faccessat+0xd0/0x200
+>> >1380213238/11210/stack:[<ffffffff81115cb8>] sys_access+0x18/0x20
+>> >1380213238/11210/stack:[<ffffffff815ccc26>] system_call_fastpath+0x18/0x1d
+>> >
+>> >Should have seen this coming... it's still in that braindead
+>> >__getblk() loop, only from a syscall this time (no OOM path).  The
+>> >group's memory.stat looks like this:
+>> >
+>> >cache 0
+>> >rss 0
+>> >mapped_file 0
+>> >pgpgin 0
+>> >pgpgout 0
+>> >swap 0
+>> >pgfault 0
+>> >pgmajfault 0
+>> >inactive_anon 0
+>> >active_anon 0
+>> >inactive_file 0
+>> >active_file 0
+>> >unevictable 0
+>> >hierarchical_memory_limit 209715200
+>> >hierarchical_memsw_limit 209715200
+>> >total_cache 0
+>> >total_rss 209715200
+>> >total_mapped_file 0
+>> >total_pgpgin 1028153297
+>> >total_pgpgout 1028102097
+>> >total_swap 0
+>> >total_pgfault 1352903120
+>> >total_pgmajfault 45342
+>> >total_inactive_anon 0
+>> >total_active_anon 209715200
+>> >total_inactive_file 0
+>> >total_active_file 0
+>> >total_unevictable 0
+>> >
+>> >with anonymous pages to the limit and you probably don't have any swap
+>> >space enabled to anything in the group.
+>> >
+>> >I guess there is no way around annotating that __getblk() loop.  The
+>> >best solution right now is probably to use __GFP_NOFAIL.  For one, we
+>> >can let the allocation bypass the memcg limit if reclaim can't make
+>> >progress.  But also, the loop is then actually happening inside the
+>> >page allocator, where it should happen, and not around ad-hoc direct
+>> >reclaim in buffer.c.
+>> >
+>> >Can you try this on top of our ever-growing stack of patches?
+>> 
+>> 
+>> 
+>> 
+>> Joahnnes,
+>> 
+>> looks like the problem is completely resolved :) Thank you, Michal
+>> Hocko and everyone involved for help and time.
+>
+>Thanks a lot for your patience.  I will send out the fixes for 3.12.
+>
+>> One more thing: I see that your patches are going into 3.12. Is
+>> there a chance to get them also into 3.2? Is Ben Hutchings (current
+>> maintainer of 3.2 branch) competent to decide this? Should i contact
+>> him directly? I can't upgrade to 3.12 because stable grsecurity is
+>> for 3.2 and i don't think this will change in near future.
+>
+>Yes, I'll send them to stable.  The original OOM killer rework was not
+>tagged for stable, but since we have a known deadlock problem, I think
+>it makes sense to include them after all.
 
 
---gASKUWF2VMSLkQmVaXPJ5sHL2qD9t9iT2
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.13 (GNU/Linux)
+Joahnnes,
 
-iQIcBAEBAgAGBQJSVTmGAAoJEKHZs+irPybf01YP+gLmckIjBnXeF42LKuOt2RTu
-iKOmZZQ0rOxyW9qridMUz7nN+fzwaP/+iUXE9HXY6jhExpdnQFFccBgJRszumpoi
-RZUAAX1PLtf9kpw9q8ZL3TtOmNS9RAn7ymyl1Cv9atSdiZBFD948WH5D+q4AWzRh
-4V5D6HIWkojqGE+srOfm4WCKCYoXonNzgQtPQ2eVtZdM5UZsmDSeuqYuFR0Z1z14
-/E/e8oFU6xzH5TE1saGO1E+Nm5YZlulm+YhBh85tGk2CIAaRB9A+tAMgPYn3wddq
-83Pe2S/ARvV25qRGT4xbObkb5qWAqAnbjxpP5IkNSLi9ArLtuB7WSEs3v3/3Xtay
-DPTrDgc5Bm+EU4VGqb3NDjDLXh3yjT5B47Sks6kX98f2BCMPxbts5lHAyJtUwUNY
-UhLthzxX/SKXUBIgIlpLVdqCQ/iSWgDprJNwqtOSO2vRUGI2wng6NQhf2DJq1T0d
-5I+62s9UiJyL0f0TNQewksiE2Rxh7ThuRc7OWNLRfOsw1s9GJ8wEt2zcIpI0aS5Q
-8ojBN6lXCeBamsUdRYS9Ux7PxISW2VNecbPdn6R5Dzd35Btqta0ko7KmI1aQefaV
-b80sSjySNogFXbEFyYCcKOS6qoWJhzZ79J2GH+J5sYyC+B94X2UZsn0GA8Gj8G7Q
-0RlHEmpusYa79LX0CUY3
-=Y+hn
------END PGP SIGNATURE-----
+i'm very sorry to say it but today something strange happened.. :) i was just right at the computer so i noticed it almost immediately but i don't have much info. Server stoped to respond from the net but i was already logged on ssh which was working quite fine (only a little slow). I was able to run commands on shell but i didn't do much because i was afraid that it will goes down for good soon. I noticed few things:
+ - htop was strange because all CPUs were doing nothing (totally nothing)
+ - there were enough of free memory
+ - server load was about 90 and was raising slowly
+ - i didn't see ANY process in 'run' state
+ - i also didn't see any process with strange behavior (taking much CPU, memory or so) so it wasn't obvious what to do to fix it
+ - i started to kill Apache processes, everytime i killed some, CPUs did some work, but it wasn't fixing the problem
+ - finally i did 'skill -kill apache2' in shell and everything started to work
+ - server monitoring wasn't sending any data so i have no graphs
+ - nothing interesting in logs
 
---gASKUWF2VMSLkQmVaXPJ5sHL2qD9t9iT2--
+I will send more info when i get some.
+
+azur
