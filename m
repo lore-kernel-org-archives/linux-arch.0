@@ -1,53 +1,50 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 06/34] microblaze: add missing pgtable_page_ctor/dtor calls
-Date: Thu, 10 Oct 2013 21:05:31 +0300
-Message-ID: <1381428359-14843-7-git-send-email-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 08/34] openrisc: add missing pgtable_page_ctor/dtor calls
+Date: Thu, 10 Oct 2013 21:05:33 +0300
+Message-ID: <1381428359-14843-9-git-send-email-kirill.shutemov@linux.intel.com>
 References: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
 Sender: owner-linux-mm@kvack.org
 To: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Michal Simek <monstr@monstr.eu>
+Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Jonas Bonn <jonas@southpole.se>
 List-Id: linux-arch.vger.kernel.org
 
 It will fix NR_PAGETABLE accounting. It's also required if the arch is
 going ever support split ptl.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Michal Simek <monstr@monstr.eu>
+Cc: Jonas Bonn <jonas@southpole.se>
 ---
- arch/microblaze/include/asm/pgalloc.h | 12 +++++++++---
- 1 file changed, 9 insertions(+), 3 deletions(-)
+ arch/openrisc/include/asm/pgalloc.h | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
 
-diff --git a/arch/microblaze/include/asm/pgalloc.h b/arch/microblaze/include/asm/pgalloc.h
-index ebd3579248..7fdf7fabc7 100644
---- a/arch/microblaze/include/asm/pgalloc.h
-+++ b/arch/microblaze/include/asm/pgalloc.h
-@@ -122,8 +122,13 @@ static inline struct page *pte_alloc_one(struct mm_struct *mm,
- #endif
- 
- 	ptepage = alloc_pages(flags, 0);
--	if (ptepage)
--		clear_highpage(ptepage);
-+	if (!ptepage)
+diff --git a/arch/openrisc/include/asm/pgalloc.h b/arch/openrisc/include/asm/pgalloc.h
+index 05c39ecd2e..21484e5b9e 100644
+--- a/arch/openrisc/include/asm/pgalloc.h
++++ b/arch/openrisc/include/asm/pgalloc.h
+@@ -78,8 +78,13 @@ static inline struct page *pte_alloc_one(struct mm_struct *mm,
+ {
+ 	struct page *pte;
+ 	pte = alloc_pages(GFP_KERNEL|__GFP_REPEAT, 0);
+-	if (pte)
+-		clear_page(page_address(pte));
++	if (!pte)
 +		return NULL;
-+	clear_highpage(ptepage);
-+	if (!pgtable_page_ctor(ptepage)) {
-+		__free_page(ptepage);
++	clear_page(page_address(pte));
++	if (!pgtable_page_ctor(pte)) {
++		__free_page(pte);
 +		return NULL;
 +	}
- 	return ptepage;
+ 	return pte;
  }
  
-@@ -158,8 +163,9 @@ extern inline void pte_free_slow(struct page *ptepage)
- 	__free_page(ptepage);
- }
+@@ -90,6 +95,7 @@ static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
  
--extern inline void pte_free(struct mm_struct *mm, struct page *ptepage)
-+static inline void pte_free(struct mm_struct *mm, struct page *ptepage)
+ static inline void pte_free(struct mm_struct *mm, struct page *pte)
  {
-+	pgtable_page_dtor(ptepage);
- 	__free_page(ptepage);
++	pgtable_page_dtor(pte);
+ 	__free_page(pte);
  }
  
 -- 
