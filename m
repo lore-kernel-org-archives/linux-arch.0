@@ -1,84 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:11059 "EHLO mga09.intel.com"
+Received: from mga01.intel.com ([192.55.52.88]:48972 "EHLO mga01.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754887Ab3JJSGM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	id S1756530Ab3JJSGM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Thu, 10 Oct 2013 14:06:12 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 23/34] powerpc: handle pgtable_page_ctor() fail
-Date: Thu, 10 Oct 2013 21:05:48 +0300
-Message-ID: <1381428359-14843-24-git-send-email-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 26/34] sh: handle pgtable_page_ctor() fail
+Date: Thu, 10 Oct 2013 21:05:51 +0300
+Message-ID: <1381428359-14843-27-git-send-email-kirill.shutemov@linux.intel.com>
 In-Reply-To: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
 References: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>
-Message-ID: <20131010180548.IMVFJcRjDCAD-NKqhlTV8l49TGbDcSARElqJOg4MWpQ@z>
+Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Paul Mundt <lethal@linux-sh.org>
+Message-ID: <20131010180551.5wdUaGxtmdeB7zaWaBSqKjnS1AU5WWBKiArS86dBi9A@z>
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
+Cc: Paul Mundt <lethal@linux-sh.org>
 ---
- arch/powerpc/include/asm/pgalloc-64.h | 5 ++++-
- arch/powerpc/mm/pgtable_32.c          | 5 ++++-
- arch/powerpc/mm/pgtable_64.c          | 7 ++++---
- 3 files changed, 12 insertions(+), 5 deletions(-)
+ arch/sh/include/asm/pgalloc.h | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
-diff --git a/arch/powerpc/include/asm/pgalloc-64.h b/arch/powerpc/include/asm/pgalloc-64.h
-index f65e27b09b..16cb92d215 100644
---- a/arch/powerpc/include/asm/pgalloc-64.h
-+++ b/arch/powerpc/include/asm/pgalloc-64.h
-@@ -91,7 +91,10 @@ static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
- 	if (!pte)
+diff --git a/arch/sh/include/asm/pgalloc.h b/arch/sh/include/asm/pgalloc.h
+index 8c00785c60..a33673b368 100644
+--- a/arch/sh/include/asm/pgalloc.h
++++ b/arch/sh/include/asm/pgalloc.h
+@@ -47,7 +47,10 @@ static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
+ 	if (!pg)
  		return NULL;
- 	page = virt_to_page(pte);
+ 	page = virt_to_page(pg);
 -	pgtable_page_ctor(page);
 +	if (!pgtable_page_ctor(page)) {
-+		__free_page(page);
++		quicklist_free(QUICK_PT, NULL, pg);
 +		return NULL;
 +	}
  	return page;
- }
- 
-diff --git a/arch/powerpc/mm/pgtable_32.c b/arch/powerpc/mm/pgtable_32.c
-index 6c856fb8c1..5b96017152 100644
---- a/arch/powerpc/mm/pgtable_32.c
-+++ b/arch/powerpc/mm/pgtable_32.c
-@@ -121,7 +121,10 @@ pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long address)
- 	ptepage = alloc_pages(flags, 0);
- 	if (!ptepage)
- 		return NULL;
--	pgtable_page_ctor(ptepage);
-+	if (!pgtable_page_ctor(ptepage)) {
-+		__free_page(ptepage);
-+		return NULL;
-+	}
- 	return ptepage;
- }
- 
-diff --git a/arch/powerpc/mm/pgtable_64.c b/arch/powerpc/mm/pgtable_64.c
-index 536eec72c0..9d95786aa8 100644
---- a/arch/powerpc/mm/pgtable_64.c
-+++ b/arch/powerpc/mm/pgtable_64.c
-@@ -378,6 +378,10 @@ static pte_t *__alloc_for_cache(struct mm_struct *mm, int kernel)
- 				       __GFP_REPEAT | __GFP_ZERO);
- 	if (!page)
- 		return NULL;
-+	if (!kernel && !pgtable_page_ctor(page)) {
-+		__free_page(page);
-+		return NULL;
-+	}
- 
- 	ret = page_address(page);
- 	spin_lock(&mm->page_table_lock);
-@@ -392,9 +396,6 @@ static pte_t *__alloc_for_cache(struct mm_struct *mm, int kernel)
- 	}
- 	spin_unlock(&mm->page_table_lock);
- 
--	if (!kernel)
--		pgtable_page_ctor(page);
--
- 	return (pte_t *)ret;
  }
  
 -- 
