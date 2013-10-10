@@ -1,47 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:26345 "EHLO mga01.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755619Ab3JJSGI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 10 Oct 2013 14:06:08 -0400
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 05/34] mm: allow pgtable_page_ctor() to fail
-Date: Thu, 10 Oct 2013 21:05:30 +0300
-Message-ID: <1381428359-14843-6-git-send-email-kirill.shutemov@linux.intel.com>
-In-Reply-To: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
+Received: from cassarossa.samfundet.no ([193.35.52.29]:57602 "EHLO
+	cassarossa.samfundet.no" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756812Ab3JJTPY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Oct 2013 15:15:24 -0400
+Date: Thu, 10 Oct 2013 21:14:58 +0200
+From: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+Subject: Re: [PATCH 13/34] avr32: handle pgtable_page_ctor() fail
+Message-ID: <20131010191458.GA10670@samfundet.no>
 References: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
+ <1381428359-14843-14-git-send-email-kirill.shutemov@linux.intel.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1381428359-14843-14-git-send-email-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20131010180530.E3-PdLVxnJ7TmkPbWC-czS29Sewx_NZkeMn_VUF7e1s@z>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Haavard Skinnemoen <hskinnemoen@gmail.com>
+Message-ID: <20131010191458.UjS5Lj3d7v73odmcWAPPOY6OkuJX0DCyNKgwgaA0YoI@z>
 
-Change pgtable_page_ctor() return type from void to bool.
-Returns true, if initialization is successful and false otherwise.
+Around Thu 10 Oct 2013 21:05:38 +0300 or thereabout, Kirill A. Shutemov wrote:
+> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 
-Current implementation never fails, but it will change later.
+Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
 
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
----
- include/linux/mm.h | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+Given [1].
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 75735f6171..f6467032a9 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -1254,10 +1254,11 @@ static inline pmd_t *pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long a
- #define pte_lockptr(mm, pmd)	({(void)(pmd); &(mm)->page_table_lock;})
- #endif /* USE_SPLIT_PTE_PTLOCKS */
- 
--static inline void pgtable_page_ctor(struct page *page)
-+static inline bool pgtable_page_ctor(struct page *page)
- {
- 	pte_lock_init(page);
- 	inc_zone_page_state(page, NR_PAGETABLE);
-+	return true;
- }
- 
- static inline void pgtable_page_dtor(struct page *page)
+> Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
+> Cc: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+> ---
+>  arch/avr32/include/asm/pgalloc.h | 5 ++++-
+>  1 file changed, 4 insertions(+), 1 deletion(-)
+> 
+> diff --git a/arch/avr32/include/asm/pgalloc.h b/arch/avr32/include/asm/pgalloc.h
+> index bc7e8ae479..1aba19d68c 100644
+> --- a/arch/avr32/include/asm/pgalloc.h
+> +++ b/arch/avr32/include/asm/pgalloc.h
+> @@ -68,7 +68,10 @@ static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
+>  		return NULL;
+>  
+>  	page = virt_to_page(pg);
+> -	pgtable_page_ctor(page);
+> +	if (!pgtable_page_ctor(page)) {
+> +		quicklist_free(QUICK_PT, NULL, pg);
+> +		return NULL;
+> +	}
+>  
+>  	return page;
+>  }
+
+1: I'm assuming that pgtable_page_ctor() now returns success/error, but there
+is a patch series that I have not seen.
+
 -- 
-1.8.4.rc3
-
+mvh
+Hans-Christian Egtvedt
