@@ -1,59 +1,35 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 27/34] sparc: handle pgtable_page_ctor() fail
-Date: Thu, 10 Oct 2013 21:05:52 +0300
-Message-ID: <1381428359-14843-28-git-send-email-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 18/34] m32r: handle pgtable_page_ctor() fail
+Date: Thu, 10 Oct 2013 21:05:43 +0300
+Message-ID: <1381428359-14843-19-git-send-email-kirill.shutemov@linux.intel.com>
 References: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
 Sender: owner-linux-mm@kvack.org
 To: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, "David S. Miller" <davem@davemloft.net>
+Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Hirokazu Takata <takata@linux-m32r.org>
 List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Hirokazu Takata <takata@linux-m32r.org>
 ---
- arch/sparc/mm/init_64.c | 11 ++++++-----
- arch/sparc/mm/srmmu.c   |  5 ++++-
- 2 files changed, 10 insertions(+), 6 deletions(-)
+ arch/m32r/include/asm/pgalloc.h | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
-diff --git a/arch/sparc/mm/init_64.c b/arch/sparc/mm/init_64.c
-index ed82edad1a..d6de9353ee 100644
---- a/arch/sparc/mm/init_64.c
-+++ b/arch/sparc/mm/init_64.c
-@@ -2519,12 +2519,13 @@ pgtable_t pte_alloc_one(struct mm_struct *mm,
- 		return pte;
+diff --git a/arch/m32r/include/asm/pgalloc.h b/arch/m32r/include/asm/pgalloc.h
+index ac4208bcc5..2d55a064cc 100644
+--- a/arch/m32r/include/asm/pgalloc.h
++++ b/arch/m32r/include/asm/pgalloc.h
+@@ -45,7 +45,10 @@ static __inline__ pgtable_t pte_alloc_one(struct mm_struct *mm,
  
- 	page = __alloc_for_cache(mm);
--	if (page) {
--		pgtable_page_ctor(page);
--		pte = (pte_t *) page_address(page);
-+	if (!page)
-+		return NULL;
-+	if (!pgtable_page_ctor(page)) {
-+		free_hot_cold_page(page, 0);
-+		return NULL;
- 	}
--
--	return pte;
-+	return (pte_t *) page_address(page);
- }
- 
- void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
-diff --git a/arch/sparc/mm/srmmu.c b/arch/sparc/mm/srmmu.c
-index 5d721df48a..869023abe5 100644
---- a/arch/sparc/mm/srmmu.c
-+++ b/arch/sparc/mm/srmmu.c
-@@ -345,7 +345,10 @@ pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long address)
- 	if ((pte = (unsigned long)pte_alloc_one_kernel(mm, address)) == 0)
+ 	if (!pte)
  		return NULL;
- 	page = pfn_to_page(__nocache_pa(pte) >> PAGE_SHIFT);
--	pgtable_page_ctor(page);
-+	if (!pgtable_page_ctor(page)) {
-+		__free_page(page);
+-	pgtable_page_ctor(pte);
++	if (!pgtable_page_ctor(pte)) {
++		__free_page(pte);
 +		return NULL;
 +	}
- 	return page;
+ 	return pte;
  }
  
 -- 
