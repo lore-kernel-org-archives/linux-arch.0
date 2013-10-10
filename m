@@ -1,82 +1,137 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zene.cmpxchg.org ([85.214.230.12]:56815 "EHLO zene.cmpxchg.org"
+Received: from mga01.intel.com ([192.55.52.88]:26345 "EHLO mga01.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755809Ab3JJAOj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 9 Oct 2013 20:14:39 -0400
-Date: Wed, 9 Oct 2013 20:14:22 -0400
-From: Johannes Weiner <hannes@cmpxchg.org>
-Subject: Re: [patch 0/7] improve memcg oom killer robustness v2
-Message-ID: <20131010001422.GB856@cmpxchg.org>
-References: <20130917141013.GA30838@dhcp22.suse.cz>
- <20130918160304.6EDF2729@pobox.sk>
- <20130918180455.GD856@cmpxchg.org>
- <20130918181946.GE856@cmpxchg.org>
- <20130918195504.GF856@cmpxchg.org>
- <20130926185459.E5D2987F@pobox.sk>
- <20130926192743.GP856@cmpxchg.org>
- <20131007130149.5F5482D8@pobox.sk>
- <20131007192336.GU856@cmpxchg.org>
- <20131009204450.6AB97915@pobox.sk>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20131009204450.6AB97915@pobox.sk>
+	id S1752602Ab3JJSGF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 Oct 2013 14:06:05 -0400
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: [PATCH 00/34] dynamically allocate split ptl if it cannot be embedded to struct page
+Date: Thu, 10 Oct 2013 21:05:25 +0300
+Message-ID: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: azurIt <azurit@pobox.sk>
-Cc: Michal Hocko <mhocko@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, linux-mm@kvack.org, cgroups@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20131010001422.Jas9zhgQUkXbbscZIxIg-fBTpnkC7RrECDUZjiRH-1o@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
+Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Message-ID: <20131010180525.daM6jMAmDf8d2-0R_--a4WHi6MHkAKTXsakMJwCunUs@z>
 
-Hi azur,
+In split page table lock case, we embed spinlock_t into struct page. For
+obvious reason, we don't want to increase size of struct page if
+spinlock_t is too big, like with DEBUG_SPINLOCK or DEBUG_LOCK_ALLOC or on
+-rt kernel. So we disble split page table lock, if spinlock_t is too big.
 
-On Wed, Oct 09, 2013 at 08:44:50PM +0200, azurIt wrote:
-> Joahnnes,
-> 
-> i'm very sorry to say it but today something strange happened.. :) i was just right at the computer so i noticed it almost immediately but i don't have much info. Server stoped to respond from the net but i was already logged on ssh which was working quite fine (only a little slow). I was able to run commands on shell but i didn't do much because i was afraid that it will goes down for good soon. I noticed few things:
->  - htop was strange because all CPUs were doing nothing (totally nothing)
->  - there were enough of free memory
->  - server load was about 90 and was raising slowly
->  - i didn't see ANY process in 'run' state
->  - i also didn't see any process with strange behavior (taking much CPU, memory or so) so it wasn't obvious what to do to fix it
->  - i started to kill Apache processes, everytime i killed some, CPUs did some work, but it wasn't fixing the problem
->  - finally i did 'skill -kill apache2' in shell and everything started to work
->  - server monitoring wasn't sending any data so i have no graphs
->  - nothing interesting in logs
-> 
-> I will send more info when i get some.
+This patchset allows to allocate the lock dynamically if spinlock_t is
+big. In this page->ptl is used to store pointer to spinlock instead of
+spinlock itself. It costs additional cache line for indirect access, but
+fix page fault scalability for multi-threaded applications.
 
-Somebody else reported a problem on the upstream patches as well.  Any
-chance you can confirm the stacks of the active but not running tasks?
+LOCK_STAT depends on DEBUG_SPINLOCK, so on current kernel enabling
+LOCK_STAT to analyse scalability issues breaks scalability. ;)
 
-It sounds like they are stuck on a waitqueue, the question is which
-one.  I forgot to disable OOM for __GFP_NOFAIL allocations, so they
-could succeed and leak an OOM context.  task structs are not
-reinitialized between alloc & free so a different task could later try
-to oom trylock a memcg that has been freed, fail, and wait
-indefinitely on the OOM waitqueue.  There might be a simpler
-explanation but I can't think of anything right now.
+The patchset mostly fixes this. Results for ./thp_memscale -c 80 -b 512M
+on 4-socket machine:
 
-But the OOM context is definitely being leaked, so please apply the
-following for your next reboot:
+baseline, no CONFIG_LOCK_STAT:	9.115460703 seconds time elapsed
+baseline, CONFIG_LOCK_STAT=y:	53.890567123 seconds time elapsed
+patched, no CONFIG_LOCK_STAT:	8.852250368 seconds time elapsed
+patched, CONFIG_LOCK_STAT=y:	11.069770759 seconds time elapsed
 
----
- mm/memcontrol.c | 3 +++
- 1 file changed, 3 insertions(+)
+Patch count is scary, but most of them trivial. Overview:
 
-diff --git a/mm/memcontrol.c b/mm/memcontrol.c
-index 5aee2fa..83ad39b 100644
---- a/mm/memcontrol.c
-+++ b/mm/memcontrol.c
-@@ -2341,6 +2341,9 @@ static int __mem_cgroup_try_charge(struct mm_struct *mm,
- 	 */
- 	if (!*ptr && !mm)
- 		goto bypass;
-+
-+	if (gfp_mask & __GFP_NOFAIL)
-+		oom = false;
- again:
- 	if (*ptr) { /* css should be a valid one */
- 		memcg = *ptr;
+ Patches 1-4	Few bug fixes. No dependencies to other patches.
+		Probably should applied as soon as possible.
+
+ Patch 5	Changes signature of pgtable_page_ctor(). We will use it
+		for dynamic lock allocation, so it can fail.
+
+ Patches 6-8	Add missing constructor/destructor calls on few archs.
+		It's fixes NR_PAGETABLE accounting and prepare to use
+		split ptl.
+
+ Patches 9-33	Add pgtable_page_ctor() fail handling to all archs.
+
+ Patches 34	Finally adds support of dynamically-allocated page->pte.
+		Also contains documentation for split page table lock.
+
+Any comments?
+
+Kirill A. Shutemov (34):
+  x86: add missed pgtable_pmd_page_ctor/dtor calls for preallocated pmds
+  cris: fix potential NULL-pointer dereference
+  m32r: fix potential NULL-pointer dereference
+  xtensa: fix potential NULL-pointer dereference
+  mm: allow pgtable_page_ctor() to fail
+  microblaze: add missing pgtable_page_ctor/dtor calls
+  mn10300: add missing pgtable_page_ctor/dtor calls
+  openrisc: add missing pgtable_page_ctor/dtor calls
+  alpha: handle pgtable_page_ctor() fail
+  arc: handle pgtable_page_ctor() fail
+  arm: handle pgtable_page_ctor() fail
+  arm64: handle pgtable_page_ctor() fail
+  avr32: handle pgtable_page_ctor() fail
+  cris: handle pgtable_page_ctor() fail
+  frv: handle pgtable_page_ctor() fail
+  hexagon: handle pgtable_page_ctor() fail
+  ia64: handle pgtable_page_ctor() fail
+  m32r: handle pgtable_page_ctor() fail
+  m68k: handle pgtable_page_ctor() fail
+  metag: handle pgtable_page_ctor() fail
+  mips: handle pgtable_page_ctor() fail
+  parisc: handle pgtable_page_ctor() fail
+  powerpc: handle pgtable_page_ctor() fail
+  s390: handle pgtable_page_ctor() fail
+  score: handle pgtable_page_ctor() fail
+  sh: handle pgtable_page_ctor() fail
+  sparc: handle pgtable_page_ctor() fail
+  tile: handle pgtable_page_ctor() fail
+  um: handle pgtable_page_ctor() fail
+  unicore32: handle pgtable_page_ctor() fail
+  x86: handle pgtable_page_ctor() fail
+  xtensa: handle pgtable_page_ctor() fail
+  iommu/arm-smmu: handle pgtable_page_ctor() fail
+  mm: dynamically allocate page->ptl if it cannot be embedded to struct
+    page
+
+ Documentation/vm/split_page_table_lock   | 90 ++++++++++++++++++++++++++++++++
+ arch/alpha/include/asm/pgalloc.h         |  5 +-
+ arch/arc/include/asm/pgalloc.h           | 11 ++--
+ arch/arm/include/asm/pgalloc.h           | 12 +++--
+ arch/arm64/include/asm/pgalloc.h         |  9 ++--
+ arch/avr32/include/asm/pgalloc.h         |  5 +-
+ arch/cris/include/asm/pgalloc.h          |  7 ++-
+ arch/frv/mm/pgalloc.c                    | 12 +++--
+ arch/hexagon/include/asm/pgalloc.h       | 10 ++--
+ arch/ia64/include/asm/pgalloc.h          |  5 +-
+ arch/m32r/include/asm/pgalloc.h          |  7 ++-
+ arch/m68k/include/asm/motorola_pgalloc.h |  5 +-
+ arch/m68k/include/asm/sun3_pgalloc.h     |  5 +-
+ arch/metag/include/asm/pgalloc.h         |  8 ++-
+ arch/microblaze/include/asm/pgalloc.h    | 12 +++--
+ arch/mips/include/asm/pgalloc.h          |  9 ++--
+ arch/mn10300/include/asm/pgalloc.h       |  1 +
+ arch/mn10300/mm/pgtable.c                |  9 +++-
+ arch/openrisc/include/asm/pgalloc.h      | 10 +++-
+ arch/parisc/include/asm/pgalloc.h        |  8 ++-
+ arch/powerpc/include/asm/pgalloc-64.h    |  5 +-
+ arch/powerpc/mm/pgtable_32.c             |  5 +-
+ arch/powerpc/mm/pgtable_64.c             |  7 +--
+ arch/s390/mm/pgtable.c                   | 11 +++-
+ arch/score/include/asm/pgalloc.h         |  9 ++--
+ arch/sh/include/asm/pgalloc.h            |  5 +-
+ arch/sparc/mm/init_64.c                  | 11 ++--
+ arch/sparc/mm/srmmu.c                    |  5 +-
+ arch/tile/mm/pgtable.c                   |  6 ++-
+ arch/um/kernel/mem.c                     |  8 ++-
+ arch/unicore32/include/asm/pgalloc.h     | 14 ++---
+ arch/x86/mm/pgtable.c                    | 19 +++++--
+ arch/x86/xen/mmu.c                       |  2 +-
+ arch/xtensa/include/asm/pgalloc.h        | 11 +++-
+ drivers/iommu/arm-smmu.c                 |  5 +-
+ include/linux/mm.h                       | 73 +++++++++++++++++++-------
+ include/linux/mm_types.h                 |  5 +-
+ mm/Kconfig                               |  2 -
+ mm/memory.c                              | 19 +++++++
+ 39 files changed, 365 insertions(+), 97 deletions(-)
+ create mode 100644 Documentation/vm/split_page_table_lock
+
 -- 
-1.8.4
+1.8.4.rc3
 
