@@ -1,44 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([143.182.124.37]:50321 "EHLO mga14.intel.com"
+Received: from mga14.intel.com ([143.182.124.37]:3703 "EHLO mga14.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754804Ab3JJSGP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 10 Oct 2013 14:06:15 -0400
+	id S1756599Ab3JJSGO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 Oct 2013 14:06:14 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 29/34] um: handle pgtable_page_ctor() fail
-Date: Thu, 10 Oct 2013 21:05:54 +0300
-Message-ID: <1381428359-14843-30-git-send-email-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 28/34] tile: handle pgtable_page_ctor() fail
+Date: Thu, 10 Oct 2013 21:05:53 +0300
+Message-ID: <1381428359-14843-29-git-send-email-kirill.shutemov@linux.intel.com>
 In-Reply-To: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
 References: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>
-Message-ID: <20131010180554.cZV4D2aDejxQxRe7gpvZ1_ttdTkwC7Vhi4UrpTn8iLI@z>
+Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Chris Metcalf <cmetcalf@tilera.com>
+Message-ID: <20131010180553.GYkxO_-8uK-9PnSOaNMo6n7L-PTqUVup0A97LNJ0-H0@z>
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Jeff Dike <jdike@addtoit.com>
-Cc: Richard Weinberger <richard@nod.at>
+Cc: Chris Metcalf <cmetcalf@tilera.com>
 ---
- arch/um/kernel/mem.c | 8 ++++++--
- 1 file changed, 6 insertions(+), 2 deletions(-)
+ arch/tile/mm/pgtable.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
 
-diff --git a/arch/um/kernel/mem.c b/arch/um/kernel/mem.c
-index 7ddb64baf3..8636e90542 100644
---- a/arch/um/kernel/mem.c
-+++ b/arch/um/kernel/mem.c
-@@ -279,8 +279,12 @@ pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long address)
- 	struct page *pte;
+diff --git a/arch/tile/mm/pgtable.c b/arch/tile/mm/pgtable.c
+index 4fd9ec0b58..5e86eac4bf 100644
+--- a/arch/tile/mm/pgtable.c
++++ b/arch/tile/mm/pgtable.c
+@@ -241,6 +241,11 @@ struct page *pgtable_alloc_one(struct mm_struct *mm, unsigned long address,
+ 	if (p == NULL)
+ 		return NULL;
  
- 	pte = alloc_page(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO);
--	if (pte)
--		pgtable_page_ctor(pte);
-+	if (!pte)
-+		return NULL;
-+	if (!pgtable_page_ctor(pte)) {
-+		__free_page(pte);
++	if (!pgtable_page_ctor(p)) {
++		__free_pages(p, L2_USER_PGTABLE_ORDER);
 +		return NULL;
 +	}
- 	return pte;
++
+ 	/*
+ 	 * Make every page have a page_count() of one, not just the first.
+ 	 * We don't use __GFP_COMP since it doesn't look like it works
+@@ -251,7 +256,6 @@ struct page *pgtable_alloc_one(struct mm_struct *mm, unsigned long address,
+ 		inc_zone_page_state(p+i, NR_PAGETABLE);
+ 	}
+ 
+-	pgtable_page_ctor(p);
+ 	return p;
  }
  
 -- 
