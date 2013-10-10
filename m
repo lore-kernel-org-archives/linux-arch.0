@@ -1,43 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:24829 "EHLO mga09.intel.com"
+Received: from mga14.intel.com ([143.182.124.37]:50321 "EHLO mga14.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755877Ab3JJSGJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	id S1755865Ab3JJSGJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Thu, 10 Oct 2013 14:06:09 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 13/34] avr32: handle pgtable_page_ctor() fail
-Date: Thu, 10 Oct 2013 21:05:38 +0300
-Message-ID: <1381428359-14843-14-git-send-email-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 01/34] x86: add missed pgtable_pmd_page_ctor/dtor calls for preallocated pmds
+Date: Thu, 10 Oct 2013 21:05:26 +0300
+Message-ID: <1381428359-14843-2-git-send-email-kirill.shutemov@linux.intel.com>
 In-Reply-To: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
 References: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>
-Message-ID: <20131010180538.ss8vooDAaRjooXsEzfIi0xf4Cch8XIK73JR2iJ1ULRg@z>
+Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Message-ID: <20131010180526.boUVdKeUKiqFr3ssKVsmGa3R1tBcGc_cC6Sk4Vr81Yc@z>
+
+I've missed that we preallocate few pmds on pgd_alloc() if X86_PAE
+enabled. Let's add missed constructor/destructor calls.
+
+I haven't noticed it during testing since prep_new_page() clears
+page->mapping and therefore page->ptl. It's effectively equal to
+spin_lock_init(&page->ptl).
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
-Cc: Hans-Christian Egtvedt <egtvedt@samfundet.no>
 ---
- arch/avr32/include/asm/pgalloc.h | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+ arch/x86/mm/pgtable.c | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
 
-diff --git a/arch/avr32/include/asm/pgalloc.h b/arch/avr32/include/asm/pgalloc.h
-index bc7e8ae479..1aba19d68c 100644
---- a/arch/avr32/include/asm/pgalloc.h
-+++ b/arch/avr32/include/asm/pgalloc.h
-@@ -68,7 +68,10 @@ static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
- 		return NULL;
+diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
+index dfa537a03b..1a7d21342e 100644
+--- a/arch/x86/mm/pgtable.c
++++ b/arch/x86/mm/pgtable.c
+@@ -189,8 +189,10 @@ static void free_pmds(pmd_t *pmds[])
+ 	int i;
  
- 	page = virt_to_page(pg);
--	pgtable_page_ctor(page);
-+	if (!pgtable_page_ctor(page)) {
-+		quicklist_free(QUICK_PT, NULL, pg);
-+		return NULL;
-+	}
- 
- 	return page;
+ 	for(i = 0; i < PREALLOCATED_PMDS; i++)
+-		if (pmds[i])
++		if (pmds[i]) {
++			pgtable_pmd_page_dtor(virt_to_page(pmds[i]));
+ 			free_page((unsigned long)pmds[i]);
++		}
  }
+ 
+ static int preallocate_pmds(pmd_t *pmds[])
+@@ -200,8 +202,13 @@ static int preallocate_pmds(pmd_t *pmds[])
+ 
+ 	for(i = 0; i < PREALLOCATED_PMDS; i++) {
+ 		pmd_t *pmd = (pmd_t *)__get_free_page(PGALLOC_GFP);
+-		if (pmd == NULL)
++		if (!pmd)
++			failed = true;
++		if (pmd && !pgtable_pmd_page_ctor(virt_to_page(pmd))) {
++			free_page((unsigned long)pmds[i]);
++			pmd = NULL;
+ 			failed = true;
++		}
+ 		pmds[i] = pmd;
+ 	}
+ 
 -- 
 1.8.4.rc3
 
