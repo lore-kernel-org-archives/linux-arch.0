@@ -1,43 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([143.182.124.37]:3703 "EHLO mga14.intel.com"
+Received: from mga01.intel.com ([192.55.52.88]:28691 "EHLO mga01.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756613Ab3JJSGP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 10 Oct 2013 14:06:15 -0400
+	id S1756584Ab3JJSGO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 Oct 2013 14:06:14 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 32/34] xtensa: handle pgtable_page_ctor() fail
-Date: Thu, 10 Oct 2013 21:05:57 +0300
-Message-ID: <1381428359-14843-33-git-send-email-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 33/34] iommu/arm-smmu: handle pgtable_page_ctor() fail
+Date: Thu, 10 Oct 2013 21:05:58 +0300
+Message-ID: <1381428359-14843-34-git-send-email-kirill.shutemov@linux.intel.com>
 In-Reply-To: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
 References: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>
-Message-ID: <20131010180557.gz71NNAN7qL7VVE7VRyff0Duo5E5XplYNE_8ruOsorM@z>
+Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Grant Likely <grant.likely@linaro.org>, Rob Herring <rob.herring@calxeda.com>
+Message-ID: <20131010180558.zYpfvyeoej2hbtCUj46Lk8uS3nR7jwY8NR7rexZXFj8@z>
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Chris Zankel <chris@zankel.net>
-Cc: Max Filippov <jcmvbkbc@gmail.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Grant Likely <grant.likely@linaro.org>
+Cc: Rob Herring <rob.herring@calxeda.com>
 ---
- arch/xtensa/include/asm/pgalloc.h | 5 ++++-
+ drivers/iommu/arm-smmu.c | 5 ++++-
  1 file changed, 4 insertions(+), 1 deletion(-)
 
-diff --git a/arch/xtensa/include/asm/pgalloc.h b/arch/xtensa/include/asm/pgalloc.h
-index 037671a655..b8774f1e21 100644
---- a/arch/xtensa/include/asm/pgalloc.h
-+++ b/arch/xtensa/include/asm/pgalloc.h
-@@ -58,7 +58,10 @@ static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
- 	if (!pte)
- 		return NULL;
- 	page = virt_to_page(pte);
--	pgtable_page_ctor(page);
-+	if (!pgtable_page_ctor(page)) {
-+		kmem_cache_free(pgtable_cache, pte);
-+		return NULL;
-+	}
- 	return page;
- }
+diff --git a/drivers/iommu/arm-smmu.c b/drivers/iommu/arm-smmu.c
+index f417e89e1e..2b256a5075 100644
+--- a/drivers/iommu/arm-smmu.c
++++ b/drivers/iommu/arm-smmu.c
+@@ -1211,7 +1211,10 @@ static int arm_smmu_alloc_init_pte(struct arm_smmu_device *smmu, pmd_t *pmd,
  
+ 		arm_smmu_flush_pgtable(smmu, page_address(table),
+ 				       ARM_SMMU_PTE_HWTABLE_SIZE);
+-		pgtable_page_ctor(table);
++		if (!pgtable_page_ctor(table)) {
++			__free_page(table);
++			return -ENOMEM;
++		}
+ 		pmd_populate(NULL, pmd, table);
+ 		arm_smmu_flush_pgtable(smmu, pmd, sizeof(*pmd));
+ 	}
 -- 
 1.8.4.rc3
 
