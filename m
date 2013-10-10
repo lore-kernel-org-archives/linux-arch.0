@@ -1,56 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:10074 "EHLO mga09.intel.com"
+Received: from mga09.intel.com ([134.134.136.24]:11059 "EHLO mga09.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756537Ab3JJSGN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 10 Oct 2013 14:06:13 -0400
+	id S1754887Ab3JJSGM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 Oct 2013 14:06:12 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 24/34] s390: handle pgtable_page_ctor() fail
-Date: Thu, 10 Oct 2013 21:05:49 +0300
-Message-ID: <1381428359-14843-25-git-send-email-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 23/34] powerpc: handle pgtable_page_ctor() fail
+Date: Thu, 10 Oct 2013 21:05:48 +0300
+Message-ID: <1381428359-14843-24-git-send-email-kirill.shutemov@linux.intel.com>
 In-Reply-To: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
 References: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20131010180549.SJKuK4AtWX1voLLxwCBCjbxivEsVtp2o3I1VdVyj1-U@z>
+Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>
+Message-ID: <20131010180548.IMVFJcRjDCAD-NKqhlTV8l49TGbDcSARElqJOg4MWpQ@z>
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
 ---
- arch/s390/mm/pgtable.c | 11 +++++++++--
- 1 file changed, 9 insertions(+), 2 deletions(-)
+ arch/powerpc/include/asm/pgalloc-64.h | 5 ++++-
+ arch/powerpc/mm/pgtable_32.c          | 5 ++++-
+ arch/powerpc/mm/pgtable_64.c          | 7 ++++---
+ 3 files changed, 12 insertions(+), 5 deletions(-)
 
-diff --git a/arch/s390/mm/pgtable.c b/arch/s390/mm/pgtable.c
-index c463e5cd3b..b109edb90b 100644
---- a/arch/s390/mm/pgtable.c
-+++ b/arch/s390/mm/pgtable.c
-@@ -754,7 +754,11 @@ static inline unsigned long *page_table_alloc_pgste(struct mm_struct *mm,
- 		__free_page(page);
+diff --git a/arch/powerpc/include/asm/pgalloc-64.h b/arch/powerpc/include/asm/pgalloc-64.h
+index f65e27b09b..16cb92d215 100644
+--- a/arch/powerpc/include/asm/pgalloc-64.h
++++ b/arch/powerpc/include/asm/pgalloc-64.h
+@@ -91,7 +91,10 @@ static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
+ 	if (!pte)
  		return NULL;
- 	}
+ 	page = virt_to_page(pte);
 -	pgtable_page_ctor(page);
 +	if (!pgtable_page_ctor(page)) {
-+		kfree(mp);
 +		__free_page(page);
 +		return NULL;
 +	}
- 	mp->vmaddr = vmaddr & PMD_MASK;
- 	INIT_LIST_HEAD(&mp->mapper);
- 	page->index = (unsigned long) mp;
-@@ -884,7 +888,10 @@ unsigned long *page_table_alloc(struct mm_struct *mm, unsigned long vmaddr)
- 		page = alloc_page(GFP_KERNEL|__GFP_REPEAT);
- 		if (!page)
- 			return NULL;
+ 	return page;
+ }
+ 
+diff --git a/arch/powerpc/mm/pgtable_32.c b/arch/powerpc/mm/pgtable_32.c
+index 6c856fb8c1..5b96017152 100644
+--- a/arch/powerpc/mm/pgtable_32.c
++++ b/arch/powerpc/mm/pgtable_32.c
+@@ -121,7 +121,10 @@ pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long address)
+ 	ptepage = alloc_pages(flags, 0);
+ 	if (!ptepage)
+ 		return NULL;
+-	pgtable_page_ctor(ptepage);
++	if (!pgtable_page_ctor(ptepage)) {
++		__free_page(ptepage);
++		return NULL;
++	}
+ 	return ptepage;
+ }
+ 
+diff --git a/arch/powerpc/mm/pgtable_64.c b/arch/powerpc/mm/pgtable_64.c
+index 536eec72c0..9d95786aa8 100644
+--- a/arch/powerpc/mm/pgtable_64.c
++++ b/arch/powerpc/mm/pgtable_64.c
+@@ -378,6 +378,10 @@ static pte_t *__alloc_for_cache(struct mm_struct *mm, int kernel)
+ 				       __GFP_REPEAT | __GFP_ZERO);
+ 	if (!page)
+ 		return NULL;
++	if (!kernel && !pgtable_page_ctor(page)) {
++		__free_page(page);
++		return NULL;
++	}
+ 
+ 	ret = page_address(page);
+ 	spin_lock(&mm->page_table_lock);
+@@ -392,9 +396,6 @@ static pte_t *__alloc_for_cache(struct mm_struct *mm, int kernel)
+ 	}
+ 	spin_unlock(&mm->page_table_lock);
+ 
+-	if (!kernel)
 -		pgtable_page_ctor(page);
-+		if (!pgtable_page_ctor(page)) {
-+			__free_page(page);
-+			return NULL;
-+		}
- 		atomic_set(&page->_mapcount, 1);
- 		table = (unsigned long *) page_to_phys(page);
- 		clear_table(table, _PAGE_INVALID, PAGE_SIZE);
+-
+ 	return (pte_t *)ret;
+ }
+ 
 -- 
 1.8.4.rc3
 
