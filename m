@@ -1,44 +1,47 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 28/34] tile: handle pgtable_page_ctor() fail
-Date: Thu, 10 Oct 2013 21:05:53 +0300
-Message-ID: <1381428359-14843-29-git-send-email-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 05/34] mm: allow pgtable_page_ctor() to fail
+Date: Thu, 10 Oct 2013 21:05:30 +0300
+Message-ID: <1381428359-14843-6-git-send-email-kirill.shutemov@linux.intel.com>
 References: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: owner-linux-mm@kvack.org
 To: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Chris Metcalf <cmetcalf@tilera.com>
+Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Chris Metcalf <cmetcalf@tilera.com>
----
- arch/tile/mm/pgtable.c | 6 +++++-
- 1 file changed, 5 insertions(+), 1 deletion(-)
+Change pgtable_page_ctor() return type from void to bool.
+Returns true, if initialization is successful and false otherwise.
 
-diff --git a/arch/tile/mm/pgtable.c b/arch/tile/mm/pgtable.c
-index 4fd9ec0b58..5e86eac4bf 100644
---- a/arch/tile/mm/pgtable.c
-+++ b/arch/tile/mm/pgtable.c
-@@ -241,6 +241,11 @@ struct page *pgtable_alloc_one(struct mm_struct *mm, unsigned long address,
- 	if (p == NULL)
- 		return NULL;
+Current implementation never fails, but it will change later.
+
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+---
+ include/linux/mm.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 75735f6171..f6467032a9 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -1254,10 +1254,11 @@ static inline pmd_t *pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long a
+ #define pte_lockptr(mm, pmd)	({(void)(pmd); &(mm)->page_table_lock;})
+ #endif /* USE_SPLIT_PTE_PTLOCKS */
  
-+	if (!pgtable_page_ctor(p)) {
-+		__free_pages(p, L2_USER_PGTABLE_ORDER);
-+		return NULL;
-+	}
-+
- 	/*
- 	 * Make every page have a page_count() of one, not just the first.
- 	 * We don't use __GFP_COMP since it doesn't look like it works
-@@ -251,7 +256,6 @@ struct page *pgtable_alloc_one(struct mm_struct *mm, unsigned long address,
- 		inc_zone_page_state(p+i, NR_PAGETABLE);
- 	}
- 
--	pgtable_page_ctor(p);
- 	return p;
+-static inline void pgtable_page_ctor(struct page *page)
++static inline bool pgtable_page_ctor(struct page *page)
+ {
+ 	pte_lock_init(page);
+ 	inc_zone_page_state(page, NR_PAGETABLE);
++	return true;
  }
  
+ static inline void pgtable_page_dtor(struct page *page)
 -- 
 1.8.4.rc3
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
