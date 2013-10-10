@@ -1,48 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:26345 "EHLO mga01.intel.com"
+Received: from mga09.intel.com ([134.134.136.24]:16274 "EHLO mga09.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754887Ab3JJSGG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 10 Oct 2013 14:06:06 -0400
+	id S1755880Ab3JJSGJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 Oct 2013 14:06:09 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 04/34] xtensa: fix potential NULL-pointer dereference
-Date: Thu, 10 Oct 2013 21:05:29 +0300
-Message-ID: <1381428359-14843-5-git-send-email-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 12/34] arm64: handle pgtable_page_ctor() fail
+Date: Thu, 10 Oct 2013 21:05:37 +0300
+Message-ID: <1381428359-14843-13-git-send-email-kirill.shutemov@linux.intel.com>
 In-Reply-To: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
 References: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>
-Message-ID: <20131010180529.YiL-BOl-2BnS21brkqd5o8PXs16fgVyMNN_8GJPJrlo@z>
-
-Add missing check for memory allocation fail.
+Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
+Message-ID: <20131010180537.js8Sv6gP65r6oJiC_A45w8BoJkmDfyxmWZc83Q0Qruo@z>
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Chris Zankel <chris@zankel.net>
-Cc: Max Filippov <jcmvbkbc@gmail.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
 ---
- arch/xtensa/include/asm/pgalloc.h | 6 +++++-
- 1 file changed, 5 insertions(+), 1 deletion(-)
+ arch/arm64/include/asm/pgalloc.h | 9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
 
-diff --git a/arch/xtensa/include/asm/pgalloc.h b/arch/xtensa/include/asm/pgalloc.h
-index cf914c8c24..037671a655 100644
---- a/arch/xtensa/include/asm/pgalloc.h
-+++ b/arch/xtensa/include/asm/pgalloc.h
-@@ -51,9 +51,13 @@ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
- static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
- 					unsigned long addr)
- {
-+	pte_t *pte;
- 	struct page *page;
+diff --git a/arch/arm64/include/asm/pgalloc.h b/arch/arm64/include/asm/pgalloc.h
+index f214069ec5..9bea6e74a0 100644
+--- a/arch/arm64/include/asm/pgalloc.h
++++ b/arch/arm64/include/asm/pgalloc.h
+@@ -63,9 +63,12 @@ pte_alloc_one(struct mm_struct *mm, unsigned long addr)
+ 	struct page *pte;
  
--	page = virt_to_page(pte_alloc_one_kernel(mm, addr));
-+	pte = pte_alloc_one_kernel(mm, addr);
+ 	pte = alloc_pages(PGALLOC_GFP, 0);
+-	if (pte)
+-		pgtable_page_ctor(pte);
+-
 +	if (!pte)
 +		return NULL;
-+	page = virt_to_page(pte);
- 	pgtable_page_ctor(page);
- 	return page;
++	if (!pgtable_page_ctor(pte)) {
++		__free_page(pte);
++		return NULL;
++	}
+ 	return pte;
  }
+ 
 -- 
 1.8.4.rc3
 
