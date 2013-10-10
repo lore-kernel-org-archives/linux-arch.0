@@ -1,57 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cassarossa.samfundet.no ([193.35.52.29]:57602 "EHLO
-	cassarossa.samfundet.no" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756812Ab3JJTPY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Oct 2013 15:15:24 -0400
-Date: Thu, 10 Oct 2013 21:14:58 +0200
-From: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-Subject: Re: [PATCH 13/34] avr32: handle pgtable_page_ctor() fail
-Message-ID: <20131010191458.GA10670@samfundet.no>
-References: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
- <1381428359-14843-14-git-send-email-kirill.shutemov@linux.intel.com>
+Received: from usmamail.tilera.com ([12.216.194.151]:24109 "EHLO
+	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756092Ab3JJTud (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Oct 2013 15:50:33 -0400
+Message-ID: <52570507.9080704@tilera.com>
+Date: Thu, 10 Oct 2013 15:50:31 -0400
+From: Chris Metcalf <cmetcalf@tilera.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1381428359-14843-14-git-send-email-kirill.shutemov@linux.intel.com>
+Subject: Re: [PATCH 28/34] tile: handle pgtable_page_ctor() fail
+References: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com> <1381428359-14843-29-git-send-email-kirill.shutemov@linux.intel.com>
+In-Reply-To: <1381428359-14843-29-git-send-email-kirill.shutemov@linux.intel.com>
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Haavard Skinnemoen <hskinnemoen@gmail.com>
-Message-ID: <20131010191458.UjS5Lj3d7v73odmcWAPPOY6OkuJX0DCyNKgwgaA0YoI@z>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Message-ID: <20131010195031.wBlcczttcobcuW23nr_VXDkor9u0p89mA8cXWrdJX3w@z>
 
-Around Thu 10 Oct 2013 21:05:38 +0300 or thereabout, Kirill A. Shutemov wrote:
+On 10/10/2013 2:05 PM, Kirill A. Shutemov wrote:
 > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-
-Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-
-Given [1].
-
-> Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
-> Cc: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+> Cc: Chris Metcalf <cmetcalf@tilera.com>
 > ---
->  arch/avr32/include/asm/pgalloc.h | 5 ++++-
->  1 file changed, 4 insertions(+), 1 deletion(-)
-> 
-> diff --git a/arch/avr32/include/asm/pgalloc.h b/arch/avr32/include/asm/pgalloc.h
-> index bc7e8ae479..1aba19d68c 100644
-> --- a/arch/avr32/include/asm/pgalloc.h
-> +++ b/arch/avr32/include/asm/pgalloc.h
-> @@ -68,7 +68,10 @@ static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
->  		return NULL;
->  
->  	page = virt_to_page(pg);
-> -	pgtable_page_ctor(page);
-> +	if (!pgtable_page_ctor(page)) {
-> +		quicklist_free(QUICK_PT, NULL, pg);
-> +		return NULL;
-> +	}
->  
->  	return page;
->  }
+>  arch/tile/mm/pgtable.c | 6 +++++-
+>  1 file changed, 5 insertions(+), 1 deletion(-)
 
-1: I'm assuming that pgtable_page_ctor() now returns success/error, but there
-is a patch series that I have not seen.
+Acked-by: Chris Metcalf <cmetcalf@tilera.com>
 
 -- 
-mvh
-Hans-Christian Egtvedt
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
+
