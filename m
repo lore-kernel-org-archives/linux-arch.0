@@ -1,36 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([143.182.124.37]:50321 "EHLO mga14.intel.com"
+Received: from mga09.intel.com ([134.134.136.24]:24829 "EHLO mga09.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754804Ab3JJSGG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	id S1754604Ab3JJSGG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Thu, 10 Oct 2013 14:06:06 -0400
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 03/34] m32r: fix potential NULL-pointer dereference
-Date: Thu, 10 Oct 2013 21:05:28 +0300
-Message-ID: <1381428359-14843-4-git-send-email-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 02/34] cris: fix potential NULL-pointer dereference
+Date: Thu, 10 Oct 2013 21:05:27 +0300
+Message-ID: <1381428359-14843-3-git-send-email-kirill.shutemov@linux.intel.com>
 In-Reply-To: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
 References: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Hirokazu Takata <takata@linux-m32r.org>
-Message-ID: <20131010180528.aIoWWsaYa-v23qladXg91SCSK4qCIdmFdT0ePFotjMY@z>
+Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>
+Message-ID: <20131010180527.gTHL7Capeo8VRuSVesY5S-y4lncI9Bw8iE7poNbHb7Q@z>
 
 Add missing check for memory allocation fail.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Hirokazu Takata <takata@linux-m32r.org>
+Cc: Mikael Starvik <starvik@axis.com>
+Cc: Jesper Nilsson <jesper.nilsson@axis.com>
 ---
- arch/m32r/include/asm/pgalloc.h | 2 ++
+ arch/cris/include/asm/pgalloc.h | 2 ++
  1 file changed, 2 insertions(+)
 
-diff --git a/arch/m32r/include/asm/pgalloc.h b/arch/m32r/include/asm/pgalloc.h
-index 0fc7361989..ac4208bcc5 100644
---- a/arch/m32r/include/asm/pgalloc.h
-+++ b/arch/m32r/include/asm/pgalloc.h
-@@ -43,6 +43,8 @@ static __inline__ pgtable_t pte_alloc_one(struct mm_struct *mm,
+diff --git a/arch/cris/include/asm/pgalloc.h b/arch/cris/include/asm/pgalloc.h
+index 6da975db11..d9504d38c2 100644
+--- a/arch/cris/include/asm/pgalloc.h
++++ b/arch/cris/include/asm/pgalloc.h
+@@ -32,6 +32,8 @@ static inline pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long addres
  {
- 	struct page *pte = alloc_page(GFP_KERNEL|__GFP_ZERO);
- 
+ 	struct page *pte;
+ 	pte = alloc_pages(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO, 0);
 +	if (!pte)
 +		return NULL;
  	pgtable_page_ctor(pte);
