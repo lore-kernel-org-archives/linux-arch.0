@@ -1,53 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from anubis.se.axis.com ([195.60.68.12]:37268 "EHLO
-	anubis.se.axis.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752683Ab3JKKHz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Oct 2013 06:07:55 -0400
-Date: Fri, 11 Oct 2013 11:57:52 +0200
-From: Jesper Nilsson <jesper.nilsson@axis.com>
-Subject: Re: [PATCH 14/34] cris: handle pgtable_page_ctor() fail
-Message-ID: <20131011095752.GG11028@axis.com>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:47822 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1757407Ab3JKK1O (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 11 Oct 2013 06:27:14 -0400
+Date: Fri, 11 Oct 2013 11:26:29 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH 33/34] iommu/arm-smmu: handle pgtable_page_ctor() fail
+Message-ID: <20131011102629.GB14732@mudshark.cambridge.arm.com>
 References: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
- <1381428359-14843-15-git-send-email-kirill.shutemov@linux.intel.com>
+ <1381428359-14843-34-git-send-email-kirill.shutemov@linux.intel.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1381428359-14843-15-git-send-email-kirill.shutemov@linux.intel.com>
+In-Reply-To: <1381428359-14843-34-git-send-email-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jespern@axis.com>
-Message-ID: <20131011095752.-sA-fDAMCsT-STw5hPprimckTZhrQ5Bbv7duG7S3WkY@z>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "grant.likely@linaro.org" <grant.likely@linaro.org>, "rob.herring@calxeda.com" <rob.herring@calxeda.com>
+Message-ID: <20131011102629.o1lgmi7wQwStn37OIvv8ffSIcF28l4PiQ5yC_GxbHlg@z>
 
-On Thu, Oct 10, 2013 at 08:05:39PM +0200, Kirill A. Shutemov wrote:
+On Thu, Oct 10, 2013 at 07:05:58PM +0100, Kirill A. Shutemov wrote:
 > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> Cc: Mikael Starvik <starvik@axis.com>
-
-Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
-
+> Cc: Will Deacon <will.deacon@arm.com>
+> Cc: Grant Likely <grant.likely@linaro.org>
+> Cc: Rob Herring <rob.herring@calxeda.com>
 > ---
->  arch/cris/include/asm/pgalloc.h | 5 ++++-
+>  drivers/iommu/arm-smmu.c | 5 ++++-
 >  1 file changed, 4 insertions(+), 1 deletion(-)
 > 
-> diff --git a/arch/cris/include/asm/pgalloc.h b/arch/cris/include/asm/pgalloc.h
-> index d9504d38c2..235ece437d 100644
-> --- a/arch/cris/include/asm/pgalloc.h
-> +++ b/arch/cris/include/asm/pgalloc.h
-> @@ -34,7 +34,10 @@ static inline pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long addres
->  	pte = alloc_pages(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO, 0);
->  	if (!pte)
->  		return NULL;
-> -	pgtable_page_ctor(pte);
-> +	if (!pgtable_page_ctor(pte)) {
-> +		__free_page(pte);
-> +		return NULL;
-> +	}
->  	return pte;
->  }
+> diff --git a/drivers/iommu/arm-smmu.c b/drivers/iommu/arm-smmu.c
+> index f417e89e1e..2b256a5075 100644
+> --- a/drivers/iommu/arm-smmu.c
+> +++ b/drivers/iommu/arm-smmu.c
+> @@ -1211,7 +1211,10 @@ static int arm_smmu_alloc_init_pte(struct arm_smmu_device *smmu, pmd_t *pmd,
 >  
-> -- 
-> 1.8.4.rc3
+>  		arm_smmu_flush_pgtable(smmu, page_address(table),
+>  				       ARM_SMMU_PTE_HWTABLE_SIZE);
+> -		pgtable_page_ctor(table);
+> +		if (!pgtable_page_ctor(table)) {
+> +			__free_page(table);
+> +			return -ENOMEM;
+> +		}
+>  		pmd_populate(NULL, pmd, table);
+>  		arm_smmu_flush_pgtable(smmu, pmd, sizeof(*pmd));
+>  	}
 
-/^JN - Jesper Nilsson
--- 
-               Jesper Nilsson -- jesper.nilsson@axis.com
+  Acked-by: Will Deacon <will.deacon@arm.com>
+
+I have quite a few changes queued for this driver, but it doesn't look like
+you'll get a conflict with the iommu tree.
+
+Will
