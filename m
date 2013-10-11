@@ -1,49 +1,40 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: [PATCH] include/asm-generic/atomic.h: use 'unsigned int' instead
- of 'unsigned long' for atomic_clear_mask()
-Date: Fri, 11 Oct 2013 09:41:33 +0800
-Message-ID: <5257574D.1040604@asianux.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH 01/34] x86: add missed pgtable_pmd_page_ctor/dtor calls
+ for preallocated pmds
+Date: Fri, 11 Oct 2013 07:50:58 +0200
+Message-ID: <20131011055058.GA4838@gmail.com>
+References: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
+ <1381428359-14843-2-git-send-email-kirill.shutemov@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:48732 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752034Ab3JKBmg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Oct 2013 21:42:36 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-
-For atomic_clear_mask(), 'v->counter' is 'int', so it is better to use
-'unsigned int' instead of 'unsigned long' for parameter 'mask' to make
-atomic_clear_mask() itself consistency.
-
-And atomic_[set/clear]_mask() are pairs, the modification can also let
-them consistent with each other.
-
-Although the original implementation can not cause bugs, it is still
-better to let it improved.
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <1381428359-14843-2-git-send-email-kirill.shutemov@linux.intel.com>
+Sender: owner-linux-mm@kvack.org
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 
-Signed-off-by: Chen Gang <gang.chen@asianux.com>
----
- include/asm-generic/atomic.h |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+* Kirill A. Shutemov <kirill.shutemov@linux.intel.com> wrote:
 
-diff --git a/include/asm-generic/atomic.h b/include/asm-generic/atomic.h
-index 33bd2de..f31bff97 100644
---- a/include/asm-generic/atomic.h
-+++ b/include/asm-generic/atomic.h
-@@ -153,7 +153,7 @@ static inline int __atomic_add_unless(atomic_t *v, int a, int u)
-  * Atomically clears the bits set in @mask from @v
-  */
- #ifndef atomic_clear_mask
--static inline void atomic_clear_mask(unsigned long mask, atomic_t *v)
-+static inline void atomic_clear_mask(unsigned int mask, atomic_t *v)
- {
- 	unsigned long flags;
- 
--- 
-1.7.7.6
+> I've missed that we preallocate few pmds on pgd_alloc() if X86_PAE
+> enabled. Let's add missed constructor/destructor calls.
+> 
+> I haven't noticed it during testing since prep_new_page() clears
+> page->mapping and therefore page->ptl. It's effectively equal to
+> spin_lock_init(&page->ptl).
+> 
+> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+
+Acked-by: Ingo Molnar <mingo@kernel.org>
+
+Thanks,
+
+	Ingo
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
