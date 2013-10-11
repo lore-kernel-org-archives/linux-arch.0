@@ -1,40 +1,48 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH 01/34] x86: add missed pgtable_pmd_page_ctor/dtor calls
- for preallocated pmds
-Date: Fri, 11 Oct 2013 07:50:58 +0200
-Message-ID: <20131011055058.GA4838@gmail.com>
+From: Jesper Nilsson <jesper.nilsson@axis.com>
+Subject: Re: [PATCH 14/34] cris: handle pgtable_page_ctor() fail
+Date: Fri, 11 Oct 2013 11:57:52 +0200
+Message-ID: <20131011095752.GG11028@axis.com>
 References: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
- <1381428359-14843-2-git-send-email-kirill.shutemov@linux.intel.com>
+ <1381428359-14843-15-git-send-email-kirill.shutemov@linux.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1381428359-14843-2-git-send-email-kirill.shutemov@linux.intel.com>
-Sender: owner-linux-mm@kvack.org
+In-Reply-To: <1381428359-14843-15-git-send-email-kirill.shutemov@linux.intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jespern@axis.com>
 List-Id: linux-arch.vger.kernel.org
 
-
-* Kirill A. Shutemov <kirill.shutemov@linux.intel.com> wrote:
-
-> I've missed that we preallocate few pmds on pgd_alloc() if X86_PAE
-> enabled. Let's add missed constructor/destructor calls.
-> 
-> I haven't noticed it during testing since prep_new_page() clears
-> page->mapping and therefore page->ptl. It's effectively equal to
-> spin_lock_init(&page->ptl).
-> 
+On Thu, Oct 10, 2013 at 08:05:39PM +0200, Kirill A. Shutemov wrote:
 > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> Cc: Mikael Starvik <starvik@axis.com>
 
-Acked-by: Ingo Molnar <mingo@kernel.org>
+Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
 
-Thanks,
+> ---
+>  arch/cris/include/asm/pgalloc.h | 5 ++++-
+>  1 file changed, 4 insertions(+), 1 deletion(-)
+> 
+> diff --git a/arch/cris/include/asm/pgalloc.h b/arch/cris/include/asm/pgalloc.h
+> index d9504d38c2..235ece437d 100644
+> --- a/arch/cris/include/asm/pgalloc.h
+> +++ b/arch/cris/include/asm/pgalloc.h
+> @@ -34,7 +34,10 @@ static inline pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long addres
+>  	pte = alloc_pages(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO, 0);
+>  	if (!pte)
+>  		return NULL;
+> -	pgtable_page_ctor(pte);
+> +	if (!pgtable_page_ctor(pte)) {
+> +		__free_page(pte);
+> +		return NULL;
+> +	}
+>  	return pte;
+>  }
+>  
+> -- 
+> 1.8.4.rc3
 
-	Ingo
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+/^JN - Jesper Nilsson
+-- 
+               Jesper Nilsson -- jesper.nilsson@axis.com
