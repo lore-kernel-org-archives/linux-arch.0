@@ -1,81 +1,49 @@
-From: Lennox Wu <lennox.wu@gmail.com>
-Subject: Re: [PATCH 25/34] score: handle pgtable_page_ctor() fail
-Date: Sun, 13 Oct 2013 18:07:43 +0800
-Message-ID: <525A70EF.8000503@gmail.com>
-References: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com> <1381428359-14843-26-git-send-email-kirill.shutemov@linux.intel.com>
-Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
- protocol="application/pgp-signature";
- boundary="er0PeqXieLTmsBfs7UNSVDVx4wcWwM5RK"
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: Re: [PATCH 34/34] mm: dynamically allocate page->ptl if it cannot be
+ embedded to struct page
+Date: Mon, 14 Oct 2013 12:04:37 +0300 (EEST)
+Message-ID: <20131014090437.F22CBE0090@blue.fi.intel.com>
+References: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
+ <1381428359-14843-35-git-send-email-kirill.shutemov@linux.intel.com>
+ <00000141a3f48ada-37ee9c14-2f2b-40a2-93f4-70258363351b-000000@email.amazonses.com>
+ <20131010200921.91D84E0090@blue.fi.intel.com>
+ <00000141a7d2aa7b-e59f292a-746c-4f55-aa51-9fa060a7fbeb-000000@email.amazonses.com>
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f45.google.com ([209.85.160.45]:34843 "EHLO
-	mail-pb0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753952Ab3JMKHz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 13 Oct 2013 06:07:55 -0400
-In-Reply-To: <1381428359-14843-26-git-send-email-kirill.shutemov@linux.intel.com>
+Received: from mga03.intel.com ([143.182.124.21]:42674 "EHLO mga03.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754376Ab3JNJEm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 14 Oct 2013 05:04:42 -0400
+In-Reply-To: <00000141a7d2aa7b-e59f292a-746c-4f55-aa51-9fa060a7fbeb-000000@email.amazonses.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Chen Liqin <liqin.chen@sunplusct.com>
+To: Christoph Lameter <cl@linux.com>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
 
-This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
---er0PeqXieLTmsBfs7UNSVDVx4wcWwM5RK
-Content-Type: text/plain; charset=Big5
-Content-Transfer-Encoding: quoted-printable
+Christoph Lameter wrote:
+> On Thu, 10 Oct 2013, Kirill A. Shutemov wrote:
+> 
+> > Christoph Lameter wrote:
+> > > On Thu, 10 Oct 2013, Kirill A. Shutemov wrote:
+> > >
+> > > > +static inline bool ptlock_alloc(struct page *page)
+> > > > +{
+> > > > +	if (sizeof(spinlock_t) > sizeof(page->ptl))
+> > > > +		return __ptlock_alloc(page);
+> > > > +	return true;
+> > > > +}
+> > >
+> > > Could you make the check a CONFIG option? CONFIG_PTLOCK_DOES_NOT_FIT_IN_PAGE_STRUCT or
+> > > so?
+> >
+> > No. We will have to track what affects sizeof(spinlock_t) manually.
+> > Not a fun and error prune.
+> 
+> You can generate a config option depending on the size of the object via
+> Kbuild. Kbuild will determine the setting before building the kernel as a
+> whole by runing some small C program.
 
-Thanks.
+I don't think it's any better than what we have there now.
 
-Acked-by: Lennox Wu <lennox.wu@gmail.com>
-
-=A9=F3 2013/10/11 =A4W=A4=C8 02:05, Kirill A. Shutemov =B4=A3=A8=EC:
-> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> Cc: Chen Liqin <liqin.chen@sunplusct.com>
-> Cc: Lennox Wu <lennox.wu@gmail.com>
-> ---
->  arch/score/include/asm/pgalloc.h | 9 ++++++---
->  1 file changed, 6 insertions(+), 3 deletions(-)
->
-> diff --git a/arch/score/include/asm/pgalloc.h b/arch/score/include/asm/=
-pgalloc.h
-> index 059a61b707..2a861ffbd5 100644
-> --- a/arch/score/include/asm/pgalloc.h
-> +++ b/arch/score/include/asm/pgalloc.h
-> @@ -54,9 +54,12 @@ static inline struct page *pte_alloc_one(struct mm_s=
-truct *mm,
->  	struct page *pte;
-> =20
->  	pte =3D alloc_pages(GFP_KERNEL | __GFP_REPEAT, PTE_ORDER);
-> -	if (pte) {
-> -		clear_highpage(pte);
-> -		pgtable_page_ctor(pte);
-> +	if (!pte)
-> +		return NULL;
-> +	clear_highpage(pte);
-> +	if (!pgtable_page_ctor(pte)) {
-> +		__free_page(pte);
-> +		return NULL;
->  	}
->  	return pte;
->  }
-
-
-
---er0PeqXieLTmsBfs7UNSVDVx4wcWwM5RK
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.7 (MingW32)
-Comment: Using GnuPG with Thunderbird - http://www.enigmail.net/
-
-iQEVAwUBUlpw8hIBnItolwGVAQL/sQf/QneZCl4KA0apRznG3MOEsettXq6ekB7+
-y0qtw81SJ/fUEVu9kPCzQByOYwRdgAoiSObTUKoFzzUQkCuHSm7AmZF1YUE2v7ne
-E2pMXv/haP0sNj8ZBMCYTZa/6TcC5sVsY1Rxwo0yB+BqxXcRh1pg37SIm/6Clf5i
-7iHWkGNo5o+egq6bc7MJ9XtxejIahi202BnPZdGWeVUH8amxplDcmvd0WNpkArRd
-ds/39+NASiAJzP6WvNM5vBdKJccoEnkm7PJw13x5CbRs8COXexxZTQDoOPuBhZem
-P1Bloy85A0/k2S2nQc4Ql2jRnTZLaQIKUUEed2Wy5FuW3VOz2cBivg==
-=w5X6
------END PGP SIGNATURE-----
-
---er0PeqXieLTmsBfs7UNSVDVx4wcWwM5RK--
+-- 
+ Kirill A. Shutemov
