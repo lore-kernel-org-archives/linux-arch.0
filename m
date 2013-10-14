@@ -1,39 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:36165 "EHLO mga01.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753797Ab3JNJMj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 14 Oct 2013 05:12:39 -0400
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-In-Reply-To: <15762.1381509010@warthog.procyon.org.uk>
-References: <1381428359-14843-16-git-send-email-kirill.shutemov@linux.intel.com>
- <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
- <15762.1381509010@warthog.procyon.org.uk>
-Subject: Re: [PATCH 15/34] frv: handle pgtable_page_ctor() fail
-Content-Transfer-Encoding: 7bit
-Message-ID: <20131014091235.C06FBE0090@blue.fi.intel.com>
-Date: Mon, 14 Oct 2013 12:12:35 +0300 (EEST)
+Received: from mail-oa0-f47.google.com ([209.85.219.47]:35622 "EHLO
+	mail-oa0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755782Ab3JNM6e (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Oct 2013 08:58:34 -0400
+MIME-Version: 1.0
+In-Reply-To: <1381754723-21783-1-git-send-email-kirill.shutemov@linux.intel.com>
+References: <1381754723-21783-1-git-send-email-kirill.shutemov@linux.intel.com>
+Date: Mon, 14 Oct 2013 16:58:33 +0400
+Message-ID: <CAMo8BfJV9qHQtCgM9QxMo082yxJNDHRY-kh0VuVUDhNhexXMng@mail.gmail.com>
+Subject: Re: [PATCH 1/2] mm: try to detect that page->ptl is in use
+From: Max Filippov <jcmvbkbc@gmail.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
-Message-ID: <20131014091235.z_Em9p4Iw4lhGDhDx1zAU3I9DYEWGaQsfRgD70ZV_n8@z>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Chris Zankel <chris@zankel.net>, Christoph Lameter <cl@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, Matt Mackall <mpm@selenic.com>, LKML <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>
+Message-ID: <20131014125833.MFxOeF0ey4k7yGfjeFSMq-HiR4CVUuHUkZg8-Tzxwlw@z>
 
-David Howells wrote:
-> 
-> Acked-by: David Howells <dhowells@redhat.com>
-> 
-> for the FRV and MN10300 patches.
-> 
-> Can you move pte_alloc_one() to common code, at least for some arches?  I
-> think that the FRV and MN10300 ones should end up the same after this - and I
-> wouldn't be surprised if some of the other arches do too.
+On Mon, Oct 14, 2013 at 4:45 PM, Kirill A. Shutemov
+<kirill.shutemov@linux.intel.com> wrote:
+> prep_new_page() initialize page->private (and therefore page->ptl) with
+> 0. Make sure nobody took it in use in between allocation of the page and
+> page table constructor.
+>
+> It can happen if arch try to use slab for page table allocation: slab
+> code uses page->slab_cache and page->first_page (for tail pages), which
+> share storage with page->ptl.
+>
+> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> ---
+>  Documentation/vm/split_page_table_lock | 4 ++++
+>  include/linux/mm.h                     | 9 +++++++++
+>  2 files changed, 13 insertions(+)
+>
+> diff --git a/Documentation/vm/split_page_table_lock b/Documentation/vm/split_page_table_lock
+> index e2f617b732..3c54f7dca2 100644
+> --- a/Documentation/vm/split_page_table_lock
+> +++ b/Documentation/vm/split_page_table_lock
+> @@ -53,6 +53,10 @@ There's no need in special enabling of PTE split page table lock:
+>  everything required is done by pgtable_page_ctor() and pgtable_page_dtor(),
+>  which must be called on PTE table allocation / freeing.
+>
+> +Make sure the architecture doesn't use slab allocator for page table
+> +allacation: slab uses page->slab_cache and page->first_page for its pages.
 
-There's no true approach for generic. It depends on what pgtable_t is:
-pointer to struct page or virtual address of the allocated page table.
-Some arches also use some sort of cache for page table allocator. Others
-don't.
+Typo: allocation.
 
-I don't see a sensible way generalize it.
+> +These fields share storage with page->ptl.
+> +
+>  PMD split lock only makes sense if you have more than two page table
+>  levels.
+>
+> diff --git a/include/linux/mm.h b/include/linux/mm.h
+> index 658e8b317f..9a4a873b2f 100644
+> --- a/include/linux/mm.h
+> +++ b/include/linux/mm.h
+> @@ -1262,6 +1262,15 @@ static inline spinlock_t *pte_lockptr(struct mm_struct *mm, pmd_t *pmd)
+>
+>  static inline bool ptlock_init(struct page *page)
+>  {
+> +       /*
+> +        * prep_new_page() initialize page->private (and therefore page->ptl)
+> +        * with 0. Make sure nobody took it in use in between.
+> +        *
+> +        * It can happen if arch try to use slab for page table allocation:
+> +        * slab code uses page->slab_cache and page->first_page (for tail
+> +        * pages), which share storage with page->ptl.
+> +        */
+> +       VM_BUG_ON(page->ptl);
+>         if (!ptlock_alloc(page))
+>                 return false;
+>         spin_lock_init(ptlock_ptr(page));
+> --
+> 1.8.4.rc3
+>
 
 -- 
- Kirill A. Shutemov
+Thanks.
+-- Max
