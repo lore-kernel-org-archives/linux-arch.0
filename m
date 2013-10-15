@@ -1,41 +1,58 @@
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: Re: [PATCH 34/34] mm: dynamically allocate page->ptl if it cannot be
- embedded to struct page
-Date: Tue, 15 Oct 2013 01:26:53 +0300 (EEST)
-Message-ID: <20131014222653.86EE1E0090@blue.fi.intel.com>
-References: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
- <1381428359-14843-35-git-send-email-kirill.shutemov@linux.intel.com>
- <00000141a3f48ada-37ee9c14-2f2b-40a2-93f4-70258363351b-000000@email.amazonses.com>
- <20131010200921.91D84E0090@blue.fi.intel.com>
- <00000141a7d2aa7b-e59f292a-746c-4f55-aa51-9fa060a7fbeb-000000@email.amazonses.com>
- <20131014090437.F22CBE0090@blue.fi.intel.com>
- <00000141b85a90a0-7cf6bab0-4c17-4fc0-8224-74bbb1fc85ee-000000@email.amazonses.com>
- <20131014212514.C7C19E0090@blue.fi.intel.com>
- <00000141b90841a8-3fb61f1e-89aa-4a35-94d4-a264ac91462b-000000@email.amazonses.com>
+From: Chris Zankel <chris@zankel.net>
+Subject: Re: [PATCH 0/2] xtensa queue 2013/10/15 for 3.12
+Date: Tue, 15 Oct 2013 10:58:35 -0700
+Message-ID: <525D824B.4020106@zankel.net>
+References: <1381789363-2411-1-git-send-email-jcmvbkbc@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:31475 "EHLO mga11.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756864Ab3JNW05 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 14 Oct 2013 18:26:57 -0400
-In-Reply-To: <00000141b90841a8-3fb61f1e-89aa-4a35-94d4-a264ac91462b-000000@email.amazonses.com>
+Received: from mail-pb0-f41.google.com ([209.85.160.41]:34340 "EHLO
+	mail-pb0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932878Ab3JOR6i (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Oct 2013 13:58:38 -0400
+Received: by mail-pb0-f41.google.com with SMTP id rp2so9200594pbb.28
+        for <linux-arch@vger.kernel.org>; Tue, 15 Oct 2013 10:58:37 -0700 (PDT)
+In-Reply-To: <1381789363-2411-1-git-send-email-jcmvbkbc@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Lameter <cl@linux.com>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+To: Max Filippov <jcmvbkbc@gmail.com>
+Cc: Marc Gauthier <marc@tensilica.com>, Baruch Siach <baruch@tkos.co.il>, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
 
-Christoph Lameter wrote:
-> On Tue, 15 Oct 2013, Kirill A. Shutemov wrote:
-> 
-> > Feel free to propose a patch. I don't see much point.
-> 
-> Right now you are using a long to stand in for a spinlock_t or a pointer
-> to a spinlock_t. An #ifdef would allow to define the proper type and
-> therefore the compiler to check that the ptl is correctly used.
+Hi Max,
 
-You should not use it directly anyway: page->ptl is not there at all if
-USE_SPLIT_PTE_PTLOCKS is 0. Compiler checks limited to few helpers and use
-a kbuild hack is overkill to me.
+Thanks for the patches. Is my assumption correct that this fixes memory
+faults while in double exception? And, instead of panic-ing, it works
+now but registers are likely wrong with ptrace?
 
--- 
- Kirill A. Shutemov
+Also, should that go in for 3.12 (rc6?) or only in 3.13?
+
+Thanks,
+-Chris
+
+
+On 10/14/2013 03:22 PM, Max Filippov wrote:
+> Hi Chris,
+>
+> could you please push these two fixes to the 3.12?
+> One fixes the regression introduced by the a3/excsave conversion in 3.12-rc1,
+> and the other fixes use of nonexistent alternative signal stack by threads.
+>
+> You can pull these changes from my git tree,
+> the following changes since commit 61e6cfa80de5760bbe406f4e815b7739205754d2:
+>
+>   Linux 3.12-rc5 (2013-10-13 15:41:28 -0700)
+>
+> are available in the git repository at:
+>   git://github.com/jcmvbkbc/linux-xtensa.git xtensa-fixes-for-upstream
+>
+> Baruch Siach (1):
+>       xtensa: don't use alternate signal stack on threads
+>
+> Max Filippov (1):
+>       xtensa: fix fast_syscall_spill_registers_fixup
+>
+>  arch/xtensa/kernel/entry.S  |   49 ++++++++++++++++++++++++++----------------
+>  arch/xtensa/kernel/signal.c |    2 +-
+>  2 files changed, 31 insertions(+), 20 deletions(-)
+>
