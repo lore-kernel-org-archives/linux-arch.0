@@ -1,23 +1,21 @@
 From: Christoph Lameter <cl@linux.com>
-Subject: [PATCH 09/10] watchdog: Replace __get_cpu_var uses
-Date: Tue, 15 Oct 2013 12:59:01 -0500
-Message-ID: <20131015180054.271267939@linux.com>
+Subject: [PATCH 08/10] percpu: Replace __get_cpu_var uses
+Date: Tue, 15 Oct 2013 12:59:00 -0500
+Message-ID: <20131015180053.750416164@linux.com>
 References: <20131015175852.122827685@linux.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=this_watchdog
+Content-Disposition: inline; filename=this_percpu
 Sender: linux-kernel-owner@vger.kernel.org
 To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, Wim Van Sebroeck <wim@iguana.be>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>
+Cc: akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-__get_cpu_var() is used for multiple purposes in the kernel source. One of
-them is address calculation via the form &__get_cpu_var(x).  This calculates
-the address for the instance of the percpu variable of the current processor
-based on an offset.
+__get_cpu_var() is used for multiple purposes in the kernel source. One of them is
+address calculation via the form &__get_cpu_var(x). This calculates the address for
+the instance of the percpu variable of the current processor based on an offset.
 
-Other use cases are for storing and retrieving data from the current
-processors percpu area.  __get_cpu_var() can be used as an lvalue when
-writing data or on the right side of an assignment.
+Other use cases are for storing and retrieving data from the current processors percpu area.
+__get_cpu_var() can be used as an lvalue when writing data or on the right side of an assignment.
 
 __get_cpu_var() is defined as :
 
@@ -116,45 +114,16 @@ variable.
 
 Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Index: linux/kernel/watchdog.c
+Index: linux/include/linux/percpu.h
 ===================================================================
---- linux.orig/kernel/watchdog.c	2013-10-14 10:55:58.995077355 -0500
-+++ linux/kernel/watchdog.c	2013-10-14 10:58:05.687792286 -0500
-@@ -174,8 +174,8 @@ EXPORT_SYMBOL(touch_nmi_watchdog);
+--- linux.orig/include/linux/percpu.h	2013-08-26 14:29:49.000000000 -0500
++++ linux/include/linux/percpu.h	2013-08-26 14:30:18.302570608 -0500
+@@ -28,7 +28,7 @@
+  */
+ #define get_cpu_var(var) (*({				\
+ 	preempt_disable();				\
+-	&__get_cpu_var(var); }))
++	this_cpu_ptr(&var); }))
  
- void touch_softlockup_watchdog_sync(void)
- {
--	__raw_get_cpu_var(softlockup_touch_sync) = true;
--	__raw_get_cpu_var(watchdog_touch_ts) = 0;
-+	__this_cpu_write(softlockup_touch_sync, true);
-+	__this_cpu_write(watchdog_touch_ts, 0);
- }
- 
- #ifdef CONFIG_HARDLOCKUP_DETECTOR
-@@ -341,7 +341,7 @@ static void watchdog_set_prio(unsigned i
- 
- static void watchdog_enable(unsigned int cpu)
- {
--	struct hrtimer *hrtimer = &__raw_get_cpu_var(watchdog_hrtimer);
-+	struct hrtimer *hrtimer = raw_cpu_ptr(&watchdog_hrtimer);
- 
- 	/* kick off the timer for the hardlockup detector */
- 	hrtimer_init(hrtimer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-@@ -361,7 +361,7 @@ static void watchdog_enable(unsigned int
- 
- static void watchdog_disable(unsigned int cpu)
- {
--	struct hrtimer *hrtimer = &__raw_get_cpu_var(watchdog_hrtimer);
-+	struct hrtimer *hrtimer = raw_cpu_ptr(&watchdog_hrtimer);
- 
- 	watchdog_set_prio(SCHED_NORMAL, 0);
- 	hrtimer_cancel(hrtimer);
-@@ -488,7 +488,7 @@ static struct smp_hotplug_thread watchdo
- 
- static void restart_watchdog_hrtimer(void *info)
- {
--	struct hrtimer *hrtimer = &__raw_get_cpu_var(watchdog_hrtimer);
-+	struct hrtimer *hrtimer = raw_cpu_ptr(&watchdog_hrtimer);
- 	int ret;
- 
- 	/*
+ /*
+  * The weird & is necessary because sparse considers (void)(var) to be
