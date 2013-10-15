@@ -1,21 +1,21 @@
 From: Christoph Lameter <cl@linux.com>
-Subject: [PATCH 00/10] percpu: Replace __get_cpu_var uses in core code V1
-Date: Tue, 15 Oct 2013 12:58:52 -0500
-Message-ID: <20131015175852.122827685@linux.com>
+Subject: [PATCH 10/10] kernel misc: Replace __get_cpu_var uses
+Date: Tue, 15 Oct 2013 12:59:02 -0500
+Message-ID: <20131015180054.785696220@linux.com>
+References: <20131015175852.122827685@linux.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline; filename=this_misc
 Sender: linux-kernel-owner@vger.kernel.org
 To: Tejun Heo <tj@kernel.org>
 Cc: akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-__get_cpu_var() is used for multiple purposes in the kernel source. One of
-them is address calculation via the form &__get_cpu_var(x).  This calculates
-the address for the instance of the percpu variable of the current processor
-based on an offset.
+__get_cpu_var() is used for multiple purposes in the kernel source. One of them is
+address calculation via the form &__get_cpu_var(x). This calculates the address for
+the instance of the percpu variable of the current processor based on an offset.
 
-Other use cases are for storing and retrieving data from the current
-processors percpu area.  __get_cpu_var() can be used as an lvalue when
-writing data or on the right side of an assignment.
+Other use cases are for storing and retrieving data from the current processors percpu area.
+__get_cpu_var() can be used as an lvalue when writing data or on the right side of an assignment.
 
 __get_cpu_var() is defined as :
 
@@ -38,13 +38,14 @@ calculation using this_cpu_ptr() or into a use of this_cpu operations that
 use the offset.  Thereby address calculations are avoided and less registers
 are used when code is generated.
 
-At the end of the patchset all uses of __get_cpu_var have been removed so
+At the end of the patch set all uses of __get_cpu_var have been removed so
 the macro is removed too.
 
-The patchset includes passes over all arches as well. Once these operations
+The patch set includes passes over all arches as well. Once these operations
 are used throughout then specialized macros can be defined in non -x86
 arches as well in order to optimize per cpu access by f.e.  using a global
 register that may be set to the per cpu base.
+
 
 
 
@@ -74,7 +75,7 @@ Transformations done to __get_cpu_var()
 3. Retrieve the content of the current processors instance of a per cpu
 variable.
 
-	DEFINE_PER_CPU(int, u);
+	DEFINE_PER_CPU(int, y);
 	int x = __get_cpu_var(y)
 
    Converts to
@@ -89,7 +90,7 @@ variable.
 
    Converts to
 
-	memcpy(this_cpu_ptr(&x), y, sizeof(x));
+	memcpy(&x, this_cpu_ptr(&y), sizeof(x));
 
 
 5. Assignment to a per cpu variable
@@ -112,16 +113,75 @@ variable.
 	this_cpu_inc(y)
 
 
-These conversions lead to some savings in code size.
+Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Before
-
-size arch/x86/boot/bzImage
-   text	   data	    bss	    dec	    hex	filename
-3996624	      0	      0	3996624	 3cfbd0	arch/x86/boot/bzImage
-
-After
-
-size arch/x86/boot/bzImage
-   text	   data	    bss	    dec	    hex	filename
-3995840	      0	      0	3995840	 3cf8c0	arch/x86/boot/bzImage
+Index: linux/kernel/printk/printk.c
+===================================================================
+--- linux.orig/kernel/printk/printk.c	2013-09-19 15:16:05.428149660 -0500
++++ linux/kernel/printk/printk.c	2013-09-19 15:16:05.404149909 -0500
+@@ -2448,7 +2448,7 @@ static void wake_up_klogd_work_func(stru
+ 	int pending = __this_cpu_xchg(printk_pending, 0);
+ 
+ 	if (pending & PRINTK_PENDING_SCHED) {
+-		char *buf = __get_cpu_var(printk_sched_buf);
++		char *buf = this_cpu_ptr(printk_sched_buf);
+ 		printk(KERN_WARNING "[sched_delayed] %s", buf);
+ 	}
+ 
+@@ -2466,7 +2466,7 @@ void wake_up_klogd(void)
+ 	preempt_disable();
+ 	if (waitqueue_active(&log_wait)) {
+ 		this_cpu_or(printk_pending, PRINTK_PENDING_WAKEUP);
+-		irq_work_queue(&__get_cpu_var(wake_up_klogd_work));
++		irq_work_queue(this_cpu_ptr(&wake_up_klogd_work));
+ 	}
+ 	preempt_enable();
+ }
+@@ -2479,14 +2479,14 @@ int printk_sched(const char *fmt, ...)
+ 	int r;
+ 
+ 	local_irq_save(flags);
+-	buf = __get_cpu_var(printk_sched_buf);
++	buf = this_cpu_ptr(printk_sched_buf);
+ 
+ 	va_start(args, fmt);
+ 	r = vsnprintf(buf, PRINTK_BUF_SIZE, fmt, args);
+ 	va_end(args);
+ 
+ 	__this_cpu_or(printk_pending, PRINTK_PENDING_SCHED);
+-	irq_work_queue(&__get_cpu_var(wake_up_klogd_work));
++	irq_work_queue(this_cpu_ptr(&wake_up_klogd_work));
+ 	local_irq_restore(flags);
+ 
+ 	return r;
+Index: linux/kernel/smp.c
+===================================================================
+--- linux.orig/kernel/smp.c	2013-09-19 15:16:05.428149660 -0500
++++ linux/kernel/smp.c	2013-09-19 15:16:05.424149701 -0500
+@@ -175,7 +175,7 @@ void generic_exec_single(int cpu, struct
+  */
+ void generic_smp_call_function_single_interrupt(void)
+ {
+-	struct call_single_queue *q = &__get_cpu_var(call_single_queue);
++	struct call_single_queue *q = this_cpu_ptr(&call_single_queue);
+ 	LIST_HEAD(list);
+ 
+ 	/*
+@@ -243,7 +243,7 @@ int smp_call_function_single(int cpu, sm
+ 			struct call_single_data *csd = &d;
+ 
+ 			if (!wait)
+-				csd = &__get_cpu_var(csd_data);
++				csd = this_cpu_ptr(&csd_data);
+ 
+ 			csd_lock(csd);
+ 
+@@ -390,7 +390,7 @@ void smp_call_function_many(const struct
+ 		return;
+ 	}
+ 
+-	cfd = &__get_cpu_var(cfd_data);
++	cfd = this_cpu_ptr(&cfd_data);
+ 
+ 	cpumask_and(cfd->cpumask, mask, cpu_online_mask);
+ 	cpumask_clear_cpu(this_cpu, cfd->cpumask);
