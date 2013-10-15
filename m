@@ -1,31 +1,135 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from a9-70.smtp-out.amazonses.com ([54.240.9.70]:60779 "EHLO
-	a9-70.smtp-out.amazonses.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1756107Ab3JNWNt (ORCPT
+Received: from qmta13.emeryville.ca.mail.comcast.net ([76.96.27.243]:42308
+	"EHLO qmta13.emeryville.ca.mail.comcast.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S932760Ab3JOSH6 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 14 Oct 2013 18:13:49 -0400
-Date: Mon, 14 Oct 2013 22:13:48 +0000
+	Tue, 15 Oct 2013 14:07:58 -0400
+Message-ID: <20131015175852.122827685@linux.com>
+Date: Tue, 15 Oct 2013 12:58:52 -0500
 From: Christoph Lameter <cl@linux.com>
-Subject: Re: [PATCH 34/34] mm: dynamically allocate page->ptl if it cannot
- be embedded to struct page
-In-Reply-To: <20131014212514.C7C19E0090@blue.fi.intel.com>
-Message-ID: <00000141b90841a8-3fb61f1e-89aa-4a35-94d4-a264ac91462b-000000@email.amazonses.com>
-References: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com> <1381428359-14843-35-git-send-email-kirill.shutemov@linux.intel.com> <00000141a3f48ada-37ee9c14-2f2b-40a2-93f4-70258363351b-000000@email.amazonses.com> <20131010200921.91D84E0090@blue.fi.intel.com>
- <00000141a7d2aa7b-e59f292a-746c-4f55-aa51-9fa060a7fbeb-000000@email.amazonses.com> <20131014090437.F22CBE0090@blue.fi.intel.com> <00000141b85a90a0-7cf6bab0-4c17-4fc0-8224-74bbb1fc85ee-000000@email.amazonses.com>
- <20131014212514.C7C19E0090@blue.fi.intel.com>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Subject: [PATCH 00/10] percpu: Replace __get_cpu_var uses in core code V1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
-Message-ID: <20131014221348.X-P_4rDXm7otTVMKaru4hEpH8kkfYugG9ix751jlB4c@z>
+To: Tejun Heo <tj@kernel.org>
+Cc: akpm@linuxfoundation.org, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20131015175852.jiRSc2KEnBjimnS-tXrOgBqNy7VudZaEtlvpCNnPJBs@z>
 
-On Tue, 15 Oct 2013, Kirill A. Shutemov wrote:
+__get_cpu_var() is used for multiple purposes in the kernel source. One of
+them is address calculation via the form &__get_cpu_var(x).  This calculates
+the address for the instance of the percpu variable of the current processor
+based on an offset.
 
-> Feel free to propose a patch. I don't see much point.
+Other use cases are for storing and retrieving data from the current
+processors percpu area.  __get_cpu_var() can be used as an lvalue when
+writing data or on the right side of an assignment.
 
-Right now you are using a long to stand in for a spinlock_t or a pointer
-to a spinlock_t. An #ifdef would allow to define the proper type and
-therefore the compiler to check that the ptl is correctly used.
+__get_cpu_var() is defined as :
+
+
+#define __get_cpu_var(var) (*this_cpu_ptr(&(var)))
+
+
+
+__get_cpu_var() always only does an address determination. However, store
+and retrieve operations could use a segment prefix (or global register on
+other platforms) to avoid the address calculation.
+
+this_cpu_write() and this_cpu_read() can directly take an offset into a
+percpu area and use optimized assembly code to read and write per cpu
+variables.
+
+
+This patch converts __get_cpu_var into either an explicit address
+calculation using this_cpu_ptr() or into a use of this_cpu operations that
+use the offset.  Thereby address calculations are avoided and less registers
+are used when code is generated.
+
+At the end of the patchset all uses of __get_cpu_var have been removed so
+the macro is removed too.
+
+The patchset includes passes over all arches as well. Once these operations
+are used throughout then specialized macros can be defined in non -x86
+arches as well in order to optimize per cpu access by f.e.  using a global
+register that may be set to the per cpu base.
+
+
+
+Transformations done to __get_cpu_var()
+
+
+1. Determine the address of the percpu instance of the current processor.
+
+	DEFINE_PER_CPU(int, y);
+	int *x = &__get_cpu_var(y);
+
+    Converts to
+
+	int *x = this_cpu_ptr(&y);
+
+
+2. Same as #1 but this time an array structure is involved.
+
+	DEFINE_PER_CPU(int, y[20]);
+	int *x = __get_cpu_var(y);
+
+    Converts to
+
+	int *x = this_cpu_ptr(y);
+
+
+3. Retrieve the content of the current processors instance of a per cpu
+variable.
+
+	DEFINE_PER_CPU(int, u);
+	int x = __get_cpu_var(y)
+
+   Converts to
+
+	int x = __this_cpu_read(y);
+
+
+4. Retrieve the content of a percpu struct
+
+	DEFINE_PER_CPU(struct mystruct, y);
+	struct mystruct x = __get_cpu_var(y);
+
+   Converts to
+
+	memcpy(this_cpu_ptr(&x), y, sizeof(x));
+
+
+5. Assignment to a per cpu variable
+
+	DEFINE_PER_CPU(int, y)
+	__get_cpu_var(y) = x;
+
+   Converts to
+
+	this_cpu_write(y, x);
+
+
+6. Increment/Decrement etc of a per cpu variable
+
+	DEFINE_PER_CPU(int, y);
+	__get_cpu_var(y)++
+
+   Converts to
+
+	this_cpu_inc(y)
+
+
+These conversions lead to some savings in code size.
+
+Before
+
+size arch/x86/boot/bzImage
+   text	   data	    bss	    dec	    hex	filename
+3996624	      0	      0	3996624	 3cfbd0	arch/x86/boot/bzImage
+
+After
+
+size arch/x86/boot/bzImage
+   text	   data	    bss	    dec	    hex	filename
+3995840	      0	      0	3995840	 3cf8c0	arch/x86/boot/bzImage
+
 
