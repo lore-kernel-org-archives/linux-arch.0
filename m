@@ -1,13 +1,13 @@
 From: Christoph Lameter <cl@linux.com>
-Subject: [PATCH 07/10] rcu: Replace __get_cpu_var uses
-Date: Tue, 15 Oct 2013 12:58:59 -0500
-Message-ID: <20131015180053.213687766@linux.com>
+Subject: [PATCH 05/10] tracing: Replace __get_cpu_var uses
+Date: Tue, 15 Oct 2013 12:58:57 -0500
+Message-ID: <20131015180052.185711419@linux.com>
 References: <20131015175852.122827685@linux.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=this_rcu
+Content-Disposition: inline; filename=this_trace
 Sender: linux-kernel-owner@vger.kernel.org
 To: Tejun Heo <tj@kernel.org>
-Cc: akpm@linuxfoundation.org, Dipankar Sarma <dipankar@in.ibm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>
+Cc: akpm@linuxfoundation.org, Steven Rostedt <rostedt@goodmis.org>, Frederic Weisbecker <fweisbec@gmail.com>, Ingo Molnar <mingo@redhat.com>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, linux-arch@vger.kernel.org, Steven Rostedt <srostedt@redhat.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
 __get_cpu_var() is used for multiple purposes in the kernel source. One of
@@ -114,161 +114,55 @@ variable.
 
 	this_cpu_inc(y)
 
+
+Acked-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
 Signed-off-by: Christoph Lameter <cl@linux.com>
 
-Index: linux/kernel/rcutree.c
+Index: linux/include/linux/kprobes.h
 ===================================================================
---- linux.orig/kernel/rcutree.c	2013-10-14 10:55:57.747107834 -0500
-+++ linux/kernel/rcutree.c	2013-10-14 10:58:26.247229815 -0500
-@@ -407,7 +407,7 @@ static void rcu_eqs_enter(bool user)
- 	long long oldval;
- 	struct rcu_dynticks *rdtp;
+--- linux.orig/include/linux/kprobes.h	2013-09-19 15:13:57.473504741 -0500
++++ linux/include/linux/kprobes.h	2013-09-19 15:13:57.437505131 -0500
+@@ -355,7 +355,7 @@ static inline void reset_current_kprobe(
  
--	rdtp = &__get_cpu_var(rcu_dynticks);
-+	rdtp = this_cpu_ptr(&rcu_dynticks);
- 	oldval = rdtp->dynticks_nesting;
- 	WARN_ON_ONCE((oldval & DYNTICK_TASK_NEST_MASK) == 0);
- 	if ((oldval & DYNTICK_TASK_NEST_MASK) == DYNTICK_TASK_NEST_VALUE)
-@@ -435,7 +435,7 @@ void rcu_idle_enter(void)
- 
- 	local_irq_save(flags);
- 	rcu_eqs_enter(false);
--	rcu_sysidle_enter(&__get_cpu_var(rcu_dynticks), 0);
-+	rcu_sysidle_enter(this_cpu_ptr(&rcu_dynticks), 0);
- 	local_irq_restore(flags);
- }
- EXPORT_SYMBOL_GPL(rcu_idle_enter);
-@@ -478,7 +478,7 @@ void rcu_irq_exit(void)
- 	struct rcu_dynticks *rdtp;
- 
- 	local_irq_save(flags);
--	rdtp = &__get_cpu_var(rcu_dynticks);
-+	rdtp = this_cpu_ptr(&rcu_dynticks);
- 	oldval = rdtp->dynticks_nesting;
- 	rdtp->dynticks_nesting--;
- 	WARN_ON_ONCE(rdtp->dynticks_nesting < 0);
-@@ -528,7 +528,7 @@ static void rcu_eqs_exit(bool user)
- 	struct rcu_dynticks *rdtp;
- 	long long oldval;
- 
--	rdtp = &__get_cpu_var(rcu_dynticks);
-+	rdtp = this_cpu_ptr(&rcu_dynticks);
- 	oldval = rdtp->dynticks_nesting;
- 	WARN_ON_ONCE(oldval < 0);
- 	if (oldval & DYNTICK_TASK_NEST_MASK)
-@@ -555,7 +555,7 @@ void rcu_idle_exit(void)
- 
- 	local_irq_save(flags);
- 	rcu_eqs_exit(false);
--	rcu_sysidle_exit(&__get_cpu_var(rcu_dynticks), 0);
-+	rcu_sysidle_exit(this_cpu_ptr(&rcu_dynticks), 0);
- 	local_irq_restore(flags);
- }
- EXPORT_SYMBOL_GPL(rcu_idle_exit);
-@@ -599,7 +599,7 @@ void rcu_irq_enter(void)
- 	long long oldval;
- 
- 	local_irq_save(flags);
--	rdtp = &__get_cpu_var(rcu_dynticks);
-+	rdtp = this_cpu_ptr(&rcu_dynticks);
- 	oldval = rdtp->dynticks_nesting;
- 	rdtp->dynticks_nesting++;
- 	WARN_ON_ONCE(rdtp->dynticks_nesting == 0);
-@@ -620,7 +620,7 @@ void rcu_irq_enter(void)
-  */
- void rcu_nmi_enter(void)
+ static inline struct kprobe_ctlblk *get_kprobe_ctlblk(void)
  {
--	struct rcu_dynticks *rdtp = &__get_cpu_var(rcu_dynticks);
-+	struct rcu_dynticks *rdtp = this_cpu_ptr(&rcu_dynticks);
- 
- 	if (rdtp->dynticks_nmi_nesting == 0 &&
- 	    (atomic_read(&rdtp->dynticks) & 0x1))
-@@ -642,7 +642,7 @@ void rcu_nmi_enter(void)
-  */
- void rcu_nmi_exit(void)
- {
--	struct rcu_dynticks *rdtp = &__get_cpu_var(rcu_dynticks);
-+	struct rcu_dynticks *rdtp = this_cpu_ptr(&rcu_dynticks);
- 
- 	if (rdtp->dynticks_nmi_nesting == 0 ||
- 	    --rdtp->dynticks_nmi_nesting != 0)
-@@ -665,7 +665,7 @@ int rcu_is_cpu_idle(void)
- 	int ret;
- 
- 	preempt_disable();
--	ret = (atomic_read(&__get_cpu_var(rcu_dynticks).dynticks) & 0x1) == 0;
-+	ret = (atomic_read(this_cpu_ptr(&rcu_dynticks.dynticks)) & 0x1) == 0;
- 	preempt_enable();
- 	return ret;
- }
-@@ -703,7 +703,7 @@ bool rcu_lockdep_current_cpu_online(void
- 	if (in_nmi())
- 		return 1;
- 	preempt_disable();
--	rdp = &__get_cpu_var(rcu_sched_data);
-+	rdp = this_cpu_ptr(&rcu_sched_data);
- 	rnp = rdp->mynode;
- 	ret = (rdp->grpmask & rnp->qsmaskinit) ||
- 	      !rcu_scheduler_fully_active;
-@@ -723,7 +723,7 @@ EXPORT_SYMBOL_GPL(rcu_lockdep_current_cp
-  */
- static int rcu_is_cpu_rrupt_from_idle(void)
- {
--	return __get_cpu_var(rcu_dynticks).dynticks_nesting <= 1;
-+	return __this_cpu_read(rcu_dynticks.dynticks_nesting) <= 1;
+-	return (&__get_cpu_var(kprobe_ctlblk));
++	return this_cpu_ptr(&kprobe_ctlblk);
  }
  
- /*
-Index: linux/kernel/rcutree_plugin.h
+ int register_kprobe(struct kprobe *p);
+Index: linux/kernel/trace/ftrace.c
 ===================================================================
---- linux.orig/kernel/rcutree_plugin.h	2013-10-14 10:55:57.747107834 -0500
-+++ linux/kernel/rcutree_plugin.h	2013-10-14 10:55:57.747107834 -0500
-@@ -660,7 +660,7 @@ static void rcu_preempt_check_callbacks(
+--- linux.orig/kernel/trace/ftrace.c	2013-09-19 15:13:57.473504741 -0500
++++ linux/kernel/trace/ftrace.c	2013-09-19 15:13:57.469504784 -0500
+@@ -870,7 +870,7 @@ function_profile_call(unsigned long ip,
  
- static void rcu_preempt_do_callbacks(void)
- {
--	rcu_do_batch(&rcu_preempt_state, &__get_cpu_var(rcu_preempt_data));
-+	rcu_do_batch(&rcu_preempt_state, this_cpu_ptr(&rcu_preempt_data));
- }
+ 	local_irq_save(flags);
  
- #endif /* #ifdef CONFIG_RCU_BOOST */
-@@ -1332,7 +1332,7 @@ static void invoke_rcu_callbacks_kthread
-  */
- static bool rcu_is_callbacks_kthread(void)
- {
--	return __get_cpu_var(rcu_cpu_kthread_task) == current;
-+	return __this_cpu_read(rcu_cpu_kthread_task) == current;
- }
+-	stat = &__get_cpu_var(ftrace_profile_stats);
++	stat = this_cpu_ptr(&ftrace_profile_stats);
+ 	if (!stat->hash || !ftrace_profile_enabled)
+ 		goto out;
  
- #define RCU_BOOST_DELAY_JIFFIES DIV_ROUND_UP(CONFIG_RCU_BOOST_DELAY * HZ, 1000)
-@@ -1382,8 +1382,8 @@ static int rcu_spawn_one_boost_kthread(s
+@@ -901,7 +901,7 @@ static void profile_graph_return(struct
+ 	unsigned long flags;
  
- static void rcu_kthread_do_work(void)
- {
--	rcu_do_batch(&rcu_sched_state, &__get_cpu_var(rcu_sched_data));
--	rcu_do_batch(&rcu_bh_state, &__get_cpu_var(rcu_bh_data));
-+	rcu_do_batch(&rcu_sched_state, this_cpu_ptr(&rcu_sched_data));
-+	rcu_do_batch(&rcu_bh_state, this_cpu_ptr(&rcu_bh_data));
- 	rcu_preempt_do_callbacks();
- }
+ 	local_irq_save(flags);
+-	stat = &__get_cpu_var(ftrace_profile_stats);
++	stat = this_cpu_ptr(&ftrace_profile_stats);
+ 	if (!stat->hash || !ftrace_profile_enabled)
+ 		goto out;
  
-@@ -1402,7 +1402,7 @@ static void rcu_cpu_kthread_park(unsigne
+Index: linux/kernel/trace/trace.c
+===================================================================
+--- linux.orig/kernel/trace/trace.c	2013-09-19 15:13:57.473504741 -0500
++++ linux/kernel/trace/trace.c	2013-09-19 15:13:57.473504741 -0500
+@@ -1676,7 +1676,7 @@ static void __ftrace_trace_stack(struct
+ 	 */
+ 	barrier();
+ 	if (use_stack == 1) {
+-		trace.entries		= &__get_cpu_var(ftrace_stack).calls[0];
++		trace.entries		= this_cpu_ptr(ftrace_stack.calls);
+ 		trace.max_entries	= FTRACE_STACK_MAX_ENTRIES;
  
- static int rcu_cpu_kthread_should_run(unsigned int cpu)
- {
--	return __get_cpu_var(rcu_cpu_has_work);
-+	return __this_cpu_read(rcu_cpu_has_work);
- }
- 
- /*
-@@ -1412,8 +1412,8 @@ static int rcu_cpu_kthread_should_run(un
-  */
- static void rcu_cpu_kthread(unsigned int cpu)
- {
--	unsigned int *statusp = &__get_cpu_var(rcu_cpu_kthread_status);
--	char work, *workp = &__get_cpu_var(rcu_cpu_has_work);
-+	unsigned int *statusp = this_cpu_ptr(&rcu_cpu_kthread_status);
-+	char work, *workp = this_cpu_ptr(&rcu_cpu_has_work);
- 	int spincnt;
- 
- 	for (spincnt = 0; spincnt < 10; spincnt++) {
+ 		if (regs)
