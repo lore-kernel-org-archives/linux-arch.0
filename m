@@ -1,49 +1,26 @@
-From: Max Filippov <jcmvbkbc@gmail.com>
-Subject: Re: [PATCHv2 2/2] xtensa: use buddy allocator for PTE table
-Date: Wed, 16 Oct 2013 00:44:03 +0400
-Message-ID: <CAMo8Bf+vAe3q+jJ6qv_ZqGZO=-3h40AHhZ==AbKfYV76wbn79Q@mail.gmail.com>
-References: <1381761155-19166-1-git-send-email-kirill.shutemov@linux.intel.com>
-	<1381761155-19166-2-git-send-email-kirill.shutemov@linux.intel.com>
-	<CAMo8Bf+oo4WCE366+bPoD5Y=Q3pCF0NVnfjXVqz8=nZ45_XY7Q@mail.gmail.com>
-	<20131014154403.562B2E0090@blue.fi.intel.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH 10/34] arc: handle pgtable_page_ctor() fail
+Date: Wed, 16 Oct 2013 13:25:21 +0530
+Message-ID: <525E4669.7090005@synopsys.com>
+References: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com> <1381428359-14843-11-git-send-email-kirill.shutemov@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oa0-f54.google.com ([209.85.219.54]:36344 "EHLO
-	mail-oa0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932633Ab3JOUoF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Oct 2013 16:44:05 -0400
-In-Reply-To: <20131014154403.562B2E0090@blue.fi.intel.com>
+Received: from hermes.synopsys.com ([198.182.44.81]:42891 "EHLO
+	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752379Ab3JPH6o (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Oct 2013 03:58:44 -0400
+In-Reply-To: <1381428359-14843-11-git-send-email-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Chris Zankel <chris@zankel.net>, Christoph Lameter <cl@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, Matt Mackall <mpm@selenic.com>, LKML <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
+Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
 
-On Mon, Oct 14, 2013 at 7:44 PM, Kirill A. Shutemov
-<kirill.shutemov@linux.intel.com> wrote:
-> Corrected patch below.
->
-> From 0ba2ac687321f5ad7bac5f5c141da5b65b957fdc Mon Sep 17 00:00:00 2001
-> From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-> Date: Mon, 14 Oct 2013 13:38:21 +0300
-> Subject: [PATCHv3] xtensa: use buddy allocator for PTE table
->
-> At the moment xtensa uses slab allocator for PTE table. It doesn't work
-> with enabled split page table lock: slab uses page->slab_cache and
-> page->first_page for its pages. These fields share stroage with
-> page->ptl.
->
+On 10/10/2013 11:35 PM, Kirill A. Shutemov wrote:
 > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> Cc: Chris Zankel <chris@zankel.net>
-> Cc: Max Filippov <jcmvbkbc@gmail.com>
-> ---
-> v3:
->  - return correct value from pte_alloc_one_kernel();
-> v2:
->  - add missed return in pte_alloc_one_kernel();
 
-Acked-by: Max Filippov <jcmvbkbc@gmail.com>
+Acked-by: Vineet Gupta <vgupta@synopsys.com> [for arch/arc bits]
 
--- 
-Thanks.
--- Max
+Thx,
+-Vineet
