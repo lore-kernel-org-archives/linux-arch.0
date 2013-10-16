@@ -1,67 +1,81 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 Subject: Re: [PATCH 19/34] m68k: handle pgtable_page_ctor() fail
-Date: Wed, 16 Oct 2013 12:56:12 +0300 (EEST)
-Message-ID: <20131016095612.34707E0090@blue.fi.intel.com>
+Date: Wed, 16 Oct 2013 13:29:39 +0300 (EEST)
+Message-ID: <20131016102939.DC0D0E0090@blue.fi.intel.com>
 References: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
  <1381428359-14843-20-git-send-email-kirill.shutemov@linux.intel.com>
  <CAMuHMdUqQVphjUbvPg+47ZjFmS8WUK_70VMb43w4jaBOcGfNxA@mail.gmail.com>
+ <20131016095612.34707E0090@blue.fi.intel.com>
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <CAMuHMdUqQVphjUbvPg+47ZjFmS8WUK_70VMb43w4jaBOcGfNxA@mail.gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux/m68k <linux-m68k@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga09.intel.com ([134.134.136.24]:40482 "EHLO mga09.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1760342Ab3JPK3p (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 16 Oct 2013 06:29:45 -0400
+In-Reply-To: <20131016095612.34707E0090@blue.fi.intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux/m68k <linux-m68k@vger.kernel.org>
 
-Geert Uytterhoeven wrote:
-> On Thu, Oct 10, 2013 at 8:05 PM, Kirill A. Shutemov
-> <kirill.shutemov@linux.intel.com> wrote:
-> > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> > Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-> > ---
-> >  arch/m68k/include/asm/motorola_pgalloc.h | 5 ++++-
-> >  arch/m68k/include/asm/sun3_pgalloc.h     | 5 ++++-
-> >  2 files changed, 8 insertions(+), 2 deletions(-)
-> >
-> > diff --git a/arch/m68k/include/asm/motorola_pgalloc.h b/arch/m68k/include/asm/motorola_pgalloc.h
-> > index 2f02f264e6..dd254eeb03 100644
-> > --- a/arch/m68k/include/asm/motorola_pgalloc.h
-> > +++ b/arch/m68k/include/asm/motorola_pgalloc.h
-> > @@ -40,7 +40,10 @@ static inline pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long addres
-> >         flush_tlb_kernel_page(pte);
-> >         nocache_page(pte);
->         ^^^^^^^^^^^^^^^^^^
-> >         kunmap(page);
-> > -       pgtable_page_ctor(page);
-> > +       if (!pgtable_page_ctor(page)) {
-> > +               __free_page(page);
+Kirill A. Shutemov wrote:
+> Geert Uytterhoeven wrote:
+> > On Thu, Oct 10, 2013 at 8:05 PM, Kirill A. Shutemov
+> > <kirill.shutemov@linux.intel.com> wrote:
+> > > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> > > Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+> > > ---
+> > >  arch/m68k/include/asm/motorola_pgalloc.h | 5 ++++-
+> > >  arch/m68k/include/asm/sun3_pgalloc.h     | 5 ++++-
+> > >  2 files changed, 8 insertions(+), 2 deletions(-)
+> > >
+> > > diff --git a/arch/m68k/include/asm/motorola_pgalloc.h b/arch/m68k/include/asm/motorola_pgalloc.h
+> > > index 2f02f264e6..dd254eeb03 100644
+> > > --- a/arch/m68k/include/asm/motorola_pgalloc.h
+> > > +++ b/arch/m68k/include/asm/motorola_pgalloc.h
+> > > @@ -40,7 +40,10 @@ static inline pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long addres
+> > >         flush_tlb_kernel_page(pte);
+> > >         nocache_page(pte);
+> >         ^^^^^^^^^^^^^^^^^^
+> > >         kunmap(page);
+> > > -       pgtable_page_ctor(page);
+> > > +       if (!pgtable_page_ctor(page)) {
+> > > +               __free_page(page);
+> > 
+> > Shouldn't you mark the page cacheable again, like is done in pte_free()?
 > 
-> Shouldn't you mark the page cacheable again, like is done in pte_free()?
+> Hm. You're right. Updated patch below.
 
-Hm. You're right. Updated patch below.
+I also noticed that one of pte_alloc_one didn't have the constructor at
+all. New patch revision bellow.
 
-BTW, what's the point of playing with kmap()/kunmap() there? Looks like
-m68k doesn't support highmem.
-
-And even if it will support, code in pte_alloc_one() doesn't make any
-sense: kmap() creates temporary mapping for highmem page and it
-nocache_page() sets flags in pte which will be destroyed by kunmap().
-
-It think kmap() should be replaced by page_address() and kunmap() should
-be dropped.
-
-From 2f9dce7982e4459e91cd49e38256c24d69786f8b Mon Sep 17 00:00:00 2001
+From 22109077ef31ea28bbfe6b72902854214285bc0c Mon Sep 17 00:00:00 2001
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 Date: Wed, 9 Oct 2013 03:58:39 +0300
-Subject: [PATCHv2] m68k: handle pgtable_page_ctor() fail
+Subject: [PATCHv3] m68k: handle pgtable_page_ctor() fail
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 Cc: Geert Uytterhoeven <geert@linux-m68k.org>
 ---
+ arch/m68k/include/asm/mcf_pgalloc.h      | 4 ++++
  arch/m68k/include/asm/motorola_pgalloc.h | 8 ++++++--
  arch/m68k/include/asm/sun3_pgalloc.h     | 5 ++++-
- 2 files changed, 10 insertions(+), 3 deletions(-)
+ 3 files changed, 14 insertions(+), 3 deletions(-)
 
+diff --git a/arch/m68k/include/asm/mcf_pgalloc.h b/arch/m68k/include/asm/mcf_pgalloc.h
+index 313f3dd23c..f9924fbcfe 100644
+--- a/arch/m68k/include/asm/mcf_pgalloc.h
++++ b/arch/m68k/include/asm/mcf_pgalloc.h
+@@ -56,6 +56,10 @@ static inline struct page *pte_alloc_one(struct mm_struct *mm,
+ 
+ 	if (!page)
+ 		return NULL;
++	if (!pgtable_page_ctor(page)) {
++		__free_page(page);
++		return NULL;
++	}
+ 
+ 	pte = kmap(page);
+ 	if (pte) {
 diff --git a/arch/m68k/include/asm/motorola_pgalloc.h b/arch/m68k/include/asm/motorola_pgalloc.h
 index 2f02f264e6..24bcba496c 100644
 --- a/arch/m68k/include/asm/motorola_pgalloc.h
@@ -109,9 +123,3 @@ index 48d80d5a66..f868506e33 100644
  }
 -- 
  Kirill A. Shutemov
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
