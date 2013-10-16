@@ -1,125 +1,42 @@
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: Re: [PATCH 19/34] m68k: handle pgtable_page_ctor() fail
-Date: Wed, 16 Oct 2013 13:29:39 +0300 (EEST)
-Message-ID: <20131016102939.DC0D0E0090@blue.fi.intel.com>
-References: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
- <1381428359-14843-20-git-send-email-kirill.shutemov@linux.intel.com>
- <CAMuHMdUqQVphjUbvPg+47ZjFmS8WUK_70VMb43w4jaBOcGfNxA@mail.gmail.com>
- <20131016095612.34707E0090@blue.fi.intel.com>
-Content-Transfer-Encoding: 7bit
+From: Linus Walleij <linus.walleij@linaro.org>
+Subject: Re: [PATCH v2 3/3] gpiolib: add gpiod_get() and gpiod_put() functions
+Date: Wed, 16 Oct 2013 13:37:45 +0200
+Message-ID: <CACRpkdZTqZKyG3Lbs_GmdnqB0yEjRApsaUhJA9-s_uPb_Wrq8A@mail.gmail.com>
+References: <1381515273-25466-1-git-send-email-acourbot@nvidia.com>
+	<1381515273-25466-4-git-send-email-acourbot@nvidia.com>
+	<52587C37.3070606@nvidia.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:40482 "EHLO mga09.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1760342Ab3JPK3p (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 16 Oct 2013 06:29:45 -0400
-In-Reply-To: <20131016095612.34707E0090@blue.fi.intel.com>
+Received: from mail-ie0-f173.google.com ([209.85.223.173]:59126 "EHLO
+	mail-ie0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S934260Ab3JPLhq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Oct 2013 07:37:46 -0400
+Received: by mail-ie0-f173.google.com with SMTP id u16so976106iet.4
+        for <linux-arch@vger.kernel.org>; Wed, 16 Oct 2013 04:37:45 -0700 (PDT)
+In-Reply-To: <52587C37.3070606@nvidia.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux/m68k <linux-m68k@vger.kernel.org>
+To: Alex Courbot <acourbot@nvidia.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Grant Likely <grant.likely@linaro.org>, Mika Westerberg <mika.westerberg@linux.intel.com>, "gnurou@gmail.com" <gnurou@gmail.com>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Mathias Nyman <mathias.nyman@linux.intel.com>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
 
-Kirill A. Shutemov wrote:
-> Geert Uytterhoeven wrote:
-> > On Thu, Oct 10, 2013 at 8:05 PM, Kirill A. Shutemov
-> > <kirill.shutemov@linux.intel.com> wrote:
-> > > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> > > Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-> > > ---
-> > >  arch/m68k/include/asm/motorola_pgalloc.h | 5 ++++-
-> > >  arch/m68k/include/asm/sun3_pgalloc.h     | 5 ++++-
-> > >  2 files changed, 8 insertions(+), 2 deletions(-)
-> > >
-> > > diff --git a/arch/m68k/include/asm/motorola_pgalloc.h b/arch/m68k/include/asm/motorola_pgalloc.h
-> > > index 2f02f264e6..dd254eeb03 100644
-> > > --- a/arch/m68k/include/asm/motorola_pgalloc.h
-> > > +++ b/arch/m68k/include/asm/motorola_pgalloc.h
-> > > @@ -40,7 +40,10 @@ static inline pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long addres
-> > >         flush_tlb_kernel_page(pte);
-> > >         nocache_page(pte);
-> >         ^^^^^^^^^^^^^^^^^^
-> > >         kunmap(page);
-> > > -       pgtable_page_ctor(page);
-> > > +       if (!pgtable_page_ctor(page)) {
-> > > +               __free_page(page);
-> > 
-> > Shouldn't you mark the page cacheable again, like is done in pte_free()?
-> 
-> Hm. You're right. Updated patch below.
+On Sat, Oct 12, 2013 at 12:31 AM, Alex Courbot <acourbot@nvidia.com> wrote:
+>> +#else
+>> +static struct device_node *of_find_gpio(struct device *dev, const char *id
+>> +                                     unsigned int idx, unsigned long flags)
+>> +{
+>> +     return ERR_PTR(-ENODEV);
+>> +}
+>> +#endif
+>
+> ... and of course I forgot to fix the main compilation error. Linus,
+> would you mind squashing what follows into this patch? Apologies for
+> the inconvenience.
 
-I also noticed that one of pte_alloc_one didn't have the constructor at
-all. New patch revision bellow.
+I guess you'll fix this if you respin it?
 
-From 22109077ef31ea28bbfe6b72902854214285bc0c Mon Sep 17 00:00:00 2001
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Date: Wed, 9 Oct 2013 03:58:39 +0300
-Subject: [PATCHv3] m68k: handle pgtable_page_ctor() fail
+If it's too much trouble now we can just defer this for early in the v3.14
+cycle.
 
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
----
- arch/m68k/include/asm/mcf_pgalloc.h      | 4 ++++
- arch/m68k/include/asm/motorola_pgalloc.h | 8 ++++++--
- arch/m68k/include/asm/sun3_pgalloc.h     | 5 ++++-
- 3 files changed, 14 insertions(+), 3 deletions(-)
-
-diff --git a/arch/m68k/include/asm/mcf_pgalloc.h b/arch/m68k/include/asm/mcf_pgalloc.h
-index 313f3dd23c..f9924fbcfe 100644
---- a/arch/m68k/include/asm/mcf_pgalloc.h
-+++ b/arch/m68k/include/asm/mcf_pgalloc.h
-@@ -56,6 +56,10 @@ static inline struct page *pte_alloc_one(struct mm_struct *mm,
- 
- 	if (!page)
- 		return NULL;
-+	if (!pgtable_page_ctor(page)) {
-+		__free_page(page);
-+		return NULL;
-+	}
- 
- 	pte = kmap(page);
- 	if (pte) {
-diff --git a/arch/m68k/include/asm/motorola_pgalloc.h b/arch/m68k/include/asm/motorola_pgalloc.h
-index 2f02f264e6..24bcba496c 100644
---- a/arch/m68k/include/asm/motorola_pgalloc.h
-+++ b/arch/m68k/include/asm/motorola_pgalloc.h
-@@ -29,18 +29,22 @@ static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
- 
- static inline pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long address)
- {
--	struct page *page = alloc_pages(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO, 0);
-+	struct page *page;
- 	pte_t *pte;
- 
-+	page = alloc_pages(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO, 0);
- 	if(!page)
- 		return NULL;
-+	if (!pgtable_page_ctor(page)) {
-+		__free_page(page);
-+		return NULL;
-+	}
- 
- 	pte = kmap(page);
- 	__flush_page_to_ram(pte);
- 	flush_tlb_kernel_page(pte);
- 	nocache_page(pte);
- 	kunmap(page);
--	pgtable_page_ctor(page);
- 	return page;
- }
- 
-diff --git a/arch/m68k/include/asm/sun3_pgalloc.h b/arch/m68k/include/asm/sun3_pgalloc.h
-index 48d80d5a66..f868506e33 100644
---- a/arch/m68k/include/asm/sun3_pgalloc.h
-+++ b/arch/m68k/include/asm/sun3_pgalloc.h
-@@ -59,7 +59,10 @@ static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
- 		return NULL;
- 
- 	clear_highpage(page);
--	pgtable_page_ctor(page);
-+	if (!pgtable_page_ctor(page)) {
-+		__free_page(page);
-+		return NULL;
-+	}
- 	return page;
- 
- }
--- 
- Kirill A. Shutemov
+Yours,
+Linus Walleij
