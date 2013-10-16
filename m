@@ -1,39 +1,56 @@
-From: Alex Courbot <acourbot@nvidia.com>
-Subject: Re: [PATCH v2 3/3] gpiolib: add gpiod_get() and gpiod_put() functions
-Date: Wed, 16 Oct 2013 09:10:07 -0700
-Message-ID: <525EBA5F.5080608@nvidia.com>
-References: <1381515273-25466-1-git-send-email-acourbot@nvidia.com>	<1381515273-25466-4-git-send-email-acourbot@nvidia.com>	<52587C37.3070606@nvidia.com> <CACRpkdZTqZKyG3Lbs_GmdnqB0yEjRApsaUhJA9-s_uPb_Wrq8A@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-gpio-owner@vger.kernel.org>
-In-Reply-To: <CACRpkdZTqZKyG3Lbs_GmdnqB0yEjRApsaUhJA9-s_uPb_Wrq8A@mail.gmail.com>
-Sender: linux-gpio-owner@vger.kernel.org
-To: Linus Walleij <linus.walleij@linaro.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Grant Likely <grant.likely@linaro.org>, Mika Westerberg <mika.westerberg@linux.intel.com>, "gnurou@gmail.com" <gnurou@gmail.com>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Mathias Nyman <mathias.nyman@linux.intel.com>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+From: Max Filippov <jcmvbkbc@gmail.com>
+Subject: [PATCH 01/17] xtensa: remove NO_IRQ definitions
+Date: Thu, 17 Oct 2013 02:42:12 +0400
+Message-ID: <1381963348-29448-2-git-send-email-jcmvbkbc@gmail.com>
+References: <1381963348-29448-1-git-send-email-jcmvbkbc@gmail.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-lb0-f178.google.com ([209.85.217.178]:60425 "EHLO
+	mail-lb0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758776Ab3JPWms (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Oct 2013 18:42:48 -0400
+Received: by mail-lb0-f178.google.com with SMTP id z5so1163857lbh.23
+        for <linux-arch@vger.kernel.org>; Wed, 16 Oct 2013 15:42:47 -0700 (PDT)
+In-Reply-To: <1381963348-29448-1-git-send-email-jcmvbkbc@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Chris Zankel <chris@zankel.net>
+Cc: Marc Gauthier <marc@tensilica.com>, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Max Filippov <jcmvbkbc@gmail.com>
 
-On 10/16/2013 04:37 AM, Linus Walleij wrote:
-> On Sat, Oct 12, 2013 at 12:31 AM, Alex Courbot <acourbot@nvidia.com> wrote:
->>> +#else
->>> +static struct device_node *of_find_gpio(struct device *dev, const char *id
->>> +                                     unsigned int idx, unsigned long flags)
->>> +{
->>> +     return ERR_PTR(-ENODEV);
->>> +}
->>> +#endif
->>
->> ... and of course I forgot to fix the main compilation error. Linus,
->> would you mind squashing what follows into this patch? Apologies for
->> the inconvenience.
->
-> I guess you'll fix this if you respin it?
->
-> If it's too much trouble now we can just defer this for early in the v3.14
-> cycle.
+These definitions (-1) were correct when used as a hardware IRQ number,
+but are incorrect as a mapped IRQ number.
 
-No problem, I will try to rebase on top of your for-next, and squash 
-this today.
+Signed-off-by: Max Filippov <jcmvbkbc@gmail.com>
+---
+ arch/xtensa/platforms/xtfpga/include/platform/hardware.h | 4 ----
+ arch/xtensa/variants/s6000/include/variant/irq.h         | 1 -
+ 2 files changed, 5 deletions(-)
 
-Thanks,
-Alex.
+diff --git a/arch/xtensa/platforms/xtfpga/include/platform/hardware.h b/arch/xtensa/platforms/xtfpga/include/platform/hardware.h
+index 4416773..4b43ff1 100644
+--- a/arch/xtensa/platforms/xtfpga/include/platform/hardware.h
++++ b/arch/xtensa/platforms/xtfpga/include/platform/hardware.h
+@@ -15,10 +15,6 @@
+ #ifndef __XTENSA_XTAVNET_HARDWARE_H
+ #define __XTENSA_XTAVNET_HARDWARE_H
+ 
+-/* By default NO_IRQ is defined to 0 in Linux, but we use the
+-   interrupt 0 for UART... */
+-#define NO_IRQ                 -1
+-
+ /* Memory configuration. */
+ 
+ #define PLATFORM_DEFAULT_MEM_START 0x00000000
+diff --git a/arch/xtensa/variants/s6000/include/variant/irq.h b/arch/xtensa/variants/s6000/include/variant/irq.h
+index 97d6fc4..39ca751 100644
+--- a/arch/xtensa/variants/s6000/include/variant/irq.h
++++ b/arch/xtensa/variants/s6000/include/variant/irq.h
+@@ -1,7 +1,6 @@
+ #ifndef _XTENSA_S6000_IRQ_H
+ #define _XTENSA_S6000_IRQ_H
+ 
+-#define NO_IRQ		(-1)
+ #define VARIANT_NR_IRQS 8 /* GPIO interrupts */
+ 
+ extern void variant_irq_enable(unsigned int irq);
+-- 
+1.8.1.4
