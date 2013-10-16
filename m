@@ -1,75 +1,49 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 19/34] m68k: handle pgtable_page_ctor() fail
-Date: Wed, 16 Oct 2013 10:07:52 +0200
-Message-ID: <CAMuHMdUqQVphjUbvPg+47ZjFmS8WUK_70VMb43w4jaBOcGfNxA@mail.gmail.com>
-References: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
-	<1381428359-14843-20-git-send-email-kirill.shutemov@linux.intel.com>
+From: Linus Walleij <linus.walleij@linaro.org>
+Subject: Re: [PATCH v2 1/3] gpiolib: export descriptor-based GPIO interface
+Date: Wed, 16 Oct 2013 10:11:08 +0200
+Message-ID: <CACRpkdYTJ_JQvFmf+AuCxmk5kGGw_CLGn0-xnO+PqGav45Se3Q@mail.gmail.com>
+References: <1381515273-25466-1-git-send-email-acourbot@nvidia.com>
+	<1381515273-25466-2-git-send-email-acourbot@nvidia.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1381428359-14843-20-git-send-email-kirill.shutemov@linux.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux/m68k <linux-m68k@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ie0-f175.google.com ([209.85.223.175]:47172 "EHLO
+	mail-ie0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1760109Ab3JPILI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Oct 2013 04:11:08 -0400
+Received: by mail-ie0-f175.google.com with SMTP id aq17so660723iec.20
+        for <linux-arch@vger.kernel.org>; Wed, 16 Oct 2013 01:11:08 -0700 (PDT)
+In-Reply-To: <1381515273-25466-2-git-send-email-acourbot@nvidia.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Alexandre Courbot <acourbot@nvidia.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Grant Likely <grant.likely@linaro.org>, Mika Westerberg <mika.westerberg@linux.intel.com>, Alexandre Courbot <gnurou@gmail.com>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Mathias Nyman <mathias.nyman@linux.intel.com>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
 
-On Thu, Oct 10, 2013 at 8:05 PM, Kirill A. Shutemov
-<kirill.shutemov@linux.intel.com> wrote:
-> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-> ---
->  arch/m68k/include/asm/motorola_pgalloc.h | 5 ++++-
->  arch/m68k/include/asm/sun3_pgalloc.h     | 5 ++++-
->  2 files changed, 8 insertions(+), 2 deletions(-)
+On Fri, Oct 11, 2013 at 8:14 PM, Alexandre Courbot <acourbot@nvidia.com> wrote:
+
+> This patch exports the gpiod_* family of API functions, a safer
+> alternative to the legacy GPIO interface. Differences between the gpiod
+> and legacy gpio APIs are:
 >
-> diff --git a/arch/m68k/include/asm/motorola_pgalloc.h b/arch/m68k/include/asm/motorola_pgalloc.h
-> index 2f02f264e6..dd254eeb03 100644
-> --- a/arch/m68k/include/asm/motorola_pgalloc.h
-> +++ b/arch/m68k/include/asm/motorola_pgalloc.h
-> @@ -40,7 +40,10 @@ static inline pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long addres
->         flush_tlb_kernel_page(pte);
->         nocache_page(pte);
-        ^^^^^^^^^^^^^^^^^^
->         kunmap(page);
-> -       pgtable_page_ctor(page);
-> +       if (!pgtable_page_ctor(page)) {
-> +               __free_page(page);
-
-Shouldn't you mark the page cacheable again, like is done in pte_free()?
-
-> +               return NULL;
-> +       }
->         return page;
->  }
+> - gpio works with integers, whereas gpiod operates on opaque handlers
+>   which cannot be forged or used before proper acquisition
+> - gpiod get/set functions are aware of the active low state of a GPIO
+> - gpio consumers should now include <linux/gpio/consumer.h> to access
+>   the new interface, whereas chips drivers will use
+>   <linux/gpio/driver.h>
 >
-> diff --git a/arch/m68k/include/asm/sun3_pgalloc.h b/arch/m68k/include/asm/sun3_pgalloc.h
-> index 48d80d5a66..f868506e33 100644
-> --- a/arch/m68k/include/asm/sun3_pgalloc.h
-> +++ b/arch/m68k/include/asm/sun3_pgalloc.h
-> @@ -59,7 +59,10 @@ static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
->                 return NULL;
+> The legacy gpio API is now built as inline functions on top of gpiod.
 >
->         clear_highpage(page);
-> -       pgtable_page_ctor(page);
-> +       if (!pgtable_page_ctor(page)) {
-> +               __free_page(page);
-> +               return NULL;
-> +       }
->         return page;
+> Signed-off-by: Alexandre Courbot <acourbot@nvidia.com>
 
-Gr{oetje,eeting}s,
+Typically I have applied the patch adding gpio_[un]lock_as_irq()
+and it conflicts with this. And it requires adding gpiod_* accessors
+for these functions too...
 
-                        Geert
+Would you mind rebasing this on top of my "devel" branch?
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+Sorry for the moving target, but after this I think we are ready to
+merge the gpiod* interface.
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Yours,
+Linus Walleij
