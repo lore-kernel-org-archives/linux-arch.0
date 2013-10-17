@@ -1,159 +1,46 @@
-From: Max Filippov <jcmvbkbc@gmail.com>
-Subject: [PATCH 04/17] xtensa: fix arch spinlock function names
-Date: Thu, 17 Oct 2013 02:42:15 +0400
-Message-ID: <1381963348-29448-5-git-send-email-jcmvbkbc@gmail.com>
-References: <1381963348-29448-1-git-send-email-jcmvbkbc@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f174.google.com ([209.85.217.174]:41552 "EHLO
-	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760658Ab3JPWmx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Oct 2013 18:42:53 -0400
-Received: by mail-lb0-f174.google.com with SMTP id w6so1182108lbh.5
-        for <linux-arch@vger.kernel.org>; Wed, 16 Oct 2013 15:42:52 -0700 (PDT)
-In-Reply-To: <1381963348-29448-1-git-send-email-jcmvbkbc@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Chris Zankel <chris@zankel.net>
-Cc: Marc Gauthier <marc@tensilica.com>, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Max Filippov <jcmvbkbc@gmail.com>
+From: Alexandre Courbot <acourbot-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
+Subject: [PATCH v3 0/3] New descriptor-based GPIO interface
+Date: Thu, 17 Oct 2013 10:21:35 -0700
+Message-ID: <1382030498-23465-1-git-send-email-acourbot@nvidia.com>
+Mime-Version: 1.0
+Content-Type: text/plain
+Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>
+Cc: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Grant Likely <grant.likely-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Mika Westerberg <mika.westerberg-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, gnurou-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, "Rafael J. Wysocki" <rafael.j.wysocki-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Mathias Nyman <mathias.nyman-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, linux-gpio-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Alexandre Courbot <acourbot-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-Signed-off-by: Max Filippov <jcmvbkbc@gmail.com>
----
- arch/xtensa/include/asm/spinlock.h       | 31 +++++++++++++++++--------------
- arch/xtensa/include/asm/spinlock_types.h | 20 ++++++++++++++++++++
- 2 files changed, 37 insertions(+), 14 deletions(-)
- create mode 100644 arch/xtensa/include/asm/spinlock_types.h
+Hi Linus,
 
-diff --git a/arch/xtensa/include/asm/spinlock.h b/arch/xtensa/include/asm/spinlock.h
-index 0397590..1d95fa5 100644
---- a/arch/xtensa/include/asm/spinlock.h
-+++ b/arch/xtensa/include/asm/spinlock.h
-@@ -28,13 +28,13 @@
-  *    1         somebody owns the spinlock
-  */
- 
--#define __raw_spin_is_locked(x) ((x)->slock != 0)
--#define __raw_spin_unlock_wait(lock) \
--	do { while (__raw_spin_is_locked(lock)) cpu_relax(); } while (0)
-+#define arch_spin_is_locked(x) ((x)->slock != 0)
-+#define arch_spin_unlock_wait(lock) \
-+	do { while (arch_spin_is_locked(lock)) cpu_relax(); } while (0)
- 
--#define __raw_spin_lock_flags(lock, flags) __raw_spin_lock(lock)
-+#define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
- 
--static inline void __raw_spin_lock(raw_spinlock_t *lock)
-+static inline void arch_spin_lock(arch_spinlock_t *lock)
- {
- 	unsigned long tmp;
- 
-@@ -51,7 +51,7 @@ static inline void __raw_spin_lock(raw_spinlock_t *lock)
- 
- /* Returns 1 if the lock is obtained, 0 otherwise. */
- 
--static inline int __raw_spin_trylock(raw_spinlock_t *lock)
-+static inline int arch_spin_trylock(arch_spinlock_t *lock)
- {
- 	unsigned long tmp;
- 
-@@ -67,7 +67,7 @@ static inline int __raw_spin_trylock(raw_spinlock_t *lock)
- 	return tmp == 0 ? 1 : 0;
- }
- 
--static inline void __raw_spin_unlock(raw_spinlock_t *lock)
-+static inline void arch_spin_unlock(arch_spinlock_t *lock)
- {
- 	unsigned long tmp;
- 
-@@ -96,9 +96,9 @@ static inline void __raw_spin_unlock(raw_spinlock_t *lock)
-  *  0x80000000  one writer owns the rwlock, no other writers, no readers
-  */
- 
--#define __raw_write_can_lock(x)  ((x)->lock == 0)
-+#define arch_write_can_lock(x)  ((x)->lock == 0)
- 
--static inline void __raw_write_lock(raw_rwlock_t *rw)
-+static inline void arch_write_lock(arch_rwlock_t *rw)
- {
- 	unsigned long tmp;
- 
-@@ -116,7 +116,7 @@ static inline void __raw_write_lock(raw_rwlock_t *rw)
- 
- /* Returns 1 if the lock is obtained, 0 otherwise. */
- 
--static inline int __raw_write_trylock(raw_rwlock_t *rw)
-+static inline int arch_write_trylock(arch_rwlock_t *rw)
- {
- 	unsigned long tmp;
- 
-@@ -133,7 +133,7 @@ static inline int __raw_write_trylock(raw_rwlock_t *rw)
- 	return tmp == 0 ? 1 : 0;
- }
- 
--static inline void __raw_write_unlock(raw_rwlock_t *rw)
-+static inline void arch_write_unlock(arch_rwlock_t *rw)
- {
- 	unsigned long tmp;
- 
-@@ -145,7 +145,7 @@ static inline void __raw_write_unlock(raw_rwlock_t *rw)
- 			: "memory");
- }
- 
--static inline void __raw_read_lock(raw_rwlock_t *rw)
-+static inline void arch_read_lock(arch_rwlock_t *rw)
- {
- 	unsigned long tmp;
- 	unsigned long result;
-@@ -164,7 +164,7 @@ static inline void __raw_read_lock(raw_rwlock_t *rw)
- 
- /* Returns 1 if the lock is obtained, 0 otherwise. */
- 
--static inline int __raw_read_trylock(raw_rwlock_t *rw)
-+static inline int arch_read_trylock(arch_rwlock_t *rw)
- {
- 	unsigned long result;
- 	unsigned long tmp;
-@@ -184,7 +184,7 @@ static inline int __raw_read_trylock(raw_rwlock_t *rw)
- 	return result == 0;
- }
- 
--static inline void __raw_read_unlock(raw_rwlock_t *rw)
-+static inline void arch_read_unlock(arch_rwlock_t *rw)
- {
- 	unsigned long tmp1, tmp2;
- 
-@@ -199,4 +199,7 @@ static inline void __raw_read_unlock(raw_rwlock_t *rw)
- 			: "memory");
- }
- 
-+#define arch_read_lock_flags(lock, flags)	arch_read_lock(lock)
-+#define arch_write_lock_flags(lock, flags)	arch_write_lock(lock)
-+
- #endif	/* _XTENSA_SPINLOCK_H */
-diff --git a/arch/xtensa/include/asm/spinlock_types.h b/arch/xtensa/include/asm/spinlock_types.h
-new file mode 100644
-index 0000000..7ec5ce1
---- /dev/null
-+++ b/arch/xtensa/include/asm/spinlock_types.h
-@@ -0,0 +1,20 @@
-+#ifndef __ASM_SPINLOCK_TYPES_H
-+#define __ASM_SPINLOCK_TYPES_H
-+
-+#ifndef __LINUX_SPINLOCK_TYPES_H
-+# error "please don't include this file directly"
-+#endif
-+
-+typedef struct {
-+	volatile unsigned int slock;
-+} arch_spinlock_t;
-+
-+#define __ARCH_SPIN_LOCK_UNLOCKED	{ 0 }
-+
-+typedef struct {
-+	volatile unsigned int lock;
-+} arch_rwlock_t;
-+
-+#define __ARCH_RW_LOCK_UNLOCKED		{ 0 }
-+
-+#endif
+This version should merge as-is in your tree (I hope!). A patch for
+documentation will follow soon.
+
+Changes since v2:
+- rebased on top of Linus' for-next branch
+- exported new gpiod_(un)lock_as_irq() functions in driver.h
+- squashed a fix for a compilation error
+
+Alexandre Courbot (3):
+  gpiolib: export descriptor-based GPIO interface
+  gpiolib: port of_ functions to use gpiod
+  gpiolib: add gpiod_get() and gpiod_put() functions
+
+ drivers/gpio/devres.c         |  83 ++++++
+ drivers/gpio/gpiolib-of.c     |  28 +-
+ drivers/gpio/gpiolib.c        | 623 +++++++++++++++++++++++++++++-------------
+ include/asm-generic/gpio.h    | 222 +++++----------
+ include/linux/gpio.h          |  11 +-
+ include/linux/gpio/consumer.h | 253 +++++++++++++++++
+ include/linux/gpio/driver.h   | 183 +++++++++++++
+ include/linux/of_gpio.h       |  29 +-
+ 8 files changed, 1055 insertions(+), 377 deletions(-)
+ create mode 100644 include/linux/gpio/consumer.h
+ create mode 100644 include/linux/gpio/driver.h
+
 -- 
-1.8.1.4
+1.8.4
+
+--
+To unsubscribe from this list: send the line "unsubscribe devicetree" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
