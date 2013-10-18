@@ -1,43 +1,40 @@
-From: rkuo <rkuo@codeaurora.org>
-Subject: Re: [PATCH 09/29] hexagon: Use get_signal() signal_setup_done()
-Date: Thu, 17 Oct 2013 19:18:32 -0500
-Message-ID: <20131018001832.GA23216@codeaurora.org>
-References: <1381231942-4145-1-git-send-email-richard@nod.at>
- <1381231942-4145-4-git-send-email-richard@nod.at>
+From: Linus Walleij <linus.walleij@linaro.org>
+Subject: Re: [PATCH v3 0/3] New descriptor-based GPIO interface
+Date: Fri, 18 Oct 2013 13:23:36 +0200
+Message-ID: <CACRpkdYx07Kfs6zOQmTg2cTSmEmsGgP=7wMCSG_30NW=dfYRPQ@mail.gmail.com>
+References: <1382030498-23465-1-git-send-email-acourbot@nvidia.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.11.231]:43945 "EHLO
-	smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755405Ab3JRASj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Oct 2013 20:18:39 -0400
-Content-Disposition: inline
-In-Reply-To: <1381231942-4145-4-git-send-email-richard@nod.at>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Richard Weinberger <richard@nod.at>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, vgupta@synopsys.com, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, vapier@gentoo.org, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, tony.luck@intel.com, fenghua.yu@intel.com, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, yasutake.koichi@jp.panasonic.com, ralf@linux-mips.org, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, lethal@linux-sh.org, cmetcalf@tilera.com, gxt@mprc.pku.edu.cn, linux-xtensa@linux-xtensa.org, akpm@linux-foundation.org, oleg@redhat.com, tj@kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1382030498-23465-1-git-send-email-acourbot@nvidia.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Alexandre Courbot <acourbot@nvidia.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Grant Likely <grant.likely@linaro.org>, Mika Westerberg <mika.westerberg@linux.intel.com>, Alexandre Courbot <gnurou@gmail.com>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Mathias Nyman <mathias.nyman@linux.intel.com>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Oct 08, 2013 at 01:32:22PM +0200, Richard Weinberger wrote:
-> Use the more generic functions get_signal() signal_setup_done()
-> for signal delivery.
-> 
-> Signed-off-by: Richard Weinberger <richard@nod.at>
+On Thu, Oct 17, 2013 at 7:21 PM, Alexandre Courbot <acourbot@nvidia.com> wrote:
 
-Thanks for the changes.  Compiled and tested briefly; the Hexagon part of
-this looks fine.
+> Hi Linus,
+>
+> This version should merge as-is in your tree (I hope!). A patch for
+> documentation will follow soon.
+>
+> Changes since v2:
+> - rebased on top of Linus' for-next branch
+> - exported new gpiod_(un)lock_as_irq() functions in driver.h
+> - squashed a fix for a compilation error
 
-If you want to compile test, there are newer versions of the toolchain
-available here:
+Thanks, let's see if I can get this into v3.13, right now it's
+unclear if I'll dare to do this. These do not apply right off
+as it requires the late fixes to the gpiod code which currently
+are in Torvalds' tree and on my fixes branch, so I'll merge in
+v3.12-rc6 as it arrives, and then attempt to apply this on
+top, but I don't know if I dare to do this so late.
 
-https://sourcery.mentor.com/GNUToolchain/release2568
+The outage of linux-next also contributes to this situation.
 
+We might have to take this as the first thing after the merge
+window and targeted for v3.14.
 
-
-Acked-by: Richard Kuo <rkuo@codeaurora.org>
-
--- 
-
-Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum,
-hosted by The Linux Foundation
+Yours,
+Linus Walleij
