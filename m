@@ -1,51 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f181.google.com ([209.85.223.181]:32768 "EHLO
-	mail-ie0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756734Ab3JRRhm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Oct 2013 13:37:42 -0400
+Received: from mail-ie0-f175.google.com ([209.85.223.175]:52004 "EHLO
+	mail-ie0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752728Ab3JSV07 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 19 Oct 2013 17:26:59 -0400
+Received: by mail-ie0-f175.google.com with SMTP id aq17so9136836iec.34
+        for <linux-arch@vger.kernel.org>; Sat, 19 Oct 2013 14:26:59 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <CACRpkdYx07Kfs6zOQmTg2cTSmEmsGgP=7wMCSG_30NW=dfYRPQ@mail.gmail.com>
-References: <1382030498-23465-1-git-send-email-acourbot@nvidia.com> <CACRpkdYx07Kfs6zOQmTg2cTSmEmsGgP=7wMCSG_30NW=dfYRPQ@mail.gmail.com>
-From: Alexandre Courbot <gnurou@gmail.com>
-Date: Fri, 18 Oct 2013 10:37:21 -0700
-Message-ID: <CAAVeFu+rj6AtKgfig6ZrYUzW9HZTg5qLyw4aGozyD31P_pEKAQ@mail.gmail.com>
+In-Reply-To: <CAAVeFu+rj6AtKgfig6ZrYUzW9HZTg5qLyw4aGozyD31P_pEKAQ@mail.gmail.com>
+References: <1382030498-23465-1-git-send-email-acourbot@nvidia.com>
+	<CACRpkdYx07Kfs6zOQmTg2cTSmEmsGgP=7wMCSG_30NW=dfYRPQ@mail.gmail.com>
+	<CAAVeFu+rj6AtKgfig6ZrYUzW9HZTg5qLyw4aGozyD31P_pEKAQ@mail.gmail.com>
+Date: Sat, 19 Oct 2013 23:26:58 +0200
+Message-ID: <CACRpkdbpRkiANA32ZMEhm-XTB_FKCfmKQuGSmsD_0rLi96kPtQ@mail.gmail.com>
 Subject: Re: [PATCH v3 0/3] New descriptor-based GPIO interface
-Content-Type: text/plain; charset=UTF-8
+From: Linus Walleij <linus.walleij@linaro.org>
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Walleij <linus.walleij@linaro.org>
+To: Alexandre Courbot <gnurou@gmail.com>
 Cc: Alexandre Courbot <acourbot@nvidia.com>, Arnd Bergmann <arnd@arndb.de>, Grant Likely <grant.likely@linaro.org>, Mika Westerberg <mika.westerberg@linux.intel.com>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Mathias Nyman <mathias.nyman@linux.intel.com>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
-Message-ID: <20131018173721.VwlHRZX51EcQm5cvGq0nZOC2eRjFW0hLs0TH3KGox44@z>
+Message-ID: <20131019212658.v1fGlYDjwzUiTO5LnnS9HvvruRlhrnQ-1xe0Br4Qxts@z>
 
-On Fri, Oct 18, 2013 at 4:23 AM, Linus Walleij <linus.walleij@linaro.org> wrote:
-> On Thu, Oct 17, 2013 at 7:21 PM, Alexandre Courbot <acourbot@nvidia.com> wrote:
->
->> Hi Linus,
->>
->> This version should merge as-is in your tree (I hope!). A patch for
->> documentation will follow soon.
->>
->> Changes since v2:
->> - rebased on top of Linus' for-next branch
->> - exported new gpiod_(un)lock_as_irq() functions in driver.h
->> - squashed a fix for a compilation error
->
-> Thanks, let's see if I can get this into v3.13, right now it's
-> unclear if I'll dare to do this. These do not apply right off
-> as it requires the late fixes to the gpiod code which currently
-> are in Torvalds' tree and on my fixes branch, so I'll merge in
-> v3.12-rc6 as it arrives, and then attempt to apply this on
-> top, but I don't know if I dare to do this so late.
->
-> The outage of linux-next also contributes to this situation.
->
-> We might have to take this as the first thing after the merge
-> window and targeted for v3.14.
+On Fri, Oct 18, 2013 at 7:37 PM, Alexandre Courbot <gnurou@gmail.com> wrote:
+> On Fri, Oct 18, 2013 at 4:23 AM, Linus Walleij <linus.walleij@linaro.org> wrote:
 
-No particular pressure from my side to get this in 3.13. Do for the
-best, and don't hesitate to delay them to 3.14 if you feel they are
-not tested enough. I'll already feel better once I know they are under
-your tree. ;)
+>> We might have to take this as the first thing after the merge
+>> window and targeted for v3.14.
+>
+> No particular pressure from my side to get this in 3.13. Do for the
+> best, and don't hesitate to delay them to 3.14 if you feel they are
+> not tested enough. I'll already feel better once I know they are under
+> your tree. ;)
 
-Thanks,
-Alex.
+I applied it now anyway, I will try to also apply the ACPI stuff
+making use of this interface and then throw it at the autobuild
+to see what happens.
+
+Yours,
+Linus Walleij
