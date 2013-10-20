@@ -1,22 +1,43 @@
-From: China@srvmail-zcom.mintra.gob.pe,
-	Shenhua@srvmail-zcom.mintra.gob.pe
-Subject: E-mail Has Won 1.5M
-Date: Sun, 20 Oct 2013 17:24:35 +0530
-Message-ID: <20131020115431.E9A19588EC2@srvmail-zcom.mintra.gob.pe>
-Reply-To: companylimited_c1@yahoo.com.hk
+From: Alexandre Courbot <gnurou@gmail.com>
+Subject: Re: [PATCH v3 0/3] New descriptor-based GPIO interface
+Date: Sun, 20 Oct 2013 15:18:03 -0700
+Message-ID: <CAAVeFuJ=Qvj2pT57T88eURrUOFURRFSXrFA+pL4xiA9c5sh9ig@mail.gmail.com>
+References: <1382030498-23465-1-git-send-email-acourbot@nvidia.com>
+ <CACRpkdYx07Kfs6zOQmTg2cTSmEmsGgP=7wMCSG_30NW=dfYRPQ@mail.gmail.com>
+ <CAAVeFu+rj6AtKgfig6ZrYUzW9HZTg5qLyw4aGozyD31P_pEKAQ@mail.gmail.com> <CACRpkdbpRkiANA32ZMEhm-XTB_FKCfmKQuGSmsD_0rLi96kPtQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from [200.37.35.8] ([200.37.35.8]:6069 "EHLO mintra.gob.pe"
-	rhost-flags-FAIL-FAIL-OK-OK) by vger.kernel.org with ESMTP
-	id S1751326Ab3JTLy5 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 20 Oct 2013 07:54:57 -0400
-Content-Description: Mail message body
+Received: from mail-ie0-f169.google.com ([209.85.223.169]:55002 "EHLO
+	mail-ie0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751816Ab3JTWSY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 20 Oct 2013 18:18:24 -0400
+In-Reply-To: <CACRpkdbpRkiANA32ZMEhm-XTB_FKCfmKQuGSmsD_0rLi96kPtQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Recipients <China@srvmail-zcom.mintra.gob.pe>
+To: Linus Walleij <linus.walleij@linaro.org>
+Cc: Alexandre Courbot <acourbot@nvidia.com>, Arnd Bergmann <arnd@arndb.de>, Grant Likely <grant.likely@linaro.org>, Mika Westerberg <mika.westerberg@linux.intel.com>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Mathias Nyman <mathias.nyman@linux.intel.com>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
 
-Your E-mail Has Won 1.5M USD and A Brand New Gallery 2013 BMW X6 in the
-China Coal Energy Company Grant 2013.To Receive Award send your
-Name,Add,and Number on Email:companylimited_c1@yahoo.com.hk
+On Sat, Oct 19, 2013 at 2:26 PM, Linus Walleij <linus.walleij@linaro.org> wrote:
+> On Fri, Oct 18, 2013 at 7:37 PM, Alexandre Courbot <gnurou@gmail.com> wrote:
+>> On Fri, Oct 18, 2013 at 4:23 AM, Linus Walleij <linus.walleij@linaro.org> wrote:
+>
+>>> We might have to take this as the first thing after the merge
+>>> window and targeted for v3.14.
+>>
+>> No particular pressure from my side to get this in 3.13. Do for the
+>> best, and don't hesitate to delay them to 3.14 if you feel they are
+>> not tested enough. I'll already feel better once I know they are under
+>> your tree. ;)
+>
+> I applied it now anyway, I will try to also apply the ACPI stuff
+> making use of this interface and then throw it at the autobuild
+> to see what happens.
+
+Autobuild was unfortunately not too happy with one of the patches,
+sorry about that. I have sent a small series that addresses the issues
+it highlighted. Not sure if you are ok with squashing the first two
+into bae48da2, but IMHO that would be the preferred way.
+
+Thanks,
+Alex.
