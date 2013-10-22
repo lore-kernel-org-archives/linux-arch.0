@@ -1,43 +1,37 @@
-From: Alexandre Courbot <gnurou@gmail.com>
-Subject: Re: [PATCH v3 0/3] New descriptor-based GPIO interface
-Date: Sun, 20 Oct 2013 15:18:03 -0700
-Message-ID: <CAAVeFuJ=Qvj2pT57T88eURrUOFURRFSXrFA+pL4xiA9c5sh9ig@mail.gmail.com>
-References: <1382030498-23465-1-git-send-email-acourbot@nvidia.com>
- <CACRpkdYx07Kfs6zOQmTg2cTSmEmsGgP=7wMCSG_30NW=dfYRPQ@mail.gmail.com>
- <CAAVeFu+rj6AtKgfig6ZrYUzW9HZTg5qLyw4aGozyD31P_pEKAQ@mail.gmail.com> <CACRpkdbpRkiANA32ZMEhm-XTB_FKCfmKQuGSmsD_0rLi96kPtQ@mail.gmail.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [RFC PATCH v2 02/25] smp, alpha: kill SMP single function call
+ interrupt
+Date: Tue, 22 Oct 2013 15:37:58 +0530
+Message-ID: <52664E7E.6090504@synopsys.com>
+References: <1378915649-16395-1-git-send-email-liuj97@gmail.com> <1378915649-16395-3-git-send-email-liuj97@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f169.google.com ([209.85.223.169]:55002 "EHLO
-	mail-ie0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751816Ab3JTWSY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 20 Oct 2013 18:18:24 -0400
-In-Reply-To: <CACRpkdbpRkiANA32ZMEhm-XTB_FKCfmKQuGSmsD_0rLi96kPtQ@mail.gmail.com>
+Received: from us01smtp2.synopsys.com ([198.182.44.80]:37265 "EHLO
+	kiruna.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751372Ab3JVKIP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Oct 2013 06:08:15 -0400
+In-Reply-To: <1378915649-16395-3-git-send-email-liuj97@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Walleij <linus.walleij@linaro.org>
-Cc: Alexandre Courbot <acourbot@nvidia.com>, Arnd Bergmann <arnd@arndb.de>, Grant Likely <grant.likely@linaro.org>, Mika Westerberg <mika.westerberg@linux.intel.com>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Mathias Nyman <mathias.nyman@linux.intel.com>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
+To: Jiang Liu <jiang.liu@huawei.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>
 
-On Sat, Oct 19, 2013 at 2:26 PM, Linus Walleij <linus.walleij@linaro.org> wrote:
-> On Fri, Oct 18, 2013 at 7:37 PM, Alexandre Courbot <gnurou@gmail.com> wrote:
->> On Fri, Oct 18, 2013 at 4:23 AM, Linus Walleij <linus.walleij@linaro.org> wrote:
->
->>> We might have to take this as the first thing after the merge
->>> window and targeted for v3.14.
->>
->> No particular pressure from my side to get this in 3.13. Do for the
->> best, and don't hesitate to delay them to 3.14 if you feel they are
->> not tested enough. I'll already feel better once I know they are under
->> your tree. ;)
->
-> I applied it now anyway, I will try to also apply the ACPI stuff
-> making use of this interface and then throw it at the autobuild
-> to see what happens.
+Hi Jiang,
 
-Autobuild was unfortunately not too happy with one of the patches,
-sorry about that. I have sent a small series that addresses the issues
-it highlighted. Not sure if you are ok with squashing the first two
-into bae48da2, but IMHO that would be the preferred way.
+On 09/11/2013 09:37 PM, Jiang Liu wrote:
+> From: Jiang Liu <jiang.liu@huawei.com>
+> 
+> Commit 9a46ad6d6df3b54 "smp: make smp_call_function_many() use logic
+> similar to smp_call_function_single()" has unified the way to handle
+> single and multiple cross-CPU function calls. Now only one interrupt
+> is needed for architecture specific code to support generic SMP function
+> call interfaces, so kill the redundant single function call interrupt.
+> 
+> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
 
-Thanks,
-Alex.
+What's the status of this series - seemed useful to me. Are you planning to get it
+merged in 3.13
+
+-Vineet
