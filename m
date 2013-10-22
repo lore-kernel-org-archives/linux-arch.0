@@ -1,43 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hermes.synopsys.com ([198.182.44.81]:63107 "EHLO
-	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751659Ab3JVKTJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Oct 2013 06:19:09 -0400
-Message-ID: <5266510F.8000300@synopsys.com>
-Date: Tue, 22 Oct 2013 15:48:55 +0530
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Received: from mga09.intel.com ([134.134.136.24]:50141 "EHLO mga09.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752809Ab3JVMzV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Oct 2013 08:55:21 -0400
+Date: Tue, 22 Oct 2013 13:55:12 +0100
+From: Fengguang Wu <fengguang.wu@intel.com>
+Subject: Re: [PATCH] mm: create a separate slab for page->ptl allocation
+Message-ID: <20131022125512.GA24418@localhost>
+References: <1382442839-7458-1-git-send-email-kirill.shutemov@linux.intel.com>
 MIME-Version: 1.0
-Subject: Re: [RFC PATCH v2 02/25] smp, alpha: kill SMP single function call
- interrupt
-References: <1378915649-16395-1-git-send-email-liuj97@gmail.com> <1378915649-16395-3-git-send-email-liuj97@gmail.com> <52664E7E.6090504@synopsys.com>
-In-Reply-To: <52664E7E.6090504@synopsys.com>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1382442839-7458-1-git-send-email-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiang Liu <liuj97@gmail.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>
-Message-ID: <20131022101855.85AlOmsCNBpAt7VA2JOxVx4fbkqwMPV9qSXYRk2s19w@z>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Message-ID: <20131022125512.VhODmczWcOE0Cey3V4Xw6yqwnmbAaUm3ZScYI9u-U7M@z>
 
-+CC gmail address, as the othe rone bounced !
+On Tue, Oct 22, 2013 at 02:53:59PM +0300, Kirill A. Shutemov wrote:
+> If DEBUG_SPINLOCK and DEBUG_LOCK_ALLOC are enabled spinlock_t on x86_64
+> is 72 bytes. For page->ptl they will be allocated from kmalloc-96 slab,
+> so we loose 24 on each. An average system can easily allocate few tens
+> thousands of page->ptl and overhead is significant.
+> 
+> Let's create a separate slab for page->ptl allocation to solve this.
 
-On 10/22/2013 03:37 PM, Vineet Gupta wrote:
-> Hi Jiang,
-> 
-> On 09/11/2013 09:37 PM, Jiang Liu wrote:
->> From: Jiang Liu <jiang.liu@huawei.com>
->>
->> Commit 9a46ad6d6df3b54 "smp: make smp_call_function_many() use logic
->> similar to smp_call_function_single()" has unified the way to handle
->> single and multiple cross-CPU function calls. Now only one interrupt
->> is needed for architecture specific code to support generic SMP function
->> call interfaces, so kill the redundant single function call interrupt.
->>
->> Signed-off-by: Jiang Liu <jiang.liu@huawei.com>
-> 
-> What's the status of this series - seemed useful to me. Are you planning to get it
-> merged in 3.13
-> 
-> -Vineet
-> 
+Tested-by: Fengguang Wu <fengguang.wu@intel.com>
 
+In a 4p server, we noticed up to +469.1% increase in will-it-scale page_fault3
+test case and +199.8% in vm-scalability case-shm-pread-seq-mt.
+
+    5c02216ce3110aab070d      5a58baaa0a1af0a43d7c
+------------------------  ------------------------  
+               300409.00      +440.2%   1622770.80  TOTAL will-it-scale.page_fault3.90.threads
+
+    5c02216ce3110aab070d      5a58baaa0a1af0a43d7c
+------------------------  ------------------------  
+               291257.80      +469.1%   1657582.20  TOTAL will-it-scale.page_fault3.120.threads
+
+...
+
+    5c02216ce3110aab070d      5a58baaa0a1af0a43d7c
+------------------------  ------------------------  
+              4034831.40      +199.8%  12095649.80  TOTAL vm-scalability.throughput
+
+Thanks,
+Fengguang
