@@ -1,50 +1,36 @@
-From: Fengguang Wu <fengguang.wu@intel.com>
-Subject: Re: [PATCH] mm: create a separate slab for page->ptl allocation
-Date: Tue, 22 Oct 2013 13:55:12 +0100
-Message-ID: <20131022125512.GA24418@localhost>
-References: <1382442839-7458-1-git-send-email-kirill.shutemov@linux.intel.com>
+From: Linus Walleij <linus.walleij@linaro.org>
+Subject: Re: [PATCH v3 0/3] New descriptor-based GPIO interface
+Date: Wed, 23 Oct 2013 10:17:20 +0200
+Message-ID: <CACRpkdZnj1n-Uegu0TwNiTHXXBti0ukZ8hzmm22+Jg6OFnEi5Q@mail.gmail.com>
+References: <1382030498-23465-1-git-send-email-acourbot@nvidia.com>
+	<CACRpkdYx07Kfs6zOQmTg2cTSmEmsGgP=7wMCSG_30NW=dfYRPQ@mail.gmail.com>
+	<CAAVeFu+rj6AtKgfig6ZrYUzW9HZTg5qLyw4aGozyD31P_pEKAQ@mail.gmail.com>
+	<CACRpkdbpRkiANA32ZMEhm-XTB_FKCfmKQuGSmsD_0rLi96kPtQ@mail.gmail.com>
+	<CAAVeFuJ=Qvj2pT57T88eURrUOFURRFSXrFA+pL4xiA9c5sh9ig@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <1382442839-7458-1-git-send-email-kirill.shutemov@linux.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-oa0-f54.google.com ([209.85.219.54]:48119 "EHLO
+	mail-oa0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751521Ab3JWIRU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Oct 2013 04:17:20 -0400
+Received: by mail-oa0-f54.google.com with SMTP id o20so457979oag.27
+        for <linux-arch@vger.kernel.org>; Wed, 23 Oct 2013 01:17:20 -0700 (PDT)
+In-Reply-To: <CAAVeFuJ=Qvj2pT57T88eURrUOFURRFSXrFA+pL4xiA9c5sh9ig@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Alexandre Courbot <gnurou@gmail.com>
+Cc: Alexandre Courbot <acourbot@nvidia.com>, Arnd Bergmann <arnd@arndb.de>, Grant Likely <grant.likely@linaro.org>, Mika Westerberg <mika.westerberg@linux.intel.com>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Mathias Nyman <mathias.nyman@linux.intel.com>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
 
-On Tue, Oct 22, 2013 at 02:53:59PM +0300, Kirill A. Shutemov wrote:
-> If DEBUG_SPINLOCK and DEBUG_LOCK_ALLOC are enabled spinlock_t on x86_64
-> is 72 bytes. For page->ptl they will be allocated from kmalloc-96 slab,
-> so we loose 24 on each. An average system can easily allocate few tens
-> thousands of page->ptl and overhead is significant.
-> 
-> Let's create a separate slab for page->ptl allocation to solve this.
+On Mon, Oct 21, 2013 at 12:18 AM, Alexandre Courbot <gnurou@gmail.com> wrote:
 
-Tested-by: Fengguang Wu <fengguang.wu@intel.com>
+> Autobuild was unfortunately not too happy with one of the patches,
+> sorry about that. I have sent a small series that addresses the issues
+> it highlighted. Not sure if you are ok with squashing the first two
+> into bae48da2, but IMHO that would be the preferred way.
 
-In a 4p server, we noticed up to +469.1% increase in will-it-scale page_fault3
-test case and +199.8% in vm-scalability case-shm-pread-seq-mt.
+I applied them as-is. I don't think it's going to be a major
+issue.
 
-    5c02216ce3110aab070d      5a58baaa0a1af0a43d7c
-------------------------  ------------------------  
-               300409.00      +440.2%   1622770.80  TOTAL will-it-scale.page_fault3.90.threads
-
-    5c02216ce3110aab070d      5a58baaa0a1af0a43d7c
-------------------------  ------------------------  
-               291257.80      +469.1%   1657582.20  TOTAL will-it-scale.page_fault3.120.threads
-
-...
-
-    5c02216ce3110aab070d      5a58baaa0a1af0a43d7c
-------------------------  ------------------------  
-              4034831.40      +199.8%  12095649.80  TOTAL vm-scalability.throughput
-
-Thanks,
-Fengguang
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Yours,
+Linus Walleij
