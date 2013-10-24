@@ -1,58 +1,54 @@
-From: Steve Capper <steve.capper@linaro.org>
-Subject: Re: ARM: add support to dump the kernel page tables
-Date: Thu, 24 Oct 2013 13:55:31 +0100
-Message-ID: <20131024125530.GA27357@linaro.org>
-References: <20131024071600.GC16735@n2100.arm.linux.org.uk>
- <20131024105143.GA24288@linaro.org>
- <20131024122306.GK16735@n2100.arm.linux.org.uk>
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH v4 1/3] qrwlock: A queue read/write lock implementation
+Date: Thu, 24 Oct 2013 10:12:55 -0400
+Message-ID: <52692AE7.3060701@hp.com>
+References: <1380722946-30468-1-git-send-email-Waiman.Long@hp.com> <1380722946-30468-2-git-send-email-Waiman.Long@hp.com> <20131023120004.GD2862@localhost> <52680022.1020200@hp.com> <alpine.DEB.2.02.1310241207500.4983@ionos.tec.linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f174.google.com ([209.85.212.174]:59711 "EHLO
-	mail-wi0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754131Ab3JXMzm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Oct 2013 08:55:42 -0400
-Received: by mail-wi0-f174.google.com with SMTP id cb5so8936552wib.13
-        for <linux-arch@vger.kernel.org>; Thu, 24 Oct 2013 05:55:41 -0700 (PDT)
-Content-Disposition: inline
-In-Reply-To: <20131024122306.GK16735@n2100.arm.linux.org.uk>
+Received: from g6t0186.atlanta.hp.com ([15.193.32.63]:42004 "EHLO
+	g6t0186.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755118Ab3JXONL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Oct 2013 10:13:11 -0400
+In-Reply-To: <alpine.DEB.2.02.1310241207500.4983@ionos.tec.linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: walken@google.com, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, "Norton, Scott J" <scott.norton@hp.com>
 
-On Thu, Oct 24, 2013 at 01:23:06PM +0100, Russell King - ARM Linux wrote:
-> On Thu, Oct 24, 2013 at 11:51:44AM +0100, Steve Capper wrote:
-> > Hi Russell,
-> > I've given this a quick go on an Arndale with LPAE, and have a few
-> > suggestions below.
-> 
-> Thanks.
-> 
-> > > diff --git a/arch/arm/include/asm/pgtable-3level.h b/arch/arm/include/asm/pgtable-3level.h
-> > > index 5689c18..d7682cd 100644
-> > > --- a/arch/arm/include/asm/pgtable-3level.h
-> > > +++ b/arch/arm/include/asm/pgtable-3level.h
-> > > @@ -140,6 +140,7 @@
-> > >  						 PMD_TYPE_TABLE)
-> > >  #define pmd_sect(pmd)		((pmd_val(pmd) & PMD_TYPE_MASK) == \
-> > >  						 PMD_TYPE_SECT)
-> > > +#define pmd_large(pmd)		pmd_sect(pmd)
-> > 
-> > Could we please instead do something like:
-> > #define pmd_large(pmd)         (pmd_val(pmd) && !(pmd_val(pmd) & PMD_TABLE_BIT))
-> > 
-> > This matches the logic used in the huge pages patches (it picks up the
-> > PROT_NONE case) that would be missed above.
-> 
-> Is this used in the generic parts of the kernel?  Can you please point
-> out where?
-> 
+On 10/24/2013 06:14 AM, Thomas Gleixner wrote:
+> On Wed, 23 Oct 2013, Waiman Long wrote:
+>> On 10/23/2013 08:00 AM, walken@google.com wrote:
+>>>> +	/*
+>>>> +	 * Wait until the next one in queue set up the next field
+>>>> +	 */
+>>>> +	while (likely(!(next = ACCESS_ONCE(node->next))))
+>>>> +		cpu_relax();
+>>>> +	/*
+>>>> +	 * The next one in queue is now at the head
+>>>> +	 */
+>>>> +notify_next:
+>>>> +	barrier();
+>>>> +	ACCESS_ONCE(next->wait) = false;
+>>>> +	smp_wmb();
+>>>> +}
+>>> I believe this could be unified with mspin_lock() / mspin_unlock() in
+>>> kernel/mutex.c ? (there is already talk of extending these functions
+>>> to be used by rwsem for adaptive spinning as well...)
+>> It probably can, but the unification can wait until the code are in.
+> The unification has to be done as a part of this series. Cleanups are
+> part of the development process of new code and not an optional
+> feature.
+>
+> Thanks,
+>
+> 	tglx
+>
 
-Apologies I was a little vague. I don't think there are any PROT_NONE
-protected kernel huge pages, I am worried that pmd_huge may be used by
-other code (and then run into problems with PROT_NONE).
+There is an outstanding rwsem patch series that is doing the 
+unification. I am waiting for that patch series to be at least in a tip 
+or linux-next branch before doing the unification. Otherwise, it will 
+cause merge conflict.
 
-Cheers,
--- 
-Steve
+-Longman
