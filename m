@@ -1,78 +1,81 @@
-From: Steve Capper <steve.capper@linaro.org>
-Subject: Re: ARM: add support to dump the kernel page tables
-Date: Thu, 24 Oct 2013 17:25:43 +0100
-Message-ID: <20131024162542.GA32124@linaro.org>
-References: <20131024071600.GC16735@n2100.arm.linux.org.uk>
- <20131024105143.GA24288@linaro.org>
- <20131024122306.GK16735@n2100.arm.linux.org.uk>
- <20131024125530.GA27357@linaro.org>
- <20131024154956.GN16735@n2100.arm.linux.org.uk>
+From: Vineet Gupta <vineetg76@gmail.com>
+Subject: Portable assmbler code - newline (was Re: [PATCH] kernel/modsign_certificate.S:
+ use real contents instead of macro GLOBAL())
+Date: Thu, 24 Oct 2013 22:58:56 +0530
+Message-ID: <526958D8.6030102@synopsys.com>
+References: <523FD9E7.3050303@asianux.com>	<523FDBD7.4040602@asianux.com>	<C2D7FE5348E1B147BCA15975FBA2307514DED9@IN01WEMBXA.internal.synopsys.com>	<523FE578.5060801@asianux.com>	<52672DAC.1030307@asianux.com>	<CAMqJFCou4SObPni5Lb_tX=0hQ__kF_9MLDC-6a1opptc9dxT-A@mail.gmail.com>	<52673E41.6040606@asianux.com>	<5267AF98.1010800@asianux.com>	<5268B0B1.9050009@asianux.com> <CAFLxGvzERDqwZhb_5d=bXKmqz6-Yrema_TLMTM7rjyeFeDJG_w@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f177.google.com ([209.85.212.177]:38523 "EHLO
-	mail-wi0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755695Ab3JXQZu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Oct 2013 12:25:50 -0400
-Received: by mail-wi0-f177.google.com with SMTP id h11so2837125wiv.4
-        for <linux-arch@vger.kernel.org>; Thu, 24 Oct 2013 09:25:49 -0700 (PDT)
-Content-Disposition: inline
-In-Reply-To: <20131024154956.GN16735@n2100.arm.linux.org.uk>
+Received: from mail-pa0-f45.google.com ([209.85.220.45]:58162 "EHLO
+	mail-pa0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755564Ab3JXR3B (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Oct 2013 13:29:01 -0400
+In-Reply-To: <CAFLxGvzERDqwZhb_5d=bXKmqz6-Yrema_TLMTM7rjyeFeDJG_w@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org
+To: Richard Weinberger <richard.weinberger@gmail.com>, Chen Gang <gang.chen@asianux.com>
+Cc: Joern Rennecke <joern.rennecke@embecosm.com>, James Hogan <james.hogan@imgtec.com>, Rusty Russell <rusty@rustcorp.com.au>, Takashi Iwai <tiwai@suse.de>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, "jeremy.bennett@embecosm.com" <jeremy.bennett@embecosm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Claudiu Zissulescu <Claudiu.Zissulescu@synopsys.com>, Francois Bedard <Francois.Bedard@synopsys.com>, Sam Ravnborg <sam@ravnborg.org>, Joe Perches <joe@perches.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On Thu, Oct 24, 2013 at 04:49:56PM +0100, Russell King - ARM Linux wrote:
-> On Thu, Oct 24, 2013 at 01:55:31PM +0100, Steve Capper wrote:
-> > On Thu, Oct 24, 2013 at 01:23:06PM +0100, Russell King - ARM Linux wrote:
-> > > On Thu, Oct 24, 2013 at 11:51:44AM +0100, Steve Capper wrote:
-> > > > Hi Russell,
-> > > > I've given this a quick go on an Arndale with LPAE, and have a few
-> > > > suggestions below.
-> > > 
-> > > Thanks.
-> > > 
-> > > > > diff --git a/arch/arm/include/asm/pgtable-3level.h b/arch/arm/include/asm/pgtable-3level.h
-> > > > > index 5689c18..d7682cd 100644
-> > > > > --- a/arch/arm/include/asm/pgtable-3level.h
-> > > > > +++ b/arch/arm/include/asm/pgtable-3level.h
-> > > > > @@ -140,6 +140,7 @@
-> > > > >  						 PMD_TYPE_TABLE)
-> > > > >  #define pmd_sect(pmd)		((pmd_val(pmd) & PMD_TYPE_MASK) == \
-> > > > >  						 PMD_TYPE_SECT)
-> > > > > +#define pmd_large(pmd)		pmd_sect(pmd)
-> > > > 
-> > > > Could we please instead do something like:
-> > > > #define pmd_large(pmd)         (pmd_val(pmd) && !(pmd_val(pmd) & PMD_TABLE_BIT))
-> > > > 
-> > > > This matches the logic used in the huge pages patches (it picks up the
-> > > > PROT_NONE case) that would be missed above.
-> > > 
-> > > Is this used in the generic parts of the kernel?  Can you please point
-> > > out where?
-> > > 
-> > 
-> > Apologies I was a little vague. I don't think there are any PROT_NONE
-> > protected kernel huge pages, I am worried that pmd_huge may be used by
-> > other code (and then run into problems with PROT_NONE).
++CC linux-arch
+
+On 10/24/2013 11:33 AM, Richard Weinberger wrote:
+> On Thu, Oct 24, 2013 at 7:31 AM, Chen Gang <gang.chen@asianux.com> wrote:
+>> > For some architectures, tool chain is not smart enough to recognize the
+>> > macro with multiple lines (e.g. arc tool chain), and for common ".S"
+>> > file, this kind of macro is also rarely used.
+> Does not "not smart enough" mean than the said toolchain is broken/buggy
+> or is the kernel using an unsupported notation?
 > 
-[I erroneously referred to pmd_huge here, I meant pmd_large sorry].
 
-> Well, the obvious question is: why would you want pmd_large() to return
-> false if there is a section entry in place?
+IMHO this is not broken - rather the code is not fully portable - given that gas
+ports of arches have differnet notions of what to treat as comment and what newline.
 
-Hi,
-for LPAE:
-I want pmd_large to return true for all non-zero pmds that have bit #1
-clear.
- 
-Clearing bit #0 of a pmd produces a faulting entry, and this is how
-PROT_NONE protection is enforced by huge pages.
+Looking as binutils/gas/config, I can see that avr, cris,...are likely broken in
+the same way as ARC is.
 
-pmd_sect will return false for non-zero pmds that have both bit #0 and
-bit #1 clear, thus will return false for some huge pages.
+Historically ARC has had ';' as comment char, which Joern relatively recently
+augmented to have '#' as well. However there's legacy codebase which relies on ';'
+being a comment and we can't change that fact.
 
-Cheers,
--- 
-Steve
+So can we introduce an ARCH over-ridable newline annotation in linkage.h and other
+places after auditing. Since asm/linkage.h preempts linux/linkage.h by way of
+#include it shd be pretty strightforward.
+
+Something like below. I can send the formal patch if people think the approach is OK.
+
+
+----------------->
+diff --git a/include/linux/linkage.h b/include/linux/linkage.h
+index d3e8ad23a8e0..4188c632f2b8 100644
+--- a/include/linux/linkage.h
++++ b/include/linux/linkage.h
+@@ -6,6 +6,10 @@
+ #include <linux/export.h>
+ #include <asm/linkage.h>
+
++#ifndef __ARCH_NL
++#define __ARCH_NL
++#endif
++
+ #ifdef __cplusplus
+ #define CPP_ASMLINKAGE extern "C"
+ #else
+@@ -75,7 +79,7 @@
+
+ #ifndef ENTRY
+ #define ENTRY(name) \
+-  .globl name; \
++  .globl name; __ARCH_NL \
+   ALIGN; \
+   name:
+ #endif
+@@ -83,7 +87,7 @@
+
+ #ifndef WEAK
+ #define WEAK(name)        \
+-       .weak name;        \
++       .weak name; __ARCH_NL \
+        name:
+ #endif
