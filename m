@@ -1,94 +1,76 @@
-From: Vineet Gupta <vineetg76@gmail.com>
-Subject: Re: Portable assmbler code - newline (was Re: [PATCH] kernel/modsign_certificate.S:
- use real contents instead of macro GLOBAL())
-Date: Fri, 25 Oct 2013 10:40:43 +0530
-Message-ID: <5269FD53.6040903@synopsys.com>
-References: <523FD9E7.3050303@asianux.com>	<523FDBD7.4040602@asianux.com>	<C2D7FE5348E1B147BCA15975FBA2307514DED9@IN01WEMBXA.internal.synopsys.com>	<523FE578.5060801@asianux.com>	<52672DAC.1030307@asianux.com>	<CAMqJFCou4SObPni5Lb_tX=0hQ__kF_9MLDC-6a1opptc9dxT-A@mail.gmail.com>	<52673E41.6040606@asianux.com>	<5267AF98.1010800@asianux.com>	<5268B0B1.9050009@asianux.com>	<CAFLxGvzERDqwZhb_5d=bXKmqz6-Yrema_TLMTM7rjyeFeDJG_w@mail.gmail.com>	<526958D8.6030102@synopsys.com> <CAMuHMdURxpuWPYYDTU2Sa4eF8WZTb=0ALQ+irtGk9ERtSKz09Q@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+From: Cody P Schafer <cody@linux.vnet.ibm.com>
+Subject: [PATCH] bitops/find: clarify and extend documentation
+Date: Fri, 25 Oct 2013 12:48:24 -0700
+Message-ID: <1382730504-1772-1-git-send-email-cody@linux.vnet.ibm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f169.google.com ([209.85.192.169]:51570 "EHLO
-	mail-pd0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751368Ab3JYFKu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Oct 2013 01:10:50 -0400
-In-Reply-To: <CAMuHMdURxpuWPYYDTU2Sa4eF8WZTb=0ALQ+irtGk9ERtSKz09Q@mail.gmail.com>
+Received: from e9.ny.us.ibm.com ([32.97.182.139]:39689 "EHLO e9.ny.us.ibm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753020Ab3JYTtR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 25 Oct 2013 15:49:17 -0400
+Received: from /spool/local
+	by e9.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <cody@linux.vnet.ibm.com>;
+	Fri, 25 Oct 2013 15:49:15 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Richard Weinberger <richard.weinberger@gmail.com>, Chen Gang <gang.chen@asianux.com>, Joern Rennecke <joern.rennecke@embecosm.com>, James Hogan <james.hogan@imgtec.com>, Rusty Russell <rusty@rustcorp.com.au>, Takashi Iwai <tiwai@suse.de>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, "jeremy.bennett@embecosm.com" <jeremy.bennett@embecosm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Claudiu Zissulescu <Claudiu.Zissulescu@synopsys.com>, Francois Bedard <Francois.Bedard@synopsys.com>, Sam Ravnborg <sam@ravnborg.org>, Joe Perches <joe@perches.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: linux-arch@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, LKML <linux-kernel@vger.kernel.org>, Cody P Schafer <cody@linux.vnet.ibm.com>
 
-On 10/25/2013 01:11 AM, Geert Uytterhoeven wrote:
-> On Thu, Oct 24, 2013 at 7:28 PM, Vineet Gupta <vineetg76@gmail.com> wrote:
->> > +CC linux-arch
->> >
->> > On 10/24/2013 11:33 AM, Richard Weinberger wrote:
->>> >> On Thu, Oct 24, 2013 at 7:31 AM, Chen Gang <gang.chen@asianux.com> wrote:
->>>>> >>> > For some architectures, tool chain is not smart enough to recognize the
->>>>> >>> > macro with multiple lines (e.g. arc tool chain), and for common ".S"
->>>>> >>> > file, this kind of macro is also rarely used.
->>> >> Does not "not smart enough" mean than the said toolchain is broken/buggy
->>> >> or is the kernel using an unsupported notation?
->>> >>
->> >
->> > IMHO this is not broken - rather the code is not fully portable - given that gas
->> > ports of arches have differnet notions of what to treat as comment and what newline.
->> >
->> > Looking as binutils/gas/config, I can see that avr, cris,...are likely broken in
->> > the same way as ARC is.
->> >
->> > Historically ARC has had ';' as comment char, which Joern relatively recently
->> > augmented to have '#' as well. However there's legacy codebase which relies on ';'
->> > being a comment and we can't change that fact.
->> >
->> > So can we introduce an ARCH over-ridable newline annotation in linkage.h and other
->> > places after auditing. Since asm/linkage.h preempts linux/linkage.h by way of
->> > #include it shd be pretty strightforward.
->> >
->> > Something like below. I can send the formal patch if people think the approach is OK.
-> By what are you gonna override __ARCH_NL on ARC?
-> I'm afraid cpp will still turn it into a single line.
-> 
+Add return value documentation and clarify the units of the @size
+parameter.
 
-Eh ! My untested patch was broken but not because of what you mentioned.
+Signed-off-by: Cody P Schafer <cody@linux.vnet.ibm.com>
+---
+ include/asm-generic/bitops/find.h | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
 
-For ARC, the ; negating the newline annotation. So the following works (backquote
-is new line for ARC)
-
-diff --git a/arch/arc/include/asm/linkage.h b/arch/arc/include/asm/linkage.h
-index 0283e9e44e0d..b3eea2999322 100644
---- a/arch/arc/include/asm/linkage.h
-+++ b/arch/arc/include/asm/linkage.h
-@@ -9,6 +9,8 @@
- #ifndef __ASM_LINKAGE_H
- #define __ASM_LINKAGE_H
-
-+#define __ARCH_NL      `
-+
- #ifdef __ASSEMBLY__
-
-
-diff --git a/include/linux/linkage.h b/include/linux/linkage.h
-index d3e8ad23a8e0..969e70ad231a 100644
---- a/include/linux/linkage.h
-+++ b/include/linux/linkage.h
-@@ -6,6 +6,10 @@
- #include <linux/export.h>
- #include <asm/linkage.h>
-
-+#ifndef __ARCH_NL
-+#define __ARCH_NL      ;
-+#endif
-+
- #ifdef __cplusplus
- #define CPP_ASMLINKAGE extern "C"
- #else
-@@ -75,7 +79,7 @@
-
- #ifndef ENTRY
- #define ENTRY(name) \
--  .globl name; \
-+  .globl name __ARCH_NL \
-   ALIGN; \
-   name:
- #endif
+diff --git a/include/asm-generic/bitops/find.h b/include/asm-generic/bitops/find.h
+index 71c7780..998d4d5 100644
+--- a/include/asm-generic/bitops/find.h
++++ b/include/asm-generic/bitops/find.h
+@@ -7,6 +7,9 @@
+  * @addr: The address to base the search on
+  * @offset: The bitnumber to start searching at
+  * @size: The bitmap size in bits
++ *
++ * Returns the bit number for the next set bit
++ * If no bits are set, returns @size.
+  */
+ extern unsigned long find_next_bit(const unsigned long *addr, unsigned long
+ 		size, unsigned long offset);
+@@ -18,6 +21,9 @@ extern unsigned long find_next_bit(const unsigned long *addr, unsigned long
+  * @addr: The address to base the search on
+  * @offset: The bitnumber to start searching at
+  * @size: The bitmap size in bits
++ *
++ * Returns the bit number of the next zero bit
++ * If no bits are zero, returns @size.
+  */
+ extern unsigned long find_next_zero_bit(const unsigned long *addr, unsigned
+ 		long size, unsigned long offset);
+@@ -28,9 +34,10 @@ extern unsigned long find_next_zero_bit(const unsigned long *addr, unsigned
+ /**
+  * find_first_bit - find the first set bit in a memory region
+  * @addr: The address to start the search at
+- * @size: The maximum size to search
++ * @size: The maximum number of bits to search
+  *
+  * Returns the bit number of the first set bit.
++ * If no bits are set, returns @size.
+  */
+ extern unsigned long find_first_bit(const unsigned long *addr,
+ 				    unsigned long size);
+@@ -38,9 +45,10 @@ extern unsigned long find_first_bit(const unsigned long *addr,
+ /**
+  * find_first_zero_bit - find the first cleared bit in a memory region
+  * @addr: The address to start the search at
+- * @size: The maximum size to search
++ * @size: The maximum number of bits to search
+  *
+  * Returns the bit number of the first cleared bit.
++ * If no bits are zero, returns @size.
+  */
+ extern unsigned long find_first_zero_bit(const unsigned long *addr,
+ 					 unsigned long size);
+-- 
+1.8.1.5
