@@ -1,76 +1,53 @@
-From: Cody P Schafer <cody@linux.vnet.ibm.com>
-Subject: [PATCH] bitops/find: clarify and extend documentation
-Date: Fri, 25 Oct 2013 12:48:24 -0700
-Message-ID: <1382730504-1772-1-git-send-email-cody@linux.vnet.ibm.com>
+From: Max Filippov <jcmvbkbc@gmail.com>
+Subject: [PATCHv2 0/2] xtensa fixes for 3.12
+Date: Sat, 26 Oct 2013 05:03:03 +0400
+Message-ID: <1382749385-29062-1-git-send-email-jcmvbkbc@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e9.ny.us.ibm.com ([32.97.182.139]:39689 "EHLO e9.ny.us.ibm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753020Ab3JYTtR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 25 Oct 2013 15:49:17 -0400
-Received: from /spool/local
-	by e9.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <cody@linux.vnet.ibm.com>;
-	Fri, 25 Oct 2013 15:49:15 -0400
+Received: from mail-we0-f172.google.com ([74.125.82.172]:47579 "EHLO
+	mail-we0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751697Ab3JZBDZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Oct 2013 21:03:25 -0400
+Received: by mail-we0-f172.google.com with SMTP id q58so4617914wes.3
+        for <linux-arch@vger.kernel.org>; Fri, 25 Oct 2013 18:03:23 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, LKML <linux-kernel@vger.kernel.org>, Cody P Schafer <cody@linux.vnet.ibm.com>
+To: Chris Zankel <chris@zankel.net>
+Cc: Marc Gauthier <marc@tensilica.com>, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Max Filippov <jcmvbkbc@gmail.com>
 
-Add return value documentation and clarify the units of the @size
-parameter.
+Hi Chris,
 
-Signed-off-by: Cody P Schafer <cody@linux.vnet.ibm.com>
----
- include/asm-generic/bitops/find.h | 12 ++++++++++--
- 1 file changed, 10 insertions(+), 2 deletions(-)
+This is the second version of late 3.12 fixes, changes v1->v2:
+  xtensa: fix fast_syscall_spill_registers_fixup: set windowstart bit for
+    the current register frame in the fast_syscall_spill_registers_fixup;
+    expand comments, add FIXME mark.
+  xtensa: don't use alternate signal stack on threads: no changes.
 
-diff --git a/include/asm-generic/bitops/find.h b/include/asm-generic/bitops/find.h
-index 71c7780..998d4d5 100644
---- a/include/asm-generic/bitops/find.h
-+++ b/include/asm-generic/bitops/find.h
-@@ -7,6 +7,9 @@
-  * @addr: The address to base the search on
-  * @offset: The bitnumber to start searching at
-  * @size: The bitmap size in bits
-+ *
-+ * Returns the bit number for the next set bit
-+ * If no bits are set, returns @size.
-  */
- extern unsigned long find_next_bit(const unsigned long *addr, unsigned long
- 		size, unsigned long offset);
-@@ -18,6 +21,9 @@ extern unsigned long find_next_bit(const unsigned long *addr, unsigned long
-  * @addr: The address to base the search on
-  * @offset: The bitnumber to start searching at
-  * @size: The bitmap size in bits
-+ *
-+ * Returns the bit number of the next zero bit
-+ * If no bits are zero, returns @size.
-  */
- extern unsigned long find_next_zero_bit(const unsigned long *addr, unsigned
- 		long size, unsigned long offset);
-@@ -28,9 +34,10 @@ extern unsigned long find_next_zero_bit(const unsigned long *addr, unsigned
- /**
-  * find_first_bit - find the first set bit in a memory region
-  * @addr: The address to start the search at
-- * @size: The maximum size to search
-+ * @size: The maximum number of bits to search
-  *
-  * Returns the bit number of the first set bit.
-+ * If no bits are set, returns @size.
-  */
- extern unsigned long find_first_bit(const unsigned long *addr,
- 				    unsigned long size);
-@@ -38,9 +45,10 @@ extern unsigned long find_first_bit(const unsigned long *addr,
- /**
-  * find_first_zero_bit - find the first cleared bit in a memory region
-  * @addr: The address to start the search at
-- * @size: The maximum size to search
-+ * @size: The maximum number of bits to search
-  *
-  * Returns the bit number of the first cleared bit.
-+ * If no bits are zero, returns @size.
-  */
- extern unsigned long find_first_zero_bit(const unsigned long *addr,
- 					 unsigned long size);
+I can post the third version if using a1 instead of a2 in the
+_spill_registers .Lc12 is fine.
+
+You can pull these changes from my git tree,
+the following changes since commit 61e6cfa80de5760bbe406f4e815b7739205754d2:
+
+  Linux 3.12-rc5 (2013-10-13 15:41:28 -0700)
+
+are available in the git repository at:
+
+  git://github.com/jcmvbkbc/linux-xtensa.git xtensa-fixes-for-upstream
+
+for you to fetch changes up to cbcc64e11437f701121e71ca55ff0eb9815af530:
+
+  xtensa: don't use alternate signal stack on threads (2013-10-26 04:39:13 +0400)
+
+----------------------------------------------------------------
+Baruch Siach (1):
+      xtensa: don't use alternate signal stack on threads
+
+Max Filippov (1):
+      xtensa: fix fast_syscall_spill_registers_fixup
+
+ arch/xtensa/kernel/entry.S  | 64 +++++++++++++++++++++++++++++++--------------
+ arch/xtensa/kernel/signal.c |  2 +-
+ 2 files changed, 46 insertions(+), 20 deletions(-)
+
 -- 
-1.8.1.5
+1.8.1.4
