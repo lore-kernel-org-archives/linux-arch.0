@@ -1,16 +1,16 @@
 From: "Lee Hyuk" <leehyuk08@mail2world.com>
 Subject: Re:Answer back
-Date: Tue, 29 Oct 2013 11:14:57 -0000
-Message-ID: <e5f99e20cfe21f54dcda50842a7745d3.squirrel__46373.3243443587$1383068963$gmane$org@168.63.124.57>
+Date: Tue, 29 Oct 2013 14:32:44 -0000
+Message-ID: <b6fd8635d27477ed20389fdd9cff25b1.squirrel__21007.1040121422$1383080965$gmane$org@168.63.124.57>
 Reply-To: hyuk.lee1@aol.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from [168.63.124.57] ([168.63.124.57]:3344 "EHLO virtual.domain.tld"
+Received: from [168.63.124.57] ([168.63.124.57]:5608 "EHLO virtual.domain.tld"
 	rhost-flags-FAIL-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1758546Ab3J2RtI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 Oct 2013 13:49:08 -0400
+	id S1751517Ab3J2VIt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 29 Oct 2013 17:08:49 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
