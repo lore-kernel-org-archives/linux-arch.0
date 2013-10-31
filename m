@@ -1,52 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f181.google.com ([209.85.214.181]:60005 "EHLO
-	mail-ob0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752594Ab3J2Ieb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Oct 2013 04:34:31 -0400
+Received: from hermes.synopsys.com ([198.182.44.81]:62438 "EHLO
+	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750762Ab3JaFp5 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 31 Oct 2013 01:45:57 -0400
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH] arch: *: remove '__init' for setup_profiling_timer()
+Date: Thu, 31 Oct 2013 05:45:48 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA23075153861@IN01WEMBXA.internal.synopsys.com>
+References: <52672ECD.9010800@asianux.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 MIME-Version: 1.0
-In-Reply-To: <526F6A4F.9040507@asianux.com>
-References: <526E3CE2.2070405@asianux.com>
-	<CAMo8BfK70vRc_DUTXhUZfTjA7zvYW3D4ApgDoMrwUZp5c+qk1g@mail.gmail.com>
-	<526F6A4F.9040507@asianux.com>
-Date: Tue, 29 Oct 2013 12:34:30 +0400
-Message-ID: <CAMo8BfK3FfQ+Gh=XMnaHZQqDayNN455DgMcbnKZBQTumC+_WmA@mail.gmail.com>
-Subject: Re: [PATCH] arch: use ASM_NL instead of ';' for assembler new line
- character in the macro
-From: Max Filippov <jcmvbkbc@gmail.com>
-Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chen Gang <gang.chen@asianux.com>
-Cc: "vgupta@synopsys.com" <vgupta@synopsys.com>, James Hogan <james.hogan@imgtec.com>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20131029083430.9LxtVm9c5gkwWgZglfv4lZoMMOw_bc0NPRrwoJfoqIE@z>
+To: Chen Gang <gang.chen@asianux.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Mike Frysinger <vapier@gentoo.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Paul Gortmaker <paul.gortmaker@windriver.com>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, realmz paranoid <realmz6@gmail.com>, James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "uclinux-dist-devel@blackfin.uclinux.org" <uclinux-dist-devel@blackfin.uclinux.org>, Parisc List <linux-parisc@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20131031054548.H1pwlabhOPByOiPDAjnUidA4n1MjvtLevBCgW8PDi2E@z>
 
-On Tue, Oct 29, 2013 at 11:57 AM, Chen Gang <gang.chen@asianux.com> wrote:
-> On 10/28/2013 07:18 PM, Max Filippov wrote:
->> Hi Chen,
->>
->> On Mon, Oct 28, 2013 at 2:30 PM, Chen Gang <gang.chen@asianux.com> wrote:
->>> > For some toolchains, they use another character as newline in a macro
->>> > (e.g. arc uses '`'), so for generic assembly code, need use ASM_NL (a
->>> > macro) instead of ';' for it.
->>> > Since "linux/export.h" are mainly used for exporting work, then our fix
->>> > more likely belongs to "linux/linkage.h", and we need add the related
->>> > checking in "linkage.h".
->>> >
->>> > Also need notice 80 columns wrap, and '\t' for each line.
->>> >
->>> >
->>> > Signed-off-by: Chen Gang <gang.chen@asianux.com>
->>> > ---
->>> >  arch/arc/include/asm/linkage.h    |    2 +
->>> >  include/asm-generic/vmlinux.lds.h |  350 +++++++++++++++++++------------------
->> Actually vmlinux.lds.h is not an assembly code, but rather a linker script,
->> later preprocessed by cpp.
->>
+On 10/23/2013 07:36 AM, Chen Gang wrote:
+> Most of architectures not use '__init' for setup_profiling_timer(), so
+> need remove it, or can generate warning (e.g. arc with allmodconfig):
 >
-> Consult: do xtensa also has its own ASM_NL?
+>     MODPOST vmlinux.o
+>   WARNING: vmlinux.o(.text+0x3c682): Section mismatch in reference from the function write_profile() to the function .init.text:setup_profiling_timer()
+>   The function write_profile() references
+>   the function __init setup_profiling_timer().
+>   This is often because write_profile lacks a __init
+>   annotation or the annotation of setup_profiling_timer is wrong.
+>
+>
+> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+> ---
+>  arch/arc/kernel/smp.c          |    2 +-
+>  arch/blackfin/mach-bf561/smp.c |    2 +-
+>  arch/parisc/kernel/smp.c       |    2 +-
+>  3 files changed, 3 insertions(+), 3 deletions(-)
+>
+> diff --git a/arch/arc/kernel/smp.c b/arch/arc/kernel/smp.c
+> index bca3052..3bdac11 100644
+> --- a/arch/arc/kernel/smp.c
+> +++ b/arch/arc/kernel/smp.c
+> @@ -187,7 +187,7 @@ int __cpu_up(unsigned int cpu, struct task_struct *idle)
+>  /*
+>   * not supported here
+>   */
+> -int __init setup_profiling_timer(unsigned int multiplier)
+> +int setup_profiling_timer(unsigned int multiplier)
+>  {
+>  	return -EINVAL;
+>  }
+> diff --git a/arch/blackfin/mach-bf561/smp.c b/arch/blackfin/mach-bf561/smp.c
+> index 11789be..3bef058 100644
+> --- a/arch/blackfin/mach-bf561/smp.c
+> +++ b/arch/blackfin/mach-bf561/smp.c
+> @@ -43,7 +43,7 @@ void __init platform_prepare_cpus(unsigned int max_cpus)
+>  	init_cpu_present(&mask);
+>  }
+>  
+> -int __init setup_profiling_timer(unsigned int multiplier) /* not supported */
+> +int setup_profiling_timer(unsigned int multiplier) /* not supported */
+>  {
+>  	return -EINVAL;
+>  }
+> diff --git a/arch/parisc/kernel/smp.c b/arch/parisc/kernel/smp.c
+> index 8a252f2..2e8cd36 100644
+> --- a/arch/parisc/kernel/smp.c
+> +++ b/arch/parisc/kernel/smp.c
+> @@ -433,7 +433,7 @@ int __cpu_up(unsigned int cpu, struct task_struct *tidle)
+>  }
+>  
+>  #ifdef CONFIG_PROC_FS
+> -int __init
+> +int
+>  setup_profiling_timer(unsigned int multiplier)
+>  {
+>  	return -EINVAL;
 
-It works well with common semicolon.
+In theory this change is OK. However this is legacy code at best and it would be
+better to define a weak definition in kernel/profile.c and remove this cruft from
+relevant arches. I'll send out a patch.
 
--- 
-Thanks.
--- Max
+-Vineet
