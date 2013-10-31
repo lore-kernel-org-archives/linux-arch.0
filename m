@@ -1,56 +1,79 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH] arch: use ASM_NL instead of ';' for assembler new line
- character in the macro
-Date: Wed, 30 Oct 2013 08:57:11 +0800
-Message-ID: <52705967.1060603@asianux.com>
-References: <526FA1B7.4090808@asianux.com> <526F09B8.9030202@asianux.com> <526E3CE2.2070405@asianux.com> <526E6A92.6090301@synopsys.com> <24899.1383043169@warthog.procyon.org.uk> <26752.1383055147@warthog.procyon.org.uk>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH] arch: *: remove '__init' for setup_profiling_timer()
+Date: Thu, 31 Oct 2013 05:45:48 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA23075153861@IN01WEMBXA.internal.synopsys.com>
+References: <52672ECD.9010800@asianux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=GB2312
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:10903 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752785Ab3J3A6R (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Oct 2013 20:58:17 -0400
-In-Reply-To: <26752.1383055147@warthog.procyon.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Vineet Gupta <vineetg76@gmail.com>, James Hogan <james.hogan@imgtec.com>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Max Filippov <jcmvbkbc@gmail.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-parisc-owner@vger.kernel.org>
+Content-Language: en-US
+Sender: linux-parisc-owner@vger.kernel.org
+To: Chen Gang <gang.chen@asianux.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Mike Frysinger <vapier@gentoo.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Paul Gortmaker <paul.gortmaker@windriver.com>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, realmz paranoid <realmz6@gmail.com>, James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "uclinux-dist-devel@blackfin.uclinux.org" <uclinux-dist-devel@blackfin.uclinux.org>, Parisc List <linux-parisc@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 10/29/2013 09:59 PM, David Howells wrote:
-> Chen Gang <gang.chen@asianux.com> wrote:
-> 
->>>>> For "kernel/modsign_certificate.S", I recommend to expand the macro
->>>>> which will shrink code line, either need not include additional header
->>>>> file, I feel that will be simpler for both code reader and writers.
->>> I recommend leaving that file alone.  That gets moved to a .S file in patches
->>> queued in the security tree.
->>
->> Excuse me, I am not quite familiar with our version merging, I guess
->> your meaning is "this file will be removed, and the related contents
->> will be in another .S file, so we need not fix it within this file".
->>
->> If what I guess is correct, I support your recommendation (and if what I
->> guess is incorrect, please let me know, thanks). :-)
-> 
-> Sorry, I misread what you were saying.  The code has already been split out of
-> the .c file of course (I'd forgotten that it had).  In the security tree next
-> branch, the .S file gets renamed and slightly modified here:
-> 
-> 	http://git.kernel.org/cgit/linux/kernel/git/jmorris/linux-security.git/commit/?h=next&id=b56e5a17b6b9acd16997960504b9940d0d7984e7
-> 
+On 10/23/2013 07:36 AM, Chen Gang wrote:
+> Most of architectures not use '__init' for setup_profiling_timer(), so
+> need remove it, or can generate warning (e.g. arc with allmodconfig):
+>
+>     MODPOST vmlinux.o
+>   WARNING: vmlinux.o(.text+0x3c682): Section mismatch in reference from the function write_profile() to the function .init.text:setup_profiling_timer()
+>   The function write_profile() references
+>   the function __init setup_profiling_timer().
+>   This is often because write_profile lacks a __init
+>   annotation or the annotation of setup_profiling_timer is wrong.
+>
+>
+> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+> ---
+>  arch/arc/kernel/smp.c          |    2 +-
+>  arch/blackfin/mach-bf561/smp.c |    2 +-
+>  arch/parisc/kernel/smp.c       |    2 +-
+>  3 files changed, 3 insertions(+), 3 deletions(-)
+>
+> diff --git a/arch/arc/kernel/smp.c b/arch/arc/kernel/smp.c
+> index bca3052..3bdac11 100644
+> --- a/arch/arc/kernel/smp.c
+> +++ b/arch/arc/kernel/smp.c
+> @@ -187,7 +187,7 @@ int __cpu_up(unsigned int cpu, struct task_struct *idle)
+>  /*
+>   * not supported here
+>   */
+> -int __init setup_profiling_timer(unsigned int multiplier)
+> +int setup_profiling_timer(unsigned int multiplier)
+>  {
+>  	return -EINVAL;
+>  }
+> diff --git a/arch/blackfin/mach-bf561/smp.c b/arch/blackfin/mach-bf561/smp.c
+> index 11789be..3bef058 100644
+> --- a/arch/blackfin/mach-bf561/smp.c
+> +++ b/arch/blackfin/mach-bf561/smp.c
+> @@ -43,7 +43,7 @@ void __init platform_prepare_cpus(unsigned int max_cpus)
+>  	init_cpu_present(&mask);
+>  }
+>  
+> -int __init setup_profiling_timer(unsigned int multiplier) /* not supported */
+> +int setup_profiling_timer(unsigned int multiplier) /* not supported */
+>  {
+>  	return -EINVAL;
+>  }
+> diff --git a/arch/parisc/kernel/smp.c b/arch/parisc/kernel/smp.c
+> index 8a252f2..2e8cd36 100644
+> --- a/arch/parisc/kernel/smp.c
+> +++ b/arch/parisc/kernel/smp.c
+> @@ -433,7 +433,7 @@ int __cpu_up(unsigned int cpu, struct task_struct *tidle)
+>  }
+>  
+>  #ifdef CONFIG_PROC_FS
+> -int __init
+> +int
+>  setup_profiling_timer(unsigned int multiplier)
+>  {
+>  	return -EINVAL;
 
-Oh, thank you for your information, and I will send patch v3 for it.
+In theory this change is OK. However this is legacy code at best and it would be
+better to define a weak definition in kernel/profile.c and remove this cruft from
+relevant arches. I'll send out a patch.
 
-I need/should based on another next-tree branch, and use its tag
-"next-20131025" to continue (which already contents original related
-changes).
-
-And also, excuse me, my English is not quite well (which easily lead
-other members misunderstanding).
-
-
-Thanks.
--- 
-Chen Gang
+-Vineet
