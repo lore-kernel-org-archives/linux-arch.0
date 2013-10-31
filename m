@@ -1,147 +1,86 @@
 From: Domenico Andreoli <domenico.andreoli@linux.com>
-Subject: [PATCH 11/11] ARM: sp805: use the common machine reset handling
-Date: Thu, 31 Oct 2013 07:27:19 +0100
-Message-ID: <20131031063001.088351233@linux.com>
+Subject: [PATCH 09/11] ARM: tps65910: use the common machine reset handling
+Date: Thu, 31 Oct 2013 07:27:17 +0100
+Message-ID: <20131031063000.608298078@linux.com>
 References: <20131031062708.520968323@linux.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ee0-f45.google.com ([74.125.83.45]:58102 "EHLO
-	mail-ee0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753064Ab3JaGaL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 31 Oct 2013 02:30:11 -0400
-Received: by mail-ee0-f45.google.com with SMTP id e50so1113058eek.4
-        for <linux-arch@vger.kernel.org>; Wed, 30 Oct 2013 23:30:10 -0700 (PDT)
-Content-Disposition: inline; filename=sp805-machine-reset.patch
+Received: from mail-ee0-f53.google.com ([74.125.83.53]:55835 "EHLO
+	mail-ee0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752855Ab3JaGaK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 31 Oct 2013 02:30:10 -0400
+Received: by mail-ee0-f53.google.com with SMTP id e51so1112664eek.40
+        for <linux-arch@vger.kernel.org>; Wed, 30 Oct 2013 23:30:09 -0700 (PDT)
+Content-Disposition: inline; filename=tps65910-machine-reset.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: linux-arm-kernel@lists.infradead.org, linux-mips@lvger.kernel.org, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, Ralf Baechle <ralf@linux-mips.org>, Wim Van Sebroeck <wim@iguana.be>, Domenico Andreoli <domenico.andreoli@linux.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-mips@lvger.kernel.org, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, Ralf Baechle <ralf@linux-mips.org>, Domenico Andreoli <domenico.andreoli@linux.com>
 
 From: Domenico Andreoli <domenico.andreoli@linux.com>
 
-Proof of concept: sp805 as provider of reset hooks.
+Proof of concept: tps65910 as provider of reset hooks.
 
 Cc: Russell King <linux@arm.linux.org.uk>
 Cc: Arnd Bergmann <arnd@arndb.de>
 Cc: Olof Johansson <olof@lixom.net>
-Cc: Wim Van Sebroeck <wim@iguana.be>
 Cc: linux-arm-kernel@lists.infradead.org
 Signed-off-by: Domenico Andreoli <domenico.andreoli@linux.com>
 ---
- drivers/watchdog/Kconfig     |    9 ++++++++
- drivers/watchdog/sp805_wdt.c |   48 +++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 57 insertions(+)
+ drivers/mfd/Kconfig    |    1 +
+ drivers/mfd/tps65910.c |   16 ++++++++--------
+ 2 files changed, 9 insertions(+), 8 deletions(-)
 
-Index: b/drivers/watchdog/Kconfig
+Index: b/drivers/mfd/Kconfig
 ===================================================================
---- a/drivers/watchdog/Kconfig
-+++ b/drivers/watchdog/Kconfig
-@@ -110,11 +110,20 @@ config WM8350_WATCHDOG
- config ARM_SP805_WATCHDOG
- 	tristate "ARM SP805 Watchdog"
- 	depends on ARM && ARM_AMBA
+--- a/drivers/mfd/Kconfig
++++ b/drivers/mfd/Kconfig
+@@ -769,6 +769,7 @@ config TPS65010
+ 	tristate "TI TPS6501x Power Management chips"
+ 	depends on I2C && GPIOLIB
+ 	default y if MACH_OMAP_H2 || MACH_OMAP_H3 || MACH_OMAP_OSK
 +	select MACHINE_RESET
- 	select WATCHDOG_CORE
  	help
- 	  ARM Primecell SP805 Watchdog timer. This will reboot your system when
- 	  the timeout is reached.
- 
-+config ARM_SP805_WATCHDOG_RESTART_HOOK
-+	bool "ARM SP805 system restart hook"
-+	depends on ARM_SP805_WATCHDOG
-+	help
-+	  Register hook to reboot the system based on the SP805 Watchdog.
-+
-+	  This can be overriden with cmdline option restart_hook=0.
-+
- config AT91RM9200_WATCHDOG
- 	tristate "AT91RM9200 watchdog"
- 	depends on ARCH_AT91RM9200
-Index: b/drivers/watchdog/sp805_wdt.c
+ 	  If you say yes here you get support for the TPS6501x series of
+ 	  Power Management chips.  These include voltage regulators,
+Index: b/drivers/mfd/tps65910.c
 ===================================================================
---- a/drivers/watchdog/sp805_wdt.c
-+++ b/drivers/watchdog/sp805_wdt.c
-@@ -28,6 +28,8 @@
- #include <linux/spinlock.h>
- #include <linux/types.h>
- #include <linux/watchdog.h>
+--- a/drivers/mfd/tps65910.c
++++ b/drivers/mfd/tps65910.c
+@@ -26,6 +26,7 @@
+ #include <linux/regmap.h>
+ #include <linux/mfd/tps65910.h>
+ #include <linux/of_device.h>
 +#include <linux/machine_reset.h>
-+#include <linux/delay.h>
  
- /* default timeout in seconds */
- #define DEFAULT_TIMEOUT		60
-@@ -77,6 +79,11 @@ module_param(nowayout, bool, 0);
- MODULE_PARM_DESC(nowayout,
- 		"Set to 1 to keep watchdog running after device release");
- 
-+static bool restart_hook = IS_ENABLED(CONFIG_ARM_SP805_WATCHDOG_RESTART_HOOK);
-+module_param(restart_hook, bool, 0);
-+MODULE_PARM_DESC(restart_hook,
-+		"Set to 1 to install a machine restart handler based on this watchdog");
-+
- /* This routine finds load value that will reset system in required timout */
- static int wdt_setload(struct watchdog_device *wdd, unsigned int timeout)
- {
-@@ -189,6 +196,33 @@ static int wdt_disable(struct watchdog_d
- 	return 0;
+ static struct resource rtc_resources[] = {
+ 	{
+@@ -438,12 +439,9 @@ struct tps65910_board *tps65910_parse_dt
  }
+ #endif
  
-+/* trigger watchdog timer */
-+static void wdt_atomic_trigger(struct watchdog_device *wdd)
-+{
-+	struct sp805_wdt *wdt = watchdog_get_drvdata(wdd);
-+
-+	spin_lock(&wdt->lock);
-+
-+	writel_relaxed(UNLOCK, wdt->base + WDTLOCK);
-+	writel_relaxed(0, wdt->base + WDTCONTROL);
-+	udelay(20);
-+	writel_relaxed(INT_MASK, wdt->base + WDTINTCLR);
-+	udelay(20);
-+
-+	/* Expire after 5 cycles */
-+	writel_relaxed(5, wdt->base + WDTLOAD);
-+
-+	writel_relaxed(INT_ENABLE | RESET_ENABLE, wdt->base + WDTCONTROL);
-+	writel_relaxed(LOCK, wdt->base + WDTLOCK);
-+
-+	/* Flush posted writes. */
-+	readl_relaxed(wdt->base + WDTLOCK);
-+	spin_unlock(&wdt->lock);
-+
-+	/* Wait the bite */
-+	udelay(400);
-+}
-+
- static const struct watchdog_info wdt_info = {
- 	.options = WDIOF_MAGICCLOSE | WDIOF_SETTIMEOUT | WDIOF_KEEPALIVEPING,
- 	.identity = MODULE_NAME,
-@@ -201,8 +235,15 @@ static const struct watchdog_ops wdt_ops
- 	.ping		= wdt_ping,
- 	.set_timeout	= wdt_setload,
- 	.get_timeleft	= wdt_timeleft,
-+/*	.atomic_trigger	= wdt_atomic_trigger, */
- };
- 
-+static void sp805_wdt_machine_restart(void *wdd, enum reboot_mode mode,
-+	const char *cmd)
-+{
-+	wdt_atomic_trigger(wdd);
-+}
-+
- static int
- sp805_wdt_probe(struct amba_device *adev, const struct amba_id *id)
+-static struct i2c_client *tps65910_i2c_client;
+-static void tps65910_power_off(void)
++static void tps65910_power_off(void *dev)
  {
-@@ -247,6 +288,13 @@ sp805_wdt_probe(struct amba_device *adev
- 	watchdog_set_drvdata(&wdt->wdd, wdt);
- 	wdt_setload(&wdt->wdd, DEFAULT_TIMEOUT);
+-	struct tps65910 *tps65910;
+-
+-	tps65910 = dev_get_drvdata(&tps65910_i2c_client->dev);
++	struct tps65910 *tps65910 = dev_get_drvdata(dev);
  
-+	if (restart_hook) {
+ 	if (tps65910_reg_set_bits(tps65910, TPS65910_DEVCTRL,
+ 			DEVCTRL_PWR_OFF_MASK) < 0)
+@@ -501,9 +499,11 @@ static int tps65910_i2c_probe(struct i2c
+ 	tps65910_ck32k_init(tps65910, pmic_plat_data);
+ 	tps65910_sleepinit(tps65910, pmic_plat_data);
+ 
+-	if (pmic_plat_data->pm_off && !pm_power_off) {
+-		tps65910_i2c_client = i2c;
+-		pm_power_off = tps65910_power_off;
++	if (pmic_plat_data->pm_off) {
 +		struct reset_hook hook;
 +		reset_hook_init(&hook);
-+		hook.restart = sp805_wdt_machine_restart;
-+		set_machine_reset(RESET_RESTART, &hook, &wdt->wdd);
-+	}
-+
- 	ret = watchdog_register_device(&wdt->wdd);
- 	if (ret) {
- 		dev_err(&adev->dev, "watchdog_register_device() failed: %d\n",
++		hook.power_off = tps65910_power_off;
++		set_machine_reset(RESET_POWER_OFF, &hook, &i2c->dev);
+ 	}
+ 
+ 	ret = mfd_add_devices(tps65910->dev, -1,
