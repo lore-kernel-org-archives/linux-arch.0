@@ -1,16 +1,16 @@
 From: Domenico Andreoli <domenico.andreoli@linux.com>
-Subject: [PATCH 09/11] ARM: tps65910: use the common machine reset handling
-Date: Thu, 31 Oct 2013 07:27:17 +0100
-Message-ID: <20131031063000.608298078@linux.com>
+Subject: [PATCH 06/11] ARM: vexpress: use the common machine reset handling
+Date: Thu, 31 Oct 2013 07:27:14 +0100
+Message-ID: <20131031062959.813485972@linux.com>
 References: <20131031062708.520968323@linux.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ee0-f53.google.com ([74.125.83.53]:55835 "EHLO
-	mail-ee0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752855Ab3JaGaK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 31 Oct 2013 02:30:10 -0400
-Received: by mail-ee0-f53.google.com with SMTP id e51so1112664eek.40
-        for <linux-arch@vger.kernel.org>; Wed, 30 Oct 2013 23:30:09 -0700 (PDT)
-Content-Disposition: inline; filename=tps65910-machine-reset.patch
+Received: from mail-ea0-f175.google.com ([209.85.215.175]:63869 "EHLO
+	mail-ea0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753068Ab3JaGaQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 31 Oct 2013 02:30:16 -0400
+Received: by mail-ea0-f175.google.com with SMTP id l15so938785eak.34
+        for <linux-arch@vger.kernel.org>; Wed, 30 Oct 2013 23:30:15 -0700 (PDT)
+Content-Disposition: inline; filename=arm-machine-reset-vexpress-hooks.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
@@ -18,7 +18,9 @@ Cc: linux-arm-kernel@lists.infradead.org, linux-mips@lvger.kernel.org, Russell K
 
 From: Domenico Andreoli <domenico.andreoli@linux.com>
 
-Proof of concept: tps65910 as provider of reset hooks.
+Proof of concept: vexpress as provider of reset hooks.
+
+Platform hooks implementation.
 
 Cc: Russell King <linux@arm.linux.org.uk>
 Cc: Arnd Bergmann <arnd@arndb.de>
@@ -26,61 +28,136 @@ Cc: Olof Johansson <olof@lixom.net>
 Cc: linux-arm-kernel@lists.infradead.org
 Signed-off-by: Domenico Andreoli <domenico.andreoli@linux.com>
 ---
- drivers/mfd/Kconfig    |    1 +
- drivers/mfd/tps65910.c |   16 ++++++++--------
- 2 files changed, 9 insertions(+), 8 deletions(-)
+ drivers/power/reset/Kconfig             |    1 +
+ drivers/power/reset/vexpress-poweroff.c |   54 +++++++++++++++++++++++---------
+ 2 files changed, 39 insertions(+), 16 deletions(-)
 
-Index: b/drivers/mfd/Kconfig
+Index: b/drivers/power/reset/Kconfig
 ===================================================================
---- a/drivers/mfd/Kconfig
-+++ b/drivers/mfd/Kconfig
-@@ -769,6 +769,7 @@ config TPS65010
- 	tristate "TI TPS6501x Power Management chips"
- 	depends on I2C && GPIOLIB
- 	default y if MACH_OMAP_H2 || MACH_OMAP_H3 || MACH_OMAP_OSK
+--- a/drivers/power/reset/Kconfig
++++ b/drivers/power/reset/Kconfig
+@@ -41,6 +41,7 @@ config POWER_RESET_VEXPRESS
+ 	bool "ARM Versatile Express power-off and reset driver"
+ 	depends on ARM || ARM64
+ 	depends on POWER_RESET && VEXPRESS_CONFIG
 +	select MACHINE_RESET
  	help
- 	  If you say yes here you get support for the TPS6501x series of
- 	  Power Management chips.  These include voltage regulators,
-Index: b/drivers/mfd/tps65910.c
+ 	  Power off and reset support for the ARM Ltd. Versatile
+ 	  Express boards.
+Index: b/drivers/power/reset/vexpress-poweroff.c
 ===================================================================
---- a/drivers/mfd/tps65910.c
-+++ b/drivers/mfd/tps65910.c
-@@ -26,6 +26,7 @@
- #include <linux/regmap.h>
- #include <linux/mfd/tps65910.h>
- #include <linux/of_device.h>
-+#include <linux/machine_reset.h>
+--- a/drivers/power/reset/vexpress-poweroff.c
++++ b/drivers/power/reset/vexpress-poweroff.c
+@@ -19,7 +19,8 @@
+ #include <linux/vexpress.h>
+ #include <linux/machine_reset.h>
  
- static struct resource rtc_resources[] = {
- 	{
-@@ -438,12 +439,9 @@ struct tps65910_board *tps65910_parse_dt
- }
- #endif
+-#include <asm/system_misc.h>
++static enum reset_func vexpress_get_func(struct platform_device *pdev);
++static int vexpress_set_hook(struct platform_device *pdev);
  
--static struct i2c_client *tps65910_i2c_client;
--static void tps65910_power_off(void)
-+static void tps65910_power_off(void *dev)
+ static void vexpress_reset_do(struct device *dev, const char *what)
  {
--	struct tps65910 *tps65910;
+@@ -40,34 +41,40 @@ static void vexpress_reset_do(struct dev
+ 	dev_emerg(dev, "Unable to %s (%d)\n", what, err);
+ }
+ 
+-static struct device *vexpress_power_off_device;
 -
--	tps65910 = dev_get_drvdata(&tps65910_i2c_client->dev);
-+	struct tps65910 *tps65910 = dev_get_drvdata(dev);
+-static void vexpress_power_off(void)
++static void vexpress_power_off(void *dev)
+ {
+-	vexpress_reset_do(vexpress_power_off_device, "power off");
++	vexpress_reset_do(dev, "power off");
+ }
  
- 	if (tps65910_reg_set_bits(tps65910, TPS65910_DEVCTRL,
- 			DEVCTRL_PWR_OFF_MASK) < 0)
-@@ -501,9 +499,11 @@ static int tps65910_i2c_probe(struct i2c
- 	tps65910_ck32k_init(tps65910, pmic_plat_data);
- 	tps65910_sleepinit(tps65910, pmic_plat_data);
+-static struct device *vexpress_restart_device;
+-
+-static void vexpress_restart(enum reboot_mode reboot_mode, const char *cmd)
++static void vexpress_restart(void *dev, enum reboot_mode reboot_mode,
++	const char *cmd)
+ {
+-	vexpress_reset_do(vexpress_restart_device, "restart");
++	vexpress_reset_do(dev, "restart");
+ }
  
--	if (pmic_plat_data->pm_off && !pm_power_off) {
--		tps65910_i2c_client = i2c;
--		pm_power_off = tps65910_power_off;
-+	if (pmic_plat_data->pm_off) {
-+		struct reset_hook hook;
-+		reset_hook_init(&hook);
-+		hook.power_off = tps65910_power_off;
-+		set_machine_reset(RESET_POWER_OFF, &hook, &i2c->dev);
- 	}
+ static ssize_t vexpress_reset_active_show(struct device *dev,
+ 		struct device_attribute *attr, char *buf)
+ {
+-	return sprintf(buf, "%d\n", vexpress_restart_device == dev);
++	struct platform_device *pdev;
++	enum reset_func func;
++
++	pdev = container_of(dev, struct platform_device, dev);
++	func = vexpress_get_func(pdev);
++
++	return sprintf(buf, "%d\n", isset_machine_reset(func, dev));
+ }
  
- 	ret = mfd_add_devices(tps65910->dev, -1,
+ static ssize_t vexpress_reset_active_store(struct device *dev,
+ 		struct device_attribute *attr, const char *buf, size_t count)
+ {
+ 	long value;
++	struct platform_device *pdev;
+ 	int err = kstrtol(buf, 0, &value);
+ 
++	pdev = container_of(dev, struct platform_device, dev);
++
+ 	if (!err && value)
+-		vexpress_restart_device = dev;
++		vexpress_set_hook(pdev);
+ 
+ 	return err ? err : count;
+ }
+@@ -90,7 +97,7 @@ static struct of_device_id vexpress_rese
+ 	{}
+ };
+ 
+-static int vexpress_reset_probe(struct platform_device *pdev)
++static enum reset_func vexpress_get_func(struct platform_device *pdev)
+ {
+ 	enum reset_func func;
+ 	const struct of_device_id *match =
+@@ -101,23 +108,38 @@ static int vexpress_reset_probe(struct p
+ 	else
+ 		func = pdev->id_entry->driver_data;
+ 
++	return func;
++}
++
++static int vexpress_set_hook(struct platform_device *pdev)
++{
++	enum reset_func func;
++	struct reset_hook hook;
++
++	func = vexpress_get_func(pdev);
++	reset_hook_init(&hook);
++
+ 	switch (func) {
+ 	case RESET_POWER_OFF:
+-		vexpress_power_off_device = &pdev->dev;
+-		pm_power_off = vexpress_power_off;
++		hook.power_off = vexpress_power_off;
+ 		break;
+ 	case RESET_RESTART:
+-		vexpress_restart_device = &pdev->dev;
+-		arm_pm_restart = vexpress_restart;
++		hook.restart = vexpress_restart;
+ 		device_create_file(&pdev->dev, &dev_attr_active);
+ 		break;
+ 	default:
+ 		return -EINVAL;
+ 	};
+ 
++	set_machine_reset(func, &hook, &pdev->dev);
+ 	return 0;
+ }
+ 
++static int vexpress_reset_probe(struct platform_device *pdev)
++{
++	return vexpress_set_hook(pdev);
++}
++
+ static const struct platform_device_id vexpress_reset_id_table[] = {
+ 	{ .name = "vexpress-reset", .driver_data = RESET_RESTART, },
+ 	{ .name = "vexpress-shutdown", .driver_data = RESET_POWER_OFF, },
