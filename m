@@ -1,83 +1,37 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: ARM: add support to dump the kernel page tables
-Date: Thu, 31 Oct 2013 17:40:50 +0000
-Message-ID: <20131031174050.GF16735@n2100.arm.linux.org.uk>
-References: <20131024071600.GC16735@n2100.arm.linux.org.uk> <52729346.7080709@codeaurora.org>
+From: Stephen Warren <swarren@wwwdotorg.org>
+Subject: Re: [PATCH 00/11] RFC: Common machine reset handling
+Date: Thu, 31 Oct 2013 15:49:18 -0600
+Message-ID: <5272D05E.1070207@wwwdotorg.org>
+References: <20131031062708.520968323@linux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:42200 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751772Ab3JaRl3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 31 Oct 2013 13:41:29 -0400
-Content-Disposition: inline
-In-Reply-To: <52729346.7080709@codeaurora.org>
+Received: from avon.wwwdotorg.org ([70.85.31.133]:60559 "EHLO
+	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751940Ab3JaVtW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 31 Oct 2013 17:49:22 -0400
+In-Reply-To: <20131031062708.520968323@linux.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Laura Abbott <lauraa@codeaurora.org>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org
+To: Domenico Andreoli <domenico.andreoli@linux.com>, linux-arch@vger.kernel.org
+Cc: Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, linux-mips@lvger.kernel.org, Olof Johansson <olof@lixom.net>, linux-arm-kernel@lists.infradead.org
 
-On Thu, Oct 31, 2013 at 10:28:38AM -0700, Laura Abbott wrote:
-> On 10/24/2013 12:16 AM, Russell King - ARM Linux wrote:
-> ...
->> +	}, {
->> +		.mask	= L_PTE_MT_MASK,
->> +		.val	= L_PTE_MT_DEV_SHARED,
->> +		.set	= "DEV/SHARED",
->> +	}, {
->> +		.mask	= L_PTE_MT_MASK,
->> +		.val	= L_PTE_MT_DEV_NONSHARED,
->> +		.set	= "DEV/NONSHARED",
->> +	}, {
->
-> L_PTE_MT_DEV_SHARED and L_PTE_MT_DEV_NONSHARED are the same on LPAE  
-> systems which leads to bad output:
->
-> 0xcd400000-0xcd401000           4K     RW NX SHD DEV/SHARED DEV/NONSHARED
+On 10/31/2013 12:27 AM, Domenico Andreoli wrote:
+> Hi,
+> 
+>   I've been looking for a solution to my bcm4760 watchdog based restart
+> hook when I noticed that the kernel reboot/shutdown mechanism is having
+> a few unaddressed issues.
+> 
+> Those I identified are:
+> 
+>  1) context pointer often needed by the reset hook
+>     (currently local static data is used for this pourpose)
+>  2) unclear ownership/policy in case of multiple reset hooks
+>     (currently almost nobody seems to care much)
 
-So we probably want to make this conditional:
-
-#if L_PTE_MT_DEV_SHARED != L_PTE_MT_DEV_NONSHARED
-	... dev/non-shared entry
-#endif
-
-or we use a separate table for LPAE.
-
->> +		.mask	= L_PTE_MT_MASK,
->> +		.val	= L_PTE_MT_DEV_WC,
->> +		.set	= "DEV/WC",
->> +	}, {
->> +		.mask	= L_PTE_MT_MASK,
->> +		.val	= L_PTE_MT_DEV_CACHED,
->> +		.set	= "DEV/CACHED",
->> +	},
->> +};
->> +
->> +static const struct prot_bits section_bits[] = {
->> +	/* These are approximate */
->> +	{
->> +		.mask	= PMD_SECT_AP_READ | PMD_SECT_AP_WRITE,
->> +		.val	= 0,
->> +		.set	= "    ro",
->> +	}, {
->> +		.mask	= PMD_SECT_AP_READ | PMD_SECT_AP_WRITE,
->> +		.val	= PMD_SECT_AP_WRITE,
->> +		.set	= "    RW",
->> +	}, {
->> +		.mask	= PMD_SECT_AP_READ | PMD_SECT_AP_WRITE,
->> +		.val	= PMD_SECT_AP_READ,
->> +		.set	= "USR RO",
->> +	}, {
->> +		.mask	= PMD_SECT_AP_READ | PMD_SECT_AP_WRITE,
->> +		.val	= PMD_SECT_AP_READ | PMD_SECT_AP_WRITE,
->> +		.set	= "USR RW",
->> +	}, {
->
-> Same issue here for PMD_SECT_AP_READ and PMD_SEC_AP_WRITE, both of those  
-> are 0 on LPAE so the output looks strange:
->
-> 0xc0000000-0xcd400000         212M     ro     RW USR RO USR RW x  SHD
-
-I think this needs to be a separate table - it's just too different,
-and it looks like the PMD_SECT_USER and PMD_SECT_RDONLY can be
-separately decoded.
+I'm not sure how this patchset solves (2); even with the new API, it's
+still the case that whichever code calls set_machine_reset() last wins,
+just like before where whichever code wrote to pm_power_off won. I'm not
+sure what this series attempts to solve.
