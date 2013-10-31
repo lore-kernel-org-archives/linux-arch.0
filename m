@@ -1,40 +1,39 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH] arch: *: remove '__init' for setup_profiling_timer()
-Date: Thu, 31 Oct 2013 14:36:46 +0800
-Message-ID: <5271FA7E.9050103@asianux.com>
-References: <52672ECD.9010800@asianux.com> <C2D7FE5348E1B147BCA15975FBA23075153861@IN01WEMBXA.internal.synopsys.com> <5271F4A9.40804@asianux.com> <5271F54F.8070607@asianux.com> <C2D7FE5348E1B147BCA15975FBA230751538BE@IN01WEMBXA.internal.synopsys.com>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH 00/11] RFC: Common machine reset handling
+Date: Thu, 31 Oct 2013 10:21:48 +0000
+Message-ID: <20131031102148.GW16735@n2100.arm.linux.org.uk>
+References: <20131031062708.520968323@linux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from intranet.asianux.com ([58.214.24.6]:59446 "EHLO
-	intranet.asianux.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752691Ab3JaGhs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 31 Oct 2013 02:37:48 -0400
-In-Reply-To: <C2D7FE5348E1B147BCA15975FBA230751538BE@IN01WEMBXA.internal.synopsys.com>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:42141 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754043Ab3JaKWH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 31 Oct 2013 06:22:07 -0400
+Content-Disposition: inline
+In-Reply-To: <20131031062708.520968323@linux.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Mike Frysinger <vapier@gentoo.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Paul Gortmaker <paul.gortmaker@windriver.com>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, realmz paranoid <realmz6@gmail.com>, James Bottomley <James.Bottomley@HansenPartnership.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "uclinux-dist-devel@blackfin.uclinux.org" <uclinux-dist-devel@blackfin.uclinux.org>, Parisc List <linux-parisc@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
+To: Domenico Andreoli <domenico.andreoli@linux.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@lvger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, Ralf Baechle <ralf@linux-mips.org>
 
-On 10/31/2013 02:22 PM, Vineet Gupta wrote:
-> On 10/31/2013 11:45 AM, Chen Gang wrote:
->> > Hmm... if so, recommend to modify another architectures which also only
->> > return "-EINVAL", but without "__init" prefix.
-> Yes in first pass, it will only convert the arches which return EINVAL but can ask
-> the maintainers whether they want the alternate versions too.
+On Thu, Oct 31, 2013 at 07:27:08AM +0100, Domenico Andreoli wrote:
+> Hi,
 > 
+>   I've been looking for a solution to my bcm4760 watchdog based restart
+> hook when I noticed that the kernel reboot/shutdown mechanism is having
+> a few unaddressed issues.
+> 
+> Those I identified are:
+> 
+>  1) context pointer often needed by the reset hook
+>     (currently local static data is used for this pourpose)
 
-Yes.
+I don't think that's a problem at all.
 
-> So you want to take a stab at this series.
+> I don't see these impressive diffstats but at least it's possible to free
+> some static data along the way. Maybe there are some other desiderata that
+> could be satisfied?
 
-If you have time, please help send.
-
-In 1st half of next month, I will/should turn back to do another things
-(e.g. use test tools and read code to find issues, and try to solve them).
-
-
-Thanks.
--- 
-Chen Gang
+If that's the only benefit, then I don't think this is worth the churn,
+sorry.
