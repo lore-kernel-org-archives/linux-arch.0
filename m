@@ -1,39 +1,35 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [PATCH 00/11] RFC: Common machine reset handling
-Date: Thu, 31 Oct 2013 10:21:48 +0000
-Message-ID: <20131031102148.GW16735@n2100.arm.linux.org.uk>
+From: Linus Walleij <linus.walleij@linaro.org>
+Subject: Re: [PATCH 08/11] ARM: u300: use the common machine reset handling
+Date: Thu, 31 Oct 2013 07:40:25 -0700
+Message-ID: <CACRpkdbzmqGpQKf5Mz7tKfRAuTNWV+WYSuerNFQOAsgdUOaoTg@mail.gmail.com>
 References: <20131031062708.520968323@linux.com>
+	<20131031063000.361406973@linux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:42141 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754043Ab3JaKWH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 31 Oct 2013 06:22:07 -0400
-Content-Disposition: inline
-In-Reply-To: <20131031062708.520968323@linux.com>
+Received: from mail-oa0-f42.google.com ([209.85.219.42]:60675 "EHLO
+	mail-oa0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754435Ab3JaOkZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 31 Oct 2013 10:40:25 -0400
+Received: by mail-oa0-f42.google.com with SMTP id k14so3189557oag.29
+        for <linux-arch@vger.kernel.org>; Thu, 31 Oct 2013 07:40:25 -0700 (PDT)
+In-Reply-To: <20131031063000.361406973@linux.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Domenico Andreoli <domenico.andreoli@linux.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@lvger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, Ralf Baechle <ralf@linux-mips.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mips@lvger.kernel.org, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, Ralf Baechle <ralf@linux-mips.org>
 
-On Thu, Oct 31, 2013 at 07:27:08AM +0100, Domenico Andreoli wrote:
-> Hi,
-> 
->   I've been looking for a solution to my bcm4760 watchdog based restart
-> hook when I noticed that the kernel reboot/shutdown mechanism is having
-> a few unaddressed issues.
-> 
-> Those I identified are:
-> 
->  1) context pointer often needed by the reset hook
->     (currently local static data is used for this pourpose)
+On Wed, Oct 30, 2013 at 11:27 PM, Domenico Andreoli
+<domenico.andreoli@linux.com> wrote:
 
-I don't think that's a problem at all.
+> From: Domenico Andreoli <domenico.andreoli@linux.com>
+>
+> Proof of concept: u300 as provider of reset hooks.
 
-> I don't see these impressive diffstats but at least it's possible to free
-> some static data along the way. Maybe there are some other desiderata that
-> could be satisfied?
+Do you have a u300 to test this on or are you just guessing?
 
-If that's the only benefit, then I don't think this is worth the churn,
-sorry.
+Anyway, concept looks correct, so Acked-by given that the
+overall idea is accepted.
+
+Yours,
+Linus Walleij
