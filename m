@@ -1,110 +1,70 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH v2] arch: use ASM_NL instead of ';' for assembler new
- line character in the macro
-Date: Fri, 1 Nov 2013 11:15:16 +0530
-Message-ID: <52733FEC.4010807@synopsys.com>
-References: <526E3CE2.2070405@asianux.com> <526E6A92.6090301@synopsys.com> <526F09B8.9030202@asianux.com> <526F11C0.1030809@asianux.com> <526F149A.3000306@asianux.com>
+From: Stephen Warren <swarren@wwwdotorg.org>
+Subject: Re: [PATCH 00/11] RFC: Common machine reset handling
+Date: Fri, 01 Nov 2013 09:58:49 -0600
+Message-ID: <5273CFB9.1080603@wwwdotorg.org>
+References: <20131031062708.520968323@linux.com> <5272D05E.1070207@wwwdotorg.org> <20131101051610.GA28233@glitch>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us02smtp1.synopsys.com ([198.182.60.75]:42651 "EHLO
-	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751611Ab3KAFpj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Nov 2013 01:45:39 -0400
-In-Reply-To: <526F149A.3000306@asianux.com>
+Received: from avon.wwwdotorg.org ([70.85.31.133]:39772 "EHLO
+	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752084Ab3KAP6x (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Nov 2013 11:58:53 -0400
+In-Reply-To: <20131101051610.GA28233@glitch>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chen Gang <gang.chen@asianux.com>
-Cc: James Hogan <james.hogan@imgtec.com>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Max Filippov <jcmvbkbc@gmail.com>, Sam Ravnborg <sam@ravnborg.org>, Tim Abbott <tabbott@ksplice.com>, Joe Perches <joe@perches.com>, Michal Marek <mmarek@suse.cz>, David Howells <dhowells@redhat.com>
+To: Domenico Andreoli <domenico.andreoli@linux.com>, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, linux-mips@linux-mips.org, Olof Johansson <olof@lixom.net>, linux-arm-kernel@lists.infradead.org
 
-+CC Sam, Tim, Joe, Michal, David
+On 10/31/2013 11:16 PM, Domenico Andreoli wrote:
+> On Thu, Oct 31, 2013 at 03:49:18PM -0600, Stephen Warren wrote:
+>> On 10/31/2013 12:27 AM, Domenico Andreoli wrote:
+>>> Hi,
+>>>
+>>>   I've been looking for a solution to my bcm4760 watchdog based restart
+>>> hook when I noticed that the kernel reboot/shutdown mechanism is having
+>>> a few unaddressed issues.
+>>>
+>>> Those I identified are:
+>>>
+>>>  1) context pointer often needed by the reset hook
+>>>     (currently local static data is used for this pourpose)
+>>>  2) unclear ownership/policy in case of multiple reset hooks
+>>>     (currently almost nobody seems to care much)
+>>
+>> I'm not sure how this patchset solves (2); even with the new API, it's
+>> still the case that whichever code calls set_machine_reset() last wins,
+>> just like before where whichever code wrote to pm_power_off won. I'm not
+>> sure what this series attempts to solve.
+> 
+> That's right, the last wins. But the previous has a chance to know.
+> 
+> I only supposed there is somebody in charge of selecting the best handler
+> for the machine. Don't know how fancy this decision is but at least for
+> the vexpress there is also a sysfs way to configure different reset methods
+> from user-space.
 
-Guys can you please take a look at this patch and suggest the best way to merge.
+For PMICs that provide power off, we've been adding a property to DT to
+indicate whether the PMIC is *the* system power off controller or not.
+If the property is present, the PMIC registers itself in the poweroff
+hook. If not, it doesn't. So, there really isn't an algorithm for
+selecting the power off mechanism, but rather we designate one mechanism
+ahead of time, and that's the only one that's relevant. We could
+probably do the same for reset mechanisms.
 
-The root cause is some gas ports (including ARC) use ';' for comment (vs. newline)
-More background at https://lkml.org/lkml/2013/10/24/365
+I guess the vexpress situation is actually the same; there's a single
+concept of a custom vexpress reset, it's just that sysfs is used to
+select exactly what that does?
 
+> So cleaning up things after the handler is replaced seemed a sensible
+> thing to do.
 
-On 10/29/2013 07:21 AM, Chen Gang wrote:
-> For some assemblers, they use another character as newline in a macro
-> (e.g. arc uses '`'), so for generic assembly code, need use ASM_NL (a
-> macro) instead of ';' for it.
-> 
-> Also need notice about code styles ('\t' for each line).
-> 
-> 
-> Signed-off-by: Chen Gang <gang.chen@asianux.com>
-> ---
->  arch/arc/include/asm/linkage.h |    2 ++
->  include/linux/linkage.h        |   19 ++++++++++++-------
->  2 files changed, 14 insertions(+), 7 deletions(-)
-> 
-> diff --git a/arch/arc/include/asm/linkage.h b/arch/arc/include/asm/linkage.h
-> index 0283e9e..66ee552 100644
-> --- a/arch/arc/include/asm/linkage.h
-> +++ b/arch/arc/include/asm/linkage.h
-> @@ -11,6 +11,8 @@
->  
->  #ifdef __ASSEMBLY__
->  
-> +#define ASM_NL		 `	/* use '`' to mark new line in macro */
-> +
->  /* Can't use the ENTRY macro in linux/linkage.h
->   * gas considers ';' as comment vs. newline
->   */
-> diff --git a/include/linux/linkage.h b/include/linux/linkage.h
-> index d3e8ad2..a6a42dd 100644
-> --- a/include/linux/linkage.h
-> +++ b/include/linux/linkage.h
-> @@ -6,6 +6,11 @@
->  #include <linux/export.h>
->  #include <asm/linkage.h>
->  
-> +/* Some toolchains use other characters (e.g. '`') to mark new line in macro */
-> +#ifndef ASM_NL
-> +#define ASM_NL		 ;
-> +#endif
-> +
->  #ifdef __cplusplus
->  #define CPP_ASMLINKAGE extern "C"
->  #else
-> @@ -75,21 +80,21 @@
->  
->  #ifndef ENTRY
->  #define ENTRY(name) \
-> -  .globl name; \
-> -  ALIGN; \
-> -  name:
-> +	.globl name ASM_NL \
-> +	ALIGN ASM_NL \
-> +	name:
->  #endif
->  #endif /* LINKER_SCRIPT */
->  
->  #ifndef WEAK
->  #define WEAK(name)	   \
-> -	.weak name;	   \
-> +	.weak name ASM_NL   \
->  	name:
->  #endif
->  
->  #ifndef END
->  #define END(name) \
-> -  .size name, .-name
-> +	.size name, .-name
->  #endif
->  
->  /* If symbol 'name' is treated as a subroutine (gets called, and returns)
-> @@ -98,8 +103,8 @@
->   */
->  #ifndef ENDPROC
->  #define ENDPROC(name) \
-> -  .type name, @function; \
-> -  END(name)
-> +	.type name, @function ASM_NL \
-> +	END(name)
->  #endif
->  
->  #endif
-> 
+Can't we avoid replacing handlers, but only registering a single handler?
+
+> Another "problem" this patch would solve is the registration of the
+> reset handler in a architecture independent way. Now an otherwise platform
+> generic gpio HW reset driver would need to do different things on different
+> architectures.
+
+OK, if there are architecture differences in how the hooks are
+registered, that seems like a good thing to fix.
