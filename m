@@ -1,97 +1,110 @@
-From: Domenico Andreoli <cavokz@gmail.com>
-Subject: Re: [PATCH 04/11] MIPS: use the common machine reset handling
-Date: Fri, 1 Nov 2013 06:26:14 +0100
-Message-ID: <20131101052614.GB28233@glitch>
-References: <20131031062708.520968323@linux.com>
- <20131031062959.169063871@linux.com>
- <5273381A.9020103@synopsys.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH v2] arch: use ASM_NL instead of ';' for assembler new
+ line character in the macro
+Date: Fri, 1 Nov 2013 11:15:16 +0530
+Message-ID: <52733FEC.4010807@synopsys.com>
+References: <526E3CE2.2070405@asianux.com> <526E6A92.6090301@synopsys.com> <526F09B8.9030202@asianux.com> <526F11C0.1030809@asianux.com> <526F149A.3000306@asianux.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ea0-f177.google.com ([209.85.215.177]:47656 "EHLO
-	mail-ea0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753732Ab3KAF0Y (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Nov 2013 01:26:24 -0400
-Received: by mail-ea0-f177.google.com with SMTP id f15so1780868eak.8
-        for <linux-arch@vger.kernel.org>; Thu, 31 Oct 2013 22:26:23 -0700 (PDT)
-Content-Disposition: inline
-In-Reply-To: <5273381A.9020103@synopsys.com>
+Received: from us02smtp1.synopsys.com ([198.182.60.75]:42651 "EHLO
+	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751611Ab3KAFpj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Nov 2013 01:45:39 -0400
+In-Reply-To: <526F149A.3000306@asianux.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Domenico Andreoli <domenico.andreoli@linux.com>, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, linux-mips@linux-mips.org, Olof Johansson <olof@lixom.net>, linux-arm-kernel@lists.infradead.org
+To: Chen Gang <gang.chen@asianux.com>
+Cc: James Hogan <james.hogan@imgtec.com>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Max Filippov <jcmvbkbc@gmail.com>, Sam Ravnborg <sam@ravnborg.org>, Tim Abbott <tabbott@ksplice.com>, Joe Perches <joe@perches.com>, Michal Marek <mmarek@suse.cz>, David Howells <dhowells@redhat.com>
 
-On Fri, Nov 01, 2013 at 10:41:54AM +0530, Vineet Gupta wrote:
-> On 10/31/2013 11:57 AM, Domenico Andreoli wrote:
-> > From: Domenico Andreoli <domenico.andreoli@linux.com>
-> > 
-> > Proof of concept: MIPS as a consumer of the machine reset hooks.
-> > 
-> > Cc: Ralf Baechle <ralf@linux-mips.org>
-> > Cc: linux-arch@vger.kernel.org
-> > Cc: linux-mips@vger.kernel.org
-> > Signed-off-by: Domenico Andreoli <domenico.andreoli@linux.com>
-> > ---
-> >  arch/mips/kernel/reset.c |    7 +++++++
-> >  kernel/power/Kconfig     |    2 +-
-> >  2 files changed, 8 insertions(+), 1 deletion(-)
-> > 
-> > Index: b/arch/mips/kernel/reset.c
-> > ===================================================================
-> > --- a/arch/mips/kernel/reset.c
-> > +++ b/arch/mips/kernel/reset.c
-> > @@ -11,6 +11,7 @@
-> >  #include <linux/pm.h>
-> >  #include <linux/types.h>
-> >  #include <linux/reboot.h>
-> > +#include <linux/machine_reset.h>
-> >  
-> >  #include <asm/reboot.h>
-> >  
-> > @@ -29,16 +30,22 @@ void machine_restart(char *command)
-> >  {
-> >  	if (_machine_restart)
-> >  		_machine_restart(command);
-> > +	else
-> > +		default_restart(reboot_mode, command);
-> >  }
-> >  
-> >  void machine_halt(void)
-> >  {
-> >  	if (_machine_halt)
-> >  		_machine_halt();
-> > +	else
-> > +		default_halt();
-> >  }
-> >  
-> >  void machine_power_off(void)
-> >  {
-> >  	if (pm_power_off)
-> >  		pm_power_off();
-> > +	else
-> > +		default_power_off();
-> >  }
-> > Index: b/kernel/power/Kconfig
-> > ===================================================================
-> > --- a/kernel/power/Kconfig
-> > +++ b/kernel/power/Kconfig
-> > @@ -297,4 +297,4 @@ config CPU_PM
-> >  config MACHINE_RESET
-> >  	bool
-> >  	default n
-> > -	depends on ARM || ARM64
-> > +	depends on ARM || ARM64 || MIPS
++CC Sam, Tim, Joe, Michal, David
+
+Guys can you please take a look at this patch and suggest the best way to merge.
+
+The root cause is some gas ports (including ARC) use ';' for comment (vs. newline)
+More background at https://lkml.org/lkml/2013/10/24/365
+
+
+On 10/29/2013 07:21 AM, Chen Gang wrote:
+> For some assemblers, they use another character as newline in a macro
+> (e.g. arc uses '`'), so for generic assembly code, need use ASM_NL (a
+> macro) instead of ';' for it.
 > 
-> This particular idiom is frowned upon for new code. As new arches get added this
-> list keeps getting bigger and then those who don't need the feature need to add
-> the anti dependency. Also in this particular case the dependency is trivial so you
-> can just "select" it in arch/*/Kconfig
-
-this dependency guarantees only that the option is available only on the
-supported arches.
-
-anyway I've not a strong opinion, I only picked the least invasive solution
-I was able to think.
-
-thanks,
-Domenico
+> Also need notice about code styles ('\t' for each line).
+> 
+> 
+> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+> ---
+>  arch/arc/include/asm/linkage.h |    2 ++
+>  include/linux/linkage.h        |   19 ++++++++++++-------
+>  2 files changed, 14 insertions(+), 7 deletions(-)
+> 
+> diff --git a/arch/arc/include/asm/linkage.h b/arch/arc/include/asm/linkage.h
+> index 0283e9e..66ee552 100644
+> --- a/arch/arc/include/asm/linkage.h
+> +++ b/arch/arc/include/asm/linkage.h
+> @@ -11,6 +11,8 @@
+>  
+>  #ifdef __ASSEMBLY__
+>  
+> +#define ASM_NL		 `	/* use '`' to mark new line in macro */
+> +
+>  /* Can't use the ENTRY macro in linux/linkage.h
+>   * gas considers ';' as comment vs. newline
+>   */
+> diff --git a/include/linux/linkage.h b/include/linux/linkage.h
+> index d3e8ad2..a6a42dd 100644
+> --- a/include/linux/linkage.h
+> +++ b/include/linux/linkage.h
+> @@ -6,6 +6,11 @@
+>  #include <linux/export.h>
+>  #include <asm/linkage.h>
+>  
+> +/* Some toolchains use other characters (e.g. '`') to mark new line in macro */
+> +#ifndef ASM_NL
+> +#define ASM_NL		 ;
+> +#endif
+> +
+>  #ifdef __cplusplus
+>  #define CPP_ASMLINKAGE extern "C"
+>  #else
+> @@ -75,21 +80,21 @@
+>  
+>  #ifndef ENTRY
+>  #define ENTRY(name) \
+> -  .globl name; \
+> -  ALIGN; \
+> -  name:
+> +	.globl name ASM_NL \
+> +	ALIGN ASM_NL \
+> +	name:
+>  #endif
+>  #endif /* LINKER_SCRIPT */
+>  
+>  #ifndef WEAK
+>  #define WEAK(name)	   \
+> -	.weak name;	   \
+> +	.weak name ASM_NL   \
+>  	name:
+>  #endif
+>  
+>  #ifndef END
+>  #define END(name) \
+> -  .size name, .-name
+> +	.size name, .-name
+>  #endif
+>  
+>  /* If symbol 'name' is treated as a subroutine (gets called, and returns)
+> @@ -98,8 +103,8 @@
+>   */
+>  #ifndef ENDPROC
+>  #define ENDPROC(name) \
+> -  .type name, @function; \
+> -  END(name)
+> +	.type name, @function ASM_NL \
+> +	END(name)
+>  #endif
+>  
+>  #endif
+> 
