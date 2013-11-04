@@ -1,27 +1,31 @@
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: RE: [PATCH] mm: create a separate slab for page->ptl allocation
-Date: Mon,  4 Nov 2013 12:42:59 +0200 (EET)
-Message-ID: <20131104104259.86AFEE0090@blue.fi.intel.com>
-References: <1382442839-7458-1-git-send-email-kirill.shutemov@linux.intel.com>
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1382442839-7458-1-git-send-email-kirill.shutemov@linux.intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-List-Id: linux-arch.vger.kernel.org
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [patch 1/6] hardirq: Make hardirq bits generic
+Date: Mon, 4 Nov 2013 13:06:23 +0100 (CET)
+Message-ID: <alpine.DEB.2.02.1311041305540.28335@ionos.tec.linutronix.de>
+References: <20130917082838.218329307@infradead.org> <20130917182350.449685712@linutronix.de> <20130917183628.534494408@linutronix.de> <CAMuHMdWgrQf+ULDrZyY5R+vT3GtiWEgpsWxmfk0b5pivN7wBmg@mail.gmail.com> <alpine.DEB.2.02.1309172315550.4089@ionos.tec.linutronix.de>
+ <alpine.DEB.2.02.1309181159520.4089@ionos.tec.linutronix.de> <alpine.DEB.2.02.1309191652480.4089@ionos.tec.linutronix.de> <87txhg3ftx.fsf@igel.home> <CAMuHMdW-YBroi6GezUP-KQBVRAcmYtUQERvBC=ekmemopDhVow@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from www.linutronix.de ([62.245.132.108]:55810 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752056Ab3KDMGa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Nov 2013 07:06:30 -0500
+In-Reply-To: <CAMuHMdW-YBroi6GezUP-KQBVRAcmYtUQERvBC=ekmemopDhVow@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Andreas Schwab <schwab@linux-m68k.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Linux-Arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Linux/m68k <linux-m68k@vger.kernel.org>
 
-Kirill A. Shutemov wrote:
-> If DEBUG_SPINLOCK and DEBUG_LOCK_ALLOC are enabled spinlock_t on x86_64
-> is 72 bytes. For page->ptl they will be allocated from kmalloc-96 slab,
-> so we loose 24 on each. An average system can easily allocate few tens
-> thousands of page->ptl and overhead is significant.
+On Thu, 19 Sep 2013, Geert Uytterhoeven wrote:
+> However, the resulting kernel hangs (on ARAnyM) after starting userspace:
 > 
-> Let's create a separate slab for page->ptl allocation to solve this.
+> | INIT: version 2.86 booting
 > 
-> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> I'll have a deeper look when I have some more time...
 
-ping?
+Any chance that you find some more time? :)
 
--- 
- Kirill A. Shutemov
+Thanks,
+
+	tglx
