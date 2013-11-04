@@ -1,120 +1,301 @@
-From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v5 3/4] qrwlock: Enable fair queue read/write lock
-Date: Mon,  4 Nov 2013 12:17:19 -0500
-Message-ID: <1383585440-4391-4-git-send-email-Waiman.Long@hp.com>
-References: <1383585440-4391-1-git-send-email-Waiman.Long@hp.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1383585440-4391-1-git-send-email-Waiman.Long@hp.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Aswin Chandramouleeswaran\"" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Waiman Long <Waiman.Long@hp.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [patch 1/6] hardirq: Make hardirq bits generic
+Date: Mon, 4 Nov 2013 20:44:43 +0100 (CET)
+Message-ID: <alpine.DEB.2.02.1311042032130.16975@ayla.of.borg>
+References: <20130917082838.218329307@infradead.org> <20130917182350.449685712@linutronix.de> <20130917183628.534494408@linutronix.de> <CAMuHMdWgrQf+ULDrZyY5R+vT3GtiWEgpsWxmfk0b5pivN7wBmg@mail.gmail.com> <alpine.DEB.2.02.1309172315550.4089@ionos.tec.linutronix.de>
+ <alpine.DEB.2.02.1309181159520.4089@ionos.tec.linutronix.de> <alpine.DEB.2.02.1309191652480.4089@ionos.tec.linutronix.de> <87txhg3ftx.fsf@igel.home> <CAMuHMdW-YBroi6GezUP-KQBVRAcmYtUQERvBC=ekmemopDhVow@mail.gmail.com>
+ <alpine.DEB.2.02.1311041305540.28335@ionos.tec.linutronix.de>
+Mime-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-m68k-owner@vger.kernel.org>
+In-Reply-To: <alpine.DEB.2.02.1311041305540.28335@ionos.tec.linutronix.de>
+Sender: linux-m68k-owner@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Andreas Schwab <schwab@linux-m68k.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Linux-Arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Linux/m68k <linux-m68k@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-By default, queue rwlock is fair among writers and gives preference
-to readers allowing them to steal lock even if a writer is
-waiting. However, there is a desire to have a fair variant of
-rwlock that is more deterministic. To enable this, fair variants
-of lock initializers are added by this patch to allow lock owners
-to choose to use fair rwlock. These newly added initializers all
-have the _fair or _FAIR suffix to indicate the desire to use a fair
-rwlock. If the QUEUE_RWLOCK config option is not selected, the fair
-rwlock initializers will be the same as the regular ones.
+	Hi Thomas,
 
-Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+On Mon, 4 Nov 2013, Thomas Gleixner wrote:
+> On Thu, 19 Sep 2013, Geert Uytterhoeven wrote:
+> > However, the resulting kernel hangs (on ARAnyM) after starting userspace:
+> > 
+> > | INIT: version 2.86 booting
+> > 
+> > I'll have a deeper look when I have some more time...
+> 
+> Any chance that you find some more time? :)
+
+Sure!
+
+But only if you look at "[m68k] IRQ: add handle_polled_irq() for timer
+based soft interrupt" (http://www.spinics.net/lists/linux-m68k/msg05889.html)
+first ;-)
+
+Below is a patch with some fixups, on top of your two patches.
+
+Unfortunately it still hangs somewhere after mounting the root filesystem.
+
+Using this debug code for do_IRQ():
+
+diff --git a/arch/m68k/kernel/irq.c b/arch/m68k/kernel/irq.c
+index aaf7b15fad41..da9687803d98 100644
+--- a/arch/m68k/kernel/irq.c
++++ b/arch/m68k/kernel/irq.c
+@@ -22,11 +22,21 @@ asmlinkage int do_IRQ(int irq, struct pt_regs *regs)
+ 	struct pt_regs *oldregs = set_irq_regs(regs);
+ 	int nested = regs->sr & ~ALLOWINT;
+ 
++static int nesting;
++const char prefix[] = "                ";
++unsigned long flags;
++local_irq_save(flags);
++nesting++;
++printk("# %sirq %d nested %d\n", &prefix[16-2*nesting], irq, nested);
++local_irq_restore(flags);
+ 	irq_enter();
+ 	generic_handle_irq(irq);
+ 	irq_exit_nested(nested);
+ 
+ 	set_irq_regs(oldregs);
++local_irq_save(flags);
++nesting--;
++local_irq_restore(flags);
+ 	return nested;
+ }
+ 
+I get output like
+
+#   irq 15 nested 0
+#     irq 15 nested 1024
+
+irq 15 while irq 15 in progress??
+
+#     irq 15 nested 1024
+#     irq 15 nested 1024
+#     irq 15 nested 1024
+#     irq 13 nested 1024
+#     irq 13 nested 1024
+#     irq 13 nested 1024
+#     irq 13 nested 1024
+#     irq 13 nested 1024
+#     irq 4 nested 0
+#       irq 13 nested 1024
+#     irq 4 nested 0
+#       irq 13 nested 1024
+#     irq 4 nested 0
+#       irq 13 nested 1024
+#       irq 13 nested 1024
+#       irq 13 nested 1024
+#     irq 4 nested 0
+#       irq 13 nested 1024
+#       irq 13 nested 1024
+#       irq 13 nested 1024
+#       irq 13 nested 1024
+#       irq 13 nested 1024
+#       irq 13 nested 1024
+#       irq 13 nested 1024
+#     irq 4 nested 0
+#       irq 13 nested 1024
+#   irq 13 nested 1024
+
+[...]
+
+#   irq 13 nested 1024
+#   irq 13 nested 1024
+#   irq 4 nested 0
+#     irq 13 nested 1024
+#     irq 4 nested 0
+
+irq 4 while irq 4 in progress?
+
+#   irq 13 nested 1024
+#   irq 4 nested 0
+#   irq 13 nested 0
+
+and then it stops printing anything.
+
+With similar debug code on the old working do_IRQ(), I get
+  - slightly less deep nesting,
+  - do_IRQ() is never re-entered with the same irq number.
+
+Also note that the value of "nested" doesn't match the indentation level,
+which depends on my own bookkeeping using "nesting".
+
+Anyone with an idea where it's going wrong?
+
+Thanks!
+
+From 209b6ac37811297cd305821c5689dff75226af48 Mon Sep 17 00:00:00 2001
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Sun, 22 Sep 2013 11:31:25 +0200
+Subject: [PATCH] m68k/hardirq: Make hardirq bits generic fixups
+
+  - tstl instead of cmpl #0 (from Andreas)
+  - arch/m68k/kernel/built-in.o: In function `bad_inthandler': (.text+0x2a6): undefined reference to `ret_from_last_interrupt'
+  - Handle nesting in bad_inthandler() and handle_badint(),
+  - As do_IRQ() now returns int, m68k_setup_auto_interrupt() should take a
+    function that returns int, too,
+  - Forgot to update forward declaration of q40_irq_handler(),
+  - Whitespace fixes
+
+Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
 ---
- include/linux/rwlock.h       |   15 +++++++++++++++
- include/linux/rwlock_types.h |   13 +++++++++++++
- lib/spinlock_debug.c         |   19 +++++++++++++++++++
- 3 files changed, 47 insertions(+), 0 deletions(-)
+ arch/m68k/include/asm/irq.h      |    4 ++--
+ arch/m68k/kernel/entry.S         |   10 ++--------
+ arch/m68k/kernel/ints.c          |    9 +++++++--
+ arch/m68k/platform/68000/entry.S |    2 +-
+ arch/m68k/platform/68000/ints.c  |    2 +-
+ arch/m68k/platform/68360/entry.S |    4 ++--
+ arch/m68k/q40/q40ints.c          |    2 +-
+ 7 files changed, 16 insertions(+), 17 deletions(-)
 
-diff --git a/include/linux/rwlock.h b/include/linux/rwlock.h
-index bc2994e..5f2628b 100644
---- a/include/linux/rwlock.h
-+++ b/include/linux/rwlock.h
-@@ -23,9 +23,24 @@ do {								\
- 								\
- 	__rwlock_init((lock), #lock, &__key);			\
- } while (0)
-+
-+# ifdef CONFIG_QUEUE_RWLOCK
-+extern void __rwlock_init_fair(rwlock_t *lock, const char *name,
-+			       struct lock_class_key *key);
-+#  define rwlock_init_fair(lock)				\
-+do {								\
-+	static struct lock_class_key __key;			\
-+								\
-+	__rwlock_init_fair((lock), #lock, &__key);		\
-+} while (0)
-+# else
-+#  define __rwlock_init_fair(l, n, k)	__rwlock_init(l, n, k)
-+# endif /* CONFIG_QUEUE_RWLOCK */
- #else
- # define rwlock_init(lock)					\
- 	do { *(lock) = __RW_LOCK_UNLOCKED(lock); } while (0)
-+# define rwlock_init_fair(lock)				\
-+	do { *(lock) = __RW_LOCK_UNLOCKED_FAIR(lock); } while (0)
- #endif
+diff --git a/arch/m68k/include/asm/irq.h b/arch/m68k/include/asm/irq.h
+index 8d8e0f835275..fa7f079aeafa 100644
+--- a/arch/m68k/include/asm/irq.h
++++ b/arch/m68k/include/asm/irq.h
+@@ -60,8 +60,8 @@ struct irq_desc;
+ extern unsigned int m68k_irq_startup(struct irq_data *data);
+ extern unsigned int m68k_irq_startup_irq(unsigned int irq);
+ extern void m68k_irq_shutdown(struct irq_data *data);
+-extern void m68k_setup_auto_interrupt(void (*handler)(unsigned int,
+-						      struct pt_regs *));
++extern void m68k_setup_auto_interrupt(int (*handler)(unsigned int,
++						     struct pt_regs *));
+ extern void m68k_setup_user_interrupt(unsigned int vec, unsigned int cnt);
+ extern void m68k_setup_irq_controller(struct irq_chip *,
+ 				      void (*handle)(unsigned int irq,
+diff --git a/arch/m68k/kernel/entry.S b/arch/m68k/kernel/entry.S
+index d35c2a22398a..ca355813ce51 100644
+--- a/arch/m68k/kernel/entry.S
++++ b/arch/m68k/kernel/entry.S
+@@ -289,7 +289,7 @@ ret_from_interrupt:
+ 	 * Only the last interrupt leaving the kernel goes through the
+ 	 * various exception return checks.
+ 	 */
+-	cmpl	#0, %d0
++	tstl	%d0
+ 	jeq	.Lret_from_exception
+ 	RESTORE_ALL
  
- #ifdef CONFIG_DEBUG_SPINLOCK
-diff --git a/include/linux/rwlock_types.h b/include/linux/rwlock_types.h
-index cc0072e..d27c812 100644
---- a/include/linux/rwlock_types.h
-+++ b/include/linux/rwlock_types.h
-@@ -37,12 +37,25 @@ typedef struct {
- 				.owner = SPINLOCK_OWNER_INIT,		\
- 				.owner_cpu = -1,			\
- 				RW_DEP_MAP_INIT(lockname) }
-+#define __RW_LOCK_UNLOCKED_FAIR(lockname)				\
-+	(rwlock_t)	{	.raw_lock = __ARCH_RW_LOCK_UNLOCKED_FAIR,\
-+				.magic = RWLOCK_MAGIC,			\
-+				.owner = SPINLOCK_OWNER_INIT,		\
-+				.owner_cpu = -1,			\
-+				RW_DEP_MAP_INIT(lockname) }
- #else
- #define __RW_LOCK_UNLOCKED(lockname) \
- 	(rwlock_t)	{	.raw_lock = __ARCH_RW_LOCK_UNLOCKED,	\
- 				RW_DEP_MAP_INIT(lockname) }
-+#define __RW_LOCK_UNLOCKED_FAIR(lockname) \
-+	(rwlock_t)	{	.raw_lock = __ARCH_RW_LOCK_UNLOCKED_FAIR,\
-+				RW_DEP_MAP_INIT(lockname) }
- #endif
+@@ -313,18 +313,12 @@ user_irqvec_fixup = . + 2
  
- #define DEFINE_RWLOCK(x)	rwlock_t x = __RW_LOCK_UNLOCKED(x)
-+#define DEFINE_RWLOCK_FAIR(x)	rwlock_t x = __RW_LOCK_UNLOCKED_FAIR(x)
+ ENTRY(bad_inthandler)
+ 	SAVE_ALL_INT
+-	GET_CURRENT(%d0)
+-	movel	%d0,%a1
+-	addqb	#1,%a1@(TINFO_PREEMPT+1)
  
-+#ifndef	__ARCH_RW_LOCK_UNLOCKED_FAIR
-+#define	__ARCH_RW_LOCK_UNLOCKED_FAIR	__ARCH_RW_LOCK_UNLOCKED
-+#endif
- #endif /* __LINUX_RWLOCK_TYPES_H */
-diff --git a/lib/spinlock_debug.c b/lib/spinlock_debug.c
-index 0374a59..d6ef7ce 100644
---- a/lib/spinlock_debug.c
-+++ b/lib/spinlock_debug.c
-@@ -49,6 +49,25 @@ void __rwlock_init(rwlock_t *lock, const char *name,
+ 	movel	%sp,%sp@-
+ 	jsr	handle_badint
+ 	addql	#4,%sp
  
- EXPORT_SYMBOL(__rwlock_init);
+-	movel	%curptr@(TASK_STACK),%a1
+-	subqb	#1,%a1@(TINFO_PREEMPT+1)
+-	jeq	ret_from_last_interrupt
+-	RESTORE_ALL
++	jra	ret_from_interrupt
  
-+#ifdef CONFIG_QUEUE_RWLOCK
-+void __rwlock_init_fair(rwlock_t *lock, const char *name,
-+			struct lock_class_key *key)
-+{
-+#ifdef CONFIG_DEBUG_LOCK_ALLOC
-+	/*
-+	 * Make sure we are not reinitializing a held lock:
-+	 */
-+	debug_check_no_locks_freed((void *)lock, sizeof(*lock));
-+	lockdep_init_map(&lock->dep_map, name, key, 0);
-+#endif
-+	lock->raw_lock = (arch_rwlock_t) __ARCH_RW_LOCK_UNLOCKED_FAIR;
-+	lock->magic = RWLOCK_MAGIC;
-+	lock->owner = SPINLOCK_OWNER_INIT;
-+	lock->owner_cpu = -1;
-+}
-+EXPORT_SYMBOL(__rwlock_init_fair);
-+#endif /* CONFIG_QUEUE_RWLOCK */
-+
- static void spin_dump(raw_spinlock_t *lock, const char *msg)
+ 
+ resume:
+diff --git a/arch/m68k/kernel/ints.c b/arch/m68k/kernel/ints.c
+index 077d3a70fed1..ec1648b97dc8 100644
+--- a/arch/m68k/kernel/ints.c
++++ b/arch/m68k/kernel/ints.c
+@@ -72,7 +72,8 @@ void __init init_IRQ(void)
+  * standard do_IRQ(), it will be called with irq numbers in the range
+  * from IRQ_AUTO_1 - IRQ_AUTO_7.
+  */
+-void __init m68k_setup_auto_interrupt(void (*handler)(unsigned int, struct pt_regs *))
++void __init m68k_setup_auto_interrupt(int (*handler)(unsigned int,
++						     struct pt_regs *))
  {
- 	struct task_struct *owner = NULL;
+ 	if (handler)
+ 		*auto_irqhandler_fixup = (u32)handler;
+@@ -162,8 +163,12 @@ unsigned int irq_canonicalize(unsigned int irq)
+ EXPORT_SYMBOL(irq_canonicalize);
+ 
+ 
+-asmlinkage void handle_badint(struct pt_regs *regs)
++asmlinkage int handle_badint(struct pt_regs *regs)
+ {
++	int nested = regs->sr & ~ALLOWINT;
++
+ 	atomic_inc(&irq_err_count);
+ 	pr_warn("unexpected interrupt from %u\n", regs->vector);
++
++	return nested;
+ }
+diff --git a/arch/m68k/platform/68000/entry.S b/arch/m68k/platform/68000/entry.S
+index afc49235c3c7..b32c6c423c90 100644
+--- a/arch/m68k/platform/68000/entry.S
++++ b/arch/m68k/platform/68000/entry.S
+@@ -221,7 +221,7 @@ ret_from_interrupt:
+ 	 * Only the last interrupt leaving the kernel goes through the
+ 	 * various exception return checks.
+ 	 */
+-	cmpl	#0, %d0
++	tstl	%d0
+ 	jeq	ret_from_exception
+ 	RESTORE_ALL
+ 
+diff --git a/arch/m68k/platform/68000/ints.c b/arch/m68k/platform/68000/ints.c
+index fadd2b9ff0d9..a6c05a60a9e5 100644
+--- a/arch/m68k/platform/68000/ints.c
++++ b/arch/m68k/platform/68000/ints.c
+@@ -76,7 +76,7 @@ asmlinkage irqreturn_t inthandler7(void);
+  */
+ int process_int(int vec, struct pt_regs *fp)
+ {
+-	int irq, mask, nested =fp->sr & ~ALLOWINT;
++	int irq, mask, nested = fp->sr & ~ALLOWINT;
+ 	unsigned long pend = ISR;
+ 
+ 	while (pend) {
+diff --git a/arch/m68k/platform/68360/entry.S b/arch/m68k/platform/68360/entry.S
+index 795abe505c35..e818794edfa7 100644
+--- a/arch/m68k/platform/68360/entry.S
++++ b/arch/m68k/platform/68360/entry.S
+@@ -133,14 +133,14 @@ inthandler:
+ 	movel	%sp,%sp@-
+ 	movel	%d0,%sp@- 		/*  put vector # on stack*/
+ 	jbsr	do_IRQ			/*  process the IRQ, returns nest level */
+-     	addql	#8,%sp			/*  pop parameters off stack*/
++	addql	#8,%sp			/*  pop parameters off stack*/
+ 
+ ret_from_interrupt:
+ 	/*
+ 	 * Only the last interrupt leaving the kernel goes through the
+ 	 * various exception return checks.
+ 	 */
+-	cmpl	#0, %d0
++	tstl	%d0
+ 	jeq	ret_from_exception
+ 	RESTORE_ALL
+ 
+diff --git a/arch/m68k/q40/q40ints.c b/arch/m68k/q40/q40ints.c
+index 179aee3a6498..a7525f189264 100644
+--- a/arch/m68k/q40/q40ints.c
++++ b/arch/m68k/q40/q40ints.c
+@@ -33,7 +33,7 @@
+  *
+ */
+ 
+-static void q40_irq_handler(unsigned int, struct pt_regs *fp);
++static int q40_irq_handler(unsigned int, struct pt_regs *fp);
+ static void q40_irq_enable(struct irq_data *data);
+ static void q40_irq_disable(struct irq_data *data);
+ 
 -- 
-1.7.1
+1.7.9.5
+
+Gr{oetje,eeting}s,
+
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
