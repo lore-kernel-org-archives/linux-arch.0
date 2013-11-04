@@ -1,38 +1,53 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH trivial] include: uapi: standard all files'
-	macro prefix and suffix, excluding "linux/" sub-directory
-Date: Mon, 04 Nov 2013 22:03:44 +0000
-Message-ID: <11907.1383602624@warthog.procyon.org.uk>
-References: <51FB6216.6010008@asianux.com>
+From: Tim Chen <tim.c.chen@linux.intel.com>
+Subject: [PATCH 0/4] MCS Lock: MCS lock code cleanup and optimizations
+Date: Mon, 04 Nov 2013 15:36:56 -0800
+Message-ID: <1383608216.11046.259.camel@schen9-DESK>
+References: <cover.1383604526.git.tim.c.chen@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <intel-gfx-bounces@lists.freedesktop.org>
-In-Reply-To: <51FB6216.6010008@asianux.com>
-List-Unsubscribe: <http://lists.freedesktop.org/mailman/options/intel-gfx>,
-	<mailto:intel-gfx-request@lists.freedesktop.org?subject=unsubscribe>
-List-Archive: <http://lists.freedesktop.org/archives/intel-gfx>
-List-Post: <mailto:intel-gfx@lists.freedesktop.org>
-List-Help: <mailto:intel-gfx-request@lists.freedesktop.org?subject=help>
-List-Subscribe: <http://lists.freedesktop.org/mailman/listinfo/intel-gfx>,
-	<mailto:intel-gfx-request@lists.freedesktop.org?subject=subscribe>
-Sender: intel-gfx-bounces@lists.freedesktop.org
-Errors-To: intel-gfx-bounces@lists.freedesktop.org
-To: Chen Gang <gang.chen@asianux.com>, 'Jiri Kosina' <trivial@kernel.org>
-Cc: xen-devel@lists.xensource.com, jeremy@goop.org, airlied@linux.ie, daniel.vetter@ffwll.ch, alsa-devel@alsa-project.org, dri-devel@lists.freedesktop.org, perex@perex.cz, "dhowells@redhat.com" <dhowells@redhat.com>, thierry.reding@gmail.com, linux-mtd@lists.infradead.org, sean.hefty@intel.com, virtualization@lists.linux-foundation.org, Linux-Arch <linux-arch@vger.kernel.org>, "kgene.kim@samsung.com" <kgene.kim@samsung.com>, tbergstrom@nvidia.com, jy0922.shim@samsung.com, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, roland@purestorage.com, Takashi Iwai <tiwai@suse.de>, Tomi Valkeinen <tomi.valkeinen@ti.com>, mtk.manpages@gmail.com, fcoe-devel@open-fcoe.org, Paul McKenney <paulmck@linux.vnet.ibm.com>, "plagnioj@jcrosoft.com" <plagnioj@jcrosoft.com>, Arnd Bergmann <arnd@arndb.de>, swarren@wwwdotorg.org, intel-gfx@lists.freedesktop.org, inki.dae@samsung.com, linux-samsun
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, "Paul
+ E.McKenney" <paulmck@linux.vnet.ibm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>
 List-Id: linux-arch.vger.kernel.org
 
-Chen Gang <gang.chen@asianux.com> wrote:
+In this patch series, we separated out the MCS lock code which was previously embedded in the
+mutex.c.  This allows for easier reuse of MCS lock in other places like rwsem and qrwlock.
+We also did some micro optimizations and barrier cleanup.
 
-> For "include/uapi/*", excluding "linux/" sub-directory, let all files'
-> macro prefix match the standard format, and give related stand comments
-> for their macro suffix.
-> 
-> The related standard format is:
-> 
->   "_SUBDIRNAME_SUBDIRNAME[_SUBDIRNAME]_FILENAME" (1st _SUBDIRNAME is _UAPI), and use '_' instead of '.' and '-'.
+This patches were previously part of the rwsem optimization patch series but now we spearate
+them out.
 
-I strongly recommend _against_ this without very careful consideration.
-Userspace sometimes depends on the name in the guard macro:-/
+Tim Chen
 
-David
+Jason Low (2):
+  MCS Lock: optimizations and extra comments
+  MCS Lock: Barrier corrections
+
+Tim Chen (1):
+  MCS Lock: Restructure the MCS lock defines and locking code into its
+    own file
+
+Waiman Long (1):
+  MCS Lock: Make mcs_spinlock.h includable in other files
+
+ include/linux/mcs_spinlock.h |  100 ++++++++++++++++++++++++++++++++++++++++++
+ include/linux/mutex.h        |    5 +-
+ kernel/Makefile              |    6 +-
+ kernel/mcs_spinlock.c        |   37 +++++++++++++++
+ kernel/mutex.c               |   60 +++----------------------
+ 5 files changed, 150 insertions(+), 58 deletions(-)
+ create mode 100644 include/linux/mcs_spinlock.h
+ create mode 100644 kernel/mcs_spinlock.c
+
+-- 
+1.7.4.4
+
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
