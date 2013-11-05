@@ -1,34 +1,91 @@
-From: "Mrs. Mary Saleh Saville" <pattersonjwilliam@yahoo.com>
-Subject: Donation Project
-Date: Wed, 6 Nov 2013 01:42:25 +0800
-Message-ID: <201311050334.rA53YCuP021239@tx.cpta.com.cn>
-Reply-To: <mary_saleh@europemail.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v2 3/4] MCS Lock: Barrier corrections
+Date: Tue, 5 Nov 2013 18:37:44 +0000
+Message-ID: <20131105183744.GJ26895@mudshark.cambridge.arm.com>
+References: <cover.1383670202.git.tim.c.chen@linux.intel.com>
+ <1383673356.11046.279.camel@schen9-DESK>
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset="Windows-1251"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from [114.255.29.133] ([114.255.29.133]:53130 "EHLO tx.cpta.com.cn"
-	rhost-flags-FAIL-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1755334Ab3KERqi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 5 Nov 2013 12:46:38 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux_newbies@yahoogroups.com, linpearl_777@yahoo.com, linockpk@yahoo.com, linux@www.softcatala.net, linux-390@vm.marist.edu, linux-arch@vger.kernel.org, linuxacpi@vger.kernel.org, linkwell@usa.net, linn.harson@thompsonhine.com, linkers@telkom.net.id, linkers@space.net.pk, linuxaudit@redhat.com, links@pes.comsats.net.pk, linphone-users@nongnu.org, links@nexlinx.net.pk, linux-audio-dev@music.columbia.edu, linlen4544@msn.com, linux@mlf.linux.rulez.org, linux_nic@md.com.my, linksmanager@malaysiadirectory.comlinksmanager@malaysiadirectory.co, linux@lists.unixtech.be, links-list@linuxfromscratch.org, linuxbios@linuxbios.org, linux-aktivis@linux.or.id, linux@lhr.comsats.net.pk, linkers@lcci.org.pk, linocampion@kpmg.com.br, linkwell@khi.fascom.com, links-users@inf.ed.ac.uk, lintasco@indosat.net.id, lintas@indosat.net.id, linkers@indo.net.id, lintz-re@hotmail.com, linnsaraniah@hotmail.com, linlyokelin@hotmail.com, linuxaudio-it@gnufunk.org, linker@global.net.pk, linkcon@eworld.net.pk, lintastour@email.com, linong@ecrobot.com, linux.ie-1-wire-software-development-admin@dalsemi.com, linmark@cyber.net.pk, lintas94@centrin.net.id, linksbk@cbn.net.id, links@cat.com.pk, linux-br@bazar2.conectiva.com.br, linrad@antennspecialisten.se, linknets@alibaba.com, lin-mark@263.net
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <1383673356.11046.279.camel@schen9-DESK>
+Sender: owner-linux-mm@kvack.org
+To: Tim Chen <tim.c.chen@linux.intel.com>
+Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>George Spelvin <l>
+List-Id: linux-arch.vger.kernel.org
 
-Hello,
+On Tue, Nov 05, 2013 at 05:42:36PM +0000, Tim Chen wrote:
+> This patch corrects the way memory barriers are used in the MCS lock
+> and removes ones that are not needed. Also add comments on all barriers.
 
-I am Mrs. Mary Saleh Saville an ageing widow suffering from long time illness. I have some funds I inherited from my late husband, the sum of US$3,500,000.00 and I am in need of a very honest and God fearing person that will use the fund for God's work to help the less privileged out there.
+Hmm, I see that you're fixing up the barriers, but I still don't completely
+understand how what you have is correct. Hopefully you can help me out :)
 
-I have mapped out$1,200.000.00 for your personal use in this work. While the rest will be for the work.Please if you would be able to use the funds for the Lord's work kindly reply for further details.
+> Reviewed-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+> Reviewed-by: Tim Chen <tim.c.chen@linux.intel.com>
+> Signed-off-by: Jason Low <jason.low2@hp.com>
+> ---
+>  include/linux/mcs_spinlock.h |   13 +++++++++++--
+>  1 files changed, 11 insertions(+), 2 deletions(-)
+> 
+> diff --git a/include/linux/mcs_spinlock.h b/include/linux/mcs_spinlock.h
+> index 96f14299..93d445d 100644
+> --- a/include/linux/mcs_spinlock.h
+> +++ b/include/linux/mcs_spinlock.h
+> @@ -36,16 +36,19 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
+>  	node->locked = 0;
+>  	node->next   = NULL;
+>  
+> +	/* xchg() provides a memory barrier */
+>  	prev = xchg(lock, node);
+>  	if (likely(prev == NULL)) {
+>  		/* Lock acquired */
+>  		return;
+>  	}
+>  	ACCESS_ONCE(prev->next) = node;
+> -	smp_wmb();
+>  	/* Wait until the lock holder passes the lock down */
+>  	while (!ACCESS_ONCE(node->locked))
+>  		arch_mutex_cpu_relax();
+> +
+> +	/* Make sure subsequent operations happen after the lock is acquired */
+> +	smp_rmb();
 
-Your full name:
-Your full address:
-Your telephone/mobile number:
-Your fax Number:
-Your full company name:
-Your age:
+Ok, so this is an smp_rmb() because we assume that stores aren't speculated,
+right? (i.e. the control dependency above is enough for stores to be ordered
+with respect to taking the lock)...
 
-Thanks and God bless.
+>  }
+>  
+>  /*
+> @@ -58,6 +61,7 @@ static void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *nod
+>  
+>  	if (likely(!next)) {
+>  		/*
+> +		 * cmpxchg() provides a memory barrier.
+>  		 * Release the lock by setting it to NULL
+>  		 */
+>  		if (likely(cmpxchg(lock, node, NULL) == node))
+> @@ -65,9 +69,14 @@ static void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *nod
+>  		/* Wait until the next pointer is set */
+>  		while (!(next = ACCESS_ONCE(node->next)))
+>  			arch_mutex_cpu_relax();
+> +	} else {
+> +		/*
+> +		 * Make sure all operations within the critical section
+> +		 * happen before the lock is released.
+> +		 */
+> +		smp_wmb();
 
-Mrs. Mary Saleh Saville
+...but I don't see what prevents reads inside the critical section from
+moving across the smp_wmb() here.
+
+What am I missing?
+
+Will
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
