@@ -1,147 +1,34 @@
-From: Tim Chen <tim.c.chen@linux.intel.com>
-Subject: [PATCH v2 4/4] MCS Lock: Make mcs_spinlock.h includable in other
- files
-Date: Tue, 05 Nov 2013 09:42:39 -0800
-Message-ID: <1383673359.11046.280.camel@schen9-DESK>
-References: <cover.1383670202.git.tim.c.chen@linux.intel.com>
+From: "Mrs. Mary Saleh Saville" <pattersonjwilliam@yahoo.com>
+Subject: Donation Project
+Date: Wed, 6 Nov 2013 01:42:25 +0800
+Message-ID: <201311050334.rA53YCuP021239@tx.cpta.com.cn>
+Reply-To: <mary_saleh@europemail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain;
+	charset="Windows-1251"
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <cover.1383670202.git.tim.c.chen@linux.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, "Paul
- E.McKenney" <paulmck@linux.vnet.ibm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>Wi
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from [114.255.29.133] ([114.255.29.133]:53130 "EHLO tx.cpta.com.cn"
+	rhost-flags-FAIL-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1755334Ab3KERqi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 5 Nov 2013 12:46:38 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux_newbies@yahoogroups.com, linpearl_777@yahoo.com, linockpk@yahoo.com, linux@www.softcatala.net, linux-390@vm.marist.edu, linux-arch@vger.kernel.org, linuxacpi@vger.kernel.org, linkwell@usa.net, linn.harson@thompsonhine.com, linkers@telkom.net.id, linkers@space.net.pk, linuxaudit@redhat.com, links@pes.comsats.net.pk, linphone-users@nongnu.org, links@nexlinx.net.pk, linux-audio-dev@music.columbia.edu, linlen4544@msn.com, linux@mlf.linux.rulez.org, linux_nic@md.com.my, linksmanager@malaysiadirectory.comlinksmanager@malaysiadirectory.co, linux@lists.unixtech.be, links-list@linuxfromscratch.org, linuxbios@linuxbios.org, linux-aktivis@linux.or.id, linux@lhr.comsats.net.pk, linkers@lcci.org.pk, linocampion@kpmg.com.br, linkwell@khi.fascom.com, links-users@inf.ed.ac.uk, lintasco@indosat.net.id, lintas@indosat.net.id, linkers@indo.net.id, lintz-re@hotmail.com, linnsaraniah@hotmail.com, linlyokelin@hotmail.com, linuxaudio-it@gnufunk.org, linker@global.net.pk, linkcon@eworld.net.pk, lintastour@email.com, linong@ecrobot.com, linux.ie-1-wire-software-development-admin@dalsemi.com, linmark@cyber.net.pk, lintas94@centrin.net.id, linksbk@cbn.net.id, links@cat.com.pk, linux-br@bazar2.conectiva.com.br, linrad@antennspecialisten.se, linknets@alibaba.com, lin-mark@263.net
 
-The following changes are made to enable mcs_spinlock.h file to be
-widely included in other files without causing problem:
+Hello,
 
-1) Include a number of prerequisite header files and define
-   arch_mutex_cpu_relax(), if not previously defined.
-2) Make mcs_spin_unlock() an inlined function and
-   rename mcs_spin_lock() to _raw_mcs_spin_lock() which is also an
-   inlined function.
-3) Create a new mcs_spinlock.c file to contain the non-inlined
-   mcs_spin_lock() function.
+I am Mrs. Mary Saleh Saville an ageing widow suffering from long time illness. I have some funds I inherited from my late husband, the sum of US$3,500,000.00 and I am in need of a very honest and God fearing person that will use the fund for God's work to help the less privileged out there.
 
-Signed-off-by: Waiman Long <Waiman.Long@hp.com>
----
- include/linux/mcs_spinlock.h |   27 ++++++++++++++++++++++-----
- kernel/Makefile              |    6 +++---
- kernel/mcs_spinlock.c        |   21 +++++++++++++++++++++
- 3 files changed, 46 insertions(+), 8 deletions(-)
- create mode 100644 kernel/mcs_spinlock.c
+I have mapped out$1,200.000.00 for your personal use in this work. While the rest will be for the work.Please if you would be able to use the funds for the Lord's work kindly reply for further details.
 
-diff --git a/include/linux/mcs_spinlock.h b/include/linux/mcs_spinlock.h
-index 93d445d..f2c71e8 100644
---- a/include/linux/mcs_spinlock.h
-+++ b/include/linux/mcs_spinlock.h
-@@ -12,11 +12,27 @@
- #ifndef __LINUX_MCS_SPINLOCK_H
- #define __LINUX_MCS_SPINLOCK_H
- 
-+/*
-+ * asm/processor.h may define arch_mutex_cpu_relax().
-+ * If it is not defined, cpu_relax() will be used.
-+ */
-+#include <asm/barrier.h>
-+#include <asm/cmpxchg.h>
-+#include <asm/processor.h>
-+#include <linux/compiler.h>
-+
-+#ifndef arch_mutex_cpu_relax
-+# define arch_mutex_cpu_relax() cpu_relax()
-+#endif
-+
- struct mcs_spinlock {
- 	struct mcs_spinlock *next;
- 	int locked; /* 1 if lock acquired */
- };
- 
-+extern
-+void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node);
-+
- /*
-  * In order to acquire the lock, the caller should declare a local node and
-  * pass a reference of the node to this function in addition to the lock.
-@@ -24,11 +40,11 @@ struct mcs_spinlock {
-  * on this node->locked until the previous lock holder sets the node->locked
-  * in mcs_spin_unlock().
-  *
-- * We don't inline mcs_spin_lock() so that perf can correctly account for the
-- * time spent in this lock function.
-+ * The _raw_mcs_spin_lock() function should not be called directly. Instead,
-+ * users should call mcs_spin_lock().
-  */
--static noinline
--void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
-+static inline
-+void _raw_mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
- {
- 	struct mcs_spinlock *prev;
- 
-@@ -55,7 +71,8 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
-  * Releases the lock. The caller should pass in the corresponding node that
-  * was used to acquire the lock.
-  */
--static void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
-+static inline
-+void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
- {
- 	struct mcs_spinlock *next = ACCESS_ONCE(node->next);
- 
-diff --git a/kernel/Makefile b/kernel/Makefile
-index 1ce4755..2ad8454 100644
---- a/kernel/Makefile
-+++ b/kernel/Makefile
-@@ -50,9 +50,9 @@ obj-$(CONFIG_SMP) += smp.o
- ifneq ($(CONFIG_SMP),y)
- obj-y += up.o
- endif
--obj-$(CONFIG_SMP) += spinlock.o
--obj-$(CONFIG_DEBUG_SPINLOCK) += spinlock.o
--obj-$(CONFIG_PROVE_LOCKING) += spinlock.o
-+obj-$(CONFIG_SMP) += spinlock.o mcs_spinlock.o
-+obj-$(CONFIG_DEBUG_SPINLOCK) += spinlock.o mcs_spinlock.o
-+obj-$(CONFIG_PROVE_LOCKING) += spinlock.o mcs_spinlock.o
- obj-$(CONFIG_UID16) += uid16.o
- obj-$(CONFIG_MODULES) += module.o
- obj-$(CONFIG_MODULE_SIG) += module_signing.o modsign_pubkey.o modsign_certificate.o
-diff --git a/kernel/mcs_spinlock.c b/kernel/mcs_spinlock.c
-new file mode 100644
-index 0000000..3c55626
---- /dev/null
-+++ b/kernel/mcs_spinlock.c
-@@ -0,0 +1,21 @@
-+/*
-+ * MCS lock
-+ *
-+ * The MCS lock (proposed by Mellor-Crummey and Scott) is a simple spin-lock
-+ * with the desirable properties of being fair, and with each cpu trying
-+ * to acquire the lock spinning on a local variable.
-+ * It avoids expensive cache bouncings that common test-and-set spin-lock
-+ * implementations incur.
-+ */
-+#include <linux/mcs_spinlock.h>
-+#include <linux/export.h>
-+
-+/*
-+ * We don't inline mcs_spin_lock() so that perf can correctly account for the
-+ * time spent in this lock function.
-+ */
-+void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
-+{
-+	_raw_mcs_spin_lock(lock, node);
-+}
-+EXPORT_SYMBOL_GPL(mcs_spin_lock);
--- 
-1.7.4.4
+Your full name:
+Your full address:
+Your telephone/mobile number:
+Your fax Number:
+Your full company name:
+Your age:
 
+Thanks and God bless.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Mrs. Mary Saleh Saville
