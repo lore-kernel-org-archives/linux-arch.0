@@ -1,8 +1,8 @@
-From: Will Deacon <will.deacon@arm.com>
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH 4/4] MCS Lock: Make mcs_spinlock.h includable in other
  files
-Date: Tue, 5 Nov 2013 10:15:38 +0000
-Message-ID: <20131105101538.GA26895@mudshark.cambridge.arm.com>
+Date: Tue, 5 Nov 2013 12:14:35 +0100
+Message-ID: <20131105111435.GN28601@twins.programming.kicks-ass.net>
 References: <cover.1383604526.git.tim.c.chen@linux.intel.com>
  <1383608233.11046.263.camel@schen9-DESK>
 Mime-Version: 1.0
@@ -12,51 +12,13 @@ Content-Disposition: inline
 In-Reply-To: <1383608233.11046.263.camel@schen9-DESK>
 Sender: owner-linux-mm@kvack.org
 To: Tim Chen <tim.c.chen@linux.intel.com>
-Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>George Spelvin <l>
+Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott
 List-Id: linux-arch.vger.kernel.org
 
-Hello,
+On Mon, Nov 04, 2013 at 03:37:13PM -0800, Tim Chen wrote:
+> +EXPORT_SYMBOL(mcs_spin_lock);
 
-On Mon, Nov 04, 2013 at 11:37:13PM +0000, Tim Chen wrote:
-> The following changes are made to enable mcs_spinlock.h file to be
-> widely included in other files without causing problem:
-> 
-> 1) Include a number of prerequisite header files and define
->    arch_mutex_cpu_relax(), if not previously defined.
-> 2) Separate out mcs_spin_lock() into a mcs_spinlock.c file.
-> 3) Make mcs_spin_unlock() an inlined function.
-
-[...]
-
-> +void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
-> +{
-> +	struct mcs_spinlock *prev;
-> +
-> +	/* Init node */
-> +	node->locked = 0;
-> +	node->next   = NULL;
-> +
-> +	prev = xchg(lock, node);
-> +	if (likely(prev == NULL)) {
-> +		/* Lock acquired */
-> +		node->locked = 1;
-> +		return;
-> +	}
-> +	ACCESS_ONCE(prev->next) = node;
-> +	smp_wmb();
-> +	/* Wait until the lock holder passes the lock down */
-> +	while (!ACCESS_ONCE(node->locked))
-> +		arch_mutex_cpu_relax();
-> +}
-
-You have the barrier in a different place than the version in the header
-file; is this intentional?
-
-Also, why is an smp_wmb() sufficient (as opposed to a full smp_mb()?). Are
-there restrictions on the types of access that can occur in the critical
-section?
-
-Will
+If that can be a GPL, please make it so.
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
