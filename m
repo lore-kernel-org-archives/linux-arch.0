@@ -1,66 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:20261 "EHLO mga09.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754829Ab3KEV1h (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 5 Nov 2013 16:27:37 -0500
-Subject: Re: [PATCH v2 0/4] MCS Lock: MCS lock code cleanup and
- optimizations
-From: Tim Chen <tim.c.chen@linux.intel.com>
-In-Reply-To: <CANN689He+1uW2UpfLtjrtBO8_F=5EX4MnynXbp8rV7uTeD+5aw@mail.gmail.com>
-References: <cover.1383670202.git.tim.c.chen@linux.intel.com>
-	 <1383673346.11046.276.camel@schen9-DESK>
-	 <CANN689He+1uW2UpfLtjrtBO8_F=5EX4MnynXbp8rV7uTeD+5aw@mail.gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Date: Tue, 05 Nov 2013 13:27:33 -0800
-Message-ID: <1383686853.11046.299.camel@schen9-DESK>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from [204.155.152.216] ([204.155.152.216]:45654 "EHLO shutemov.name"
+	rhost-flags-FAIL-FAIL-OK-OK) by vger.kernel.org with ESMTP
+	id S1755549Ab3KEXpR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 5 Nov 2013 18:45:17 -0500
+Date: Wed, 6 Nov 2013 00:42:17 +0200
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [PATCH] mm: create a separate slab for page->ptl allocation
+Message-ID: <20131105224217.GC20167@shutemov.name>
+References: <1382442839-7458-1-git-send-email-kirill.shutemov@linux.intel.com>
+ <20131105150145.734a5dd5b5d455800ebfa0d3@linux-foundation.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20131105150145.734a5dd5b5d455800ebfa0d3@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michel Lespinasse <walken@google.com>
-Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Will Deacon <will.deacon@arm.com>
-Message-ID: <20131105212733.d3fLzwba1hNbNxrmXBqLNT2ZXfj6ikzy0dziujqzUO0@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Message-ID: <20131105224217.h_bpoOX0jffTkG03bo374nAQ0G3q-09YaC3l_w_GXWM@z>
 
-On Tue, 2013-11-05 at 13:14 -0800, Michel Lespinasse wrote:
-> On Tue, Nov 5, 2013 at 9:42 AM, Tim Chen <tim.c.chen@linux.intel.com> wrote:
-> > In this patch series, we separated out the MCS lock code which was
-> > previously embedded in the mutex.c.  This allows for easier reuse of
-> > MCS lock in other places like rwsem and qrwlock.  We also did some micro
-> > optimizations and barrier cleanup.
-> >
-> > This patches were previously part of the rwsem optimization patch series
-> > but now we spearate them out.
-> >
-> > Tim Chen
-> >
-> > v2:
-> > 1. change export mcs_spin_lock as a GPL export symbol
-> > 2. corrected mcs_spin_lock to references
-> >
-> > Jason Low (2):
-> >   MCS Lock: optimizations and extra comments
-> >   MCS Lock: Barrier corrections
-> >
-> > Tim Chen (1):
-> >   MCS Lock: Restructure the MCS lock defines and locking code into its
-> >     own file
-> >
-> > Waiman Long (1):
-> >   MCS Lock: Make mcs_spinlock.h includable in other files
-> >
-> >  include/linux/mcs_spinlock.h |   99 ++++++++++++++++++++++++++++++++++++++++++
-> >  include/linux/mutex.h        |    5 +-
-> >  kernel/Makefile              |    6 +-
-> >  kernel/mcs_spinlock.c        |   21 +++++++++
-> >  kernel/mutex.c               |   60 +++----------------------
-> >  5 files changed, 133 insertions(+), 58 deletions(-)
-> >  create mode 100644 include/linux/mcs_spinlock.h
-> >  create mode 100644 kernel/mcs_spinlock.c
+
+[ sorry, resend to all ]
+
+On Tue, Nov 05, 2013 at 03:01:45PM -0800, Andrew Morton wrote:
+> On Tue, 22 Oct 2013 14:53:59 +0300 "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> wrote:
 > 
-> What base kernel does this apply over ?
+> > If DEBUG_SPINLOCK and DEBUG_LOCK_ALLOC are enabled spinlock_t on x86_64
+> > is 72 bytes. For page->ptl they will be allocated from kmalloc-96 slab,
+> > so we loose 24 on each. An average system can easily allocate few tens
+> > thousands of page->ptl and overhead is significant.
+> > 
+> > Let's create a separate slab for page->ptl allocation to solve this.
+> > 
+> > ...
+> >
+> > --- a/mm/memory.c
+> > +++ b/mm/memory.c
+> > @@ -4332,11 +4332,19 @@ void copy_user_huge_page(struct page *dst, struct page *src,
+> >  #endif /* CONFIG_TRANSPARENT_HUGEPAGE || CONFIG_HUGETLBFS */
+> >  
+> >  #if USE_SPLIT_PTE_PTLOCKS
+> > +struct kmem_cache *page_ptl_cachep;
+> > +void __init ptlock_cache_init(void)
+> > +{
+> > +	if (sizeof(spinlock_t) > sizeof(long))
+> > +		page_ptl_cachep = kmem_cache_create("page->ptl",
+> > +				sizeof(spinlock_t), 0, SLAB_PANIC, NULL);
+> > +}
 > 
+> Confused.  If (sizeof(spinlock_t) > sizeof(long)) happens to be false
+> then the kernel will later crash.  It would be better to use BUILD_BUG_ON()
+> here, if that works.  Otherwise BUG_ON.
 
-Should be applicable on latest v3.12-rc7.
+if (sizeof(spinlock_t) > sizeof(long)) is false, we don't need dynamicly
+allocate page->ptl. It's embedded to struct page itself. __ptlock_alloc()
+never called in this case.
 
-Tim
+> Also, we have the somewhat silly KMEM_CACHE() macro, but it looks
+> inapplicable here?
 
+The first argument of KMEM_CACHE() is struct name, but we have typedef
+here.
+
+> >  bool __ptlock_alloc(struct page *page)
+> >  {
+> >  	spinlock_t *ptl;
+> >  
+> > -	ptl = kmalloc(sizeof(spinlock_t), GFP_KERNEL);
+> > +	ptl = kmem_cache_alloc(page_ptl_cachep, GFP_KERNEL);
+> >  	if (!ptl)
+> >  		return false;
+> >  	page->ptl = (unsigned long)ptl;
+> > @@ -4346,6 +4354,6 @@ bool __ptlock_alloc(struct page *page)
+> >  void __ptlock_free(struct page *page)
+> >  {
+> >  	if (sizeof(spinlock_t) > sizeof(page->ptl))
+> > -		kfree((spinlock_t *)page->ptl);
+> > +		kmem_cache_free(page_ptl_cachep, (spinlock_t *)page->ptl);
+> 
+> A void* cast would suffice here, but I suppose the spinlock_t* cast has
+> some documentation value.
+
+Right.
+
+-- 
+ Kirill A. Shutemov
