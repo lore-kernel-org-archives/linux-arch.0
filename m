@@ -1,26 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:54640 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753412Ab3KELPn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Nov 2013 06:15:43 -0500
-Date: Tue, 5 Nov 2013 12:14:35 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 4/4] MCS Lock: Make mcs_spinlock.h includable in other
- files
-Message-ID: <20131105111435.GN28601@twins.programming.kicks-ass.net>
-References: <cover.1383604526.git.tim.c.chen@linux.intel.com>
- <1383608233.11046.263.camel@schen9-DESK>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1383608233.11046.263.camel@schen9-DESK>
+Received: from mga09.intel.com ([134.134.136.24]:28404 "EHLO mga09.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750838Ab3KERm3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 5 Nov 2013 12:42:29 -0500
+Subject: [PATCH v2 0/4] MCS Lock: MCS lock code cleanup and optimizations
+From: Tim Chen <tim.c.chen@linux.intel.com>
+References: <cover.1383670202.git.tim.c.chen@linux.intel.com>
+Content-Type: text/plain; charset="UTF-8"
+Date: Tue, 05 Nov 2013 09:42:26 -0800
+Message-ID: <1383673346.11046.276.camel@schen9-DESK>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tim Chen <tim.c.chen@linux.intel.com>
-Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>
-Message-ID: <20131105111435.I1oCnXwch-kugohLwiUTNWfUKoIjkh2FWrUM_uoHL6c@z>
+To: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Will Deacon <will.deacon@arm.com>
+Message-ID: <20131105174226.Qs8222-4zAfIT0g_ErpMYWeufcRJJwQ1w9jxRdKTcto@z>
 
-On Mon, Nov 04, 2013 at 03:37:13PM -0800, Tim Chen wrote:
-> +EXPORT_SYMBOL(mcs_spin_lock);
+In this patch series, we separated out the MCS lock code which was
+previously embedded in the mutex.c.  This allows for easier reuse of
+MCS lock in other places like rwsem and qrwlock.  We also did some micro
+optimizations and barrier cleanup.
 
-If that can be a GPL, please make it so.
+This patches were previously part of the rwsem optimization patch series
+but now we spearate them out.
+
+Tim Chen
+
+v2:
+1. change export mcs_spin_lock as a GPL export symbol
+2. corrected mcs_spin_lock to references
+
+
+Jason Low (2):
+  MCS Lock: optimizations and extra comments
+  MCS Lock: Barrier corrections
+
+Tim Chen (1):
+  MCS Lock: Restructure the MCS lock defines and locking code into its
+    own file
+
+Waiman Long (1):
+  MCS Lock: Make mcs_spinlock.h includable in other files
+
+ include/linux/mcs_spinlock.h |   99 ++++++++++++++++++++++++++++++++++++++++++
+ include/linux/mutex.h        |    5 +-
+ kernel/Makefile              |    6 +-
+ kernel/mcs_spinlock.c        |   21 +++++++++
+ kernel/mutex.c               |   60 +++----------------------
+ 5 files changed, 133 insertions(+), 58 deletions(-)
+ create mode 100644 include/linux/mcs_spinlock.h
+ create mode 100644 kernel/mcs_spinlock.c
+
+-- 
+1.7.4.4
+
+
