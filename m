@@ -1,63 +1,79 @@
-From: Chen Gang <gang.chen@asianux.com>
-Subject: Re: [PATCH trivial] include: uapi: standard all files' macro prefix
-	and suffix, excluding "linux/" sub-directory
-Date: Tue, 05 Nov 2013 20:05:12 +0800
-Message-ID: <5278DEF8.2030101@asianux.com>
-References: <52786742.1080509@asianux.com> <51FB6216.6010008@asianux.com>
-	<11907.1383602624@warthog.procyon.org.uk>
-	<13981.1383649896@warthog.procyon.org.uk>
+From: Tim Chen <tim.c.chen@linux.intel.com>
+Subject: Re: [PATCH 4/4] MCS Lock: Make mcs_spinlock.h includable in other
+ files
+Date: Tue, 05 Nov 2013 09:10:25 -0800
+Message-ID: <1383671425.11046.275.camel@schen9-DESK>
+References: <cover.1383604526.git.tim.c.chen@linux.intel.com>
+	 <1383608233.11046.263.camel@schen9-DESK>
+	 <20131105101538.GA26895@mudshark.cambridge.arm.com>
+	 <20131105112212.GO28601@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <13981.1383649896@warthog.procyon.org.uk>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: David Howells <dhowells@redhat.com>
-Cc: xen-devel@lists.xensource.com, jeremy@goop.org, airlied@linux.ie, daniel.vetter@ffwll.ch, alsa-devel@alsa-project.org, dri-devel@lists.freedesktop.org, perex@perex.cz, thierry.reding@gmail.com, linux-mtd@lists.infradead.org, sean.hefty@intel.com, virtualization@lists.linux-foundation.org, Linux-Arch <linux-arch@vger.kernel.org>, "kgene.kim@samsung.com" <kgene.kim@samsung.com>, tbergstrom@nvidia.com, jy0922.shim@samsung.com, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, roland@purestorage.com, Takashi Iwai <tiwai@suse.de>, Tomi Valkeinen <tomi.valkeinen@ti.com>, mtk.manpages@gmail.com, fcoe-devel@open-fcoe.org, Paul McKenney <paulmck@linux.vnet.ibm.com>, "plagnioj@jcrosoft.com" <plagnioj@jcrosoft.com>, Arnd Bergmann <arnd@arndb.de>, swarren@wwwdotorg.org, intel-gfx@lists.freedesktop.org, inki.dae@samsung.com, "linux-samsung-soc@vger.kernel.org" <linux-samsung-soc@vger>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20131105112212.GO28601@twins.programming.kicks-ass.net>
+Sender: owner-linux-mm@kvack.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, "Paul
+ E.McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, H. Peter Anvin
 List-Id: linux-arch.vger.kernel.org
 
-On 11/05/2013 07:11 PM, David Howells wrote:
-> Chen Gang <gang.chen@asianux.com> wrote:
+On Tue, 2013-11-05 at 12:22 +0100, Peter Zijlstra wrote:
+> On Tue, Nov 05, 2013 at 10:15:38AM +0000, Will Deacon wrote:
+> > Hello,
+> > 
+> > On Mon, Nov 04, 2013 at 11:37:13PM +0000, Tim Chen wrote:
+> > > The following changes are made to enable mcs_spinlock.h file to be
+> > > widely included in other files without causing problem:
+> > > 
+> > > 1) Include a number of prerequisite header files and define
+> > >    arch_mutex_cpu_relax(), if not previously defined.
+> > > 2) Separate out mcs_spin_lock() into a mcs_spinlock.c file.
+> > > 3) Make mcs_spin_unlock() an inlined function.
+> > 
+> > [...]
+> > 
+> > > +void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
+> > > +{
+> > > +	struct mcs_spinlock *prev;
+> > > +
+> > > +	/* Init node */
+> > > +	node->locked = 0;
+> > > +	node->next   = NULL;
+> > > +
+> > > +	prev = xchg(lock, node);
+> > > +	if (likely(prev == NULL)) {
+> > > +		/* Lock acquired */
+> > > +		node->locked = 1;
+> > > +		return;
+> > > +	}
+> > > +	ACCESS_ONCE(prev->next) = node;
+> > > +	smp_wmb();
+> > > +	/* Wait until the lock holder passes the lock down */
+> > > +	while (!ACCESS_ONCE(node->locked))
+> > > +		arch_mutex_cpu_relax();
+> > > +}
+> > 
+> > You have the barrier in a different place than the version in the header
+> > file; is this intentional?
+> > 
+> > Also, why is an smp_wmb() sufficient (as opposed to a full smp_mb()?). Are
+> > there restrictions on the types of access that can occur in the critical
+> > section?
 > 
->>> Userspace sometimes depends on the name in the guard macro:-/
->>
->> "the guard macro" is only for prevent itself from being included by
->> multiple times (an id used by itself -- like a handle), it is not an id
->> to let other files know about it (it is not a normal using way).
-> 
-> Whilst that *should* be true, it isn't actually true.  See:
-> 
-> 	grep -r _LINUX_.*_H /usr/include/ | grep -v ^/usr/include/linux/
-> 
-> for example.  Also who knows what all those autoconf scripts out there look
-> for?
+> Oh, good spot. I missed it because it doesn't actually remove the one in
+> the header, why is that?
 > 
 
-Oh... the real world is really not quite perfect. :-/
+Good catch.  I merged an older version of Waiman's patch.  I'll correct
+this and update with the patch series with the newer one that should
+only call the mcs_spin_lock in the header file.
+
+Tim
 
 
-> However, thinking about it some more, you're probably safe with respect to
-> userspace as scripts/headers_install.h strips off the _UAPI prefix on the
-> guard macros - just as long as you don't change the rest of the macro name.
-> 
-
-In honest, I really did not think more about it.
-
-Only adding _UAPI (not touch others) can completely fix one style issue:
-separate "uapi/*" from other sub-directories in "include/*"
-
-So for me, we can continue improve this patch: add "_UAPI" for all guard
-macro under "include/uapi/*" (also include "include/uapi/linux").
-
-
-Thanks.
--- 
-Chen Gang
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
