@@ -1,61 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:36826 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755753Ab3KFKeq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Nov 2013 05:34:46 -0500
-Date: Wed, 6 Nov 2013 10:34:03 +0000
-From: Will Deacon <will.deacon@arm.com>
+Received: from merlin.infradead.org ([205.233.59.134]:52257 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932151Ab3KFLTG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Nov 2013 06:19:06 -0500
+Date: Wed, 6 Nov 2013 12:18:45 +0100
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH] mm: create a separate slab for page->ptl allocation
-Message-ID: <20131106103403.GB21074@mudshark.cambridge.arm.com>
+Message-ID: <20131106111845.GG26785@twins.programming.kicks-ass.net>
 References: <1382442839-7458-1-git-send-email-kirill.shutemov@linux.intel.com>
  <20131105150145.734a5dd5b5d455800ebfa0d3@linux-foundation.org>
  <20131105224217.GC20167@shutemov.name>
  <20131105155619.021f32eba1ca8f15a73ed4c9@linux-foundation.org>
  <20131105231310.GE20167@shutemov.name>
+ <20131106093131.GU28601@twins.programming.kicks-ass.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20131105231310.GE20167@shutemov.name>
+In-Reply-To: <20131106093131.GU28601@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: Andrew Morton <akpm@linux-foundation.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20131106103403.oXNKCk-JmxEhuXYjQ2ZNe7JhBtuTs6Zp6sOZ09XWg9g@z>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Message-ID: <20131106111845._HSUcOQDLBB-ItRyWjlZz5HMgXKnadXIthLCpFg90EQ@z>
 
-On Tue, Nov 05, 2013 at 11:13:11PM +0000, Kirill A. Shutemov wrote:
-> On Tue, Nov 05, 2013 at 03:56:19PM -0800, Andrew Morton wrote:
-> > On Wed, 6 Nov 2013 00:42:17 +0200 "Kirill A. Shutemov" <kirill@shutemov.name> wrote:
-> > 
-> > > > >  #if USE_SPLIT_PTE_PTLOCKS
-> > > > > +struct kmem_cache *page_ptl_cachep;
-> > > > > +void __init ptlock_cache_init(void)
-> > > > > +{
-> > > > > +	if (sizeof(spinlock_t) > sizeof(long))
-> > > > > +		page_ptl_cachep = kmem_cache_create("page->ptl",
-> > > > > +				sizeof(spinlock_t), 0, SLAB_PANIC, NULL);
-> > > > > +}
-> > > > 
-> > > > Confused.  If (sizeof(spinlock_t) > sizeof(long)) happens to be false
-> > > > then the kernel will later crash.  It would be better to use BUILD_BUG_ON()
-> > > > here, if that works.  Otherwise BUG_ON.
-> > > 
-> > > if (sizeof(spinlock_t) > sizeof(long)) is false, we don't need dynamicly
-> > > allocate page->ptl. It's embedded to struct page itself. __ptlock_alloc()
-> > > never called in this case.
-> > 
-> > OK.  Please add a comment explaining this so the next reader doesn't get
-> > tripped up like I was.
+On Wed, Nov 06, 2013 at 10:31:31AM +0100, Peter Zijlstra wrote:
+> Subject: mm: Properly separate the bloated ptl from the regular case
 > 
-> Okay, I will tomorrow.
+> Use kernel/bounds.c to convert build-time spinlock_t size into a
+> preprocessor symbol and apply that to properly separate the page::ptl
+> situation.
 > 
-> > Really the function shouldn't exist in this case.  It is __init so the
-> > sin is not terrible, but can this be arranged?
+> Signed-off-by: Peter Zijlstra <peterz@infradead.org>
+> ---
+>  include/linux/mm.h       | 24 +++++++++++++-----------
+>  include/linux/mm_types.h |  9 +++++----
+>  kernel/bounds.c          |  2 ++
+>  mm/memory.c              | 11 +++++------
+>  4 files changed, 25 insertions(+), 21 deletions(-)
 > 
-> I would like to get rid of __ptlock_alloc()/__ptlock_free() too, but I
-> don't see a way within C: we need to know sizeof(spinlock_t) on
-> preprocessor stage.
+> diff --git a/kernel/bounds.c b/kernel/bounds.c
+> index e8ca97b5c386..5982437eca2c 100644
+> --- a/kernel/bounds.c
+> +++ b/kernel/bounds.c
+> @@ -11,6 +11,7 @@
+>  #include <linux/kbuild.h>
+>  #include <linux/page_cgroup.h>
+>  #include <linux/log2.h>
+> +#include <linux/spinlock.h>
+>  
+>  void foo(void)
+>  {
+> @@ -21,5 +22,6 @@ void foo(void)
+>  #ifdef CONFIG_SMP
+>  	DEFINE(NR_CPUS_BITS, ilog2(CONFIG_NR_CPUS));
+>  #endif
+> +	DEFINE(BLOATED_SPINLOCKS, sizeof(spinlock_t) > sizeof(int));
+>  	/* End of constants */
+>  }
 
-FWIW: if the architecture selects ARCH_USE_CMPXCHG_LOCKREF, then a spinlock_t
-is 32-bit (assuming that unsigned int is also 32-bit).
+Using that we could also do.. not been near a compiler.
 
-Will
+---
+Subject: lockref: Use bloated_spinlocks to avoid explicit config dependencies
+
+Avoid the fragile Kconfig construct guestimating spinlock_t sizes; use a
+friendly compile-time test to determine this.
+
+Not-Signed-off-by: Peter Zijlstra <peterz@infradead.org>
+---
+ lib/Kconfig   | 3 ---
+ lib/lockref.c | 2 +-
+ 2 files changed, 1 insertion(+), 4 deletions(-)
+
+diff --git a/lib/Kconfig b/lib/Kconfig
+index b3c8be0da17f..254af289d1d0 100644
+--- a/lib/Kconfig
++++ b/lib/Kconfig
+@@ -54,9 +54,6 @@ config ARCH_USE_CMPXCHG_LOCKREF
+ config CMPXCHG_LOCKREF
+ 	def_bool y if ARCH_USE_CMPXCHG_LOCKREF
+ 	depends on SMP
+-	depends on !GENERIC_LOCKBREAK
+-	depends on !DEBUG_SPINLOCK
+-	depends on !DEBUG_LOCK_ALLOC
+ 
+ config CRC_CCITT
+ 	tristate "CRC-CCITT functions"
+diff --git a/lib/lockref.c b/lib/lockref.c
+index 6f9d434c1521..a158fd86aa1a 100644
+--- a/lib/lockref.c
++++ b/lib/lockref.c
+@@ -1,7 +1,7 @@
+ #include <linux/export.h>
+ #include <linux/lockref.h>
+ 
+-#ifdef CONFIG_CMPXCHG_LOCKREF
++#if defined(CONFIG_CMPXCHG_LOCKREF) && !BLOATED_SPINLOCKS
+ 
+ /*
+  * Allow weakly-ordered memory architectures to provide barrier-less
