@@ -1,42 +1,289 @@
-From: "Mrs. Nkoana Maite Mashabane" <pesa_san@yahoo.gr>
-Subject: INVESTMENT PARTNERSHIP
-Date: Wed, 6 Nov 2013 13:30:19 +0800
-Message-ID: <201311051522.rA5FMMuP031996@tx.cpta.com.cn>
-Reply-To: <nkoa_mashabane@safrica.com>
+From: "Figo.zhang" <figo1802@gmail.com>
+Subject: Re: [PATCH v2 3/4] MCS Lock: Barrier corrections
+Date: Wed, 6 Nov 2013 13:44:42 +0800
+Message-ID: <CAF7GXvra3U_MqeJOUztdK7ggCSJcMZxJHuYtHJ4jRqNv2ZCY7Q@mail.gmail.com>
+References: <cover.1383670202.git.tim.c.chen@linux.intel.com>
+	<1383673356.11046.279.camel@schen9-DESK>
+	<20131105183744.GJ26895@mudshark.cambridge.arm.com>
+	<1383679317.11046.293.camel@schen9-DESK>
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset="Windows-1251"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from [114.255.29.133] ([114.255.29.133]:43772 "EHLO tx.cpta.com.cn"
-	rhost-flags-FAIL-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1750793Ab3KFFgt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 6 Nov 2013 00:36:49 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux_newbies@yahoogroups.com, linpearl_777@yahoo.com, linockpk@yahoo.com, linux@www.softcatala.net, linux-390@vm.marist.edu, linux-arch@vger.kernel.org, linuxacpi@vger.kernel.org, linkwell@usa.net, linn.harson@thompsonhine.com, linkers@telkom.net.id, linkers@space.net.pk, linuxaudit@redhat.com, links@pes.comsats.net.pk, linphone-users@nongnu.org, links@nexlinx.net.pk, linux-audio-dev@music.columbia.edu, linlen4544@msn.com, linux@mlf.linux.rulez.org, linux_nic@md.com.my, linksmanager@malaysiadirectory.com, linksmanager@malaysiadirectory.co.cpta.com.cn, linux@lists.unixtech.be, links-list@linuxfromscratch.org, linuxbios@linuxbios.org, linux-aktivis@linux.or.id, linux@lhr.comsats.net.pk, linkers@lcci.org.pk, linocampion@kpmg.com.br, linkwell@khi.fascom.com, links-users@inf.ed.ac.uk, lintasco@indosat.net.id, lintas@indosat.net.id, linkers@indo.net.id, lintz-re@hotmail.com, linnsaraniah@hotmail.com, linlyokelin@hotmail.com, linuxaudio-it@gnufunk.org, linker@global.net.pk, linkcon@eworld.net.pk, lintastour@email.com, linong@ecrobot.com, linux.ie-1-wire-software-development-admin@dalsemi.com, linmark@cyber.net.pk, lintas94@centrin.net.id, linksbk@cbn.net.id, links@cat.com.pk, linux-br@bazar2.conectiva.com.br, linrad@antennspecialisten.se, linknets@alibaba.com, lin-mark@263.net
+Content-Type: multipart/alternative; boundary=047d7b33d176569b1704ea7ba57e
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1383679317.11046.293.camel@schen9-DESK>
+Sender: owner-linux-mm@kvack.org
+To: Tim Chen <tim.c.chen@linux.intel.com>
+Cc: Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George
+List-Id: linux-arch.vger.kernel.org
 
-Hello,
+--047d7b33d176569b1704ea7ba57e
+Content-Type: text/plain; charset=ISO-8859-1
 
-I am Mrs. Maite Nkoana Mashabane, am the Minister of International Relations and Cooperation of South Africa, Please view my profile. http://www.gcis.gov.za/gcis/gcis_profile.jsp?id=1480.
+2013/11/6 Tim Chen <tim.c.chen@linux.intel.com>
 
-I would like you to indicate your interest to receive the transfer of $3.5 Million. I will like you to stand as the beneficiary of the said fund.
+> On Tue, 2013-11-05 at 18:37 +0000, Will Deacon wrote:
+> > On Tue, Nov 05, 2013 at 05:42:36PM +0000, Tim Chen wrote:
+> > > This patch corrects the way memory barriers are used in the MCS lock
+> > > and removes ones that are not needed. Also add comments on all
+> barriers.
+> >
+> > Hmm, I see that you're fixing up the barriers, but I still don't
+> completely
+> > understand how what you have is correct. Hopefully you can help me out :)
+> >
+> > > Reviewed-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+> > > Reviewed-by: Tim Chen <tim.c.chen@linux.intel.com>
+> > > Signed-off-by: Jason Low <jason.low2@hp.com>
+> > > ---
+> > >  include/linux/mcs_spinlock.h |   13 +++++++++++--
+> > >  1 files changed, 11 insertions(+), 2 deletions(-)
+> > >
+> > > diff --git a/include/linux/mcs_spinlock.h
+> b/include/linux/mcs_spinlock.h
+> > > index 96f14299..93d445d 100644
+> > > --- a/include/linux/mcs_spinlock.h
+> > > +++ b/include/linux/mcs_spinlock.h
+> > > @@ -36,16 +36,19 @@ void mcs_spin_lock(struct mcs_spinlock **lock,
+> struct mcs_spinlock *node)
+> > >     node->locked = 0;
+> > >     node->next   = NULL;
+> > >
+> > > +   /* xchg() provides a memory barrier */
+> > >     prev = xchg(lock, node);
+> > >     if (likely(prev == NULL)) {
+> > >             /* Lock acquired */
+> > >             return;
+> > >     }
+> > >     ACCESS_ONCE(prev->next) = node;
+> > > -   smp_wmb();
+> > >     /* Wait until the lock holder passes the lock down */
+> > >     while (!ACCESS_ONCE(node->locked))
+> > >             arch_mutex_cpu_relax();
+> > > +
+> > > +   /* Make sure subsequent operations happen after the lock is
+> acquired */
+> > > +   smp_rmb();
+> >
+> > Ok, so this is an smp_rmb() because we assume that stores aren't
+> speculated,
+> > right? (i.e. the control dependency above is enough for stores to be
+> ordered
+> > with respect to taking the lock)...
+> >
+> > >  }
+> > >
+> > >  /*
+> > > @@ -58,6 +61,7 @@ static void mcs_spin_unlock(struct mcs_spinlock
+> **lock, struct mcs_spinlock *nod
+> > >
+> > >     if (likely(!next)) {
+> > >             /*
+> > > +            * cmpxchg() provides a memory barrier.
+> > >              * Release the lock by setting it to NULL
+> > >              */
+> > >             if (likely(cmpxchg(lock, node, NULL) == node))
+> > > @@ -65,9 +69,14 @@ static void mcs_spin_unlock(struct mcs_spinlock
+> **lock, struct mcs_spinlock *nod
+> > >             /* Wait until the next pointer is set */
+> > >             while (!(next = ACCESS_ONCE(node->next)))
+> > >                     arch_mutex_cpu_relax();
+> > > +   } else {
+> > > +           /*
+> > > +            * Make sure all operations within the critical section
+> > > +            * happen before the lock is released.
+> > > +            */
+> > > +           smp_wmb();
+> >
+> > ...but I don't see what prevents reads inside the critical section from
+> > moving across the smp_wmb() here.
+>
+> This is to prevent any read in next critical section from
+> creeping up before write in the previous critical section
+> has completed
+>
+> e.g.
+> CPU 1 execute
+>         mcs_lock
+>         x = 1;
+>         ...
+>         x = 2;
+>         mcs_unlock
+>
+> and CPU 2 execute
+>
+>         mcs_lock
+>         y = x;
+>         ...
+>         mcs_unlock
+>
+> We expect y to be 2 after the "y = x" assignment. Without the proper
+> rmb in lock and wmb in unlock, y could be 1 for CPU 2 with
+> speculative read (i.e. before the x=2 assignment is completed).
+>
 
-However, I will be resigning soon and want to establish any type of machinery tools devices or agriculture or even real estate under my own registered company. I have the sum to invest. How can I come in contact with you in partnership/investment transaction?
+is it not a good example ?
+why CPU2 will be waited  the "x" set to "2" ?  Maybe "y=x" assignment will
+be executed firstly than CPU1 in pipeline
+because of out-of-reorder.
 
-I want you to assist me in investing the money in your country.
+e.g.
+CPU 1 execute
+        mcs_lock
+        x = 1;
+        ...
+        x = 2;
+        flags = true;
+        mcs_unlock
 
-I will also like you to send me the following information below:
+and CPU 2 execute
 
-(1)Full names:
-(2)Private phone number:
-(3)Current residential address:
-(4)Your Country:
-(5)Occupation:
-(6)Age and Sex:
+       while (flags) {
+              mcs_lock
+               y = x;
+                ...
+              mcs_unlock
+       }
 
-Please I do not need to remind you of the need for absolute Confidentiality if this transaction must succeed. YOU MUST NOT CALL ME! If you do not feel comfortable with this transaction, do not hesitate to discontinue.
+--047d7b33d176569b1704ea7ba57e
+Content-Type: text/html; charset=ISO-8859-1
+Content-Transfer-Encoding: quoted-printable
 
-I will give you more detail's as soon as you confirm your willingness to assisting me.
+<div dir=3D"ltr"><br><div class=3D"gmail_extra"><br><br><div class=3D"gmail=
+_quote">2013/11/6 Tim Chen <span dir=3D"ltr">&lt;<a href=3D"mailto:tim.c.ch=
+en@linux.intel.com" target=3D"_blank">tim.c.chen@linux.intel.com</a>&gt;</s=
+pan><br><blockquote class=3D"gmail_quote" style=3D"margin:0px 0px 0px 0.8ex=
+;border-left-width:1px;border-left-color:rgb(204,204,204);border-left-style=
+:solid;padding-left:1ex">
+<div class=3D""><div class=3D"h5">On Tue, 2013-11-05 at 18:37 +0000, Will D=
+eacon wrote:<br>
+&gt; On Tue, Nov 05, 2013 at 05:42:36PM +0000, Tim Chen wrote:<br>
+&gt; &gt; This patch corrects the way memory barriers are used in the MCS l=
+ock<br>
+&gt; &gt; and removes ones that are not needed. Also add comments on all ba=
+rriers.<br>
+&gt;<br>
+&gt; Hmm, I see that you&#39;re fixing up the barriers, but I still don&#39=
+;t completely<br>
+&gt; understand how what you have is correct. Hopefully you can help me out=
+ :)<br>
+&gt;<br>
+&gt; &gt; Reviewed-by: Paul E. McKenney &lt;<a href=3D"mailto:paulmck@linux=
+.vnet.ibm.com">paulmck@linux.vnet.ibm.com</a>&gt;<br>
+&gt; &gt; Reviewed-by: Tim Chen &lt;<a href=3D"mailto:tim.c.chen@linux.inte=
+l.com">tim.c.chen@linux.intel.com</a>&gt;<br>
+&gt; &gt; Signed-off-by: Jason Low &lt;<a href=3D"mailto:jason.low2@hp.com"=
+>jason.low2@hp.com</a>&gt;<br>
+&gt; &gt; ---<br>
+&gt; &gt; =A0include/linux/mcs_spinlock.h | =A0 13 +++++++++++--<br>
+&gt; &gt; =A01 files changed, 11 insertions(+), 2 deletions(-)<br>
+&gt; &gt;<br>
+&gt; &gt; diff --git a/include/linux/mcs_spinlock.h b/include/linux/mcs_spi=
+nlock.h<br>
+&gt; &gt; index 96f14299..93d445d 100644<br>
+&gt; &gt; --- a/include/linux/mcs_spinlock.h<br>
+&gt; &gt; +++ b/include/linux/mcs_spinlock.h<br>
+&gt; &gt; @@ -36,16 +36,19 @@ void mcs_spin_lock(struct mcs_spinlock **lock=
+, struct mcs_spinlock *node)<br>
+&gt; &gt; =A0 =A0 node-&gt;locked =3D 0;<br>
+&gt; &gt; =A0 =A0 node-&gt;next =A0 =3D NULL;<br>
+&gt; &gt;<br>
+&gt; &gt; + =A0 /* xchg() provides a memory barrier */<br>
+&gt; &gt; =A0 =A0 prev =3D xchg(lock, node);<br>
+&gt; &gt; =A0 =A0 if (likely(prev =3D=3D NULL)) {<br>
+&gt; &gt; =A0 =A0 =A0 =A0 =A0 =A0 /* Lock acquired */<br>
+&gt; &gt; =A0 =A0 =A0 =A0 =A0 =A0 return;<br>
+&gt; &gt; =A0 =A0 }<br>
+&gt; &gt; =A0 =A0 ACCESS_ONCE(prev-&gt;next) =3D node;<br>
+&gt; &gt; - =A0 smp_wmb();<br>
+&gt; &gt; =A0 =A0 /* Wait until the lock holder passes the lock down */<br>
+&gt; &gt; =A0 =A0 while (!ACCESS_ONCE(node-&gt;locked))<br>
+&gt; &gt; =A0 =A0 =A0 =A0 =A0 =A0 arch_mutex_cpu_relax();<br>
+&gt; &gt; +<br>
+&gt; &gt; + =A0 /* Make sure subsequent operations happen after the lock is=
+ acquired */<br>
+&gt; &gt; + =A0 smp_rmb();<br>
+&gt;<br>
+&gt; Ok, so this is an smp_rmb() because we assume that stores aren&#39;t s=
+peculated,<br>
+&gt; right? (i.e. the control dependency above is enough for stores to be o=
+rdered<br>
+&gt; with respect to taking the lock)...<br>
+&gt;<br>
+&gt; &gt; =A0}<br>
+&gt; &gt;<br>
+&gt; &gt; =A0/*<br>
+&gt; &gt; @@ -58,6 +61,7 @@ static void mcs_spin_unlock(struct mcs_spinlock=
+ **lock, struct mcs_spinlock *nod<br>
+&gt; &gt;<br>
+&gt; &gt; =A0 =A0 if (likely(!next)) {<br>
+&gt; &gt; =A0 =A0 =A0 =A0 =A0 =A0 /*<br>
+&gt; &gt; + =A0 =A0 =A0 =A0 =A0 =A0* cmpxchg() provides a memory barrier.<b=
+r>
+&gt; &gt; =A0 =A0 =A0 =A0 =A0 =A0 =A0* Release the lock by setting it to NU=
+LL<br>
+&gt; &gt; =A0 =A0 =A0 =A0 =A0 =A0 =A0*/<br>
+&gt; &gt; =A0 =A0 =A0 =A0 =A0 =A0 if (likely(cmpxchg(lock, node, NULL) =3D=
+=3D node))<br>
+&gt; &gt; @@ -65,9 +69,14 @@ static void mcs_spin_unlock(struct mcs_spinloc=
+k **lock, struct mcs_spinlock *nod<br>
+&gt; &gt; =A0 =A0 =A0 =A0 =A0 =A0 /* Wait until the next pointer is set */<=
+br>
+&gt; &gt; =A0 =A0 =A0 =A0 =A0 =A0 while (!(next =3D ACCESS_ONCE(node-&gt;ne=
+xt)))<br>
+&gt; &gt; =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 arch_mutex_cpu_relax();<b=
+r>
+&gt; &gt; + =A0 } else {<br>
+&gt; &gt; + =A0 =A0 =A0 =A0 =A0 /*<br>
+&gt; &gt; + =A0 =A0 =A0 =A0 =A0 =A0* Make sure all operations within the cr=
+itical section<br>
+&gt; &gt; + =A0 =A0 =A0 =A0 =A0 =A0* happen before the lock is released.<br=
+>
+&gt; &gt; + =A0 =A0 =A0 =A0 =A0 =A0*/<br>
+&gt; &gt; + =A0 =A0 =A0 =A0 =A0 smp_wmb();<br>
+&gt;<br>
+&gt; ...but I don&#39;t see what prevents reads inside the critical section=
+ from<br>
+&gt; moving across the smp_wmb() here.<br>
+<br>
+</div></div>This is to prevent any read in next critical section from<br>
+creeping up before write in the previous critical section<br>
+has completed<br>
+<br>
+e.g.<br>
+CPU 1 execute<br>
+=A0 =A0 =A0 =A0 mcs_lock<br>
+=A0 =A0 =A0 =A0 x =3D 1;<br>
+=A0 =A0 =A0 =A0 ...<br>
+=A0 =A0 =A0 =A0 x =3D 2;<br>
+=A0 =A0 =A0 =A0 mcs_unlock<br>
+<br>
+and CPU 2 execute<br>
+<br>
+=A0 =A0 =A0 =A0 mcs_lock<br>
+=A0 =A0 =A0 =A0 y =3D x;<br>
+=A0 =A0 =A0 =A0 ...<br>
+=A0 =A0 =A0 =A0 mcs_unlock<br>
+<br>
+We expect y to be 2 after the &quot;y =3D x&quot; assignment. Without the p=
+roper<br>
+rmb in lock and wmb in unlock, y could be 1 for CPU 2 with<br>
+speculative read (i.e. before the x=3D2 assignment is completed).<br></bloc=
+kquote><div><br></div><div>is it not a good example ? =A0</div><div>why CPU=
+2 will be waited =A0the &quot;x&quot; set to &quot;2&quot; ? =A0Maybe &quot=
+;y=3Dx&quot; assignment will be executed firstly than CPU1 in pipeline=A0</=
+div>
+<div>because of out-of-reorder.</div><div><br></div><div>e.g.<br>CPU 1 exec=
+ute<br>=A0 =A0 =A0 =A0 mcs_lock<br>=A0 =A0 =A0 =A0 x =3D 1;<br>=A0 =A0 =A0 =
+=A0 ...<br>=A0 =A0 =A0 =A0 x =3D 2;</div><div>=A0 =A0 =A0 =A0 flags =3D tru=
+e;<br>=A0 =A0 =A0 =A0 mcs_unlock<br><br>and CPU 2 execute<br>
+<br>=A0 =A0 =A0 =A0while (flags) {<br>=A0 =A0 =A0 =A0 =A0 =A0 =A0 mcs_lock<=
+br>=A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0y =3D x;<br>=A0 =A0 =A0 =A0 =A0 =A0 =A0 =
+=A0 ...<br>=A0 =A0 =A0 =A0 =A0 =A0 =A0 mcs_unlock<br></div><div>=A0 =A0 =A0=
+ =A0}</div><div>=A0</div></div><br></div></div>
 
-Mrs. Nkoana Maite Mashabane
+--047d7b33d176569b1704ea7ba57e--
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
