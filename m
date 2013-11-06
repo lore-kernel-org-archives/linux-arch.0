@@ -1,54 +1,146 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:60119 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752792Ab3KFQIx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Nov 2013 11:08:53 -0500
-Date: Wed, 6 Nov 2013 17:08:15 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v2 4/4] MCS Lock: Make mcs_spinlock.h includable in other
- files
-Message-ID: <20131106160815.GR10651@twins.programming.kicks-ass.net>
-References: <cover.1383670202.git.tim.c.chen@linux.intel.com>
- <1383673359.11046.280.camel@schen9-DESK>
- <20131105185717.GZ16117@laptop.programming.kicks-ass.net>
- <1383679842.11046.298.camel@schen9-DESK>
- <527A60E3.3000106@hp.com>
+Received: from www.linutronix.de ([62.245.132.108]:46593 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751017Ab3KFRX0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Nov 2013 12:23:26 -0500
+Date: Wed, 6 Nov 2013 18:23:21 +0100 (CET)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [patch 1/6] hardirq: Make hardirq bits generic
+In-Reply-To: <alpine.DEB.2.02.1311042032130.16975@ayla.of.borg>
+Message-ID: <alpine.DEB.2.02.1311061237430.23353@ionos.tec.linutronix.de>
+References: <20130917082838.218329307@infradead.org> <20130917182350.449685712@linutronix.de> <20130917183628.534494408@linutronix.de> <CAMuHMdWgrQf+ULDrZyY5R+vT3GtiWEgpsWxmfk0b5pivN7wBmg@mail.gmail.com> <alpine.DEB.2.02.1309172315550.4089@ionos.tec.linutronix.de>
+ <alpine.DEB.2.02.1309181159520.4089@ionos.tec.linutronix.de> <alpine.DEB.2.02.1309191652480.4089@ionos.tec.linutronix.de> <87txhg3ftx.fsf@igel.home> <CAMuHMdW-YBroi6GezUP-KQBVRAcmYtUQERvBC=ekmemopDhVow@mail.gmail.com> <alpine.DEB.2.02.1311041305540.28335@ionos.tec.linutronix.de>
+ <alpine.DEB.2.02.1311042032130.16975@ayla.of.borg>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <527A60E3.3000106@hp.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <waiman.long@hp.com>
-Cc: Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Will Deacon <will.deacon@arm.com>
-Message-ID: <20131106160815.C8YBjkCr1hSmQccwCqG5NVwS6Em8E51d2fN0AsygvxQ@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Andreas Schwab <schwab@linux-m68k.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Linux-Arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Linux/m68k <linux-m68k@vger.kernel.org>
+Message-ID: <20131106172321.PmpEC2HWK5wFixmoii8H7Onf9C7O0GqLNUAWW7JL6yg@z>
 
-On Wed, Nov 06, 2013 at 10:31:47AM -0500, Waiman Long wrote:
-> On 11/05/2013 02:30 PM, Tim Chen wrote:
-> >On Tue, 2013-11-05 at 19:57 +0100, Peter Zijlstra wrote:
-> >>On Tue, Nov 05, 2013 at 09:42:39AM -0800, Tim Chen wrote:
-> >>>+ * The _raw_mcs_spin_lock() function should not be called directly. Instead,
-> >>>+ * users should call mcs_spin_lock().
-> >>>   */
-> >>>-static noinline
-> >>>-void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
-> >>>+static inline
-> >>>+void _raw_mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
-> >>>  {
-> >>>  	struct mcs_spinlock *prev;
-> >>>
-> >>So why keep it in the header at all?
-> >I also made the suggestion originally of keeping both lock and unlock in
-> >mcs_spinlock.c.  Wonder if Waiman decides to keep them in header
-> >because in-lining the unlock function makes execution a bit faster?
-> >
-> >Tim
-> >
+Geert,
+
+On Mon, 4 Nov 2013, Geert Uytterhoeven wrote:
+> But only if you look at "[m68k] IRQ: add handle_polled_irq() for timer
+> based soft interrupt" (http://www.spinics.net/lists/linux-m68k/msg05889.html)
+> first ;-)
+
+Done. Thanks for the reminder!
+ 
+> Below is a patch with some fixups, on top of your two patches.
 > 
-> I was following the example of the spinlock code where the lock function is
-> not inlined, but the unlock function is. I have no objection to make them
-> both as non-inlined functions, if you think that is the right move.
+> Unfortunately it still hangs somewhere after mounting the root filesystem.
+> 
+> Using this debug code for do_IRQ():
+> 
+> diff --git a/arch/m68k/kernel/irq.c b/arch/m68k/kernel/irq.c
+> index aaf7b15fad41..da9687803d98 100644
+> --- a/arch/m68k/kernel/irq.c
+> +++ b/arch/m68k/kernel/irq.c
+> @@ -22,11 +22,21 @@ asmlinkage int do_IRQ(int irq, struct pt_regs *regs)
+>  	struct pt_regs *oldregs = set_irq_regs(regs);
+>  	int nested = regs->sr & ~ALLOWINT;
+>  
+> +static int nesting;
+> +const char prefix[] = "                ";
+> +unsigned long flags;
+> +local_irq_save(flags);
+> +nesting++;
+> +printk("# %sirq %d nested %d\n", &prefix[16-2*nesting], irq, nested);
+> +local_irq_restore(flags);
+>  	irq_enter();
+>  	generic_handle_irq(irq);
+>  	irq_exit_nested(nested);
+>  
+>  	set_irq_regs(oldregs);
+> +local_irq_save(flags);
+> +nesting--;
+> +local_irq_restore(flags);
+>  	return nested;
+>  }
+>  
+> I get output like
+> 
+> #   irq 15 nested 0
+> #     irq 15 nested 1024
+> 
+> irq 15 while irq 15 in progress??
 
-I don't care, what I do find odd is the existence of
-_raw_mcs_spin_lock(). If you want to out-of-line it, just move the
-entire thing into a .c file already.
+Huch, that's odd.
+ 
+> With similar debug code on the old working do_IRQ(), I get
+>   - slightly less deep nesting,
+>   - do_IRQ() is never re-entered with the same irq number.
+> 
+> Also note that the value of "nested" doesn't match the indentation level,
+> which depends on my own bookkeeping using "nesting".
+
+Well, nested is just an indicator. It's not the nest level.
+
+      nested = pt->sr & ~ALLOWINT;
+i.e.:
+      nested = pt->sr & 0x0700;
+
+So in the case above nested is 0x400
+ 
+> Anyone with an idea where it's going wrong?
+
+The original code does:
+
+    add_preempt_count(HARDIRQ_OFFSET);
+
+    do_IRQ()
+	irq_enter();
+	  add_preempt_count(HARDIRQ_OFFSET);
+
+	handle_irq();
+
+	irq_exit();
+	    local_irq_disable();
+	    sub_preempt_count(HARDIRQ_OFFSET);
+
+    sub_preempt_count(HARDIRQ_OFFSET);
+    
+    /* Check for nested irq */
+    if (in_hardirq())
+       reti();
+
+    /* Check for nested irq again */
+    if (pt->sr & ~ALLOWINT != 0)
+       reti();
+
+    do_softirq();
+       ....
+    ret_from_exception();
+
+With the patches in place it looks like this:
+
+     do_IRQ()
+	nested = pt->sr & ~ALLOWINT;
+
+	irq_enter();
+	  add_preempt_count(HARDIRQ_OFFSET);
+
+	handle_irq();
+
+	irq_exit_nested(nested);
+	    local_irq_disable();
+	    sub_preempt_count(HARDIRQ_OFFSET);
+	    if (!nested && !in_hardirq())
+	       do_softirq()
+		  
+	return nested;
+
+      if (nested)
+      	 reti();
+
+      ret_from_exception();
+
+So all it does essentially is to move the softirq invocation in the
+non nested case a tad earlier. I'm really puzzled as I can't spot the
+point where this change makes a real difference.
+
+Thanks,
+
+	tglx
