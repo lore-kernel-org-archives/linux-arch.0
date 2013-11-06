@@ -1,97 +1,42 @@
-From: Tim Chen <tim.c.chen@linux.intel.com>
-Subject: Re: [PATCH v2 3/4] MCS Lock: Barrier corrections
-Date: Tue, 05 Nov 2013 17:25:53 -0800
-Message-ID: <1383701153.11046.332.camel@schen9-DESK>
-References: <cover.1383670202.git.tim.c.chen@linux.intel.com>
-	 <1383673356.11046.279.camel@schen9-DESK>
-	 <20131105183744.GJ26895@mudshark.cambridge.arm.com>
-	 <1383679317.11046.293.camel@schen9-DESK>
-	 <20131105211803.GS28601@twins.programming.kicks-ass.net>
+From: "Mrs. Nkoana Maite Mashabane" <pesa_san@yahoo.gr>
+Subject: INVESTMENT PARTNERSHIP
+Date: Wed, 6 Nov 2013 13:30:19 +0800
+Message-ID: <201311051522.rA5FMMuP031996@tx.cpta.com.cn>
+Reply-To: <nkoa_mashabane@safrica.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain;
+	charset="Windows-1251"
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20131105211803.GS28601@twins.programming.kicks-ass.net>
-Sender: owner-linux-mm@kvack.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, "Paul
- E.McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, H. Peter Anvin
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from [114.255.29.133] ([114.255.29.133]:43772 "EHLO tx.cpta.com.cn"
+	rhost-flags-FAIL-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1750793Ab3KFFgt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 6 Nov 2013 00:36:49 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux_newbies@yahoogroups.com, linpearl_777@yahoo.com, linockpk@yahoo.com, linux@www.softcatala.net, linux-390@vm.marist.edu, linux-arch@vger.kernel.org, linuxacpi@vger.kernel.org, linkwell@usa.net, linn.harson@thompsonhine.com, linkers@telkom.net.id, linkers@space.net.pk, linuxaudit@redhat.com, links@pes.comsats.net.pk, linphone-users@nongnu.org, links@nexlinx.net.pk, linux-audio-dev@music.columbia.edu, linlen4544@msn.com, linux@mlf.linux.rulez.org, linux_nic@md.com.my, linksmanager@malaysiadirectory.com, linksmanager@malaysiadirectory.co.cpta.com.cn, linux@lists.unixtech.be, links-list@linuxfromscratch.org, linuxbios@linuxbios.org, linux-aktivis@linux.or.id, linux@lhr.comsats.net.pk, linkers@lcci.org.pk, linocampion@kpmg.com.br, linkwell@khi.fascom.com, links-users@inf.ed.ac.uk, lintasco@indosat.net.id, lintas@indosat.net.id, linkers@indo.net.id, lintz-re@hotmail.com, linnsaraniah@hotmail.com, linlyokelin@hotmail.com, linuxaudio-it@gnufunk.org, linker@global.net.pk, linkcon@eworld.net.pk, lintastour@email.com, linong@ecrobot.com, linux.ie-1-wire-software-development-admin@dalsemi.com, linmark@cyber.net.pk, lintas94@centrin.net.id, linksbk@cbn.net.id, links@cat.com.pk, linux-br@bazar2.conectiva.com.br, linrad@antennspecialisten.se, linknets@alibaba.com, lin-mark@263.net
 
-On Tue, 2013-11-05 at 22:18 +0100, Peter Zijlstra wrote:
-> On Tue, Nov 05, 2013 at 11:21:57AM -0800, Tim Chen wrote:
-> > On Tue, 2013-11-05 at 18:37 +0000, Will Deacon wrote:
-> > > On Tue, Nov 05, 2013 at 05:42:36PM +0000, Tim Chen wrote:
-> > > > This patch corrects the way memory barriers are used in the MCS lock
-> > > > and removes ones that are not needed. Also add comments on all barriers.
-> > > 
-> > > Hmm, I see that you're fixing up the barriers, but I still don't completely
-> > > understand how what you have is correct. Hopefully you can help me out :)
-> > > 
-> > > > Reviewed-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-> > > > Reviewed-by: Tim Chen <tim.c.chen@linux.intel.com>
-> > > > Signed-off-by: Jason Low <jason.low2@hp.com>
-> > > > ---
-> > > >  include/linux/mcs_spinlock.h |   13 +++++++++++--
-> > > >  1 files changed, 11 insertions(+), 2 deletions(-)
-> > > > 
-> > > > diff --git a/include/linux/mcs_spinlock.h b/include/linux/mcs_spinlock.h
-> > > > index 96f14299..93d445d 100644
-> > > > --- a/include/linux/mcs_spinlock.h
-> > > > +++ b/include/linux/mcs_spinlock.h
-> > > > @@ -36,16 +36,19 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
-> > > >  	node->locked = 0;
-> > > >  	node->next   = NULL;
-> > > >  
-> > > > +	/* xchg() provides a memory barrier */
-> > > >  	prev = xchg(lock, node);
-> > > >  	if (likely(prev == NULL)) {
-> > > >  		/* Lock acquired */
-> > > >  		return;
-> > > >  	}
-> > > >  	ACCESS_ONCE(prev->next) = node;
-> > > > -	smp_wmb();
-> > > >  	/* Wait until the lock holder passes the lock down */
-> > > >  	while (!ACCESS_ONCE(node->locked))
-> > > >  		arch_mutex_cpu_relax();
-> > > > +
-> > > > +	/* Make sure subsequent operations happen after the lock is acquired */
-> > > > +	smp_rmb();
-> > > 
-> > > Ok, so this is an smp_rmb() because we assume that stores aren't speculated,
-> > > right? (i.e. the control dependency above is enough for stores to be ordered
-> > > with respect to taking the lock)...
-> 
+Hello,
 
-The smp_rmb was put in to make sure that the lock
-is indeed set before we start doing speculative reads in next critical
-section.
+I am Mrs. Maite Nkoana Mashabane, am the Minister of International Relations and Cooperation of South Africa, Please view my profile. http://www.gcis.gov.za/gcis/gcis_profile.jsp?id=1480.
 
-Wonder if your concern is about the possibility of write in next 
-critical section bleeding into read in previous critical section?
+I would like you to indicate your interest to receive the transfer of $3.5 Million. I will like you to stand as the beneficiary of the said fund.
 
-If reads and writes are re-ordered in previous critical section before mcs_spin_unlock, 
-it may be possible that the previous critical section is still
-reading when it set the lock for the next mcs in mcs_spin_unlock.  
-This allows the next critical section to start writing prematurely, before 
-previous critical section finished all reads.  
+However, I will be resigning soon and want to establish any type of machinery tools devices or agriculture or even real estate under my own registered company. I have the sum to invest. How can I come in contact with you in partnership/investment transaction?
 
-If this concern is valid, we should change the smp_wmb() to smp_mb()
-in the unlock function, to make sure previous critical section has
-completed all operations before next section starts.
+I want you to assist me in investing the money in your country.
 
+I will also like you to send me the following information below:
 
-> PaulMck completely confused me a few days ago with control dependencies
-> etc.. Pretty much saying that C/C++ doesn't do those.
+(1)Full names:
+(2)Private phone number:
+(3)Current residential address:
+(4)Your Country:
+(5)Occupation:
+(6)Age and Sex:
 
-Will appreciate feedback getting the barriers right.
+Please I do not need to remind you of the need for absolute Confidentiality if this transaction must succeed. YOU MUST NOT CALL ME! If you do not feel comfortable with this transaction, do not hesitate to discontinue.
 
-Thanks.
+I will give you more detail's as soon as you confirm your willingness to assisting me.
 
-Tim
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Mrs. Nkoana Maite Mashabane
