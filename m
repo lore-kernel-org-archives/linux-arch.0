@@ -1,146 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:46593 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751017Ab3KFRX0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Nov 2013 12:23:26 -0500
-Date: Wed, 6 Nov 2013 18:23:21 +0100 (CET)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch 1/6] hardirq: Make hardirq bits generic
-In-Reply-To: <alpine.DEB.2.02.1311042032130.16975@ayla.of.borg>
-Message-ID: <alpine.DEB.2.02.1311061237430.23353@ionos.tec.linutronix.de>
-References: <20130917082838.218329307@infradead.org> <20130917182350.449685712@linutronix.de> <20130917183628.534494408@linutronix.de> <CAMuHMdWgrQf+ULDrZyY5R+vT3GtiWEgpsWxmfk0b5pivN7wBmg@mail.gmail.com> <alpine.DEB.2.02.1309172315550.4089@ionos.tec.linutronix.de>
- <alpine.DEB.2.02.1309181159520.4089@ionos.tec.linutronix.de> <alpine.DEB.2.02.1309191652480.4089@ionos.tec.linutronix.de> <87txhg3ftx.fsf@igel.home> <CAMuHMdW-YBroi6GezUP-KQBVRAcmYtUQERvBC=ekmemopDhVow@mail.gmail.com> <alpine.DEB.2.02.1311041305540.28335@ionos.tec.linutronix.de>
- <alpine.DEB.2.02.1311042032130.16975@ayla.of.borg>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from mga02.intel.com ([134.134.136.20]:42154 "EHLO mga02.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752217Ab3KFSWQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 6 Nov 2013 13:22:16 -0500
+Subject: Re: [PATCH v2 3/4] MCS Lock: Barrier corrections
+From: Tim Chen <tim.c.chen@linux.intel.com>
+In-Reply-To: <20131106144520.GK18245@linux.vnet.ibm.com>
+References: <cover.1383670202.git.tim.c.chen@linux.intel.com>
+	 <1383673356.11046.279.camel@schen9-DESK>
+	 <20131105183744.GJ26895@mudshark.cambridge.arm.com>
+	 <1383679317.11046.293.camel@schen9-DESK>
+	 <20131105211803.GS28601@twins.programming.kicks-ass.net>
+	 <20131106144520.GK18245@linux.vnet.ibm.com>
+Content-Type: text/plain; charset="UTF-8"
+Date: Wed, 06 Nov 2013 10:22:13 -0800
+Message-ID: <1383762133.11046.339.camel@schen9-DESK>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Andreas Schwab <schwab@linux-m68k.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Linux-Arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Linux/m68k <linux-m68k@vger.kernel.org>
-Message-ID: <20131106172321.PmpEC2HWK5wFixmoii8H7Onf9C7O0GqLNUAWW7JL6yg@z>
+To: paulmck@linux.vnet.ibm.com
+Cc: Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>
+Message-ID: <20131106182213.M5WdCG0mcYf4-up35nueo8YN2w97bVBUQh7Br_23KSE@z>
 
-Geert,
-
-On Mon, 4 Nov 2013, Geert Uytterhoeven wrote:
-> But only if you look at "[m68k] IRQ: add handle_polled_irq() for timer
-> based soft interrupt" (http://www.spinics.net/lists/linux-m68k/msg05889.html)
-> first ;-)
-
-Done. Thanks for the reminder!
- 
-> Below is a patch with some fixups, on top of your two patches.
+On Wed, 2013-11-06 at 06:45 -0800, Paul E. McKenney wrote:
+> On Tue, Nov 05, 2013 at 10:18:03PM +0100, Peter Zijlstra wrote:
+> > On Tue, Nov 05, 2013 at 11:21:57AM -0800, Tim Chen wrote:
+> > > On Tue, 2013-11-05 at 18:37 +0000, Will Deacon wrote:
+> > > > On Tue, Nov 05, 2013 at 05:42:36PM +0000, Tim Chen wrote:
+> > > > > This patch corrects the way memory barriers are used in the MCS lock
+> > > > > and removes ones that are not needed. Also add comments on all barriers.
+> > > > 
+> > > > Hmm, I see that you're fixing up the barriers, but I still don't completely
+> > > > understand how what you have is correct. Hopefully you can help me out :)
+> > > > 
+> > > > > Reviewed-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+> > > > > Reviewed-by: Tim Chen <tim.c.chen@linux.intel.com>
+> > > > > Signed-off-by: Jason Low <jason.low2@hp.com>
+> > > > > ---
+> > > > >  include/linux/mcs_spinlock.h |   13 +++++++++++--
+> > > > >  1 files changed, 11 insertions(+), 2 deletions(-)
+> > > > > 
+> > > > > diff --git a/include/linux/mcs_spinlock.h b/include/linux/mcs_spinlock.h
+> > > > > index 96f14299..93d445d 100644
+> > > > > --- a/include/linux/mcs_spinlock.h
+> > > > > +++ b/include/linux/mcs_spinlock.h
+> > > > > @@ -36,16 +36,19 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
+> > > > >  	node->locked = 0;
+> > > > >  	node->next   = NULL;
+> > > > >  
+> > > > > +	/* xchg() provides a memory barrier */
+> > > > >  	prev = xchg(lock, node);
+> > > > >  	if (likely(prev == NULL)) {
+> > > > >  		/* Lock acquired */
+> > > > >  		return;
+> > > > >  	}
+> > > > >  	ACCESS_ONCE(prev->next) = node;
+> > > > > -	smp_wmb();
+> > > > >  	/* Wait until the lock holder passes the lock down */
+> > > > >  	while (!ACCESS_ONCE(node->locked))
+> > > > >  		arch_mutex_cpu_relax();
+> > > > > +
+> > > > > +	/* Make sure subsequent operations happen after the lock is acquired */
+> > > > > +	smp_rmb();
+> > > > 
+> > > > Ok, so this is an smp_rmb() because we assume that stores aren't speculated,
+> > > > right? (i.e. the control dependency above is enough for stores to be ordered
+> > > > with respect to taking the lock)...
+> > 
+> > PaulMck completely confused me a few days ago with control dependencies
+> > etc.. Pretty much saying that C/C++ doesn't do those.
 > 
-> Unfortunately it still hangs somewhere after mounting the root filesystem.
+> I remember that there was a subtlety here, but don't remember what it was...
 > 
-> Using this debug code for do_IRQ():
+> And while I do remember reviewing this code, I don't find any evidence
+> that I gave my "Reviewed-by".  Tim/Jason, if I fat-fingered this, please
+> forward that email back to me.
+
+Yes Paul, you didn't explicitly gave the Reviewed-by. 
+I put it in there because you have given valuable
+comments on the potential critical section bleeding when 
+reviewing initial version of the code.
+
+I'll take it out now till you have explicitly given it.
+Appreciate if you can provide your feedback on the current
+version of code.
+
+Thanks.
+
+Tim
+
 > 
-> diff --git a/arch/m68k/kernel/irq.c b/arch/m68k/kernel/irq.c
-> index aaf7b15fad41..da9687803d98 100644
-> --- a/arch/m68k/kernel/irq.c
-> +++ b/arch/m68k/kernel/irq.c
-> @@ -22,11 +22,21 @@ asmlinkage int do_IRQ(int irq, struct pt_regs *regs)
->  	struct pt_regs *oldregs = set_irq_regs(regs);
->  	int nested = regs->sr & ~ALLOWINT;
->  
-> +static int nesting;
-> +const char prefix[] = "                ";
-> +unsigned long flags;
-> +local_irq_save(flags);
-> +nesting++;
-> +printk("# %sirq %d nested %d\n", &prefix[16-2*nesting], irq, nested);
-> +local_irq_restore(flags);
->  	irq_enter();
->  	generic_handle_irq(irq);
->  	irq_exit_nested(nested);
->  
->  	set_irq_regs(oldregs);
-> +local_irq_save(flags);
-> +nesting--;
-> +local_irq_restore(flags);
->  	return nested;
->  }
->  
-> I get output like
+> 							Thanx, Paul
 > 
-> #   irq 15 nested 0
-> #     irq 15 nested 1024
-> 
-> irq 15 while irq 15 in progress??
 
-Huch, that's odd.
- 
-> With similar debug code on the old working do_IRQ(), I get
->   - slightly less deep nesting,
->   - do_IRQ() is never re-entered with the same irq number.
-> 
-> Also note that the value of "nested" doesn't match the indentation level,
-> which depends on my own bookkeeping using "nesting".
 
-Well, nested is just an indicator. It's not the nest level.
-
-      nested = pt->sr & ~ALLOWINT;
-i.e.:
-      nested = pt->sr & 0x0700;
-
-So in the case above nested is 0x400
- 
-> Anyone with an idea where it's going wrong?
-
-The original code does:
-
-    add_preempt_count(HARDIRQ_OFFSET);
-
-    do_IRQ()
-	irq_enter();
-	  add_preempt_count(HARDIRQ_OFFSET);
-
-	handle_irq();
-
-	irq_exit();
-	    local_irq_disable();
-	    sub_preempt_count(HARDIRQ_OFFSET);
-
-    sub_preempt_count(HARDIRQ_OFFSET);
-    
-    /* Check for nested irq */
-    if (in_hardirq())
-       reti();
-
-    /* Check for nested irq again */
-    if (pt->sr & ~ALLOWINT != 0)
-       reti();
-
-    do_softirq();
-       ....
-    ret_from_exception();
-
-With the patches in place it looks like this:
-
-     do_IRQ()
-	nested = pt->sr & ~ALLOWINT;
-
-	irq_enter();
-	  add_preempt_count(HARDIRQ_OFFSET);
-
-	handle_irq();
-
-	irq_exit_nested(nested);
-	    local_irq_disable();
-	    sub_preempt_count(HARDIRQ_OFFSET);
-	    if (!nested && !in_hardirq())
-	       do_softirq()
-		  
-	return nested;
-
-      if (nested)
-      	 reti();
-
-      ret_from_exception();
-
-So all it does essentially is to move the softirq invocation in the
-non nested case a tad earlier. I'm really puzzled as I can't spot the
-point where this change makes a real difference.
-
-Thanks,
-
-	tglx
