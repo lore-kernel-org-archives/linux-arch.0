@@ -1,26 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g2t1383g.austin.hp.com ([15.217.136.92]:53226 "EHLO
-	g2t1383g.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754623Ab3KFTWh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Nov 2013 14:22:37 -0500
-Message-ID: <527A94C8.2020907@hp.com>
-Date: Wed, 06 Nov 2013 14:13:12 -0500
-From: Waiman Long <waiman.long@hp.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH v2 3/4] MCS Lock: Barrier corrections
-References: <cover.1383670202.git.tim.c.chen@linux.intel.com>  <1383673356.11046.279.camel@schen9-DESK>  <20131105183744.GJ26895@mudshark.cambridge.arm.com>  <1383679317.11046.293.camel@schen9-DESK>  <20131105211803.GS28601@twins.programming.kicks-ass.net>  <20131106144520.GK18245@linux.vnet.ibm.com> <1383762133.11046.339.camel@schen9-DESK>
-In-Reply-To: <1383762133.11046.339.camel@schen9-DESK>
-Content-Type: text/plain; charset=UTF-8; format=flowed
+Received: from mga02.intel.com ([134.134.136.20]:29313 "EHLO mga02.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754728Ab3KFVhA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 6 Nov 2013 16:37:00 -0500
+Subject: [PATCH v3 0/4] MCS Lock: MCS lock code cleanup and optimizations
+From: Tim Chen <tim.c.chen@linux.intel.com>
+References: <cover.1383771175.git.tim.c.chen@linux.intel.com>
+Content-Type: text/plain; charset="UTF-8"
+Date: Wed, 06 Nov 2013 13:36:56 -0800
+Message-ID: <1383773816.11046.352.camel@schen9-DESK>
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tim Chen <tim.c.chen@linux.intel.com>
-Cc: paulmck@linux.vnet.ibm.com, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>
-Message-ID: <20131106191312.dibjwbzDqn45tqZPPXEiaodnBfh7QfP3RnLS9T9fSUQ@z>
+To: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Will Deacon <will.deacon@arm.com>, "Figo.zhang" <figo1802@gmail.com>
+Message-ID: <20131106213656.2z0_0BJaDlBX9eGGOv_WCQwQeX7O5bsmb5fGe9SWVYI@z>
 
-Tim,
+In this patch series, we separated out the MCS lock code which was
+previously embedded in the mutex.c.  This allows for easier reuse of
+MCS lock in other places like rwsem and qrwlock.  We also did some micro
+optimizations and barrier cleanup.
 
-I have just sent out a patch as an addendum to your patch series. 
-Hopefully that will address the memory barrier issue.
+This patches were previously part of the rwsem optimization patch series
+but now we spearate them out.
 
--Longman
+Tim Chen
+
+v3:
+1. modified memory barriers to support non x86 architectures that have
+weak memory ordering.
+
+v2:
+1. change export mcs_spin_lock as a GPL export symbol
+2. corrected mcs_spin_lock to references
+
+
+Jason Low (2):
+  MCS Lock: optimizations and extra comments
+  MCS Lock: Barrier corrections
+
+
+Jason Low (2):
+  MCS Lock: optimizations and extra comments
+  MCS Lock: Barrier corrections
+
+Tim Chen (1):
+  MCS Lock: Restructure the MCS lock defines and locking code into its
+    own file
+
+Waiman Long (2):
+  MCS Lock: Make mcs_spinlock.h includable in other files
+  MCS Lock: Allow architecture specific memory barrier in lock/unlock
+
+ arch/x86/include/asm/barrier.h |    6 +++
+ include/linux/mcs_spinlock.h   |   25 ++++++++++
+ include/linux/mutex.h          |    5 +-
+ kernel/Makefile                |    6 +-
+ kernel/mcs_spinlock.c          |   96 ++++++++++++++++++++++++++++++++++++++++
+ kernel/mutex.c                 |   60 +++----------------------
+ 6 files changed, 140 insertions(+), 58 deletions(-)
+ create mode 100644 include/linux/mcs_spinlock.h
+ create mode 100644 kernel/mcs_spinlock.c
+
+-- 
+1.7.4.4
+
+
