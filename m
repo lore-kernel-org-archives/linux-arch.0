@@ -1,143 +1,55 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2 3/4] MCS Lock: Barrier corrections
-Date: Wed, 6 Nov 2013 12:20:20 +0000
-Message-ID: <20131106122019.GG21074@mudshark.cambridge.arm.com>
-References: <cover.1383670202.git.tim.c.chen@linux.intel.com>
- <1383673356.11046.279.camel@schen9-DESK>
- <20131105183744.GJ26895@mudshark.cambridge.arm.com>
- <1383679317.11046.293.camel@schen9-DESK>
- <CAF7GXvra3U_MqeJOUztdK7ggCSJcMZxJHuYtHJ4jRqNv2ZCY7Q@mail.gmail.com>
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [PATCH] mm: create a separate slab for page->ptl allocation
+Date: Wed, 6 Nov 2013 15:21:55 +0200
+Message-ID: <20131106132155.GA22132@shutemov.name>
+References: <1382442839-7458-1-git-send-email-kirill.shutemov@linux.intel.com>
+ <20131105150145.734a5dd5b5d455800ebfa0d3@linux-foundation.org>
+ <20131105224217.GC20167@shutemov.name>
+ <20131105155619.021f32eba1ca8f15a73ed4c9@linux-foundation.org>
+ <20131105231310.GE20167@shutemov.name>
+ <20131106093131.GU28601@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <CAF7GXvra3U_MqeJOUztdK7ggCSJcMZxJHuYtHJ4jRqNv2ZCY7Q@mail.gmail.com>
+In-Reply-To: <20131106093131.GU28601@twins.programming.kicks-ass.net>
 Sender: owner-linux-mm@kvack.org
-To: "Figo.zhang" <figo1802@gmail.com>
-Cc: Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Nov 06, 2013 at 05:44:42AM +0000, Figo.zhang wrote:
-> 2013/11/6 Tim Chen <tim.c.chen@linux.intel.com<mailto:tim.c.chen@linux.intel.com>>
-> On Tue, 2013-11-05 at 18:37 +0000, Will Deacon wrote:
-> > On Tue, Nov 05, 2013 at 05:42:36PM +0000, Tim Chen wrote:
-> > > diff --git a/include/linux/mcs_spinlock.h b/include/linux/mcs_spinlock.h
-> > > index 96f14299..93d445d 100644
-> > > --- a/include/linux/mcs_spinlock.h
-> > > +++ b/include/linux/mcs_spinlock.h
-> > > @@ -36,16 +36,19 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
-> > >     node->locked = 0;
-> > >     node->next   = NULL;
-> > >
-> > > +   /* xchg() provides a memory barrier */
-> > >     prev = xchg(lock, node);
-> > >     if (likely(prev == NULL)) {
-> > >             /* Lock acquired */
-> > >             return;
-> > >     }
-> > >     ACCESS_ONCE(prev->next) = node;
-> > > -   smp_wmb();
-> > >     /* Wait until the lock holder passes the lock down */
-> > >     while (!ACCESS_ONCE(node->locked))
-> > >             arch_mutex_cpu_relax();
-> > > +
-> > > +   /* Make sure subsequent operations happen after the lock is acquired */
-> > > +   smp_rmb();
-> >
-> > Ok, so this is an smp_rmb() because we assume that stores aren't speculated,
-> > right? (i.e. the control dependency above is enough for stores to be ordered
-> > with respect to taking the lock)...
-> >
-> > >  }
-> > >
-> > >  /*
-> > > @@ -58,6 +61,7 @@ static void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *nod
-> > >
-> > >     if (likely(!next)) {
-> > >             /*
-> > > +            * cmpxchg() provides a memory barrier.
-> > >              * Release the lock by setting it to NULL
-> > >              */
-> > >             if (likely(cmpxchg(lock, node, NULL) == node))
-> > > @@ -65,9 +69,14 @@ static void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *nod
-> > >             /* Wait until the next pointer is set */
-> > >             while (!(next = ACCESS_ONCE(node->next)))
-> > >                     arch_mutex_cpu_relax();
-> > > +   } else {
-> > > +           /*
-> > > +            * Make sure all operations within the critical section
-> > > +            * happen before the lock is released.
-> > > +            */
-> > > +           smp_wmb();
-> >
-> > ...but I don't see what prevents reads inside the critical section from
-> > moving across the smp_wmb() here.
+On Wed, Nov 06, 2013 at 10:31:31AM +0100, Peter Zijlstra wrote:
+> On Wed, Nov 06, 2013 at 01:13:11AM +0200, Kirill A. Shutemov wrote:
+> > I would like to get rid of __ptlock_alloc()/__ptlock_free() too, but I
+> > don't see a way within C: we need to know sizeof(spinlock_t) on
+> > preprocessor stage.
+> > 
+> > We can have a hack on kbuild level: write small helper program to find out
+> > sizeof(spinlock_t) before start building and turn it into define.
+> > But it's overkill from my POV. And cross-compilation will be a fun.
 > 
-> This is to prevent any read in next critical section from
-> creeping up before write in the previous critical section
-> has completed
+> Ah, I just remembered, we have such a thing!
 
-Understood, but an smp_wmb() doesn't provide any ordering guarantees with
-respect to reads, hence why I think you need an smp_mb() here.
+Great!
 
-> e.g.
-> CPU 1 execute
->         mcs_lock
->         x = 1;
->         ...
->         x = 2;
->         mcs_unlock
-> 
-> and CPU 2 execute
-> 
->         mcs_lock
->         y = x;
->         ...
->         mcs_unlock
-> 
-> We expect y to be 2 after the "y = x" assignment. Without the proper
-> rmb in lock and wmb in unlock, y could be 1 for CPU 2 with
-> speculative read (i.e. before the x=2 assignment is completed).
-> 
-> is it not a good example ?
+> @@ -1354,7 +1356,7 @@ static inline bool ptlock_init(struct page *page)
+>  	 * slab code uses page->slab_cache and page->first_page (for tail
+>  	 * pages), which share storage with page->ptl.
+>  	 */
+> -	VM_BUG_ON(page->ptl);
+> +	VM_BUG_ON(*(unsigned long *)&page->ptl);
 
-I think you need reads and writes by both CPUs to show the problem:
+Huh? Why not direct cast to unsigned long?
 
-	// x, y are zero-initialised memory locations
-	// a, b are registers
+VM_BUG_ON((unsigned long)page->ptl);
 
-CPU 1:
-	mcs_lock
-	a = x
-	y = 1
-	mcs_unlock
+Otherwise:
 
-CPU 2:
-	mcs_lock
-	b = y
-	x = 1
-	mcs_unlock
+Reviewed-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 
-In this case, you would hope that you can't observe a = b = 1.
 
-However, given the current barriers, I think you could end up with something
-equivalent to:
-
-CPU 1:
-	y = 1		// Moved over read-barrier
-	mcs_lock	// smp_rmb
-	mcs_unlock	// smp_wmb
-	a = x		// Moved over write-barrier
-
-CPU 2:
-	x = 1		// Moved over read-barrier
-	mcs_lock	// smp_rmb
-	mcs_unlock	// smp_wmb
-	b = y		// Moved over write-barrier
-
-which would permit a = b = 1, as well as other orderings.
-
-Will
+-- 
+ Kirill A. Shutemov
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
