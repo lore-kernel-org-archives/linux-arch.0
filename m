@@ -1,49 +1,41 @@
 From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v4 5/5] MCS Lock: Allow architecture specific memory
- barrier in lock/unlock
-Date: Thu, 7 Nov 2013 08:40:38 +0100
-Message-ID: <20131107074038.GB26654@gmail.com>
-References: <cover.1383783691.git.tim.c.chen@linux.intel.com>
- <1383787620.11046.368.camel@schen9-DESK>
+Subject: Re: [PATCH v3 3/5] MCS Lock: Barrier corrections
+Date: Thu, 7 Nov 2013 09:13:06 +0100
+Message-ID: <20131107081306.GA32438@gmail.com>
+References: <cover.1383771175.git.tim.c.chen@linux.intel.com>
+ <1383773827.11046.355.camel@schen9-DESK>
+ <CA+55aFyNX=5i0hmk-KuD+Vk+yBD-kkAiywx1Lx_JJmHVPx=1wA@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <1383787620.11046.368.camel@schen9-DESK>
+In-Reply-To: <CA+55aFyNX=5i0hmk-KuD+Vk+yBD-kkAiywx1Lx_JJmHVPx=1wA@mail.gmail.com>
 Sender: owner-linux-mm@kvack.org
-To: Tim Chen <tim.c.chen@linux.intel.com>
-Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Tim Chen <tim.c.chen@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, "Figo. zhang" <figo1802@gmail.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Rik van Riel <riel@redhat.com>, Waiman Long <waiman.long@hp.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, linux-arch@vger.kernel.org, Andi Kleen <andi@firstfloor.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, George Spelvin <linux@horizon.com>, Michel Lespinasse <walken@google.com>, Ingo Molnar <mingo@elte.hu>, Peter Hurley <peter@hurleysoftware.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm <linux-mm@kvack.org>, Alex Shi <alex.shi@linaro.org>, Andrea Arcangeli <aarcange@redhat.com>, Scott J Norton <scott.norton@hp.com>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Dave Hansen <dave.hansen@intel>
 List-Id: linux-arch.vger.kernel.org
 
 
-* Tim Chen <tim.c.chen@linux.intel.com> wrote:
+Linus,
 
-> This patch moves the decision of what kind of memory barriers to be
-> used in the MCS lock and unlock functions to the architecture specific
-> layer. It also moves the actual lock/unlock code to mcs_spinlock.c
-> file.
-> 
-> A full memory barrier will be used if the following macros are not
-> defined:
->  1) smp_mb__before_critical_section()
->  2) smp_mb__after_critical_section()
-> 
-> For the x86 architecture, only compiler barrier will be needed.
-> 
-> Acked-by: Tim Chen <tim.c.chen@linux.intel.com>
+A more general maintenance question: do you agree with the whole idea to 
+factor out the MCS logic from mutex.c to make it reusable?
 
-This should be Signed-off-by and should come last in the SOB chain, as you 
-are the person passing the patch along.
+This optimization patch makes me think it's a useful thing to do:
 
-> Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+  [PATCH v3 2/5] MCS Lock: optimizations and extra comments
 
-I think you lost a:
+as that kicks back optimizations to the mutex code as well. It also 
+brought some spotlight on mutex code that it would not have gotten 
+otherwise.
 
-  From: Waiman Long <Waiman.Long@hp.com>
+That advantage is also its disadvantage: additional coupling between rwsem 
+and mutex logic internals. But not like it's overly hard to undo this 
+change, so I'm in general in favor of this direction ...
 
-from the beginning of the mail, because right now if your patch is applied 
-it will credit you with being the author - that wasn't the intention, 
-right?
+So unless you object to this direction, I planned to apply this 
+preparatory series to the locking tree once we are all happy with all the 
+fine details.
 
 Thanks,
 
