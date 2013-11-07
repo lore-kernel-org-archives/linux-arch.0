@@ -1,136 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f42.google.com ([209.85.160.42]:55377 "EHLO
-	mail-pb0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750964Ab3KGOMY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Nov 2013 09:12:24 -0500
+Received: from e35.co.us.ibm.com ([32.97.110.153]:43792 "EHLO
+	e35.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750964Ab3KGOcj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Nov 2013 09:32:39 -0500
+Received: from /spool/local
+	by e35.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Thu, 7 Nov 2013 07:32:38 -0700
+Date: Thu, 7 Nov 2013 06:31:39 -0800
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH v3 3/5] MCS Lock: Barrier corrections
+Message-ID: <20131107143139.GT18245@linux.vnet.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
+References: <cover.1383771175.git.tim.c.chen@linux.intel.com>
+ <1383773827.11046.355.camel@schen9-DESK>
+ <CA+55aFyNX=5i0hmk-KuD+Vk+yBD-kkAiywx1Lx_JJmHVPx=1wA@mail.gmail.com>
+ <CANN689HkNP-UZOu+vDCFPG5_k=BNZG6a+oP+Ope16vLc2ShFzw@mail.gmail.com>
+ <CA+55aFwn1HUt3iXo6Zz8j1HUJi+qJ1NfcnUz-P+XCYLL7gjCMQ@mail.gmail.com>
+ <CANN689EgdDQV=srsLELUpiTGOSF0SLUZ=BC2LnMxNrYTv3H=Wg@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <alpine.DEB.2.02.1311061237430.23353@ionos.tec.linutronix.de>
-References: <20130917082838.218329307@infradead.org>
-	<20130917182350.449685712@linutronix.de>
-	<20130917183628.534494408@linutronix.de>
-	<CAMuHMdWgrQf+ULDrZyY5R+vT3GtiWEgpsWxmfk0b5pivN7wBmg@mail.gmail.com>
-	<alpine.DEB.2.02.1309172315550.4089@ionos.tec.linutronix.de>
-	<alpine.DEB.2.02.1309181159520.4089@ionos.tec.linutronix.de>
-	<alpine.DEB.2.02.1309191652480.4089@ionos.tec.linutronix.de>
-	<87txhg3ftx.fsf@igel.home>
-	<CAMuHMdW-YBroi6GezUP-KQBVRAcmYtUQERvBC=ekmemopDhVow@mail.gmail.com>
-	<alpine.DEB.2.02.1311041305540.28335@ionos.tec.linutronix.de>
-	<alpine.DEB.2.02.1311042032130.16975@ayla.of.borg>
-	<alpine.DEB.2.02.1311061237430.23353@ionos.tec.linutronix.de>
-Date: Thu, 7 Nov 2013 15:12:23 +0100
-Message-ID: <CAMuHMdXDA2MRbR3GmD3KWC-iE6jnWX4uvbf1qeMd7RYX3O8f_g@mail.gmail.com>
-Subject: Re: [patch 1/6] hardirq: Make hardirq bits generic
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CANN689EgdDQV=srsLELUpiTGOSF0SLUZ=BC2LnMxNrYTv3H=Wg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Andreas Schwab <schwab@linux-m68k.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Linux-Arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Linux/m68k <linux-m68k@vger.kernel.org>
-Message-ID: <20131107141223.qKucrJJ8Zxm6MPke8rfArtb4jAByMn-WDraYHqK5WBs@z>
+To: Michel Lespinasse <walken@google.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Arnd Bergmann <arnd@arndb.de>, Rik van Riel <riel@redhat.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, "Figo. zhang" <figo1802@gmail.com>, linux-arch@vger.kernel.org, Andi Kleen <andi@firstfloor.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Peter Hurley <peter@hurleysoftware.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm <linux-mm@kvack.org>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, linux-kernel@vger.kernel.org, Scott J Norton <scott.norton@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Dave Hansen <dave.hansen@intel.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Will Deacon <will.deacon@arm.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>
+Message-ID: <20131107143139.1HjTmVhPxr4ar_aM2aC3DfKopixXofIPrvBHR3uva_o@z>
 
-Hi Thomas,
+On Thu, Nov 07, 2013 at 04:50:23AM -0800, Michel Lespinasse wrote:
+> On Thu, Nov 7, 2013 at 4:06 AM, Linus Torvalds
+> <torvalds@linux-foundation.org> wrote:
+> >
+> > On Nov 7, 2013 6:55 PM, "Michel Lespinasse" <walken@google.com> wrote:
+> >>
+> >> Rather than writing arch-specific locking code, would you agree to
+> >> introduce acquire and release memory operations ?
+> >
+> > Yes, that's probably the right thing to do. What ops do we need? Store with
+> > release, cmpxchg and load with acquire? Anything else?
+> 
+> Depends on what lock types we want to implement on top; for MCS we would need:
+> - xchg acquire (common case) and load acquire (for spinning on our
+> locker's wait word)
+> - cmpxchg release (when there is no next locker) and store release
+> (when writing to the next locker's wait word)
+> 
+> One downside of the proposal is that using a load acquire for spinning
+> puts the memory barrier within the spin loop. So this model is very
+> intuitive and does not add unnecessary barriers on x86, but it my
+> place the barriers in a suboptimal place for architectures that need
+> them.
 
-On Wed, Nov 6, 2013 at 6:23 PM, Thomas Gleixner <tglx@linutronix.de> wrote:
->> Also note that the value of "nested" doesn't match the indentation level,
->> which depends on my own bookkeeping using "nesting".
->
-> Well, nested is just an indicator. It's not the nest level.
+OK, I will bite...  Why is a barrier in the spinloop suboptimal?
 
-I know, the only thing that matters is whether it's zero or not.
-But it should always be zero if there's no nesting, and non-zero if there
-is, right?
+Can't say that I have tried measuring it, but the barrier should not
+normally result in interconnect traffic.  Given that the barrier is
+required anyway, it should not affect lock-acquisition latency.
 
-So:
+So what am I missing here?
 
-#   irq 13 nested 1024
+							Thanx, Paul
 
-nested should be 0 here.
-
-#   irq 4 nested 0
-
-ok
-
-#     irq 13 nested 1024
-
-ok (two extra spaces in front of "irq").
-
-#     irq 4 nested 0
-
-nested should be non-zero here.
-
->       nested = pt->sr & ~ALLOWINT;
-> i.e.:
->       nested = pt->sr & 0x0700;
->
-> So in the case above nested is 0x400
->
->> Anyone with an idea where it's going wrong?
->
-> The original code does:
->
->     add_preempt_count(HARDIRQ_OFFSET);
->
->     do_IRQ()
->         irq_enter();
->           add_preempt_count(HARDIRQ_OFFSET);
->
->         handle_irq();
->
->         irq_exit();
->             local_irq_disable();
->             sub_preempt_count(HARDIRQ_OFFSET);
->
->     sub_preempt_count(HARDIRQ_OFFSET);
->
->     /* Check for nested irq */
->     if (in_hardirq())
->        reti();
->
->     /* Check for nested irq again */
->     if (pt->sr & ~ALLOWINT != 0)
->        reti();
->
->     do_softirq();
->        ....
->     ret_from_exception();
->
-> With the patches in place it looks like this:
->
->      do_IRQ()
->         nested = pt->sr & ~ALLOWINT;
->
->         irq_enter();
->           add_preempt_count(HARDIRQ_OFFSET);
->
->         handle_irq();
->
->         irq_exit_nested(nested);
->             local_irq_disable();
->             sub_preempt_count(HARDIRQ_OFFSET);
->             if (!nested && !in_hardirq())
->                do_softirq()
->
->         return nested;
->
->       if (nested)
->          reti();
->
->       ret_from_exception();
->
-> So all it does essentially is to move the softirq invocation in the
-> non nested case a tad earlier. I'm really puzzled as I can't spot the
-> point where this change makes a real difference.
-
-Yes, that's also my understanding.
-But I can't spot it neither :-(
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
