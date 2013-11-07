@@ -1,141 +1,32 @@
-From: peterz@infradead.org
-Subject: [PATCH 4/4] perf: Optimize perf_output_begin() -- weaker memory barrier
-Date: Thu, 07 Nov 2013 23:03:18 +0100
-Message-ID: <20131107221254.293322441@infradead.org>
-References: <20131107220314.740353088@infradead.org>
+From: WEBMASTER <webmaster@mail.com>
+Subject: system administrator
+Date: Thu, 07 Nov 2013 22:54:28 +0100
+Message-ID: <20131107215455.B8A4410FA30@smtps.ntu.edu.tw>
+Reply-To: helpservices4786@admin.in.th
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:37077 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755848Ab3KGWPe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Nov 2013 17:15:34 -0500
-Content-Disposition: inline; filename=peterz-perf-buffer.patch
+Received: from smtps.ntu.edu.tw ([140.112.2.142]:4932 "EHLO smtps.ntu.edu.tw"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752205Ab3KGWSa convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Nov 2013 17:18:30 -0500
+Content-Description: Mail message body
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: geert@linux-m68k.org, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, VICTORK@il.ibm.com, oleg@redhat.com, anton@samba.org, benh@kernel.crashing.org, fweisbec@gmail.com, mathieu.desnoyers@polymtl.ca, michael@ellerman.id.au, mikey@neuling.org, linux@arm.linux.org.uk, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, tony.luck@intel.com, Peter Zijlstra <peterz@infradead.org>
+To: Recipients <webmaster@mail.com>
 
-Apply the fancy new smp_load_acquire() and smp_store_release() to
-potentially avoid the full memory barrier in perf_output_begin().
+Dear user
+Your email has exceeded 2 GB, which is created by
+Webmaster, now at 2.30GB, you can not Send or receive new messages
+until you check your account.Complete the form to verify your account.
 
-On x86 (and other TSO like architectures) this removes all explicit
-memory fences, on weakly ordered systems this often allows the use of
-weaker barriers; in particular on powerpc we demote from a full sync
-to a cheaper lwsync.
+Please complete the details below to confirm your account
 
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Oleg Nesterov <oleg@redhat.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Frederic Weisbecker <fweisbec@gmail.com>
-Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Cc: Michael Ellerman <michael@ellerman.id.au>
-Cc: Michael Neuling <mikey@neuling.org>
-Cc: Russell King <linux@arm.linux.org.uk>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Victor Kaplansky <VICTORK@il.ibm.com>
-Suggested-by: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Signed-off-by: Peter Zijlstra <peterz@infradead.org>
----
- kernel/events/ring_buffer.c |   62 +++++++++++++++++++++++++-------------------
- 1 file changed, 36 insertions(+), 26 deletions(-)
+(1) E-mail:
+(2) Name:
+(3) Password:
+(4) Confirm Password:
 
---- a/kernel/events/ring_buffer.c
-+++ b/kernel/events/ring_buffer.c
-@@ -41,6 +41,32 @@ static void perf_output_get_handle(struc
- 	handle->wakeup = local_read(&rb->wakeup);
- }
- 
-+/*
-+ * Our user visible data structure (struct perf_event_mmap_page) uses
-+ * u64 values for ->data_head and ->data_tail to avoid size variance
-+ * across 32/64 bit.
-+ *
-+ * Since you cannot mmap() a buffer larger than your memory address space
-+ * we're naturally limited to unsigned long and can avoid writing the
-+ * high word on 32bit systems (its always 0)
-+ *
-+ * This allows us to always use a single load/store.
-+ */
-+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-+static inline unsigned long *low_word(u64 *ptr)
-+{
-+	return (unsigned long *)ptr;
-+}
-+#else /* __ORDER_BIG_ENDIAN__ */
-+static inline unsigned long *low_word(u64 *ptr)
-+{
-+	void *_ptr = ptr;
-+	_ptr += sizeof(u64);
-+	_ptr -= sizeof(unsigned long);
-+	return (unsigned long *)_ptr;
-+}
-+#endif
-+
- static void perf_output_put_handle(struct perf_output_handle *handle)
- {
- 	struct ring_buffer *rb = handle->rb;
-@@ -61,28 +87,15 @@ static void perf_output_put_handle(struc
- 	 *
- 	 *   kernel				user
- 	 *
--	 *   READ ->data_tail			READ ->data_head
--	 *   smp_mb()	(A)			smp_rmb()	(C)
-+	 *   READ.acq ->data_tail  (A)		READ.acq ->data_head  (C)
- 	 *   WRITE $data			READ $data
--	 *   smp_wmb()	(B)			smp_mb()	(D)
--	 *   STORE ->data_head			WRITE ->data_tail
-+	 *   STORE.rel ->data_head (B)		WRITE.rel ->data_tail (D)
- 	 *
- 	 * Where A pairs with D, and B pairs with C.
- 	 *
--	 * I don't think A needs to be a full barrier because we won't in fact
--	 * write data until we see the store from userspace. So we simply don't
--	 * issue the data WRITE until we observe it. Be conservative for now.
--	 *
--	 * OTOH, D needs to be a full barrier since it separates the data READ
--	 * from the tail WRITE.
--	 *
--	 * For B a WMB is sufficient since it separates two WRITEs, and for C
--	 * an RMB is sufficient since it separates two READs.
--	 *
- 	 * See perf_output_begin().
- 	 */
--	smp_wmb();
--	rb->user_page->data_head = head;
-+	smp_store_release(low_word(&rb->user_page->data_head), head);
- 
- 	/*
- 	 * Now check if we missed an update -- rely on previous implied
-@@ -139,7 +152,13 @@ int perf_output_begin(struct perf_output
- 	perf_output_get_handle(handle);
- 
- 	do {
--		tail = ACCESS_ONCE(rb->user_page->data_tail);
-+		tail = smp_load_acquire(low_word(&rb->user_page->data_tail));
-+		/*
-+		 * STORES of the data below cannot pass the ACQUIRE barrier.
-+		 *
-+		 * Matches with an smp_mb() or smp_store_release() in userspace
-+		 * as described in perf_output_put_handle().
-+		 */
- 		offset = head = local_read(&rb->head);
- 		if (!rb->overwrite &&
- 		    unlikely(CIRC_SPACE(head, tail, perf_data_size(rb)) < size))
-@@ -147,15 +166,6 @@ int perf_output_begin(struct perf_output
- 		head += size;
- 	} while (local_cmpxchg(&rb->head, offset, head) != offset);
- 
--	/*
--	 * Separate the userpage->tail read from the data stores below.
--	 * Matches the MB userspace SHOULD issue after reading the data
--	 * and before storing the new tail position.
--	 *
--	 * See perf_output_put_handle().
--	 */
--	smp_mb();
--
- 	if (unlikely(head - local_read(&rb->wakeup) > rb->watermark))
- 		local_add(rb->watermark, &rb->wakeup);
- 
+thank you
+system administrator
