@@ -1,7 +1,7 @@
 From: Tim Chen <tim.c.chen@linux.intel.com>
-Subject: [PATCH v4 2/5] MCS Lock: optimizations and extra comments
-Date: Wed, 06 Nov 2013 17:26:49 -0800
-Message-ID: <1383787609.11046.365.camel@schen9-DESK>
+Subject: [PATCH v4 3/5] MCS Lock: Barrier corrections
+Date: Wed, 06 Nov 2013 17:26:52 -0800
+Message-ID: <1383787612.11046.366.camel@schen9-DESK>
 References: <cover.1383783691.git.tim.c.chen@linux.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
@@ -14,11 +14,8 @@ Cc: linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger
  E.McKenney" <paulmck@linux.vnet.ibm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>Wi
 List-Id: linux-arch.vger.kernel.org
 
-Remove unnecessary operation and make the cmpxchg(lock, node, NULL) == node
-check in mcs_spin_unlock() likely() as it is likely that a race did not occur
-most of the time.
-
-Also add in more comments describing how the local node is used in MCS locks.
+This patch corrects the way memory barriers are used in the MCS lock
+and removes ones that are not needed. Also add comments on all barriers.
 
 Reviewed-by: Tim Chen <tim.c.chen@linux.intel.com>
 Signed-off-by: Jason Low <jason.low2@hp.com>
@@ -27,50 +24,54 @@ Signed-off-by: Jason Low <jason.low2@hp.com>
  1 files changed, 11 insertions(+), 2 deletions(-)
 
 diff --git a/include/linux/mcs_spinlock.h b/include/linux/mcs_spinlock.h
-index b5de3b0..96f14299 100644
+index 96f14299..93d445d 100644
 --- a/include/linux/mcs_spinlock.h
 +++ b/include/linux/mcs_spinlock.h
-@@ -18,6 +18,12 @@ struct mcs_spinlock {
- };
+@@ -36,16 +36,19 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
+ 	node->locked = 0;
+ 	node->next   = NULL;
  
- /*
-+ * In order to acquire the lock, the caller should declare a local node and
-+ * pass a reference of the node to this function in addition to the lock.
-+ * If the lock has already been acquired, then this will proceed to spin
-+ * on this node->locked until the previous lock holder sets the node->locked
-+ * in mcs_spin_unlock().
-+ *
-  * We don't inline mcs_spin_lock() so that perf can correctly account for the
-  * time spent in this lock function.
-  */
-@@ -33,7 +39,6 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
++	/* xchg() provides a memory barrier */
  	prev = xchg(lock, node);
  	if (likely(prev == NULL)) {
  		/* Lock acquired */
--		node->locked = 1;
  		return;
  	}
  	ACCESS_ONCE(prev->next) = node;
-@@ -43,6 +48,10 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
+-	smp_wmb();
+ 	/* Wait until the lock holder passes the lock down */
+ 	while (!ACCESS_ONCE(node->locked))
  		arch_mutex_cpu_relax();
++
++	/* Make sure subsequent operations happen after the lock is acquired */
++	smp_rmb();
  }
  
-+/*
-+ * Releases the lock. The caller should pass in the corresponding node that
-+ * was used to acquire the lock.
-+ */
- static void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
- {
- 	struct mcs_spinlock *next = ACCESS_ONCE(node->next);
-@@ -51,7 +60,7 @@ static void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *nod
+ /*
+@@ -58,6 +61,7 @@ static void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *nod
+ 
+ 	if (likely(!next)) {
  		/*
++		 * cmpxchg() provides a memory barrier.
  		 * Release the lock by setting it to NULL
  		 */
--		if (cmpxchg(lock, node, NULL) == node)
-+		if (likely(cmpxchg(lock, node, NULL) == node))
- 			return;
+ 		if (likely(cmpxchg(lock, node, NULL) == node))
+@@ -65,9 +69,14 @@ static void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *nod
  		/* Wait until the next pointer is set */
  		while (!(next = ACCESS_ONCE(node->next)))
+ 			arch_mutex_cpu_relax();
++	} else {
++		/*
++		 * Make sure all operations within the critical section
++		 * happen before the lock is released.
++		 */
++		smp_wmb();
+ 	}
+ 	ACCESS_ONCE(next->locked) = 1;
+-	smp_wmb();
+ }
+ 
+ #endif /* __LINUX_MCS_SPINLOCK_H */
 -- 
 1.7.4.4
 
