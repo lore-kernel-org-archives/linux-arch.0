@@ -1,83 +1,62 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch 1/6] hardirq: Make hardirq bits generic
-Date: Thu, 7 Nov 2013 17:39:31 +0100 (CET)
-Message-ID: <alpine.DEB.2.02.1311071655240.23353@ionos.tec.linutronix.de>
-References: <20130917082838.218329307@infradead.org> <20130917182350.449685712@linutronix.de> <20130917183628.534494408@linutronix.de> <CAMuHMdWgrQf+ULDrZyY5R+vT3GtiWEgpsWxmfk0b5pivN7wBmg@mail.gmail.com> <alpine.DEB.2.02.1309172315550.4089@ionos.tec.linutronix.de>
- <alpine.DEB.2.02.1309181159520.4089@ionos.tec.linutronix.de> <alpine.DEB.2.02.1309191652480.4089@ionos.tec.linutronix.de> <87txhg3ftx.fsf@igel.home> <CAMuHMdW-YBroi6GezUP-KQBVRAcmYtUQERvBC=ekmemopDhVow@mail.gmail.com> <alpine.DEB.2.02.1311041305540.28335@ionos.tec.linutronix.de>
- <alpine.DEB.2.02.1311042032130.16975@ayla.of.borg> <alpine.DEB.2.02.1311061237430.23353@ionos.tec.linutronix.de> <CAMuHMdXDA2MRbR3GmD3KWC-iE6jnWX4uvbf1qeMd7RYX3O8f_g@mail.gmail.com>
+From: Tim Chen <tim.c.chen@linux.intel.com>
+Subject: Re: [PATCH v4 5/5] MCS Lock: Allow architecture specific memory
+ barrier in lock/unlock
+Date: Thu, 07 Nov 2013 08:55:11 -0800
+Message-ID: <1383843311.11046.370.camel@schen9-DESK>
+References: <cover.1383783691.git.tim.c.chen@linux.intel.com>
+	 <1383787620.11046.368.camel@schen9-DESK> <20131107074038.GB26654@gmail.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:52949 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752216Ab3KGQjg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Nov 2013 11:39:36 -0500
-In-Reply-To: <CAMuHMdXDA2MRbR3GmD3KWC-iE6jnWX4uvbf1qeMd7RYX3O8f_g@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Andreas Schwab <schwab@linux-m68k.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Linux-Arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Linux/m68k <linux-m68k@vger.kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20131107074038.GB26654@gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, 7 Nov 2013, Geert Uytterhoeven wrote:
-
-> Hi Thomas,
+On Thu, 2013-11-07 at 08:40 +0100, Ingo Molnar wrote:
+> * Tim Chen <tim.c.chen@linux.intel.com> wrote:
 > 
-> On Wed, Nov 6, 2013 at 6:23 PM, Thomas Gleixner <tglx@linutronix.de> wrote:
-> >> Also note that the value of "nested" doesn't match the indentation level,
-> >> which depends on my own bookkeeping using "nesting".
-> >
-> > Well, nested is just an indicator. It's not the nest level.
+> > This patch moves the decision of what kind of memory barriers to be
+> > used in the MCS lock and unlock functions to the architecture specific
+> > layer. It also moves the actual lock/unlock code to mcs_spinlock.c
+> > file.
+> > 
+> > A full memory barrier will be used if the following macros are not
+> > defined:
+> >  1) smp_mb__before_critical_section()
+> >  2) smp_mb__after_critical_section()
+> > 
+> > For the x86 architecture, only compiler barrier will be needed.
+> > 
+> > Acked-by: Tim Chen <tim.c.chen@linux.intel.com>
 > 
-> I know, the only thing that matters is whether it's zero or not.
-> But it should always be zero if there's no nesting, and non-zero if there
-> is, right?
+> This should be Signed-off-by and should come last in the SOB chain, as you 
+> are the person passing the patch along.
 > 
-> So:
+> > Signed-off-by: Waiman Long <Waiman.Long@hp.com>
 > 
-> #   irq 13 nested 1024
+> I think you lost a:
 > 
-> nested should be 0 here.
+>   From: Waiman Long <Waiman.Long@hp.com>
 > 
-> #   irq 4 nested 0
+> from the beginning of the mail, because right now if your patch is applied 
+> it will credit you with being the author - that wasn't the intention, 
+> right?
+
+Will fix that.  Thanks.
+
+Tim
+
 > 
-> ok
+> Thanks,
 > 
-> #     irq 13 nested 1024
-> 
-> ok (two extra spaces in front of "irq").
-> 
-> #     irq 4 nested 0
-> 
-> nested should be non-zero here.
+> 	Ingo
 
-Hmm. The softirq code reenables interrupts unconditionally. So when an
-interrupt hits there SR on stack has the bits cleared. You could
-verify that by checking in_serving_softirq() at the entry to
-do_IRQ(). That could also explain the irq 4 nests in irq 4 issue. You
-can't observe that on the original code as the softirq invocation and
-therefor the interrupt enable happens outside of do_IRQ().
 
-Though that does not explain the non nested case where nested is !=
-0. But it looks like that irq 13 has a higher level than 4:
-
-> #     irq 13 nested 1024
->
-> ok (two extra spaces in front of "irq").
-
-So it could actually be the following:
-
-   irq X arrives, SR I2/1/0 is set to 4
-
-   Now before we reach do_IRQ()
-   
-	irq 13 arrives and interrupts irq X as it has a higher level
-
-   	Your nest accounting shows 0, but the SR says nested, which is
-   	actually the correct state.
-
-Is there an easy to setup/use emulator around on which I could try to
-dig into that myself?
-
-Thanks,
-
-	tglx
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
