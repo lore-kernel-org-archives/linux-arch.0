@@ -1,32 +1,36 @@
-From: WEBMASTER <webmaster@mail.com>
-Subject: system administrator
-Date: Thu, 07 Nov 2013 22:54:28 +0100
-Message-ID: <20131107215455.B8A4410FA30@smtps.ntu.edu.tw>
-Reply-To: helpservices4786@admin.in.th
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v3 3/5] MCS Lock: Barrier corrections
+Date: Thu, 7 Nov 2013 23:21:44 +0100
+Message-ID: <20131107222144.GC19203@twins.programming.kicks-ass.net>
+References: <cover.1383771175.git.tim.c.chen@linux.intel.com>
+ <1383773827.11046.355.camel@schen9-DESK>
+ <CA+55aFyNX=5i0hmk-KuD+Vk+yBD-kkAiywx1Lx_JJmHVPx=1wA@mail.gmail.com>
+ <CANN689HkNP-UZOu+vDCFPG5_k=BNZG6a+oP+Ope16vLc2ShFzw@mail.gmail.com>
+ <CA+55aFwn1HUt3iXo6Zz8j1HUJi+qJ1NfcnUz-P+XCYLL7gjCMQ@mail.gmail.com>
+ <CANN689EgdDQV=srsLELUpiTGOSF0SLUZ=BC2LnMxNrYTv3H=Wg@mail.gmail.com>
+ <20131107143139.GT18245@linux.vnet.ibm.com>
+ <CANN689FqUSnr=Prum0Kt6+0gr9dWKD8GT9Gbrtiyyg+PTyFkyA@mail.gmail.com>
+ <1383858951.11046.399.camel@schen9-DESK>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtps.ntu.edu.tw ([140.112.2.142]:4932 "EHLO smtps.ntu.edu.tw"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752205Ab3KGWSa convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Nov 2013 17:18:30 -0500
-Content-Description: Mail message body
+Received: from merlin.infradead.org ([205.233.59.134]:37233 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755266Ab3KGWW0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Nov 2013 17:22:26 -0500
+Content-Disposition: inline
+In-Reply-To: <1383858951.11046.399.camel@schen9-DESK>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Recipients <webmaster@mail.com>
+To: Tim Chen <tim.c.chen@linux.intel.com>
+Cc: Michel Lespinasse <walken@google.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Arnd Bergmann <arnd@arndb.de>, Rik van Riel <riel@redhat.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, "Figo. zhang" <figo1802@gmail.com>, linux-arch@vger.kernel.org, Andi Kleen <andi@firstfloor.org>, George Spelvin <linux@horizon.com>, Ingo Molnar <mingo@elte.hu>, Peter Hurley <peter@hurleysoftware.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm <linux-mm@kvack.org>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, LKML <linux-kernel@vger.kernel.org>, Scott J Norton <scott.norton@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Dave Hansen <dave.hansen@intel.com>
 
-Dear user
-Your email has exceeded 2 GB, which is created by
-Webmaster, now at 2.30GB, you can not Send or receive new messages
-until you check your account.Complete the form to verify your account.
+On Thu, Nov 07, 2013 at 01:15:51PM -0800, Tim Chen wrote:
+> Michel, are you planning to do an implementation of
+> load-acquire/store-release functions of various architectures?
 
-Please complete the details below to confirm your account
+A little something like this:
+http://marc.info/?l=linux-arch&m=138386254111507
 
-(1) E-mail:
-(2) Name:
-(3) Password:
-(4) Confirm Password:
-
-thank you
-system administrator
+It so happens we were working on that the past week or so due to another
+issue ;-)
