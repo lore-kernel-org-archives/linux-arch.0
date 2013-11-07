@@ -1,236 +1,77 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH v3 3/5] MCS Lock: Barrier corrections
-Date: Thu, 7 Nov 2013 10:39:52 +0900
-Message-ID: <CA+55aFyNX=5i0hmk-KuD+Vk+yBD-kkAiywx1Lx_JJmHVPx=1wA@mail.gmail.com>
-References: <cover.1383771175.git.tim.c.chen@linux.intel.com>
-	<1383773827.11046.355.camel@schen9-DESK>
+From: Chen Gang <gang.chen@asianux.com>
+Subject: Re: [PATCH trivial] include: uapi: standard all files'
+ macro prefix and suffix, excluding "linux/" sub-directory
+Date: Thu, 07 Nov 2013 10:53:16 +0800
+Message-ID: <527B009C.4060905@asianux.com>
+References: <52786742.1080509@asianux.com> <51FB6216.6010008@asianux.com>
+	<11907.1383602624@warthog.procyon.org.uk>
+	<13981.1383649896@warthog.procyon.org.uk>
+	<5278DEF8.2030101@asianux.com>
 Mime-Version: 1.0
-Content-Type: multipart/alternative; boundary=20cf3079b7fc92942704ea8c57ee
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1383773827.11046.355.camel@schen9-DESK>
-Sender: owner-linux-mm@kvack.org
-To: Tim Chen <tim.c.chen@linux.intel.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, "Figo. zhang" <figo1802@gmail.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Rik van Riel <riel@redhat.com>, Waiman Long <waiman.long@hp.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, linux-arch@vger.kernel.org, Andi Kleen <andi@firstfloor.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, George Spelvin <linux@horizon.com>, Michel Lespinasse <walken@google.com>, Ingo Molnar <mingo@elte.hu>, Peter Hurley <peter@hurleysoftware.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm <linux-mm@kvack.org>, Alex Shi <alex.shi@linaro.org>, Andrea Arcangeli <aarcange@redhat.com>, Scott J Norton <scott.norton@hp.com>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Dave Hansen <dave.hansen@intel.com>, Matthew R Wilcox <matthew.r>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <intel-gfx-bounces@lists.freedesktop.org>
+In-Reply-To: <5278DEF8.2030101@asianux.com>
+List-Unsubscribe: <http://lists.freedesktop.org/mailman/options/intel-gfx>,
+	<mailto:intel-gfx-request@lists.freedesktop.org?subject=unsubscribe>
+List-Archive: <http://lists.freedesktop.org/archives/intel-gfx>
+List-Post: <mailto:intel-gfx@lists.freedesktop.org>
+List-Help: <mailto:intel-gfx-request@lists.freedesktop.org?subject=help>
+List-Subscribe: <http://lists.freedesktop.org/mailman/listinfo/intel-gfx>,
+	<mailto:intel-gfx-request@lists.freedesktop.org?subject=subscribe>
+Sender: intel-gfx-bounces@lists.freedesktop.org
+Errors-To: intel-gfx-bounces@lists.freedesktop.org
+To: David Howells <dhowells@redhat.com>
+Cc: xen-devel@lists.xensource.com, jeremy@goop.org, airlied@linux.ie, daniel.vetter@ffwll.ch, alsa-devel@alsa-project.org, dri-devel@lists.freedesktop.org, perex@perex.cz, thierry.reding@gmail.com, linux-mtd@lists.infradead.org, sean.hefty@intel.com, virtualization@lists.linux-foundation.org, Linux-Arch <linux-arch@vger.kernel.org>, "kgene.kim@samsung.com" <kgene.kim@samsung.com>, tbergstrom@nvidia.com, jy0922.shim@samsung.com, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, roland@purestorage.com, Takashi Iwai <tiwai@suse.de>, Tomi Valkeinen <tomi.valkeinen@ti.com>, mtk.manpages@gmail.com, fcoe-devel@open-fcoe.org, Paul McKenney <paulmck@linux.vnet.ibm.com>, "plagnioj@jcrosoft.com" <plagnioj@jcrosoft.com>, Arnd Bergmann <arnd@arndb.de>, swarren@wwwdotorg.org, intel-gfx@lists.freedesktop.org, inki.dae@samsung.com, "linux-samsung-soc@vger.kernel.org" <linux-samsung-soc@vger>
 List-Id: linux-arch.vger.kernel.org
 
---20cf3079b7fc92942704ea8c57ee
-Content-Type: text/plain; charset=UTF-8
+On 11/05/2013 08:05 PM, Chen Gang wrote:
+> On 11/05/2013 07:11 PM, David Howells wrote:
+>> Chen Gang <gang.chen@asianux.com> wrote:
+>>
+>>>> Userspace sometimes depends on the name in the guard macro:-/
+>>>
+>>> "the guard macro" is only for prevent itself from being included by
+>>> multiple times (an id used by itself -- like a handle), it is not an id
+>>> to let other files know about it (it is not a normal using way).
+>>
+>> Whilst that *should* be true, it isn't actually true.  See:
+>>
+>> 	grep -r _LINUX_.*_H /usr/include/ | grep -v ^/usr/include/linux/
+>>
+>> for example.  Also who knows what all those autoconf scripts out there look
+>> for?
+>>
+> 
+> Oh... the real world is really not quite perfect. :-/
+> 
+> 
+>> However, thinking about it some more, you're probably safe with respect to
+>> userspace as scripts/headers_install.h strips off the _UAPI prefix on the
+>> guard macros - just as long as you don't change the rest of the macro name.
+>>
+> 
 
-Sorry about the HTML crap, the internet connection is too slow for my
-normal email habits, so I'm using my phone.
+I will preparing the patch for it, it will cover "include/uapi/*" and
+"arch/*/include/uapi/*", the patch will only add "_UAPI" for the guard
+macros which miss it.
 
-I think the barriers are still totally wrong for the locking functions.
+Welcome any additional suggestions and completions.
 
-Adding an smp_rmb after waiting for the lock is pure BS. Writes in the
-locked region could percolate out of the locked region.
+Thanks.
 
-The thing is, you cannot do the memory ordering for locks in any same
-generic way. Not using our current barrier system. On x86 (and many others)
-the smp_rmb will work fine, because writes are never moved earlier. But on
-other architectures you really need an acquire to get a lock efficiently.
-No separate barriers. An acquire needs to be on the instruction that does
-the lock.
+> In honest, I really did not think more about it.
+> 
+> Only adding _UAPI (not touch others) can completely fix one style issue:
+> separate "uapi/*" from other sub-directories in "include/*"
+> 
+> So for me, we can continue improve this patch: add "_UAPI" for all guard
+> macro under "include/uapi/*" (also include "include/uapi/linux").
+> 
+> 
+> Thanks.
+> 
 
-Same goes for unlock. On x86 any store is a fine unlock, but on other
-architectures you need a store with a release marker.
 
-So no amount of barriers will ever do this correctly. Sure, you can add
-full memory barriers and it will be "correct" but it will be unbearably
-slow, and add totally unnecessary serialization. So *correct* locking will
-require architecture support.
-
-     Linus
-On Nov 7, 2013 6:37 AM, "Tim Chen" <tim.c.chen@linux.intel.com> wrote:
-
-> This patch corrects the way memory barriers are used in the MCS lock
-> and removes ones that are not needed. Also add comments on all barriers.
->
-> Reviewed-by: Tim Chen <tim.c.chen@linux.intel.com>
-> Signed-off-by: Jason Low <jason.low2@hp.com>
-> Signed-off-by: Tim Chen <tim.c.chen@linux.intel.com>
-> ---
->  include/linux/mcs_spinlock.h |   13 +++++++++++--
->  1 files changed, 11 insertions(+), 2 deletions(-)
->
-> diff --git a/include/linux/mcs_spinlock.h b/include/linux/mcs_spinlock.h
-> index 96f14299..93d445d 100644
-> --- a/include/linux/mcs_spinlock.h
-> +++ b/include/linux/mcs_spinlock.h
-> @@ -36,16 +36,19 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct
-> mcs_spinlock *node)
->         node->locked = 0;
->         node->next   = NULL;
->
-> +       /* xchg() provides a memory barrier */
->         prev = xchg(lock, node);
->         if (likely(prev == NULL)) {
->                 /* Lock acquired */
->                 return;
->         }
->         ACCESS_ONCE(prev->next) = node;
-> -       smp_wmb();
->         /* Wait until the lock holder passes the lock down */
->         while (!ACCESS_ONCE(node->locked))
->                 arch_mutex_cpu_relax();
-> +
-> +       /* Make sure subsequent operations happen after the lock is
-> acquired */
-> +       smp_rmb();
->  }
->
->  /*
-> @@ -58,6 +61,7 @@ static void mcs_spin_unlock(struct mcs_spinlock **lock,
-> struct mcs_spinlock *nod
->
->         if (likely(!next)) {
->                 /*
-> +                * cmpxchg() provides a memory barrier.
->                  * Release the lock by setting it to NULL
->                  */
->                 if (likely(cmpxchg(lock, node, NULL) == node))
-> @@ -65,9 +69,14 @@ static void mcs_spin_unlock(struct mcs_spinlock **lock,
-> struct mcs_spinlock *nod
->                 /* Wait until the next pointer is set */
->                 while (!(next = ACCESS_ONCE(node->next)))
->                         arch_mutex_cpu_relax();
-> +       } else {
-> +               /*
-> +                * Make sure all operations within the critical section
-> +                * happen before the lock is released.
-> +                */
-> +               smp_wmb();
->         }
->         ACCESS_ONCE(next->locked) = 1;
-> -       smp_wmb();
->  }
->
->  #endif /* __LINUX_MCS_SPINLOCK_H */
-> --
-> 1.7.4.4
->
->
->
->
-
---20cf3079b7fc92942704ea8c57ee
-Content-Type: text/html; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
-
-<p dir=3D"ltr">Sorry about the HTML crap, the internet connection is too sl=
-ow for my normal email habits, so I&#39;m using my phone. </p>
-<p dir=3D"ltr">I think the barriers are still totally wrong for the locking=
- functions.</p>
-<p dir=3D"ltr">Adding an smp_rmb after waiting for the lock is pure BS. Wri=
-tes in the locked region could percolate out of the locked region.</p>
-<p dir=3D"ltr">The thing is, you cannot do the memory ordering for locks in=
- any same generic way. Not using our current barrier system. On x86 (and ma=
-ny others) the smp_rmb will work fine, because writes are never moved earli=
-er. But on other architectures you really need an acquire to get a lock eff=
-iciently. No separate barriers. An acquire needs to be on the instruction t=
-hat does the lock.</p>
-
-<p dir=3D"ltr">Same goes for unlock. On x86 any store is a fine unlock, but=
- on other architectures you need a store with a release marker.</p>
-<p dir=3D"ltr">So no amount of barriers will ever do this correctly. Sure, =
-you can add full memory barriers and it will be &quot;correct&quot; but it =
-will be unbearably slow, and add totally unnecessary serialization. So *cor=
-rect* locking will require architecture support.</p>
-
-<p dir=3D"ltr">=C2=A0=C2=A0=C2=A0=C2=A0 Linus</p>
-<div class=3D"gmail_quote">On Nov 7, 2013 6:37 AM, &quot;Tim Chen&quot; &lt=
-;<a href=3D"mailto:tim.c.chen@linux.intel.com">tim.c.chen@linux.intel.com</=
-a>&gt; wrote:<br type=3D"attribution"><blockquote class=3D"gmail_quote" sty=
-le=3D"margin:0 0 0 .8ex;border-left:1px #ccc solid;padding-left:1ex">
-This patch corrects the way memory barriers are used in the MCS lock<br>
-and removes ones that are not needed. Also add comments on all barriers.<br=
->
-<br>
-Reviewed-by: Tim Chen &lt;<a href=3D"mailto:tim.c.chen@linux.intel.com">tim=
-.c.chen@linux.intel.com</a>&gt;<br>
-Signed-off-by: Jason Low &lt;<a href=3D"mailto:jason.low2@hp.com">jason.low=
-2@hp.com</a>&gt;<br>
-Signed-off-by: Tim Chen &lt;<a href=3D"mailto:tim.c.chen@linux.intel.com">t=
-im.c.chen@linux.intel.com</a>&gt;<br>
----<br>
-=C2=A0include/linux/mcs_spinlock.h | =C2=A0 13 +++++++++++--<br>
-=C2=A01 files changed, 11 insertions(+), 2 deletions(-)<br>
-<br>
-diff --git a/include/linux/mcs_spinlock.h b/include/linux/mcs_spinlock.h<br=
->
-index 96f14299..93d445d 100644<br>
---- a/include/linux/mcs_spinlock.h<br>
-+++ b/include/linux/mcs_spinlock.h<br>
-@@ -36,16 +36,19 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct m=
-cs_spinlock *node)<br>
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 node-&gt;locked =3D 0;<br>
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 node-&gt;next =C2=A0 =3D NULL;<br>
-<br>
-+ =C2=A0 =C2=A0 =C2=A0 /* xchg() provides a memory barrier */<br>
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 prev =3D xchg(lock, node);<br>
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 if (likely(prev =3D=3D NULL)) {<br>
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 /* Lock acquired */=
-<br>
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 return;<br>
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 }<br>
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 ACCESS_ONCE(prev-&gt;next) =3D node;<br>
-- =C2=A0 =C2=A0 =C2=A0 smp_wmb();<br>
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 /* Wait until the lock holder passes the lock d=
-own */<br>
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 while (!ACCESS_ONCE(node-&gt;locked))<br>
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 arch_mutex_cpu_rela=
-x();<br>
-+<br>
-+ =C2=A0 =C2=A0 =C2=A0 /* Make sure subsequent operations happen after the =
-lock is acquired */<br>
-+ =C2=A0 =C2=A0 =C2=A0 smp_rmb();<br>
-=C2=A0}<br>
-<br>
-=C2=A0/*<br>
-@@ -58,6 +61,7 @@ static void mcs_spin_unlock(struct mcs_spinlock **lock, s=
-truct mcs_spinlock *nod<br>
-<br>
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 if (likely(!next)) {<br>
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 /*<br>
-+ =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0* cmpxchg() provid=
-es a memory barrier.<br>
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0* Release the=
- lock by setting it to NULL<br>
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0*/<br>
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 if (likely(cmpxchg(=
-lock, node, NULL) =3D=3D node))<br>
-@@ -65,9 +69,14 @@ static void mcs_spin_unlock(struct mcs_spinlock **lock, =
-struct mcs_spinlock *nod<br>
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 /* Wait until the n=
-ext pointer is set */<br>
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 while (!(next =3D A=
-CCESS_ONCE(node-&gt;next)))<br>
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 arch_mutex_cpu_relax();<br>
-+ =C2=A0 =C2=A0 =C2=A0 } else {<br>
-+ =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 /*<br>
-+ =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0* Make sure all op=
-erations within the critical section<br>
-+ =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0* happen before th=
-e lock is released.<br>
-+ =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0*/<br>
-+ =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 smp_wmb();<br>
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 }<br>
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 ACCESS_ONCE(next-&gt;locked) =3D 1;<br>
-- =C2=A0 =C2=A0 =C2=A0 smp_wmb();<br>
-=C2=A0}<br>
-<br>
-=C2=A0#endif /* __LINUX_MCS_SPINLOCK_H */<br>
---<br>
-1.7.4.4<br>
-<br>
-<br>
-<br>
-</blockquote></div>
-
---20cf3079b7fc92942704ea8c57ee--
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+-- 
+Chen Gang
