@@ -1,84 +1,128 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:5749 "EHLO mga02.intel.com"
+Received: from mga02.intel.com ([134.134.136.20]:5797 "EHLO mga02.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757677Ab3KHTw1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 8 Nov 2013 14:52:27 -0500
-Subject: [PATCH v5 2/4] MCS Lock: optimizations and extra comments
+	id S1758105Ab3KHTwl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 8 Nov 2013 14:52:41 -0500
+Subject: [PATCH v5 4/4] MCS Lock: Barrier corrections
 From: Tim Chen <tim.c.chen@linux.intel.com>
 In-Reply-To: <cover.1383935697.git.tim.c.chen@linux.intel.com>
 References: <cover.1383935697.git.tim.c.chen@linux.intel.com>
 Content-Type: text/plain; charset="UTF-8"
-Date: Fri, 08 Nov 2013 11:52:05 -0800
-Message-ID: <1383940325.11046.415.camel@schen9-DESK>
+Date: Fri, 08 Nov 2013 11:52:38 -0800
+Message-ID: <1383940358.11046.417.camel@schen9-DESK>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>
 Cc: linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Will Deacon <will.deacon@arm.com>, "Figo.zhang" <figo1802@gmail.com>
-Message-ID: <20131108195205.28F60qYzlCClmKoBhj6JIeq4dKI0UYHIjEYcFCq_y4A@z>
+Message-ID: <20131108195238.EgTWy_vjZel1hdunzJ7ecCndTNIhE2Xyd_-igeTqszU@z>
 
-From: Jason Low <jason.low2@hp.com>
+From: Waiman Long <Waiman.Long@hp.com>
 
-Remove unnecessary operation and make the cmpxchg(lock, node, NULL) == node
-check in mcs_spin_unlock() likely() as it is likely that a race did not occur
-most of the time.
+This patch corrects the way memory barriers are used in the MCS lock
+with smp_load_acquire and smp_store_release fucnction.
+It removes ones that are not needed.
 
-Also add in more comments describing how the local node is used in MCS locks.
+It uses architecture specific load-acquire and store-release
+primitives for synchronization, if available. Generic implementations
+are provided in case they are not defined even though they may not
+be optimal. These generic implementation could be removed later on
+once changes are made in all the relevant header files.
 
-Reviewed-by: Tim Chen <tim.c.chen@linux.intel.com>
+Suggested-by: Michel Lespinasse <walken@google.com>
+Signed-off-by: Waiman Long <Waiman.Long@hp.com>
 Signed-off-by: Jason Low <jason.low2@hp.com>
+Signed-off-by: Tim Chen <tim.c.chen@linux.intel.com>
 ---
- include/linux/mcs_spinlock.h |   13 +++++++++++--
- 1 files changed, 11 insertions(+), 2 deletions(-)
+ kernel/locking/mcs_spinlock.c |   48 +++++++++++++++++++++++++++++++++++------
+ 1 files changed, 41 insertions(+), 7 deletions(-)
 
-diff --git a/include/linux/mcs_spinlock.h b/include/linux/mcs_spinlock.h
-index b5de3b0..96f14299 100644
---- a/include/linux/mcs_spinlock.h
-+++ b/include/linux/mcs_spinlock.h
-@@ -18,6 +18,12 @@ struct mcs_spinlock {
- };
+diff --git a/kernel/locking/mcs_spinlock.c b/kernel/locking/mcs_spinlock.c
+index b6f27f8..df5c167 100644
+--- a/kernel/locking/mcs_spinlock.c
++++ b/kernel/locking/mcs_spinlock.c
+@@ -23,6 +23,31 @@
+ #endif
  
  /*
-+ * In order to acquire the lock, the caller should declare a local node and
-+ * pass a reference of the node to this function in addition to the lock.
-+ * If the lock has already been acquired, then this will proceed to spin
-+ * on this node->locked until the previous lock holder sets the node->locked
-+ * in mcs_spin_unlock().
-+ *
-  * We don't inline mcs_spin_lock() so that perf can correctly account for the
-  * time spent in this lock function.
-  */
-@@ -33,7 +39,6 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
- 	prev = xchg(lock, node);
++ * Fall back to use the regular atomic operations and memory barrier if
++ * the acquire/release versions are not defined.
++ */
++#ifndef	xchg_acquire
++# define xchg_acquire(p, v)		xchg(p, v)
++#endif
++
++#ifndef	smp_load_acquire
++# define smp_load_acquire(p)				\
++	({						\
++		typeof(*p) __v = ACCESS_ONCE(*(p));	\
++		smp_mb();				\
++		__v;					\
++	})
++#endif
++
++#ifndef smp_store_release
++# define smp_store_release(p, v)		\
++	do {					\
++		smp_mb();			\
++		ACCESS_ONCE(*(p)) = v;		\
++	} while (0)
++#endif
++
++/*
+  * In order to acquire the lock, the caller should declare a local node and
+  * pass a reference of the node to this function in addition to the lock.
+  * If the lock has already been acquired, then this will proceed to spin
+@@ -37,15 +62,19 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
+ 	node->locked = 0;
+ 	node->next   = NULL;
+ 
+-	prev = xchg(lock, node);
++	/* xchg() provides a memory barrier */
++	prev = xchg_acquire(lock, node);
  	if (likely(prev == NULL)) {
  		/* Lock acquired */
--		node->locked = 1;
  		return;
  	}
  	ACCESS_ONCE(prev->next) = node;
-@@ -43,6 +48,10 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
+-	smp_wmb();
+-	/* Wait until the lock holder passes the lock down */
+-	while (!ACCESS_ONCE(node->locked))
++	/*
++	 * Wait until the lock holder passes the lock down.
++	 * Using smp_load_acquire() provides a memory barrier that
++	 * ensures subsequent operations happen after the lock is acquired.
++	 */
++	while (!(smp_load_acquire(&node->locked)))
  		arch_mutex_cpu_relax();
  }
- 
-+/*
-+ * Releases the lock. The caller should pass in the corresponding node that
-+ * was used to acquire the lock.
-+ */
- static void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
+ EXPORT_SYMBOL_GPL(mcs_spin_lock);
+@@ -54,7 +83,7 @@ EXPORT_SYMBOL_GPL(mcs_spin_lock);
+  * Releases the lock. The caller should pass in the corresponding node that
+  * was used to acquire the lock.
+  */
+-static void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
++void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
  {
  	struct mcs_spinlock *next = ACCESS_ONCE(node->next);
-@@ -51,7 +60,7 @@ static void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *nod
- 		/*
- 		 * Release the lock by setting it to NULL
- 		 */
--		if (cmpxchg(lock, node, NULL) == node)
-+		if (likely(cmpxchg(lock, node, NULL) == node))
- 			return;
- 		/* Wait until the next pointer is set */
+ 
+@@ -68,7 +97,12 @@ static void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *nod
  		while (!(next = ACCESS_ONCE(node->next)))
+ 			arch_mutex_cpu_relax();
+ 	}
+-	ACCESS_ONCE(next->locked) = 1;
+-	smp_wmb();
++	/*
++	 * Pass lock to next waiter.
++	 * smp_store_release() provides a memory barrier to ensure
++	 * all operations in the critical section has been completed
++	 * before unlocking.
++	 */
++	smp_store_release(&next->locked , 1);
+ }
+ EXPORT_SYMBOL_GPL(mcs_spin_unlock);
 -- 
 1.7.4.4
-
 
 
