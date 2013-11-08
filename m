@@ -1,315 +1,57 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+From: Waiman Long <waiman.long@hp.com>
 Subject: Re: [PATCH v5 4/4] qrwlock: Use the mcs_spinlock helper functions
  for MCS queuing
-Date: Fri, 8 Nov 2013 13:21:07 -0800
-Message-ID: <20131108212107.GI18245@linux.vnet.ibm.com>
-References: <1383585440-4391-1-git-send-email-Waiman.Long@hp.com>
- <1383585440-4391-5-git-send-email-Waiman.Long@hp.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+Date: Fri, 08 Nov 2013 17:42:36 -0500
+Message-ID: <527D68DC.10902@hp.com>
+References: <1383585440-4391-1-git-send-email-Waiman.Long@hp.com> <1383585440-4391-5-git-send-email-Waiman.Long@hp.com> <20131108212107.GI18245@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e34.co.us.ibm.com ([32.97.110.152]:59278 "EHLO
-	e34.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757706Ab3KHVVN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Nov 2013 16:21:13 -0500
-Received: from /spool/local
-	by e34.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Fri, 8 Nov 2013 14:21:13 -0700
-Content-Disposition: inline
-In-Reply-To: <1383585440-4391-5-git-send-email-Waiman.Long@hp.com>
+Received: from g5t0007.atlanta.hp.com ([15.192.0.44]:32976 "EHLO
+	g5t0007.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757473Ab3KHWmk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Nov 2013 17:42:40 -0500
+In-Reply-To: <20131108212107.GI18245@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <Waiman.Long@hp.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Aswin Chandramouleeswaran\"" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>
+To: paulmck@linux.vnet.ibm.com
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, aswin@hp.com, Scott J Norton <scott.norton@hp.com>
 
-On Mon, Nov 04, 2013 at 12:17:20PM -0500, Waiman Long wrote:
-> There is a pending patch in the rwsem patch series that adds a generic
-> MCS locking helper functions to do MCS-style locking. This patch
-> will enable the queue rwlock to use that generic MCS lock/unlock
-> primitives for internal queuing. This patch should only be merged
-> after the merging of that generic MCS locking patch.
-> 
-> Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+On 11/08/2013 04:21 PM, Paul E. McKenney wrote:
+> On Mon, Nov 04, 2013 at 12:17:20PM -0500, Waiman Long wrote:
+>> There is a pending patch in the rwsem patch series that adds a generic
+>> MCS locking helper functions to do MCS-style locking. This patch
+>> will enable the queue rwlock to use that generic MCS lock/unlock
+>> primitives for internal queuing. This patch should only be merged
+>> after the merging of that generic MCS locking patch.
+>>
+>> Signed-off-by: Waiman Long<Waiman.Long@hp.com>
+> This one does might address at least some of the earlier memory-barrier
+> issues, at least assuming that the MCS lock is properly memory-barriered.
+>
+> Then again, maybe not.  Please see below.
+>
+> 							Thanx, Paul
+>
+>>   	/*
+>>   	 * At the head of the wait queue now, try to increment the reader
+>> @@ -172,12 +103,36 @@ void queue_read_lock_slowpath(struct qrwlock *lock)
+>>   		while (ACCESS_ONCE(lock->cnts.writer))
+>>   			cpu_relax();
+>>   	}
+>> -	rspin_until_writer_unlock(lock, 1);
+>> -	signal_next(lock,&node);
+>> +	/*
+>> +	 * Increment reader count&  wait until writer unlock
+>> +	 */
+>> +	cnts.rw = xadd(&lock->cnts.rw, QRW_READER_BIAS);
+>> +	rspin_until_writer_unlock(lock, cnts);
+>> +	mcs_spin_unlock(&lock->waitq,&node);
+> But mcs_spin_unlock() is only required to do a RELEASE barrier, which
+> could still allow critical-section leakage.
 
-This one does might address at least some of the earlier memory-barrier
-issues, at least assuming that the MCS lock is properly memory-barriered.
+Yes, that is a problem. I will try to add an ACQUIRE barrier in reading 
+the writer byte.
 
-Then again, maybe not.  Please see below.
-
-							Thanx, Paul
-
-> ---
->  include/asm-generic/qrwlock.h |    7 +--
->  lib/qrwlock.c                 |  140 +++++++++++++----------------------------
->  2 files changed, 45 insertions(+), 102 deletions(-)
-> 
-> diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
-> index 78ad4a5..014e6e9 100644
-> --- a/include/asm-generic/qrwlock.h
-> +++ b/include/asm-generic/qrwlock.h
-> @@ -54,10 +54,7 @@ typedef u64 __nrcpupair_t;
->   * QRW_READER_BIAS to the rw field to increment the reader count won't
->   * disturb the writer and the fair fields.
->   */
-> -struct qrwnode {
-> -	struct qrwnode *next;
-> -	bool		wait;	/* Waiting flag */
-> -};
-> +struct mcs_spinlock;
-> 
->  typedef struct qrwlock {
->  	union qrwcnts {
-> @@ -74,7 +71,7 @@ typedef struct qrwlock {
->  		};
->  		__nrcpupair_t rw;		/* Reader/writer number pair */
->  	} cnts;
-> -	struct qrwnode *waitq;			/* Tail of waiting queue */
-> +	struct mcs_spinlock *waitq;		/* Tail of waiting queue */
->  } arch_rwlock_t;
-> 
->  /*
-> diff --git a/lib/qrwlock.c b/lib/qrwlock.c
-> index a85b9e1..6817853 100644
-> --- a/lib/qrwlock.c
-> +++ b/lib/qrwlock.c
-> @@ -20,6 +20,7 @@
->  #include <linux/cpumask.h>
->  #include <linux/percpu.h>
->  #include <linux/hardirq.h>
-> +#include <linux/mcs_spinlock.h>
->  #include <asm-generic/qrwlock.h>
-> 
->  /*
-> @@ -46,87 +47,16 @@
->   */
-> 
->  /**
-> - * wait_in_queue - Add to queue and wait until it is at the head
-> - * @lock: Pointer to queue rwlock structure
-> - * @node: Node pointer to be added to the queue
-> - *
-> - * The use of smp_wmb() is to make sure that the other CPUs see the change
-> - * ASAP.
-> - */
-> -static __always_inline void
-> -wait_in_queue(struct qrwlock *lock, struct qrwnode *node)
-> -{
-> -	struct qrwnode *prev;
-> -
-> -	node->next = NULL;
-> -	node->wait = true;
-> -	prev = xchg(&lock->waitq, node);
-> -	if (prev) {
-> -		prev->next = node;
-> -		smp_wmb();
-> -		/*
-> -		 * Wait until the waiting flag is off
-> -		 */
-> -		while (ACCESS_ONCE(node->wait))
-> -			cpu_relax();
-> -	}
-> -}
-> -
-> -/**
-> - * signal_next - Signal the next one in queue to be at the head
-> - * @lock: Pointer to queue rwlock structure
-> - * @node: Node pointer to the current head of queue
-> - */
-> -static __always_inline void
-> -signal_next(struct qrwlock *lock, struct qrwnode *node)
-> -{
-> -	struct qrwnode *next;
-> -
-> -	/*
-> -	 * Try to notify the next node first without disturbing the cacheline
-> -	 * of the lock. If that fails, check to see if it is the last node
-> -	 * and so should clear the wait queue.
-> -	 */
-> -	next = ACCESS_ONCE(node->next);
-> -	if (likely(next))
-> -		goto notify_next;
-> -
-> -	/*
-> -	 * Clear the wait queue if it is the last node
-> -	 */
-> -	if ((ACCESS_ONCE(lock->waitq) == node) &&
-> -	    (cmpxchg(&lock->waitq, node, NULL) == node))
-> -			return;
-> -	/*
-> -	 * Wait until the next one in queue set up the next field
-> -	 */
-> -	while (likely(!(next = ACCESS_ONCE(node->next))))
-> -		cpu_relax();
-> -	/*
-> -	 * The next one in queue is now at the head
-> -	 */
-> -notify_next:
-> -	barrier();
-> -	ACCESS_ONCE(next->wait) = false;
-> -	smp_wmb();
-> -}
-> -
-> -/**
->   * rspin_until_writer_unlock - inc reader count & spin until writer is gone
->   * @lock: Pointer to queue rwlock structure
-> + * @cnts: Queue read/write lock counts structure
->   *
->   * In interrupt context or at the head of the queue, the reader will just
->   * increment the reader count & wait until the writer releases the lock.
->   */
->  static __always_inline void
-> -rspin_until_writer_unlock(struct qrwlock *lock, int inc)
-> +rspin_until_writer_unlock(struct qrwlock *lock, union qrwcnts cnts)
->  {
-> -	union qrwcnts cnts;
-> -
-> -	if (inc)
-> -		cnts.rw = xadd(&lock->cnts.rw, QRW_READER_BIAS);
-> -	else
-> -		cnts.rw = ACCESS_ONCE(lock->cnts.rw);
->  	while (cnts.writer == QW_LOCKED) {
->  		cpu_relax();
->  		cnts.rw = ACCESS_ONCE(lock->cnts.rw);
-> @@ -139,7 +69,7 @@ rspin_until_writer_unlock(struct qrwlock *lock, int inc)
->   */
->  void queue_read_lock_slowpath(struct qrwlock *lock)
->  {
-> -	struct qrwnode node;
-> +	struct mcs_spinlock node;
->  	union qrwcnts cnts;
-> 
->  	/*
-> @@ -150,7 +80,8 @@ void queue_read_lock_slowpath(struct qrwlock *lock)
->  		 * Readers in interrupt context will spin until the lock is
->  		 * available without waiting in the queue.
->  		 */
-> -		rspin_until_writer_unlock(lock, 0);
-> +		cnts.rw = ACCESS_ONCE(lock->cnts.rw);
-> +		rspin_until_writer_unlock(lock, cnts);
->  		return;
->  	}
->  	cnts.rw = xadd(&lock->cnts.rw, -QRW_READER_BIAS);
-> @@ -158,7 +89,7 @@ void queue_read_lock_slowpath(struct qrwlock *lock)
->  	/*
->  	 * Put the reader into the wait queue
->  	 */
-> -	wait_in_queue(lock, &node);
-> +	mcs_spin_lock(&lock->waitq, &node);
-> 
->  	/*
->  	 * At the head of the wait queue now, try to increment the reader
-> @@ -172,12 +103,36 @@ void queue_read_lock_slowpath(struct qrwlock *lock)
->  		while (ACCESS_ONCE(lock->cnts.writer))
->  			cpu_relax();
->  	}
-> -	rspin_until_writer_unlock(lock, 1);
-> -	signal_next(lock, &node);
-> +	/*
-> +	 * Increment reader count & wait until writer unlock
-> +	 */
-> +	cnts.rw = xadd(&lock->cnts.rw, QRW_READER_BIAS);
-> +	rspin_until_writer_unlock(lock, cnts);
-> +	mcs_spin_unlock(&lock->waitq, &node);
-
-But mcs_spin_unlock() is only required to do a RELEASE barrier, which
-could still allow critical-section leakage.
-
->  }
->  EXPORT_SYMBOL(queue_read_lock_slowpath);
-> 
->  /**
-> + * _write_trylock - try to acquire a write lock
-> + * @lock : Pointer to queue rwlock structure
-> + * @old  : Old value of the qrwcnts
-> + * @new  : New value of the qrwcnts
-> + * Return: 1 if lock acquired, 0 otherwise
-> + *
-> + * Put old & new as function arguments can force the compiler to generate
-> + * better code with less stack memory access.
-> + */
-> +static __always_inline int _write_trylock(struct qrwlock *lock,
-> +				union qrwcnts old, union qrwcnts new)
-> +{
-> +	new.rw     = old.rw;
-> +	new.writer = QW_LOCKED;
-> +	if (likely(cmpxchg(&lock->cnts.rw, old.rw, new.rw) == old.rw))
-> +		return 1;
-> +	return 0;
-> +}
-> +
-> +/**
->   * queue_write_3step_lock - acquire write lock in 3 steps
->   * @lock : Pointer to queue rwlock structure
->   * Return: 1 if lock acquired, 0 otherwise
-> @@ -194,33 +149,24 @@ static __always_inline int queue_write_3step_lock(struct qrwlock *lock)
->  	union qrwcnts old, new;
-> 
->  	old.rw = ACCESS_ONCE(lock->cnts.rw);
-> +	new.rw = 0;
-> 
->  	/* Step 1 */
-> -	if (!old.writer & !old.readers) {
-> -		new.rw     = old.rw;
-> -		new.writer = QW_LOCKED;
-> -		if (likely(cmpxchg(&lock->cnts.rw, old.rw, new.rw) == old.rw))
-> -			return 1;
-> -	}
-> +	if (!old.writer && !old.readers && _write_trylock(lock, old, new))
-> +		return 1;
-> 
->  	/* Step 2 */
->  	if (old.writer || (cmpxchg(&lock->cnts.writer, 0, QW_WAITING) != 0))
->  		return 0;
-> 
->  	/* Step 3 */
-> -	while (true) {
-> +	cpu_relax();
-> +	old.rw = ACCESS_ONCE(lock->cnts.rw);
-> +	while (old.readers || !_write_trylock(lock, old, new)) {
->  		cpu_relax();
->  		old.rw = ACCESS_ONCE(lock->cnts.rw);
-> -		if (!old.readers) {
-> -			new.rw     = old.rw;
-> -			new.writer = QW_LOCKED;
-> -			if (likely(cmpxchg(&lock->cnts.rw, old.rw, new.rw)
-> -				== old.rw))
-> -				return 1;
-> -		}
->  	}
-> -	/* Should never reach here */
-> -	return 0;
-> +	return 1;
-
-This one still seems properly barriered, good!
-
->  }
-> 
->  /**
-> @@ -229,12 +175,12 @@ static __always_inline int queue_write_3step_lock(struct qrwlock *lock)
->   */
->  void queue_write_lock_slowpath(struct qrwlock *lock)
->  {
-> -	struct qrwnode node;
-> +	struct mcs_spinlock node;
-> 
->  	/*
->  	 * Put the writer into the wait queue
->  	 */
-> -	wait_in_queue(lock, &node);
-> +	mcs_spin_lock(&lock->waitq, &node);
-> 
->  	/*
->  	 * At the head of the wait queue now, call queue_write_3step_lock()
-> @@ -242,6 +188,6 @@ void queue_write_lock_slowpath(struct qrwlock *lock)
->  	 */
->  	while (!queue_write_3step_lock(lock))
->  		cpu_relax();
-> -	signal_next(lock, &node);
-> +	mcs_spin_unlock(&lock->waitq, &node);
->  }
->  EXPORT_SYMBOL(queue_write_lock_slowpath);
-> -- 
-> 1.7.1
-> 
+-Longman
