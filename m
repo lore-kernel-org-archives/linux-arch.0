@@ -1,172 +1,71 @@
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: Re: [PATCH 4/4] perf: Optimize perf_output_begin() -- weaker memory
- barrier
-Date: Thu, 7 Nov 2013 16:16:17 -0500
-Message-ID: <20131107211617.GD27329@Krystal>
-References: <20131107220314.740353088@infradead.org>
- <20131107221254.293322441@infradead.org>
+From: Tim Chen <tim.c.chen@linux.intel.com>
+Subject: Re: [PATCH v3 3/5] MCS Lock: Barrier corrections
+Date: Thu, 07 Nov 2013 17:16:32 -0800
+Message-ID: <1383873392.11046.402.camel@schen9-DESK>
+References: <cover.1383771175.git.tim.c.chen@linux.intel.com>
+	 <1383773827.11046.355.camel@schen9-DESK>
+	 <CA+55aFyNX=5i0hmk-KuD+Vk+yBD-kkAiywx1Lx_JJmHVPx=1wA@mail.gmail.com>
+	 <CANN689HkNP-UZOu+vDCFPG5_k=BNZG6a+oP+Ope16vLc2ShFzw@mail.gmail.com>
+	 <CA+55aFwn1HUt3iXo6Zz8j1HUJi+qJ1NfcnUz-P+XCYLL7gjCMQ@mail.gmail.com>
+	 <CANN689EgdDQV=srsLELUpiTGOSF0SLUZ=BC2LnMxNrYTv3H=Wg@mail.gmail.com>
+	 <20131107143139.GT18245@linux.vnet.ibm.com>
+	 <CANN689FqUSnr=Prum0Kt6+0gr9dWKD8GT9Gbrtiyyg+PTyFkyA@mail.gmail.com>
+	 <1383858951.11046.399.camel@schen9-DESK>
+	 <20131107222144.GC19203@twins.programming.kicks-ass.net>
+	 <CANN689G2H3goDO3KyO5=CzV7RkTukU-B=KsZpLWV_0=pwzZWpw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ironport2-out.teksavvy.com ([206.248.154.182]:4255 "EHLO
-	ironport2-out.teksavvy.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752755Ab3KHBQM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Nov 2013 20:16:12 -0500
-Content-Disposition: inline
-In-Reply-To: <20131107221254.293322441@infradead.org>
+Received: from mga09.intel.com ([134.134.136.24]:12530 "EHLO mga09.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753584Ab3KHBQh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 7 Nov 2013 20:16:37 -0500
+In-Reply-To: <CANN689G2H3goDO3KyO5=CzV7RkTukU-B=KsZpLWV_0=pwzZWpw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: peterz@infradead.org
-Cc: linux-arch@vger.kernel.org, geert@linux-m68k.org, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, VICTORK@il.ibm.com, oleg@redhat.com, anton@samba.org, benh@kernel.crashing.org, fweisbec@gmail.com, michael@ellerman.id.au, mikey@neuling.org, linux@arm.linux.org.uk, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, tony.luck@intel.com
+To: Michel Lespinasse <walken@google.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Arnd Bergmann <arnd@arndb.de>, Rik van Riel <riel@redhat.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, "Figo. zhang" <figo1802@gmail.com>, linux-arch@vger.kernel.org, Andi Kleen <andi@firstfloor.org>, George Spelvin <linux@horizon.com>, Ingo Molnar <mingo@elte.hu>, Peter Hurley <peter@hurleysoftware.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm <linux-mm@kvack.org>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, LKML <linux-kernel@vger.kernel.org>, Scott J Norton <scott.norton@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Dave Hansen <dave.hansen@intel.com>
 
-* peterz@infradead.org (peterz@infradead.org) wrote:
-> Apply the fancy new smp_load_acquire() and smp_store_release() to
-> potentially avoid the full memory barrier in perf_output_begin().
+On Thu, 2013-11-07 at 14:43 -0800, Michel Lespinasse wrote:
+> On Thu, Nov 7, 2013 at 2:21 PM, Peter Zijlstra <peterz@infradead.org> wrote:
+> > On Thu, Nov 07, 2013 at 01:15:51PM -0800, Tim Chen wrote:
+> >> Michel, are you planning to do an implementation of
+> >> load-acquire/store-release functions of various architectures?
+> >
+> > A little something like this:
+> > http://marc.info/?l=linux-arch&m=138386254111507
+> >
+> > It so happens we were working on that the past week or so due to another
+> > issue ;-)
 > 
-> On x86 (and other TSO like architectures) this removes all explicit
-> memory fences, on weakly ordered systems this often allows the use of
-> weaker barriers; in particular on powerpc we demote from a full sync
-> to a cheaper lwsync.
+> Haha, awesome, I wasn't aware of this effort.
 > 
-> Cc: Tony Luck <tony.luck@intel.com>
-> Cc: Oleg Nesterov <oleg@redhat.com>
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> Cc: Frederic Weisbecker <fweisbec@gmail.com>
-> Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-> Cc: Michael Ellerman <michael@ellerman.id.au>
-> Cc: Michael Neuling <mikey@neuling.org>
-> Cc: Russell King <linux@arm.linux.org.uk>
-> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-> Cc: Linus Torvalds <torvalds@linux-foundation.org>
-> Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-> Cc: Victor Kaplansky <VICTORK@il.ibm.com>
-> Suggested-by: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-> Signed-off-by: Peter Zijlstra <peterz@infradead.org>
-> ---
->  kernel/events/ring_buffer.c |   62 +++++++++++++++++++++++++-------------------
->  1 file changed, 36 insertions(+), 26 deletions(-)
+> Tim: my approach would be to provide the acquire/release operations in
+> arch-specific include files, and have a default implementation using
+> barriers for arches who don't provide these new ops. That way you make
+> it work on all arches at once (using the default implementation) and
+> make it fast on any arch that cares.
 > 
-> --- a/kernel/events/ring_buffer.c
-> +++ b/kernel/events/ring_buffer.c
-> @@ -41,6 +41,32 @@ static void perf_output_get_handle(struc
->  	handle->wakeup = local_read(&rb->wakeup);
->  }
->  
-> +/*
-> + * Our user visible data structure (struct perf_event_mmap_page) uses
-> + * u64 values for ->data_head and ->data_tail to avoid size variance
-> + * across 32/64 bit.
-> + *
-> + * Since you cannot mmap() a buffer larger than your memory address space
-> + * we're naturally limited to unsigned long and can avoid writing the
-> + * high word on 32bit systems (its always 0)
-> + *
-> + * This allows us to always use a single load/store.
-> + */
-> +#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-> +static inline unsigned long *low_word(u64 *ptr)
-> +{
-> +	return (unsigned long *)ptr;
-> +}
-> +#else /* __ORDER_BIG_ENDIAN__ */
-> +static inline unsigned long *low_word(u64 *ptr)
-> +{
-> +	void *_ptr = ptr;
-> +	_ptr += sizeof(u64);
-> +	_ptr -= sizeof(unsigned long);
-> +	return (unsigned long *)_ptr;
-> +}
-> +#endif
-> +
->  static void perf_output_put_handle(struct perf_output_handle *handle)
->  {
->  	struct ring_buffer *rb = handle->rb;
-> @@ -61,28 +87,15 @@ static void perf_output_put_handle(struc
->  	 *
->  	 *   kernel				user
->  	 *
-> -	 *   READ ->data_tail			READ ->data_head
-> -	 *   smp_mb()	(A)			smp_rmb()	(C)
-> +	 *   READ.acq ->data_tail  (A)		READ.acq ->data_head  (C)
-
-I don't get how the barrier() in the TSO implementation of
-smp_load_acquire (A) orders the following writes to $data after the
-READ.acq of data_tail. I'm probably missing something.
-
-Also, I don't get how the smp_load_acquire (C) with the barrier() (x86
-TSO) orders READ $data after the READ.acq of data_head.
-
-I don't have the TSO model fresh in memory however.
-
->  	 *   WRITE $data			READ $data
-> -	 *   smp_wmb()	(B)			smp_mb()	(D)
-> -	 *   STORE ->data_head			WRITE ->data_tail
-> +	 *   STORE.rel ->data_head (B)		WRITE.rel ->data_tail (D)
-
-You might want to choose either STORE or WRITE for consistency.
-
-Thanks,
-
-Mathieu
-
->  	 *
->  	 * Where A pairs with D, and B pairs with C.
->  	 *
-> -	 * I don't think A needs to be a full barrier because we won't in fact
-> -	 * write data until we see the store from userspace. So we simply don't
-> -	 * issue the data WRITE until we observe it. Be conservative for now.
-> -	 *
-> -	 * OTOH, D needs to be a full barrier since it separates the data READ
-> -	 * from the tail WRITE.
-> -	 *
-> -	 * For B a WMB is sufficient since it separates two WRITEs, and for C
-> -	 * an RMB is sufficient since it separates two READs.
-> -	 *
->  	 * See perf_output_begin().
->  	 */
-> -	smp_wmb();
-> -	rb->user_page->data_head = head;
-> +	smp_store_release(low_word(&rb->user_page->data_head), head);
->  
->  	/*
->  	 * Now check if we missed an update -- rely on previous implied
-> @@ -139,7 +152,13 @@ int perf_output_begin(struct perf_output
->  	perf_output_get_handle(handle);
->  
->  	do {
-> -		tail = ACCESS_ONCE(rb->user_page->data_tail);
-> +		tail = smp_load_acquire(low_word(&rb->user_page->data_tail));
-> +		/*
-> +		 * STORES of the data below cannot pass the ACQUIRE barrier.
-> +		 *
-> +		 * Matches with an smp_mb() or smp_store_release() in userspace
-> +		 * as described in perf_output_put_handle().
-> +		 */
->  		offset = head = local_read(&rb->head);
->  		if (!rb->overwrite &&
->  		    unlikely(CIRC_SPACE(head, tail, perf_data_size(rb)) < size))
-> @@ -147,15 +166,6 @@ int perf_output_begin(struct perf_output
->  		head += size;
->  	} while (local_cmpxchg(&rb->head, offset, head) != offset);
->  
-> -	/*
-> -	 * Separate the userpage->tail read from the data stores below.
-> -	 * Matches the MB userspace SHOULD issue after reading the data
-> -	 * and before storing the new tail position.
-> -	 *
-> -	 * See perf_output_put_handle().
-> -	 */
-> -	smp_mb();
-> -
->  	if (unlikely(head - local_read(&rb->wakeup) > rb->watermark))
->  		local_add(rb->watermark, &rb->wakeup);
->  
+> >> Or is the approach of arch specific memory barrier for MCS
+> >> an acceptable one before load-acquire and store-release
+> >> are available?  Are there any technical issues remaining with
+> >> the patchset after including including Waiman's arch specific barrier?
 > 
+> I don't want to stand in the way of Waiman's change, and I had
+> actually taken the same approach with arch-specific barriers when
+> proposing some queue spinlocks in the past; however I do feel that
+> this comes back regularly enough that having acquire/release
+> primitives available would help, hence my proposal.
+> 
+> That said, earlier in the thread Linus said we should probably get all
+> our ducks in a row before going forward with this, so...
 > 
 
--- 
-Mathieu Desnoyers
-EfficiOS Inc.
-http://www.efficios.com
+With the load_acquire and store_release implemented, it should be
+pretty straightforward to implement MCS with them.  I'll respin
+the patch series with these primitives.
+
+Thanks.
+
+Tim
