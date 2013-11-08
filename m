@@ -1,46 +1,51 @@
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: [PATCH 4/4] perf: Optimize perf_output_begin() -- weaker memory
  barrier
-Date: Fri, 8 Nov 2013 03:13:25 +0000 (UTC)
-Message-ID: <1420859101.62900.1383880405135.JavaMail.zimbra@efficios.com>
-References: <20131107220314.740353088@infradead.org> <20131107221254.293322441@infradead.org> <20131107211617.GD27329@Krystal> <20131108021928.GZ18245@linux.vnet.ibm.com> <1435428554.62880.1383879251319.JavaMail.zimbra@efficios.com>
+Date: Thu, 7 Nov 2013 19:25:43 -0800
+Message-ID: <20131108032543.GB18245@linux.vnet.ibm.com>
+References: <20131107220314.740353088@infradead.org>
+ <20131107221254.293322441@infradead.org>
+ <20131107211617.GD27329@Krystal>
+ <20131108021928.GZ18245@linux.vnet.ibm.com>
+ <1435428554.62880.1383879251319.JavaMail.zimbra@efficios.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.efficios.com ([78.47.125.74]:58112 "EHLO mail.efficios.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752935Ab3KHDNY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 7 Nov 2013 22:13:24 -0500
+Received: from e34.co.us.ibm.com ([32.97.110.152]:57048 "EHLO
+	e34.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756460Ab3KHDZw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Nov 2013 22:25:52 -0500
+Received: from /spool/local
+	by e34.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Thu, 7 Nov 2013 20:25:51 -0700
+Received: from d03relay05.boulder.ibm.com (d03relay05.boulder.ibm.com [9.17.195.107])
+	by d03dlp01.boulder.ibm.com (Postfix) with ESMTP id 7DEB31FF001E
+	for <linux-arch@vger.kernel.org>; Thu,  7 Nov 2013 20:25:32 -0700 (MST)
+Received: from d03av06.boulder.ibm.com (d03av06.boulder.ibm.com [9.17.195.245])
+	by d03relay05.boulder.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id rA83Plxg399352
+	for <linux-arch@vger.kernel.org>; Thu, 7 Nov 2013 20:25:47 -0700
+Received: from d03av06.boulder.ibm.com (loopback [127.0.0.1])
+	by d03av06.boulder.ibm.com (8.14.4/8.13.1/NCO v10.0 AVout) with ESMTP id rA83SYDa031542
+	for <linux-arch@vger.kernel.org>; Thu, 7 Nov 2013 20:28:36 -0700
+Content-Disposition: inline
 In-Reply-To: <1435428554.62880.1383879251319.JavaMail.zimbra@efficios.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: paulmck@linux.vnet.ibm.com
+To: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
 Cc: peterz@infradead.org, linux-arch@vger.kernel.org, geert@linux-m68k.org, torvalds@linux-foundation.org, VICTORK@il.ibm.com, oleg@redhat.com, anton@samba.org, benh@kernel.crashing.org, fweisbec@gmail.com, michael@ellerman.id.au, mikey@neuling.org, linux@arm.linux.org.uk, schwidefsky@de.ibm.com, heiko carstens <heiko.carstens@de.ibm.com>, tony luck <tony.luck@intel.com>
 
------ Original Message -----
-> From: "Mathieu Desnoyers" <mathieu.desnoyers@efficios.com>
-> To: paulmck@linux.vnet.ibm.com
-> Cc: peterz@infradead.org, linux-arch@vger.kernel.org, geert@linux-m68k.org, torvalds@linux-foundation.org,
-> VICTORK@il.ibm.com, oleg@redhat.com, anton@samba.org, benh@kernel.crashing.org, fweisbec@gmail.com,
-> michael@ellerman.id.au, mikey@neuling.org, linux@arm.linux.org.uk, schwidefsky@de.ibm.com, "heiko carstens"
-> <heiko.carstens@de.ibm.com>, "tony luck" <tony.luck@intel.com>
-> Sent: Thursday, November 7, 2013 9:54:11 PM
-> Subject: Re: [PATCH 4/4] perf: Optimize perf_output_begin() -- weaker memory barrier
-> 
+On Fri, Nov 08, 2013 at 02:54:11AM +0000, Mathieu Desnoyers wrote:
 > ----- Original Message -----
 > > From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 > > To: "Mathieu Desnoyers" <mathieu.desnoyers@efficios.com>
-> > Cc: peterz@infradead.org, linux-arch@vger.kernel.org, geert@linux-m68k.org,
-> > torvalds@linux-foundation.org,
-> > VICTORK@il.ibm.com, oleg@redhat.com, anton@samba.org,
-> > benh@kernel.crashing.org, fweisbec@gmail.com,
-> > michael@ellerman.id.au, mikey@neuling.org, linux@arm.linux.org.uk,
-> > schwidefsky@de.ibm.com, "heiko carstens"
+> > Cc: peterz@infradead.org, linux-arch@vger.kernel.org, geert@linux-m68k.org, torvalds@linux-foundation.org,
+> > VICTORK@il.ibm.com, oleg@redhat.com, anton@samba.org, benh@kernel.crashing.org, fweisbec@gmail.com,
+> > michael@ellerman.id.au, mikey@neuling.org, linux@arm.linux.org.uk, schwidefsky@de.ibm.com, "heiko carstens"
 > > <heiko.carstens@de.ibm.com>, "tony luck" <tony.luck@intel.com>
 > > Sent: Thursday, November 7, 2013 9:19:28 PM
-> > Subject: Re: [PATCH 4/4] perf: Optimize perf_output_begin() -- weaker
-> > memory barrier
+> > Subject: Re: [PATCH 4/4] perf: Optimize perf_output_begin() -- weaker memory barrier
 > > 
 > > On Thu, Nov 07, 2013 at 04:16:17PM -0500, Mathieu Desnoyers wrote:
 > > > * peterz@infradead.org (peterz@infradead.org) wrote:
@@ -128,17 +133,13 @@ Cc: peterz@infradead.org, linux-arch@vger.kernel.org, geert@linux-m68k.org, torv
 > > TSO guarantees that earlier reads will not be reordered with later
 > > writes, so only a barrier() is required.
 > 
-> OK, so this takes care of (A), but how about (C) ? It's about the order of
-> two READ operations.
+> OK, so this takes care of (A), but how about (C) ? It's about the order of two READ operations.
 
-Now I get that TSO also ensures that loads are not reordered wrt other loads. It makes sense now.
+Same there.  The only thing that TSO does -not- order is a prior write
+against a later read.
 
-Thanks,
+							Thanx, Paul
 
-Mathieu
-
-
-> 
 > Thanks,
 > 
 > Mathieu
@@ -160,14 +161,11 @@ Mathieu
 > > > >  	 *
 > > > >  	 * Where A pairs with D, and B pairs with C.
 > > > >  	 *
-> > > > -	 * I don't think A needs to be a full barrier because we won't in
-> > > > fact
-> > > > -	 * write data until we see the store from userspace. So we simply
-> > > > don't
+> > > > -	 * I don't think A needs to be a full barrier because we won't in fact
+> > > > -	 * write data until we see the store from userspace. So we simply don't
 > > > > -	 * issue the data WRITE until we observe it. Be conservative for now.
 > > > > -	 *
-> > > > -	 * OTOH, D needs to be a full barrier since it separates the data
-> > > > READ
+> > > > -	 * OTOH, D needs to be a full barrier since it separates the data READ
 > > > > -	 * from the tail WRITE.
 > > > > -	 *
 > > > > -	 * For B a WMB is sufficient since it separates two WRITEs, and for C
@@ -223,13 +221,8 @@ Mathieu
 > > 
 > > 
 > 
-> --
+> -- 
 > Mathieu Desnoyers
 > EfficiOS Inc.
 > http://www.efficios.com
 > 
-
--- 
-Mathieu Desnoyers
-EfficiOS Inc.
-http://www.efficios.com
