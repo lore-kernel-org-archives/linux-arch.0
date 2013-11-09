@@ -1,59 +1,49 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v5 1/4] qrwlock: A queue read/write lock implementation
-Date: Fri, 08 Nov 2013 22:05:30 -0500
-Message-ID: <527DA67A.2070505@hp.com>
-References: <1383585440-4391-1-git-send-email-Waiman.Long@hp.com> <1383585440-4391-2-git-send-email-Waiman.Long@hp.com> <20131108211123.GH18245@linux.vnet.ibm.com> <527D675C.2040008@hp.com> <20131108235108.GA22696@linux.vnet.ibm.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH v5 4/4] qrwlock: Use the mcs_spinlock helper functions
+ for MCS queuing
+Date: Fri, 8 Nov 2013 19:07:18 -0800
+Message-ID: <20131109030718.GN18245@linux.vnet.ibm.com>
+References: <1383585440-4391-1-git-send-email-Waiman.Long@hp.com>
+ <1383585440-4391-5-git-send-email-Waiman.Long@hp.com>
+ <20131108212107.GI18245@linux.vnet.ibm.com>
+ <1383959827.11046.420.camel@schen9-DESK>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t0016.houston.hp.com ([15.201.24.19]:36893 "EHLO
-	g4t0016.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757752Ab3KIDFh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Nov 2013 22:05:37 -0500
-In-Reply-To: <20131108235108.GA22696@linux.vnet.ibm.com>
+Received: from e33.co.us.ibm.com ([32.97.110.151]:37305 "EHLO
+	e33.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758078Ab3KIDH0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Nov 2013 22:07:26 -0500
+Received: from /spool/local
+	by e33.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Fri, 8 Nov 2013 20:07:26 -0700
+Content-Disposition: inline
+In-Reply-To: <1383959827.11046.420.camel@schen9-DESK>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: paulmck@linux.vnet.ibm.com
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, aswin@hp.com, Scott J Norton <scott.norton@hp.com>
+To: Tim Chen <tim.c.chen@linux.intel.com>
+Cc: Waiman Long <Waiman.Long@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "Aswin Chandramouleeswaran\"" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>
 
-On 11/08/2013 06:51 PM, Paul E. McKenney wrote:
-> On Fri, Nov 08, 2013 at 05:36:12PM -0500, Waiman Long wrote:
->> I have some incorrect assumptions about memory barrier. Anyway, this
->> issue will be gone once I use the MCS lock/unlock code.
-> Here is a presentation that has some diagrams that might help:
->
-> http://www.rdrop.com/users/paulmck/scalability/paper/Scaling.2013.10.25c.pdf
->
-> So, for example, if X and Y are both initially zero:
->
-> 	CPU 0			CPU 1
->
-> 	ACCESS_ONCE(X) = 1;	r1 = ACCESS_ONCE(Y);
-> 	smp_wmb();		smp_rmb();
-> 	ACCESS_ONCE(Y) = 1;	r2 = ACCESS_ONCE(X);
->
-> Then the two memory barriers enforce a conditional ordering.  The
-> condition is whether or not CPU 0's store to Y is seen by CPU 1's
-> load from Y.  If it is, then the pair of memory barriers ensure that
-> CPU 1's load from X sees the result of CPU 0's store to X.  In other
-> words, BUG_ON(r1 == 1&&  r2 == 0) will never fire.
->
-> In general, if a memory access after memory barrier A happens before
-> a memory access before memory barrier B, then the two memory barriers
-> will ensure that applicable accesses before memory barrier A happen
-> before applicable accesses after memory barrier B.
->
-> Does that help?
->
-> 							Thanx, Paul
->
->
+On Fri, Nov 08, 2013 at 05:17:07PM -0800, Tim Chen wrote:
+> On Fri, 2013-11-08 at 13:21 -0800, Paul E. McKenney wrote:
+> > On Mon, Nov 04, 2013 at 12:17:20PM -0500, Waiman Long wrote:
+> > > There is a pending patch in the rwsem patch series that adds a generic
+> > > MCS locking helper functions to do MCS-style locking. This patch
+> > > will enable the queue rwlock to use that generic MCS lock/unlock
+> > > primitives for internal queuing. This patch should only be merged
+> > > after the merging of that generic MCS locking patch.
+> > > 
+> > > Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+> > 
+> > This one does might address at least some of the earlier memory-barrier
+> > issues, at least assuming that the MCS lock is properly memory-barriered.
+> 
+> Paul, will appreciate if you can take a look the latest version
+> of MCS lock with load-acquire and store-release to see if it is now
+> properly memory-barriered.
 
-Thank for the pointer. I understand the purpose of the memory barrier. I 
-just thought that memory barrier can also kind of flush the cached data 
-to the memory faster. Apparently that is not the case. Anyway, I now 
-have a better understanding of what kind of barriers are needed in 
-locking primitives by observing conversation in this and related threads.
+Don't worry, you cannot escape.  It is on my list.  ;-)
 
--Longman
+							Thanx, Paul
