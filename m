@@ -1,53 +1,57 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [tip:x86/asm] x86, bitops: Change bitops to be native operand size
-Date: Tue, 12 Nov 2013 09:52:57 +0100
-Message-ID: <CAMuHMdWxRsiFGNBSsoEhyusyDWhuTQS+ecUiPHH1Yaufj43X1g@mail.gmail.com>
-References: <tip-z61ofiwe90xeyb461o72h8ya@git.kernel.org>
-	<1384117768.3081.10.camel@joe-AO722>
-	<5ac67859-a0b2-47f5-bdc2-c2a52b8d6885@email.android.com>
-	<1384123457.3081.33.camel@joe-AO722>
-	<52803BA2.2080908@zytor.com>
-	<1384136570.4771.5.camel@joe-AO722>
-	<5281698F.9080808@linux.intel.com>
-	<1384224883.4771.28.camel@joe-AO722>
-	<CA+55aFxsNB0BVg-fdzsu_jkPLpiba1rgTcrUOe7W2tN-mHTnBg@mail.gmail.com>
-	<1384229308.4771.35.camel@joe-AO722>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f171.google.com ([209.85.192.171]:43566 "EHLO
-	mail-pd0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751109Ab3KLIw5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Nov 2013 03:52:57 -0500
-In-Reply-To: <1384229308.4771.35.camel@joe-AO722>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Joe Perches <joe@perches.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, "H. Peter Anvin" <hpa@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, james.t.kukunas@intel.com, David Miller <davem@davemloft.net>
+From: Mark Salter <msalter@redhat.com>
+Subject: [PATCH 00/11] Consolidate asm/fixmap.h files
+Date: Tue, 12 Nov 2013 08:22:14 -0500
+Message-ID: <1384262545-20875-1-git-send-email-msalter@redhat.com>
+Return-path: <linux-mips-bounce@linux-mips.org>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
+To: linux-kernel@vger.kernel.org
+Cc: Mark Salter <msalter@redhat.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, linux-metag@vger.kernel.org, Michal Simek <monstr@monstr.eu>, microblaze-uclinux@itee.uq.edu.au, Ralf Baechle <ralf@linux-mips.org>, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Nov 12, 2013 at 5:08 AM, Joe Perches <joe@perches.com> wrote:
-> On Tue, 2013-11-12 at 12:15 +0900, Linus Torvalds wrote:
->> Talking about "ideal implementation" is also singularly stupid.
->
-> I just want the various arch implementations to match
-> the docs.  I know that's stupid.
->
-> Maybe if you really don't want to discuss things, you
-> should fix the documentation.
+Many architectures provide an asm/fixmap.h which defines support for
+compile-time 'special' virtual mappings which need to be made before
+paging_init() has run. This suport is also used for early ioremap
+on x86. Much of this support is identical across the architectures.
+This patch consolidates all of the common bits into asm-generic/fixmap.h
+which is intended to be included from arch/*/include/asm/fixmap.h.
 
-E.g. by adding a paragraph that the actual allowed range of indices may be
-a subset of "unsigned long" on some architectures.
-Or if we know that everyone supports at least 31 resp. 63 bits, that it may
-be limited to 31 resp. 63 unsigned bits, which is the positive range subset of
-"long".
+This has been compiled on x86, arm, powerpc, and sh, but tested
+on x86 only.
 
-Gr{oetje,eeting}s,
+Mark Salter (11):
+  Add generic fixmap.h
+  x86: use generic fixmap.h
+  arm: use generic fixmap.h
+  hexagon: use generic fixmap.h
+  metag: use generic fixmap.h
+  microblaze: use generic fixmap.h
+  mips: use generic fixmap.h
+  powerpc: use generic fixmap.h
+  sh: use generic fixmap.h
+  tile: use generic fixmap.h
+  um: use generic fixmap.h
 
-                        Geert
+ arch/arm/include/asm/fixmap.h        |  25 ++------
+ arch/hexagon/include/asm/fixmap.h    |  40 +------------
+ arch/metag/include/asm/fixmap.h      |  32 +----------
+ arch/microblaze/include/asm/fixmap.h |  44 +-------------
+ arch/mips/include/asm/fixmap.h       |  33 +----------
+ arch/powerpc/include/asm/fixmap.h    |  44 +-------------
+ arch/sh/include/asm/fixmap.h         |  39 +------------
+ arch/tile/include/asm/fixmap.h       |  33 +----------
+ arch/um/include/asm/fixmap.h         |  40 +------------
+ arch/x86/include/asm/fixmap.h        |  59 +------------------
+ include/asm-generic/fixmap.h         | 107 +++++++++++++++++++++++++++++++++++
+ 11 files changed, 125 insertions(+), 371 deletions(-)
+ create mode 100644 include/asm-generic/fixmap.h
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+-- 
+1.8.3.1
