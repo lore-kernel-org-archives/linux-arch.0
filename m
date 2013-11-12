@@ -1,56 +1,61 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH 00/17] <asm/sections.h> related cleanups
-Date: Tue, 12 Nov 2013 20:42:10 +0100
-Message-ID: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gerard.telenet-ops.be ([195.130.132.48]:46784 "EHLO
-	gerard.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753427Ab3KLTme (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Nov 2013 14:42:34 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+From: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
+Subject: [PATCH 08/17] microblaze: Remove _fdt_start casts
+Date: Tue, 12 Nov 2013 20:42:18 +0100
+Message-ID: <1384285347-13506-9-git-send-email-geert@linux-m68k.org>
+References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <microblaze-linux-bounces-FR6EJeJVuqfA6Z3fQjNZrN9u6TNh0Fb7@public.gmane.org>
+In-Reply-To: <1384285347-13506-1-git-send-email-geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
+List-Unsubscribe: <https://lists.eait.uq.edu.au/mailman/options/microblaze-linux>,
+ <mailto:microblaze-linux-request-FR6EJeJVuqfA6Z3fQjNZrN9u6TNh0Fb7@public.gmane.org?subject=unsubscribe>
+List-Archive: <https://lists.eait.uq.edu.au/pipermail/microblaze-linux>
+List-Post: <mailto:microblaze-linux-FR6EJeJVuqfA6Z3fQjNZrN9u6TNh0Fb7@public.gmane.org>
+List-Help: <mailto:microblaze-linux-request-FR6EJeJVuqfA6Z3fQjNZrN9u6TNh0Fb7@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.eait.uq.edu.au/mailman/listinfo/microblaze-linux>,
+ <mailto:microblaze-linux-request-FR6EJeJVuqfA6Z3fQjNZrN9u6TNh0Fb7@public.gmane.org?subject=subscribe>
+Errors-To: microblaze-linux-bounces-FR6EJeJVuqfA6Z3fQjNZrN9u6TNh0Fb7@public.gmane.org
+To: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, microblaze-uclinux-rVRm/Wmeqae7NGdpmJTKYQ@public.gmane.org, Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-	Hi all,
+_fdt_start is an array, i.e. a pointer.
 
-This started as a small cleanup in the OpenRISC code, but then I got
-pulled into the pool of all section-related symbols, many of which are
-different or duplicated.
+Signed-off-by: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
+Cc: Michal Simek <monstr-pSz03upnqPeHXe+LvDLADg@public.gmane.org>
+Cc: microblaze-uclinux-rVRm/Wmeqae7NGdpmJTKYQ@public.gmane.org
+---
+ arch/microblaze/kernel/setup.c |    5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
 
-    [PATCH 01/17] alpha: Use Kbuild logic to include <asm-generic/sections.h>
-    [PATCH 02/17] cris: Use Kbuild logic to include <asm-generic/sections.h>
-    [PATCH 03/17] m32r: Use Kbuild logic to include <asm-generic/sections.h>
-    [PATCH 04/17] mn10300: Use Kbuild logic to include <asm-generic/sections.h>
-    [PATCH 05/17] score: Use Kbuild logic to include <asm-generic/sections.h>
-    [PATCH 06/17] frv: Remove unused declarations of __start___ex_table
-    [PATCH 07/17] ia64: Remove duplicate declarations of  __per_cpu_start[]
-    [PATCH 08/17] microblaze: Remove _fdt_start casts
-    [PATCH 09/17] microblaze: Remove duplicate declarations of _stext[]
-    [PATCH 10/17] tile: Remove tile-specific _sinitdata and _einitdata
-    [PATCH 11/17] kernel/param: Consolidate __{start,stop}___param[] in
-    [PATCH 12/17] nosave: Consolidate __nosave_{begin,end} in
-    [PATCH 13/17] openrisc: Refactor or32_early_setup()
-    [PATCH 14/17] dt: Consolidate __dtb_start declarations in
-    [PATCH RFC 15/17] microblaze: Convert from _fdt_start to __dtb_start
-    [PATCH RFC 16/17] c6x: Convert from _fdt_start to __dtb_start
-    [PATCH 17/17] um: Remove unused declarations from <as-layout.h>
+diff --git a/arch/microblaze/kernel/setup.c b/arch/microblaze/kernel/setup.c
+index 8de8ebc309f1..603e22fec6d5 100644
+--- a/arch/microblaze/kernel/setup.c
++++ b/arch/microblaze/kernel/setup.c
+@@ -136,7 +136,7 @@ void __init machine_early_init(const char *cmdline, unsigned int ram,
+ 	lockdep_init();
+ 
+ /* initialize device tree for usage in early_printk */
+-	early_init_devtree((void *)_fdt_start);
++	early_init_devtree(_fdt_start);
+ 
+ #ifdef CONFIG_EARLY_PRINTK
+ 	setup_early_printk(NULL);
+@@ -152,8 +152,7 @@ void __init machine_early_init(const char *cmdline, unsigned int ram,
+ 	if (fdt)
+ 		pr_info("FDT at 0x%08x\n", fdt);
+ 	else
+-		pr_info("Compiled-in FDT at 0x%08x\n",
+-					(unsigned int)_fdt_start);
++		pr_info("Compiled-in FDT at %p\n", _fdt_start);
+ 
+ #ifdef CONFIG_MTD_UCLINUX
+ 	pr_info("Found romfs @ 0x%08x (0x%08x)\n",
+-- 
+1.7.9.5
 
-Most of this has been compile-tested. Notable exceptions are the changes
-to arc, c6x, and score code, due to lack of cross-compilers.
-
-Patches 15 and 16 are RFCs, as these make non-trivial changes, and I
-couldn't test them.
-
-Thanks for applying/comments/...!
-
-Gr{oetje,eeting}s,
-
-						Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+_______________________________________________
+microblaze-linux mailing list
+microblaze-linux-FR6EJeJVuqfA6Z3fQjNZrN9u6TNh0Fb7@public.gmane.org
+https://lists.eait.uq.edu.au/mailman/listinfo/microblaze-linux
