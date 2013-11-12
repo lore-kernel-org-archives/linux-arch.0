@@ -1,42 +1,43 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH 05/14] cris: locks: remove redundant arch_*_relax operations
-Date: Tue, 12 Nov 2013 16:47:43 +0000
-Message-ID: <1384274872-26849-5-git-send-email-will.deacon@arm.com>
+Subject: [PATCH 14/14] x86: locks: remove redundant arch_*_relax operations
+Date: Tue, 12 Nov 2013 16:47:52 +0000
+Message-ID: <1384274872-26849-14-git-send-email-will.deacon@arm.com>
 References: <1384274872-26849-1-git-send-email-will.deacon@arm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:40249 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:40250 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753828Ab3KLQsR (ORCPT
+	by vger.kernel.org with ESMTP id S1753960Ab3KLQsS (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Nov 2013 11:48:17 -0500
+	Tue, 12 Nov 2013 11:48:18 -0500
 In-Reply-To: <1384274872-26849-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
-Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Mikael Starvik <starvik@axis.com>
+Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
 
 Now that the arch_{spin,read,write}_relax macros default to cpu_relax(),
-remove the redundant definitions for Cris.
+remove the redundant definitions for x86.
 
-Cc: Mikael Starvik <starvik@axis.com>
-Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: H. Peter Anvin <hpa@zytor.com>
+Acked-by: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- arch/cris/include/arch-v32/arch/spinlock.h | 4 ----
+ arch/x86/include/asm/spinlock.h | 4 ----
  1 file changed, 4 deletions(-)
 
-diff --git a/arch/cris/include/arch-v32/arch/spinlock.h b/arch/cris/include/arch-v32/arch/spinlock.h
-index f13275522f4d..bf94cc6bd9b4 100644
---- a/arch/cris/include/arch-v32/arch/spinlock.h
-+++ b/arch/cris/include/arch-v32/arch/spinlock.h
-@@ -124,8 +124,4 @@ static  inline int arch_write_trylock(arch_rwlock_t *rw)
- #define _raw_read_lock_flags(lock, flags) _raw_read_lock(lock)
- #define _raw_write_lock_flags(lock, flags) _raw_write_lock(lock)
+diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
+index bf156ded74b5..221ab49182c4 100644
+--- a/arch/x86/include/asm/spinlock.h
++++ b/arch/x86/include/asm/spinlock.h
+@@ -280,8 +280,4 @@ static inline void arch_write_unlock(arch_rwlock_t *rw)
+ #undef WRITE_LOCK_SUB
+ #undef WRITE_LOCK_CMP
  
 -#define arch_spin_relax(lock)	cpu_relax()
 -#define arch_read_relax(lock)	cpu_relax()
 -#define arch_write_relax(lock)	cpu_relax()
 -
- #endif /* __ASM_ARCH_SPINLOCK_H */
+ #endif /* _ASM_X86_SPINLOCK_H */
 -- 
 1.8.2.2
