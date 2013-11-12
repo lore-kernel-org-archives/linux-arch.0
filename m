@@ -1,38 +1,29 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 17/17] um: Remove unused declarations from <as-layout.h>
-Date: Tue, 12 Nov 2013 20:52:20 +0100
-Message-ID: <CAMuHMdWfvFt0PBxEzNXF1zRQ1Xed10yz4E44FNMhovOy-uu9Eg@mail.gmail.com>
+Subject: Re: [PATCH 00/17] <asm/sections.h> related cleanups
+Date: Tue, 12 Nov 2013 20:54:38 +0100
+Message-ID: <CAMuHMdXC_bkBPvhF4ZM6oTS3kxsaU8-hYhOSQNY8thgF-xJC8A@mail.gmail.com>
 References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
-	<1384285347-13506-18-git-send-email-geert@linux-m68k.org>
-	<528286C2.70908@nod.at>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f171.google.com ([209.85.192.171]:63510 "EHLO
-	mail-pd0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756724Ab3KLTwV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Nov 2013 14:52:21 -0500
-In-Reply-To: <528286C2.70908@nod.at>
+Received: from mail-pd0-f174.google.com ([209.85.192.174]:40058 "EHLO
+	mail-pd0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755695Ab3KLTyj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Nov 2013 14:54:39 -0500
+In-Reply-To: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Weinberger <richard@nod.at>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>
+To: Andrew Morton <akpm@linux-foundation.org>, Jonas Bonn <jonas@southpole.se>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux@lists.openrisc.net
 
-Hi Richard,
+On Tue, Nov 12, 2013 at 8:42 PM, Geert Uytterhoeven
+<geert@linux-m68k.org> wrote:
+> This started as a small cleanup in the OpenRISC code, but then I got
+> pulled into the pool of all section-related symbols, many of which are
+> different or duplicated.
 
-On Tue, Nov 12, 2013 at 8:51 PM, Richard Weinberger <richard@nod.at> wrote:
-> Am 12.11.2013 20:42, schrieb Geert Uytterhoeven:
->> _end is used, but it's already provided by <asm/sections.h>, so use that.
->>
->> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
->> Cc: Richard Weinberger <richard@nod.at>
->> Cc: user-mode-linux-devel@lists.sourceforge.net
->
-> Geert, do you want me to pickup this patch or takes Andrew the whole series?
->
-> Acked-by: Richard Weinberger <richard@nod.at>
-
-Feel free to pick it up. Less work for (overworked?) Andrew.
+Bummer, I forgot the two OpenRISC commits that started it all
+(too high up in my commit chain). Will send...
 
 Gr{oetje,eeting}s,
 
