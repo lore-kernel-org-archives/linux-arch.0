@@ -1,207 +1,224 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH 14/17] dt: Consolidate __dtb_start declarations in <linux/of_fdt.h>
-Date: Tue, 12 Nov 2013 20:42:24 +0100
-Message-ID: <1384285347-13506-15-git-send-email-geert@linux-m68k.org>
+Subject: [PATCH 12/17] nosave: Consolidate __nosave_{begin,end} in <asm/sections.h>
+Date: Tue, 12 Nov 2013 20:42:22 +0100
+Message-ID: <1384285347-13506-13-git-send-email-geert@linux-m68k.org>
 References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from juliette.telenet-ops.be ([195.130.137.74]:35460 "EHLO
+	juliette.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756349Ab3KLTmu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Nov 2013 14:42:50 -0500
 In-Reply-To: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Vineet Gupta <vgupta@synopsys.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, Jonas Bonn <jonas@southpole.se>, Chris Zankel <chris@zankel.net>, Rob Herring <rob.herring@calxeda.com>, devicetree@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
 
 The different architectures used their own (and different) declarations:
 
-    extern struct boot_param_header __dtb_start;
-    extern u32 __dtb_start[];
-    extern char __dtb_start[];
+    extern __visible const void __nosave_begin, __nosave_end;
+    extern const void __nosave_begin, __nosave_end;
+    extern long __nosave_begin, __nosave_end;
 
-Consolidate them using the first variant in <linux/of_fdt.h>.
-This requires adding a few "address of" operators on architectures where
-__dtb_start was an array before.
+Consolidate them using the first variant in <asm/sections.h>.
 
 Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Vineet Gupta <vgupta@synopsys.com>
-Cc: James Hogan <james.hogan@imgtec.com>
 Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: Jonas Bonn <jonas@southpole.se>
-CC: Chris Zankel <chris@zankel.net>
-Cc: Rob Herring <rob.herring@calxeda.com>
-Cc: devicetree@vger.kernel.org
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Paul Mundt <lethal@linux-sh.org>
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
 ---
- arch/arc/include/asm/sections.h             |    1 -
- arch/arc/kernel/setup.c                     |    2 +-
- arch/metag/kernel/setup.c                   |    6 +-----
- arch/mips/include/asm/mips-boards/generic.h |    4 ----
- arch/mips/lantiq/prom.h                     |    2 --
- arch/mips/netlogic/xlp/dt.c                 |    4 ++--
- arch/mips/ralink/of.c                       |    2 --
- arch/openrisc/kernel/setup.c                |    2 +-
- arch/openrisc/kernel/vmlinux.h              |    2 --
- arch/xtensa/kernel/setup.c                  |    3 +--
- include/linux/of_fdt.h                      |    3 +++
- 11 files changed, 9 insertions(+), 22 deletions(-)
+ arch/mips/include/asm/suspend.h   |    7 -------
+ arch/mips/power/cpu.c             |    2 +-
+ arch/powerpc/kernel/suspend.c     |    4 +---
+ arch/s390/kernel/suspend.c        |    6 +-----
+ arch/sh/include/asm/sections.h    |    1 -
+ arch/sparc/power/hibernate.c      |    4 +---
+ arch/unicore32/include/mach/pm.h  |    3 ---
+ arch/unicore32/kernel/hibernate.c |    1 +
+ arch/x86/power/hibernate_32.c     |    4 +---
+ arch/x86/power/hibernate_64.c     |    4 +---
+ include/asm-generic/sections.h    |    4 ++++
+ 11 files changed, 11 insertions(+), 29 deletions(-)
+ delete mode 100644 arch/mips/include/asm/suspend.h
 
-diff --git a/arch/arc/include/asm/sections.h b/arch/arc/include/asm/sections.h
-index 764f1e3ba752..09db952e14bd 100644
---- a/arch/arc/include/asm/sections.h
-+++ b/arch/arc/include/asm/sections.h
-@@ -12,6 +12,5 @@
+diff --git a/arch/mips/include/asm/suspend.h b/arch/mips/include/asm/suspend.h
+deleted file mode 100644
+index 3adac3b53d19..000000000000
+--- a/arch/mips/include/asm/suspend.h
++++ /dev/null
+@@ -1,7 +0,0 @@
+-#ifndef __ASM_SUSPEND_H
+-#define __ASM_SUSPEND_H
+-
+-/* References to section boundaries */
+-extern const void __nosave_begin, __nosave_end;
+-
+-#endif /* __ASM_SUSPEND_H */
+diff --git a/arch/mips/power/cpu.c b/arch/mips/power/cpu.c
+index 521e5963df05..2129e67723ff 100644
+--- a/arch/mips/power/cpu.c
++++ b/arch/mips/power/cpu.c
+@@ -7,7 +7,7 @@
+  * Author: Hu Hongbing <huhb@lemote.com>
+  *	   Wu Zhangjin <wuzhangjin@gmail.com>
+  */
+-#include <asm/suspend.h>
++#include <asm/sections.h>
+ #include <asm/fpu.h>
+ #include <asm/dsp.h>
+ 
+diff --git a/arch/powerpc/kernel/suspend.c b/arch/powerpc/kernel/suspend.c
+index 0167d53da30c..a531154cc0f3 100644
+--- a/arch/powerpc/kernel/suspend.c
++++ b/arch/powerpc/kernel/suspend.c
+@@ -9,9 +9,7 @@
+ 
+ #include <linux/mm.h>
+ #include <asm/page.h>
+-
+-/* References to section boundaries */
+-extern const void __nosave_begin, __nosave_end;
++#include <asm/sections.h>
+ 
+ /*
+  *	pfn_is_nosave - check if given pfn is in the 'nosave' section
+diff --git a/arch/s390/kernel/suspend.c b/arch/s390/kernel/suspend.c
+index a7a7537ce1e7..1c4c5accd220 100644
+--- a/arch/s390/kernel/suspend.c
++++ b/arch/s390/kernel/suspend.c
+@@ -13,14 +13,10 @@
+ #include <asm/ipl.h>
+ #include <asm/cio.h>
+ #include <asm/pci.h>
++#include <asm/sections.h>
+ #include "entry.h"
+ 
+ /*
+- * References to section boundaries
+- */
+-extern const void __nosave_begin, __nosave_end;
+-
+-/*
+  * The restore of the saved pages in an hibernation image will set
+  * the change and referenced bits in the storage key for each page.
+  * Overindication of the referenced bits after an hibernation cycle
+diff --git a/arch/sh/include/asm/sections.h b/arch/sh/include/asm/sections.h
+index 1b6199740e98..7a99e6af6372 100644
+--- a/arch/sh/include/asm/sections.h
++++ b/arch/sh/include/asm/sections.h
+@@ -3,7 +3,6 @@
+ 
  #include <asm-generic/sections.h>
  
- extern char __arc_dccm_base[];
--extern char __dtb_start[];
+-extern long __nosave_begin, __nosave_end;
+ extern long __machvec_start, __machvec_end;
+ extern char __uncached_start, __uncached_end;
+ extern char __start_eh_frame[], __stop_eh_frame[];
+diff --git a/arch/sparc/power/hibernate.c b/arch/sparc/power/hibernate.c
+index 42b0b8ce699a..17bd2e167e07 100644
+--- a/arch/sparc/power/hibernate.c
++++ b/arch/sparc/power/hibernate.c
+@@ -9,11 +9,9 @@
+ #include <asm/hibernate.h>
+ #include <asm/visasm.h>
+ #include <asm/page.h>
++#include <asm/sections.h>
+ #include <asm/tlb.h>
  
- #endif
-diff --git a/arch/arc/kernel/setup.c b/arch/arc/kernel/setup.c
-index 643eae4436e0..ef705d0f50f5 100644
---- a/arch/arc/kernel/setup.c
-+++ b/arch/arc/kernel/setup.c
-@@ -314,7 +314,7 @@ void setup_processor(void)
- void __init setup_arch(char **cmdline_p)
- {
- 	/* This also populates @boot_command_line from /bootargs */
--	machine_desc = setup_machine_fdt(__dtb_start);
-+	machine_desc = setup_machine_fdt(&__dtb_start);
- 	if (!machine_desc)
- 		panic("Embedded DT invalid\n");
- 
-diff --git a/arch/metag/kernel/setup.c b/arch/metag/kernel/setup.c
-index 129c7cdda1ce..919c782f5479 100644
---- a/arch/metag/kernel/setup.c
-+++ b/arch/metag/kernel/setup.c
-@@ -105,10 +105,6 @@
- 
- extern char _heap_start[];
- 
--#ifdef CONFIG_METAG_BUILTIN_DTB
--extern u32 __dtb_start[];
--#endif
+-/* References to section boundaries */
+-extern const void __nosave_begin, __nosave_end;
 -
- #ifdef CONFIG_DA_CONSOLE
- /* Our early channel based console driver */
- extern struct console dash_console;
-@@ -251,7 +247,7 @@ void __init setup_arch(char **cmdline_p)
- 	if (!machine_desc) {
- #ifdef CONFIG_METAG_BUILTIN_DTB
- 		/* try the embedded device tree */
--		machine_desc = setup_machine_fdt(__dtb_start);
-+		machine_desc = setup_machine_fdt(&__dtb_start);
- 		if (!machine_desc)
- 			panic("Invalid embedded device tree.");
- #else
-diff --git a/arch/mips/include/asm/mips-boards/generic.h b/arch/mips/include/asm/mips-boards/generic.h
-index 48616816bcbc..c904c24550f6 100644
---- a/arch/mips/include/asm/mips-boards/generic.h
-+++ b/arch/mips/include/asm/mips-boards/generic.h
-@@ -67,10 +67,6 @@
+ struct saved_context saved_context;
  
- extern int mips_revision_sconid;
+ /*
+diff --git a/arch/unicore32/include/mach/pm.h b/arch/unicore32/include/mach/pm.h
+index 4dcd34ae194c..77b522694e74 100644
+--- a/arch/unicore32/include/mach/pm.h
++++ b/arch/unicore32/include/mach/pm.h
+@@ -36,8 +36,5 @@ extern int puv3_pm_enter(suspend_state_t state);
+ /* Defined in hibernate_asm.S */
+ extern int restore_image(pgd_t *resume_pg_dir, struct pbe *restore_pblist);
  
--#ifdef CONFIG_OF
--extern struct boot_param_header __dtb_start;
--#endif
+-/* References to section boundaries */
+-extern const void __nosave_begin, __nosave_end;
 -
- #ifdef CONFIG_PCI
- extern void mips_pcibios_init(void);
- #else
-diff --git a/arch/mips/lantiq/prom.h b/arch/mips/lantiq/prom.h
-index 8e07b5f28ef1..bfd2d58c1d69 100644
---- a/arch/mips/lantiq/prom.h
-+++ b/arch/mips/lantiq/prom.h
-@@ -26,6 +26,4 @@ struct ltq_soc_info {
- extern void ltq_soc_detect(struct ltq_soc_info *i);
- extern void ltq_soc_init(void);
+ extern struct pbe *restore_pblist;
+ #endif
+diff --git a/arch/unicore32/kernel/hibernate.c b/arch/unicore32/kernel/hibernate.c
+index d75ef8b6cb56..9969ec374abb 100644
+--- a/arch/unicore32/kernel/hibernate.c
++++ b/arch/unicore32/kernel/hibernate.c
+@@ -18,6 +18,7 @@
+ #include <asm/page.h>
+ #include <asm/pgtable.h>
+ #include <asm/pgalloc.h>
++#include <asm/sections.h>
+ #include <asm/suspend.h>
  
--extern struct boot_param_header __dtb_start;
+ #include "mach/pm.h"
+diff --git a/arch/x86/power/hibernate_32.c b/arch/x86/power/hibernate_32.c
+index 7d28c885d238..291226b952a9 100644
+--- a/arch/x86/power/hibernate_32.c
++++ b/arch/x86/power/hibernate_32.c
+@@ -13,13 +13,11 @@
+ #include <asm/page.h>
+ #include <asm/pgtable.h>
+ #include <asm/mmzone.h>
++#include <asm/sections.h>
+ 
+ /* Defined in hibernate_asm_32.S */
+ extern int restore_image(void);
+ 
+-/* References to section boundaries */
+-extern const void __nosave_begin, __nosave_end;
 -
- #endif
-diff --git a/arch/mips/netlogic/xlp/dt.c b/arch/mips/netlogic/xlp/dt.c
-index 8316d5454b17..87250f378386 100644
---- a/arch/mips/netlogic/xlp/dt.c
-+++ b/arch/mips/netlogic/xlp/dt.c
-@@ -42,7 +42,7 @@
- #include <asm/prom.h>
+ /* Pointer to the temporary resume page tables */
+ pgd_t *resume_pg_dir;
  
- extern u32 __dtb_xlp_evp_begin[], __dtb_xlp_svp_begin[],
--	__dtb_xlp_fvp_begin[], __dtb_start[];
-+	__dtb_xlp_fvp_begin[];
- static void *xlp_fdt_blob;
+diff --git a/arch/x86/power/hibernate_64.c b/arch/x86/power/hibernate_64.c
+index 304fca20d96e..2276238fde6f 100644
+--- a/arch/x86/power/hibernate_64.c
++++ b/arch/x86/power/hibernate_64.c
+@@ -17,11 +17,9 @@
+ #include <asm/page.h>
+ #include <asm/pgtable.h>
+ #include <asm/mtrr.h>
++#include <asm/sections.h>
+ #include <asm/suspend.h>
  
- void __init *xlp_dt_init(void *fdtp)
-@@ -66,7 +66,7 @@ void __init *xlp_dt_init(void *fdtp)
- #endif
- 		default:
- 			/* Pick a built-in if any, and hope for the best */
--			fdtp = __dtb_start;
-+			fdtp = &__dtb_start;
- 			break;
- 		}
- 	}
-diff --git a/arch/mips/ralink/of.c b/arch/mips/ralink/of.c
-index eccc5526155e..615603bd8063 100644
---- a/arch/mips/ralink/of.c
-+++ b/arch/mips/ralink/of.c
-@@ -28,8 +28,6 @@
- __iomem void *rt_sysc_membase;
- __iomem void *rt_memc_membase;
- 
--extern struct boot_param_header __dtb_start;
+-/* References to section boundaries */
+-extern __visible const void __nosave_begin, __nosave_end;
 -
- __iomem void *plat_of_remap_node(const char *node)
- {
- 	struct resource res;
-diff --git a/arch/openrisc/kernel/setup.c b/arch/openrisc/kernel/setup.c
-index 4fc7ccc0a2cf..c9b880d64bb8 100644
---- a/arch/openrisc/kernel/setup.c
-+++ b/arch/openrisc/kernel/setup.c
-@@ -213,7 +213,7 @@ void __init or32_early_setup(void *fdt)
- 	if (fdt)
- 		pr_info("FDT at %p\n", fdt);
- 	else {
--		fdt = __dtb_start;
-+		fdt = &__dtb_start;
- 		pr_info("Compiled-in FDT at %p\n", fdt);
- 	}
- 	early_init_devtree(fdt);
-diff --git a/arch/openrisc/kernel/vmlinux.h b/arch/openrisc/kernel/vmlinux.h
-index 70b9ce41835c..bbcdf21b0b35 100644
---- a/arch/openrisc/kernel/vmlinux.h
-+++ b/arch/openrisc/kernel/vmlinux.h
-@@ -5,6 +5,4 @@
- extern char __initrd_start, __initrd_end;
- #endif
+ /* Defined in hibernate_asm_64.S */
+ extern asmlinkage int restore_image(void);
  
--extern u32 __dtb_start[];
--
- #endif
-diff --git a/arch/xtensa/kernel/setup.c b/arch/xtensa/kernel/setup.c
-index 6e2b6638122d..d96cf8f3fe70 100644
---- a/arch/xtensa/kernel/setup.c
-+++ b/arch/xtensa/kernel/setup.c
-@@ -68,8 +68,7 @@ extern int initrd_below_start_ok;
- #endif
+diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
+index f1a24b5c3b90..b58fd667f87b 100644
+--- a/include/asm-generic/sections.h
++++ b/include/asm-generic/sections.h
+@@ -3,6 +3,8 @@
  
- #ifdef CONFIG_OF
--extern u32 __dtb_start[];
--void *dtb_start = __dtb_start;
-+void *dtb_start = &__dtb_start;
- #endif
+ /* References to section boundaries */
  
- unsigned char aux_device_present;
-diff --git a/include/linux/of_fdt.h b/include/linux/of_fdt.h
-index 0beaee9dac1f..aabc49f3e403 100644
---- a/include/linux/of_fdt.h
-+++ b/include/linux/of_fdt.h
-@@ -57,6 +57,9 @@ struct boot_param_header {
- 	__be32	dt_struct_size;		/* size of the DT structure block */
- };
- 
-+/* For kernels with a built-in device tree */
-+extern struct boot_param_header __dtb_start;
++#include <linux/compiler.h>
 +
- #if defined(CONFIG_OF_FLATTREE)
+ /*
+  * Usage guidelines:
+  * _text, _data: architecture specific, don't use them in arch-independent code
+@@ -37,6 +39,8 @@ extern char __start_rodata[], __end_rodata[];
+ /* Start and end of .ctors section - used for constructor calls. */
+ extern char __ctors_start[], __ctors_end[];
  
- struct device_node;
++extern __visible const void __nosave_begin, __nosave_end;
++
+ /* function descriptor handling (if any).  Override
+  * in asm/sections.h */
+ #ifndef dereference_function_descriptor
 -- 
 1.7.9.5
