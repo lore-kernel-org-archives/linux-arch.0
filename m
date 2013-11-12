@@ -1,67 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g1t0026.austin.hp.com ([15.216.28.33]:7107 "EHLO
-	g1t0026.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756093Ab3KLOy4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Nov 2013 09:54:56 -0500
-Message-ID: <52824130.5030404@hp.com>
-Date: Tue, 12 Nov 2013 09:54:40 -0500
-From: Waiman Long <waiman.long@hp.com>
+Received: from mail-ea0-f176.google.com ([209.85.215.176]:41121 "EHLO
+	mail-ea0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754134Ab3KLPjo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Nov 2013 10:39:44 -0500
+Received: by mail-ea0-f176.google.com with SMTP id m14so2928974eaj.21
+        for <linux-arch@vger.kernel.org>; Tue, 12 Nov 2013 07:39:42 -0800 (PST)
+Message-ID: <52824BBC.9020401@monstr.eu>
+Date: Tue, 12 Nov 2013 16:39:40 +0100
+From: Michal Simek <monstr@monstr.eu>
+Reply-To: monstr@monstr.eu
 MIME-Version: 1.0
-Subject: Re: [PATCH v5 4/4] MCS Lock: Barrier corrections
-References: <cover.1383935697.git.tim.c.chen@linux.intel.com>  <1383940358.11046.417.camel@schen9-DESK>  <20131111181049.GL28302@mudshark.cambridge.arm.com> <1384204673.10046.6.camel@schen9-mobl3>
-In-Reply-To: <1384204673.10046.6.camel@schen9-mobl3>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Subject: Re: [PATCH 00/11] Consolidate asm/fixmap.h files
+References: <1384262545-20875-1-git-send-email-msalter@redhat.com>
+In-Reply-To: <1384262545-20875-1-git-send-email-msalter@redhat.com>
+Content-Type: multipart/signed; micalg=pgp-sha1;
+ protocol="application/pgp-signature";
+ boundary="wakS2gO08XuamRTkaApEoSt4HdIMUTtMO"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tim Chen <tim.c.chen@linux.intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrea Arcangeli <aarcange@redhat.com>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, "Figo.zhang" <figo1802@gmail.com>
-Message-ID: <20131112145440.X0EWAYGhaRKMIjMAAiK2HseFLIE1D7PhKbI2cfTTnD8@z>
+To: Mark Salter <msalter@redhat.com>
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, linux-metag@vger.kernel.org, microblaze-uclinux@itee.uq.edu.au, Ralf Baechle <ralf@linux-mips.org>, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20131112153940.nPL8O_GK2rVm16-f_N80f514F15vLSC7KBTHQgL6mCI@z>
 
-On 11/11/2013 04:17 PM, Tim Chen wrote:
->> You could then augment that with [cmp]xchg_{acquire,release} as
->> appropriate.
->>
->>> +/*
->>>    * In order to acquire the lock, the caller should declare a local node and
->>>    * pass a reference of the node to this function in addition to the lock.
->>>    * If the lock has already been acquired, then this will proceed to spin
->>> @@ -37,15 +62,19 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
->>>   	node->locked = 0;
->>>   	node->next   = NULL;
->>>
->>> -	prev = xchg(lock, node);
->>> +	/* xchg() provides a memory barrier */
->>> +	prev = xchg_acquire(lock, node);
->>>   	if (likely(prev == NULL)) {
->>>   		/* Lock acquired */
->>>   		return;
->>>   	}
->>>   	ACCESS_ONCE(prev->next) = node;
->>> -	smp_wmb();
->>> -	/* Wait until the lock holder passes the lock down */
->>> -	while (!ACCESS_ONCE(node->locked))
->>> +	/*
->>> +	 * Wait until the lock holder passes the lock down.
->>> +	 * Using smp_load_acquire() provides a memory barrier that
->>> +	 * ensures subsequent operations happen after the lock is acquired.
->>> +	 */
->>> +	while (!(smp_load_acquire(&node->locked)))
->>>   		arch_mutex_cpu_relax();
-> An alternate implementation is
-> 	while (!ACCESS_ONCE(node->locked))
-> 		arch_mutex_cpu_relax();
-> 	smp_load_acquire(&node->locked);
->
-> Leaving the smp_load_acquire at the end to provide appropriate barrier.
-> Will that be acceptable?
->
-> Tim
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--wakS2gO08XuamRTkaApEoSt4HdIMUTtMO
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: quoted-printable
 
-I second Tim's opinion. It will be help to have a smp_mb_load_acquire() 
-function that provide a memory barrier with load-acquire semantic. I 
-don't think we need one for store-release as that will not be in a loop.
+On 11/12/2013 02:22 PM, Mark Salter wrote:
+> Many architectures provide an asm/fixmap.h which defines support for
+> compile-time 'special' virtual mappings which need to be made before
+> paging_init() has run. This suport is also used for early ioremap
+> on x86. Much of this support is identical across the architectures.
+> This patch consolidates all of the common bits into asm-generic/fixmap.=
+h
+> which is intended to be included from arch/*/include/asm/fixmap.h.
+>=20
+> This has been compiled on x86, arm, powerpc, and sh, but tested
+> on x86 only.
+>=20
+> Mark Salter (11):
+>   Add generic fixmap.h
+>   x86: use generic fixmap.h
+>   arm: use generic fixmap.h
+>   hexagon: use generic fixmap.h
+>   metag: use generic fixmap.h
+>   microblaze: use generic fixmap.h
+>   mips: use generic fixmap.h
+>   powerpc: use generic fixmap.h
+>   sh: use generic fixmap.h
+>   tile: use generic fixmap.h
+>   um: use generic fixmap.h
+>=20
+>  arch/arm/include/asm/fixmap.h        |  25 ++------
+>  arch/hexagon/include/asm/fixmap.h    |  40 +------------
+>  arch/metag/include/asm/fixmap.h      |  32 +----------
+>  arch/microblaze/include/asm/fixmap.h |  44 +-------------
+>  arch/mips/include/asm/fixmap.h       |  33 +----------
+>  arch/powerpc/include/asm/fixmap.h    |  44 +-------------
+>  arch/sh/include/asm/fixmap.h         |  39 +------------
+>  arch/tile/include/asm/fixmap.h       |  33 +----------
+>  arch/um/include/asm/fixmap.h         |  40 +------------
+>  arch/x86/include/asm/fixmap.h        |  59 +------------------
+>  include/asm-generic/fixmap.h         | 107 +++++++++++++++++++++++++++=
+++++++++
+>  11 files changed, 125 insertions(+), 371 deletions(-)
+>  create mode 100644 include/asm-generic/fixmap.h
 
-Peter, what do you think about adding that to your patch?
+Any repo/branch with all these patches will be helpful.
 
--Longman
+Thanks,
+Michal
+
+
+
+--=20
+Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel - Microblaze cpu - http://www.monstr.eu/fdt/
+Maintainer of Linux kernel - Xilinx Zynq ARM architecture
+Microblaze U-BOOT custodian and responsible for u-boot arm zynq platform
+
+
+
+--wakS2gO08XuamRTkaApEoSt4HdIMUTtMO
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+Comment: Using GnuPG with Thunderbird - http://www.enigmail.net/
+
+iEYEARECAAYFAlKCS7wACgkQykllyylKDCEq9QCffe3d/+9UQGGG/rdCAxD81tq3
+sRQAmwaBtQ/8lmwDm9Eo3vmovL9WeRiE
+=R0bw
+-----END PGP SIGNATURE-----
+
+--wakS2gO08XuamRTkaApEoSt4HdIMUTtMO--
