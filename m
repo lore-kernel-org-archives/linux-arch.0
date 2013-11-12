@@ -1,34 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qa0-f51.google.com ([209.85.216.51]:40126 "EHLO
-	mail-qa0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752280Ab3KLVYF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Nov 2013 16:24:05 -0500
-Message-ID: <52829C68.6090409@twiddle.net>
-Date: Wed, 13 Nov 2013 07:23:52 +1000
-From: Richard Henderson <rth@twiddle.net>
-MIME-Version: 1.0
-Subject: Re: [PATCH 01/17] alpha: Use Kbuild logic to include <asm-generic/sections.h>
-References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org> <1384285347-13506-2-git-send-email-geert@linux-m68k.org>
-In-Reply-To: <1384285347-13506-2-git-send-email-geert@linux-m68k.org>
-Content-Type: text/plain; charset=ISO-8859-1
+Received: from mx1.redhat.com ([209.132.183.28]:21286 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756319Ab3KLXi7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 Nov 2013 18:38:59 -0500
+Message-ID: <1384299531.24631.14.camel@deneb.redhat.com>
+Subject: Re: [PATCH RFC 16/17] c6x: Convert from _fdt_start to __dtb_start
+From: Mark Salter <msalter@redhat.com>
+Date: Tue, 12 Nov 2013 18:38:51 -0500
+In-Reply-To: <1384285347-13506-17-git-send-email-geert@linux-m68k.org>
+References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
+	 <1384285347-13506-17-git-send-email-geert@linux-m68k.org>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org
-Message-ID: <20131112212352.uUHtCeVchgi0POmpZ_SS_-NdfSj4k5KT9Kcam6zJxoo@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Aurelien Jacquiot <a-jacquiot@ti.com>, Rob Herring <rob.herring@calxeda.com>, linux-c6x-dev@linux-c6x.org, devicetree@vger.kernel.org
+Message-ID: <20131112233851.xzzo-XWDWdRx24cANAbfAojOG-3PfffUoFdWzimTRLE@z>
 
-On 11/13/2013 05:42 AM, Geert Uytterhoeven wrote:
+On Tue, 2013-11-12 at 20:42 +0100, Geert Uytterhoeven wrote:
+> Kill the c6x-specific __fdt_blob section, and start
+> using .dtb.init.rodata
+> from <asm-generic/sections.h> for built-in DTBs, like most other DT
+> enabled
+> architectures.
+> 
 > Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> Cc: Richard Henderson <rth@twiddle.net>
-> Cc: linux-alpha@vger.kernel.org
+> Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
+> Cc: Rob Herring <rob.herring@calxeda.com>
+> Cc: linux-c6x-dev@linux-c6x.org
+> Cc: devicetree@vger.kernel.org
 > ---
->  arch/alpha/include/asm/Kbuild     |    2 +-
->  arch/alpha/include/asm/sections.h |    7 -------
->  2 files changed, 1 insertion(+), 8 deletions(-)
->  delete mode 100644 arch/alpha/include/asm/sections.h
+> Untested due to lack of cross-compiler, but the changes are similar to
+> microblaze.
+> 
+> QUESTION: The padding of the DTB is gone, is this OK?
 
-Acked-by: Richard Henderson <rth@twiddle.net>
+Yes, that's fine.
+
+Acked-by: Mark Salter <msalter@redhat.com>
 
 
-r~
