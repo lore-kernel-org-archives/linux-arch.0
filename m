@@ -1,53 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.186]:56313 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752067Ab3KLNre (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Nov 2013 08:47:34 -0500
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 01/11] Add generic fixmap.h
-Date: Tue, 12 Nov 2013 14:46:40 +0100
-References: <1384262545-20875-1-git-send-email-msalter@redhat.com> <1384262545-20875-2-git-send-email-msalter@redhat.com>
-In-Reply-To: <1384262545-20875-2-git-send-email-msalter@redhat.com>
-MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-Message-ID: <201311121446.40700.arnd@arndb.de>
+Received: from g6t0187.atlanta.hp.com ([15.193.32.64]:20883 "EHLO
+	g6t0187.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755565Ab3KLOts (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Nov 2013 09:49:48 -0500
+From: Waiman Long <Waiman.Long@hp.com>
+Subject: [PATCH v6 5/5] qrwlock: Use smp_store_release() in write_unlock()
+Date: Tue, 12 Nov 2013 09:48:55 -0500
+Message-ID: <1384267735-43213-7-git-send-email-Waiman.Long@hp.com>
+In-Reply-To: <1384267735-43213-1-git-send-email-Waiman.Long@hp.com>
+References: <1384267735-43213-1-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Salter <msalter@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, linux-metag@vger.kernel.org, Michal Simek <monstr@monstr.eu>, microblaze-uclinux@itee.uq.edu.au, Ralf Baechle <ralf@linux-mips.org>, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20131112134640.ZY37y1kDE9OnvMLn2CyY64WetpqXGfFouMHP4qLPQKQ@z>
+To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Aswin Chandramouleeswaran\"" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Waiman Long <Waiman.Long@hp.com>
+Message-ID: <20131112144855.U4kO87wnY1eQgHR3e9LnBSoJBRjfvf0r6pD15SULHmU@z>
 
-On Tuesday 12 November 2013, Mark Salter wrote:
-> Many architectures provide an asm/fixmap.h which defines support for
-> compile-time 'special' virtual mappings which need to be made before
-> paging_init() has run. This suport is also used for early ioremap
-> on x86. Much of this support is identical across the architectures.
-> This patch consolidates all of the common bits into asm-generic/fixmap.h
-> which is intended to be included from arch/*/include/asm/fixmap.h.
+This patch modifies the queue_write_unlock() function to use the
+new smp_store_release() function in another pending patch. This patch
+should only be merged if the other patch was merged.
 
+Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+---
+ include/asm-generic/qrwlock.h |    4 +---
+ 1 files changed, 1 insertions(+), 3 deletions(-)
 
-Good idea, 
+diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
+index 288fb00..479c142 100644
+--- a/include/asm-generic/qrwlock.h
++++ b/include/asm-generic/qrwlock.h
+@@ -219,9 +219,7 @@ static inline void queue_write_unlock(struct qrwlock *lock)
+ 	/*
+ 	 * Make sure that none of the critical section will be leaked out.
+ 	 */
+-	smp_mb__before_clear_bit();
+-	ACCESS_ONCE(lock->cnts.writer) = 0;
+-	smp_mb__after_clear_bit();
++	smp_store_release(&lock->cnts.writer, 0);
+ }
+ 
+ /*
+-- 
+1.7.1
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
-
-On Tuesday 12 November 2013, Mark Salter wrote:
-> +static __always_inline unsigned long fix_to_virt(const unsigned int idx)
-> +{
-> +       /*
-> +        * this branch gets completely eliminated after inlining,
-> +        * except when someone tries to use fixaddr indices in an
-> +        * illegal way. (such as mixing up address types or using
-> +        * out-of-range indices).
-> +        *
-> +        * If it doesn't get removed, the linker will complain
-> +        * loudly with a reasonably clear error message..
-> +        */
-> +       if (idx >= __end_of_fixed_addresses)
-> +               __this_fixmap_does_not_exist();
-> +
-
-You might be able to turn this into the more readable BUILD_BUG_ON().
-
-	Arnd
