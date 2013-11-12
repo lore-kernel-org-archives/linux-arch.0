@@ -1,130 +1,103 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH 10/17] tile: Remove tile-specific _sinitdata and _einitdata
-Date: Tue, 12 Nov 2013 20:42:20 +0100
-Message-ID: <1384285347-13506-11-git-send-email-geert@linux-m68k.org>
+Subject: [PATCH 11/17] kernel/param: Consolidate __{start,stop}___param[] in <linux/moduleparam.h>
+Date: Tue, 12 Nov 2013 20:42:21 +0100
+Message-ID: <1384285347-13506-12-git-send-email-geert@linux-m68k.org>
 References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from juliette.telenet-ops.be ([195.130.137.74]:34695 "EHLO
+Received: from juliette.telenet-ops.be ([195.130.137.74]:34743 "EHLO
 	juliette.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755910Ab3KLTml (ORCPT
+	with ESMTP id S1755928Ab3KLTml (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Nov 2013 14:42:41 -0500
 In-Reply-To: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Chris Metcalf <cmetcalf@tilera.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Rusty Russell <rusty@rustcorp.com.au>
 
-Use standard __init_begin and __init_end instead.
+Consolidate the various external const and non-const declarations of
+__start___param[] and __stop___param in <linux/moduleparam.h>.
+This requires making a few struct kernel_param pointers in kernel/params.c
+const.
 
 Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Chris Metcalf <cmetcalf@tilera.com>
+Cc: Rusty Russell <rusty@rustcorp.com.au>
 ---
- arch/tile/include/asm/sections.h |    3 ---
- arch/tile/kernel/vmlinux.lds.S   |    2 --
- arch/tile/mm/init.c              |   18 +++++++++---------
- 3 files changed, 9 insertions(+), 14 deletions(-)
+ include/linux/moduleparam.h |    2 ++
+ init/main.c                 |    2 --
+ kernel/params.c             |    7 +++----
+ 3 files changed, 5 insertions(+), 6 deletions(-)
 
-diff --git a/arch/tile/include/asm/sections.h b/arch/tile/include/asm/sections.h
-index 5d5d3b739a6b..86a746243dc8 100644
---- a/arch/tile/include/asm/sections.h
-+++ b/arch/tile/include/asm/sections.h
-@@ -19,9 +19,6 @@
+diff --git a/include/linux/moduleparam.h b/include/linux/moduleparam.h
+index c3eb102a9cc8..77ccfca0c4ba 100644
+--- a/include/linux/moduleparam.h
++++ b/include/linux/moduleparam.h
+@@ -68,6 +68,8 @@ struct kernel_param {
+ 	};
+ };
  
- #include <asm-generic/sections.h>
- 
--/* Text and data are at different areas in the kernel VA space. */
--extern char _sinitdata[], _einitdata[];
--
- /* Write-once data is writable only till the end of initialization. */
- extern char __w1data_begin[], __w1data_end[];
- 
-diff --git a/arch/tile/kernel/vmlinux.lds.S b/arch/tile/kernel/vmlinux.lds.S
-index f1819423ffc9..0e059a0101ea 100644
---- a/arch/tile/kernel/vmlinux.lds.S
-+++ b/arch/tile/kernel/vmlinux.lds.S
-@@ -66,11 +66,9 @@ SECTIONS
- 
-   . = ALIGN(PAGE_SIZE);
-   __init_begin = .;
--  VMLINUX_SYMBOL(_sinitdata) = .;
-   INIT_DATA_SECTION(16) :data =0
-   PERCPU_SECTION(L2_CACHE_BYTES)
-   . = ALIGN(PAGE_SIZE);
--  VMLINUX_SYMBOL(_einitdata) = .;
-   __init_end = .;
- 
-   _sdata = .;                   /* Start of data section */
-diff --git a/arch/tile/mm/init.c b/arch/tile/mm/init.c
-index 0fa1acfac79a..c4e0b6ddb48c 100644
---- a/arch/tile/mm/init.c
-+++ b/arch/tile/mm/init.c
-@@ -254,7 +254,7 @@ static pgprot_t __init init_pgprot(ulong address)
- 	 * Everything else that isn't data or bss is heap, so mark it
- 	 * with the initial heap home (hash-for-home, or this cpu).  This
- 	 * includes any addresses after the loaded image and any address before
--	 * _einitdata, since we already captured the case of text before
-+	 * __init_end, since we already captured the case of text before
- 	 * _sinittext, and __pa(einittext) is approximately __pa(sinitdata).
- 	 *
- 	 * All the LOWMEM pages that we mark this way will get their
-@@ -263,7 +263,7 @@ static pgprot_t __init init_pgprot(ulong address)
- 	 * homes, but with a zero free_time we don't have to actually
- 	 * do a flush action the first time we use them, either.
- 	 */
--	if (address >= (ulong) _end || address < (ulong) _einitdata)
-+	if (address >= (ulong) _end || address < (ulong) __init_end)
- 		return construct_pgprot(PAGE_KERNEL, initial_heap_home());
- 
- 	/* Use hash-for-home if requested for data/bss. */
-@@ -534,7 +534,7 @@ static void __init kernel_physical_mapping_init(pgd_t *pgd_base)
- 
- 		BUG_ON(address != (unsigned long)_text);
- 		pte = NULL;
--		for (; address < (unsigned long)_einittext;
-+		for (; address < (unsigned long)__init_end;
- 		     pfn++, address += PAGE_SIZE) {
- 			pte_ofs = pte_index(address);
- 			if (pte_ofs == 0) {
-@@ -572,7 +572,7 @@ static void __init kernel_physical_mapping_init(pgd_t *pgd_base)
- 		else
- 			pteval = hv_pte_set_mode(pteval,
- 						 HV_PTE_MODE_CACHE_NO_L3);
--		for (; address < (unsigned long)_einittext;
-+		for (; address < (unsigned long)__init_end;
- 		     pfn += PFN_DOWN(HPAGE_SIZE), address += HPAGE_SIZE)
- 			*(pte_t *)(pmd++) = pfn_pte(pfn, pteval);
- 	}
-@@ -632,9 +632,9 @@ int devmem_is_allowed(unsigned long pagenr)
++extern const struct kernel_param __start___param[], __stop___param[];
++
+ /* Special one for strings we want to copy into */
+ struct kparam_string {
+ 	unsigned int maxlen;
+diff --git a/init/main.c b/init/main.c
+index 15ed159b681b..f2c4901f90d1 100644
+--- a/init/main.c
++++ b/init/main.c
+@@ -469,7 +469,6 @@ static void __init mm_init(void)
+ asmlinkage void __init start_kernel(void)
  {
- 	return pagenr < kaddr_to_pfn(_end) &&
- 		!(pagenr >= kaddr_to_pfn(&init_thread_union) ||
--		  pagenr < kaddr_to_pfn(_einitdata)) &&
-+		  pagenr < kaddr_to_pfn(__init_end)) &&
- 		!(pagenr >= kaddr_to_pfn(_sinittext) ||
--		  pagenr <= kaddr_to_pfn(_einittext-1));
-+		  pagenr <= kaddr_to_pfn(__init_end-1));
- }
- 
- #ifdef CONFIG_HIGHMEM
-@@ -975,8 +975,8 @@ void free_initmem(void)
- 
- 	/* Free the data pages that we won't use again after init. */
- 	free_init_pages("unused kernel data",
--			(unsigned long)_sinitdata,
--			(unsigned long)_einitdata);
-+			(unsigned long)__init_begin,
-+			(unsigned long)__init_end);
+ 	char * command_line;
+-	extern const struct kernel_param __start___param[], __stop___param[];
  
  	/*
- 	 * Free the pages mapped from 0xc0000000 that correspond to code
-@@ -984,7 +984,7 @@ void free_initmem(void)
- 	 */
- 	free_init_pages("unused kernel text",
- 			(unsigned long)_sinittext - text_delta,
--			(unsigned long)_einittext - text_delta);
-+			(unsigned long)__init_end - text_delta);
- 	/* Do a global TLB flush so everyone sees the changes. */
- 	flush_tlb_all();
+ 	 * Need to run as early as possible, to initialize the
+@@ -737,7 +736,6 @@ static char *initcall_level_names[] __initdata = {
+ 
+ static void __init do_initcall_level(int level)
+ {
+-	extern const struct kernel_param __start___param[], __stop___param[];
+ 	initcall_t *fn;
+ 
+ 	strcpy(static_command_line, saved_command_line);
+diff --git a/kernel/params.c b/kernel/params.c
+index c00d5b502aa4..54e05ffb7d24 100644
+--- a/kernel/params.c
++++ b/kernel/params.c
+@@ -19,6 +19,7 @@
+ #include <linux/string.h>
+ #include <linux/errno.h>
+ #include <linux/module.h>
++#include <linux/moduleparam.h>
+ #include <linux/device.h>
+ #include <linux/err.h>
+ #include <linux/slab.h>
+@@ -506,8 +507,6 @@ EXPORT_SYMBOL(param_ops_string);
+ #define to_module_attr(n) container_of(n, struct module_attribute, attr)
+ #define to_module_kobject(n) container_of(n, struct module_kobject, kobj)
+ 
+-extern struct kernel_param __start___param[], __stop___param[];
+-
+ struct param_attribute
+ {
+ 	struct module_attribute mattr;
+@@ -766,7 +765,7 @@ static struct module_kobject * __init locate_module_kobject(const char *name)
  }
+ 
+ static void __init kernel_add_sysfs_param(const char *name,
+-					  struct kernel_param *kparam,
++					  const struct kernel_param *kparam,
+ 					  unsigned int name_skip)
+ {
+ 	struct module_kobject *mk;
+@@ -801,7 +800,7 @@ static void __init kernel_add_sysfs_param(const char *name,
+  */
+ static void __init param_sysfs_builtin(void)
+ {
+-	struct kernel_param *kp;
++	const struct kernel_param *kp;
+ 	unsigned int name_len;
+ 	char modname[MODULE_NAME_LEN];
+ 
 -- 
 1.7.9.5
