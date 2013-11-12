@@ -1,47 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from jacques.telenet-ops.be ([195.130.132.50]:60491 "EHLO
-	jacques.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755087Ab3KLTmj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Nov 2013 14:42:39 -0500
+Received: from georges.telenet-ops.be ([195.130.137.68]:38374 "EHLO
+	georges.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756105Ab3KLTmn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Nov 2013 14:42:43 -0500
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH 04/17] mn10300: Use Kbuild logic to include <asm-generic/sections.h>
-Date: Tue, 12 Nov 2013 20:42:14 +0100
-Message-ID: <1384285347-13506-5-git-send-email-geert@linux-m68k.org>
+Subject: [PATCH 17/17] um: Remove unused declarations from <as-layout.h>
+Date: Tue, 12 Nov 2013 20:42:27 +0100
+Message-ID: <1384285347-13506-18-git-send-email-geert@linux-m68k.org>
 In-Reply-To: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
 References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, David Howells <dhowells@redhat.com>, linux-am33-list@redhat.com
-Message-ID: <20131112194214.cF-9vaEkUlx7ADhe1wXD80O-9jadD-BIEZDLI_svTB0@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Richard Weinberger <richard@nod.at>, user-mode-linux-devel@lists.sourceforge.net
+Message-ID: <20131112194227.tsa9I2y84wHbzFAfjv4cMZMx87Y5Swy0Asojv7FPCe4@z>
+
+_end is used, but it's already provided by <asm/sections.h>, so use that.
 
 Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: David Howells <dhowells@redhat.com>
-Cc: linux-am33-list@redhat.com
+Cc: Richard Weinberger <richard@nod.at>
+Cc: user-mode-linux-devel@lists.sourceforge.net
 ---
- arch/mn10300/include/asm/Kbuild     |    1 +
- arch/mn10300/include/asm/sections.h |    1 -
- 2 files changed, 1 insertion(+), 1 deletion(-)
- delete mode 100644 arch/mn10300/include/asm/sections.h
+ arch/um/include/shared/as-layout.h |    3 ---
+ arch/um/kernel/um_arch.c           |    1 +
+ 2 files changed, 1 insertion(+), 3 deletions(-)
 
-diff --git a/arch/mn10300/include/asm/Kbuild b/arch/mn10300/include/asm/Kbuild
-index 74742dc6a3da..cd33bcfc49d8 100644
---- a/arch/mn10300/include/asm/Kbuild
-+++ b/arch/mn10300/include/asm/Kbuild
-@@ -1,5 +1,6 @@
+diff --git a/arch/um/include/shared/as-layout.h b/arch/um/include/shared/as-layout.h
+index 694c792bab4e..41c8c774ec10 100644
+--- a/arch/um/include/shared/as-layout.h
++++ b/arch/um/include/shared/as-layout.h
+@@ -44,7 +44,6 @@ struct cpu_task {
  
- generic-y += clkdev.h
- generic-y += exec.h
-+generic-y += sections.h
- generic-y += trace_clock.h
- generic-y += preempt.h
-diff --git a/arch/mn10300/include/asm/sections.h b/arch/mn10300/include/asm/sections.h
-deleted file mode 100644
-index 2b8c5160388f..000000000000
---- a/arch/mn10300/include/asm/sections.h
-+++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/sections.h>
+ extern struct cpu_task cpu_tasks[];
+ 
+-extern unsigned long low_physmem;
+ extern unsigned long high_physmem;
+ extern unsigned long uml_physmem;
+ extern unsigned long uml_reserved;
+@@ -52,8 +51,6 @@ extern unsigned long end_vm;
+ extern unsigned long start_vm;
+ extern unsigned long long highmem;
+ 
+-extern unsigned long _stext, _etext, _sdata, _edata, __bss_start, _end;
+-extern unsigned long _unprotected_end;
+ extern unsigned long brk_start;
+ 
+ extern unsigned long host_task_size;
+diff --git a/arch/um/kernel/um_arch.c b/arch/um/kernel/um_arch.c
+index 9fce866b0416..c44139833212 100644
+--- a/arch/um/kernel/um_arch.c
++++ b/arch/um/kernel/um_arch.c
+@@ -17,6 +17,7 @@
+ #include <asm/byteorder.h>
+ #include <asm/pgtable.h>
+ #include <asm/processor.h>
++#include <asm/sections.h>
+ #include <asm/setup.h>
+ #include <as-layout.h>
+ #include <arch.h>
 -- 
 1.7.9.5
 
