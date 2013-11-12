@@ -1,7 +1,7 @@
 From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v6 5/5] qrwlock: Use smp_store_release() in write_unlock()
-Date: Tue, 12 Nov 2013 09:48:55 -0500
-Message-ID: <1384267735-43213-7-git-send-email-Waiman.Long@hp.com>
+Subject: [PATCH v6 3/5] qrwlock: Enable fair queue read/write lock
+Date: Tue, 12 Nov 2013 09:48:53 -0500
+Message-ID: <1384267735-43213-5-git-send-email-Waiman.Long@hp.com>
 References: <1384267735-43213-1-git-send-email-Waiman.Long@hp.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1384267735-43213-1-git-send-email-Waiman.Long@hp.com>
@@ -10,29 +10,111 @@ To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Pe
 Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Aswin Chandramouleeswaran\"" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Waiman Long <Waiman.Long@hp.com>
 List-Id: linux-arch.vger.kernel.org
 
-This patch modifies the queue_write_unlock() function to use the
-new smp_store_release() function in another pending patch. This patch
-should only be merged if the other patch was merged.
+By default, queue rwlock is fair among writers and gives preference
+to readers allowing them to steal lock even if a writer is
+waiting. However, there is a desire to have a fair variant of
+rwlock that is more deterministic. To enable this, fair variants
+of lock initializers are added by this patch to allow lock owners
+to choose to use fair rwlock. These newly added initializers all
+have the _fair or _FAIR suffix to indicate the desire to use a fair
+rwlock. If the QUEUE_RWLOCK config option is not selected, the fair
+rwlock initializers will be the same as the regular ones.
 
 Signed-off-by: Waiman Long <Waiman.Long@hp.com>
 ---
- include/asm-generic/qrwlock.h |    4 +---
- 1 files changed, 1 insertions(+), 3 deletions(-)
+ include/linux/rwlock.h       |   15 +++++++++++++++
+ include/linux/rwlock_types.h |   13 +++++++++++++
+ lib/spinlock_debug.c         |   19 +++++++++++++++++++
+ 3 files changed, 47 insertions(+), 0 deletions(-)
 
-diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
-index 288fb00..479c142 100644
---- a/include/asm-generic/qrwlock.h
-+++ b/include/asm-generic/qrwlock.h
-@@ -219,9 +219,7 @@ static inline void queue_write_unlock(struct qrwlock *lock)
- 	/*
- 	 * Make sure that none of the critical section will be leaked out.
- 	 */
--	smp_mb__before_clear_bit();
--	ACCESS_ONCE(lock->cnts.writer) = 0;
--	smp_mb__after_clear_bit();
-+	smp_store_release(&lock->cnts.writer, 0);
- }
+diff --git a/include/linux/rwlock.h b/include/linux/rwlock.h
+index bc2994e..5f2628b 100644
+--- a/include/linux/rwlock.h
++++ b/include/linux/rwlock.h
+@@ -23,9 +23,24 @@ do {								\
+ 								\
+ 	__rwlock_init((lock), #lock, &__key);			\
+ } while (0)
++
++# ifdef CONFIG_QUEUE_RWLOCK
++extern void __rwlock_init_fair(rwlock_t *lock, const char *name,
++			       struct lock_class_key *key);
++#  define rwlock_init_fair(lock)				\
++do {								\
++	static struct lock_class_key __key;			\
++								\
++	__rwlock_init_fair((lock), #lock, &__key);		\
++} while (0)
++# else
++#  define __rwlock_init_fair(l, n, k)	__rwlock_init(l, n, k)
++# endif /* CONFIG_QUEUE_RWLOCK */
+ #else
+ # define rwlock_init(lock)					\
+ 	do { *(lock) = __RW_LOCK_UNLOCKED(lock); } while (0)
++# define rwlock_init_fair(lock)				\
++	do { *(lock) = __RW_LOCK_UNLOCKED_FAIR(lock); } while (0)
+ #endif
  
- /*
+ #ifdef CONFIG_DEBUG_SPINLOCK
+diff --git a/include/linux/rwlock_types.h b/include/linux/rwlock_types.h
+index cc0072e..d27c812 100644
+--- a/include/linux/rwlock_types.h
++++ b/include/linux/rwlock_types.h
+@@ -37,12 +37,25 @@ typedef struct {
+ 				.owner = SPINLOCK_OWNER_INIT,		\
+ 				.owner_cpu = -1,			\
+ 				RW_DEP_MAP_INIT(lockname) }
++#define __RW_LOCK_UNLOCKED_FAIR(lockname)				\
++	(rwlock_t)	{	.raw_lock = __ARCH_RW_LOCK_UNLOCKED_FAIR,\
++				.magic = RWLOCK_MAGIC,			\
++				.owner = SPINLOCK_OWNER_INIT,		\
++				.owner_cpu = -1,			\
++				RW_DEP_MAP_INIT(lockname) }
+ #else
+ #define __RW_LOCK_UNLOCKED(lockname) \
+ 	(rwlock_t)	{	.raw_lock = __ARCH_RW_LOCK_UNLOCKED,	\
+ 				RW_DEP_MAP_INIT(lockname) }
++#define __RW_LOCK_UNLOCKED_FAIR(lockname) \
++	(rwlock_t)	{	.raw_lock = __ARCH_RW_LOCK_UNLOCKED_FAIR,\
++				RW_DEP_MAP_INIT(lockname) }
+ #endif
+ 
+ #define DEFINE_RWLOCK(x)	rwlock_t x = __RW_LOCK_UNLOCKED(x)
++#define DEFINE_RWLOCK_FAIR(x)	rwlock_t x = __RW_LOCK_UNLOCKED_FAIR(x)
+ 
++#ifndef	__ARCH_RW_LOCK_UNLOCKED_FAIR
++#define	__ARCH_RW_LOCK_UNLOCKED_FAIR	__ARCH_RW_LOCK_UNLOCKED
++#endif
+ #endif /* __LINUX_RWLOCK_TYPES_H */
+diff --git a/lib/spinlock_debug.c b/lib/spinlock_debug.c
+index 0374a59..d6ef7ce 100644
+--- a/lib/spinlock_debug.c
++++ b/lib/spinlock_debug.c
+@@ -49,6 +49,25 @@ void __rwlock_init(rwlock_t *lock, const char *name,
+ 
+ EXPORT_SYMBOL(__rwlock_init);
+ 
++#ifdef CONFIG_QUEUE_RWLOCK
++void __rwlock_init_fair(rwlock_t *lock, const char *name,
++			struct lock_class_key *key)
++{
++#ifdef CONFIG_DEBUG_LOCK_ALLOC
++	/*
++	 * Make sure we are not reinitializing a held lock:
++	 */
++	debug_check_no_locks_freed((void *)lock, sizeof(*lock));
++	lockdep_init_map(&lock->dep_map, name, key, 0);
++#endif
++	lock->raw_lock = (arch_rwlock_t) __ARCH_RW_LOCK_UNLOCKED_FAIR;
++	lock->magic = RWLOCK_MAGIC;
++	lock->owner = SPINLOCK_OWNER_INIT;
++	lock->owner_cpu = -1;
++}
++EXPORT_SYMBOL(__rwlock_init_fair);
++#endif /* CONFIG_QUEUE_RWLOCK */
++
+ static void spin_dump(raw_spinlock_t *lock, const char *msg)
+ {
+ 	struct task_struct *owner = NULL;
 -- 
 1.7.1
