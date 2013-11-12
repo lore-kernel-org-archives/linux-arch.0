@@ -1,52 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from georges.telenet-ops.be ([195.130.137.68]:38338 "EHLO
-	georges.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756045Ab3KLTmn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Nov 2013 14:42:43 -0500
+Received: from gerard.telenet-ops.be ([195.130.132.48]:47263 "EHLO
+	gerard.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756287Ab3KLTmr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Nov 2013 14:42:47 -0500
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH 08/17] microblaze: Remove _fdt_start casts
-Date: Tue, 12 Nov 2013 20:42:18 +0100
-Message-ID: <1384285347-13506-9-git-send-email-geert@linux-m68k.org>
+Subject: [PATCH 13/17] openrisc: Refactor or32_early_setup()
+Date: Tue, 12 Nov 2013 20:42:23 +0100
+Message-ID: <1384285347-13506-14-git-send-email-geert@linux-m68k.org>
 In-Reply-To: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
 References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, microblaze-uclinux@itee.uq.edu.au
-Message-ID: <20131112194218.m4coLHRdYatG8KgGN1Ns6lZWOLvGFbNikme0YhYb1JI@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Jonas Bonn <jonas@southpole.se>, linux@lists.openrisc.net
+Message-ID: <20131112194223.2z00MG12ckbuBZe4QW85sSbh3lzyjSmW8iMo9dnj1pk@z>
 
-_fdt_start is an array, i.e. a pointer.
+  - Change fdt pointer (passed from head.S) from unsigned int to void *,
+    which allows to kill a cast, and makes it compatible with __dtb_start.
+  - Use pr_info(),
+  - Extract common part.
 
 Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Michal Simek <monstr@monstr.eu>
-Cc: microblaze-uclinux@itee.uq.edu.au
+Cc: Jonas Bonn <jonas@southpole.se>
+Cc: linux@lists.openrisc.net
 ---
- arch/microblaze/kernel/setup.c |    5 ++---
- 1 file changed, 2 insertions(+), 3 deletions(-)
+ arch/openrisc/kernel/setup.c |   14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
 
-diff --git a/arch/microblaze/kernel/setup.c b/arch/microblaze/kernel/setup.c
-index 8de8ebc309f1..603e22fec6d5 100644
---- a/arch/microblaze/kernel/setup.c
-+++ b/arch/microblaze/kernel/setup.c
-@@ -136,7 +136,7 @@ void __init machine_early_init(const char *cmdline, unsigned int ram,
- 	lockdep_init();
+diff --git a/arch/openrisc/kernel/setup.c b/arch/openrisc/kernel/setup.c
+index d0e7693c67a3..4fc7ccc0a2cf 100644
+--- a/arch/openrisc/kernel/setup.c
++++ b/arch/openrisc/kernel/setup.c
+@@ -208,15 +208,15 @@ void __init setup_cpuinfo(void)
+  * Falls back on built-in device tree in case null pointer is passed.
+  */
  
- /* initialize device tree for usage in early_printk */
--	early_init_devtree((void *)_fdt_start);
-+	early_init_devtree(_fdt_start);
+-void __init or32_early_setup(unsigned int fdt)
++void __init or32_early_setup(void *fdt)
+ {
+-	if (fdt) {
+-		early_init_devtree((void*) fdt);
+-		printk(KERN_INFO "FDT at 0x%08x\n", fdt);
+-	} else {
+-		early_init_devtree(__dtb_start);
+-		printk(KERN_INFO "Compiled-in FDT at %p\n", __dtb_start);
++	if (fdt)
++		pr_info("FDT at %p\n", fdt);
++	else {
++		fdt = __dtb_start;
++		pr_info("Compiled-in FDT at %p\n", fdt);
+ 	}
++	early_init_devtree(fdt);
+ }
  
- #ifdef CONFIG_EARLY_PRINTK
- 	setup_early_printk(NULL);
-@@ -152,8 +152,7 @@ void __init machine_early_init(const char *cmdline, unsigned int ram,
- 	if (fdt)
- 		pr_info("FDT at 0x%08x\n", fdt);
- 	else
--		pr_info("Compiled-in FDT at 0x%08x\n",
--					(unsigned int)_fdt_start);
-+		pr_info("Compiled-in FDT at %p\n", _fdt_start);
- 
- #ifdef CONFIG_MTD_UCLINUX
- 	pr_info("Found romfs @ 0x%08x (0x%08x)\n",
+ static int __init openrisc_device_probe(void)
 -- 
 1.7.9.5
 
