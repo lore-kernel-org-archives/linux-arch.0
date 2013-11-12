@@ -1,14 +1,15 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH 1/2] openrisc: Use the declarations provided by
-	<asm/sections.h>
-Date: Tue, 12 Nov 2013 20:56:20 +0100
-Message-ID: <1384286181-16137-1-git-send-email-geert@linux-m68k.org>
+Subject: [PATCH 2/2] openrisc: Remove unused declaration of
+	__initramfs_start
+Date: Tue, 12 Nov 2013 20:56:21 +0100
+Message-ID: <1384286181-16137-2-git-send-email-geert@linux-m68k.org>
 References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
+	<1384286181-16137-1-git-send-email-geert@linux-m68k.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-bounces@lists.openrisc.net>
-In-Reply-To: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
+In-Reply-To: <1384286181-16137-1-git-send-email-geert@linux-m68k.org>
 List-Unsubscribe: <http://lists.openrisc.net/options/linux>,
 	<mailto:linux-request@lists.openrisc.net?subject=unsubscribe>
 List-Archive: <http://lists.openrisc.net/pipermail/linux>
@@ -22,68 +23,22 @@ To: Andrew Morton <akpm@linux-foundation.org>, Jonas Bonn <jonas@southpole.se>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux@lists.openrisc.net
 List-Id: linux-arch.vger.kernel.org
 
-Openrisc's private vmlinux.h duplicates a few definitions that are already
-provided by asm-generic/sections.h. The former is used by setup.c only,
-while the latter is already used everywhere else.
-
-Convert setup.c to use the generic version:
-  - Include <asm/sections.h>,
-  - Remove the (slightly different) extern declarations,
-  - Remove the no longer needed address-of ('&') operators.
-
 Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
 ---
- arch/openrisc/kernel/setup.c   |   11 ++++++-----
  arch/openrisc/kernel/vmlinux.h |    1 -
- 2 files changed, 6 insertions(+), 6 deletions(-)
+ 1 file changed, 1 deletion(-)
 
-diff --git a/arch/openrisc/kernel/setup.c b/arch/openrisc/kernel/setup.c
-index ecc1c8850a11..c9b880d64bb8 100644
---- a/arch/openrisc/kernel/setup.c
-+++ b/arch/openrisc/kernel/setup.c
-@@ -40,6 +40,7 @@
- #include <linux/device.h>
- #include <linux/of_platform.h>
- 
-+#include <asm/sections.h>
- #include <asm/segment.h>
- #include <asm/pgtable.h>
- #include <asm/types.h>
-@@ -75,7 +76,7 @@ static unsigned long __init setup_memory(void)
- 
- 	ram_start_pfn = PFN_UP(memory_start);
- 	/* free_ram_start_pfn is first page after kernel */
--	free_ram_start_pfn = PFN_UP(__pa(&_end));
-+	free_ram_start_pfn = PFN_UP(__pa(_end));
- 	ram_end_pfn = PFN_DOWN(memblock_end_of_DRAM());
- 
- 	max_pfn = ram_end_pfn;
-@@ -288,10 +289,10 @@ void __init setup_arch(char **cmdline_p)
- 	setup_cpuinfo();
- 
- 	/* process 1's initial memory region is the kernel code/data */
--	init_mm.start_code = (unsigned long)&_stext;
--	init_mm.end_code = (unsigned long)&_etext;
--	init_mm.end_data = (unsigned long)&_edata;
--	init_mm.brk = (unsigned long)&_end;
-+	init_mm.start_code = (unsigned long)_stext;
-+	init_mm.end_code = (unsigned long)_etext;
-+	init_mm.end_data = (unsigned long)_edata;
-+	init_mm.brk = (unsigned long)_end;
- 
- #ifdef CONFIG_BLK_DEV_INITRD
- 	initrd_start = (unsigned long)&__initrd_start;
 diff --git a/arch/openrisc/kernel/vmlinux.h b/arch/openrisc/kernel/vmlinux.h
-index 653728abcc7c..6c0b24772f85 100644
+index 6c0b24772f85..bbcdf21b0b35 100644
 --- a/arch/openrisc/kernel/vmlinux.h
 +++ b/arch/openrisc/kernel/vmlinux.h
-@@ -1,7 +1,6 @@
- #ifndef __OPENRISC_VMLINUX_H_
- #define __OPENRISC_VMLINUX_H_
+@@ -3,7 +3,6 @@
  
--extern char _stext, _etext, _edata, _end;
  #ifdef CONFIG_BLK_DEV_INITRD
  extern char __initrd_start, __initrd_end;
- extern char __initramfs_start;
+-extern char __initramfs_start;
+ #endif
+ 
+ #endif
 -- 
 1.7.9.5
