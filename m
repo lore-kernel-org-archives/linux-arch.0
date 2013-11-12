@@ -1,7 +1,7 @@
 From: Waiman Long <waiman.long@hp.com>
 Subject: Re: [PATCH v5 4/4] MCS Lock: Barrier corrections
-Date: Mon, 11 Nov 2013 20:57:27 -0500
-Message-ID: <52818B07.70000@hp.com>
+Date: Mon, 11 Nov 2013 21:09:32 -0500
+Message-ID: <52818DDC.1020105@hp.com>
 References: <cover.1383935697.git.tim.c.chen@linux.intel.com>  <1383940358.11046.417.camel@schen9-DESK>  <20131111181049.GL28302@mudshark.cambridge.arm.com> <1384204673.10046.6.camel@schen9-mobl3>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8; format=flowed
