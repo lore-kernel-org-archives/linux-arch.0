@@ -1,126 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g5t0006.atlanta.hp.com ([15.192.0.43]:6525 "EHLO
-	g5t0006.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755875Ab3KLOto (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Nov 2013 09:49:44 -0500
-From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v6 3/5] qrwlock: Enable fair queue read/write lock
-Date: Tue, 12 Nov 2013 09:48:53 -0500
-Message-ID: <1384267735-43213-5-git-send-email-Waiman.Long@hp.com>
-In-Reply-To: <1384267735-43213-1-git-send-email-Waiman.Long@hp.com>
-References: <1384267735-43213-1-git-send-email-Waiman.Long@hp.com>
+Received: from g1t0026.austin.hp.com ([15.216.28.33]:7107 "EHLO
+	g1t0026.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756093Ab3KLOy4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Nov 2013 09:54:56 -0500
+Message-ID: <52824130.5030404@hp.com>
+Date: Tue, 12 Nov 2013 09:54:40 -0500
+From: Waiman Long <waiman.long@hp.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH v5 4/4] MCS Lock: Barrier corrections
+References: <cover.1383935697.git.tim.c.chen@linux.intel.com>  <1383940358.11046.417.camel@schen9-DESK>  <20131111181049.GL28302@mudshark.cambridge.arm.com> <1384204673.10046.6.camel@schen9-mobl3>
+In-Reply-To: <1384204673.10046.6.camel@schen9-mobl3>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Aswin Chandramouleeswaran\"" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Waiman Long <Waiman.Long@hp.com>
-Message-ID: <20131112144853.xdmzIYq-5pcjbhdY5P_QYFSpKrkSgMX-DeUgndgKHfc@z>
+To: Tim Chen <tim.c.chen@linux.intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrea Arcangeli <aarcange@redhat.com>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, "Figo.zhang" <figo1802@gmail.com>
+Message-ID: <20131112145440.X0EWAYGhaRKMIjMAAiK2HseFLIE1D7PhKbI2cfTTnD8@z>
 
-By default, queue rwlock is fair among writers and gives preference
-to readers allowing them to steal lock even if a writer is
-waiting. However, there is a desire to have a fair variant of
-rwlock that is more deterministic. To enable this, fair variants
-of lock initializers are added by this patch to allow lock owners
-to choose to use fair rwlock. These newly added initializers all
-have the _fair or _FAIR suffix to indicate the desire to use a fair
-rwlock. If the QUEUE_RWLOCK config option is not selected, the fair
-rwlock initializers will be the same as the regular ones.
+On 11/11/2013 04:17 PM, Tim Chen wrote:
+>> You could then augment that with [cmp]xchg_{acquire,release} as
+>> appropriate.
+>>
+>>> +/*
+>>>    * In order to acquire the lock, the caller should declare a local node and
+>>>    * pass a reference of the node to this function in addition to the lock.
+>>>    * If the lock has already been acquired, then this will proceed to spin
+>>> @@ -37,15 +62,19 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
+>>>   	node->locked = 0;
+>>>   	node->next   = NULL;
+>>>
+>>> -	prev = xchg(lock, node);
+>>> +	/* xchg() provides a memory barrier */
+>>> +	prev = xchg_acquire(lock, node);
+>>>   	if (likely(prev == NULL)) {
+>>>   		/* Lock acquired */
+>>>   		return;
+>>>   	}
+>>>   	ACCESS_ONCE(prev->next) = node;
+>>> -	smp_wmb();
+>>> -	/* Wait until the lock holder passes the lock down */
+>>> -	while (!ACCESS_ONCE(node->locked))
+>>> +	/*
+>>> +	 * Wait until the lock holder passes the lock down.
+>>> +	 * Using smp_load_acquire() provides a memory barrier that
+>>> +	 * ensures subsequent operations happen after the lock is acquired.
+>>> +	 */
+>>> +	while (!(smp_load_acquire(&node->locked)))
+>>>   		arch_mutex_cpu_relax();
+> An alternate implementation is
+> 	while (!ACCESS_ONCE(node->locked))
+> 		arch_mutex_cpu_relax();
+> 	smp_load_acquire(&node->locked);
+>
+> Leaving the smp_load_acquire at the end to provide appropriate barrier.
+> Will that be acceptable?
+>
+> Tim
 
-Signed-off-by: Waiman Long <Waiman.Long@hp.com>
----
- include/linux/rwlock.h       |   15 +++++++++++++++
- include/linux/rwlock_types.h |   13 +++++++++++++
- lib/spinlock_debug.c         |   19 +++++++++++++++++++
- 3 files changed, 47 insertions(+), 0 deletions(-)
+I second Tim's opinion. It will be help to have a smp_mb_load_acquire() 
+function that provide a memory barrier with load-acquire semantic. I 
+don't think we need one for store-release as that will not be in a loop.
 
-diff --git a/include/linux/rwlock.h b/include/linux/rwlock.h
-index bc2994e..5f2628b 100644
---- a/include/linux/rwlock.h
-+++ b/include/linux/rwlock.h
-@@ -23,9 +23,24 @@ do {								\
- 								\
- 	__rwlock_init((lock), #lock, &__key);			\
- } while (0)
-+
-+# ifdef CONFIG_QUEUE_RWLOCK
-+extern void __rwlock_init_fair(rwlock_t *lock, const char *name,
-+			       struct lock_class_key *key);
-+#  define rwlock_init_fair(lock)				\
-+do {								\
-+	static struct lock_class_key __key;			\
-+								\
-+	__rwlock_init_fair((lock), #lock, &__key);		\
-+} while (0)
-+# else
-+#  define __rwlock_init_fair(l, n, k)	__rwlock_init(l, n, k)
-+# endif /* CONFIG_QUEUE_RWLOCK */
- #else
- # define rwlock_init(lock)					\
- 	do { *(lock) = __RW_LOCK_UNLOCKED(lock); } while (0)
-+# define rwlock_init_fair(lock)				\
-+	do { *(lock) = __RW_LOCK_UNLOCKED_FAIR(lock); } while (0)
- #endif
- 
- #ifdef CONFIG_DEBUG_SPINLOCK
-diff --git a/include/linux/rwlock_types.h b/include/linux/rwlock_types.h
-index cc0072e..d27c812 100644
---- a/include/linux/rwlock_types.h
-+++ b/include/linux/rwlock_types.h
-@@ -37,12 +37,25 @@ typedef struct {
- 				.owner = SPINLOCK_OWNER_INIT,		\
- 				.owner_cpu = -1,			\
- 				RW_DEP_MAP_INIT(lockname) }
-+#define __RW_LOCK_UNLOCKED_FAIR(lockname)				\
-+	(rwlock_t)	{	.raw_lock = __ARCH_RW_LOCK_UNLOCKED_FAIR,\
-+				.magic = RWLOCK_MAGIC,			\
-+				.owner = SPINLOCK_OWNER_INIT,		\
-+				.owner_cpu = -1,			\
-+				RW_DEP_MAP_INIT(lockname) }
- #else
- #define __RW_LOCK_UNLOCKED(lockname) \
- 	(rwlock_t)	{	.raw_lock = __ARCH_RW_LOCK_UNLOCKED,	\
- 				RW_DEP_MAP_INIT(lockname) }
-+#define __RW_LOCK_UNLOCKED_FAIR(lockname) \
-+	(rwlock_t)	{	.raw_lock = __ARCH_RW_LOCK_UNLOCKED_FAIR,\
-+				RW_DEP_MAP_INIT(lockname) }
- #endif
- 
- #define DEFINE_RWLOCK(x)	rwlock_t x = __RW_LOCK_UNLOCKED(x)
-+#define DEFINE_RWLOCK_FAIR(x)	rwlock_t x = __RW_LOCK_UNLOCKED_FAIR(x)
- 
-+#ifndef	__ARCH_RW_LOCK_UNLOCKED_FAIR
-+#define	__ARCH_RW_LOCK_UNLOCKED_FAIR	__ARCH_RW_LOCK_UNLOCKED
-+#endif
- #endif /* __LINUX_RWLOCK_TYPES_H */
-diff --git a/lib/spinlock_debug.c b/lib/spinlock_debug.c
-index 0374a59..d6ef7ce 100644
---- a/lib/spinlock_debug.c
-+++ b/lib/spinlock_debug.c
-@@ -49,6 +49,25 @@ void __rwlock_init(rwlock_t *lock, const char *name,
- 
- EXPORT_SYMBOL(__rwlock_init);
- 
-+#ifdef CONFIG_QUEUE_RWLOCK
-+void __rwlock_init_fair(rwlock_t *lock, const char *name,
-+			struct lock_class_key *key)
-+{
-+#ifdef CONFIG_DEBUG_LOCK_ALLOC
-+	/*
-+	 * Make sure we are not reinitializing a held lock:
-+	 */
-+	debug_check_no_locks_freed((void *)lock, sizeof(*lock));
-+	lockdep_init_map(&lock->dep_map, name, key, 0);
-+#endif
-+	lock->raw_lock = (arch_rwlock_t) __ARCH_RW_LOCK_UNLOCKED_FAIR;
-+	lock->magic = RWLOCK_MAGIC;
-+	lock->owner = SPINLOCK_OWNER_INIT;
-+	lock->owner_cpu = -1;
-+}
-+EXPORT_SYMBOL(__rwlock_init_fair);
-+#endif /* CONFIG_QUEUE_RWLOCK */
-+
- static void spin_dump(raw_spinlock_t *lock, const char *msg)
- {
- 	struct task_struct *owner = NULL;
--- 
-1.7.1
+Peter, what do you think about adding that to your patch?
 
+-Longman
