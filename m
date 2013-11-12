@@ -1,57 +1,47 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH 17/17] um: Remove unused declarations from <as-layout.h>
-Date: Tue, 12 Nov 2013 20:42:27 +0100
-Message-ID: <1384285347-13506-18-git-send-email-geert@linux-m68k.org>
+Subject: [PATCH 05/17] score: Use Kbuild logic to include <asm-generic/sections.h>
+Date: Tue, 12 Nov 2013 20:42:15 +0100
+Message-ID: <1384285347-13506-6-git-send-email-geert@linux-m68k.org>
 References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Richard Weinberger <richard@nod.at>, user-mode-linux-devel@lists.sourceforge.net
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-_end is used, but it's already provided by <asm/sections.h>, so use that.
-
 Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Richard Weinberger <richard@nod.at>
-Cc: user-mode-linux-devel@lists.sourceforge.net
+Cc: Chen Liqin <liqin.linux@gmail.com>
+Cc: Lennox Wu <lennox.wu@gmail.com>
 ---
- arch/um/include/shared/as-layout.h |    3 ---
- arch/um/kernel/um_arch.c           |    1 +
- 2 files changed, 1 insertion(+), 3 deletions(-)
+ arch/score/include/asm/Kbuild     |    1 +
+ arch/score/include/asm/sections.h |    6 ------
+ 2 files changed, 1 insertion(+), 6 deletions(-)
+ delete mode 100644 arch/score/include/asm/sections.h
 
-diff --git a/arch/um/include/shared/as-layout.h b/arch/um/include/shared/as-layout.h
-index 694c792bab4e..41c8c774ec10 100644
---- a/arch/um/include/shared/as-layout.h
-+++ b/arch/um/include/shared/as-layout.h
-@@ -44,7 +44,6 @@ struct cpu_task {
+diff --git a/arch/score/include/asm/Kbuild b/arch/score/include/asm/Kbuild
+index f3414ade77a3..32cd967c19a4 100644
+--- a/arch/score/include/asm/Kbuild
++++ b/arch/score/include/asm/Kbuild
+@@ -2,6 +2,7 @@
+ header-y +=
  
- extern struct cpu_task cpu_tasks[];
- 
--extern unsigned long low_physmem;
- extern unsigned long high_physmem;
- extern unsigned long uml_physmem;
- extern unsigned long uml_reserved;
-@@ -52,8 +51,6 @@ extern unsigned long end_vm;
- extern unsigned long start_vm;
- extern unsigned long long highmem;
- 
--extern unsigned long _stext, _etext, _sdata, _edata, __bss_start, _end;
--extern unsigned long _unprotected_end;
- extern unsigned long brk_start;
- 
- extern unsigned long host_task_size;
-diff --git a/arch/um/kernel/um_arch.c b/arch/um/kernel/um_arch.c
-index 9fce866b0416..c44139833212 100644
---- a/arch/um/kernel/um_arch.c
-+++ b/arch/um/kernel/um_arch.c
-@@ -17,6 +17,7 @@
- #include <asm/byteorder.h>
- #include <asm/pgtable.h>
- #include <asm/processor.h>
-+#include <asm/sections.h>
- #include <asm/setup.h>
- #include <as-layout.h>
- #include <arch.h>
+ generic-y += clkdev.h
++generic-y += sections.h
+ generic-y += trace_clock.h
+ generic-y += xor.h
+ generic-y += preempt.h
+diff --git a/arch/score/include/asm/sections.h b/arch/score/include/asm/sections.h
+deleted file mode 100644
+index 9441d23af005..000000000000
+--- a/arch/score/include/asm/sections.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef _ASM_SCORE_SECTIONS_H
+-#define _ASM_SCORE_SECTIONS_H
+-
+-#include <asm-generic/sections.h>
+-
+-#endif /* _ASM_SCORE_SECTIONS_H */
 -- 
 1.7.9.5
