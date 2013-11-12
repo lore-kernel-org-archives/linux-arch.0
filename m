@@ -1,14 +1,18 @@
 From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v6 1/3] qrwlock: A queue read/write lock implementation
-Date: Tue, 12 Nov 2013 09:48:51 -0500
-Message-ID: <1384267735-43213-3-git-send-email-Waiman.Long@hp.com>
+Subject: [PATCH v6 1/5] qrwlock: A queue read/write lock implementation
+Date: Tue, 12 Nov 2013 09:48:50 -0500
+Message-ID: <1384267735-43213-2-git-send-email-Waiman.Long@hp.com>
 References: <1384267735-43213-1-git-send-email-Waiman.Long@hp.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from g5t0006.atlanta.hp.com ([15.192.0.43]:6438 "EHLO
+	g5t0006.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752010Ab3KLOth (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Nov 2013 09:49:37 -0500
 In-Reply-To: <1384267735-43213-1-git-send-email-Waiman.Long@hp.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Aswin Chandramouleeswaran\"" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Waiman Long <Waiman.Long@hp.com>
-List-Id: linux-arch.vger.kernel.org
 
 This patch introduces a new read/write lock implementation that put
 waiting readers and writers into a queue instead of actively contending
@@ -185,8 +189,8 @@ Signed-off-by: Waiman Long <Waiman.Long@hp.com>
  include/asm-generic/qrwlock.h |  250 +++++++++++++++++++++++++++++++++++++
  kernel/Kconfig.locks          |    7 +
  lib/Makefile                  |    1 +
- lib/qrwlock.c                 |  273 +++++++++++++++++++++++++++++++++++++++++
- 4 files changed, 531 insertions(+), 0 deletions(-)
+ lib/qrwlock.c                 |  274 +++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 532 insertions(+), 0 deletions(-)
  create mode 100644 include/asm-generic/qrwlock.h
  create mode 100644 lib/qrwlock.c
 
@@ -472,10 +476,10 @@ index f3bb2cb..e3175db 100644
 +obj-$(CONFIG_QUEUE_RWLOCK) += qrwlock.o
 diff --git a/lib/qrwlock.c b/lib/qrwlock.c
 new file mode 100644
-index 0000000..f265c02
+index 0000000..4915dc6
 --- /dev/null
 +++ b/lib/qrwlock.c
-@@ -0,0 +1,273 @@
+@@ -0,0 +1,274 @@
 +/*
 + * Queue read/write lock
 + *
@@ -719,8 +723,9 @@ index 0000000..f265c02
 +		return 0;
 +
 +	/* Step 3 */
++	arch_mutex_cpu_relax();
 +	old.rw = ACCESS_ONCE(lock->cnts.rw);
-+	while (!qwrite_trylock(lock, old)) {
++	while (old.readers || !qwrite_trylock(lock, old)) {
 +		arch_mutex_cpu_relax();
 +		old.rw = ACCESS_ONCE(lock->cnts.rw);
 +	}
