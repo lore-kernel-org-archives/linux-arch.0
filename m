@@ -1,68 +1,110 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
+From: Michal Simek <monstr@monstr.eu>
 Subject: Re: [PATCH RFC 15/17] microblaze: Convert from _fdt_start to __dtb_start
-Date: Wed, 13 Nov 2013 15:02:49 +0100
-Message-ID: <CAMuHMdWOCdEcDMpJgQ5tOMJ=ygqapvjy2NzGkc9Esk5gZZ57fw@mail.gmail.com>
-References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
-	<1384285347-13506-16-git-send-email-geert@linux-m68k.org>
-	<5283524F.8030902@monstr.eu>
-	<5283814C.6040904@monstr.eu>
+Date: Wed, 13 Nov 2013 15:21:12 +0100
+Message-ID: <52838AD8.8070404@monstr.eu>
+References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org> <1384285347-13506-16-git-send-email-geert@linux-m68k.org> <5283524F.8030902@monstr.eu> <5283814C.6040904@monstr.eu> <CAMuHMdWOCdEcDMpJgQ5tOMJ=ygqapvjy2NzGkc9Esk5gZZ57fw@mail.gmail.com>
+Reply-To: monstr@monstr.eu
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <5283814C.6040904@monstr.eu>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Michal Simek <monstr@monstr.eu>
+Content-Type: multipart/signed; micalg=pgp-sha1;
+ protocol="application/pgp-signature";
+ boundary="WpQLd4huC47g7cxADrL5j8evdptmLognG"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wg0-f46.google.com ([74.125.82.46]:58960 "EHLO
+	mail-wg0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755556Ab3KMOVV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Nov 2013 09:21:21 -0500
+Received: by mail-wg0-f46.google.com with SMTP id x12so470780wgg.13
+        for <linux-arch@vger.kernel.org>; Wed, 13 Nov 2013 06:21:20 -0800 (PST)
+In-Reply-To: <CAMuHMdWOCdEcDMpJgQ5tOMJ=ygqapvjy2NzGkc9Esk5gZZ57fw@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Rob Herring <rob.herring@calxeda.com>, microblaze-uclinux@itee.uq.edu.au, devicetree@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
-On Wed, Nov 13, 2013 at 2:40 PM, Michal Simek <monstr@monstr.eu> wrote:
->>> QUESTION: The padding of the DTB is gone, is this OK?
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--WpQLd4huC47g7cxADrL5j8evdptmLognG
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+On 11/13/2013 03:02 PM, Geert Uytterhoeven wrote:
+> On Wed, Nov 13, 2013 at 2:40 PM, Michal Simek <monstr@monstr.eu> wrote:=
+
+>>>> QUESTION: The padding of the DTB is gone, is this OK?
+>>>
+>>> Removing this kernel padding should be fine. I can't remember
+>>> why it was there from the beginning.
 >>
->> Removing this kernel padding should be fine. I can't remember
->> why it was there from the beginning.
->
-> I know why is this here. The reason is process how dtb is passed
-> to the kernel via command line. head.S code just copy that dtb to
-> the same location where compiled-in dts is expected and kernel
-> doesn't need to care about position of dtb because this copy is
-> done without MMU. And the full kernel is covered by 2 tlbs and
-> we don't need to use another TLB for dtb mapping.
->
-> It means pad matters a lot. Because u-boot ITS format doesn't use
-> simpleImage target but the kernel need to have a space for copying
-> dtb to this kernel location.
->
-> Let me think about if there is an easy way to handle dtbs
-> which are passed from bootloader.
+>> I know why is this here. The reason is process how dtb is passed
+>> to the kernel via command line. head.S code just copy that dtb to
+>> the same location where compiled-in dts is expected and kernel
+>> doesn't need to care about position of dtb because this copy is
+>> done without MMU. And the full kernel is covered by 2 tlbs and
+>> we don't need to use another TLB for dtb mapping.
+>>
+>> It means pad matters a lot. Because u-boot ITS format doesn't use
+>> simpleImage target but the kernel need to have a space for copying
+>> dtb to this kernel location.
+>>
+>> Let me think about if there is an easy way to handle dtbs
+>> which are passed from bootloader.
+>=20
+> You can add to asm-generic/sections.h:
+>=20
+> #ifndef ARCH_DTB_PADDING
+> #define ARCH_DTB_PADDING
+> #endif
+>=20
+> and change KERNEL_DTB() to:
+>=20
+> #define KERNEL_DTB()                                                   =
+ \
+>        STRUCT_ALIGN();                                                 =
+\
+>        VMLINUX_SYMBOL(__dtb_start) =3D .;                              =
+  \
+>        *(.dtb.init.rodata)                                             =
+\
+>        ARCH_DTB_PADDING                                \
+>        VMLINUX_SYMBOL(__dtb_end) =3D .;
+>=20
+> Then microblaze can predefine ARCH_DTB_PADDING in its
+> <asm/sections.h>.
+>=20
+> Still, it will crash badly if the external DTB is larger than
+> ARCH_DTB_PADDING.
 
-You can add to asm-generic/sections.h:
+yes but the question is if our bootflow is correct or not.
+Because the problem is still with ARCH_DTB_PADDING value.
+In past we have extended this padding from 16k to 32k.
 
-#ifndef ARCH_DTB_PADDING
-#define ARCH_DTB_PADDING
-#endif
+We are setting up one tlb for early console and we can just do the same
+for dtb and fix kernel for this cases. Then we don't need to waste
+of memory for allocating space for dtb.
 
-and change KERNEL_DTB() to:
+Thanks,
+Michal
 
-#define KERNEL_DTB()                                                    \
-       STRUCT_ALIGN();                                                 \
-       VMLINUX_SYMBOL(__dtb_start) = .;                                \
-       *(.dtb.init.rodata)                                             \
-       ARCH_DTB_PADDING                                \
-       VMLINUX_SYMBOL(__dtb_end) = .;
+--=20
+Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel - Microblaze cpu - http://www.monstr.eu/fdt/
+Maintainer of Linux kernel - Xilinx Zynq ARM architecture
+Microblaze U-BOOT custodian and responsible for u-boot arm zynq platform
 
-Then microblaze can predefine ARCH_DTB_PADDING in its
-<asm/sections.h>.
 
-Still, it will crash badly if the external DTB is larger than
-ARCH_DTB_PADDING.
 
-Gr{oetje,eeting}s,
+--WpQLd4huC47g7cxADrL5j8evdptmLognG
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
 
-                        Geert
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+Comment: Using GnuPG with Thunderbird - http://www.enigmail.net/
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+iEYEARECAAYFAlKDitgACgkQykllyylKDCF6eQCcC7s/qEvdog7zPURzdu0XOzRP
+nKwAnAli6/4A2SfZcUkHDKSSecm+QxPz
+=G4mX
+-----END PGP SIGNATURE-----
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+--WpQLd4huC47g7cxADrL5j8evdptmLognG--
