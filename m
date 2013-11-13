@@ -1,57 +1,96 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 14/17] dt: Consolidate __dtb_start declarations in <linux/of_fdt.h>
-Date: Wed, 13 Nov 2013 11:11:59 +0530
-Message-ID: <52831127.50302@synopsys.com>
-References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org> <1384285347-13506-15-git-send-email-geert@linux-m68k.org>
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: [PATCH 08/17] microblaze: Remove _fdt_start casts
+Date: Wed, 13 Nov 2013 11:08:18 +0100
+Message-ID: <52834F92.6060808@monstr.eu>
+References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org> <1384285347-13506-9-git-send-email-geert@linux-m68k.org>
+Reply-To: monstr@monstr.eu
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: multipart/signed; micalg=pgp-sha1;
+ protocol="application/pgp-signature";
+ boundary="x9avJT8dTmKOo2Isd6C8q4M0o5P4jw4vM"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtp2.synopsys.com ([198.182.44.80]:65060 "EHLO
-	kiruna.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751047Ab3KMFmK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Nov 2013 00:42:10 -0500
-In-Reply-To: <1384285347-13506-15-git-send-email-geert@linux-m68k.org>
+Received: from mail-ea0-f178.google.com ([209.85.215.178]:48165 "EHLO
+	mail-ea0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758799Ab3KMKIV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Nov 2013 05:08:21 -0500
+Received: by mail-ea0-f178.google.com with SMTP id a10so90677eae.37
+        for <linux-arch@vger.kernel.org>; Wed, 13 Nov 2013 02:08:20 -0800 (PST)
+In-Reply-To: <1384285347-13506-9-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, Jonas Bonn <jonas@southpole.se>, Chris Zankel <chris@zankel.net>, Rob Herring <rob.herring@calxeda.com>, devicetree@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, microblaze-uclinux@itee.uq.edu.au
 
-On 11/13/2013 01:12 AM, Geert Uytterhoeven wrote:
-> The different architectures used their own (and different) declarations:
-> 
->     extern struct boot_param_header __dtb_start;
->     extern u32 __dtb_start[];
->     extern char __dtb_start[];
-> 
-> Consolidate them using the first variant in <linux/of_fdt.h>.
-> This requires adding a few "address of" operators on architectures where
-> __dtb_start was an array before.
-> 
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--x9avJT8dTmKOo2Isd6C8q4M0o5P4jw4vM
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: quoted-printable
+
+On 11/12/2013 08:42 PM, Geert Uytterhoeven wrote:
+> _fdt_start is an array, i.e. a pointer.
+>=20
 > Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> Cc: Vineet Gupta <vgupta@synopsys.com>
-> Cc: James Hogan <james.hogan@imgtec.com>
-> Cc: Ralf Baechle <ralf@linux-mips.org>
-> Cc: Jonas Bonn <jonas@southpole.se>
-> CC: Chris Zankel <chris@zankel.net>
-> Cc: Rob Herring <rob.herring@calxeda.com>
-> Cc: devicetree@vger.kernel.org
+> Cc: Michal Simek <monstr@monstr.eu>
+> Cc: microblaze-uclinux@itee.uq.edu.au
 > ---
->  arch/arc/include/asm/sections.h             |    1 -
->  arch/arc/kernel/setup.c                     |    2 +-
->  arch/metag/kernel/setup.c                   |    6 +-----
->  arch/mips/include/asm/mips-boards/generic.h |    4 ----
->  arch/mips/lantiq/prom.h                     |    2 --
->  arch/mips/netlogic/xlp/dt.c                 |    4 ++--
->  arch/mips/ralink/of.c                       |    2 --
->  arch/openrisc/kernel/setup.c                |    2 +-
->  arch/openrisc/kernel/vmlinux.h              |    2 --
->  arch/xtensa/kernel/setup.c                  |    3 +--
->  include/linux/of_fdt.h                      |    3 +++
->  11 files changed, 9 insertions(+), 22 deletions(-)
+>  arch/microblaze/kernel/setup.c |    5 ++---
+>  1 file changed, 2 insertions(+), 3 deletions(-)
+>=20
+> diff --git a/arch/microblaze/kernel/setup.c b/arch/microblaze/kernel/se=
+tup.c
+> index 8de8ebc309f1..603e22fec6d5 100644
+> --- a/arch/microblaze/kernel/setup.c
+> +++ b/arch/microblaze/kernel/setup.c
+> @@ -136,7 +136,7 @@ void __init machine_early_init(const char *cmdline,=
+ unsigned int ram,
+>  	lockdep_init();
+> =20
+>  /* initialize device tree for usage in early_printk */
+> -	early_init_devtree((void *)_fdt_start);
+> +	early_init_devtree(_fdt_start);
+> =20
+>  #ifdef CONFIG_EARLY_PRINTK
+>  	setup_early_printk(NULL);
+> @@ -152,8 +152,7 @@ void __init machine_early_init(const char *cmdline,=
+ unsigned int ram,
+>  	if (fdt)
+>  		pr_info("FDT at 0x%08x\n", fdt);
+>  	else
+> -		pr_info("Compiled-in FDT at 0x%08x\n",
+> -					(unsigned int)_fdt_start);
+> +		pr_info("Compiled-in FDT at %p\n", _fdt_start);
+> =20
+>  #ifdef CONFIG_MTD_UCLINUX
+>  	pr_info("Found romfs @ 0x%08x (0x%08x)\n",
+>=20
+
+Applied.
+
+Thanks,
+Michal
 
 
-Acked-by: Vineet Gupta <vgupta@synopsys.com>
+--=20
+Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel - Microblaze cpu - http://www.monstr.eu/fdt/
+Maintainer of Linux kernel - Xilinx Zynq ARM architecture
+Microblaze U-BOOT custodian and responsible for u-boot arm zynq platform
 
-Thx,
--Vineet
+
+
+--x9avJT8dTmKOo2Isd6C8q4M0o5P4jw4vM
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+Comment: Using GnuPG with Thunderbird - http://www.enigmail.net/
+
+iEYEARECAAYFAlKDT5IACgkQykllyylKDCFy/QCeImOWIjZnkeI4a7qvJdOJ0w7Y
+xjsAnRivGqHsSUPCxZODmrh+zkls150E
+=1z4G
+-----END PGP SIGNATURE-----
+
+--x9avJT8dTmKOo2Isd6C8q4M0o5P4jw4vM--
