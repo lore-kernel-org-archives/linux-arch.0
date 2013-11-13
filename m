@@ -1,74 +1,127 @@
 From: Michal Simek <monstr@monstr.eu>
-Subject: Re: [PATCH 08/17] microblaze: Remove _fdt_start casts
-Date: Wed, 13 Nov 2013 11:08:18 +0100
-Message-ID: <52834F92.6060808@monstr.eu>
-References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org> <1384285347-13506-9-git-send-email-geert@linux-m68k.org>
+Subject: Re: [PATCH RFC 15/17] microblaze: Convert from _fdt_start to __dtb_start
+Date: Wed, 13 Nov 2013 11:19:59 +0100
+Message-ID: <5283524F.8030902@monstr.eu>
+References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org> <1384285347-13506-16-git-send-email-geert@linux-m68k.org>
 Reply-To: monstr@monstr.eu
 Mime-Version: 1.0
 Content-Type: multipart/signed; micalg=pgp-sha1;
  protocol="application/pgp-signature";
- boundary="x9avJT8dTmKOo2Isd6C8q4M0o5P4jw4vM"
+ boundary="eggT6B9TKQTOK4FJvdd17fUJvQKEe2h93"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ea0-f178.google.com ([209.85.215.178]:48165 "EHLO
-	mail-ea0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758799Ab3KMKIV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Nov 2013 05:08:21 -0500
-Received: by mail-ea0-f178.google.com with SMTP id a10so90677eae.37
-        for <linux-arch@vger.kernel.org>; Wed, 13 Nov 2013 02:08:20 -0800 (PST)
-In-Reply-To: <1384285347-13506-9-git-send-email-geert@linux-m68k.org>
+Received: from mail-ee0-f53.google.com ([74.125.83.53]:53640 "EHLO
+	mail-ee0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758648Ab3KMKUJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Nov 2013 05:20:09 -0500
+Received: by mail-ee0-f53.google.com with SMTP id b57so68548eek.12
+        for <linux-arch@vger.kernel.org>; Wed, 13 Nov 2013 02:20:08 -0800 (PST)
+In-Reply-To: <1384285347-13506-16-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, microblaze-uclinux@itee.uq.edu.au
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Rob Herring <rob.herring@calxeda.com>, microblaze-uclinux@itee.uq.edu.au, devicetree@vger.kernel.org
 
 This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
---x9avJT8dTmKOo2Isd6C8q4M0o5P4jw4vM
+--eggT6B9TKQTOK4FJvdd17fUJvQKEe2h93
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: quoted-printable
 
 On 11/12/2013 08:42 PM, Geert Uytterhoeven wrote:
-> _fdt_start is an array, i.e. a pointer.
+> Kill the microblaze-specific __fdt_blob section, and start using
+> .dtb.init.rodata from <asm-generic/sections.h> for built-in DTBs, like
+> most other DT enabled architectures.
 >=20
 > Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
 > Cc: Michal Simek <monstr@monstr.eu>
+> Cc: Rob Herring <rob.herring@calxeda.com>
 > Cc: microblaze-uclinux@itee.uq.edu.au
+> Cc: devicetree@vger.kernel.org
 > ---
->  arch/microblaze/kernel/setup.c |    5 ++---
->  1 file changed, 2 insertions(+), 3 deletions(-)
+> Untested, but the resulting vmlinux after "make simpleImage.system" loo=
+ks
+> sane.
 >=20
-> diff --git a/arch/microblaze/kernel/setup.c b/arch/microblaze/kernel/se=
-tup.c
-> index 8de8ebc309f1..603e22fec6d5 100644
-> --- a/arch/microblaze/kernel/setup.c
-> +++ b/arch/microblaze/kernel/setup.c
-> @@ -136,7 +136,7 @@ void __init machine_early_init(const char *cmdline,=
- unsigned int ram,
->  	lockdep_init();
-> =20
->  /* initialize device tree for usage in early_printk */
-> -	early_init_devtree((void *)_fdt_start);
-> +	early_init_devtree(_fdt_start);
-> =20
->  #ifdef CONFIG_EARLY_PRINTK
->  	setup_early_printk(NULL);
-> @@ -152,8 +152,7 @@ void __init machine_early_init(const char *cmdline,=
- unsigned int ram,
->  	if (fdt)
->  		pr_info("FDT at 0x%08x\n", fdt);
->  	else
-> -		pr_info("Compiled-in FDT at 0x%08x\n",
-> -					(unsigned int)_fdt_start);
-> +		pr_info("Compiled-in FDT at %p\n", _fdt_start);
-> =20
->  #ifdef CONFIG_MTD_UCLINUX
->  	pr_info("Found romfs @ 0x%08x (0x%08x)\n",
->=20
+> QUESTION: The padding of the DTB is gone, is this OK?
 
-Applied.
+Removing this kernel padding should be fine. I can't remember
+why it was there from the beginning.
+
+>=20
+> TODO: Start using the DTB logic in scripts/Makefile.lib instead of
+>       arch/microblaze/boot/dts/linked_dtb.S
+>=20
+>  arch/microblaze/boot/Makefile          |    2 +-
+>  arch/microblaze/boot/dts/linked_dtb.S  |    2 +-
+>  arch/microblaze/include/asm/sections.h |    4 +---
+>  arch/microblaze/kernel/head.S          |    2 +-
+>  arch/microblaze/kernel/setup.c         |    4 ++--
+>  arch/microblaze/kernel/vmlinux.lds.S   |    8 --------
+>  6 files changed, 6 insertions(+), 16 deletions(-)
+>=20
+> diff --git a/arch/microblaze/boot/Makefile b/arch/microblaze/boot/Makef=
+ile
+> index 8e211cc28dac..e4a99a22dab8 100644
+> --- a/arch/microblaze/boot/Makefile
+> +++ b/arch/microblaze/boot/Makefile
+> @@ -23,7 +23,7 @@ quiet_cmd_cp =3D CP      $< $@$2
+> =20
+>  quiet_cmd_strip =3D STRIP   $@
+>  	cmd_strip =3D $(STRIP) -K microblaze_start -K _end -K __log_buf \
+> -				-K _fdt_start vmlinux -o $@
+> +				-K __dtb_start vmlinux -o $@
+
+I have started to discuss this change internally because our tools relate=
+d
+on this _fdt_start name.
+
+> =20
+>  UIMAGE_LOADADDR =3D $(CONFIG_KERNEL_BASE_ADDR)
+> =20
+> diff --git a/arch/microblaze/boot/dts/linked_dtb.S b/arch/microblaze/bo=
+ot/dts/linked_dtb.S
+> index 23345af3721f..bfc53b5795aa 100644
+> --- a/arch/microblaze/boot/dts/linked_dtb.S
+> +++ b/arch/microblaze/boot/dts/linked_dtb.S
+> @@ -1,2 +1,2 @@
+> -.section __fdt_blob,"a"
+> +.section .dtb.init.rodata,"a"
+>  .incbin "arch/microblaze/boot/dts/system.dtb"
+> diff --git a/arch/microblaze/include/asm/sections.h b/arch/microblaze/i=
+nclude/asm/sections.h
+> index 1b281d3ea734..fb8ab0ba03fc 100644
+> --- a/arch/microblaze/include/asm/sections.h
+> +++ b/arch/microblaze/include/asm/sections.h
+> @@ -16,8 +16,6 @@
+>  # ifndef __ASSEMBLY__
+>  extern char _ssbss[], _esbss[];
+>  extern unsigned long __ivt_start[], __ivt_end[];
+> -
+> -extern u32 _fdt_start[], _fdt_end[];
+> -
+>  # endif /* !__ASSEMBLY__ */
+> +
+>  #endif /* _ASM_MICROBLAZE_SECTIONS_H */
+> diff --git a/arch/microblaze/kernel/head.S b/arch/microblaze/kernel/hea=
+d.S
+> index 817b7eec95b6..6108889f0025 100644
+> --- a/arch/microblaze/kernel/head.S
+> +++ b/arch/microblaze/kernel/head.S
+> @@ -94,7 +94,7 @@ big_endian:
+>  	bnei	r11, no_fdt_arg			/* No - get out of here */
+>  _prepare_copy_fdt:
+>  	or	r11, r0, r0 /* incremment */
+> -	ori	r4, r0, TOPHYS(_fdt_start)
+> +	ori	r4, r0, TOPHYS(__dtb_start)
+>  	ori	r3, r0, (0x8000 - 4)
+
+If others is fine this 0x8000 is that hardcoded pad dtb size in lds file
+and needs to be changed too.
+
+Let me discuss this with others but if changing symbol name is fine
+then we can fix just this problem and your patch is fine.
 
 Thanks,
 Michal
-
 
 --=20
 Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
@@ -79,7 +132,7 @@ Microblaze U-BOOT custodian and responsible for u-boot arm zynq platform
 
 
 
---x9avJT8dTmKOo2Isd6C8q4M0o5P4jw4vM
+--eggT6B9TKQTOK4FJvdd17fUJvQKEe2h93
 Content-Type: application/pgp-signature; name="signature.asc"
 Content-Description: OpenPGP digital signature
 Content-Disposition: attachment; filename="signature.asc"
@@ -88,9 +141,9 @@ Content-Disposition: attachment; filename="signature.asc"
 Version: GnuPG v1.4.10 (GNU/Linux)
 Comment: Using GnuPG with Thunderbird - http://www.enigmail.net/
 
-iEYEARECAAYFAlKDT5IACgkQykllyylKDCFy/QCeImOWIjZnkeI4a7qvJdOJ0w7Y
-xjsAnRivGqHsSUPCxZODmrh+zkls150E
-=1z4G
+iEYEARECAAYFAlKDUlAACgkQykllyylKDCEUYACeO0YLhfM8TXTIbDRMk1GRBL5h
+IZ8An1bjkWMjgcy0aaxLJXF8q1HkRHwh
+=EPVx
 -----END PGP SIGNATURE-----
 
---x9avJT8dTmKOo2Isd6C8q4M0o5P4jw4vM--
+--eggT6B9TKQTOK4FJvdd17fUJvQKEe2h93--
