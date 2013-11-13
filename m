@@ -1,44 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:21286 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756319Ab3KLXi7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Nov 2013 18:38:59 -0500
-Message-ID: <1384299531.24631.14.camel@deneb.redhat.com>
-Subject: Re: [PATCH RFC 16/17] c6x: Convert from _fdt_start to __dtb_start
-From: Mark Salter <msalter@redhat.com>
-Date: Tue, 12 Nov 2013 18:38:51 -0500
-In-Reply-To: <1384285347-13506-17-git-send-email-geert@linux-m68k.org>
+Received: from mail-pb0-f45.google.com ([209.85.160.45]:33269 "EHLO
+	mail-pb0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754746Ab3KMOCx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Nov 2013 09:02:53 -0500
+MIME-Version: 1.0
+In-Reply-To: <5283814C.6040904@monstr.eu>
 References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
-	 <1384285347-13506-17-git-send-email-geert@linux-m68k.org>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+	<1384285347-13506-16-git-send-email-geert@linux-m68k.org>
+	<5283524F.8030902@monstr.eu>
+	<5283814C.6040904@monstr.eu>
+Date: Wed, 13 Nov 2013 15:02:49 +0100
+Message-ID: <CAMuHMdWOCdEcDMpJgQ5tOMJ=ygqapvjy2NzGkc9Esk5gZZ57fw@mail.gmail.com>
+Subject: Re: [PATCH RFC 15/17] microblaze: Convert from _fdt_start to __dtb_start
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Aurelien Jacquiot <a-jacquiot@ti.com>, Rob Herring <rob.herring@calxeda.com>, linux-c6x-dev@linux-c6x.org, devicetree@vger.kernel.org
-Message-ID: <20131112233851.xzzo-XWDWdRx24cANAbfAojOG-3PfffUoFdWzimTRLE@z>
+To: Michal Simek <monstr@monstr.eu>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Rob Herring <rob.herring@calxeda.com>, microblaze-uclinux@itee.uq.edu.au, devicetree@vger.kernel.org
+Message-ID: <20131113140249.khr1PqGWnIxmzzupwnWwwSP4_6TpqWA7gzgRqQCcfkY@z>
 
-On Tue, 2013-11-12 at 20:42 +0100, Geert Uytterhoeven wrote:
-> Kill the c6x-specific __fdt_blob section, and start
-> using .dtb.init.rodata
-> from <asm-generic/sections.h> for built-in DTBs, like most other DT
-> enabled
-> architectures.
-> 
-> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
-> Cc: Rob Herring <rob.herring@calxeda.com>
-> Cc: linux-c6x-dev@linux-c6x.org
-> Cc: devicetree@vger.kernel.org
-> ---
-> Untested due to lack of cross-compiler, but the changes are similar to
-> microblaze.
-> 
-> QUESTION: The padding of the DTB is gone, is this OK?
+On Wed, Nov 13, 2013 at 2:40 PM, Michal Simek <monstr@monstr.eu> wrote:
+>>> QUESTION: The padding of the DTB is gone, is this OK?
+>>
+>> Removing this kernel padding should be fine. I can't remember
+>> why it was there from the beginning.
+>
+> I know why is this here. The reason is process how dtb is passed
+> to the kernel via command line. head.S code just copy that dtb to
+> the same location where compiled-in dts is expected and kernel
+> doesn't need to care about position of dtb because this copy is
+> done without MMU. And the full kernel is covered by 2 tlbs and
+> we don't need to use another TLB for dtb mapping.
+>
+> It means pad matters a lot. Because u-boot ITS format doesn't use
+> simpleImage target but the kernel need to have a space for copying
+> dtb to this kernel location.
+>
+> Let me think about if there is an easy way to handle dtbs
+> which are passed from bootloader.
 
-Yes, that's fine.
+You can add to asm-generic/sections.h:
 
-Acked-by: Mark Salter <msalter@redhat.com>
+#ifndef ARCH_DTB_PADDING
+#define ARCH_DTB_PADDING
+#endif
 
+and change KERNEL_DTB() to:
 
+#define KERNEL_DTB()                                                    \
+       STRUCT_ALIGN();                                                 \
+       VMLINUX_SYMBOL(__dtb_start) = .;                                \
+       *(.dtb.init.rodata)                                             \
+       ARCH_DTB_PADDING                                \
+       VMLINUX_SYMBOL(__dtb_end) = .;
+
+Then microblaze can predefine ARCH_DTB_PADDING in its
+<asm/sections.h>.
+
+Still, it will crash badly if the external DTB is larger than
+ARCH_DTB_PADDING.
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
