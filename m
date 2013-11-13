@@ -1,43 +1,32 @@
-From: Mark Salter <msalter-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [PATCH RFC 16/17] c6x: Convert from _fdt_start to __dtb_start
-Date: Tue, 12 Nov 2013 18:38:51 -0500
-Message-ID: <1384299531.24631.14.camel@deneb.redhat.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH 00/17] <asm/sections.h> related cleanups
+Date: Wed, 13 Nov 2013 10:55:53 +0530
+Message-ID: <52830D61.5040806@synopsys.com>
 References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
-	 <1384285347-13506-17-git-send-email-geert@linux-m68k.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1384285347-13506-17-git-send-email-geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
-Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
-Cc: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Aurelien Jacquiot <a-jacquiot-l0cyMroinI0@public.gmane.org>, Rob Herring <rob.herring-bsGFqQB8/DxBDgjK7y7TUQ@public.gmane.org>, linux-c6x-dev-jPsnJVOj+W6hPH1hqNUYSQ@public.gmane.org, devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from kiruna.synopsys.com ([198.182.44.80]:64975 "EHLO
+	kiruna.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751047Ab3KMF0C (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Nov 2013 00:26:02 -0500
+In-Reply-To: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Tue, 2013-11-12 at 20:42 +0100, Geert Uytterhoeven wrote:
-> Kill the c6x-specific __fdt_blob section, and start
-> using .dtb.init.rodata
-> from <asm-generic/sections.h> for built-in DTBs, like most other DT
-> enabled
-> architectures.
-> 
-> Signed-off-by: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
-> Cc: Aurelien Jacquiot <a-jacquiot-l0cyMroinI0@public.gmane.org>
-> Cc: Rob Herring <rob.herring-bsGFqQB8/DxBDgjK7y7TUQ@public.gmane.org>
-> Cc: linux-c6x-dev-jPsnJVOj+W6hPH1hqNUYSQ@public.gmane.org
-> Cc: devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-> ---
-> Untested due to lack of cross-compiler, but the changes are similar to
-> microblaze.
-> 
-> QUESTION: The padding of the DTB is gone, is this OK?
+On 11/13/2013 01:12 AM, Geert Uytterhoeven wrote:
+> Most of this has been compile-tested. Notable exceptions are the changes
+> to arc, c6x, and score code, due to lack of cross-compilers.
 
-Yes, that's fine.
+Mainline buildroot will enable you to build a cross compiler for ARC. It is not
+relocatable (pending issue in Buildroot itself) but should suffice your needs.
 
-Acked-by: Mark Salter <msalter-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Then a defconfig kernel build will be good enough (allmodconfig tends to select a
+uncommon configuration - e.g. Big endian, -Os and since the default tools are not
+multilib'ed, it will fail to link.
 
-
---
-To unsubscribe from this list: send the line "unsubscribe devicetree" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+To avoid fiailure all*config builds I probably need to invert a few config items
+on ARC (CONFIG_CPU_BIG_ENDIAN => CONFIG_CPU_LITTLE_ENDIAN)
