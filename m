@@ -1,73 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f45.google.com ([209.85.160.45]:33269 "EHLO
-	mail-pb0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754746Ab3KMOCx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Nov 2013 09:02:53 -0500
+Received: from mail-oa0-f48.google.com ([209.85.219.48]:62992 "EHLO
+	mail-oa0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932390Ab3KMPva (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Nov 2013 10:51:30 -0500
+Message-ID: <5283A000.8090007@gmail.com>
+Date: Wed, 13 Nov 2013 09:51:28 -0600
+From: Rob Herring <robherring2@gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <5283814C.6040904@monstr.eu>
-References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
-	<1384285347-13506-16-git-send-email-geert@linux-m68k.org>
-	<5283524F.8030902@monstr.eu>
-	<5283814C.6040904@monstr.eu>
-Date: Wed, 13 Nov 2013 15:02:49 +0100
-Message-ID: <CAMuHMdWOCdEcDMpJgQ5tOMJ=ygqapvjy2NzGkc9Esk5gZZ57fw@mail.gmail.com>
-Subject: Re: [PATCH RFC 15/17] microblaze: Convert from _fdt_start to __dtb_start
-From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 14/17] dt: Consolidate __dtb_start declarations in <linux/of_fdt.h>
+References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org> <1384285347-13506-15-git-send-email-geert@linux-m68k.org>
+In-Reply-To: <1384285347-13506-15-git-send-email-geert@linux-m68k.org>
 Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Simek <monstr@monstr.eu>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Rob Herring <rob.herring@calxeda.com>, microblaze-uclinux@itee.uq.edu.au, devicetree@vger.kernel.org
-Message-ID: <20131113140249.khr1PqGWnIxmzzupwnWwwSP4_6TpqWA7gzgRqQCcfkY@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Vineet Gupta <vgupta@synopsys.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, Jonas Bonn <jonas@southpole.se>, Chris Zankel <chris@zankel.net>, Rob Herring <rob.herring@calxeda.com>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
+Message-ID: <20131113155128.ATCoeNZYQLhHLTdk6cz3dM1XhO63d0tCURBYApWHV3E@z>
 
-On Wed, Nov 13, 2013 at 2:40 PM, Michal Simek <monstr@monstr.eu> wrote:
->>> QUESTION: The padding of the DTB is gone, is this OK?
->>
->> Removing this kernel padding should be fine. I can't remember
->> why it was there from the beginning.
+On Tue, Nov 12, 2013 at 1:42 PM, Geert Uytterhoeven
+<geert@linux-m68k.org> wrote:
+> The different architectures used their own (and different) declarations:
 >
-> I know why is this here. The reason is process how dtb is passed
-> to the kernel via command line. head.S code just copy that dtb to
-> the same location where compiled-in dts is expected and kernel
-> doesn't need to care about position of dtb because this copy is
-> done without MMU. And the full kernel is covered by 2 tlbs and
-> we don't need to use another TLB for dtb mapping.
+>     extern struct boot_param_header __dtb_start;
+>     extern u32 __dtb_start[];
+>     extern char __dtb_start[];
 >
-> It means pad matters a lot. Because u-boot ITS format doesn't use
-> simpleImage target but the kernel need to have a space for copying
-> dtb to this kernel location.
+> Consolidate them using the first variant in <linux/of_fdt.h>.
+> This requires adding a few "address of" operators on architectures where
+> __dtb_start was an array before.
 >
-> Let me think about if there is an easy way to handle dtbs
-> which are passed from bootloader.
+> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> Cc: Vineet Gupta <vgupta@synopsys.com>
+> Cc: James Hogan <james.hogan@imgtec.com>
+> Cc: Ralf Baechle <ralf@linux-mips.org>
+> Cc: Jonas Bonn <jonas@southpole.se>
+> CC: Chris Zankel <chris@zankel.net>
+> Cc: Rob Herring <rob.herring@calxeda.com>
+> Cc: devicetree@vger.kernel.org
+> ---
+>  arch/arc/include/asm/sections.h             |    1 -
+>  arch/arc/kernel/setup.c                     |    2 +-
+>  arch/metag/kernel/setup.c                   |    6 +-----
+>  arch/mips/include/asm/mips-boards/generic.h |    4 ----
+>  arch/mips/lantiq/prom.h                     |    2 --
+>  arch/mips/netlogic/xlp/dt.c                 |    4 ++--
+>  arch/mips/ralink/of.c                       |    2 --
+>  arch/openrisc/kernel/setup.c                |    2 +-
+>  arch/openrisc/kernel/vmlinux.h              |    2 --
+>  arch/xtensa/kernel/setup.c                  |    3 +--
+>  include/linux/of_fdt.h                      |    3 +++
+>  11 files changed, 9 insertions(+), 22 deletions(-)
 
-You can add to asm-generic/sections.h:
+This is great, but I would like to see this taken one step further and
+move the selection logic into the core code. We can try to use the
+built-in dtb if early_init_dt_scan is passed a NULL or invalid dtb. This
+should work for most arches I think and still allows an arch to do a
+different selection algorithm if desired.
 
-#ifndef ARCH_DTB_PADDING
-#define ARCH_DTB_PADDING
-#endif
+Are the DT related patches dependent on the rest of the series?
 
-and change KERNEL_DTB() to:
+Something like this is what I have in mind:
 
-#define KERNEL_DTB()                                                    \
-       STRUCT_ALIGN();                                                 \
-       VMLINUX_SYMBOL(__dtb_start) = .;                                \
-       *(.dtb.init.rodata)                                             \
-       ARCH_DTB_PADDING                                \
-       VMLINUX_SYMBOL(__dtb_end) = .;
+diff --git a/drivers/of/fdt.c b/drivers/of/fdt.c
+index 5c47910..723f854d 100644
+--- a/drivers/of/fdt.c
++++ b/drivers/of/fdt.c
+@@ -869,14 +869,16 @@ void * __init __weak
+early_init_dt_alloc_memory_arch(u64 size, u64 align)
 
-Then microblaze can predefine ARCH_DTB_PADDING in its
-<asm/sections.h>.
+ bool __init early_init_dt_scan(void *params)
+ {
+-	if (!params)
+-		return false;
+-
+ 	/* Setup flat device-tree pointer */
+ 	initial_boot_params = params;
 
-Still, it will crash badly if the external DTB is larger than
-ARCH_DTB_PADDING.
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
++	if (!initial_boot_params ||
++	    (be32_to_cpu(initial_boot_params->magic) != OF_DT_HEADER))
++		initial_boot_params = &__dtb_start;
++
+ 	/* check device tree validity */
+-	if (be32_to_cpu(initial_boot_params->magic) != OF_DT_HEADER) {
++	if (!initial_boot_params ||
++	    (be32_to_cpu(initial_boot_params->magic) != OF_DT_HEADER)) {
+ 		initial_boot_params = NULL;
+ 		return false;
+ 	}
