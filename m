@@ -1,96 +1,58 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v5 4/4] MCS Lock: Barrier corrections
-Date: Wed, 13 Nov 2013 17:37:57 +0000
-Message-ID: <20131113173757.GG11928@mudshark.cambridge.arm.com>
-References: <20131112160827.GB25953@mudshark.cambridge.arm.com>
- <20131112171633.7498.qmail@science.horizon.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 14/17] dt: Consolidate __dtb_start declarations in <linux/of_fdt.h>
+Date: Wed, 13 Nov 2013 19:40:08 +0100
+Message-ID: <CAMuHMdWG+cVGzWeivm43r_AaemoHk=YmQ_vc+t+B28KG27TaVg@mail.gmail.com>
+References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
+	<1384285347-13506-15-git-send-email-geert@linux-m68k.org>
+	<5283A000.8090007@gmail.com>
+	<CAMuHMdU6Lqup-MuAOH0iTg16b-SHw4D52WsoPXMsumOxQWbJrg@mail.gmail.com>
+	<5283B83A.8030206@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20131112171633.7498.qmail@science.horizon.com>
-Sender: owner-linux-mm@kvack.org
-To: George Spelvin <linux@horizon.com>
-Cc: "tim.c.chen@linux.intel.com" <tim.c.chen@linux.intel.com>, "a.p.zijlstra@chello.nl" <a.p.zijlstra@chello.nl>, "aarcange@redhat.com" <aarcange@redhat.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "alex.shi@linaro.org" <alex.shi@linaro.org>, "andi@firstfloor.org" <andi@firstfloor.org>, "arnd@arndb.de" <arnd@arndb.de>, "aswin@hp.com" <aswin@hp.com>, "dave.hansen@intel.com" <dave.hansen@intel.com>, "davidlohr.bueso@hp.com" <davidlohr.bueso@hp.com>, "figo1802@gmail.com" <figo1802@gmail.com>, "hpa@zytor.com" <hpa@zytor.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "matthew.r.wilcox@intel.com" <matthew.r.wilcox@intel.com>, "mingo@elte.hu" <mingo@elte.hu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pb0-f45.google.com ([209.85.160.45]:49686 "EHLO
+	mail-pb0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759329Ab3KMSkJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Nov 2013 13:40:09 -0500
+In-Reply-To: <5283B83A.8030206@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Rob Herring <robherring2@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Vineet Gupta <vgupta@synopsys.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, Jonas Bonn <jonas@southpole.se>, Chris Zankel <chris@zankel.net>, Rob Herring <rob.herring@calxeda.com>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
 
-On Tue, Nov 12, 2013 at 05:16:33PM +0000, George Spelvin wrote:
-> > On Mon, Nov 11, 2013 at 09:17:52PM +0000, Tim Chen wrote:
-> >> An alternate implementation is
-> >> 	while (!ACCESS_ONCE(node->locked))
-> >> 		arch_mutex_cpu_relax();
-> >> 	smp_load_acquire(&node->locked);
-> >> 
-> >> Leaving the smp_load_acquire at the end to provide appropriate barrier.
-> >> Will that be acceptable?
-> 
-> Will Deacon <will.deacon@arm.com> wrote:
-> > It still doesn't solve my problem though: I want a way to avoid that busy
-> > loop by some architecture-specific manner. The arch_mutex_cpu_relax() hook
-> > is a start, but there is no corresponding hook on the unlock side to issue a
-> > wakeup. Given a sensible relax implementation, I don't have an issue with
-> > putting a load-acquire in a loop, since it shouldn't be aggresively spinning
-> > anymore.
-> 
-> So you want something like this?
-> 
-> /*
->  * This is a spin-wait with acquire semantics.  That is, accesses after
->  * this are not allowed to be reordered before the load that meets
->  * the specified condition.  This requires that it end with either a
->  * load-acquire or a full smp_mb().  The optimal way to do this is likely
->  * to be architecture-dependent.  E.g. x86 MONITOR/MWAIT instructions.
->  */
-> #ifndef smp_load_acquire_until
-> #define smp_load_acquire_until(addr, cond) \
-> 	while (!(smp_load_acquire(addr) cond)) { \
-> 		do { \
-> 			arch_mutex_cpu_relax(); \
-> 		} while (!(ACCESS_ONCE(*(addr)) cond)); \
-> 	}
-> #endif
-> 
-> 	smp_load_acquire_until(&node->locked, != 0);
-> 
-> Alternative implementations:
-> 
-> #define smp_load_acquire_until(addr, cond) { \
-> 	while (!(ACCESS_ONCE(*(addr)) cond)) \
-> 		arch_mutex_cpu_relax(); \
-> 	smp_mb(); }
-> 
-> #define smp_load_acquire_until(addr, cond) \
-> 	if (!(smp_load_acquire(addr) cond)) { \
-> 		do { \
-> 			arch_mutex_cpu_relax(); \
-> 		} while (!(ACCESS_ONCE(*(addr)) cond)); \
-> 		smp_mb(); \
-> 	}
+On Wed, Nov 13, 2013 at 6:34 PM, Rob Herring <robherring2@gmail.com> wrote:
+>>> +       if (!initial_boot_params ||
+>>> +           (be32_to_cpu(initial_boot_params->magic) != OF_DT_HEADER))
+>>> +               initial_boot_params = &__dtb_start;
+>>> +
+>>>         /* check device tree validity */
+>>> -       if (be32_to_cpu(initial_boot_params->magic) != OF_DT_HEADER) {
+>>> +       if (!initial_boot_params ||
+>>
+>> initial_boot_params cannot be NULL here, so no need to check.
+>
+> What about the case of no built-in dtb like on arm?
 
-Not really...
+Even then the symbol exists, as all architectures put INIT_DATA or
+INIT_DATA_SECTION in their vmlinux.lds.S.
+But the section will be empty, cfr. the case __dtb_end == __dtb_start below.
 
-To be clear: having the load-acquire in a loop is fine, provided that
-arch_mutex_cpu_relax is something which causes the load to back-off (you
-mentioned the MONITOR/MWAIT instructions on x86).
+>>
+>>> +           (be32_to_cpu(initial_boot_params->magic) != OF_DT_HEADER)) {
+>>
+>> However, if __dtb_end == __dtb_start, you may be reading random
+>> data here from the next section. The OF_DT_HEADER check should cover
+>> this, but better safe than sorry?
+>
+> Then we should also check that (__dtb_end != __dtb_start).
 
-On ARM, our equivalent of those instructions also has a counterpart
-instruction that needs to be executed by the CPU doing the unlock. That
-means we can do one of two things:
+Gr{oetje,eeting}s,
 
-	1. Add an arch hook in the unlock path to pair with the relax()
-	   call on the lock path (arch_mutex_cpu_wake() ?).
-
-	2. Move most of the code into arch_mcs_[un]lock, like we do for
-	   spinlocks.
-
-Whilst (1) would suffice, (2) would allow further optimisation on arm64,
-where we can play tricks to avoid the explicit wakeup if we can control the
-way in which the lock value is written.
-
-Will
+                        Geert
 
 --
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
