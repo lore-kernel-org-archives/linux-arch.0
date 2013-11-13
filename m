@@ -1,91 +1,68 @@
-From: Michal Simek <monstr@monstr.eu>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
 Subject: Re: [PATCH RFC 15/17] microblaze: Convert from _fdt_start to __dtb_start
-Date: Wed, 13 Nov 2013 14:40:28 +0100
-Message-ID: <5283814C.6040904@monstr.eu>
-References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org> <1384285347-13506-16-git-send-email-geert@linux-m68k.org> <5283524F.8030902@monstr.eu>
-Reply-To: monstr@monstr.eu
+Date: Wed, 13 Nov 2013 15:02:49 +0100
+Message-ID: <CAMuHMdWOCdEcDMpJgQ5tOMJ=ygqapvjy2NzGkc9Esk5gZZ57fw@mail.gmail.com>
+References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
+	<1384285347-13506-16-git-send-email-geert@linux-m68k.org>
+	<5283524F.8030902@monstr.eu>
+	<5283814C.6040904@monstr.eu>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
- protocol="application/pgp-signature";
- boundary="4IiqVjTX2HIoOtKcUO1NaDwNEIuJkA7CP"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ee0-f45.google.com ([74.125.83.45]:51206 "EHLO
-	mail-ee0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751490Ab3KMNkn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Nov 2013 08:40:43 -0500
-Received: by mail-ee0-f45.google.com with SMTP id d49so221285eek.18
-        for <linux-arch@vger.kernel.org>; Wed, 13 Nov 2013 05:40:42 -0800 (PST)
-In-Reply-To: <5283524F.8030902@monstr.eu>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Rob Herring <rob.herring@calxeda.com>, microblaze-uclinux@itee.uq.edu.au, devicetree@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <5283814C.6040904@monstr.eu>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Michal Simek <monstr@monstr.eu>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Rob Herring <rob.herring@calxeda.com>, microblaze-uclinux@itee.uq.edu.au, devicetree@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
---4IiqVjTX2HIoOtKcUO1NaDwNEIuJkA7CP
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: quoted-printable
-
-On 11/13/2013 11:19 AM, Michal Simek wrote:
-> On 11/12/2013 08:42 PM, Geert Uytterhoeven wrote:
->> Kill the microblaze-specific __fdt_blob section, and start using
->> .dtb.init.rodata from <asm-generic/sections.h> for built-in DTBs, like=
-
->> most other DT enabled architectures.
+On Wed, Nov 13, 2013 at 2:40 PM, Michal Simek <monstr@monstr.eu> wrote:
+>>> QUESTION: The padding of the DTB is gone, is this OK?
 >>
->> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
->> Cc: Michal Simek <monstr@monstr.eu>
->> Cc: Rob Herring <rob.herring@calxeda.com>
->> Cc: microblaze-uclinux@itee.uq.edu.au
->> Cc: devicetree@vger.kernel.org
->> ---
->> Untested, but the resulting vmlinux after "make simpleImage.system" lo=
-oks
->> sane.
->>
->> QUESTION: The padding of the DTB is gone, is this OK?
->=20
-> Removing this kernel padding should be fine. I can't remember
-> why it was there from the beginning.
+>> Removing this kernel padding should be fine. I can't remember
+>> why it was there from the beginning.
+>
+> I know why is this here. The reason is process how dtb is passed
+> to the kernel via command line. head.S code just copy that dtb to
+> the same location where compiled-in dts is expected and kernel
+> doesn't need to care about position of dtb because this copy is
+> done without MMU. And the full kernel is covered by 2 tlbs and
+> we don't need to use another TLB for dtb mapping.
+>
+> It means pad matters a lot. Because u-boot ITS format doesn't use
+> simpleImage target but the kernel need to have a space for copying
+> dtb to this kernel location.
+>
+> Let me think about if there is an easy way to handle dtbs
+> which are passed from bootloader.
 
-I know why is this here. The reason is process how dtb is passed
-to the kernel via command line. head.S code just copy that dtb to
-the same location where compiled-in dts is expected and kernel
-doesn't need to care about position of dtb because this copy is
-done without MMU. And the full kernel is covered by 2 tlbs and
-we don't need to use another TLB for dtb mapping.
+You can add to asm-generic/sections.h:
 
-It means pad matters a lot. Because u-boot ITS format doesn't use
-simpleImage target but the kernel need to have a space for copying
-dtb to this kernel location.
+#ifndef ARCH_DTB_PADDING
+#define ARCH_DTB_PADDING
+#endif
 
-Let me think about if there is an easy way to handle dtbs
-which are passed from bootloader.
+and change KERNEL_DTB() to:
 
-Thanks,
-Michal
+#define KERNEL_DTB()                                                    \
+       STRUCT_ALIGN();                                                 \
+       VMLINUX_SYMBOL(__dtb_start) = .;                                \
+       *(.dtb.init.rodata)                                             \
+       ARCH_DTB_PADDING                                \
+       VMLINUX_SYMBOL(__dtb_end) = .;
 
---=20
-Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel - Microblaze cpu - http://www.monstr.eu/fdt/
-Maintainer of Linux kernel - Xilinx Zynq ARM architecture
-Microblaze U-BOOT custodian and responsible for u-boot arm zynq platform
+Then microblaze can predefine ARCH_DTB_PADDING in its
+<asm/sections.h>.
 
+Still, it will crash badly if the external DTB is larger than
+ARCH_DTB_PADDING.
 
+Gr{oetje,eeting}s,
 
---4IiqVjTX2HIoOtKcUO1NaDwNEIuJkA7CP
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
+                        Geert
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.10 (GNU/Linux)
-Comment: Using GnuPG with Thunderbird - http://www.enigmail.net/
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-iEYEARECAAYFAlKDgU0ACgkQykllyylKDCFfmQCgmiporcUeFQV4wtSrDYnXPPJv
-mUEAnjIcvATuJeWyBzrT/IIH/3dLq4iw
-=QGBC
------END PGP SIGNATURE-----
-
---4IiqVjTX2HIoOtKcUO1NaDwNEIuJkA7CP--
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
