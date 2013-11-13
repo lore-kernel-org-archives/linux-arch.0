@@ -1,124 +1,96 @@
-From: Rob Herring <robherring2@gmail.com>
-Subject: Re: [PATCH 14/17] dt: Consolidate __dtb_start declarations in <linux/of_fdt.h>
-Date: Wed, 13 Nov 2013 11:34:50 -0600
-Message-ID: <5283B83A.8030206@gmail.com>
-References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>	<1384285347-13506-15-git-send-email-geert@linux-m68k.org>	<5283A000.8090007@gmail.com> <CAMuHMdU6Lqup-MuAOH0iTg16b-SHw4D52WsoPXMsumOxQWbJrg@mail.gmail.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v5 4/4] MCS Lock: Barrier corrections
+Date: Wed, 13 Nov 2013 17:37:57 +0000
+Message-ID: <20131113173757.GG11928@mudshark.cambridge.arm.com>
+References: <20131112160827.GB25953@mudshark.cambridge.arm.com>
+ <20131112171633.7498.qmail@science.horizon.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yh0-f42.google.com ([209.85.213.42]:60139 "EHLO
-	mail-yh0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751450Ab3KMRex (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Nov 2013 12:34:53 -0500
-In-Reply-To: <CAMuHMdU6Lqup-MuAOH0iTg16b-SHw4D52WsoPXMsumOxQWbJrg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Vineet Gupta <vgupta@synopsys.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, Jonas Bonn <jonas@southpole.se>, Chris Zankel <chris@zankel.net>, Rob Herring <rob.herring@calxeda.com>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20131112171633.7498.qmail@science.horizon.com>
+Sender: owner-linux-mm@kvack.org
+To: George Spelvin <linux@horizon.com>
+Cc: "tim.c.chen@linux.intel.com" <tim.c.chen@linux.intel.com>, "a.p.zijlstra@chello.nl" <a.p.zijlstra@chello.nl>, "aarcange@redhat.com" <aarcange@redhat.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "alex.shi@linaro.org" <alex.shi@linaro.org>, "andi@firstfloor.org" <andi@firstfloor.org>, "arnd@arndb.de" <arnd@arndb.de>, "aswin@hp.com" <aswin@hp.com>, "dave.hansen@intel.com" <dave.hansen@intel.com>, "davidlohr.bueso@hp.com" <davidlohr.bueso@hp.com>, "figo1802@gmail.com" <figo1802@gmail.com>, "hpa@zytor.com" <hpa@zytor.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "matthew.r.wilcox@intel.com" <matthew.r.wilcox@intel.com>, "mingo@elte.hu" <mingo@elte.hu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm>
+List-Id: linux-arch.vger.kernel.org
 
-On 11/13/2013 11:20 AM, Geert Uytterhoeven wrote:
-> On Wed, Nov 13, 2013 at 4:51 PM, Rob Herring <robherring2@gmail.com> wrote:
->> On Tue, Nov 12, 2013 at 1:42 PM, Geert Uytterhoeven
->> <geert@linux-m68k.org> wrote:
->>> The different architectures used their own (and different) declarations:
->>>
->>>     extern struct boot_param_header __dtb_start;
->>>     extern u32 __dtb_start[];
->>>     extern char __dtb_start[];
->>>
->>> Consolidate them using the first variant in <linux/of_fdt.h>.
->>> This requires adding a few "address of" operators on architectures where
->>> __dtb_start was an array before.
->>>
->>> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
->>> Cc: Vineet Gupta <vgupta@synopsys.com>
->>> Cc: James Hogan <james.hogan@imgtec.com>
->>> Cc: Ralf Baechle <ralf@linux-mips.org>
->>> Cc: Jonas Bonn <jonas@southpole.se>
->>> CC: Chris Zankel <chris@zankel.net>
->>> Cc: Rob Herring <rob.herring@calxeda.com>
->>> Cc: devicetree@vger.kernel.org
->>> ---
->>>  arch/arc/include/asm/sections.h             |    1 -
->>>  arch/arc/kernel/setup.c                     |    2 +-
->>>  arch/metag/kernel/setup.c                   |    6 +-----
->>>  arch/mips/include/asm/mips-boards/generic.h |    4 ----
->>>  arch/mips/lantiq/prom.h                     |    2 --
->>>  arch/mips/netlogic/xlp/dt.c                 |    4 ++--
->>>  arch/mips/ralink/of.c                       |    2 --
->>>  arch/openrisc/kernel/setup.c                |    2 +-
->>>  arch/openrisc/kernel/vmlinux.h              |    2 --
->>>  arch/xtensa/kernel/setup.c                  |    3 +--
->>>  include/linux/of_fdt.h                      |    3 +++
->>>  11 files changed, 9 insertions(+), 22 deletions(-)
->>
->> This is great, but I would like to see this taken one step further and
->> move the selection logic into the core code. We can try to use the
->> built-in dtb if early_init_dt_scan is passed a NULL or invalid dtb. This
->> should work for most arches I think and still allows an arch to do a
->> different selection algorithm if desired.
+On Tue, Nov 12, 2013 at 05:16:33PM +0000, George Spelvin wrote:
+> > On Mon, Nov 11, 2013 at 09:17:52PM +0000, Tim Chen wrote:
+> >> An alternate implementation is
+> >> 	while (!ACCESS_ONCE(node->locked))
+> >> 		arch_mutex_cpu_relax();
+> >> 	smp_load_acquire(&node->locked);
+> >> 
+> >> Leaving the smp_load_acquire at the end to provide appropriate barrier.
+> >> Will that be acceptable?
 > 
-> Yes, that makes sense.
+> Will Deacon <will.deacon@arm.com> wrote:
+> > It still doesn't solve my problem though: I want a way to avoid that busy
+> > loop by some architecture-specific manner. The arch_mutex_cpu_relax() hook
+> > is a start, but there is no corresponding hook on the unlock side to issue a
+> > wakeup. Given a sensible relax implementation, I don't have an issue with
+> > putting a load-acquire in a loop, since it shouldn't be aggresively spinning
+> > anymore.
 > 
->> Are the DT related patches dependent on the rest of the series?
+> So you want something like this?
 > 
-> Not really. There may be small rejects if you apply it out-of-order,
-> but nothing serious.
+> /*
+>  * This is a spin-wait with acquire semantics.  That is, accesses after
+>  * this are not allowed to be reordered before the load that meets
+>  * the specified condition.  This requires that it end with either a
+>  * load-acquire or a full smp_mb().  The optimal way to do this is likely
+>  * to be architecture-dependent.  E.g. x86 MONITOR/MWAIT instructions.
+>  */
+> #ifndef smp_load_acquire_until
+> #define smp_load_acquire_until(addr, cond) \
+> 	while (!(smp_load_acquire(addr) cond)) { \
+> 		do { \
+> 			arch_mutex_cpu_relax(); \
+> 		} while (!(ACCESS_ONCE(*(addr)) cond)); \
+> 	}
+> #endif
 > 
->> Something like this is what I have in mind:
->>
->> diff --git a/drivers/of/fdt.c b/drivers/of/fdt.c
->> index 5c47910..723f854d 100644
->> --- a/drivers/of/fdt.c
->> +++ b/drivers/of/fdt.c
->> @@ -869,14 +869,16 @@ void * __init __weak
->> early_init_dt_alloc_memory_arch(u64 size, u64 align)
->>
->>  bool __init early_init_dt_scan(void *params)
->>  {
->> -       if (!params)
->> -               return false;
->> -
->>         /* Setup flat device-tree pointer */
->>         initial_boot_params = params;
->>
->> +       if (!initial_boot_params ||
->> +           (be32_to_cpu(initial_boot_params->magic) != OF_DT_HEADER))
->> +               initial_boot_params = &__dtb_start;
->> +
->>         /* check device tree validity */
->> -       if (be32_to_cpu(initial_boot_params->magic) != OF_DT_HEADER) {
->> +       if (!initial_boot_params ||
+> 	smp_load_acquire_until(&node->locked, != 0);
 > 
-> initial_boot_params cannot be NULL here, so no need to check.
+> Alternative implementations:
+> 
+> #define smp_load_acquire_until(addr, cond) { \
+> 	while (!(ACCESS_ONCE(*(addr)) cond)) \
+> 		arch_mutex_cpu_relax(); \
+> 	smp_mb(); }
+> 
+> #define smp_load_acquire_until(addr, cond) \
+> 	if (!(smp_load_acquire(addr) cond)) { \
+> 		do { \
+> 			arch_mutex_cpu_relax(); \
+> 		} while (!(ACCESS_ONCE(*(addr)) cond)); \
+> 		smp_mb(); \
+> 	}
 
-What about the case of no built-in dtb like on arm?
+Not really...
 
-> 
->> +           (be32_to_cpu(initial_boot_params->magic) != OF_DT_HEADER)) {
-> 
-> However, if __dtb_end == __dtb_start, you may be reading random
-> data here from the next section. The OF_DT_HEADER check should cover
-> this, but better safe than sorry?
+To be clear: having the load-acquire in a loop is fine, provided that
+arch_mutex_cpu_relax is something which causes the load to back-off (you
+mentioned the MONITOR/MWAIT instructions on x86).
 
-Then we should also check that (__dtb_end != __dtb_start).
+On ARM, our equivalent of those instructions also has a counterpart
+instruction that needs to be executed by the CPU doing the unlock. That
+means we can do one of two things:
 
-Rob
+	1. Add an arch hook in the unlock path to pair with the relax()
+	   call on the lock path (arch_mutex_cpu_wake() ?).
 
-> 
->>                 initial_boot_params = NULL;
->>                 return false;
->>         }
-> 
-> Gr{oetje,eeting}s,
-> 
->                         Geert
-> 
-> --
-> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-> 
-> In personal conversations with technical people, I call myself a hacker. But
-> when I'm talking to journalists I just say "programmer" or something like that.
->                                 -- Linus Torvalds
-> 
+	2. Move most of the code into arch_mcs_[un]lock, like we do for
+	   spinlocks.
+
+Whilst (1) would suffice, (2) would allow further optimisation on arm64,
+where we can play tricks to avoid the explicit wakeup if we can control the
+way in which the lock value is written.
+
+Will
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
