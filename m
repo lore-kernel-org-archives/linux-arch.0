@@ -1,184 +1,77 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 10/17] tile: Remove tile-specific _sinitdata and
- _einitdata
-Date: Thu, 14 Nov 2013 09:31:04 +0100 (CET)
-Message-ID: <alpine.DEB.2.02.1311140927170.9407@ayla.of.borg>
-References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org> <1384285347-13506-11-git-send-email-geert@linux-m68k.org> <528414A6.8090208@tilera.com>
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: [PATCH 00/11] Consolidate asm/fixmap.h files
+Date: Thu, 14 Nov 2013 10:39:49 +0100
+Message-ID: <52849A65.9030500@monstr.eu>
+References: <1384262545-20875-1-git-send-email-msalter@redhat.com>  <52824BBC.9020401@monstr.eu> <1384271711.24631.5.camel@deneb.redhat.com>
+Reply-To: monstr@monstr.eu
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from georges.telenet-ops.be ([195.130.137.68]:49271 "EHLO
-	georges.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753043Ab3KNIbM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Nov 2013 03:31:12 -0500
-In-Reply-To: <528414A6.8090208@tilera.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@tilera.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: multipart/signed; micalg=pgp-sha1;
+ protocol="application/pgp-signature";
+ boundary="iQtiGn9GE0PIJmOHe35N72OtEjLmxDLif"
+Return-path: <linux-hexagon-owner@vger.kernel.org>
+In-Reply-To: <1384271711.24631.5.camel@deneb.redhat.com>
+Sender: linux-hexagon-owner@vger.kernel.org
+To: Mark Salter <msalter@redhat.com>
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, linux-metag@vger.kernel.org, microblaze-uclinux@itee.uq.edu.au, Ralf Baechle <ralf@linux-mips.org>, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+List-Id: linux-arch.vger.kernel.org
 
-	Hi Chris,
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--iQtiGn9GE0PIJmOHe35N72OtEjLmxDLif
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
 
-On Wed, 13 Nov 2013, Chris Metcalf wrote:
-> On 11/12/2013 2:42 PM, Geert Uytterhoeven wrote:
-> > Use standard __init_begin and __init_end instead.
-> >
-> > Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> > Cc: Chris Metcalf <cmetcalf@tilera.com>
-> [...]
-> > @@ -534,7 +534,7 @@ static void __init kernel_physical_mapping_init(pgd_t *pgd_base)
-> >  
-> >  		BUG_ON(address != (unsigned long)_text);
-> >  		pte = NULL;
-> > -		for (; address < (unsigned long)_einittext;
-> > +		for (; address < (unsigned long)__init_end;
-> >  		     pfn++, address += PAGE_SIZE) {
-> >  			pte_ofs = pte_index(address);
-> >  			if (pte_ofs == 0) {
-> > @@ -572,7 +572,7 @@ static void __init kernel_physical_mapping_init(pgd_t *pgd_base)
-> >  		else
-> >  			pteval = hv_pte_set_mode(pteval,
-> >  						 HV_PTE_MODE_CACHE_NO_L3);
-> > -		for (; address < (unsigned long)_einittext;
-> > +		for (; address < (unsigned long)__init_end;
-> >  		     pfn += PFN_DOWN(HPAGE_SIZE), address += HPAGE_SIZE)
-> >  			*(pte_t *)(pmd++) = pfn_pte(pfn, pteval);
-> >  	}
-> > @@ -632,9 +632,9 @@ int devmem_is_allowed(unsigned long pagenr)
-> >  {
-> >  	return pagenr < kaddr_to_pfn(_end) &&
-> >  		!(pagenr >= kaddr_to_pfn(&init_thread_union) ||
-> > -		  pagenr < kaddr_to_pfn(_einitdata)) &&
-> > +		  pagenr < kaddr_to_pfn(__init_end)) &&
-> >  		!(pagenr >= kaddr_to_pfn(_sinittext) ||
-> > -		  pagenr <= kaddr_to_pfn(_einittext-1));
-> > +		  pagenr <= kaddr_to_pfn(__init_end-1));
-> >  }
-> >  
-> >  #ifdef CONFIG_HIGHMEM
-> [...]
-> > @@ -984,7 +984,7 @@ void free_initmem(void)
-> >  	 */
-> >  	free_init_pages("unused kernel text",
-> >  			(unsigned long)_sinittext - text_delta,
-> > -			(unsigned long)_einittext - text_delta);
-> > +			(unsigned long)__init_end - text_delta);
-> >  	/* Do a global TLB flush so everyone sees the changes. */
-> >  	flush_tlb_all();
-> >  }
-> 
-> These changes are touching _einittext, and they shouldn't.  Only bomb _einitdata (and _sinitdata).
+On 11/12/2013 04:55 PM, Mark Salter wrote:
+> On Tue, 2013-11-12 at 16:39 +0100, Michal Simek wrote:
+>> On 11/12/2013 02:22 PM, Mark Salter wrote:
+>>>
+>>>  arch/arm/include/asm/fixmap.h        |  25 ++------
+>>>  arch/hexagon/include/asm/fixmap.h    |  40 +------------
+>>>  arch/metag/include/asm/fixmap.h      |  32 +----------
+>>>  arch/microblaze/include/asm/fixmap.h |  44 +-------------
+>>>  arch/mips/include/asm/fixmap.h       |  33 +----------
+>>>  arch/powerpc/include/asm/fixmap.h    |  44 +-------------
+>>>  arch/sh/include/asm/fixmap.h         |  39 +------------
+>>>  arch/tile/include/asm/fixmap.h       |  33 +----------
+>>>  arch/um/include/asm/fixmap.h         |  40 +------------
+>>>  arch/x86/include/asm/fixmap.h        |  59 +------------------
+>>>  include/asm-generic/fixmap.h         | 107 +++++++++++++++++++++++++=
+++++++++++
+>>>  11 files changed, 125 insertions(+), 371 deletions(-)
+>>>  create mode 100644 include/asm-generic/fixmap.h
+>>
+>> Any repo/branch with all these patches will be helpful.
+>=20
+> https://github.com/mosalter/linux (fixmap branch)
 
-Woops, that's a serious brain fart. Sorry about that, and thanks for
-noticing!
+Thanks,
 
-> With those changes removed:
-> 
-> Acked-by: Chris Metcalf <cmetcalf@tilera.com>
-> 
-> or let me know if you'd rather I staged your v2 change into the tile tree.
+For Microblaze
+Tested-by: Michal Simek <monstr@monstr.eu>
 
-Feel free to take v2 below. Thanks!
+Thanks,
+Michal
 
-From d761d4d63945ff0a6eab5a9058c132f870c92aff Mon Sep 17 00:00:00 2001
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Fri, 8 Nov 2013 21:33:29 +0100
-Subject: [PATCH -v2] tile: Remove tile-specific _sinitdata and _einitdata
+--=20
+Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel - Microblaze cpu - http://www.monstr.eu/fdt/
+Maintainer of Linux kernel - Xilinx Zynq ARM architecture
+Microblaze U-BOOT custodian and responsible for u-boot arm zynq platform
 
-Use standard __init_begin and __init_end instead.
 
-Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Acked-by: Chris Metcalf <cmetcalf@tilera.com>
----
-v2: Remove bogus _einittext changes.
 
- arch/tile/include/asm/sections.h |    3 ---
- arch/tile/kernel/vmlinux.lds.S   |    2 --
- arch/tile/mm/init.c              |   10 +++++-----
- 3 files changed, 5 insertions(+), 10 deletions(-)
+--iQtiGn9GE0PIJmOHe35N72OtEjLmxDLif
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
 
-diff --git a/arch/tile/include/asm/sections.h b/arch/tile/include/asm/sections.h
-index 5d5d3b739a6b..86a746243dc8 100644
---- a/arch/tile/include/asm/sections.h
-+++ b/arch/tile/include/asm/sections.h
-@@ -19,9 +19,6 @@
- 
- #include <asm-generic/sections.h>
- 
--/* Text and data are at different areas in the kernel VA space. */
--extern char _sinitdata[], _einitdata[];
--
- /* Write-once data is writable only till the end of initialization. */
- extern char __w1data_begin[], __w1data_end[];
- 
-diff --git a/arch/tile/kernel/vmlinux.lds.S b/arch/tile/kernel/vmlinux.lds.S
-index f1819423ffc9..0e059a0101ea 100644
---- a/arch/tile/kernel/vmlinux.lds.S
-+++ b/arch/tile/kernel/vmlinux.lds.S
-@@ -66,11 +66,9 @@ SECTIONS
- 
-   . = ALIGN(PAGE_SIZE);
-   __init_begin = .;
--  VMLINUX_SYMBOL(_sinitdata) = .;
-   INIT_DATA_SECTION(16) :data =0
-   PERCPU_SECTION(L2_CACHE_BYTES)
-   . = ALIGN(PAGE_SIZE);
--  VMLINUX_SYMBOL(_einitdata) = .;
-   __init_end = .;
- 
-   _sdata = .;                   /* Start of data section */
-diff --git a/arch/tile/mm/init.c b/arch/tile/mm/init.c
-index 0fa1acfac79a..489a5a00cfaa 100644
---- a/arch/tile/mm/init.c
-+++ b/arch/tile/mm/init.c
-@@ -254,7 +254,7 @@ static pgprot_t __init init_pgprot(ulong address)
- 	 * Everything else that isn't data or bss is heap, so mark it
- 	 * with the initial heap home (hash-for-home, or this cpu).  This
- 	 * includes any addresses after the loaded image and any address before
--	 * _einitdata, since we already captured the case of text before
-+	 * __init_end, since we already captured the case of text before
- 	 * _sinittext, and __pa(einittext) is approximately __pa(sinitdata).
- 	 *
- 	 * All the LOWMEM pages that we mark this way will get their
-@@ -263,7 +263,7 @@ static pgprot_t __init init_pgprot(ulong address)
- 	 * homes, but with a zero free_time we don't have to actually
- 	 * do a flush action the first time we use them, either.
- 	 */
--	if (address >= (ulong) _end || address < (ulong) _einitdata)
-+	if (address >= (ulong) _end || address < (ulong) __init_end)
- 		return construct_pgprot(PAGE_KERNEL, initial_heap_home());
- 
- 	/* Use hash-for-home if requested for data/bss. */
-@@ -632,7 +632,7 @@ int devmem_is_allowed(unsigned long pagenr)
- {
- 	return pagenr < kaddr_to_pfn(_end) &&
- 		!(pagenr >= kaddr_to_pfn(&init_thread_union) ||
--		  pagenr < kaddr_to_pfn(_einitdata)) &&
-+		  pagenr < kaddr_to_pfn(__init_end)) &&
- 		!(pagenr >= kaddr_to_pfn(_sinittext) ||
- 		  pagenr <= kaddr_to_pfn(_einittext-1));
- }
-@@ -975,8 +975,8 @@ void free_initmem(void)
- 
- 	/* Free the data pages that we won't use again after init. */
- 	free_init_pages("unused kernel data",
--			(unsigned long)_sinitdata,
--			(unsigned long)_einitdata);
-+			(unsigned long)__init_begin,
-+			(unsigned long)__init_end);
- 
- 	/*
- 	 * Free the pages mapped from 0xc0000000 that correspond to code
--- 
-1.7.9.5
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+Comment: Using GnuPG with Thunderbird - http://www.enigmail.net/
 
-Gr{oetje,eeting}s,
+iEYEARECAAYFAlKEmmUACgkQykllyylKDCF4AQCgjhFOcr0jquPeAeSfJ6XEBDsZ
+dTIAn2jGHts/85REgK0/IHvrLywyWO8a
+=ZN3C
+-----END PGP SIGNATURE-----
 
-						Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+--iQtiGn9GE0PIJmOHe35N72OtEjLmxDLif--
