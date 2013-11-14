@@ -1,58 +1,77 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 14/17] dt: Consolidate __dtb_start declarations in <linux/of_fdt.h>
-Date: Wed, 13 Nov 2013 19:40:08 +0100
-Message-ID: <CAMuHMdWG+cVGzWeivm43r_AaemoHk=YmQ_vc+t+B28KG27TaVg@mail.gmail.com>
-References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
-	<1384285347-13506-15-git-send-email-geert@linux-m68k.org>
-	<5283A000.8090007@gmail.com>
-	<CAMuHMdU6Lqup-MuAOH0iTg16b-SHw4D52WsoPXMsumOxQWbJrg@mail.gmail.com>
-	<5283B83A.8030206@gmail.com>
+From: Chris Metcalf <cmetcalf@tilera.com>
+Subject: Re: [PATCH 10/17] tile: Remove tile-specific _sinitdata and _einitdata
+Date: Wed, 13 Nov 2013 19:09:10 -0500
+Message-ID: <528414A6.8090208@tilera.com>
+References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org> <1384285347-13506-11-git-send-email-geert@linux-m68k.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f45.google.com ([209.85.160.45]:49686 "EHLO
-	mail-pb0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759329Ab3KMSkJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Nov 2013 13:40:09 -0500
-In-Reply-To: <5283B83A.8030206@gmail.com>
+Received: from usmamail.tilera.com ([12.216.194.151]:48100 "EHLO
+	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752404Ab3KNAJN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Nov 2013 19:09:13 -0500
+In-Reply-To: <1384285347-13506-11-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rob Herring <robherring2@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Vineet Gupta <vgupta@synopsys.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, Jonas Bonn <jonas@southpole.se>, Chris Zankel <chris@zankel.net>, Rob Herring <rob.herring@calxeda.com>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Wed, Nov 13, 2013 at 6:34 PM, Rob Herring <robherring2@gmail.com> wrote:
->>> +       if (!initial_boot_params ||
->>> +           (be32_to_cpu(initial_boot_params->magic) != OF_DT_HEADER))
->>> +               initial_boot_params = &__dtb_start;
->>> +
->>>         /* check device tree validity */
->>> -       if (be32_to_cpu(initial_boot_params->magic) != OF_DT_HEADER) {
->>> +       if (!initial_boot_params ||
->>
->> initial_boot_params cannot be NULL here, so no need to check.
+On 11/12/2013 2:42 PM, Geert Uytterhoeven wrote:
+> Use standard __init_begin and __init_end instead.
 >
-> What about the case of no built-in dtb like on arm?
+> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> Cc: Chris Metcalf <cmetcalf@tilera.com>
+[...]
+> @@ -534,7 +534,7 @@ static void __init kernel_physical_mapping_init(pgd_t *pgd_base)
+>  
+>  		BUG_ON(address != (unsigned long)_text);
+>  		pte = NULL;
+> -		for (; address < (unsigned long)_einittext;
+> +		for (; address < (unsigned long)__init_end;
+>  		     pfn++, address += PAGE_SIZE) {
+>  			pte_ofs = pte_index(address);
+>  			if (pte_ofs == 0) {
+> @@ -572,7 +572,7 @@ static void __init kernel_physical_mapping_init(pgd_t *pgd_base)
+>  		else
+>  			pteval = hv_pte_set_mode(pteval,
+>  						 HV_PTE_MODE_CACHE_NO_L3);
+> -		for (; address < (unsigned long)_einittext;
+> +		for (; address < (unsigned long)__init_end;
+>  		     pfn += PFN_DOWN(HPAGE_SIZE), address += HPAGE_SIZE)
+>  			*(pte_t *)(pmd++) = pfn_pte(pfn, pteval);
+>  	}
+> @@ -632,9 +632,9 @@ int devmem_is_allowed(unsigned long pagenr)
+>  {
+>  	return pagenr < kaddr_to_pfn(_end) &&
+>  		!(pagenr >= kaddr_to_pfn(&init_thread_union) ||
+> -		  pagenr < kaddr_to_pfn(_einitdata)) &&
+> +		  pagenr < kaddr_to_pfn(__init_end)) &&
+>  		!(pagenr >= kaddr_to_pfn(_sinittext) ||
+> -		  pagenr <= kaddr_to_pfn(_einittext-1));
+> +		  pagenr <= kaddr_to_pfn(__init_end-1));
+>  }
+>  
+>  #ifdef CONFIG_HIGHMEM
+[...]
+> @@ -984,7 +984,7 @@ void free_initmem(void)
+>  	 */
+>  	free_init_pages("unused kernel text",
+>  			(unsigned long)_sinittext - text_delta,
+> -			(unsigned long)_einittext - text_delta);
+> +			(unsigned long)__init_end - text_delta);
+>  	/* Do a global TLB flush so everyone sees the changes. */
+>  	flush_tlb_all();
+>  }
 
-Even then the symbol exists, as all architectures put INIT_DATA or
-INIT_DATA_SECTION in their vmlinux.lds.S.
-But the section will be empty, cfr. the case __dtb_end == __dtb_start below.
+These changes are touching _einittext, and they shouldn't.  Only bomb _einitdata (and _sinitdata).
 
->>
->>> +           (be32_to_cpu(initial_boot_params->magic) != OF_DT_HEADER)) {
->>
->> However, if __dtb_end == __dtb_start, you may be reading random
->> data here from the next section. The OF_DT_HEADER check should cover
->> this, but better safe than sorry?
->
-> Then we should also check that (__dtb_end != __dtb_start).
+With those changes removed:
 
-Gr{oetje,eeting}s,
+Acked-by: Chris Metcalf <cmetcalf@tilera.com>
 
-                        Geert
+or let me know if you'd rather I staged your v2 change into the tile tree.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+-- 
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
