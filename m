@@ -1,37 +1,111 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: Re: [PATCH 10/17] tile: Remove tile-specific _sinitdata and _einitdata
-Date: Thu, 14 Nov 2013 09:55:35 -0500
-Message-ID: <5284E467.6040502@tilera.com>
-References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org> <1384285347-13506-11-git-send-email-geert@linux-m68k.org> <528414A6.8090208@tilera.com> <alpine.DEB.2.02.1311140927170.9407@ayla.of.borg>
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: [PATCH RFC 15/17] microblaze: Convert from _fdt_start to __dtb_start
+Date: Thu, 14 Nov 2013 17:29:41 +0100
+Message-ID: <5284FA75.4040601@monstr.eu>
+References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org> <1384285347-13506-16-git-send-email-geert@linux-m68k.org> <5283524F.8030902@monstr.eu> <5283814C.6040904@monstr.eu> <5283A573.6020403@gmail.com>
+Reply-To: monstr@monstr.eu
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: multipart/signed; micalg=pgp-sha1;
+ protocol="application/pgp-signature";
+ boundary="PqGQeILfHAdb3iIoJpgcaA3RufafL7qtV"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([12.216.194.151]:34079 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753514Ab3KNOzg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Nov 2013 09:55:36 -0500
-In-Reply-To: <alpine.DEB.2.02.1311140927170.9407@ayla.of.borg>
+Received: from mail-wg0-f53.google.com ([74.125.82.53]:35310 "EHLO
+	mail-wg0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754795Ab3KNQ3w (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Nov 2013 11:29:52 -0500
+Received: by mail-wg0-f53.google.com with SMTP id b13so2245762wgh.20
+        for <linux-arch@vger.kernel.org>; Thu, 14 Nov 2013 08:29:50 -0800 (PST)
+In-Reply-To: <5283A573.6020403@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Rob Herring <robherring2@gmail.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Rob Herring <rob.herring@calxeda.com>, microblaze-uclinux@itee.uq.edu.au, devicetree@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-On 11/14/2013 3:31 AM, Geert Uytterhoeven wrote:
-> Feel free to take v2 below. Thanks!
->
-> From d761d4d63945ff0a6eab5a9058c132f870c92aff Mon Sep 17 00:00:00 2001
-> From: Geert Uytterhoeven <geert@linux-m68k.org>
-> Date: Fri, 8 Nov 2013 21:33:29 +0100
-> Subject: [PATCH -v2] tile: Remove tile-specific _sinitdata and _einitdata
->
-> Use standard __init_begin and __init_end instead.
->
-> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> Acked-by: Chris Metcalf <cmetcalf@tilera.com>
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--PqGQeILfHAdb3iIoJpgcaA3RufafL7qtV
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: quoted-printable
 
-Taken into the tile tree; thanks!  (I did fix one extra place where it mentioned _sinitdata in a comment.)
+On 11/13/2013 05:14 PM, Rob Herring wrote:
+> On 11/13/2013 07:40 AM, Michal Simek wrote:
+>> On 11/13/2013 11:19 AM, Michal Simek wrote:
+>>> On 11/12/2013 08:42 PM, Geert Uytterhoeven wrote:
+>>>> Kill the microblaze-specific __fdt_blob section, and start
+>>>> using .dtb.init.rodata from <asm-generic/sections.h> for
+>>>> built-in DTBs, like most other DT enabled architectures.
+>>>>
+>>>> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org> Cc:
+>>>> Michal Simek <monstr@monstr.eu> Cc: Rob Herring
+>>>> <rob.herring@calxeda.com> Cc:
+>>>> microblaze-uclinux@itee.uq.edu.au Cc:
+>>>> devicetree@vger.kernel.org --- Untested, but the resulting
+>>>> vmlinux after "make simpleImage.system" looks sane.
+>>>>
+>>>> QUESTION: The padding of the DTB is gone, is this OK?
+>>>
+>>> Removing this kernel padding should be fine. I can't remember why
+>>> it was there from the beginning.
+>>
+>> I know why is this here. The reason is process how dtb is passed to
+>> the kernel via command line. head.S code just copy that dtb to the
+>> same location where compiled-in dts is expected and kernel doesn't
+>> need to care about position of dtb because this copy is done
+>> without MMU. And the full kernel is covered by 2 tlbs and we don't
+>> need to use another TLB for dtb mapping.
+>>
+>> It means pad matters a lot. Because u-boot ITS format doesn't use=20
+>> simpleImage target but the kernel need to have a space for copying=20
+>> dtb to this kernel location.
+>>
+>> Let me think about if there is an easy way to handle dtbs which are
+>> passed from bootloader.
+>=20
+> Isn't the built-in dtb in a RO init section? Seems like a bad idea to
+> write to it. Also, it will be a double copy because a built-in dtb has
+> to be copied out of init section.
 
--- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+Microblaze has it currently out of RO section.
+This patch is adding it there.
+
+I have looked at powerpc flow which is probably the closest to our versio=
+n.
+
+head.S
+Saving dtb pointer to r31 then initial_mmu which setups 16MB tlb for kern=
+el
+then some exception and calling machine_init()->early_init_devtree()
+->move_device_tree() where also change initial_boot_params location
+for unflatten_device_tree() in setup_arch().
+
+Ben: I didn't find any TLB entry for DTB itself.
+Does it mean that I missed it or that powerpc can access in machine_init(=
+)
+the whole memory space?
+
+Thanks,
+Michal
+
+--=20
+Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel - Microblaze cpu - http://www.monstr.eu/fdt/
+Maintainer of Linux kernel - Xilinx Zynq ARM architecture
+Microblaze U-BOOT custodian and responsible for u-boot arm zynq platform
+
+
+
+--PqGQeILfHAdb3iIoJpgcaA3RufafL7qtV
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+Comment: Using GnuPG with Thunderbird - http://www.enigmail.net/
+
+iEYEARECAAYFAlKE+nsACgkQykllyylKDCHnKgCdFzhDnKZrwD7RCx5D1S1nT3dT
+39EAn3O7U8yvIzBvowJyzZf9xOuJ3kFZ
+=hnEu
+-----END PGP SIGNATURE-----
+
+--PqGQeILfHAdb3iIoJpgcaA3RufafL7qtV--
