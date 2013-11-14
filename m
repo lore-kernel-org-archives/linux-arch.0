@@ -1,77 +1,108 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: Re: [PATCH 10/17] tile: Remove tile-specific _sinitdata and _einitdata
-Date: Wed, 13 Nov 2013 19:09:10 -0500
-Message-ID: <528414A6.8090208@tilera.com>
-References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org> <1384285347-13506-11-git-send-email-geert@linux-m68k.org>
+From: Rusty Russell <rusty@rustcorp.com.au>
+Subject: Re: [PATCH 11/17] kernel/param: Consolidate __{start,stop}___param[] in <linux/moduleparam.h>
+Date: Thu, 14 Nov 2013 14:31:30 +1030
+Message-ID: <87habfy6lh.fsf@rustcorp.com.au>
+References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org> <1384285347-13506-12-git-send-email-geert@linux-m68k.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([12.216.194.151]:48100 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752404Ab3KNAJN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Nov 2013 19:09:13 -0500
-In-Reply-To: <1384285347-13506-11-git-send-email-geert@linux-m68k.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1384285347-13506-12-git-send-email-geert@linux-m68k.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 11/12/2013 2:42 PM, Geert Uytterhoeven wrote:
-> Use standard __init_begin and __init_end instead.
+Geert Uytterhoeven <geert@linux-m68k.org> writes:
+> Consolidate the various external const and non-const declarations of
+> __start___param[] and __stop___param in <linux/moduleparam.h>.
+> This requires making a few struct kernel_param pointers in kernel/params.c
+> const.
 >
 > Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> Cc: Chris Metcalf <cmetcalf@tilera.com>
-[...]
-> @@ -534,7 +534,7 @@ static void __init kernel_physical_mapping_init(pgd_t *pgd_base)
+> Cc: Rusty Russell <rusty@rustcorp.com.au>
+
+Acked-by: Rusty Russell <rusty@rustcorp.com.au>
+
+Thanks!
+Rusty.
+
+> ---
+>  include/linux/moduleparam.h |    2 ++
+>  init/main.c                 |    2 --
+>  kernel/params.c             |    7 +++----
+>  3 files changed, 5 insertions(+), 6 deletions(-)
+>
+> diff --git a/include/linux/moduleparam.h b/include/linux/moduleparam.h
+> index c3eb102a9cc8..77ccfca0c4ba 100644
+> --- a/include/linux/moduleparam.h
+> +++ b/include/linux/moduleparam.h
+> @@ -68,6 +68,8 @@ struct kernel_param {
+>  	};
+>  };
 >  
->  		BUG_ON(address != (unsigned long)_text);
->  		pte = NULL;
-> -		for (; address < (unsigned long)_einittext;
-> +		for (; address < (unsigned long)__init_end;
->  		     pfn++, address += PAGE_SIZE) {
->  			pte_ofs = pte_index(address);
->  			if (pte_ofs == 0) {
-> @@ -572,7 +572,7 @@ static void __init kernel_physical_mapping_init(pgd_t *pgd_base)
->  		else
->  			pteval = hv_pte_set_mode(pteval,
->  						 HV_PTE_MODE_CACHE_NO_L3);
-> -		for (; address < (unsigned long)_einittext;
-> +		for (; address < (unsigned long)__init_end;
->  		     pfn += PFN_DOWN(HPAGE_SIZE), address += HPAGE_SIZE)
->  			*(pte_t *)(pmd++) = pfn_pte(pfn, pteval);
->  	}
-> @@ -632,9 +632,9 @@ int devmem_is_allowed(unsigned long pagenr)
+> +extern const struct kernel_param __start___param[], __stop___param[];
+> +
+>  /* Special one for strings we want to copy into */
+>  struct kparam_string {
+>  	unsigned int maxlen;
+> diff --git a/init/main.c b/init/main.c
+> index 15ed159b681b..f2c4901f90d1 100644
+> --- a/init/main.c
+> +++ b/init/main.c
+> @@ -469,7 +469,6 @@ static void __init mm_init(void)
+>  asmlinkage void __init start_kernel(void)
 >  {
->  	return pagenr < kaddr_to_pfn(_end) &&
->  		!(pagenr >= kaddr_to_pfn(&init_thread_union) ||
-> -		  pagenr < kaddr_to_pfn(_einitdata)) &&
-> +		  pagenr < kaddr_to_pfn(__init_end)) &&
->  		!(pagenr >= kaddr_to_pfn(_sinittext) ||
-> -		  pagenr <= kaddr_to_pfn(_einittext-1));
-> +		  pagenr <= kaddr_to_pfn(__init_end-1));
+>  	char * command_line;
+> -	extern const struct kernel_param __start___param[], __stop___param[];
+>  
+>  	/*
+>  	 * Need to run as early as possible, to initialize the
+> @@ -737,7 +736,6 @@ static char *initcall_level_names[] __initdata = {
+>  
+>  static void __init do_initcall_level(int level)
+>  {
+> -	extern const struct kernel_param __start___param[], __stop___param[];
+>  	initcall_t *fn;
+>  
+>  	strcpy(static_command_line, saved_command_line);
+> diff --git a/kernel/params.c b/kernel/params.c
+> index c00d5b502aa4..54e05ffb7d24 100644
+> --- a/kernel/params.c
+> +++ b/kernel/params.c
+> @@ -19,6 +19,7 @@
+>  #include <linux/string.h>
+>  #include <linux/errno.h>
+>  #include <linux/module.h>
+> +#include <linux/moduleparam.h>
+>  #include <linux/device.h>
+>  #include <linux/err.h>
+>  #include <linux/slab.h>
+> @@ -506,8 +507,6 @@ EXPORT_SYMBOL(param_ops_string);
+>  #define to_module_attr(n) container_of(n, struct module_attribute, attr)
+>  #define to_module_kobject(n) container_of(n, struct module_kobject, kobj)
+>  
+> -extern struct kernel_param __start___param[], __stop___param[];
+> -
+>  struct param_attribute
+>  {
+>  	struct module_attribute mattr;
+> @@ -766,7 +765,7 @@ static struct module_kobject * __init locate_module_kobject(const char *name)
 >  }
 >  
->  #ifdef CONFIG_HIGHMEM
-[...]
-> @@ -984,7 +984,7 @@ void free_initmem(void)
->  	 */
->  	free_init_pages("unused kernel text",
->  			(unsigned long)_sinittext - text_delta,
-> -			(unsigned long)_einittext - text_delta);
-> +			(unsigned long)__init_end - text_delta);
->  	/* Do a global TLB flush so everyone sees the changes. */
->  	flush_tlb_all();
->  }
-
-These changes are touching _einittext, and they shouldn't.  Only bomb _einitdata (and _sinitdata).
-
-With those changes removed:
-
-Acked-by: Chris Metcalf <cmetcalf@tilera.com>
-
-or let me know if you'd rather I staged your v2 change into the tile tree.
-
--- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+>  static void __init kernel_add_sysfs_param(const char *name,
+> -					  struct kernel_param *kparam,
+> +					  const struct kernel_param *kparam,
+>  					  unsigned int name_skip)
+>  {
+>  	struct module_kobject *mk;
+> @@ -801,7 +800,7 @@ static void __init kernel_add_sysfs_param(const char *name,
+>   */
+>  static void __init param_sysfs_builtin(void)
+>  {
+> -	struct kernel_param *kp;
+> +	const struct kernel_param *kp;
+>  	unsigned int name_len;
+>  	char modname[MODULE_NAME_LEN];
+>  
+> -- 
+> 1.7.9.5
