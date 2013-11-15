@@ -1,64 +1,37 @@
-From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Subject: [PATCH -tip RFC v2 22/22] sched: Use NOKPROBE_SYMBOL macro in sched
-Date: Fri, 15 Nov 2013 04:54:19 +0000
-Message-ID: <20131115045419.27580.71058.stgit@kbuild-fedora.novalocal>
-References: <20131115045312.27580.95902.stgit@kbuild-fedora.novalocal>
+From: Jonas Bonn <jonas@southpole.se>
+Subject: Re: [PATCH 13/17] openrisc: Refactor or32_early_setup()
+Date: Fri, 15 Nov 2013 10:59:33 +0100
+Message-ID: <5285F085.5060105@southpole.se>
+References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
+	<1384285347-13506-14-git-send-email-geert@linux-m68k.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
 Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <20131115045312.27580.95902.stgit@kbuild-fedora.novalocal>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Peter Zijlstra <peterz@infradead.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, "David S. Miller" <davem@davemloft.net>
+Return-path: <linux-bounces@lists.openrisc.net>
+In-Reply-To: <1384285347-13506-14-git-send-email-geert@linux-m68k.org>
+List-Unsubscribe: <http://lists.openrisc.net/options/linux>,
+	<mailto:linux-request@lists.openrisc.net?subject=unsubscribe>
+List-Archive: <http://lists.openrisc.net/pipermail/linux>
+List-Post: <mailto:linux@lists.openrisc.net>
+List-Help: <mailto:linux-request@lists.openrisc.net?subject=help>
+List-Subscribe: <http://lists.openrisc.net/listinfo/linux>,
+	<mailto:linux-request@lists.openrisc.net?subject=subscribe>
+Sender: linux-bounces@lists.openrisc.net
+Errors-To: linux-bounces@lists.openrisc.net
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux@lists.openrisc.net
 List-Id: linux-arch.vger.kernel.org
 
-Use NOKPROBE_SYMBOL macro to protect functions from
-kprobes instead of __kprobes annotation in sched/core.c.
+On 11/12/2013 08:42 PM, Geert Uytterhoeven wrote:
+>    - Change fdt pointer (passed from head.S) from unsigned int to void *,
+>      which allows to kill a cast, and makes it compatible with __dtb_start.
+>    - Use pr_info(),
+>    - Extract common part.
+>
+> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> Cc: Jonas Bonn <jonas@southpole.se>
+> Cc: linux@lists.openrisc.net
 
-Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
----
- kernel/sched/core.c |    6 ++++--
- 1 file changed, 4 insertions(+), 2 deletions(-)
+Thanks, I'll take this one directly into the OpenRISC tree.
 
-diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index 504fdbd..fece2e3 100644
---- a/kernel/sched/core.c
-+++ b/kernel/sched/core.c
-@@ -2342,7 +2342,7 @@ notrace unsigned long get_parent_ip(unsigned long addr)
- #if defined(CONFIG_PREEMPT) && (defined(CONFIG_DEBUG_PREEMPT) || \
- 				defined(CONFIG_PREEMPT_TRACER))
- 
--void __kprobes preempt_count_add(int val)
-+void preempt_count_add(int val)
- {
- #ifdef CONFIG_DEBUG_PREEMPT
- 	/*
-@@ -2363,8 +2363,9 @@ void __kprobes preempt_count_add(int val)
- 		trace_preempt_off(CALLER_ADDR0, get_parent_ip(CALLER_ADDR1));
- }
- EXPORT_SYMBOL(preempt_count_add);
-+NOKPROBE_SYMBOL(preempt_count_add);
- 
--void __kprobes preempt_count_sub(int val)
-+void preempt_count_sub(int val)
- {
- #ifdef CONFIG_DEBUG_PREEMPT
- 	/*
-@@ -2385,6 +2386,7 @@ void __kprobes preempt_count_sub(int val)
- 	__preempt_count_sub(val);
- }
- EXPORT_SYMBOL(preempt_count_sub);
-+NOKPROBE_SYMBOL(preempt_count_sub);
- 
- #endif
+/Jonas
