@@ -1,61 +1,54 @@
-From: Jesper Nilsson <jesper.nilsson@axis.com>
-Subject: Re: [PATCH 02/17] cris: Use Kbuild logic to include
- <asm-generic/sections.h>
-Date: Fri, 15 Nov 2013 17:52:59 +0100
-Message-ID: <20131115165259.GO17608@axis.com>
-References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
- <1384285347-13506-3-git-send-email-geert@linux-m68k.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH -tip RFC v2 01/22] kprobes: Prohibit probing on
+ .entry.text code
+Date: Fri, 15 Nov 2013 18:46:40 +0100
+Message-ID: <CAMuHMdXw+WGKiQuquQL7XOkbRLNOC_SPddY1irRGQwpvDHLMwA@mail.gmail.com>
+References: <20131115045312.27580.95902.stgit@kbuild-fedora.novalocal>
+	<20131115045318.27580.69554.stgit@kbuild-fedora.novalocal>
+	<20131115114306.5d14db66@gandalf.local.home>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1384285347-13506-3-git-send-email-geert@linux-m68k.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jespern@axis.com>, linux-cris-kernel <linux-cris-kernel@axis.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pb0-f50.google.com ([209.85.160.50]:52263 "EHLO
+	mail-pb0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751192Ab3KORql (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Nov 2013 12:46:41 -0500
+In-Reply-To: <20131115114306.5d14db66@gandalf.local.home>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, Ingo Molnar <mingo@kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Frederic Weisbecker <fweisbec@gmail.com>, the arch/x86 maintainers <x86@kernel.org>, lkml <linux-kernel@vger.kernel.org>, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Seiji Aguchi <seiji.aguchi@hds.com>, "David S. Miller" <davem@davemloft.net>
 
-On Tue, Nov 12, 2013 at 08:42:12PM +0100, Geert Uytterhoeven wrote:
-> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> Cc: Mikael Starvik <starvik@axis.com>
+On Fri, Nov 15, 2013 at 5:43 PM, Steven Rostedt <rostedt@goodmis.org> wrote:
+> On Fri, 15 Nov 2013 04:53:18 +0000
+> Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com> wrote:
+>
+>> .entry.text is a code area which is used for interrupt/syscall
+>> entries, and there are many sensitive codes.
+>> Thus, it is better to prohibit probing on all of such codes
+>> instead of a part of that.
+>> Since some symbols are already registered on kprobe blacklist,
+>> this also removes them from the blacklist.
+>
+> This change only works with x86. On other archs, I get this:
+>
+> kernel/built-in.o: In function `register_kprobe':
+> (.kprobes.text+0x9f4): undefined reference to `__entry_text_start'
+> kernel/built-in.o: In function `register_kprobe':
+> (.kprobes.text+0x9f8): undefined reference to `__entry_text_end'
+> make[1]: *** [vmlinux] Error 1
+> make: *** [sub-make] Error 2
 
-Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
+X86 is the sole architecture that has ENTRY_TEXT in its
+arch/*/kernel/vmlinux.lds.S.
 
-> Cc: linux-cris-kernel@axis.com
-> ---
->  arch/cris/include/asm/Kbuild     |    1 +
->  arch/cris/include/asm/sections.h |    7 -------
->  2 files changed, 1 insertion(+), 7 deletions(-)
->  delete mode 100644 arch/cris/include/asm/sections.h
-> 
-> diff --git a/arch/cris/include/asm/Kbuild b/arch/cris/include/asm/Kbuild
-> index b06caf649a95..44e7d0dbcf32 100644
-> --- a/arch/cris/include/asm/Kbuild
-> +++ b/arch/cris/include/asm/Kbuild
-> @@ -8,6 +8,7 @@ generic-y += exec.h
->  generic-y += kvm_para.h
->  generic-y += linkage.h
->  generic-y += module.h
-> +generic-y += sections.h
->  generic-y += trace_clock.h
->  generic-y += vga.h
->  generic-y += xor.h
-> diff --git a/arch/cris/include/asm/sections.h b/arch/cris/include/asm/sections.h
-> deleted file mode 100644
-> index 2c998ce8967b..000000000000
-> --- a/arch/cris/include/asm/sections.h
-> +++ /dev/null
-> @@ -1,7 +0,0 @@
-> -#ifndef _CRIS_SECTIONS_H
-> -#define _CRIS_SECTIONS_H
-> -
-> -/* nothing to see, move along */
-> -#include <asm-generic/sections.h>
-> -
-> -#endif
-> -- 
-> 1.7.9.5
+Gr{oetje,eeting}s,
 
-/^JN - Jesper Nilsson
--- 
-               Jesper Nilsson -- jesper.nilsson@axis.com
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
