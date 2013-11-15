@@ -1,111 +1,150 @@
-From: Michal Simek <monstr@monstr.eu>
-Subject: Re: [PATCH RFC 15/17] microblaze: Convert from _fdt_start to __dtb_start
-Date: Thu, 14 Nov 2013 17:29:41 +0100
-Message-ID: <5284FA75.4040601@monstr.eu>
-References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org> <1384285347-13506-16-git-send-email-geert@linux-m68k.org> <5283524F.8030902@monstr.eu> <5283814C.6040904@monstr.eu> <5283A573.6020403@gmail.com>
-Reply-To: monstr@monstr.eu
+From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+Subject: [PATCH -tip RFC v2 00/22] kprobes: introduce NOKPROBE_SYMBOL() and
+	general cleaning of kprobe blacklist
+Date: Fri, 15 Nov 2013 04:53:12 +0000
+Message-ID: <20131115045312.27580.95902.stgit@kbuild-fedora.novalocal>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
- protocol="application/pgp-signature";
- boundary="PqGQeILfHAdb3iIoJpgcaA3RufafL7qtV"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f53.google.com ([74.125.82.53]:35310 "EHLO
-	mail-wg0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754795Ab3KNQ3w (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Nov 2013 11:29:52 -0500
-Received: by mail-wg0-f53.google.com with SMTP id b13so2245762wgh.20
-        for <linux-arch@vger.kernel.org>; Thu, 14 Nov 2013 08:29:50 -0800 (PST)
-In-Reply-To: <5283A573.6020403@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Rob Herring <robherring2@gmail.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Rob Herring <rob.herring@calxeda.com>, microblaze-uclinux@itee.uq.edu.au, devicetree@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Ingo Molnar <mingo@kernel.org>
+Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, "David S. Miller" <davem@davemloft.net>
+List-Id: linux-arch.vger.kernel.org
 
-This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
---PqGQeILfHAdb3iIoJpgcaA3RufafL7qtV
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: quoted-printable
+Currently the blacklist is maintained by hand in kprobes.c 
+which is separated from the function definition and is hard
+to catch up the kernel update.
 
-On 11/13/2013 05:14 PM, Rob Herring wrote:
-> On 11/13/2013 07:40 AM, Michal Simek wrote:
->> On 11/13/2013 11:19 AM, Michal Simek wrote:
->>> On 11/12/2013 08:42 PM, Geert Uytterhoeven wrote:
->>>> Kill the microblaze-specific __fdt_blob section, and start
->>>> using .dtb.init.rodata from <asm-generic/sections.h> for
->>>> built-in DTBs, like most other DT enabled architectures.
->>>>
->>>> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org> Cc:
->>>> Michal Simek <monstr@monstr.eu> Cc: Rob Herring
->>>> <rob.herring@calxeda.com> Cc:
->>>> microblaze-uclinux@itee.uq.edu.au Cc:
->>>> devicetree@vger.kernel.org --- Untested, but the resulting
->>>> vmlinux after "make simpleImage.system" looks sane.
->>>>
->>>> QUESTION: The padding of the DTB is gone, is this OK?
->>>
->>> Removing this kernel padding should be fine. I can't remember why
->>> it was there from the beginning.
->>
->> I know why is this here. The reason is process how dtb is passed to
->> the kernel via command line. head.S code just copy that dtb to the
->> same location where compiled-in dts is expected and kernel doesn't
->> need to care about position of dtb because this copy is done
->> without MMU. And the full kernel is covered by 2 tlbs and we don't
->> need to use another TLB for dtb mapping.
->>
->> It means pad matters a lot. Because u-boot ITS format doesn't use=20
->> simpleImage target but the kernel need to have a space for copying=20
->> dtb to this kernel location.
->>
->> Let me think about if there is an easy way to handle dtbs which are
->> passed from bootloader.
->=20
-> Isn't the built-in dtb in a RO init section? Seems like a bad idea to
-> write to it. Also, it will be a double copy because a built-in dtb has
-> to be copied out of init section.
+To solve this issue, I've tried to implement new
+NOKPROBE_SYMBOL() macro for making kprobe blacklist at 
+build time. Since the NOKPROBE_SYMBOL() macros can be placed
+right after the function is defined, it is easy to maintain.
 
-Microblaze has it currently out of RO section.
-This patch is adding it there.
+This series replaces __kprobes with NOKPROBE_SYMBOL() macro
+or apply __always_inline annotation for some cases, because
+NOKPROBE_SYMBOL() will inhibit inlining by referring the
+symbol address. :(
 
-I have looked at powerpc flow which is probably the closest to our versio=
-n.
+In this series, I replaced all __kprobes under kernel/ and
+arch/x86. For future work, I'd like to replace all the
+__kprobes annotation for all archs too. But this is just
+for review the impact of the cleanup.
 
-head.S
-Saving dtb pointer to r31 then initial_mmu which setups 16MB tlb for kern=
-el
-then some exception and calling machine_init()->early_init_devtree()
-->move_device_tree() where also change initial_boot_params location
-for unflatten_device_tree() in setup_arch().
+Also, I decided to classify current __kprobes annotation
+users who misuse it too many. Most of the preparation,
+registration, optimization functions related to kprobes
+are not involved in the breakpoint or other exception
+handling. This means that those never cause problems
+such as infinite recursion if we put kprobes on it.
+This also reduces blacklist a lot.
 
-Ben: I didn't find any TLB entry for DTB itself.
-Does it mean that I missed it or that powerpc can access in machine_init(=
-)
-the whole memory space?
+For easy to check the blacklist, this series includes
+a patch which provides debugfs interface for the blacklist.
+You can see what address region/symbols are not allowed
+to probe via /sys/kernel/debug/kprobes/blacklist.
 
-Thanks,
-Michal
+The blacklist now also support modules. :)
+kprobes users can make a custom blacklisted functions which
+will be called from kprobes handlers. Example codes are also
+updated, so you can see how it works.
 
---=20
-Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel - Microblaze cpu - http://www.monstr.eu/fdt/
-Maintainer of Linux kernel - Xilinx Zynq ARM architecture
-Microblaze U-BOOT custodian and responsible for u-boot arm zynq platform
+This series also includes a change which prohibits probing
+on the address in .entry.text because the code is used for
+very low-level sensitive interrupt/syscall entries. Probing
+such code may cause unexpected result (actually most of
+that area is already in the kprobe blacklist).
+So I've decide to prohibit probing all of them.
+
+After applying this series, I got an empty .kprobes.text :)
+
+$ grep kprobes_text System.map
+ffffffff81604980 T __kprobes_text_end
+ffffffff81604980 T __kprobes_text_start
+
+Thank you,
+
+Changes from previous version:
+ - Replace __kprobes with NOKPROBE_SYMBOL() and remove
+   unneeded __kprobes on the files compiled on x86.
+ - Add blacklist on modules support.
+ - Add debugfs interface for blacklist.
+ - Fix indent of the NOKPROBE_SYMBOL() by using tabs.
+ - Fix NOKPROBE_SYMBOL() for expanding nested macro.
+ - Update Documentations/kprobes.txt about blacklist.
+---
+
+Masami Hiramatsu (22):
+      kprobes: Prohibit probing on .entry.text code
+      kprobes: Introduce NOKPROBE_SYMBOL() macro for blacklist
+      kprobes: Show blacklist entries via debugfs
+      kprobes: Support blacklist functions in module
+      kprobes: Use NOKPROBE_SYMBOL() in sample modules
+      kprobes/x86: Allow probe on some kprobe preparation functions
+      kprobes/x86: Use NOKPROBE_SYMBOL instead of __kprobes
+      kprobes: Allow probe on some kprobe functions
+      kprobes: Use NOKPROBE_SYMBOL macro instead of __kprobes
+      ftrace/kprobes: Allow probing on some preparation functions
+      ftrace/kprobes: Use NOKPROBE_SYMBOL macro in ftrace
+      x86/hw_breakpoint: Use NOKPROBE_SYMBOL macro in hw_breakpoint
+      x86/trap: Use NOKPROBE_SYMBOL macro in trap.c
+      x86/fault: Use NOKPROBE_SYMBOL macro in fault.c
+      x86/alternative: Use NOKPROBE_SYMBOL macro in alternative.c
+      x86/nmi: Use NOKPROBE_SYMBOL macro for nmi handlers
+      x86/kvm: Use NOKPROBE_SYMBOL macro in kvm.c
+      x86/dumpstack: Use NOKPROBE_SYMBOL macro in dumpstack.c
+      [BUGFIX] kprobes/x86: Prohibit probing on debug_stack_*
+      [BUGFIX] kprobes: Prohibit probing on func_ptr_is_kernel_text
+      notifier: Use NOKPROBE_SYMBOL macro in notifier
+      sched: Use NOKPROBE_SYMBOL macro in sched
 
 
+ Documentation/kprobes.txt                |   24 ++
+ arch/x86/include/asm/traps.h             |    2 
+ arch/x86/kernel/alternative.c            |    3 
+ arch/x86/kernel/apic/hw_nmi.c            |    3 
+ arch/x86/kernel/cpu/common.c             |    4 
+ arch/x86/kernel/cpu/perf_event.c         |    3 
+ arch/x86/kernel/cpu/perf_event_amd_ibs.c |    3 
+ arch/x86/kernel/dumpstack.c              |    9 -
+ arch/x86/kernel/entry_32.S               |   33 --
+ arch/x86/kernel/entry_64.S               |   20 -
+ arch/x86/kernel/hw_breakpoint.c          |    6 
+ arch/x86/kernel/kprobes/core.c           |   97 ++++---
+ arch/x86/kernel/kprobes/ftrace.c         |   17 +
+ arch/x86/kernel/kprobes/opt.c            |   32 +-
+ arch/x86/kernel/kvm.c                    |    4 
+ arch/x86/kernel/nmi.c                    |   18 +
+ arch/x86/kernel/paravirt.c               |    4 
+ arch/x86/kernel/traps.c                  |   20 +
+ arch/x86/mm/fault.c                      |   28 +-
+ include/asm-generic/vmlinux.lds.h        |    9 +
+ include/linux/kprobes.h                  |   20 +
+ include/linux/module.h                   |    5 
+ kernel/extable.c                         |    2 
+ kernel/kprobes.c                         |  415 ++++++++++++++++++------------
+ kernel/module.c                          |    6 
+ kernel/notifier.c                        |   22 +-
+ kernel/sched/core.c                      |    7 -
+ kernel/trace/trace_event_perf.c          |    5 
+ kernel/trace/trace_kprobe.c              |   53 ++--
+ kernel/trace/trace_probe.c               |   78 +++---
+ kernel/trace/trace_probe.h               |    4 
+ samples/kprobes/jprobe_example.c         |    1 
+ samples/kprobes/kprobe_example.c         |    3 
+ samples/kprobes/kretprobe_example.c      |    2 
+ 34 files changed, 580 insertions(+), 382 deletions(-)
 
---PqGQeILfHAdb3iIoJpgcaA3RufafL7qtV
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.10 (GNU/Linux)
-Comment: Using GnuPG with Thunderbird - http://www.enigmail.net/
-
-iEYEARECAAYFAlKE+nsACgkQykllyylKDCHnKgCdFzhDnKZrwD7RCx5D1S1nT3dT
-39EAn3O7U8yvIzBvowJyzZf9xOuJ3kFZ
-=hnEu
------END PGP SIGNATURE-----
-
---PqGQeILfHAdb3iIoJpgcaA3RufafL7qtV--
+-- 
+Masami HIRAMATSU
+IT Management Research Dept. Linux Technology Center
+Hitachi, Ltd., Yokohama Research Laboratory
+E-mail: masami.hiramatsu.pt@hitachi.com
