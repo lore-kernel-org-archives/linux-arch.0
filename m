@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail9.hitachi.co.jp ([133.145.228.44]:57692 "EHLO
+Received: from mail9.hitachi.co.jp ([133.145.228.44]:57721 "EHLO
 	mail9.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758225Ab3KOEyM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Nov 2013 23:54:12 -0500
-Subject: [PATCH -tip RFC v2 18/22] x86/dumpstack: Use NOKPROBE_SYMBOL macro
- in dumpstack.c
+	with ESMTP id S1758106Ab3KOEyU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Nov 2013 23:54:20 -0500
+Subject: [PATCH -tip RFC v2 21/22] notifier: Use NOKPROBE_SYMBOL macro in
+ notifier
 From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Date: Fri, 15 Nov 2013 04:54:08 +0000
-Message-ID: <20131115045408.27580.10378.stgit@kbuild-fedora.novalocal>
+Date: Fri, 15 Nov 2013 04:54:16 +0000
+Message-ID: <20131115045416.27580.96824.stgit@kbuild-fedora.novalocal>
 In-Reply-To: <20131115045312.27580.95902.stgit@kbuild-fedora.novalocal>
 References: <20131115045312.27580.95902.stgit@kbuild-fedora.novalocal>
 MIME-Version: 1.0
@@ -16,66 +16,88 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Vineet Gupta <vgupta@synopsys.com>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Tejun Heo <tj@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jiri Slaby <jslaby@suse.cz>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20131115045408.gBfybg5hxIBf7W-a47QrXP37Vmy5BN999mFu9ziaU6A@z>
+Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20131115045416.zXSABfEljS3Cr_7cHQLSGF7fGHHpnMGJBtOWWhQAHoc@z>
 
-Use NOKPROBE_SYMBOL macro for protecting functions
-from kprobes instead of __kprobes annotation in
-dumpstack.c.
+Use NOKPROBE_SYMBOL macro to protect functions from
+kprobes instead of __kprobes annotation in notifier.
 
 Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jiri Slaby <jslaby@suse.cz>
-Cc: Tejun Heo <tj@kernel.org>
-Cc: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/x86/kernel/dumpstack.c |    9 ++++++---
- 1 file changed, 6 insertions(+), 3 deletions(-)
+ kernel/notifier.c |   22 +++++++++++++---------
+ 1 file changed, 13 insertions(+), 9 deletions(-)
 
-diff --git a/arch/x86/kernel/dumpstack.c b/arch/x86/kernel/dumpstack.c
-index d9c12d3..b74ebc7 100644
---- a/arch/x86/kernel/dumpstack.c
-+++ b/arch/x86/kernel/dumpstack.c
-@@ -200,7 +200,7 @@ static arch_spinlock_t die_lock = __ARCH_SPIN_LOCK_UNLOCKED;
- static int die_owner = -1;
- static unsigned int die_nest_count;
- 
--unsigned __kprobes long oops_begin(void)
-+unsigned long oops_begin(void)
+diff --git a/kernel/notifier.c b/kernel/notifier.c
+index 2d5cc4c..61fc78a 100644
+--- a/kernel/notifier.c
++++ b/kernel/notifier.c
+@@ -71,9 +71,9 @@ static int notifier_chain_unregister(struct notifier_block **nl,
+  *	@returns:	notifier_call_chain returns the value returned by the
+  *			last notifier function called.
+  */
+-static int __kprobes notifier_call_chain(struct notifier_block **nl,
+-					unsigned long val, void *v,
+-					int nr_to_call,	int *nr_calls)
++static int notifier_call_chain(struct notifier_block **nl,
++			       unsigned long val, void *v,
++			       int nr_to_call, int *nr_calls)
  {
- 	int cpu;
- 	unsigned long flags;
-@@ -223,8 +223,9 @@ unsigned __kprobes long oops_begin(void)
- 	return flags;
+ 	int ret = NOTIFY_DONE;
+ 	struct notifier_block *nb, *next_nb;
+@@ -102,6 +102,7 @@ static int __kprobes notifier_call_chain(struct notifier_block **nl,
+ 	}
+ 	return ret;
  }
- EXPORT_SYMBOL_GPL(oops_begin);
-+NOKPROBE_SYMBOL(oops_begin);
- 
--void __kprobes oops_end(unsigned long flags, struct pt_regs *regs, int signr)
-+void oops_end(unsigned long flags, struct pt_regs *regs, int signr)
- {
- 	if (regs && kexec_should_crash(current))
- 		crash_kexec(regs);
-@@ -247,8 +248,9 @@ void __kprobes oops_end(unsigned long flags, struct pt_regs *regs, int signr)
- 		panic("Fatal exception");
- 	do_exit(signr);
- }
-+NOKPROBE_SYMBOL(oops_end);
- 
--int __kprobes __die(const char *str, struct pt_regs *regs, long err)
-+int __die(const char *str, struct pt_regs *regs, long err)
- {
- #ifdef CONFIG_X86_32
- 	unsigned short ss;
-@@ -291,6 +293,7 @@ int __kprobes __die(const char *str, struct pt_regs *regs, long err)
- #endif
- 	return 0;
- }
-+NOKPROBE_SYMBOL(__die);
++NOKPROBE_SYMBOL(notifier_call_chain);
  
  /*
-  * This is gone through when something in the kernel has done something bad
+  *	Atomic notifier chain routines.  Registration and unregistration
+@@ -172,9 +173,9 @@ EXPORT_SYMBOL_GPL(atomic_notifier_chain_unregister);
+  *	Otherwise the return value is the return value
+  *	of the last notifier function called.
+  */
+-int __kprobes __atomic_notifier_call_chain(struct atomic_notifier_head *nh,
+-					unsigned long val, void *v,
+-					int nr_to_call, int *nr_calls)
++int __atomic_notifier_call_chain(struct atomic_notifier_head *nh,
++				 unsigned long val, void *v,
++				 int nr_to_call, int *nr_calls)
+ {
+ 	int ret;
+ 
+@@ -184,13 +185,15 @@ int __kprobes __atomic_notifier_call_chain(struct atomic_notifier_head *nh,
+ 	return ret;
+ }
+ EXPORT_SYMBOL_GPL(__atomic_notifier_call_chain);
++NOKPROBE_SYMBOL(__atomic_notifier_call_chain);
+ 
+-int __kprobes atomic_notifier_call_chain(struct atomic_notifier_head *nh,
+-		unsigned long val, void *v)
++int atomic_notifier_call_chain(struct atomic_notifier_head *nh,
++			       unsigned long val, void *v)
+ {
+ 	return __atomic_notifier_call_chain(nh, val, v, -1, NULL);
+ }
+ EXPORT_SYMBOL_GPL(atomic_notifier_call_chain);
++NOKPROBE_SYMBOL(atomic_notifier_call_chain);
+ 
+ /*
+  *	Blocking notifier chain routines.  All access to the chain is
+@@ -527,7 +530,7 @@ EXPORT_SYMBOL_GPL(srcu_init_notifier_head);
+ 
+ static ATOMIC_NOTIFIER_HEAD(die_chain);
+ 
+-int notrace __kprobes notify_die(enum die_val val, const char *str,
++int notrace notify_die(enum die_val val, const char *str,
+ 	       struct pt_regs *regs, long err, int trap, int sig)
+ {
+ 	struct die_args args = {
+@@ -540,6 +543,7 @@ int notrace __kprobes notify_die(enum die_val val, const char *str,
+ 	};
+ 	return atomic_notifier_call_chain(&die_chain, val, &args);
+ }
++NOKPROBE_SYMBOL(notify_die);
+ 
+ int register_die_notifier(struct notifier_block *nb)
+ {
 
