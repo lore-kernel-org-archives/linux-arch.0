@@ -1,97 +1,170 @@
 From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Subject: [PATCH -tip RFC v2 21/22] notifier: Use NOKPROBE_SYMBOL macro in
- notifier
-Date: Fri, 15 Nov 2013 04:54:16 +0000
-Message-ID: <20131115045416.27580.96824.stgit@kbuild-fedora.novalocal>
+Subject: [PATCH -tip RFC v2 14/22] x86/fault: Use NOKPROBE_SYMBOL macro in
+	fault.c
+Date: Fri, 15 Nov 2013 04:53:57 +0000
+Message-ID: <20131115045357.27580.92965.stgit@kbuild-fedora.novalocal>
 References: <20131115045312.27580.95902.stgit@kbuild-fedora.novalocal>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
 In-Reply-To: <20131115045312.27580.95902.stgit@kbuild-fedora.novalocal>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
 To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, "David S. Miller" <davem@davemloft.net>
+Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, "David S. Miller" <davem@davemloft.net>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Michal Hocko <mhocko@suse.cz>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Seiji Aguchi <seiji.aguchi@hds.com>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
-Use NOKPROBE_SYMBOL macro to protect functions from
-kprobes instead of __kprobes annotation in notifier.
+Use NOKPROBE_SYMBOL macro to protect functions from kprobes
+instead of __kprobes annotation in fault.c.
+This applies __always_inline annotation for some cases,
+because NOKPROBE_SYMBOL() will inhibit inlining by
+referring the symbol address.
 
 Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Michal Hocko <mhocko@suse.cz>
+Cc: Seiji Aguchi <seiji.aguchi@hds.com>
 ---
- kernel/notifier.c |   22 +++++++++++++---------
- 1 file changed, 13 insertions(+), 9 deletions(-)
+ arch/x86/mm/fault.c |   28 +++++++++++++++++-----------
+ 1 file changed, 17 insertions(+), 11 deletions(-)
 
-diff --git a/kernel/notifier.c b/kernel/notifier.c
-index 2d5cc4c..61fc78a 100644
---- a/kernel/notifier.c
-+++ b/kernel/notifier.c
-@@ -71,9 +71,9 @@ static int notifier_chain_unregister(struct notifier_block **nl,
-  *	@returns:	notifier_call_chain returns the value returned by the
-  *			last notifier function called.
+diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+index 9ff85bb..7c9305c 100644
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -8,7 +8,7 @@
+ #include <linux/kdebug.h>		/* oops_begin/end, ...		*/
+ #include <linux/module.h>		/* search_exception_table	*/
+ #include <linux/bootmem.h>		/* max_low_pfn			*/
+-#include <linux/kprobes.h>		/* __kprobes, ...		*/
++#include <linux/kprobes.h>		/* NOKPROBE_SYMBOL, ...		*/
+ #include <linux/mmiotrace.h>		/* kmmio_handler, ...		*/
+ #include <linux/perf_event.h>		/* perf_sw_event		*/
+ #include <linux/hugetlb.h>		/* hstate_index_to_shift	*/
+@@ -45,7 +45,7 @@ enum x86_pf_error_code {
+  * Returns 0 if mmiotrace is disabled, or if the fault is not
+  * handled by mmiotrace:
   */
--static int __kprobes notifier_call_chain(struct notifier_block **nl,
--					unsigned long val, void *v,
--					int nr_to_call,	int *nr_calls)
-+static int notifier_call_chain(struct notifier_block **nl,
-+			       unsigned long val, void *v,
-+			       int nr_to_call, int *nr_calls)
+-static inline int __kprobes
++static __always_inline int
+ kmmio_fault(struct pt_regs *regs, unsigned long addr)
  {
- 	int ret = NOTIFY_DONE;
- 	struct notifier_block *nb, *next_nb;
-@@ -102,6 +102,7 @@ static int __kprobes notifier_call_chain(struct notifier_block **nl,
- 	}
- 	return ret;
+ 	if (unlikely(is_kmmio_active()))
+@@ -54,7 +54,7 @@ kmmio_fault(struct pt_regs *regs, unsigned long addr)
+ 	return 0;
  }
-+NOKPROBE_SYMBOL(notifier_call_chain);
+ 
+-static inline int __kprobes kprobes_fault(struct pt_regs *regs)
++static __always_inline int kprobes_fault(struct pt_regs *regs)
+ {
+ 	int ret = 0;
+ 
+@@ -261,7 +261,7 @@ void vmalloc_sync_all(void)
+  *
+  *   Handle a fault on the vmalloc or module mapping area
+  */
+-static noinline __kprobes int vmalloc_fault(unsigned long address)
++static noinline int vmalloc_fault(unsigned long address)
+ {
+ 	unsigned long pgd_paddr;
+ 	pmd_t *pmd_k;
+@@ -291,6 +291,7 @@ static noinline __kprobes int vmalloc_fault(unsigned long address)
+ 
+ 	return 0;
+ }
++NOKPROBE_SYMBOL(vmalloc_fault);
  
  /*
-  *	Atomic notifier chain routines.  Registration and unregistration
-@@ -172,9 +173,9 @@ EXPORT_SYMBOL_GPL(atomic_notifier_chain_unregister);
-  *	Otherwise the return value is the return value
-  *	of the last notifier function called.
+  * Did it hit the DOS screen memory VA from vm86 mode?
+@@ -358,7 +359,7 @@ void vmalloc_sync_all(void)
+  *
+  * This assumes no large pages in there.
   */
--int __kprobes __atomic_notifier_call_chain(struct atomic_notifier_head *nh,
--					unsigned long val, void *v,
--					int nr_to_call, int *nr_calls)
-+int __atomic_notifier_call_chain(struct atomic_notifier_head *nh,
-+				 unsigned long val, void *v,
-+				 int nr_to_call, int *nr_calls)
+-static noinline __kprobes int vmalloc_fault(unsigned long address)
++static noinline int vmalloc_fault(unsigned long address)
  {
- 	int ret;
+ 	pgd_t *pgd, *pgd_ref;
+ 	pud_t *pud, *pud_ref;
+@@ -425,6 +426,7 @@ static noinline __kprobes int vmalloc_fault(unsigned long address)
  
-@@ -184,13 +185,15 @@ int __kprobes __atomic_notifier_call_chain(struct atomic_notifier_head *nh,
+ 	return 0;
+ }
++NOKPROBE_SYMBOL(vmalloc_fault);
+ 
+ #ifdef CONFIG_CPU_SUP_AMD
+ static const char errata93_warning[] =
+@@ -904,7 +906,7 @@ static int spurious_fault_check(unsigned long error_code, pte_t *pte)
+  * There are no security implications to leaving a stale TLB when
+  * increasing the permissions on a page.
+  */
+-static noinline __kprobes int
++static noinline int
+ spurious_fault(unsigned long error_code, unsigned long address)
+ {
+ 	pgd_t *pgd;
+@@ -952,6 +954,7 @@ spurious_fault(unsigned long error_code, unsigned long address)
+ 
  	return ret;
  }
- EXPORT_SYMBOL_GPL(__atomic_notifier_call_chain);
-+NOKPROBE_SYMBOL(__atomic_notifier_call_chain);
++NOKPROBE_SYMBOL(spurious_fault);
  
--int __kprobes atomic_notifier_call_chain(struct atomic_notifier_head *nh,
--		unsigned long val, void *v)
-+int atomic_notifier_call_chain(struct atomic_notifier_head *nh,
-+			       unsigned long val, void *v)
+ int show_unhandled_signals = 1;
+ 
+@@ -997,7 +1000,7 @@ static inline bool smap_violation(int error_code, struct pt_regs *regs)
+  * and the problem, and then passes it off to one of the appropriate
+  * routines.
+  */
+-static void __kprobes
++static void
+ __do_page_fault(struct pt_regs *regs, unsigned long error_code)
  {
- 	return __atomic_notifier_call_chain(nh, val, v, -1, NULL);
+ 	struct vm_area_struct *vma;
+@@ -1225,8 +1228,9 @@ good_area:
+ 
+ 	up_read(&mm->mmap_sem);
  }
- EXPORT_SYMBOL_GPL(atomic_notifier_call_chain);
-+NOKPROBE_SYMBOL(atomic_notifier_call_chain);
++NOKPROBE_SYMBOL(__do_page_fault);
  
- /*
-  *	Blocking notifier chain routines.  All access to the chain is
-@@ -527,7 +530,7 @@ EXPORT_SYMBOL_GPL(srcu_init_notifier_head);
- 
- static ATOMIC_NOTIFIER_HEAD(die_chain);
- 
--int notrace __kprobes notify_die(enum die_val val, const char *str,
-+int notrace notify_die(enum die_val val, const char *str,
- 	       struct pt_regs *regs, long err, int trap, int sig)
+-dotraplinkage void __kprobes
++dotraplinkage void
+ do_page_fault(struct pt_regs *regs, unsigned long error_code)
  {
- 	struct die_args args = {
-@@ -540,6 +543,7 @@ int notrace __kprobes notify_die(enum die_val val, const char *str,
- 	};
- 	return atomic_notifier_call_chain(&die_chain, val, &args);
+ 	enum ctx_state prev_state;
+@@ -1235,9 +1239,10 @@ do_page_fault(struct pt_regs *regs, unsigned long error_code)
+ 	__do_page_fault(regs, error_code);
+ 	exception_exit(prev_state);
  }
-+NOKPROBE_SYMBOL(notify_die);
++NOKPROBE_SYMBOL(do_page_fault);
  
- int register_die_notifier(struct notifier_block *nb)
+-static void trace_page_fault_entries(struct pt_regs *regs,
+-				     unsigned long error_code)
++static __always_inline void
++trace_page_fault_entries(struct pt_regs *regs, unsigned long error_code)
  {
+ 	if (user_mode(regs))
+ 		trace_page_fault_user(read_cr2(), regs, error_code);
+@@ -1245,7 +1250,7 @@ static void trace_page_fault_entries(struct pt_regs *regs,
+ 		trace_page_fault_kernel(read_cr2(), regs, error_code);
+ }
+ 
+-dotraplinkage void __kprobes
++dotraplinkage void
+ trace_do_page_fault(struct pt_regs *regs, unsigned long error_code)
+ {
+ 	enum ctx_state prev_state;
+@@ -1255,3 +1260,4 @@ trace_do_page_fault(struct pt_regs *regs, unsigned long error_code)
+ 	__do_page_fault(regs, error_code);
+ 	exception_exit(prev_state);
+ }
++NOKPROBE_SYMBOL(trace_do_page_fault);
