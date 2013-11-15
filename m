@@ -1,54 +1,86 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH -tip RFC v2 01/22] kprobes: Prohibit probing on
- .entry.text code
-Date: Fri, 15 Nov 2013 18:46:40 +0100
-Message-ID: <CAMuHMdXw+WGKiQuquQL7XOkbRLNOC_SPddY1irRGQwpvDHLMwA@mail.gmail.com>
-References: <20131115045312.27580.95902.stgit@kbuild-fedora.novalocal>
-	<20131115045318.27580.69554.stgit@kbuild-fedora.novalocal>
-	<20131115114306.5d14db66@gandalf.local.home>
+From: Lennox Wu <lennox.wu@gmail.com>
+Subject: Re: [PATCH 05/17] score: Use Kbuild logic to include <asm-generic/sections.h>
+Date: Sat, 16 Nov 2013 02:05:25 +0800
+Message-ID: <52866265.2020302@gmail.com>
+References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org> <1384285347-13506-6-git-send-email-geert@linux-m68k.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: multipart/signed; micalg=pgp-sha1;
+ protocol="application/pgp-signature";
+ boundary="42XAxbj6C0511c4Lgxhs57B4VvUKKJQdu"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f50.google.com ([209.85.160.50]:52263 "EHLO
-	mail-pb0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751192Ab3KORql (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Nov 2013 12:46:41 -0500
-In-Reply-To: <20131115114306.5d14db66@gandalf.local.home>
+Received: from mail-pa0-f44.google.com ([209.85.220.44]:58209 "EHLO
+	mail-pa0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751473Ab3KOSFs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Nov 2013 13:05:48 -0500
+In-Reply-To: <1384285347-13506-6-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, Ingo Molnar <mingo@kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Frederic Weisbecker <fweisbec@gmail.com>, the arch/x86 maintainers <x86@kernel.org>, lkml <linux-kernel@vger.kernel.org>, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Seiji Aguchi <seiji.aguchi@hds.com>, "David S. Miller" <davem@davemloft.net>
+To: Geert Uytterhoeven <geert@linux-m68k.org>, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Chen Liqin <liqin.linux@gmail.com>
 
-On Fri, Nov 15, 2013 at 5:43 PM, Steven Rostedt <rostedt@goodmis.org> wrote:
-> On Fri, 15 Nov 2013 04:53:18 +0000
-> Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com> wrote:
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--42XAxbj6C0511c4Lgxhs57B4VvUKKJQdu
+Content-Type: text/plain; charset=Big5
+Content-Transfer-Encoding: quoted-printable
+
+
+  Acked-by: Lennox Wu <lennox.wu@gmail.com>
+
+=A9=F3 2013/11/13 =A4W=A4=C8 03:42, Geert Uytterhoeven =B4=A3=A8=EC:
+> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> Cc: Chen Liqin <liqin.linux@gmail.com>
+> Cc: Lennox Wu <lennox.wu@gmail.com>
+> ---
+>  arch/score/include/asm/Kbuild     |    1 +
+>  arch/score/include/asm/sections.h |    6 ------
+>  2 files changed, 1 insertion(+), 6 deletions(-)
+>  delete mode 100644 arch/score/include/asm/sections.h
 >
->> .entry.text is a code area which is used for interrupt/syscall
->> entries, and there are many sensitive codes.
->> Thus, it is better to prohibit probing on all of such codes
->> instead of a part of that.
->> Since some symbols are already registered on kprobe blacklist,
->> this also removes them from the blacklist.
->
-> This change only works with x86. On other archs, I get this:
->
-> kernel/built-in.o: In function `register_kprobe':
-> (.kprobes.text+0x9f4): undefined reference to `__entry_text_start'
-> kernel/built-in.o: In function `register_kprobe':
-> (.kprobes.text+0x9f8): undefined reference to `__entry_text_end'
-> make[1]: *** [vmlinux] Error 1
-> make: *** [sub-make] Error 2
+> diff --git a/arch/score/include/asm/Kbuild b/arch/score/include/asm/Kbu=
+ild
+> index f3414ade77a3..32cd967c19a4 100644
+> --- a/arch/score/include/asm/Kbuild
+> +++ b/arch/score/include/asm/Kbuild
+> @@ -2,6 +2,7 @@
+>  header-y +=3D
+> =20
+>  generic-y +=3D clkdev.h
+> +generic-y +=3D sections.h
+>  generic-y +=3D trace_clock.h
+>  generic-y +=3D xor.h
+>  generic-y +=3D preempt.h
+> diff --git a/arch/score/include/asm/sections.h b/arch/score/include/asm=
+/sections.h
+> deleted file mode 100644
+> index 9441d23af005..000000000000
+> --- a/arch/score/include/asm/sections.h
+> +++ /dev/null
+> @@ -1,6 +0,0 @@
+> -#ifndef _ASM_SCORE_SECTIONS_H
+> -#define _ASM_SCORE_SECTIONS_H
+> -
+> -#include <asm-generic/sections.h>
+> -
+> -#endif /* _ASM_SCORE_SECTIONS_H */
 
-X86 is the sole architecture that has ENTRY_TEXT in its
-arch/*/kernel/vmlinux.lds.S.
 
-Gr{oetje,eeting}s,
 
-                        Geert
+--42XAxbj6C0511c4Lgxhs57B4VvUKKJQdu
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.7 (MingW32)
+Comment: Using GnuPG with Thunderbird - http://www.enigmail.net/
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+iQEVAwUBUoZiaRIBnItolwGVAQLJhwf/Yq9YsAeveJsuG7dKN2Q8BJ1PooMrC2IW
+qJzwqsFST6VYV1yE3SaDtfX5cL4K/4AZeClmd9jrv8okdvVwN3CgZw6RhWYouYxZ
+2aFYPvE82KbT2LWQx/V721m0nc1PDDSwC+hH/naDzchnIuFmwDNm/Cdbd4HVv44U
+Dah1mMQq0dQSBVbxRtqAxZgBhN2FzKbq/pHE4gRMDr7MZu8Cxign5+l//5PCO55j
+D8IxNkGyVRxWq8BnJSZzgK5rpj4vqsjKmeCYhECVsqUrLXZujUJccDYGKJgTzDRz
+At1zfAlAaaEpC1dc1DtPNWLL+f9FfznOrotDQMwFRyIfcCNAyEQ+MQ==
+=bjNx
+-----END PGP SIGNATURE-----
+
+--42XAxbj6C0511c4Lgxhs57B4VvUKKJQdu--
