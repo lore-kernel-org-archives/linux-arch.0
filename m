@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fallback.hitachi.co.jp ([133.145.228.50]:46359 "EHLO
-	mailxx.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932323Ab3KOE6R (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Nov 2013 23:58:17 -0500
-Subject: [PATCH -tip RFC v2 16/22] x86/nmi: Use NOKPROBE_SYMBOL macro for
- nmi handlers
+Received: from mail9.hitachi.co.jp ([133.145.228.44]:57507 "EHLO
+	mail9.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757835Ab3KOEx2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Nov 2013 23:53:28 -0500
+Subject: [PATCH -tip RFC v2 03/22] kprobes: Show blacklist entries via
+ debugfs
 From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Date: Fri, 15 Nov 2013 04:54:02 +0000
-Message-ID: <20131115045402.27580.70158.stgit@kbuild-fedora.novalocal>
+Date: Fri, 15 Nov 2013 04:53:25 +0000
+Message-ID: <20131115045325.27580.67011.stgit@kbuild-fedora.novalocal>
 In-Reply-To: <20131115045312.27580.95902.stgit@kbuild-fedora.novalocal>
 References: <20131115045312.27580.95902.stgit@kbuild-fedora.novalocal>
 MIME-Version: 1.0
@@ -16,181 +16,101 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org, Dave Hansen <dave.hansen@linux.intel.com>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Zhang Rui <rui.zhang@intel.com>, Ingo Molnar <mingo@redhat.com>, Paul Mackerras <paulus@samba.org>, Arnaldo Carvalho de Melo <acme@ghostprotocols.net>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Michel Lespinasse <walken@google.com>, "David S. Miller" <davem@davemloft.net>, Peter Zijlstra <a.p.zijlstra@chello.nl>
-Message-ID: <20131115045402.E7M7HkFNuqhpZl0592i3DnBjyaCOCVV_TGv6ENQZgaE@z>
+Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20131115045325.Zrf0E7v0vjuhhVEzrSX4Xbdsbt8_sWzr_OcjVP_jdrs@z>
 
-Use NOKPROBE_SYMBOL macro to protect functions from
-kprobes instead of __kprobes annotation for nmi handlers.
+Show blacklist entries (function names with the address
+range) via /sys/kernel/debug/kprobes/blacklist.
 
 Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Arnaldo Carvalho de Melo <acme@ghostprotocols.net>
-Cc: Michel Lespinasse <walken@google.com>
-Cc: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: Zhang Rui <rui.zhang@intel.com>
+Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
+Cc: "David S. Miller" <davem@davemloft.net>
 ---
- arch/x86/kernel/apic/hw_nmi.c            |    3 ++-
- arch/x86/kernel/cpu/perf_event.c         |    3 ++-
- arch/x86/kernel/cpu/perf_event_amd_ibs.c |    3 ++-
- arch/x86/kernel/nmi.c                    |   18 ++++++++++++------
- 4 files changed, 18 insertions(+), 9 deletions(-)
+ kernel/kprobes.c |   61 +++++++++++++++++++++++++++++++++++++++++++++++-------
+ 1 file changed, 53 insertions(+), 8 deletions(-)
 
-diff --git a/arch/x86/kernel/apic/hw_nmi.c b/arch/x86/kernel/apic/hw_nmi.c
-index a698d71..73eb5b3 100644
---- a/arch/x86/kernel/apic/hw_nmi.c
-+++ b/arch/x86/kernel/apic/hw_nmi.c
-@@ -60,7 +60,7 @@ void arch_trigger_all_cpu_backtrace(void)
- 	smp_mb__after_clear_bit();
- }
+diff --git a/kernel/kprobes.c b/kernel/kprobes.c
+index a3b323e..007235e 100644
+--- a/kernel/kprobes.c
++++ b/kernel/kprobes.c
+@@ -2224,6 +2224,46 @@ static const struct file_operations debugfs_kprobes_operations = {
+ 	.release        = seq_release,
+ };
  
--static int __kprobes
-+static int
- arch_trigger_all_cpu_backtrace_handler(unsigned int cmd, struct pt_regs *regs)
++/* kprobes/blacklist -- shows which functions can not be probed */
++static void *kprobe_blacklist_seq_start(struct seq_file *m, loff_t *pos)
++{
++	return seq_list_start(&kprobe_blacklist, *pos);
++}
++
++static void *kprobe_blacklist_seq_next(struct seq_file *m, void *v, loff_t *pos)
++{
++	return seq_list_next(v, &kprobe_blacklist, pos);
++}
++
++static int kprobe_blacklist_seq_show(struct seq_file *m, void *v)
++{
++	struct kprobe_blackpoint *bp =
++		list_entry(v, struct kprobe_blackpoint, list);
++
++	seq_printf(m, "0x%p-0x%p\t%s\n", (void *)bp->start_addr,
++		   (void *)(bp->start_addr + bp->range), bp->name);
++	return 0;
++}
++
++static const struct seq_operations kprobe_blacklist_seq_ops = {
++	.start = kprobe_blacklist_seq_start,
++	.next  = kprobe_blacklist_seq_next,
++	.stop  = kprobe_seq_stop,	/* Reuse void function */
++	.show  = kprobe_blacklist_seq_show,
++};
++
++static int kprobe_blacklist_open(struct inode *inode, struct file *filp)
++{
++	return seq_open(filp, &kprobe_blacklist_seq_ops);
++}
++
++static const struct file_operations debugfs_kprobe_blacklist_ops = {
++	.open           = kprobe_blacklist_open,
++	.read           = seq_read,
++	.llseek         = seq_lseek,
++	.release        = seq_release,
++};
++
+ static void __kprobes arm_all_kprobes(void)
  {
- 	int cpu;
-@@ -80,6 +80,7 @@ arch_trigger_all_cpu_backtrace_handler(unsigned int cmd, struct pt_regs *regs)
+ 	struct hlist_head *head;
+@@ -2347,19 +2387,24 @@ static int __kprobes debugfs_kprobe_init(void)
  
- 	return NMI_DONE;
- }
-+NOKPROBE_SYMBOL(arch_trigger_all_cpu_backtrace_handler);
+ 	file = debugfs_create_file("list", 0444, dir, NULL,
+ 				&debugfs_kprobes_operations);
+-	if (!file) {
+-		debugfs_remove(dir);
+-		return -ENOMEM;
+-	}
++	if (!file)
++		goto error;
  
- static int __init register_trigger_all_cpu_backtrace(void)
- {
-diff --git a/arch/x86/kernel/cpu/perf_event.c b/arch/x86/kernel/cpu/perf_event.c
-index 98f845b..396c1a2 100644
---- a/arch/x86/kernel/cpu/perf_event.c
-+++ b/arch/x86/kernel/cpu/perf_event.c
-@@ -1273,7 +1273,7 @@ void perf_events_lapic_init(void)
- 	apic_write(APIC_LVTPC, APIC_DM_NMI);
- }
+ 	file = debugfs_create_file("enabled", 0600, dir,
+ 					&value, &fops_kp);
+-	if (!file) {
+-		debugfs_remove(dir);
+-		return -ENOMEM;
+-	}
++	if (!file)
++		goto error;
++
++	file = debugfs_create_file("blacklist", 0444, dir, NULL,
++				&debugfs_kprobe_blacklist_ops);
++	if (!file)
++		goto error;
  
--static int __kprobes
-+static int
- perf_event_nmi_handler(unsigned int cmd, struct pt_regs *regs)
- {
- 	u64 start_clock;
-@@ -1291,6 +1291,7 @@ perf_event_nmi_handler(unsigned int cmd, struct pt_regs *regs)
- 
- 	return ret;
- }
-+NOKPROBE_SYMBOL(perf_event_nmi_handler);
- 
- struct event_constraint emptyconstraint;
- struct event_constraint unconstrained;
-diff --git a/arch/x86/kernel/cpu/perf_event_amd_ibs.c b/arch/x86/kernel/cpu/perf_event_amd_ibs.c
-index e09f0bf..c668309 100644
---- a/arch/x86/kernel/cpu/perf_event_amd_ibs.c
-+++ b/arch/x86/kernel/cpu/perf_event_amd_ibs.c
-@@ -592,7 +592,7 @@ out:
- 	return 1;
+ 	return 0;
++
++error:
++	debugfs_remove(dir);
++	return -ENOMEM;
  }
  
--static int __kprobes
-+static int
- perf_ibs_nmi_handler(unsigned int cmd, struct pt_regs *regs)
- {
- 	int handled = 0;
-@@ -605,6 +605,7 @@ perf_ibs_nmi_handler(unsigned int cmd, struct pt_regs *regs)
- 
- 	return handled;
- }
-+NOKPROBE_SYMBOL(perf_ibs_nmi_handler);
- 
- static __init int perf_ibs_pmu_init(struct perf_ibs *perf_ibs, char *name)
- {
-diff --git a/arch/x86/kernel/nmi.c b/arch/x86/kernel/nmi.c
-index 6fcb49c..38ce829 100644
---- a/arch/x86/kernel/nmi.c
-+++ b/arch/x86/kernel/nmi.c
-@@ -95,7 +95,7 @@ static int __init nmi_warning_debugfs(void)
- }
- fs_initcall(nmi_warning_debugfs);
- 
--static int __kprobes nmi_handle(unsigned int type, struct pt_regs *regs, bool b2b)
-+static int nmi_handle(unsigned int type, struct pt_regs *regs, bool b2b)
- {
- 	struct nmi_desc *desc = nmi_to_desc(type);
- 	struct nmiaction *a;
-@@ -137,6 +137,7 @@ static int __kprobes nmi_handle(unsigned int type, struct pt_regs *regs, bool b2
- 	/* return total number of NMI events handled */
- 	return handled;
- }
-+NOKPROBE_SYMBOL(nmi_handle);
- 
- int __register_nmi_handler(unsigned int type, struct nmiaction *action)
- {
-@@ -197,7 +198,7 @@ void unregister_nmi_handler(unsigned int type, const char *name)
- }
- EXPORT_SYMBOL_GPL(unregister_nmi_handler);
- 
--static __kprobes void
-+static void
- pci_serr_error(unsigned char reason, struct pt_regs *regs)
- {
- 	/* check to see if anyone registered against these types of errors */
-@@ -227,8 +228,9 @@ pci_serr_error(unsigned char reason, struct pt_regs *regs)
- 	reason = (reason & NMI_REASON_CLEAR_MASK) | NMI_REASON_CLEAR_SERR;
- 	outb(reason, NMI_REASON_PORT);
- }
-+NOKPROBE_SYMBOL(pci_serr_error);
- 
--static __kprobes void
-+static void
- io_check_error(unsigned char reason, struct pt_regs *regs)
- {
- 	unsigned long i;
-@@ -258,8 +260,9 @@ io_check_error(unsigned char reason, struct pt_regs *regs)
- 	reason &= ~NMI_REASON_CLEAR_IOCHK;
- 	outb(reason, NMI_REASON_PORT);
- }
-+NOKPROBE_SYMBOL(io_check_error);
- 
--static __kprobes void
-+static void
- unknown_nmi_error(unsigned char reason, struct pt_regs *regs)
- {
- 	int handled;
-@@ -287,11 +290,12 @@ unknown_nmi_error(unsigned char reason, struct pt_regs *regs)
- 
- 	pr_emerg("Dazed and confused, but trying to continue\n");
- }
-+NOKPROBE_SYMBOL(unknown_nmi_error);
- 
- static DEFINE_PER_CPU(bool, swallow_nmi);
- static DEFINE_PER_CPU(unsigned long, last_nmi_rip);
- 
--static __kprobes void default_do_nmi(struct pt_regs *regs)
-+static void default_do_nmi(struct pt_regs *regs)
- {
- 	unsigned char reason = 0;
- 	int handled;
-@@ -390,6 +394,7 @@ static __kprobes void default_do_nmi(struct pt_regs *regs)
- 	else
- 		unknown_nmi_error(reason, regs);
- }
-+NOKPROBE_SYMBOL(default_do_nmi);
- 
- /*
-  * NMIs can hit breakpoints which will cause it to lose its
-@@ -509,7 +514,7 @@ static inline void nmi_nesting_postprocess(void)
- }
- #endif
- 
--dotraplinkage notrace __kprobes void
-+dotraplinkage notrace void
- do_nmi(struct pt_regs *regs, long error_code)
- {
- 	nmi_nesting_preprocess(regs);
-@@ -526,6 +531,7 @@ do_nmi(struct pt_regs *regs, long error_code)
- 	/* On i386, may loop back to preprocess */
- 	nmi_nesting_postprocess();
- }
-+NOKPROBE_SYMBOL(do_nmi);
- 
- void stop_nmi(void)
- {
+ late_initcall(debugfs_kprobe_init);
 
