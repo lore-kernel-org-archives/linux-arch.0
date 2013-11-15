@@ -1,8 +1,8 @@
 From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Subject: [PATCH -tip RFC v2 14/22] x86/fault: Use NOKPROBE_SYMBOL macro in
-	fault.c
-Date: Fri, 15 Nov 2013 04:53:57 +0000
-Message-ID: <20131115045357.27580.92965.stgit@kbuild-fedora.novalocal>
+Subject: [PATCH -tip RFC v2 15/22] x86/alternative: Use NOKPROBE_SYMBOL
+	macro in alternative.c
+Date: Fri, 15 Nov 2013 04:54:00 +0000
+Message-ID: <20131115045359.27580.45302.stgit@kbuild-fedora.novalocal>
 References: <20131115045312.27580.95902.stgit@kbuild-fedora.novalocal>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -19,152 +19,40 @@ List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualizati
 Sender: virtualization-bounces@lists.linux-foundation.org
 Errors-To: virtualization-bounces@lists.linux-foundation.org
 To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, "David S. Miller" <davem@davemloft.net>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Michal Hocko <mhocko@suse.cz>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Seiji Aguchi <seiji.aguchi@hds.com>, Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Jiri Kosina <jkosina@suse.cz>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@suse.de>, "David S. Miller" <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
 Use NOKPROBE_SYMBOL macro to protect functions from kprobes
-instead of __kprobes annotation in fault.c.
-This applies __always_inline annotation for some cases,
-because NOKPROBE_SYMBOL() will inhibit inlining by
-referring the symbol address.
+instead of __kprobes annotation in alternative.c.
 
 Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Michal Hocko <mhocko@suse.cz>
-Cc: Seiji Aguchi <seiji.aguchi@hds.com>
+Cc: Jiri Kosina <jkosina@suse.cz>
+Cc: Borislav Petkov <bp@suse.de>
 ---
- arch/x86/mm/fault.c |   28 +++++++++++++++++-----------
- 1 file changed, 17 insertions(+), 11 deletions(-)
+ arch/x86/kernel/alternative.c |    3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-index 9ff85bb..7c9305c 100644
---- a/arch/x86/mm/fault.c
-+++ b/arch/x86/mm/fault.c
-@@ -8,7 +8,7 @@
- #include <linux/kdebug.h>		/* oops_begin/end, ...		*/
- #include <linux/module.h>		/* search_exception_table	*/
- #include <linux/bootmem.h>		/* max_low_pfn			*/
--#include <linux/kprobes.h>		/* __kprobes, ...		*/
-+#include <linux/kprobes.h>		/* NOKPROBE_SYMBOL, ...		*/
- #include <linux/mmiotrace.h>		/* kmmio_handler, ...		*/
- #include <linux/perf_event.h>		/* perf_sw_event		*/
- #include <linux/hugetlb.h>		/* hstate_index_to_shift	*/
-@@ -45,7 +45,7 @@ enum x86_pf_error_code {
-  * Returns 0 if mmiotrace is disabled, or if the fault is not
-  * handled by mmiotrace:
-  */
--static inline int __kprobes
-+static __always_inline int
- kmmio_fault(struct pt_regs *regs, unsigned long addr)
- {
- 	if (unlikely(is_kmmio_active()))
-@@ -54,7 +54,7 @@ kmmio_fault(struct pt_regs *regs, unsigned long addr)
- 	return 0;
- }
- 
--static inline int __kprobes kprobes_fault(struct pt_regs *regs)
-+static __always_inline int kprobes_fault(struct pt_regs *regs)
- {
- 	int ret = 0;
- 
-@@ -261,7 +261,7 @@ void vmalloc_sync_all(void)
+diff --git a/arch/x86/kernel/alternative.c b/arch/x86/kernel/alternative.c
+index df94598..7cfd6d7 100644
+--- a/arch/x86/kernel/alternative.c
++++ b/arch/x86/kernel/alternative.c
+@@ -551,7 +551,7 @@ void *__init_or_module text_poke_early(void *addr, const void *opcode,
   *
-  *   Handle a fault on the vmalloc or module mapping area
+  * Note: Must be called under text_mutex.
   */
--static noinline __kprobes int vmalloc_fault(unsigned long address)
-+static noinline int vmalloc_fault(unsigned long address)
+-void *__kprobes text_poke(void *addr, const void *opcode, size_t len)
++void *text_poke(void *addr, const void *opcode, size_t len)
  {
- 	unsigned long pgd_paddr;
- 	pmd_t *pmd_k;
-@@ -291,6 +291,7 @@ static noinline __kprobes int vmalloc_fault(unsigned long address)
- 
- 	return 0;
+ 	unsigned long flags;
+ 	char *vaddr;
+@@ -585,6 +585,7 @@ void *__kprobes text_poke(void *addr, const void *opcode, size_t len)
+ 	local_irq_restore(flags);
+ 	return addr;
  }
-+NOKPROBE_SYMBOL(vmalloc_fault);
++NOKPROBE_SYMBOL(text_poke);
  
- /*
-  * Did it hit the DOS screen memory VA from vm86 mode?
-@@ -358,7 +359,7 @@ void vmalloc_sync_all(void)
-  *
-  * This assumes no large pages in there.
-  */
--static noinline __kprobes int vmalloc_fault(unsigned long address)
-+static noinline int vmalloc_fault(unsigned long address)
+ static void do_sync_core(void *info)
  {
- 	pgd_t *pgd, *pgd_ref;
- 	pud_t *pud, *pud_ref;
-@@ -425,6 +426,7 @@ static noinline __kprobes int vmalloc_fault(unsigned long address)
- 
- 	return 0;
- }
-+NOKPROBE_SYMBOL(vmalloc_fault);
- 
- #ifdef CONFIG_CPU_SUP_AMD
- static const char errata93_warning[] =
-@@ -904,7 +906,7 @@ static int spurious_fault_check(unsigned long error_code, pte_t *pte)
-  * There are no security implications to leaving a stale TLB when
-  * increasing the permissions on a page.
-  */
--static noinline __kprobes int
-+static noinline int
- spurious_fault(unsigned long error_code, unsigned long address)
- {
- 	pgd_t *pgd;
-@@ -952,6 +954,7 @@ spurious_fault(unsigned long error_code, unsigned long address)
- 
- 	return ret;
- }
-+NOKPROBE_SYMBOL(spurious_fault);
- 
- int show_unhandled_signals = 1;
- 
-@@ -997,7 +1000,7 @@ static inline bool smap_violation(int error_code, struct pt_regs *regs)
-  * and the problem, and then passes it off to one of the appropriate
-  * routines.
-  */
--static void __kprobes
-+static void
- __do_page_fault(struct pt_regs *regs, unsigned long error_code)
- {
- 	struct vm_area_struct *vma;
-@@ -1225,8 +1228,9 @@ good_area:
- 
- 	up_read(&mm->mmap_sem);
- }
-+NOKPROBE_SYMBOL(__do_page_fault);
- 
--dotraplinkage void __kprobes
-+dotraplinkage void
- do_page_fault(struct pt_regs *regs, unsigned long error_code)
- {
- 	enum ctx_state prev_state;
-@@ -1235,9 +1239,10 @@ do_page_fault(struct pt_regs *regs, unsigned long error_code)
- 	__do_page_fault(regs, error_code);
- 	exception_exit(prev_state);
- }
-+NOKPROBE_SYMBOL(do_page_fault);
- 
--static void trace_page_fault_entries(struct pt_regs *regs,
--				     unsigned long error_code)
-+static __always_inline void
-+trace_page_fault_entries(struct pt_regs *regs, unsigned long error_code)
- {
- 	if (user_mode(regs))
- 		trace_page_fault_user(read_cr2(), regs, error_code);
-@@ -1245,7 +1250,7 @@ static void trace_page_fault_entries(struct pt_regs *regs,
- 		trace_page_fault_kernel(read_cr2(), regs, error_code);
- }
- 
--dotraplinkage void __kprobes
-+dotraplinkage void
- trace_do_page_fault(struct pt_regs *regs, unsigned long error_code)
- {
- 	enum ctx_state prev_state;
-@@ -1255,3 +1260,4 @@ trace_do_page_fault(struct pt_regs *regs, unsigned long error_code)
- 	__do_page_fault(regs, error_code);
- 	exception_exit(prev_state);
- }
-+NOKPROBE_SYMBOL(trace_do_page_fault);
