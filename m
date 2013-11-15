@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail9.hitachi.co.jp ([133.145.228.44]:57639 "EHLO
-	mail9.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758181Ab3KOEyB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Nov 2013 23:54:01 -0500
-Subject: [PATCH -tip RFC v2 13/22] x86/trap: Use NOKPROBE_SYMBOL macro in
- trap.c
+Received: from fallback.hitachi.co.jp ([133.145.228.50]:46361 "EHLO
+	mailxx.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932375Ab3KOE6T (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Nov 2013 23:58:19 -0500
+Subject: [PATCH -tip RFC v2 19/22] [BUGFIX] kprobes/x86: Prohibit probing on
+ debug_stack_*
 From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Date: Fri, 15 Nov 2013 04:53:54 +0000
-Message-ID: <20131115045354.27580.84725.stgit@kbuild-fedora.novalocal>
+Date: Fri, 15 Nov 2013 04:54:10 +0000
+Message-ID: <20131115045410.27580.46763.stgit@kbuild-fedora.novalocal>
 In-Reply-To: <20131115045312.27580.95902.stgit@kbuild-fedora.novalocal>
 References: <20131115045312.27580.95902.stgit@kbuild-fedora.novalocal>
 MIME-Version: 1.0
@@ -16,148 +16,62 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Frederic Weisbecker <fweisbec@gmail.com>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Seiji Aguchi <seiji.aguchi@hds.com>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20131115045354.xXCzVQBtZQ2nGgoA7hGdCRPhFqEjc3U-qPuv6r6RfpA@z>
+Cc: linux-arch@vger.kernel.org, Fenghua Yu <fenghua.yu@intel.com>, Seiji Aguchi <seiji.aguchi@hds.com>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@suse.de>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20131115045410.oRFbgNS3f7vbpNdh6jKc4xADt2-pbwMrlRLPLGFbFdg@z>
 
-Use NOKPROBE_SYMBOL macro to protect functions from kprobes
-instead of __kprobes annotation in trap.c.
-This also applies __always_inline annotation for some cases,
-because NOKPROBE_SYMBOL() will inhibit inlining by referring
-the symbol address.
+Prohibit probing on debug_stack_reset and debug_stack_set_zero.
+Since the both functions are called from TRACE_IRQS_ON/OFF_DEBUG
+macros which run in int3 ist entry, probing it may cause a soft
+lockup.
+
+This happens when the kernel built with CONFIG_DYNAMIC_FTRACE=y
+and CONFIG_TRACE_IRQFLAGS=y.
 
 Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>
+Cc: Borislav Petkov <bp@suse.de>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
 Cc: Seiji Aguchi <seiji.aguchi@hds.com>
-Cc: Frederic Weisbecker <fweisbec@gmail.com>
 ---
- arch/x86/include/asm/traps.h |    2 +-
- arch/x86/kernel/traps.c      |   20 +++++++++++++-------
- 2 files changed, 14 insertions(+), 8 deletions(-)
+ arch/x86/kernel/cpu/common.c |    4 ++++
+ 1 file changed, 4 insertions(+)
 
-diff --git a/arch/x86/include/asm/traps.h b/arch/x86/include/asm/traps.h
-index 58d66fe..ca32508 100644
---- a/arch/x86/include/asm/traps.h
-+++ b/arch/x86/include/asm/traps.h
-@@ -68,7 +68,7 @@ dotraplinkage void do_segment_not_present(struct pt_regs *, long);
- dotraplinkage void do_stack_segment(struct pt_regs *, long);
- #ifdef CONFIG_X86_64
- dotraplinkage void do_double_fault(struct pt_regs *, long);
--asmlinkage __kprobes struct pt_regs *sync_regs(struct pt_regs *);
-+asmlinkage struct pt_regs *sync_regs(struct pt_regs *);
- #endif
- dotraplinkage void do_general_protection(struct pt_regs *, long);
- dotraplinkage void do_page_fault(struct pt_regs *, unsigned long);
-diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
-index ce24c24..e751e3b 100644
---- a/arch/x86/kernel/traps.c
-+++ b/arch/x86/kernel/traps.c
-@@ -106,7 +106,7 @@ static inline void preempt_conditional_cli(struct pt_regs *regs)
- 	preempt_count_dec();
+diff --git a/arch/x86/kernel/cpu/common.c b/arch/x86/kernel/cpu/common.c
+index 1789b06..d0a802a 100644
+--- a/arch/x86/kernel/cpu/common.c
++++ b/arch/x86/kernel/cpu/common.c
+@@ -8,6 +8,7 @@
+ #include <linux/delay.h>
+ #include <linux/sched.h>
+ #include <linux/init.h>
++#include <linux/kprobes.h>
+ #include <linux/kgdb.h>
+ #include <linux/smp.h>
+ #include <linux/io.h>
+@@ -1163,6 +1164,7 @@ int is_debug_stack(unsigned long addr)
+ 		(addr <= __get_cpu_var(debug_stack_addr) &&
+ 		 addr > (__get_cpu_var(debug_stack_addr) - DEBUG_STKSZ));
  }
++NOKPROBE_SYMBOL(is_debug_stack);
  
--static int __kprobes
-+static __always_inline int
- do_trap_no_signal(struct task_struct *tsk, int trapnr, char *str,
- 		  struct pt_regs *regs,	long error_code)
+ DEFINE_PER_CPU(u32, debug_idt_ctr);
+ 
+@@ -1171,6 +1173,7 @@ void debug_stack_set_zero(void)
+ 	this_cpu_inc(debug_idt_ctr);
+ 	load_current_idt();
+ }
++NOKPROBE_SYMBOL(debug_stack_set_zero);
+ 
+ void debug_stack_reset(void)
  {
-@@ -136,7 +136,7 @@ do_trap_no_signal(struct task_struct *tsk, int trapnr, char *str,
- 	return -1;
+@@ -1179,6 +1182,7 @@ void debug_stack_reset(void)
+ 	if (this_cpu_dec_return(debug_idt_ctr) == 0)
+ 		load_current_idt();
  }
++NOKPROBE_SYMBOL(debug_stack_reset);
  
--static void __kprobes
-+static void
- do_trap(int trapnr, int signr, char *str, struct pt_regs *regs,
- 	long error_code, siginfo_t *info)
- {
-@@ -173,6 +173,7 @@ do_trap(int trapnr, int signr, char *str, struct pt_regs *regs,
- 	else
- 		force_sig(signr, tsk);
- }
-+NOKPROBE_SYMBOL(do_trap);
+ #else	/* CONFIG_X86_64 */
  
- #define DO_ERROR(trapnr, signr, str, name)				\
- dotraplinkage void do_##name(struct pt_regs *regs, long error_code)	\
-@@ -267,7 +268,7 @@ dotraplinkage void do_double_fault(struct pt_regs *regs, long error_code)
- }
- #endif
- 
--dotraplinkage void __kprobes
-+dotraplinkage void
- do_general_protection(struct pt_regs *regs, long error_code)
- {
- 	struct task_struct *tsk;
-@@ -313,9 +314,10 @@ do_general_protection(struct pt_regs *regs, long error_code)
- exit:
- 	exception_exit(prev_state);
- }
-+NOKPROBE_SYMBOL(do_general_protection);
- 
- /* May run on IST stack. */
--dotraplinkage void __kprobes notrace do_int3(struct pt_regs *regs, long error_code)
-+dotraplinkage void notrace do_int3(struct pt_regs *regs, long error_code)
- {
- 	enum ctx_state prev_state;
- 
-@@ -354,6 +356,7 @@ dotraplinkage void __kprobes notrace do_int3(struct pt_regs *regs, long error_co
- exit:
- 	exception_exit(prev_state);
- }
-+NOKPROBE_SYMBOL(do_int3);
- 
- #ifdef CONFIG_X86_64
- /*
-@@ -361,7 +364,7 @@ exit:
-  * for scheduling or signal handling. The actual stack switch is done in
-  * entry.S
-  */
--asmlinkage __kprobes struct pt_regs *sync_regs(struct pt_regs *eregs)
-+asmlinkage struct pt_regs *sync_regs(struct pt_regs *eregs)
- {
- 	struct pt_regs *regs = eregs;
- 	/* Did already sync */
-@@ -380,6 +383,7 @@ asmlinkage __kprobes struct pt_regs *sync_regs(struct pt_regs *eregs)
- 		*regs = *eregs;
- 	return regs;
- }
-+NOKPROBE_SYMBOL(sync_regs);
- #endif
- 
- /*
-@@ -406,7 +410,7 @@ asmlinkage __kprobes struct pt_regs *sync_regs(struct pt_regs *eregs)
-  *
-  * May run on IST stack.
-  */
--dotraplinkage void __kprobes do_debug(struct pt_regs *regs, long error_code)
-+dotraplinkage void do_debug(struct pt_regs *regs, long error_code)
- {
- 	struct task_struct *tsk = current;
- 	enum ctx_state prev_state;
-@@ -486,6 +490,7 @@ dotraplinkage void __kprobes do_debug(struct pt_regs *regs, long error_code)
- exit:
- 	exception_exit(prev_state);
- }
-+NOKPROBE_SYMBOL(do_debug);
- 
- /*
-  * Note that we play around with the 'TS' bit in an attempt to get
-@@ -657,7 +662,7 @@ void math_state_restore(void)
- }
- EXPORT_SYMBOL_GPL(math_state_restore);
- 
--dotraplinkage void __kprobes
-+dotraplinkage void
- do_device_not_available(struct pt_regs *regs, long error_code)
- {
- 	enum ctx_state prev_state;
-@@ -683,6 +688,7 @@ do_device_not_available(struct pt_regs *regs, long error_code)
- #endif
- 	exception_exit(prev_state);
- }
-+NOKPROBE_SYMBOL(do_device_not_available);
- 
- #ifdef CONFIG_X86_32
- dotraplinkage void do_iret_error(struct pt_regs *regs, long error_code)
 
