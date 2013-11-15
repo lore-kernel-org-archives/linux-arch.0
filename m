@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail9.hitachi.co.jp ([133.145.228.44]:57507 "EHLO
+Received: from mail9.hitachi.co.jp ([133.145.228.44]:57639 "EHLO
 	mail9.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757835Ab3KOEx2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Nov 2013 23:53:28 -0500
-Subject: [PATCH -tip RFC v2 03/22] kprobes: Show blacklist entries via
- debugfs
+	with ESMTP id S1758181Ab3KOEyB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Nov 2013 23:54:01 -0500
+Subject: [PATCH -tip RFC v2 13/22] x86/trap: Use NOKPROBE_SYMBOL macro in
+ trap.c
 From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Date: Fri, 15 Nov 2013 04:53:25 +0000
-Message-ID: <20131115045325.27580.67011.stgit@kbuild-fedora.novalocal>
+Date: Fri, 15 Nov 2013 04:53:54 +0000
+Message-ID: <20131115045354.27580.84725.stgit@kbuild-fedora.novalocal>
 In-Reply-To: <20131115045312.27580.95902.stgit@kbuild-fedora.novalocal>
 References: <20131115045312.27580.95902.stgit@kbuild-fedora.novalocal>
 MIME-Version: 1.0
@@ -16,101 +16,148 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20131115045325.Zrf0E7v0vjuhhVEzrSX4Xbdsbt8_sWzr_OcjVP_jdrs@z>
+Cc: linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Frederic Weisbecker <fweisbec@gmail.com>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Seiji Aguchi <seiji.aguchi@hds.com>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20131115045354.xXCzVQBtZQ2nGgoA7hGdCRPhFqEjc3U-qPuv6r6RfpA@z>
 
-Show blacklist entries (function names with the address
-range) via /sys/kernel/debug/kprobes/blacklist.
+Use NOKPROBE_SYMBOL macro to protect functions from kprobes
+instead of __kprobes annotation in trap.c.
+This also applies __always_inline annotation for some cases,
+because NOKPROBE_SYMBOL() will inhibit inlining by referring
+the symbol address.
 
 Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
-Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andi Kleen <ak@linux.intel.com>
+Cc: Seiji Aguchi <seiji.aguchi@hds.com>
+Cc: Frederic Weisbecker <fweisbec@gmail.com>
 ---
- kernel/kprobes.c |   61 +++++++++++++++++++++++++++++++++++++++++++++++-------
- 1 file changed, 53 insertions(+), 8 deletions(-)
+ arch/x86/include/asm/traps.h |    2 +-
+ arch/x86/kernel/traps.c      |   20 +++++++++++++-------
+ 2 files changed, 14 insertions(+), 8 deletions(-)
 
-diff --git a/kernel/kprobes.c b/kernel/kprobes.c
-index a3b323e..007235e 100644
---- a/kernel/kprobes.c
-+++ b/kernel/kprobes.c
-@@ -2224,6 +2224,46 @@ static const struct file_operations debugfs_kprobes_operations = {
- 	.release        = seq_release,
- };
- 
-+/* kprobes/blacklist -- shows which functions can not be probed */
-+static void *kprobe_blacklist_seq_start(struct seq_file *m, loff_t *pos)
-+{
-+	return seq_list_start(&kprobe_blacklist, *pos);
-+}
-+
-+static void *kprobe_blacklist_seq_next(struct seq_file *m, void *v, loff_t *pos)
-+{
-+	return seq_list_next(v, &kprobe_blacklist, pos);
-+}
-+
-+static int kprobe_blacklist_seq_show(struct seq_file *m, void *v)
-+{
-+	struct kprobe_blackpoint *bp =
-+		list_entry(v, struct kprobe_blackpoint, list);
-+
-+	seq_printf(m, "0x%p-0x%p\t%s\n", (void *)bp->start_addr,
-+		   (void *)(bp->start_addr + bp->range), bp->name);
-+	return 0;
-+}
-+
-+static const struct seq_operations kprobe_blacklist_seq_ops = {
-+	.start = kprobe_blacklist_seq_start,
-+	.next  = kprobe_blacklist_seq_next,
-+	.stop  = kprobe_seq_stop,	/* Reuse void function */
-+	.show  = kprobe_blacklist_seq_show,
-+};
-+
-+static int kprobe_blacklist_open(struct inode *inode, struct file *filp)
-+{
-+	return seq_open(filp, &kprobe_blacklist_seq_ops);
-+}
-+
-+static const struct file_operations debugfs_kprobe_blacklist_ops = {
-+	.open           = kprobe_blacklist_open,
-+	.read           = seq_read,
-+	.llseek         = seq_lseek,
-+	.release        = seq_release,
-+};
-+
- static void __kprobes arm_all_kprobes(void)
- {
- 	struct hlist_head *head;
-@@ -2347,19 +2387,24 @@ static int __kprobes debugfs_kprobe_init(void)
- 
- 	file = debugfs_create_file("list", 0444, dir, NULL,
- 				&debugfs_kprobes_operations);
--	if (!file) {
--		debugfs_remove(dir);
--		return -ENOMEM;
--	}
-+	if (!file)
-+		goto error;
- 
- 	file = debugfs_create_file("enabled", 0600, dir,
- 					&value, &fops_kp);
--	if (!file) {
--		debugfs_remove(dir);
--		return -ENOMEM;
--	}
-+	if (!file)
-+		goto error;
-+
-+	file = debugfs_create_file("blacklist", 0444, dir, NULL,
-+				&debugfs_kprobe_blacklist_ops);
-+	if (!file)
-+		goto error;
- 
- 	return 0;
-+
-+error:
-+	debugfs_remove(dir);
-+	return -ENOMEM;
+diff --git a/arch/x86/include/asm/traps.h b/arch/x86/include/asm/traps.h
+index 58d66fe..ca32508 100644
+--- a/arch/x86/include/asm/traps.h
++++ b/arch/x86/include/asm/traps.h
+@@ -68,7 +68,7 @@ dotraplinkage void do_segment_not_present(struct pt_regs *, long);
+ dotraplinkage void do_stack_segment(struct pt_regs *, long);
+ #ifdef CONFIG_X86_64
+ dotraplinkage void do_double_fault(struct pt_regs *, long);
+-asmlinkage __kprobes struct pt_regs *sync_regs(struct pt_regs *);
++asmlinkage struct pt_regs *sync_regs(struct pt_regs *);
+ #endif
+ dotraplinkage void do_general_protection(struct pt_regs *, long);
+ dotraplinkage void do_page_fault(struct pt_regs *, unsigned long);
+diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
+index ce24c24..e751e3b 100644
+--- a/arch/x86/kernel/traps.c
++++ b/arch/x86/kernel/traps.c
+@@ -106,7 +106,7 @@ static inline void preempt_conditional_cli(struct pt_regs *regs)
+ 	preempt_count_dec();
  }
  
- late_initcall(debugfs_kprobe_init);
+-static int __kprobes
++static __always_inline int
+ do_trap_no_signal(struct task_struct *tsk, int trapnr, char *str,
+ 		  struct pt_regs *regs,	long error_code)
+ {
+@@ -136,7 +136,7 @@ do_trap_no_signal(struct task_struct *tsk, int trapnr, char *str,
+ 	return -1;
+ }
+ 
+-static void __kprobes
++static void
+ do_trap(int trapnr, int signr, char *str, struct pt_regs *regs,
+ 	long error_code, siginfo_t *info)
+ {
+@@ -173,6 +173,7 @@ do_trap(int trapnr, int signr, char *str, struct pt_regs *regs,
+ 	else
+ 		force_sig(signr, tsk);
+ }
++NOKPROBE_SYMBOL(do_trap);
+ 
+ #define DO_ERROR(trapnr, signr, str, name)				\
+ dotraplinkage void do_##name(struct pt_regs *regs, long error_code)	\
+@@ -267,7 +268,7 @@ dotraplinkage void do_double_fault(struct pt_regs *regs, long error_code)
+ }
+ #endif
+ 
+-dotraplinkage void __kprobes
++dotraplinkage void
+ do_general_protection(struct pt_regs *regs, long error_code)
+ {
+ 	struct task_struct *tsk;
+@@ -313,9 +314,10 @@ do_general_protection(struct pt_regs *regs, long error_code)
+ exit:
+ 	exception_exit(prev_state);
+ }
++NOKPROBE_SYMBOL(do_general_protection);
+ 
+ /* May run on IST stack. */
+-dotraplinkage void __kprobes notrace do_int3(struct pt_regs *regs, long error_code)
++dotraplinkage void notrace do_int3(struct pt_regs *regs, long error_code)
+ {
+ 	enum ctx_state prev_state;
+ 
+@@ -354,6 +356,7 @@ dotraplinkage void __kprobes notrace do_int3(struct pt_regs *regs, long error_co
+ exit:
+ 	exception_exit(prev_state);
+ }
++NOKPROBE_SYMBOL(do_int3);
+ 
+ #ifdef CONFIG_X86_64
+ /*
+@@ -361,7 +364,7 @@ exit:
+  * for scheduling or signal handling. The actual stack switch is done in
+  * entry.S
+  */
+-asmlinkage __kprobes struct pt_regs *sync_regs(struct pt_regs *eregs)
++asmlinkage struct pt_regs *sync_regs(struct pt_regs *eregs)
+ {
+ 	struct pt_regs *regs = eregs;
+ 	/* Did already sync */
+@@ -380,6 +383,7 @@ asmlinkage __kprobes struct pt_regs *sync_regs(struct pt_regs *eregs)
+ 		*regs = *eregs;
+ 	return regs;
+ }
++NOKPROBE_SYMBOL(sync_regs);
+ #endif
+ 
+ /*
+@@ -406,7 +410,7 @@ asmlinkage __kprobes struct pt_regs *sync_regs(struct pt_regs *eregs)
+  *
+  * May run on IST stack.
+  */
+-dotraplinkage void __kprobes do_debug(struct pt_regs *regs, long error_code)
++dotraplinkage void do_debug(struct pt_regs *regs, long error_code)
+ {
+ 	struct task_struct *tsk = current;
+ 	enum ctx_state prev_state;
+@@ -486,6 +490,7 @@ dotraplinkage void __kprobes do_debug(struct pt_regs *regs, long error_code)
+ exit:
+ 	exception_exit(prev_state);
+ }
++NOKPROBE_SYMBOL(do_debug);
+ 
+ /*
+  * Note that we play around with the 'TS' bit in an attempt to get
+@@ -657,7 +662,7 @@ void math_state_restore(void)
+ }
+ EXPORT_SYMBOL_GPL(math_state_restore);
+ 
+-dotraplinkage void __kprobes
++dotraplinkage void
+ do_device_not_available(struct pt_regs *regs, long error_code)
+ {
+ 	enum ctx_state prev_state;
+@@ -683,6 +688,7 @@ do_device_not_available(struct pt_regs *regs, long error_code)
+ #endif
+ 	exception_exit(prev_state);
+ }
++NOKPROBE_SYMBOL(do_device_not_available);
+ 
+ #ifdef CONFIG_X86_32
+ dotraplinkage void do_iret_error(struct pt_regs *regs, long error_code)
 
