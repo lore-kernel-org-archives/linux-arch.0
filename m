@@ -1,13 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fallback.hitachi.co.jp ([133.145.228.50]:46340 "EHLO
+Received: from mailxx.hitachi.co.jp ([133.145.228.50]:46344 "EHLO
 	mailxx.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932276Ab3KOE4r (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Nov 2013 23:56:47 -0500
-Subject: [PATCH -tip RFC v2 17/22] x86/kvm: Use NOKPROBE_SYMBOL macro in
- kvm.c
+	with ESMTP id S932250Ab3KOE4z (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Nov 2013 23:56:55 -0500
+Subject: [PATCH -tip RFC v2 22/22] sched: Use NOKPROBE_SYMBOL macro in sched
 From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Date: Fri, 15 Nov 2013 04:54:05 +0000
-Message-ID: <20131115045405.27580.16710.stgit@kbuild-fedora.novalocal>
+Date: Fri, 15 Nov 2013 04:54:19 +0000
+Message-ID: <20131115045419.27580.71058.stgit@kbuild-fedora.novalocal>
 In-Reply-To: <20131115045312.27580.95902.stgit@kbuild-fedora.novalocal>
 References: <20131115045312.27580.95902.stgit@kbuild-fedora.novalocal>
 MIME-Version: 1.0
@@ -16,47 +15,49 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Gleb Natapov <gleb@redhat.com>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Marcelo Tosatti <mtosatti@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20131115045405.KzQ5On5zikG9nbaEEiR5TI5gEZ-_YFHMDr2hkIUVinA@z>
+Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Peter Zijlstra <peterz@infradead.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20131115045419.-oxyU34nX8mMi8xtxX_DxoWGQckF-g_RbUCK01qbLwg@z>
 
-Use NOKPROBE_SYMBOL macro for protecting functions
-from kprobes instead of __kprobes annotation in kvm.c.
-This also adds kvm_read_and_reset_pf_reason in
-the blacklist because it can be called before
-do_page_fault.
+Use NOKPROBE_SYMBOL macro to protect functions from
+kprobes instead of __kprobes annotation in sched/core.c.
 
 Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Gleb Natapov <gleb@redhat.com>
-Cc: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
-Cc: Marcelo Tosatti <mtosatti@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
 ---
- arch/x86/kernel/kvm.c |    4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ kernel/sched/core.c |    6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/kernel/kvm.c b/arch/x86/kernel/kvm.c
-index 6dd802c..fb95987 100644
---- a/arch/x86/kernel/kvm.c
-+++ b/arch/x86/kernel/kvm.c
-@@ -251,8 +251,9 @@ u32 kvm_read_and_reset_pf_reason(void)
- 	return reason;
- }
- EXPORT_SYMBOL_GPL(kvm_read_and_reset_pf_reason);
-+NOKPROBE_SYMBOL(kvm_read_and_reset_pf_reason);
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index 504fdbd..fece2e3 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -2342,7 +2342,7 @@ notrace unsigned long get_parent_ip(unsigned long addr)
+ #if defined(CONFIG_PREEMPT) && (defined(CONFIG_DEBUG_PREEMPT) || \
+ 				defined(CONFIG_PREEMPT_TRACER))
  
--dotraplinkage void __kprobes
-+dotraplinkage void
- do_async_page_fault(struct pt_regs *regs, unsigned long error_code)
+-void __kprobes preempt_count_add(int val)
++void preempt_count_add(int val)
  {
- 	enum ctx_state prev_state;
-@@ -276,6 +277,7 @@ do_async_page_fault(struct pt_regs *regs, unsigned long error_code)
- 		break;
- 	}
+ #ifdef CONFIG_DEBUG_PREEMPT
+ 	/*
+@@ -2363,8 +2363,9 @@ void __kprobes preempt_count_add(int val)
+ 		trace_preempt_off(CALLER_ADDR0, get_parent_ip(CALLER_ADDR1));
  }
-+NOKPROBE_SYMBOL(do_async_page_fault);
+ EXPORT_SYMBOL(preempt_count_add);
++NOKPROBE_SYMBOL(preempt_count_add);
  
- static void __init paravirt_ops_setup(void)
+-void __kprobes preempt_count_sub(int val)
++void preempt_count_sub(int val)
  {
+ #ifdef CONFIG_DEBUG_PREEMPT
+ 	/*
+@@ -2385,6 +2386,7 @@ void __kprobes preempt_count_sub(int val)
+ 	__preempt_count_sub(val);
+ }
+ EXPORT_SYMBOL(preempt_count_sub);
++NOKPROBE_SYMBOL(preempt_count_sub);
+ 
+ #endif
+ 
 
