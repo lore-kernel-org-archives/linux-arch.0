@@ -1,46 +1,61 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH -tip RFC v2 01/22] kprobes: Prohibit probing on
-	.entry.text code
-Date: Fri, 15 Nov 2013 11:43:06 -0500
-Message-ID: <20131115114306.5d14db66@gandalf.local.home>
-References: <20131115045312.27580.95902.stgit@kbuild-fedora.novalocal>
-	<20131115045318.27580.69554.stgit@kbuild-fedora.novalocal>
+From: Jesper Nilsson <jesper.nilsson@axis.com>
+Subject: Re: [PATCH 02/17] cris: Use Kbuild logic to include
+ <asm-generic/sections.h>
+Date: Fri, 15 Nov 2013 17:52:59 +0100
+Message-ID: <20131115165259.GO17608@axis.com>
+References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
+ <1384285347-13506-3-git-send-email-geert@linux-m68k.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <20131115045318.27580.69554.stgit@kbuild-fedora.novalocal>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, "David
-	S. Miller" <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>, Frederic Weisbecker <fweisbec@gmail.com>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Seiji Aguchi <seiji.aguchi@hds.com>, Ingo Molnar <mingo@kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1384285347-13506-3-git-send-email-geert@linux-m68k.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jespern@axis.com>, linux-cris-kernel <linux-cris-kernel@axis.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 15 Nov 2013 04:53:18 +0000
-Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com> wrote:
+On Tue, Nov 12, 2013 at 08:42:12PM +0100, Geert Uytterhoeven wrote:
+> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> Cc: Mikael Starvik <starvik@axis.com>
 
-> .entry.text is a code area which is used for interrupt/syscall
-> entries, and there are many sensitive codes.
-> Thus, it is better to prohibit probing on all of such codes
-> instead of a part of that.
-> Since some symbols are already registered on kprobe blacklist,
-> this also removes them from the blacklist.
+Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
 
-This change only works with x86. On other archs, I get this:
+> Cc: linux-cris-kernel@axis.com
+> ---
+>  arch/cris/include/asm/Kbuild     |    1 +
+>  arch/cris/include/asm/sections.h |    7 -------
+>  2 files changed, 1 insertion(+), 7 deletions(-)
+>  delete mode 100644 arch/cris/include/asm/sections.h
+> 
+> diff --git a/arch/cris/include/asm/Kbuild b/arch/cris/include/asm/Kbuild
+> index b06caf649a95..44e7d0dbcf32 100644
+> --- a/arch/cris/include/asm/Kbuild
+> +++ b/arch/cris/include/asm/Kbuild
+> @@ -8,6 +8,7 @@ generic-y += exec.h
+>  generic-y += kvm_para.h
+>  generic-y += linkage.h
+>  generic-y += module.h
+> +generic-y += sections.h
+>  generic-y += trace_clock.h
+>  generic-y += vga.h
+>  generic-y += xor.h
+> diff --git a/arch/cris/include/asm/sections.h b/arch/cris/include/asm/sections.h
+> deleted file mode 100644
+> index 2c998ce8967b..000000000000
+> --- a/arch/cris/include/asm/sections.h
+> +++ /dev/null
+> @@ -1,7 +0,0 @@
+> -#ifndef _CRIS_SECTIONS_H
+> -#define _CRIS_SECTIONS_H
+> -
+> -/* nothing to see, move along */
+> -#include <asm-generic/sections.h>
+> -
+> -#endif
+> -- 
+> 1.7.9.5
 
-kernel/built-in.o: In function `register_kprobe':
-(.kprobes.text+0x9f4): undefined reference to `__entry_text_start'
-kernel/built-in.o: In function `register_kprobe':
-(.kprobes.text+0x9f8): undefined reference to `__entry_text_end'
-make[1]: *** [vmlinux] Error 1
-make: *** [sub-make] Error 2
-
--- Steve
+/^JN - Jesper Nilsson
+-- 
+               Jesper Nilsson -- jesper.nilsson@axis.com
