@@ -1,66 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ra.se.axis.com ([195.60.68.13]:57567 "EHLO ra.se.axis.com"
+Received: from mx1.redhat.com ([209.132.183.28]:18782 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751904Ab3KOQxD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 15 Nov 2013 11:53:03 -0500
-Date: Fri, 15 Nov 2013 17:52:59 +0100
-From: Jesper Nilsson <jesper.nilsson@axis.com>
-Subject: Re: [PATCH 02/17] cris: Use Kbuild logic to include
- <asm-generic/sections.h>
-Message-ID: <20131115165259.GO17608@axis.com>
-References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
- <1384285347-13506-3-git-send-email-geert@linux-m68k.org>
+	id S1752584Ab3KPTBH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 16 Nov 2013 14:01:07 -0500
+Date: Sat, 16 Nov 2013 20:01:41 +0100
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: [PATCH 2/3] kill MMF_DUMPABLE and MMF_DUMP_SECURELY
+Message-ID: <20131116190141.GC22666@redhat.com>
+References: <20131101232521.GA23119@www.outflux.net> <20131114170337.GA11068@redhat.com> <CAGXu5jLXpLqjCAMFwKp7t7GpMq4+WBqNzSFC=up+CBvgGDuFCw@mail.gmail.com> <20131115203652.GA13476@redhat.com> <CAGXu5j+=LZYAczLVawGPAxd=9VX1FupWZq+2858GsrD1YprL3w@mail.gmail.com> <20131116190057.GA22666@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1384285347-13506-3-git-send-email-geert@linux-m68k.org>
+In-Reply-To: <20131116190057.GA22666@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jespern@axis.com>, linux-cris-kernel <linux-cris-kernel@axis.com>
-Message-ID: <20131115165259.Xcsf9vn9k4N94EkRCWcIWUdqbNTx3qOYBrn2ejlvXZE@z>
+To: Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>
+Cc: "security@kernel.org" <security@kernel.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Vasily Kulikov <segoon@openwall.com>, Petr Matousek <pmatouse@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alex Kelly <alex.page.kelly@gmail.com>, Josh Triplett <josh@joshtriplett.org>
+Message-ID: <20131116190141.1QoBUWHhG1-DOdJDvSKFGJ6MP3jFp8jJX85J8CAvL6w@z>
 
-On Tue, Nov 12, 2013 at 08:42:12PM +0100, Geert Uytterhoeven wrote:
-> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> Cc: Mikael Starvik <starvik@axis.com>
+Nobody actually needs MMF_DUMPABLE/MMF_DUMP_SECURELY, there
+are only used to enforce the encoding of SUID_DUMP_* enum in
+mm->flags & MMF_DUMPABLE_MASK.
 
-Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
+Now that set_dumpable() updates both bits atomically we can
+kill them and simply store the value "as is" in 2 lower bits.
 
-> Cc: linux-cris-kernel@axis.com
-> ---
->  arch/cris/include/asm/Kbuild     |    1 +
->  arch/cris/include/asm/sections.h |    7 -------
->  2 files changed, 1 insertion(+), 7 deletions(-)
->  delete mode 100644 arch/cris/include/asm/sections.h
-> 
-> diff --git a/arch/cris/include/asm/Kbuild b/arch/cris/include/asm/Kbuild
-> index b06caf649a95..44e7d0dbcf32 100644
-> --- a/arch/cris/include/asm/Kbuild
-> +++ b/arch/cris/include/asm/Kbuild
-> @@ -8,6 +8,7 @@ generic-y += exec.h
->  generic-y += kvm_para.h
->  generic-y += linkage.h
->  generic-y += module.h
-> +generic-y += sections.h
->  generic-y += trace_clock.h
->  generic-y += vga.h
->  generic-y += xor.h
-> diff --git a/arch/cris/include/asm/sections.h b/arch/cris/include/asm/sections.h
-> deleted file mode 100644
-> index 2c998ce8967b..000000000000
-> --- a/arch/cris/include/asm/sections.h
-> +++ /dev/null
-> @@ -1,7 +0,0 @@
-> -#ifndef _CRIS_SECTIONS_H
-> -#define _CRIS_SECTIONS_H
-> -
-> -/* nothing to see, move along */
-> -#include <asm-generic/sections.h>
-> -
-> -#endif
-> -- 
-> 1.7.9.5
+Signed-off-by: Oleg Nesterov <oleg@redhat.com>
+---
+ fs/exec.c             |   18 +++---------------
+ include/linux/sched.h |    4 +---
+ 2 files changed, 4 insertions(+), 18 deletions(-)
 
-/^JN - Jesper Nilsson
+diff --git a/fs/exec.c b/fs/exec.c
+index 613c9dc..5303005 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -1620,8 +1620,7 @@ void set_binfmt(struct linux_binfmt *new)
+ EXPORT_SYMBOL(set_binfmt);
+ 
+ /*
+- * set_dumpable converts traditional three-value dumpable to two flags and
+- * stores them into mm->flags.
++ * set_dumpable stores three-value SUID_DUMP_* into mm->flags.
+  */
+ void set_dumpable(struct mm_struct *mm, int value)
+ {
+@@ -1629,24 +1628,13 @@ void set_dumpable(struct mm_struct *mm, int value)
+ 
+ 	do {
+ 		old = ACCESS_ONCE(mm->flags);
+-		new = old & ~MMF_DUMPABLE_MASK;
+-
+-		switch (value) {
+-		case SUID_DUMP_ROOT:
+-			new |= (1 << MMF_DUMP_SECURELY);
+-		case SUID_DUMP_USER:
+-			new |= (1<< MMF_DUMPABLE);
+-		}
+-
++		new = (old & ~MMF_DUMPABLE_MASK) | value;
+ 	} while (cmpxchg(&mm->flags, old, new) != old);
+ }
+ 
+ int __get_dumpable(unsigned long mm_flags)
+ {
+-	int ret;
+-
+-	ret = mm_flags & MMF_DUMPABLE_MASK;
+-	return (ret > SUID_DUMP_USER) ? SUID_DUMP_ROOT : ret;
++	return mm_flags & MMF_DUMPABLE_MASK;
+ }
+ 
+ /*
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index 838a3d9..828c00d 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -326,10 +326,8 @@ extern int get_dumpable(struct mm_struct *mm);
+ #define SUID_DUMP_ROOT		2	/* Dump as root */
+ 
+ /* mm flags */
+-/* dumpable bits */
+-#define MMF_DUMPABLE      0  /* core dump is permitted */
+-#define MMF_DUMP_SECURELY 1  /* core file is readable only by root */
+ 
++/* for SUID_DUMP_* above */
+ #define MMF_DUMPABLE_BITS 2
+ #define MMF_DUMPABLE_MASK ((1 << MMF_DUMPABLE_BITS) - 1)
+ 
 -- 
-               Jesper Nilsson -- jesper.nilsson@axis.com
+1.5.5.1
+
+
