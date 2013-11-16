@@ -1,86 +1,87 @@
-From: Lennox Wu <lennox.wu@gmail.com>
-Subject: Re: [PATCH 05/17] score: Use Kbuild logic to include <asm-generic/sections.h>
-Date: Sat, 16 Nov 2013 02:05:25 +0800
-Message-ID: <52866265.2020302@gmail.com>
-References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org> <1384285347-13506-6-git-send-email-geert@linux-m68k.org>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: [PATCH 2/3] kill MMF_DUMPABLE and MMF_DUMP_SECURELY
+Date: Sat, 16 Nov 2013 20:01:41 +0100
+Message-ID: <20131116190141.GC22666@redhat.com>
+References: <20131101232521.GA23119@www.outflux.net> <20131114170337.GA11068@redhat.com> <CAGXu5jLXpLqjCAMFwKp7t7GpMq4+WBqNzSFC=up+CBvgGDuFCw@mail.gmail.com> <20131115203652.GA13476@redhat.com> <CAGXu5j+=LZYAczLVawGPAxd=9VX1FupWZq+2858GsrD1YprL3w@mail.gmail.com> <20131116190057.GA22666@redhat.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
- protocol="application/pgp-signature";
- boundary="42XAxbj6C0511c4Lgxhs57B4VvUKKJQdu"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f44.google.com ([209.85.220.44]:58209 "EHLO
-	mail-pa0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751473Ab3KOSFs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Nov 2013 13:05:48 -0500
-In-Reply-To: <1384285347-13506-6-git-send-email-geert@linux-m68k.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Chen Liqin <liqin.linux@gmail.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20131116190057.GA22666@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>
+Cc: "security@kernel.org" <security@kernel.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Vasily Kulikov <segoon@openwall.com>, Petr Matousek <pmatouse@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alex Kelly <alex.page.kelly@gmail.com>, Josh Triplett <josh@joshtriplett.org>
+List-Id: linux-arch.vger.kernel.org
 
-This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
---42XAxbj6C0511c4Lgxhs57B4VvUKKJQdu
-Content-Type: text/plain; charset=Big5
-Content-Transfer-Encoding: quoted-printable
+Nobody actually needs MMF_DUMPABLE/MMF_DUMP_SECURELY, there
+are only used to enforce the encoding of SUID_DUMP_* enum in
+mm->flags & MMF_DUMPABLE_MASK.
 
+Now that set_dumpable() updates both bits atomically we can
+kill them and simply store the value "as is" in 2 lower bits.
 
-  Acked-by: Lennox Wu <lennox.wu@gmail.com>
+Signed-off-by: Oleg Nesterov <oleg@redhat.com>
+---
+ fs/exec.c             |   18 +++---------------
+ include/linux/sched.h |    4 +---
+ 2 files changed, 4 insertions(+), 18 deletions(-)
 
-=A9=F3 2013/11/13 =A4W=A4=C8 03:42, Geert Uytterhoeven =B4=A3=A8=EC:
-> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> Cc: Chen Liqin <liqin.linux@gmail.com>
-> Cc: Lennox Wu <lennox.wu@gmail.com>
-> ---
->  arch/score/include/asm/Kbuild     |    1 +
->  arch/score/include/asm/sections.h |    6 ------
->  2 files changed, 1 insertion(+), 6 deletions(-)
->  delete mode 100644 arch/score/include/asm/sections.h
->
-> diff --git a/arch/score/include/asm/Kbuild b/arch/score/include/asm/Kbu=
-ild
-> index f3414ade77a3..32cd967c19a4 100644
-> --- a/arch/score/include/asm/Kbuild
-> +++ b/arch/score/include/asm/Kbuild
-> @@ -2,6 +2,7 @@
->  header-y +=3D
-> =20
->  generic-y +=3D clkdev.h
-> +generic-y +=3D sections.h
->  generic-y +=3D trace_clock.h
->  generic-y +=3D xor.h
->  generic-y +=3D preempt.h
-> diff --git a/arch/score/include/asm/sections.h b/arch/score/include/asm=
-/sections.h
-> deleted file mode 100644
-> index 9441d23af005..000000000000
-> --- a/arch/score/include/asm/sections.h
-> +++ /dev/null
-> @@ -1,6 +0,0 @@
-> -#ifndef _ASM_SCORE_SECTIONS_H
-> -#define _ASM_SCORE_SECTIONS_H
-> -
-> -#include <asm-generic/sections.h>
-> -
-> -#endif /* _ASM_SCORE_SECTIONS_H */
-
-
-
---42XAxbj6C0511c4Lgxhs57B4VvUKKJQdu
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.7 (MingW32)
-Comment: Using GnuPG with Thunderbird - http://www.enigmail.net/
-
-iQEVAwUBUoZiaRIBnItolwGVAQLJhwf/Yq9YsAeveJsuG7dKN2Q8BJ1PooMrC2IW
-qJzwqsFST6VYV1yE3SaDtfX5cL4K/4AZeClmd9jrv8okdvVwN3CgZw6RhWYouYxZ
-2aFYPvE82KbT2LWQx/V721m0nc1PDDSwC+hH/naDzchnIuFmwDNm/Cdbd4HVv44U
-Dah1mMQq0dQSBVbxRtqAxZgBhN2FzKbq/pHE4gRMDr7MZu8Cxign5+l//5PCO55j
-D8IxNkGyVRxWq8BnJSZzgK5rpj4vqsjKmeCYhECVsqUrLXZujUJccDYGKJgTzDRz
-At1zfAlAaaEpC1dc1DtPNWLL+f9FfznOrotDQMwFRyIfcCNAyEQ+MQ==
-=bjNx
------END PGP SIGNATURE-----
-
---42XAxbj6C0511c4Lgxhs57B4VvUKKJQdu--
+diff --git a/fs/exec.c b/fs/exec.c
+index 613c9dc..5303005 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -1620,8 +1620,7 @@ void set_binfmt(struct linux_binfmt *new)
+ EXPORT_SYMBOL(set_binfmt);
+ 
+ /*
+- * set_dumpable converts traditional three-value dumpable to two flags and
+- * stores them into mm->flags.
++ * set_dumpable stores three-value SUID_DUMP_* into mm->flags.
+  */
+ void set_dumpable(struct mm_struct *mm, int value)
+ {
+@@ -1629,24 +1628,13 @@ void set_dumpable(struct mm_struct *mm, int value)
+ 
+ 	do {
+ 		old = ACCESS_ONCE(mm->flags);
+-		new = old & ~MMF_DUMPABLE_MASK;
+-
+-		switch (value) {
+-		case SUID_DUMP_ROOT:
+-			new |= (1 << MMF_DUMP_SECURELY);
+-		case SUID_DUMP_USER:
+-			new |= (1<< MMF_DUMPABLE);
+-		}
+-
++		new = (old & ~MMF_DUMPABLE_MASK) | value;
+ 	} while (cmpxchg(&mm->flags, old, new) != old);
+ }
+ 
+ int __get_dumpable(unsigned long mm_flags)
+ {
+-	int ret;
+-
+-	ret = mm_flags & MMF_DUMPABLE_MASK;
+-	return (ret > SUID_DUMP_USER) ? SUID_DUMP_ROOT : ret;
++	return mm_flags & MMF_DUMPABLE_MASK;
+ }
+ 
+ /*
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index 838a3d9..828c00d 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -326,10 +326,8 @@ extern int get_dumpable(struct mm_struct *mm);
+ #define SUID_DUMP_ROOT		2	/* Dump as root */
+ 
+ /* mm flags */
+-/* dumpable bits */
+-#define MMF_DUMPABLE      0  /* core dump is permitted */
+-#define MMF_DUMP_SECURELY 1  /* core file is readable only by root */
+ 
++/* for SUID_DUMP_* above */
+ #define MMF_DUMPABLE_BITS 2
+ #define MMF_DUMPABLE_MASK ((1 << MMF_DUMPABLE_BITS) - 1)
+ 
+-- 
+1.5.5.1
