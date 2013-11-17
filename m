@@ -1,105 +1,62 @@
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: [PATCH 1/3] set_dumpable: fix the theoretical race with itself
-Date: Sat, 16 Nov 2013 20:01:21 +0100
-Message-ID: <20131116190121.GB22666@redhat.com>
-References: <20131101232521.GA23119@www.outflux.net> <20131114170337.GA11068@redhat.com> <CAGXu5jLXpLqjCAMFwKp7t7GpMq4+WBqNzSFC=up+CBvgGDuFCw@mail.gmail.com> <20131115203652.GA13476@redhat.com> <CAGXu5j+=LZYAczLVawGPAxd=9VX1FupWZq+2858GsrD1YprL3w@mail.gmail.com> <20131116190057.GA22666@redhat.com>
+From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+Subject: Re: Re: [PATCH -tip RFC v2 01/22] kprobes: Prohibit probing on
+	.entry.text code
+Date: Sun, 17 Nov 2013 16:21:27 +0900
+Message-ID: <52886E77.1000707@hitachi.com>
+References: <20131115045312.27580.95902.stgit@kbuild-fedora.novalocal>
+	<20131115045318.27580.69554.stgit@kbuild-fedora.novalocal>
+	<20131115114306.5d14db66@gandalf.local.home>
+	<CAMuHMdXw+WGKiQuquQL7XOkbRLNOC_SPddY1irRGQwpvDHLMwA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:32688 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751836Ab3KPTEQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 16 Nov 2013 14:04:16 -0500
-Content-Disposition: inline
-In-Reply-To: <20131116190057.GA22666@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: "security@kernel.org" <security@kernel.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Vasily Kulikov <segoon@openwall.com>, Petr Matousek <pmatouse@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alex Kelly <alex.page.kelly@gmail.com>, Josh Triplett <josh@joshtriplett.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <CAMuHMdXw+WGKiQuquQL7XOkbRLNOC_SPddY1irRGQwpvDHLMwA@mail.gmail.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, "David S. Miller" <davem@davemloft.net>, Peter Zijlstra <peterz@infradead.org>, Frederic Weisbecker <fweisbec@gmail.com>, the arch/x86 maintainers <x86@kernel.org>, lkml <linux-kernel@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Seiji Aguchi <seiji.aguchi@hds.com>, Ingo Molnar <mingo@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-set_dumpable() updates MMF_DUMPABLE_MASK in a non-trivial way to
-ensure that get_dumpable() can't observe the intermediate state,
-but this all can't help if multiple threads call set_dumpable()
-at the same time.
+(2013/11/16 2:46), Geert Uytterhoeven wrote:
+> On Fri, Nov 15, 2013 at 5:43 PM, Steven Rostedt <rostedt@goodmis.org> wrote:
+>> On Fri, 15 Nov 2013 04:53:18 +0000
+>> Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com> wrote:
+>>
+>>> .entry.text is a code area which is used for interrupt/syscall
+>>> entries, and there are many sensitive codes.
+>>> Thus, it is better to prohibit probing on all of such codes
+>>> instead of a part of that.
+>>> Since some symbols are already registered on kprobe blacklist,
+>>> this also removes them from the blacklist.
+>>
+>> This change only works with x86. On other archs, I get this:
+>>
+>> kernel/built-in.o: In function `register_kprobe':
+>> (.kprobes.text+0x9f4): undefined reference to `__entry_text_start'
+>> kernel/built-in.o: In function `register_kprobe':
+>> (.kprobes.text+0x9f8): undefined reference to `__entry_text_end'
+>> make[1]: *** [vmlinux] Error 1
+>> make: *** [sub-make] Error 2
+> 
+> X86 is the sole architecture that has ENTRY_TEXT in its
+> arch/*/kernel/vmlinux.lds.S.
 
-And in theory commit_creds()->set_dumpable(SUID_DUMP_ROOT) racing
-with sys_prctl()->set_dumpable(SUID_DUMP_DISABLE) can result in
-SUID_DUMP_USER.
+Ah, thanks! I'll fix that.
+BTW, should I add CONFIG_HAVE_ENTRY_TEXT for x86 and use it
+or just use CONFIG_X86 to detect it?
 
-Change this code to update both bits atomically via cmpxchg().
+Thank you,
 
-Note: this assumes that it is safe to mix bitops and cmpxchg. IOW,
-if, say, an architecture implements cmpxchg() using the locking
-(like arch/parisc/lib/bitops.c does), then it should use the same
-locks for set_bit/etc.
-
-Signed-off-by: Oleg Nesterov <oleg@redhat.com>
----
- fs/exec.c |   49 +++++++++++++++----------------------------------
- 1 files changed, 15 insertions(+), 34 deletions(-)
-
-diff --git a/fs/exec.c b/fs/exec.c
-index bb8afc1..613c9dc 100644
---- a/fs/exec.c
-+++ b/fs/exec.c
-@@ -1621,43 +1621,24 @@ EXPORT_SYMBOL(set_binfmt);
- 
- /*
-  * set_dumpable converts traditional three-value dumpable to two flags and
-- * stores them into mm->flags.  It modifies lower two bits of mm->flags, but
-- * these bits are not changed atomically.  So get_dumpable can observe the
-- * intermediate state.  To avoid doing unexpected behavior, get get_dumpable
-- * return either old dumpable or new one by paying attention to the order of
-- * modifying the bits.
-- *
-- * dumpable |   mm->flags (binary)
-- * old  new | initial interim  final
-- * ---------+-----------------------
-- *  0    1  |   00      01      01
-- *  0    2  |   00      10(*)   11
-- *  1    0  |   01      00      00
-- *  1    2  |   01      11      11
-- *  2    0  |   11      10(*)   00
-- *  2    1  |   11      11      01
-- *
-- * (*) get_dumpable regards interim value of 10 as 11.
-+ * stores them into mm->flags.
-  */
- void set_dumpable(struct mm_struct *mm, int value)
- {
--	switch (value) {
--	case SUID_DUMP_DISABLE:
--		clear_bit(MMF_DUMPABLE, &mm->flags);
--		smp_wmb();
--		clear_bit(MMF_DUMP_SECURELY, &mm->flags);
--		break;
--	case SUID_DUMP_USER:
--		set_bit(MMF_DUMPABLE, &mm->flags);
--		smp_wmb();
--		clear_bit(MMF_DUMP_SECURELY, &mm->flags);
--		break;
--	case SUID_DUMP_ROOT:
--		set_bit(MMF_DUMP_SECURELY, &mm->flags);
--		smp_wmb();
--		set_bit(MMF_DUMPABLE, &mm->flags);
--		break;
--	}
-+	unsigned long old, new;
-+
-+	do {
-+		old = ACCESS_ONCE(mm->flags);
-+		new = old & ~MMF_DUMPABLE_MASK;
-+
-+		switch (value) {
-+		case SUID_DUMP_ROOT:
-+			new |= (1 << MMF_DUMP_SECURELY);
-+		case SUID_DUMP_USER:
-+			new |= (1<< MMF_DUMPABLE);
-+		}
-+
-+	} while (cmpxchg(&mm->flags, old, new) != old);
- }
- 
- int __get_dumpable(unsigned long mm_flags)
 -- 
-1.5.5.1
+Masami HIRAMATSU
+IT Management Research Dept. Linux Technology Center
+Hitachi, Ltd., Yokohama Research Laboratory
+E-mail: masami.hiramatsu.pt@hitachi.com
