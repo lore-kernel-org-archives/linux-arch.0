@@ -1,94 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:18782 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752584Ab3KPTBH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 16 Nov 2013 14:01:07 -0500
-Date: Sat, 16 Nov 2013 20:01:41 +0100
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: [PATCH 2/3] kill MMF_DUMPABLE and MMF_DUMP_SECURELY
-Message-ID: <20131116190141.GC22666@redhat.com>
-References: <20131101232521.GA23119@www.outflux.net> <20131114170337.GA11068@redhat.com> <CAGXu5jLXpLqjCAMFwKp7t7GpMq4+WBqNzSFC=up+CBvgGDuFCw@mail.gmail.com> <20131115203652.GA13476@redhat.com> <CAGXu5j+=LZYAczLVawGPAxd=9VX1FupWZq+2858GsrD1YprL3w@mail.gmail.com> <20131116190057.GA22666@redhat.com>
+Received: from mail9.hitachi.co.jp ([133.145.228.44]:42202 "EHLO
+	mail9.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751686Ab3KQHVb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 17 Nov 2013 02:21:31 -0500
+Message-ID: <52886E77.1000707@hitachi.com>
+Date: Sun, 17 Nov 2013 16:21:27 +0900
+From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20131116190057.GA22666@redhat.com>
+Subject: Re: Re: [PATCH -tip RFC v2 01/22] kprobes: Prohibit probing on
+ .entry.text code
+References: <20131115045312.27580.95902.stgit@kbuild-fedora.novalocal> <20131115045318.27580.69554.stgit@kbuild-fedora.novalocal> <20131115114306.5d14db66@gandalf.local.home> <CAMuHMdXw+WGKiQuquQL7XOkbRLNOC_SPddY1irRGQwpvDHLMwA@mail.gmail.com>
+In-Reply-To: <CAMuHMdXw+WGKiQuquQL7XOkbRLNOC_SPddY1irRGQwpvDHLMwA@mail.gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: "security@kernel.org" <security@kernel.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Vasily Kulikov <segoon@openwall.com>, Petr Matousek <pmatouse@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alex Kelly <alex.page.kelly@gmail.com>, Josh Triplett <josh@joshtriplett.org>
-Message-ID: <20131116190141.1QoBUWHhG1-DOdJDvSKFGJ6MP3jFp8jJX85J8CAvL6w@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Frederic Weisbecker <fweisbec@gmail.com>, the arch/x86 maintainers <x86@kernel.org>, lkml <linux-kernel@vger.kernel.org>, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Seiji Aguchi <seiji.aguchi@hds.com>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20131117072127.LgGBhFeK1-qaoJRswGoxVf3v5poxzBu1EJ9qImCyCW0@z>
 
-Nobody actually needs MMF_DUMPABLE/MMF_DUMP_SECURELY, there
-are only used to enforce the encoding of SUID_DUMP_* enum in
-mm->flags & MMF_DUMPABLE_MASK.
+(2013/11/16 2:46), Geert Uytterhoeven wrote:
+> On Fri, Nov 15, 2013 at 5:43 PM, Steven Rostedt <rostedt@goodmis.org> wrote:
+>> On Fri, 15 Nov 2013 04:53:18 +0000
+>> Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com> wrote:
+>>
+>>> .entry.text is a code area which is used for interrupt/syscall
+>>> entries, and there are many sensitive codes.
+>>> Thus, it is better to prohibit probing on all of such codes
+>>> instead of a part of that.
+>>> Since some symbols are already registered on kprobe blacklist,
+>>> this also removes them from the blacklist.
+>>
+>> This change only works with x86. On other archs, I get this:
+>>
+>> kernel/built-in.o: In function `register_kprobe':
+>> (.kprobes.text+0x9f4): undefined reference to `__entry_text_start'
+>> kernel/built-in.o: In function `register_kprobe':
+>> (.kprobes.text+0x9f8): undefined reference to `__entry_text_end'
+>> make[1]: *** [vmlinux] Error 1
+>> make: *** [sub-make] Error 2
+> 
+> X86 is the sole architecture that has ENTRY_TEXT in its
+> arch/*/kernel/vmlinux.lds.S.
 
-Now that set_dumpable() updates both bits atomically we can
-kill them and simply store the value "as is" in 2 lower bits.
+Ah, thanks! I'll fix that.
+BTW, should I add CONFIG_HAVE_ENTRY_TEXT for x86 and use it
+or just use CONFIG_X86 to detect it?
 
-Signed-off-by: Oleg Nesterov <oleg@redhat.com>
----
- fs/exec.c             |   18 +++---------------
- include/linux/sched.h |    4 +---
- 2 files changed, 4 insertions(+), 18 deletions(-)
+Thank you,
 
-diff --git a/fs/exec.c b/fs/exec.c
-index 613c9dc..5303005 100644
---- a/fs/exec.c
-+++ b/fs/exec.c
-@@ -1620,8 +1620,7 @@ void set_binfmt(struct linux_binfmt *new)
- EXPORT_SYMBOL(set_binfmt);
- 
- /*
-- * set_dumpable converts traditional three-value dumpable to two flags and
-- * stores them into mm->flags.
-+ * set_dumpable stores three-value SUID_DUMP_* into mm->flags.
-  */
- void set_dumpable(struct mm_struct *mm, int value)
- {
-@@ -1629,24 +1628,13 @@ void set_dumpable(struct mm_struct *mm, int value)
- 
- 	do {
- 		old = ACCESS_ONCE(mm->flags);
--		new = old & ~MMF_DUMPABLE_MASK;
--
--		switch (value) {
--		case SUID_DUMP_ROOT:
--			new |= (1 << MMF_DUMP_SECURELY);
--		case SUID_DUMP_USER:
--			new |= (1<< MMF_DUMPABLE);
--		}
--
-+		new = (old & ~MMF_DUMPABLE_MASK) | value;
- 	} while (cmpxchg(&mm->flags, old, new) != old);
- }
- 
- int __get_dumpable(unsigned long mm_flags)
- {
--	int ret;
--
--	ret = mm_flags & MMF_DUMPABLE_MASK;
--	return (ret > SUID_DUMP_USER) ? SUID_DUMP_ROOT : ret;
-+	return mm_flags & MMF_DUMPABLE_MASK;
- }
- 
- /*
-diff --git a/include/linux/sched.h b/include/linux/sched.h
-index 838a3d9..828c00d 100644
---- a/include/linux/sched.h
-+++ b/include/linux/sched.h
-@@ -326,10 +326,8 @@ extern int get_dumpable(struct mm_struct *mm);
- #define SUID_DUMP_ROOT		2	/* Dump as root */
- 
- /* mm flags */
--/* dumpable bits */
--#define MMF_DUMPABLE      0  /* core dump is permitted */
--#define MMF_DUMP_SECURELY 1  /* core file is readable only by root */
- 
-+/* for SUID_DUMP_* above */
- #define MMF_DUMPABLE_BITS 2
- #define MMF_DUMPABLE_MASK ((1 << MMF_DUMPABLE_BITS) - 1)
- 
 -- 
-1.5.5.1
+Masami HIRAMATSU
+IT Management Research Dept. Linux Technology Center
+Hitachi, Ltd., Yokohama Research Laboratory
+E-mail: masami.hiramatsu.pt@hitachi.com
 
 
