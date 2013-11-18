@@ -1,35 +1,109 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH v6 3/5] qrwlock: Enable fair queue read/write lock
-Date: Mon, 18 Nov 2013 10:38:13 -0800
-Message-ID: <CA+55aFyH_BUrrzft-1JGZ5zL=KxGrUESBBOZnzT=nQm6Ld0V+Q@mail.gmail.com>
-References: <1384267735-43213-1-git-send-email-Waiman.Long@hp.com>
-	<1384267735-43213-5-git-send-email-Waiman.Long@hp.com>
-	<CA+55aFxXu7eC1WGfZ=_JQbLLJHM5HYRkJPjm3jBDC51SL66Ecw@mail.gmail.com>
-	<20131118183433.GB29695@two.firstfloor.org>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH 2/3] kill MMF_DUMPABLE and MMF_DUMP_SECURELY
+Date: Mon, 18 Nov 2013 10:38:33 -0800
+Message-ID: <CAGXu5jK4sJ6zwi+rPqP-FjwY4C+6gsOVUOBfN7ztu9wNQYnk4g@mail.gmail.com>
+References: <20131101232521.GA23119@www.outflux.net>
+	<20131114170337.GA11068@redhat.com>
+	<CAGXu5jLXpLqjCAMFwKp7t7GpMq4+WBqNzSFC=up+CBvgGDuFCw@mail.gmail.com>
+	<20131115203652.GA13476@redhat.com>
+	<CAGXu5j+=LZYAczLVawGPAxd=9VX1FupWZq+2858GsrD1YprL3w@mail.gmail.com>
+	<20131116190057.GA22666@redhat.com>
+	<20131116190141.GC22666@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ve0-f174.google.com ([209.85.128.174]:35222 "EHLO
-	mail-ve0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751896Ab3KRSiQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Nov 2013 13:38:16 -0500
-In-Reply-To: <20131118183433.GB29695@two.firstfloor.org>
+Received: from mail-oa0-f41.google.com ([209.85.219.41]:40285 "EHLO
+	mail-oa0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752228Ab3KRSie (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Nov 2013 13:38:34 -0500
+Received: by mail-oa0-f41.google.com with SMTP id g12so7670530oah.14
+        for <linux-arch@vger.kernel.org>; Mon, 18 Nov 2013 10:38:33 -0800 (PST)
+In-Reply-To: <20131116190141.GC22666@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andi Kleen <andi@firstfloor.org>
-Cc: Waiman Long <Waiman.Long@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "security@kernel.org" <security@kernel.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Vasily Kulikov <segoon@openwall.com>, Petr Matousek <pmatouse@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Alex Kelly <alex.page.kelly@gmail.com>, Josh Triplett <josh@joshtriplett.org>
 
-On Mon, Nov 18, 2013 at 10:34 AM, Andi Kleen <andi@firstfloor.org> wrote:
+On Sat, Nov 16, 2013 at 11:01 AM, Oleg Nesterov <oleg@redhat.com> wrote:
+> Nobody actually needs MMF_DUMPABLE/MMF_DUMP_SECURELY, there
+> are only used to enforce the encoding of SUID_DUMP_* enum in
+> mm->flags & MMF_DUMPABLE_MASK.
 >
-> FWIW unfair can be faster in some cases. It depends on the workload.
+> Now that set_dumpable() updates both bits atomically we can
+> kill them and simply store the value "as is" in 2 lower bits.
+>
+> Signed-off-by: Oleg Nesterov <oleg@redhat.com>
+> ---
+>  fs/exec.c             |   18 +++---------------
+>  include/linux/sched.h |    4 +---
+>  2 files changed, 4 insertions(+), 18 deletions(-)
+>
+> diff --git a/fs/exec.c b/fs/exec.c
+> index 613c9dc..5303005 100644
+> --- a/fs/exec.c
+> +++ b/fs/exec.c
+> @@ -1620,8 +1620,7 @@ void set_binfmt(struct linux_binfmt *new)
+>  EXPORT_SYMBOL(set_binfmt);
+>
+>  /*
+> - * set_dumpable converts traditional three-value dumpable to two flags and
+> - * stores them into mm->flags.
+> + * set_dumpable stores three-value SUID_DUMP_* into mm->flags.
+>   */
+>  void set_dumpable(struct mm_struct *mm, int value)
+>  {
+> @@ -1629,24 +1628,13 @@ void set_dumpable(struct mm_struct *mm, int value)
+>
+>         do {
+>                 old = ACCESS_ONCE(mm->flags);
+> -               new = old & ~MMF_DUMPABLE_MASK;
+> -
+> -               switch (value) {
+> -               case SUID_DUMP_ROOT:
+> -                       new |= (1 << MMF_DUMP_SECURELY);
+> -               case SUID_DUMP_USER:
+> -                       new |= (1<< MMF_DUMPABLE);
+> -               }
+> -
+> +               new = (old & ~MMF_DUMPABLE_MASK) | value;
 
-Sure. And we've never cared before.
+Just to make this safe against insane callers, perhaps mask the value as well?
 
-When we switched over to the ticket spinlocks, we actually had
-*numbers* about how the old unfair spinlocks could be faster. And we
-still didn't leave a "unfair spinlocks" option. Because it didn't make
-sense.
+    new = (old & ~MMF_DUMPABLE_MASK) | (value & MMF_DUMPABLE_MASK);
 
-Why would it make sense here?
+>         } while (cmpxchg(&mm->flags, old, new) != old);
+>  }
+>
+>  int __get_dumpable(unsigned long mm_flags)
+>  {
+> -       int ret;
+> -
+> -       ret = mm_flags & MMF_DUMPABLE_MASK;
+> -       return (ret > SUID_DUMP_USER) ? SUID_DUMP_ROOT : ret;
+> +       return mm_flags & MMF_DUMPABLE_MASK;
+>  }
+>
+>  /*
+> diff --git a/include/linux/sched.h b/include/linux/sched.h
+> index 838a3d9..828c00d 100644
+> --- a/include/linux/sched.h
+> +++ b/include/linux/sched.h
+> @@ -326,10 +326,8 @@ extern int get_dumpable(struct mm_struct *mm);
+>  #define SUID_DUMP_ROOT         2       /* Dump as root */
+>
+>  /* mm flags */
+> -/* dumpable bits */
+> -#define MMF_DUMPABLE      0  /* core dump is permitted */
+> -#define MMF_DUMP_SECURELY 1  /* core file is readable only by root */
+>
+> +/* for SUID_DUMP_* above */
+>  #define MMF_DUMPABLE_BITS 2
+>  #define MMF_DUMPABLE_MASK ((1 << MMF_DUMPABLE_BITS) - 1)
 
-                Linus
+Besides that, looks great.
+
+-Kees
+
+-- 
+Kees Cook
+Chrome OS Security
