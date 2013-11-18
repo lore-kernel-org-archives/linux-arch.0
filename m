@@ -1,36 +1,61 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH v6 3/5] qrwlock: Enable fair queue read/write lock
-Date: Mon, 18 Nov 2013 10:55:37 -0800
-Message-ID: <CA+55aFwhX-6DzxKMPk=NTmSGt1GNHE6XTHZcss+Q=hC-epC7cQ@mail.gmail.com>
-References: <1384267735-43213-1-git-send-email-Waiman.Long@hp.com>
-	<1384267735-43213-5-git-send-email-Waiman.Long@hp.com>
-	<CA+55aFxXu7eC1WGfZ=_JQbLLJHM5HYRkJPjm3jBDC51SL66Ecw@mail.gmail.com>
-	<20131118183433.GB29695@two.firstfloor.org>
-	<CA+55aFyH_BUrrzft-1JGZ5zL=KxGrUESBBOZnzT=nQm6Ld0V+Q@mail.gmail.com>
-	<20131118184644.GC29695@two.firstfloor.org>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH 2/3] kill MMF_DUMPABLE and MMF_DUMP_SECURELY
+Date: Mon, 18 Nov 2013 20:16:00 +0100
+Message-ID: <20131118191600.GA14679@redhat.com>
+References: <20131101232521.GA23119@www.outflux.net> <20131114170337.GA11068@redhat.com> <CAGXu5jLXpLqjCAMFwKp7t7GpMq4+WBqNzSFC=up+CBvgGDuFCw@mail.gmail.com> <20131115203652.GA13476@redhat.com> <CAGXu5j+=LZYAczLVawGPAxd=9VX1FupWZq+2858GsrD1YprL3w@mail.gmail.com> <20131116190057.GA22666@redhat.com> <20131116190141.GC22666@redhat.com> <CAGXu5jK4sJ6zwi+rPqP-FjwY4C+6gsOVUOBfN7ztu9wNQYnk4g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20131118184644.GC29695@two.firstfloor.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andi Kleen <andi@firstfloor.org>
-Cc: Waiman Long <Waiman.Long@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:6809 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751612Ab3KRTO6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 18 Nov 2013 14:14:58 -0500
+Content-Disposition: inline
+In-Reply-To: <CAGXu5jK4sJ6zwi+rPqP-FjwY4C+6gsOVUOBfN7ztu9wNQYnk4g@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Kees Cook <keescook@chromium.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "security@kernel.org" <security@kernel.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Vasily Kulikov <segoon@openwall.com>, Petr Matousek <pmatouse@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Alex Kelly <alex.page.kelly@gmail.com>, Josh Triplett <josh@joshtriplett.org>
 
-On Mon, Nov 18, 2013 at 10:46 AM, Andi Kleen <andi@firstfloor.org> wrote:
->> Why would it make sense here?
+On 11/18, Kees Cook wrote:
 >
-> There may be cases were switching all read locks to unfair may make
-> concerete workloads slower.
+> On Sat, Nov 16, 2013 at 11:01 AM, Oleg Nesterov <oleg@redhat.com> wrote:
+> > @@ -1629,24 +1628,13 @@ void set_dumpable(struct mm_struct *mm, int value)
+> >
+> >         do {
+> >                 old = ACCESS_ONCE(mm->flags);
+> > -               new = old & ~MMF_DUMPABLE_MASK;
+> > -
+> > -               switch (value) {
+> > -               case SUID_DUMP_ROOT:
+> > -                       new |= (1 << MMF_DUMP_SECURELY);
+> > -               case SUID_DUMP_USER:
+> > -                       new |= (1<< MMF_DUMPABLE);
+> > -               }
+> > -
+> > +               new = (old & ~MMF_DUMPABLE_MASK) | value;
+>
+> Just to make this safe against insane callers, perhaps mask the value as well?
 
-Sorry, but I don't believe in "may be" as an excuse for complexity.
-Especially since the "may be" faster performance is often coupled with
-"known latency problems due to unfairness".
+Well yes, before this patch set_dumpable() silently ignored the wrong
+value, perhaps you are right but see below.
 
-I'd want numbers for real loads if we really want the extra complexity.
+>     new = (old & ~MMF_DUMPABLE_MASK) | (value & MMF_DUMPABLE_MASK);
+                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Right now, the real numbers I can point to is in the size of the
-patch, and the extra code complexity. Yes, I see the microbenchmark
-numbers, but those are pretty much irrelevant to real loads.
+this doesn't really help, with this patch "mm->flags & MMF_DUMPABLE_MASK"
+has a room for yet another SUID_DUMP == 4 we do not have yet.
 
-                    Linus
+And I don't really like the "silently ignore" logic, so perhaps
+
+		if (WARN_ON(value > SUID_DUMP_ROOT))
+			return;
+
+at the start makes more sense?
+
+Or perhaps we do not really need the additional check? suid_dumpable
+is always sane, other callers can't use the wrong value.
+
+But I am fine either way, please tell me what do you prefer.
+
+Oleg.
