@@ -1,56 +1,44 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH 1/3] set_dumpable: fix the theoretical race with itself
-Date: Mon, 18 Nov 2013 08:36:48 -0800
-Message-ID: <CAGXu5jK1mqQzrHodkMNqQD5jMs164=nMB27KKpUyWePnjo5pSw@mail.gmail.com>
-References: <20131101232521.GA23119@www.outflux.net>
-	<20131114170337.GA11068@redhat.com>
-	<CAGXu5jLXpLqjCAMFwKp7t7GpMq4+WBqNzSFC=up+CBvgGDuFCw@mail.gmail.com>
-	<20131115203652.GA13476@redhat.com>
-	<CAGXu5j+=LZYAczLVawGPAxd=9VX1FupWZq+2858GsrD1YprL3w@mail.gmail.com>
-	<20131116190057.GA22666@redhat.com>
-	<20131116190121.GB22666@redhat.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH v6 3/5] qrwlock: Enable fair queue read/write lock
+Date: Mon, 18 Nov 2013 10:11:48 -0800
+Message-ID: <CA+55aFxXu7eC1WGfZ=_JQbLLJHM5HYRkJPjm3jBDC51SL66Ecw@mail.gmail.com>
+References: <1384267735-43213-1-git-send-email-Waiman.Long@hp.com>
+	<1384267735-43213-5-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f178.google.com ([209.85.214.178]:37127 "EHLO
-	mail-ob0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751373Ab3KRQgs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Nov 2013 11:36:48 -0500
-Received: by mail-ob0-f178.google.com with SMTP id va2so7209822obc.37
-        for <linux-arch@vger.kernel.org>; Mon, 18 Nov 2013 08:36:48 -0800 (PST)
-In-Reply-To: <20131116190121.GB22666@redhat.com>
+Received: from mail-ve0-f170.google.com ([209.85.128.170]:57642 "EHLO
+	mail-ve0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751297Ab3KRSLv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Nov 2013 13:11:51 -0500
+In-Reply-To: <1384267735-43213-5-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, "security@kernel.org" <security@kernel.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Vasily Kulikov <segoon@openwall.com>, Petr Matousek <pmatouse@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Alex Kelly <alex.page.kelly@gmail.com>, Josh Triplett <josh@joshtriplett.org>
+To: Waiman Long <Waiman.Long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>
 
-On Sat, Nov 16, 2013 at 11:01 AM, Oleg Nesterov <oleg@redhat.com> wrote:
-> set_dumpable() updates MMF_DUMPABLE_MASK in a non-trivial way to
-> ensure that get_dumpable() can't observe the intermediate state,
-> but this all can't help if multiple threads call set_dumpable()
-> at the same time.
->
-> And in theory commit_creds()->set_dumpable(SUID_DUMP_ROOT) racing
-> with sys_prctl()->set_dumpable(SUID_DUMP_DISABLE) can result in
-> SUID_DUMP_USER.
->
-> Change this code to update both bits atomically via cmpxchg().
->
-> Note: this assumes that it is safe to mix bitops and cmpxchg. IOW,
-> if, say, an architecture implements cmpxchg() using the locking
-> (like arch/parisc/lib/bitops.c does), then it should use the same
-> locks for set_bit/etc.
->
-> Signed-off-by: Oleg Nesterov <oleg@redhat.com>
+On Tue, Nov 12, 2013 at 6:48 AM, Waiman Long <Waiman.Long@hp.com> wrote:
+> By default, queue rwlock is fair among writers and gives preference
+> to readers allowing them to steal lock even if a writer is
+> waiting. However, there is a desire to have a fair variant of
+> rwlock that is more deterministic. To enable this [..]
 
-I can't speak to the bitops/cmpxchg, but the rest looks fine to me.
+Is there really any point in having the option for unfair at all?
 
-Acked-by: Kees Cook <keescook@chromium.org>
+From your timings, it looks like the unfair locks are more expensive
+for the writer side, but since pretty much the whole point of rwlocks
+is when readers are the common case, I don't think we care.
 
-Thanks!
+And I'm not at all convinced we want the complexity of two different
+kinds of rwlocks with different semantics and extra code for said
+semantics..
 
--Kees
+Your *original* fair rwlocks were unusable, since they didn't allow
+for the irq semantics that most users need, but afaik your current
+version always makes an irq/bh-context reader work even when the lock
+is otherwise trying to be fair, so this whole dual behavior seems to
+be largely pointless.
 
--- 
-Kees Cook
-Chrome OS Security
+No?
+
+                        Linus
