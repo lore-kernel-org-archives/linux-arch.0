@@ -1,108 +1,34 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH 2/3] kill MMF_DUMPABLE and MMF_DUMP_SECURELY
-Date: Mon, 18 Nov 2013 10:38:33 -0800
-Message-ID: <CAGXu5jK4sJ6zwi+rPqP-FjwY4C+6gsOVUOBfN7ztu9wNQYnk4g@mail.gmail.com>
+Subject: Re: [PATCH 3/3] make __get_dumpable/get_dumpable inline, kill fs/coredump.h
+Date: Mon, 18 Nov 2013 10:39:21 -0800
+Message-ID: <CAGXu5jLxD6fqMxakwNP+dToFS=aZ-AyLaPZu9LaoSkYofoq10w@mail.gmail.com>
 References: <20131101232521.GA23119@www.outflux.net>
 	<20131114170337.GA11068@redhat.com>
 	<CAGXu5jLXpLqjCAMFwKp7t7GpMq4+WBqNzSFC=up+CBvgGDuFCw@mail.gmail.com>
 	<20131115203652.GA13476@redhat.com>
 	<CAGXu5j+=LZYAczLVawGPAxd=9VX1FupWZq+2858GsrD1YprL3w@mail.gmail.com>
 	<20131116190057.GA22666@redhat.com>
-	<20131116190141.GC22666@redhat.com>
+	<20131116190202.GD22666@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oa0-f41.google.com ([209.85.219.41]:40285 "EHLO
-	mail-oa0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752228Ab3KRSie (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Nov 2013 13:38:34 -0500
-Received: by mail-oa0-f41.google.com with SMTP id g12so7670530oah.14
-        for <linux-arch@vger.kernel.org>; Mon, 18 Nov 2013 10:38:33 -0800 (PST)
-In-Reply-To: <20131116190141.GC22666@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20131116190202.GD22666@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Oleg Nesterov <oleg@redhat.com>
 Cc: Andrew Morton <akpm@linux-foundation.org>, "security@kernel.org" <security@kernel.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Vasily Kulikov <segoon@openwall.com>, Petr Matousek <pmatouse@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Alex Kelly <alex.page.kelly@gmail.com>, Josh Triplett <josh@joshtriplett.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, Nov 16, 2013 at 11:01 AM, Oleg Nesterov <oleg@redhat.com> wrote:
-> Nobody actually needs MMF_DUMPABLE/MMF_DUMP_SECURELY, there
-> are only used to enforce the encoding of SUID_DUMP_* enum in
-> mm->flags & MMF_DUMPABLE_MASK.
+On Sat, Nov 16, 2013 at 11:02 AM, Oleg Nesterov <oleg@redhat.com> wrote:
+> 1. Remove fs/coredump.h. It is not clear why do we need it,
+>    it only declares __get_dumpable(), signal.c includes it
+>    for no reason.
 >
-> Now that set_dumpable() updates both bits atomically we can
-> kill them and simply store the value "as is" in 2 lower bits.
+> 2. Now that get_dumpable() and __get_dumpable() are really
+>    trivial make them inline in linux/sched.h.
 >
 > Signed-off-by: Oleg Nesterov <oleg@redhat.com>
-> ---
->  fs/exec.c             |   18 +++---------------
->  include/linux/sched.h |    4 +---
->  2 files changed, 4 insertions(+), 18 deletions(-)
->
-> diff --git a/fs/exec.c b/fs/exec.c
-> index 613c9dc..5303005 100644
-> --- a/fs/exec.c
-> +++ b/fs/exec.c
-> @@ -1620,8 +1620,7 @@ void set_binfmt(struct linux_binfmt *new)
->  EXPORT_SYMBOL(set_binfmt);
->
->  /*
-> - * set_dumpable converts traditional three-value dumpable to two flags and
-> - * stores them into mm->flags.
-> + * set_dumpable stores three-value SUID_DUMP_* into mm->flags.
->   */
->  void set_dumpable(struct mm_struct *mm, int value)
->  {
-> @@ -1629,24 +1628,13 @@ void set_dumpable(struct mm_struct *mm, int value)
->
->         do {
->                 old = ACCESS_ONCE(mm->flags);
-> -               new = old & ~MMF_DUMPABLE_MASK;
-> -
-> -               switch (value) {
-> -               case SUID_DUMP_ROOT:
-> -                       new |= (1 << MMF_DUMP_SECURELY);
-> -               case SUID_DUMP_USER:
-> -                       new |= (1<< MMF_DUMPABLE);
-> -               }
-> -
-> +               new = (old & ~MMF_DUMPABLE_MASK) | value;
 
-Just to make this safe against insane callers, perhaps mask the value as well?
-
-    new = (old & ~MMF_DUMPABLE_MASK) | (value & MMF_DUMPABLE_MASK);
-
->         } while (cmpxchg(&mm->flags, old, new) != old);
->  }
->
->  int __get_dumpable(unsigned long mm_flags)
->  {
-> -       int ret;
-> -
-> -       ret = mm_flags & MMF_DUMPABLE_MASK;
-> -       return (ret > SUID_DUMP_USER) ? SUID_DUMP_ROOT : ret;
-> +       return mm_flags & MMF_DUMPABLE_MASK;
->  }
->
->  /*
-> diff --git a/include/linux/sched.h b/include/linux/sched.h
-> index 838a3d9..828c00d 100644
-> --- a/include/linux/sched.h
-> +++ b/include/linux/sched.h
-> @@ -326,10 +326,8 @@ extern int get_dumpable(struct mm_struct *mm);
->  #define SUID_DUMP_ROOT         2       /* Dump as root */
->
->  /* mm flags */
-> -/* dumpable bits */
-> -#define MMF_DUMPABLE      0  /* core dump is permitted */
-> -#define MMF_DUMP_SECURELY 1  /* core file is readable only by root */
->
-> +/* for SUID_DUMP_* above */
->  #define MMF_DUMPABLE_BITS 2
->  #define MMF_DUMPABLE_MASK ((1 << MMF_DUMPABLE_BITS) - 1)
-
-Besides that, looks great.
-
--Kees
+Acked-by: Kees Cook <keescook@chromium.org>
 
 -- 
 Kees Cook
