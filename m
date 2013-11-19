@@ -1,82 +1,105 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gerard.telenet-ops.be ([195.130.132.48]:46674 "EHLO
+Received: from gerard.telenet-ops.be ([195.130.132.48]:46739 "EHLO
 	gerard.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751663Ab3KSLMm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Nov 2013 06:12:42 -0500
+	with ESMTP id S1752305Ab3KSLMn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Nov 2013 06:12:43 -0500
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH 1/9] dt: Handle passed/built-in DT selection in early_init_dt_scan()
-Date: Tue, 19 Nov 2013 12:12:26 +0100
-Message-ID: <1384859554-27268-1-git-send-email-geert@linux-m68k.org>
-In-Reply-To: <5283A000.8090007@gmail.com>
+Subject: [PATCH 7/9] mips: Use NULL as the default DTB
+Date: Tue, 19 Nov 2013 12:12:32 +0100
+Message-ID: <1384859554-27268-7-git-send-email-geert@linux-m68k.org>
+In-Reply-To: <1384859554-27268-1-git-send-email-geert@linux-m68k.org>
 References: <5283A000.8090007@gmail.com>
+ <1384859554-27268-1-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Rob Herring <rob.herring@calxeda.com>
-Cc: devicetree@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>
-Message-ID: <20131119111226.0g1_gr3eU1NCQOvGU-FKHwwVM3He2epwanE9uTeCknc@z>
+Cc: devicetree@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, linux-mips@linux-mips.org
+Message-ID: <20131119111232.GbJOFmadGTk4Fy-6bxwX2M87UOFG9yRgT6C8snn-LUQ@z>
 
-Let early_init_dt_scan() fall-back to the built-in DT if no DT was passed,
-or if it's invalid, so architectures don't have to duplicate this logic.
+early_init_dt_scan() now takes care of falling back to the built-in DTB.
 
-Suggested-by: Rob Herring <rob.herring@calxeda.com>
+On Netlogic XLP, use initial_boot_params in device_tree_init(), like
+the other MIPS sub-platforms do, as xlp_fdt_blob will now be NULL when
+using the default built-in DTB.
+
 Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: linux-mips@linux-mips.org
 ---
- drivers/of/fdt.c       |   24 +++++++++++++++++-------
- include/linux/of_fdt.h |    1 +
- 2 files changed, 18 insertions(+), 7 deletions(-)
+ arch/mips/lantiq/prom.c           |    2 +-
+ arch/mips/mti-sead3/sead3-setup.c |    2 +-
+ arch/mips/netlogic/xlp/dt.c       |    8 +++-----
+ arch/mips/ralink/of.c             |    2 +-
+ 4 files changed, 6 insertions(+), 8 deletions(-)
 
-diff --git a/drivers/of/fdt.c b/drivers/of/fdt.c
-index 2fa024b97c43..a797cd43bc8b 100644
---- a/drivers/of/fdt.c
-+++ b/drivers/of/fdt.c
-@@ -868,18 +868,28 @@ void * __init __weak early_init_dt_alloc_memory_arch(u64 size, u64 align)
+diff --git a/arch/mips/lantiq/prom.c b/arch/mips/lantiq/prom.c
+index 19686c5bc5ed..582f6e4a5f6d 100644
+--- a/arch/mips/lantiq/prom.c
++++ b/arch/mips/lantiq/prom.c
+@@ -71,7 +71,7 @@ void __init plat_mem_setup(void)
+ 	 * Load the builtin devicetree. This causes the chosen node to be
+ 	 * parsed resulting in our memory appearing
+ 	 */
+-	__dt_setup_arch(&__dtb_start);
++	__dt_setup_arch(NULL);
+ }
  
- bool __init early_init_dt_scan(void *params)
- {
--	if (!params)
--		return false;
--
- 	/* Setup flat device-tree pointer */
- 	initial_boot_params = params;
+ void __init device_tree_init(void)
+diff --git a/arch/mips/mti-sead3/sead3-setup.c b/arch/mips/mti-sead3/sead3-setup.c
+index 928ba84c8a78..3afec4507ea5 100644
+--- a/arch/mips/mti-sead3/sead3-setup.c
++++ b/arch/mips/mti-sead3/sead3-setup.c
+@@ -25,7 +25,7 @@ void __init plat_mem_setup(void)
+ 	 * Load the builtin devicetree. This causes the chosen node to be
+ 	 * parsed resulting in our memory appearing
+ 	 */
+-	__dt_setup_arch(&__dtb_start);
++	__dt_setup_arch(NULL);
+ }
  
--	/* check device tree validity */
--	if (be32_to_cpu(initial_boot_params->magic) != OF_DT_HEADER) {
--		initial_boot_params = NULL;
--		return false;
-+	/* check passed device tree validity */
-+	if (initial_boot_params &&
-+	    be32_to_cpu(initial_boot_params->magic) == OF_DT_HEADER) {
-+		pr_info("FDT at %p\n", initial_boot_params);
-+		goto found;
-+	}
-+
-+	/* check built-in device tree validity */
-+	initial_boot_params = &__dtb_start;
-+	if (__dtb_end != (void *)&__dtb_start &&
-+	    be32_to_cpu(initial_boot_params->magic) == OF_DT_HEADER) {
-+		pr_info("Compiled-in FDT at %p\n", initial_boot_params);
-+		goto found;
+ void __init device_tree_init(void)
+diff --git a/arch/mips/netlogic/xlp/dt.c b/arch/mips/netlogic/xlp/dt.c
+index 87250f378386..e52281b9214d 100644
+--- a/arch/mips/netlogic/xlp/dt.c
++++ b/arch/mips/netlogic/xlp/dt.c
+@@ -66,7 +66,6 @@ void __init *xlp_dt_init(void *fdtp)
+ #endif
+ 		default:
+ 			/* Pick a built-in if any, and hope for the best */
+-			fdtp = &__dtb_start;
+ 			break;
+ 		}
  	}
+@@ -83,13 +82,12 @@ void __init xlp_early_init_devtree(void)
+ void __init device_tree_init(void)
+ {
+ 	unsigned long base, size;
+-	struct boot_param_header *fdtp = xlp_fdt_blob;
  
-+	initial_boot_params = NULL;
-+	return false;
-+
-+found:
- 	/* Retrieve various information from the /chosen node */
- 	of_scan_flat_dt(early_init_dt_scan_chosen, boot_command_line);
+-	if (!fdtp)
++	if (!initial_boot_params)
+ 		return;
  
-diff --git a/include/linux/of_fdt.h b/include/linux/of_fdt.h
-index aabc49f3e403..6c4a60454854 100644
---- a/include/linux/of_fdt.h
-+++ b/include/linux/of_fdt.h
-@@ -59,6 +59,7 @@ struct boot_param_header {
+-	base = virt_to_phys(fdtp);
+-	size = be32_to_cpu(fdtp->totalsize);
++	base = virt_to_phys(initial_boot_params);
++	size = be32_to_cpu(initial_boot_params->totalsize);
  
- /* For kernels with a built-in device tree */
- extern struct boot_param_header __dtb_start;
-+extern char __dtb_end[];
+ 	/* Before we do anything, lets reserve the dt blob */
+ 	reserve_bootmem(base, size, BOOTMEM_DEFAULT);
+diff --git a/arch/mips/ralink/of.c b/arch/mips/ralink/of.c
+index 615603bd8063..d72a5bc1efc2 100644
+--- a/arch/mips/ralink/of.c
++++ b/arch/mips/ralink/of.c
+@@ -84,7 +84,7 @@ void __init plat_mem_setup(void)
+ 	 * Load the builtin devicetree. This causes the chosen node to be
+ 	 * parsed resulting in our memory appearing
+ 	 */
+-	__dt_setup_arch(&__dtb_start);
++	__dt_setup_arch(NULL);
  
- #if defined(CONFIG_OF_FLATTREE)
- 
+ 	if (soc_info.mem_size)
+ 		add_memory_region(soc_info.mem_base, soc_info.mem_size * SZ_1M,
 -- 
 1.7.9.5
 
