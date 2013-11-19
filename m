@@ -1,39 +1,40 @@
-From: czankel <chris@zankel.net>
-Subject: Re: [PATCH 00/17] xtensa SMP queue
-Date: Mon, 18 Nov 2013 22:45:26 -0800
-Message-ID: <528B0906.6070105@zankel.net>
-References: <1381963348-29448-1-git-send-email-jcmvbkbc@gmail.com> <528AE38B.4020300@zankel.net> <CAMo8BfKkGsRnGvf-AaB0F9fVNRzzHxCmo-=9yLzt=2TMmN7+3g@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: [PATCH 2/9] arc: Use NULL as the default DTB
+Date: Tue, 19 Nov 2013 12:12:27 +0100
+Message-ID: <1384859554-27268-2-git-send-email-geert@linux-m68k.org>
+References: <5283A000.8090007@gmail.com>
+ <1384859554-27268-1-git-send-email-geert@linux-m68k.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f174.google.com ([209.85.192.174]:36051 "EHLO
-	mail-pd0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750762Ab3KSGp1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Nov 2013 01:45:27 -0500
-Received: by mail-pd0-f174.google.com with SMTP id y13so1507838pdi.19
-        for <linux-arch@vger.kernel.org>; Mon, 18 Nov 2013 22:45:26 -0800 (PST)
-In-Reply-To: <CAMo8BfKkGsRnGvf-AaB0F9fVNRzzHxCmo-=9yLzt=2TMmN7+3g@mail.gmail.com>
+Received: from gerard.telenet-ops.be ([195.130.132.48]:46701 "EHLO
+	gerard.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752064Ab3KSLMn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Nov 2013 06:12:43 -0500
+In-Reply-To: <1384859554-27268-1-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Max Filippov <jcmvbkbc@gmail.com>
-Cc: Marc Gauthier <marc@tensilica.com>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: Rob Herring <rob.herring@calxeda.com>
+Cc: devicetree@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Vineet Gupta <vgupta@synopsys.com>
 
-On 11/18/13 10:36 PM, Max Filippov wrote:
-> Hi Chris,
->
-> On Tue, Nov 19, 2013 at 8:05 AM, Chris Zankel <chris@zankel.net> wrote:
->> Hi Max,
->>
->> I have added the SMP patch-set to the for_next tree (for the time being).
->> Let me know if you wanted it in for this release or if you think it's not
->> ready for prime time. Note that I skipped the variant configuration as it is
->> a lot of code and it is more of a 'test' configuration.
-> Cool (: I currently only have a small optimization fix for the MX interrupt
-> controller, otherwise I think it's good. Should I send a follow-up patch
-> or respin the whole series?
-Feel free to just send me the patch, patch to the patch, or whatever is 
-easiest for you.
+early_init_dt_scan() now takes care of falling back to the built-in DTB.
 
-Thanks,
--Chris
+Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Vineet Gupta <vgupta@synopsys.com>
+---
+ arch/arc/kernel/setup.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arc/kernel/setup.c b/arch/arc/kernel/setup.c
+index ef705d0f50f5..481e11240e12 100644
+--- a/arch/arc/kernel/setup.c
++++ b/arch/arc/kernel/setup.c
+@@ -314,7 +314,7 @@ void setup_processor(void)
+ void __init setup_arch(char **cmdline_p)
+ {
+ 	/* This also populates @boot_command_line from /bootargs */
+-	machine_desc = setup_machine_fdt(&__dtb_start);
++	machine_desc = setup_machine_fdt(NULL);
+ 	if (!machine_desc)
+ 		panic("Embedded DT invalid\n");
+ 
+-- 
+1.7.9.5
