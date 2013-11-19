@@ -1,40 +1,41 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH 2/9] arc: Use NULL as the default DTB
-Date: Tue, 19 Nov 2013 12:12:27 +0100
-Message-ID: <1384859554-27268-2-git-send-email-geert@linux-m68k.org>
+Subject: [PATCH 6/9] mips: Remove unused dt_setup_arch()
+Date: Tue, 19 Nov 2013 12:12:31 +0100
+Message-ID: <1384859554-27268-6-git-send-email-geert@linux-m68k.org>
 References: <5283A000.8090007@gmail.com>
  <1384859554-27268-1-git-send-email-geert@linux-m68k.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gerard.telenet-ops.be ([195.130.132.48]:46701 "EHLO
-	gerard.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752064Ab3KSLMn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Nov 2013 06:12:43 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1384859554-27268-1-git-send-email-geert@linux-m68k.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Rob Herring <rob.herring@calxeda.com>
-Cc: devicetree@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Vineet Gupta <vgupta@synopsys.com>
-
-early_init_dt_scan() now takes care of falling back to the built-in DTB.
+Cc: devicetree@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, John Crispin <blogic@openwrt.org>, linux-mips@linux-mips.org
+List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Vineet Gupta <vgupta@synopsys.com>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: John Crispin <blogic@openwrt.org>
+Cc: linux-mips@linux-mips.org
 ---
- arch/arc/kernel/setup.c |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/mips/include/asm/prom.h |    7 -------
+ 1 file changed, 7 deletions(-)
 
-diff --git a/arch/arc/kernel/setup.c b/arch/arc/kernel/setup.c
-index ef705d0f50f5..481e11240e12 100644
---- a/arch/arc/kernel/setup.c
-+++ b/arch/arc/kernel/setup.c
-@@ -314,7 +314,7 @@ void setup_processor(void)
- void __init setup_arch(char **cmdline_p)
- {
- 	/* This also populates @boot_command_line from /bootargs */
--	machine_desc = setup_machine_fdt(&__dtb_start);
-+	machine_desc = setup_machine_fdt(NULL);
- 	if (!machine_desc)
- 		panic("Embedded DT invalid\n");
+diff --git a/arch/mips/include/asm/prom.h b/arch/mips/include/asm/prom.h
+index ccd2b75f152c..7e2ee8301c06 100644
+--- a/arch/mips/include/asm/prom.h
++++ b/arch/mips/include/asm/prom.h
+@@ -23,13 +23,6 @@ struct boot_param_header;
  
+ extern void __dt_setup_arch(struct boot_param_header *bph);
+ 
+-#define dt_setup_arch(sym)						\
+-({									\
+-	extern struct boot_param_header __dtb_##sym##_begin;		\
+-									\
+-	__dt_setup_arch(&__dtb_##sym##_begin);				\
+-})
+-
+ #else /* CONFIG_OF */
+ static inline void device_tree_init(void) { }
+ #endif /* CONFIG_OF */
 -- 
 1.7.9.5
