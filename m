@@ -1,107 +1,83 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH 7/9] mips: Use NULL as the default DTB
-Date: Tue, 19 Nov 2013 12:12:32 +0100
-Message-ID: <1384859554-27268-7-git-send-email-geert@linux-m68k.org>
+From: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
+Subject: [PATCH 4/9] metag: Remove duplicate DT selection logic
+Date: Tue, 19 Nov 2013 12:12:29 +0100
+Message-ID: <1384859554-27268-4-git-send-email-geert@linux-m68k.org>
 References: <5283A000.8090007@gmail.com>
  <1384859554-27268-1-git-send-email-geert@linux-m68k.org>
-Return-path: <linux-mips-bounce@linux-mips.org>
-In-Reply-To: <1384859554-27268-1-git-send-email-geert@linux-m68k.org>
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
-List-help: <mailto:ecartis@linux-mips.org?Subject=help>
-List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
-List-software: Ecartis version 1.0.0
-List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
-List-owner: <mailto:ralf@linux-mips.org>
-List-post: <mailto:linux-mips@linux-mips.org>
-List-archive: <http://www.linux-mips.org/archives/linux-mips/>
-To: Rob Herring <rob.herring@calxeda.com>
-Cc: devicetree@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, linux-mips@linux-mips.org
+Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <1384859554-27268-1-git-send-email-geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
+Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Rob Herring <rob.herring-bsGFqQB8/DxBDgjK7y7TUQ@public.gmane.org>
+Cc: devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>, James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>, linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
 early_init_dt_scan() now takes care of falling back to the built-in DTB.
+Note that we now have to check ourselves whether original_cmd_line is
+a DTB or a command line, to keep command line append working.
 
-On Netlogic XLP, use initial_boot_params in device_tree_init(), like
-the other MIPS sub-platforms do, as xlp_fdt_blob will now be NULL when
-using the default built-in DTB.
-
-Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: linux-mips@linux-mips.org
+Signed-off-by: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
+Cc: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
+Cc: linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 ---
- arch/mips/lantiq/prom.c           |    2 +-
- arch/mips/mti-sead3/sead3-setup.c |    2 +-
- arch/mips/netlogic/xlp/dt.c       |    8 +++-----
- arch/mips/ralink/of.c             |    2 +-
- 4 files changed, 6 insertions(+), 8 deletions(-)
+Untested due to lack of cross-compiler.
 
-diff --git a/arch/mips/lantiq/prom.c b/arch/mips/lantiq/prom.c
-index 19686c5bc5ed..582f6e4a5f6d 100644
---- a/arch/mips/lantiq/prom.c
-+++ b/arch/mips/lantiq/prom.c
-@@ -71,7 +71,7 @@ void __init plat_mem_setup(void)
- 	 * Load the builtin devicetree. This causes the chosen node to be
- 	 * parsed resulting in our memory appearing
- 	 */
--	__dt_setup_arch(&__dtb_start);
-+	__dt_setup_arch(NULL);
- }
+ arch/metag/kernel/setup.c |   22 ++++++++++++----------
+ 1 file changed, 12 insertions(+), 10 deletions(-)
+
+diff --git a/arch/metag/kernel/setup.c b/arch/metag/kernel/setup.c
+index 919c782f5479..e3ebfc5f5d77 100644
+--- a/arch/metag/kernel/setup.c
++++ b/arch/metag/kernel/setup.c
+@@ -221,6 +221,7 @@ static struct notifier_block metag_panic_block = {
  
- void __init device_tree_init(void)
-diff --git a/arch/mips/mti-sead3/sead3-setup.c b/arch/mips/mti-sead3/sead3-setup.c
-index 928ba84c8a78..3afec4507ea5 100644
---- a/arch/mips/mti-sead3/sead3-setup.c
-+++ b/arch/mips/mti-sead3/sead3-setup.c
-@@ -25,7 +25,7 @@ void __init plat_mem_setup(void)
- 	 * Load the builtin devicetree. This causes the chosen node to be
- 	 * parsed resulting in our memory appearing
- 	 */
--	__dt_setup_arch(&__dtb_start);
-+	__dt_setup_arch(NULL);
- }
- 
- void __init device_tree_init(void)
-diff --git a/arch/mips/netlogic/xlp/dt.c b/arch/mips/netlogic/xlp/dt.c
-index 87250f378386..e52281b9214d 100644
---- a/arch/mips/netlogic/xlp/dt.c
-+++ b/arch/mips/netlogic/xlp/dt.c
-@@ -66,7 +66,6 @@ void __init *xlp_dt_init(void *fdtp)
- #endif
- 		default:
- 			/* Pick a built-in if any, and hope for the best */
--			fdtp = &__dtb_start;
- 			break;
- 		}
- 	}
-@@ -83,13 +82,12 @@ void __init xlp_early_init_devtree(void)
- void __init device_tree_init(void)
+ void __init setup_arch(char **cmdline_p)
  {
- 	unsigned long base, size;
--	struct boot_param_header *fdtp = xlp_fdt_blob;
++	void *dt = NULL;
+ 	unsigned long start_pfn;
+ 	unsigned long text_start = (unsigned long)(&_stext);
+ 	unsigned long cpu = smp_processor_id();
+@@ -242,26 +243,27 @@ void __init setup_arch(char **cmdline_p)
+ #endif
  
--	if (!fdtp)
-+	if (!initial_boot_params)
- 		return;
+ 	/* try interpreting the argument as a device tree */
+-	machine_desc = setup_machine_fdt(original_cmd_line);
+-	/* if it doesn't look like a device tree it must be a command line */
++	if (original_cmd_line &&
++	    be32_to_cpup((__be32 *)original_cmd_line) == OF_DT_HEADER) {
++		dt = original_cmd_line;
++		original_cmd_line = NULL;
++	}
++
++	machine_desc = setup_machine_fdt(dt);
+ 	if (!machine_desc) {
+-#ifdef CONFIG_METAG_BUILTIN_DTB
+-		/* try the embedded device tree */
+-		machine_desc = setup_machine_fdt(&__dtb_start);
+-		if (!machine_desc)
+-			panic("Invalid embedded device tree.");
+-#else
+ 		/* use the default machine description */
+ 		machine_desc = default_machine_desc();
+-#endif
++	}
++
+ #ifndef CONFIG_CMDLINE_FORCE
++	if (original_cmd_line) {
+ 		/* append the bootloader cmdline to any builtin fdt cmdline */
+ 		if (boot_command_line[0] && original_cmd_line[0])
+ 			strlcat(boot_command_line, " ", COMMAND_LINE_SIZE);
+ 		strlcat(boot_command_line, original_cmd_line,
+ 			COMMAND_LINE_SIZE);
+-#endif
+ 	}
++#endif
+ 	setup_meta_clocks(machine_desc->clocks);
  
--	base = virt_to_phys(fdtp);
--	size = be32_to_cpu(fdtp->totalsize);
-+	base = virt_to_phys(initial_boot_params);
-+	size = be32_to_cpu(initial_boot_params->totalsize);
- 
- 	/* Before we do anything, lets reserve the dt blob */
- 	reserve_bootmem(base, size, BOOTMEM_DEFAULT);
-diff --git a/arch/mips/ralink/of.c b/arch/mips/ralink/of.c
-index 615603bd8063..d72a5bc1efc2 100644
---- a/arch/mips/ralink/of.c
-+++ b/arch/mips/ralink/of.c
-@@ -84,7 +84,7 @@ void __init plat_mem_setup(void)
- 	 * Load the builtin devicetree. This causes the chosen node to be
- 	 * parsed resulting in our memory appearing
- 	 */
--	__dt_setup_arch(&__dtb_start);
-+	__dt_setup_arch(NULL);
- 
- 	if (soc_info.mem_size)
- 		add_memory_region(soc_info.mem_base, soc_info.mem_size * SZ_1M,
+ 	*cmdline_p = boot_command_line;
 -- 
 1.7.9.5
+
+--
+To unsubscribe from this list: send the line "unsubscribe devicetree" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
