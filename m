@@ -1,135 +1,95 @@
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: [PATCH v5 4/4] MCS Lock: Barrier corrections
-Date: Tue, 19 Nov 2013 11:26:48 -0800
-Message-ID: <20131119192648.GS4138@linux.vnet.ibm.com>
+Date: Tue, 19 Nov 2013 11:32:25 -0800
+Message-ID: <20131119193224.GT4138@linux.vnet.ibm.com>
 References: <cover.1383935697.git.tim.c.chen@linux.intel.com>
  <1383940358.11046.417.camel@schen9-DESK>
  <20131111181049.GL28302@mudshark.cambridge.arm.com>
+ <1384204673.10046.6.camel@schen9-mobl3>
+ <52818B07.70000@hp.com>
 Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <20131111181049.GL28302@mudshark.cambridge.arm.com>
+In-Reply-To: <52818B07.70000@hp.com>
 Sender: owner-linux-mm@kvack.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>
+To: Waiman Long <waiman.long@hp.com>
+Cc: Tim Chen <tim.c.chen@linux.intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Nov 11, 2013 at 06:10:49PM +0000, Will Deacon wrote:
-> Hello,
+On Mon, Nov 11, 2013 at 08:57:27PM -0500, Waiman Long wrote:
+> On 11/11/2013 04:17 PM, Tim Chen wrote:
+> >>You could then augment that with [cmp]xchg_{acquire,release} as
+> >>appropriate.
+> >>
+> >>>+/*
+> >>>   * In order to acquire the lock, the caller should declare a local node and
+> >>>   * pass a reference of the node to this function in addition to the lock.
+> >>>   * If the lock has already been acquired, then this will proceed to spin
+> >>>@@ -37,15 +62,19 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
+> >>>  	node->locked = 0;
+> >>>  	node->next   = NULL;
+> >>>
+> >>>-	prev = xchg(lock, node);
+> >>>+	/* xchg() provides a memory barrier */
+> >>>+	prev = xchg_acquire(lock, node);
+> >>>  	if (likely(prev == NULL)) {
+> >>>  		/* Lock acquired */
+> >>>  		return;
+> >>>  	}
+> >>>  	ACCESS_ONCE(prev->next) = node;
+> >>>-	smp_wmb();
+> >>>-	/* Wait until the lock holder passes the lock down */
+> >>>-	while (!ACCESS_ONCE(node->locked))
+> >>>+	/*
+> >>>+	 * Wait until the lock holder passes the lock down.
+> >>>+	 * Using smp_load_acquire() provides a memory barrier that
+> >>>+	 * ensures subsequent operations happen after the lock is acquired.
+> >>>+	 */
+> >>>+	while (!(smp_load_acquire(&node->locked)))
+> >>>  		arch_mutex_cpu_relax();
+> >An alternate implementation is
+> >	while (!ACCESS_ONCE(node->locked))
+> >		arch_mutex_cpu_relax();
+> >	smp_load_acquire(&node->locked);
+> >
+> >Leaving the smp_load_acquire at the end to provide appropriate barrier.
+> >Will that be acceptable?
+> >
+> >Tim
 > 
-> On Fri, Nov 08, 2013 at 07:52:38PM +0000, Tim Chen wrote:
-> > From: Waiman Long <Waiman.Long@hp.com>
-> > 
-> > This patch corrects the way memory barriers are used in the MCS lock
-> > with smp_load_acquire and smp_store_release fucnction.
-> > It removes ones that are not needed.
-> > 
-> > It uses architecture specific load-acquire and store-release
-> > primitives for synchronization, if available. Generic implementations
-> > are provided in case they are not defined even though they may not
-> > be optimal. These generic implementation could be removed later on
-> > once changes are made in all the relevant header files.
-> > 
-> > Suggested-by: Michel Lespinasse <walken@google.com>
-> > Signed-off-by: Waiman Long <Waiman.Long@hp.com>
-> > Signed-off-by: Jason Low <jason.low2@hp.com>
-> > Signed-off-by: Tim Chen <tim.c.chen@linux.intel.com>
-> > ---
-> >  kernel/locking/mcs_spinlock.c |   48 +++++++++++++++++++++++++++++++++++------
-> >  1 files changed, 41 insertions(+), 7 deletions(-)
-> > 
-> > diff --git a/kernel/locking/mcs_spinlock.c b/kernel/locking/mcs_spinlock.c
-> > index b6f27f8..df5c167 100644
-> > --- a/kernel/locking/mcs_spinlock.c
-> > +++ b/kernel/locking/mcs_spinlock.c
-> > @@ -23,6 +23,31 @@
-> >  #endif
-> >  
-> >  /*
-> > + * Fall back to use the regular atomic operations and memory barrier if
-> > + * the acquire/release versions are not defined.
-> > + */
-> > +#ifndef	xchg_acquire
-> > +# define xchg_acquire(p, v)		xchg(p, v)
-> > +#endif
-> > +
-> > +#ifndef	smp_load_acquire
-> > +# define smp_load_acquire(p)				\
-> > +	({						\
-> > +		typeof(*p) __v = ACCESS_ONCE(*(p));	\
-> > +		smp_mb();				\
-> > +		__v;					\
-> > +	})
-> > +#endif
-> > +
-> > +#ifndef smp_store_release
-> > +# define smp_store_release(p, v)		\
-> > +	do {					\
-> > +		smp_mb();			\
-> > +		ACCESS_ONCE(*(p)) = v;		\
-> > +	} while (0)
-> > +#endif
-> 
-> PeterZ already has a series implementing acquire/release accessors, so you
-> should probably take a look at that rather than rolling your own here.
-> 
-> You could then augment that with [cmp]xchg_{acquire,release} as
-> appropriate.
-> 
-> > +/*
-> >   * In order to acquire the lock, the caller should declare a local node and
-> >   * pass a reference of the node to this function in addition to the lock.
-> >   * If the lock has already been acquired, then this will proceed to spin
-> > @@ -37,15 +62,19 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
-> >  	node->locked = 0;
-> >  	node->next   = NULL;
-> >  
-> > -	prev = xchg(lock, node);
-> > +	/* xchg() provides a memory barrier */
-> > +	prev = xchg_acquire(lock, node);
-> >  	if (likely(prev == NULL)) {
-> >  		/* Lock acquired */
-> >  		return;
-> >  	}
-> >  	ACCESS_ONCE(prev->next) = node;
-> > -	smp_wmb();
-> > -	/* Wait until the lock holder passes the lock down */
-> > -	while (!ACCESS_ONCE(node->locked))
-> > +	/*
-> > +	 * Wait until the lock holder passes the lock down.
-> > +	 * Using smp_load_acquire() provides a memory barrier that
-> > +	 * ensures subsequent operations happen after the lock is acquired.
-> > +	 */
-> > +	while (!(smp_load_acquire(&node->locked)))
-> >  		arch_mutex_cpu_relax();
-> 
-> After a chat with some micro-architects, I'm going to have to disagree with
-> Paul here. For architectures where acquire/release are implemented with
-> explicit barriers (similarly for simple microarchitectures), emitting
-> barriers in a loop *is* going to have an affect on overall performance,
-> since those barriers may well result in traffic outside of the core (at
-> least, on ARM).
+> I second Tim's opinion. It will be help to have a
+> smp_mb_load_acquire() function that provide a memory barrier with
+> load-acquire semantic. I don't think we need one for store-release
+> as that will not be in a loop.
 
-OK, that is a new one on me...
+Hmmm...  I guess the ACCESS_ONCE() in the smp_load_acquire() should
+prevent it from being optimized away.  But yes, you then end up with
+an extra load on the critical lock hand-off patch.  And something
+like an smp_mb_acquire() could then be useful, although I believe
+that on all current hardware smp_mb_acquire() emits the same code
+as would an smp_mb_release():
 
-> Thinking more about that, the real issue here is that arch_mutex_cpu_relax()
-> doesn't have a corresponding hook on the unlock side. On ARM, for example,
-> we can enter a low-power state using the wfe instruction, but that requires
-> the unlocker to wake up the core when the lock is released.
-> 
-> So, although I'm completely in favour of introducing acquire/release
-> accessors, I really think the mcs locking routines would benefit from
-> some arch-specific backend code, even if it's optional (although I would
-> imagine most architectures implementing something to improve power and/or
-> performance).
+o	barrier() on TSO systems such as x86 and s390.
 
-I would argue that if we have so much lock contention that spinners want
-to enter low-power states, other fixes are in order.  Especially given
-relatively small CPU counts.
+o	lwsync instruction on powerpc.  (Really old systems would
+	want a different instruction for smp_mb_acquire(), but let's
+	not optimize for really old systems.)
+
+o	dmb instruction on ARM.
+
+o	mf instruction on ia64.
+
+So how about an smp_mb_acquire_release() to cover both use cases?
+This could be used to further optimize circular buffers, for example.
 
 							Thanx, Paul
+
+> Peter, what do you think about adding that to your patch?
+> 
+> -Longman
+> 
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
