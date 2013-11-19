@@ -1,105 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gerard.telenet-ops.be ([195.130.132.48]:46739 "EHLO
-	gerard.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752305Ab3KSLMn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Nov 2013 06:12:43 -0500
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH 7/9] mips: Use NULL as the default DTB
-Date: Tue, 19 Nov 2013 12:12:32 +0100
-Message-ID: <1384859554-27268-7-git-send-email-geert@linux-m68k.org>
-In-Reply-To: <1384859554-27268-1-git-send-email-geert@linux-m68k.org>
-References: <5283A000.8090007@gmail.com>
- <1384859554-27268-1-git-send-email-geert@linux-m68k.org>
+Received: from moutng.kundenserver.de ([212.227.126.171]:64183 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752294Ab3KSMgQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Nov 2013 07:36:16 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH RESEND] asm/types.h: Remove include/asm-generic/int-l64.h
+Date: Tue, 19 Nov 2013 13:35:40 +0100
+References: <1376996476-12027-2-git-send-email-geert@linux-m68k.org> <1384859955-27837-1-git-send-email-geert@linux-m68k.org>
+In-Reply-To: <1384859955-27837-1-git-send-email-geert@linux-m68k.org>
+MIME-Version: 1.0
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201311191335.40506.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rob Herring <rob.herring@calxeda.com>
-Cc: devicetree@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, linux-mips@linux-mips.org
-Message-ID: <20131119111232.GbJOFmadGTk4Fy-6bxwX2M87UOFG9yRgT6C8snn-LUQ@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Randy Dunlap <rdunlap@xenotime.net>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20131119123540.R9TYwWHgAkeBYuxHoHwEQbNLqGDZtu_-uw1SMaJYgX4@z>
 
-early_init_dt_scan() now takes care of falling back to the built-in DTB.
+On Tuesday 19 November 2013, Geert Uytterhoeven wrote:
+> Now all 64-bit architectures have been converted to int-ll64.h, we can
+> remove int-l64.h in kernelspace.
+> 
+> For backwards compatibility, alpha, ia64, mips64, and powerpc64 still use
+> int-l64.h in userspace.
+> 
+> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
-On Netlogic XLP, use initial_boot_params in device_tree_init(), like
-the other MIPS sub-platforms do, as xlp_fdt_blob will now be NULL when
-using the default built-in DTB.
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 
-Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: linux-mips@linux-mips.org
----
- arch/mips/lantiq/prom.c           |    2 +-
- arch/mips/mti-sead3/sead3-setup.c |    2 +-
- arch/mips/netlogic/xlp/dt.c       |    8 +++-----
- arch/mips/ralink/of.c             |    2 +-
- 4 files changed, 6 insertions(+), 8 deletions(-)
+Thanks for following up with this.
 
-diff --git a/arch/mips/lantiq/prom.c b/arch/mips/lantiq/prom.c
-index 19686c5bc5ed..582f6e4a5f6d 100644
---- a/arch/mips/lantiq/prom.c
-+++ b/arch/mips/lantiq/prom.c
-@@ -71,7 +71,7 @@ void __init plat_mem_setup(void)
- 	 * Load the builtin devicetree. This causes the chosen node to be
- 	 * parsed resulting in our memory appearing
- 	 */
--	__dt_setup_arch(&__dtb_start);
-+	__dt_setup_arch(NULL);
- }
- 
- void __init device_tree_init(void)
-diff --git a/arch/mips/mti-sead3/sead3-setup.c b/arch/mips/mti-sead3/sead3-setup.c
-index 928ba84c8a78..3afec4507ea5 100644
---- a/arch/mips/mti-sead3/sead3-setup.c
-+++ b/arch/mips/mti-sead3/sead3-setup.c
-@@ -25,7 +25,7 @@ void __init plat_mem_setup(void)
- 	 * Load the builtin devicetree. This causes the chosen node to be
- 	 * parsed resulting in our memory appearing
- 	 */
--	__dt_setup_arch(&__dtb_start);
-+	__dt_setup_arch(NULL);
- }
- 
- void __init device_tree_init(void)
-diff --git a/arch/mips/netlogic/xlp/dt.c b/arch/mips/netlogic/xlp/dt.c
-index 87250f378386..e52281b9214d 100644
---- a/arch/mips/netlogic/xlp/dt.c
-+++ b/arch/mips/netlogic/xlp/dt.c
-@@ -66,7 +66,6 @@ void __init *xlp_dt_init(void *fdtp)
- #endif
- 		default:
- 			/* Pick a built-in if any, and hope for the best */
--			fdtp = &__dtb_start;
- 			break;
- 		}
- 	}
-@@ -83,13 +82,12 @@ void __init xlp_early_init_devtree(void)
- void __init device_tree_init(void)
- {
- 	unsigned long base, size;
--	struct boot_param_header *fdtp = xlp_fdt_blob;
- 
--	if (!fdtp)
-+	if (!initial_boot_params)
- 		return;
- 
--	base = virt_to_phys(fdtp);
--	size = be32_to_cpu(fdtp->totalsize);
-+	base = virt_to_phys(initial_boot_params);
-+	size = be32_to_cpu(initial_boot_params->totalsize);
- 
- 	/* Before we do anything, lets reserve the dt blob */
- 	reserve_bootmem(base, size, BOOTMEM_DEFAULT);
-diff --git a/arch/mips/ralink/of.c b/arch/mips/ralink/of.c
-index 615603bd8063..d72a5bc1efc2 100644
---- a/arch/mips/ralink/of.c
-+++ b/arch/mips/ralink/of.c
-@@ -84,7 +84,7 @@ void __init plat_mem_setup(void)
- 	 * Load the builtin devicetree. This causes the chosen node to be
- 	 * parsed resulting in our memory appearing
- 	 */
--	__dt_setup_arch(&__dtb_start);
-+	__dt_setup_arch(NULL);
- 
- 	if (soc_info.mem_size)
- 		add_memory_region(soc_info.mem_base, soc_info.mem_size * SZ_1M,
--- 
-1.7.9.5
+> ---
+> This is the (reworked for UAPI) non-documentation part of more than two
+> year old "asm/types.h: All architectures use int-ll64.h in kernelspace"
+> (https://lkml.org/lkml/2011/8/13/104)
+> 
+> Since <asm/types.h> (from include/uapi/asm-generic/types.h) is used for
+> both kernel and user space, include/asm-generic/int-ll64.h cannot just
+> become include/asm-generic/types.h, as Arnd suggested.
 
+I'm pretty sure you are right with this, but I don't remember at all
+what I suggested and don't understand what the problem (if any) is.
+Can you remind me?
+
+	Arnd
