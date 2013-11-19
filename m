@@ -1,41 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vb0-f43.google.com ([209.85.212.43]:64119 "EHLO
-	mail-vb0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752530Ab3KRSzi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Nov 2013 13:55:38 -0500
-MIME-Version: 1.0
-In-Reply-To: <20131118184644.GC29695@two.firstfloor.org>
-References: <1384267735-43213-1-git-send-email-Waiman.Long@hp.com>
-	<1384267735-43213-5-git-send-email-Waiman.Long@hp.com>
-	<CA+55aFxXu7eC1WGfZ=_JQbLLJHM5HYRkJPjm3jBDC51SL66Ecw@mail.gmail.com>
-	<20131118183433.GB29695@two.firstfloor.org>
-	<CA+55aFyH_BUrrzft-1JGZ5zL=KxGrUESBBOZnzT=nQm6Ld0V+Q@mail.gmail.com>
-	<20131118184644.GC29695@two.firstfloor.org>
-Date: Mon, 18 Nov 2013 10:55:37 -0800
-Message-ID: <CA+55aFwhX-6DzxKMPk=NTmSGt1GNHE6XTHZcss+Q=hC-epC7cQ@mail.gmail.com>
-Subject: Re: [PATCH v6 3/5] qrwlock: Enable fair queue read/write lock
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Content-Type: text/plain; charset=UTF-8
+Received: from georges.telenet-ops.be ([195.130.137.68]:34608 "EHLO
+	georges.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752354Ab3KSLMp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Nov 2013 06:12:45 -0500
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: [PATCH 4/9] metag: Remove duplicate DT selection logic
+Date: Tue, 19 Nov 2013 12:12:29 +0100
+Message-ID: <1384859554-27268-4-git-send-email-geert@linux-m68k.org>
+In-Reply-To: <1384859554-27268-1-git-send-email-geert@linux-m68k.org>
+References: <5283A000.8090007@gmail.com>
+ <1384859554-27268-1-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andi Kleen <andi@firstfloor.org>
-Cc: Waiman Long <Waiman.Long@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>
-Message-ID: <20131118185537.9CyKMGg1LDbZKPV4DHZKnNJpoLbNFYnvbPkqDjoQNUw@z>
+To: Rob Herring <rob.herring@calxeda.com>
+Cc: devicetree@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, James Hogan <james.hogan@imgtec.com>, linux-metag@vger.kernel.org
+Message-ID: <20131119111229.X8Blc_RejUqg7oQ3vUK8yFvsYVFRcsnqjRE-LhshZlE@z>
 
-On Mon, Nov 18, 2013 at 10:46 AM, Andi Kleen <andi@firstfloor.org> wrote:
->> Why would it make sense here?
->
-> There may be cases were switching all read locks to unfair may make
-> concerete workloads slower.
+early_init_dt_scan() now takes care of falling back to the built-in DTB.
+Note that we now have to check ourselves whether original_cmd_line is
+a DTB or a command line, to keep command line append working.
 
-Sorry, but I don't believe in "may be" as an excuse for complexity.
-Especially since the "may be" faster performance is often coupled with
-"known latency problems due to unfairness".
+Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: James Hogan <james.hogan@imgtec.com>
+Cc: linux-metag@vger.kernel.org
+---
+Untested due to lack of cross-compiler.
 
-I'd want numbers for real loads if we really want the extra complexity.
+ arch/metag/kernel/setup.c |   22 ++++++++++++----------
+ 1 file changed, 12 insertions(+), 10 deletions(-)
 
-Right now, the real numbers I can point to is in the size of the
-patch, and the extra code complexity. Yes, I see the microbenchmark
-numbers, but those are pretty much irrelevant to real loads.
+diff --git a/arch/metag/kernel/setup.c b/arch/metag/kernel/setup.c
+index 919c782f5479..e3ebfc5f5d77 100644
+--- a/arch/metag/kernel/setup.c
++++ b/arch/metag/kernel/setup.c
+@@ -221,6 +221,7 @@ static struct notifier_block metag_panic_block = {
+ 
+ void __init setup_arch(char **cmdline_p)
+ {
++	void *dt = NULL;
+ 	unsigned long start_pfn;
+ 	unsigned long text_start = (unsigned long)(&_stext);
+ 	unsigned long cpu = smp_processor_id();
+@@ -242,26 +243,27 @@ void __init setup_arch(char **cmdline_p)
+ #endif
+ 
+ 	/* try interpreting the argument as a device tree */
+-	machine_desc = setup_machine_fdt(original_cmd_line);
+-	/* if it doesn't look like a device tree it must be a command line */
++	if (original_cmd_line &&
++	    be32_to_cpup((__be32 *)original_cmd_line) == OF_DT_HEADER) {
++		dt = original_cmd_line;
++		original_cmd_line = NULL;
++	}
++
++	machine_desc = setup_machine_fdt(dt);
+ 	if (!machine_desc) {
+-#ifdef CONFIG_METAG_BUILTIN_DTB
+-		/* try the embedded device tree */
+-		machine_desc = setup_machine_fdt(&__dtb_start);
+-		if (!machine_desc)
+-			panic("Invalid embedded device tree.");
+-#else
+ 		/* use the default machine description */
+ 		machine_desc = default_machine_desc();
+-#endif
++	}
++
+ #ifndef CONFIG_CMDLINE_FORCE
++	if (original_cmd_line) {
+ 		/* append the bootloader cmdline to any builtin fdt cmdline */
+ 		if (boot_command_line[0] && original_cmd_line[0])
+ 			strlcat(boot_command_line, " ", COMMAND_LINE_SIZE);
+ 		strlcat(boot_command_line, original_cmd_line,
+ 			COMMAND_LINE_SIZE);
+-#endif
+ 	}
++#endif
+ 	setup_meta_clocks(machine_desc->clocks);
+ 
+ 	*cmdline_p = boot_command_line;
+-- 
+1.7.9.5
 
-                    Linus
