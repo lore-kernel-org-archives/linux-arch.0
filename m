@@ -1,45 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from juliette.telenet-ops.be ([195.130.137.74]:42775 "EHLO
-	juliette.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752372Ab3KSLMp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Nov 2013 06:12:45 -0500
+Received: from gerard.telenet-ops.be ([195.130.132.48]:46735 "EHLO
+	gerard.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752211Ab3KSLMn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Nov 2013 06:12:43 -0500
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH 9/9] xtensa: Use NULL as the default DTB
-Date: Tue, 19 Nov 2013 12:12:34 +0100
-Message-ID: <1384859554-27268-9-git-send-email-geert@linux-m68k.org>
+Subject: [PATCH 6/9] mips: Remove unused dt_setup_arch()
+Date: Tue, 19 Nov 2013 12:12:31 +0100
+Message-ID: <1384859554-27268-6-git-send-email-geert@linux-m68k.org>
 In-Reply-To: <1384859554-27268-1-git-send-email-geert@linux-m68k.org>
 References: <5283A000.8090007@gmail.com>
  <1384859554-27268-1-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Rob Herring <rob.herring@calxeda.com>
-Cc: devicetree@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-xtensa@linux-xtensa.org
-Message-ID: <20131119111234.N-XVp4aGlKliGcWV16hhBlFP-2DQZlWzsYAzR5UKCgE@z>
-
-early_init_dt_scan() now takes care of falling back to the built-in DTB.
-Also make dtb_start static while we're at it.
+Cc: devicetree@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, John Crispin <blogic@openwrt.org>, linux-mips@linux-mips.org
+Message-ID: <20131119111231.CmbcPyHz3fEKZLM1F8bPUxb3o0rPDo3IM7kFkZ1nGTs@z>
 
 Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Chris Zankel <chris@zankel.net>
-Cc: Max Filippov <jcmvbkbc@gmail.com>
-Cc: linux-xtensa@linux-xtensa.org
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: John Crispin <blogic@openwrt.org>
+Cc: linux-mips@linux-mips.org
 ---
- arch/xtensa/kernel/setup.c |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/mips/include/asm/prom.h |    7 -------
+ 1 file changed, 7 deletions(-)
 
-diff --git a/arch/xtensa/kernel/setup.c b/arch/xtensa/kernel/setup.c
-index d96cf8f3fe70..dd440deb137d 100644
---- a/arch/xtensa/kernel/setup.c
-+++ b/arch/xtensa/kernel/setup.c
-@@ -68,7 +68,7 @@ extern int initrd_below_start_ok;
- #endif
+diff --git a/arch/mips/include/asm/prom.h b/arch/mips/include/asm/prom.h
+index ccd2b75f152c..7e2ee8301c06 100644
+--- a/arch/mips/include/asm/prom.h
++++ b/arch/mips/include/asm/prom.h
+@@ -23,13 +23,6 @@ struct boot_param_header;
  
- #ifdef CONFIG_OF
--void *dtb_start = &__dtb_start;
-+static void *dtb_start;
- #endif
+ extern void __dt_setup_arch(struct boot_param_header *bph);
  
- unsigned char aux_device_present;
+-#define dt_setup_arch(sym)						\
+-({									\
+-	extern struct boot_param_header __dtb_##sym##_begin;		\
+-									\
+-	__dt_setup_arch(&__dtb_##sym##_begin);				\
+-})
+-
+ #else /* CONFIG_OF */
+ static inline void device_tree_init(void) { }
+ #endif /* CONFIG_OF */
 -- 
 1.7.9.5
 
