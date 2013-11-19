@@ -1,62 +1,188 @@
-From: "Long, Wai Man" <waiman.long@hp.com>
-Subject: RE: [PATCH v6 3/5] qrwlock: Enable fair queue read/write lock
-Date: Tue, 19 Nov 2013 04:33:09 +0000
-Message-ID: <401F72D6D1DFE3499766D25AA4EED18A35440103@G6W2503.americas.hpqcorp.net>
-References: <1384267735-43213-1-git-send-email-Waiman.Long@hp.com>
-	<1384267735-43213-5-git-send-email-Waiman.Long@hp.com>
- <CA+55aFxXu7eC1WGfZ=_JQbLLJHM5HYRkJPjm3jBDC51SL66Ecw@mail.gmail.com>
+From: Max Filippov <jcmvbkbc@gmail.com>
+Subject: Re: [PATCH 00/17] xtensa SMP queue
+Date: Tue, 19 Nov 2013 10:36:59 +0400
+Message-ID: <CAMo8BfKkGsRnGvf-AaB0F9fVNRzzHxCmo-=9yLzt=2TMmN7+3g@mail.gmail.com>
+References: <1381963348-29448-1-git-send-email-jcmvbkbc@gmail.com>
+	<528AE38B.4020300@zankel.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g6t0186.atlanta.hp.com ([15.193.32.63]:28111 "EHLO
-	g6t0186.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751818Ab3KSEeD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Nov 2013 23:34:03 -0500
-In-Reply-To: <CA+55aFxXu7eC1WGfZ=_JQbLLJHM5HYRkJPjm3jBDC51SL66Ecw@mail.gmail.com>
-Content-Language: en-US
+Received: from mail-ob0-f178.google.com ([209.85.214.178]:46414 "EHLO
+	mail-ob0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750799Ab3KSGhA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Nov 2013 01:37:00 -0500
+Received: by mail-ob0-f178.google.com with SMTP id uz6so76718obc.9
+        for <linux-arch@vger.kernel.org>; Mon, 18 Nov 2013 22:36:59 -0800 (PST)
+In-Reply-To: <528AE38B.4020300@zankel.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, "Norton, Scott J" <scott.norton@hp.com>
+To: Chris Zankel <chris@zankel.net>
+Cc: Marc Gauthier <marc@tensilica.com>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-U29ycnkgZm9yIHRoZSBsYXRlIHJlcGx5Lg0KDQpUaGUgcHJlc2VuY2Ugb2YgdGhlIHVuZmFpciBv
-cHRpb24gYXMgZGVmYXVsdCBpcyBsYXJnZWx5IGR1ZSB0byBmaXhpbmcgdGhlIHJlY3Vyc2l2ZSBy
-ZWFkIGxvY2sgaW4gaW50ZXJydXB0IGhhbmRsZXIgcHJvYmxlbS4gWW91IGFyZSByaWdodCB0aGF0
-IGl0IGlzIG5vIGxvbmdlciBhIHZhbGlkIHJlYXNvbiBub3cuIA0KDQpBbiB1bmZhaXIgbG9jayBt
-YXkgaGF2ZSBhIGJldHRlciBwZXJmb3JtYW5jZSBjaGFyYWN0ZXJpc3RpY3MsIGVzcGVjaWFsbHkg
-Zm9yIGEgaGlnaGx5IGNvbnRlbmRlZCBsb2NrLiBPdGhlciB0aGFuIHRoYXQsIEkgaGF2ZSBubyBv
-dGhlciByZWFzb24gdG8ga2VlcCBhbiB1bmZhaXIgb3B0aW9uLiBJIGRvbid0IG1pbmQgdGFraW5n
-IG91dCB0aGUgdW5mYWlyIG9wdGlvbiBhbmQgbWFrZSB0aGUgZmFpciBxcndsb2NrIHRoZSBkZWZh
-dWx0LiBJdCBkb2VzIHNpbXBsaWZ5IHRoZSBjb2RlLiBJIHdpbGwgc2VuZCBvdXQgYW4gdXBkYXRl
-ZCBwYXRjaHNldCB3aXRoIG9ubHkgdGhlIGZhaXIgcXJ3bG9jay4NCg0KVGhhbmsgZm9yIHN1Z2dl
-c3Rpb24uDQotTG9uZ21hbg0KDQotLS0tLU9yaWdpbmFsIE1lc3NhZ2UtLS0tLQ0KRnJvbTogbGlu
-dXM5NzFAZ21haWwuY29tIFttYWlsdG86bGludXM5NzFAZ21haWwuY29tXSBPbiBCZWhhbGYgT2Yg
-TGludXMgVG9ydmFsZHMNClNlbnQ6IE1vbmRheSwgTm92ZW1iZXIgMTgsIDIwMTMgMToxMiBQTQ0K
-VG86IExvbmcsIFdhaSBNYW4NCkNjOiBUaG9tYXMgR2xlaXhuZXI7IEluZ28gTW9sbmFyOyBILiBQ
-ZXRlciBBbnZpbjsgQXJuZCBCZXJnbWFubjsgbGludXgtYXJjaEB2Z2VyLmtlcm5lbC5vcmc7IHRo
-ZSBhcmNoL3g4NiBtYWludGFpbmVyczsgTGludXggS2VybmVsIE1haWxpbmcgTGlzdDsgUGV0ZXIg
-WmlqbHN0cmE7IFN0ZXZlbiBSb3N0ZWR0OyBBbmRyZXcgTW9ydG9uOyBNaWNoZWwgTGVzcGluYXNz
-ZTsgQW5kaSBLbGVlbjsgUmlrIHZhbiBSaWVsOyBQYXVsIEUuIE1jS2VubmV5OyBSYWdoYXZlbmRy
-YSBLIFQ7IEdlb3JnZSBTcGVsdmluOyBUaW0gQ2hlbjsgQ2hhbmRyYW1vdWxlZXN3YXJhbiwgQXN3
-aW47IE5vcnRvbiwgU2NvdHQgSg0KU3ViamVjdDogUmU6IFtQQVRDSCB2NiAzLzVdIHFyd2xvY2s6
-IEVuYWJsZSBmYWlyIHF1ZXVlIHJlYWQvd3JpdGUgbG9jaw0KDQpPbiBUdWUsIE5vdiAxMiwgMjAx
-MyBhdCA2OjQ4IEFNLCBXYWltYW4gTG9uZyA8V2FpbWFuLkxvbmdAaHAuY29tPiB3cm90ZToNCj4g
-QnkgZGVmYXVsdCwgcXVldWUgcndsb2NrIGlzIGZhaXIgYW1vbmcgd3JpdGVycyBhbmQgZ2l2ZXMg
-cHJlZmVyZW5jZSB0byANCj4gcmVhZGVycyBhbGxvd2luZyB0aGVtIHRvIHN0ZWFsIGxvY2sgZXZl
-biBpZiBhIHdyaXRlciBpcyB3YWl0aW5nLiANCj4gSG93ZXZlciwgdGhlcmUgaXMgYSBkZXNpcmUg
-dG8gaGF2ZSBhIGZhaXIgdmFyaWFudCBvZiByd2xvY2sgdGhhdCBpcyANCj4gbW9yZSBkZXRlcm1p
-bmlzdGljLiBUbyBlbmFibGUgdGhpcyBbLi5dDQoNCklzIHRoZXJlIHJlYWxseSBhbnkgcG9pbnQg
-aW4gaGF2aW5nIHRoZSBvcHRpb24gZm9yIHVuZmFpciBhdCBhbGw/DQoNCkZyb20geW91ciB0aW1p
-bmdzLCBpdCBsb29rcyBsaWtlIHRoZSB1bmZhaXIgbG9ja3MgYXJlIG1vcmUgZXhwZW5zaXZlIGZv
-ciB0aGUgd3JpdGVyIHNpZGUsIGJ1dCBzaW5jZSBwcmV0dHkgbXVjaCB0aGUgd2hvbGUgcG9pbnQg
-b2Ygcndsb2NrcyBpcyB3aGVuIHJlYWRlcnMgYXJlIHRoZSBjb21tb24gY2FzZSwgSSBkb24ndCB0
-aGluayB3ZSBjYXJlLg0KDQpBbmQgSSdtIG5vdCBhdCBhbGwgY29udmluY2VkIHdlIHdhbnQgdGhl
-IGNvbXBsZXhpdHkgb2YgdHdvIGRpZmZlcmVudCBraW5kcyBvZiByd2xvY2tzIHdpdGggZGlmZmVy
-ZW50IHNlbWFudGljcyBhbmQgZXh0cmEgY29kZSBmb3Igc2FpZCBzZW1hbnRpY3MuLg0KDQpZb3Vy
-ICpvcmlnaW5hbCogZmFpciByd2xvY2tzIHdlcmUgdW51c2FibGUsIHNpbmNlIHRoZXkgZGlkbid0
-IGFsbG93IGZvciB0aGUgaXJxIHNlbWFudGljcyB0aGF0IG1vc3QgdXNlcnMgbmVlZCwgYnV0IGFm
-YWlrIHlvdXIgY3VycmVudCB2ZXJzaW9uIGFsd2F5cyBtYWtlcyBhbiBpcnEvYmgtY29udGV4dCBy
-ZWFkZXIgd29yayBldmVuIHdoZW4gdGhlIGxvY2sgaXMgb3RoZXJ3aXNlIHRyeWluZyB0byBiZSBm
-YWlyLCBzbyB0aGlzIHdob2xlIGR1YWwgYmVoYXZpb3Igc2VlbXMgdG8gYmUgbGFyZ2VseSBwb2lu
-dGxlc3MuDQoNCk5vPw0KDQogICAgICAgICAgICAgICAgICAgICAgICBMaW51cw0K
+Hi Chris,
+
+On Tue, Nov 19, 2013 at 8:05 AM, Chris Zankel <chris@zankel.net> wrote:
+> Hi Max,
+>
+> I have added the SMP patch-set to the for_next tree (for the time being).
+> Let me know if you wanted it in for this release or if you think it's not
+> ready for prime time. Note that I skipped the variant configuration as it is
+> a lot of code and it is more of a 'test' configuration.
+
+Cool (: I currently only have a small optimization fix for the MX interrupt
+controller, otherwise I think it's good. Should I send a follow-up patch
+or respin the whole series?
+
+> On 10/16/13, 3:42 PM, Max Filippov wrote:
+>>
+>> Hi Chris,
+>>
+>> this series adds SMP support for xtensa.
+>> There's a number of trivial cleanups:
+>>        xtensa: remove NO_IRQ definitions
+>>        xtensa: fix build warning in 64-bit build environment
+>>        xtensa: fix build warning from gcc-4.7.2
+>>        xtensa: call check_s32c1i after trap_init
+>>        xtensa: move init_mmu declaration to mmu_context.h
+>>
+>> a couple of fixes for spinlocks:
+>>        xtensa: fix arch spinlock function names
+>>        xtensa: fix __delay for small loop count
+>>
+>> three fixes for the clocksources, with these we get high precision timers
+>> usable in SMP and IRQ time accounting:
+>>        xtensa: mark ccount as continuous clocksource
+>>        xtensa: update clockevent setup for SMP
+>>        xtensa: enable HAVE_IRQ_TIME_ACCOUNTING
+>>
+>> fixes and rearrangement of IRQ handling code and a new driver for MX
+>> interrupt distributor:
+>>        xtensa: move built-in PIC to drivers/irqchip
+>>        xtensa: clean up do_interrupt/do_IRQ
+>>        xtensa: clear timer IRQ unconditionally in its handler
+>>        xtensa: add MX irqchip
+>>
+>> and finally SMP and hotplug CPU support and a sample SMP-capable CPU
+>> variant:
+>>        xtensa: add SMP support
+>>        xtensa: implement CPU hotplug
+>>        xtensa: add Three Core HiFi-2 MX Variant.
+>>
+>> Please review.
+>>
+>> You can pull these changes from my git tree,
+>> the following changes since commit
+>> 61e6cfa80de5760bbe406f4e815b7739205754d2:
+>>
+>>    Linux 3.12-rc5 (2013-10-13 15:41:28 -0700)
+>>
+>> are available in the git repository at:
+>>
+>>    git://github.com/jcmvbkbc/linux-xtensa.git tags/xtensa-smp-20131017
+>>
+>> for you to fetch changes up to 4862c5ae570b8a40275f413dfa2e3f184ecfa1d9:
+>>
+>>    xtensa: implement CPU hotplug (2013-10-17 01:50:17 +0400)
+>>
+>> ----------------------------------------------------------------
+>> Clean up minor warnings.
+>> Fix spinlock function names, provide missing definitions.
+>> Extract PIC into drivers/irqchip.
+>> Clean up IRQ handling.
+>> Add MX interrupt distributor.
+>> Add SMP support.
+>> Add hotplug CPU support.
+>> Add SMP-capable core variant.
+>>
+>> ----------------------------------------------------------------
+>> Baruch Siach (1):
+>>        xtensa: mark ccount as continuous clocksource
+>>
+>> Max Filippov (15):
+>>        xtensa: remove NO_IRQ definitions
+>>        xtensa: fix build warning in 64-bit build environment
+>>        xtensa: fix build warning from gcc-4.7.2
+>>        xtensa: fix arch spinlock function names
+>>        xtensa: fix __delay for small loop count
+>>        xtensa: enable HAVE_IRQ_TIME_ACCOUNTING
+>>        xtensa: update clockevent setup for SMP
+>>        xtensa: call check_s32c1i after trap_init
+>>        xtensa: move init_mmu declaration to mmu_context.h
+>>        xtensa: move built-in PIC to drivers/irqchip
+>>        xtensa: clean up do_interrupt/do_IRQ
+>>        xtensa: clear timer IRQ unconditionally in its handler
+>>        xtensa: add MX irqchip
+>>        xtensa: add SMP support
+>>        xtensa: implement CPU hotplug
+>>
+>> Piet Delaney (1):
+>>        xtensa: add Three Core HiFi-2 MX Variant.
+>>
+>>   arch/xtensa/Kconfig                                |  54 +-
+>>   arch/xtensa/Makefile                               |   1 +
+>>   arch/xtensa/include/asm/barrier.h                  |   4 +-
+>>   arch/xtensa/include/asm/bitops.h                   |   8 +-
+>>   arch/xtensa/include/asm/cacheflush.h               |  40 +-
+>>   arch/xtensa/include/asm/delay.h                    |   9 +-
+>>   arch/xtensa/include/asm/irq.h                      |   9 +
+>>   arch/xtensa/include/asm/mmu.h                      |  10 +-
+>>   arch/xtensa/include/asm/mmu_context.h              | 106 ++--
+>>   arch/xtensa/include/asm/mxregs.h                   |  46 ++
+>>   arch/xtensa/include/asm/processor.h                |  20 +
+>>   arch/xtensa/include/asm/ptrace.h                   |   8 +
+>>   arch/xtensa/include/asm/smp.h                      |  38 +-
+>>   arch/xtensa/include/asm/spinlock.h                 |  31 +-
+>>   arch/xtensa/include/asm/spinlock_types.h           |  20 +
+>>   arch/xtensa/include/asm/timex.h                    |  14 +-
+>>   arch/xtensa/include/asm/tlbflush.h                 |  42 +-
+>>   arch/xtensa/include/asm/traps.h                    |   1 +
+>>   arch/xtensa/include/asm/vectors.h                  |   4 +
+>>   arch/xtensa/kernel/Makefile                        |   1 +
+>>   arch/xtensa/kernel/head.S                          | 181 +++++--
+>>   arch/xtensa/kernel/irq.c                           | 207 ++++----
+>>   arch/xtensa/kernel/mxhead.S                        |  85 +++
+>>   arch/xtensa/kernel/setup.c                         |  92 ++--
+>>   arch/xtensa/kernel/smp.c                           | 591
+>> +++++++++++++++++++++
+>>   arch/xtensa/kernel/time.c                          |  56 +-
+>>   arch/xtensa/kernel/traps.c                         |  56 +-
+>>   arch/xtensa/kernel/vmlinux.lds.S                   |  26 +
+>>   arch/xtensa/mm/cache.c                             |   7 +-
+>>   arch/xtensa/mm/fault.c                             |   2 +-
+>>   arch/xtensa/mm/misc.S                              |   4 +-
+>>   arch/xtensa/mm/mmu.c                               |   4 +-
+>>   arch/xtensa/mm/tlb.c                               |  37 +-
+>>   .../platforms/xtfpga/include/platform/hardware.h   |   6 +-
+>>   arch/xtensa/variants/s6000/include/variant/irq.h   |   1 -
+>>   .../test_mmuhifi_c3/include/variant/core.h         | 384 +++++++++++++
+>>   .../test_mmuhifi_c3/include/variant/tie-asm.h      | 183 +++++++
+>>   .../variants/test_mmuhifi_c3/include/variant/tie.h | 141 +++++
+>>   drivers/irqchip/Kconfig                            |   4 +
+>>   drivers/irqchip/Makefile                           |   2 +
+>>   drivers/irqchip/irq-xtensa-mx.c                    | 166 ++++++
+>>   drivers/irqchip/irq-xtensa-pic.c                   | 108 ++++
+>>   include/linux/irqchip/xtensa-mx.h                  |  17 +
+>>   include/linux/irqchip/xtensa-pic.h                 |  18 +
+>>   44 files changed, 2455 insertions(+), 389 deletions(-)
+>>   create mode 100644 arch/xtensa/include/asm/mxregs.h
+>>   create mode 100644 arch/xtensa/include/asm/spinlock_types.h
+>>   create mode 100644 arch/xtensa/kernel/mxhead.S
+>>   create mode 100644 arch/xtensa/kernel/smp.c
+>>   create mode 100644
+>> arch/xtensa/variants/test_mmuhifi_c3/include/variant/core.h
+>>   create mode 100644
+>> arch/xtensa/variants/test_mmuhifi_c3/include/variant/tie-asm.h
+>>   create mode 100644
+>> arch/xtensa/variants/test_mmuhifi_c3/include/variant/tie.h
+>>   create mode 100644 drivers/irqchip/irq-xtensa-mx.c
+>>   create mode 100644 drivers/irqchip/irq-xtensa-pic.c
+>>   create mode 100644 include/linux/irqchip/xtensa-mx.h
+>>   create mode 100644 include/linux/irqchip/xtensa-pic.h
+>>
+>
+
+
+
+-- 
+Thanks.
+-- Max
