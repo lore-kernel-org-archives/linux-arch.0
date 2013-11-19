@@ -1,43 +1,53 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH RESEND] asm/types.h: Remove include/asm-generic/int-l64.h
-Date: Tue, 19 Nov 2013 13:35:40 +0100
-Message-ID: <201311191335.40506.arnd@arndb.de>
-References: <1376996476-12027-2-git-send-email-geert@linux-m68k.org> <1384859955-27837-1-git-send-email-geert@linux-m68k.org>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: [PATCH] of: unflatten_and_copy: handle NULL initial_boot_params
+Date: Tue, 19 Nov 2013 12:58:12 +0000
+Message-ID: <1384865892-28659-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1384859955-27837-1-git-send-email-geert@linux-m68k.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Randy Dunlap <rdunlap@xenotime.net>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from multi.imgtec.com ([194.200.65.239]:47461 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751464Ab3KSM7B (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 19 Nov 2013 07:59:01 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Grant Likely <grant.likely@linaro.org>, Rob Herring <rob.herring@calxeda.com>, devicetree@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, James Hogan <james.hogan@imgtec.com>
 
-On Tuesday 19 November 2013, Geert Uytterhoeven wrote:
-> Now all 64-bit architectures have been converted to int-ll64.h, we can
-> remove int-l64.h in kernelspace.
-> 
-> For backwards compatibility, alpha, ia64, mips64, and powerpc64 still use
-> int-l64.h in userspace.
-> 
-> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Check whether initial_boot_params is NULL before dereferencing it in
+unflatten_and_copy_device_tree() for the case where no device tree is
+available but the arch can still boot to a minimal usable system without
+it.
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: James Hogan <james.hogan@imgtec.com>
+Cc: Grant Likely <grant.likely@linaro.org>
+Cc: Rob Herring <rob.herring@calxeda.com>
+Cc: devicetree@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+---
+ drivers/of/fdt.c | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
 
-Thanks for following up with this.
-
-> ---
-> This is the (reworked for UAPI) non-documentation part of more than two
-> year old "asm/types.h: All architectures use int-ll64.h in kernelspace"
-> (https://lkml.org/lkml/2011/8/13/104)
-> 
-> Since <asm/types.h> (from include/uapi/asm-generic/types.h) is used for
-> both kernel and user space, include/asm-generic/int-ll64.h cannot just
-> become include/asm-generic/types.h, as Arnd suggested.
-
-I'm pretty sure you are right with this, but I don't remember at all
-what I suggested and don't understand what the problem (if any) is.
-Can you remind me?
-
-	Arnd
+diff --git a/drivers/of/fdt.c b/drivers/of/fdt.c
+index 2fa024b97c43..ac4983955e6d 100644
+--- a/drivers/of/fdt.c
++++ b/drivers/of/fdt.c
+@@ -922,8 +922,14 @@ void __init unflatten_device_tree(void)
+  */
+ void __init unflatten_and_copy_device_tree(void)
+ {
+-	int size = __be32_to_cpu(initial_boot_params->totalsize);
+-	void *dt = early_init_dt_alloc_memory_arch(size,
++	int size;
++	void *dt;
++
++	if (!initial_boot_params)
++		return;
++
++	size = __be32_to_cpu(initial_boot_params->totalsize);
++	dt = early_init_dt_alloc_memory_arch(size,
+ 		__alignof__(struct boot_param_header));
+ 
+ 	if (dt) {
+-- 
+1.8.1.2
