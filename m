@@ -1,160 +1,113 @@
 From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Subject: [PATCH -tip v3 00/23] kprobes: introduce NOKPROBE_SYMBOL() and general cleaning of kprobe blacklist
-Date: Wed, 20 Nov 2013 04:21:48 +0000
-Message-ID: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal>
+Subject: [PATCH -tip v3 03/23] kprobes: Show blacklist entries via debugfs
+Date: Wed, 20 Nov 2013 04:21:56 +0000
+Message-ID: <20131120042156.15296.26687.stgit@kbuild-fedora.novalocal>
+References: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <systemtap-return-21600-gls-systemtap=m.gmane.org@sourceware.org>
-List-Unsubscribe: <mailto:systemtap-unsubscribe-##L=##H@sourceware.org>
-List-Subscribe: <mailto:systemtap-subscribe@sourceware.org>
-List-Post: <mailto:systemtap@sourceware.org>
-List-Help: <mailto:systemtap-help@sourceware.org>, <http://sourceware.org/lists.html#faqs>
-Sender: systemtap-owner@sourceware.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail9.hitachi.co.jp ([133.145.228.44]:59842 "EHLO
+	mail9.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752222Ab3KTEWD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Nov 2013 23:22:03 -0500
+In-Reply-To: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@kernel.org>
 Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
-List-Id: linux-arch.vger.kernel.org
 
-Hi,
-Here is the version 3 of NOKPORBE_SYMBOL series.
+Show blacklist entries (function names with the address
+range) via /sys/kernel/debug/kprobes/blacklist.
 
-Currently the blacklist is maintained by hand in kprobes.c 
-which is separated from the function definition and is hard
-to catch up the kernel update.
-
-To solve this issue, I've introduced NOKPROBE_SYMBOL() macro
-for making kprobe blacklist at build time. Since the
-NOKPROBE_SYMBOL() macros can be placed right after the
-function is defined (as like as EXPORT_SYMBOL), it is
-easy to maintain.
-
-This series replaces __kprobes with NOKPROBE_SYMBOL() macro
-or apply __always_inline annotation for some cases, because
-NOKPROBE_SYMBOL() will inhibit inlining by referring the
-symbol address. :(
-
-At this point, I replaced all __kprobes under kernel/ and
-arch/x86. For future work, I'd like to replace all the
-__kprobes annotation for all archs too.
-
-Also, I decided to classify current __kprobes annotation
-users who misuse it. Most of the preparation, registration,
-optimization functions related to kprobes are not involved
-in the breakpoint or other exception handling.
-This means that those never cause problems such as infinite
-recursion if we put kprobes on it.
-This also reduces blacklist a lot.
-
-For easy to check the blacklist, you can see what address
-region/symbols are not allowed to probe via
-/sys/kernel/debug/kprobes/blacklist.
-
-Since the new blacklist can be populated/shrinked dynamically,
-the blacklist now also support modules. :)
-kprobes users can make a custom blacklisted functions which
-will be called from kprobes handlers. Example codes are also
-updated, so you can see how it works.
-
-This series also includes a change which prohibits probing
-on the address in .entry.text because the code is used for
-very low-level sensitive interrupt/syscall entries. Probing
-such code may cause unexpected result (actually most of
-that area is already in the kprobe blacklist).
-So I've decide to prohibit probing all of them.
-
-Finally, I got an empty .kprobes.text on x86 :)
-
-$ grep kprobes_text System.map
-ffffffff81604980 T __kprobes_text_end
-ffffffff81604980 T __kprobes_text_start
-
-Thank you,
-
-Changes from v2 to v3:
- - Introduce arch_within_kprobe_blacklist() which checks
-   the address is within the .kprobes.text (generic,x86) or
-   .entry.text (x86), for fixing build issue on !x86.
- - Rename in_nokprobes_functions to within_kprobe_blacklist
-   and it returns a bool value istead of an error.
- - Fix the type of kprobe_blacklist_seq_stop().
- - Use blacklist entry to check the blacklisted address
-   ranges (.entry.text/.kprobes.text). This also eliminates
-   arch_within_kprobe_blacklist(). :)
-
-Changes from v1 to v2:
- - Replace __kprobes with NOKPROBE_SYMBOL() and remove
-   unneeded __kprobes on the files compiled on x86.
- - Add blacklist on modules support.
- - Add debugfs interface for blacklist.
- - Fix indent of the NOKPROBE_SYMBOL() by using tabs.
- - Fix NOKPROBE_SYMBOL() for expanding nested macro.
- - Update Documentations/kprobes.txt about blacklist.
+Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
+Cc: "David S. Miller" <davem@davemloft.net>
 ---
+ kernel/kprobes.c |   61 +++++++++++++++++++++++++++++++++++++++++++++++-------
+ 1 file changed, 53 insertions(+), 8 deletions(-)
 
-Masami Hiramatsu (23):
-      kprobes: Prohibit probing on .entry.text code
-      kprobes: Introduce NOKPROBE_SYMBOL() macro for blacklist
-      kprobes: Show blacklist entries via debugfs
-      kprobes: Support blacklist functions in module
-      kprobes: Use NOKPROBE_SYMBOL() in sample modules
-      kprobes/x86: Allow probe on some kprobe preparation functions
-      kprobes/x86: Use NOKPROBE_SYMBOL instead of __kprobes
-      kprobes: Allow probe on some kprobe functions
-      kprobes: Use NOKPROBE_SYMBOL macro instead of __kprobes
-      ftrace/kprobes: Allow probing on some preparation functions
-      ftrace/kprobes: Use NOKPROBE_SYMBOL macro in ftrace
-      x86/hw_breakpoint: Use NOKPROBE_SYMBOL macro in hw_breakpoint
-      x86/trap: Use NOKPROBE_SYMBOL macro in trap.c
-      x86/fault: Use NOKPROBE_SYMBOL macro in fault.c
-      x86/alternative: Use NOKPROBE_SYMBOL macro in alternative.c
-      x86/nmi: Use NOKPROBE_SYMBOL macro for nmi handlers
-      x86/kvm: Use NOKPROBE_SYMBOL macro in kvm.c
-      x86/dumpstack: Use NOKPROBE_SYMBOL macro in dumpstack.c
-      [BUGFIX] kprobes/x86: Prohibit probing on debug_stack_*
-      [BUGFIX] kprobes: Prohibit probing on func_ptr_is_kernel_text
-      notifier: Use NOKPROBE_SYMBOL macro in notifier
-      sched: Use NOKPROBE_SYMBOL macro in sched
-      kprobes/x86: Use kprobe_blacklist for .kprobes.text and .entry.text
-
-
- Documentation/kprobes.txt                |   24 ++
- arch/x86/include/asm/traps.h             |    2 
- arch/x86/kernel/alternative.c            |    3 
- arch/x86/kernel/apic/hw_nmi.c            |    3 
- arch/x86/kernel/cpu/common.c             |    4 
- arch/x86/kernel/cpu/perf_event.c         |    3 
- arch/x86/kernel/cpu/perf_event_amd_ibs.c |    3 
- arch/x86/kernel/dumpstack.c              |    9 -
- arch/x86/kernel/entry_32.S               |   33 --
- arch/x86/kernel/entry_64.S               |   20 -
- arch/x86/kernel/hw_breakpoint.c          |    6 
- arch/x86/kernel/kprobes/core.c           |  105 +++++--
- arch/x86/kernel/kprobes/ftrace.c         |   17 +
- arch/x86/kernel/kprobes/opt.c            |   32 +-
- arch/x86/kernel/kvm.c                    |    4 
- arch/x86/kernel/nmi.c                    |   18 +
- arch/x86/kernel/paravirt.c               |    4 
- arch/x86/kernel/traps.c                  |   20 +
- arch/x86/mm/fault.c                      |   28 +-
- include/asm-generic/vmlinux.lds.h        |    9 +
- include/linux/kprobes.h                  |   22 ++
- include/linux/module.h                   |    5 
- kernel/extable.c                         |    2 
- kernel/kprobes.c                         |  437 +++++++++++++++++++-----------
- kernel/module.c                          |    6 
- kernel/notifier.c                        |   22 +-
- kernel/sched/core.c                      |    7 
- kernel/trace/trace_event_perf.c          |    5 
- kernel/trace/trace_kprobe.c              |   53 ++--
- kernel/trace/trace_probe.c               |   78 +++--
- kernel/trace/trace_probe.h               |    4 
- samples/kprobes/jprobe_example.c         |    1 
- samples/kprobes/kprobe_example.c         |    3 
- samples/kprobes/kretprobe_example.c      |    2 
- 34 files changed, 612 insertions(+), 382 deletions(-)
-
--- 
-Masami HIRAMATSU
-IT Management Research Dept. Linux Technology Center
-Hitachi, Ltd., Yokohama Research Laboratory
-E-mail: masami.hiramatsu.pt@hitachi.com
+diff --git a/kernel/kprobes.c b/kernel/kprobes.c
+index e04d8de..d34744e 100644
+--- a/kernel/kprobes.c
++++ b/kernel/kprobes.c
+@@ -2228,6 +2228,46 @@ static const struct file_operations debugfs_kprobes_operations = {
+ 	.release        = seq_release,
+ };
+ 
++/* kprobes/blacklist -- shows which functions can not be probed */
++static void *kprobe_blacklist_seq_start(struct seq_file *m, loff_t *pos)
++{
++	return seq_list_start(&kprobe_blacklist, *pos);
++}
++
++static void *kprobe_blacklist_seq_next(struct seq_file *m, void *v, loff_t *pos)
++{
++	return seq_list_next(v, &kprobe_blacklist, pos);
++}
++
++static int kprobe_blacklist_seq_show(struct seq_file *m, void *v)
++{
++	struct kprobe_blackpoint *bp =
++		list_entry(v, struct kprobe_blackpoint, list);
++
++	seq_printf(m, "0x%p-0x%p\t%s\n", (void *)bp->start_addr,
++		   (void *)(bp->start_addr + bp->range), bp->name);
++	return 0;
++}
++
++static const struct seq_operations kprobe_blacklist_seq_ops = {
++	.start = kprobe_blacklist_seq_start,
++	.next  = kprobe_blacklist_seq_next,
++	.stop  = kprobe_seq_stop,	/* Reuse void function */
++	.show  = kprobe_blacklist_seq_show,
++};
++
++static int kprobe_blacklist_open(struct inode *inode, struct file *filp)
++{
++	return seq_open(filp, &kprobe_blacklist_seq_ops);
++}
++
++static const struct file_operations debugfs_kprobe_blacklist_ops = {
++	.open           = kprobe_blacklist_open,
++	.read           = seq_read,
++	.llseek         = seq_lseek,
++	.release        = seq_release,
++};
++
+ static void __kprobes arm_all_kprobes(void)
+ {
+ 	struct hlist_head *head;
+@@ -2351,19 +2391,24 @@ static int __kprobes debugfs_kprobe_init(void)
+ 
+ 	file = debugfs_create_file("list", 0444, dir, NULL,
+ 				&debugfs_kprobes_operations);
+-	if (!file) {
+-		debugfs_remove(dir);
+-		return -ENOMEM;
+-	}
++	if (!file)
++		goto error;
+ 
+ 	file = debugfs_create_file("enabled", 0600, dir,
+ 					&value, &fops_kp);
+-	if (!file) {
+-		debugfs_remove(dir);
+-		return -ENOMEM;
+-	}
++	if (!file)
++		goto error;
++
++	file = debugfs_create_file("blacklist", 0444, dir, NULL,
++				&debugfs_kprobe_blacklist_ops);
++	if (!file)
++		goto error;
+ 
+ 	return 0;
++
++error:
++	debugfs_remove(dir);
++	return -ENOMEM;
+ }
+ 
+ late_initcall(debugfs_kprobe_init);
