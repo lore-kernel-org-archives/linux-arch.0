@@ -1,184 +1,160 @@
-From: Tim Chen <tim.c.chen@linux.intel.com>
-Subject: [PATCH v6 5/5] MCS Lock: Allows for architecture specific mcs lock
- and unlock
-Date: Tue, 19 Nov 2013 17:37:47 -0800
-Message-ID: <1384911467.11046.455.camel@schen9-DESK>
-References: <cover.1384885312.git.tim.c.chen@linux.intel.com>
+From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+Subject: [PATCH -tip v3 00/23] kprobes: introduce NOKPROBE_SYMBOL() and general cleaning of kprobe blacklist
+Date: Wed, 20 Nov 2013 04:21:48 +0000
+Message-ID: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <cover.1384885312.git.tim.c.chen@linux.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, "Paul
- E.McKenney" <paulmck@linux.vnet.ibm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>Wi
+Return-path: <systemtap-return-21600-gls-systemtap=m.gmane.org@sourceware.org>
+List-Unsubscribe: <mailto:systemtap-unsubscribe-##L=##H@sourceware.org>
+List-Subscribe: <mailto:systemtap-subscribe@sourceware.org>
+List-Post: <mailto:systemtap@sourceware.org>
+List-Help: <mailto:systemtap-help@sourceware.org>, <http://sourceware.org/lists.html#faqs>
+Sender: systemtap-owner@sourceware.org
+To: Ingo Molnar <mingo@kernel.org>
+Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
-Restructure code to allow for architecture specific defines
-of the arch_mcs_spin_lock and arch_mcs_spin_unlock funtion
-that can be optimized for specific architecture.  These
-arch specific functions can be placed in asm/mcs_spinlock.h.
-Otherwise the default arch_mcs_spin_lock and arch_mcs_spin_unlock
-will be used.
+Hi,
+Here is the version 3 of NOKPORBE_SYMBOL series.
 
-Signed-off-by: Tim Chen <tim.c.chen@linux.intel.com>
+Currently the blacklist is maintained by hand in kprobes.c 
+which is separated from the function definition and is hard
+to catch up the kernel update.
+
+To solve this issue, I've introduced NOKPROBE_SYMBOL() macro
+for making kprobe blacklist at build time. Since the
+NOKPROBE_SYMBOL() macros can be placed right after the
+function is defined (as like as EXPORT_SYMBOL), it is
+easy to maintain.
+
+This series replaces __kprobes with NOKPROBE_SYMBOL() macro
+or apply __always_inline annotation for some cases, because
+NOKPROBE_SYMBOL() will inhibit inlining by referring the
+symbol address. :(
+
+At this point, I replaced all __kprobes under kernel/ and
+arch/x86. For future work, I'd like to replace all the
+__kprobes annotation for all archs too.
+
+Also, I decided to classify current __kprobes annotation
+users who misuse it. Most of the preparation, registration,
+optimization functions related to kprobes are not involved
+in the breakpoint or other exception handling.
+This means that those never cause problems such as infinite
+recursion if we put kprobes on it.
+This also reduces blacklist a lot.
+
+For easy to check the blacklist, you can see what address
+region/symbols are not allowed to probe via
+/sys/kernel/debug/kprobes/blacklist.
+
+Since the new blacklist can be populated/shrinked dynamically,
+the blacklist now also support modules. :)
+kprobes users can make a custom blacklisted functions which
+will be called from kprobes handlers. Example codes are also
+updated, so you can see how it works.
+
+This series also includes a change which prohibits probing
+on the address in .entry.text because the code is used for
+very low-level sensitive interrupt/syscall entries. Probing
+such code may cause unexpected result (actually most of
+that area is already in the kprobe blacklist).
+So I've decide to prohibit probing all of them.
+
+Finally, I got an empty .kprobes.text on x86 :)
+
+$ grep kprobes_text System.map
+ffffffff81604980 T __kprobes_text_end
+ffffffff81604980 T __kprobes_text_start
+
+Thank you,
+
+Changes from v2 to v3:
+ - Introduce arch_within_kprobe_blacklist() which checks
+   the address is within the .kprobes.text (generic,x86) or
+   .entry.text (x86), for fixing build issue on !x86.
+ - Rename in_nokprobes_functions to within_kprobe_blacklist
+   and it returns a bool value istead of an error.
+ - Fix the type of kprobe_blacklist_seq_stop().
+ - Use blacklist entry to check the blacklisted address
+   ranges (.entry.text/.kprobes.text). This also eliminates
+   arch_within_kprobe_blacklist(). :)
+
+Changes from v1 to v2:
+ - Replace __kprobes with NOKPROBE_SYMBOL() and remove
+   unneeded __kprobes on the files compiled on x86.
+ - Add blacklist on modules support.
+ - Add debugfs interface for blacklist.
+ - Fix indent of the NOKPROBE_SYMBOL() by using tabs.
+ - Fix NOKPROBE_SYMBOL() for expanding nested macro.
+ - Update Documentations/kprobes.txt about blacklist.
 ---
- arch/Kconfig                  |  3 ++
- include/linux/mcs_spinlock.h  |  5 +++
- kernel/locking/mcs_spinlock.c | 93 +++++++++++++++++++++++++------------------
- 3 files changed, 62 insertions(+), 39 deletions(-)
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index ded747c..c96c696 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -306,6 +306,9 @@ config HAVE_CMPXCHG_LOCAL
- config HAVE_CMPXCHG_DOUBLE
- 	bool
- 
-+config HAVE_ARCH_MCS_LOCK
-+	bool
-+
- config ARCH_WANT_IPC_PARSE_VERSION
- 	bool
- 
-diff --git a/include/linux/mcs_spinlock.h b/include/linux/mcs_spinlock.h
-index d54bb23..d64786a 100644
---- a/include/linux/mcs_spinlock.h
-+++ b/include/linux/mcs_spinlock.h
-@@ -12,6 +12,11 @@
- #ifndef __LINUX_MCS_SPINLOCK_H
- #define __LINUX_MCS_SPINLOCK_H
- 
-+/* arch specific mcs lock and unlock functions defined here */
-+#ifdef CONFIG_HAVE_ARCH_MCS_LOCK
-+#include <asm/mcs_spinlock.h>
-+#endif
-+
- struct mcs_spinlock {
- 	struct mcs_spinlock *next;
- 	int locked; /* 1 if lock acquired */
-diff --git a/kernel/locking/mcs_spinlock.c b/kernel/locking/mcs_spinlock.c
-index 6f2ce8e..582584a 100644
---- a/kernel/locking/mcs_spinlock.c
-+++ b/kernel/locking/mcs_spinlock.c
-@@ -29,28 +29,36 @@
-  * on this node->locked until the previous lock holder sets the node->locked
-  * in mcs_spin_unlock().
-  */
-+#ifndef arch_mcs_spin_lock
-+#define arch_mcs_spin_lock(lock, node)					\
-+{									\
-+	struct mcs_spinlock *prev;					\
-+									\
-+	/* Init node */							\
-+	node->locked = 0;						\
-+	node->next   = NULL;						\
-+									\
-+	/* xchg() provides a memory barrier */				\
-+	prev = xchg(lock, node);					\
-+	if (likely(prev == NULL)) {					\
-+		/* Lock acquired */					\
-+		return;							\
-+	}								\
-+	ACCESS_ONCE(prev->next) = node;					\
-+	/*								\
-+	 * Wait until the lock holder passes the lock down.		\
-+	 * Using smp_load_acquire() provides a memory barrier that	\
-+	 * ensures subsequent operations happen after the lock is	\
-+	 * acquired.							\
-+	 */								\
-+	while (!(smp_load_acquire(&node->locked)))			\
-+		arch_mutex_cpu_relax();					\
-+}
-+#endif
-+
- void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
- {
--	struct mcs_spinlock *prev;
--
--	/* Init node */
--	node->locked = 0;
--	node->next   = NULL;
--
--	/* xchg() provides a memory barrier */
--	prev = xchg(lock, node);
--	if (likely(prev == NULL)) {
--		/* Lock acquired */
--		return;
--	}
--	ACCESS_ONCE(prev->next) = node;
--	/*
--	 * Wait until the lock holder passes the lock down.
--	 * Using smp_load_acquire() provides a memory barrier that
--	 * ensures subsequent operations happen after the lock is acquired.
--	 */
--	while (!(smp_load_acquire(&node->locked)))
--		arch_mutex_cpu_relax();
-+	arch_mcs_spin_lock(lock, node);
- }
- EXPORT_SYMBOL_GPL(mcs_spin_lock);
- 
-@@ -58,26 +66,33 @@ EXPORT_SYMBOL_GPL(mcs_spin_lock);
-  * Releases the lock. The caller should pass in the corresponding node that
-  * was used to acquire the lock.
-  */
-+#ifndef arch_mcs_spin_unlock
-+#define arch_mcs_spin_unlock(lock, node)				\
-+{									\
-+	struct mcs_spinlock *next = ACCESS_ONCE(node->next);		\
-+									\
-+	if (likely(!next)) {						\
-+		/*							\
-+		 * Release the lock by setting it to NULL               \
-+		 */							\
-+		if (likely(cmpxchg(lock, node, NULL) == node))          \
-+			return;                                         \
-+		/* Wait until the next pointer is set */		\
-+		while (!(next = ACCESS_ONCE(node->next)))		\
-+			arch_mutex_cpu_relax();				\
-+	}								\
-+	/*								\
-+	 * Pass lock to next waiter.					\
-+	 * smp_store_release() provides a memory barrier to ensure	\
-+	 * all operations in the critical section has been completed	\
-+	 * before unlocking.						\
-+	 */								\
-+	smp_store_release(&next->locked, 1);				\
-+}
-+#endif
-+
- void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
- {
--	struct mcs_spinlock *next = ACCESS_ONCE(node->next);
--
--	if (likely(!next)) {
--		/*
--		 * Release the lock by setting it to NULL
--		 */
--		if (likely(cmpxchg(lock, node, NULL) == node))
--			return;
--		/* Wait until the next pointer is set */
--		while (!(next = ACCESS_ONCE(node->next)))
--			arch_mutex_cpu_relax();
--	}
--	/*
--	 * Pass lock to next waiter.
--	 * smp_store_release() provides a memory barrier to ensure
--	 * all operations in the critical section has been completed
--	 * before unlocking.
--	 */
--	smp_store_release(&next->locked, 1);
-+	arch_mcs_spin_unlock(lock, node);
- }
- EXPORT_SYMBOL_GPL(mcs_spin_unlock);
+Masami Hiramatsu (23):
+      kprobes: Prohibit probing on .entry.text code
+      kprobes: Introduce NOKPROBE_SYMBOL() macro for blacklist
+      kprobes: Show blacklist entries via debugfs
+      kprobes: Support blacklist functions in module
+      kprobes: Use NOKPROBE_SYMBOL() in sample modules
+      kprobes/x86: Allow probe on some kprobe preparation functions
+      kprobes/x86: Use NOKPROBE_SYMBOL instead of __kprobes
+      kprobes: Allow probe on some kprobe functions
+      kprobes: Use NOKPROBE_SYMBOL macro instead of __kprobes
+      ftrace/kprobes: Allow probing on some preparation functions
+      ftrace/kprobes: Use NOKPROBE_SYMBOL macro in ftrace
+      x86/hw_breakpoint: Use NOKPROBE_SYMBOL macro in hw_breakpoint
+      x86/trap: Use NOKPROBE_SYMBOL macro in trap.c
+      x86/fault: Use NOKPROBE_SYMBOL macro in fault.c
+      x86/alternative: Use NOKPROBE_SYMBOL macro in alternative.c
+      x86/nmi: Use NOKPROBE_SYMBOL macro for nmi handlers
+      x86/kvm: Use NOKPROBE_SYMBOL macro in kvm.c
+      x86/dumpstack: Use NOKPROBE_SYMBOL macro in dumpstack.c
+      [BUGFIX] kprobes/x86: Prohibit probing on debug_stack_*
+      [BUGFIX] kprobes: Prohibit probing on func_ptr_is_kernel_text
+      notifier: Use NOKPROBE_SYMBOL macro in notifier
+      sched: Use NOKPROBE_SYMBOL macro in sched
+      kprobes/x86: Use kprobe_blacklist for .kprobes.text and .entry.text
+
+
+ Documentation/kprobes.txt                |   24 ++
+ arch/x86/include/asm/traps.h             |    2 
+ arch/x86/kernel/alternative.c            |    3 
+ arch/x86/kernel/apic/hw_nmi.c            |    3 
+ arch/x86/kernel/cpu/common.c             |    4 
+ arch/x86/kernel/cpu/perf_event.c         |    3 
+ arch/x86/kernel/cpu/perf_event_amd_ibs.c |    3 
+ arch/x86/kernel/dumpstack.c              |    9 -
+ arch/x86/kernel/entry_32.S               |   33 --
+ arch/x86/kernel/entry_64.S               |   20 -
+ arch/x86/kernel/hw_breakpoint.c          |    6 
+ arch/x86/kernel/kprobes/core.c           |  105 +++++--
+ arch/x86/kernel/kprobes/ftrace.c         |   17 +
+ arch/x86/kernel/kprobes/opt.c            |   32 +-
+ arch/x86/kernel/kvm.c                    |    4 
+ arch/x86/kernel/nmi.c                    |   18 +
+ arch/x86/kernel/paravirt.c               |    4 
+ arch/x86/kernel/traps.c                  |   20 +
+ arch/x86/mm/fault.c                      |   28 +-
+ include/asm-generic/vmlinux.lds.h        |    9 +
+ include/linux/kprobes.h                  |   22 ++
+ include/linux/module.h                   |    5 
+ kernel/extable.c                         |    2 
+ kernel/kprobes.c                         |  437 +++++++++++++++++++-----------
+ kernel/module.c                          |    6 
+ kernel/notifier.c                        |   22 +-
+ kernel/sched/core.c                      |    7 
+ kernel/trace/trace_event_perf.c          |    5 
+ kernel/trace/trace_kprobe.c              |   53 ++--
+ kernel/trace/trace_probe.c               |   78 +++--
+ kernel/trace/trace_probe.h               |    4 
+ samples/kprobes/jprobe_example.c         |    1 
+ samples/kprobes/kprobe_example.c         |    3 
+ samples/kprobes/kretprobe_example.c      |    2 
+ 34 files changed, 612 insertions(+), 382 deletions(-)
+
 -- 
-1.7.11.7
-
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Masami HIRAMATSU
+IT Management Research Dept. Linux Technology Center
+Hitachi, Ltd., Yokohama Research Laboratory
+E-mail: masami.hiramatsu.pt@hitachi.com
