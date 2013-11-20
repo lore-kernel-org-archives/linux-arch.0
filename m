@@ -1,68 +1,44 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH v6 0/5] MCS Lock: MCS lock code cleanup and optimizations
-Date: Wed, 20 Nov 2013 09:16:18 -0800
-Message-ID: <20131120171618.GK4138@linux.vnet.ibm.com>
-References: <cover.1384885312.git.tim.c.chen@linux.intel.com>
- <1384911446.11046.450.camel@schen9-DESK>
- <20131120101957.GA19352@mudshark.cambridge.arm.com>
- <1384966847.11046.457.camel@schen9-DESK>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: "Frank Ch. Eigler" <fche@redhat.com>
+Subject: Re: [PATCH -tip v3 00/23] kprobes: introduce NOKPROBE_SYMBOL() and general cleaning of kprobe blacklist
+Date: Wed, 20 Nov 2013 12:36:00 -0500
+Message-ID: <20131120173600.GK8993@redhat.com>
+References: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal> <y0mvbznxi6k.fsf@fche.csb> <20131120153801.GA9743@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:21972 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751283Ab3KTRgW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 20 Nov 2013 12:36:22 -0500
 Content-Disposition: inline
-In-Reply-To: <1384966847.11046.457.camel@schen9-DESK>
-Sender: owner-linux-mm@kvack.org
-To: Tim Chen <tim.c.chen@linux.intel.com>
-Cc: Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20131120153801.GA9743@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
 
-On Wed, Nov 20, 2013 at 09:00:47AM -0800, Tim Chen wrote:
-> On Wed, 2013-11-20 at 10:19 +0000, Will Deacon wrote:
-> > Hi Tim,
-> > 
-> > On Wed, Nov 20, 2013 at 01:37:26AM +0000, Tim Chen wrote:
-> > > In this patch series, we separated out the MCS lock code which was
-> > > previously embedded in the mutex.c.  This allows for easier reuse of
-> > > MCS lock in other places like rwsem and qrwlock.  We also did some micro
-> > > optimizations and barrier cleanup.  
-> > > 
-> > > The original code has potential leaks between critical sections, which
-> > > was not a problem when MCS was embedded within the mutex but needs
-> > > to be corrected when allowing the MCS lock to be used by itself for
-> > > other locking purposes. 
-> > > 
-> > > Proper barriers are now embedded with the usage of smp_load_acquire() in
-> > > mcs_spin_lock() and smp_store_release() in mcs_spin_unlock.  See
-> > > http://marc.info/?l=linux-arch&m=138386254111507 for info on the
-> > > new smp_load_acquire() and smp_store_release() functions. 
-> > > 
-> > > This patches were previously part of the rwsem optimization patch series
-> > > but now we spearate them out.
-> > > 
-> > > We have also added hooks to allow for architecture specific 
-> > > implementation of the mcs_spin_lock and mcs_spin_unlock functions.
-> > > 
-> > > Will, do you want to take a crack at adding implementation for ARM
-> > > with wfe instruction?
-> > 
-> > Sure, I'll have a go this week. Thanks for keeping that as a consideration!
-> > 
-> > As an aside: what are you using to test this code, so that I can make sure I
-> > don't break it?
+Hi -
+
+> > Does this new blacklist cover enough that the kernel now survives a 
+> > broadly wildcarded perf-probe, e.g. over e.g. all of its kallsyms?
 > 
-> I was testing it against my rwsem patches.  But any workload that 
-> exercises mutex should also use this code, as this is part of mutex.
+> That's generally the purpose of the annotations - if it doesn't then 
+> that's a bug.
 
-It would be good to have more focused tests.  It is amazing how reliable
-broken synchronization-primitive implementations can be.  Of course, in
-this case, they will fail at the least opportune and most difficult to
-debug situation...
+AFAIK, no kernel since kprobes was introduced has ever stood up to
+that test.  perf probe lacks the wildcarding powers of systemtap, so
+one needs to resort to something like:
 
-							Thanx, Paul
+# cat /proc/kallsyms | grep ' [tT] ' | while read addr type symbol; do
+   perf probe $symbol
+done
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+then wait for a few hours for that to finish. Then, or while the loop
+is still running, run
+
+# perf record -e 'probe:*' -aR sleep 1
+
+to take a kernel down.
+
+
+- FChE
