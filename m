@@ -1,53 +1,90 @@
-From: Josh Stone <jistone@redhat.com>
-Subject: Re: [PATCH -tip v3 00/23] kprobes: introduce NOKPROBE_SYMBOL() and
- general cleaning of kprobe blacklist
-Date: Wed, 20 Nov 2013 10:09:49 -0800
-Message-ID: <528CFAED.1000703@redhat.com>
-References: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal>	<y0mvbznxi6k.fsf@fche.csb>	<20131120153801.GA9743@gmail.com>	<20131120173600.GK8993@redhat.com> <20131120125649.40ca99c3@gandalf.local.home>
+From: Tim Chen <tim.c.chen@linux.intel.com>
+Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
+Date: Wed, 20 Nov 2013 10:43:46 -0800
+Message-ID: <1384973026.11046.465.camel@schen9-DESK>
+References: <cover.1384885312.git.tim.c.chen@linux.intel.com>
+	 <1384911463.11046.454.camel@schen9-DESK>
+	 <20131120153123.GF4138@linux.vnet.ibm.com>
+	 <20131120154643.GG19352@mudshark.cambridge.arm.com>
+	 <20131120171400.GI4138@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:20617 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753715Ab3KTSLf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 20 Nov 2013 13:11:35 -0500
-In-Reply-To: <20131120125649.40ca99c3@gandalf.local.home>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>, "Frank Ch. Eigler" <fche@redhat.com>
-Cc: Ingo Molnar <mingo@kernel.org>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, virtualization@lists.linux-foundation.org, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20131120171400.GI4138@linux.vnet.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: paulmck@linux.vnet.ibm.com
+Cc: Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@z>
+List-Id: linux-arch.vger.kernel.org
 
-On 11/20/2013 09:56 AM, Steven Rostedt wrote:
-> On Wed, 20 Nov 2013 12:36:00 -0500
-> "Frank Ch. Eigler" <fche@redhat.com> wrote:
+On Wed, 2013-11-20 at 09:14 -0800, Paul E. McKenney wrote:
+> On Wed, Nov 20, 2013 at 03:46:43PM +0000, Will Deacon wrote:
+> > Hi Paul,
+> > 
+> > On Wed, Nov 20, 2013 at 03:31:23PM +0000, Paul E. McKenney wrote:
+> > > On Tue, Nov 19, 2013 at 05:37:43PM -0800, Tim Chen wrote:
+> > > > @@ -68,7 +72,12 @@ void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
+> > > >  		while (!(next = ACCESS_ONCE(node->next)))
+> > > >  			arch_mutex_cpu_relax();
+> > > >  	}
+> > > > -	ACCESS_ONCE(next->locked) = 1;
+> > > > -	smp_wmb();
+> > > > +	/*
+> > > > +	 * Pass lock to next waiter.
+> > > > +	 * smp_store_release() provides a memory barrier to ensure
+> > > > +	 * all operations in the critical section has been completed
+> > > > +	 * before unlocking.
+> > > > +	 */
+> > > > +	smp_store_release(&next->locked, 1);
+> > > 
+> > > However, there is one problem with this that I missed yesterday.
+> > > 
+> > > Documentation/memory-barriers.txt requires that an unlock-lock pair
+> > > provide a full barrier, but this is not guaranteed if we use
+> > > smp_store_release() for unlock and smp_load_acquire() for lock.
+> > > At least one of these needs a full memory barrier.
+> > 
+> > Hmm, so in the following case:
+> > 
+> >   Access A
+> >   unlock()	/* release semantics */
+> >   lock()	/* acquire semantics */
+> >   Access B
+> > 
+> > A cannot pass beyond the unlock() and B cannot pass the before the lock().
+> > 
+> > I agree that accesses between the unlock and the lock can be move across both
+> > A and B, but that doesn't seem to matter by my reading of the above.
+> > 
+> > What is the problematic scenario you have in mind? Are you thinking of the
+> > lock() moving before the unlock()? That's only permitted by RCpc afaiu,
+> > which I don't think any architectures supported by Linux implement...
+> > (ARMv8 acquire/release is RCsc).
 > 
->> Hi -
->>
->>>> Does this new blacklist cover enough that the kernel now survives a 
->>>> broadly wildcarded perf-probe, e.g. over e.g. all of its kallsyms?
->>>
->>> That's generally the purpose of the annotations - if it doesn't then 
->>> that's a bug.
->>
->> AFAIK, no kernel since kprobes was introduced has ever stood up to
->> that test.  perf probe lacks the wildcarding powers of systemtap, so
->> one needs to resort to something like:
->>
->> # cat /proc/kallsyms | grep ' [tT] ' | while read addr type symbol; do
->>    perf probe $symbol
->> done
+> If smp_load_acquire() and smp_store_release() are both implemented using
+> lwsync on powerpc, and if Access A is a store and Access B is a load,
+> then Access A and Access B can be reordered.
 > 
-> I'm curious to why one would do that. IIUC, perf now has function
-> tracing support.
+> Of course, if every other architecture will be providing RCsc implementations
+> for smp_load_acquire() and smp_store_release(), which would not be a bad
+> thing, then another approach is for powerpc to use sync rather than lwsync
+> for one or the other of smp_load_acquire() or smp_store_release().
 
-Then consider something like probing all inline "call" sites, which will
-be sprinkled in the middle where ftrace doesn't apply.
+Can we count on the xchg function in the beginning of mcs_lock to
+provide a memory barrier? It should provide an implicit memory
+barrier according to the memory-barriers document.
 
-The point is not whether there's an alternative - kprobes really ought
-to be wholly safe regardless.  Slow, if you did such broad probing,
-sure, but still safe.
+Thanks.
 
-And a real use-case probably wouldn't probe *all* functions/inlines, but
-it illustrates that there are at least a few in the full set that don't
-behave well.
+Tim
+
+> 
+> 							Thanx, Paul
+> 
+
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
