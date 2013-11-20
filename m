@@ -1,68 +1,93 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH RESEND] asm/types.h: Remove include/asm-generic/int-l64.h
-Date: Wed, 20 Nov 2013 01:37:20 +0100
-Message-ID: <201311200137.20917.arnd@arndb.de>
-References: <1376996476-12027-2-git-send-email-geert@linux-m68k.org> <201311191335.40506.arnd@arndb.de> <CAMuHMdXvn2GigpnH020XA1JvtF=4ZxwrOF4T=ocGgjhrcbWkgg@mail.gmail.com>
+From: Tim Chen <tim.c.chen@linux.intel.com>
+Subject: [PATCH v6 0/5] MCS Lock: MCS lock code cleanup and optimizations
+Date: Tue, 19 Nov 2013 17:37:26 -0800
+Message-ID: <1384911446.11046.450.camel@schen9-DESK>
+References: <cover.1384885312.git.tim.c.chen@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="utf-8"
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:62883 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752211Ab3KTAh4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Nov 2013 19:37:56 -0500
-In-Reply-To: <CAMuHMdXvn2GigpnH020XA1JvtF=4ZxwrOF4T=ocGgjhrcbWkgg@mail.gmail.com>
+Received: from mga09.intel.com ([134.134.136.24]:26182 "EHLO mga09.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752355Ab3KTBhb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 19 Nov 2013 20:37:31 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Randy Dunlap <rdunlap@xenotime.net>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>
 
-On Tuesday 19 November 2013, Geert Uytterhoeven wrote:
-> On Tue, Nov 19, 2013 at 1:35 PM, Arnd Bergmann <arnd@arndb.de> wrote:
->
-> > I'm pretty sure you are right with this, but I don't remember at all
-> > what I suggested and don't understand what the problem (if any) is.
-> > Can you remind me?
-> 
-> Me neither :-(
-> You said https://lkml.org/lkml/2011/8/13/109, and Al's umode_t
-> consolidation has been completed.
-> 
-> I think it had to do with include/uapi/asm-generic/types.h including
-> <asm-generic/int-ll64.h>. Let's try...
-> 
-> In userspace, it will include <asm-generic/int-ll64.h> from uapi to get
-> e.g. __u32.
-> In kernelspace, it will include plain <asm-generic/int-ll64.h> (to get e.g.
-> u32), which will in turn include <uapi/asm-generic/int-ll64.h> (to also
-> get e.g. __u32).
-> 
-> As there's only include/uapi/asm-generic/types.h, but not
-> include/asm-generic/types.h (the individual architectures still have their
-> own asm/types.h), you cannot easily move (the contents of) int-ll64.h
-> to asm-generic/types.h for both the normal and uapi headers.
-> 
-> Does this make sense?
+In this patch series, we separated out the MCS lock code which was
+previously embedded in the mutex.c.  This allows for easier reuse of
+MCS lock in other places like rwsem and qrwlock.  We also did some micro
+optimizations and barrier cleanup.  
 
-I'm pretty sure I was not talking about include/uapi/asm-generic/types.h
-there, and I still think we can just move include/asm-generic/int-ll64.h
-to include/asm-generic/types.h but leave the uapi logic in place.
+The original code has potential leaks between critical sections, which
+was not a problem when MCS was embedded within the mutex but needs
+to be corrected when allowing the MCS lock to be used by itself for
+other locking purposes. 
 
-All architectures that do nothing but #include <asm-generic/int-ll64.h>
-from asm/types.h at the moment can then remove their private file and
-use the generic version, the others need to change to #include 
-<asm-generic/types.h>.
+Proper barriers are now embedded with the usage of smp_load_acquire() in
+mcs_spin_lock() and smp_store_release() in mcs_spin_unlock.  See
+http://marc.info/?l=linux-arch&m=138386254111507 for info on the
+new smp_load_acquire() and smp_store_release() functions. 
 
-You can no longer #include <uapi/asm-generic/types.h> from kernel space
-after this change, since it refers to <asm-generic/int-ll64.h> which
-now only exists in user space, but that's ok because it would be a bug
-to include already (it defines the wrong types), and we don't.
+This patches were previously part of the rwsem optimization patch series
+but now we spearate them out.
 
-> Note that this discussion is about what to do with the remaining int-ll64.h,
-> not about removing int-l64.h, which is what this patch is really about.
-> So _this_ patch can just go in.
+We have also added hooks to allow for architecture specific 
+implementation of the mcs_spin_lock and mcs_spin_unlock functions.
 
-Right.
+Will, do you want to take a crack at adding implementation for ARM
+with wfe instruction?
 
-	Arnd
+Tim
+
+v6:
+1. Fix a bug of improper xchg_acquire and extra space in barrier
+fixing patch.
+2. Added extra hooks to allow for architecture specific version
+of mcs_spin_lock and mcs_spin_unlock to be used.
+
+v5:
+1. Rework barrier correction patch.  We now use smp_load_acquire()
+in mcs_spin_lock() and smp_store_release() in
+mcs_spin_unlock() to allow for architecture dependent barriers to be
+automatically used.  This is clean and will provide the right
+barriers for all architecture.
+
+v4:
+1. Move patch series to the latest tip after v3.12
+
+v3:
+1. modified memory barriers to support non x86 architectures that have
+weak memory ordering.
+
+v2:
+1. change export mcs_spin_lock as a GPL export symbol
+2. corrected mcs_spin_lock to references
+
+
+Jason Low (1):
+  MCS Lock: optimizations and extra comments
+
+Tim Chen (2):
+  MCS Lock: Restructure the MCS lock defines and locking code into its
+    own file
+  MCS Lock: Allows for architecture specific mcs lock and unlock
+
+Waiman Long (2):
+  MCS Lock: Move mcs_lock/unlock function into its own file
+  MCS Lock: Barrier corrections
+
+ arch/Kconfig                  |  3 ++
+ include/linux/mcs_spinlock.h  | 30 +++++++++++++
+ include/linux/mutex.h         |  5 ++-
+ kernel/locking/Makefile       |  6 +--
+ kernel/locking/mcs_spinlock.c | 98 +++++++++++++++++++++++++++++++++++++++++++
+ kernel/locking/mutex.c        | 60 ++++----------------------
+ 6 files changed, 144 insertions(+), 58 deletions(-)
+ create mode 100644 include/linux/mcs_spinlock.h
+ create mode 100644 kernel/locking/mcs_spinlock.c
+
+-- 
+1.7.11.7
