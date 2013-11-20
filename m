@@ -1,98 +1,63 @@
-From: Rob Herring <robherring2@gmail.com>
-Subject: Re: [PATCH 1/9] dt: Handle passed/built-in DT selection in early_init_dt_scan()
-Date: Wed, 20 Nov 2013 14:50:53 -0600
-Message-ID: <CAL_Jsq+ri0rVg-urU74cE__tor7WSu_0xexUDzQHc+o=Qo8E3A@mail.gmail.com>
-References: <5283A000.8090007@gmail.com>
-	<1384859554-27268-1-git-send-email-geert@linux-m68k.org>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [patch 4/6] ia64: Use preempt_schedule_irq
+Date: Wed, 20 Nov 2013 21:57:48 +0100 (CET)
+Message-ID: <alpine.DEB.2.02.1311202121340.30673@ionos.tec.linutronix.de>
+References: <20130917082838.218329307@infradead.org> <20130917182350.449685712@linutronix.de> <20130917183628.857145384@linutronix.de> <CA+8MBbKq1idWt1OSpRM3mWMDAQaEoewrU=h=m_pFoidVy6OA-Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f178.google.com ([209.85.220.178]:48393 "EHLO
-	mail-vc0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755225Ab3KTUuz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Nov 2013 15:50:55 -0500
-In-Reply-To: <1384859554-27268-1-git-send-email-geert@linux-m68k.org>
+Received: from www.linutronix.de ([62.245.132.108]:36080 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755207Ab3KTU5x (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Nov 2013 15:57:53 -0500
+In-Reply-To: <CA+8MBbKq1idWt1OSpRM3mWMDAQaEoewrU=h=m_pFoidVy6OA-Q@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Rob Herring <rob.herring@calxeda.com>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: Tony Luck <tony.luck@gmail.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Fenghua Yu <fenghua.yu@intel.com>
 
-On Tue, Nov 19, 2013 at 5:12 AM, Geert Uytterhoeven
-<geert@linux-m68k.org> wrote:
-> Let early_init_dt_scan() fall-back to the built-in DT if no DT was passed,
-> or if it's invalid, so architectures don't have to duplicate this logic.
->
-> Suggested-by: Rob Herring <rob.herring@calxeda.com>
-> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> ---
 
-Looks good to me. I can take this series if you want to send me a pull
-request. In any case, for the series:
 
-Reviewed-by: Rob Herring <rob.herring@calxeda.com>
+On Wed, 20 Nov 2013, Tony Luck wrote:
 
-Rob
+> On Tue, Sep 17, 2013 at 11:53 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
+> > Use the proper core function instead of fiddling with PREEMPT_ACTIVE
+> > and enable/disable interrupts in the low level code.
+> >
+> > Index: linux-2.6/arch/ia64/kernel/entry.S
+> > ===================================================================
+> > --- linux-2.6.orig/arch/ia64/kernel/entry.S
+> > +++ linux-2.6/arch/ia64/kernel/entry.S
+> ...
+> > -       br.call.spnt.many rp=schedule
+> > +       br.call.spnt.many rp=preempt_schedule_irq
+> 
+> This just hit mainline ... and I'm getting
+> 
+> arch/ia64/kernel/built-in.o: In function `skip_rbs_switch':
+> (.text+0xef2): undefined reference to `preempt_schedule_irq'
+> make: *** [vmlinux] Error 1
 
->  drivers/of/fdt.c       |   24 +++++++++++++++++-------
->  include/linux/of_fdt.h |    1 +
->  2 files changed, 18 insertions(+), 7 deletions(-)
->
-> diff --git a/drivers/of/fdt.c b/drivers/of/fdt.c
-> index 2fa024b97c43..a797cd43bc8b 100644
-> --- a/drivers/of/fdt.c
-> +++ b/drivers/of/fdt.c
-> @@ -868,18 +868,28 @@ void * __init __weak early_init_dt_alloc_memory_arch(u64 size, u64 align)
->
->  bool __init early_init_dt_scan(void *params)
->  {
-> -       if (!params)
-> -               return false;
-> -
->         /* Setup flat device-tree pointer */
->         initial_boot_params = params;
->
-> -       /* check device tree validity */
-> -       if (be32_to_cpu(initial_boot_params->magic) != OF_DT_HEADER) {
-> -               initial_boot_params = NULL;
-> -               return false;
-> +       /* check passed device tree validity */
-> +       if (initial_boot_params &&
-> +           be32_to_cpu(initial_boot_params->magic) == OF_DT_HEADER) {
-> +               pr_info("FDT at %p\n", initial_boot_params);
-> +               goto found;
-> +       }
-> +
-> +       /* check built-in device tree validity */
-> +       initial_boot_params = &__dtb_start;
-> +       if (__dtb_end != (void *)&__dtb_start &&
-> +           be32_to_cpu(initial_boot_params->magic) == OF_DT_HEADER) {
-> +               pr_info("Compiled-in FDT at %p\n", initial_boot_params);
-> +               goto found;
->         }
->
-> +       initial_boot_params = NULL;
-> +       return false;
-> +
-> +found:
->         /* Retrieve various information from the /chosen node */
->         of_scan_flat_dt(early_init_dt_scan_chosen, boot_command_line);
->
-> diff --git a/include/linux/of_fdt.h b/include/linux/of_fdt.h
-> index aabc49f3e403..6c4a60454854 100644
-> --- a/include/linux/of_fdt.h
-> +++ b/include/linux/of_fdt.h
-> @@ -59,6 +59,7 @@ struct boot_param_header {
->
->  /* For kernels with a built-in device tree */
->  extern struct boot_param_header __dtb_start;
-> +extern char __dtb_end[];
->
->  #if defined(CONFIG_OF_FLATTREE)
->
-> --
-> 1.7.9.5
->
-> --
-> To unsubscribe from this list: send the line "unsubscribe devicetree" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+Hrmpf.
+ 
+> Probably because I have CONFIG_PREEMPT=n, and there seems only
+> to be a definition for this function in kernel/sched/core.c when it is =y.
+
+Bah. I probably compiled that with preempt=y ...
+ 
+> Do we need a stub for the =n case:
+> 
+> asmlinkage void __sched preempt_schedule_irq(void)
+> {
+>            schedule();
+> }
+> 
+> Or is life more complicated than that?
+
+Hmm, I think I fubared that and you decided to ignore my patch :) 
+
+Let me look at it tomorrow morning with full awake brain cells.
+
+Thanks,
+
+	tglx
