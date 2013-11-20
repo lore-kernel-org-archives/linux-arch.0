@@ -1,70 +1,79 @@
-From: Andrey Wagin <avagin@gmail.com>
-Subject: Re: [PATCH 34/34] mm: dynamically allocate page->ptl if it cannot be
- embedded to struct page
-Date: Wed, 20 Nov 2013 17:29:45 +0400
-Message-ID: <CANaxB-xd1kLgYNa7_6buRn5Hgs6X5JswM1iN1hW=TXtJ23bJ0A@mail.gmail.com>
-References: <1381428359-14843-1-git-send-email-kirill.shutemov@linux.intel.com>
-	<1381428359-14843-35-git-send-email-kirill.shutemov@linux.intel.com>
-	<CANaxB-x3k8DPEaDCtCzhkuyPcwR1YcRJZwXW777+q+y2KBvzHg@mail.gmail.com>
-	<20131120125325.07A42E0090@blue.fi.intel.com>
-	<CANaxB-xcyRBB4UV+RMxh34=eDCuCfDUFEHexvkSCsg4fKDDGRQ@mail.gmail.com>
-	<20131120130626.715B7E0090@blue.fi.intel.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH RESEND] asm/types.h: Remove include/asm-generic/int-l64.h
+Date: Wed, 20 Nov 2013 14:34:24 +0100
+Message-ID: <CAMuHMdVKLFzz0zoEKGLQF+o=MwHX5_FMDtq0FuqF3_x00w6XrA@mail.gmail.com>
+References: <1376996476-12027-2-git-send-email-geert@linux-m68k.org>
+	<201311191335.40506.arnd@arndb.de>
+	<CAMuHMdXvn2GigpnH020XA1JvtF=4ZxwrOF4T=ocGgjhrcbWkgg@mail.gmail.com>
+	<201311200137.20917.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f178.google.com ([209.85.220.178]:51174 "EHLO
-	mail-vc0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751363Ab3KTN3q (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Nov 2013 08:29:46 -0500
-In-Reply-To: <20131120130626.715B7E0090@blue.fi.intel.com>
+Received: from mail-pb0-f45.google.com ([209.85.160.45]:37522 "EHLO
+	mail-pb0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753039Ab3KTNeZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Nov 2013 08:34:25 -0500
+In-Reply-To: <201311200137.20917.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, LKML <linux-kernel@vger.kernel.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Randy Dunlap <rdunlap@xenotime.net>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-2013/11/20 Kirill A. Shutemov <kirill.shutemov@linux.intel.com>:
-> Andrey Wagin wrote:
->> 2013/11/20 Kirill A. Shutemov <kirill.shutemov@linux.intel.com>:
->> > Andrey Wagin wrote:
->> >> Hi Kirill,
->> >>
->> >> Looks like this patch adds memory leaks.
->> >> [  116.188310] kmemleak: 15672 new suspected memory leaks (see
->> >> /sys/kernel/debug/kmemleak)
->> >> unreferenced object 0xffff8800da45a350 (size 96):
->> >>   comm "dracut-initqueu", pid 93, jiffies 4294671391 (age 362.277s)
->> >>   hex dump (first 32 bytes):
->> >>     07 00 07 00 ad 4e ad de ff ff ff ff 6b 6b 6b 6b  .....N......kkkk
->> >>     ff ff ff ff ff ff ff ff 80 24 b4 82 ff ff ff ff  .........$......
->> >>   backtrace:
->> >>     [<ffffffff817152fe>] kmemleak_alloc+0x5e/0xc0
->> >>     [<ffffffff811c34f3>] kmem_cache_alloc_trace+0x113/0x290
->> >>     [<ffffffff811920f7>] __ptlock_alloc+0x27/0x50
->> >>     [<ffffffff81192849>] __pmd_alloc+0x59/0x170
->> >>     [<ffffffff81195ffa>] copy_page_range+0x38a/0x3e0
->> >>     [<ffffffff8105a013>] dup_mm+0x313/0x540
->> >>     [<ffffffff8105b9da>] copy_process+0x161a/0x1880
->> >>     [<ffffffff8105c01b>] do_fork+0x8b/0x360
->> >>     [<ffffffff8105c306>] SyS_clone+0x16/0x20
->> >>     [<ffffffff81727b79>] stub_clone+0x69/0x90
->> >>     [<ffffffffffffffff>] 0xffffffffffffffff
->> >>
->> >> It's quite serious, because my test host went to panic in a few hours.
->> >
->> > Sorry for that.
->> >
->> > Could you test patch below.
+On Wed, Nov 20, 2013 at 1:37 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Tuesday 19 November 2013, Geert Uytterhoeven wrote:
+>> On Tue, Nov 19, 2013 at 1:35 PM, Arnd Bergmann <arnd@arndb.de> wrote:
 >>
->> Yes, it works.
+>> > I'm pretty sure you are right with this, but I don't remember at all
+>> > what I suggested and don't understand what the problem (if any) is.
+>> > Can you remind me?
 >>
->> I found this too a few minutes ago:)
+>> Me neither :-(
+>> You said https://lkml.org/lkml/2011/8/13/109, and Al's umode_t
+>> consolidation has been completed.
+>>
+>> I think it had to do with include/uapi/asm-generic/types.h including
+>> <asm-generic/int-ll64.h>. Let's try...
+>>
+>> In userspace, it will include <asm-generic/int-ll64.h> from uapi to get
+>> e.g. __u32.
+>> In kernelspace, it will include plain <asm-generic/int-ll64.h> (to get e.g.
+>> u32), which will in turn include <uapi/asm-generic/int-ll64.h> (to also
+>> get e.g. __u32).
+>>
+>> As there's only include/uapi/asm-generic/types.h, but not
+>> include/asm-generic/types.h (the individual architectures still have their
+>> own asm/types.h), you cannot easily move (the contents of) int-ll64.h
+>> to asm-generic/types.h for both the normal and uapi headers.
+>>
+>> Does this make sense?
 >
-> Nice
->
-> Tested-by ?
+> I'm pretty sure I was not talking about include/uapi/asm-generic/types.h
+> there, and I still think we can just move include/asm-generic/int-ll64.h
+> to include/asm-generic/types.h but leave the uapi logic in place.
 
-Tested-by: Andrey Vagin <avagin@openvz.org>
+The puzzle pieces are starting to fit: at that time, we still had
+include/asm-generic/types.h, which got later renamed to
+include/uapi/asm-generic/types.h...
 
+> All architectures that do nothing but #include <asm-generic/int-ll64.h>
+> from asm/types.h at the moment can then remove their private file and
+> use the generic version, the others need to change to #include
+> <asm-generic/types.h>.
 >
-> --
->  Kirill A. Shutemov
+> You can no longer #include <uapi/asm-generic/types.h> from kernel space
+> after this change, since it refers to <asm-generic/int-ll64.h> which
+> now only exists in user space, but that's ok because it would be a bug
+> to include already (it defines the wrong types), and we don't.
+
+I'll see what I can do...
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
