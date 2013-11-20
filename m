@@ -1,116 +1,98 @@
-From: Tim Chen <tim.c.chen@linux.intel.com>
-Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
-Date: Wed, 20 Nov 2013 12:36:07 -0800
-Message-ID: <1384979767.11046.489.camel@schen9-DESK>
-References: <cover.1384885312.git.tim.c.chen@linux.intel.com>
-	 <1384911463.11046.454.camel@schen9-DESK>
-	 <20131120153123.GF4138@linux.vnet.ibm.com>
-	 <20131120154643.GG19352@mudshark.cambridge.arm.com>
-	 <20131120171400.GI4138@linux.vnet.ibm.com>
-	 <1384973026.11046.465.camel@schen9-DESK>
-	 <20131120190616.GL4138@linux.vnet.ibm.com>
+From: Rob Herring <robherring2@gmail.com>
+Subject: Re: [PATCH 1/9] dt: Handle passed/built-in DT selection in early_init_dt_scan()
+Date: Wed, 20 Nov 2013 14:50:53 -0600
+Message-ID: <CAL_Jsq+ri0rVg-urU74cE__tor7WSu_0xexUDzQHc+o=Qo8E3A@mail.gmail.com>
+References: <5283A000.8090007@gmail.com>
+	<1384859554-27268-1-git-send-email-geert@linux-m68k.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20131120190616.GL4138@linux.vnet.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: paulmck@linux.vnet.ibm.com
-Cc: Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@z>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-vc0-f178.google.com ([209.85.220.178]:48393 "EHLO
+	mail-vc0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755225Ab3KTUuz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Nov 2013 15:50:55 -0500
+In-Reply-To: <1384859554-27268-1-git-send-email-geert@linux-m68k.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Rob Herring <rob.herring@calxeda.com>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-On Wed, 2013-11-20 at 11:06 -0800, Paul E. McKenney wrote:
-> On Wed, Nov 20, 2013 at 10:43:46AM -0800, Tim Chen wrote:
-> > On Wed, 2013-11-20 at 09:14 -0800, Paul E. McKenney wrote:
-> > > On Wed, Nov 20, 2013 at 03:46:43PM +0000, Will Deacon wrote:
-> > > > Hi Paul,
-> > > > 
-> > > > On Wed, Nov 20, 2013 at 03:31:23PM +0000, Paul E. McKenney wrote:
-> > > > > On Tue, Nov 19, 2013 at 05:37:43PM -0800, Tim Chen wrote:
-> > > > > > @@ -68,7 +72,12 @@ void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
-> > > > > >  		while (!(next = ACCESS_ONCE(node->next)))
-> > > > > >  			arch_mutex_cpu_relax();
-> > > > > >  	}
-> > > > > > -	ACCESS_ONCE(next->locked) = 1;
-> > > > > > -	smp_wmb();
-> > > > > > +	/*
-> > > > > > +	 * Pass lock to next waiter.
-> > > > > > +	 * smp_store_release() provides a memory barrier to ensure
-> > > > > > +	 * all operations in the critical section has been completed
-> > > > > > +	 * before unlocking.
-> > > > > > +	 */
-> > > > > > +	smp_store_release(&next->locked, 1);
-> > > > > 
-> > > > > However, there is one problem with this that I missed yesterday.
-> > > > > 
-> > > > > Documentation/memory-barriers.txt requires that an unlock-lock pair
-> > > > > provide a full barrier, but this is not guaranteed if we use
-> > > > > smp_store_release() for unlock and smp_load_acquire() for lock.
-> > > > > At least one of these needs a full memory barrier.
-> > > > 
-> > > > Hmm, so in the following case:
-> > > > 
-> > > >   Access A
-> > > >   unlock()	/* release semantics */
-> > > >   lock()	/* acquire semantics */
-> > > >   Access B
-> > > > 
-> > > > A cannot pass beyond the unlock() and B cannot pass the before the lock().
-> > > > 
-> > > > I agree that accesses between the unlock and the lock can be move across both
-> > > > A and B, but that doesn't seem to matter by my reading of the above.
-> > > > 
-> > > > What is the problematic scenario you have in mind? Are you thinking of the
-> > > > lock() moving before the unlock()? That's only permitted by RCpc afaiu,
-> > > > which I don't think any architectures supported by Linux implement...
-> > > > (ARMv8 acquire/release is RCsc).
-> > > 
-> > > If smp_load_acquire() and smp_store_release() are both implemented using
-> > > lwsync on powerpc, and if Access A is a store and Access B is a load,
-> > > then Access A and Access B can be reordered.
-> > > 
-> > > Of course, if every other architecture will be providing RCsc implementations
-> > > for smp_load_acquire() and smp_store_release(), which would not be a bad
-> > > thing, then another approach is for powerpc to use sync rather than lwsync
-> > > for one or the other of smp_load_acquire() or smp_store_release().
-> > 
-> > Can we count on the xchg function in the beginning of mcs_lock to
-> > provide a memory barrier? It should provide an implicit memory
-> > barrier according to the memory-barriers document.
-> 
-> The problem with the implicit full barrier associated with the xchg()
-> function is that it is in the wrong place if the lock is contended.
-> We need to ensure that the previous lock holder's critical section
-> is seen by everyone to precede that of the next lock holder, and
-> we need transitivity.  The only operations that are in the right place
-> to force the needed ordering in the contended case are those involved
-> in the lock handoff.  :-(
-> 
+On Tue, Nov 19, 2013 at 5:12 AM, Geert Uytterhoeven
+<geert@linux-m68k.org> wrote:
+> Let early_init_dt_scan() fall-back to the built-in DT if no DT was passed,
+> or if it's invalid, so architectures don't have to duplicate this logic.
+>
+> Suggested-by: Rob Herring <rob.herring@calxeda.com>
+> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> ---
 
-Paul,
+Looks good to me. I can take this series if you want to send me a pull
+request. In any case, for the series:
 
-I'm still scratching my head on how ACCESS A 
-and ACCESS B could get reordered.
+Reviewed-by: Rob Herring <rob.herring@calxeda.com>
 
-The smp_store_release instruction in unlock should guarantee that
-all memory operations in the previous lock holder's critical section has
-been completed and seen by everyone, before the store operation 
-to set the lock for the next holder is seen. And the 
-smp_load_acquire should guarantee that all memory operations 
-for next lock holder happen after checking that it has got lock.  
-So it seems like the two critical sections should not overlap.
+Rob
 
-Does using lwsync means that these smp_load_acquire 
-and smp_store_release guarantees are no longer true?
-
-Tim
-
-> 							Thanx, Paul
-> 
-
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+>  drivers/of/fdt.c       |   24 +++++++++++++++++-------
+>  include/linux/of_fdt.h |    1 +
+>  2 files changed, 18 insertions(+), 7 deletions(-)
+>
+> diff --git a/drivers/of/fdt.c b/drivers/of/fdt.c
+> index 2fa024b97c43..a797cd43bc8b 100644
+> --- a/drivers/of/fdt.c
+> +++ b/drivers/of/fdt.c
+> @@ -868,18 +868,28 @@ void * __init __weak early_init_dt_alloc_memory_arch(u64 size, u64 align)
+>
+>  bool __init early_init_dt_scan(void *params)
+>  {
+> -       if (!params)
+> -               return false;
+> -
+>         /* Setup flat device-tree pointer */
+>         initial_boot_params = params;
+>
+> -       /* check device tree validity */
+> -       if (be32_to_cpu(initial_boot_params->magic) != OF_DT_HEADER) {
+> -               initial_boot_params = NULL;
+> -               return false;
+> +       /* check passed device tree validity */
+> +       if (initial_boot_params &&
+> +           be32_to_cpu(initial_boot_params->magic) == OF_DT_HEADER) {
+> +               pr_info("FDT at %p\n", initial_boot_params);
+> +               goto found;
+> +       }
+> +
+> +       /* check built-in device tree validity */
+> +       initial_boot_params = &__dtb_start;
+> +       if (__dtb_end != (void *)&__dtb_start &&
+> +           be32_to_cpu(initial_boot_params->magic) == OF_DT_HEADER) {
+> +               pr_info("Compiled-in FDT at %p\n", initial_boot_params);
+> +               goto found;
+>         }
+>
+> +       initial_boot_params = NULL;
+> +       return false;
+> +
+> +found:
+>         /* Retrieve various information from the /chosen node */
+>         of_scan_flat_dt(early_init_dt_scan_chosen, boot_command_line);
+>
+> diff --git a/include/linux/of_fdt.h b/include/linux/of_fdt.h
+> index aabc49f3e403..6c4a60454854 100644
+> --- a/include/linux/of_fdt.h
+> +++ b/include/linux/of_fdt.h
+> @@ -59,6 +59,7 @@ struct boot_param_header {
+>
+>  /* For kernels with a built-in device tree */
+>  extern struct boot_param_header __dtb_start;
+> +extern char __dtb_end[];
+>
+>  #if defined(CONFIG_OF_FLATTREE)
+>
+> --
+> 1.7.9.5
+>
+> --
+> To unsubscribe from this list: send the line "unsubscribe devicetree" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
