@@ -1,13 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fallback.hitachi.co.jp ([133.145.228.50]:57826 "EHLO
-	mailxx.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753918Ab3KTEYX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Nov 2013 23:24:23 -0500
-Subject: [PATCH -tip v3 05/23] kprobes: Use NOKPROBE_SYMBOL() in sample
- modules
+Received: from mail9.hitachi.co.jp ([133.145.228.44]:60149 "EHLO
+	mail9.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752446Ab3KTEWu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Nov 2013 23:22:50 -0500
+Subject: [PATCH -tip v3 22/23] sched: Use NOKPROBE_SYMBOL macro in sched
 From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Date: Wed, 20 Nov 2013 04:22:01 +0000
-Message-ID: <20131120042201.15296.47892.stgit@kbuild-fedora.novalocal>
+Date: Wed, 20 Nov 2013 04:22:43 +0000
+Message-ID: <20131120042243.15296.96194.stgit@kbuild-fedora.novalocal>
 In-Reply-To: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal>
 References: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal>
 MIME-Version: 1.0
@@ -16,79 +15,50 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20131120042201.2lPsTul9HVkCSmqmi83cCeeIujLdpK4Jt-LgJqzoKlg@z>
+Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20131120042243.8oitWswoLzl-Kb6-mRMXbwDx1eqDAKaq1gQtigxAMsI@z>
 
-Use NOKPROBE_SYMBOL() to protect handlers from kprobes
-in sample modules.
+Use NOKPROBE_SYMBOL macro to protect functions from
+kprobes instead of __kprobes annotation in sched/core.c.
 
 Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Ananth N Mavinakayanahalli <ananth@in.ibm.com>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
 ---
- samples/kprobes/jprobe_example.c    |    1 +
- samples/kprobes/kprobe_example.c    |    3 +++
- samples/kprobes/kretprobe_example.c |    2 ++
- 3 files changed, 6 insertions(+)
+ kernel/sched/core.c |    6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
 
-diff --git a/samples/kprobes/jprobe_example.c b/samples/kprobes/jprobe_example.c
-index b754135..40114ac 100644
---- a/samples/kprobes/jprobe_example.c
-+++ b/samples/kprobes/jprobe_example.c
-@@ -35,6 +35,7 @@ static long jdo_fork(unsigned long clone_flags, unsigned long stack_start,
- 	jprobe_return();
- 	return 0;
- }
-+NOKPROBE_SYMBOL(jdo_fork);
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index 504fdbd..fece2e3 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -2342,7 +2342,7 @@ notrace unsigned long get_parent_ip(unsigned long addr)
+ #if defined(CONFIG_PREEMPT) && (defined(CONFIG_DEBUG_PREEMPT) || \
+ 				defined(CONFIG_PREEMPT_TRACER))
  
- static struct jprobe my_jprobe = {
- 	.entry			= jdo_fork,
-diff --git a/samples/kprobes/kprobe_example.c b/samples/kprobes/kprobe_example.c
-index 366db1a..462d90f 100644
---- a/samples/kprobes/kprobe_example.c
-+++ b/samples/kprobes/kprobe_example.c
-@@ -46,6 +46,7 @@ static int handler_pre(struct kprobe *p, struct pt_regs *regs)
- 	/* A dump_stack() here will give a stack backtrace */
- 	return 0;
- }
-+NOKPROBE_SYMBOL(handler_pre);
- 
- /* kprobe post_handler: called after the probed instruction is executed */
- static void handler_post(struct kprobe *p, struct pt_regs *regs,
-@@ -68,6 +69,7 @@ static void handler_post(struct kprobe *p, struct pt_regs *regs,
- 		p->addr, regs->ex1);
- #endif
- }
-+NOKPROBE_SYMBOL(handler_post);
- 
- /*
-  * fault_handler: this is called if an exception is generated for any
-@@ -81,6 +83,7 @@ static int handler_fault(struct kprobe *p, struct pt_regs *regs, int trapnr)
- 	/* Return 0 because we don't handle the fault. */
- 	return 0;
- }
-+NOKPROBE_SYMBOL(handler_fault);
- 
- static int __init kprobe_init(void)
+-void __kprobes preempt_count_add(int val)
++void preempt_count_add(int val)
  {
-diff --git a/samples/kprobes/kretprobe_example.c b/samples/kprobes/kretprobe_example.c
-index 1041b67..d932c52 100644
---- a/samples/kprobes/kretprobe_example.c
-+++ b/samples/kprobes/kretprobe_example.c
-@@ -47,6 +47,7 @@ static int entry_handler(struct kretprobe_instance *ri, struct pt_regs *regs)
- 	data->entry_stamp = ktime_get();
- 	return 0;
+ #ifdef CONFIG_DEBUG_PREEMPT
+ 	/*
+@@ -2363,8 +2363,9 @@ void __kprobes preempt_count_add(int val)
+ 		trace_preempt_off(CALLER_ADDR0, get_parent_ip(CALLER_ADDR1));
  }
-+NOKPROBE_SYMBOL(entry_handler);
+ EXPORT_SYMBOL(preempt_count_add);
++NOKPROBE_SYMBOL(preempt_count_add);
  
- /*
-  * Return-probe handler: Log the return value and duration. Duration may turn
-@@ -66,6 +67,7 @@ static int ret_handler(struct kretprobe_instance *ri, struct pt_regs *regs)
- 			func_name, retval, (long long)delta);
- 	return 0;
+-void __kprobes preempt_count_sub(int val)
++void preempt_count_sub(int val)
+ {
+ #ifdef CONFIG_DEBUG_PREEMPT
+ 	/*
+@@ -2385,6 +2386,7 @@ void __kprobes preempt_count_sub(int val)
+ 	__preempt_count_sub(val);
  }
-+NOKPROBE_SYMBOL(ret_handler);
+ EXPORT_SYMBOL(preempt_count_sub);
++NOKPROBE_SYMBOL(preempt_count_sub);
  
- static struct kretprobe my_kretprobe = {
- 	.handler		= ret_handler,
+ #endif
+ 
 
 
