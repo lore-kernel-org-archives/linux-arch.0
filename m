@@ -1,7 +1,8 @@
 From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Subject: [PATCH -tip v3 17/23] x86/kvm: Use NOKPROBE_SYMBOL macro in kvm.c
-Date: Wed, 20 Nov 2013 04:22:31 +0000
-Message-ID: <20131120042231.15296.11510.stgit@kbuild-fedora.novalocal>
+Subject: [PATCH -tip v3 19/23] [BUGFIX] kprobes/x86: Prohibit probing on
+ debug_stack_*
+Date: Wed, 20 Nov 2013 04:22:36 +0000
+Message-ID: <20131120042236.15296.74140.stgit@kbuild-fedora.novalocal>
 References: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -10,46 +11,61 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Gleb Natapov <gleb@redhat.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Marcelo Tosatti <mtosatti@redhat.com>, Ingo Molnar <mingo@redhat.com>, systemtap@sourceware.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>
+Cc: linux-arch@vger.kernel.org, Fenghua Yu <fenghua.yu@intel.com>, Seiji Aguchi <seiji.aguchi@hds.com>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, systemtap@sourceware.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@suse.de>, "David S. Miller" <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
-Use NOKPROBE_SYMBOL macro for protecting functions
-from kprobes instead of __kprobes annotation in kvm.c.
-This also adds kvm_read_and_reset_pf_reason in
-the blacklist because it can be called before
-do_page_fault.
+Prohibit probing on debug_stack_reset and debug_stack_set_zero.
+Since the both functions are called from TRACE_IRQS_ON/OFF_DEBUG
+macros which run in int3 ist entry, probing it may cause a soft
+lockup.
+
+This happens when the kernel built with CONFIG_DYNAMIC_FTRACE=y
+and CONFIG_TRACE_IRQFLAGS=y.
 
 Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Gleb Natapov <gleb@redhat.com>
-Cc: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
-Cc: Marcelo Tosatti <mtosatti@redhat.com>
+Cc: Borislav Petkov <bp@suse.de>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: Seiji Aguchi <seiji.aguchi@hds.com>
 ---
- arch/x86/kernel/kvm.c |    4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ arch/x86/kernel/cpu/common.c |    4 ++++
+ 1 file changed, 4 insertions(+)
 
-diff --git a/arch/x86/kernel/kvm.c b/arch/x86/kernel/kvm.c
-index 6dd802c..fb95987 100644
---- a/arch/x86/kernel/kvm.c
-+++ b/arch/x86/kernel/kvm.c
-@@ -251,8 +251,9 @@ u32 kvm_read_and_reset_pf_reason(void)
- 	return reason;
+diff --git a/arch/x86/kernel/cpu/common.c b/arch/x86/kernel/cpu/common.c
+index 1789b06..d0a802a 100644
+--- a/arch/x86/kernel/cpu/common.c
++++ b/arch/x86/kernel/cpu/common.c
+@@ -8,6 +8,7 @@
+ #include <linux/delay.h>
+ #include <linux/sched.h>
+ #include <linux/init.h>
++#include <linux/kprobes.h>
+ #include <linux/kgdb.h>
+ #include <linux/smp.h>
+ #include <linux/io.h>
+@@ -1163,6 +1164,7 @@ int is_debug_stack(unsigned long addr)
+ 		(addr <= __get_cpu_var(debug_stack_addr) &&
+ 		 addr > (__get_cpu_var(debug_stack_addr) - DEBUG_STKSZ));
  }
- EXPORT_SYMBOL_GPL(kvm_read_and_reset_pf_reason);
-+NOKPROBE_SYMBOL(kvm_read_and_reset_pf_reason);
++NOKPROBE_SYMBOL(is_debug_stack);
  
--dotraplinkage void __kprobes
-+dotraplinkage void
- do_async_page_fault(struct pt_regs *regs, unsigned long error_code)
- {
- 	enum ctx_state prev_state;
-@@ -276,6 +277,7 @@ do_async_page_fault(struct pt_regs *regs, unsigned long error_code)
- 		break;
- 	}
+ DEFINE_PER_CPU(u32, debug_idt_ctr);
+ 
+@@ -1171,6 +1173,7 @@ void debug_stack_set_zero(void)
+ 	this_cpu_inc(debug_idt_ctr);
+ 	load_current_idt();
  }
-+NOKPROBE_SYMBOL(do_async_page_fault);
++NOKPROBE_SYMBOL(debug_stack_set_zero);
  
- static void __init paravirt_ops_setup(void)
+ void debug_stack_reset(void)
  {
+@@ -1179,6 +1182,7 @@ void debug_stack_reset(void)
+ 	if (this_cpu_dec_return(debug_idt_ctr) == 0)
+ 		load_current_idt();
+ }
++NOKPROBE_SYMBOL(debug_stack_reset);
+ 
+ #else	/* CONFIG_X86_64 */
+ 
