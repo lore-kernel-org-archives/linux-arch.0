@@ -1,166 +1,157 @@
 From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Subject: [PATCH -tip v3 14/23] x86/fault: Use NOKPROBE_SYMBOL macro in
- fault.c
-Date: Wed, 20 Nov 2013 04:22:23 +0000
-Message-ID: <20131120042223.15296.96831.stgit@kbuild-fedora.novalocal>
+Subject: [PATCH -tip v3 23/23] kprobes/x86: Use kprobe_blacklist for
+ .kprobes.text and .entry.text
+Date: Wed, 20 Nov 2013 04:22:46 +0000
+Message-ID: <20131120042246.15296.87880.stgit@kbuild-fedora.novalocal>
 References: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fallback.hitachi.co.jp ([133.145.228.50]:57842 "EHLO
-	mailxx.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754007Ab3KTEZH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Nov 2013 23:25:07 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org, Michal Hocko <mhocko@suse.cz>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, systemtap@sourceware.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Seiji Aguchi <seiji.aguchi@hds.com>, "David S. Miller" <davem@davemloft.net>
+Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, systemtap@sourceware.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>
+List-Id: linux-arch.vger.kernel.org
 
-Use NOKPROBE_SYMBOL macro to protect functions from kprobes
-instead of __kprobes annotation in fault.c.
-This applies __always_inline annotation for some cases,
-because NOKPROBE_SYMBOL() will inhibit inlining by
-referring the symbol address.
+Use kprobe_blackpoint for blacklisting .entry.text and .kprobes.text
+instead of arch_within_kprobe_blacklist. This also makes them visible
+via (debugfs)/kprobes/blacklist.
 
 Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Steven Rostedt <rostedt@goodmis.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Michal Hocko <mhocko@suse.cz>
-Cc: Seiji Aguchi <seiji.aguchi@hds.com>
 ---
- arch/x86/mm/fault.c |   28 +++++++++++++++++-----------
- 1 file changed, 17 insertions(+), 11 deletions(-)
+ arch/x86/kernel/kprobes/core.c |   14 +++++++-------
+ include/linux/kprobes.h        |    1 +
+ kernel/kprobes.c               |   40 +++++++++++++++++++++++++++++-----------
+ 3 files changed, 37 insertions(+), 18 deletions(-)
 
-diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-index 9ff85bb..7c9305c 100644
---- a/arch/x86/mm/fault.c
-+++ b/arch/x86/mm/fault.c
-@@ -8,7 +8,7 @@
- #include <linux/kdebug.h>		/* oops_begin/end, ...		*/
- #include <linux/module.h>		/* search_exception_table	*/
- #include <linux/bootmem.h>		/* max_low_pfn			*/
--#include <linux/kprobes.h>		/* __kprobes, ...		*/
-+#include <linux/kprobes.h>		/* NOKPROBE_SYMBOL, ...		*/
- #include <linux/mmiotrace.h>		/* kmmio_handler, ...		*/
- #include <linux/perf_event.h>		/* perf_sw_event		*/
- #include <linux/hugetlb.h>		/* hstate_index_to_shift	*/
-@@ -45,7 +45,7 @@ enum x86_pf_error_code {
-  * Returns 0 if mmiotrace is disabled, or if the fault is not
-  * handled by mmiotrace:
-  */
--static inline int __kprobes
-+static __always_inline int
- kmmio_fault(struct pt_regs *regs, unsigned long addr)
+diff --git a/arch/x86/kernel/kprobes/core.c b/arch/x86/kernel/kprobes/core.c
+index 54ada0b..adb0e26 100644
+--- a/arch/x86/kernel/kprobes/core.c
++++ b/arch/x86/kernel/kprobes/core.c
+@@ -1087,16 +1087,16 @@ int longjmp_break_handler(struct kprobe *p, struct pt_regs *regs)
+ }
+ NOKPROBE_SYMBOL(longjmp_break_handler);
+ 
+-bool arch_within_kprobe_blacklist(unsigned long addr)
+-{
+-	return ((addr >= (unsigned long)__kprobes_text_start &&
+-		 addr < (unsigned long)__kprobes_text_end) ||
+-		(addr >= (unsigned long)__entry_text_start &&
+-		 addr < (unsigned long)__entry_text_end));
+-}
++static struct kprobe_blackpoint kbp_entry_text = {
++	.name = ".entry.text",
++};
+ 
+ int __init arch_init_kprobes(void)
  {
- 	if (unlikely(is_kmmio_active()))
-@@ -54,7 +54,7 @@ kmmio_fault(struct pt_regs *regs, unsigned long addr)
++	kbp_entry_text.start_addr = (unsigned long)__entry_text_start;
++	kbp_entry_text.range = (unsigned long)__entry_text_end -
++				(unsigned long)__entry_text_start;
++	add_kprobe_blacklist(&kbp_entry_text);
  	return 0;
  }
  
--static inline int __kprobes kprobes_fault(struct pt_regs *regs)
-+static __always_inline int kprobes_fault(struct pt_regs *regs)
- {
- 	int ret = 0;
+diff --git a/include/linux/kprobes.h b/include/linux/kprobes.h
+index 641d009..19be202 100644
+--- a/include/linux/kprobes.h
++++ b/include/linux/kprobes.h
+@@ -267,6 +267,7 @@ extern int arch_init_kprobes(void);
+ extern void show_registers(struct pt_regs *regs);
+ extern void kprobes_inc_nmissed_count(struct kprobe *p);
+ extern bool arch_within_kprobe_blacklist(unsigned long addr);
++extern void add_kprobe_blacklist(struct kprobe_blackpoint *bp);
  
-@@ -261,7 +261,7 @@ void vmalloc_sync_all(void)
-  *
-  *   Handle a fault on the vmalloc or module mapping area
-  */
--static noinline __kprobes int vmalloc_fault(unsigned long address)
-+static noinline int vmalloc_fault(unsigned long address)
- {
- 	unsigned long pgd_paddr;
- 	pmd_t *pmd_k;
-@@ -291,6 +291,7 @@ static noinline __kprobes int vmalloc_fault(unsigned long address)
- 
- 	return 0;
- }
-+NOKPROBE_SYMBOL(vmalloc_fault);
- 
- /*
-  * Did it hit the DOS screen memory VA from vm86 mode?
-@@ -358,7 +359,7 @@ void vmalloc_sync_all(void)
-  *
-  * This assumes no large pages in there.
-  */
--static noinline __kprobes int vmalloc_fault(unsigned long address)
-+static noinline int vmalloc_fault(unsigned long address)
- {
- 	pgd_t *pgd, *pgd_ref;
- 	pud_t *pud, *pud_ref;
-@@ -425,6 +426,7 @@ static noinline __kprobes int vmalloc_fault(unsigned long address)
- 
- 	return 0;
- }
-+NOKPROBE_SYMBOL(vmalloc_fault);
- 
- #ifdef CONFIG_CPU_SUP_AMD
- static const char errata93_warning[] =
-@@ -904,7 +906,7 @@ static int spurious_fault_check(unsigned long error_code, pte_t *pte)
-  * There are no security implications to leaving a stale TLB when
-  * increasing the permissions on a page.
-  */
--static noinline __kprobes int
-+static noinline int
- spurious_fault(unsigned long error_code, unsigned long address)
- {
- 	pgd_t *pgd;
-@@ -952,6 +954,7 @@ spurious_fault(unsigned long error_code, unsigned long address)
- 
+ struct kprobe_insn_cache {
+ 	struct mutex mutex;
+diff --git a/kernel/kprobes.c b/kernel/kprobes.c
+index 0a206ec..895cc8a 100644
+--- a/kernel/kprobes.c
++++ b/kernel/kprobes.c
+@@ -1325,19 +1325,10 @@ out:
  	return ret;
  }
-+NOKPROBE_SYMBOL(spurious_fault);
  
- int show_unhandled_signals = 1;
- 
-@@ -997,7 +1000,7 @@ static inline bool smap_violation(int error_code, struct pt_regs *regs)
-  * and the problem, and then passes it off to one of the appropriate
-  * routines.
-  */
--static void __kprobes
-+static void
- __do_page_fault(struct pt_regs *regs, unsigned long error_code)
+-bool __weak arch_within_kprobe_blacklist(unsigned long addr)
+-{
+-	/* The __kprobes marked functions and entry code must not be probed */
+-	return (addr >= (unsigned long)__kprobes_text_start &&
+-		addr < (unsigned long)__kprobes_text_end);
+-}
+-
+ static bool within_kprobe_blacklist(unsigned long addr)
  {
- 	struct vm_area_struct *vma;
-@@ -1225,8 +1228,9 @@ good_area:
+ 	struct kprobe_blackpoint *bp;
  
- 	up_read(&mm->mmap_sem);
- }
-+NOKPROBE_SYMBOL(__do_page_fault);
- 
--dotraplinkage void __kprobes
-+dotraplinkage void
- do_page_fault(struct pt_regs *regs, unsigned long error_code)
- {
- 	enum ctx_state prev_state;
-@@ -1235,9 +1239,10 @@ do_page_fault(struct pt_regs *regs, unsigned long error_code)
- 	__do_page_fault(regs, error_code);
- 	exception_exit(prev_state);
- }
-+NOKPROBE_SYMBOL(do_page_fault);
- 
--static void trace_page_fault_entries(struct pt_regs *regs,
--				     unsigned long error_code)
-+static __always_inline void
-+trace_page_fault_entries(struct pt_regs *regs, unsigned long error_code)
- {
- 	if (user_mode(regs))
- 		trace_page_fault_user(read_cr2(), regs, error_code);
-@@ -1245,7 +1250,7 @@ static void trace_page_fault_entries(struct pt_regs *regs,
- 		trace_page_fault_kernel(read_cr2(), regs, error_code);
+-	if (arch_within_kprobe_blacklist(addr))
+-		return true;
+ 	/*
+ 	 * If there exists a kprobe_blacklist, verify and
+ 	 * fail any probe registration in the prohibited area
+@@ -2098,6 +2089,19 @@ static void shrink_kprobe_blacklist(struct kprobe_blackpoint **start,
+ 	mutex_unlock(&kprobe_blacklist_mutex);
  }
  
--dotraplinkage void __kprobes
-+dotraplinkage void
- trace_do_page_fault(struct pt_regs *regs, unsigned long error_code)
- {
- 	enum ctx_state prev_state;
-@@ -1255,3 +1260,4 @@ trace_do_page_fault(struct pt_regs *regs, unsigned long error_code)
- 	__do_page_fault(regs, error_code);
- 	exception_exit(prev_state);
++static void __add_kprobe_blacklist(struct kprobe_blackpoint *bp)
++{
++	INIT_LIST_HEAD(&bp->list);
++	list_add_tail(&bp->list, &kprobe_blacklist);
++}
++
++void add_kprobe_blacklist(struct kprobe_blackpoint *bp)
++{
++	mutex_lock(&kprobe_blacklist_mutex);
++	__add_kprobe_blacklist(bp);
++	mutex_unlock(&kprobe_blacklist_mutex);
++}
++
+ /*
+  * Lookup and populate the kprobe_blacklist.
+  *
+@@ -2123,8 +2127,7 @@ static void populate_kprobe_blacklist(struct kprobe_blackpoint **start,
+ 			continue;
+ 
+ 		bp->range = size;
+-		INIT_LIST_HEAD(&bp->list);
+-		list_add_tail(&bp->list, &kprobe_blacklist);
++		__add_kprobe_blacklist(bp);
+ 	}
+ 	mutex_unlock(&kprobe_blacklist_mutex);
  }
-+NOKPROBE_SYMBOL(trace_do_page_fault);
+@@ -2134,6 +2137,7 @@ extern struct kprobe_blackpoint *__stop_kprobe_blacklist[];
+ 
+ static int __init init_kprobes(void)
+ {
++	struct kprobe_blackpoint *bp;
+ 	int i, err = 0;
+ 
+ 	/* FIXME allocate the probe table, currently defined statically */
+@@ -2147,6 +2151,20 @@ static int __init init_kprobes(void)
+ 	populate_kprobe_blacklist(__start_kprobe_blacklist,
+ 				  __stop_kprobe_blacklist);
+ 
++	if (__kprobes_text_start != __kprobes_text_end) {
++		/* The __kprobes marked functions must not be probed */
++		bp = kmalloc(sizeof(*bp), GFP_KERNEL);
++		if (!bp) {
++			pr_err("Kprobes: Failed to allocate memory\n");
++			return -ENOMEM;
++		}
++		bp->name = ".kprobes.text";
++		bp->start_addr = (unsigned long)__kprobes_text_start;
++		bp->range = (unsigned long)__kprobes_text_end -
++			    (unsigned long)__kprobes_text_start;
++		add_kprobe_blacklist(bp);
++	}
++
+ 	if (kretprobe_blacklist_size) {
+ 		/* lookup the function address from its name */
+ 		for (i = 0; kretprobe_blacklist[i].name != NULL; i++) {
