@@ -1,63 +1,62 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
-Date: Wed, 20 Nov 2013 15:46:43 +0000
-Message-ID: <20131120154643.GG19352@mudshark.cambridge.arm.com>
+From: Tim Chen <tim.c.chen@linux.intel.com>
+Subject: Re: [PATCH v6 0/5] MCS Lock: MCS lock code cleanup and
+ optimizations
+Date: Wed, 20 Nov 2013 09:00:47 -0800
+Message-ID: <1384966847.11046.457.camel@schen9-DESK>
 References: <cover.1384885312.git.tim.c.chen@linux.intel.com>
- <1384911463.11046.454.camel@schen9-DESK>
- <20131120153123.GF4138@linux.vnet.ibm.com>
+	 <1384911446.11046.450.camel@schen9-DESK>
+	 <20131120101957.GA19352@mudshark.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20131120153123.GF4138@linux.vnet.ibm.com>
+In-Reply-To: <20131120101957.GA19352@mudshark.cambridge.arm.com>
 Sender: owner-linux-mm@kvack.org
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@hori>
+To: Will Deacon <will.deacon@arm.com>
+Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, H. Peter An
 List-Id: linux-arch.vger.kernel.org
 
-Hi Paul,
-
-On Wed, Nov 20, 2013 at 03:31:23PM +0000, Paul E. McKenney wrote:
-> On Tue, Nov 19, 2013 at 05:37:43PM -0800, Tim Chen wrote:
-> > @@ -68,7 +72,12 @@ void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
-> >  		while (!(next = ACCESS_ONCE(node->next)))
-> >  			arch_mutex_cpu_relax();
-> >  	}
-> > -	ACCESS_ONCE(next->locked) = 1;
-> > -	smp_wmb();
-> > +	/*
-> > +	 * Pass lock to next waiter.
-> > +	 * smp_store_release() provides a memory barrier to ensure
-> > +	 * all operations in the critical section has been completed
-> > +	 * before unlocking.
-> > +	 */
-> > +	smp_store_release(&next->locked, 1);
+On Wed, 2013-11-20 at 10:19 +0000, Will Deacon wrote:
+> Hi Tim,
 > 
-> However, there is one problem with this that I missed yesterday.
+> On Wed, Nov 20, 2013 at 01:37:26AM +0000, Tim Chen wrote:
+> > In this patch series, we separated out the MCS lock code which was
+> > previously embedded in the mutex.c.  This allows for easier reuse of
+> > MCS lock in other places like rwsem and qrwlock.  We also did some micro
+> > optimizations and barrier cleanup.  
+> > 
+> > The original code has potential leaks between critical sections, which
+> > was not a problem when MCS was embedded within the mutex but needs
+> > to be corrected when allowing the MCS lock to be used by itself for
+> > other locking purposes. 
+> > 
+> > Proper barriers are now embedded with the usage of smp_load_acquire() in
+> > mcs_spin_lock() and smp_store_release() in mcs_spin_unlock.  See
+> > http://marc.info/?l=linux-arch&m=138386254111507 for info on the
+> > new smp_load_acquire() and smp_store_release() functions. 
+> > 
+> > This patches were previously part of the rwsem optimization patch series
+> > but now we spearate them out.
+> > 
+> > We have also added hooks to allow for architecture specific 
+> > implementation of the mcs_spin_lock and mcs_spin_unlock functions.
+> > 
+> > Will, do you want to take a crack at adding implementation for ARM
+> > with wfe instruction?
 > 
-> Documentation/memory-barriers.txt requires that an unlock-lock pair
-> provide a full barrier, but this is not guaranteed if we use
-> smp_store_release() for unlock and smp_load_acquire() for lock.
-> At least one of these needs a full memory barrier.
+> Sure, I'll have a go this week. Thanks for keeping that as a consideration!
+> 
+> As an aside: what are you using to test this code, so that I can make sure I
+> don't break it?
+> 
 
-Hmm, so in the following case:
+I was testing it against my rwsem patches.  But any workload that 
+exercises mutex should also use this code, as this is part of mutex.
 
-  Access A
-  unlock()	/* release semantics */
-  lock()	/* acquire semantics */
-  Access B
+Tim
 
-A cannot pass beyond the unlock() and B cannot pass the before the lock().
+> Will
 
-I agree that accesses between the unlock and the lock can be move across both
-A and B, but that doesn't seem to matter by my reading of the above.
-
-What is the problematic scenario you have in mind? Are you thinking of the
-lock() moving before the unlock()? That's only permitted by RCpc afaiu,
-which I don't think any architectures supported by Linux implement...
-(ARMv8 acquire/release is RCsc).
-
-Will
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
