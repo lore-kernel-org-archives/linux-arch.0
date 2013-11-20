@@ -1,56 +1,31 @@
-From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Subject: [PATCH -tip v3 20/23] [BUGFIX] kprobes: Prohibit probing on
- func_ptr_is_kernel_text
-Date: Wed, 20 Nov 2013 04:22:38 +0000
-Message-ID: <20131120042238.15296.41605.stgit@kbuild-fedora.novalocal>
-References: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH 2/9] arc: Use NULL as the default DTB
+Date: Wed, 20 Nov 2013 04:58:47 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA23075156ABC@IN01WEMBXA.internal.synopsys.com>
+References: <5283A000.8090007@gmail.com>
+ <1384859554-27268-1-git-send-email-geert@linux-m68k.org>
+ <1384859554-27268-2-git-send-email-geert@linux-m68k.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail9.hitachi.co.jp ([133.145.228.44]:60106 "EHLO
-	mail9.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753198Ab3KTEWn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Nov 2013 23:22:43 -0500
-In-Reply-To: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal>
+Received: from alvesta.synopsys.com ([198.182.60.77]:57746 "EHLO
+	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751787Ab3KTE6u convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Nov 2013 23:58:50 -0500
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, systemtap@sourceware.org, Uwe =?utf-8?q?Kleine-K=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Borislav Petkov <bp@suse.de>, "David S. Miller" <davem@davemloft.net>
+To: Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <rob.herring@calxeda.com>
+Cc: "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-Prohibit probing on func_ptr_is_kernel_text() by adding
-it to the kprobe_blacklist.
+On 11/19/2013 04:42 PM, Geert Uytterhoeven wrote:
+> early_init_dt_scan() now takes care of falling back to the built-in DTB.
+>
+> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> Cc: Vineet Gupta <vgupta@synopsys.com>
 
-Since the func_ptr_is_kernel_text() is called from
-notifier_call_chain() which is called from int3 handler,
-probing it may cause double int3 fault and kernel will
-reboot.
+Acked-by: Vineet Gupta <vgupta@synopsys.com>
 
-This happenes when the kernel built with CONFIG_DEBUG_NOTIFIERS=3Dy.
-
-Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: "Uwe Kleine-K=C3=B6nig" <u.kleine-koenig@pengutronix.de>
-Cc: Borislav Petkov <bp@suse.de>
-Cc: Ingo Molnar <mingo@kernel.org>
----
- kernel/extable.c |    2 ++
- 1 file changed, 2 insertions(+)
-
-diff --git a/kernel/extable.c b/kernel/extable.c
-index 832cb28..885c877 100644
---- a/kernel/extable.c
-+++ b/kernel/extable.c
-@@ -20,6 +20,7 @@
- #include <linux/module.h>
- #include <linux/mutex.h>
- #include <linux/init.h>
-+#include <linux/kprobes.h>
-=20
- #include <asm/sections.h>
- #include <asm/uaccess.h>
-@@ -137,3 +138,4 @@ int func_ptr_is_kernel_text(void *ptr)
- 		return 1;
- 	return is_module_text_address(addr);
- }
-+NOKPROBE_SYMBOL(func_ptr_is_kernel_text);
+Thx,
+-Vineet
