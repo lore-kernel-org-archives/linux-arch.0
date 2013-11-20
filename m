@@ -1,8 +1,7 @@
 From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Subject: [PATCH -tip v3 10/23] ftrace/kprobes: Allow probing on some
- preparation functions
-Date: Wed, 20 Nov 2013 04:22:13 +0000
-Message-ID: <20131120042213.15296.23567.stgit@kbuild-fedora.novalocal>
+Subject: [PATCH -tip v3 22/23] sched: Use NOKPROBE_SYMBOL macro in sched
+Date: Wed, 20 Nov 2013 04:22:43 +0000
+Message-ID: <20131120042243.15296.96194.stgit@kbuild-fedora.novalocal>
 References: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -11,60 +10,48 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, Frederic Weisbecker <fweisbec@gmail.com>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
+Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
-There is no need to prohibit probing on the functions
-used for preparation. Those are safely probed because
-those are not invoked from breakpoint/fault/debug handlers,
-there is no chance to cause recursive exceptions.
-
-Following functions are now removed from the kprobes blacklist.
-update_bitfield_fetch_param
-free_bitfield_fetch_param
-kprobe_register
+Use NOKPROBE_SYMBOL macro to protect functions from
+kprobes instead of __kprobes annotation in sched/core.c.
 
 Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Cc: Steven Rostedt <rostedt@goodmis.org>
-Cc: Frederic Weisbecker <fweisbec@gmail.com>
 Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
 ---
- kernel/trace/trace_kprobe.c |    2 +-
- kernel/trace/trace_probe.c  |    4 ++--
- 2 files changed, 3 insertions(+), 3 deletions(-)
+ kernel/sched/core.c |    6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
 
-diff --git a/kernel/trace/trace_kprobe.c b/kernel/trace/trace_kprobe.c
-index 243f683..e0132b4 100644
---- a/kernel/trace/trace_kprobe.c
-+++ b/kernel/trace/trace_kprobe.c
-@@ -1151,7 +1151,7 @@ kretprobe_perf_func(struct trace_probe *tp, struct kretprobe_instance *ri,
-  * kprobe_trace_self_tests_init() does enable_trace_probe/disable_trace_probe
-  * lockless, but we can't race with this __init function.
-  */
--static __kprobes
-+static
- int kprobe_register(struct ftrace_event_call *event,
- 		    enum trace_reg type, void *data)
- {
-diff --git a/kernel/trace/trace_probe.c b/kernel/trace/trace_probe.c
-index 412e959..43638a2 100644
---- a/kernel/trace/trace_probe.c
-+++ b/kernel/trace/trace_probe.c
-@@ -346,7 +346,7 @@ DEFINE_BASIC_FETCH_FUNCS(bitfield)
- #define fetch_bitfield_string		NULL
- #define fetch_bitfield_string_size	NULL
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index 504fdbd..fece2e3 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -2342,7 +2342,7 @@ notrace unsigned long get_parent_ip(unsigned long addr)
+ #if defined(CONFIG_PREEMPT) && (defined(CONFIG_DEBUG_PREEMPT) || \
+ 				defined(CONFIG_PREEMPT_TRACER))
  
--static __kprobes void
-+static void
- update_bitfield_fetch_param(struct bitfield_fetch_param *data)
+-void __kprobes preempt_count_add(int val)
++void preempt_count_add(int val)
  {
+ #ifdef CONFIG_DEBUG_PREEMPT
  	/*
-@@ -359,7 +359,7 @@ update_bitfield_fetch_param(struct bitfield_fetch_param *data)
- 		update_symbol_cache(data->orig.data);
+@@ -2363,8 +2363,9 @@ void __kprobes preempt_count_add(int val)
+ 		trace_preempt_off(CALLER_ADDR0, get_parent_ip(CALLER_ADDR1));
  }
+ EXPORT_SYMBOL(preempt_count_add);
++NOKPROBE_SYMBOL(preempt_count_add);
  
--static __kprobes void
-+static void
- free_bitfield_fetch_param(struct bitfield_fetch_param *data)
+-void __kprobes preempt_count_sub(int val)
++void preempt_count_sub(int val)
  {
+ #ifdef CONFIG_DEBUG_PREEMPT
  	/*
+@@ -2385,6 +2386,7 @@ void __kprobes preempt_count_sub(int val)
+ 	__preempt_count_sub(val);
+ }
+ EXPORT_SYMBOL(preempt_count_sub);
++NOKPROBE_SYMBOL(preempt_count_sub);
+ 
+ #endif
+ 
