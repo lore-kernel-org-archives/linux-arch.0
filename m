@@ -1,43 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bk0-f51.google.com ([209.85.214.51]:40722 "EHLO
-	mail-bk0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754060Ab3KTPiG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Nov 2013 10:38:06 -0500
-Date: Wed, 20 Nov 2013 16:38:01 +0100
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH -tip v3 00/23] kprobes: introduce NOKPROBE_SYMBOL() and
- general cleaning of kprobe blacklist
-Message-ID: <20131120153801.GA9743@gmail.com>
-References: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal>
- <y0mvbznxi6k.fsf@fche.csb>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <y0mvbznxi6k.fsf@fche.csb>
+Received: from mx1.redhat.com ([209.132.183.28]:2773 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754974Ab3KTS4N (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 20 Nov 2013 13:56:13 -0500
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <1384285347-13506-5-git-send-email-geert@linux-m68k.org>
+References: <1384285347-13506-5-git-send-email-geert@linux-m68k.org> <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
+Subject: Re: [PATCH 04/17] mn10300: Use Kbuild logic to include <asm-generic/sections.h>
+Date: Wed, 20 Nov 2013 18:56:08 +0000
+Message-ID: <13086.1384973768@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Frank Ch. Eigler" <fche@redhat.com>
-Cc: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20131120153801.F_aqZkcxGwLtvBijlsPtZg8yEaWIXtC2WpL2arTMT-s@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: dhowells@redhat.com, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-am33-list@redhat.com
+Message-ID: <20131120185608.3OiBVcAktJORmplWTeyRbs42C8qjxGQsCFSCt-gx0RQ@z>
 
+Geert Uytterhoeven <geert@linux-m68k.org> wrote:
 
-* Frank Ch. Eigler <fche@redhat.com> wrote:
+> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> Cc: David Howells <dhowells@redhat.com>
+> Cc: linux-am33-list@redhat.com
 
-> masami.hiramatsu.pt wrote:
-> 
-> > [...]  This series also includes a change which prohibits probing 
-> > on the address in .entry.text because the code is used for very 
-> > low-level sensitive interrupt/syscall entries. Probing such code 
-> > may cause unexpected result (actually most of that area is already 
-> > in the kprobe blacklist).  So I've decide to prohibit probing all 
-> > of them. [...]
-> 
-> Does this new blacklist cover enough that the kernel now survives a 
-> broadly wildcarded perf-probe, e.g. over e.g. all of its kallsyms?
-
-That's generally the purpose of the annotations - if it doesn't then 
-that's a bug.
-
-Thanks,
-
-	Ingo
+Acked-by: David Howells <dhowells@redhat.com>
