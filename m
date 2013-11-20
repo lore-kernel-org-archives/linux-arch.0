@@ -1,208 +1,271 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:51391 "EHLO mga09.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753746Ab3KTBhp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 19 Nov 2013 20:37:45 -0500
-Subject: [PATCH v6 3/5] MCS Lock: Move mcs_lock/unlock function into its
- own file
-From: Tim Chen <tim.c.chen@linux.intel.com>
-In-Reply-To: <cover.1384885312.git.tim.c.chen@linux.intel.com>
-References: <cover.1384885312.git.tim.c.chen@linux.intel.com>
-Content-Type: text/plain; charset="UTF-8"
-Date: Tue, 19 Nov 2013 17:37:40 -0800
-Message-ID: <1384911460.11046.453.camel@schen9-DESK>
-Mime-Version: 1.0
+Received: from mailxx.hitachi.co.jp ([133.145.228.50]:57822 "EHLO
+	mailxx.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753916Ab3KTEYL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Nov 2013 23:24:11 -0500
+Subject: [PATCH -tip v3 01/23] kprobes: Prohibit probing on .entry.text code
+From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+Date: Wed, 20 Nov 2013 04:21:50 +0000
+Message-ID: <20131120042150.15296.7657.stgit@kbuild-fedora.novalocal>
+In-Reply-To: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal>
+References: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Will Deacon <will.deacon@arm.com>, "Figo.zhang" <figo1802@gmail.com>
-Message-ID: <20131120013740._Me7PR3CyO756x-tx-55z8Wcjwgia4JoozdCxEMcSCk@z>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, Frederic Weisbecker <fweisbec@gmail.com>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Al Viro <viro@zeniv.linux.org.uk>, systemtap@sourceware.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Seiji Aguchi <seiji.aguchi@hds.com>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20131120042150.f5XLLVkp78EvLBaFGTVoYdpja55-T6XppdX3DddtSqo@z>
 
-The following changes are made:
+.entry.text is a code area which is used for interrupt/syscall
+entries, and there are many sensitive codes.
+Thus, it is better to prohibit probing on all of such codes
+instead of a part of that.
+Since some symbols are already registered on kprobe blacklist,
+this also removes them from the blacklist.
 
-1) Create a new mcs_spinlock.c file to contain the
-   mcs_spin_lock() and mcs_spin_unlock() function.
-2) Include a number of prerequisite header files and define
-   arch_mutex_cpu_relax(), if not previously defined so the
-   mcs functions can be compiled for multiple architecture without
-   causing problems.
+Changes from previous:
+ - Introduce arch_within_kprobe_blacklist() which checks
+   the address is within the .kprobes.text (generic,x86) or
+   .entry.text (x86), for fixing build issue on !x86.
 
-Reviewed-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-Signed-off-by: Waiman Long <Waiman.Long@hp.com>
-Signed-off-by: Tim Chen <tim.c.chen@linux.intel.com>
+Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Seiji Aguchi <seiji.aguchi@hds.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Frederic Weisbecker <fweisbec@gmail.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
 ---
- include/linux/mcs_spinlock.h                       | 56 ++--------------------
- kernel/locking/Makefile                            |  6 +--
- .../locking/mcs_spinlock.c                         | 33 ++++++-------
- 3 files changed, 24 insertions(+), 71 deletions(-)
- copy include/linux/mcs_spinlock.h => kernel/locking/mcs_spinlock.c (75%)
+ arch/x86/kernel/entry_32.S     |   33 ---------------------------------
+ arch/x86/kernel/entry_64.S     |   20 --------------------
+ arch/x86/kernel/kprobes/core.c |    8 ++++++++
+ include/linux/kprobes.h        |    1 +
+ kernel/kprobes.c               |   13 ++++++++-----
+ 5 files changed, 17 insertions(+), 58 deletions(-)
 
-diff --git a/include/linux/mcs_spinlock.h b/include/linux/mcs_spinlock.h
-index 96f14299..d54bb23 100644
---- a/include/linux/mcs_spinlock.h
-+++ b/include/linux/mcs_spinlock.h
-@@ -17,57 +17,9 @@ struct mcs_spinlock {
- 	int locked; /* 1 if lock acquired */
+diff --git a/arch/x86/kernel/entry_32.S b/arch/x86/kernel/entry_32.S
+index 51e2988..02c2fef 100644
+--- a/arch/x86/kernel/entry_32.S
++++ b/arch/x86/kernel/entry_32.S
+@@ -315,10 +315,6 @@ ENTRY(ret_from_kernel_thread)
+ ENDPROC(ret_from_kernel_thread)
+ 
+ /*
+- * Interrupt exit functions should be protected against kprobes
+- */
+-	.pushsection .kprobes.text, "ax"
+-/*
+  * Return to user mode is not as complex as all this looks,
+  * but we want the default path for a system call return to
+  * go as quickly as possible which is why some of this is
+@@ -372,10 +368,6 @@ need_resched:
+ END(resume_kernel)
+ #endif
+ 	CFI_ENDPROC
+-/*
+- * End of kprobes section
+- */
+-	.popsection
+ 
+ /* SYSENTER_RETURN points to after the "sysenter" instruction in
+    the vsyscall page.  See vsyscall-sysentry.S, which defines the symbol.  */
+@@ -495,10 +487,6 @@ sysexit_audit:
+ 	PTGS_TO_GS_EX
+ ENDPROC(ia32_sysenter_target)
+ 
+-/*
+- * syscall stub including irq exit should be protected against kprobes
+- */
+-	.pushsection .kprobes.text, "ax"
+ 	# system call handler stub
+ ENTRY(system_call)
+ 	RING0_INT_FRAME			# can't unwind into user space anyway
+@@ -691,10 +679,6 @@ syscall_badsys:
+ 	jmp resume_userspace
+ END(syscall_badsys)
+ 	CFI_ENDPROC
+-/*
+- * End of kprobes section
+- */
+-	.popsection
+ 
+ .macro FIXUP_ESPFIX_STACK
+ /*
+@@ -781,10 +765,6 @@ common_interrupt:
+ ENDPROC(common_interrupt)
+ 	CFI_ENDPROC
+ 
+-/*
+- *  Irq entries should be protected against kprobes
+- */
+-	.pushsection .kprobes.text, "ax"
+ #define BUILD_INTERRUPT3(name, nr, fn)	\
+ ENTRY(name)				\
+ 	RING0_INT_FRAME;		\
+@@ -961,10 +941,6 @@ ENTRY(spurious_interrupt_bug)
+ 	jmp error_code
+ 	CFI_ENDPROC
+ END(spurious_interrupt_bug)
+-/*
+- * End of kprobes section
+- */
+-	.popsection
+ 
+ #ifdef CONFIG_XEN
+ /* Xen doesn't set %esp to be precisely what the normal sysenter
+@@ -1239,11 +1215,6 @@ return_to_handler:
+ 	jmp *%ecx
+ #endif
+ 
+-/*
+- * Some functions should be protected against kprobes
+- */
+-	.pushsection .kprobes.text, "ax"
+-
+ #ifdef CONFIG_TRACING
+ ENTRY(trace_page_fault)
+ 	RING0_EC_FRAME
+@@ -1453,7 +1424,3 @@ ENTRY(async_page_fault)
+ END(async_page_fault)
+ #endif
+ 
+-/*
+- * End of kprobes section
+- */
+-	.popsection
+diff --git a/arch/x86/kernel/entry_64.S b/arch/x86/kernel/entry_64.S
+index e21b078..c48f8f9 100644
+--- a/arch/x86/kernel/entry_64.S
++++ b/arch/x86/kernel/entry_64.S
+@@ -487,8 +487,6 @@ ENDPROC(native_usergs_sysret64)
+ 	TRACE_IRQS_OFF
+ 	.endm
+ 
+-/* save complete stack frame */
+-	.pushsection .kprobes.text, "ax"
+ ENTRY(save_paranoid)
+ 	XCPT_FRAME 1 RDI+8
+ 	cld
+@@ -517,7 +515,6 @@ ENTRY(save_paranoid)
+ 1:	ret
+ 	CFI_ENDPROC
+ END(save_paranoid)
+-	.popsection
+ 
+ /*
+  * A newly forked process directly context switches into this address.
+@@ -975,10 +972,6 @@ END(interrupt)
+ 	call \func
+ 	.endm
+ 
+-/*
+- * Interrupt entry/exit should be protected against kprobes
+- */
+-	.pushsection .kprobes.text, "ax"
+ 	/*
+ 	 * The interrupt stubs push (~vector+0x80) onto the stack and
+ 	 * then jump to common_interrupt.
+@@ -1113,10 +1106,6 @@ ENTRY(retint_kernel)
+ 
+ 	CFI_ENDPROC
+ END(common_interrupt)
+-/*
+- * End of kprobes section
+- */
+-       .popsection
+ 
+ /*
+  * APIC interrupts.
+@@ -1477,11 +1466,6 @@ apicinterrupt3 HYPERVISOR_CALLBACK_VECTOR \
+ 	hyperv_callback_vector hyperv_vector_handler
+ #endif /* CONFIG_HYPERV */
+ 
+-/*
+- * Some functions should be protected against kprobes
+- */
+-	.pushsection .kprobes.text, "ax"
+-
+ paranoidzeroentry_ist debug do_debug DEBUG_STACK
+ paranoidzeroentry_ist int3 do_int3 DEBUG_STACK
+ paranoiderrorentry stack_segment do_stack_segment
+@@ -1898,7 +1882,3 @@ ENTRY(ignore_sysret)
+ 	CFI_ENDPROC
+ END(ignore_sysret)
+ 
+-/*
+- * End of kprobes section
+- */
+-	.popsection
+diff --git a/arch/x86/kernel/kprobes/core.c b/arch/x86/kernel/kprobes/core.c
+index 79a3f96..349112e 100644
+--- a/arch/x86/kernel/kprobes/core.c
++++ b/arch/x86/kernel/kprobes/core.c
+@@ -1066,6 +1066,14 @@ int __kprobes longjmp_break_handler(struct kprobe *p, struct pt_regs *regs)
+ 	return 0;
+ }
+ 
++bool arch_within_kprobe_blacklist(unsigned long addr)
++{
++	return ((addr >= (unsigned long)__kprobes_text_start &&
++		 addr < (unsigned long)__kprobes_text_end) ||
++		(addr >= (unsigned long)__entry_text_start &&
++		 addr < (unsigned long)__entry_text_end));
++}
++
+ int __init arch_init_kprobes(void)
+ {
+ 	return 0;
+diff --git a/include/linux/kprobes.h b/include/linux/kprobes.h
+index 925eaf2..cdf9251 100644
+--- a/include/linux/kprobes.h
++++ b/include/linux/kprobes.h
+@@ -265,6 +265,7 @@ extern void arch_disarm_kprobe(struct kprobe *p);
+ extern int arch_init_kprobes(void);
+ extern void show_registers(struct pt_regs *regs);
+ extern void kprobes_inc_nmissed_count(struct kprobe *p);
++extern bool arch_within_kprobe_blacklist(unsigned long addr);
+ 
+ struct kprobe_insn_cache {
+ 	struct mutex mutex;
+diff --git a/kernel/kprobes.c b/kernel/kprobes.c
+index a0d367a..1756ecc 100644
+--- a/kernel/kprobes.c
++++ b/kernel/kprobes.c
+@@ -96,9 +96,6 @@ static raw_spinlock_t *kretprobe_table_lock_ptr(unsigned long hash)
+ static struct kprobe_blackpoint kprobe_blacklist[] = {
+ 	{"preempt_schedule",},
+ 	{"native_get_debugreg",},
+-	{"irq_entries_start",},
+-	{"common_interrupt",},
+-	{"mcount",},	/* mcount can be called from everywhere */
+ 	{NULL}    /* Terminator */
  };
  
--/*
-- * In order to acquire the lock, the caller should declare a local node and
-- * pass a reference of the node to this function in addition to the lock.
-- * If the lock has already been acquired, then this will proceed to spin
-- * on this node->locked until the previous lock holder sets the node->locked
-- * in mcs_spin_unlock().
-- *
-- * We don't inline mcs_spin_lock() so that perf can correctly account for the
-- * time spent in this lock function.
-- */
--static noinline
--void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
--{
--	struct mcs_spinlock *prev;
--
--	/* Init node */
--	node->locked = 0;
--	node->next   = NULL;
--
--	prev = xchg(lock, node);
--	if (likely(prev == NULL)) {
--		/* Lock acquired */
--		return;
--	}
--	ACCESS_ONCE(prev->next) = node;
--	smp_wmb();
--	/* Wait until the lock holder passes the lock down */
--	while (!ACCESS_ONCE(node->locked))
--		arch_mutex_cpu_relax();
--}
--
--/*
-- * Releases the lock. The caller should pass in the corresponding node that
-- * was used to acquire the lock.
-- */
--static void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
--{
--	struct mcs_spinlock *next = ACCESS_ONCE(node->next);
--
--	if (likely(!next)) {
--		/*
--		 * Release the lock by setting it to NULL
--		 */
--		if (likely(cmpxchg(lock, node, NULL) == node))
--			return;
--		/* Wait until the next pointer is set */
--		while (!(next = ACCESS_ONCE(node->next)))
--			arch_mutex_cpu_relax();
--	}
--	ACCESS_ONCE(next->locked) = 1;
--	smp_wmb();
--}
-+extern
-+void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node);
-+extern
-+void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *node);
- 
- #endif /* __LINUX_MCS_SPINLOCK_H */
-diff --git a/kernel/locking/Makefile b/kernel/locking/Makefile
-index baab8e5..20d9d5c 100644
---- a/kernel/locking/Makefile
-+++ b/kernel/locking/Makefile
-@@ -13,12 +13,12 @@ obj-$(CONFIG_LOCKDEP) += lockdep.o
- ifeq ($(CONFIG_PROC_FS),y)
- obj-$(CONFIG_LOCKDEP) += lockdep_proc.o
- endif
--obj-$(CONFIG_SMP) += spinlock.o
--obj-$(CONFIG_PROVE_LOCKING) += spinlock.o
-+obj-$(CONFIG_SMP) += spinlock.o mcs_spinlock.o
-+obj-$(CONFIG_PROVE_LOCKING) += spinlock.o mcs_spinlock.o
- obj-$(CONFIG_RT_MUTEXES) += rtmutex.o
- obj-$(CONFIG_DEBUG_RT_MUTEXES) += rtmutex-debug.o
- obj-$(CONFIG_RT_MUTEX_TESTER) += rtmutex-tester.o
--obj-$(CONFIG_DEBUG_SPINLOCK) += spinlock.o
-+obj-$(CONFIG_DEBUG_SPINLOCK) += spinlock.o mcs_spinlock.o
- obj-$(CONFIG_DEBUG_SPINLOCK) += spinlock_debug.o
- obj-$(CONFIG_RWSEM_GENERIC_SPINLOCK) += rwsem-spinlock.o
- obj-$(CONFIG_RWSEM_XCHGADD_ALGORITHM) += rwsem-xadd.o
-diff --git a/include/linux/mcs_spinlock.h b/kernel/locking/mcs_spinlock.c
-similarity index 75%
-copy from include/linux/mcs_spinlock.h
-copy to kernel/locking/mcs_spinlock.c
-index 96f14299..44fb092 100644
---- a/include/linux/mcs_spinlock.h
-+++ b/kernel/locking/mcs_spinlock.c
-@@ -1,7 +1,5 @@
- /*
-- * MCS lock defines
-- *
-- * This file contains the main data structure and API definitions of MCS lock.
-+ * MCS lock
-  *
-  * The MCS lock (proposed by Mellor-Crummey and Scott) is a simple spin-lock
-  * with the desirable properties of being fair, and with each cpu trying
-@@ -9,13 +7,20 @@
-  * It avoids expensive cache bouncings that common test-and-set spin-lock
-  * implementations incur.
-  */
--#ifndef __LINUX_MCS_SPINLOCK_H
--#define __LINUX_MCS_SPINLOCK_H
-+/*
-+ * asm/processor.h may define arch_mutex_cpu_relax().
-+ * If it is not defined, cpu_relax() will be used.
-+ */
-+#include <asm/barrier.h>
-+#include <asm/cmpxchg.h>
-+#include <asm/processor.h>
-+#include <linux/compiler.h>
-+#include <linux/mcs_spinlock.h>
-+#include <linux/export.h>
- 
--struct mcs_spinlock {
--	struct mcs_spinlock *next;
--	int locked; /* 1 if lock acquired */
--};
-+#ifndef arch_mutex_cpu_relax
-+# define arch_mutex_cpu_relax() cpu_relax()
-+#endif
- 
- /*
-  * In order to acquire the lock, the caller should declare a local node and
-@@ -23,11 +28,7 @@ struct mcs_spinlock {
-  * If the lock has already been acquired, then this will proceed to spin
-  * on this node->locked until the previous lock holder sets the node->locked
-  * in mcs_spin_unlock().
-- *
-- * We don't inline mcs_spin_lock() so that perf can correctly account for the
-- * time spent in this lock function.
-  */
--static noinline
- void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
- {
- 	struct mcs_spinlock *prev;
-@@ -47,12 +48,13 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
- 	while (!ACCESS_ONCE(node->locked))
- 		arch_mutex_cpu_relax();
+@@ -1324,12 +1321,18 @@ out:
+ 	return ret;
  }
-+EXPORT_SYMBOL_GPL(mcs_spin_lock);
  
- /*
-  * Releases the lock. The caller should pass in the corresponding node that
-  * was used to acquire the lock.
-  */
--static void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
-+void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
++bool __weak arch_within_kprobe_blacklist(unsigned long addr)
++{
++	/* The __kprobes marked functions and entry code must not be probed */
++	return (addr >= (unsigned long)__kprobes_text_start &&
++		addr < (unsigned long)__kprobes_text_end);
++}
++
+ static int __kprobes in_kprobes_functions(unsigned long addr)
  {
- 	struct mcs_spinlock *next = ACCESS_ONCE(node->next);
+ 	struct kprobe_blackpoint *kb;
  
-@@ -69,5 +71,4 @@ static void mcs_spin_unlock(struct mcs_spinlock **lock, struct mcs_spinlock *nod
- 	ACCESS_ONCE(next->locked) = 1;
- 	smp_wmb();
- }
--
--#endif /* __LINUX_MCS_SPINLOCK_H */
-+EXPORT_SYMBOL_GPL(mcs_spin_unlock);
--- 
-1.7.11.7
-
+-	if (addr >= (unsigned long)__kprobes_text_start &&
+-	    addr < (unsigned long)__kprobes_text_end)
++	if (arch_within_kprobe_blacklist(addr))
+ 		return -EINVAL;
+ 	/*
+ 	 * If there exists a kprobe_blacklist, verify and
 
 
