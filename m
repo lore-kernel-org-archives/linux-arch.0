@@ -1,60 +1,54 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [patch 4/6] ia64: Use preempt_schedule_irq
-Date: Thu, 21 Nov 2013 14:06:05 +0100
-Message-ID: <20131121130605.GE10022@twins.programming.kicks-ass.net>
-References: <20130917082838.218329307@infradead.org>
- <20130917182350.449685712@linutronix.de>
- <20130917183628.857145384@linutronix.de>
- <CA+8MBbKq1idWt1OSpRM3mWMDAQaEoewrU=h=m_pFoidVy6OA-Q@mail.gmail.com>
- <alpine.DEB.2.02.1311202121340.30673@ionos.tec.linutronix.de>
- <alpine.DEB.2.02.1311211230030.30673@ionos.tec.linutronix.de>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
+Date: Thu, 21 Nov 2013 05:16:54 -0800
+Message-ID: <20131121131654.GP4138@linux.vnet.ibm.com>
+References: <20131120153123.GF4138@linux.vnet.ibm.com>
+ <20131120154643.GG19352@mudshark.cambridge.arm.com>
+ <20131120171400.GI4138@linux.vnet.ibm.com>
+ <1384973026.11046.465.camel@schen9-DESK>
+ <20131120190616.GL4138@linux.vnet.ibm.com>
+ <1384979767.11046.489.camel@schen9-DESK>
+ <20131120214402.GM4138@linux.vnet.ibm.com>
+ <1384991514.11046.504.camel@schen9-DESK>
+ <20131121045333.GO4138@linux.vnet.ibm.com>
+ <20131121101736.GA13067@mudshark.cambridge.arm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.02.1311211230030.30673@ionos.tec.linutronix.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Tony Luck <tony.luck@gmail.com>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Fenghua Yu <fenghua.yu@intel.com>
+In-Reply-To: <20131121101736.GA13067@mudshark.cambridge.arm.com>
+Sender: owner-linux-mm@kvack.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Nov 21, 2013 at 12:41:44PM +0100, Thomas Gleixner wrote:
-> On Wed, 20 Nov 2013, Thomas Gleixner wrote:
-> > On Wed, 20 Nov 2013, Tony Luck wrote:
-> > > asmlinkage void __sched preempt_schedule_irq(void)
-> > > {
-> > >            schedule();
-> > > }
-> > > 
-> > > Or is life more complicated than that?
+On Thu, Nov 21, 2013 at 10:17:36AM +0000, Will Deacon wrote:
+> On Thu, Nov 21, 2013 at 04:53:33AM +0000, Paul E. McKenney wrote:
+> > On Wed, Nov 20, 2013 at 03:51:54PM -0800, Tim Chen wrote:
+> > > If we intend to use smp_load_acquire and smp_store_release extensively
+> > > for locks, making RCsc semantics the default will simply things a lot.
 > > 
-> > Hmm, I think I fubared that and you decided to ignore my patch :) 
-> > 
-> > Let me look at it tomorrow morning with full awake brain cells.
+> > The other option is to weaken lock semantics so that unlock-lock no
+> > longer implies a full barrier, but I believe that we would regret taking
+> > that path.  (It would be OK by me, I would just add a few smp_mb()
+> > calls on various slowpaths in RCU.  But...)
 > 
-> Ok, wrapped my brain around it. I tripped over the magic asm foo which
-> has a single need_resched check and schedule point for both sys call
-> return and interrupt return.
-> 
-> So you need the schedule_preempt_irq() for kernel preemption from
-> interrupt return while on a normal syscall preemption a schedule would
-> be sufficient. But using schedule_preempt_irq() is not harmful here in
-> any way. It just sets the preempt_active bit also in cases where it
-> would not be required. 
-> 
-> Even on preempt=n kernels adding the preempt_active bit is completely
-> harmless. So instead of having an extra function, moving the existing
-> one out of the ifdef PREEMPT looks like the sanest thing to do.
-> 
-> Peter, Ingo ?
+> Unsurprisingly, my vote is for RCsc semantics.
 
-Uhm, preempt_schedule_irq() assumes interrupts are disabled and
-explicitly returns with interrupts disabled again. Does the ia64
-callsite conform?
+That was in fact my guess.  ;-)
 
-If so, schedule() would actually be actively wrong, because that will
-whinge when called with interrupts disabled, and will return with
-interrupts enabled.
+> One major advantage (in my opinion) of the acquire/release accessors is that
+> they feel intuitive in an area where intuition is hardly rife. I believe
+> that the additional reordering permitted by RCpc detracts from the relative
+> simplicity of what is currently being proposed.
 
-Anyway, I don't object to the patch per se, but it might bloat a few
-!ia64 kernels for having to carry the extra text.
+Fair point!  Let's see what others (both hackers and architectures) say.
+
+							Thanx, Paul
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
