@@ -1,63 +1,131 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:30236 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753896Ab3KUNp2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 21 Nov 2013 08:45:28 -0500
-From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH v2] of: unflatten_and_copy: handle NULL initial_boot_params
-Date: Thu, 21 Nov 2013 13:44:14 +0000
-Message-ID: <1385041454-32385-1-git-send-email-james.hogan@imgtec.com>
+Received: from merlin.infradead.org ([205.233.59.134]:51926 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752381Ab3KUQSG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Nov 2013 11:18:06 -0500
+Date: Thu, 21 Nov 2013 17:17:33 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [RFC] Control dependencies
+Message-ID: <20131121161733.GH10022@twins.programming.kicks-ass.net>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Grant Likely <grant.likely@linaro.org>, Rob Herring <rob.herring@calxeda.com>, devicetree@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, James Hogan <james.hogan@imgtec.com>
-Message-ID: <20131121134414.w0CGQbmM5vwiHpErGv31VNxUeZ7sH9yeGXEqG7LxQVs@z>
+To: Paul McKenney <paulmck@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, "Figo.zhang" <figo1802@gmail.com>
+Message-ID: <20131121161733.pg6_ijd6_HjItfwyVsOAzOieoNdJnbvu8nC78_5UJy0@z>
 
-Check whether initial_boot_params is NULL before dereferencing it in
-unflatten_and_copy_device_tree() for the case where no device tree is
-available but the arch can still boot to a minimal usable system without
-it. In this case also log a warning for when the kernel log buffer is
-obtainable.
+Hey Paul,
 
-Signed-off-by: James Hogan <james.hogan@imgtec.com>
-Cc: Grant Likely <grant.likely@linaro.org>
-Cc: Rob Herring <rob.herring@calxeda.com>
-Cc: devicetree@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
+So on IRC you said you were going to post a patch to clarify/allow
+control dependencies -- seeing you didn't get around to it, I thought
+I'd take a stab at it.
+
+The below is a patch to the perf code that uses one to get rid of a
+pesky full memory barrier. Along with a patch to _the_ Document to
+hopefully clarify the issue some. Although I feel there is far more to
+say on this subject than I have attempted.
+
+Since it now looks like smp_store_release() needs a full memory barrier
+that approach isn't actually looking all that attractive for me anymore
+(I'll not give up on those patches just yet), but I did want to put this
+approach forward.
+
 ---
-v2:
- * Log a warning for those who can obtain the kernel log buffer (Grant
-   Likely).
----
- drivers/of/fdt.c | 12 ++++++++++--
- 1 file changed, 10 insertions(+), 2 deletions(-)
-
-diff --git a/drivers/of/fdt.c b/drivers/of/fdt.c
-index 2fa024b97c43..758b4f8b30b7 100644
---- a/drivers/of/fdt.c
-+++ b/drivers/of/fdt.c
-@@ -922,8 +922,16 @@ void __init unflatten_device_tree(void)
-  */
- void __init unflatten_and_copy_device_tree(void)
- {
--	int size = __be32_to_cpu(initial_boot_params->totalsize);
--	void *dt = early_init_dt_alloc_memory_arch(size,
-+	int size;
-+	void *dt;
-+
-+	if (!initial_boot_params) {
-+		pr_warn("No valid device tree found, continuing without\n");
-+		return;
+--- a/Documentation/memory-barriers.txt
++++ b/Documentation/memory-barriers.txt
+@@ -526,21 +526,27 @@ See also the subsection on "Cache Cohere
+ CONTROL DEPENDENCIES
+ --------------------
+ 
+-A control dependency requires a full read memory barrier, not simply a data
+-dependency barrier to make it work correctly.  Consider the following bit of
+-code:
++Because CPUs do not allow store speculation -- this would result in values out
++of thin air -- store visibility depends on a linear branch history. Therefore
++we can rely on LOAD -> STORE control dependencies to order things.
+ 
+-	q = &a;
+-	if (p) {
+-		<data dependency barrier>
+-		q = &b;
++	if (x) {
++		y = 1;
 +	}
 +
-+	size = __be32_to_cpu(initial_boot_params->totalsize);
-+	dt = early_init_dt_alloc_memory_arch(size,
- 		__alignof__(struct boot_param_header));
++The store to y must happen after the read to x. However C11/C++11 does not
++(yet) prohibit STORE speculation, and therefore we should insert a compiler
++barrier to force our compiler to do as it is told, and the above example
++should read:
++
++	if (x) {
++		barrier();
++		y = 1;
+ 	}
+-	x = *q;
  
- 	if (dt) {
--- 
-1.8.1.2
-
+-This will not have the desired effect because there is no actual data
+-dependency, but rather a control dependency that the CPU may short-circuit by
+-attempting to predict the outcome in advance.  In such a case what's actually
+-required is:
++On the other hand, CPUs (and compilers) are allowed to aggressively speculate
++on loads, therefore we cannot rely on LOAD -> LOAD control dependencies such
++as:
+ 
+ 	q = &a;
+ 	if (p) {
+@@ -549,6 +555,8 @@ attempting to predict the outcome in adv
+ 	}
+ 	x = *q;
+ 
++And the read barrier as per the above example is indeed required to ensure
++order.
+ 
+ SMP BARRIER PAIRING
+ -------------------
+--- a/kernel/events/ring_buffer.c
++++ b/kernel/events/ring_buffer.c
+@@ -62,18 +62,18 @@ static void perf_output_put_handle(struc
+ 	 *   kernel				user
+ 	 *
+ 	 *   READ ->data_tail			READ ->data_head
+-	 *   smp_mb()	(A)			smp_rmb()	(C)
++	 *   barrier()	(A)			smp_rmb()	(C)
+ 	 *   WRITE $data			READ $data
+ 	 *   smp_wmb()	(B)			smp_mb()	(D)
+ 	 *   STORE ->data_head			WRITE ->data_tail
+ 	 *
+ 	 * Where A pairs with D, and B pairs with C.
+ 	 *
+-	 * I don't think A needs to be a full barrier because we won't in fact
+-	 * write data until we see the store from userspace. So we simply don't
+-	 * issue the data WRITE until we observe it. Be conservative for now.
++	 * In our case (A) is a control barrier that separates the loading of
++	 * the ->data_tail and the writing of $data. In case ->data_tail
++	 * indicates there is no room in the buffer to store $data we bail.
+ 	 *
+-	 * OTOH, D needs to be a full barrier since it separates the data READ
++	 * D needs to be a full barrier since it separates the data READ
+ 	 * from the tail WRITE.
+ 	 *
+ 	 * For B a WMB is sufficient since it separates two WRITEs, and for C
+@@ -148,13 +148,15 @@ int perf_output_begin(struct perf_output
+ 	} while (local_cmpxchg(&rb->head, offset, head) != offset);
+ 
+ 	/*
+-	 * Separate the userpage->tail read from the data stores below.
++	 * Control barrier separating the @tail read above from the
++	 * data writes below.
++	 *
+ 	 * Matches the MB userspace SHOULD issue after reading the data
+ 	 * and before storing the new tail position.
+ 	 *
+ 	 * See perf_output_put_handle().
+ 	 */
+-	smp_mb();
++	barrier();
+ 
+ 	if (unlikely(head - local_read(&rb->wakeup) > rb->watermark))
+ 		local_add(rb->watermark, &rb->wakeup);
 
