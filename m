@@ -1,81 +1,189 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 1/9] dt: Handle passed/built-in DT selection in early_init_dt_scan()
-Date: Thu, 21 Nov 2013 18:49:08 +0100
-Message-ID: <CAMuHMdXjROx-LqNkq_GhNp4M-iYvDXV6X4j7EkgQGdkUmAMvhg@mail.gmail.com>
-References: <5283A000.8090007@gmail.com>
-	<CAMuHMdXfsB_Ewz9sUPZaAjFaQGTGeqMiD8mJ0tCoH1uFLYGoxw@mail.gmail.com>
-	<20131121155348.66751C406A3@trevor.secretlab.ca>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [RFC] Control dependencies
+Date: Thu, 21 Nov 2013 10:02:37 -0800
+Message-ID: <20131121180237.GX4138@linux.vnet.ibm.com>
+References: <20131121161733.GH10022@twins.programming.kicks-ass.net>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f53.google.com ([209.85.160.53]:56687 "EHLO
-	mail-pb0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755085Ab3KURtJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Nov 2013 12:49:09 -0500
-In-Reply-To: <20131121155348.66751C406A3@trevor.secretlab.ca>
+Received: from e37.co.us.ibm.com ([32.97.110.158]:35848 "EHLO
+	e37.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751373Ab3KUSCo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Nov 2013 13:02:44 -0500
+Received: from /spool/local
+	by e37.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Thu, 21 Nov 2013 11:02:44 -0700
+Content-Disposition: inline
+In-Reply-To: <20131121161733.GH10022@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Grant Likely <grant.likely@secretlab.ca>
-Cc: Rob Herring <rob.herring@calxeda.com>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott
 
-On Thu, Nov 21, 2013 at 4:53 PM, Grant Likely <grant.likely@secretlab.ca> wrote:
->> My changes don't change the current behavior much: currently
->> early_init_dt_scan() is already called with &__dtb_start in several places.
->> If this is broken, it's already broken.
->
-> Yes, but it is called on platforms that already make that assumption
-> that __dtb_start must be copied and therefore call
-> unflatten_and_copy_devicetree(). This change makes *all* platforms do
-> that. That breaks arm, arm64, c6x, microblaze, some mips platforms, and
-> powerpc!
+On Thu, Nov 21, 2013 at 05:17:33PM +0100, Peter Zijlstra wrote:
+> Hey Paul,
+> 
+> So on IRC you said you were going to post a patch to clarify/allow
+> control dependencies -- seeing you didn't get around to it, I thought
+> I'd take a stab at it.
 
-arm, arm64, and powerpc don't have builtin DTBs, hence no change.
-microblaze and c6x already did "early_init_devtree(&__dtb_start)" before.
+I do have a prototype queued, but let's see what you have.  Sending mine
+in parallel anyway, just in case we have a shortage of confusion.  ;-)
 
-That leaves mips, which has DT handling in too many variants, which I
-didn't all verify.
+I will combine them and keep your Signed-off-by if you are OK with that.
 
->> > memory. The dtb section can also potentially contain multiple .dtb
->> > blobs. In the use case that you care about you are probably only
->>
->> Multiple dtb blobs are currently handled in platform-specific code, which
->> passes the right dtb to early_init_dt_scan().
->
-> The problem is that it makes the default dt completely random because
-> the generic code still deferrences __dtb_start.
+> The below is a patch to the perf code that uses one to get rid of a
+> pesky full memory barrier. Along with a patch to _the_ Document to
+> hopefully clarify the issue some. Although I feel there is far more to
+> say on this subject than I have attempted.
+> 
+> Since it now looks like smp_store_release() needs a full memory barrier
+> that approach isn't actually looking all that attractive for me anymore
+> (I'll not give up on those patches just yet), but I did want to put this
+> approach forward.
 
-Only if no DT was passed by the bootloader. And only if there really
-is something at __dtb_start. Before it would fail if no DTB was passed
-by the bootloader.
+I am not so sure that smp_store_release() needs a full memory barrier, but
+please take a look at Message-ID <20131121172558.GA27927@linux.vnet.ibm.com>,
+sent quite recently.
 
->> > thinking about one, but it is entirely possible for device drivers to
->> > have a dtb linked in which may break this if it gets linked in a
->> > different order. The specific example I'm thinking about is I want to
->> > have the DT selftest code load an overlay to get testcase data from a
->> > dtb blob.
->> >
->> > The other concern I have here is that I don't really want this to be the
->> > default on a lot of platforms. ARM and PowerPC for instance should only
->> > get the default dtb from the boot wrapper. It needs to be configurable
->> > in some way.
->>
->> On ARM and PowerPC, the section is empty, hence &__dbt_start ==
->> &__dtb_end.
->
-> There is no guarantee that that will always be so. The patch makes some
-> poor assumtions, but they shouldn't be difficult to fix.
+Please see comments interspersed, thoughts?
 
-OK, how to proceed?
+							Thanx, Paul
 
-Thanks!
+> ---
+> --- a/Documentation/memory-barriers.txt
+> +++ b/Documentation/memory-barriers.txt
+> @@ -526,21 +526,27 @@ See also the subsection on "Cache Cohere
+>  CONTROL DEPENDENCIES
+>  --------------------
+> 
+> -A control dependency requires a full read memory barrier, not simply a data
+> -dependency barrier to make it work correctly.  Consider the following bit of
+> -code:
+> +Because CPUs do not allow store speculation -- this would result in values out
+> +of thin air -- store visibility depends on a linear branch history. Therefore
+> +we can rely on LOAD -> STORE control dependencies to order things.
+> 
+> -	q = &a;
+> -	if (p) {
+> -		<data dependency barrier>
+> -		q = &b;
+> +	if (x) {
+> +		y = 1;
+> +	}
+> +
+> +The store to y must happen after the read to x. However C11/C++11 does not
+> +(yet) prohibit STORE speculation, and therefore we should insert a compiler
+> +barrier to force our compiler to do as it is told, and the above example
+> +should read:
+> +
+> +	if (x) {
+> +		barrier();
+> +		y = 1;
+>  	}
+> -	x = *q;
 
-Gr{oetje,eeting}s,
+In my draft, I rely on ACCESS_ONCE() rather than barrier(), but clearly
+we need to call out both.  Both yours and mine need to be more emphatic
+about the "if" being needed.
 
-                        Geert
+There is an odd example in mine where both branches of an "if" statement
+do identical writes.  This seems vulnerable to compiler "optimizations"
+that hoist the stores out of the "if" statement, defeating ordering.
+I had not yet figured out what to say about that, hence my tardiness
+in sending.  (Plus inertia, of course!)
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+> -This will not have the desired effect because there is no actual data
+> -dependency, but rather a control dependency that the CPU may short-circuit by
+> -attempting to predict the outcome in advance.  In such a case what's actually
+> -required is:
+> +On the other hand, CPUs (and compilers) are allowed to aggressively speculate
+> +on loads, therefore we cannot rely on LOAD -> LOAD control dependencies such
+> +as:
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Your example is better than mine here, because mine fails to make it
+painfully clear that control dependencies don't apply to subsequent loads.
+I will pull this point in.
+
+>  	q = &a;
+>  	if (p) {
+> @@ -549,6 +555,8 @@ attempting to predict the outcome in adv
+>  	}
+>  	x = *q;
+> 
+> +And the read barrier as per the above example is indeed required to ensure
+> +order.
+> 
+>  SMP BARRIER PAIRING
+>  -------------------
+> --- a/kernel/events/ring_buffer.c
+> +++ b/kernel/events/ring_buffer.c
+
+My patch does not cover this file.  Wouldn't hurt for them to be
+separate.
+
+> @@ -62,18 +62,18 @@ static void perf_output_put_handle(struc
+>  	 *   kernel				user
+>  	 *
+>  	 *   READ ->data_tail			READ ->data_head
+> -	 *   smp_mb()	(A)			smp_rmb()	(C)
+> +	 *   barrier()	(A)			smp_rmb()	(C)
+
+We need a conditional for this to work.  I know that the required
+conditional is there in the code, but we need it explicitly in this
+example as well.
+
+>  	 *   WRITE $data			READ $data
+>  	 *   smp_wmb()	(B)			smp_mb()	(D)
+>  	 *   STORE ->data_head			WRITE ->data_tail
+>  	 *
+>  	 * Where A pairs with D, and B pairs with C.
+>  	 *
+> -	 * I don't think A needs to be a full barrier because we won't in fact
+> -	 * write data until we see the store from userspace. So we simply don't
+> -	 * issue the data WRITE until we observe it. Be conservative for now.
+> +	 * In our case (A) is a control barrier that separates the loading of
+> +	 * the ->data_tail and the writing of $data.
+
+Actually, we need both a conditional and something to prevent the
+compiler from hoisting code to precede that conditional.  The barrier()
+prevents the hoisting, but we need to explicitly call out the conditional.
+Otherwise, someone will read this and assume that any load followed by
+barrier() will always be ordered against subsequent stores.
+
+We should call this a "control dependency" rather than a "control
+barrier" to emphasize that the conditional is part and parcel of the
+ordering guarantee.
+
+> +	 *                                           In case ->data_tail
+> +	 * indicates there is no room in the buffer to store $data we bail.
+>  	 *
+> -	 * OTOH, D needs to be a full barrier since it separates the data READ
+> +	 * D needs to be a full barrier since it separates the data READ
+>  	 * from the tail WRITE.
+>  	 *
+>  	 * For B a WMB is sufficient since it separates two WRITEs, and for C
+> @@ -148,13 +148,15 @@ int perf_output_begin(struct perf_output
+>  	} while (local_cmpxchg(&rb->head, offset, head) != offset);
+> 
+>  	/*
+> -	 * Separate the userpage->tail read from the data stores below.
+> +	 * Control barrier separating the @tail read above from the
+> +	 * data writes below.
+
+Or maybe "control dependency barrier".
+
+> +	 *
+>  	 * Matches the MB userspace SHOULD issue after reading the data
+>  	 * and before storing the new tail position.
+>  	 *
+>  	 * See perf_output_put_handle().
+>  	 */
+> -	smp_mb();
+> +	barrier();
+> 
+>  	if (unlikely(head - local_read(&rb->wakeup) > rb->watermark))
+>  		local_add(rb->watermark, &rb->wakeup);
+> 
