@@ -1,38 +1,143 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
-Date: Thu, 21 Nov 2013 11:45:03 +0100
-Message-ID: <20131121104503.GB10022@twins.programming.kicks-ass.net>
-References: <1384911463.11046.454.camel@schen9-DESK>
- <20131120153123.GF4138@linux.vnet.ibm.com>
- <20131120154643.GG19352@mudshark.cambridge.arm.com>
- <20131120171400.GI4138@linux.vnet.ibm.com>
- <1384973026.11046.465.camel@schen9-DESK>
- <20131120190616.GL4138@linux.vnet.ibm.com>
- <1384979767.11046.489.camel@schen9-DESK>
- <20131120214402.GM4138@linux.vnet.ibm.com>
- <1384991514.11046.504.camel@schen9-DESK>
- <20131121045333.GO4138@linux.vnet.ibm.com>
+From: Chen Gang <gang.chen.5i5j@gmail.com>
+Subject: Re: [PATCH v2] arch: use ASM_NL instead of ';' for assembler new
+ line character in the macro
+Date: Thu, 21 Nov 2013 18:52:33 +0800
+Message-ID: <528DE5F1.20609@gmail.com>
+References: <526E3CE2.2070405@asianux.com> <526E6A92.6090301@synopsys.com> <526F09B8.9030202@asianux.com> <526F11C0.1030809@asianux.com> <526F149A.3000306@asianux.com> <52733FEC.4010807@synopsys.com> <528DD92E.9070408@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20131121045333.GO4138@linux.vnet.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Tim Chen <tim.c.chen@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zyto>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pb0-f51.google.com ([209.85.160.51]:64608 "EHLO
+	mail-pb0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751552Ab3KUKuZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Nov 2013 05:50:25 -0500
+In-Reply-To: <528DD92E.9070408@synopsys.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Chen Gang <gang.chen@asianux.com>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Rusty Russell <rusty@rustcorp.com.au>, James Hogan <james.hogan@imgtec.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Max Filippov <jcmvbkbc@gmail.com>, Sam Ravnborg <sam@ravnborg.org>, Tim Abbott <tabbott@ksplice.com>, Joe Perches <joe@perches.com>, Michal Marek <mmarek@suse.cz>, David Howells <dhowells@redhat.com>
 
-On Wed, Nov 20, 2013 at 08:53:33PM -0800, Paul E. McKenney wrote:
-> The other option is to weaken lock semantics so that unlock-lock no
-> longer implies a full barrier, but I believe that we would regret taking
-> that path.  (It would be OK by me, I would just add a few smp_mb()
-> calls on various slowpaths in RCU.  But...)
+On 11/21/2013 05:58 PM, Vineet Gupta wrote:
+> On 11/01/2013 11:15 AM, Vineet Gupta wrote:
+>> +CC Sam, Tim, Joe, Michal, David
+>>
+>> Guys can you please take a look at this patch and suggest the best way to merge.
+>>
+>> The root cause is some gas ports (including ARC) use ';' for comment (vs. newline)
+>> More background at https://lkml.org/lkml/2013/10/24/365
+> 
+> Ping ! Any objections to this. Given that this is exception case, it is simpler
+> than defining a Kconfig control.
+> 
 
-Please no, I know we rely on it in a number of places, I just can't
-remember where all those were :/
+Hmm... I guess your meaning is that define a macro (e.g. ASM_NL) in
+Kconfig instead of in "asm/linkage.h".
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+For me, I still recommend to define a macro in "asm/linkage.h", "in
+Kconfig" is not quite straight and simple than current way:
+
+ - "in Kconfig" need 2 macros for it, but "asm/linkage.h" need 1.
+
+ - Kconfig is normally for using configurations (face to downstream)
+   upstream related configurations (e.g. related with compiler) are
+   often in Makefile or specific header files (e.g "linkage.h")
+
+Thanks.
+
+> -Vineet
+>>
+>>
+>> On 10/29/2013 07:21 AM, Chen Gang wrote:
+>>> For some assemblers, they use another character as newline in a macro
+>>> (e.g. arc uses '`'), so for generic assembly code, need use ASM_NL (a
+>>> macro) instead of ';' for it.
+>>>
+>>> Also need notice about code styles ('\t' for each line).
+>>>
+>>>
+>>> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+>>> ---
+>>>  arch/arc/include/asm/linkage.h |    2 ++
+>>>  include/linux/linkage.h        |   19 ++++++++++++-------
+>>>  2 files changed, 14 insertions(+), 7 deletions(-)
+>>>
+>>> diff --git a/arch/arc/include/asm/linkage.h b/arch/arc/include/asm/linkage.h
+>>> index 0283e9e..66ee552 100644
+>>> --- a/arch/arc/include/asm/linkage.h
+>>> +++ b/arch/arc/include/asm/linkage.h
+>>> @@ -11,6 +11,8 @@
+>>>  
+>>>  #ifdef __ASSEMBLY__
+>>>  
+>>> +#define ASM_NL		 `	/* use '`' to mark new line in macro */
+>>> +
+>>>  /* Can't use the ENTRY macro in linux/linkage.h
+>>>   * gas considers ';' as comment vs. newline
+>>>   */
+>>> diff --git a/include/linux/linkage.h b/include/linux/linkage.h
+>>> index d3e8ad2..a6a42dd 100644
+>>> --- a/include/linux/linkage.h
+>>> +++ b/include/linux/linkage.h
+>>> @@ -6,6 +6,11 @@
+>>>  #include <linux/export.h>
+>>>  #include <asm/linkage.h>
+>>>  
+>>> +/* Some toolchains use other characters (e.g. '`') to mark new line in macro */
+>>> +#ifndef ASM_NL
+>>> +#define ASM_NL		 ;
+>>> +#endif
+>>> +
+>>>  #ifdef __cplusplus
+>>>  #define CPP_ASMLINKAGE extern "C"
+>>>  #else
+>>> @@ -75,21 +80,21 @@
+>>>  
+>>>  #ifndef ENTRY
+>>>  #define ENTRY(name) \
+>>> -  .globl name; \
+>>> -  ALIGN; \
+>>> -  name:
+>>> +	.globl name ASM_NL \
+>>> +	ALIGN ASM_NL \
+>>> +	name:
+>>>  #endif
+>>>  #endif /* LINKER_SCRIPT */
+>>>  
+>>>  #ifndef WEAK
+>>>  #define WEAK(name)	   \
+>>> -	.weak name;	   \
+>>> +	.weak name ASM_NL   \
+>>>  	name:
+>>>  #endif
+>>>  
+>>>  #ifndef END
+>>>  #define END(name) \
+>>> -  .size name, .-name
+>>> +	.size name, .-name
+>>>  #endif
+>>>  
+>>>  /* If symbol 'name' is treated as a subroutine (gets called, and returns)
+>>> @@ -98,8 +103,8 @@
+>>>   */
+>>>  #ifndef ENDPROC
+>>>  #define ENDPROC(name) \
+>>> -  .type name, @function; \
+>>> -  END(name)
+>>> +	.type name, @function ASM_NL \
+>>> +	END(name)
+>>>  #endif
+>>>  
+>>>  #endif
+>>>
+>>
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> 
+
+
+-- 
+Chen Gang
