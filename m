@@ -1,72 +1,80 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH v2] of: unflatten_and_copy: handle NULL initial_boot_params
-Date: Thu, 21 Nov 2013 13:49:51 +0000
-Message-ID: <528E0F7F.7010901@imgtec.com>
-References: <1385041454-32385-1-git-send-email-james.hogan@imgtec.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:30264 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751491Ab3KUNty (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 21 Nov 2013 08:49:54 -0500
-In-Reply-To: <1385041454-32385-1-git-send-email-james.hogan@imgtec.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Grant Likely <grant.likely@linaro.org>, Rob Herring <rob.herring@calxeda.com>, devicetree@vger.kernel.org
-Cc: James Hogan <james.hogan@imgtec.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+From: Grant Likely <grant.likely@secretlab.ca>
+Subject: Re: [PATCH 1/9] dt: Handle passed/built-in DT selection in early_init_dt_scan()
+Date: Thu, 21 Nov 2013 15:53:48 +0000
+Message-ID: <20131121155348.66751C406A3@trevor.secretlab.ca>
+References: <5283A000.8090007@gmail.com> < 1384859554-27268-1-git-send-email-geert@linux-m68k.org> <20131121122148. 1B43DC40A2C@trevor.secretlab.ca> < CAMuHMdXfsB_Ewz9sUPZaAjFaQGTGeqMiD8mJ0tCoH1uFLYGoxw@mail.gmail.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAMuHMdXfsB_Ewz9sUPZaAjFaQGTGeqMiD8mJ0tCoH1uFLYGoxw@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Rob Herring <rob.herring@calxeda.com>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 21/11/13 13:44, James Hogan wrote:
-> Check whether initial_boot_params is NULL before dereferencing it in
-> unflatten_and_copy_device_tree() for the case where no device tree is
-> available but the arch can still boot to a minimal usable system without
-> it. In this case also log a warning for when the kernel log buffer is
-> obtainable.
+On Thu, 21 Nov 2013 14:42:27 +0100, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+> On Thu, Nov 21, 2013 at 1:21 PM, Grant Likely <grant.likely@secretlab.ca> wrote:
+> >>  bool __init early_init_dt_scan(void *params)
+> >>  {
+> >> -     if (!params)
+> >> -             return false;
+> >> -
+> >>       /* Setup flat device-tree pointer */
+> >>       initial_boot_params = params;
+> >>
+> >> -     /* check device tree validity */
+> >> -     if (be32_to_cpu(initial_boot_params->magic) != OF_DT_HEADER) {
+> >> -             initial_boot_params = NULL;
+> >> -             return false;
+> >> +     /* check passed device tree validity */
+> >> +     if (initial_boot_params &&
+> >> +         be32_to_cpu(initial_boot_params->magic) == OF_DT_HEADER) {
+> >> +             pr_info("FDT at %p\n", initial_boot_params);
+> >> +             goto found;
+> >> +     }
+> >> +
+> >> +     /* check built-in device tree validity */
+> >> +     initial_boot_params = &__dtb_start;
+> >> +     if (__dtb_end != (void *)&__dtb_start &&
+> >> +         be32_to_cpu(initial_boot_params->magic) == OF_DT_HEADER) {
+> >> +             pr_info("Compiled-in FDT at %p\n", initial_boot_params);
+> >> +             goto found;
+> >
+> > __dtb_start is in an init section which is discarded after initcalls.
+> > For this to work, the dtb needs to be copied into a region of allocated
 > 
-> Signed-off-by: James Hogan <james.hogan@imgtec.com>
-> Cc: Grant Likely <grant.likely@linaro.org>
-> Cc: Rob Herring <rob.herring@calxeda.com>
-> Cc: devicetree@vger.kernel.org
-> Cc: linux-arch@vger.kernel.org
+> My changes don't change the current behavior much: currently
+> early_init_dt_scan() is already called with &__dtb_start in several places.
+> If this is broken, it's already broken.
 
-Hmm, sorry, I forgot to add Grant's:
-Acked-by: Grant Likely <grant.likely@linaro.org>
+Yes, but it is called on platforms that already make that assumption
+that __dtb_start must be copied and therefore call
+unflatten_and_copy_devicetree(). This change makes *all* platforms do
+that. That breaks arm, arm64, c6x, microblaze, some mips platforms, and
+powerpc!
 
-(from v1)
-
-Cheers
-James
-
-> ---
-> v2:
->  * Log a warning for those who can obtain the kernel log buffer (Grant
->    Likely).
-> ---
->  drivers/of/fdt.c | 12 ++++++++++--
->  1 file changed, 10 insertions(+), 2 deletions(-)
+> > memory. The dtb section can also potentially contain multiple .dtb
+> > blobs. In the use case that you care about you are probably only
 > 
-> diff --git a/drivers/of/fdt.c b/drivers/of/fdt.c
-> index 2fa024b97c43..758b4f8b30b7 100644
-> --- a/drivers/of/fdt.c
-> +++ b/drivers/of/fdt.c
-> @@ -922,8 +922,16 @@ void __init unflatten_device_tree(void)
->   */
->  void __init unflatten_and_copy_device_tree(void)
->  {
-> -	int size = __be32_to_cpu(initial_boot_params->totalsize);
-> -	void *dt = early_init_dt_alloc_memory_arch(size,
-> +	int size;
-> +	void *dt;
-> +
-> +	if (!initial_boot_params) {
-> +		pr_warn("No valid device tree found, continuing without\n");
-> +		return;
-> +	}
-> +
-> +	size = __be32_to_cpu(initial_boot_params->totalsize);
-> +	dt = early_init_dt_alloc_memory_arch(size,
->  		__alignof__(struct boot_param_header));
->  
->  	if (dt) {
+> Multiple dtb blobs are currently handled in platform-specific code, which
+> passes the right dtb to early_init_dt_scan().
+
+The problem is that it makes the default dt completely random because
+the generic code still deferrences __dtb_start.
+
+> > thinking about one, but it is entirely possible for device drivers to
+> > have a dtb linked in which may break this if it gets linked in a
+> > different order. The specific example I'm thinking about is I want to
+> > have the DT selftest code load an overlay to get testcase data from a
+> > dtb blob.
+> >
+> > The other concern I have here is that I don't really want this to be the
+> > default on a lot of platforms. ARM and PowerPC for instance should only
+> > get the default dtb from the boot wrapper. It needs to be configurable
+> > in some way.
 > 
+> On ARM and PowerPC, the section is empty, hence &__dbt_start ==
+> &__dtb_end.
+
+There is no guarantee that that will always be so. The patch makes some
+poor assumtions, but they shouldn't be difficult to fix.
+
+g.
