@@ -1,73 +1,75 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch 4/6] ia64: Use preempt_schedule_irq
-Date: Thu, 21 Nov 2013 12:41:44 +0100 (CET)
-Message-ID: <alpine.DEB.2.02.1311211230030.30673@ionos.tec.linutronix.de>
-References: <20130917082838.218329307@infradead.org> <20130917182350.449685712@linutronix.de> <20130917183628.857145384@linutronix.de> <CA+8MBbKq1idWt1OSpRM3mWMDAQaEoewrU=h=m_pFoidVy6OA-Q@mail.gmail.com>
- <alpine.DEB.2.02.1311202121340.30673@ionos.tec.linutronix.de>
-Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:38781 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754155Ab3KULlt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Nov 2013 06:41:49 -0500
-In-Reply-To: <alpine.DEB.2.02.1311202121340.30673@ionos.tec.linutronix.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Tony Luck <tony.luck@gmail.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Fenghua Yu <fenghua.yu@intel.com>
+From: Grant Likely <grant.likely@secretlab.ca>
+Subject: Re: [PATCH 1/9] dt: Handle passed/built-in DT selection in early_init_dt_scan()
+Date: Thu, 21 Nov 2013 12:21:48 +0000
+Message-ID: <20131121122148.1B43DC40A2C@trevor.secretlab.ca>
+References: <5283A000.8090007@gmail.com> < 1384859554-27268-1-git-send-email-geert@linux-m68k.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1384859554-27268-1-git-send-email-geert@linux-m68k.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Rob Herring <rob.herring@calxeda.com>
+Cc: devicetree@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, 20 Nov 2013, Thomas Gleixner wrote:
-> On Wed, 20 Nov 2013, Tony Luck wrote:
-> > asmlinkage void __sched preempt_schedule_irq(void)
-> > {
-> >            schedule();
-> > }
-> > 
-> > Or is life more complicated than that?
+On Tue, 19 Nov 2013 12:12:26 +0100, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+> Let early_init_dt_scan() fall-back to the built-in DT if no DT was passed,
+> or if it's invalid, so architectures don't have to duplicate this logic.
 > 
-> Hmm, I think I fubared that and you decided to ignore my patch :) 
+> Suggested-by: Rob Herring <rob.herring@calxeda.com>
+> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> ---
+>  drivers/of/fdt.c       |   24 +++++++++++++++++-------
+>  include/linux/of_fdt.h |    1 +
+>  2 files changed, 18 insertions(+), 7 deletions(-)
 > 
-> Let me look at it tomorrow morning with full awake brain cells.
+> diff --git a/drivers/of/fdt.c b/drivers/of/fdt.c
+> index 2fa024b97c43..a797cd43bc8b 100644
+> --- a/drivers/of/fdt.c
+> +++ b/drivers/of/fdt.c
+> @@ -868,18 +868,28 @@ void * __init __weak early_init_dt_alloc_memory_arch(u64 size, u64 align)
+>  
+>  bool __init early_init_dt_scan(void *params)
+>  {
+> -	if (!params)
+> -		return false;
+> -
+>  	/* Setup flat device-tree pointer */
+>  	initial_boot_params = params;
+>  
+> -	/* check device tree validity */
+> -	if (be32_to_cpu(initial_boot_params->magic) != OF_DT_HEADER) {
+> -		initial_boot_params = NULL;
+> -		return false;
+> +	/* check passed device tree validity */
+> +	if (initial_boot_params &&
+> +	    be32_to_cpu(initial_boot_params->magic) == OF_DT_HEADER) {
+> +		pr_info("FDT at %p\n", initial_boot_params);
+> +		goto found;
+> +	}
+> +
+> +	/* check built-in device tree validity */
+> +	initial_boot_params = &__dtb_start;
+> +	if (__dtb_end != (void *)&__dtb_start &&
+> +	    be32_to_cpu(initial_boot_params->magic) == OF_DT_HEADER) {
+> +		pr_info("Compiled-in FDT at %p\n", initial_boot_params);
+> +		goto found;
 
-Ok, wrapped my brain around it. I tripped over the magic asm foo which
-has a single need_resched check and schedule point for both sys call
-return and interrupt return.
+__dtb_start is in an init section which is discarded after initcalls.
+For this to work, the dtb needs to be copied into a region of allocated
+memory. The dtb section can also potentially contain multiple .dtb
+blobs. In the use case that you care about you are probably only
+thinking about one, but it is entirely possible for device drivers to
+have a dtb linked in which may break this if it gets linked in a
+different order. The specific example I'm thinking about is I want to
+have the DT selftest code load an overlay to get testcase data from a
+dtb blob.
 
-So you need the schedule_preempt_irq() for kernel preemption from
-interrupt return while on a normal syscall preemption a schedule would
-be sufficient. But using schedule_preempt_irq() is not harmful here in
-any way. It just sets the preempt_active bit also in cases where it
-would not be required. 
+The other concern I have here is that I don't really want this to be the
+default on a lot of platforms. ARM and PowerPC for instance should only
+get the default dtb from the boot wrapper. It needs to be configurable
+in some way.
 
-Even on preempt=n kernels adding the preempt_active bit is completely
-harmless. So instead of having an extra function, moving the existing
-one out of the ifdef PREEMPT looks like the sanest thing to do.
+Instead of using __dtb_start, it would probably solve both of the above
+problems if the build-in DTB has a specific label identifying it as the
+default DT.
 
-Peter, Ingo ?
-
-Thanks,
-
-	tglx
-------
-diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index c180860..0c59642 100644
---- a/kernel/sched/core.c
-+++ b/kernel/sched/core.c
-@@ -2660,6 +2660,7 @@ asmlinkage void __sched notrace preempt_schedule(void)
- 	} while (need_resched());
- }
- EXPORT_SYMBOL(preempt_schedule);
-+#endif /* CONFIG_PREEMPT */
- 
- /*
-  * this is the entry point to schedule() from kernel preemption
-@@ -2693,8 +2694,6 @@ asmlinkage void __sched preempt_schedule_irq(void)
- 	exception_exit(prev_state);
- }
- 
--#endif /* CONFIG_PREEMPT */
--
- int default_wake_function(wait_queue_t *curr, unsigned mode, int wake_flags,
- 			  void *key)
- {
+g.
