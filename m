@@ -1,7 +1,7 @@
-From: Will Deacon <will.deacon@arm.com>
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
-Date: Thu, 21 Nov 2013 10:17:36 +0000
-Message-ID: <20131121101736.GA13067@mudshark.cambridge.arm.com>
+Date: Thu, 21 Nov 2013 11:45:03 +0100
+Message-ID: <20131121104503.GB10022@twins.programming.kicks-ass.net>
 References: <1384911463.11046.454.camel@schen9-DESK>
  <20131120153123.GF4138@linux.vnet.ibm.com>
  <20131120154643.GG19352@mudshark.cambridge.arm.com>
@@ -19,27 +19,17 @@ Content-Disposition: inline
 In-Reply-To: <20131121045333.GO4138@linux.vnet.ibm.com>
 Sender: owner-linux-mm@kvack.org
 To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@hori>
+Cc: Tim Chen <tim.c.chen@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zyto>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Nov 21, 2013 at 04:53:33AM +0000, Paul E. McKenney wrote:
-> On Wed, Nov 20, 2013 at 03:51:54PM -0800, Tim Chen wrote:
-> > If we intend to use smp_load_acquire and smp_store_release extensively
-> > for locks, making RCsc semantics the default will simply things a lot.
-> 
+On Wed, Nov 20, 2013 at 08:53:33PM -0800, Paul E. McKenney wrote:
 > The other option is to weaken lock semantics so that unlock-lock no
 > longer implies a full barrier, but I believe that we would regret taking
 > that path.  (It would be OK by me, I would just add a few smp_mb()
 > calls on various slowpaths in RCU.  But...)
 
-Unsurprisingly, my vote is for RCsc semantics.
-
-One major advantage (in my opinion) of the acquire/release accessors is that
-they feel intuitive in an area where intuition is hardly rife. I believe
-that the additional reordering permitted by RCpc detracts from the relative
-simplicity of what is currently being proposed.
-
-Will
+Please no, I know we rely on it in a number of places, I just can't
+remember where all those were :/
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
