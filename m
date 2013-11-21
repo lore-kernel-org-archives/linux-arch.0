@@ -1,48 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bk0-f42.google.com ([209.85.214.42]:41587 "EHLO
+Received: from mail-bk0-f42.google.com ([209.85.214.42]:44630 "EHLO
 	mail-bk0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754494Ab3KULaK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Nov 2013 06:30:10 -0500
-Date: Thu, 21 Nov 2013 12:30:06 +0100
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH -tip v3 18/23] x86/dumpstack: Use NOKPROBE_SYMBOL macro
- in dumpstack.c
-Message-ID: <20131121113006.GA27659@gmail.com>
-References: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal>
- <20131120042233.15296.31189.stgit@kbuild-fedora.novalocal>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20131120042233.15296.31189.stgit@kbuild-fedora.novalocal>
+	with ESMTP id S1754342Ab3KUMVx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Nov 2013 07:21:53 -0500
+Received: by mail-bk0-f42.google.com with SMTP id w11so283913bkz.29
+        for <linux-arch@vger.kernel.org>; Thu, 21 Nov 2013 04:21:52 -0800 (PST)
+From: Grant Likely <grant.likely@secretlab.ca>
+Subject: Re: [PATCH 1/9] dt: Handle passed/built-in DT selection in early_init_dt_scan()
+In-Reply-To: <1384859554-27268-1-git-send-email-geert@linux-m68k.org>
+References: <5283A000.8090007@gmail.com> < 1384859554-27268-1-git-send-email-geert@linux-m68k.org>
+Date: Thu, 21 Nov 2013 12:21:48 +0000
+Message-ID: <20131121122148.1B43DC40A2C@trevor.secretlab.ca>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, Vineet Gupta <vgupta@synopsys.com>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, systemtap@sourceware.org, "H. Peter Anvin" <hpa@zytor.com>, Tejun Heo <tj@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jiri Slaby <jslaby@suse.cz>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20131121113006.OmHsaC8CpvFClpQ04e1UApG3_CNeQFPzDPbJq8xS61k@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <rob.herring@calxeda.com>
+Cc: devicetree@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20131121122148.mgVlAjF6Q4bMYwqksF_XUhiVejAIh9l6sEIwo_1xlYc@z>
 
-
-* Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com> wrote:
-
-> Use NOKPROBE_SYMBOL macro for protecting functions
-> from kprobes instead of __kprobes annotation in
-> dumpstack.c.
+On Tue, 19 Nov 2013 12:12:26 +0100, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+> Let early_init_dt_scan() fall-back to the built-in DT if no DT was passed,
+> or if it's invalid, so architectures don't have to duplicate this logic.
 > 
-> Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: "H. Peter Anvin" <hpa@zytor.com>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Jiri Slaby <jslaby@suse.cz>
-> Cc: Tejun Heo <tj@kernel.org>
-> Cc: Vineet Gupta <vgupta@synopsys.com>
+> Suggested-by: Rob Herring <rob.herring@calxeda.com>
+> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
 > ---
->  arch/x86/kernel/dumpstack.c |    9 ++++++---
->  1 file changed, 6 insertions(+), 3 deletions(-)
+>  drivers/of/fdt.c       |   24 +++++++++++++++++-------
+>  include/linux/of_fdt.h |    1 +
+>  2 files changed, 18 insertions(+), 7 deletions(-)
+> 
+> diff --git a/drivers/of/fdt.c b/drivers/of/fdt.c
+> index 2fa024b97c43..a797cd43bc8b 100644
+> --- a/drivers/of/fdt.c
+> +++ b/drivers/of/fdt.c
+> @@ -868,18 +868,28 @@ void * __init __weak early_init_dt_alloc_memory_arch(u64 size, u64 align)
+>  
+>  bool __init early_init_dt_scan(void *params)
+>  {
+> -	if (!params)
+> -		return false;
+> -
+>  	/* Setup flat device-tree pointer */
+>  	initial_boot_params = params;
+>  
+> -	/* check device tree validity */
+> -	if (be32_to_cpu(initial_boot_params->magic) != OF_DT_HEADER) {
+> -		initial_boot_params = NULL;
+> -		return false;
+> +	/* check passed device tree validity */
+> +	if (initial_boot_params &&
+> +	    be32_to_cpu(initial_boot_params->magic) == OF_DT_HEADER) {
+> +		pr_info("FDT at %p\n", initial_boot_params);
+> +		goto found;
+> +	}
+> +
+> +	/* check built-in device tree validity */
+> +	initial_boot_params = &__dtb_start;
+> +	if (__dtb_end != (void *)&__dtb_start &&
+> +	    be32_to_cpu(initial_boot_params->magic) == OF_DT_HEADER) {
+> +		pr_info("Compiled-in FDT at %p\n", initial_boot_params);
+> +		goto found;
 
-Btw., all these mechanic changes of the __kprobes annotation can be 
-merged into a single patch. That will cut down on the size of the 
-series substantially.
+__dtb_start is in an init section which is discarded after initcalls.
+For this to work, the dtb needs to be copied into a region of allocated
+memory. The dtb section can also potentially contain multiple .dtb
+blobs. In the use case that you care about you are probably only
+thinking about one, but it is entirely possible for device drivers to
+have a dtb linked in which may break this if it gets linked in a
+different order. The specific example I'm thinking about is I want to
+have the DT selftest code load an overlay to get testcase data from a
+dtb blob.
 
-Thanks,
+The other concern I have here is that I don't really want this to be the
+default on a lot of platforms. ARM and PowerPC for instance should only
+get the default dtb from the boot wrapper. It needs to be configurable
+in some way.
 
-	Ingo
+Instead of using __dtb_start, it would probably solve both of the above
+problems if the build-in DTB has a specific label identifying it as the
+default DT.
+
+g.
+
