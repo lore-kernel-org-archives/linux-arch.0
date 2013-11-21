@@ -1,71 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:39401 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750976Ab3KUNaR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Nov 2013 08:30:17 -0500
-Date: Thu, 21 Nov 2013 14:30:13 +0100 (CET)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch 4/6] ia64: Use preempt_schedule_irq
-In-Reply-To: <20131121130605.GE10022@twins.programming.kicks-ass.net>
-Message-ID: <alpine.DEB.2.02.1311211428450.30673@ionos.tec.linutronix.de>
-References: <20130917082838.218329307@infradead.org> <20130917182350.449685712@linutronix.de> <20130917183628.857145384@linutronix.de> <CA+8MBbKq1idWt1OSpRM3mWMDAQaEoewrU=h=m_pFoidVy6OA-Q@mail.gmail.com> <alpine.DEB.2.02.1311202121340.30673@ionos.tec.linutronix.de>
- <alpine.DEB.2.02.1311211230030.30673@ionos.tec.linutronix.de> <20131121130605.GE10022@twins.programming.kicks-ass.net>
+Received: from mail-pb0-f42.google.com ([209.85.160.42]:46028 "EHLO
+	mail-pb0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754986Ab3KUNm2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Nov 2013 08:42:28 -0500
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+In-Reply-To: <20131121122148.1B43DC40A2C@trevor.secretlab.ca>
+References: <5283A000.8090007@gmail.com>
+	<1384859554-27268-1-git-send-email-geert@linux-m68k.org>
+	<20131121122148.1B43DC40A2C@trevor.secretlab.ca>
+Date: Thu, 21 Nov 2013 14:42:27 +0100
+Message-ID: <CAMuHMdXfsB_Ewz9sUPZaAjFaQGTGeqMiD8mJ0tCoH1uFLYGoxw@mail.gmail.com>
+Subject: Re: [PATCH 1/9] dt: Handle passed/built-in DT selection in early_init_dt_scan()
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Tony Luck <tony.luck@gmail.com>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Fenghua Yu <fenghua.yu@intel.com>
-Message-ID: <20131121133013.TWFZw1atnmmeki2hLtN4RM932ksWYYNISwyUPd912Ao@z>
+To: Grant Likely <grant.likely@secretlab.ca>
+Cc: Rob Herring <rob.herring@calxeda.com>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20131121134227.vf2FixBXz1p9h4asjLdiHG-a6KhG5uNXtBi3INwDvY8@z>
 
-On Thu, 21 Nov 2013, Peter Zijlstra wrote:
+On Thu, Nov 21, 2013 at 1:21 PM, Grant Likely <grant.likely@secretlab.ca> wrote:
+>>  bool __init early_init_dt_scan(void *params)
+>>  {
+>> -     if (!params)
+>> -             return false;
+>> -
+>>       /* Setup flat device-tree pointer */
+>>       initial_boot_params = params;
+>>
+>> -     /* check device tree validity */
+>> -     if (be32_to_cpu(initial_boot_params->magic) != OF_DT_HEADER) {
+>> -             initial_boot_params = NULL;
+>> -             return false;
+>> +     /* check passed device tree validity */
+>> +     if (initial_boot_params &&
+>> +         be32_to_cpu(initial_boot_params->magic) == OF_DT_HEADER) {
+>> +             pr_info("FDT at %p\n", initial_boot_params);
+>> +             goto found;
+>> +     }
+>> +
+>> +     /* check built-in device tree validity */
+>> +     initial_boot_params = &__dtb_start;
+>> +     if (__dtb_end != (void *)&__dtb_start &&
+>> +         be32_to_cpu(initial_boot_params->magic) == OF_DT_HEADER) {
+>> +             pr_info("Compiled-in FDT at %p\n", initial_boot_params);
+>> +             goto found;
+>
+> __dtb_start is in an init section which is discarded after initcalls.
+> For this to work, the dtb needs to be copied into a region of allocated
 
-> On Thu, Nov 21, 2013 at 12:41:44PM +0100, Thomas Gleixner wrote:
-> > On Wed, 20 Nov 2013, Thomas Gleixner wrote:
-> > > On Wed, 20 Nov 2013, Tony Luck wrote:
-> > > > asmlinkage void __sched preempt_schedule_irq(void)
-> > > > {
-> > > >            schedule();
-> > > > }
-> > > > 
-> > > > Or is life more complicated than that?
-> > > 
-> > > Hmm, I think I fubared that and you decided to ignore my patch :) 
-> > > 
-> > > Let me look at it tomorrow morning with full awake brain cells.
-> > 
-> > Ok, wrapped my brain around it. I tripped over the magic asm foo which
-> > has a single need_resched check and schedule point for both sys call
-> > return and interrupt return.
-> > 
-> > So you need the schedule_preempt_irq() for kernel preemption from
-> > interrupt return while on a normal syscall preemption a schedule would
-> > be sufficient. But using schedule_preempt_irq() is not harmful here in
-> > any way. It just sets the preempt_active bit also in cases where it
-> > would not be required. 
-> > 
-> > Even on preempt=n kernels adding the preempt_active bit is completely
-> > harmless. So instead of having an extra function, moving the existing
-> > one out of the ifdef PREEMPT looks like the sanest thing to do.
-> > 
-> > Peter, Ingo ?
-> 
-> Uhm, preempt_schedule_irq() assumes interrupts are disabled and
-> explicitly returns with interrupts disabled again. Does the ia64
-> callsite conform?
+My changes don't change the current behavior much: currently
+early_init_dt_scan() is already called with &__dtb_start in several places.
+If this is broken, it's already broken.
 
-Yep.
- 
-> If so, schedule() would actually be actively wrong, because that will
-> whinge when called with interrupts disabled, and will return with
-> interrupts enabled.
-> 
-> Anyway, I don't object to the patch per se, but it might bloat a few
-> !ia64 kernels for having to carry the extra text.
- 
-Well, we could get rid of quite some other sti/schedule/cli asm magic
-all over the archs.
+> memory. The dtb section can also potentially contain multiple .dtb
+> blobs. In the use case that you care about you are probably only
 
-Thanks,
+Multiple dtb blobs are currently handled in platform-specific code, which
+passes the right dtb to early_init_dt_scan().
 
-	tglx
+> thinking about one, but it is entirely possible for device drivers to
+> have a dtb linked in which may break this if it gets linked in a
+> different order. The specific example I'm thinking about is I want to
+> have the DT selftest code load an overlay to get testcase data from a
+> dtb blob.
+>
+> The other concern I have here is that I don't really want this to be the
+> default on a lot of platforms. ARM and PowerPC for instance should only
+> get the default dtb from the boot wrapper. It needs to be configurable
+> in some way.
+
+On ARM and PowerPC, the section is empty, hence &__dbt_start ==
+&__dtb_end.
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
