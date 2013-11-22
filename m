@@ -1,77 +1,50 @@
-From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v7 2/4] qrwlock x86: Enable x86 to use queue read/write lock
-Date: Fri, 22 Nov 2013 14:04:45 -0500
-Message-ID: <1385147087-26588-3-git-send-email-Waiman.Long@hp.com>
-References: <1385147087-26588-1-git-send-email-Waiman.Long@hp.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1385147087-26588-1-git-send-email-Waiman.Long@hp.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Aswin Chandramouleeswaran\"" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Waiman Long <Waiman.Long@hp.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
+Date: Fri, 22 Nov 2013 11:06:41 -0800
+Message-ID: <CA+55aFyKKpf-i4pQ_dhy9gic74xtCbO+U8GXU6mCtQj1ZHy05A@mail.gmail.com>
+References: <20131120214402.GM4138@linux.vnet.ibm.com>
+	<1384991514.11046.504.camel@schen9-DESK>
+	<20131121045333.GO4138@linux.vnet.ibm.com>
+	<CA+55aFyXzDUss55SjQBy+C-neRZbVsmVRR4aat+wiWfuSQJxaQ@mail.gmail.com>
+	<20131121225208.GJ4138@linux.vnet.ibm.com>
+	<CA+55aFx3FSGAtdSTYmsZ8xtdpiSBM-XPSnxnMpRQY+S_v_72-g@mail.gmail.com>
+	<20131122040856.GK4138@linux.vnet.ibm.com>
+	<CA+55aFxSL96G_uuPSbJaXfGh7DpYZ1g0NcVfPKOFg1O0o0fyZg@mail.gmail.com>
+	<20131122062314.GN4138@linux.vnet.ibm.com>
+	<20131122151600.GA14988@gmail.com>
+	<20131122184937.GX4138@linux.vnet.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20131122184937.GX4138@linux.vnet.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: Paul McKenney <paulmck@linux.vnet.ibm.com>
+Cc: Ingo Molnar <mingo@kernel.org>, Tim Chen <tim.c.chen@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>
 List-Id: linux-arch.vger.kernel.org
 
-This patch makes the necessary changes at the x86 architecture specific
-layer to enable the presence of the CONFIG_QUEUE_RWLOCK kernel option
-to replace the read/write lock by the queue read/write lock.
+On Fri, Nov 22, 2013 at 10:49 AM, Paul E. McKenney
+<paulmck@linux.vnet.ibm.com> wrote:
+>
+> You see, my problem is not the "crazy ordering" DEC Alpha, Itanium,
+> PowerPC, or even ARM.  It is really obvious what instructions to use in
+> a stiffened-up smp_store_release() for those guys: "mb" for DEC Alpha,
+> "st.rel" for Itanium, "sync" for PowerPC, and "dmb" for ARM.  Believe it
+> or not, my problem is instead with good old tightly ordered x86.
+>
+> We -could- just put an mfence into x86's smp_store_release() and
+> be done with it
 
-It also enables the CONFIG_QUEUE_RWLOCK option by default for x86 which
-will force the use of queue read/write lock. That will greatly improve
-the fairness of read/write lock and eliminate live-lock situation
-where one task may not get the lock for an indefinite period of time.
+Why would you bother? The *acquire* has a memory barrier. End of
+story. On x86, it has to (since otherwise a load inside the locked
+region could be re-ordered wrt the write that takes the lock).
 
-Signed-off-by: Waiman Long <Waiman.Long@hp.com>
----
- arch/x86/Kconfig                      |    1 +
- arch/x86/include/asm/spinlock.h       |    2 ++
- arch/x86/include/asm/spinlock_types.h |    4 ++++
- 3 files changed, 7 insertions(+), 0 deletions(-)
+Basically, any time you think you need to add a memory barrier on x86,
+you should go "I'm doing something wrong". It's that simple.
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index e903c71..c4a9c54 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -124,6 +124,7 @@ config X86
- 	select RTC_LIB
- 	select HAVE_DEBUG_STACKOVERFLOW
- 	select HAVE_IRQ_EXIT_ON_IRQ_STACK if X86_64
-+	select QUEUE_RWLOCK
- 
- config INSTRUCTION_DECODER
- 	def_bool y
-diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
-index bf156de..8fb88c5 100644
---- a/arch/x86/include/asm/spinlock.h
-+++ b/arch/x86/include/asm/spinlock.h
-@@ -188,6 +188,7 @@ static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
- 		cpu_relax();
- }
- 
-+#ifndef CONFIG_QUEUE_RWLOCK
- /*
-  * Read-write spinlocks, allowing multiple readers
-  * but only one writer.
-@@ -270,6 +271,7 @@ static inline void arch_write_unlock(arch_rwlock_t *rw)
- 	asm volatile(LOCK_PREFIX WRITE_LOCK_ADD(%1) "%0"
- 		     : "+m" (rw->write) : "i" (RW_LOCK_BIAS) : "memory");
- }
-+#endif /* CONFIG_QUEUE_RWLOCK */
- 
- #define arch_read_lock_flags(lock, flags) arch_read_lock(lock)
- #define arch_write_lock_flags(lock, flags) arch_write_lock(lock)
-diff --git a/arch/x86/include/asm/spinlock_types.h b/arch/x86/include/asm/spinlock_types.h
-index 4f1bea1..a585635 100644
---- a/arch/x86/include/asm/spinlock_types.h
-+++ b/arch/x86/include/asm/spinlock_types.h
-@@ -34,6 +34,10 @@ typedef struct arch_spinlock {
- 
- #define __ARCH_SPIN_LOCK_UNLOCKED	{ { 0 } }
- 
-+#ifdef CONFIG_QUEUE_RWLOCK
-+#include <asm-generic/qrwlock.h>
-+#else
- #include <asm/rwlock.h>
-+#endif
- 
- #endif /* _ASM_X86_SPINLOCK_TYPES_H */
--- 
-1.7.1
+                  Linus
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
