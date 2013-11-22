@@ -1,50 +1,51 @@
 From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
-Date: Fri, 22 Nov 2013 11:06:41 -0800
-Message-ID: <CA+55aFyKKpf-i4pQ_dhy9gic74xtCbO+U8GXU6mCtQj1ZHy05A@mail.gmail.com>
-References: <20131120214402.GM4138@linux.vnet.ibm.com>
-	<1384991514.11046.504.camel@schen9-DESK>
-	<20131121045333.GO4138@linux.vnet.ibm.com>
-	<CA+55aFyXzDUss55SjQBy+C-neRZbVsmVRR4aat+wiWfuSQJxaQ@mail.gmail.com>
-	<20131121225208.GJ4138@linux.vnet.ibm.com>
-	<CA+55aFx3FSGAtdSTYmsZ8xtdpiSBM-XPSnxnMpRQY+S_v_72-g@mail.gmail.com>
-	<20131122040856.GK4138@linux.vnet.ibm.com>
-	<CA+55aFxSL96G_uuPSbJaXfGh7DpYZ1g0NcVfPKOFg1O0o0fyZg@mail.gmail.com>
-	<20131122062314.GN4138@linux.vnet.ibm.com>
-	<20131122151600.GA14988@gmail.com>
-	<20131122184937.GX4138@linux.vnet.ibm.com>
+Subject: Re: [PATCH v7 1/4] qrwlock: A queue read/write lock implementation
+Date: Fri, 22 Nov 2013 11:14:15 -0800
+Message-ID: <CA+55aFzkqP84M7L6j__QHuks7DXTQnGqdCo3=a=u7qKdER9rEQ@mail.gmail.com>
+References: <1385147087-26588-1-git-send-email-Waiman.Long@hp.com>
+	<1385147087-26588-2-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20131122184937.GX4138@linux.vnet.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: Paul McKenney <paulmck@linux.vnet.ibm.com>
-Cc: Ingo Molnar <mingo@kernel.org>, Tim Chen <tim.c.chen@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ve0-f179.google.com ([209.85.128.179]:52813 "EHLO
+	mail-ve0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755521Ab3KVTOQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Nov 2013 14:14:16 -0500
+In-Reply-To: <1385147087-26588-2-git-send-email-Waiman.Long@hp.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Waiman Long <Waiman.Long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>
 
-On Fri, Nov 22, 2013 at 10:49 AM, Paul E. McKenney
-<paulmck@linux.vnet.ibm.com> wrote:
+On Fri, Nov 22, 2013 at 11:04 AM, Waiman Long <Waiman.Long@hp.com> wrote:
 >
-> You see, my problem is not the "crazy ordering" DEC Alpha, Itanium,
-> PowerPC, or even ARM.  It is really obvious what instructions to use in
-> a stiffened-up smp_store_release() for those guys: "mb" for DEC Alpha,
-> "st.rel" for Itanium, "sync" for PowerPC, and "dmb" for ARM.  Believe it
-> or not, my problem is instead with good old tightly ordered x86.
+> In term of single-thread performance (no contention), a 256K
+> lock/unlock loop was run on a 2.4GHz and 2.93Ghz Westmere x86-64
+> CPUs. The following table shows the average time (in ns) for a single
+> lock/unlock sequence (including the looping and timing overhead):
 >
-> We -could- just put an mfence into x86's smp_store_release() and
-> be done with it
+> Lock Type                   2.4GHz      2.93GHz
+> ---------                   ------      -------
+> Ticket spinlock              14.9        12.3
+> Read lock                    17.0        13.5
+> Write lock                   17.0        13.5
+> Queue read lock              16.0        13.4
+> Queue write lock              9.2         7.8
 
-Why would you bother? The *acquire* has a memory barrier. End of
-story. On x86, it has to (since otherwise a load inside the locked
-region could be re-ordered wrt the write that takes the lock).
+Can you verify for me that you re-did those numbers? Because it used
+to be that the fair queue write lock was slower than the numbers you
+now quote..
 
-Basically, any time you think you need to add a memory barrier on x86,
-you should go "I'm doing something wrong". It's that simple.
+Was the cost of the fair queue write lock purely in the extra
+conditional testing for whether the lock was supposed to be fair or
+not, and now that you dropped that, it's fast? If so, then that's an
+extra argument for the old conditional fair/unfair being complete
+garbage.
 
-                  Linus
+Alternatively, maybe you just took the old timings, and the above
+numbers are for the old unfair code, and *not* for the actual patch
+you sent out?
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+So please double-check and verify.
+
+              Linus
