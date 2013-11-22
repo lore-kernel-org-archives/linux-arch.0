@@ -1,74 +1,80 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
-Date: Thu, 21 Nov 2013 22:23:14 -0800
-Message-ID: <20131122062314.GN4138@linux.vnet.ibm.com>
-References: <20131120190616.GL4138@linux.vnet.ibm.com>
- <1384979767.11046.489.camel@schen9-DESK>
- <20131120214402.GM4138@linux.vnet.ibm.com>
- <1384991514.11046.504.camel@schen9-DESK>
- <20131121045333.GO4138@linux.vnet.ibm.com>
- <CA+55aFyXzDUss55SjQBy+C-neRZbVsmVRR4aat+wiWfuSQJxaQ@mail.gmail.com>
- <20131121225208.GJ4138@linux.vnet.ibm.com>
- <CA+55aFx3FSGAtdSTYmsZ8xtdpiSBM-XPSnxnMpRQY+S_v_72-g@mail.gmail.com>
- <20131122040856.GK4138@linux.vnet.ibm.com>
- <CA+55aFxSL96G_uuPSbJaXfGh7DpYZ1g0NcVfPKOFg1O0o0fyZg@mail.gmail.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+Subject: Re: Re: Re: [PATCH -tip v3 00/23] kprobes: introduce NOKPROBE_SYMBOL()
+ and general cleaning of kprobe blacklist
+Date: Fri, 22 Nov 2013 20:46:14 +0900
+Message-ID: <528F4406.3090309@hitachi.com>
+References: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal> <y0mvbznxi6k.fsf@fche.csb> <20131120153801.GA9743@gmail.com> <20131120173600.GK8993@redhat.com> <528D6C9F.8050809@hitachi.com> <20131121072938.GA16912@gmail.com> <528EC2FF.30301@hitachi.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <CA+55aFxSL96G_uuPSbJaXfGh7DpYZ1g0NcVfPKOFg1O0o0fyZg@mail.gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Tim Chen <tim.c.chen@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail7.hitachi.co.jp ([133.145.228.42]:47705 "EHLO
+	mail7.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752565Ab3KVLqU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Nov 2013 06:46:20 -0500
+In-Reply-To: <528EC2FF.30301@hitachi.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: "Frank Ch. Eigler" <fche@redhat.com>, linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
 
-On Thu, Nov 21, 2013 at 08:25:59PM -0800, Linus Torvalds wrote:
-> On Thu, Nov 21, 2013 at 8:08 PM, Paul E. McKenney
-> <paulmck@linux.vnet.ibm.com> wrote:
-> >
-> > It is not the architecture that matters here, it is just a definition of
-> > what ordering guarantees the locking primitives provide, independent of
-> > the architecture.
+(2013/11/22 11:35), Masami Hiramatsu wrote:
+> (2013/11/21 16:29), Ingo Molnar wrote:
+>>
+>> * Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com> wrote:
+>>
+>>> (2013/11/21 2:36), Frank Ch. Eigler wrote:
+>>
+>> [ ... ]
+>>>> one needs to resort to something like:
+>>>>
+>>>> # cat /proc/kallsyms | grep ' [tT] ' | while read addr type symbol; do
+>>>>    perf probe $symbol
+>>>> done
+>>>>
+>>>> then wait for a few hours for that to finish. Then, or while the loop
+>>>> is still running, run
+>>>>
+>>>> # perf record -e 'probe:*' -aR sleep 1
+>>>>
+>>>> to take a kernel down.
+>>>
+>>> Um, indeed, current blacklist is not perfect. [...]
+>>
+>> Then it needs to be fixed ASAP!
 > 
-> So we definitely come from very different backgrounds.
+> OK, I see. At least the two patches included this series
+> should be fixed. :)
+> 
+> And more, I need to test all symbols and drills down.
 
-Agreed, and I am pretty sure we are talking past each other.
+OK, what I've found was;
+ - The functions which can be ftraced look good.
+   (see tracing/available_filter_functions)
+ - following functions should not be able to be probed.
+   - memcpy, memset
+   - native_load_sp0 and some other native functions (need to be clear)
+   - restore
+   - trace_graph_return
+   - trace_hardirqs_off_thunk, trace_hardirqs_on_thunk
+   - This list still be not perfect. I just enabled/disabled kprobes
+     one by one. There might be combined bugs (combination of several
+     kprobes).
+ - Some of them are hard to specify by NOKPROBE_SYMBOL because they are
+   defined in assembly file.
 
-> I don't care one *whit* about theoretical lock orderings. Not a bit.
+Anyway, to fix all of them, I think we need file-based blacklist
+especially for assembler symbols.
 
-If by theoretical lock orderings, you mean whether or not unlock+lock
-acts as a full memory barrier, we really do have some code in the kernel
-that relies on this.  So we either need to have find and change this
-code or we need unlock+lock to continue to act as a full memory barrier.
-Making RCU stop relying on this is easy because all the code that assumes
-unlock+lock is a full barrier is on slow paths anyway.  Other subsystems
-might be in different situations.
+For example, we can get all text symbols by below command;
+ nm some-file.o | grep -i " t " | cut -f3 -d" "
+so that we can make a blacklisted-symbol list for the file.
+I need to look the Kbuild for how I can do that in Makefile.
 
-If you mean something else by theoretical lock orderings, I am sorry,
-but I am completely failing to see what it might be.
+Thank you,
 
-> I do care deeply about reality, particularly of architectures that
-> actually matter. To me, a spinlock in some theoretical case is
-> uninteresting, but a efficient spinlock implementation on a real
-> architecture is a big deal that matters a lot.
-
-Agreed, reality and efficiency are the prime concerns.  Theory serves
-reality and efficiency, but definitely not the other way around.
-
-But if we want locking primitives that don't rely solely on atomic
-instructions (such as the queued locks that people have been putting
-forward), we are going to need to wade through a fair bit of theory
-to make sure that they actually work on real hardware.  Subtle bugs in
-locking primitives is a type of reality that I think we can both agree
-that we should avoid.
-
-Or am I missing your point?
-
-							Thanx, Paul
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+-- 
+Masami HIRAMATSU
+IT Management Research Dept. Linux Technology Center
+Hitachi, Ltd., Yokohama Research Laboratory
+E-mail: masami.hiramatsu.pt@hitachi.com
