@@ -1,135 +1,175 @@
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [RFC] Control dependencies
-Date: Fri, 22 Nov 2013 10:16:17 -0800
-Message-ID: <20131122181617.GV4138@linux.vnet.ibm.com>
-References: <20131121161733.GH10022@twins.programming.kicks-ass.net>
- <20131121180237.GX4138@linux.vnet.ibm.com>
- <20131122134630.GQ3866@twins.programming.kicks-ass.net>
+Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
+Date: Fri, 22 Nov 2013 10:26:32 -0800
+Message-ID: <20131122182632.GW4138@linux.vnet.ibm.com>
+References: <20131120153123.GF4138@linux.vnet.ibm.com>
+ <20131120154643.GG19352@mudshark.cambridge.arm.com>
+ <20131120171400.GI4138@linux.vnet.ibm.com>
+ <20131121110308.GC10022@twins.programming.kicks-ass.net>
+ <20131121125616.GI3694@twins.programming.kicks-ass.net>
+ <20131121132041.GS4138@linux.vnet.ibm.com>
+ <20131121172558.GA27927@linux.vnet.ibm.com>
+ <20131121215249.GZ16796@laptop.programming.kicks-ass.net>
+ <20131121221859.GH4138@linux.vnet.ibm.com>
+ <20131122155835.GR3866@twins.programming.kicks-ass.net>
 Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e35.co.us.ibm.com ([32.97.110.153]:44317 "EHLO
-	e35.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755526Ab3KVSQY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Nov 2013 13:16:24 -0500
-Received: from /spool/local
-	by e35.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Fri, 22 Nov 2013 11:16:24 -0700
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <20131122134630.GQ3866@twins.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+In-Reply-To: <20131122155835.GR3866@twins.programming.kicks-ass.net>
+Sender: owner-linux-mm@kvack.org
 To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott
+Cc: Will Deacon <will.deacon@arm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Nov 22, 2013 at 02:46:30PM +0100, Peter Zijlstra wrote:
-> On Thu, Nov 21, 2013 at 10:02:37AM -0800, Paul E. McKenney wrote:
-> > > --- a/kernel/events/ring_buffer.c
-> > > +++ b/kernel/events/ring_buffer.c
+On Fri, Nov 22, 2013 at 04:58:35PM +0100, Peter Zijlstra wrote:
+> On Thu, Nov 21, 2013 at 02:18:59PM -0800, Paul E. McKenney wrote:
+> > > > Let's apply the Intel manual to the earlier example:
+> > > >
+> > > >	CPU 0		CPU 1			CPU 2
+> > > >	-----		-----			-----
+> > > >	x = 1;		r1 = SLA(lock);		y = 1;
+> > > >	SSR(lock, 1);	r2 = y;			smp_mb();
+> > > >						r3 = x;
+> > > >
+> > > >	assert(!(r1 == 1 && r2 == 0 && r3 == 0));
+> > > >
+> > > > Let's try applying this to x86:
+> > > >
+> > > > o	Stores from a given processor are ordered, so everyone
+> > > >	agrees that CPU 0's store to x happens before the store-release
+> > > >	to lock.
+> > > >
+> > > > o	Reads from a given processor are ordered, so everyone agrees
+> > > >	that CPU 1's load from lock precedes its load from y.
+> > > >
+> > > > o	Because r1 == 1, we know that CPU 0's store to lock happened
+> > > >	before CPU 1's load from lock.
+> > > >
+> > > > o	Causality (AKA transitive visibility) means that everyone
+> > > >	agrees that CPU 0's store to x happens before CPU 1's load
+> > > >	from y.  (This is a crucial point, so it would be good to
+> > > >	have confirmation/debunking from someone who understands
+> > > >	the x86 architecture better than I do.)
+> > > >
+> > > > o	CPU 2's memory barrier prohibits CPU 2's store to y from
+> > > >	being reordered with its load from x.
+> > > >
+> > > > o	Because r2 == 0, we know that CPU 1's load from y happened
+> > > >	before CPU 2's store to y.
+> > > >
+> > > > o	At this point, it looks to me that (r1 == 1 && r2 == 0)
+> > > >	implies r3 == 1.
+> 
+> Agreed, and I now fully appreciate the transitive point. I can't say if
+> x86 does in fact do this, but I can agree that rules in the SDM support
+> your logic.
+
+OK, thank you for looking it over!
+
+> > > > Sewell's model plays out as follows:
+> 
+> I have problems with these rules, for instance:
+> 
+> > > > o	Rules 3 and 4 force CPU 0's writes to be seen in order.
+> 
+> Nothing in those rules state the store buffer is a strict FIFO, it might
+> be suggested by rule 4's use of 'oldest', but being a pendant the text
+> as given doesn't disallow store reordering in the store buffer.
+> 
+> Suppose an address a was written to two times, a store buffer might
+> simply update the entry for the first write with the new value. The
+> entry would still become oldest at some point and get flushed.
+> 
+> (Note the above is ambiguous in if the entry's time stamp is updated or
+> not -- also note that both cases violate TSO and therefore it doesn't
+> matter.)
+> 
+> That violates FIFO (and TSO) but not the definitions.
+> 
+> Similarly its not at all clear from rule 2 that reads are not
+> re-ordered.
+> 
+> So I'll ignore this section for now.
+> 
+> 
+> OK, so reading back a little he does describe the abstract machine and
+> does say the store buffer is FIFO, but what use are rules if you first
+> need more 'rules'.
+> 
+> Rules should be self supporting.
+
+Better than the older versions, but yes, could be better.  The key point
+is that if a store updates an existing store buffer, that buffer becomes
+the youngest.  It would be interesting to see what a continuous series
+of stores to the same variable from different CPUs did to the hardware.
+By this set of rules, the hardware would be within its rights to never
+propagate any of the stored values to memory.  ;-)
+
+> > > I _think_ so.. but its late. I'm also struggling to find where lwsync
+> > > goes bad in this story, because as you say lwsync does all except flush
+> > > the store buffer, which sounds like TSO.. but clearly is not quite the
+> > > same.
+> > > 
+> > > For one TSO has multi-copy atomicity, whereas ARM/PPC do not have this.
 > > 
-> > My patch does not cover this file.  Wouldn't hurt for them to be
-> > separate.
+> > At least PPC lwsync does not have multi-copy atomicity. 
 > 
-> Oh sure, but I wanted to present the RFC with at least one working
-> example to illustrate why I even bother and to aid in discussion.
+> Right, which is why it lacks transitivity.
 > 
-> > > @@ -62,18 +62,18 @@ static void perf_output_put_handle(struc
-> > >  	 *   kernel				user
-> > >  	 *
-> > >  	 *   READ ->data_tail			READ ->data_head
-> > > -	 *   smp_mb()	(A)			smp_rmb()	(C)
-> > > +	 *   barrier()	(A)			smp_rmb()	(C)
+> > The heavier sync
+> > instruction does.  Last I checked, ARM did not have a direct replacment
+> > for lwsync, though it does have something sort of like eieio.
 > > 
-> > We need a conditional for this to work.  I know that the required
-> > conditional is there in the code, but we need it explicitly in this
-> > example as well.
+> > But yes, we were trying to use lwsync for both smp_load_acquire() and
+> > smp_store_release(), which does not provide exactly the same guarantees
+> > that TSO does.  Though it does come close in many cases.
 > 
-> Agreed, I skimped on that because I didn't quite know how to write that
-> best.
+> Right, and this lack of transitivity is what kills it.
 
-Indeed, we still seem to be converging on that.
+I am thinking that Linus's email and Ingo's follow-on says that the
+powerpc version of smp_store_release() needs to be sync.  Though to
+be honest, it is x86 that has been causing me the most cognitive pain.
+And to be even more honest, I must confess that I still don't understand
+the nature of the complaint.  Ah well, that is the next email to
+reply to.  ;-)
 
-> How about the below version?
+The real source of my cognitive pain is that here we have a sequence of
+code that has neither atomic instructions or memory-barrier instructions,
+but it looks like it still manages to act as a full memory barrier.
+Still not quite sure I should trust it...
 
-Much better!  Might even be correct.  ;-)
+> > > The explanation of lwsync given in 3.3 of 'A Tutorial Introduction to
+> > > the ARM and POWER Relaxed Memory Models'
+> > > 
+> > >   http://www.cl.cam.ac.uk/~pes20/ppc-supplemental/test7.pdf
+> > > 
+> > > Leaves me slightly puzzled as to the exact differences between the 2 WW
+> > > variants.
+> > 
+> > The WW at the top of the page is discussing the ARM "dmb" instruction
+> > and the PPC "sync" instruction, both of which are full barriers, and
+> > both of which can therefore be thought of as flushing the store buffer.
+> > 
+> > In contrast, the WW at the bottom of the page is discussing the PPC
+> > lwsync instruction, which most definitely is not guaranteed to flush
+> > the write buffer.
+> 
+> Right, my complaint was that from the two definitions given the factual
+> difference in behaviour was not clear to me.
+> 
+> I knew that upgrading the SSR's lwsync to sync would 'fix' the thing,
+> and that is exactly the WW case, but given these two definitions I was
+> at a loss to find the hole.
+
+Well, it certainly shows that placing lwsync between each pair of memory
+references does not bring powerpc all the way to TSO.
 
 							Thanx, Paul
 
-> ---
-> --- a/kernel/events/ring_buffer.c
-> +++ b/kernel/events/ring_buffer.c
-> @@ -61,19 +61,20 @@ static void perf_output_put_handle(struc
->  	 *
->  	 *   kernel				user
->  	 *
-> -	 *   READ ->data_tail			READ ->data_head
-> -	 *   smp_mb()	(A)			smp_rmb()	(C)
-> -	 *   WRITE $data			READ $data
-> -	 *   smp_wmb()	(B)			smp_mb()	(D)
-> -	 *   STORE ->data_head			WRITE ->data_tail
-> +	 *   if (LOAD ->data_tail) {		LOAD ->data_head
-> +	 *			(A)		smp_rmb()	(C)
-> +	 *	STORE $data			LOAD $data
-> +	 *	smp_wmb()	(B)		smp_mb()	(D)
-> +	 *	STORE ->data_head		STORE ->data_tail
-> +	 *   }
->  	 *
->  	 * Where A pairs with D, and B pairs with C.
->  	 *
-> -	 * I don't think A needs to be a full barrier because we won't in fact
-> -	 * write data until we see the store from userspace. So we simply don't
-> -	 * issue the data WRITE until we observe it. Be conservative for now.
-> +	 * In our case (A) is a control dependency that separates the load of
-> +	 * the ->data_tail and the stores of $data. In case ->data_tail
-> +	 * indicates there is no room in the buffer to store $data we do not.
->  	 *
-> -	 * OTOH, D needs to be a full barrier since it separates the data READ
-> +	 * D needs to be a full barrier since it separates the data READ
->  	 * from the tail WRITE.
->  	 *
->  	 * For B a WMB is sufficient since it separates two WRITEs, and for C
-> @@ -81,7 +82,7 @@ static void perf_output_put_handle(struc
->  	 *
->  	 * See perf_output_begin().
->  	 */
-> -	smp_wmb();
-> +	smp_wmb(); /* B, matches C */
->  	rb->user_page->data_head = head;
-> 
->  	/*
-> @@ -144,17 +145,26 @@ int perf_output_begin(struct perf_output
->  		if (!rb->overwrite &&
->  		    unlikely(CIRC_SPACE(head, tail, perf_data_size(rb)) < size))
->  			goto fail;
-> +
-> +		/*
-> +		 * The above forms a control dependency barrier separating the
-> +		 * @tail load above from the data stores below. Since the @tail
-> +		 * load is required to compute the branch to fail below.
-> +		 *
-> +		 * A, matches D; the full memory barrier userspace SHOULD issue
-> +		 * after reading the data and before storing the new tail
-> +		 * position.
-> +		 *
-> +		 * See perf_output_put_handle().
-> +		 */
-> +
->  		head += size;
->  	} while (local_cmpxchg(&rb->head, offset, head) != offset);
-> 
->  	/*
-> -	 * Separate the userpage->tail read from the data stores below.
-> -	 * Matches the MB userspace SHOULD issue after reading the data
-> -	 * and before storing the new tail position.
-> -	 *
-> -	 * See perf_output_put_handle().
-> +	 * We rely on the implied barrier() by local_cmpxchg() to ensure
-> +	 * none of the data stores below can be lifted up by the compiler.
->  	 */
-> -	smp_mb();
-> 
->  	if (unlikely(head - local_read(&rb->wakeup) > rb->watermark))
->  		local_add(rb->watermark, &rb->wakeup);
-> 
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
