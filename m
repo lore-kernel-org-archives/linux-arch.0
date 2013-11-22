@@ -1,62 +1,63 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v7 1/4] qrwlock: A queue read/write lock implementation
-Date: Fri, 22 Nov 2013 15:35:06 -0500
-Message-ID: <528FBFFA.1000807@hp.com>
-References: <1385147087-26588-1-git-send-email-Waiman.Long@hp.com> <1385147087-26588-2-git-send-email-Waiman.Long@hp.com> <CA+55aFzkqP84M7L6j__QHuks7DXTQnGqdCo3=a=u7qKdER9rEQ@mail.gmail.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
+Date: Fri, 22 Nov 2013 12:37:38 -0800
+Message-ID: <20131122203738.GC4138@linux.vnet.ibm.com>
+References: <20131121225208.GJ4138@linux.vnet.ibm.com>
+ <CA+55aFx3FSGAtdSTYmsZ8xtdpiSBM-XPSnxnMpRQY+S_v_72-g@mail.gmail.com>
+ <20131122040856.GK4138@linux.vnet.ibm.com>
+ <CA+55aFxSL96G_uuPSbJaXfGh7DpYZ1g0NcVfPKOFg1O0o0fyZg@mail.gmail.com>
+ <20131122062314.GN4138@linux.vnet.ibm.com>
+ <20131122151600.GA14988@gmail.com>
+ <20131122184937.GX4138@linux.vnet.ibm.com>
+ <CA+55aFyKKpf-i4pQ_dhy9gic74xtCbO+U8GXU6mCtQj1ZHy05A@mail.gmail.com>
+ <20131122200620.GA4138@linux.vnet.ibm.com>
+ <CA+55aFz0nP1_O8jO2UkX1DmDzcBm53-fFejvz=oY=x3cGNBJSQ@mail.gmail.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t0016.houston.hp.com ([15.201.24.19]:8133 "EHLO
-	g4t0016.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755521Ab3KVUfT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Nov 2013 15:35:19 -0500
-In-Reply-To: <CA+55aFzkqP84M7L6j__QHuks7DXTQnGqdCo3=a=u7qKdER9rEQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <CA+55aFz0nP1_O8jO2UkX1DmDzcBm53-fFejvz=oY=x3cGNBJSQ@mail.gmail.com>
+Sender: owner-linux-mm@kvack.org
 To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>
+Cc: Ingo Molnar <mingo@kernel.org>, Tim Chen <tim.c.chen@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@h>
+List-Id: linux-arch.vger.kernel.org
 
-On 11/22/2013 02:14 PM, Linus Torvalds wrote:
-> On Fri, Nov 22, 2013 at 11:04 AM, Waiman Long<Waiman.Long@hp.com>  wrote:
->> In term of single-thread performance (no contention), a 256K
->> lock/unlock loop was run on a 2.4GHz and 2.93Ghz Westmere x86-64
->> CPUs. The following table shows the average time (in ns) for a single
->> lock/unlock sequence (including the looping and timing overhead):
->>
->> Lock Type                   2.4GHz      2.93GHz
->> ---------                   ------      -------
->> Ticket spinlock              14.9        12.3
->> Read lock                    17.0        13.5
->> Write lock                   17.0        13.5
->> Queue read lock              16.0        13.4
->> Queue write lock              9.2         7.8
-> Can you verify for me that you re-did those numbers? Because it used
-> to be that the fair queue write lock was slower than the numbers you
-> now quote..
->
-> Was the cost of the fair queue write lock purely in the extra
-> conditional testing for whether the lock was supposed to be fair or
-> not, and now that you dropped that, it's fast? If so, then that's an
-> extra argument for the old conditional fair/unfair being complete
-> garbage.
+On Fri, Nov 22, 2013 at 12:09:31PM -0800, Linus Torvalds wrote:
+> On Fri, Nov 22, 2013 at 12:06 PM, Paul E. McKenney
+> <paulmck@linux.vnet.ibm.com> wrote:
+> >
+> > I am sorry, but that is not always correct.  For example, in the contended
+> > case for Tim Chen's MCS queued locks, the x86 acquisition-side handoff
+> > code does -not- contain any stores or memory-barrier instructions.
+> 
+> So? In order to get *into* that contention code, you will have to go
+> through the fast-case code. Which will contain a locked instruction.
 
-Yes, the extra latency of the fair lock in earlier patch is due to the 
-need to do a second cmpxchg(). That can be avoided by doing a read 
-first, but that is not good for good cache.  So I optimized it for the 
-default unfair lock. By supporting only one version, there is no need to 
-do a second cmpxchg anymore.
+So you must also maintain ordering against the critical section that just
+ended on some other CPU.  And that just-ended critical section might
+well have started -after- you passed through your own fast-case code.
+In that case, the barriers in your fast-case code cannot possibly
+help you.  Instead, ordering must be supplied by the code in the two
+handoff code sequences.  And in the case of the most recent version of
+Tim Chen's MCS lock on x86, the two handoff code sequences (release
+and corresponding acquire) contain neither atomic instructions nor
+memory-barrier instructions.
 
-> Alternatively, maybe you just took the old timings, and the above
-> numbers are for the old unfair code, and *not* for the actual patch
-> you sent out?
->
-> So please double-check and verify.
->
->                Linus
+The weird thing is that it looks like those two handoff code sequences
+nevertheless provide the unlock+lock guarantee on x86.  But I need to
+look at it some more, and eventually run it by experts from Intel and
+AMD.
 
-I reran the timing test on the 2.93GHz processor. The timing is the 
-practically the same. I reused the old one for the 2.4GHz processor.
+							Thanx, Paul
 
-Regards,
-Longman
+> So I repeat: a "lock" sequence will always be a memory barrier on x86.
+> 
+>                    Linus
+> 
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
