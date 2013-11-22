@@ -1,58 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout62.mail01.mtsvc.net ([216.70.64.126]:55317 "EHLO
-	mailout62.mail01.mtsvc.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754973Ab3KVSse (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 22 Nov 2013 13:48:34 -0500
-Message-ID: <528F9B8D.2090806@hurleysoftware.com>
-Date: Fri, 22 Nov 2013 12:59:41 -0500
-From: Peter Hurley <peter@hurleysoftware.com>
-MIME-Version: 1.0
-Subject: Re: [RFC] Control dependencies
-References: <20131121161733.GH10022@twins.programming.kicks-ass.net> <20131121180237.GX4138@linux.vnet.ibm.com> <20131122134630.GQ3866@twins.programming.kicks-ass.net>
-In-Reply-To: <20131122134630.GQ3866@twins.programming.kicks-ass.net>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from g1t0027.austin.hp.com ([15.216.28.34]:1242 "EHLO
+	g1t0027.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752565Ab3KVTFN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Nov 2013 14:05:13 -0500
+From: Waiman Long <Waiman.Long@hp.com>
+Subject: [PATCH v7 2/4] qrwlock x86: Enable x86 to use queue read/write lock
+Date: Fri, 22 Nov 2013 14:04:45 -0500
+Message-ID: <1385147087-26588-3-git-send-email-Waiman.Long@hp.com>
+In-Reply-To: <1385147087-26588-1-git-send-email-Waiman.Long@hp.com>
+References: <1385147087-26588-1-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, "Figo.zhang" <figo1802@gmail.com>
-Message-ID: <20131122175941.ailMVt-2_BdtygQ3imPjRiem6-Ux8La7Y4H_M1QS9vk@z>
+To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Aswin Chandramouleeswaran\"" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Waiman Long <Waiman.Long@hp.com>
+Message-ID: <20131122190445.vd0iuMrmbQBhfkAq0jMbleLWdYzHlCGqVedXhLvh_ag@z>
 
-On 11/22/2013 08:46 AM, Peter Zijlstra wrote:
-> How about the below version?
->
-> ---
-> --- a/kernel/events/ring_buffer.c
-> +++ b/kernel/events/ring_buffer.c
-> @@ -61,19 +61,20 @@ static void perf_output_put_handle(struc
->   	 *
->   	 *   kernel				user
->   	 *
-> -	 *   READ ->data_tail			READ ->data_head
-> -	 *   smp_mb()	(A)			smp_rmb()	(C)
-> -	 *   WRITE $data			READ $data
-> -	 *   smp_wmb()	(B)			smp_mb()	(D)
-> -	 *   STORE ->data_head			WRITE ->data_tail
-> +	 *   if (LOAD ->data_tail) {		LOAD ->data_head
-> +	 *			(A)		smp_rmb()	(C)
-> +	 *	STORE $data			LOAD $data
-> +	 *	smp_wmb()	(B)		smp_mb()	(D)
-> +	 *	STORE ->data_head		STORE ->data_tail
+This patch makes the necessary changes at the x86 architecture specific
+layer to enable the presence of the CONFIG_QUEUE_RWLOCK kernel option
+to replace the read/write lock by the queue read/write lock.
 
+It also enables the CONFIG_QUEUE_RWLOCK option by default for x86 which
+will force the use of queue read/write lock. That will greatly improve
+the fairness of read/write lock and eliminate live-lock situation
+where one task may not get the lock for an indefinite period of time.
 
-I wasn't subscribed to linux-arch so missed the smp_store_release()
-outcome, if there was one.
+Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+---
+ arch/x86/Kconfig                      |    1 +
+ arch/x86/include/asm/spinlock.h       |    2 ++
+ arch/x86/include/asm/spinlock_types.h |    4 ++++
+ 3 files changed, 7 insertions(+), 0 deletions(-)
 
-Are (B) and (D) still slated for changing to STORE.rel semantics,
-aka smp_store_release()?
-
-I realize that, for the perf ring buffer, (D) is in userspace but
-I'm also interested in non-perf situations where (D) would be in the
-kernel.
-
-Regards,
-Peter Hurley
-
-
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index e903c71..c4a9c54 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -124,6 +124,7 @@ config X86
+ 	select RTC_LIB
+ 	select HAVE_DEBUG_STACKOVERFLOW
+ 	select HAVE_IRQ_EXIT_ON_IRQ_STACK if X86_64
++	select QUEUE_RWLOCK
+ 
+ config INSTRUCTION_DECODER
+ 	def_bool y
+diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
+index bf156de..8fb88c5 100644
+--- a/arch/x86/include/asm/spinlock.h
++++ b/arch/x86/include/asm/spinlock.h
+@@ -188,6 +188,7 @@ static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+ 		cpu_relax();
+ }
+ 
++#ifndef CONFIG_QUEUE_RWLOCK
+ /*
+  * Read-write spinlocks, allowing multiple readers
+  * but only one writer.
+@@ -270,6 +271,7 @@ static inline void arch_write_unlock(arch_rwlock_t *rw)
+ 	asm volatile(LOCK_PREFIX WRITE_LOCK_ADD(%1) "%0"
+ 		     : "+m" (rw->write) : "i" (RW_LOCK_BIAS) : "memory");
+ }
++#endif /* CONFIG_QUEUE_RWLOCK */
+ 
+ #define arch_read_lock_flags(lock, flags) arch_read_lock(lock)
+ #define arch_write_lock_flags(lock, flags) arch_write_lock(lock)
+diff --git a/arch/x86/include/asm/spinlock_types.h b/arch/x86/include/asm/spinlock_types.h
+index 4f1bea1..a585635 100644
+--- a/arch/x86/include/asm/spinlock_types.h
++++ b/arch/x86/include/asm/spinlock_types.h
+@@ -34,6 +34,10 @@ typedef struct arch_spinlock {
+ 
+ #define __ARCH_SPIN_LOCK_UNLOCKED	{ { 0 } }
+ 
++#ifdef CONFIG_QUEUE_RWLOCK
++#include <asm-generic/qrwlock.h>
++#else
+ #include <asm/rwlock.h>
++#endif
+ 
+ #endif /* _ASM_X86_SPINLOCK_TYPES_H */
+-- 
+1.7.1
 
