@@ -1,121 +1,81 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC] Control dependencies
-Date: Fri, 22 Nov 2013 14:46:30 +0100
-Message-ID: <20131122134630.GQ3866@twins.programming.kicks-ass.net>
-References: <20131121161733.GH10022@twins.programming.kicks-ass.net>
- <20131121180237.GX4138@linux.vnet.ibm.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
+Date: Fri, 22 Nov 2013 16:16:00 +0100
+Message-ID: <20131122151600.GA14988@gmail.com>
+References: <1384979767.11046.489.camel@schen9-DESK>
+ <20131120214402.GM4138@linux.vnet.ibm.com>
+ <1384991514.11046.504.camel@schen9-DESK>
+ <20131121045333.GO4138@linux.vnet.ibm.com>
+ <CA+55aFyXzDUss55SjQBy+C-neRZbVsmVRR4aat+wiWfuSQJxaQ@mail.gmail.com>
+ <20131121225208.GJ4138@linux.vnet.ibm.com>
+ <CA+55aFx3FSGAtdSTYmsZ8xtdpiSBM-XPSnxnMpRQY+S_v_72-g@mail.gmail.com>
+ <20131122040856.GK4138@linux.vnet.ibm.com>
+ <CA+55aFxSL96G_uuPSbJaXfGh7DpYZ1g0NcVfPKOFg1O0o0fyZg@mail.gmail.com>
+ <20131122062314.GN4138@linux.vnet.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:45854 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753500Ab3KVNrM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Nov 2013 08:47:12 -0500
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <20131121180237.GX4138@linux.vnet.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+In-Reply-To: <20131122062314.GN4138@linux.vnet.ibm.com>
+Sender: owner-linux-mm@kvack.org
 To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>George Spelvin <linu>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Nov 21, 2013 at 10:02:37AM -0800, Paul E. McKenney wrote:
-> > --- a/kernel/events/ring_buffer.c
-> > +++ b/kernel/events/ring_buffer.c
+
+* Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
+
+> On Thu, Nov 21, 2013 at 08:25:59PM -0800, Linus Torvalds wrote:
+>
+> [...]
 > 
-> My patch does not cover this file.  Wouldn't hurt for them to be
-> separate.
-
-Oh sure, but I wanted to present the RFC with at least one working
-example to illustrate why I even bother and to aid in discussion.
-
-> > @@ -62,18 +62,18 @@ static void perf_output_put_handle(struc
-> >  	 *   kernel				user
-> >  	 *
-> >  	 *   READ ->data_tail			READ ->data_head
-> > -	 *   smp_mb()	(A)			smp_rmb()	(C)
-> > +	 *   barrier()	(A)			smp_rmb()	(C)
+> > I do care deeply about reality, particularly of architectures that 
+> > actually matter. To me, a spinlock in some theoretical case is 
+> > uninteresting, but a efficient spinlock implementation on a real 
+> > architecture is a big deal that matters a lot.
 > 
-> We need a conditional for this to work.  I know that the required
-> conditional is there in the code, but we need it explicitly in this
-> example as well.
+> Agreed, reality and efficiency are the prime concerns.  Theory 
+> serves reality and efficiency, but definitely not the other way 
+> around.
+> 
+> But if we want locking primitives that don't rely solely on atomic 
+> instructions (such as the queued locks that people have been putting 
+> forward), we are going to need to wade through a fair bit of theory 
+> to make sure that they actually work on real hardware.  Subtle bugs 
+> in locking primitives is a type of reality that I think we can both 
+> agree that we should avoid.
+> 
+> Or am I missing your point?
 
-Agreed, I skimped on that because I didn't quite know how to write that
-best.
+I think one point Linus wanted to make that it's not true that Linux 
+has to offer a barrier and locking model that panders to the weakest 
+(and craziest!) memory ordering model amongst all the possible Linux 
+platforms - theoretical or real metal.
 
-How about the below version?
+Instead what we want to do is to consciously, intelligently _pick_ a 
+sane, maintainable memory model and offer primitives for that - at 
+least as far as generic code is concerned. Each architecture can map 
+those primitives to the best of its abilities.
 
----
---- a/kernel/events/ring_buffer.c
-+++ b/kernel/events/ring_buffer.c
-@@ -61,19 +61,20 @@ static void perf_output_put_handle(struc
- 	 *
- 	 *   kernel				user
- 	 *
--	 *   READ ->data_tail			READ ->data_head
--	 *   smp_mb()	(A)			smp_rmb()	(C)
--	 *   WRITE $data			READ $data
--	 *   smp_wmb()	(B)			smp_mb()	(D)
--	 *   STORE ->data_head			WRITE ->data_tail
-+	 *   if (LOAD ->data_tail) {		LOAD ->data_head
-+	 *			(A)		smp_rmb()	(C)
-+	 *	STORE $data			LOAD $data
-+	 *	smp_wmb()	(B)		smp_mb()	(D)
-+	 *	STORE ->data_head		STORE ->data_tail
-+	 *   }
- 	 *
- 	 * Where A pairs with D, and B pairs with C.
- 	 *
--	 * I don't think A needs to be a full barrier because we won't in fact
--	 * write data until we see the store from userspace. So we simply don't
--	 * issue the data WRITE until we observe it. Be conservative for now.
-+	 * In our case (A) is a control dependency that separates the load of
-+	 * the ->data_tail and the stores of $data. In case ->data_tail
-+	 * indicates there is no room in the buffer to store $data we do not.
- 	 *
--	 * OTOH, D needs to be a full barrier since it separates the data READ
-+	 * D needs to be a full barrier since it separates the data READ
- 	 * from the tail WRITE.
- 	 *
- 	 * For B a WMB is sufficient since it separates two WRITEs, and for C
-@@ -81,7 +82,7 @@ static void perf_output_put_handle(struc
- 	 *
- 	 * See perf_output_begin().
- 	 */
--	smp_wmb();
-+	smp_wmb(); /* B, matches C */
- 	rb->user_page->data_head = head;
- 
- 	/*
-@@ -144,17 +145,26 @@ int perf_output_begin(struct perf_output
- 		if (!rb->overwrite &&
- 		    unlikely(CIRC_SPACE(head, tail, perf_data_size(rb)) < size))
- 			goto fail;
-+
-+		/*
-+		 * The above forms a control dependency barrier separating the
-+		 * @tail load above from the data stores below. Since the @tail
-+		 * load is required to compute the branch to fail below.
-+		 *
-+		 * A, matches D; the full memory barrier userspace SHOULD issue
-+		 * after reading the data and before storing the new tail
-+		 * position.
-+		 *
-+		 * See perf_output_put_handle().
-+		 */
-+
- 		head += size;
- 	} while (local_cmpxchg(&rb->head, offset, head) != offset);
- 
- 	/*
--	 * Separate the userpage->tail read from the data stores below.
--	 * Matches the MB userspace SHOULD issue after reading the data
--	 * and before storing the new tail position.
--	 *
--	 * See perf_output_put_handle().
-+	 * We rely on the implied barrier() by local_cmpxchg() to ensure
-+	 * none of the data stores below can be lifted up by the compiler.
- 	 */
--	smp_mb();
- 
- 	if (unlikely(head - local_read(&rb->wakeup) > rb->watermark))
- 		local_add(rb->watermark, &rb->wakeup);
+Because as we increase abstraction, as we allow more and more complex 
+memory ordering details, so does maintainability and robustness 
+decrease. So there's a very real crossover point at which point 
+increased smarts will actually hurt our code in real life.
+
+[ Same goes for compilers, we draw a line: for example we generally
+  turn off strict aliasing optimizations, or we turn off NULL pointer
+  check elimination optimizations. ]
+
+I'm not saying this to not discuss theoretical complexities - I'm just 
+saying that the craziest memory ordering complexities are probably 
+best dealt with by agreeing not to use them ;-)
+
+Thanks,
+
+	Ingo
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
