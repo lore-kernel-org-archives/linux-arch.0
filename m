@@ -1,120 +1,63 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
-Date: Fri, 22 Nov 2013 10:49:37 -0800
-Message-ID: <20131122184937.GX4138@linux.vnet.ibm.com>
-References: <20131120214402.GM4138@linux.vnet.ibm.com>
- <1384991514.11046.504.camel@schen9-DESK>
- <20131121045333.GO4138@linux.vnet.ibm.com>
- <CA+55aFyXzDUss55SjQBy+C-neRZbVsmVRR4aat+wiWfuSQJxaQ@mail.gmail.com>
- <20131121225208.GJ4138@linux.vnet.ibm.com>
- <CA+55aFx3FSGAtdSTYmsZ8xtdpiSBM-XPSnxnMpRQY+S_v_72-g@mail.gmail.com>
- <20131122040856.GK4138@linux.vnet.ibm.com>
- <CA+55aFxSL96G_uuPSbJaXfGh7DpYZ1g0NcVfPKOFg1O0o0fyZg@mail.gmail.com>
- <20131122062314.GN4138@linux.vnet.ibm.com>
- <20131122151600.GA14988@gmail.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+Date: Fri, 22 Nov 2013 19:51:07 +0100
+Message-ID: <20131122185107.GJ4971@laptop.programming.kicks-ass.net>
+References: <20131120154643.GG19352@mudshark.cambridge.arm.com>
+ <20131120171400.GI4138@linux.vnet.ibm.com>
+ <20131121110308.GC10022@twins.programming.kicks-ass.net>
+ <20131121125616.GI3694@twins.programming.kicks-ass.net>
+ <20131121132041.GS4138@linux.vnet.ibm.com>
+ <20131121172558.GA27927@linux.vnet.ibm.com>
+ <20131121215249.GZ16796@laptop.programming.kicks-ass.net>
+ <20131121221859.GH4138@linux.vnet.ibm.com>
+ <20131122155835.GR3866@twins.programming.kicks-ass.net>
+ <20131122182632.GW4138@linux.vnet.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <20131122151600.GA14988@gmail.com>
+In-Reply-To: <20131122182632.GW4138@linux.vnet.ibm.com>
 Sender: owner-linux-mm@kvack.org
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Will Deacon <will.deacon@arm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zyto>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Nov 22, 2013 at 04:16:00PM +0100, Ingo Molnar wrote:
-> 
-> * Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
-> 
-> > On Thu, Nov 21, 2013 at 08:25:59PM -0800, Linus Torvalds wrote:
-> >
-> > [...]
-> > 
-> > > I do care deeply about reality, particularly of architectures that 
-> > > actually matter. To me, a spinlock in some theoretical case is 
-> > > uninteresting, but a efficient spinlock implementation on a real 
-> > > architecture is a big deal that matters a lot.
-> > 
-> > Agreed, reality and efficiency are the prime concerns.  Theory 
-> > serves reality and efficiency, but definitely not the other way 
-> > around.
-> > 
-> > But if we want locking primitives that don't rely solely on atomic 
-> > instructions (such as the queued locks that people have been putting 
-> > forward), we are going to need to wade through a fair bit of theory 
-> > to make sure that they actually work on real hardware.  Subtle bugs 
-> > in locking primitives is a type of reality that I think we can both 
-> > agree that we should avoid.
-> > 
-> > Or am I missing your point?
-> 
-> I think one point Linus wanted to make that it's not true that Linux 
-> has to offer a barrier and locking model that panders to the weakest 
-> (and craziest!) memory ordering model amongst all the possible Linux 
-> platforms - theoretical or real metal.
-> 
-> Instead what we want to do is to consciously, intelligently _pick_ a 
-> sane, maintainable memory model and offer primitives for that - at 
-> least as far as generic code is concerned. Each architecture can map 
-> those primitives to the best of its abilities.
-> 
-> Because as we increase abstraction, as we allow more and more complex 
-> memory ordering details, so does maintainability and robustness 
-> decrease. So there's a very real crossover point at which point 
-> increased smarts will actually hurt our code in real life.
-> 
-> [ Same goes for compilers, we draw a line: for example we generally
->   turn off strict aliasing optimizations, or we turn off NULL pointer
->   check elimination optimizations. ]
-> 
-> I'm not saying this to not discuss theoretical complexities - I'm just 
-> saying that the craziest memory ordering complexities are probably 
-> best dealt with by agreeing not to use them ;-)
+On Fri, Nov 22, 2013 at 10:26:32AM -0800, Paul E. McKenney wrote:
+> The real source of my cognitive pain is that here we have a sequence of
+> code that has neither atomic instructions or memory-barrier instructions,
+> but it looks like it still manages to act as a full memory barrier.
+> Still not quite sure I should trust it...
 
-Thank you for the explanation, Ingo!  I do agree with these principles.
+Yes, this is something that puzzles me too.
 
-That said, I remain really confused.  My best guess is that you are
-advising me to ask Peter to stiffen up smp_store_release() so that
-it preserves the guarantee that unlock+lock provides a full barrier,
-thus allowing it to be used in the queued spinlocks as well as in its
-original circular-buffer use case.  But even that doesn't completely
-fit because that was the direction I was going beforehand.
+That said, the two rules that:
 
-You see, my problem is not the "crazy ordering" DEC Alpha, Itanium,
-PowerPC, or even ARM.  It is really obvious what instructions to use in
-a stiffened-up smp_store_release() for those guys: "mb" for DEC Alpha,
-"st.rel" for Itanium, "sync" for PowerPC, and "dmb" for ARM.  Believe it
-or not, my problem is instead with good old tightly ordered x86.
+1)  stores aren't re-ordered against other stores
+2)  reads aren't re-ordered against other reads
 
-We -could- just put an mfence into x86's smp_store_release() and
-be done with it, but it currently looks like we get the effect of
-a full memory barrier without it, at least in the special case of
-the high-contention queued-lock handoff.  To repeat, it looks like we
-preserve the full-memory-barrier property of unlock+lock for x86 -even-
--though- the queued-lock high-contention handoff code contains neither
-atomic instructions nor memory-barrier instructions.  This is a bit
-surprising to me, to say the least.  Hence my digging into the theory
-to check it -- after all, we cannot prove it correct by testing it.
+Do make that:
 
-Here are some other things that you and Linus might be trying to tell me:
+	STORE x
+	LOAD  x
 
-o	Just say "no" to queued locks.  (I am OK with this.  NAKs are
-	after all easier than beating my head against memory models.)
+form a fence that neither stores nor loads can pass through from
+either side; note however that they themselves rely on the data
+dependency to not reorder against themselves.
 
-o	Don't add store-after-conditional control dependencies to
-	Documentation/memory-barriers.txt because it is too complicated.
-	(I am OK with this, I suppose -- but some people really want to
-	rely on them.)
+If you put them the other way around:
 
-o	Just add general control dependencies, because that is what
-	people expect.	(I have more trouble with this because there
-	is a -lot- of work needed in many projects to make this happen,
-	including on ARM, but some work on x86 as well.)
+	LOAD x
+	STORE y
 
-Anything I am missing here?
+we seem to get a stronger variant because stores are not re-ordered
+against older reads.
 
-							Thanx, Paul
+There is however the exception cause for rule 1) above, which includes
+clflush, non-temporal stores and string ops; the actual mfence
+instruction doesn't seem to have this exception and would thus be
+slightly stronger still.
+
+Still confusion situation all round.
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
