@@ -1,50 +1,74 @@
 From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Subject: Re: [PATCH -tip v3 18/23] x86/dumpstack: Use NOKPROBE_SYMBOL macro
- in dumpstack.c
-Date: Fri, 22 Nov 2013 11:08:08 +0900
-Message-ID: <528EBC88.2030609@hitachi.com>
-References: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal> <20131120042233.15296.31189.stgit@kbuild-fedora.novalocal> <20131121113006.GA27659@gmail.com>
+Subject: Re: Re: [PATCH -tip v3 00/23] kprobes: introduce NOKPROBE_SYMBOL()
+	and general cleaning of kprobe blacklist
+Date: Fri, 22 Nov 2013 11:35:43 +0900
+Message-ID: <528EC2FF.30301@hitachi.com>
+References: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal>
+	<y0mvbznxi6k.fsf@fche.csb> <20131120153801.GA9743@gmail.com>
+	<20131120173600.GK8993@redhat.com> <528D6C9F.8050809@hitachi.com>
+	<20131121072938.GA16912@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail7.hitachi.co.jp ([133.145.228.42]:37896 "EHLO
-	mail7.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753021Ab3KVCIO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Nov 2013 21:08:14 -0500
-In-Reply-To: <20131121113006.GA27659@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <20131121072938.GA16912@gmail.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
 To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, Vineet Gupta <vgupta@synopsys.com>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, systemtap@sourceware.org, "H. Peter Anvin" <hpa@zytor.com>, Tejun Heo <tj@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Jiri Slaby <jslaby@suse.cz>, "David S. Miller" <davem@davemloft.net>
+Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, "Frank Ch. Eigler" <fche@redhat.com>, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
+List-Id: linux-arch.vger.kernel.org
 
-(2013/11/21 20:30), Ingo Molnar wrote:
+(2013/11/21 16:29), Ingo Molnar wrote:
 > 
 > * Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com> wrote:
 > 
->> Use NOKPROBE_SYMBOL macro for protecting functions
->> from kprobes instead of __kprobes annotation in
->> dumpstack.c.
->>
->> Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
->> Cc: Thomas Gleixner <tglx@linutronix.de>
->> Cc: Ingo Molnar <mingo@redhat.com>
->> Cc: "H. Peter Anvin" <hpa@zytor.com>
->> Cc: Andrew Morton <akpm@linux-foundation.org>
->> Cc: Jiri Slaby <jslaby@suse.cz>
->> Cc: Tejun Heo <tj@kernel.org>
->> Cc: Vineet Gupta <vgupta@synopsys.com>
->> ---
->>  arch/x86/kernel/dumpstack.c |    9 ++++++---
->>  1 file changed, 6 insertions(+), 3 deletions(-)
+>> (2013/11/21 2:36), Frank Ch. Eigler wrote:
 > 
-> Btw., all these mechanic changes of the __kprobes annotation can be 
-> merged into a single patch. That will cut down on the size of the 
-> series substantially.
+> [ ... ]
+>>> one needs to resort to something like:
+>>>
+>>> # cat /proc/kallsyms | grep ' [tT] ' | while read addr type symbol; do
+>>>    perf probe $symbol
+>>> done
+>>>
+>>> then wait for a few hours for that to finish. Then, or while the loop
+>>> is still running, run
+>>>
+>>> # perf record -e 'probe:*' -aR sleep 1
+>>>
+>>> to take a kernel down.
+>>
+>> Um, indeed, current blacklist is not perfect. [...]
+> 
+> Then it needs to be fixed ASAP!
 
-Right, I just thought it would be easy to review for each
-subsystem maintainer, because some of them including
-forcibly (or explicitly) inlined changes (__always_inline).
+OK, I see. At least the two patches included this series
+should be fixed. :)
+
+And more, I need to test all symbols and drills down.
+
+>> [...] As I reported in this series, I've found 2 more patterns. I 
+>> guess there still have some others.
+>>
+>> But anyway, I don't think it is good to fix all such bugs in this 
+>> series.
+> 
+> Fixing these bugs is far more important than any cleanup work.
+
+I see. This cleanup started with the bugfixes :)
+
+> We can apply the fixes together with your cleanup series to make it 
+> all simpler, but the bug fixing absolutely needs to happen right now.
+
+OK, I'll test it first and include the bugfixes in this series.
+Or should I push the fixes separated?
 
 Thank you,
 
