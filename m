@@ -1,72 +1,101 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
-Date: Fri, 22 Nov 2013 10:59:32 -0800
-Message-ID: <20131122185932.GZ4138@linux.vnet.ibm.com>
-References: <20131120171400.GI4138@linux.vnet.ibm.com>
- <20131121110308.GC10022@twins.programming.kicks-ass.net>
- <20131121125616.GI3694@twins.programming.kicks-ass.net>
- <20131121132041.GS4138@linux.vnet.ibm.com>
- <20131121172558.GA27927@linux.vnet.ibm.com>
- <20131121215249.GZ16796@laptop.programming.kicks-ass.net>
- <20131121221859.GH4138@linux.vnet.ibm.com>
- <20131122155835.GR3866@twins.programming.kicks-ass.net>
- <20131122182632.GW4138@linux.vnet.ibm.com>
- <20131122185107.GJ4971@laptop.programming.kicks-ass.net>
-Reply-To: paulmck@linux.vnet.ibm.com
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20131122185107.GJ4971@laptop.programming.kicks-ass.net>
-Sender: owner-linux-mm@kvack.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Will Deacon <will.deacon@arm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra
-List-Id: linux-arch.vger.kernel.org
+From: Waiman Long <Waiman.Long@hp.com>
+Subject: [PATCH v7 0/4] qrwlock: Introducing a queue read/write lock implementation
+Date: Fri, 22 Nov 2013 14:04:43 -0500
+Message-ID: <1385147087-26588-1-git-send-email-Waiman.Long@hp.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from g1t0027.austin.hp.com ([15.216.28.34]:1196 "EHLO
+	g1t0027.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755560Ab3KVTFK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Nov 2013 14:05:10 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Aswin Chandramouleeswaran\"" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Waiman Long <Waiman.Long@hp.com>
 
-On Fri, Nov 22, 2013 at 07:51:07PM +0100, Peter Zijlstra wrote:
-> On Fri, Nov 22, 2013 at 10:26:32AM -0800, Paul E. McKenney wrote:
-> > The real source of my cognitive pain is that here we have a sequence of
-> > code that has neither atomic instructions or memory-barrier instructions,
-> > but it looks like it still manages to act as a full memory barrier.
-> > Still not quite sure I should trust it...
-> 
-> Yes, this is something that puzzles me too.
-> 
-> That said, the two rules that:
-> 
-> 1)  stores aren't re-ordered against other stores
-> 2)  reads aren't re-ordered against other reads
-> 
-> Do make that:
-> 
-> 	STORE x
-> 	LOAD  x
-> 
-> form a fence that neither stores nor loads can pass through from
-> either side; note however that they themselves rely on the data
-> dependency to not reorder against themselves.
-> 
-> If you put them the other way around:
-> 
-> 	LOAD x
-> 	STORE y
-> 
-> we seem to get a stronger variant because stores are not re-ordered
-> against older reads.
-> 
-> There is however the exception cause for rule 1) above, which includes
-> clflush, non-temporal stores and string ops; the actual mfence
-> instruction doesn't seem to have this exception and would thus be
-> slightly stronger still.
-> 
-> Still confusion situation all round.
+v6->v7:
+ - Remove support for unfair lock, so only fair qrwlock will be provided.
+ - Move qrwlock.c to the kernel/locking directory.
 
-At some point, we need people from Intel and AMD to look at it.
+v5->v6:
+ - Modify queue_read_can_lock() to avoid false positive result.
+ - Move the two slowpath functions' performance tuning change from
+   patch 4 to patch 1.
+ - Add a new optional patch to use the new smp_store_release() function 
+   if that is merged.
 
-							Thanx, Paul
+v4->v5:
+ - Fix wrong definitions for QW_MASK_FAIR & QW_MASK_UNFAIR macros.
+ - Add an optional patch 4 which should only be applied after the
+   mcs_spinlock.h header file is merged.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+v3->v4:
+ - Optimize the fast path with better cold cache behavior and
+   performance.
+ - Removing some testing code.
+ - Make x86 use queue rwlock with no user configuration.
+
+v2->v3:
+ - Make read lock stealing the default and fair rwlock an option with
+   a different initializer.
+ - In queue_read_lock_slowpath(), check irq_count() and force spinning
+   and lock stealing in interrupt context.
+ - Unify the fair and classic read-side code path, and make write-side
+   to use cmpxchg with 2 different writer states. This slows down the
+   write lock fastpath to make the read side more efficient, but is
+   still slightly faster than a spinlock.
+
+v1->v2:
+ - Improve lock fastpath performance.
+ - Optionally provide classic read/write lock behavior for backward
+   compatibility.
+ - Use xadd instead of cmpxchg for fair reader code path to make it
+   immute to reader contention.
+ - Run more performance testing.
+
+As mentioned in the LWN article http://lwn.net/Articles/364583/,
+the read/write lock suffer from an unfairness problem that it is
+possible for a stream of incoming readers to block a waiting writer
+from getting the lock for a long time. Also, a waiting reader/writer
+contending a rwlock in local memory will have a higher chance of
+acquiring the lock than a reader/writer in remote node.
+
+This patch set introduces a queue-based read/write lock implementation
+that can largely solve this unfairness problem.
+
+The read lock slowpath will check if the reader is in an interrupt
+context. If so, it will force lock spinning and stealing without
+waiting in a queue. This is to ensure the read lock will be granted
+as soon as possible.
+
+The queue write lock can also be used as a replacement for ticket
+spinlocks that are highly contended if lock size increase is not
+an issue.
+
+This patch set currently provides queue read/write lock support on
+x86 architecture only. Support for other architectures can be added
+later on once architecture specific support infrastructure is added
+and proper testing is done.
+
+The optional patch 3 has a dependency on the the mcs_spinlock.h
+header file which has not been merged yet. So this patch should only
+be applied after the mcs_spinlock.h header file is merged.
+
+The optional patch 4 use the new smp_store_release() and
+smp_load_acquire() functions which are being reviewed & not merged yet.
+
+Waiman Long (4):
+  qrwlock: A queue read/write lock implementation
+  qrwlock x86: Enable x86 to use queue read/write lock
+  qrwlock: Use the mcs_spinlock helper functions for MCS queuing
+  qrwlock: Use smp_store_release() in write_unlock()
+
+ arch/x86/Kconfig                      |    1 +
+ arch/x86/include/asm/spinlock.h       |    2 +
+ arch/x86/include/asm/spinlock_types.h |    4 +
+ include/asm-generic/qrwlock.h         |  200 +++++++++++++++++++++++++++++++++
+ kernel/Kconfig.locks                  |    7 +
+ kernel/locking/Makefile               |    1 +
+ kernel/locking/qrwlock.c              |  196 ++++++++++++++++++++++++++++++++
+ 7 files changed, 411 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-generic/qrwlock.h
+ create mode 100644 kernel/locking/qrwlock.c
