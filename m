@@ -1,145 +1,77 @@
-From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH v2 01/11] Add generic fixmap.h
-Date: Mon, 25 Nov 2013 11:13:55 -0500
-Message-ID: <1385396045-15852-2-git-send-email-msalter@redhat.com>
-References: <1385396045-15852-1-git-send-email-msalter@redhat.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1385396045-15852-1-git-send-email-msalter@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: Mark Salter <msalter@redhat.com>, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, linux-metag@vger.kernel.org, Michal Simek <monstr@monstr.eu>, microblaze-uclinux@itee.uq.edu.au, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
+Date: Sat, 23 Nov 2013 09:06:03 -0800
+Message-ID: <20131123170603.GL4138@linux.vnet.ibm.com>
+References: <20131122203738.GC4138@linux.vnet.ibm.com>
+ <CA+55aFwHUuaGzW_=xEWNcyVnHT-zW8-bs6Xi=M458xM3Y1qE0w@mail.gmail.com>
+ <20131122215208.GD4138@linux.vnet.ibm.com>
+ <CA+55aFzS2yd-VbJB5t14mP8NZG8smB1BQaYCw3Zo19FWQL92vA@mail.gmail.com>
+ <20131123002542.GF4138@linux.vnet.ibm.com>
+ <CA+55aFy8kx1qaWszc9nrbUaqFu7GfTtDkpzPBeE2g2U6RZjYkA@mail.gmail.com>
+ <20131123013654.GG4138@linux.vnet.ibm.com>
+ <CA+55aFyJRAX4e9H0AFGcPMrBBTmGC6K_iCCS3dc7Mx6ejTmYMA@mail.gmail.com>
+ <20131123040507.GI4138@linux.vnet.ibm.com>
+ <20131123112450.GA26801@gmail.com>
+Reply-To: paulmck@linux.vnet.ibm.com
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20131123112450.GA26801@gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-Many architectures provide an asm/fixmap.h which defines support for
-compile-time 'special' virtual mappings which need to be made before
-paging_init() has run. This support is also used for early ioremap
-on x86. Much of this support is identical across the architectures.
-This patch consolidates all of the common bits into asm-generic/fixmap.h
-which is intended to be included from arch/*/include/asm/fixmap.h.
+On Sat, Nov 23, 2013 at 12:24:50PM +0100, Ingo Molnar wrote:
+> 
+> * Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
+> 
+> > > x86 does have that extra "Memory ordering obeys causality (memory 
+> > > ordering respects transitive visibility)." rule, and the example 
+> > > in the architecture manual (section 8.2.3.6 "Stores Are 
+> > > Transitively Visible") seems to very much about this, but your 
+> > > particular example is subtly different, so..
+> > 
+> > Indeed, my example needs CPU 1's -load- from y to be transitively 
+> > visible, so I am nervous about this one as well.
+> > 
+> > > I will have to ruminate on this.
+> > 
+> > The rules on the left-hand column of page 5 of the below URL apply 
+> > to this example more straightforwardly, but I don't know that Intel 
+> > and AMD stand behind them:
+> > 
+> > 	http://www.cl.cam.ac.uk/~pes20/weakmemory/cacm.pdf
+> > 
+> > My guess is that x86 does guarantee this ordering, but at this point 
+> > I would have to ask someone from Intel and AMD.
+> 
+> An additional option might be to create a user-space testcase 
+> engineered to hit all the exotic ordering situations, one that might 
+> disprove any particular assumptions we have about the behavior of 
+> hardware. (Back a decade ago when the x86 space first introduced quad 
+> core CPUs with newfangled on-die cache coherency I managed to 
+> demonstrate a causality violation by simulating kernel locks in 
+> user-space, which turned out to be a hardware bug. Also, when 
+> Hyperthreading/SMT was new it demonstrated many interesting bugs never 
+> seen in practice before. So running stuff on real hardware is useful.)
+> 
+> And a cache coherency (and/or locking) test suite would be very useful 
+> anyway, for so many other purposes as well: such as a new platform/CPU 
+> bootstrap, or to prove the correctness of some fancy new locking 
+> scheme people want to add. Maybe as an extension to rcutorture, or a 
+> generalization of it?
 
-Signed-off-by: Mark Salter <msalter@redhat.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
-Acked-by: Ralf Baechle <ralf@linux-mips.org>
-CC: linux-arch@vger.kernel.org
-CC: Russell King <linux@arm.linux.org.uk>
-CC: linux-arm-kernel@lists.infradead.org
-CC: Richard Kuo <rkuo@codeaurora.org>
-CC: linux-hexagon@vger.kernel.org
-CC: James Hogan <james.hogan@imgtec.com>
-CC: linux-metag@vger.kernel.org
-CC: Michal Simek <monstr@monstr.eu>
-CC: microblaze-uclinux@itee.uq.edu.au
-CC: linux-mips@linux-mips.org
-CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-CC: Paul Mackerras <paulus@samba.org>
-CC: linuxppc-dev@lists.ozlabs.org
----
- include/asm-generic/fixmap.h | 97 ++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 97 insertions(+)
- create mode 100644 include/asm-generic/fixmap.h
+I have the locking counterpart of rcutorture on my todo list.  ;-)
 
-diff --git a/include/asm-generic/fixmap.h b/include/asm-generic/fixmap.h
-new file mode 100644
-index 0000000..5a64ca4
---- /dev/null
-+++ b/include/asm-generic/fixmap.h
-@@ -0,0 +1,97 @@
-+/*
-+ * fixmap.h: compile-time virtual memory allocation
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 1998 Ingo Molnar
-+ *
-+ * Support of BIGMEM added by Gerhard Wichert, Siemens AG, July 1999
-+ * x86_32 and x86_64 integration by Gustavo F. Padovan, February 2009
-+ * Break out common bits to asm-generic by Mark Salter, November 2013
-+ */
-+
-+#ifndef __ASM_GENERIC_FIXMAP_H
-+#define __ASM_GENERIC_FIXMAP_H
-+
-+#include <linux/bug.h>
-+
-+#define __fix_to_virt(x)	(FIXADDR_TOP - ((x) << PAGE_SHIFT))
-+#define __virt_to_fix(x)	((FIXADDR_TOP - ((x)&PAGE_MASK)) >> PAGE_SHIFT)
-+
-+#ifndef __ASSEMBLY__
-+/*
-+ * 'index to address' translation. If anyone tries to use the idx
-+ * directly without translation, we catch the bug with a NULL-deference
-+ * kernel oops. Illegal ranges of incoming indices are caught too.
-+ */
-+static __always_inline unsigned long fix_to_virt(const unsigned int idx)
-+{
-+	BUILD_BUG_ON(idx >= __end_of_fixed_addresses);
-+	return __fix_to_virt(idx);
-+}
-+
-+static inline unsigned long virt_to_fix(const unsigned long vaddr)
-+{
-+	BUG_ON(vaddr >= FIXADDR_TOP || vaddr < FIXADDR_START);
-+	return __virt_to_fix(vaddr);
-+}
-+
-+/*
-+ * Provide some reasonable defaults for page flags.
-+ * Not all architectures use all of these different types and some
-+ * architectures use different names.
-+ */
-+#ifndef FIXMAP_PAGE_NORMAL
-+#define FIXMAP_PAGE_NORMAL PAGE_KERNEL
-+#endif
-+#ifndef FIXMAP_PAGE_NOCACHE
-+#define FIXMAP_PAGE_NOCACHE PAGE_KERNEL_NOCACHE
-+#endif
-+#ifndef FIXMAP_PAGE_IO
-+#define FIXMAP_PAGE_IO PAGE_KERNEL_IO
-+#endif
-+#ifndef FIXMAP_PAGE_CLEAR
-+#define FIXMAP_PAGE_CLEAR __pgprot(0)
-+#endif
-+
-+#ifndef set_fixmap
-+#define set_fixmap(idx, phys)				\
-+	__set_fixmap(idx, phys, FIXMAP_PAGE_NORMAL)
-+#endif
-+
-+#ifndef clear_fixmap
-+#define clear_fixmap(idx)			\
-+	__set_fixmap(idx, 0, FIXMAP_PAGE_CLEAR)
-+#endif
-+
-+/* Return a pointer with offset calculated */
-+#define __set_fixmap_offset(idx, phys, flags)		      \
-+({							      \
-+	unsigned long addr;				      \
-+	__set_fixmap(idx, phys, flags);			      \
-+	addr = fix_to_virt(idx) + ((phys) & (PAGE_SIZE - 1)); \
-+	addr;						      \
-+})
-+
-+#define set_fixmap_offset(idx, phys) \
-+	__set_fixmap_offset(idx, phys, FIXMAP_PAGE_NORMAL)
-+
-+/*
-+ * Some hardware wants to get fixmapped without caching.
-+ */
-+#define set_fixmap_nocache(idx, phys) \
-+	__set_fixmap(idx, phys, FIXMAP_PAGE_NOCACHE)
-+
-+#define set_fixmap_offset_nocache(idx, phys) \
-+	__set_fixmap_offset(idx, phys, FIXMAP_PAGE_NOCACHE)
-+
-+/*
-+ * Some fixmaps are for IO
-+ */
-+#define set_fixmap_io(idx, phys) \
-+	__set_fixmap(idx, phys, FIXMAP_PAGE_IO)
-+
-+#endif /* __ASSEMBLY__ */
-+#endif /* __ASM_GENERIC_FIXMAP_H */
--- 
-1.8.3.1
+Of course, we cannot prove locks correct via testing, but a quick test
+can often find a bug faster and more reliably than manual inspection.
+
+							Thanx, Paul
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
