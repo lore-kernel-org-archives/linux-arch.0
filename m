@@ -1,72 +1,48 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
-Date: Sat, 23 Nov 2013 12:24:50 +0100
-Message-ID: <20131123112450.GA26801@gmail.com>
-References: <CA+55aFz0nP1_O8jO2UkX1DmDzcBm53-fFejvz=oY=x3cGNBJSQ@mail.gmail.com>
- <20131122203738.GC4138@linux.vnet.ibm.com>
- <CA+55aFwHUuaGzW_=xEWNcyVnHT-zW8-bs6Xi=M458xM3Y1qE0w@mail.gmail.com>
- <20131122215208.GD4138@linux.vnet.ibm.com>
- <CA+55aFzS2yd-VbJB5t14mP8NZG8smB1BQaYCw3Zo19FWQL92vA@mail.gmail.com>
- <20131123002542.GF4138@linux.vnet.ibm.com>
- <CA+55aFy8kx1qaWszc9nrbUaqFu7GfTtDkpzPBeE2g2U6RZjYkA@mail.gmail.com>
- <20131123013654.GG4138@linux.vnet.ibm.com>
- <CA+55aFyJRAX4e9H0AFGcPMrBBTmGC6K_iCCS3dc7Mx6ejTmYMA@mail.gmail.com>
- <20131123040507.GI4138@linux.vnet.ibm.com>
+From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+Subject: Re: Re: [PATCH -tip v3 13/23] x86/trap: Use NOKPROBE_SYMBOL macro
+ in trap.c
+Date: Sat, 23 Nov 2013 21:11:22 +0900
+Message-ID: <52909B6A.7080905@hitachi.com>
+References: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal> <20131120042221.15296.85443.stgit@kbuild-fedora.novalocal> <20131122212119.GE19762@tassilo.jf.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20131123040507.GI4138@linux.vnet.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Tim Chen <tim.c.chen@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>George Spelvin <linu>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail4.hitachi.co.jp ([133.145.228.5]:37622 "EHLO
+	mail4.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751943Ab3KWML0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 23 Nov 2013 07:11:26 -0500
+In-Reply-To: <20131122212119.GE19762@tassilo.jf.intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andi Kleen <ak@linux.intel.com>
+Cc: Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, Frederic Weisbecker <fweisbec@gmail.com>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, systemtap@sourceware.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Seiji Aguchi <seiji.aguchi@hds.com>, "David S. Miller" <davem@davemloft.net>
 
-
-* Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
-
-> > x86 does have that extra "Memory ordering obeys causality (memory 
-> > ordering respects transitive visibility)." rule, and the example 
-> > in the architecture manual (section 8.2.3.6 "Stores Are 
-> > Transitively Visible") seems to very much about this, but your 
-> > particular example is subtly different, so..
+(2013/11/23 6:21), Andi Kleen wrote:
+> On Wed, Nov 20, 2013 at 04:22:21AM +0000, Masami Hiramatsu wrote:
+>> Use NOKPROBE_SYMBOL macro to protect functions from kprobes
+>> instead of __kprobes annotation in trap.c.
+>> This also applies __always_inline annotation for some cases,
+>> because NOKPROBE_SYMBOL() will inhibit inlining by referring
+>> the symbol address.
 > 
-> Indeed, my example needs CPU 1's -load- from y to be transitively 
-> visible, so I am nervous about this one as well.
+> NOKPROBE_SYMBOL seems to add a reference from some variable to the function?
 > 
-> > I will have to ruminate on this.
-> 
-> The rules on the left-hand column of page 5 of the below URL apply 
-> to this example more straightforwardly, but I don't know that Intel 
-> and AMD stand behind them:
-> 
-> 	http://www.cl.cam.ac.uk/~pes20/weakmemory/cacm.pdf
-> 
-> My guess is that x86 does guarantee this ordering, but at this point 
-> I would have to ask someone from Intel and AMD.
+> With LTO we can optimize away unused functions, but not
+> when there are references to the symbol. So this would likely
+> prevent optimizations with LTO.
 
-An additional option might be to create a user-space testcase 
-engineered to hit all the exotic ordering situations, one that might 
-disprove any particular assumptions we have about the behavior of 
-hardware. (Back a decade ago when the x86 space first introduced quad 
-core CPUs with newfangled on-die cache coherency I managed to 
-demonstrate a causality violation by simulating kernel locks in 
-user-space, which turned out to be a hardware bug. Also, when 
-Hyperthreading/SMT was new it demonstrated many interesting bugs never 
-seen in practice before. So running stuff on real hardware is useful.)
+Hmm, indeed. I think I can remove the function reference if
+the function name is unique, because the macro also stores the
+name.
+In that case, even if the function itself is optimized out and
+there is no entry in kallsyms, we can just ignore it when init
+the blacklist.
 
-And a cache coherency (and/or locking) test suite would be very useful 
-anyway, for so many other purposes as well: such as a new platform/CPU 
-bootstrap, or to prove the correctness of some fancy new locking 
-scheme people want to add. Maybe as an extension to rcutorture, or a 
-generalization of it?
+Thank you,
 
-Thanks,
-
-	Ingo
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+-- 
+Masami HIRAMATSU
+IT Management Research Dept. Linux Technology Center
+Hitachi, Ltd., Yokohama Research Laboratory
+E-mail: masami.hiramatsu.pt@hitachi.com
