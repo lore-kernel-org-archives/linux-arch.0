@@ -1,68 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gerard.telenet-ops.be ([195.130.132.48]:39951 "EHLO
-	gerard.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753905Ab3KYIzs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Nov 2013 03:55:48 -0500
+Received: from jacques.telenet-ops.be ([195.130.132.50]:50567 "EHLO
+	jacques.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753615Ab3KYIzp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Nov 2013 03:55:45 -0500
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH 21/24] powerpc: Separate kernel/userspace inclusion of <asm-generic/int-ll64.h>
-Date: Mon, 25 Nov 2013 09:55:31 +0100
-Message-ID: <1385369734-24893-22-git-send-email-geert@linux-m68k.org>
+Subject: [PATCH 08/24] parisc/uapi: Use Kbuild logic to provide <asm/types.h>
+Date: Mon, 25 Nov 2013 09:55:18 +0100
+Message-ID: <1385369734-24893-9-git-send-email-geert@linux-m68k.org>
 In-Reply-To: <1385369734-24893-1-git-send-email-geert@linux-m68k.org>
 References: <1385369734-24893-1-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20131125085531.GOpDnX-WTeyeNEy7kQ75EL4Sff3-ZxjBxJxefxtHzV4@z>
+Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org
+Message-ID: <20131125085518.hD0WZMR64JtYgcMTYe-oBPhAl4MXQa3sutgG4NP0Fa4@z>
 
-This allows to rename the kernelspace version later.
-
-Now arch/powerpc/include/asm/types.h includes the kernelspace version,
-while arch/powerpc/include/uapi/asm/types.h includes the userspace version.
-As arch/powerpc/include/uapi/asm/types.h is also included for kernelspace,
-its inclusion of <asm-generic/int-ll64.h> needs to be protected by #ifndef
-__KERNEL__.
+Uapi <asm-generic/types.h> just includes <asm-generic/int-ll64.h>
 
 Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: linuxppc-dev@lists.ozlabs.org
+Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
+Cc: Helge Deller <deller@gmx.de>
+Cc: linux-parisc@vger.kernel.org
 ---
- arch/powerpc/include/asm/types.h      |    1 +
- arch/powerpc/include/uapi/asm/types.h |    4 +++-
- 2 files changed, 4 insertions(+), 1 deletion(-)
+ arch/parisc/include/uapi/asm/Kbuild  |    3 ++-
+ arch/parisc/include/uapi/asm/types.h |    6 ------
+ 2 files changed, 2 insertions(+), 7 deletions(-)
+ delete mode 100644 arch/parisc/include/uapi/asm/types.h
 
-diff --git a/arch/powerpc/include/asm/types.h b/arch/powerpc/include/asm/types.h
-index bfb6ded38ffa..4b9c3530bb12 100644
---- a/arch/powerpc/include/asm/types.h
-+++ b/arch/powerpc/include/asm/types.h
-@@ -13,6 +13,7 @@
- #ifndef _ASM_POWERPC_TYPES_H
- #define _ASM_POWERPC_TYPES_H
+diff --git a/arch/parisc/include/uapi/asm/Kbuild b/arch/parisc/include/uapi/asm/Kbuild
+index a580642555b6..e0da93254186 100644
+--- a/arch/parisc/include/uapi/asm/Kbuild
++++ b/arch/parisc/include/uapi/asm/Kbuild
+@@ -1,6 +1,8 @@
+ # UAPI Header export list
+ include include/uapi/asm-generic/Kbuild.asm
  
-+#include <asm-generic/int-ll64.h>
- #include <uapi/asm/types.h>
- 
- #ifndef __ASSEMBLY__
-diff --git a/arch/powerpc/include/uapi/asm/types.h b/arch/powerpc/include/uapi/asm/types.h
-index 4b8ab990a3c1..7f8847b61d03 100644
---- a/arch/powerpc/include/uapi/asm/types.h
-+++ b/arch/powerpc/include/uapi/asm/types.h
-@@ -21,11 +21,13 @@
-  * However, some user programs are fine with this.  They can
-  * flag __SANE_USERSPACE_TYPES__ to get int-ll64.h here.
-  */
--#if !defined(__SANE_USERSPACE_TYPES__) && defined(__powerpc64__) && !defined(__KERNEL__)
-+#ifndef __KERNEL__
-+#if !defined(__SANE_USERSPACE_TYPES__) && defined(__powerpc64__)
- # include <asm-generic/int-l64.h>
- #else
- # include <asm-generic/int-ll64.h>
- #endif
-+#endif
- 
- #ifndef __ASSEMBLY__
- 
++generic-y += types.h
++
+ header-y += bitsperlong.h
+ header-y += byteorder.h
+ header-y += errno.h
+@@ -27,5 +29,4 @@ header-y += statfs.h
+ header-y += swab.h
+ header-y += termbits.h
+ header-y += termios.h
+-header-y += types.h
+ header-y += unistd.h
+diff --git a/arch/parisc/include/uapi/asm/types.h b/arch/parisc/include/uapi/asm/types.h
+deleted file mode 100644
+index 8866f9bbdeaf..000000000000
+--- a/arch/parisc/include/uapi/asm/types.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef _PARISC_TYPES_H
+-#define _PARISC_TYPES_H
+-
+-#include <asm-generic/int-ll64.h>
+-
+-#endif
 -- 
 1.7.9.5
 
