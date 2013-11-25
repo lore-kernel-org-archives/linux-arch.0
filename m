@@ -1,99 +1,55 @@
-From: Tim Chen <tim.c.chen@linux.intel.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
 Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
-Date: Mon, 25 Nov 2013 14:58:22 -0800
-Message-ID: <1385420302.11046.539.camel@schen9-DESK>
-References: <20131120171400.GI4138@linux.vnet.ibm.com>
-	 <20131121110308.GC10022@twins.programming.kicks-ass.net>
-	 <20131121125616.GI3694@twins.programming.kicks-ass.net>
-	 <20131121132041.GS4138@linux.vnet.ibm.com>
-	 <20131121172558.GA27927@linux.vnet.ibm.com>
-	 <20131121215249.GZ16796@laptop.programming.kicks-ass.net>
-	 <20131121221859.GH4138@linux.vnet.ibm.com>
-	 <20131122155835.GR3866@twins.programming.kicks-ass.net>
-	 <20131122182632.GW4138@linux.vnet.ibm.com>
-	 <20131122185107.GJ4971@laptop.programming.kicks-ass.net>
-	 <20131125173540.GK3694@twins.programming.kicks-ass.net>
-	 <52939C5A.3070208@zytor.com>
+Date: Mon, 25 Nov 2013 15:28:32 -0800
+Message-ID: <5293DD20.4020904@zytor.com>
+References: <20131120171400.GI4138@linux.vnet.ibm.com>	 <20131121110308.GC10022@twins.programming.kicks-ass.net>	 <20131121125616.GI3694@twins.programming.kicks-ass.net>	 <20131121132041.GS4138@linux.vnet.ibm.com>	 <20131121172558.GA27927@linux.vnet.ibm.com>	 <20131121215249.GZ16796@laptop.programming.kicks-ass.net>	 <20131121221859.GH4138@linux.vnet.ibm.com>	 <20131122155835.GR3866@twins.programming.kicks-ass.net>	 <20131122182632.GW4138@linux.vnet.ibm.com>	 <20131122185107.GJ4971@laptop.programming.kicks-ass.net>	 <20131125173540.GK3694@twins.programming.kicks-ass.net>	 <52939C5A.3070208@zytor.com> <1385420302.11046.539.camel@schen9-DESK>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <52939C5A.3070208@zytor.com>
+In-Reply-To: <1385420302.11046.539.camel@schen9-DESK>
 Sender: owner-linux-mm@kvack.org
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George
+To: Tim Chen <tim.c.chen@linux.intel.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, 2013-11-25 at 10:52 -0800, H. Peter Anvin wrote:
-> On 11/25/2013 09:35 AM, Peter Zijlstra wrote:
-> > 
-> > I think this means x86 needs help too.
-> > 
-> > Consider:
-> > 
-> > x = y = 0
-> > 
-> >   w[x] = 1  |  w[y] = 1
-> >   mfence    |  mfence
-> >   r[y] = 0  |  r[x] = 0
-> > 
-> > This is generally an impossible case, right? (Since if we observe y=0
-> > this means that w[y]=1 has not yet happened, and therefore x=1, and
-> > vice-versa).
-> > 
-> > Now replace one of the mfences with smp_store_release(l1);
-> > smp_load_acquire(l2); such that we have a RELEASE+ACQUIRE pair that
-> > _should_ form a full barrier:
-> > 
-> >   w[x] = 1   | w[y] = 1
-> >   w[l1] = 1  | mfence
-> >   r[l2] = 0  | r[x] = 0
-> >   r[y] = 0   |
-> > 
-> > At which point we can observe the impossible, because as per the rule:
-> > 
-> > 'reads may be reordered with older writes to different locations'
-> > 
-> > Our r[y] can slip before the w[x]=1.
-> > 
+On 11/25/2013 02:58 PM, Tim Chen wrote:
 > 
-> Yes, because although r[l2] and r[y] are ordered with respect to each
-> other, they are allowed to be executed before w[x] and w[l1].  In other
-> words, smp_store_release() followed by smp_load_acquire() to a different
-> location do not form a full barrier.  To the *same* location, they will.
+> Peter,
 > 
-> 	-hpa
+> Want to check with you on Paul's example, 
+> where we are indeed writing and reading to the same
+> lock location when passing the lock on x86 with smp_store_release and
+> smp_load_acquire.  So the unlock and lock sequence looks like:
+> 
+>         CPU 0 (releasing)       CPU 1 (acquiring)
+>         -----                   -----
+>         ACCESS_ONCE(X) = 1;     while (ACCESS_ONCE(lock) == 1)
+>                                   continue;
+>         ACCESS_ONCE(lock) = 0;  
+>                                 r1 = ACCESS_ONCE(Y);
 > 
 
-Peter,
+Here we can definitely state that the read from Y must have happened
+after X was set to 1 (assuming lock starts out as 1).
 
-Want to check with you on Paul's example, 
-where we are indeed writing and reading to the same
-lock location when passing the lock on x86 with smp_store_release and
-smp_load_acquire.  So the unlock and lock sequence looks like:
+> observer CPU 2:
+> 
+>         CPU 2
+>         -----
+>         ACCESS_ONCE(Y) = 1;
+>         smp_mb();
+>         r2 = ACCESS_ONCE(X);
+> 
+> If the write and read to lock act as a full memory barrier, 
+> it would be impossible to
+> end up with (r1 == 0 && r2 == 0), correct?
+> 
 
-        CPU 0 (releasing)       CPU 1 (acquiring)
-        -----                   -----
-        ACCESS_ONCE(X) = 1;     while (ACCESS_ONCE(lock) == 1)
-                                  continue;
-        ACCESS_ONCE(lock) = 0;  
-                                r1 = ACCESS_ONCE(Y);
+It would be impossible to end up with r1 == 1 && r2 == 0, I presume
+that's what you meant.
 
-observer CPU 2:
-
-        CPU 2
-        -----
-        ACCESS_ONCE(Y) = 1;
-        smp_mb();
-        r2 = ACCESS_ONCE(X);
-
-If the write and read to lock act as a full memory barrier, 
-it would be impossible to
-end up with (r1 == 0 && r2 == 0), correct?
-
-Tim
-
-
+	-hpa
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
