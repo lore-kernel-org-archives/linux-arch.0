@@ -1,7 +1,7 @@
 From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
-Date: Mon, 25 Nov 2013 19:24:50 +0100
-Message-ID: <20131125182450.GF10022@twins.programming.kicks-ass.net>
+Date: Mon, 25 Nov 2013 19:27:15 +0100
+Message-ID: <20131125182715.GG10022@twins.programming.kicks-ass.net>
 References: <20131121125616.GI3694@twins.programming.kicks-ass.net>
  <20131121132041.GS4138@linux.vnet.ibm.com>
  <20131121172558.GA27927@linux.vnet.ibm.com>
@@ -23,17 +23,14 @@ Cc: Will Deacon <will.deacon@arm.com>, Tim Chen <tim.c.chen@linux.intel.com>, In
 List-Id: linux-arch.vger.kernel.org
 
 On Mon, Nov 25, 2013 at 10:02:50AM -0800, Paul E. McKenney wrote:
-> I still do not believe that it does.  Again, strangely enough.
-> 
-> We need to ask someone in Intel that understands this all the way down
-> to the silicon.  The guy I used to rely on for this no longer works
-> at Intel.
-> 
-> Do you know someone who fits this description, or should I start sending
-> cold-call emails to various Intel contacts?
+> And if the two locks are different, then the guarantee applies only
+> when the unlock and lock are on the same CPU, in which case, as Linus
+> noted, the xchg() on entry to the slow path does the job for use.
 
-There's a whole bunch of Intel folks on the Cc. list; could one of you
-find a suitable HW engineer and put him onto this thread?
+But in that case we rely on the fact that the thing is part of a
+composite and we should no longer call it load_acquire, because frankly
+it doesn't have acquire semantics anymore because the read can escape
+out.
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
