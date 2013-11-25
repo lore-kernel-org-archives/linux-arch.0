@@ -1,82 +1,55 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: Preventing IPI sending races in arch code
-Date: Mon, 25 Nov 2013 17:00:18 +0530
-Message-ID: <529334CA.1000401@synopsys.com>
-References: <52932BE2.5010201@synopsys.com> <20131125110006.GU3866@twins.programming.kicks-ass.net>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
+Date: Mon, 25 Nov 2013 13:09:02 +0100
+Message-ID: <20131125120902.GY10022@twins.programming.kicks-ass.net>
+References: <CA+55aFz0nP1_O8jO2UkX1DmDzcBm53-fFejvz=oY=x3cGNBJSQ@mail.gmail.com>
+ <20131122203738.GC4138@linux.vnet.ibm.com>
+ <CA+55aFwHUuaGzW_=xEWNcyVnHT-zW8-bs6Xi=M458xM3Y1qE0w@mail.gmail.com>
+ <20131122215208.GD4138@linux.vnet.ibm.com>
+ <CA+55aFzS2yd-VbJB5t14mP8NZG8smB1BQaYCw3Zo19FWQL92vA@mail.gmail.com>
+ <20131123002542.GF4138@linux.vnet.ibm.com>
+ <CA+55aFy8kx1qaWszc9nrbUaqFu7GfTtDkpzPBeE2g2U6RZjYkA@mail.gmail.com>
+ <20131123013654.GG4138@linux.vnet.ibm.com>
+ <CA+55aFxQy8afgf6geqJOEHmsJ=ME-6CXrrPfj=aggH7u_jEEZA@mail.gmail.com>
+ <CA+55aFzr7=N=_t03Luzxg2Ln9_h+M9Ud5spLi7FH+5j7ynkPUg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us02smtp1.synopsys.com ([198.182.60.75]:35831 "EHLO
-	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750767Ab3KYLal (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Nov 2013 06:30:41 -0500
-In-Reply-To: <20131125110006.GU3866@twins.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Gilad Ben-Yossef <gilad@benyossef.com>, Noam Camus <noamc@ezchip.com>, David Daney <david.daney@cavium.com>, James Hogan <james.hogan@imgtec.com>, thomas Gleixner <tglx@linutronix.de>, lkml <linux-kernel@vger.kernel.org>, Richard Kuo <rkuo@codeaurora.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <CA+55aFzr7=N=_t03Luzxg2Ln9_h+M9Ud5spLi7FH+5j7ynkPUg@mail.gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, Tim Chen <tim.c.chen@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>
+List-Id: linux-arch.vger.kernel.org
 
-On 11/25/2013 04:30 PM, Peter Zijlstra wrote:
-> On Mon, Nov 25, 2013 at 04:22:18PM +0530, Vineet Gupta wrote:
->> Hi,
->>
->> I've been looking into cleaning up bitrot in ARC SMP support. Unlike some other
->> arches/platforms, we don't have per-msg-type IRQ, so the actual msg (say cross
->> function call) corresponding to IPI needs to be encoded in a per-cpu word (1 bit
->> per msg type) before kicking the IPI.
->>
->> The current code (indicative below) is completely bonkers as it calls set_bit w/o
->> any protection whatsoever, clearly racy in case of multiple senders, where
->> receiver could end up NOT seeing one of the writes.
->>
->> ipi_send_msg(cpu, msg-type)
->> {
->>    struct ipi_data *ipi_data = &per_cpu(ipi_data, cpu);
->>
->>    local_irq_save();
->>    set_bit(msg-type, &ipi_data->bits)
->>    plat_smp_ops.ipi_send(cpumask)
->>    local_irq_restore();
->> }
->>
->> Adding a spinlock here would serialize the sending part, but I still see issue in
->> receiver. Upon receipt of First IPI, the msg holding word will be atomically
->> exchanged with 0, so 2nd IPI will not see any msg in the word. Augmenting with an
->> atomic counter would only help detect the issue - but I don't see how it will help
->> elide the issue.
->>
->> Does that mean w/o proper hardware assist (i.e. IRQ providing the msg id
->> indication), the race, however small, remains ?
+On Sat, Nov 23, 2013 at 12:39:53PM -0800, Linus Torvalds wrote:
+> On Sat, Nov 23, 2013 at 12:21 PM, Linus Torvalds
+> <torvalds@linux-foundation.org> wrote:
+> >
+> > And as far as I can tell, the above gives you: A < B < C < D < E < F <
+> > A. Which doesn't look possible.
 > 
-> You can use cmpxchg to set the bit, and in case the previous value
-> wasn't 0 not send a second IPI.
+> Hmm.. I guess technically all of those cases aren't "strictly
+> precedes" as much as "cannot have happened in the opposite order". So
+> the "<" might be "<=". Which I guess *is* possible: "it all happened
+> at the same time". And then the difference between your suggested
+> "lwsync" and "sync" in the unlock path on CPU0 basically approximating
+> the difference between "A <= B" and "A < B"..
 > 
+> Ho humm.
 
-Thx Peter, that'll do it.
+But remember, there's an actual full proper barrier between E and F, so
+at best you'd end up with something like:
 
-While we are at it, I wanted to confirm another potential race (ARC/blackfin..)
-The IPI handler clears the interrupt before atomically-read-n-clear the msg word.
+  A <= B <= C <= D <= E < F <= A
 
-do_IPI
-   plat_smp_ops.ipi_clear(irq);
-   while ((pending = xchg(&ipi_data->bits, 0) != 0)
-      find_next_bit(....)
-      switch(next-msg)
+Which is still an impossibility.
 
-Depending on arch this could lead to an immediate IPI interrupt, and again
-ipi_data->bits could get out of syn with IPI senders. IMO the while loop is
-completely useless specially if IPIs are not coalesced in h/w. And we need to move
-the xchg ahead of ACK'ing the IPI
+I'm hoping others will explain things, as I'm very much on shaky ground
+myself wrt transitivity.
 
-do_IPI
-   pending = xchg(&ipi_data->bits, 0);
-   plat_smp_ops.ipi_clear(irq);
-   while (ffs....)
-      switch(next-msg)
-      ...
-
-Does that look sane to you.
-
-Thx,
--Vineet
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
