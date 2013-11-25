@@ -1,89 +1,50 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 0024] asm-generic: Rename int-ll64.h to types.h
-Date: Mon, 25 Nov 2013 11:43:01 +0100
-Message-ID: <CAMuHMdXoy5DaKqGWrZxeof2UuoZK01=oxmQmy8kEvNS8CJLaTg@mail.gmail.com>
-References: <1385369734-24893-1-git-send-email-geert@linux-m68k.org>
-	<1385374617.2354.22.camel@dabdike>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Preventing IPI sending races in arch code
+Date: Mon, 25 Nov 2013 16:22:18 +0530
+Message-ID: <52932BE2.5010201@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f175.google.com ([209.85.192.175]:41432 "EHLO
-	mail-pd0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750867Ab3KYKnD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Nov 2013 05:43:03 -0500
-In-Reply-To: <1385374617.2354.22.camel@dabdike>
+Received: from hermes.synopsys.com ([198.182.44.81]:33759 "EHLO
+	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751068Ab3KYKwk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Nov 2013 05:52:40 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@hansenpartnership.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Cc: Gilad Ben-Yossef <gilad@benyossef.com>, Noam Camus <noamc@ezchip.com>, David Daney <david.daney@cavium.com>, James Hogan <james.hogan@imgtec.com>, peter Zijlstra <peterz@infradead.org>, thomas Gleixner <tglx@linutronix.de>, lkml <linux-kernel@vger.kernel.org>, Richard Kuo <rkuo@codeaurora.org>
 
-On Mon, Nov 25, 2013 at 11:16 AM, James Bottomley
-<James.Bottomley@hansenpartnership.com> wrote:
-> On Mon, 2013-11-25 at 09:55 +0100, Geert Uytterhoeven wrote:
->> This patchset aims to rename <asm-generic/int-ll64.h> to
->> <asm-generic/types.h> in kernelspace, as suggested by Arnd.
->>
->> While userspace still has both include/uapi/asm-generic/int-l64.h and
->> include/uapi/asm-generic/int-ll64.h (int-l64.h may still be used on legacy
->> 64-bit systems), kernelspace always uses "(unsigned) long long" for 64-bit
->> integer values ("u64" and "s64").  Hence there's no longer a need to
->> distinguish between int-l64 and int-ll64 in kernelspace, and int-ll64.h can
->> just be called types.h
->
-> Is this a good idea?  I thought some versions of gcc used long long for
-> 128 bit integers, in which case int-ll64.h will give the wrong types for
-> u64 and s64.  I think gcc is changing to use the __int128 type, so this
-> may be historical, but someone would need to validate that we have no
-> architectures with the old long long behaviour.
+Hi,
 
-I'm sorry, "(unsigned) long long" is always 64 bit in kernelspace.
+I've been looking into cleaning up bitrot in ARC SMP support. Unlike some other
+arches/platforms, we don't have per-msg-type IRQ, so the actual msg (say cross
+function call) corresponding to IPI needs to be encoded in a per-cpu word (1 bit
+per msg type) before kicking the IPI.
 
-<asm-generic/int-l64.h> is included in uapi files only, and all of these
-inclusions are protected by #ifndef __KERNEL__:
+The current code (indicative below) is completely bonkers as it calls set_bit w/o
+any protection whatsoever, clearly racy in case of multiple senders, where
+receiver could end up NOT seeing one of the writes.
 
-$ git grep -C 2 "include.*int-l64.h" -- "*.h"
-arch/alpha/include/uapi/asm/types.h-
-arch/alpha/include/uapi/asm/types.h-#ifndef __KERNEL__
-arch/alpha/include/uapi/asm/types.h:#include <asm-generic/int-l64.h>
-arch/alpha/include/uapi/asm/types.h-#endif
-arch/alpha/include/uapi/asm/types.h-
---
-arch/ia64/include/uapi/asm/types.h-
-arch/ia64/include/uapi/asm/types.h-#ifndef __KERNEL__
-arch/ia64/include/uapi/asm/types.h:#include <asm-generic/int-l64.h>
-arch/ia64/include/uapi/asm/types.h-#endif
-arch/ia64/include/uapi/asm/types.h-
---
-arch/mips/include/uapi/asm/types.h-#ifndef __KERNEL__
-arch/mips/include/uapi/asm/types.h-# if _MIPS_SZLONG == 64
-arch/mips/include/uapi/asm/types.h:#  include <asm-generic/int-l64.h>
-arch/mips/include/uapi/asm/types.h-# else
-arch/mips/include/uapi/asm/types.h-#  include <asm-generic/int-ll64.h>
---
-arch/powerpc/include/uapi/asm/types.h- */
-arch/powerpc/include/uapi/asm/types.h-#if
-!defined(__SANE_USERSPACE_TYPES__) && defined(__powerpc64__) &&
-!defined(__KERNEL__)
-arch/powerpc/include/uapi/asm/types.h:# include <asm-generic/int-l64.h>
-arch/powerpc/include/uapi/asm/types.h-#else
-arch/powerpc/include/uapi/asm/types.h-# include <asm-generic/int-ll64.h>
---
-include/asm-generic/int-l64.h-#define _ASM_GENERIC_INT_L64_H
-include/asm-generic/int-l64.h-
-include/asm-generic/int-l64.h:#include <uapi/asm-generic/int-l64.h>
-include/asm-generic/int-l64.h-
-include/asm-generic/int-l64.h-
-$
+ipi_send_msg(cpu, msg-type)
+{
+   struct ipi_data *ipi_data = &per_cpu(ipi_data, cpu);
 
-(non-UAPI include/asm-generic/int-l64.h is unused, its removal is pending).
+   local_irq_save();
+   set_bit(msg-type, &ipi_data->bits)
+   plat_smp_ops.ipi_send(cpumask)
+   local_irq_restore();
+}
 
-Gr{oetje,eeting}s,
+Adding a spinlock here would serialize the sending part, but I still see issue in
+receiver. Upon receipt of First IPI, the msg holding word will be atomically
+exchanged with 0, so 2nd IPI will not see any msg in the word. Augmenting with an
+atomic counter would only help detect the issue - but I don't see how it will help
+elide the issue.
 
-                        Geert
+Does that mean w/o proper hardware assist (i.e. IRQ providing the msg id
+indication), the race, however small, remains ?
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+Comments much appreciated !
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+-Vineet
