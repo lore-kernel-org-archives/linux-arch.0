@@ -1,63 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gerard.telenet-ops.be ([195.130.132.48]:39877 "EHLO
-	gerard.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753722Ab3KYIzq (ORCPT
+Received: from juliette.telenet-ops.be ([195.130.137.74]:36427 "EHLO
+	juliette.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753707Ab3KYIzq (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Nov 2013 03:55:46 -0500
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH 22/24] s390: Separate kernel/userspace inclusion of <asm-generic/int-ll64.h>
-Date: Mon, 25 Nov 2013 09:55:32 +0100
-Message-ID: <1385369734-24893-23-git-send-email-geert@linux-m68k.org>
+Subject: [PATCH 16/24] frv: Use Kbuild logic to provide <asm/types.h>
+Date: Mon, 25 Nov 2013 09:55:26 +0100
+Message-ID: <1385369734-24893-17-git-send-email-geert@linux-m68k.org>
 In-Reply-To: <1385369734-24893-1-git-send-email-geert@linux-m68k.org>
 References: <1385369734-24893-1-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org
-Message-ID: <20131125085532.12q75ONIv14JjV7b56cB5773z8jXb4PgltxqkN7VW2U@z>
+Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, David Howells <dhowells@redhat.com>
+Message-ID: <20131125085526.29OcBT1_X_zQbzOkhBEK9P5RKVQ3ciQqI3LUmuSNH7I@z>
 
-This allows to rename the kernelspace version later.
-
-Now arch/s390/include/asm/types.h includes the kernelspace version,
-while arch/s390/include/uapi/asm/types.h includes the userspace version.
-As arch/s390/include/uapi/asm/types.h is also included for kernelspace,
-its inclusion of <asm-generic/int-ll64.h> needs to be protected by #ifndef
-__KERNEL__.
+The extra definition for BITS_PER_LONG is also indirectly provided
+by <asm-generic/types.h>, via <asm-generic/int-ll64.h> and
+<asm/bitsperlong.h>
 
 Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: linux-s390@vger.kernel.org
+Cc: David Howells <dhowells@redhat.com>
 ---
- arch/s390/include/asm/types.h      |    1 +
- arch/s390/include/uapi/asm/types.h |    2 ++
- 2 files changed, 3 insertions(+)
+ arch/frv/include/asm/Kbuild  |    1 +
+ arch/frv/include/asm/types.h |   22 ----------------------
+ 2 files changed, 1 insertion(+), 22 deletions(-)
+ delete mode 100644 arch/frv/include/asm/types.h
 
-diff --git a/arch/s390/include/asm/types.h b/arch/s390/include/asm/types.h
-index dccef3ca91fa..a5c7e829dbc3 100644
---- a/arch/s390/include/asm/types.h
-+++ b/arch/s390/include/asm/types.h
-@@ -6,6 +6,7 @@
- #ifndef _S390_TYPES_H
- #define _S390_TYPES_H
- 
-+#include <asm-generic/int-ll64.h>
- #include <uapi/asm/types.h>
- 
- /*
-diff --git a/arch/s390/include/uapi/asm/types.h b/arch/s390/include/uapi/asm/types.h
-index 038f2b9178a4..13b5ad14380d 100644
---- a/arch/s390/include/uapi/asm/types.h
-+++ b/arch/s390/include/uapi/asm/types.h
-@@ -7,7 +7,9 @@
- #ifndef _UAPI_S390_TYPES_H
- #define _UAPI_S390_TYPES_H
- 
-+#ifndef __KERNEL__
- #include <asm-generic/int-ll64.h>
-+#endif
- 
- #ifndef __ASSEMBLY__
- 
+diff --git a/arch/frv/include/asm/Kbuild b/arch/frv/include/asm/Kbuild
+index 74742dc6a3da..28abdd0b8287 100644
+--- a/arch/frv/include/asm/Kbuild
++++ b/arch/frv/include/asm/Kbuild
+@@ -3,3 +3,4 @@ generic-y += clkdev.h
+ generic-y += exec.h
+ generic-y += trace_clock.h
+ generic-y += preempt.h
++generic-y += types.h
+diff --git a/arch/frv/include/asm/types.h b/arch/frv/include/asm/types.h
+deleted file mode 100644
+index 6bc63650d832..000000000000
+--- a/arch/frv/include/asm/types.h
++++ /dev/null
+@@ -1,22 +0,0 @@
+-/* types.h: FRV types
+- *
+- * Copyright (C) 2004 Red Hat, Inc. All Rights Reserved.
+- * Written by David Howells (dhowells@redhat.com)
+- *
+- * This program is free software; you can redistribute it and/or
+- * modify it under the terms of the GNU General Public License
+- * as published by the Free Software Foundation; either version
+- * 2 of the License, or (at your option) any later version.
+- */
+-#ifndef _ASM_TYPES_H
+-#define _ASM_TYPES_H
+-
+-#include <uapi/asm/types.h>
+-
+-/*
+- * These aren't exported outside the kernel to avoid name space clashes
+- */
+-
+-#define BITS_PER_LONG 32
+-
+-#endif /* _ASM_TYPES_H */
 -- 
 1.7.9.5
 
