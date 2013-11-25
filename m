@@ -1,81 +1,65 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: Preventing IPI sending races in arch code
-Date: Mon, 25 Nov 2013 14:57:25 +0100
-Message-ID: <20131125135725.GA10022@twins.programming.kicks-ass.net>
-References: <52932BE2.5010201@synopsys.com>
- <20131125110006.GU3866@twins.programming.kicks-ass.net>
- <529334CA.1000401@synopsys.com>
- <20131125122726.GZ10022@twins.programming.kicks-ass.net>
- <C2D7FE5348E1B147BCA15975FBA2307515715C@IN01WEMBXA.internal.synopsys.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <C2D7FE5348E1B147BCA15975FBA2307515715C@IN01WEMBXA.internal.synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Gilad Ben-Yossef <gilad@benyossef.com>, Noam Camus <noamc@ezchip.com>, David Daney <david.daney@cavium.com>, James Hogan <james.hogan@imgtec.com>, thomas Gleixner <tglx@linutronix.de>, lkml <linux-kernel@vger.kernel.org>, Richard Kuo <rkuo@codeaurora.org>
+From: Mark Salter <msalter@redhat.com>
+Subject: [PATCH v2 00/11] Consolidate asm/fixmap.h files
+Date: Mon, 25 Nov 2013 11:13:54 -0500
+Message-ID: <1385396045-15852-1-git-send-email-msalter@redhat.com>
+Return-path: <linux-hexagon-owner@vger.kernel.org>
+Sender: linux-hexagon-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: Mark Salter <msalter@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, linux-metag@vger.kernel.org, Michal Simek <monstr@monstr.eu>, microblaze-uclinux@itee.uq.edu.au, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Nov 25, 2013 at 01:35:38PM +0000, Vineet Gupta wrote:
-> On 11/25/2013 05:57 PM, Peter Zijlstra wrote:
+Many architectures provide an asm/fixmap.h which defines support for
+compile-time 'special' virtual mappings which need to be made before
+paging_init() has run. This suport is also used for early ioremap
+on x86. Much of this support is identical across the architectures.
+This patch consolidates all of the common bits into asm-generic/fixmap.h
+which is intended to be included from arch/*/include/asm/fixmap.h.
 
-> > So sure, then someone can again assert the interrupt, but given we just
-> > established a protocol for raising the thing; namely something like
-> > this:
-> >
-> > void arch_send_ipi(int cpu, int type)
-> > {
-> >   u32 *pending_ptr = per_cpu_ptr(ipi_bits, cpu);
-> >   u32 new, old;
-> >
-> >   do {
-> >   	new = old = *pending_ptr;
-> > 	new |= 1U << type;
-> >   } while (cmpxchg(pending_ptr, old, new) != old)
-> >
-> >   if (!old) /* only raise the actual IPI if we set the first bit */
-> >   	raise_ipi(cpu);
-> > }
-> >
-> > Who would re-assert it if we have !0 pending?
-> 
-> I see your point. So in receiver, it is OK to de-assert the IPI before processing
-> the msg itself.
-> 
-> Actually your code seems to be optimizing away asserting an IPI, if sender already
-> had a pending msg (assuming we retain the xchg loop in receiver). Was that an
-> intended optimization - or just a side effect of your code ;-)
+This has been compiled on x86, arm, powerpc, and sh, but tested
+on x86 only.
 
-No, full intention. As you mentioned you wanted to avoid sending IPIs
-where none were needed.
+This is version two of the patch series:
 
-> >> IMO the while loop is
-> >> completely useless specially if IPIs are not coalesced in h/w. 
-> > Agreed, the while loops seems superfluous.
-> 
-> Not with your version of sender, since we need it as described above.
+   git://github.com/mosalter/linux.git#fixmap-v2
 
-No, even with my code; the receiving end should look like:
+Version 1 is here:
 
-void handle_ipi(struct pt_regs *regs)
-{
-	u32 pending;
+   git://github.com/mosalter/linux.git#fixmap
 
-	ipi_clear(irq);
+Changes from v1:
 
-	pending = xchg(this_cpu_ptr(ipi_bits), 0);
+  * Added acks from feedback.
+  * Use BUILD_BUG_ON in fix_to_virt()
+  * Fixed ARM patch to make FIXMAP_TOP inclusive of fixmap
+    range as is the case in the other architectures.
 
-	while (pending) {
-		bit = ffs(pending);
+Mark Salter (11):
+  Add generic fixmap.h
+  x86: use generic fixmap.h
+  arm: use generic fixmap.h
+  hexagon: use generic fixmap.h
+  metag: use generic fixmap.h
+  microblaze: use generic fixmap.h
+  mips: use generic fixmap.h
+  powerpc: use generic fixmap.h
+  sh: use generic fixmap.h
+  tile: use generic fixmap.h
+  um: use generic fixmap.h
 
-		/* handle bit */
+ arch/arm/include/asm/fixmap.h        | 29 +++--------
+ arch/arm/mm/init.c                   |  2 +-
+ arch/hexagon/include/asm/fixmap.h    | 40 +--------------
+ arch/metag/include/asm/fixmap.h      | 32 +-----------
+ arch/microblaze/include/asm/fixmap.h | 44 +---------------
+ arch/mips/include/asm/fixmap.h       | 33 +-----------
+ arch/powerpc/include/asm/fixmap.h    | 44 +---------------
+ arch/sh/include/asm/fixmap.h         | 39 +--------------
+ arch/tile/include/asm/fixmap.h       | 33 +-----------
+ arch/um/include/asm/fixmap.h         | 40 +--------------
+ arch/x86/include/asm/fixmap.h        | 59 +---------------------
+ include/asm-generic/fixmap.h         | 97 ++++++++++++++++++++++++++++++++++++
+ 12 files changed, 118 insertions(+), 374 deletions(-)
+ create mode 100644 include/asm-generic/fixmap.h
 
-		pending &= ~(1U << bit);
-	}
-}
-
-So while it does have a while() loop, it only does a single xchg().
-
-The version you showed before had the xchg() in the loop, that is not
-required.
+-- 
+1.8.3.1
