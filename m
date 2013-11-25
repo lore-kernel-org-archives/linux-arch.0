@@ -1,81 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cassarossa.samfundet.no ([193.35.52.29]:59717 "EHLO
-	cassarossa.samfundet.no" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753164Ab3KYJJX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Nov 2013 04:09:23 -0500
-Date: Mon, 25 Nov 2013 10:09:22 +0100
-From: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-Subject: Re: [PATCH 14/24] avr32: Use Kbuild logic to provide <asm/types.h>
-Message-ID: <20131125090922.GB13358@samfundet.no>
+Received: from georges.telenet-ops.be ([195.130.137.68]:60350 "EHLO
+	georges.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753441Ab3KYIzo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Nov 2013 03:55:44 -0500
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: [PATCH 05/24] m32r/uapi: Use Kbuild logic to provide <asm/types.h>
+Date: Mon, 25 Nov 2013 09:55:15 +0100
+Message-ID: <1385369734-24893-6-git-send-email-geert@linux-m68k.org>
+In-Reply-To: <1385369734-24893-1-git-send-email-geert@linux-m68k.org>
 References: <1385369734-24893-1-git-send-email-geert@linux-m68k.org>
- <1385369734-24893-15-git-send-email-geert@linux-m68k.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1385369734-24893-15-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Haavard Skinnemoen <hskinnemoen@gmail.com>
-Message-ID: <20131125090922.QMJgaTzsZmNZ5Lm7-BAmEOsShBcDb7YUe7WdTPojl3Y@z>
+To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Hirokazu Takata <takata@linux-m32r.org>, linux-m32r@ml.linux-m32r.org
+Message-ID: <20131125085515.XbrXetbEOxMYG_hq-Gu5PNNecRuBqwxm36AjPlXQy9w@z>
 
-Around Mon 25 Nov 2013 09:55:24 +0100 or thereabout, Geert Uytterhoeven wrote:
-> The extra definition for BITS_PER_LONG is also indirectly provided
-> by <asm-generic/types.h>, via <asm-generic/int-ll64.h> and
-> <asm/bitsperlong.h>
+Uapi <asm-generic/types.h> just includes <asm-generic/int-ll64.h>
 
-Are you adding a new include/asm-generic/types.h, which will include
-bitsperlong.h ?
+Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Hirokazu Takata <takata@linux-m32r.org>
+Cc: linux-m32r@ml.linux-m32r.org
+---
+ arch/m32r/include/uapi/asm/Kbuild  |    3 ++-
+ arch/m32r/include/uapi/asm/types.h |    1 -
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+ delete mode 100644 arch/m32r/include/uapi/asm/types.h
 
-If so, nice cleaning, and you have my
-
-> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
-> Cc: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-
-Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-
-> ---
->  arch/avr32/include/asm/Kbuild  |    1 +
->  arch/avr32/include/asm/types.h |   19 -------------------
->  2 files changed, 1 insertion(+), 19 deletions(-)
->  delete mode 100644 arch/avr32/include/asm/types.h
-> 
-> diff --git a/arch/avr32/include/asm/Kbuild b/arch/avr32/include/asm/Kbuild
-> index 658001b52400..129f4ff68066 100644
-> --- a/arch/avr32/include/asm/Kbuild
-> +++ b/arch/avr32/include/asm/Kbuild
-> @@ -17,4 +17,5 @@ generic-y       += scatterlist.h
->  generic-y       += sections.h
->  generic-y       += topology.h
->  generic-y	+= trace_clock.h
-> +generic-y	+= types.h
->  generic-y       += xor.h
-> diff --git a/arch/avr32/include/asm/types.h b/arch/avr32/include/asm/types.h
-> deleted file mode 100644
-> index 59324058069c..000000000000
-> --- a/arch/avr32/include/asm/types.h
-> +++ /dev/null
-> @@ -1,19 +0,0 @@
-> -/*
-> - * Copyright (C) 2004-2006 Atmel Corporation
-> - *
-> - * This program is free software; you can redistribute it and/or modify
-> - * it under the terms of the GNU General Public License version 2 as
-> - * published by the Free Software Foundation.
-> - */
-> -#ifndef __ASM_AVR32_TYPES_H
-> -#define __ASM_AVR32_TYPES_H
-> -
-> -#include <uapi/asm/types.h>
-> -
-> -/*
-> - * These aren't exported outside the kernel to avoid name space clashes
-> - */
-> -
-> -#define BITS_PER_LONG 32
-> -
-> -#endif /* __ASM_AVR32_TYPES_H */
+diff --git a/arch/m32r/include/uapi/asm/Kbuild b/arch/m32r/include/uapi/asm/Kbuild
+index 43937a61d6cf..87f6d698fb9c 100644
+--- a/arch/m32r/include/uapi/asm/Kbuild
++++ b/arch/m32r/include/uapi/asm/Kbuild
+@@ -1,6 +1,8 @@
+ # UAPI Header export list
+ include include/uapi/asm-generic/Kbuild.asm
+ 
++generic-y += types.h
++
+ header-y += auxvec.h
+ header-y += bitsperlong.h
+ header-y += byteorder.h
+@@ -29,5 +31,4 @@ header-y += statfs.h
+ header-y += swab.h
+ header-y += termbits.h
+ header-y += termios.h
+-header-y += types.h
+ header-y += unistd.h
+diff --git a/arch/m32r/include/uapi/asm/types.h b/arch/m32r/include/uapi/asm/types.h
+deleted file mode 100644
+index 9ec9d4c5ac4d..000000000000
+--- a/arch/m32r/include/uapi/asm/types.h
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <asm-generic/int-ll64.h>
 -- 
-mvh
-Hans-Christian Egtvedt
+1.7.9.5
+
