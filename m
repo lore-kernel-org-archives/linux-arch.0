@@ -1,79 +1,113 @@
-From: Will Deacon <will.deacon@arm.com>
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
-Date: Mon, 25 Nov 2013 17:18:23 +0000
-Message-ID: <20131125171823.GA28201@mudshark.cambridge.arm.com>
-References: <20131122203738.GC4138@linux.vnet.ibm.com>
- <CA+55aFwHUuaGzW_=xEWNcyVnHT-zW8-bs6Xi=M458xM3Y1qE0w@mail.gmail.com>
- <20131122215208.GD4138@linux.vnet.ibm.com>
- <CA+55aFzS2yd-VbJB5t14mP8NZG8smB1BQaYCw3Zo19FWQL92vA@mail.gmail.com>
- <20131123002542.GF4138@linux.vnet.ibm.com>
- <CA+55aFy8kx1qaWszc9nrbUaqFu7GfTtDkpzPBeE2g2U6RZjYkA@mail.gmail.com>
- <20131123013654.GG4138@linux.vnet.ibm.com>
- <CA+55aFxQy8afgf6geqJOEHmsJ=ME-6CXrrPfj=aggH7u_jEEZA@mail.gmail.com>
- <CA+55aFzr7=N=_t03Luzxg2Ln9_h+M9Ud5spLi7FH+5j7ynkPUg@mail.gmail.com>
- <20131125120902.GY10022@twins.programming.kicks-ass.net>
+Date: Mon, 25 Nov 2013 18:35:40 +0100
+Message-ID: <20131125173540.GK3694@twins.programming.kicks-ass.net>
+References: <20131120171400.GI4138@linux.vnet.ibm.com>
+ <20131121110308.GC10022@twins.programming.kicks-ass.net>
+ <20131121125616.GI3694@twins.programming.kicks-ass.net>
+ <20131121132041.GS4138@linux.vnet.ibm.com>
+ <20131121172558.GA27927@linux.vnet.ibm.com>
+ <20131121215249.GZ16796@laptop.programming.kicks-ass.net>
+ <20131121221859.GH4138@linux.vnet.ibm.com>
+ <20131122155835.GR3866@twins.programming.kicks-ass.net>
+ <20131122182632.GW4138@linux.vnet.ibm.com>
+ <20131122185107.GJ4971@laptop.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <20131125120902.GY10022@twins.programming.kicks-ass.net>
+In-Reply-To: <20131122185107.GJ4971@laptop.programming.kicks-ass.net>
 Sender: owner-linux-mm@kvack.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Will Deacon <will.deacon@arm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zyto>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Peter, Linus,
-
-On Mon, Nov 25, 2013 at 12:09:02PM +0000, Peter Zijlstra wrote:
-> On Sat, Nov 23, 2013 at 12:39:53PM -0800, Linus Torvalds wrote:
-> > On Sat, Nov 23, 2013 at 12:21 PM, Linus Torvalds
-> > <torvalds@linux-foundation.org> wrote:
-> > >
-> > > And as far as I can tell, the above gives you: A < B < C < D < E < F <
-> > > A. Which doesn't look possible.
-> > 
-> > Hmm.. I guess technically all of those cases aren't "strictly
-> > precedes" as much as "cannot have happened in the opposite order". So
-> > the "<" might be "<=". Which I guess *is* possible: "it all happened
-> > at the same time". And then the difference between your suggested
-> > "lwsync" and "sync" in the unlock path on CPU0 basically approximating
-> > the difference between "A <= B" and "A < B"..
-> > 
-> > Ho humm.
+On Fri, Nov 22, 2013 at 07:51:07PM +0100, Peter Zijlstra wrote:
+> On Fri, Nov 22, 2013 at 10:26:32AM -0800, Paul E. McKenney wrote:
+> > The real source of my cognitive pain is that here we have a sequence of
+> > code that has neither atomic instructions or memory-barrier instructions,
+> > but it looks like it still manages to act as a full memory barrier.
+> > Still not quite sure I should trust it...
 > 
-> But remember, there's an actual full proper barrier between E and F, so
-> at best you'd end up with something like:
+> Yes, this is something that puzzles me too.
 > 
->   A <= B <= C <= D <= E < F <= A
+> That said, the two rules that:
 > 
-> Which is still an impossibility.
+> 1)  stores aren't re-ordered against other stores
+> 2)  reads aren't re-ordered against other reads
 > 
-> I'm hoping others will explain things, as I'm very much on shaky ground
-> myself wrt transitivity.
+> Do make that:
+> 
+> 	STORE x
+> 	LOAD  x
+> 
+> form a fence that neither stores nor loads can pass through from
+> either side; note however that they themselves rely on the data
+> dependency to not reorder against themselves.
+> 
+> If you put them the other way around:
+> 
+> 	LOAD x
+> 	STORE y
+> 
+> we seem to get a stronger variant because stores are not re-ordered
+> against older reads.
+> 
+> There is however the exception cause for rule 1) above, which includes
+> clflush, non-temporal stores and string ops; the actual mfence
+> instruction doesn't seem to have this exception and would thus be
+> slightly stronger still.
+> 
+> Still confusion situation all round.
 
-The transitivity issues come about by having multiple, valid copies of the
-same data at a given moment in time (hence the term `multi-copy atomicity',
-where all of these copies appear to be updated at once).
+I think this means x86 needs help too.
 
-Now, I'm not familiar with the Power memory model and the implementation
-intricacies between lwsync and sync, but I think a better way to think
-about this is to think of the cacheline state changes being broadcast as
-asynchronous requests, rather than necessarily responding to snoops from a
-canonical source.
+Consider:
 
-So, in Paul's example, the upgrade requests on X and lock (shared -> invalid)
-may have reached CPU1, but not CPU2 by the time CPU2 reads X and therefore
-reads 0 from its shared line. It really depends on the multi-copy semantics
-you give to the different barrier instructions.
+x = y = 0
 
-The other thing worth noting is that exclusive access instructions (e.g.
-ldrex and strex on ARM) may interact differently with barriers than conventional
-accesses, so lighter weight barriers can sometimes be acceptable for things
-like locks and atomics.
+  w[x] = 1  |  w[y] = 1
+  mfence    |  mfence
+  r[y] = 0  |  r[x] = 0
 
-Does that help at all?
+This is generally an impossible case, right? (Since if we observe y=0
+this means that w[y]=1 has not yet happened, and therefore x=1, and
+vice-versa).
 
-Will
+Now replace one of the mfences with smp_store_release(l1);
+smp_load_acquire(l2); such that we have a RELEASE+ACQUIRE pair that
+_should_ form a full barrier:
+
+  w[x] = 1   | w[y] = 1
+  w[l1] = 1  | mfence
+  r[l2] = 0  | r[x] = 0
+  r[y] = 0   |
+
+At which point we can observe the impossible, because as per the rule:
+
+'reads may be reordered with older writes to different locations'
+
+Our r[y] can slip before the w[x]=1.
+
+Thus x86's smp_store_release() would need to be:
+
++#define smp_store_release(p, v)						\
++do {									\
++	compiletime_assert_atomic_type(*p);				\
++	smp_mb();							\
++	ACCESS_ONCE(*p) = (v);						\
++} while (0)
+
+Or: (void)xchg((p), (v));
+
+Idem for s390 and sparc I suppose.
+
+The only reason your example worked is because the unlock and lock were
+for the same lock.
+
+This of course leaves us without joy for circular buffers, which can do
+without this LOCK'ed op and without sync on PPC. Now I'm not at all sure
+we've got enough of those to justify primitives just for them.
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
