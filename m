@@ -1,54 +1,57 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH 09/24] score/uapi: Use Kbuild logic to include <asm-generic/types.h>
-Date: Mon, 25 Nov 2013 09:55:19 +0100
-Message-ID: <1385369734-24893-10-git-send-email-geert@linux-m68k.org>
+Subject: [PATCH 22/24] s390: Separate kernel/userspace inclusion of <asm-generic/int-ll64.h>
+Date: Mon, 25 Nov 2013 09:55:32 +0100
+Message-ID: <1385369734-24893-23-git-send-email-geert@linux-m68k.org>
 References: <1385369734-24893-1-git-send-email-geert@linux-m68k.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1385369734-24893-1-git-send-email-geert@linux-m68k.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>
+Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Chen Liqin <liqin.linux@gmail.com>
-Cc: Lennox Wu <lennox.wu@gmail.com>
----
- arch/score/include/uapi/asm/Kbuild  |    3 ++-
- arch/score/include/uapi/asm/types.h |    6 ------
- 2 files changed, 2 insertions(+), 7 deletions(-)
- delete mode 100644 arch/score/include/uapi/asm/types.h
+This allows to rename the kernelspace version later.
 
-diff --git a/arch/score/include/uapi/asm/Kbuild b/arch/score/include/uapi/asm/Kbuild
-index 040178cdb3eb..bdc329ac60aa 100644
---- a/arch/score/include/uapi/asm/Kbuild
-+++ b/arch/score/include/uapi/asm/Kbuild
-@@ -1,6 +1,8 @@
- # UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
+Now arch/s390/include/asm/types.h includes the kernelspace version,
+while arch/s390/include/uapi/asm/types.h includes the userspace version.
+As arch/s390/include/uapi/asm/types.h is also included for kernelspace,
+its inclusion of <asm-generic/int-ll64.h> needs to be protected by #ifndef
+__KERNEL__.
+
+Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: linux-s390@vger.kernel.org
+---
+ arch/s390/include/asm/types.h      |    1 +
+ arch/s390/include/uapi/asm/types.h |    2 ++
+ 2 files changed, 3 insertions(+)
+
+diff --git a/arch/s390/include/asm/types.h b/arch/s390/include/asm/types.h
+index dccef3ca91fa..a5c7e829dbc3 100644
+--- a/arch/s390/include/asm/types.h
++++ b/arch/s390/include/asm/types.h
+@@ -6,6 +6,7 @@
+ #ifndef _S390_TYPES_H
+ #define _S390_TYPES_H
  
-+generic-y += types.h
-+
- header-y += auxvec.h
- header-y += bitsperlong.h
- header-y += byteorder.h
-@@ -30,5 +32,4 @@ header-y += statfs.h
- header-y += swab.h
- header-y += termbits.h
- header-y += termios.h
--header-y += types.h
- header-y += unistd.h
-diff --git a/arch/score/include/uapi/asm/types.h b/arch/score/include/uapi/asm/types.h
-deleted file mode 100644
-index 2140032778ee..000000000000
---- a/arch/score/include/uapi/asm/types.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef _ASM_SCORE_TYPES_H
--#define _ASM_SCORE_TYPES_H
--
--#include <asm-generic/types.h>
--
--#endif /* _ASM_SCORE_TYPES_H */
++#include <asm-generic/int-ll64.h>
+ #include <uapi/asm/types.h>
+ 
+ /*
+diff --git a/arch/s390/include/uapi/asm/types.h b/arch/s390/include/uapi/asm/types.h
+index 038f2b9178a4..13b5ad14380d 100644
+--- a/arch/s390/include/uapi/asm/types.h
++++ b/arch/s390/include/uapi/asm/types.h
+@@ -7,7 +7,9 @@
+ #ifndef _UAPI_S390_TYPES_H
+ #define _UAPI_S390_TYPES_H
+ 
++#ifndef __KERNEL__
+ #include <asm-generic/int-ll64.h>
++#endif
+ 
+ #ifndef __ASSEMBLY__
+ 
 -- 
 1.7.9.5
