@@ -1,59 +1,97 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
-Date: Mon, 25 Nov 2013 10:52:10 -0800
-Message-ID: <52939C5A.3070208@zytor.com>
-References: <20131120171400.GI4138@linux.vnet.ibm.com> <20131121110308.GC10022@twins.programming.kicks-ass.net> <20131121125616.GI3694@twins.programming.kicks-ass.net> <20131121132041.GS4138@linux.vnet.ibm.com> <20131121172558.GA27927@linux.vnet.ibm.com> <20131121215249.GZ16796@laptop.programming.kicks-ass.net> <20131121221859.GH4138@linux.vnet.ibm.com> <20131122155835.GR3866@twins.programming.kicks-ass.net> <20131122182632.GW4138@linux.vnet.ibm.com> <20131122185107.GJ4971@laptop.programming.kicks-ass.net> <20131125173540.GK3694@twins.programming.kicks-ass.net>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: Preventing IPI sending races in arch code
+Date: Tue, 26 Nov 2013 06:51:43 +1100
+Message-ID: <1385409103.9218.15.camel@pasglop>
+References: <52932BE2.5010201@synopsys.com>
+	 <20131125110006.GU3866@twins.programming.kicks-ass.net>
+	 <529334CA.1000401@synopsys.com>
+	 <20131125122726.GZ10022@twins.programming.kicks-ass.net>
+	 <C2D7FE5348E1B147BCA15975FBA2307515715C@IN01WEMBXA.internal.synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20131125173540.GK3694@twins.programming.kicks-ass.net>
-Sender: owner-linux-mm@kvack.org
-To: Peter Zijlstra <peterz@infradead.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Will Deacon <will.deacon@arm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from gate.crashing.org ([63.228.1.57]:55151 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756758Ab3KYTxE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 25 Nov 2013 14:53:04 -0500
+In-Reply-To: <C2D7FE5348E1B147BCA15975FBA2307515715C@IN01WEMBXA.internal.synopsys.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Gilad Ben-Yossef <gilad@benyossef.com>, Noam Camus <noamc@ezchip.com>, David Daney <david.daney@cavium.com>, James Hogan <james.hogan@imgtec.com>, thomas Gleixner <tglx@linutronix.de>, lkml <linux-kernel@vger.kernel.org>, Richard Kuo <rkuo@codeaurora.org>
 
-On 11/25/2013 09:35 AM, Peter Zijlstra wrote:
-> 
-> I think this means x86 needs help too.
-> 
-> Consider:
-> 
-> x = y = 0
-> 
->   w[x] = 1  |  w[y] = 1
->   mfence    |  mfence
->   r[y] = 0  |  r[x] = 0
-> 
-> This is generally an impossible case, right? (Since if we observe y=0
-> this means that w[y]=1 has not yet happened, and therefore x=1, and
-> vice-versa).
-> 
-> Now replace one of the mfences with smp_store_release(l1);
-> smp_load_acquire(l2); such that we have a RELEASE+ACQUIRE pair that
-> _should_ form a full barrier:
-> 
->   w[x] = 1   | w[y] = 1
->   w[l1] = 1  | mfence
->   r[l2] = 0  | r[x] = 0
->   r[y] = 0   |
-> 
-> At which point we can observe the impossible, because as per the rule:
-> 
-> 'reads may be reordered with older writes to different locations'
-> 
-> Our r[y] can slip before the w[x]=1.
-> 
+On Mon, 2013-11-25 at 13:35 +0000, Vineet Gupta wrote:
 
-Yes, because although r[l2] and r[y] are ordered with respect to each
-other, they are allowed to be executed before w[x] and w[l1].  In other
-words, smp_store_release() followed by smp_load_acquire() to a different
-location do not form a full barrier.  To the *same* location, they will.
+> Before reading ur email I was coding something like below:
+> 
+> void arch_send_ipi(int cpu, int type)
+> {
+>   u32 *pending_ptr = per_cpu_ptr(ipi_bits, cpu);
+> 
+>   while (cmpxchg(pending_ptr, 0, 1 << type) != 0)
+> 	cpu_relax();
+> 
+>   raise_ipi(cpu);
+> }
 
-	-hpa
+So you would have blocked the sender while there was already
+a pending IPI on the target ? Why ?
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+The optimization proposed by Peter is actually the only interesting
+change here, without it the existing set_bit was perfectly fine.
+Remember that set_bit is atomic.
+
+Ben.
+
+> But obviously your version is nicer due to optimization, unless I'm over-analyzing it.
+> 
+> 
+> > Also, the above can be thought of as a memory ordering issue:
+> >
+> >   STORE pending
+> >   MB /* implied by cmpxchg */
+> >   STORE ipi /* raise the actual thing */
+> >
+> > In that case the other end must be:
+> >
+> >   LOAD ipi
+> >   MB /* implied by xchg */
+> >   LOAD pending
+> >
+> > Which is what your code seems to do.
+> 
+> ...
+> 
+> >
+> >> IMO the while loop is
+> >> completely useless specially if IPIs are not coalesced in h/w. 
+> > Agreed, the while loops seems superfluous.
+> 
+> Not with your version of sender, since we need it as described above.
+> 
+> >> And we need to move
+> >> the xchg ahead of ACK'ing the IPI
+> >>
+> >> do_IPI
+> >>    pending = xchg(&ipi_data->bits, 0);
+> >>    plat_smp_ops.ipi_clear(irq);
+> >>    while (ffs....)
+> >>       switch(next-msg)
+> >>       ...
+> >>
+> >> Does that look sane to you.
+> > This I'm not at all certain of; continuing with the memory order analogy
+> > this would allow for the case where we see 0 pending, set a bit, try and
+> > raise the interrupt but then do not because its already assert.
+> >
+> > And since you just removed the while() loop, we'll be left with a !0
+> > pending vector and nobody processing it.
+> 
+> Right we need it with ur version of sender. Bit don't with my simplistic one.
+> 
+> -Vineet
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
