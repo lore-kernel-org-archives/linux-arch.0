@@ -1,58 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from jacques.telenet-ops.be ([195.130.132.50]:50538 "EHLO
-	jacques.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753620Ab3KYIzp (ORCPT
+Received: from gerard.telenet-ops.be ([195.130.132.48]:39846 "EHLO
+	gerard.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753624Ab3KYIzp (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Nov 2013 03:55:45 -0500
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH 03/24] cris/uapi: Use Kbuild logic to provide <asm/types.h>
-Date: Mon, 25 Nov 2013 09:55:13 +0100
-Message-ID: <1385369734-24893-4-git-send-email-geert@linux-m68k.org>
+Subject: [PATCH 17/24] m32r: Use Kbuild logic to provide <asm/types.h>
+Date: Mon, 25 Nov 2013 09:55:27 +0100
+Message-ID: <1385369734-24893-18-git-send-email-geert@linux-m68k.org>
 In-Reply-To: <1385369734-24893-1-git-send-email-geert@linux-m68k.org>
 References: <1385369734-24893-1-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, linux-cris-kernel@axis.com
-Message-ID: <20131125085513.-gOPh1_cUzu6lZwi68iBNk9_GwEXs0xU8B81JAIbjbk@z>
+Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Hirokazu Takata <takata@linux-m32r.org>, linux-m32r@ml.linux-m32r.org
+Message-ID: <20131125085527.1jsA8Igxba202_NnloCyXkC7LayzA3tMA0eg0wWh_V0@z>
 
-Uapi <asm-generic/types.h> just includes <asm-generic/int-ll64.h>
+The extra definition for BITS_PER_LONG is also indirectly provided
+by <asm-generic/types.h>, via <asm-generic/int-ll64.h> and
+<asm/bitsperlong.h>
 
 Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Mikael Starvik <starvik@axis.com>
-Cc: Jesper Nilsson <jesper.nilsson@axis.com>
-Cc: linux-cris-kernel@axis.com
+Cc: Hirokazu Takata <takata@linux-m32r.org>
+Cc: linux-m32r@ml.linux-m32r.org
 ---
- arch/cris/include/uapi/asm/Kbuild  |    3 ++-
- arch/cris/include/uapi/asm/types.h |    1 -
- 2 files changed, 2 insertions(+), 2 deletions(-)
- delete mode 100644 arch/cris/include/uapi/asm/types.h
+ arch/m32r/include/asm/Kbuild  |    1 +
+ arch/m32r/include/asm/types.h |   12 ------------
+ 2 files changed, 1 insertion(+), 12 deletions(-)
+ delete mode 100644 arch/m32r/include/asm/types.h
 
-diff --git a/arch/cris/include/uapi/asm/Kbuild b/arch/cris/include/uapi/asm/Kbuild
-index 7d47b366ad82..4d925e6cce72 100644
---- a/arch/cris/include/uapi/asm/Kbuild
-+++ b/arch/cris/include/uapi/asm/Kbuild
-@@ -1,6 +1,8 @@
- # UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
- 
+diff --git a/arch/m32r/include/asm/Kbuild b/arch/m32r/include/asm/Kbuild
+index e03862db9b75..e1138b819fcc 100644
+--- a/arch/m32r/include/asm/Kbuild
++++ b/arch/m32r/include/asm/Kbuild
+@@ -5,3 +5,4 @@ generic-y += module.h
+ generic-y += sections.h
+ generic-y += trace_clock.h
+ generic-y += preempt.h
 +generic-y += types.h
-+
- header-y += arch-v10/
- header-y += arch-v32/
- header-y += auxvec.h
-@@ -35,5 +37,4 @@ header-y += swab.h
- header-y += sync_serial.h
- header-y += termbits.h
- header-y += termios.h
--header-y += types.h
- header-y += unistd.h
-diff --git a/arch/cris/include/uapi/asm/types.h b/arch/cris/include/uapi/asm/types.h
+diff --git a/arch/m32r/include/asm/types.h b/arch/m32r/include/asm/types.h
 deleted file mode 100644
-index 9ec9d4c5ac4d..000000000000
---- a/arch/cris/include/uapi/asm/types.h
+index 04a44c6ee34d..000000000000
+--- a/arch/m32r/include/asm/types.h
 +++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/int-ll64.h>
+@@ -1,12 +0,0 @@
+-#ifndef _ASM_M32R_TYPES_H
+-#define _ASM_M32R_TYPES_H
+-
+-#include <uapi/asm/types.h>
+-
+-/*
+- * These aren't exported outside the kernel to avoid name space clashes
+- */
+-
+-#define BITS_PER_LONG 32
+-
+-#endif /* _ASM_M32R_TYPES_H */
 -- 
 1.7.9.5
 
