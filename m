@@ -1,69 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from juliette.telenet-ops.be ([195.130.137.74]:36427 "EHLO
+Received: from juliette.telenet-ops.be ([195.130.137.74]:36488 "EHLO
 	juliette.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753707Ab3KYIzq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Nov 2013 03:55:46 -0500
+	with ESMTP id S1753797Ab3KYIzr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Nov 2013 03:55:47 -0500
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH 16/24] frv: Use Kbuild logic to provide <asm/types.h>
-Date: Mon, 25 Nov 2013 09:55:26 +0100
-Message-ID: <1385369734-24893-17-git-send-email-geert@linux-m68k.org>
+Subject: [PATCH 06/24] microblaze/uapi: Use Kbuild logic to include <asm-generic/types.h>
+Date: Mon, 25 Nov 2013 09:55:16 +0100
+Message-ID: <1385369734-24893-7-git-send-email-geert@linux-m68k.org>
 In-Reply-To: <1385369734-24893-1-git-send-email-geert@linux-m68k.org>
 References: <1385369734-24893-1-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, David Howells <dhowells@redhat.com>
-Message-ID: <20131125085526.29OcBT1_X_zQbzOkhBEK9P5RKVQ3ciQqI3LUmuSNH7I@z>
-
-The extra definition for BITS_PER_LONG is also indirectly provided
-by <asm-generic/types.h>, via <asm-generic/int-ll64.h> and
-<asm/bitsperlong.h>
+Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, microblaze-uclinux@itee.uq.edu.au
+Message-ID: <20131125085516.Egu9Uv93ufmVgkGg440H7SRMJ8rgm_EdoblSqmu-vis@z>
 
 Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: David Howells <dhowells@redhat.com>
+Cc: Michal Simek <monstr@monstr.eu>
+Cc: microblaze-uclinux@itee.uq.edu.au
 ---
- arch/frv/include/asm/Kbuild  |    1 +
- arch/frv/include/asm/types.h |   22 ----------------------
- 2 files changed, 1 insertion(+), 22 deletions(-)
- delete mode 100644 arch/frv/include/asm/types.h
+ arch/microblaze/include/uapi/asm/Kbuild  |    3 ++-
+ arch/microblaze/include/uapi/asm/types.h |    1 -
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+ delete mode 100644 arch/microblaze/include/uapi/asm/types.h
 
-diff --git a/arch/frv/include/asm/Kbuild b/arch/frv/include/asm/Kbuild
-index 74742dc6a3da..28abdd0b8287 100644
---- a/arch/frv/include/asm/Kbuild
-+++ b/arch/frv/include/asm/Kbuild
-@@ -3,3 +3,4 @@ generic-y += clkdev.h
- generic-y += exec.h
- generic-y += trace_clock.h
- generic-y += preempt.h
+diff --git a/arch/microblaze/include/uapi/asm/Kbuild b/arch/microblaze/include/uapi/asm/Kbuild
+index 6d7d7f4aaae8..1aac99f87df1 100644
+--- a/arch/microblaze/include/uapi/asm/Kbuild
++++ b/arch/microblaze/include/uapi/asm/Kbuild
+@@ -1,6 +1,8 @@
+ # UAPI Header export list
+ include include/uapi/asm-generic/Kbuild.asm
+ 
 +generic-y += types.h
-diff --git a/arch/frv/include/asm/types.h b/arch/frv/include/asm/types.h
++
+ header-y += auxvec.h
+ header-y += bitsperlong.h
+ header-y += byteorder.h
+@@ -31,5 +33,4 @@ header-y += statfs.h
+ header-y += swab.h
+ header-y += termbits.h
+ header-y += termios.h
+-header-y += types.h
+ header-y += unistd.h
+diff --git a/arch/microblaze/include/uapi/asm/types.h b/arch/microblaze/include/uapi/asm/types.h
 deleted file mode 100644
-index 6bc63650d832..000000000000
---- a/arch/frv/include/asm/types.h
+index b9e79bc580dd..000000000000
+--- a/arch/microblaze/include/uapi/asm/types.h
 +++ /dev/null
-@@ -1,22 +0,0 @@
--/* types.h: FRV types
-- *
-- * Copyright (C) 2004 Red Hat, Inc. All Rights Reserved.
-- * Written by David Howells (dhowells@redhat.com)
-- *
-- * This program is free software; you can redistribute it and/or
-- * modify it under the terms of the GNU General Public License
-- * as published by the Free Software Foundation; either version
-- * 2 of the License, or (at your option) any later version.
-- */
--#ifndef _ASM_TYPES_H
--#define _ASM_TYPES_H
--
--#include <uapi/asm/types.h>
--
--/*
-- * These aren't exported outside the kernel to avoid name space clashes
-- */
--
--#define BITS_PER_LONG 32
--
--#endif /* _ASM_TYPES_H */
+@@ -1 +0,0 @@
+-#include <asm-generic/types.h>
 -- 
 1.7.9.5
 
