@@ -1,71 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ra.se.axis.com ([195.60.68.13]:52145 "EHLO ra.se.axis.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751875Ab3KYJDR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 25 Nov 2013 04:03:17 -0500
-Date: Mon, 25 Nov 2013 10:03:13 +0100
-From: Jesper Nilsson <jesper.nilsson@axis.com>
-Subject: Re: [PATCH 15/24] cris: Use Kbuild logic to provide <asm/types.h>
-Message-ID: <20131125090313.GU15831@axis.com>
+Received: from gerard.telenet-ops.be ([195.130.132.48]:39716 "EHLO
+	gerard.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752637Ab3KYIzn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Nov 2013 03:55:43 -0500
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: [PATCH 01/24] uapi: Add missing _UAPI prefix to <asm-generic/types.h> include guard
+Date: Mon, 25 Nov 2013 09:55:11 +0100
+Message-ID: <1385369734-24893-2-git-send-email-geert@linux-m68k.org>
+In-Reply-To: <1385369734-24893-1-git-send-email-geert@linux-m68k.org>
 References: <1385369734-24893-1-git-send-email-geert@linux-m68k.org>
- <1385369734-24893-16-git-send-email-geert@linux-m68k.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1385369734-24893-16-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jespern@axis.com>, linux-cris-kernel <linux-cris-kernel@axis.com>
-Message-ID: <20131125090313.Cat-wTAn6nqtpM3c6QrpwNgCWWVw4WajcOuNpWT62iE@z>
+To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>
+Message-ID: <20131125085511.6fZNj6x7VNRtX0FuHNgtWs2Ii6OKtA4ecFi__ySlNec@z>
 
-On Mon, Nov 25, 2013 at 09:55:25AM +0100, Geert Uytterhoeven wrote:
-> The extra definition for BITS_PER_LONG is also indirectly provided
-> by <asm-generic/types.h>, via <asm-generic/int-ll64.h> and
-> <asm/bitsperlong.h>
-> 
-> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> Cc: Mikael Starvik <starvik@axis.com>
+Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+---
+ include/uapi/asm-generic/types.h |    6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
-
-> Cc: linux-cris-kernel@axis.com
-> ---
->  arch/cris/include/asm/Kbuild  |    1 +
->  arch/cris/include/asm/types.h |   12 ------------
->  2 files changed, 1 insertion(+), 12 deletions(-)
->  delete mode 100644 arch/cris/include/asm/types.h
-> 
-> diff --git a/arch/cris/include/asm/Kbuild b/arch/cris/include/asm/Kbuild
-> index 44e7d0dbcf32..2433df443890 100644
-> --- a/arch/cris/include/asm/Kbuild
-> +++ b/arch/cris/include/asm/Kbuild
-> @@ -13,3 +13,4 @@ generic-y += trace_clock.h
->  generic-y += vga.h
->  generic-y += xor.h
->  generic-y += preempt.h
-> +generic-y += types.h
-> diff --git a/arch/cris/include/asm/types.h b/arch/cris/include/asm/types.h
-> deleted file mode 100644
-> index a3cac7757c7f..000000000000
-> --- a/arch/cris/include/asm/types.h
-> +++ /dev/null
-> @@ -1,12 +0,0 @@
-> -#ifndef _ETRAX_TYPES_H
-> -#define _ETRAX_TYPES_H
-> -
-> -#include <uapi/asm/types.h>
-> -
-> -/*
-> - * These aren't exported outside the kernel to avoid name space clashes
-> - */
-> -
-> -#define BITS_PER_LONG 32
-> -
-> -#endif
-> -- 
-> 1.7.9.5
-
-/^JN - Jesper Nilsson
+diff --git a/include/uapi/asm-generic/types.h b/include/uapi/asm-generic/types.h
+index a3877926b0d4..e10cd6a87e46 100644
+--- a/include/uapi/asm-generic/types.h
++++ b/include/uapi/asm-generic/types.h
+@@ -1,8 +1,8 @@
+-#ifndef _ASM_GENERIC_TYPES_H
+-#define _ASM_GENERIC_TYPES_H
++#ifndef _UAPI_ASM_GENERIC_TYPES_H
++#define _UAPI_ASM_GENERIC_TYPES_H
+ /*
+  * int-ll64 is used everywhere now.
+  */
+ #include <asm-generic/int-ll64.h>
+ 
+-#endif /* _ASM_GENERIC_TYPES_H */
++#endif /* _UAPI_ASM_GENERIC_TYPES_H */
 -- 
-               Jesper Nilsson -- jesper.nilsson@axis.com
+1.7.9.5
+
