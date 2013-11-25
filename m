@@ -1,57 +1,65 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH 22/24] s390: Separate kernel/userspace inclusion of <asm-generic/int-ll64.h>
-Date: Mon, 25 Nov 2013 09:55:32 +0100
-Message-ID: <1385369734-24893-23-git-send-email-geert@linux-m68k.org>
+Subject: [PATCH 18/24] mn10300: Use Kbuild logic to provide <asm/types.h>
+Date: Mon, 25 Nov 2013 09:55:28 +0100
+Message-ID: <1385369734-24893-19-git-send-email-geert@linux-m68k.org>
 References: <1385369734-24893-1-git-send-email-geert@linux-m68k.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1385369734-24893-1-git-send-email-geert@linux-m68k.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, David Howells <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, linux-am33-list@redhat.com
 List-Id: linux-arch.vger.kernel.org
 
-This allows to rename the kernelspace version later.
-
-Now arch/s390/include/asm/types.h includes the kernelspace version,
-while arch/s390/include/uapi/asm/types.h includes the userspace version.
-As arch/s390/include/uapi/asm/types.h is also included for kernelspace,
-its inclusion of <asm-generic/int-ll64.h> needs to be protected by #ifndef
-__KERNEL__.
+The extra definition for BITS_PER_LONG is also indirectly provided
+by <asm-generic/types.h>, via <asm-generic/int-ll64.h> and
+<asm/bitsperlong.h>
 
 Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: linux-s390@vger.kernel.org
+Cc: David Howells <dhowells@redhat.com>
+Cc: Koichi Yasutake <yasutake.koichi@jp.panasonic.com>
+Cc: linux-am33-list@redhat.com
 ---
- arch/s390/include/asm/types.h      |    1 +
- arch/s390/include/uapi/asm/types.h |    2 ++
- 2 files changed, 3 insertions(+)
+ arch/mn10300/include/asm/Kbuild  |    1 +
+ arch/mn10300/include/asm/types.h |   22 ----------------------
+ 2 files changed, 1 insertion(+), 22 deletions(-)
+ delete mode 100644 arch/mn10300/include/asm/types.h
 
-diff --git a/arch/s390/include/asm/types.h b/arch/s390/include/asm/types.h
-index dccef3ca91fa..a5c7e829dbc3 100644
---- a/arch/s390/include/asm/types.h
-+++ b/arch/s390/include/asm/types.h
-@@ -6,6 +6,7 @@
- #ifndef _S390_TYPES_H
- #define _S390_TYPES_H
- 
-+#include <asm-generic/int-ll64.h>
- #include <uapi/asm/types.h>
- 
- /*
-diff --git a/arch/s390/include/uapi/asm/types.h b/arch/s390/include/uapi/asm/types.h
-index 038f2b9178a4..13b5ad14380d 100644
---- a/arch/s390/include/uapi/asm/types.h
-+++ b/arch/s390/include/uapi/asm/types.h
-@@ -7,7 +7,9 @@
- #ifndef _UAPI_S390_TYPES_H
- #define _UAPI_S390_TYPES_H
- 
-+#ifndef __KERNEL__
- #include <asm-generic/int-ll64.h>
-+#endif
- 
- #ifndef __ASSEMBLY__
- 
+diff --git a/arch/mn10300/include/asm/Kbuild b/arch/mn10300/include/asm/Kbuild
+index cd33bcfc49d8..289ff285f1f9 100644
+--- a/arch/mn10300/include/asm/Kbuild
++++ b/arch/mn10300/include/asm/Kbuild
+@@ -4,3 +4,4 @@ generic-y += exec.h
+ generic-y += sections.h
+ generic-y += trace_clock.h
+ generic-y += preempt.h
++generic-y += types.h
+diff --git a/arch/mn10300/include/asm/types.h b/arch/mn10300/include/asm/types.h
+deleted file mode 100644
+index 3d6e48311bef..000000000000
+--- a/arch/mn10300/include/asm/types.h
++++ /dev/null
+@@ -1,22 +0,0 @@
+-/* MN10300 Basic type definitions
+- *
+- * Copyright (C) 2007 Matsushita Electric Industrial Co., Ltd.
+- * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
+- *
+- * This program is free software; you can redistribute it and/or
+- * modify it under the terms of the GNU General Public Licence
+- * as published by the Free Software Foundation; either version
+- * 2 of the Licence, or (at your option) any later version.
+- */
+-#ifndef _ASM_TYPES_H
+-#define _ASM_TYPES_H
+-
+-#include <uapi/asm/types.h>
+-
+-/*
+- * These aren't exported outside the kernel to avoid name space clashes
+- */
+-
+-#define BITS_PER_LONG 32
+-
+-#endif /* _ASM_TYPES_H */
 -- 
 1.7.9.5
