@@ -1,76 +1,77 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC] Control dependencies
-Date: Mon, 25 Nov 2013 10:42:23 +0100
-Message-ID: <20131125094223.GV10022@twins.programming.kicks-ass.net>
-References: <20131121161733.GH10022@twins.programming.kicks-ass.net>
- <20131121180237.GX4138@linux.vnet.ibm.com>
- <20131122134630.GQ3866@twins.programming.kicks-ass.net>
- <528F9B8D.2090806@hurleysoftware.com>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Subject: Re: [PATCH 08/24] parisc/uapi: Use Kbuild logic to provide
+ <asm/types.h>
+Date: Mon, 25 Nov 2013 13:55:13 +0400
+Message-ID: <1385373313.2354.16.camel@dabdike>
+References: <1385369734-24893-1-git-send-email-geert@linux-m68k.org>
+	 <1385369734-24893-9-git-send-email-geert@linux-m68k.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="ISO-8859-15"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:35160 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750766Ab3KYJnC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Nov 2013 04:43:02 -0500
-Content-Disposition: inline
-In-Reply-To: <528F9B8D.2090806@hurleysoftware.com>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:53660 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750811Ab3KYJzS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 25 Nov 2013 04:55:18 -0500
+In-Reply-To: <1385369734-24893-9-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Hurley <peter@hurleysoftware.com>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Sco
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org
 
-On Fri, Nov 22, 2013 at 12:59:41PM -0500, Peter Hurley wrote:
-> On 11/22/2013 08:46 AM, Peter Zijlstra wrote:
-> >How about the below version?
-> >
-> >---
-> >--- a/kernel/events/ring_buffer.c
-> >+++ b/kernel/events/ring_buffer.c
-> >@@ -61,19 +61,20 @@ static void perf_output_put_handle(struc
-> >  	 *
-> >  	 *   kernel				user
-> >  	 *
-> >-	 *   READ ->data_tail			READ ->data_head
-> >-	 *   smp_mb()	(A)			smp_rmb()	(C)
-> >-	 *   WRITE $data			READ $data
-> >-	 *   smp_wmb()	(B)			smp_mb()	(D)
-> >-	 *   STORE ->data_head			WRITE ->data_tail
-> >+	 *   if (LOAD ->data_tail) {		LOAD ->data_head
-> >+	 *			(A)		smp_rmb()	(C)
-> >+	 *	STORE $data			LOAD $data
-> >+	 *	smp_wmb()	(B)		smp_mb()	(D)
-> >+	 *	STORE ->data_head		STORE ->data_tail
+On Mon, 2013-11-25 at 09:55 +0100, Geert Uytterhoeven wrote:
+> Uapi <asm-generic/types.h> just includes <asm-generic/int-ll64.h>
+
+This really doesn't look like a good idea:  Firstly the default of
+asm-generic/types.h should *not* be int-ll64, because that's for 32 bit
+only and most processors are moving towards 64 bit.  Secondly parisc
+currently only has a 32 bit userspace, which is why the file is a simple
+include of int-ll64.h; however, people are working on 64 bit userspace
+(albeit very slowly) and that file would then have to change.  If we
+take the file away someone will forget to add the changed file back.
+
+James
+
+
+> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
+> Cc: Helge Deller <deller@gmx.de>
+> Cc: linux-parisc@vger.kernel.org
+> ---
+>  arch/parisc/include/uapi/asm/Kbuild  |    3 ++-
+>  arch/parisc/include/uapi/asm/types.h |    6 ------
+>  2 files changed, 2 insertions(+), 7 deletions(-)
+>  delete mode 100644 arch/parisc/include/uapi/asm/types.h
 > 
-> 
-> I wasn't subscribed to linux-arch so missed the smp_store_release()
-> outcome, if there was one.
-> 
-> Are (B) and (D) still slated for changing to STORE.rel semantics,
-> aka smp_store_release()?
-
-The earlier proposal would have A and C be smp_load_acquire() and B and
-D be smp_store_release().
-
-> I realize that, for the perf ring buffer, (D) is in userspace but
-> I'm also interested in non-perf situations where (D) would be in the
-> kernel.
-
-So we're still debating the exact semantics of smp_store_release(), it
-now looks like it needs a heavier memory barrier than previously
-thought. In which case using it wouldn't make sense for me anymore.
-
-Note that C and D are in userspace and not in any hot path (usually)
-They're only issued once to read an entire buffer backlog at once, so I
-don't really care about them all that much.
-
-A and B otoh are in kernel space and are issued for every single event
-written, so I'm interested to get them as cheaply as possible.
-
-With this proposed patch, we remove a full barrier, with the earlier
-smp_load_acquire() / smp_store_release() patches we would only
-downgrade the full barrier to an acquire barrier, which is still more
-than no barrier at all.
-
-And now it looks like the smp_store_release() would actually upgrade the
-wmb to a full barrier on some systems at least.
+> diff --git a/arch/parisc/include/uapi/asm/Kbuild b/arch/parisc/include/uapi/asm/Kbuild
+> index a580642555b6..e0da93254186 100644
+> --- a/arch/parisc/include/uapi/asm/Kbuild
+> +++ b/arch/parisc/include/uapi/asm/Kbuild
+> @@ -1,6 +1,8 @@
+>  # UAPI Header export list
+>  include include/uapi/asm-generic/Kbuild.asm
+>  
+> +generic-y += types.h
+> +
+>  header-y += bitsperlong.h
+>  header-y += byteorder.h
+>  header-y += errno.h
+> @@ -27,5 +29,4 @@ header-y += statfs.h
+>  header-y += swab.h
+>  header-y += termbits.h
+>  header-y += termios.h
+> -header-y += types.h
+>  header-y += unistd.h
+> diff --git a/arch/parisc/include/uapi/asm/types.h b/arch/parisc/include/uapi/asm/types.h
+> deleted file mode 100644
+> index 8866f9bbdeaf..000000000000
+> --- a/arch/parisc/include/uapi/asm/types.h
+> +++ /dev/null
+> @@ -1,6 +0,0 @@
+> -#ifndef _PARISC_TYPES_H
+> -#define _PARISC_TYPES_H
+> -
+> -#include <asm-generic/int-ll64.h>
+> -
+> -#endif
