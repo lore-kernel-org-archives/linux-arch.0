@@ -1,80 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:35160 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750766Ab3KYJnC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Nov 2013 04:43:02 -0500
-Date: Mon, 25 Nov 2013 10:42:23 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC] Control dependencies
-Message-ID: <20131125094223.GV10022@twins.programming.kicks-ass.net>
-References: <20131121161733.GH10022@twins.programming.kicks-ass.net>
- <20131121180237.GX4138@linux.vnet.ibm.com>
- <20131122134630.GQ3866@twins.programming.kicks-ass.net>
- <528F9B8D.2090806@hurleysoftware.com>
+Received: from mail-pd0-f173.google.com ([209.85.192.173]:63332 "EHLO
+	mail-pd0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753086Ab3KYKDJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Nov 2013 05:03:09 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <528F9B8D.2090806@hurleysoftware.com>
+In-Reply-To: <20131125090922.GB13358@samfundet.no>
+References: <1385369734-24893-1-git-send-email-geert@linux-m68k.org>
+	<1385369734-24893-15-git-send-email-geert@linux-m68k.org>
+	<20131125090922.GB13358@samfundet.no>
+Date: Mon, 25 Nov 2013 11:03:08 +0100
+Message-ID: <CAMuHMdVyFhwpnRm4fwH5XcgDRC0qASd-Gmg15aOYuxSZOHsB9g@mail.gmail.com>
+Subject: Re: [PATCH 14/24] avr32: Use Kbuild logic to provide <asm/types.h>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Hurley <peter@hurleysoftware.com>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, "Figo.zhang" <figo1802@gmail.com>
-Message-ID: <20131125094223.12P2MLGeSHF601ZQzdQSpW_gpYNTAniNURDmrWCN5ao@z>
+To: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+Cc: Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Haavard Skinnemoen <hskinnemoen@gmail.com>
+Message-ID: <20131125100308.v9w2GSsrIcSwPcnY7zyMF7HWBGtPNgqQC0HlDapqS9U@z>
 
-On Fri, Nov 22, 2013 at 12:59:41PM -0500, Peter Hurley wrote:
-> On 11/22/2013 08:46 AM, Peter Zijlstra wrote:
-> >How about the below version?
-> >
-> >---
-> >--- a/kernel/events/ring_buffer.c
-> >+++ b/kernel/events/ring_buffer.c
-> >@@ -61,19 +61,20 @@ static void perf_output_put_handle(struc
-> >  	 *
-> >  	 *   kernel				user
-> >  	 *
-> >-	 *   READ ->data_tail			READ ->data_head
-> >-	 *   smp_mb()	(A)			smp_rmb()	(C)
-> >-	 *   WRITE $data			READ $data
-> >-	 *   smp_wmb()	(B)			smp_mb()	(D)
-> >-	 *   STORE ->data_head			WRITE ->data_tail
-> >+	 *   if (LOAD ->data_tail) {		LOAD ->data_head
-> >+	 *			(A)		smp_rmb()	(C)
-> >+	 *	STORE $data			LOAD $data
-> >+	 *	smp_wmb()	(B)		smp_mb()	(D)
-> >+	 *	STORE ->data_head		STORE ->data_tail
-> 
-> 
-> I wasn't subscribed to linux-arch so missed the smp_store_release()
-> outcome, if there was one.
-> 
-> Are (B) and (D) still slated for changing to STORE.rel semantics,
-> aka smp_store_release()?
+On Mon, Nov 25, 2013 at 10:09 AM, Hans-Christian Egtvedt
+<egtvedt@samfundet.no> wrote:
+> Around Mon 25 Nov 2013 09:55:24 +0100 or thereabout, Geert Uytterhoeven wrote:
+>> The extra definition for BITS_PER_LONG is also indirectly provided
+>> by <asm-generic/types.h>, via <asm-generic/int-ll64.h> and
+>> <asm/bitsperlong.h>
+>
+> Are you adding a new include/asm-generic/types.h, which will include
+> bitsperlong.h ?
 
-The earlier proposal would have A and C be smp_load_acquire() and B and
-D be smp_store_release().
+Yes, that's [PATCH 24/24].
 
-> I realize that, for the perf ring buffer, (D) is in userspace but
-> I'm also interested in non-perf situations where (D) would be in the
-> kernel.
+Currently you get it through the UAPI <asm-generic/types.h>, via
+<asm-generic/int-ll64.h> and <asm/bitsperlong.h>.
 
-So we're still debating the exact semantics of smp_store_release(), it
-now looks like it needs a heavier memory barrier than previously
-thought. In which case using it wouldn't make sense for me anymore.
+Gr{oetje,eeting}s,
 
-Note that C and D are in userspace and not in any hot path (usually)
-They're only issued once to read an entire buffer backlog at once, so I
-don't really care about them all that much.
+                        Geert
 
-A and B otoh are in kernel space and are issued for every single event
-written, so I'm interested to get them as cheaply as possible.
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-With this proposed patch, we remove a full barrier, with the earlier
-smp_load_acquire() / smp_store_release() patches we would only
-downgrade the full barrier to an acquire barrier, which is still more
-than no barrier at all.
-
-And now it looks like the smp_store_release() would actually upgrade the
-wmb to a full barrier on some systems at least.
-
-
-
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
