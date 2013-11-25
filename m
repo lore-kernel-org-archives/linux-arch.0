@@ -1,77 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:53802 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750766Ab3KYKWk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 25 Nov 2013 05:22:40 -0500
-Message-ID: <1385374955.2354.24.camel@dabdike>
-Subject: Re: [PATCH 08/24] parisc/uapi: Use Kbuild logic to provide
- <asm/types.h>
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Date: Mon, 25 Nov 2013 14:22:35 +0400
-In-Reply-To: <CAMuHMdUV4R0BK-eKkXeDD9B0pRLJjziUkvXZVvfWmuaK=dv9Mg@mail.gmail.com>
-References: <1385369734-24893-1-git-send-email-geert@linux-m68k.org>
-	 <1385369734-24893-9-git-send-email-geert@linux-m68k.org>
-	 <1385373313.2354.16.camel@dabdike>
-	 <CAMuHMdUV4R0BK-eKkXeDD9B0pRLJjziUkvXZVvfWmuaK=dv9Mg@mail.gmail.com>
-Content-Type: text/plain; charset="ISO-8859-15"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from merlin.infradead.org ([205.233.59.134]:41809 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756634Ab3KYN5j (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Nov 2013 08:57:39 -0500
+Date: Mon, 25 Nov 2013 14:57:25 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: Preventing IPI sending races in arch code
+Message-ID: <20131125135725.GA10022@twins.programming.kicks-ass.net>
+References: <52932BE2.5010201@synopsys.com>
+ <20131125110006.GU3866@twins.programming.kicks-ass.net>
+ <529334CA.1000401@synopsys.com>
+ <20131125122726.GZ10022@twins.programming.kicks-ass.net>
+ <C2D7FE5348E1B147BCA15975FBA2307515715C@IN01WEMBXA.internal.synopsys.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <C2D7FE5348E1B147BCA15975FBA2307515715C@IN01WEMBXA.internal.synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Parisc List <linux-parisc@vger.kernel.org>
-Message-ID: <20131125102235.stX-eKHzuo7rWb3FSUF0R78I9QHWClAUw-C5Set72HI@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Gilad Ben-Yossef <gilad@benyossef.com>, Noam Camus <noamc@ezchip.com>, David Daney <david.daney@cavium.com>, James Hogan <james.hogan@imgtec.com>, thomas Gleixner <tglx@linutronix.de>, lkml <linux-kernel@vger.kernel.org>, Richard Kuo <rkuo@codeaurora.org>
+Message-ID: <20131125135725.Z5rpFK5vf6txpzQ_H433rj0owA7Ajp3kjRZ04CXGKyY@z>
 
-On Mon, 2013-11-25 at 11:12 +0100, Geert Uytterhoeven wrote:
-> On Mon, Nov 25, 2013 at 10:55 AM, James Bottomley
-> <James.Bottomley@hansenpartnership.com> wrote:
-> > On Mon, 2013-11-25 at 09:55 +0100, Geert Uytterhoeven wrote:
-> >> Uapi <asm-generic/types.h> just includes <asm-generic/int-ll64.h>
+On Mon, Nov 25, 2013 at 01:35:38PM +0000, Vineet Gupta wrote:
+> On 11/25/2013 05:57 PM, Peter Zijlstra wrote:
+
+> > So sure, then someone can again assert the interrupt, but given we just
+> > established a protocol for raising the thing; namely something like
+> > this:
 > >
-> > This really doesn't look like a good idea:  Firstly the default of
-> > asm-generic/types.h should *not* be int-ll64, because that's for 32 bit
-> > only and most processors are moving towards 64 bit.  Secondly parisc
+> > void arch_send_ipi(int cpu, int type)
+> > {
+> >   u32 *pending_ptr = per_cpu_ptr(ipi_bits, cpu);
+> >   u32 new, old;
+> >
+> >   do {
+> >   	new = old = *pending_ptr;
+> > 	new |= 1U << type;
+> >   } while (cmpxchg(pending_ptr, old, new) != old)
+> >
+> >   if (!old) /* only raise the actual IPI if we set the first bit */
+> >   	raise_ipi(cpu);
+> > }
+> >
+> > Who would re-assert it if we have !0 pending?
 > 
-> In kernelspace, both 32 and 64 bit are ll64.
-
-Not necessarily; the files exist because of variations in gcc.  Some
-versions of gcc have long long being 128 bits and for those you have to
-use int-l64.h
-
-> > currently only has a 32 bit userspace, which is why the file is a simple
-> > include of int-ll64.h; however, people are working on 64 bit userspace
+> I see your point. So in receiver, it is OK to de-assert the IPI before processing
+> the msg itself.
 > 
-> Sorry, I didn't know you support 32 bit userspace only.
-> 
-> > (albeit very slowly) and that file would then have to change.  If we
-> > take the file away someone will forget to add the changed file back.
-> 
-> However, is this a "new" 64 bit userspace ABI? If yes, you may want to
-> consider using ll64 in userspace on 64 bit too, like all "new" 64 bit ports
-> do (arm64, s390, sparc, tile, x86). Only legacy alpha, ia64, mips and
-> old ppc use l64.
-> 
-> Or follow the ppc64 road:
-> 
-> /*
->  * This is here because we used to use l64 for 64bit powerpc
->  * and we don't want to impact user mode with our change to ll64
->  * in the kernel.
->  *
->  * However, some user programs are fine with this.  They can
->  * flag __SANE_USERSPACE_TYPES__ to get int-ll64.h here.
->  */
-> #ifndef __KERNEL__
-> #if !defined(__SANE_USERSPACE_TYPES__) && defined(__powerpc64__)
-> # include <asm-generic/int-l64.h>
-> #else
-> # include <asm-generic/int-ll64.h>
-> #endif
-> #endif
+> Actually your code seems to be optimizing away asserting an IPI, if sender already
+> had a pending msg (assuming we retain the xchg loop in receiver). Was that an
+> intended optimization - or just a side effect of your code ;-)
 
-That's the one I was thinking we might need.
+No, full intention. As you mentioned you wanted to avoid sending IPIs
+where none were needed.
 
-James
+> >> IMO the while loop is
+> >> completely useless specially if IPIs are not coalesced in h/w. 
+> > Agreed, the while loops seems superfluous.
+> 
+> Not with your version of sender, since we need it as described above.
 
+No, even with my code; the receiving end should look like:
 
+void handle_ipi(struct pt_regs *regs)
+{
+	u32 pending;
+
+	ipi_clear(irq);
+
+	pending = xchg(this_cpu_ptr(ipi_bits), 0);
+
+	while (pending) {
+		bit = ffs(pending);
+
+		/* handle bit */
+
+		pending &= ~(1U << bit);
+	}
+}
+
+So while it does have a while() loop, it only does a single xchg().
+
+The version you showed before had the xchg() in the loop, that is not
+required.
