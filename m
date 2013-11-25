@@ -1,127 +1,68 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
-Date: Sat, 23 Nov 2013 14:24:31 -0800
-Message-ID: <CA+55aFx9SPdG87xY67P-kbtUT6YKbnwF8Mdn-SKBWd_K_A2-CQ@mail.gmail.com>
-References: <20131122200620.GA4138@linux.vnet.ibm.com>
-	<CA+55aFz0nP1_O8jO2UkX1DmDzcBm53-fFejvz=oY=x3cGNBJSQ@mail.gmail.com>
-	<20131122203738.GC4138@linux.vnet.ibm.com>
-	<CA+55aFwHUuaGzW_=xEWNcyVnHT-zW8-bs6Xi=M458xM3Y1qE0w@mail.gmail.com>
-	<20131122215208.GD4138@linux.vnet.ibm.com>
-	<CA+55aFzS2yd-VbJB5t14mP8NZG8smB1BQaYCw3Zo19FWQL92vA@mail.gmail.com>
-	<20131123002542.GF4138@linux.vnet.ibm.com>
-	<CA+55aFy8kx1qaWszc9nrbUaqFu7GfTtDkpzPBeE2g2U6RZjYkA@mail.gmail.com>
-	<20131123013654.GG4138@linux.vnet.ibm.com>
-	<CA+55aFxQy8afgf6geqJOEHmsJ=ME-6CXrrPfj=aggH7u_jEEZA@mail.gmail.com>
-	<20131123212929.GP4971@laptop.programming.kicks-ass.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20131123212929.GP4971@laptop.programming.kicks-ass.net>
-Sender: owner-linux-mm@kvack.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, Tim Chen <tim.c.chen@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.>
-List-Id: linux-arch.vger.kernel.org
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: [PATCH 0024] asm-generic: Rename int-ll64.h to types.h
+Date: Mon, 25 Nov 2013 09:55:10 +0100
+Message-ID: <1385369734-24893-1-git-send-email-geert@linux-m68k.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from jacques.telenet-ops.be ([195.130.132.50]:50350 "EHLO
+	jacques.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752637Ab3KYIzl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Nov 2013 03:55:41 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
 
-On Sat, Nov 23, 2013 at 1:29 PM, Peter Zijlstra <peterz@infradead.org> wrote:
->
-> I haven't read your email in full detail yet, but one thing I did miss
-> was cache-snoops.
->
-> One of the reasons for failing transitive / multi-copy atomicity is that
-> CPUs might have different views of the memory state depending on from
-> which caches they can get snoops.
+This patchset aims to rename <asm-generic/int-ll64.h> to
+<asm-generic/types.h> in kernelspace, as suggested by Arnd.
 
-My argument doesn't depend on that or care about that.
+While userspace still has both include/uapi/asm-generic/int-l64.h and
+include/uapi/asm-generic/int-ll64.h (int-l64.h may still be used on legacy
+64-bit systems), kernelspace always uses "(unsigned) long long" for 64-bit
+integer values ("u64" and "s64").  Hence there's no longer a need to
+distinguish between int-l64 and int-ll64 in kernelspace, and int-ll64.h can
+just be called types.h
 
-My argument depends purely on:
+  - Patch 01 adds a missing _UAPI prefix to <uapi/asm-generic/types.h>
+    include guard, to avoid conflicts with the future
+    <asm-generic/types.h>,
+  - Patches 02-11 switch to using Kbuild logic to provide UAPI
+    <asm/types.h> on architectures where possible and not yet done,
+  - Patches 12-13 remove unneeded inclusions of <uapi/asm/types.h>,
+  - Patches 14-18 switch to using Kbuild logic to provide (kernelspace)
+    <asm/types.h> on architectures where possible and not yet done,
+    All of these differed from the generic version only by a superfluous
+    definition of BITS_PER_LONG.
+  - Patch 19 Changes an include to harmonize with other architectures,
+  - Patch 20 removes a superfluous definition of BITS_PER_LONG,
+  - Patches 21-23 separate the inclusion of <asm-generic/int-ll64.h> in
+    kernel- and userspace, as the kernelspace version will be renamed,
+  - Patch 24 does the actual rename from <asm-generic/int-ll64.h> to
+    <asm-generic/types.h>.
+    Note: While arch/alpha/include/asm/types.h just includes
+    asm-generic/types.h after this patch, don't be tempted to use Kbuild
+    logic to provide it!
+    arch/*/include/asm/Kbuild seems to apply to both arch/*/include/asm and
+    arch/*/include/uapi/asm, while alpha has its own <uapi/asm/types.h>.
+    If you think this is a bug, please discuss this in reply to the last
+    patch.
 
- - barriers have a certain sane local meaning (because I don't think
-they can work without that)
+Most patches are trivial, and can be applied in any order. The last one is
+the only real sync point.
 
- - a cache coherenct implies that actually changing the cacheline
-requires exclusive access to that cacheline at some point (where the
-actual time of that "at some point" is not actually all that important
-and you can hold on to the exclusive access for some arbitrary time,
-but the particular points where the exclusive state changes matters
-for the barrier semantics in order for barriers to work).
+This has been compile-tested on all architectures that keep their own
+<uapi/asm/types.h>, and on a few others.
+The result of "make headers_install" for all architectures has been
+compared manually before and after.
 
-Nothing else matters for my argument. So cache snooping details are
-irrelevant. Or rather, it is relevant only in the sense that the CPU's
-that participate in the cache coherency protocol then have to have
-barriers that work properly in the presence of said snooping. You
-can't allow snooping to "break" the barriers.
+Thanks for your comments!
 
-Now, as I said in my follow-up, I think one "explanation" might be
-that "everyting happens at the same time" approach, and while that
-actually may work for "lwsync" and the sequence in question, I'm not
-convinced that kind of lock really is a proper lock.
+Gr{oetje,eeting}s,
 
-Because if you accept the "everything happens at once" model to
-explain why the unlock+lock sequence doesn't act as a memory barrier,
-than I actually think that you can build up an argument where multiple
-concurrent spinlock'ed accesses (ie you make one of 'X'/'Y' be the
-queue entry for the *next* MCS lock waiter trying to acquire it) can
-get insane results that aren't consistent with actual exclusion.
-
-Because if you accept that "a unlock and getting that lock on another
-CPU can happen at the same time" argument (so that you can have that
-circular chain of mutual dependencies), then you can extend the chain
-further, since all the lock/unlock operations in question apparently
-have zero latency and can thus see previous values for the same reason
-CPU2 can see the original zero value of "X".
-
-So I think anything that allows that
-
-  A <= B <= C <= D <=E <= F <= A
-
-situation is not necessarily a valid locking model (because you could
-basically add a "lwsync + ACCESS_ONCE(lock-chain)=0" to the work CPU1
-does, and since we've already established that there are zero
-latencies in all this, CPU2 could have gotten *that* lock that we now
-released "at the same time" as reading X as zero, even though CPU0 set
-X to one in its "critical region".
-
-So locks don't just imply "you can't let anything out of the critical
-region". They also imply exclusion, and that "everything happens all
-at once" model would seem to literally allow *EVERYTHING* to happen at
-once, breaking the *exclusion* requirement.
-
-But I dunno. My gut feel is that the "everything happens at once"
-explanation is not actually then a valid model for locking, which in
-turn would mean that using "lwsync" in both unlock and lock is not
-sufficient.
-
-Stated another way, let's say that you have multiple CPU's doing this:
-
-   lock
-   if (x == 0)
-     x = 1;
-   unlock
-
-then we had *better* have only one of the CPU's actually set "x=1".
-Otherwise the lock isn't a lock. Agreed?
-
-Paul argued that "lwsync" is valid in both lock and unlock becuse it
-doesn't allow anything to leak out of the locked region, but I'm
-arguing that if it means that we allow that "everything happens at
-once" model, then *every* CPU can do that "if (x == 0) x = 1" logic
-all at the same time, *all* of them decide to set x to 1, and *none*
-of them "leak" their accesses outside their locked region (they'd all
-set 'x' to 1 at the same time), but the end result is still wrong.
-
-So locking is not just "accesses inside of the lock cannot leak
-outside the lock". It also implies "accesses inside of it have to be
-_ordered_ wrt the lock", and that in turn disallows the "A <= .. <= F
-<= A" model.  One of the "<=" has to be a "<" for the lock to be a
-lock, methinks.
-
-But hey, maybe somebody can point to where I screwed up. I just do not
-think "snooping" is it.
-
-                    Linus
+						Geert
 
 --
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
