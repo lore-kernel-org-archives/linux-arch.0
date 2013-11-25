@@ -1,59 +1,75 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH 15/24] cris: Use Kbuild logic to provide <asm/types.h>
-Date: Mon, 25 Nov 2013 09:55:25 +0100
-Message-ID: <1385369734-24893-16-git-send-email-geert@linux-m68k.org>
+Subject: [PATCH 21/24] powerpc: Separate kernel/userspace inclusion of
+ <asm-generic/int-ll64.h>
+Date: Mon, 25 Nov 2013 09:55:31 +0100
+Message-ID: <1385369734-24893-22-git-send-email-geert@linux-m68k.org>
 References: <1385369734-24893-1-git-send-email-geert@linux-m68k.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from juliette.telenet-ops.be ([195.130.137.74]:36429 "EHLO
-	juliette.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753705Ab3KYIzq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Nov 2013 03:55:46 -0500
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
 In-Reply-To: <1385369734-24893-1-git-send-email-geert@linux-m68k.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
 To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, linux-cris-kernel@axis.com
+Cc: linuxppc-dev@lists.ozlabs.org, Geert Uytterhoeven <geert@linux-m68k.org>, linux-kernel@vger.kernel.org, Paul Mackerras <paulus@samba.org>
+List-Id: linux-arch.vger.kernel.org
 
-The extra definition for BITS_PER_LONG is also indirectly provided
-by <asm-generic/types.h>, via <asm-generic/int-ll64.h> and
-<asm/bitsperlong.h>
+This allows to rename the kernelspace version later.
+
+Now arch/powerpc/include/asm/types.h includes the kernelspace version,
+while arch/powerpc/include/uapi/asm/types.h includes the userspace version.
+As arch/powerpc/include/uapi/asm/types.h is also included for kernelspace,
+its inclusion of <asm-generic/int-ll64.h> needs to be protected by #ifndef
+__KERNEL__.
 
 Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Mikael Starvik <starvik@axis.com>
-Cc: Jesper Nilsson <jesper.nilsson@axis.com>
-Cc: linux-cris-kernel@axis.com
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: linuxppc-dev@lists.ozlabs.org
 ---
- arch/cris/include/asm/Kbuild  |    1 +
- arch/cris/include/asm/types.h |   12 ------------
- 2 files changed, 1 insertion(+), 12 deletions(-)
- delete mode 100644 arch/cris/include/asm/types.h
+ arch/powerpc/include/asm/types.h      |    1 +
+ arch/powerpc/include/uapi/asm/types.h |    4 +++-
+ 2 files changed, 4 insertions(+), 1 deletion(-)
 
-diff --git a/arch/cris/include/asm/Kbuild b/arch/cris/include/asm/Kbuild
-index 44e7d0dbcf32..2433df443890 100644
---- a/arch/cris/include/asm/Kbuild
-+++ b/arch/cris/include/asm/Kbuild
-@@ -13,3 +13,4 @@ generic-y += trace_clock.h
- generic-y += vga.h
- generic-y += xor.h
- generic-y += preempt.h
-+generic-y += types.h
-diff --git a/arch/cris/include/asm/types.h b/arch/cris/include/asm/types.h
-deleted file mode 100644
-index a3cac7757c7f..000000000000
---- a/arch/cris/include/asm/types.h
-+++ /dev/null
-@@ -1,12 +0,0 @@
--#ifndef _ETRAX_TYPES_H
--#define _ETRAX_TYPES_H
--
--#include <uapi/asm/types.h>
--
--/*
-- * These aren't exported outside the kernel to avoid name space clashes
-- */
--
--#define BITS_PER_LONG 32
--
--#endif
+diff --git a/arch/powerpc/include/asm/types.h b/arch/powerpc/include/asm/types.h
+index bfb6ded38ffa..4b9c3530bb12 100644
+--- a/arch/powerpc/include/asm/types.h
++++ b/arch/powerpc/include/asm/types.h
+@@ -13,6 +13,7 @@
+ #ifndef _ASM_POWERPC_TYPES_H
+ #define _ASM_POWERPC_TYPES_H
+ 
++#include <asm-generic/int-ll64.h>
+ #include <uapi/asm/types.h>
+ 
+ #ifndef __ASSEMBLY__
+diff --git a/arch/powerpc/include/uapi/asm/types.h b/arch/powerpc/include/uapi/asm/types.h
+index 4b8ab990a3c1..7f8847b61d03 100644
+--- a/arch/powerpc/include/uapi/asm/types.h
++++ b/arch/powerpc/include/uapi/asm/types.h
+@@ -21,11 +21,13 @@
+  * However, some user programs are fine with this.  They can
+  * flag __SANE_USERSPACE_TYPES__ to get int-ll64.h here.
+  */
+-#if !defined(__SANE_USERSPACE_TYPES__) && defined(__powerpc64__) && !defined(__KERNEL__)
++#ifndef __KERNEL__
++#if !defined(__SANE_USERSPACE_TYPES__) && defined(__powerpc64__)
+ # include <asm-generic/int-l64.h>
+ #else
+ # include <asm-generic/int-ll64.h>
+ #endif
++#endif
+ 
+ #ifndef __ASSEMBLY__
+ 
 -- 
 1.7.9.5
