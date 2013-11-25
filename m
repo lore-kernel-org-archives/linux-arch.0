@@ -1,76 +1,76 @@
-From: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-Subject: Re: [PATCH 14/24] avr32: Use Kbuild logic to provide <asm/types.h>
-Date: Mon, 25 Nov 2013 10:09:22 +0100
-Message-ID: <20131125090922.GB13358@samfundet.no>
-References: <1385369734-24893-1-git-send-email-geert@linux-m68k.org>
- <1385369734-24893-15-git-send-email-geert@linux-m68k.org>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC] Control dependencies
+Date: Mon, 25 Nov 2013 10:42:23 +0100
+Message-ID: <20131125094223.GV10022@twins.programming.kicks-ass.net>
+References: <20131121161733.GH10022@twins.programming.kicks-ass.net>
+ <20131121180237.GX4138@linux.vnet.ibm.com>
+ <20131122134630.GQ3866@twins.programming.kicks-ass.net>
+ <528F9B8D.2090806@hurleysoftware.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:35160 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750766Ab3KYJnC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Nov 2013 04:43:02 -0500
 Content-Disposition: inline
-In-Reply-To: <1385369734-24893-15-git-send-email-geert@linux-m68k.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Haavard Skinnemoen <hskinnemoen@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <528F9B8D.2090806@hurleysoftware.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Hurley <peter@hurleysoftware.com>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Sco
 
-Around Mon 25 Nov 2013 09:55:24 +0100 or thereabout, Geert Uytterhoeven wrote:
-> The extra definition for BITS_PER_LONG is also indirectly provided
-> by <asm-generic/types.h>, via <asm-generic/int-ll64.h> and
-> <asm/bitsperlong.h>
-
-Are you adding a new include/asm-generic/types.h, which will include
-bitsperlong.h ?
-
-If so, nice cleaning, and you have my
-
-> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
-> Cc: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-
-Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-
-> ---
->  arch/avr32/include/asm/Kbuild  |    1 +
->  arch/avr32/include/asm/types.h |   19 -------------------
->  2 files changed, 1 insertion(+), 19 deletions(-)
->  delete mode 100644 arch/avr32/include/asm/types.h
+On Fri, Nov 22, 2013 at 12:59:41PM -0500, Peter Hurley wrote:
+> On 11/22/2013 08:46 AM, Peter Zijlstra wrote:
+> >How about the below version?
+> >
+> >---
+> >--- a/kernel/events/ring_buffer.c
+> >+++ b/kernel/events/ring_buffer.c
+> >@@ -61,19 +61,20 @@ static void perf_output_put_handle(struc
+> >  	 *
+> >  	 *   kernel				user
+> >  	 *
+> >-	 *   READ ->data_tail			READ ->data_head
+> >-	 *   smp_mb()	(A)			smp_rmb()	(C)
+> >-	 *   WRITE $data			READ $data
+> >-	 *   smp_wmb()	(B)			smp_mb()	(D)
+> >-	 *   STORE ->data_head			WRITE ->data_tail
+> >+	 *   if (LOAD ->data_tail) {		LOAD ->data_head
+> >+	 *			(A)		smp_rmb()	(C)
+> >+	 *	STORE $data			LOAD $data
+> >+	 *	smp_wmb()	(B)		smp_mb()	(D)
+> >+	 *	STORE ->data_head		STORE ->data_tail
 > 
-> diff --git a/arch/avr32/include/asm/Kbuild b/arch/avr32/include/asm/Kbuild
-> index 658001b52400..129f4ff68066 100644
-> --- a/arch/avr32/include/asm/Kbuild
-> +++ b/arch/avr32/include/asm/Kbuild
-> @@ -17,4 +17,5 @@ generic-y       += scatterlist.h
->  generic-y       += sections.h
->  generic-y       += topology.h
->  generic-y	+= trace_clock.h
-> +generic-y	+= types.h
->  generic-y       += xor.h
-> diff --git a/arch/avr32/include/asm/types.h b/arch/avr32/include/asm/types.h
-> deleted file mode 100644
-> index 59324058069c..000000000000
-> --- a/arch/avr32/include/asm/types.h
-> +++ /dev/null
-> @@ -1,19 +0,0 @@
-> -/*
-> - * Copyright (C) 2004-2006 Atmel Corporation
-> - *
-> - * This program is free software; you can redistribute it and/or modify
-> - * it under the terms of the GNU General Public License version 2 as
-> - * published by the Free Software Foundation.
-> - */
-> -#ifndef __ASM_AVR32_TYPES_H
-> -#define __ASM_AVR32_TYPES_H
-> -
-> -#include <uapi/asm/types.h>
-> -
-> -/*
-> - * These aren't exported outside the kernel to avoid name space clashes
-> - */
-> -
-> -#define BITS_PER_LONG 32
-> -
-> -#endif /* __ASM_AVR32_TYPES_H */
--- 
-mvh
-Hans-Christian Egtvedt
+> 
+> I wasn't subscribed to linux-arch so missed the smp_store_release()
+> outcome, if there was one.
+> 
+> Are (B) and (D) still slated for changing to STORE.rel semantics,
+> aka smp_store_release()?
+
+The earlier proposal would have A and C be smp_load_acquire() and B and
+D be smp_store_release().
+
+> I realize that, for the perf ring buffer, (D) is in userspace but
+> I'm also interested in non-perf situations where (D) would be in the
+> kernel.
+
+So we're still debating the exact semantics of smp_store_release(), it
+now looks like it needs a heavier memory barrier than previously
+thought. In which case using it wouldn't make sense for me anymore.
+
+Note that C and D are in userspace and not in any hot path (usually)
+They're only issued once to read an entire buffer backlog at once, so I
+don't really care about them all that much.
+
+A and B otoh are in kernel space and are issued for every single event
+written, so I'm interested to get them as cheaply as possible.
+
+With this proposed patch, we remove a full barrier, with the earlier
+smp_load_acquire() / smp_store_release() patches we would only
+downgrade the full barrier to an acquire barrier, which is still more
+than no barrier at all.
+
+And now it looks like the smp_store_release() would actually upgrade the
+wmb to a full barrier on some systems at least.
