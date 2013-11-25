@@ -1,25 +1,28 @@
 From: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-Subject: Re: [PATCH 02/24] avr32/uapi: Use Kbuild logic to provide
- <asm/types.h>
-Date: Mon, 25 Nov 2013 10:07:10 +0100
-Message-ID: <20131125090710.GA13358@samfundet.no>
+Subject: Re: [PATCH 14/24] avr32: Use Kbuild logic to provide <asm/types.h>
+Date: Mon, 25 Nov 2013 10:09:22 +0100
+Message-ID: <20131125090922.GB13358@samfundet.no>
 References: <1385369734-24893-1-git-send-email-geert@linux-m68k.org>
- <1385369734-24893-3-git-send-email-geert@linux-m68k.org>
+ <1385369734-24893-15-git-send-email-geert@linux-m68k.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1385369734-24893-3-git-send-email-geert@linux-m68k.org>
+In-Reply-To: <1385369734-24893-15-git-send-email-geert@linux-m68k.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Geert Uytterhoeven <geert@linux-m68k.org>
 Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Haavard Skinnemoen <hskinnemoen@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-Around Mon 25 Nov 2013 09:55:12 +0100 or thereabout, Geert Uytterhoeven wrote:
-> Uapi <asm-generic/types.h> just includes <asm-generic/int-ll64.h>
-> 
+Around Mon 25 Nov 2013 09:55:24 +0100 or thereabout, Geert Uytterhoeven wrote:
+> The extra definition for BITS_PER_LONG is also indirectly provided
+> by <asm-generic/types.h>, via <asm-generic/int-ll64.h> and
+> <asm/bitsperlong.h>
 
-Thanks for cleaning.
+Are you adding a new include/asm-generic/types.h, which will include
+bitsperlong.h ?
+
+If so, nice cleaning, and you have my
 
 > Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
 > Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
@@ -28,34 +31,27 @@ Thanks for cleaning.
 Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
 
 > ---
->  arch/avr32/include/uapi/asm/Kbuild  |    2 +-
->  arch/avr32/include/uapi/asm/types.h |   13 -------------
->  2 files changed, 1 insertion(+), 14 deletions(-)
->  delete mode 100644 arch/avr32/include/uapi/asm/types.h
+>  arch/avr32/include/asm/Kbuild  |    1 +
+>  arch/avr32/include/asm/types.h |   19 -------------------
+>  2 files changed, 1 insertion(+), 19 deletions(-)
+>  delete mode 100644 arch/avr32/include/asm/types.h
 > 
-> diff --git a/arch/avr32/include/uapi/asm/Kbuild b/arch/avr32/include/uapi/asm/Kbuild
-> index 08d8a3d76ea8..1598223f0bfc 100644
-> --- a/arch/avr32/include/uapi/asm/Kbuild
-> +++ b/arch/avr32/include/uapi/asm/Kbuild
-> @@ -19,7 +19,6 @@ header-y += stat.h
->  header-y += swab.h
->  header-y += termbits.h
->  header-y += termios.h
-> -header-y += types.h
->  header-y += unistd.h
->  generic-y += bitsperlong.h
->  generic-y += errno.h
-> @@ -34,3 +33,4 @@ generic-y += poll.h
->  generic-y += resource.h
->  generic-y += siginfo.h
->  generic-y += statfs.h
-> +generic-y += types.h
-> diff --git a/arch/avr32/include/uapi/asm/types.h b/arch/avr32/include/uapi/asm/types.h
+> diff --git a/arch/avr32/include/asm/Kbuild b/arch/avr32/include/asm/Kbuild
+> index 658001b52400..129f4ff68066 100644
+> --- a/arch/avr32/include/asm/Kbuild
+> +++ b/arch/avr32/include/asm/Kbuild
+> @@ -17,4 +17,5 @@ generic-y       += scatterlist.h
+>  generic-y       += sections.h
+>  generic-y       += topology.h
+>  generic-y	+= trace_clock.h
+> +generic-y	+= types.h
+>  generic-y       += xor.h
+> diff --git a/arch/avr32/include/asm/types.h b/arch/avr32/include/asm/types.h
 > deleted file mode 100644
-> index 7c986c4e99b5..000000000000
-> --- a/arch/avr32/include/uapi/asm/types.h
+> index 59324058069c..000000000000
+> --- a/arch/avr32/include/asm/types.h
 > +++ /dev/null
-> @@ -1,13 +0,0 @@
+> @@ -1,19 +0,0 @@
 > -/*
 > - * Copyright (C) 2004-2006 Atmel Corporation
 > - *
@@ -63,12 +59,18 @@ Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
 > - * it under the terms of the GNU General Public License version 2 as
 > - * published by the Free Software Foundation.
 > - */
-> -#ifndef _UAPI__ASM_AVR32_TYPES_H
-> -#define _UAPI__ASM_AVR32_TYPES_H
+> -#ifndef __ASM_AVR32_TYPES_H
+> -#define __ASM_AVR32_TYPES_H
 > -
-> -#include <asm-generic/int-ll64.h>
+> -#include <uapi/asm/types.h>
 > -
-> -#endif /* _UAPI__ASM_AVR32_TYPES_H */
+> -/*
+> - * These aren't exported outside the kernel to avoid name space clashes
+> - */
+> -
+> -#define BITS_PER_LONG 32
+> -
+> -#endif /* __ASM_AVR32_TYPES_H */
 -- 
 mvh
 Hans-Christian Egtvedt
