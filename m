@@ -1,113 +1,248 @@
-From: Peter Zijlstra <peterz@infradead.org>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
-Date: Mon, 25 Nov 2013 18:35:40 +0100
-Message-ID: <20131125173540.GK3694@twins.programming.kicks-ass.net>
-References: <20131120171400.GI4138@linux.vnet.ibm.com>
- <20131121110308.GC10022@twins.programming.kicks-ass.net>
- <20131121125616.GI3694@twins.programming.kicks-ass.net>
- <20131121132041.GS4138@linux.vnet.ibm.com>
- <20131121172558.GA27927@linux.vnet.ibm.com>
- <20131121215249.GZ16796@laptop.programming.kicks-ass.net>
- <20131121221859.GH4138@linux.vnet.ibm.com>
- <20131122155835.GR3866@twins.programming.kicks-ass.net>
- <20131122182632.GW4138@linux.vnet.ibm.com>
- <20131122185107.GJ4971@laptop.programming.kicks-ass.net>
+Date: Mon, 25 Nov 2013 09:53:15 -0800
+Message-ID: <20131125175315.GO4138@linux.vnet.ibm.com>
+References: <20131122200620.GA4138@linux.vnet.ibm.com>
+ <CA+55aFz0nP1_O8jO2UkX1DmDzcBm53-fFejvz=oY=x3cGNBJSQ@mail.gmail.com>
+ <20131122203738.GC4138@linux.vnet.ibm.com>
+ <CA+55aFwHUuaGzW_=xEWNcyVnHT-zW8-bs6Xi=M458xM3Y1qE0w@mail.gmail.com>
+ <20131122215208.GD4138@linux.vnet.ibm.com>
+ <CA+55aFzS2yd-VbJB5t14mP8NZG8smB1BQaYCw3Zo19FWQL92vA@mail.gmail.com>
+ <20131123002542.GF4138@linux.vnet.ibm.com>
+ <CA+55aFy8kx1qaWszc9nrbUaqFu7GfTtDkpzPBeE2g2U6RZjYkA@mail.gmail.com>
+ <20131123013654.GG4138@linux.vnet.ibm.com>
+ <CA+55aFxQy8afgf6geqJOEHmsJ=ME-6CXrrPfj=aggH7u_jEEZA@mail.gmail.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <20131122185107.GJ4971@laptop.programming.kicks-ass.net>
+In-Reply-To: <CA+55aFxQy8afgf6geqJOEHmsJ=ME-6CXrrPfj=aggH7u_jEEZA@mail.gmail.com>
 Sender: owner-linux-mm@kvack.org
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Will Deacon <will.deacon@arm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zyto>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Ingo Molnar <mingo@kernel.org>, Tim Chen <tim.c.chen@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@h>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Nov 22, 2013 at 07:51:07PM +0100, Peter Zijlstra wrote:
-> On Fri, Nov 22, 2013 at 10:26:32AM -0800, Paul E. McKenney wrote:
-> > The real source of my cognitive pain is that here we have a sequence of
-> > code that has neither atomic instructions or memory-barrier instructions,
-> > but it looks like it still manages to act as a full memory barrier.
-> > Still not quite sure I should trust it...
+On Sat, Nov 23, 2013 at 12:21:13PM -0800, Linus Torvalds wrote:
+> On Fri, Nov 22, 2013 at 5:36 PM, Paul E. McKenney
+> <paulmck@linux.vnet.ibm.com> wrote:
+> >
+> > But this does -not- guarantee that some other non-lock-holding CPU 2 will
+> > see CS0 and CS1 in order.  To see this, let's fill in the two critical
+> > sections, where variables X and Y are both initially zero:
+> >
+> >         CPU 0 (releasing)       CPU 1 (acquiring)
+> >         -----                   -----
+> >         ACCESS_ONCE(X) = 1;     while (ACCESS_ONCE(lock) == 1)
+> >         lwsync                          continue;
+> >         ACCESS_ONCE(lock) = 0;  lwsync
+> >                                 r1 = ACCESS_ONCE(Y);
+> >
+> > Then let's add in the observer CPU 2:
+> >
+> >         CPU 2
+> >         -----
+> >         ACCESS_ONCE(Y) = 1;
+> >         sync
+> >         r2 = ACCESS_ONCE(X);
+> >
+> > If unlock+lock act as a full memory barrier, it would be impossible to
+> > end up with (r1 == 0 && r2 == 0).  After all, (r1 == 0) implies that
+> > CPU 2's store to Y happened after CPU 1's load from Y, and (r2 == 0)
+> > implies that CPU 0's load from X happened after CPU 2's store to X.
+> > If CPU 0's unlock combined with CPU 1's lock really acted like a full
+> > memory barrier, we end up with CPU 0's load happening before CPU 1's
+> > store happening before CPU 2's store happening before CPU 2's load
+> > happening before CPU 0's load.
+> >
+> > However, the outcome (r1 == 0 && r2 == 0) really does happen both
+> > in theory and on real hardware.
 > 
-> Yes, this is something that puzzles me too.
+> Ok, so I have ruminated.
 > 
-> That said, the two rules that:
+> But even after having ruminated, the one thing I cannot find is
+> support for your "(r1 == 0 && r2 == 0) really does happen on
+> hardware".
 > 
-> 1)  stores aren't re-ordered against other stores
-> 2)  reads aren't re-ordered against other reads
+> Ignore theory, and assume just cache coherency,
+
+Sorry, but that is not ignoring theory.  Ignoring theory would instead
+mean confining oneself to running tests on real hardware.  And there is
+real hardware that does allow the assertion to trigger.  You are instead
+asking me to use your personal theory instead of a theory that has been
+shown to match reality.
+
+Let's see how that plays out.
+
+>                                                 ie the notion that in
+> order to write to a cacheline, you have to have that cacheline in some
+> exclusive state. We have three cachelines, X, Y and lock (and our
+> cachelines only have a single bit, starting out as 0,0,1
+> respectively).
 > 
-> Do make that:
+> CPU0:
+>    write X = 1;
+>    lwsync
+>    write lock = 0;
 > 
-> 	STORE x
-> 	LOAD  x
+> doesn't even really require any cache accesses at all per se, but it
+> *does* require that the two stores be ordered in the store buffer on
+> CPU0 in such a way that cacheline X gets updated (ie is in
+> exclusive/dirty state in CPU0 with the value 1) before cacheline
+> 'lock' gets released from its exclusive/dirty state after having
+> itself been updated to 0.
+
+So far, so good.
+
+> So basically we know that *within* CPU0, by the time the lock actually
+> makes it out of the CPU, the cacheline containing X will have been in
+> dirty mode with the value "1".
+
+You seem to be assuming that the only way for the cache line to make it
+out of the CPU is via the caches.  This assumption is incorrect given
+hardware multithreading, in which case the four hardware threads in a
+core (in the case of Power 7) can share a store buffer, and can thus
+communicate via that store buffer.
+
+Another way of putting this is that you are assuming multi-copy atomic
+behavior, which is in fact guaranteed on x86 by the the bullet in 8.2.2
+of the "Intel 64 and IA-32 Architectures Software Developer's Manual"
+which reads:
+
+	"Any two stores are seen in a consistent order by processors
+	other than those performing the stores."
+
+The reality is that not all architectures guarantee multi-copy atomic
+behavior.
+
+>                                The core might actually have written
+> 'lock' first, but it can't release that cacheline from exclusive state
+> (so that it is visible anywhere else) until it has _also_ gotten 'X'
+> into exclusive state (once both cachelines are exclusive within CPU0,
+> it can do any ordering, because the ordering won't be externally
+> visible).
+
+Not always true when store buffers are shared among hardware threads!
+In particular, consider the case where CPU 0 and CPU 1 share a store
+buffer and CPU 2 is on some other core.  CPU 1 sees CPU 2's accesses
+in order, but the lwsync instructions do not order prior stores against
+later loads.  Therefore, it is legal for CPU 0's store to X be released
+from the core -after- CPU 1's load from Y.  CPU 2's sync cannot help in
+this case, so the assertion can trigger.
+
+Please note that this does -not- violate cache coherence:  All three
+CPUs agree on the order of accesses to each individual memory location.
+(Or do you mean something else by "cache coherence"?)
+
+> And this is all just looking at CPU0, nothing else. But if it is
+> exclusive/dirty on CPU0, then it cannot be shared in any other CPU
+> (although a previous stale value may obviously still be "in flight"
+> somewhere else outside of the coherency domain).
 > 
-> form a fence that neither stores nor loads can pass through from
-> either side; note however that they themselves rely on the data
-> dependency to not reorder against themselves.
+> So let's look at CPU2, which is similar, but now the second access is
+> a read (of zero), not a write:
 > 
-> If you put them the other way around:
+> CPU2:
+>    write Y = 1;
+>    sync
+>    read X as zero
 > 
-> 	LOAD x
-> 	STORE y
+> So if 'sync' is a true memory barrier between the write and the read,
+> then we know that the following is true: CPU2 must have gotten
+> cacheline 'Y' into exclusive state and acquired (or held on to, which
+> is equivalent) cacheline 'X' in shared state _after_ it got that Y
+> into exclusive state. It can't rely on some "in flight" previously
+> read value of 'X' until after it got Y into exclusive state. Otherwise
+> it wouldn't be a ordering between the write and the read, agreed?
+
+Again, this line of reasoning does not take into account the possibility
+of store buffers being shared between hardware threads within a single
+core.  The key point is that CPU 0 and CPU 1 can be sharing the new value
+of X prior to its reaching the cache, in other words, before CPU 2 can
+see it.
+
+So, no, I do not agree that this holds for all real hardware.
+
+> The pattern on CPU1, meanwhile, is somewhat different. But I'm going
+> to ignore the "while" part, and just concentrate on the last iteration
+> of the loop, and it turns into:
 > 
-> we seem to get a stronger variant because stores are not re-ordered
-> against older reads.
+> CPU1:
+>    read lock as zero
+>    lwsync
+>    read Y as zero
 > 
-> There is however the exception cause for rule 1) above, which includes
-> clflush, non-temporal stores and string ops; the actual mfence
-> instruction doesn't seem to have this exception and would thus be
-> slightly stronger still.
+> It only does reads, so it is happy with a shared cacheline, but in
+> order for the lwsync to actually act as an acquire, it does mean that
+> the cacheline 'Y' needs to be in some shared state within the cache
+> coherency domain after (or, again, across) cacheline 'lock' having
+> been in a shared state with value == 0 on CPU1. No "in flight" values.
+
+Or, if CPU 0 and CPU 1 are hardware threads in the same core, it is
+happy with a shared store-buffer entry that might not yet be visible
+to hardware threads in other cores.
+
+> Agreed?
+
+Sorry, but no.
+
+> So the above isn't really about lwsync/sync/memory ordering any more,
+> the above is basically rewriting things purely about cacheline states
+> as seen by individual processors. And I know the POWER cache coherency
+> is really complex (iirc cachelines can have 11+ states - we're not
+> talking about MOESI any more), but even there you have to have a
+> notion of "exclusive access" to be able to write in the end. So my
+> states are certainly simplified, but I don't see how that basic rule
+> can be violated (and still be called cache coherent).
 > 
-> Still confusion situation all round.
+> And let's just look at the individual "events" on these CPU's:
+> 
+>  - A = CPU0 acquires exclusive access to cacheline X (in order to
+> write 1 into it)
+>  - B = CPU0 releases its exclusive access to cacheline lock (after
+> having written 0 into it)
+>  - C = CPU1 reads shared cacheline lock as being zero
+>  - D = CPU1 reads shared cacheline Y as being zero
+>  - E = CPU2 acquires exclusive access to cacheline Y (in order to
+> write 1 into it)
+>  - F = CPU2 reads shared cacheline X as being zero
+> 
+> and you cannot order these events arbitrarily, but there *ARE* certain
+> orderings you can rely on:
+> 
+>  - within a CPU due to the barriers. This gives you
+> 
+>     A < B, C < D and E < F
 
-I think this means x86 needs help too.
+Again, consider the case of shared store buffers.  In that case,
+A < B and C < D does -not- imply A < D because the two lwsyncs will
+-not- order a prior store (CPU 0's store to X) with a later load
+(CPU 1's load from Y).  To get that guarantee, at least one of the
+lwsync instructions needs to instead be a sync.
 
-Consider:
+>  - with regards to a particular cacheline because of that cacheline
+> coming exclusive (or, in the case of 'B', moving out of exclusive
+> state) and the value it has at that point:
+> 
+>     B < C, F < A and D < E
+> 
+> And as far as I can tell, the above gives you: A < B < C < D < E < F <
+> A. Which doesn't look possible.
+> 
+> So which step in my rumination here is actually wrong? Because I
+> really don't see how you can get that "(r1 == 0 && r2 == 0)" on real
+> hardware using cache coherency.
+> 
+> *SOME* assumption of mine must be wrong. But I don't see which one.
 
-x = y = 0
+Wrong assumption 1.  Each hardware thread has its own store buffer.
 
-  w[x] = 1  |  w[y] = 1
-  mfence    |  mfence
-  r[y] = 0  |  r[x] = 0
+Wrong assumption 2.  All architectures guarantee multi-copy atomic behavior.
 
-This is generally an impossible case, right? (Since if we observe y=0
-this means that w[y]=1 has not yet happened, and therefore x=1, and
-vice-versa).
+							Thanx, Paul
 
-Now replace one of the mfences with smp_store_release(l1);
-smp_load_acquire(l2); such that we have a RELEASE+ACQUIRE pair that
-_should_ form a full barrier:
-
-  w[x] = 1   | w[y] = 1
-  w[l1] = 1  | mfence
-  r[l2] = 0  | r[x] = 0
-  r[y] = 0   |
-
-At which point we can observe the impossible, because as per the rule:
-
-'reads may be reordered with older writes to different locations'
-
-Our r[y] can slip before the w[x]=1.
-
-Thus x86's smp_store_release() would need to be:
-
-+#define smp_store_release(p, v)						\
-+do {									\
-+	compiletime_assert_atomic_type(*p);				\
-+	smp_mb();							\
-+	ACCESS_ONCE(*p) = (v);						\
-+} while (0)
-
-Or: (void)xchg((p), (v));
-
-Idem for s390 and sparc I suppose.
-
-The only reason your example worked is because the unlock and lock were
-for the same lock.
-
-This of course leaves us without joy for circular buffers, which can do
-without this LOCK'ed op and without sync on PPC. Now I'm not at all sure
-we've got enough of those to justify primitives just for them.
+>                    Linus
+> 
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
