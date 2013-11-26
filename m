@@ -1,71 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:61671 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756907Ab3KYQOy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 25 Nov 2013 11:14:54 -0500
-From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH v2 00/11] Consolidate asm/fixmap.h files
-Date: Mon, 25 Nov 2013 11:13:54 -0500
-Message-ID: <1385396045-15852-1-git-send-email-msalter@redhat.com>
+Received: from merlin.infradead.org ([205.233.59.134]:56005 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932405Ab3KZS7C (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Nov 2013 13:59:02 -0500
+Date: Tue, 26 Nov 2013 19:58:47 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [patch 4/6] ia64: Use preempt_schedule_irq
+Message-ID: <20131126185847.GE789@laptop.programming.kicks-ass.net>
+References: <20130917082838.218329307@infradead.org>
+ <20130917182350.449685712@linutronix.de>
+ <20130917183628.857145384@linutronix.de>
+ <CA+8MBbKq1idWt1OSpRM3mWMDAQaEoewrU=h=m_pFoidVy6OA-Q@mail.gmail.com>
+ <alpine.DEB.2.02.1311202121340.30673@ionos.tec.linutronix.de>
+ <alpine.DEB.2.02.1311211230030.30673@ionos.tec.linutronix.de>
+ <20131121130605.GE10022@twins.programming.kicks-ass.net>
+ <alpine.DEB.2.02.1311211428450.30673@ionos.tec.linutronix.de>
+ <CA+8MBbL4sBZK26O_+VQizNy-5mWtieDBfAy5CDcNBFxvorEp3g@mail.gmail.com>
+ <CA+8MBbL3oscq6GpgyTBb6hxdzuG+Gj_ahdu4rpvTTaPvrF+8_w@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CA+8MBbL3oscq6GpgyTBb6hxdzuG+Gj_ahdu4rpvTTaPvrF+8_w@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Mark Salter <msalter@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, linux-metag@vger.kernel.org, Michal Simek <monstr@monstr.eu>, microblaze-uclinux@itee.uq.edu.au, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20131125161354.ySxWi0iB4KH0RdhDx5kJDFlzstllfURymrp_rn6gBEM@z>
+To: Tony Luck <tony.luck@gmail.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Fenghua Yu <fenghua.yu@intel.com>
+Message-ID: <20131126185847.Z6uLj-PZGMWkls2Ao3gKhRUZl3r9FWHZ6MSARiyjJU0@z>
 
-Many architectures provide an asm/fixmap.h which defines support for
-compile-time 'special' virtual mappings which need to be made before
-paging_init() has run. This suport is also used for early ioremap
-on x86. Much of this support is identical across the architectures.
-This patch consolidates all of the common bits into asm-generic/fixmap.h
-which is intended to be included from arch/*/include/asm/fixmap.h.
+On Tue, Nov 26, 2013 at 10:37:59AM -0800, Tony Luck wrote:
+> On Thu, Nov 21, 2013 at 10:57 AM, Tony Luck <tony.luck@gmail.com> wrote:
+> > On Thu, Nov 21, 2013 at 5:30 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
+> >> On Thu, 21 Nov 2013, Peter Zijlstra wrote:
+> >>> Anyway, I don't object to the patch per se, but it might bloat a few
+> >>> !ia64 kernels for having to carry the extra text.
+> >
+> > I tried it out ... if does fix both build & boot for ia64 with
+> > PREMPT=n and PREMPT=y
+> >
+> > Tested-by: Tony Luck <tony.luck@intel.com>
+> 
+> So - are we going with this patch?  Or still thinking of something better?
 
-This has been compiled on x86, arm, powerpc, and sh, but tested
-on x86 only.
-
-This is version two of the patch series:
-
-   git://github.com/mosalter/linux.git#fixmap-v2
-
-Version 1 is here:
-
-   git://github.com/mosalter/linux.git#fixmap
-
-Changes from v1:
-
-  * Added acks from feedback.
-  * Use BUILD_BUG_ON in fix_to_virt()
-  * Fixed ARM patch to make FIXMAP_TOP inclusive of fixmap
-    range as is the case in the other architectures.
-
-Mark Salter (11):
-  Add generic fixmap.h
-  x86: use generic fixmap.h
-  arm: use generic fixmap.h
-  hexagon: use generic fixmap.h
-  metag: use generic fixmap.h
-  microblaze: use generic fixmap.h
-  mips: use generic fixmap.h
-  powerpc: use generic fixmap.h
-  sh: use generic fixmap.h
-  tile: use generic fixmap.h
-  um: use generic fixmap.h
-
- arch/arm/include/asm/fixmap.h        | 29 +++--------
- arch/arm/mm/init.c                   |  2 +-
- arch/hexagon/include/asm/fixmap.h    | 40 +--------------
- arch/metag/include/asm/fixmap.h      | 32 +-----------
- arch/microblaze/include/asm/fixmap.h | 44 +---------------
- arch/mips/include/asm/fixmap.h       | 33 +-----------
- arch/powerpc/include/asm/fixmap.h    | 44 +---------------
- arch/sh/include/asm/fixmap.h         | 39 +--------------
- arch/tile/include/asm/fixmap.h       | 33 +-----------
- arch/um/include/asm/fixmap.h         | 40 +--------------
- arch/x86/include/asm/fixmap.h        | 59 +---------------------
- include/asm-generic/fixmap.h         | 97 ++++++++++++++++++++++++++++++++++++
- 12 files changed, 118 insertions(+), 374 deletions(-)
- create mode 100644 include/asm-generic/fixmap.h
-
--- 
-1.8.3.1
-
+I queued it; let me prod Ingo (again) into actually merging it.
