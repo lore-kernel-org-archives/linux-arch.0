@@ -1,68 +1,61 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
-Date: Mon, 25 Nov 2013 19:16:26 -0800
-Message-ID: <20131126031626.GE4138@linux.vnet.ibm.com>
-References: <20131121132041.GS4138@linux.vnet.ibm.com>
- <20131121172558.GA27927@linux.vnet.ibm.com>
- <20131121215249.GZ16796@laptop.programming.kicks-ass.net>
- <20131121221859.GH4138@linux.vnet.ibm.com>
- <20131122155835.GR3866@twins.programming.kicks-ass.net>
- <20131122182632.GW4138@linux.vnet.ibm.com>
- <20131122185107.GJ4971@laptop.programming.kicks-ass.net>
- <20131125173540.GK3694@twins.programming.kicks-ass.net>
- <20131125180250.GR4138@linux.vnet.ibm.com>
- <5293E37F.5020908@zytor.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: Preventing IPI sending races in arch code
+Date: Tue, 26 Nov 2013 10:17:45 +0530
+Message-ID: <529427F1.2080409@synopsys.com>
+References: <52932BE2.5010201@synopsys.com>	 <20131125110006.GU3866@twins.programming.kicks-ass.net>	 <529334CA.1000401@synopsys.com>	 <20131125122726.GZ10022@twins.programming.kicks-ass.net>	 <C2D7FE5348E1B147BCA15975FBA2307515715C@IN01WEMBXA.internal.synopsys.com> <1385409103.9218.15.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <5293E37F.5020908@zytor.com>
-Sender: owner-linux-mm@kvack.org
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>Peter Hurley <p>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from hermes.synopsys.com ([198.182.44.81]:33260 "EHLO
+	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751749Ab3KZEsq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Nov 2013 23:48:46 -0500
+In-Reply-To: <1385409103.9218.15.camel@pasglop>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Gilad Ben-Yossef <gilad@benyossef.com>, Noam Camus <noamc@ezchip.com>, David Daney <david.daney@cavium.com>, James Hogan <james.hogan@imgtec.com>, thomas Gleixner <tglx@linutronix.de>, lkml <linux-kernel@vger.kernel.org>, Richard Kuo <rkuo@codeaurora.org>
 
-On Mon, Nov 25, 2013 at 03:55:43PM -0800, H. Peter Anvin wrote:
-> On 11/25/2013 10:02 AM, Paul E. McKenney wrote:
-> >=20
-> > I still do not believe that it does.  Again, strangely enough.
-> >=20
-> > We need to ask someone in Intel that understands this all the way dow=
-n
-> > to the silicon.  The guy I used to rely on for this no longer works
-> > at Intel.
-> >=20
-> > Do you know someone who fits this description, or should I start send=
-ing
-> > cold-call emails to various Intel contacts?
->=20
-> Feel free to poke me if you need any help.
+On 11/26/2013 01:21 AM, Benjamin Herrenschmidt wrote:
+> On Mon, 2013-11-25 at 13:35 +0000, Vineet Gupta wrote:
+> 
+>> Before reading ur email I was coding something like below:
+>>
+>> void arch_send_ipi(int cpu, int type)
+>> {
+>>   u32 *pending_ptr = per_cpu_ptr(ipi_bits, cpu);
+>>
+>>   while (cmpxchg(pending_ptr, 0, 1 << type) != 0)
+>> 	cpu_relax();
+>>
+>>   raise_ipi(cpu);
+>> }
+> 
+> So you would have blocked the sender while there was already
+> a pending IPI on the target ? Why ?
 
-My biggest question is the definition of "Memory ordering obeys causality
-(memory ordering respects transitive visibility)" in Section 3.2.2 of
-the "Intel=AE 64 and IA-32 Architectures Developer's Manual: Vol. 3A"
-dated March 2013 from:
+A simplistic (but non optimal) way to cater to the race where 2 senders try to
+send the exact same msg to same receiver. Upon first IPI, receiver "consumes" the
+msg (using xchg with 0) so the 2nd IPI seems "empty" i.e. no msg.
 
-http://www.intel.com/content/www/us/en/architecture-and-technology/64-ia-=
-32-architectures-software-developer-vol-3a-part-1-manual.html
 
-I am guessing that is orders loads as well as stores, so that a load
-is said to be "visible" to some other CPU once that CPU no longer has
-the opportunity to affect the return value from the load.  Is that a
-reasonable interpretation?
+> The optimization proposed by Peter is actually the only interesting
+> change here, without it the existing set_bit was perfectly fine.
 
-More generally, is the model put forward by Sewell et al. in "x86-TSO:
-A Rigorous and Usable Programmer's Model for x86 Multiprocessors"
-accurate?  This is on pages 4 and 5 here:
+I'm not sure, see below.
 
-	http://www.cl.cam.ac.uk/~pes20/weakmemory/cacm.pdf
+> Remember that set_bit is atomic.
 
-							Thanx, Paul
+Right, but the issue per-se is not clobbering of msg holder, but from POV of
+receiver, seeming coalescing of 2 set_bit writes to msg holder.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=3Dmailto:"dont@kvack.org"> email@kvack.org </a>
+core0		core1		core2
+
+set_bit 1	
+kick IPI-2	set_bit 1	IPI-0 received
+		kick IPI-2	read+clear bit
+				IPI-1 received
+				no msg
+
+-Vineet
