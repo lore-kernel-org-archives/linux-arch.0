@@ -1,39 +1,64 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [patch 4/6] ia64: Use preempt_schedule_irq
-Date: Tue, 26 Nov 2013 19:58:47 +0100
-Message-ID: <20131126185847.GE789@laptop.programming.kicks-ass.net>
-References: <20130917082838.218329307@infradead.org>
- <20130917182350.449685712@linutronix.de>
- <20130917183628.857145384@linutronix.de>
- <CA+8MBbKq1idWt1OSpRM3mWMDAQaEoewrU=h=m_pFoidVy6OA-Q@mail.gmail.com>
- <alpine.DEB.2.02.1311202121340.30673@ionos.tec.linutronix.de>
- <alpine.DEB.2.02.1311211230030.30673@ionos.tec.linutronix.de>
- <20131121130605.GE10022@twins.programming.kicks-ass.net>
- <alpine.DEB.2.02.1311211428450.30673@ionos.tec.linutronix.de>
- <CA+8MBbL4sBZK26O_+VQizNy-5mWtieDBfAy5CDcNBFxvorEp3g@mail.gmail.com>
- <CA+8MBbL3oscq6GpgyTBb6hxdzuG+Gj_ahdu4rpvTTaPvrF+8_w@mail.gmail.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
+Date: Tue, 26 Nov 2013 11:00:50 -0800
+Message-ID: <CA+55aFxXEbHuaKuxBDH=7a2-n_z849CdfeDtdL=_nFxu_Tx9_g@mail.gmail.com>
+References: <20131121172558.GA27927@linux.vnet.ibm.com>
+	<20131121215249.GZ16796@laptop.programming.kicks-ass.net>
+	<20131121221859.GH4138@linux.vnet.ibm.com>
+	<20131122155835.GR3866@twins.programming.kicks-ass.net>
+	<20131122182632.GW4138@linux.vnet.ibm.com>
+	<20131122185107.GJ4971@laptop.programming.kicks-ass.net>
+	<20131125173540.GK3694@twins.programming.kicks-ass.net>
+	<20131125180250.GR4138@linux.vnet.ibm.com>
+	<20131125182715.GG10022@twins.programming.kicks-ass.net>
+	<20131125235252.GA4138@linux.vnet.ibm.com>
+	<20131126095945.GI10022@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CA+8MBbL3oscq6GpgyTBb6hxdzuG+Gj_ahdu4rpvTTaPvrF+8_w@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Tony Luck <tony.luck@gmail.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Fenghua Yu <fenghua.yu@intel.com>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20131126095945.GI10022@twins.programming.kicks-ass.net>
+Sender: owner-linux-mm@kvack.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Nov 26, 2013 at 10:37:59AM -0800, Tony Luck wrote:
-> On Thu, Nov 21, 2013 at 10:57 AM, Tony Luck <tony.luck@gmail.com> wrote:
-> > On Thu, Nov 21, 2013 at 5:30 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
-> >> On Thu, 21 Nov 2013, Peter Zijlstra wrote:
-> >>> Anyway, I don't object to the patch per se, but it might bloat a few
-> >>> !ia64 kernels for having to carry the extra text.
-> >
-> > I tried it out ... if does fix both build & boot for ia64 with
-> > PREMPT=n and PREMPT=y
-> >
-> > Tested-by: Tony Luck <tony.luck@intel.com>
-> 
-> So - are we going with this patch?  Or still thinking of something better?
+On Tue, Nov 26, 2013 at 1:59 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+>
+> If you now want to weaken this definition, then that needs consideration
+> because we actually rely on things like
+>
+> spin_unlock(l1);
+> spin_lock(l2);
+>
+> being full barriers.
 
-I queued it; let me prod Ingo (again) into actually merging it.
+Btw, maybe we should just stop that assumption. The complexity of this
+discussion makes me go "maybe we should stop with subtle assumptions
+that happen to be obviously true on x86 due to historical
+implementations, but aren't obviously true even *there* any more with
+the MCS lock".
+
+We already have a concept of
+
+        smp_mb__before_spinlock();
+        spin_lock():
+
+for sequences where we *know* we need to make getting a spin-lock be a
+full memory barrier. It's free on x86 (and remains so even with the
+MCS lock, regardless of any subtle issues, if only because even the
+MCS lock starts out with a locked atomic, never mind the contention
+slow-case). Of course, that macro is only used inside the scheduler,
+and is actually documented to not really be a full memory barrier, but
+it handles the case we actually care about.
+
+IOW, where do we really care about the "unlock+lock" is a memory
+barrier? And could we make those places explicit, and then do
+something similar to the above to them?
+
+                       Linus
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
