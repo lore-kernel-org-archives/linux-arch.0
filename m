@@ -1,56 +1,55 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
-Date: Tue, 26 Nov 2013 17:31:24 -0800
-Message-ID: <20131127013124.GK4137@linux.vnet.ibm.com>
-References: <20131125182715.GG10022@twins.programming.kicks-ass.net>
- <20131125235252.GA4138@linux.vnet.ibm.com>
- <20131126095945.GI10022@twins.programming.kicks-ass.net>
- <CA+55aFxXEbHuaKuxBDH=7a2-n_z849CdfeDtdL=_nFxu_Tx9_g@mail.gmail.com>
- <20131126192003.GA4137@linux.vnet.ibm.com>
- <CA+55aFyjisiM1eC53STpcKLky84n8JRz3Aagp-CQd_+3AOJhow@mail.gmail.com>
- <20131126225136.GG4137@linux.vnet.ibm.com>
- <CA+55aFw58i3X67exR39M4OwUt5j+9BF4VU03FayRY0xGrnQvrg@mail.gmail.com>
- <20131127003904.GI4137@linux.vnet.ibm.com>
- <CA+55aFwhC0kk6TwsTsFEuoUoTe45qBza2=Nf+mrbPONyEGx-Ug@mail.gmail.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+Subject: Re: Re: [PATCH -tip v3 13/23] x86/trap: Use NOKPROBE_SYMBOL macro
+	in trap.c
+Date: Wed, 27 Nov 2013 10:38:12 +0900
+Message-ID: <52954D04.8090101@hitachi.com>
+References: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal>
+	<20131120042221.15296.85443.stgit@kbuild-fedora.novalocal>
+	<20131122212119.GE19762@tassilo.jf.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <CA+55aFwhC0kk6TwsTsFEuoUoTe45qBza2=Nf+mrbPONyEGx-Ug@mail.gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <ragha>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <20131122212119.GE19762@tassilo.jf.intel.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Andi Kleen <ak@linux.intel.com>
+Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, "David S. Miller" <davem@davemloft.net>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, Frederic Weisbecker <fweisbec@gmail.com>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, systemtap@sourceware.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Seiji Aguchi <seiji.aguchi@hds.com>, Ingo Molnar <mingo@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Nov 26, 2013 at 05:05:14PM -0800, Linus Torvalds wrote:
-> On Tue, Nov 26, 2013 at 4:39 PM, Paul E. McKenney
-> <paulmck@linux.vnet.ibm.com> wrote:
-> >
-> > Cross-CPU ordering.
+(2013/11/23 6:21), Andi Kleen wrote:
+> On Wed, Nov 20, 2013 at 04:22:21AM +0000, Masami Hiramatsu wrote:
+>> Use NOKPROBE_SYMBOL macro to protect functions from kprobes
+>> instead of __kprobes annotation in trap.c.
+>> This also applies __always_inline annotation for some cases,
+>> because NOKPROBE_SYMBOL() will inhibit inlining by referring
+>> the symbol address.
 > 
-> Ok, in that case I *suspect* we want an actual "spin_lock_mb()"
-> primitive, because if we go with the MCS lock approach, it's quite
-> possible that we find cases where the fast-case is already a barrier
-> (like it is on x86 by virtue of the locked instruction) but the MCS
-> case then is not. And then a separate barrier wouldn't be able to make
-> that kind of judgement.
+> NOKPROBE_SYMBOL seems to add a reference from some variable to the function?
 > 
-> Or maybe we don't care enough. It *sounds* like on x86, we do probably
-> already get the cross-cpu case for free, and on other architectures we
-> may always need the memory barrier, so maybe the whole
-> "mb_after_spin_lock()" thing is fine.
-> 
-> Ugh.
+> With LTO we can optimize away unused functions, but not
+> when there are references to the symbol. So this would likely
+> prevent optimizations with LTO.
 
-Indeed!  I don't know any way to deal with it other than enumerating
-the architectures and checking each.  My first cut at that was earlier
-in this thread.
+After considering this problem deeper, I decide to say NO against
+to your opinion. IMHO, the LTO is just an optimization, on the other
+hand, NOKPROBE_SYMBOL is more important because it is for avoiding
+kernel crash. I mean, the safety and stability should be prior to
+the performance. Anyway, such side-effect of NOKPROBE_SYMBOL looks
+very limited. Perhaps, less than 1% of functions will be marked.
+How much does it affect for the optimization?
 
-							Thanx, Paul
+Thank you,
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+-- 
+Masami HIRAMATSU
+IT Management Research Dept. Linux Technology Center
+Hitachi, Ltd., Yokohama Research Laboratory
+E-mail: masami.hiramatsu.pt@hitachi.com
