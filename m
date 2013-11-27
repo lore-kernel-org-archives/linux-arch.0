@@ -1,55 +1,81 @@
-From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Subject: Re: Re: [PATCH -tip v3 13/23] x86/trap: Use NOKPROBE_SYMBOL macro
-	in trap.c
-Date: Wed, 27 Nov 2013 10:38:12 +0900
-Message-ID: <52954D04.8090101@hitachi.com>
-References: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal>
-	<20131120042221.15296.85443.stgit@kbuild-fedora.novalocal>
-	<20131122212119.GE19762@tassilo.jf.intel.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
+Date: Tue, 26 Nov 2013 18:59:01 -0800
+Message-ID: <201311270259.rAR2xBI6003167@mail.zytor.com>
+References: <20131121215249.GZ16796@laptop.programming.kicks-ass.net> <20131121221859.GH4138@linux.vnet.ibm.com> <20131122155835.GR3866@twins.programming.kicks-ass.net> <20131122182632.GW4138@linux.vnet.ibm.com> <20131122185107.GJ4971@laptop.programming.kicks-ass.net> <20131125173540.GK3694@twins.programming.kicks-ass.net> <20131125180250.GR4138@linux.vnet.ibm.com> <5293E37F.5020908@zytor.com> <20131126031626.GE4138@linux.vnet.ibm.com> <529540FE.3070504@zytor.com> <20131127012719.GJ4137@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <20131122212119.GE19762@tassilo.jf.intel.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Andi Kleen <ak@linux.intel.com>
-Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, "David S. Miller" <davem@davemloft.net>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, Frederic Weisbecker <fweisbec@gmail.com>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, systemtap@sourceware.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Seiji Aguchi <seiji.aguchi@hds.com>, Ingo Molnar <mingo@kernel.org>
+Content-Type: text/plain;
+ charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20131127012719.GJ4137@linux.vnet.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: paulmck@linux.vnet.ibm.com"Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@h>
 List-Id: linux-arch.vger.kernel.org
 
-(2013/11/23 6:21), Andi Kleen wrote:
-> On Wed, Nov 20, 2013 at 04:22:21AM +0000, Masami Hiramatsu wrote:
->> Use NOKPROBE_SYMBOL macro to protect functions from kprobes
->> instead of __kprobes annotation in trap.c.
->> This also applies __always_inline annotation for some cases,
->> because NOKPROBE_SYMBOL() will inhibit inlining by referring
->> the symbol address.
-> 
-> NOKPROBE_SYMBOL seems to add a reference from some variable to the function?
-> 
-> With LTO we can optimize away unused functions, but not
-> when there are references to the symbol. So this would likely
-> prevent optimizations with LTO.
+<figo1802@gmail.com>
+Message-ID: <589ca54b-4171-4164-b9ba-dc3a5bad6376@email.android.com>
 
-After considering this problem deeper, I decide to say NO against
-to your opinion. IMHO, the LTO is just an optimization, on the other
-hand, NOKPROBE_SYMBOL is more important because it is for avoiding
-kernel crash. I mean, the safety and stability should be prior to
-the performance. Anyway, such side-effect of NOKPROBE_SYMBOL looks
-very limited. Perhaps, less than 1% of functions will be marked.
-How much does it affect for the optimization?
+Yes, if you have concrete scenarios we can discuss them.
 
-Thank you,
+"Paul E. McKenney" <paulmck@linux.vnet.ibm.com> wrote:
+>On Tue, Nov 26, 2013 at 04:46:54PM -0800, H. Peter Anvin wrote:
+>> On 11/25/2013 07:16 PM, Paul E. McKenney wrote:
+>> >=20
+>> > My biggest question is the definition of "Memory ordering obeys
+>causality
+>> > (memory ordering respects transitive visibility)" in Section 3.2.2
+>of
+>> > the "Intel=C2=AE 64 and IA-32 Architectures Developer's Manual: Vol.=
+ 3A"
+>> > dated March 2013 from:
+>> >=20
+>> >
+>http://www.intel.com/content/www/us/en/architecture-and-technology/64-ia=
+-32-architectures-software-developer-vol-3a-part-1-manual.html
+>> >=20
+>> > I am guessing that is orders loads as well as stores, so that a
+>load
+>> > is said to be "visible" to some other CPU once that CPU no longer
+>has
+>> > the opportunity to affect the return value from the load.  Is that
+>a
+>> > reasonable interpretation?
+>>=20
+>> The best pointer I can give is the example in section 8.2.3.6 of the
+>> current SDM (version 048, dated September 2013).  It is a bit more
+>> complex than what you have described above.
+>
+>OK, I did see that example.  It is similar to the one we are chasing
+>in this thread, but there are some important differences.  But you
+>did mention that that other example operated as expected on x86, so
+>we are good for the moment.  I was hoping to gain more general
+>understanding, but I would guess that there will be other examples
+>to help towards that goal.  ;-)
+>
+>> > More generally, is the model put forward by Sewell et al. in
+>"x86-TSO:
+>> > A Rigorous and Usable Programmer's Model for x86 Multiprocessors"
+>> > accurate?  This is on pages 4 and 5 here:
+>> >=20
+>> > 	http://www.cl.cam.ac.uk/~pes20/weakmemory/cacm.pdf
+>>=20
+>> I think for Intel to give that one a formal stamp of approval would
+>take
+>> some serious analysis.
+>
+>I bet!!!
+>
+>Hey, I had to ask!  ;-)
+>
+>							Thanx, Paul
 
--- 
-Masami HIRAMATSU
-IT Management Research Dept. Linux Technology Center
-Hitachi, Ltd., Yokohama Research Laboratory
-E-mail: masami.hiramatsu.pt@hitachi.com
+--=20
+Sent from my mobile phone.  Please pardon brevity and lack of formatting.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=3Dmailto:"dont@kvack.org"> email@kvack.org </a>
