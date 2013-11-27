@@ -1,44 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:56005 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932405Ab3KZS7C (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Nov 2013 13:59:02 -0500
-Date: Tue, 26 Nov 2013 19:58:47 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [patch 4/6] ia64: Use preempt_schedule_irq
-Message-ID: <20131126185847.GE789@laptop.programming.kicks-ass.net>
-References: <20130917082838.218329307@infradead.org>
- <20130917182350.449685712@linutronix.de>
- <20130917183628.857145384@linutronix.de>
- <CA+8MBbKq1idWt1OSpRM3mWMDAQaEoewrU=h=m_pFoidVy6OA-Q@mail.gmail.com>
- <alpine.DEB.2.02.1311202121340.30673@ionos.tec.linutronix.de>
- <alpine.DEB.2.02.1311211230030.30673@ionos.tec.linutronix.de>
- <20131121130605.GE10022@twins.programming.kicks-ass.net>
- <alpine.DEB.2.02.1311211428450.30673@ionos.tec.linutronix.de>
- <CA+8MBbL4sBZK26O_+VQizNy-5mWtieDBfAy5CDcNBFxvorEp3g@mail.gmail.com>
- <CA+8MBbL3oscq6GpgyTBb6hxdzuG+Gj_ahdu4rpvTTaPvrF+8_w@mail.gmail.com>
+Received: from mail9.hitachi.co.jp ([133.145.228.44]:40848 "EHLO
+	mail9.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758996Ab3K0BiS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Nov 2013 20:38:18 -0500
+Message-ID: <52954D04.8090101@hitachi.com>
+Date: Wed, 27 Nov 2013 10:38:12 +0900
+From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CA+8MBbL3oscq6GpgyTBb6hxdzuG+Gj_ahdu4rpvTTaPvrF+8_w@mail.gmail.com>
+Subject: Re: Re: [PATCH -tip v3 13/23] x86/trap: Use NOKPROBE_SYMBOL macro
+ in trap.c
+References: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal> <20131120042221.15296.85443.stgit@kbuild-fedora.novalocal> <20131122212119.GE19762@tassilo.jf.intel.com>
+In-Reply-To: <20131122212119.GE19762@tassilo.jf.intel.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tony Luck <tony.luck@gmail.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andi Kleen <ak@linux.intel.com>, Peter Anvin <hpa@zytor.com>, Mike Galbraith <bitbucket@online.de>, Arjan van de Ven <arjan@linux.intel.com>, Frederic Weisbecker <fweisbec@gmail.com>, Fenghua Yu <fenghua.yu@intel.com>
-Message-ID: <20131126185847.Z6uLj-PZGMWkls2Ao3gKhRUZl3r9FWHZ6MSARiyjJU0@z>
+To: Andi Kleen <ak@linux.intel.com>
+Cc: Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, Frederic Weisbecker <fweisbec@gmail.com>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, systemtap@sourceware.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Seiji Aguchi <seiji.aguchi@hds.com>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20131127013812.SKDm0H-6IToeLrnEFvesSpRGBV9gruDiZPc6XYI1pvw@z>
 
-On Tue, Nov 26, 2013 at 10:37:59AM -0800, Tony Luck wrote:
-> On Thu, Nov 21, 2013 at 10:57 AM, Tony Luck <tony.luck@gmail.com> wrote:
-> > On Thu, Nov 21, 2013 at 5:30 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
-> >> On Thu, 21 Nov 2013, Peter Zijlstra wrote:
-> >>> Anyway, I don't object to the patch per se, but it might bloat a few
-> >>> !ia64 kernels for having to carry the extra text.
-> >
-> > I tried it out ... if does fix both build & boot for ia64 with
-> > PREMPT=n and PREMPT=y
-> >
-> > Tested-by: Tony Luck <tony.luck@intel.com>
+(2013/11/23 6:21), Andi Kleen wrote:
+> On Wed, Nov 20, 2013 at 04:22:21AM +0000, Masami Hiramatsu wrote:
+>> Use NOKPROBE_SYMBOL macro to protect functions from kprobes
+>> instead of __kprobes annotation in trap.c.
+>> This also applies __always_inline annotation for some cases,
+>> because NOKPROBE_SYMBOL() will inhibit inlining by referring
+>> the symbol address.
 > 
-> So - are we going with this patch?  Or still thinking of something better?
+> NOKPROBE_SYMBOL seems to add a reference from some variable to the function?
+> 
+> With LTO we can optimize away unused functions, but not
+> when there are references to the symbol. So this would likely
+> prevent optimizations with LTO.
 
-I queued it; let me prod Ingo (again) into actually merging it.
+After considering this problem deeper, I decide to say NO against
+to your opinion. IMHO, the LTO is just an optimization, on the other
+hand, NOKPROBE_SYMBOL is more important because it is for avoiding
+kernel crash. I mean, the safety and stability should be prior to
+the performance. Anyway, such side-effect of NOKPROBE_SYMBOL looks
+very limited. Perhaps, less than 1% of functions will be marked.
+How much does it affect for the optimization?
+
+Thank you,
+
+-- 
+Masami HIRAMATSU
+IT Management Research Dept. Linux Technology Center
+Hitachi, Ltd., Yokohama Research Laboratory
+E-mail: masami.hiramatsu.pt@hitachi.com
+
+
