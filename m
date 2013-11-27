@@ -1,42 +1,44 @@
-From: Grant Likely <grant.likely@secretlab.ca>
-Subject: Re: [PATCH 1/9] dt: Handle passed/built-in DT selection in early_init_dt_scan()
-Date: Wed, 27 Nov 2013 15:35:35 +0000
-Message-ID: <20131127153535.EEA87C404EC@trevor.secretlab.ca>
-References: <5283A000.8090007@gmail.com> < 1384859554-27268-1-git-send-email-geert@linux-m68k.org> <20131121122148. 1B43DC40A2C@trevor.secretlab.ca> < CAMuHMdXfsB_Ewz9sUPZaAjFaQGTGeqMiD8mJ0tCoH1uFLYGoxw@mail.gmail.com> < CAL_JsqJVteJuaD0PRMHSR9cVcMJTSNj4wXtYiftG=-pYSR9vsQ@mail.gmail.com> < CAMuHMdWYkaLD2h=oet1w+wB+2wePmnpWWMawrBh7o=KAJym5pg@mail.gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAMuHMdWYkaLD2h=oet1w+wB+2wePmnpWWMawrBh7o=KAJym5pg@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robherring2@gmail.com>
-Cc: Rob Herring <rob.herring@calxeda.com>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
+Date: Wed, 27 Nov 2013 17:58:40 +0100
+Message-ID: <20131127165840.GA26138@redhat.com>
+References: <20131122155835.GR3866@twins.programming.kicks-ass.net> <20131122182632.GW4138@linux.vnet.ibm.com> <20131122185107.GJ4971@laptop.programming.kicks-ass.net> <20131125173540.GK3694@twins.programming.kicks-ass.net> <20131125180250.GR4138@linux.vnet.ibm.com> <20131125182715.GG10022@twins.programming.kicks-ass.net> <20131125235252.GA4138@linux.vnet.ibm.com> <20131126095945.GI10022@twins.programming.kicks-ass.net> <CA+55aFxXEbHuaKuxBDH=7a2-n_z849CdfeDtdL=_nFxu_Tx9_g@mail.gmail.com> <20131126192133.GF789@laptop.programming.kicks-ass.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20131126192133.GF789@laptop.programming.kicks-ass.net>
+Sender: owner-linux-mm@kvack.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 21 Nov 2013 18:42:58 +0100, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
-> On Thu, Nov 21, 2013 at 6:38 PM, Rob Herring <robherring2@gmail.com> wrote:
-> > I really don't like saying one arch can have built-in dtb and another
-> > one can't. Either we allow it or we don't. If this is a bad feature,
-> > then why did we let multiple arches implement it.
-> 
-> ... and did we put it in asm-generic, so now _every_ arch has __dtb_start.
-> 
-> Gr{oetje,eeting}s,
+On 11/26, Peter Zijlstra wrote:
+>
+> On Tue, Nov 26, 2013 at 11:00:50AM -0800, Linus Torvalds wrote:
+>
+> > IOW, where do we really care about the "unlock+lock" is a memory
+> > barrier? And could we make those places explicit, and then do
+> > something similar to the above to them?
+>
+> So I don't know :-(
+>
+> I do know myself and Oleg have often talked about it, and I'm fairly
+> sure we must have used it at some point.
 
-Some platforms need it because they either don't have bootloader
-support, they couldn't change the boot interface, or they don't have a
-bootwrapper they can put it in. I'd rather have it in common code than a
-different implementation on each architecture.
+No... I can't recall any particular place which explicitely relies
+on "unlock+lock => mb().
 
-For the copy flag, it would be fine to put an "if (IS_CONFIGURED())"
-test around the copy block so that it never happens on some
-architectures.
+(although I know the out-of-tree example which can be ignored ;)
 
-g.
+I can only recall that this was mentioned in the context like
+"no, the lack of mb() can't explain the problem because we have
+unlock+lock".
 
-> 
->                         Geert
-> 
-> --
-> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-> 
-> In personal conversations with technical people, I call myself a hacker. But
-> when I'm talking to journalists I just say "programmer" or something like that.
->                                 -- Linus Torvalds
+Oleg.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
