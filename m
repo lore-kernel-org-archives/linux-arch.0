@@ -1,81 +1,66 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
+From: Will Deacon <will.deacon@arm.com>
 Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
-Date: Tue, 26 Nov 2013 18:59:01 -0800
-Message-ID: <201311270259.rAR2xBI6003167@mail.zytor.com>
-References: <20131121215249.GZ16796@laptop.programming.kicks-ass.net> <20131121221859.GH4138@linux.vnet.ibm.com> <20131122155835.GR3866@twins.programming.kicks-ass.net> <20131122182632.GW4138@linux.vnet.ibm.com> <20131122185107.GJ4971@laptop.programming.kicks-ass.net> <20131125173540.GK3694@twins.programming.kicks-ass.net> <20131125180250.GR4138@linux.vnet.ibm.com> <5293E37F.5020908@zytor.com> <20131126031626.GE4138@linux.vnet.ibm.com> <529540FE.3070504@zytor.com> <20131127012719.GJ4137@linux.vnet.ibm.com>
+Date: Wed, 27 Nov 2013 10:16:13 +0000
+Message-ID: <20131127101613.GC9032@mudshark.cambridge.arm.com>
+References: <20131122185107.GJ4971@laptop.programming.kicks-ass.net>
+ <20131125173540.GK3694@twins.programming.kicks-ass.net>
+ <20131125180250.GR4138@linux.vnet.ibm.com>
+ <20131125182715.GG10022@twins.programming.kicks-ass.net>
+ <20131125235252.GA4138@linux.vnet.ibm.com>
+ <20131126095945.GI10022@twins.programming.kicks-ass.net>
+ <CA+55aFxXEbHuaKuxBDH=7a2-n_z849CdfeDtdL=_nFxu_Tx9_g@mail.gmail.com>
+ <20131126192003.GA4137@linux.vnet.ibm.com>
+ <CA+55aFyjisiM1eC53STpcKLky84n8JRz3Aagp-CQd_+3AOJhow@mail.gmail.com>
+ <20131126225136.GG4137@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain;
- charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20131127012719.GJ4137@linux.vnet.ibm.com>
+Content-Disposition: inline
+In-Reply-To: <20131126225136.GG4137@linux.vnet.ibm.com>
 Sender: owner-linux-mm@kvack.org
-To: paulmck@linux.vnet.ibm.com"Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@h>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizo>
 List-Id: linux-arch.vger.kernel.org
 
-<figo1802@gmail.com>
-Message-ID: <589ca54b-4171-4164-b9ba-dc3a5bad6376@email.android.com>
+On Tue, Nov 26, 2013 at 10:51:36PM +0000, Paul E. McKenney wrote:
+> On Tue, Nov 26, 2013 at 11:32:25AM -0800, Linus Torvalds wrote:
+> > On Tue, Nov 26, 2013 at 11:20 AM, Paul E. McKenney
+> > <paulmck@linux.vnet.ibm.com> wrote:
+> > >
+> > > There are several places in RCU that assume unlock+lock is a full
+> > > memory barrier, but I would be more than happy to fix them up given
+> > > an smp_mb__after_spinlock() and an smp_mb__before_spinunlock(), or
+> > > something similar.
+> > 
+> > A "before_spinunlock" would actually be expensive on x86.
+> 
+> Good point, on x86 the typical non-queued spin-lock acquisition path
+> has an atomic operation with full memory barrier in any case.  I believe
+> that this is the case for the other TSO architectures.  For the non-TSO
+> architectures:
+> 
+> o	ARM has an smp_mb() during lock acquisition, so after_spinlock()
+> 	can be a no-op for them.
 
-Yes, if you have concrete scenarios we can discuss them.
+Ok, but what about arm64? We use acquire for lock() and release for
+unlock(), so in Linus' example:
 
-"Paul E. McKenney" <paulmck@linux.vnet.ibm.com> wrote:
->On Tue, Nov 26, 2013 at 04:46:54PM -0800, H. Peter Anvin wrote:
->> On 11/25/2013 07:16 PM, Paul E. McKenney wrote:
->> >=20
->> > My biggest question is the definition of "Memory ordering obeys
->causality
->> > (memory ordering respects transitive visibility)" in Section 3.2.2
->of
->> > the "Intel=C2=AE 64 and IA-32 Architectures Developer's Manual: Vol.=
- 3A"
->> > dated March 2013 from:
->> >=20
->> >
->http://www.intel.com/content/www/us/en/architecture-and-technology/64-ia=
--32-architectures-software-developer-vol-3a-part-1-manual.html
->> >=20
->> > I am guessing that is orders loads as well as stores, so that a
->load
->> > is said to be "visible" to some other CPU once that CPU no longer
->has
->> > the opportunity to affect the return value from the load.  Is that
->a
->> > reasonable interpretation?
->>=20
->> The best pointer I can give is the example in section 8.2.3.6 of the
->> current SDM (version 048, dated September 2013).  It is a bit more
->> complex than what you have described above.
->
->OK, I did see that example.  It is similar to the one we are chasing
->in this thread, but there are some important differences.  But you
->did mention that that other example operated as expected on x86, so
->we are good for the moment.  I was hoping to gain more general
->understanding, but I would guess that there will be other examples
->to help towards that goal.  ;-)
->
->> > More generally, is the model put forward by Sewell et al. in
->"x86-TSO:
->> > A Rigorous and Usable Programmer's Model for x86 Multiprocessors"
->> > accurate?  This is on pages 4 and 5 here:
->> >=20
->> > 	http://www.cl.cam.ac.uk/~pes20/weakmemory/cacm.pdf
->>=20
->> I think for Intel to give that one a formal stamp of approval would
->take
->> some serious analysis.
->
->I bet!!!
->
->Hey, I had to ask!  ;-)
->
->							Thanx, Paul
+    write A;
+    spin_lock()
+    mb__after_spinlock();
+    read B
 
---=20
-Sent from my mobile phone.  Please pardon brevity and lack of formatting.
+Then A could very well be reordered after B if mb__after_spinlock() is a nop.
+Making that a full barrier kind of defeats the point of using acquire in the
+first place...
+
+It's one thing ordering unlock -> lock, but another getting those two to
+behave as full barriers for any arbitrary memory accesses.
+
+Will
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
 the body to majordomo@kvack.org.  For more info on Linux MM,
 see: http://www.linux-mm.org/ .
-Don't email: <a href=3Dmailto:"dont@kvack.org"> email@kvack.org </a>
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
