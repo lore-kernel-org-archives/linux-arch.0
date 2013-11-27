@@ -1,66 +1,93 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
-Date: Wed, 27 Nov 2013 10:16:13 +0000
-Message-ID: <20131127101613.GC9032@mudshark.cambridge.arm.com>
-References: <20131122185107.GJ4971@laptop.programming.kicks-ass.net>
- <20131125173540.GK3694@twins.programming.kicks-ass.net>
- <20131125180250.GR4138@linux.vnet.ibm.com>
- <20131125182715.GG10022@twins.programming.kicks-ass.net>
- <20131125235252.GA4138@linux.vnet.ibm.com>
- <20131126095945.GI10022@twins.programming.kicks-ass.net>
- <CA+55aFxXEbHuaKuxBDH=7a2-n_z849CdfeDtdL=_nFxu_Tx9_g@mail.gmail.com>
- <20131126192003.GA4137@linux.vnet.ibm.com>
- <CA+55aFyjisiM1eC53STpcKLky84n8JRz3Aagp-CQd_+3AOJhow@mail.gmail.com>
- <20131126225136.GG4137@linux.vnet.ibm.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: Re: Re: [PATCH -tip v3 00/23] kprobes: introduce
+	NOKPROBE_SYMBOL() and general cleaning of kprobe blacklist
+Date: Wed, 27 Nov 2013 14:30:45 +0100
+Message-ID: <20131127133045.GC18422@gmail.com>
+References: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal>
+	<y0mvbznxi6k.fsf@fche.csb> <20131120153801.GA9743@gmail.com>
+	<20131120173600.GK8993@redhat.com> <528D6C9F.8050809@hitachi.com>
+	<20131121072938.GA16912@gmail.com> <528EC2FF.30301@hitachi.com>
+	<528F4406.3090309@hitachi.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
 Content-Disposition: inline
-In-Reply-To: <20131126225136.GG4137@linux.vnet.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizo>
+In-Reply-To: <528F4406.3090309@hitachi.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, "Frank Ch. Eigler" <fche@redhat.com>, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Nov 26, 2013 at 10:51:36PM +0000, Paul E. McKenney wrote:
-> On Tue, Nov 26, 2013 at 11:32:25AM -0800, Linus Torvalds wrote:
-> > On Tue, Nov 26, 2013 at 11:20 AM, Paul E. McKenney
-> > <paulmck@linux.vnet.ibm.com> wrote:
-> > >
-> > > There are several places in RCU that assume unlock+lock is a full
-> > > memory barrier, but I would be more than happy to fix them up given
-> > > an smp_mb__after_spinlock() and an smp_mb__before_spinunlock(), or
-> > > something similar.
+
+* Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com> wrote:
+
+> (2013/11/22 11:35), Masami Hiramatsu wrote:
+> > (2013/11/21 16:29), Ingo Molnar wrote:
+> >>
+> >> * Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com> wrote:
+> >>
+> >>> (2013/11/21 2:36), Frank Ch. Eigler wrote:
+> >>
+> >> [ ... ]
+> >>>> one needs to resort to something like:
+> >>>>
+> >>>> # cat /proc/kallsyms | grep ' [tT] ' | while read addr type symbol; do
+> >>>>    perf probe $symbol
+> >>>> done
+> >>>>
+> >>>> then wait for a few hours for that to finish. Then, or while the loop
+> >>>> is still running, run
+> >>>>
+> >>>> # perf record -e 'probe:*' -aR sleep 1
+> >>>>
+> >>>> to take a kernel down.
+> >>>
+> >>> Um, indeed, current blacklist is not perfect. [...]
+> >>
+> >> Then it needs to be fixed ASAP!
 > > 
-> > A "before_spinunlock" would actually be expensive on x86.
+> > OK, I see. At least the two patches included this series
+> > should be fixed. :)
+> > 
+> > And more, I need to test all symbols and drills down.
 > 
-> Good point, on x86 the typical non-queued spin-lock acquisition path
-> has an atomic operation with full memory barrier in any case.  I believe
-> that this is the case for the other TSO architectures.  For the non-TSO
-> architectures:
+> OK, what I've found was;
+>  - The functions which can be ftraced look good.
+>    (see tracing/available_filter_functions)
+>  - following functions should not be able to be probed.
+>    - memcpy, memset
+>    - native_load_sp0 and some other native functions (need to be clear)
+>    - restore
+>    - trace_graph_return
+>    - trace_hardirqs_off_thunk, trace_hardirqs_on_thunk
+>    - This list still be not perfect. I just enabled/disabled kprobes
+>      one by one. There might be combined bugs (combination of several
+>      kprobes).
+>  - Some of them are hard to specify by NOKPROBE_SYMBOL because they are
+>    defined in assembly file.
 > 
-> o	ARM has an smp_mb() during lock acquisition, so after_spinlock()
-> 	can be a no-op for them.
+> Anyway, to fix all of them, I think we need file-based blacklist
+> especially for assembler symbols.
 
-Ok, but what about arm64? We use acquire for lock() and release for
-unlock(), so in Linus' example:
+assembler symbols shouldn't be particular hard either, just put them 
+into the noprobes section.
 
-    write A;
-    spin_lock()
-    mb__after_spinlock();
-    read B
+> For example, we can get all text symbols by below command;
+>  nm some-file.o | grep -i " t " | cut -f3 -d" "
+> so that we can make a blacklisted-symbol list for the file.
+> I need to look the Kbuild for how I can do that in Makefile.
 
-Then A could very well be reordered after B if mb__after_spinlock() is a nop.
-Making that a full barrier kind of defeats the point of using acquire in the
-first place...
+I think it's generally better to add explicit annotations to the code.
 
-It's one thing ordering unlock -> lock, but another getting those two to
-behave as full barriers for any arbitrary memory accesses.
+Thanks,
 
-Will
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+	Ingo
