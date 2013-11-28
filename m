@@ -1,79 +1,348 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
-Date: Wed, 27 Nov 2013 09:11:43 -0800
-Message-ID: <20131127171143.GN4137@linux.vnet.ibm.com>
-References: <20131125173540.GK3694@twins.programming.kicks-ass.net>
- <20131125180250.GR4138@linux.vnet.ibm.com>
- <20131125182715.GG10022@twins.programming.kicks-ass.net>
- <20131125235252.GA4138@linux.vnet.ibm.com>
- <20131126095945.GI10022@twins.programming.kicks-ass.net>
- <CA+55aFxXEbHuaKuxBDH=7a2-n_z849CdfeDtdL=_nFxu_Tx9_g@mail.gmail.com>
- <20131126192003.GA4137@linux.vnet.ibm.com>
- <CA+55aFyjisiM1eC53STpcKLky84n8JRz3Aagp-CQd_+3AOJhow@mail.gmail.com>
- <20131126225136.GG4137@linux.vnet.ibm.com>
- <20131127101613.GC9032@mudshark.cambridge.arm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20131127101613.GC9032@mudshark.cambridge.arm.com>
-Sender: owner-linux-mm@kvack.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>R
+From: Mark Salter <msalter@redhat.com>
+Subject: [PATCH 1/4] Create generic early_ioremap() support
+Date: Wed, 27 Nov 2013 21:44:36 -0500
+Message-ID: <1385606679-30446-2-git-send-email-msalter@redhat.com>
+References: <1385606679-30446-1-git-send-email-msalter@redhat.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1385606679-30446-1-git-send-email-msalter@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: Leif Lindholm <leif.lindholm@linaro.org>, Mark Salter <msalter@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Nov 27, 2013 at 10:16:13AM +0000, Will Deacon wrote:
-> On Tue, Nov 26, 2013 at 10:51:36PM +0000, Paul E. McKenney wrote:
-> > On Tue, Nov 26, 2013 at 11:32:25AM -0800, Linus Torvalds wrote:
-> > > On Tue, Nov 26, 2013 at 11:20 AM, Paul E. McKenney
-> > > <paulmck@linux.vnet.ibm.com> wrote:
-> > > >
-> > > > There are several places in RCU that assume unlock+lock is a full
-> > > > memory barrier, but I would be more than happy to fix them up given
-> > > > an smp_mb__after_spinlock() and an smp_mb__before_spinunlock(), or
-> > > > something similar.
-> > > 
-> > > A "before_spinunlock" would actually be expensive on x86.
-> > 
-> > Good point, on x86 the typical non-queued spin-lock acquisition path
-> > has an atomic operation with full memory barrier in any case.  I believe
-> > that this is the case for the other TSO architectures.  For the non-TSO
-> > architectures:
-> > 
-> > o	ARM has an smp_mb() during lock acquisition, so after_spinlock()
-> > 	can be a no-op for them.
-> 
-> Ok, but what about arm64? We use acquire for lock() and release for
-> unlock(), so in Linus' example:
+This patch copies generic bits of x86 early_ioremap() support
+into a library for potential use by other architectures.
 
-Right, I did forget the arm vs. arm64 split!
+Signed-off-by: Mark Salter <msalter@redhat.com>
+CC: Arnd Bergmann <arnd@arndb.de>
+CC: Ingo Molnar <mingo@kernel.org>
+CC: linux-arch@vger.kernel.org
+---
+ include/asm-generic/early_ioremap.h |  40 ++++++
+ lib/Kconfig                         |   3 +
+ lib/Makefile                        |   1 +
+ lib/early_ioremap.c                 | 243 ++++++++++++++++++++++++++++++++++++
+ 4 files changed, 287 insertions(+)
+ create mode 100644 include/asm-generic/early_ioremap.h
+ create mode 100644 lib/early_ioremap.c
 
->     write A;
->     spin_lock()
->     mb__after_spinlock();
->     read B
-> 
-> Then A could very well be reordered after B if mb__after_spinlock() is a nop.
-> Making that a full barrier kind of defeats the point of using acquire in the
-> first place...
-
-The trick is that you don't have mb__after_spinlock() unless you need the
-ordering, which we expect in a small minority of the lock acquisitions.
-So you would normally get the benefit of acquire/release efficiency.
-
-> It's one thing ordering unlock -> lock, but another getting those two to
-> behave as full barriers for any arbitrary memory accesses.
-
-And in fact the unlock+lock barrier is all that RCU needs.  I guess the
-question is whether it is worth having two flavors of __after_spinlock(),
-one that is a full barrier with just the lock, and another that is
-only guaranteed to be a full barrier with unlock+lock.
-
-								Thanx, Paul
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+diff --git a/include/asm-generic/early_ioremap.h b/include/asm-generic/early_ioremap.h
+new file mode 100644
+index 0000000..e26ce80
+--- /dev/null
++++ b/include/asm-generic/early_ioremap.h
+@@ -0,0 +1,40 @@
++#ifndef _ASM_EARLY_IOREMAP_H_
++#define _ASM_EARLY_IOREMAP_H_
++
++#include <linux/types.h>
++
++#ifdef CONFIG_GENERIC_EARLY_IOREMAP
++/*
++ * early_ioremap() and early_iounmap() are for temporary early boot-time
++ * mappings, before the real ioremap() is functional.
++ */
++extern void __iomem *early_ioremap(resource_size_t phys_addr,
++				   unsigned long size);
++extern void __iomem *early_memremap(resource_size_t phys_addr,
++				    unsigned long size);
++extern void early_iounmap(void __iomem *addr, unsigned long size);
++
++/* Arch-specific initialization */
++extern void early_ioremap_init(void);
++
++/* Generic initialization called by architecture code */
++extern void early_ioremap_setup(void);
++
++/*
++ * Called as last step in paging_init() so library can act
++ * accordingly for subsequent map/unmap requests.
++ */
++extern void early_ioremap_reset(void);
++
++/*
++ * Weak function called by early_ioremap_reset(). It does nothing, but
++ * architectures may provide their own version to do any needed cleanups.
++ */
++extern void early_ioremap_shutdown(void);
++#else
++static inline void early_ioremap_init(void) { }
++static inline void early_ioremap_setup(void) { }
++static inline void early_ioremap_reset(void) { }
++#endif
++
++#endif /* _ASM_EARLY_IOREMAP_H_ */
+diff --git a/lib/Kconfig b/lib/Kconfig
+index 991c98b..5ebee09 100644
+--- a/lib/Kconfig
++++ b/lib/Kconfig
+@@ -42,6 +42,9 @@ config GENERIC_IO
+ 	boolean
+ 	default n
+ 
++config GENERIC_EARLY_IOREMAP
++	bool
++
+ config STMP_DEVICE
+ 	bool
+ 
+diff --git a/lib/Makefile b/lib/Makefile
+index a459c31..2afe05d 100644
+--- a/lib/Makefile
++++ b/lib/Makefile
+@@ -188,3 +188,4 @@ quiet_cmd_build_OID_registry = GEN     $@
+ clean-files	+= oid_registry_data.c
+ 
+ obj-$(CONFIG_UCS2_STRING) += ucs2_string.o
++obj-$(CONFIG_GENERIC_EARLY_IOREMAP) += early_ioremap.o
+diff --git a/lib/early_ioremap.c b/lib/early_ioremap.c
+new file mode 100644
+index 0000000..54623a7
+--- /dev/null
++++ b/lib/early_ioremap.c
+@@ -0,0 +1,243 @@
++/*
++ * Provide common bits of early_ioremap() support for architectures needing
++ * temporary mappings during boot before ioremap() is available.
++ *
++ * This is mostly a direct copy of the x86 early_ioremap implementation.
++ *
++ * (C) Copyright 1995 1996 Linus Torvalds
++ *
++ */
++#include <linux/init.h>
++#include <linux/io.h>
++#include <linux/module.h>
++#include <linux/slab.h>
++#include <linux/mm.h>
++#include <linux/vmalloc.h>
++#include <asm/fixmap.h>
++
++static int early_ioremap_debug __initdata;
++
++static int __init early_ioremap_debug_setup(char *str)
++{
++	early_ioremap_debug = 1;
++
++	return 0;
++}
++early_param("early_ioremap_debug", early_ioremap_debug_setup);
++
++static int after_paging_init __initdata;
++
++void __init __attribute__((weak)) early_ioremap_shutdown(void)
++{
++}
++
++void __init early_ioremap_reset(void)
++{
++	early_ioremap_shutdown();
++	after_paging_init = 1;
++}
++
++/*
++ * Generally, ioremap() is available after paging_init() has been called.
++ * Architectures wanting to allow early_ioremap after paging_init() can
++ * define __late_set_fixmap and __late_clear_fixmap to do the right thing.
++ */
++#ifndef __late_set_fixmap
++static inline void __init __late_set_fixmap(enum fixed_addresses idx,
++					    phys_addr_t phys, pgprot_t prot)
++{
++	BUG();
++}
++#endif
++
++#ifndef __late_clear_fixmap
++static inline void __init __late_clear_fixmap(enum fixed_addresses idx)
++{
++	BUG();
++}
++#endif
++
++static void __iomem *prev_map[FIX_BTMAPS_SLOTS] __initdata;
++static unsigned long prev_size[FIX_BTMAPS_SLOTS] __initdata;
++static unsigned long slot_virt[FIX_BTMAPS_SLOTS] __initdata;
++
++void __init early_ioremap_setup(void)
++{
++	int i;
++
++	for (i = 0; i < FIX_BTMAPS_SLOTS; i++) {
++		if (prev_map[i]) {
++			WARN_ON(1);
++			break;
++		}
++	}
++
++	for (i = 0; i < FIX_BTMAPS_SLOTS; i++)
++		slot_virt[i] = __fix_to_virt(FIX_BTMAP_BEGIN - NR_FIX_BTMAPS*i);
++}
++
++static int __init check_early_ioremap_leak(void)
++{
++	int count = 0;
++	int i;
++
++	for (i = 0; i < FIX_BTMAPS_SLOTS; i++)
++		if (prev_map[i])
++			count++;
++
++	if (!count)
++		return 0;
++	WARN(1, KERN_WARNING
++	       "Debug warning: early ioremap leak of %d areas detected.\n",
++		count);
++	pr_warn("please boot with early_ioremap_debug and report the dmesg.\n");
++
++	return 1;
++}
++late_initcall(check_early_ioremap_leak);
++
++static void __init __iomem *
++__early_ioremap(resource_size_t phys_addr, unsigned long size, pgprot_t prot)
++{
++	unsigned long offset;
++	resource_size_t last_addr;
++	unsigned int nrpages;
++	enum fixed_addresses idx;
++	int i, slot;
++
++	WARN_ON(system_state != SYSTEM_BOOTING);
++
++	slot = -1;
++	for (i = 0; i < FIX_BTMAPS_SLOTS; i++) {
++		if (!prev_map[i]) {
++			slot = i;
++			break;
++		}
++	}
++
++	if (slot < 0) {
++		pr_info("%s(%08llx, %08lx) not found slot\n",
++			__func__, (u64)phys_addr, size);
++		WARN_ON(1);
++		return NULL;
++	}
++
++	if (early_ioremap_debug) {
++		pr_info("%s(%08llx, %08lx) [%d] => ",
++			__func__, (u64)phys_addr, size, slot);
++		dump_stack();
++	}
++
++	/* Don't allow wraparound or zero size */
++	last_addr = phys_addr + size - 1;
++	if (!size || last_addr < phys_addr) {
++		WARN_ON(1);
++		return NULL;
++	}
++
++	prev_size[slot] = size;
++	/*
++	 * Mappings have to be page-aligned
++	 */
++	offset = phys_addr & ~PAGE_MASK;
++	phys_addr &= PAGE_MASK;
++	size = PAGE_ALIGN(last_addr + 1) - phys_addr;
++
++	/*
++	 * Mappings have to fit in the FIX_BTMAP area.
++	 */
++	nrpages = size >> PAGE_SHIFT;
++	if (nrpages > NR_FIX_BTMAPS) {
++		WARN_ON(1);
++		return NULL;
++	}
++
++	/*
++	 * Ok, go for it..
++	 */
++	idx = FIX_BTMAP_BEGIN - NR_FIX_BTMAPS*slot;
++	while (nrpages > 0) {
++		if (after_paging_init)
++			__late_set_fixmap(idx, phys_addr, prot);
++		else
++			__early_set_fixmap(idx, phys_addr, prot);
++		phys_addr += PAGE_SIZE;
++		--idx;
++		--nrpages;
++	}
++	if (early_ioremap_debug)
++		pr_cont("%08lx + %08lx\n", offset, slot_virt[slot]);
++
++	prev_map[slot] = (void __iomem *)(offset + slot_virt[slot]);
++	return prev_map[slot];
++}
++
++/* Remap an IO device */
++void __init __iomem *
++early_ioremap(resource_size_t phys_addr, unsigned long size)
++{
++	return __early_ioremap(phys_addr, size, FIXMAP_PAGE_IO);
++}
++
++/* Remap memory */
++void __init __iomem *
++early_memremap(resource_size_t phys_addr, unsigned long size)
++{
++	return __early_ioremap(phys_addr, size, FIXMAP_PAGE_NORMAL);
++}
++
++void __init early_iounmap(void __iomem *addr, unsigned long size)
++{
++	unsigned long virt_addr;
++	unsigned long offset;
++	unsigned int nrpages;
++	enum fixed_addresses idx;
++	int i, slot;
++
++	slot = -1;
++	for (i = 0; i < FIX_BTMAPS_SLOTS; i++) {
++		if (prev_map[i] == addr) {
++			slot = i;
++			break;
++		}
++	}
++
++	if (slot < 0) {
++		pr_info("early_iounmap(%p, %08lx) not found slot\n",
++			addr, size);
++		WARN_ON(1);
++		return;
++	}
++
++	if (prev_size[slot] != size) {
++		pr_info("early_iounmap(%p, %08lx) [%d] size not consistent %08lx\n",
++			addr, size, slot, prev_size[slot]);
++		WARN_ON(1);
++		return;
++	}
++
++	if (early_ioremap_debug) {
++		pr_info("early_iounmap(%p, %08lx) [%d]\n", addr,
++			size, slot);
++		dump_stack();
++	}
++
++	virt_addr = (unsigned long)addr;
++	if (virt_addr < fix_to_virt(FIX_BTMAP_BEGIN)) {
++		WARN_ON(1);
++		return;
++	}
++	offset = virt_addr & ~PAGE_MASK;
++	nrpages = PAGE_ALIGN(offset + size) >> PAGE_SHIFT;
++
++	idx = FIX_BTMAP_BEGIN - NR_FIX_BTMAPS*slot;
++	while (nrpages > 0) {
++		if (after_paging_init)
++			__late_clear_fixmap(idx);
++		else
++			__early_set_fixmap(idx, 0, FIXMAP_PAGE_CLEAR);
++		--idx;
++		--nrpages;
++	}
++	prev_map[slot] = NULL;
++}
+-- 
+1.8.3.1
