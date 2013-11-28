@@ -1,94 +1,93 @@
-From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Subject: Re: Re: Re: Re: [PATCH -tip v3 00/23] kprobes: introduce NOKPROBE_SYMBOL()
- and general cleaning of kprobe blacklist
-Date: Thu, 28 Nov 2013 19:43:50 +0900
-Message-ID: <52971E66.9080006@hitachi.com>
-References: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal> <y0mvbznxi6k.fsf@fche.csb> <20131120153801.GA9743@gmail.com> <20131120173600.GK8993@redhat.com> <528D6C9F.8050809@hitachi.com> <20131121072938.GA16912@gmail.com> <528EC2FF.30301@hitachi.com> <528F4406.3090309@hitachi.com> <20131127133045.GC18422@gmail.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
+Date: Thu, 28 Nov 2013 11:40:59 +0000
+Message-ID: <20131128114058.GC21354@mudshark.cambridge.arm.com>
+References: <20131125180250.GR4138@linux.vnet.ibm.com>
+ <20131125182715.GG10022@twins.programming.kicks-ass.net>
+ <20131125235252.GA4138@linux.vnet.ibm.com>
+ <20131126095945.GI10022@twins.programming.kicks-ass.net>
+ <CA+55aFxXEbHuaKuxBDH=7a2-n_z849CdfeDtdL=_nFxu_Tx9_g@mail.gmail.com>
+ <20131126192003.GA4137@linux.vnet.ibm.com>
+ <CA+55aFyjisiM1eC53STpcKLky84n8JRz3Aagp-CQd_+3AOJhow@mail.gmail.com>
+ <20131126225136.GG4137@linux.vnet.ibm.com>
+ <20131127101613.GC9032@mudshark.cambridge.arm.com>
+ <20131127171143.GN4137@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail9.hitachi.co.jp ([133.145.228.44]:60234 "EHLO
-	mail9.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750949Ab3K1Koc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Nov 2013 05:44:32 -0500
-In-Reply-To: <20131127133045.GC18422@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: "Frank Ch. Eigler" <fche@redhat.com>, linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20131127171143.GN4137@linux.vnet.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizo>
+List-Id: linux-arch.vger.kernel.org
 
-(2013/11/27 22:30), Ingo Molnar wrote:
+On Wed, Nov 27, 2013 at 05:11:43PM +0000, Paul E. McKenney wrote:
+> On Wed, Nov 27, 2013 at 10:16:13AM +0000, Will Deacon wrote:
+> > On Tue, Nov 26, 2013 at 10:51:36PM +0000, Paul E. McKenney wrote:
+> > > On Tue, Nov 26, 2013 at 11:32:25AM -0800, Linus Torvalds wrote:
+> > > > On Tue, Nov 26, 2013 at 11:20 AM, Paul E. McKenney wrote:
+> > > o	ARM has an smp_mb() during lock acquisition, so after_spinlock()
+> > > 	can be a no-op for them.
+> > 
+> > Ok, but what about arm64? We use acquire for lock() and release for
+> > unlock(), so in Linus' example:
 > 
-> * Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com> wrote:
+> Right, I did forget the arm vs. arm64 split!
 > 
->> (2013/11/22 11:35), Masami Hiramatsu wrote:
->>> (2013/11/21 16:29), Ingo Molnar wrote:
->>>>
->>>> * Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com> wrote:
->>>>
->>>>> (2013/11/21 2:36), Frank Ch. Eigler wrote:
->>>>
->>>> [ ... ]
->>>>>> one needs to resort to something like:
->>>>>>
->>>>>> # cat /proc/kallsyms | grep ' [tT] ' | while read addr type symbol; do
->>>>>>    perf probe $symbol
->>>>>> done
->>>>>>
->>>>>> then wait for a few hours for that to finish. Then, or while the loop
->>>>>> is still running, run
->>>>>>
->>>>>> # perf record -e 'probe:*' -aR sleep 1
->>>>>>
->>>>>> to take a kernel down.
->>>>>
->>>>> Um, indeed, current blacklist is not perfect. [...]
->>>>
->>>> Then it needs to be fixed ASAP!
->>>
->>> OK, I see. At least the two patches included this series
->>> should be fixed. :)
->>>
->>> And more, I need to test all symbols and drills down.
->>
->> OK, what I've found was;
->>  - The functions which can be ftraced look good.
->>    (see tracing/available_filter_functions)
->>  - following functions should not be able to be probed.
->>    - memcpy, memset
->>    - native_load_sp0 and some other native functions (need to be clear)
->>    - restore
->>    - trace_graph_return
->>    - trace_hardirqs_off_thunk, trace_hardirqs_on_thunk
->>    - This list still be not perfect. I just enabled/disabled kprobes
->>      one by one. There might be combined bugs (combination of several
->>      kprobes).
->>  - Some of them are hard to specify by NOKPROBE_SYMBOL because they are
->>    defined in assembly file.
->>
->> Anyway, to fix all of them, I think we need file-based blacklist
->> especially for assembler symbols.
+> >     write A;
+> >     spin_lock()
+> >     mb__after_spinlock();
+> >     read B
+> > 
+> > Then A could very well be reordered after B if mb__after_spinlock() is a nop.
+> > Making that a full barrier kind of defeats the point of using acquire in the
+> > first place...
 > 
-> assembler symbols shouldn't be particular hard either, just put them 
-> into the noprobes section.
+> The trick is that you don't have mb__after_spinlock() unless you need the
+> ordering, which we expect in a small minority of the lock acquisitions.
+> So you would normally get the benefit of acquire/release efficiency.
 
-Would you mean .kprobes.text? Hmm, I hope not to use it anymore,
-but yeah, bugfix is more important. Agreed.
+Ok, understood. I take it this means that you don't care about ordering the
+write to A with the actual locking operation? (that would require the mb to
+be *inside* the spin_lock() implementation).
 
->> For example, we can get all text symbols by below command;
->>  nm some-file.o | grep -i " t " | cut -f3 -d" "
->> so that we can make a blacklisted-symbol list for the file.
->> I need to look the Kbuild for how I can do that in Makefile.
+> > It's one thing ordering unlock -> lock, but another getting those two to
+> > behave as full barriers for any arbitrary memory accesses.
 > 
-> I think it's generally better to add explicit annotations to the code.
+> And in fact the unlock+lock barrier is all that RCU needs.  I guess the
+> question is whether it is worth having two flavors of __after_spinlock(),
+> one that is a full barrier with just the lock, and another that is
+> only guaranteed to be a full barrier with unlock+lock.
 
-OK, thus I'll add annotations first.
+I think it's worth distinguishing those cases because, in my mind, one is
+potentially a lot heavier than the other. The risk is that we end up
+producing a set of strangely named barrier abstractions that nobody can
+figure out how to use properly:
 
-Thank you!
 
--- 
-Masami HIRAMATSU
-IT Management Research Dept. Linux Technology Center
-Hitachi, Ltd., Yokohama Research Laboratory
-E-mail: masami.hiramatsu.pt@hitachi.com
+	/*
+	 * Prevent re-ordering of arbitrary accesses across spin_lock and
+	 * spin_unlock.
+	 */
+	mb__after_spin_lock()
+	mb__after_spin_unlock()
+
+	/*
+	 * Order spin_lock() vs spin_unlock()
+	 */
+	mb__between_spin_unlock_lock() /* Horrible name! */
+
+
+We could potentially replace the first set of barriers with spin_lock_mb()
+and spin_unlock_mb() variants (which would be more efficient than half
+barrier + full barrier), then we only end up with strangely named barrier
+which applies to the non _mb() spinlock routines.
+
+Will
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
