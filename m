@@ -1,111 +1,433 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
-Date: Thu, 28 Nov 2013 11:50:40 -0800
-Message-ID: <20131128195039.GX4137@linux.vnet.ibm.com>
-References: <20131126192003.GA4137@linux.vnet.ibm.com>
- <CA+55aFyjisiM1eC53STpcKLky84n8JRz3Aagp-CQd_+3AOJhow@mail.gmail.com>
- <20131126225136.GG4137@linux.vnet.ibm.com>
- <20131127101613.GC9032@mudshark.cambridge.arm.com>
- <20131127171143.GN4137@linux.vnet.ibm.com>
- <20131128114058.GC21354@mudshark.cambridge.arm.com>
- <20131128173853.GV4137@linux.vnet.ibm.com>
- <20131128180318.GE16203@mudshark.cambridge.arm.com>
- <20131128182712.GW4137@linux.vnet.ibm.com>
- <20131128185341.GG16203@mudshark.cambridge.arm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: James Hogan <james.hogan@imgtec.com>
+Subject: [PATCH] arch: include/asm/Kbuild: fix preempt.h sort order
+Date: Fri, 29 Nov 2013 14:43:11 +0000
+Message-ID: <1385736191-31862-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20131128185341.GG16203@mudshark.cambridge.arm.com>
-Sender: owner-linux-mm@kvack.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>R
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from multi.imgtec.com ([194.200.65.239]:50500 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752417Ab3K2Oo1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 29 Nov 2013 09:44:27 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
 
-On Thu, Nov 28, 2013 at 06:53:41PM +0000, Will Deacon wrote:
-> On Thu, Nov 28, 2013 at 06:27:12PM +0000, Paul E. McKenney wrote:
-> > On Thu, Nov 28, 2013 at 06:03:18PM +0000, Will Deacon wrote:
-> > > Hmm, without horrible hacks to keep track of whether we've done an
-> > > mb__before_spinlock() without a matching spinlock(), that's going to end up
-> > > with full-barrier + pointless half-barrier (similarly on the release path).
-> > 
-> > We should be able to detect mb__before_spinlock() without a matching
-> > spinlock via static analysis, right?
-> > 
-> > Or am I missing your point?
-> 
-> See below...
-> 
-> > > > Yes, we might need better names, but I believe that this approach does
-> > > > what you need.
-> > > > 
-> > > > Thoughts?
-> > > 
-> > > I still think we need to draw the distinction between ordering all accesses
-> > > against a lock and ordering an unlock against a lock. The latter is free for
-> > > arm64 (STLR => LDAR is ordered) but the former requires a DMB.
-> > > 
-> > > Not sure I completely got your drift...
-> > 
-> > Here is what I am suggesting:
-> > 
-> > o	mb__before_spinlock():
-> > 
-> > 	o	Must appear immediately before a lock acquisition.
-> > 	o	Upgrades a lock acquisition to a full barrier.
-> > 	o	Emits DMB on ARM64.
-> 
-> Ok, so that then means that:
-> 
-> 	mb__before_spinlock();
-> 	spin_lock();
-> 
-> on ARM64 expands to:
-> 
-> 	dmb	ish
-> 	ldaxr	...
-> 
-> so there's a redundant half-barrier there. If we want to get rid of that, we
-> need mb__before_spinlock() to set a flag, then we could conditionalise
-> ldaxr/ldxr but it's really horrible and you have to deal with interrupts
-> etc. so in reality we just end up having extra barriers.
+Commit a787870924db (sched, arch: Create asm/preempt.h) added the
+generic asm/preempt.h header, but took no notice of the sort order of
+various architecture's include/asm/Kbuild files. Move preempt.h into the
+correct sort position in files which are mostly already sorted.
 
-Given that there was just a dmb, how much does the ish &c really hurt?
-Would the performance difference be measurable at the system level?
+Signed-off-by: James Hogan <james.hogan@imgtec.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Ingo Molnar <mingo@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+---
+ arch/alpha/include/asm/Kbuild     | 2 +-
+ arch/arc/include/asm/Kbuild       | 2 +-
+ arch/arm/include/asm/Kbuild       | 2 +-
+ arch/arm64/include/asm/Kbuild     | 2 +-
+ arch/avr32/include/asm/Kbuild     | 2 +-
+ arch/blackfin/include/asm/Kbuild  | 2 +-
+ arch/c6x/include/asm/Kbuild       | 2 +-
+ arch/cris/include/asm/Kbuild      | 2 +-
+ arch/frv/include/asm/Kbuild       | 2 +-
+ arch/hexagon/include/asm/Kbuild   | 2 +-
+ arch/ia64/include/asm/Kbuild      | 4 ++--
+ arch/m32r/include/asm/Kbuild      | 2 +-
+ arch/m68k/include/asm/Kbuild      | 2 +-
+ arch/metag/include/asm/Kbuild     | 2 +-
+ arch/mips/include/asm/Kbuild      | 2 +-
+ arch/mn10300/include/asm/Kbuild   | 2 +-
+ arch/openrisc/include/asm/Kbuild  | 2 +-
+ arch/powerpc/include/asm/Kbuild   | 4 ++--
+ arch/s390/include/asm/Kbuild      | 2 +-
+ arch/score/include/asm/Kbuild     | 2 +-
+ arch/sh/include/asm/Kbuild        | 2 +-
+ arch/sparc/include/asm/Kbuild     | 2 +-
+ arch/tile/include/asm/Kbuild      | 2 +-
+ arch/unicore32/include/asm/Kbuild | 2 +-
+ arch/xtensa/include/asm/Kbuild    | 2 +-
+ 25 files changed, 27 insertions(+), 27 deletions(-)
 
-> Or we have separate a spin_lock_mb() function.
-
-And mutex_lock_mb().  And spin_lock_irqsave_mb().  And spin_lock_irq_mb().
-And...
-
-Admittedly this is not yet a problem given the current very low usage
-of smp_mb__before_spinlock(), but the potential for API explosion is
-non-trivial.
-
-That said, if the effect on ARM64 is measurable at the system level, I
-won't stand in the way of the additional APIs.
-
-> > o	mb_after_spinlock():
-> > 
-> > 	o	Must appear immediatly after a lock acquisition.
-> > 	o	Upgrades an unlock+lock pair to a full barrier.
-> > 	o	Emits a no-op on ARM64, as in "do { } while (0)".
-> > 	o	Might need a separate flavor for queued locks on
-> > 		some platforms, but no sign of that yet.
-> 
-> Ok, so mb__after_spinlock() doesn't imply a full barrier but
-> mb__before_spinlock() does? I think people will get that wrong :)
-
-As I said earlier in the thread, I am open to better names.
-
-How about smp_mb__after_spin_unlock_lock_pair()?  That said, I am sure that
-I could come up with something longer given enough time.  ;-)
-
-							Thanx, Paul
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+diff --git a/arch/alpha/include/asm/Kbuild b/arch/alpha/include/asm/Kbuild
+index f01fb505ad52..ced11417c940 100644
+--- a/arch/alpha/include/asm/Kbuild
++++ b/arch/alpha/include/asm/Kbuild
+@@ -2,5 +2,5 @@
+ generic-y += clkdev.h
+ 
+ generic-y += exec.h
+-generic-y += trace_clock.h
+ generic-y += preempt.h
++generic-y += trace_clock.h
+diff --git a/arch/arc/include/asm/Kbuild b/arch/arc/include/asm/Kbuild
+index 5943f7f9d325..bf7883fe99ae 100644
+--- a/arch/arc/include/asm/Kbuild
++++ b/arch/arc/include/asm/Kbuild
+@@ -28,6 +28,7 @@ generic-y += pci.h
+ generic-y += percpu.h
+ generic-y += poll.h
+ generic-y += posix_types.h
++generic-y += preempt.h
+ generic-y += resource.h
+ generic-y += scatterlist.h
+ generic-y += sembuf.h
+@@ -46,4 +47,3 @@ generic-y += ucontext.h
+ generic-y += user.h
+ generic-y += vga.h
+ generic-y += xor.h
+-generic-y += preempt.h
+diff --git a/arch/arm/include/asm/Kbuild b/arch/arm/include/asm/Kbuild
+index c38b58c80202..8f370768b65f 100644
+--- a/arch/arm/include/asm/Kbuild
++++ b/arch/arm/include/asm/Kbuild
+@@ -17,6 +17,7 @@ generic-y += msgbuf.h
+ generic-y += param.h
+ generic-y += parport.h
+ generic-y += poll.h
++generic-y += preempt.h
+ generic-y += resource.h
+ generic-y += sections.h
+ generic-y += segment.h
+@@ -33,4 +34,3 @@ generic-y += termios.h
+ generic-y += timex.h
+ generic-y += trace_clock.h
+ generic-y += unaligned.h
+-generic-y += preempt.h
+diff --git a/arch/arm64/include/asm/Kbuild b/arch/arm64/include/asm/Kbuild
+index 519f89f5b6a3..ae33b8eb247a 100644
+--- a/arch/arm64/include/asm/Kbuild
++++ b/arch/arm64/include/asm/Kbuild
+@@ -29,6 +29,7 @@ generic-y += pci.h
+ generic-y += percpu.h
+ generic-y += poll.h
+ generic-y += posix_types.h
++generic-y += preempt.h
+ generic-y += resource.h
+ generic-y += scatterlist.h
+ generic-y += sections.h
+@@ -50,4 +51,3 @@ generic-y += unaligned.h
+ generic-y += user.h
+ generic-y += vga.h
+ generic-y += xor.h
+-generic-y += preempt.h
+diff --git a/arch/avr32/include/asm/Kbuild b/arch/avr32/include/asm/Kbuild
+index 658001b52400..b0dc00d98be8 100644
+--- a/arch/avr32/include/asm/Kbuild
++++ b/arch/avr32/include/asm/Kbuild
+@@ -7,12 +7,12 @@ generic-y       += div64.h
+ generic-y       += emergency-restart.h
+ generic-y	+= exec.h
+ generic-y       += futex.h
+-generic-y	+= preempt.h
+ generic-y       += irq_regs.h
+ generic-y	+= param.h
+ generic-y       += local.h
+ generic-y       += local64.h
+ generic-y       += percpu.h
++generic-y	+= preempt.h
+ generic-y       += scatterlist.h
+ generic-y       += sections.h
+ generic-y       += topology.h
+diff --git a/arch/blackfin/include/asm/Kbuild b/arch/blackfin/include/asm/Kbuild
+index f2b43474b0e2..2469ae824882 100644
+--- a/arch/blackfin/include/asm/Kbuild
++++ b/arch/blackfin/include/asm/Kbuild
+@@ -25,6 +25,7 @@ generic-y += mutex.h
+ generic-y += param.h
+ generic-y += percpu.h
+ generic-y += pgalloc.h
++generic-y += preempt.h
+ generic-y += resource.h
+ generic-y += scatterlist.h
+ generic-y += sembuf.h
+@@ -44,4 +45,3 @@ generic-y += ucontext.h
+ generic-y += unaligned.h
+ generic-y += user.h
+ generic-y += xor.h
+-generic-y += preempt.h
+diff --git a/arch/c6x/include/asm/Kbuild b/arch/c6x/include/asm/Kbuild
+index fc0b3c356027..4b3f516908bd 100644
+--- a/arch/c6x/include/asm/Kbuild
++++ b/arch/c6x/include/asm/Kbuild
+@@ -34,6 +34,7 @@ generic-y += percpu.h
+ generic-y += pgalloc.h
+ generic-y += poll.h
+ generic-y += posix_types.h
++generic-y += preempt.h
+ generic-y += resource.h
+ generic-y += scatterlist.h
+ generic-y += segment.h
+@@ -56,4 +57,3 @@ generic-y += ucontext.h
+ generic-y += user.h
+ generic-y += vga.h
+ generic-y += xor.h
+-generic-y += preempt.h
+diff --git a/arch/cris/include/asm/Kbuild b/arch/cris/include/asm/Kbuild
+index b06caf649a95..0daf19e311f6 100644
+--- a/arch/cris/include/asm/Kbuild
++++ b/arch/cris/include/asm/Kbuild
+@@ -8,7 +8,7 @@ generic-y += exec.h
+ generic-y += kvm_para.h
+ generic-y += linkage.h
+ generic-y += module.h
++generic-y += preempt.h
+ generic-y += trace_clock.h
+ generic-y += vga.h
+ generic-y += xor.h
+-generic-y += preempt.h
+diff --git a/arch/frv/include/asm/Kbuild b/arch/frv/include/asm/Kbuild
+index 74742dc6a3da..695246ecd32a 100644
+--- a/arch/frv/include/asm/Kbuild
++++ b/arch/frv/include/asm/Kbuild
+@@ -1,5 +1,5 @@
+ 
+ generic-y += clkdev.h
+ generic-y += exec.h
+-generic-y += trace_clock.h
+ generic-y += preempt.h
++generic-y += trace_clock.h
+diff --git a/arch/hexagon/include/asm/Kbuild b/arch/hexagon/include/asm/Kbuild
+index 67c3450309b7..9b85030a3c46 100644
+--- a/arch/hexagon/include/asm/Kbuild
++++ b/arch/hexagon/include/asm/Kbuild
+@@ -31,6 +31,7 @@ generic-y += pci.h
+ generic-y += percpu.h
+ generic-y += poll.h
+ generic-y += posix_types.h
++generic-y += preempt.h
+ generic-y += resource.h
+ generic-y += rwsem.h
+ generic-y += scatterlist.h
+@@ -53,4 +54,3 @@ generic-y += types.h
+ generic-y += ucontext.h
+ generic-y += unaligned.h
+ generic-y += xor.h
+-generic-y += preempt.h
+diff --git a/arch/ia64/include/asm/Kbuild b/arch/ia64/include/asm/Kbuild
+index f93ee087e8fe..6f1de3b86a51 100644
+--- a/arch/ia64/include/asm/Kbuild
++++ b/arch/ia64/include/asm/Kbuild
+@@ -2,6 +2,6 @@
+ generic-y += clkdev.h
+ generic-y += exec.h
+ generic-y += kvm_para.h
+-generic-y += trace_clock.h
+ generic-y += preempt.h
+-generic-y += vtime.h
+\ No newline at end of file
++generic-y += trace_clock.h
++generic-y += vtime.h
+diff --git a/arch/m32r/include/asm/Kbuild b/arch/m32r/include/asm/Kbuild
+index 2b58c5f0bc38..5cfbdd4b23f2 100644
+--- a/arch/m32r/include/asm/Kbuild
++++ b/arch/m32r/include/asm/Kbuild
+@@ -2,5 +2,5 @@
+ generic-y += clkdev.h
+ generic-y += exec.h
+ generic-y += module.h
+-generic-y += trace_clock.h
+ generic-y += preempt.h
++generic-y += trace_clock.h
+diff --git a/arch/m68k/include/asm/Kbuild b/arch/m68k/include/asm/Kbuild
+index a5d27f272a59..f94ad6b0f772 100644
+--- a/arch/m68k/include/asm/Kbuild
++++ b/arch/m68k/include/asm/Kbuild
+@@ -18,6 +18,7 @@ generic-y += local.h
+ generic-y += mman.h
+ generic-y += mutex.h
+ generic-y += percpu.h
++generic-y += preempt.h
+ generic-y += resource.h
+ generic-y += scatterlist.h
+ generic-y += sections.h
+@@ -31,4 +32,3 @@ generic-y += trace_clock.h
+ generic-y += types.h
+ generic-y += word-at-a-time.h
+ generic-y += xor.h
+-generic-y += preempt.h
+diff --git a/arch/metag/include/asm/Kbuild b/arch/metag/include/asm/Kbuild
+index 84d0c1d6b9b3..3fc4a2ea58b3 100644
+--- a/arch/metag/include/asm/Kbuild
++++ b/arch/metag/include/asm/Kbuild
+@@ -30,6 +30,7 @@ generic-y += pci.h
+ generic-y += percpu.h
+ generic-y += poll.h
+ generic-y += posix_types.h
++generic-y += preempt.h
+ generic-y += scatterlist.h
+ generic-y += sections.h
+ generic-y += sembuf.h
+@@ -52,4 +53,3 @@ generic-y += unaligned.h
+ generic-y += user.h
+ generic-y += vga.h
+ generic-y += xor.h
+-generic-y += preempt.h
+diff --git a/arch/mips/include/asm/Kbuild b/arch/mips/include/asm/Kbuild
+index 1acbb8b77a71..ef38961c3af5 100644
+--- a/arch/mips/include/asm/Kbuild
++++ b/arch/mips/include/asm/Kbuild
+@@ -6,11 +6,11 @@ generic-y += local64.h
+ generic-y += mutex.h
+ generic-y += parport.h
+ generic-y += percpu.h
++generic-y += preempt.h
+ generic-y += scatterlist.h
+ generic-y += sections.h
+ generic-y += segment.h
+ generic-y += serial.h
+ generic-y += trace_clock.h
+-generic-y += preempt.h
+ generic-y += ucontext.h
+ generic-y += xor.h
+diff --git a/arch/mn10300/include/asm/Kbuild b/arch/mn10300/include/asm/Kbuild
+index 74742dc6a3da..695246ecd32a 100644
+--- a/arch/mn10300/include/asm/Kbuild
++++ b/arch/mn10300/include/asm/Kbuild
+@@ -1,5 +1,5 @@
+ 
+ generic-y += clkdev.h
+ generic-y += exec.h
+-generic-y += trace_clock.h
+ generic-y += preempt.h
++generic-y += trace_clock.h
+diff --git a/arch/openrisc/include/asm/Kbuild b/arch/openrisc/include/asm/Kbuild
+index da1951a22907..135e80b5398d 100644
+--- a/arch/openrisc/include/asm/Kbuild
++++ b/arch/openrisc/include/asm/Kbuild
+@@ -41,6 +41,7 @@ generic-y += pci.h
+ generic-y += percpu.h
+ generic-y += poll.h
+ generic-y += posix_types.h
++generic-y += preempt.h
+ generic-y += resource.h
+ generic-y += scatterlist.h
+ generic-y += sections.h
+@@ -68,4 +69,3 @@ generic-y += user.h
+ generic-y += vga.h
+ generic-y += word-at-a-time.h
+ generic-y += xor.h
+-generic-y += preempt.h
+diff --git a/arch/powerpc/include/asm/Kbuild b/arch/powerpc/include/asm/Kbuild
+index d8f9d2f18a23..8b19a80d429f 100644
+--- a/arch/powerpc/include/asm/Kbuild
++++ b/arch/powerpc/include/asm/Kbuild
+@@ -1,6 +1,6 @@
+ 
+ generic-y += clkdev.h
++generic-y += preempt.h
+ generic-y += rwsem.h
+ generic-y += trace_clock.h
+-generic-y += preempt.h
+-generic-y += vtime.h
+\ No newline at end of file
++generic-y += vtime.h
+diff --git a/arch/s390/include/asm/Kbuild b/arch/s390/include/asm/Kbuild
+index 7a5288f3479a..6bd5f27ca7eb 100644
+--- a/arch/s390/include/asm/Kbuild
++++ b/arch/s390/include/asm/Kbuild
+@@ -1,5 +1,5 @@
+ 
+ 
+ generic-y += clkdev.h
+-generic-y += trace_clock.h
+ generic-y += preempt.h
++generic-y += trace_clock.h
+diff --git a/arch/score/include/asm/Kbuild b/arch/score/include/asm/Kbuild
+index f3414ade77a3..966199af2c50 100644
+--- a/arch/score/include/asm/Kbuild
++++ b/arch/score/include/asm/Kbuild
+@@ -2,6 +2,6 @@
+ header-y +=
+ 
+ generic-y += clkdev.h
++generic-y += preempt.h
+ generic-y += trace_clock.h
+ generic-y += xor.h
+-generic-y += preempt.h
+diff --git a/arch/sh/include/asm/Kbuild b/arch/sh/include/asm/Kbuild
+index 231efbb68108..c4ac1e36ca29 100644
+--- a/arch/sh/include/asm/Kbuild
++++ b/arch/sh/include/asm/Kbuild
+@@ -20,6 +20,7 @@ generic-y += percpu.h
+ generic-y += poll.h
+ generic-y += mman.h
+ generic-y += msgbuf.h
++generic-y += preempt.h
+ generic-y += resource.h
+ generic-y += scatterlist.h
+ generic-y += sembuf.h
+@@ -34,4 +35,3 @@ generic-y += termios.h
+ generic-y += trace_clock.h
+ generic-y += ucontext.h
+ generic-y += xor.h
+-generic-y += preempt.h
+diff --git a/arch/sparc/include/asm/Kbuild b/arch/sparc/include/asm/Kbuild
+index bf390667657a..30140d938cfe 100644
+--- a/arch/sparc/include/asm/Kbuild
++++ b/arch/sparc/include/asm/Kbuild
+@@ -12,8 +12,8 @@ generic-y += mutex.h
+ generic-y += irq_regs.h
+ generic-y += local.h
+ generic-y += module.h
++generic-y += preempt.h
+ generic-y += serial.h
+ generic-y += trace_clock.h
+ generic-y += types.h
+ generic-y += word-at-a-time.h
+-generic-y += preempt.h
+diff --git a/arch/tile/include/asm/Kbuild b/arch/tile/include/asm/Kbuild
+index 22f3bd147fa7..948549c78d67 100644
+--- a/arch/tile/include/asm/Kbuild
++++ b/arch/tile/include/asm/Kbuild
+@@ -24,6 +24,7 @@ generic-y += param.h
+ generic-y += parport.h
+ generic-y += poll.h
+ generic-y += posix_types.h
++generic-y += preempt.h
+ generic-y += resource.h
+ generic-y += scatterlist.h
+ generic-y += sembuf.h
+@@ -38,4 +39,3 @@ generic-y += termios.h
+ generic-y += trace_clock.h
+ generic-y += types.h
+ generic-y += xor.h
+-generic-y += preempt.h
+diff --git a/arch/unicore32/include/asm/Kbuild b/arch/unicore32/include/asm/Kbuild
+index 00045cbe5c63..a61f73a15166 100644
+--- a/arch/unicore32/include/asm/Kbuild
++++ b/arch/unicore32/include/asm/Kbuild
+@@ -32,6 +32,7 @@ generic-y += parport.h
+ generic-y += percpu.h
+ generic-y += poll.h
+ generic-y += posix_types.h
++generic-y += preempt.h
+ generic-y += resource.h
+ generic-y += scatterlist.h
+ generic-y += sections.h
+@@ -60,4 +61,3 @@ generic-y += unaligned.h
+ generic-y += user.h
+ generic-y += vga.h
+ generic-y += xor.h
+-generic-y += preempt.h
+diff --git a/arch/xtensa/include/asm/Kbuild b/arch/xtensa/include/asm/Kbuild
+index 228d6aee3a16..68da9d495c94 100644
+--- a/arch/xtensa/include/asm/Kbuild
++++ b/arch/xtensa/include/asm/Kbuild
+@@ -19,6 +19,7 @@ generic-y += linkage.h
+ generic-y += local.h
+ generic-y += local64.h
+ generic-y += percpu.h
++generic-y += preempt.h
+ generic-y += resource.h
+ generic-y += scatterlist.h
+ generic-y += sections.h
+@@ -28,4 +29,3 @@ generic-y += termios.h
+ generic-y += topology.h
+ generic-y += trace_clock.h
+ generic-y += xor.h
+-generic-y += preempt.h
+-- 
+1.8.1.2
