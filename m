@@ -1,75 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:53016 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758628Ab3K1Cpb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 27 Nov 2013 21:45:31 -0500
-From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH 0/4] generic early_ioremap support
-Date: Wed, 27 Nov 2013 21:44:35 -0500
-Message-ID: <1385606679-30446-1-git-send-email-msalter@redhat.com>
+Received: from merlin.infradead.org ([205.233.59.134]:57990 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751586Ab3K3JUi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 30 Nov 2013 04:20:38 -0500
+Date: Sat, 30 Nov 2013 10:20:31 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH] arch: include/asm/Kbuild: fix preempt.h sort order
+Message-ID: <20131130092031.GG16796@laptop.programming.kicks-ass.net>
+References: <1385736191-31862-1-git-send-email-james.hogan@imgtec.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1385736191-31862-1-git-send-email-james.hogan@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Leif Lindholm <leif.lindholm@linaro.org>, Mark Salter <msalter@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
-Message-ID: <20131128024435.dN_IwuXnw_wsm3_hmjk1mH7GwBh7MAsNQ_waYae3OtA@z>
+To: James Hogan <james.hogan@imgtec.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20131130092031.mnnF4OAUN-egEnlThzuEEjKejS12raB_Z9TYJ3YD3RU@z>
 
-This patch series takes the common bits from the x86 early ioremap
-implementation and creates a generic library which may be used by
-other architectures. The early ioremap interfaces are intended for
-situations where boot code needs to make temporary virtual mappings
-before the normal ioremap interfaces are available. Typically, this
-means before paging_init() has run.
+On Fri, Nov 29, 2013 at 02:43:11PM +0000, James Hogan wrote:
+> Commit a787870924db (sched, arch: Create asm/preempt.h) added the
+> generic asm/preempt.h header, but took no notice of the sort order of
+> various architecture's include/asm/Kbuild files. Move preempt.h into the
+> correct sort position in files which are mostly already sorted.
 
-These patches are layered on top of generic fixmap patches which
-have been discussed here:
+Oh, I completely failed to notice they're sorted.
 
-  http://lkml.org/lkml/2013/11/25/474
-
-These patches (and undelying fixmap patches) may be found at:
-
-  git://github.com/mosalter/linux.git (early-ioremap branch)
-
-Mark Salter (4):
-  Create generic early_ioremap() support
-  x86: use generic early_ioremap
-  arm: add early_ioremap support
-  arm64: add early_ioremap support
-
- Documentation/arm64/memory.txt      |   4 +-
- arch/arm/Kconfig                    |  11 ++
- arch/arm/include/asm/Kbuild         |   1 +
- arch/arm/include/asm/fixmap.h       |  18 +++
- arch/arm/include/asm/io.h           |   1 +
- arch/arm/kernel/setup.c             |   3 +
- arch/arm/mm/Makefile                |   1 +
- arch/arm/mm/early_ioremap.c         |  93 ++++++++++++++
- arch/arm/mm/mmu.c                   |   2 +
- arch/arm64/Kconfig                  |   1 +
- arch/arm64/include/asm/Kbuild       |   1 +
- arch/arm64/include/asm/fixmap.h     |  68 ++++++++++
- arch/arm64/include/asm/io.h         |   1 +
- arch/arm64/include/asm/memory.h     |   1 +
- arch/arm64/kernel/early_printk.c    |   8 +-
- arch/arm64/kernel/head.S            |   9 +-
- arch/arm64/kernel/setup.c           |   2 +
- arch/arm64/mm/ioremap.c             |  77 ++++++++++++
- arch/arm64/mm/mmu.c                 |  41 ------
- arch/x86/Kconfig                    |   1 +
- arch/x86/include/asm/Kbuild         |   1 +
- arch/x86/include/asm/fixmap.h       |   6 +
- arch/x86/include/asm/io.h           |  14 +--
- arch/x86/mm/ioremap.c               | 224 +--------------------------------
- arch/x86/mm/pgtable_32.c            |   2 +-
- include/asm-generic/early_ioremap.h |  40 ++++++
- lib/Kconfig                         |   3 +
- lib/Makefile                        |   1 +
- lib/early_ioremap.c                 | 243 ++++++++++++++++++++++++++++++++++++
- 29 files changed, 592 insertions(+), 286 deletions(-)
- create mode 100644 arch/arm/mm/early_ioremap.c
- create mode 100644 arch/arm64/include/asm/fixmap.h
- create mode 100644 include/asm-generic/early_ioremap.h
- create mode 100644 lib/early_ioremap.c
-
--- 
-1.8.3.1
-
+Thanks for fixing it up.
