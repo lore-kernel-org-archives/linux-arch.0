@@ -1,99 +1,48 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: Re: Re: Re: [PATCH -tip v3 00/23] kprobes: introduce
- NOKPROBE_SYMBOL() and general cleaning of kprobe blacklist
-Date: Sat, 30 Nov 2013 14:46:18 +0100
-Message-ID: <20131130134618.GA18768@gmail.com>
-References: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal>
- <y0mvbznxi6k.fsf@fche.csb>
- <20131120153801.GA9743@gmail.com>
- <20131120173600.GK8993@redhat.com>
- <528D6C9F.8050809@hitachi.com>
- <20131121072938.GA16912@gmail.com>
- <528EC2FF.30301@hitachi.com>
- <528F4406.3090309@hitachi.com>
- <20131127133045.GC18422@gmail.com>
- <52971E66.9080006@hitachi.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
+Date: Sat, 30 Nov 2013 09:38:43 -0800
+Message-ID: <20131130173843.GZ4137@linux.vnet.ibm.com>
+References: <20131127101613.GC9032@mudshark.cambridge.arm.com>
+ <20131127171143.GN4137@linux.vnet.ibm.com>
+ <20131128114058.GC21354@mudshark.cambridge.arm.com>
+ <20131128173853.GV4137@linux.vnet.ibm.com>
+ <20131128180318.GE16203@mudshark.cambridge.arm.com>
+ <20131128182712.GW4137@linux.vnet.ibm.com>
+ <20131128185341.GG16203@mudshark.cambridge.arm.com>
+ <20131128195039.GX4137@linux.vnet.ibm.com>
+ <20131129161711.GG31000@mudshark.cambridge.arm.com>
+ <CA+55aFwHgnH4h0YwybThQjvicFCVbGbwaAy3Fw0b738gJMtqBA@mail.gmail.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bk0-f48.google.com ([209.85.214.48]:46205 "EHLO
-	mail-bk0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751540Ab3K3NqW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 30 Nov 2013 08:46:22 -0500
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <52971E66.9080006@hitachi.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Cc: "Frank Ch. Eigler" <fche@redhat.com>, linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
+In-Reply-To: <CA+55aFwHgnH4h0YwybThQjvicFCVbGbwaAy3Fw0b738gJMtqBA@mail.gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, "Figo. zhang" <figo1802@gmail.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Rik van Riel <riel@redhat.com>, Waiman Long <waiman.long@hp.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andi Kleen <andi@firstfloor.org>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Michel Lespinasse <walken@google.com>, Ingo Molnar <mingo@elte.hu>, Peter Hurley <peter@hurleysoftware.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm <linux-mm@kvack.org>, Alex Shi <alex.shi@linaro.org>, Andrea Arcangeli <aarcange@redhat.com>
+List-Id: linux-arch.vger.kernel.org
 
-
-* Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com> wrote:
-
-> (2013/11/27 22:30), Ingo Molnar wrote:
-> > 
-> > * Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com> wrote:
-> > 
-> >> (2013/11/22 11:35), Masami Hiramatsu wrote:
-> >>> (2013/11/21 16:29), Ingo Molnar wrote:
-> >>>>
-> >>>> * Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com> wrote:
-> >>>>
-> >>>>> (2013/11/21 2:36), Frank Ch. Eigler wrote:
-> >>>>
-> >>>> [ ... ]
-> >>>>>> one needs to resort to something like:
-> >>>>>>
-> >>>>>> # cat /proc/kallsyms | grep ' [tT] ' | while read addr type symbol; do
-> >>>>>>    perf probe $symbol
-> >>>>>> done
-> >>>>>>
-> >>>>>> then wait for a few hours for that to finish. Then, or while the loop
-> >>>>>> is still running, run
-> >>>>>>
-> >>>>>> # perf record -e 'probe:*' -aR sleep 1
-> >>>>>>
-> >>>>>> to take a kernel down.
-> >>>>>
-> >>>>> Um, indeed, current blacklist is not perfect. [...]
-> >>>>
-> >>>> Then it needs to be fixed ASAP!
-> >>>
-> >>> OK, I see. At least the two patches included this series
-> >>> should be fixed. :)
-> >>>
-> >>> And more, I need to test all symbols and drills down.
-> >>
-> >> OK, what I've found was;
-> >>  - The functions which can be ftraced look good.
-> >>    (see tracing/available_filter_functions)
-> >>  - following functions should not be able to be probed.
-> >>    - memcpy, memset
-> >>    - native_load_sp0 and some other native functions (need to be clear)
-> >>    - restore
-> >>    - trace_graph_return
-> >>    - trace_hardirqs_off_thunk, trace_hardirqs_on_thunk
-> >>    - This list still be not perfect. I just enabled/disabled kprobes
-> >>      one by one. There might be combined bugs (combination of several
-> >>      kprobes).
-> >>  - Some of them are hard to specify by NOKPROBE_SYMBOL because they are
-> >>    defined in assembly file.
-> >>
-> >> Anyway, to fix all of them, I think we need file-based blacklist
-> >> especially for assembler symbols.
-> > 
-> > assembler symbols shouldn't be particular hard either, just put them 
-> > into the noprobes section.
+On Fri, Nov 29, 2013 at 08:44:41AM -0800, Linus Torvalds wrote:
+> On Nov 29, 2013 8:18 AM, "Will Deacon" <will.deacon@arm.com> wrote:
+> >
+> >  To get some sort of
+> > idea, I tried adding a dmb to the start of spin_unlock on ARMv7 and I saw
+> a
+> > 3% performance hit in hackbench on my dual-cluster board.
 > 
-> Would you mean .kprobes.text? Hmm, I hope not to use it anymore, but 
-> yeah, bugfix is more important. Agreed.
+> Don't do a dmb. Just do a dummy release. You just said that on arm64 a
+> unlock+lock is a memory barrier, so just make the mb__before_spinlock() be
+> a dummy store with release to the stack..
+> 
+> That should be noticeably cheaper than a full dmb.
 
-No, why not put the symbol address into the 'blacklist' section, 
-within the asm file? We fill out exception table entries in .S files 
-as well, see the _ASM_EXTABLE() macro, it's possible to do all that. 
+Cute!  I like it!  ;-)
 
-It needs not a CPP macro but an assembly macro.
+							Thanx, Paul
 
-Thanks,
-
-	Ingo
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
