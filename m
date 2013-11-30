@@ -1,57 +1,53 @@
-From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Subject: Re: Re: Re: Re: Re: [PATCH -tip v3 00/23] kprobes: introduce
-	NOKPROBE_SYMBOL() and general cleaning of kprobe blacklist
-Date: Sun, 01 Dec 2013 11:16:34 +0900
-Message-ID: <529A9C02.4090909@hitachi.com>
-References: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal>
-	<y0mvbznxi6k.fsf@fche.csb> <20131120153801.GA9743@gmail.com>
-	<20131120173600.GK8993@redhat.com> <528D6C9F.8050809@hitachi.com>
-	<20131121072938.GA16912@gmail.com> <528EC2FF.30301@hitachi.com>
-	<528F4406.3090309@hitachi.com> <20131127133045.GC18422@gmail.com>
-	<52971E66.9080006@hitachi.com> <20131130134618.GA18768@gmail.com>
+From: Rob Landley <rob@landley.net>
+Subject: Re: [tip:x86/asm] x86, bitops: Change bitops to be native operand
+ size
+Date: Sat, 30 Nov 2013 17:16:22 -0600
+Message-ID: <1385853382.1974.297@driftwood>
+References: <tip-z61ofiwe90xeyb461o72h8ya@git.kernel.org>
+	<1384117768.3081.10.camel@joe-AO722>
+	<5ac67859-a0b2-47f5-bdc2-c2a52b8d6885@email.android.com>
+	<1384123457.3081.33.camel@joe-AO722> <52803BA2.2080908@zytor.com>
+	<1384136570.4771.5.camel@joe-AO722> <5281698F.9080808@linux.intel.com>
+	<1384224883.4771.28.camel@joe-AO722>
+	<CA+55aFxsNB0BVg-fdzsu_jkPLpiba1rgTcrUOe7W2tN-mHTnBg@mail.gmail.com>
+	<1384229308.4771.35.camel@joe-AO722>
+	<CAMuHMdWxRsiFGNBSsoEhyusyDWhuTQS+ecUiPHH1Yaufj43X1g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <20131130134618.GA18768@gmail.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, "Frank Ch. Eigler" <fche@redhat.com>, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
+Content-Type: text/plain; charset=us-ascii; DelSp=Yes; Format=Flowed
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAMuHMdWxRsiFGNBSsoEhyusyDWhuTQS+ecUiPHH1Yaufj43X1g@mail.gmail.com>
+	(from geert@linux-m68k.org on Tue Nov 12 02:52:57 2013)
+Content-Disposition: inline
+Sender: linux-kernel-owner@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Joe Perches <joe@perches.com>, "H. Peter Anvin" <hpa@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, james.t.kukunas@intel.com, David Miller <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
-(2013/11/30 22:46), Ingo Molnar wrote:
->>>> Anyway, to fix all of them, I think we need file-based blacklist
->>>> especially for assembler symbols.
->>>
->>> assembler symbols shouldn't be particular hard either, just put them 
->>> into the noprobes section.
->>
->> Would you mean .kprobes.text? Hmm, I hope not to use it anymore, but 
->> yeah, bugfix is more important. Agreed.
+On 11/12/2013 02:52:57 AM, Geert Uytterhoeven wrote:
+> On Tue, Nov 12, 2013 at 5:08 AM, Joe Perches <joe@perches.com> wrote:
+> > On Tue, 2013-11-12 at 12:15 +0900, Linus Torvalds wrote:
+> >> Talking about "ideal implementation" is also singularly stupid.
+> >
+> > I just want the various arch implementations to match
+> > the docs.  I know that's stupid.
+> >
+> > Maybe if you really don't want to discuss things, you
+> > should fix the documentation.
 > 
-> No, why not put the symbol address into the 'blacklist' section, 
-> within the asm file? We fill out exception table entries in .S files 
-> as well, see the _ASM_EXTABLE() macro, it's possible to do all that. 
+> E.g. by adding a paragraph that the actual allowed range of indices  
+> may be
+> a subset of "unsigned long" on some architectures.
+> Or if we know that everyone supports at least 31 resp. 63 bits, that  
+> it may
+> be limited to 31 resp. 63 unsigned bits, which is the positive range  
+> subset of
+> "long".
 
-Oh! I got it. Thank you for the pointer! :)
+If this ever turns into an actual patch to this file, could you cc: me  
+on it so I can marshal it upstream? (Not enough domain expertise for me  
+to produce it myself...)
 
-> 
-> It needs not a CPP macro but an assembly macro.
+Thanks,
 
-OK, I'll try that.
-
-Thanks again,
-
--- 
-Masami HIRAMATSU
-IT Management Research Dept. Linux Technology Center
-Hitachi, Ltd., Yokohama Research Laboratory
-E-mail: masami.hiramatsu.pt@hitachi.com
+Rob
