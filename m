@@ -1,48 +1,57 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
-Date: Sat, 30 Nov 2013 09:38:43 -0800
-Message-ID: <20131130173843.GZ4137@linux.vnet.ibm.com>
-References: <20131127101613.GC9032@mudshark.cambridge.arm.com>
- <20131127171143.GN4137@linux.vnet.ibm.com>
- <20131128114058.GC21354@mudshark.cambridge.arm.com>
- <20131128173853.GV4137@linux.vnet.ibm.com>
- <20131128180318.GE16203@mudshark.cambridge.arm.com>
- <20131128182712.GW4137@linux.vnet.ibm.com>
- <20131128185341.GG16203@mudshark.cambridge.arm.com>
- <20131128195039.GX4137@linux.vnet.ibm.com>
- <20131129161711.GG31000@mudshark.cambridge.arm.com>
- <CA+55aFwHgnH4h0YwybThQjvicFCVbGbwaAy3Fw0b738gJMtqBA@mail.gmail.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+Subject: Re: Re: Re: Re: Re: [PATCH -tip v3 00/23] kprobes: introduce
+	NOKPROBE_SYMBOL() and general cleaning of kprobe blacklist
+Date: Sun, 01 Dec 2013 11:16:34 +0900
+Message-ID: <529A9C02.4090909@hitachi.com>
+References: <20131120042148.15296.88360.stgit@kbuild-fedora.novalocal>
+	<y0mvbznxi6k.fsf@fche.csb> <20131120153801.GA9743@gmail.com>
+	<20131120173600.GK8993@redhat.com> <528D6C9F.8050809@hitachi.com>
+	<20131121072938.GA16912@gmail.com> <528EC2FF.30301@hitachi.com>
+	<528F4406.3090309@hitachi.com> <20131127133045.GC18422@gmail.com>
+	<52971E66.9080006@hitachi.com> <20131130134618.GA18768@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <CA+55aFwHgnH4h0YwybThQjvicFCVbGbwaAy3Fw0b738gJMtqBA@mail.gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, "Figo. zhang" <figo1802@gmail.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Rik van Riel <riel@redhat.com>, Waiman Long <waiman.long@hp.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andi Kleen <andi@firstfloor.org>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Michel Lespinasse <walken@google.com>, Ingo Molnar <mingo@elte.hu>, Peter Hurley <peter@hurleysoftware.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm <linux-mm@kvack.org>, Alex Shi <alex.shi@linaro.org>, Andrea Arcangeli <aarcange@redhat.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <20131130134618.GA18768@gmail.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Ingo Molnar <mingo@kernel.org>
+Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, virtualization@lists.linux-foundation.org, "Frank Ch. Eigler" <fche@redhat.com>, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Nov 29, 2013 at 08:44:41AM -0800, Linus Torvalds wrote:
-> On Nov 29, 2013 8:18 AM, "Will Deacon" <will.deacon@arm.com> wrote:
-> >
-> >  To get some sort of
-> > idea, I tried adding a dmb to the start of spin_unlock on ARMv7 and I saw
-> a
-> > 3% performance hit in hackbench on my dual-cluster board.
+(2013/11/30 22:46), Ingo Molnar wrote:
+>>>> Anyway, to fix all of them, I think we need file-based blacklist
+>>>> especially for assembler symbols.
+>>>
+>>> assembler symbols shouldn't be particular hard either, just put them 
+>>> into the noprobes section.
+>>
+>> Would you mean .kprobes.text? Hmm, I hope not to use it anymore, but 
+>> yeah, bugfix is more important. Agreed.
 > 
-> Don't do a dmb. Just do a dummy release. You just said that on arm64 a
-> unlock+lock is a memory barrier, so just make the mb__before_spinlock() be
-> a dummy store with release to the stack..
+> No, why not put the symbol address into the 'blacklist' section, 
+> within the asm file? We fill out exception table entries in .S files 
+> as well, see the _ASM_EXTABLE() macro, it's possible to do all that. 
+
+Oh! I got it. Thank you for the pointer! :)
+
 > 
-> That should be noticeably cheaper than a full dmb.
+> It needs not a CPP macro but an assembly macro.
 
-Cute!  I like it!  ;-)
+OK, I'll try that.
 
-							Thanx, Paul
+Thanks again,
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+-- 
+Masami HIRAMATSU
+IT Management Research Dept. Linux Technology Center
+Hitachi, Ltd., Yokohama Research Laboratory
+E-mail: masami.hiramatsu.pt@hitachi.com
