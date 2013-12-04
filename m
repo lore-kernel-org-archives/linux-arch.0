@@ -1,60 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oa0-f43.google.com ([209.85.219.43]:45726 "EHLO
-	mail-oa0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751403Ab3LAC20 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 30 Nov 2013 21:28:26 -0500
-Received: by mail-oa0-f43.google.com with SMTP id i7so11820471oag.30
-        for <linux-arch@vger.kernel.org>; Sat, 30 Nov 2013 18:28:24 -0800 (PST)
-Date: Sat, 30 Nov 2013 17:16:22 -0600
-From: Rob Landley <rob@landley.net>
-Subject: Re: [tip:x86/asm] x86, bitops: Change bitops to be native operand
- size
-References: <tip-z61ofiwe90xeyb461o72h8ya@git.kernel.org>
-	<1384117768.3081.10.camel@joe-AO722>
-	<5ac67859-a0b2-47f5-bdc2-c2a52b8d6885@email.android.com>
-	<1384123457.3081.33.camel@joe-AO722> <52803BA2.2080908@zytor.com>
-	<1384136570.4771.5.camel@joe-AO722> <5281698F.9080808@linux.intel.com>
-	<1384224883.4771.28.camel@joe-AO722>
-	<CA+55aFxsNB0BVg-fdzsu_jkPLpiba1rgTcrUOe7W2tN-mHTnBg@mail.gmail.com>
-	<1384229308.4771.35.camel@joe-AO722>
-	<CAMuHMdWxRsiFGNBSsoEhyusyDWhuTQS+ecUiPHH1Yaufj43X1g@mail.gmail.com>
-In-Reply-To: <CAMuHMdWxRsiFGNBSsoEhyusyDWhuTQS+ecUiPHH1Yaufj43X1g@mail.gmail.com>
-	(from geert@linux-m68k.org on Tue Nov 12 02:52:57 2013)
-Message-ID: <1385853382.1974.297@driftwood>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; DelSp=Yes; Format=Flowed
-Content-Disposition: inline
-Content-Transfer-Encoding: 8BIT
+Received: from mail-pd0-f176.google.com ([209.85.192.176]:44319 "EHLO
+	mail-pd0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932663Ab3LDQPv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Dec 2013 11:15:51 -0500
+From: Jiang Liu <liuj97@gmail.com>
+Subject: [RFC PATCH v3 06/19] smp, blackfin: kill SMP single function call interrupt
+Date: Thu,  5 Dec 2013 00:12:57 +0800
+Message-ID: <1386173591-28514-7-git-send-email-liuj97@gmail.com>
+In-Reply-To: <1386173591-28514-1-git-send-email-liuj97@gmail.com>
+References: <1386173591-28514-1-git-send-email-liuj97@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Joe Perches <joe@perches.com>, "H. Peter Anvin" <hpa@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, james.t.kukunas@intel.com, David Miller <davem@davemloft.net>
-Message-ID: <20131130231622.qtLesnMQTJd10bdWeRYHrz5rgGLTa66ehi2Im6ijl00@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Shaohua Li <shli@kernel.org>, Mike Frysinger <vapier@gentoo.org>, Steven Miao <realmz6@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Paul Gortmaker <paul.gortmaker@windriver.com>, Geert Uytterhoeven <geert@linux-m68k.org>, uclinux-dist-devel@blackfin.uclinux.org, linux-kernel@vger.kernel.org
+Cc: Jiang Liu <liuj97@gmail.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, Wang YanQing <udknight@gmail.com>, linux-arch@vger.kernel.org
+Message-ID: <20131204161257.MOLfK8OngvwB3UjSs7E66H3Bv653zQdYkcuZJRo_kd0@z>
 
-On 11/12/2013 02:52:57 AM, Geert Uytterhoeven wrote:
-> On Tue, Nov 12, 2013 at 5:08 AM, Joe Perches <joe@perches.com> wrote:
-> > On Tue, 2013-11-12 at 12:15 +0900, Linus Torvalds wrote:
-> >> Talking about "ideal implementation" is also singularly stupid.
-> >
-> > I just want the various arch implementations to match
-> > the docs.  I know that's stupid.
-> >
-> > Maybe if you really don't want to discuss things, you
-> > should fix the documentation.
-> 
-> E.g. by adding a paragraph that the actual allowed range of indices  
-> may be
-> a subset of "unsigned long" on some architectures.
-> Or if we know that everyone supports at least 31 resp. 63 bits, that  
-> it may
-> be limited to 31 resp. 63 unsigned bits, which is the positive range  
-> subset of
-> "long".
+Commit 9a46ad6d6df3b54 "smp: make smp_call_function_many() use logic
+similar to smp_call_function_single()" has unified the way to handle
+single and multiple cross-CPU function calls. Now only one intterupt
+is needed for architecture specific code to support generic SMP function
+call interfaces, so kill the redundant single function call interrupt.
 
-If this ever turns into an actual patch to this file, could you cc: me  
-on it so I can marshal it upstream? (Not enough domain expertise for me  
-to produce it myself...)
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Shaohua Li <shli@kernel.org>
+Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Ingo Molnar <mingo@elte.hu>
+Cc: Steven Rostedt <rostedt@goodmis.org>
+Cc: Jiri Kosina <trivial@kernel.org>
+Cc: Mike Frysinger <vapier@gentoo.org>
+Cc: uclinux-dist-devel@blackfin.uclinux.org
+Signed-off-by: Jiang Liu <liuj97@gmail.com>
+---
+ arch/blackfin/mach-common/smp.c | 6 +-----
+ 1 file changed, 1 insertion(+), 5 deletions(-)
 
-Thanks,
+diff --git a/arch/blackfin/mach-common/smp.c b/arch/blackfin/mach-common/smp.c
+index 2bbae07..ba6c30d 100644
+--- a/arch/blackfin/mach-common/smp.c
++++ b/arch/blackfin/mach-common/smp.c
+@@ -53,7 +53,6 @@ enum ipi_message_type {
+ 	BFIN_IPI_TIMER,
+ 	BFIN_IPI_RESCHEDULE,
+ 	BFIN_IPI_CALL_FUNC,
+-	BFIN_IPI_CALL_FUNC_SINGLE,
+ 	BFIN_IPI_CPU_STOP,
+ };
+ 
+@@ -162,9 +161,6 @@ static irqreturn_t ipi_handler_int1(int irq, void *dev_instance)
+ 			case BFIN_IPI_CALL_FUNC:
+ 				generic_smp_call_function_interrupt();
+ 				break;
+-			case BFIN_IPI_CALL_FUNC_SINGLE:
+-				generic_smp_call_function_single_interrupt();
+-				break;
+ 			case BFIN_IPI_CPU_STOP:
+ 				ipi_cpu_stop(cpu);
+ 				break;
+@@ -210,7 +206,7 @@ void send_ipi(const struct cpumask *cpumask, enum ipi_message_type msg)
+ 
+ void arch_send_call_function_single_ipi(int cpu)
+ {
+-	send_ipi(cpumask_of(cpu), BFIN_IPI_CALL_FUNC_SINGLE);
++	send_ipi(cpumask_of(cpu), BFIN_IPI_CALL_FUNC);
+ }
+ 
+ void arch_send_call_function_ipi_mask(const struct cpumask *mask)
+-- 
+1.8.1.2
 
-Rob
