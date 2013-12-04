@@ -1,46 +1,51 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [RFC PATCH v3 10/19] smp, metag: kill SMP single function call
- interrupt
-Date: Wed, 4 Dec 2013 16:38:45 +0000
-Message-ID: <529F5A95.9050307@imgtec.com>
-References: <1386173591-28514-1-git-send-email-liuj97@gmail.com> <1386173591-28514-11-git-send-email-liuj97@gmail.com>
+From: Andi Kleen <andi@firstfloor.org>
+Subject: Re: [PATCH v6 4/5] MCS Lock: Barrier corrections
+Date: Wed, 4 Dec 2013 22:26:13 +0100
+Message-ID: <20131204212613.GA21717@two.firstfloor.org>
+References: <cover.1384885312.git.tim.c.chen@linux.intel.com>
+ <1384911463.11046.454.camel@schen9-DESK>
+ <20131120153123.GF4138@linux.vnet.ibm.com>
+ <20131120154643.GG19352@mudshark.cambridge.arm.com>
+ <20131120171400.GI4138@linux.vnet.ibm.com>
+ <20131121110308.GC10022@twins.programming.kicks-ass.net>
+ <20131121125616.GI3694@twins.programming.kicks-ass.net>
+ <20131121132041.GS4138@linux.vnet.ibm.com>
+ <20131121172558.GA27927@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:9590 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755782Ab3LDQiu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 4 Dec 2013 11:38:50 -0500
-In-Reply-To: <1386173591-28514-11-git-send-email-liuj97@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Jiang Liu <liuj97@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Shaohua Li <shli@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, linux-metag@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, Wang YanQing <udknight@gmail.com>, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20131121172558.GA27927@linux.vnet.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@h>
+List-Id: linux-arch.vger.kernel.org
 
-On 04/12/13 16:13, Jiang Liu wrote:
-> Commit 9a46ad6d6df3b54 "smp: make smp_call_function_many() use logic
-> similar to smp_call_function_single()" has unified the way to handle
-> single and multiple cross-CPU function calls. Now only one intterupt
-
-s/intterupt/interrupt/
-
-> is needed for architecture specific code to support generic SMP function
-> call interfaces, so kill the redundant single function call interrupt.
+> Let's apply the Intel manual to the earlier example:
 > 
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Shaohua Li <shli@kernel.org>
-> Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
-> Cc: Ingo Molnar <mingo@elte.hu>
-> Cc: Steven Rostedt <rostedt@goodmis.org>
-> Cc: Jiri Kosina <trivial@kernel.org>
-> Cc: James Hogan <james.hogan@imgtec.com>
-> Signed-off-by: Jiang Liu <liuj97@gmail.com>
+> 	CPU 0		CPU 1			CPU 2
+> 	-----		-----			-----
+> 	x = 1;		r1 = SLA(lock);		y = 1;
+> 	SSR(lock, 1);	r2 = y;			smp_mb();
+> 						r3 = x;
+> 
+> 	assert(!(r1 == 1 && r2 == 0 && r3 == 0));
 
-Acked-by: James Hogan <james.hogan@imgtec.com>
+Hi Paul,
 
-Do you want me to take this patch through the metag tree for v3.14 or
-let it go via another tree with the other patches?
+We discussed this example with CPU architects and they
+agreed that it is valid to rely on (r1 == 1 && r2 == 0 && r3 == 0)
+never happening.
 
-Thanks
-James
+So the MCS code is good without additional barriers.
+
+-Andi
+
+-- 
+ak@linux.intel.com -- Speaking for myself only.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
