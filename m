@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f175.google.com ([209.85.192.175]:64577 "EHLO
-	mail-pd0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932648Ab3LDQPg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Dec 2013 11:15:36 -0500
+Received: from mail-pb0-f45.google.com ([209.85.160.45]:39607 "EHLO
+	mail-pb0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932663Ab3LDQQs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Dec 2013 11:16:48 -0500
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [RFC PATCH v3 05/19] smp, ARM64: kill SMP single function call interrupt
-Date: Thu,  5 Dec 2013 00:12:56 +0800
-Message-ID: <1386173591-28514-6-git-send-email-liuj97@gmail.com>
+Subject: [RFC PATCH v3 09/19] smp, m32r: kill SMP single function call interrupt
+Date: Thu,  5 Dec 2013 00:13:00 +0800
+Message-ID: <1386173591-28514-10-git-send-email-liuj97@gmail.com>
 In-Reply-To: <1386173591-28514-1-git-send-email-liuj97@gmail.com>
 References: <1386173591-28514-1-git-send-email-liuj97@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Shaohua Li <shli@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, Javi Merino <javi.merino@arm.com>, Marc Zyngier <marc.zyngier@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Cc: Jiang Liu <liuj97@gmail.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, Wang YanQing <udknight@gmail.com>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20131204161256.0zdEs9ysCtFG4im0mRNp4RC7yotUZyoA8NdoD5sGcGA@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Shaohua Li <shli@kernel.org>, Hirokazu Takata <takata@linux-m32r.org>, Vineet Gupta <vgupta@synopsys.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Jiri Kosina <jkosina@suse.cz>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, linux-kernel@vger.kernel.org
+Cc: Jiang Liu <liuj97@gmail.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, Wang YanQing <udknight@gmail.com>, linux-arch@vger.kernel.org
+Message-ID: <20131204161300.FhNboYUiQazCfaug9_PZBGQw4_hQnzaSv6WvqhpEpMk@z>
 
 Commit 9a46ad6d6df3b54 "smp: make smp_call_function_many() use logic
 similar to smp_call_function_single()" has unified the way to handle
@@ -27,70 +27,76 @@ Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
 Cc: Ingo Molnar <mingo@elte.hu>
 Cc: Steven Rostedt <rostedt@goodmis.org>
 Cc: Jiri Kosina <trivial@kernel.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arm-kernel@lists.infradead.org
+Cc: Hirokazu Takata <takata@linux-m32r.org>
+Cc: linux-m32r@ml.linux-m32r.org
+Cc: linux-m32r-ja@ml.linux-m32r.org
 Signed-off-by: Jiang Liu <liuj97@gmail.com>
 ---
- arch/arm64/include/asm/hardirq.h |  2 +-
- arch/arm64/kernel/smp.c          | 10 +---------
- 2 files changed, 2 insertions(+), 10 deletions(-)
+ arch/m32r/include/asm/smp.h | 1 -
+ arch/m32r/kernel/smp.c      | 9 +--------
+ arch/m32r/kernel/traps.c    | 3 +--
+ 3 files changed, 2 insertions(+), 11 deletions(-)
 
-diff --git a/arch/arm64/include/asm/hardirq.h b/arch/arm64/include/asm/hardirq.h
-index 990c051..3be64c8 100644
---- a/arch/arm64/include/asm/hardirq.h
-+++ b/arch/arm64/include/asm/hardirq.h
-@@ -20,7 +20,7 @@
- #include <linux/threads.h>
- #include <asm/irq.h>
+diff --git a/arch/m32r/include/asm/smp.h b/arch/m32r/include/asm/smp.h
+index c689b82..3a502d4 100644
+--- a/arch/m32r/include/asm/smp.h
++++ b/arch/m32r/include/asm/smp.h
+@@ -98,7 +98,6 @@ extern void arch_send_call_function_ipi_mask(const struct cpumask *mask);
+ #define LOCAL_TIMER_IPI		(M32R_IRQ_IPI3-M32R_IRQ_IPI0)
+ #define INVALIDATE_CACHE_IPI	(M32R_IRQ_IPI4-M32R_IRQ_IPI0)
+ #define CPU_BOOT_IPI		(M32R_IRQ_IPI5-M32R_IRQ_IPI0)
+-#define CALL_FUNC_SINGLE_IPI	(M32R_IRQ_IPI6-M32R_IRQ_IPI0)
  
--#define NR_IPI	4
-+#define NR_IPI	3
- 
- typedef struct {
- 	unsigned int __softirq_pending;
-diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
-index a0c2ca6..ea3e9ab 100644
---- a/arch/arm64/kernel/smp.c
-+++ b/arch/arm64/kernel/smp.c
-@@ -59,7 +59,6 @@ struct secondary_data secondary_data;
- enum ipi_msg_type {
- 	IPI_RESCHEDULE,
- 	IPI_CALL_FUNC,
--	IPI_CALL_FUNC_SINGLE,
- 	IPI_CPU_STOP,
- };
- 
-@@ -438,14 +437,13 @@ void arch_send_call_function_ipi_mask(const struct cpumask *mask)
+ #define IPI_SHIFT	(0)
+ #define NR_IPIS		(8)
+diff --git a/arch/m32r/kernel/smp.c b/arch/m32r/kernel/smp.c
+index ce7aea3..c6d0bb9 100644
+--- a/arch/m32r/kernel/smp.c
++++ b/arch/m32r/kernel/smp.c
+@@ -542,7 +542,7 @@ void arch_send_call_function_ipi_mask(const struct cpumask *mask)
  
  void arch_send_call_function_single_ipi(int cpu)
  {
--	smp_cross_call(cpumask_of(cpu), IPI_CALL_FUNC_SINGLE);
-+	smp_cross_call(cpumask_of(cpu), IPI_CALL_FUNC);
+-	send_IPI_mask(cpumask_of(cpu), CALL_FUNC_SINGLE_IPI, 0);
++	send_IPI_mask(cpumask_of(cpu), CALL_FUNCTION_IPI, 0);
  }
  
- static const char *ipi_types[NR_IPI] = {
- #define S(x,s)	[x - IPI_RESCHEDULE] = s
- 	S(IPI_RESCHEDULE, "Rescheduling interrupts"),
- 	S(IPI_CALL_FUNC, "Function call interrupts"),
--	S(IPI_CALL_FUNC_SINGLE, "Single function call interrupts"),
- 	S(IPI_CPU_STOP, "CPU stop interrupts"),
- };
+ /*==========================================================================*
+@@ -569,13 +569,6 @@ void smp_call_function_interrupt(void)
+ 	irq_exit();
+ }
  
-@@ -520,12 +518,6 @@ void handle_IPI(int ipinr, struct pt_regs *regs)
- 		irq_exit();
- 		break;
- 
--	case IPI_CALL_FUNC_SINGLE:
--		irq_enter();
--		generic_smp_call_function_single_interrupt();
--		irq_exit();
--		break;
+-void smp_call_function_single_interrupt(void)
+-{
+-	irq_enter();
+-	generic_smp_call_function_single_interrupt();
+-	irq_exit();
+-}
 -
- 	case IPI_CPU_STOP:
- 		irq_enter();
- 		ipi_cpu_stop(cpu);
+ /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
+ /* Timer Routines                                                            */
+ /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
+diff --git a/arch/m32r/kernel/traps.c b/arch/m32r/kernel/traps.c
+index a7a424f..f5d911d 100644
+--- a/arch/m32r/kernel/traps.c
++++ b/arch/m32r/kernel/traps.c
+@@ -39,7 +39,6 @@ extern void smp_invalidate_interrupt(void);
+ extern void smp_call_function_interrupt(void);
+ extern void smp_ipi_timer_interrupt(void);
+ extern void smp_flush_cache_all_interrupt(void);
+-extern void smp_call_function_single_interrupt(void);
+ 
+ /*
+  * for Boot AP function
+@@ -104,7 +103,7 @@ static void set_eit_vector_entries(void)
+ 	eit_vector[187] = (unsigned long)smp_ipi_timer_interrupt;
+ 	eit_vector[188] = (unsigned long)smp_flush_cache_all_interrupt;
+ 	eit_vector[189] = 0;	/* CPU_BOOT_IPI */
+-	eit_vector[190] = (unsigned long)smp_call_function_single_interrupt;
++	eit_vector[190] = 0;
+ 	eit_vector[191] = 0;
+ #endif
+ 	_flush_cache_copyback_all();
 -- 
 1.8.1.2
 
