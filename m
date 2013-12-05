@@ -1,54 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.11.231]:49475 "EHLO
-	smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756228Ab3LEBm5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Dec 2013 20:42:57 -0500
-Date: Wed, 4 Dec 2013 19:42:54 -0600
-From: rkuo <rkuo@codeaurora.org>
-Subject: Re: [RFC PATCH v3 07/19] smp, hexagon: kill SMP single function call
- interrupt
-Message-ID: <20131205014254.GA3188@codeaurora.org>
-References: <1386173591-28514-1-git-send-email-liuj97@gmail.com>
- <1386173591-28514-8-git-send-email-liuj97@gmail.com>
+Received: from mail-la0-f52.google.com ([209.85.215.52]:52867 "EHLO
+	mail-la0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751686Ab3LEGtd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Dec 2013 01:49:33 -0500
+Received: by mail-la0-f52.google.com with SMTP id y1so8199436lam.39
+        for <linux-arch@vger.kernel.org>; Wed, 04 Dec 2013 22:49:32 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1386173591-28514-8-git-send-email-liuj97@gmail.com>
+In-Reply-To: <1369815408-12719-1-git-send-email-geert@linux-m68k.org>
+References: <1369815408-12719-1-git-send-email-geert@linux-m68k.org>
+From: Nobuhiro Iwamatsu <nobuhiro.iwamatsu.yj@renesas.com>
+Date: Thu, 5 Dec 2013 15:49:01 +0900
+Message-ID: <CABMQnV+mYYmSKK6ayeDbaiOnNSOgUhN4TjZV50eYmQwaQ3rHhQ@mail.gmail.com>
+Subject: Re: [PATCH/RFC] sh: Always link in helper functions extracted from libgcc
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiang Liu <liuj97@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Shaohua Li <shli@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Paul Gortmaker <paul.gortmaker@windriver.com>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, Wang YanQing <udknight@gmail.com>, linux-arch@vger.kernel.org
-Message-ID: <20131205014254.5xmK5mq7N9SQqGXSgnavt0yZ0WkmNi_CGt3XUks1s4s@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Paul Mundt <lethal@linux-sh.org>, Linux-sh <linux-sh@vger.kernel.org>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, stable@vger.kernel.org
+Message-ID: <20131205064901.o8b2kjdrCX_Fj1vQChU3EvifhY53QDSinVJFkrpxRFY@z>
 
-On Thu, Dec 05, 2013 at 12:12:58AM +0800, Jiang Liu wrote:
-> Commit 9a46ad6d6df3b54 "smp: make smp_call_function_many() use logic
-> similar to smp_call_function_single()" has unified the way to handle
-> single and multiple cross-CPU function calls. Now only one intterupt
-> is needed for architecture specific code to support generic SMP function
-> call interfaces, so kill the redundant single function call interrupt.
-> 
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Shaohua Li <shli@kernel.org>
-> Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
-> Cc: Ingo Molnar <mingo@elte.hu>
-> Cc: Steven Rostedt <rostedt@goodmis.org>
-> Cc: Jiri Kosina <trivial@kernel.org>
-> Cc: Richard Kuo <rkuo@codeaurora.org>
-> Cc: linux-hexagon@vger.kernel.org
-> Signed-off-by: Jiang Liu <liuj97@gmail.com>
+# Add akpm@linux-foundation.org and stable@vger.kernel.org to CC.
+
+Hi, Geert.
+
+I was just creating a patch as your patch.... I noticed your patch by chance.
+I think your proposal is good.
+
+But Paul does not maintain the SH tree.
+Andrew, Could you pickup this patch ?
+
+Tested-by: Nobuhiro Iwamatsu <nobuhiro.iwamatsu.yj@renesas.com>
+Reviewed-by: Nobuhiro Iwamatsu <nobuhiro.iwamatsu.yj@renesas.com>
+
+Best regards,
+  Nobuhiro
+
+2013/5/29 Geert Uytterhoeven <geert@linux-m68k.org>:
+> E.g. landisk_defconfig, which has CONFIG_NTFS_FS=m:
+>
+> ERROR: "__ashrdi3" [fs/ntfs/ntfs.ko] undefined!
+>
+> For "lib-y", if no symbols in a compilation unit are referenced by other
+> units, the compilation unit will not be included in vmlinux.
+> This breaks modules that do reference those symbols.
+>
+> Use "obj-y" instead to fix this.
+>
+> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
 > ---
->  arch/hexagon/include/asm/smp.h | 1 -
->  arch/hexagon/kernel/smp.c      | 6 +-----
->  2 files changed, 1 insertion(+), 6 deletions(-)
-
-Seems to work fine for Hexagon.  Thanks!
-
-
-Acked-by: Richard Kuo <rkuo@codeaurora.org>
-
+> http://kisskb.ellerman.id.au/kisskb/buildresult/8838077/
+>
+> This doesn't fix all cases. There are others, e.g. udivsi3.
+> This is also not limited to sh, many architectures handle this in the same
+> way.
+>
+> A simple solution is to unconditionally include all helper functions.
+> A more complex solution is to make the choice of "lib-y" or "obj-y" depend
+> on CONFIG_MODULES:
+>   obj-$(CONFIG_MODULES) += ...
+>   lib-y($CONFIG_MODULES) += ...
+>
+> What do you think?
+> Thanks for your comments!
+>
+>  arch/sh/lib/Makefile |    2 +-
+>  1 files changed, 1 insertions(+), 1 deletions(-)
+>
+> diff --git a/arch/sh/lib/Makefile b/arch/sh/lib/Makefile
+> index 7b95f29..3baff31 100644
+> --- a/arch/sh/lib/Makefile
+> +++ b/arch/sh/lib/Makefile
+> @@ -6,7 +6,7 @@ lib-y  = delay.o memmove.o memchr.o \
+>          checksum.o strlen.o div64.o div64-generic.o
+>
+>  # Extracted from libgcc
+> -lib-y += movmem.o ashldi3.o ashrdi3.o lshrdi3.o \
+> +obj-y += movmem.o ashldi3.o ashrdi3.o lshrdi3.o \
+>          ashlsi3.o ashrsi3.o ashiftrt.o lshrsi3.o \
+>          udiv_qrnnd.o
+>
+> --
+> 1.7.0.4
+>
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-sh" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
 
 -- 
-
-Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum,
-hosted by The Linux Foundation
+Nobuhiro Iwamatsu
