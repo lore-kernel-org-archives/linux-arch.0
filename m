@@ -1,84 +1,52 @@
-From: Nobuhiro Iwamatsu <nobuhiro.iwamatsu.yj@renesas.com>
-Subject: Re: [PATCH/RFC] sh: Always link in helper functions extracted from libgcc
-Date: Thu, 5 Dec 2013 15:49:01 +0900
-Message-ID: <CABMQnV+mYYmSKK6ayeDbaiOnNSOgUhN4TjZV50eYmQwaQ3rHhQ@mail.gmail.com>
-References: <1369815408-12719-1-git-send-email-geert@linux-m68k.org>
+From: Jiang Liu <liuj97@gmail.com>
+Subject: Re: [RFC PATCH v3 10/19] smp, metag: kill SMP single function call
+ interrupt
+Date: Fri, 06 Dec 2013 00:31:25 +0800
+Message-ID: <52A0AA5D.7080407@gmail.com>
+References: <1386173591-28514-1-git-send-email-liuj97@gmail.com> <1386173591-28514-11-git-send-email-liuj97@gmail.com> <529F5A95.9050307@imgtec.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-sh-owner@vger.kernel.org>
-In-Reply-To: <1369815408-12719-1-git-send-email-geert@linux-m68k.org>
-Sender: linux-sh-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Paul Mundt <lethal@linux-sh.org>, Linux-sh <linux-sh@vger.kernel.org>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, stable@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pd0-f176.google.com ([209.85.192.176]:33763 "EHLO
+	mail-pd0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756771Ab3LEQbj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Dec 2013 11:31:39 -0500
+In-Reply-To: <529F5A95.9050307@imgtec.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: James Hogan <james.hogan@imgtec.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Shaohua Li <shli@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, linux-metag@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, Wang YanQing <udknight@gmail.com>, linux-arch@vger.kernel.org
 
-# Add akpm@linux-foundation.org and stable@vger.kernel.org to CC.
+On 12/05/2013 12:38 AM, James Hogan wrote:
+> On 04/12/13 16:13, Jiang Liu wrote:
+>> Commit 9a46ad6d6df3b54 "smp: make smp_call_function_many() use logic
+>> similar to smp_call_function_single()" has unified the way to handle
+>> single and multiple cross-CPU function calls. Now only one intterupt
+> 
+> s/intterupt/interrupt/
+> 
+>> is needed for architecture specific code to support generic SMP function
+>> call interfaces, so kill the redundant single function call interrupt.
+>>
+>> Cc: Andrew Morton <akpm@linux-foundation.org>
+>> Cc: Shaohua Li <shli@kernel.org>
+>> Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
+>> Cc: Ingo Molnar <mingo@elte.hu>
+>> Cc: Steven Rostedt <rostedt@goodmis.org>
+>> Cc: Jiri Kosina <trivial@kernel.org>
+>> Cc: James Hogan <james.hogan@imgtec.com>
+>> Signed-off-by: Jiang Liu <liuj97@gmail.com>
+> 
+> Acked-by: James Hogan <james.hogan@imgtec.com>
+> 
+> Do you want me to take this patch through the metag tree for v3.14 or
+> let it go via another tree with the other patches?
+Thanks for review. Appreciate if you could help to merge this patch
+through metag gate.
 
-Hi, Geert.
 
-I was just creating a patch as your patch.... I noticed your patch by chance.
-I think your proposal is good.
-
-But Paul does not maintain the SH tree.
-Andrew, Could you pickup this patch ?
-
-Tested-by: Nobuhiro Iwamatsu <nobuhiro.iwamatsu.yj@renesas.com>
-Reviewed-by: Nobuhiro Iwamatsu <nobuhiro.iwamatsu.yj@renesas.com>
-
-Best regards,
-  Nobuhiro
-
-2013/5/29 Geert Uytterhoeven <geert@linux-m68k.org>:
-> E.g. landisk_defconfig, which has CONFIG_NTFS_FS=m:
->
-> ERROR: "__ashrdi3" [fs/ntfs/ntfs.ko] undefined!
->
-> For "lib-y", if no symbols in a compilation unit are referenced by other
-> units, the compilation unit will not be included in vmlinux.
-> This breaks modules that do reference those symbols.
->
-> Use "obj-y" instead to fix this.
->
-> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> ---
-> http://kisskb.ellerman.id.au/kisskb/buildresult/8838077/
->
-> This doesn't fix all cases. There are others, e.g. udivsi3.
-> This is also not limited to sh, many architectures handle this in the same
-> way.
->
-> A simple solution is to unconditionally include all helper functions.
-> A more complex solution is to make the choice of "lib-y" or "obj-y" depend
-> on CONFIG_MODULES:
->   obj-$(CONFIG_MODULES) += ...
->   lib-y($CONFIG_MODULES) += ...
->
-> What do you think?
-> Thanks for your comments!
->
->  arch/sh/lib/Makefile |    2 +-
->  1 files changed, 1 insertions(+), 1 deletions(-)
->
-> diff --git a/arch/sh/lib/Makefile b/arch/sh/lib/Makefile
-> index 7b95f29..3baff31 100644
-> --- a/arch/sh/lib/Makefile
-> +++ b/arch/sh/lib/Makefile
-> @@ -6,7 +6,7 @@ lib-y  = delay.o memmove.o memchr.o \
->          checksum.o strlen.o div64.o div64-generic.o
->
->  # Extracted from libgcc
-> -lib-y += movmem.o ashldi3.o ashrdi3.o lshrdi3.o \
-> +obj-y += movmem.o ashldi3.o ashrdi3.o lshrdi3.o \
->          ashlsi3.o ashrsi3.o ashiftrt.o lshrsi3.o \
->          udiv_qrnnd.o
->
-> --
-> 1.7.0.4
->
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-sh" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-
--- 
-Nobuhiro Iwamatsu
+> 
+> Thanks
+> James
+> 
