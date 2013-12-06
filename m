@@ -1,35 +1,24 @@
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [RFC PATCH v3 13/19] smp, s390: prepare for killing
- generic_smp_call_function_single_interrupt()
-Date: Fri, 6 Dec 2013 10:43:21 +0100
-Message-ID: <20131206094321.GC4524@osiris>
-References: <1386173591-28514-1-git-send-email-liuj97@gmail.com>
- <1386173591-28514-14-git-send-email-liuj97@gmail.com>
+From: <miguel9@miguel538.onmicrosoft.com>
+Subject: PROPOSAL(STRICTLY CONFIDENTIAL).
+Date: Fri, 6 Dec 2013 12:39:41 +0100
+Message-ID: <de442b16-b285-49b8-b316-227b033cf97e@DB3PR05MB140.eurprd05.prod.outlook.com>
+Reply-To: <morenomiguelmartinez@aol.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:55219 "EHLO
-	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753513Ab3LFJn2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Dec 2013 04:43:28 -0500
-Received: from /spool/local
-	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
-	Fri, 6 Dec 2013 09:43:27 -0000
-Content-Disposition: inline
-In-Reply-To: <1386173591-28514-14-git-send-email-liuj97@gmail.com>
+Received: from emea01-am1-ndr.ptr.protection.outlook.com ([157.56.116.105]:46870
+	"EHLO emea01-am1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1754197Ab3LFLju convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Dec 2013 06:39:50 -0500
+Content-Description: Mail message body
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiang Liu <liuj97@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Shaohua Li <shli@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux390@de.ibm.com, Thomas Gleixner <tglx@linutronix.de>, Paul Gortmaker <paul.gortmaker@windriver.com>, Michael Holzheu <holzheu@linux.vnet.ibm.com>, linux-s390@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, Wang YanQing <udknight@gmail.com>, linux-arch@vger.kernel.org
+To: Recipients <miguel9@miguel538.onmicrosoft.com>
 
-On Thu, Dec 05, 2013 at 12:13:04AM +0800, Jiang Liu wrote:
-> Signed-off-by: Jiang Liu <liuj97@gmail.com>
-> ---
->  arch/s390/kernel/smp.c | 10 +++++-----
->  1 file changed, 5 insertions(+), 5 deletions(-)
+I am Martinez M.Moreno, a lawyer resident in Spain. I am contacting you with regards to a discreet and confidential proposal.
+I will furnish you with further details once I receive your affirmatory response.Contact me for more information if interested through my personal email: morenomiguelmartinez@aol.com
 
-I assume you will take care and make sure it gets merged?
-Besides that:
-
-Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+Regards,
+Martinez M.Moreno.
