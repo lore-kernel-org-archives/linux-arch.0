@@ -1,24 +1,26 @@
-From: <miguel9@miguel538.onmicrosoft.com>
-Subject: PROPOSAL(STRICTLY CONFIDENTIAL).
-Date: Fri, 6 Dec 2013 12:39:41 +0100
-Message-ID: <de442b16-b285-49b8-b316-227b033cf97e@DB3PR05MB140.eurprd05.prod.outlook.com>
-Reply-To: <morenomiguelmartinez@aol.com>
+From: "Lee Hyuk" <leehyuk4@hotmail.com>
+Subject: Re:Answer back
+Date: Fri, 6 Dec 2013 14:00:51 -0000
+Message-ID: <8856fb23e92c02278c03f77718ef23c9.squirrel__19632.3221469813$1386339458$gmane$org@137.117.217.155>
+Reply-To: hyuk.lee1@aol.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from emea01-am1-ndr.ptr.protection.outlook.com ([157.56.116.105]:46870
-	"EHLO emea01-am1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1754197Ab3LFLju convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Dec 2013 06:39:50 -0500
-Content-Description: Mail message body
+Received: from [137.117.217.155] ([137.117.217.155]:1144 "EHLO mail.vps.com"
+	rhost-flags-FAIL-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1758129Ab3LFOQY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 6 Dec 2013 09:16:24 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Recipients <miguel9@miguel538.onmicrosoft.com>
 
-I am Martinez M.Moreno, a lawyer resident in Spain. I am contacting you with regards to a discreet and confidential proposal.
-I will furnish you with further details once I receive your affirmatory response.Contact me for more information if interested through my personal email: morenomiguelmartinez@aol.com
+
+
+
+I would like to discuss a very important crude oil project with you,kindly
+revert back to me if this is your valid email address for further
+information.
 
 Regards,
-Martinez M.Moreno.
+
+Lee
