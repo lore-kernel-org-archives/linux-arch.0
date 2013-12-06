@@ -1,45 +1,35 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: Re: [RFC PATCH v3 17/19] smp, tile: kill SMP single function call
- interrupt
-Date: Thu, 5 Dec 2013 16:08:59 -0500
-Message-ID: <52A0EB6B.9010205@tilera.com>
-References: <1386173591-28514-1-git-send-email-liuj97@gmail.com> <1386173591-28514-18-git-send-email-liuj97@gmail.com>
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [RFC PATCH v3 13/19] smp, s390: prepare for killing
+ generic_smp_call_function_single_interrupt()
+Date: Fri, 6 Dec 2013 10:43:21 +0100
+Message-ID: <20131206094321.GC4524@osiris>
+References: <1386173591-28514-1-git-send-email-liuj97@gmail.com>
+ <1386173591-28514-14-git-send-email-liuj97@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([12.216.194.151]:61530 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752862Ab3LEVJA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Dec 2013 16:09:00 -0500
-In-Reply-To: <1386173591-28514-18-git-send-email-liuj97@gmail.com>
+Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:55219 "EHLO
+	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753513Ab3LFJn2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Dec 2013 04:43:28 -0500
+Received: from /spool/local
+	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
+	Fri, 6 Dec 2013 09:43:27 -0000
+Content-Disposition: inline
+In-Reply-To: <1386173591-28514-14-git-send-email-liuj97@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiang Liu <liuj97@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Shaohua Li <shli@kernel.org>, Tony Lu <zlu@tilera.com>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, linux-kernel@vger.kernel.org
-Cc: Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, Wang YanQing <udknight@gmail.com>, linux-arch@vger.kernel.org
+To: Jiang Liu <liuj97@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Shaohua Li <shli@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux390@de.ibm.com, Thomas Gleixner <tglx@linutronix.de>, Paul Gortmaker <paul.gortmaker@windriver.com>, Michael Holzheu <holzheu@linux.vnet.ibm.com>, linux-s390@vger.kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, Wang YanQing <udknight@gmail.com>, linux-arch@vger.kernel.org
 
-On 12/4/2013 11:13 AM, Jiang Liu wrote:
-> Commit 9a46ad6d6df3b54 "smp: make smp_call_function_many() use logic
-> similar to smp_call_function_single()" has unified the way to handle
-> single and multiple cross-CPU function calls. Now only one intterupt
-> is needed for architecture specific code to support generic SMP function
-> call interfaces, so kill the redundant single function call interrupt.
->
-> Cc: Chris Metcalf <cmetcalf@tilera.com>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Shaohua Li <shli@kernel.org>
-> Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
-> Cc: Ingo Molnar <mingo@elte.hu>
-> Cc: Steven Rostedt <rostedt@goodmis.org>
-> Cc: Jiri Kosina <trivial@kernel.org>
+On Thu, Dec 05, 2013 at 12:13:04AM +0800, Jiang Liu wrote:
 > Signed-off-by: Jiang Liu <liuj97@gmail.com>
 > ---
->  arch/tile/include/asm/smp.h | 7 +++----
->  arch/tile/kernel/smp.c      | 6 +-----
->  2 files changed, 4 insertions(+), 9 deletions(-)
+>  arch/s390/kernel/smp.c | 10 +++++-----
+>  1 file changed, 5 insertions(+), 5 deletions(-)
 
-Acked-by: Chris Metcalf <cmetcalf@tilera.com>
+I assume you will take care and make sure it gets merged?
+Besides that:
 
--- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com>
