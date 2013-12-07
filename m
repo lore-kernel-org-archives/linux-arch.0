@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:55209 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:53502 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758836Ab3LGAl0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	id S1758884Ab3LGAl0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Fri, 6 Dec 2013 19:41:26 -0500
 From: =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>
-Subject: [PATCH v2 1/5] static_key: add a section for deferred keys
-Date: Sat,  7 Dec 2013 01:40:02 +0100
-Message-ID: <1386376806-924-2-git-send-email-rkrcmar@redhat.com>
+Subject: [PATCH v2 4/5] static_key: keep deferred enabled counter debt
+Date: Sat,  7 Dec 2013 01:40:05 +0100
+Message-ID: <1386376806-924-5-git-send-email-rkrcmar@redhat.com>
 In-Reply-To: <1386376806-924-1-git-send-email-rkrcmar@redhat.com>
 References: <1386376806-924-1-git-send-email-rkrcmar@redhat.com>
 MIME-Version: 1.0
@@ -16,160 +16,93 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: kvm@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, pbonzini@redhat.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, rusty@rustcorp.com.au, =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>
-Message-ID: <20131207004002.-CA-2gZp9Y4jHGvm0pk6I0A3N5YXhB7t0CHMT-qTCJc@z>
+Message-ID: <20131207004005.RpCSiegShY_J5n4YSbTadXqGWNVhbBMxlZONBo-vN5Q@z>
 
-We need to know about all deferred keys if we want to correctly
- - initialize timers on kernel init/module load
- - destroy pending timers when unloading a module
+When '.enabled.counter == 1', static_key_slow_dec_deferred() gets
+silently dropped if the decrease is already pending.
 
-We depend on section attribute, so direct definitions of struct
-static_key_deferred should be avoided, which is suboptimal.
+We print a warning if this happens and because .enabled.counter cannot
+go below 1 before the decrease has finished, the number of ignored
+static_key_slow_dec_deferred() is kept and we skip an equal amount of
+static_key_slow_inc_deferred().
 
 Signed-off-by: Radim Krčmář <rkrcmar@redhat.com>
 ---
-More general solution would use compile-time magic to generate an array
-of pointers to deferred structures, but I am not sure if it is
-acceptable and possible.
+ include/linux/jump_label_ratelimit.h |  1 +
+ kernel/jump_label.c                  | 17 +++++++++++------
+ 2 files changed, 12 insertions(+), 6 deletions(-)
 
-Worse approach added an unload_callback_list to the struct module.
-Callbacks of type void (*)(void *) were registered on
-static_key_rate_limit(), to cancel the deferred key work from
-module_unload_free().
-(I have patches for this)
-
-Jump labels are already notified for module changes, so we could keep track of
-deferred keys in modules there, using a static global tree.
-(in the worst case)
-
- arch/x86/kvm/lapic.c                 | 4 ++--
- arch/x86/kvm/lapic.h                 | 4 ++--
- include/asm-generic/vmlinux.lds.h    | 1 +
- include/linux/jump_label_ratelimit.h | 4 ++++
- include/linux/module.h               | 3 +++
- include/linux/perf_event.h           | 2 +-
- kernel/events/core.c                 | 2 +-
- kernel/module.c                      | 4 ++++
- 8 files changed, 18 insertions(+), 6 deletions(-)
-
-diff --git a/arch/x86/kvm/lapic.c b/arch/x86/kvm/lapic.c
-index 5439117..5f01547 100644
---- a/arch/x86/kvm/lapic.c
-+++ b/arch/x86/kvm/lapic.c
-@@ -112,8 +112,8 @@ static inline int __apic_test_and_clear_vector(int vec, void *bitmap)
- 	return __test_and_clear_bit(VEC_POS(vec), (bitmap) + REG_POS(vec));
- }
- 
--struct static_key_deferred apic_hw_disabled __read_mostly;
--struct static_key_deferred apic_sw_disabled __read_mostly;
-+static_key_deferred(apic_hw_disabled);
-+static_key_deferred(apic_sw_disabled);
- 
- static inline void apic_set_spiv(struct kvm_lapic *apic, u32 val)
- {
-diff --git a/arch/x86/kvm/lapic.h b/arch/x86/kvm/lapic.h
-index c730ac9..4ae9a7a 100644
---- a/arch/x86/kvm/lapic.h
-+++ b/arch/x86/kvm/lapic.h
-@@ -108,7 +108,7 @@ static inline bool kvm_vcpu_has_lapic(struct kvm_vcpu *vcpu)
- 	return true;
- }
- 
--extern struct static_key_deferred apic_hw_disabled;
-+extern static_key_deferred(apic_hw_disabled);
- 
- static inline int kvm_apic_hw_enabled(struct kvm_lapic *apic)
- {
-@@ -117,7 +117,7 @@ static inline int kvm_apic_hw_enabled(struct kvm_lapic *apic)
- 	return MSR_IA32_APICBASE_ENABLE;
- }
- 
--extern struct static_key_deferred apic_sw_disabled;
-+extern static_key_deferred(apic_sw_disabled);
- 
- static inline int kvm_apic_sw_enabled(struct kvm_lapic *apic)
- {
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index bc2121f..572e583 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -214,6 +214,7 @@
- #define READ_MOSTLY_DATA(align)						\
- 	. = ALIGN(align);						\
- 	*(.data..read_mostly)						\
-+	*(__deferred_keys)                                              \
- 	. = ALIGN(align);
- 
- #define CACHELINE_ALIGNED_DATA(align)					\
 diff --git a/include/linux/jump_label_ratelimit.h b/include/linux/jump_label_ratelimit.h
-index 089f70f..1216db0 100644
+index a18aded..2d5fa1a 100644
 --- a/include/linux/jump_label_ratelimit.h
 +++ b/include/linux/jump_label_ratelimit.h
-@@ -3,6 +3,10 @@
- 
- #include <linux/jump_label.h>
- #include <linux/workqueue.h>
-+#include <linux/compiler.h>
-+
-+#define static_key_deferred(name) \
-+	struct static_key_deferred name __section(__deferred_keys)
- 
- #if defined(CC_HAVE_ASM_GOTO) && defined(CONFIG_JUMP_LABEL)
- struct static_key_deferred {
-diff --git a/include/linux/module.h b/include/linux/module.h
-index 46e548f..4cc7269 100644
---- a/include/linux/module.h
-+++ b/include/linux/module.h
-@@ -347,6 +347,9 @@ struct module
- #ifdef HAVE_JUMP_LABEL
- 	struct jump_entry *jump_entries;
- 	unsigned int num_jump_entries;
-+
-+	struct static_key_deferred *deferred_keys;
-+	unsigned int num_deferred_keys;
+@@ -14,6 +14,7 @@ struct static_key_deferred {
+ 	struct static_key key;
+ 	unsigned long timeout;
+ 	struct delayed_work work;
++	atomic_t enabled_debt;
+ };
  #endif
- #ifdef CONFIG_TRACING
- 	unsigned int num_trace_bprintk_fmt;
-diff --git a/include/linux/perf_event.h b/include/linux/perf_event.h
-index 8f4a70f..8baabca 100644
---- a/include/linux/perf_event.h
-+++ b/include/linux/perf_event.h
-@@ -672,7 +672,7 @@ perf_sw_event(u32 event_id, u64 nr, struct pt_regs *regs, u64 addr)
+ 
+diff --git a/kernel/jump_label.c b/kernel/jump_label.c
+index 41592ba..bd7ad31 100644
+--- a/kernel/jump_label.c
++++ b/kernel/jump_label.c
+@@ -77,12 +77,14 @@ EXPORT_SYMBOL_GPL(static_key_slow_inc);
+ void static_key_slow_inc_deferred(struct static_key_deferred *key)
+ {
+ 	STATIC_KEY_CHECK_USE();
++	if (atomic_dec_if_positive(&key->enabled_debt) >= 0)
++		return;
+ 	static_key_slow_inc(&key->key);
+ }
+ EXPORT_SYMBOL_GPL(static_key_slow_inc_deferred);
+ 
+ static void __static_key_slow_dec(struct static_key *key,
+-		unsigned long rate_limit, struct delayed_work *work)
++		struct static_key_deferred *dkey)
+ {
+ 	if (!atomic_dec_and_mutex_lock(&key->enabled, &jump_label_mutex)) {
+ 		WARN(atomic_read(&key->enabled) < 0,
+@@ -90,9 +92,12 @@ static void __static_key_slow_dec(struct static_key *key,
+ 		return;
  	}
+ 
+-	if (rate_limit) {
++	if (dkey && dkey->timeout) {
+ 		atomic_inc(&key->enabled);
+-		schedule_delayed_work(work, rate_limit);
++		if (!schedule_delayed_work(&dkey->work, dkey->timeout)) {
++			atomic_inc(&dkey->enabled_debt);
++			WARN(1, "jump label: negative deferred count!\n");
++		}
+ 	} else {
+ 		if (!jump_label_get_branch_default(key))
+ 			jump_label_update(key, JUMP_LABEL_DISABLE);
+@@ -106,20 +111,20 @@ static void jump_label_update_timeout(struct work_struct *work)
+ {
+ 	struct static_key_deferred *key =
+ 		container_of(work, struct static_key_deferred, work.work);
+-	__static_key_slow_dec(&key->key, 0, NULL);
++	__static_key_slow_dec(&key->key, NULL);
  }
  
--extern struct static_key_deferred perf_sched_events;
-+extern static_key_deferred(perf_sched_events);
+ void static_key_slow_dec(struct static_key *key)
+ {
+ 	STATIC_KEY_CHECK_USE();
+-	__static_key_slow_dec(key, 0, NULL);
++	__static_key_slow_dec(key, NULL);
+ }
+ EXPORT_SYMBOL_GPL(static_key_slow_dec);
  
- static inline void perf_event_task_sched_in(struct task_struct *prev,
- 					    struct task_struct *task)
-diff --git a/kernel/events/core.c b/kernel/events/core.c
-index 403b781..ee64d26 100644
---- a/kernel/events/core.c
-+++ b/kernel/events/core.c
-@@ -138,7 +138,7 @@ enum event_type_t {
-  * perf_sched_events : >0 events exist
-  * perf_cgroup_events: >0 per-cpu cgroup events exist on this cpu
-  */
--struct static_key_deferred perf_sched_events __read_mostly;
-+static_key_deferred(perf_sched_events);
- static DEFINE_PER_CPU(atomic_t, perf_cgroup_events);
- static DEFINE_PER_CPU(atomic_t, perf_branch_stack_events);
+ void static_key_slow_dec_deferred(struct static_key_deferred *key)
+ {
+ 	STATIC_KEY_CHECK_USE();
+-	__static_key_slow_dec(&key->key, key->timeout, &key->work);
++	__static_key_slow_dec(&key->key, key);
+ }
+ EXPORT_SYMBOL_GPL(static_key_slow_dec_deferred);
  
-diff --git a/kernel/module.c b/kernel/module.c
-index f5a3b1e..3e601ef 100644
---- a/kernel/module.c
-+++ b/kernel/module.c
-@@ -2751,6 +2751,10 @@ static int find_module_sections(struct module *mod, struct load_info *info)
- 	mod->jump_entries = section_objs(info, "__jump_table",
- 					sizeof(*mod->jump_entries),
- 					&mod->num_jump_entries);
-+	mod->deferred_keys = section_objs(info, "__deferred_keys",
-+	                                  sizeof(*mod->deferred_keys),
-+	                                  &mod->num_deferred_keys);
-+
- #endif
- #ifdef CONFIG_EVENT_TRACING
- 	mod->trace_events = section_objs(info, "_ftrace_events",
 -- 
 1.8.4.2
 
