@@ -1,133 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:27645 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758879Ab3LGAl0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 6 Dec 2013 19:41:26 -0500
-From: =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>
-Subject: [PATCH v2 3/5] static_key: add static_key_slow_inc_deferred()
-Date: Sat,  7 Dec 2013 01:40:04 +0100
-Message-ID: <1386376806-924-4-git-send-email-rkrcmar@redhat.com>
-In-Reply-To: <1386376806-924-1-git-send-email-rkrcmar@redhat.com>
-References: <1386376806-924-1-git-send-email-rkrcmar@redhat.com>
+Received: from mail9.hitachi.co.jp ([133.145.228.44]:53952 "EHLO
+	mail9.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932526Ab3LIKxK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Dec 2013 05:53:10 -0500
+Subject: [PATCH -tip v5 04/18] [BUGFIX] x86: Prohibit probing on
+ native_set_debugreg
+From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+Date: Mon, 09 Dec 2013 10:47:27 +0000
+Message-ID: <20131209104727.13397.43886.stgit@kbuild-fedora.novalocal>
+In-Reply-To: <20131209104717.13397.8864.stgit@kbuild-fedora.novalocal>
+References: <20131209104717.13397.8864.stgit@kbuild-fedora.novalocal>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: kvm@vger.kernel.org, linux-arch@vger.kernel.org, rostedt@goodmis.org, pbonzini@redhat.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, rusty@rustcorp.com.au, =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>
-Message-ID: <20131207004004.ub12HRrrmsH5BpWOZlPuogo9P7LUKNRxVYP42yk5AWk@z>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: linux-arch@vger.kernel.org, Jeremy Fitzhardinge <jeremy@goop.org>, Rusty Russell <rusty@rustcorp.com.au>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, systemtap@sourceware.org, "H. Peter Anvin" <hpa@zytor.com>, Alok Kataria <akataria@vmware.com>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20131209104727.BYZtNvMyQdT30YLO6tXeBLwn8bS8dympcCRxH_bV3d4@z>
 
-Complement the static_key_slow_dec_deferred().
-This avoids asymmetrical API, and prepares us for future optimizations
-and bug fixes.
+Since the kprobes uses do_debug for single stepping,
+functions called from do_debug before notify_die must
+not be probed. This prohibits probing on
+native_set_debugreg which is used in do_debug.
 
-Signed-off-by: Radim Krčmář <rkrcmar@redhat.com>
+Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+Cc: Jeremy Fitzhardinge <jeremy@goop.org>
+Cc: Chris Wright <chrisw@sous-sol.org>
+Cc: Alok Kataria <akataria@vmware.com>
+Cc: Rusty Russell <rusty@rustcorp.com.au>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
 ---
- arch/x86/kvm/lapic.c                 | 7 ++++---
- include/linux/jump_label_ratelimit.h | 5 +++++
- kernel/events/core.c                 | 6 +++---
- kernel/jump_label.c                  | 7 +++++++
- 4 files changed, 19 insertions(+), 6 deletions(-)
+ arch/x86/kernel/paravirt.c |    3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/kvm/lapic.c b/arch/x86/kvm/lapic.c
-index 5f01547..86973ac 100644
---- a/arch/x86/kvm/lapic.c
-+++ b/arch/x86/kvm/lapic.c
-@@ -121,7 +121,7 @@ static inline void apic_set_spiv(struct kvm_lapic *apic, u32 val)
- 		if (val & APIC_SPIV_APIC_ENABLED)
- 			static_key_slow_dec_deferred(&apic_sw_disabled);
- 		else
--			static_key_slow_inc(&apic_sw_disabled.key);
-+			static_key_slow_inc_deferred(&apic_sw_disabled);
- 	}
- 	apic_set_reg(apic, APIC_SPIV, val);
- }
-@@ -1351,7 +1351,7 @@ void kvm_lapic_set_base(struct kvm_vcpu *vcpu, u64 value)
- 		if (value & MSR_IA32_APICBASE_ENABLE)
- 			static_key_slow_dec_deferred(&apic_hw_disabled);
- 		else
--			static_key_slow_inc(&apic_hw_disabled.key);
-+			static_key_slow_inc_deferred(&apic_hw_disabled);
- 		recalculate_apic_map(vcpu->kvm);
- 	}
- 
-@@ -1546,7 +1546,8 @@ int kvm_create_lapic(struct kvm_vcpu *vcpu)
- 	kvm_lapic_set_base(vcpu,
- 			APIC_DEFAULT_PHYS_BASE | MSR_IA32_APICBASE_ENABLE);
- 
--	static_key_slow_inc(&apic_sw_disabled.key); /* sw disabled at reset */
-+	/* sw disabled at reset */
-+	static_key_slow_inc_deferred(&apic_sw_disabled);
- 	kvm_lapic_reset(vcpu);
- 	kvm_iodevice_init(&apic->dev, &apic_mmio_ops);
- 
-diff --git a/include/linux/jump_label_ratelimit.h b/include/linux/jump_label_ratelimit.h
-index 112ba5f..a18aded 100644
---- a/include/linux/jump_label_ratelimit.h
-+++ b/include/linux/jump_label_ratelimit.h
-@@ -18,6 +18,7 @@ struct static_key_deferred {
- #endif
- 
- #ifdef HAVE_JUMP_LABEL
-+extern void static_key_slow_inc_deferred(struct static_key_deferred *key);
- extern void static_key_slow_dec_deferred(struct static_key_deferred *key);
- extern void
- jump_label_rate_limit(struct static_key_deferred *key, unsigned long rl);
-@@ -26,6 +27,10 @@ jump_label_rate_limit(struct static_key_deferred *key, unsigned long rl);
- struct static_key_deferred {
- 	struct static_key  key;
+diff --git a/arch/x86/kernel/paravirt.c b/arch/x86/kernel/paravirt.c
+index 4c785fd..108e685 100644
+--- a/arch/x86/kernel/paravirt.c
++++ b/arch/x86/kernel/paravirt.c
+@@ -390,8 +390,9 @@ __visible struct pv_cpu_ops pv_cpu_ops = {
+ 	.end_context_switch = paravirt_nop,
  };
-+static inline void static_key_slow_inc_deferred(struct static_key_deferred *key)
-+{
-+	static_key_slow_inc(&key->key);
-+}
- static inline void static_key_slow_dec_deferred(struct static_key_deferred *key)
- {
- 	STATIC_KEY_CHECK_USE();
-diff --git a/kernel/events/core.c b/kernel/events/core.c
-index ee64d26..b3fb4c2 100644
---- a/kernel/events/core.c
-+++ b/kernel/events/core.c
-@@ -6597,7 +6597,7 @@ static void account_event(struct perf_event *event)
- 		return;
  
- 	if (event->attach_state & PERF_ATTACH_TASK)
--		static_key_slow_inc(&perf_sched_events.key);
-+		static_key_slow_inc_deferred(&perf_sched_events);
- 	if (event->attr.mmap || event->attr.mmap_data)
- 		atomic_inc(&nr_mmap_events);
- 	if (event->attr.comm)
-@@ -6609,9 +6609,9 @@ static void account_event(struct perf_event *event)
- 			tick_nohz_full_kick_all();
- 	}
- 	if (has_branch_stack(event))
--		static_key_slow_inc(&perf_sched_events.key);
-+		static_key_slow_inc_deferred(&perf_sched_events);
- 	if (is_cgroup_event(event))
--		static_key_slow_inc(&perf_sched_events.key);
-+		static_key_slow_inc_deferred(&perf_sched_events);
+-/* At this point, native_get_debugreg has real function entry */
++/* At this point, native_get/set_debugreg has real function entry */
+ NOKPROBE_SYMBOL(native_get_debugreg);
++NOKPROBE_SYMBOL(native_set_debugreg);
  
- 	account_event_cpu(event, event->cpu);
- }
-diff --git a/kernel/jump_label.c b/kernel/jump_label.c
-index 02d610a..41592ba 100644
---- a/kernel/jump_label.c
-+++ b/kernel/jump_label.c
-@@ -74,6 +74,13 @@ void static_key_slow_inc(struct static_key *key)
- }
- EXPORT_SYMBOL_GPL(static_key_slow_inc);
- 
-+void static_key_slow_inc_deferred(struct static_key_deferred *key)
-+{
-+	STATIC_KEY_CHECK_USE();
-+	static_key_slow_inc(&key->key);
-+}
-+EXPORT_SYMBOL_GPL(static_key_slow_inc_deferred);
-+
- static void __static_key_slow_dec(struct static_key *key,
- 		unsigned long rate_limit, struct delayed_work *work)
- {
--- 
-1.8.4.2
+ struct pv_apic_ops pv_apic_ops = {
+ #ifdef CONFIG_X86_LOCAL_APIC
+
 
