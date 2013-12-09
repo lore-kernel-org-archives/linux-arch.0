@@ -1,143 +1,181 @@
 From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Subject: [PATCH -tip v5 06/18] kprobes/x86: Call exception handlers directly from do_int3/do_debug
-Date: Mon, 09 Dec 2013 10:47:32 +0000
-Message-ID: <20131209104732.13397.66391.stgit@kbuild-fedora.novalocal>
+Subject: [PATCH -tip v5 18/18] kprobes/x86: Use kprobe_blacklist for
+ .kprobes.text and .entry.text
+Date: Mon, 09 Dec 2013 10:48:00 +0000
+Message-ID: <20131209104800.13397.36613.stgit@kbuild-fedora.novalocal>
 References: <20131209104717.13397.8864.stgit@kbuild-fedora.novalocal>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <systemtap-return-21734-gls-systemtap=m.gmane.org@sourceware.org>
-List-Unsubscribe: <mailto:systemtap-unsubscribe-##L=##H@sourceware.org>
-List-Subscribe: <mailto:systemtap-subscribe@sourceware.org>
-List-Post: <mailto:systemtap@sourceware.org>
-List-Help: <mailto:systemtap-help@sourceware.org>, <http://sourceware.org/lists.html#faqs>
-Sender: systemtap-owner@sourceware.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20131209104717.13397.8864.stgit@kbuild-fedora.novalocal>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, Frederic Weisbecker <fweisbec@gmail.com>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, systemtap@sourceware.org, "H. Peter Anvin" <hpa@zytor.com>, Sasha Levin <sasha.levin@oracle.com>, Thomas Gleixner <tglx@linutronix.de>, Seiji Aguchi <seiji.aguchi@hds.com>, "David S. Miller" <davem@davemloft.net>
+Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, systemtap@sourceware.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
-To avoid a kernel crash by probing on lockdep code, call
-kprobe_int3_handler and kprobe_debug_handler directly
-from do_int3 and do_debug. Since there is a locking code
-in notify_die, lockdep code can be invoked. And because
-the lockdep involves printk() related things, theoretically,
-we need to prohibit probing on much more code...
-
-Anyway, most of the int3 handlers in the kernel are already
-called from do_int3 directly, e.g. ftrace_int3_handler,
-poke_int3_handler, kgdb_ll_trap. Actually only
-kprobe_exceptions_notify is on the notifier_call_chain.
+Use kprobe_blackpoint for blacklisting .entry.text and .kprobees.text
+instead of arch_within_kprobe_blacklist. This also makes them visible
+via (debugfs)/kprobes/blacklist.
 
 Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
-Cc: Andi Kleen <ak@linux.intel.com>
+Cc: "David S. Miller" <davem@davemloft.net>
 Cc: Steven Rostedt <rostedt@goodmis.org>
-Cc: Sasha Levin <sasha.levin@oracle.com>
 Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Seiji Aguchi <seiji.aguchi@hds.com>
-Cc: Frederic Weisbecker <fweisbec@gmail.com>
 ---
- arch/x86/include/asm/kprobes.h |    2 ++
- arch/x86/kernel/kprobes/core.c |   24 +++---------------------
- arch/x86/kernel/traps.c        |   10 ++++++++++
- 3 files changed, 15 insertions(+), 21 deletions(-)
+ arch/x86/kernel/kprobes/core.c |   11 +------
+ include/linux/kprobes.h        |    1 +
+ kernel/kprobes.c               |   64 ++++++++++++++++++++++++++++------------
+ 3 files changed, 48 insertions(+), 28 deletions(-)
 
-diff --git a/arch/x86/include/asm/kprobes.h b/arch/x86/include/asm/kprobes.h
-index 9454c16..53cdfb2 100644
---- a/arch/x86/include/asm/kprobes.h
-+++ b/arch/x86/include/asm/kprobes.h
-@@ -116,4 +116,6 @@ struct kprobe_ctlblk {
- extern int kprobe_fault_handler(struct pt_regs *regs, int trapnr);
- extern int kprobe_exceptions_notify(struct notifier_block *self,
- 				    unsigned long val, void *data);
-+extern int kprobe_int3_handler(struct pt_regs *regs);
-+extern int kprobe_debug_handler(struct pt_regs *regs);
- #endif /* _ASM_X86_KPROBES_H */
 diff --git a/arch/x86/kernel/kprobes/core.c b/arch/x86/kernel/kprobes/core.c
-index c01e70f..4d7dbe1 100644
+index a641327..04670bb 100644
 --- a/arch/x86/kernel/kprobes/core.c
 +++ b/arch/x86/kernel/kprobes/core.c
-@@ -558,7 +558,7 @@ reenter_kprobe(struct kprobe *p, struct pt_regs *regs, struct kprobe_ctlblk *kcb
-  * Interrupts are disabled on entry as trap3 is an interrupt gate and they
-  * remain disabled throughout this function.
-  */
--static int __kprobes kprobe_handler(struct pt_regs *regs)
-+int __kprobes kprobe_int3_handler(struct pt_regs *regs)
- {
- 	kprobe_opcode_t *addr;
- 	struct kprobe *p;
-@@ -856,7 +856,7 @@ no_change:
-  * Interrupts are disabled on entry as trap1 is an interrupt gate and they
-  * remain disabled throughout this function.
-  */
--static int __kprobes post_kprobe_handler(struct pt_regs *regs)
-+int __kprobes kprobe_debug_handler(struct pt_regs *regs)
- {
- 	struct kprobe *cur = kprobe_running();
- 	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
-@@ -964,22 +964,7 @@ kprobe_exceptions_notify(struct notifier_block *self, unsigned long val, void *d
- 	if (args->regs && user_mode_vm(args->regs))
- 		return ret;
+@@ -1069,17 +1069,10 @@ int longjmp_break_handler(struct kprobe *p, struct pt_regs *regs)
+ }
+ NOKPROBE_SYMBOL(longjmp_break_handler);
  
--	switch (val) {
--	case DIE_INT3:
--		if (kprobe_handler(args->regs))
--			ret = NOTIFY_STOP;
--		break;
--	case DIE_DEBUG:
--		if (post_kprobe_handler(args->regs)) {
--			/*
--			 * Reset the BS bit in dr6 (pointed by args->err) to
--			 * denote completion of processing
--			 */
--			(*(unsigned long *)ERR_PTR(args->err)) &= ~DR_STEP;
--			ret = NOTIFY_STOP;
--		}
--		break;
--	case DIE_GPF:
-+	if (val == DIE_GPF) {
- 		/*
- 		 * To be potentially processing a kprobe fault and to
- 		 * trust the result from kprobe_running(), we have
-@@ -988,9 +973,6 @@ kprobe_exceptions_notify(struct notifier_block *self, unsigned long val, void *d
- 		if (!preemptible() && kprobe_running() &&
- 		    kprobe_fault_handler(args->regs, args->trapnr))
- 			ret = NOTIFY_STOP;
--		break;
--	default:
--		break;
- 	}
+-bool arch_within_kprobe_blacklist(unsigned long addr)
+-{
+-	return  (addr >= (unsigned long)__kprobes_text_start &&
+-		 addr < (unsigned long)__kprobes_text_end) ||
+-		(addr >= (unsigned long)__entry_text_start &&
+-		 addr < (unsigned long)__entry_text_end);
+-}
+-
+ int __init arch_init_kprobes(void)
+ {
+-	return 0;
++	return kprobe_blacklist_add_range((unsigned long)__entry_text_start,
++					  (unsigned long) __entry_text_end);
+ }
+ 
+ int arch_trampoline_kprobe(struct kprobe *p)
+diff --git a/include/linux/kprobes.h b/include/linux/kprobes.h
+index e059507..e81bced 100644
+--- a/include/linux/kprobes.h
++++ b/include/linux/kprobes.h
+@@ -266,6 +266,7 @@ extern int arch_init_kprobes(void);
+ extern void show_registers(struct pt_regs *regs);
+ extern void kprobes_inc_nmissed_count(struct kprobe *p);
+ extern bool arch_within_kprobe_blacklist(unsigned long addr);
++extern int kprobe_blacklist_add_range(unsigned long start, unsigned long end);
+ 
+ struct kprobe_insn_cache {
+ 	struct mutex mutex;
+diff --git a/kernel/kprobes.c b/kernel/kprobes.c
+index 8319048..abdede5 100644
+--- a/kernel/kprobes.c
++++ b/kernel/kprobes.c
+@@ -1325,13 +1325,6 @@ out:
  	return ret;
  }
-diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
-index b857ed8..da2b0c1 100644
---- a/arch/x86/kernel/traps.c
-+++ b/arch/x86/kernel/traps.c
-@@ -338,6 +338,11 @@ dotraplinkage void __kprobes notrace do_int3(struct pt_regs *regs, long error_co
- 		goto exit;
- #endif /* CONFIG_KGDB_LOW_LEVEL_TRAP */
  
-+#ifdef CONFIG_KPROBES
-+	if (kprobe_int3_handler(regs))
-+		return;
-+#endif
-+
- 	if (notify_die(DIE_INT3, "int3", regs, error_code, X86_TRAP_BP,
- 			SIGTRAP) == NOTIFY_STOP)
- 		goto exit;
-@@ -444,6 +449,11 @@ dotraplinkage void __kprobes do_debug(struct pt_regs *regs, long error_code)
- 	/* Store the virtualized DR6 value */
- 	tsk->thread.debugreg6 = dr6;
+-bool __weak arch_within_kprobe_blacklist(unsigned long addr)
+-{
+-	/* The __kprobes marked functions and entry code must not be probed */
+-	return addr >= (unsigned long)__kprobes_text_start &&
+-	       addr < (unsigned long)__kprobes_text_end;
+-}
+-
+ static struct kprobe_blacklist_entry *find_blacklist_entry(unsigned long addr)
+ {
+ 	struct kprobe_blacklist_entry *ent;
+@@ -1346,8 +1339,6 @@ static struct kprobe_blacklist_entry *find_blacklist_entry(unsigned long addr)
  
-+#ifdef CONFIG_KPROBES
-+	if (kprobe_debug_handler(regs))
-+		goto exit;
-+#endif
+ static bool within_kprobe_blacklist(unsigned long addr)
+ {
+-	if (arch_within_kprobe_blacklist(addr))
+-		return true;
+ 	/*
+ 	 * If there exists a kprobe_blacklist, verify and
+ 	 * fail any probe registration in the prohibited area
+@@ -2032,6 +2023,40 @@ void dump_kprobe(struct kprobe *kp)
+ }
+ NOKPROBE_SYMBOL(dump_kprobe);
+ 
++static int __kprobe_blacklist_add(unsigned long start, unsigned long end)
++{
++	struct kprobe_blacklist_entry *ent;
 +
- 	if (notify_die(DIE_DEBUG, "debug", regs, (long)&dr6, error_code,
- 							SIGTRAP) == NOTIFY_STOP)
- 		goto exit;
++	ent = kmalloc(sizeof(*ent), GFP_KERNEL);
++	if (!ent)
++		return -ENOMEM;
++
++	ent->start_addr = start;
++	ent->end_addr = end;
++	INIT_LIST_HEAD(&ent->list);
++	list_add_tail(&ent->list, &kprobe_blacklist);
++	return 0;
++}
++
++int kprobe_blacklist_add_range(unsigned long start, unsigned long end)
++{
++	unsigned long offset = 0, size = 0;
++	int err = 0;
++
++	mutex_lock(&kprobe_blacklist_mutex);
++	while (!err && start < end) {
++		if (!kallsyms_lookup_size_offset(start, &size, &offset) ||
++		    size == 0) {
++			err = -ENOENT;
++			break;
++		}
++		err = __kprobe_blacklist_add(start, start + size);
++		start += size;
++	}
++	mutex_unlock(&kprobe_blacklist_mutex);
++	return err;
++}
++
+ /*
+  * Lookup and populate the kprobe_blacklist.
+  *
+@@ -2043,8 +2068,8 @@ NOKPROBE_SYMBOL(dump_kprobe);
+ static int populate_kprobe_blacklist(unsigned long *start, unsigned long *end)
+ {
+ 	unsigned long *iter;
+-	struct kprobe_blacklist_entry *ent;
+ 	unsigned long offset = 0, size = 0;
++	int ret;
+ 
+ 	mutex_lock(&kprobe_blacklist_mutex);
+ 	for (iter = start; iter < end; iter++) {
+@@ -2052,14 +2077,7 @@ static int populate_kprobe_blacklist(unsigned long *start, unsigned long *end)
+ 			pr_err("Failed to find blacklist %p\n", (void *)*iter);
+ 			continue;
+ 		}
+-
+-		ent = kmalloc(sizeof(*ent), GFP_KERNEL);
+-		if (!ent)
+-			return -ENOMEM;
+-		ent->start_addr = *iter;
+-		ent->end_addr = *iter + size;
+-		INIT_LIST_HEAD(&ent->list);
+-		list_add_tail(&ent->list, &kprobe_blacklist);
++		ret = __kprobe_blacklist_add(*iter, *iter + size);
+ 	}
+ 	mutex_unlock(&kprobe_blacklist_mutex);
+ 
+@@ -2154,7 +2172,15 @@ static int __init init_kprobes(void)
+ 
+ 	err = populate_kprobe_blacklist(__start_kprobe_blacklist,
+ 					__stop_kprobe_blacklist);
+-	if (err) {
++
++	if (err >= 0 && __kprobes_text_start != __kprobes_text_end) {
++		/* The __kprobes marked functions must not be probed */
++		err = kprobe_blacklist_add_range(
++					(unsigned long)__kprobes_text_start,
++					(unsigned long)__kprobes_text_end);
++	}
++
++	if (err < 0) {
+ 		pr_err("kprobes: failed to populate blacklist: %d\n", err);
+ 		pr_err("Please take care of using kprobes.\n");
+ 	}
