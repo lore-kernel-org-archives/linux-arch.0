@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail9.hitachi.co.jp ([133.145.228.44]:53952 "EHLO
-	mail9.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932526Ab3LIKxK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Dec 2013 05:53:10 -0500
-Subject: [PATCH -tip v5 04/18] [BUGFIX] x86: Prohibit probing on
- native_set_debugreg
+Received: from mail4.hitachi.co.jp ([133.145.228.5]:58303 "EHLO
+	mail4.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933262Ab3LIKxl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Dec 2013 05:53:41 -0500
+Subject: [PATCH -tip v5 17/18] kprobes: Use NOKPROBE_SYMBOL() in sample
+ modules
 From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Date: Mon, 09 Dec 2013 10:47:27 +0000
-Message-ID: <20131209104727.13397.43886.stgit@kbuild-fedora.novalocal>
+Date: Mon, 09 Dec 2013 10:47:58 +0000
+Message-ID: <20131209104758.13397.567.stgit@kbuild-fedora.novalocal>
 In-Reply-To: <20131209104717.13397.8864.stgit@kbuild-fedora.novalocal>
 References: <20131209104717.13397.8864.stgit@kbuild-fedora.novalocal>
 MIME-Version: 1.0
@@ -16,40 +16,79 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org, Jeremy Fitzhardinge <jeremy@goop.org>, Rusty Russell <rusty@rustcorp.com.au>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, systemtap@sourceware.org, "H. Peter Anvin" <hpa@zytor.com>, Alok Kataria <akataria@vmware.com>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20131209104727.BYZtNvMyQdT30YLO6tXeBLwn8bS8dympcCRxH_bV3d4@z>
+Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20131209104758.hertJkv1WNmEQS2-4Mlz4ZUUwphNO8Uq9_3maR6GKSI@z>
 
-Since the kprobes uses do_debug for single stepping,
-functions called from do_debug before notify_die must
-not be probed. This prohibits probing on
-native_set_debugreg which is used in do_debug.
+Use NOKPROBE_SYMBOL() to protect handlers from kprobes
+in sample modules.
 
 Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Cc: Jeremy Fitzhardinge <jeremy@goop.org>
-Cc: Chris Wright <chrisw@sous-sol.org>
-Cc: Alok Kataria <akataria@vmware.com>
-Cc: Rusty Russell <rusty@rustcorp.com.au>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
+Ananth N Mavinakayanahalli <ananth@in.ibm.com>
 ---
- arch/x86/kernel/paravirt.c |    3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ samples/kprobes/jprobe_example.c    |    1 +
+ samples/kprobes/kprobe_example.c    |    3 +++
+ samples/kprobes/kretprobe_example.c |    2 ++
+ 3 files changed, 6 insertions(+)
 
-diff --git a/arch/x86/kernel/paravirt.c b/arch/x86/kernel/paravirt.c
-index 4c785fd..108e685 100644
---- a/arch/x86/kernel/paravirt.c
-+++ b/arch/x86/kernel/paravirt.c
-@@ -390,8 +390,9 @@ __visible struct pv_cpu_ops pv_cpu_ops = {
- 	.end_context_switch = paravirt_nop,
- };
+diff --git a/samples/kprobes/jprobe_example.c b/samples/kprobes/jprobe_example.c
+index b754135..40114ac 100644
+--- a/samples/kprobes/jprobe_example.c
++++ b/samples/kprobes/jprobe_example.c
+@@ -35,6 +35,7 @@ static long jdo_fork(unsigned long clone_flags, unsigned long stack_start,
+ 	jprobe_return();
+ 	return 0;
+ }
++NOKPROBE_SYMBOL(jdo_fork);
  
--/* At this point, native_get_debugreg has real function entry */
-+/* At this point, native_get/set_debugreg has real function entry */
- NOKPROBE_SYMBOL(native_get_debugreg);
-+NOKPROBE_SYMBOL(native_set_debugreg);
+ static struct jprobe my_jprobe = {
+ 	.entry			= jdo_fork,
+diff --git a/samples/kprobes/kprobe_example.c b/samples/kprobes/kprobe_example.c
+index 366db1a..462d90f 100644
+--- a/samples/kprobes/kprobe_example.c
++++ b/samples/kprobes/kprobe_example.c
+@@ -46,6 +46,7 @@ static int handler_pre(struct kprobe *p, struct pt_regs *regs)
+ 	/* A dump_stack() here will give a stack backtrace */
+ 	return 0;
+ }
++NOKPROBE_SYMBOL(handler_pre);
  
- struct pv_apic_ops pv_apic_ops = {
- #ifdef CONFIG_X86_LOCAL_APIC
+ /* kprobe post_handler: called after the probed instruction is executed */
+ static void handler_post(struct kprobe *p, struct pt_regs *regs,
+@@ -68,6 +69,7 @@ static void handler_post(struct kprobe *p, struct pt_regs *regs,
+ 		p->addr, regs->ex1);
+ #endif
+ }
++NOKPROBE_SYMBOL(handler_post);
+ 
+ /*
+  * fault_handler: this is called if an exception is generated for any
+@@ -81,6 +83,7 @@ static int handler_fault(struct kprobe *p, struct pt_regs *regs, int trapnr)
+ 	/* Return 0 because we don't handle the fault. */
+ 	return 0;
+ }
++NOKPROBE_SYMBOL(handler_fault);
+ 
+ static int __init kprobe_init(void)
+ {
+diff --git a/samples/kprobes/kretprobe_example.c b/samples/kprobes/kretprobe_example.c
+index 1041b67..d932c52 100644
+--- a/samples/kprobes/kretprobe_example.c
++++ b/samples/kprobes/kretprobe_example.c
+@@ -47,6 +47,7 @@ static int entry_handler(struct kretprobe_instance *ri, struct pt_regs *regs)
+ 	data->entry_stamp = ktime_get();
+ 	return 0;
+ }
++NOKPROBE_SYMBOL(entry_handler);
+ 
+ /*
+  * Return-probe handler: Log the return value and duration. Duration may turn
+@@ -66,6 +67,7 @@ static int ret_handler(struct kretprobe_instance *ri, struct pt_regs *regs)
+ 			func_name, retval, (long long)delta);
+ 	return 0;
+ }
++NOKPROBE_SYMBOL(ret_handler);
+ 
+ static struct kretprobe my_kretprobe = {
+ 	.handler		= ret_handler,
 
 
