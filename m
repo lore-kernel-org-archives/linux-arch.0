@@ -1,112 +1,79 @@
 From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Subject: [PATCH -tip v5 15/18] kprobes: Show blacklist entries via debugfs
-Date: Mon, 09 Dec 2013 10:47:53 +0000
-Message-ID: <20131209104753.13397.96506.stgit@kbuild-fedora.novalocal>
+Subject: [PATCH -tip v5 05/18] [BUGFIX] x86: Prohibit probing on thunk functions and restore
+Date: Mon, 09 Dec 2013 10:47:30 +0000
+Message-ID: <20131209104730.13397.70208.stgit@kbuild-fedora.novalocal>
 References: <20131209104717.13397.8864.stgit@kbuild-fedora.novalocal>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <systemtap-return-21733-gls-systemtap=m.gmane.org@sourceware.org>
+List-Unsubscribe: <mailto:systemtap-unsubscribe-##L=##H@sourceware.org>
+List-Subscribe: <mailto:systemtap-subscribe@sourceware.org>
+List-Post: <mailto:systemtap@sourceware.org>
+List-Help: <mailto:systemtap-help@sourceware.org>, <http://sourceware.org/lists.html#faqs>
+Sender: systemtap-owner@sourceware.org
 In-Reply-To: <20131209104717.13397.8864.stgit@kbuild-fedora.novalocal>
-Sender: linux-kernel-owner@vger.kernel.org
 To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
+Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, systemtap@sourceware.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
-Show blacklist entries (function names with the address
-range) via /sys/kernel/debug/kprobes/blacklist.
-
-Changes from previous version:
- - Use %ps for showing blacklist symbols.
+thunk/restore functions are also used for tracing irqoff etc.
+and those are involved in kprobe's exception handling.
+Prohibit probing on them to avoid kernel crash.
 
 Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
-Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
 ---
- kernel/kprobes.c |   61 +++++++++++++++++++++++++++++++++++++++++++++++-------
- 1 file changed, 53 insertions(+), 8 deletions(-)
+ arch/x86/lib/thunk_32.S |    3 ++-
+ arch/x86/lib/thunk_64.S |    3 +++
+ 2 files changed, 5 insertions(+), 1 deletion(-)
 
-diff --git a/kernel/kprobes.c b/kernel/kprobes.c
-index a21b4e6..3214289 100644
---- a/kernel/kprobes.c
-+++ b/kernel/kprobes.c
-@@ -2249,6 +2249,46 @@ static const struct file_operations debugfs_kprobes_operations = {
- 	.release        = seq_release,
- };
+diff --git a/arch/x86/lib/thunk_32.S b/arch/x86/lib/thunk_32.S
+index 2930ae0..28f85c91 100644
+--- a/arch/x86/lib/thunk_32.S
++++ b/arch/x86/lib/thunk_32.S
+@@ -4,8 +4,8 @@
+  *  (inspired by Andi Kleen's thunk_64.S)
+  * Subject to the GNU public license, v.2. No warranty of any kind.
+  */
+-
+ 	#include <linux/linkage.h>
++	#include <asm/asm.h>
  
-+/* kprobes/blacklist -- shows which functions can not be probed */
-+static void *kprobe_blacklist_seq_start(struct seq_file *m, loff_t *pos)
-+{
-+	return seq_list_start(&kprobe_blacklist, *pos);
-+}
-+
-+static void *kprobe_blacklist_seq_next(struct seq_file *m, void *v, loff_t *pos)
-+{
-+	return seq_list_next(v, &kprobe_blacklist, pos);
-+}
-+
-+static int kprobe_blacklist_seq_show(struct seq_file *m, void *v)
-+{
-+	struct kprobe_blacklist_entry *ent =
-+		list_entry(v, struct kprobe_blacklist_entry, list);
-+
-+	seq_printf(m, "0x%p-0x%p\t%ps\n", (void *)ent->start_addr,
-+		   (void *)ent->end_addr, (void *)ent->start_addr);
-+	return 0;
-+}
-+
-+static const struct seq_operations kprobe_blacklist_seq_ops = {
-+	.start = kprobe_blacklist_seq_start,
-+	.next  = kprobe_blacklist_seq_next,
-+	.stop  = kprobe_seq_stop,	/* Reuse void function */
-+	.show  = kprobe_blacklist_seq_show,
-+};
-+
-+static int kprobe_blacklist_open(struct inode *inode, struct file *filp)
-+{
-+	return seq_open(filp, &kprobe_blacklist_seq_ops);
-+}
-+
-+static const struct file_operations debugfs_kprobe_blacklist_ops = {
-+	.open           = kprobe_blacklist_open,
-+	.read           = seq_read,
-+	.llseek         = seq_lseek,
-+	.release        = seq_release,
-+};
-+
- static void arm_all_kprobes(void)
- {
- 	struct hlist_head *head;
-@@ -2372,19 +2412,24 @@ static int __init debugfs_kprobe_init(void)
+ #ifdef CONFIG_TRACE_IRQFLAGS
+ 	/* put return address in eax (arg1) */
+@@ -22,6 +22,7 @@
+ 	popl %ecx
+ 	popl %eax
+ 	ret
++	_ASM_NOKPROBE(\name)
+ 	.endm
  
- 	file = debugfs_create_file("list", 0444, dir, NULL,
- 				&debugfs_kprobes_operations);
--	if (!file) {
--		debugfs_remove(dir);
--		return -ENOMEM;
--	}
-+	if (!file)
-+		goto error;
+ 	thunk_ra trace_hardirqs_on_thunk,trace_hardirqs_on_caller
+diff --git a/arch/x86/lib/thunk_64.S b/arch/x86/lib/thunk_64.S
+index a63efd6..92d9fea 100644
+--- a/arch/x86/lib/thunk_64.S
++++ b/arch/x86/lib/thunk_64.S
+@@ -8,6 +8,7 @@
+ #include <linux/linkage.h>
+ #include <asm/dwarf2.h>
+ #include <asm/calling.h>
++#include <asm/asm.h>
  
- 	file = debugfs_create_file("enabled", 0600, dir,
- 					&value, &fops_kp);
--	if (!file) {
--		debugfs_remove(dir);
--		return -ENOMEM;
--	}
-+	if (!file)
-+		goto error;
-+
-+	file = debugfs_create_file("blacklist", 0444, dir, NULL,
-+				&debugfs_kprobe_blacklist_ops);
-+	if (!file)
-+		goto error;
+ 	/* rdi:	arg1 ... normal C conventions. rax is saved/restored. */
+ 	.macro THUNK name, func, put_ret_addr_in_rdi=0
+@@ -25,6 +26,7 @@
+ 	call \func
+ 	jmp  restore
+ 	CFI_ENDPROC
++	_ASM_NOKPROBE(\name)
+ 	.endm
  
- 	return 0;
-+
-+error:
-+	debugfs_remove(dir);
-+	return -ENOMEM;
- }
- 
- late_initcall(debugfs_kprobe_init);
+ #ifdef CONFIG_TRACE_IRQFLAGS
+@@ -43,3 +45,4 @@ restore:
+ 	RESTORE_ARGS
+ 	ret
+ 	CFI_ENDPROC
++	_ASM_NOKPROBE(restore)
