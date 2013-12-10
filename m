@@ -1,68 +1,94 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH v5 tip/core/locking 6/7] locking: Add an
- smp_mb__after_unlock_lock() for UNLOCK+LOCK barrier
-Date: Mon, 9 Dec 2013 21:26:41 -0800
-Message-ID: <20131210052641.GK4208@linux.vnet.ibm.com>
-References: <20131210012738.GA24317@linux.vnet.ibm.com>
- <1386638883-25379-1-git-send-email-paulmck@linux.vnet.ibm.com>
- <1386638883-25379-6-git-send-email-paulmck@linux.vnet.ibm.com>
- <20131210013417.GB24138@jtriplet-mobl1>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Jonas Bonn <jonas.bonn@gmail.com>
+Subject: Re: [PATCH v2 00/11] Consolidate asm/fixmap.h files
+Date: Tue, 10 Dec 2013 09:48:34 +0100
+Message-ID: <CACM3HyGCPMbw3t+DFFSySEytvDMnGGQMS6pVFpGbhkAoDzjhXg@mail.gmail.com>
+References: <1385396045-15852-1-git-send-email-msalter@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e32.co.us.ibm.com ([32.97.110.150]:38420 "EHLO
-	e32.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750992Ab3LJF0t (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Dec 2013 00:26:49 -0500
-Received: from /spool/local
-	by e32.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Mon, 9 Dec 2013 22:26:49 -0700
-Content-Disposition: inline
-In-Reply-To: <20131210013417.GB24138@jtriplet-mobl1>
+Received: from mail-oa0-f54.google.com ([209.85.219.54]:60518 "EHLO
+	mail-oa0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751685Ab3LJIsf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Dec 2013 03:48:35 -0500
+In-Reply-To: <1385396045-15852-1-git-send-email-msalter@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Josh Triplett <josh@joshtriplett.org>
-Cc: linux-kernel@vger.kernel.org, mingo@kernel.org, laijs@cn.fujitsu.com, dipankar@in.ibm.com, akpm@linux-foundation.org, mathieu.desnoyers@efficios.com, niv@us.ibm.com, tglx@linutronix.de, peterz@infradead.org, rostedt@goodmis.org, dhowells@redhat.com, edumazet@google.com, darren@dvhart.com, fweisbec@gmail.com, sbw@mit.edu, Linux-Arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Oleg Nesterov <oleg@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>
+To: Mark Salter <msalter@redhat.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, linux-metag@vger.kernel.org, Michal Simek <monstr@monstr.eu>, microblaze-uclinux@itee.uq.edu.au, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
 
-On Mon, Dec 09, 2013 at 05:34:17PM -0800, Josh Triplett wrote:
-> On Mon, Dec 09, 2013 at 05:28:02PM -0800, Paul E. McKenney wrote:
-> > From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-> > 
-> > The Linux kernel has traditionally required that an UNLOCK+LOCK pair
-> > act as a full memory barrier when either (1) that UNLOCK+LOCK pair
-> > was executed by the same CPU or task, or (2) the same lock variable
-> > was used for the UNLOCK and LOCK.  It now seems likely that very few
-> > places in the kernel rely on this full-memory-barrier semantic, and
-> > with the advent of queued locks, providing this semantic either requires
-> > complex reasoning, or for some architectures, added overhead.
-> > 
-> > This commit therefore adds a smp_mb__after_unlock_lock(), which may be
-> > placed after a LOCK primitive to restore the full-memory-barrier semantic.
-> > All definitions are currently no-ops, but will be upgraded for some
-> > architectures when queued locks arrive.
-> > 
-> > Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-> > Cc: Linux-Arch <linux-arch@vger.kernel.org>
-> > Cc: Ingo Molnar <mingo@redhat.com>
-> > Cc: Peter Zijlstra <peterz@infradead.org>
-> > Cc: Oleg Nesterov <oleg@redhat.com>
-> > Cc: Linus Torvalds <torvalds@linux-foundation.org>
-> 
-> It seems quite unfortunate that this isn't in some common location, and
-> then only overridden by architectures that need to do so.
+Hi Mark,
 
-I was thinking that include/asm-generic/barrier.h was the place, but
-it is all-or-nothing, used by UP architectures, from what I can see.
-I figured that if there is such a common location, posting this patch
-might flush it out.  I am not sure that this single definition is worth
-the creation of a common place -- or even this definition combined with
-smp_read_barrier_depends().
+Is there some reason you've excluded OpenRISC here?  Did you just miss
+it, or does the implementation diverage too much to be usable with
+your generic version?
 
-> More importantly: you document this earlier in the patch series than you
-> introduce it.
+Regards,
+Jonas
 
-Fair point, I reversed the order of those two patches.
+On 25 November 2013 17:13, Mark Salter <msalter@redhat.com> wrote:
+> Many architectures provide an asm/fixmap.h which defines support for
+> compile-time 'special' virtual mappings which need to be made before
+> paging_init() has run. This suport is also used for early ioremap
+> on x86. Much of this support is identical across the architectures.
+> This patch consolidates all of the common bits into asm-generic/fixmap.h
+> which is intended to be included from arch/*/include/asm/fixmap.h.
+>
+> This has been compiled on x86, arm, powerpc, and sh, but tested
+> on x86 only.
+>
+> This is version two of the patch series:
+>
+>    git://github.com/mosalter/linux.git#fixmap-v2
+>
+> Version 1 is here:
+>
+>    git://github.com/mosalter/linux.git#fixmap
+>
+> Changes from v1:
+>
+>   * Added acks from feedback.
+>   * Use BUILD_BUG_ON in fix_to_virt()
+>   * Fixed ARM patch to make FIXMAP_TOP inclusive of fixmap
+>     range as is the case in the other architectures.
+>
+> Mark Salter (11):
+>   Add generic fixmap.h
+>   x86: use generic fixmap.h
+>   arm: use generic fixmap.h
+>   hexagon: use generic fixmap.h
+>   metag: use generic fixmap.h
+>   microblaze: use generic fixmap.h
+>   mips: use generic fixmap.h
+>   powerpc: use generic fixmap.h
+>   sh: use generic fixmap.h
+>   tile: use generic fixmap.h
+>   um: use generic fixmap.h
+>
+>  arch/arm/include/asm/fixmap.h        | 29 +++--------
+>  arch/arm/mm/init.c                   |  2 +-
+>  arch/hexagon/include/asm/fixmap.h    | 40 +--------------
+>  arch/metag/include/asm/fixmap.h      | 32 +-----------
+>  arch/microblaze/include/asm/fixmap.h | 44 +---------------
+>  arch/mips/include/asm/fixmap.h       | 33 +-----------
+>  arch/powerpc/include/asm/fixmap.h    | 44 +---------------
+>  arch/sh/include/asm/fixmap.h         | 39 +--------------
+>  arch/tile/include/asm/fixmap.h       | 33 +-----------
+>  arch/um/include/asm/fixmap.h         | 40 +--------------
+>  arch/x86/include/asm/fixmap.h        | 59 +---------------------
+>  include/asm-generic/fixmap.h         | 97 ++++++++++++++++++++++++++++++++++++
+>  12 files changed, 118 insertions(+), 374 deletions(-)
+>  create mode 100644 include/asm-generic/fixmap.h
+>
+> --
+> 1.8.3.1
+>
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
 
-							Thanx, Paul
+
+
+-- 
+Jonas Bonn
+Stockholm, Sweden
