@@ -1,52 +1,68 @@
-From: Josh Triplett <josh@joshtriplett.org>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: [PATCH v5 tip/core/locking 6/7] locking: Add an
  smp_mb__after_unlock_lock() for UNLOCK+LOCK barrier
-Date: Mon, 9 Dec 2013 17:34:17 -0800
-Message-ID: <20131210013417.GB24138@jtriplet-mobl1>
+Date: Mon, 9 Dec 2013 21:26:41 -0800
+Message-ID: <20131210052641.GK4208@linux.vnet.ibm.com>
 References: <20131210012738.GA24317@linux.vnet.ibm.com>
  <1386638883-25379-1-git-send-email-paulmck@linux.vnet.ibm.com>
  <1386638883-25379-6-git-send-email-paulmck@linux.vnet.ibm.com>
+ <20131210013417.GB24138@jtriplet-mobl1>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay5-d.mail.gandi.net ([217.70.183.197]:36368 "EHLO
-	relay5-d.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751183Ab3LJBe3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Dec 2013 20:34:29 -0500
+Received: from e32.co.us.ibm.com ([32.97.110.150]:38420 "EHLO
+	e32.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750992Ab3LJF0t (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Dec 2013 00:26:49 -0500
+Received: from /spool/local
+	by e32.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Mon, 9 Dec 2013 22:26:49 -0700
 Content-Disposition: inline
-In-Reply-To: <1386638883-25379-6-git-send-email-paulmck@linux.vnet.ibm.com>
+In-Reply-To: <20131210013417.GB24138@jtriplet-mobl1>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+To: Josh Triplett <josh@joshtriplett.org>
 Cc: linux-kernel@vger.kernel.org, mingo@kernel.org, laijs@cn.fujitsu.com, dipankar@in.ibm.com, akpm@linux-foundation.org, mathieu.desnoyers@efficios.com, niv@us.ibm.com, tglx@linutronix.de, peterz@infradead.org, rostedt@goodmis.org, dhowells@redhat.com, edumazet@google.com, darren@dvhart.com, fweisbec@gmail.com, sbw@mit.edu, Linux-Arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Oleg Nesterov <oleg@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>
 
-On Mon, Dec 09, 2013 at 05:28:02PM -0800, Paul E. McKenney wrote:
-> From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+On Mon, Dec 09, 2013 at 05:34:17PM -0800, Josh Triplett wrote:
+> On Mon, Dec 09, 2013 at 05:28:02PM -0800, Paul E. McKenney wrote:
+> > From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+> > 
+> > The Linux kernel has traditionally required that an UNLOCK+LOCK pair
+> > act as a full memory barrier when either (1) that UNLOCK+LOCK pair
+> > was executed by the same CPU or task, or (2) the same lock variable
+> > was used for the UNLOCK and LOCK.  It now seems likely that very few
+> > places in the kernel rely on this full-memory-barrier semantic, and
+> > with the advent of queued locks, providing this semantic either requires
+> > complex reasoning, or for some architectures, added overhead.
+> > 
+> > This commit therefore adds a smp_mb__after_unlock_lock(), which may be
+> > placed after a LOCK primitive to restore the full-memory-barrier semantic.
+> > All definitions are currently no-ops, but will be upgraded for some
+> > architectures when queued locks arrive.
+> > 
+> > Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+> > Cc: Linux-Arch <linux-arch@vger.kernel.org>
+> > Cc: Ingo Molnar <mingo@redhat.com>
+> > Cc: Peter Zijlstra <peterz@infradead.org>
+> > Cc: Oleg Nesterov <oleg@redhat.com>
+> > Cc: Linus Torvalds <torvalds@linux-foundation.org>
 > 
-> The Linux kernel has traditionally required that an UNLOCK+LOCK pair
-> act as a full memory barrier when either (1) that UNLOCK+LOCK pair
-> was executed by the same CPU or task, or (2) the same lock variable
-> was used for the UNLOCK and LOCK.  It now seems likely that very few
-> places in the kernel rely on this full-memory-barrier semantic, and
-> with the advent of queued locks, providing this semantic either requires
-> complex reasoning, or for some architectures, added overhead.
-> 
-> This commit therefore adds a smp_mb__after_unlock_lock(), which may be
-> placed after a LOCK primitive to restore the full-memory-barrier semantic.
-> All definitions are currently no-ops, but will be upgraded for some
-> architectures when queued locks arrive.
-> 
-> Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-> Cc: Linux-Arch <linux-arch@vger.kernel.org>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: Oleg Nesterov <oleg@redhat.com>
-> Cc: Linus Torvalds <torvalds@linux-foundation.org>
+> It seems quite unfortunate that this isn't in some common location, and
+> then only overridden by architectures that need to do so.
 
-It seems quite unfortunate that this isn't in some common location, and
-then only overridden by architectures that need to do so.
+I was thinking that include/asm-generic/barrier.h was the place, but
+it is all-or-nothing, used by UP architectures, from what I can see.
+I figured that if there is such a common location, posting this patch
+might flush it out.  I am not sure that this single definition is worth
+the creation of a common place -- or even this definition combined with
+smp_read_barrier_depends().
 
-More importantly: you document this earlier in the patch series than you
-introduce it.
+> More importantly: you document this earlier in the patch series than you
+> introduce it.
 
-- Josh Triplett
+Fair point, I reversed the order of those two patches.
+
+							Thanx, Paul
