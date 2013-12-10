@@ -1,270 +1,178 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail7.hitachi.co.jp ([133.145.228.42]:36137 "EHLO
-	mail7.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753358Ab3LIKxD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Dec 2013 05:53:03 -0500
-Subject: [PATCH -tip v5 01/18] kprobes: Prohibit probing on .entry.text code
-From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Date: Mon, 09 Dec 2013 10:47:20 +0000
-Message-ID: <20131209104720.13397.60897.stgit@kbuild-fedora.novalocal>
-In-Reply-To: <20131209104717.13397.8864.stgit@kbuild-fedora.novalocal>
-References: <20131209104717.13397.8864.stgit@kbuild-fedora.novalocal>
-MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Received: from e37.co.us.ibm.com ([32.97.110.158]:36214 "EHLO
+	e37.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751406Ab3LJB2N (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Dec 2013 20:28:13 -0500
+Received: from /spool/local
+	by e37.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Mon, 9 Dec 2013 18:28:12 -0700
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: [PATCH v5 tip/core/locking 6/7] locking: Add an smp_mb__after_unlock_lock() for UNLOCK+LOCK barrier
+Date: Mon,  9 Dec 2013 17:28:02 -0800
+Message-ID: <1386638883-25379-6-git-send-email-paulmck@linux.vnet.ibm.com>
+In-Reply-To: <1386638883-25379-1-git-send-email-paulmck@linux.vnet.ibm.com>
+References: <20131210012738.GA24317@linux.vnet.ibm.com>
+ <1386638883-25379-1-git-send-email-paulmck@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, Frederic Weisbecker <fweisbec@gmail.com>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, systemtap@sourceware.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Seiji Aguchi <seiji.aguchi@hds.com>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20131209104720.97ZHg6fOYdOsAHf_eDD1-EjgX0H-_Up4NONglwEKQ8Y@z>
+To: linux-kernel@vger.kernel.org
+Cc: mingo@kernel.org, laijs@cn.fujitsu.com, dipankar@in.ibm.com, akpm@linux-foundation.org, mathieu.desnoyers@efficios.com, josh@joshtriplett.org, niv@us.ibm.com, tglx@linutronix.de, peterz@infradead.org, rostedt@goodmis.org, dhowells@redhat.com, edumazet@google.com, darren@dvhart.com, fweisbec@gmail.com, sbw@mit.edu, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linux-Arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Oleg Nesterov <oleg@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20131210012802.XWtOe672mE0-ExqBWQbeyNZbaHbLV-oklHfOnriLkUI@z>
 
-.entry.text is a code area which is used for interrupt/syscall
-entries, and there are many sensitive codes.
-Thus, it is better to prohibit probing on all of such codes
-instead of a part of that.
-Since some symbols are already registered on kprobe blacklist,
-this also removes them from the blacklist.
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 
-Changes from previous:
- - Introduce arch_within_kprobe_blacklist() which checks
-   the address is within the .kprobes.text (generic,x86) or
-   .entry.text (x86), for fixing build issue on !x86.
+The Linux kernel has traditionally required that an UNLOCK+LOCK pair
+act as a full memory barrier when either (1) that UNLOCK+LOCK pair
+was executed by the same CPU or task, or (2) the same lock variable
+was used for the UNLOCK and LOCK.  It now seems likely that very few
+places in the kernel rely on this full-memory-barrier semantic, and
+with the advent of queued locks, providing this semantic either requires
+complex reasoning, or for some architectures, added overhead.
 
-Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
+This commit therefore adds a smp_mb__after_unlock_lock(), which may be
+placed after a LOCK primitive to restore the full-memory-barrier semantic.
+All definitions are currently no-ops, but will be upgraded for some
+architectures when queued locks arrive.
+
+Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>
 Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Seiji Aguchi <seiji.aguchi@hds.com>
 Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Frederic Weisbecker <fweisbec@gmail.com>
+Cc: Oleg Nesterov <oleg@redhat.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
 ---
- arch/x86/kernel/entry_32.S     |   33 ---------------------------------
- arch/x86/kernel/entry_64.S     |   20 --------------------
- arch/x86/kernel/kprobes/core.c |    8 ++++++++
- include/linux/kprobes.h        |    1 +
- kernel/kprobes.c               |   13 ++++++++-----
- 5 files changed, 17 insertions(+), 58 deletions(-)
+ arch/arm/include/asm/barrier.h      | 2 ++
+ arch/arm64/include/asm/barrier.h    | 2 ++
+ arch/ia64/include/asm/barrier.h     | 2 ++
+ arch/metag/include/asm/barrier.h    | 2 ++
+ arch/mips/include/asm/barrier.h     | 2 ++
+ arch/powerpc/include/asm/barrier.h  | 2 ++
+ arch/s390/include/asm/barrier.h     | 2 ++
+ arch/sparc/include/asm/barrier_64.h | 2 ++
+ arch/x86/include/asm/barrier.h      | 2 ++
+ include/asm-generic/barrier.h       | 2 ++
+ 10 files changed, 20 insertions(+)
 
-diff --git a/arch/x86/kernel/entry_32.S b/arch/x86/kernel/entry_32.S
-index 51e2988..02c2fef 100644
---- a/arch/x86/kernel/entry_32.S
-+++ b/arch/x86/kernel/entry_32.S
-@@ -315,10 +315,6 @@ ENTRY(ret_from_kernel_thread)
- ENDPROC(ret_from_kernel_thread)
+diff --git a/arch/arm/include/asm/barrier.h b/arch/arm/include/asm/barrier.h
+index 2f59f7443396..133aa543dfdb 100644
+--- a/arch/arm/include/asm/barrier.h
++++ b/arch/arm/include/asm/barrier.h
+@@ -74,6 +74,8 @@ do {									\
+ 	___p1;								\
+ })
  
- /*
-- * Interrupt exit functions should be protected against kprobes
-- */
--	.pushsection .kprobes.text, "ax"
--/*
-  * Return to user mode is not as complex as all this looks,
-  * but we want the default path for a system call return to
-  * go as quickly as possible which is why some of this is
-@@ -372,10 +368,6 @@ need_resched:
- END(resume_kernel)
- #endif
- 	CFI_ENDPROC
--/*
-- * End of kprobes section
-- */
--	.popsection
- 
- /* SYSENTER_RETURN points to after the "sysenter" instruction in
-    the vsyscall page.  See vsyscall-sysentry.S, which defines the symbol.  */
-@@ -495,10 +487,6 @@ sysexit_audit:
- 	PTGS_TO_GS_EX
- ENDPROC(ia32_sysenter_target)
- 
--/*
-- * syscall stub including irq exit should be protected against kprobes
-- */
--	.pushsection .kprobes.text, "ax"
- 	# system call handler stub
- ENTRY(system_call)
- 	RING0_INT_FRAME			# can't unwind into user space anyway
-@@ -691,10 +679,6 @@ syscall_badsys:
- 	jmp resume_userspace
- END(syscall_badsys)
- 	CFI_ENDPROC
--/*
-- * End of kprobes section
-- */
--	.popsection
- 
- .macro FIXUP_ESPFIX_STACK
- /*
-@@ -781,10 +765,6 @@ common_interrupt:
- ENDPROC(common_interrupt)
- 	CFI_ENDPROC
- 
--/*
-- *  Irq entries should be protected against kprobes
-- */
--	.pushsection .kprobes.text, "ax"
- #define BUILD_INTERRUPT3(name, nr, fn)	\
- ENTRY(name)				\
- 	RING0_INT_FRAME;		\
-@@ -961,10 +941,6 @@ ENTRY(spurious_interrupt_bug)
- 	jmp error_code
- 	CFI_ENDPROC
- END(spurious_interrupt_bug)
--/*
-- * End of kprobes section
-- */
--	.popsection
- 
- #ifdef CONFIG_XEN
- /* Xen doesn't set %esp to be precisely what the normal sysenter
-@@ -1239,11 +1215,6 @@ return_to_handler:
- 	jmp *%ecx
- #endif
- 
--/*
-- * Some functions should be protected against kprobes
-- */
--	.pushsection .kprobes.text, "ax"
--
- #ifdef CONFIG_TRACING
- ENTRY(trace_page_fault)
- 	RING0_EC_FRAME
-@@ -1453,7 +1424,3 @@ ENTRY(async_page_fault)
- END(async_page_fault)
- #endif
- 
--/*
-- * End of kprobes section
-- */
--	.popsection
-diff --git a/arch/x86/kernel/entry_64.S b/arch/x86/kernel/entry_64.S
-index e21b078..c48f8f9 100644
---- a/arch/x86/kernel/entry_64.S
-+++ b/arch/x86/kernel/entry_64.S
-@@ -487,8 +487,6 @@ ENDPROC(native_usergs_sysret64)
- 	TRACE_IRQS_OFF
- 	.endm
- 
--/* save complete stack frame */
--	.pushsection .kprobes.text, "ax"
- ENTRY(save_paranoid)
- 	XCPT_FRAME 1 RDI+8
- 	cld
-@@ -517,7 +515,6 @@ ENTRY(save_paranoid)
- 1:	ret
- 	CFI_ENDPROC
- END(save_paranoid)
--	.popsection
- 
- /*
-  * A newly forked process directly context switches into this address.
-@@ -975,10 +972,6 @@ END(interrupt)
- 	call \func
- 	.endm
- 
--/*
-- * Interrupt entry/exit should be protected against kprobes
-- */
--	.pushsection .kprobes.text, "ax"
- 	/*
- 	 * The interrupt stubs push (~vector+0x80) onto the stack and
- 	 * then jump to common_interrupt.
-@@ -1113,10 +1106,6 @@ ENTRY(retint_kernel)
- 
- 	CFI_ENDPROC
- END(common_interrupt)
--/*
-- * End of kprobes section
-- */
--       .popsection
- 
- /*
-  * APIC interrupts.
-@@ -1477,11 +1466,6 @@ apicinterrupt3 HYPERVISOR_CALLBACK_VECTOR \
- 	hyperv_callback_vector hyperv_vector_handler
- #endif /* CONFIG_HYPERV */
- 
--/*
-- * Some functions should be protected against kprobes
-- */
--	.pushsection .kprobes.text, "ax"
--
- paranoidzeroentry_ist debug do_debug DEBUG_STACK
- paranoidzeroentry_ist int3 do_int3 DEBUG_STACK
- paranoiderrorentry stack_segment do_stack_segment
-@@ -1898,7 +1882,3 @@ ENTRY(ignore_sysret)
- 	CFI_ENDPROC
- END(ignore_sysret)
- 
--/*
-- * End of kprobes section
-- */
--	.popsection
-diff --git a/arch/x86/kernel/kprobes/core.c b/arch/x86/kernel/kprobes/core.c
-index 79a3f96..c01e70f 100644
---- a/arch/x86/kernel/kprobes/core.c
-+++ b/arch/x86/kernel/kprobes/core.c
-@@ -1066,6 +1066,14 @@ int __kprobes longjmp_break_handler(struct kprobe *p, struct pt_regs *regs)
- 	return 0;
- }
- 
-+bool arch_within_kprobe_blacklist(unsigned long addr)
-+{
-+	return  (addr >= (unsigned long)__kprobes_text_start &&
-+		 addr < (unsigned long)__kprobes_text_end) ||
-+		(addr >= (unsigned long)__entry_text_start &&
-+		 addr < (unsigned long)__entry_text_end);
-+}
++#define smp_mb__after_unlock_lock()	do { } while (0)
 +
- int __init arch_init_kprobes(void)
- {
- 	return 0;
-diff --git a/include/linux/kprobes.h b/include/linux/kprobes.h
-index 925eaf2..cdf9251 100644
---- a/include/linux/kprobes.h
-+++ b/include/linux/kprobes.h
-@@ -265,6 +265,7 @@ extern void arch_disarm_kprobe(struct kprobe *p);
- extern int arch_init_kprobes(void);
- extern void show_registers(struct pt_regs *regs);
- extern void kprobes_inc_nmissed_count(struct kprobe *p);
-+extern bool arch_within_kprobe_blacklist(unsigned long addr);
+ #define read_barrier_depends()		do { } while(0)
+ #define smp_read_barrier_depends()	do { } while(0)
  
- struct kprobe_insn_cache {
- 	struct mutex mutex;
-diff --git a/kernel/kprobes.c b/kernel/kprobes.c
-index ceeadfc..5b5ac76 100644
---- a/kernel/kprobes.c
-+++ b/kernel/kprobes.c
-@@ -96,9 +96,6 @@ static raw_spinlock_t *kretprobe_table_lock_ptr(unsigned long hash)
- static struct kprobe_blackpoint kprobe_blacklist[] = {
- 	{"preempt_schedule",},
- 	{"native_get_debugreg",},
--	{"irq_entries_start",},
--	{"common_interrupt",},
--	{"mcount",},	/* mcount can be called from everywhere */
- 	{NULL}    /* Terminator */
- };
+diff --git a/arch/arm64/include/asm/barrier.h b/arch/arm64/include/asm/barrier.h
+index 78e20ba8806b..f97efda22e0a 100644
+--- a/arch/arm64/include/asm/barrier.h
++++ b/arch/arm64/include/asm/barrier.h
+@@ -91,6 +91,8 @@ do {									\
  
-@@ -1324,12 +1321,18 @@ out:
- 	return ret;
- }
+ #endif
  
-+bool __weak arch_within_kprobe_blacklist(unsigned long addr)
-+{
-+	/* The __kprobes marked functions and entry code must not be probed */
-+	return addr >= (unsigned long)__kprobes_text_start &&
-+	       addr < (unsigned long)__kprobes_text_end;
-+}
++#define smp_mb__after_unlock_lock()	do { } while 0
 +
- static int __kprobes in_kprobes_functions(unsigned long addr)
- {
- 	struct kprobe_blackpoint *kb;
+ #define read_barrier_depends()		do { } while(0)
+ #define smp_read_barrier_depends()	do { } while(0)
  
--	if (addr >= (unsigned long)__kprobes_text_start &&
--	    addr < (unsigned long)__kprobes_text_end)
-+	if (arch_within_kprobe_blacklist(addr))
- 		return -EINVAL;
- 	/*
- 	 * If there exists a kprobe_blacklist, verify and
-
+diff --git a/arch/ia64/include/asm/barrier.h b/arch/ia64/include/asm/barrier.h
+index bddcfe91d9c8..fb64ead98e65 100644
+--- a/arch/ia64/include/asm/barrier.h
++++ b/arch/ia64/include/asm/barrier.h
+@@ -101,6 +101,8 @@ do {									\
+ })
+ #endif
+ 
++#define smp_mb__after_unlock_lock()	do { } while (0)
++
+ /*
+  * XXX check on this ---I suspect what Linus really wants here is
+  * acquire vs release semantics but we can't discuss this stuff with
+diff --git a/arch/metag/include/asm/barrier.h b/arch/metag/include/asm/barrier.h
+index 5d6b4b407dda..76a3ff950607 100644
+--- a/arch/metag/include/asm/barrier.h
++++ b/arch/metag/include/asm/barrier.h
+@@ -97,4 +97,6 @@ do {									\
+ 	___p1;								\
+ })
+ 
++#define smp_mb__after_unlock_lock()	do { } while (0)
++
+ #endif /* _ASM_METAG_BARRIER_H */
+diff --git a/arch/mips/include/asm/barrier.h b/arch/mips/include/asm/barrier.h
+index e1aa4e4c2984..6f9b586241d6 100644
+--- a/arch/mips/include/asm/barrier.h
++++ b/arch/mips/include/asm/barrier.h
+@@ -195,4 +195,6 @@ do {									\
+ 	___p1;								\
+ })
+ 
++#define smp_mb__after_unlock_lock()	do { } while (0)
++
+ #endif /* __ASM_BARRIER_H */
+diff --git a/arch/powerpc/include/asm/barrier.h b/arch/powerpc/include/asm/barrier.h
+index f89da808ce31..abf645799991 100644
+--- a/arch/powerpc/include/asm/barrier.h
++++ b/arch/powerpc/include/asm/barrier.h
+@@ -84,4 +84,6 @@ do {									\
+ 	___p1;								\
+ })
+ 
++#define smp_mb__after_unlock_lock()	do { } while (0)
++
+ #endif /* _ASM_POWERPC_BARRIER_H */
+diff --git a/arch/s390/include/asm/barrier.h b/arch/s390/include/asm/barrier.h
+index 578680f6207a..c8f12244aed3 100644
+--- a/arch/s390/include/asm/barrier.h
++++ b/arch/s390/include/asm/barrier.h
+@@ -47,4 +47,6 @@ do {									\
+ 	___p1;								\
+ })
+ 
++#define smp_mb__after_unlock_lock()	do { } while (0)
++
+ #endif /* __ASM_BARRIER_H */
+diff --git a/arch/sparc/include/asm/barrier_64.h b/arch/sparc/include/asm/barrier_64.h
+index b5aad964558e..a2b73329f89c 100644
+--- a/arch/sparc/include/asm/barrier_64.h
++++ b/arch/sparc/include/asm/barrier_64.h
+@@ -68,4 +68,6 @@ do {									\
+ 	___p1;								\
+ })
+ 
++#define smp_mb__after_unlock_lock()	do { } while (0)
++
+ #endif /* !(__SPARC64_BARRIER_H) */
+diff --git a/arch/x86/include/asm/barrier.h b/arch/x86/include/asm/barrier.h
+index f7053f354ac3..0371fd15f7ee 100644
+--- a/arch/x86/include/asm/barrier.h
++++ b/arch/x86/include/asm/barrier.h
+@@ -115,6 +115,8 @@ do {									\
+ 	___p1;								\
+ })
+ 
++#define smp_mb__after_unlock_lock()	do { } while (0)
++
+ /*
+  * Stop RDTSC speculation. This is needed when you need to use RDTSC
+  * (or get_cycles or vread that possibly accesses the TSC) in a defined
+diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
+index 6f692f8ac664..938ecf3a7cd8 100644
+--- a/include/asm-generic/barrier.h
++++ b/include/asm-generic/barrier.h
+@@ -77,5 +77,7 @@ do {									\
+ 	___p1;								\
+ })
+ 
++#define smp_mb__after_unlock_lock()	do { } while (0)
++
+ #endif /* !__ASSEMBLY__ */
+ #endif /* __ASM_GENERIC_BARRIER_H */
+-- 
+1.8.1.5
 
