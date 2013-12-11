@@ -1,57 +1,117 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH v5 tip/core/locking 6/7] locking: Add an
- smp_mb__after_unlock_lock() for UNLOCK+LOCK barrier
-Date: Tue, 10 Dec 2013 12:11:54 -0800
-Message-ID: <20131210201154.GF4208@linux.vnet.ibm.com>
-References: <20131210012738.GA24317@linux.vnet.ibm.com>
- <1386638883-25379-1-git-send-email-paulmck@linux.vnet.ibm.com>
- <1386638883-25379-6-git-send-email-paulmck@linux.vnet.ibm.com>
- <20131210123726.GE13532@twins.programming.kicks-ass.net>
- <20131210174508.GC10311@leaf>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+Subject: Re: [PATCH -tip v5 13/18] notifier: Use NOKPROBE_SYMBOL macro in
+ notifier
+Date: Wed, 11 Dec 2013 11:58:08 +0900
+Message-ID: <52A7D4C0.7060700@hitachi.com>
+References: <20131209104717.13397.8864.stgit@kbuild-fedora.novalocal> <20131209104748.13397.52431.stgit@kbuild-fedora.novalocal>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e32.co.us.ibm.com ([32.97.110.150]:49419 "EHLO
-	e32.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750776Ab3LJUMA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Dec 2013 15:12:00 -0500
-Received: from /spool/local
-	by e32.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Tue, 10 Dec 2013 13:11:59 -0700
-Content-Disposition: inline
-In-Reply-To: <20131210174508.GC10311@leaf>
+Received: from mail9.hitachi.co.jp ([133.145.228.44]:55359 "EHLO
+	mail9.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751030Ab3LKC6Q (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Dec 2013 21:58:16 -0500
+In-Reply-To: <20131209104748.13397.52431.stgit@kbuild-fedora.novalocal>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Josh Triplett <josh@joshtriplett.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, mingo@kernel.org, laijs@cn.fujitsu.com, dipankar@in.ibm.com, akpm@linux-foundation.org, mathieu.desnoyers@efficios.com, niv@us.ibm.com, tglx@linutronix.de, rostedt@goodmis.org, dhowells@redhat.com, edumazet@google.com, darren@dvhart.com, fweisbec@gmail.com, sbw@mit.edu, Linux-Arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Oleg Nesterov <oleg@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
 
-On Tue, Dec 10, 2013 at 09:45:08AM -0800, Josh Triplett wrote:
-> On Tue, Dec 10, 2013 at 01:37:26PM +0100, Peter Zijlstra wrote:
-> > On Mon, Dec 09, 2013 at 05:28:02PM -0800, Paul E. McKenney wrote:
-> > > diff --git a/arch/powerpc/include/asm/barrier.h b/arch/powerpc/include/asm/barrier.h
-> > > index f89da808ce31..abf645799991 100644
-> > > --- a/arch/powerpc/include/asm/barrier.h
-> > > +++ b/arch/powerpc/include/asm/barrier.h
-> > > @@ -84,4 +84,6 @@ do {									\
-> > >  	___p1;								\
-> > >  })
-> > >  
-> > > +#define smp_mb__after_unlock_lock()	do { } while (0)
-> > > +
-> > >  #endif /* _ASM_POWERPC_BARRIER_H */
-> > 
-> > Didn't ben said ppc actually violates the current unlock+lock assumtion
-> > and therefore this barrier woulnd't actually be a nop on ppc
+(2013/12/09 19:47), Masami Hiramatsu wrote:
+> Use NOKPROBE_SYMBOL macro to protect functions from
+> kprobes instead of __kprobes annotation in notifier.
+
+Ah, this must just removes __kprobes since we don't use notify_die
+for kprobes anymore...
+
+
 > 
-> Or, ppc could fix its lock primitives to preserve the unlock+lock
-> assumption, and avoid subtle breakage across half the kernel.
+> Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+> ---
+>  kernel/notifier.c |   22 +++++++++++++---------
+>  1 file changed, 13 insertions(+), 9 deletions(-)
+> 
+> diff --git a/kernel/notifier.c b/kernel/notifier.c
+> index 2d5cc4c..61fc78a 100644
+> --- a/kernel/notifier.c
+> +++ b/kernel/notifier.c
+> @@ -71,9 +71,9 @@ static int notifier_chain_unregister(struct notifier_block **nl,
+>   *	@returns:	notifier_call_chain returns the value returned by the
+>   *			last notifier function called.
+>   */
+> -static int __kprobes notifier_call_chain(struct notifier_block **nl,
+> -					unsigned long val, void *v,
+> -					int nr_to_call,	int *nr_calls)
+> +static int notifier_call_chain(struct notifier_block **nl,
+> +			       unsigned long val, void *v,
+> +			       int nr_to_call, int *nr_calls)
+>  {
+>  	int ret = NOTIFY_DONE;
+>  	struct notifier_block *nb, *next_nb;
+> @@ -102,6 +102,7 @@ static int __kprobes notifier_call_chain(struct notifier_block **nl,
+>  	}
+>  	return ret;
+>  }
+> +NOKPROBE_SYMBOL(notifier_call_chain);
+>  
+>  /*
+>   *	Atomic notifier chain routines.  Registration and unregistration
+> @@ -172,9 +173,9 @@ EXPORT_SYMBOL_GPL(atomic_notifier_chain_unregister);
+>   *	Otherwise the return value is the return value
+>   *	of the last notifier function called.
+>   */
+> -int __kprobes __atomic_notifier_call_chain(struct atomic_notifier_head *nh,
+> -					unsigned long val, void *v,
+> -					int nr_to_call, int *nr_calls)
+> +int __atomic_notifier_call_chain(struct atomic_notifier_head *nh,
+> +				 unsigned long val, void *v,
+> +				 int nr_to_call, int *nr_calls)
+>  {
+>  	int ret;
+>  
+> @@ -184,13 +185,15 @@ int __kprobes __atomic_notifier_call_chain(struct atomic_notifier_head *nh,
+>  	return ret;
+>  }
+>  EXPORT_SYMBOL_GPL(__atomic_notifier_call_chain);
+> +NOKPROBE_SYMBOL(__atomic_notifier_call_chain);
+>  
+> -int __kprobes atomic_notifier_call_chain(struct atomic_notifier_head *nh,
+> -		unsigned long val, void *v)
+> +int atomic_notifier_call_chain(struct atomic_notifier_head *nh,
+> +			       unsigned long val, void *v)
+>  {
+>  	return __atomic_notifier_call_chain(nh, val, v, -1, NULL);
+>  }
+>  EXPORT_SYMBOL_GPL(atomic_notifier_call_chain);
+> +NOKPROBE_SYMBOL(atomic_notifier_call_chain);
+>  
+>  /*
+>   *	Blocking notifier chain routines.  All access to the chain is
+> @@ -527,7 +530,7 @@ EXPORT_SYMBOL_GPL(srcu_init_notifier_head);
+>  
+>  static ATOMIC_NOTIFIER_HEAD(die_chain);
+>  
+> -int notrace __kprobes notify_die(enum die_val val, const char *str,
+> +int notrace notify_die(enum die_val val, const char *str,
+>  	       struct pt_regs *regs, long err, int trap, int sig)
+>  {
+>  	struct die_args args = {
+> @@ -540,6 +543,7 @@ int notrace __kprobes notify_die(enum die_val val, const char *str,
+>  	};
+>  	return atomic_notifier_call_chain(&die_chain, val, &args);
+>  }
+> +NOKPROBE_SYMBOL(notify_die);
+>  
+>  int register_die_notifier(struct notifier_block *nb)
+>  {
+> 
+> 
+> 
 
-Indeed.  However, another motivation for this change was the difficulty
-in proving that x86 really provided the equivalent of a full barrier
-for the MCS lock handoff case:
 
-	http://www.spinics.net/lists/linux-mm/msg65653.html
-
-							Thanx, Paul
+-- 
+Masami HIRAMATSU
+IT Management Research Dept. Linux Technology Center
+Hitachi, Ltd., Yokohama Research Laboratory
+E-mail: masami.hiramatsu.pt@hitachi.com
