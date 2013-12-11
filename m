@@ -1,40 +1,40 @@
-From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Subject: Re: [PATCH -tip v5 13/18] notifier: Use NOKPROBE_SYMBOL macro in
- notifier
-Date: Wed, 11 Dec 2013 12:04:38 +0900
-Message-ID: <52A7D646.2040904@hitachi.com>
-References: <20131209104717.13397.8864.stgit@kbuild-fedora.novalocal> <20131209104748.13397.52431.stgit@kbuild-fedora.novalocal> <52A7D4C0.7060700@hitachi.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+From: Grant Likely <grant.likely@linaro.org>
+Subject: Re: [PATCH v2] of: unflatten_and_copy: handle NULL initial_boot_params
+Date: Wed, 11 Dec 2013 13:40:43 +0000
+Message-ID: <20131211134043.ACED0C4061A@trevor.secretlab.ca>
+References: <1385041454-32385-1-git-send-email-james.hogan@imgtec.com> < 528E0F7F.7010901@imgtec.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail4.hitachi.co.jp ([133.145.228.5]:55489 "EHLO
-	mail4.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751342Ab3LKDEp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Dec 2013 22:04:45 -0500
-In-Reply-To: <52A7D4C0.7060700@hitachi.com>
+Received: from mail-ea0-f178.google.com ([209.85.215.178]:60748 "EHLO
+	mail-ea0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751133Ab3LKNkv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Dec 2013 08:40:51 -0500
+Received: by mail-ea0-f178.google.com with SMTP id d10so2990277eaj.9
+        for <linux-arch@vger.kernel.org>; Wed, 11 Dec 2013 05:40:49 -0800 (PST)
+In-Reply-To: <528E0F7F.7010901@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
+To: Rob Herring <rob.herring@calxeda.com>, devicetree@vger.kernel.org
+Cc: James Hogan <james.hogan@imgtec.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-(2013/12/11 11:58), Masami Hiramatsu wrote:
-> (2013/12/09 19:47), Masami Hiramatsu wrote:
->> Use NOKPROBE_SYMBOL macro to protect functions from
->> kprobes instead of __kprobes annotation in notifier.
+On Thu, 21 Nov 2013 13:49:51 +0000, James Hogan <james.hogan@imgtec.com> wrote:
+> On 21/11/13 13:44, James Hogan wrote:
+> > Check whether initial_boot_params is NULL before dereferencing it in
+> > unflatten_and_copy_device_tree() for the case where no device tree is
+> > available but the arch can still boot to a minimal usable system without
+> > it. In this case also log a warning for when the kernel log buffer is
+> > obtainable.
+> > 
+> > Signed-off-by: James Hogan <james.hogan@imgtec.com>
+> > Cc: Grant Likely <grant.likely@linaro.org>
+> > Cc: Rob Herring <rob.herring@calxeda.com>
+> > Cc: devicetree@vger.kernel.org
+> > Cc: linux-arch@vger.kernel.org
 > 
-> Ah, this must just removes __kprobes since we don't use notify_die
-> for kprobes anymore...
+> Hmm, sorry, I forgot to add Grant's:
+> Acked-by: Grant Likely <grant.likely@linaro.org>
+> 
+> (from v1)
 
-Oops, NO. kprobes generically still using the exception notifier to handle
-GPF in the handler even on x86... For safety, I'd like to keep it as it is
-until all dependency is removed.
+Applied, thanks.
 
-Thank you,
-
-
--- 
-Masami HIRAMATSU
-IT Management Research Dept. Linux Technology Center
-Hitachi, Ltd., Yokohama Research Laboratory
-E-mail: masami.hiramatsu.pt@hitachi.com
+g.
