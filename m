@@ -1,113 +1,36 @@
 From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
 Subject: Re: [PATCH -tip v5 13/18] notifier: Use NOKPROBE_SYMBOL macro in
  notifier
-Date: Wed, 11 Dec 2013 11:58:08 +0900
-Message-ID: <52A7D4C0.7060700@hitachi.com>
-References: <20131209104717.13397.8864.stgit@kbuild-fedora.novalocal> <20131209104748.13397.52431.stgit@kbuild-fedora.novalocal>
+Date: Wed, 11 Dec 2013 12:04:38 +0900
+Message-ID: <52A7D646.2040904@hitachi.com>
+References: <20131209104717.13397.8864.stgit@kbuild-fedora.novalocal> <20131209104748.13397.52431.stgit@kbuild-fedora.novalocal> <52A7D4C0.7060700@hitachi.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail9.hitachi.co.jp ([133.145.228.44]:55359 "EHLO
-	mail9.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751030Ab3LKC6Q (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Dec 2013 21:58:16 -0500
-In-Reply-To: <20131209104748.13397.52431.stgit@kbuild-fedora.novalocal>
+Received: from mail4.hitachi.co.jp ([133.145.228.5]:55489 "EHLO
+	mail4.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751342Ab3LKDEp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Dec 2013 22:04:45 -0500
+In-Reply-To: <52A7D4C0.7060700@hitachi.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@kernel.org>
 Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
 
-(2013/12/09 19:47), Masami Hiramatsu wrote:
-> Use NOKPROBE_SYMBOL macro to protect functions from
-> kprobes instead of __kprobes annotation in notifier.
+(2013/12/11 11:58), Masami Hiramatsu wrote:
+> (2013/12/09 19:47), Masami Hiramatsu wrote:
+>> Use NOKPROBE_SYMBOL macro to protect functions from
+>> kprobes instead of __kprobes annotation in notifier.
+> 
+> Ah, this must just removes __kprobes since we don't use notify_die
+> for kprobes anymore...
 
-Ah, this must just removes __kprobes since we don't use notify_die
-for kprobes anymore...
+Oops, NO. kprobes generically still using the exception notifier to handle
+GPF in the handler even on x86... For safety, I'd like to keep it as it is
+until all dependency is removed.
 
-
-> 
-> Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-> ---
->  kernel/notifier.c |   22 +++++++++++++---------
->  1 file changed, 13 insertions(+), 9 deletions(-)
-> 
-> diff --git a/kernel/notifier.c b/kernel/notifier.c
-> index 2d5cc4c..61fc78a 100644
-> --- a/kernel/notifier.c
-> +++ b/kernel/notifier.c
-> @@ -71,9 +71,9 @@ static int notifier_chain_unregister(struct notifier_block **nl,
->   *	@returns:	notifier_call_chain returns the value returned by the
->   *			last notifier function called.
->   */
-> -static int __kprobes notifier_call_chain(struct notifier_block **nl,
-> -					unsigned long val, void *v,
-> -					int nr_to_call,	int *nr_calls)
-> +static int notifier_call_chain(struct notifier_block **nl,
-> +			       unsigned long val, void *v,
-> +			       int nr_to_call, int *nr_calls)
->  {
->  	int ret = NOTIFY_DONE;
->  	struct notifier_block *nb, *next_nb;
-> @@ -102,6 +102,7 @@ static int __kprobes notifier_call_chain(struct notifier_block **nl,
->  	}
->  	return ret;
->  }
-> +NOKPROBE_SYMBOL(notifier_call_chain);
->  
->  /*
->   *	Atomic notifier chain routines.  Registration and unregistration
-> @@ -172,9 +173,9 @@ EXPORT_SYMBOL_GPL(atomic_notifier_chain_unregister);
->   *	Otherwise the return value is the return value
->   *	of the last notifier function called.
->   */
-> -int __kprobes __atomic_notifier_call_chain(struct atomic_notifier_head *nh,
-> -					unsigned long val, void *v,
-> -					int nr_to_call, int *nr_calls)
-> +int __atomic_notifier_call_chain(struct atomic_notifier_head *nh,
-> +				 unsigned long val, void *v,
-> +				 int nr_to_call, int *nr_calls)
->  {
->  	int ret;
->  
-> @@ -184,13 +185,15 @@ int __kprobes __atomic_notifier_call_chain(struct atomic_notifier_head *nh,
->  	return ret;
->  }
->  EXPORT_SYMBOL_GPL(__atomic_notifier_call_chain);
-> +NOKPROBE_SYMBOL(__atomic_notifier_call_chain);
->  
-> -int __kprobes atomic_notifier_call_chain(struct atomic_notifier_head *nh,
-> -		unsigned long val, void *v)
-> +int atomic_notifier_call_chain(struct atomic_notifier_head *nh,
-> +			       unsigned long val, void *v)
->  {
->  	return __atomic_notifier_call_chain(nh, val, v, -1, NULL);
->  }
->  EXPORT_SYMBOL_GPL(atomic_notifier_call_chain);
-> +NOKPROBE_SYMBOL(atomic_notifier_call_chain);
->  
->  /*
->   *	Blocking notifier chain routines.  All access to the chain is
-> @@ -527,7 +530,7 @@ EXPORT_SYMBOL_GPL(srcu_init_notifier_head);
->  
->  static ATOMIC_NOTIFIER_HEAD(die_chain);
->  
-> -int notrace __kprobes notify_die(enum die_val val, const char *str,
-> +int notrace notify_die(enum die_val val, const char *str,
->  	       struct pt_regs *regs, long err, int trap, int sig)
->  {
->  	struct die_args args = {
-> @@ -540,6 +543,7 @@ int notrace __kprobes notify_die(enum die_val val, const char *str,
->  	};
->  	return atomic_notifier_call_chain(&die_chain, val, &args);
->  }
-> +NOKPROBE_SYMBOL(notify_die);
->  
->  int register_die_notifier(struct notifier_block *nb)
->  {
-> 
-> 
-> 
+Thank you,
 
 
 -- 
