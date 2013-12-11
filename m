@@ -1,42 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ea0-f178.google.com ([209.85.215.178]:60748 "EHLO
-	mail-ea0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751133Ab3LKNkv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Dec 2013 08:40:51 -0500
-Received: by mail-ea0-f178.google.com with SMTP id d10so2990277eaj.9
-        for <linux-arch@vger.kernel.org>; Wed, 11 Dec 2013 05:40:49 -0800 (PST)
-From: Grant Likely <grant.likely@linaro.org>
-Subject: Re: [PATCH v2] of: unflatten_and_copy: handle NULL initial_boot_params
-In-Reply-To: <528E0F7F.7010901@imgtec.com>
-References: <1385041454-32385-1-git-send-email-james.hogan@imgtec.com> < 528E0F7F.7010901@imgtec.com>
-Date: Wed, 11 Dec 2013 13:40:43 +0000
-Message-ID: <20131211134043.ACED0C4061A@trevor.secretlab.ca>
+Received: from e38.co.us.ibm.com ([32.97.110.159]:41231 "EHLO
+	e38.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751345Ab3LKV7X (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Dec 2013 16:59:23 -0500
+Received: from /spool/local
+	by e38.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Wed, 11 Dec 2013 14:59:23 -0700
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: [PATCH v6 tip/core/locking 5/8] locking: Add an smp_mb__after_unlock_lock() for UNLOCK+LOCK barrier
+Date: Wed, 11 Dec 2013 13:59:08 -0800
+Message-ID: <1386799151-2219-5-git-send-email-paulmck@linux.vnet.ibm.com>
+In-Reply-To: <1386799151-2219-1-git-send-email-paulmck@linux.vnet.ibm.com>
+References: <20131211215850.GA810@linux.vnet.ibm.com>
+ <1386799151-2219-1-git-send-email-paulmck@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>, Rob Herring <rob.herring@calxeda.com>, devicetree@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20131211134043.EG-0lcUiyX2fLQawpNL9H_eYMqNYehwEFEO7eq4XjOw@z>
+To: linux-kernel@vger.kernel.org
+Cc: mingo@kernel.org, laijs@cn.fujitsu.com, dipankar@in.ibm.com, akpm@linux-foundation.org, mathieu.desnoyers@efficios.com, josh@joshtriplett.org, niv@us.ibm.com, tglx@linutronix.de, peterz@infradead.org, rostedt@goodmis.org, dhowells@redhat.com, edumazet@google.com, darren@dvhart.com, fweisbec@gmail.com, oleg@redhat.com, sbw@mit.edu, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linux-Arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20131211215908.laBYK3Jjoa24dwtDFgU3kxXdlGvu59Dmb8Au24roWmI@z>
 
-On Thu, 21 Nov 2013 13:49:51 +0000, James Hogan <james.hogan@imgtec.com> wrote:
-> On 21/11/13 13:44, James Hogan wrote:
-> > Check whether initial_boot_params is NULL before dereferencing it in
-> > unflatten_and_copy_device_tree() for the case where no device tree is
-> > available but the arch can still boot to a minimal usable system without
-> > it. In this case also log a warning for when the kernel log buffer is
-> > obtainable.
-> > 
-> > Signed-off-by: James Hogan <james.hogan@imgtec.com>
-> > Cc: Grant Likely <grant.likely@linaro.org>
-> > Cc: Rob Herring <rob.herring@calxeda.com>
-> > Cc: devicetree@vger.kernel.org
-> > Cc: linux-arch@vger.kernel.org
-> 
-> Hmm, sorry, I forgot to add Grant's:
-> Acked-by: Grant Likely <grant.likely@linaro.org>
-> 
-> (from v1)
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 
-Applied, thanks.
+The Linux kernel has traditionally required that an UNLOCK+LOCK pair
+act as a full memory barrier when either (1) that UNLOCK+LOCK pair
+was executed by the same CPU or task, or (2) the same lock variable
+was used for the UNLOCK and LOCK.  It now seems likely that very few
+places in the kernel rely on this full-memory-barrier semantic, and
+with the advent of queued locks, providing this semantic either requires
+complex reasoning, or for some architectures, added overhead.
 
-g.
+This commit therefore adds a smp_mb__after_unlock_lock(), which may be
+placed after a LOCK primitive to restore the full-memory-barrier semantic.
+All definitions are currently no-ops, but will be upgraded for some
+architectures when queued locks arrive.
+
+Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Oleg Nesterov <oleg@redhat.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+---
+ include/linux/spinlock.h | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/include/linux/spinlock.h b/include/linux/spinlock.h
+index 75f34949d9ab..3f2867ff0ced 100644
+--- a/include/linux/spinlock.h
++++ b/include/linux/spinlock.h
+@@ -130,6 +130,16 @@ do {								\
+ #define smp_mb__before_spinlock()	smp_wmb()
+ #endif
+ 
++/*
++ * Place this after a lock-acquisition primitive to guarantee that
++ * an UNLOCK+LOCK pair act as a full barrier.  This guarantee applies
++ * if the UNLOCK and LOCK are executed by the same CPU or if the
++ * UNLOCK and LOCK operate on the same lock variable.
++ */
++#ifndef smp_mb__after_unlock_lock
++#define smp_mb__after_unlock_lock()	do { } while (0)
++#endif
++
+ /**
+  * raw_spin_unlock_wait - wait until the spinlock gets unlocked
+  * @lock: the spinlock in question.
+-- 
+1.8.1.5
 
