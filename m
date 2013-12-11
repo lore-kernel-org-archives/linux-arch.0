@@ -1,78 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e31.co.us.ibm.com ([32.97.110.149]:33139 "EHLO
-	e31.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755451Ab3LJRTF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Dec 2013 12:19:05 -0500
-Received: from /spool/local
-	by e31.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Tue, 10 Dec 2013 10:19:04 -0700
-Date: Tue, 10 Dec 2013 09:18:59 -0800
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH v5 tip/core/locking 6/7] locking: Add an
- smp_mb__after_unlock_lock() for UNLOCK+LOCK barrier
-Message-ID: <20131210171859.GT4208@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <20131210012738.GA24317@linux.vnet.ibm.com>
- <1386638883-25379-1-git-send-email-paulmck@linux.vnet.ibm.com>
- <1386638883-25379-6-git-send-email-paulmck@linux.vnet.ibm.com>
- <20131210170404.GB23506@redhat.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20131210170404.GB23506@redhat.com>
+Received: from mail-ea0-f178.google.com ([209.85.215.178]:60748 "EHLO
+	mail-ea0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751133Ab3LKNkv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Dec 2013 08:40:51 -0500
+Received: by mail-ea0-f178.google.com with SMTP id d10so2990277eaj.9
+        for <linux-arch@vger.kernel.org>; Wed, 11 Dec 2013 05:40:49 -0800 (PST)
+From: Grant Likely <grant.likely@linaro.org>
+Subject: Re: [PATCH v2] of: unflatten_and_copy: handle NULL initial_boot_params
+In-Reply-To: <528E0F7F.7010901@imgtec.com>
+References: <1385041454-32385-1-git-send-email-james.hogan@imgtec.com> < 528E0F7F.7010901@imgtec.com>
+Date: Wed, 11 Dec 2013 13:40:43 +0000
+Message-ID: <20131211134043.ACED0C4061A@trevor.secretlab.ca>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: linux-kernel@vger.kernel.org, mingo@kernel.org, laijs@cn.fujitsu.com, dipankar@in.ibm.com, akpm@linux-foundation.org, mathieu.desnoyers@efficios.com, josh@joshtriplett.org, niv@us.ibm.com, tglx@linutronix.de, peterz@infradead.org, rostedt@goodmis.org, dhowells@redhat.com, edumazet@google.com, darren@dvhart.com, fweisbec@gmail.com, sbw@mit.edu, Linux-Arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20131210171859.I6pWsEUtXqA2ob2pFg8igOePPTKfM1CnOzZCd6QFXps@z>
+To: James Hogan <james.hogan@imgtec.com>, Rob Herring <rob.herring@calxeda.com>, devicetree@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20131211134043.EG-0lcUiyX2fLQawpNL9H_eYMqNYehwEFEO7eq4XjOw@z>
 
-On Tue, Dec 10, 2013 at 06:04:04PM +0100, Oleg Nesterov wrote:
-> On 12/09, Paul E. McKenney wrote:
-> >
-> > This commit therefore adds a smp_mb__after_unlock_lock(), which may be
-> > placed after a LOCK primitive to restore the full-memory-barrier semantic.
-> > All definitions are currently no-ops, but will be upgraded for some
-> > architectures when queued locks arrive.
+On Thu, 21 Nov 2013 13:49:51 +0000, James Hogan <james.hogan@imgtec.com> wrote:
+> On 21/11/13 13:44, James Hogan wrote:
+> > Check whether initial_boot_params is NULL before dereferencing it in
+> > unflatten_and_copy_device_tree() for the case where no device tree is
+> > available but the arch can still boot to a minimal usable system without
+> > it. In this case also log a warning for when the kernel log buffer is
+> > obtainable.
+> > 
+> > Signed-off-by: James Hogan <james.hogan@imgtec.com>
+> > Cc: Grant Likely <grant.likely@linaro.org>
+> > Cc: Rob Herring <rob.herring@calxeda.com>
+> > Cc: devicetree@vger.kernel.org
+> > Cc: linux-arch@vger.kernel.org
 > 
-> I am wondering, perhaps smp_mb__after_unlock() makes more sense?
+> Hmm, sorry, I forgot to add Grant's:
+> Acked-by: Grant Likely <grant.likely@linaro.org>
 > 
-> Note that it already has the potential user:
-> 
-> 	--- x/kernel/sched/wait.c
-> 	+++ x/kernel/sched/wait.c
-> 	@@ -176,8 +176,9 @@ prepare_to_wait(wait_queue_head_t *q, wa
-> 		spin_lock_irqsave(&q->lock, flags);
-> 		if (list_empty(&wait->task_list))
-> 			__add_wait_queue(q, wait);
-> 	-	set_current_state(state);
-> 	+	__set_current_state(state);
-> 		spin_unlock_irqrestore(&q->lock, flags);
-> 	+	smp_mb__after_unlock();
-> 	 }
-> 	 EXPORT_SYMBOL(prepare_to_wait);
-> 	 
-> 	@@ -190,8 +191,9 @@ prepare_to_wait_exclusive(wait_queue_hea
-> 		spin_lock_irqsave(&q->lock, flags);
-> 		if (list_empty(&wait->task_list))
-> 			__add_wait_queue_tail(q, wait);
-> 	-	set_current_state(state);
-> 	+	__set_current_state(state);
-> 		spin_unlock_irqrestore(&q->lock, flags);
-> 	+	smp_mb__after_unlock();
-> 	 }
-> 	 EXPORT_SYMBOL(prepare_to_wait_exclusive);
-> 	 
-> 
-> Assuming it can also be used "later", after another LOCK, like in
-> your example in 5/7.
+> (from v1)
 
-I am fine either way.  But there was an objection to tying this to the
-unlock because it costs more on many architectures than tying this to
-the lock.
+Applied, thanks.
 
-But if you are saying "in addition to" rather than "instead of" that
-would be a different conversation.
-
-							Thanx, Paul
+g.
 
