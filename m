@@ -1,71 +1,111 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e38.co.us.ibm.com ([32.97.110.159]:41231 "EHLO
-	e38.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751345Ab3LKV7X (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Dec 2013 16:59:23 -0500
-Received: from /spool/local
-	by e38.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Wed, 11 Dec 2013 14:59:23 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH v6 tip/core/locking 5/8] locking: Add an smp_mb__after_unlock_lock() for UNLOCK+LOCK barrier
-Date: Wed, 11 Dec 2013 13:59:08 -0800
-Message-ID: <1386799151-2219-5-git-send-email-paulmck@linux.vnet.ibm.com>
-In-Reply-To: <1386799151-2219-1-git-send-email-paulmck@linux.vnet.ibm.com>
-References: <20131211215850.GA810@linux.vnet.ibm.com>
- <1386799151-2219-1-git-send-email-paulmck@linux.vnet.ibm.com>
+Received: from mail-pb0-f50.google.com ([209.85.160.50]:57157 "EHLO
+	mail-pb0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750873Ab3LLJQW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Dec 2013 04:16:22 -0500
+MIME-Version: 1.0
+In-Reply-To: <20131211143450.329edd5199fd9a4d56abb6bc@linux-foundation.org>
+References: <1386758601-8520-1-git-send-email-geert@linux-m68k.org>
+	<20131211143450.329edd5199fd9a4d56abb6bc@linux-foundation.org>
+Date: Thu, 12 Dec 2013 10:16:21 +0100
+Message-ID: <CAMuHMdUq3wQMxcic6NUy+su6bdgDLJAaODAOF5OcryJMDmj_fg@mail.gmail.com>
+Subject: Re: [PATCH] futex: Switch to USER_DS for futex test
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: mingo@kernel.org, laijs@cn.fujitsu.com, dipankar@in.ibm.com, akpm@linux-foundation.org, mathieu.desnoyers@efficios.com, josh@joshtriplett.org, niv@us.ibm.com, tglx@linutronix.de, peterz@infradead.org, rostedt@goodmis.org, dhowells@redhat.com, edumazet@google.com, darren@dvhart.com, fweisbec@gmail.com, oleg@redhat.com, sbw@mit.edu, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linux-Arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20131211215908.laBYK3Jjoa24dwtDFgU3kxXdlGvu59Dmb8Au24roWmI@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Rusty Russell <rusty@rustcorp.com.au>, Thomas Gleixner <tglx@linutronix.de>, Darren Hart <dvhart@linux.intel.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux/m68k <linux-m68k@vger.kernel.org>, stable <stable@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Jonas Bonn <jonas@southpole.se>
+Message-ID: <20131212091621.CiCRoYYCjIhvX9mrtza7RxTvTiNqwU75Y2xdn8jqHSc@z>
 
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+On Wed, Dec 11, 2013 at 11:34 PM, Andrew Morton
+<akpm@linux-foundation.org> wrote:
+> On Wed, 11 Dec 2013 11:43:21 +0100 Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+>
+>> Since commit e4f2dfbb5e92be4e46c0625f4f8eb101110f756f ("m68k: implement
+>> futex.h to support userspace robust futexes and PI mutexes"), the kernel
+>> crashes during boot up on MC68030:
+>>
+>> Data read fault at 0x00000000 in Super Data (pc=0x3afec)
+>> BAD KERNEL BUSERR
+>> Oops: 00000000
+>> Modules linked in:
+>> PC: [<0003afec>] cmpxchg_futex_value_locked+0x14/0x4a
+>> SR: 2004  SP: 0082fed4  a2: 0082c000
+>> d0: 00000000    d1: 00000001    d2: 00000018    d3: 00000000
+>> d4: 00000061    d5: 00001000    a0: 00000000    a1: 0082e000
+>> Process swapper (pid: 1, task=0082c000)
+>> Frame format=B ssw=074d isc=4a80 isb=661c daddr=00000000 dobuf=00000001
+>> baddr=0003aff2 dibuf=00000000 ver=f
+>> Stack from 0082ff5c:
+>>         002b8cb8 0082ff70 00000000 00000000 00000000 00000000 00000000 000020ac
+>>         00000018 00000007 00000061 00001000 00000000 00000000 002cab50 00002008
+>>         002b3a56 002b8ca4 0082c3f0 00000000 0082c53c 001e316a 00000000 00000000
+>>         001e3172 001e316a 000025d4 00000000 00000000 00000000 00000000 00000000
+>>         00000000 00000000 00000000 00000000 00000000 00000000 00000000 20000000
+>>         00000000
+>> Call Trace: [<002b8cb8>] futex_init+0x14/0x54
+>>  [<000020ac>] do_one_initcall+0xa4/0x144
+>>  [<00001000>] kernel_pg_dir+0x0/0x1000
+>>  [<00002008>] do_one_initcall+0x0/0x144
+>>  [<002b3a56>] kernel_init_freeable+0xca/0x152
+>>  [<002b8ca4>] futex_init+0x0/0x54
+>>  [<001e316a>] kernel_init+0x0/0xc8
+>>  [<001e3172>] kernel_init+0x8/0xc8
+>>  [<001e316a>] kernel_init+0x0/0xc8
+>>  [<000025d4>] ret_from_kernel_thread+0xc/0x14
+>>
+>> This happens because the futex test in futex_init() lacks a switch to the
+>> USER_DS address space, while cmpxchg_futex_value_locked() and
+>> futex_atomic_cmpxchg_inatomic() operate on userspace pointers (albeit NULL
+>> for this particular test).
+>>
+>> Fix this by switching to USER_DS before running the test, and restoring the
+>> old address space afterwards.
+>>
+>> ...
+>>
+>>  static int __init futex_init(void)
+>>  {
+>> +     mm_segment_t fs;
+>>       u32 curval;
+>>       int i;
+>>
+>> @@ -2745,8 +2747,11 @@ static int __init futex_init(void)
+>>        * implementation, the non-functional ones will return
+>>        * -ENOSYS.
+>>        */
+>> +     fs = get_fs();
+>> +     set_fs(USER_DS);
+>>       if (cmpxchg_futex_value_locked(&curval, NULL, 0, 0) == -EFAULT)
+>>               futex_cmpxchg_enabled = 1;
+>> +     set_fs(fs);
+>
+> hm.  Are we sure that a reference to NULL will continue to fault on all
+> architectures when switched to USER_DS?
 
-The Linux kernel has traditionally required that an UNLOCK+LOCK pair
-act as a full memory barrier when either (1) that UNLOCK+LOCK pair
-was executed by the same CPU or task, or (2) the same lock variable
-was used for the UNLOCK and LOCK.  It now seems likely that very few
-places in the kernel rely on this full-memory-barrier semantic, and
-with the advent of queued locks, providing this semantic either requires
-complex reasoning, or for some architectures, added overhead.
+Good question! As you queued it in -mm, we'll see in -next.
 
-This commit therefore adds a smp_mb__after_unlock_lock(), which may be
-placed after a LOCK primitive to restore the full-memory-barrier semantic.
-All definitions are currently no-ops, but will be upgraded for some
-architectures when queued locks arrive.
+FWIW, I've just tested it on:
+  - ARM (ARMv7, cortex-a15): OK
+  - MIPS (TX4927): OK
+  - OpenRISC: -ENOSYS (expected, as asm-generic/futex.h doesn't implement
+    futex_atomic_cmpxchg_inatomic() yet)
 
-Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Oleg Nesterov <oleg@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
----
- include/linux/spinlock.h | 10 ++++++++++
- 1 file changed, 10 insertions(+)
+Speaking about asm-generic: arch/m68k/include/asm/futex.h doesn't contain
+any m68k-specific code, so it's a candidate to replace
+include/asm-generic/futex.h. Actually I just tried that, and the above passed
+for OpenRISC.
+Unfortunately I don't have networking (yet) on my de0-nano FPGA board,
+so I'm not in a good position to run a full futex test suite on OpenRISC.
 
-diff --git a/include/linux/spinlock.h b/include/linux/spinlock.h
-index 75f34949d9ab..3f2867ff0ced 100644
---- a/include/linux/spinlock.h
-+++ b/include/linux/spinlock.h
-@@ -130,6 +130,16 @@ do {								\
- #define smp_mb__before_spinlock()	smp_wmb()
- #endif
- 
-+/*
-+ * Place this after a lock-acquisition primitive to guarantee that
-+ * an UNLOCK+LOCK pair act as a full barrier.  This guarantee applies
-+ * if the UNLOCK and LOCK are executed by the same CPU or if the
-+ * UNLOCK and LOCK operate on the same lock variable.
-+ */
-+#ifndef smp_mb__after_unlock_lock
-+#define smp_mb__after_unlock_lock()	do { } while (0)
-+#endif
-+
- /**
-  * raw_spin_unlock_wait - wait until the spinlock gets unlocked
-  * @lock: the spinlock in question.
--- 
-1.8.1.5
+Gr{oetje,eeting}s,
 
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
