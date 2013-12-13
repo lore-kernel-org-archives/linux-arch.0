@@ -1,50 +1,48 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v6 tip/core/locking 3/8]
- Documentation/memory-barriers.txt: Prohibit speculative writes
-Date: Fri, 13 Dec 2013 15:18:19 +0100
-Message-ID: <20131213141819.GN21999@twins.programming.kicks-ass.net>
-References: <20131211215850.GA810@linux.vnet.ibm.com>
- <1386799151-2219-1-git-send-email-paulmck@linux.vnet.ibm.com>
- <1386799151-2219-3-git-send-email-paulmck@linux.vnet.ibm.com>
- <20131212131710.GE5806@gmail.com>
- <20131212150844.GZ4208@linux.vnet.ibm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Subject: [PATCH 0/4] arch: Introduce smp_load_acquire() and smp_store_release()
+Date: Fri, 13 Dec 2013 15:56:57 +0100
+Message-ID: <20131213145657.265414969@infradead.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:43815 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:45054 "EHLO
 	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752567Ab3LMOS4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Dec 2013 09:18:56 -0500
-Content-Disposition: inline
-In-Reply-To: <20131212150844.GZ4208@linux.vnet.ibm.com>
+	with ESMTP id S1752199Ab3LMPJQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Dec 2013 10:09:16 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, laijs@cn.fujitsu.com, dipankar@in.ibm.com, akpm@linux-foundation.org, mathieu.desnoyers@efficios.com, josh@joshtriplett.org, niv@us.ibm.com, tglx@linutronix.de, rostedt@goodmis.org, dhowells@redhat.com, edumazet@google.com, darren@dvhart.com, fweisbec@gmail.com, oleg@redhat.com, sbw@mit.edu, Linux-Arch <linux-arch@vger.kernel.org>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kerne.org
+Cc: geert@linux-m68k.org, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, VICTORK@il.ibm.com, oleg@redhat.com, anton@samba.org, benh@kernel.crashing.org, fweisbec@gmail.com, mathieu.desnoyers@polymtl.ca, michael@ellerman.id.au, mikey@neuling.org, linux@arm.linux.org.uk, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, tony.luck@intel.com, Peter Zijlstra <peterz@infradead.org>
 
-On Thu, Dec 12, 2013 at 07:08:44AM -0800, Paul E. McKenney wrote:
-> On Thu, Dec 12, 2013 at 02:17:10PM +0100, Ingo Molnar wrote:
-> > 
-> > * Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
-> > 
-> > > From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-> > > 
-> > > No SMP architecture currently supporting Linux allows speculative writes,
-> > > so this commit updates Documentation/memory-barriers.txt to prohibit
-> > > them in Linux core code.  It also records restrictions on their use.
-> > > 
-> > > Signed-off-by: Peter Zijlstra <peterz@infradead.org>
-> > > Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-> > 
-> > The signoff sequence looks weird here. If this came from Peter 
-> > originally, did you mean:
-> > 
-> >   From: Peter Zijlstra <peterz@infradead.org>
-> > 
-> > instead of "From: Paul ..." ?
-> 
-> Indeed I did!  I will fix.
+These patches introduce 2 new barrier primitives:
 
-Well Paul did rewrite the entire thing into something far better than
-what I started out with. I don't mind him dropping my SOB over his own.
-I'll settle for an reviewed-by on this ;-)
+  smp_load_acquire(p)
+  smp_store_release(p, v)
+
+See the first patch, which changes Documentation/memory-barriers.txt, to find
+the exact definitions of what an ACQUIRE/RELEASE barrier is -- previously known
+as LOCK/UNLOCK barriers.
+
+The second patch moves the smp_mb__{before,after}_atomic_{dec,inc}() barriers
+to asm/atomic.h for arc and hexagon -- they were already there for all other archs.
+
+This cleans up asm/barrier.h, and the third patch makes more agressive use of
+asm-generic/barrier.h to implement the simple cases.
+
+Then the fourth patch adds the new primitives.
+
+Previous versions were widely build tested -- this version is not, but it also
+not significantly different.
+
+These patches apply to:
+
+  tip/master + lkml.kernel.org/r/20131211215850.GA810@linux.vnet.ibm.com
+
+
+---
+Changes since the last version -- lkml.kernel.org/r/20131107220314.740353088@infradead.org
+
+ - rebased
+ - broke out the smp_mb__*atomic* movement
+ - changed the ia64 implementation to use volatile instead
+   of actual ASM goo -- Tony, do let me know if you would
+   prefer to have the ASM goo back; but given you said that
+   gcc-ia64 generates the right instructions for volatile...
