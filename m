@@ -1,74 +1,77 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 3/4] arch: Clean up asm/barrier.h implementations using
- asm-generic/barrier.h
-Date: Fri, 13 Dec 2013 20:53:15 +0100
-Message-ID: <20131213195315.GH2480@laptop.programming.kicks-ass.net>
-References: <20131213145657.265414969@infradead.org>
- <20131213150640.846368594@infradead.org>
- <CAMuHMdXs16E1WZ4FL=r9BkLBF-q7B432pzpVoGiH-53HZxVx-Q@mail.gmail.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: [GIT PULL locking/mb] Locking/memory-barrier commits
+Date: Fri, 13 Dec 2013 23:48:46 -0800
+Message-ID: <20131214074846.GA23612@linux.vnet.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:52146 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752122Ab3LMTyE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Dec 2013 14:54:04 -0500
+Received: from e39.co.us.ibm.com ([32.97.110.160]:52984 "EHLO
+	e39.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751633Ab3LNHsy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 14 Dec 2013 02:48:54 -0500
+Received: from /spool/local
+	by e39.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Sat, 14 Dec 2013 00:48:54 -0700
+Received: from b03cxnp08027.gho.boulder.ibm.com (b03cxnp08027.gho.boulder.ibm.com [9.17.130.19])
+	by d03dlp02.boulder.ibm.com (Postfix) with ESMTP id 0D6E93E40040
+	for <linux-arch@vger.kernel.org>; Sat, 14 Dec 2013 00:48:51 -0700 (MST)
+Received: from d03av06.boulder.ibm.com (d03av06.boulder.ibm.com [9.17.195.245])
+	by b03cxnp08027.gho.boulder.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id rBE7moNk4522276
+	for <linux-arch@vger.kernel.org>; Sat, 14 Dec 2013 08:48:50 +0100
+Received: from d03av06.boulder.ibm.com (loopback [127.0.0.1])
+	by d03av06.boulder.ibm.com (8.14.4/8.13.1/NCO v10.0 AVout) with ESMTP id rBE7pqWW009815
+	for <linux-arch@vger.kernel.org>; Sat, 14 Dec 2013 00:51:54 -0700
 Content-Disposition: inline
-In-Reply-To: <CAMuHMdXs16E1WZ4FL=r9BkLBF-q7B432pzpVoGiH-53HZxVx-Q@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, linux-kernel@vger.kerne.org, Paul McKenney <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Victor Kaplansky <VICTORK@il.ibm.com>, Oleg Nesterov <oleg@redhat.com>, Anton Blanchard <anton@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, =?iso-8859-1?Q?Fr=E9d=E9ric?= Weisbecker <fweisbec@gmail.com>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Michael Ellerman <michael@ellerman.id.au>, Michael Neuling <mikey@neuling.org>, Russell King <linux@arm.linux.org.uk>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Tony Luck <tony.luck@intel.com>
+To: mingo@kernel.org
+Cc: dhowells@redhat.com, josh@joshtriplett.org, peterz@infradead.org, linux-arch@vger.kernel.org, oleg@redhat.com, corbet@lwn.net, rusty@rustcorp.com.au, torvalds@linux-foundation.org, benh@kernel.crashing.org, paulus@samba.org, linuxppc-dev@lists.ozlabs.org
 
-On Fri, Dec 13, 2013 at 08:16:28PM +0100, Geert Uytterhoeven wrote:
-> Hi Peter,
-> 
-> On Fri, Dec 13, 2013 at 3:57 PM, Peter Zijlstra <peterz@infradead.org> wrote:
-> > There are a few architectures (m32r, m68k) that could probably
-> > do away with their barrier.h file entirely but are kept for now due to
-> > their unconventional nop() implementation.
-> 
-> m32r uses `__asm__ __volatile__ ("nop" : : )' instead of
-> `asm volatile ("nop")'. Isn't the latter just a shorthand of the former?
+Hello, Ingo,
 
-Yes.. however it might be there's a gcc bug on that platform or whatnot
-that they care about.
+This pull request contains additions to the memory-barrier documentation,
+along with a downgrading of UNLOCK+LOCK to no longer be a full memory
+barrier, and finally an smp_mb__after_unlock_lock() that allows upgrading
+a particular LOCK to pair with a preceding UNLOCK to form a full memory
+barrier, and application of smp_mb__after_unlock_lock() to RCU.
 
-> m68k has an additional `barrier()', which I think is unneeded.
+The first four documentation commits are ready for 3.14:
 
-Strictly speaking yes, but I didn't want to grep through the m68k arch
-code to figure out if someone somehow started to rely on that.
+b145f8acfd82 (Add needed ACCESS_ONCE() calls to memory-barriers.txt)
+6be08d626389 (Add long atomic examples to memory-barriers.txt)
+c89bb78cfbe1 (Prohibit speculative writes)
+b2ba08be67fc (Document ACCESS_ONCE())
 
-In both cases, I was too lazy to really figure it out and hoped the
-relevant maintainers would see and clean it up for me ;-)
+The remaining commits might or might not be, but are at a point where
+getting them into -tip is appropriate given other changes in this area,
+e.g., Peter's smp_load_acquire() and smp_store_release().
 
-> I looked at the asm output for drivers/block/ataflop.c and
-> drivers/video/macfb.c, with and without the barrier.
-> For ataflop, there were no differences.
-> For macfb, removing the barrier allowed the compiler to keep the base
-> addresses of the MMIO registers in registers, but there were no changes
-> to the register accesses themselves.
-> 
-> So IMHO both m32r and m68k can switch to the asm-generic version.
+These changes are available in the git repository at:
 
-I'm all for it.
+  git://git.kernel.org/pub/scm/linux/kernel/git/paulmck/linux-rcu.git locking/mb
 
-> I'm wondering whether we can just drop nop() from the in-kernel API?
-> There are few users outside arch/:
-> 
-> drivers/block/ataflop.c
-> drivers/net/ethernet/amd/am79c961a.c
-> drivers/tty/serial/crisv10.c
-> drivers/video/macfb.c
-> 
-> From a quick glance, all of them (ab)use nop() instead of one of the other
-> primitives. For the macfb case, it seems to be due to missing ordering
-> inside the nubus_*() I/O accessors.
+for you to fetch changes up to 9f9df17e265b2c5aea11a95e3e69269d005ac0ae:
 
-Yeah, its not something that really makes sense outside of arch/; in a
-previous thread someone also asked why that thing is in barrier.h to
-begin with.
+  powerpc: Full barrier for smp_mb__after_unlock_lock() (2013-12-13 09:05:13 -0800)
 
-That said, even if you remove the generic nop() usage, arch/ is likely
-to still need it so we couldn't just remove it, we'd have to stuff it
-someplace else -- which might be a good idea anyhow.
+----------------------------------------------------------------
+Paul E. McKenney (7):
+      Documentation/memory-barriers.txt: Add needed ACCESS_ONCE() calls to memory-barriers.txt
+      Documentation/memory-barriers.txt: Add long atomic examples to memory-barriers.txt
+      Documentation/memory-barriers.txt: Document ACCESS_ONCE()
+      locking: Add an smp_mb__after_unlock_lock() for UNLOCK+LOCK barrier
+      Documentation/memory-barriers.txt: Downgrade UNLOCK+LOCK
+      rcu: Apply smp_mb__after_unlock_lock() to preserve grace periods
+      powerpc: Full barrier for smp_mb__after_unlock_lock()
+
+Peter Zijlstra (1):
+      Documentation/memory-barriers.txt: Prohibit speculative writes
+
+ Documentation/memory-barriers.txt   | 733 ++++++++++++++++++++++++++++++------
+ arch/powerpc/include/asm/spinlock.h |   2 +
+ include/linux/spinlock.h            |  10 +
+ kernel/rcu/tree.c                   |  18 +-
+ kernel/rcu/tree_plugin.h            |  13 +
+ 5 files changed, 661 insertions(+), 115 deletions(-)
