@@ -1,111 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f50.google.com ([209.85.160.50]:57157 "EHLO
-	mail-pb0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750873Ab3LLJQW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Dec 2013 04:16:22 -0500
-MIME-Version: 1.0
-In-Reply-To: <20131211143450.329edd5199fd9a4d56abb6bc@linux-foundation.org>
-References: <1386758601-8520-1-git-send-email-geert@linux-m68k.org>
-	<20131211143450.329edd5199fd9a4d56abb6bc@linux-foundation.org>
-Date: Thu, 12 Dec 2013 10:16:21 +0100
-Message-ID: <CAMuHMdUq3wQMxcic6NUy+su6bdgDLJAaODAOF5OcryJMDmj_fg@mail.gmail.com>
-Subject: Re: [PATCH] futex: Switch to USER_DS for futex test
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
+Received: from mail-pa0-f45.google.com ([209.85.220.45]:56733 "EHLO
+	mail-pa0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751828Ab3LOQka (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 15 Dec 2013 11:40:30 -0500
+From: Jiang Liu <liuj97@gmail.com>
+Subject: [PATCH v3 [resend] 03/18] smp, alpha: kill SMP single function call interrupt
+Date: Mon, 16 Dec 2013 00:36:25 +0800
+Message-ID: <1387125400-28849-4-git-send-email-liuj97@gmail.com>
+In-Reply-To: <1387125400-28849-1-git-send-email-liuj97@gmail.com>
+References: <1387125400-28849-1-git-send-email-liuj97@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Rusty Russell <rusty@rustcorp.com.au>, Thomas Gleixner <tglx@linutronix.de>, Darren Hart <dvhart@linux.intel.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux/m68k <linux-m68k@vger.kernel.org>, stable <stable@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Jonas Bonn <jonas@southpole.se>
-Message-ID: <20131212091621.CiCRoYYCjIhvX9mrtza7RxTvTiNqwU75Y2xdn8jqHSc@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Shaohua Li <shli@kernel.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Chen Gang <gang.chen@asianux.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Jiang Liu <liuj97@gmail.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, Wang YanQing <udknight@gmail.com>, linux-arch@vger.kernel.org
+Message-ID: <20131215163625.eCl8O7p2s7rVy7o0AUfuQN1ABj1hsUzPzaUNXvfTLes@z>
 
-On Wed, Dec 11, 2013 at 11:34 PM, Andrew Morton
-<akpm@linux-foundation.org> wrote:
-> On Wed, 11 Dec 2013 11:43:21 +0100 Geert Uytterhoeven <geert@linux-m68k.org> wrote:
->
->> Since commit e4f2dfbb5e92be4e46c0625f4f8eb101110f756f ("m68k: implement
->> futex.h to support userspace robust futexes and PI mutexes"), the kernel
->> crashes during boot up on MC68030:
->>
->> Data read fault at 0x00000000 in Super Data (pc=0x3afec)
->> BAD KERNEL BUSERR
->> Oops: 00000000
->> Modules linked in:
->> PC: [<0003afec>] cmpxchg_futex_value_locked+0x14/0x4a
->> SR: 2004  SP: 0082fed4  a2: 0082c000
->> d0: 00000000    d1: 00000001    d2: 00000018    d3: 00000000
->> d4: 00000061    d5: 00001000    a0: 00000000    a1: 0082e000
->> Process swapper (pid: 1, task=0082c000)
->> Frame format=B ssw=074d isc=4a80 isb=661c daddr=00000000 dobuf=00000001
->> baddr=0003aff2 dibuf=00000000 ver=f
->> Stack from 0082ff5c:
->>         002b8cb8 0082ff70 00000000 00000000 00000000 00000000 00000000 000020ac
->>         00000018 00000007 00000061 00001000 00000000 00000000 002cab50 00002008
->>         002b3a56 002b8ca4 0082c3f0 00000000 0082c53c 001e316a 00000000 00000000
->>         001e3172 001e316a 000025d4 00000000 00000000 00000000 00000000 00000000
->>         00000000 00000000 00000000 00000000 00000000 00000000 00000000 20000000
->>         00000000
->> Call Trace: [<002b8cb8>] futex_init+0x14/0x54
->>  [<000020ac>] do_one_initcall+0xa4/0x144
->>  [<00001000>] kernel_pg_dir+0x0/0x1000
->>  [<00002008>] do_one_initcall+0x0/0x144
->>  [<002b3a56>] kernel_init_freeable+0xca/0x152
->>  [<002b8ca4>] futex_init+0x0/0x54
->>  [<001e316a>] kernel_init+0x0/0xc8
->>  [<001e3172>] kernel_init+0x8/0xc8
->>  [<001e316a>] kernel_init+0x0/0xc8
->>  [<000025d4>] ret_from_kernel_thread+0xc/0x14
->>
->> This happens because the futex test in futex_init() lacks a switch to the
->> USER_DS address space, while cmpxchg_futex_value_locked() and
->> futex_atomic_cmpxchg_inatomic() operate on userspace pointers (albeit NULL
->> for this particular test).
->>
->> Fix this by switching to USER_DS before running the test, and restoring the
->> old address space afterwards.
->>
->> ...
->>
->>  static int __init futex_init(void)
->>  {
->> +     mm_segment_t fs;
->>       u32 curval;
->>       int i;
->>
->> @@ -2745,8 +2747,11 @@ static int __init futex_init(void)
->>        * implementation, the non-functional ones will return
->>        * -ENOSYS.
->>        */
->> +     fs = get_fs();
->> +     set_fs(USER_DS);
->>       if (cmpxchg_futex_value_locked(&curval, NULL, 0, 0) == -EFAULT)
->>               futex_cmpxchg_enabled = 1;
->> +     set_fs(fs);
->
-> hm.  Are we sure that a reference to NULL will continue to fault on all
-> architectures when switched to USER_DS?
+Commit 9a46ad6d6df3b54 "smp: make smp_call_function_many() use logic
+similar to smp_call_function_single()" has unified the way to handle
+single and multiple cross-CPU function calls. Now only one interrupt
+is needed for architecture specific code to support generic SMP function
+call interfaces, so kill the redundant single function call interrupt.
 
-Good question! As you queued it in -mm, we'll see in -next.
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Shaohua Li <shli@kernel.org>
+Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Ingo Molnar <mingo@elte.hu>
+Cc: Steven Rostedt <rostedt@goodmis.org>
+Cc: Jiri Kosina <trivial@kernel.org>
+Cc: Richard Henderson <rth@twiddle.net>
+Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Cc: Matt Turner <mattst88@gmail.com>
+Cc: linux-alpha@vger.kernel.org
+Signed-off-by: Jiang Liu <liuj97@gmail.com>
+---
+ arch/alpha/kernel/smp.c | 8 +-------
+ 1 file changed, 1 insertion(+), 7 deletions(-)
 
-FWIW, I've just tested it on:
-  - ARM (ARMv7, cortex-a15): OK
-  - MIPS (TX4927): OK
-  - OpenRISC: -ENOSYS (expected, as asm-generic/futex.h doesn't implement
-    futex_atomic_cmpxchg_inatomic() yet)
+diff --git a/arch/alpha/kernel/smp.c b/arch/alpha/kernel/smp.c
+index 99ac36d..2f24447 100644
+--- a/arch/alpha/kernel/smp.c
++++ b/arch/alpha/kernel/smp.c
+@@ -63,7 +63,6 @@ static struct {
+ enum ipi_message_type {
+ 	IPI_RESCHEDULE,
+ 	IPI_CALL_FUNC,
+-	IPI_CALL_FUNC_SINGLE,
+ 	IPI_CPU_STOP,
+ };
+ 
+@@ -506,7 +505,6 @@ setup_profiling_timer(unsigned int multiplier)
+ 	return -EINVAL;
+ }
+ 
+-
+ static void
+ send_ipi_message(const struct cpumask *to_whom, enum ipi_message_type operation)
+ {
+@@ -552,10 +550,6 @@ handle_ipi(struct pt_regs *regs)
+ 			generic_smp_call_function_interrupt();
+ 			break;
+ 
+-		case IPI_CALL_FUNC_SINGLE:
+-			generic_smp_call_function_single_interrupt();
+-			break;
+-
+ 		case IPI_CPU_STOP:
+ 			halt();
+ 
+@@ -606,7 +600,7 @@ void arch_send_call_function_ipi_mask(const struct cpumask *mask)
+ 
+ void arch_send_call_function_single_ipi(int cpu)
+ {
+-	send_ipi_message(cpumask_of(cpu), IPI_CALL_FUNC_SINGLE);
++	send_ipi_message(cpumask_of(cpu), IPI_CALL_FUNC);
+ }
+ 
+ static void
+-- 
+1.8.1.2
 
-Speaking about asm-generic: arch/m68k/include/asm/futex.h doesn't contain
-any m68k-specific code, so it's a candidate to replace
-include/asm-generic/futex.h. Actually I just tried that, and the above passed
-for OpenRISC.
-Unfortunately I don't have networking (yet) on my de0-nano FPGA board,
-so I'm not in a good position to run a full futex test suite on OpenRISC.
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
