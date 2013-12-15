@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f179.google.com ([209.85.192.179]:42778 "EHLO
-	mail-pd0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751571Ab3LOQoT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 15 Dec 2013 11:44:19 -0500
+Received: from mail-pd0-f174.google.com ([209.85.192.174]:62634 "EHLO
+	mail-pd0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751571Ab3LOQpX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 15 Dec 2013 11:45:23 -0500
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v3 [resend] 12/18] smp, sparc64: kill SMP single function call interrupt
-Date: Mon, 16 Dec 2013 00:36:34 +0800
-Message-ID: <1387125400-28849-13-git-send-email-liuj97@gmail.com>
+Subject: [PATCH v3 [resend] 14/18] smp, x86, xen: kill SMP single function call interrupt
+Date: Mon, 16 Dec 2013 00:36:36 +0800
+Message-ID: <1387125400-28849-15-git-send-email-liuj97@gmail.com>
 In-Reply-To: <1387125400-28849-1-git-send-email-liuj97@gmail.com>
 References: <1387125400-28849-1-git-send-email-liuj97@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Shaohua Li <shli@kernel.org>, "David S. Miller" <davem@davemloft.net>, Sam Ravnborg <sam@ravnborg.org>, Paul Gortmaker <paul.gortmaker@windriver.com>, Kirill Tkhai <tkhai@yandex.ru>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Bob Picco <bob.picco@oracle.com>, Dave Kleikamp <dave.kleikamp@oracle.com>, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Jiang Liu <liuj97@gmail.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, Wang YanQing <udknight@gmail.com>, linux-arch@vger.kernel.org, Kefeng Wang <wangkefeng.wang@huawei.com>
-Message-ID: <20131215163634.6u1AGxbbBjeNwbW15NdCi8Qb_iNEz-kKGfApk0Hs3pM@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Shaohua Li <shli@kernel.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, David Vrabel <david.vrabel@citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, xen-devel@lists.xenproject.org, linux-kernel@vger.kernel.org
+Cc: Jiang Liu <liuj97@gmail.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, Wang YanQing <udknight@gmail.com>, linux-arch@vger.kernel.org, Jeremy Fitzhardinge <jeremy@goop.org>, Sebastian Andrzej Siewior <sebastian@breakpoint.cc>, xen-devel@lists.xensource.com, virtualization@lists.linux-foundation.org
+Message-ID: <20131215163636.Vgq-Fm9eGEhbptJsE6zdiJNUYZMvknlrErYo0frORKA@z>
 
 Commit 9a46ad6d6df3b54 "smp: make smp_call_function_many() use logic
 similar to smp_call_function_single()" has unified the way to handle
@@ -27,107 +27,121 @@ Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
 Cc: Ingo Molnar <mingo@elte.hu>
 Cc: Steven Rostedt <rostedt@goodmis.org>
 Cc: Jiri Kosina <trivial@kernel.org>
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: Sam Ravnborg <sam@ravnborg.org>
-Cc: Kefeng Wang <wangkefeng.wang@huawei.com>
-Cc: sparclinux@vger.kernel.org
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Cc: Jeremy Fitzhardinge <jeremy@goop.org>
+Cc: Sebastian Andrzej Siewior <sebastian@breakpoint.cc>
+Cc: x86@kernel.org
+Cc: xen-devel@lists.xensource.com
+Cc: virtualization@lists.linux-foundation.org
 Signed-off-by: Jiang Liu <liuj97@gmail.com>
 ---
- arch/sparc/include/asm/pil.h  |  5 ++---
- arch/sparc/kernel/smp_64.c    | 11 +----------
- arch/sparc/kernel/ttable_64.S | 12 ++++--------
- arch/sparc/mm/ultra.S         |  5 -----
- 4 files changed, 7 insertions(+), 26 deletions(-)
+ arch/x86/include/asm/xen/events.h |  1 -
+ arch/x86/xen/smp.c                | 38 ++------------------------------------
+ 2 files changed, 2 insertions(+), 37 deletions(-)
 
-diff --git a/arch/sparc/include/asm/pil.h b/arch/sparc/include/asm/pil.h
-index 2669370..5ffb15d 100644
---- a/arch/sparc/include/asm/pil.h
-+++ b/arch/sparc/include/asm/pil.h
-@@ -22,9 +22,8 @@
- #define PIL_SMP_CAPTURE		3
- #define PIL_SMP_CTX_NEW_VERSION	4
- #define PIL_DEVICE_IRQ		5
--#define PIL_SMP_CALL_FUNC_SNGL	6
--#define PIL_DEFERRED_PCR_WORK	7
--#define PIL_KGDB_CAPTURE	8
-+#define PIL_DEFERRED_PCR_WORK	6
-+#define PIL_KGDB_CAPTURE	7
- #define PIL_NORMAL_MAX		14
- #define PIL_NMI			15
+diff --git a/arch/x86/include/asm/xen/events.h b/arch/x86/include/asm/xen/events.h
+index 608a79d..a9e54dc 100644
+--- a/arch/x86/include/asm/xen/events.h
++++ b/arch/x86/include/asm/xen/events.h
+@@ -4,7 +4,6 @@
+ enum ipi_vector {
+ 	XEN_RESCHEDULE_VECTOR,
+ 	XEN_CALL_FUNCTION_VECTOR,
+-	XEN_CALL_FUNCTION_SINGLE_VECTOR,
+ 	XEN_SPIN_UNLOCK_VECTOR,
+ 	XEN_IRQ_WORK_VECTOR,
+ 	XEN_NMI_VECTOR,
+diff --git a/arch/x86/xen/smp.c b/arch/x86/xen/smp.c
+index c36b325..7cf1689 100644
+--- a/arch/x86/xen/smp.c
++++ b/arch/x86/xen/smp.c
+@@ -46,12 +46,10 @@ struct xen_common_irq {
+ };
+ static DEFINE_PER_CPU(struct xen_common_irq, xen_resched_irq) = { .irq = -1 };
+ static DEFINE_PER_CPU(struct xen_common_irq, xen_callfunc_irq) = { .irq = -1 };
+-static DEFINE_PER_CPU(struct xen_common_irq, xen_callfuncsingle_irq) = { .irq = -1 };
+ static DEFINE_PER_CPU(struct xen_common_irq, xen_irq_work) = { .irq = -1 };
+ static DEFINE_PER_CPU(struct xen_common_irq, xen_debug_irq) = { .irq = -1 };
  
-diff --git a/arch/sparc/kernel/smp_64.c b/arch/sparc/kernel/smp_64.c
-index b66a533..07d624b 100644
---- a/arch/sparc/kernel/smp_64.c
-+++ b/arch/sparc/kernel/smp_64.c
-@@ -811,12 +811,9 @@ void arch_send_call_function_ipi_mask(const struct cpumask *mask)
- 	xcall_deliver((u64) &xcall_call_function, 0, 0, mask);
- }
+ static irqreturn_t xen_call_function_interrupt(int irq, void *dev_id);
+-static irqreturn_t xen_call_function_single_interrupt(int irq, void *dev_id);
+ static irqreturn_t xen_irq_work_interrupt(int irq, void *dev_id);
  
--extern unsigned long xcall_call_function_single;
+ /*
+@@ -123,13 +121,6 @@ static void xen_smp_intr_free(unsigned int cpu)
+ 		kfree(per_cpu(xen_debug_irq, cpu).name);
+ 		per_cpu(xen_debug_irq, cpu).name = NULL;
+ 	}
+-	if (per_cpu(xen_callfuncsingle_irq, cpu).irq >= 0) {
+-		unbind_from_irqhandler(per_cpu(xen_callfuncsingle_irq, cpu).irq,
+-				       NULL);
+-		per_cpu(xen_callfuncsingle_irq, cpu).irq = -1;
+-		kfree(per_cpu(xen_callfuncsingle_irq, cpu).name);
+-		per_cpu(xen_callfuncsingle_irq, cpu).name = NULL;
+-	}
+ 	if (xen_hvm_domain())
+ 		return;
+ 
+@@ -178,18 +169,6 @@ static int xen_smp_intr_init(unsigned int cpu)
+ 	per_cpu(xen_debug_irq, cpu).irq = rc;
+ 	per_cpu(xen_debug_irq, cpu).name = debug_name;
+ 
+-	callfunc_name = kasprintf(GFP_KERNEL, "callfuncsingle%d", cpu);
+-	rc = bind_ipi_to_irqhandler(XEN_CALL_FUNCTION_SINGLE_VECTOR,
+-				    cpu,
+-				    xen_call_function_single_interrupt,
+-				    IRQF_PERCPU|IRQF_NOBALANCING,
+-				    callfunc_name,
+-				    NULL);
+-	if (rc < 0)
+-		goto fail;
+-	per_cpu(xen_callfuncsingle_irq, cpu).irq = rc;
+-	per_cpu(xen_callfuncsingle_irq, cpu).name = callfunc_name;
 -
- void arch_send_call_function_single_ipi(int cpu)
+ 	/*
+ 	 * The IRQ worker on PVHVM goes through the native path and uses the
+ 	 * IPI mechanism.
+@@ -569,8 +548,7 @@ static void xen_smp_send_call_function_ipi(const struct cpumask *mask)
+ 
+ static void xen_smp_send_call_function_single_ipi(int cpu)
  {
--	xcall_deliver((u64) &xcall_call_function_single, 0, 0,
--		      cpumask_of(cpu));
-+	xcall_deliver((u64) &xcall_call_function, 0, 0, cpumask_of(cpu));
+-	__xen_send_IPI_mask(cpumask_of(cpu),
+-			  XEN_CALL_FUNCTION_SINGLE_VECTOR);
++	__xen_send_IPI_mask(cpumask_of(cpu), XEN_CALL_FUNCTION_VECTOR);
  }
  
- void __irq_entry smp_call_function_client(int irq, struct pt_regs *regs)
-@@ -825,12 +822,6 @@ void __irq_entry smp_call_function_client(int irq, struct pt_regs *regs)
- 	generic_smp_call_function_interrupt();
+ static inline int xen_map_vector(int vector)
+@@ -582,10 +560,8 @@ static inline int xen_map_vector(int vector)
+ 		xen_vector = XEN_RESCHEDULE_VECTOR;
+ 		break;
+ 	case CALL_FUNCTION_VECTOR:
+-		xen_vector = XEN_CALL_FUNCTION_VECTOR;
+-		break;
+ 	case CALL_FUNCTION_SINGLE_VECTOR:
+-		xen_vector = XEN_CALL_FUNCTION_SINGLE_VECTOR;
++		xen_vector = XEN_CALL_FUNCTION_VECTOR;
+ 		break;
+ 	case IRQ_WORK_VECTOR:
+ 		xen_vector = XEN_IRQ_WORK_VECTOR;
+@@ -663,16 +639,6 @@ static irqreturn_t xen_call_function_interrupt(int irq, void *dev_id)
+ 	return IRQ_HANDLED;
  }
  
--void __irq_entry smp_call_function_single_client(int irq, struct pt_regs *regs)
+-static irqreturn_t xen_call_function_single_interrupt(int irq, void *dev_id)
 -{
--	clear_softint(1 << irq);
+-	irq_enter();
 -	generic_smp_call_function_single_interrupt();
+-	inc_irq_stat(irq_call_count);
+-	irq_exit();
+-
+-	return IRQ_HANDLED;
 -}
 -
- static void tsb_sync(void *info)
+ static irqreturn_t xen_irq_work_interrupt(int irq, void *dev_id)
  {
- 	struct trap_per_cpu *tp = &trap_block[raw_smp_processor_id()];
-diff --git a/arch/sparc/kernel/ttable_64.S b/arch/sparc/kernel/ttable_64.S
-index c6dfdaa..defa2db 100644
---- a/arch/sparc/kernel/ttable_64.S
-+++ b/arch/sparc/kernel/ttable_64.S
-@@ -58,17 +58,13 @@ tl0_irq3:	BTRAP(0x43)
- tl0_irq4:	BTRAP(0x44)
- #endif
- tl0_irq5:	TRAP_IRQ(handler_irq, 5)
--#ifdef CONFIG_SMP
--tl0_irq6:	TRAP_IRQ(smp_call_function_single_client, 6)
--#else
--tl0_irq6:	BTRAP(0x46)
--#endif
--tl0_irq7:	TRAP_IRQ(deferred_pcr_work_irq, 7)
-+tl0_irq6:	TRAP_IRQ(deferred_pcr_work_irq, 6)
- #if defined(CONFIG_KGDB) && defined(CONFIG_SMP)
--tl0_irq8:	TRAP_IRQ(smp_kgdb_capture_client, 8)
-+tl0_irq7:	TRAP_IRQ(smp_kgdb_capture_client, 7)
- #else
--tl0_irq8:	BTRAP(0x48)
-+tl0_irq7:	BTRAP(0x47)
- #endif
-+tl0_irq8:	BTRAP(0x48)
- tl0_irq9:	BTRAP(0x49)
- tl0_irq10:	BTRAP(0x4a) BTRAP(0x4b) BTRAP(0x4c) BTRAP(0x4d)
- tl0_irq14:	TRAP_IRQ(timer_interrupt, 14)
-diff --git a/arch/sparc/mm/ultra.S b/arch/sparc/mm/ultra.S
-index b4f4733..1da4739 100644
---- a/arch/sparc/mm/ultra.S
-+++ b/arch/sparc/mm/ultra.S
-@@ -780,11 +780,6 @@ xcall_call_function:
- 	wr		%g0, (1 << PIL_SMP_CALL_FUNC), %set_softint
- 	retry
- 
--	.globl		xcall_call_function_single
--xcall_call_function_single:
--	wr		%g0, (1 << PIL_SMP_CALL_FUNC_SNGL), %set_softint
--	retry
--
- 	.globl		xcall_receive_signal
- xcall_receive_signal:
- 	wr		%g0, (1 << PIL_SMP_RECEIVE_SIGNAL), %set_softint
+ 	irq_enter();
 -- 
 1.8.1.2
 
