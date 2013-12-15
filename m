@@ -1,77 +1,67 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [GIT PULL locking/mb] Locking/memory-barrier commits
-Date: Fri, 13 Dec 2013 23:48:46 -0800
-Message-ID: <20131214074846.GA23612@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Jiang Liu <liuj97@gmail.com>
+Subject: Re: [RFC PATCH v3 19/19] smp, x86: kill SMP single function call
+	interrupt
+Date: Sun, 15 Dec 2013 23:49:27 +0800
+Message-ID: <52ADCF87.5010209@gmail.com>
+References: <1386173591-28514-1-git-send-email-liuj97@gmail.com>
+	<1386173591-28514-20-git-send-email-liuj97@gmail.com>
+	<20131211221011.GA26423@breakpoint.cc>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e39.co.us.ibm.com ([32.97.110.160]:52984 "EHLO
-	e39.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751633Ab3LNHsy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 14 Dec 2013 02:48:54 -0500
-Received: from /spool/local
-	by e39.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Sat, 14 Dec 2013 00:48:54 -0700
-Received: from b03cxnp08027.gho.boulder.ibm.com (b03cxnp08027.gho.boulder.ibm.com [9.17.130.19])
-	by d03dlp02.boulder.ibm.com (Postfix) with ESMTP id 0D6E93E40040
-	for <linux-arch@vger.kernel.org>; Sat, 14 Dec 2013 00:48:51 -0700 (MST)
-Received: from d03av06.boulder.ibm.com (d03av06.boulder.ibm.com [9.17.195.245])
-	by b03cxnp08027.gho.boulder.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id rBE7moNk4522276
-	for <linux-arch@vger.kernel.org>; Sat, 14 Dec 2013 08:48:50 +0100
-Received: from d03av06.boulder.ibm.com (loopback [127.0.0.1])
-	by d03av06.boulder.ibm.com (8.14.4/8.13.1/NCO v10.0 AVout) with ESMTP id rBE7pqWW009815
-	for <linux-arch@vger.kernel.org>; Sat, 14 Dec 2013 00:51:54 -0700
-Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: mingo@kernel.org
-Cc: dhowells@redhat.com, josh@joshtriplett.org, peterz@infradead.org, linux-arch@vger.kernel.org, oleg@redhat.com, corbet@lwn.net, rusty@rustcorp.com.au, torvalds@linux-foundation.org, benh@kernel.crashing.org, paulus@samba.org, linuxppc-dev@lists.ozlabs.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <20131211221011.GA26423@breakpoint.cc>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Sebastian Andrzej Siewior <sebastian@breakpoint.cc>
+Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Gleb Natapov <gleb@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Wang YanQing <udknight@gmail.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Joerg Roedel <joro@8bytes.org>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Yang Zhang <yang.z.zhang@Intel.com>, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@elte.hu>, Shaohua Li <shli@kernel.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Steven Rostedt <rostedt@goodmis.org>, xen-devel@lists.xensource.com, Al Viro <viro@zeniv.linux.org.uk>, Jiri Kosina <trivial@kernel.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, virtualization@lists.linux-foundation.org, Seiji Aguchi <seiji.aguchi@hds.com>, linux-kernel@vger.kernel.org, David
+List-Id: linux-arch.vger.kernel.org
 
-Hello, Ingo,
+Hi Sebastian,
+	Thanks for your review.
+	The patch applies to the mainstream kernel, so seems there's difference
+between tip and the mainstream kernel. I will try to find the
+difference.
+	And there's another patch for Xen, but I found the mail tile is
+wrong:( Please refer to:
+	http://www.kernelhub.org/?msg=373208&p=2
 
-This pull request contains additions to the memory-barrier documentation,
-along with a downgrading of UNLOCK+LOCK to no longer be a full memory
-barrier, and finally an smp_mb__after_unlock_lock() that allows upgrading
-a particular LOCK to pair with a preceding UNLOCK to form a full memory
-barrier, and application of smp_mb__after_unlock_lock() to RCU.
+	Should I merge the patch for xen with the patch for native x86?
+Is there any dependency between them?
 
-The first four documentation commits are ready for 3.14:
+Thanks!
+Gerry
 
-b145f8acfd82 (Add needed ACCESS_ONCE() calls to memory-barriers.txt)
-6be08d626389 (Add long atomic examples to memory-barriers.txt)
-c89bb78cfbe1 (Prohibit speculative writes)
-b2ba08be67fc (Document ACCESS_ONCE())
-
-The remaining commits might or might not be, but are at a point where
-getting them into -tip is appropriate given other changes in this area,
-e.g., Peter's smp_load_acquire() and smp_store_release().
-
-These changes are available in the git repository at:
-
-  git://git.kernel.org/pub/scm/linux/kernel/git/paulmck/linux-rcu.git locking/mb
-
-for you to fetch changes up to 9f9df17e265b2c5aea11a95e3e69269d005ac0ae:
-
-  powerpc: Full barrier for smp_mb__after_unlock_lock() (2013-12-13 09:05:13 -0800)
-
-----------------------------------------------------------------
-Paul E. McKenney (7):
-      Documentation/memory-barriers.txt: Add needed ACCESS_ONCE() calls to memory-barriers.txt
-      Documentation/memory-barriers.txt: Add long atomic examples to memory-barriers.txt
-      Documentation/memory-barriers.txt: Document ACCESS_ONCE()
-      locking: Add an smp_mb__after_unlock_lock() for UNLOCK+LOCK barrier
-      Documentation/memory-barriers.txt: Downgrade UNLOCK+LOCK
-      rcu: Apply smp_mb__after_unlock_lock() to preserve grace periods
-      powerpc: Full barrier for smp_mb__after_unlock_lock()
-
-Peter Zijlstra (1):
-      Documentation/memory-barriers.txt: Prohibit speculative writes
-
- Documentation/memory-barriers.txt   | 733 ++++++++++++++++++++++++++++++------
- arch/powerpc/include/asm/spinlock.h |   2 +
- include/linux/spinlock.h            |  10 +
- kernel/rcu/tree.c                   |  18 +-
- kernel/rcu/tree_plugin.h            |  13 +
- 5 files changed, 661 insertions(+), 115 deletions(-)
+On 12/12/2013 06:10 AM, Sebastian Andrzej Siewior wrote:
+> On 05.12.13, Jiang Liu wrote:
+> 
+> I like this in general however
+> 
+>> diff --git a/arch/x86/xen/smp.c b/arch/x86/xen/smp.c
+>> index 7cf1689..f241792 100644
+>> --- a/arch/x86/xen/smp.c
+>> +++ b/arch/x86/xen/smp.c
+>> @@ -560,7 +560,6 @@ static inline int xen_map_vector(int vector)
+>>  		xen_vector = XEN_RESCHEDULE_VECTOR;
+>>  		break;
+>>  	case CALL_FUNCTION_VECTOR:
+>> -	case CALL_FUNCTION_SINGLE_VECTOR:
+>>  		xen_vector = XEN_CALL_FUNCTION_VECTOR;
+>>  		break;
+>>  	case IRQ_WORK_VECTOR:
+> 
+> This chunk does not apply again tip's master branch, the code looks
+> different. You need to also kill XEN_CALL_FUNCTION_SINGLE_VECTOR which
+> is either part of a different patch or against a different tree. I
+> haven't seen a note in 0/19 or this patch description so I'm confused
+> here :)
+> 
+> Sebastian
+> 
