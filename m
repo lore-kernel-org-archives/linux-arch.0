@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f44.google.com ([209.85.220.44]:33917 "EHLO
-	mail-pa0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751993Ab3LOQlt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 15 Dec 2013 11:41:49 -0500
+Received: from mail-pd0-f171.google.com ([209.85.192.171]:53943 "EHLO
+	mail-pd0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751665Ab3LOQnb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 15 Dec 2013 11:43:31 -0500
 From: Jiang Liu <liuj97@gmail.com>
-Subject: [PATCH v3 [resend] 07/18] smp, IA64: kill SMP single function call interrupt
-Date: Mon, 16 Dec 2013 00:36:29 +0800
-Message-ID: <1387125400-28849-8-git-send-email-liuj97@gmail.com>
+Subject: [PATCH v3 [resend] 11/18] smp, sh: kill SMP single function call interrupt
+Date: Mon, 16 Dec 2013 00:36:33 +0800
+Message-ID: <1387125400-28849-12-git-send-email-liuj97@gmail.com>
 In-Reply-To: <1387125400-28849-1-git-send-email-liuj97@gmail.com>
 References: <1387125400-28849-1-git-send-email-liuj97@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Shaohua Li <shli@kernel.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>, Shaohua Li <shli@kernel.org>, Paul Mundt <lethal@linux-sh.org>, Thomas Gleixner <tglx@linutronix.de>, Paul Gortmaker <paul.gortmaker@windriver.com>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, linux-sh@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: Jiang Liu <liuj97@gmail.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Steven Rostedt <rostedt@goodmis.org>, Jiri Kosina <trivial@kernel.org>, Wang YanQing <udknight@gmail.com>, linux-arch@vger.kernel.org
-Message-ID: <20131215163629.eYq7ksf15c-zKvh-lWuI2W6mAzsX5BAw3DUHjkixKTE@z>
+Message-ID: <20131215163633.T5KlJrXU6uKRkzmWBUcGDlWD6NPItzo68AksFtHPZm8@z>
 
 Commit 9a46ad6d6df3b54 "smp: make smp_call_function_many() use logic
 similar to smp_call_function_single()" has unified the way to handle
@@ -27,47 +27,48 @@ Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
 Cc: Ingo Molnar <mingo@elte.hu>
 Cc: Steven Rostedt <rostedt@goodmis.org>
 Cc: Jiri Kosina <trivial@kernel.org>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: linux-ia64@vger.kernel.org
+Cc: Paul Mundt <lethal@linux-sh.org>
 Signed-off-by: Jiang Liu <liuj97@gmail.com>
 ---
- arch/ia64/kernel/smp.c | 8 ++------
- 1 file changed, 2 insertions(+), 6 deletions(-)
+ arch/sh/include/asm/smp.h | 1 -
+ arch/sh/kernel/smp.c      | 5 +----
+ 2 files changed, 1 insertion(+), 5 deletions(-)
 
-diff --git a/arch/ia64/kernel/smp.c b/arch/ia64/kernel/smp.c
-index 9fcd4e6..0532909 100644
---- a/arch/ia64/kernel/smp.c
-+++ b/arch/ia64/kernel/smp.c
-@@ -62,8 +62,7 @@ static DEFINE_PER_CPU_SHARED_ALIGNED(unsigned short [NR_CPUS],
+diff --git a/arch/sh/include/asm/smp.h b/arch/sh/include/asm/smp.h
+index 78b0d0f4..93ce87b 100644
+--- a/arch/sh/include/asm/smp.h
++++ b/arch/sh/include/asm/smp.h
+@@ -25,7 +25,6 @@ extern int __cpu_logical_map[NR_CPUS];
+ enum {
+ 	SMP_MSG_FUNCTION,
+ 	SMP_MSG_RESCHEDULE,
+-	SMP_MSG_FUNCTION_SINGLE,
+ 	SMP_MSG_TIMER,
  
- #define IPI_CALL_FUNC		0
- #define IPI_CPU_STOP		1
--#define IPI_CALL_FUNC_SINGLE	2
--#define IPI_KDUMP_CPU_STOP	3
-+#define IPI_KDUMP_CPU_STOP	2
- 
- /* This needs to be cacheline aligned because it is written to by *other* CPUs.  */
- static DEFINE_PER_CPU_SHARED_ALIGNED(unsigned long, ipi_operation);
-@@ -116,9 +115,6 @@ handle_IPI (int irq, void *dev_id)
- 			case IPI_CALL_FUNC:
- 				generic_smp_call_function_interrupt();
- 				break;
--			case IPI_CALL_FUNC_SINGLE:
--				generic_smp_call_function_single_interrupt();
--				break;
- #ifdef CONFIG_KEXEC
- 			case IPI_KDUMP_CPU_STOP:
- 				unw_init_running(kdump_cpu_freeze, NULL);
-@@ -318,7 +314,7 @@ smp_flush_tlb_mm (struct mm_struct *mm)
+ 	SMP_MSG_NR,	/* must be last */
+diff --git a/arch/sh/kernel/smp.c b/arch/sh/kernel/smp.c
+index 86a7936..c944d5d 100644
+--- a/arch/sh/kernel/smp.c
++++ b/arch/sh/kernel/smp.c
+@@ -282,7 +282,7 @@ void arch_send_call_function_ipi_mask(const struct cpumask *mask)
  
  void arch_send_call_function_single_ipi(int cpu)
  {
--	send_IPI_single(cpu, IPI_CALL_FUNC_SINGLE);
-+	send_IPI_single(cpu, IPI_CALL_FUNC);
+-	mp_ops->send_ipi(cpu, SMP_MSG_FUNCTION_SINGLE);
++	mp_ops->send_ipi(cpu, SMP_MSG_FUNCTION);
  }
  
- void arch_send_call_function_ipi_mask(const struct cpumask *mask)
+ void smp_timer_broadcast(const struct cpumask *mask)
+@@ -309,9 +309,6 @@ void smp_message_recv(unsigned int msg)
+ 	case SMP_MSG_RESCHEDULE:
+ 		scheduler_ipi();
+ 		break;
+-	case SMP_MSG_FUNCTION_SINGLE:
+-		generic_smp_call_function_single_interrupt();
+-		break;
+ 	case SMP_MSG_TIMER:
+ 		ipi_timer();
+ 		break;
 -- 
 1.8.1.2
 
