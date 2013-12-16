@@ -1,63 +1,129 @@
-From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Subject: Re: [PATCH v3 [resend] 14/18] smp, x86, xen: kill SMP single
-	function call interrupt
-Date: Mon, 16 Dec 2013 11:33:34 -0500
-Message-ID: <20131216163334.GC20165@phenom.dumpdata.com>
-References: <1387125400-28849-1-git-send-email-liuj97@gmail.com>
-	<1387125400-28849-15-git-send-email-liuj97@gmail.com>
-	<20131216030040.GB7180@pegasus.dumpdata.com>
-	<DE8DF0795D48FD4CA783C40EC82923350142ABC2@SHSMSX101.ccr.corp.intel.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH 4/4] arch: Introduce smp_load_acquire(),
+ smp_store_release()
+Date: Mon, 16 Dec 2013 16:40:04 +0000
+Message-ID: <20131216164002.GF20193@mudshark.cambridge.arm.com>
+References: <20131213145657.265414969@infradead.org>
+ <20131213150640.908486364@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:63591 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754819Ab3LPQkH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 16 Dec 2013 11:40:07 -0500
 Content-Disposition: inline
-In-Reply-To: <DE8DF0795D48FD4CA783C40EC82923350142ABC2@SHSMSX101.ccr.corp.intel.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: "Liu, Jinsong" <jinsong.liu@intel.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Jeremy Fitzhardinge <jeremy@goop.org>, "xen-devel@lists.xensource.com" <xen-devel@lists.xensource.com>, Jiri Kosina <trivial@kernel.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, "x86@kernel.org" <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Wang YanQing <udknight@gmail.com>, Sebastian Andrzej Siewior <sebastian@breakpoint.cc>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, David Vrabel <david.vrabel@citrix.com>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, "xen-devel@lists.xenproject.org" <xen-devel@lists.xenproject.org>, Andrew Morton <akpm@linux-foundation.org>, "virtualization@lists.linux-foundation.org" <virtualization@lists.linux-foundation.org>, Shaohua Li <shli@kernel.org>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20131213150640.908486364@infradead.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kerne.org" <linux-kernel@vger.kerne.org>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "VICTORK@il.ibm.com" <VICTORK@il.ibm.com>, "oleg@redhat.com" <oleg@redhat.com>, "anton@samba.org" <anton@samba.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "fweisbec@gmail.com" <fweisbec@gmail.com>, "mathieu.desnoyers@polymtl.ca" <mathieu.desnoyers@polymtl.ca>, "michael@ellerman.id.au" <michael@ellerman.id.au>, "mikey@neuling.org" <mikey@neuling.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "tony.luck@intel.com" <tony.luck@intel.com>
 
-On Mon, Dec 16, 2013 at 04:24:41AM +0000, Liu, Jinsong wrote:
-> Konrad Rzeszutek Wilk wrote:
-> > On Mon, Dec 16, 2013 at 12:36:36AM +0800, Jiang Liu wrote:
-> >> Commit 9a46ad6d6df3b54 "smp: make smp_call_function_many() use logic
-> >> similar to smp_call_function_single()" has unified the way to handle
-> >> single and multiple cross-CPU function calls. Now only one interrupt
-> >> is needed for architecture specific code to support generic SMP
-> >> function 
-> >> call interfaces, so kill the redundant single function call
-> >> interrupt. 
-> >> 
-> >> Cc: Andrew Morton <akpm@linux-foundation.org>
-> >> Cc: Shaohua Li <shli@kernel.org>
-> >> Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
-> >> Cc: Ingo Molnar <mingo@elte.hu>
-> >> Cc: Steven Rostedt <rostedt@goodmis.org>
-> >> Cc: Jiri Kosina <trivial@kernel.org>
-> >> Cc: Thomas Gleixner <tglx@linutronix.de>
-> >> Cc: "H. Peter Anvin" <hpa@zytor.com>
-> >> Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-> > 
-> > I presume this has been tested?
-> > 
-> 
-> I have just test Jiang's patch, it works fine for dom0 booting.
+Hi Peter,
 
-Excellent! Please add Acked-by from me.
+On Fri, Dec 13, 2013 at 02:57:01PM +0000, Peter Zijlstra wrote:
+> A number of situations currently require the heavyweight smp_mb(),
+> even though there is no need to order prior stores against later
+> loads.  Many architectures have much cheaper ways to handle these
+> situations, but the Linux kernel currently has no portable way
+> to make use of them.
+> 
+> This commit therefore supplies smp_load_acquire() and
+> smp_store_release() to remedy this situation.  The new
+> smp_load_acquire() primitive orders the specified load against
+> any subsequent reads or writes, while the new smp_store_release()
+> primitive orders the specifed store against any prior reads or
+> writes.  These primitives allow array-based circular FIFOs to be
+> implemented without an smp_mb(), and also allow a theoretical
+> hole in rcu_assign_pointer() to be closed at no additional
+> expense on most architectures.
+> 
+> In addition, the RCU experience transitioning from explicit
+> smp_read_barrier_depends() and smp_wmb() to rcu_dereference()
+> and rcu_assign_pointer(), respectively resulted in substantial
+> improvements in readability.  It therefore seems likely that
+> replacing other explicit barriers with smp_load_acquire() and
+> smp_store_release() will provide similar benefits.  It appears
+> that roughly half of the explicit barriers in core kernel code
+> might be so replaced.
 
-Thanks!
+[...]
 
+For arm/arm64:
+
+  Acked-by: Will Deacon <will.deacon@arm.com>
+
+A couple of other comments:
+
+> --- a/arch/ia64/include/asm/barrier.h
+> +++ b/arch/ia64/include/asm/barrier.h
+> @@ -45,14 +45,37 @@
+>  # define smp_rmb()     rmb()
+>  # define smp_wmb()     wmb()
+>  # define smp_read_barrier_depends()    read_barrier_depends()
+> +
+>  #else
+> +
+>  # define smp_mb()      barrier()
+>  # define smp_rmb()     barrier()
+>  # define smp_wmb()     barrier()
+>  # define smp_read_barrier_depends()    do { } while(0)
+> +
+>  #endif
 > 
-> Thanks,
-> Jinsong
+>  /*
+> + * IA64 GCC turns volatile stores into st.rel and volatile loads into ld.acq no
+> + * need for asm trickery!
+> + */
+> +
+> +#define smp_store_release(p, v)                                                \
+> +do {                                                                   \
+> +       compiletime_assert_atomic_type(*p);                             \
+> +       barrier();                                                      \
+> +       ACCESS_ONCE(*p) = (v);                                          \
+> +} while (0)
+> +
+> +#define smp_load_acquire(p)                                            \
+> +({                                                                     \
+> +       typeof(*p) ___p1 = ACCESS_ONCE(*p);                             \
+> +       compiletime_assert_atomic_type(*p);                             \
+> +       barrier();                                                      \
+> +       ___p1;                                                          \
+> +})
+> +
+> +/*
+>   * XXX check on this ---I suspect what Linus really wants here is
+>   * acquire vs release semantics but we can't discuss this stuff with
+>   * Linus just yet.  Grrr...
+
+I guess you can remove this comment now?
+
+> --- a/include/linux/compiler.h
+> +++ b/include/linux/compiler.h
+> @@ -298,6 +298,11 @@ void ftrace_likely_update(struct ftrace_
+>  # define __same_type(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
+>  #endif
 > 
+> +/* Is this type a native word size -- useful for atomic operations */
+> +#ifndef __native_word
+> +# define __native_word(t) (sizeof(t) == sizeof(int) || sizeof(t) == sizeof(long))
+> +#endif
+> +
+>  /* Compile time object size, -1 for unknown */
+>  #ifndef __compiletime_object_size
+>  # define __compiletime_object_size(obj) -1
+> @@ -337,6 +342,10 @@ void ftrace_likely_update(struct ftrace_
+>  #define compiletime_assert(condition, msg) \
+>         _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
 > 
+> +#define compiletime_assert_atomic_type(t)                              \
+> +       compiletime_assert(__native_word(t),                            \
+> +               "Need native word sized stores/loads for atomicity.")
+> +
+
+At least for ARM, it's not so much the type that cause issues with
+atomicity, but whether or not its naturally aligned, which we don't check
+here...
+
+Will
