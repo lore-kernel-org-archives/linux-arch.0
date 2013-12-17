@@ -1,123 +1,102 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH 4/4] arch: Introduce smp_load_acquire(),
  smp_store_release()
-Date: Mon, 16 Dec 2013 13:37:20 -0800
-Message-ID: <20131216213720.GA28557@linux.vnet.ibm.com>
+Date: Tue, 17 Dec 2013 10:07:46 +0100
+Message-ID: <20131217090746.GA21999@twins.programming.kicks-ass.net>
 References: <20131213145657.265414969@infradead.org>
  <20131213150640.908486364@infradead.org>
-Reply-To: paulmck@linux.vnet.ibm.com
+ <20131216164002.GF20193@mudshark.cambridge.arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e37.co.us.ibm.com ([32.97.110.158]:57752 "EHLO
-	e37.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752063Ab3LPVh2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 16 Dec 2013 16:37:28 -0500
-Received: from /spool/local
-	by e37.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Mon, 16 Dec 2013 14:37:28 -0700
-Received: from b03cxnp07028.gho.boulder.ibm.com (b03cxnp07028.gho.boulder.ibm.com [9.17.130.15])
-	by d03dlp03.boulder.ibm.com (Postfix) with ESMTP id BD55419D804E
-	for <linux-arch@vger.kernel.org>; Mon, 16 Dec 2013 14:37:18 -0700 (MST)
-Received: from d03av06.boulder.ibm.com (d03av06.boulder.ibm.com [9.17.195.245])
-	by b03cxnp07028.gho.boulder.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id rBGLbOef64159902
-	for <linux-arch@vger.kernel.org>; Mon, 16 Dec 2013 22:37:24 +0100
-Received: from d03av06.boulder.ibm.com (loopback [127.0.0.1])
-	by d03av06.boulder.ibm.com (8.14.4/8.13.1/NCO v10.0 AVout) with ESMTP id rBGLeQke026845
-	for <linux-arch@vger.kernel.org>; Mon, 16 Dec 2013 14:40:30 -0700
+Received: from merlin.infradead.org ([205.233.59.134]:36184 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750839Ab3LQJI3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Dec 2013 04:08:29 -0500
 Content-Disposition: inline
-In-Reply-To: <20131213150640.908486364@infradead.org>
+In-Reply-To: <20131216164002.GF20193@mudshark.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kerne.org, geert@linux-m68k.org, torvalds@linux-foundation.org, VICTORK@il.ibm.com, oleg@redhat.com, anton@samba.org, benh@kernel.crashing.org, fweisbec@gmail.com, mathieu.desnoyers@polymtl.ca, michael@ellerman.id.au, mikey@neuling.org, linux@arm.linux.org.uk, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, tony.luck@intel.com, Will Deacon <will.deacon@arm.com>
+To: Will Deacon <will.deacon@arm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kerne.org" <linux-kernel@vger.kerne.org>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "VICTORK@il.ibm.com" <VICTORK@il.ibm.com>, "oleg@redhat.com" <oleg@redhat.com>, "anton@samba.org" <anton@samba.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "fweisbec@gmail.com" <fweisbec@gmail.com>, "mathieu.desnoyers@polymtl.ca" <mathieu.desnoyers@polymtl.ca>, "michael@ellerman.id.au" <michael@ellerman.id.au>, "mikey@neuling.org" <mikey@neuling.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "tony.luck@intel.com" <tony.luck@intel.com>
 
-On Fri, Dec 13, 2013 at 03:57:01PM +0100, Peter Zijlstra wrote:
-> A number of situations currently require the heavyweight smp_mb(),
-> even though there is no need to order prior stores against later
-> loads.  Many architectures have much cheaper ways to handle these
-> situations, but the Linux kernel currently has no portable way
-> to make use of them.
+On Mon, Dec 16, 2013 at 04:40:04PM +0000, Will Deacon wrote:
+> > --- a/arch/ia64/include/asm/barrier.h
+> > +++ b/arch/ia64/include/asm/barrier.h
+> > @@ -45,14 +45,37 @@
+> >  # define smp_rmb()     rmb()
+> >  # define smp_wmb()     wmb()
+> >  # define smp_read_barrier_depends()    read_barrier_depends()
+> > +
+> >  #else
+> > +
+> >  # define smp_mb()      barrier()
+> >  # define smp_rmb()     barrier()
+> >  # define smp_wmb()     barrier()
+> >  # define smp_read_barrier_depends()    do { } while(0)
+> > +
+> >  #endif
+> > 
+> >  /*
+> > + * IA64 GCC turns volatile stores into st.rel and volatile loads into ld.acq no
+> > + * need for asm trickery!
+> > + */
+> > +
+> > +#define smp_store_release(p, v)                                                \
+> > +do {                                                                   \
+> > +       compiletime_assert_atomic_type(*p);                             \
+> > +       barrier();                                                      \
+> > +       ACCESS_ONCE(*p) = (v);                                          \
+> > +} while (0)
+> > +
+> > +#define smp_load_acquire(p)                                            \
+> > +({                                                                     \
+> > +       typeof(*p) ___p1 = ACCESS_ONCE(*p);                             \
+> > +       compiletime_assert_atomic_type(*p);                             \
+> > +       barrier();                                                      \
+> > +       ___p1;                                                          \
+> > +})
+> > +
+> > +/*
+> >   * XXX check on this ---I suspect what Linus really wants here is
+> >   * acquire vs release semantics but we can't discuss this stuff with
+> >   * Linus just yet.  Grrr...
 > 
-> This commit therefore supplies smp_load_acquire() and
-> smp_store_release() to remedy this situation.  The new
-> smp_load_acquire() primitive orders the specified load against
-> any subsequent reads or writes, while the new smp_store_release()
-> primitive orders the specifed store against any prior reads or
-> writes.  These primitives allow array-based circular FIFOs to be
-> implemented without an smp_mb(), and also allow a theoretical
-> hole in rcu_assign_pointer() to be closed at no additional
-> expense on most architectures.
+> I guess you can remove this comment now?
+
+I suppose so, but I'll leave that up to the ia64 people.. The comment
+relates to set_mb() and that hasn't actually changed.
+
+> > --- a/include/linux/compiler.h
+> > +++ b/include/linux/compiler.h
+> > @@ -298,6 +298,11 @@ void ftrace_likely_update(struct ftrace_
+> >  # define __same_type(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
+> >  #endif
+> > 
+> > +/* Is this type a native word size -- useful for atomic operations */
+> > +#ifndef __native_word
+> > +# define __native_word(t) (sizeof(t) == sizeof(int) || sizeof(t) == sizeof(long))
+> > +#endif
+> > +
+> >  /* Compile time object size, -1 for unknown */
+> >  #ifndef __compiletime_object_size
+> >  # define __compiletime_object_size(obj) -1
+> > @@ -337,6 +342,10 @@ void ftrace_likely_update(struct ftrace_
+> >  #define compiletime_assert(condition, msg) \
+> >         _compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
+> > 
+> > +#define compiletime_assert_atomic_type(t)                              \
+> > +       compiletime_assert(__native_word(t),                            \
+> > +               "Need native word sized stores/loads for atomicity.")
+> > +
 > 
-> In addition, the RCU experience transitioning from explicit
-> smp_read_barrier_depends() and smp_wmb() to rcu_dereference()
-> and rcu_assign_pointer(), respectively resulted in substantial
-> improvements in readability.  It therefore seems likely that
-> replacing other explicit barriers with smp_load_acquire() and
-> smp_store_release() will provide similar benefits.  It appears
-> that roughly half of the explicit barriers in core kernel code
-> might be so replaced.
+> At least for ARM, it's not so much the type that cause issues with
+> atomicity, but whether or not its naturally aligned, which we don't check
+> here...
 
-And here is an RFC patch switching rcu_assign_pointer() from
-smp_wmb() to smp_store_release().  Thoughts?
+Yeah I know, but you actually need to do weird things to get unaligned
+pointers. Also, I'm fairly sure ARM will fail a 20 byte store-release so
+the size check isn't entirely pointless.
 
-						Thanx, Paul
-
-------------------------------------------------------------------------
-
-rcu: Define rcu_assign_pointer() in terms of smp_store_release()
-
-The new smp_store_release() function provides better guarantees than did
-rcu_assign_pointer(), and potentially less overhead on some architectures.
-The guarantee that smp_store_release() provides that rcu_assign_pointer()
-does that is obscure, but its lack could cause considerable confusion.
-This guarantee is illustrated by the following code fragment:
-    
-    	struct foo {
-    		int a;
-    		int b;
-    		int c;
-    		struct foo *next;
-    	};
-    	struct foo foo1;
-    	struct foo foo2;
-    	struct foo __rcu *foop;
-    
-    	...
-    
-    	foo2.a = 1;
-    	foo2.b = 2;
-    	BUG_ON(foo2.c);
-    	rcu_assign_pointer(foop, &foo);
-    
-    	...
-    
-    	fp = rcu_dereference(foop);
-    	fp.c = 3;
-
-The current rcu_assign_pointer() semantics permit the BUG_ON() to
-trigger because rcu_assign_pointer()'s smp_wmb() is not guaranteed to
-order prior reads against later writes.  This commit therefore upgrades
-rcu_assign_pointer() from smp_wmb() to smp_store_release() to avoid this
-counter-intuitive outcome.
-
-Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-
-diff --git a/include/linux/rcupdate.h b/include/linux/rcupdate.h
-index ad5258cc051b..2fe509171e21 100644
---- a/include/linux/rcupdate.h
-+++ b/include/linux/rcupdate.h
-@@ -582,11 +582,7 @@ static inline void rcu_preempt_sleep_check(void)
-  * please be careful when making changes to rcu_assign_pointer() and the
-  * other macros that it invokes.
-  */
--#define rcu_assign_pointer(p, v) \
--	do { \
--		smp_wmb(); \
--		ACCESS_ONCE(p) = RCU_INITIALIZER(v); \
--	} while (0)
-+#define rcu_assign_pointer(p, v) smp_store_release(&p, RCU_INITIALIZER(v));
- 
- 
- /**
+I suppose if anybody really cares you can have some DEBUG symbol
+dependent alignment check in there, but it will generate extra code.
