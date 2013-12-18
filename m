@@ -1,53 +1,38 @@
-From: Dave Young <dyoung@redhat.com>
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH 1/4] Create generic early_ioremap() support
-Date: Wed, 18 Dec 2013 17:13:48 +0800
-Message-ID: <20131218091348.GB15594@dhcp-16-126.nay.redhat.com>
-References: <1385606679-30446-1-git-send-email-msalter@redhat.com>
- <1385606679-30446-2-git-send-email-msalter@redhat.com>
- <20131216014813.GA5631@dhcp-16-126.nay.redhat.com>
- <1387305938.1979.166.camel@deneb.redhat.com>
+Date: Wed, 18 Dec 2013 11:40:00 +0100
+Message-ID: <201312181140.01134.arnd@arndb.de>
+References: <1385606679-30446-1-git-send-email-msalter@redhat.com> <1387305938.1979.166.camel@deneb.redhat.com> <20131218091348.GB15594@dhcp-16-126.nay.redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1387305938.1979.166.camel@deneb.redhat.com>
+In-Reply-To: <20131218091348.GB15594@dhcp-16-126.nay.redhat.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mark Salter <msalter@redhat.com>
-Cc: linux-kernel@vger.kernel.org, Leif Lindholm <leif.lindholm@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org
+To: Dave Young <dyoung@redhat.com>
+Cc: Mark Salter <msalter@redhat.com>, linux-kernel@vger.kernel.org, Leif Lindholm <leif.lindholm@linaro.org>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 12/17/13 at 01:45pm, Mark Salter wrote:
-> On Mon, 2013-12-16 at 09:48 +0800, Dave Young wrote:
-> > On 11/27/13 at 09:44pm, Mark Salter wrote:
-> > > This patch copies generic bits of x86 early_ioremap() support
-> > > into a library for potential use by other architectures.
-> > > 
-> > > Signed-off-by: Mark Salter <msalter@redhat.com>
-> > > CC: Arnd Bergmann <arnd@arndb.de>
-> > > CC: Ingo Molnar <mingo@kernel.org>
-> > > CC: linux-arch@vger.kernel.org
-> > > ---
-> > >  include/asm-generic/early_ioremap.h |  40 ++++++
-> > >  lib/Kconfig                         |   3 +
-> > >  lib/Makefile                        |   1 +
-> > >  lib/early_ioremap.c                 | 243
-> > ++++++++++++++++++++++++++++++++++++
+On Wednesday 18 December 2013, Dave Young wrote:
 > > 
-> > I do not understand why these should go to lib/, I feel it's slightly better
-> > move them to mm/
-> > 
-> > ditto about lib/ioremap.c, ...
+> > I hadn't really thought about it. Putting these things in mm doesn't
+> > sound unreasonable, but lib seems to have become the place for a lot
+> > generic code which could also belong in mm, net, etc.
 > > 
 > 
-> I hadn't really thought about it. Putting these things in mm doesn't
-> sound unreasonable, but lib seems to have become the place for a lot
-> generic code which could also belong in mm, net, etc.
+> IMHO, move subsystem lib code to subsystem core dir looks more reasonable.
+> lib should be the place for general kernel stuff.
 > 
+> I'm not specific for and object this patch, just give my opinion about the lib/..
 
-IMHO, move subsystem lib code to subsystem core dir looks more reasonable.
-lib should be the place for general kernel stuff.
+Traditionally, lib/ is for things that may or may not be used by other optional
+code, typically drivers, which I think is a reasonable concept. There has been
+some shift over the years from lib-$(CONFIG_FOO) towards obj-$(CONFIG_FOO),
+so it's not always used as a actual library code in the linker sense though.
 
-I'm not specific for and object this patch, just give my opinion about the lib/..
+I would agree that moving mm related code such as early_ioremap into mm/ is
+a good idea. For things like the compression helpers lib/ is probably
+still the best place.
 
-Thanks
-Dave
+	Arnd
