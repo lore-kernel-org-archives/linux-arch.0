@@ -1,46 +1,40 @@
-From: Waiman Long <waiman.long@hp.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: [PATCH v7 1/4] qrwlock: A queue read/write lock implementation
-Date: Wed, 18 Dec 2013 13:51:02 -0500
-Message-ID: <52B1EE96.9000708@hp.com>
-References: <1385147087-26588-1-git-send-email-Waiman.Long@hp.com> <1385147087-26588-2-git-send-email-Waiman.Long@hp.com> <20131217192128.GA15969@linux.vnet.ibm.com> <CA+55aFzNSZCKnuEm+CDWUN2G4bfrN+HafX8r13NcfT2tJ4h-jw@mail.gmail.com>
+Date: Wed, 18 Dec 2013 10:59:10 -0800
+Message-ID: <20131218185910.GS19211@linux.vnet.ibm.com>
+References: <1385147087-26588-1-git-send-email-Waiman.Long@hp.com>
+ <1385147087-26588-2-git-send-email-Waiman.Long@hp.com>
+ <20131217192128.GA15969@linux.vnet.ibm.com>
+ <52B1ED2D.3020000@hp.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g6t0187.atlanta.hp.com ([15.193.32.64]:36296 "EHLO
-	g6t0187.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755480Ab3LRSvN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Dec 2013 13:51:13 -0500
-In-Reply-To: <CA+55aFzNSZCKnuEm+CDWUN2G4bfrN+HafX8r13NcfT2tJ4h-jw@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <52B1ED2D.3020000@hp.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Waiman Long <waiman.long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, aswin@hp.com, Scott J Norton <scott.norton@hp.com>
+List-Id: linux-arch.vger.kernel.org
 
-On 12/17/2013 02:27 PM, Linus Torvalds wrote:
-> On Tue, Dec 17, 2013 at 11:21 AM, Paul E. McKenney
-> <paulmck@linux.vnet.ibm.com>  wrote:
->> Looks like xadd() is x86-specific, but this is common code.  One
->> approach would be to do xadd() for other arches, another approach
->> would be to make .rw be an atomic_t rather than a u32.  Making it
->> be atomic_t is probably easiest.  (The cmpxchg()s would then need
->> to be atomic_cmpxchg().)
-> Note that "xadd()" has different semantics from "atomic_add_return()".
->
-> xadd() returns the original value, while atomic_add_return() returns
-> the result of the addition.
->
-> In this case, we seem to want the xadd() semantics. I guess we can use
-> "atomic_add_return(val,&atomic)-val" and just assume that the compiler
-> gets it right (with the addition and the subtraction cancelling out).
-> Or maybe we should have a "atomic_add_return_original()" with xadd
-> semantics?
->
->                 Linus
+On Wed, Dec 18, 2013 at 01:45:01PM -0500, Waiman Long wrote:
+> On 12/17/2013 02:21 PM, Paul E. McKenney wrote:
 
-I will use the atomic_add_return() for the combined count. Actually what 
-the code is looking for in the returned value is the state of the writer 
-byte. So it doesn't really matter if _QR_BIAS has or hasn't been added 
-to the count.
+[ . . . ]
 
--Longman
+> >>+	signal_next(lock,&node);
+> >Good, this allows multiple readers to acquire the lock concurrently,
+> >give or take memory latency compared to critical-section duration.
+> >When the first writer shows up, it presumably spins on the lock word.
+> >
+> 
+> Yes, that was the intention. The first writer that shows up will
+> block succeeding readers from getting the lock.
+> 
+> BTW, what was the status of the TSO memory barrier patch? This patch
+> has some partial dependency it.
+
+I am hoping that it makes it into -tip soon, as I also have a patch that
+depends on it.
+
+							Thanx, Paul
