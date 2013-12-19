@@ -1,78 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail9.hitachi.co.jp ([133.145.228.44]:56583 "EHLO
-	mail9.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751569Ab3LSJJq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Dec 2013 04:09:46 -0500
-Subject: [PATCH -tip v6 03/22] [BUGFIX] kprobes/x86: Prohibit probing on
- debug_stack_*
-From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Date: Thu, 19 Dec 2013 09:04:01 +0000
-Message-ID: <20131219090401.14309.40254.stgit@kbuild-fedora.novalocal>
-In-Reply-To: <20131219090353.14309.15496.stgit@kbuild-fedora.novalocal>
-References: <20131219090353.14309.15496.stgit@kbuild-fedora.novalocal>
+Received: from mail-qa0-f41.google.com ([209.85.216.41]:56192 "EHLO
+	mail-qa0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751677Ab3LSJh0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Dec 2013 04:37:26 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20131219090409.14309.25677.stgit@kbuild-fedora.novalocal>
+References: <20131219090353.14309.15496.stgit@kbuild-fedora.novalocal>
+	<20131219090409.14309.25677.stgit@kbuild-fedora.novalocal>
+Date: Thu, 19 Dec 2013 17:37:25 +0800
+Message-ID: <CAGdX0WFKYHqXrVQ6LBw0YgH_H6cP=LZVCBe1iOvEXsHQPD8Zmg@mail.gmail.com>
+Subject: Re: [PATCH -tip v6 06/22] [BUGFIX] x86: Prohibit probing on memcpy/memset
+From: Jovi Zhangwei <jovi.zhangwei@gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org, Fenghua Yu <fenghua.yu@intel.com>, Seiji Aguchi <seiji.aguchi@hds.com>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, systemtap@sourceware.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Borislav Petkov <bp@suse.de>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20131219090401.pegdUM-PgBwHvug1ijf2jPZWtQJ7vdwfpwJe63-cczg@z>
+To: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+Cc: Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, systemtap@sourceware.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20131219093725.VzshTpe37_tZN3wGg_yARqB5RDAqoGjnqHn2k6T1gjE@z>
 
-Prohibit probing on debug_stack_reset and debug_stack_set_zero.
-Since the both functions are called from TRACE_IRQS_ON/OFF_DEBUG
-macros which run in int3 ist entry, probing it may cause a soft
-lockup.
+Hi Masami,
 
-This happens when the kernel built with CONFIG_DYNAMIC_FTRACE=y
-and CONFIG_TRACE_IRQFLAGS=y.
+On Thu, Dec 19, 2013 at 5:04 PM, Masami Hiramatsu
+<masami.hiramatsu.pt@hitachi.com> wrote:
+> memcpy/memset functions are fundamental functions and
+> those are involved in kprobe's exception handling.
+> Prohibit probing on them to avoid kernel crash.
+>
+Would you please let me know the LKML link of that bugfix, I cannot
+find it in my LKML fold.
 
-Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Borislav Petkov <bp@suse.de>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: Seiji Aguchi <seiji.aguchi@hds.com>
----
- arch/x86/kernel/cpu/common.c |    4 ++++
- 1 file changed, 4 insertions(+)
+No objection on this patch. :) just want to know more, It seems there
+have no problem to probe memcpy in my box, maybe I didn't hit the
+crash code path.
 
-diff --git a/arch/x86/kernel/cpu/common.c b/arch/x86/kernel/cpu/common.c
-index 6abc172..220de22 100644
---- a/arch/x86/kernel/cpu/common.c
-+++ b/arch/x86/kernel/cpu/common.c
-@@ -8,6 +8,7 @@
- #include <linux/delay.h>
- #include <linux/sched.h>
- #include <linux/init.h>
-+#include <linux/kprobes.h>
- #include <linux/kgdb.h>
- #include <linux/smp.h>
- #include <linux/io.h>
-@@ -1153,6 +1154,7 @@ int is_debug_stack(unsigned long addr)
- 		(addr <= __get_cpu_var(debug_stack_addr) &&
- 		 addr > (__get_cpu_var(debug_stack_addr) - DEBUG_STKSZ));
- }
-+NOKPROBE_SYMBOL(is_debug_stack);
- 
- DEFINE_PER_CPU(u32, debug_idt_ctr);
- 
-@@ -1161,6 +1163,7 @@ void debug_stack_set_zero(void)
- 	this_cpu_inc(debug_idt_ctr);
- 	load_current_idt();
- }
-+NOKPROBE_SYMBOL(debug_stack_set_zero);
- 
- void debug_stack_reset(void)
- {
-@@ -1169,6 +1172,7 @@ void debug_stack_reset(void)
- 	if (this_cpu_dec_return(debug_idt_ctr) == 0)
- 		load_current_idt();
- }
-+NOKPROBE_SYMBOL(debug_stack_reset);
- 
- #else	/* CONFIG_X86_64 */
- 
+Thanks.
 
-
+Jovi
