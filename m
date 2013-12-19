@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail9.hitachi.co.jp ([133.145.228.44]:56656 "EHLO
-	mail9.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751877Ab3LSJJ4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Dec 2013 04:09:56 -0500
-Subject: [PATCH -tip v6 07/22] kprobes/x86: Call exception handlers directly
- from do_int3/do_debug
+Received: from mail7.hitachi.co.jp ([133.145.228.42]:59133 "EHLO
+	mail7.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751845Ab3LSJJx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Dec 2013 04:09:53 -0500
+Subject: [PATCH -tip v6 06/22] [BUGFIX] x86: Prohibit probing on
+ memcpy/memset
 From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Date: Thu, 19 Dec 2013 09:04:11 +0000
-Message-ID: <20131219090411.14309.86591.stgit@kbuild-fedora.novalocal>
+Date: Thu, 19 Dec 2013 09:04:09 +0000
+Message-ID: <20131219090409.14309.25677.stgit@kbuild-fedora.novalocal>
 In-Reply-To: <20131219090353.14309.15496.stgit@kbuild-fedora.novalocal>
 References: <20131219090353.14309.15496.stgit@kbuild-fedora.novalocal>
 MIME-Version: 1.0
@@ -16,132 +16,138 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, Frederic Weisbecker <fweisbec@gmail.com>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@redhat.com>, systemtap@sourceware.org, "H. Peter Anvin" <hpa@zytor.com>, Sasha Levin <sasha.levin@oracle.com>, Thomas Gleixner <tglx@linutronix.de>, Seiji Aguchi <seiji.aguchi@hds.com>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20131219090411.gLmSk_WpqAe7VxyeMeCNIDB4GZAOUhSjBT73clHg40I@z>
+Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, systemtap@sourceware.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20131219090409.pM7Ob9IMztF1yxFlaovWjLV2DQ042GqTSYre0nArtgg@z>
 
-To avoid a kernel crash by probing on lockdep code, call
-kprobe_int3_handler and kprobe_debug_handler directly
-from do_int3 and do_debug. Since there is a locking code
-in notify_die, lockdep code can be invoked. And because
-the lockdep involves printk() related things, theoretically,
-we need to prohibit probing on much more code...
+memcpy/memset functions are fundamental functions and
+those are involved in kprobe's exception handling.
+Prohibit probing on them to avoid kernel crash.
 
-Anyway, most of the int3 handlers in the kernel are already
-called from do_int3 directly, e.g. ftrace_int3_handler,
-poke_int3_handler, kgdb_ll_trap. Actually only
-kprobe_exceptions_notify is on the notifier_call_chain.
+BTW, perf bench also includes some assembly files
+and _ASM_NOKPROBE causes a build error. This includes
+some fixes for that too.
 
 Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
-Cc: Andi Kleen <ak@linux.intel.com>
-Cc: Steven Rostedt <rostedt@goodmis.org>
-Cc: Sasha Levin <sasha.levin@oracle.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Seiji Aguchi <seiji.aguchi@hds.com>
-Cc: Frederic Weisbecker <fweisbec@gmail.com>
 ---
- arch/x86/include/asm/kprobes.h |    2 ++
- arch/x86/kernel/kprobes/core.c |   24 +++---------------------
- arch/x86/kernel/traps.c        |   10 ++++++++++
- 3 files changed, 15 insertions(+), 21 deletions(-)
+ arch/x86/include/asm/string_32.h         |    6 +++---
+ arch/x86/lib/memcpy_32.c                 |    2 ++
+ arch/x86/lib/memcpy_64.S                 |    4 ++++
+ arch/x86/lib/memset_64.S                 |    3 +++
+ tools/perf/bench/mem-memcpy-x86-64-asm.S |    1 +
+ tools/perf/bench/mem-memset-x86-64-asm.S |    1 +
+ 6 files changed, 14 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/include/asm/kprobes.h b/arch/x86/include/asm/kprobes.h
-index 9454c16..53cdfb2 100644
---- a/arch/x86/include/asm/kprobes.h
-+++ b/arch/x86/include/asm/kprobes.h
-@@ -116,4 +116,6 @@ struct kprobe_ctlblk {
- extern int kprobe_fault_handler(struct pt_regs *regs, int trapnr);
- extern int kprobe_exceptions_notify(struct notifier_block *self,
- 				    unsigned long val, void *data);
-+extern int kprobe_int3_handler(struct pt_regs *regs);
-+extern int kprobe_debug_handler(struct pt_regs *regs);
- #endif /* _ASM_X86_KPROBES_H */
-diff --git a/arch/x86/kernel/kprobes/core.c b/arch/x86/kernel/kprobes/core.c
-index c01e70f..4d7dbe1 100644
---- a/arch/x86/kernel/kprobes/core.c
-+++ b/arch/x86/kernel/kprobes/core.c
-@@ -558,7 +558,7 @@ reenter_kprobe(struct kprobe *p, struct pt_regs *regs, struct kprobe_ctlblk *kcb
-  * Interrupts are disabled on entry as trap3 is an interrupt gate and they
-  * remain disabled throughout this function.
+diff --git a/arch/x86/include/asm/string_32.h b/arch/x86/include/asm/string_32.h
+index 3d3e835..3227294 100644
+--- a/arch/x86/include/asm/string_32.h
++++ b/arch/x86/include/asm/string_32.h
+@@ -151,14 +151,14 @@ static __always_inline void *__constant_memcpy(void *to, const void *from,
+  *	This CPU favours 3DNow strongly (eg AMD Athlon)
   */
--static int __kprobes kprobe_handler(struct pt_regs *regs)
-+int __kprobes kprobe_int3_handler(struct pt_regs *regs)
- {
- 	kprobe_opcode_t *addr;
- 	struct kprobe *p;
-@@ -856,7 +856,7 @@ no_change:
-  * Interrupts are disabled on entry as trap1 is an interrupt gate and they
-  * remain disabled throughout this function.
-  */
--static int __kprobes post_kprobe_handler(struct pt_regs *regs)
-+int __kprobes kprobe_debug_handler(struct pt_regs *regs)
- {
- 	struct kprobe *cur = kprobe_running();
- 	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
-@@ -964,22 +964,7 @@ kprobe_exceptions_notify(struct notifier_block *self, unsigned long val, void *d
- 	if (args->regs && user_mode_vm(args->regs))
- 		return ret;
  
--	switch (val) {
--	case DIE_INT3:
--		if (kprobe_handler(args->regs))
--			ret = NOTIFY_STOP;
--		break;
--	case DIE_DEBUG:
--		if (post_kprobe_handler(args->regs)) {
--			/*
--			 * Reset the BS bit in dr6 (pointed by args->err) to
--			 * denote completion of processing
--			 */
--			(*(unsigned long *)ERR_PTR(args->err)) &= ~DR_STEP;
--			ret = NOTIFY_STOP;
--		}
--		break;
--	case DIE_GPF:
-+	if (val == DIE_GPF) {
- 		/*
- 		 * To be potentially processing a kprobe fault and to
- 		 * trust the result from kprobe_running(), we have
-@@ -988,9 +973,6 @@ kprobe_exceptions_notify(struct notifier_block *self, unsigned long val, void *d
- 		if (!preemptible() && kprobe_running() &&
- 		    kprobe_fault_handler(args->regs, args->trapnr))
- 			ret = NOTIFY_STOP;
--		break;
--	default:
--		break;
- 	}
- 	return ret;
+-static inline void *__constant_memcpy3d(void *to, const void *from, size_t len)
++static nokprobe_inline void *__constant_memcpy3d(void *to, const void *from, size_t len)
+ {
+ 	if (len < 512)
+ 		return __constant_memcpy(to, from, len);
+ 	return _mmx_memcpy(to, from, len);
  }
-diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
-index 57409f6..e5d4a70 100644
---- a/arch/x86/kernel/traps.c
-+++ b/arch/x86/kernel/traps.c
-@@ -334,6 +334,11 @@ dotraplinkage void __kprobes notrace do_int3(struct pt_regs *regs, long error_co
- 		goto exit;
- #endif /* CONFIG_KGDB_LOW_LEVEL_TRAP */
  
-+#ifdef CONFIG_KPROBES
-+	if (kprobe_int3_handler(regs))
-+		return;
-+#endif
-+
- 	if (notify_die(DIE_INT3, "int3", regs, error_code, X86_TRAP_BP,
- 			SIGTRAP) == NOTIFY_STOP)
- 		goto exit;
-@@ -440,6 +445,11 @@ dotraplinkage void __kprobes do_debug(struct pt_regs *regs, long error_code)
- 	/* Store the virtualized DR6 value */
- 	tsk->thread.debugreg6 = dr6;
+-static inline void *__memcpy3d(void *to, const void *from, size_t len)
++static nokprobe_inline void *__memcpy3d(void *to, const void *from, size_t len)
+ {
+ 	if (len < 512)
+ 		return __memcpy(to, from, len);
+@@ -204,7 +204,7 @@ void *memmove(void *dest, const void *src, size_t n);
+ #define __HAVE_ARCH_MEMCHR
+ extern void *memchr(const void *cs, int c, size_t count);
  
-+#ifdef CONFIG_KPROBES
-+	if (kprobe_debug_handler(regs))
-+		goto exit;
-+#endif
+-static inline void *__memset_generic(void *s, char c, size_t count)
++static nokprobe_inline void *__memset_generic(void *s, char c, size_t count)
+ {
+ 	int d0, d1;
+ 	asm volatile("rep\n\t"
+diff --git a/arch/x86/lib/memcpy_32.c b/arch/x86/lib/memcpy_32.c
+index e78761d..dabf966 100644
+--- a/arch/x86/lib/memcpy_32.c
++++ b/arch/x86/lib/memcpy_32.c
+@@ -1,5 +1,6 @@
+ #include <linux/string.h>
+ #include <linux/module.h>
++#include <linux/kprobes.h>	/* for NOKPROBE_SYMBOL */
+ 
+ #undef memcpy
+ #undef memset
+@@ -13,6 +14,7 @@ void *memcpy(void *to, const void *from, size_t n)
+ #endif
+ }
+ EXPORT_SYMBOL(memcpy);
++NOKPROBE_SYMBOL(memcpy);
+ 
+ void *memset(void *s, int c, size_t count)
+ {
+diff --git a/arch/x86/lib/memcpy_64.S b/arch/x86/lib/memcpy_64.S
+index 56313a3..80adbf5 100644
+--- a/arch/x86/lib/memcpy_64.S
++++ b/arch/x86/lib/memcpy_64.S
+@@ -2,6 +2,7 @@
+ 
+ #include <linux/linkage.h>
+ 
++#include <asm/asm.h>
+ #include <asm/cpufeature.h>
+ #include <asm/dwarf2.h>
+ #include <asm/alternative-asm.h>
+@@ -184,6 +185,9 @@ ENTRY(memcpy)
+ ENDPROC(memcpy)
+ ENDPROC(__memcpy)
+ 
++_ASM_NOKPROBE(memcpy)
++_ASM_NOKPROBE(__memcpy)
 +
- 	if (notify_die(DIE_DEBUG, "debug", regs, (long)&dr6, error_code,
- 							SIGTRAP) == NOTIFY_STOP)
- 		goto exit;
+ 	/*
+ 	 * Some CPUs are adding enhanced REP MOVSB/STOSB feature
+ 	 * If the feature is supported, memcpy_c_e() is the first choice.
+diff --git a/arch/x86/lib/memset_64.S b/arch/x86/lib/memset_64.S
+index 2dcb380..a62849d 100644
+--- a/arch/x86/lib/memset_64.S
++++ b/arch/x86/lib/memset_64.S
+@@ -135,6 +135,9 @@ ENTRY(__memset)
+ ENDPROC(memset)
+ ENDPROC(__memset)
+ 
++_ASM_NOKPROBE(memset)
++_ASM_NOKPROBE(__memset)
++
+ 	/* Some CPUs support enhanced REP MOVSB/STOSB feature.
+ 	 * It is recommended to use this when possible.
+ 	 *
+diff --git a/tools/perf/bench/mem-memcpy-x86-64-asm.S b/tools/perf/bench/mem-memcpy-x86-64-asm.S
+index fcd9cf0..d3d2d41 100644
+--- a/tools/perf/bench/mem-memcpy-x86-64-asm.S
++++ b/tools/perf/bench/mem-memcpy-x86-64-asm.S
+@@ -3,6 +3,7 @@
+ #define globl p2align 4; .globl
+ #define Lmemcpy_c globl memcpy_c; memcpy_c
+ #define Lmemcpy_c_e globl memcpy_c_e; memcpy_c_e
++#define _ASM_NOKPROBE(a)
+ #include "../../../arch/x86/lib/memcpy_64.S"
+ /*
+  * We need to provide note.GNU-stack section, saying that we want
+diff --git a/tools/perf/bench/mem-memset-x86-64-asm.S b/tools/perf/bench/mem-memset-x86-64-asm.S
+index 9e5af89..c9cbb29 100644
+--- a/tools/perf/bench/mem-memset-x86-64-asm.S
++++ b/tools/perf/bench/mem-memset-x86-64-asm.S
+@@ -3,6 +3,7 @@
+ #define globl p2align 4; .globl
+ #define Lmemset_c globl memset_c; memset_c
+ #define Lmemset_c_e globl memset_c_e; memset_c_e
++#define _ASM_NOKPROBE(a)
+ #include "../../../arch/x86/lib/memset_64.S"
+ 
+ /*
 
 
