@@ -1,36 +1,51 @@
-From: Jovi Zhangwei <jovi.zhangwei@gmail.com>
-Subject: Re: [PATCH -tip v6 06/22] [BUGFIX] x86: Prohibit probing on memcpy/memset
-Date: Thu, 19 Dec 2013 17:37:25 +0800
-Message-ID: <CAGdX0WFKYHqXrVQ6LBw0YgH_H6cP=LZVCBe1iOvEXsHQPD8Zmg@mail.gmail.com>
-References: <20131219090353.14309.15496.stgit@kbuild-fedora.novalocal>	<20131219090409.14309.25677.stgit@kbuild-fedora.novalocal>
+From: fche@redhat.com (Frank Ch. Eigler)
+Subject: Re: [PATCH -tip v6 00/22] kprobes: introduce NOKPROBE_SYMBOL(), cleanup and fixes crash bugs
+Date: Thu, 19 Dec 2013 15:46:02 -0500
+Message-ID: <y0m38loefhx.fsf@fche.csb>
+References: <20131219090353.14309.15496.stgit@kbuild-fedora.novalocal>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <systemtap-return-21826-gls-systemtap=m.gmane.org@sourceware.org>
-List-Unsubscribe: <mailto:systemtap-unsubscribe-##L=##H@sourceware.org>
-List-Subscribe: <mailto:systemtap-subscribe@sourceware.org>
-List-Post: <mailto:systemtap@sourceware.org>
-List-Help: <mailto:systemtap-help@sourceware.org>, <http://sourceware.org/lists.html#faqs>
-Sender: systemtap-owner@sourceware.org
-In-Reply-To: <20131219090409.14309.25677.stgit@kbuild-fedora.novalocal>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:56566 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756195Ab3LSUqV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 19 Dec 2013 15:46:21 -0500
+In-Reply-To: <20131219090353.14309.15496.stgit@kbuild-fedora.novalocal> (Masami Hiramatsu's message of "Thu, 19 Dec 2013 09:03:54 +0000")
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Cc: Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, systemtap@sourceware.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>
-List-Id: linux-arch.vger.kernel.org
+Cc: Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
 
-Hi Masami,
 
-On Thu, Dec 19, 2013 at 5:04 PM, Masami Hiramatsu
-<masami.hiramatsu.pt@hitachi.com> wrote:
-> memcpy/memset functions are fundamental functions and
-> those are involved in kprobe's exception handling.
-> Prohibit probing on them to avoid kernel crash.
->
-Would you please let me know the LKML link of that bugfix, I cannot
-find it in my LKML fold.
+Hi, Masami -
 
-No objection on this patch. :) just want to know more, It seems there
-have no problem to probe memcpy in my box, maybe I didn't hit the
-crash code path.
 
-Thanks.
+masami.hiramatsu.pt wrote:
 
-Jovi
+> Here is the version 6 of NOKPROBE_SYMBOL series. :)
+> [...]
+
+Some preliminary results from building these on top of tip/master on
+x86-64.  
+
+# stap -te "probe kprobe.function("*") {}"
+
+starts up OK, without crashes, which looks like great progress.  But a
+closer look indicates that the insertion of kprobes is taking about
+three (!!) orders of magnitude longer than before, as judged by the
+rate of increase of 'wc -l /sys/kernel/debug/kprobes/list'.  So, one
+has to let the thing run for several hours just to get all the kprobes
+inserted, never mind letting stress-testing begin.
+
+For reference, here's the steady-state "perf top" output during all this
+insertion work:
+
+ 54.81%  [kernel]                    [k] _raw_spin_unlock_irqrestore
+ 38.13%  [kernel]                    [k] __slab_alloc
+  1.11%  [kernel]                    [k] kprobe_ftrace_handler
+  0.88%  [kernel]                    [k] _raw_spin_unlock_irq
+
+More notes once the machine gets far enough to get to the robustness
+testing phase.
+
+- FChE
