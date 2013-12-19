@@ -1,12 +1,12 @@
 From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Subject: [PATCH -tip v6 15/22] notifier: Use NOKPROBE_SYMBOL macro in notifier
-Date: Thu, 19 Dec 2013 09:04:31 +0000
-Message-ID: <20131219090431.14309.19334.stgit@kbuild-fedora.novalocal>
+Subject: [PATCH -tip v6 16/22] sched: Use NOKPROBE_SYMBOL macro in sched
+Date: Thu, 19 Dec 2013 09:04:33 +0000
+Message-ID: <20131219090433.14309.84911.stgit@kbuild-fedora.novalocal>
 References: <20131219090353.14309.15496.stgit@kbuild-fedora.novalocal>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <systemtap-return-21817-gls-systemtap=m.gmane.org@sourceware.org>
+Return-path: <systemtap-return-21818-gls-systemtap=m.gmane.org@sourceware.org>
 List-Unsubscribe: <mailto:systemtap-unsubscribe-##L=##H@sourceware.org>
 List-Subscribe: <mailto:systemtap-subscribe@sourceware.org>
 List-Post: <mailto:systemtap@sourceware.org>
@@ -14,87 +14,48 @@ List-Help: <mailto:systemtap-help@sourceware.org>, <http://sourceware.org/lists.
 Sender: systemtap-owner@sourceware.org
 In-Reply-To: <20131219090353.14309.15496.stgit@kbuild-fedora.novalocal>
 To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
+Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
 Use NOKPROBE_SYMBOL macro to protect functions from
-kprobes instead of __kprobes annotation in notifier.
+kprobes instead of __kprobes annotation in sched/core.c.
 
 Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
 ---
- kernel/notifier.c |   22 +++++++++++++---------
- 1 file changed, 13 insertions(+), 9 deletions(-)
+ kernel/sched/core.c |    6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
 
-diff --git a/kernel/notifier.c b/kernel/notifier.c
-index 2d5cc4c..61fc78a 100644
---- a/kernel/notifier.c
-+++ b/kernel/notifier.c
-@@ -71,9 +71,9 @@ static int notifier_chain_unregister(struct notifier_block **nl,
-  *	@returns:	notifier_call_chain returns the value returned by the
-  *			last notifier function called.
-  */
--static int __kprobes notifier_call_chain(struct notifier_block **nl,
--					unsigned long val, void *v,
--					int nr_to_call,	int *nr_calls)
-+static int notifier_call_chain(struct notifier_block **nl,
-+			       unsigned long val, void *v,
-+			       int nr_to_call, int *nr_calls)
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index 7db3a84..285a380 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -2345,7 +2345,7 @@ notrace unsigned long get_parent_ip(unsigned long addr)
+ #if defined(CONFIG_PREEMPT) && (defined(CONFIG_DEBUG_PREEMPT) || \
+ 				defined(CONFIG_PREEMPT_TRACER))
+ 
+-void __kprobes preempt_count_add(int val)
++void preempt_count_add(int val)
  {
- 	int ret = NOTIFY_DONE;
- 	struct notifier_block *nb, *next_nb;
-@@ -102,6 +102,7 @@ static int __kprobes notifier_call_chain(struct notifier_block **nl,
- 	}
- 	return ret;
+ #ifdef CONFIG_DEBUG_PREEMPT
+ 	/*
+@@ -2366,8 +2366,9 @@ void __kprobes preempt_count_add(int val)
+ 		trace_preempt_off(CALLER_ADDR0, get_parent_ip(CALLER_ADDR1));
  }
-+NOKPROBE_SYMBOL(notifier_call_chain);
+ EXPORT_SYMBOL(preempt_count_add);
++NOKPROBE_SYMBOL(preempt_count_add);
  
- /*
-  *	Atomic notifier chain routines.  Registration and unregistration
-@@ -172,9 +173,9 @@ EXPORT_SYMBOL_GPL(atomic_notifier_chain_unregister);
-  *	Otherwise the return value is the return value
-  *	of the last notifier function called.
-  */
--int __kprobes __atomic_notifier_call_chain(struct atomic_notifier_head *nh,
--					unsigned long val, void *v,
--					int nr_to_call, int *nr_calls)
-+int __atomic_notifier_call_chain(struct atomic_notifier_head *nh,
-+				 unsigned long val, void *v,
-+				 int nr_to_call, int *nr_calls)
+-void __kprobes preempt_count_sub(int val)
++void preempt_count_sub(int val)
  {
- 	int ret;
- 
-@@ -184,13 +185,15 @@ int __kprobes __atomic_notifier_call_chain(struct atomic_notifier_head *nh,
- 	return ret;
+ #ifdef CONFIG_DEBUG_PREEMPT
+ 	/*
+@@ -2388,6 +2389,7 @@ void __kprobes preempt_count_sub(int val)
+ 	__preempt_count_sub(val);
  }
- EXPORT_SYMBOL_GPL(__atomic_notifier_call_chain);
-+NOKPROBE_SYMBOL(__atomic_notifier_call_chain);
+ EXPORT_SYMBOL(preempt_count_sub);
++NOKPROBE_SYMBOL(preempt_count_sub);
  
--int __kprobes atomic_notifier_call_chain(struct atomic_notifier_head *nh,
--		unsigned long val, void *v)
-+int atomic_notifier_call_chain(struct atomic_notifier_head *nh,
-+			       unsigned long val, void *v)
- {
- 	return __atomic_notifier_call_chain(nh, val, v, -1, NULL);
- }
- EXPORT_SYMBOL_GPL(atomic_notifier_call_chain);
-+NOKPROBE_SYMBOL(atomic_notifier_call_chain);
+ #endif
  
- /*
-  *	Blocking notifier chain routines.  All access to the chain is
-@@ -527,7 +530,7 @@ EXPORT_SYMBOL_GPL(srcu_init_notifier_head);
- 
- static ATOMIC_NOTIFIER_HEAD(die_chain);
- 
--int notrace __kprobes notify_die(enum die_val val, const char *str,
-+int notrace notify_die(enum die_val val, const char *str,
- 	       struct pt_regs *regs, long err, int trap, int sig)
- {
- 	struct die_args args = {
-@@ -540,6 +543,7 @@ int notrace __kprobes notify_die(enum die_val val, const char *str,
- 	};
- 	return atomic_notifier_call_chain(&die_chain, val, &args);
- }
-+NOKPROBE_SYMBOL(notify_die);
- 
- int register_die_notifier(struct notifier_block *nb)
- {
