@@ -1,13 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail9.hitachi.co.jp ([133.145.228.44]:56862 "EHLO
-	mail9.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752190Ab3LSJK3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Dec 2013 04:10:29 -0500
-Subject: [PATCH -tip v6 21/22] kprobes/x86: Remove unneeded
- preempt_disable/enable in interrupt handlers
+Received: from mail4.hitachi.co.jp ([133.145.228.5]:32925 "EHLO
+	mail4.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751905Ab3LSJKF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Dec 2013 04:10:05 -0500
+Subject: [PATCH -tip v6 11/22] x86: Allow kprobes on text_poke/hw_breakpoint
 From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Date: Thu, 19 Dec 2013 09:04:45 +0000
-Message-ID: <20131219090445.14309.42834.stgit@kbuild-fedora.novalocal>
+Date: Thu, 19 Dec 2013 09:04:21 +0000
+Message-ID: <20131219090421.14309.55455.stgit@kbuild-fedora.novalocal>
 In-Reply-To: <20131219090353.14309.15496.stgit@kbuild-fedora.novalocal>
 References: <20131219090353.14309.15496.stgit@kbuild-fedora.novalocal>
 MIME-Version: 1.0
@@ -16,115 +15,69 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, systemtap@sourceware.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20131219090445.eOya8sT_xKa4pX8m-C66KijWK2woGFl-siHE80LKfY8@z>
+Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20131219090421.nPJPorA_3SfsaHTsInk4BMu7Y1rA2Q06Da5nojK3lPg@z>
 
-Since the int3 itself disables the local_irq and kprobes
-keeps it disabled while the single step has done, the
-kernel preemption never happen while processing a kprobe.
-This means that we don't need to disable/enable preemption.
-Also, this changes kprobe_int3_handler to use goto-out style.
+Allow kprobes on text_poke/hw_breakpoint because
+those are not related to the critical int3-debug
+recursive path of kprobes at this moment.
 
 Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
 ---
- arch/x86/kernel/kprobes/core.c |   24 +++++++-----------------
- 1 file changed, 7 insertions(+), 17 deletions(-)
+ arch/x86/kernel/alternative.c   |    3 +--
+ arch/x86/kernel/hw_breakpoint.c |    5 ++---
+ 2 files changed, 3 insertions(+), 5 deletions(-)
 
-diff --git a/arch/x86/kernel/kprobes/core.c b/arch/x86/kernel/kprobes/core.c
-index 060641e..6b4d9bd 100644
---- a/arch/x86/kernel/kprobes/core.c
-+++ b/arch/x86/kernel/kprobes/core.c
-@@ -506,7 +506,6 @@ static void setup_singlestep(struct kprobe *p, struct pt_regs *regs,
- 		 * stepping.
- 		 */
- 		regs->ip = (unsigned long)p->ainsn.insn;
--		preempt_enable_no_resched();
- 		return;
- 	}
- #endif
-@@ -574,13 +573,6 @@ int kprobe_int3_handler(struct pt_regs *regs)
- 	struct kprobe_ctlblk *kcb;
- 
- 	addr = (kprobe_opcode_t *)(regs->ip - sizeof(kprobe_opcode_t));
--	/*
--	 * We don't want to be preempted for the entire
--	 * duration of kprobe processing. We conditionally
--	 * re-enable preemption at the end of this function,
--	 * and also in reenter_kprobe() and setup_singlestep().
--	 */
--	preempt_disable();
- 
- 	kcb = get_kprobe_ctlblk();
- 	p = get_kprobe(addr);
-@@ -588,7 +580,7 @@ int kprobe_int3_handler(struct pt_regs *regs)
- 	if (p) {
- 		if (kprobe_running()) {
- 			if (reenter_kprobe(p, regs, kcb))
--				return 1;
-+				goto handled;
- 		} else {
- 			set_current_kprobe(p, regs, kcb);
- 			kcb->kprobe_status = KPROBE_HIT_ACTIVE;
-@@ -603,7 +595,7 @@ int kprobe_int3_handler(struct pt_regs *regs)
- 			 */
- 			if (!p->pre_handler || !p->pre_handler(p, regs))
- 				setup_singlestep(p, regs, kcb, 0);
--			return 1;
-+			goto handled;
- 		}
- 	} else if (*addr != BREAKPOINT_INSTRUCTION) {
- 		/*
-@@ -616,19 +608,20 @@ int kprobe_int3_handler(struct pt_regs *regs)
- 		 * the original instruction.
- 		 */
- 		regs->ip = (unsigned long)addr;
--		preempt_enable_no_resched();
--		return 1;
-+		goto handled;
- 	} else if (kprobe_running()) {
- 		p = __this_cpu_read(current_kprobe);
- 		if (p->break_handler && p->break_handler(p, regs)) {
- 			if (!skip_singlestep(p, regs, kcb))
- 				setup_singlestep(p, regs, kcb, 0);
--			return 1;
-+			goto handled;
- 		}
- 	} /* else: not a kprobe fault; let the kernel handle it */
- 
--	preempt_enable_no_resched();
- 	return 0;
-+
-+handled:
-+	return 1;
- }
- NOKPROBE_SYMBOL(kprobe_int3_handler);
- 
-@@ -893,7 +886,6 @@ int kprobe_debug_handler(struct pt_regs *regs)
- 	}
- 	reset_current_kprobe();
- out:
--	preempt_enable_no_resched();
- 
- 	/*
- 	 * if somebody else is singlestepping across a probe point, flags
-@@ -928,7 +920,6 @@ int kprobe_fault_handler(struct pt_regs *regs, int trapnr)
- 			restore_previous_kprobe(kcb);
- 		else
- 			reset_current_kprobe();
--		preempt_enable_no_resched();
- 		break;
- 	case KPROBE_HIT_ACTIVE:
- 	case KPROBE_HIT_SSDONE:
-@@ -1062,7 +1053,6 @@ int longjmp_break_handler(struct kprobe *p, struct pt_regs *regs)
- 		memcpy((kprobe_opcode_t *)(kcb->jprobe_saved_sp),
- 		       kcb->jprobes_stack,
- 		       MIN_STACK_SIZE(kcb->jprobe_saved_sp));
--		preempt_enable_no_resched();
- 		return 1;
- 	}
- 	return 0;
+diff --git a/arch/x86/kernel/alternative.c b/arch/x86/kernel/alternative.c
+index df94598..703130f 100644
+--- a/arch/x86/kernel/alternative.c
++++ b/arch/x86/kernel/alternative.c
+@@ -5,7 +5,6 @@
+ #include <linux/mutex.h>
+ #include <linux/list.h>
+ #include <linux/stringify.h>
+-#include <linux/kprobes.h>
+ #include <linux/mm.h>
+ #include <linux/vmalloc.h>
+ #include <linux/memory.h>
+@@ -551,7 +550,7 @@ void *__init_or_module text_poke_early(void *addr, const void *opcode,
+  *
+  * Note: Must be called under text_mutex.
+  */
+-void *__kprobes text_poke(void *addr, const void *opcode, size_t len)
++void *text_poke(void *addr, const void *opcode, size_t len)
+ {
+ 	unsigned long flags;
+ 	char *vaddr;
+diff --git a/arch/x86/kernel/hw_breakpoint.c b/arch/x86/kernel/hw_breakpoint.c
+index f66ff16..312497c 100644
+--- a/arch/x86/kernel/hw_breakpoint.c
++++ b/arch/x86/kernel/hw_breakpoint.c
+@@ -32,7 +32,6 @@
+ #include <linux/irqflags.h>
+ #include <linux/notifier.h>
+ #include <linux/kallsyms.h>
+-#include <linux/kprobes.h>
+ #include <linux/percpu.h>
+ #include <linux/kdebug.h>
+ #include <linux/kernel.h>
+@@ -425,7 +424,7 @@ EXPORT_SYMBOL_GPL(hw_breakpoint_restore);
+  * NOTIFY_STOP returned for all other cases
+  *
+  */
+-static int __kprobes hw_breakpoint_handler(struct die_args *args)
++static int hw_breakpoint_handler(struct die_args *args)
+ {
+ 	int i, cpu, rc = NOTIFY_STOP;
+ 	struct perf_event *bp;
+@@ -512,7 +511,7 @@ static int __kprobes hw_breakpoint_handler(struct die_args *args)
+ /*
+  * Handle debug exception notifications.
+  */
+-int __kprobes hw_breakpoint_exceptions_notify(
++int hw_breakpoint_exceptions_notify(
+ 		struct notifier_block *unused, unsigned long val, void *data)
+ {
+ 	if (val != DIE_DEBUG)
 
 
