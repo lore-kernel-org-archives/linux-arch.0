@@ -1,176 +1,262 @@
 From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Subject: [PATCH -tip v6 00/22] kprobes: introduce NOKPROBE_SYMBOL(),
- cleanup and fixes crash bugs
-Date: Thu, 19 Dec 2013 09:03:54 +0000
-Message-ID: <20131219090353.14309.15496.stgit@kbuild-fedora.novalocal>
+Subject: [PATCH -tip v6 01/22] kprobes: Prohibit probing on .entry.text code
+Date: Thu, 19 Dec 2013 09:03:56 +0000
+Message-ID: <20131219090356.14309.15099.stgit@kbuild-fedora.novalocal>
+References: <20131219090353.14309.15496.stgit@kbuild-fedora.novalocal>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail9.hitachi.co.jp ([133.145.228.44]:56536 "EHLO
-	mail9.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751457Ab3LSJJj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Dec 2013 04:09:39 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <systemtap-return-21804-gls-systemtap=m.gmane.org@sourceware.org>
+List-Unsubscribe: <mailto:systemtap-unsubscribe-##L=##H@sourceware.org>
+List-Subscribe: <mailto:systemtap-subscribe@sourceware.org>
+List-Post: <mailto:systemtap@sourceware.org>
+List-Help: <mailto:systemtap-help@sourceware.org>, <http://sourceware.org/lists.html#faqs>
+Sender: systemtap-owner@sourceware.org
+In-Reply-To: <20131219090353.14309.15496.stgit@kbuild-fedora.novalocal>
 To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
+Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, Frederic Weisbecker <fweisbec@gmail.com>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, systemtap@sourceware.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Seiji Aguchi <seiji.aguchi@hds.com>, "David S. Miller" <davem@davemloft.net>
+List-Id: linux-arch.vger.kernel.org
 
-Hi,
-Here is the version 6 of NOKPROBE_SYMBOL series. :)
+.entry.text is a code area which is used for interrupt/syscall
+entries, and there are many sensitive codes.
+Thus, it is better to prohibit probing on all of such codes
+instead of a part of that.
+Since some symbols are already registered on kprobe blacklist,
+this also removes them from the blacklist.
 
-This includes small updates and introducing nokprobe_inline
-macro to prevent probing on the static/inlined small
-functions since NOKPROBE_SYMBOL will inhibit inlining
-by referring function address.
-This macro is more self-describing than normal
- __always_inline. (Thanks to Steven Rostedt!)
-
-This series also adds four new patches, the first is
-prohibiting probes on memset/memcpy since probing it
-freezes the kernel. The next is allowing kprobes on
-text_poke/hw_breakpoint handler which is not related
-to kprobes int3/debug handling path. And the third is
-removing preempt disable/enable in kprobes/x86 code.
-The last is original instruction recovery code for
-bad kprobes (Thanks to Ingo Molnar!) This recovery
-code is important to make the kprobes more robust.
-
-
-Currently, kprobes uses __kprobes annotation and
-internal symbol-name based blacklist to prohibit
-probing on some functions, because to probe those
-functions may cause an infinit recursive loop by
-int3/debug exceptions.
-However, current mechanisms have some problems
-especially from the view point of maintaining code;
- - __kprobes is easy to confuse the function is
-   used by kprobes, despite it just means "no kprobe
-   on it".
- - __kprobes moves functions to different section
-   this will be not good for cache optimization.
- - symbol-name based solution is not good at all,
-   since the symbol name easily be changed, and
-   we cannot notice it.
- - it doesn't support functions in modules at all.
-
-Thus, I decided to introduce new NOKPROBE_SYMBOL
-macro for building an integrated kprobe blacklist.
-
-The new macro stores the address of the given symbols
-into _kprobe_blacklist section, and initialize the
-blacklist based on the address list at boottime.
-This is also applied for modules. When loading a
-module, kprobes finds the blacklist symbols in
-_kprobe_blacklist section in the module automatically.
-This series replaces all __kprobes on x86 and generic
-code with the NOKPROBE_SYMBOL() too.
-
-Although, the new blacklist still support old-style
-__kprobes by decoding .kprobes.text if exist, because
-it still be used on arch-dependent code except for x86.
-
-This series will fix the kernel crashable "qualitative"
-bugs of kprobes even with lockdep. But we still have
-"quantitative" issue which we are discussing on LKML.
-
-https://lkml.org/lkml/2013/12/3/788
-
-I'd like to send another series for solving this
-"quantitative" issue.
-
-Changes from the previous:
- - [2/22] Introduce nokprobe_inline macro
- - [6/22] Prohibit probing on memset/memcpy
- - [11/22] Allow probing on text_poke/hw_breakpoint
- - [12/22] Use nokprobe_inline macro instead of __always_inline
- - [14/22] Ditto.
- - [21/22] Remove preempt disable/enable from kprobes/x86
- - [22/22] Add emergency int3 recovery code
-
-Thank you,
+Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Seiji Aguchi <seiji.aguchi@hds.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Frederic Weisbecker <fweisbec@gmail.com>
 ---
+ arch/x86/kernel/entry_32.S     |   33 ---------------------------------
+ arch/x86/kernel/entry_64.S     |   20 --------------------
+ arch/x86/kernel/kprobes/core.c |    8 ++++++++
+ include/linux/kprobes.h        |    1 +
+ kernel/kprobes.c               |   13 ++++++++-----
+ 5 files changed, 17 insertions(+), 58 deletions(-)
 
-Masami Hiramatsu (22):
-      kprobes: Prohibit probing on .entry.text code
-      kprobes: Introduce NOKPROBE_SYMBOL() macro for blacklist
-      [BUGFIX] kprobes/x86: Prohibit probing on debug_stack_*
-      [BUGFIX] x86: Prohibit probing on native_set_debugreg/load_idt
-      [BUGFIX] x86: Prohibit probing on thunk functions and restore
-      [BUGFIX] x86: Prohibit probing on memcpy/memset
-      kprobes/x86: Call exception handlers directly from do_int3/do_debug
-      kprobes/x86: Allow probe on some kprobe preparation functions
-      kprobes: Allow probe on some kprobe functions
-      ftrace/kprobes: Allow probing on some preparation functions
-      x86: Allow kprobes on text_poke/hw_breakpoint
-      x86: Use NOKPROBE_SYMBOL() instead of __kprobes annotation
-      kprobes: Use NOKPROBE_SYMBOL macro instead of __kprobes
-      ftrace/kprobes: Use NOKPROBE_SYMBOL macro in ftrace
-      notifier: Use NOKPROBE_SYMBOL macro in notifier
-      sched: Use NOKPROBE_SYMBOL macro in sched
-      kprobes: Show blacklist entries via debugfs
-      kprobes: Support blacklist functions in module
-      kprobes: Use NOKPROBE_SYMBOL() in sample modules
-      kprobes/x86: Use kprobe_blacklist for .kprobes.text and .entry.text
-      kprobes/x86: Remove unneeded preempt_disable/enable in interrupt handlers
-      [RFC] kprobes/x86: Add emergency recovery process for bad kprobes
-
-
- Documentation/kprobes.txt                |   24 +-
- arch/x86/include/asm/asm.h               |    7 
- arch/x86/include/asm/fixmap.h            |    7 
- arch/x86/include/asm/kprobes.h           |    3 
- arch/x86/include/asm/paravirt.h          |    7 
- arch/x86/include/asm/processor.h         |    2 
- arch/x86/include/asm/special_insns.h     |    4 
- arch/x86/include/asm/string_32.h         |    6 
- arch/x86/include/asm/tlbflush.h          |    6 
- arch/x86/include/asm/traps.h             |    2 
- arch/x86/kernel/alternative.c            |    3 
- arch/x86/kernel/apic/hw_nmi.c            |    3 
- arch/x86/kernel/cpu/common.c             |    4 
- arch/x86/kernel/cpu/perf_event.c         |    3 
- arch/x86/kernel/cpu/perf_event_amd_ibs.c |    3 
- arch/x86/kernel/dumpstack.c              |    9 -
- arch/x86/kernel/entry_32.S               |   33 --
- arch/x86/kernel/entry_64.S               |   20 -
- arch/x86/kernel/hw_breakpoint.c          |    5 
- arch/x86/kernel/kprobes/core.c           |  193 +++++++-----
- arch/x86/kernel/kprobes/ftrace.c         |   17 +
- arch/x86/kernel/kprobes/opt.c            |   32 +-
- arch/x86/kernel/kvm.c                    |    4 
- arch/x86/kernel/nmi.c                    |   18 +
- arch/x86/kernel/paravirt.c               |    6 
- arch/x86/kernel/traps.c                  |   30 +-
- arch/x86/lguest/boot.c                   |    1 
- arch/x86/lib/memcpy_32.c                 |    2 
- arch/x86/lib/memcpy_64.S                 |    4 
- arch/x86/lib/memset_64.S                 |    3 
- arch/x86/lib/thunk_32.S                  |    3 
- arch/x86/lib/thunk_64.S                  |    3 
- arch/x86/mm/fault.c                      |   28 +-
- arch/x86/mm/pgtable.c                    |    3 
- include/asm-generic/vmlinux.lds.h        |    9 +
- include/linux/compiler.h                 |    2 
- include/linux/kprobes.h                  |   31 ++
- include/linux/module.h                   |    5 
- kernel/kprobes.c                         |  466 +++++++++++++++++++-----------
- kernel/module.c                          |    6 
- kernel/notifier.c                        |   22 +
- kernel/sched/core.c                      |    7 
- kernel/trace/trace_event_perf.c          |    5 
- kernel/trace/trace_kprobe.c              |   53 ++-
- kernel/trace/trace_probe.c               |   78 +++--
- kernel/trace/trace_probe.h               |    4 
- samples/kprobes/jprobe_example.c         |    1 
- samples/kprobes/kprobe_example.c         |    3 
- samples/kprobes/kretprobe_example.c      |    2 
- tools/perf/bench/mem-memcpy-x86-64-asm.S |    1 
- tools/perf/bench/mem-memset-x86-64-asm.S |    1 
- 51 files changed, 747 insertions(+), 447 deletions(-)
-
--- 
-Masami HIRAMATSU
-IT Management Research Dept. Linux Technology Center
-Hitachi, Ltd., Yokohama Research Laboratory
-E-mail: masami.hiramatsu.pt@hitachi.com
+diff --git a/arch/x86/kernel/entry_32.S b/arch/x86/kernel/entry_32.S
+index 51e2988..02c2fef 100644
+--- a/arch/x86/kernel/entry_32.S
++++ b/arch/x86/kernel/entry_32.S
+@@ -315,10 +315,6 @@ ENTRY(ret_from_kernel_thread)
+ ENDPROC(ret_from_kernel_thread)
+ 
+ /*
+- * Interrupt exit functions should be protected against kprobes
+- */
+-	.pushsection .kprobes.text, "ax"
+-/*
+  * Return to user mode is not as complex as all this looks,
+  * but we want the default path for a system call return to
+  * go as quickly as possible which is why some of this is
+@@ -372,10 +368,6 @@ need_resched:
+ END(resume_kernel)
+ #endif
+ 	CFI_ENDPROC
+-/*
+- * End of kprobes section
+- */
+-	.popsection
+ 
+ /* SYSENTER_RETURN points to after the "sysenter" instruction in
+    the vsyscall page.  See vsyscall-sysentry.S, which defines the symbol.  */
+@@ -495,10 +487,6 @@ sysexit_audit:
+ 	PTGS_TO_GS_EX
+ ENDPROC(ia32_sysenter_target)
+ 
+-/*
+- * syscall stub including irq exit should be protected against kprobes
+- */
+-	.pushsection .kprobes.text, "ax"
+ 	# system call handler stub
+ ENTRY(system_call)
+ 	RING0_INT_FRAME			# can't unwind into user space anyway
+@@ -691,10 +679,6 @@ syscall_badsys:
+ 	jmp resume_userspace
+ END(syscall_badsys)
+ 	CFI_ENDPROC
+-/*
+- * End of kprobes section
+- */
+-	.popsection
+ 
+ .macro FIXUP_ESPFIX_STACK
+ /*
+@@ -781,10 +765,6 @@ common_interrupt:
+ ENDPROC(common_interrupt)
+ 	CFI_ENDPROC
+ 
+-/*
+- *  Irq entries should be protected against kprobes
+- */
+-	.pushsection .kprobes.text, "ax"
+ #define BUILD_INTERRUPT3(name, nr, fn)	\
+ ENTRY(name)				\
+ 	RING0_INT_FRAME;		\
+@@ -961,10 +941,6 @@ ENTRY(spurious_interrupt_bug)
+ 	jmp error_code
+ 	CFI_ENDPROC
+ END(spurious_interrupt_bug)
+-/*
+- * End of kprobes section
+- */
+-	.popsection
+ 
+ #ifdef CONFIG_XEN
+ /* Xen doesn't set %esp to be precisely what the normal sysenter
+@@ -1239,11 +1215,6 @@ return_to_handler:
+ 	jmp *%ecx
+ #endif
+ 
+-/*
+- * Some functions should be protected against kprobes
+- */
+-	.pushsection .kprobes.text, "ax"
+-
+ #ifdef CONFIG_TRACING
+ ENTRY(trace_page_fault)
+ 	RING0_EC_FRAME
+@@ -1453,7 +1424,3 @@ ENTRY(async_page_fault)
+ END(async_page_fault)
+ #endif
+ 
+-/*
+- * End of kprobes section
+- */
+-	.popsection
+diff --git a/arch/x86/kernel/entry_64.S b/arch/x86/kernel/entry_64.S
+index e21b078..c48f8f9 100644
+--- a/arch/x86/kernel/entry_64.S
++++ b/arch/x86/kernel/entry_64.S
+@@ -487,8 +487,6 @@ ENDPROC(native_usergs_sysret64)
+ 	TRACE_IRQS_OFF
+ 	.endm
+ 
+-/* save complete stack frame */
+-	.pushsection .kprobes.text, "ax"
+ ENTRY(save_paranoid)
+ 	XCPT_FRAME 1 RDI+8
+ 	cld
+@@ -517,7 +515,6 @@ ENTRY(save_paranoid)
+ 1:	ret
+ 	CFI_ENDPROC
+ END(save_paranoid)
+-	.popsection
+ 
+ /*
+  * A newly forked process directly context switches into this address.
+@@ -975,10 +972,6 @@ END(interrupt)
+ 	call \func
+ 	.endm
+ 
+-/*
+- * Interrupt entry/exit should be protected against kprobes
+- */
+-	.pushsection .kprobes.text, "ax"
+ 	/*
+ 	 * The interrupt stubs push (~vector+0x80) onto the stack and
+ 	 * then jump to common_interrupt.
+@@ -1113,10 +1106,6 @@ ENTRY(retint_kernel)
+ 
+ 	CFI_ENDPROC
+ END(common_interrupt)
+-/*
+- * End of kprobes section
+- */
+-       .popsection
+ 
+ /*
+  * APIC interrupts.
+@@ -1477,11 +1466,6 @@ apicinterrupt3 HYPERVISOR_CALLBACK_VECTOR \
+ 	hyperv_callback_vector hyperv_vector_handler
+ #endif /* CONFIG_HYPERV */
+ 
+-/*
+- * Some functions should be protected against kprobes
+- */
+-	.pushsection .kprobes.text, "ax"
+-
+ paranoidzeroentry_ist debug do_debug DEBUG_STACK
+ paranoidzeroentry_ist int3 do_int3 DEBUG_STACK
+ paranoiderrorentry stack_segment do_stack_segment
+@@ -1898,7 +1882,3 @@ ENTRY(ignore_sysret)
+ 	CFI_ENDPROC
+ END(ignore_sysret)
+ 
+-/*
+- * End of kprobes section
+- */
+-	.popsection
+diff --git a/arch/x86/kernel/kprobes/core.c b/arch/x86/kernel/kprobes/core.c
+index 79a3f96..c01e70f 100644
+--- a/arch/x86/kernel/kprobes/core.c
++++ b/arch/x86/kernel/kprobes/core.c
+@@ -1066,6 +1066,14 @@ int __kprobes longjmp_break_handler(struct kprobe *p, struct pt_regs *regs)
+ 	return 0;
+ }
+ 
++bool arch_within_kprobe_blacklist(unsigned long addr)
++{
++	return  (addr >= (unsigned long)__kprobes_text_start &&
++		 addr < (unsigned long)__kprobes_text_end) ||
++		(addr >= (unsigned long)__entry_text_start &&
++		 addr < (unsigned long)__entry_text_end);
++}
++
+ int __init arch_init_kprobes(void)
+ {
+ 	return 0;
+diff --git a/include/linux/kprobes.h b/include/linux/kprobes.h
+index 925eaf2..cdf9251 100644
+--- a/include/linux/kprobes.h
++++ b/include/linux/kprobes.h
+@@ -265,6 +265,7 @@ extern void arch_disarm_kprobe(struct kprobe *p);
+ extern int arch_init_kprobes(void);
+ extern void show_registers(struct pt_regs *regs);
+ extern void kprobes_inc_nmissed_count(struct kprobe *p);
++extern bool arch_within_kprobe_blacklist(unsigned long addr);
+ 
+ struct kprobe_insn_cache {
+ 	struct mutex mutex;
+diff --git a/kernel/kprobes.c b/kernel/kprobes.c
+index ceeadfc..5b5ac76 100644
+--- a/kernel/kprobes.c
++++ b/kernel/kprobes.c
+@@ -96,9 +96,6 @@ static raw_spinlock_t *kretprobe_table_lock_ptr(unsigned long hash)
+ static struct kprobe_blackpoint kprobe_blacklist[] = {
+ 	{"preempt_schedule",},
+ 	{"native_get_debugreg",},
+-	{"irq_entries_start",},
+-	{"common_interrupt",},
+-	{"mcount",},	/* mcount can be called from everywhere */
+ 	{NULL}    /* Terminator */
+ };
+ 
+@@ -1324,12 +1321,18 @@ out:
+ 	return ret;
+ }
+ 
++bool __weak arch_within_kprobe_blacklist(unsigned long addr)
++{
++	/* The __kprobes marked functions and entry code must not be probed */
++	return addr >= (unsigned long)__kprobes_text_start &&
++	       addr < (unsigned long)__kprobes_text_end;
++}
++
+ static int __kprobes in_kprobes_functions(unsigned long addr)
+ {
+ 	struct kprobe_blackpoint *kb;
+ 
+-	if (addr >= (unsigned long)__kprobes_text_start &&
+-	    addr < (unsigned long)__kprobes_text_end)
++	if (arch_within_kprobe_blacklist(addr))
+ 		return -EINVAL;
+ 	/*
+ 	 * If there exists a kprobe_blacklist, verify and
