@@ -1,13 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail7.hitachi.co.jp ([133.145.228.42]:59282 "EHLO
+Received: from mail7.hitachi.co.jp ([133.145.228.42]:59263 "EHLO
 	mail7.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751354Ab3LSJKZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Dec 2013 04:10:25 -0500
-Subject: [PATCH -tip v6 19/22] kprobes: Use NOKPROBE_SYMBOL() in sample
- modules
+	with ESMTP id S1752187Ab3LSJKU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Dec 2013 04:10:20 -0500
+Subject: [PATCH -tip v6 17/22] kprobes: Show blacklist entries via debugfs
 From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Date: Thu, 19 Dec 2013 09:04:40 +0000
-Message-ID: <20131219090440.14309.51975.stgit@kbuild-fedora.novalocal>
+Date: Thu, 19 Dec 2013 09:04:35 +0000
+Message-ID: <20131219090435.14309.6218.stgit@kbuild-fedora.novalocal>
 In-Reply-To: <20131219090353.14309.15496.stgit@kbuild-fedora.novalocal>
 References: <20131219090353.14309.15496.stgit@kbuild-fedora.novalocal>
 MIME-Version: 1.0
@@ -17,78 +16,101 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@kernel.org>
 Cc: linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20131219090440.bwr6RsJhOS_8IOtefGQTxpVc8-qX8bQxOD_NLUFsjBQ@z>
+Message-ID: <20131219090435.BKSe34HTaadqjT7GZdEQ0PZynJvTWUxEdRGiJKEBBTQ@z>
 
-Use NOKPROBE_SYMBOL() to protect handlers from kprobes
-in sample modules.
+Show blacklist entries (function names with the address
+range) via /sys/kernel/debug/kprobes/blacklist.
 
 Signed-off-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Ananth N Mavinakayanahalli <ananth@in.ibm.com>
+Cc: Ananth N Mavinakayanahalli <ananth@in.ibm.com>
+Cc: "David S. Miller" <davem@davemloft.net>
 ---
- samples/kprobes/jprobe_example.c    |    1 +
- samples/kprobes/kprobe_example.c    |    3 +++
- samples/kprobes/kretprobe_example.c |    2 ++
- 3 files changed, 6 insertions(+)
+ kernel/kprobes.c |   61 +++++++++++++++++++++++++++++++++++++++++++++++-------
+ 1 file changed, 53 insertions(+), 8 deletions(-)
 
-diff --git a/samples/kprobes/jprobe_example.c b/samples/kprobes/jprobe_example.c
-index b754135..40114ac 100644
---- a/samples/kprobes/jprobe_example.c
-+++ b/samples/kprobes/jprobe_example.c
-@@ -35,6 +35,7 @@ static long jdo_fork(unsigned long clone_flags, unsigned long stack_start,
- 	jprobe_return();
- 	return 0;
- }
-+NOKPROBE_SYMBOL(jdo_fork);
+diff --git a/kernel/kprobes.c b/kernel/kprobes.c
+index a21b4e6..3214289 100644
+--- a/kernel/kprobes.c
++++ b/kernel/kprobes.c
+@@ -2249,6 +2249,46 @@ static const struct file_operations debugfs_kprobes_operations = {
+ 	.release        = seq_release,
+ };
  
- static struct jprobe my_jprobe = {
- 	.entry			= jdo_fork,
-diff --git a/samples/kprobes/kprobe_example.c b/samples/kprobes/kprobe_example.c
-index 366db1a..462d90f 100644
---- a/samples/kprobes/kprobe_example.c
-+++ b/samples/kprobes/kprobe_example.c
-@@ -46,6 +46,7 @@ static int handler_pre(struct kprobe *p, struct pt_regs *regs)
- 	/* A dump_stack() here will give a stack backtrace */
- 	return 0;
- }
-+NOKPROBE_SYMBOL(handler_pre);
- 
- /* kprobe post_handler: called after the probed instruction is executed */
- static void handler_post(struct kprobe *p, struct pt_regs *regs,
-@@ -68,6 +69,7 @@ static void handler_post(struct kprobe *p, struct pt_regs *regs,
- 		p->addr, regs->ex1);
- #endif
- }
-+NOKPROBE_SYMBOL(handler_post);
- 
- /*
-  * fault_handler: this is called if an exception is generated for any
-@@ -81,6 +83,7 @@ static int handler_fault(struct kprobe *p, struct pt_regs *regs, int trapnr)
- 	/* Return 0 because we don't handle the fault. */
- 	return 0;
- }
-+NOKPROBE_SYMBOL(handler_fault);
- 
- static int __init kprobe_init(void)
++/* kprobes/blacklist -- shows which functions can not be probed */
++static void *kprobe_blacklist_seq_start(struct seq_file *m, loff_t *pos)
++{
++	return seq_list_start(&kprobe_blacklist, *pos);
++}
++
++static void *kprobe_blacklist_seq_next(struct seq_file *m, void *v, loff_t *pos)
++{
++	return seq_list_next(v, &kprobe_blacklist, pos);
++}
++
++static int kprobe_blacklist_seq_show(struct seq_file *m, void *v)
++{
++	struct kprobe_blacklist_entry *ent =
++		list_entry(v, struct kprobe_blacklist_entry, list);
++
++	seq_printf(m, "0x%p-0x%p\t%ps\n", (void *)ent->start_addr,
++		   (void *)ent->end_addr, (void *)ent->start_addr);
++	return 0;
++}
++
++static const struct seq_operations kprobe_blacklist_seq_ops = {
++	.start = kprobe_blacklist_seq_start,
++	.next  = kprobe_blacklist_seq_next,
++	.stop  = kprobe_seq_stop,	/* Reuse void function */
++	.show  = kprobe_blacklist_seq_show,
++};
++
++static int kprobe_blacklist_open(struct inode *inode, struct file *filp)
++{
++	return seq_open(filp, &kprobe_blacklist_seq_ops);
++}
++
++static const struct file_operations debugfs_kprobe_blacklist_ops = {
++	.open           = kprobe_blacklist_open,
++	.read           = seq_read,
++	.llseek         = seq_lseek,
++	.release        = seq_release,
++};
++
+ static void arm_all_kprobes(void)
  {
-diff --git a/samples/kprobes/kretprobe_example.c b/samples/kprobes/kretprobe_example.c
-index 1041b67..d932c52 100644
---- a/samples/kprobes/kretprobe_example.c
-+++ b/samples/kprobes/kretprobe_example.c
-@@ -47,6 +47,7 @@ static int entry_handler(struct kretprobe_instance *ri, struct pt_regs *regs)
- 	data->entry_stamp = ktime_get();
- 	return 0;
- }
-+NOKPROBE_SYMBOL(entry_handler);
+ 	struct hlist_head *head;
+@@ -2372,19 +2412,24 @@ static int __init debugfs_kprobe_init(void)
  
- /*
-  * Return-probe handler: Log the return value and duration. Duration may turn
-@@ -66,6 +67,7 @@ static int ret_handler(struct kretprobe_instance *ri, struct pt_regs *regs)
- 			func_name, retval, (long long)delta);
- 	return 0;
- }
-+NOKPROBE_SYMBOL(ret_handler);
+ 	file = debugfs_create_file("list", 0444, dir, NULL,
+ 				&debugfs_kprobes_operations);
+-	if (!file) {
+-		debugfs_remove(dir);
+-		return -ENOMEM;
+-	}
++	if (!file)
++		goto error;
  
- static struct kretprobe my_kretprobe = {
- 	.handler		= ret_handler,
+ 	file = debugfs_create_file("enabled", 0600, dir,
+ 					&value, &fops_kp);
+-	if (!file) {
+-		debugfs_remove(dir);
+-		return -ENOMEM;
+-	}
++	if (!file)
++		goto error;
++
++	file = debugfs_create_file("blacklist", 0444, dir, NULL,
++				&debugfs_kprobe_blacklist_ops);
++	if (!file)
++		goto error;
+ 
+ 	return 0;
++
++error:
++	debugfs_remove(dir);
++	return -ENOMEM;
+ }
+ 
+ late_initcall(debugfs_kprobe_init);
 
 
