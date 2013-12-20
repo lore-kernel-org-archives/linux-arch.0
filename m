@@ -1,41 +1,87 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH -tip v6 00/22] kprobes: introduce NOKPROBE_SYMBOL(),
- cleanup and fixes crash bugs
-Date: Fri, 20 Dec 2013 09:20:56 +0100
-Message-ID: <20131220082056.GA15934@gmail.com>
+From: Jovi Zhangwei <jovi.zhangwei@gmail.com>
+Subject: Re: [PATCH -tip v6 06/22] [BUGFIX] x86: Prohibit probing on memcpy/memset
+Date: Fri, 20 Dec 2013 16:31:13 +0800
+Message-ID: <CAGdX0WEev84sOyu-uzkDOmQFi_=mza7cPzyC0VkRZe0fD_1+jQ@mail.gmail.com>
 References: <20131219090353.14309.15496.stgit@kbuild-fedora.novalocal>
- <y0m38loefhx.fsf@fche.csb>
- <52B3C5E6.2040802@hitachi.com>
+	<20131219090409.14309.25677.stgit@kbuild-fedora.novalocal>
+	<CAGdX0WFKYHqXrVQ6LBw0YgH_H6cP=LZVCBe1iOvEXsHQPD8Zmg@mail.gmail.com>
+	<52B3AD7D.2020104@hitachi.com>
+	<CAGdX0WENxTPhFDtcEW6LFhk1SNZc6mEK+JsCDOJmfK8_PS1rxg@mail.gmail.com>
+	<52B3CABE.1080903@hitachi.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ee0-f49.google.com ([74.125.83.49]:52475 "EHLO
-	mail-ee0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752362Ab3LTIVA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Dec 2013 03:21:00 -0500
-Content-Disposition: inline
-In-Reply-To: <52B3C5E6.2040802@hitachi.com>
+Received: from mail-qe0-f41.google.com ([209.85.128.41]:58806 "EHLO
+	mail-qe0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755013Ab3LTIbP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Dec 2013 03:31:15 -0500
+In-Reply-To: <52B3CABE.1080903@hitachi.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Cc: "Frank Ch. Eigler" <fche@redhat.com>, linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
+Cc: Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, systemtap@sourceware.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>
 
+On Fri, Dec 20, 2013 at 12:42 PM, Masami Hiramatsu
+<masami.hiramatsu.pt@hitachi.com> wrote:
+> (2013/12/20 12:07), Jovi Zhangwei wrote:
+>> On Fri, Dec 20, 2013 at 10:37 AM, Masami Hiramatsu
+>> <masami.hiramatsu.pt@hitachi.com> wrote:
+>>> Hi Jovi,
+>>>
+>>> (2013/12/19 18:37), Jovi Zhangwei wrote:
+>>>> Hi Masami,
+>>>>
+>>>> On Thu, Dec 19, 2013 at 5:04 PM, Masami Hiramatsu
+>>>> <masami.hiramatsu.pt@hitachi.com> wrote:
+>>>>> memcpy/memset functions are fundamental functions and
+>>>>> those are involved in kprobe's exception handling.
+>>>>> Prohibit probing on them to avoid kernel crash.
+>>>>>
+>>>> Would you please let me know the LKML link of that bugfix, I cannot
+>>>> find it in my LKML fold.
+>>>
+>>> Yeah, that was found in my testing environment.
+>>>
+>>>> No objection on this patch. :) just want to know more, It seems there
+>>>> have no problem to probe memcpy in my box, maybe I didn't hit the
+>>>> crash code path.
+>>>
+>>> Ah, I see. Originally the problem happened when I put a probe on
+>>> __memcpy. And it looks the instances of memcpy and __memcpy are
+>>> same on x86-64. Thus I decided to blacklist both. (memset/__memset too)
+>>> Have you ever tried to probe __memcpy on your box?
+>>>
+>> Hmm, still no crash, __memcpy and __memset are both tested.
+>>
+>> I use below kprobe related config:
+>>
+>> CONFIG_KPROBES=y
+>> CONFIG_JUMP_LABEL=y
+>> CONFIG_OPTPROBES=y
+>> CONFIG_KPROBES_ON_FTRACE=y
+>
+> Hmm, I've added some debugging options.
+>
+> CONFIG_SLUB_DEBUG=y
+> CONFIG_X86_DEBUGCTLMSR=y
+> CONFIG_PNP_DEBUG_MESSAGES=y
+> CONFIG_DEBUG_INFO=y
+> CONFIG_DEBUG_FS=y
+> CONFIG_DEBUG_KERNEL=y
+> CONFIG_DEBUG_STACK_USAGE=y
+> CONFIG_DEBUG_MEMORY_INIT=y
+> CONFIG_DEBUG_STACKOVERFLOW=y
+> CONFIG_DEBUG_SPINLOCK=y
+> CONFIG_DEBUG_MUTEXES=y
+> CONFIG_DEBUG_LOCK_ALLOC=y
+> CONFIG_DEBUG_LOCKDEP=y
+> CONFIG_DEBUG_BUGVERBOSE=y
+> CONFIG_DEBUG_RODATA=y
+> CONFIG_DEBUG_BOOT_PARAMS=y
+>
+> I guess some of them might cause it.
+>
+I recompiled the kernel with those config enabled, unfortunately still no crash,
+I tested on 3.13.0-rc4, a fedora kvm box.
 
-* Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com> wrote:
-
-> >  But a closer look indicates that the insertion of kprobes is 
-> > taking about three (!!) orders of magnitude longer than before, as 
-> > judged by the rate of increase of 'wc -l 
-> > /sys/kernel/debug/kprobes/list'.
-> 
-> Right, because kprobes are not designed for thousands of probes.
-
-Then this needs to be fixed, because right now this bug is making it 
-near impossible to properly test kprobes robustness.
-
-For example a hash table (hashed by probe address) could be used in 
-addition to the list, to speed up basic operations.
-
-Thanks,
-
-	Ingo
+Jovi
