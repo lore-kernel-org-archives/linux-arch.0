@@ -1,51 +1,25 @@
-From: fche@redhat.com (Frank Ch. Eigler)
-Subject: Re: [PATCH -tip v6 00/22] kprobes: introduce NOKPROBE_SYMBOL(), cleanup and fixes crash bugs
-Date: Thu, 19 Dec 2013 15:46:02 -0500
-Message-ID: <y0m38loefhx.fsf@fche.csb>
-References: <20131219090353.14309.15496.stgit@kbuild-fedora.novalocal>
+From: annstokesz <annstokeszzzzz@libero.it>
+Subject: Hello dear
+Date: Fri, 20 Dec 2013 01:08:51 +0100 (CET)
+Message-ID: <431105558.7356121387498131727.JavaMail.defaultUser__16549.884042661$1387498197$gmane$org@defaultHost>
+Reply-To: ann55u@yahoo.fr
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:56566 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756195Ab3LSUqV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 19 Dec 2013 15:46:21 -0500
-In-Reply-To: <20131219090353.14309.15496.stgit@kbuild-fedora.novalocal> (Masami Hiramatsu's message of "Thu, 19 Dec 2013 09:03:54 +0000")
+Received: from outrelay03.libero.it ([212.52.84.103]:49143 "EHLO
+	outrelay03.libero.it" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756467Ab3LTAJO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Dec 2013 19:09:14 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Cc: Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
 
-
-Hi, Masami -
-
-
-masami.hiramatsu.pt wrote:
-
-> Here is the version 6 of NOKPROBE_SYMBOL series. :)
-> [...]
-
-Some preliminary results from building these on top of tip/master on
-x86-64.  
-
-# stap -te "probe kprobe.function("*") {}"
-
-starts up OK, without crashes, which looks like great progress.  But a
-closer look indicates that the insertion of kprobes is taking about
-three (!!) orders of magnitude longer than before, as judged by the
-rate of increase of 'wc -l /sys/kernel/debug/kprobes/list'.  So, one
-has to let the thing run for several hours just to get all the kprobes
-inserted, never mind letting stress-testing begin.
-
-For reference, here's the steady-state "perf top" output during all this
-insertion work:
-
- 54.81%  [kernel]                    [k] _raw_spin_unlock_irqrestore
- 38.13%  [kernel]                    [k] __slab_alloc
-  1.11%  [kernel]                    [k] kprobe_ftrace_handler
-  0.88%  [kernel]                    [k] _raw_spin_unlock_irq
-
-More notes once the machine gets far enough to get to the robustness
-testing phase.
-
-- FChE
+Hello dear
+I will be very happy to be your friend.
+My name is miss. Ann Stokes. Please i will like you to
+write me through my email address ( ann55u@yahoo.fr ) .
+I will send my pictures to you and also tell you more about
+myself when i receive your email.
+I will be waiting for your mail in my mail box.
+Your new friend.
+Ann
