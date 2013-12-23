@@ -1,100 +1,104 @@
-From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Subject: Re: [PATCH -tip v6 00/22] kprobes: introduce NOKPROBE_SYMBOL(), cleanup
- and fixes crash bugs
-Date: Mon, 23 Dec 2013 06:32:11 +0900
-Message-ID: <52B75A5B.9000804@hitachi.com>
-References: <20131219090353.14309.15496.stgit@kbuild-fedora.novalocal> <y0m38loefhx.fsf@fche.csb> <52B3C5E6.2040802@hitachi.com> <20131220082056.GA15934@gmail.com> <20131220134049.GC30373@redhat.com>
+From: Jovi Zhangwei <jovi.zhangwei@gmail.com>
+Subject: Re: Re: [PATCH -tip v6 06/22] [BUGFIX] x86: Prohibit probing on memcpy/memset
+Date: Mon, 23 Dec 2013 12:51:07 +0800
+Message-ID: <CAGdX0WECaJBSX29-+fC=0XLJfAh0JvFyLTW2V8yM616L45iCQQ@mail.gmail.com>
+References: <20131219090353.14309.15496.stgit@kbuild-fedora.novalocal>
+	<20131219090409.14309.25677.stgit@kbuild-fedora.novalocal>
+	<CAGdX0WFKYHqXrVQ6LBw0YgH_H6cP=LZVCBe1iOvEXsHQPD8Zmg@mail.gmail.com>
+	<52B3AD7D.2020104@hitachi.com>
+	<CAGdX0WENxTPhFDtcEW6LFhk1SNZc6mEK+JsCDOJmfK8_PS1rxg@mail.gmail.com>
+	<52B3CABE.1080903@hitachi.com>
+	<CAGdX0WEev84sOyu-uzkDOmQFi_=mza7cPzyC0VkRZe0fD_1+jQ@mail.gmail.com>
+	<52B40C00.2060401@hitachi.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail9.hitachi.co.jp ([133.145.228.44]:60377 "EHLO
-	mail9.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754569Ab3LVVcT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Dec 2013 16:32:19 -0500
-In-Reply-To: <20131220134049.GC30373@redhat.com>
+Received: from mail-qa0-f48.google.com ([209.85.216.48]:56200 "EHLO
+	mail-qa0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756850Ab3LWEvI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Dec 2013 23:51:08 -0500
+In-Reply-To: <52B40C00.2060401@hitachi.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Frank Ch. Eigler" <fche@redhat.com>
-Cc: Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
+To: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+Cc: Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, systemtap@sourceware.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>
 
-(2013/12/20 22:40), Frank Ch. Eigler wrote:
-> Hi -
-> 
-> mingo wrote:
->> [...]
->> For example a hash table (hashed by probe address) could be used in 
->> addition to the list, to speed up basic operations.
-> 
-> In the past, when this sort of behavior popped up, it was due to
-> machine-wide halt/sync operations being done too eagerly.  At one
-> point, the kprobes-unregistration interface grew a mass-unregister API
-> to batch them (and save the machine sync's between operations).  Maybe
-> with the new checks/logic, a similar batching API may be needed for
-> the registration side.
+On Fri, Dec 20, 2013 at 5:21 PM, Masami Hiramatsu
+<masami.hiramatsu.pt@hitachi.com> wrote:
+> (2013/12/20 17:31), Jovi Zhangwei wrote:
+>> On Fri, Dec 20, 2013 at 12:42 PM, Masami Hiramatsu
+>> <masami.hiramatsu.pt@hitachi.com> wrote:
+>>> (2013/12/20 12:07), Jovi Zhangwei wrote:
+>>>> On Fri, Dec 20, 2013 at 10:37 AM, Masami Hiramatsu
+>>>> <masami.hiramatsu.pt@hitachi.com> wrote:
+>>>>> Hi Jovi,
+>>>>>
+>>>>> (2013/12/19 18:37), Jovi Zhangwei wrote:
+>>>>>> Hi Masami,
+>>>>>>
+>>>>>> On Thu, Dec 19, 2013 at 5:04 PM, Masami Hiramatsu
+>>>>>> <masami.hiramatsu.pt@hitachi.com> wrote:
+>>>>>>> memcpy/memset functions are fundamental functions and
+>>>>>>> those are involved in kprobe's exception handling.
+>>>>>>> Prohibit probing on them to avoid kernel crash.
+>>>>>>>
+>>>>>> Would you please let me know the LKML link of that bugfix, I cannot
+>>>>>> find it in my LKML fold.
+>>>>>
+>>>>> Yeah, that was found in my testing environment.
+>>>>>
+>>>>>> No objection on this patch. :) just want to know more, It seems there
+>>>>>> have no problem to probe memcpy in my box, maybe I didn't hit the
+>>>>>> crash code path.
+>>>>>
+>>>>> Ah, I see. Originally the problem happened when I put a probe on
+>>>>> __memcpy. And it looks the instances of memcpy and __memcpy are
+>>>>> same on x86-64. Thus I decided to blacklist both. (memset/__memset too)
+>>>>> Have you ever tried to probe __memcpy on your box?
+>>>>>
+>>>> Hmm, still no crash, __memcpy and __memset are both tested.
+>>>>
+>>>> I use below kprobe related config:
+>>>>
+>>>> CONFIG_KPROBES=y
+>>>> CONFIG_JUMP_LABEL=y
+>>>> CONFIG_OPTPROBES=y
+>>>> CONFIG_KPROBES_ON_FTRACE=y
+>>>
+>>> Hmm, I've added some debugging options.
+>>>
+>>> CONFIG_SLUB_DEBUG=y
+>>> CONFIG_X86_DEBUGCTLMSR=y
+>>> CONFIG_PNP_DEBUG_MESSAGES=y
+>>> CONFIG_DEBUG_INFO=y
+>>> CONFIG_DEBUG_FS=y
+>>> CONFIG_DEBUG_KERNEL=y
+>>> CONFIG_DEBUG_STACK_USAGE=y
+>>> CONFIG_DEBUG_MEMORY_INIT=y
+>>> CONFIG_DEBUG_STACKOVERFLOW=y
+>>> CONFIG_DEBUG_SPINLOCK=y
+>>> CONFIG_DEBUG_MUTEXES=y
+>>> CONFIG_DEBUG_LOCK_ALLOC=y
+>>> CONFIG_DEBUG_LOCKDEP=y
+>>> CONFIG_DEBUG_BUGVERBOSE=y
+>>> CONFIG_DEBUG_RODATA=y
+>>> CONFIG_DEBUG_BOOT_PARAMS=y
+>>>
+>>> I guess some of them might cause it.
+>>>
+>> I recompiled the kernel with those config enabled, unfortunately still no crash,
+>> I tested on 3.13.0-rc4, a fedora kvm box.
+>
+> Hmm, it's very odd. I'm running 3.13.0-rc4 x86-64 on the fedora
+> kvm box too. here is the full of my kconfig.
+>
+That configuration is still working for me, no crash for memcpy kprobe test.
 
-Hmm, OK. Since now kprobes uses ftrace if possible, it will also
-takes a time to enabling ftrace entries one by one. Perhaps
-we'd better add "enable_kprobes" for it.
+I also posted my kernel configration at:
+    https://gist.github.com/ktap/8091293
 
-> I'll try to get more perf data once the VM comes back up; after a
-> couple of hours of the test getting started, it died (for possibly
-> unrelated reasons).
+I compared two configs, no clue found yet.
 
-Yeah, possibly unrelated one... Hmm, is this reproducable?
+Thanks,
 
-
-> [  133.073670] stap_bc6054113aa63134d411836da0afefc3_123_1261: module verification failed: signature and/or  required key missing - tainting kernel
-> [  404.357210] stap_4c53547addc9f25dd87ac4afa0407ed6_36_1948: systemtap: 2.5/0.157, base: ffffffffa0201000, memory: 15882data/24text/1ctx/2058net/4625alloc kb, probes: 34692
-> [ 1655.745075] hrtimer: interrupt took 1225946 ns
-> [ 3969.175039] [sched_delayed] sched: RT throttling activated
-> [10812.665534] kernel tried to execute NX-protected page - exploit attempt? (uid: 0)
-> [10812.665534] BUG: unable to handle kernel paging request at ffff88007902f038
-> [10812.665534] IP: [<ffff88007902f038>] 0xffff88007902f038
-> [10812.665534] PGD 2d90067 PUD 2d93067 PMD 80000000790001e3 
-> [10812.665534] Oops: 0010 [#1] SMP 
-> [10812.665534] Modules linked in: stap_4c53547addc9f25dd87ac4afa0407ed6_36_1948(OF) rpcsec_gss_krb5 auth_rpcgss nfsv4 dns_resolver nfs lockd sunrpc fscache ppdev microcode parport_pc parport i2c_piix4 virtio_balloon i2c_core serio_raw virtio_net virtio_pci ata_generic virtio_ring pata_acpi virtio [last unloaded: stap_89fcd2b984e11a30dd08d141e6b47e13_123_1681]
-> [10812.665534] CPU: 1 PID: -30720 Comm: <F8><A1><D0>x Tainted: GF          O 3.13.0-rc4-01828-g8b349c29efae #1
-> [10812.665534] Hardware name: Bochs Bochs, BIOS Bochs 01/01/2011
-> [10812.665534] BUG: unable to handle kernel paging request at 000000008f896e09
-> [10812.665534] IP: [<ffffffff810d9f55>] do_raw_spin_trylock+0x5/0x60
-> [10812.665534] PGD 0 
-> [10812.665534] Thread overran stack, or stack corrupted
-> [10812.665534] Oops: 0000 [#2] SMP 
-> [10812.665534] Modules linked in: stap_4c53547addc9f25dd87ac4afa0407ed6_36_1948(OF) rpcsec_gss_krb5 auth_rpcgss nfsv4 dns_resolver nfs lockd sunrpc fscache ppdev microcode parport_pc parport i2c_piix4 virtio_balloon i2c_core serio_raw virtio_net virtio_pci ata_generic virtio_ring pata_acpi virtio [last unloaded: stap_89fcd2b984e11a30dd08d141e6b47e13_123_1681]
-> [10812.665534] CPU: 1 PID: -30720 Comm: <F8><A1><D0>x Tainted: GF          O 3.13.0-rc4-01828-g8b349c29efae #1
-> [10812.665534] Hardware name: Bochs Bochs, BIOS Bochs 01/01/2011
-> [10812.665534] BUG: unable to handle kernel paging request at 000000008f896e09
-> [10812.665534] IP: [<ffffffff810d9f55>] do_raw_spin_trylock+0x5/0x60
-> [10812.665534] PGD 0 
-> [10812.665534] Thread overran stack, or stack corrupted
-> [10812.665534] Oops: 0000 [#3] SMP 
-> [10812.665534] Modules linked in: stap_4c53547addc9f25dd87ac4afa0407ed6_36_1948(OF) rpcsec_gss_krb5 auth_rpcgss nfsv4 dns_resolver nfs lockd sunrpc fscache ppdev microcode parport_pc parport i2c_piix4 virtio_balloon i2c_core serio_raw virtio_net virtio_pci ata_generic virtio_ring pata_acpi virtio [last unloaded: stap_89fcd2b984e11a30dd08d141e6b47e13_123_1681]
-> [10812.665534] CPU: 1 PID: -30720 Comm: <F8><A1><D0>x Tainted: GF          O 3.13.0-rc4-01828-g8b349c29efae #1
-> [10812.665534] Hardware name: Bochs Bochs, BIOS Bochs 01/01/2011
-> [10812.665534] BUG: unable to handle kernel paging request at 000000008f896e09
-> [10812.665534] IP: [<ffffffff810d9f55>] do_raw_spin_trylock+0x5/0x60
-> [10812.665534] PGD 0 
-> [10812.665534] Thread overran stack, or stack corrupted
-> [10812.665534] Oops: 0000 [#4] SMP 
-> [10812.665534] Modules linked in: stap_4c53547addc9f25dd87ac4afa0407ed6_36_1948(OF) rpcsec_gss_krb5 auth_rpcgss nfsv4 dns_resolver nfs lockd sunrpc fscache ppdev microcode parport_pc parport i2c_piix4 virtio_balloon i2c_core serio_raw virtio_net virtio_pci ata_generic virtio_ring pata_acpi virtio [last unloaded: stap_89fcd2b984e11a30dd08d141e6b47e13_123_1681]
-> [10812.665534] CPU: 1 PID: -30720 Comm: <F8><A1><D0>x Tainted: GF          O 3.13.0-rc4-01828-g8b349c29efae #1
-> [10812.665534] Hardware name: Bochs Bochs, BIOS Bochs 01/01/2011
-> [10812.665534] BUG: unable to handle kernel paging request at 000000008f896e09
-> [10812.665534] IP: [<ffffffff810d9f55>] do_raw_spin_trylock+0x5/0x60
-> [10812.665534] PGD 0 
-> [10812.665534] Thread overran stack, or stack corrupted
-> [10812.665042] ------------[ cut here ]------------
-> [10812.665042] WARNING: CPU: 0 PID: 1948 at arch/x86/kernel/kprobes/core.c:600 reenter_kprobe+0x3c/0xd0()
-> [10812.665042] Modules linked in: stap_4c53547addc9f25dd87ac4afa0407ed6_36_1948(OF) rpcsec_gss_krb5 auth_rpcgss nfsv4 dns_resolver nfs lockd sunrpc fscache ppdev microcode parport_pc parport i2c_piix4 virtio_balloon i2c_core serio_raw virtio_net virtio_pci ata_generic virtio_ring pata_acpi virtio [last unloaded: stap_89fcd2b984e11a30dd08d141e6b47e13_123_1681]
-> 
-> 
-> - FChE
-> 
-
-
--- 
-Masami HIRAMATSU
-IT Management Research Dept. Linux Technology Center
-Hitachi, Ltd., Yokohama Research Laboratory
-E-mail: masami.hiramatsu.pt@hitachi.com
+Jovi
