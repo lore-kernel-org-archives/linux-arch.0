@@ -1,10 +1,10 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qe0-f41.google.com ([209.85.128.41]:52741 "EHLO
-	mail-qe0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751486Ab3LXJxy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Dec 2013 04:53:54 -0500
+Received: from mail-qa0-f51.google.com ([209.85.216.51]:50205 "EHLO
+	mail-qa0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752048Ab3LYOoj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Dec 2013 09:44:39 -0500
 MIME-Version: 1.0
-In-Reply-To: <52B9468D.4060201@hitachi.com>
+In-Reply-To: <52B9AF0A.3030806@hitachi.com>
 References: <20131219090353.14309.15496.stgit@kbuild-fedora.novalocal>
 	<20131219090409.14309.25677.stgit@kbuild-fedora.novalocal>
 	<CAGdX0WFKYHqXrVQ6LBw0YgH_H6cP=LZVCBe1iOvEXsHQPD8Zmg@mail.gmail.com>
@@ -17,111 +17,44 @@ References: <20131219090353.14309.15496.stgit@kbuild-fedora.novalocal>
 	<52B8178F.5020607@hitachi.com>
 	<CAGdX0WEZue1fBtHw058HAmuCktkM+jyKdPfn0ZM2=fNAPfcJwA@mail.gmail.com>
 	<52B9468D.4060201@hitachi.com>
-Date: Tue, 24 Dec 2013 17:53:53 +0800
-Message-ID: <CAGdX0WH=QvXMUfSL7-eXHWLM7VLPDus2=jFGCyJcK6Px-t0bng@mail.gmail.com>
-Subject: Re: Re: Re: Re: [PATCH -tip v6 06/22] [BUGFIX] x86: Prohibit probing
- on memcpy/memset
+	<CAGdX0WH=QvXMUfSL7-eXHWLM7VLPDus2=jFGCyJcK6Px-t0bng@mail.gmail.com>
+	<52B9AF0A.3030806@hitachi.com>
+Date: Wed, 25 Dec 2013 22:44:38 +0800
+Message-ID: <CAGdX0WGh5pD6fEoCRr-2bxC5rY_5ZKz1sCoZEdA0zarmwkabrw@mail.gmail.com>
+Subject: Re: [PATCH -tip v6 06/22] [BUGFIX] x86: Prohibit probing on memcpy/memset
 From: Jovi Zhangwei <jovi.zhangwei@gmail.com>
 Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
 Cc: Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, systemtap@sourceware.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20131224095353.UdjAxhZLPHCH-is7qS_DDmdsWrkbXrfkbs3JfQqxS3s@z>
+Message-ID: <20131225144438.3u_N_vYW9sx75JvYMnJgZkSWXqrjdkHtVdUqLRahd7Q@z>
 
-On Tue, Dec 24, 2013 at 4:32 PM, Masami Hiramatsu
+On Tue, Dec 24, 2013 at 11:58 PM, Masami Hiramatsu
 <masami.hiramatsu.pt@hitachi.com> wrote:
-> (2013/12/24 15:39), Jovi Zhangwei wrote:
->> On Mon, Dec 23, 2013 at 6:59 PM, Masami Hiramatsu
->> <masami.hiramatsu.pt@hitachi.com> wrote:
->>> (2013/12/23 13:51), Jovi Zhangwei wrote:
->>>> On Fri, Dec 20, 2013 at 5:21 PM, Masami Hiramatsu
->>>> <masami.hiramatsu.pt@hitachi.com> wrote:
->>>>> (2013/12/20 17:31), Jovi Zhangwei wrote:
->>>>>> On Fri, Dec 20, 2013 at 12:42 PM, Masami Hiramatsu
->>>>>> <masami.hiramatsu.pt@hitachi.com> wrote:
->>>>>>> (2013/12/20 12:07), Jovi Zhangwei wrote:
->>>>>>>> On Fri, Dec 20, 2013 at 10:37 AM, Masami Hiramatsu
->>>>>>>> <masami.hiramatsu.pt@hitachi.com> wrote:
->>>>>>>>> Hi Jovi,
->>>>>>>>>
->>>>>>>>> (2013/12/19 18:37), Jovi Zhangwei wrote:
->>>>>>>>>> Hi Masami,
->>>>>>>>>>
->>>>>>>>>> On Thu, Dec 19, 2013 at 5:04 PM, Masami Hiramatsu
->>>>>>>>>> <masami.hiramatsu.pt@hitachi.com> wrote:
->>>>>>>>>>> memcpy/memset functions are fundamental functions and
->>>>>>>>>>> those are involved in kprobe's exception handling.
->>>>>>>>>>> Prohibit probing on them to avoid kernel crash.
->>>>>>>>>>>
->>>>>>>>>> Would you please let me know the LKML link of that bugfix, I cannot
->>>>>>>>>> find it in my LKML fold.
->>>>>>>>>
->>>>>>>>> Yeah, that was found in my testing environment.
->>>>>>>>>
->>>>>>>>>> No objection on this patch. :) just want to know more, It seems there
->>>>>>>>>> have no problem to probe memcpy in my box, maybe I didn't hit the
->>>>>>>>>> crash code path.
->>>>>>>>>
->>>>>>>>> Ah, I see. Originally the problem happened when I put a probe on
->>>>>>>>> __memcpy. And it looks the instances of memcpy and __memcpy are
->>>>>>>>> same on x86-64. Thus I decided to blacklist both. (memset/__memset too)
->>>>>>>>> Have you ever tried to probe __memcpy on your box?
->>>>>>>>>
->>>>>>>> Hmm, still no crash, __memcpy and __memset are both tested.
->>>>>>>>
->>>>>>>> I use below kprobe related config:
->>>>>>>>
->>>>>>>> CONFIG_KPROBES=y
->>>>>>>> CONFIG_JUMP_LABEL=y
->>>>>>>> CONFIG_OPTPROBES=y
->>>>>>>> CONFIG_KPROBES_ON_FTRACE=y
->>>>>>>
->>>>>>> Hmm, I've added some debugging options.
->>>>>>>
->>>>>>> CONFIG_SLUB_DEBUG=y
->>>>>>> CONFIG_X86_DEBUGCTLMSR=y
->>>>>>> CONFIG_PNP_DEBUG_MESSAGES=y
->>>>>>> CONFIG_DEBUG_INFO=y
->>>>>>> CONFIG_DEBUG_FS=y
->>>>>>> CONFIG_DEBUG_KERNEL=y
->>>>>>> CONFIG_DEBUG_STACK_USAGE=y
->>>>>>> CONFIG_DEBUG_MEMORY_INIT=y
->>>>>>> CONFIG_DEBUG_STACKOVERFLOW=y
->>>>>>> CONFIG_DEBUG_SPINLOCK=y
->>>>>>> CONFIG_DEBUG_MUTEXES=y
->>>>>>> CONFIG_DEBUG_LOCK_ALLOC=y
->>>>>>> CONFIG_DEBUG_LOCKDEP=y
->>>>>>> CONFIG_DEBUG_BUGVERBOSE=y
->>>>>>> CONFIG_DEBUG_RODATA=y
->>>>>>> CONFIG_DEBUG_BOOT_PARAMS=y
->>>>>>>
->>>>>>> I guess some of them might cause it.
->>>>>>>
->>>>>> I recompiled the kernel with those config enabled, unfortunately still no crash,
->>>>>> I tested on 3.13.0-rc4, a fedora kvm box.
->>>>>
->>>>> Hmm, it's very odd. I'm running 3.13.0-rc4 x86-64 on the fedora
->>>>> kvm box too. here is the full of my kconfig.
->>>>>
->>>> That configuration is still working for me, no crash for memcpy kprobe test.
+> (2013/12/24 18:53), Jovi Zhangwei wrote:
+>>>> Still no crash, use your kernel config.
+>>>> memcpy and __memcpy have same address in /proc/kallsyms.
+>>>>
+>>>> Looks like a interesting problem.
 >>>
->>> Would you do __memcpy test? or memcpy test? I only had a crash on the
->>> __memcpy(__memset).
+>>> Agreed. In my case, those have same address, but only probing
+>>> __memcpy caused a kernel crash. I'm not sure why, but it is
+>>> safe to disable probing on it.
 >>>
->> Still no crash, use your kernel config.
->> memcpy and __memcpy have same address in /proc/kallsyms.
->>
->> Looks like a interesting problem.
+>> Shall we need dig further to address the root cause? IMO, the kprobe
+>> should act same behavior when given same probe address, but it's look
+>> so weird in your box. :)
 >
-> Agreed. In my case, those have same address, but only probing
-> __memcpy caused a kernel crash. I'm not sure why, but it is
-> safe to disable probing on it.
+> Hmm, right now, I tried it again and found the bug disappeared...
 >
-Shall we need dig further to address the root cause? IMO, the kprobe
-should act same behavior when given same probe address, but it's look
-so weird in your box. :)
+> I'm using the latest tip kernel for the test;
+> 3ab838d7723e9fbfd49b2d395752bd68e1ef4b71
+>
+> Should I remove this patch until it happens again?
+>
+Yes, we can check the problem if it happens again in somewhere. :)
 
-Thanks,
+Thanks.
 
-Jovi
+Jovi.
