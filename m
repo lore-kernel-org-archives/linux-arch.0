@@ -1,127 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:57552 "EHLO mx2.suse.de"
+Received: from ozlabs.org ([203.10.76.45]:47327 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750837AbaACMiI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 3 Jan 2014 07:38:08 -0500
-Message-ID: <52C6AF2B.8050104@suse.cz>
-Date: Fri, 03 Jan 2014 13:38:03 +0100
-From: Michal Marek <mmarek@suse.cz>
-MIME-Version: 1.0
-Subject: Re: [PATCH v2] arch: use ASM_NL instead of ';' for assembler new
- line character in the macro
-References: <526E3CE2.2070405@asianux.com> <526E6A92.6090301@synopsys.com> <526F09B8.9030202@asianux.com> <526F11C0.1030809@asianux.com> <526F149A.3000306@asianux.com> <52733FEC.4010807@synopsys.com> <528DD92E.9070408@synopsys.com>
-In-Reply-To: <528DD92E.9070408@synopsys.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+	id S1753625AbaADPjB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 4 Jan 2014 10:39:01 -0500
+Date: Sun, 5 Jan 2014 02:38:53 +1100
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [PATCH 1/3] kconfig: consolidate arch-specific seccomp options
+Message-ID: <20140105023853.dda6c1f9c6f9875159634e69@canb.auug.org.au>
+In-Reply-To: <20140102202014.CA206E9B@viggo.jf.intel.com>
+References: <20140102202014.CA206E9B@viggo.jf.intel.com>
+Mime-Version: 1.0
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA256";
+ boundary="Signature=_Sun__5_Jan_2014_02_38_53_+1100_pW+nGXcN2tl_66XS"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Chen Gang <gang.chen@asianux.com>, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Rusty Russell <rusty@rustcorp.com.au>
-Cc: James Hogan <james.hogan@imgtec.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Max Filippov <jcmvbkbc@gmail.com>, Tim Abbott <tabbott@ksplice.com>, Joe Perches <joe@perches.com>, David Howells <dhowells@redhat.com>
-Message-ID: <20140103123803.FKBTVN7KwsCqp__DhDgN0as3lUsxzAXdpzkHpwCoumk@z>
+To: Dave Hansen <dave@sr71.net>
+Cc: linux-kernel@vger.kernel.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20140104153853.93iRmACmeTFWioKYA5BrWBkyCZFvRR8_INRnmGemOXs@z>
 
-On 2013-11-21 10:58, Vineet Gupta wrote:
-> On 11/01/2013 11:15 AM, Vineet Gupta wrote:
->> +CC Sam, Tim, Joe, Michal, David
->>
->> Guys can you please take a look at this patch and suggest the best way to merge.
->>
->> The root cause is some gas ports (including ARC) use ';' for comment (vs. newline)
->> More background at https://lkml.org/lkml/2013/10/24/365
-> 
-> Ping ! Any objections to this. Given that this is exception case, it is simpler
-> than defining a Kconfig control.
-> 
-> -Vineet
->>
->>
->> On 10/29/2013 07:21 AM, Chen Gang wrote:
->>> For some assemblers, they use another character as newline in a macro
->>> (e.g. arc uses '`'), so for generic assembly code, need use ASM_NL (a
->>> macro) instead of ';' for it.
->>>
->>> Also need notice about code styles ('\t' for each line).
->>>
->>>
->>> Signed-off-by: Chen Gang <gang.chen@asianux.com>
->>> ---
->>>  arch/arc/include/asm/linkage.h |    2 ++
->>>  include/linux/linkage.h        |   19 ++++++++++++-------
->>>  2 files changed, 14 insertions(+), 7 deletions(-)
->>>
->>> diff --git a/arch/arc/include/asm/linkage.h b/arch/arc/include/asm/linkage.h
->>> index 0283e9e..66ee552 100644
->>> --- a/arch/arc/include/asm/linkage.h
->>> +++ b/arch/arc/include/asm/linkage.h
->>> @@ -11,6 +11,8 @@
->>>  
->>>  #ifdef __ASSEMBLY__
->>>  
->>> +#define ASM_NL		 `	/* use '`' to mark new line in macro */
->>> +
->>>  /* Can't use the ENTRY macro in linux/linkage.h
->>>   * gas considers ';' as comment vs. newline
->>>   */
->>> diff --git a/include/linux/linkage.h b/include/linux/linkage.h
->>> index d3e8ad2..a6a42dd 100644
->>> --- a/include/linux/linkage.h
->>> +++ b/include/linux/linkage.h
->>> @@ -6,6 +6,11 @@
->>>  #include <linux/export.h>
->>>  #include <asm/linkage.h>
->>>  
->>> +/* Some toolchains use other characters (e.g. '`') to mark new line in macro */
->>> +#ifndef ASM_NL
->>> +#define ASM_NL		 ;
->>> +#endif
->>> +
->>>  #ifdef __cplusplus
->>>  #define CPP_ASMLINKAGE extern "C"
->>>  #else
->>> @@ -75,21 +80,21 @@
->>>  
->>>  #ifndef ENTRY
->>>  #define ENTRY(name) \
->>> -  .globl name; \
->>> -  ALIGN; \
->>> -  name:
->>> +	.globl name ASM_NL \
->>> +	ALIGN ASM_NL \
->>> +	name:
->>>  #endif
->>>  #endif /* LINKER_SCRIPT */
->>>  
->>>  #ifndef WEAK
->>>  #define WEAK(name)	   \
->>> -	.weak name;	   \
->>> +	.weak name ASM_NL   \
->>>  	name:
->>>  #endif
->>>  
->>>  #ifndef END
->>>  #define END(name) \
->>> -  .size name, .-name
->>> +	.size name, .-name
->>>  #endif
->>>  
->>>  /* If symbol 'name' is treated as a subroutine (gets called, and returns)
->>> @@ -98,8 +103,8 @@
->>>   */
->>>  #ifndef ENDPROC
->>>  #define ENDPROC(name) \
->>> -  .type name, @function; \
->>> -  END(name)
->>> +	.type name, @function ASM_NL \
->>> +	END(name)
->>>  #endif
->>>  
->>>  #endif
->>>
->>
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
-> 
+--Signature=_Sun__5_Jan_2014_02_38_53_+1100_pW+nGXcN2tl_66XS
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
+Hi Dave,
+
+On Thu, 02 Jan 2014 12:20:14 -0800 Dave Hansen <dave@sr71.net> wrote:
+>
+> From: Dave Hansen <dave.hansen@linux.intel.com>
+>=20
+> There are 7 architecures with "config SECCOMP".  They all have
+> virtually the same help text except for those referencing the
+> /proc interface which was removed in 2007.
+>=20
+> There is *NOTHING* architecture-specific about SECCOMP except
+> that the syscalls have per-architecture definitions, like every
+> other syscall.  It is absurd to have the option in the
+> arch-specific menus.
+
+You seem to have (mostly) lost the dependency some of the architecture
+versions of config SECCOMP had on PROC_FS ...
+
+--=20
+Cheers,
+Stephen Rothwell <sfr@canb.auug.org.au>
+
+--Signature=_Sun__5_Jan_2014_02_38_53_+1100_pW+nGXcN2tl_66XS
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2.0.22 (GNU/Linux)
+
+iQIcBAEBCAAGBQJSyCsSAAoJEMDTa8Ir7ZwVcSQP/RuONn+HzaPnZBJc83TSfVHX
+0AOwuNeyqOn8olC21RsGWLiHGYEVq7vt4UaaJw01gaEH7IYYamcqXBPeneDHkYSf
+cNLPZkSRRbjHOtwAI5MMbJ5XvMrSGDZ9FXS1LBVmVie/zJY4w44gVizouMcVeHfx
+4rxTFzGXk/vNsC5kCGDi5a9D0DqVkn6VCmICkroCrqpaENc7URN+dzwAbJZE4RAO
+67Pp+38AGNwHr8st7mECDXTDlb4Oj6BfA1IIK/XttC8PvQrKxmFWAqR+EETh694R
+hACy0Rn74G3bs+qmHeCb3Yfj0VKUnBSFc2Yn8sWfAuKpeZvtdiWeEAGWX+8RzkHK
+xrTgv/KDvBdDsDuoXs9k2+9C6AjdwEnS6ySUGnmcJD4c9CwrOcMg58sS5OX3mtXk
+lLnm+v7qiQiv+AOzVcszB9sm0blA0eZOgC79q6EPxElyC/rhzwnaoqoZkwHtI8Pr
+/uhg8OJJ5dObfYYQw9qPlMJzV3Q31BJyEOvxqLfafcA6vfxj0slLXau4h53cZUx/
+ArPcCg5tcbg7PFZvGrj6o9p5oswXVikS6snvahmzyVnoNFR+oFOOrDwg3vJmbhfr
+6yrP5+nrddkjLqGNSWqjPePPtFTg50+ENvuLQS4zpXaOTENGTtq54Qrz1JxlGEEm
+JaZNFVuMZHI0lXwx6Px8
+=qYy3
+-----END PGP SIGNATURE-----
+
+--Signature=_Sun__5_Jan_2014_02_38_53_+1100_pW+nGXcN2tl_66XS--
