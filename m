@@ -1,77 +1,126 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCH 1/3] kconfig: consolidate arch-specific seccomp options
-Date: Sun, 5 Jan 2014 21:24:23 +1100
-Message-ID: <20140105212423.537477040dfc25c98810188e@canb.auug.org.au>
-References: <20140102202014.CA206E9B@viggo.jf.intel.com>
-	<20140105023853.dda6c1f9c6f9875159634e69@canb.auug.org.au>
-	<52C85B34.6040001@sr71.net>
-	<20140105103353.9bf06782c851f8eaec0e0f33@canb.auug.org.au>
-	<52C8AA3B.5010302@sr71.net>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH v2] arch: use ASM_NL instead of ';' for assembler new
+ line character in the macro
+Date: Mon, 6 Jan 2014 05:36:19 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA23075175CC4@IN01WEMBXA.internal.synopsys.com>
+References: <526E3CE2.2070405@asianux.com> <526E6A92.6090301@synopsys.com>
+ <526F09B8.9030202@asianux.com> <526F11C0.1030809@asianux.com>
+ <526F149A.3000306@asianux.com> <52733FEC.4010807@synopsys.com>
+ <528DD92E.9070408@synopsys.com> <52C6AF2B.8050104@suse.cz>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA256";
- boundary="Signature=_Sun__5_Jan_2014_21_24_23_+1100_dUEqADbsFDXC45Wx"
-Return-path: <linux-security-module-owner@vger.kernel.org>
-In-Reply-To: <52C8AA3B.5010302@sr71.net>
-Sender: linux-security-module-owner@vger.kernel.org
-To: Dave Hansen <dave@sr71.net>
-Cc: linux-kernel@vger.kernel.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from alvesta.synopsys.com ([198.182.60.77]:45360 "EHLO
+	smtp-relay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751063AbaAFFgX convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 6 Jan 2014 00:36:23 -0500
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Michal Marek <mmarek@suse.cz>, Chen Gang <gang.chen@asianux.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
---Signature=_Sun__5_Jan_2014_21_24_23_+1100_dUEqADbsFDXC45Wx
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Hi Michal,
 
-Hi Dave,
+On Friday 03 January 2014 06:08 PM, Michal Marek wrote:
+> On 2013-11-21 10:58, Vineet Gupta wrote:
+>> On 11/01/2013 11:15 AM, Vineet Gupta wrote:
+>>> +CC Sam, Tim, Joe, Michal, David
+>>>
+>>> Guys can you please take a look at this patch and suggest the best way to merge.
+>>>
+>>> The root cause is some gas ports (including ARC) use ';' for comment (vs. newline)
+>>> More background at https://lkml.org/lkml/2013/10/24/365
+>> Ping ! Any objections to this. Given that this is exception case, it is simpler
+>> than defining a Kconfig control.
+>>
+>> -Vineet
+>>>
+>>> On 10/29/2013 07:21 AM, Chen Gang wrote:
+>>>> For some assemblers, they use another character as newline in a macro
+>>>> (e.g. arc uses '`'), so for generic assembly code, need use ASM_NL (a
+>>>> macro) instead of ';' for it.
+>>>>
+>>>> Also need notice about code styles ('\t' for each line).
+>>>>
+>>>>
+>>>> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+>>>> ---
+>>>>  arch/arc/include/asm/linkage.h |    2 ++
+>>>>  include/linux/linkage.h        |   19 ++++++++++++-------
+>>>>  2 files changed, 14 insertions(+), 7 deletions(-)
+>>>>
+>>>> diff --git a/arch/arc/include/asm/linkage.h b/arch/arc/include/asm/linkage.h
+>>>> index 0283e9e..66ee552 100644
+>>>> --- a/arch/arc/include/asm/linkage.h
+>>>> +++ b/arch/arc/include/asm/linkage.h
+>>>> @@ -11,6 +11,8 @@
+>>>>  
+>>>>  #ifdef __ASSEMBLY__
+>>>>  
+>>>> +#define ASM_NL		 `	/* use '`' to mark new line in macro */
+>>>> +
+>>>>  /* Can't use the ENTRY macro in linux/linkage.h
+>>>>   * gas considers ';' as comment vs. newline
+>>>>   */
+>>>> diff --git a/include/linux/linkage.h b/include/linux/linkage.h
+>>>> index d3e8ad2..a6a42dd 100644
+>>>> --- a/include/linux/linkage.h
+>>>> +++ b/include/linux/linkage.h
+>>>> @@ -6,6 +6,11 @@
+>>>>  #include <linux/export.h>
+>>>>  #include <asm/linkage.h>
+>>>>  
+>>>> +/* Some toolchains use other characters (e.g. '`') to mark new line in macro */
+>>>> +#ifndef ASM_NL
+>>>> +#define ASM_NL		 ;
+>>>> +#endif
+>>>> +
+>>>>  #ifdef __cplusplus
+>>>>  #define CPP_ASMLINKAGE extern "C"
+>>>>  #else
+>>>> @@ -75,21 +80,21 @@
+>>>>  
+>>>>  #ifndef ENTRY
+>>>>  #define ENTRY(name) \
+>>>> -  .globl name; \
+>>>> -  ALIGN; \
+>>>> -  name:
+>>>> +	.globl name ASM_NL \
+>>>> +	ALIGN ASM_NL \
+>>>> +	name:
+>>>>  #endif
+>>>>  #endif /* LINKER_SCRIPT */
+>>>>  
+>>>>  #ifndef WEAK
+>>>>  #define WEAK(name)	   \
+>>>> -	.weak name;	   \
+>>>> +	.weak name ASM_NL   \
+>>>>  	name:
+>>>>  #endif
+>>>>  
+>>>>  #ifndef END
+>>>>  #define END(name) \
+>>>> -  .size name, .-name
+>>>> +	.size name, .-name
+>>>>  #endif
+>>>>  
+>>>>  /* If symbol 'name' is treated as a subroutine (gets called, and returns)
+>>>> @@ -98,8 +103,8 @@
+>>>>   */
+>>>>  #ifndef ENDPROC
+>>>>  #define ENDPROC(name) \
+>>>> -  .type name, @function; \
+>>>> -  END(name)
+>>>> +	.type name, @function ASM_NL \
+>>>> +	END(name)
+>>>>  #endif
+>>>>  
+>>>>  #endif
+>>>>
+>>>
 
-On Sat, 04 Jan 2014 16:41:31 -0800 Dave Hansen <dave@sr71.net> wrote:
->
-> On 01/04/2014 03:33 PM, Stephen Rothwell wrote:
-> >=20
-> > I don't know, but if it has gone then it is worth mentioning in the
-> > commit message
->=20
-> Maybe like this? ;)
->=20
-> > There are 7 architecures with "config SECCOMP".  They all have
-> > virtually the same help text except for those referencing the
-> > /proc interface which was removed in 2007.
->=20
-> I guess I could call it out a _bit_ more clearly that I removed the
-> dependency because the code is gone.
+Did you hit reply by mistake - as I can't seem to find any comments...
 
-Ah, yes, I must have been half asleep :-)
-
-> > ... and you did preserve the dependency in the sparc64 case.
->=20
-> Ahh, I did.  I'll remove it.  Thanks!
-
-And that probably confused me as well.
-
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-
---Signature=_Sun__5_Jan_2014_21_24_23_+1100_dUEqADbsFDXC45Wx
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.22 (GNU/Linux)
-
-iQIcBAEBCAAGBQJSyTLcAAoJEMDTa8Ir7ZwVRFEQAIdY/PhBc1m0sJ82yrUN3q0V
-WYYB0tOvd6vXRTnA6hRcMIHD4JJjmB7AyaU0xhS0pd+ELOpGjJXBJ2habSaGvwpG
-Omzi8aXJS8T4t3bhf3jUciam5co3/Bw46MXL7+Wm1IPCAj2JRbtWVPjYc1qZb6qL
-6cUn1AVrAn+/lWLHcB0v/RQtXrOTL846KQ3EyfyfwjY7si5RrvmCg9SJnVWmf2Y4
-6D7R5NQIJWrHFcn9YYckTSWoAJvCOaV/+sSRZuaI8Cbx/T6q2fD9AR62vqp3fsyI
-dc5R7ri2qww6S8rVMjiKN74we0nKLISmuASBzxdqrQtcf9vM4f0XjcFAYZy3llMd
-SPSz6sTGSO+42m7Ef8+ihffy5qjd4Oit0Y/ynOHjlWsezmLsoFW03HKaV52eZmCR
-jS2l4BATbae6nXj2npCHlC+brn4BPorore3VFRhP3I2vD+Kw/yoQZ0OXoNA8+jFm
-/3Ik5hXfSAKGXY4Q3Bkc9/n8ZX5yp+N72jFI/B1/vG7F3jxcGJP4h/6Jahh8w50u
-IMvup1QRev0bd1xGe99vhXGq+pI783+nJPf9CUh64sxN5i5bYGB6dPi9EvaPCAWA
-QJHqfoWJJ9t3IOTTQeLu2Sm8RIo+3B7E8BcekTf8K37leSUyefegW+IM7QuyA+ej
-95AgX9maYjSK+IbNDgJC
-=Ux22
------END PGP SIGNATURE-----
-
---Signature=_Sun__5_Jan_2014_21_24_23_+1100_dUEqADbsFDXC45Wx--
+-Vineet
