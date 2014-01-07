@@ -1,46 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fw-tnat.austin.arm.com ([217.140.110.23]:45713 "EHLO
-	collaborate-mta1.arm.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1752220AbaAGR1A (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 Jan 2014 12:27:00 -0500
-Date: Tue, 7 Jan 2014 17:26:32 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v2 0/5] generic early_ioremap support
-Message-ID: <20140107172632.GC6234@arm.com>
-References: <1389062120-31896-1-git-send-email-msalter@redhat.com>
+Received: from terminus.zytor.com ([198.137.202.10]:32822 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753627AbaAGXM4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 7 Jan 2014 18:12:56 -0500
+Message-ID: <52CC89B4.4060300@zytor.com>
+Date: Tue, 07 Jan 2014 15:11:48 -0800
+From: "H. Peter Anvin" <hpa@zytor.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1389062120-31896-1-git-send-email-msalter@redhat.com>
+Subject: Re: [PATCH v2 1/5] mm: create generic early_ioremap() support
+References: <1389062120-31896-1-git-send-email-msalter@redhat.com> <1389062120-31896-2-git-send-email-msalter@redhat.com>
+In-Reply-To: <1389062120-31896-2-git-send-email-msalter@redhat.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Salter <msalter@redhat.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "patches@linaro.org" <patches@linaro.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Russell King <linux@arm.linux.org.uk>, Will Deacon <Will.Deacon@arm.com>
-Message-ID: <20140107172632.9KHdRl052FacTNfO0-Q7HyvS26EavF_kNuYsoiYOm_Y@z>
+To: Mark Salter <msalter@redhat.com>, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, patches@linaro.org, linux-mm@kvack.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
+Message-ID: <20140107231148.WkRKmxL0buDwu6k36PK6RSo_N_qcHrkSIATqALHIYnk@z>
 
-On Tue, Jan 07, 2014 at 02:35:15AM +0000, Mark Salter wrote:
-> This patch series takes the common bits from the x86 early ioremap
-> implementation and creates a generic implementation which may be used
-> by other architectures. The early ioremap interfaces are intended for
-> situations where boot code needs to make temporary virtual mappings
-> before the normal ioremap interfaces are available. Typically, this
-> means before paging_init() has run.
+On 01/06/2014 06:35 PM, Mark Salter wrote:
 > 
-> These patches are layered on top of generic fixmap patches which
-> were discussed here (and are in the akpm tree):
+> There is one difference from the existing x86 implementation which
+> should be noted. The generic early_memremap() function does not return
+> an __iomem pointer and a new early_memunmap() function has been added
+> to act as a wrapper for early_iounmap() but with a non __iomem pointer
+> passed in. This is in line with the first patch of this series:
 > 
->   http://lkml.org/lkml/2013/11/25/474
-> 
-> This is version 2 of the patch series. These patches (and underlying
-> fixmap patches) may be found at:
-> 
->   git://github.com/mosalter/linux.git (early-ioremap-v2 branch)
 
-The patches look fine to me. I haven't acked the arm64 patches as I'll
-eventually merge/sign them off once the first patch in the series goes
-in.
+This makes a lot of sense.  However, I would suggest that we preface the
+patch series with a single patch changing the signature for the existing
+x86 function, that way this change becomes bisectable.
 
-Thanks.
+	-hpa
 
--- 
-Catalin
+
