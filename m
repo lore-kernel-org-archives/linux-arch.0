@@ -1,182 +1,89 @@
 From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v8 3/4] qrwlock: Use the mcs_spinlock helper functions for MCS queuing
-Date: Wed,  8 Jan 2014 11:59:35 -0500
-Message-ID: <1389200376-62792-4-git-send-email-Waiman.Long@hp.com>
+Subject: [PATCH v8 4/4] qrwlock: Use smp_store_release() in write_unlock()
+Date: Wed,  8 Jan 2014 11:59:36 -0500
+Message-ID: <1389200376-62792-5-git-send-email-Waiman.Long@hp.com>
 References: <1389200376-62792-1-git-send-email-Waiman.Long@hp.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g1t0027.austin.hp.com ([15.216.28.34]:35057 "EHLO
-	g1t0027.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757125AbaAHRAg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jan 2014 12:00:36 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1389200376-62792-1-git-send-email-Waiman.Long@hp.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Aswin Chandramouleeswaran\"" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Waiman Long <Waiman.Long@hp.com>
+List-Id: linux-arch.vger.kernel.org
 
-There is a pending MCS lock patch series that adds generic MCS lock
-helper functions to do MCS-style locking. This patch will enable
-the queue rwlock to use that generic MCS lock/unlock primitives for
-internal queuing. This patch should only be merged after the merging
-of that generic MCS locking patch.
+This patch modifies the queue_write_unlock() function to use the
+new smp_store_release() function in another pending patch. It also
+removes the temporary implementation of smp_load_acquire() and
+smp_store_release() function in qrwlock.c.
+
+This patch should only be merged if PeterZ's linux-arch patch patch
+was merged.
 
 Signed-off-by: Waiman Long <Waiman.Long@hp.com>
 Reviewed-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 ---
- include/asm-generic/qrwlock.h |    7 +---
- kernel/locking/qrwlock.c      |   71 ++++-------------------------------------
- 2 files changed, 9 insertions(+), 69 deletions(-)
+ include/asm-generic/qrwlock.h |    4 +---
+ kernel/locking/qrwlock.c      |   34 ----------------------------------
+ 2 files changed, 1 insertions(+), 37 deletions(-)
 
 diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
-index c26be3b..2b9a7b4 100644
+index 2b9a7b4..4d4bd04 100644
 --- a/include/asm-generic/qrwlock.h
 +++ b/include/asm-generic/qrwlock.h
-@@ -38,10 +38,7 @@
-  * the writer field. The least significant 8 bits is the writer field
-  * whereas the remaining 24 bits is the reader count.
-  */
--struct qrwnode {
--	struct qrwnode *next;
--	bool		wait;	/* Waiting flag */
--};
-+struct mcs_spinlock;
- 
- typedef struct qrwlock {
- 	union qrwcnts {
-@@ -57,7 +54,7 @@ typedef struct qrwlock {
- 		atomic_t    rwa;	/* Reader/writer atomic	*/
- 		u32	    rwc;	/* Reader/writer counts */
- 	} cnts;
--	struct qrwnode *waitq;		/* Tail of waiting queue */
-+	struct mcs_spinlock *waitq;	/* Tail of waiting queue */
- } arch_rwlock_t;
+@@ -179,9 +179,7 @@ static inline void queue_write_unlock(struct qrwlock *lock)
+ 	/*
+ 	 * Make sure that none of the critical section will be leaked out.
+ 	 */
+-	smp_mb__before_clear_bit();
+-	ACCESS_ONCE(lock->cnts.writer) = 0;
+-	smp_mb__after_clear_bit();
++	smp_store_release(&lock->cnts.writer, 0)
+ }
  
  /*
 diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
-index ae45dae..1b3ffb2 100644
+index 1b3ffb2..3d3ba2b 100644
 --- a/kernel/locking/qrwlock.c
 +++ b/kernel/locking/qrwlock.c
-@@ -20,6 +20,7 @@
- #include <linux/cpumask.h>
- #include <linux/percpu.h>
- #include <linux/hardirq.h>
-+#include <linux/mcs_spinlock.h>
- #include <asm-generic/qrwlock.h>
- 
- /*
-@@ -92,64 +93,6 @@
+@@ -48,40 +48,6 @@
+ # define arch_mutex_cpu_relax() cpu_relax()
  #endif
  
- /**
-- * wait_in_queue - Add to queue and wait until it is at the head
-- * @lock: Pointer to queue rwlock structure
-- * @node: Node pointer to be added to the queue
-- */
--static inline void wait_in_queue(struct qrwlock *lock, struct qrwnode *node)
--{
--	struct qrwnode *prev;
+-#ifndef smp_load_acquire
+-# ifdef CONFIG_X86
+-#   define smp_load_acquire(p)				\
+-	({						\
+-		typeof(*p) ___p1 = ACCESS_ONCE(*p);	\
+-		barrier();				\
+-		___p1;					\
+-	})
+-# else
+-#   define smp_load_acquire(p)				\
+-	({						\
+-		typeof(*p) ___p1 = ACCESS_ONCE(*p);	\
+-		smp_mb();				\
+-		___p1;					\
+-	})
+-# endif
+-#endif
 -
--	node->next = NULL;
--	node->wait = true;
--	prev = xchg(&lock->waitq, node);
--	if (prev) {
--		prev->next = node;
--		/*
--		 * Wait until the waiting flag is off
--		 */
--		while (smp_load_acquire(&node->wait))
--			arch_mutex_cpu_relax();
--	}
--}
+-#ifndef smp_store_release
+-# ifdef CONFIG_X86
+-#   define smp_store_release(p, v)			\
+-	do {						\
+-		barrier();				\
+-		ACCESS_ONCE(*p) = v;			\
+-	} while (0)
+-# else
+-#   define smp_store_release(p, v)			\
+-	do {						\
+-		smp_mb();				\
+-		ACCESS_ONCE(*p) = v;			\
+-	} while (0)
+-# endif
+-#endif
 -
--/**
-- * signal_next - Signal the next one in queue to be at the head
-- * @lock: Pointer to queue rwlock structure
-- * @node: Node pointer to the current head of queue
-- */
--static inline void signal_next(struct qrwlock *lock, struct qrwnode *node)
--{
--	struct qrwnode *next;
--
--	/*
--	 * Try to notify the next node first without disturbing the cacheline
--	 * of the lock. If that fails, check to see if it is the last node
--	 * and so should clear the wait queue.
--	 */
--	next = ACCESS_ONCE(node->next);
--	if (likely(next))
--		goto notify_next;
--
--	/*
--	 * Clear the wait queue if it is the last node
--	 */
--	if ((ACCESS_ONCE(lock->waitq) == node) &&
--	    (cmpxchg(&lock->waitq, node, NULL) == node))
--			return;
--	/*
--	 * Wait until the next one in queue set up the next field
--	 */
--	while (likely(!(next = ACCESS_ONCE(node->next))))
--		arch_mutex_cpu_relax();
--	/*
--	 * The next one in queue is now at the head
--	 */
--notify_next:
--	smp_store_release(&next->wait, false);
--}
--
--/**
-  * rspin_until_writer_unlock - inc reader count & spin until writer is gone
-  * @lock  : Pointer to queue rwlock structure
-  * @writer: Current queue rwlock writer status byte
-@@ -172,7 +115,7 @@ rspin_until_writer_unlock(struct qrwlock *lock, u8 writer)
-  */
- void queue_read_lock_slowpath(struct qrwlock *lock)
- {
--	struct qrwnode node;
-+	struct mcs_spinlock node;
- 	union qrwcnts cnts;
- 
- 	/*
-@@ -192,7 +135,7 @@ void queue_read_lock_slowpath(struct qrwlock *lock)
- 	/*
- 	 * Put the reader into the wait queue
- 	 */
--	wait_in_queue(lock, &node);
-+	mcs_spin_lock(&lock->waitq, &node);
- 
- 	/*
- 	 * At the head of the wait queue now, wait until the writer state
-@@ -209,7 +152,7 @@ void queue_read_lock_slowpath(struct qrwlock *lock)
- 	/*
- 	 * Signal the next one in queue to become queue head
- 	 */
--	signal_next(lock, &node);
-+	mcs_spin_unlock(&lock->waitq, &node);
- }
- EXPORT_SYMBOL(queue_read_lock_slowpath);
- 
-@@ -265,18 +208,18 @@ static inline void queue_write_3step_lock(struct qrwlock *lock)
-  */
- void queue_write_lock_slowpath(struct qrwlock *lock)
- {
--	struct qrwnode node;
-+	struct mcs_spinlock node;
- 
- 	/*
- 	 * Put the writer into the wait queue
- 	 */
--	wait_in_queue(lock, &node);
-+	mcs_spin_lock(&lock->waitq, &node);
- 
- 	/*
- 	 * At the head of the wait queue now, call queue_write_3step_lock()
- 	 * to acquire the lock until it is done.
- 	 */
- 	queue_write_3step_lock(lock);
--	signal_next(lock, &node);
-+	mcs_spin_unlock(&lock->waitq, &node);
- }
- EXPORT_SYMBOL(queue_write_lock_slowpath);
+ /*
+  * If an xadd (exchange-add) macro isn't available, simulate one with
+  * the atomic_add_return() function.
 -- 
 1.7.1
