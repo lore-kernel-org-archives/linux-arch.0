@@ -1,107 +1,82 @@
 From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v8 0/4] qrwlock: Introducing a queue read/write lock implementation
-Date: Wed,  8 Jan 2014 11:59:32 -0500
-Message-ID: <1389200376-62792-1-git-send-email-Waiman.Long@hp.com>
+Subject: [PATCH v8 2/4] qrwlock x86: Enable x86 to use queue read/write lock
+Date: Wed,  8 Jan 2014 11:59:34 -0500
+Message-ID: <1389200376-62792-3-git-send-email-Waiman.Long@hp.com>
+References: <1389200376-62792-1-git-send-email-Waiman.Long@hp.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g1t0028.austin.hp.com ([15.216.28.35]:45859 "EHLO
-	g1t0028.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756136AbaAHRAa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jan 2014 12:00:30 -0500
+Received: from g1t0029.austin.hp.com ([15.216.28.36]:9258 "EHLO
+	g1t0029.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756963AbaAHRAd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jan 2014 12:00:33 -0500
+In-Reply-To: <1389200376-62792-1-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Aswin Chandramouleeswaran\"" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Waiman Long <Waiman.Long@hp.com>
 
-v7->v8:
- - Use atomic_t functions (which are implemented in all arch's) to
-   modify reader counts.
- - Use smp_load_acquire() & smp_store_release() for barriers.
- - Further tuning in slowpath performance.
+This patch makes the necessary changes at the x86 architecture specific
+layer to enable the presence of the CONFIG_QUEUE_RWLOCK kernel option
+to replace the read/write lock by the queue read/write lock.
 
-v6->v7:
- - Remove support for unfair lock, so only fair qrwlock will be provided.
- - Move qrwlock.c to the kernel/locking directory.
+It also enables the CONFIG_QUEUE_RWLOCK option by default for x86 which
+will force the use of queue read/write lock. That will greatly improve
+the fairness of read/write lock and eliminate live-lock situation
+where one task may not get the lock for an indefinite period of time.
 
-v5->v6:
- - Modify queue_read_can_lock() to avoid false positive result.
- - Move the two slowpath functions' performance tuning change from
-   patch 4 to patch 1.
- - Add a new optional patch to use the new smp_store_release() function 
-   if that is merged.
-
-v4->v5:
- - Fix wrong definitions for QW_MASK_FAIR & QW_MASK_UNFAIR macros.
- - Add an optional patch 4 which should only be applied after the
-   mcs_spinlock.h header file is merged.
-
-v3->v4:
- - Optimize the fast path with better cold cache behavior and
-   performance.
- - Removing some testing code.
- - Make x86 use queue rwlock with no user configuration.
-
-v2->v3:
- - Make read lock stealing the default and fair rwlock an option with
-   a different initializer.
- - In queue_read_lock_slowpath(), check irq_count() and force spinning
-   and lock stealing in interrupt context.
- - Unify the fair and classic read-side code path, and make write-side
-   to use cmpxchg with 2 different writer states. This slows down the
-   write lock fastpath to make the read side more efficient, but is
-   still slightly faster than a spinlock.
-
-v1->v2:
- - Improve lock fastpath performance.
- - Optionally provide classic read/write lock behavior for backward
-   compatibility.
- - Use xadd instead of cmpxchg for fair reader code path to make it
-   immute to reader contention.
- - Run more performance testing.
-
-As mentioned in the LWN article http://lwn.net/Articles/364583/,
-the read/write lock suffer from an unfairness problem that it is
-possible for a stream of incoming readers to block a waiting writer
-from getting the lock for a long time. Also, a waiting reader/writer
-contending a rwlock in local memory will have a higher chance of
-acquiring the lock than a reader/writer in remote node.
-
-This patch set introduces a queue-based read/write lock implementation
-that can largely solve this unfairness problem.
-
-The read lock slowpath will check if the reader is in an interrupt
-context. If so, it will force lock spinning and stealing without
-waiting in a queue. This is to ensure the read lock will be granted
-as soon as possible.
-
-The queue write lock can also be used as a replacement for ticket
-spinlocks that are highly contended if lock size increase is not
-an issue.
-
-This patch set currently provides queue read/write lock support on
-x86 architecture only. Support for other architectures can be added
-later on once architecture specific support infrastructure is added
-and proper testing is done.
-
-The optional patch 3 has a dependency on the the mcs_spinlock.h
-header file which has not been merged yet. So this patch should only
-be applied after the mcs_spinlock.h header file is merged.
-
-The optional patch 4 use the new smp_store_release() and
-smp_load_acquire() functions which are being reviewed & not merged yet.
-
-Waiman Long (4):
-  qrwlock: A queue read/write lock implementation
-  qrwlock x86: Enable x86 to use queue read/write lock
-  qrwlock: Use the mcs_spinlock helper functions for MCS queuing
-  qrwlock: Use smp_store_release() in write_unlock()
-
+Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+Reviewed-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+---
  arch/x86/Kconfig                      |    1 +
- arch/x86/include/asm/spinlock.h       |    2 +
- arch/x86/include/asm/spinlock_types.h |    4 +
- include/asm-generic/qrwlock.h         |  203 +++++++++++++++++++++++++++++++++
- kernel/Kconfig.locks                  |    7 +
- kernel/locking/Makefile               |    1 +
- kernel/locking/qrwlock.c              |  191 +++++++++++++++++++++++++++++++
- 7 files changed, 409 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-generic/qrwlock.h
- create mode 100644 kernel/locking/qrwlock.c
+ arch/x86/include/asm/spinlock.h       |    2 ++
+ arch/x86/include/asm/spinlock_types.h |    4 ++++
+ 3 files changed, 7 insertions(+), 0 deletions(-)
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index e903c71..c4a9c54 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -124,6 +124,7 @@ config X86
+ 	select RTC_LIB
+ 	select HAVE_DEBUG_STACKOVERFLOW
+ 	select HAVE_IRQ_EXIT_ON_IRQ_STACK if X86_64
++	select QUEUE_RWLOCK
+ 
+ config INSTRUCTION_DECODER
+ 	def_bool y
+diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
+index bf156de..8fb88c5 100644
+--- a/arch/x86/include/asm/spinlock.h
++++ b/arch/x86/include/asm/spinlock.h
+@@ -188,6 +188,7 @@ static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+ 		cpu_relax();
+ }
+ 
++#ifndef CONFIG_QUEUE_RWLOCK
+ /*
+  * Read-write spinlocks, allowing multiple readers
+  * but only one writer.
+@@ -270,6 +271,7 @@ static inline void arch_write_unlock(arch_rwlock_t *rw)
+ 	asm volatile(LOCK_PREFIX WRITE_LOCK_ADD(%1) "%0"
+ 		     : "+m" (rw->write) : "i" (RW_LOCK_BIAS) : "memory");
+ }
++#endif /* CONFIG_QUEUE_RWLOCK */
+ 
+ #define arch_read_lock_flags(lock, flags) arch_read_lock(lock)
+ #define arch_write_lock_flags(lock, flags) arch_write_lock(lock)
+diff --git a/arch/x86/include/asm/spinlock_types.h b/arch/x86/include/asm/spinlock_types.h
+index 4f1bea1..a585635 100644
+--- a/arch/x86/include/asm/spinlock_types.h
++++ b/arch/x86/include/asm/spinlock_types.h
+@@ -34,6 +34,10 @@ typedef struct arch_spinlock {
+ 
+ #define __ARCH_SPIN_LOCK_UNLOCKED	{ { 0 } }
+ 
++#ifdef CONFIG_QUEUE_RWLOCK
++#include <asm-generic/qrwlock.h>
++#else
+ #include <asm/rwlock.h>
++#endif
+ 
+ #endif /* _ASM_X86_SPINLOCK_TYPES_H */
+-- 
+1.7.1
