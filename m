@@ -1,95 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g1t0028.austin.hp.com ([15.216.28.35]:45974 "EHLO
-	g1t0028.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757136AbaAHRAh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jan 2014 12:00:37 -0500
-From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v8 4/4] qrwlock: Use smp_store_release() in write_unlock()
-Date: Wed,  8 Jan 2014 11:59:36 -0500
-Message-ID: <1389200376-62792-5-git-send-email-Waiman.Long@hp.com>
-In-Reply-To: <1389200376-62792-1-git-send-email-Waiman.Long@hp.com>
-References: <1389200376-62792-1-git-send-email-Waiman.Long@hp.com>
+Received: from arkanian.console-pimps.org ([212.110.184.194]:34732 "EHLO
+	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750851AbaAIKPt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jan 2014 05:15:49 -0500
+Date: Thu, 9 Jan 2014 10:15:42 +0000
+From: Matt Fleming <matt@console-pimps.org>
+Subject: Re: [PATCH v2 1/5] mm: create generic early_ioremap() support
+Message-ID: <20140109101542.GD18441@console-pimps.org>
+References: <1389062120-31896-1-git-send-email-msalter@redhat.com>
+ <1389062120-31896-2-git-send-email-msalter@redhat.com>
+ <52CC89B4.4060300@zytor.com>
+ <1389197388.29144.37.camel@deneb.redhat.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1389197388.29144.37.camel@deneb.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Aswin Chandramouleeswaran\"" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Waiman Long <Waiman.Long@hp.com>
-Message-ID: <20140108165936.cGtOiYDAbk2pP4dHVmujKAQWE-dcQ9UdA6BOnVHfa8Q@z>
+To: Mark Salter <msalter@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, patches@linaro.org, linux-mm@kvack.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Young <dyoung@redhat.com>
+Message-ID: <20140109101542.jaKozKZYiRiecxB2tzKfJk1K6YUcIO2SeTeSqYJvHjQ@z>
 
-This patch modifies the queue_write_unlock() function to use the
-new smp_store_release() function in another pending patch. It also
-removes the temporary implementation of smp_load_acquire() and
-smp_store_release() function in qrwlock.c.
+On Wed, 08 Jan, at 11:09:48AM, Mark Salter wrote:
+> 
+> Ok, that sounds like a good idea. I'm uncertain how best to coordinate
+> with Dave Young's patch series to avoid conflicts. His first patch does
+> the signature change (and adds the early_memunmap function but that
+> isn't used anywhere):
+> 
+>  https://lkml.org/lkml/2013/12/20/143
+> 
+> Any thoughts on how best to avoid potential merge conflicts here?
 
-This patch should only be merged if PeterZ's linux-arch patch patch
-was merged.
+Dave's patch hasn't been picked up by anyone so far, so you could
+incorporate it into your series.
 
-Signed-off-by: Waiman Long <Waiman.Long@hp.com>
-Reviewed-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
----
- include/asm-generic/qrwlock.h |    4 +---
- kernel/locking/qrwlock.c      |   34 ----------------------------------
- 2 files changed, 1 insertions(+), 37 deletions(-)
-
-diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
-index 2b9a7b4..4d4bd04 100644
---- a/include/asm-generic/qrwlock.h
-+++ b/include/asm-generic/qrwlock.h
-@@ -179,9 +179,7 @@ static inline void queue_write_unlock(struct qrwlock *lock)
- 	/*
- 	 * Make sure that none of the critical section will be leaked out.
- 	 */
--	smp_mb__before_clear_bit();
--	ACCESS_ONCE(lock->cnts.writer) = 0;
--	smp_mb__after_clear_bit();
-+	smp_store_release(&lock->cnts.writer, 0)
- }
- 
- /*
-diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
-index 1b3ffb2..3d3ba2b 100644
---- a/kernel/locking/qrwlock.c
-+++ b/kernel/locking/qrwlock.c
-@@ -48,40 +48,6 @@
- # define arch_mutex_cpu_relax() cpu_relax()
- #endif
- 
--#ifndef smp_load_acquire
--# ifdef CONFIG_X86
--#   define smp_load_acquire(p)				\
--	({						\
--		typeof(*p) ___p1 = ACCESS_ONCE(*p);	\
--		barrier();				\
--		___p1;					\
--	})
--# else
--#   define smp_load_acquire(p)				\
--	({						\
--		typeof(*p) ___p1 = ACCESS_ONCE(*p);	\
--		smp_mb();				\
--		___p1;					\
--	})
--# endif
--#endif
--
--#ifndef smp_store_release
--# ifdef CONFIG_X86
--#   define smp_store_release(p, v)			\
--	do {						\
--		barrier();				\
--		ACCESS_ONCE(*p) = v;			\
--	} while (0)
--# else
--#   define smp_store_release(p, v)			\
--	do {						\
--		smp_mb();				\
--		ACCESS_ONCE(*p) = v;			\
--	} while (0)
--# endif
--#endif
--
- /*
-  * If an xadd (exchange-add) macro isn't available, simulate one with
-  * the atomic_add_return() function.
 -- 
-1.7.1
-
+Matt Fleming, Intel Open Source Technology Center
