@@ -1,51 +1,63 @@
-From: "Dr. Musa Hamed" <drmusahamed01@gmail.com>
-Subject: I have a very lucrative Business
-Date: Wed, 8 Jan 2014 21:47:31 +0100
-Message-ID: <CALS90i9nMs6jMoH2O5S68sPF=juYOV2sfMAwaBekL8ccz3eSOQ__39772.9344237179$1389215832$gmane$org@mail.gmail.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH v2] arch: use ASM_NL instead of ';' for assembler new
+ line character in the macro
+Date: Thu, 9 Jan 2014 12:11:26 +0530
+Message-ID: <52CE4496.5030401@synopsys.com>
+References: <526E3CE2.2070405@asianux.com> <526E6A92.6090301@synopsys.com> <526F09B8.9030202@asianux.com> <526F11C0.1030809@asianux.com> <526F149A.3000306@asianux.com> <52733FEC.4010807@synopsys.com> <528DD92E.9070408@synopsys.com> <52C6AF2B.8050104@suse.cz> <C2D7FE5348E1B147BCA15975FBA23075175CC4@IN01WEMBXA.internal.synopsys.com> <52CA76D3.2010102@suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f196.google.com ([209.85.212.196]:59317 "EHLO
-	mail-wi0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756768AbaAHVRD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jan 2014 16:17:03 -0500
-Received: by mail-wi0-f196.google.com with SMTP id hi5so656417wib.7
-        for <linux-arch@vger.kernel.org>; Wed, 08 Jan 2014 13:17:02 -0800 (PST)
+Received: from smtp-relay.synopsys.com ([198.182.44.81]:46243 "EHLO
+	smtp-relay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751183AbaAIGlm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jan 2014 01:41:42 -0500
+In-Reply-To: <52CA76D3.2010102@suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Chen Gang <gang.chen.5i5j@gmail.com>
+Cc: Michal Marek <mmarek@suse.cz>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-ATTN: Dear,
+Forwarding to Chen's email address:
 
-I am Dr. Musa Hamed Executive Director of the Bank of Africa
-Plc B.O.A,Cotonou Benin Rep. I have a very lucrative Business proposal
-worth of 21,500,000.00 USD.
+On Monday 06 January 2014 02:56 PM, Michal Marek wrote:
+> On 2014-01-06 06:36, Vineet Gupta wrote:
+>> Hi Michal,
+>>
+>> On Friday 03 January 2014 06:08 PM, Michal Marek wrote:
+>>> On 2013-11-21 10:58, Vineet Gupta wrote:
+>>>> On 11/01/2013 11:15 AM, Vineet Gupta wrote:
+>>>>> +CC Sam, Tim, Joe, Michal, David
+>>>>>
+>>>>> Guys can you please take a look at this patch and suggest the best way to merge.
+>>>>>
+>>>>> The root cause is some gas ports (including ARC) use ';' for comment (vs. newline)
+>>>>> More background at https://lkml.org/lkml/2013/10/24/365
+>>>> Ping ! Any objections to this. Given that this is exception case, it is simpler
+>>>> than defining a Kconfig control.
+>>>>
+>>>> -Vineet
+>>>>>
+>>>>> On 10/29/2013 07:21 AM, Chen Gang wrote:
+>>>>>> For some assemblers, they use another character as newline in a macro
+>>>>>> (e.g. arc uses '`'), so for generic assembly code, need use ASM_NL (a
+>>>>>> macro) instead of ';' for it.
+>>>>>>
+>>>>>> Also need notice about code styles ('\t' for each line).
+>>>>>>
+>>>>>>
+>>>>>> Signed-off-by: Chen Gang <gang.chen@asianux.com>
+> 
+>>
+>> Did you hit reply by mistake - as I can't seem to find any comments...
+> 
+> Oops :). I wanted to ask if this is the final patch that should be
+> merged, or if there are more known instances of .S code that needs
+> s/;/ASM_NL/. I did not find any suspects outside arch/ by grepping. If
+> this is the final patch, Chen, could you please resubmit it? I do not
+> have the original copy.
+> 
+> Michal
+> 
 
-An Iraqi named Hamadi Hashem a business man made a fixed deposit of
-21,500,000.00 USD . Upon maturity several notices was sent to him,
-even during the war,eleven years ago (2003) up till this date. Again
-after the war another notification was sent and still no response came
-from him. it has been found out that Hamadi Hashem and his family had
-been killed during the war in bomb blast that hit their home at
-Mukaradeeb where his personal oil well was. I am prepared to split the
-funds with you 50%:50%.By placing you as the NEXT OF KIN to his
-deposit.
-
-Should you be interested in doing this deal with me, please send me
-the following information:
-
-(1) Your Name
-(2) Resident Address
-(3) Your Occupation
-(4) Your Phone Number
-(5) Date of Birth
-(6) Resident Country
-
-And I will prefer you to reach me privately and securely on my personal
-email address: dr.musahamed30@yahoo.fr
-Tel: +229-988-400-97
-
-I will provide you with further information as soon as I hear
-positively from you.
-
-Regards,
-Dr. Musa Hamed
+-Vineet
