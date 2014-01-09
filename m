@@ -1,63 +1,40 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH v2] arch: use ASM_NL instead of ';' for assembler new
- line character in the macro
-Date: Thu, 9 Jan 2014 12:11:26 +0530
-Message-ID: <52CE4496.5030401@synopsys.com>
-References: <526E3CE2.2070405@asianux.com> <526E6A92.6090301@synopsys.com> <526F09B8.9030202@asianux.com> <526F11C0.1030809@asianux.com> <526F149A.3000306@asianux.com> <52733FEC.4010807@synopsys.com> <528DD92E.9070408@synopsys.com> <52C6AF2B.8050104@suse.cz> <C2D7FE5348E1B147BCA15975FBA23075175CC4@IN01WEMBXA.internal.synopsys.com> <52CA76D3.2010102@suse.cz>
+From: Matt Fleming <matt@console-pimps.org>
+Subject: Re: [PATCH v2 1/5] mm: create generic early_ioremap() support
+Date: Thu, 9 Jan 2014 10:15:42 +0000
+Message-ID: <20140109101542.GD18441@console-pimps.org>
+References: <1389062120-31896-1-git-send-email-msalter@redhat.com>
+ <1389062120-31896-2-git-send-email-msalter@redhat.com>
+ <52CC89B4.4060300@zytor.com>
+ <1389197388.29144.37.camel@deneb.redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-relay.synopsys.com ([198.182.44.81]:46243 "EHLO
-	smtp-relay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751183AbaAIGlm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jan 2014 01:41:42 -0500
-In-Reply-To: <52CA76D3.2010102@suse.cz>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Chen Gang <gang.chen.5i5j@gmail.com>
-Cc: Michal Marek <mmarek@suse.cz>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <1389197388.29144.37.camel@deneb.redhat.com>
+Sender: owner-linux-mm@kvack.org
+To: Mark Salter <msalter@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, patches@linaro.org, linux-mm@kvack.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Young <dyoung@redhat.com>
+List-Id: linux-arch.vger.kernel.org
 
-Forwarding to Chen's email address:
+On Wed, 08 Jan, at 11:09:48AM, Mark Salter wrote:
+> 
+> Ok, that sounds like a good idea. I'm uncertain how best to coordinate
+> with Dave Young's patch series to avoid conflicts. His first patch does
+> the signature change (and adds the early_memunmap function but that
+> isn't used anywhere):
+> 
+>  https://lkml.org/lkml/2013/12/20/143
+> 
+> Any thoughts on how best to avoid potential merge conflicts here?
 
-On Monday 06 January 2014 02:56 PM, Michal Marek wrote:
-> On 2014-01-06 06:36, Vineet Gupta wrote:
->> Hi Michal,
->>
->> On Friday 03 January 2014 06:08 PM, Michal Marek wrote:
->>> On 2013-11-21 10:58, Vineet Gupta wrote:
->>>> On 11/01/2013 11:15 AM, Vineet Gupta wrote:
->>>>> +CC Sam, Tim, Joe, Michal, David
->>>>>
->>>>> Guys can you please take a look at this patch and suggest the best way to merge.
->>>>>
->>>>> The root cause is some gas ports (including ARC) use ';' for comment (vs. newline)
->>>>> More background at https://lkml.org/lkml/2013/10/24/365
->>>> Ping ! Any objections to this. Given that this is exception case, it is simpler
->>>> than defining a Kconfig control.
->>>>
->>>> -Vineet
->>>>>
->>>>> On 10/29/2013 07:21 AM, Chen Gang wrote:
->>>>>> For some assemblers, they use another character as newline in a macro
->>>>>> (e.g. arc uses '`'), so for generic assembly code, need use ASM_NL (a
->>>>>> macro) instead of ';' for it.
->>>>>>
->>>>>> Also need notice about code styles ('\t' for each line).
->>>>>>
->>>>>>
->>>>>> Signed-off-by: Chen Gang <gang.chen@asianux.com>
-> 
->>
->> Did you hit reply by mistake - as I can't seem to find any comments...
-> 
-> Oops :). I wanted to ask if this is the final patch that should be
-> merged, or if there are more known instances of .S code that needs
-> s/;/ASM_NL/. I did not find any suspects outside arch/ by grepping. If
-> this is the final patch, Chen, could you please resubmit it? I do not
-> have the original copy.
-> 
-> Michal
-> 
+Dave's patch hasn't been picked up by anyone so far, so you could
+incorporate it into your series.
 
--Vineet
+-- 
+Matt Fleming, Intel Open Source Technology Center
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
