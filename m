@@ -1,34 +1,56 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v8 0/4] qrwlock: Introducing a queue read/write lock implementation
-Date: Fri, 10 Jan 2014 10:34:24 -0500
-Message-ID: <52D01300.60408@hp.com>
-References: <1389200376-62792-1-git-send-email-Waiman.Long@hp.com> <20140110064236.GV10038@linux.vnet.ibm.com>
+From: Chen Gang <gang.chen.5i5j@gmail.com>
+Subject: Re: [PATCH v2] arch: use ASM_NL instead of ';' for assembler new
+ line character in the macro
+Date: Fri, 10 Jan 2014 23:48:09 +0800
+Message-ID: <52D01639.9000205@gmail.com>
+References: <526E3CE2.2070405@asianux.com> <526E6A92.6090301@synopsys.com> <526F09B8.9030202@asianux.com> <526F11C0.1030809@asianux.com> <526F149A.3000306@asianux.com> <52733FEC.4010807@synopsys.com> <528DD92E.9070408@synopsys.com> <52C6AF2B.8050104@suse.cz> <C2D7FE5348E1B147BCA15975FBA23075175CC4@IN01WEMBXA.internal.synopsys.com> <52CA76D3.2010102@suse.cz> <52CE4496.5030401@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g1t0028.austin.hp.com ([15.216.28.35]:45181 "EHLO
-	g1t0028.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751618AbaAJPew (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jan 2014 10:34:52 -0500
-In-Reply-To: <20140110064236.GV10038@linux.vnet.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: paulmck@linux.vnet.ibm.com
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, aswin@hp.com, Scott J Norton <scott.norton@hp.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <52CE4496.5030401@synopsys.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Michal Marek <mmarek@suse.cz>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 01/10/2014 01:42 AM, Paul E. McKenney wrote:
-> On Wed, Jan 08, 2014 at 11:59:32AM -0500, Waiman Long wrote:
->> v7->v8:
->>   - Use atomic_t functions (which are implemented in all arch's) to
->>     modify reader counts.
->>   - Use smp_load_acquire()&  smp_store_release() for barriers.
->>   - Further tuning in slowpath performance.
-> This version looks good to me.  You now have my Reviewed-by on all
-> the patches.
->
-> 							Thanx, Paul
+On 01/09/2014 02:41 PM, Vineet Gupta wrote:
+> Forwarding to Chen's email address:
+> 
 
-Thank for your review!
+Oh, thank you for your forwarding, sorry for I really did not notice
+about it.
 
--Longman
+> On Monday 06 January 2014 02:56 PM, Michal Marek wrote:
+...
+>> Oops :). I wanted to ask if this is the final patch that should be
+>> merged, or if there are more known instances of .S code that needs
+>> s/;/ASM_NL/. I did not find any suspects outside arch/ by grepping. If
+>> this is the final patch, Chen, could you please resubmit it? I do not
+>> have the original copy.
+>>
+
+OK, thank, I will/should send it again within this week end (before
+2014-01-12 night).
+
+And I will/should use my gmail address instead of asianux address as
+signed-of-by. (if still need the original one, please let me know,
+thanks).
+
+
+BTW:
+
+I am sorry for replying late, during these days, I changed job, move
+house for it, and familiar with related environments (about android
+kernel and user mode programs).
+
+But I will/should still need keep 1-3 patches/month for upstream kernel
+(and this year, I will/should also need make patches for qemu/kvm/xen,
+and toolchain).
+
+
+Thanks.
+-- 
+Chen Gang
+
+Open, share and attitude like air, water and life which God blessed
