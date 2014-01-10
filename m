@@ -1,39 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from arkanian.console-pimps.org ([212.110.184.194]:34732 "EHLO
-	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750851AbaAIKPt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jan 2014 05:15:49 -0500
-Date: Thu, 9 Jan 2014 10:15:42 +0000
-From: Matt Fleming <matt@console-pimps.org>
-Subject: Re: [PATCH v2 1/5] mm: create generic early_ioremap() support
-Message-ID: <20140109101542.GD18441@console-pimps.org>
-References: <1389062120-31896-1-git-send-email-msalter@redhat.com>
- <1389062120-31896-2-git-send-email-msalter@redhat.com>
- <52CC89B4.4060300@zytor.com>
- <1389197388.29144.37.camel@deneb.redhat.com>
+Received: from mail-pb0-f41.google.com ([209.85.160.41]:61838 "EHLO
+	mail-pb0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757724AbaAJPsJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jan 2014 10:48:09 -0500
+Message-ID: <52D01639.9000205@gmail.com>
+Date: Fri, 10 Jan 2014 23:48:09 +0800
+From: Chen Gang <gang.chen.5i5j@gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1389197388.29144.37.camel@deneb.redhat.com>
+Subject: Re: [PATCH v2] arch: use ASM_NL instead of ';' for assembler new
+ line character in the macro
+References: <526E3CE2.2070405@asianux.com> <526E6A92.6090301@synopsys.com> <526F09B8.9030202@asianux.com> <526F11C0.1030809@asianux.com> <526F149A.3000306@asianux.com> <52733FEC.4010807@synopsys.com> <528DD92E.9070408@synopsys.com> <52C6AF2B.8050104@suse.cz> <C2D7FE5348E1B147BCA15975FBA23075175CC4@IN01WEMBXA.internal.synopsys.com> <52CA76D3.2010102@suse.cz> <52CE4496.5030401@synopsys.com>
+In-Reply-To: <52CE4496.5030401@synopsys.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Salter <msalter@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, patches@linaro.org, linux-mm@kvack.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Dave Young <dyoung@redhat.com>
-Message-ID: <20140109101542.jaKozKZYiRiecxB2tzKfJk1K6YUcIO2SeTeSqYJvHjQ@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Michal Marek <mmarek@suse.cz>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20140110154809.anoHh6Ql_q10o_dTYZ9oESvCaOGBaeAk5quNru-8PKw@z>
 
-On Wed, 08 Jan, at 11:09:48AM, Mark Salter wrote:
+On 01/09/2014 02:41 PM, Vineet Gupta wrote:
+> Forwarding to Chen's email address:
 > 
-> Ok, that sounds like a good idea. I'm uncertain how best to coordinate
-> with Dave Young's patch series to avoid conflicts. His first patch does
-> the signature change (and adds the early_memunmap function but that
-> isn't used anywhere):
-> 
->  https://lkml.org/lkml/2013/12/20/143
-> 
-> Any thoughts on how best to avoid potential merge conflicts here?
 
-Dave's patch hasn't been picked up by anyone so far, so you could
-incorporate it into your series.
+Oh, thank you for your forwarding, sorry for I really did not notice
+about it.
 
+> On Monday 06 January 2014 02:56 PM, Michal Marek wrote:
+...
+>> Oops :). I wanted to ask if this is the final patch that should be
+>> merged, or if there are more known instances of .S code that needs
+>> s/;/ASM_NL/. I did not find any suspects outside arch/ by grepping. If
+>> this is the final patch, Chen, could you please resubmit it? I do not
+>> have the original copy.
+>>
+
+OK, thank, I will/should send it again within this week end (before
+2014-01-12 night).
+
+And I will/should use my gmail address instead of asianux address as
+signed-of-by. (if still need the original one, please let me know,
+thanks).
+
+
+BTW:
+
+I am sorry for replying late, during these days, I changed job, move
+house for it, and familiar with related environments (about android
+kernel and user mode programs).
+
+But I will/should still need keep 1-3 patches/month for upstream kernel
+(and this year, I will/should also need make patches for qemu/kvm/xen,
+and toolchain).
+
+
+Thanks.
 -- 
-Matt Fleming, Intel Open Source Technology Center
+Chen Gang
+
+Open, share and attitude like air, water and life which God blessed
