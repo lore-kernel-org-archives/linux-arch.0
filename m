@@ -1,56 +1,101 @@
 From: Chen Gang <gang.chen.5i5j@gmail.com>
-Subject: Re: [PATCH v2] arch: use ASM_NL instead of ';' for assembler new
- line character in the macro
-Date: Fri, 10 Jan 2014 23:48:09 +0800
-Message-ID: <52D01639.9000205@gmail.com>
-References: <526E3CE2.2070405@asianux.com> <526E6A92.6090301@synopsys.com> <526F09B8.9030202@asianux.com> <526F11C0.1030809@asianux.com> <526F149A.3000306@asianux.com> <52733FEC.4010807@synopsys.com> <528DD92E.9070408@synopsys.com> <52C6AF2B.8050104@suse.cz> <C2D7FE5348E1B147BCA15975FBA23075175CC4@IN01WEMBXA.internal.synopsys.com> <52CA76D3.2010102@suse.cz> <52CE4496.5030401@synopsys.com>
+Subject: [PATCH v3] arch: use ASM_NL instead of ';' for assembler new line
+ character in the macro
+Date: Sun, 12 Jan 2014 09:59:13 +0800
+Message-ID: <52D1F6F1.1070006@gmail.com>
+References: <526E3CE2.2070405@asianux.com> <526E6A92.6090301@synopsys.com> <526F09B8.9030202@asianux.com> <526F11C0.1030809@asianux.com> <526F149A.3000306@asianux.com> <52733FEC.4010807@synopsys.com> <528DD92E.9070408@synopsys.com> <52C6AF2B.8050104@suse.cz> <C2D7FE5348E1B147BCA15975FBA23075175CC4@IN01WEMBXA.internal.synopsys.com> <52CA76D3.2010102@suse.cz> <52CE4496.5030401@synopsys.com> <52D01639.9000205@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <52CE4496.5030401@synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Michal Marek <mmarek@suse.cz>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pb0-f42.google.com ([209.85.160.42]:45645 "EHLO
+	mail-pb0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750938AbaALB7M (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 11 Jan 2014 20:59:12 -0500
+In-Reply-To: <52D01639.9000205@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Michal Marek <mmarek@suse.cz>
+Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On 01/09/2014 02:41 PM, Vineet Gupta wrote:
-> Forwarding to Chen's email address:
-> 
-
-Oh, thank you for your forwarding, sorry for I really did not notice
-about it.
-
-> On Monday 06 January 2014 02:56 PM, Michal Marek wrote:
-...
->> Oops :). I wanted to ask if this is the final patch that should be
->> merged, or if there are more known instances of .S code that needs
->> s/;/ASM_NL/. I did not find any suspects outside arch/ by grepping. If
->> this is the final patch, Chen, could you please resubmit it? I do not
->> have the original copy.
->>
-
-OK, thank, I will/should send it again within this week end (before
-2014-01-12 night).
-
-And I will/should use my gmail address instead of asianux address as
-signed-of-by. (if still need the original one, please let me know,
-thanks).
+For some assemblers, they use another character as newline in a macro
+(e.g. arc uses '`'), so for generic assembly code, need use ASM_NL (a
+macro) instead of ';' for it.
 
 
-BTW:
+Signed-off-by: Chen Gang <gang.chen.5i5j@gmail.com>
+Acked-by: Vineet Gupta <vgupta@synopsys.com>
+---
+ arch/arc/include/asm/linkage.h |  2 ++
+ include/linux/linkage.h        | 19 ++++++++++++-------
+ 2 files changed, 14 insertions(+), 7 deletions(-)
 
-I am sorry for replying late, during these days, I changed job, move
-house for it, and familiar with related environments (about android
-kernel and user mode programs).
-
-But I will/should still need keep 1-3 patches/month for upstream kernel
-(and this year, I will/should also need make patches for qemu/kvm/xen,
-and toolchain).
-
-
-Thanks.
+diff --git a/arch/arc/include/asm/linkage.h b/arch/arc/include/asm/linkage.h
+index 0283e9e..66ee552 100644
+--- a/arch/arc/include/asm/linkage.h
++++ b/arch/arc/include/asm/linkage.h
+@@ -11,6 +11,8 @@
+ 
+ #ifdef __ASSEMBLY__
+ 
++#define ASM_NL		 `	/* use '`' to mark new line in macro */
++
+ /* Can't use the ENTRY macro in linux/linkage.h
+  * gas considers ';' as comment vs. newline
+  */
+diff --git a/include/linux/linkage.h b/include/linux/linkage.h
+index d3e8ad2..a6a42dd 100644
+--- a/include/linux/linkage.h
++++ b/include/linux/linkage.h
+@@ -6,6 +6,11 @@
+ #include <linux/export.h>
+ #include <asm/linkage.h>
+ 
++/* Some toolchains use other characters (e.g. '`') to mark new line in macro */
++#ifndef ASM_NL
++#define ASM_NL		 ;
++#endif
++
+ #ifdef __cplusplus
+ #define CPP_ASMLINKAGE extern "C"
+ #else
+@@ -75,21 +80,21 @@
+ 
+ #ifndef ENTRY
+ #define ENTRY(name) \
+-  .globl name; \
+-  ALIGN; \
+-  name:
++	.globl name ASM_NL \
++	ALIGN ASM_NL \
++	name:
+ #endif
+ #endif /* LINKER_SCRIPT */
+ 
+ #ifndef WEAK
+ #define WEAK(name)	   \
+-	.weak name;	   \
++	.weak name ASM_NL   \
+ 	name:
+ #endif
+ 
+ #ifndef END
+ #define END(name) \
+-  .size name, .-name
++	.size name, .-name
+ #endif
+ 
+ /* If symbol 'name' is treated as a subroutine (gets called, and returns)
+@@ -98,8 +103,8 @@
+  */
+ #ifndef ENDPROC
+ #define ENDPROC(name) \
+-  .type name, @function; \
+-  END(name)
++	.type name, @function ASM_NL \
++	END(name)
+ #endif
+ 
+ #endif
 -- 
-Chen Gang
-
-Open, share and attitude like air, water and life which God blessed
+1.7.11.7
