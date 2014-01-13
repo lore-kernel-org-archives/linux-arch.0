@@ -1,191 +1,62 @@
-From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Subject: [PATCH 7/7] dma-buf: add poll support
-Date: Mon, 13 Jan 2014 13:33:04 +0100
-Message-ID: <20140113123254.20574.71859.stgit@patser>
+From: Colin Cross <ccross@google.com>
+Subject: Re: [PATCH 1/7] sched: allow try_to_wake_up to be used internally
+ outside of core.c
+Date: Mon, 13 Jan 2014 10:50:09 -0800
+Message-ID: <CAMbhsRTBSzAsBke0H4cwJMUe4449KbD6cvyLuNV4ijx0L+czFw@mail.gmail.com>
 References: <20140113122818.20574.34710.stgit@patser>
+	<20140113123126.20574.74329.stgit@patser>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20140113122818.20574.34710.stgit@patser>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, ccross@google.com, linaro-mm-sig@lists.linaro.org, robdclark@gmail.com, dri-devel@lists.freedesktop.org, daniel@ffwll.ch, sumit.semwal@linaro.org, linux-media@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ob0-f181.google.com ([209.85.214.181]:45956 "EHLO
+	mail-ob0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751875AbaAMSuK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jan 2014 13:50:10 -0500
+Received: by mail-ob0-f181.google.com with SMTP id uy5so8186698obc.12
+        for <linux-arch@vger.kernel.org>; Mon, 13 Jan 2014 10:50:09 -0800 (PST)
+In-Reply-To: <20140113123126.20574.74329.stgit@patser>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Cc: lkml <linux-kernel@vger.kernel.org>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, robdclark@gmail.com, "dri-devel@lists.freedesktop.org" <dri-devel@lists.freedesktop.org>, daniel@ffwll.ch, Sumit Semwal <sumit.semwal@linaro.org>, linux-media@vger.kernel.org
 
-Thanks to Fengguang Wu for spotting a missing static cast.
+On Mon, Jan 13, 2014 at 4:31 AM, Maarten Lankhorst
+<maarten.lankhorst@canonical.com> wrote:
+> The kernel fence implementation doesn't use event queues, but needs
+> to perform the same wake up. The symbol is not exported, since the
+> fence implementation is not built as a module.
+>
+> Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+> ---
+>  include/linux/wait.h |    1 +
+>  kernel/sched/core.c  |    2 +-
+>  2 files changed, 2 insertions(+), 1 deletion(-)
+>
+> diff --git a/include/linux/wait.h b/include/linux/wait.h
+> index eaa00b10abaa..c54e3ef50134 100644
+> --- a/include/linux/wait.h
+> +++ b/include/linux/wait.h
+> @@ -12,6 +12,7 @@
+>  typedef struct __wait_queue wait_queue_t;
+>  typedef int (*wait_queue_func_t)(wait_queue_t *wait, unsigned mode, int flags, void *key);
+>  int default_wake_function(wait_queue_t *wait, unsigned mode, int flags, void *key);
+> +int try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags);
+>
+>  struct __wait_queue {
+>         unsigned int            flags;
+> diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+> index a88f4a485c5e..f41d317042dd 100644
+> --- a/kernel/sched/core.c
+> +++ b/kernel/sched/core.c
+> @@ -1578,7 +1578,7 @@ static void ttwu_queue(struct task_struct *p, int cpu)
+>   * Return: %true if @p was woken up, %false if it was already running.
+>   * or @state didn't match @p's state.
+>   */
+> -static int
+> +int
+>  try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
+>  {
+>         unsigned long flags;
+>
 
-Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
----
- drivers/base/dma-buf.c  |  102 +++++++++++++++++++++++++++++++++++++++++++++++
- include/linux/dma-buf.h |   12 ++++++
- 2 files changed, 114 insertions(+)
-
-diff --git a/drivers/base/dma-buf.c b/drivers/base/dma-buf.c
-index 85e792c2c909..e0898d49530e 100644
---- a/drivers/base/dma-buf.c
-+++ b/drivers/base/dma-buf.c
-@@ -30,6 +30,7 @@
- #include <linux/export.h>
- #include <linux/debugfs.h>
- #include <linux/seq_file.h>
-+#include <linux/poll.h>
- #include <linux/reservation.h>
- 
- static inline int is_dma_buf_file(struct file *);
-@@ -52,6 +53,13 @@ static int dma_buf_release(struct inode *inode, struct file *file)
- 
- 	BUG_ON(dmabuf->vmapping_counter);
- 
-+	/*
-+	 * Any fences that a dma-buf poll can wait on should be signaled
-+	 * before releasing dma-buf. This is the responsibility of each
-+	 * driver that uses the reservation objects.
-+	 */
-+	BUG_ON(dmabuf->cb_shared.active || dmabuf->cb_excl.active);
-+
- 	dmabuf->ops->release(dmabuf);
- 
- 	mutex_lock(&db_list.lock);
-@@ -108,10 +116,100 @@ static loff_t dma_buf_llseek(struct file *file, loff_t offset, int whence)
- 	return base + offset;
- }
- 
-+static void dma_buf_poll_cb(struct fence *fence, struct fence_cb *cb)
-+{
-+	struct dma_buf_poll_cb_t *dcb = (struct dma_buf_poll_cb_t*) cb;
-+	unsigned long flags;
-+
-+	spin_lock_irqsave(&dcb->poll->lock, flags);
-+	wake_up_locked_poll(dcb->poll, dcb->active);
-+	dcb->active = 0;
-+	spin_unlock_irqrestore(&dcb->poll->lock, flags);
-+}
-+
-+static unsigned int dma_buf_poll(struct file *file, poll_table *poll)
-+{
-+	struct dma_buf *dmabuf;
-+	struct reservation_object *resv;
-+	unsigned long events;
-+	int need_shared;
-+
-+	dmabuf = file->private_data;
-+	if (!dmabuf || !dmabuf->resv)
-+		return POLLERR;
-+
-+	resv = dmabuf->resv;
-+
-+	poll_wait(file, &dmabuf->poll, poll);
-+
-+	events = poll_requested_events(poll) & (POLLIN | POLLOUT);
-+	if (!events)
-+		return 0;
-+
-+	ww_mutex_lock(&resv->lock, NULL);
-+
-+	if (resv->fence_excl && (!(events & POLLOUT) || resv->fence_shared_count == 0)) {
-+		struct dma_buf_poll_cb_t *dcb = &dmabuf->cb_excl;
-+		unsigned long pevents = POLLIN;
-+
-+		if (resv->fence_shared_count == 0)
-+			pevents |= POLLOUT;
-+
-+		spin_lock_irq(&dmabuf->poll.lock);
-+		if (dcb->active) {
-+			dcb->active |= pevents;
-+			events &= ~pevents;
-+		} else
-+			dcb->active = pevents;
-+		spin_unlock_irq(&dmabuf->poll.lock);
-+
-+		if (events & pevents) {
-+			if (!fence_add_callback(resv->fence_excl,
-+						&dcb->cb, dma_buf_poll_cb))
-+				events &= ~pevents;
-+			else
-+			// No callback queued, wake up any additional waiters.
-+				dma_buf_poll_cb(NULL, &dcb->cb);
-+		}
-+	}
-+
-+	if ((events & POLLOUT) && resv->fence_shared_count > 0) {
-+		struct dma_buf_poll_cb_t *dcb = &dmabuf->cb_shared;
-+		int i;
-+
-+		/* Only queue a new callback if no event has fired yet */
-+		spin_lock_irq(&dmabuf->poll.lock);
-+		if (dcb->active)
-+			events &= ~POLLOUT;
-+		else
-+			dcb->active = POLLOUT;
-+		spin_unlock_irq(&dmabuf->poll.lock);
-+
-+		if (!(events & POLLOUT))
-+			goto out;
-+
-+		for (i = 0; i < resv->fence_shared_count; ++i)
-+			if (!fence_add_callback(resv->fence_shared[i],
-+						&dcb->cb, dma_buf_poll_cb)) {
-+				events &= ~POLLOUT;
-+				break;
-+			}
-+
-+		// No callback queued, wake up any additional waiters.
-+		if (i == resv->fence_shared_count)
-+			dma_buf_poll_cb(NULL, &dcb->cb);
-+	}
-+
-+out:
-+	ww_mutex_unlock(&resv->lock);
-+	return events;
-+}
-+
- static const struct file_operations dma_buf_fops = {
- 	.release	= dma_buf_release,
- 	.mmap		= dma_buf_mmap_internal,
- 	.llseek		= dma_buf_llseek,
-+	.poll		= dma_buf_poll,
- };
- 
- /*
-@@ -171,6 +269,10 @@ struct dma_buf *dma_buf_export_named(void *priv, const struct dma_buf_ops *ops,
- 	dmabuf->ops = ops;
- 	dmabuf->size = size;
- 	dmabuf->exp_name = exp_name;
-+	init_waitqueue_head(&dmabuf->poll);
-+	dmabuf->cb_excl.poll = dmabuf->cb_shared.poll = &dmabuf->poll;
-+	dmabuf->cb_excl.active = dmabuf->cb_shared.active = 0;
-+
- 	if (!resv) {
- 		resv = (struct reservation_object*)&dmabuf[1];
- 		reservation_object_init(resv);
-diff --git a/include/linux/dma-buf.h b/include/linux/dma-buf.h
-index 34cfbac52c03..e1df18f584ef 100644
---- a/include/linux/dma-buf.h
-+++ b/include/linux/dma-buf.h
-@@ -30,6 +30,8 @@
- #include <linux/list.h>
- #include <linux/dma-mapping.h>
- #include <linux/fs.h>
-+#include <linux/fence.h>
-+#include <linux/wait.h>
- 
- struct device;
- struct dma_buf;
-@@ -130,6 +132,16 @@ struct dma_buf {
- 	struct list_head list_node;
- 	void *priv;
- 	struct reservation_object *resv;
-+
-+	/* poll support */
-+	wait_queue_head_t poll;
-+
-+	struct dma_buf_poll_cb_t {
-+		struct fence_cb cb;
-+		wait_queue_head_t *poll;
-+
-+		unsigned long active;
-+	} cb_excl, cb_shared;
- };
- 
- /**
+wake_up_state is already available in linux/sched.h, can you use that?
