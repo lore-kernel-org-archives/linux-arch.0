@@ -1,62 +1,68 @@
-From: Colin Cross <ccross@google.com>
-Subject: Re: [PATCH 1/7] sched: allow try_to_wake_up to be used internally
- outside of core.c
-Date: Mon, 13 Jan 2014 10:50:09 -0800
-Message-ID: <CAMbhsRTBSzAsBke0H4cwJMUe4449KbD6cvyLuNV4ijx0L+czFw@mail.gmail.com>
-References: <20140113122818.20574.34710.stgit@patser>
-	<20140113123126.20574.74329.stgit@patser>
+From: Randy Dunlap <rdunlap@infradead.org>
+Subject: Re: [PATCH 1/3] kconfig: consolidate arch-specific seccomp options
+Date: Mon, 13 Jan 2014 11:40:49 -0800
+Message-ID: <52D44141.4020304@infradead.org>
+References: <20140102202014.CA206E9B@viggo.jf.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f181.google.com ([209.85.214.181]:45956 "EHLO
-	mail-ob0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751875AbaAMSuK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jan 2014 13:50:10 -0500
-Received: by mail-ob0-f181.google.com with SMTP id uy5so8186698obc.12
-        for <linux-arch@vger.kernel.org>; Mon, 13 Jan 2014 10:50:09 -0800 (PST)
-In-Reply-To: <20140113123126.20574.74329.stgit@patser>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Cc: lkml <linux-kernel@vger.kernel.org>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, robdclark@gmail.com, "dri-devel@lists.freedesktop.org" <dri-devel@lists.freedesktop.org>, daniel@ffwll.ch, Sumit Semwal <sumit.semwal@linaro.org>, linux-media@vger.kernel.org
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-security-module-owner@vger.kernel.org>
+In-Reply-To: <20140102202014.CA206E9B@viggo.jf.intel.com>
+Sender: linux-security-module-owner@vger.kernel.org
+To: Dave Hansen <dave@sr71.net>, linux-kernel@vger.kernel.org
+Cc: linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jan 13, 2014 at 4:31 AM, Maarten Lankhorst
-<maarten.lankhorst@canonical.com> wrote:
-> The kernel fence implementation doesn't use event queues, but needs
-> to perform the same wake up. The symbol is not exported, since the
-> fence implementation is not built as a module.
->
-> Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+On 01/02/2014 12:20 PM, Dave Hansen wrote:
+> From: Dave Hansen <dave.hansen@linux.intel.com>
+> 
 > ---
->  include/linux/wait.h |    1 +
->  kernel/sched/core.c  |    2 +-
->  2 files changed, 2 insertions(+), 1 deletion(-)
->
-> diff --git a/include/linux/wait.h b/include/linux/wait.h
-> index eaa00b10abaa..c54e3ef50134 100644
-> --- a/include/linux/wait.h
-> +++ b/include/linux/wait.h
-> @@ -12,6 +12,7 @@
->  typedef struct __wait_queue wait_queue_t;
->  typedef int (*wait_queue_func_t)(wait_queue_t *wait, unsigned mode, int flags, void *key);
->  int default_wake_function(wait_queue_t *wait, unsigned mode, int flags, void *key);
-> +int try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags);
->
->  struct __wait_queue {
->         unsigned int            flags;
-> diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-> index a88f4a485c5e..f41d317042dd 100644
-> --- a/kernel/sched/core.c
-> +++ b/kernel/sched/core.c
-> @@ -1578,7 +1578,7 @@ static void ttwu_queue(struct task_struct *p, int cpu)
->   * Return: %true if @p was woken up, %false if it was already running.
->   * or @state didn't match @p's state.
->   */
-> -static int
-> +int
->  try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
->  {
->         unsigned long flags;
->
+> 
+>  linux.git-davehans/arch/arm/Kconfig        |   15 +--------------
+>  linux.git-davehans/arch/microblaze/Kconfig |   18 +-----------------
+>  linux.git-davehans/arch/mips/Kconfig       |   18 +-----------------
+>  linux.git-davehans/arch/powerpc/Kconfig    |   18 +-----------------
+>  linux.git-davehans/arch/s390/Kconfig       |   18 +-----------------
+>  linux.git-davehans/arch/sh/Kconfig         |   17 +----------------
+>  linux.git-davehans/arch/sparc/Kconfig      |   18 +-----------------
+>  linux.git-davehans/arch/x86/Kconfig        |   17 +----------------
+>  linux.git-davehans/security/Kconfig        |   21 ++++++++++++++++++++-
+>  9 files changed, 28 insertions(+), 132 deletions(-)
+> 
+> diff -puN security/Kconfig~consolidate-seccomp-options security/Kconfig
+> --- linux.git/security/Kconfig~consolidate-seccomp-options	2014-01-02 11:23:58.604785905 -0800
+> +++ linux.git-davehans/security/Kconfig	2014-01-02 11:23:58.614786355 -0800
+> @@ -167,5 +167,24 @@ config DEFAULT_SECURITY
+>  	default "yama" if DEFAULT_SECURITY_YAMA
+>  	default "" if DEFAULT_SECURITY_DAC
+>  
+> -endmenu
+> +config HAVE_ARCH_SECCOMP
+> +	bool
+> +
+> +config SECCOMP
+> +	bool
+> +	default y
 
-wake_up_state is already available in linux/sched.h, can you use that?
+Prefer
+	def_bool y
+
+> +	prompt "Enable seccomp to safely compute untrusted bytecode"
+> +	---help---
+> +	  This kernel feature is useful for number crunching applications
+> +	  that may need to compute untrusted bytecode during their
+> +	  execution. By using pipes or other transports made available to
+> +	  the process as file descriptors supporting the read/write
+> +	  syscalls, it's possible to isolate those applications in
+> +	  their own address space using seccomp. Once seccomp is
+> +	  enabled via prctl(PR_SET_SECCOMP), it cannot be disabled
+> +	  and the task is only allowed to execute a few safe syscalls
+> +	  defined by each seccomp mode.
+>  
+> +	  If unsure, say Y. Only embedded should say N here.
+> +
+> +endmenu
+
+
+-- 
+~Randy
