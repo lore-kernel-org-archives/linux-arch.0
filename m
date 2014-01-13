@@ -1,73 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:38815 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751484AbaAMTkw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jan 2014 14:40:52 -0500
-Message-ID: <52D44141.4020304@infradead.org>
-Date: Mon, 13 Jan 2014 11:40:49 -0800
-From: Randy Dunlap <rdunlap@infradead.org>
+Received: from www.sr71.net ([198.145.64.142]:43905 "EHLO blackbird.sr71.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751976AbaAMUam (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 13 Jan 2014 15:30:42 -0500
+Message-ID: <52D44C98.70906@sr71.net>
+Date: Mon, 13 Jan 2014 12:29:12 -0800
+From: Dave Hansen <dave@sr71.net>
 MIME-Version: 1.0
 Subject: Re: [PATCH 1/3] kconfig: consolidate arch-specific seccomp options
-References: <20140102202014.CA206E9B@viggo.jf.intel.com>
-In-Reply-To: <20140102202014.CA206E9B@viggo.jf.intel.com>
+References: <20140102202014.CA206E9B@viggo.jf.intel.com> <52D44141.4020304@infradead.org>
+In-Reply-To: <52D44141.4020304@infradead.org>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave@sr71.net>, linux-kernel@vger.kernel.org
+To: Randy Dunlap <rdunlap@infradead.org>, linux-kernel@vger.kernel.org
 Cc: linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20140113194049.zIrjfqv6KoU4PuQXPMWSMbfNBntQ6P5O43fIAOFfmf0@z>
+Message-ID: <20140113202912.yUDYEyPtcV9VGY5s-lDPr58V33V6iwWiQfWAkcb3T80@z>
 
-On 01/02/2014 12:20 PM, Dave Hansen wrote:
-> From: Dave Hansen <dave.hansen@linux.intel.com>
-> 
-> ---
-> 
->  linux.git-davehans/arch/arm/Kconfig        |   15 +--------------
->  linux.git-davehans/arch/microblaze/Kconfig |   18 +-----------------
->  linux.git-davehans/arch/mips/Kconfig       |   18 +-----------------
->  linux.git-davehans/arch/powerpc/Kconfig    |   18 +-----------------
->  linux.git-davehans/arch/s390/Kconfig       |   18 +-----------------
->  linux.git-davehans/arch/sh/Kconfig         |   17 +----------------
->  linux.git-davehans/arch/sparc/Kconfig      |   18 +-----------------
->  linux.git-davehans/arch/x86/Kconfig        |   17 +----------------
->  linux.git-davehans/security/Kconfig        |   21 ++++++++++++++++++++-
->  9 files changed, 28 insertions(+), 132 deletions(-)
-> 
-> diff -puN security/Kconfig~consolidate-seccomp-options security/Kconfig
-> --- linux.git/security/Kconfig~consolidate-seccomp-options	2014-01-02 11:23:58.604785905 -0800
-> +++ linux.git-davehans/security/Kconfig	2014-01-02 11:23:58.614786355 -0800
-> @@ -167,5 +167,24 @@ config DEFAULT_SECURITY
->  	default "yama" if DEFAULT_SECURITY_YAMA
->  	default "" if DEFAULT_SECURITY_DAC
->  
-> -endmenu
-> +config HAVE_ARCH_SECCOMP
-> +	bool
-> +
-> +config SECCOMP
-> +	bool
-> +	default y
+On 01/13/2014 11:40 AM, Randy Dunlap wrote:
+>> > +config SECCOMP
+>> > +	bool
+>> > +	default y
+> Prefer
+> 	def_bool y
 
-Prefer
-	def_bool y
+I've actually got that already in my updated set that I'll send out when
+the merge window opens.
 
-> +	prompt "Enable seccomp to safely compute untrusted bytecode"
-> +	---help---
-> +	  This kernel feature is useful for number crunching applications
-> +	  that may need to compute untrusted bytecode during their
-> +	  execution. By using pipes or other transports made available to
-> +	  the process as file descriptors supporting the read/write
-> +	  syscalls, it's possible to isolate those applications in
-> +	  their own address space using seccomp. Once seccomp is
-> +	  enabled via prctl(PR_SET_SECCOMP), it cannot be disabled
-> +	  and the task is only allowed to execute a few safe syscalls
-> +	  defined by each seccomp mode.
->  
-> +	  If unsure, say Y. Only embedded should say N here.
-> +
-> +endmenu
-
-
--- 
-~Randy
