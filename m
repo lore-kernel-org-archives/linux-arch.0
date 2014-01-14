@@ -1,52 +1,106 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: futex: Switch to USER_DS for futex test (was: Re: linux-next:
- manual merge of the akpm-current tree with the tip tree)
-Date: Tue, 14 Jan 2014 17:32:51 +0100
-Message-ID: <CAMuHMdXz93YsqzxR1hny2P8afMWEQGMw19=o=S7cR0rT9QvRFQ@mail.gmail.com>
+From: Joe Perches <joe@perches.com>
+Subject: [RFC PATCH net-next] etherdevice: Use ether_addr_copy to copy an
+ Ethernet address
+Date: Tue, 14 Jan 2014 15:18:47 -0800
+Message-ID: <1389741527.24849.68.camel@joe-AO722>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f172.google.com ([209.85.192.172]:37138 "EHLO
-	mail-pd0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751526AbaANQcw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jan 2014 11:32:52 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, Linux-Next <linux-next@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Davidlohr Bueso <davidlohr@hp.com>, Linux-Arch <linux-arch@vger.kernel.org>, Andreas Schwab <schwab@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <netdev-owner@vger.kernel.org>
+Sender: netdev-owner@vger.kernel.org
+To: netdev <netdev@vger.kernel.org>
+Cc: linux-arm-kernel <linux-arm-kernel@lists.arm.linux.org.uk>, linux-arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-CC linux-arch
+Some systems can use the normally known u16 alignment of
+Ethernet addresses to save some code/text bytes and cycles.
 
-https://lkml.org/lkml/2013/12/11/141
+This does not change currently emitted code on x86 by gcc 4.8.
 
-On Tue, Jan 14, 2014 at 5:19 PM, H. Peter Anvin <hpa@zytor.com> wrote:
-> On 01/14/2014 05:17 AM, Geert Uytterhoeven wrote:
->>>
->>> This seems terribly broken, the *futex_value*() ops should not need
->>> that; they are supposed to access userspace without any of that.
->>
->> Why don't they need set_fs(USER_DS)?
->
-> Because USER_DS is the normal operating state?  It would appear m68k is
+Signed-off-by: Joe Perches <joe@perches.com>
+---
 
-Is it?
+Yes, it's a trivial change, but maybe slightly useful...
 
-> the only(?) arch that calls initcalls with get_fs() == KERNEL_DS...
+For instance: with netpoll.c memcpy changed to ether_addr_copy:
 
-On ARM:
+arm old (4.6.3):
+	memcpy(eth->h_source, np->dev->dev_addr, ETH_ALEN);
+    27e0:	e4973042 	ldr	r3, [r7], #66	; 0x42
+    27e4:	e2860006 	add	r0, r6, #6
+    27e8:	e3a02006 	mov	r2, #6
+    27ec:	e59311e8 	ldr	r1, [r3, #488]	; 0x1e8
+    27f0:	ebfffffe 	bl	0 <memcpy>
+			27f0: R_ARM_CALL	memcpy
+	memcpy(eth->h_dest, np->remote_mac, ETH_ALEN);
+    27f4:	e1a00006 	mov	r0, r6
+    27f8:	e1a01007 	mov	r1, r7
+    27fc:	e3a02006 	mov	r2, #6
+    2800:	ebfffffe 	bl	0 <memcpy>
+			2800: R_ARM_CALL	memcpy
 
-fs = 0x0, USER_DS = 0xbf000000, KERNEL_DS = 0x0
+arm new:
 
-Presumably also on s390, as the fix for m68k broke s390. That's why it's still
-in -mm and not yet in mainline.
+	*(u32 *)dst = *(const u32 *)src;
+    27dc:	e5932000 	ldr	r2, [r3]
+    27e0:	e5802006 	str	r2, [r0, #6]
+	*(u16 *)(dst + 4) = *(const u16 *)(src + 4);
+    27e4:	e1d330b4 	ldrh	r3, [r3, #4]
+    27e8:	e1c030ba 	strh	r3, [r0, #10]
+ * Please note: dst & src must both be aligned to u16.
+ */
+static inline void ether_addr_copy(u8 *dst, const u8 *src)
+{
+#if defined(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS)
+	*(u32 *)dst = *(const u32 *)src;
+    27ec:	e5953042 	ldr	r3, [r5, #66]	; 0x42
+    27f0:	e5803000 	str	r3, [r0]
+	*(u16 *)(dst + 4) = *(const u16 *)(src + 4);
+    27f4:	e1d534b6 	ldrh	r3, [r5, #70]	; 0x46
+    27f8:	e1c030b4 	strh	r3, [r0, #4]
 
-Gr{oetje,eeting}s,
+ include/linux/etherdevice.h | 24 +++++++++++++++++++++++-
+ 1 file changed, 23 insertions(+), 1 deletion(-)
 
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+diff --git a/include/linux/etherdevice.h b/include/linux/etherdevice.h
+index f344ac0..1f26c55 100644
+--- a/include/linux/etherdevice.h
++++ b/include/linux/etherdevice.h
+@@ -218,6 +218,28 @@ static inline void eth_hw_addr_random(struct net_device *dev)
+ }
+ 
+ /**
++ * ether_addr_copy - Copy an Ethernet address
++ * @dst: Pointer to a six-byte array Ethernet address destination
++ * @src: Pointer to a six-byte array Ethernet address source
++ *
++ * Please note: dst & src must both be aligned to u16.
++ */
++static inline void ether_addr_copy(u8 *dst, const u8 *src)
++{
++#if defined(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS)
++	*(u32 *)dst = *(const u32 *)src;
++	*(u16 *)(dst + 4) = *(const u16 *)(src + 4);
++#else
++	u16 *a = (u16 *)dst;
++	const u16 *b = (const u16 *)src;
++
++	a[0] = b[0];
++	a[1] = b[1];
++	a[2] = b[2];
++#endif
++}
++
++/**
+  * eth_hw_addr_inherit - Copy dev_addr from another net_device
+  * @dst: pointer to net_device to copy dev_addr to
+  * @src: pointer to net_device to copy dev_addr from
+@@ -229,7 +251,7 @@ static inline void eth_hw_addr_inherit(struct net_device *dst,
+ 				       struct net_device *src)
+ {
+ 	dst->addr_assign_type = src->addr_assign_type;
+-	memcpy(dst->dev_addr, src->dev_addr, ETH_ALEN);
++	ether_addr_copy(dst->dev_addr, src->dev_addr);
+ }
+ 
+ /**
