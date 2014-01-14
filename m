@@ -1,64 +1,52 @@
-From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Subject: Re: [PATCH 1/7] sched: allow try_to_wake_up to be used internally
- outside of core.c
-Date: Tue, 14 Jan 2014 09:35:06 +0100
-Message-ID: <52D4F6BA.9010802@canonical.com>
-References: <20140113122818.20574.34710.stgit@patser>	<20140113123126.20574.74329.stgit@patser> <CAMbhsRTBSzAsBke0H4cwJMUe4449KbD6cvyLuNV4ijx0L+czFw@mail.gmail.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: futex: Switch to USER_DS for futex test (was: Re: linux-next:
+ manual merge of the akpm-current tree with the tip tree)
+Date: Tue, 14 Jan 2014 17:32:51 +0100
+Message-ID: <CAMuHMdXz93YsqzxR1hny2P8afMWEQGMw19=o=S7cR0rT9QvRFQ@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from youngberry.canonical.com ([91.189.89.112]:58228 "EHLO
-	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750906AbaANIfr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jan 2014 03:35:47 -0500
-In-Reply-To: <CAMbhsRTBSzAsBke0H4cwJMUe4449KbD6cvyLuNV4ijx0L+czFw@mail.gmail.com>
+Received: from mail-pd0-f172.google.com ([209.85.192.172]:37138 "EHLO
+	mail-pd0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751526AbaANQcw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jan 2014 11:32:52 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Colin Cross <ccross@google.com>
-Cc: lkml <linux-kernel@vger.kernel.org>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, robdclark@gmail.com, "dri-devel@lists.freedesktop.org" <dri-devel@lists.freedesktop.org>, daniel@ffwll.ch, Sumit Semwal <sumit.semwal@linaro.org>, linux-media@vger.kernel.org
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, Linux-Next <linux-next@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Davidlohr Bueso <davidlohr@hp.com>, Linux-Arch <linux-arch@vger.kernel.org>, Andreas Schwab <schwab@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>
 
-op 13-01-14 19:50, Colin Cross schreef:
-> On Mon, Jan 13, 2014 at 4:31 AM, Maarten Lankhorst
-> <maarten.lankhorst@canonical.com> wrote:
->> The kernel fence implementation doesn't use event queues, but needs
->> to perform the same wake up. The symbol is not exported, since the
->> fence implementation is not built as a module.
+CC linux-arch
+
+https://lkml.org/lkml/2013/12/11/141
+
+On Tue, Jan 14, 2014 at 5:19 PM, H. Peter Anvin <hpa@zytor.com> wrote:
+> On 01/14/2014 05:17 AM, Geert Uytterhoeven wrote:
+>>>
+>>> This seems terribly broken, the *futex_value*() ops should not need
+>>> that; they are supposed to access userspace without any of that.
 >>
->> Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
->> ---
->>  include/linux/wait.h |    1 +
->>  kernel/sched/core.c  |    2 +-
->>  2 files changed, 2 insertions(+), 1 deletion(-)
->>
->> diff --git a/include/linux/wait.h b/include/linux/wait.h
->> index eaa00b10abaa..c54e3ef50134 100644
->> --- a/include/linux/wait.h
->> +++ b/include/linux/wait.h
->> @@ -12,6 +12,7 @@
->>  typedef struct __wait_queue wait_queue_t;
->>  typedef int (*wait_queue_func_t)(wait_queue_t *wait, unsigned mode, int flags, void *key);
->>  int default_wake_function(wait_queue_t *wait, unsigned mode, int flags, void *key);
->> +int try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags);
->>
->>  struct __wait_queue {
->>         unsigned int            flags;
->> diff --git a/kernel/sched/core.c b/kernel/sched/core.c
->> index a88f4a485c5e..f41d317042dd 100644
->> --- a/kernel/sched/core.c
->> +++ b/kernel/sched/core.c
->> @@ -1578,7 +1578,7 @@ static void ttwu_queue(struct task_struct *p, int cpu)
->>   * Return: %true if @p was woken up, %false if it was already running.
->>   * or @state didn't match @p's state.
->>   */
->> -static int
->> +int
->>  try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
->>  {
->>         unsigned long flags;
->>
-> wake_up_state is already available in linux/sched.h, can you use that?
+>> Why don't they need set_fs(USER_DS)?
 >
-Indeed! Thanks for the catch.
+> Because USER_DS is the normal operating state?  It would appear m68k is
 
-~Maarten
+Is it?
+
+> the only(?) arch that calls initcalls with get_fs() == KERNEL_DS...
+
+On ARM:
+
+fs = 0x0, USER_DS = 0xbf000000, KERNEL_DS = 0x0
+
+Presumably also on s390, as the fix for m68k broke s390. That's why it's still
+in -mm and not yet in mainline.
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
