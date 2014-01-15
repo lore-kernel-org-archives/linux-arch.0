@@ -1,58 +1,31 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: futex: Switch to USER_DS for futex test (was: Re: linux-next:
- manual merge of the akpm-current tree with the tip tree)
-Date: Wed, 15 Jan 2014 20:59:31 +0100
-Message-ID: <CAMuHMdUJhjtogAPKzN6cua1KdtMbhZ1U0MBt6QaD6t3e_BMCMQ@mail.gmail.com>
-References: <CAMuHMdXz93YsqzxR1hny2P8afMWEQGMw19=o=S7cR0rT9QvRFQ@mail.gmail.com>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [RFC PATCH net-next] etherdevice: Use ether_addr_copy to copy
+ an Ethernet address
+Date: Wed, 15 Jan 2014 15:39:51 -0800 (PST)
+Message-ID: <20140115.153951.743060257410154565.davem@davemloft.net>
+References: <1389741527.24849.68.camel@joe-AO722>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f170.google.com ([209.85.192.170]:60223 "EHLO
-	mail-pd0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750856AbaAOT7c (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jan 2014 14:59:32 -0500
-In-Reply-To: <CAMuHMdXz93YsqzxR1hny2P8afMWEQGMw19=o=S7cR0rT9QvRFQ@mail.gmail.com>
+Received: from shards.monkeyblade.net ([149.20.54.216]:42229 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751009AbaAOXjw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jan 2014 18:39:52 -0500
+In-Reply-To: <1389741527.24849.68.camel@joe-AO722>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, Linux-Next <linux-next@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Davidlohr Bueso <davidlohr@hp.com>, Linux-Arch <linux-arch@vger.kernel.org>, Andreas Schwab <schwab@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>
+To: joe@perches.com
+Cc: netdev@vger.kernel.org, linux-arm-kernel@lists.arm.linux.org.uk, linux-arch@vger.kernel.org
 
-On Tue, Jan 14, 2014 at 5:32 PM, Geert Uytterhoeven
-<geert@linux-m68k.org> wrote:
-> https://lkml.org/lkml/2013/12/11/141
->
-> On Tue, Jan 14, 2014 at 5:19 PM, H. Peter Anvin <hpa@zytor.com> wrote:
->> On 01/14/2014 05:17 AM, Geert Uytterhoeven wrote:
->>>>
->>>> This seems terribly broken, the *futex_value*() ops should not need
->>>> that; they are supposed to access userspace without any of that.
->>>
->>> Why don't they need set_fs(USER_DS)?
->>
->> Because USER_DS is the normal operating state?  It would appear m68k is
->
-> Is it?
->
->> the only(?) arch that calls initcalls with get_fs() == KERNEL_DS...
->
-> On ARM:
->
-> fs = 0x0, USER_DS = 0xbf000000, KERNEL_DS = 0x0
->
-> Presumably also on s390, as the fix for m68k broke s390. That's why it's still
-> in -mm and not yet in mainline.
+From: Joe Perches <joe@perches.com>
+Date: Tue, 14 Jan 2014 15:18:47 -0800
 
-On uml/amd64:
+> Some systems can use the normally known u16 alignment of
+> Ethernet addresses to save some code/text bytes and cycles.
+> 
+> This does not change currently emitted code on x86 by gcc 4.8.
+> 
+> Signed-off-by: Joe Perches <joe@perches.com>
 
-fs = 0xffffffff, USER_DS = 0x7fc0000000, KERNEL_DS = 0xffffffff
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+This looks fine, in fact I'll apply it.
