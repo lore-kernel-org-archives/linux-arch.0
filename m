@@ -1,117 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay0084.hostedemail.com ([216.40.44.84]:59270 "EHLO
-	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1751610AbaANX1Y (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 14 Jan 2014 18:27:24 -0500
-Received: from smtprelay.hostedemail.com (ff-bigip1 [10.5.19.254])
-	by smtpgrave07.hostedemail.com (Postfix) with ESMTP id E02BE11BC0F
-	for <linux-arch@vger.kernel.org>; Tue, 14 Jan 2014 23:19:04 +0000 (UTC)
-Message-ID: <1389741527.24849.68.camel@joe-AO722>
-Subject: [RFC PATCH net-next] etherdevice: Use ether_addr_copy to copy an
- Ethernet address
-From: Joe Perches <joe@perches.com>
-Date: Tue, 14 Jan 2014 15:18:47 -0800
-Content-Type: text/plain; charset="ISO-8859-1"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from g5t0009.atlanta.hp.com ([15.192.0.46]:12282 "EHLO
+	g5t0009.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751527AbaAOEob (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jan 2014 23:44:31 -0500
+From: Waiman Long <Waiman.Long@hp.com>
+Subject: [PATCH v9 3/5] qrwlock, x86 - Treat all data type not bigger than long as atomic in x86
+Date: Tue, 14 Jan 2014 23:44:05 -0500
+Message-ID: <1389761047-47566-4-git-send-email-Waiman.Long@hp.com>
+In-Reply-To: <1389761047-47566-1-git-send-email-Waiman.Long@hp.com>
+References: <1389761047-47566-1-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: netdev <netdev@vger.kernel.org>
-Cc: linux-arm-kernel <linux-arm-kernel@lists.arm.linux.org.uk>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20140114231847.xfIHzPIzUcbT2w71S_cphH8x9Wjm1NIPjkckunPXeMg@z>
+To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Aswin Chandramouleeswaran\"" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Waiman Long <Waiman.Long@hp.com>
+Message-ID: <20140115044405.CB7tzug0SG_fYHcHnZ_5TV8dP1QuP9oaCWnZiu5lu_k@z>
 
-Some systems can use the normally known u16 alignment of
-Ethernet addresses to save some code/text bytes and cycles.
+The generic __native_word() macro defined in include/linux/compiler.h
+only allows "int" and "long" data types to be treated as native and
+atomic. The x86 architecture, however, allow the use of char and short
+data types as atomic as well.
 
-This does not change currently emitted code on x86 by gcc 4.8.
+This patch extends the data type allowed in the __native_word() macro to
+allow the use of char and short.
 
-Signed-off-by: Joe Perches <joe@perches.com>
+Signed-off-by: Waiman Long <Waiman.Long@hp.com>
 ---
+ arch/x86/include/asm/barrier.h |    8 ++++++++
+ 1 files changed, 8 insertions(+), 0 deletions(-)
 
-Yes, it's a trivial change, but maybe slightly useful...
-
-For instance: with netpoll.c memcpy changed to ether_addr_copy:
-
-arm old (4.6.3):
-	memcpy(eth->h_source, np->dev->dev_addr, ETH_ALEN);
-    27e0:	e4973042 	ldr	r3, [r7], #66	; 0x42
-    27e4:	e2860006 	add	r0, r6, #6
-    27e8:	e3a02006 	mov	r2, #6
-    27ec:	e59311e8 	ldr	r1, [r3, #488]	; 0x1e8
-    27f0:	ebfffffe 	bl	0 <memcpy>
-			27f0: R_ARM_CALL	memcpy
-	memcpy(eth->h_dest, np->remote_mac, ETH_ALEN);
-    27f4:	e1a00006 	mov	r0, r6
-    27f8:	e1a01007 	mov	r1, r7
-    27fc:	e3a02006 	mov	r2, #6
-    2800:	ebfffffe 	bl	0 <memcpy>
-			2800: R_ARM_CALL	memcpy
-
-arm new:
-
-	*(u32 *)dst = *(const u32 *)src;
-    27dc:	e5932000 	ldr	r2, [r3]
-    27e0:	e5802006 	str	r2, [r0, #6]
-	*(u16 *)(dst + 4) = *(const u16 *)(src + 4);
-    27e4:	e1d330b4 	ldrh	r3, [r3, #4]
-    27e8:	e1c030ba 	strh	r3, [r0, #10]
- * Please note: dst & src must both be aligned to u16.
- */
-static inline void ether_addr_copy(u8 *dst, const u8 *src)
-{
-#if defined(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS)
-	*(u32 *)dst = *(const u32 *)src;
-    27ec:	e5953042 	ldr	r3, [r5, #66]	; 0x42
-    27f0:	e5803000 	str	r3, [r0]
-	*(u16 *)(dst + 4) = *(const u16 *)(src + 4);
-    27f4:	e1d534b6 	ldrh	r3, [r5, #70]	; 0x46
-    27f8:	e1c030b4 	strh	r3, [r0, #4]
-
- include/linux/etherdevice.h | 24 +++++++++++++++++++++++-
- 1 file changed, 23 insertions(+), 1 deletion(-)
-
-diff --git a/include/linux/etherdevice.h b/include/linux/etherdevice.h
-index f344ac0..1f26c55 100644
---- a/include/linux/etherdevice.h
-+++ b/include/linux/etherdevice.h
-@@ -218,6 +218,28 @@ static inline void eth_hw_addr_random(struct net_device *dev)
- }
+diff --git a/arch/x86/include/asm/barrier.h b/arch/x86/include/asm/barrier.h
+index 04a4890..4d3e30a 100644
+--- a/arch/x86/include/asm/barrier.h
++++ b/arch/x86/include/asm/barrier.h
+@@ -24,6 +24,14 @@
+ #define wmb()	asm volatile("sfence" ::: "memory")
+ #endif
  
- /**
-+ * ether_addr_copy - Copy an Ethernet address
-+ * @dst: Pointer to a six-byte array Ethernet address destination
-+ * @src: Pointer to a six-byte array Ethernet address source
-+ *
-+ * Please note: dst & src must both be aligned to u16.
++/*
++ * All data types <= long are atomic in x86
 + */
-+static inline void ether_addr_copy(u8 *dst, const u8 *src)
-+{
-+#if defined(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS)
-+	*(u32 *)dst = *(const u32 *)src;
-+	*(u16 *)(dst + 4) = *(const u16 *)(src + 4);
-+#else
-+	u16 *a = (u16 *)dst;
-+	const u16 *b = (const u16 *)src;
-+
-+	a[0] = b[0];
-+	a[1] = b[1];
-+	a[2] = b[2];
++#ifdef __native_word
++#undef __native_word
 +#endif
-+}
++#define __native_word(t)	(sizeof(t) <= sizeof(long))
 +
-+/**
-  * eth_hw_addr_inherit - Copy dev_addr from another net_device
-  * @dst: pointer to net_device to copy dev_addr to
-  * @src: pointer to net_device to copy dev_addr from
-@@ -229,7 +251,7 @@ static inline void eth_hw_addr_inherit(struct net_device *dst,
- 				       struct net_device *src)
- {
- 	dst->addr_assign_type = src->addr_assign_type;
--	memcpy(dst->dev_addr, src->dev_addr, ETH_ALEN);
-+	ether_addr_copy(dst->dev_addr, src->dev_addr);
- }
- 
  /**
-
+  * read_barrier_depends - Flush all pending reads that subsequents reads
+  * depend on.
+-- 
+1.7.1
 
