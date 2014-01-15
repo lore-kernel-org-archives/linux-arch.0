@@ -1,106 +1,120 @@
-From: Joe Perches <joe@perches.com>
-Subject: [RFC PATCH net-next] etherdevice: Use ether_addr_copy to copy an
- Ethernet address
-Date: Tue, 14 Jan 2014 15:18:47 -0800
-Message-ID: <1389741527.24849.68.camel@joe-AO722>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <netdev-owner@vger.kernel.org>
-Sender: netdev-owner@vger.kernel.org
-To: netdev <netdev@vger.kernel.org>
-Cc: linux-arm-kernel <linux-arm-kernel@lists.arm.linux.org.uk>, linux-arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+From: Waiman Long <Waiman.Long@hp.com>
+Subject: [PATCH v9 0/5] qrwlock: Introducing a queue read/write lock implementation
+Date: Tue, 14 Jan 2014 23:44:02 -0500
+Message-ID: <1389761047-47566-1-git-send-email-Waiman.Long@hp.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from g5t0009.atlanta.hp.com ([15.192.0.46]:12244 "EHLO
+	g5t0009.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751253AbaAOEo1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jan 2014 23:44:27 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Aswin Chandramouleeswaran\"" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Waiman Long <Waiman.Long@hp.com>
 
-Some systems can use the normally known u16 alignment of
-Ethernet addresses to save some code/text bytes and cycles.
+v8->v9:
+ - Rebase to the tip branch which has the PeterZ's
+   smp_load_acquire()/smp_store_release() patch.
+ - Only pass integer type arguments to smp_load_acquire() &
+   smp_store_release() functions.
+ - Add a new patch to make any data type less than or equal to long as
+   atomic or native in x86.
+ - Modify write_unlock() to use atomic_sub() if the writer field is
+   not atomic.
 
-This does not change currently emitted code on x86 by gcc 4.8.
+v7->v8:
+ - Use atomic_t functions (which are implemented in all arch's) to
+   modify reader counts.
+ - Use smp_load_acquire() & smp_store_release() for barriers.
+ - Further tuning in slowpath performance.
 
-Signed-off-by: Joe Perches <joe@perches.com>
----
+v6->v7:
+ - Remove support for unfair lock, so only fair qrwlock will be provided.
+ - Move qrwlock.c to the kernel/locking directory.
 
-Yes, it's a trivial change, but maybe slightly useful...
+v5->v6:
+ - Modify queue_read_can_lock() to avoid false positive result.
+ - Move the two slowpath functions' performance tuning change from
+   patch 4 to patch 1.
+ - Add a new optional patch to use the new smp_store_release() function 
+   if that is merged.
 
-For instance: with netpoll.c memcpy changed to ether_addr_copy:
+v4->v5:
+ - Fix wrong definitions for QW_MASK_FAIR & QW_MASK_UNFAIR macros.
+ - Add an optional patch 4 which should only be applied after the
+   mcs_spinlock.h header file is merged.
 
-arm old (4.6.3):
-	memcpy(eth->h_source, np->dev->dev_addr, ETH_ALEN);
-    27e0:	e4973042 	ldr	r3, [r7], #66	; 0x42
-    27e4:	e2860006 	add	r0, r6, #6
-    27e8:	e3a02006 	mov	r2, #6
-    27ec:	e59311e8 	ldr	r1, [r3, #488]	; 0x1e8
-    27f0:	ebfffffe 	bl	0 <memcpy>
-			27f0: R_ARM_CALL	memcpy
-	memcpy(eth->h_dest, np->remote_mac, ETH_ALEN);
-    27f4:	e1a00006 	mov	r0, r6
-    27f8:	e1a01007 	mov	r1, r7
-    27fc:	e3a02006 	mov	r2, #6
-    2800:	ebfffffe 	bl	0 <memcpy>
-			2800: R_ARM_CALL	memcpy
+v3->v4:
+ - Optimize the fast path with better cold cache behavior and
+   performance.
+ - Removing some testing code.
+ - Make x86 use queue rwlock with no user configuration.
 
-arm new:
+v2->v3:
+ - Make read lock stealing the default and fair rwlock an option with
+   a different initializer.
+ - In queue_read_lock_slowpath(), check irq_count() and force spinning
+   and lock stealing in interrupt context.
+ - Unify the fair and classic read-side code path, and make write-side
+   to use cmpxchg with 2 different writer states. This slows down the
+   write lock fastpath to make the read side more efficient, but is
+   still slightly faster than a spinlock.
 
-	*(u32 *)dst = *(const u32 *)src;
-    27dc:	e5932000 	ldr	r2, [r3]
-    27e0:	e5802006 	str	r2, [r0, #6]
-	*(u16 *)(dst + 4) = *(const u16 *)(src + 4);
-    27e4:	e1d330b4 	ldrh	r3, [r3, #4]
-    27e8:	e1c030ba 	strh	r3, [r0, #10]
- * Please note: dst & src must both be aligned to u16.
- */
-static inline void ether_addr_copy(u8 *dst, const u8 *src)
-{
-#if defined(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS)
-	*(u32 *)dst = *(const u32 *)src;
-    27ec:	e5953042 	ldr	r3, [r5, #66]	; 0x42
-    27f0:	e5803000 	str	r3, [r0]
-	*(u16 *)(dst + 4) = *(const u16 *)(src + 4);
-    27f4:	e1d534b6 	ldrh	r3, [r5, #70]	; 0x46
-    27f8:	e1c030b4 	strh	r3, [r0, #4]
+v1->v2:
+ - Improve lock fastpath performance.
+ - Optionally provide classic read/write lock behavior for backward
+   compatibility.
+ - Use xadd instead of cmpxchg for fair reader code path to make it
+   immute to reader contention.
+ - Run more performance testing.
 
- include/linux/etherdevice.h | 24 +++++++++++++++++++++++-
- 1 file changed, 23 insertions(+), 1 deletion(-)
+As mentioned in the LWN article http://lwn.net/Articles/364583/,
+the read/write lock suffer from an unfairness problem that it is
+possible for a stream of incoming readers to block a waiting writer
+from getting the lock for a long time. Also, a waiting reader/writer
+contending a rwlock in local memory will have a higher chance of
+acquiring the lock than a reader/writer in remote node.
 
-diff --git a/include/linux/etherdevice.h b/include/linux/etherdevice.h
-index f344ac0..1f26c55 100644
---- a/include/linux/etherdevice.h
-+++ b/include/linux/etherdevice.h
-@@ -218,6 +218,28 @@ static inline void eth_hw_addr_random(struct net_device *dev)
- }
- 
- /**
-+ * ether_addr_copy - Copy an Ethernet address
-+ * @dst: Pointer to a six-byte array Ethernet address destination
-+ * @src: Pointer to a six-byte array Ethernet address source
-+ *
-+ * Please note: dst & src must both be aligned to u16.
-+ */
-+static inline void ether_addr_copy(u8 *dst, const u8 *src)
-+{
-+#if defined(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS)
-+	*(u32 *)dst = *(const u32 *)src;
-+	*(u16 *)(dst + 4) = *(const u16 *)(src + 4);
-+#else
-+	u16 *a = (u16 *)dst;
-+	const u16 *b = (const u16 *)src;
-+
-+	a[0] = b[0];
-+	a[1] = b[1];
-+	a[2] = b[2];
-+#endif
-+}
-+
-+/**
-  * eth_hw_addr_inherit - Copy dev_addr from another net_device
-  * @dst: pointer to net_device to copy dev_addr to
-  * @src: pointer to net_device to copy dev_addr from
-@@ -229,7 +251,7 @@ static inline void eth_hw_addr_inherit(struct net_device *dst,
- 				       struct net_device *src)
- {
- 	dst->addr_assign_type = src->addr_assign_type;
--	memcpy(dst->dev_addr, src->dev_addr, ETH_ALEN);
-+	ether_addr_copy(dst->dev_addr, src->dev_addr);
- }
- 
- /**
+This patch set introduces a queue-based read/write lock implementation
+that can largely solve this unfairness problem.
+
+The read lock slowpath will check if the reader is in an interrupt
+context. If so, it will force lock spinning and stealing without
+waiting in a queue. This is to ensure the read lock will be granted
+as soon as possible.
+
+The queue write lock can also be used as a replacement for ticket
+spinlocks that are highly contended if lock size increase is not
+an issue.
+
+The first 2 patches provides the base queue read/write lock support
+on x86 architecture. Support for other architectures can be added
+later on once architecture specific support infrastructure is added
+and proper testing is done.
+
+Patches 3 and 4 are currently applicable on the tip git tree where
+the smp_load_acquire() & smp_store_release() macros are defined.
+
+The optional patch 5 has a dependency on the the mcs_spinlock.h
+header file which has not been merged yet. So this patch should only
+be applied after the mcs_spinlock.h header file is merged.
+
+Waiman Long (5):
+  qrwlock: A queue read/write lock implementation
+  qrwlock x86: Enable x86 to use queue read/write lock
+  qrwlock, x86 - Treat all data type not bigger than long as atomic in
+    x86
+  qrwlock: Use smp_store_release() in write_unlock()
+  qrwlock: Use the mcs_spinlock helper functions for MCS queuing
+
+ arch/x86/Kconfig                      |    1 +
+ arch/x86/include/asm/barrier.h        |    8 ++
+ arch/x86/include/asm/spinlock.h       |    2 +
+ arch/x86/include/asm/spinlock_types.h |    4 +
+ include/asm-generic/qrwlock.h         |  208 +++++++++++++++++++++++++++++++++
+ kernel/Kconfig.locks                  |    7 +
+ kernel/locking/Makefile               |    1 +
+ kernel/locking/qrwlock.c              |  191 ++++++++++++++++++++++++++++++
+ 8 files changed, 422 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-generic/qrwlock.h
+ create mode 100644 kernel/locking/qrwlock.c
