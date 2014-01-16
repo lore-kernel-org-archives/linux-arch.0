@@ -1,84 +1,119 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g5t0009.atlanta.hp.com ([15.192.0.46]:12263 "EHLO
-	g5t0009.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751451AbaAOEo3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jan 2014 23:44:29 -0500
-From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v9 2/5] qrwlock x86: Enable x86 to use queue read/write lock
-Date: Tue, 14 Jan 2014 23:44:04 -0500
-Message-ID: <1389761047-47566-3-git-send-email-Waiman.Long@hp.com>
-In-Reply-To: <1389761047-47566-1-git-send-email-Waiman.Long@hp.com>
-References: <1389761047-47566-1-git-send-email-Waiman.Long@hp.com>
+Received: from smtprelay0246.hostedemail.com ([216.40.44.246]:44131 "EHLO
+	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1750952AbaAPAID (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 15 Jan 2014 19:08:03 -0500
+Message-ID: <1389830878.14001.39.camel@joe-AO722>
+Subject: Re: [RFC PATCH net-next] etherdevice: Use ether_addr_copy to copy
+ an Ethernet address
+From: Joe Perches <joe@perches.com>
+Date: Wed, 15 Jan 2014 16:07:58 -0800
+In-Reply-To: <20140115.153951.743060257410154565.davem@davemloft.net>
+References: <1389741527.24849.68.camel@joe-AO722>
+	 <20140115.153951.743060257410154565.davem@davemloft.net>
+Content-Type: text/plain; charset="ISO-8859-1"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Aswin Chandramouleeswaran\"" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Waiman Long <Waiman.Long@hp.com>
-Message-ID: <20140115044404.TQinInK7onLG-BaHFnfsRgA2AmTqcQXwfSWcsYa9mX0@z>
+To: David Miller <davem@davemloft.net>
+Cc: netdev@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-arch@vger.kernel.org
+Message-ID: <20140116000758.11DSENuaoE03hB0aDxYTEl4MheA9PhSiKNVWhAcVezQ@z>
 
-This patch makes the necessary changes at the x86 architecture specific
-layer to enable the presence of the CONFIG_QUEUE_RWLOCK kernel option
-to replace the read/write lock by the queue read/write lock.
+On Wed, 2014-01-15 at 15:39 -0800, David Miller wrote:
+> From: Joe Perches <joe@perches.com>
+> Date: Tue, 14 Jan 2014 15:18:47 -0800
+> 
+> > Some systems can use the normally known u16 alignment of
+> > Ethernet addresses to save some code/text bytes and cycles.
+> > 
+> > This does not change currently emitted code on x86 by gcc 4.8.
+> > 
+> > Signed-off-by: Joe Perches <joe@perches.com>
+> 
+> This looks fine, in fact I'll apply it.
 
-It also enables the CONFIG_QUEUE_RWLOCK option by default for x86 which
-will force the use of queue read/write lock. That will greatly improve
-the fairness of read/write lock and eliminate live-lock situation
-where one task may not get the lock for an indefinite period of time.
+OK, good.
 
-Signed-off-by: Waiman Long <Waiman.Long@hp.com>
-Reviewed-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
----
- arch/x86/Kconfig                      |    1 +
- arch/x86/include/asm/spinlock.h       |    2 ++
- arch/x86/include/asm/spinlock_types.h |    4 ++++
- 3 files changed, 7 insertions(+), 0 deletions(-)
+There are a couple thousand memcpy(foo, bar, ETH_ALEN)
+in the kernel tree that could be converted.
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index e0acf82..3c6094b 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -119,6 +119,7 @@ config X86
- 	select MODULES_USE_ELF_RELA if X86_64
- 	select CLONE_BACKWARDS if X86_32
- 	select ARCH_USE_BUILTIN_BSWAP
-+	select ARCH_USE_QUEUE_RWLOCK
- 	select OLD_SIGSUSPEND3 if X86_32 || IA32_EMULATION
- 	select OLD_SIGACTION if X86_32
- 	select COMPAT_OLD_SIGACTION if IA32_EMULATION
-diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
-index bf156de..8fb88c5 100644
---- a/arch/x86/include/asm/spinlock.h
-+++ b/arch/x86/include/asm/spinlock.h
-@@ -188,6 +188,7 @@ static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
- 		cpu_relax();
- }
- 
-+#ifndef CONFIG_QUEUE_RWLOCK
- /*
-  * Read-write spinlocks, allowing multiple readers
-  * but only one writer.
-@@ -270,6 +271,7 @@ static inline void arch_write_unlock(arch_rwlock_t *rw)
- 	asm volatile(LOCK_PREFIX WRITE_LOCK_ADD(%1) "%0"
- 		     : "+m" (rw->write) : "i" (RW_LOCK_BIAS) : "memory");
- }
-+#endif /* CONFIG_QUEUE_RWLOCK */
- 
- #define arch_read_lock_flags(lock, flags) arch_read_lock(lock)
- #define arch_write_lock_flags(lock, flags) arch_write_lock(lock)
-diff --git a/arch/x86/include/asm/spinlock_types.h b/arch/x86/include/asm/spinlock_types.h
-index 4f1bea1..a585635 100644
---- a/arch/x86/include/asm/spinlock_types.h
-+++ b/arch/x86/include/asm/spinlock_types.h
-@@ -34,6 +34,10 @@ typedef struct arch_spinlock {
- 
- #define __ARCH_SPIN_LOCK_UNLOCKED	{ { 0 } }
- 
-+#ifdef CONFIG_QUEUE_RWLOCK
-+#include <asm-generic/qrwlock.h>
-+#else
- #include <asm/rwlock.h>
-+#endif
- 
- #endif /* _ASM_X86_SPINLOCK_TYPES_H */
--- 
-1.7.1
+Some will have a small performance improvement for
+arm and powerpc.
+
+If you want the ones for net-next net/ now (but not
+for batman-adv, that maybe could use a new function like
+ether_addr_copy_unaligned) here's a changestat.
+
+Otherwise, I'll wait for the next cycle.
+
+(done via coccinelle)
+
+ net/8021q/vlan.c                          |  2 +-
+ net/8021q/vlan_dev.c                      |  6 ++--
+ net/appletalk/aarp.c                      | 10 +++---
+ net/atm/lec.c                             |  9 ++---
+ net/atm/mpc.c                             |  2 +-
+ net/bluetooth/bnep/core.c                 | 19 +++++-----
+ net/bluetooth/bnep/netdev.c               | 14 ++++----
+ net/bridge/br_device.c                    |  4 +--
+ net/bridge/br_fdb.c                       |  4 +--
+ net/bridge/br_multicast.c                 |  4 +--
+ net/bridge/br_netfilter.c                 |  2 +-
+ net/bridge/br_stp_if.c                    | 10 +++---
+ net/bridge/netfilter/ebt_among.c          |  2 +-
+ net/bridge/netfilter/ebt_dnat.c           |  2 +-
+ net/bridge/netfilter/ebt_redirect.c       |  6 ++--
+ net/bridge/netfilter/ebt_snat.c           |  2 +-
+ net/caif/caif_usb.c                       |  4 +--
+ net/core/netpoll.c                        |  4 +--
+ net/core/pktgen.c                         |  8 ++---
+ net/decnet/dn_dev.c                       |  2 +-
+ net/decnet/dn_neigh.c                     |  6 ++--
+ net/decnet/dn_route.c                     |  6 ++--
+ net/dsa/slave.c                           |  2 +-
+ net/ethernet/eth.c                        | 18 +++++-----
+ net/hsr/hsr_device.c                      |  8 ++---
+ net/hsr/hsr_framereg.c                    | 21 +++++------
+ net/hsr/hsr_main.c                        |  4 +--
+ net/ipv4/netfilter/ipt_CLUSTERIP.c        |  2 +-
+ net/mac80211/agg-rx.c                     | 10 +++---
+ net/mac80211/agg-tx.c                     | 18 +++++-----
+ net/mac80211/cfg.c                        | 34 +++++++++---------
+ net/mac80211/debugfs_netdev.c             | 12 +++----
+ net/mac80211/ht.c                         | 16 ++++-----
+ net/mac80211/ibss.c                       | 14 ++++----
+ net/mac80211/iface.c                      | 27 +++++++-------
+ net/mac80211/mesh.c                       | 30 ++++++++--------
+ net/mac80211/mesh_hwmp.c                  | 32 ++++++++---------
+ net/mac80211/mesh_pathtbl.c               | 20 +++++------
+ net/mac80211/mesh_plink.c                 |  6 ++--
+ net/mac80211/mesh_ps.c                    |  2 +-
+ net/mac80211/mlme.c                       | 32 ++++++++---------
+ net/mac80211/rx.c                         | 14 ++++----
+ net/mac80211/spectmgmt.c                  |  6 ++--
+ net/mac80211/sta_info.c                   |  8 ++---
+ net/mac80211/tx.c                         | 60 +++++++++++++++----------------
+ net/mac80211/util.c                       | 22 ++++++------
+ net/mac80211/wpa.c                        |  4 +--
+ net/netfilter/ipset/ip_set_bitmap_ipmac.c |  6 ++--
+ net/openvswitch/actions.c                 |  4 +--
+ net/openvswitch/flow.c                    | 16 ++++-----
+ net/openvswitch/flow_netlink.c            | 14 ++++----
+ net/tipc/eth_media.c                      |  2 +-
+ net/wireless/core.c                       |  2 +-
+ net/wireless/ibss.c                       | 11 +++---
+ net/wireless/lib80211_crypt_ccmp.c        |  4 +--
+ net/wireless/lib80211_crypt_tkip.c        | 18 +++++-----
+ net/wireless/mlme.c                       |  2 +-
+ net/wireless/nl80211.c                    |  6 ++--
+ net/wireless/scan.c                       |  6 ++--
+ net/wireless/sme.c                        | 18 +++++-----
+ net/wireless/util.c                       | 42 +++++++++++-----------
+ net/wireless/wext-compat.c                |  8 ++---
+ net/wireless/wext-sme.c                   |  5 +--
+ net/wireless/wext-spy.c                   |  8 ++---
+ 64 files changed, 365 insertions(+), 357 deletions(-)
+
 
