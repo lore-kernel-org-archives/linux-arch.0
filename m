@@ -1,119 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay0246.hostedemail.com ([216.40.44.246]:44131 "EHLO
-	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1750952AbaAPAID (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 15 Jan 2014 19:08:03 -0500
-Message-ID: <1389830878.14001.39.camel@joe-AO722>
-Subject: Re: [RFC PATCH net-next] etherdevice: Use ether_addr_copy to copy
- an Ethernet address
-From: Joe Perches <joe@perches.com>
-Date: Wed, 15 Jan 2014 16:07:58 -0800
-In-Reply-To: <20140115.153951.743060257410154565.davem@davemloft.net>
-References: <1389741527.24849.68.camel@joe-AO722>
-	 <20140115.153951.743060257410154565.davem@davemloft.net>
-Content-Type: text/plain; charset="ISO-8859-1"
+Received: from mga02.intel.com ([134.134.136.20]:59372 "EHLO mga02.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751379AbaAQAIS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Jan 2014 19:08:18 -0500
+Subject: [PATCH v7 0/6] MCS Lock: MCS lock code cleanup and optimizations
+From: Tim Chen <tim.c.chen@linux.intel.com>
+References: <cover.1389890175.git.tim.c.chen@linux.intel.com>
+Content-Type: text/plain; charset="UTF-8"
+Date: Thu, 16 Jan 2014 16:08:04 -0800
+Message-ID: <1389917284.3138.10.camel@schen9-DESK>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: netdev@vger.kernel.org, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-arch@vger.kernel.org
-Message-ID: <20140116000758.11DSENuaoE03hB0aDxYTEl4MheA9PhSiKNVWhAcVezQ@z>
+To: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>
+Cc: linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Tim Chen <tim.c.chen@linux.intel.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, "Figo.zhang" <figo1802@gmail.com>
+Message-ID: <20140117000804.SK8MgIunnANYVI-IeQTlr13P_Sdo57k-wgPv_KwG4F8@z>
 
-On Wed, 2014-01-15 at 15:39 -0800, David Miller wrote:
-> From: Joe Perches <joe@perches.com>
-> Date: Tue, 14 Jan 2014 15:18:47 -0800
-> 
-> > Some systems can use the normally known u16 alignment of
-> > Ethernet addresses to save some code/text bytes and cycles.
-> > 
-> > This does not change currently emitted code on x86 by gcc 4.8.
-> > 
-> > Signed-off-by: Joe Perches <joe@perches.com>
-> 
-> This looks fine, in fact I'll apply it.
+This is an update of the MCS lock patch series posted in November.
 
-OK, good.
+Proper passing of the mcs lock is now done with smp_load_acquire() in
+mcs_spin_lock() and smp_store_release() in mcs_spin_unlock.  Note that
+this is not sufficient to form a full memory barrier across cpus on
+many architectures (except x86) for the mcs_unlock and mcs_lock pair.
+For code that needs a full memory barrier, smp_mb__after_unlock_lock() 
+should be used after mcs_lock.  I will
+appreciate Paul and other experts review this portion of the code.
 
-There are a couple thousand memcpy(foo, bar, ETH_ALEN)
-in the kernel tree that could be converted.
+Will also added hooks to allow for architecture specific 
+implementation and optimization of the of the contended paths of
+lock and unlock of mcs_spin_lock and mcs_spin_unlock functions.
 
-Some will have a small performance improvement for
-arm and powerpc.
+The original mcs lock code has potential leaks between critical sections, which
+was not a problem when MCS was embedded within the mutex but needs
+to be corrected when allowing the MCS lock to be used by itself for
+other locking purposes.  The MCS lock code was previously embedded in
+the mutex.c and is now sepearted.  This allows for easier reuse of MCS
+lock in other places like rwsem and qrwlock.  We also did some micro
+optimizations and barrier cleanup.
 
-If you want the ones for net-next net/ now (but not
-for batman-adv, that maybe could use a new function like
-ether_addr_copy_unaligned) here's a changestat.
+Tim
 
-Otherwise, I'll wait for the next cycle.
+v7:
+1. Update architecture specific hooks with concise architecture
+specific arch_mcs_spin_lock_contended and arch_mcs_spin_lock_uncontended
+functions. 
 
-(done via coccinelle)
+v6:
+1. Fix a bug of improper xchg_acquire and extra space in barrier
+fixing patch.
+2. Added extra hooks to allow for architecture specific version
+of mcs_spin_lock and mcs_spin_unlock to be used.
 
- net/8021q/vlan.c                          |  2 +-
- net/8021q/vlan_dev.c                      |  6 ++--
- net/appletalk/aarp.c                      | 10 +++---
- net/atm/lec.c                             |  9 ++---
- net/atm/mpc.c                             |  2 +-
- net/bluetooth/bnep/core.c                 | 19 +++++-----
- net/bluetooth/bnep/netdev.c               | 14 ++++----
- net/bridge/br_device.c                    |  4 +--
- net/bridge/br_fdb.c                       |  4 +--
- net/bridge/br_multicast.c                 |  4 +--
- net/bridge/br_netfilter.c                 |  2 +-
- net/bridge/br_stp_if.c                    | 10 +++---
- net/bridge/netfilter/ebt_among.c          |  2 +-
- net/bridge/netfilter/ebt_dnat.c           |  2 +-
- net/bridge/netfilter/ebt_redirect.c       |  6 ++--
- net/bridge/netfilter/ebt_snat.c           |  2 +-
- net/caif/caif_usb.c                       |  4 +--
- net/core/netpoll.c                        |  4 +--
- net/core/pktgen.c                         |  8 ++---
- net/decnet/dn_dev.c                       |  2 +-
- net/decnet/dn_neigh.c                     |  6 ++--
- net/decnet/dn_route.c                     |  6 ++--
- net/dsa/slave.c                           |  2 +-
- net/ethernet/eth.c                        | 18 +++++-----
- net/hsr/hsr_device.c                      |  8 ++---
- net/hsr/hsr_framereg.c                    | 21 +++++------
- net/hsr/hsr_main.c                        |  4 +--
- net/ipv4/netfilter/ipt_CLUSTERIP.c        |  2 +-
- net/mac80211/agg-rx.c                     | 10 +++---
- net/mac80211/agg-tx.c                     | 18 +++++-----
- net/mac80211/cfg.c                        | 34 +++++++++---------
- net/mac80211/debugfs_netdev.c             | 12 +++----
- net/mac80211/ht.c                         | 16 ++++-----
- net/mac80211/ibss.c                       | 14 ++++----
- net/mac80211/iface.c                      | 27 +++++++-------
- net/mac80211/mesh.c                       | 30 ++++++++--------
- net/mac80211/mesh_hwmp.c                  | 32 ++++++++---------
- net/mac80211/mesh_pathtbl.c               | 20 +++++------
- net/mac80211/mesh_plink.c                 |  6 ++--
- net/mac80211/mesh_ps.c                    |  2 +-
- net/mac80211/mlme.c                       | 32 ++++++++---------
- net/mac80211/rx.c                         | 14 ++++----
- net/mac80211/spectmgmt.c                  |  6 ++--
- net/mac80211/sta_info.c                   |  8 ++---
- net/mac80211/tx.c                         | 60 +++++++++++++++----------------
- net/mac80211/util.c                       | 22 ++++++------
- net/mac80211/wpa.c                        |  4 +--
- net/netfilter/ipset/ip_set_bitmap_ipmac.c |  6 ++--
- net/openvswitch/actions.c                 |  4 +--
- net/openvswitch/flow.c                    | 16 ++++-----
- net/openvswitch/flow_netlink.c            | 14 ++++----
- net/tipc/eth_media.c                      |  2 +-
- net/wireless/core.c                       |  2 +-
- net/wireless/ibss.c                       | 11 +++---
- net/wireless/lib80211_crypt_ccmp.c        |  4 +--
- net/wireless/lib80211_crypt_tkip.c        | 18 +++++-----
- net/wireless/mlme.c                       |  2 +-
- net/wireless/nl80211.c                    |  6 ++--
- net/wireless/scan.c                       |  6 ++--
- net/wireless/sme.c                        | 18 +++++-----
- net/wireless/util.c                       | 42 +++++++++++-----------
- net/wireless/wext-compat.c                |  8 ++---
- net/wireless/wext-sme.c                   |  5 +--
- net/wireless/wext-spy.c                   |  8 ++---
- 64 files changed, 365 insertions(+), 357 deletions(-)
+v5:
+1. Rework barrier correction patch.  We now use smp_load_acquire()
+in mcs_spin_lock() and smp_store_release() in
+mcs_spin_unlock() to allow for architecture dependent barriers to be
+automatically used.  This is clean and will provide the right
+barriers for all architecture.
+
+v4:
+1. Move patch series to the latest tip after v3.12
+
+v3:
+1. modified memory barriers to support non x86 architectures that have
+weak memory ordering.
+
+v2:
+1. change export mcs_spin_lock as a GPL export symbol
+2. corrected mcs_spin_lock to references
+
+
+Jason Low (1):
+  MCS Lock: optimizations and extra comments
+
+Tim Chen (1):
+  MCS Lock: Restructure the MCS lock defines and locking code into its
+    own file
+
+Waiman Long (2):
+  MCS Lock: Move mcs_lock/unlock function into its own file
+  MCS Lock: Barrier corrections
+
+Will Deacon (2):
+  MCS Lock: allow architectures to hook in to contended paths
+  MCS Lock: add Kconfig entries to allow arch-specific hooks
+
+ arch/Kconfig                  |  3 ++
+ include/linux/mcs_spinlock.h  | 33 ++++++++++++++++
+ include/linux/mutex.h         |  5 ++-
+ kernel/locking/Makefile       |  6 +--
+ kernel/locking/mcs_spinlock.c | 89 +++++++++++++++++++++++++++++++++++++++++++
+ kernel/locking/mutex.c        | 60 ++++-------------------------
+ 6 files changed, 138 insertions(+), 58 deletions(-)
+ create mode 100644 include/linux/mcs_spinlock.h
+ create mode 100644 kernel/locking/mcs_spinlock.c
+
+-- 
+1.7.11.7
 
 
