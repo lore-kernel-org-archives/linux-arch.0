@@ -1,55 +1,102 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 01/14] ARC: locks: remove redundant arch_*_relax
- operations
-Date: Thu, 16 Jan 2014 18:55:18 +0000
-Message-ID: <20140116185518.GL30257@mudshark.cambridge.arm.com>
-References: <1384274872-26849-1-git-send-email-will.deacon@arm.com>
+From: Tim Chen <tim.c.chen@linux.intel.com>
+Subject: [PATCH v7 0/6] MCS Lock: MCS lock code cleanup and optimizations
+Date: Thu, 16 Jan 2014 16:08:04 -0800
+Message-ID: <1389917284.3138.10.camel@schen9-DESK>
+References: <cover.1389890175.git.tim.c.chen@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:43040 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750937AbaAPSzZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Jan 2014 13:55:25 -0500
-Content-Disposition: inline
-In-Reply-To: <1384274872-26849-1-git-send-email-will.deacon@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "akpm@linux-foundation.org" <akpm@linux-foundation.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>
+Cc: linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Tim Chen <tim.c.chen@linux.intel.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, "Figo.zhang" <figo1802@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Andrew,
+This is an update of the MCS lock patch series posted in November.
 
-On Tue, Nov 12, 2013 at 04:47:39PM +0000, Will Deacon wrote:
-> Now that the arch_{spin,read,write}_relax macros default to cpu_relax(),
-> remove the redundant definitions for ARC.
-> 
-> Acked-by: Vineet Gupta <vgupta@synopsys.com>
-> Signed-off-by: Will Deacon <will.deacon@arm.com>
-> ---
->  arch/arc/include/asm/spinlock.h | 4 ----
->  1 file changed, 4 deletions(-)
-> 
-> diff --git a/arch/arc/include/asm/spinlock.h b/arch/arc/include/asm/spinlock.h
-> index b6a8c2dfbe6e..a7211e411018 100644
-> --- a/arch/arc/include/asm/spinlock.h
-> +++ b/arch/arc/include/asm/spinlock.h
-> @@ -144,8 +144,4 @@ static inline void arch_write_unlock(arch_rwlock_t *rw)
->  #define arch_read_lock_flags(lock, flags)	arch_read_lock(lock)
->  #define arch_write_lock_flags(lock, flags)	arch_write_lock(lock)
->  
-> -#define arch_spin_relax(lock)	cpu_relax()
-> -#define arch_read_relax(lock)	cpu_relax()
-> -#define arch_write_relax(lock)	cpu_relax()
-> -
->  #endif /* __ASM_SPINLOCK_H */
+Proper passing of the mcs lock is now done with smp_load_acquire() in
+mcs_spin_lock() and smp_store_release() in mcs_spin_unlock.  Note that
+this is not sufficient to form a full memory barrier across cpus on
+many architectures (except x86) for the mcs_unlock and mcs_lock pair.
+For code that needs a full memory barrier, smp_mb__after_unlock_lock() 
+should be used after mcs_lock.  I will
+appreciate Paul and other experts review this portion of the code.
 
-I've not heard anything on these patches and I don't think they've been
-picked up anywhere either (at least, judging by the state of -next).
+Will also added hooks to allow for architecture specific 
+implementation and optimization of the of the contended paths of
+lock and unlock of mcs_spin_lock and mcs_spin_unlock functions.
 
-Shall I resend the series? It's a pretty mechanical clean-up.
+The original mcs lock code has potential leaks between critical sections, which
+was not a problem when MCS was embedded within the mutex but needs
+to be corrected when allowing the MCS lock to be used by itself for
+other locking purposes.  The MCS lock code was previously embedded in
+the mutex.c and is now sepearted.  This allows for easier reuse of MCS
+lock in other places like rwsem and qrwlock.  We also did some micro
+optimizations and barrier cleanup.
 
-Cheers,
+Tim
 
-Will
+v7:
+1. Update architecture specific hooks with concise architecture
+specific arch_mcs_spin_lock_contended and arch_mcs_spin_lock_uncontended
+functions. 
+
+v6:
+1. Fix a bug of improper xchg_acquire and extra space in barrier
+fixing patch.
+2. Added extra hooks to allow for architecture specific version
+of mcs_spin_lock and mcs_spin_unlock to be used.
+
+v5:
+1. Rework barrier correction patch.  We now use smp_load_acquire()
+in mcs_spin_lock() and smp_store_release() in
+mcs_spin_unlock() to allow for architecture dependent barriers to be
+automatically used.  This is clean and will provide the right
+barriers for all architecture.
+
+v4:
+1. Move patch series to the latest tip after v3.12
+
+v3:
+1. modified memory barriers to support non x86 architectures that have
+weak memory ordering.
+
+v2:
+1. change export mcs_spin_lock as a GPL export symbol
+2. corrected mcs_spin_lock to references
+
+
+Jason Low (1):
+  MCS Lock: optimizations and extra comments
+
+Tim Chen (1):
+  MCS Lock: Restructure the MCS lock defines and locking code into its
+    own file
+
+Waiman Long (2):
+  MCS Lock: Move mcs_lock/unlock function into its own file
+  MCS Lock: Barrier corrections
+
+Will Deacon (2):
+  MCS Lock: allow architectures to hook in to contended paths
+  MCS Lock: add Kconfig entries to allow arch-specific hooks
+
+ arch/Kconfig                  |  3 ++
+ include/linux/mcs_spinlock.h  | 33 ++++++++++++++++
+ include/linux/mutex.h         |  5 ++-
+ kernel/locking/Makefile       |  6 +--
+ kernel/locking/mcs_spinlock.c | 89 +++++++++++++++++++++++++++++++++++++++++++
+ kernel/locking/mutex.c        | 60 ++++-------------------------
+ 6 files changed, 138 insertions(+), 58 deletions(-)
+ create mode 100644 include/linux/mcs_spinlock.h
+ create mode 100644 kernel/locking/mcs_spinlock.c
+
+-- 
+1.7.11.7
+
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
