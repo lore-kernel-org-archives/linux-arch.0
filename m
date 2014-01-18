@@ -1,68 +1,113 @@
-From: Tim Chen <tim.c.chen@linux.intel.com>
-Subject: [PATCH v7 6/6] MCS Lock: add Kconfig entries to allow
- arch-specific hooks
-Date: Thu, 16 Jan 2014 16:08:36 -0800
-Message-ID: <1389917316.3138.16.camel@schen9-DESK>
-References: <cover.1389890175.git.tim.c.chen@linux.intel.com>
+From: Chen Gang <gang.chen.5i5j@gmail.com>
+Subject: Re: [PATCH v3] arch: use ASM_NL instead of ';' for assembler new
+ line character in the macro
+Date: Sat, 18 Jan 2014 17:44:41 +0800
+Message-ID: <52DA4D09.7030904@gmail.com>
+References: <526E3CE2.2070405@asianux.com> <526E6A92.6090301@synopsys.com> <526F09B8.9030202@asianux.com> <526F11C0.1030809@asianux.com> <526F149A.3000306@asianux.com> <52733FEC.4010807@synopsys.com> <528DD92E.9070408@synopsys.com> <52C6AF2B.8050104@suse.cz> <C2D7FE5348E1B147BCA15975FBA23075175CC4@IN01WEMBXA.internal.synopsys.com> <52CA76D3.2010102@suse.cz> <52CE4496.5030401@synopsys.com> <52D01639.9000205@gmail.com> <52D1F6F1.1070006@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <cover.1389890175.git.tim.c.chen@linux.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>
-Cc: linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Tim Chen <tim.c.chen@linux.intel.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, "Figo.zhang" <figo1802@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pa0-f45.google.com ([209.85.220.45]:51287 "EHLO
+	mail-pa0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751686AbaARJoo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 18 Jan 2014 04:44:44 -0500
+In-Reply-To: <52D1F6F1.1070006@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Michal Marek <mmarek@suse.cz>
+Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-This patch adds Kconfig entries to allow architectures to hook into the
-MCS lock/unlock functions in the contended case.
+Hello Maintainers:
 
-From: Will Deacon <will.deacon@arm.com>
-Signed-off-by: Will Deacon <will.deacon@arm.com>
----
- arch/Kconfig                 | 3 +++
- include/linux/mcs_spinlock.h | 8 ++++++++
- 2 files changed, 11 insertions(+)
+Please help check this patch when you have time.
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 80bbb8c..8a2a056 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -303,6 +303,9 @@ config HAVE_CMPXCHG_LOCAL
- config HAVE_CMPXCHG_DOUBLE
- 	bool
- 
-+config HAVE_ARCH_MCS_LOCK
-+	bool
-+
- config ARCH_WANT_IPC_PARSE_VERSION
- 	bool
- 
-diff --git a/include/linux/mcs_spinlock.h b/include/linux/mcs_spinlock.h
-index d54bb23..d2c02ad 100644
---- a/include/linux/mcs_spinlock.h
-+++ b/include/linux/mcs_spinlock.h
-@@ -12,6 +12,14 @@
- #ifndef __LINUX_MCS_SPINLOCK_H
- #define __LINUX_MCS_SPINLOCK_H
- 
-+/*
-+ * An architecture may provide its own lock/unlock functions for the
-+ * contended case.
-+ */
-+#ifdef CONFIG_HAVE_ARCH_MCS_LOCK
-+#include <asm/mcs_spinlock.h>
-+#endif
-+
- struct mcs_spinlock {
- 	struct mcs_spinlock *next;
- 	int locked; /* 1 if lock acquired */
+Thanks.
+
+On 01/12/2014 09:59 AM, Chen Gang wrote:
+> For some assemblers, they use another character as newline in a macro
+> (e.g. arc uses '`'), so for generic assembly code, need use ASM_NL (a
+> macro) instead of ';' for it.
+> 
+> 
+> Signed-off-by: Chen Gang <gang.chen.5i5j@gmail.com>
+> Acked-by: Vineet Gupta <vgupta@synopsys.com>
+> ---
+>  arch/arc/include/asm/linkage.h |  2 ++
+>  include/linux/linkage.h        | 19 ++++++++++++-------
+>  2 files changed, 14 insertions(+), 7 deletions(-)
+> 
+> diff --git a/arch/arc/include/asm/linkage.h b/arch/arc/include/asm/linkage.h
+> index 0283e9e..66ee552 100644
+> --- a/arch/arc/include/asm/linkage.h
+> +++ b/arch/arc/include/asm/linkage.h
+> @@ -11,6 +11,8 @@
+>  
+>  #ifdef __ASSEMBLY__
+>  
+> +#define ASM_NL		 `	/* use '`' to mark new line in macro */
+> +
+>  /* Can't use the ENTRY macro in linux/linkage.h
+>   * gas considers ';' as comment vs. newline
+>   */
+> diff --git a/include/linux/linkage.h b/include/linux/linkage.h
+> index d3e8ad2..a6a42dd 100644
+> --- a/include/linux/linkage.h
+> +++ b/include/linux/linkage.h
+> @@ -6,6 +6,11 @@
+>  #include <linux/export.h>
+>  #include <asm/linkage.h>
+>  
+> +/* Some toolchains use other characters (e.g. '`') to mark new line in macro */
+> +#ifndef ASM_NL
+> +#define ASM_NL		 ;
+> +#endif
+> +
+>  #ifdef __cplusplus
+>  #define CPP_ASMLINKAGE extern "C"
+>  #else
+> @@ -75,21 +80,21 @@
+>  
+>  #ifndef ENTRY
+>  #define ENTRY(name) \
+> -  .globl name; \
+> -  ALIGN; \
+> -  name:
+> +	.globl name ASM_NL \
+> +	ALIGN ASM_NL \
+> +	name:
+>  #endif
+>  #endif /* LINKER_SCRIPT */
+>  
+>  #ifndef WEAK
+>  #define WEAK(name)	   \
+> -	.weak name;	   \
+> +	.weak name ASM_NL   \
+>  	name:
+>  #endif
+>  
+>  #ifndef END
+>  #define END(name) \
+> -  .size name, .-name
+> +	.size name, .-name
+>  #endif
+>  
+>  /* If symbol 'name' is treated as a subroutine (gets called, and returns)
+> @@ -98,8 +103,8 @@
+>   */
+>  #ifndef ENDPROC
+>  #define ENDPROC(name) \
+> -  .type name, @function; \
+> -  END(name)
+> +	.type name, @function ASM_NL \
+> +	END(name)
+>  #endif
+>  
+>  #endif
+> 
+
+
 -- 
-1.7.11.7
+Chen Gang
 
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Open, share and attitude like air, water and life which God blessed
