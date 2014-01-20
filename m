@@ -1,27 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:57036 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:59018 "EHLO
 	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753349AbaATN7X (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jan 2014 08:59:23 -0500
-Date: Mon, 20 Jan 2014 14:58:47 +0100
+	with ESMTP id S1751868AbaATPEE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jan 2014 10:04:04 -0500
+Date: Mon, 20 Jan 2014 16:03:16 +0100
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v7 0/6] MCS Lock: MCS lock code cleanup and optimizations
-Message-ID: <20140120135847.GG31570@twins.programming.kicks-ass.net>
-References: <cover.1389890175.git.tim.c.chen@linux.intel.com>
- <1389917284.3138.10.camel@schen9-DESK>
+Subject: Re: [PATCH v9 3/5] qrwlock, x86 - Treat all data type not bigger
+ than long as atomic in x86
+Message-ID: <20140120150316.GG30183@twins.programming.kicks-ass.net>
+References: <1389761047-47566-1-git-send-email-Waiman.Long@hp.com>
+ <1389761047-47566-4-git-send-email-Waiman.Long@hp.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1389917284.3138.10.camel@schen9-DESK>
+In-Reply-To: <1389761047-47566-4-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tim Chen <tim.c.chen@linux.intel.com>
-Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, "Figo.zhang" <figo1802@gmail.com>
-Message-ID: <20140120135847.GBHPyX4_0MkBNjQKGpx2-tzRhykjITdubp2tfEBmAqI@z>
+To: Waiman Long <Waiman.Long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Aswin Chandramouleeswaran\"" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>
+Message-ID: <20140120150316.zOsmIo0Rbat_fDAzLDOMJpXHQsQ-MRjZcuvB_wxZHwQ@z>
 
-On Thu, Jan 16, 2014 at 04:08:04PM -0800, Tim Chen wrote:
-> This is an update of the MCS lock patch series posted in November.
+On Tue, Jan 14, 2014 at 11:44:05PM -0500, Waiman Long wrote:
+> The generic __native_word() macro defined in include/linux/compiler.h
+> only allows "int" and "long" data types to be treated as native and
+> atomic. The x86 architecture, however, allow the use of char and short
+> data types as atomic as well.
+> 
+> This patch extends the data type allowed in the __native_word() macro to
+> allow the use of char and short.
+> 
+> Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+> ---
+>  arch/x86/include/asm/barrier.h |    8 ++++++++
+>  1 files changed, 8 insertions(+), 0 deletions(-)
+> 
+> diff --git a/arch/x86/include/asm/barrier.h b/arch/x86/include/asm/barrier.h
+> index 04a4890..4d3e30a 100644
+> --- a/arch/x86/include/asm/barrier.h
+> +++ b/arch/x86/include/asm/barrier.h
+> @@ -24,6 +24,14 @@
+>  #define wmb()	asm volatile("sfence" ::: "memory")
+>  #endif
+>  
+> +/*
+> + * All data types <= long are atomic in x86
+> + */
+> +#ifdef __native_word
+> +#undef __native_word
+> +#endif
+> +#define __native_word(t)	(sizeof(t) <= sizeof(long))
 
-Aside from the smallish gripes I posted about;
-
-Acked-by: Peter Zijlstra <peterz@infradead.org>
+Yeah, not going to happen.
