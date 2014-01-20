@@ -1,58 +1,52 @@
-From: Tim Chen <tim.c.chen@linux.intel.com>
-Subject: Re: [PATCH v7 5/6] MCS Lock: allow architectures to hook in to
- contended paths
-Date: Mon, 20 Jan 2014 08:43:45 -0800
-Message-ID: <1390236225.3138.21.camel@schen9-DESK>
-References: <cover.1389890175.git.tim.c.chen@linux.intel.com>
-	 <1389917311.3138.15.camel@schen9-DESK>
-	 <20140120121948.GD31570@twins.programming.kicks-ass.net>
-	 <20140120141157.GC9868@mudshark.cambridge.arm.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH 0/8] Update kernel uabi header files for x32
+Date: Mon, 20 Jan 2014 09:46:41 -0800
+Message-ID: <52DD6101.4010708@zytor.com>
+References: <1388182464-28428-1-git-send-email-hjl.tools@gmail.com> <20131228163308.GA1638@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20140120141157.GC9868@mudshark.cambridge.arm.com>
-Sender: owner-linux-mm@kvack.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, H. Peter An
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:48920 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751744AbaATRra (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 20 Jan 2014 12:47:30 -0500
+In-Reply-To: <20131228163308.GA1638@infradead.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christoph Hellwig <hch@infradead.org>, "H.J. Lu" <hjl.tools@gmail.com>, linux-arch <linux-arch@vger.kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ralf Baechle <ralf@linux-mips.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
 
-On Mon, 2014-01-20 at 14:11 +0000, Will Deacon wrote:
-> On Mon, Jan 20, 2014 at 12:19:48PM +0000, Peter Zijlstra wrote:
-> > On Thu, Jan 16, 2014 at 04:08:31PM -0800, Tim Chen wrote:
-> > > +#ifndef arch_mcs_spin_lock_contended
-> > > +/*
-> > > + * Using smp_load_acquire() provides a memory barrier that ensures
-> > > + * subsequent operations happen after the lock is acquired.
-> > > + */
-> > > +#define arch_mcs_spin_lock_contended(l)					\
-> > > +	while (!(smp_load_acquire(l))) {				\
-> > > +		arch_mutex_cpu_relax();					\
-> > > +	}
-> > > +#endif
-> > 
-> > I think that wants to be:
-> > 
-> > #define arch_mcs_spin_lock_contended(l)				\
-> > do {								\
-> > 	while (!smp_load_acquire(l))				\
-> > 		arch_mutex_cpu_relax();				\
-> > } while (0)
-> > 
-> > So that we properly eat the ';' in: arch_mcs_spin_lock_contended(l);.
+On 12/28/2013 08:33 AM, Christoph Hellwig wrote:
+> On Fri, Dec 27, 2013 at 02:14:16PM -0800, H.J. Lu wrote:
+>> X32 uses the same kernel system call interface as x86-64 for many
+>> system calls.  However, "long" is 64-bit for x86-64 and is 32-bit for
+>> x32.  Where long or unsigned long are used in struct types for such
+>> system calls, they are wrong for x32.  __kernel_[u]long_t is [unsigned]
+>> long for all ABIs other than x32.  I am submitting 8 patches to replace
+>> long or unsigned long with __kernel_[u]long_t so that those struct types
+>> can be used with x32 system calls.
 > 
-> Yeah, that's better.
+> Independent on how this fixes things, how does the kernel_long_t name
+> here make any sense?
 > 
-> Tim: are you happy making that change please?
+> On x86-64 "kernel" long always is 64 bits wide.  The userspace ABI long
+> might be 32 or 64bits wide.
 > 
-> Will
+> Currently kernel_long_t has almost no uses, so it might be a good time
+> to fix the name, define the rules for it, and last but not least
+> properly document the intent for thse types.
+> 
 
-Sure, will do.
+This comment by Christoph was literally the only feedback on this
+patchset.  The definition of __kernel_[u]long_t is "the size of 'long'
+for the native kernel for the ABI".  H.J.'s patchset only affects x86
+(specifically x86-64) since on all other platforms __kernel_[u]long_t is
+simply defined as long/unsigned long.
 
-Tim
+That being said, x32 is not the only ABI of this type.  In particular,
+if the MIPS N32 and ARM64 ILP32 maintainers have suggestions which would
+make this work more applicable to them, it would be highly useful to
+receive any such feedback.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+	-hpa
