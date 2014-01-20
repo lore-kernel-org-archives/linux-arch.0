@@ -1,43 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:60672 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753759AbaATQIw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jan 2014 11:08:52 -0500
-Date: Mon, 20 Jan 2014 17:08:06 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v9 2/5] qrwlock x86: Enable x86 to use queue read/write
- lock
-Message-ID: <20140120160806.GI30183@twins.programming.kicks-ass.net>
-References: <1389761047-47566-1-git-send-email-Waiman.Long@hp.com>
- <1389761047-47566-3-git-send-email-Waiman.Long@hp.com>
+Received: from terminus.zytor.com ([198.137.202.10]:48986 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753497AbaATRwm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 20 Jan 2014 12:52:42 -0500
+Message-ID: <52DD6243.1000205@zytor.com>
+Date: Mon, 20 Jan 2014 09:52:03 -0800
+From: "H. Peter Anvin" <hpa@zytor.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1389761047-47566-3-git-send-email-Waiman.Long@hp.com>
+Subject: Re: [PATCH 0/8] Update kernel uabi header files for x32
+References: <1388182464-28428-1-git-send-email-hjl.tools@gmail.com> <20131228163308.GA1638@infradead.org> <52DD6101.4010708@zytor.com> <20140120175033.GA11534@infradead.org>
+In-Reply-To: <20140120175033.GA11534@infradead.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <Waiman.Long@hp.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Aswin Chandramouleeswaran\"" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>
-Message-ID: <20140120160806.PFpD7f-YEFn7Sgw6Z6AxgigJJXS0i6earcgRVqEphuA@z>
+To: Christoph Hellwig <hch@infradead.org>
+Cc: "H.J. Lu" <hjl.tools@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ralf Baechle <ralf@linux-mips.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
+Message-ID: <20140120175203.6cE2MSlggvyxIcTXAPcfCSnWso1noCtIIu5N8m8B5L8@z>
 
-On Tue, Jan 14, 2014 at 11:44:04PM -0500, Waiman Long wrote:
-> This patch makes the necessary changes at the x86 architecture specific
-> layer to enable the presence of the CONFIG_QUEUE_RWLOCK kernel option
-> to replace the read/write lock by the queue read/write lock.
+On 01/20/2014 09:50 AM, Christoph Hellwig wrote:
+> On Mon, Jan 20, 2014 at 09:46:41AM -0800, H. Peter Anvin wrote:
+>> This comment by Christoph was literally the only feedback on this
+>> patchset.  The definition of __kernel_[u]long_t is "the size of 'long'
+>> for the native kernel for the ABI".  H.J.'s patchset only affects x86
+>> (specifically x86-64) since on all other platforms __kernel_[u]long_t is
+>> simply defined as long/unsigned long.
 > 
-> It also enables the CONFIG_QUEUE_RWLOCK option by default for x86 which
-> will force the use of queue read/write lock. That will greatly improve
-> the fairness of read/write lock and eliminate live-lock situation
-> where one task may not get the lock for an indefinite period of time.
+> Btw, sorry for the delay in getting back yo your question.  How about
+> __abi_long_t or __kabi_long_t instead?
 > 
-> Signed-off-by: Waiman Long <Waiman.Long@hp.com>
-> Reviewed-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-> ---
->  arch/x86/Kconfig                      |    1 +
->  arch/x86/include/asm/spinlock.h       |    2 ++
->  arch/x86/include/asm/spinlock_types.h |    4 ++++
->  3 files changed, 7 insertions(+), 0 deletions(-)
 
-This patch doesn't have nearly enough -, you should rip out all traces
-of the old rwlock. There's no point in having it configurable, either
-qrwlock is good or not.
+__kernel_* is the namespace that we reserve for uabi symbols/types in
+user space.  Changing the prefix would break that contract.
+
+	-hpa
+
