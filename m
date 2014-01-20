@@ -1,75 +1,113 @@
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH v7 6/6] MCS Lock: add Kconfig entries to allow
- arch-specific hooks
-Date: Sun, 19 Jan 2014 18:35:24 -0800
-Message-ID: <20140120023524.GN10038@linux.vnet.ibm.com>
-References: <cover.1389890175.git.tim.c.chen@linux.intel.com>
- <1389917316.3138.16.camel@schen9-DESK>
+Subject: Re: [PATCH v9 4/5] qrwlock: Use smp_store_release() in write_unlock()
+Date: Sun, 19 Jan 2014 19:39:47 -0800
+Message-ID: <20140120033947.GA668@linux.vnet.ibm.com>
+References: <1389761047-47566-1-git-send-email-Waiman.Long@hp.com>
+ <1389761047-47566-5-git-send-email-Waiman.Long@hp.com>
 Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e35.co.us.ibm.com ([32.97.110.153]:33254 "EHLO
+	e35.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752503AbaATDjz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 19 Jan 2014 22:39:55 -0500
+Received: from /spool/local
+	by e35.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Sun, 19 Jan 2014 20:39:55 -0700
 Content-Disposition: inline
-In-Reply-To: <1389917316.3138.16.camel@schen9-DESK>
-Sender: owner-linux-mm@kvack.org
-To: Tim Chen <tim.c.chen@linux.intel.com>
-Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <1389761047-47566-5-git-send-email-Waiman.Long@hp.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Waiman Long <Waiman.Long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Aswin Chandramouleeswaran\"" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>
 
-On Thu, Jan 16, 2014 at 04:08:36PM -0800, Tim Chen wrote:
-> This patch adds Kconfig entries to allow architectures to hook into the
-> MCS lock/unlock functions in the contended case.
+On Tue, Jan 14, 2014 at 11:44:06PM -0500, Waiman Long wrote:
+> This patch modifies the queue_write_unlock() function to use the new
+> smp_store_release() function (currently in tip). It also removes the
+> temporary implementation of smp_load_acquire() and smp_store_release()
+> function in qrwlock.c.
 > 
-> From: Will Deacon <will.deacon@arm.com>
-> Signed-off-by: Will Deacon <will.deacon@arm.com>
+> This patch will use atomic subtraction instead if the writer field is
+> not atomic.
+> 
+> Signed-off-by: Waiman Long <Waiman.Long@hp.com>
 
 Reviewed-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 
 > ---
->  arch/Kconfig                 | 3 +++
->  include/linux/mcs_spinlock.h | 8 ++++++++
->  2 files changed, 11 insertions(+)
+>  include/asm-generic/qrwlock.h |   10 ++++++----
+>  kernel/locking/qrwlock.c      |   34 ----------------------------------
+>  2 files changed, 6 insertions(+), 38 deletions(-)
 > 
-> diff --git a/arch/Kconfig b/arch/Kconfig
-> index 80bbb8c..8a2a056 100644
-> --- a/arch/Kconfig
-> +++ b/arch/Kconfig
-> @@ -303,6 +303,9 @@ config HAVE_CMPXCHG_LOCAL
->  config HAVE_CMPXCHG_DOUBLE
->  	bool
+> diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
+> index 5abb6ca..68f488b 100644
+> --- a/include/asm-generic/qrwlock.h
+> +++ b/include/asm-generic/qrwlock.h
+> @@ -181,11 +181,13 @@ static inline void queue_read_unlock(struct qrwlock *lock)
+>  static inline void queue_write_unlock(struct qrwlock *lock)
+>  {
+>  	/*
+> -	 * Make sure that none of the critical section will be leaked out.
+> +	 * If the writer field is atomic, it can be cleared directly.
+> +	 * Otherwise, an atomic subtraction will be used to clear it.
+>  	 */
+> -	smp_mb__before_clear_bit();
+> -	ACCESS_ONCE(lock->cnts.writer) = 0;
+> -	smp_mb__after_clear_bit();
+> +	if (__native_word(lock->cnts.writer))
+> +		smp_store_release(&lock->cnts.writer, 0);
+> +	else
+> +		atomic_sub(_QW_LOCKED, &lock->cnts.rwa);
+>  }
 > 
-> +config HAVE_ARCH_MCS_LOCK
-> +	bool
-> +
->  config ARCH_WANT_IPC_PARSE_VERSION
->  	bool
+>  /*
+> diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
+> index 053be4d..2727188 100644
+> --- a/kernel/locking/qrwlock.c
+> +++ b/kernel/locking/qrwlock.c
+> @@ -47,40 +47,6 @@
+>  # define arch_mutex_cpu_relax() cpu_relax()
+>  #endif
 > 
-> diff --git a/include/linux/mcs_spinlock.h b/include/linux/mcs_spinlock.h
-> index d54bb23..d2c02ad 100644
-> --- a/include/linux/mcs_spinlock.h
-> +++ b/include/linux/mcs_spinlock.h
-> @@ -12,6 +12,14 @@
->  #ifndef __LINUX_MCS_SPINLOCK_H
->  #define __LINUX_MCS_SPINLOCK_H
-> 
-> +/*
-> + * An architecture may provide its own lock/unlock functions for the
-> + * contended case.
-> + */
-> +#ifdef CONFIG_HAVE_ARCH_MCS_LOCK
-> +#include <asm/mcs_spinlock.h>
-> +#endif
-> +
->  struct mcs_spinlock {
->  	struct mcs_spinlock *next;
->  	int locked; /* 1 if lock acquired */
+> -#ifndef smp_load_acquire
+> -# ifdef CONFIG_X86
+> -#   define smp_load_acquire(p)				\
+> -	({						\
+> -		typeof(*p) ___p1 = ACCESS_ONCE(*p);	\
+> -		barrier();				\
+> -		___p1;					\
+> -	})
+> -# else
+> -#   define smp_load_acquire(p)				\
+> -	({						\
+> -		typeof(*p) ___p1 = ACCESS_ONCE(*p);	\
+> -		smp_mb();				\
+> -		___p1;					\
+> -	})
+> -# endif
+> -#endif
+> -
+> -#ifndef smp_store_release
+> -# ifdef CONFIG_X86
+> -#   define smp_store_release(p, v)			\
+> -	do {						\
+> -		barrier();				\
+> -		ACCESS_ONCE(*p) = v;			\
+> -	} while (0)
+> -# else
+> -#   define smp_store_release(p, v)			\
+> -	do {						\
+> -		smp_mb();				\
+> -		ACCESS_ONCE(*p) = v;			\
+> -	} while (0)
+> -# endif
+> -#endif
+> -
+>  /*
+>   * If an xadd (exchange-add) macro isn't available, simulate one with
+>   * the atomic_add_return() function.
 > -- 
-> 1.7.11.7
+> 1.7.1
 > 
-> 
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
