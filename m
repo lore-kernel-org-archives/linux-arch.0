@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.windriver.com ([147.11.146.13]:50772 "EHLO
-	mail1.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754858AbaAUVZb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:25:31 -0500
+Received: from mail.windriver.com ([147.11.1.11]:56572 "EHLO
+	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754900AbaAUVZm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:25:42 -0500
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 57/73] drivers/infiniband: delete non-required instances of include <linux/init.h>
-Date: Tue, 21 Jan 2014 16:23:00 -0500
-Message-ID: <1390339396-3479-58-git-send-email-paul.gortmaker@windriver.com>
+Subject: [PATCH 61/73] drivers/mmc: delete non-required instances of include <linux/init.h>
+Date: Tue, 21 Jan 2014 16:23:04 -0500
+Message-ID: <1390339396-3479-62-git-send-email-paul.gortmaker@windriver.com>
 In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 MIME-Version: 1.0
@@ -14,125 +14,202 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Roland Dreier <roland@kernel.org>, Sean Hefty <sean.hefty@intel.com>, Hal Rosenstock <hal.rosenstock@gmail.com>
-Message-ID: <20140121212300.nxVSiqoQdnUdq13-HpvHoZ32jI25x30GANkaNK6A9k8@z>
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Chris Ball <chris@printf.net>, linux-mmc@vger.kernel.org
+Message-ID: <20140121212304.iI2qaPjshalgL6hUHpLLwuBSJEsvP3ZXIXL3zCTQSRA@z>
 
 None of these files are actually using any __init type directives
 and hence don't need to include <linux/init.h>.  Most are just a
 left over from __devinit and __cpuinit removal, or simply due to
 code getting copied from one driver to the next.
 
-Cc: Roland Dreier <roland@kernel.org>
-Cc: Sean Hefty <sean.hefty@intel.com>
-Cc: Hal Rosenstock <hal.rosenstock@gmail.com>
+Cc: Chris Ball <chris@printf.net>
+Cc: linux-mmc@vger.kernel.org
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- drivers/infiniband/hw/amso1100/c2.c          | 1 -
- drivers/infiniband/hw/amso1100/c2_pd.c       | 1 -
- drivers/infiniband/hw/amso1100/c2_provider.c | 1 -
- drivers/infiniband/hw/amso1100/c2_rnic.c     | 1 -
- drivers/infiniband/hw/mlx4/alias_GUID.c      | 1 -
- drivers/infiniband/hw/nes/nes_cm.c           | 1 -
- drivers/infiniband/hw/nes/nes_utils.c        | 1 -
- drivers/infiniband/ulp/ipoib/ipoib_vlan.c    | 1 -
- 8 files changed, 8 deletions(-)
+ drivers/mmc/host/android-goldfish.c | 1 -
+ drivers/mmc/host/bfin_sdh.c         | 1 -
+ drivers/mmc/host/mmci.c             | 1 -
+ drivers/mmc/host/msm_sdcc.c         | 1 -
+ drivers/mmc/host/mxcmmc.c           | 1 -
+ drivers/mmc/host/mxs-mmc.c          | 1 -
+ drivers/mmc/host/omap.c             | 1 -
+ drivers/mmc/host/omap_hsmmc.c       | 1 -
+ drivers/mmc/host/pxamci.c           | 1 -
+ drivers/mmc/host/sdhci-acpi.c       | 1 -
+ drivers/mmc/host/sdhci-pxav2.c      | 1 -
+ drivers/mmc/host/sdhci-pxav3.c      | 1 -
+ drivers/mmc/host/sdhci-tegra.c      | 1 -
+ drivers/mmc/host/wmt-sdmmc.c        | 1 -
+ 14 files changed, 14 deletions(-)
 
-diff --git a/drivers/infiniband/hw/amso1100/c2.c b/drivers/infiniband/hw/amso1100/c2.c
-index d53cf51..b191058 100644
---- a/drivers/infiniband/hw/amso1100/c2.c
-+++ b/drivers/infiniband/hw/amso1100/c2.c
-@@ -45,7 +45,6 @@
- #include <linux/in.h>
- #include <linux/ip.h>
- #include <linux/tcp.h>
+diff --git a/drivers/mmc/host/android-goldfish.c b/drivers/mmc/host/android-goldfish.c
+index 8b4e20a..54fc950 100644
+--- a/drivers/mmc/host/android-goldfish.c
++++ b/drivers/mmc/host/android-goldfish.c
+@@ -35,7 +35,6 @@
+ #include <linux/mmc/card.h>
+ 
+ #include <linux/moduleparam.h>
 -#include <linux/init.h>
+ #include <linux/ioport.h>
  #include <linux/dma-mapping.h>
- #include <linux/slab.h>
- #include <linux/prefetch.h>
-diff --git a/drivers/infiniband/hw/amso1100/c2_pd.c b/drivers/infiniband/hw/amso1100/c2_pd.c
-index f3e81dc..995ecb2 100644
---- a/drivers/infiniband/hw/amso1100/c2_pd.c
-+++ b/drivers/infiniband/hw/amso1100/c2_pd.c
-@@ -33,7 +33,6 @@
-  * SOFTWARE.
+ #include <linux/delay.h>
+diff --git a/drivers/mmc/host/bfin_sdh.c b/drivers/mmc/host/bfin_sdh.c
+index 2b7f37e..e5efbbf 100644
+--- a/drivers/mmc/host/bfin_sdh.c
++++ b/drivers/mmc/host/bfin_sdh.c
+@@ -9,7 +9,6 @@
+ #define DRIVER_NAME	"bfin-sdh"
+ 
+ #include <linux/module.h>
+-#include <linux/init.h>
+ #include <linux/ioport.h>
+ #include <linux/platform_device.h>
+ #include <linux/delay.h>
+diff --git a/drivers/mmc/host/mmci.c b/drivers/mmc/host/mmci.c
+index b931226..ebb64cd 100644
+--- a/drivers/mmc/host/mmci.c
++++ b/drivers/mmc/host/mmci.c
+@@ -10,7 +10,6 @@
+  */
+ #include <linux/module.h>
+ #include <linux/moduleparam.h>
+-#include <linux/init.h>
+ #include <linux/ioport.h>
+ #include <linux/device.h>
+ #include <linux/interrupt.h>
+diff --git a/drivers/mmc/host/msm_sdcc.c b/drivers/mmc/host/msm_sdcc.c
+index 9405ecd..15933dc 100644
+--- a/drivers/mmc/host/msm_sdcc.c
++++ b/drivers/mmc/host/msm_sdcc.c
+@@ -17,7 +17,6 @@
+ 
+ #include <linux/module.h>
+ #include <linux/moduleparam.h>
+-#include <linux/init.h>
+ #include <linux/ioport.h>
+ #include <linux/device.h>
+ #include <linux/interrupt.h>
+diff --git a/drivers/mmc/host/mxcmmc.c b/drivers/mmc/host/mxcmmc.c
+index f7199c8..b573b50 100644
+--- a/drivers/mmc/host/mxcmmc.c
++++ b/drivers/mmc/host/mxcmmc.c
+@@ -18,7 +18,6 @@
+  */
+ 
+ #include <linux/module.h>
+-#include <linux/init.h>
+ #include <linux/ioport.h>
+ #include <linux/platform_device.h>
+ #include <linux/interrupt.h>
+diff --git a/drivers/mmc/host/mxs-mmc.c b/drivers/mmc/host/mxs-mmc.c
+index 073e871..19633fe 100644
+--- a/drivers/mmc/host/mxs-mmc.c
++++ b/drivers/mmc/host/mxs-mmc.c
+@@ -21,7 +21,6 @@
+  */
+ 
+ #include <linux/kernel.h>
+-#include <linux/init.h>
+ #include <linux/ioport.h>
+ #include <linux/of.h>
+ #include <linux/of_device.h>
+diff --git a/drivers/mmc/host/omap.c b/drivers/mmc/host/omap.c
+index 98b6b6e..41f536f 100644
+--- a/drivers/mmc/host/omap.c
++++ b/drivers/mmc/host/omap.c
+@@ -13,7 +13,6 @@
+ 
+ #include <linux/module.h>
+ #include <linux/moduleparam.h>
+-#include <linux/init.h>
+ #include <linux/ioport.h>
+ #include <linux/platform_device.h>
+ #include <linux/interrupt.h>
+diff --git a/drivers/mmc/host/omap_hsmmc.c b/drivers/mmc/host/omap_hsmmc.c
+index dbd32ad..2a629fb 100644
+--- a/drivers/mmc/host/omap_hsmmc.c
++++ b/drivers/mmc/host/omap_hsmmc.c
+@@ -16,7 +16,6 @@
+  */
+ 
+ #include <linux/module.h>
+-#include <linux/init.h>
+ #include <linux/kernel.h>
+ #include <linux/debugfs.h>
+ #include <linux/dmaengine.h>
+diff --git a/drivers/mmc/host/pxamci.c b/drivers/mmc/host/pxamci.c
+index 32fe113..9427d67 100644
+--- a/drivers/mmc/host/pxamci.c
++++ b/drivers/mmc/host/pxamci.c
+@@ -17,7 +17,6 @@
+  *	max block length up to 1023
+  */
+ #include <linux/module.h>
+-#include <linux/init.h>
+ #include <linux/ioport.h>
+ #include <linux/platform_device.h>
+ #include <linux/delay.h>
+diff --git a/drivers/mmc/host/sdhci-acpi.c b/drivers/mmc/host/sdhci-acpi.c
+index 9ce17f6..4d68e1a 100644
+--- a/drivers/mmc/host/sdhci-acpi.c
++++ b/drivers/mmc/host/sdhci-acpi.c
+@@ -18,7 +18,6 @@
+  *
   */
  
 -#include <linux/init.h>
- #include <linux/slab.h>
- #include <linux/errno.h>
+ #include <linux/export.h>
+ #include <linux/module.h>
+ #include <linux/device.h>
+diff --git a/drivers/mmc/host/sdhci-pxav2.c b/drivers/mmc/host/sdhci-pxav2.c
+index d51e061..b75a975 100644
+--- a/drivers/mmc/host/sdhci-pxav2.c
++++ b/drivers/mmc/host/sdhci-pxav2.c
+@@ -18,7 +18,6 @@
+  */
  
-diff --git a/drivers/infiniband/hw/amso1100/c2_provider.c b/drivers/infiniband/hw/amso1100/c2_provider.c
-index 07eb3a8..70844f8 100644
---- a/drivers/infiniband/hw/amso1100/c2_provider.c
-+++ b/drivers/infiniband/hw/amso1100/c2_provider.c
-@@ -46,7 +46,6 @@
- #include <linux/in.h>
- #include <linux/ip.h>
- #include <linux/tcp.h>
+ #include <linux/err.h>
 -#include <linux/init.h>
- #include <linux/dma-mapping.h>
- #include <linux/if_arp.h>
- #include <linux/vmalloc.h>
-diff --git a/drivers/infiniband/hw/amso1100/c2_rnic.c b/drivers/infiniband/hw/amso1100/c2_rnic.c
-index b7c9869..bc055c3 100644
---- a/drivers/infiniband/hw/amso1100/c2_rnic.c
-+++ b/drivers/infiniband/hw/amso1100/c2_rnic.c
-@@ -46,7 +46,6 @@
- #include <linux/in.h>
- #include <linux/ip.h>
- #include <linux/tcp.h>
+ #include <linux/platform_device.h>
+ #include <linux/clk.h>
+ #include <linux/module.h>
+diff --git a/drivers/mmc/host/sdhci-pxav3.c b/drivers/mmc/host/sdhci-pxav3.c
+index 793dacd..783c991 100644
+--- a/drivers/mmc/host/sdhci-pxav3.c
++++ b/drivers/mmc/host/sdhci-pxav3.c
+@@ -17,7 +17,6 @@
+  *
+  */
+ #include <linux/err.h>
 -#include <linux/init.h>
- #include <linux/dma-mapping.h>
- #include <linux/mm.h>
- #include <linux/inet.h>
-diff --git a/drivers/infiniband/hw/mlx4/alias_GUID.c b/drivers/infiniband/hw/mlx4/alias_GUID.c
-index 2f215b9..12072b4 100644
---- a/drivers/infiniband/hw/mlx4/alias_GUID.c
-+++ b/drivers/infiniband/hw/mlx4/alias_GUID.c
-@@ -39,7 +39,6 @@
- #include <rdma/ib_pack.h>
- #include <linux/mlx4/cmd.h>
+ #include <linux/platform_device.h>
+ #include <linux/clk.h>
+ #include <linux/io.h>
+diff --git a/drivers/mmc/host/sdhci-tegra.c b/drivers/mmc/host/sdhci-tegra.c
+index a835898..ec7ebbc 100644
+--- a/drivers/mmc/host/sdhci-tegra.c
++++ b/drivers/mmc/host/sdhci-tegra.c
+@@ -14,7 +14,6 @@
+ 
+ #include <linux/err.h>
  #include <linux/module.h>
 -#include <linux/init.h>
- #include <linux/errno.h>
- #include <rdma/ib_user_verbs.h>
- #include <linux/delay.h>
-diff --git a/drivers/infiniband/hw/nes/nes_cm.c b/drivers/infiniband/hw/nes/nes_cm.c
-index 9c9f2f5..d885424 100644
---- a/drivers/infiniband/hw/nes/nes_cm.c
-+++ b/drivers/infiniband/hw/nes/nes_cm.c
-@@ -38,7 +38,6 @@
- #include <linux/skbuff.h>
- #include <linux/ip.h>
- #include <linux/tcp.h>
--#include <linux/init.h>
- #include <linux/if_arp.h>
- #include <linux/if_vlan.h>
- #include <linux/notifier.h>
-diff --git a/drivers/infiniband/hw/nes/nes_utils.c b/drivers/infiniband/hw/nes/nes_utils.c
-index 2042c0f..1080762 100644
---- a/drivers/infiniband/hw/nes/nes_utils.c
-+++ b/drivers/infiniband/hw/nes/nes_utils.c
-@@ -43,7 +43,6 @@
- #include <linux/in.h>
- #include <linux/ip.h>
- #include <linux/tcp.h>
--#include <linux/init.h>
+ #include <linux/platform_device.h>
+ #include <linux/clk.h>
+ #include <linux/io.h>
+diff --git a/drivers/mmc/host/wmt-sdmmc.c b/drivers/mmc/host/wmt-sdmmc.c
+index e902ed7..12a47ea 100644
+--- a/drivers/mmc/host/wmt-sdmmc.c
++++ b/drivers/mmc/host/wmt-sdmmc.c
+@@ -9,7 +9,6 @@
+  *  published by the Free Software Foundation
+  */
  
- #include <asm/io.h>
- #include <asm/irq.h>
-diff --git a/drivers/infiniband/ulp/ipoib/ipoib_vlan.c b/drivers/infiniband/ulp/ipoib/ipoib_vlan.c
-index 9fad7b5..6e7b53c 100644
---- a/drivers/infiniband/ulp/ipoib/ipoib_vlan.c
-+++ b/drivers/infiniband/ulp/ipoib/ipoib_vlan.c
-@@ -32,7 +32,6 @@
- 
+-#include <linux/init.h>
  #include <linux/module.h>
- 
--#include <linux/init.h>
- #include <linux/seq_file.h>
- 
- #include <asm/uaccess.h>
+ #include <linux/platform_device.h>
+ #include <linux/ioport.h>
 -- 
 1.8.4.1
 
