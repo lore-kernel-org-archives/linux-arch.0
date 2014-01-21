@@ -1,49 +1,42 @@
-From: Marcel Holtmann <marcel@holtmann.org>
-Subject: Re: [PATCH 60/73] drivers/bluetooth: delete non-required instances of include <linux/init.h>
-Date: Tue, 21 Jan 2014 13:55:01 -0800
-Message-ID: <8861C0F9-FF68-47B8-B9EB-E52BF6A72A6F@holtmann.org>
-References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com> <1390339396-3479-61-git-send-email-paul.gortmaker@windriver.com>
-Mime-Version: 1.0 (Mac OS X Mail 7.1 \(1827\))
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 8BIT
+From: Paul Gortmaker <paul.gortmaker@windriver.com>
+Subject: Re: [PATCH 20/73] arm: use subsys_initcall in non-modular pl320 IPC
+ code
+Date: Tue, 21 Jan 2014 17:19:23 -0500
+Message-ID: <52DEF26B.80404@windriver.com>
+References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com> <1390339396-3479-21-git-send-email-paul.gortmaker@windriver.com> <4922482.oeJaTIvZxl@wuerfel>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from senator.holtmann.net ([87.106.208.187]:45863 "EHLO
-	mail.holtmann.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753862AbaAUVzJ convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:55:09 -0500
-In-Reply-To: <1390339396-3479-61-git-send-email-paul.gortmaker@windriver.com>
+Received: from mail.windriver.com ([147.11.1.11]:64930 "EHLO
+	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752191AbaAUWTe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 17:19:34 -0500
+In-Reply-To: <4922482.oeJaTIvZxl@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Gortmaker <paul.gortmaker@windriver.com>
-Cc: linux-kernel <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, "Gustavo F. Padovan" <gustavo@padovan.org>, Johan Hedberg <johan.hedberg@gmail.com>, "linux-bluetooth@vger.kernel.org development" <linux-bluetooth@vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org
 
-Hi Paul,
-
-> None of these files are actually using any __init type directives
-> and hence don't need to include <linux/init.h>.  Most are just a
-> left over from __devinit and __cpuinit removal, or simply due to
-> code getting copied from one driver to the next.
+On 14-01-21 04:44 PM, Arnd Bergmann wrote:
+> On Tuesday 21 January 2014 16:22:23 Paul Gortmaker wrote:
+>>
+>> Note that direct use of __initcall is discouraged, vs. one
+>> of the priority categorized subgroups.  As __initcall gets
+>> mapped onto device_initcall, our use of subsys_initcall (which
+>> seems to make sense for netfilter code) will thus change this
+>> registration from level 6-device to level 4-subsys (i.e. slightly
+>> earlier).  However no impact of that small difference is expected.
 > 
-> Cc: Marcel Holtmann <marcel@holtmann.org>
-> Cc: Gustavo Padovan <gustavo@padovan.org>
-> Cc: Johan Hedberg <johan.hedberg@gmail.com>
-> Cc: linux-bluetooth@vger.kernel.org
-> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
-> ---
-> drivers/bluetooth/ath3k.c       | 1 -
-> drivers/bluetooth/bcm203x.c     | 1 -
-> drivers/bluetooth/bfusb.c       | 1 -
-> drivers/bluetooth/bluecard_cs.c | 1 -
-> drivers/bluetooth/bpa10x.c      | 1 -
-> drivers/bluetooth/bt3c_cs.c     | 1 -
-> drivers/bluetooth/btuart_cs.c   | 1 -
-> drivers/bluetooth/dtl1_cs.c     | 1 -
-> 8 files changed, 8 deletions(-)
+> This doesn't have anything to do with netfilter. The only user
+> of this driver at the moment is the highbank cpufreq driver, but
+> that could change.
 
-I can take this single patch via bluetooth-next tree or if Linus for example wants to take the whole series, then that is fine with me as well.
+Thanks -- cut and paste error from an earlier, similar changeset.
+Will "s/netfilter/IPC/" 
 
-Acked-by: Marcel Holtmann <marcel@holtmann.org>
-
-Regards
-
-Marcel
+Paul.
+--
+> 
+> 	Arnd
+> 
