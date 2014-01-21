@@ -1,7 +1,7 @@
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 37/73] alpha: delete non-required instances of <linux/init.h>
-Date: Tue, 21 Jan 2014 16:22:40 -0500
-Message-ID: <1390339396-3479-38-git-send-email-paul.gortmaker@windriver.com>
+Subject: [PATCH 24/73] m68k: don't use module_init in non-modular mvme16x/rtc.c code
+Date: Tue, 21 Jan 2014 16:22:27 -0500
+Message-ID: <1390339396-3479-25-git-send-email-paul.gortmaker@windriver.com>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -9,112 +9,40 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-None of these files are actually using any __init type directives
-and hence don't need to include <linux/init.h>.  Most are just a
-left over from __devinit and __cpuinit removal, or simply due to
-code getting copied from one driver to the next.
+The rtc.o is built for obj-y, i.e. always built in.  It will
+never be modular, so using module_init as an alias for __initcall
+can be somewhat misleading.
 
-Cc: Richard Henderson <rth@twiddle.net>
-Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Cc: Matt Turner <mattst88@gmail.com>
-Cc: linux-alpha@vger.kernel.org
+Fix this up now, so that we can relocate module_init from
+init.h into module.h in the future.  If we don't do this, we'd
+have to add module.h to obviously non-modular code, and that
+would be a worse thing.
+
+Note that direct use of __initcall is discouraged, vs. one
+of the priority categorized subgroups.  As __initcall gets
+mapped onto device_initcall, our use of device_initcall
+directly in this change means that the runtime impact is
+zero -- it will remain at level 6 in initcall ordering.
+
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: linux-m68k@lists.linux-m68k.org
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- arch/alpha/kernel/err_ev6.c         | 1 -
- arch/alpha/kernel/irq.c             | 1 -
- arch/alpha/kernel/traps.c           | 1 -
- arch/alpha/oprofile/op_model_ev4.c  | 1 -
- arch/alpha/oprofile/op_model_ev5.c  | 1 -
- arch/alpha/oprofile/op_model_ev6.c  | 1 -
- arch/alpha/oprofile/op_model_ev67.c | 1 -
- 7 files changed, 7 deletions(-)
+ arch/m68k/mvme16x/rtc.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/alpha/kernel/err_ev6.c b/arch/alpha/kernel/err_ev6.c
-index 253cf1a..51267ac 100644
---- a/arch/alpha/kernel/err_ev6.c
-+++ b/arch/alpha/kernel/err_ev6.c
-@@ -6,7 +6,6 @@
-  *	Error handling code supporting Alpha systems
-  */
- 
--#include <linux/init.h>
- #include <linux/sched.h>
- 
- #include <asm/io.h>
-diff --git a/arch/alpha/kernel/irq.c b/arch/alpha/kernel/irq.c
-index 7b2be25..51f2c86 100644
---- a/arch/alpha/kernel/irq.c
-+++ b/arch/alpha/kernel/irq.c
-@@ -19,7 +19,6 @@
- #include <linux/ptrace.h>
- #include <linux/interrupt.h>
- #include <linux/random.h>
--#include <linux/init.h>
- #include <linux/irq.h>
- #include <linux/proc_fs.h>
- #include <linux/seq_file.h>
-diff --git a/arch/alpha/kernel/traps.c b/arch/alpha/kernel/traps.c
-index 9c4c189..74aceea 100644
---- a/arch/alpha/kernel/traps.c
-+++ b/arch/alpha/kernel/traps.c
-@@ -14,7 +14,6 @@
- #include <linux/tty.h>
- #include <linux/delay.h>
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/kallsyms.h>
- #include <linux/ratelimit.h>
- 
-diff --git a/arch/alpha/oprofile/op_model_ev4.c b/arch/alpha/oprofile/op_model_ev4.c
-index 18aa9b4..086a0d5 100644
---- a/arch/alpha/oprofile/op_model_ev4.c
-+++ b/arch/alpha/oprofile/op_model_ev4.c
-@@ -8,7 +8,6 @@
-  */
- 
- #include <linux/oprofile.h>
--#include <linux/init.h>
- #include <linux/smp.h>
- #include <asm/ptrace.h>
- 
-diff --git a/arch/alpha/oprofile/op_model_ev5.c b/arch/alpha/oprofile/op_model_ev5.c
-index c32f8a0..c300f5e 100644
---- a/arch/alpha/oprofile/op_model_ev5.c
-+++ b/arch/alpha/oprofile/op_model_ev5.c
-@@ -8,7 +8,6 @@
-  */
- 
- #include <linux/oprofile.h>
--#include <linux/init.h>
- #include <linux/smp.h>
- #include <asm/ptrace.h>
- 
-diff --git a/arch/alpha/oprofile/op_model_ev6.c b/arch/alpha/oprofile/op_model_ev6.c
-index 1c84cc2..02edf59 100644
---- a/arch/alpha/oprofile/op_model_ev6.c
-+++ b/arch/alpha/oprofile/op_model_ev6.c
-@@ -8,7 +8,6 @@
-  */
- 
- #include <linux/oprofile.h>
--#include <linux/init.h>
- #include <linux/smp.h>
- #include <asm/ptrace.h>
- 
-diff --git a/arch/alpha/oprofile/op_model_ev67.c b/arch/alpha/oprofile/op_model_ev67.c
-index 34a57a1..adb1744 100644
---- a/arch/alpha/oprofile/op_model_ev67.c
-+++ b/arch/alpha/oprofile/op_model_ev67.c
-@@ -9,7 +9,6 @@
-  */
- 
- #include <linux/oprofile.h>
--#include <linux/init.h>
- #include <linux/smp.h>
- #include <asm/ptrace.h>
- 
+diff --git a/arch/m68k/mvme16x/rtc.c b/arch/m68k/mvme16x/rtc.c
+index 6ef7a81..1755e2f 100644
+--- a/arch/m68k/mvme16x/rtc.c
++++ b/arch/m68k/mvme16x/rtc.c
+@@ -161,4 +161,4 @@ static int __init rtc_MK48T08_init(void)
+ 	printk(KERN_INFO "MK48T08 Real Time Clock Driver v%s\n", RTC_VERSION);
+ 	return misc_register(&rtc_dev);
+ }
+-module_init(rtc_MK48T08_init);
++device_initcall(rtc_MK48T08_init);
 -- 
 1.8.4.1
