@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.windriver.com ([147.11.146.13]:50775 "EHLO
+Received: from mail1.windriver.com ([147.11.146.13]:50772 "EHLO
 	mail1.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754865AbaAUVZb (ORCPT
+	with ESMTP id S1754858AbaAUVZb (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:25:31 -0500
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 59/73] drivers/gpio: delete non-required instances of include <linux/init.h>
-Date: Tue, 21 Jan 2014 16:23:02 -0500
-Message-ID: <1390339396-3479-60-git-send-email-paul.gortmaker@windriver.com>
+Subject: [PATCH 57/73] drivers/infiniband: delete non-required instances of include <linux/init.h>
+Date: Tue, 21 Jan 2014 16:23:00 -0500
+Message-ID: <1390339396-3479-58-git-send-email-paul.gortmaker@windriver.com>
 In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 MIME-Version: 1.0
@@ -14,242 +14,125 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Linus Walleij <linus.walleij@linaro.org>, Alexandre Courbot <gnurou@gmail.com>, linux-gpio@vger.kernel.org
-Message-ID: <20140121212302.YpIEwwDIBx-0kUY5_LKqN7RF6vtziELw4l7UxrOjcUE@z>
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Roland Dreier <roland@kernel.org>, Sean Hefty <sean.hefty@intel.com>, Hal Rosenstock <hal.rosenstock@gmail.com>
+Message-ID: <20140121212300.nxVSiqoQdnUdq13-HpvHoZ32jI25x30GANkaNK6A9k8@z>
 
 None of these files are actually using any __init type directives
 and hence don't need to include <linux/init.h>.  Most are just a
 left over from __devinit and __cpuinit removal, or simply due to
 code getting copied from one driver to the next.
 
-Cc: Linus Walleij <linus.walleij@linaro.org>
-Cc: Alexandre Courbot <gnurou@gmail.com>
-Cc: linux-gpio@vger.kernel.org
+Cc: Roland Dreier <roland@kernel.org>
+Cc: Sean Hefty <sean.hefty@intel.com>
+Cc: Hal Rosenstock <hal.rosenstock@gmail.com>
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- drivers/gpio/gpio-74x164.c    | 1 -
- drivers/gpio/gpio-adp5520.c   | 1 -
- drivers/gpio/gpio-adp5588.c   | 1 -
- drivers/gpio/gpio-generic.c   | 1 -
- drivers/gpio/gpio-grgpio.c    | 1 -
- drivers/gpio/gpio-janz-ttl.c  | 1 -
- drivers/gpio/gpio-kempld.c    | 1 -
- drivers/gpio/gpio-lpc32xx.c   | 1 -
- drivers/gpio/gpio-max730x.c   | 1 -
- drivers/gpio/gpio-moxart.c    | 1 -
- drivers/gpio/gpio-msm-v2.c    | 1 -
- drivers/gpio/gpio-rcar.c      | 1 -
- drivers/gpio/gpio-rdc321x.c   | 1 -
- drivers/gpio/gpio-sch.c       | 1 -
- drivers/gpio/gpio-sodaville.c | 1 -
- drivers/gpio/gpio-twl6040.c   | 1 -
- drivers/gpio/gpio-vr41xx.c    | 1 -
- 17 files changed, 17 deletions(-)
+ drivers/infiniband/hw/amso1100/c2.c          | 1 -
+ drivers/infiniband/hw/amso1100/c2_pd.c       | 1 -
+ drivers/infiniband/hw/amso1100/c2_provider.c | 1 -
+ drivers/infiniband/hw/amso1100/c2_rnic.c     | 1 -
+ drivers/infiniband/hw/mlx4/alias_GUID.c      | 1 -
+ drivers/infiniband/hw/nes/nes_cm.c           | 1 -
+ drivers/infiniband/hw/nes/nes_utils.c        | 1 -
+ drivers/infiniband/ulp/ipoib/ipoib_vlan.c    | 1 -
+ 8 files changed, 8 deletions(-)
 
-diff --git a/drivers/gpio/gpio-74x164.c b/drivers/gpio/gpio-74x164.c
-index e4ae298..8aa8a97 100644
---- a/drivers/gpio/gpio-74x164.c
-+++ b/drivers/gpio/gpio-74x164.c
-@@ -9,7 +9,6 @@
-  *  published by the Free Software Foundation.
+diff --git a/drivers/infiniband/hw/amso1100/c2.c b/drivers/infiniband/hw/amso1100/c2.c
+index d53cf51..b191058 100644
+--- a/drivers/infiniband/hw/amso1100/c2.c
++++ b/drivers/infiniband/hw/amso1100/c2.c
+@@ -45,7 +45,6 @@
+ #include <linux/in.h>
+ #include <linux/ip.h>
+ #include <linux/tcp.h>
+-#include <linux/init.h>
+ #include <linux/dma-mapping.h>
+ #include <linux/slab.h>
+ #include <linux/prefetch.h>
+diff --git a/drivers/infiniband/hw/amso1100/c2_pd.c b/drivers/infiniband/hw/amso1100/c2_pd.c
+index f3e81dc..995ecb2 100644
+--- a/drivers/infiniband/hw/amso1100/c2_pd.c
++++ b/drivers/infiniband/hw/amso1100/c2_pd.c
+@@ -33,7 +33,6 @@
+  * SOFTWARE.
   */
  
 -#include <linux/init.h>
- #include <linux/mutex.h>
- #include <linux/spi/spi.h>
- #include <linux/gpio.h>
-diff --git a/drivers/gpio/gpio-adp5520.c b/drivers/gpio/gpio-adp5520.c
-index 6132659..00f54fa 100644
---- a/drivers/gpio/gpio-adp5520.c
-+++ b/drivers/gpio/gpio-adp5520.c
-@@ -9,7 +9,6 @@
- #include <linux/module.h>
  #include <linux/slab.h>
- #include <linux/kernel.h>
--#include <linux/init.h>
- #include <linux/platform_device.h>
- #include <linux/mfd/adp5520.h>
+ #include <linux/errno.h>
  
-diff --git a/drivers/gpio/gpio-adp5588.c b/drivers/gpio/gpio-adp5588.c
-index 3f190e6..a5b7a20 100644
---- a/drivers/gpio/gpio-adp5588.c
-+++ b/drivers/gpio/gpio-adp5588.c
-@@ -10,7 +10,6 @@
- #include <linux/module.h>
- #include <linux/kernel.h>
- #include <linux/slab.h>
+diff --git a/drivers/infiniband/hw/amso1100/c2_provider.c b/drivers/infiniband/hw/amso1100/c2_provider.c
+index 07eb3a8..70844f8 100644
+--- a/drivers/infiniband/hw/amso1100/c2_provider.c
++++ b/drivers/infiniband/hw/amso1100/c2_provider.c
+@@ -46,7 +46,6 @@
+ #include <linux/in.h>
+ #include <linux/ip.h>
+ #include <linux/tcp.h>
 -#include <linux/init.h>
- #include <linux/i2c.h>
- #include <linux/gpio.h>
- #include <linux/interrupt.h>
-diff --git a/drivers/gpio/gpio-generic.c b/drivers/gpio/gpio-generic.c
-index d2196bf..cdc8437 100644
---- a/drivers/gpio/gpio-generic.c
-+++ b/drivers/gpio/gpio-generic.c
-@@ -44,7 +44,6 @@ o        `                     ~~~~\___/~~~~    ` controller in FPGA is ,.`
-  *               `.......````.```
-  */
- 
+ #include <linux/dma-mapping.h>
+ #include <linux/if_arp.h>
+ #include <linux/vmalloc.h>
+diff --git a/drivers/infiniband/hw/amso1100/c2_rnic.c b/drivers/infiniband/hw/amso1100/c2_rnic.c
+index b7c9869..bc055c3 100644
+--- a/drivers/infiniband/hw/amso1100/c2_rnic.c
++++ b/drivers/infiniband/hw/amso1100/c2_rnic.c
+@@ -46,7 +46,6 @@
+ #include <linux/in.h>
+ #include <linux/ip.h>
+ #include <linux/tcp.h>
 -#include <linux/init.h>
- #include <linux/err.h>
- #include <linux/bug.h>
- #include <linux/kernel.h>
-diff --git a/drivers/gpio/gpio-grgpio.c b/drivers/gpio/gpio-grgpio.c
-index 84d2478..d137fd3 100644
---- a/drivers/gpio/gpio-grgpio.c
-+++ b/drivers/gpio/gpio-grgpio.c
-@@ -22,7 +22,6 @@
- 
- #include <linux/kernel.h>
+ #include <linux/dma-mapping.h>
+ #include <linux/mm.h>
+ #include <linux/inet.h>
+diff --git a/drivers/infiniband/hw/mlx4/alias_GUID.c b/drivers/infiniband/hw/mlx4/alias_GUID.c
+index 2f215b9..12072b4 100644
+--- a/drivers/infiniband/hw/mlx4/alias_GUID.c
++++ b/drivers/infiniband/hw/mlx4/alias_GUID.c
+@@ -39,7 +39,6 @@
+ #include <rdma/ib_pack.h>
+ #include <linux/mlx4/cmd.h>
  #include <linux/module.h>
 -#include <linux/init.h>
- #include <linux/spinlock.h>
- #include <linux/io.h>
- #include <linux/of.h>
-diff --git a/drivers/gpio/gpio-janz-ttl.c b/drivers/gpio/gpio-janz-ttl.c
-index 2ecd3a0..ab0bfb9 100644
---- a/drivers/gpio/gpio-janz-ttl.c
-+++ b/drivers/gpio/gpio-janz-ttl.c
-@@ -11,7 +11,6 @@
- 
- #include <linux/kernel.h>
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/interrupt.h>
+ #include <linux/errno.h>
+ #include <rdma/ib_user_verbs.h>
  #include <linux/delay.h>
- #include <linux/platform_device.h>
-diff --git a/drivers/gpio/gpio-kempld.c b/drivers/gpio/gpio-kempld.c
-index c6d8817..8a2ff81 100644
---- a/drivers/gpio/gpio-kempld.c
-+++ b/drivers/gpio/gpio-kempld.c
-@@ -14,7 +14,6 @@
-  * GNU General Public License for more details.
-  */
- 
+diff --git a/drivers/infiniband/hw/nes/nes_cm.c b/drivers/infiniband/hw/nes/nes_cm.c
+index 9c9f2f5..d885424 100644
+--- a/drivers/infiniband/hw/nes/nes_cm.c
++++ b/drivers/infiniband/hw/nes/nes_cm.c
+@@ -38,7 +38,6 @@
+ #include <linux/skbuff.h>
+ #include <linux/ip.h>
+ #include <linux/tcp.h>
 -#include <linux/init.h>
- #include <linux/kernel.h>
- #include <linux/module.h>
- #include <linux/bitops.h>
-diff --git a/drivers/gpio/gpio-lpc32xx.c b/drivers/gpio/gpio-lpc32xx.c
-index 225344d..f2f9353 100644
---- a/drivers/gpio/gpio-lpc32xx.c
-+++ b/drivers/gpio/gpio-lpc32xx.c
-@@ -17,7 +17,6 @@
-  */
- 
- #include <linux/kernel.h>
+ #include <linux/if_arp.h>
+ #include <linux/if_vlan.h>
+ #include <linux/notifier.h>
+diff --git a/drivers/infiniband/hw/nes/nes_utils.c b/drivers/infiniband/hw/nes/nes_utils.c
+index 2042c0f..1080762 100644
+--- a/drivers/infiniband/hw/nes/nes_utils.c
++++ b/drivers/infiniband/hw/nes/nes_utils.c
+@@ -43,7 +43,6 @@
+ #include <linux/in.h>
+ #include <linux/ip.h>
+ #include <linux/tcp.h>
 -#include <linux/init.h>
- #include <linux/io.h>
- #include <linux/errno.h>
- #include <linux/gpio.h>
-diff --git a/drivers/gpio/gpio-max730x.c b/drivers/gpio/gpio-max730x.c
-index 8672755..f8c01a4 100644
---- a/drivers/gpio/gpio-max730x.c
-+++ b/drivers/gpio/gpio-max730x.c
-@@ -31,7 +31,6 @@
-  */
+ 
+ #include <asm/io.h>
+ #include <asm/irq.h>
+diff --git a/drivers/infiniband/ulp/ipoib/ipoib_vlan.c b/drivers/infiniband/ulp/ipoib/ipoib_vlan.c
+index 9fad7b5..6e7b53c 100644
+--- a/drivers/infiniband/ulp/ipoib/ipoib_vlan.c
++++ b/drivers/infiniband/ulp/ipoib/ipoib_vlan.c
+@@ -32,7 +32,6 @@
  
  #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/platform_device.h>
- #include <linux/mutex.h>
- #include <linux/spi/max7301.h>
-diff --git a/drivers/gpio/gpio-moxart.c b/drivers/gpio/gpio-moxart.c
-index 2af9900..799da97 100644
---- a/drivers/gpio/gpio-moxart.c
-+++ b/drivers/gpio/gpio-moxart.c
-@@ -11,7 +11,6 @@
-  */
- 
- #include <linux/err.h>
--#include <linux/init.h>
- #include <linux/irq.h>
- #include <linux/io.h>
- #include <linux/gpio.h>
-diff --git a/drivers/gpio/gpio-msm-v2.c b/drivers/gpio/gpio-msm-v2.c
-index a3351ac..f817e59 100644
---- a/drivers/gpio/gpio-msm-v2.c
-+++ b/drivers/gpio/gpio-msm-v2.c
-@@ -21,7 +21,6 @@
- #include <linux/bitops.h>
- #include <linux/err.h>
- #include <linux/gpio.h>
--#include <linux/init.h>
- #include <linux/interrupt.h>
- #include <linux/io.h>
- #include <linux/irqchip/chained_irq.h>
-diff --git a/drivers/gpio/gpio-rcar.c b/drivers/gpio/gpio-rcar.c
-index ca76ce7..32963f2 100644
---- a/drivers/gpio/gpio-rcar.c
-+++ b/drivers/gpio/gpio-rcar.c
-@@ -15,7 +15,6 @@
- 
- #include <linux/err.h>
- #include <linux/gpio.h>
--#include <linux/init.h>
- #include <linux/interrupt.h>
- #include <linux/io.h>
- #include <linux/ioport.h>
-diff --git a/drivers/gpio/gpio-rdc321x.c b/drivers/gpio/gpio-rdc321x.c
-index 88577c3..45e1fc7 100644
---- a/drivers/gpio/gpio-rdc321x.c
-+++ b/drivers/gpio/gpio-rdc321x.c
-@@ -21,7 +21,6 @@
-  */
- #include <linux/module.h>
- #include <linux/kernel.h>
--#include <linux/init.h>
- #include <linux/spinlock.h>
- #include <linux/platform_device.h>
- #include <linux/pci.h>
-diff --git a/drivers/gpio/gpio-sch.c b/drivers/gpio/gpio-sch.c
-index 5af6571..4dd3ded 100644
---- a/drivers/gpio/gpio-sch.c
-+++ b/drivers/gpio/gpio-sch.c
-@@ -18,7 +18,6 @@
-  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
-  */
  
 -#include <linux/init.h>
- #include <linux/kernel.h>
- #include <linux/module.h>
- #include <linux/io.h>
-diff --git a/drivers/gpio/gpio-sodaville.c b/drivers/gpio/gpio-sodaville.c
-index 7c6c518..8bd814f 100644
---- a/drivers/gpio/gpio-sodaville.c
-+++ b/drivers/gpio/gpio-sodaville.c
-@@ -11,7 +11,6 @@
+ #include <linux/seq_file.h>
  
- #include <linux/errno.h>
- #include <linux/gpio.h>
--#include <linux/init.h>
- #include <linux/io.h>
- #include <linux/irq.h>
- #include <linux/interrupt.h>
-diff --git a/drivers/gpio/gpio-twl6040.c b/drivers/gpio/gpio-twl6040.c
-index 0caf5cd..9377fc0 100644
---- a/drivers/gpio/gpio-twl6040.c
-+++ b/drivers/gpio/gpio-twl6040.c
-@@ -23,7 +23,6 @@
-  */
- 
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/kthread.h>
- #include <linux/irq.h>
- #include <linux/gpio.h>
-diff --git a/drivers/gpio/gpio-vr41xx.c b/drivers/gpio/gpio-vr41xx.c
-index 9902732..b983bc0 100644
---- a/drivers/gpio/gpio-vr41xx.c
-+++ b/drivers/gpio/gpio-vr41xx.c
-@@ -22,7 +22,6 @@
- #include <linux/errno.h>
- #include <linux/fs.h>
- #include <linux/gpio.h>
--#include <linux/init.h>
- #include <linux/interrupt.h>
- #include <linux/io.h>
- #include <linux/irq.h>
+ #include <asm/uaccess.h>
 -- 
 1.8.4.1
 
