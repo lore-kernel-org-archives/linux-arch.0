@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.windriver.com ([147.11.1.11]:56297 "EHLO
+Received: from mail.windriver.com ([147.11.1.11]:56249 "EHLO
 	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754340AbaAUVYp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:24:45 -0500
+	with ESMTP id S1754179AbaAUVYe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:24:34 -0500
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 22/73] alpha: don't use module_init for non-modular core code
-Date: Tue, 21 Jan 2014 16:22:25 -0500
-Message-ID: <1390339396-3479-23-git-send-email-paul.gortmaker@windriver.com>
+Subject: [PATCH 15/73] powerpc: don't use module_init in non-modular 83xx suspend code
+Date: Tue, 21 Jan 2014 16:22:18 -0500
+Message-ID: <1390339396-3479-16-git-send-email-paul.gortmaker@windriver.com>
 In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 MIME-Version: 1.0
@@ -14,11 +14,12 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org
-Message-ID: <20140121212225.Oit9iAA23TT0rd98V_F3gHxwi1eYR3JUU8V_PD2dQjc@z>
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Kumar Gala <galak@kernel.crashing.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20140121212218.9lhBMwAlVG--SOjz23LzrLSI4pFYjkWlKc3n1PLwlU8@z>
 
-The srm console is always built in.  It will never be modular,
-so using module_init as an alias for __initcall is rather
+The suspend.o is built for SUSPEND -- which is bool, and hence
+this code is either present or absent.  It will never be modular,
+so using module_init as an alias for __initcall can be somewhat
 misleading.
 
 Fix this up now, so that we can relocate module_init from
@@ -26,36 +27,32 @@ init.h into module.h in the future.  If we don't do this, we'd
 have to add module.h to obviously non-modular code, and that
 would be a worse thing.
 
-Direct use of __initcall is discouraged, vs prioritized ones.
-Use of device_initcall is consistent with what __initcall
-maps onto, and hence does not change the init order, making the
-impact of this change zero.   Should someone with real hardware
-for boot testing want to change it later to arch_initcall or
-console_initcall, they can do that at a later date.
+Note that direct use of __initcall is discouraged, vs. one
+of the priority categorized subgroups.  As __initcall gets
+mapped onto device_initcall, our use of device_initcall
+directly in this change means that the runtime impact is
+zero -- it will remain at level 6 in initcall ordering.
 
-Cc: Richard Henderson <rth@twiddle.net>
-Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Cc: Matt Turner <mattst88@gmail.com>
-Cc: linux-alpha@vger.kernel.org
+Cc: Kumar Gala <galak@kernel.crashing.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: linuxppc-dev@lists.ozlabs.org
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- arch/alpha/kernel/srmcons.c | 3 +--
+ arch/powerpc/platforms/83xx/suspend.c | 3 +--
  1 file changed, 1 insertion(+), 2 deletions(-)
 
-diff --git a/arch/alpha/kernel/srmcons.c b/arch/alpha/kernel/srmcons.c
-index 6f01d9a..72b5951 100644
---- a/arch/alpha/kernel/srmcons.c
-+++ b/arch/alpha/kernel/srmcons.c
-@@ -237,8 +237,7 @@ srmcons_init(void)
- 
- 	return -ENODEV;
+diff --git a/arch/powerpc/platforms/83xx/suspend.c b/arch/powerpc/platforms/83xx/suspend.c
+index 4b4c081..e9f07c6 100644
+--- a/arch/powerpc/platforms/83xx/suspend.c
++++ b/arch/powerpc/platforms/83xx/suspend.c
+@@ -446,5 +446,4 @@ static int pmc_init(void)
+ {
+ 	return platform_driver_register(&pmc_driver);
  }
 -
--module_init(srmcons_init);
-+device_initcall(srmcons_init);
- 
- 
- /*
+-module_init(pmc_init);
++device_initcall(pmc_init);
 -- 
 1.8.4.1
 
