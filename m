@@ -1,15 +1,15 @@
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 61/73] drivers/mmc: delete non-required instances of include <linux/init.h>
-Date: Tue, 21 Jan 2014 16:23:04 -0500
-Message-ID: <1390339396-3479-62-git-send-email-paul.gortmaker@windriver.com>
+Subject: [PATCH 62/73] drivers/crypto: delete non-required instances of include <linux/init.h>
+Date: Tue, 21 Jan 2014 16:23:05 -0500
+Message-ID: <1390339396-3479-63-git-send-email-paul.gortmaker@windriver.com>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-crypto-owner@vger.kernel.org>
 In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-crypto-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Chris Ball <chris@printf.net>, linux-mmc@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>, linux-crypto@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 None of these files are actually using any __init type directives
@@ -17,193 +17,129 @@ and hence don't need to include <linux/init.h>.  Most are just a
 left over from __devinit and __cpuinit removal, or simply due to
 code getting copied from one driver to the next.
 
-Cc: Chris Ball <chris@printf.net>
-Cc: linux-mmc@vger.kernel.org
+Cc: Herbert Xu <herbert@gondor.apana.org.au>
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: linux-crypto@vger.kernel.org
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- drivers/mmc/host/android-goldfish.c | 1 -
- drivers/mmc/host/bfin_sdh.c         | 1 -
- drivers/mmc/host/mmci.c             | 1 -
- drivers/mmc/host/msm_sdcc.c         | 1 -
- drivers/mmc/host/mxcmmc.c           | 1 -
- drivers/mmc/host/mxs-mmc.c          | 1 -
- drivers/mmc/host/omap.c             | 1 -
- drivers/mmc/host/omap_hsmmc.c       | 1 -
- drivers/mmc/host/pxamci.c           | 1 -
- drivers/mmc/host/sdhci-acpi.c       | 1 -
- drivers/mmc/host/sdhci-pxav2.c      | 1 -
- drivers/mmc/host/sdhci-pxav3.c      | 1 -
- drivers/mmc/host/sdhci-tegra.c      | 1 -
- drivers/mmc/host/wmt-sdmmc.c        | 1 -
- 14 files changed, 14 deletions(-)
+ drivers/crypto/atmel-aes.c        | 1 -
+ drivers/crypto/atmel-sha.c        | 1 -
+ drivers/crypto/atmel-tdes.c       | 1 -
+ drivers/crypto/nx/nx_debugfs.c    | 1 -
+ drivers/crypto/omap-aes.c         | 1 -
+ drivers/crypto/omap-sham.c        | 1 -
+ drivers/crypto/picoxcell_crypto.c | 1 -
+ drivers/crypto/s5p-sss.c          | 1 -
+ drivers/crypto/tegra-aes.c        | 1 -
+ 9 files changed, 9 deletions(-)
 
-diff --git a/drivers/mmc/host/android-goldfish.c b/drivers/mmc/host/android-goldfish.c
-index 8b4e20a..54fc950 100644
---- a/drivers/mmc/host/android-goldfish.c
-+++ b/drivers/mmc/host/android-goldfish.c
-@@ -35,7 +35,6 @@
- #include <linux/mmc/card.h>
- 
- #include <linux/moduleparam.h>
--#include <linux/init.h>
- #include <linux/ioport.h>
- #include <linux/dma-mapping.h>
- #include <linux/delay.h>
-diff --git a/drivers/mmc/host/bfin_sdh.c b/drivers/mmc/host/bfin_sdh.c
-index 2b7f37e..e5efbbf 100644
---- a/drivers/mmc/host/bfin_sdh.c
-+++ b/drivers/mmc/host/bfin_sdh.c
-@@ -9,7 +9,6 @@
- #define DRIVER_NAME	"bfin-sdh"
- 
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/ioport.h>
+diff --git a/drivers/crypto/atmel-aes.c b/drivers/crypto/atmel-aes.c
+index d7c9e31..70fb6fb 100644
+--- a/drivers/crypto/atmel-aes.c
++++ b/drivers/crypto/atmel-aes.c
+@@ -24,7 +24,6 @@
  #include <linux/platform_device.h>
- #include <linux/delay.h>
-diff --git a/drivers/mmc/host/mmci.c b/drivers/mmc/host/mmci.c
-index b931226..ebb64cd 100644
---- a/drivers/mmc/host/mmci.c
-+++ b/drivers/mmc/host/mmci.c
-@@ -10,7 +10,6 @@
-  */
- #include <linux/module.h>
- #include <linux/moduleparam.h>
--#include <linux/init.h>
- #include <linux/ioport.h>
+ 
  #include <linux/device.h>
- #include <linux/interrupt.h>
-diff --git a/drivers/mmc/host/msm_sdcc.c b/drivers/mmc/host/msm_sdcc.c
-index 9405ecd..15933dc 100644
---- a/drivers/mmc/host/msm_sdcc.c
-+++ b/drivers/mmc/host/msm_sdcc.c
-@@ -17,7 +17,6 @@
- 
- #include <linux/module.h>
- #include <linux/moduleparam.h>
 -#include <linux/init.h>
- #include <linux/ioport.h>
+ #include <linux/errno.h>
+ #include <linux/interrupt.h>
+ #include <linux/irq.h>
+diff --git a/drivers/crypto/atmel-sha.c b/drivers/crypto/atmel-sha.c
+index 0618be0..637141b 100644
+--- a/drivers/crypto/atmel-sha.c
++++ b/drivers/crypto/atmel-sha.c
+@@ -24,7 +24,6 @@
+ #include <linux/platform_device.h>
+ 
  #include <linux/device.h>
- #include <linux/interrupt.h>
-diff --git a/drivers/mmc/host/mxcmmc.c b/drivers/mmc/host/mxcmmc.c
-index f7199c8..b573b50 100644
---- a/drivers/mmc/host/mxcmmc.c
-+++ b/drivers/mmc/host/mxcmmc.c
-@@ -18,7 +18,6 @@
-  */
- 
- #include <linux/module.h>
 -#include <linux/init.h>
- #include <linux/ioport.h>
+ #include <linux/errno.h>
+ #include <linux/interrupt.h>
+ #include <linux/irq.h>
+diff --git a/drivers/crypto/atmel-tdes.c b/drivers/crypto/atmel-tdes.c
+index 6cde5b5..604a67f 100644
+--- a/drivers/crypto/atmel-tdes.c
++++ b/drivers/crypto/atmel-tdes.c
+@@ -24,7 +24,6 @@
  #include <linux/platform_device.h>
+ 
+ #include <linux/device.h>
+-#include <linux/init.h>
+ #include <linux/errno.h>
  #include <linux/interrupt.h>
-diff --git a/drivers/mmc/host/mxs-mmc.c b/drivers/mmc/host/mxs-mmc.c
-index 073e871..19633fe 100644
---- a/drivers/mmc/host/mxs-mmc.c
-+++ b/drivers/mmc/host/mxs-mmc.c
-@@ -21,7 +21,6 @@
-  */
- 
- #include <linux/kernel.h>
--#include <linux/init.h>
- #include <linux/ioport.h>
- #include <linux/of.h>
- #include <linux/of_device.h>
-diff --git a/drivers/mmc/host/omap.c b/drivers/mmc/host/omap.c
-index 98b6b6e..41f536f 100644
---- a/drivers/mmc/host/omap.c
-+++ b/drivers/mmc/host/omap.c
-@@ -13,7 +13,6 @@
- 
- #include <linux/module.h>
- #include <linux/moduleparam.h>
--#include <linux/init.h>
- #include <linux/ioport.h>
- #include <linux/platform_device.h>
- #include <linux/interrupt.h>
-diff --git a/drivers/mmc/host/omap_hsmmc.c b/drivers/mmc/host/omap_hsmmc.c
-index dbd32ad..2a629fb 100644
---- a/drivers/mmc/host/omap_hsmmc.c
-+++ b/drivers/mmc/host/omap_hsmmc.c
-@@ -16,7 +16,6 @@
-  */
- 
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/kernel.h>
+ #include <linux/irq.h>
+diff --git a/drivers/crypto/nx/nx_debugfs.c b/drivers/crypto/nx/nx_debugfs.c
+index 7ab2e8d..899d857 100644
+--- a/drivers/crypto/nx/nx_debugfs.c
++++ b/drivers/crypto/nx/nx_debugfs.c
+@@ -24,7 +24,6 @@
+ #include <linux/string.h>
  #include <linux/debugfs.h>
- #include <linux/dmaengine.h>
-diff --git a/drivers/mmc/host/pxamci.c b/drivers/mmc/host/pxamci.c
-index 32fe113..9427d67 100644
---- a/drivers/mmc/host/pxamci.c
-+++ b/drivers/mmc/host/pxamci.c
-@@ -17,7 +17,6 @@
-  *	max block length up to 1023
-  */
  #include <linux/module.h>
 -#include <linux/init.h>
- #include <linux/ioport.h>
- #include <linux/platform_device.h>
- #include <linux/delay.h>
-diff --git a/drivers/mmc/host/sdhci-acpi.c b/drivers/mmc/host/sdhci-acpi.c
-index 9ce17f6..4d68e1a 100644
---- a/drivers/mmc/host/sdhci-acpi.c
-+++ b/drivers/mmc/host/sdhci-acpi.c
-@@ -18,7 +18,6 @@
-  *
-  */
+ #include <linux/crypto.h>
+ #include <crypto/hash.h>
+ #include <asm/vio.h>
+diff --git a/drivers/crypto/omap-aes.c b/drivers/crypto/omap-aes.c
+index dde41f1d..6d34dac 100644
+--- a/drivers/crypto/omap-aes.c
++++ b/drivers/crypto/omap-aes.c
+@@ -19,7 +19,6 @@
  
--#include <linux/init.h>
- #include <linux/export.h>
+ #include <linux/err.h>
  #include <linux/module.h>
+-#include <linux/init.h>
+ #include <linux/errno.h>
+ #include <linux/kernel.h>
+ #include <linux/platform_device.h>
+diff --git a/drivers/crypto/omap-sham.c b/drivers/crypto/omap-sham.c
+index a727a6a..5d303eb 100644
+--- a/drivers/crypto/omap-sham.c
++++ b/drivers/crypto/omap-sham.c
+@@ -19,7 +19,6 @@
+ #include <linux/err.h>
  #include <linux/device.h>
-diff --git a/drivers/mmc/host/sdhci-pxav2.c b/drivers/mmc/host/sdhci-pxav2.c
-index d51e061..b75a975 100644
---- a/drivers/mmc/host/sdhci-pxav2.c
-+++ b/drivers/mmc/host/sdhci-pxav2.c
-@@ -18,7 +18,6 @@
-  */
- 
- #include <linux/err.h>
--#include <linux/init.h>
- #include <linux/platform_device.h>
- #include <linux/clk.h>
  #include <linux/module.h>
-diff --git a/drivers/mmc/host/sdhci-pxav3.c b/drivers/mmc/host/sdhci-pxav3.c
-index 793dacd..783c991 100644
---- a/drivers/mmc/host/sdhci-pxav3.c
-+++ b/drivers/mmc/host/sdhci-pxav3.c
-@@ -17,7 +17,6 @@
-  *
-  */
+-#include <linux/init.h>
+ #include <linux/errno.h>
+ #include <linux/interrupt.h>
+ #include <linux/kernel.h>
+diff --git a/drivers/crypto/picoxcell_crypto.c b/drivers/crypto/picoxcell_crypto.c
+index a6175ba..e50a1b9 100644
+--- a/drivers/crypto/picoxcell_crypto.c
++++ b/drivers/crypto/picoxcell_crypto.c
+@@ -29,7 +29,6 @@
+ #include <linux/dma-mapping.h>
+ #include <linux/dmapool.h>
  #include <linux/err.h>
 -#include <linux/init.h>
- #include <linux/platform_device.h>
- #include <linux/clk.h>
+ #include <linux/interrupt.h>
  #include <linux/io.h>
-diff --git a/drivers/mmc/host/sdhci-tegra.c b/drivers/mmc/host/sdhci-tegra.c
-index a835898..ec7ebbc 100644
---- a/drivers/mmc/host/sdhci-tegra.c
-+++ b/drivers/mmc/host/sdhci-tegra.c
+ #include <linux/list.h>
+diff --git a/drivers/crypto/s5p-sss.c b/drivers/crypto/s5p-sss.c
+index cf149b1..78b7eed 100644
+--- a/drivers/crypto/s5p-sss.c
++++ b/drivers/crypto/s5p-sss.c
 @@ -14,7 +14,6 @@
- 
+ #include <linux/delay.h>
  #include <linux/err.h>
  #include <linux/module.h>
 -#include <linux/init.h>
- #include <linux/platform_device.h>
+ #include <linux/errno.h>
+ #include <linux/kernel.h>
  #include <linux/clk.h>
- #include <linux/io.h>
-diff --git a/drivers/mmc/host/wmt-sdmmc.c b/drivers/mmc/host/wmt-sdmmc.c
-index e902ed7..12a47ea 100644
---- a/drivers/mmc/host/wmt-sdmmc.c
-+++ b/drivers/mmc/host/wmt-sdmmc.c
-@@ -9,7 +9,6 @@
-  *  published by the Free Software Foundation
-  */
+diff --git a/drivers/crypto/tegra-aes.c b/drivers/crypto/tegra-aes.c
+index 060eecc..4c0548f 100644
+--- a/drivers/crypto/tegra-aes.c
++++ b/drivers/crypto/tegra-aes.c
+@@ -30,7 +30,6 @@
+ #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
  
--#include <linux/init.h>
  #include <linux/module.h>
- #include <linux/platform_device.h>
- #include <linux/ioport.h>
+-#include <linux/init.h>
+ #include <linux/errno.h>
+ #include <linux/kernel.h>
+ #include <linux/clk.h>
 -- 
 1.8.4.1
