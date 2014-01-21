@@ -1,18 +1,22 @@
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 15/73] powerpc: don't use module_init in non-modular 83xx suspend code
-Date: Tue, 21 Jan 2014 16:22:18 -0500
-Message-ID: <1390339396-3479-16-git-send-email-paul.gortmaker@windriver.com>
+Subject: [PATCH 23/73] sparc: don't use module_init in non-modular pci.c code
+Date: Tue, 21 Jan 2014 16:22:26 -0500
+Message-ID: <1390339396-3479-24-git-send-email-paul.gortmaker@windriver.com>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail1.windriver.com ([147.11.146.13]:50643 "EHLO
+	mail1.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754179AbaAUVYk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:24:40 -0500
 In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Kumar Gala <galak@kernel.crashing.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, "David S. Miller" <davem@davemloft.net>, Bjorn Helgaas <bhelgaas@google.com>, sparclinux@vger.kernel.org
 
-The suspend.o is built for SUSPEND -- which is bool, and hence
+The pci.o is built for SPARC64_PCI -- which is bool, and hence
 this code is either present or absent.  It will never be modular,
 so using module_init as an alias for __initcall can be somewhat
 misleading.
@@ -28,25 +32,25 @@ mapped onto device_initcall, our use of device_initcall
 directly in this change means that the runtime impact is
 zero -- it will remain at level 6 in initcall ordering.
 
-Cc: Kumar Gala <galak@kernel.crashing.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: linuxppc-dev@lists.ozlabs.org
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Bjorn Helgaas <bhelgaas@google.com>
+Cc: sparclinux@vger.kernel.org
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- arch/powerpc/platforms/83xx/suspend.c | 3 +--
+ arch/sparc/kernel/pci.c | 3 +--
  1 file changed, 1 insertion(+), 2 deletions(-)
 
-diff --git a/arch/powerpc/platforms/83xx/suspend.c b/arch/powerpc/platforms/83xx/suspend.c
-index 4b4c081..e9f07c6 100644
---- a/arch/powerpc/platforms/83xx/suspend.c
-+++ b/arch/powerpc/platforms/83xx/suspend.c
-@@ -446,5 +446,4 @@ static int pmc_init(void)
- {
- 	return platform_driver_register(&pmc_driver);
+diff --git a/arch/sparc/kernel/pci.c b/arch/sparc/kernel/pci.c
+index 7de8d1f..1555bbc 100644
+--- a/arch/sparc/kernel/pci.c
++++ b/arch/sparc/kernel/pci.c
+@@ -1005,6 +1005,5 @@ static int __init of_pci_slot_init(void)
+ 
+ 	return 0;
  }
 -
--module_init(pmc_init);
-+device_initcall(pmc_init);
+-module_init(of_pci_slot_init);
++device_initcall(of_pci_slot_init);
+ #endif
 -- 
 1.8.4.1
