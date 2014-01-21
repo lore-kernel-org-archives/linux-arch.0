@@ -1,25 +1,20 @@
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 26/73] ia64: don't use module_init in non-modular sim/simscsi.c code
-Date: Tue, 21 Jan 2014 16:22:29 -0500
-Message-ID: <1390339396-3479-27-git-send-email-paul.gortmaker@windriver.com>
+Subject: [PATCH 09/73] staging: don't use module_init in non-modular ion_dummy_driver.c
+Date: Tue, 21 Jan 2014 16:22:12 -0500
+Message-ID: <1390339396-3479-10-git-send-email-paul.gortmaker@windriver.com>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.windriver.com ([147.11.1.11]:56280 "EHLO
-	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754287AbaAUVYm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:24:42 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Colin Cross <ccross@android.com>, Jesse Barker <jesse.barker@arm.com>, Android Kernel Team <kernel-team@android.com>, John Stultz <john.stultz@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+List-Id: linux-arch.vger.kernel.org
 
-The simscsi.o is built for HP_SIMSCSI -- which is bool, and hence
-this code is either present or absent.  It will never be modular,
-so using module_init as an alias for __initcall can be somewhat
-misleading.
+The ION_DUMMY option is bool, and hence this code is either
+present or absent.  It will never be modular, so using
+module_init as an alias for __initcall is rather misleading.
 
 Fix this up now, so that we can relocate module_init from
 init.h into module.h in the future.  If we don't do this, we'd
@@ -32,36 +27,44 @@ mapped onto device_initcall, our use of device_initcall
 directly in this change means that the runtime impact is
 zero -- it will remain at level 6 in initcall ordering.
 
-And since it can't be modular, we remove all the __exitcall
-stuff related to module_exit() -- it is dead code that won't
-ever be executed.
-
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: linux-ia64@vger.kernel.org
+Cc: Colin Cross <ccross@android.com>
+Cc: Jesse Barker <jesse.barker@arm.com>
+Cc: Android Kernel Team <kernel-team@android.com>
+Cc: John Stultz <john.stultz@linaro.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- arch/ia64/hp/sim/simscsi.c | 11 +----------
- 1 file changed, 1 insertion(+), 10 deletions(-)
+ drivers/staging/android/ion/ion_dummy_driver.c | 7 +++----
+ 1 file changed, 3 insertions(+), 4 deletions(-)
 
-diff --git a/arch/ia64/hp/sim/simscsi.c b/arch/ia64/hp/sim/simscsi.c
-index 3a428f1..085047f 100644
---- a/arch/ia64/hp/sim/simscsi.c
-+++ b/arch/ia64/hp/sim/simscsi.c
-@@ -368,13 +368,4 @@ simscsi_init(void)
- 	scsi_host_put(host);
- 	return error;
+diff --git a/drivers/staging/android/ion/ion_dummy_driver.c b/drivers/staging/android/ion/ion_dummy_driver.c
+index 55b2002..8e7f891 100644
+--- a/drivers/staging/android/ion/ion_dummy_driver.c
++++ b/drivers/staging/android/ion/ion_dummy_driver.c
+@@ -17,6 +17,7 @@
+ #include <linux/err.h>
+ #include <linux/platform_device.h>
+ #include <linux/slab.h>
++#include <linux/init.h>
+ #include <linux/bootmem.h>
+ #include <linux/memblock.h>
+ #include <linux/sizes.h>
+@@ -128,6 +129,7 @@ err:
+ 	}
+ 	return err;
+ }
++device_initcall(ion_dummy_init);
+ 
+ static void __exit ion_dummy_exit(void)
+ {
+@@ -152,7 +154,4 @@ static void __exit ion_dummy_exit(void)
+ 
+ 	return;
  }
 -
--static void __exit
--simscsi_exit(void)
--{
--	scsi_remove_host(host);
--	scsi_host_put(host);
--}
+-module_init(ion_dummy_init);
+-module_exit(ion_dummy_exit);
 -
--module_init(simscsi_init);
--module_exit(simscsi_exit);
-+device_initcall(simscsi_init);
++__exitcall(ion_dummy_exit);
 -- 
 1.8.4.1
