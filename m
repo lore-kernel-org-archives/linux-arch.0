@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.windriver.com ([147.11.1.11]:56341 "EHLO
-	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754539AbaAUVY5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:24:57 -0500
+Received: from mail1.windriver.com ([147.11.146.13]:50672 "EHLO
+	mail1.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754449AbaAUVYv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:24:51 -0500
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 16/73] arm: include module.h in drivers/bus/omap_l3_smx.c
-Date: Tue, 21 Jan 2014 16:22:19 -0500
-Message-ID: <1390339396-3479-17-git-send-email-paul.gortmaker@windriver.com>
+Subject: [PATCH 30/73] drivers/i2c: busses/i2c-acorn.c is tristate and should use module.h
+Date: Tue, 21 Jan 2014 16:22:33 -0500
+Message-ID: <1390339396-3479-31-git-send-email-paul.gortmaker@windriver.com>
 In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 MIME-Version: 1.0
@@ -14,36 +14,37 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20140121212219.6Y2f6Cm04TdGSB11uwqK2qg6hUxCVyuEl0akAA-pL9I@z>
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Wolfram Sang <wsa@the-dreams.de>, linux-i2c@vger.kernel.org
+Message-ID: <20140121212233.YP-ZImNiq4-O8yFYXtJkxvqFI2F-K-jUEUvhj50epF4@z>
 
-The config OMAP_INTERCONNECT that this driver depends on (in
-drivers/bus/Kconfig) is tristate.  So it can be a module.
+This file is controlled by a tristate Kconfig option, and hence
+needs to include module.h so that it can get module_init() once
+we relocate it from init.h into module.h in the future.
 
-Also there are module related setup calls within this driver.
-Explicitly add module.h to includes so it won't be a build failure
-when future cleanups are integrated and the implicit presence
-of certain module prototypes disappears.
+Note that module_exit() appears to be missing from the driver, so
+it is questionable whether it would actually work for a removal
+and reload cycle if it was configured for a modular build.
 
-Cc: Russell King <linux@arm.linux.org.uk>
-Cc: linux-arm-kernel@lists.infradead.org
+Cc: Wolfram Sang <wsa@the-dreams.de>
+Cc: linux-i2c@vger.kernel.org
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- drivers/bus/omap_l3_smx.c | 1 +
- 1 file changed, 1 insertion(+)
+ drivers/i2c/busses/i2c-acorn.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/bus/omap_l3_smx.c b/drivers/bus/omap_l3_smx.c
-index acc2164..8a61433 100644
---- a/drivers/bus/omap_l3_smx.c
-+++ b/drivers/bus/omap_l3_smx.c
-@@ -23,6 +23,7 @@
+diff --git a/drivers/i2c/busses/i2c-acorn.c b/drivers/i2c/busses/i2c-acorn.c
+index ed9f48d..9d7be5a 100644
+--- a/drivers/i2c/busses/i2c-acorn.c
++++ b/drivers/i2c/busses/i2c-acorn.c
+@@ -12,7 +12,7 @@
+  *  On Acorn machines, the following i2c devices are on the bus:
+  *	- PCF8583 real time clock & static RAM
   */
- 
- #include <linux/kernel.h>
+-#include <linux/init.h>
 +#include <linux/module.h>
- #include <linux/slab.h>
- #include <linux/platform_device.h>
- #include <linux/interrupt.h>
+ #include <linux/i2c.h>
+ #include <linux/i2c-algo-bit.h>
+ #include <linux/io.h>
 -- 
 1.8.4.1
 
