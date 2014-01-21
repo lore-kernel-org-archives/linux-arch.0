@@ -1,56 +1,59 @@
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 23/73] sparc: don't use module_init in non-modular pci.c code
-Date: Tue, 21 Jan 2014 16:22:26 -0500
-Message-ID: <1390339396-3479-24-git-send-email-paul.gortmaker@windriver.com>
+Subject: [PATCH 11/73] powerpc: book3s KVM can be modular so it should use
+ module.h
+Date: Tue, 21 Jan 2014 16:22:14 -0500
+Message-ID: <1390339396-3479-12-git-send-email-paul.gortmaker@windriver.com>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.windriver.com ([147.11.146.13]:50643 "EHLO
-	mail1.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754179AbaAUVYk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:24:40 -0500
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
 In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, "David S. Miller" <davem@davemloft.net>, Bjorn Helgaas <bhelgaas@google.com>, sparclinux@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, kvm@vger.kernel.org, Gleb Natapov <gleb@kernel.org>, Alexander Graf <agraf@suse.de>, kvm-ppc@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Paul Mackerras <paulus@samba.org>, Paolo Bonzini <pbonzini@redhat.com>, linuxppc-dev@lists.ozlabs.org
+List-Id: linux-arch.vger.kernel.org
 
-The pci.o is built for SPARC64_PCI -- which is bool, and hence
-this code is either present or absent.  It will never be modular,
-so using module_init as an alias for __initcall can be somewhat
-misleading.
+Even though KVM is bool, KVM_BOOK3S_32 and KVM_BOOK3S_64 are declared
+as Kconfig tristate, so this file really should be including
+module.h instead of export.h -- it only works currently because
+module_init is currently (mis)placed in init.h -- but we are
+intending to clean that up and relocate it to module.h
 
-Fix this up now, so that we can relocate module_init from
-init.h into module.h in the future.  If we don't do this, we'd
-have to add module.h to obviously non-modular code, and that
-would be a worse thing.
-
-Note that direct use of __initcall is discouraged, vs. one
-of the priority categorized subgroups.  As __initcall gets
-mapped onto device_initcall, our use of device_initcall
-directly in this change means that the runtime impact is
-zero -- it will remain at level 6 in initcall ordering.
-
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: Bjorn Helgaas <bhelgaas@google.com>
-Cc: sparclinux@vger.kernel.org
+Cc: Gleb Natapov <gleb@kernel.org>
+Cc: Paolo Bonzini <pbonzini@redhat.com>
+Cc: Alexander Graf <agraf@suse.de>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: kvm@vger.kernel.org
+Cc: kvm-ppc@vger.kernel.org
+Cc: linuxppc-dev@lists.ozlabs.org
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- arch/sparc/kernel/pci.c | 3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
+ arch/powerpc/kvm/book3s.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/sparc/kernel/pci.c b/arch/sparc/kernel/pci.c
-index 7de8d1f..1555bbc 100644
---- a/arch/sparc/kernel/pci.c
-+++ b/arch/sparc/kernel/pci.c
-@@ -1005,6 +1005,5 @@ static int __init of_pci_slot_init(void)
+diff --git a/arch/powerpc/kvm/book3s.c b/arch/powerpc/kvm/book3s.c
+index 8912608..279459e 100644
+--- a/arch/powerpc/kvm/book3s.c
++++ b/arch/powerpc/kvm/book3s.c
+@@ -16,7 +16,7 @@
  
- 	return 0;
- }
--
--module_init(of_pci_slot_init);
-+device_initcall(of_pci_slot_init);
- #endif
+ #include <linux/kvm_host.h>
+ #include <linux/err.h>
+-#include <linux/export.h>
++#include <linux/module.h>
+ #include <linux/slab.h>
+ 
+ #include <asm/reg.h>
 -- 
 1.8.4.1
