@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.windriver.com ([147.11.146.13]:50623 "EHLO
-	mail1.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752271AbaAUVY2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:24:28 -0500
+Received: from mail.windriver.com ([147.11.1.11]:56236 "EHLO
+	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752618AbaAUVYb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:24:31 -0500
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 14/73] powerpc: don't use module_init for non-modular core hugetlb code
-Date: Tue, 21 Jan 2014 16:22:17 -0500
-Message-ID: <1390339396-3479-15-git-send-email-paul.gortmaker@windriver.com>
+Subject: [PATCH 11/73] powerpc: book3s KVM can be modular so it should use module.h
+Date: Tue, 21 Jan 2014 16:22:14 -0500
+Message-ID: <1390339396-3479-12-git-send-email-paul.gortmaker@windriver.com>
 In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 MIME-Version: 1.0
@@ -14,47 +14,41 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20140121212217.DesyNHOT421cENU74TVqk6ufV1WG9izHxVMoGiQ46P4@z>
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Gleb Natapov <gleb@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Graf <agraf@suse.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, kvm@vger.kernel.org, kvm-ppc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20140121212214.UcaTIi2k5lLM--ZBm39rqXiRNNpj9V6Wbv_Wp28vrO0@z>
 
-The hugetlbpage.o is obj-y (always built in).  It will never
-be modular, so using module_init as an alias for __initcall is
-somewhat misleading.
+Even though KVM is bool, KVM_BOOK3S_32 and KVM_BOOK3S_64 are declared
+as Kconfig tristate, so this file really should be including
+module.h instead of export.h -- it only works currently because
+module_init is currently (mis)placed in init.h -- but we are
+intending to clean that up and relocate it to module.h
 
-Fix this up now, so that we can relocate module_init from
-init.h into module.h in the future.  If we don't do this, we'd
-have to add module.h to obviously non-modular code, and that
-would be a worse thing.
-
-Note that direct use of __initcall is discouraged, vs. one
-of the priority categorized subgroups.  As __initcall gets
-mapped onto device_initcall, our use of arch_initcall (which
-makes sense for arch code) will thus change this registration
-from level 6-device to level 3-arch (i.e. slightly earlier).
-However no observable impact of that small difference has
-been observed during testing, or is expected.
-
+Cc: Gleb Natapov <gleb@kernel.org>
+Cc: Paolo Bonzini <pbonzini@redhat.com>
+Cc: Alexander Graf <agraf@suse.de>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Paul Mackerras <paulus@samba.org>
+Cc: kvm@vger.kernel.org
+Cc: kvm-ppc@vger.kernel.org
 Cc: linuxppc-dev@lists.ozlabs.org
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- arch/powerpc/mm/hugetlbpage.c | 2 +-
+ arch/powerpc/kvm/book3s.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/powerpc/mm/hugetlbpage.c b/arch/powerpc/mm/hugetlbpage.c
-index 90bb6d9..d25c202 100644
---- a/arch/powerpc/mm/hugetlbpage.c
-+++ b/arch/powerpc/mm/hugetlbpage.c
-@@ -911,7 +911,7 @@ static int __init hugetlbpage_init(void)
- 	return 0;
- }
- #endif
--module_init(hugetlbpage_init);
-+arch_initcall(hugetlbpage_init);
+diff --git a/arch/powerpc/kvm/book3s.c b/arch/powerpc/kvm/book3s.c
+index 8912608..279459e 100644
+--- a/arch/powerpc/kvm/book3s.c
++++ b/arch/powerpc/kvm/book3s.c
+@@ -16,7 +16,7 @@
  
- void flush_dcache_icache_hugepage(struct page *page)
- {
+ #include <linux/kvm_host.h>
+ #include <linux/err.h>
+-#include <linux/export.h>
++#include <linux/module.h>
+ #include <linux/slab.h>
+ 
+ #include <asm/reg.h>
 -- 
 1.8.4.1
 
