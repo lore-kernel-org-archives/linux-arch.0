@@ -1,146 +1,58 @@
-From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: Re: [PATCH 12/73] powerpc: kvm e500/44x is not modular, so don't
- use module_init
-Date: Tue, 21 Jan 2014 17:23:34 -0500
-Message-ID: <52DEF366.6030105@windriver.com>
-References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com> <1390339396-3479-13-git-send-email-paul.gortmaker@windriver.com>
+From: Tim Chen <tim.c.chen@linux.intel.com>
+Subject: Re: [PATCH v8 6/6] MCS Lock: Allow architecture specific asm files
+ to be used for contended case
+Date: Tue, 21 Jan 2014 14:25:25 -0800
+Message-ID: <1390343125.3138.60.camel@schen9-DESK>
+References: <cover.1390239879.git.tim.c.chen@linux.intel.com>
+	 <1390267479.3138.40.camel@schen9-DESK>
+	 <20140121102000.GT31570@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.windriver.com ([147.11.1.11]:32795 "EHLO
-	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752677AbaAUWX2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 17:23:28 -0500
-In-Reply-To: <1390339396-3479-13-git-send-email-paul.gortmaker@windriver.com>
+Received: from mga09.intel.com ([134.134.136.24]:14530 "EHLO mga09.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754062AbaAUW0V (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 21 Jan 2014 17:26:21 -0500
+In-Reply-To: <20140121102000.GT31570@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Gleb Natapov <gleb@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Graf <agraf@suse.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, kvm@vger.kernel.org, kvm-ppc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin
 
-On 14-01-21 04:22 PM, Paul Gortmaker wrote:
-> In powerpc, CONFIG_KVM is bool, and  so are these three subarch
-> options, for the 44x and e500 variants.  This means that any
-> module_exit() calls and functions used by them such as the
-> kvmppc_booke_exit() are dead code.  Here we remove them.
+On Tue, 2014-01-21 at 11:20 +0100, Peter Zijlstra wrote:
+> On Mon, Jan 20, 2014 at 05:24:39PM -0800, Tim Chen wrote:
+> > diff --git a/arch/alpha/include/asm/Kbuild b/arch/alpha/include/asm/Kbuild
+> > index f01fb50..14cbbbc 100644
+> > --- a/arch/alpha/include/asm/Kbuild
+> > +++ b/arch/alpha/include/asm/Kbuild
+> > @@ -4,3 +4,4 @@ generic-y += clkdev.h
+> >  generic-y += exec.h
+> >  generic-y += trace_clock.h
+> >  generic-y += preempt.h
+> > +generic-y += mcs_spinlock.h
 > 
-> In addition, rather than use module_init, which is just
-> __initcall for non-modules, we update those as well.
+> m < p
 > 
-> Note that direct use of __initcall is discouraged, vs. one
-> of the priority categorized subgroups.  As __initcall gets
-> mapped onto device_initcall, our use of subsys_initcall (which
-> seems to make sense for netfilter code) will thus change this
+> > --- a/arch/ia64/include/asm/Kbuild
+> > +++ b/arch/ia64/include/asm/Kbuild
+> > @@ -4,4 +4,4 @@ generic-y += exec.h
+> >  generic-y += kvm_para.h
+> >  generic-y += trace_clock.h
+> >  generic-y += preempt.h
+> > -generic-y += vtime.h
+> > \ No newline at end of file
 
-I've fixed the above --  s/netfilter/PPC KVM/
+The no newline compliant apparently caused by
+existing Kbuild file.
 
-The risks of recycling commit logs...
+Tim
 
-Paul.
---
-
-> registration from level 6-device to level 4-subsys (i.e. slightly
-> earlier).
+> > +generic-y += vtime.hgeneric-y += mcs_spinlock.h
 > 
-> However no impact of that small difference is expected,
-> since the arch independent kvm code doesn't trigger any init;
-> it is the arch initcalls here which actually call kvm_init.
-> 
-> Cc: Gleb Natapov <gleb@kernel.org>
-> Cc: Paolo Bonzini <pbonzini@redhat.com>
-> Cc: Alexander Graf <agraf@suse.de>
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> Cc: Paul Mackerras <paulus@samba.org>
-> Cc: kvm@vger.kernel.org
-> Cc: kvm-ppc@vger.kernel.org
-> Cc: linuxppc-dev@lists.ozlabs.org
-> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
-> ---
->  arch/powerpc/include/asm/kvm_ppc.h |  1 -
->  arch/powerpc/kvm/44x.c             | 10 +---------
->  arch/powerpc/kvm/booke.c           |  6 ------
->  arch/powerpc/kvm/e500.c            | 10 +---------
->  arch/powerpc/kvm/e500mc.c          | 10 +---------
->  5 files changed, 3 insertions(+), 34 deletions(-)
-> 
-> diff --git a/arch/powerpc/include/asm/kvm_ppc.h b/arch/powerpc/include/asm/kvm_ppc.h
-> index c8317fb..8466df5 100644
-> --- a/arch/powerpc/include/asm/kvm_ppc.h
-> +++ b/arch/powerpc/include/asm/kvm_ppc.h
-> @@ -109,7 +109,6 @@ extern void kvmppc_core_flush_tlb(struct kvm_vcpu *vcpu);
->  extern int kvmppc_core_check_requests(struct kvm_vcpu *vcpu);
->  
->  extern int kvmppc_booke_init(void);
-> -extern void kvmppc_booke_exit(void);
->  
->  extern void kvmppc_core_destroy_mmu(struct kvm_vcpu *vcpu);
->  extern int kvmppc_kvm_pv(struct kvm_vcpu *vcpu);
-> diff --git a/arch/powerpc/kvm/44x.c b/arch/powerpc/kvm/44x.c
-> index 93221e8..2129fc1 100644
-> --- a/arch/powerpc/kvm/44x.c
-> +++ b/arch/powerpc/kvm/44x.c
-> @@ -222,12 +222,4 @@ static int __init kvmppc_44x_init(void)
->  err_out:
->  	return r;
->  }
-> -
-> -static void __exit kvmppc_44x_exit(void)
-> -{
-> -	kvmppc_pr_ops = NULL;
-> -	kvmppc_booke_exit();
-> -}
-> -
-> -module_init(kvmppc_44x_init);
-> -module_exit(kvmppc_44x_exit);
-> +subsys_initcall(kvmppc_44x_init);
-> diff --git a/arch/powerpc/kvm/booke.c b/arch/powerpc/kvm/booke.c
-> index 0591e05..49dffa2 100644
-> --- a/arch/powerpc/kvm/booke.c
-> +++ b/arch/powerpc/kvm/booke.c
-> @@ -1995,9 +1995,3 @@ int __init kvmppc_booke_init(void)
->  #endif /* !BOOKE_HV */
->  	return 0;
->  }
-> -
-> -void __exit kvmppc_booke_exit(void)
-> -{
-> -	free_pages(kvmppc_booke_handlers, VCPU_SIZE_ORDER);
-> -	kvm_exit();
-> -}
-> diff --git a/arch/powerpc/kvm/e500.c b/arch/powerpc/kvm/e500.c
-> index 497b142..115ef12 100644
-> --- a/arch/powerpc/kvm/e500.c
-> +++ b/arch/powerpc/kvm/e500.c
-> @@ -564,12 +564,4 @@ static int __init kvmppc_e500_init(void)
->  err_out:
->  	return r;
->  }
-> -
-> -static void __exit kvmppc_e500_exit(void)
-> -{
-> -	kvmppc_pr_ops = NULL;
-> -	kvmppc_booke_exit();
-> -}
-> -
-> -module_init(kvmppc_e500_init);
-> -module_exit(kvmppc_e500_exit);
-> +subsys_initcall(kvmppc_e500_init);
-> diff --git a/arch/powerpc/kvm/e500mc.c b/arch/powerpc/kvm/e500mc.c
-> index 4132cd2..612c216 100644
-> --- a/arch/powerpc/kvm/e500mc.c
-> +++ b/arch/powerpc/kvm/e500mc.c
-> @@ -382,12 +382,4 @@ static int __init kvmppc_e500mc_init(void)
->  err_out:
->  	return r;
->  }
-> -
-> -static void __exit kvmppc_e500mc_exit(void)
-> -{
-> -	kvmppc_pr_ops = NULL;
-> -	kvmppc_booke_exit();
-> -}
-> -
-> -module_init(kvmppc_e500mc_init);
-> -module_exit(kvmppc_e500mc_exit);
-> +subsys_initcall(kvmppc_e500mc_init);
-> 
+> EOL fail
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
