@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.windriver.com ([147.11.146.13]:50628 "EHLO
+Received: from mail1.windriver.com ([147.11.146.13]:50597 "EHLO
 	mail1.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752726AbaAUVYb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:24:31 -0500
+	with ESMTP id S1754016AbaAUVYV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:24:21 -0500
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 12/73] powerpc: kvm e500/44x is not modular, so don't use module_init
-Date: Tue, 21 Jan 2014 16:22:15 -0500
-Message-ID: <1390339396-3479-13-git-send-email-paul.gortmaker@windriver.com>
+Subject: [PATCH 08/73] drivers/tty/hvc: don't use module_init in non-modular hyp. console code
+Date: Tue, 21 Jan 2014 16:22:11 -0500
+Message-ID: <1390339396-3479-9-git-send-email-paul.gortmaker@windriver.com>
 In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 MIME-Version: 1.0
@@ -14,125 +14,138 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Gleb Natapov <gleb@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Graf <agraf@suse.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, kvm@vger.kernel.org, kvm-ppc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20140121212215.EXimQInXqNO8DTbeeFZggf5_OUkhdSD8DNH_mJ_5aXw@z>
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Richard Weinberger <richard@nod.at>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Message-ID: <20140121212211.alJGxegEEtDh7fMxh4iNM4O0i0o2vO_TsE6D-B3saRk@z>
 
-In powerpc, CONFIG_KVM is bool, and  so are these three subarch
-options, for the 44x and e500 variants.  This means that any
-module_exit() calls and functions used by them such as the
-kvmppc_booke_exit() are dead code.  Here we remove them.
+The HVC_OPAL/RTAS/UDBG/XEN options are all bool, and hence their support
+is either present or absent.  It will never be modular, so using
+module_init as an alias for __initcall is rather misleading.
 
-In addition, rather than use module_init, which is just
-__initcall for non-modules, we update those as well.
+Fix this up now, so that we can relocate module_init from
+init.h into module.h in the future.  If we don't do this, we'd
+have to add module.h to obviously non-modular code, and that
+would be a worse thing.
 
 Note that direct use of __initcall is discouraged, vs. one
 of the priority categorized subgroups.  As __initcall gets
-mapped onto device_initcall, our use of subsys_initcall (which
-seems to make sense for netfilter code) will thus change this
-registration from level 6-device to level 4-subsys (i.e. slightly
-earlier).
+mapped onto device_initcall, our use of device_initcall
+directly in this change means that the runtime impact is
+zero -- it will remain at level 6 in initcall ordering.
 
-However no impact of that small difference is expected,
-since the arch independent kvm code doesn't trigger any init;
-it is the arch initcalls here which actually call kvm_init.
+Also the __exitcall functions have been outright deleted since
+they are only ever of interest to UML, and UML will never be
+using any of this code.
 
-Cc: Gleb Natapov <gleb@kernel.org>
-Cc: Paolo Bonzini <pbonzini@redhat.com>
-Cc: Alexander Graf <agraf@suse.de>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: kvm@vger.kernel.org
-Cc: kvm-ppc@vger.kernel.org
-Cc: linuxppc-dev@lists.ozlabs.org
+Cc: Richard Weinberger <richard@nod.at>
+Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Cc: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Acked-by: David Vrabel <david.vrabel@citrix.com>
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- arch/powerpc/include/asm/kvm_ppc.h |  1 -
- arch/powerpc/kvm/44x.c             | 10 +---------
- arch/powerpc/kvm/booke.c           |  6 ------
- arch/powerpc/kvm/e500.c            | 10 +---------
- arch/powerpc/kvm/e500mc.c          | 10 +---------
- 5 files changed, 3 insertions(+), 34 deletions(-)
+ drivers/tty/hvc/hvc_opal.c |  8 +-------
+ drivers/tty/hvc/hvc_rtas.c | 12 +-----------
+ drivers/tty/hvc/hvc_udbg.c |  9 +--------
+ drivers/tty/hvc/hvc_xen.c  | 17 +----------------
+ 4 files changed, 4 insertions(+), 42 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/kvm_ppc.h b/arch/powerpc/include/asm/kvm_ppc.h
-index c8317fb..8466df5 100644
---- a/arch/powerpc/include/asm/kvm_ppc.h
-+++ b/arch/powerpc/include/asm/kvm_ppc.h
-@@ -109,7 +109,6 @@ extern void kvmppc_core_flush_tlb(struct kvm_vcpu *vcpu);
- extern int kvmppc_core_check_requests(struct kvm_vcpu *vcpu);
+diff --git a/drivers/tty/hvc/hvc_opal.c b/drivers/tty/hvc/hvc_opal.c
+index 6496872..b01659b 100644
+--- a/drivers/tty/hvc/hvc_opal.c
++++ b/drivers/tty/hvc/hvc_opal.c
+@@ -255,13 +255,7 @@ static int __init hvc_opal_init(void)
+ 	/* Register as a vio device to receive callbacks */
+ 	return platform_driver_register(&hvc_opal_driver);
+ }
+-module_init(hvc_opal_init);
+-
+-static void __exit hvc_opal_exit(void)
+-{
+-	platform_driver_unregister(&hvc_opal_driver);
+-}
+-module_exit(hvc_opal_exit);
++device_initcall(hvc_opal_init);
  
- extern int kvmppc_booke_init(void);
--extern void kvmppc_booke_exit(void);
+ static void udbg_opal_putc(char c)
+ {
+diff --git a/drivers/tty/hvc/hvc_rtas.c b/drivers/tty/hvc/hvc_rtas.c
+index 0069bb8..08c8792 100644
+--- a/drivers/tty/hvc/hvc_rtas.c
++++ b/drivers/tty/hvc/hvc_rtas.c
+@@ -102,17 +102,7 @@ static int __init hvc_rtas_init(void)
  
- extern void kvmppc_core_destroy_mmu(struct kvm_vcpu *vcpu);
- extern int kvmppc_kvm_pv(struct kvm_vcpu *vcpu);
-diff --git a/arch/powerpc/kvm/44x.c b/arch/powerpc/kvm/44x.c
-index 93221e8..2129fc1 100644
---- a/arch/powerpc/kvm/44x.c
-+++ b/arch/powerpc/kvm/44x.c
-@@ -222,12 +222,4 @@ static int __init kvmppc_44x_init(void)
- err_out:
+ 	return 0;
+ }
+-module_init(hvc_rtas_init);
+-
+-/* This will tear down the tty portion of the driver */
+-static void __exit hvc_rtas_exit(void)
+-{
+-	/* Really the fun isn't over until the worker thread breaks down and
+-	 * the tty cleans up */
+-	if (hvc_rtas_dev)
+-		hvc_remove(hvc_rtas_dev);
+-}
+-module_exit(hvc_rtas_exit);
++device_initcall(hvc_rtas_init);
+ 
+ /* This will happen prior to module init.  There is no tty at this time? */
+ static int __init hvc_rtas_console_init(void)
+diff --git a/drivers/tty/hvc/hvc_udbg.c b/drivers/tty/hvc/hvc_udbg.c
+index 7222827..9cf573d 100644
+--- a/drivers/tty/hvc/hvc_udbg.c
++++ b/drivers/tty/hvc/hvc_udbg.c
+@@ -80,14 +80,7 @@ static int __init hvc_udbg_init(void)
+ 
+ 	return 0;
+ }
+-module_init(hvc_udbg_init);
+-
+-static void __exit hvc_udbg_exit(void)
+-{
+-	if (hvc_udbg_dev)
+-		hvc_remove(hvc_udbg_dev);
+-}
+-module_exit(hvc_udbg_exit);
++device_initcall(hvc_udbg_init);
+ 
+ static int __init hvc_udbg_console_init(void)
+ {
+diff --git a/drivers/tty/hvc/hvc_xen.c b/drivers/tty/hvc/hvc_xen.c
+index 636c9ba..2dc2831 100644
+--- a/drivers/tty/hvc/hvc_xen.c
++++ b/drivers/tty/hvc/hvc_xen.c
+@@ -561,18 +561,7 @@ static int __init xen_hvc_init(void)
+ #endif
  	return r;
  }
 -
--static void __exit kvmppc_44x_exit(void)
+-static void __exit xen_hvc_fini(void)
 -{
--	kvmppc_pr_ops = NULL;
--	kvmppc_booke_exit();
--}
+-	struct xencons_info *entry, *next;
 -
--module_init(kvmppc_44x_init);
--module_exit(kvmppc_44x_exit);
-+subsys_initcall(kvmppc_44x_init);
-diff --git a/arch/powerpc/kvm/booke.c b/arch/powerpc/kvm/booke.c
-index 0591e05..49dffa2 100644
---- a/arch/powerpc/kvm/booke.c
-+++ b/arch/powerpc/kvm/booke.c
-@@ -1995,9 +1995,3 @@ int __init kvmppc_booke_init(void)
- #endif /* !BOOKE_HV */
+-	if (list_empty(&xenconsoles))
+-			return;
+-
+-	list_for_each_entry_safe(entry, next, &xenconsoles, list) {
+-		xen_console_remove(entry);
+-	}
+-}
++device_initcall(xen_hvc_init);
+ 
+ static int xen_cons_init(void)
+ {
+@@ -598,10 +587,6 @@ static int xen_cons_init(void)
+ 	hvc_instantiate(HVC_COOKIE, 0, ops);
  	return 0;
  }
 -
--void __exit kvmppc_booke_exit(void)
--{
--	free_pages(kvmppc_booke_handlers, VCPU_SIZE_ORDER);
--	kvm_exit();
--}
-diff --git a/arch/powerpc/kvm/e500.c b/arch/powerpc/kvm/e500.c
-index 497b142..115ef12 100644
---- a/arch/powerpc/kvm/e500.c
-+++ b/arch/powerpc/kvm/e500.c
-@@ -564,12 +564,4 @@ static int __init kvmppc_e500_init(void)
- err_out:
- 	return r;
- }
 -
--static void __exit kvmppc_e500_exit(void)
--{
--	kvmppc_pr_ops = NULL;
--	kvmppc_booke_exit();
--}
--
--module_init(kvmppc_e500_init);
--module_exit(kvmppc_e500_exit);
-+subsys_initcall(kvmppc_e500_init);
-diff --git a/arch/powerpc/kvm/e500mc.c b/arch/powerpc/kvm/e500mc.c
-index 4132cd2..612c216 100644
---- a/arch/powerpc/kvm/e500mc.c
-+++ b/arch/powerpc/kvm/e500mc.c
-@@ -382,12 +382,4 @@ static int __init kvmppc_e500mc_init(void)
- err_out:
- 	return r;
- }
--
--static void __exit kvmppc_e500mc_exit(void)
--{
--	kvmppc_pr_ops = NULL;
--	kvmppc_booke_exit();
--}
--
--module_init(kvmppc_e500mc_init);
--module_exit(kvmppc_e500mc_exit);
-+subsys_initcall(kvmppc_e500mc_init);
+-module_init(xen_hvc_init);
+-module_exit(xen_hvc_fini);
+ console_initcall(xen_cons_init);
+ 
+ #ifdef CONFIG_EARLY_PRINTK
 -- 
 1.8.4.1
 
