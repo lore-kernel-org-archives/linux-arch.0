@@ -1,133 +1,62 @@
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 60/73] drivers/bluetooth: delete non-required instances of include <linux/init.h>
-Date: Tue, 21 Jan 2014 16:23:03 -0500
-Message-ID: <1390339396-3479-61-git-send-email-paul.gortmaker@windriver.com>
+Subject: [PATCH 18/73] arm: fix implicit #include <linux/init.h> in entry asm.
+Date: Tue, 21 Jan 2014 16:22:21 -0500
+Message-ID: <1390339396-3479-19-git-send-email-paul.gortmaker@windriver.com>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Marcel Holtmann <marcel@holtmann.org>, Gustavo Padovan <gustavo@padovan.org>, Johan Hedberg <johan.hedberg@gmail.com>, linux-bluetooth@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-None of these files are actually using any __init type directives
-and hence don't need to include <linux/init.h>.  Most are just a
-left over from __devinit and __cpuinit removal, or simply due to
-code getting copied from one driver to the next.
+They use the "_INIT" macro and friends, and hence need to
+source this header file, vs. relying on getting it implicitly.
 
-Cc: Marcel Holtmann <marcel@holtmann.org>
-Cc: Gustavo Padovan <gustavo@padovan.org>
-Cc: Johan Hedberg <johan.hedberg@gmail.com>
-Cc: linux-bluetooth@vger.kernel.org
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: linux-arm-kernel@lists.infradead.org
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- drivers/bluetooth/ath3k.c       | 1 -
- drivers/bluetooth/bcm203x.c     | 1 -
- drivers/bluetooth/bfusb.c       | 1 -
- drivers/bluetooth/bluecard_cs.c | 1 -
- drivers/bluetooth/bpa10x.c      | 1 -
- drivers/bluetooth/bt3c_cs.c     | 1 -
- drivers/bluetooth/btuart_cs.c   | 1 -
- drivers/bluetooth/dtl1_cs.c     | 1 -
- 8 files changed, 8 deletions(-)
+ arch/arm/kernel/entry-armv.S | 2 ++
+ arch/arm/vfp/entry.S         | 2 ++
+ 2 files changed, 4 insertions(+)
 
-diff --git a/drivers/bluetooth/ath3k.c b/drivers/bluetooth/ath3k.c
-index 41ec6f9..427f280 100644
---- a/drivers/bluetooth/ath3k.c
-+++ b/drivers/bluetooth/ath3k.c
-@@ -20,7 +20,6 @@
+diff --git a/arch/arm/kernel/entry-armv.S b/arch/arm/kernel/entry-armv.S
+index b3fb8c9..ffc1c74 100644
+--- a/arch/arm/kernel/entry-armv.S
++++ b/arch/arm/kernel/entry-armv.S
+@@ -15,6 +15,8 @@
+  *  that causes it to save wrong values...  Be aware!
+  */
  
- #include <linux/module.h>
- #include <linux/kernel.h>
--#include <linux/init.h>
- #include <linux/slab.h>
- #include <linux/types.h>
- #include <linux/errno.h>
-diff --git a/drivers/bluetooth/bcm203x.c b/drivers/bluetooth/bcm203x.c
-index 364f82b..40db9a9 100644
---- a/drivers/bluetooth/bcm203x.c
-+++ b/drivers/bluetooth/bcm203x.c
-@@ -26,7 +26,6 @@
- 
- #include <linux/atomic.h>
- #include <linux/kernel.h>
--#include <linux/init.h>
- #include <linux/slab.h>
- #include <linux/types.h>
- #include <linux/errno.h>
-diff --git a/drivers/bluetooth/bfusb.c b/drivers/bluetooth/bfusb.c
-index 3138699..48b71f0 100644
---- a/drivers/bluetooth/bfusb.c
-+++ b/drivers/bluetooth/bfusb.c
-@@ -24,7 +24,6 @@
- #include <linux/module.h>
- 
- #include <linux/kernel.h>
--#include <linux/init.h>
- #include <linux/slab.h>
- #include <linux/types.h>
- #include <linux/errno.h>
-diff --git a/drivers/bluetooth/bluecard_cs.c b/drivers/bluetooth/bluecard_cs.c
-index 57427de..0aae563 100644
---- a/drivers/bluetooth/bluecard_cs.c
-+++ b/drivers/bluetooth/bluecard_cs.c
-@@ -23,7 +23,6 @@
- #include <linux/module.h>
- 
- #include <linux/kernel.h>
--#include <linux/init.h>
- #include <linux/slab.h>
- #include <linux/types.h>
- #include <linux/sched.h>
-diff --git a/drivers/bluetooth/bpa10x.c b/drivers/bluetooth/bpa10x.c
-index 8a31991..40281c0 100644
---- a/drivers/bluetooth/bpa10x.c
-+++ b/drivers/bluetooth/bpa10x.c
-@@ -23,7 +23,6 @@
- 
- #include <linux/kernel.h>
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/slab.h>
- #include <linux/types.h>
- #include <linux/sched.h>
-diff --git a/drivers/bluetooth/bt3c_cs.c b/drivers/bluetooth/bt3c_cs.c
-index 73d8799..f3508fe 100644
---- a/drivers/bluetooth/bt3c_cs.c
-+++ b/drivers/bluetooth/bt3c_cs.c
-@@ -24,7 +24,6 @@
- #include <linux/module.h>
- 
- #include <linux/kernel.h>
--#include <linux/init.h>
- #include <linux/slab.h>
- #include <linux/types.h>
- #include <linux/delay.h>
-diff --git a/drivers/bluetooth/btuart_cs.c b/drivers/bluetooth/btuart_cs.c
-index a03ecc2..057104e 100644
---- a/drivers/bluetooth/btuart_cs.c
-+++ b/drivers/bluetooth/btuart_cs.c
-@@ -23,7 +23,6 @@
- #include <linux/module.h>
- 
- #include <linux/kernel.h>
--#include <linux/init.h>
- #include <linux/slab.h>
- #include <linux/types.h>
- #include <linux/delay.h>
-diff --git a/drivers/bluetooth/dtl1_cs.c b/drivers/bluetooth/dtl1_cs.c
-index 52eed1f..5bb80e4 100644
---- a/drivers/bluetooth/dtl1_cs.c
-+++ b/drivers/bluetooth/dtl1_cs.c
-@@ -23,7 +23,6 @@
- #include <linux/module.h>
- 
- #include <linux/kernel.h>
--#include <linux/init.h>
- #include <linux/slab.h>
- #include <linux/types.h>
- #include <linux/delay.h>
++#include <linux/init.h>
++
+ #include <asm/assembler.h>
+ #include <asm/memory.h>
+ #include <asm/glue-df.h>
+diff --git a/arch/arm/vfp/entry.S b/arch/arm/vfp/entry.S
+index 46e1749..ec7ea24 100644
+--- a/arch/arm/vfp/entry.S
++++ b/arch/arm/vfp/entry.S
+@@ -8,6 +8,8 @@
+  * it under the terms of the GNU General Public License version 2 as
+  * published by the Free Software Foundation.
+  */
++#include <linux/init.h>
++
+ #include <asm/thread_info.h>
+ #include <asm/vfpmacros.h>
+ #include "../kernel/entry-header.S"
 -- 
 1.8.4.1
