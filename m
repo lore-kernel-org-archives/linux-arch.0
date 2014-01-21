@@ -1,167 +1,226 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.windriver.com ([147.11.146.13]:50835 "EHLO
+Received: from mail1.windriver.com ([147.11.146.13]:50832 "EHLO
 	mail1.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755049AbaAUVZx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:25:53 -0500
+	with ESMTP id S1755036AbaAUVZw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:25:52 -0500
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 67/73] drivers/base: delete non-required instances of include <linux/init.h>
-Date: Tue, 21 Jan 2014 16:23:10 -0500
-Message-ID: <1390339396-3479-68-git-send-email-paul.gortmaker@windriver.com>
+Subject: [PATCH 73/73] include: remove needless instances of <linux/init.h>
+Date: Tue, 21 Jan 2014 16:23:16 -0500
+Message-ID: <1390339396-3479-74-git-send-email-paul.gortmaker@windriver.com>
 In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Pavel Machek <pavel@ucw.cz>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Mark Brown <broonie@kernel.org>, linux-pm@vger.kernel.org
-Message-ID: <20140121212310.r_OAyMJnNSVp65WO_qCPh4v9wA701ZyPLbsJWLiaSOk@z>
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>
+Message-ID: <20140121212316.c3reCR9sy25KX4J1Fo20bXs-VH6eLqEZp_Jw0vi1ljw@z>
 
-None of these files are actually using any __init type directives
-and hence don't need to include <linux/init.h>.  Most are just a
-left over from __devinit and __cpuinit removal, or simply due to
-code getting copied from one driver to the next.
+In removing __cpuinit and __devinit support, some files will
+no longer need to include <linux/init.h>.  Here we audit the
+include files themselves, looking for cases where init.h is
+sourced but not actually used.  With these cleaned up, we'll
+know that the odds of C files implicitly getting init.h from
+random headers in here are somewhat reduced.
 
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Pavel Machek <pavel@ucw.cz>
-Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
-Cc: Len Brown <len.brown@intel.com>
-Cc: Mark Brown <broonie@kernel.org>
-Cc: linux-pm@vger.kernel.org
+Some files were getting other headers via init.h, such as:
+
+In file included from fs/cifs/winucase.c:32:0:
+include/linux/nls.h:16:1: error: unknown type name ‘u16’
+
+and so their includes were adjusted to reflect what they
+were actually requiring.
+
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- drivers/base/attribute_container.c   | 1 -
- drivers/base/power/clock_ops.c       | 1 -
- drivers/base/power/common.c          | 1 -
- drivers/base/power/domain.c          | 1 -
- drivers/base/power/domain_governor.c | 1 -
- drivers/base/power/opp.c             | 1 -
- drivers/base/regmap/regmap-i2c.c     | 1 -
- drivers/base/regmap/regmap-mmio.c    | 1 -
- drivers/base/regmap/regmap-spi.c     | 1 -
- drivers/base/topology.c              | 1 -
- 10 files changed, 10 deletions(-)
+ include/drm/drmP.h          | 2 +-
+ include/linux/fb.h          | 1 -
+ include/linux/ide.h         | 1 -
+ include/linux/kdb.h         | 1 -
+ include/linux/lsm_audit.h   | 1 -
+ include/linux/moduleparam.h | 1 -
+ include/linux/netfilter.h   | 1 -
+ include/linux/nls.h         | 2 +-
+ include/linux/percpu_ida.h  | 1 -
+ include/linux/profile.h     | 1 -
+ include/linux/pstore_ram.h  | 1 -
+ include/linux/usb/gadget.h  | 1 -
+ include/linux/zorro.h       | 1 -
+ include/xen/xenbus.h        | 1 -
+ 14 files changed, 2 insertions(+), 14 deletions(-)
 
-diff --git a/drivers/base/attribute_container.c b/drivers/base/attribute_container.c
-index ecc1929..b84ca8f 100644
---- a/drivers/base/attribute_container.c
-+++ b/drivers/base/attribute_container.c
-@@ -12,7 +12,6 @@
+diff --git a/include/drm/drmP.h b/include/drm/drmP.h
+index 63eab2b..c883f41 100644
+--- a/include/drm/drmP.h
++++ b/include/drm/drmP.h
+@@ -45,7 +45,7 @@
+ #include <linux/kernel.h>
+ #include <linux/miscdevice.h>
+ #include <linux/fs.h>
+-#include <linux/init.h>
++#include <linux/proc_fs.h>
+ #include <linux/file.h>
+ #include <linux/platform_device.h>
+ #include <linux/pci.h>
+diff --git a/include/linux/fb.h b/include/linux/fb.h
+index fe6ac95..a23ab6c 100644
+--- a/include/linux/fb.h
++++ b/include/linux/fb.h
+@@ -7,7 +7,6 @@
+ #define FBIO_CURSOR            _IOWR('F', 0x08, struct fb_cursor_user)
+ 
+ #include <linux/fs.h>
+-#include <linux/init.h>
+ #include <linux/workqueue.h>
+ #include <linux/notifier.h>
+ #include <linux/list.h>
+diff --git a/include/linux/ide.h b/include/linux/ide.h
+index 93b5ca7..9aa3e3a 100644
+--- a/include/linux/ide.h
++++ b/include/linux/ide.h
+@@ -6,7 +6,6 @@
+  *  Copyright (C) 1994-2002  Linus Torvalds & authors
   */
  
- #include <linux/attribute_container.h>
 -#include <linux/init.h>
+ #include <linux/ioport.h>
+ #include <linux/ata.h>
+ #include <linux/blkdev.h>
+diff --git a/include/linux/kdb.h b/include/linux/kdb.h
+index 290db12..8718e15 100644
+--- a/include/linux/kdb.h
++++ b/include/linux/kdb.h
+@@ -22,7 +22,6 @@ typedef enum {
+ typedef int (*kdb_func_t)(int, const char **);
+ 
+ #ifdef	CONFIG_KGDB_KDB
+-#include <linux/init.h>
+ #include <linux/sched.h>
+ #include <linux/atomic.h>
+ 
+diff --git a/include/linux/lsm_audit.h b/include/linux/lsm_audit.h
+index 1cc89e9..da30bf5 100644
+--- a/include/linux/lsm_audit.h
++++ b/include/linux/lsm_audit.h
+@@ -15,7 +15,6 @@
+ #include <linux/kernel.h>
+ #include <linux/kdev_t.h>
+ #include <linux/spinlock.h>
+-#include <linux/init.h>
+ #include <linux/audit.h>
+ #include <linux/in6.h>
+ #include <linux/path.h>
+diff --git a/include/linux/moduleparam.h b/include/linux/moduleparam.h
+index c3eb102..72e584b 100644
+--- a/include/linux/moduleparam.h
++++ b/include/linux/moduleparam.h
+@@ -1,7 +1,6 @@
+ #ifndef _LINUX_MODULE_PARAMS_H
+ #define _LINUX_MODULE_PARAMS_H
+ /* (C) Copyright 2001, 2002 Rusty Russell IBM Corporation */
+-#include <linux/init.h>
+ #include <linux/stringify.h>
+ #include <linux/kernel.h>
+ 
+diff --git a/include/linux/netfilter.h b/include/linux/netfilter.h
+index 2077489..e4f2878 100644
+--- a/include/linux/netfilter.h
++++ b/include/linux/netfilter.h
+@@ -1,7 +1,6 @@
+ #ifndef __LINUX_NETFILTER_H
+ #define __LINUX_NETFILTER_H
+ 
+-#include <linux/init.h>
+ #include <linux/skbuff.h>
+ #include <linux/net.h>
+ #include <linux/if.h>
+diff --git a/include/linux/nls.h b/include/linux/nls.h
+index 5dc635f..da8c447 100644
+--- a/include/linux/nls.h
++++ b/include/linux/nls.h
+@@ -1,7 +1,7 @@
+ #ifndef _LINUX_NLS_H
+ #define _LINUX_NLS_H
+ 
+-#include <linux/init.h>
++#include <linux/types.h>
+ 
+ /* Unicode has changed over the years.  Unicode code points no longer
+  * fit into 16 bits; as of Unicode 5 valid code points range from 0
+diff --git a/include/linux/percpu_ida.h b/include/linux/percpu_ida.h
+index 1900bd0..bc706f1 100644
+--- a/include/linux/percpu_ida.h
++++ b/include/linux/percpu_ida.h
+@@ -3,7 +3,6 @@
+ 
+ #include <linux/types.h>
+ #include <linux/bitops.h>
+-#include <linux/init.h>
+ #include <linux/spinlock_types.h>
+ #include <linux/wait.h>
+ #include <linux/cpumask.h>
+diff --git a/include/linux/profile.h b/include/linux/profile.h
+index aaad386..dc04999 100644
+--- a/include/linux/profile.h
++++ b/include/linux/profile.h
+@@ -2,7 +2,6 @@
+ #define _LINUX_PROFILE_H
+ 
+ #include <linux/kernel.h>
+-#include <linux/init.h>
+ #include <linux/cpumask.h>
+ #include <linux/cache.h>
+ 
+diff --git a/include/linux/pstore_ram.h b/include/linux/pstore_ram.h
+index 9974975..1c1b44e 100644
+--- a/include/linux/pstore_ram.h
++++ b/include/linux/pstore_ram.h
+@@ -21,7 +21,6 @@
+ #include <linux/kernel.h>
+ #include <linux/list.h>
+ #include <linux/types.h>
+-#include <linux/init.h>
+ 
+ struct persistent_ram_buffer;
+ struct rs_control;
+diff --git a/include/linux/usb/gadget.h b/include/linux/usb/gadget.h
+index c3a6185..4300742 100644
+--- a/include/linux/usb/gadget.h
++++ b/include/linux/usb/gadget.h
+@@ -17,7 +17,6 @@
+ 
  #include <linux/device.h>
- #include <linux/kernel.h>
- #include <linux/slab.h>
-diff --git a/drivers/base/power/clock_ops.c b/drivers/base/power/clock_ops.c
-index e870bbe..b99e6c0 100644
---- a/drivers/base/power/clock_ops.c
-+++ b/drivers/base/power/clock_ops.c
-@@ -6,7 +6,6 @@
-  * This file is released under the GPLv2.
-  */
- 
--#include <linux/init.h>
- #include <linux/kernel.h>
- #include <linux/device.h>
- #include <linux/io.h>
-diff --git a/drivers/base/power/common.c b/drivers/base/power/common.c
-index 5da9140..df2e5ee 100644
---- a/drivers/base/power/common.c
-+++ b/drivers/base/power/common.c
-@@ -6,7 +6,6 @@
-  * This file is released under the GPLv2.
-  */
- 
--#include <linux/init.h>
- #include <linux/kernel.h>
- #include <linux/device.h>
- #include <linux/export.h>
-diff --git a/drivers/base/power/domain.c b/drivers/base/power/domain.c
-index bfb8955..921b192 100644
---- a/drivers/base/power/domain.c
-+++ b/drivers/base/power/domain.c
-@@ -6,7 +6,6 @@
-  * This file is released under the GPLv2.
-  */
- 
--#include <linux/init.h>
- #include <linux/kernel.h>
- #include <linux/io.h>
- #include <linux/pm_runtime.h>
-diff --git a/drivers/base/power/domain_governor.c b/drivers/base/power/domain_governor.c
-index 28dee30..a089e3b 100644
---- a/drivers/base/power/domain_governor.c
-+++ b/drivers/base/power/domain_governor.c
-@@ -6,7 +6,6 @@
-  * This file is released under the GPLv2.
-  */
- 
--#include <linux/init.h>
- #include <linux/kernel.h>
- #include <linux/pm_domain.h>
- #include <linux/pm_qos.h>
-diff --git a/drivers/base/power/opp.c b/drivers/base/power/opp.c
-index fa41874..2553867 100644
---- a/drivers/base/power/opp.c
-+++ b/drivers/base/power/opp.c
-@@ -14,7 +14,6 @@
- #include <linux/kernel.h>
  #include <linux/errno.h>
- #include <linux/err.h>
+-#include <linux/init.h>
+ #include <linux/list.h>
+ #include <linux/slab.h>
+ #include <linux/scatterlist.h>
+diff --git a/include/linux/zorro.h b/include/linux/zorro.h
+index 63fbba0..529604b 100644
+--- a/include/linux/zorro.h
++++ b/include/linux/zorro.h
+@@ -15,7 +15,6 @@
+ #include <uapi/linux/zorro.h>
+ 
+ #include <linux/device.h>
+-#include <linux/init.h>
+ #include <linux/ioport.h>
+ #include <linux/mod_devicetable.h>
+ 
+diff --git a/include/xen/xenbus.h b/include/xen/xenbus.h
+index 569c07f..094ffa1 100644
+--- a/include/xen/xenbus.h
++++ b/include/xen/xenbus.h
+@@ -39,7 +39,6 @@
+ #include <linux/mutex.h>
+ #include <linux/export.h>
+ #include <linux/completion.h>
 -#include <linux/init.h>
  #include <linux/slab.h>
- #include <linux/cpufreq.h>
- #include <linux/device.h>
-diff --git a/drivers/base/regmap/regmap-i2c.c b/drivers/base/regmap/regmap-i2c.c
-index fa6bf52..ebd1895 100644
---- a/drivers/base/regmap/regmap-i2c.c
-+++ b/drivers/base/regmap/regmap-i2c.c
-@@ -13,7 +13,6 @@
- #include <linux/regmap.h>
- #include <linux/i2c.h>
- #include <linux/module.h>
--#include <linux/init.h>
- 
- static int regmap_i2c_write(void *context, const void *data, size_t count)
- {
-diff --git a/drivers/base/regmap/regmap-mmio.c b/drivers/base/regmap/regmap-mmio.c
-index 81f9775..4410cb2 100644
---- a/drivers/base/regmap/regmap-mmio.c
-+++ b/drivers/base/regmap/regmap-mmio.c
-@@ -18,7 +18,6 @@
- 
- #include <linux/clk.h>
- #include <linux/err.h>
--#include <linux/init.h>
- #include <linux/io.h>
- #include <linux/module.h>
- #include <linux/regmap.h>
-diff --git a/drivers/base/regmap/regmap-spi.c b/drivers/base/regmap/regmap-spi.c
-index 37f12ae..0eb3097 100644
---- a/drivers/base/regmap/regmap-spi.c
-+++ b/drivers/base/regmap/regmap-spi.c
-@@ -12,7 +12,6 @@
- 
- #include <linux/regmap.h>
- #include <linux/spi/spi.h>
--#include <linux/init.h>
- #include <linux/module.h>
- 
- #include "internal.h"
-diff --git a/drivers/base/topology.c b/drivers/base/topology.c
-index 94ffee3..ad9d177 100644
---- a/drivers/base/topology.c
-+++ b/drivers/base/topology.c
-@@ -23,7 +23,6 @@
-  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-  *
-  */
--#include <linux/init.h>
- #include <linux/mm.h>
- #include <linux/cpu.h>
- #include <linux/module.h>
+ #include <xen/interface/xen.h>
+ #include <xen/interface/grant_table.h>
 -- 
 1.8.4.1
 
