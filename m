@@ -1,29 +1,67 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 20/73] arm: use subsys_initcall in non-modular pl320 IPC code
-Date: Tue, 21 Jan 2014 22:44:21 +0100
-Message-ID: <4922482.oeJaTIvZxl@wuerfel>
-References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com> <1390339396-3479-21-git-send-email-paul.gortmaker@windriver.com>
+From: Paul Gortmaker <paul.gortmaker@windriver.com>
+Subject: [PATCH 26/73] ia64: don't use module_init in non-modular sim/simscsi.c code
+Date: Tue, 21 Jan 2014 16:22:29 -0500
+Message-ID: <1390339396-3479-27-git-send-email-paul.gortmaker@windriver.com>
+References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1390339396-3479-21-git-send-email-paul.gortmaker@windriver.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Paul Gortmaker <paul.gortmaker@windriver.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.windriver.com ([147.11.1.11]:56280 "EHLO
+	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754287AbaAUVYm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:24:42 -0500
+In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org
 
-On Tuesday 21 January 2014 16:22:23 Paul Gortmaker wrote:
-> 
-> Note that direct use of __initcall is discouraged, vs. one
-> of the priority categorized subgroups.  As __initcall gets
-> mapped onto device_initcall, our use of subsys_initcall (which
-> seems to make sense for netfilter code) will thus change this
-> registration from level 6-device to level 4-subsys (i.e. slightly
-> earlier).  However no impact of that small difference is expected.
+The simscsi.o is built for HP_SIMSCSI -- which is bool, and hence
+this code is either present or absent.  It will never be modular,
+so using module_init as an alias for __initcall can be somewhat
+misleading.
 
-This doesn't have anything to do with netfilter. The only user
-of this driver at the moment is the highbank cpufreq driver, but
-that could change.
+Fix this up now, so that we can relocate module_init from
+init.h into module.h in the future.  If we don't do this, we'd
+have to add module.h to obviously non-modular code, and that
+would be a worse thing.
 
-	Arnd
+Note that direct use of __initcall is discouraged, vs. one
+of the priority categorized subgroups.  As __initcall gets
+mapped onto device_initcall, our use of device_initcall
+directly in this change means that the runtime impact is
+zero -- it will remain at level 6 in initcall ordering.
+
+And since it can't be modular, we remove all the __exitcall
+stuff related to module_exit() -- it is dead code that won't
+ever be executed.
+
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: linux-ia64@vger.kernel.org
+Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
+---
+ arch/ia64/hp/sim/simscsi.c | 11 +----------
+ 1 file changed, 1 insertion(+), 10 deletions(-)
+
+diff --git a/arch/ia64/hp/sim/simscsi.c b/arch/ia64/hp/sim/simscsi.c
+index 3a428f1..085047f 100644
+--- a/arch/ia64/hp/sim/simscsi.c
++++ b/arch/ia64/hp/sim/simscsi.c
+@@ -368,13 +368,4 @@ simscsi_init(void)
+ 	scsi_host_put(host);
+ 	return error;
+ }
+-
+-static void __exit
+-simscsi_exit(void)
+-{
+-	scsi_remove_host(host);
+-	scsi_host_put(host);
+-}
+-
+-module_init(simscsi_init);
+-module_exit(simscsi_exit);
++device_initcall(simscsi_init);
+-- 
+1.8.4.1
