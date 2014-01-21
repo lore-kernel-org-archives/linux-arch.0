@@ -1,15 +1,15 @@
-From: Paul Gortmaker <paul.gortmaker-CWA4WttNNZF54TAoqtyWWQ@public.gmane.org>
-Subject: [PATCH 44/73] spi: delete non-required instances of include <linux/init.h>
-Date: Tue, 21 Jan 2014 16:22:47 -0500
-Message-ID: <1390339396-3479-45-git-send-email-paul.gortmaker@windriver.com>
+From: Paul Gortmaker <paul.gortmaker@windriver.com>
+Subject: [PATCH 37/73] alpha: delete non-required instances of <linux/init.h>
+Date: Tue, 21 Jan 2014 16:22:40 -0500
+Message-ID: <1390339396-3479-38-git-send-email-paul.gortmaker@windriver.com>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-spi-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker-CWA4WttNNZF54TAoqtyWWQ@public.gmane.org>
-Sender: linux-spi-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Paul Gortmaker <paul.gortmaker-CWA4WttNNZF54TAoqtyWWQ@public.gmane.org>, Mark Brown <broonie-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, linux-spi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 None of these files are actually using any __init type directives
@@ -17,393 +17,104 @@ and hence don't need to include <linux/init.h>.  Most are just a
 left over from __devinit and __cpuinit removal, or simply due to
 code getting copied from one driver to the next.
 
-Cc: Mark Brown <broonie-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Cc: linux-spi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Signed-off-by: Paul Gortmaker <paul.gortmaker-CWA4WttNNZF54TAoqtyWWQ@public.gmane.org>
+Cc: Richard Henderson <rth@twiddle.net>
+Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Cc: Matt Turner <mattst88@gmail.com>
+Cc: linux-alpha@vger.kernel.org
+Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- drivers/spi/spi-altera.c         | 1 -
- drivers/spi/spi-ath79.c          | 1 -
- drivers/spi/spi-atmel.c          | 1 -
- drivers/spi/spi-bcm63xx.c        | 1 -
- drivers/spi/spi-bfin-sport.c     | 1 -
- drivers/spi/spi-bitbang.c        | 1 -
- drivers/spi/spi-clps711x.c       | 1 -
- drivers/spi/spi-gpio.c           | 1 -
- drivers/spi/spi-imx.c            | 1 -
- drivers/spi/spi-mpc512x-psc.c    | 1 -
- drivers/spi/spi-mpc52xx-psc.c    | 1 -
- drivers/spi/spi-mpc52xx.c        | 1 -
- drivers/spi/spi-mxs.c            | 1 -
- drivers/spi/spi-nuc900.c         | 1 -
- drivers/spi/spi-oc-tiny.c        | 1 -
- drivers/spi/spi-octeon.c         | 1 -
- drivers/spi/spi-omap2-mcspi.c    | 1 -
- drivers/spi/spi-orion.c          | 1 -
- drivers/spi/spi-ppc4xx.c         | 1 -
- drivers/spi/spi-pxa2xx-dma.c     | 1 -
- drivers/spi/spi-pxa2xx-pxadma.c  | 1 -
- drivers/spi/spi-s3c24xx.c        | 1 -
- drivers/spi/spi-sh-msiof.c       | 1 -
- drivers/spi/spi-sh-sci.c         | 1 -
- drivers/spi/spi-tegra114.c       | 1 -
- drivers/spi/spi-tegra20-sflash.c | 1 -
- drivers/spi/spi-tegra20-slink.c  | 1 -
- drivers/spi/spi-xcomm.c          | 1 -
- drivers/spi/spi-xilinx.c         | 1 -
- 29 files changed, 29 deletions(-)
+ arch/alpha/kernel/err_ev6.c         | 1 -
+ arch/alpha/kernel/irq.c             | 1 -
+ arch/alpha/kernel/traps.c           | 1 -
+ arch/alpha/oprofile/op_model_ev4.c  | 1 -
+ arch/alpha/oprofile/op_model_ev5.c  | 1 -
+ arch/alpha/oprofile/op_model_ev6.c  | 1 -
+ arch/alpha/oprofile/op_model_ev67.c | 1 -
+ 7 files changed, 7 deletions(-)
 
-diff --git a/drivers/spi/spi-altera.c b/drivers/spi/spi-altera.c
-index 5d7deaf..1928b83 100644
---- a/drivers/spi/spi-altera.c
-+++ b/drivers/spi/spi-altera.c
-@@ -13,7 +13,6 @@
-  * published by the Free Software Foundation.
+diff --git a/arch/alpha/kernel/err_ev6.c b/arch/alpha/kernel/err_ev6.c
+index 253cf1a..51267ac 100644
+--- a/arch/alpha/kernel/err_ev6.c
++++ b/arch/alpha/kernel/err_ev6.c
+@@ -6,7 +6,6 @@
+  *	Error handling code supporting Alpha systems
   */
  
--#include <linux/init.h>
- #include <linux/interrupt.h>
- #include <linux/errno.h>
- #include <linux/module.h>
-diff --git a/drivers/spi/spi-ath79.c b/drivers/spi/spi-ath79.c
-index 31534b5..a1cf9af 100644
---- a/drivers/spi/spi-ath79.c
-+++ b/drivers/spi/spi-ath79.c
-@@ -14,7 +14,6 @@
- 
- #include <linux/kernel.h>
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/delay.h>
- #include <linux/spinlock.h>
- #include <linux/workqueue.h>
-diff --git a/drivers/spi/spi-atmel.c b/drivers/spi/spi-atmel.c
-index b0842f7..88796df 100644
---- a/drivers/spi/spi-atmel.c
-+++ b/drivers/spi/spi-atmel.c
-@@ -9,7 +9,6 @@
-  */
- 
- #include <linux/kernel.h>
--#include <linux/init.h>
- #include <linux/clk.h>
- #include <linux/module.h>
- #include <linux/platform_device.h>
-diff --git a/drivers/spi/spi-bcm63xx.c b/drivers/spi/spi-bcm63xx.c
-index 77286ae..9e9ee5f 100644
---- a/drivers/spi/spi-bcm63xx.c
-+++ b/drivers/spi/spi-bcm63xx.c
-@@ -20,7 +20,6 @@
-  */
- 
- #include <linux/kernel.h>
--#include <linux/init.h>
- #include <linux/clk.h>
- #include <linux/io.h>
- #include <linux/module.h>
-diff --git a/drivers/spi/spi-bfin-sport.c b/drivers/spi/spi-bfin-sport.c
-index 38941e5..f515c5e 100644
---- a/drivers/spi/spi-bfin-sport.c
-+++ b/drivers/spi/spi-bfin-sport.c
-@@ -8,7 +8,6 @@
-  * Licensed under the GPL-2 or later.
-  */
- 
--#include <linux/init.h>
- #include <linux/module.h>
- #include <linux/delay.h>
- #include <linux/device.h>
-diff --git a/drivers/spi/spi-bitbang.c b/drivers/spi/spi-bitbang.c
-index bd222f6..3bfdb85 100644
---- a/drivers/spi/spi-bitbang.c
-+++ b/drivers/spi/spi-bitbang.c
-@@ -16,7 +16,6 @@
-  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-  */
- 
--#include <linux/init.h>
- #include <linux/spinlock.h>
- #include <linux/workqueue.h>
- #include <linux/interrupt.h>
-diff --git a/drivers/spi/spi-clps711x.c b/drivers/spi/spi-clps711x.c
-index 374ba4a..bee864d 100644
---- a/drivers/spi/spi-clps711x.c
-+++ b/drivers/spi/spi-clps711x.c
-@@ -11,7 +11,6 @@
- 
- #include <linux/io.h>
- #include <linux/clk.h>
--#include <linux/init.h>
- #include <linux/gpio.h>
- #include <linux/delay.h>
- #include <linux/module.h>
-diff --git a/drivers/spi/spi-gpio.c b/drivers/spi/spi-gpio.c
-index 7beeb29..cfc9fb3 100644
---- a/drivers/spi/spi-gpio.c
-+++ b/drivers/spi/spi-gpio.c
-@@ -19,7 +19,6 @@
-  */
- #include <linux/kernel.h>
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/platform_device.h>
- #include <linux/gpio.h>
- #include <linux/of.h>
-diff --git a/drivers/spi/spi-imx.c b/drivers/spi/spi-imx.c
-index a5474ef..8a77b7b 100644
---- a/drivers/spi/spi-imx.c
-+++ b/drivers/spi/spi-imx.c
-@@ -23,7 +23,6 @@
- #include <linux/delay.h>
- #include <linux/err.h>
- #include <linux/gpio.h>
--#include <linux/init.h>
- #include <linux/interrupt.h>
- #include <linux/io.h>
- #include <linux/irq.h>
-diff --git a/drivers/spi/spi-mpc512x-psc.c b/drivers/spi/spi-mpc512x-psc.c
-index 5032141..56cead9 100644
---- a/drivers/spi/spi-mpc512x-psc.c
-+++ b/drivers/spi/spi-mpc512x-psc.c
-@@ -16,7 +16,6 @@
- 
- #include <linux/module.h>
- #include <linux/kernel.h>
--#include <linux/init.h>
- #include <linux/errno.h>
- #include <linux/interrupt.h>
- #include <linux/of_address.h>
-diff --git a/drivers/spi/spi-mpc52xx-psc.c b/drivers/spi/spi-mpc52xx-psc.c
-index 00ba910..3d18d93 100644
---- a/drivers/spi/spi-mpc52xx-psc.c
-+++ b/drivers/spi/spi-mpc52xx-psc.c
-@@ -12,7 +12,6 @@
-  */
- 
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/types.h>
- #include <linux/errno.h>
- #include <linux/interrupt.h>
-diff --git a/drivers/spi/spi-mpc52xx.c b/drivers/spi/spi-mpc52xx.c
-index 7c675fe..f573c3c 100644
---- a/drivers/spi/spi-mpc52xx.c
-+++ b/drivers/spi/spi-mpc52xx.c
-@@ -12,7 +12,6 @@
-  */
- 
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/errno.h>
- #include <linux/of_platform.h>
- #include <linux/interrupt.h>
-diff --git a/drivers/spi/spi-mxs.c b/drivers/spi/spi-mxs.c
-index 79e5aa2..17bb9a9 100644
---- a/drivers/spi/spi-mxs.c
-+++ b/drivers/spi/spi-mxs.c
-@@ -29,7 +29,6 @@
-  */
- 
- #include <linux/kernel.h>
--#include <linux/init.h>
- #include <linux/ioport.h>
- #include <linux/of.h>
- #include <linux/of_device.h>
-diff --git a/drivers/spi/spi-nuc900.c b/drivers/spi/spi-nuc900.c
-index 5040630..8181c69 100644
---- a/drivers/spi/spi-nuc900.c
-+++ b/drivers/spi/spi-nuc900.c
-@@ -9,7 +9,6 @@
-  */
- 
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/spinlock.h>
- #include <linux/workqueue.h>
- #include <linux/interrupt.h>
-diff --git a/drivers/spi/spi-oc-tiny.c b/drivers/spi/spi-oc-tiny.c
-index f7c896e..022774e 100644
---- a/drivers/spi/spi-oc-tiny.c
-+++ b/drivers/spi/spi-oc-tiny.c
-@@ -15,7 +15,6 @@
-  * published by the Free Software Foundation.
-  */
- 
--#include <linux/init.h>
- #include <linux/interrupt.h>
- #include <linux/errno.h>
- #include <linux/module.h>
-diff --git a/drivers/spi/spi-octeon.c b/drivers/spi/spi-octeon.c
-index 67249a4..5665ae9 100644
---- a/drivers/spi/spi-octeon.c
-+++ b/drivers/spi/spi-octeon.c
-@@ -11,7 +11,6 @@
- #include <linux/spi/spi.h>
- #include <linux/module.h>
- #include <linux/delay.h>
--#include <linux/init.h>
- #include <linux/io.h>
- #include <linux/of.h>
- 
-diff --git a/drivers/spi/spi-omap2-mcspi.c b/drivers/spi/spi-omap2-mcspi.c
-index a72127f..94f133c 100644
---- a/drivers/spi/spi-omap2-mcspi.c
-+++ b/drivers/spi/spi-omap2-mcspi.c
-@@ -22,7 +22,6 @@
-  */
- 
- #include <linux/kernel.h>
--#include <linux/init.h>
- #include <linux/interrupt.h>
- #include <linux/module.h>
- #include <linux/device.h>
-diff --git a/drivers/spi/spi-orion.c b/drivers/spi/spi-orion.c
-index 7f2121f..a362425 100644
---- a/drivers/spi/spi-orion.c
-+++ b/drivers/spi/spi-orion.c
-@@ -9,7 +9,6 @@
-  * published by the Free Software Foundation.
-  */
- 
--#include <linux/init.h>
- #include <linux/interrupt.h>
- #include <linux/delay.h>
- #include <linux/platform_device.h>
-diff --git a/drivers/spi/spi-ppc4xx.c b/drivers/spi/spi-ppc4xx.c
-index 5ee5672..80b8408 100644
---- a/drivers/spi/spi-ppc4xx.c
-+++ b/drivers/spi/spi-ppc4xx.c
-@@ -24,7 +24,6 @@
-  */
- 
- #include <linux/module.h>
 -#include <linux/init.h>
  #include <linux/sched.h>
- #include <linux/slab.h>
- #include <linux/errno.h>
-diff --git a/drivers/spi/spi-pxa2xx-dma.c b/drivers/spi/spi-pxa2xx-dma.c
-index 3c0b551..713af48 100644
---- a/drivers/spi/spi-pxa2xx-dma.c
-+++ b/drivers/spi/spi-pxa2xx-dma.c
-@@ -9,7 +9,6 @@
-  * published by the Free Software Foundation.
-  */
  
--#include <linux/init.h>
- #include <linux/device.h>
- #include <linux/dma-mapping.h>
- #include <linux/dmaengine.h>
-diff --git a/drivers/spi/spi-pxa2xx-pxadma.c b/drivers/spi/spi-pxa2xx-pxadma.c
-index 2916efc..e8a26f2 100644
---- a/drivers/spi/spi-pxa2xx-pxadma.c
-+++ b/drivers/spi/spi-pxa2xx-pxadma.c
-@@ -18,7 +18,6 @@
-  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-  */
- 
--#include <linux/init.h>
- #include <linux/delay.h>
- #include <linux/device.h>
- #include <linux/dma-mapping.h>
-diff --git a/drivers/spi/spi-s3c24xx.c b/drivers/spi/spi-s3c24xx.c
-index 746424a..c20df45 100644
---- a/drivers/spi/spi-s3c24xx.c
-+++ b/drivers/spi/spi-s3c24xx.c
-@@ -9,7 +9,6 @@
-  *
- */
- 
--#include <linux/init.h>
- #include <linux/spinlock.h>
- #include <linux/workqueue.h>
+ #include <asm/io.h>
+diff --git a/arch/alpha/kernel/irq.c b/arch/alpha/kernel/irq.c
+index 7b2be25..51f2c86 100644
+--- a/arch/alpha/kernel/irq.c
++++ b/arch/alpha/kernel/irq.c
+@@ -19,7 +19,6 @@
+ #include <linux/ptrace.h>
  #include <linux/interrupt.h>
-diff --git a/drivers/spi/spi-sh-msiof.c b/drivers/spi/spi-sh-msiof.c
-index 81cc02f..3347406 100644
---- a/drivers/spi/spi-sh-msiof.c
-+++ b/drivers/spi/spi-sh-msiof.c
-@@ -15,7 +15,6 @@
- #include <linux/delay.h>
- #include <linux/err.h>
- #include <linux/gpio.h>
+ #include <linux/random.h>
 -#include <linux/init.h>
- #include <linux/interrupt.h>
- #include <linux/io.h>
- #include <linux/kernel.h>
-diff --git a/drivers/spi/spi-sh-sci.c b/drivers/spi/spi-sh-sci.c
-index 38eb24d..85c2efd 100644
---- a/drivers/spi/spi-sh-sci.c
-+++ b/drivers/spi/spi-sh-sci.c
+ #include <linux/irq.h>
+ #include <linux/proc_fs.h>
+ #include <linux/seq_file.h>
+diff --git a/arch/alpha/kernel/traps.c b/arch/alpha/kernel/traps.c
+index 9c4c189..74aceea 100644
+--- a/arch/alpha/kernel/traps.c
++++ b/arch/alpha/kernel/traps.c
 @@ -14,7 +14,6 @@
-  */
+ #include <linux/tty.h>
+ #include <linux/delay.h>
+ #include <linux/module.h>
+-#include <linux/init.h>
+ #include <linux/kallsyms.h>
+ #include <linux/ratelimit.h>
  
- #include <linux/kernel.h>
--#include <linux/init.h>
- #include <linux/delay.h>
- #include <linux/spinlock.h>
- #include <linux/workqueue.h>
-diff --git a/drivers/spi/spi-tegra114.c b/drivers/spi/spi-tegra114.c
-index 413c718..3f61bbf 100644
---- a/drivers/spi/spi-tegra114.c
-+++ b/drivers/spi/spi-tegra114.c
-@@ -23,7 +23,6 @@
- #include <linux/dma-mapping.h>
- #include <linux/dmapool.h>
- #include <linux/err.h>
--#include <linux/init.h>
- #include <linux/interrupt.h>
- #include <linux/io.h>
- #include <linux/kernel.h>
-diff --git a/drivers/spi/spi-tegra20-sflash.c b/drivers/spi/spi-tegra20-sflash.c
-index 0879497..18037ab 100644
---- a/drivers/spi/spi-tegra20-sflash.c
-+++ b/drivers/spi/spi-tegra20-sflash.c
-@@ -22,7 +22,6 @@
- #include <linux/completion.h>
- #include <linux/delay.h>
- #include <linux/err.h>
--#include <linux/init.h>
- #include <linux/interrupt.h>
- #include <linux/io.h>
- #include <linux/kernel.h>
-diff --git a/drivers/spi/spi-tegra20-slink.c b/drivers/spi/spi-tegra20-slink.c
-index be3a069..8d62710 100644
---- a/drivers/spi/spi-tegra20-slink.c
-+++ b/drivers/spi/spi-tegra20-slink.c
-@@ -23,7 +23,6 @@
- #include <linux/dma-mapping.h>
- #include <linux/dmapool.h>
- #include <linux/err.h>
--#include <linux/init.h>
- #include <linux/interrupt.h>
- #include <linux/io.h>
- #include <linux/kernel.h>
-diff --git a/drivers/spi/spi-xcomm.c b/drivers/spi/spi-xcomm.c
-index 24c40b1..350a76b 100644
---- a/drivers/spi/spi-xcomm.c
-+++ b/drivers/spi/spi-xcomm.c
+diff --git a/arch/alpha/oprofile/op_model_ev4.c b/arch/alpha/oprofile/op_model_ev4.c
+index 18aa9b4..086a0d5 100644
+--- a/arch/alpha/oprofile/op_model_ev4.c
++++ b/arch/alpha/oprofile/op_model_ev4.c
 @@ -8,7 +8,6 @@
   */
  
- #include <linux/kernel.h>
+ #include <linux/oprofile.h>
 -#include <linux/init.h>
- #include <linux/module.h>
- #include <linux/delay.h>
- #include <linux/i2c.h>
-diff --git a/drivers/spi/spi-xilinx.c b/drivers/spi/spi-xilinx.c
-index 6d4ce46..e6cd111 100644
---- a/drivers/spi/spi-xilinx.c
-+++ b/drivers/spi/spi-xilinx.c
-@@ -14,7 +14,6 @@
+ #include <linux/smp.h>
+ #include <asm/ptrace.h>
+ 
+diff --git a/arch/alpha/oprofile/op_model_ev5.c b/arch/alpha/oprofile/op_model_ev5.c
+index c32f8a0..c300f5e 100644
+--- a/arch/alpha/oprofile/op_model_ev5.c
++++ b/arch/alpha/oprofile/op_model_ev5.c
+@@ -8,7 +8,6 @@
   */
  
- #include <linux/module.h>
+ #include <linux/oprofile.h>
 -#include <linux/init.h>
- #include <linux/interrupt.h>
- #include <linux/of.h>
- #include <linux/platform_device.h>
+ #include <linux/smp.h>
+ #include <asm/ptrace.h>
+ 
+diff --git a/arch/alpha/oprofile/op_model_ev6.c b/arch/alpha/oprofile/op_model_ev6.c
+index 1c84cc2..02edf59 100644
+--- a/arch/alpha/oprofile/op_model_ev6.c
++++ b/arch/alpha/oprofile/op_model_ev6.c
+@@ -8,7 +8,6 @@
+  */
+ 
+ #include <linux/oprofile.h>
+-#include <linux/init.h>
+ #include <linux/smp.h>
+ #include <asm/ptrace.h>
+ 
+diff --git a/arch/alpha/oprofile/op_model_ev67.c b/arch/alpha/oprofile/op_model_ev67.c
+index 34a57a1..adb1744 100644
+--- a/arch/alpha/oprofile/op_model_ev67.c
++++ b/arch/alpha/oprofile/op_model_ev67.c
+@@ -9,7 +9,6 @@
+  */
+ 
+ #include <linux/oprofile.h>
+-#include <linux/init.h>
+ #include <linux/smp.h>
+ #include <asm/ptrace.h>
+ 
 -- 
 1.8.4.1
-
---
-To unsubscribe from this list: send the line "unsubscribe linux-spi" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
