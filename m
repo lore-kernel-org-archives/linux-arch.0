@@ -1,56 +1,79 @@
 From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v9 2/5] qrwlock x86: Enable x86 to use queue read/write
- lock
-Date: Tue, 21 Jan 2014 11:00:58 -0500
-Message-ID: <52DE99BA.1090204@hp.com>
-References: <1389761047-47566-1-git-send-email-Waiman.Long@hp.com> <1389761047-47566-3-git-send-email-Waiman.Long@hp.com> <20140120160806.GI30183@twins.programming.kicks-ass.net> <20140120111630.7ceb0aa5@gandalf.local.home>
+Subject: Re: [PATCH v9 3/5] qrwlock, x86 - Treat all data type not bigger
+ than long as atomic in x86
+Date: Tue, 21 Jan 2014 11:09:20 -0500
+Message-ID: <52DE9BB0.5070909@hp.com>
+References: <1389761047-47566-1-git-send-email-Waiman.Long@hp.com> <1389761047-47566-4-git-send-email-Waiman.Long@hp.com> <20140120150316.GG30183@twins.programming.kicks-ass.net> <52DE9410.6090500@hp.com> <20140121153958.GA31570@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g5t0009.atlanta.hp.com ([15.192.0.46]:41651 "EHLO
-	g5t0009.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754466AbaAUQBC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 11:01:02 -0500
-In-Reply-To: <20140120111630.7ceb0aa5@gandalf.local.home>
+Received: from g6t0187.atlanta.hp.com ([15.193.32.64]:17817 "EHLO
+	g6t0187.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754607AbaAUQJY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 11:09:24 -0500
+In-Reply-To: <20140121153958.GA31570@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, aswin@hp.com, Scott J Norton <scott.norton@hp.com>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, aswin@hp.com, Scott J Norton <scott.norton@hp.com>
 
-On 01/20/2014 11:16 AM, Steven Rostedt wrote:
-> On Mon, 20 Jan 2014 17:08:06 +0100
-> Peter Zijlstra<peterz@infradead.org>  wrote:
->
->> On Tue, Jan 14, 2014 at 11:44:04PM -0500, Waiman Long wrote:
->>> This patch makes the necessary changes at the x86 architecture specific
->>> layer to enable the presence of the CONFIG_QUEUE_RWLOCK kernel option
->>> to replace the read/write lock by the queue read/write lock.
->>>
->>> It also enables the CONFIG_QUEUE_RWLOCK option by default for x86 which
->>> will force the use of queue read/write lock. That will greatly improve
->>> the fairness of read/write lock and eliminate live-lock situation
->>> where one task may not get the lock for an indefinite period of time.
->>>
->>> Signed-off-by: Waiman Long<Waiman.Long@hp.com>
->>> Reviewed-by: Paul E. McKenney<paulmck@linux.vnet.ibm.com>
->>> ---
->>>   arch/x86/Kconfig                      |    1 +
->>>   arch/x86/include/asm/spinlock.h       |    2 ++
->>>   arch/x86/include/asm/spinlock_types.h |    4 ++++
->>>   3 files changed, 7 insertions(+), 0 deletions(-)
->> This patch doesn't have nearly enough -, you should rip out all traces
->> of the old rwlock. There's no point in having it configurable, either
->> qrwlock is good or not.
-> Although having something that switches back to the old method gives
-> more users the way to compare. Especially to catch any regressions.
->
-> Make one release with it configurable, then drop it.
->
-> -- Steve
+On 01/21/2014 10:39 AM, Peter Zijlstra wrote:
+> On Tue, Jan 21, 2014 at 10:36:48AM -0500, Waiman Long wrote:
+>> On 01/20/2014 10:03 AM, Peter Zijlstra wrote:
+>>> On Tue, Jan 14, 2014 at 11:44:05PM -0500, Waiman Long wrote:
+>>>> The generic __native_word() macro defined in include/linux/compiler.h
+>>>> only allows "int" and "long" data types to be treated as native and
+>>>> atomic. The x86 architecture, however, allow the use of char and short
+>>>> data types as atomic as well.
+>>>>
+>>>> This patch extends the data type allowed in the __native_word() macro to
+>>>> allow the use of char and short.
+>>>>
+>>>> Signed-off-by: Waiman Long<Waiman.Long@hp.com>
+>>>> ---
+>>>>   arch/x86/include/asm/barrier.h |    8 ++++++++
+>>>>   1 files changed, 8 insertions(+), 0 deletions(-)
+>>>>
+>>>> diff --git a/arch/x86/include/asm/barrier.h b/arch/x86/include/asm/barrier.h
+>>>> index 04a4890..4d3e30a 100644
+>>>> --- a/arch/x86/include/asm/barrier.h
+>>>> +++ b/arch/x86/include/asm/barrier.h
+>>>> @@ -24,6 +24,14 @@
+>>>>   #define wmb()	asm volatile("sfence" ::: "memory")
+>>>>   #endif
+>>>>
+>>>> +/*
+>>>> + * All data types<= long are atomic in x86
+>>>> + */
+>>>> +#ifdef __native_word
+>>>> +#undef __native_word
+>>>> +#endif
+>>>> +#define __native_word(t)	(sizeof(t)<= sizeof(long))
+>>> Yeah, not going to happen.
+>> Does explicit list of acceptable sizes work for you?
+>>
+>> #define __native_word(t) (sizeof(t) == sizeof(char) || sizeof(t) ==
+>> sizeof(short) || sizeof(t) == sizeof(int ) ||
+>>                   sizeof(t) == sizeof(long))
+> No, generic primitives should not have arch specific behaviour.
 
-Yes, I agree that it will be more prudent to leave the original rwlock 
-implementation there for one or two release cycles before getting rid of 
-them entirely.
+OK, will something like the following acceptable to you:
+
+arch/x86/include/asm/barrier.h:
+
+#define __arch_native_word(t) (sizeof(t) == sizeof(char) || sizeof(t) ==
+sizeof(short) || sizeof(t) == sizeof(int ) ||
+                  sizeof(t) == sizeof(long))
+
+include/linux/compiler.h:
+
+#ifndef __native_word
+# ifdef __arch_native_word(t)
+#  define __native_word(t)	__arch_native_word(t)
+# else
+#  define __native_word(t) (sizeof(t) == sizeof(int) || sizeof(t) == sizeof(long))
+# endif
+#endif
 
 -Longman
