@@ -1,128 +1,59 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: [RFC][PATCH] MIPS: VPE: Remove vpe_getuid and vpe_getgid
-Date: Tue, 21 Jan 2014 10:42:37 -0800
-Message-ID: <8738kh6usi.fsf@xmission.com>
+From: Tim Chen <tim.c.chen@linux.intel.com>
+Subject: Re: [PATCH v8 4/6] MCS Lock: Move mcs_lock/unlock function into
+ its own
+Date: Tue, 21 Jan 2014 10:57:03 -0800
+Message-ID: <1390330623.3138.56.camel@schen9-DESK>
+References: <cover.1390239879.git.tim.c.chen@linux.intel.com>
+	 <1390267471.3138.38.camel@schen9-DESK>
+	 <20140121101915.GS31570@twins.programming.kicks-ass.net>
+	 <20140121104140.GA4092@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:46215 "EHLO
-	out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754934AbaAUSmy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 13:42:54 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ralf Baechle <ralf@linux-mips.org>
-Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20140121104140.GA4092@gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd
+List-Id: linux-arch.vger.kernel.org
+
+On Tue, 2014-01-21 at 11:41 +0100, Ingo Molnar wrote:
+> * Peter Zijlstra <peterz@infradead.org> wrote:
+> 
+> > On Mon, Jan 20, 2014 at 05:24:31PM -0800, Tim Chen wrote:
+> > > +EXPORT_SYMBOL_GPL(mcs_spin_lock);
+> > > +EXPORT_SYMBOL_GPL(mcs_spin_unlock);
+> > 
+> > Do we really need the EXPORTs? The only user so far is mutex and that's
+> > core code. The other planned users are rwsems and rwlocks, for both it
+> > would be in the slow path, which is also core code.
+> >
+> > We should generally only add EXPORTs once theres a need.
+> 
+> In fact I'd argue the hot path needs to be inlined.
+> 
+> We only don't inline regular locking primitives because it would blow 
+> up the kernel's size in too many critical places.
+> 
+> But inlining an _internal_ locking implementation used in just a 
+> handful of places is a no-brainer...
+> 
+
+The original mspin_lock primitive from which mcs_spin_lock was derived
+has an explicit noinline annotation.  The comment says that it is so 
+that perf can properly account for time spent in the lock function.  So
+it wasn't inlined in previous kernels when we started.
+
+For the time being, I'll just remove the EXPORT.  If people feel that
+inline is the right way to go, then we'll leave the function
+in mcs_spin_lock.h and not create mcs_spin_lock.c.
 
 
-The linux build-bot recently reported a build error in arch/mips/kernel/vpe.c
+Tim
 
-     tree:   git://git.kernel.org/pub/scm/linux/kernel/git/ebiederm/user-namespace.git for-linus
-     head:   261000a56b6382f597bcb12000f55c9ff26a1efb
-     commit: 261000a56b6382f597bcb12000f55c9ff26a1efb [4/4] userns:  userns: Remove UIDGID_STRICT_TYPE_CHECKS
-     config: make ARCH=mips maltaaprp_defconfig
 
-     All error/warnings:
-
-        arch/mips/kernel/vpe.c: In function 'vpe_open':
-     >> arch/mips/kernel/vpe.c:1086:9: error: incompatible types when assigning to type 'unsigned int' from type 'kuid_t'
-     >> arch/mips/kernel/vpe.c:1087:9: error: incompatible types when assigning to type 'unsigned int' from type 'kgid_t'
-
-     vim +1086 arch/mips/kernel/vpe.c
-
-     863abad4 Jesper Juhl   2010-10-30  1080			return -ENOMEM;
-     863abad4 Jesper Juhl   2010-10-30  1081  		}
-     e01402b1 Ralf Baechle  2005-07-14  1082  		v->plen = P_SIZE;
-     e01402b1 Ralf Baechle  2005-07-14  1083  		v->load_addr = NULL;
-     e01402b1 Ralf Baechle  2005-07-14  1084  		v->len = 0;
-     e01402b1 Ralf Baechle  2005-07-14  1085
-     d76b0d9b David Howells 2008-11-14 @1086		v->uid = filp->f_cred->fsuid;
-     d76b0d9b David Howells 2008-11-14 @1087  		v->gid = filp->f_cred->fsgid;
-     2600990e Ralf Baechle  2006-04-05  1088
-     2600990e Ralf Baechle  2006-04-05  1089		v->cwd[0] = 0;
-     2600990e Ralf Baechle  2006-04-05  1090 	 	ret = getcwd(v->cwd, VPE_PATH_MAX);
-
-When examining the code to see what v->uid and v->gid were used for I
-discovered that the only users in the kernel are vpe_getuid and
-vpe_getgid, and that vpe_getuid and vpe_getgid are never called.
-
-So instead of proposing a conversion to use kuid_t and kgid_t instead
-of unsigned int/int as I normally would let's just kill this dead code
-so no one has to worry about it further.
-
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: linux-mips@linux-mips.org
-Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
----
- arch/mips/include/asm/vpe.h |    2 --
- arch/mips/kernel/vpe.c      |   28 ----------------------------
- 2 files changed, 0 insertions(+), 30 deletions(-)
-
-diff --git a/arch/mips/include/asm/vpe.h b/arch/mips/include/asm/vpe.h
-index c6e1b961537d..0880fe8809b1 100644
---- a/arch/mips/include/asm/vpe.h
-+++ b/arch/mips/include/asm/vpe.h
-@@ -30,8 +30,6 @@ struct vpe_notifications {
- extern int vpe_notify(int index, struct vpe_notifications *notify);
- 
- extern void *vpe_get_shared(int index);
--extern int vpe_getuid(int index);
--extern int vpe_getgid(int index);
- extern char *vpe_getcwd(int index);
- 
- #endif /* _ASM_VPE_H */
-diff --git a/arch/mips/kernel/vpe.c b/arch/mips/kernel/vpe.c
-index 59b2b3cd7885..2d5c142bad67 100644
---- a/arch/mips/kernel/vpe.c
-+++ b/arch/mips/kernel/vpe.c
-@@ -105,7 +105,6 @@ struct vpe {
- 	unsigned long len;
- 	char *pbuffer;
- 	unsigned long plen;
--	unsigned int uid, gid;
- 	char cwd[VPE_PATH_MAX];
- 
- 	unsigned long __start;
-@@ -1083,9 +1082,6 @@ static int vpe_open(struct inode *inode, struct file *filp)
- 	v->load_addr = NULL;
- 	v->len = 0;
- 
--	v->uid = filp->f_cred->fsuid;
--	v->gid = filp->f_cred->fsgid;
--
- 	v->cwd[0] = 0;
- 	ret = getcwd(v->cwd, VPE_PATH_MAX);
- 	if (ret < 0)
-@@ -1269,30 +1265,6 @@ void *vpe_get_shared(int index)
- 
- EXPORT_SYMBOL(vpe_get_shared);
- 
--int vpe_getuid(int index)
--{
--	struct vpe *v;
--
--	if ((v = get_vpe(index)) == NULL)
--		return -1;
--
--	return v->uid;
--}
--
--EXPORT_SYMBOL(vpe_getuid);
--
--int vpe_getgid(int index)
--{
--	struct vpe *v;
--
--	if ((v = get_vpe(index)) == NULL)
--		return -1;
--
--	return v->gid;
--}
--
--EXPORT_SYMBOL(vpe_getgid);
--
- int vpe_notify(int index, struct vpe_notifications *notify)
- {
- 	struct vpe *v;
--- 
-1.7.5.4
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
