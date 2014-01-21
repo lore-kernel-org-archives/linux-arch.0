@@ -1,56 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:47785 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:48888 "EHLO
 	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751613AbaAUJst (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 04:48:49 -0500
-Date: Tue, 21 Jan 2014 10:47:56 +0100
+	with ESMTP id S1753624AbaAUKS2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 05:18:28 -0500
+Date: Tue, 21 Jan 2014 11:17:42 +0100
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v7 6/6] MCS Lock: add Kconfig entries to allow
- arch-specific hooks
-Message-ID: <20140121094756.GQ31570@twins.programming.kicks-ass.net>
-References: <cover.1389890175.git.tim.c.chen@linux.intel.com>
- <1389917316.3138.16.camel@schen9-DESK>
- <20140120123030.GE31570@twins.programming.kicks-ass.net>
- <1390260717.3138.33.camel@schen9-DESK>
+Subject: Re: [PATCH v8 3/6] MCS Lock: optimizations and extra comments
+Message-ID: <20140121101742.GR31570@twins.programming.kicks-ass.net>
+References: <cover.1390239879.git.tim.c.chen@linux.intel.com>
+ <1390267468.3138.37.camel@schen9-DESK>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1390260717.3138.33.camel@schen9-DESK>
+In-Reply-To: <1390267468.3138.37.camel@schen9-DESK>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Tim Chen <tim.c.chen@linux.intel.com>
 Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, "Figo.zhang" <figo1802@gmail.com>
-Message-ID: <20140121094756.P9IH17wRwpbIkhB-W8GVuw3160tr3vhsky1vuxdZ_WE@z>
+Message-ID: <20140121101742.f53J39qsl9LZXOtvugGcyNBRYm6XnC2HB-tarEAZKfk@z>
 
-On Mon, Jan 20, 2014 at 03:31:57PM -0800, Tim Chen wrote:
-> On Mon, 2014-01-20 at 13:30 +0100, Peter Zijlstra wrote:
+On Mon, Jan 20, 2014 at 05:24:28PM -0800, Tim Chen wrote:
+> @@ -41,8 +47,11 @@ void mcs_spin_lock(struct mcs_spinlock **lock, struct mcs_spinlock *node)
+>  
+>  	prev = xchg(lock, node);
+>  	if (likely(prev == NULL)) {
+> -		/* Lock acquired */
+> -		node->locked = 1;
+> +		/* Lock acquired, don't need to set node->locked to 1
+> +		 * as lock owner and other contenders won't check this value.
+> +		 * If a debug mode is needed to audit lock status, then
+> +		 * set node->locked value here.
+> +		 */
 
-> > Then again, people seem to whinge if you don't keep these Kbuild files
-> > sorted, but manually sorting 29 files is just not something I like to
-> > do.
+Fail in comment style.
 
-> Can you clarify what exactly needs to be sorted?  The Kbuild files
-> spit out by git diff appears to be sorted already.
-
-> > diff --git a/arch/alpha/include/asm/Kbuild b/arch/alpha/include/asm/Kbuild
-> > index f01fb505ad52..14cbbbcec01f 100644
-> > --- a/arch/alpha/include/asm/Kbuild
-> > +++ b/arch/alpha/include/asm/Kbuild
-> > @@ -4,3 +4,4 @@ generic-y += clkdev.h
-> >  generic-y += exec.h
-> >  generic-y += trace_clock.h
-> >  generic-y += preempt.h
-> > +generic-y += mcs_spinlock.h
-
-Last time I checked the Alphabet m came before p.
-
-I generated this patch using:
-
-for i in arch/*/include/asm/Kbuild
-do
-	echo "generic-y += mcs_spinlock.h" >> $i
-done
-
-Which simply appends the new header. However people want these generic-y
-thingies sorted by header name. Hence the gawk script I sent which does
-just that.
+>  		return;
+>  	}
+>  	ACCESS_ONCE(prev->next) = node;
