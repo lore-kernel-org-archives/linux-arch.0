@@ -1,54 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.windriver.com ([147.11.1.11]:56295 "EHLO
-	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753965AbaAUVYp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:24:45 -0500
-From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 24/73] m68k: don't use module_init in non-modular mvme16x/rtc.c code
-Date: Tue, 21 Jan 2014 16:22:27 -0500
-Message-ID: <1390339396-3479-25-git-send-email-paul.gortmaker@windriver.com>
-In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
+Received: from mezzanine.sirena.org.uk ([106.187.55.193]:57763 "EHLO
+	mezzanine.sirena.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932154AbaAUVnm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:43:42 -0500
+Date: Tue, 21 Jan 2014 21:43:38 +0000
+From: Mark Brown <broonie@kernel.org>
+Message-ID: <20140121214338.GB17314@sirena.org.uk>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
+ <1390339396-3479-45-git-send-email-paul.gortmaker@windriver.com>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="lmWPTIvm4M7zUP/T"
+Content-Disposition: inline
+In-Reply-To: <1390339396-3479-45-git-send-email-paul.gortmaker@windriver.com>
+Subject: Re: [PATCH 44/73] spi: delete non-required instances of include
+ <linux/init.h>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k@vger.kernel.org
-Message-ID: <20140121212227.gdU52A3WHud0aaub2eeBtCozrGuW27eBs3rDoMwSRYM@z>
+To: Paul Gortmaker <paul.gortmaker@windriver.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-spi@vger.kernel.org
+Message-ID: <20140121214338.Fe04CsjRJSsc2KP5hDsElNnY56gvg_SSuUrAQnI5wxg@z>
 
-The rtc.o is built for obj-y, i.e. always built in.  It will
-never be modular, so using module_init as an alias for __initcall
-can be somewhat misleading.
 
-Fix this up now, so that we can relocate module_init from
-init.h into module.h in the future.  If we don't do this, we'd
-have to add module.h to obviously non-modular code, and that
-would be a worse thing.
+--lmWPTIvm4M7zUP/T
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-Note that direct use of __initcall is discouraged, vs. one
-of the priority categorized subgroups.  As __initcall gets
-mapped onto device_initcall, our use of device_initcall
-directly in this change means that the runtime impact is
-zero -- it will remain at level 6 in initcall ordering.
+On Tue, Jan 21, 2014 at 04:22:47PM -0500, Paul Gortmaker wrote:
 
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: linux-m68k@lists.linux-m68k.org
-Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
----
- arch/m68k/mvme16x/rtc.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+> None of these files are actually using any __init type directives
+> and hence don't need to include <linux/init.h>.  Most are just a
+> left over from __devinit and __cpuinit removal, or simply due to
+> code getting copied from one driver to the next.
 
-diff --git a/arch/m68k/mvme16x/rtc.c b/arch/m68k/mvme16x/rtc.c
-index 6ef7a81..1755e2f 100644
---- a/arch/m68k/mvme16x/rtc.c
-+++ b/arch/m68k/mvme16x/rtc.c
-@@ -161,4 +161,4 @@ static int __init rtc_MK48T08_init(void)
- 	printk(KERN_INFO "MK48T08 Real Time Clock Driver v%s\n", RTC_VERSION);
- 	return misc_register(&rtc_dev);
- }
--module_init(rtc_MK48T08_init);
-+device_initcall(rtc_MK48T08_init);
--- 
-1.8.4.1
+Applied, thanks.
 
+--lmWPTIvm4M7zUP/T
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2.0.22 (GNU/Linux)
+
+iQIcBAEBAgAGBQJS3uoHAAoJELSic+t+oim9KssP/0UjRPSQRdVnM59X2SWved2m
+KVSMBXCt2ZiibCG+JETYR1VewYXmXO+SEWHzdA7YmgS4UDeljS4TQT/bwUZNRixF
+fYk3p/x0UGhM5n8tTUYiGiVvhkyj0bORnjo6aOVrVT0CWdguCPt8nlw/x2K5mfUE
+v/7E1RKcD2y6ZtnK6YS+K8I16u2CoQOoZHm9Nj74356uGRNClTygo2OokroGFaTi
+Uwgxvr8JXnbEvDPZo7G21WV1croRXtROigW9zP+rexjUKGoK92unyZVjONEST24D
+oK7MhtMccna0Kt2UGvaeaPpwvBNj+onKvRli+1cUq/bK+M/AqwEYobIn/u6hb2Qm
+SEq1Y79uz33abR4gluj/H0PkbYGBmvUDE9bWRsPmEdvlLORCNVAu/D3dMJkElB8W
+rOaPGzuX8ggohOhEc0GCh7kOBbiUH6YGKBWmzohHho0T2sEiZn23YVecqcyQHGzy
+JobbrCK1mnnd1fUv246Bz/nygLQoNA0T8C7+3D07iv6NZ8sSSigmMlRsro7XjOjK
+zIMyi3luO0KGRJFXremAqtzmp510UD3Fvk0YTGbGf7PvcsCkl1bdtErZtFrP2GvZ
+I60JGIgx/eqjn2tIRLQbL3p1oRetHAQJ885jleFCzUl1yph3/eICda6sKPLgH0RV
+fW3J+B6xCI9s1/3xEjZZ
+=GUZl
+-----END PGP SIGNATURE-----
+
+--lmWPTIvm4M7zUP/T--
