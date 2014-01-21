@@ -1,235 +1,62 @@
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 56/73] drivers/char: delete non-required instances of include <linux/init.h>
-Date: Tue, 21 Jan 2014 16:22:59 -0500
-Message-ID: <1390339396-3479-57-git-send-email-paul.gortmaker@windriver.com>
+Subject: [PATCH 19/73] arm: mach-s3c64xx mach-crag6410-module.c is not modular
+Date: Tue, 21 Jan 2014 16:22:22 -0500
+Message-ID: <1390339396-3479-20-git-send-email-paul.gortmaker@windriver.com>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.windriver.com ([147.11.1.11]:56638 "EHLO
-	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754834AbaAUV0A (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:26:00 -0500
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, David Airlie <airlied@linux.ie>, Matt Mackall <mpm@selenic.com>, Herbert Xu <herbert@gondor.apana.org.au>, Kukjin Kim <kgene.kim@samsung.com>, Corey Minyard <minyard@acm.org>, Chris Metcalf <cmetcalf@tilera.com>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Peter Huewe <peterhuewe@gmx.de>, Ashley Lai <ashley@ashleylai.com>, Marcel Selhorst <tpmdd@selhorst.net>
+Cc: linux-arch@vger.kernel.org, Kukjin Kim <kgene.kim@samsung.com>, Russell King <linux@arm.linux.org.uk>, patches@opensource.wolfsonmicro.com, Paul Gortmaker <paul.gortmaker@windriver.com>, Ben Dooks <ben-linux@fluff.org>, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-None of these files are actually using any __init type directives
-and hence don't need to include <linux/init.h>.  Most are just a
-left over from __devinit and __cpuinit removal, or simply due to
-code getting copied from one driver to the next.
+Despite the name mach-crag6410-module.c, the code is built for
+MACH_WLF_CRAGG_6410 -- which is bool, and hence this code is
+either present or absent.  It will never be modular, so using
+module_init as an alias for __initcall can be somewhat
+misleading.
 
-Cc: David Airlie <airlied@linux.ie>
-Cc: Matt Mackall <mpm@selenic.com>
-Cc: Herbert Xu <herbert@gondor.apana.org.au>
+Fix this up now, so that we can relocate module_init from
+init.h into module.h in the future.  If we don't do this, we'd
+have to add module.h to obviously non-modular code, and that
+would be a worse thing.
+
+Note that direct use of __initcall is discouraged, vs. one
+of the priority categorized subgroups.  As __initcall gets
+mapped onto device_initcall, our use of device_initcall
+directly in this change means that the runtime impact is
+zero -- it will remain at level 6 in initcall ordering.
+
+Cc: Ben Dooks <ben-linux@fluff.org>
 Cc: Kukjin Kim <kgene.kim@samsung.com>
-Cc: Corey Minyard <minyard@acm.org>
-Cc: Chris Metcalf <cmetcalf@tilera.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Peter Huewe <peterhuewe@gmx.de>
-Cc: Ashley Lai <ashley@ashleylai.com>
-Cc: Marcel Selhorst <tpmdd@selhorst.net>
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: patches@opensource.wolfsonmicro.com
+Cc: linux-arm-kernel@lists.infradead.org
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- drivers/char/agp/frontend.c          | 1 -
- drivers/char/agp/generic.c           | 1 -
- drivers/char/agp/intel-gtt.c         | 1 -
- drivers/char/agp/sgi-agp.c           | 1 -
- drivers/char/hw_random/bcm2835-rng.c | 1 -
- drivers/char/hw_random/core.c        | 1 -
- drivers/char/hw_random/exynos-rng.c  | 1 -
- drivers/char/hw_random/n2-drv.c      | 1 -
- drivers/char/hw_random/nomadik-rng.c | 1 -
- drivers/char/hw_random/octeon-rng.c  | 1 -
- drivers/char/ipmi/ipmi_si_intf.c     | 1 -
- drivers/char/mwave/3780i.c           | 1 -
- drivers/char/tile-srom.c             | 1 -
- drivers/char/tpm/tpm_i2c_infineon.c  | 1 -
- drivers/char/tpm/tpm_i2c_stm_st33.c  | 1 -
- 15 files changed, 15 deletions(-)
+ arch/arm/mach-s3c64xx/mach-crag6410-module.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/char/agp/frontend.c b/drivers/char/agp/frontend.c
-index 1b19239..8121b4c 100644
---- a/drivers/char/agp/frontend.c
-+++ b/drivers/char/agp/frontend.c
-@@ -31,7 +31,6 @@
- #include <linux/module.h>
- #include <linux/mman.h>
- #include <linux/pci.h>
--#include <linux/init.h>
- #include <linux/miscdevice.h>
- #include <linux/agp_backend.h>
- #include <linux/agpgart.h>
-diff --git a/drivers/char/agp/generic.c b/drivers/char/agp/generic.c
-index f39437a..0fbccce 100644
---- a/drivers/char/agp/generic.c
-+++ b/drivers/char/agp/generic.c
-@@ -29,7 +29,6 @@
-  */
- #include <linux/module.h>
- #include <linux/pci.h>
--#include <linux/init.h>
- #include <linux/pagemap.h>
- #include <linux/miscdevice.h>
- #include <linux/pm.h>
-diff --git a/drivers/char/agp/intel-gtt.c b/drivers/char/agp/intel-gtt.c
-index 5c85350..9a024f8 100644
---- a/drivers/char/agp/intel-gtt.c
-+++ b/drivers/char/agp/intel-gtt.c
-@@ -17,7 +17,6 @@
- 
- #include <linux/module.h>
- #include <linux/pci.h>
--#include <linux/init.h>
- #include <linux/kernel.h>
- #include <linux/pagemap.h>
- #include <linux/agp_backend.h>
-diff --git a/drivers/char/agp/sgi-agp.c b/drivers/char/agp/sgi-agp.c
-index 05b8d02..3051c73 100644
---- a/drivers/char/agp/sgi-agp.c
-+++ b/drivers/char/agp/sgi-agp.c
-@@ -15,7 +15,6 @@
- #include <linux/module.h>
- #include <linux/pci.h>
- #include <linux/slab.h>
--#include <linux/init.h>
- #include <linux/agp_backend.h>
- #include <asm/sn/addrs.h>
- #include <asm/sn/io.h>
-diff --git a/drivers/char/hw_random/bcm2835-rng.c b/drivers/char/hw_random/bcm2835-rng.c
-index 43577ca..8c3b255 100644
---- a/drivers/char/hw_random/bcm2835-rng.c
-+++ b/drivers/char/hw_random/bcm2835-rng.c
-@@ -8,7 +8,6 @@
-  */
- 
- #include <linux/hw_random.h>
--#include <linux/init.h>
- #include <linux/io.h>
- #include <linux/kernel.h>
- #include <linux/module.h>
-diff --git a/drivers/char/hw_random/core.c b/drivers/char/hw_random/core.c
-index a0f7724..b9495a8 100644
---- a/drivers/char/hw_random/core.c
-+++ b/drivers/char/hw_random/core.c
-@@ -37,7 +37,6 @@
- #include <linux/kernel.h>
- #include <linux/fs.h>
- #include <linux/sched.h>
--#include <linux/init.h>
- #include <linux/miscdevice.h>
- #include <linux/delay.h>
- #include <linux/slab.h>
-diff --git a/drivers/char/hw_random/exynos-rng.c b/drivers/char/hw_random/exynos-rng.c
-index 402ccfb..9f8277c 100644
---- a/drivers/char/hw_random/exynos-rng.c
-+++ b/drivers/char/hw_random/exynos-rng.c
-@@ -22,7 +22,6 @@
- #include <linux/hw_random.h>
- #include <linux/kernel.h>
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/io.h>
- #include <linux/platform_device.h>
- #include <linux/clk.h>
-diff --git a/drivers/char/hw_random/n2-drv.c b/drivers/char/hw_random/n2-drv.c
-index f9beed5..432232e 100644
---- a/drivers/char/hw_random/n2-drv.c
-+++ b/drivers/char/hw_random/n2-drv.c
-@@ -7,7 +7,6 @@
- #include <linux/module.h>
- #include <linux/types.h>
- #include <linux/delay.h>
--#include <linux/init.h>
- #include <linux/slab.h>
- #include <linux/workqueue.h>
- #include <linux/preempt.h>
-diff --git a/drivers/char/hw_random/nomadik-rng.c b/drivers/char/hw_random/nomadik-rng.c
-index 232b87f..00e9d2d 100644
---- a/drivers/char/hw_random/nomadik-rng.c
-+++ b/drivers/char/hw_random/nomadik-rng.c
-@@ -10,7 +10,6 @@
- 
- #include <linux/kernel.h>
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/device.h>
- #include <linux/amba/bus.h>
- #include <linux/hw_random.h>
-diff --git a/drivers/char/hw_random/octeon-rng.c b/drivers/char/hw_random/octeon-rng.c
-index f2885db..b5cc342 100644
---- a/drivers/char/hw_random/octeon-rng.c
-+++ b/drivers/char/hw_random/octeon-rng.c
-@@ -10,7 +10,6 @@
-  */
- 
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/platform_device.h>
- #include <linux/device.h>
- #include <linux/hw_random.h>
-diff --git a/drivers/char/ipmi/ipmi_si_intf.c b/drivers/char/ipmi/ipmi_si_intf.c
-index 15e4a60..4a2d7c6 100644
---- a/drivers/char/ipmi/ipmi_si_intf.c
-+++ b/drivers/char/ipmi/ipmi_si_intf.c
-@@ -61,7 +61,6 @@
- #include <linux/ipmi_smi.h>
- #include <asm/io.h>
- #include "ipmi_si_sm.h"
--#include <linux/init.h>
- #include <linux/dmi.h>
- #include <linux/string.h>
- #include <linux/ctype.h>
-diff --git a/drivers/char/mwave/3780i.c b/drivers/char/mwave/3780i.c
-index 881c9e5..2874004 100644
---- a/drivers/char/mwave/3780i.c
-+++ b/drivers/char/mwave/3780i.c
-@@ -50,7 +50,6 @@
- #include <linux/unistd.h>
- #include <linux/delay.h>
- #include <linux/ioport.h>
--#include <linux/init.h>
- #include <linux/bitops.h>
- #include <linux/sched.h>	/* cond_resched() */
- 
-diff --git a/drivers/char/tile-srom.c b/drivers/char/tile-srom.c
-index 0e506ba..bd37747 100644
---- a/drivers/char/tile-srom.c
-+++ b/drivers/char/tile-srom.c
-@@ -20,7 +20,6 @@
- 
- #include <linux/module.h>
- #include <linux/moduleparam.h>
--#include <linux/init.h>
- #include <linux/kernel.h>	/* printk() */
- #include <linux/slab.h>		/* kmalloc() */
- #include <linux/fs.h>		/* everything... */
-diff --git a/drivers/char/tpm/tpm_i2c_infineon.c b/drivers/char/tpm/tpm_i2c_infineon.c
-index 52b9b2b..472af4b 100644
---- a/drivers/char/tpm/tpm_i2c_infineon.c
-+++ b/drivers/char/tpm/tpm_i2c_infineon.c
-@@ -21,7 +21,6 @@
-  *
-  *
-  */
--#include <linux/init.h>
- #include <linux/i2c.h>
- #include <linux/module.h>
- #include <linux/wait.h>
-diff --git a/drivers/char/tpm/tpm_i2c_stm_st33.c b/drivers/char/tpm/tpm_i2c_stm_st33.c
-index 5b0dd8e..3b7bf21 100644
---- a/drivers/char/tpm/tpm_i2c_stm_st33.c
-+++ b/drivers/char/tpm/tpm_i2c_stm_st33.c
-@@ -38,7 +38,6 @@
- #include <linux/miscdevice.h>
- #include <linux/kernel.h>
- #include <linux/delay.h>
--#include <linux/init.h>
- #include <linux/wait.h>
- #include <linux/string.h>
- #include <linux/interrupt.h>
+diff --git a/arch/arm/mach-s3c64xx/mach-crag6410-module.c b/arch/arm/mach-s3c64xx/mach-crag6410-module.c
+index 7ccfef2..9c00d83 100644
+--- a/arch/arm/mach-s3c64xx/mach-crag6410-module.c
++++ b/arch/arm/mach-s3c64xx/mach-crag6410-module.c
+@@ -401,4 +401,4 @@ static int __init wlf_gf_module_register(void)
+ {
+ 	return i2c_add_driver(&wlf_gf_module_driver);
+ }
+-module_init(wlf_gf_module_register);
++device_initcall(wlf_gf_module_register);
 -- 
 1.8.4.1
