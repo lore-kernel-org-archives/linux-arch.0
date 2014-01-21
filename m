@@ -1,71 +1,50 @@
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 04/73] netfilter: don't use module_init/exit in core IPV4 code
-Date: Tue, 21 Jan 2014 16:22:07 -0500
-Message-ID: <1390339396-3479-5-git-send-email-paul.gortmaker@windriver.com>
+Subject: [PATCH 07/73] x86: replace __init_or_module with __init in non-modular vsmp_64.c
+Date: Tue, 21 Jan 2014 16:22:10 -0500
+Message-ID: <1390339396-3479-8-git-send-email-paul.gortmaker@windriver.com>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <netdev-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-Sender: netdev-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Patrick McHardy <kaber@trash.net>, Jozsef Kadlecsik <kadlec@blackhole.kfki.hu>, "David S. Miller" <davem@davemloft.net>, netfilter-devel@vger.kernel.org, netdev@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-The file net/ipv4/netfilter.o is created based on whether
-CONFIG_NETFILTER is set.  However that is defined as a bool, and
-hence this file with the core netfilter hooks will never be
-modular.  So using module_init as an alias for __initcall can be
-somewhat misleading.
+The __init_or_module is from commit 05e12e1c4c09cd35ac9f4e6af1e
+("x86: fix 27-rc crash on vsmp due to paravirt during module load").
 
-Fix this up now, so that we can relocate module_init from
-init.h into module.h in the future.  If we don't do this, we'd
-have to add module.h to obviously non-modular code, and that
-would be a worse thing.  Also add an inclusion of init.h, as
-that was previously implicit here in the netfilter.c file.
+But as of commit 70511134f61bd6e5eed19f767381f9fb3e762d49
+("Revert "x86: don't compile vsmp_64 for 32bit") this file
+became obj-y and hence is now only for built-in.  That makes
+any "_or_module" support no longer necessary.
 
-Note that direct use of __initcall is discouraged, vs. one
-of the priority categorized subgroups.  As __initcall gets
-mapped onto device_initcall, our use of subsys_initcall (which
-seems to make sense for netfilter code) will thus change this
-registration from level 6-device to level 4-subsys (i.e. slightly
-earlier).  However no observable impact of that small difference
-has been observed during testing, or is expected. (i.e. the
-location of the netfilter messages in dmesg remains unchanged
-with respect to all the other surrounding messages.)
+We need to distinguish between the two in order to do some
+header reorganization between init.h and module.h and we
+don't want to be including module.h in non-modular code.
 
-As for the module_exit, rather than replace it with __exitcall,
-we simply remove it, since it appears only UML does anything
-with those, and even for UML, there is no relevant cleanup
-to be done here.
-
-Cc: Pablo Neira Ayuso <pablo@netfilter.org>
-Cc: Patrick McHardy <kaber@trash.net>
-Cc: Jozsef Kadlecsik <kadlec@blackhole.kfki.hu>
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: netfilter-devel@vger.kernel.org
-Cc: netdev@vger.kernel.org
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- net/ipv4/netfilter.c | 9 +--------
- 1 file changed, 1 insertion(+), 8 deletions(-)
+ arch/x86/kernel/vsmp_64.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/net/ipv4/netfilter.c b/net/ipv4/netfilter.c
-index c3e0ade..31abf96 100644
---- a/net/ipv4/netfilter.c
-+++ b/net/ipv4/netfilter.c
-@@ -197,11 +197,4 @@ static int __init ipv4_netfilter_init(void)
- {
- 	return nf_register_afinfo(&nf_ip_afinfo);
+diff --git a/arch/x86/kernel/vsmp_64.c b/arch/x86/kernel/vsmp_64.c
+index 992f890..e72ec17 100644
+--- a/arch/x86/kernel/vsmp_64.c
++++ b/arch/x86/kernel/vsmp_64.c
+@@ -69,7 +69,7 @@ static void vsmp_irq_enable(void)
  }
--
--static void __exit ipv4_netfilter_fini(void)
--{
--	nf_unregister_afinfo(&nf_ip_afinfo);
--}
--
--module_init(ipv4_netfilter_init);
--module_exit(ipv4_netfilter_fini);
-+device_initcall(ipv4_netfilter_init);
+ PV_CALLEE_SAVE_REGS_THUNK(vsmp_irq_enable);
+ 
+-static unsigned __init_or_module vsmp_patch(u8 type, u16 clobbers, void *ibuf,
++static unsigned __init vsmp_patch(u8 type, u16 clobbers, void *ibuf,
+ 				  unsigned long addr, unsigned len)
+ {
+ 	switch (type) {
 -- 
 1.8.4.1
