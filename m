@@ -1,24 +1,113 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v9 4/5] qrwlock: Use smp_store_release() in write_unlock()
-Date: Tue, 21 Jan 2014 16:49:54 +0100
-Message-ID: <20140121154954.GC31570@twins.programming.kicks-ass.net>
-References: <1389761047-47566-1-git-send-email-Waiman.Long@hp.com>
- <1389761047-47566-5-git-send-email-Waiman.Long@hp.com>
- <20140120151855.GH30183@twins.programming.kicks-ass.net>
- <52DE9626.3030806@hp.com>
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH v9 1/5] qrwlock: A queue read/write lock implementation
+Date: Tue, 21 Jan 2014 10:58:23 -0500
+Message-ID: <52DE991F.1030900@hp.com>
+References: <1389761047-47566-1-git-send-email-Waiman.Long@hp.com> <1389761047-47566-2-git-send-email-Waiman.Long@hp.com> <20140120152129.GH31570@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <52DE9626.3030806@hp.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Waiman Long <waiman.long@hp.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from g6t0187.atlanta.hp.com ([15.193.32.64]:14080 "EHLO
+	g6t0187.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754836AbaAUP63 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 10:58:29 -0500
+In-Reply-To: <20140120152129.GH31570@twins.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, aswin@hp.com, Scott J Norton <scott.norton@hp.com>
-List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 21, 2014 at 10:45:42AM -0500, Waiman Long wrote:
-> I can change the logic to use only cmpxchg for readers, but I don't see a
-> compelling reason to do so.
+On 01/20/2014 10:21 AM, Peter Zijlstra wrote:
+> On Tue, Jan 14, 2014 at 11:44:03PM -0500, Waiman Long wrote:
+>> +#ifndef arch_mutex_cpu_relax
+>> +# define arch_mutex_cpu_relax() cpu_relax()
+>> +#endif
+> Include<linux/mutex.h>
+>
 
-The fact that you can then use smp_store_release() is fairly compelling
-methinks.
+Will do so.
+
+>> +#ifndef smp_load_acquire
+>> +# ifdef CONFIG_X86
+>> +#   define smp_load_acquire(p)				\
+>> +	({						\
+>> +		typeof(*p) ___p1 = ACCESS_ONCE(*p);	\
+>> +		barrier();				\
+>> +		___p1;					\
+>> +	})
+>> +# else
+>> +#   define smp_load_acquire(p)				\
+>> +	({						\
+>> +		typeof(*p) ___p1 = ACCESS_ONCE(*p);	\
+>> +		smp_mb();				\
+>> +		___p1;					\
+>> +	})
+>> +# endif
+>> +#endif
+>> +
+>> +#ifndef smp_store_release
+>> +# ifdef CONFIG_X86
+>> +#   define smp_store_release(p, v)			\
+>> +	do {						\
+>> +		barrier();				\
+>> +		ACCESS_ONCE(*p) = v;			\
+>> +	} while (0)
+>> +# else
+>> +#   define smp_store_release(p, v)			\
+>> +	do {						\
+>> +		smp_mb();				\
+>> +		ACCESS_ONCE(*p) = v;			\
+>> +	} while (0)
+>> +# endif
+>> +#endif
+> Remove these.
+
+Will do that.
+
+>> +/*
+>> + * If an xadd (exchange-add) macro isn't available, simulate one with
+>> + * the atomic_add_return() function.
+>> + */
+>> +#ifdef xadd
+>> +# define qrw_xadd(rw, inc)	xadd(&(rw).rwc, inc)
+>> +#else
+>> +# define qrw_xadd(rw, inc)	(u32)(atomic_add_return(inc,&(rw).rwa) - inc)
+>> +#endif
+> Is GCC really so stupid that you cannot always use the
+> atomic_add_return()? The x86 atomic_add_return is i + xadd(), so you'll
+> end up with:
+>
+>   i + xadd() - i
+>
+> Surely it can just remove the two i terms?
+
+I guess gcc should do the right thing. I will remove the macro.
+
+>> +/**
+>> + * wait_in_queue - Add to queue and wait until it is at the head
+>> + * @lock: Pointer to queue rwlock structure
+>> + * @node: Node pointer to be added to the queue
+>> + */
+>> +static inline void wait_in_queue(struct qrwlock *lock, struct qrwnode *node)
+>> +{
+>> +	struct qrwnode *prev;
+>> +
+>> +	node->next = NULL;
+>> +	node->wait = true;
+>> +	prev = xchg(&lock->waitq, node);
+>> +	if (prev) {
+>> +		prev->next = node;
+>> +		/*
+>> +		 * Wait until the waiting flag is off
+>> +		 */
+>> +		while (smp_load_acquire(&node->wait))
+>> +			arch_mutex_cpu_relax();
+>> +	}
+>> +}
+> Please rebase on top of the MCS lock patches such that this is gone.
+
+I would like to keep this as long as the MCS patches have not been 
+merged into tip. However, I will take that out if the MCS patches are in 
+when I need to revise the qrwlock patches.
+
+-Longman
