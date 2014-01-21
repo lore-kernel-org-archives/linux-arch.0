@@ -1,62 +1,121 @@
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 19/73] arm: mach-s3c64xx mach-crag6410-module.c is not modular
-Date: Tue, 21 Jan 2014 16:22:22 -0500
-Message-ID: <1390339396-3479-20-git-send-email-paul.gortmaker@windriver.com>
+Subject: [PATCH 71/73] drivers/gpu: delete non-required instances of <linux/init.h>
+Date: Tue, 21 Jan 2014 16:23:14 -0500
+Message-ID: <1390339396-3479-72-git-send-email-paul.gortmaker@windriver.com>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Kukjin Kim <kgene.kim@samsung.com>, Russell King <linux@arm.linux.org.uk>, patches@opensource.wolfsonmicro.com, Paul Gortmaker <paul.gortmaker@windriver.com>, Ben Dooks <ben-linux@fluff.org>, linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, David Airlie <airlied@linux.ie>, Daniel Vetter <daniel.vetter@ffwll.ch>, Jani Nikula <jani.nikula@linux.intel.com>, dri-devel@lists.freedesktop.org, intel-gfx@lists.freedesktop.org
 List-Id: linux-arch.vger.kernel.org
 
-Despite the name mach-crag6410-module.c, the code is built for
-MACH_WLF_CRAGG_6410 -- which is bool, and hence this code is
-either present or absent.  It will never be modular, so using
-module_init as an alias for __initcall can be somewhat
-misleading.
+None of these files are actually using any __init type directives
+and hence don't need to include <linux/init.h>.  Most are just a
+left over from __devinit and __cpuinit removal, or simply due to
+code getting copied from one driver to the next.
 
-Fix this up now, so that we can relocate module_init from
-init.h into module.h in the future.  If we don't do this, we'd
-have to add module.h to obviously non-modular code, and that
-would be a worse thing.
-
-Note that direct use of __initcall is discouraged, vs. one
-of the priority categorized subgroups.  As __initcall gets
-mapped onto device_initcall, our use of device_initcall
-directly in this change means that the runtime impact is
-zero -- it will remain at level 6 in initcall ordering.
-
-Cc: Ben Dooks <ben-linux@fluff.org>
-Cc: Kukjin Kim <kgene.kim@samsung.com>
-Cc: Russell King <linux@arm.linux.org.uk>
-Cc: patches@opensource.wolfsonmicro.com
-Cc: linux-arm-kernel@lists.infradead.org
+Cc: David Airlie <airlied@linux.ie>
+Cc: Daniel Vetter <daniel.vetter@ffwll.ch>
+Cc: Jani Nikula <jani.nikula@linux.intel.com>
+Cc: dri-devel@lists.freedesktop.org
+Cc: intel-gfx@lists.freedesktop.org
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- arch/arm/mach-s3c64xx/mach-crag6410-module.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ drivers/gpu/drm/ast/ast_fb.c             | 1 -
+ drivers/gpu/drm/drm_dp_helper.c          | 1 -
+ drivers/gpu/drm/gma500/accel_2d.c        | 1 -
+ drivers/gpu/drm/gma500/framebuffer.c     | 1 -
+ drivers/gpu/drm/i915/intel_fbdev.c       | 1 -
+ drivers/gpu/drm/nouveau/nouveau_fbcon.c  | 1 -
+ drivers/gpu/drm/omapdrm/omap_dmm_tiler.c | 1 -
+ 7 files changed, 7 deletions(-)
 
-diff --git a/arch/arm/mach-s3c64xx/mach-crag6410-module.c b/arch/arm/mach-s3c64xx/mach-crag6410-module.c
-index 7ccfef2..9c00d83 100644
---- a/arch/arm/mach-s3c64xx/mach-crag6410-module.c
-+++ b/arch/arm/mach-s3c64xx/mach-crag6410-module.c
-@@ -401,4 +401,4 @@ static int __init wlf_gf_module_register(void)
- {
- 	return i2c_add_driver(&wlf_gf_module_driver);
- }
--module_init(wlf_gf_module_register);
-+device_initcall(wlf_gf_module_register);
+diff --git a/drivers/gpu/drm/ast/ast_fb.c b/drivers/gpu/drm/ast/ast_fb.c
+index 7b33e14..e4a35c1 100644
+--- a/drivers/gpu/drm/ast/ast_fb.c
++++ b/drivers/gpu/drm/ast/ast_fb.c
+@@ -34,7 +34,6 @@
+ #include <linux/sysrq.h>
+ #include <linux/delay.h>
+ #include <linux/fb.h>
+-#include <linux/init.h>
+ 
+ 
+ #include <drm/drmP.h>
+diff --git a/drivers/gpu/drm/drm_dp_helper.c b/drivers/gpu/drm/drm_dp_helper.c
+index 9e978aa..d96e445 100644
+--- a/drivers/gpu/drm/drm_dp_helper.c
++++ b/drivers/gpu/drm/drm_dp_helper.c
+@@ -23,7 +23,6 @@
+ #include <linux/kernel.h>
+ #include <linux/module.h>
+ #include <linux/delay.h>
+-#include <linux/init.h>
+ #include <linux/errno.h>
+ #include <linux/sched.h>
+ #include <linux/i2c.h>
+diff --git a/drivers/gpu/drm/gma500/accel_2d.c b/drivers/gpu/drm/gma500/accel_2d.c
+index de6f62a..426e8dd 100644
+--- a/drivers/gpu/drm/gma500/accel_2d.c
++++ b/drivers/gpu/drm/gma500/accel_2d.c
+@@ -29,7 +29,6 @@
+ #include <linux/slab.h>
+ #include <linux/delay.h>
+ #include <linux/fb.h>
+-#include <linux/init.h>
+ #include <linux/console.h>
+ 
+ #include <drm/drmP.h>
+diff --git a/drivers/gpu/drm/gma500/framebuffer.c b/drivers/gpu/drm/gma500/framebuffer.c
+index 94b3fec..6a3aa1b 100644
+--- a/drivers/gpu/drm/gma500/framebuffer.c
++++ b/drivers/gpu/drm/gma500/framebuffer.c
+@@ -26,7 +26,6 @@
+ #include <linux/slab.h>
+ #include <linux/delay.h>
+ #include <linux/fb.h>
+-#include <linux/init.h>
+ #include <linux/console.h>
+ 
+ #include <drm/drmP.h>
+diff --git a/drivers/gpu/drm/i915/intel_fbdev.c b/drivers/gpu/drm/i915/intel_fbdev.c
+index 39eac99..de80c29 100644
+--- a/drivers/gpu/drm/i915/intel_fbdev.c
++++ b/drivers/gpu/drm/i915/intel_fbdev.c
+@@ -33,7 +33,6 @@
+ #include <linux/sysrq.h>
+ #include <linux/delay.h>
+ #include <linux/fb.h>
+-#include <linux/init.h>
+ #include <linux/vga_switcheroo.h>
+ 
+ #include <drm/drmP.h>
+diff --git a/drivers/gpu/drm/nouveau/nouveau_fbcon.c b/drivers/gpu/drm/nouveau/nouveau_fbcon.c
+index 7903e0e..3da3999 100644
+--- a/drivers/gpu/drm/nouveau/nouveau_fbcon.c
++++ b/drivers/gpu/drm/nouveau/nouveau_fbcon.c
+@@ -33,7 +33,6 @@
+ #include <linux/sysrq.h>
+ #include <linux/delay.h>
+ #include <linux/fb.h>
+-#include <linux/init.h>
+ #include <linux/screen_info.h>
+ #include <linux/vga_switcheroo.h>
+ #include <linux/console.h>
+diff --git a/drivers/gpu/drm/omapdrm/omap_dmm_tiler.c b/drivers/gpu/drm/omapdrm/omap_dmm_tiler.c
+index 701c4c1..d7f1c85 100644
+--- a/drivers/gpu/drm/omapdrm/omap_dmm_tiler.c
++++ b/drivers/gpu/drm/omapdrm/omap_dmm_tiler.c
+@@ -15,7 +15,6 @@
+  * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  * GNU General Public License for more details.
+  */
+-#include <linux/init.h>
+ #include <linux/module.h>
+ #include <linux/platform_device.h> /* platform_device() */
+ #include <linux/errno.h>
 -- 
 1.8.4.1
