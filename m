@@ -1,44 +1,36 @@
-From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 30/73] drivers/i2c: busses/i2c-acorn.c is tristate and should use module.h
-Date: Tue, 21 Jan 2014 16:22:33 -0500
-Message-ID: <1390339396-3479-31-git-send-email-paul.gortmaker@windriver.com>
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [PATCH 67/73] drivers/base: delete non-required instances of
+ include <linux/init.h>
+Date: Tue, 21 Jan 2014 22:42:22 +0100
+Message-ID: <20140121214222.GA22933@amd.pavel.ucw.cz>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
+ <1390339396-3479-68-git-send-email-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Wolfram Sang <wsa@the-dreams.de>, linux-i2c@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from atrey.karlin.mff.cuni.cz ([195.113.26.193]:43775 "EHLO
+	atrey.karlin.mff.cuni.cz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754449AbaAUVmY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:42:24 -0500
+Content-Disposition: inline
+In-Reply-To: <1390339396-3479-68-git-send-email-paul.gortmaker@windriver.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Paul Gortmaker <paul.gortmaker@windriver.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Len Brown <len.brown@intel.com>, Mark Brown <broonie@kernel.org>, linux-pm@vger.kernel.org
 
-This file is controlled by a tristate Kconfig option, and hence
-needs to include module.h so that it can get module_init() once
-we relocate it from init.h into module.h in the future.
+Hi!
 
-Note that module_exit() appears to be missing from the driver, so
-it is questionable whether it would actually work for a removal
-and reload cycle if it was configured for a modular build.
+> None of these files are actually using any __init type directives
+> and hence don't need to include <linux/init.h>.  Most are just a
+> left over from __devinit and __cpuinit removal, or simply due to
+> code getting copied from one driver to the next.
+> 
+> Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
-Cc: Wolfram Sang <wsa@the-dreams.de>
-Cc: linux-i2c@vger.kernel.org
-Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
----
- drivers/i2c/busses/i2c-acorn.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+Looks good to me.
 
-diff --git a/drivers/i2c/busses/i2c-acorn.c b/drivers/i2c/busses/i2c-acorn.c
-index ed9f48d..9d7be5a 100644
---- a/drivers/i2c/busses/i2c-acorn.c
-+++ b/drivers/i2c/busses/i2c-acorn.c
-@@ -12,7 +12,7 @@
-  *  On Acorn machines, the following i2c devices are on the bus:
-  *	- PCF8583 real time clock & static RAM
-  */
--#include <linux/init.h>
-+#include <linux/module.h>
- #include <linux/i2c.h>
- #include <linux/i2c-algo-bit.h>
- #include <linux/io.h>
+Acked-by: Pavel Machek <pavel@ucw.cz>
 -- 
-1.8.4.1
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
