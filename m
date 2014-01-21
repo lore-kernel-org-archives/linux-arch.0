@@ -1,138 +1,102 @@
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 65/73] drivers/edac: delete non-required instances of include <linux/init.h>
-Date: Tue, 21 Jan 2014 16:23:08 -0500
-Message-ID: <1390339396-3479-66-git-send-email-paul.gortmaker@windriver.com>
+Subject: [PATCH 28/73] cpuidle: don't use modular platform register in
+ non-modular ARM drivers
+Date: Tue, 21 Jan 2014 16:22:31 -0500
+Message-ID: <1390339396-3479-29-git-send-email-paul.gortmaker@windriver.com>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.windriver.com ([147.11.146.13]:50852 "EHLO
-	mail1.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932101AbaAUV0N (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:26:13 -0500
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Doug Thompson <dougthompson@xmission.com>, Borislav Petkov <bp@alien8.de>, Ralf Baechle <ralf@linux-mips.org>, David Daney <david.daney@cavium.com>, linux-edac@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, Daniel Lezcano <daniel.lezcano@linaro.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Michal Simek <michal.simek@xilinx.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-None of these files are actually using any __init type directives
-and hence don't need to include <linux/init.h>.  Most are just a
-left over from __devinit and __cpuinit removal, or simply due to
-code getting copied from one driver to the next.
+These two drivers are configured with Kconfig options that are
+both declared as bool.  Hence it is not possible for the code
+to be built as modular.  However the code is currently using the
+module_platform_driver() macro for driver registration.
 
-Cc: Doug Thompson <dougthompson@xmission.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: David Daney <david.daney@cavium.com>
-Cc: linux-edac@vger.kernel.org
+While this currently works, we really don't want to be including
+the module.h header in non-modular code, which we'll be forced
+to do, pending some upcoming code relocation from init.h into
+module.h.  So we fix it now by using the non-modular equivalent.
+
+With some macro detangulation, and a little help from cpp, we can
+see that module_platform_driver(calxeda_cpuidle_plat_driver) gets
+roughly translated into:
+
+  static int __init calxeda_cpuidle_plat_driver_init(void)
+  {
+        return platform_driver_register(&calxeda_cpuidle_plat_driver);
+  }
+  module_init(calxeda_cpuidle_plat_driver_init);
+
+  static void __exit calxeda_cpuidle_plat_driver_exit(void)
+  {
+        platform_driver_unregister(&calxeda_cpuidle_plat_driver);
+  }
+  module_exit(calxeda_cpuidle_plat_driver_exit);
+
+[and similarly for the other file, cpuidle-zynq.c]
+
+And since we've already established that the code is non-modular,
+we can completely drop any code relating to module_exit.  For non
+modular code, module_init beomes __initcall.  But direct use of
+__initcall is discouraged, vs. one of the priority categorized
+subgroups.  As __initcall gets mapped onto device_initcall, our
+use of device_initcall directly in this change means that the
+runtime impact is zero -- they will remain at level 6 in the
+initcall ordering.
+
+Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+Cc: Daniel Lezcano <daniel.lezcano@linaro.org>
+Cc: Michal Simek <michal.simek@xilinx.com>
+Cc: linux-pm@vger.kernel.org
+Cc: linux-arm-kernel@lists.infradead.org
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- drivers/edac/amd64_edac.h      | 1 -
- drivers/edac/edac_device.c     | 1 -
- drivers/edac/edac_mc.c         | 1 -
- drivers/edac/edac_pci.c        | 1 -
- drivers/edac/octeon_edac-l2c.c | 1 -
- drivers/edac/octeon_edac-lmc.c | 1 -
- drivers/edac/octeon_edac-pc.c  | 1 -
- drivers/edac/octeon_edac-pci.c | 1 -
- 8 files changed, 8 deletions(-)
+ drivers/cpuidle/cpuidle-calxeda.c | 6 +++++-
+ drivers/cpuidle/cpuidle-zynq.c    | 6 +++++-
+ 2 files changed, 10 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/edac/amd64_edac.h b/drivers/edac/amd64_edac.h
-index 6dc1fcc..75d2d12 100644
---- a/drivers/edac/amd64_edac.h
-+++ b/drivers/edac/amd64_edac.h
-@@ -64,7 +64,6 @@
+diff --git a/drivers/cpuidle/cpuidle-calxeda.c b/drivers/cpuidle/cpuidle-calxeda.c
+index 6e51114..631e2cd 100644
+--- a/drivers/cpuidle/cpuidle-calxeda.c
++++ b/drivers/cpuidle/cpuidle-calxeda.c
+@@ -78,4 +78,8 @@ static struct platform_driver calxeda_cpuidle_plat_driver = {
+         .probe = calxeda_cpuidle_probe,
+ };
  
- #include <linux/module.h>
- #include <linux/ctype.h>
--#include <linux/init.h>
- #include <linux/pci.h>
- #include <linux/pci_ids.h>
- #include <linux/slab.h>
-diff --git a/drivers/edac/edac_device.c b/drivers/edac/edac_device.c
-index 592af5f..8c3f104 100644
---- a/drivers/edac/edac_device.c
-+++ b/drivers/edac/edac_device.c
-@@ -15,7 +15,6 @@
- #include <linux/module.h>
- #include <linux/types.h>
- #include <linux/smp.h>
--#include <linux/init.h>
- #include <linux/sysctl.h>
- #include <linux/highmem.h>
- #include <linux/timer.h>
-diff --git a/drivers/edac/edac_mc.c b/drivers/edac/edac_mc.c
-index e8c9ef0..b20ecb7 100644
---- a/drivers/edac/edac_mc.c
-+++ b/drivers/edac/edac_mc.c
-@@ -17,7 +17,6 @@
- #include <linux/kernel.h>
- #include <linux/types.h>
- #include <linux/smp.h>
--#include <linux/init.h>
- #include <linux/sysctl.h>
- #include <linux/highmem.h>
- #include <linux/timer.h>
-diff --git a/drivers/edac/edac_pci.c b/drivers/edac/edac_pci.c
-index 2cf44b4d..90dd64f 100644
---- a/drivers/edac/edac_pci.c
-+++ b/drivers/edac/edac_pci.c
-@@ -12,7 +12,6 @@
- #include <linux/module.h>
- #include <linux/types.h>
- #include <linux/smp.h>
--#include <linux/init.h>
- #include <linux/sysctl.h>
- #include <linux/highmem.h>
- #include <linux/timer.h>
-diff --git a/drivers/edac/octeon_edac-l2c.c b/drivers/edac/octeon_edac-l2c.c
-index 7e98084..c049af4 100644
---- a/drivers/edac/octeon_edac-l2c.c
-+++ b/drivers/edac/octeon_edac-l2c.c
-@@ -9,7 +9,6 @@
-  *   written by Ralf Baechle <ralf@linux-mips.org>
-  */
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/slab.h>
- #include <linux/io.h>
- #include <linux/edac.h>
-diff --git a/drivers/edac/octeon_edac-lmc.c b/drivers/edac/octeon_edac-lmc.c
-index 93412d6..3c0d68c 100644
---- a/drivers/edac/octeon_edac-lmc.c
-+++ b/drivers/edac/octeon_edac-lmc.c
-@@ -7,7 +7,6 @@
-  *   written by Ralf Baechle <ralf@linux-mips.org>
-  */
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/slab.h>
- #include <linux/io.h>
- #include <linux/edac.h>
-diff --git a/drivers/edac/octeon_edac-pc.c b/drivers/edac/octeon_edac-pc.c
-index 0f83c33..e32cf48 100644
---- a/drivers/edac/octeon_edac-pc.c
-+++ b/drivers/edac/octeon_edac-pc.c
-@@ -9,7 +9,6 @@
-  *   written by Ralf Baechle <ralf@linux-mips.org>
-  */
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/slab.h>
- #include <linux/interrupt.h>
- #include <linux/io.h>
-diff --git a/drivers/edac/octeon_edac-pci.c b/drivers/edac/octeon_edac-pci.c
-index 9ca73ce..fdf0b42 100644
---- a/drivers/edac/octeon_edac-pci.c
-+++ b/drivers/edac/octeon_edac-pci.c
-@@ -8,7 +8,6 @@
-  *   written by Ralf Baechle <ralf@linux-mips.org>
-  */
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/slab.h>
- #include <linux/io.h>
- #include <linux/edac.h>
+-module_platform_driver(calxeda_cpuidle_plat_driver);
++static int __init calxeda_cpuidle_plat_driver_init(void)
++{
++	return platform_driver_register(&calxeda_cpuidle_plat_driver);
++}
++device_initcall(calxeda_cpuidle_plat_driver_init);
+diff --git a/drivers/cpuidle/cpuidle-zynq.c b/drivers/cpuidle/cpuidle-zynq.c
+index aded759..a1aae51 100644
+--- a/drivers/cpuidle/cpuidle-zynq.c
++++ b/drivers/cpuidle/cpuidle-zynq.c
+@@ -85,4 +85,8 @@ static struct platform_driver zynq_cpuidle_driver = {
+ 	.probe = zynq_cpuidle_probe,
+ };
+ 
+-module_platform_driver(zynq_cpuidle_driver);
++static int __init zynq_cpuidle_driver_init(void)
++{
++	return platform_driver_register(&zynq_cpuidle_driver);
++}
++device_initcall(zynq_cpuidle_driver_init);
 -- 
 1.8.4.1
