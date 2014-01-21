@@ -1,113 +1,56 @@
 From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v9 1/5] qrwlock: A queue read/write lock implementation
-Date: Tue, 21 Jan 2014 10:58:23 -0500
-Message-ID: <52DE991F.1030900@hp.com>
-References: <1389761047-47566-1-git-send-email-Waiman.Long@hp.com> <1389761047-47566-2-git-send-email-Waiman.Long@hp.com> <20140120152129.GH31570@twins.programming.kicks-ass.net>
+Subject: Re: [PATCH v9 2/5] qrwlock x86: Enable x86 to use queue read/write
+ lock
+Date: Tue, 21 Jan 2014 11:00:58 -0500
+Message-ID: <52DE99BA.1090204@hp.com>
+References: <1389761047-47566-1-git-send-email-Waiman.Long@hp.com> <1389761047-47566-3-git-send-email-Waiman.Long@hp.com> <20140120160806.GI30183@twins.programming.kicks-ass.net> <20140120111630.7ceb0aa5@gandalf.local.home>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g6t0187.atlanta.hp.com ([15.193.32.64]:14080 "EHLO
-	g6t0187.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754836AbaAUP63 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 10:58:29 -0500
-In-Reply-To: <20140120152129.GH31570@twins.programming.kicks-ass.net>
+Received: from g5t0009.atlanta.hp.com ([15.192.0.46]:41651 "EHLO
+	g5t0009.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754466AbaAUQBC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 11:01:02 -0500
+In-Reply-To: <20140120111630.7ceb0aa5@gandalf.local.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, aswin@hp.com, Scott J Norton <scott.norton@hp.com>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, aswin@hp.com, Scott J Norton <scott.norton@hp.com>
 
-On 01/20/2014 10:21 AM, Peter Zijlstra wrote:
-> On Tue, Jan 14, 2014 at 11:44:03PM -0500, Waiman Long wrote:
->> +#ifndef arch_mutex_cpu_relax
->> +# define arch_mutex_cpu_relax() cpu_relax()
->> +#endif
-> Include<linux/mutex.h>
+On 01/20/2014 11:16 AM, Steven Rostedt wrote:
+> On Mon, 20 Jan 2014 17:08:06 +0100
+> Peter Zijlstra<peterz@infradead.org>  wrote:
 >
-
-Will do so.
-
->> +#ifndef smp_load_acquire
->> +# ifdef CONFIG_X86
->> +#   define smp_load_acquire(p)				\
->> +	({						\
->> +		typeof(*p) ___p1 = ACCESS_ONCE(*p);	\
->> +		barrier();				\
->> +		___p1;					\
->> +	})
->> +# else
->> +#   define smp_load_acquire(p)				\
->> +	({						\
->> +		typeof(*p) ___p1 = ACCESS_ONCE(*p);	\
->> +		smp_mb();				\
->> +		___p1;					\
->> +	})
->> +# endif
->> +#endif
->> +
->> +#ifndef smp_store_release
->> +# ifdef CONFIG_X86
->> +#   define smp_store_release(p, v)			\
->> +	do {						\
->> +		barrier();				\
->> +		ACCESS_ONCE(*p) = v;			\
->> +	} while (0)
->> +# else
->> +#   define smp_store_release(p, v)			\
->> +	do {						\
->> +		smp_mb();				\
->> +		ACCESS_ONCE(*p) = v;			\
->> +	} while (0)
->> +# endif
->> +#endif
-> Remove these.
-
-Will do that.
-
->> +/*
->> + * If an xadd (exchange-add) macro isn't available, simulate one with
->> + * the atomic_add_return() function.
->> + */
->> +#ifdef xadd
->> +# define qrw_xadd(rw, inc)	xadd(&(rw).rwc, inc)
->> +#else
->> +# define qrw_xadd(rw, inc)	(u32)(atomic_add_return(inc,&(rw).rwa) - inc)
->> +#endif
-> Is GCC really so stupid that you cannot always use the
-> atomic_add_return()? The x86 atomic_add_return is i + xadd(), so you'll
-> end up with:
+>> On Tue, Jan 14, 2014 at 11:44:04PM -0500, Waiman Long wrote:
+>>> This patch makes the necessary changes at the x86 architecture specific
+>>> layer to enable the presence of the CONFIG_QUEUE_RWLOCK kernel option
+>>> to replace the read/write lock by the queue read/write lock.
+>>>
+>>> It also enables the CONFIG_QUEUE_RWLOCK option by default for x86 which
+>>> will force the use of queue read/write lock. That will greatly improve
+>>> the fairness of read/write lock and eliminate live-lock situation
+>>> where one task may not get the lock for an indefinite period of time.
+>>>
+>>> Signed-off-by: Waiman Long<Waiman.Long@hp.com>
+>>> Reviewed-by: Paul E. McKenney<paulmck@linux.vnet.ibm.com>
+>>> ---
+>>>   arch/x86/Kconfig                      |    1 +
+>>>   arch/x86/include/asm/spinlock.h       |    2 ++
+>>>   arch/x86/include/asm/spinlock_types.h |    4 ++++
+>>>   3 files changed, 7 insertions(+), 0 deletions(-)
+>> This patch doesn't have nearly enough -, you should rip out all traces
+>> of the old rwlock. There's no point in having it configurable, either
+>> qrwlock is good or not.
+> Although having something that switches back to the old method gives
+> more users the way to compare. Especially to catch any regressions.
 >
->   i + xadd() - i
+> Make one release with it configurable, then drop it.
 >
-> Surely it can just remove the two i terms?
+> -- Steve
 
-I guess gcc should do the right thing. I will remove the macro.
-
->> +/**
->> + * wait_in_queue - Add to queue and wait until it is at the head
->> + * @lock: Pointer to queue rwlock structure
->> + * @node: Node pointer to be added to the queue
->> + */
->> +static inline void wait_in_queue(struct qrwlock *lock, struct qrwnode *node)
->> +{
->> +	struct qrwnode *prev;
->> +
->> +	node->next = NULL;
->> +	node->wait = true;
->> +	prev = xchg(&lock->waitq, node);
->> +	if (prev) {
->> +		prev->next = node;
->> +		/*
->> +		 * Wait until the waiting flag is off
->> +		 */
->> +		while (smp_load_acquire(&node->wait))
->> +			arch_mutex_cpu_relax();
->> +	}
->> +}
-> Please rebase on top of the MCS lock patches such that this is gone.
-
-I would like to keep this as long as the MCS patches have not been 
-merged into tip. However, I will take that out if the MCS patches are in 
-when I need to revise the qrwlock patches.
+Yes, I agree that it will be more prudent to leave the original rwlock 
+implementation there for one or two release cycles before getting rid of 
+them entirely.
 
 -Longman
