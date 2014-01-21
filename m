@@ -1,79 +1,71 @@
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 01/73] init: delete the __cpuinit related stubs
-Date: Tue, 21 Jan 2014 16:22:04 -0500
-Message-ID: <1390339396-3479-2-git-send-email-paul.gortmaker@windriver.com>
+Subject: [PATCH 04/73] netfilter: don't use module_init/exit in core IPV4 code
+Date: Tue, 21 Jan 2014 16:22:07 -0500
+Message-ID: <1390339396-3479-5-git-send-email-paul.gortmaker@windriver.com>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.windriver.com ([147.11.146.13]:50566 "EHLO
-	mail1.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753303AbaAUVYE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:24:04 -0500
+Return-path: <netdev-owner@vger.kernel.org>
 In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: netdev-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Andrew Morton <akpm@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Pablo Neira Ayuso <pablo@netfilter.org>, Patrick McHardy <kaber@trash.net>, Jozsef Kadlecsik <kadlec@blackhole.kfki.hu>, "David S. Miller" <davem@davemloft.net>, netfilter-devel@vger.kernel.org, netdev@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-The __cpuinit support was removed several releases ago.  People
-have had a chance to update their out of tree code, so now we
-remove the no-op stubs.
+The file net/ipv4/netfilter.o is created based on whether
+CONFIG_NETFILTER is set.  However that is defined as a bool, and
+hence this file with the core netfilter hooks will never be
+modular.  So using module_init as an alias for __initcall can be
+somewhat misleading.
 
-Also delete the mention of __cpuinitdata from the tag script.
+Fix this up now, so that we can relocate module_init from
+init.h into module.h in the future.  If we don't do this, we'd
+have to add module.h to obviously non-modular code, and that
+would be a worse thing.  Also add an inclusion of init.h, as
+that was previously implicit here in the netfilter.c file.
 
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Note that direct use of __initcall is discouraged, vs. one
+of the priority categorized subgroups.  As __initcall gets
+mapped onto device_initcall, our use of subsys_initcall (which
+seems to make sense for netfilter code) will thus change this
+registration from level 6-device to level 4-subsys (i.e. slightly
+earlier).  However no observable impact of that small difference
+has been observed during testing, or is expected. (i.e. the
+location of the netfilter messages in dmesg remains unchanged
+with respect to all the other surrounding messages.)
+
+As for the module_exit, rather than replace it with __exitcall,
+we simply remove it, since it appears only UML does anything
+with those, and even for UML, there is no relevant cleanup
+to be done here.
+
+Cc: Pablo Neira Ayuso <pablo@netfilter.org>
+Cc: Patrick McHardy <kaber@trash.net>
+Cc: Jozsef Kadlecsik <kadlec@blackhole.kfki.hu>
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: netfilter-devel@vger.kernel.org
+Cc: netdev@vger.kernel.org
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- include/linux/init.h | 11 -----------
- scripts/tags.sh      |  2 +-
- 2 files changed, 1 insertion(+), 12 deletions(-)
- mode change 100755 => 100644 scripts/tags.sh
+ net/ipv4/netfilter.c | 9 +--------
+ 1 file changed, 1 insertion(+), 8 deletions(-)
 
-diff --git a/include/linux/init.h b/include/linux/init.h
-index e168880..f693cc3 100644
---- a/include/linux/init.h
-+++ b/include/linux/init.h
-@@ -91,14 +91,6 @@
- 
- #define __exit          __section(.exit.text) __exitused __cold notrace
- 
--/* temporary, until all users are removed */
--#define __cpuinit
--#define __cpuinitdata
--#define __cpuinitconst
--#define __cpuexit
--#define __cpuexitdata
--#define __cpuexitconst
--
- /* Used for MEMORY_HOTPLUG */
- #define __meminit        __section(.meminit.text) __cold notrace
- #define __meminitdata    __section(.meminit.data)
-@@ -116,9 +108,6 @@
- #define __INITRODATA	.section	".init.rodata","a",%progbits
- #define __FINITDATA	.previous
- 
--/* temporary, until all users are removed */
--#define __CPUINIT
--
- #define __MEMINIT        .section	".meminit.text", "ax"
- #define __MEMINITDATA    .section	".meminit.data", "aw"
- #define __MEMINITRODATA  .section	".meminit.rodata", "a"
-diff --git a/scripts/tags.sh b/scripts/tags.sh
-old mode 100755
-new mode 100644
-index 58c4559..78382c2
---- a/scripts/tags.sh
-+++ b/scripts/tags.sh
-@@ -150,7 +150,7 @@ exuberant()
+diff --git a/net/ipv4/netfilter.c b/net/ipv4/netfilter.c
+index c3e0ade..31abf96 100644
+--- a/net/ipv4/netfilter.c
++++ b/net/ipv4/netfilter.c
+@@ -197,11 +197,4 @@ static int __init ipv4_netfilter_init(void)
  {
- 	all_target_sources | xargs $1 -a                        \
- 	-I __initdata,__exitdata,__initconst,			\
--	-I __cpuinitdata,__initdata_memblock			\
-+	-I __initdata_memblock					\
- 	-I __refdata,__attribute,__maybe_unused,__always_unused \
- 	-I __acquires,__releases,__deprecated			\
- 	-I __read_mostly,__aligned,____cacheline_aligned        \
+ 	return nf_register_afinfo(&nf_ip_afinfo);
+ }
+-
+-static void __exit ipv4_netfilter_fini(void)
+-{
+-	nf_unregister_afinfo(&nf_ip_afinfo);
+-}
+-
+-module_init(ipv4_netfilter_init);
+-module_exit(ipv4_netfilter_fini);
++device_initcall(ipv4_netfilter_init);
 -- 
 1.8.4.1
