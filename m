@@ -1,56 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.windriver.com ([147.11.1.11]:56161 "EHLO
-	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752922AbaAUVYT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:24:19 -0500
-From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 07/73] x86: replace __init_or_module with __init in non-modular vsmp_64.c
-Date: Tue, 21 Jan 2014 16:22:10 -0500
-Message-ID: <1390339396-3479-8-git-send-email-paul.gortmaker@windriver.com>
-In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-MIME-Version: 1.0
-Content-Type: text/plain
+Received: from mga09.intel.com ([134.134.136.24]:14530 "EHLO mga09.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754062AbaAUW0V (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 21 Jan 2014 17:26:21 -0500
+Subject: Re: [PATCH v8 6/6] MCS Lock: Allow architecture specific asm files
+ to be used for contended case
+From: Tim Chen <tim.c.chen@linux.intel.com>
+In-Reply-To: <20140121102000.GT31570@twins.programming.kicks-ass.net>
+References: <cover.1390239879.git.tim.c.chen@linux.intel.com>
+	 <1390267479.3138.40.camel@schen9-DESK>
+	 <20140121102000.GT31570@twins.programming.kicks-ass.net>
+Content-Type: text/plain; charset="UTF-8"
+Date: Tue, 21 Jan 2014 14:25:25 -0800
+Message-ID: <1390343125.3138.60.camel@schen9-DESK>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
-Message-ID: <20140121212210.b0p7MNlzzSZ3FXFVcQqb1354OUFfr82VAnTsCqIvdco@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, "Figo.zhang" <figo1802@gmail.com>
+Message-ID: <20140121222525.ksrGfZYq6hNgfxH0xP_1_ZioFVSfvXD2ThLG3TW3wZU@z>
 
-The __init_or_module is from commit 05e12e1c4c09cd35ac9f4e6af1e
-("x86: fix 27-rc crash on vsmp due to paravirt during module load").
+On Tue, 2014-01-21 at 11:20 +0100, Peter Zijlstra wrote:
+> On Mon, Jan 20, 2014 at 05:24:39PM -0800, Tim Chen wrote:
+> > diff --git a/arch/alpha/include/asm/Kbuild b/arch/alpha/include/asm/Kbuild
+> > index f01fb50..14cbbbc 100644
+> > --- a/arch/alpha/include/asm/Kbuild
+> > +++ b/arch/alpha/include/asm/Kbuild
+> > @@ -4,3 +4,4 @@ generic-y += clkdev.h
+> >  generic-y += exec.h
+> >  generic-y += trace_clock.h
+> >  generic-y += preempt.h
+> > +generic-y += mcs_spinlock.h
+> 
+> m < p
+> 
+> > --- a/arch/ia64/include/asm/Kbuild
+> > +++ b/arch/ia64/include/asm/Kbuild
+> > @@ -4,4 +4,4 @@ generic-y += exec.h
+> >  generic-y += kvm_para.h
+> >  generic-y += trace_clock.h
+> >  generic-y += preempt.h
+> > -generic-y += vtime.h
+> > \ No newline at end of file
 
-But as of commit 70511134f61bd6e5eed19f767381f9fb3e762d49
-("Revert "x86: don't compile vsmp_64 for 32bit") this file
-became obj-y and hence is now only for built-in.  That makes
-any "_or_module" support no longer necessary.
+The no newline compliant apparently caused by
+existing Kbuild file.
 
-We need to distinguish between the two in order to do some
-header reorganization between init.h and module.h and we
-don't want to be including module.h in non-modular code.
+Tim
 
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
-Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
----
- arch/x86/kernel/vsmp_64.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+> > +generic-y += vtime.hgeneric-y += mcs_spinlock.h
+> 
+> EOL fail
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
 
-diff --git a/arch/x86/kernel/vsmp_64.c b/arch/x86/kernel/vsmp_64.c
-index 992f890..e72ec17 100644
---- a/arch/x86/kernel/vsmp_64.c
-+++ b/arch/x86/kernel/vsmp_64.c
-@@ -69,7 +69,7 @@ static void vsmp_irq_enable(void)
- }
- PV_CALLEE_SAVE_REGS_THUNK(vsmp_irq_enable);
- 
--static unsigned __init_or_module vsmp_patch(u8 type, u16 clobbers, void *ibuf,
-+static unsigned __init vsmp_patch(u8 type, u16 clobbers, void *ibuf,
- 				  unsigned long addr, unsigned len)
- {
- 	switch (type) {
--- 
-1.8.4.1
 
