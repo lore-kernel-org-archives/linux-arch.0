@@ -1,44 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oa0-f49.google.com ([209.85.219.49]:58621 "EHLO
-	mail-oa0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754274AbaAUMXC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 07:23:02 -0500
+Received: from merlin.infradead.org ([205.233.59.134]:58739 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754607AbaAUPua (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 10:50:30 -0500
+Date: Tue, 21 Jan 2014 16:49:54 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v9 4/5] qrwlock: Use smp_store_release() in write_unlock()
+Message-ID: <20140121154954.GC31570@twins.programming.kicks-ass.net>
+References: <1389761047-47566-1-git-send-email-Waiman.Long@hp.com>
+ <1389761047-47566-5-git-send-email-Waiman.Long@hp.com>
+ <20140120151855.GH30183@twins.programming.kicks-ass.net>
+ <52DE9626.3030806@hp.com>
 MIME-Version: 1.0
-In-Reply-To: <20140121120440.GD14830@arm.com>
-References: <1388182464-28428-1-git-send-email-hjl.tools@gmail.com>
-	<20131228163308.GA1638@infradead.org>
-	<52DD6101.4010708@zytor.com>
-	<20140121120440.GD14830@arm.com>
-Date: Tue, 21 Jan 2014 04:22:59 -0800
-Message-ID: <CAMe9rOqL_TJW-XJz6e8_iewUypmsx8MXeaRfq-aATx3sFDBxcw@mail.gmail.com>
-Subject: Re: [PATCH 0/8] Update kernel uabi header files for x32
-From: "H.J. Lu" <hjl.tools@gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <52DE9626.3030806@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Christoph Hellwig <hch@infradead.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ralf Baechle <ralf@linux-mips.org>, Will Deacon <Will.Deacon@arm.com>
-Message-ID: <20140121122259.sNYtCiSKp5ltd6kkxGnnVub2uqIgSviJ4bGGjCLTnUA@z>
+To: Waiman Long <waiman.long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, aswin@hp.com, Scott J Norton <scott.norton@hp.com>
+Message-ID: <20140121154954.0WAO9_OSrd_32yiXs-11GfyuGeWj9oYKSgnKfs6nUq8@z>
 
-On Tue, Jan 21, 2014 at 4:04 AM, Catalin Marinas
-<catalin.marinas@arm.com> wrote:
-> On Mon, Jan 20, 2014 at 05:46:41PM +0000, H. Peter Anvin wrote:
->> On 12/28/2013 08:33 AM, Christoph Hellwig wrote:
->> > On Fri, Dec 27, 2013 at 02:14:16PM -0800, H.J. Lu wrote:
->> >> X32 uses the same kernel system call interface as x86-64 for many
->> >> system calls.  However, "long" is 64-bit for x86-64 and is 32-bit for
->> >> x32.  Where long or unsigned long are used in struct types for such
->> >> system calls, they are wrong for x32.  __kernel_[u]long_t is [unsigned]
->> >> long for all ABIs other than x32.  I am submitting 8 patches to replace
->> >> long or unsigned long with __kernel_[u]long_t so that those struct types
->> >> can be used with x32 system calls.
->
-> Does this mean that you are changing the x32 ABI (or it hasn't been
-> declared stable yet)?
+On Tue, Jan 21, 2014 at 10:45:42AM -0500, Waiman Long wrote:
+> I can change the logic to use only cmpxchg for readers, but I don't see a
+> compelling reason to do so.
 
-We don't change x32 ABI.  Today kernel uabi header files are
-incompatible with x32 ABI in user space.  My patches fix them
-so that they can be used in user space.
-
--- 
-H.J.
+The fact that you can then use smp_store_release() is fairly compelling
+methinks.
