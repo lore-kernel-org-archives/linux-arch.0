@@ -1,56 +1,29 @@
-From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 22/73] alpha: don't use module_init for non-modular core code
-Date: Tue, 21 Jan 2014 16:22:25 -0500
-Message-ID: <1390339396-3479-23-git-send-email-paul.gortmaker@windriver.com>
-References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 20/73] arm: use subsys_initcall in non-modular pl320 IPC code
+Date: Tue, 21 Jan 2014 22:44:21 +0100
+Message-ID: <4922482.oeJaTIvZxl@wuerfel>
+References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com> <1390339396-3479-21-git-send-email-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-alpha-owner@vger.kernel.org>
-In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-Sender: linux-alpha-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1390339396-3479-21-git-send-email-paul.gortmaker@windriver.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Paul Gortmaker <paul.gortmaker@windriver.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-The srm console is always built in.  It will never be modular,
-so using module_init as an alias for __initcall is rather
-misleading.
+On Tuesday 21 January 2014 16:22:23 Paul Gortmaker wrote:
+> 
+> Note that direct use of __initcall is discouraged, vs. one
+> of the priority categorized subgroups.  As __initcall gets
+> mapped onto device_initcall, our use of subsys_initcall (which
+> seems to make sense for netfilter code) will thus change this
+> registration from level 6-device to level 4-subsys (i.e. slightly
+> earlier).  However no impact of that small difference is expected.
 
-Fix this up now, so that we can relocate module_init from
-init.h into module.h in the future.  If we don't do this, we'd
-have to add module.h to obviously non-modular code, and that
-would be a worse thing.
+This doesn't have anything to do with netfilter. The only user
+of this driver at the moment is the highbank cpufreq driver, but
+that could change.
 
-Direct use of __initcall is discouraged, vs prioritized ones.
-Use of device_initcall is consistent with what __initcall
-maps onto, and hence does not change the init order, making the
-impact of this change zero.   Should someone with real hardware
-for boot testing want to change it later to arch_initcall or
-console_initcall, they can do that at a later date.
-
-Cc: Richard Henderson <rth@twiddle.net>
-Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Cc: Matt Turner <mattst88@gmail.com>
-Cc: linux-alpha@vger.kernel.org
-Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
----
- arch/alpha/kernel/srmcons.c | 3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
-
-diff --git a/arch/alpha/kernel/srmcons.c b/arch/alpha/kernel/srmcons.c
-index 6f01d9a..72b5951 100644
---- a/arch/alpha/kernel/srmcons.c
-+++ b/arch/alpha/kernel/srmcons.c
-@@ -237,8 +237,7 @@ srmcons_init(void)
- 
- 	return -ENODEV;
- }
--
--module_init(srmcons_init);
-+device_initcall(srmcons_init);
- 
- 
- /*
--- 
-1.8.4.1
-
+	Arnd
