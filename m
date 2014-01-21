@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.windriver.com ([147.11.1.11]:56244 "EHLO
-	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753965AbaAUVYd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:24:33 -0500
+Received: from mail1.windriver.com ([147.11.146.13]:50623 "EHLO
+	mail1.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752271AbaAUVY2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:24:28 -0500
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 13/73] powerpc: use subsys_initcall for Freescale Local Bus
-Date: Tue, 21 Jan 2014 16:22:16 -0500
-Message-ID: <1390339396-3479-14-git-send-email-paul.gortmaker@windriver.com>
+Subject: [PATCH 14/73] powerpc: don't use module_init for non-modular core hugetlb code
+Date: Tue, 21 Jan 2014 16:22:17 -0500
+Message-ID: <1390339396-3479-15-git-send-email-paul.gortmaker@windriver.com>
 In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 MIME-Version: 1.0
@@ -14,12 +14,12 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Scott Wood <scottwood@freescale.com>, Kumar Gala <galak@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20140121212216.mAmbkFFMEwIewgG5oCeV65AtGOL0X7XO0yp-AhxbIMM@z>
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20140121212217.DesyNHOT421cENU74TVqk6ufV1WG9izHxVMoGiQ46P4@z>
 
-The FSL_SOC option is bool, and hence this code is either
-present or absent.  It will never be modular, so using
-module_init as an alias for __initcall is rather misleading.
+The hugetlbpage.o is obj-y (always built in).  It will never
+be modular, so using module_init as an alias for __initcall is
+somewhat misleading.
 
 Fix this up now, so that we can relocate module_init from
 init.h into module.h in the future.  If we don't do this, we'd
@@ -28,33 +28,33 @@ would be a worse thing.
 
 Note that direct use of __initcall is discouraged, vs. one
 of the priority categorized subgroups.  As __initcall gets
-mapped onto device_initcall, our use of subsys_initcall (which
-makes sense for bus code) will thus change this registration
-from level 6-device to level 4-subsys (i.e. slightly earlier).
+mapped onto device_initcall, our use of arch_initcall (which
+makes sense for arch code) will thus change this registration
+from level 6-device to level 3-arch (i.e. slightly earlier).
 However no observable impact of that small difference has
 been observed during testing, or is expected.
 
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Paul Mackerras <paulus@samba.org>
-Cc: Scott Wood <scottwood@freescale.com>
-Acked-by: Scott Wood <scottwood@freescale.com>
-Cc: Kumar Gala <galak@kernel.crashing.org>
 Cc: linuxppc-dev@lists.ozlabs.org
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- arch/powerpc/sysdev/fsl_lbc.c | 2 +-
+ arch/powerpc/mm/hugetlbpage.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/powerpc/sysdev/fsl_lbc.c b/arch/powerpc/sysdev/fsl_lbc.c
-index d631022..38138cf 100644
---- a/arch/powerpc/sysdev/fsl_lbc.c
-+++ b/arch/powerpc/sysdev/fsl_lbc.c
-@@ -407,4 +407,4 @@ static int __init fsl_lbc_init(void)
- {
- 	return platform_driver_register(&fsl_lbc_ctrl_driver);
+diff --git a/arch/powerpc/mm/hugetlbpage.c b/arch/powerpc/mm/hugetlbpage.c
+index 90bb6d9..d25c202 100644
+--- a/arch/powerpc/mm/hugetlbpage.c
++++ b/arch/powerpc/mm/hugetlbpage.c
+@@ -911,7 +911,7 @@ static int __init hugetlbpage_init(void)
+ 	return 0;
  }
--module_init(fsl_lbc_init);
-+subsys_initcall(fsl_lbc_init);
+ #endif
+-module_init(hugetlbpage_init);
++arch_initcall(hugetlbpage_init);
+ 
+ void flush_dcache_icache_hugepage(struct page *page)
+ {
 -- 
 1.8.4.1
 
