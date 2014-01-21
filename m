@@ -1,32 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:49311 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754021AbaAUK1E (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 05:27:04 -0500
-Date: Tue, 21 Jan 2014 11:26:26 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v8 3/6] MCS Lock: optimizations and extra comments
-Message-ID: <20140121102626.GV31570@twins.programming.kicks-ass.net>
-References: <cover.1390239879.git.tim.c.chen@linux.intel.com>
- <1390267468.3138.37.camel@schen9-DESK>
+Received: from mail-oa0-f49.google.com ([209.85.219.49]:58621 "EHLO
+	mail-oa0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754274AbaAUMXC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 07:23:02 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1390267468.3138.37.camel@schen9-DESK>
+In-Reply-To: <20140121120440.GD14830@arm.com>
+References: <1388182464-28428-1-git-send-email-hjl.tools@gmail.com>
+	<20131228163308.GA1638@infradead.org>
+	<52DD6101.4010708@zytor.com>
+	<20140121120440.GD14830@arm.com>
+Date: Tue, 21 Jan 2014 04:22:59 -0800
+Message-ID: <CAMe9rOqL_TJW-XJz6e8_iewUypmsx8MXeaRfq-aATx3sFDBxcw@mail.gmail.com>
+Subject: Re: [PATCH 0/8] Update kernel uabi header files for x32
+From: "H.J. Lu" <hjl.tools@gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tim Chen <tim.c.chen@linux.intel.com>
-Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, "Figo.zhang" <figo1802@gmail.com>
-Message-ID: <20140121102626.gPYlOQDXV1z8ZzUY2WVgznBX2mePL2kwVWAnCGyjUwU@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Christoph Hellwig <hch@infradead.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ralf Baechle <ralf@linux-mips.org>, Will Deacon <Will.Deacon@arm.com>
+Message-ID: <20140121122259.sNYtCiSKp5ltd6kkxGnnVub2uqIgSviJ4bGGjCLTnUA@z>
 
-On Mon, Jan 20, 2014 at 05:24:28PM -0800, Tim Chen wrote:
-> From: Jason Low <jason.low2@hp.com>
-> 
-> Remove unnecessary operation to assign locked status to 1 if lock is
-> acquired without contention as this value will not be checked by lock
-> holder again and other potential lock contenders will not be looking at
-> their own lock status.
+On Tue, Jan 21, 2014 at 4:04 AM, Catalin Marinas
+<catalin.marinas@arm.com> wrote:
+> On Mon, Jan 20, 2014 at 05:46:41PM +0000, H. Peter Anvin wrote:
+>> On 12/28/2013 08:33 AM, Christoph Hellwig wrote:
+>> > On Fri, Dec 27, 2013 at 02:14:16PM -0800, H.J. Lu wrote:
+>> >> X32 uses the same kernel system call interface as x86-64 for many
+>> >> system calls.  However, "long" is 64-bit for x86-64 and is 32-bit for
+>> >> x32.  Where long or unsigned long are used in struct types for such
+>> >> system calls, they are wrong for x32.  __kernel_[u]long_t is [unsigned]
+>> >> long for all ABIs other than x32.  I am submitting 8 patches to replace
+>> >> long or unsigned long with __kernel_[u]long_t so that those struct types
+>> >> can be used with x32 system calls.
+>
+> Does this mean that you are changing the x32 ABI (or it hasn't been
+> declared stable yet)?
 
-Ha, read that again :-)
+We don't change x32 ABI.  Today kernel uabi header files are
+incompatible with x32 ABI in user space.  My patches fix them
+so that they can be used in user space.
 
-
+-- 
+H.J.
