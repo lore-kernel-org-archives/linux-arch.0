@@ -1,205 +1,339 @@
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 36/73] s390: delete non-required instances of include <linux/init.h>
-Date: Tue, 21 Jan 2014 16:22:39 -0500
-Message-ID: <1390339396-3479-37-git-send-email-paul.gortmaker@windriver.com>
+Subject: [PATCH 40/73] watchdog: delete non-required instances of include <linux/init.h>
+Date: Tue, 21 Jan 2014 16:22:43 -0500
+Message-ID: <1390339396-3479-41-git-send-email-paul.gortmaker@windriver.com>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.windriver.com ([147.11.146.13]:50696 "EHLO
-	mail1.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754480AbaAUVZC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:25:02 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Ursula Braun <ursula.braun@de.ibm.com>, Frank Blaschka <blaschka@linux.vnet.ibm.com>, Steffen Maier <maier@linux.vnet.ibm.com>, linux390@de.ibm.com, linux-s390@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Wim Van Sebroeck <wim@iguana.be>, linux-watchdog@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 None of these files are actually using any __init type directives
 and hence don't need to include <linux/init.h>.  Most are just a
 left over from __devinit and __cpuinit removal, or simply due to
 code getting copied from one driver to the next.
 
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Ursula Braun <ursula.braun@de.ibm.com>
-Cc: Frank Blaschka <blaschka@linux.vnet.ibm.com>
-Cc: Steffen Maier <maier@linux.vnet.ibm.com>
-Cc: linux390@de.ibm.com
-Cc: linux-s390@vger.kernel.org
+Cc: Wim Van Sebroeck <wim@iguana.be>
+Cc: linux-watchdog@vger.kernel.org
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- drivers/s390/block/dasd_erp.c    | 1 -
- drivers/s390/char/tape_34xx.c    | 1 -
- drivers/s390/char/tape_3590.c    | 1 -
- drivers/s390/char/tape_class.h   | 1 -
- drivers/s390/char/tape_core.c    | 1 -
- drivers/s390/cio/airq.c          | 1 -
- drivers/s390/cio/device_ops.c    | 1 -
- drivers/s390/cio/device_status.c | 1 -
- drivers/s390/net/ctcm_dbug.c     | 1 -
- drivers/s390/net/ctcm_fsms.c     | 1 -
- drivers/s390/net/ctcm_fsms.h     | 1 -
- drivers/s390/net/ctcm_mpc.c      | 1 -
- drivers/s390/scsi/zfcp_def.h     | 1 -
- 13 files changed, 13 deletions(-)
+ drivers/watchdog/ar7_wdt.c          | 1 -
+ drivers/watchdog/ath79_wdt.c        | 1 -
+ drivers/watchdog/bcm47xx_wdt.c      | 1 -
+ drivers/watchdog/bcm63xx_wdt.c      | 1 -
+ drivers/watchdog/cpu5wdt.c          | 1 -
+ drivers/watchdog/cpwd.c             | 1 -
+ drivers/watchdog/davinci_wdt.c      | 1 -
+ drivers/watchdog/hpwdt.c            | 1 -
+ drivers/watchdog/i6300esb.c         | 1 -
+ drivers/watchdog/jz4740_wdt.c       | 1 -
+ drivers/watchdog/max63xx_wdt.c      | 1 -
+ drivers/watchdog/mtx-1_wdt.c        | 1 -
+ drivers/watchdog/nuc900_wdt.c       | 1 -
+ drivers/watchdog/of_xilinx_wdt.c    | 1 -
+ drivers/watchdog/omap_wdt.c         | 1 -
+ drivers/watchdog/orion_wdt.c        | 1 -
+ drivers/watchdog/pnx4008_wdt.c      | 1 -
+ drivers/watchdog/rdc321x_wdt.c      | 1 -
+ drivers/watchdog/retu_wdt.c         | 1 -
+ drivers/watchdog/riowd.c            | 1 -
+ drivers/watchdog/s3c2410_wdt.c      | 1 -
+ drivers/watchdog/sp805_wdt.c        | 1 -
+ drivers/watchdog/stmp3xxx_rtc_wdt.c | 1 -
+ drivers/watchdog/wdt_pci.c          | 1 -
+ 24 files changed, 24 deletions(-)
 
-diff --git a/drivers/s390/block/dasd_erp.c b/drivers/s390/block/dasd_erp.c
-index e1e8848..0b9f823 100644
---- a/drivers/s390/block/dasd_erp.c
-+++ b/drivers/s390/block/dasd_erp.c
-@@ -11,7 +11,6 @@
- #define KMSG_COMPONENT "dasd"
- 
- #include <linux/ctype.h>
--#include <linux/init.h>
- 
- #include <asm/debug.h>
- #include <asm/ebcdic.h>
-diff --git a/drivers/s390/char/tape_34xx.c b/drivers/s390/char/tape_34xx.c
-index 9aa7970..2e3eb6a 100644
---- a/drivers/s390/char/tape_34xx.c
-+++ b/drivers/s390/char/tape_34xx.c
-@@ -11,7 +11,6 @@
- #define pr_fmt(fmt) KMSG_COMPONENT ": " fmt
- 
+diff --git a/drivers/watchdog/ar7_wdt.c b/drivers/watchdog/ar7_wdt.c
+index 3a99657..ae6c287 100644
+--- a/drivers/watchdog/ar7_wdt.c
++++ b/drivers/watchdog/ar7_wdt.c
+@@ -28,7 +28,6 @@
  #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/bio.h>
- #include <linux/workqueue.h>
- #include <linux/slab.h>
-diff --git a/drivers/s390/char/tape_3590.c b/drivers/s390/char/tape_3590.c
-index 327cb19..e979c76 100644
---- a/drivers/s390/char/tape_3590.c
-+++ b/drivers/s390/char/tape_3590.c
-@@ -12,7 +12,6 @@
- 
- #include <linux/module.h>
- #include <linux/slab.h>
--#include <linux/init.h>
- #include <linux/bio.h>
- #include <asm/ebcdic.h>
- 
-diff --git a/drivers/s390/char/tape_class.h b/drivers/s390/char/tape_class.h
-index a332c10..444ffdf 100644
---- a/drivers/s390/char/tape_class.h
-+++ b/drivers/s390/char/tape_class.h
-@@ -9,7 +9,6 @@
- #ifndef __TAPE_CLASS_H__
- #define __TAPE_CLASS_H__
- 
--#include <linux/init.h>
- #include <linux/module.h>
- #include <linux/fs.h>
- #include <linux/major.h>
-diff --git a/drivers/s390/char/tape_core.c b/drivers/s390/char/tape_core.c
-index f3b5123..6edf6ae 100644
---- a/drivers/s390/char/tape_core.c
-+++ b/drivers/s390/char/tape_core.c
-@@ -14,7 +14,6 @@
- #define pr_fmt(fmt) KMSG_COMPONENT ": " fmt
- 
- #include <linux/module.h>
--#include <linux/init.h>	     // for kernel parameters
- #include <linux/kmod.h>	     // for requesting modules
- #include <linux/spinlock.h>  // for locks
- #include <linux/vmalloc.h>
-diff --git a/drivers/s390/cio/airq.c b/drivers/s390/cio/airq.c
-index f055df0..897209a 100644
---- a/drivers/s390/cio/airq.c
-+++ b/drivers/s390/cio/airq.c
-@@ -8,7 +8,6 @@
-  *		 Peter Oberparleiter <peter.oberparleiter@de.ibm.com>
-  */
- 
--#include <linux/init.h>
- #include <linux/irq.h>
- #include <linux/kernel_stat.h>
- #include <linux/module.h>
-diff --git a/drivers/s390/cio/device_ops.c b/drivers/s390/cio/device_ops.c
-index 4845d64..09de935 100644
---- a/drivers/s390/cio/device_ops.c
-+++ b/drivers/s390/cio/device_ops.c
-@@ -5,7 +5,6 @@
-  *	      Cornelia Huck (cornelia.huck@de.ibm.com)
-  */
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/errno.h>
- #include <linux/slab.h>
- #include <linux/list.h>
-diff --git a/drivers/s390/cio/device_status.c b/drivers/s390/cio/device_status.c
-index 15b56a1..323fa37 100644
---- a/drivers/s390/cio/device_status.c
-+++ b/drivers/s390/cio/device_status.c
-@@ -7,7 +7,6 @@
-  */
- 
- #include <linux/module.h>
--#include <linux/init.h>
- 
- #include <asm/ccwdev.h>
- #include <asm/cio.h>
-diff --git a/drivers/s390/net/ctcm_dbug.c b/drivers/s390/net/ctcm_dbug.c
-index 8363f1c9..7fc399a 100644
---- a/drivers/s390/net/ctcm_dbug.c
-+++ b/drivers/s390/net/ctcm_dbug.c
-@@ -11,7 +11,6 @@
- #include <linux/ctype.h>
- #include <linux/sysctl.h>
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/fs.h>
- #include <linux/debugfs.h>
- #include "ctcm_dbug.h"
-diff --git a/drivers/s390/net/ctcm_fsms.c b/drivers/s390/net/ctcm_fsms.c
-index fb92524..0d64046 100644
---- a/drivers/s390/net/ctcm_fsms.c
-+++ b/drivers/s390/net/ctcm_fsms.c
-@@ -15,7 +15,6 @@
- #define pr_fmt(fmt) KMSG_COMPONENT ": " fmt
- 
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/kernel.h>
- #include <linux/slab.h>
- #include <linux/errno.h>
-diff --git a/drivers/s390/net/ctcm_fsms.h b/drivers/s390/net/ctcm_fsms.h
-index c963d04..0ae2e8c 100644
---- a/drivers/s390/net/ctcm_fsms.h
-+++ b/drivers/s390/net/ctcm_fsms.h
-@@ -10,7 +10,6 @@
- #define _CTCM_FSMS_H_
- 
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/kernel.h>
- #include <linux/slab.h>
- #include <linux/errno.h>
-diff --git a/drivers/s390/net/ctcm_mpc.c b/drivers/s390/net/ctcm_mpc.c
-index 2dbc77b..f39bd3c 100644
---- a/drivers/s390/net/ctcm_mpc.c
-+++ b/drivers/s390/net/ctcm_mpc.c
-@@ -21,7 +21,6 @@
- #define pr_fmt(fmt) KMSG_COMPONENT ": " fmt
- 
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/kernel.h>
- #include <linux/slab.h>
- #include <linux/errno.h>
-diff --git a/drivers/s390/scsi/zfcp_def.h b/drivers/s390/scsi/zfcp_def.h
-index d91173f..553eba9 100644
---- a/drivers/s390/scsi/zfcp_def.h
-+++ b/drivers/s390/scsi/zfcp_def.h
-@@ -11,7 +11,6 @@
- 
- /*************************** INCLUDES *****************************************/
- 
--#include <linux/init.h>
  #include <linux/moduleparam.h>
+ #include <linux/errno.h>
+-#include <linux/init.h>
+ #include <linux/miscdevice.h>
+ #include <linux/platform_device.h>
+ #include <linux/watchdog.h>
+diff --git a/drivers/watchdog/ath79_wdt.c b/drivers/watchdog/ath79_wdt.c
+index 9fa1f69..399c3fd 100644
+--- a/drivers/watchdog/ath79_wdt.c
++++ b/drivers/watchdog/ath79_wdt.c
+@@ -22,7 +22,6 @@
+ #include <linux/bitops.h>
+ #include <linux/errno.h>
+ #include <linux/fs.h>
+-#include <linux/init.h>
+ #include <linux/io.h>
+ #include <linux/kernel.h>
+ #include <linux/miscdevice.h>
+diff --git a/drivers/watchdog/bcm47xx_wdt.c b/drivers/watchdog/bcm47xx_wdt.c
+index b4021a2..b61fcc5 100644
+--- a/drivers/watchdog/bcm47xx_wdt.c
++++ b/drivers/watchdog/bcm47xx_wdt.c
+@@ -16,7 +16,6 @@
+ #include <linux/bcm47xx_wdt.h>
+ #include <linux/bitops.h>
+ #include <linux/errno.h>
+-#include <linux/init.h>
+ #include <linux/kernel.h>
+ #include <linux/module.h>
+ #include <linux/moduleparam.h>
+diff --git a/drivers/watchdog/bcm63xx_wdt.c b/drivers/watchdog/bcm63xx_wdt.c
+index 4eb188b..3fb18bb 100644
+--- a/drivers/watchdog/bcm63xx_wdt.c
++++ b/drivers/watchdog/bcm63xx_wdt.c
+@@ -15,7 +15,6 @@
+ #include <linux/bitops.h>
+ #include <linux/errno.h>
+ #include <linux/fs.h>
+-#include <linux/init.h>
+ #include <linux/io.h>
+ #include <linux/kernel.h>
+ #include <linux/miscdevice.h>
+diff --git a/drivers/watchdog/cpu5wdt.c b/drivers/watchdog/cpu5wdt.c
+index f7ae49e..6d03e8e 100644
+--- a/drivers/watchdog/cpu5wdt.c
++++ b/drivers/watchdog/cpu5wdt.c
+@@ -27,7 +27,6 @@
+ #include <linux/errno.h>
+ #include <linux/miscdevice.h>
+ #include <linux/fs.h>
+-#include <linux/init.h>
+ #include <linux/ioport.h>
+ #include <linux/timer.h>
+ #include <linux/completion.h>
+diff --git a/drivers/watchdog/cpwd.c b/drivers/watchdog/cpwd.c
+index 213225e..e55ed70 100644
+--- a/drivers/watchdog/cpwd.c
++++ b/drivers/watchdog/cpwd.c
+@@ -21,7 +21,6 @@
+ #include <linux/fs.h>
+ #include <linux/errno.h>
  #include <linux/major.h>
- #include <linux/blkdev.h>
+-#include <linux/init.h>
+ #include <linux/miscdevice.h>
+ #include <linux/interrupt.h>
+ #include <linux/ioport.h>
+diff --git a/drivers/watchdog/davinci_wdt.c b/drivers/watchdog/davinci_wdt.c
+index b1bae03..d09ad22 100644
+--- a/drivers/watchdog/davinci_wdt.c
++++ b/drivers/watchdog/davinci_wdt.c
+@@ -16,7 +16,6 @@
+ #include <linux/types.h>
+ #include <linux/kernel.h>
+ #include <linux/watchdog.h>
+-#include <linux/init.h>
+ #include <linux/platform_device.h>
+ #include <linux/io.h>
+ #include <linux/device.h>
+diff --git a/drivers/watchdog/hpwdt.c b/drivers/watchdog/hpwdt.c
+index 2b75e8b..75d2243 100644
+--- a/drivers/watchdog/hpwdt.c
++++ b/drivers/watchdog/hpwdt.c
+@@ -17,7 +17,6 @@
+ 
+ #include <linux/device.h>
+ #include <linux/fs.h>
+-#include <linux/init.h>
+ #include <linux/io.h>
+ #include <linux/bitops.h>
+ #include <linux/kernel.h>
+diff --git a/drivers/watchdog/i6300esb.c b/drivers/watchdog/i6300esb.c
+index 25a2bfd..d7befd5 100644
+--- a/drivers/watchdog/i6300esb.c
++++ b/drivers/watchdog/i6300esb.c
+@@ -36,7 +36,6 @@
+ #include <linux/mm.h>
+ #include <linux/miscdevice.h>
+ #include <linux/watchdog.h>
+-#include <linux/init.h>
+ #include <linux/pci.h>
+ #include <linux/ioport.h>
+ #include <linux/uaccess.h>
+diff --git a/drivers/watchdog/jz4740_wdt.c b/drivers/watchdog/jz4740_wdt.c
+index 3aa50cf..91e45ca 100644
+--- a/drivers/watchdog/jz4740_wdt.c
++++ b/drivers/watchdog/jz4740_wdt.c
+@@ -18,7 +18,6 @@
+ #include <linux/types.h>
+ #include <linux/kernel.h>
+ #include <linux/watchdog.h>
+-#include <linux/init.h>
+ #include <linux/platform_device.h>
+ #include <linux/io.h>
+ #include <linux/device.h>
+diff --git a/drivers/watchdog/max63xx_wdt.c b/drivers/watchdog/max63xx_wdt.c
+index bdb3f4a..0e9cc6f 100644
+--- a/drivers/watchdog/max63xx_wdt.c
++++ b/drivers/watchdog/max63xx_wdt.c
+@@ -20,7 +20,6 @@
+ #include <linux/types.h>
+ #include <linux/kernel.h>
+ #include <linux/watchdog.h>
+-#include <linux/init.h>
+ #include <linux/bitops.h>
+ #include <linux/platform_device.h>
+ #include <linux/spinlock.h>
+diff --git a/drivers/watchdog/mtx-1_wdt.c b/drivers/watchdog/mtx-1_wdt.c
+index edb31ff..ff27c4a 100644
+--- a/drivers/watchdog/mtx-1_wdt.c
++++ b/drivers/watchdog/mtx-1_wdt.c
+@@ -40,7 +40,6 @@
+ #include <linux/errno.h>
+ #include <linux/miscdevice.h>
+ #include <linux/fs.h>
+-#include <linux/init.h>
+ #include <linux/ioport.h>
+ #include <linux/timer.h>
+ #include <linux/completion.h>
+diff --git a/drivers/watchdog/nuc900_wdt.c b/drivers/watchdog/nuc900_wdt.c
+index a0d893b..7135803 100644
+--- a/drivers/watchdog/nuc900_wdt.c
++++ b/drivers/watchdog/nuc900_wdt.c
+@@ -12,7 +12,6 @@
+ #include <linux/bitops.h>
+ #include <linux/errno.h>
+ #include <linux/fs.h>
+-#include <linux/init.h>
+ #include <linux/io.h>
+ #include <linux/clk.h>
+ #include <linux/kernel.h>
+diff --git a/drivers/watchdog/of_xilinx_wdt.c b/drivers/watchdog/of_xilinx_wdt.c
+index fb57103..19fa92d01 100644
+--- a/drivers/watchdog/of_xilinx_wdt.c
++++ b/drivers/watchdog/of_xilinx_wdt.c
+@@ -16,7 +16,6 @@
+ #include <linux/kernel.h>
+ #include <linux/fs.h>
+ #include <linux/miscdevice.h>
+-#include <linux/init.h>
+ #include <linux/ioport.h>
+ #include <linux/watchdog.h>
+ #include <linux/io.h>
+diff --git a/drivers/watchdog/omap_wdt.c b/drivers/watchdog/omap_wdt.c
+index 09cf013..fbcb6f6 100644
+--- a/drivers/watchdog/omap_wdt.c
++++ b/drivers/watchdog/omap_wdt.c
+@@ -34,7 +34,6 @@
+ #include <linux/mm.h>
+ #include <linux/watchdog.h>
+ #include <linux/reboot.h>
+-#include <linux/init.h>
+ #include <linux/err.h>
+ #include <linux/platform_device.h>
+ #include <linux/moduleparam.h>
+diff --git a/drivers/watchdog/orion_wdt.c b/drivers/watchdog/orion_wdt.c
+index f7722a4..4981634 100644
+--- a/drivers/watchdog/orion_wdt.c
++++ b/drivers/watchdog/orion_wdt.c
+@@ -18,7 +18,6 @@
+ #include <linux/kernel.h>
+ #include <linux/platform_device.h>
+ #include <linux/watchdog.h>
+-#include <linux/init.h>
+ #include <linux/io.h>
+ #include <linux/spinlock.h>
+ #include <linux/clk.h>
+diff --git a/drivers/watchdog/pnx4008_wdt.c b/drivers/watchdog/pnx4008_wdt.c
+index 5bec20f..15fb316 100644
+--- a/drivers/watchdog/pnx4008_wdt.c
++++ b/drivers/watchdog/pnx4008_wdt.c
+@@ -24,7 +24,6 @@
+ #include <linux/types.h>
+ #include <linux/kernel.h>
+ #include <linux/watchdog.h>
+-#include <linux/init.h>
+ #include <linux/platform_device.h>
+ #include <linux/clk.h>
+ #include <linux/spinlock.h>
+diff --git a/drivers/watchdog/rdc321x_wdt.c b/drivers/watchdog/rdc321x_wdt.c
+index 082d062..29cf4dc 100644
+--- a/drivers/watchdog/rdc321x_wdt.c
++++ b/drivers/watchdog/rdc321x_wdt.c
+@@ -27,7 +27,6 @@
+ #include <linux/errno.h>
+ #include <linux/miscdevice.h>
+ #include <linux/fs.h>
+-#include <linux/init.h>
+ #include <linux/ioport.h>
+ #include <linux/timer.h>
+ #include <linux/completion.h>
+diff --git a/drivers/watchdog/retu_wdt.c b/drivers/watchdog/retu_wdt.c
+index f53615d..a7a0695 100644
+--- a/drivers/watchdog/retu_wdt.c
++++ b/drivers/watchdog/retu_wdt.c
+@@ -16,7 +16,6 @@
+  * GNU General Public License for more details.
+  */
+ 
+-#include <linux/init.h>
+ #include <linux/slab.h>
+ #include <linux/errno.h>
+ #include <linux/device.h>
+diff --git a/drivers/watchdog/riowd.c b/drivers/watchdog/riowd.c
+index 3dd8ed2..cfed0fe 100644
+--- a/drivers/watchdog/riowd.c
++++ b/drivers/watchdog/riowd.c
+@@ -10,7 +10,6 @@
+ #include <linux/types.h>
+ #include <linux/fs.h>
+ #include <linux/errno.h>
+-#include <linux/init.h>
+ #include <linux/miscdevice.h>
+ #include <linux/watchdog.h>
+ #include <linux/of.h>
+diff --git a/drivers/watchdog/s3c2410_wdt.c b/drivers/watchdog/s3c2410_wdt.c
+index aec946d..aba6cd4 100644
+--- a/drivers/watchdog/s3c2410_wdt.c
++++ b/drivers/watchdog/s3c2410_wdt.c
+@@ -30,7 +30,6 @@
+ #include <linux/types.h>
+ #include <linux/timer.h>
+ #include <linux/watchdog.h>
+-#include <linux/init.h>
+ #include <linux/platform_device.h>
+ #include <linux/interrupt.h>
+ #include <linux/clk.h>
+diff --git a/drivers/watchdog/sp805_wdt.c b/drivers/watchdog/sp805_wdt.c
+index 3f786ce..6ee6db1 100644
+--- a/drivers/watchdog/sp805_wdt.c
++++ b/drivers/watchdog/sp805_wdt.c
+@@ -16,7 +16,6 @@
+ #include <linux/amba/bus.h>
+ #include <linux/bitops.h>
+ #include <linux/clk.h>
+-#include <linux/init.h>
+ #include <linux/io.h>
+ #include <linux/ioport.h>
+ #include <linux/kernel.h>
+diff --git a/drivers/watchdog/stmp3xxx_rtc_wdt.c b/drivers/watchdog/stmp3xxx_rtc_wdt.c
+index bb64ae3..3804d5e 100644
+--- a/drivers/watchdog/stmp3xxx_rtc_wdt.c
++++ b/drivers/watchdog/stmp3xxx_rtc_wdt.c
+@@ -9,7 +9,6 @@
+  * under the terms of the GNU General Public License version 2 as published by
+  * the Free Software Foundation.
+  */
+-#include <linux/init.h>
+ #include <linux/kernel.h>
+ #include <linux/module.h>
+ #include <linux/watchdog.h>
+diff --git a/drivers/watchdog/wdt_pci.c b/drivers/watchdog/wdt_pci.c
+index 3dc578e..48b2c05 100644
+--- a/drivers/watchdog/wdt_pci.c
++++ b/drivers/watchdog/wdt_pci.c
+@@ -49,7 +49,6 @@
+ #include <linux/delay.h>
+ #include <linux/notifier.h>
+ #include <linux/reboot.h>
+-#include <linux/init.h>
+ #include <linux/fs.h>
+ #include <linux/pci.h>
+ #include <linux/io.h>
 -- 
 1.8.4.1
