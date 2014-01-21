@@ -1,63 +1,109 @@
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 10/73] powerpc: use device_initcall for registering rtc devices
-Date: Tue, 21 Jan 2014 16:22:13 -0500
-Message-ID: <1390339396-3479-11-git-send-email-paul.gortmaker@windriver.com>
+Subject: [PATCH 68/73] drivers/cpufreq: delete non-required instances of <linux/init.h>
+Date: Tue, 21 Jan 2014 16:23:11 -0500
+Message-ID: <1390339396-3479-69-git-send-email-paul.gortmaker@windriver.com>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <cpufreq-owner@vger.kernel.org>
 In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: cpufreq-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Geoff Levand <geoff@infradead.org>, linuxppc-dev@lists.ozlabs.org
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Kevin Hilman <khilman@deeprootsystems.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Viresh Kumar <viresh.kumar@linaro.org>, cpufreq@vger.kernel.org, linux-pm@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Currently these two RTC devices are in core platform code
-where it is not possible for them to be modular.  It will
-never be modular, so using module_init as an alias for
-__initcall can be somewhat misleading.
+None of these files are actually using any __init type directives
+and hence don't need to include <linux/init.h>.  Most are just a
+left over from __devinit and __cpuinit removal, or simply due to
+code getting copied from one driver to the next.
 
-Fix this up now, so that we can relocate module_init from
-init.h into module.h in the future.  If we don't do this, we'd
-have to add module.h to obviously non-modular code, and that
-would be a worse thing.
-
-Note that direct use of __initcall is discouraged, vs. one
-of the priority categorized subgroups.  As __initcall gets
-mapped onto device_initcall, our use of device_initcall
-directly in this change means that the runtime impact is
-zero -- they will remain at level 6 in initcall ordering.
-
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Geoff Levand <geoff@infradead.org>
-Cc: linuxppc-dev@lists.ozlabs.org
+Cc: Kevin Hilman <khilman@deeprootsystems.com>
+Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+Cc: Viresh Kumar <viresh.kumar@linaro.org>
+Cc: cpufreq@vger.kernel.org
+Cc: linux-pm@vger.kernel.org
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- arch/powerpc/kernel/time.c        | 2 +-
- arch/powerpc/platforms/ps3/time.c | 3 +--
- 2 files changed, 2 insertions(+), 3 deletions(-)
+ drivers/cpufreq/omap-cpufreq.c    | 1 -
+ drivers/cpufreq/powernow-k8.c     | 1 -
+ drivers/cpufreq/s3c2412-cpufreq.c | 1 -
+ drivers/cpufreq/s3c2440-cpufreq.c | 1 -
+ drivers/cpufreq/spear-cpufreq.c   | 1 -
+ drivers/cpufreq/speedstep-lib.c   | 1 -
+ 6 files changed, 6 deletions(-)
 
-diff --git a/arch/powerpc/kernel/time.c b/arch/powerpc/kernel/time.c
-index b3dab20..63b34fc 100644
---- a/arch/powerpc/kernel/time.c
-+++ b/arch/powerpc/kernel/time.c
-@@ -1064,4 +1064,4 @@ static int __init rtc_init(void)
- 	return PTR_ERR_OR_ZERO(pdev);
- }
+diff --git a/drivers/cpufreq/omap-cpufreq.c b/drivers/cpufreq/omap-cpufreq.c
+index 590f5b6..6febc15 100644
+--- a/drivers/cpufreq/omap-cpufreq.c
++++ b/drivers/cpufreq/omap-cpufreq.c
+@@ -18,7 +18,6 @@
+ #include <linux/sched.h>
+ #include <linux/cpufreq.h>
+ #include <linux/delay.h>
+-#include <linux/init.h>
+ #include <linux/err.h>
+ #include <linux/clk.h>
+ #include <linux/io.h>
+diff --git a/drivers/cpufreq/powernow-k8.c b/drivers/cpufreq/powernow-k8.c
+index e10b646..386c4ad 100644
+--- a/drivers/cpufreq/powernow-k8.c
++++ b/drivers/cpufreq/powernow-k8.c
+@@ -30,7 +30,6 @@
+ #include <linux/kernel.h>
+ #include <linux/smp.h>
+ #include <linux/module.h>
+-#include <linux/init.h>
+ #include <linux/cpufreq.h>
+ #include <linux/slab.h>
+ #include <linux/string.h>
+diff --git a/drivers/cpufreq/s3c2412-cpufreq.c b/drivers/cpufreq/s3c2412-cpufreq.c
+index 4645b48..8f42bac 100644
+--- a/drivers/cpufreq/s3c2412-cpufreq.c
++++ b/drivers/cpufreq/s3c2412-cpufreq.c
+@@ -10,7 +10,6 @@
+  * published by the Free Software Foundation.
+ */
  
--module_init(rtc_init);
-+device_initcall(rtc_init);
-diff --git a/arch/powerpc/platforms/ps3/time.c b/arch/powerpc/platforms/ps3/time.c
-index ce73ce8..791c614 100644
---- a/arch/powerpc/platforms/ps3/time.c
-+++ b/arch/powerpc/platforms/ps3/time.c
-@@ -92,5 +92,4 @@ static int __init ps3_rtc_init(void)
+-#include <linux/init.h>
+ #include <linux/module.h>
+ #include <linux/interrupt.h>
+ #include <linux/ioport.h>
+diff --git a/drivers/cpufreq/s3c2440-cpufreq.c b/drivers/cpufreq/s3c2440-cpufreq.c
+index f84ed10..1aade6d 100644
+--- a/drivers/cpufreq/s3c2440-cpufreq.c
++++ b/drivers/cpufreq/s3c2440-cpufreq.c
+@@ -11,7 +11,6 @@
+  * published by the Free Software Foundation.
+ */
  
- 	return PTR_ERR_OR_ZERO(pdev);
- }
--
--module_init(ps3_rtc_init);
-+device_initcall(ps3_rtc_init);
+-#include <linux/init.h>
+ #include <linux/module.h>
+ #include <linux/interrupt.h>
+ #include <linux/ioport.h>
+diff --git a/drivers/cpufreq/spear-cpufreq.c b/drivers/cpufreq/spear-cpufreq.c
+index 5c86e3f..f481597 100644
+--- a/drivers/cpufreq/spear-cpufreq.c
++++ b/drivers/cpufreq/spear-cpufreq.c
+@@ -16,7 +16,6 @@
+ #include <linux/clk.h>
+ #include <linux/cpufreq.h>
+ #include <linux/err.h>
+-#include <linux/init.h>
+ #include <linux/module.h>
+ #include <linux/of_device.h>
+ #include <linux/slab.h>
+diff --git a/drivers/cpufreq/speedstep-lib.c b/drivers/cpufreq/speedstep-lib.c
+index 7047821..1ef6fb6 100644
+--- a/drivers/cpufreq/speedstep-lib.c
++++ b/drivers/cpufreq/speedstep-lib.c
+@@ -11,7 +11,6 @@
+ #include <linux/kernel.h>
+ #include <linux/module.h>
+ #include <linux/moduleparam.h>
+-#include <linux/init.h>
+ #include <linux/cpufreq.h>
+ 
+ #include <asm/msr.h>
 -- 
 1.8.4.1
+
