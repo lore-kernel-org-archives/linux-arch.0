@@ -1,271 +1,63 @@
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 55/73] drivers/pcmcia: delete non-required instances of
- include <linux/init.h>
-Date: Tue, 21 Jan 2014 16:22:58 -0500
-Message-ID: <1390339396-3479-56-git-send-email-paul.gortmaker@windriver.com>
+Subject: [PATCH 10/73] powerpc: use device_initcall for registering rtc devices
+Date: Tue, 21 Jan 2014 16:22:13 -0500
+Message-ID: <1390339396-3479-11-git-send-email-paul.gortmaker@windriver.com>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-pcmcia-bounces+glkpd-linux-pcmcia=m.gmane.org@lists.infradead.org>
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-pcmcia>,
- <mailto:linux-pcmcia-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-pcmcia/>
-List-Post: <mailto:linux-pcmcia@lists.infradead.org>
-List-Help: <mailto:linux-pcmcia-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-pcmcia>,
- <mailto:linux-pcmcia-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-pcmcia" <linux-pcmcia-bounces@lists.infradead.org>
-Errors-To: linux-pcmcia-bounces+glkpd-linux-pcmcia=m.gmane.org@lists.infradead.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, linux-pcmcia@lists.infradead.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Geoff Levand <geoff@infradead.org>, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-None of these files are actually using any __init type directives
-and hence don't need to include <linux/init.h>.  Most are just a
-left over from __devinit and __cpuinit removal, or simply due to
-code getting copied from one driver to the next.
+Currently these two RTC devices are in core platform code
+where it is not possible for them to be modular.  It will
+never be modular, so using module_init as an alias for
+__initcall can be somewhat misleading.
 
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: linux-pcmcia@lists.infradead.org
+Fix this up now, so that we can relocate module_init from
+init.h into module.h in the future.  If we don't do this, we'd
+have to add module.h to obviously non-modular code, and that
+would be a worse thing.
+
+Note that direct use of __initcall is discouraged, vs. one
+of the priority categorized subgroups.  As __initcall gets
+mapped onto device_initcall, our use of device_initcall
+directly in this change means that the runtime impact is
+zero -- they will remain at level 6 in initcall ordering.
+
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Geoff Levand <geoff@infradead.org>
+Cc: linuxppc-dev@lists.ozlabs.org
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- drivers/pcmcia/bfin_cf_pcmcia.c    | 1 -
- drivers/pcmcia/electra_cf.c        | 1 -
- drivers/pcmcia/i82092.c            | 1 -
- drivers/pcmcia/pd6729.c            | 1 -
- drivers/pcmcia/pxa2xx_viper.c      | 1 -
- drivers/pcmcia/sa1100_assabet.c    | 1 -
- drivers/pcmcia/sa1100_cerf.c       | 1 -
- drivers/pcmcia/sa1100_h3600.c      | 1 -
- drivers/pcmcia/sa1100_nanoengine.c | 1 -
- drivers/pcmcia/sa1100_shannon.c    | 1 -
- drivers/pcmcia/sa1100_simpad.c     | 1 -
- drivers/pcmcia/sa1111_jornada720.c | 1 -
- drivers/pcmcia/sa1111_lubbock.c    | 1 -
- drivers/pcmcia/sa1111_neponset.c   | 1 -
- drivers/pcmcia/soc_common.c        | 1 -
- drivers/pcmcia/socket_sysfs.c      | 1 -
- drivers/pcmcia/vrc4171_card.c      | 1 -
- drivers/pcmcia/vrc4173_cardu.c     | 1 -
- 18 files changed, 18 deletions(-)
+ arch/powerpc/kernel/time.c        | 2 +-
+ arch/powerpc/platforms/ps3/time.c | 3 +--
+ 2 files changed, 2 insertions(+), 3 deletions(-)
 
-diff --git a/drivers/pcmcia/bfin_cf_pcmcia.c b/drivers/pcmcia/bfin_cf_pcmcia.c
-index 971991b..38fba4b 100644
---- a/drivers/pcmcia/bfin_cf_pcmcia.c
-+++ b/drivers/pcmcia/bfin_cf_pcmcia.c
-@@ -30,7 +30,6 @@
- #include <linux/sched.h>
- #include <linux/platform_device.h>
- #include <linux/errno.h>
--#include <linux/init.h>
- #include <linux/slab.h>
- #include <linux/delay.h>
- #include <linux/interrupt.h>
-diff --git a/drivers/pcmcia/electra_cf.c b/drivers/pcmcia/electra_cf.c
-index 5ea64d0..aff5af2 100644
---- a/drivers/pcmcia/electra_cf.c
-+++ b/drivers/pcmcia/electra_cf.c
-@@ -25,7 +25,6 @@
- #include <linux/sched.h>
- #include <linux/platform_device.h>
- #include <linux/errno.h>
--#include <linux/init.h>
- #include <linux/delay.h>
- #include <linux/interrupt.h>
- #include <linux/mm.h>
-diff --git a/drivers/pcmcia/i82092.c b/drivers/pcmcia/i82092.c
-index 7d47456..032e115 100644
---- a/drivers/pcmcia/i82092.c
-+++ b/drivers/pcmcia/i82092.c
-@@ -10,7 +10,6 @@
- #include <linux/kernel.h>
- #include <linux/module.h>
- #include <linux/pci.h>
--#include <linux/init.h>
- #include <linux/workqueue.h>
- #include <linux/interrupt.h>
- #include <linux/device.h>
-diff --git a/drivers/pcmcia/pd6729.c b/drivers/pcmcia/pd6729.c
-index 622dd6f..14ec899 100644
---- a/drivers/pcmcia/pd6729.c
-+++ b/drivers/pcmcia/pd6729.c
-@@ -11,7 +11,6 @@
- #include <linux/module.h>
- #include <linux/slab.h>
- #include <linux/pci.h>
--#include <linux/init.h>
- #include <linux/workqueue.h>
- #include <linux/interrupt.h>
- #include <linux/device.h>
-diff --git a/drivers/pcmcia/pxa2xx_viper.c b/drivers/pcmcia/pxa2xx_viper.c
-index a76f495..dc10637 100644
---- a/drivers/pcmcia/pxa2xx_viper.c
-+++ b/drivers/pcmcia/pxa2xx_viper.c
-@@ -14,7 +14,6 @@
-  */
+diff --git a/arch/powerpc/kernel/time.c b/arch/powerpc/kernel/time.c
+index b3dab20..63b34fc 100644
+--- a/arch/powerpc/kernel/time.c
++++ b/arch/powerpc/kernel/time.c
+@@ -1064,4 +1064,4 @@ static int __init rtc_init(void)
+ 	return PTR_ERR_OR_ZERO(pdev);
+ }
  
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/kernel.h>
- #include <linux/errno.h>
- #include <linux/interrupt.h>
-diff --git a/drivers/pcmcia/sa1100_assabet.c b/drivers/pcmcia/sa1100_assabet.c
-index 44cfc44..2ba4b9f 100644
---- a/drivers/pcmcia/sa1100_assabet.c
-+++ b/drivers/pcmcia/sa1100_assabet.c
-@@ -9,7 +9,6 @@
- #include <linux/errno.h>
- #include <linux/interrupt.h>
- #include <linux/device.h>
--#include <linux/init.h>
- #include <linux/gpio.h>
+-module_init(rtc_init);
++device_initcall(rtc_init);
+diff --git a/arch/powerpc/platforms/ps3/time.c b/arch/powerpc/platforms/ps3/time.c
+index ce73ce8..791c614 100644
+--- a/arch/powerpc/platforms/ps3/time.c
++++ b/arch/powerpc/platforms/ps3/time.c
+@@ -92,5 +92,4 @@ static int __init ps3_rtc_init(void)
  
- #include <asm/mach-types.h>
-diff --git a/drivers/pcmcia/sa1100_cerf.c b/drivers/pcmcia/sa1100_cerf.c
-index b3774e5..ed65bbf 100644
---- a/drivers/pcmcia/sa1100_cerf.c
-+++ b/drivers/pcmcia/sa1100_cerf.c
-@@ -8,7 +8,6 @@
- #include <linux/module.h>
- #include <linux/kernel.h>
- #include <linux/device.h>
--#include <linux/init.h>
- #include <linux/delay.h>
- #include <linux/gpio.h>
- 
-diff --git a/drivers/pcmcia/sa1100_h3600.c b/drivers/pcmcia/sa1100_h3600.c
-index 431d8b0..9cde70c 100644
---- a/drivers/pcmcia/sa1100_h3600.c
-+++ b/drivers/pcmcia/sa1100_h3600.c
-@@ -8,7 +8,6 @@
- #include <linux/kernel.h>
- #include <linux/device.h>
- #include <linux/interrupt.h>
--#include <linux/init.h>
- #include <linux/delay.h>
- #include <linux/gpio.h>
- 
-diff --git a/drivers/pcmcia/sa1100_nanoengine.c b/drivers/pcmcia/sa1100_nanoengine.c
-index 35c30ff..bf3fe92 100644
---- a/drivers/pcmcia/sa1100_nanoengine.c
-+++ b/drivers/pcmcia/sa1100_nanoengine.c
-@@ -22,7 +22,6 @@
- #include <linux/gpio.h>
- #include <linux/interrupt.h>
- #include <linux/irq.h>
--#include <linux/init.h>
- #include <linux/kernel.h>
- #include <linux/module.h>
- #include <linux/signal.h>
-diff --git a/drivers/pcmcia/sa1100_shannon.c b/drivers/pcmcia/sa1100_shannon.c
-index b07a2dc..eee7c00 100644
---- a/drivers/pcmcia/sa1100_shannon.c
-+++ b/drivers/pcmcia/sa1100_shannon.c
-@@ -7,7 +7,6 @@
- #include <linux/module.h>
- #include <linux/kernel.h>
- #include <linux/device.h>
--#include <linux/init.h>
- #include <linux/io.h>
- 
- #include <mach/hardware.h>
-diff --git a/drivers/pcmcia/sa1100_simpad.c b/drivers/pcmcia/sa1100_simpad.c
-index 73fd379..f73e9d2 100644
---- a/drivers/pcmcia/sa1100_simpad.c
-+++ b/drivers/pcmcia/sa1100_simpad.c
-@@ -7,7 +7,6 @@
- #include <linux/module.h>
- #include <linux/kernel.h>
- #include <linux/device.h>
--#include <linux/init.h>
- 
- #include <mach/hardware.h>
- #include <asm/mach-types.h>
-diff --git a/drivers/pcmcia/sa1111_jornada720.c b/drivers/pcmcia/sa1111_jornada720.c
-index 3baa3ef..e0fd2c2 100644
---- a/drivers/pcmcia/sa1111_jornada720.c
-+++ b/drivers/pcmcia/sa1111_jornada720.c
-@@ -8,7 +8,6 @@
- #include <linux/kernel.h>
- #include <linux/device.h>
- #include <linux/errno.h>
--#include <linux/init.h>
- 
- #include <mach/hardware.h>
- #include <asm/hardware/sa1111.h>
-diff --git a/drivers/pcmcia/sa1111_lubbock.c b/drivers/pcmcia/sa1111_lubbock.c
-index c5caf57..a19fb91 100644
---- a/drivers/pcmcia/sa1111_lubbock.c
-+++ b/drivers/pcmcia/sa1111_lubbock.c
-@@ -18,7 +18,6 @@
- #include <linux/kernel.h>
- #include <linux/device.h>
- #include <linux/errno.h>
--#include <linux/init.h>
- #include <linux/delay.h>
- 
- #include <mach/hardware.h>
-diff --git a/drivers/pcmcia/sa1111_neponset.c b/drivers/pcmcia/sa1111_neponset.c
-index 1d78739..d0bc44f 100644
---- a/drivers/pcmcia/sa1111_neponset.c
-+++ b/drivers/pcmcia/sa1111_neponset.c
-@@ -7,7 +7,6 @@
- #include <linux/kernel.h>
- #include <linux/device.h>
- #include <linux/errno.h>
--#include <linux/init.h>
- 
- #include <mach/hardware.h>
- #include <asm/mach-types.h>
-diff --git a/drivers/pcmcia/soc_common.c b/drivers/pcmcia/soc_common.c
-index a2bc6ee..3c25d2e 100644
---- a/drivers/pcmcia/soc_common.c
-+++ b/drivers/pcmcia/soc_common.c
-@@ -33,7 +33,6 @@
- 
- #include <linux/cpufreq.h>
- #include <linux/gpio.h>
--#include <linux/init.h>
- #include <linux/interrupt.h>
- #include <linux/io.h>
- #include <linux/irq.h>
-diff --git a/drivers/pcmcia/socket_sysfs.c b/drivers/pcmcia/socket_sysfs.c
-index d688151..4132815 100644
---- a/drivers/pcmcia/socket_sysfs.c
-+++ b/drivers/pcmcia/socket_sysfs.c
-@@ -10,7 +10,6 @@
- 
- #include <linux/module.h>
- #include <linux/moduleparam.h>
--#include <linux/init.h>
- #include <linux/kernel.h>
- #include <linux/string.h>
- #include <linux/major.h>
-diff --git a/drivers/pcmcia/vrc4171_card.c b/drivers/pcmcia/vrc4171_card.c
-index d98a086..2f48f1b 100644
---- a/drivers/pcmcia/vrc4171_card.c
-+++ b/drivers/pcmcia/vrc4171_card.c
-@@ -17,7 +17,6 @@
-  *  along with this program; if not, write to the Free Software
-  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-  */
--#include <linux/init.h>
- #include <linux/ioport.h>
- #include <linux/interrupt.h>
- #include <linux/module.h>
-diff --git a/drivers/pcmcia/vrc4173_cardu.c b/drivers/pcmcia/vrc4173_cardu.c
-index d926920..a35a4f4 100644
---- a/drivers/pcmcia/vrc4173_cardu.c
-+++ b/drivers/pcmcia/vrc4173_cardu.c
-@@ -28,7 +28,6 @@
-  *  with this program; if not, write to the Free Software Foundation, Inc.,
-  *  675 Mass Ave, Cambridge, MA 02139, USA.
-  */
--#include <linux/init.h>
- #include <linux/module.h>
- #include <linux/pci.h>
- #include <linux/spinlock.h>
+ 	return PTR_ERR_OR_ZERO(pdev);
+ }
+-
+-module_init(ps3_rtc_init);
++device_initcall(ps3_rtc_init);
 -- 
 1.8.4.1
