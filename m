@@ -1,61 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:14530 "EHLO mga09.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754062AbaAUW0V (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Jan 2014 17:26:21 -0500
-Subject: Re: [PATCH v8 6/6] MCS Lock: Allow architecture specific asm files
- to be used for contended case
-From: Tim Chen <tim.c.chen@linux.intel.com>
-In-Reply-To: <20140121102000.GT31570@twins.programming.kicks-ass.net>
-References: <cover.1390239879.git.tim.c.chen@linux.intel.com>
-	 <1390267479.3138.40.camel@schen9-DESK>
-	 <20140121102000.GT31570@twins.programming.kicks-ass.net>
-Content-Type: text/plain; charset="UTF-8"
-Date: Tue, 21 Jan 2014 14:25:25 -0800
-Message-ID: <1390343125.3138.60.camel@schen9-DESK>
+Received: from shards.monkeyblade.net ([149.20.54.216]:37674 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753769AbaAUWfQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 17:35:16 -0500
+Date: Tue, 21 Jan 2014 14:35:13 -0800 (PST)
+Message-ID: <20140121.143513.90426024063083999.davem@davemloft.net>
+Subject: Re: [PATCH 23/73] sparc: don't use module_init in non-modular
+ pci.c code
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <1390339396-3479-24-git-send-email-paul.gortmaker@windriver.com>
+References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
+	<1390339396-3479-24-git-send-email-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, "Figo.zhang" <figo1802@gmail.com>
-Message-ID: <20140121222525.ksrGfZYq6hNgfxH0xP_1_ZioFVSfvXD2ThLG3TW3wZU@z>
+To: paul.gortmaker@windriver.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, bhelgaas@google.com, sparclinux@vger.kernel.org
+Message-ID: <20140121223513.rek3irpuc7n1i2XC9cjRalyixtM8KljcCYsNUlF5WI8@z>
 
-On Tue, 2014-01-21 at 11:20 +0100, Peter Zijlstra wrote:
-> On Mon, Jan 20, 2014 at 05:24:39PM -0800, Tim Chen wrote:
-> > diff --git a/arch/alpha/include/asm/Kbuild b/arch/alpha/include/asm/Kbuild
-> > index f01fb50..14cbbbc 100644
-> > --- a/arch/alpha/include/asm/Kbuild
-> > +++ b/arch/alpha/include/asm/Kbuild
-> > @@ -4,3 +4,4 @@ generic-y += clkdev.h
-> >  generic-y += exec.h
-> >  generic-y += trace_clock.h
-> >  generic-y += preempt.h
-> > +generic-y += mcs_spinlock.h
+From: Paul Gortmaker <paul.gortmaker@windriver.com>
+Date: Tue, 21 Jan 2014 16:22:26 -0500
+
+> The pci.o is built for SPARC64_PCI -- which is bool, and hence
+> this code is either present or absent.  It will never be modular,
+> so using module_init as an alias for __initcall can be somewhat
+> misleading.
 > 
-> m < p
+> Fix this up now, so that we can relocate module_init from
+> init.h into module.h in the future.  If we don't do this, we'd
+> have to add module.h to obviously non-modular code, and that
+> would be a worse thing.
 > 
-> > --- a/arch/ia64/include/asm/Kbuild
-> > +++ b/arch/ia64/include/asm/Kbuild
-> > @@ -4,4 +4,4 @@ generic-y += exec.h
-> >  generic-y += kvm_para.h
-> >  generic-y += trace_clock.h
-> >  generic-y += preempt.h
-> > -generic-y += vtime.h
-> > \ No newline at end of file
-
-The no newline compliant apparently caused by
-existing Kbuild file.
-
-Tim
-
-> > +generic-y += vtime.hgeneric-y += mcs_spinlock.h
+> Note that direct use of __initcall is discouraged, vs. one
+> of the priority categorized subgroups.  As __initcall gets
+> mapped onto device_initcall, our use of device_initcall
+> directly in this change means that the runtime impact is
+> zero -- it will remain at level 6 in initcall ordering.
 > 
-> EOL fail
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
+> Cc: "David S. Miller" <davem@davemloft.net>
+> Cc: Bjorn Helgaas <bhelgaas@google.com>
+> Cc: sparclinux@vger.kernel.org
+> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 
-
+ACK
