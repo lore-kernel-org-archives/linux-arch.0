@@ -1,45 +1,39 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH 0/8] Update kernel uabi header files for x32
-Date: Tue, 21 Jan 2014 09:06:59 -0800
-Message-ID: <52DEA933.6080907@zytor.com>
-References: <1388182464-28428-1-git-send-email-hjl.tools@gmail.com>
+From: Tim Chen <tim.c.chen@linux.intel.com>
+Subject: Re: [PATCH v8 3/6] MCS Lock: optimizations and extra comments
+Date: Tue, 21 Jan 2014 09:31:51 -0800
+Message-ID: <1390325511.3138.42.camel@schen9-DESK>
+References: <cover.1390239879.git.tim.c.chen@linux.intel.com>
+	 <1390267468.3138.37.camel@schen9-DESK>
+	 <20140121102626.GV31570@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:38581 "EHLO mail.zytor.com"
+Received: from mga09.intel.com ([134.134.136.24]:23795 "EHLO mga09.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754261AbaAURHq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Jan 2014 12:07:46 -0500
-In-Reply-To: <1388182464-28428-1-git-send-email-hjl.tools@gmail.com>
+	id S1754742AbaAURbx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 21 Jan 2014 12:31:53 -0500
+In-Reply-To: <20140121102626.GV31570@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H.J. Lu" <hjl.tools@gmail.com>, LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, Ralf Baechle <ralf@linux-mips.org>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Linus Torvalds <torvalds@linux-foundation.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin
 
-On 12/27/2013 02:14 PM, H.J. Lu wrote:
-> X32 uses the same kernel system call interface as x86-64 for many
-> system calls.  However, "long" is 64-bit for x86-64 and is 32-bit for
-> x32.  Where long or unsigned long are used in struct types for such
-> system calls, they are wrong for x32.  __kernel_[u]long_t is [unsigned]
-> long for all ABIs other than x32.  I am submitting 8 patches to replace
-> long or unsigned long with __kernel_[u]long_t so that those struct types
-> can be used with x32 system calls.
+On Tue, 2014-01-21 at 11:26 +0100, Peter Zijlstra wrote:
+> On Mon, Jan 20, 2014 at 05:24:28PM -0800, Tim Chen wrote:
+> > From: Jason Low <jason.low2@hp.com>
+> > 
+> > Remove unnecessary operation to assign locked status to 1 if lock is
+> > acquired without contention as this value will not be checked by lock
+> > holder again and other potential lock contenders will not be looking at
+> > their own lock status.
+should be "lock contenders will not be looking at lock holder's 
+lock status"
+
+Thanks for catching it.
+
+Tim
 > 
-> H.J. Lu (8):
->   Use __kernel_long_t in struct timex
->   Use __kernel_long_t/__kernel_ulong_t in <linux/resource.h>
->   Use __kernel_ulong_t in uapi struct ipc64_perm
->   Use __kernel_long_t in struct msgbuf
->   Use __kernel_ulong_t in struct msqid64_ds
->   Use __kernel_ulong_t in x86 struct semid64_ds
->   Use __kernel_ulong_t in shmid64_ds/shminfo64/shm_info
->   Use __kernel_long_t in struct mq_attr
+> Ha, read that again :-)
 > 
-
-As Catalin indirectly pointed out, I had made a followup to the wrong
-version of the patchset (because I commented to Christoph's feedback.)
-This is threaded to the proper version (without unnecessary #if
-__BITS_PER_LONG.)
-
-	-hpa
+> 
