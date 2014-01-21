@@ -1,52 +1,57 @@
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 16/73] arm: include module.h in drivers/bus/omap_l3_smx.c
-Date: Tue, 21 Jan 2014 16:22:19 -0500
-Message-ID: <1390339396-3479-17-git-send-email-paul.gortmaker@windriver.com>
+Subject: [PATCH 27/73] drivers/clk: don't use module_init in clk-nomadik.c which is non-modular
+Date: Tue, 21 Jan 2014 16:22:30 -0500
+Message-ID: <1390339396-3479-28-git-send-email-paul.gortmaker@windriver.com>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Type: text/plain
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail1.windriver.com ([147.11.146.13]:50703 "EHLO
+	mail1.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754607AbaAUVZD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:25:03 -0500
 In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Mike Turquette <mturquette@linaro.org>, linux-arm-kernel@lists.infradead.org
 
-The config OMAP_INTERCONNECT that this driver depends on (in
-drivers/bus/Kconfig) is tristate.  So it can be a module.
+The clk-nomadik.o is built for ARCH_NOMADIK -- which is bool, and
+hence this code is either present or absent.  It will never be
+modular, so using module_init as an alias for __initcall can be
+somewhat misleading.
 
-Also there are module related setup calls within this driver.
-Explicitly add module.h to includes so it won't be a build failure
-when future cleanups are integrated and the implicit presence
-of certain module prototypes disappears.
+Fix this up now, so that we can relocate module_init from
+init.h into module.h in the future.  If we don't do this, we'd
+have to add module.h to obviously non-modular code, and that
+would be a worse thing.
 
-Cc: Russell King <linux@arm.linux.org.uk>
+Note that direct use of __initcall is discouraged, vs. one
+of the priority categorized subgroups.  As __initcall gets
+mapped onto device_initcall, our use of device_initcall
+directly in this change means that the runtime impact is
+zero -- it will remain at level 6 in initcall ordering.
+
+Cc: Mike Turquette <mturquette@linaro.org>
 Cc: linux-arm-kernel@lists.infradead.org
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- drivers/bus/omap_l3_smx.c | 1 +
- 1 file changed, 1 insertion(+)
+ drivers/clk/clk-nomadik.c | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
 
-diff --git a/drivers/bus/omap_l3_smx.c b/drivers/bus/omap_l3_smx.c
-index acc2164..8a61433 100644
---- a/drivers/bus/omap_l3_smx.c
-+++ b/drivers/bus/omap_l3_smx.c
-@@ -23,6 +23,7 @@
-  */
+diff --git a/drivers/clk/clk-nomadik.c b/drivers/clk/clk-nomadik.c
+index 6a934a5..5be9b9f 100644
+--- a/drivers/clk/clk-nomadik.c
++++ b/drivers/clk/clk-nomadik.c
+@@ -500,8 +500,7 @@ static int __init nomadik_src_clk_init_debugfs(void)
+ 			    NULL, NULL, &nomadik_src_clk_debugfs_ops);
+ 	return 0;
+ }
+-
+-module_init(nomadik_src_clk_init_debugfs);
++device_initcall(nomadik_src_clk_init_debugfs);
  
- #include <linux/kernel.h>
-+#include <linux/module.h>
- #include <linux/slab.h>
- #include <linux/platform_device.h>
- #include <linux/interrupt.h>
+ #endif
+ 
 -- 
 1.8.4.1
