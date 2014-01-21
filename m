@@ -1,58 +1,60 @@
-From: Tim Chen <tim.c.chen@linux.intel.com>
-Subject: Re: [PATCH v8 6/6] MCS Lock: Allow architecture specific asm files
- to be used for contended case
-Date: Tue, 21 Jan 2014 14:25:25 -0800
-Message-ID: <1390343125.3138.60.camel@schen9-DESK>
-References: <cover.1390239879.git.tim.c.chen@linux.intel.com>
-	 <1390267479.3138.40.camel@schen9-DESK>
-	 <20140121102000.GT31570@twins.programming.kicks-ass.net>
+From: Paul Gortmaker <paul.gortmaker@windriver.com>
+Subject: Re: [PATCH 60/73] drivers/bluetooth: delete non-required instances
+ of include <linux/init.h>
+Date: Tue, 21 Jan 2014 17:30:46 -0500
+Message-ID: <52DEF516.3080103@windriver.com>
+References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com> <1390339396-3479-61-git-send-email-paul.gortmaker@windriver.com> <8861C0F9-FF68-47B8-B9EB-E52BF6A72A6F@holtmann.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:14530 "EHLO mga09.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754062AbaAUW0V (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Jan 2014 17:26:21 -0500
-In-Reply-To: <20140121102000.GT31570@twins.programming.kicks-ass.net>
+Received: from mail.windriver.com ([147.11.1.11]:33640 "EHLO
+	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753220AbaAUWae (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 17:30:34 -0500
+In-Reply-To: <8861C0F9-FF68-47B8-B9EB-E52BF6A72A6F@holtmann.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin
+To: Marcel Holtmann <marcel@holtmann.org>
+Cc: linux-kernel <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, "Gustavo F. Padovan" <gustavo@padovan.org>, Johan Hedberg <johan.hedberg@gmail.com>, "linux-bluetooth@vger.kernel.org development" <linux-bluetooth@vger.kernel.org>
 
-On Tue, 2014-01-21 at 11:20 +0100, Peter Zijlstra wrote:
-> On Mon, Jan 20, 2014 at 05:24:39PM -0800, Tim Chen wrote:
-> > diff --git a/arch/alpha/include/asm/Kbuild b/arch/alpha/include/asm/Kbuild
-> > index f01fb50..14cbbbc 100644
-> > --- a/arch/alpha/include/asm/Kbuild
-> > +++ b/arch/alpha/include/asm/Kbuild
-> > @@ -4,3 +4,4 @@ generic-y += clkdev.h
-> >  generic-y += exec.h
-> >  generic-y += trace_clock.h
-> >  generic-y += preempt.h
-> > +generic-y += mcs_spinlock.h
+On 14-01-21 04:55 PM, Marcel Holtmann wrote:
+> Hi Paul,
 > 
-> m < p
+>> None of these files are actually using any __init type directives
+>> and hence don't need to include <linux/init.h>.  Most are just a
+>> left over from __devinit and __cpuinit removal, or simply due to
+>> code getting copied from one driver to the next.
+>>
+>> Cc: Marcel Holtmann <marcel@holtmann.org>
+>> Cc: Gustavo Padovan <gustavo@padovan.org>
+>> Cc: Johan Hedberg <johan.hedberg@gmail.com>
+>> Cc: linux-bluetooth@vger.kernel.org
+>> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
+>> ---
+>> drivers/bluetooth/ath3k.c       | 1 -
+>> drivers/bluetooth/bcm203x.c     | 1 -
+>> drivers/bluetooth/bfusb.c       | 1 -
+>> drivers/bluetooth/bluecard_cs.c | 1 -
+>> drivers/bluetooth/bpa10x.c      | 1 -
+>> drivers/bluetooth/bt3c_cs.c     | 1 -
+>> drivers/bluetooth/btuart_cs.c   | 1 -
+>> drivers/bluetooth/dtl1_cs.c     | 1 -
+>> 8 files changed, 8 deletions(-)
 > 
-> > --- a/arch/ia64/include/asm/Kbuild
-> > +++ b/arch/ia64/include/asm/Kbuild
-> > @@ -4,4 +4,4 @@ generic-y += exec.h
-> >  generic-y += kvm_para.h
-> >  generic-y += trace_clock.h
-> >  generic-y += preempt.h
-> > -generic-y += vtime.h
-> > \ No newline at end of file
-
-The no newline compliant apparently caused by
-existing Kbuild file.
-
-Tim
-
-> > +generic-y += vtime.hgeneric-y += mcs_spinlock.h
+> I can take this single patch via bluetooth-next tree or if Linus for example wants to take the whole series, then that is fine with me as well.
 > 
-> EOL fail
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
+> Acked-by: Marcel Holtmann <marcel@holtmann.org>
+
+Given that the merge window is open, and maintainers are likely to
+have finalized their content, I might as well just keep it in this
+series.  I've added your ack though -- thanks.
+
+Paul.
+--
+
+> 
+> Regards
+> 
+> Marcel
+> 
