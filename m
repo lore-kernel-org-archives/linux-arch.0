@@ -1,163 +1,205 @@
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 45/73] acpi: delete non-required instances of include <linux/init.h>
-Date: Tue, 21 Jan 2014 16:22:48 -0500
-Message-ID: <1390339396-3479-46-git-send-email-paul.gortmaker@windriver.com>
+Subject: [PATCH 36/73] s390: delete non-required instances of include <linux/init.h>
+Date: Tue, 21 Jan 2014 16:22:39 -0500
+Message-ID: <1390339396-3479-37-git-send-email-paul.gortmaker@windriver.com>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.windriver.com ([147.11.1.11]:56436 "EHLO
-	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754653AbaAUVZK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:25:10 -0500
+Received: from mail1.windriver.com ([147.11.146.13]:50696 "EHLO
+	mail1.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754480AbaAUVZC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 16:25:02 -0500
 In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Len Brown <lenb@kernel.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Zhang Rui <rui.zhang@intel.com>, linux-acpi@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Ursula Braun <ursula.braun@de.ibm.com>, Frank Blaschka <blaschka@linux.vnet.ibm.com>, Steffen Maier <maier@linux.vnet.ibm.com>, linux390@de.ibm.com, linux-s390@vger.kernel.org
 
 None of these files are actually using any __init type directives
 and hence don't need to include <linux/init.h>.  Most are just a
 left over from __devinit and __cpuinit removal, or simply due to
 code getting copied from one driver to the next.
 
-Cc: Len Brown <lenb@kernel.org>
-Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
-Cc: Zhang Rui <rui.zhang@intel.com>
-Cc: linux-acpi@vger.kernel.org
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Ursula Braun <ursula.braun@de.ibm.com>
+Cc: Frank Blaschka <blaschka@linux.vnet.ibm.com>
+Cc: Steffen Maier <maier@linux.vnet.ibm.com>
+Cc: linux390@de.ibm.com
+Cc: linux-s390@vger.kernel.org
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- drivers/acpi/apei/apei-base.c       | 1 -
- drivers/acpi/button.c               | 1 -
- drivers/acpi/fan.c                  | 1 -
- drivers/acpi/hed.c                  | 1 -
- drivers/acpi/pci_irq.c              | 1 -
- drivers/acpi/power.c                | 1 -
- drivers/acpi/processor_perflib.c    | 1 -
- drivers/acpi/processor_thermal.c    | 1 -
- drivers/acpi/processor_throttling.c | 1 -
- drivers/acpi/utils.c                | 1 -
- 10 files changed, 10 deletions(-)
+ drivers/s390/block/dasd_erp.c    | 1 -
+ drivers/s390/char/tape_34xx.c    | 1 -
+ drivers/s390/char/tape_3590.c    | 1 -
+ drivers/s390/char/tape_class.h   | 1 -
+ drivers/s390/char/tape_core.c    | 1 -
+ drivers/s390/cio/airq.c          | 1 -
+ drivers/s390/cio/device_ops.c    | 1 -
+ drivers/s390/cio/device_status.c | 1 -
+ drivers/s390/net/ctcm_dbug.c     | 1 -
+ drivers/s390/net/ctcm_fsms.c     | 1 -
+ drivers/s390/net/ctcm_fsms.h     | 1 -
+ drivers/s390/net/ctcm_mpc.c      | 1 -
+ drivers/s390/scsi/zfcp_def.h     | 1 -
+ 13 files changed, 13 deletions(-)
 
-diff --git a/drivers/acpi/apei/apei-base.c b/drivers/acpi/apei/apei-base.c
-index 8678dfe..a83e10f 100644
---- a/drivers/acpi/apei/apei-base.c
-+++ b/drivers/acpi/apei/apei-base.c
-@@ -32,7 +32,6 @@
+diff --git a/drivers/s390/block/dasd_erp.c b/drivers/s390/block/dasd_erp.c
+index e1e8848..0b9f823 100644
+--- a/drivers/s390/block/dasd_erp.c
++++ b/drivers/s390/block/dasd_erp.c
+@@ -11,7 +11,6 @@
+ #define KMSG_COMPONENT "dasd"
  
- #include <linux/kernel.h>
+ #include <linux/ctype.h>
+-#include <linux/init.h>
+ 
+ #include <asm/debug.h>
+ #include <asm/ebcdic.h>
+diff --git a/drivers/s390/char/tape_34xx.c b/drivers/s390/char/tape_34xx.c
+index 9aa7970..2e3eb6a 100644
+--- a/drivers/s390/char/tape_34xx.c
++++ b/drivers/s390/char/tape_34xx.c
+@@ -11,7 +11,6 @@
+ #define pr_fmt(fmt) KMSG_COMPONENT ": " fmt
+ 
  #include <linux/module.h>
 -#include <linux/init.h>
- #include <linux/acpi.h>
+ #include <linux/bio.h>
+ #include <linux/workqueue.h>
  #include <linux/slab.h>
- #include <linux/io.h>
-diff --git a/drivers/acpi/button.c b/drivers/acpi/button.c
-index 11c11f6..3e20dff 100644
---- a/drivers/acpi/button.c
-+++ b/drivers/acpi/button.c
-@@ -25,7 +25,6 @@
+diff --git a/drivers/s390/char/tape_3590.c b/drivers/s390/char/tape_3590.c
+index 327cb19..e979c76 100644
+--- a/drivers/s390/char/tape_3590.c
++++ b/drivers/s390/char/tape_3590.c
+@@ -12,7 +12,6 @@
  
- #include <linux/kernel.h>
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/types.h>
- #include <linux/proc_fs.h>
- #include <linux/seq_file.h>
-diff --git a/drivers/acpi/fan.c b/drivers/acpi/fan.c
-index 1fb6290..78b5cc7 100644
---- a/drivers/acpi/fan.c
-+++ b/drivers/acpi/fan.c
-@@ -25,7 +25,6 @@
- 
- #include <linux/kernel.h>
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/types.h>
- #include <asm/uaccess.h>
- #include <linux/thermal.h>
-diff --git a/drivers/acpi/hed.c b/drivers/acpi/hed.c
-index aafe3ca..215777c 100644
---- a/drivers/acpi/hed.c
-+++ b/drivers/acpi/hed.c
-@@ -23,7 +23,6 @@
- 
- #include <linux/kernel.h>
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/acpi.h>
- #include <acpi/hed.h>
- 
-diff --git a/drivers/acpi/pci_irq.c b/drivers/acpi/pci_irq.c
-index 52d45ea..7bd6a55 100644
---- a/drivers/acpi/pci_irq.c
-+++ b/drivers/acpi/pci_irq.c
-@@ -30,7 +30,6 @@
- #include <linux/dmi.h>
- #include <linux/kernel.h>
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/types.h>
- #include <linux/spinlock.h>
- #include <linux/pm.h>
-diff --git a/drivers/acpi/power.c b/drivers/acpi/power.c
-index ad7da68..9c909d4 100644
---- a/drivers/acpi/power.c
-+++ b/drivers/acpi/power.c
-@@ -37,7 +37,6 @@
- 
- #include <linux/kernel.h>
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/types.h>
- #include <linux/slab.h>
- #include <linux/pm_runtime.h>
-diff --git a/drivers/acpi/processor_perflib.c b/drivers/acpi/processor_perflib.c
-index ff90054..d2594ad 100644
---- a/drivers/acpi/processor_perflib.c
-+++ b/drivers/acpi/processor_perflib.c
-@@ -28,7 +28,6 @@
- 
- #include <linux/kernel.h>
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/cpufreq.h>
- #include <linux/slab.h>
- #include <linux/acpi.h>
-diff --git a/drivers/acpi/processor_thermal.c b/drivers/acpi/processor_thermal.c
-index e003663..661c9d2 100644
---- a/drivers/acpi/processor_thermal.c
-+++ b/drivers/acpi/processor_thermal.c
-@@ -28,7 +28,6 @@
- 
- #include <linux/kernel.h>
- #include <linux/module.h>
--#include <linux/init.h>
- #include <linux/cpufreq.h>
- #include <linux/acpi.h>
- #include <acpi/processor.h>
-diff --git a/drivers/acpi/processor_throttling.c b/drivers/acpi/processor_throttling.c
-index 28baa05..08be363 100644
---- a/drivers/acpi/processor_throttling.c
-+++ b/drivers/acpi/processor_throttling.c
-@@ -29,7 +29,6 @@
- #include <linux/kernel.h>
  #include <linux/module.h>
  #include <linux/slab.h>
 -#include <linux/init.h>
- #include <linux/sched.h>
- #include <linux/cpufreq.h>
- #include <linux/acpi.h>
-diff --git a/drivers/acpi/utils.c b/drivers/acpi/utils.c
-index 0347a37..492cf4f 100644
---- a/drivers/acpi/utils.c
-+++ b/drivers/acpi/utils.c
-@@ -26,7 +26,6 @@
- #include <linux/kernel.h>
- #include <linux/module.h>
- #include <linux/slab.h>
+ #include <linux/bio.h>
+ #include <asm/ebcdic.h>
+ 
+diff --git a/drivers/s390/char/tape_class.h b/drivers/s390/char/tape_class.h
+index a332c10..444ffdf 100644
+--- a/drivers/s390/char/tape_class.h
++++ b/drivers/s390/char/tape_class.h
+@@ -9,7 +9,6 @@
+ #ifndef __TAPE_CLASS_H__
+ #define __TAPE_CLASS_H__
+ 
 -#include <linux/init.h>
- #include <linux/types.h>
- #include <linux/hardirq.h>
- #include <linux/acpi.h>
+ #include <linux/module.h>
+ #include <linux/fs.h>
+ #include <linux/major.h>
+diff --git a/drivers/s390/char/tape_core.c b/drivers/s390/char/tape_core.c
+index f3b5123..6edf6ae 100644
+--- a/drivers/s390/char/tape_core.c
++++ b/drivers/s390/char/tape_core.c
+@@ -14,7 +14,6 @@
+ #define pr_fmt(fmt) KMSG_COMPONENT ": " fmt
+ 
+ #include <linux/module.h>
+-#include <linux/init.h>	     // for kernel parameters
+ #include <linux/kmod.h>	     // for requesting modules
+ #include <linux/spinlock.h>  // for locks
+ #include <linux/vmalloc.h>
+diff --git a/drivers/s390/cio/airq.c b/drivers/s390/cio/airq.c
+index f055df0..897209a 100644
+--- a/drivers/s390/cio/airq.c
++++ b/drivers/s390/cio/airq.c
+@@ -8,7 +8,6 @@
+  *		 Peter Oberparleiter <peter.oberparleiter@de.ibm.com>
+  */
+ 
+-#include <linux/init.h>
+ #include <linux/irq.h>
+ #include <linux/kernel_stat.h>
+ #include <linux/module.h>
+diff --git a/drivers/s390/cio/device_ops.c b/drivers/s390/cio/device_ops.c
+index 4845d64..09de935 100644
+--- a/drivers/s390/cio/device_ops.c
++++ b/drivers/s390/cio/device_ops.c
+@@ -5,7 +5,6 @@
+  *	      Cornelia Huck (cornelia.huck@de.ibm.com)
+  */
+ #include <linux/module.h>
+-#include <linux/init.h>
+ #include <linux/errno.h>
+ #include <linux/slab.h>
+ #include <linux/list.h>
+diff --git a/drivers/s390/cio/device_status.c b/drivers/s390/cio/device_status.c
+index 15b56a1..323fa37 100644
+--- a/drivers/s390/cio/device_status.c
++++ b/drivers/s390/cio/device_status.c
+@@ -7,7 +7,6 @@
+  */
+ 
+ #include <linux/module.h>
+-#include <linux/init.h>
+ 
+ #include <asm/ccwdev.h>
+ #include <asm/cio.h>
+diff --git a/drivers/s390/net/ctcm_dbug.c b/drivers/s390/net/ctcm_dbug.c
+index 8363f1c9..7fc399a 100644
+--- a/drivers/s390/net/ctcm_dbug.c
++++ b/drivers/s390/net/ctcm_dbug.c
+@@ -11,7 +11,6 @@
+ #include <linux/ctype.h>
+ #include <linux/sysctl.h>
+ #include <linux/module.h>
+-#include <linux/init.h>
+ #include <linux/fs.h>
+ #include <linux/debugfs.h>
+ #include "ctcm_dbug.h"
+diff --git a/drivers/s390/net/ctcm_fsms.c b/drivers/s390/net/ctcm_fsms.c
+index fb92524..0d64046 100644
+--- a/drivers/s390/net/ctcm_fsms.c
++++ b/drivers/s390/net/ctcm_fsms.c
+@@ -15,7 +15,6 @@
+ #define pr_fmt(fmt) KMSG_COMPONENT ": " fmt
+ 
+ #include <linux/module.h>
+-#include <linux/init.h>
+ #include <linux/kernel.h>
+ #include <linux/slab.h>
+ #include <linux/errno.h>
+diff --git a/drivers/s390/net/ctcm_fsms.h b/drivers/s390/net/ctcm_fsms.h
+index c963d04..0ae2e8c 100644
+--- a/drivers/s390/net/ctcm_fsms.h
++++ b/drivers/s390/net/ctcm_fsms.h
+@@ -10,7 +10,6 @@
+ #define _CTCM_FSMS_H_
+ 
+ #include <linux/module.h>
+-#include <linux/init.h>
+ #include <linux/kernel.h>
+ #include <linux/slab.h>
+ #include <linux/errno.h>
+diff --git a/drivers/s390/net/ctcm_mpc.c b/drivers/s390/net/ctcm_mpc.c
+index 2dbc77b..f39bd3c 100644
+--- a/drivers/s390/net/ctcm_mpc.c
++++ b/drivers/s390/net/ctcm_mpc.c
+@@ -21,7 +21,6 @@
+ #define pr_fmt(fmt) KMSG_COMPONENT ": " fmt
+ 
+ #include <linux/module.h>
+-#include <linux/init.h>
+ #include <linux/kernel.h>
+ #include <linux/slab.h>
+ #include <linux/errno.h>
+diff --git a/drivers/s390/scsi/zfcp_def.h b/drivers/s390/scsi/zfcp_def.h
+index d91173f..553eba9 100644
+--- a/drivers/s390/scsi/zfcp_def.h
++++ b/drivers/s390/scsi/zfcp_def.h
+@@ -11,7 +11,6 @@
+ 
+ /*************************** INCLUDES *****************************************/
+ 
+-#include <linux/init.h>
+ #include <linux/moduleparam.h>
+ #include <linux/major.h>
+ #include <linux/blkdev.h>
 -- 
 1.8.4.1
