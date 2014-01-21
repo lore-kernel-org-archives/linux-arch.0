@@ -1,39 +1,56 @@
-From: "H.J. Lu" <hjl.tools@gmail.com>
-Subject: Re: [PATCH 0/8] Update kernel uabi header files for x32
-Date: Tue, 21 Jan 2014 04:22:59 -0800
-Message-ID: <CAMe9rOqL_TJW-XJz6e8_iewUypmsx8MXeaRfq-aATx3sFDBxcw@mail.gmail.com>
-References: <1388182464-28428-1-git-send-email-hjl.tools@gmail.com>
-	<20131228163308.GA1638@infradead.org>
-	<52DD6101.4010708@zytor.com>
-	<20140121120440.GD14830@arm.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH v8 6/6] MCS Lock: Allow architecture specific asm files
+ to be used for contended case
+Date: Tue, 21 Jan 2014 15:00:23 +0100
+Message-ID: <20140121140023.GA4537@gmail.com>
+References: <cover.1390239879.git.tim.c.chen@linux.intel.com>
+ <1390267479.3138.40.camel@schen9-DESK>
+ <20140121102000.GT31570@twins.programming.kicks-ass.net>
+ <20140121104521.GA4105@gmail.com>
+ <20140121105916.GW31570@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20140121120440.GD14830@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Christoph Hellwig <hch@infradead.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ralf Baechle <ralf@linux-mips.org>, Will Deacon <Will.Deacon@arm.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20140121105916.GW31570@twins.programming.kicks-ass.net>
+Sender: owner-linux-mm@kvack.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 21, 2014 at 4:04 AM, Catalin Marinas
-<catalin.marinas@arm.com> wrote:
-> On Mon, Jan 20, 2014 at 05:46:41PM +0000, H. Peter Anvin wrote:
->> On 12/28/2013 08:33 AM, Christoph Hellwig wrote:
->> > On Fri, Dec 27, 2013 at 02:14:16PM -0800, H.J. Lu wrote:
->> >> X32 uses the same kernel system call interface as x86-64 for many
->> >> system calls.  However, "long" is 64-bit for x86-64 and is 32-bit for
->> >> x32.  Where long or unsigned long are used in struct types for such
->> >> system calls, they are wrong for x32.  __kernel_[u]long_t is [unsigned]
->> >> long for all ABIs other than x32.  I am submitting 8 patches to replace
->> >> long or unsigned long with __kernel_[u]long_t so that those struct types
->> >> can be used with x32 system calls.
->
-> Does this mean that you are changing the x32 ABI (or it hasn't been
-> declared stable yet)?
 
-We don't change x32 ABI.  Today kernel uabi header files are
-incompatible with x32 ABI in user space.  My patches fix them
-so that they can be used in user space.
+* Peter Zijlstra <peterz@infradead.org> wrote:
 
--- 
-H.J.
+> On Tue, Jan 21, 2014 at 11:45:21AM +0100, Ingo Molnar wrote:
+> > 
+> > * Peter Zijlstra <peterz@infradead.org> wrote:
+> > 
+> > > On Mon, Jan 20, 2014 at 05:24:39PM -0800, Tim Chen wrote:
+> > > > diff --git a/arch/alpha/include/asm/Kbuild b/arch/alpha/include/asm/Kbuild
+> > > > index f01fb50..14cbbbc 100644
+> > > > --- a/arch/alpha/include/asm/Kbuild
+> > > > +++ b/arch/alpha/include/asm/Kbuild
+> > > > @@ -4,3 +4,4 @@ generic-y += clkdev.h
+> > > >  generic-y += exec.h
+> > > >  generic-y += trace_clock.h
+> > > >  generic-y += preempt.h
+> > > > +generic-y += mcs_spinlock.h
+> > > 
+> > > m < p
+> > 
+> > Hm, did your script not work?
+> 
+> It wasn't used, afaict.
+
+Something to keep in mind for the next version of this series I 
+suspect ;-)
+
+Thanks,
+
+	Ingo
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
