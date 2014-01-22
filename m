@@ -1,32 +1,56 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v9 3/5] qrwlock, x86 - Treat all data type not bigger
- than long as atomic in x86
-Date: Wed, 22 Jan 2014 09:01:55 +0100
-Message-ID: <20140122080155.GE31570@twins.programming.kicks-ass.net>
-References: <1389761047-47566-1-git-send-email-Waiman.Long@hp.com>
- <1389761047-47566-4-git-send-email-Waiman.Long@hp.com>
- <20140120150316.GG30183@twins.programming.kicks-ass.net>
- <52DE9410.6090500@hp.com>
- <20140121153958.GA31570@twins.programming.kicks-ass.net>
- <52DE9BB0.5070909@hp.com>
- <CA+55aFzyww_kwU36jYk=LUtxzPUU76xgnQEOUTqGMFNe80sOZA@mail.gmail.com>
+From: Paul Gortmaker <paul.gortmaker@gmail.com>
+Subject: Re: [PATCH 68/73] drivers/cpufreq: delete non-required instances of <linux/init.h>
+Date: Wed, 22 Jan 2014 04:17:59 -0500
+Message-ID: <CAP=VYLodPTc4Cum+bqwA927g11-BNOtSo=fs_UKt+jFEc3ABKw@mail.gmail.com>
+References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
+	<1390339396-3479-69-git-send-email-paul.gortmaker@windriver.com>
+	<CAKohpo=oWrX2SF5GWYoGzC+cuZeOx_wappTFfOy9vCpBush+BQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:48390 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750853AbaAVICo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jan 2014 03:02:44 -0500
-Content-Disposition: inline
-In-Reply-To: <CA+55aFzyww_kwU36jYk=LUtxzPUU76xgnQEOUTqGMFNe80sOZA@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Waiman Long <waiman.long@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <cpufreq-owner@vger.kernel.org>
+In-Reply-To: <CAKohpo=oWrX2SF5GWYoGzC+cuZeOx_wappTFfOy9vCpBush+BQ@mail.gmail.com>
+Sender: cpufreq-owner@vger.kernel.org
+To: Viresh Kumar <viresh.kumar@linaro.org>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Kevin Hilman <khilman@deeprootsystems.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, "cpufreq@vger.kernel.org" <cpufreq@vger.kernel.org>, "linux-pm@vger.kernel.org" <linux-pm@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 21, 2014 at 04:31:56PM -0800, Linus Torvalds wrote:
-> And if somebody tries to do a "smp_store_release()" on a random
-> structure or union, do we care? We're not some nanny state that wants
-> to give nice warnings for insane code.
+On 1/21/14, Viresh Kumar <viresh.kumar@linaro.org> wrote:
+> On 22 January 2014 02:53, Paul Gortmaker <paul.gortmaker@windriver.com>
+> wrote:
+>> None of these files are actually using any __init type directives
+>> and hence don't need to include <linux/init.h>.  Most are just a
+>> left over from __devinit and __cpuinit removal, or simply due to
+>> code getting copied from one driver to the next.
+>>
+>> Cc: Kevin Hilman <khilman@deeprootsystems.com>
+>> Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+>> Cc: Viresh Kumar <viresh.kumar@linaro.org>
+>> Cc: cpufreq@vger.kernel.org
+>> Cc: linux-pm@vger.kernel.org
+>> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
+>> ---
+>>  drivers/cpufreq/omap-cpufreq.c    | 1 -
+>>  drivers/cpufreq/powernow-k8.c     | 1 -
+>>  drivers/cpufreq/s3c2412-cpufreq.c | 1 -
+>>  drivers/cpufreq/s3c2440-cpufreq.c | 1 -
+>>  drivers/cpufreq/spear-cpufreq.c   | 1 -
+>>  drivers/cpufreq/speedstep-lib.c   | 1 -
+>>  6 files changed, 6 deletions(-)
+>
+> We have discussed this in past where I pointed out this file is required
+> by stuff like module_init, what happened to that query ?
 
-Hurm, and here I thought warning on insane code was a good idea :/
+Patch 31/73 relocates module_init and similar macros to
+module.h so that is no longer an implicit dependency.
+
+https://lkml.org/lkml/2014/1/21/488
+
+Thanks,
+Paul
+--
+
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+>
