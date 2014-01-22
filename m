@@ -1,42 +1,64 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH 65/73] drivers/edac: delete non-required instances of
- include <linux/init.h>
-Date: Wed, 22 Jan 2014 21:02:49 +0100
-Message-ID: <20140122200249.GC4966@pd.tnic>
-References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
- <1390339396-3479-66-git-send-email-paul.gortmaker@windriver.com>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [PATCH v8 6/6] MCS Lock: Allow architecture specific asm files to be used for contended case
+Date: Wed, 22 Jan 2014 21:15:40 +0000
+Message-ID: <26254409.YmoYKsf1IQ@radagast>
+References: <cover.1390239879.git.tim.c.chen@linux.intel.com> <1390267479.3138.40.camel@schen9-DESK>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([78.46.96.112]:52101 "EHLO mail.skyhub.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751788AbaAVUCv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 22 Jan 2014 15:02:51 -0500
-Content-Disposition: inline
-In-Reply-To: <1390339396-3479-66-git-send-email-paul.gortmaker@windriver.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Paul Gortmaker <paul.gortmaker@windriver.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Doug Thompson <dougthompson@xmission.com>, Ralf Baechle <ralf@linux-mips.org>, David Daney <david.daney@cavium.com>, linux-edac@vger.kernel.org
+Content-Type: multipart/signed; boundary="nextPart1685149.4BrWz72eY4"; micalg="pgp-sha1"; protocol="application/pgp-signature"
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1390267479.3138.40.camel@schen9-DESK>
+Sender: owner-linux-mm@kvack.org
+To: Tim Chen <tim.c.chen@linux.intel.com>
+Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.>com, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@ar>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 21, 2014 at 04:23:08PM -0500, Paul Gortmaker wrote:
-> None of these files are actually using any __init type directives
-> and hence don't need to include <linux/init.h>.  Most are just a
-> left over from __devinit and __cpuinit removal, or simply due to
-> code getting copied from one driver to the next.
+
+--nextPart1685149.4BrWz72eY4
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
+
+Hi,
+
+On Monday 20 January 2014 17:24:39 Tim Chen wrote:
+> From: Peter Zijlstra <peterz@infradead.org>
 > 
-> Cc: Doug Thompson <dougthompson@xmission.com>
-> Cc: Borislav Petkov <bp@alien8.de>
-> Cc: Ralf Baechle <ralf@linux-mips.org>
-> Cc: David Daney <david.daney@cavium.com>
-> Cc: linux-edac@vger.kernel.org
-> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
+> This patch allows each architecture to add its specific assembly optimized
+> arch_mcs_spin_lock_contended and arch_mcs_spinlock_uncontended for
+> MCS lock and unlock functions.
+> 
+> Signed-off-by: Tim Chen <tim.c.chen@linux.intel.com>
 
-Acked-by: Borislav Petkov <bp@suse.de>
+Where possible can you try and maintain the sort order in the Kbuild files?
 
--- 
-Regards/Gruss,
-    Boris.
+Cheers
+James
+--nextPart1685149.4BrWz72eY4
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part.
+Content-Transfer-Encoding: 7Bit
 
-Sent from a fat crate under my desk. Formatting is fine.
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2.0.22 (GNU/Linux)
+
+iQIcBAABAgAGBQJS4DUEAAoJEKHZs+irPybfVl8P/2gAXU9shCLWJ4waYAvVavNp
+Sdy+1TO16jc4vs+R7XAdeAwVZDH1an2uu8q6lE8+J4fXo7kiYolNTiivFQUy+7g3
+MWUDuukDM+A5RyDPkjUxgM+1F4br8HoRa4rWH4lB4AW3ceOlA2erLj7rJat8ZetD
+RSipQNzjkA5xibteRVeifA++QAQlTBxzDZPkP61YB8OcKpQhldK2I6T8nt/C6WYH
+fcsTFKZ+f0/N84IiJTNolWVcxB0ZWWWrlNxbqcQBXTHzPcPka4K341UFkO3nwFwu
+V/YY7gup6LSnomN7lue0quQnhul4MOiu85E33LSzMBDiYuDV6mbsJYjj62RcDymy
+69v0Pj1Z/NKb0+M5qT/TvHvFTS0rb1j8MSw8PwjpcrhJL2kyYC8kTip++3govhFT
+ffLLNou/XReHM5e7UnVrn8pdnH+6ABV1vqH8quFmEOOrZtIxqOtr40T/EIoYI9wT
+evYJSfsBi0Yhiw37wAep4tNuDxUyDddxhGHrt75aSKq+PCfstvoDRgW1MFUntcP5
+VUN69DRU0IXoZTMavnX66DE/Oa2FC4ZO350bsxXR4IFvWkrGQbqPCuWKhwViawZf
+FuAI5HaMk59FBhTLKQuYwaV8L7mxQFJ/huV/+MMI9fAKyPsNovbG8mDbalzxNSjI
+SWps+aGNHg6q4de46SQv
+=ml5/
+-----END PGP SIGNATURE-----
+
+--nextPart1685149.4BrWz72eY4--
+
 --
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
