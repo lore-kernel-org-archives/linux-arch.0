@@ -1,51 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qc0-f181.google.com ([209.85.216.181]:62070 "EHLO
-	mail-qc0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754267AbaAVAcf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 19:32:35 -0500
-Message-ID: <52DF119D.6090506@twiddle.net>
-Date: Tue, 21 Jan 2014 16:32:29 -0800
-From: Richard Henderson <rth@twiddle.net>
+Received: from mail-wg0-f52.google.com ([74.125.82.52]:45019 "EHLO
+	mail-wg0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752690AbaAVC1Y (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 21:27:24 -0500
 MIME-Version: 1.0
-Subject: Re: [PATCH 22/73] alpha: don't use module_init for non-modular core
- code
-References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com> <1390339396-3479-23-git-send-email-paul.gortmaker@windriver.com>
-In-Reply-To: <1390339396-3479-23-git-send-email-paul.gortmaker@windriver.com>
+In-Reply-To: <1390348085.5027.18.camel@smoke>
+References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
+ <1390339396-3479-11-git-send-email-paul.gortmaker@windriver.com> <1390348085.5027.18.camel@smoke>
+From: Paul Gortmaker <paul.gortmaker@windriver.com>
+Date: Tue, 21 Jan 2014 21:26:52 -0500
+Message-ID: <CAP=VYLp5UiVJYxtpAcptoqdvgYD_Z=5CMBxmKekXEeSSBgFS9Q@mail.gmail.com>
+Subject: Re: [PATCH 10/73] powerpc: use device_initcall for registering rtc devices
 Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Gortmaker <paul.gortmaker@windriver.com>, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org
-Message-ID: <20140122003229.3G7Xnt5AZQ0JM2Axv1u5US_ZBd2VUSGWBBZwDvmb7KM@z>
+To: Geoff Levand <geoff@infradead.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org, Paul Mackerras <paulus@samba.org>, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20140122022652.1CVzgI_Ff-vGS_7keszIdkB1SmuYJ47VOCZYU2krFZo@z>
 
-On 01/21/2014 01:22 PM, Paul Gortmaker wrote:
-> The srm console is always built in.  It will never be modular,
-> so using module_init as an alias for __initcall is rather
-> misleading.
-> 
-> Fix this up now, so that we can relocate module_init from
-> init.h into module.h in the future.  If we don't do this, we'd
-> have to add module.h to obviously non-modular code, and that
-> would be a worse thing.
-> 
-> Direct use of __initcall is discouraged, vs prioritized ones.
-> Use of device_initcall is consistent with what __initcall
-> maps onto, and hence does not change the init order, making the
-> impact of this change zero.   Should someone with real hardware
-> for boot testing want to change it later to arch_initcall or
-> console_initcall, they can do that at a later date.
-> 
-> Cc: Richard Henderson <rth@twiddle.net>
-> Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-> Cc: Matt Turner <mattst88@gmail.com>
-> Cc: linux-alpha@vger.kernel.org
-> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
-> ---
->  arch/alpha/kernel/srmcons.c | 3 +--
->  1 file changed, 1 insertion(+), 2 deletions(-)
+On Tue, Jan 21, 2014 at 6:48 PM, Geoff Levand <geoff@infradead.org> wrote:
+> Hi Paul,
+>
+> On Tue, 2014-01-21 at 16:22 -0500, Paul Gortmaker wrote:
+>> Currently these two RTC devices are in core platform code
+>> where it is not possible for them to be modular.  It will
+>> never be modular, so using module_init as an alias for
+>> __initcall can be somewhat misleading.
+>>
+>>  arch/powerpc/kernel/time.c        | 2 +-
+>>  arch/powerpc/platforms/ps3/time.c | 3 +--
+>>  2 files changed, 2 insertions(+), 3 deletions(-)
+>
+> I tested the PS3 part of this patch and it seems to work OK.
+>
+> Acked-by: Geoff Levand <geoff@infradead.org>
 
-Reviewed-by: Richard Henderson <rth@twiddle.net>
+Thanks Geoff for the review and testing; I'll add the ack.
 
+Paul.
+--
 
-r~
+>
+> _______________________________________________
+> Linuxppc-dev mailing list
+> Linuxppc-dev@lists.ozlabs.org
+> https://lists.ozlabs.org/listinfo/linuxppc-dev
