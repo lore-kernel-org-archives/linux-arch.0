@@ -1,53 +1,65 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 0/8] Update kernel uabi header files for x32
-Date: Wed, 22 Jan 2014 15:10:49 +0000
-Message-ID: <20140122151049.GA18727@1n450.cable.virginmedia.net>
-References: <1388182464-28428-1-git-send-email-hjl.tools@gmail.com>
- <52DEA933.6080907@zytor.com>
+From: Dan Ballard <dan@mindstab.net>
+Subject: [PATCH 1/1] Per socket value for max datagram queue length
+Date: Wed, 22 Jan 2014 07:11:20 -0800
+Message-ID: <13e8aad86903481261581de7c29444e3@mindstab.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ea0-f172.google.com ([209.85.215.172]:55869 "EHLO
-	mail-ea0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755212AbaAVPDw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jan 2014 10:03:52 -0500
-Content-Disposition: inline
-In-Reply-To: <52DEA933.6080907@zytor.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: "H.J. Lu" <hjl.tools@gmail.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, Ralf Baechle <ralf@linux-mips.org>, Will Deacon <will.deacon@arm.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=UTF-8;
+ format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Lennart Poettering <lennart@poettering.net>, kay.sievers@vrfy.org, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Eric Dumazet <edumazet@google.com>, Eliezer Tamir <eliezer.tamir@linux.intel.com>, Neil Horman <nhorman@tuxdriver.com>, Li Zefan <lizefan@huawei.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 21, 2014 at 09:06:59AM -0800, H. Peter Anvin wrote:
-> On 12/27/2013 02:14 PM, H.J. Lu wrote:
-> > X32 uses the same kernel system call interface as x86-64 for many
-> > system calls.  However, "long" is 64-bit for x86-64 and is 32-bit for
-> > x32.  Where long or unsigned long are used in struct types for such
-> > system calls, they are wrong for x32.  __kernel_[u]long_t is [unsigned]
-> > long for all ABIs other than x32.  I am submitting 8 patches to replace
-> > long or unsigned long with __kernel_[u]long_t so that those struct types
-> > can be used with x32 system calls.
-> > 
-> > H.J. Lu (8):
-> >   Use __kernel_long_t in struct timex
-> >   Use __kernel_long_t/__kernel_ulong_t in <linux/resource.h>
-> >   Use __kernel_ulong_t in uapi struct ipc64_perm
-> >   Use __kernel_long_t in struct msgbuf
-> >   Use __kernel_ulong_t in struct msqid64_ds
-> >   Use __kernel_ulong_t in x86 struct semid64_ds
-> >   Use __kernel_ulong_t in shmid64_ds/shminfo64/shm_info
-> >   Use __kernel_long_t in struct mq_attr
-> > 
-> 
-> As Catalin indirectly pointed out, I had made a followup to the wrong
-> version of the patchset (because I commented to Christoph's feedback.)
-> This is threaded to the proper version (without unnecessary #if
-> __BITS_PER_LONG.)
+Provides a new option for setsockopt SO_MAX_DGRAM_QLEN that sets and
+gets a socket specific max datagram queue length. Currently each socket
+has one but it's only ever initialized from
+/proc/sys/net/unix/max_dgram_qlen and then never adjustable later. Now
+each socket can have it individually tweaked during it's life.
 
-From an arm64 ILP32 perspective (though still work in progress), the
-patches look fine. We'll continue the trend with similar changes to
-generic semid64_ds.
+Signed-off-by: Dan Ballard <dan@mindstab.net>
+---
+  include/uapi/asm-generic/socket.h |    2 ++
+  net/core/sock.c                   |    7 +++++++
+  2 files changed, 9 insertions(+)
 
-In case the series is not committed yet:
+diff --git a/include/uapi/asm-generic/socket.h 
+b/include/uapi/asm-generic/socket.h
+index 38f14d0..f8c3e6b 100644
+--- a/include/uapi/asm-generic/socket.h
++++ b/include/uapi/asm-generic/socket.h
+@@ -80,4 +80,6 @@
 
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+  #define SO_MAX_PACING_RATE     47
+
++#define SO_MAX_DGRAM_QLEN      48
++
+  #endif /* __ASM_GENERIC_SOCKET_H */
+diff --git a/net/core/sock.c b/net/core/sock.c
+index 5393b4b..1ff69d1 100644
+--- a/net/core/sock.c
++++ b/net/core/sock.c
+@@ -915,6 +915,10 @@ set_rcvbuf:
+                                          sk->sk_max_pacing_rate);
+                 break;
+
++       case SO_MAX_DGRAM_QLEN:
++               sk->sk_max_ack_backlog = val;
++               break;
++
+         default:
+                 ret = -ENOPROTOOPT;
+                 break;
+@@ -1182,6 +1186,9 @@ int sock_getsockopt(struct socket *sock, int 
+level, int optname,
+                 v.val = sk->sk_max_pacing_rate;
+                 break;
+
++       case SO_MAX_DGRAM_QLEN:
++               v.val = sk->sk_max_ack_backlog;
++               break;
+         default:
+                 return -ENOPROTOOPT;
+         }
+-- 
+1.7.10.4
