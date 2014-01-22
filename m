@@ -1,98 +1,32 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCH RFC 00/73] tree-wide: clean up some no longer required
- #include <linux/init.h>
-Date: Wed, 22 Jan 2014 18:00:23 +1100
-Message-ID: <20140122180023.dd90d34cba38d9f9ac516349@canb.auug.org.au>
-References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v9 3/5] qrwlock, x86 - Treat all data type not bigger
+ than long as atomic in x86
+Date: Wed, 22 Jan 2014 09:01:55 +0100
+Message-ID: <20140122080155.GE31570@twins.programming.kicks-ass.net>
+References: <1389761047-47566-1-git-send-email-Waiman.Long@hp.com>
+ <1389761047-47566-4-git-send-email-Waiman.Long@hp.com>
+ <20140120150316.GG30183@twins.programming.kicks-ass.net>
+ <52DE9410.6090500@hp.com>
+ <20140121153958.GA31570@twins.programming.kicks-ass.net>
+ <52DE9BB0.5070909@hp.com>
+ <CA+55aFzyww_kwU36jYk=LUtxzPUU76xgnQEOUTqGMFNe80sOZA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA256";
- boundary="Signature=_Wed__22_Jan_2014_18_00_23_+1100_zcOtMRV1NI/h=88n"
-Return-path: <linux-alpha-owner@vger.kernel.org>
-In-Reply-To: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-Sender: linux-alpha-owner@vger.kernel.org
-To: Paul Gortmaker <paul.gortmaker@windriver.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-m68k@vger.kernel.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, x86@kernel.org, netdev@vger.kernel.org, kvm@vger.kernel.org, rusty@rustcorp.com.au, gregkh@linuxfoundation.org, akpm@linux-foundation.org, torvalds@linux-foundation.org
-List-Id: linux-arch.vger.kernel.org
-
---Signature=_Wed__22_Jan_2014_18_00_23_+1100_zcOtMRV1NI/h=88n
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:48390 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750853AbaAVICo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jan 2014 03:02:44 -0500
 Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+In-Reply-To: <CA+55aFzyww_kwU36jYk=LUtxzPUU76xgnQEOUTqGMFNe80sOZA@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Waiman Long <waiman.long@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>
 
-Hi Paul,
+On Tue, Jan 21, 2014 at 04:31:56PM -0800, Linus Torvalds wrote:
+> And if somebody tries to do a "smp_store_release()" on a random
+> structure or union, do we care? We're not some nanny state that wants
+> to give nice warnings for insane code.
 
-On Tue, 21 Jan 2014 16:22:03 -0500 Paul Gortmaker <paul.gortmaker@windriver=
-.com> wrote:
->
-> Where: This work exists as a queue of patches that I apply to
-> linux-next; since the changes are fixing some things that currently
-> can only be found there.  The patch series can be found at:
->=20
->    http://git.kernel.org/cgit/linux/kernel/git/paulg/init.git
->    git://git.kernel.org/pub/scm/linux/kernel/git/paulg/init.git
->=20
-> I've avoided annoying Stephen with another queue of patches for
-> linux-next while the development content was in flux, but now that
-> the merge window has opened, and new additions are fewer, perhaps he
-> wouldn't mind tacking it on the end...  Stephen?
-
-OK, I have added this to the end of linux-next today - we will see how we
-go.  It is called "init".
-
-Thanks for adding your subsystem tree as a participant of linux-next.  As
-you may know, this is not a judgment of your code.  The purpose of
-linux-next is for integration testing and to lower the impact of
-conflicts between subsystems in the next merge window.=20
-
-You will need to ensure that the patches/commits in your tree/series have
-been:
-     * submitted under GPL v2 (or later) and include the Contributor's
-	Signed-off-by,
-     * posted to the relevant mailing list,
-     * reviewed by you (or another maintainer of your subsystem tree),
-     * successfully unit tested, and=20
-     * destined for the current or next Linux merge window.
-
-Basically, this should be just what you would send to Linus (or ask him
-to fetch).  It is allowed to be rebased if you deem it necessary.
-
---=20
-Cheers,
-Stephen Rothwell=20
-sfr@canb.auug.org.au
-
-Legal Stuff:
-By participating in linux-next, your subsystem tree contributions are
-public and will be included in the linux-next trees.  You may be sent
-e-mail messages indicating errors or other issues when the
-patches/commits from your subsystem tree are merged and tested in
-linux-next.  These messages may also be cross-posted to the linux-next
-mailing list, the linux-kernel mailing list, etc.  The linux-next tree
-project and IBM (my employer) make no warranties regarding the linux-next
-project, the testing procedures, the results, the e-mails, etc.  If you
-don't agree to these ground rules, let me know and I'll remove your tree
-from participation in linux-next.
-
---Signature=_Wed__22_Jan_2014_18_00_23_+1100_zcOtMRV1NI/h=88n
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.22 (GNU/Linux)
-
-iQIcBAEBCAAGBQJS32yLAAoJEMDTa8Ir7ZwVm18P/i9+tdEJe4LadVgjePUgRka0
-guzWVBgQs96hVeg/7h+LJWNRsMgu90m1S6n0BhoA/maJqSb1zHJ5VhWbPuDkCdRo
-EEB1J/lW35ziCkBg+ejAQm1c+5QIsoyi0MbuFEGyX7a8FgFJrzC3bJCQCysNHsxR
-mKYtXKdpPzpluxSzjCdecZyfWA6SU3Lbvgh6Th3yyQaAlm/QOk/k3wGGvQND/ODS
-37ktKXITCAnhCZ6HvVanJvim6pK78dDJPL1h7yVZ/heYJbEqEONfFuHeg+j1RVZg
-ilcnhvmkg6jEJoQkHB+ZopLVwv+QEnkPxzDPwmNNcAIexxvHXXpOkc3geeWtNsHp
-NNvJFXIWMbzemktgVNM3r5uxgnPmAcHCU6vaZTv/kodSZDuGrkvbOscwEpNyr1Bw
-rVm5gSiLyfA8eecFymGhPXvPvrAbmcA11lxZCh0V4gmgC5eKrUwiTIFGhm6n9WCy
-FartKLucuqCzLOgLujCC+c+7BOwTjc1vyMBbQtBwSCfPc/tyZZLvI9QTyv3tJKro
-G4Jimb7wth9sm93N7n9uplshLbNrNvTbE3Q9OU+mOKMzj0uD9ck/htxfh1vEZKWd
-vfuOCJrgnQdOA/TeZQmlKfIy/t2hkJXAV/oipKVrGg45oJZB72Tt7BA4FhUi/PeE
-2qfphmmDreRrUP/I4bqp
-=j4pk
------END PGP SIGNATURE-----
-
---Signature=_Wed__22_Jan_2014_18_00_23_+1100_zcOtMRV1NI/h=88n--
+Hurm, and here I thought warning on insane code was a good idea :/
