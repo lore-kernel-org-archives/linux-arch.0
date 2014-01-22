@@ -1,54 +1,92 @@
 From: Paul Gortmaker <paul.gortmaker@gmail.com>
-Subject: Re: [PATCH 68/73] drivers/cpufreq: delete non-required instances of <linux/init.h>
-Date: Wed, 22 Jan 2014 04:17:59 -0500
-Message-ID: <CAP=VYLodPTc4Cum+bqwA927g11-BNOtSo=fs_UKt+jFEc3ABKw@mail.gmail.com>
+Subject: Re: [PATCH 01/73] init: delete the __cpuinit related stubs
+Date: Wed, 22 Jan 2014 04:46:06 -0500
+Message-ID: <CAP=VYLqEBc40AoLZ_V1XxG4PrsweSwdzRf7et5=3Q4yJricYJQ@mail.gmail.com>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-	<1390339396-3479-69-git-send-email-paul.gortmaker@windriver.com>
-	<CAKohpo=oWrX2SF5GWYoGzC+cuZeOx_wappTFfOy9vCpBush+BQ@mail.gmail.com>
+	<1390339396-3479-2-git-send-email-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <cpufreq-owner@vger.kernel.org>
-In-Reply-To: <CAKohpo=oWrX2SF5GWYoGzC+cuZeOx_wappTFfOy9vCpBush+BQ@mail.gmail.com>
-Sender: cpufreq-owner@vger.kernel.org
-To: Viresh Kumar <viresh.kumar@linaro.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Kevin Hilman <khilman@deeprootsystems.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, "cpufreq@vger.kernel.org" <cpufreq@vger.kernel.org>, "linux-pm@vger.kernel.org" <linux-pm@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-we0-f176.google.com ([74.125.82.176]:48648 "EHLO
+	mail-we0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752698AbaAVJqI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jan 2014 04:46:08 -0500
+In-Reply-To: <1390339396-3479-2-git-send-email-paul.gortmaker@windriver.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Andrew Morton <akpm@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
-On 1/21/14, Viresh Kumar <viresh.kumar@linaro.org> wrote:
-> On 22 January 2014 02:53, Paul Gortmaker <paul.gortmaker@windriver.com>
-> wrote:
->> None of these files are actually using any __init type directives
->> and hence don't need to include <linux/init.h>.  Most are just a
->> left over from __devinit and __cpuinit removal, or simply due to
->> code getting copied from one driver to the next.
->>
->> Cc: Kevin Hilman <khilman@deeprootsystems.com>
->> Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
->> Cc: Viresh Kumar <viresh.kumar@linaro.org>
->> Cc: cpufreq@vger.kernel.org
->> Cc: linux-pm@vger.kernel.org
->> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
->> ---
->>  drivers/cpufreq/omap-cpufreq.c    | 1 -
->>  drivers/cpufreq/powernow-k8.c     | 1 -
->>  drivers/cpufreq/s3c2412-cpufreq.c | 1 -
->>  drivers/cpufreq/s3c2440-cpufreq.c | 1 -
->>  drivers/cpufreq/spear-cpufreq.c   | 1 -
->>  drivers/cpufreq/speedstep-lib.c   | 1 -
->>  6 files changed, 6 deletions(-)
+On 1/21/14, Paul Gortmaker <paul.gortmaker@windriver.com> wrote:
+> The __cpuinit support was removed several releases ago.  People
+> have had a chance to update their out of tree code, so now we
+> remove the no-op stubs.
 >
-> We have discussed this in past where I pointed out this file is required
-> by stuff like module_init, what happened to that query ?
+> Also delete the mention of __cpuinitdata from the tag script.
+>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
+> ---
+>  include/linux/init.h | 11 -----------
+>  scripts/tags.sh      |  2 +-
+>  2 files changed, 1 insertion(+), 12 deletions(-)
+>  mode change 100755 => 100644 scripts
 
-Patch 31/73 relocates module_init and similar macros to
-module.h so that is no longer an implicit dependency.
+Odd.  I definitely did not chmod -x this file manually.
+Wonder how that happened?  Will fix...
 
-https://lkml.org/lkml/2014/1/21/488
-
-Thanks,
-Paul
+Paul.
 --
 
+>
+> diff --git a/include/linux/init.h b/include/linux/init.h
+> index e168880..f693cc3 100644
+> --- a/include/linux/init.h
+> +++ b/include/linux/init.h
+> @@ -91,14 +91,6 @@
+>
+>  #define __exit          __section(.exit.text) __exitused __cold notrace
+>
+> -/* temporary, until all users are removed */
+> -#define __cpuinit
+> -#define __cpuinitdata
+> -#define __cpuinitconst
+> -#define __cpuexit
+> -#define __cpuexitdata
+> -#define __cpuexitconst
+> -
+>  /* Used for MEMORY_HOTPLUG */
+>  #define __meminit        __section(.meminit.text) __cold notrace
+>  #define __meminitdata    __section(.meminit.data)
+> @@ -116,9 +108,6 @@
+>  #define __INITRODATA	.section	".init.rodata","a",%progbits
+>  #define __FINITDATA	.previous
+>
+> -/* temporary, until all users are removed */
+> -#define __CPUINIT
+> -
+>  #define __MEMINIT        .section	".meminit.text", "ax"
+>  #define __MEMINITDATA    .section	".meminit.data", "aw"
+>  #define __MEMINITRODATA  .section	".meminit.rodata", "a"
+> diff --git a/scripts/tags.sh b/scripts/tags.sh
+> old mode 100755
+> new mode 100644
+> index 58c4559..78382c2
+> --- a/scripts/tags.sh
+> +++ b/scripts/tags.sh
+> @@ -150,7 +150,7 @@ exuberant()
+>  {
+>  	all_target_sources | xargs $1 -a                        \
+>  	-I __initdata,__exitdata,__initconst,			\
+> -	-I __cpuinitdata,__initdata_memblock			\
+> +	-I __initdata_memblock					\
+>  	-I __refdata,__attribute,__maybe_unused,__always_unused \
+>  	-I __acquires,__releases,__deprecated			\
+>  	-I __read_mostly,__aligned,____cacheline_aligned        \
+> --
+> 1.8.4.1
+>
 > --
 > To unsubscribe from this list: send the line "unsubscribe linux-arch" in
 > the body of a message to majordomo@vger.kernel.org
