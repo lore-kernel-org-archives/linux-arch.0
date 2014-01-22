@@ -1,107 +1,74 @@
-From: Paul Walmsley <pwalmsley@nvidia.com>
-Subject: Re: [PATCH] bitops: fix signedness of compile-time hweight
- implementations
-Date: Wed, 22 Jan 2014 17:19:58 +0000 (UTC)
-Message-ID: <alpine.DEB.2.02.1401221718500.4071@utopia.booyaka.com>
-References: <alpine.DEB.2.02.1312180459580.30198@tamien>
+From: Tim Chen <tim.c.chen@linux.intel.com>
+Subject: Re: [PATCH v9 5/6] MCS Lock: Order the header files in Kbuild of
+ each architecture in alphabetical order
+Date: Wed, 22 Jan 2014 09:41:08 -0800
+Message-ID: <1390412468.3138.69.camel@schen9-DESK>
+References: <cover.1390320729.git.tim.c.chen@linux.intel.com>
+	 <1390347376.3138.66.camel@schen9-DESK>
+	 <20140122130818.GP31570@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: MULTIPART/MIXED; BOUNDARY="843723315-1976742745-1390411198=:4071"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from utopia.booyaka.com ([74.50.51.50]:36123 "EHLO
-	utopia.booyaka.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752659AbaAVRT7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jan 2014 12:19:59 -0500
-In-Reply-To: <alpine.DEB.2.02.1312180459580.30198@tamien>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20140122130818.GP31570@twins.programming.kicks-ass.net>
+Sender: owner-linux-mm@kvack.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin
+List-Id: linux-arch.vger.kernel.org
 
-  This message is in MIME format.  The first part should be readable text,
-  while the remaining parts are likely unreadable without MIME-aware tools.
+On Wed, 2014-01-22 at 14:08 +0100, Peter Zijlstra wrote:
+> On Tue, Jan 21, 2014 at 03:36:16PM -0800, Tim Chen wrote:
+> > From: Peter Zijlstra <peterz@infradead.org>
+> > 
+> > We perform a clean up of the Kbuid files in each architecture.
+> > We order the files in each Kbuild in alphabetical order
+> > by running the below script on each Kbuild file:
+> > 
+> > gawk '/^generic-y/ {
+> >         i = 3;
+> >         do {
+> >                 for (; i<=NF; i++) {
+> >                         if ($i == "\\") {
+> >                                 getline;
+> >                                 i=1;
+> >                                 continue;
+> >                         }
+> >                         if ($i != "")
+> >                                 hdr[$i] = $i;
+> >                 }
+> >                 break;
+> >         } while (1);
+> >         next;
+> > }
+> > END {
+> >         n = asort(hdr);
+> >         for (i=1; i<=n; i++)
+> >                 print "generic-y += " hdr[i];
+> > }'
+> > 
+> 
+> I'll probably have to regenerate this patch once the merge window is
+> done, but that's no biggie.
+> 
+> sfr, you might want to keep this script handy and distribute to others
+> who are lazy and don't want to sort by hand.
+> 
+> I suppose running it requires a little something like:
+> 
+> for i in arch/*/include/asm/Kbuild
+> do
+> 	cat $i | gawk .... > ${i}.sorted;
+> 	mv ${i}.sorted $i;
+> done
 
---843723315-1976742745-1390411198=:4071
-Content-Type: TEXT/PLAIN; charset=ISO-8859-7
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Peter, if this patch and the next one that adds mcs_spinlock.h to
+Kbuild looks okay, can you add your signed-off?  Thanks.
 
-Hi Peter, hpa, Arnd,
-
-On Wed, 18 Dec 2013, Paul Walmsley wrote:
-
->=20
-> Enabling '-Wsign-compare' compiler warnings on code that includes
-> include/linux/bitops.h can generate the following warning:
->=20
-> In file included from include/linux/kernel.h:10:0,
->                  from <random filename>:48:
-> include/linux/bitops.h: In function =A1hweight_long=A2:
-> include/linux/bitops.h:77:26: error: signed and unsigned type in conditio=
-nal
-> expression [-Werror=3Dsign-compare]
->=20
-> (converted to an error with -Werror)
->=20
-> This is due to the use of the logical negation operator '!' in the
-> __const_hweight8 macro in include/asm-generic/bitops/const_hweight.h.
-> The use of that operator here results in a signed value.
->=20
-> Fix by explicitly casting the __const_hweight8 macro expansion to
-> 'unsigned int'.  While here, clean up several checkpatch.pl warnings.
->=20
-> Signed-off-by: Paul Walmsley <pwalmsley@nvidia.com>
-> Cc: H. Peter Anvin <hpa@zytor.com>
-> Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> ---
-> Intended for v3.14.
-
-Ping.  Just checking to see if you have any comments on this one, or if=20
-you're planning to send it upstream for v3.14.
-
-
-- Paul
-
->=20
->  include/asm-generic/bitops/const_hweight.h | 17 +++++++++--------
->  1 file changed, 9 insertions(+), 8 deletions(-)
->=20
-> diff --git a/include/asm-generic/bitops/const_hweight.h
-> b/include/asm-generic/bitops/const_hweight.h
-> index fa2a50b7ee66..40966203804d 100644
-> --- a/include/asm-generic/bitops/const_hweight.h
-> +++ b/include/asm-generic/bitops/const_hweight.h
-> @@ -5,14 +5,15 @@
->   * Compile time versions of __arch_hweightN()
->   */
->  #define __const_hweight8(w)=09=09\
-> -      (=09(!!((w) & (1ULL << 0))) +=09\
-> -=09(!!((w) & (1ULL << 1))) +=09\
-> -=09(!!((w) & (1ULL << 2))) +=09\
-> -=09(!!((w) & (1ULL << 3))) +=09\
-> -=09(!!((w) & (1ULL << 4))) +=09\
-> -=09(!!((w) & (1ULL << 5))) +=09\
-> -=09(!!((w) & (1ULL << 6))) +=09\
-> -=09(!!((w) & (1ULL << 7)))=09)
-> +=09((unsigned int)=09=09\
-> +=09 ((!!((w) & (1ULL << 0))) +=09\
-> +=09  (!!((w) & (1ULL << 1))) +=09\
-> +=09  (!!((w) & (1ULL << 2))) +=09\
-> +=09  (!!((w) & (1ULL << 3))) +=09\
-> +=09  (!!((w) & (1ULL << 4))) +=09\
-> +=09  (!!((w) & (1ULL << 5))) +=09\
-> +=09  (!!((w) & (1ULL << 6))) +=09\
-> +=09  (!!((w) & (1ULL << 7)))))
->=20
->  #define __const_hweight16(w) (__const_hweight8(w)  + __const_hweight8((w=
-)  >>
-> 8 ))
->  #define __const_hweight32(w) (__const_hweight16(w) + __const_hweight16((=
-w) >>
-> 16))
-> --=20
-> 1.8.5.1
->=20
+Tim
 
 
-- Paul
---843723315-1976742745-1390411198=:4071--
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
