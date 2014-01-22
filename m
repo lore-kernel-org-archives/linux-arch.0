@@ -1,72 +1,72 @@
-From: Tim Chen <tim.c.chen@linux.intel.com>
-Subject: Re: [PATCH v9 5/6] MCS Lock: Order the header files in Kbuild of
- each architecture in alphabetical order
-Date: Wed, 22 Jan 2014 10:41:31 -0800
-Message-ID: <1390416091.3138.70.camel@schen9-DESK>
-References: <cover.1390320729.git.tim.c.chen@linux.intel.com>
-	 <1390347376.3138.66.camel@schen9-DESK>
-	 <20140122130818.GP31570@twins.programming.kicks-ass.net>
-	 <20140122182501.GJ3694@twins.programming.kicks-ass.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20140122182501.GJ3694@twins.programming.kicks-ass.net>
-Sender: owner-linux-mm@kvack.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin
+From: Josh Cartwright <joshc@codeaurora.org>
+Subject: [PATCH RFC 0/4] reserved-memory regions/CMA in devicetree, again
+Date: Wed, 22 Jan 2014 12:58:48 -0600
+Message-ID: <1390417133-6650-1-git-send-email-joshc@codeaurora.org>
+Return-path: <linux-doc-owner@vger.kernel.org>
+Sender: linux-doc-owner@vger.kernel.org
+To: Marek Szyprowski <m.szyprowski@samsung.com>, Grant Likely <grant.likely@linaro.org>, Rob Herring <robh+dt@kernel.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arm-kernel@lists.infradead.org, devicetree@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 2014-01-22 at 19:25 +0100, Peter Zijlstra wrote:
-> On Wed, Jan 22, 2014 at 02:08:18PM +0100, Peter Zijlstra wrote:
-> > On Tue, Jan 21, 2014 at 03:36:16PM -0800, Tim Chen wrote:
-> > > From: Peter Zijlstra <peterz@infradead.org>
-> > > 
-> > > We perform a clean up of the Kbuid files in each architecture.
-> > > We order the files in each Kbuild in alphabetical order
-> > > by running the below script on each Kbuild file:
-> > > 
-> 
-> Amended the Changelog to read:
-> 
-> for i in arch/*/include/asm/Kbuild
-> do
->         cat $i | gawk '/^generic-y/ {
->                 i = 3;
->                 do {
->                         for (; i <= NF; i++) {
->                                 if ($i == "\\") {
->                                         getline;
->                                         i = 1;
->                                         continue;
->                                 }
->                                 if ($i != "")
->                                         hdr[$i] = $i;
->                         }
->                         break;
->                 } while (1);
->                 next;
->         }
->         // {
->                 print $0;
->         }
->         END {
->                 n = asort(hdr);
->                 for (i = 1; i <= n; i++)
->                         print "generic-y += " hdr[i];
->         }' > ${i}.sorted;
->         mv ${i}.sorted $i;
-> done
-> 
-> 
+Hey Marek-
 
-Thanks for catching my cut and paste error.
+What is the current status of the reserved-memory/CMA device tree support
+series?  It looks like it's stalled out a bit since the revert[2].  Hopefully
+this series is a push in the right direction?
 
-Tim
+---
+This set is an adaptation of Marek's original patchset posted here[1],
+and then subsequently reverted here[2].  In [3], Grant proposed a new
+set of bindings after discussion in Edinburgh.
 
+This is a partially complete implementation of these proposed bindings.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+It's functionality is now split into two pieces, the first of which
+implements a default/fallback behavior for reserved-memory nodes; that
+is, reserved memory nodes describing fixed-address static regions will
+be unconditionally reserved, regardless of their intended use.  In
+addition, it provides an interface for adding additional reserved-memory
+types, using a method similar to CLOCKSOURCE_OF_DECLARE().
+
+The second piece uses the above method to provide support for
+reserved-memory nodes whose compatible = "shared-dma-pool".  It makes
+use of CMA when available, and when a describing node has the 'reusable'
+property.
+
+There is basic support for dynamic allocation of memory reserved
+regions, however, noticeably missing is support for additional
+restrictions (use of alignment and alloc-ranges properties).
+
+[1]: http://lkml.kernel.org/g/1377527959-5080-1-git-send-email-m.szyprowski@samsung.com
+[2]: http://lkml.kernel.org/g/1381476448-14548-1-git-send-email-m.szyprowski@samsung.com
+[3]: http://lkml.kernel.org/g/20131030134702.19B57C402A0@trevor.secretlab.ca
+
+Grant Likely (1):
+  of: document bindings for reserved-memory nodes
+
+Josh Cartwright (1):
+  drivers: of: implement reserved-memory handling for dma
+
+Marek Szyprowski (2):
+  drivers: of: add initialization code for reserved memory
+  ARM: init: add support for reserved memory defined by device tree
+
+ .../bindings/reserved-memory/reserved-memory.txt   | 137 +++++++++++++++
+ arch/arm/mm/init.c                                 |   3 +
+ drivers/of/Kconfig                                 |  13 ++
+ drivers/of/Makefile                                |   2 +
+ drivers/of/of_reserved_mem.c                       | 188 +++++++++++++++++++++
+ drivers/of/of_reserved_mem_dma.c                   | 178 +++++++++++++++++++
+ drivers/of/platform.c                              |   4 +
+ include/asm-generic/vmlinux.lds.h                  |  11 ++
+ include/linux/of_reserved_mem.h                    |  61 +++++++
+ 9 files changed, 597 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/reserved-memory/reserved-memory.txt
+ create mode 100644 drivers/of/of_reserved_mem.c
+ create mode 100644 drivers/of/of_reserved_mem_dma.c
+ create mode 100644 include/linux/of_reserved_mem.h
+
+-- 
+Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
+hosted by The Linux Foundation
+
