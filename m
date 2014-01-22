@@ -1,94 +1,46 @@
-From: Paul Gortmaker <paul.gortmaker@gmail.com>
-Subject: Re: [PATCH 01/73] init: delete the __cpuinit related stubs
-Date: Wed, 22 Jan 2014 04:46:06 -0500
-Message-ID: <CAP=VYLqEBc40AoLZ_V1XxG4PrsweSwdzRf7et5=3Q4yJricYJQ@mail.gmail.com>
-References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-	<1390339396-3479-2-git-send-email-paul.gortmaker@windriver.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v9 1/6] MCS Lock: Barrier corrections
+Date: Wed, 22 Jan 2014 10:13:01 +0000
+Message-ID: <20140122101301.GA1621@mudshark.cambridge.arm.com>
+References: <cover.1390320729.git.tim.c.chen@linux.intel.com>
+ <1390347353.3138.62.camel@schen9-DESK>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f176.google.com ([74.125.82.176]:48648 "EHLO
-	mail-we0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752698AbaAVJqI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jan 2014 04:46:08 -0500
-In-Reply-To: <1390339396-3479-2-git-send-email-paul.gortmaker@windriver.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Andrew Morton <akpm@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <1390347353.3138.62.camel@schen9-DESK>
+Sender: owner-linux-mm@kvack.org
+To: Tim Chen <tim.c.chen@linux.intel.com>
+Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>George Spelvin <l>
+List-Id: linux-arch.vger.kernel.org
 
-On 1/21/14, Paul Gortmaker <paul.gortmaker@windriver.com> wrote:
-> The __cpuinit support was removed several releases ago.  People
-> have had a chance to update their out of tree code, so now we
-> remove the no-op stubs.
->
-> Also delete the mention of __cpuinitdata from the tag script.
->
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
+On Tue, Jan 21, 2014 at 11:35:53PM +0000, Tim Chen wrote:
+> From: Waiman Long <Waiman.Long@hp.com>
+> 
+> This patch corrects the way memory barriers are used in the MCS lock
+> with smp_load_acquire and smp_store_release fucnctions.  The previous
+> barriers could leak critical sections if mcs lock is used by itself.
+> It is not a problem when mcs lock is embedded in mutex but will be an
+> issue when the mcs_lock is used elsewhere.
+> 
+> The patch removes the incorrect barriers and put in correct
+> barriers with the pair of functions smp_load_acquire and smp_store_release.
+> 
+> Suggested-by: Michel Lespinasse <walken@google.com>
+> Reviewed-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+> Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+> Signed-off-by: Jason Low <jason.low2@hp.com>
+> Signed-off-by: Tim Chen <tim.c.chen@linux.intel.com>
 > ---
->  include/linux/init.h | 11 -----------
->  scripts/tags.sh      |  2 +-
->  2 files changed, 1 insertion(+), 12 deletions(-)
->  mode change 100755 => 100644 scripts
+>  kernel/locking/mutex.c | 18 +++++++++++++-----
+>  1 file changed, 13 insertions(+), 5 deletions(-)
 
-Odd.  I definitely did not chmod -x this file manually.
-Wonder how that happened?  Will fix...
+Reviewed-by: Will Deacon <will.deacon@arm.com>
 
-Paul.
+Will
+
 --
-
->
-> diff --git a/include/linux/init.h b/include/linux/init.h
-> index e168880..f693cc3 100644
-> --- a/include/linux/init.h
-> +++ b/include/linux/init.h
-> @@ -91,14 +91,6 @@
->
->  #define __exit          __section(.exit.text) __exitused __cold notrace
->
-> -/* temporary, until all users are removed */
-> -#define __cpuinit
-> -#define __cpuinitdata
-> -#define __cpuinitconst
-> -#define __cpuexit
-> -#define __cpuexitdata
-> -#define __cpuexitconst
-> -
->  /* Used for MEMORY_HOTPLUG */
->  #define __meminit        __section(.meminit.text) __cold notrace
->  #define __meminitdata    __section(.meminit.data)
-> @@ -116,9 +108,6 @@
->  #define __INITRODATA	.section	".init.rodata","a",%progbits
->  #define __FINITDATA	.previous
->
-> -/* temporary, until all users are removed */
-> -#define __CPUINIT
-> -
->  #define __MEMINIT        .section	".meminit.text", "ax"
->  #define __MEMINITDATA    .section	".meminit.data", "aw"
->  #define __MEMINITRODATA  .section	".meminit.rodata", "a"
-> diff --git a/scripts/tags.sh b/scripts/tags.sh
-> old mode 100755
-> new mode 100644
-> index 58c4559..78382c2
-> --- a/scripts/tags.sh
-> +++ b/scripts/tags.sh
-> @@ -150,7 +150,7 @@ exuberant()
->  {
->  	all_target_sources | xargs $1 -a                        \
->  	-I __initdata,__exitdata,__initconst,			\
-> -	-I __cpuinitdata,__initdata_memblock			\
-> +	-I __initdata_memblock					\
->  	-I __refdata,__attribute,__maybe_unused,__always_unused \
->  	-I __acquires,__releases,__deprecated			\
->  	-I __read_mostly,__aligned,____cacheline_aligned        \
-> --
-> 1.8.4.1
->
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
->
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
