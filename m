@@ -1,73 +1,57 @@
 From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH v9 5/6] MCS Lock: Order the header files in Kbuild of
  each architecture in alphabetical order
-Date: Wed, 22 Jan 2014 18:51:52 +0100
-Message-ID: <20140122175152.GT31570@twins.programming.kicks-ass.net>
+Date: Wed, 22 Jan 2014 19:18:56 +0100
+Message-ID: <20140122181856.GI3694@twins.programming.kicks-ass.net>
 References: <cover.1390320729.git.tim.c.chen@linux.intel.com>
  <1390347376.3138.66.camel@schen9-DESK>
  <20140122130818.GP31570@twins.programming.kicks-ass.net>
- <1390412468.3138.69.camel@schen9-DESK>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <1390412468.3138.69.camel@schen9-DESK>
+In-Reply-To: <20140122130818.GP31570@twins.programming.kicks-ass.net>
 Sender: owner-linux-mm@kvack.org
 To: Tim Chen <tim.c.chen@linux.intel.com>
 Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 22, 2014 at 09:41:08AM -0800, Tim Chen wrote:
-> On Wed, 2014-01-22 at 14:08 +0100, Peter Zijlstra wrote:
-> > On Tue, Jan 21, 2014 at 03:36:16PM -0800, Tim Chen wrote:
-> > > From: Peter Zijlstra <peterz@infradead.org>
-> > > 
-> > > We perform a clean up of the Kbuid files in each architecture.
-> > > We order the files in each Kbuild in alphabetical order
-> > > by running the below script on each Kbuild file:
-> > > 
-> > > gawk '/^generic-y/ {
-> > >         i = 3;
-> > >         do {
-> > >                 for (; i<=NF; i++) {
-> > >                         if ($i == "\\") {
-> > >                                 getline;
-> > >                                 i=1;
-> > >                                 continue;
-> > >                         }
-> > >                         if ($i != "")
-> > >                                 hdr[$i] = $i;
-> > >                 }
-> > >                 break;
-> > >         } while (1);
-> > >         next;
-> > > }
-> > > END {
-> > >         n = asort(hdr);
-> > >         for (i=1; i<=n; i++)
-> > >                 print "generic-y += " hdr[i];
-> > > }'
-> > > 
+On Wed, Jan 22, 2014 at 02:08:18PM +0100, Peter Zijlstra wrote:
+> On Tue, Jan 21, 2014 at 03:36:16PM -0800, Tim Chen wrote:
+> > From: Peter Zijlstra <peterz@infradead.org>
 > > 
-> > I'll probably have to regenerate this patch once the merge window is
-> > done, but that's no biggie.
+> > We perform a clean up of the Kbuid files in each architecture.
+> > We order the files in each Kbuild in alphabetical order
+> > by running the below script on each Kbuild file:
 > > 
-> > sfr, you might want to keep this script handy and distribute to others
-> > who are lazy and don't want to sort by hand.
-> > 
-> > I suppose running it requires a little something like:
-> > 
-> > for i in arch/*/include/asm/Kbuild
-> > do
-> > 	cat $i | gawk .... > ${i}.sorted;
-> > 	mv ${i}.sorted $i;
-> > done
-> 
-> Peter, if this patch and the next one that adds mcs_spinlock.h to
-> Kbuild looks okay, can you add your signed-off?  Thanks.
+> > gawk '/^generic-y/ {
+> >         i = 3;
+> >         do {
+> >                 for (; i<=NF; i++) {
+> >                         if ($i == "\\") {
+> >                                 getline;
+> >                                 i=1;
+> >                                 continue;
+> >                         }
+> >                         if ($i != "")
+> >                                 hdr[$i] = $i;
+> >                 }
+> >                 break;
+> >         } while (1);
+> >         next;
+> > }
 
-Script did that when I queued the lot :-) Just haven't gotten around to
-building the entire thing yet -- been busy huntin' wabbits.
+// { print $0 }
+
+> > END {
+> >         n = asort(hdr);
+> >         for (i=1; i<=n; i++)
+> >                 print "generic-y += " hdr[i];
+> > }'
+> > 
+
+Just noticed you lost that rule, without that we'll loose !genericy-y
+lines.
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
