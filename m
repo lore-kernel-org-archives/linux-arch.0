@@ -1,81 +1,91 @@
-From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v10 2/4] qrwlock, x86: Enable x86 to use queue read/write lock
-Date: Wed, 22 Jan 2014 16:33:56 -0500
-Message-ID: <1390426438-31252-3-git-send-email-Waiman.Long@hp.com>
-References: <1390426438-31252-1-git-send-email-Waiman.Long@hp.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1390426438-31252-1-git-send-email-Waiman.Long@hp.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Aswin Chandramouleeswaran\"" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Waiman Long <Waiman.Long@hp.com>
-List-Id: linux-arch.vger.kernel.org
+From: Deng-Cheng Zhu <dengcheng.zhu@imgtec.com>
+Subject: Re: [RFC][PATCH] MIPS: VPE: Remove vpe_getuid and vpe_getgid
+Date: Wed, 22 Jan 2014 14:14:03 -0800
+Message-ID: <52E042AB.30802@imgtec.com>
+References: <8738kh6usi.fsf@xmission.com> <52DED891.60301@imgtec.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from multi.imgtec.com ([194.200.65.239]:59303 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755989AbaAVWOR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 22 Jan 2014 17:14:17 -0500
+In-Reply-To: <52DED891.60301@imgtec.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Steven J. Hill" <Steven.Hill@imgtec.com>, "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org
 
-This patch makes the necessary changes at the x86 architecture specific
-layer to enable the presence of the CONFIG_QUEUE_RWLOCK kernel option
-to replace the read/write lock by the queue read/write lock.
+This is a good catch. vpe_get[u|g]id was originally used by KSPD which has 
+been removed.
 
-It also enables the CONFIG_QUEUE_RWLOCK option by default for x86 which
-will force the use of queue read/write lock. That will greatly improve
-the fairness of read/write lock and eliminate live-lock situation
-where one task may not get the lock for an indefinite period of time.
+Reviewed-by: Deng-Cheng Zhu <dengcheng.zhu@imgtec.com>
 
-The code for the old x86 read/write lock will be removed in a later
-release if no problem is found in the new queue read/write lock code.
 
-Signed-off-by: Waiman Long <Waiman.Long@hp.com>
-Reviewed-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
----
- arch/x86/Kconfig                      |    1 +
- arch/x86/include/asm/spinlock.h       |    2 ++
- arch/x86/include/asm/spinlock_types.h |    4 ++++
- 3 files changed, 7 insertions(+), 0 deletions(-)
+Deng-Cheng
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 5dcaeb5..894f385 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -119,6 +119,7 @@ config X86
- 	select MODULES_USE_ELF_RELA if X86_64
- 	select CLONE_BACKWARDS if X86_32
- 	select ARCH_USE_BUILTIN_BSWAP
-+	select ARCH_USE_QUEUE_RWLOCK
- 	select OLD_SIGSUSPEND3 if X86_32 || IA32_EMULATION
- 	select OLD_SIGACTION if X86_32
- 	select COMPAT_OLD_SIGACTION if IA32_EMULATION
-diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
-index bf156de..8fb88c5 100644
---- a/arch/x86/include/asm/spinlock.h
-+++ b/arch/x86/include/asm/spinlock.h
-@@ -188,6 +188,7 @@ static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
- 		cpu_relax();
- }
- 
-+#ifndef CONFIG_QUEUE_RWLOCK
- /*
-  * Read-write spinlocks, allowing multiple readers
-  * but only one writer.
-@@ -270,6 +271,7 @@ static inline void arch_write_unlock(arch_rwlock_t *rw)
- 	asm volatile(LOCK_PREFIX WRITE_LOCK_ADD(%1) "%0"
- 		     : "+m" (rw->write) : "i" (RW_LOCK_BIAS) : "memory");
- }
-+#endif /* CONFIG_QUEUE_RWLOCK */
- 
- #define arch_read_lock_flags(lock, flags) arch_read_lock(lock)
- #define arch_write_lock_flags(lock, flags) arch_write_lock(lock)
-diff --git a/arch/x86/include/asm/spinlock_types.h b/arch/x86/include/asm/spinlock_types.h
-index 4f1bea1..a585635 100644
---- a/arch/x86/include/asm/spinlock_types.h
-+++ b/arch/x86/include/asm/spinlock_types.h
-@@ -34,6 +34,10 @@ typedef struct arch_spinlock {
- 
- #define __ARCH_SPIN_LOCK_UNLOCKED	{ { 0 } }
- 
-+#ifdef CONFIG_QUEUE_RWLOCK
-+#include <asm-generic/qrwlock.h>
-+#else
- #include <asm/rwlock.h>
-+#endif
- 
- #endif /* _ASM_X86_SPINLOCK_TYPES_H */
--- 
-1.7.1
+---------------------------------------------------------------------------
+
+*From:* Steven J. Hill <mailto:Steven.Hill@imgtec.com>
+*Sent:* Tuesday, January 21, 2014 12:29PM
+*To:* Eric W. Biederman <mailto:ebiederm@xmission.com>
+*Cc:* linux-arch <mailto:linux-arch@vger.kernel.org>, linux-mips 
+<mailto:linux-mips@linux-mips.org>, Deng-Cheng Zhu 
+<mailto:Dengcheng.Zhu@imgtec.com>
+*Subject:* Re: [RFC][PATCH] MIPS: VPE: Remove vpe_getuid and vpe_getgid
+
+On 01/21/2014 12:42 PM, Eric W. Biederman wrote:
+>
+> The linux build-bot recently reported a build error in 
+> arch/mips/kernel/vpe.c
+>
+>       tree: 
+> git://git.kernel.org/pub/scm/linux/kernel/git/ebiederm/user-namespace.git 
+> for-linus
+>       head:   261000a56b6382f597bcb12000f55c9ff26a1efb
+>       commit: 261000a56b6382f597bcb12000f55c9ff26a1efb [4/4] userns:  
+> userns: Remove UIDGID_STRICT_TYPE_CHECKS
+>       config: make ARCH=mips maltaaprp_defconfig
+>
+>       All error/warnings:
+>
+>          arch/mips/kernel/vpe.c: In function 'vpe_open':
+>       >> arch/mips/kernel/vpe.c:1086:9: error: incompatible types when 
+> assigning to type 'unsigned int' from type 'kuid_t'
+>       >> arch/mips/kernel/vpe.c:1087:9: error: incompatible types when 
+> assigning to type 'unsigned int' from type 'kgid_t'
+>
+>       vim +1086 arch/mips/kernel/vpe.c
+>
+>       863abad4 Jesper Juhl   2010-10-30  1080            return -ENOMEM;
+>       863abad4 Jesper Juhl   2010-10-30  1081          }
+>       e01402b1 Ralf Baechle  2005-07-14  1082          v->plen = P_SIZE;
+>       e01402b1 Ralf Baechle  2005-07-14  1083 v->load_addr = NULL;
+>       e01402b1 Ralf Baechle  2005-07-14  1084          v->len = 0;
+>       e01402b1 Ralf Baechle  2005-07-14  1085
+>       d76b0d9b David Howells 2008-11-14 @1086        v->uid = 
+> filp->f_cred->fsuid;
+>       d76b0d9b David Howells 2008-11-14 @1087          v->gid = 
+> filp->f_cred->fsgid;
+>       2600990e Ralf Baechle  2006-04-05  1088
+>       2600990e Ralf Baechle  2006-04-05  1089        v->cwd[0] = 0;
+>       2600990e Ralf Baechle  2006-04-05  1090          ret = 
+> getcwd(v->cwd, VPE_PATH_MAX);
+>
+> When examining the code to see what v->uid and v->gid were used for I
+> discovered that the only users in the kernel are vpe_getuid and
+> vpe_getgid, and that vpe_getuid and vpe_getgid are never called.
+>
+> So instead of proposing a conversion to use kuid_t and kgid_t instead
+> of unsigned int/int as I normally would let's just kill this dead code
+> so no one has to worry about it further.
+>
+> Cc: Ralf Baechle <ralf@linux-mips.org>
+> Cc: linux-mips@linux-mips.org
+> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+>
+This patch looks good to me, however, Deng-Cheng should also confirm if 
+this patch is okay. He is currently maintaining that code. Thanks.
+
+Steve
