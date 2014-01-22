@@ -1,42 +1,49 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v9 3/5] qrwlock, x86 - Treat all data type not bigger
- than long as atomic in x86
-Date: Wed, 22 Jan 2014 13:13:39 +0100
-Message-ID: <20140122121339.GM31570@twins.programming.kicks-ass.net>
-References: <1389761047-47566-1-git-send-email-Waiman.Long@hp.com>
- <1389761047-47566-4-git-send-email-Waiman.Long@hp.com>
- <20140120150316.GG30183@twins.programming.kicks-ass.net>
- <52DE9410.6090500@hp.com>
- <20140121153958.GA31570@twins.programming.kicks-ass.net>
- <52DE9BB0.5070909@hp.com>
- <CA+55aFzyww_kwU36jYk=LUtxzPUU76xgnQEOUTqGMFNe80sOZA@mail.gmail.com>
- <20140122080155.GE31570@twins.programming.kicks-ass.net>
- <20140122120917.GA8894@gmail.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH v8 4/6] MCS Lock: Move mcs_lock/unlock function into its
+ own
+Date: Wed, 22 Jan 2014 14:06:19 +0100
+Message-ID: <20140122130619.GA9429@gmail.com>
+References: <cover.1390239879.git.tim.c.chen@linux.intel.com>
+ <1390267471.3138.38.camel@schen9-DESK>
+ <20140121101915.GS31570@twins.programming.kicks-ass.net>
+ <20140121104140.GA4092@gmail.com>
+ <1390330623.3138.56.camel@schen9-DESK>
+ <20140121190658.GA5862@gmail.com>
+ <1390331671.3138.58.camel@schen9-DESK>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:53593 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755342AbaAVMOS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jan 2014 07:14:18 -0500
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <20140122120917.GA8894@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>
+In-Reply-To: <1390331671.3138.58.camel@schen9-DESK>
+Sender: owner-linux-mm@kvack.org
+To: Tim Chen <tim.c.chen@linux.intel.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 22, 2014 at 01:09:17PM +0100, Ingo Molnar wrote:
-> 
-> * Peter Zijlstra <peterz@infradead.org> wrote:
-> 
-> > On Tue, Jan 21, 2014 at 04:31:56PM -0800, Linus Torvalds wrote:
-> > > And if somebody tries to do a "smp_store_release()" on a random
-> > > structure or union, do we care? We're not some nanny state that wants
-> > > to give nice warnings for insane code.
+
+* Tim Chen <tim.c.chen@linux.intel.com> wrote:
+
+> > > For the time being, I'll just remove the EXPORT.  If people feel 
+> > > that inline is the right way to go, then we'll leave the 
+> > > function in mcs_spin_lock.h and not create mcs_spin_lock.c.
 > > 
-> > Hurm, and here I thought warning on insane code was a good idea :/
+> > Well, 'people' could be you, the person touching the code? This is 
+> > really something that is discoverable: look at the critical path 
+> > in the inlined and the out of line case, and compare the number of 
+> > instructions. This can be done based on disassembly of the 
+> > affected code.
 > 
-> There's a level of insanity that is best cured through Darwin Awards?
+> Okay, will make it inline function and drop the move of to 
+> mcs_spin_lock.c
 
-Yeah, but who will clean up after them? :-)
+Only if I'm right! I was speculating.
+
+Thanks,
+
+	Ingo
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
