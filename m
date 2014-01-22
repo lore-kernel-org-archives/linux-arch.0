@@ -1,50 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g6t0186.atlanta.hp.com ([15.193.32.63]:18328 "EHLO
-	g6t0186.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751728AbaAVEmi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 23:42:38 -0500
-Message-ID: <52DF4C38.7040003@hp.com>
-Date: Tue, 21 Jan 2014 23:42:32 -0500
-From: Waiman Long <waiman.long@hp.com>
+Received: from mail-oa0-f54.google.com ([209.85.219.54]:48138 "EHLO
+	mail-oa0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754451AbaAVE66 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 23:58:58 -0500
+Received: by mail-oa0-f54.google.com with SMTP id i4so3685964oah.41
+        for <linux-arch@vger.kernel.org>; Tue, 21 Jan 2014 20:58:57 -0800 (PST)
 MIME-Version: 1.0
-Subject: Re: [PATCH v9 3/5] qrwlock, x86 - Treat all data type not bigger
- than long as atomic in x86
-References: <1389761047-47566-1-git-send-email-Waiman.Long@hp.com> <1389761047-47566-4-git-send-email-Waiman.Long@hp.com> <20140120150316.GG30183@twins.programming.kicks-ass.net> <52DE9410.6090500@hp.com> <20140121153958.GA31570@twins.programming.kicks-ass.net> <52DE9BB0.5070909@hp.com> <CA+55aFzyww_kwU36jYk=LUtxzPUU76xgnQEOUTqGMFNe80sOZA@mail.gmail.com>
-In-Reply-To: <CA+55aFzyww_kwU36jYk=LUtxzPUU76xgnQEOUTqGMFNe80sOZA@mail.gmail.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <1390339396-3479-69-git-send-email-paul.gortmaker@windriver.com>
+References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
+	<1390339396-3479-69-git-send-email-paul.gortmaker@windriver.com>
+Date: Wed, 22 Jan 2014 10:28:57 +0530
+Message-ID: <CAKohpo=oWrX2SF5GWYoGzC+cuZeOx_wappTFfOy9vCpBush+BQ@mail.gmail.com>
+Subject: Re: [PATCH 68/73] drivers/cpufreq: delete non-required instances of <linux/init.h>
+From: Viresh Kumar <viresh.kumar@linaro.org>
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>
-Message-ID: <20140122044232.jXUlyoszYqXH8F_CV24M4vuNdcBbLv5xQu-yB_UQMas@z>
+To: Paul Gortmaker <paul.gortmaker@windriver.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Kevin Hilman <khilman@deeprootsystems.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, "cpufreq@vger.kernel.org" <cpufreq@vger.kernel.org>, "linux-pm@vger.kernel.org" <linux-pm@vger.kernel.org>
+Message-ID: <20140122045857.Z5o9k6XR5LrnykaiwXBhLJzDtlSmXGbgakjQwK4ZeZI@z>
 
-On 01/21/2014 07:31 PM, Linus Torvalds wrote:
-> On Tue, Jan 21, 2014 at 8:09 AM, Waiman Long<waiman.long@hp.com>  wrote:
->> include/linux/compiler.h:
->>
->> #ifndef __native_word
->> # ifdef __arch_native_word(t)
->> #  define __native_word(t)      __arch_native_word(t)
->> # else
->> #  define __native_word(t) (sizeof(t) == sizeof(int) || sizeof(t) == siizeof(long))
->> # endif
->> #endif
-> Do we even really need this?
+On 22 January 2014 02:53, Paul Gortmaker <paul.gortmaker@windriver.com> wrote:
+> None of these files are actually using any __init type directives
+> and hence don't need to include <linux/init.h>.  Most are just a
+> left over from __devinit and __cpuinit removal, or simply due to
+> code getting copied from one driver to the next.
 >
-> I'd suggest removing it entirely. You might want to retain the whole
->
->    compiletime_assert_atomic_type()
->
-> thing on purely the alpha side, but then it's all inside just the
-> alpha code, without any need for this "native_word" thing.
->
-> And if somebody tries to do a "smp_store_release()" on a random
-> structure or union, do we care? We're not some nanny state that wants
-> to give nice warnings for insane code.
->
->                Linus
+> Cc: Kevin Hilman <khilman@deeprootsystems.com>
+> Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+> Cc: Viresh Kumar <viresh.kumar@linaro.org>
+> Cc: cpufreq@vger.kernel.org
+> Cc: linux-pm@vger.kernel.org
+> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
+> ---
+>  drivers/cpufreq/omap-cpufreq.c    | 1 -
+>  drivers/cpufreq/powernow-k8.c     | 1 -
+>  drivers/cpufreq/s3c2412-cpufreq.c | 1 -
+>  drivers/cpufreq/s3c2440-cpufreq.c | 1 -
+>  drivers/cpufreq/spear-cpufreq.c   | 1 -
+>  drivers/cpufreq/speedstep-lib.c   | 1 -
+>  6 files changed, 6 deletions(-)
 
-That sounds good to me too. Peter, what do you think about this?
-
--Longman
+We have discussed this in past where I pointed out this file is required
+by stuff like module_init, what happened to that query ?
