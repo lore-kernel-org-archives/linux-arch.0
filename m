@@ -1,39 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:37358 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752662AbaAVSgZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jan 2014 13:36:25 -0500
-Date: Wed, 22 Jan 2014 19:35:39 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v9 6/6] MCS Lock: Allow architecture specific asm files
- to be used for contended case
-Message-ID: <20140122183539.GM30183@twins.programming.kicks-ass.net>
-References: <cover.1390320729.git.tim.c.chen@linux.intel.com>
- <1390347382.3138.67.camel@schen9-DESK>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1390347382.3138.67.camel@schen9-DESK>
+Received: from smtp.codeaurora.org ([198.145.11.231]:46035 "EHLO
+	smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751788AbaAVTBy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jan 2014 14:01:54 -0500
+From: Josh Cartwright <joshc@codeaurora.org>
+Subject: [PATCH RFC 0/4] reserved-memory regions/CMA in devicetree, again
+Date: Wed, 22 Jan 2014 12:58:48 -0600
+Message-ID: <1390417133-6650-1-git-send-email-joshc@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tim Chen <tim.c.chen@linux.intel.com>
-Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, "Figo.zhang" <figo1802@gmail.com>
-Message-ID: <20140122183539.uoG_Flkp-IS3lWqwATqtWBajF1Xwuzaimn8zQAG7UAA@z>
+To: Marek Szyprowski <m.szyprowski@samsung.com>, Grant Likely <grant.likely@linaro.org>, Rob Herring <robh+dt@kernel.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arm-kernel@lists.infradead.org, devicetree@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20140122185848.3EFKPu48MOPnLzJxDfOboD1ucU-qTDgZj3ZvUxkw-y8@z>
 
-On Tue, Jan 21, 2014 at 03:36:22PM -0800, Tim Chen wrote:
-> diff --git a/arch/powerpc/include/asm/Kbuild b/arch/powerpc/include/asm/Kbuild
-> index 8b19a80..24027ce 100644
-> --- a/arch/powerpc/include/asm/Kbuild
-> +++ b/arch/powerpc/include/asm/Kbuild
-> @@ -1,6 +1,8 @@
->  
-> +generic-y += +=
->  generic-y += clkdev.h
-> +generic-y += mcs_spinlock.h
->  generic-y += preempt.h
->  generic-y += rwsem.h
->  generic-y += trace_clock.h
-> -generic-y += vtime.h
-> +generic-y += vtime.hgeneric-y
+Hey Marek-
 
-Something went funny there, fixed it.
+What is the current status of the reserved-memory/CMA device tree support
+series?  It looks like it's stalled out a bit since the revert[2].  Hopefully
+this series is a push in the right direction?
+
+---
+This set is an adaptation of Marek's original patchset posted here[1],
+and then subsequently reverted here[2].  In [3], Grant proposed a new
+set of bindings after discussion in Edinburgh.
+
+This is a partially complete implementation of these proposed bindings.
+
+It's functionality is now split into two pieces, the first of which
+implements a default/fallback behavior for reserved-memory nodes; that
+is, reserved memory nodes describing fixed-address static regions will
+be unconditionally reserved, regardless of their intended use.  In
+addition, it provides an interface for adding additional reserved-memory
+types, using a method similar to CLOCKSOURCE_OF_DECLARE().
+
+The second piece uses the above method to provide support for
+reserved-memory nodes whose compatible = "shared-dma-pool".  It makes
+use of CMA when available, and when a describing node has the 'reusable'
+property.
+
+There is basic support for dynamic allocation of memory reserved
+regions, however, noticeably missing is support for additional
+restrictions (use of alignment and alloc-ranges properties).
+
+[1]: http://lkml.kernel.org/g/1377527959-5080-1-git-send-email-m.szyprowski@samsung.com
+[2]: http://lkml.kernel.org/g/1381476448-14548-1-git-send-email-m.szyprowski@samsung.com
+[3]: http://lkml.kernel.org/g/20131030134702.19B57C402A0@trevor.secretlab.ca
+
+Grant Likely (1):
+  of: document bindings for reserved-memory nodes
+
+Josh Cartwright (1):
+  drivers: of: implement reserved-memory handling for dma
+
+Marek Szyprowski (2):
+  drivers: of: add initialization code for reserved memory
+  ARM: init: add support for reserved memory defined by device tree
+
+ .../bindings/reserved-memory/reserved-memory.txt   | 137 +++++++++++++++
+ arch/arm/mm/init.c                                 |   3 +
+ drivers/of/Kconfig                                 |  13 ++
+ drivers/of/Makefile                                |   2 +
+ drivers/of/of_reserved_mem.c                       | 188 +++++++++++++++++++++
+ drivers/of/of_reserved_mem_dma.c                   | 178 +++++++++++++++++++
+ drivers/of/platform.c                              |   4 +
+ include/asm-generic/vmlinux.lds.h                  |  11 ++
+ include/linux/of_reserved_mem.h                    |  61 +++++++
+ 9 files changed, 597 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/reserved-memory/reserved-memory.txt
+ create mode 100644 drivers/of/of_reserved_mem.c
+ create mode 100644 drivers/of/of_reserved_mem_dma.c
+ create mode 100644 include/linux/of_reserved_mem.h
+
+-- 
+Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
+hosted by The Linux Foundation
+
