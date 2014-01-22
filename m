@@ -1,44 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:45298 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752872AbaAVA06 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Jan 2014 19:26:58 -0500
-From: Rusty Russell <rusty@rustcorp.com.au>
-Subject: Re: [PATCH 31/73] module: relocate module_init from init.h to module.h
-In-Reply-To: <1390339396-3479-32-git-send-email-paul.gortmaker@windriver.com>
-References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com> <1390339396-3479-32-git-send-email-paul.gortmaker@windriver.com>
-Date: Wed, 22 Jan 2014 10:46:06 +1030
-Message-ID: <87ha8w50s9.fsf@rustcorp.com.au>
+Received: from mail-qc0-f181.google.com ([209.85.216.181]:62070 "EHLO
+	mail-qc0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754267AbaAVAcf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 19:32:35 -0500
+Message-ID: <52DF119D.6090506@twiddle.net>
+Date: Tue, 21 Jan 2014 16:32:29 -0800
+From: Richard Henderson <rth@twiddle.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Subject: Re: [PATCH 22/73] alpha: don't use module_init for non-modular core
+ code
+References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com> <1390339396-3479-23-git-send-email-paul.gortmaker@windriver.com>
+In-Reply-To: <1390339396-3479-23-git-send-email-paul.gortmaker@windriver.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Paul Gortmaker <paul.gortmaker@windriver.com>, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Message-ID: <20140122001606.JJEq82ysZCtpoeYMZEs8SyRgdl4zROJ_c4NllgFKNZQ@z>
+Cc: linux-arch@vger.kernel.org, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org
+Message-ID: <20140122003229.3G7Xnt5AZQ0JM2Axv1u5US_ZBd2VUSGWBBZwDvmb7KM@z>
 
-Paul Gortmaker <paul.gortmaker@windriver.com> writes:
-> Modular users will always be users of init functionality, but
-> users of init functionality are not necessarily always modules.
->
-> Hence any functionality like module_init and module_exit would
-> be more at home in the module.h file.  And module.h should
-> explicitly include init.h to make the dependency clear.
->
-> We've already done all the legwork needed to ensure that this
-> move does not cause any build regressions due to implicit
-> header file include assumptions about where module_init lives.
->
-> Cc: Rusty Russell <rusty@rustcorp.com.au>
+On 01/21/2014 01:22 PM, Paul Gortmaker wrote:
+> The srm console is always built in.  It will never be modular,
+> so using module_init as an alias for __initcall is rather
+> misleading.
+> 
+> Fix this up now, so that we can relocate module_init from
+> init.h into module.h in the future.  If we don't do this, we'd
+> have to add module.h to obviously non-modular code, and that
+> would be a worse thing.
+> 
+> Direct use of __initcall is discouraged, vs prioritized ones.
+> Use of device_initcall is consistent with what __initcall
+> maps onto, and hence does not change the init order, making the
+> impact of this change zero.   Should someone with real hardware
+> for boot testing want to change it later to arch_initcall or
+> console_initcall, they can do that at a later date.
+> 
+> Cc: Richard Henderson <rth@twiddle.net>
+> Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+> Cc: Matt Turner <mattst88@gmail.com>
+> Cc: linux-alpha@vger.kernel.org
 > Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
+> ---
+>  arch/alpha/kernel/srmcons.c | 3 +--
+>  1 file changed, 1 insertion(+), 2 deletions(-)
 
-Acked-by: Rusty Russell <rusty@rustcorp.com.au>
+Reviewed-by: Richard Henderson <rth@twiddle.net>
 
-Want to delete the extraneous semicolons, for bonus points? :)
 
-> +#define module_init(x)	__initcall(x);
-...
-> +#define module_exit(x)	__exitcall(x);
-
-Cheers,
-Rusty.
+r~
