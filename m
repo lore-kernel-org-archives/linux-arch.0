@@ -1,52 +1,53 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v9 3/5] qrwlock, x86 - Treat all data type not bigger
- than long as atomic in x86
-Date: Wed, 22 Jan 2014 14:09:33 +0100
-Message-ID: <20140122130933.GB9429@gmail.com>
-References: <1389761047-47566-1-git-send-email-Waiman.Long@hp.com>
- <1389761047-47566-4-git-send-email-Waiman.Long@hp.com>
- <20140120150316.GG30183@twins.programming.kicks-ass.net>
- <52DE9410.6090500@hp.com>
- <20140121153958.GA31570@twins.programming.kicks-ass.net>
- <52DE9BB0.5070909@hp.com>
- <CA+55aFzyww_kwU36jYk=LUtxzPUU76xgnQEOUTqGMFNe80sOZA@mail.gmail.com>
- <20140122080155.GE31570@twins.programming.kicks-ass.net>
- <20140122120917.GA8894@gmail.com>
- <20140122121339.GM31570@twins.programming.kicks-ass.net>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH 0/8] Update kernel uabi header files for x32
+Date: Wed, 22 Jan 2014 15:10:49 +0000
+Message-ID: <20140122151049.GA18727@1n450.cable.virginmedia.net>
+References: <1388182464-28428-1-git-send-email-hjl.tools@gmail.com>
+ <52DEA933.6080907@zytor.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ee0-f51.google.com ([74.125.83.51]:55009 "EHLO
-	mail-ee0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755462AbaAVNJh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jan 2014 08:09:37 -0500
+Received: from mail-ea0-f172.google.com ([209.85.215.172]:55869 "EHLO
+	mail-ea0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755212AbaAVPDw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jan 2014 10:03:52 -0500
 Content-Disposition: inline
-In-Reply-To: <20140122121339.GM31570@twins.programming.kicks-ass.net>
+In-Reply-To: <52DEA933.6080907@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: "H.J. Lu" <hjl.tools@gmail.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, Ralf Baechle <ralf@linux-mips.org>, Will Deacon <will.deacon@arm.com>, Linus Torvalds <torvalds@linux-foundation.org>
 
-
-* Peter Zijlstra <peterz@infradead.org> wrote:
-
-> On Wed, Jan 22, 2014 at 01:09:17PM +0100, Ingo Molnar wrote:
+On Tue, Jan 21, 2014 at 09:06:59AM -0800, H. Peter Anvin wrote:
+> On 12/27/2013 02:14 PM, H.J. Lu wrote:
+> > X32 uses the same kernel system call interface as x86-64 for many
+> > system calls.  However, "long" is 64-bit for x86-64 and is 32-bit for
+> > x32.  Where long or unsigned long are used in struct types for such
+> > system calls, they are wrong for x32.  __kernel_[u]long_t is [unsigned]
+> > long for all ABIs other than x32.  I am submitting 8 patches to replace
+> > long or unsigned long with __kernel_[u]long_t so that those struct types
+> > can be used with x32 system calls.
 > > 
-> > * Peter Zijlstra <peterz@infradead.org> wrote:
+> > H.J. Lu (8):
+> >   Use __kernel_long_t in struct timex
+> >   Use __kernel_long_t/__kernel_ulong_t in <linux/resource.h>
+> >   Use __kernel_ulong_t in uapi struct ipc64_perm
+> >   Use __kernel_long_t in struct msgbuf
+> >   Use __kernel_ulong_t in struct msqid64_ds
+> >   Use __kernel_ulong_t in x86 struct semid64_ds
+> >   Use __kernel_ulong_t in shmid64_ds/shminfo64/shm_info
+> >   Use __kernel_long_t in struct mq_attr
 > > 
-> > > On Tue, Jan 21, 2014 at 04:31:56PM -0800, Linus Torvalds wrote:
-> > > > And if somebody tries to do a "smp_store_release()" on a random
-> > > > structure or union, do we care? We're not some nanny state that wants
-> > > > to give nice warnings for insane code.
-> > > 
-> > > Hurm, and here I thought warning on insane code was a good idea :/
-> > 
-> > There's a level of insanity that is best cured through Darwin Awards?
 > 
-> Yeah, but who will clean up after them? :-)
+> As Catalin indirectly pointed out, I had made a followup to the wrong
+> version of the patchset (because I commented to Christoph's feedback.)
+> This is threaded to the proper version (without unnecessary #if
+> __BITS_PER_LONG.)
 
-Birds, insects, bacteria?
+From an arm64 ILP32 perspective (though still work in progress), the
+patches look fine. We'll continue the trend with similar changes to
+generic semid64_ds.
 
-Thanks,
+In case the series is not committed yet:
 
-	Ingo
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
