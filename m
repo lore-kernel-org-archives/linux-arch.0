@@ -1,61 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f180.google.com ([209.85.212.180]:55897 "EHLO
-	mail-wi0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753140AbaAVJSB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jan 2014 04:18:01 -0500
+Received: from loki.mindstab.net ([69.164.214.81]:35656 "EHLO loki.localdomain"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1755900AbaAVPTU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 22 Jan 2014 10:19:20 -0500
+Subject: [PATCH 1/1] Per socket value for max datagram queue length
 MIME-Version: 1.0
-In-Reply-To: <CAKohpo=oWrX2SF5GWYoGzC+cuZeOx_wappTFfOy9vCpBush+BQ@mail.gmail.com>
-References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-	<1390339396-3479-69-git-send-email-paul.gortmaker@windriver.com>
-	<CAKohpo=oWrX2SF5GWYoGzC+cuZeOx_wappTFfOy9vCpBush+BQ@mail.gmail.com>
-Date: Wed, 22 Jan 2014 04:17:59 -0500
-Message-ID: <CAP=VYLodPTc4Cum+bqwA927g11-BNOtSo=fs_UKt+jFEc3ABKw@mail.gmail.com>
-Subject: Re: [PATCH 68/73] drivers/cpufreq: delete non-required instances of <linux/init.h>
-From: Paul Gortmaker <paul.gortmaker@gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=UTF-8;
+ format=flowed
+Content-Transfer-Encoding: 7bit
+Date: Wed, 22 Jan 2014 07:11:20 -0800
+From: Dan Ballard <dan@mindstab.net>
+Message-ID: <13e8aad86903481261581de7c29444e3@mindstab.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Viresh Kumar <viresh.kumar@linaro.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Kevin Hilman <khilman@deeprootsystems.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, "cpufreq@vger.kernel.org" <cpufreq@vger.kernel.org>, "linux-pm@vger.kernel.org" <linux-pm@vger.kernel.org>
-Message-ID: <20140122091759.1sBm-A2FLv1vmKsgfrk0bCFrws8AE4TiEJFIXOx6tyA@z>
+To: Lennart Poettering <lennart@poettering.net>, kay.sievers@vrfy.org, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Eric Dumazet <edumazet@google.com>, Eliezer Tamir <eliezer.tamir@linux.intel.com>, Neil Horman <nhorman@tuxdriver.com>, Li Zefan <lizefan@huawei.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org
+Message-ID: <20140122151120.JeskyFj2-U9j7jcrFtaS1eR-7DYfPEvJJF_h04XM9Iw@z>
 
-On 1/21/14, Viresh Kumar <viresh.kumar@linaro.org> wrote:
-> On 22 January 2014 02:53, Paul Gortmaker <paul.gortmaker@windriver.com>
-> wrote:
->> None of these files are actually using any __init type directives
->> and hence don't need to include <linux/init.h>.  Most are just a
->> left over from __devinit and __cpuinit removal, or simply due to
->> code getting copied from one driver to the next.
->>
->> Cc: Kevin Hilman <khilman@deeprootsystems.com>
->> Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
->> Cc: Viresh Kumar <viresh.kumar@linaro.org>
->> Cc: cpufreq@vger.kernel.org
->> Cc: linux-pm@vger.kernel.org
->> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
->> ---
->>  drivers/cpufreq/omap-cpufreq.c    | 1 -
->>  drivers/cpufreq/powernow-k8.c     | 1 -
->>  drivers/cpufreq/s3c2412-cpufreq.c | 1 -
->>  drivers/cpufreq/s3c2440-cpufreq.c | 1 -
->>  drivers/cpufreq/spear-cpufreq.c   | 1 -
->>  drivers/cpufreq/speedstep-lib.c   | 1 -
->>  6 files changed, 6 deletions(-)
->
-> We have discussed this in past where I pointed out this file is required
-> by stuff like module_init, what happened to that query ?
+Provides a new option for setsockopt SO_MAX_DGRAM_QLEN that sets and
+gets a socket specific max datagram queue length. Currently each socket
+has one but it's only ever initialized from
+/proc/sys/net/unix/max_dgram_qlen and then never adjustable later. Now
+each socket can have it individually tweaked during it's life.
 
-Patch 31/73 relocates module_init and similar macros to
-module.h so that is no longer an implicit dependency.
+Signed-off-by: Dan Ballard <dan@mindstab.net>
+---
+  include/uapi/asm-generic/socket.h |    2 ++
+  net/core/sock.c                   |    7 +++++++
+  2 files changed, 9 insertions(+)
 
-https://lkml.org/lkml/2014/1/21/488
+diff --git a/include/uapi/asm-generic/socket.h 
+b/include/uapi/asm-generic/socket.h
+index 38f14d0..f8c3e6b 100644
+--- a/include/uapi/asm-generic/socket.h
++++ b/include/uapi/asm-generic/socket.h
+@@ -80,4 +80,6 @@
 
-Thanks,
-Paul
---
+  #define SO_MAX_PACING_RATE     47
 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
->
++#define SO_MAX_DGRAM_QLEN      48
++
+  #endif /* __ASM_GENERIC_SOCKET_H */
+diff --git a/net/core/sock.c b/net/core/sock.c
+index 5393b4b..1ff69d1 100644
+--- a/net/core/sock.c
++++ b/net/core/sock.c
+@@ -915,6 +915,10 @@ set_rcvbuf:
+                                          sk->sk_max_pacing_rate);
+                 break;
+
++       case SO_MAX_DGRAM_QLEN:
++               sk->sk_max_ack_backlog = val;
++               break;
++
+         default:
+                 ret = -ENOPROTOOPT;
+                 break;
+@@ -1182,6 +1186,9 @@ int sock_getsockopt(struct socket *sock, int 
+level, int optname,
+                 v.val = sk->sk_max_pacing_rate;
+                 break;
+
++       case SO_MAX_DGRAM_QLEN:
++               v.val = sk->sk_max_ack_backlog;
++               break;
+         default:
+                 return -ENOPROTOOPT;
+         }
+-- 
+1.7.10.4
