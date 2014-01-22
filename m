@@ -1,58 +1,54 @@
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: Re: [PATCH 31/73] module: relocate module_init from init.h to module.h
-Date: Tue, 21 Jan 2014 20:56:24 -0500
-Message-ID: <CAP=VYLrqs_EkpCZ5mhD3C+FygR7Ekg1Cp_2T4npxa0c9dj-C-g@mail.gmail.com>
+Subject: Re: [PATCH 10/73] powerpc: use device_initcall for registering rtc
+ devices
+Date: Tue, 21 Jan 2014 21:26:52 -0500
+Message-ID: <CAP=VYLp5UiVJYxtpAcptoqdvgYD_Z=5CMBxmKekXEeSSBgFS9Q@mail.gmail.com>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
- <1390339396-3479-32-git-send-email-paul.gortmaker@windriver.com> <87ha8w50s9.fsf@rustcorp.com.au>
+ <1390339396-3479-11-git-send-email-paul.gortmaker@windriver.com>
+ <1390348085.5027.18.camel@smoke>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f181.google.com ([74.125.82.181]:34035 "EHLO
-	mail-we0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752553AbaAVB4z (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 20:56:55 -0500
-In-Reply-To: <87ha8w50s9.fsf@rustcorp.com.au>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Rusty Russell <rusty@rustcorp.com.au>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <1390348085.5027.18.camel@smoke>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: Geoff Levand <geoff@infradead.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, LKML <linux-kernel@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 21, 2014 at 7:16 PM, Rusty Russell <rusty@rustcorp.com.au> wrote:
-> Paul Gortmaker <paul.gortmaker@windriver.com> writes:
->> Modular users will always be users of init functionality, but
->> users of init functionality are not necessarily always modules.
->>
->> Hence any functionality like module_init and module_exit would
->> be more at home in the module.h file.  And module.h should
->> explicitly include init.h to make the dependency clear.
->>
->> We've already done all the legwork needed to ensure that this
->> move does not cause any build regressions due to implicit
->> header file include assumptions about where module_init lives.
->>
->> Cc: Rusty Russell <rusty@rustcorp.com.au>
->> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
+On Tue, Jan 21, 2014 at 6:48 PM, Geoff Levand <geoff@infradead.org> wrote:
+> Hi Paul,
 >
-> Acked-by: Rusty Russell <rusty@rustcorp.com.au>
+> On Tue, 2014-01-21 at 16:22 -0500, Paul Gortmaker wrote:
+>> Currently these two RTC devices are in core platform code
+>> where it is not possible for them to be modular.  It will
+>> never be modular, so using module_init as an alias for
+>> __initcall can be somewhat misleading.
+>>
+>>  arch/powerpc/kernel/time.c        | 2 +-
+>>  arch/powerpc/platforms/ps3/time.c | 3 +--
+>>  2 files changed, 2 insertions(+), 3 deletions(-)
 >
-> Want to delete the extraneous semicolons, for bonus points? :)
+> I tested the PS3 part of this patch and it seems to work OK.
 >
->> +#define module_init(x)       __initcall(x);
+> Acked-by: Geoff Levand <geoff@infradead.org>
 
-I would if I could, but as I was discussing on irc with hpa about a
-week ago, there are ~600 users of module_init who are relying on
-that extra ";" that we need to fix 1st...  :-)    [on my todo list!]
+Thanks Geoff for the review and testing; I'll add the ack.
 
-Thanks for the review; much appreciated,
 Paul.
 --
 
-> ...
->> +#define module_exit(x)       __exitcall(x);
 >
-> Cheers,
-> Rusty.
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> _______________________________________________
+> Linuxppc-dev mailing list
+> Linuxppc-dev@lists.ozlabs.org
+> https://lists.ozlabs.org/listinfo/linuxppc-dev
