@@ -1,47 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f52.google.com ([74.125.82.52]:45019 "EHLO
-	mail-wg0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752690AbaAVC1Y (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 21:27:24 -0500
+Received: from g6t0186.atlanta.hp.com ([15.193.32.63]:18328 "EHLO
+	g6t0186.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751728AbaAVEmi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jan 2014 23:42:38 -0500
+Message-ID: <52DF4C38.7040003@hp.com>
+Date: Tue, 21 Jan 2014 23:42:32 -0500
+From: Waiman Long <waiman.long@hp.com>
 MIME-Version: 1.0
-In-Reply-To: <1390348085.5027.18.camel@smoke>
-References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
- <1390339396-3479-11-git-send-email-paul.gortmaker@windriver.com> <1390348085.5027.18.camel@smoke>
-From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Date: Tue, 21 Jan 2014 21:26:52 -0500
-Message-ID: <CAP=VYLp5UiVJYxtpAcptoqdvgYD_Z=5CMBxmKekXEeSSBgFS9Q@mail.gmail.com>
-Subject: Re: [PATCH 10/73] powerpc: use device_initcall for registering rtc devices
-Content-Type: text/plain; charset=ISO-8859-1
+Subject: Re: [PATCH v9 3/5] qrwlock, x86 - Treat all data type not bigger
+ than long as atomic in x86
+References: <1389761047-47566-1-git-send-email-Waiman.Long@hp.com> <1389761047-47566-4-git-send-email-Waiman.Long@hp.com> <20140120150316.GG30183@twins.programming.kicks-ass.net> <52DE9410.6090500@hp.com> <20140121153958.GA31570@twins.programming.kicks-ass.net> <52DE9BB0.5070909@hp.com> <CA+55aFzyww_kwU36jYk=LUtxzPUU76xgnQEOUTqGMFNe80sOZA@mail.gmail.com>
+In-Reply-To: <CA+55aFzyww_kwU36jYk=LUtxzPUU76xgnQEOUTqGMFNe80sOZA@mail.gmail.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geoff Levand <geoff@infradead.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org, Paul Mackerras <paulus@samba.org>, LKML <linux-kernel@vger.kernel.org>
-Message-ID: <20140122022652.1CVzgI_Ff-vGS_7keszIdkB1SmuYJ47VOCZYU2krFZo@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>
+Message-ID: <20140122044232.jXUlyoszYqXH8F_CV24M4vuNdcBbLv5xQu-yB_UQMas@z>
 
-On Tue, Jan 21, 2014 at 6:48 PM, Geoff Levand <geoff@infradead.org> wrote:
-> Hi Paul,
->
-> On Tue, 2014-01-21 at 16:22 -0500, Paul Gortmaker wrote:
->> Currently these two RTC devices are in core platform code
->> where it is not possible for them to be modular.  It will
->> never be modular, so using module_init as an alias for
->> __initcall can be somewhat misleading.
+On 01/21/2014 07:31 PM, Linus Torvalds wrote:
+> On Tue, Jan 21, 2014 at 8:09 AM, Waiman Long<waiman.long@hp.com>  wrote:
+>> include/linux/compiler.h:
 >>
->>  arch/powerpc/kernel/time.c        | 2 +-
->>  arch/powerpc/platforms/ps3/time.c | 3 +--
->>  2 files changed, 2 insertions(+), 3 deletions(-)
+>> #ifndef __native_word
+>> # ifdef __arch_native_word(t)
+>> #  define __native_word(t)      __arch_native_word(t)
+>> # else
+>> #  define __native_word(t) (sizeof(t) == sizeof(int) || sizeof(t) == siizeof(long))
+>> # endif
+>> #endif
+> Do we even really need this?
 >
-> I tested the PS3 part of this patch and it seems to work OK.
+> I'd suggest removing it entirely. You might want to retain the whole
 >
-> Acked-by: Geoff Levand <geoff@infradead.org>
-
-Thanks Geoff for the review and testing; I'll add the ack.
-
-Paul.
---
-
+>    compiletime_assert_atomic_type()
 >
-> _______________________________________________
-> Linuxppc-dev mailing list
-> Linuxppc-dev@lists.ozlabs.org
-> https://lists.ozlabs.org/listinfo/linuxppc-dev
+> thing on purely the alpha side, but then it's all inside just the
+> alpha code, without any need for this "native_word" thing.
+>
+> And if somebody tries to do a "smp_store_release()" on a random
+> structure or union, do we care? We're not some nanny state that wants
+> to give nice warnings for insane code.
+>
+>                Linus
+
+That sounds good to me too. Peter, what do you think about this?
+
+-Longman
