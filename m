@@ -1,86 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f52.google.com ([209.85.160.52]:43751 "EHLO
-	mail-pb0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755254AbaAVPaR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jan 2014 10:30:17 -0500
-Message-ID: <1390404614.27806.23.camel@edumazet-glaptop2.roam.corp.google.com>
+Received: from order.stressinduktion.org ([87.106.68.36]:58094 "EHLO
+	order.stressinduktion.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756012AbaAVPcg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jan 2014 10:32:36 -0500
+Date: Wed, 22 Jan 2014 16:32:35 +0100
+From: Hannes Frederic Sowa <hannes@stressinduktion.org>
 Subject: Re: [PATCH 1/1] Per socket value for max datagram queue length
-From: Eric Dumazet <eric.dumazet@gmail.com>
-Date: Wed, 22 Jan 2014 07:30:14 -0800
-In-Reply-To: <13e8aad86903481261581de7c29444e3@mindstab.net>
-References: <13e8aad86903481261581de7c29444e3@mindstab.net>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Message-ID: <20140122153235.GC7269@order.stressinduktion.org>
+References: <13e8aad86903481261581de7c29444e3@mindstab.net> <20140122152036.GB7269@order.stressinduktion.org>
 Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20140122152036.GB7269@order.stressinduktion.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Ballard <dan@mindstab.net>
-Cc: Lennart Poettering <lennart@poettering.net>, kay.sievers@vrfy.org, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Eric Dumazet <edumazet@google.com>, Eliezer Tamir <eliezer.tamir@linux.intel.com>, Neil Horman <nhorman@tuxdriver.com>, Li Zefan <lizefan@huawei.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org
-Message-ID: <20140122153014.7eidjrJLghCO2q2cw14EAQheItphKfppW4bysUdU9Ko@z>
+To: Dan Ballard <dan@mindstab.net>, Lennart Poettering <lennart@poettering.net>, kay.sievers@vrfy.org, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Eric Dumazet <edumazet@google.com>, Eliezer Tamir <eliezer.tamir@linux.intel.com>, Neil Horman <nhorman@tuxdriver.com>, Li Zefan <lizefan@huawei.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org
+Message-ID: <20140122153235.Fa67joZFmHTJNegaVY3B4xSL_gwJ8ejp16gwqGV1v24@z>
 
-On Wed, 2014-01-22 at 07:11 -0800, Dan Ballard wrote:
-> Provides a new option for setsockopt SO_MAX_DGRAM_QLEN that sets and
-> gets a socket specific max datagram queue length. Currently each socket
-> has one but it's only ever initialized from
-> /proc/sys/net/unix/max_dgram_qlen and then never adjustable later. Now
-> each socket can have it individually tweaked during it's life.
+On Wed, Jan 22, 2014 at 04:20:36PM +0100, Hannes Frederic Sowa wrote:
+> On Wed, Jan 22, 2014 at 07:11:20AM -0800, Dan Ballard wrote:
+> > diff --git a/net/core/sock.c b/net/core/sock.c
+> > index 5393b4b..1ff69d1 100644
+> > --- a/net/core/sock.c
+> > +++ b/net/core/sock.c
+> > @@ -915,6 +915,10 @@ set_rcvbuf:
+> >                                          sk->sk_max_pacing_rate);
+> >                 break;
+> > 
+> > +       case SO_MAX_DGRAM_QLEN:
+> > +               sk->sk_max_ack_backlog = val;
+> > +               break;
+> > +
 > 
-
-Your patch suffers from many problems.
-
-It breaks listen()
-
-It doesn't compile on a lot of arches.
-
-sk_max_ack_backlog is an unsigned short.
-
-max_dgram_qlen is used, but only for Unix sockets at this time
-Try : "git grep -n max_dgram_qlen" for details
-
-
-> Signed-off-by: Dan Ballard <dan@mindstab.net>
-> ---
->   include/uapi/asm-generic/socket.h |    2 ++
->   net/core/sock.c                   |    7 +++++++
->   2 files changed, 9 insertions(+)
+> Shouldn't the backlog be capped for unprivileged users to some configurable
+> value? I even think that max_dgram_qlen should be the upper bound.
 > 
-> diff --git a/include/uapi/asm-generic/socket.h 
-> b/include/uapi/asm-generic/socket.h
-> index 38f14d0..f8c3e6b 100644
-> --- a/include/uapi/asm-generic/socket.h
-> +++ b/include/uapi/asm-generic/socket.h
-> @@ -80,4 +80,6 @@
-> 
->   #define SO_MAX_PACING_RATE     47
-> 
-> +#define SO_MAX_DGRAM_QLEN      48
-> +
->   #endif /* __ASM_GENERIC_SOCKET_H */
-> diff --git a/net/core/sock.c b/net/core/sock.c
-> index 5393b4b..1ff69d1 100644
-> --- a/net/core/sock.c
-> +++ b/net/core/sock.c
-> @@ -915,6 +915,10 @@ set_rcvbuf:
->                                           sk->sk_max_pacing_rate);
->                  break;
-> 
-> +       case SO_MAX_DGRAM_QLEN:
-> +               sk->sk_max_ack_backlog = val;
-> +               break;
-> +
->          default:
->                  ret = -ENOPROTOOPT;
->                  break;
-> @@ -1182,6 +1186,9 @@ int sock_getsockopt(struct socket *sock, int 
-> level, int optname,
->                  v.val = sk->sk_max_pacing_rate;
->                  break;
-> 
-> +       case SO_MAX_DGRAM_QLEN:
-> +               v.val = sk->sk_max_ack_backlog;
-> +               break;
->          default:
->                  return -ENOPROTOOPT;
->          }
+> I guess it is not that serious as socket read accounting does account all
+> packets which sit in the backlog queue.
 
+Just a follow-up:
+
+sk_max_ack_backlog is also responsible for limiting the af_unix
+dgram queues.  Currently there is no socket accounting for the read
+side of those unix dgram sockets. I tried to fix this once here,
+http://patchwork.ozlabs.org/patch/231032/, but until that is done we
+depend on max_dgram_qlen to limit those queues at all.
+
+I hope I can get back to this patch anytime soon, as it solves the problem
+that a bidirectional protocol ping-ponging with a dgram server socket
+and not fetching its messages from the backlog queue can bring a server
+to halt because it doesn't have any send space on the socket anymore.
+
+Greetings,
+
+  Hannes
 
