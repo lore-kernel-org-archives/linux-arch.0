@@ -1,73 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.windriver.com ([147.11.146.13]:61846 "EHLO
-	mail1.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756143AbaAWAjF convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jan 2014 19:39:05 -0500
-Date: Wed, 22 Jan 2014 19:38:39 -0500
-From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: Re: [PATCH RFC 00/73] tree-wide: clean up some no longer required
- #include <linux/init.h>
-Message-ID: <20140123003838.GA10182@windriver.com>
-References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
- <20140122180023.dd90d34cba38d9f9ac516349@canb.auug.org.au>
+Received: from mail-oa0-f42.google.com ([209.85.219.42]:42809 "EHLO
+	mail-oa0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751245AbaAWIMn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2014 03:12:43 -0500
+Received: by mail-oa0-f42.google.com with SMTP id i7so1782904oag.29
+        for <linux-arch@vger.kernel.org>; Thu, 23 Jan 2014 00:12:43 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Disposition: inline
-Content-Transfer-Encoding: 8BIT
-In-Reply-To: <20140122180023.dd90d34cba38d9f9ac516349@canb.auug.org.au>
+In-Reply-To: <1390339396-3479-60-git-send-email-paul.gortmaker@windriver.com>
+References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
+	<1390339396-3479-60-git-send-email-paul.gortmaker@windriver.com>
+Date: Thu, 23 Jan 2014 09:12:43 +0100
+Message-ID: <CACRpkdYk6cOO-JZbe887ihJaWE5JMjuXm3EVcZmE1jCeL2BODQ@mail.gmail.com>
+Subject: Re: [PATCH 59/73] drivers/gpio: delete non-required instances of
+ include <linux/init.h>
+From: Linus Walleij <linus.walleij@linaro.org>
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-m68k@vger.kernel.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, x86@kernel.org, netdev@vger.kernel.org, kvm@vger.kernel.org, rusty@rustcorp.com.au, gregkh@linuxfoundation.org, akpm@linux-foundation.org, torvalds@linux-foundation.org
-Message-ID: <20140123003839.iQCMOmjub39coXFXTcuJ6T305yy9wA2XsdC4WurQnkY@z>
+To: Paul Gortmaker <paul.gortmaker@windriver.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexandre Courbot <gnurou@gmail.com>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>
+Message-ID: <20140123081243.jYct-efL1atrd8ElRgyERKs_NMEsiPS5eFvPtYLaQ4U@z>
 
-[Re: [PATCH RFC 00/73] tree-wide: clean up some no longer required #include <linux/init.h>] On 22/01/2014 (Wed 18:00) Stephen Rothwell wrote:
+On Tue, Jan 21, 2014 at 10:23 PM, Paul Gortmaker
+<paul.gortmaker@windriver.com> wrote:
 
-> Hi Paul,
-> 
-> On Tue, 21 Jan 2014 16:22:03 -0500 Paul Gortmaker <paul.gortmaker@windriver.com> wrote:
-> >
-> > Where: This work exists as a queue of patches that I apply to
-> > linux-next; since the changes are fixing some things that currently
-> > can only be found there.  The patch series can be found at:
-> > 
-> >    http://git.kernel.org/cgit/linux/kernel/git/paulg/init.git
-> >    git://git.kernel.org/pub/scm/linux/kernel/git/paulg/init.git
-> > 
-> > I've avoided annoying Stephen with another queue of patches for
-> > linux-next while the development content was in flux, but now that
-> > the merge window has opened, and new additions are fewer, perhaps he
-> > wouldn't mind tacking it on the end...  Stephen?
-> 
-> OK, I have added this to the end of linux-next today - we will see how we
-> go.  It is called "init".
+> None of these files are actually using any __init type directives
+> and hence don't need to include <linux/init.h>.  Most are just a
+> left over from __devinit and __cpuinit removal, or simply due to
+> code getting copied from one driver to the next.
+>
+> Cc: Linus Walleij <linus.walleij@linaro.org>
+> Cc: Alexandre Courbot <gnurou@gmail.com>
+> Cc: linux-gpio@vger.kernel.org
+> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 
-Thanks, it was a great help as it uncovered a few issues in fringe arch
-that I didn't have toolchains for, and I've fixed all of those up.
+Patch applied for v3.15.
 
-I've noticed that powerpc has been un-buildable for a while now; I have
-used this hack patch locally so I could run the ppc defconfigs to check
-that I didn't break anything.  Maybe useful for linux-next in the
-interim?  It is a hack patch -- Not-Signed-off-by: Paul Gortmaker.  :)
-
-Paul.
---
-
-diff --git a/arch/powerpc/include/asm/pgtable-ppc64.h b/arch/powerpc/include/asm/pgtable-ppc64.h
-index d27960c89a71..d0f070a2b395 100644
---- a/arch/powerpc/include/asm/pgtable-ppc64.h
-+++ b/arch/powerpc/include/asm/pgtable-ppc64.h
-@@ -560,9 +560,9 @@ extern void pmdp_invalidate(struct vm_area_struct *vma, unsigned long address,
- 			    pmd_t *pmdp);
- 
- #define pmd_move_must_withdraw pmd_move_must_withdraw
--typedef struct spinlock spinlock_t;
--static inline int pmd_move_must_withdraw(spinlock_t *new_pmd_ptl,
--					 spinlock_t *old_pmd_ptl)
-+struct spinlock;
-+static inline int pmd_move_must_withdraw(struct spinlock *new_pmd_ptl,
-+					 struct spinlock *old_pmd_ptl)
- {
- 	/*
- 	 * Archs like ppc64 use pgtable to store per pmd
-
+Yours,
+Linus Walleij
