@@ -1,40 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oa0-f42.google.com ([209.85.219.42]:42809 "EHLO
-	mail-oa0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751245AbaAWIMn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2014 03:12:43 -0500
-Received: by mail-oa0-f42.google.com with SMTP id i7so1782904oag.29
-        for <linux-arch@vger.kernel.org>; Thu, 23 Jan 2014 00:12:43 -0800 (PST)
+Received: from g4t0017.houston.hp.com ([15.201.24.20]:8364 "EHLO
+	g4t0017.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753035AbaAWRrn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2014 12:47:43 -0500
+Message-ID: <52E155A8.7000206@hp.com>
+Date: Thu, 23 Jan 2014 12:47:20 -0500
+From: Waiman Long <waiman.long@hp.com>
 MIME-Version: 1.0
-In-Reply-To: <1390339396-3479-60-git-send-email-paul.gortmaker@windriver.com>
-References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-	<1390339396-3479-60-git-send-email-paul.gortmaker@windriver.com>
-Date: Thu, 23 Jan 2014 09:12:43 +0100
-Message-ID: <CACRpkdYk6cOO-JZbe887ihJaWE5JMjuXm3EVcZmE1jCeL2BODQ@mail.gmail.com>
-Subject: Re: [PATCH 59/73] drivers/gpio: delete non-required instances of
- include <linux/init.h>
-From: Linus Walleij <linus.walleij@linaro.org>
-Content-Type: text/plain; charset=ISO-8859-1
+Subject: Re: [PATCH v10 1/4] qrwlock: A queue read/write lock implementation
+References: <1390426438-31252-1-git-send-email-Waiman.Long@hp.com> <1390426438-31252-2-git-send-email-Waiman.Long@hp.com> <20140123100751.GS30183@twins.programming.kicks-ass.net> <52E14D67.4000202@hp.com> <CA+55aFzhx6K9A62ve6E5X4juvNPewED_g1nWwq+-EY0fd0A-0g@mail.gmail.com>
+In-Reply-To: <CA+55aFzhx6K9A62ve6E5X4juvNPewED_g1nWwq+-EY0fd0A-0g@mail.gmail.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Gortmaker <paul.gortmaker@windriver.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexandre Courbot <gnurou@gmail.com>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>
-Message-ID: <20140123081243.jYct-efL1atrd8ElRgyERKs_NMEsiPS5eFvPtYLaQ4U@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>
+Message-ID: <20140123174720.VBcEBQmon80eZgFzYi6BW55JpJy3XScZpY6U_pihlO0@z>
 
-On Tue, Jan 21, 2014 at 10:23 PM, Paul Gortmaker
-<paul.gortmaker@windriver.com> wrote:
-
-> None of these files are actually using any __init type directives
-> and hence don't need to include <linux/init.h>.  Most are just a
-> left over from __devinit and __cpuinit removal, or simply due to
-> code getting copied from one driver to the next.
+On 01/23/2014 12:15 PM, Linus Torvalds wrote:
+> On Thu, Jan 23, 2014 at 9:12 AM, Waiman Long<waiman.long@hp.com>  wrote:
+>> I thought that all atomic RMW instructions are memory barrier.
+> On x86 they are. Not necessarily elsewhere.
 >
-> Cc: Linus Walleij <linus.walleij@linaro.org>
-> Cc: Alexandre Courbot <gnurou@gmail.com>
-> Cc: linux-gpio@vger.kernel.org
-> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
+>> If they are not, what kind of barrier should be added?
+> smp_mb__before_atomic_xyz() and smp_mb__after_atomic_xyz() will do it,
+> and are no-op (well, barriers - I don't think it matters) on x86.
+>
+>              Linus
+> -
 
-Patch applied for v3.15.
+Thank for the info. I am less familiar with that kind of issues on other 
+architecture. I will add a smp_mb__after_atomic_dec() & send out a new 
+patch.
 
-Yours,
-Linus Walleij
+-Longman
