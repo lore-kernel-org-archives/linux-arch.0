@@ -1,42 +1,58 @@
-From: Jean Delvare <khali@linux-fr.org>
-Subject: Re: [PATCH 50/73] drivers/hwmon: delete non-required instances of
- include <linux/init.h>
-Date: Thu, 23 Jan 2014 17:38:09 +0100
-Message-ID: <20140123173809.3ef03409@endymion.delvare>
-References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-	<1390339396-3479-51-git-send-email-paul.gortmaker@windriver.com>
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH v10 1/4] qrwlock: A queue read/write lock implementation
+Date: Thu, 23 Jan 2014 12:12:07 -0500
+Message-ID: <52E14D67.4000202@hp.com>
+References: <1390426438-31252-1-git-send-email-Waiman.Long@hp.com> <1390426438-31252-2-git-send-email-Waiman.Long@hp.com> <20140123100751.GS30183@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zoneX.GCU-Squad.org ([194.213.125.0]:35132 "EHLO
-	services.gcu-squad.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751908AbaAWQiT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2014 11:38:19 -0500
-In-Reply-To: <1390339396-3479-51-git-send-email-paul.gortmaker@windriver.com>
+Received: from g4t0016.houston.hp.com ([15.201.24.19]:39463 "EHLO
+	g4t0016.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751592AbaAWRMb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2014 12:12:31 -0500
+In-Reply-To: <20140123100751.GS30183@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Gortmaker <paul.gortmaker@windriver.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Guenter Roeck <linux@roeck-us.net>, lm-sensors@lm-sensors.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, aswin@hp.com, Scott J Norton <scott.norton@hp.com>
 
-Hi Paul,
+On 01/23/2014 05:07 AM, Peter Zijlstra wrote:
+> On Wed, Jan 22, 2014 at 04:33:55PM -0500, Waiman Long wrote:
+>> +/**
+>> + * queue_read_unlock - release read lock of a queue rwlock
+>> + * @lock : Pointer to queue rwlock structure
+>> + */
+>> +static inline void queue_read_unlock(struct qrwlock *lock)
+>> +{
+>> +	/*
+>> +	 * Atomically decrement the reader count
+>> +	 */
+>> +	atomic_sub(_QR_BIAS,&lock->cnts.rwa);
+>> +}
+>> +
+>> +/**
+>> + * queue_write_unlock - release write lock of a queue rwlock
+>> + * @lock : Pointer to queue rwlock structure
+>> + */
+>> +static inline void queue_write_unlock(struct qrwlock *lock)
+>> +{
+>> +	/*
+>> +	 * If the writer field is atomic, it can be cleared directly.
+>> +	 * Otherwise, an atomic subtraction will be used to clear it.
+>> +	 */
+>> +	if (__native_word(lock->cnts.writer))
+>> +		smp_store_release(&lock->cnts.writer, 0);
+>> +	else
+>> +		atomic_sub(_QW_LOCKED,&lock->cnts.rwa);
+>> +}
+> Both these unlocks miss a barrier; atomic_sub() doesn't imply any
+> barrier what so ever.
+>
+> The smp_store_release() does, but the other two are invalid release ops
+> in generic.
 
-On Tue, 21 Jan 2014 16:22:53 -0500, Paul Gortmaker wrote:
-> None of these files are actually using any __init type directives
-> and hence don't need to include <linux/init.h>.  Most are just a
-> left over from __devinit and __cpuinit removal, or simply due to
-> code getting copied from one driver to the next.
-> 
-> Cc: Jean Delvare <khali@linux-fr.org>
-> Cc: Guenter Roeck <linux@roeck-us.net>
-> Cc: lm-sensors@lm-sensors.org
-> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
-> ---
-> (...)
+I thought that all atomic RMW instructions are memory barrier. If they 
+are not, what kind of barrier should be added?
 
-Looks good to me, and thanks for doing that.
-
-Acked-by: Jean Delvare <khali@linux-fr.org>
-
--- 
-Jean Delvare
+-Longman
