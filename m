@@ -1,91 +1,75 @@
-From: Deng-Cheng Zhu <dengcheng.zhu@imgtec.com>
-Subject: Re: [RFC][PATCH] MIPS: VPE: Remove vpe_getuid and vpe_getgid
-Date: Wed, 22 Jan 2014 14:14:03 -0800
-Message-ID: <52E042AB.30802@imgtec.com>
-References: <8738kh6usi.fsf@xmission.com> <52DED891.60301@imgtec.com>
+From: Paul Gortmaker <paul.gortmaker@windriver.com>
+Subject: Re: [PATCH RFC 00/73] tree-wide: clean up some no longer required
+ #include <linux/init.h>
+Date: Wed, 22 Jan 2014 19:38:39 -0500
+Message-ID: <20140123003838.GA10182@windriver.com>
+References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
+ <20140122180023.dd90d34cba38d9f9ac516349@canb.auug.org.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:59303 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755989AbaAVWOR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 22 Jan 2014 17:14:17 -0500
-In-Reply-To: <52DED891.60301@imgtec.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Steven J. Hill" <Steven.Hill@imgtec.com>, "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-mips-bounce@linux-mips.org>
+Content-Disposition: inline
+In-Reply-To: <20140122180023.dd90d34cba38d9f9ac516349@canb.auug.org.au>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-m68k@vger.kernel.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, x86@kernel.org, netdev@vger.kernel.org, kvm@vger.kernel.org, rusty@rustcorp.com.au, gregkh@linuxfoundation.org, akpm@linux-foundation.org, torvalds@linux-foundation.org
+List-Id: linux-arch.vger.kernel.org
 
-This is a good catch. vpe_get[u|g]id was originally used by KSPD which has 
-been removed.
+[Re: [PATCH RFC 00/73] tree-wide: clean up some no longer required #include <linux/init.h>] On 22/01/2014 (Wed 18:00) Stephen Rothwell wrote:
 
-Reviewed-by: Deng-Cheng Zhu <dengcheng.zhu@imgtec.com>
+> Hi Paul,
+> 
+> On Tue, 21 Jan 2014 16:22:03 -0500 Paul Gortmaker <paul.gortmaker@windriver.com> wrote:
+> >
+> > Where: This work exists as a queue of patches that I apply to
+> > linux-next; since the changes are fixing some things that currently
+> > can only be found there.  The patch series can be found at:
+> > 
+> >    http://git.kernel.org/cgit/linux/kernel/git/paulg/init.git
+> >    git://git.kernel.org/pub/scm/linux/kernel/git/paulg/init.git
+> > 
+> > I've avoided annoying Stephen with another queue of patches for
+> > linux-next while the development content was in flux, but now that
+> > the merge window has opened, and new additions are fewer, perhaps he
+> > wouldn't mind tacking it on the end...  Stephen?
+> 
+> OK, I have added this to the end of linux-next today - we will see how we
+> go.  It is called "init".
 
+Thanks, it was a great help as it uncovered a few issues in fringe arch
+that I didn't have toolchains for, and I've fixed all of those up.
 
-Deng-Cheng
+I've noticed that powerpc has been un-buildable for a while now; I have
+used this hack patch locally so I could run the ppc defconfigs to check
+that I didn't break anything.  Maybe useful for linux-next in the
+interim?  It is a hack patch -- Not-Signed-off-by: Paul Gortmaker.  :)
 
----------------------------------------------------------------------------
+Paul.
+--
 
-*From:* Steven J. Hill <mailto:Steven.Hill@imgtec.com>
-*Sent:* Tuesday, January 21, 2014 12:29PM
-*To:* Eric W. Biederman <mailto:ebiederm@xmission.com>
-*Cc:* linux-arch <mailto:linux-arch@vger.kernel.org>, linux-mips 
-<mailto:linux-mips@linux-mips.org>, Deng-Cheng Zhu 
-<mailto:Dengcheng.Zhu@imgtec.com>
-*Subject:* Re: [RFC][PATCH] MIPS: VPE: Remove vpe_getuid and vpe_getgid
-
-On 01/21/2014 12:42 PM, Eric W. Biederman wrote:
->
-> The linux build-bot recently reported a build error in 
-> arch/mips/kernel/vpe.c
->
->       tree: 
-> git://git.kernel.org/pub/scm/linux/kernel/git/ebiederm/user-namespace.git 
-> for-linus
->       head:   261000a56b6382f597bcb12000f55c9ff26a1efb
->       commit: 261000a56b6382f597bcb12000f55c9ff26a1efb [4/4] userns:  
-> userns: Remove UIDGID_STRICT_TYPE_CHECKS
->       config: make ARCH=mips maltaaprp_defconfig
->
->       All error/warnings:
->
->          arch/mips/kernel/vpe.c: In function 'vpe_open':
->       >> arch/mips/kernel/vpe.c:1086:9: error: incompatible types when 
-> assigning to type 'unsigned int' from type 'kuid_t'
->       >> arch/mips/kernel/vpe.c:1087:9: error: incompatible types when 
-> assigning to type 'unsigned int' from type 'kgid_t'
->
->       vim +1086 arch/mips/kernel/vpe.c
->
->       863abad4 Jesper Juhl   2010-10-30  1080            return -ENOMEM;
->       863abad4 Jesper Juhl   2010-10-30  1081          }
->       e01402b1 Ralf Baechle  2005-07-14  1082          v->plen = P_SIZE;
->       e01402b1 Ralf Baechle  2005-07-14  1083 v->load_addr = NULL;
->       e01402b1 Ralf Baechle  2005-07-14  1084          v->len = 0;
->       e01402b1 Ralf Baechle  2005-07-14  1085
->       d76b0d9b David Howells 2008-11-14 @1086        v->uid = 
-> filp->f_cred->fsuid;
->       d76b0d9b David Howells 2008-11-14 @1087          v->gid = 
-> filp->f_cred->fsgid;
->       2600990e Ralf Baechle  2006-04-05  1088
->       2600990e Ralf Baechle  2006-04-05  1089        v->cwd[0] = 0;
->       2600990e Ralf Baechle  2006-04-05  1090          ret = 
-> getcwd(v->cwd, VPE_PATH_MAX);
->
-> When examining the code to see what v->uid and v->gid were used for I
-> discovered that the only users in the kernel are vpe_getuid and
-> vpe_getgid, and that vpe_getuid and vpe_getgid are never called.
->
-> So instead of proposing a conversion to use kuid_t and kgid_t instead
-> of unsigned int/int as I normally would let's just kill this dead code
-> so no one has to worry about it further.
->
-> Cc: Ralf Baechle <ralf@linux-mips.org>
-> Cc: linux-mips@linux-mips.org
-> Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
->
-This patch looks good to me, however, Deng-Cheng should also confirm if 
-this patch is okay. He is currently maintaining that code. Thanks.
-
-Steve
+diff --git a/arch/powerpc/include/asm/pgtable-ppc64.h b/arch/powerpc/include/asm/pgtable-ppc64.h
+index d27960c89a71..d0f070a2b395 100644
+--- a/arch/powerpc/include/asm/pgtable-ppc64.h
++++ b/arch/powerpc/include/asm/pgtable-ppc64.h
+@@ -560,9 +560,9 @@ extern void pmdp_invalidate(struct vm_area_struct *vma, unsigned long address,
+ 			    pmd_t *pmdp);
+ 
+ #define pmd_move_must_withdraw pmd_move_must_withdraw
+-typedef struct spinlock spinlock_t;
+-static inline int pmd_move_must_withdraw(spinlock_t *new_pmd_ptl,
+-					 spinlock_t *old_pmd_ptl)
++struct spinlock;
++static inline int pmd_move_must_withdraw(struct spinlock *new_pmd_ptl,
++					 struct spinlock *old_pmd_ptl)
+ {
+ 	/*
+ 	 * Archs like ppc64 use pgtable to store per pmd
