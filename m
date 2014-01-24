@@ -1,37 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t0015.houston.hp.com ([15.201.24.18]:8881 "EHLO
-	g4t0015.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754027AbaAWUqN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2014 15:46:13 -0500
-Message-ID: <52E17F7E.1030803@hp.com>
-Date: Thu, 23 Jan 2014 15:45:50 -0500
-From: Waiman Long <waiman.long@hp.com>
+Received: from mail.windriver.com ([147.11.1.11]:53162 "EHLO
+	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750969AbaAXCVk convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2014 21:21:40 -0500
+Date: Thu, 23 Jan 2014 21:21:55 -0500
+From: Paul Gortmaker <paul.gortmaker@windriver.com>
+Subject: Re: [PATCH 59/73] drivers/gpio: delete non-required instances of
+ include <linux/init.h>
+Message-ID: <20140124022154.GA13428@windriver.com>
+References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
+ <1390339396-3479-60-git-send-email-paul.gortmaker@windriver.com>
+ <CACRpkdYk6cOO-JZbe887ihJaWE5JMjuXm3EVcZmE1jCeL2BODQ@mail.gmail.com>
+ <20140124095827.1ee8ddcfed8d1c8e0a6d3dbd@canb.auug.org.au>
 MIME-Version: 1.0
-Subject: Re: [PATCH v10 1/4] qrwlock: A queue read/write lock implementation
-References: <1390426438-31252-1-git-send-email-Waiman.Long@hp.com> <1390426438-31252-2-git-send-email-Waiman.Long@hp.com> <20140123100751.GS30183@twins.programming.kicks-ass.net> <52E14D67.4000202@hp.com> <CA+55aFzhx6K9A62ve6E5X4juvNPewED_g1nWwq+-EY0fd0A-0g@mail.gmail.com> <52E155A8.7000206@hp.com> <CA+55aFyb-qFpUWGZjXJx_V_tr43XYGGL9srfrZf6qhxV_qPfVg@mail.gmail.com>
-In-Reply-To: <CA+55aFyb-qFpUWGZjXJx_V_tr43XYGGL9srfrZf6qhxV_qPfVg@mail.gmail.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"
+Content-Disposition: inline
+Content-Transfer-Encoding: 8BIT
+In-Reply-To: <20140124095827.1ee8ddcfed8d1c8e0a6d3dbd@canb.auug.org.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>
-Message-ID: <20140123204550.0SvWhKSnjHbDd92NHW5crxw5dXGjSGLl-GEY_XEbx0o@z>
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: Linus Walleij <linus.walleij@linaro.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexandre Courbot <gnurou@gmail.com>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>
+Message-ID: <20140124022155.Noo5gSOVCayREGZXY6vcZG3NDDWUuepovsjleeMr9xA@z>
 
-On 01/23/2014 12:52 PM, Linus Torvalds wrote:
-> On Thu, Jan 23, 2014 at 9:47 AM, Waiman Long<waiman.long@hp.com>  wrote:
->> Thank for the info. I am less familiar with that kind of issues on other
->> architecture. I will add a smp_mb__after_atomic_dec()&  send out a new
->> patch.
-> SInce it's the unlock path,. you need to use the "mb__*before*"
-> versions, since presumably you want to protect what is inside the lock
-> from leaking out, not some random thing after the lock from leaking
-> in..
->
->                Linus
+[Re: [PATCH 59/73] drivers/gpio: delete non-required instances of include <linux/init.h>] On 24/01/2014 (Fri 09:58) Stephen Rothwell wrote:
 
-My bad. I am a bit sloppy not using the right function in my email. I 
-will certainly put the right mb functions depending on whether it is a 
-lock or unlock function.
+> Hi Linus,
+> 
+> On Thu, 23 Jan 2014 09:12:43 +0100 Linus Walleij <linus.walleij@linaro.org> wrote:
+> >
+> > On Tue, Jan 21, 2014 at 10:23 PM, Paul Gortmaker <paul.gortmaker@windriver.com> wrote:
+> > 
+> > > None of these files are actually using any __init type directives
+> > > and hence don't need to include <linux/init.h>.  Most are just a
+> > > left over from __devinit and __cpuinit removal, or simply due to
+> > > code getting copied from one driver to the next.
+> > >
+> > > Cc: Linus Walleij <linus.walleij@linaro.org>
+> > > Cc: Alexandre Courbot <gnurou@gmail.com>
+> > > Cc: linux-gpio@vger.kernel.org
+> > > Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
+> > 
+> > Patch applied for v3.15.
+> 
+> Yet that patch is in linux-next today.  And just 2 days ago I mailed out this request (as I do during each merge window):
+> 
+> "Please do not add any code intended for v3.15 to your linux-next included
+> trees until after v3.14-rc1 has been released."
+> 
+> I have no problem with that particular patch being sent to Linus during
+> this merge window (in fact Paul intends to send whatever is left of the
+> series at the end of the merge window), but it makes me wonder about the
+> other commits that you have added to the gpio tree (and the pinctrl tree)
+> today.  Are they intended for this merge window or v3.15?
 
--Longman
+For what it is worth, I'm not removing any patches from my series file
+until they explicitly conflict and/or become redundant.  If a maintainer
+says they are adding the patch, I add a comment in the series file, but
+I don't remove them until I see them come into next via another branch,
+and/or sfr reports a conflict/redundancy.
+
+Thanks,
+Paul.
+--
+
+> -- 
+> Cheers,
+> Stephen Rothwell                    sfr@canb.auug.org.au
+
+
