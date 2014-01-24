@@ -1,31 +1,45 @@
-From: Linus Walleij <linus.walleij@linaro.org>
-Subject: Re: [PATCH 59/73] drivers/gpio: delete non-required instances of
- include <linux/init.h>
-Date: Fri, 24 Jan 2014 09:44:18 +0100
-Message-ID: <CACRpkda7qbYnz6r6Z3qdRzEVwN4nXdGLhREAcsL8T28yemPVEA@mail.gmail.com>
-References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-	<1390339396-3479-60-git-send-email-paul.gortmaker@windriver.com>
-	<CACRpkdYk6cOO-JZbe887ihJaWE5JMjuXm3EVcZmE1jCeL2BODQ@mail.gmail.com>
-	<20140124095827.1ee8ddcfed8d1c8e0a6d3dbd@canb.auug.org.au>
+From: Tim Chen <tim.c.chen@linux.intel.com>
+Subject: Re: [PATCH v9 6/6] MCS Lock: Allow architecture specific asm files
+ to be used for contended case
+Date: Fri, 24 Jan 2014 09:03:49 -0800
+Message-ID: <1390583029.3138.78.camel@schen9-DESK>
+References: <cover.1390320729.git.tim.c.chen@linux.intel.com>
+	 <1390347382.3138.67.camel@schen9-DESK>
+	 <20140122183539.GM30183@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20140124095827.1ee8ddcfed8d1c8e0a6d3dbd@canb.auug.org.au>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Paul Gortmaker <paul.gortmaker@windriver.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexandre Courbot <gnurou@gmail.com>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga02.intel.com ([134.134.136.20]:52832 "EHLO mga02.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750997AbaAXRDy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Jan 2014 12:03:54 -0500
+In-Reply-To: <20140122183539.GM30183@twins.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin
 
-On Thu, Jan 23, 2014 at 11:58 PM, Stephen Rothwell <sfr@canb.auug.org.au> wrote:
+On Wed, 2014-01-22 at 19:35 +0100, Peter Zijlstra wrote:
+> On Tue, Jan 21, 2014 at 03:36:22PM -0800, Tim Chen wrote:
+> > diff --git a/arch/powerpc/include/asm/Kbuild b/arch/powerpc/include/asm/Kbuild
+> > index 8b19a80..24027ce 100644
+> > --- a/arch/powerpc/include/asm/Kbuild
+> > +++ b/arch/powerpc/include/asm/Kbuild
+> > @@ -1,6 +1,8 @@
+> >  
+> > +generic-y += +=
+> >  generic-y += clkdev.h
+> > +generic-y += mcs_spinlock.h
+> >  generic-y += preempt.h
+> >  generic-y += rwsem.h
+> >  generic-y += trace_clock.h
+> > -generic-y += vtime.h
+> > +generic-y += vtime.hgeneric-y
+> 
+> Something went funny there, fixed it.
 
-> I have no problem with that particular patch being sent to Linus during
-> this merge window (in fact Paul intends to send whatever is left of the
-> series at the end of the merge window), but it makes me wonder about the
-> other commits that you have added to the gpio tree (and the pinctrl tree)
-> today.  Are they intended for this merge window or v3.15?
+Thanks for fixing it.  I assume Peter you have picked up
+the patch series and merged them?
 
-Sorry, my bad. I took this out now and I have a much smaller/stricter
-subset of patches in for-next today.
-
-Yours,
-Linus Walleij
+Tim
