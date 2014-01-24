@@ -1,66 +1,127 @@
-From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: Re: [PATCH 59/73] drivers/gpio: delete non-required instances of
- include <linux/init.h>
-Date: Thu, 23 Jan 2014 21:21:55 -0500
-Message-ID: <20140124022154.GA13428@windriver.com>
-References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
- <1390339396-3479-60-git-send-email-paul.gortmaker@windriver.com>
- <CACRpkdYk6cOO-JZbe887ihJaWE5JMjuXm3EVcZmE1jCeL2BODQ@mail.gmail.com>
- <20140124095827.1ee8ddcfed8d1c8e0a6d3dbd@canb.auug.org.au>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-gpio-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20140124095827.1ee8ddcfed8d1c8e0a6d3dbd@canb.auug.org.au>
-Sender: linux-gpio-owner@vger.kernel.org
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Linus Walleij <linus.walleij@linaro.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexandre Courbot <gnurou@gmail.com>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+From: Waiman Long <Waiman.Long@hp.com>
+Subject: [PATCH v11 0/4] Introducing a queue read/write lock implementation
+Date: Thu, 23 Jan 2014 23:28:47 -0500
+Message-ID: <1390537731-45996-1-git-send-email-Waiman.Long@hp.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from g6t0186.atlanta.hp.com ([15.193.32.63]:29787 "EHLO
+	g6t0186.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750814AbaAXE3b (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2014 23:29:31 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Aswin Chandramouleeswaran\"" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Waiman Long <Waiman.Long@hp.com>
 
-[Re: [PATCH 59/73] drivers/gpio: delete non-required instances of include <linux/init.h>] On 24/01/2014 (Fri 09:58) Stephen Rothwell wrote:
+v10->v11:
+ - Insert appropriate smp_mb__{before,after}_atomic_* calls to make sure
+   that the lock and unlock functions provide the proper memory barrier.
 
-> Hi Linus,
-> 
-> On Thu, 23 Jan 2014 09:12:43 +0100 Linus Walleij <linus.walleij@linaro.org> wrote:
-> >
-> > On Tue, Jan 21, 2014 at 10:23 PM, Paul Gortmaker <paul.gortmaker@windriver.com> wrote:
-> > 
-> > > None of these files are actually using any __init type directives
-> > > and hence don't need to include <linux/init.h>.  Most are just a
-> > > left over from __devinit and __cpuinit removal, or simply due to
-> > > code getting copied from one driver to the next.
-> > >
-> > > Cc: Linus Walleij <linus.walleij@linaro.org>
-> > > Cc: Alexandre Courbot <gnurou@gmail.com>
-> > > Cc: linux-gpio@vger.kernel.org
-> > > Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
-> > 
-> > Patch applied for v3.15.
-> 
-> Yet that patch is in linux-next today.  And just 2 days ago I mailed out this request (as I do during each merge window):
-> 
-> "Please do not add any code intended for v3.15 to your linux-next included
-> trees until after v3.14-rc1 has been released."
-> 
-> I have no problem with that particular patch being sent to Linus during
-> this merge window (in fact Paul intends to send whatever is left of the
-> series at the end of the merge window), but it makes me wonder about the
-> other commits that you have added to the gpio tree (and the pinctrl tree)
-> today.  Are they intended for this merge window or v3.15?
+v9->v10:
+ - Eliminate the temporary smp_load_acquire()/smp_store_release() macros
+   by merging v9 patch 4 into patch 1.
+ - Include <linux/mutex.h> & remove xadd() macro check. 
+ - Incorporate review comments from PeterZ.
 
-For what it is worth, I'm not removing any patches from my series file
-until they explicitly conflict and/or become redundant.  If a maintainer
-says they are adding the patch, I add a comment in the series file, but
-I don't remove them until I see them come into next via another branch,
-and/or sfr reports a conflict/redundancy.
+v8->v9:
+ - Rebase to the tip branch which has the PeterZ's
+   smp_load_acquire()/smp_store_release() patch.
+ - Only pass integer type arguments to smp_load_acquire() &
+   smp_store_release() functions.
+ - Add a new patch to make any data type less than or equal to long as
+   atomic or native in x86.
+ - Modify write_unlock() to use atomic_sub() if the writer field is
+   not atomic.
 
-Thanks,
-Paul.
---
+v7->v8:
+ - Use atomic_t functions (which are implemented in all arch's) to
+   modify reader counts.
+ - Use smp_load_acquire() & smp_store_release() for barriers.
+ - Further tuning in slowpath performance.
 
-> -- 
-> Cheers,
-> Stephen Rothwell                    sfr@canb.auug.org.au
+v6->v7:
+ - Remove support for unfair lock, so only fair qrwlock will be provided.
+ - Move qrwlock.c to the kernel/locking directory.
 
+v5->v6:
+ - Modify queue_read_can_lock() to avoid false positive result.
+ - Move the two slowpath functions' performance tuning change from
+   patch 4 to patch 1.
+ - Add a new optional patch to use the new smp_store_release() function 
+   if that is merged.
 
+v4->v5:
+ - Fix wrong definitions for QW_MASK_FAIR & QW_MASK_UNFAIR macros.
+ - Add an optional patch 4 which should only be applied after the
+   mcs_spinlock.h header file is merged.
+
+v3->v4:
+ - Optimize the fast path with better cold cache behavior and
+   performance.
+ - Removing some testing code.
+ - Make x86 use queue rwlock with no user configuration.
+
+v2->v3:
+ - Make read lock stealing the default and fair rwlock an option with
+   a different initializer.
+ - In queue_read_lock_slowpath(), check irq_count() and force spinning
+   and lock stealing in interrupt context.
+ - Unify the fair and classic read-side code path, and make write-side
+   to use cmpxchg with 2 different writer states. This slows down the
+   write lock fastpath to make the read side more efficient, but is
+   still slightly faster than a spinlock.
+
+v1->v2:
+ - Improve lock fastpath performance.
+ - Optionally provide classic read/write lock behavior for backward
+   compatibility.
+ - Use xadd instead of cmpxchg for fair reader code path to make it
+   immute to reader contention.
+ - Run more performance testing.
+
+As mentioned in the LWN article http://lwn.net/Articles/364583/,
+the read/write lock suffer from an unfairness problem that it is
+possible for a stream of incoming readers to block a waiting writer
+from getting the lock for a long time. Also, a waiting reader/writer
+contending a rwlock in local memory will have a higher chance of
+acquiring the lock than a reader/writer in remote node.
+
+This patch set introduces a queue-based read/write lock implementation
+that can largely solve this unfairness problem.
+
+The read lock slowpath will check if the reader is in an interrupt
+context. If so, it will force lock spinning and stealing without
+waiting in a queue. This is to ensure the read lock will be granted
+as soon as possible.
+
+The queue write lock can also be used as a replacement for ticket
+spinlocks that are highly contended if lock size increase is not
+an issue.
+
+The first 2 patches provides the base queue read/write lock support
+on x86 architecture. Support for other architectures can be added
+later on once architecture specific support infrastructure is added
+and proper testing is done.
+
+Patch 3 is for optimizing performance for x86 architecture.
+
+The optional patch 4 has a dependency on the the mcs_spinlock.h
+header file which has not been merged yet. So this patch should only
+be applied after the mcs_spinlock.h header file is merged.
+
+Waiman Long (4):
+  qrwlock: A queue read/write lock implementation
+  qrwlock, x86: Enable x86 to use queue read/write lock
+  qrwlock, x86: Add char and short as atomic data type in x86
+  qrwlock: Use the mcs_spinlock helper functions for MCS queuing
+
+ arch/x86/Kconfig                      |    1 +
+ arch/x86/include/asm/barrier.h        |   18 +++
+ arch/x86/include/asm/spinlock.h       |    2 +
+ arch/x86/include/asm/spinlock_types.h |    4 +
+ include/asm-generic/qrwlock.h         |  215 +++++++++++++++++++++++++++++++++
+ kernel/Kconfig.locks                  |    7 +
+ kernel/locking/Makefile               |    1 +
+ kernel/locking/qrwlock.c              |  183 ++++++++++++++++++++++++++++
+ 8 files changed, 431 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-generic/qrwlock.h
+ create mode 100644 kernel/locking/qrwlock.c
