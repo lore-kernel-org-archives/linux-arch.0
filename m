@@ -1,50 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:45065 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751087AbaAXRIS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jan 2014 12:08:18 -0500
-Date: Fri, 24 Jan 2014 18:07:27 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v9 6/6] MCS Lock: Allow architecture specific asm files
- to be used for contended case
-Message-ID: <20140124170727.GG31570@twins.programming.kicks-ass.net>
-References: <cover.1390320729.git.tim.c.chen@linux.intel.com>
- <1390347382.3138.67.camel@schen9-DESK>
- <20140122183539.GM30183@twins.programming.kicks-ass.net>
- <1390583029.3138.78.camel@schen9-DESK>
+Received: from zoneX.GCU-Squad.org ([194.213.125.0]:15060 "EHLO
+	services.gcu-squad.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751147AbaAXRJs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jan 2014 12:09:48 -0500
+Date: Fri, 24 Jan 2014 18:09:39 +0100
+From: Jean Delvare <khali@linux-fr.org>
+Subject: Re: [PATCH 51/73] drivers/i2c: delete non-required instances of
+ include <linux/init.h>
+Message-ID: <20140124180939.167e31a4@endymion.delvare>
+In-Reply-To: <1390339396-3479-52-git-send-email-paul.gortmaker@windriver.com>
+References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
+	<1390339396-3479-52-git-send-email-paul.gortmaker@windriver.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1390583029.3138.78.camel@schen9-DESK>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tim Chen <tim.c.chen@linux.intel.com>
-Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, "Figo.zhang" <figo1802@gmail.com>
-Message-ID: <20140124170727.MpJQcqEBg5JMNnVe_OwNE4POOyykSiijPM9kuHLcHy0@z>
+To: Paul Gortmaker <paul.gortmaker@windriver.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Wolfram Sang <wsa@the-dreams.de>, linux-i2c@vger.kernel.org
+Message-ID: <20140124170939.X5PDl-rRzvFhMhOLEVIKcVM0omflNP4K1-n3qHM7PGY@z>
 
-On Fri, Jan 24, 2014 at 09:03:49AM -0800, Tim Chen wrote:
-> On Wed, 2014-01-22 at 19:35 +0100, Peter Zijlstra wrote:
-> > On Tue, Jan 21, 2014 at 03:36:22PM -0800, Tim Chen wrote:
-> > > diff --git a/arch/powerpc/include/asm/Kbuild b/arch/powerpc/include/asm/Kbuild
-> > > index 8b19a80..24027ce 100644
-> > > --- a/arch/powerpc/include/asm/Kbuild
-> > > +++ b/arch/powerpc/include/asm/Kbuild
-> > > @@ -1,6 +1,8 @@
-> > >  
-> > > +generic-y += +=
-> > >  generic-y += clkdev.h
-> > > +generic-y += mcs_spinlock.h
-> > >  generic-y += preempt.h
-> > >  generic-y += rwsem.h
-> > >  generic-y += trace_clock.h
-> > > -generic-y += vtime.h
-> > > +generic-y += vtime.hgeneric-y
-> > 
-> > Something went funny there, fixed it.
+Hi Paul,
+
+On Tue, 21 Jan 2014 16:22:54 -0500, Paul Gortmaker wrote:
+> None of these files are actually using any __init type directives
+> and hence don't need to include <linux/init.h>.  Most are just a
+> left over from __devinit and __cpuinit removal, or simply due to
+> code getting copied from one driver to the next.
 > 
-> Thanks for fixing it.  I assume Peter you have picked up
-> the patch series and merged them?
+> Cc: Wolfram Sang <wsa@the-dreams.de>
+> Cc: Jean Delvare <khali@linux-fr.org>
+> Cc: linux-i2c@vger.kernel.org
+> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
+> ---
+>  drivers/i2c/algos/i2c-algo-bit.c           | 1 -
+>  drivers/i2c/algos/i2c-algo-pca.c           | 1 -
+>  drivers/i2c/algos/i2c-algo-pcf.c           | 1 -
+>  drivers/i2c/busses/i2c-ali1535.c           | 1 -
+>  drivers/i2c/busses/i2c-ali1563.c           | 1 -
+>  drivers/i2c/busses/i2c-ali15x3.c           | 1 -
+>  drivers/i2c/busses/i2c-amd756.c            | 1 -
+>  drivers/i2c/busses/i2c-amd8111.c           | 1 -
+>  drivers/i2c/busses/i2c-au1550.c            | 1 -
+>  drivers/i2c/busses/i2c-cbus-gpio.c         | 1 -
+>  drivers/i2c/busses/i2c-cpm.c               | 1 -
+>  drivers/i2c/busses/i2c-eg20t.c             | 1 -
+>  drivers/i2c/busses/i2c-exynos5.c           | 1 -
+>  drivers/i2c/busses/i2c-highlander.c        | 1 -
+>  drivers/i2c/busses/i2c-hydra.c             | 1 -
+>  drivers/i2c/busses/i2c-ibm_iic.c           | 1 -
+>  drivers/i2c/busses/i2c-iop3xx.c            | 1 -
+>  drivers/i2c/busses/i2c-isch.c              | 1 -
+>  drivers/i2c/busses/i2c-ismt.c              | 1 -
+>  drivers/i2c/busses/i2c-mpc.c               | 1 -
+>  drivers/i2c/busses/i2c-nforce2.c           | 1 -
+>  drivers/i2c/busses/i2c-ocores.c            | 1 -
+>  drivers/i2c/busses/i2c-octeon.c            | 1 -
+>  drivers/i2c/busses/i2c-pca-platform.c      | 1 -
+>  drivers/i2c/busses/i2c-piix4.c             | 1 -
+>  drivers/i2c/busses/i2c-pmcmsp.c            | 1 -
+>  drivers/i2c/busses/i2c-powermac.c          | 1 -
+>  drivers/i2c/busses/i2c-puv3.c              | 1 -
+>  drivers/i2c/busses/i2c-rcar.c              | 1 -
+>  drivers/i2c/busses/i2c-scmi.c              | 1 -
+>  drivers/i2c/busses/i2c-sh7760.c            | 1 -
+>  drivers/i2c/busses/i2c-simtec.c            | 1 -
+>  drivers/i2c/busses/i2c-sis630.c            | 1 -
+>  drivers/i2c/busses/i2c-sis96x.c            | 1 -
+>  drivers/i2c/busses/i2c-via.c               | 1 -
+>  drivers/i2c/busses/i2c-xiic.c              | 1 -
+>  drivers/i2c/busses/i2c-xlr.c               | 1 -
+>  drivers/i2c/busses/scx200_i2c.c            | 1 -
+>  drivers/i2c/muxes/i2c-arb-gpio-challenge.c | 1 -
+>  drivers/i2c/muxes/i2c-mux-gpio.c           | 1 -
+>  drivers/i2c/muxes/i2c-mux-pca9541.c        | 1 -
+>  drivers/i2c/muxes/i2c-mux-pca954x.c        | 1 -
+>  drivers/i2c/muxes/i2c-mux-pinctrl.c        | 1 -
+>  43 files changed, 43 deletions(-)
+> (...)
 
-I have picked up, Ingo generally doesn't merge new patches until after
--rc1 closes though, with the obvious exception to 'urgent' patches that
-fix problems stemming from the merge window.
+Looks good to me, thanks for doing this.
+
+Acked-by: Jean Delvare <khali@linux-fr.org>
+
+-- 
+Jean Delvare
