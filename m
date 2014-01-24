@@ -1,87 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g6t0186.atlanta.hp.com ([15.193.32.63]:29842 "EHLO
-	g6t0186.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751995AbaAXE3c (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2014 23:29:32 -0500
-From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v11 2/4] qrwlock, x86: Enable x86 to use queue read/write lock
-Date: Thu, 23 Jan 2014 23:28:49 -0500
-Message-ID: <1390537731-45996-3-git-send-email-Waiman.Long@hp.com>
-In-Reply-To: <1390537731-45996-1-git-send-email-Waiman.Long@hp.com>
-References: <1390537731-45996-1-git-send-email-Waiman.Long@hp.com>
+Received: from mail-ob0-f175.google.com ([209.85.214.175]:56164 "EHLO
+	mail-ob0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752493AbaAXIoU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jan 2014 03:44:20 -0500
+Received: by mail-ob0-f175.google.com with SMTP id wn1so3291821obc.34
+        for <linux-arch@vger.kernel.org>; Fri, 24 Jan 2014 00:44:19 -0800 (PST)
+MIME-Version: 1.0
+In-Reply-To: <20140124095827.1ee8ddcfed8d1c8e0a6d3dbd@canb.auug.org.au>
+References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
+	<1390339396-3479-60-git-send-email-paul.gortmaker@windriver.com>
+	<CACRpkdYk6cOO-JZbe887ihJaWE5JMjuXm3EVcZmE1jCeL2BODQ@mail.gmail.com>
+	<20140124095827.1ee8ddcfed8d1c8e0a6d3dbd@canb.auug.org.au>
+Date: Fri, 24 Jan 2014 09:44:18 +0100
+Message-ID: <CACRpkda7qbYnz6r6Z3qdRzEVwN4nXdGLhREAcsL8T28yemPVEA@mail.gmail.com>
+Subject: Re: [PATCH 59/73] drivers/gpio: delete non-required instances of
+ include <linux/init.h>
+From: Linus Walleij <linus.walleij@linaro.org>
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Aswin Chandramouleeswaran\"" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Waiman Long <Waiman.Long@hp.com>
-Message-ID: <20140124042849.GznIhgaoMDr9XSxz7cSCut0OZ0bSWgZI3bFTgSI1wxI@z>
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: Paul Gortmaker <paul.gortmaker@windriver.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexandre Courbot <gnurou@gmail.com>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>
+Message-ID: <20140124084418.4eBU885blRL7U5ZbIMlvg2rdvY2n4b1K83vy-h4NxFE@z>
 
-This patch makes the necessary changes at the x86 architecture specific
-layer to enable the presence of the CONFIG_QUEUE_RWLOCK kernel option
-to replace the read/write lock by the queue read/write lock.
+On Thu, Jan 23, 2014 at 11:58 PM, Stephen Rothwell <sfr@canb.auug.org.au> wrote:
 
-It also enables the CONFIG_QUEUE_RWLOCK option by default for x86 which
-will force the use of queue read/write lock. That will greatly improve
-the fairness of read/write lock and eliminate live-lock situation
-where one task may not get the lock for an indefinite period of time.
+> I have no problem with that particular patch being sent to Linus during
+> this merge window (in fact Paul intends to send whatever is left of the
+> series at the end of the merge window), but it makes me wonder about the
+> other commits that you have added to the gpio tree (and the pinctrl tree)
+> today.  Are they intended for this merge window or v3.15?
 
-The code for the old x86 read/write lock will be removed in a later
-release if no problem is found in the new queue read/write lock code.
+Sorry, my bad. I took this out now and I have a much smaller/stricter
+subset of patches in for-next today.
 
-Signed-off-by: Waiman Long <Waiman.Long@hp.com>
-Reviewed-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
----
- arch/x86/Kconfig                      |    1 +
- arch/x86/include/asm/spinlock.h       |    2 ++
- arch/x86/include/asm/spinlock_types.h |    4 ++++
- 3 files changed, 7 insertions(+), 0 deletions(-)
-
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index d3b9186..5c95257 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -119,6 +119,7 @@ config X86
- 	select MODULES_USE_ELF_RELA if X86_64
- 	select CLONE_BACKWARDS if X86_32
- 	select ARCH_USE_BUILTIN_BSWAP
-+	select ARCH_USE_QUEUE_RWLOCK
- 	select OLD_SIGSUSPEND3 if X86_32 || IA32_EMULATION
- 	select OLD_SIGACTION if X86_32
- 	select COMPAT_OLD_SIGACTION if IA32_EMULATION
-diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
-index bf156de..8fb88c5 100644
---- a/arch/x86/include/asm/spinlock.h
-+++ b/arch/x86/include/asm/spinlock.h
-@@ -188,6 +188,7 @@ static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
- 		cpu_relax();
- }
- 
-+#ifndef CONFIG_QUEUE_RWLOCK
- /*
-  * Read-write spinlocks, allowing multiple readers
-  * but only one writer.
-@@ -270,6 +271,7 @@ static inline void arch_write_unlock(arch_rwlock_t *rw)
- 	asm volatile(LOCK_PREFIX WRITE_LOCK_ADD(%1) "%0"
- 		     : "+m" (rw->write) : "i" (RW_LOCK_BIAS) : "memory");
- }
-+#endif /* CONFIG_QUEUE_RWLOCK */
- 
- #define arch_read_lock_flags(lock, flags) arch_read_lock(lock)
- #define arch_write_lock_flags(lock, flags) arch_write_lock(lock)
-diff --git a/arch/x86/include/asm/spinlock_types.h b/arch/x86/include/asm/spinlock_types.h
-index 4f1bea1..a585635 100644
---- a/arch/x86/include/asm/spinlock_types.h
-+++ b/arch/x86/include/asm/spinlock_types.h
-@@ -34,6 +34,10 @@ typedef struct arch_spinlock {
- 
- #define __ARCH_SPIN_LOCK_UNLOCKED	{ { 0 } }
- 
-+#ifdef CONFIG_QUEUE_RWLOCK
-+#include <asm-generic/qrwlock.h>
-+#else
- #include <asm/rwlock.h>
-+#endif
- 
- #endif /* _ASM_X86_SPINLOCK_TYPES_H */
--- 
-1.7.1
-
+Yours,
+Linus Walleij
