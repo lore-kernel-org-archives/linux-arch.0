@@ -1,61 +1,42 @@
-From: Wolfram Sang <wsa@the-dreams.de>
-Subject: Re: [PATCH 51/73] drivers/i2c: delete non-required instances of
- include <linux/init.h>
-Date: Fri, 24 Jan 2014 18:26:28 +0100
-Message-ID: <20140124172628.GG2629@katana>
-References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
- <1390339396-3479-52-git-send-email-paul.gortmaker@windriver.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH v9 6/6] MCS Lock: Allow architecture specific asm files to
+ be used for contended case
+Date: Fri, 24 Jan 2014 09:33:10 -0800
+Message-ID: <CA+55aFzRq8ixqSAm9+iO6-m5agJG0xDt9gZJ_vXpyppePoSxaA@mail.gmail.com>
+References: <cover.1390320729.git.tim.c.chen@linux.intel.com>
+	<1390347382.3138.67.camel@schen9-DESK>
+	<20140122183539.GM30183@twins.programming.kicks-ass.net>
+	<1390583029.3138.78.camel@schen9-DESK>
+	<20140124170727.GG31570@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="SUk9VBj82R8Xhb8H"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1390339396-3479-52-git-send-email-paul.gortmaker@windriver.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Paul Gortmaker <paul.gortmaker@windriver.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Jean Delvare <khali@linux-fr.org>, linux-i2c@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20140124170727.GG31570@twins.programming.kicks-ass.net>
+Sender: owner-linux-mm@kvack.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, "H. Peter Anvin" <hpa@zytor>
 List-Id: linux-arch.vger.kernel.org
 
+On Fri, Jan 24, 2014 at 9:07 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+>
+> I have picked up, Ingo generally doesn't merge new patches until after
+> -rc1 closes though, with the obvious exception to 'urgent' patches that
+> fix problems stemming from the merge window.
 
---SUk9VBj82R8Xhb8H
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Considering how long this has been brewing, I'd argue that we can just
+merge it during this merge window unless there are actual problems in
+testing.
 
-On Tue, Jan 21, 2014 at 04:22:54PM -0500, Paul Gortmaker wrote:
-> None of these files are actually using any __init type directives
-> and hence don't need to include <linux/init.h>.  Most are just a
-> left over from __devinit and __cpuinit removal, or simply due to
-> code getting copied from one driver to the next.
->=20
-> Cc: Wolfram Sang <wsa@the-dreams.de>
-> Cc: Jean Delvare <khali@linux-fr.org>
-> Cc: linux-i2c@vger.kernel.org
-> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
+Sure, there may still be details that need sorting out, but by now I
+think they might as well be handled in mainline.
 
-Applied to for-current, thanks!
+But hey, I'm not going to force it either, so it's up to how comfy you
+guys are about the code.
 
+                Linus
 
---SUk9VBj82R8Xhb8H
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.15 (GNU/Linux)
-
-iQIcBAEBAgAGBQJS4qJEAAoJEBQN5MwUoCm2D1wQALLYlIZCskMnqw+LQShbM8I5
-FdW7yAOiQDfszgmSPax0T+VNEiN8n2VZHpMAZmLX45T0Lbcxcfc4D4+zQXdHHopa
-1tqzNR1TYK+uPaGtLztGdz4dio6o0qgZkrr6x6cmYeQbNde8mcgMiCAMvVzexw50
-5e7q1XNKHzErWwAvblet9d87mh5UVJaP37l1G/eC9LckMVzUjD1dymIBhjNzTm5Q
-x5+rGlTAfEIEOxqLfRfdsCE6eRZBi44FuZNNhH9aq4SLBIpcJZs9oGxQ6qK6lEfy
-vxIF+DbLkgbjaXhGtZZWgJDV/X2SV6qctMqFc9d7W/B3qmc1kA/St8RKbc0JYxx1
-M+w5DCaqOfa4TQZ0Z/I9Jc2UkJjSN4iIn8QCuxCPrM34yer/3nxRpfzrcvioqUsb
-kE1pR71PhOhUZgMIPVH30blHjWYl7RGla4rXvNf4EIEZcQkqDoZEg2roKtsB/FNH
-1mzJ0TFs5g47PLBGem8aG06Cv3qEUOJj3ubie4zoOu32QmiNd3D1OiSeiJ2YVc7T
-uvuPeT18lVTAY/ADPHwCk/a3305dNsJ3rfCZ2mhGa4wR6yjO3GL5Zo13rwUJcZMN
-MYUewkKO+UzL6f6VTFkWNKf/aWO9AeBb5jfqBdZf+fvN+JJkV+mk7WF6Z+epIuVB
-JdBtM2MygNozdUI1GBR1
-=ta7I
------END PGP SIGNATURE-----
-
---SUk9VBj82R8Xhb8H--
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
