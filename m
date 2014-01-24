@@ -1,87 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zoneX.GCU-Squad.org ([194.213.125.0]:15060 "EHLO
-	services.gcu-squad.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751147AbaAXRJs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jan 2014 12:09:48 -0500
-Date: Fri, 24 Jan 2014 18:09:39 +0100
-From: Jean Delvare <khali@linux-fr.org>
+Received: from sauhun.de ([89.238.76.85]:46115 "EHLO pokefinder.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751806AbaAXR0b (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Jan 2014 12:26:31 -0500
+Date: Fri, 24 Jan 2014 18:26:28 +0100
+From: Wolfram Sang <wsa@the-dreams.de>
 Subject: Re: [PATCH 51/73] drivers/i2c: delete non-required instances of
  include <linux/init.h>
-Message-ID: <20140124180939.167e31a4@endymion.delvare>
-In-Reply-To: <1390339396-3479-52-git-send-email-paul.gortmaker@windriver.com>
+Message-ID: <20140124172628.GG2629@katana>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-	<1390339396-3479-52-git-send-email-paul.gortmaker@windriver.com>
+ <1390339396-3479-52-git-send-email-paul.gortmaker@windriver.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="SUk9VBj82R8Xhb8H"
+Content-Disposition: inline
+In-Reply-To: <1390339396-3479-52-git-send-email-paul.gortmaker@windriver.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Paul Gortmaker <paul.gortmaker@windriver.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Wolfram Sang <wsa@the-dreams.de>, linux-i2c@vger.kernel.org
-Message-ID: <20140124170939.X5PDl-rRzvFhMhOLEVIKcVM0omflNP4K1-n3qHM7PGY@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Jean Delvare <khali@linux-fr.org>, linux-i2c@vger.kernel.org
+Message-ID: <20140124172628.Dq3heBkiF_LGfz-aD3Tn0enlhe5j8icwYdbjbuqqXKs@z>
 
-Hi Paul,
 
-On Tue, 21 Jan 2014 16:22:54 -0500, Paul Gortmaker wrote:
+--SUk9VBj82R8Xhb8H
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+
+On Tue, Jan 21, 2014 at 04:22:54PM -0500, Paul Gortmaker wrote:
 > None of these files are actually using any __init type directives
 > and hence don't need to include <linux/init.h>.  Most are just a
 > left over from __devinit and __cpuinit removal, or simply due to
 > code getting copied from one driver to the next.
-> 
+>=20
 > Cc: Wolfram Sang <wsa@the-dreams.de>
 > Cc: Jean Delvare <khali@linux-fr.org>
 > Cc: linux-i2c@vger.kernel.org
 > Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
-> ---
->  drivers/i2c/algos/i2c-algo-bit.c           | 1 -
->  drivers/i2c/algos/i2c-algo-pca.c           | 1 -
->  drivers/i2c/algos/i2c-algo-pcf.c           | 1 -
->  drivers/i2c/busses/i2c-ali1535.c           | 1 -
->  drivers/i2c/busses/i2c-ali1563.c           | 1 -
->  drivers/i2c/busses/i2c-ali15x3.c           | 1 -
->  drivers/i2c/busses/i2c-amd756.c            | 1 -
->  drivers/i2c/busses/i2c-amd8111.c           | 1 -
->  drivers/i2c/busses/i2c-au1550.c            | 1 -
->  drivers/i2c/busses/i2c-cbus-gpio.c         | 1 -
->  drivers/i2c/busses/i2c-cpm.c               | 1 -
->  drivers/i2c/busses/i2c-eg20t.c             | 1 -
->  drivers/i2c/busses/i2c-exynos5.c           | 1 -
->  drivers/i2c/busses/i2c-highlander.c        | 1 -
->  drivers/i2c/busses/i2c-hydra.c             | 1 -
->  drivers/i2c/busses/i2c-ibm_iic.c           | 1 -
->  drivers/i2c/busses/i2c-iop3xx.c            | 1 -
->  drivers/i2c/busses/i2c-isch.c              | 1 -
->  drivers/i2c/busses/i2c-ismt.c              | 1 -
->  drivers/i2c/busses/i2c-mpc.c               | 1 -
->  drivers/i2c/busses/i2c-nforce2.c           | 1 -
->  drivers/i2c/busses/i2c-ocores.c            | 1 -
->  drivers/i2c/busses/i2c-octeon.c            | 1 -
->  drivers/i2c/busses/i2c-pca-platform.c      | 1 -
->  drivers/i2c/busses/i2c-piix4.c             | 1 -
->  drivers/i2c/busses/i2c-pmcmsp.c            | 1 -
->  drivers/i2c/busses/i2c-powermac.c          | 1 -
->  drivers/i2c/busses/i2c-puv3.c              | 1 -
->  drivers/i2c/busses/i2c-rcar.c              | 1 -
->  drivers/i2c/busses/i2c-scmi.c              | 1 -
->  drivers/i2c/busses/i2c-sh7760.c            | 1 -
->  drivers/i2c/busses/i2c-simtec.c            | 1 -
->  drivers/i2c/busses/i2c-sis630.c            | 1 -
->  drivers/i2c/busses/i2c-sis96x.c            | 1 -
->  drivers/i2c/busses/i2c-via.c               | 1 -
->  drivers/i2c/busses/i2c-xiic.c              | 1 -
->  drivers/i2c/busses/i2c-xlr.c               | 1 -
->  drivers/i2c/busses/scx200_i2c.c            | 1 -
->  drivers/i2c/muxes/i2c-arb-gpio-challenge.c | 1 -
->  drivers/i2c/muxes/i2c-mux-gpio.c           | 1 -
->  drivers/i2c/muxes/i2c-mux-pca9541.c        | 1 -
->  drivers/i2c/muxes/i2c-mux-pca954x.c        | 1 -
->  drivers/i2c/muxes/i2c-mux-pinctrl.c        | 1 -
->  43 files changed, 43 deletions(-)
-> (...)
 
-Looks good to me, thanks for doing this.
+Applied to for-current, thanks!
 
-Acked-by: Jean Delvare <khali@linux-fr.org>
 
--- 
-Jean Delvare
+--SUk9VBj82R8Xhb8H
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.15 (GNU/Linux)
+
+iQIcBAEBAgAGBQJS4qJEAAoJEBQN5MwUoCm2D1wQALLYlIZCskMnqw+LQShbM8I5
+FdW7yAOiQDfszgmSPax0T+VNEiN8n2VZHpMAZmLX45T0Lbcxcfc4D4+zQXdHHopa
+1tqzNR1TYK+uPaGtLztGdz4dio6o0qgZkrr6x6cmYeQbNde8mcgMiCAMvVzexw50
+5e7q1XNKHzErWwAvblet9d87mh5UVJaP37l1G/eC9LckMVzUjD1dymIBhjNzTm5Q
+x5+rGlTAfEIEOxqLfRfdsCE6eRZBi44FuZNNhH9aq4SLBIpcJZs9oGxQ6qK6lEfy
+vxIF+DbLkgbjaXhGtZZWgJDV/X2SV6qctMqFc9d7W/B3qmc1kA/St8RKbc0JYxx1
+M+w5DCaqOfa4TQZ0Z/I9Jc2UkJjSN4iIn8QCuxCPrM34yer/3nxRpfzrcvioqUsb
+kE1pR71PhOhUZgMIPVH30blHjWYl7RGla4rXvNf4EIEZcQkqDoZEg2roKtsB/FNH
+1mzJ0TFs5g47PLBGem8aG06Cv3qEUOJj3ubie4zoOu32QmiNd3D1OiSeiJ2YVc7T
+uvuPeT18lVTAY/ADPHwCk/a3305dNsJ3rfCZ2mhGa4wR6yjO3GL5Zo13rwUJcZMN
+MYUewkKO+UzL6f6VTFkWNKf/aWO9AeBb5jfqBdZf+fvN+JJkV+mk7WF6Z+epIuVB
+JdBtM2MygNozdUI1GBR1
+=ta7I
+-----END PGP SIGNATURE-----
+
+--SUk9VBj82R8Xhb8H--
