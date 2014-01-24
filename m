@@ -1,82 +1,67 @@
-From: Jean Delvare <khali-PUYAD+kWke1g9hUCZPvPmw@public.gmane.org>
-Subject: Re: [PATCH 51/73] drivers/i2c: delete non-required instances of
- include <linux/init.h>
-Date: Fri, 24 Jan 2014 18:09:39 +0100
-Message-ID: <20140124180939.167e31a4@endymion.delvare>
+From: Wolfram Sang <wsa@the-dreams.de>
+Subject: Re: [PATCH 30/73] drivers/i2c: busses/i2c-acorn.c is tristate and
+ should use module.h
+Date: Fri, 24 Jan 2014 18:26:14 +0100
+Message-ID: <20140124172614.GF2629@katana>
 References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-	<1390339396-3479-52-git-send-email-paul.gortmaker@windriver.com>
+ <1390339396-3479-31-git-send-email-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-i2c-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1390339396-3479-52-git-send-email-paul.gortmaker-CWA4WttNNZF54TAoqtyWWQ@public.gmane.org>
-Sender: linux-i2c-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Paul Gortmaker <paul.gortmaker-CWA4WttNNZF54TAoqtyWWQ@public.gmane.org>
-Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Wolfram Sang <wsa-z923LK4zBo2bacvFa/9K2g@public.gmane.org>, linux-i2c-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="QWpDgw58+k1mSFBj"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from sauhun.de ([89.238.76.85]:46112 "EHLO pokefinder.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751076AbaAXR0S (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Jan 2014 12:26:18 -0500
+Content-Disposition: inline
+In-Reply-To: <1390339396-3479-31-git-send-email-paul.gortmaker@windriver.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Paul Gortmaker <paul.gortmaker@windriver.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-i2c@vger.kernel.org
 
-Hi Paul,
 
-On Tue, 21 Jan 2014 16:22:54 -0500, Paul Gortmaker wrote:
-> None of these files are actually using any __init type directives
-> and hence don't need to include <linux/init.h>.  Most are just a
-> left over from __devinit and __cpuinit removal, or simply due to
-> code getting copied from one driver to the next.
-> 
-> Cc: Wolfram Sang <wsa-z923LK4zBo2bacvFa/9K2g@public.gmane.org>
-> Cc: Jean Delvare <khali-PUYAD+kWke1g9hUCZPvPmw@public.gmane.org>
-> Cc: linux-i2c-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-> Signed-off-by: Paul Gortmaker <paul.gortmaker-CWA4WttNNZF54TAoqtyWWQ@public.gmane.org>
-> ---
->  drivers/i2c/algos/i2c-algo-bit.c           | 1 -
->  drivers/i2c/algos/i2c-algo-pca.c           | 1 -
->  drivers/i2c/algos/i2c-algo-pcf.c           | 1 -
->  drivers/i2c/busses/i2c-ali1535.c           | 1 -
->  drivers/i2c/busses/i2c-ali1563.c           | 1 -
->  drivers/i2c/busses/i2c-ali15x3.c           | 1 -
->  drivers/i2c/busses/i2c-amd756.c            | 1 -
->  drivers/i2c/busses/i2c-amd8111.c           | 1 -
->  drivers/i2c/busses/i2c-au1550.c            | 1 -
->  drivers/i2c/busses/i2c-cbus-gpio.c         | 1 -
->  drivers/i2c/busses/i2c-cpm.c               | 1 -
->  drivers/i2c/busses/i2c-eg20t.c             | 1 -
->  drivers/i2c/busses/i2c-exynos5.c           | 1 -
->  drivers/i2c/busses/i2c-highlander.c        | 1 -
->  drivers/i2c/busses/i2c-hydra.c             | 1 -
->  drivers/i2c/busses/i2c-ibm_iic.c           | 1 -
->  drivers/i2c/busses/i2c-iop3xx.c            | 1 -
->  drivers/i2c/busses/i2c-isch.c              | 1 -
->  drivers/i2c/busses/i2c-ismt.c              | 1 -
->  drivers/i2c/busses/i2c-mpc.c               | 1 -
->  drivers/i2c/busses/i2c-nforce2.c           | 1 -
->  drivers/i2c/busses/i2c-ocores.c            | 1 -
->  drivers/i2c/busses/i2c-octeon.c            | 1 -
->  drivers/i2c/busses/i2c-pca-platform.c      | 1 -
->  drivers/i2c/busses/i2c-piix4.c             | 1 -
->  drivers/i2c/busses/i2c-pmcmsp.c            | 1 -
->  drivers/i2c/busses/i2c-powermac.c          | 1 -
->  drivers/i2c/busses/i2c-puv3.c              | 1 -
->  drivers/i2c/busses/i2c-rcar.c              | 1 -
->  drivers/i2c/busses/i2c-scmi.c              | 1 -
->  drivers/i2c/busses/i2c-sh7760.c            | 1 -
->  drivers/i2c/busses/i2c-simtec.c            | 1 -
->  drivers/i2c/busses/i2c-sis630.c            | 1 -
->  drivers/i2c/busses/i2c-sis96x.c            | 1 -
->  drivers/i2c/busses/i2c-via.c               | 1 -
->  drivers/i2c/busses/i2c-xiic.c              | 1 -
->  drivers/i2c/busses/i2c-xlr.c               | 1 -
->  drivers/i2c/busses/scx200_i2c.c            | 1 -
->  drivers/i2c/muxes/i2c-arb-gpio-challenge.c | 1 -
->  drivers/i2c/muxes/i2c-mux-gpio.c           | 1 -
->  drivers/i2c/muxes/i2c-mux-pca9541.c        | 1 -
->  drivers/i2c/muxes/i2c-mux-pca954x.c        | 1 -
->  drivers/i2c/muxes/i2c-mux-pinctrl.c        | 1 -
->  43 files changed, 43 deletions(-)
-> (...)
+--QWpDgw58+k1mSFBj
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Looks good to me, thanks for doing this.
+On Tue, Jan 21, 2014 at 04:22:33PM -0500, Paul Gortmaker wrote:
+> This file is controlled by a tristate Kconfig option, and hence
+> needs to include module.h so that it can get module_init() once
+> we relocate it from init.h into module.h in the future.
+>=20
+> Note that module_exit() appears to be missing from the driver, so
+> it is questionable whether it would actually work for a removal
+> and reload cycle if it was configured for a modular build.
+>=20
+> Cc: Wolfram Sang <wsa@the-dreams.de>
+> Cc: linux-i2c@vger.kernel.org
+> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 
-Acked-by: Jean Delvare <khali-PUYAD+kWke1g9hUCZPvPmw@public.gmane.org>
+Applied to for-current, thanks!
 
--- 
-Jean Delvare
+
+--QWpDgw58+k1mSFBj
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.15 (GNU/Linux)
+
+iQIcBAEBAgAGBQJS4qI2AAoJEBQN5MwUoCm21F4P/iFLNsmv4M04KPpGQH1jpge1
+indr5iiLLHnD3L6HwyswYTRBMlV3nIBWro78Dq6ct48bH3+b2EmZOOw0wvUNvyJd
+GwRbxACDd3jKLVneCyONj3d+BOQxwt1XwQn222dREZJ47pNq6mAHz8GVQO0oOFLX
+xS08rvqnlwak+eB0AcVA9CisG/x33Ia9YV8zMq9EK7nCYaIpLNbwcOAD8slFBO9f
+2SaOEu7l5eVtDDTki/XMM3VrNXTctQyxinqkA0A+ebcltqrpKy+ni1hLPCaz4ckP
+Ex9lCYUsSsSVFeRGLSE5gei6T9JFsFXt6d58rmxsOcof6GGVXSFRP22otgTYzbPo
+1TmZeKSccFF5Ers/xSTIUGWkif1WIhc9OiNB3fQ855A4wcExCZAy2M2oED+GV9LU
+pvGsyu+v+Rrfact/MgW5t/KNo2WJxX4XazYEHOXWeut5g8XA2XwzG9iiC1ANNkim
+114Txym+qjdIyKFQVrHsad0FPFv+jbC7zyOg3VI/kLvQtqRNQI9xhccLjusYxEjF
+fjnvRekcZJNkPUb+dy37CQT5fdjsLh0Dr5f3/9ezDPOoLeIm2Q4jUo9LFGH75GlL
+1ormRtQp71CRY6O39HdkcpfUhMZaI39vhhOoZy7SHyIJB5qIfOT6eqUInWDpWbNd
+QeuFcPlHHvPtjUVMzzyj
+=SPf3
+-----END PGP SIGNATURE-----
+
+--QWpDgw58+k1mSFBj--
