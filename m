@@ -1,71 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.windriver.com ([147.11.1.11]:53162 "EHLO
-	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750969AbaAXCVk convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2014 21:21:40 -0500
-Date: Thu, 23 Jan 2014 21:21:55 -0500
-From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: Re: [PATCH 59/73] drivers/gpio: delete non-required instances of
- include <linux/init.h>
-Message-ID: <20140124022154.GA13428@windriver.com>
-References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
- <1390339396-3479-60-git-send-email-paul.gortmaker@windriver.com>
- <CACRpkdYk6cOO-JZbe887ihJaWE5JMjuXm3EVcZmE1jCeL2BODQ@mail.gmail.com>
- <20140124095827.1ee8ddcfed8d1c8e0a6d3dbd@canb.auug.org.au>
-MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Disposition: inline
-Content-Transfer-Encoding: 8BIT
-In-Reply-To: <20140124095827.1ee8ddcfed8d1c8e0a6d3dbd@canb.auug.org.au>
+Received: from g5t0009.atlanta.hp.com ([15.192.0.46]:6851 "EHLO
+	g5t0009.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752253AbaAXE3f (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jan 2014 23:29:35 -0500
+From: Waiman Long <Waiman.Long@hp.com>
+Subject: [PATCH v11 3/4] qrwlock, x86: Add char and short as atomic data type in x86
+Date: Thu, 23 Jan 2014 23:28:50 -0500
+Message-ID: <1390537731-45996-4-git-send-email-Waiman.Long@hp.com>
+In-Reply-To: <1390537731-45996-1-git-send-email-Waiman.Long@hp.com>
+References: <1390537731-45996-1-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Linus Walleij <linus.walleij@linaro.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexandre Courbot <gnurou@gmail.com>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>
-Message-ID: <20140124022155.Noo5gSOVCayREGZXY6vcZG3NDDWUuepovsjleeMr9xA@z>
+To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Aswin Chandramouleeswaran\"" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Waiman Long <Waiman.Long@hp.com>
+Message-ID: <20140124042850.x8Yfw7WV-dsJ0MXPiZunDjtjHi0gZIvmiAheW73dvjg@z>
 
-[Re: [PATCH 59/73] drivers/gpio: delete non-required instances of include <linux/init.h>] On 24/01/2014 (Fri 09:58) Stephen Rothwell wrote:
+The generic __native_word() macro defined in include/linux/compiler.h
+only allows "int" and "long" data types to be treated as native and
+atomic. The x86 architecture, however, allow the use of char and short
+data types as atomic as well.
 
-> Hi Linus,
-> 
-> On Thu, 23 Jan 2014 09:12:43 +0100 Linus Walleij <linus.walleij@linaro.org> wrote:
-> >
-> > On Tue, Jan 21, 2014 at 10:23 PM, Paul Gortmaker <paul.gortmaker@windriver.com> wrote:
-> > 
-> > > None of these files are actually using any __init type directives
-> > > and hence don't need to include <linux/init.h>.  Most are just a
-> > > left over from __devinit and __cpuinit removal, or simply due to
-> > > code getting copied from one driver to the next.
-> > >
-> > > Cc: Linus Walleij <linus.walleij@linaro.org>
-> > > Cc: Alexandre Courbot <gnurou@gmail.com>
-> > > Cc: linux-gpio@vger.kernel.org
-> > > Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
-> > 
-> > Patch applied for v3.15.
-> 
-> Yet that patch is in linux-next today.  And just 2 days ago I mailed out this request (as I do during each merge window):
-> 
-> "Please do not add any code intended for v3.15 to your linux-next included
-> trees until after v3.14-rc1 has been released."
-> 
-> I have no problem with that particular patch being sent to Linus during
-> this merge window (in fact Paul intends to send whatever is left of the
-> series at the end of the merge window), but it makes me wonder about the
-> other commits that you have added to the gpio tree (and the pinctrl tree)
-> today.  Are they intended for this merge window or v3.15?
+This patch extends the data type allowed in the __native_word() macro to
+allow the use of char and short for the x86 architecture.
 
-For what it is worth, I'm not removing any patches from my series file
-until they explicitly conflict and/or become redundant.  If a maintainer
-says they are adding the patch, I add a comment in the series file, but
-I don't remove them until I see them come into next via another branch,
-and/or sfr reports a conflict/redundancy.
+Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+---
+ arch/x86/include/asm/barrier.h |   18 ++++++++++++++++++
+ 1 files changed, 18 insertions(+), 0 deletions(-)
 
-Thanks,
-Paul.
---
-
-> -- 
-> Cheers,
-> Stephen Rothwell                    sfr@canb.auug.org.au
-
+diff --git a/arch/x86/include/asm/barrier.h b/arch/x86/include/asm/barrier.h
+index 04a4890..0149a66 100644
+--- a/arch/x86/include/asm/barrier.h
++++ b/arch/x86/include/asm/barrier.h
+@@ -24,6 +24,24 @@
+ #define wmb()	asm volatile("sfence" ::: "memory")
+ #endif
+ 
++/*
++ * Define x86 specific atomic types that can be used in read_acquire
++ * and store_release barriers.
++ */
++#define __arch_native_word(t)	(sizeof(t) == sizeof(char)  || \
++				 sizeof(t) == sizeof(short) || \
++				 sizeof(t) == sizeof(int)   || \
++				 sizeof(t) == sizeof(long))
++/*
++ * Due to cyclic header file dependency problem, the only way to modify
++ * the behavior of __native_word() macro within
++ * compiletime_assert_atomic_type() is to redefine it.
++ */
++#ifdef __native_word
++#undef __native_word
++#endif
++#define __native_word(t)	__arch_native_word(t)
++
+ /**
+  * read_barrier_depends - Flush all pending reads that subsequents reads
+  * depend on.
+-- 
+1.7.1
 
