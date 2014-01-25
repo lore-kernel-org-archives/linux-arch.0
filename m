@@ -1,127 +1,130 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v11 1/4] qrwlock: A queue read/write lock implementation
-Date: Fri, 24 Jan 2014 23:39:10 -0500
-Message-ID: <52E33FEE.50805@hp.com>
-References: <1390537731-45996-1-git-send-email-Waiman.Long@hp.com> <1390537731-45996-2-git-send-email-Waiman.Long@hp.com> <20140124082514.GB31570@twins.programming.kicks-ass.net>
+From: Chen Gang <gang.chen.5i5j@gmail.com>
+Subject: Re: [PATCH v3] arch: use ASM_NL instead of ';' for assembler new
+ line character in the macro
+Date: Sat, 25 Jan 2014 19:07:51 +0800
+Message-ID: <52E39B07.20309@gmail.com>
+References: <526E3CE2.2070405@asianux.com> <526E6A92.6090301@synopsys.com> <526F09B8.9030202@asianux.com> <526F11C0.1030809@asianux.com> <526F149A.3000306@asianux.com> <52733FEC.4010807@synopsys.com> <528DD92E.9070408@synopsys.com> <52C6AF2B.8050104@suse.cz> <C2D7FE5348E1B147BCA15975FBA23075175CC4@IN01WEMBXA.internal.synopsys.com> <52CA76D3.2010102@suse.cz> <52CE4496.5030401@synopsys.com> <52D01639.9000205@gmail.com> <52D1F6F1.1070006@gmail.com> <52DA4D09.7030904@gmail.com> <C2D7FE5348E1B147BCA15975FBA23075178198@IN01WEMBXA.internal.synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g5t0009.atlanta.hp.com ([15.192.0.46]:1479 "EHLO
-	g5t0009.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750859AbaAYEjp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jan 2014 23:39:45 -0500
-In-Reply-To: <20140124082514.GB31570@twins.programming.kicks-ass.net>
+Received: from mail-pd0-f179.google.com ([209.85.192.179]:49175 "EHLO
+	mail-pd0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751822AbaAYLHw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 25 Jan 2014 06:07:52 -0500
+In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075178198@IN01WEMBXA.internal.synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, aswin@hp.com, Scott J Norton <scott.norton@hp.com>
+To: Vineet Gupta <vgupta@synopsys.com>
+Cc: Michal Marek <mmarek@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On 01/24/2014 03:25 AM, Peter Zijlstra wrote:
-> On Thu, Jan 23, 2014 at 11:28:48PM -0500, Waiman Long wrote:
->> +/**
->> + * queue_read_trylock - try to acquire read lock of a queue rwlock
->> + * @lock : Pointer to queue rwlock structure
->> + * Return: 1 if lock acquired, 0 if failed
->> + */
->> +static inline int queue_read_trylock(struct qrwlock *lock)
->> +{
->> +	union qrwcnts cnts;
->> +
->> +	cnts.rwc = ACCESS_ONCE(lock->cnts.rwc);
->> +	if (likely(!cnts.writer)) {
->> +		cnts.rwc = (u32)atomic_add_return(_QR_BIAS,&lock->cnts.rwa);
->> +		if (likely(!cnts.writer)) {
->> +			smp_mb__after_atomic_inc();
-> That's superfluous, as atomic_add_return() is documented as being a full
-> barrier.
+On 01/21/2014 12:55 PM, Vineet Gupta wrote:
+> Hi Mike,
+> 
+> On Saturday 18 January 2014 03:14 PM, Chen Gang wrote:
+>> Hello Maintainers:
+>>
+>> Please help check this patch when you have time.
+>>
+>> Thanks.
+> 
+> Do you know whose tree this is goona go thru. I can take it thru ARC (but maybe
+> for 3.15, however it would be better it went thru mm or some such).
+> 
 
-Yes, you are right. I have reviewed the memory_barrier.txt again and 
-atomic_add_return() is supposed to act as a memory barrier. So no extra 
-barrier. I will correct that in the next version.
+Hello all:
 
->> +			return 1;
->> +		}
->> +		atomic_sub(_QR_BIAS,&lock->cnts.rwa);
->> +	}
->> +	return 0;
->> +}
->> +
->> +/**
->> + * queue_write_trylock - try to acquire write lock of a queue rwlock
->> + * @lock : Pointer to queue rwlock structure
->> + * Return: 1 if lock acquired, 0 if failed
->> + */
->> +static inline int queue_write_trylock(struct qrwlock *lock)
->> +{
->> +	union qrwcnts old, new;
->> +
->> +	old.rwc = ACCESS_ONCE(lock->cnts.rwc);
->> +	if (likely(!old.rwc)) {
->> +		new.rwc = old.rwc;
->> +		new.writer = _QW_LOCKED;
->> +		if (likely(cmpxchg(&lock->cnts.rwc, old.rwc, new.rwc)
->> +				== old.rwc))
-> One could actually use atomic_cmpxchg() and avoid one (ab)use of that
-> union :-)
+Is this patch OK? if need additional improvement, please let me know,
+thanks.
 
-I think either one is fine. I would like to keep the original code if it 
-is not really a problem.
+> 
+>>
+>> On 01/12/2014 09:59 AM, Chen Gang wrote:
+>>> For some assemblers, they use another character as newline in a macro
+>>> (e.g. arc uses '`'), so for generic assembly code, need use ASM_NL (a
+>>> macro) instead of ';' for it.
+>>>
+>>>
+>>> Signed-off-by: Chen Gang <gang.chen.5i5j@gmail.com>
+>>> Acked-by: Vineet Gupta <vgupta@synopsys.com>
+>>> ---
+>>>  arch/arc/include/asm/linkage.h |  2 ++
+>>>  include/linux/linkage.h        | 19 ++++++++++++-------
+>>>  2 files changed, 14 insertions(+), 7 deletions(-)
+>>>
+>>> diff --git a/arch/arc/include/asm/linkage.h b/arch/arc/include/asm/linkage.h
+>>> index 0283e9e..66ee552 100644
+>>> --- a/arch/arc/include/asm/linkage.h
+>>> +++ b/arch/arc/include/asm/linkage.h
+>>> @@ -11,6 +11,8 @@
+>>>  
+>>>  #ifdef __ASSEMBLY__
+>>>  
+>>> +#define ASM_NL		 `	/* use '`' to mark new line in macro */
+>>> +
+>>>  /* Can't use the ENTRY macro in linux/linkage.h
+>>>   * gas considers ';' as comment vs. newline
+>>>   */
+>>> diff --git a/include/linux/linkage.h b/include/linux/linkage.h
+>>> index d3e8ad2..a6a42dd 100644
+>>> --- a/include/linux/linkage.h
+>>> +++ b/include/linux/linkage.h
+>>> @@ -6,6 +6,11 @@
+>>>  #include <linux/export.h>
+>>>  #include <asm/linkage.h>
+>>>  
+>>> +/* Some toolchains use other characters (e.g. '`') to mark new line in macro */
+>>> +#ifndef ASM_NL
+>>> +#define ASM_NL		 ;
+>>> +#endif
+>>> +
+>>>  #ifdef __cplusplus
+>>>  #define CPP_ASMLINKAGE extern "C"
+>>>  #else
+>>> @@ -75,21 +80,21 @@
+>>>  
+>>>  #ifndef ENTRY
+>>>  #define ENTRY(name) \
+>>> -  .globl name; \
+>>> -  ALIGN; \
+>>> -  name:
+>>> +	.globl name ASM_NL \
+>>> +	ALIGN ASM_NL \
+>>> +	name:
+>>>  #endif
+>>>  #endif /* LINKER_SCRIPT */
+>>>  
+>>>  #ifndef WEAK
+>>>  #define WEAK(name)	   \
+>>> -	.weak name;	   \
+>>> +	.weak name ASM_NL   \
+>>>  	name:
+>>>  #endif
+>>>  
+>>>  #ifndef END
+>>>  #define END(name) \
+>>> -  .size name, .-name
+>>> +	.size name, .-name
+>>>  #endif
+>>>  
+>>>  /* If symbol 'name' is treated as a subroutine (gets called, and returns)
+>>> @@ -98,8 +103,8 @@
+>>>   */
+>>>  #ifndef ENDPROC
+>>>  #define ENDPROC(name) \
+>>> -  .type name, @function; \
+>>> -  END(name)
+>>> +	.type name, @function ASM_NL \
+>>> +	END(name)
+>>>  #endif
+>>>  
+>>>  #endif
+>>>
+>>
+> 
 
->> +			return 1;
->> +	}
->> +	return 0;
->> +}
->> +/**
->> + * queue_read_lock - acquire read lock of a queue rwlock
->> + * @lock: Pointer to queue rwlock structure
->> + */
->> +static inline void queue_read_lock(struct qrwlock *lock)
->> +{
->> +	union qrwcnts cnts;
->> +
->> +	cnts.rwc = atomic_add_return(_QR_BIAS,&lock->cnts.rwa);
->> +	if (likely(!cnts.writer)) {
->> +		smp_mb__after_atomic_inc();
-> Superfluous again.
+Thanks.
+-- 
+Chen Gang
 
-Will remove that.
-
->> +		return;
->> +	queue_write_lock_slowpath(lock);
->> +}
->> +
->> +/**
->> + * queue_read_unlock - release read lock of a queue rwlock
->> + * @lock : Pointer to queue rwlock structure
->> + */
->> +static inline void queue_read_unlock(struct qrwlock *lock)
->> +{
->> +	/*
->> +	 * Atomically decrement the reader count
->> +	 */
->> +	smp_mb__before_atomic_dec();
->> +	atomic_sub(_QR_BIAS,&lock->cnts.rwa);
->> +}
->> +
->> +/**
->> + * queue_write_unlock - release write lock of a queue rwlock
->> + * @lock : Pointer to queue rwlock structure
->> + */
->> +static inline void queue_write_unlock(struct qrwlock *lock)
->> +{
->> +	/*
->> +	 * If the writer field is atomic, it can be cleared directly.
->> +	 * Otherwise, an atomic subtraction will be used to clear it.
->> +	 */
->> +	if (__native_word(lock->cnts.writer))
->> +		smp_store_release(&lock->cnts.writer, 0);
->> +	else {
->> +		smp_mb__before_atomic_dec();
->> +		atomic_sub(_QW_LOCKED,&lock->cnts.rwa);
->> +	}
-> Missing {}, Documentation/CodingStyle Chapter 3 near the very end.
-
-Thank for spotting that. Will fix it in the next version.
-
--Longman
+Open, share and attitude like air, water and life which God blessed
