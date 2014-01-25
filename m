@@ -1,47 +1,34 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v9 6/6] MCS Lock: Allow architecture specific asm files
- to be used for contended case
-Date: Fri, 24 Jan 2014 17:37:13 +0000
-Message-ID: <20140124173713.GO31040@mudshark.cambridge.arm.com>
-References: <cover.1390320729.git.tim.c.chen@linux.intel.com>
- <1390347382.3138.67.camel@schen9-DESK>
- <20140122183539.GM30183@twins.programming.kicks-ass.net>
- <1390583029.3138.78.camel@schen9-DESK>
- <20140124170727.GG31570@twins.programming.kicks-ass.net>
- <CA+55aFzRq8ixqSAm9+iO6-m5agJG0xDt9gZJ_vXpyppePoSxaA@mail.gmail.com>
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH v11 4/4] qrwlock: Use the mcs_spinlock helper functions
+ for MCS queuing
+Date: Fri, 24 Jan 2014 23:30:52 -0500
+Message-ID: <52E33DFC.6010706@hp.com>
+References: <1390537731-45996-1-git-send-email-Waiman.Long@hp.com> <1390537731-45996-5-git-send-email-Waiman.Long@hp.com> <20140124082617.GC31570@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <CA+55aFzRq8ixqSAm9+iO6-m5agJG0xDt9gZJ_vXpyppePoSxaA@mail.gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Paul E.McKenney" <paulmck@linux.vnet.ibm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Waiman Long <waiman.long@hp.com>, Andrea Arcangeli <aarcange@redhat.com>, Alex Shi <alex.shi@linaro.org>, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Davidlohr Bueso <davidlohr.bueso@hp.com>, Matthew R Wilcox <matthew.r.wilcox@intel.com>, Dave Hansen <dave.hansen@intel.com>, Rik van Riel <riel@redhat.com>, Peter Hurley <peter@hurleysoftware.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from g4t0017.houston.hp.com ([15.201.24.20]:43486 "EHLO
+	g4t0017.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750788AbaAYEbZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jan 2014 23:31:25 -0500
+In-Reply-To: <20140124082617.GC31570@twins.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, aswin@hp.com, Scott J Norton <scott.norton@hp.com>
 
-On Fri, Jan 24, 2014 at 05:33:10PM +0000, Linus Torvalds wrote:
-> On Fri, Jan 24, 2014 at 9:07 AM, Peter Zijlstra <peterz@infradead.org> wrote:
-> >
-> > I have picked up, Ingo generally doesn't merge new patches until after
-> > -rc1 closes though, with the obvious exception to 'urgent' patches that
-> > fix problems stemming from the merge window.
-> 
-> Considering how long this has been brewing, I'd argue that we can just
-> merge it during this merge window unless there are actual problems in
-> testing.
-> 
-> Sure, there may still be details that need sorting out, but by now I
-> think they might as well be handled in mainline.
-> 
-> But hey, I'm not going to force it either, so it's up to how comfy you
-> guys are about the code.
+On 01/24/2014 03:26 AM, Peter Zijlstra wrote:
+> On Thu, Jan 23, 2014 at 11:28:51PM -0500, Waiman Long wrote:
+>> There is a pending MCS lock patch series that adds generic MCS lock
+>> helper functions to do MCS-style locking. This patch will enable
+>> the queue rwlock to use that generic MCS lock/unlock primitives for
+>> internal queuing. This patch should only be merged after the merging
+>> of that generic MCS locking patch.
+> I would still very much like this patch to be merged into the first. It
+> saves having to review all the code removed again.
 
-Suits me, then I can get the ARM parts in for 3.15.
+I will merge it to the first one once the once the MCS patches are in 
+the mainline or the tip branch.
 
-Will
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+-Longman
