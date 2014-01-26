@@ -1,49 +1,26 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 01/13] sched: Add 3 new scheduler syscalls to support an
- extended scheduling parameters ABI
-Date: Sun, 26 Jan 2014 10:48:48 +0100
-Message-ID: <CAMuHMdU574ojqZ2wK4bAM_c8_1GCHRDPpco+iF-rHaF8Kdbaxg@mail.gmail.com>
-References: <20131217122720.950475833@infradead.org>
-	<20131217123352.692059839@infradead.org>
+From: Abdul Nasser <nasser500@justin.ddo.jp>
+Subject: Kind Regards
+Date: Sun, 26 Jan 2014 21:31:10 +0000
+Message-ID: <SECEXCHANGE3xbYiMCI00003952@mail.standardelectronics.com>
+Reply-To: s.abdulnasser@yahoo.com.hk
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f180.google.com ([209.85.192.180]:55239 "EHLO
-	mail-pd0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750892AbaAZJss (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 26 Jan 2014 04:48:48 -0500
-In-Reply-To: <20131217123352.692059839@infradead.org>
+Received: from mail.standardelectronics.com ([74.92.67.124]:55453 "EHLO
+	mail.standardelectronics.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753563AbaAZXjS convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 26 Jan 2014 18:39:18 -0500
+Content-Description: Mail message body
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Steven Rostedt <rostedt@goodmis.org>, Oleg Nesterov <oleg@redhat.com>, =?UTF-8?B?RnLDqWTDqXJpYyBXZWlzYmVja2Vy?= <fweisbec@gmail.com>, darren@dvhart.com, johan.eker@ericsson.com, p.faure@akatech.ch, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Claudio Scordino <claudio@evidence.eu.com>, Michael Trimarchi <michael@amarulasolutions.com>, Fabio Checconi <fchecconi@gmail.com>, Tommaso Cucinotta <tommaso.cucinotta@sssup.it>, Juri Lelli <juri.lelli@gmail.com>, nicola.manica@disi.unitn.it, luca.abeni@unitn.it, Dhaval Giani <dhaval.giani@gmail.com>, hgu1972@gmail.com, Paul McKenney <paulmck@linux.vnet.ibm.com>, Dario Faggioli <raistlin@linux.it>, insop.song@gmail.com, liming.wang@windriver.com, John Kacur <jkacur@redhat.com>
+To: Recipients <nasser500@justin.ddo.jp>
 
-On Tue, Dec 17, 2013 at 1:27 PM, Peter Zijlstra <peterz@infradead.org> wrote:
-> From: Dario Faggioli <raistlin@linux.it>
->
-> Add the syscalls needed for supporting scheduling algorithms
-> with extended scheduling parameters (e.g., SCHED_DEADLINE).
+Greetings,
+My name is Abdul Nasser Sokariah and I am writing you from Syria, I choose to contact you directly as I need a reliable person to trust who can help me handle my huge deposit  with a vault company in EUROPE, and based on my present situation in Syria, I need you urgently to take possession of everything and further modalities/directives will follow.Please reply to my private  Email: nasserabdul190@yahoo.com
 
->  - defines and implements the new scheduling related syscalls that
->    manipulate it, i.e., sched_setscheduler2(), sched_setattr()
->    and sched_getattr().
+I wait for your response.
 
-> Syscalls are introduced for x86 (32 and 64 bits) and ARM only, as a
-> proof of concept and for developing and testing purposes. Making them
-> available on other architectures is straightforward.
-
-Please cc linux-arch on new syscalls.
-
-They're now in mainline, and in the end there are only 2 (sched_setattr() and
-sched_getattr()).
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Yours truly,
+Abdul Nasser Sokariah
