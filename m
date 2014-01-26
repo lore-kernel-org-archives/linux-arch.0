@@ -1,130 +1,49 @@
-From: Chen Gang <gang.chen.5i5j@gmail.com>
-Subject: Re: [PATCH v3] arch: use ASM_NL instead of ';' for assembler new
- line character in the macro
-Date: Sat, 25 Jan 2014 19:07:51 +0800
-Message-ID: <52E39B07.20309@gmail.com>
-References: <526E3CE2.2070405@asianux.com> <526E6A92.6090301@synopsys.com> <526F09B8.9030202@asianux.com> <526F11C0.1030809@asianux.com> <526F149A.3000306@asianux.com> <52733FEC.4010807@synopsys.com> <528DD92E.9070408@synopsys.com> <52C6AF2B.8050104@suse.cz> <C2D7FE5348E1B147BCA15975FBA23075175CC4@IN01WEMBXA.internal.synopsys.com> <52CA76D3.2010102@suse.cz> <52CE4496.5030401@synopsys.com> <52D01639.9000205@gmail.com> <52D1F6F1.1070006@gmail.com> <52DA4D09.7030904@gmail.com> <C2D7FE5348E1B147BCA15975FBA23075178198@IN01WEMBXA.internal.synopsys.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 01/13] sched: Add 3 new scheduler syscalls to support an
+ extended scheduling parameters ABI
+Date: Sun, 26 Jan 2014 10:48:48 +0100
+Message-ID: <CAMuHMdU574ojqZ2wK4bAM_c8_1GCHRDPpco+iF-rHaF8Kdbaxg@mail.gmail.com>
+References: <20131217122720.950475833@infradead.org>
+	<20131217123352.692059839@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f179.google.com ([209.85.192.179]:49175 "EHLO
-	mail-pd0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751822AbaAYLHw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 25 Jan 2014 06:07:52 -0500
-In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075178198@IN01WEMBXA.internal.synopsys.com>
+Received: from mail-pd0-f180.google.com ([209.85.192.180]:55239 "EHLO
+	mail-pd0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750892AbaAZJss (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 26 Jan 2014 04:48:48 -0500
+In-Reply-To: <20131217123352.692059839@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <vgupta@synopsys.com>
-Cc: Michal Marek <mmarek@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Steven Rostedt <rostedt@goodmis.org>, Oleg Nesterov <oleg@redhat.com>, =?UTF-8?B?RnLDqWTDqXJpYyBXZWlzYmVja2Vy?= <fweisbec@gmail.com>, darren@dvhart.com, johan.eker@ericsson.com, p.faure@akatech.ch, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Claudio Scordino <claudio@evidence.eu.com>, Michael Trimarchi <michael@amarulasolutions.com>, Fabio Checconi <fchecconi@gmail.com>, Tommaso Cucinotta <tommaso.cucinotta@sssup.it>, Juri Lelli <juri.lelli@gmail.com>, nicola.manica@disi.unitn.it, luca.abeni@unitn.it, Dhaval Giani <dhaval.giani@gmail.com>, hgu1972@gmail.com, Paul McKenney <paulmck@linux.vnet.ibm.com>, Dario Faggioli <raistlin@linux.it>, insop.song@gmail.com, liming.wang@windriver.com, John Kacur <jkacur@redhat.com>
 
-On 01/21/2014 12:55 PM, Vineet Gupta wrote:
-> Hi Mike,
-> 
-> On Saturday 18 January 2014 03:14 PM, Chen Gang wrote:
->> Hello Maintainers:
->>
->> Please help check this patch when you have time.
->>
->> Thanks.
-> 
-> Do you know whose tree this is goona go thru. I can take it thru ARC (but maybe
-> for 3.15, however it would be better it went thru mm or some such).
-> 
+On Tue, Dec 17, 2013 at 1:27 PM, Peter Zijlstra <peterz@infradead.org> wrote:
+> From: Dario Faggioli <raistlin@linux.it>
+>
+> Add the syscalls needed for supporting scheduling algorithms
+> with extended scheduling parameters (e.g., SCHED_DEADLINE).
 
-Hello all:
+>  - defines and implements the new scheduling related syscalls that
+>    manipulate it, i.e., sched_setscheduler2(), sched_setattr()
+>    and sched_getattr().
 
-Is this patch OK? if need additional improvement, please let me know,
-thanks.
+> Syscalls are introduced for x86 (32 and 64 bits) and ARM only, as a
+> proof of concept and for developing and testing purposes. Making them
+> available on other architectures is straightforward.
 
-> 
->>
->> On 01/12/2014 09:59 AM, Chen Gang wrote:
->>> For some assemblers, they use another character as newline in a macro
->>> (e.g. arc uses '`'), so for generic assembly code, need use ASM_NL (a
->>> macro) instead of ';' for it.
->>>
->>>
->>> Signed-off-by: Chen Gang <gang.chen.5i5j@gmail.com>
->>> Acked-by: Vineet Gupta <vgupta@synopsys.com>
->>> ---
->>>  arch/arc/include/asm/linkage.h |  2 ++
->>>  include/linux/linkage.h        | 19 ++++++++++++-------
->>>  2 files changed, 14 insertions(+), 7 deletions(-)
->>>
->>> diff --git a/arch/arc/include/asm/linkage.h b/arch/arc/include/asm/linkage.h
->>> index 0283e9e..66ee552 100644
->>> --- a/arch/arc/include/asm/linkage.h
->>> +++ b/arch/arc/include/asm/linkage.h
->>> @@ -11,6 +11,8 @@
->>>  
->>>  #ifdef __ASSEMBLY__
->>>  
->>> +#define ASM_NL		 `	/* use '`' to mark new line in macro */
->>> +
->>>  /* Can't use the ENTRY macro in linux/linkage.h
->>>   * gas considers ';' as comment vs. newline
->>>   */
->>> diff --git a/include/linux/linkage.h b/include/linux/linkage.h
->>> index d3e8ad2..a6a42dd 100644
->>> --- a/include/linux/linkage.h
->>> +++ b/include/linux/linkage.h
->>> @@ -6,6 +6,11 @@
->>>  #include <linux/export.h>
->>>  #include <asm/linkage.h>
->>>  
->>> +/* Some toolchains use other characters (e.g. '`') to mark new line in macro */
->>> +#ifndef ASM_NL
->>> +#define ASM_NL		 ;
->>> +#endif
->>> +
->>>  #ifdef __cplusplus
->>>  #define CPP_ASMLINKAGE extern "C"
->>>  #else
->>> @@ -75,21 +80,21 @@
->>>  
->>>  #ifndef ENTRY
->>>  #define ENTRY(name) \
->>> -  .globl name; \
->>> -  ALIGN; \
->>> -  name:
->>> +	.globl name ASM_NL \
->>> +	ALIGN ASM_NL \
->>> +	name:
->>>  #endif
->>>  #endif /* LINKER_SCRIPT */
->>>  
->>>  #ifndef WEAK
->>>  #define WEAK(name)	   \
->>> -	.weak name;	   \
->>> +	.weak name ASM_NL   \
->>>  	name:
->>>  #endif
->>>  
->>>  #ifndef END
->>>  #define END(name) \
->>> -  .size name, .-name
->>> +	.size name, .-name
->>>  #endif
->>>  
->>>  /* If symbol 'name' is treated as a subroutine (gets called, and returns)
->>> @@ -98,8 +103,8 @@
->>>   */
->>>  #ifndef ENDPROC
->>>  #define ENDPROC(name) \
->>> -  .type name, @function; \
->>> -  END(name)
->>> +	.type name, @function ASM_NL \
->>> +	END(name)
->>>  #endif
->>>  
->>>  #endif
->>>
->>
-> 
+Please cc linux-arch on new syscalls.
 
-Thanks.
--- 
-Chen Gang
+They're now in mainline, and in the end there are only 2 (sched_setattr() and
+sched_getattr()).
 
-Open, share and attitude like air, water and life which God blessed
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
