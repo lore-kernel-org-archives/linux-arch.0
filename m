@@ -1,26 +1,58 @@
-From: Abdul Nasser <abdulnas500@justin.ddo.jp>
-Subject: Kind Regards
-Date: Sun, 26 Jan 2014 22:31:12 +0000
-Message-ID: <SECEXCHANGEuRFxN1Gw000062a4__33555.1960779869$1390779782$gmane$org@mail.standardelectronics.com>
-Reply-To: s.abdulnasser@yahoo.com.hk
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH v9 3/5] qrwlock, x86 - Treat all data type not bigger
+ than long as atomic in x86
+Date: Mon, 27 Jan 2014 09:09:31 -0800
+Message-ID: <20140127170931.GQ9012@linux.vnet.ibm.com>
+References: <1389761047-47566-4-git-send-email-Waiman.Long@hp.com>
+ <20140120150316.GG30183@twins.programming.kicks-ass.net>
+ <52DE9410.6090500@hp.com>
+ <20140121153958.GA31570@twins.programming.kicks-ass.net>
+ <52DE9BB0.5070909@hp.com>
+ <CA+55aFzyww_kwU36jYk=LUtxzPUU76xgnQEOUTqGMFNe80sOZA@mail.gmail.com>
+ <20140122080155.GE31570@twins.programming.kicks-ass.net>
+ <20140122120917.GA8894@gmail.com>
+ <20140122121339.GM31570@twins.programming.kicks-ass.net>
+ <20140122130933.GB9429@gmail.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.standardelectronics.com ([74.92.67.124]:55038 "EHLO
-	mail.standardelectronics.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753389AbaAZXi7 convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 26 Jan 2014 18:38:59 -0500
-Content-Description: Mail message body
+Received: from e33.co.us.ibm.com ([32.97.110.151]:33138 "EHLO
+	e33.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753477AbaA0RJh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jan 2014 12:09:37 -0500
+Received: from /spool/local
+	by e33.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Mon, 27 Jan 2014 10:09:36 -0700
+Content-Disposition: inline
+In-Reply-To: <20140122130933.GB9429@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Recipients <abdulnas500@justin.ddo.jp>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Waiman Long <waiman.long@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>
 
-Greetings,
-My name is Abdul Nasser Sokariah and I am writing you from Syria, I choose to contact you directly as I need a reliable person to trust who can help me handle my huge deposit  with a vault company in EUROPE, and based on my present situation in Syria, I need you urgently to take possession of everything and further modalities/directives will follow.Please reply to my private  Email: nasserabdul190@yahoo.com
+On Wed, Jan 22, 2014 at 02:09:33PM +0100, Ingo Molnar wrote:
+> 
+> * Peter Zijlstra <peterz@infradead.org> wrote:
+> 
+> > On Wed, Jan 22, 2014 at 01:09:17PM +0100, Ingo Molnar wrote:
+> > > 
+> > > * Peter Zijlstra <peterz@infradead.org> wrote:
+> > > 
+> > > > On Tue, Jan 21, 2014 at 04:31:56PM -0800, Linus Torvalds wrote:
+> > > > > And if somebody tries to do a "smp_store_release()" on a random
+> > > > > structure or union, do we care? We're not some nanny state that wants
+> > > > > to give nice warnings for insane code.
+> > > > 
+> > > > Hurm, and here I thought warning on insane code was a good idea :/
+> > > 
+> > > There's a level of insanity that is best cured through Darwin Awards?
+> > 
+> > Yeah, but who will clean up after them? :-)
+> 
+> Birds, insects, bacteria?
 
-I wait for your response.
+In the Linux kernel, it will probably be us cleaning up after them.  ;-)
 
-Yours truly,
-Abdul Nasser Sokariah
+								Thanx, Paul
