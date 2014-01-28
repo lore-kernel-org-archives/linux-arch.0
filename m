@@ -1,43 +1,69 @@
-From: Michal Marek <mmarek@suse.cz>
-Subject: Re: [PATCH v3] arch: use ASM_NL instead of ';' for assembler new
- line character in the macro
-Date: Mon, 27 Jan 2014 22:57:17 +0100
-Message-ID: <52E6D63D.5050808@suse.cz>
-References: <526E3CE2.2070405@asianux.com> <526E6A92.6090301@synopsys.com> <526F09B8.9030202@asianux.com> <526F11C0.1030809@asianux.com> <526F149A.3000306@asianux.com> <52733FEC.4010807@synopsys.com> <528DD92E.9070408@synopsys.com> <52C6AF2B.8050104@suse.cz> <C2D7FE5348E1B147BCA15975FBA23075175CC4@IN01WEMBXA.internal.synopsys.com> <52CA76D3.2010102@suse.cz> <52CE4496.5030401@synopsys.com> <52D01639.9000205@gmail.com> <52D1F6F1.1070006@gmail.com> <52DA4D09.7030904@gmail.com> <C2D7FE5348E1B147BCA15975FBA23075178198@IN01WEMBXA.internal.synopsys.com> <52E39B07.20309@gmail.com>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [PATCH RFC 00/73] tree-wide: clean up some no longer required
+ #include <linux/init.h>
+Date: Tue, 28 Jan 2014 14:13:03 +1100
+Message-ID: <1390878783.3872.63.camel@pasglop>
+References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
+         <20140122180023.dd90d34cba38d9f9ac516349@canb.auug.org.au>
+         <20140123003838.GA10182@windriver.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:47950 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753447AbaA0V5W (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 27 Jan 2014 16:57:22 -0500
-In-Reply-To: <52E39B07.20309@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Chen Gang <gang.chen.5i5j@gmail.com>, Vineet Gupta <vgupta@synopsys.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Return-path: <linux-mips-bounce@linux-mips.org>
+In-Reply-To: <20140123003838.GA10182@windriver.com>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
+To: Paul Gortmaker <paul.gortmaker@windriver.com>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-m68k@vger.kernel.org, rusty@rustcorp.com.au, linux-ia64@vger.kernel.org, kvm@vger.kernel.org, linux-s390@vger.kernel.org, netdev@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-Dne 25.1.2014 12:07, Chen Gang napsal(a):
-> On 01/21/2014 12:55 PM, Vineet Gupta wrote:
->> Hi Mike,
->>
->> On Saturday 18 January 2014 03:14 PM, Chen Gang wrote:
->>> Hello Maintainers:
->>>
->>> Please help check this patch when you have time.
->>>
->>> Thanks.
->>
->> Do you know whose tree this is goona go thru. I can take it thru ARC (but maybe
->> for 3.15, however it would be better it went thru mm or some such).
->>
+On Wed, 2014-01-22 at 19:38 -0500, Paul Gortmaker wrote:
+
+> Thanks, it was a great help as it uncovered a few issues in fringe arch
+> that I didn't have toolchains for, and I've fixed all of those up.
 > 
-> Hello all:
+> I've noticed that powerpc has been un-buildable for a while now; I have
+> used this hack patch locally so I could run the ppc defconfigs to check
+> that I didn't break anything.  Maybe useful for linux-next in the
+> interim?  It is a hack patch -- Not-Signed-off-by: Paul Gortmaker.  :)
+
+Can you and/or Aneesh submit that as a proper patch (with S-O-B
+etc...) ?
+
+Thanks !
+
+Cheers,
+Ben.
+
+> Paul.
+> --
 > 
-> Is this patch OK? if need additional improvement, please let me know,
-> thanks.
-
-I applied the patch to kbuild.git#kbuild, sorry for the delay.
-
-Michal
+> diff --git a/arch/powerpc/include/asm/pgtable-ppc64.h b/arch/powerpc/include/asm/pgtable-ppc64.h
+> index d27960c89a71..d0f070a2b395 100644
+> --- a/arch/powerpc/include/asm/pgtable-ppc64.h
+> +++ b/arch/powerpc/include/asm/pgtable-ppc64.h
+> @@ -560,9 +560,9 @@ extern void pmdp_invalidate(struct vm_area_struct *vma, unsigned long address,
+>  			    pmd_t *pmdp);
+>  
+>  #define pmd_move_must_withdraw pmd_move_must_withdraw
+> -typedef struct spinlock spinlock_t;
+> -static inline int pmd_move_must_withdraw(spinlock_t *new_pmd_ptl,
+> -					 spinlock_t *old_pmd_ptl)
+> +struct spinlock;
+> +static inline int pmd_move_must_withdraw(struct spinlock *new_pmd_ptl,
+> +					 struct spinlock *old_pmd_ptl)
+>  {
+>  	/*
+>  	 * Archs like ppc64 use pgtable to store per pmd
+> 
+> _______________________________________________
+> Linuxppc-dev mailing list
+> Linuxppc-dev@lists.ozlabs.org
+> https://lists.ozlabs.org/listinfo/linuxppc-dev
