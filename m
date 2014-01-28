@@ -1,78 +1,66 @@
-From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: Re: [PATCH RFC 00/73] tree-wide: clean up some no longer required
- #include <linux/init.h>
-Date: Tue, 28 Jan 2014 11:21:44 -0500
-Message-ID: <52E7D918.5020704@windriver.com>
-References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>      <20140122180023.dd90d34cba38d9f9ac516349@canb.auug.org.au>      <20140123003838.GA10182@windriver.com> <1390878783.3872.63.camel@pasglop>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-mips-bounce@linux-mips.org>
-In-Reply-To: <1390878783.3872.63.camel@pasglop>
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
-List-help: <mailto:ecartis@linux-mips.org?Subject=help>
-List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
-List-software: Ecartis version 1.0.0
-List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
-List-owner: <mailto:ralf@linux-mips.org>
-List-post: <mailto:linux-mips@linux-mips.org>
-List-archive: <http://www.linux-mips.org/archives/linux-mips/>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-m68k@vger.kernel.org, rusty@rustcorp.com.au, linux-ia64@vger.kernel.org, kvm@vger.kernel.org, linux-s390@vger.kernel.org, netdev@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+From: Waiman Long <Waiman.Long@hp.com>
+Subject: [PATCH v3 0/2] qspinlock: Introducing a 4-byte queue spinlock
+Date: Tue, 28 Jan 2014 13:19:09 -0500
+Message-ID: <1390933151-1797-1-git-send-email-Waiman.Long@hp.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from g4t0015.houston.hp.com ([15.201.24.18]:32001 "EHLO
+	g4t0015.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755205AbaA1SUH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Jan 2014 13:20:07 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>, Waiman Long <Waiman.Long@hp.com>
 
-On 14-01-27 10:13 PM, Benjamin Herrenschmidt wrote:
-> On Wed, 2014-01-22 at 19:38 -0500, Paul Gortmaker wrote:
-> 
->> Thanks, it was a great help as it uncovered a few issues in fringe arch
->> that I didn't have toolchains for, and I've fixed all of those up.
->>
->> I've noticed that powerpc has been un-buildable for a while now; I have
->> used this hack patch locally so I could run the ppc defconfigs to check
->> that I didn't break anything.  Maybe useful for linux-next in the
->> interim?  It is a hack patch -- Not-Signed-off-by: Paul Gortmaker.  :)
-> 
-> Can you and/or Aneesh submit that as a proper patch (with S-O-B
-> etc...) ?
+v2->v3:
+ - Simplify the code by using numerous mode only without an unfair option.
+ - Use the latest smp_load_acquire()/smp_store_release() barriers.
+ - Move the queue spinlock code to kernel/locking.
+ - Make the use of queue spinlock the default for x86-64 without user
+   configuration.
+ - Additional performance tuning.
 
-I'd updated toolchains and didn't realize it was still broken.  Patch sent.
+v1->v2:
+ - Add some more comments to document what the code does.
+ - Add a numerous CPU mode to support >= 16K CPUs
+ - Add a configuration option to allow lock stealing which can further
+   improve performance in many cases.
+ - Enable wakeup of queue head CPU at unlock time for non-numerous
+   CPU mode.
 
-http://patchwork.ozlabs.org/patch/314749/
+This patch set introduces a queue-based spinlock implementation that
+can replace the default ticket spinlock without increasing the size
+of the spinlock data structure. As a result, critical kernel data
+structures that embed spinlock won't increase in size and breaking
+data alignments.
 
-Paul.
---
+The queue spinlock has slight better performance than the ticket
+spinlock in uncontended case. Its performance can be much better
+with moderate to heavy contention.  This patch has the potential of
+improving the performance of all the workloads that have moderate to
+heavy spinlock contention.
 
-> 
-> Thanks !
-> 
-> Cheers,
-> Ben.
-> 
->> Paul.
->> --
->>
->> diff --git a/arch/powerpc/include/asm/pgtable-ppc64.h b/arch/powerpc/include/asm/pgtable-ppc64.h
->> index d27960c89a71..d0f070a2b395 100644
->> --- a/arch/powerpc/include/asm/pgtable-ppc64.h
->> +++ b/arch/powerpc/include/asm/pgtable-ppc64.h
->> @@ -560,9 +560,9 @@ extern void pmdp_invalidate(struct vm_area_struct *vma, unsigned long address,
->>  			    pmd_t *pmdp);
->>  
->>  #define pmd_move_must_withdraw pmd_move_must_withdraw
->> -typedef struct spinlock spinlock_t;
->> -static inline int pmd_move_must_withdraw(spinlock_t *new_pmd_ptl,
->> -					 spinlock_t *old_pmd_ptl)
->> +struct spinlock;
->> +static inline int pmd_move_must_withdraw(struct spinlock *new_pmd_ptl,
->> +					 struct spinlock *old_pmd_ptl)
->>  {
->>  	/*
->>  	 * Archs like ppc64 use pgtable to store per pmd
->>
->> _______________________________________________
->> Linuxppc-dev mailing list
->> Linuxppc-dev@lists.ozlabs.org
->> https://lists.ozlabs.org/listinfo/linuxppc-dev
-> 
-> 
+The queue spinlock is especially suitable for NUMA machines with at
+least 2 sockets, though noticeable performance benefit probably won't
+show up in machines with less than 4 sockets.
+
+The purpose of this patch set is not to solve any particular spinlock
+contention problems. Those need to be solved by refactoring the code
+to make more efficient use of the lock or finer granularity ones. The
+main purpose is to make the lock contention problems more tolerable
+until someone can spend the time and effort to fix them.
+
+Waiman Long (2):
+  qspinlock: Introducing a 4-byte queue spinlock implementation
+  qspinlock, x86: Enable x86-64 to use queue spinlock
+
+ arch/x86/Kconfig                      |    1 +
+ arch/x86/include/asm/spinlock.h       |    2 +
+ arch/x86/include/asm/spinlock_types.h |    4 +
+ include/asm-generic/qspinlock.h       |  156 +++++++++++++
+ kernel/Kconfig.locks                  |    7 +
+ kernel/locking/Makefile               |    1 +
+ kernel/locking/qspinlock.c            |  398 +++++++++++++++++++++++++++++++++
+ 7 files changed, 569 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-generic/qspinlock.h
+ create mode 100644 kernel/locking/qspinlock.c
