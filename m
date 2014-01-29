@@ -1,89 +1,46 @@
-From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v3 2/2] qspinlock, x86: Enable x86-64 to use queue spinlock
-Date: Tue, 28 Jan 2014 13:19:11 -0500
-Message-ID: <1390933151-1797-3-git-send-email-Waiman.Long@hp.com>
-References: <1390933151-1797-1-git-send-email-Waiman.Long@hp.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t0014.houston.hp.com ([15.201.24.17]:12955 "EHLO
-	g4t0014.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755416AbaA1SUH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Jan 2014 13:20:07 -0500
-In-Reply-To: <1390933151-1797-1-git-send-email-Waiman.Long@hp.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>, Waiman Long <Waiman.Long@hp.com>
+From: Brian Norris <computersforpeace@gmail.com>
+Subject: Re: [PATCH 49/73] drivers/mtd: delete non-required instances of
+ include <linux/init.h>
+Date: Tue, 28 Jan 2014 16:02:16 -0800
+Message-ID: <20140129000216.GB8919@ld-irv-0074>
+References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
+ <1390339396-3479-50-git-send-email-paul.gortmaker@windriver.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1390339396-3479-50-git-send-email-paul.gortmaker@windriver.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Paul Gortmaker <paul.gortmaker@windriver.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Woodhouse <dwmw2@infradead.org>, linux-mtd@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-This patch makes the necessary changes at the x86 architecture
-specific layer to enable the use of queue spinlock for x86-64. As
-x86-32 machines are typically not multi-socket. The benefit of queue
-spinlock may not be apparent. So queue spinlock is not enabled.
+On Tue, Jan 21, 2014 at 04:22:52PM -0500, Paul Gortmaker wrote:
+> None of these files are actually using any __init type directives
+> and hence don't need to include <linux/init.h>.  Most are just a
+> left over from __devinit and __cpuinit removal, or simply due to
+> code getting copied from one driver to the next.
+> 
+> Cc: David Woodhouse <dwmw2@infradead.org>
+> Cc: Brian Norris <computersforpeace@gmail.com>
+> Cc: linux-mtd@lists.infradead.org
+> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 
-Currently, there is some incompatibilities between the para-virtualized
-spinlock code (which hard-codes the use of ticket spinlock) and the
-queue spinlock. Therefore, the use of queue spinlock is disabled when
-the para-virtualized spinlock is enabled.
+> diff --git a/drivers/mtd/maps/sa1100-flash.c b/drivers/mtd/maps/sa1100-flash.c
+> index 8fc06bf..3428034e 100644
+> --- a/drivers/mtd/maps/sa1100-flash.c
+> +++ b/drivers/mtd/maps/sa1100-flash.c
+> @@ -7,7 +7,6 @@
+>  #include <linux/types.h>
+>  #include <linux/ioport.h>
+>  #include <linux/kernel.h>
+> -#include <linux/init.h>
+>  #include <linux/errno.h>
+>  #include <linux/slab.h>
+>  #include <linux/platform_device.h>
 
-Signed-off-by: Waiman Long <Waiman.Long@hp.com>
----
- arch/x86/Kconfig                      |    1 +
- arch/x86/include/asm/spinlock.h       |    2 ++
- arch/x86/include/asm/spinlock_types.h |    4 ++++
- 3 files changed, 7 insertions(+), 0 deletions(-)
+This file uses __exit_p(), from <linux/init.h>. So I dropped this hunk
+and pushed the rest to l2-mtd.git/next.
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 03db714..50692b4 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -17,6 +17,7 @@ config X86_64
- 	depends on 64BIT
- 	select X86_DEV_DMA_OPS
- 	select ARCH_USE_CMPXCHG_LOCKREF
-+	select ARCH_USE_QUEUE_SPINLOCK
- 
- ### Arch settings
- config X86
-diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
-index bf156de..cfe51a6 100644
---- a/arch/x86/include/asm/spinlock.h
-+++ b/arch/x86/include/asm/spinlock.h
-@@ -43,6 +43,7 @@
- extern struct static_key paravirt_ticketlocks_enabled;
- static __always_inline bool static_key_false(struct static_key *key);
- 
-+#ifndef CONFIG_QUEUE_SPINLOCK
- #ifdef CONFIG_PARAVIRT_SPINLOCKS
- 
- static inline void __ticket_enter_slowpath(arch_spinlock_t *lock)
-@@ -181,6 +182,7 @@ static __always_inline void arch_spin_lock_flags(arch_spinlock_t *lock,
- {
- 	arch_spin_lock(lock);
- }
-+#endif /* !CONFIG_QUEUE_SPINLOCK */
- 
- static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
- {
-diff --git a/arch/x86/include/asm/spinlock_types.h b/arch/x86/include/asm/spinlock_types.h
-index 4f1bea1..f501a2a 100644
---- a/arch/x86/include/asm/spinlock_types.h
-+++ b/arch/x86/include/asm/spinlock_types.h
-@@ -11,6 +11,9 @@
- #define TICKET_SLOWPATH_FLAG	((__ticket_t)0)
- #endif
- 
-+#ifdef CONFIG_QUEUE_SPINLOCK
-+#include <asm-generic/qspinlock.h>
-+#else
- #if (CONFIG_NR_CPUS < (256 / __TICKET_LOCK_INC))
- typedef u8  __ticket_t;
- typedef u16 __ticketpair_t;
-@@ -33,6 +36,7 @@ typedef struct arch_spinlock {
- } arch_spinlock_t;
- 
- #define __ARCH_SPIN_LOCK_UNLOCKED	{ { 0 } }
-+#endif /* CONFIG_QUEUE_SPINLOCK */
- 
- #include <asm/rwlock.h>
- 
--- 
-1.7.1
+Thanks,
+Brian
