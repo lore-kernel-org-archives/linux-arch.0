@@ -1,51 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f170.google.com ([209.85.223.170]:46086 "EHLO
-	mail-ie0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932381AbaA2ACU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Jan 2014 19:02:20 -0500
-Date: Tue, 28 Jan 2014 16:02:16 -0800
-From: Brian Norris <computersforpeace@gmail.com>
-Subject: Re: [PATCH 49/73] drivers/mtd: delete non-required instances of
- include <linux/init.h>
-Message-ID: <20140129000216.GB8919@ld-irv-0074>
-References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
- <1390339396-3479-50-git-send-email-paul.gortmaker@windriver.com>
+Received: from one.firstfloor.org ([193.170.194.197]:36084 "EHLO
+	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752563AbaA2AUu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Jan 2014 19:20:50 -0500
+Date: Wed, 29 Jan 2014 01:20:48 +0100
+From: Andi Kleen <andi@firstfloor.org>
+Subject: Re: [PATCH v3 1/2] qspinlock: Introducing a 4-byte queue spinlock
+ implementation
+Message-ID: <20140129002048.GE11821@two.firstfloor.org>
+References: <1390933151-1797-1-git-send-email-Waiman.Long@hp.com>
+ <1390933151-1797-2-git-send-email-Waiman.Long@hp.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1390339396-3479-50-git-send-email-paul.gortmaker@windriver.com>
+In-Reply-To: <1390933151-1797-2-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Gortmaker <paul.gortmaker@windriver.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Woodhouse <dwmw2@infradead.org>, linux-mtd@lists.infradead.org
-Message-ID: <20140129000216.QjXeJqFs0GuE2qsxL0maWxIOOcfhaGdqVQxkbsWQvYI@z>
+To: Waiman Long <Waiman.Long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
+Message-ID: <20140129002048.XXNYaWbdZbLamlrnPvzDoLNtZJXb5amJDX1Eahxbuis@z>
 
-On Tue, Jan 21, 2014 at 04:22:52PM -0500, Paul Gortmaker wrote:
-> None of these files are actually using any __init type directives
-> and hence don't need to include <linux/init.h>.  Most are just a
-> left over from __devinit and __cpuinit removal, or simply due to
-> code getting copied from one driver to the next.
-> 
-> Cc: David Woodhouse <dwmw2@infradead.org>
-> Cc: Brian Norris <computersforpeace@gmail.com>
-> Cc: linux-mtd@lists.infradead.org
-> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 
-> diff --git a/drivers/mtd/maps/sa1100-flash.c b/drivers/mtd/maps/sa1100-flash.c
-> index 8fc06bf..3428034e 100644
-> --- a/drivers/mtd/maps/sa1100-flash.c
-> +++ b/drivers/mtd/maps/sa1100-flash.c
-> @@ -7,7 +7,6 @@
->  #include <linux/types.h>
->  #include <linux/ioport.h>
->  #include <linux/kernel.h>
-> -#include <linux/init.h>
->  #include <linux/errno.h>
->  #include <linux/slab.h>
->  #include <linux/platform_device.h>
+So the 1-2 threads case is the standard case on a small
+system, isn't it? This may well cause regressions.
 
-This file uses __exit_p(), from <linux/init.h>. So I dropped this hunk
-and pushed the rest to l2-mtd.git/next.
+> In the extremely unlikely case that all the queue node entries are
+> used up, the current code will fall back to busy spinning without
+> waiting in a queue with warning message.
 
-Thanks,
-Brian
+Traditionally we had some code which could take thousands
+of locks in rare cases (e.g. all locks in a hash table or all locks of
+a big reader lock) 
+
+The biggest offender was the mm for changing mmu 
+notifiers, but I believe that's a mutex now.
+lglocks presumably still can do it on large enough
+systems.  I wouldn't be surprised if there is 
+other code which e.g. make take all locks in a table.
+
+I don't think the warning is valid and will
+likely trigger in some obscure cases.
+
+-Andi
