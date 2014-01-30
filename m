@@ -1,53 +1,145 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v11 0/4] Introducing a queue read/write lock implementation
-Date: Thu, 30 Jan 2014 10:43:05 -0500
-Message-ID: <52EA7309.7070605@hp.com>
-References: <1390537731-45996-1-git-send-email-Waiman.Long@hp.com> <20140130130453.GB2936@laptop.programming.kicks-ass.net> <20140130151715.GA5126@laptop.programming.kicks-ass.net>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v11 0/4] Introducing a queue read/write lock
+ implementation
+Date: Thu, 30 Jan 2014 16:44:00 +0100
+Message-ID: <20140130154400.GB5126@laptop.programming.kicks-ass.net>
+References: <1390537731-45996-1-git-send-email-Waiman.Long@hp.com>
+ <20140130130453.GB2936@laptop.programming.kicks-ass.net>
+ <20140130151715.GA5126@laptop.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t0016.houston.hp.com ([15.201.24.19]:27746 "EHLO
-	g4t0016.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752848AbaA3Pna (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Jan 2014 10:43:30 -0500
+Received: from merlin.infradead.org ([205.233.59.134]:53460 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753137AbaA3Po1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Jan 2014 10:44:27 -0500
+Content-Disposition: inline
 In-Reply-To: <20140130151715.GA5126@laptop.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, aswin@hp.com, Scott J Norton <scott.norton@hp.com>
+To: Waiman Long <Waiman.Long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, "Aswin Chandramouleeswaran\"" <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, will@willdeacon.co.uk
 
-On 01/30/2014 10:17 AM, Peter Zijlstra wrote:
-> On Thu, Jan 30, 2014 at 02:04:53PM +0100, Peter Zijlstra wrote:
->> So I took out that ugly union and rewrote the code to be mostly
->> atomic_*(), gcc generates acceptable code and its smaller too.
->>
->>      824       0       0     824     338 defconfig-build/kernel/locking/qrwlock.o
->>      776       0       0     776     308 defconfig-build/kernel/locking/qrwlock.o
->>
->> I don't think I wrecked it, but I've not actually tried it yet.
-> I did wreck it.. :-)
->
-> The below is still small and actually works.
->
-> ---
->   arch/x86/Kconfig                      |    1
->   arch/x86/include/asm/spinlock.h       |    2
->   arch/x86/include/asm/spinlock_types.h |    4
->   b/arch/x86/include/asm/qrwlock.h      |   18 +++
->   b/include/asm-generic/qrwlock.h       |  174 ++++++++++++++++++++++++++++++++++
->   b/include/asm-generic/qrwlock_types.h |   17 +++
->   b/kernel/locking/qrwlock.c            |  157 ++++++++++++++++++++++++++++++
->   kernel/Kconfig.locks                  |    7 +
->   kernel/locking/Makefile               |    1
->   9 files changed, 381 insertions(+)
->
-> --- a/arch/x86/Kconfig
-> +++ b/arch/x86/Kconfig
->
+On Thu, Jan 30, 2014 at 04:17:15PM +0100, Peter Zijlstra wrote:
+> --- /dev/null
+> +++ b/arch/x86/include/asm/qrwlock.h
+> @@ -0,0 +1,18 @@
+> +#ifndef _ASM_X86_QRWLOCK_H
+> +#define _ASM_X86_QRWLOCK_H
+> +
+> +#include <asm-generic/qrwlock_types.h>
+> +
+> +#if !defined(CONFIG_X86_OOSTORE) && !defined(CONFIG_X86_PPRO_FENCE)
+> +#define queue_write_unlock queue_write_unlock
+> +static inline void queue_write_unlock(struct qrwlock *lock)
+> +{
+> +        barrier();
+> +        ACCESS_ONCE(*(u8 *)&lock->cnts) = 0;
+> +}
+> +#endif
+> +
+> +#include <asm-generic/qrwlock.h>
+> +
+> +#endif /* _ASM_X86_QRWLOCK_H */
+> +
 
-OK, I see what you are trying to do. I can apply the change to my patch 
-& send out v12. So I presume that you are now OK with it. Can I add your 
-sign-off line?
+> +/**
+> + * queue_read_unlock - release read lock of a queue rwlock
+> + * @lock : Pointer to queue rwlock structure
+> + */
+> +static inline void queue_read_unlock(struct qrwlock *lock)
+> +{
+> +	/*
+> +	 * Atomically decrement the reader count
+> +	 */
+> +	smp_mb__before_atomic_dec();
+> +	atomic_sub(_QR_BIAS, &lock->cnts);
+> +}
+> +
+> +#ifndef queue_write_unlock
+> +/**
+> + * queue_write_unlock - release write lock of a queue rwlock
+> + * @lock : Pointer to queue rwlock structure
+> + */
+> +static inline void queue_write_unlock(struct qrwlock *lock)
+> +{
+> +	/*
+> +	 * If the writer field is atomic, it can be cleared directly.
+> +	 * Otherwise, an atomic subtraction will be used to clear it.
+> +	 */
+> +	smp_mb__before_atomic_dec();
+> +	atomic_sub(_QW_LOCKED, &lock->cnts);
+> +}
+> +#endif
 
--Longman
+
+Something like this would work for ARM and PPC, although I didn't do the
+PPC variant of atomic_sub_release().
+
+
+--- a/arch/arm64/include/asm/atomic.h
++++ b/arch/arm64/include/asm/atomic.h
+@@ -90,6 +90,21 @@ static inline void atomic_sub(int i, ato
+ 	: "cc");
+ }
+ 
++static inline void atomic_sub_release(int i, atomic_t *v)
++{
++	unsigned long tmp;
++	int result;
++
++	asm volatile("// atomic_sub\n"
++"1:	ldxr	%w0, %2\n"
++"	sub	%w0, %w0, %w3\n"
++"	stlxr	%w1, %w0, %2\n"
++"	cbnz	%w1, 1b"
++	: "=&r" (result), "=&r" (tmp), "+Q" (v->counter)
++	: "Ir" (i)
++	: "cc");
++}
++
+ static inline int atomic_sub_return(int i, atomic_t *v)
+ {
+ 	unsigned long tmp;
+--- /dev/null
++++ b/arch/arm64/include/asm/qrwlock.h
+@@ -0,0 +1,21 @@
++#ifndef _ASM_ARM64_QRWLOCK_H
++#define _ASM_ARM64_QRWLOCK_H
++
++#include <asm-generic/qrwlock_types.h>
++
++#define queue_read_unlock queue_read_unlock
++static inline void queue_read_unlock(struct qrwlock *lock)
++{
++	atomic_sub_release(_QR_BIAS, &lock->cnts);
++}
++
++#define queue_write_unlock queue_write_unlock
++static inline void queue_write_unlock(struct qrwlock *lock)
++{
++	atomic_sub_release(_QW_LOCKED, &lock->cnts);
++}
++
++#include <asm-generic/qrwlock.h>
++
++#endif /* _ASM_ARM64_QRWLOCK_H */
++
+--- a/include/asm-generic/qrwlock.h
++++ b/include/asm-generic/qrwlock.h
+@@ -122,6 +122,7 @@ static inline void queue_write_lock(stru
+ 	queue_write_lock_slowpath(lock);
+ }
+ 
++#ifndef queue_read_unlock
+ /**
+  * queue_read_unlock - release read lock of a queue rwlock
+  * @lock : Pointer to queue rwlock structure
+@@ -134,6 +135,7 @@ static inline void queue_read_unlock(str
+ 	smp_mb__before_atomic_dec();
+ 	atomic_sub(_QR_BIAS, &lock->cnts);
+ }
++#endif
+ 
+ #ifndef queue_write_unlock
+ /**
