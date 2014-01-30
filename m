@@ -1,81 +1,119 @@
-From: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
-Subject: Re: [PATCH v3 0/2] qspinlock: Introducing a 4-byte queue spinlock
-Date: Thu, 30 Jan 2014 14:25:56 +0530
-Message-ID: <52EA139C.8040106@linux.vnet.ibm.com>
-References: <1390933151-1797-1-git-send-email-Waiman.Long@hp.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH] kconfig: consolidate arch-specific seccomp options
+Date: Thu, 30 Jan 2014 09:55:51 +0100
+Message-ID: <20140130085551.GB2024@gmail.com>
+References: <20140129191011.8FB63DFA@viggo.jf.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252;
-	format=flowed
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp09.in.ibm.com ([122.248.162.9]:50758 "EHLO
-	e28smtp09.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751110AbaA3Ith (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Jan 2014 03:49:37 -0500
-Received: from /spool/local
-	by e28smtp09.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <raghavendra.kt@linux.vnet.ibm.com>;
-	Thu, 30 Jan 2014 14:19:34 +0530
-In-Reply-To: <1390933151-1797-1-git-send-email-Waiman.Long@hp.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <Waiman.Long@hp.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-security-module-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20140129191011.8FB63DFA@viggo.jf.intel.com>
+Sender: linux-security-module-owner@vger.kernel.org
+To: Dave Hansen <dave@sr71.net>
+Cc: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, sfr@canb.auug.org.au, zohar@linux.vnet.ibm.com, linux@arm.linux.org.uk, monstr@monstr.eu, ralf@linux-mips.org, benh@kernel.crashing.org, paulus@samba.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, lethal@linux-sh.org, x86@kernel.org, james.l.morris@oracle.com
+List-Id: linux-arch.vger.kernel.org
 
-On 01/28/2014 11:49 PM, Waiman Long wrote:
-> v2->v3:
->   - Simplify the code by using numerous mode only without an unfair o=
-ption.
->   - Use the latest smp_load_acquire()/smp_store_release() barriers.
->   - Move the queue spinlock code to kernel/locking.
->   - Make the use of queue spinlock the default for x86-64 without use=
-r
->     configuration.
->   - Additional performance tuning.
->
 
-Could you please point me to any dependency patches I am missing?
-I am getting the compilation error (latest linus tree with=20
-9b0cd304f26b9fca140de15deeac2bf357d1f388)
+* Dave Hansen <dave@sr71.net> wrote:
 
-Got something like below
+> 
+> There are some minor updates here from last time:
+>  * added a def_bool instead of separate lines in config
+>  * clarified that the /proc interface is *GONE*
+> 
+> cc'ing a bunch of folks directly now instead of depending
+> on linux-arch@ to awaken them.  I think it's most appropriate
+> for this to go in via the security tree, but I guess it
+> could also go directly to Linus.
+> 
+> --
+> 
+> From: Dave Hansen <dave.hansen@linux.intel.com>
+> 
+> There are 7 architecures with "config SECCOMP".  They all have
+> virtually the same help text except for those referencing the
+> /proc interface.  The /proc interface was removed in 2007.
+> 
+> There is *NOTHING* architecture-specific about SECCOMP except
+> that the syscalls have per-architecture definitions, like every
+> other syscall.  It is absurd to have the option in the
+> arch-specific menus.
+> 
+> Move it to the security menu, consolidate the 7 down to one, and
+> remove the embarassingly-ancient help text references and
+> dependencies on /proc.
+> 
+> Signed-off-by: Dave Hansen <dave.hansen@linux.intel.com>
+> Cc: linux-security-module@vger.kernel.org
+> Cc: linux-arch@vger.kernel.org
+> Cc: Stephen Rothwell <sfr@canb.auug.org.au>
+> Cc: Mimi Zohar <zohar@linux.vnet.ibm.com>
+> Cc: Russell King <linux@arm.linux.org.uk>
+> Cc: Michal Simek <monstr@monstr.eu>
+> Cc: Ralf Baechle <ralf@linux-mips.org> 
+> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Cc: Paul Mackerras <paulus@samba.org>
+> Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+> Cc: Paul Mundt <lethal@linux-sh.org> 
+> Cc: x86@kernel.org
+> Cc: James Morris <james.l.morris@oracle.com>
+> 
+> ---
+> 
+>  b/arch/arm/Kconfig        |   15 +--------------
+>  b/arch/microblaze/Kconfig |   18 +-----------------
+>  b/arch/mips/Kconfig       |   18 +-----------------
+>  b/arch/powerpc/Kconfig    |   18 +-----------------
+>  b/arch/s390/Kconfig       |   18 +-----------------
+>  b/arch/sh/Kconfig         |   17 +----------------
+>  b/arch/sparc/Kconfig      |   18 +-----------------
+>  b/arch/x86/Kconfig        |   17 +----------------
 
-make[1]: Nothing to be done for `all'.
-   CHK     include/config/kernel.release
-   CHK     include/generated/uapi/linux/version.h
-   CHK     include/generated/utsrelease.h
-make[1]: Nothing to be done for `relocs'.
-   CC      kernel/bounds.s
-In file included from include/asm-generic/getorder.h:7:0,
-                  from /test/master/arch/x86/include/asm/page.h:71,
-                  from /test/master/arch/x86/include/asm/processor.h:17=
-,
-                  from /test/master/arch/x86/include/asm/atomic.h:6,
-                  from include/linux/atomic.h:4,
-                  from include/asm-generic/qspinlock.h:22,
-                  from=20
-/test/master/arch/x86/include/asm/spinlock_types.h:15,
-                  from=20
-/test/master/arch/x86/include/asm/paravirt_types.h:331,
-                  from /test/master/arch/x86/include/asm/ptrace.h:65,
-                  from /test/master/arch/x86/include/asm/alternative.h:=
-8,
-                  from /test/master/arch/x86/include/asm/bitops.h:16,
-                  from include/linux/bitops.h:33,
-                  from include/linux/kernel.h:10,
-                  from include/asm-generic/bug.h:13,
-                  from /test/master/arch/x86/include/asm/bug.h:38,
-                  from include/linux/bug.h:4,
-                  from include/linux/page-flags.h:9,
-                  from kernel/bounds.c:9:
-include/linux/log2.h: In function =91__ilog2_u32=92:
-include/linux/log2.h:34:2: error: implicit declaration of function =91f=
-ls=92=20
-[-Werror=3Dimplicit-function-declaration]
-include/linux/log2.h: In function =91__ilog2_u64=92:
-include/linux/log2.h:42:2: error: implicit declaration of function=20
-=91fls64=92 [-Werror=3Dimplicit-function-declaration]
-include/linux/log2.h: In function =91__roundup_pow_of_two=92:
-=2E
-=2E
-[trimmed]
+> --- a/security/Kconfig~consolidate-seccomp-options	2014-01-29 11:02:31.607008738 -0800
+> +++ b/security/Kconfig	2014-01-29 11:02:31.616009147 -0800
+> @@ -167,5 +167,24 @@ config DEFAULT_SECURITY
+>  	default "yama" if DEFAULT_SECURITY_YAMA
+>  	default "" if DEFAULT_SECURITY_DAC
+>  
+> -endmenu
+> +config HAVE_ARCH_SECCOMP
+> +	bool
+> +
+
+
+> +config SECCOMP
+> +	def_bool y
+> +	depends on HAVE_ARCH_SECCOMP
+> +	prompt "Enable seccomp to safely compute untrusted bytecode"
+> +	---help---
+> +	  This kernel feature is useful for number crunching applications
+> +	  that may need to compute untrusted bytecode during their
+> +	  execution. By using pipes or other transports made available to
+
+I'd change and simplify the first sentence to:
+
+> +	  This kernel feature is useful to sandbox runtimes that need
+> +	  to execute untrusted machine code.
+
+Seccomp isn't primarily about number crunching anymore, and it's 
+definitely not about 'bytecode' in the classical sense either.
+
+> +	  the process as file descriptors supporting the read/write
+> +	  syscalls, it's possible to isolate those applications in
+> +	  their own address space using seccomp. Once seccomp is
+> +	  enabled via prctl(PR_SET_SECCOMP), it cannot be disabled
+> +	  and the task is only allowed to execute a few safe syscalls
+> +	  defined by each seccomp mode.
+>  
+> +	  If unsure, say Y. Only embedded should say N here.
+> +
+> +endmenu
+
+Other than that:
+
+Acked-by: Ingo Molnar <mingo@kernel.org>
+
+Thanks,
+
+	Ingo
