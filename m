@@ -1,53 +1,81 @@
-From: Chen Gang <gang.chen.5i5j@gmail.com>
-Subject: Re: [PATCH v3] arch: use ASM_NL instead of ';' for assembler new
- line character in the macro
-Date: Thu, 30 Jan 2014 13:41:29 +0800
-Message-ID: <52E9E609.5020202@gmail.com>
-References: <526E3CE2.2070405@asianux.com> <526E6A92.6090301@synopsys.com> <526F09B8.9030202@asianux.com> <526F11C0.1030809@asianux.com> <526F149A.3000306@asianux.com> <52733FEC.4010807@synopsys.com> <528DD92E.9070408@synopsys.com> <52C6AF2B.8050104@suse.cz> <C2D7FE5348E1B147BCA15975FBA23075175CC4@IN01WEMBXA.internal.synopsys.com> <52CA76D3.2010102@suse.cz> <52CE4496.5030401@synopsys.com> <52D01639.9000205@gmail.com> <52D1F6F1.1070006@gmail.com> <52DA4D09.7030904@gmail.com> <C2D7FE5348E1B147BCA15975FBA23075178198@IN01WEMBXA.internal.synopsys.com> <52E39B07.20309@gmail.com> <52E6D63D.5050808@suse.cz>
+From: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
+Subject: Re: [PATCH v3 0/2] qspinlock: Introducing a 4-byte queue spinlock
+Date: Thu, 30 Jan 2014 14:25:56 +0530
+Message-ID: <52EA139C.8040106@linux.vnet.ibm.com>
+References: <1390933151-1797-1-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <52E6D63D.5050808@suse.cz>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Michal Marek <mmarek@suse.cz>
-Cc: Vineet Gupta <vgupta@synopsys.com>, Andrew Morton <akpm@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=windows-1252;
+	format=flowed
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e28smtp09.in.ibm.com ([122.248.162.9]:50758 "EHLO
+	e28smtp09.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751110AbaA3Ith (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Jan 2014 03:49:37 -0500
+Received: from /spool/local
+	by e28smtp09.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <raghavendra.kt@linux.vnet.ibm.com>;
+	Thu, 30 Jan 2014 14:19:34 +0530
+In-Reply-To: <1390933151-1797-1-git-send-email-Waiman.Long@hp.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Waiman Long <Waiman.Long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
 
-On 01/28/2014 05:57 AM, Michal Marek wrote:
-> Dne 25.1.2014 12:07, Chen Gang napsal(a):
->> On 01/21/2014 12:55 PM, Vineet Gupta wrote:
->>> Hi Mike,
->>>
->>> On Saturday 18 January 2014 03:14 PM, Chen Gang wrote:
->>>> Hello Maintainers:
->>>>
->>>> Please help check this patch when you have time.
->>>>
->>>> Thanks.
->>>
->>> Do you know whose tree this is goona go thru. I can take it thru ARC (but maybe
->>> for 3.15, however it would be better it went thru mm or some such).
->>>
->>
->> Hello all:
->>
->> Is this patch OK? if need additional improvement, please let me know,
->> thanks.
-> 
-> I applied the patch to kbuild.git#kbuild, sorry for the delay.
-> 
+On 01/28/2014 11:49 PM, Waiman Long wrote:
+> v2->v3:
+>   - Simplify the code by using numerous mode only without an unfair o=
+ption.
+>   - Use the latest smp_load_acquire()/smp_store_release() barriers.
+>   - Move the queue spinlock code to kernel/locking.
+>   - Make the use of queue spinlock the default for x86-64 without use=
+r
+>     configuration.
+>   - Additional performance tuning.
+>
 
-That's all right (in fact, don't need sorry), most of us are really
-busy, so thank you very much for your work on it.
+Could you please point me to any dependency patches I am missing?
+I am getting the compilation error (latest linus tree with=20
+9b0cd304f26b9fca140de15deeac2bf357d1f388)
 
-And next, I will/should continue make patches for upstream kernel in my
-free time (at least, should provide 1-3 patches per month in this year).
+Got something like below
 
-:-)
-
-Thanks.
--- 
-Chen Gang
-
-Open, share and attitude like air, water and life which God blessed
+make[1]: Nothing to be done for `all'.
+   CHK     include/config/kernel.release
+   CHK     include/generated/uapi/linux/version.h
+   CHK     include/generated/utsrelease.h
+make[1]: Nothing to be done for `relocs'.
+   CC      kernel/bounds.s
+In file included from include/asm-generic/getorder.h:7:0,
+                  from /test/master/arch/x86/include/asm/page.h:71,
+                  from /test/master/arch/x86/include/asm/processor.h:17=
+,
+                  from /test/master/arch/x86/include/asm/atomic.h:6,
+                  from include/linux/atomic.h:4,
+                  from include/asm-generic/qspinlock.h:22,
+                  from=20
+/test/master/arch/x86/include/asm/spinlock_types.h:15,
+                  from=20
+/test/master/arch/x86/include/asm/paravirt_types.h:331,
+                  from /test/master/arch/x86/include/asm/ptrace.h:65,
+                  from /test/master/arch/x86/include/asm/alternative.h:=
+8,
+                  from /test/master/arch/x86/include/asm/bitops.h:16,
+                  from include/linux/bitops.h:33,
+                  from include/linux/kernel.h:10,
+                  from include/asm-generic/bug.h:13,
+                  from /test/master/arch/x86/include/asm/bug.h:38,
+                  from include/linux/bug.h:4,
+                  from include/linux/page-flags.h:9,
+                  from kernel/bounds.c:9:
+include/linux/log2.h: In function =91__ilog2_u32=92:
+include/linux/log2.h:34:2: error: implicit declaration of function =91f=
+ls=92=20
+[-Werror=3Dimplicit-function-declaration]
+include/linux/log2.h: In function =91__ilog2_u64=92:
+include/linux/log2.h:42:2: error: implicit declaration of function=20
+=91fls64=92 [-Werror=3Dimplicit-function-declaration]
+include/linux/log2.h: In function =91__roundup_pow_of_two=92:
+=2E
+=2E
+[trimmed]
