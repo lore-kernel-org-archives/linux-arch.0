@@ -1,86 +1,53 @@
 From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v3 0/2] qspinlock: Introducing a 4-byte queue spinlock
-Date: Thu, 30 Jan 2014 10:38:32 -0500
-Message-ID: <52EA71F8.7070308@hp.com>
-References: <1390933151-1797-1-git-send-email-Waiman.Long@hp.com> <52EA139C.8040106@linux.vnet.ibm.com>
+Subject: Re: [PATCH v11 0/4] Introducing a queue read/write lock implementation
+Date: Thu, 30 Jan 2014 10:43:05 -0500
+Message-ID: <52EA7309.7070605@hp.com>
+References: <1390537731-45996-1-git-send-email-Waiman.Long@hp.com> <20140130130453.GB2936@laptop.programming.kicks-ass.net> <20140130151715.GA5126@laptop.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252;
-	format=flowed
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <52EA139C.8040106@linux.vnet.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from g4t0016.houston.hp.com ([15.201.24.19]:27746 "EHLO
+	g4t0016.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752848AbaA3Pna (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Jan 2014 10:43:30 -0500
+In-Reply-To: <20140130151715.GA5126@laptop.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, aswin@hp.com, Scott J Norton <scott.norton@hp.com>
 
-On 01/30/2014 03:55 AM, Raghavendra K T wrote:
-> On 01/28/2014 11:49 PM, Waiman Long wrote:
->> v2->v3:
->>   - Simplify the code by using numerous mode only without an unfair=20
->> option.
->>   - Use the latest smp_load_acquire()/smp_store_release() barriers.
->>   - Move the queue spinlock code to kernel/locking.
->>   - Make the use of queue spinlock the default for x86-64 without us=
-er
->>     configuration.
->>   - Additional performance tuning.
+On 01/30/2014 10:17 AM, Peter Zijlstra wrote:
+> On Thu, Jan 30, 2014 at 02:04:53PM +0100, Peter Zijlstra wrote:
+>> So I took out that ugly union and rewrote the code to be mostly
+>> atomic_*(), gcc generates acceptable code and its smaller too.
 >>
+>>      824       0       0     824     338 defconfig-build/kernel/locking/qrwlock.o
+>>      776       0       0     776     308 defconfig-build/kernel/locking/qrwlock.o
+>>
+>> I don't think I wrecked it, but I've not actually tried it yet.
+> I did wreck it.. :-)
 >
-> Could you please point me to any dependency patches I am missing?
-> I am getting the compilation error (latest linus tree with=20
-> 9b0cd304f26b9fca140de15deeac2bf357d1f388)
+> The below is still small and actually works.
 >
-> Got something like below
+> ---
+>   arch/x86/Kconfig                      |    1
+>   arch/x86/include/asm/spinlock.h       |    2
+>   arch/x86/include/asm/spinlock_types.h |    4
+>   b/arch/x86/include/asm/qrwlock.h      |   18 +++
+>   b/include/asm-generic/qrwlock.h       |  174 ++++++++++++++++++++++++++++++++++
+>   b/include/asm-generic/qrwlock_types.h |   17 +++
+>   b/kernel/locking/qrwlock.c            |  157 ++++++++++++++++++++++++++++++
+>   kernel/Kconfig.locks                  |    7 +
+>   kernel/locking/Makefile               |    1
+>   9 files changed, 381 insertions(+)
 >
-> make[1]: Nothing to be done for `all'.
->   CHK     include/config/kernel.release
->   CHK     include/generated/uapi/linux/version.h
->   CHK     include/generated/utsrelease.h
-> make[1]: Nothing to be done for `relocs'.
->   CC      kernel/bounds.s
-> In file included from include/asm-generic/getorder.h:7:0,
->                  from /test/master/arch/x86/include/asm/page.h:71,
->                  from /test/master/arch/x86/include/asm/processor.h:1=
-7,
->                  from /test/master/arch/x86/include/asm/atomic.h:6,
->                  from include/linux/atomic.h:4,
->                  from include/asm-generic/qspinlock.h:22,
->                  from=20
-> /test/master/arch/x86/include/asm/spinlock_types.h:15,
->                  from=20
-> /test/master/arch/x86/include/asm/paravirt_types.h:331,
->                  from /test/master/arch/x86/include/asm/ptrace.h:65,
->                  from /test/master/arch/x86/include/asm/alternative.h=
-:8,
->                  from /test/master/arch/x86/include/asm/bitops.h:16,
->                  from include/linux/bitops.h:33,
->                  from include/linux/kernel.h:10,
->                  from include/asm-generic/bug.h:13,
->                  from /test/master/arch/x86/include/asm/bug.h:38,
->                  from include/linux/bug.h:4,
->                  from include/linux/page-flags.h:9,
->                  from kernel/bounds.c:9:
-> include/linux/log2.h: In function =91__ilog2_u32=92:
-> include/linux/log2.h:34:2: error: implicit declaration of function=20
-> =91fls=92 [-Werror=3Dimplicit-function-declaration]
-> include/linux/log2.h: In function =91__ilog2_u64=92:
-> include/linux/log2.h:42:2: error: implicit declaration of function=20
-> =91fls64=92 [-Werror=3Dimplicit-function-declaration]
-> include/linux/log2.h: In function =91__roundup_pow_of_two=92:
-> .
-> .
-> [trimmed]
+> --- a/arch/x86/Kconfig
+> +++ b/arch/x86/Kconfig
 >
 
-The code will need to be compiled in either the latest linux tree as th=
-e=20
-patches have dependency on some new memory barrier that are in 3.14.=20
-Alternatively, you can compile with the latest tip tree.
+OK, I see what you are trying to do. I can apply the change to my patch 
+& send out v12. So I presume that you are now OK with it. Can I add your 
+sign-off line?
 
-If you have already done that, please send me your config file so that =
-I=20
-can reproduce the compilation error in my build environment.
-
-Thanks,
-Longman
+-Longman
