@@ -1,44 +1,29 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v11 0/4] Introducing a queue read/write lock
- implementation
-Date: Thu, 30 Jan 2014 16:53:44 +0100
-Message-ID: <20140130155344.GE5002@laptop.programming.kicks-ass.net>
-References: <1390537731-45996-1-git-send-email-Waiman.Long@hp.com>
- <20140130130453.GB2936@laptop.programming.kicks-ass.net>
- <20140130151715.GA5126@laptop.programming.kicks-ass.net>
- <52EA7309.7070605@hp.com>
- <52EA74D1.3040109@hp.com>
+From: Dave Hansen <dave@sr71.net>
+Subject: Re: [PATCH] kconfig: consolidate arch-specific seccomp options
+Date: Thu, 30 Jan 2014 08:48:39 -0800
+Message-ID: <52EA8267.4020107@sr71.net>
+References: <20140129191011.8FB63DFA@viggo.jf.intel.com> <20140130085551.GB2024@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <52EA74D1.3040109@hp.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Waiman Long <waiman.long@hp.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, aswin@hp.com, Scott J Norton <scott.norton@hp.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-security-module-owner@vger.kernel.org>
+In-Reply-To: <20140130085551.GB2024@gmail.com>
+Sender: linux-security-module-owner@vger.kernel.org
+To: Ingo Molnar <mingo@kernel.org>
+Cc: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, sfr@canb.auug.org.au, zohar@linux.vnet.ibm.com, linux@arm.linux.org.uk, monstr@monstr.eu, ralf@linux-mips.org, benh@kernel.crashing.org, paulus@samba.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, lethal@linux-sh.org, x86@kernel.org, james.l.morris@oracle.com
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jan 30, 2014 at 10:50:41AM -0500, Waiman Long wrote:
-> One more thing, I often see line like
+On 01/30/2014 12:55 AM, Ingo Molnar wrote:
+>> > +	  This kernel feature is useful for number crunching applications
+>> > +	  that may need to compute untrusted bytecode during their
+>> > +	  execution. By using pipes or other transports made available to
+> I'd change and simplify the first sentence to:
 > 
-> #define queue_write_unlock queue_write_unlock
-> 
-> So exactly what effect does this macro have?
+>> > +	  This kernel feature is useful to sandbox runtimes that need
+>> > +	  to execute untrusted machine code.
+> Seccomp isn't primarily about number crunching anymore, and it's 
+> definitely not about 'bytecode' in the classical sense either.
 
-Makes sure the below doesn't emit another version.
+I'll change that if I need to send it again.  Otherwise, I'll leave it
+to the folks who actually know something about the feature, which isn't me.
 
-#ifndef queue_write_unlock
-/**
- * queue_write_unlock - release write lock of a queue rwlock
- * @lock : Pointer to queue rwlock structure
- */
-static inline void queue_write_unlock(struct qrwlock *lock)
-{
-	/*
-	 * If the writer field is atomic, it can be cleared directly.
-	 * Otherwise, an atomic subtraction will be used to clear it.
-	 */
-	smp_mb__before_atomic_dec();
-	atomic_sub(_QW_LOCKED, &lock->cnts);
-}
-#endif
