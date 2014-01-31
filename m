@@ -1,51 +1,54 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v11 0/4] Introducing a queue read/write lock implementation
-Date: Fri, 31 Jan 2014 13:59:02 -0500
-Message-ID: <52EBF276.1020505@hp.com>
-References: <1390537731-45996-1-git-send-email-Waiman.Long@hp.com> <20140130130453.GB2936@laptop.programming.kicks-ass.net> <20140130151715.GA5126@laptop.programming.kicks-ass.net> <20140131092616.GC5126@laptop.programming.kicks-ass.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+From: "George Spelvin" <linux@horizon.com>
+Subject: Re: [PATCH v3 1/2] qspinlock: Introducing a 4-byte queue spinlock implementation
+Date: 31 Jan 2014 14:14:39 -0500
+Message-ID: <20140131191439.29560.qmail@science.horizon.com>
+References: <52EBEAD5.3000502@hp.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t0014.houston.hp.com ([15.201.24.17]:32749 "EHLO
-	g4t0014.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932457AbaAaS7I (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jan 2014 13:59:08 -0500
-In-Reply-To: <20140131092616.GC5126@laptop.programming.kicks-ass.net>
+Received: from science.horizon.com ([71.41.210.146]:30946 "HELO
+	science.horizon.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with SMTP id S932236AbaAaTOk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jan 2014 14:14:40 -0500
+In-Reply-To: <52EBEAD5.3000502@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, aswin@hp.com, Scott J Norton <scott.norton@hp.com>
+To: peterz@infradead.org, waiman.long@hp.com
+Cc: akpm@linux-foundation.org, andi@firstfloor.org, arnd@arndb.de, aswin@hp.com, daniel@numascale.com, halcy@yandex.ru, hpa@zytor.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux@horizon.com, mingo@redhat.com, paulmck@linux.vnet.ibm.com, raghavendra.kt@linux.vnet.ibm.com, riel@redhat.com, rostedt@goodmis.org, scott.norton@hp.com, tglx@linutronix.de, thavatchai.makpahibulchoke@hp.com, tim.c.chen@linux.intel.com, torvalds@linux-foundation.org, walken@google.com, x86@kernel.org
 
-On 01/31/2014 04:26 AM, Peter Zijlstra wrote:
-> On Thu, Jan 30, 2014 at 04:17:15PM +0100, Peter Zijlstra wrote:
->> The below is still small and actually works.
-> OK, so having actually worked through the thing; I realized we can
-> actually do a version without MCS lock and instead use a ticket lock for
-> the waitqueue.
->
-> This is both smaller (back to 8 bytes for the rwlock_t), and should be
-> faster under moderate contention for not having to touch extra
-> cachelines.
->
-> Completely untested and with a rather crude generic ticket lock
-> implementation to illustrate the concept:
->
+> Yes, we can do something like that. However I think put_qnode() needs to 
+> use atomic dec as well. As a result, we will need 2 additional atomic 
+> operations per slowpath invocation. The code may look simpler, but I 
+> don't think it will be faster than what I am currently doing as the 
+> cases where the used flag is set will be relatively rare.
 
-Using a ticket lock instead will have the same scalability problem as 
-the ticket spinlock as all the waiting threads will spin on the lock 
-cacheline causing a lot of cache bouncing traffic. That is the reason 
-why I want to replace ticket spinlock with queue spinlock. If the 
-16-byte size is an issue, I can use the same trick in the queue spinlock 
-patch to reduce its size down to 8 bytes with a bit more overhead in the 
-slowpath.
+The increment does *not* have to be atomic.
 
-Another thing I want to discuss about is whether a bit more overhead in 
-moderate contention cases is really such a bit deal. With moderate 
-contention, I suppose the amount of time spent in the locking functions 
-will be just a few percent at most for real workloads. It won't really 
-be noticeable if the locking functions take, maybe, 50% more time to 
-finish. Anyway, I am going to do more performance testing on low end 
-machines.
+First of all, note that the only reader that matters is a local interrupt;
+other processors never access the variable at all, so what they see
+is irrelevant.
 
--Longman
+"Okay, so I use a non-atomic RMW instruction; what about non-x86
+processors without op-to-memory?"
+
+Well, they're okay, too.  The only requriement is that the write to
+qna->cnt must be visible to the local processor (barrier()) before the
+qna->nodes[] slot is used.
+
+Remember, a local interrupt may use a slot temporarily, but will always
+return qna->cnt to its original value before returning.  So there's
+nothing wrong with
+
+- Load qna->cnt to register
+- Increment register
+- Store register to qna->cnt
+
+Because an interrupt, although it may temporarily modify qna->cnt, will
+restore it before returning so this code will never see any modification.
+
+Just like using the stack below the %rsp, the only requirement is to
+ensure that the qna->cnt increment is visble *to the local processor's
+interrupt handler* before actually using the slot.
+
+The effect of the interrupt handler is that it may corrupt, at any
+time and without warning, any slot not marked in use via qna->cnt.
+But that's not a difficult thing to deal with, and does *not* require
+atomic operations.
