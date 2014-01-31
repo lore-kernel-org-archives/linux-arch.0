@@ -1,63 +1,71 @@
-From: Waiman Long <waiman.long@hp.com>
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH v3 1/2] qspinlock: Introducing a 4-byte queue spinlock
  implementation
-Date: Fri, 31 Jan 2014 14:28:45 -0500
-Message-ID: <52EBF96D.6010603@hp.com>
-References: <20140131191439.29560.qmail@science.horizon.com>
+Date: Fri, 31 Jan 2014 20:45:35 +0100
+Message-ID: <20140131194535.GN5002@laptop.programming.kicks-ass.net>
+References: <1390933151-1797-1-git-send-email-Waiman.Long@hp.com>
+ <1390933151-1797-2-git-send-email-Waiman.Long@hp.com>
+ <1391108430.3138.86.camel@schen9-DESK>
+ <20140130192835.GK5002@laptop.programming.kicks-ass.net>
+ <52EBEAD5.3000502@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t0015.houston.hp.com ([15.201.24.18]:4498 "EHLO
-	g4t0015.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932238AbaAaT2w (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jan 2014 14:28:52 -0500
-In-Reply-To: <20140131191439.29560.qmail@science.horizon.com>
+Received: from merlin.infradead.org ([205.233.59.134]:54248 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754033AbaAaTqT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jan 2014 14:46:19 -0500
+Content-Disposition: inline
+In-Reply-To: <52EBEAD5.3000502@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: George Spelvin <linux@horizon.com>
-Cc: peterz@infradead.org, akpm@linux-foundation.org, andi@firstfloor.org, arnd@arndb.de, aswin@hp.com, daniel@numascale.com, halcy@yandex.ru, hpa@zytor.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, paulmck@linux.vnet.ibm.com, raghavendra.kt@linux.vnet.ibm.com, riel@redhat.com, rostedt@goodmis.org, scott.norton@hp.com, tglx@linutronix.de, thavatchai.makpahibulchoke@hp.com, tim.c.chen@linux.intel.com, torvalds@linux-foundation.org, walken@google.com, x86@kernel.org
+To: Waiman Long <waiman.long@hp.com>
+Cc: Tim Chen <tim.c.chen@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
 
-On 01/31/2014 02:14 PM, George Spelvin wrote:
->> Yes, we can do something like that. However I think put_qnode() needs to
->> use atomic dec as well. As a result, we will need 2 additional atomic
->> operations per slowpath invocation. The code may look simpler, but I
->> don't think it will be faster than what I am currently doing as the
->> cases where the used flag is set will be relatively rare.
-> The increment does *not* have to be atomic.
->
-> First of all, note that the only reader that matters is a local interrupt;
-> other processors never access the variable at all, so what they see
-> is irrelevant.
->
-> "Okay, so I use a non-atomic RMW instruction; what about non-x86
-> processors without op-to-memory?"
->
-> Well, they're okay, too.  The only requriement is that the write to
-> qna->cnt must be visible to the local processor (barrier()) before the
-> qna->nodes[] slot is used.
->
-> Remember, a local interrupt may use a slot temporarily, but will always
-> return qna->cnt to its original value before returning.  So there's
-> nothing wrong with
->
-> - Load qna->cnt to register
-> - Increment register
-> - Store register to qna->cnt
->
-> Because an interrupt, although it may temporarily modify qna->cnt, will
-> restore it before returning so this code will never see any modification.
->
-> Just like using the stack below the %rsp, the only requirement is to
-> ensure that the qna->cnt increment is visble *to the local processor's
-> interrupt handler* before actually using the slot.
->
-> The effect of the interrupt handler is that it may corrupt, at any
-> time and without warning, any slot not marked in use via qna->cnt.
-> But that's not a difficult thing to deal with, and does *not* require
-> atomic operations.
+On Fri, Jan 31, 2014 at 01:26:29PM -0500, Waiman Long wrote:
+> >I don't get why we need the used thing at all; something like:
+> >
+> >struct qna {
+> >	int cnt;
+> >	struct qnode nodes[4];
+> >};
+> >
+> >DEFINE_PER_CPU(struct qna, qna);
+> >
+> >struct qnode *get_qnode(void)
+> >{
+> >	struct qna *qna = this_cpu_ptr(&qna);
+> >
+> >	return qna->nodes[qna->cnt++]; /* RMW */
+> >}
+> >
+> >void put_qnode(struct qnode *qnode)
+> >{
+> >	struct qna *qna = this_cpu_ptr(&qna);
+> >	qna->cnt--;
+> >}
+> >
+> >Should do fine, right?
+> 
+> Yes, we can do something like that. However I think put_qnode() needs to use
+> atomic dec as well. As a result, we will need 2 additional atomic operations
+> per slowpath invocation. The code may look simpler, but I don't think it
+> will be faster than what I am currently doing as the cases where the used
+> flag is set will be relatively rare.
 
-George, you are right. I am thinking too much from the general 
-perspective of RMW instruction.
+No, put doesn't need an atomic; nor is it as well; because the inc
+doesn't need an atomic either.
 
--Longman
+> >If we interrupt the RMW above the interrupted context hasn't yet used
+> >the queue and once we return its free again, so all should be well even
+> >on load-store archs.
+> >
+> >The nodes array might as well be 3, because NMIs should never contend on
+> >a spinlock, so all we're left with is task, softirq and hardirq context.
+> 
+> I am not so sure about NMI not taking a spinlock. I seem to remember seeing
+> code that did that. Actually, I think the NMI code is trying to printk
+> something which, in turn, need to acquire a spinlock.
+
+Yeah I know, terribly broken that, I've been waiting for that to explode
+:-)
