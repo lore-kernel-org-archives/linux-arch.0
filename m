@@ -1,74 +1,45 @@
-From: Tim Chen <tim.c.chen@linux.intel.com>
-Subject: Re: [PATCH v3 1/2] qspinlock: Introducing a 4-byte queue spinlock
- implementation
-Date: Thu, 30 Jan 2014 14:27:03 -0800
-Message-ID: <1391120823.3138.92.camel@schen9-DESK>
-References: <1390933151-1797-1-git-send-email-Waiman.Long@hp.com>
-	 <1390933151-1797-2-git-send-email-Waiman.Long@hp.com>
-	 <1391108430.3138.86.camel@schen9-DESK>
-	 <20140130192835.GK5002@laptop.programming.kicks-ass.net>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH] kconfig: consolidate arch-specific seccomp options
+Date: Fri, 31 Jan 2014 07:58:04 +0100
+Message-ID: <20140131065804.GA14212@gmail.com>
+References: <20140129191011.8FB63DFA@viggo.jf.intel.com>
+ <20140130085551.GB2024@gmail.com>
+ <52EA8267.4020107@sr71.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:18399 "EHLO mga09.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753674AbaA3W1G (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Jan 2014 17:27:06 -0500
-In-Reply-To: <20140130192835.GK5002@laptop.programming.kicks-ass.net>
+Received: from mail-ea0-f174.google.com ([209.85.215.174]:43788 "EHLO
+	mail-ea0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751142AbaAaG6K (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jan 2014 01:58:10 -0500
+Content-Disposition: inline
+In-Reply-To: <52EA8267.4020107@sr71.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Waiman Long <Waiman.Long@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
+To: Dave Hansen <dave@sr71.net>
+Cc: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, sfr@canb.auug.org.au, zohar@linux.vnet.ibm.com, linux@arm.linux.org.uk, monstr@monstr.eu, ralf@linux-mips.org, benh@kernel.crashing.org, paulus@samba.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, lethal@linux-sh.org, x86@kernel.org, james.l.morris@oracle.com
 
 
-> > > +	/*
-> > > +	 * Set up the new cpu code to be exchanged
-> > > +	 */
-> > > +	my_qcode = SET_QCODE(cpu_nr, qn_idx);
-> > > +
+* Dave Hansen <dave@sr71.net> wrote:
+
+> On 01/30/2014 12:55 AM, Ingo Molnar wrote:
+> >> > +	  This kernel feature is useful for number crunching applications
+> >> > +	  that may need to compute untrusted bytecode during their
+> >> > +	  execution. By using pipes or other transports made available to
+> > I'd change and simplify the first sentence to:
 > > 
-> > If we get interrupted here before we have a chance to set the used flag,
-> > the interrupt handler could pick up the same qnode if it tries to
-> > acquire queued spin lock.  Then we could overwrite the qcode we have set
-> > here.
-> > 
-> > Perhaps an exchange operation for the used flag to prevent this race
-> > condition?
+> >> > +	  This kernel feature is useful to sandbox runtimes that need
+> >> > +	  to execute untrusted machine code.
+> > Seccomp isn't primarily about number crunching anymore, and it's 
+> > definitely not about 'bytecode' in the classical sense either.
 > 
-> I don't get why we need the used thing at all; something like:
-> 
-> struct qna {
-> 	int cnt;
-> 	struct qnode nodes[4];
-> };
-> 
-> DEFINE_PER_CPU(struct qna, qna);
-> 
-> struct qnode *get_qnode(void)
-> {
-> 	struct qna *qna = this_cpu_ptr(&qna);
-> 
-> 	return qna->nodes[qna->cnt++]; /* RMW */
-> }
-> 
-> void put_qnode(struct qnode *qnode)
-> {
-> 	struct qna *qna = this_cpu_ptr(&qna);
-> 	qna->cnt--;
-> }
-> 
-> Should do fine, right?
-> 
-> If we interrupt the RMW above the interrupted context hasn't yet used
-> the queue and once we return its free again, so all should be well even
-> on load-store archs.
+> I'll change that if I need to send it again.  Otherwise, I'll leave 
+> it to the folks who actually know something about the feature, which 
+> isn't me.
 
-Agreed. This approach is more efficient and avoid the overhead 
-searching for unused node and setting used flag.
+Ok, consider the x86 bits NAK-ed, which is lifted if the text is 
+updated as well.
 
-Tim
+Thanks,
 
-> 
-> The nodes array might as well be 3, because NMIs should never contend on
-> a spinlock, so all we're left with is task, softirq and hardirq context.
+	Ingo
