@@ -1,42 +1,51 @@
 From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v3 1/2] qspinlock: Introducing a 4-byte queue spinlock
- implementation
-Date: Fri, 31 Jan 2014 13:28:06 -0500
-Message-ID: <52EBEB36.9090102@hp.com>
-References: <1390933151-1797-1-git-send-email-Waiman.Long@hp.com> <1390933151-1797-2-git-send-email-Waiman.Long@hp.com> <20140130193539.GL5002@laptop.programming.kicks-ass.net>
+Subject: Re: [PATCH v11 0/4] Introducing a queue read/write lock implementation
+Date: Fri, 31 Jan 2014 13:59:02 -0500
+Message-ID: <52EBF276.1020505@hp.com>
+References: <1390537731-45996-1-git-send-email-Waiman.Long@hp.com> <20140130130453.GB2936@laptop.programming.kicks-ass.net> <20140130151715.GA5126@laptop.programming.kicks-ass.net> <20140131092616.GC5126@laptop.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t0017.houston.hp.com ([15.201.24.20]:6019 "EHLO
-	g4t0017.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932558AbaAaS2M (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jan 2014 13:28:12 -0500
-In-Reply-To: <20140130193539.GL5002@laptop.programming.kicks-ass.net>
+Received: from g4t0014.houston.hp.com ([15.201.24.17]:32749 "EHLO
+	g4t0014.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932457AbaAaS7I (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jan 2014 13:59:08 -0500
+In-Reply-To: <20140131092616.GC5126@laptop.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, aswin@hp.com, Scott J Norton <scott.norton@hp.com>
 
-On 01/30/2014 02:35 PM, Peter Zijlstra wrote:
-> On Tue, Jan 28, 2014 at 01:19:10PM -0500, Waiman Long wrote:
->> This patch introduces a new queue spinlock implementation that can
->> serve as an alternative to the default ticket spinlock. Compared with
->> the ticket spinlock, this queue spinlock should be almost as fair as
->> the ticket spinlock. It has about the same speed in single-thread and
->> it can be much faster in high contention situations. Only in light to
->> moderate contention where the average queue depth is around 1-2 will
->> this queue spinlock be potentially a bit slower due to the higher
->> slowpath overhead.
-> But light to moderate contention should be the most common case. If your
-> spinlock is very heavily contended, it should be broken up.
+On 01/31/2014 04:26 AM, Peter Zijlstra wrote:
+> On Thu, Jan 30, 2014 at 04:17:15PM +0100, Peter Zijlstra wrote:
+>> The below is still small and actually works.
+> OK, so having actually worked through the thing; I realized we can
+> actually do a version without MCS lock and instead use a ticket lock for
+> the waitqueue.
 >
-> I would really like more performance numbers for this on single and dual
-> socket machines and 'normal' workloads (ha! as if those exist), ie.
-> kbuild is all very important to us :-)
+> This is both smaller (back to 8 bytes for the rwlock_t), and should be
+> faster under moderate contention for not having to touch extra
+> cachelines.
+>
+> Completely untested and with a rather crude generic ticket lock
+> implementation to illustrate the concept:
+>
 
-Yes, I am planning to get more performance data on low end machines. The 
-v3 patch was sent out to spur discussion on this topic while I am trying 
-to get more data.
+Using a ticket lock instead will have the same scalability problem as 
+the ticket spinlock as all the waiting threads will spin on the lock 
+cacheline causing a lot of cache bouncing traffic. That is the reason 
+why I want to replace ticket spinlock with queue spinlock. If the 
+16-byte size is an issue, I can use the same trick in the queue spinlock 
+patch to reduce its size down to 8 bytes with a bit more overhead in the 
+slowpath.
+
+Another thing I want to discuss about is whether a bit more overhead in 
+moderate contention cases is really such a bit deal. With moderate 
+contention, I suppose the amount of time spent in the locking functions 
+will be just a few percent at most for real workloads. It won't really 
+be noticeable if the locking functions take, maybe, 50% more time to 
+finish. Anyway, I am going to do more performance testing on low end 
+machines.
 
 -Longman
