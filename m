@@ -1,70 +1,74 @@
-From: Mike Turquette <mturquette@linaro.org>
-Subject: Re: [PATCH 27/73] drivers/clk: don't use module_init in clk-nomadik.c which
- is non-modular
-Date: Fri, 31 Jan 2014 15:17:37 -0800
-Message-ID: <20140131231737.4167.80136@quantum>
-References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
- <1390339396-3479-28-git-send-email-paul.gortmaker@windriver.com>
+From: Davidlohr Bueso <davidlohr@hp.com>
+Subject: Re: [PATCH v11 0/4] Introducing a queue read/write lock
+ implementation
+Date: Fri, 31 Jan 2014 17:29:40 -0800
+Message-ID: <1391218180.3475.26.camel@buesod1.americas.hpqcorp.net>
+References: <1390537731-45996-1-git-send-email-Waiman.Long@hp.com>
+	 <20140130130453.GB2936@laptop.programming.kicks-ass.net>
+	 <20140130151715.GA5126@laptop.programming.kicks-ass.net>
+	 <20140131092616.GC5126@laptop.programming.kicks-ass.net>
+	 <52EBF276.1020505@hp.com>
+	 <20140131201401.GD2936@laptop.programming.kicks-ass.net>
+	 <52EC110D.4030509@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f170.google.com ([209.85.192.170]:44986 "EHLO
-	mail-pd0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932271AbaAaXRy convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jan 2014 18:17:54 -0500
-Received: by mail-pd0-f170.google.com with SMTP id p10so4863866pdj.1
-        for <linux-arch@vger.kernel.org>; Fri, 31 Jan 2014 15:17:53 -0800 (PST)
-In-Reply-To: <1390339396-3479-28-git-send-email-paul.gortmaker@windriver.com>
+Received: from g4t0015.houston.hp.com ([15.201.24.18]:4018 "EHLO
+	g4t0015.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754220AbaBAB3t (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jan 2014 20:29:49 -0500
+In-Reply-To: <52EC110D.4030509@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, linux-arm-kernel@lists.infradead.org
+To: Waiman Long <waiman.long@hp.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, aswin@hp.com, Scott J Norton <scott.norton@hp.com>
 
-Quoting Paul Gortmaker (2014-01-21 13:22:30)
-> The clk-nomadik.o is built for ARCH_NOMADIK -- which is bool, and
-> hence this code is either present or absent.  It will never be
-> modular, so using module_init as an alias for __initcall can be
-> somewhat misleading.
-> 
-> Fix this up now, so that we can relocate module_init from
-> init.h into module.h in the future.  If we don't do this, we'd
-> have to add module.h to obviously non-modular code, and that
-> would be a worse thing.
-> 
-> Note that direct use of __initcall is discouraged, vs. one
-> of the priority categorized subgroups.  As __initcall gets
-> mapped onto device_initcall, our use of device_initcall
-> directly in this change means that the runtime impact is
-> zero -- it will remain at level 6 in initcall ordering.
-> 
-> Cc: Mike Turquette <mturquette@linaro.org>
-> Cc: linux-arm-kernel@lists.infradead.org
-> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
+On Fri, 2014-01-31 at 16:09 -0500, Waiman Long wrote:
+> On 01/31/2014 03:14 PM, Peter Zijlstra wrote:
+> > On Fri, Jan 31, 2014 at 01:59:02PM -0500, Waiman Long wrote:
+> >> On 01/31/2014 04:26 AM, Peter Zijlstra wrote:
+> >>> On Thu, Jan 30, 2014 at 04:17:15PM +0100, Peter Zijlstra wrote:
+> >>>> The below is still small and actually works.
+> >>> OK, so having actually worked through the thing; I realized we can
+> >>> actually do a version without MCS lock and instead use a ticket lock for
+> >>> the waitqueue.
+> >>>
+> >>> This is both smaller (back to 8 bytes for the rwlock_t), and should be
+> >>> faster under moderate contention for not having to touch extra
+> >>> cachelines.
+> >>>
+> >>> Completely untested and with a rather crude generic ticket lock
+> >>> implementation to illustrate the concept:
+> >>>
+> >> Using a ticket lock instead will have the same scalability problem as the
+> >> ticket spinlock as all the waiting threads will spin on the lock cacheline
+> >> causing a lot of cache bouncing traffic.
+> > A much more important point for me is that a fair rwlock has a _much_
+> > better worst case behaviour than the current mess. That's the reason I
+> > was interested in the qrwlock thing. Not because it can run contended on
+> > a 128 CPU system and be faster at being contended.
+> >
+> > If you contend a lock with 128 CPUs you need to go fix that code that
+> > causes this abysmal behaviour in the first place.
+> >
 
-Looks good to me.
+But the kernel should also be prepared for such situations, whenever
+possible.
 
-Regards,
-Mike
+> >
+> 
+> I am not against the use of ticket spinlock as the queuing mechanism on 
+> small systems. I do have  concern about the contended performance on 
+> large NUMA systems which is my primary job responsibility. Depending on 
+> the workload, contention can happens anywhere. So it is easier said than 
+> done to fix whatever lock contention that may happen.
+> 
+> How about making the selection of MCS or ticket queuing either user 
+> configurable or depending on the setting of NR_CPUS, NUMA, etc?
 
-> ---
->  drivers/clk/clk-nomadik.c | 3 +--
->  1 file changed, 1 insertion(+), 2 deletions(-)
-> 
-> diff --git a/drivers/clk/clk-nomadik.c b/drivers/clk/clk-nomadik.c
-> index 6a934a5..5be9b9f 100644
-> --- a/drivers/clk/clk-nomadik.c
-> +++ b/drivers/clk/clk-nomadik.c
-> @@ -500,8 +500,7 @@ static int __init nomadik_src_clk_init_debugfs(void)
->                             NULL, NULL, &nomadik_src_clk_debugfs_ops);
->         return 0;
->  }
-> -
-> -module_init(nomadik_src_clk_init_debugfs);
-> +device_initcall(nomadik_src_clk_init_debugfs);
->  
->  #endif
->  
-> -- 
-> 1.8.4.1
-> 
+Users have no business making these decisions and being exposed to these
+kind of internals. CONFIG_NUMA sounds reasonable to me.
+
+Thanks,
+Davidlohr
