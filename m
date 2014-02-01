@@ -1,74 +1,64 @@
-From: Davidlohr Bueso <davidlohr@hp.com>
-Subject: Re: [PATCH v11 0/4] Introducing a queue read/write lock
- implementation
-Date: Fri, 31 Jan 2014 17:29:40 -0800
-Message-ID: <1391218180.3475.26.camel@buesod1.americas.hpqcorp.net>
-References: <1390537731-45996-1-git-send-email-Waiman.Long@hp.com>
-	 <20140130130453.GB2936@laptop.programming.kicks-ass.net>
-	 <20140130151715.GA5126@laptop.programming.kicks-ass.net>
-	 <20140131092616.GC5126@laptop.programming.kicks-ass.net>
-	 <52EBF276.1020505@hp.com>
-	 <20140131201401.GD2936@laptop.programming.kicks-ass.net>
-	 <52EC110D.4030509@hp.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+From: "George Spelvin" <linux@horizon.com>
+Subject: Re: [PATCH v11 0/4] Introducing a queue read/write lock implementation
+Date: 1 Feb 2014 05:38:20 -0500
+Message-ID: <20140201103820.32043.qmail@science.horizon.com>
+References: <20140131194718.GO5002@laptop.programming.kicks-ass.net>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t0015.houston.hp.com ([15.201.24.18]:4018 "EHLO
-	g4t0015.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754220AbaBAB3t (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 31 Jan 2014 20:29:49 -0500
-In-Reply-To: <52EC110D.4030509@hp.com>
+Received: from science.horizon.com ([71.41.210.146]:37295 "HELO
+	science.horizon.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with SMTP id S1751717AbaBAKiW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 1 Feb 2014 05:38:22 -0500
+In-Reply-To: <20140131194718.GO5002@laptop.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <waiman.long@hp.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, aswin@hp.com, Scott J Norton <scott.norton@hp.com>
+To: peterz@infradead.org, waiman.long@hp.com
+Cc: akpm@linux-foundation.org, andi@firstfloor.org, arnd@arndb.de, aswin@hp.com, hpa@zytor.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux@horizon.com, mingo@redhat.com, paulmck@linux.vnet.ibm.com, raghavendra.kt@linux.vnet.ibm.com, riel@redhat.com, rostedt@goodmis.org, scott.norton@hp.com, tglx@linutronix.de, tim.c.chen@linux.intel.com, torvalds@linux-foundation.org, walken@google.com, x86@kernel.org
 
-On Fri, 2014-01-31 at 16:09 -0500, Waiman Long wrote:
-> On 01/31/2014 03:14 PM, Peter Zijlstra wrote:
-> > On Fri, Jan 31, 2014 at 01:59:02PM -0500, Waiman Long wrote:
-> >> On 01/31/2014 04:26 AM, Peter Zijlstra wrote:
-> >>> On Thu, Jan 30, 2014 at 04:17:15PM +0100, Peter Zijlstra wrote:
-> >>>> The below is still small and actually works.
-> >>> OK, so having actually worked through the thing; I realized we can
-> >>> actually do a version without MCS lock and instead use a ticket lock for
-> >>> the waitqueue.
-> >>>
-> >>> This is both smaller (back to 8 bytes for the rwlock_t), and should be
-> >>> faster under moderate contention for not having to touch extra
-> >>> cachelines.
-> >>>
-> >>> Completely untested and with a rather crude generic ticket lock
-> >>> implementation to illustrate the concept:
-> >>>
-> >> Using a ticket lock instead will have the same scalability problem as the
-> >> ticket spinlock as all the waiting threads will spin on the lock cacheline
-> >> causing a lot of cache bouncing traffic.
-> > A much more important point for me is that a fair rwlock has a _much_
-> > better worst case behaviour than the current mess. That's the reason I
-> > was interested in the qrwlock thing. Not because it can run contended on
-> > a 128 CPU system and be faster at being contended.
-> >
-> > If you contend a lock with 128 CPUs you need to go fix that code that
-> > causes this abysmal behaviour in the first place.
-> >
+Peter Zijlstra wrote:
+> On Fri, Jan 31, 2014 at 01:59:02PM -0500, Waiman Long wrote:
+>> Using a ticket lock instead will have the same scalability problem as the
+>> ticket spinlock as all the waiting threads will spin on the lock cacheline
+>> causing a lot of cache bouncing traffic. That is the reason why I want to
+>> replace ticket spinlock with queue spinlock.
 
-But the kernel should also be prepared for such situations, whenever
-possible.
+> But but but, just fix such heavily contended locks. Don't make sensible
+> code that is lightly contended run slower because of it.
 
-> >
-> 
-> I am not against the use of ticket spinlock as the queuing mechanism on 
-> small systems. I do have  concern about the contended performance on 
-> large NUMA systems which is my primary job responsibility. Depending on 
-> the workload, contention can happens anywhere. So it is easier said than 
-> done to fix whatever lock contention that may happen.
-> 
-> How about making the selection of MCS or ticket queuing either user 
-> configurable or depending on the setting of NR_CPUS, NUMA, etc?
+While I agree that zero slowdown for "good" code is the goal, it is
+impossible for the kernel to consist of only "good" code.
 
-Users have no business making these decisions and being exposed to these
-kind of internals. CONFIG_NUMA sounds reasonable to me.
+In particular, obscure error conditions causing locked regions to take
+much longer than expected will never be completely expurgated; there's
+a point where you just say "I'm not working for a week to save 10 people
+per year a 2-minute stall."
 
-Thanks,
-Davidlohr
+What Waiman noted is that ticket locks take O(n^2) cache line transfers
+to clear n waiters from the queue.  (Each write must be broadcast to
+each spinning reader.)  So if you *do* get most of a large multiprocessor
+piled up on a ticket lock, the performance can be disastrous.
+
+It can conceivably send a large system into a "congestion collapse"
+where the queue never clears.  And it can affect processors (such as
+other partitions of a large machine) that aren't even contending for
+the lock.
+
+The MCS lock is O(1) per release and O(n) to clear n waiters.  This is
+a noticeable improvement on 4- or 8-way contention, and (Waiman reports)
+a huge improvement on 50-way and up.
+
+Yes, if such contention occurs with any frequency at all, it should be
+fixed, but it does seem worth mitigating problems in the meantime.
+
+(As an aside, I have in the past heard people criticize the Linux kernel
+for being optimized for the average case at the expense of worst-case
+corner cases.)
+
+Are we agreed that *not* improving highly-contended performance on the
+grounds that it would discourage other optimization is as stupid as not
+wearing a seat-belt because that would discourage more careful driving?
+
+
+While I do think *some* benchmarking on smaller SMP systems is wanted,
+given that Waiman has mananged to make the *uncontended* case faster,
+and *that* is by far the most common case, it's quite plausible that it
+will turn out to be a net performance improvement on 4- and 8-way systems.
