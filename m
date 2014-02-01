@@ -1,64 +1,104 @@
-From: "George Spelvin" <linux@horizon.com>
-Subject: Re: [PATCH v11 0/4] Introducing a queue read/write lock implementation
-Date: 1 Feb 2014 05:38:20 -0500
-Message-ID: <20140201103820.32043.qmail@science.horizon.com>
-References: <20140131194718.GO5002@laptop.programming.kicks-ass.net>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH v11 0/4] Introducing a queue read/write lock
+ implementation
+Date: Sat, 1 Feb 2014 15:22:45 -0800
+Message-ID: <20140201232245.GB4333@linux.vnet.ibm.com>
+References: <20140131092616.GC5126@laptop.programming.kicks-ass.net>
+ <20140131100348.8867.qmail@science.horizon.com>
+ <20140131101729.GA8874@twins.programming.kicks-ass.net>
+Reply-To: paulmck@linux.vnet.ibm.com
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from science.horizon.com ([71.41.210.146]:37295 "HELO
-	science.horizon.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with SMTP id S1751717AbaBAKiW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 1 Feb 2014 05:38:22 -0500
-In-Reply-To: <20140131194718.GO5002@laptop.programming.kicks-ass.net>
+Received: from e36.co.us.ibm.com ([32.97.110.154]:56719 "EHLO
+	e36.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750897AbaBAXWx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 1 Feb 2014 18:22:53 -0500
+Received: from /spool/local
+	by e36.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Sat, 1 Feb 2014 16:22:52 -0700
+Content-Disposition: inline
+In-Reply-To: <20140131101729.GA8874@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: peterz@infradead.org, waiman.long@hp.com
-Cc: akpm@linux-foundation.org, andi@firstfloor.org, arnd@arndb.de, aswin@hp.com, hpa@zytor.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux@horizon.com, mingo@redhat.com, paulmck@linux.vnet.ibm.com, raghavendra.kt@linux.vnet.ibm.com, riel@redhat.com, rostedt@goodmis.org, scott.norton@hp.com, tglx@linutronix.de, tim.c.chen@linux.intel.com, torvalds@linux-foundation.org, walken@google.com, x86@kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: George Spelvin <linux@horizon.com>, Waiman.Long@hp.com, akpm@linux-foundation.org, andi@firstfloor.org, arnd@arndb.de, aswin@hp.com, hpa@zytor.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, raghavendra.kt@linux.vnet.ibm.com, riel@redhat.com, rostedt@goodmis.org, scott.norton@hp.com, tglx@linutronix.de, tim.c.chen@linux.intel.com, torvalds@linux-foundation.org, walken@google.com, x86@kernel.org
 
-Peter Zijlstra wrote:
-> On Fri, Jan 31, 2014 at 01:59:02PM -0500, Waiman Long wrote:
->> Using a ticket lock instead will have the same scalability problem as the
->> ticket spinlock as all the waiting threads will spin on the lock cacheline
->> causing a lot of cache bouncing traffic. That is the reason why I want to
->> replace ticket spinlock with queue spinlock.
+On Fri, Jan 31, 2014 at 11:17:29AM +0100, Peter Zijlstra wrote:
+> On Fri, Jan 31, 2014 at 05:03:48AM -0500, George Spelvin wrote:
+> > How about getting rid of that TICKET_MSB mess and doing something like:
+> > 
+> > #define TICKET_MASK	0xFFFF
+> > 
+> > static inline void ticket_spin_unlock(atomic_t *tickets)
+> > {
+> > 	u32 t = *tickets;
+> > 
+> > 	smp_mb__before_atomic_inc();
+> > 
+> > 	/* Increment the low 16 bits without affecting the upper. */
+> > 	if (unlikely((~t & TICKET_MASK) == 0))
+> > 		atomic_add(-(atomic_t)TICKET_MASK, tickets);
+> > 	else
+> > 		atomic_inc(tickets);
+> > }
+> > 
+> > That also allows up to 2^16 waiters, up from 2^15.
+> > (Minus one on both cases, if you want to be fussy.)
+> 
+> Ah indeed. That'll work. That said, any arch that can single-copy
+> address shorts can probably do better than this generic atomic_t thing.
+> 
+> My main point was that we should seriously look at a ticket lock instead
+> of the MCS one, because while the MCS has better contention behaviour,
+> we shouldn't optimize locks for the worst contention.
 
-> But but but, just fix such heavily contended locks. Don't make sensible
-> code that is lightly contended run slower because of it.
+We do need to articulate what we -are- optimizing for, or more generally,
+what we are trying to accomplish with these locking primitives.  Here
+are some of the traditional goals:
 
-While I agree that zero slowdown for "good" code is the goal, it is
-impossible for the kernel to consist of only "good" code.
+1.	Avoid performance collapse under heavy load.  Here the goal is
+	to have throughput level off rather than decreasing when load
+	exceeds saturation levels.
 
-In particular, obscure error conditions causing locked regions to take
-much longer than expected will never be completely expurgated; there's
-a point where you just say "I'm not working for a week to save 10 people
-per year a 2-minute stall."
+2.	Avoid starvation of requesters.  Here the goal is a very
+	minimal level of fairness.
 
-What Waiman noted is that ticket locks take O(n^2) cache line transfers
-to clear n waiters from the queue.  (Each write must be broadcast to
-each spinning reader.)  So if you *do* get most of a large multiprocessor
-piled up on a ticket lock, the performance can be disastrous.
+3.	Achieve some reasonable level of fairness if the underlying
+	hardware provides fair access to memory.  Here "reasonable"
+	might mean that lock-grant probabilities not differ by more
+	than (say) a factor of two.
 
-It can conceivably send a large system into a "congestion collapse"
-where the queue never clears.  And it can affect processors (such as
-other partitions of a large machine) that aren't even contending for
-the lock.
+4.	Achieve some reasonable level of fairness even if the underlying
+	hardware is unfair.  Rumor has it that some of the very large
+	systems in use today do not guarantee fair access to cache lines
+	under heavy memory contention.
 
-The MCS lock is O(1) per release and O(n) to clear n waiters.  This is
-a noticeable improvement on 4- or 8-way contention, and (Waiman reports)
-a huge improvement on 50-way and up.
+5.	Achieve some minimal level of scalability, so that throughput
+	increases monotonically with increasing load.  Preferably
+	without penalizing small-system performance.
 
-Yes, if such contention occurs with any frequency at all, it should be
-fixed, but it does seem worth mitigating problems in the meantime.
+6.	Achieve some reasonable level of scalability, so that adding
+	a given CPU provides at least some fraction (say, 80%) of
+	one CPU's worth of incremental throughput.
 
-(As an aside, I have in the past heard people criticize the Linux kernel
-for being optimized for the average case at the expense of worst-case
-corner cases.)
+7.	Achieve linear scalability.
 
-Are we agreed that *not* improving highly-contended performance on the
-grounds that it would discourage other optimization is as stupid as not
-wearing a seat-belt because that would discourage more careful driving?
+Ticket locking has problems with #1 on some systems due to the thundering
+herd of reads following each invalidation.  (Yes, it is not as bad
+as the atomic-operation thundering herd associated with test-and-set
+spinlocks, but it can neverthelless be a problem on larger systems.)
+Achieving #4 requires some sort of queued lock as far as I can see.
+Although you -might- get #5 with a very clever NUMA-aware lock, #6 and
+#7 will require some level of redesign.
 
+Fancy locks can help if the common code path is fully parallelized,
+but where some rare error path is not worth the effort.  In this case,
+using a fancy lock on the error path can at least keep the system moving
+during the time that the error condition is in force, and hopefully
+permit returning to full throughput once the error condition is gone.
 
-While I do think *some* benchmarking on smaller SMP systems is wanted,
-given that Waiman has mananged to make the *uncontended* case faster,
-and *that* is by far the most common case, it's quite plausible that it
-will turn out to be a net performance improvement on 4- and 8-way systems.
+So, what exactly are we trying to achieve with all this?  ;-)
+
+							Thanx, Paul
