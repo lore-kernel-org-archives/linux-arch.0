@@ -1,104 +1,60 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+From: Ingo Molnar <mingo@kernel.org>
 Subject: Re: [PATCH v11 0/4] Introducing a queue read/write lock
  implementation
-Date: Sat, 1 Feb 2014 15:22:45 -0800
-Message-ID: <20140201232245.GB4333@linux.vnet.ibm.com>
-References: <20140131092616.GC5126@laptop.programming.kicks-ass.net>
- <20140131100348.8867.qmail@science.horizon.com>
- <20140131101729.GA8874@twins.programming.kicks-ass.net>
-Reply-To: paulmck@linux.vnet.ibm.com
+Date: Sun, 2 Feb 2014 10:03:57 +0100
+Message-ID: <20140202090357.GA1006@gmail.com>
+References: <1390537731-45996-1-git-send-email-Waiman.Long@hp.com>
+ <20140130130453.GB2936@laptop.programming.kicks-ass.net>
+ <20140130151715.GA5126@laptop.programming.kicks-ass.net>
+ <20140131092616.GC5126@laptop.programming.kicks-ass.net>
+ <52EBF276.1020505@hp.com>
+ <20140131201401.GD2936@laptop.programming.kicks-ass.net>
+ <52EC110D.4030509@hp.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e36.co.us.ibm.com ([32.97.110.154]:56719 "EHLO
-	e36.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750897AbaBAXWx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 1 Feb 2014 18:22:53 -0500
-Received: from /spool/local
-	by e36.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Sat, 1 Feb 2014 16:22:52 -0700
+Received: from mail-ee0-f44.google.com ([74.125.83.44]:41682 "EHLO
+	mail-ee0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751424AbaBBJED (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 2 Feb 2014 04:04:03 -0500
 Content-Disposition: inline
-In-Reply-To: <20140131101729.GA8874@twins.programming.kicks-ass.net>
+In-Reply-To: <52EC110D.4030509@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: George Spelvin <linux@horizon.com>, Waiman.Long@hp.com, akpm@linux-foundation.org, andi@firstfloor.org, arnd@arndb.de, aswin@hp.com, hpa@zytor.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com, raghavendra.kt@linux.vnet.ibm.com, riel@redhat.com, rostedt@goodmis.org, scott.norton@hp.com, tglx@linutronix.de, tim.c.chen@linux.intel.com, torvalds@linux-foundation.org, walken@google.com, x86@kernel.org
+To: Waiman Long <waiman.long@hp.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, aswin@hp.com, Scott J Norton <scott.norton@hp.com>
 
-On Fri, Jan 31, 2014 at 11:17:29AM +0100, Peter Zijlstra wrote:
-> On Fri, Jan 31, 2014 at 05:03:48AM -0500, George Spelvin wrote:
-> > How about getting rid of that TICKET_MSB mess and doing something like:
-> > 
-> > #define TICKET_MASK	0xFFFF
-> > 
-> > static inline void ticket_spin_unlock(atomic_t *tickets)
-> > {
-> > 	u32 t = *tickets;
-> > 
-> > 	smp_mb__before_atomic_inc();
-> > 
-> > 	/* Increment the low 16 bits without affecting the upper. */
-> > 	if (unlikely((~t & TICKET_MASK) == 0))
-> > 		atomic_add(-(atomic_t)TICKET_MASK, tickets);
-> > 	else
-> > 		atomic_inc(tickets);
-> > }
-> > 
-> > That also allows up to 2^16 waiters, up from 2^15.
-> > (Minus one on both cases, if you want to be fussy.)
-> 
-> Ah indeed. That'll work. That said, any arch that can single-copy
-> address shorts can probably do better than this generic atomic_t thing.
-> 
-> My main point was that we should seriously look at a ticket lock instead
-> of the MCS one, because while the MCS has better contention behaviour,
-> we shouldn't optimize locks for the worst contention.
 
-We do need to articulate what we -are- optimizing for, or more generally,
-what we are trying to accomplish with these locking primitives.  Here
-are some of the traditional goals:
+* Waiman Long <waiman.long@hp.com> wrote:
 
-1.	Avoid performance collapse under heavy load.  Here the goal is
-	to have throughput level off rather than decreasing when load
-	exceeds saturation levels.
+> How about making the selection of MCS or ticket queuing either user 
+> configurable or depending on the setting of NR_CPUS, NUMA, etc?
 
-2.	Avoid starvation of requesters.  Here the goal is a very
-	minimal level of fairness.
+No!
 
-3.	Achieve some reasonable level of fairness if the underlying
-	hardware provides fair access to memory.  Here "reasonable"
-	might mean that lock-grant probabilities not differ by more
-	than (say) a factor of two.
+There are lots of disadvantages to adding such CONFIG_NUMA Kconfig 
+variants for locking primitives:
 
-4.	Achieve some reasonable level of fairness even if the underlying
-	hardware is unfair.  Rumor has it that some of the very large
-	systems in use today do not guarantee fair access to cache lines
-	under heavy memory contention.
+ - an doubling of the test matrix
 
-5.	Achieve some minimal level of scalability, so that throughput
-	increases monotonically with increasing load.  Preferably
-	without penalizing small-system performance.
+ - an doubling of the review matrix and a halving of effective review 
+   capacity: we've just about go the capacity to review and validate 
+   patches like this. Splitting out a 'only NUMA cares' variant is a 
+   non-starter really.
 
-6.	Achieve some reasonable level of scalability, so that adding
-	a given CPU provides at least some fraction (say, 80%) of
-	one CPU's worth of incremental throughput.
+ - but most importantly, there's absolutely no reason to not be fast
+   on 128 CPU systems in the low contended case either! Sacrificing
+   the low contended case with 'on 128 CPU systems it is the contended
+   path that matters' is an idiotic argument.
 
-7.	Achieve linear scalability.
+Essentially the only area were we allow Kconfig dependencies are 
+unyielding physical forces: such as lots of CPUs needing a wider CPU 
+mask.
 
-Ticket locking has problems with #1 on some systems due to the thundering
-herd of reads following each invalidation.  (Yes, it is not as bad
-as the atomic-operation thundering herd associated with test-and-set
-spinlocks, but it can neverthelless be a problem on larger systems.)
-Achieving #4 requires some sort of queued lock as far as I can see.
-Although you -might- get #5 with a very clever NUMA-aware lock, #6 and
-#7 will require some level of redesign.
+As Peter said it, the right solution is to fix the contended case. If 
+that also happens to speed up or better organize the uncondended code 
+then that's good, but it should not make it worse.
 
-Fancy locks can help if the common code path is fully parallelized,
-but where some rare error path is not worth the effort.  In this case,
-using a fancy lock on the error path can at least keep the system moving
-during the time that the error condition is in force, and hopefully
-permit returning to full throughput once the error condition is gone.
+Thanks,
 
-So, what exactly are we trying to achieve with all this?  ;-)
-
-							Thanx, Paul
+	Ingo
