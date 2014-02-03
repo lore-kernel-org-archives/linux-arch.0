@@ -1,62 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:43889 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751072AbaBCLj0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Feb 2014 06:39:26 -0500
-Date: Mon, 3 Feb 2014 12:38:57 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v11 0/4] Introducing a queue read/write lock
- implementation
-Message-ID: <20140203113857.GG8874@twins.programming.kicks-ass.net>
-References: <1390537731-45996-1-git-send-email-Waiman.Long@hp.com>
- <20140130130453.GB2936@laptop.programming.kicks-ass.net>
- <20140130151715.GA5126@laptop.programming.kicks-ass.net>
- <20140131092616.GC5126@laptop.programming.kicks-ass.net>
- <52EBF276.1020505@hp.com>
- <20140131201401.GD2936@laptop.programming.kicks-ass.net>
- <52EC110D.4030509@hp.com>
- <20140202090357.GA1006@gmail.com>
+Received: from multi.imgtec.com ([194.200.65.239]:39983 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752404AbaBCPe4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 3 Feb 2014 10:34:56 -0500
+From: James Hogan <james.hogan@imgtec.com>
+Subject: [PATCH] asm-generic: add sched_setattr/sched_getattr syscalls
+Date: Mon, 3 Feb 2014 15:33:37 +0000
+Message-ID: <1391441617-21518-1-git-send-email-james.hogan@imgtec.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20140202090357.GA1006@gmail.com>
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Waiman Long <waiman.long@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, aswin@hp.com, Scott J Norton <scott.norton@hp.com>
-Message-ID: <20140203113857.i_C0tqR85-PswqBO9acF1qH0Q92eQ4wo30pTTB5UbVk@z>
+To: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, linux-c6x-dev@linux-c6x.org, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org, linux-metag@vger.kernel.org, Jonas Bonn <jonas@southpole.se>, linux@lists.openrisc.net, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, Chris Metcalf <cmetcalf@tilera.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>
+Message-ID: <20140203153337.fMjM6dNWU5lT3Dw-cU8Dm9ObZkRhUqpv2HHAB49BAP4@z>
 
-On Sun, Feb 02, 2014 at 10:03:57AM +0100, Ingo Molnar wrote:
-> 
-> * Waiman Long <waiman.long@hp.com> wrote:
-> 
-> > How about making the selection of MCS or ticket queuing either user 
-> > configurable or depending on the setting of NR_CPUS, NUMA, etc?
-> 
-> No!
-> 
-> There are lots of disadvantages to adding such CONFIG_NUMA Kconfig 
-> variants for locking primitives:
-> 
->  - an doubling of the test matrix
-> 
->  - an doubling of the review matrix and a halving of effective review 
->    capacity: we've just about go the capacity to review and validate 
->    patches like this. Splitting out a 'only NUMA cares' variant is a 
->    non-starter really.
-> 
->  - but most importantly, there's absolutely no reason to not be fast
->    on 128 CPU systems in the low contended case either! Sacrificing
->    the low contended case with 'on 128 CPU systems it is the contended
->    path that matters' is an idiotic argument.
+Add the sched_setattr and sched_getattr syscalls to the generic syscall
+list, which is used by the following architectures: arc, arm64, c6x,
+hexagon, metag, openrisc, score, tile, unicore32.
 
-Not to mention distros will only ever pick one.
+Signed-off-by: James Hogan <james.hogan@imgtec.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org
+Cc: Vineet Gupta <vgupta@synopsys.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: Mark Salter <msalter@redhat.com>
+Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
+Cc: linux-c6x-dev@linux-c6x.org
+Cc: Richard Kuo <rkuo@codeaurora.org>
+Cc: linux-hexagon@vger.kernel.org
+Cc: linux-metag@vger.kernel.org
+Cc: Jonas Bonn <jonas@southpole.se>
+Cc: linux@lists.openrisc.net
+Cc: Chen Liqin <liqin.linux@gmail.com>
+Cc: Lennox Wu <lennox.wu@gmail.com>
+Cc: Chris Metcalf <cmetcalf@tilera.com>
+Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
+---
+ include/uapi/asm-generic/unistd.h | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
 
-Also, there's probably several orders of magnitude more single and dual
-socket systems out there than there are quad or bigger systems.
-
-So even if the lightly contended case is say only 1% slower, that could
-still add up to more cycles lost than won over all computers out there
-running Linux.
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index a20a9b4d3871..dde8041f40d2 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -692,9 +692,13 @@ __SC_COMP(__NR_process_vm_writev, sys_process_vm_writev, \
+ __SYSCALL(__NR_kcmp, sys_kcmp)
+ #define __NR_finit_module 273
+ __SYSCALL(__NR_finit_module, sys_finit_module)
++#define __NR_sched_setattr 274
++__SYSCALL(__NR_sched_setattr, sys_sched_setattr)
++#define __NR_sched_getattr 275
++__SYSCALL(__NR_sched_getattr, sys_sched_getattr)
+ 
+ #undef __NR_syscalls
+-#define __NR_syscalls 274
++#define __NR_syscalls 276
+ 
+ /*
+  * All syscalls below here should go away really,
+-- 
+1.8.1.2
 
 
