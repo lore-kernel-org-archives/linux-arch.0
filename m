@@ -1,81 +1,37 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: mips octeon memory model questions
-Date: Tue, 4 Feb 2014 19:41:50 +0100
-Message-ID: <20140204184150.GB5002@laptop.programming.kicks-ass.net>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: mips octeon memory model questions
+Date: Tue, 4 Feb 2014 10:58:40 -0800
+Message-ID: <CA+55aFz9+AtK_OnUhH0gspUsXLxZN-MRwKVR5zVPsVGmGpBqxg@mail.gmail.com>
+References: <20140204184150.GB5002@laptop.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-mips-bounce@linux-mips.org>
-Content-Disposition: inline
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
-List-help: <mailto:ecartis@linux-mips.org?Subject=help>
-List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
-List-software: Ecartis version 1.0.0
-List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
-List-owner: <mailto:ralf@linux-mips.org>
-List-post: <mailto:linux-mips@linux-mips.org>
-List-archive: <http://www.linux-mips.org/archives/linux-mips/>
-To: David Daney <ddaney@caviumnetworks.com>, Ralf Baechle <ralf@linux-mips.org>
-Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-kernel@vger.kernel.org, Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Linus Torvalds <torvalds@linux-foundation.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-vb0-f45.google.com ([209.85.212.45]:52738 "EHLO
+	mail-vb0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752828AbaBDS6l (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 Feb 2014 13:58:41 -0500
+In-Reply-To: <20140204184150.GB5002@laptop.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: David Daney <ddaney@caviumnetworks.com>, Ralf Baechle <ralf@linux-mips.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mips <linux-mips@linux-mips.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>
 
-Hi all,
+On Tue, Feb 4, 2014 at 10:41 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+>
+> Still doesn't make sense, because if we need the first sync to stop
+> writes from being re-ordered with the ll-sc, we also need the second
+> sync to avoid the same.
 
-I have a number of questions in regards to commit 6b07d38aaa520ce.
+Presumably octeon doesn't do speculative writes, only *buffered* writes.
 
-Given that the octeon doesn't reorder reads; the following:
+So writes move down, not up.
 
-"      sync
-       ll ...
-       .
-       .
-       .
-       sc ...
-       .
-       .
-       sync
+But it looks like Cavium is one of those clown companies that have a
+"contact us" button for technical documentation rather than actually
+making it available.
 
-  The second SYNC was redundant, but harmless.  "
+Christ, why would anybody do business with a tech company that hides
+technical details? Seriously, that just stinks of "we have so many
+bugs that we cannot make the documentation available".
 
-Still doesn't make sense, because if we need the first sync to stop
-writes from being re-ordered with the ll-sc, we also need the second
-sync to avoid the same.
-
-Suppose:
-   STORE a
-   sync
-   LL-SC b
-   (not a sync)
-   STORE c
-
-What avoids this becoming visible as:
-
-  a
-  c
-  b
-
-?
-
-Then there is:
-
-"       syncw;syncw
-        ll
-        .
-        .
-        .
-        sc
-        .
-        .
-
-    Has identical semantics to the first sequence, but is much faster.
-    The SYNCW orders the writes, and the SC will not complete successfully
-    until the write is committed to the coherent memory system.  So at the
-    end all preceeding writes have been committed.  Since Octeon does not
-    do speculative reads, this functions as a full barrier."
-
-Read Documentation/memory-barrier.txt:TRANSITIVITY, the above doesn't
-sound like syncw is actually multi-copy atomic, and therefore doesn't
-provide transitivity, and therefore is not a valid sequence for
-operations that are supposed to imply a full memory-barrier.
-
-Please as to explain.
+                  Linus
