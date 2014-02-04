@@ -1,78 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:54398 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:55165 "EHLO
 	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751056AbaBDSmm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 Feb 2014 13:42:42 -0500
-Date: Tue, 4 Feb 2014 19:41:50 +0100
+	with ESMTP id S1751357AbaBDTGA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 Feb 2014 14:06:00 -0500
+Date: Tue, 4 Feb 2014 20:05:35 +0100
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: mips octeon memory model questions
-Message-ID: <20140204184150.GB5002@laptop.programming.kicks-ass.net>
+Subject: Re: mips octeon memory model questions
+Message-ID: <20140204190535.GC5002@laptop.programming.kicks-ass.net>
+References: <20140204184150.GB5002@laptop.programming.kicks-ass.net>
+ <CA+55aFz9+AtK_OnUhH0gspUsXLxZN-MRwKVR5zVPsVGmGpBqxg@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
+In-Reply-To: <CA+55aFz9+AtK_OnUhH0gspUsXLxZN-MRwKVR5zVPsVGmGpBqxg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Daney <ddaney@caviumnetworks.com>, Ralf Baechle <ralf@linux-mips.org>
-Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-kernel@vger.kernel.org, Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20140204184150.wc_Gaa1UWWny-OcWgAxqSAzg2Em8reHAGUq12SJLfvU@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: David Daney <ddaney@caviumnetworks.com>, Ralf Baechle <ralf@linux-mips.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mips <linux-mips@linux-mips.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>
+Message-ID: <20140204190535.BU88cknQJXmOa7naLEMqmWUJc2p1CAKX7W9Aes14Nhw@z>
 
-Hi all,
+On Tue, Feb 04, 2014 at 10:58:40AM -0800, Linus Torvalds wrote:
+> On Tue, Feb 4, 2014 at 10:41 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+> >
+> > Still doesn't make sense, because if we need the first sync to stop
+> > writes from being re-ordered with the ll-sc, we also need the second
+> > sync to avoid the same.
+> 
+> Presumably octeon doesn't do speculative writes, only *buffered* writes.
 
-I have a number of questions in regards to commit 6b07d38aaa520ce.
+Speculative writes are bad.. :-)
 
-Given that the octeon doesn't reorder reads; the following:
+> So writes move down, not up.
 
-"      sync
-       ll ...
-       .
-       .
-       .
-       sc ...
-       .
-       .
-       sync
+Right, but the ll-sc store might move down over a later store. Say
+because the ll-sc needs to first get exclusive ownership of the
+cacheline where the later store would be to an already owned line.
 
-  The second SYNC was redundant, but harmless.  "
 
-Still doesn't make sense, because if we need the first sync to stop
-writes from being re-ordered with the ll-sc, we also need the second
-sync to avoid the same.
-
-Suppose:
-   STORE a
-   sync
-   LL-SC b
-   (not a sync)
-   STORE c
-
-What avoids this becoming visible as:
-
-  a
-  c
-  b
-
-?
-
-Then there is:
-
-"       syncw;syncw
-        ll
-        .
-        .
-        .
-        sc
-        .
-        .
-
-    Has identical semantics to the first sequence, but is much faster.
-    The SYNCW orders the writes, and the SC will not complete successfully
-    until the write is committed to the coherent memory system.  So at the
-    end all preceeding writes have been committed.  Since Octeon does not
-    do speculative reads, this functions as a full barrier."
-
-Read Documentation/memory-barrier.txt:TRANSITIVITY, the above doesn't
-sound like syncw is actually multi-copy atomic, and therefore doesn't
-provide transitivity, and therefore is not a valid sequence for
-operations that are supposed to imply a full memory-barrier.
-
-Please as to explain.
