@@ -1,88 +1,81 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC][PATCH] ia64: Fix atomic ops vs memory barriers
-Date: Tue, 4 Feb 2014 17:40:22 +0100
-Message-ID: <20140204164022.GZ5002@laptop.programming.kicks-ass.net>
-References: <20140204122212.GO8874@twins.programming.kicks-ass.net>
- <CA+55aFz6LGt35C2ex6qCM8cQDowmr9HR-+hR9bMXJPE707+k-A@mail.gmail.com>
+Subject: mips octeon memory model questions
+Date: Tue, 4 Feb 2014 19:41:50 +0100
+Message-ID: <20140204184150.GB5002@laptop.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:50630 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754362AbaBDQk3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 Feb 2014 11:40:29 -0500
+Return-path: <linux-mips-bounce@linux-mips.org>
 Content-Disposition: inline
-In-Reply-To: <CA+55aFz6LGt35C2ex6qCM8cQDowmr9HR-+hR9bMXJPE707+k-A@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
+To: David Daney <ddaney@caviumnetworks.com>, Ralf Baechle <ralf@linux-mips.org>
+Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-kernel@vger.kernel.org, Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Linus Torvalds <torvalds@linux-foundation.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Feb 04, 2014 at 08:29:36AM -0800, Linus Torvalds wrote:
-> On Tue, Feb 4, 2014 at 4:22 AM, Peter Zijlstra <peterz@infradead.org> wrote:
-> >
-> > The below patch assumes the SDM is right (TM), and fixes the atomic_t,
-> > cmpxchg() and xchg() implementations by inserting a mf before the
-> > cmpxchg.acq (or xchg).
-> 
-> You picked the wrong thing to be right. The SDM is wrong.
+Hi all,
 
-Figured, just my luck :-)
+I have a number of questions in regards to commit 6b07d38aaa520ce.
 
-> Last time this came up, Tony explained it thus:
-> 
-> >> Worse still - early processor implementations actually just ignored
-> >> the acquire/release and did a full fence all the time.  Unfortunately
-> >> this meant a lot of badly written code that used .acq when they really
-> >> wanted .rel became legacy out in the wild - so when we made a cpu
-> >> that strictly did the .acq or .rel ... all that code started breaking - so
-> >> we had to back-pedal and keep the "legacy" behavior of a full fence :-(
+Given that the octeon doesn't reorder reads; the following:
 
-That would make a lovely comment near ia64_cmpxchg().
+"      sync
+       ll ...
+       .
+       .
+       .
+       sc ...
+       .
+       .
+       sync
 
-> and since ia64 is basically on life support as an architecture, we can
-> pretty much agree that the SDM is dead, and the only thing that
-> matters is implementation.
-> 
-> The above quote was strictly in the context of just cmpxchg, though,
-> so it's possible that the "fetchadd" instruction acts differently. I
-> would personally expect it to have the same issues, but let's see what
-> Tony says.. Tony?
+  The second SYNC was redundant, but harmless.  "
 
-I would suspect it to be a full fence too, let me do the reverse patch.
+Still doesn't make sense, because if we need the first sync to stop
+writes from being re-ordered with the ll-sc, we also need the second
+sync to avoid the same.
 
----
---- a/arch/ia64/include/asm/bitops.h
-+++ b/arch/ia64/include/asm/bitops.h
-@@ -65,11 +65,8 @@ __set_bit (int nr, volatile void *addr)
- 	*((__u32 *) addr + (nr >> 5)) |= (1 << (nr & 31));
- }
- 
--/*
-- * clear_bit() has "acquire" semantics.
-- */
--#define smp_mb__before_clear_bit()	smp_mb()
--#define smp_mb__after_clear_bit()	do { /* skip */; } while (0)
-+#define smp_mb__before_clear_bit()	barrier();
-+#define smp_mb__after_clear_bit()	barrier();
- 
- /**
-  * clear_bit - Clears a bit in memory
---- a/arch/ia64/include/uapi/asm/cmpxchg.h
-+++ b/arch/ia64/include/uapi/asm/cmpxchg.h
-@@ -118,6 +118,15 @@ extern long ia64_cmpxchg_called_with_bad
- #define cmpxchg_rel(ptr, o, n)	\
- 	ia64_cmpxchg(rel, (ptr), (o), (n), sizeof(*(ptr)))
- 
-+/*
-+ * Worse still - early processor implementations actually just ignored
-+ * the acquire/release and did a full fence all the time.  Unfortunately
-+ * this meant a lot of badly written code that used .acq when they really
-+ * wanted .rel became legacy out in the wild - so when we made a cpu
-+ * that strictly did the .acq or .rel ... all that code started breaking - so
-+ * we had to back-pedal and keep the "legacy" behavior of a full fence :-(
-+ */
-+
- /* for compatibility with other platforms: */
- #define cmpxchg(ptr, o, n)	cmpxchg_acq((ptr), (o), (n))
- #define cmpxchg64(ptr, o, n)	cmpxchg_acq((ptr), (o), (n))
+Suppose:
+   STORE a
+   sync
+   LL-SC b
+   (not a sync)
+   STORE c
+
+What avoids this becoming visible as:
+
+  a
+  c
+  b
+
+?
+
+Then there is:
+
+"       syncw;syncw
+        ll
+        .
+        .
+        .
+        sc
+        .
+        .
+
+    Has identical semantics to the first sequence, but is much faster.
+    The SYNCW orders the writes, and the SC will not complete successfully
+    until the write is committed to the coherent memory system.  So at the
+    end all preceeding writes have been committed.  Since Octeon does not
+    do speculative reads, this functions as a full barrier."
+
+Read Documentation/memory-barrier.txt:TRANSITIVITY, the above doesn't
+sound like syncw is actually multi-copy atomic, and therefore doesn't
+provide transitivity, and therefore is not a valid sequence for
+operations that are supposed to imply a full memory-barrier.
+
+Please as to explain.
