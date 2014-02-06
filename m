@@ -1,373 +1,204 @@
-From: Bryan Wu <cooloney@gmail.com>
-Subject: Re: [PATCH 54/73] drivers/leds: delete non-required instances of
- include <linux/init.h>
-Date: Thu, 6 Feb 2014 11:46:38 -0800
-Message-ID: <CAK5ve-+aS-yb_Lx1yhNcqSgdZWdEhnLTuZvtuhk7veMs32Z+3w@mail.gmail.com>
-References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
- <1390339396-3479-55-git-send-email-paul.gortmaker@windriver.com>
- <CAK5ve-J+G6yH-E6bde-DXP7vNvdcevrH6nwvkot0n3cGi19WmA@mail.gmail.com> <52F3E527.3090804@windriver.com>
+From: Torvald Riegel <triegel@redhat.com>
+Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
+Date: Thu, 06 Feb 2014 22:09:25 +0100
+Message-ID: <1391720965.23421.3884.camel@triegel.csb>
+References: <20140206134825.305510953@infradead.org>	 <21984.1391711149@warthog.procyon.org.uk> <52F3DA85.1060209@arm.com>	 <20140206185910.GE27276@mudshark.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f181.google.com ([209.85.217.181]:42840 "EHLO
-	mail-lb0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751715AbaBFTrB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Feb 2014 14:47:01 -0500
-In-Reply-To: <52F3E527.3090804@windriver.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Paul Gortmaker <paul.gortmaker@windriver.com>
-Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Richard Purdie <rpurdie@rpsys.net>, Linux LED Subsystem <linux-leds@vger.kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <gcc-return-181880-gcc=m.gmane.org@gcc.gnu.org>
+List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
+List-Archive: <http://gcc.gnu.org/ml/gcc/>
+List-Post: <mailto:gcc@gcc.gnu.org>
+List-Help: <http://gcc.gnu.org/ml/>
+Sender: gcc-owner@gcc.gnu.org
+In-Reply-To: <20140206185910.GE27276@mudshark.cambridge.arm.com>
+To: Will Deacon <will.deacon@arm.com>
+Cc: Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Feb 6, 2014 at 11:40 AM, Paul Gortmaker
-<paul.gortmaker@windriver.com> wrote:
-> On 14-02-06 02:28 PM, Bryan Wu wrote:
->> On Tue, Jan 21, 2014 at 1:22 PM, Paul Gortmaker
->> <paul.gortmaker@windriver.com> wrote:
->>> None of these files are actually using any __init type directives
->>> and hence don't need to include <linux/init.h>.  Most are just a
->>> left over from __devinit and __cpuinit removal, or simply due to
->>> code getting copied from one driver to the next.
->>>
->>
->> I will take this patch. Thanks,
->> -Bryan
->
-> The patches that weren't taken by maintainers before 3.14-rc1 were
-> encompassed in the cleanup pull request to Linus sent Tuesday.
->
-> http://www.spinics.net/lists/arm-kernel/msg304864.html
->
-> So, assuming he does pull it, you'll not have to do anything.
->
+On Thu, 2014-02-06 at 18:59 +0000, Will Deacon wrote:
+> On Thu, Feb 06, 2014 at 06:55:01PM +0000, Ramana Radhakrishnan wrote:
+> > On 02/06/14 18:25, David Howells wrote:
+> > >
+> > > Is it worth considering a move towards using C11 atomics and barriers and
+> > > compiler intrinsics inside the kernel?  The compiler _ought_ to be able to do
+> > > these.
+> > 
+> > 
+> > It sounds interesting to me, if we can make it work properly and 
+> > reliably. + gcc@gcc.gnu.org for others in the GCC community to chip in.
+> 
+> Given my (albeit limited) experience playing with the C11 spec and GCC, I
+> really think this is a bad idea for the kernel.
 
-Sure, I will wait Linus pull and rebase my tree, then everything should be fine.
+I'm not going to comment on what's best for the kernel (simply because I
+don't work on it), but I disagree with several of your statements.
 
-Thanks,
--Bryan
+> It seems that nobody really
+> agrees on exactly how the C11 atomics map to real architectural
+> instructions on anything but the trivial architectures.
 
-> --
->
->>
->>> Cc: Bryan Wu <cooloney@gmail.com>
->>> Cc: Richard Purdie <rpurdie@rpsys.net>
->>> Cc: linux-leds@vger.kernel.org
->>> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
->>> ---
->>>  drivers/leds/led-triggers.c       | 1 -
->>>  drivers/leds/leds-88pm860x.c      | 1 -
->>>  drivers/leds/leds-adp5520.c       | 1 -
->>>  drivers/leds/leds-asic3.c         | 1 -
->>>  drivers/leds/leds-blinkm.c        | 1 -
->>>  drivers/leds/leds-cobalt-qube.c   | 1 -
->>>  drivers/leds/leds-da903x.c        | 1 -
->>>  drivers/leds/leds-da9052.c        | 1 -
->>>  drivers/leds/leds-fsg.c           | 1 -
->>>  drivers/leds/leds-gpio.c          | 1 -
->>>  drivers/leds/leds-hp6xx.c         | 1 -
->>>  drivers/leds/leds-lm3533.c        | 1 -
->>>  drivers/leds/leds-lp5521.c        | 1 -
->>>  drivers/leds/leds-lp5523.c        | 1 -
->>>  drivers/leds/leds-lp5562.c        | 1 -
->>>  drivers/leds/leds-lt3593.c        | 1 -
->>>  drivers/leds/leds-mc13783.c       | 1 -
->>>  drivers/leds/leds-netxbig.c       | 1 -
->>>  drivers/leds/leds-ns2.c           | 1 -
->>>  drivers/leds/leds-ot200.c         | 1 -
->>>  drivers/leds/leds-pwm.c           | 1 -
->>>  drivers/leds/leds-s3c24xx.c       | 1 -
->>>  drivers/leds/leds-wm831x-status.c | 1 -
->>>  drivers/leds/leds-wm8350.c        | 1 -
->>>  24 files changed, 24 deletions(-)
->>>
->>> diff --git a/drivers/leds/led-triggers.c b/drivers/leds/led-triggers.c
->>> index e387f41..df1a7c1 100644
->>> --- a/drivers/leds/led-triggers.c
->>> +++ b/drivers/leds/led-triggers.c
->>> @@ -13,7 +13,6 @@
->>>
->>>  #include <linux/module.h>
->>>  #include <linux/kernel.h>
->>> -#include <linux/init.h>
->>>  #include <linux/list.h>
->>>  #include <linux/spinlock.h>
->>>  #include <linux/device.h>
->>> diff --git a/drivers/leds/leds-88pm860x.c b/drivers/leds/leds-88pm860x.c
->>> index 5f588c0..d1e1bca 100644
->>> --- a/drivers/leds/leds-88pm860x.c
->>> +++ b/drivers/leds/leds-88pm860x.c
->>> @@ -11,7 +11,6 @@
->>>   */
->>>
->>>  #include <linux/kernel.h>
->>> -#include <linux/init.h>
->>>  #include <linux/of.h>
->>>  #include <linux/platform_device.h>
->>>  #include <linux/i2c.h>
->>> diff --git a/drivers/leds/leds-adp5520.c b/drivers/leds/leds-adp5520.c
->>> index 7e311a1..86b5bdb 100644
->>> --- a/drivers/leds/leds-adp5520.c
->>> +++ b/drivers/leds/leds-adp5520.c
->>> @@ -15,7 +15,6 @@
->>>
->>>  #include <linux/module.h>
->>>  #include <linux/kernel.h>
->>> -#include <linux/init.h>
->>>  #include <linux/platform_device.h>
->>>  #include <linux/leds.h>
->>>  #include <linux/workqueue.h>
->>> diff --git a/drivers/leds/leds-asic3.c b/drivers/leds/leds-asic3.c
->>> index 6de216a..70c74a7 100644
->>> --- a/drivers/leds/leds-asic3.c
->>> +++ b/drivers/leds/leds-asic3.c
->>> @@ -7,7 +7,6 @@
->>>   */
->>>
->>>  #include <linux/kernel.h>
->>> -#include <linux/init.h>
->>>  #include <linux/platform_device.h>
->>>  #include <linux/leds.h>
->>>  #include <linux/slab.h>
->>> diff --git a/drivers/leds/leds-blinkm.c b/drivers/leds/leds-blinkm.c
->>> index 66d0a57..0c50860 100644
->>> --- a/drivers/leds/leds-blinkm.c
->>> +++ b/drivers/leds/leds-blinkm.c
->>> @@ -18,7 +18,6 @@
->>>   */
->>>
->>>  #include <linux/module.h>
->>> -#include <linux/init.h>
->>>  #include <linux/slab.h>
->>>  #include <linux/jiffies.h>
->>>  #include <linux/i2c.h>
->>> diff --git a/drivers/leds/leds-cobalt-qube.c b/drivers/leds/leds-cobalt-qube.c
->>> index 8abcb66..910339d 100644
->>> --- a/drivers/leds/leds-cobalt-qube.c
->>> +++ b/drivers/leds/leds-cobalt-qube.c
->>> @@ -3,7 +3,6 @@
->>>   *
->>>   * Control the Cobalt Qube/RaQ front LED
->>>   */
->>> -#include <linux/init.h>
->>>  #include <linux/io.h>
->>>  #include <linux/ioport.h>
->>>  #include <linux/leds.h>
->>> diff --git a/drivers/leds/leds-da903x.c b/drivers/leds/leds-da903x.c
->>> index 2a4b87f..35dffb1 100644
->>> --- a/drivers/leds/leds-da903x.c
->>> +++ b/drivers/leds/leds-da903x.c
->>> @@ -14,7 +14,6 @@
->>>
->>>  #include <linux/module.h>
->>>  #include <linux/kernel.h>
->>> -#include <linux/init.h>
->>>  #include <linux/platform_device.h>
->>>  #include <linux/leds.h>
->>>  #include <linux/workqueue.h>
->>> diff --git a/drivers/leds/leds-da9052.c b/drivers/leds/leds-da9052.c
->>> index 865d4fa..01486ad 100644
->>> --- a/drivers/leds/leds-da9052.c
->>> +++ b/drivers/leds/leds-da9052.c
->>> @@ -14,7 +14,6 @@
->>>
->>>  #include <linux/module.h>
->>>  #include <linux/kernel.h>
->>> -#include <linux/init.h>
->>>  #include <linux/platform_device.h>
->>>  #include <linux/leds.h>
->>>  #include <linux/workqueue.h>
->>> diff --git a/drivers/leds/leds-fsg.c b/drivers/leds/leds-fsg.c
->>> index b4d5a44..2b4dc73 100644
->>> --- a/drivers/leds/leds-fsg.c
->>> +++ b/drivers/leds/leds-fsg.c
->>> @@ -16,7 +16,6 @@
->>>   */
->>>
->>>  #include <linux/kernel.h>
->>> -#include <linux/init.h>
->>>  #include <linux/platform_device.h>
->>>  #include <linux/leds.h>
->>>  #include <linux/module.h>
->>> diff --git a/drivers/leds/leds-gpio.c b/drivers/leds/leds-gpio.c
->>> index 78b0e27..3f65a08 100644
->>> --- a/drivers/leds/leds-gpio.c
->>> +++ b/drivers/leds/leds-gpio.c
->>> @@ -11,7 +11,6 @@
->>>   *
->>>   */
->>>  #include <linux/kernel.h>
->>> -#include <linux/init.h>
->>>  #include <linux/platform_device.h>
->>>  #include <linux/gpio.h>
->>>  #include <linux/leds.h>
->>> diff --git a/drivers/leds/leds-hp6xx.c b/drivers/leds/leds-hp6xx.c
->>> index 366b605..d61a988 100644
->>> --- a/drivers/leds/leds-hp6xx.c
->>> +++ b/drivers/leds/leds-hp6xx.c
->>> @@ -12,7 +12,6 @@
->>>
->>>  #include <linux/module.h>
->>>  #include <linux/kernel.h>
->>> -#include <linux/init.h>
->>>  #include <linux/platform_device.h>
->>>  #include <linux/leds.h>
->>>  #include <asm/hd64461.h>
->>> diff --git a/drivers/leds/leds-lm3533.c b/drivers/leds/leds-lm3533.c
->>> index 027ede7..e2c642c11 100644
->>> --- a/drivers/leds/leds-lm3533.c
->>> +++ b/drivers/leds/leds-lm3533.c
->>> @@ -12,7 +12,6 @@
->>>   */
->>>
->>>  #include <linux/module.h>
->>> -#include <linux/init.h>
->>>  #include <linux/leds.h>
->>>  #include <linux/mfd/core.h>
->>>  #include <linux/mutex.h>
->>> diff --git a/drivers/leds/leds-lp5521.c b/drivers/leds/leds-lp5521.c
->>> index 2ec34cf..8ca197a 100644
->>> --- a/drivers/leds/leds-lp5521.c
->>> +++ b/drivers/leds/leds-lp5521.c
->>> @@ -25,7 +25,6 @@
->>>  #include <linux/delay.h>
->>>  #include <linux/firmware.h>
->>>  #include <linux/i2c.h>
->>> -#include <linux/init.h>
->>>  #include <linux/leds.h>
->>>  #include <linux/module.h>
->>>  #include <linux/mutex.h>
->>> diff --git a/drivers/leds/leds-lp5523.c b/drivers/leds/leds-lp5523.c
->>> index 4ade66a..cb5ed82 100644
->>> --- a/drivers/leds/leds-lp5523.c
->>> +++ b/drivers/leds/leds-lp5523.c
->>> @@ -25,7 +25,6 @@
->>>  #include <linux/delay.h>
->>>  #include <linux/firmware.h>
->>>  #include <linux/i2c.h>
->>> -#include <linux/init.h>
->>>  #include <linux/leds.h>
->>>  #include <linux/module.h>
->>>  #include <linux/mutex.h>
->>> diff --git a/drivers/leds/leds-lp5562.c b/drivers/leds/leds-lp5562.c
->>> index bf006f4..315d3ca 100644
->>> --- a/drivers/leds/leds-lp5562.c
->>> +++ b/drivers/leds/leds-lp5562.c
->>> @@ -13,7 +13,6 @@
->>>  #include <linux/delay.h>
->>>  #include <linux/firmware.h>
->>>  #include <linux/i2c.h>
->>> -#include <linux/init.h>
->>>  #include <linux/leds.h>
->>>  #include <linux/module.h>
->>>  #include <linux/mutex.h>
->>> diff --git a/drivers/leds/leds-lt3593.c b/drivers/leds/leds-lt3593.c
->>> index 3417e5b..059f5b1 100644
->>> --- a/drivers/leds/leds-lt3593.c
->>> +++ b/drivers/leds/leds-lt3593.c
->>> @@ -17,7 +17,6 @@
->>>   */
->>>
->>>  #include <linux/kernel.h>
->>> -#include <linux/init.h>
->>>  #include <linux/platform_device.h>
->>>  #include <linux/leds.h>
->>>  #include <linux/workqueue.h>
->>> diff --git a/drivers/leds/leds-mc13783.c b/drivers/leds/leds-mc13783.c
->>> index ca87a1b..dca34c7 100644
->>> --- a/drivers/leds/leds-mc13783.c
->>> +++ b/drivers/leds/leds-mc13783.c
->>> @@ -17,7 +17,6 @@
->>>
->>>  #include <linux/module.h>
->>>  #include <linux/kernel.h>
->>> -#include <linux/init.h>
->>>  #include <linux/platform_device.h>
->>>  #include <linux/leds.h>
->>>  #include <linux/workqueue.h>
->>> diff --git a/drivers/leds/leds-netxbig.c b/drivers/leds/leds-netxbig.c
->>> index 2f9f141..e97f443 100644
->>> --- a/drivers/leds/leds-netxbig.c
->>> +++ b/drivers/leds/leds-netxbig.c
->>> @@ -21,7 +21,6 @@
->>>   */
->>>
->>>  #include <linux/module.h>
->>> -#include <linux/init.h>
->>>  #include <linux/irq.h>
->>>  #include <linux/slab.h>
->>>  #include <linux/spinlock.h>
->>> diff --git a/drivers/leds/leds-ns2.c b/drivers/leds/leds-ns2.c
->>> index c7a4230..efa6258 100644
->>> --- a/drivers/leds/leds-ns2.c
->>> +++ b/drivers/leds/leds-ns2.c
->>> @@ -23,7 +23,6 @@
->>>   */
->>>
->>>  #include <linux/kernel.h>
->>> -#include <linux/init.h>
->>>  #include <linux/platform_device.h>
->>>  #include <linux/slab.h>
->>>  #include <linux/gpio.h>
->>> diff --git a/drivers/leds/leds-ot200.c b/drivers/leds/leds-ot200.c
->>> index 98cae52..c9d9060 100644
->>> --- a/drivers/leds/leds-ot200.c
->>> +++ b/drivers/leds/leds-ot200.c
->>> @@ -8,7 +8,6 @@
->>>   */
->>>
->>>  #include <linux/kernel.h>
->>> -#include <linux/init.h>
->>>  #include <linux/platform_device.h>
->>>  #include <linux/slab.h>
->>>  #include <linux/leds.h>
->>> diff --git a/drivers/leds/leds-pwm.c b/drivers/leds/leds-pwm.c
->>> index 6050474..dd17873 100644
->>> --- a/drivers/leds/leds-pwm.c
->>> +++ b/drivers/leds/leds-pwm.c
->>> @@ -14,7 +14,6 @@
->>>
->>>  #include <linux/module.h>
->>>  #include <linux/kernel.h>
->>> -#include <linux/init.h>
->>>  #include <linux/platform_device.h>
->>>  #include <linux/of_platform.h>
->>>  #include <linux/fb.h>
->>> diff --git a/drivers/leds/leds-s3c24xx.c b/drivers/leds/leds-s3c24xx.c
->>> index 98174e7..28988b7 100644
->>> --- a/drivers/leds/leds-s3c24xx.c
->>> +++ b/drivers/leds/leds-s3c24xx.c
->>> @@ -12,7 +12,6 @@
->>>  */
->>>
->>>  #include <linux/kernel.h>
->>> -#include <linux/init.h>
->>>  #include <linux/platform_device.h>
->>>  #include <linux/leds.h>
->>>  #include <linux/gpio.h>
->>> diff --git a/drivers/leds/leds-wm831x-status.c b/drivers/leds/leds-wm831x-status.c
->>> index 0a1a13f..e72c974 100644
->>> --- a/drivers/leds/leds-wm831x-status.c
->>> +++ b/drivers/leds/leds-wm831x-status.c
->>> @@ -10,7 +10,6 @@
->>>   */
->>>
->>>  #include <linux/kernel.h>
->>> -#include <linux/init.h>
->>>  #include <linux/platform_device.h>
->>>  #include <linux/slab.h>
->>>  #include <linux/leds.h>
->>> diff --git a/drivers/leds/leds-wm8350.c b/drivers/leds/leds-wm8350.c
->>> index 3f75fd2..4133ffe 100644
->>> --- a/drivers/leds/leds-wm8350.c
->>> +++ b/drivers/leds/leds-wm8350.c
->>> @@ -10,7 +10,6 @@
->>>   */
->>>
->>>  #include <linux/kernel.h>
->>> -#include <linux/init.h>
->>>  #include <linux/platform_device.h>
->>>  #include <linux/leds.h>
->>>  #include <linux/err.h>
->>> --
->>> 1.8.4.1
->>>
+There's certainly different ways to implement the memory model and those
+have to be specified elsewhere, but I don't see how this differs much
+from other things specified in the ABI(s) for each architecture.
+
+> For example, should
+> the following code fire the assert?
+
+I don't see how your example (which is about what the language requires
+or not) relates to the statement about the mapping above?
+
+> 
+> extern atomic<int> foo, bar, baz;
+> 
+> void thread1(void)
+> {
+> 	foo.store(42, memory_order_relaxed);
+> 	bar.fetch_add(1, memory_order_seq_cst);
+> 	baz.store(42, memory_order_relaxed);
+> }
+> 
+> void thread2(void)
+> {
+> 	while (baz.load(memory_order_seq_cst) != 42) {
+> 		/* do nothing */
+> 	}
+> 
+> 	assert(foo.load(memory_order_seq_cst) == 42);
+> }
+> 
+
+It's a good example.  My first gut feeling was that the assertion should
+never fire, but that was wrong because (as I seem to usually forget) the
+seq-cst total order is just a constraint but doesn't itself contribute
+to synchronizes-with -- but this is different for seq-cst fences.
+
+> To answer that question, you need to go and look at the definitions of
+> synchronises-with, happens-before, dependency_ordered_before and a whole
+> pile of vaguely written waffle to realise that you don't know.
+
+Are you familiar with the formalization of the C11/C++11 model by Batty
+et al.?
+http://www.cl.cam.ac.uk/~mjb220/popl085ap-sewell.pdf
+http://www.cl.cam.ac.uk/~mjb220/n3132.pdf
+
+They also have a nice tool that can run condensed examples and show you
+all allowed (and forbidden) executions (it runs in the browser, so is
+slow for larger examples), including nice annotated graphs for those:
+http://svr-pes20-cppmem.cl.cam.ac.uk/cppmem/
+
+It requires somewhat special syntax, but the following, which should be
+equivalent to your example above, runs just fine:
+
+int main() {
+  atomic_int foo = 0; 
+  atomic_int bar = 0; 
+  atomic_int baz = 0; 
+  {{{ {
+        foo.store(42, memory_order_relaxed);
+        bar.store(1, memory_order_seq_cst);
+        baz.store(42, memory_order_relaxed);
+      }
+  ||| {
+        r1=baz.load(memory_order_seq_cst).readsvalue(42);
+        r2=foo.load(memory_order_seq_cst).readsvalue(0);
+      }
+  }}};
+  return 0; }
+
+That yields 3 consistent executions for me, and likewise if the last
+readsvalue() is using 42 as argument.
+
+If you add a "fence(memory_order_seq_cst);" after the store to foo, the
+program can't observe != 42 for foo anymore, because the seq-cst fence
+is adding a synchronizes-with edge via the baz reads-from.
+
+I think this is a really neat tool, and very helpful to answer such
+questions as in your example.
+
+> Certainly,
+> the code that arm64 GCC currently spits out would allow the assertion to fire
+> on some microarchitectures.
+> 
+> There are also so many ways to blow your head off it's untrue. For example,
+> cmpxchg takes a separate memory model parameter for failure and success, but
+> then there are restrictions on the sets you can use for each.
+
+That's in there for the architectures without a single-instruction
+CAS/cmpxchg, I believe.
+
+> It's not hard
+> to find well-known memory-ordering experts shouting "Just use
+> memory_model_seq_cst for everything, it's too hard otherwise".
+
+Everyone I've heard saying this meant this as advice to people new to
+synchronization or just dealing infrequently with it.  The advice is the
+simple and safe fallback, and I don't think it's meant as an
+acknowledgment that the model itself would be too hard.  If the
+language's memory model is supposed to represent weak HW memory models
+to at least some extent, there's only so much you can do in terms of
+keeping it simple.  If all architectures had x86-like models, the
+language's model would certainly be simpler... :)
+
+> Then there's
+> the fun of load-consume vs load-acquire (arm64 GCC completely ignores consume
+> atm and optimises all of the data dependencies away)
+
+AFAIK consume memory order was added to model Power/ARM-specific
+behavior.  I agree that the way the standard specifies how dependencies
+are to be preserved is kind of vague (as far as I understand it).  See
+GCC PR 59448.
+
+> as well as the definition
+> of "data races", which seem to be used as an excuse to miscompile a program
+> at the earliest opportunity.
+
+No.  The purpose of this is to *not disallow* every optimization on
+non-synchronizing code.  Due to the assumption of data-race-free
+programs, the compiler can assume a sequential code sequence when no
+atomics are involved (and thus, keep applying optimizations for
+sequential code).
+
+Or is there something particular that you dislike about the
+specification of data races?
+
+> Trying to introduce system concepts (writes to devices, interrupts,
+> non-coherent agents) into this mess is going to be an uphill battle IMHO.
+
+That might very well be true.
+
+OTOH, if you whould need to model this uniformly across different
+architectures (ie, so that there is a intra-kernel-portable abstraction
+for those system concepts), you might as well try doing this by
+extending the C11/C++11 model.  Maybe that will not be successful or not
+really a good fit, though, but at least then it's clear why that's the
+case.
+
+> I'd
+> just rather stick to the semantics we have and the asm volatile barriers.
+> 
+> That's not to say I don't there's no room for improvement in what we have
+> in the kernel. Certainly, I'd welcome allowing more relaxed operations on
+> architectures that support them, but it needs to be something that at least
+> the different architecture maintainers can understand how to implement
+> efficiently behind an uncomplicated interface. I don't think that interface is
+> C11.
+
+IMHO, one thing worth considering is that for C/C++, the C11/C++11 is
+the only memory model that has widespread support.  So, even though it's
+a fairly weak memory model (unless you go for the "only seq-cst"
+beginners advice) and thus comes with a higher complexity, this model is
+what likely most people will be familiar with over time.  Deviating from
+the "standard" model can have valid reasons, but it also has a cost in
+that new contributors are more likely to be familiar with the "standard"
+model.
+
+Note that I won't claim that the C11/C++11 model is perfect -- there are
+a few rough edges there (e.g., the forward progress guarantees are (or
+used to be) a little coarse for my taste), and consume vs. dependencies
+worries me as well.  But, IMHO, overall it's the best C/C++ language
+model we have.
+
+
+Torvald
