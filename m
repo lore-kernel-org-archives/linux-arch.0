@@ -1,195 +1,90 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+From: "Joseph S. Myers" <joseph@codesourcery.com>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Thu, 6 Feb 2014 14:11:18 -0800
-Message-ID: <20140206221117.GJ4250@linux.vnet.ibm.com>
-References: <20140206134825.305510953@infradead.org>
- <21984.1391711149@warthog.procyon.org.uk>
- <52F3DA85.1060209@arm.com>
- <20140206185910.GE27276@mudshark.cambridge.arm.com>
- <20140206192743.GH4250@linux.vnet.ibm.com>
- <1391721423.23421.3898.camel@triegel.csb>
-Reply-To: paulmck@linux.vnet.ibm.com
+Date: Thu, 6 Feb 2014 22:13:36 +0000
+Message-ID: <Pine.LNX.4.64.1402062147020.17635@digraph.polyomino.org.uk>
+References: <20140206134825.305510953@infradead.org>  <21984.1391711149@warthog.procyon.org.uk> <52F3DA85.1060209@arm.com>  <20140206185910.GE27276@mudshark.cambridge.arm.com> <1391720965.23421.3884.camel@triegel.csb>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e34.co.us.ibm.com ([32.97.110.152]:36728 "EHLO
-	e34.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752497AbaBFWLW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Feb 2014 17:11:22 -0500
-Received: from /spool/local
-	by e34.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Thu, 6 Feb 2014 15:11:22 -0700
-Content-Disposition: inline
-In-Reply-To: <1391721423.23421.3898.camel@triegel.csb>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset="US-ASCII"
+Return-path: <gcc-return-181884-gcc=m.gmane.org@gcc.gnu.org>
+List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
+List-Archive: <http://gcc.gnu.org/ml/gcc/>
+List-Post: <mailto:gcc@gcc.gnu.org>
+List-Help: <http://gcc.gnu.org/ml/>
+Sender: gcc-owner@gcc.gnu.org
+In-Reply-To: <1391720965.23421.3884.camel@triegel.csb>
 To: Torvald Riegel <triegel@redhat.com>
-Cc: Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Cc: Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Feb 06, 2014 at 10:17:03PM +0100, Torvald Riegel wrote:
-> On Thu, 2014-02-06 at 11:27 -0800, Paul E. McKenney wrote:
-> > On Thu, Feb 06, 2014 at 06:59:10PM +0000, Will Deacon wrote:
-> > > On Thu, Feb 06, 2014 at 06:55:01PM +0000, Ramana Radhakrishnan wr=
-ote:
-> > > > On 02/06/14 18:25, David Howells wrote:
-> > > > >
-> > > > > Is it worth considering a move towards using C11 atomics and =
-barriers and
-> > > > > compiler intrinsics inside the kernel?  The compiler _ought_ =
-to be able to do
-> > > > > these.
-> > > >=20
-> > > >=20
-> > > > It sounds interesting to me, if we can make it work properly an=
-d=20
-> > > > reliably. + gcc@gcc.gnu.org for others in the GCC community to =
-chip in.
-> > >=20
-> > > Given my (albeit limited) experience playing with the C11 spec an=
-d GCC, I
-> > > really think this is a bad idea for the kernel. It seems that nob=
-ody really
-> > > agrees on exactly how the C11 atomics map to real architectural
-> > > instructions on anything but the trivial architectures. For examp=
-le, should
-> > > the following code fire the assert?
-> > >=20
-> > >=20
-> > > extern atomic<int> foo, bar, baz;
-> > >=20
-> > > void thread1(void)
-> > > {
-> > > 	foo.store(42, memory_order_relaxed);
-> > > 	bar.fetch_add(1, memory_order_seq_cst);
-> > > 	baz.store(42, memory_order_relaxed);
-> > > }
-> > >=20
-> > > void thread2(void)
-> > > {
-> > > 	while (baz.load(memory_order_seq_cst) !=3D 42) {
-> > > 		/* do nothing */
-> > > 	}
-> > >=20
-> > > 	assert(foo.load(memory_order_seq_cst) =3D=3D 42);
-> > > }
-> > >=20
-> > >=20
-> > > To answer that question, you need to go and look at the definitio=
-ns of
-> > > synchronises-with, happens-before, dependency_ordered_before and =
-a whole
-> > > pile of vaguely written waffle to realise that you don't know. Ce=
-rtainly,
-> > > the code that arm64 GCC currently spits out would allow the asser=
-tion to fire
-> > > on some microarchitectures.
-> >=20
-> > Yep!  I believe that a memory_order_seq_cst fence in combination wi=
-th the
-> > fetch_add() would do the trick on many architectures, however.  All=
- of
-> > this is one reason that any C11 definitions need to be individually
-> > overridable by individual architectures.
->=20
-> "Overridable" in which sense?  Do you want to change the semantics on
-> the language level in the sense of altering the memory model, or rath=
-er
-> use a different implementation under the hood to, for example, fix
-> deficiencies in the compilers?
+On Thu, 6 Feb 2014, Torvald Riegel wrote:
 
-We need the architecture maintainer to be able to select either an
-assembly-language implementation or a C11-atomics implementation for an=
-y
-given Linux-kernel operation.  For example, a given architecture might
-be able to use fetch_add(1, memory_order_relaxed) for atomic_inc() but
-assembly for atomic_add_return().  This is because atomic_inc() is not
-required to have any particular ordering properties, while as discussed
-previously, atomic_add_return() requires tighter ordering than the C11
-standard provides.
+> > It seems that nobody really
+> > agrees on exactly how the C11 atomics map to real architectural
+> > instructions on anything but the trivial architectures.
+> 
+> There's certainly different ways to implement the memory model and those
+> have to be specified elsewhere, but I don't see how this differs much
+> from other things specified in the ABI(s) for each architecture.
 
-> > > There are also so many ways to blow your head off it's untrue. Fo=
-r example,
-> > > cmpxchg takes a separate memory model parameter for failure and s=
-uccess, but
-> > > then there are restrictions on the sets you can use for each. It'=
-s not hard
-> > > to find well-known memory-ordering experts shouting "Just use
-> > > memory_model_seq_cst for everything, it's too hard otherwise". Th=
-en there's
-> > > the fun of load-consume vs load-acquire (arm64 GCC completely ign=
-ores consume
-> > > atm and optimises all of the data dependencies away) as well as t=
-he definition
-> > > of "data races", which seem to be used as an excuse to miscompile=
- a program
-> > > at the earliest opportunity.
-> >=20
-> > Trust me, rcu_dereference() is not going to be defined in terms of
-> > memory_order_consume until the compilers implement it both correctl=
-y and
-> > efficiently.  They are not there yet, and there is currently no sho=
-rtage
-> > of compiler writers who would prefer to ignore memory_order_consume=
-=2E
->=20
-> Do you have any input on
-> http://gcc.gnu.org/bugzilla/show_bug.cgi?id=3D59448?  In particular, =
-the
-> language standard's definition of dependencies?
+It is not clear to me that there is any good consensus understanding of 
+how to specify this in an ABI, or how, given an ABI, to determine whether 
+an implementation is valid.
 
-Let's see...  1.10p9 says that a dependency must be carried unless:
+For ABIs not considering atomics / concurrency, it's well understood, for 
+example, that the ABI specifies observable conditions at function call 
+boundaries ("these arguments are in these registers", "the stack pointer 
+has this alignment", "on return from the function, the values of these 
+registers are unchanged from the values they had on entry").  It may 
+sometimes specify things at other times (e.g. presence or absence of a red 
+zone - whether memory beyond the stack pointer may be overwritten on an 
+interrupt).  But if it gives a code sequence, it's clear this is just an 
+example rather than a requirement for particular code to be generated - 
+any code sequence suffices if it meets the observable conditions at the 
+points where code generated by one implementation may pass control to code 
+generated by another implementation.
 
-=E2=80=94 B is an invocation of any specialization of std::kill_depende=
-ncy (29.3), or
-=E2=80=94 A is the left operand of a built-in logical AND (&&, see 5.14=
-) or logical OR (||, see 5.15) operator,
-or
-=E2=80=94 A is the left operand of a conditional (?:, see 5.16) operato=
-r, or
-=E2=80=94 A is the left operand of the built-in comma (,) operator (5.1=
-8);
+When atomics are involved, you no longer have a limited set of 
+well-defined points where control may pass from code generated by one 
+implementation to code generated by another - the code generated by the 
+two may be running concurrently.
 
-So the use of "flag" before the "?" is ignored.  But the "flag - flag"
-after the "?" will carry a dependency, so the code fragment in 59448
-needs to do the ordering rather than just optimizing "flag - flag" out
-of existence.  One way to do that on both ARM and Power is to actually
-emit code for "flag - flag", but there are a number of other ways to
-make that work.
+We know of certain cases 
+<http://www.cl.cam.ac.uk/~pes20/cpp/cpp0xmappings.html> where there are 
+choices of the mapping of atomic operations to particular instructions.  
+But I'm not sure there's much evidence that these are the only ABI issues 
+arising from concurrency - that there aren't any other ways in which an 
+implementation may transform code, consistent with the as-if rule of ISO 
+C, that may run into incompatibilities of different choices.  And even if 
+those are the only issues, it's not clear there are well-understood ways 
+to define the mapping from the C11 memory model to the architecture's 
+model, which provide a good way to reason about whether a particular 
+choice of instructions is valid according to the mapping.
 
-BTW, there is some discussion on 1.10p9's handling of && and ||, and
-that clause is likely to change.  And yes, I am behind on analyzing
-usage in the Linux kernel to find out if Linux cares...
+> Are you familiar with the formalization of the C11/C++11 model by Batty
+> et al.?
+> http://www.cl.cam.ac.uk/~mjb220/popl085ap-sewell.pdf
+> http://www.cl.cam.ac.uk/~mjb220/n3132.pdf
 
-> > And rcu_dereference() will need per-arch overrides for some time du=
-ring
-> > any transition to memory_order_consume.
-> >=20
-> > > Trying to introduce system concepts (writes to devices, interrupt=
-s,
-> > > non-coherent agents) into this mess is going to be an uphill batt=
-le IMHO. I'd
-> > > just rather stick to the semantics we have and the asm volatile b=
-arriers.
-> >=20
-> > And barrier() isn't going to go away any time soon, either.  And
-> > ACCESS_ONCE() needs to keep volatile semantics until there is some
-> > memory_order_whatever that prevents loads and stores from being coa=
-lesced.
->=20
-> I'd be happy to discuss something like this in ISO C++ SG1 (or has th=
-is
-> been discussed in the past already?).  But it needs to have a paper I
-> suppose.
+These discuss, as well as the model itself, proving the validity of a 
+particular choice of x86 instructions.  I imagine that might be a starting 
+point towards an understanding of how to describe the relevant issues in 
+an ABI, and how to determine whether a choice of instructions is 
+consistent with what an ABI says.  But I don't get the impression this is 
+yet at the level where people not doing research in the area can routinely 
+read and write such ABIs and work out whether a code sequence is 
+consistent with them.
 
-The current position of the usual suspects other than me is that this
-falls into the category of forward-progress guarantees, which are
-considers (again, by the usual suspects other than me) to be out
-of scope.
+(If an ABI says "use instruction X", then you can't use a more efficient 
+X' added by a new version of the instruction set.  But it can't 
+necessarily be as loose as saying "use X and Y, or other instructions that 
+achieve semantics when the other thread is using X or Y", because it might 
+be the case that Y' interoperates with X, X' interoperates with Y, but X' 
+and Y' don't interoperate with each other.  I'd envisage something more 
+like mapping not to instructions, but to concepts within the 
+architecture's own memory model - but that requires the architecture's 
+memory model to be as well defined, and probably formalized, as the C11 
+one.)
 
-> Will you be in Issaquah for the C++ meeting next week?
-
-Weather permitting, I will be there!
-
-							Thanx, Paul
+-- 
+Joseph S. Myers
+joseph@codesourcery.com
