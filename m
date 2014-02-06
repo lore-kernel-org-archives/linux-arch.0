@@ -1,34 +1,29 @@
-From: Linus Walleij <linus.walleij@linaro.org>
-Subject: Re: [PATCH 59/73] drivers/gpio: delete non-required instances of
- include <linux/init.h>
-Date: Thu, 6 Feb 2014 10:33:25 +0100
-Message-ID: <CACRpkdZbam+UcKhBXwwLE+cDDoUgCPUQZ-afOD+qyJt9aJfw4g@mail.gmail.com>
-References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
-	<1390339396-3479-60-git-send-email-paul.gortmaker@windriver.com>
-	<CACRpkdYk6cOO-JZbe887ihJaWE5JMjuXm3EVcZmE1jCeL2BODQ@mail.gmail.com>
-	<20140124095827.1ee8ddcfed8d1c8e0a6d3dbd@canb.auug.org.au>
-	<20140124022154.GA13428@windriver.com>
-	<CACRpkdYF2f1Ekp6JYwntj+UhbceWtMN==yKC7emsXHfktcZZsg@mail.gmail.com>
-	<52F25209.2010506@windriver.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: mips octeon memory model questions
+Date: Thu, 6 Feb 2014 12:45:17 +0100
+Message-ID: <20140206114517.GI4941@twins.programming.kicks-ass.net>
+References: <20140204184150.GB5002@laptop.programming.kicks-ass.net>
+ <52F144C3.1080705@caviumnetworks.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-gpio-owner@vger.kernel.org>
-In-Reply-To: <52F25209.2010506@windriver.com>
-Sender: linux-gpio-owner@vger.kernel.org
-To: Paul Gortmaker <paul.gortmaker@windriver.com>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexandre Courbot <gnurou@gmail.com>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:46678 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755949AbaBFLpe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Feb 2014 06:45:34 -0500
+Content-Disposition: inline
+In-Reply-To: <52F144C3.1080705@caviumnetworks.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Daney <ddaney@caviumnetworks.com>
+Cc: Ralf Baechle <ralf@linux-mips.org>, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-kernel@vger.kernel.org, Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Linus Torvalds <torvalds@linux-foundation.org>
 
-On Wed, Feb 5, 2014 at 4:00 PM, Paul Gortmaker
-<paul.gortmaker@windriver.com> wrote:
-> On 14-02-05 08:02 AM, Linus Walleij wrote:
+On Tue, Feb 04, 2014 at 11:51:31AM -0800, David Daney wrote:
+> On OCTEON, SC implies a SYNC operation for the target memory location. So
+> the "SC b" is ordered before any writes that come after the SC.
 
->> So I can add these patches to my devel branches now I think?
->
-> The patches that weren't taken by maintainers before 3.14-rc1 were
-> encompassed in the cleanup pull request to Linus sent yesterday.
+Ah, that makes it all come together. I was thrown by octeon initially
+having WEAK_REORDERING_BEYOND_LLSC set and thus thinking there were no
+implied barriers.
 
-Sweet! Thanks Paul.
-
-Yours,
-Linus Walleij
+Thanks David.
