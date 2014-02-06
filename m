@@ -1,63 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:49159 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932695AbaBFNwT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Feb 2014 08:52:19 -0500
-Message-ID: <20140206135001.059111455@infradead.org>
-Date: Thu, 06 Feb 2014 14:48:26 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: [RFC][PATCH 1/5] ia64: Fix up smp_mb__{before,after}_clear_bit
+Received: from mail-pd0-f170.google.com ([209.85.192.170]:40619 "EHLO
+	mail-pd0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753253AbaBFOnU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Feb 2014 09:43:20 -0500
+MIME-Version: 1.0
+In-Reply-To: <20140206135001.333583247@infradead.org>
 References: <20140206134825.305510953@infradead.org>
-Content-Disposition: inline; filename=peterz-ia64-atomics.patch
+	<20140206135001.333583247@infradead.org>
+Date: Thu, 6 Feb 2014 15:43:19 +0100
+Message-ID: <CAMuHMdV8BtrwfPWToxX5dUhtSQ4HP+UhWh10LM2voQ82pqcA+Q@mail.gmail.com>
+Subject: Re: [RFC][PATCH 5/5] arch: Sanitize atomic_t bitwise ops
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20140206134826.IkNRZnOu6qlmvJ9gA-uCVzEa16e0wCCA9pP0fCOqqes@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Will Deacon <will.deacon@arm.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>
+Message-ID: <20140206144319.Uxg7BJ5Gc9_r59nnnwsBWErz_MhnfrAUlNf0PkFvnhw@z>
 
-IA64 doesn't actually have acquire/release barriers, its a lie!
+On Thu, Feb 6, 2014 at 2:48 PM, Peter Zijlstra <peterz@infradead.org> wrote:
+> --- a/arch/m68k/include/asm/atomic.h
+> +++ b/arch/m68k/include/asm/atomic.h
+> @@ -76,6 +76,9 @@ static inline int atomic_##op##_return(i
+>
+>  ATOMIC_OP(add, +=)
+>  ATOMIC_OP(sub, -=)
+> +ATOMIC_OP(and, &=)
+> +ATOMIC_OP(or , |=)
+> +ATOMIC_OP(xor, ^=)
 
-Add a comment explaining this and fix up the bitop barriers.
+This last one ain't gonna fly. Given
 
-Signed-off-by: Peter Zijlstra <peterz@infradead.org>
----
- arch/ia64/include/asm/bitops.h       |    7 ++-----
- arch/ia64/include/uapi/asm/cmpxchg.h |    9 +++++++++
- 2 files changed, 11 insertions(+), 5 deletions(-)
+static inline void atomic_##op(int i, atomic_t *v)                     \
+{                                                                      \
+       __asm__ __volatile__(#op "l %1,%0" : "+m" (*v) : ASM_DI (i));   \
+}
 
---- a/arch/ia64/include/asm/bitops.h
-+++ b/arch/ia64/include/asm/bitops.h
-@@ -65,11 +65,8 @@ __set_bit (int nr, volatile void *addr)
- 	*((__u32 *) addr + (nr >> 5)) |= (1 << (nr & 31));
- }
- 
--/*
-- * clear_bit() has "acquire" semantics.
-- */
--#define smp_mb__before_clear_bit()	smp_mb()
--#define smp_mb__after_clear_bit()	do { /* skip */; } while (0)
-+#define smp_mb__before_clear_bit()	barrier();
-+#define smp_mb__after_clear_bit()	barrier();
- 
- /**
-  * clear_bit - Clears a bit in memory
---- a/arch/ia64/include/uapi/asm/cmpxchg.h
-+++ b/arch/ia64/include/uapi/asm/cmpxchg.h
-@@ -118,6 +118,15 @@ extern long ia64_cmpxchg_called_with_bad
- #define cmpxchg_rel(ptr, o, n)	\
- 	ia64_cmpxchg(rel, (ptr), (o), (n), sizeof(*(ptr)))
- 
-+/*
-+ * Worse still - early processor implementations actually just ignored
-+ * the acquire/release and did a full fence all the time.  Unfortunately
-+ * this meant a lot of badly written code that used .acq when they really
-+ * wanted .rel became legacy out in the wild - so when we made a cpu
-+ * that strictly did the .acq or .rel ... all that code started breaking - so
-+ * we had to back-pedal and keep the "legacy" behavior of a full fence :-(
-+ */
-+
- /* for compatibility with other platforms: */
- #define cmpxchg(ptr, o, n)	cmpxchg_acq((ptr), (o), (n))
- #define cmpxchg64(ptr, o, n)	cmpxchg_acq((ptr), (o), (n))
+from the previous patch, it'll generate the "xorl" mnemonic, which
+IIRC does not exist. It's called "eorl".
 
+Verified with m68k-linux-gnu-as:
 
+Error: Unknown operator -- statement `xorl %d0,%d1' ignored
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
