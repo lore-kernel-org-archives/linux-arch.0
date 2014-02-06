@@ -1,34 +1,27 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC][PATCH 5/5] arch: Sanitize atomic_t bitwise ops
-Date: Thu, 6 Feb 2014 19:09:30 +0100
-Message-ID: <20140206180930.GJ5002@laptop.programming.kicks-ass.net>
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
+Date: Thu, 06 Feb 2014 18:25:49 +0000
+Message-ID: <21984.1391711149@warthog.procyon.org.uk>
 References: <20140206134825.305510953@infradead.org>
- <20140206135001.333583247@infradead.org>
- <CA+55aFwzn09dPJekgCbO2VRO8j3=eEt2j_QFd=Gd4MXTA2gm9g@mail.gmail.com>
- <20140206175201.GH5002@laptop.programming.kicks-ass.net>
- <CA+55aFx=dDhYzp7yN5oiPT+_Gyffo+0hT5WRFd7eGeMz8oNnDg@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:55590 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752403AbaBFSJf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Feb 2014 13:09:35 -0500
-Content-Disposition: inline
-In-Reply-To: <CA+55aFx=dDhYzp7yN5oiPT+_Gyffo+0hT5WRFd7eGeMz8oNnDg@mail.gmail.com>
+Received: from mx1.redhat.com ([209.132.183.28]:46593 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751150AbaBFS0Y (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 6 Feb 2014 13:26:24 -0500
+In-Reply-To: <20140206134825.305510953@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Will Deacon <will.deacon@arm.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, ramana.radhakrishnan@arm.com
 
-On Thu, Feb 06, 2014 at 09:56:54AM -0800, Linus Torvalds wrote:
-> On Thu, Feb 6, 2014 at 9:52 AM, Peter Zijlstra <peterz@infradead.org> wrote:
-> It's the "_return" variants. As far as I can tell, there are exactly
-> ZERO users of that stuff, and they are BAD BAD BAD.
-> 
-> On x86, those things would cause a cmpxchg loop, and the bad
-> read-for-shared-before-acquire cacheline pattern.
-> 
-> So why indirectly encourage people to add users for a bad operation?
 
-OK, I'll not generate the _return() variants.
+Is it worth considering a move towards using C11 atomics and barriers and
+compiler intrinsics inside the kernel?  The compiler _ought_ to be able to do
+these.
+
+One thing I'm not sure of, though, is how well gcc's atomics will cope with
+interrupt handlers touching atomics on CPUs without suitable atomic
+instructions - that said, userspace does have to deal with signals getting
+underfoot. but then userspace can't normally disable interrupts.
+
+David
