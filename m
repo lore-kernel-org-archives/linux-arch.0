@@ -1,56 +1,30 @@
-From: Peter Zijlstra <peterz@infradead.org>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [RFC][PATCH 5/5] arch: Sanitize atomic_t bitwise ops
-Date: Thu, 6 Feb 2014 17:14:18 +0100
-Message-ID: <20140206161418.GS2936@laptop.programming.kicks-ass.net>
+Date: Thu, 6 Feb 2014 08:53:02 -0800
+Message-ID: <CA+55aFwzn09dPJekgCbO2VRO8j3=eEt2j_QFd=Gd4MXTA2gm9g@mail.gmail.com>
 References: <20140206134825.305510953@infradead.org>
- <20140206135001.333583247@infradead.org>
- <CAMuHMdV8BtrwfPWToxX5dUhtSQ4HP+UhWh10LM2voQ82pqcA+Q@mail.gmail.com>
+	<20140206135001.333583247@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:52600 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752337AbaBFQO1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Feb 2014 11:14:27 -0500
-Content-Disposition: inline
-In-Reply-To: <CAMuHMdV8BtrwfPWToxX5dUhtSQ4HP+UhWh10LM2voQ82pqcA+Q@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Will Deacon <will.deacon@arm.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20140206135001.333583247@infradead.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Will Deacon <will.deacon@arm.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Feb 06, 2014 at 03:43:19PM +0100, Geert Uytterhoeven wrote:
-> On Thu, Feb 6, 2014 at 2:48 PM, Peter Zijlstra <peterz@infradead.org> wrote:
-> > --- a/arch/m68k/include/asm/atomic.h
-> > +++ b/arch/m68k/include/asm/atomic.h
-> > @@ -76,6 +76,9 @@ static inline int atomic_##op##_return(i
-> >
-> >  ATOMIC_OP(add, +=)
-> >  ATOMIC_OP(sub, -=)
-> > +ATOMIC_OP(and, &=)
-> > +ATOMIC_OP(or , |=)
-> > +ATOMIC_OP(xor, ^=)
-> 
-> This last one ain't gonna fly. Given
-> 
-> static inline void atomic_##op(int i, atomic_t *v)                     \
-> {                                                                      \
->        __asm__ __volatile__(#op "l %1,%0" : "+m" (*v) : ASM_DI (i));   \
-> }
-> 
-> from the previous patch, it'll generate the "xorl" mnemonic, which
-> IIRC does not exist. It's called "eorl".
+On Thu, Feb 6, 2014 at 5:48 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+> Many archs have atomic_{set,clear}_mask() but not all. Remove these
+> and provide a comprehensive set of bitops:
+>
+>   atomic{,64}_{and,or,xor}{,_return}()
 
-Some instruction sets I googled, others I didn't; guess what I did (or
-rather didn't do) for m68k :-)
+Who uses these, and why?
 
-ok I'll make that:
+The "_return()" versions of atomic ops are noticeably slower and more
+complex on common architectures (ie x86), and apparently there is no
+use of them since they didn't exist.
 
-#define ATOMIC_OP(op, aop, cop)
+So why add them? Just to encourage people to do bad things?
 
-ATOMIC_OP(xor, eor, ^=)
-
-I had to so similar things on a few other archs as well, asm instruction
-names are odd sometimes.
-
-Thanks!
+                  Linus
