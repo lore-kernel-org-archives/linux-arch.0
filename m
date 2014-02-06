@@ -1,58 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:55117 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754357AbaBFRwI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Feb 2014 12:52:08 -0500
-Date: Thu, 6 Feb 2014 18:52:01 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC][PATCH 5/5] arch: Sanitize atomic_t bitwise ops
-Message-ID: <20140206175201.GH5002@laptop.programming.kicks-ass.net>
+Received: from e35.co.us.ibm.com ([32.97.110.153]:35075 "EHLO
+	e35.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755920AbaBFSmr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Feb 2014 13:42:47 -0500
+Received: from /spool/local
+	by e35.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Thu, 6 Feb 2014 11:42:46 -0700
+Date: Thu, 6 Feb 2014 10:42:41 -0800
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
+Message-ID: <20140206184241.GF4250@linux.vnet.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 References: <20140206134825.305510953@infradead.org>
- <20140206135001.333583247@infradead.org>
- <CA+55aFwzn09dPJekgCbO2VRO8j3=eEt2j_QFd=Gd4MXTA2gm9g@mail.gmail.com>
+ <21984.1391711149@warthog.procyon.org.uk>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CA+55aFwzn09dPJekgCbO2VRO8j3=eEt2j_QFd=Gd4MXTA2gm9g@mail.gmail.com>
+In-Reply-To: <21984.1391711149@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Will Deacon <will.deacon@arm.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>
-Message-ID: <20140206175201.cDkeLhDF31NtkTCi_Oxm8y1JOGEk7pxL-kuFVjaxqn8@z>
+To: David Howells <dhowells@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, ramana.radhakrishnan@arm.com
+Message-ID: <20140206184241.3gsFEbWJ5wfyHClAoOD--FP0lrK9sT_Uem2mPSEo5MI@z>
 
-On Thu, Feb 06, 2014 at 08:53:02AM -0800, Linus Torvalds wrote:
-> On Thu, Feb 6, 2014 at 5:48 AM, Peter Zijlstra <peterz@infradead.org> wrote:
-> > Many archs have atomic_{set,clear}_mask() but not all. Remove these
-> > and provide a comprehensive set of bitops:
-> >
-> >   atomic{,64}_{and,or,xor}{,_return}()
+On Thu, Feb 06, 2014 at 06:25:49PM +0000, David Howells wrote:
 > 
-> Who uses these, and why?
+> Is it worth considering a move towards using C11 atomics and barriers and
+> compiler intrinsics inside the kernel?  The compiler _ought_ to be able to do
+> these.
 
-s390 is stuffed with atomic_{set,clear}_mask usage, no clue whatfor.
+Makes sense to me!
 
-There's 2 atomic_set_mask() users in drm/i915, again haven't looked if
-it makes sense.
+> One thing I'm not sure of, though, is how well gcc's atomics will cope with
+> interrupt handlers touching atomics on CPUs without suitable atomic
+> instructions - that said, userspace does have to deal with signals getting
+> underfoot. but then userspace can't normally disable interrupts.
 
-Various archs use atomic_set_mask() for their tlb flush mask, which
-arguably should be done using the bitmap functions we have.
+Perhaps make the C11 definitions so that any arch can override any
+specific definition?
 
-> The "_return()" versions of atomic ops are noticeably slower and more
-> complex on common architectures (ie x86), and apparently there is no
-> use of them since they didn't exist.
-> 
-> So why add them? Just to encourage people to do bad things?
-
-Fair enough, they're mostly an accident of how I implemented the macro
-generation magic. I suppose I can change that and avoid generating the
-_return thingies.
-
-I don't particularly care for this patch too much; but I do dislike the
-atomic_{set,clear}_mask() things -- mostly because they don't really fit
-the normal atomic_t functions and because some archs have then and
-others do no.
-
-And atomic_{set,clear}_mask() can be used for setting/clearing multiple
-bits as opposed to {set,clear}_bit, which only does a single bit.
-
+							Thanx, Paul
 
