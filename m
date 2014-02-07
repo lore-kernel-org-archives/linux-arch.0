@@ -1,240 +1,211 @@
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Thu, 6 Feb 2014 20:06:28 -0800
-Message-ID: <20140207040628.GK4250@linux.vnet.ibm.com>
-References: <20140206134825.305510953@infradead.org> <21984.1391711149@warthog.procyon.org.uk> <52F3DA85.1060209@arm.com> <20140206185910.GE27276@mudshark.cambridge.arm.com> <1391720965.23421.3884.camel@triegel.csb> <20140206215521.GI4250@linux.vnet.ibm.com> <1391727502.23421.4017.camel@triegel.csb>
+Date: Thu, 6 Feb 2014 20:20:51 -0800
+Message-ID: <20140207042051.GL4250@linux.vnet.ibm.com>
+References: <20140206134825.305510953@infradead.org>
+ <21984.1391711149@warthog.procyon.org.uk>
+ <52F3DA85.1060209@arm.com>
+ <20140206185910.GE27276@mudshark.cambridge.arm.com>
+ <20140206192743.GH4250@linux.vnet.ibm.com>
+ <1391721423.23421.3898.camel@triegel.csb>
+ <20140206221117.GJ4250@linux.vnet.ibm.com>
+ <1391730288.23421.4102.camel@triegel.csb>
 Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <gcc-return-181892-gcc=m.gmane.org@gcc.gnu.org>
-List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
-List-Archive: <http://gcc.gnu.org/ml/gcc/>
-List-Post: <mailto:gcc@gcc.gnu.org>
-List-Help: <http://gcc.gnu.org/ml/>
-Sender: gcc-owner@gcc.gnu.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e36.co.us.ibm.com ([32.97.110.154]:37345 "EHLO
+	e36.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751354AbaBGEU5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Feb 2014 23:20:57 -0500
+Received: from /spool/local
+	by e36.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Thu, 6 Feb 2014 21:20:56 -0700
 Content-Disposition: inline
-In-Reply-To: <1391727502.23421.4017.camel@triegel.csb>
+In-Reply-To: <1391730288.23421.4102.camel@triegel.csb>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Torvald Riegel <triegel@redhat.com>
 Cc: Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-List-Id: linux-arch.vger.kernel.org
 
-On Thu, Feb 06, 2014 at 11:58:22PM +0100, Torvald Riegel wrote:
-> On Thu, 2014-02-06 at 13:55 -0800, Paul E. McKenney wrote:
-> > On Thu, Feb 06, 2014 at 10:09:25PM +0100, Torvald Riegel wrote:
-> > > On Thu, 2014-02-06 at 18:59 +0000, Will Deacon wrote:
-> > > > On Thu, Feb 06, 2014 at 06:55:01PM +0000, Ramana Radhakrishnan wrote:
-> > > > > On 02/06/14 18:25, David Howells wrote:
-> > > > > >
-> > > > > > Is it worth considering a move towards using C11 atomics and barriers and
-> > > > > > compiler intrinsics inside the kernel?  The compiler _ought_ to be able to do
-> > > > > > these.
-> > > > > 
-> > > > > 
-> > > > > It sounds interesting to me, if we can make it work properly and 
-> > > > > reliably. + gcc@gcc.gnu.org for others in the GCC community to chip in.
-> > > > 
-> > > > Given my (albeit limited) experience playing with the C11 spec and GCC, I
-> > > > really think this is a bad idea for the kernel.
-> > > 
-> > > I'm not going to comment on what's best for the kernel (simply because I
-> > > don't work on it), but I disagree with several of your statements.
-> > > 
-> > > > It seems that nobody really
-> > > > agrees on exactly how the C11 atomics map to real architectural
-> > > > instructions on anything but the trivial architectures.
-> > > 
-> > > There's certainly different ways to implement the memory model and those
-> > > have to be specified elsewhere, but I don't see how this differs much
-> > > from other things specified in the ABI(s) for each architecture.
-> > > 
-> > > > For example, should
-> > > > the following code fire the assert?
-> > > 
-> > > I don't see how your example (which is about what the language requires
-> > > or not) relates to the statement about the mapping above?
-> > > 
-> > > > 
-> > > > extern atomic<int> foo, bar, baz;
-> > > > 
-> > > > void thread1(void)
-> > > > {
-> > > > 	foo.store(42, memory_order_relaxed);
-> > > > 	bar.fetch_add(1, memory_order_seq_cst);
-> > > > 	baz.store(42, memory_order_relaxed);
-> > > > }
-> > > > 
-> > > > void thread2(void)
-> > > > {
-> > > > 	while (baz.load(memory_order_seq_cst) != 42) {
-> > > > 		/* do nothing */
-> > > > 	}
-> > > > 
-> > > > 	assert(foo.load(memory_order_seq_cst) == 42);
-> > > > }
-> > > > 
-> > > 
-> > > It's a good example.  My first gut feeling was that the assertion should
-> > > never fire, but that was wrong because (as I seem to usually forget) the
-> > > seq-cst total order is just a constraint but doesn't itself contribute
-> > > to synchronizes-with -- but this is different for seq-cst fences.
-> > 
-> > From what I can see, Will's point is that mapping the Linux kernel's
-> > atomic_add_return() primitive into fetch_add() does not work because
-> > atomic_add_return()'s ordering properties require that the assert()
-> > never fire.
-> > 
-> > Augmenting the fetch_add() with a seq_cst fence would work on many
-> > architectures, but not for all similar examples.  The reason is that
-> > the C11 seq_cst fence is deliberately weak compared to ARM's dmb or
-> > Power's sync.  To your point, I believe that it would make the above
-> > example work, but there are some IRIW-like examples that would fail
-> > according to the standard (though a number of specific implementations
-> > would in fact work correctly).
-> 
-> Thanks for the background.  I don't read LKML, and it wasn't obvious
-> from reading just the part of the thread posted to gcc@ that achieving
-> these semantics is the goal.
+On Fri, Feb 07, 2014 at 12:44:48AM +0100, Torvald Riegel wrote:
+> On Thu, 2014-02-06 at 14:11 -0800, Paul E. McKenney wrote:
+> > On Thu, Feb 06, 2014 at 10:17:03PM +0100, Torvald Riegel wrote:
+> > > On Thu, 2014-02-06 at 11:27 -0800, Paul E. McKenney wrote:
+> > > > On Thu, Feb 06, 2014 at 06:59:10PM +0000, Will Deacon wrote:
+> > > > > There are also so many ways to blow your head off it's untrue=
+=2E For example,
+> > > > > cmpxchg takes a separate memory model parameter for failure a=
+nd success, but
+> > > > > then there are restrictions on the sets you can use for each.=
+ It's not hard
+> > > > > to find well-known memory-ordering experts shouting "Just use
+> > > > > memory_model_seq_cst for everything, it's too hard otherwise"=
+=2E Then there's
+> > > > > the fun of load-consume vs load-acquire (arm64 GCC completely=
+ ignores consume
+> > > > > atm and optimises all of the data dependencies away) as well =
+as the definition
+> > > > > of "data races", which seem to be used as an excuse to miscom=
+pile a program
+> > > > > at the earliest opportunity.
+> > > >=20
+> > > > Trust me, rcu_dereference() is not going to be defined in terms=
+ of
+> > > > memory_order_consume until the compilers implement it both corr=
+ectly and
+> > > > efficiently.  They are not there yet, and there is currently no=
+ shortage
+> > > > of compiler writers who would prefer to ignore memory_order_con=
+sume.
+> > >=20
+> > > Do you have any input on
+> > > http://gcc.gnu.org/bugzilla/show_bug.cgi?id=3D59448?  In particul=
+ar, the
+> > > language standard's definition of dependencies?
+> >=20
+> > Let's see...  1.10p9 says that a dependency must be carried unless:
+> >=20
+> > =E2=80=94 B is an invocation of any specialization of std::kill_dep=
+endency (29.3), or
+> > =E2=80=94 A is the left operand of a built-in logical AND (&&, see =
+5.14) or logical OR (||, see 5.15) operator,
+> > or
+> > =E2=80=94 A is the left operand of a conditional (?:, see 5.16) ope=
+rator, or
+> > =E2=80=94 A is the left operand of the built-in comma (,) operator =
+(5.18);
+> >=20
+> > So the use of "flag" before the "?" is ignored.  But the "flag - fl=
+ag"
+> > after the "?" will carry a dependency, so the code fragment in 5944=
+8
+> > needs to do the ordering rather than just optimizing "flag - flag" =
+out
+> > of existence.  One way to do that on both ARM and Power is to actua=
+lly
+> > emit code for "flag - flag", but there are a number of other ways t=
+o
+> > make that work.
+>=20
+> And that's what would concern me, considering that these requirements
+> seem to be able to creep out easily.  Also, whereas the other atomics
+> just constrain compilers wrt. reordering across atomic accesses or
+> changes to the atomic accesses themselves, the dependencies are new
+> requirements on pieces of otherwise non-synchronizing code.  The latt=
+er
+> seems far more involved to me.
 
-Lots of history on both sides of this one, I am afraid!  ;-)
+Well, the wording of 1.10p9 is pretty explicit on this point.
+There are only a few exceptions to the rule that dependencies from
+memory_order_consume loads must be tracked.  And to your point about
+requirements being placed on pieces of otherwise non-synchronizing code=
+,
+we already have that with plain old load acquire and store release --
+both of these put ordering constraints that affect the surrounding
+non-synchronizing code.
 
-> > > > To answer that question, you need to go and look at the definitions of
-> > > > synchronises-with, happens-before, dependency_ordered_before and a whole
-> > > > pile of vaguely written waffle to realise that you don't know.
-> > > 
-> > > Are you familiar with the formalization of the C11/C++11 model by Batty
-> > > et al.?
-> > > http://www.cl.cam.ac.uk/~mjb220/popl085ap-sewell.pdf
-> > > http://www.cl.cam.ac.uk/~mjb220/n3132.pdf
-> > > 
-> > > They also have a nice tool that can run condensed examples and show you
-> > > all allowed (and forbidden) executions (it runs in the browser, so is
-> > > slow for larger examples), including nice annotated graphs for those:
-> > > http://svr-pes20-cppmem.cl.cam.ac.uk/cppmem/
-> > > 
-> > > It requires somewhat special syntax, but the following, which should be
-> > > equivalent to your example above, runs just fine:
-> > > 
-> > > int main() {
-> > >   atomic_int foo = 0; 
-> > >   atomic_int bar = 0; 
-> > >   atomic_int baz = 0; 
-> > >   {{{ {
-> > >         foo.store(42, memory_order_relaxed);
-> > >         bar.store(1, memory_order_seq_cst);
-> > >         baz.store(42, memory_order_relaxed);
-> > >       }
-> > >   ||| {
-> > >         r1=baz.load(memory_order_seq_cst).readsvalue(42);
-> > >         r2=foo.load(memory_order_seq_cst).readsvalue(0);
-> > >       }
-> > >   }}};
-> > >   return 0; }
-> > > 
-> > > That yields 3 consistent executions for me, and likewise if the last
-> > > readsvalue() is using 42 as argument.
-> > > 
-> > > If you add a "fence(memory_order_seq_cst);" after the store to foo, the
-> > > program can't observe != 42 for foo anymore, because the seq-cst fence
-> > > is adding a synchronizes-with edge via the baz reads-from.
-> > > 
-> > > I think this is a really neat tool, and very helpful to answer such
-> > > questions as in your example.
-> > 
-> > Hmmm...  The tool doesn't seem to like fetch_add().  But let's assume that
-> > your substitution of store() for fetch_add() is correct.  Then this shows
-> > that we cannot substitute fetch_add() for atomic_add_return().
-> 
-> It should be in this example, I believe.
+This issue got a lot of discussion, and the compromise is that
+dependencies cannot leak into or out of functions unless the relevant
+parameters or return values are annotated with [[carries_dependency]].
+This means that the compiler can see all the places where dependencies
+must be tracked.  This is described in 7.6.4.  If a dependency chain
+headed by a memory_order_consume load goes into or out of a function
+without the aid of the [[carries_dependency]] attribute, the compiler
+needs to do something else to enforce ordering, e.g., emit a memory
+barrier.
 
-You lost me on this one.
+=46rom a Linux-kernel viewpoint, this is a bit ugly, as it requires
+annotations and use of kill_dependency, but it was the best I could do
+at the time.  If things go as they usually do, there will be some other
+reason why those are needed...
 
-> The tool also supports CAS:
-> cas_strong_explicit(bar,0,1,memory_order_seq_cst,memory_order_seq_cst);
-> cas_strong(bar,0,1);
-> cas_weak likewise...
-> 
-> With that change, I get a few more executions but still the 3 consistent
-> ones for either outcome.
+> > BTW, there is some discussion on 1.10p9's handling of && and ||, an=
+d
+> > that clause is likely to change.  And yes, I am behind on analyzing
+> > usage in the Linux kernel to find out if Linux cares...
+>=20
+> Do you have any pointers to these discussions (e.g., LWG issues)?
 
-Good point, thank you for the tip!
+Nope, just a bare email thread.  I would guess that it will come up
+next week.
 
-> > > > It's not hard
-> > > > to find well-known memory-ordering experts shouting "Just use
-> > > > memory_model_seq_cst for everything, it's too hard otherwise".
-> > > 
-> > > Everyone I've heard saying this meant this as advice to people new to
-> > > synchronization or just dealing infrequently with it.  The advice is the
-> > > simple and safe fallback, and I don't think it's meant as an
-> > > acknowledgment that the model itself would be too hard.  If the
-> > > language's memory model is supposed to represent weak HW memory models
-> > > to at least some extent, there's only so much you can do in terms of
-> > > keeping it simple.  If all architectures had x86-like models, the
-> > > language's model would certainly be simpler... :)
-> > 
-> > That is said a lot, but there was a recent Linux-kernel example that
-> > turned out to be quite hard to prove for x86.  ;-)
-> > 
-> > > > Then there's
-> > > > the fun of load-consume vs load-acquire (arm64 GCC completely ignores consume
-> > > > atm and optimises all of the data dependencies away)
-> > > 
-> > > AFAIK consume memory order was added to model Power/ARM-specific
-> > > behavior.  I agree that the way the standard specifies how dependencies
-> > > are to be preserved is kind of vague (as far as I understand it).  See
-> > > GCC PR 59448.
-> > 
-> > This one? http://gcc.gnu.org/ml/gcc-bugs/2013-12/msg01083.html
-> 
-> Yes, this bug, and I'd like to get feedback on the implementability of
-> this: http://gcc.gnu.org/bugzilla/show_bug.cgi?id=59448#c10
+The question is whether dependencies should be carried through && or ||
+at all, and if so how.  My current guess is that && and || should not
+carry dependencies.
 
-Agreed that the load and store need to be atomic.  From a Linux-kernel
-perspective, perhaps some day ACCESS_ONCE() can be a volatile atomic
-operation.  This will require a bit of churn because things like:
+> > > > And rcu_dereference() will need per-arch overrides for some tim=
+e during
+> > > > any transition to memory_order_consume.
+> > > >=20
+> > > > > Trying to introduce system concepts (writes to devices, inter=
+rupts,
+> > > > > non-coherent agents) into this mess is going to be an uphill =
+battle IMHO. I'd
+> > > > > just rather stick to the semantics we have and the asm volati=
+le barriers.
+> > > >=20
+> > > > And barrier() isn't going to go away any time soon, either.  An=
+d
+> > > > ACCESS_ONCE() needs to keep volatile semantics until there is s=
+ome
+> > > > memory_order_whatever that prevents loads and stores from being=
+ coalesced.
+> > >=20
+> > > I'd be happy to discuss something like this in ISO C++ SG1 (or ha=
+s this
+> > > been discussed in the past already?).  But it needs to have a pap=
+er I
+> > > suppose.
+> >=20
+> > The current position of the usual suspects other than me is that th=
+is
+> > falls into the category of forward-progress guarantees, which are
+> > considers (again, by the usual suspects other than me) to be out
+> > of scope.
+>=20
+> But I think we need to better describe forward progress, even though
+> that might be tricky.  We made at least some progress on
+> http://cplusplus.github.io/LWG/lwg-active.html#2159 in Chicago, even
+> though we can't constrain the OS schedulers too much, and for lock-fr=
+ee
+> we're in this weird position that on most general-purpose schedulers =
+and
+> machines, obstruction-free algorithms are likely to work just fine li=
+ke
+> lock-free, most of the time, in practice...
 
-	ACCESS_ONCE(x)++;
+Yep, there is a draft paper by Alistarh et al. making this point.
+They could go quite a bit further.  With a reasonably short set of
+additional constraints, you can get bounded execution times out of
+locking as well.  They were not amused when I suggested this, Bjoern
+Brandenberg's dissertation notwithstanding.  ;-)
 
-have no obvious C11 counterpart that I know of, at least not one that can
-be reasonably implemented within the confines of a C-preprocessor macro.
-But this can probably be overcome at some point.  (And yes, the usage
-of ACCESS_ONCE() has grown way beyond what I originally had in mind, but
-such is life.)
+> We also need to discuss forward progress guarantees for any
+> parallelism/concurrency abstractions, I believe:
+> http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n3874.pdf
+>=20
+> Hopefully we'll get some more acceptance of this being in scope...
 
-> > That does indeed look to match what Will was calling out as a problem.
-> > 
-> > > > as well as the definition
-> > > > of "data races", which seem to be used as an excuse to miscompile a program
-> > > > at the earliest opportunity.
-> > > 
-> > > No.  The purpose of this is to *not disallow* every optimization on
-> > > non-synchronizing code.  Due to the assumption of data-race-free
-> > > programs, the compiler can assume a sequential code sequence when no
-> > > atomics are involved (and thus, keep applying optimizations for
-> > > sequential code).
-> > > 
-> > > Or is there something particular that you dislike about the
-> > > specification of data races?
-> > 
-> > Cut Will a break, Torvald!  ;-)
-> 
-> Sorry if my comment came across too harsh.  I've observed a couple of
-> times that people forget about the compiler's role in this, and it might
-> not be obvious, so I wanted to point out just that.
+That would be good.  Just in case C11 is to be applicable to real-time
+software.
 
-As far as I know, no need to apologize.
+> > > Will you be in Issaquah for the C++ meeting next week?
+> >=20
+> > Weather permitting, I will be there!
+>=20
+> Great, maybe we can find some time in SG1 to discuss this then.  Even=
+ if
+> the standard doesn't want to include it, SG1 should be a good forum t=
+o
+> understand everyone's concerns around that, with the hope that this
+> would help potential non-standard extensions to be still checked by t=
+he
+> same folks that did the rest of the memory model.
 
-The problem we are having is that Linux-kernel hackers need to make their
-code work with whatever is available from the compiler.  The compiler is
-written to a standard that, even with C11, is insufficient for the needs
-of kernel hackers: MMIO, subtle differences in memory-ordering semantics,
-memory fences that are too weak to implement smp_mb() in the general case,
-and so on.  So kernel hackers need to use non-standard extensions,
-inline assembly, and sometimes even compiler implementation details.
-
-So it is only natural to expect the occasional bout of frustration on
-the part of the kernel hacker.  For the compiler writer's part, I am
-sure that having to deal with odd cases that are outside of the standard
-is also sometimes frustrating.  Almost like both the kernel hackers and
-the compiler writers were living in the real world or something.  ;-)
+Sounds good!  Hopefully some discussion of out-of-thin-air values as we=
+ll.
 
 							Thanx, Paul
