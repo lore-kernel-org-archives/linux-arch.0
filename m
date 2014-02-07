@@ -1,73 +1,86 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH v3 1/2] qspinlock: Introducing a 4-byte queue spinlock
- implementation
-Date: Fri, 7 Feb 2014 10:17:37 -0800
-Message-ID: <20140207181737.GS4250@linux.vnet.ibm.com>
-References: <1390933151-1797-1-git-send-email-Waiman.Long@hp.com>
- <1390933151-1797-2-git-send-email-Waiman.Long@hp.com>
- <20140131150832.GG4941@twins.programming.kicks-ass.net>
- <52EBF871.5020603@hp.com>
- <20140203114054.GH8874@twins.programming.kicks-ass.net>
- <52F2FD2A.1020704@hp.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Torvald Riegel <triegel@redhat.com>
+Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
+Date: Fri, 07 Feb 2014 19:43:22 +0100
+Message-ID: <1391798602.23421.4802.camel@triegel.csb>
+References: <52F3DA85.1060209@arm.com>	 <20140206185910.GE27276@mudshark.cambridge.arm.com>	 <20140206192743.GH4250@linux.vnet.ibm.com>	 <1391721423.23421.3898.camel@triegel.csb>	 <20140206221117.GJ4250@linux.vnet.ibm.com>	 <1391730288.23421.4102.camel@triegel.csb>	 <20140207042051.GL4250@linux.vnet.ibm.com>	 <20140207074405.GM5002@laptop.programming.kicks-ass.net>	 <20140207165028.GO4250@linux.vnet.ibm.com>	 <20140207165548.GR5976@mudshark.cambridge.arm.com>	 <20140207170654.GQ5002@laptop.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e32.co.us.ibm.com ([32.97.110.150]:54624 "EHLO
-	e32.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751875AbaBGSRq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Feb 2014 13:17:46 -0500
-Received: from /spool/local
-	by e32.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Fri, 7 Feb 2014 11:17:45 -0700
-Content-Disposition: inline
-In-Reply-To: <52F2FD2A.1020704@hp.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <waiman.long@hp.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <gcc-return-181912-gcc=m.gmane.org@gcc.gnu.org>
+List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
+List-Archive: <http://gcc.gnu.org/ml/gcc/>
+List-Post: <mailto:gcc@gcc.gnu.org>
+List-Help: <http://gcc.gnu.org/ml/>
+Sender: gcc-owner@gcc.gnu.org
+In-Reply-To: <20140207170654.GQ5002@laptop.programming.kicks-ass.net>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Feb 05, 2014 at 10:10:34PM -0500, Waiman Long wrote:
-> On 02/03/2014 06:40 AM, Peter Zijlstra wrote:
-> >On Fri, Jan 31, 2014 at 02:24:33PM -0500, Waiman Long wrote:
-> >>Light contention is the only case where the qspinlock may not perform as
-> >>good as the ticket spinlock. I know this is the most common case. However, I
-> >>would argue that the slowdown, if any, will not be really noticeable. This
-> >>is what I will try to find out.
-> >Please also explain why things are slower/faster. Thomas tried to get
-> >you to do so a few months back, but you kept deflecting.
+On Fri, 2014-02-07 at 18:06 +0100, Peter Zijlstra wrote:
+> On Fri, Feb 07, 2014 at 04:55:48PM +0000, Will Deacon wrote:
+> > Hi Paul,
+> > 
+> > On Fri, Feb 07, 2014 at 04:50:28PM +0000, Paul E. McKenney wrote:
+> > > On Fri, Feb 07, 2014 at 08:44:05AM +0100, Peter Zijlstra wrote:
+> > > > On Thu, Feb 06, 2014 at 08:20:51PM -0800, Paul E. McKenney wrote:
+> > > > > Hopefully some discussion of out-of-thin-air values as well.
+> > > > 
+> > > > Yes, absolutely shoot store speculation in the head already. Then drive
+> > > > a wooden stake through its hart.
+> > > > 
+> > > > C11/C++11 should not be allowed to claim itself a memory model until that
+> > > > is sorted.
+> > > 
+> > > There actually is a proposal being put forward, but it might not make ARM
+> > > and Power people happy because it involves adding a compare, a branch,
+> > > and an ISB/isync after every relaxed load...  Me, I agree with you,
+> > > much preferring the no-store-speculation approach.
+> > 
+> > Can you elaborate a bit on this please? We don't permit speculative stores
+> > in the ARM architecture, so it seems counter-intuitive that GCC needs to
+> > emit any additional instructions to prevent that from happening.
+> > 
+> > Stores can, of course, be observed out-of-order but that's a lot more
+> > reasonable :)
 > 
-> It is not easy to have a test case to test light contention. I am
-> trying to create custom test case to get that data.
+> This is more about the compiler speculating on stores; imagine:
+> 
+>   if (x)
+>   	y = 1;
+>   else
+>   	y = 2;
+> 
+> The compiler is allowed to change that into:
+> 
+>   y = 2;
+>   if (x)
+>   	y = 1;
 
-Here are some ways of doing that:
+If you write the example like that, this is indeed allowed because it's
+all sequential code (and there's no volatiles in there, at least you
+didn't show them :).  A store to y would happen in either case.  You
+cannot observe the difference between both examples in a data-race-free
+program.
 
-1.	Provide (say) a thousand locks for each thread, so that you
-	have all of these locks in one big array of locks.  Have each
-	thread loop, where each pass through the loop acquires
-	and releases a randomly selected lock.	Then measure the
-	acquisition/release throughput.
+Are there supposed to be atomic/non-sequential accesses in there?  If
+so, please update the example.
 
-2.	As #1 above, but vary the number of locks per thread in order to
-	vary the level of contention in a controlled manner.  Note that
-	the cache-miss probability is (N-1)/N, where where N is the
-	number of threads, at least assuming each thread gets its own CPU.
+> Which is of course a big problem when you want to rely on the ordering.
+> 
+> There's further problems where things like memset() can write outside
+> the specified address range. Examples are memset() using single
+> instructions to wipe entire cachelines and then 'restoring' the tail
+> bit.
 
-3.	Provide each thread with its own lock and have each thread
-	loop, where each pass through the loop acquires and releases
-	the thread's lock.  This eliminates both contention and
-	cache misses.
+As Joseph said, this would be a bug IMO.
 
-4.	As #1 above, but randomly acquire some other thread's lock with
-	controlled probability to introduce controlled levels of both
-	contention and cache misses.
+> While valid for single threaded, its a complete disaster for concurrent
+> code.
+> 
+> There's more, but it all boils down to doing stores you don't expect in
+> a 'sane' concurrent environment and/or don't respect the control flow.
 
-5.	As #4 above, but provide each thread with multiple locks
-	randomly selected to allow cache miss rate to be increased
-	independently of contention.
-
-All approaches require extremely efficient random-number generators,
-for example, independent per-thread generators.
-
-							Thanx, Paul
+A few of those got fixed already, because they violated the memory
+model's requirements.  If you have further examples that are valid code
+in the C11/C++11 model, please report them.
