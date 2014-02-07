@@ -1,62 +1,50 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Fri, 7 Feb 2014 12:01:25 +0000
-Message-ID: <20140207120124.GF5976@mudshark.cambridge.arm.com>
-References: <20140206134825.305510953@infradead.org> <21984.1391711149@warthog.procyon.org.uk> <52F3DA85.1060209@arm.com> <20140206185910.GE27276@mudshark.cambridge.arm.com> <1391720965.23421.3884.camel@triegel.csb>
+From: Jonas Bonn <jonas.bonn@gmail.com>
+Subject: Re: [ARCH question] Do syscall_get_nr and syscall_get_arguments
+ always work?
+Date: Fri, 7 Feb 2014 13:58:56 +0100
+Message-ID: <CACM3HyHwrKQAWZRhE2N1VtGKu1xSvcGeuMG1Ag+vzP2BA111cQ@mail.gmail.com>
+References: <CALCETrU6M=Abo1z2cRoZy07-=3bwKiK84gCSMcBPLA1TkXPb8A@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <gcc-return-181897-gcc=m.gmane.org@gcc.gnu.org>
-List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
-List-Archive: <http://gcc.gnu.org/ml/gcc/>
-List-Post: <mailto:gcc@gcc.gnu.org>
-List-Help: <http://gcc.gnu.org/ml/>
-Sender: gcc-owner@gcc.gnu.org
-Content-Disposition: inline
-In-Reply-To: <1391720965.23421.3884.camel@triegel.csb>
-To: Torvald Riegel <triegel@redhat.com>
-Cc: Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CALCETrU6M=Abo1z2cRoZy07-=3bwKiK84gCSMcBPLA1TkXPb8A@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Oleg Nesterov <oleg@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, linux-audit@redhat.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andi Kleen <andi@firstfloor.org>, Steve Grubb <sgrubb@redhat.com>, Eric Paris <eparis@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hello Torvald,
+Hi Andy,
 
-It looks like Paul clarified most of the points I was trying to make
-(thanks Paul!), so I won't go back over them here.
+On 5 February 2014 00:50, Andy Lutomirski <luto@amacapital.net> wrote:
+>
+> I can't even find the system call entry point on mips.
+>
+>
+> Is there a semi-official answer here?
 
-On Thu, Feb 06, 2014 at 09:09:25PM +0000, Torvald Riegel wrote:
-> Are you familiar with the formalization of the C11/C++11 model by Batty
-> et al.?
-> http://www.cl.cam.ac.uk/~mjb220/popl085ap-sewell.pdf
-> http://www.cl.cam.ac.uk/~mjb220/n3132.pdf
-> 
-> They also have a nice tool that can run condensed examples and show you
-> all allowed (and forbidden) executions (it runs in the browser, so is
-> slow for larger examples), including nice annotated graphs for those:
-> http://svr-pes20-cppmem.cl.cam.ac.uk/cppmem/
+I don't have an official answer for you, but when I wanted to do
+something with these entry points a couple of years back I discovered
+that they aren't very thoroughly implemented across the various
+architectures.  I started cleaning this up and can probably dig up
+some of this for you if you need it.
 
-Thanks for the link, that's incredibly helpful. I've used ppcmem and armmem
-in the past, but I didn't realise they have a version for C++11 too.
-Actually, the armmem backend doesn't implement our atomic instructions or
-the acquire/release accessors, so it's not been as useful as it could be.
-I should probably try to learn OCaml...
+See:
+https://lkml.org/lkml/2011/10/23/87
 
-> IMHO, one thing worth considering is that for C/C++, the C11/C++11 is
-> the only memory model that has widespread support.  So, even though it's
-> a fairly weak memory model (unless you go for the "only seq-cst"
-> beginners advice) and thus comes with a higher complexity, this model is
-> what likely most people will be familiar with over time.  Deviating from
-> the "standard" model can have valid reasons, but it also has a cost in
-> that new contributors are more likely to be familiar with the "standard"
-> model.
+Then again, this may be in better shape  today, already... I didn't check.
 
-Indeed, I wasn't trying to write-off the C11 memory model as something we
-can never use in the kernel. I just don't think the current situation is
-anywhere close to usable for a project such as Linux. If a greater
-understanding of the memory model does eventually manifest amongst C/C++
-developers (by which I mean, the beginners advice is really treated as
-such and there is a widespread intuition about ordering guarantees, as
-opposed to the need to use formal tools), then surely the tools and libraries
-will stabilise and provide uniform semantics across the 25+ architectures
-that Linux currently supports. If *that* happens, this discussion is certainly
-worth having again.
+/Jonas
 
-Will
+>
+>
+> --Andy
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+
+
+
+-- 
+Jonas Bonn
+Stockholm, Sweden
