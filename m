@@ -1,84 +1,36 @@
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Fri, 7 Feb 2014 08:47:52 -0800
-Message-ID: <20140207164752.GN4250@linux.vnet.ibm.com>
-References: <20140206134825.305510953@infradead.org>
- <21984.1391711149@warthog.procyon.org.uk>
- <52F3DA85.1060209@arm.com>
- <20140206185910.GE27276@mudshark.cambridge.arm.com>
- <1391720965.23421.3884.camel@triegel.csb>
- <20140207120124.GF5976@mudshark.cambridge.arm.com>
+Date: Fri, 7 Feb 2014 08:50:28 -0800
+Message-ID: <20140207165028.GO4250@linux.vnet.ibm.com>
+References: <20140206134825.305510953@infradead.org> <21984.1391711149@warthog.procyon.org.uk> <52F3DA85.1060209@arm.com> <20140206185910.GE27276@mudshark.cambridge.arm.com> <20140206192743.GH4250@linux.vnet.ibm.com> <1391721423.23421.3898.camel@triegel.csb> <20140206221117.GJ4250@linux.vnet.ibm.com> <1391730288.23421.4102.camel@triegel.csb> <20140207042051.GL4250@linux.vnet.ibm.com> <20140207074405.GM5002@laptop.programming.kicks-ass.net>
 Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e36.co.us.ibm.com ([32.97.110.154]:52033 "EHLO
-	e36.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751370AbaBGQr7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Feb 2014 11:47:59 -0500
-Received: from /spool/local
-	by e36.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Fri, 7 Feb 2014 09:47:58 -0700
+Return-path: <gcc-return-181903-gcc=m.gmane.org@gcc.gnu.org>
+List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
+List-Archive: <http://gcc.gnu.org/ml/gcc/>
+List-Post: <mailto:gcc@gcc.gnu.org>
+List-Help: <http://gcc.gnu.org/ml/>
+Sender: gcc-owner@gcc.gnu.org
 Content-Disposition: inline
-In-Reply-To: <20140207120124.GF5976@mudshark.cambridge.arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Torvald Riegel <triegel@redhat.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+In-Reply-To: <20140207074405.GM5002@laptop.programming.kicks-ass.net>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Feb 07, 2014 at 12:01:25PM +0000, Will Deacon wrote:
-> Hello Torvald,
+On Fri, Feb 07, 2014 at 08:44:05AM +0100, Peter Zijlstra wrote:
+> On Thu, Feb 06, 2014 at 08:20:51PM -0800, Paul E. McKenney wrote:
+> > Hopefully some discussion of out-of-thin-air values as well.
 > 
-> It looks like Paul clarified most of the points I was trying to make
-> (thanks Paul!), so I won't go back over them here.
+> Yes, absolutely shoot store speculation in the head already. Then drive
+> a wooden stake through its hart.
 > 
-> On Thu, Feb 06, 2014 at 09:09:25PM +0000, Torvald Riegel wrote:
-> > Are you familiar with the formalization of the C11/C++11 model by Batty
-> > et al.?
-> > http://www.cl.cam.ac.uk/~mjb220/popl085ap-sewell.pdf
-> > http://www.cl.cam.ac.uk/~mjb220/n3132.pdf
-> > 
-> > They also have a nice tool that can run condensed examples and show you
-> > all allowed (and forbidden) executions (it runs in the browser, so is
-> > slow for larger examples), including nice annotated graphs for those:
-> > http://svr-pes20-cppmem.cl.cam.ac.uk/cppmem/
-> 
-> Thanks for the link, that's incredibly helpful. I've used ppcmem and armmem
-> in the past, but I didn't realise they have a version for C++11 too.
-> Actually, the armmem backend doesn't implement our atomic instructions or
-> the acquire/release accessors, so it's not been as useful as it could be.
-> I should probably try to learn OCaml...
+> C11/C++11 should not be allowed to claim itself a memory model until that
+> is sorted.
 
-That would be very cool!
-
-Another option would be to recruit a grad student to take on that project
-for Peter Sewell.  He might already have one, for all I know.
-
-> > IMHO, one thing worth considering is that for C/C++, the C11/C++11 is
-> > the only memory model that has widespread support.  So, even though it's
-> > a fairly weak memory model (unless you go for the "only seq-cst"
-> > beginners advice) and thus comes with a higher complexity, this model is
-> > what likely most people will be familiar with over time.  Deviating from
-> > the "standard" model can have valid reasons, but it also has a cost in
-> > that new contributors are more likely to be familiar with the "standard"
-> > model.
-> 
-> Indeed, I wasn't trying to write-off the C11 memory model as something we
-> can never use in the kernel. I just don't think the current situation is
-> anywhere close to usable for a project such as Linux. If a greater
-> understanding of the memory model does eventually manifest amongst C/C++
-> developers (by which I mean, the beginners advice is really treated as
-> such and there is a widespread intuition about ordering guarantees, as
-> opposed to the need to use formal tools), then surely the tools and libraries
-> will stabilise and provide uniform semantics across the 25+ architectures
-> that Linux currently supports. If *that* happens, this discussion is certainly
-> worth having again.
-
-And it is likely to be worthwhile even before then on a piecemeal
-basis, where architecture maintainers pick and choose which primitive
-is in inline assembly and which the compiler can deal with properly.
-For example, I bet that atomic_inc() can be implemented just fine by C11
-in the very near future.  However, atomic_add_return() is another story.
+There actually is a proposal being put forward, but it might not make ARM
+and Power people happy because it involves adding a compare, a branch,
+and an ISB/isync after every relaxed load...  Me, I agree with you,
+much preferring the no-store-speculation approach.
 
 							Thanx, Paul
