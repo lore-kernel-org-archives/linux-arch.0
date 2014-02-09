@@ -1,286 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f169.google.com ([209.85.212.169]:38958 "EHLO
-	mail-wi0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751347AbaBHMeV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 8 Feb 2014 07:34:21 -0500
-Received: by mail-wi0-f169.google.com with SMTP id e4so1530990wiv.2
-        for <linux-arch@vger.kernel.org>; Sat, 08 Feb 2014 04:34:20 -0800 (PST)
-From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Subject: [PATCH v2 1/2] cpu: add generic support for CPU feature based module autoloading
-Date: Sat,  8 Feb 2014 13:34:09 +0100
-Message-ID: <1391862850-24620-2-git-send-email-ard.biesheuvel@linaro.org>
-In-Reply-To: <1391862850-24620-1-git-send-email-ard.biesheuvel@linaro.org>
-References: <1391862850-24620-1-git-send-email-ard.biesheuvel@linaro.org>
+Received: from mail-ee0-f48.google.com ([74.125.83.48]:63326 "EHLO
+	mail-ee0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751360AbaBIOhM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 9 Feb 2014 09:37:12 -0500
+Date: Sun, 9 Feb 2014 15:37:09 +0100
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH -tip v6 00/22] kprobes: introduce NOKPROBE_SYMBOL(),
+ cleanup and fixes crash bugs
+Message-ID: <20140209143709.GA31608@gmail.com>
+References: <20131219090353.14309.15496.stgit@kbuild-fedora.novalocal>
+ <y0m38loefhx.fsf@fche.csb>
+ <52B3C5E6.2040802@hitachi.com>
+ <20131220082056.GA15934@gmail.com>
+ <52B40E79.8040701@hitachi.com>
+ <20131220104615.GA22609@gmail.com>
+ <52E8E487.2090007@hitachi.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <52E8E487.2090007@hitachi.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, gregkh@linuxfoundation.org, akpm@linux-foundation.org, linux-arch@vger.kernel.org
-Cc: torvalds@linux-foundation.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Message-ID: <20140208123409.bcBf_DZsAwSrzVOvbgowWuglASkfxgfM3tGbs3lrRcg@z>
+To: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+Cc: "Frank Ch. Eigler" <fche@redhat.com>, linux-arch@vger.kernel.org, Ananth N Mavinakayanahalli <ananth@in.ibm.com>, Sandeepa Prabhu <sandeepa.prabhu@linaro.org>, x86@kernel.org, lkml <linux-kernel@vger.kernel.org>, "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>, systemtap@sourceware.org, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20140209143709.-hFKhrUG04L5SN8JO5_6BvHH-Vge2KgrogIWq12zMwA@z>
 
-This patch adds support for advertising optional CPU features over udev
-using the modalias, and for declaring compatibility with/dependency upon
-such a feature in a module.
 
-The mapping between feature numbers and actual features should be provided
-by the architecture in a file called <asm/cpufeature.h> which exports the
-following functions/macros:
-- cpu_feature(FEAT), a preprocessor macro that maps token FEAT to a
-  numeric index;
-- bool cpu_have_feature(n), returning whether this CPU has support for
-  feature #n;
-- MAX_CPU_FEATURES, an upper bound for 'n' in the previous function.
+* Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com> wrote:
 
-The feature can then be enabled by setting CONFIG_GENERIC_CPU_AUTOPROBE
-for the architecture.
+> I guess the second reason is why the stap takes so long time to set 
+> probes. stap tries to register kprobes without disabled flag, that 
+> means we enables thousands of probes (overheads).
+> 
+> So the similar thing happens when we enables events as below;
+> 
+>   # for i in /sys/kernel/debug/tracing/events/kprobes/* ; do date; echo 1 > $i; done
+>   Wed Jan 29 10:44:50 UTC 2014
+>   ...
+> 
+> I tried it and canceled after 4 min passed. It enabled about 17k 
+> events and slowed down my system very much(I almost got hang check 
+> timer).
 
-For instance, a module that registers its module init function using
+Ok, I guess that's the slowdown bug that Frank reported.
 
-  module_cpu_feature_match(FEAT_X, module_init_function)
+> I think we should have some performance statistics (hit count?) and 
+> if it goes over a threshold, we should stop enabling other events.
 
-will be probed automatically when the CPU's support for the 'FEAT_X'
-feature is advertised over udev, and will only allow the module to be
-loaded by hand if the 'FEAT_X' feature is supported.
+That really feels like a hack. How about fixing the root cause? Does 
+the enabling of all probes have to be so slow?
 
-Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
----
- drivers/base/Kconfig              |  8 ++++++
- drivers/base/cpu.c                | 50 ++++++++++++++++++++++++++++----
- include/linux/cpufeature.h        | 60 +++++++++++++++++++++++++++++++++++++++
- include/linux/mod_devicetable.h   |  9 ++++++
- scripts/mod/devicetable-offsets.c |  3 ++
- scripts/mod/file2alias.c          | 10 +++++++
- 6 files changed, 135 insertions(+), 5 deletions(-)
- create mode 100644 include/linux/cpufeature.h
+Thanks,
 
-diff --git a/drivers/base/Kconfig b/drivers/base/Kconfig
-index ec36e77..3f0d373 100644
---- a/drivers/base/Kconfig
-+++ b/drivers/base/Kconfig
-@@ -185,6 +185,14 @@ config GENERIC_CPU_DEVICES
- 	bool
- 	default n
- 
-+config HAVE_CPU_AUTOPROBE
-+	def_bool ARCH_HAS_CPU_AUTOPROBE
-+
-+config GENERIC_CPU_AUTOPROBE
-+	bool
-+	depends on !ARCH_HAS_CPU_AUTOPROBE
-+	select HAVE_CPU_AUTOPROBE
-+
- config SOC_BUS
- 	bool
- 
-diff --git a/drivers/base/cpu.c b/drivers/base/cpu.c
-index f48370d..8a38bf8 100644
---- a/drivers/base/cpu.c
-+++ b/drivers/base/cpu.c
-@@ -15,6 +15,7 @@
- #include <linux/percpu.h>
- #include <linux/acpi.h>
- #include <linux/of.h>
-+#include <linux/cpufeature.h>
- 
- #include "base.h"
- 
-@@ -286,6 +287,45 @@ static void cpu_device_release(struct device *dev)
- 	 */
- }
- 
-+#ifdef CONFIG_HAVE_CPU_AUTOPROBE
-+#ifdef CONFIG_GENERIC_CPU_AUTOPROBE
-+static ssize_t print_cpu_modalias(struct device *dev,
-+				  struct device_attribute *attr,
-+				  char *buf)
-+{
-+	ssize_t n;
-+	u32 i;
-+
-+	n = sprintf(buf, "cpu:type:" CPU_FEATURE_TYPEFMT ":feature:",
-+		    CPU_FEATURE_TYPEVAL);
-+
-+	for (i = 0; i < MAX_CPU_FEATURES; i++)
-+		if (cpu_have_feature(i)) {
-+			if (PAGE_SIZE < n + sizeof(",XXXX\n")) {
-+				WARN(1, "CPU features overflow page\n");
-+				break;
-+			}
-+			n += sprintf(&buf[n], ",%04X", i);
-+		}
-+	buf[n++] = '\n';
-+	return n;
-+}
-+#else
-+#define print_cpu_modalias	arch_print_cpu_modalias
-+#endif
-+
-+static int cpu_uevent(struct device *dev, struct kobj_uevent_env *env)
-+{
-+	char *buf = kzalloc(PAGE_SIZE, GFP_KERNEL);
-+	if (buf) {
-+		print_cpu_modalias(NULL, NULL, buf);
-+		add_uevent_var(env, "MODALIAS=%s", buf);
-+		kfree(buf);
-+	}
-+	return 0;
-+}
-+#endif
-+
- /*
-  * register_cpu - Setup a sysfs device for a CPU.
-  * @cpu - cpu->hotpluggable field set to 1 will generate a control file in
-@@ -306,8 +346,8 @@ int register_cpu(struct cpu *cpu, int num)
- 	cpu->dev.offline_disabled = !cpu->hotpluggable;
- 	cpu->dev.offline = !cpu_online(num);
- 	cpu->dev.of_node = of_get_cpu_node(num, NULL);
--#ifdef CONFIG_ARCH_HAS_CPU_AUTOPROBE
--	cpu->dev.bus->uevent = arch_cpu_uevent;
-+#ifdef CONFIG_HAVE_CPU_AUTOPROBE
-+	cpu->dev.bus->uevent = cpu_uevent;
- #endif
- 	cpu->dev.groups = common_cpu_attr_groups;
- 	if (cpu->hotpluggable)
-@@ -330,8 +370,8 @@ struct device *get_cpu_device(unsigned cpu)
- }
- EXPORT_SYMBOL_GPL(get_cpu_device);
- 
--#ifdef CONFIG_ARCH_HAS_CPU_AUTOPROBE
--static DEVICE_ATTR(modalias, 0444, arch_print_cpu_modalias, NULL);
-+#ifdef CONFIG_HAVE_CPU_AUTOPROBE
-+static DEVICE_ATTR(modalias, 0444, print_cpu_modalias, NULL);
- #endif
- 
- static struct attribute *cpu_root_attrs[] = {
-@@ -344,7 +384,7 @@ static struct attribute *cpu_root_attrs[] = {
- 	&cpu_attrs[2].attr.attr,
- 	&dev_attr_kernel_max.attr,
- 	&dev_attr_offline.attr,
--#ifdef CONFIG_ARCH_HAS_CPU_AUTOPROBE
-+#ifdef CONFIG_HAVE_CPU_AUTOPROBE
- 	&dev_attr_modalias.attr,
- #endif
- 	NULL
-diff --git a/include/linux/cpufeature.h b/include/linux/cpufeature.h
-new file mode 100644
-index 0000000..c4d4eb8
---- /dev/null
-+++ b/include/linux/cpufeature.h
-@@ -0,0 +1,60 @@
-+/*
-+ * Copyright (C) 2014 Linaro Ltd. <ard.biesheuvel@linaro.org>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef __LINUX_CPUFEATURE_H
-+#define __LINUX_CPUFEATURE_H
-+
-+#ifdef CONFIG_GENERIC_CPU_AUTOPROBE
-+
-+#include <linux/mod_devicetable.h>
-+#include <asm/cpufeature.h>
-+
-+/*
-+ * Macros imported from <asm/cpufeature.h>:
-+ * - cpu_feature(x)		ordinal value of feature called 'x'
-+ * - cpu_have_feature(u32 n)	whether feature #n is available
-+ * - MAX_CPU_FEATURES		upper bound for feature ordinal values
-+ * Optional:
-+ * - CPU_FEATURE_TYPEFMT	format string fragment for printing the cpu type
-+ * - CPU_FEATURE_TYPEVAL	set of values matching the format string above
-+ */
-+
-+#ifndef CPU_FEATURE_TYPEFMT
-+#define CPU_FEATURE_TYPEFMT	"%s"
-+#endif
-+
-+#ifndef CPU_FEATURE_TYPEVAL
-+#define CPU_FEATURE_TYPEVAL	ELF_PLATFORM
-+#endif
-+
-+/*
-+ * Use module_cpu_feature_match(feature, module_init_function) to
-+ * declare that
-+ * a) the module shall be probed upon discovery of CPU feature 'feature'
-+ *    (typically at boot time using udev)
-+ * b) the module must not be loaded if CPU feature 'feature' is not present
-+ *    (not even by manual insmod).
-+ *
-+ * For a list of legal values for 'feature', please consult the file
-+ * 'asm/cpufeature.h' of your favorite architecture.
-+ */
-+#define module_cpu_feature_match(x, __init)			\
-+static struct cpu_feature const cpu_feature_match_ ## x[] =	\
-+	{ { .feature = cpu_feature(x) }, { } };			\
-+MODULE_DEVICE_TABLE(cpu, cpu_feature_match_ ## x);		\
-+								\
-+static int cpu_feature_match_ ## x ## _init(void)		\
-+{								\
-+	if (!cpu_have_feature(cpu_feature(x)))			\
-+		return -ENODEV;					\
-+	return __init();					\
-+}								\
-+module_init(cpu_feature_match_ ## x ## _init)
-+
-+#endif
-+#endif
-diff --git a/include/linux/mod_devicetable.h b/include/linux/mod_devicetable.h
-index 45e9214..f2ac87c 100644
---- a/include/linux/mod_devicetable.h
-+++ b/include/linux/mod_devicetable.h
-@@ -564,6 +564,15 @@ struct x86_cpu_id {
- #define X86_MODEL_ANY  0
- #define X86_FEATURE_ANY 0	/* Same as FPU, you can't test for that */
- 
-+/*
-+ * Generic table type for matching CPU features.
-+ * @feature:	the bit number of the feature (0 - 65535)
-+ */
-+
-+struct cpu_feature {
-+	__u16	feature;
-+};
-+
- #define IPACK_ANY_FORMAT 0xff
- #define IPACK_ANY_ID (~0)
- struct ipack_device_id {
-diff --git a/scripts/mod/devicetable-offsets.c b/scripts/mod/devicetable-offsets.c
-index bb5d115..f282516 100644
---- a/scripts/mod/devicetable-offsets.c
-+++ b/scripts/mod/devicetable-offsets.c
-@@ -174,6 +174,9 @@ int main(void)
- 	DEVID_FIELD(x86_cpu_id, model);
- 	DEVID_FIELD(x86_cpu_id, vendor);
- 
-+	DEVID(cpu_feature);
-+	DEVID_FIELD(cpu_feature, feature);
-+
- 	DEVID(mei_cl_device_id);
- 	DEVID_FIELD(mei_cl_device_id, name);
- 
-diff --git a/scripts/mod/file2alias.c b/scripts/mod/file2alias.c
-index 2370863..8a69005 100644
---- a/scripts/mod/file2alias.c
-+++ b/scripts/mod/file2alias.c
-@@ -1135,6 +1135,16 @@ static int do_x86cpu_entry(const char *filename, void *symval,
- }
- ADD_TO_DEVTABLE("x86cpu", x86_cpu_id, do_x86cpu_entry);
- 
-+/* LOOKS like cpu:type:*:feature:*FEAT* */
-+static int do_cpu_entry(const char *filename, void *symval, char *alias)
-+{
-+	DEF_FIELD(symval, cpu_feature, feature);
-+
-+	sprintf(alias, "cpu:type:*:feature:*%04X*", feature);
-+	return 1;
-+}
-+ADD_TO_DEVTABLE("cpu", cpu_feature, do_cpu_entry);
-+
- /* Looks like: mei:S */
- static int do_mei_entry(const char *filename, void *symval,
- 			char *alias)
--- 
-1.8.3.2
-
+	Ingo
