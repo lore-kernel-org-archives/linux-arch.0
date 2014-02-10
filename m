@@ -1,50 +1,72 @@
-From: Will Deacon <will.deacon@arm.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Mon, 10 Feb 2014 16:22:55 +0000
-Message-ID: <20140210162255.GC12826@mudshark.cambridge.arm.com>
-References: <20140206221117.GJ4250@linux.vnet.ibm.com> <1391730288.23421.4102.camel@triegel.csb> <20140207042051.GL4250@linux.vnet.ibm.com> <20140207074405.GM5002@laptop.programming.kicks-ass.net> <20140207165028.GO4250@linux.vnet.ibm.com> <20140207165548.GR5976@mudshark.cambridge.arm.com> <20140207180216.GP4250@linux.vnet.ibm.com> <20140210114813.GJ9987@twins.programming.kicks-ass.net> <20140210114929.GF17766@mudshark.cambridge.arm.com> <20140210150443.GJ4250@linux.vnet.ibm.com>
+Date: Mon, 10 Feb 2014 11:09:24 -0800
+Message-ID: <CA+55aFwTwCPMpYTL_vCgNNP0hE8s2sgB0iw-79=xoj99V0JUNA@mail.gmail.com>
+References: <52F3DA85.1060209@arm.com>
+	<20140206185910.GE27276@mudshark.cambridge.arm.com>
+	<20140206192743.GH4250@linux.vnet.ibm.com>
+	<1391721423.23421.3898.camel@triegel.csb>
+	<20140206221117.GJ4250@linux.vnet.ibm.com>
+	<1391730288.23421.4102.camel@triegel.csb>
+	<20140207042051.GL4250@linux.vnet.ibm.com>
+	<20140207074405.GM5002@laptop.programming.kicks-ass.net>
+	<20140207165028.GO4250@linux.vnet.ibm.com>
+	<20140207165548.GR5976@mudshark.cambridge.arm.com>
+	<20140207180216.GP4250@linux.vnet.ibm.com>
+	<1391992071.18779.99.camel@triegel.csb>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <gcc-return-181947-gcc=m.gmane.org@gcc.gnu.org>
-List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
-List-Archive: <http://gcc.gnu.org/ml/gcc/>
-List-Post: <mailto:gcc@gcc.gnu.org>
-List-Help: <http://gcc.gnu.org/ml/>
-Sender: gcc-owner@gcc.gnu.org
-Content-Disposition: inline
-In-Reply-To: <20140210150443.GJ4250@linux.vnet.ibm.com>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Torvald Riegel <triegel@redhat.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ve0-f178.google.com ([209.85.128.178]:49854 "EHLO
+	mail-ve0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752233AbaBJTJ0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Feb 2014 14:09:26 -0500
+In-Reply-To: <1391992071.18779.99.camel@triegel.csb>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Torvald Riegel <triegel@redhat.com>
+Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
 
-On Mon, Feb 10, 2014 at 03:04:43PM +0000, Paul E. McKenney wrote:
-> On Mon, Feb 10, 2014 at 11:49:29AM +0000, Will Deacon wrote:
-> > On Mon, Feb 10, 2014 at 11:48:13AM +0000, Peter Zijlstra wrote:
-> > > On Fri, Feb 07, 2014 at 10:02:16AM -0800, Paul E. McKenney wrote:
-> > > > As near as I can tell, compiler writers hate the idea of prohibiting
-> > > > speculative-store optimizations because it requires them to introduce
-> > > > both control and data dependency tracking into their compilers.  Many of
-> > > > them seem to hate dependency tracking with a purple passion.  At least,
-> > > > such a hatred would go a long way towards explaining the incomplete
-> > > > and high-overhead implementations of memory_order_consume, the long
-> > > > and successful use of idioms based on the memory_order_consume pattern
-> > > > notwithstanding [*].  ;-)
-> > > 
-> > > Just tell them that because the hardware provides control dependencies
-> > > we actually use and rely on them.
-> > 
-> > s/control/address/ ?
-> 
-> Both are important, but as Peter's reply noted, it was control
-> dependencies under discussion.  Data dependencies (which include the
-> ARM/PowerPC notion of address dependencies) are called out by the standard
-> already, but control dependencies are not.  I am not all that satisified
-> by current implementations of data dependencies, admittedly.  Should
-> be an interesting discussion.  ;-)
+On Sun, Feb 9, 2014 at 4:27 PM, Torvald Riegel <triegel@redhat.com> wrote:
+>
+> Intuitively, this is wrong because this let's the program take a step
+> the abstract machine wouldn't do.  This is different to the sequential
+> code that Peter posted because it uses atomics, and thus one can't
+> easily assume that the difference is not observable.
 
-Ok, but since you can't use control dependencies to order LOAD -> LOAD, it's
-a pretty big ask of the compiler to make use of them for things like
-consume, where a data dependency will suffice for any combination of
-accesses.
+Btw, what is the definition of "observable" for the atomics?
 
-Will
+Because I'm hoping that it's not the same as for volatiles, where
+"observable" is about the virtual machine itself, and as such volatile
+accesses cannot be combined or optimized at all.
+
+Now, I claim that atomic accesses cannot be done speculatively for
+writes, and not re-done for reads (because the value could change),
+but *combining* them would be possible and good.
+
+For example, we often have multiple independent atomic accesses that
+could certainly be combined: testing the individual bits of an atomic
+value with helper functions, causing things like "load atomic, test
+bit, load same atomic, test another bit". The two atomic loads could
+be done as a single load without possibly changing semantics on a real
+machine, but if "visibility" is defined in the same way it is for
+"volatile", that wouldn't be a valid transformation. Right now we use
+"volatile" semantics for these kinds of things, and they really can
+hurt.
+
+Same goes for multiple writes (possibly due to setting bits):
+combining multiple accesses into a single one is generally fine, it's
+*adding* write accesses speculatively that is broken by design..
+
+At the same time, you can't combine atomic loads or stores infinitely
+- "visibility" on a real machine definitely is about timeliness.
+Removing all but the last write when there are multiple consecutive
+writes is generally fine, even if you unroll a loop to generate those
+writes. But if what remains is a loop, it might be a busy-loop
+basically waiting for something, so it would be wrong ("untimely") to
+hoist a store in a loop entirely past the end of the loop, or hoist a
+load in a loop to before the loop.
+
+Does the standard allow for that kind of behavior?
+
+              Linus
