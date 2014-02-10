@@ -1,11 +1,11 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:59453 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:18247 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752171AbaBJBRK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 9 Feb 2014 20:17:10 -0500
+	id S1752090AbaBJBqn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 9 Feb 2014 20:46:43 -0500
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
 From: Torvald Riegel <triegel@redhat.com>
-In-Reply-To: <CA+55aFwFVr2KiXX2MObMBGypQk9eabe-93Nhmro=HL1RtC-1jw@mail.gmail.com>
+In-Reply-To: <CA+55aFy0SPge-z9TbaLF2yxLffVTviv_WhhbkXsB5mMA9d9iaQ@mail.gmail.com>
 References: <52F3DA85.1060209@arm.com>
 	 <20140206185910.GE27276@mudshark.cambridge.arm.com>
 	 <20140206192743.GH4250@linux.vnet.ibm.com>
@@ -19,81 +19,63 @@ References: <52F3DA85.1060209@arm.com>
 	 <20140207180216.GP4250@linux.vnet.ibm.com>
 	 <1391992071.18779.99.camel@triegel.csb>
 	 <CA+55aFwFVr2KiXX2MObMBGypQk9eabe-93Nhmro=HL1RtC-1jw@mail.gmail.com>
+	 <1391994986.18779.169.camel@triegel.csb>
+	 <CA+55aFy0SPge-z9TbaLF2yxLffVTviv_WhhbkXsB5mMA9d9iaQ@mail.gmail.com>
 Content-Type: text/plain; charset="UTF-8"
-Date: Sun, 09 Feb 2014 17:16:26 -0800
-Message-ID: <1391994986.18779.169.camel@triegel.csb>
+Date: Sun, 09 Feb 2014 17:46:08 -0800
+Message-ID: <1391996768.18779.212.camel@triegel.csb>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140210011626.bySiERo01aPXGLvvhww_o8IlWqBUL7He4B2s_1Mz4H8@z>
+Message-ID: <20140210014608.YJ5xPqbdrS4kJpCxA143upu3OiBCtMhmCLxprrtIApY@z>
 
-On Sun, 2014-02-09 at 16:56 -0800, Linus Torvalds wrote:
-> On Sun, Feb 9, 2014 at 4:27 PM, Torvald Riegel <triegel@redhat.com> wrote:
+On Sun, 2014-02-09 at 17:24 -0800, Linus Torvalds wrote:
+> On Sun, Feb 9, 2014 at 5:16 PM, Torvald Riegel <triegel@redhat.com> wrote:
 > >
-> > I wouldn't characterize the situation like this (although I can't speak
-> > for others, obviously).  IMHO, it's perfectly fine on sequential /
-> > non-synchronizing code, because we know the difference isn't observable
-> > by a correct program.
+> > (a) seems to say that you don't like requiring programmers to mark
+> > atomic accesses specially.  Is that the case?
 > 
-> What BS is that? If you use an "atomic_store_explicit()", by
-> definition you're either
+> In Paul's example, they were marked specially.
 > 
->  (a) f*cking insane
->  (b) not doing sequential non-synchronizing code
+> And you seemed to argue that Paul's example could possibly return
+> anything but 0/0.
+
+Just read my reply to Paul again.  Here's an excerpt:
+
+> Initial state: x == y == 0
 > 
-> and a compiler that assumes that the programmer is insane may actually
-> be correct more often than not, but it's still a shit compiler.
-> Agreed?
+> T1:   r1 = atomic_load_explicit(x, memory_order_relaxed);
+>       atomic_store_explicit(42, y, memory_order_relaxed);
+>       if (r1 != 42)
+>               atomic_store_explicit(r1, y, memory_order_relaxed);
+> 
+> T2:   r2 = atomic_load_explicit(y, memory_order_relaxed);
+>       atomic_store_explicit(r2, x, memory_order_relaxed);
 
-Due to all the expletives, I can't really understand what you are
-saying.  Nor does what I guess it might mean seem to relate to what I
-said.
+Intuitively, this is wrong because this let's the program take a step
+the abstract machine wouldn't do.  This is different to the sequential
+code that Peter posted because it uses atomics, and thus one can't
+easily assume that the difference is not observable.
 
-(a) seems to say that you don't like requiring programmers to mark
-atomic accesses specially.  Is that the case?
 
-If so, I have to disagree.  If you're writing concurrent code, marking
-the atomic accesses is the least of your problem.  Instead, for the
-concurrent code I've written, it rather improved readability; it made
-code more verbose, but in turn it made the synchronization easier to
-see.
+IOW, I wrote that such a compiler transformation would be wrong in my
+opinion.  Thus, it should *not* return 42.
+If you still see how what I wrote could be misunderstood, please let me
+know because I really don't see it.
 
-Beside this question of taste (and I don't care what the Kernel style
-guides are), there is a real technical argument here, though:  Requiring
-all synchronizing memory accesses to be annotated makes the compiler
-aware what is sequential code, and what is not.  Without it, one can't
-exploit data-race-freedom.  So unless we want to slow down optimization
-of sequential code, we need to tell the compiler what is what.  If every
-access is potentially synchronizing, then this doesn't just prevent
-speculative stores.
+Yes, I don't do so by swearing or calling other insane, and I try to see
+the reasoning that those compilers' authors might have had, even if I
+don't agree with it.  In my personal opinion, that's a good thing.
 
-(b) seems as if you are saying that if there is a specially annotated
-atomic access in the code, that this isn't sequential/non-synchronizing
-code anymore.  I don't agree with that, obviously.
+> If you really think that, I hope to God that you have nothing to do
+> with the C standard or any actual compiler I ever use.
+> 
+> Because such a standard or compiler would be shit. It's sadly not too uncommon.
 
-> So I don't see how any sane person can say that speculative writes are
-> ok. They are clearly not ok.
+Thanks for the kind words.  Perhaps writing that was quicker than
+reading what I actually wrote.
 
-We are discussing programs written against the C11/C++11 memory model
-here.  At least that's the part that got forwarded to gcc@gcc.gnu.org,
-and was subject of the nearest emails in the thread.
-
-This memory model requires programs to be data-race-free.  Thus, we can
-optimize accordingly.  If you don't like that, then this isn't C11/C++11
-anymore.  Which would be fine, but then complain about that
-specifically.
-
-> Speculative stores are a bad idea in general.
-
-I disagree in the context of C11/C++11 programs.  At least from a
-correctness point of view.
-
-> They are completely
-> invalid for anything that says "atomic".
-
-I agree, as you will see when you read the other emails I posted as part
-of this thread.  But those two things are separate.
 
