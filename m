@@ -1,48 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:32555 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752670AbaBLPqI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 12 Feb 2014 10:46:08 -0500
-Subject: [PATCH 2/4] Sparc: sparc_cpu_model isn't in asm/system.h any more
-From: David Howells <dhowells@redhat.com>
-Date: Wed, 12 Feb 2014 15:45:59 +0000
-Message-ID: <20140212154559.2405.3104.stgit@warthog.procyon.org.uk>
-In-Reply-To: <20140212154544.2405.2992.stgit@warthog.procyon.org.uk>
-References: <20140212154544.2405.2992.stgit@warthog.procyon.org.uk>
+Received: from merlin.infradead.org ([205.233.59.134]:46015 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753672AbaBLSMO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Feb 2014 13:12:14 -0500
+Date: Wed, 12 Feb 2014 19:12:05 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
+Message-ID: <20140212181205.GD27965@twins.programming.kicks-ass.net>
+References: <20140207074405.GM5002@laptop.programming.kicks-ass.net>
+ <20140207165028.GO4250@linux.vnet.ibm.com>
+ <20140207165548.GR5976@mudshark.cambridge.arm.com>
+ <20140207180216.GP4250@linux.vnet.ibm.com>
+ <1391992071.18779.99.camel@triegel.csb>
+ <CA+55aFwTwCPMpYTL_vCgNNP0hE8s2sgB0iw-79=xoj99V0JUNA@mail.gmail.com>
+ <20140211155941.GU4250@linux.vnet.ibm.com>
+ <1392185194.18779.2239.camel@triegel.csb>
+ <20140212091907.GA3545@laptop.programming.kicks-ass.net>
+ <20140212174209.GA4250@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20140212174209.GA4250@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org, dhowells@redhat.com, sparclinux@vger.kernel.org, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20140212154559.OJu8ua7taNp5fy9xyYjLB0zUy0hZ-Xi2CoL2LO9PZRg@z>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Torvald Riegel <triegel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Message-ID: <20140212181205.fd9zXttbp-MKDIlKWqKFRTBtUqjZC8QqlsEG3dINpSk@z>
 
-sparc_cpu_model isn't in asm/system.h any more, so remove a comment about it.
+On Wed, Feb 12, 2014 at 09:42:09AM -0800, Paul E. McKenney wrote:
+> You need volatile semantics to force the compiler to ignore any proofs
+> it might otherwise attempt to construct.  Hence all the ACCESS_ONCE()
+> calls in my email to Torvald.  (Hopefully I translated your example
+> reasonably.)
 
-Signed-off-by: David Howells <dhowells@redhat.com>
-cc: "David S. Miller" <davem@davemloft.net>
-cc: sparclinux@vger.kernel.org
----
+My brain gave out for today; but it did appear to have the right
+structure.
 
- drivers/sbus/char/jsflash.c |    4 +---
- 1 file changed, 1 insertion(+), 3 deletions(-)
+I would prefer it C11 would not require the volatile casts. It should
+simply _never_ speculate with atomic writes, volatile or not.
 
-diff --git a/drivers/sbus/char/jsflash.c b/drivers/sbus/char/jsflash.c
-index 6b4678a..018b64b 100644
---- a/drivers/sbus/char/jsflash.c
-+++ b/drivers/sbus/char/jsflash.c
-@@ -507,11 +507,9 @@ static int jsflash_init(void)
- 	}
- 
- 	/* Let us be really paranoid for modifications to probing code. */
--	/* extern enum sparc_cpu sparc_cpu_model; */ /* in <asm/system.h> */
--	if (sparc_cpu_model != sun4m) {
-+	if (sparc_cpu_model != sun4m)
- 		/* We must be on sun4m because we use MMU Bypass ASI. */
- 		return -ENXIO;
--	}
- 
- 	if (jsf0.base == 0) {
- 		jsf = &jsf0;
+
 
