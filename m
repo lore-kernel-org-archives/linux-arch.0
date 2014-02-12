@@ -1,62 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:58234 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750890AbaBLJTY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Feb 2014 04:19:24 -0500
-Date: Wed, 12 Feb 2014 10:19:07 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Message-ID: <20140212091907.GA3545@laptop.programming.kicks-ass.net>
-References: <1391730288.23421.4102.camel@triegel.csb>
- <20140207042051.GL4250@linux.vnet.ibm.com>
- <20140207074405.GM5002@laptop.programming.kicks-ass.net>
- <20140207165028.GO4250@linux.vnet.ibm.com>
- <20140207165548.GR5976@mudshark.cambridge.arm.com>
- <20140207180216.GP4250@linux.vnet.ibm.com>
- <1391992071.18779.99.camel@triegel.csb>
- <CA+55aFwTwCPMpYTL_vCgNNP0hE8s2sgB0iw-79=xoj99V0JUNA@mail.gmail.com>
- <20140211155941.GU4250@linux.vnet.ibm.com>
- <1392185194.18779.2239.camel@triegel.csb>
+Received: from mx1.redhat.com ([209.132.183.28]:54571 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751883AbaBLPp7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 12 Feb 2014 10:45:59 -0500
+Subject: [PATCH 1/4] Clean asm/system.h from docs
+From: David Howells <dhowells@redhat.com>
+Date: Wed, 12 Feb 2014 15:45:51 +0000
+Message-ID: <20140212154551.2405.20935.stgit@warthog.procyon.org.uk>
+In-Reply-To: <20140212154544.2405.2992.stgit@warthog.procyon.org.uk>
+References: <20140212154544.2405.2992.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1392185194.18779.2239.camel@triegel.csb>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Torvald Riegel <triegel@redhat.com>
-Cc: paulmck@linux.vnet.ibm.com, Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140212091907.5TLrM_d72juAkCrIlizeRTI5A7n8a9z54B7gHoGrjlk@z>
+To: akpm@linux-foundation.org
+Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, arnd@arndb.de
+Message-ID: <20140212154551.sxKBg6AhOZLaTCSD4m2CUwhtrHNX05gWzlckPC24RTM@z>
 
-> I don't know the specifics of your example, but from how I understand
-> it, I don't see a problem if the compiler can prove that the store will
-> always happen.
-> 
-> To be more specific, if the compiler can prove that the store will
-> happen anyway, and the region of code can be assumed to always run
-> atomically (e.g., there's no loop or such in there), then it is known
-> that we have one atomic region of code that will always perform the
-> store, so we might as well do the stuff in the region in some order.
-> 
-> Now, if any of the memory accesses are atomic, then the whole region of
-> code containing those accesses is often not atomic because other threads
-> might observe intermediate results in a data-race-free way.
-> 
-> (I know that this isn't a very precise formulation, but I hope it brings
-> my line of reasoning across.)
+Clean asm/system.h from docs as nothing should refer to that header anymore.
 
-So given something like:
+Signed-off-by: David Howells <dhowells@redhat.com>
+cc: Ingo Molnar <mingo@redhat.com>
+---
 
-	if (x)
-		y = 3;
+ Documentation/DocBook/kernel-hacking.tmpl |    2 +-
+ Documentation/irqflags-tracing.txt        |    7 -------
+ Documentation/scheduler/sched-arch.txt    |    2 +-
+ 3 files changed, 2 insertions(+), 9 deletions(-)
 
-assuming both x and y are atomic (so don't gimme crap for now knowing
-the C11 atomic incantations); and you can prove x is always true; you
-don't see a problem with not emitting the conditional?
+diff --git a/Documentation/DocBook/kernel-hacking.tmpl b/Documentation/DocBook/kernel-hacking.tmpl
+index d0758b2..b90959b 100644
+--- a/Documentation/DocBook/kernel-hacking.tmpl
++++ b/Documentation/DocBook/kernel-hacking.tmpl
+@@ -671,7 +671,7 @@ printk(KERN_INFO "my ip: %pI4\n", &amp;ipaddress);
+ 
+   <sect1 id="routines-local-irqs">
+    <title><function>local_irq_save()</function>/<function>local_irq_restore()</function>
+-    <filename class="headerfile">include/asm/system.h</filename>
++    <filename class="headerfile">include/linux/irqflags.h</filename>
+    </title>
+ 
+    <para>
+diff --git a/Documentation/irqflags-tracing.txt b/Documentation/irqflags-tracing.txt
+index 67aa71e..f6da056 100644
+--- a/Documentation/irqflags-tracing.txt
++++ b/Documentation/irqflags-tracing.txt
+@@ -22,13 +22,6 @@ rather straightforward and risk-free manner.
+ Architectures that want to support this need to do a couple of
+ code-organizational changes first:
+ 
+-- move their irq-flags manipulation code from their asm/system.h header
+-  to asm/irqflags.h
+-
+-- rename local_irq_disable()/etc to raw_local_irq_disable()/etc. so that
+-  the linux/irqflags.h code can inject callbacks and can construct the
+-  real local_irq_disable()/etc APIs.
+-
+ - add and enable TRACE_IRQFLAGS_SUPPORT in their arch level Kconfig file
+ 
+ and then a couple of functional changes are needed as well to implement
+diff --git a/Documentation/scheduler/sched-arch.txt b/Documentation/scheduler/sched-arch.txt
+index 9290de7..a2f27bb 100644
+--- a/Documentation/scheduler/sched-arch.txt
++++ b/Documentation/scheduler/sched-arch.txt
+@@ -8,7 +8,7 @@ Context switch
+ By default, the switch_to arch function is called with the runqueue
+ locked. This is usually not a problem unless switch_to may need to
+ take the runqueue lock. This is usually due to a wake up operation in
+-the context switch. See arch/ia64/include/asm/system.h for an example.
++the context switch. See arch/ia64/include/asm/switch_to.h for an example.
+ 
+ To request the scheduler call switch_to with the runqueue unlocked,
+ you must `#define __ARCH_WANT_UNLOCKED_CTXSW` in a header file
 
-Avoiding the conditional changes the result; see that control dependency
-email from earlier. In the above example the load of X and the store to
-Y are strictly ordered, due to control dependencies. Not emitting the
-condition and maybe not even emitting the load completely wrecks this.
-
-Its therefore an invalid optimization to take out the conditional or
-speculate the store, since it takes out the dependency.
