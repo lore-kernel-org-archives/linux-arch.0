@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:54571 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:60082 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751883AbaBLPp7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 12 Feb 2014 10:45:59 -0500
-Subject: [PATCH 1/4] Clean asm/system.h from docs
+	id S1751630AbaBLPqd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 12 Feb 2014 10:46:33 -0500
+Subject: [PATCH 3/4] UM: arch_align_stack() moved to asm/exec.h
 From: David Howells <dhowells@redhat.com>
-Date: Wed, 12 Feb 2014 15:45:51 +0000
-Message-ID: <20140212154551.2405.20935.stgit@warthog.procyon.org.uk>
+Date: Wed, 12 Feb 2014 15:46:07 +0000
+Message-ID: <20140212154607.2405.15741.stgit@warthog.procyon.org.uk>
 In-Reply-To: <20140212154544.2405.2992.stgit@warthog.procyon.org.uk>
 References: <20140212154544.2405.2992.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
@@ -15,62 +15,32 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
-Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, arnd@arndb.de
-Message-ID: <20140212154551.sxKBg6AhOZLaTCSD4m2CUwhtrHNX05gWzlckPC24RTM@z>
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, user-mode-linux-devel@lists.sourceforge.net, Richard Weinberger <richard@nod.at>, Jeff Dike <jdike@addtoit.com>, linux-kernel@vger.kernel.org, dhowells@redhat.com
+Message-ID: <20140212154607.sHI-h0dVtqQru289KmRq2VfxRapSFj9pz9WUx7-yS30@z>
 
-Clean asm/system.h from docs as nothing should refer to that header anymore.
+arch_align_stack() moved to asm/exec.h, so change the comment referring to
+asm/system.h which no longer exists.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
-cc: Ingo Molnar <mingo@redhat.com>
+cc: Jeff Dike <jdike@addtoit.com>
+cc: Richard Weinberger <richard@nod.at>
+cc: user-mode-linux-devel@lists.sourceforge.net
 ---
 
- Documentation/DocBook/kernel-hacking.tmpl |    2 +-
- Documentation/irqflags-tracing.txt        |    7 -------
- Documentation/scheduler/sched-arch.txt    |    2 +-
- 3 files changed, 2 insertions(+), 9 deletions(-)
+ arch/um/kernel/process.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/Documentation/DocBook/kernel-hacking.tmpl b/Documentation/DocBook/kernel-hacking.tmpl
-index d0758b2..b90959b 100644
---- a/Documentation/DocBook/kernel-hacking.tmpl
-+++ b/Documentation/DocBook/kernel-hacking.tmpl
-@@ -671,7 +671,7 @@ printk(KERN_INFO "my ip: %pI4\n", &amp;ipaddress);
- 
-   <sect1 id="routines-local-irqs">
-    <title><function>local_irq_save()</function>/<function>local_irq_restore()</function>
--    <filename class="headerfile">include/asm/system.h</filename>
-+    <filename class="headerfile">include/linux/irqflags.h</filename>
-    </title>
- 
-    <para>
-diff --git a/Documentation/irqflags-tracing.txt b/Documentation/irqflags-tracing.txt
-index 67aa71e..f6da056 100644
---- a/Documentation/irqflags-tracing.txt
-+++ b/Documentation/irqflags-tracing.txt
-@@ -22,13 +22,6 @@ rather straightforward and risk-free manner.
- Architectures that want to support this need to do a couple of
- code-organizational changes first:
- 
--- move their irq-flags manipulation code from their asm/system.h header
--  to asm/irqflags.h
--
--- rename local_irq_disable()/etc to raw_local_irq_disable()/etc. so that
--  the linux/irqflags.h code can inject callbacks and can construct the
--  real local_irq_disable()/etc APIs.
--
- - add and enable TRACE_IRQFLAGS_SUPPORT in their arch level Kconfig file
- 
- and then a couple of functional changes are needed as well to implement
-diff --git a/Documentation/scheduler/sched-arch.txt b/Documentation/scheduler/sched-arch.txt
-index 9290de7..a2f27bb 100644
---- a/Documentation/scheduler/sched-arch.txt
-+++ b/Documentation/scheduler/sched-arch.txt
-@@ -8,7 +8,7 @@ Context switch
- By default, the switch_to arch function is called with the runqueue
- locked. This is usually not a problem unless switch_to may need to
- take the runqueue lock. This is usually due to a wake up operation in
--the context switch. See arch/ia64/include/asm/system.h for an example.
-+the context switch. See arch/ia64/include/asm/switch_to.h for an example.
- 
- To request the scheduler call switch_to with the runqueue unlocked,
- you must `#define __ARCH_WANT_UNLOCKED_CTXSW` in a header file
+diff --git a/arch/um/kernel/process.c b/arch/um/kernel/process.c
+index eecc414..f17bca8 100644
+--- a/arch/um/kernel/process.c
++++ b/arch/um/kernel/process.c
+@@ -359,7 +359,7 @@ int singlestepping(void * t)
+ /*
+  * Only x86 and x86_64 have an arch_align_stack().
+  * All other arches have "#define arch_align_stack(x) (x)"
+- * in their asm/system.h
++ * in their asm/exec.h
+  * As this is included in UML from asm-um/system-generic.h,
+  * we can use it to behave as the subarch does.
+  */
 
