@@ -1,47 +1,57 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH v2 52/52] net/iucv/iucv.c: Fix CPU hotplug callback
- registration
-Date: Fri, 14 Feb 2014 13:31:47 -0500 (EST)
-Message-ID: <20140214.133147.1908176449942033339.davem@davemloft.net>
-References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
-	<20140214080057.22701.94737.stgit@srivatsabhat.in.ibm.com>
+From: Torvald Riegel <triegel@redhat.com>
+Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
+Date: Fri, 14 Feb 2014 11:19:13 -0800
+Message-ID: <1392405553.18779.4373.camel@triegel.csb>
+References: <20140207074405.GM5002@laptop.programming.kicks-ass.net>	 <20140207165028.GO4250@linux.vnet.ibm.com>	 <20140207165548.GR5976@mudshark.cambridge.arm.com>	 <20140207180216.GP4250@linux.vnet.ibm.com>	 <1391992071.18779.99.camel@triegel.csb>	 <CA+55aFwTwCPMpYTL_vCgNNP0hE8s2sgB0iw-79=xoj99V0JUNA@mail.gmail.com>	 <20140211155941.GU4250@linux.vnet.ibm.com>	 <1392185194.18779.2239.camel@triegel.csb>	 <20140212091907.GA3545@laptop.programming.kicks-ass.net>	 <1392354475.18779.3849.camel@triegel.csb>	 <20140214095011.GG27965@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:35191 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752996AbaBNSbx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 13:31:53 -0500
-In-Reply-To: <20140214080057.22701.94737.stgit@srivatsabhat.in.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: srivatsa.bhat@linux.vnet.ibm.com
-Cc: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ursula.braun@de.ibm.com, linux-s390@vger.kernel.org, netdev@vger.kernel.org
+Return-path: <gcc-return-182037-gcc=m.gmane.org@gcc.gnu.org>
+List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
+List-Archive: <http://gcc.gnu.org/ml/gcc/>
+List-Post: <mailto:gcc@gcc.gnu.org>
+List-Help: <http://gcc.gnu.org/ml/>
+Sender: gcc-owner@gcc.gnu.org
+In-Reply-To: <20140214095011.GG27965@twins.programming.kicks-ass.net>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: paulmck@linux.vnet.ibm.com, Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+List-Id: linux-arch.vger.kernel.org
 
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Date: Fri, 14 Feb 2014 13:30:58 +0530
+On Fri, 2014-02-14 at 10:50 +0100, Peter Zijlstra wrote:
+> On Thu, Feb 13, 2014 at 09:07:55PM -0800, Torvald Riegel wrote:
+> > That depends on what your goal is.
 
-> Subsystems that want to register CPU hotplug callbacks, as well as perform
-> initialization for the CPUs that are already online, often do it as shown
-> below:
- ...
-> This is wrong, since it is prone to ABBA deadlocks involving the
-> cpu_add_remove_lock and the cpu_hotplug.lock (when running concurrently
-> with CPU hotplug operations).
-> 
-> Instead, the correct and race-free way of performing the callback
-> registration is:
- ...
-> Fix the code in net/iucv/iucv.c by using this latter form of callback
-> registration. Also, provide helper functions to perform the common memory
-> allocations and frees, to condense repetitive code.
-> 
-> Cc: Ursula Braun <ursula.braun@de.ibm.com>
-> Cc: Ingo Molnar <mingo@kernel.org>
-> Cc: linux-s390@vger.kernel.org
-> Cc: netdev@vger.kernel.org
-> Signed-off-by: David S. Miller <davem@davemloft.net>
-> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+First, I don't know why you quoted that, but without the context,
+quoting it doesn't make sense.  Let me repeat the point.  The standard
+is the rule set for the compiler.  Period.  The compiler does not just
+serve the semantics that you might have in your head.  It does have to
+do something meaningful for all of its users.  Thus, the goal for the
+compiler is to properly compile programs in the language as specified.
 
-Acked-by: David S. Miller <davem@davemloft.net>
+If there is a deficiency in the standard (bug or missing feature) -- and
+thus the specification, we need to have a patch for the standard that
+fixes this deficiency.  If you think that this is the case, that's where
+you fix it.
+
+If your goal is to do wishful thinking, imagine some kind of semantics
+in your head, and then assume that magically, implementations will do
+just that, then that's bound to fail.
+
+> A compiler that we don't need to fight in order to generate sane code
+> would be nice. But as Linus said; we can continue to ignore you lot and
+> go on as we've done.
+
+I don't see why it's so hard to understand that you need to specify
+semantics, and the place (or at least the base) for that is the
+standard.  Aren't you guys the ones replying "send a patch"? :)
+
+This isn't any different.  If you're uncomfortable working with the
+standard, then say so, and reach out to people that aren't.
+
+You can surely ignore the specification of the language(s) that you are
+depending on.  But that won't help you.  If you want a change, get
+involved.  (Oh, and claiming that the other side doesn't get it doesn't
+count as getting involved.)
+
+There's no fight between people here.  It's just a technical problem
+that we have to solve in the right way.
