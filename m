@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp08.au.ibm.com ([202.81.31.141]:39952 "EHLO
-	e23smtp08.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752482AbaBNH6g (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 02:58:36 -0500
+Received: from e23smtp02.au.ibm.com ([202.81.31.144]:60984 "EHLO
+	e23smtp02.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752487AbaBNH5P (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 02:57:15 -0500
 Received: from /spool/local
-	by e23smtp08.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp02.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 14 Feb 2014 17:58:16 +1000
+	Fri, 14 Feb 2014 17:56:57 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 16/52] x86, cpuid: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:22:44 +0530
-Message-ID: <20140214075244.22701.7001.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 10/52] arm, kvm: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:21:23 +0530
+Message-ID: <20140214075122.22701.18462.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -19,8 +19,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140214075244.sZlMnzo53lrVk3pIMSFhzu1XrNURz_098T0VWUCtM74@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Christoffer Dall <christoffer.dall@linaro.org>, Gleb Natapov <gleb@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>Russell King <linux@arm.linux.org.uk>, kvmarm@lists.cs.columbia.edu, kvm@vger.kernel.org, linux-arm-kernel@lists.infradead.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140214075123.Ij3qeoIdkwFE1hrptOutR5yk_rSmOfILu-m1lTRla5k@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -53,65 +53,52 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the cpuid code in x86 by using this latter form of callback registration.
+Fix the kvm code in arm by using this latter form of callback registration.
 
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Christoffer Dall <christoffer.dall@linaro.org>
+Cc: Gleb Natapov <gleb@kernel.org>
+Cc: Paolo Bonzini <pbonzini@redhat.com>
+Cc: Russell King <linux@arm.linux.org.uk>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: x86@kernel.org
+Cc: kvmarm@lists.cs.columbia.edu
+Cc: kvm@vger.kernel.org
+Cc: linux-arm-kernel@lists.infradead.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/x86/kernel/cpuid.c |   15 ++++++++-------
- 1 file changed, 8 insertions(+), 7 deletions(-)
+ arch/arm/kvm/arm.c |    7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/kernel/cpuid.c b/arch/x86/kernel/cpuid.c
-index 7d9481c..3225ae6c 100644
---- a/arch/x86/kernel/cpuid.c
-+++ b/arch/x86/kernel/cpuid.c
-@@ -198,14 +198,15 @@ static int __init cpuid_init(void)
- 		goto out_chrdev;
+diff --git a/arch/arm/kvm/arm.c b/arch/arm/kvm/arm.c
+index 1d8248e..147b917 100644
+--- a/arch/arm/kvm/arm.c
++++ b/arch/arm/kvm/arm.c
+@@ -1050,21 +1050,26 @@ int kvm_arch_init(void *opaque)
+ 		}
  	}
- 	cpuid_class->devnode = cpuid_devnode;
--	get_online_cpus();
+ 
++	cpu_notifier_register_begin();
 +
-+	cpu_notifier_register_begin();
- 	for_each_online_cpu(i) {
- 		err = cpuid_device_create(i);
- 		if (err != 0)
- 			goto out_class;
- 	}
--	register_hotcpu_notifier(&cpuid_class_cpu_notifier);
--	put_online_cpus();
-+	__register_hotcpu_notifier(&cpuid_class_cpu_notifier);
-+	cpu_notifier_register_done();
+ 	err = init_hyp_mode();
+ 	if (err)
+ 		goto out_err;
  
- 	err = 0;
- 	goto out;
-@@ -215,7 +216,7 @@ out_class:
- 	for_each_online_cpu(i) {
- 		cpuid_device_destroy(i);
+-	err = register_cpu_notifier(&hyp_init_cpu_nb);
++	err = __register_cpu_notifier(&hyp_init_cpu_nb);
+ 	if (err) {
+ 		kvm_err("Cannot register HYP init CPU notifier (%d)\n", err);
+ 		goto out_err;
  	}
--	put_online_cpus();
-+	cpu_notifier_register_done();
- 	class_destroy(cpuid_class);
- out_chrdev:
- 	__unregister_chrdev(CPUID_MAJOR, 0, NR_CPUS, "cpu/cpuid");
-@@ -227,13 +228,13 @@ static void __exit cpuid_exit(void)
- {
- 	int cpu = 0;
  
--	get_online_cpus();
-+	cpu_notifier_register_begin();
- 	for_each_online_cpu(cpu)
- 		cpuid_device_destroy(cpu);
- 	class_destroy(cpuid_class);
- 	__unregister_chrdev(CPUID_MAJOR, 0, NR_CPUS, "cpu/cpuid");
--	unregister_hotcpu_notifier(&cpuid_class_cpu_notifier);
--	put_online_cpus();
-+	__unregister_hotcpu_notifier(&cpuid_class_cpu_notifier);
 +	cpu_notifier_register_done();
++
+ 	hyp_cpu_pm_init();
+ 
+ 	kvm_coproc_table_init();
+ 	return 0;
+ out_err:
++	cpu_notifier_register_done();
+ 	return err;
  }
  
- module_init(cpuid_init);
 
