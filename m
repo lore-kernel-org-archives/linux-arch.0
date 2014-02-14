@@ -1,16 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp08.au.ibm.com ([202.81.31.141]:53450 "EHLO
-	e23smtp08.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752139AbaBNIFx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 03:05:53 -0500
+Received: from e28smtp02.in.ibm.com ([122.248.162.2]:36260 "EHLO
+	e28smtp02.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751758AbaBNIFB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 03:05:01 -0500
 Received: from /spool/local
-	by e23smtp08.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp02.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 14 Feb 2014 18:05:51 +1000
+	Fri, 14 Feb 2014 13:34:56 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 49/52] mm, vmstat: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:30:18 +0530
-Message-ID: <20140214080017.22701.62427.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 45/52] hwmon,
+ via-cputemp: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:29:26 +0530
+Message-ID: <20140214075925.22701.69267.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -19,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Rik van Riel <riel@redhat.com>, Johannes Weiner <hannes@cmpxchg.org>, Cody P Schafer <cody@linux.vnet.ibm.com>, Toshi Kani <toshi.kani@hp.com>, Dave Hansen <dave@sr71.net>, linux-mm@kvack.org, Christoph Lameter <cl@linux.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140214080018.QJ7Fcd6AGEAv9uLOL4rpCAlDkeszQ0g-7MKLaDs5vwE@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Jean Delvare <jdelvare@suse.de>, lm-sensors@lm-sensors.org, Guenter Roeck <linux@roeck-us.net>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140214075926.zknw84uIPcuN38VxwF_rEaBtxwr_eQswjdBLY2piGPU@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -53,45 +54,68 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the vmstat code in the MM subsystem by using this latter form of callback
+Fix the hwmon via-cputemp code by using this latter form of callback
 registration.
 
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Rik van Riel <riel@redhat.com>
-Cc: Johannes Weiner <hannes@cmpxchg.org>
-Cc: Cody P Schafer <cody@linux.vnet.ibm.com>
-Cc: Toshi Kani <toshi.kani@hp.com>
-Cc: Dave Hansen <dave@sr71.net>
+Cc: Jean Delvare <jdelvare@suse.de>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: linux-mm@kvack.org
-Acked-by: Christoph Lameter <cl@linux.com>
-Reviewed-by: Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>
+Cc: lm-sensors@lm-sensors.org
+Acked-by: Guenter Roeck <linux@roeck-us.net>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- mm/vmstat.c |    6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ drivers/hwmon/via-cputemp.c |   14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
 
-diff --git a/mm/vmstat.c b/mm/vmstat.c
-index 7249614..12a553e 100644
---- a/mm/vmstat.c
-+++ b/mm/vmstat.c
-@@ -1290,14 +1290,14 @@ static int __init setup_vmstat(void)
- #ifdef CONFIG_SMP
- 	int cpu;
- 
--	register_cpu_notifier(&vmstat_notifier);
-+	cpu_notifier_register_begin();
-+	__register_cpu_notifier(&vmstat_notifier);
+diff --git a/drivers/hwmon/via-cputemp.c b/drivers/hwmon/via-cputemp.c
+index 38944e9..8df43c5 100644
+--- a/drivers/hwmon/via-cputemp.c
++++ b/drivers/hwmon/via-cputemp.c
+@@ -319,7 +319,7 @@ static int __init via_cputemp_init(void)
+ 	if (err)
+ 		goto exit;
  
 -	get_online_cpus();
- 	for_each_online_cpu(cpu) {
- 		start_cpu_timer(cpu);
- 		node_set_state(cpu_to_node(cpu), N_CPU);
++	cpu_notifier_register_begin();
+ 	for_each_online_cpu(i) {
+ 		struct cpuinfo_x86 *c = &cpu_data(i);
+ 
+@@ -339,14 +339,14 @@ static int __init via_cputemp_init(void)
+ 
+ #ifndef CONFIG_HOTPLUG_CPU
+ 	if (list_empty(&pdev_list)) {
+-		put_online_cpus();
++		cpu_notifier_register_done();
+ 		err = -ENODEV;
+ 		goto exit_driver_unreg;
  	}
+ #endif
+ 
+-	register_hotcpu_notifier(&via_cputemp_cpu_notifier);
+-	put_online_cpus();
++	__register_hotcpu_notifier(&via_cputemp_cpu_notifier);
++	cpu_notifier_register_done();
+ 	return 0;
+ 
+ #ifndef CONFIG_HOTPLUG_CPU
+@@ -361,8 +361,8 @@ static void __exit via_cputemp_exit(void)
+ {
+ 	struct pdev_entry *p, *n;
+ 
+-	get_online_cpus();
+-	unregister_hotcpu_notifier(&via_cputemp_cpu_notifier);
++	cpu_notifier_register_begin();
++	__unregister_hotcpu_notifier(&via_cputemp_cpu_notifier);
+ 	mutex_lock(&pdev_list_mutex);
+ 	list_for_each_entry_safe(p, n, &pdev_list, list) {
+ 		platform_device_unregister(p->pdev);
+@@ -370,7 +370,7 @@ static void __exit via_cputemp_exit(void)
+ 		kfree(p);
+ 	}
+ 	mutex_unlock(&pdev_list_mutex);
 -	put_online_cpus();
 +	cpu_notifier_register_done();
- #endif
- #ifdef CONFIG_PROC_FS
- 	proc_create("buddyinfo", S_IRUGO, NULL, &fragmentation_file_operations);
+ 	platform_driver_unregister(&via_cputemp_driver);
+ }
+ 
 
