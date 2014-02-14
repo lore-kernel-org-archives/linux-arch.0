@@ -1,92 +1,237 @@
-From: Torvald Riegel <triegel@redhat.com>
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Thu, 13 Feb 2014 21:07:55 -0800
-Message-ID: <1392354475.18779.3849.camel@triegel.csb>
-References: <1391730288.23421.4102.camel@triegel.csb>	 <20140207042051.GL4250@linux.vnet.ibm.com>	 <20140207074405.GM5002@laptop.programming.kicks-ass.net>	 <20140207165028.GO4250@linux.vnet.ibm.com>	 <20140207165548.GR5976@mudshark.cambridge.arm.com>	 <20140207180216.GP4250@linux.vnet.ibm.com>	 <1391992071.18779.99.camel@triegel.csb>	 <CA+55aFwTwCPMpYTL_vCgNNP0hE8s2sgB0iw-79=xoj99V0JUNA@mail.gmail.com>	 <20140211155941.GU4250@linux.vnet.ibm.com>	 <1392185194.18779.2239.camel@triegel.csb>	 <20140212091907.GA3545@laptop.programming.kicks-ass.net>
+From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Subject: [PATCH v2 00/52] CPU hotplug: Fix issues with callback registration
+Date: Fri, 14 Feb 2014 13:19:05 +0530
+Message-ID: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <gcc-return-182015-gcc=m.gmane.org@gcc.gnu.org>
-List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
-List-Archive: <http://gcc.gnu.org/ml/gcc/>
-List-Post: <mailto:gcc@gcc.gnu.org>
-List-Help: <http://gcc.gnu.org/ml/>
-Sender: gcc-owner@gcc.gnu.org
-In-Reply-To: <20140212091907.GA3545@laptop.programming.kicks-ass.net>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: paulmck@linux.vnet.ibm.com, Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e28smtp03.in.ibm.com ([122.248.162.3]:41151 "EHLO
+	e28smtp03.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751772AbaBNHye (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 02:54:34 -0500
+Received: from /spool/local
+	by e28smtp03.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
+	Fri, 14 Feb 2014 13:24:32 +0530
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com
 
-On Wed, 2014-02-12 at 10:19 +0100, Peter Zijlstra wrote:
-> > I don't know the specifics of your example, but from how I understand
-> > it, I don't see a problem if the compiler can prove that the store will
-> > always happen.
-> > 
-> > To be more specific, if the compiler can prove that the store will
-> > happen anyway, and the region of code can be assumed to always run
-> > atomically (e.g., there's no loop or such in there), then it is known
-> > that we have one atomic region of code that will always perform the
-> > store, so we might as well do the stuff in the region in some order.
-> > 
-> > Now, if any of the memory accesses are atomic, then the whole region of
-> > code containing those accesses is often not atomic because other threads
-> > might observe intermediate results in a data-race-free way.
-> > 
-> > (I know that this isn't a very precise formulation, but I hope it brings
-> > my line of reasoning across.)
-> 
-> So given something like:
-> 
-> 	if (x)
-> 		y = 3;
-> 
-> assuming both x and y are atomic (so don't gimme crap for now knowing
-> the C11 atomic incantations); and you can prove x is always true; you
-> don't see a problem with not emitting the conditional?
+Hi,
 
-That depends on what your goal is.  It would be correct as far as the
-standard is specified; this makes sense if all you want is indeed a
-program that does what the abstract machine might do, and produces the
-same output / side effects.
+Many subsystems and drivers have the need to register CPU hotplug callbacks
+from their init routines and also perform initialization for the CPUs that are
+already online. But unfortunately there is no race-free way to achieve this
+today.
 
-If you're trying to preserve the branch in the code emitted / executed
-by the implementation, then it would not be correct.  But those branches
-aren't specified as being part of the observable side effects.  In the
-common case, this makes sense because it enables optimizations that are
-useful; this line of reasoning also allows the compiler to merge some
-atomic accesses in the way that Linus would like to see it.
+For example, consider this piece of code:
 
-> Avoiding the conditional changes the result; see that control dependency
-> email from earlier.
+	get_online_cpus();
 
-It does not regarding how the standard defines "result".
+	for_each_online_cpu(cpu)
+		init_cpu(cpu);
 
-> In the above example the load of X and the store to
-> Y are strictly ordered, due to control dependencies. Not emitting the
-> condition and maybe not even emitting the load completely wrecks this.
+	register_cpu_notifier(&foobar_cpu_notifier);
 
-I think you're trying to solve this backwards.  You are looking at this
-with an implicit wishlist of what the compiler should do (or how you
-want to use the hardware), but this is not a viable specification that
-one can write a compiler against.
+	put_online_cpus();
 
-We do need clear rules for what the compiler is allowed to do or not
-(e.g., a memory model that models multi-threaded executions).  Otherwise
-it's all hand-waving, and we're getting nowhere.  Thus, the way to
-approach this is to propose a feature or change to the standard, make
-sure that this is consistent and has no unintended side effects for
-other aspects of compilation or other code, and then ask the compiler to
-implement it.  IOW, we need a patch for where this all starts: in the
-rules and requirements for compilation.
+This is not safe because there is a possibility of an ABBA deadlock involving
+the cpu_add_remove_lock and the cpu_hotplug.lock.
 
-Paul and I are at the C++ meeting currently, and we had sessions in
-which the concurrency study group talked about memory model issues like
-dependency tracking and memory_order_consume.  Paul shared uses of
-atomics (or likewise) in the kernel, and we discussed how the memory
-model currently handles various cases and why, how one could express
-other requirements consistently, and what is actually implementable in
-practice.  I can't speak for Paul, but I thought those discussions were
-productive.
+          CPU 0                                         CPU 1
+          -----                                         -----
 
-> Its therefore an invalid optimization to take out the conditional or
-> speculate the store, since it takes out the dependency.
+   Acquire cpu_hotplug.lock
+   [via get_online_cpus()]
+
+                                              CPU online/offline operation
+                                              takes cpu_add_remove_lock
+                                              [via cpu_maps_update_begin()]
+
+   Try to acquire
+   cpu_add_remove_lock
+   [via register_cpu_notifier()]
+
+                                              CPU online/offline operation
+                                              tries to acquire cpu_hotplug.lock
+                                              [via cpu_hotplug_begin()]
+
+                            *** DEADLOCK! ***
+
+
+Other combinations of callback registration also don't work correctly.
+Examples:
+
+	register_cpu_notifier(&foobar_cpu_notifier);
+
+	get_online_cpus();
+
+	for_each_online_cpu(cpu)
+		init_cpu(cpu);
+
+	put_online_cpus();
+
+This can lead to double initialization if a hotplug operation occurs after
+registering the notifier and before invoking get_online_cpus().
+
+On the other hand, the following piece of code can miss hotplug events
+altogether:
+
+	get_online_cpus();
+
+	for_each_online_cpu(cpu)
+		init_cpu(cpu);
+
+	put_online_cpus();
+              ^
+              |   Race window; Can miss hotplug events here
+              v
+	register_cpu_notifier(&foobar_cpu_notifier);
+
+
+To solve these issues and provide a race-free method to register CPU hotplug
+callbacks, this patchset introduces new variants of the callback registration
+APIs that don't hold the cpu_add_remove_lock, and exports the
+cpu_add_remove_lock via 2 new APIs cpu_notifier_register_begin/done() for use
+by various subsystems. With this in place, the following code snippet will
+register a hotplug callback as well as initialize already online CPUs without
+any race conditions.
+
+	cpu_notifier_register_begin();
+
+	for_each_online_cpu(cpu)
+		init_cpu(cpu);
+
+	/* This doesn't take the cpu_add_remove_lock */
+	__register_cpu_notifier(&foobar_cpu_notifier);
+
+	cpu_notifier_register_done();
+
+
+In this patchset, patch 1 adds lockdep annotations to catch the above mentioned
+deadlock scenario. Patch 2 introduces the new APIs and infrastructure necessary
+for race-free callback registration. The remaining patches perform tree-wide
+conversions (to use this model).
+
+This patchset has been hosted in the below git tree. It applies cleanly on
+v3.14-rc1.
+
+git://github.com/srivatsabhat/linux.git cpuhp-registration-fixes-v2
+
+
+
+Gautham R. Shenoy (1):
+      CPU hotplug: Add lockdep annotations to get/put_online_cpus()
+
+Srivatsa S. Bhat (51):
+      CPU hotplug: Provide lockless versions of callback registration functions
+      Doc/cpu-hotplug: Specify race-free way to register CPU hotplug callbacks
+      CPU hotplug, perf: Fix CPU hotplug callback registration
+      ia64, salinfo: Fix hotplug callback registration
+      ia64, palinfo: Fix CPU hotplug callback registration
+      ia64, topology: Fix CPU hotplug callback registration
+      ia64, err-inject: Fix CPU hotplug callback registration
+      arm, hw-breakpoint: Fix CPU hotplug callback registration
+      arm, kvm: Fix CPU hotplug callback registration
+      s390, cacheinfo: Fix CPU hotplug callback registration
+      s390, smp: Fix CPU hotplug callback registration
+      sparc, sysfs: Fix CPU hotplug callback registration
+      powerpc, sysfs: Fix CPU hotplug callback registration
+      x86, msr: Fix CPU hotplug callback registration
+      x86, cpuid: Fix CPU hotplug callback registration
+      x86, vsyscall: Fix CPU hotplug callback registration
+      x86, intel, uncore: Fix CPU hotplug callback registration
+      x86, mce: Fix CPU hotplug callback registration
+      x86, therm_throt.c: Fix CPU hotplug callback registration
+      x86, therm_throt.c: Remove unused therm_cpu_lock
+      x86, amd, ibs: Fix CPU hotplug callback registration
+      x86, intel, cacheinfo: Fix CPU hotplug callback registration
+      x86, intel, rapl: Fix CPU hotplug callback registration
+      x86, amd, uncore: Fix CPU hotplug callback registration
+      x86, hpet: Fix CPU hotplug callback registration
+      x86, pci, amd-bus: Fix CPU hotplug callback registration
+      x86, oprofile, nmi: Fix CPU hotplug callback registration
+      x86, kvm: Fix CPU hotplug callback registration
+      arm64, hw_breakpoint.c: Fix CPU hotplug callback registration
+      arm64, debug-monitors: Fix CPU hotplug callback registration
+      powercap, intel-rapl: Fix CPU hotplug callback registration
+      scsi, bnx2i: Fix CPU hotplug callback registration
+      scsi, bnx2fc: Fix CPU hotplug callback registration
+      scsi, fcoe: Fix CPU hotplug callback registration
+      zsmalloc: Fix CPU hotplug callback registration
+      acpi-cpufreq: Fix CPU hotplug callback registration
+      drivers/base/topology.c: Fix CPU hotplug callback registration
+      clocksource, dummy-timer: Fix CPU hotplug callback registration
+      intel-idle: Fix CPU hotplug callback registration
+      oprofile, nmi-timer: Fix CPU hotplug callback registration
+      octeon, watchdog: Fix CPU hotplug callback registration
+      thermal, x86-pkg-temp: Fix CPU hotplug callback registration
+      hwmon, coretemp: Fix CPU hotplug callback registration
+      hwmon, via-cputemp: Fix CPU hotplug callback registration
+      xen, balloon: Fix CPU hotplug callback registration
+      trace, ring-buffer: Fix CPU hotplug callback registration
+      profile: Fix CPU hotplug callback registration
+      mm, vmstat: Fix CPU hotplug callback registration
+      mm, zswap: Fix CPU hotplug callback registration
+      net/core/flow.c: Fix CPU hotplug callback registration
+      net/iucv/iucv.c: Fix CPU hotplug callback registration
+
+ Documentation/cpu-hotplug.txt                 |   45 +++++++++
+ arch/arm/kernel/hw_breakpoint.c               |    8 +-
+ arch/arm/kvm/arm.c                            |    7 +
+ arch/arm64/kernel/debug-monitors.c            |    6 +
+ arch/arm64/kernel/hw_breakpoint.c             |    7 +
+ arch/ia64/kernel/err_inject.c                 |   15 +++
+ arch/ia64/kernel/palinfo.c                    |    6 +
+ arch/ia64/kernel/salinfo.c                    |    6 +
+ arch/ia64/kernel/topology.c                   |    6 +
+ arch/powerpc/kernel/sysfs.c                   |    8 +-
+ arch/s390/kernel/cache.c                      |    5 +
+ arch/s390/kernel/smp.c                        |   13 ++-
+ arch/sparc/kernel/sysfs.c                     |    6 +
+ arch/x86/kernel/cpu/intel_cacheinfo.c         |   13 ++-
+ arch/x86/kernel/cpu/mcheck/mce.c              |    8 +-
+ arch/x86/kernel/cpu/mcheck/therm_throt.c      |   18 +---
+ arch/x86/kernel/cpu/perf_event_amd_ibs.c      |    6 +
+ arch/x86/kernel/cpu/perf_event_amd_uncore.c   |    7 +
+ arch/x86/kernel/cpu/perf_event_intel_rapl.c   |    9 +-
+ arch/x86/kernel/cpu/perf_event_intel_uncore.c |    6 +
+ arch/x86/kernel/cpuid.c                       |   15 ++-
+ arch/x86/kernel/hpet.c                        |    4 +
+ arch/x86/kernel/msr.c                         |   16 ++-
+ arch/x86/kernel/vsyscall_64.c                 |    6 +
+ arch/x86/kvm/x86.c                            |    7 +
+ arch/x86/oprofile/nmi_int.c                   |   15 +++
+ arch/x86/pci/amd_bus.c                        |    5 +
+ drivers/base/topology.c                       |   12 ++
+ drivers/clocksource/dummy_timer.c             |   11 ++
+ drivers/cpufreq/acpi-cpufreq.c                |    7 +
+ drivers/hwmon/coretemp.c                      |   14 +--
+ drivers/hwmon/via-cputemp.c                   |   14 +--
+ drivers/idle/intel_idle.c                     |   12 ++
+ drivers/oprofile/nmi_timer_int.c              |   23 +++--
+ drivers/powercap/intel_rapl.c                 |   10 ++
+ drivers/scsi/bnx2fc/bnx2fc_fcoe.c             |   12 ++
+ drivers/scsi/bnx2i/bnx2i_init.c               |   12 ++
+ drivers/scsi/fcoe/fcoe.c                      |   15 +++
+ drivers/thermal/x86_pkg_temp_thermal.c        |   14 +--
+ drivers/watchdog/octeon-wdt-main.c            |   11 ++
+ drivers/xen/balloon.c                         |   35 +++++--
+ include/linux/cpu.h                           |   47 ++++++++++
+ include/linux/perf_event.h                    |   16 +++
+ kernel/cpu.c                                  |   38 +++++++-
+ kernel/profile.c                              |   20 +++-
+ kernel/trace/ring_buffer.c                    |   19 ++--
+ mm/vmstat.c                                   |    6 +
+ mm/zsmalloc.c                                 |   17 +++-
+ mm/zswap.c                                    |    8 +-
+ net/core/flow.c                               |    8 +-
+ net/iucv/iucv.c                               |  121 ++++++++++++-------------
+ 51 files changed, 549 insertions(+), 226 deletions(-)
+
+
+Regards,
+Srivatsa S. Bhat
+IBM Linux Technology Center
