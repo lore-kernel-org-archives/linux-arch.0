@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp07.in.ibm.com ([122.248.162.7]:48943 "EHLO
-	e28smtp07.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751833AbaBNIDB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 03:03:01 -0500
+Received: from e28smtp03.in.ibm.com ([122.248.162.3]:58328 "EHLO
+	e28smtp03.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752286AbaBNIC0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 03:02:26 -0500
 Received: from /spool/local
-	by e28smtp07.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp03.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 14 Feb 2014 13:32:55 +0530
+	Fri, 14 Feb 2014 13:32:22 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 36/52] zsmalloc: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:27:20 +0530
-Message-ID: <20140214075719.22701.92050.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 34/52] scsi, bnx2fc: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:26:55 +0530
+Message-ID: <20140214075655.22701.69583.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -19,8 +19,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, linux-mm@kvack.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140214075720.oGIdMdmmKTvk7kEiA5crc6Wb8_0COl0Gynx4C-WjsL8@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Eddie Wai <eddie.wai@broadcom.com>, "James E.J. Bottomley" <JBottomley@parallels.com>, linux-scsi@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140214075655.Fswm6K2PZeITb-6Huz95wTY3gIFOtfsAZVr1J4kfz9E@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -53,56 +53,58 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the zsmalloc code by using this latter form of callback registration.
+Fix the bnx2fc code in scsi by using this latter form of callback
+registration.
 
-Cc: Minchan Kim <minchan@kernel.org>
-Cc: Nitin Gupta <ngupta@vflare.org>
+Cc: Eddie Wai <eddie.wai@broadcom.com>
+Cc: "James E.J. Bottomley" <JBottomley@parallels.com>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: linux-mm@kvack.org
+Cc: linux-scsi@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- mm/zsmalloc.c |   17 ++++++++++++++---
- 1 file changed, 14 insertions(+), 3 deletions(-)
+ drivers/scsi/bnx2fc/bnx2fc_fcoe.c |   12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
 
-diff --git a/mm/zsmalloc.c b/mm/zsmalloc.c
-index c03ca5e..36b4591 100644
---- a/mm/zsmalloc.c
-+++ b/mm/zsmalloc.c
-@@ -814,21 +814,32 @@ static void zs_exit(void)
- {
- 	int cpu;
- 
-+	cpu_notifier_register_begin();
-+
- 	for_each_online_cpu(cpu)
- 		zs_cpu_notifier(NULL, CPU_DEAD, (void *)(long)cpu);
--	unregister_cpu_notifier(&zs_cpu_nb);
-+	__unregister_cpu_notifier(&zs_cpu_nb);
-+
-+	cpu_notifier_register_done();
- }
- 
- static int zs_init(void)
- {
- 	int cpu, ret;
- 
--	register_cpu_notifier(&zs_cpu_nb);
-+	cpu_notifier_register_begin();
-+
-+	__register_cpu_notifier(&zs_cpu_nb);
- 	for_each_online_cpu(cpu) {
- 		ret = zs_cpu_notifier(NULL, CPU_UP_PREPARE, (void *)(long)cpu);
--		if (notifier_to_errno(ret))
-+		if (notifier_to_errno(ret)) {
-+			cpu_notifier_register_done();
- 			goto fail;
-+		}
+diff --git a/drivers/scsi/bnx2fc/bnx2fc_fcoe.c b/drivers/scsi/bnx2fc/bnx2fc_fcoe.c
+index 9b94850..c4ec235 100644
+--- a/drivers/scsi/bnx2fc/bnx2fc_fcoe.c
++++ b/drivers/scsi/bnx2fc/bnx2fc_fcoe.c
+@@ -2586,12 +2586,16 @@ static int __init bnx2fc_mod_init(void)
+ 		spin_lock_init(&p->fp_work_lock);
  	}
+ 
++	cpu_notifier_register_begin();
++
+ 	for_each_online_cpu(cpu) {
+ 		bnx2fc_percpu_thread_create(cpu);
+ 	}
+ 
+ 	/* Initialize per CPU interrupt thread */
+-	register_hotcpu_notifier(&bnx2fc_cpu_notifier);
++	__register_hotcpu_notifier(&bnx2fc_cpu_notifier);
++
++	cpu_notifier_register_done();
+ 
+ 	cnic_register_driver(CNIC_ULP_FCOE, &bnx2fc_cnic_cb);
+ 
+@@ -2656,13 +2660,17 @@ static void __exit bnx2fc_mod_exit(void)
+ 	if (l2_thread)
+ 		kthread_stop(l2_thread);
+ 
+-	unregister_hotcpu_notifier(&bnx2fc_cpu_notifier);
++	cpu_notifier_register_begin();
+ 
+ 	/* Destroy per cpu threads */
+ 	for_each_online_cpu(cpu) {
+ 		bnx2fc_percpu_thread_destroy(cpu);
+ 	}
+ 
++	__unregister_hotcpu_notifier(&bnx2fc_cpu_notifier);
 +
 +	cpu_notifier_register_done();
 +
- 	return 0;
- fail:
- 	zs_exit();
+ 	destroy_workqueue(bnx2fc_wq);
+ 	/*
+ 	 * detach from scsi transport
 
