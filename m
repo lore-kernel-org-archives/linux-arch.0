@@ -1,7 +1,8 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 46/52] xen, balloon: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:29:36 +0530
-Message-ID: <20140214075935.22701.71000.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 47/52] trace,
+ ring-buffer: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:29:53 +0530
+Message-ID: <20140214075953.22701.29061.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -10,7 +11,7 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: paulus@samba.org, oleg@redhat.com, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, David Vrabel <david.vrabel@citrix.com>, Ingo Molnar <mingo@kernel.org>, xen-devel@lists.xenproject.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Frederic Weisbecker <fweisbec@gmail.com>, Ingo Molnar <mingo@kernel.org>, Steven Rostedt <rostedt@goodmis.org>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
@@ -30,97 +31,88 @@ This is wrong, since it is prone to ABBA deadlocks involving the
 cpu_add_remove_lock and the cpu_hotplug.lock (when running concurrently
 with CPU hotplug operations).
 
-Interestingly, the balloon code in xen can actually prevent double
-initialization and hence can use the following simplified form of callback
-registration:
+Instead, the correct and race-free way of performing the callback
+registration is:
 
-	register_cpu_notifier(&foobar_cpu_notifier);
-
-	get_online_cpus();
+	cpu_notifier_register_begin();
 
 	for_each_online_cpu(cpu)
 		init_cpu(cpu);
 
-	put_online_cpus();
+	/* Note the use of the double underscored version of the API */
+	__register_cpu_notifier(&foobar_cpu_notifier);
 
-A hotplug operation that occurs between registering the notifier and calling
-get_online_cpus(), won't disrupt anything, because the code takes care to
-perform the memory allocations only once.
+	cpu_notifier_register_done();
 
-So reorganize the balloon code in xen this way to fix the deadlock with
-callback registration.
 
-Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Cc: Boris Ostrovsky <boris.ostrovsky@oracle.com>
-Cc: David Vrabel <david.vrabel@citrix.com>
+Fix the tracing ring-buffer code by using this latter form of callback
+registration.
+
+Cc: Frederic Weisbecker <fweisbec@gmail.com>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: xen-devel@lists.xenproject.org
+Acked-by: Steven Rostedt <rostedt@goodmis.org>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- drivers/xen/balloon.c |   35 +++++++++++++++++++++++------------
- 1 file changed, 23 insertions(+), 12 deletions(-)
+ kernel/trace/ring_buffer.c |   19 +++++++++++--------
+ 1 file changed, 11 insertions(+), 8 deletions(-)
 
-diff --git a/drivers/xen/balloon.c b/drivers/xen/balloon.c
-index 37d06ea..afe1a3f 100644
---- a/drivers/xen/balloon.c
-+++ b/drivers/xen/balloon.c
-@@ -592,19 +592,29 @@ static void __init balloon_add_region(unsigned long start_pfn,
- 	}
- }
+diff --git a/kernel/trace/ring_buffer.c b/kernel/trace/ring_buffer.c
+index 294b8a2..0893233 100644
+--- a/kernel/trace/ring_buffer.c
++++ b/kernel/trace/ring_buffer.c
+@@ -1301,7 +1301,7 @@ struct ring_buffer *__ring_buffer_alloc(unsigned long size, unsigned flags,
+ 	 * In that off case, we need to allocate for all possible cpus.
+ 	 */
+ #ifdef CONFIG_HOTPLUG_CPU
+-	get_online_cpus();
++	cpu_notifier_register_begin();
+ 	cpumask_copy(buffer->cpumask, cpu_online_mask);
+ #else
+ 	cpumask_copy(buffer->cpumask, cpu_possible_mask);
+@@ -1324,10 +1324,10 @@ struct ring_buffer *__ring_buffer_alloc(unsigned long size, unsigned flags,
+ #ifdef CONFIG_HOTPLUG_CPU
+ 	buffer->cpu_notify.notifier_call = rb_cpu_notify;
+ 	buffer->cpu_notify.priority = 0;
+-	register_cpu_notifier(&buffer->cpu_notify);
++	__register_cpu_notifier(&buffer->cpu_notify);
++	cpu_notifier_register_done();
+ #endif
  
-+static int alloc_balloon_scratch_page(int cpu)
-+{
-+	if (per_cpu(balloon_scratch_page, cpu) != NULL)
-+		return 0;
-+
-+	per_cpu(balloon_scratch_page, cpu) = alloc_page(GFP_KERNEL);
-+	if (per_cpu(balloon_scratch_page, cpu) == NULL) {
-+		pr_warn("Failed to allocate balloon_scratch_page for cpu %d\n", cpu);
-+		return -ENOMEM;
-+	}
-+
-+	return 0;
-+}
-+
-+
- static int balloon_cpu_notify(struct notifier_block *self,
- 				    unsigned long action, void *hcpu)
+-	put_online_cpus();
+ 	mutex_init(&buffer->mutex);
+ 
+ 	return buffer;
+@@ -1341,7 +1341,9 @@ struct ring_buffer *__ring_buffer_alloc(unsigned long size, unsigned flags,
+ 
+  fail_free_cpumask:
+ 	free_cpumask_var(buffer->cpumask);
+-	put_online_cpus();
++#ifdef CONFIG_HOTPLUG_CPU
++	cpu_notifier_register_done();
++#endif
+ 
+  fail_free_buffer:
+ 	kfree(buffer);
+@@ -1358,16 +1360,17 @@ ring_buffer_free(struct ring_buffer *buffer)
  {
- 	int cpu = (long)hcpu;
- 	switch (action) {
- 	case CPU_UP_PREPARE:
--		if (per_cpu(balloon_scratch_page, cpu) != NULL)
--			break;
--		per_cpu(balloon_scratch_page, cpu) = alloc_page(GFP_KERNEL);
--		if (per_cpu(balloon_scratch_page, cpu) == NULL) {
--			pr_warn("Failed to allocate balloon_scratch_page for cpu %d\n", cpu);
-+		if (alloc_balloon_scratch_page(cpu))
- 			return NOTIFY_BAD;
--		}
- 		break;
- 	default:
- 		break;
-@@ -624,15 +634,16 @@ static int __init balloon_init(void)
- 		return -ENODEV;
+ 	int cpu;
  
- 	if (!xen_feature(XENFEAT_auto_translated_physmap)) {
--		for_each_online_cpu(cpu)
--		{
--			per_cpu(balloon_scratch_page, cpu) = alloc_page(GFP_KERNEL);
--			if (per_cpu(balloon_scratch_page, cpu) == NULL) {
--				pr_warn("Failed to allocate balloon_scratch_page for cpu %d\n", cpu);
-+		register_cpu_notifier(&balloon_cpu_notifier);
-+
-+		get_online_cpus();
-+		for_each_online_cpu(cpu) {
-+			if (alloc_balloon_scratch_page(cpu)) {
-+				put_online_cpus();
- 				return -ENOMEM;
- 			}
- 		}
--		register_cpu_notifier(&balloon_cpu_notifier);
-+		put_online_cpus();
- 	}
+-	get_online_cpus();
+-
+ #ifdef CONFIG_HOTPLUG_CPU
+-	unregister_cpu_notifier(&buffer->cpu_notify);
++	cpu_notifier_register_begin();
++	__unregister_cpu_notifier(&buffer->cpu_notify);
+ #endif
  
- 	pr_info("Initialising balloon driver\n");
+ 	for_each_buffer_cpu(buffer, cpu)
+ 		rb_free_cpu_buffer(buffer->buffers[cpu]);
+ 
+-	put_online_cpus();
++#ifdef CONFIG_HOTPLUG_CPU
++	cpu_notifier_register_done();
++#endif
+ 
+ 	kfree(buffer->buffers);
+ 	free_cpumask_var(buffer->cpumask);
