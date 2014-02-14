@@ -1,16 +1,16 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 35/52] scsi, fcoe: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:27:05 +0530
-Message-ID: <20140214075704.22701.27489.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 36/52] zsmalloc: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:27:20 +0530
+Message-ID: <20140214075719.22701.92050.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: owner-linux-mm@kvack.org
 To: paulus@samba.org, oleg@redhat.com, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Robert Love <robert.w.love@intel.com>, "James E.J. Bottomley" <JBottomley@parallels.com>, Ingo Molnar <mingo@kernel.org>, fcoe-devel@open-fcoe.org, linux-scsi@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Ingo Molnar <mingo@kernel.org>, linux-mm@kvack.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
@@ -44,67 +44,61 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the fcoe code in scsi by using this latter form of callback registration.
+Fix the zsmalloc code by using this latter form of callback registration.
 
-Cc: Robert Love <robert.w.love@intel.com>
-Cc: "James E.J. Bottomley" <JBottomley@parallels.com>
+Cc: Minchan Kim <minchan@kernel.org>
+Cc: Nitin Gupta <ngupta@vflare.org>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: fcoe-devel@open-fcoe.org
-Cc: linux-scsi@vger.kernel.org
+Cc: linux-mm@kvack.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- drivers/scsi/fcoe/fcoe.c |   15 +++++++++++++--
- 1 file changed, 13 insertions(+), 2 deletions(-)
+ mm/zsmalloc.c |   17 ++++++++++++++---
+ 1 file changed, 14 insertions(+), 3 deletions(-)
 
-diff --git a/drivers/scsi/fcoe/fcoe.c b/drivers/scsi/fcoe/fcoe.c
-index f317000..d5e105b 100644
---- a/drivers/scsi/fcoe/fcoe.c
-+++ b/drivers/scsi/fcoe/fcoe.c
-@@ -2633,14 +2633,18 @@ static int __init fcoe_init(void)
- 		skb_queue_head_init(&p->fcoe_rx_list);
- 	}
+diff --git a/mm/zsmalloc.c b/mm/zsmalloc.c
+index c03ca5e..36b4591 100644
+--- a/mm/zsmalloc.c
++++ b/mm/zsmalloc.c
+@@ -814,21 +814,32 @@ static void zs_exit(void)
+ {
+ 	int cpu;
  
 +	cpu_notifier_register_begin();
 +
  	for_each_online_cpu(cpu)
- 		fcoe_percpu_thread_create(cpu);
- 
- 	/* Initialize per CPU interrupt thread */
--	rc = register_hotcpu_notifier(&fcoe_cpu_notifier);
-+	rc = __register_hotcpu_notifier(&fcoe_cpu_notifier);
- 	if (rc)
- 		goto out_free;
- 
-+	cpu_notifier_register_done();
+ 		zs_cpu_notifier(NULL, CPU_DEAD, (void *)(long)cpu);
+-	unregister_cpu_notifier(&zs_cpu_nb);
++	__unregister_cpu_notifier(&zs_cpu_nb);
 +
- 	/* Setup link change notification */
- 	fcoe_dev_setup();
++	cpu_notifier_register_done();
+ }
  
-@@ -2655,6 +2659,9 @@ out_free:
+ static int zs_init(void)
+ {
+ 	int cpu, ret;
+ 
+-	register_cpu_notifier(&zs_cpu_nb);
++	cpu_notifier_register_begin();
++
++	__register_cpu_notifier(&zs_cpu_nb);
  	for_each_online_cpu(cpu) {
- 		fcoe_percpu_thread_destroy(cpu);
+ 		ret = zs_cpu_notifier(NULL, CPU_UP_PREPARE, (void *)(long)cpu);
+-		if (notifier_to_errno(ret))
++		if (notifier_to_errno(ret)) {
++			cpu_notifier_register_done();
+ 			goto fail;
++		}
  	}
 +
 +	cpu_notifier_register_done();
 +
- 	mutex_unlock(&fcoe_config_mutex);
- 	destroy_workqueue(fcoe_wq);
- 	return rc;
-@@ -2687,11 +2694,15 @@ static void __exit fcoe_exit(void)
- 	}
- 	rtnl_unlock();
- 
--	unregister_hotcpu_notifier(&fcoe_cpu_notifier);
-+	cpu_notifier_register_begin();
- 
- 	for_each_online_cpu(cpu)
- 		fcoe_percpu_thread_destroy(cpu);
- 
-+	__unregister_hotcpu_notifier(&fcoe_cpu_notifier);
-+
-+	cpu_notifier_register_done();
-+
- 	mutex_unlock(&fcoe_config_mutex);
- 
- 	/*
+ 	return 0;
+ fail:
+ 	zs_exit();
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
