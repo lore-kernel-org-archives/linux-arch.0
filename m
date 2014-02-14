@@ -1,7 +1,7 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 13/52] sparc, sysfs: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:22:05 +0530
-Message-ID: <20140214075204.22701.72009.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 14/52] powerpc, sysfs: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:22:15 +0530
+Message-ID: <20140214075215.22701.23653.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -9,8 +9,8 @@ Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: paulus@samba.org, oleg@redhat.com, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, "David S. Miller" <davem@davemloft.net>, Ingo Molnar <mingo@kernel.org>, sparclinux@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+To: oleg@redhat.com, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, Wang Dongsheng <dongsheng.wang@freescale.com>, Ingo Molnar <mingo@kernel.org>, linuxppc-dev@lists.ozlabs.org, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
@@ -44,39 +44,45 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the sysfs code in sparc by using this latter form of callback
+Fix the sysfs code in powerpc by using this latter form of callback
 registration.
 
-Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Olof Johansson <olof@lixom.net>
+Cc: Wang Dongsheng <dongsheng.wang@freescale.com>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: sparclinux@vger.kernel.org
+Cc: linuxppc-dev@lists.ozlabs.org
+Acked-by: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/sparc/kernel/sysfs.c |    6 +++++-
- 1 file changed, 5 insertions(+), 1 deletion(-)
+ arch/powerpc/kernel/sysfs.c |    8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
 
-diff --git a/arch/sparc/kernel/sysfs.c b/arch/sparc/kernel/sysfs.c
-index c21c673..a364000 100644
---- a/arch/sparc/kernel/sysfs.c
-+++ b/arch/sparc/kernel/sysfs.c
-@@ -300,7 +300,7 @@ static int __init topology_init(void)
+diff --git a/arch/powerpc/kernel/sysfs.c b/arch/powerpc/kernel/sysfs.c
+index 97e1dc9..d90d4b7 100644
+--- a/arch/powerpc/kernel/sysfs.c
++++ b/arch/powerpc/kernel/sysfs.c
+@@ -975,7 +975,8 @@ static int __init topology_init(void)
+ 	int cpu;
  
- 	check_mmu_stats();
- 
+ 	register_nodes();
 -	register_cpu_notifier(&sysfs_cpu_nb);
++
 +	cpu_notifier_register_begin();
  
  	for_each_possible_cpu(cpu) {
  		struct cpu *c = &per_cpu(cpu_devices, cpu);
-@@ -310,6 +310,10 @@ static int __init topology_init(void)
+@@ -999,6 +1000,11 @@ static int __init topology_init(void)
+ 		if (cpu_online(cpu))
  			register_cpu_online(cpu);
  	}
- 
++
 +	__register_cpu_notifier(&sysfs_cpu_nb);
 +
 +	cpu_notifier_register_done();
 +
- 	return 0;
- }
- 
+ #ifdef CONFIG_PPC64
+ 	sysfs_create_dscr_default();
+ #endif /* CONFIG_PPC64 */
