@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp08.au.ibm.com ([202.81.31.141]:48454 "EHLO
-	e23smtp08.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752097AbaBNIBb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 03:01:31 -0500
+Received: from e23smtp09.au.ibm.com ([202.81.31.142]:43162 "EHLO
+	e23smtp09.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753086AbaBNICC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 03:02:02 -0500
 Received: from /spool/local
-	by e23smtp08.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp09.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 14 Feb 2014 18:01:29 +1000
+	Fri, 14 Feb 2014 18:02:00 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 30/52] arm64,
- hw_breakpoint.c: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:25:58 +0530
-Message-ID: <20140214075557.22701.17533.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 32/52] powercap,
+ intel-rapl: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:26:27 +0530
+Message-ID: <20140214075626.22701.37887.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Catalin Marinas <catalin.marinas@arm.com>, Lorenzo Pieralisi <Lorenzo.Pieralisi@arm.com>, linux-arm-kernel@lists.infradead.org, Will Deacon <will.deacon@arm.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140214075558.u8774YWwVLFDzpSK4pVqQv0W0yDmVXYEUm9MfhfnTyA@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com"Rafael J. Wysocki" <rjw@rjwysocki.net>, Jacob Pan <jacob.jun.pan@linux.intel.com>, Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140214075627.5NLqZidWOPiS2zGTiXiOKtCg3NR-dqeVGk1Jbs_ov1A@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -54,43 +54,60 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the hw-breakpoint code in arm64 by using this latter form of callback
-registration.
+Fix the intel-rapl code in the powercap driver by using this latter form
+of callback registration. But retain the calls to get/put_online_cpus(),
+since they also protect the function rapl_cleanup_data(). By nesting
+get/put_online_cpus() *inside* cpu_notifier_register_begin/done(), we avoid
+the ABBA deadlock possibility mentioned above.
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Lorenzo Pieralisi <Lorenzo.Pieralisi@arm.com>
+Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+Cc: Jacob Pan <jacob.jun.pan@linux.intel.com>
+Cc: Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arm-kernel@lists.infradead.org
-Acked-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/arm64/kernel/hw_breakpoint.c |    7 ++++++-
- 1 file changed, 6 insertions(+), 1 deletion(-)
+ drivers/powercap/intel_rapl.c |   10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm64/kernel/hw_breakpoint.c b/arch/arm64/kernel/hw_breakpoint.c
-index f17f581..bee7897 100644
---- a/arch/arm64/kernel/hw_breakpoint.c
-+++ b/arch/arm64/kernel/hw_breakpoint.c
-@@ -913,6 +913,8 @@ static int __init arch_hw_breakpoint_init(void)
- 	pr_info("found %d breakpoint and %d watchpoint registers.\n",
- 		core_num_brps, core_num_wrps);
+diff --git a/drivers/powercap/intel_rapl.c b/drivers/powercap/intel_rapl.c
+index 3c67683..d6c74c1 100644
+--- a/drivers/powercap/intel_rapl.c
++++ b/drivers/powercap/intel_rapl.c
+@@ -1369,6 +1369,9 @@ static int __init rapl_init(void)
  
+ 		return -ENODEV;
+ 	}
++
 +	cpu_notifier_register_begin();
 +
- 	/*
- 	 * Reset the breakpoint resources. We assume that a halting
- 	 * debugger will leave the world in a nice state for us.
-@@ -927,7 +929,10 @@ static int __init arch_hw_breakpoint_init(void)
- 			      TRAP_HWBKPT, "hw-watchpoint handler");
- 
- 	/* Register hotplug notifier. */
--	register_cpu_notifier(&hw_breakpoint_reset_nb);
-+	__register_cpu_notifier(&hw_breakpoint_reset_nb);
-+
+ 	/* prevent CPU hotplug during detection */
+ 	get_online_cpus();
+ 	ret = rapl_detect_topology();
+@@ -1380,20 +1383,23 @@ static int __init rapl_init(void)
+ 		ret = -ENODEV;
+ 		goto done;
+ 	}
+-	register_hotcpu_notifier(&rapl_cpu_notifier);
++	__register_hotcpu_notifier(&rapl_cpu_notifier);
+ done:
+ 	put_online_cpus();
 +	cpu_notifier_register_done();
-+
- 	/* Register cpu_suspend hw breakpoint restore hook */
- 	cpu_suspend_set_dbg_restorer(hw_breakpoint_reset);
  
+ 	return ret;
+ }
+ 
+ static void __exit rapl_exit(void)
+ {
++	cpu_notifier_register_begin();
+ 	get_online_cpus();
+-	unregister_hotcpu_notifier(&rapl_cpu_notifier);
++	__unregister_hotcpu_notifier(&rapl_cpu_notifier);
+ 	rapl_unregister_powercap();
+ 	rapl_cleanup_data();
+ 	put_online_cpus();
++	cpu_notifier_register_done();
+ }
+ 
+ module_init(rapl_init);
 
