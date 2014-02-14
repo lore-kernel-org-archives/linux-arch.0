@@ -1,58 +1,97 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Fri, 14 Feb 2014 09:29:20 -0800
-Message-ID: <20140214172920.GQ4250@linux.vnet.ibm.com>
-References: <20140207180216.GP4250@linux.vnet.ibm.com>
- <1391992071.18779.99.camel@triegel.csb>
- <CA+55aFwTwCPMpYTL_vCgNNP0hE8s2sgB0iw-79=xoj99V0JUNA@mail.gmail.com>
- <1392183564.18779.2187.camel@triegel.csb>
- <20140212180739.GB4250@linux.vnet.ibm.com>
- <CA+55aFw3S82GYdtnV2nJCvBGcuZf6kXdF5b7Vp9yb21QKr49Jw@mail.gmail.com>
- <20140213002355.GI4250@linux.vnet.ibm.com>
- <1392321837.18779.3249.camel@triegel.csb>
- <20140214020144.GO4250@linux.vnet.ibm.com>
- <1392352981.18779.3800.camel@triegel.csb>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [PATCH v2 27/52] x86, pci, amd-bus: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 10:35:03 -0700
+Message-ID: <CAErSpo4nyoY8jCR5omywB06ka5T-qKMQURSO6c3_569o-WbOgw@mail.gmail.com>
+References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com> <20140214075511.22701.15084.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e31.co.us.ibm.com ([32.97.110.149]:41215 "EHLO
-	e31.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752134AbaBNR32 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 12:29:28 -0500
-Received: from /spool/local
-	by e31.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Fri, 14 Feb 2014 10:29:27 -0700
-Content-Disposition: inline
-In-Reply-To: <1392352981.18779.3800.camel@triegel.csb>
+Received: from mail-ie0-f175.google.com ([209.85.223.175]:32825 "EHLO
+	mail-ie0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751374AbaBNRfY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 12:35:24 -0500
+Received: by mail-ie0-f175.google.com with SMTP id at1so1660837iec.20
+        for <linux-arch@vger.kernel.org>; Fri, 14 Feb 2014 09:35:24 -0800 (PST)
+In-Reply-To: <20140214075511.22701.15084.stgit@srivatsabhat.in.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Torvald Riegel <triegel@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: "paulus@samba.org" <paulus@samba.org>, oleg@redhat.com, Ingo Molnar <mingo@kernel.org>, Rusty Russell <rusty@rustcorp.com.au>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Tejun Heo <tj@kernel.org>, Michel Lespinasse <walken@google.com>, ego@linux.vnet.ibm.com, Russell King <linux@arm.linux.org.uk>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, "x86@kernel.org" <x86@kernel.org>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>
 
-On Thu, Feb 13, 2014 at 08:43:01PM -0800, Torvald Riegel wrote:
-> On Thu, 2014-02-13 at 18:01 -0800, Paul E. McKenney wrote:
+On Fri, Feb 14, 2014 at 12:55 AM, Srivatsa S. Bhat
+<srivatsa.bhat@linux.vnet.ibm.com> wrote:
+> Subsystems that want to register CPU hotplug callbacks, as well as perform
+> initialization for the CPUs that are already online, often do it as shown
+> below:
+>
+>         get_online_cpus();
+>
+>         for_each_online_cpu(cpu)
+>                 init_cpu(cpu);
+>
+>         register_cpu_notifier(&foobar_cpu_notifier);
+>
+>         put_online_cpus();
+>
+> This is wrong, since it is prone to ABBA deadlocks involving the
+> cpu_add_remove_lock and the cpu_hotplug.lock (when running concurrently
+> with CPU hotplug operations).
+>
+> Instead, the correct and race-free way of performing the callback
+> registration is:
+>
+>         cpu_notifier_register_begin();
+>
+>         for_each_online_cpu(cpu)
+>                 init_cpu(cpu);
+>
+>         /* Note the use of the double underscored version of the API */
+>         __register_cpu_notifier(&foobar_cpu_notifier);
+>
+>         cpu_notifier_register_done();
+>
+>
+> Fix the amd-bus code in x86 by using this latter form of callback
+> registration.
+>
+> Cc: Bjorn Helgaas <bhelgaas@google.com>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Ingo Molnar <mingo@kernel.org>
+> Cc: "H. Peter Anvin" <hpa@zytor.com>
+> Cc: x86@kernel.org
+> Cc: linux-pci@vger.kernel.org
+> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 
-[ . . . ]
+This looks fine to me.
 
-> > Another option would be to flag the conditional expression, prohibiting
-> > the compiler from optimizing out any conditional branches.  Perhaps
-> > something like this:
-> > 
-> > 	r1 = atomic_load(x, memory_order_control);
-> > 	if (control_dependency(r1))
-> > 		atomic_store(y, memory_order_relaxed);
-> 
-> That's the one I had in mind and talked to you about earlier today.  My
-> gut feeling is that this is preferably over the other because it "marks"
-> the if-statement, so the compiler knows exactly which branches matter.
-> I'm not sure one would need the other memory order for that, if indeed
-> all you want is relaxed -> branch -> relaxed.  But maybe there are
-> corner cases (see the weaker-than-relaxed discussion in SG1 today).
+Acked-by: Bjorn Helgaas <bhelgaas@google.com>
 
-Linus, Peter, any objections to marking places where we are relying on
-ordering from control dependencies against later stores?  This approach
-seems to me to have significant documentation benefits.
+I think it makes sense for you to merge it along with all your other
+similar changes.  I don't foresee any conflicts with things in my PCI
+tree.
 
-							Thanx, Paul
+> ---
+>
+>  arch/x86/pci/amd_bus.c |    5 ++++-
+>  1 file changed, 4 insertions(+), 1 deletion(-)
+>
+> diff --git a/arch/x86/pci/amd_bus.c b/arch/x86/pci/amd_bus.c
+> index a48be98..f05cbf0 100644
+> --- a/arch/x86/pci/amd_bus.c
+> +++ b/arch/x86/pci/amd_bus.c
+> @@ -380,10 +380,13 @@ static int __init pci_io_ecs_init(void)
+>         if (early_pci_allowed())
+>                 pci_enable_pci_io_ecs();
+>
+> -       register_cpu_notifier(&amd_cpu_notifier);
+> +       cpu_notifier_register_begin();
+>         for_each_online_cpu(cpu)
+>                 amd_cpu_notify(&amd_cpu_notifier, (unsigned long)CPU_ONLINE,
+>                                (void *)(long)cpu);
+> +       __register_cpu_notifier(&amd_cpu_notifier);
+> +       cpu_notifier_register_done();
+> +
+>         pci_probe |= PCI_HAS_IO_ECS;
+>
+>         return 0;
+>
