@@ -1,98 +1,45 @@
-From: Paolo Bonzini <pbonzini@redhat.com>
-Subject: Re: [PATCH v2 10/52] arm, kvm: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 11:29:20 +0100
-Message-ID: <52FDF000.5070609@redhat.com>
-References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com> <20140214075122.22701.18462.stgit@srivatsabhat.in.ibm.com>
+From: Rik van Riel <riel@redhat.com>
+Subject: Re: [PATCH v2 49/52] mm, vmstat: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 09:26:13 -0500
+Message-ID: <52FE2785.7090701@redhat.com>
+References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com> <20140214080017.22701.62427.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20140214075122.22701.18462.stgit@srivatsabhat.in.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20140214080017.22701.62427.stgit@srivatsabhat.in.ibm.com>
+Sender: owner-linux-mm@kvack.org
 To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Christoffer Dall <christoffer.dall@linaro.org>, Gleb Natapov <gleb@kernel.org>, kvmarm@lists.cs.columbia.edu, kvm@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Johannes Weiner <hannes@cmpxchg.org>, Cody P Schafer <cody@linux.vnet.ibm.com>, Toshi Kani <toshi.kani@hp.com>, Dave Hansen <dave@sr71.net>, linux-mm@kvack.org, Christoph Lameter <cl@linux.com>
 List-Id: linux-arch.vger.kernel.org
 
-Il 14/02/2014 08:51, Srivatsa S. Bhat ha scritto:
+On 02/14/2014 03:00 AM, Srivatsa S. Bhat wrote:
 > Subsystems that want to register CPU hotplug callbacks, as well as perform
 > initialization for the CPUs that are already online, often do it as shown
 > below:
->
-> 	get_online_cpus();
->
-> 	for_each_online_cpu(cpu)
-> 		init_cpu(cpu);
->
-> 	register_cpu_notifier(&foobar_cpu_notifier);
->
-> 	put_online_cpus();
->
-> This is wrong, since it is prone to ABBA deadlocks involving the
-> cpu_add_remove_lock and the cpu_hotplug.lock (when running concurrently
-> with CPU hotplug operations).
->
-> Instead, the correct and race-free way of performing the callback
-> registration is:
->
-> 	cpu_notifier_register_begin();
->
-> 	for_each_online_cpu(cpu)
-> 		init_cpu(cpu);
->
-> 	/* Note the use of the double underscored version of the API */
-> 	__register_cpu_notifier(&foobar_cpu_notifier);
->
-> 	cpu_notifier_register_done();
->
->
-> Fix the kvm code in arm by using this latter form of callback registration.
->
-> Cc: Christoffer Dall <christoffer.dall@linaro.org>
-> Cc: Gleb Natapov <gleb@kernel.org>
-> Cc: Paolo Bonzini <pbonzini@redhat.com>
-> Cc: Russell King <linux@arm.linux.org.uk>
-> Cc: Ingo Molnar <mingo@kernel.org>
-> Cc: kvmarm@lists.cs.columbia.edu
-> Cc: kvm@vger.kernel.org
-> Cc: linux-arm-kernel@lists.infradead.org
-> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
-> ---
->
->  arch/arm/kvm/arm.c |    7 ++++++-
->  1 file changed, 6 insertions(+), 1 deletion(-)
->
-> diff --git a/arch/arm/kvm/arm.c b/arch/arm/kvm/arm.c
-> index 1d8248e..147b917 100644
-> --- a/arch/arm/kvm/arm.c
-> +++ b/arch/arm/kvm/arm.c
-> @@ -1050,21 +1050,26 @@ int kvm_arch_init(void *opaque)
->  		}
->  	}
->
-> +	cpu_notifier_register_begin();
-> +
->  	err = init_hyp_mode();
->  	if (err)
->  		goto out_err;
->
-> -	err = register_cpu_notifier(&hyp_init_cpu_nb);
-> +	err = __register_cpu_notifier(&hyp_init_cpu_nb);
->  	if (err) {
->  		kvm_err("Cannot register HYP init CPU notifier (%d)\n", err);
->  		goto out_err;
->  	}
->
-> +	cpu_notifier_register_done();
-> +
->  	hyp_cpu_pm_init();
->
->  	kvm_coproc_table_init();
->  	return 0;
->  out_err:
-> +	cpu_notifier_register_done();
->  	return err;
->  }
->
->
 
-Acked-by: Paolo Bonzini <pbonzini@redhat.com>
+> Fix the vmstat code in the MM subsystem by using this latter form of callback
+> registration.
+> 
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Rik van Riel <riel@redhat.com>
+> Cc: Johannes Weiner <hannes@cmpxchg.org>
+> Cc: Cody P Schafer <cody@linux.vnet.ibm.com>
+> Cc: Toshi Kani <toshi.kani@hp.com>
+> Cc: Dave Hansen <dave@sr71.net>
+> Cc: Ingo Molnar <mingo@kernel.org>
+> Cc: linux-mm@kvack.org
+> Acked-by: Christoph Lameter <cl@linux.com>
+> Reviewed-by: Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>
+> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+
+Acked-by: Rik van Riel <riel@redhat.com>
+
+-- 
+All rights reversed
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
