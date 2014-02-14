@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp09.in.ibm.com ([122.248.162.9]:41786 "EHLO
-	e28smtp09.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752827AbaBNH7f (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 02:59:35 -0500
+Received: from e28smtp05.in.ibm.com ([122.248.162.5]:57910 "EHLO
+	e28smtp05.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752652AbaBNH7r (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 02:59:47 -0500
 Received: from /spool/local
-	by e28smtp09.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp05.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 14 Feb 2014 13:29:34 +0530
+	Fri, 14 Feb 2014 13:29:45 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 21/52] x86, therm_throt.c: Remove unused therm_cpu_lock
-Date: Fri, 14 Feb 2014 13:23:59 +0530
-Message-ID: <20140214075358.22701.70322.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 22/52] x86, amd, ibs: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:24:17 +0530
+Message-ID: <20140214075416.22701.8424.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -19,78 +19,75 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Tony Luck <tony.luck@intel.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-edac@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140214075359.SjUbNSoapN0IqdaZSn7dtJxoT6s6EQUwbcwLAPBNj8g@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Peter Zijlstra <a.p.zijlstra@chello.nl>, Arnaldo Carvalho de Melo <acme@ghostprotocols.net>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140214075417.DcTWt3ueiImOT_6-jT8W_SDZiwD80Cjeufrp6fhEDdc@z>
 
-After fixing the CPU hotplug callback registration code, the callbacks
-invoked for each online CPU, during the initialization phase in
-thermal_throttle_init_device(), can no longer race with the actual CPU
-hotplug notifier callbacks (in thermal_throttle_cpu_callback). Hence the
-therm_cpu_lock is unnecessary now. Remove it.
+Subsystems that want to register CPU hotplug callbacks, as well as perform
+initialization for the CPUs that are already online, often do it as shown
+below:
 
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Thomas Gleixner <tglx@linutronix.de>
+	get_online_cpus();
+
+	for_each_online_cpu(cpu)
+		init_cpu(cpu);
+
+	register_cpu_notifier(&foobar_cpu_notifier);
+
+	put_online_cpus();
+
+This is wrong, since it is prone to ABBA deadlocks involving the
+cpu_add_remove_lock and the cpu_hotplug.lock (when running concurrently
+with CPU hotplug operations).
+
+Instead, the correct and race-free way of performing the callback
+registration is:
+
+	cpu_notifier_register_begin();
+
+	for_each_online_cpu(cpu)
+		init_cpu(cpu);
+
+	/* Note the use of the double underscored version of the API */
+	__register_cpu_notifier(&foobar_cpu_notifier);
+
+	cpu_notifier_register_done();
+
+
+Fix the amd-ibs code in x86 by using this latter form of callback
+registration.
+
+Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Paul Mackerras <paulus@samba.org>
 Cc: Ingo Molnar <mingo@kernel.org>
+Cc: Arnaldo Carvalho de Melo <acme@ghostprotocols.net>
+Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
-Cc: linux-edac@vger.kernel.org
-Suggested-by: Oleg Nesterov <oleg@redhat.com>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/x86/kernel/cpu/mcheck/therm_throt.c |   13 -------------
- 1 file changed, 13 deletions(-)
+ arch/x86/kernel/cpu/perf_event_amd_ibs.c |    6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/kernel/cpu/mcheck/therm_throt.c b/arch/x86/kernel/cpu/mcheck/therm_throt.c
-index e05dfa3..d921b7e 100644
---- a/arch/x86/kernel/cpu/mcheck/therm_throt.c
-+++ b/arch/x86/kernel/cpu/mcheck/therm_throt.c
-@@ -271,9 +271,6 @@ static void thermal_throttle_remove_dev(struct device *dev)
- 	sysfs_remove_group(&dev->kobj, &thermal_attr_group);
- }
+diff --git a/arch/x86/kernel/cpu/perf_event_amd_ibs.c b/arch/x86/kernel/cpu/perf_event_amd_ibs.c
+index 4b8e4d3..4c36bbe 100644
+--- a/arch/x86/kernel/cpu/perf_event_amd_ibs.c
++++ b/arch/x86/kernel/cpu/perf_event_amd_ibs.c
+@@ -926,13 +926,13 @@ static __init int amd_ibs_init(void)
+ 		goto out;
  
--/* Mutex protecting device creation against CPU hotplug: */
--static DEFINE_MUTEX(therm_cpu_lock);
--
- /* Get notified when a cpu comes on/off. Be hotplug friendly. */
- static int
- thermal_throttle_cpu_callback(struct notifier_block *nfb,
-@@ -289,18 +286,14 @@ thermal_throttle_cpu_callback(struct notifier_block *nfb,
- 	switch (action) {
- 	case CPU_UP_PREPARE:
- 	case CPU_UP_PREPARE_FROZEN:
--		mutex_lock(&therm_cpu_lock);
- 		err = thermal_throttle_add_dev(dev, cpu);
--		mutex_unlock(&therm_cpu_lock);
- 		WARN_ON(err);
- 		break;
- 	case CPU_UP_CANCELED:
- 	case CPU_UP_CANCELED_FROZEN:
- 	case CPU_DEAD:
- 	case CPU_DEAD_FROZEN:
--		mutex_lock(&therm_cpu_lock);
- 		thermal_throttle_remove_dev(dev);
--		mutex_unlock(&therm_cpu_lock);
- 		break;
- 	}
- 	return notifier_from_errno(err);
-@@ -321,17 +314,11 @@ static __init int thermal_throttle_init_device(void)
+ 	perf_ibs_pm_init();
+-	get_online_cpus();
++	cpu_notifier_register_begin();
+ 	ibs_caps = caps;
+ 	/* make ibs_caps visible to other cpus: */
+ 	smp_mb();
+-	perf_cpu_notifier(perf_ibs_cpu_notifier);
+ 	smp_call_function(setup_APIC_ibs, NULL, 1);
+-	put_online_cpus();
++	__perf_cpu_notifier(perf_ibs_cpu_notifier);
++	cpu_notifier_register_done();
  
- 	cpu_notifier_register_begin();
- 
--#ifdef CONFIG_HOTPLUG_CPU
--	mutex_lock(&therm_cpu_lock);
--#endif
- 	/* connect live CPUs to sysfs */
- 	for_each_online_cpu(cpu) {
- 		err = thermal_throttle_add_dev(get_cpu_device(cpu), cpu);
- 		WARN_ON(err);
- 	}
--#ifdef CONFIG_HOTPLUG_CPU
--	mutex_unlock(&therm_cpu_lock);
--#endif
- 
- 	__register_hotcpu_notifier(&thermal_throttle_cpu_notifier);
- 	cpu_notifier_register_done();
+ 	ret = perf_event_ibs_init();
+ out:
 
