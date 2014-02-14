@@ -1,8 +1,8 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 43/52] thermal,
- x86-pkg-temp: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:28:59 +0530
-Message-ID: <20140214075858.22701.51893.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 44/52] hwmon,
+ coretemp: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:29:09 +0530
+Message-ID: <20140214075908.22701.65688.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -11,7 +11,7 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: paulus@samba.org, oleg@redhat.com, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Zhang Rui <rui.zhang@intel.com>, Eduardo Valentin <eduardo.valentin@ti.com>, Ingo Molnar <mingo@kernel.org>, linux-pm@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Fenghua Yu <fenghua.yu@intel.com>, Jean Delvare <jdelvare@suse.de>, Ingo Molnar <mingo@kernel.org>, lm-sensors@lm-sensors.org, Guenter Roeck <linux@roeck-us.net>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
@@ -45,65 +45,66 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the thermal x86-pkg-temp code by using this latter form of callback
+Fix the hwmon coretemp code by using this latter form of callback
 registration.
 
-Cc: Zhang Rui <rui.zhang@intel.com>
-Cc: Eduardo Valentin <eduardo.valentin@ti.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: Jean Delvare <jdelvare@suse.de>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: linux-pm@vger.kernel.org
+Cc: lm-sensors@lm-sensors.org
+Acked-by: Guenter Roeck <linux@roeck-us.net>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- drivers/thermal/x86_pkg_temp_thermal.c |   14 +++++++-------
+ drivers/hwmon/coretemp.c |   14 +++++++-------
  1 file changed, 7 insertions(+), 7 deletions(-)
 
-diff --git a/drivers/thermal/x86_pkg_temp_thermal.c b/drivers/thermal/x86_pkg_temp_thermal.c
-index 972e1c7..7592048 100644
---- a/drivers/thermal/x86_pkg_temp_thermal.c
-+++ b/drivers/thermal/x86_pkg_temp_thermal.c
-@@ -589,12 +589,12 @@ static int __init pkg_temp_thermal_init(void)
- 	platform_thermal_package_rate_control =
- 			pkg_temp_thermal_platform_thermal_rate_control;
+diff --git a/drivers/hwmon/coretemp.c b/drivers/hwmon/coretemp.c
+index bbb0b0d..746a6ad 100644
+--- a/drivers/hwmon/coretemp.c
++++ b/drivers/hwmon/coretemp.c
+@@ -849,20 +849,20 @@ static int __init coretemp_init(void)
+ 	if (err)
+ 		goto exit;
  
 -	get_online_cpus();
 +	cpu_notifier_register_begin();
  	for_each_online_cpu(i)
- 		if (get_core_online(i))
- 			goto err_ret;
--	register_hotcpu_notifier(&pkg_temp_thermal_notifier);
--	put_online_cpus();
-+	__register_hotcpu_notifier(&pkg_temp_thermal_notifier);
-+	cpu_notifier_register_done();
+ 		get_core_online(i);
  
- 	pkg_temp_debugfs_init(); /* Don't care if fails */
+ #ifndef CONFIG_HOTPLUG_CPU
+ 	if (list_empty(&pdev_list)) {
+-		put_online_cpus();
++		cpu_notifier_register_done();
+ 		err = -ENODEV;
+ 		goto exit_driver_unreg;
+ 	}
+ #endif
  
-@@ -603,7 +603,7 @@ static int __init pkg_temp_thermal_init(void)
- err_ret:
- 	for_each_online_cpu(i)
- 		put_core_offline(i);
+-	register_hotcpu_notifier(&coretemp_cpu_notifier);
 -	put_online_cpus();
++	__register_hotcpu_notifier(&coretemp_cpu_notifier);
 +	cpu_notifier_register_done();
- 	kfree(pkg_work_scheduled);
- 	platform_thermal_package_notify = NULL;
- 	platform_thermal_package_rate_control = NULL;
-@@ -616,8 +616,8 @@ static void __exit pkg_temp_thermal_exit(void)
- 	struct phy_dev_entry *phdev, *n;
- 	int i;
+ 	return 0;
+ 
+ #ifndef CONFIG_HOTPLUG_CPU
+@@ -877,8 +877,8 @@ static void __exit coretemp_exit(void)
+ {
+ 	struct pdev_entry *p, *n;
  
 -	get_online_cpus();
--	unregister_hotcpu_notifier(&pkg_temp_thermal_notifier);
+-	unregister_hotcpu_notifier(&coretemp_cpu_notifier);
 +	cpu_notifier_register_begin();
-+	__unregister_hotcpu_notifier(&pkg_temp_thermal_notifier);
- 	mutex_lock(&phy_dev_list_mutex);
- 	list_for_each_entry_safe(phdev, n, &phy_dev_list, list) {
- 		/* Retore old MSR value for package thermal interrupt */
-@@ -635,7 +635,7 @@ static void __exit pkg_temp_thermal_exit(void)
- 	for_each_online_cpu(i)
- 		cancel_delayed_work_sync(
- 			&per_cpu(pkg_temp_thermal_threshold_work, i));
++	__unregister_hotcpu_notifier(&coretemp_cpu_notifier);
+ 	mutex_lock(&pdev_list_mutex);
+ 	list_for_each_entry_safe(p, n, &pdev_list, list) {
+ 		platform_device_unregister(p->pdev);
+@@ -886,7 +886,7 @@ static void __exit coretemp_exit(void)
+ 		kfree(p);
+ 	}
+ 	mutex_unlock(&pdev_list_mutex);
 -	put_online_cpus();
 +	cpu_notifier_register_done();
- 
- 	kfree(pkg_work_scheduled);
+ 	platform_driver_unregister(&coretemp_driver);
+ }
  
