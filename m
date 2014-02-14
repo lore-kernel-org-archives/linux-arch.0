@@ -1,8 +1,7 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 39/52] clocksource,
- dummy-timer: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:28:05 +0530
-Message-ID: <20140214075804.22701.19937.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 40/52] intel-idle: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:28:15 +0530
+Message-ID: <20140214075814.22701.67329.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -10,8 +9,8 @@ Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: paulus@samba.org, oleg@redhat.com, rusty@rustcorp.com.au, peterz@infradead.org, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+To: paulus@samba.org, oleg@redhat.com, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Len Brown <lenb@kernel.org>"Rafael J. Wysocki" <rjw@rjwysocki.net>, Ingo Molnar <mingo@kernel.org>, linux-pm@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
@@ -45,42 +44,55 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the clocksource dummy-timer code by using this latter form of callback
-registration.
+Fix the intel-idle code by using this latter form of callback registration.
 
-Cc: Daniel Lezcano <daniel.lezcano@linaro.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Len Brown <lenb@kernel.org>
+Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
 Cc: Ingo Molnar <mingo@kernel.org>
+Cc: linux-pm@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- drivers/clocksource/dummy_timer.c |   11 ++++++++---
- 1 file changed, 8 insertions(+), 3 deletions(-)
+ drivers/idle/intel_idle.c |   12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/clocksource/dummy_timer.c b/drivers/clocksource/dummy_timer.c
-index b3eb582..ad35725 100644
---- a/drivers/clocksource/dummy_timer.c
-+++ b/drivers/clocksource/dummy_timer.c
-@@ -56,14 +56,19 @@ static struct notifier_block dummy_timer_cpu_nb = {
+diff --git a/drivers/idle/intel_idle.c b/drivers/idle/intel_idle.c
+index 8e1939f..51493ed 100644
+--- a/drivers/idle/intel_idle.c
++++ b/drivers/idle/intel_idle.c
+@@ -681,14 +681,19 @@ static int __init intel_idle_init(void)
+ 	if (intel_idle_cpuidle_devices == NULL)
+ 		return -ENOMEM;
  
- static int __init dummy_timer_register(void)
- {
--	int err = register_cpu_notifier(&dummy_timer_cpu_nb);
-+	int err = 0;
-+
 +	cpu_notifier_register_begin();
-+	err = __register_cpu_notifier(&dummy_timer_cpu_nb);
- 	if (err)
--		return err;
-+		goto out;
- 
- 	/* We won't get a call on the boot CPU, so register immediately */
- 	if (num_possible_cpus() > 1)
- 		dummy_timer_setup();
- 
--	return 0;
-+out:
++
+ 	for_each_online_cpu(i) {
+ 		retval = intel_idle_cpu_init(i);
+ 		if (retval) {
++			cpu_notifier_register_done();
+ 			cpuidle_unregister_driver(&intel_idle_driver);
+ 			return retval;
+ 		}
+ 	}
+-	register_cpu_notifier(&cpu_hotplug_notifier);
++	__register_cpu_notifier(&cpu_hotplug_notifier);
++
 +	cpu_notifier_register_done();
-+	return err;
+ 
+ 	return 0;
  }
- early_initcall(dummy_timer_register);
+@@ -698,10 +703,13 @@ static void __exit intel_idle_exit(void)
+ 	intel_idle_cpuidle_devices_uninit();
+ 	cpuidle_unregister_driver(&intel_idle_driver);
+ 
++	cpu_notifier_register_begin();
+ 
+ 	if (lapic_timer_reliable_states != LAPIC_TIMER_ALWAYS_RELIABLE)
+ 		on_each_cpu(__setup_broadcast_timer, (void *)false, 1);
+-	unregister_cpu_notifier(&cpu_hotplug_notifier);
++	__unregister_cpu_notifier(&cpu_hotplug_notifier);
++
++	cpu_notifier_register_done();
+ 
+ 	return;
+ }
