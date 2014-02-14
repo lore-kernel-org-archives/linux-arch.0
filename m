@@ -1,8 +1,7 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 25/52] x86, amd,
- uncore: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:24:51 +0530
-Message-ID: <20140214075451.22701.46990.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 26/52] x86, hpet: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:25:02 +0530
+Message-ID: <20140214075501.22701.65312.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -10,8 +9,8 @@ Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: oleg@redhat.com, rusty@rustcorp.com.au, peterz@infradead.org, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul Mackerras <paulus@samba.org>, Ingo Molnar <mingo@kernel.org>, Arnaldo Carvalho de Melo <acme@ghostprotocols.net>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+To: paulus@samba.org, oleg@redhat.com, rusty@rustcorp.com.au, peterz@infradead.org, akpm@linux-foundation.org
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
@@ -45,42 +44,34 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the amd-uncore code in x86 by using this latter form of callback
-registration.
+Fix the hpet code in x86 by using this latter form of callback registration.
 
-Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Arnaldo Carvalho de Melo <acme@ghostprotocols.net>
 Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@kernel.org>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/x86/kernel/cpu/perf_event_amd_uncore.c |    7 ++++---
- 1 file changed, 4 insertions(+), 3 deletions(-)
+ arch/x86/kernel/hpet.c |    4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/kernel/cpu/perf_event_amd_uncore.c b/arch/x86/kernel/cpu/perf_event_amd_uncore.c
-index 754291a..3bbdf4c 100644
---- a/arch/x86/kernel/cpu/perf_event_amd_uncore.c
-+++ b/arch/x86/kernel/cpu/perf_event_amd_uncore.c
-@@ -531,15 +531,16 @@ static int __init amd_uncore_init(void)
- 	if (ret)
- 		return -ENODEV;
+diff --git a/arch/x86/kernel/hpet.c b/arch/x86/kernel/hpet.c
+index da85a8e..d89382b 100644
+--- a/arch/x86/kernel/hpet.c
++++ b/arch/x86/kernel/hpet.c
+@@ -943,12 +943,14 @@ static __init int hpet_late_init(void)
+ 	if (boot_cpu_has(X86_FEATURE_ARAT))
+ 		return 0;
  
--	get_online_cpus();
 +	cpu_notifier_register_begin();
-+
- 	/* init cpus already online before registering for hotplug notifier */
  	for_each_online_cpu(cpu) {
- 		amd_uncore_cpu_up_prepare(cpu);
- 		smp_call_function_single(cpu, init_cpu_already_online, NULL, 1);
+ 		hpet_cpuhp_notify(NULL, CPU_ONLINE, (void *)(long)cpu);
  	}
  
--	register_cpu_notifier(&amd_uncore_cpu_notifier_block);
--	put_online_cpus();
-+	__register_cpu_notifier(&amd_uncore_cpu_notifier_block);
+ 	/* This notifier should be called after workqueue is ready */
+-	hotcpu_notifier(hpet_cpuhp_notify, -20);
++	__hotcpu_notifier(hpet_cpuhp_notify, -20);
 +	cpu_notifier_register_done();
  
  	return 0;
