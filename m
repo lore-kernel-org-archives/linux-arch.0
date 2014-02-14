@@ -1,7 +1,7 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 14/52] powerpc, sysfs: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:22:15 +0530
-Message-ID: <20140214075215.22701.23653.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 15/52] x86, msr: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:22:30 +0530
+Message-ID: <20140214075229.22701.93673.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -9,8 +9,8 @@ Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: oleg@redhat.com, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, Wang Dongsheng <dongsheng.wang@freescale.com>, Ingo Molnar <mingo@kernel.org>, linuxppc-dev@lists.ozlabs.org, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+To: paulus@samba.org, oleg@redhat.com, rusty@rustcorp.com.au, peterz@infradead.org, akpm@linux-foundation.org
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, x86@kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
@@ -44,45 +44,65 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the sysfs code in powerpc by using this latter form of callback
-registration.
+Fix the msr code in x86 by using this latter form of callback registration.
 
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Olof Johansson <olof@lixom.net>
-Cc: Wang Dongsheng <dongsheng.wang@freescale.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: linuxppc-dev@lists.ozlabs.org
-Acked-by: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+Cc: x86@kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/powerpc/kernel/sysfs.c |    8 +++++++-
- 1 file changed, 7 insertions(+), 1 deletion(-)
+ arch/x86/kernel/msr.c |   16 +++++++++-------
+ 1 file changed, 9 insertions(+), 7 deletions(-)
 
-diff --git a/arch/powerpc/kernel/sysfs.c b/arch/powerpc/kernel/sysfs.c
-index 97e1dc9..d90d4b7 100644
---- a/arch/powerpc/kernel/sysfs.c
-+++ b/arch/powerpc/kernel/sysfs.c
-@@ -975,7 +975,8 @@ static int __init topology_init(void)
- 	int cpu;
- 
- 	register_nodes();
--	register_cpu_notifier(&sysfs_cpu_nb);
+diff --git a/arch/x86/kernel/msr.c b/arch/x86/kernel/msr.c
+index 05266b5..c9603ac 100644
+--- a/arch/x86/kernel/msr.c
++++ b/arch/x86/kernel/msr.c
+@@ -259,14 +259,15 @@ static int __init msr_init(void)
+ 		goto out_chrdev;
+ 	}
+ 	msr_class->devnode = msr_devnode;
+-	get_online_cpus();
 +
 +	cpu_notifier_register_begin();
- 
- 	for_each_possible_cpu(cpu) {
- 		struct cpu *c = &per_cpu(cpu_devices, cpu);
-@@ -999,6 +1000,11 @@ static int __init topology_init(void)
- 		if (cpu_online(cpu))
- 			register_cpu_online(cpu);
+ 	for_each_online_cpu(i) {
+ 		err = msr_device_create(i);
+ 		if (err != 0)
+ 			goto out_class;
  	}
-+
-+	__register_cpu_notifier(&sysfs_cpu_nb);
-+
+-	register_hotcpu_notifier(&msr_class_cpu_notifier);
+-	put_online_cpus();
++	__register_hotcpu_notifier(&msr_class_cpu_notifier);
 +	cpu_notifier_register_done();
+ 
+ 	err = 0;
+ 	goto out;
+@@ -275,7 +276,7 @@ out_class:
+ 	i = 0;
+ 	for_each_online_cpu(i)
+ 		msr_device_destroy(i);
+-	put_online_cpus();
++	cpu_notifier_register_done();
+ 	class_destroy(msr_class);
+ out_chrdev:
+ 	__unregister_chrdev(MSR_MAJOR, 0, NR_CPUS, "cpu/msr");
+@@ -286,13 +287,14 @@ out:
+ static void __exit msr_exit(void)
+ {
+ 	int cpu = 0;
+-	get_online_cpus();
 +
- #ifdef CONFIG_PPC64
- 	sysfs_create_dscr_default();
- #endif /* CONFIG_PPC64 */
++	cpu_notifier_register_begin();
+ 	for_each_online_cpu(cpu)
+ 		msr_device_destroy(cpu);
+ 	class_destroy(msr_class);
+ 	__unregister_chrdev(MSR_MAJOR, 0, NR_CPUS, "cpu/msr");
+-	unregister_hotcpu_notifier(&msr_class_cpu_notifier);
+-	put_online_cpus();
++	__unregister_hotcpu_notifier(&msr_class_cpu_notifier);
++	cpu_notifier_register_done();
+ }
+ 
+ module_init(msr_init);
