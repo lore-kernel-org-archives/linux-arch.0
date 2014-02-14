@@ -1,7 +1,7 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 12/52] s390, smp: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:21:55 +0530
-Message-ID: <20140214075155.22701.59797.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 13/52] sparc, sysfs: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:22:05 +0530
+Message-ID: <20140214075204.22701.72009.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -9,8 +9,8 @@ Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: paulus@samba.org, oleg@redhat.com, rusty@rustcorp.com.au, peterz@infradead.org, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, linux-s390@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+To: paulus@samba.org, oleg@redhat.com, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, "David S. Miller" <davem@davemloft.net>, Ingo Molnar <mingo@kernel.org>, sparclinux@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
@@ -44,49 +44,39 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the smp code in s390 by using this latter form of callback registration.
+Fix the sysfs code in sparc by using this latter form of callback
+registration.
 
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: "David S. Miller" <davem@davemloft.net>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: linux-s390@vger.kernel.org
+Cc: sparclinux@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/s390/kernel/smp.c |   13 +++++++++----
- 1 file changed, 9 insertions(+), 4 deletions(-)
+ arch/sparc/kernel/sysfs.c |    6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
 
-diff --git a/arch/s390/kernel/smp.c b/arch/s390/kernel/smp.c
-index a7125b6..e10be35 100644
---- a/arch/s390/kernel/smp.c
-+++ b/arch/s390/kernel/smp.c
-@@ -1057,19 +1057,24 @@ static DEVICE_ATTR(rescan, 0200, NULL, rescan_store);
+diff --git a/arch/sparc/kernel/sysfs.c b/arch/sparc/kernel/sysfs.c
+index c21c673..a364000 100644
+--- a/arch/sparc/kernel/sysfs.c
++++ b/arch/sparc/kernel/sysfs.c
+@@ -300,7 +300,7 @@ static int __init topology_init(void)
  
- static int __init s390_smp_init(void)
- {
--	int cpu, rc;
-+	int cpu, rc = 0;
+ 	check_mmu_stats();
  
--	hotcpu_notifier(smp_cpu_notify, 0);
- #ifdef CONFIG_HOTPLUG_CPU
- 	rc = device_create_file(cpu_subsys.dev_root, &dev_attr_rescan);
- 	if (rc)
- 		return rc;
- #endif
+-	register_cpu_notifier(&sysfs_cpu_nb);
 +	cpu_notifier_register_begin();
- 	for_each_present_cpu(cpu) {
- 		rc = smp_add_present_cpu(cpu);
- 		if (rc)
--			return rc;
-+			goto out;
+ 
+ 	for_each_possible_cpu(cpu) {
+ 		struct cpu *c = &per_cpu(cpu_devices, cpu);
+@@ -310,6 +310,10 @@ static int __init topology_init(void)
+ 			register_cpu_online(cpu);
  	}
--	return 0;
+ 
++	__register_cpu_notifier(&sysfs_cpu_nb);
 +
-+	__hotcpu_notifier(smp_cpu_notify, 0);
-+
-+out:
 +	cpu_notifier_register_done();
-+	return rc;
++
+ 	return 0;
  }
- subsys_initcall(s390_smp_init);
+ 
