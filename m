@@ -1,16 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp03.au.ibm.com ([202.81.31.145]:48760 "EHLO
-	e23smtp03.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752452AbaBNIDK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 03:03:10 -0500
+Received: from e23smtp08.au.ibm.com ([202.81.31.141]:48454 "EHLO
+	e23smtp08.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752097AbaBNIBb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 03:01:31 -0500
 Received: from /spool/local
-	by e23smtp03.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp08.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 14 Feb 2014 18:03:09 +1000
+	Fri, 14 Feb 2014 18:01:29 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 37/52] acpi-cpufreq: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:27:37 +0530
-Message-ID: <20140214075736.22701.78024.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 30/52] arm64,
+ hw_breakpoint.c: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:25:58 +0530
+Message-ID: <20140214075557.22701.17533.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -19,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com"Rafael J. Wysocki" <rjw@rjwysocki.net>, cpufreq@vger.kernel.org, linux-pm@vger.kernel.org, Viresh Kumar <viresh.kumar@linaro.org>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140214075737.ewB678PKWWrwZHjuHwYQUBNZqKUcJOzcJEQOLVWx0gY@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Catalin Marinas <catalin.marinas@arm.com>, Lorenzo Pieralisi <Lorenzo.Pieralisi@arm.com>, linux-arm-kernel@lists.infradead.org, Will Deacon <will.deacon@arm.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140214075558.u8774YWwVLFDzpSK4pVqQv0W0yDmVXYEUm9MfhfnTyA@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -53,41 +54,43 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the acpi-cpufreq code by using this latter form of callback registration.
+Fix the hw-breakpoint code in arm64 by using this latter form of callback
+registration.
 
-Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Lorenzo Pieralisi <Lorenzo.Pieralisi@arm.com>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: cpufreq@vger.kernel.org
-Cc: linux-pm@vger.kernel.org
-Acked-by: Viresh Kumar <viresh.kumar@linaro.org>
+Cc: linux-arm-kernel@lists.infradead.org
+Acked-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- drivers/cpufreq/acpi-cpufreq.c |    7 ++++---
- 1 file changed, 4 insertions(+), 3 deletions(-)
+ arch/arm64/kernel/hw_breakpoint.c |    7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
 
-diff --git a/drivers/cpufreq/acpi-cpufreq.c b/drivers/cpufreq/acpi-cpufreq.c
-index 18448a7..245ae078e 100644
---- a/drivers/cpufreq/acpi-cpufreq.c
-+++ b/drivers/cpufreq/acpi-cpufreq.c
-@@ -907,15 +907,16 @@ static void __init acpi_cpufreq_boost_init(void)
+diff --git a/arch/arm64/kernel/hw_breakpoint.c b/arch/arm64/kernel/hw_breakpoint.c
+index f17f581..bee7897 100644
+--- a/arch/arm64/kernel/hw_breakpoint.c
++++ b/arch/arm64/kernel/hw_breakpoint.c
+@@ -913,6 +913,8 @@ static int __init arch_hw_breakpoint_init(void)
+ 	pr_info("found %d breakpoint and %d watchpoint registers.\n",
+ 		core_num_brps, core_num_wrps);
  
- 		acpi_cpufreq_driver.boost_supported = true;
- 		acpi_cpufreq_driver.boost_enabled = boost_state(0);
--		get_online_cpus();
++	cpu_notifier_register_begin();
 +
-+		cpu_notifier_register_begin();
+ 	/*
+ 	 * Reset the breakpoint resources. We assume that a halting
+ 	 * debugger will leave the world in a nice state for us.
+@@ -927,7 +929,10 @@ static int __init arch_hw_breakpoint_init(void)
+ 			      TRAP_HWBKPT, "hw-watchpoint handler");
  
- 		/* Force all MSRs to the same value */
- 		boost_set_msrs(acpi_cpufreq_driver.boost_enabled,
- 			       cpu_online_mask);
- 
--		register_cpu_notifier(&boost_nb);
-+		__register_cpu_notifier(&boost_nb);
- 
--		put_online_cpus();
-+		cpu_notifier_register_done();
- 	}
- }
+ 	/* Register hotplug notifier. */
+-	register_cpu_notifier(&hw_breakpoint_reset_nb);
++	__register_cpu_notifier(&hw_breakpoint_reset_nb);
++
++	cpu_notifier_register_done();
++
+ 	/* Register cpu_suspend hw breakpoint restore hook */
+ 	cpu_suspend_set_dbg_restorer(hw_breakpoint_reset);
  
 
