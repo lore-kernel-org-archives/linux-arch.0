@@ -1,16 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp07.au.ibm.com ([202.81.31.140]:60468 "EHLO
-	e23smtp07.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753007AbaBNIBS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 03:01:18 -0500
+Received: from e23smtp05.au.ibm.com ([202.81.31.147]:56054 "EHLO
+	e23smtp05.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752947AbaBNIBD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 03:01:03 -0500
 Received: from /spool/local
-	by e23smtp07.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp05.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 14 Feb 2014 18:01:16 +1000
+	Fri, 14 Feb 2014 18:01:00 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 29/52] x86, kvm: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:25:43 +0530
-Message-ID: <20140214075542.22701.24501.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 28/52] x86, oprofile,
+ nmi: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:25:29 +0530
+Message-ID: <20140214075528.22701.64691.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -19,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Gleb Natapov <gleb@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, kvm@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140214075543.q7ibEyIEVs1sCt-TFEVuE5A8PKd-jyVw_01FSorcW3Q@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Robert Richter <rric@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140214075529.2-ICuzumxg765Wipa-hL_V8OujKVtIaqi_kmGzWIh38@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -53,44 +54,71 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the kvm code in x86 by using this latter form of callback registration.
+Fix the oprofile code in x86 by using this latter form of callback
+registration. But retain the calls to get/put_online_cpus(), since they are
+used in other places as well, to protect the variables 'nmi_enabled' and
+'ctr_running'. Strictly speaking, this is not necessary since
+cpu_notifier_register_begin/done() provide a stronger synchronization
+with CPU hotplug than get/put_online_cpus(). However, let's retain the
+calls to get/put_online_cpus() to be consistent with the other call-sites.
 
-Cc: Gleb Natapov <gleb@kernel.org>
-Cc: Paolo Bonzini <pbonzini@redhat.com>
+By nesting get/put_online_cpus() *inside* cpu_notifier_register_begin/done(),
+we avoid the ABBA deadlock possibility mentioned above.
+
+Cc: Robert Richter <rric@kernel.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@kernel.org>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
-Cc: kvm@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/x86/kvm/x86.c |    7 ++++++-
- 1 file changed, 6 insertions(+), 1 deletion(-)
+ arch/x86/oprofile/nmi_int.c |   15 +++++++++++++--
+ 1 file changed, 13 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/kvm/x86.c b/arch/x86/kvm/x86.c
-index 39c28f09..0166923 100644
---- a/arch/x86/kvm/x86.c
-+++ b/arch/x86/kvm/x86.c
-@@ -5365,7 +5365,8 @@ static void kvm_timer_init(void)
- 	int cpu;
+diff --git a/arch/x86/oprofile/nmi_int.c b/arch/x86/oprofile/nmi_int.c
+index 6890d84..379e8bd 100644
+--- a/arch/x86/oprofile/nmi_int.c
++++ b/arch/x86/oprofile/nmi_int.c
+@@ -494,14 +494,19 @@ static int nmi_setup(void)
+ 	if (err)
+ 		goto fail;
  
- 	max_tsc_khz = tsc_khz;
--	register_hotcpu_notifier(&kvmclock_cpu_notifier_block);
-+
 +	cpu_notifier_register_begin();
- 	if (!boot_cpu_has(X86_FEATURE_CONSTANT_TSC)) {
- #ifdef CONFIG_CPU_FREQ
- 		struct cpufreq_policy policy;
-@@ -5382,6 +5383,10 @@ static void kvm_timer_init(void)
- 	pr_debug("kvm: max_tsc_khz = %ld\n", max_tsc_khz);
- 	for_each_online_cpu(cpu)
- 		smp_call_function_single(cpu, tsc_khz_changed, NULL, 1);
 +
-+	__register_hotcpu_notifier(&kvmclock_cpu_notifier_block);
++	/* Use get/put_online_cpus() to protect 'nmi_enabled' */
+ 	get_online_cpus();
+-	register_cpu_notifier(&oprofile_cpu_nb);
+ 	nmi_enabled = 1;
+ 	/* make nmi_enabled visible to the nmi handler: */
+ 	smp_mb();
+ 	on_each_cpu(nmi_cpu_setup, NULL, 1);
++	__register_cpu_notifier(&oprofile_cpu_nb);
+ 	put_online_cpus();
+ 
 +	cpu_notifier_register_done();
 +
- }
+ 	return 0;
+ fail:
+ 	free_msrs();
+@@ -512,12 +517,18 @@ static void nmi_shutdown(void)
+ {
+ 	struct op_msrs *msrs;
  
- static DEFINE_PER_CPU(struct kvm_vcpu *, current_vcpu);
++	cpu_notifier_register_begin();
++
++	/* Use get/put_online_cpus() to protect 'nmi_enabled' & 'ctr_running' */
+ 	get_online_cpus();
+-	unregister_cpu_notifier(&oprofile_cpu_nb);
+ 	on_each_cpu(nmi_cpu_shutdown, NULL, 1);
+ 	nmi_enabled = 0;
+ 	ctr_running = 0;
++	__unregister_cpu_notifier(&oprofile_cpu_nb);
+ 	put_online_cpus();
++
++	cpu_notifier_register_done();
++
+ 	/* make variables visible to the nmi handler: */
+ 	smp_mb();
+ 	unregister_nmi_handler(NMI_LOCAL, "oprofile");
 
