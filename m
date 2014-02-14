@@ -1,17 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp06.in.ibm.com ([122.248.162.6]:35234 "EHLO
-	e28smtp06.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752365AbaBNH4b (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 02:56:31 -0500
+Received: from e28smtp05.in.ibm.com ([122.248.162.5]:38959 "EHLO
+	e28smtp05.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752620AbaBNH5j (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 02:57:39 -0500
 Received: from /spool/local
-	by e28smtp06.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp05.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 14 Feb 2014 13:26:26 +0530
+	Fri, 14 Feb 2014 13:27:34 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 08/52] ia64,
- err-inject: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:20:59 +0530
-Message-ID: <20140214075058.22701.71425.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 13/52] sparc, sysfs: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:22:05 +0530
+Message-ID: <20140214075204.22701.72009.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,8 +19,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140214075059.f5J81lRKKdftjrWRHGbNsvr24DzMKzNy248eQ06K-fI@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140214075205.dI_JpBbMQGgDURSTr5gT8Ys8YIxFQLf-7Ohw9Ptsz0s@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -54,59 +53,40 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the error injection code in ia64 by using this latter form of callback
+Fix the sysfs code in sparc by using this latter form of callback
 registration.
 
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: "David S. Miller" <davem@davemloft.net>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: linux-ia64@vger.kernel.org
+Cc: sparclinux@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/ia64/kernel/err_inject.c |   15 +++++++++++++--
- 1 file changed, 13 insertions(+), 2 deletions(-)
+ arch/sparc/kernel/sysfs.c |    6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
 
-diff --git a/arch/ia64/kernel/err_inject.c b/arch/ia64/kernel/err_inject.c
-index f59c0b8..0c161ed 100644
---- a/arch/ia64/kernel/err_inject.c
-+++ b/arch/ia64/kernel/err_inject.c
-@@ -269,12 +269,17 @@ err_inject_init(void)
- #ifdef ERR_INJ_DEBUG
- 	printk(KERN_INFO "Enter error injection driver.\n");
- #endif
-+
+diff --git a/arch/sparc/kernel/sysfs.c b/arch/sparc/kernel/sysfs.c
+index c21c673..a364000 100644
+--- a/arch/sparc/kernel/sysfs.c
++++ b/arch/sparc/kernel/sysfs.c
+@@ -300,7 +300,7 @@ static int __init topology_init(void)
+ 
+ 	check_mmu_stats();
+ 
+-	register_cpu_notifier(&sysfs_cpu_nb);
 +	cpu_notifier_register_begin();
-+
- 	for_each_online_cpu(i) {
- 		err_inject_cpu_callback(&err_inject_cpu_notifier, CPU_ONLINE,
- 				(void *)(long)i);
+ 
+ 	for_each_possible_cpu(cpu) {
+ 		struct cpu *c = &per_cpu(cpu_devices, cpu);
+@@ -310,6 +310,10 @@ static int __init topology_init(void)
+ 			register_cpu_online(cpu);
  	}
  
--	register_hotcpu_notifier(&err_inject_cpu_notifier);
-+	__register_hotcpu_notifier(&err_inject_cpu_notifier);
++	__register_cpu_notifier(&sysfs_cpu_nb);
 +
 +	cpu_notifier_register_done();
- 
++
  	return 0;
  }
-@@ -288,11 +293,17 @@ err_inject_exit(void)
- #ifdef ERR_INJ_DEBUG
- 	printk(KERN_INFO "Exit error injection driver.\n");
- #endif
-+
-+	cpu_notifier_register_begin();
-+
- 	for_each_online_cpu(i) {
- 		sys_dev = get_cpu_device(i);
- 		sysfs_remove_group(&sys_dev->kobj, &err_inject_attr_group);
- 	}
--	unregister_hotcpu_notifier(&err_inject_cpu_notifier);
-+
-+	__unregister_hotcpu_notifier(&err_inject_cpu_notifier);
-+
-+	cpu_notifier_register_done();
- }
  
- module_init(err_inject_init);
 
