@@ -1,8 +1,8 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 08/52] ia64,
- err-inject: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:20:59 +0530
-Message-ID: <20140214075058.22701.71425.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 09/52] arm,
+ hw-breakpoint: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:21:09 +0530
+Message-ID: <20140214075108.22701.93980.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -11,7 +11,7 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: paulus@samba.org, oleg@redhat.com, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Ingo Molnar <mingo@kernel.org>, linux-ia64@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.comRussell King <linux@arm.linux.org.uk>, Ingo Molnar <mingo@kernel.org>, linux-arm-kernel@lists.infradead.org, Will Deacon <will.deacon@arm.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
@@ -45,58 +45,49 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the error injection code in ia64 by using this latter form of callback
+Fix the hw-breakpoint code in arm by using this latter form of callback
 registration.
 
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: Russell King <linux@arm.linux.org.uk>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: linux-ia64@vger.kernel.org
+Cc: linux-arm-kernel@lists.infradead.org
+Acked-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/ia64/kernel/err_inject.c |   15 +++++++++++++--
- 1 file changed, 13 insertions(+), 2 deletions(-)
+ arch/arm/kernel/hw_breakpoint.c |    8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
 
-diff --git a/arch/ia64/kernel/err_inject.c b/arch/ia64/kernel/err_inject.c
-index f59c0b8..0c161ed 100644
---- a/arch/ia64/kernel/err_inject.c
-+++ b/arch/ia64/kernel/err_inject.c
-@@ -269,12 +269,17 @@ err_inject_init(void)
- #ifdef ERR_INJ_DEBUG
- 	printk(KERN_INFO "Enter error injection driver.\n");
- #endif
-+
+diff --git a/arch/arm/kernel/hw_breakpoint.c b/arch/arm/kernel/hw_breakpoint.c
+index 3d44660..3702de8 100644
+--- a/arch/arm/kernel/hw_breakpoint.c
++++ b/arch/arm/kernel/hw_breakpoint.c
+@@ -1072,6 +1072,8 @@ static int __init arch_hw_breakpoint_init(void)
+ 	core_num_brps = get_num_brps();
+ 	core_num_wrps = get_num_wrps();
+ 
 +	cpu_notifier_register_begin();
 +
- 	for_each_online_cpu(i) {
- 		err_inject_cpu_callback(&err_inject_cpu_notifier, CPU_ONLINE,
- 				(void *)(long)i);
+ 	/*
+ 	 * We need to tread carefully here because DBGSWENABLE may be
+ 	 * driven low on this core and there isn't an architected way to
+@@ -1088,6 +1090,7 @@ static int __init arch_hw_breakpoint_init(void)
+ 	if (!cpumask_empty(&debug_err_mask)) {
+ 		core_num_brps = 0;
+ 		core_num_wrps = 0;
++		cpu_notifier_register_done();
+ 		return 0;
  	}
  
--	register_hotcpu_notifier(&err_inject_cpu_notifier);
-+	__register_hotcpu_notifier(&err_inject_cpu_notifier);
+@@ -1107,7 +1110,10 @@ static int __init arch_hw_breakpoint_init(void)
+ 			TRAP_HWBKPT, "breakpoint debug exception");
+ 
+ 	/* Register hotplug and PM notifiers. */
+-	register_cpu_notifier(&dbg_reset_nb);
++	__register_cpu_notifier(&dbg_reset_nb);
 +
 +	cpu_notifier_register_done();
- 
++
+ 	pm_init();
  	return 0;
  }
-@@ -288,11 +293,17 @@ err_inject_exit(void)
- #ifdef ERR_INJ_DEBUG
- 	printk(KERN_INFO "Exit error injection driver.\n");
- #endif
-+
-+	cpu_notifier_register_begin();
-+
- 	for_each_online_cpu(i) {
- 		sys_dev = get_cpu_device(i);
- 		sysfs_remove_group(&sys_dev->kobj, &err_inject_attr_group);
- 	}
--	unregister_hotcpu_notifier(&err_inject_cpu_notifier);
-+
-+	__unregister_hotcpu_notifier(&err_inject_cpu_notifier);
-+
-+	cpu_notifier_register_done();
- }
- 
- module_init(err_inject_init);
