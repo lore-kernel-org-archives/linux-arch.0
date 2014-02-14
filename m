@@ -1,16 +1,24 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 17/52] x86, vsyscall: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:22:58 +0530
-Message-ID: <20140214075258.22701.21926.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 10/52] arm, kvm: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:21:23 +0530
+Message-ID: <20140214075122.22701.18462.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: paulus@samba.org, oleg@redhat.com, rusty@rustcorp.com.au, peterz@infradead.org, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: paulus@samba.org, oleg@redhat.com, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
+Cc: linux-arch@vger.kernel.org, ego@linux.vnet.ibm.com, walken@google.com, Russell King <linux@arm.linux.org.uk>, kvm@vger.kernel.org, Gleb Natapov <gleb@kernel.org>, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@lists.infradead.org, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, tj@kernel.org, Paolo Bonzini <pbonzini@redhat.com>, paulmck@linux.vnet.ibm.com, Ingo Molnar <mingo@kernel.org>, Christoffer Dall <christoffer.dall@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
@@ -44,35 +52,50 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the vsyscall code in x86 by using this latter form of callback
-registration.
+Fix the kvm code in arm by using this latter form of callback registration.
 
-Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Christoffer Dall <christoffer.dall@linaro.org>
+Cc: Gleb Natapov <gleb@kernel.org>
+Cc: Paolo Bonzini <pbonzini@redhat.com>
+Cc: Russell King <linux@arm.linux.org.uk>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
+Cc: kvmarm@lists.cs.columbia.edu
+Cc: kvm@vger.kernel.org
+Cc: linux-arm-kernel@lists.infradead.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/x86/kernel/vsyscall_64.c |    6 +++++-
- 1 file changed, 5 insertions(+), 1 deletion(-)
+ arch/arm/kvm/arm.c |    7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/kernel/vsyscall_64.c b/arch/x86/kernel/vsyscall_64.c
-index 1f96f93..556eaf2 100644
---- a/arch/x86/kernel/vsyscall_64.c
-+++ b/arch/x86/kernel/vsyscall_64.c
-@@ -393,9 +393,13 @@ static int __init vsyscall_init(void)
- {
- 	BUG_ON(VSYSCALL_ADDR(0) != __fix_to_virt(VSYSCALL_FIRST_PAGE));
+diff --git a/arch/arm/kvm/arm.c b/arch/arm/kvm/arm.c
+index 1d8248e..147b917 100644
+--- a/arch/arm/kvm/arm.c
++++ b/arch/arm/kvm/arm.c
+@@ -1050,21 +1050,26 @@ int kvm_arch_init(void *opaque)
+ 		}
+ 	}
  
 +	cpu_notifier_register_begin();
 +
- 	on_each_cpu(cpu_vsyscall_init, NULL, 1);
- 	/* notifier priority > KVM */
--	hotcpu_notifier(cpu_vsyscall_notifier, 30);
-+	__hotcpu_notifier(cpu_vsyscall_notifier, 30);
-+
-+	cpu_notifier_register_done();
+ 	err = init_hyp_mode();
+ 	if (err)
+ 		goto out_err;
  
+-	err = register_cpu_notifier(&hyp_init_cpu_nb);
++	err = __register_cpu_notifier(&hyp_init_cpu_nb);
+ 	if (err) {
+ 		kvm_err("Cannot register HYP init CPU notifier (%d)\n", err);
+ 		goto out_err;
+ 	}
+ 
++	cpu_notifier_register_done();
++
+ 	hyp_cpu_pm_init();
+ 
+ 	kvm_coproc_table_init();
  	return 0;
+ out_err:
++	cpu_notifier_register_done();
+ 	return err;
  }
