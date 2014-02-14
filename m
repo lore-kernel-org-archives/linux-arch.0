@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp03.in.ibm.com ([122.248.162.3]:58328 "EHLO
-	e28smtp03.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752286AbaBNIC0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 03:02:26 -0500
+Received: from e23smtp03.au.ibm.com ([202.81.31.145]:48760 "EHLO
+	e23smtp03.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752452AbaBNIDK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 03:03:10 -0500
 Received: from /spool/local
-	by e28smtp03.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp03.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 14 Feb 2014 13:32:22 +0530
+	Fri, 14 Feb 2014 18:03:09 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 34/52] scsi, bnx2fc: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:26:55 +0530
-Message-ID: <20140214075655.22701.69583.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 37/52] acpi-cpufreq: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:27:37 +0530
+Message-ID: <20140214075736.22701.78024.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -19,8 +19,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Eddie Wai <eddie.wai@broadcom.com>, "James E.J. Bottomley" <JBottomley@parallels.com>, linux-scsi@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140214075655.Fswm6K2PZeITb-6Huz95wTY3gIFOtfsAZVr1J4kfz9E@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com"Rafael J. Wysocki" <rjw@rjwysocki.net>, cpufreq@vger.kernel.org, linux-pm@vger.kernel.org, Viresh Kumar <viresh.kumar@linaro.org>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140214075737.ewB678PKWWrwZHjuHwYQUBNZqKUcJOzcJEQOLVWx0gY@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -53,58 +53,41 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the bnx2fc code in scsi by using this latter form of callback
-registration.
+Fix the acpi-cpufreq code by using this latter form of callback registration.
 
-Cc: Eddie Wai <eddie.wai@broadcom.com>
-Cc: "James E.J. Bottomley" <JBottomley@parallels.com>
+Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: linux-scsi@vger.kernel.org
+Cc: cpufreq@vger.kernel.org
+Cc: linux-pm@vger.kernel.org
+Acked-by: Viresh Kumar <viresh.kumar@linaro.org>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- drivers/scsi/bnx2fc/bnx2fc_fcoe.c |   12 ++++++++++--
- 1 file changed, 10 insertions(+), 2 deletions(-)
+ drivers/cpufreq/acpi-cpufreq.c |    7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
 
-diff --git a/drivers/scsi/bnx2fc/bnx2fc_fcoe.c b/drivers/scsi/bnx2fc/bnx2fc_fcoe.c
-index 9b94850..c4ec235 100644
---- a/drivers/scsi/bnx2fc/bnx2fc_fcoe.c
-+++ b/drivers/scsi/bnx2fc/bnx2fc_fcoe.c
-@@ -2586,12 +2586,16 @@ static int __init bnx2fc_mod_init(void)
- 		spin_lock_init(&p->fp_work_lock);
+diff --git a/drivers/cpufreq/acpi-cpufreq.c b/drivers/cpufreq/acpi-cpufreq.c
+index 18448a7..245ae078e 100644
+--- a/drivers/cpufreq/acpi-cpufreq.c
++++ b/drivers/cpufreq/acpi-cpufreq.c
+@@ -907,15 +907,16 @@ static void __init acpi_cpufreq_boost_init(void)
+ 
+ 		acpi_cpufreq_driver.boost_supported = true;
+ 		acpi_cpufreq_driver.boost_enabled = boost_state(0);
+-		get_online_cpus();
++
++		cpu_notifier_register_begin();
+ 
+ 		/* Force all MSRs to the same value */
+ 		boost_set_msrs(acpi_cpufreq_driver.boost_enabled,
+ 			       cpu_online_mask);
+ 
+-		register_cpu_notifier(&boost_nb);
++		__register_cpu_notifier(&boost_nb);
+ 
+-		put_online_cpus();
++		cpu_notifier_register_done();
  	}
+ }
  
-+	cpu_notifier_register_begin();
-+
- 	for_each_online_cpu(cpu) {
- 		bnx2fc_percpu_thread_create(cpu);
- 	}
- 
- 	/* Initialize per CPU interrupt thread */
--	register_hotcpu_notifier(&bnx2fc_cpu_notifier);
-+	__register_hotcpu_notifier(&bnx2fc_cpu_notifier);
-+
-+	cpu_notifier_register_done();
- 
- 	cnic_register_driver(CNIC_ULP_FCOE, &bnx2fc_cnic_cb);
- 
-@@ -2656,13 +2660,17 @@ static void __exit bnx2fc_mod_exit(void)
- 	if (l2_thread)
- 		kthread_stop(l2_thread);
- 
--	unregister_hotcpu_notifier(&bnx2fc_cpu_notifier);
-+	cpu_notifier_register_begin();
- 
- 	/* Destroy per cpu threads */
- 	for_each_online_cpu(cpu) {
- 		bnx2fc_percpu_thread_destroy(cpu);
- 	}
- 
-+	__unregister_hotcpu_notifier(&bnx2fc_cpu_notifier);
-+
-+	cpu_notifier_register_done();
-+
- 	destroy_workqueue(bnx2fc_wq);
- 	/*
- 	 * detach from scsi transport
 
