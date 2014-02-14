@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp05.in.ibm.com ([122.248.162.5]:38754 "EHLO
-	e28smtp05.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751831AbaBNH5K (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 02:57:10 -0500
+Received: from e23smtp08.au.ibm.com ([202.81.31.141]:39788 "EHLO
+	e23smtp08.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752428AbaBNH5C (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 02:57:02 -0500
 Received: from /spool/local
-	by e28smtp05.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp08.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 14 Feb 2014 13:27:08 +0530
+	Fri, 14 Feb 2014 17:56:41 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 04/52] CPU hotplug,
- perf: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:19:52 +0530
-Message-ID: <20140214074946.22701.91683.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 09/52] arm,
+ hw-breakpoint: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:21:09 +0530
+Message-ID: <20140214075108.22701.93980.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Peter Zijlstra <a.p.zijlstra@chello.nl>, Arnaldo Carvalho de Melo <acme@ghostprotocols.net>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140214074952.6FONLpuw_b7993LnQehWPFixoZC9f_cPJycUlpWcFwg@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.comRussell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, Will Deacon <will.deacon@arm.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140214075109.pbWdc1FmsOIT8F_NEa3RSvSqbhIUG4preUP-UCQLZhQ@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -54,58 +54,50 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the perf subsystem's hotplug notifier by using this latter form of
-callback registration.
+Fix the hw-breakpoint code in arm by using this latter form of callback
+registration.
 
-Also provide a bare-bones version of perf_cpu_notifier() that doesn't
-invoke the notifiers for the already online CPUs. This would be useful
-for subsystems that need to perform a different set of initialization
-for the already online CPUs, or don't need the initialization altogether.
-
-Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Paul Mackerras <paulus@samba.org>
+Cc: Russell King <linux@arm.linux.org.uk>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Arnaldo Carvalho de Melo <acme@ghostprotocols.net>
+Cc: linux-arm-kernel@lists.infradead.org
+Acked-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- include/linux/perf_event.h |   16 +++++++++++++++-
- 1 file changed, 15 insertions(+), 1 deletion(-)
+ arch/arm/kernel/hw_breakpoint.c |    8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
 
-diff --git a/include/linux/perf_event.h b/include/linux/perf_event.h
-index e56b07f..3356abc 100644
---- a/include/linux/perf_event.h
-+++ b/include/linux/perf_event.h
-@@ -835,6 +835,8 @@ do {									\
- 		{ .notifier_call = fn, .priority = CPU_PRI_PERF };	\
- 	unsigned long cpu = smp_processor_id();				\
- 	unsigned long flags;						\
-+									\
-+	cpu_notifier_register_begin();					\
- 	fn(&fn##_nb, (unsigned long)CPU_UP_PREPARE,			\
- 		(void *)(unsigned long)cpu);				\
- 	local_irq_save(flags);						\
-@@ -843,9 +845,21 @@ do {									\
- 	local_irq_restore(flags);					\
- 	fn(&fn##_nb, (unsigned long)CPU_ONLINE,				\
- 		(void *)(unsigned long)cpu);				\
--	register_cpu_notifier(&fn##_nb);				\
-+	__register_cpu_notifier(&fn##_nb);				\
-+	cpu_notifier_register_done();					\
- } while (0)
+diff --git a/arch/arm/kernel/hw_breakpoint.c b/arch/arm/kernel/hw_breakpoint.c
+index 3d44660..3702de8 100644
+--- a/arch/arm/kernel/hw_breakpoint.c
++++ b/arch/arm/kernel/hw_breakpoint.c
+@@ -1072,6 +1072,8 @@ static int __init arch_hw_breakpoint_init(void)
+ 	core_num_brps = get_num_brps();
+ 	core_num_wrps = get_num_wrps();
  
-+/*
-+ * Bare-bones version of perf_cpu_notifier(), which doesn't invoke the
-+ * callback for already online CPUs.
-+ */
-+#define __perf_cpu_notifier(fn)						\
-+do {									\
-+	static struct notifier_block fn##_nb =				\
-+		{ .notifier_call = fn, .priority = CPU_PRI_PERF };	\
-+									\
-+	__register_cpu_notifier(&fn##_nb);				\
-+} while (0)
++	cpu_notifier_register_begin();
++
+ 	/*
+ 	 * We need to tread carefully here because DBGSWENABLE may be
+ 	 * driven low on this core and there isn't an architected way to
+@@ -1088,6 +1090,7 @@ static int __init arch_hw_breakpoint_init(void)
+ 	if (!cpumask_empty(&debug_err_mask)) {
+ 		core_num_brps = 0;
+ 		core_num_wrps = 0;
++		cpu_notifier_register_done();
+ 		return 0;
+ 	}
  
- struct perf_pmu_events_attr {
- 	struct device_attribute attr;
+@@ -1107,7 +1110,10 @@ static int __init arch_hw_breakpoint_init(void)
+ 			TRAP_HWBKPT, "breakpoint debug exception");
+ 
+ 	/* Register hotplug and PM notifiers. */
+-	register_cpu_notifier(&dbg_reset_nb);
++	__register_cpu_notifier(&dbg_reset_nb);
++
++	cpu_notifier_register_done();
++
+ 	pm_init();
+ 	return 0;
+ }
 
