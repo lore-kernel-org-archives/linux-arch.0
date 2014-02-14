@@ -1,94 +1,25 @@
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 19/52] x86, mce: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:23:34 +0530
-Message-ID: <20140214075333.22701.61880.stgit@srivatsabhat.in.ibm.com>
-References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
+Date: Fri, 14 Feb 2014 10:50:11 +0100
+Message-ID: <20140214095011.GG27965@twins.programming.kicks-ass.net>
+References: <20140207074405.GM5002@laptop.programming.kicks-ass.net> <20140207165028.GO4250@linux.vnet.ibm.com> <20140207165548.GR5976@mudshark.cambridge.arm.com> <20140207180216.GP4250@linux.vnet.ibm.com> <1391992071.18779.99.camel@triegel.csb> <CA+55aFwTwCPMpYTL_vCgNNP0hE8s2sgB0iw-79=xoj99V0JUNA@mail.gmail.com> <20140211155941.GU4250@linux.vnet.ibm.com> <1392185194.18779.2239.camel@triegel.csb> <20140212091907.GA3545@laptop.programming.kicks-ass.net> <1392354475.18779.3849.camel@triegel.csb>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp09.au.ibm.com ([202.81.31.142]:42794 "EHLO
-	e23smtp09.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752103AbaBNH7T (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 02:59:19 -0500
-Received: from /spool/local
-	by e23smtp09.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 14 Feb 2014 17:59:08 +1000
-In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: paulus@samba.org, oleg@redhat.com, rusty@rustcorp.com.au, peterz@infradead.org, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Tony Luck <tony.luck@intel.com>, Borislav Petkov <bp@alien8.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-edac@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <gcc-return-182019-gcc=m.gmane.org@gcc.gnu.org>
+List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
+List-Archive: <http://gcc.gnu.org/ml/gcc/>
+List-Post: <mailto:gcc@gcc.gnu.org>
+List-Help: <http://gcc.gnu.org/ml/>
+Sender: gcc-owner@gcc.gnu.org
+Content-Disposition: inline
+In-Reply-To: <1392354475.18779.3849.camel@triegel.csb>
+To: Torvald Riegel <triegel@redhat.com>
+Cc: paulmck@linux.vnet.ibm.com, Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+List-Id: linux-arch.vger.kernel.org
 
-Subsystems that want to register CPU hotplug callbacks, as well as perform
-initialization for the CPUs that are already online, often do it as shown
-below:
+On Thu, Feb 13, 2014 at 09:07:55PM -0800, Torvald Riegel wrote:
+> That depends on what your goal is.
 
-	get_online_cpus();
-
-	for_each_online_cpu(cpu)
-		init_cpu(cpu);
-
-	register_cpu_notifier(&foobar_cpu_notifier);
-
-	put_online_cpus();
-
-This is wrong, since it is prone to ABBA deadlocks involving the
-cpu_add_remove_lock and the cpu_hotplug.lock (when running concurrently
-with CPU hotplug operations).
-
-Instead, the correct and race-free way of performing the callback
-registration is:
-
-	cpu_notifier_register_begin();
-
-	for_each_online_cpu(cpu)
-		init_cpu(cpu);
-
-	/* Note the use of the double underscored version of the API */
-	__register_cpu_notifier(&foobar_cpu_notifier);
-
-	cpu_notifier_register_done();
-
-
-Fix the mce code in x86 by using this latter form of callback registration.
-
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
-Cc: linux-edac@vger.kernel.org
-Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
----
-
- arch/x86/kernel/cpu/mcheck/mce.c |    8 ++++++--
- 1 file changed, 6 insertions(+), 2 deletions(-)
-
-diff --git a/arch/x86/kernel/cpu/mcheck/mce.c b/arch/x86/kernel/cpu/mcheck/mce.c
-index 4d5419b..9b7734b 100644
---- a/arch/x86/kernel/cpu/mcheck/mce.c
-+++ b/arch/x86/kernel/cpu/mcheck/mce.c
-@@ -2434,14 +2434,18 @@ static __init int mcheck_init_device(void)
- 	if (err)
- 		return err;
- 
-+	cpu_notifier_register_begin();
- 	for_each_online_cpu(i) {
- 		err = mce_device_create(i);
--		if (err)
-+		if (err) {
-+			cpu_notifier_register_done();
- 			return err;
-+		}
- 	}
- 
- 	register_syscore_ops(&mce_syscore_ops);
--	register_hotcpu_notifier(&mce_cpu_notifier);
-+	__register_hotcpu_notifier(&mce_cpu_notifier);
-+	cpu_notifier_register_done();
- 
- 	/* register character device /dev/mcelog */
- 	misc_register(&mce_chrdev_device);
+A compiler that we don't need to fight in order to generate sane code
+would be nice. But as Linus said; we can continue to ignore you lot and
+go on as we've done.
