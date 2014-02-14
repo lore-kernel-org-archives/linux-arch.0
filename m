@@ -1,16 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp05.in.ibm.com ([122.248.162.5]:58399 "EHLO
-	e28smtp05.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751937AbaBNIFN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 03:05:13 -0500
+Received: from e28smtp03.in.ibm.com ([122.248.162.3]:42909 "EHLO
+	e28smtp03.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752694AbaBNIED (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 03:04:03 -0500
 Received: from /spool/local
-	by e28smtp05.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp03.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 14 Feb 2014 13:35:11 +0530
+	Fri, 14 Feb 2014 13:34:00 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 46/52] xen, balloon: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:29:36 +0530
-Message-ID: <20140214075935.22701.71000.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 41/52] oprofile,
+ nmi-timer: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:28:32 +0530
+Message-ID: <20140214075831.22701.70305.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -19,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, David Vrabel <david.vrabel@citrix.com>, xen-devel@lists.xenproject.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140214075936.grB5sh4KbE4paPVuSedS7UDWUpO9nSyxpKJO8-nAMZI@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Robert Richter <rric@kernel.org>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140214075832.T8qbiKzZvNDVg-vtGpEJKRMhzoJr3JTEmweALjl8oxU@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -39,98 +40,84 @@ This is wrong, since it is prone to ABBA deadlocks involving the
 cpu_add_remove_lock and the cpu_hotplug.lock (when running concurrently
 with CPU hotplug operations).
 
-Interestingly, the balloon code in xen can actually prevent double
-initialization and hence can use the following simplified form of callback
-registration:
+Instead, the correct and race-free way of performing the callback
+registration is:
 
-	register_cpu_notifier(&foobar_cpu_notifier);
-
-	get_online_cpus();
+	cpu_notifier_register_begin();
 
 	for_each_online_cpu(cpu)
 		init_cpu(cpu);
 
-	put_online_cpus();
+	/* Note the use of the double underscored version of the API */
+	__register_cpu_notifier(&foobar_cpu_notifier);
 
-A hotplug operation that occurs between registering the notifier and calling
-get_online_cpus(), won't disrupt anything, because the code takes care to
-perform the memory allocations only once.
+	cpu_notifier_register_done();
 
-So reorganize the balloon code in xen this way to fix the deadlock with
-callback registration.
 
-Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Cc: Boris Ostrovsky <boris.ostrovsky@oracle.com>
-Cc: David Vrabel <david.vrabel@citrix.com>
+Fix the nmi-timer code in oprofile by using this latter form of callback
+registration.
+
+Cc: Robert Richter <rric@kernel.org>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: xen-devel@lists.xenproject.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- drivers/xen/balloon.c |   35 +++++++++++++++++++++++------------
- 1 file changed, 23 insertions(+), 12 deletions(-)
+ drivers/oprofile/nmi_timer_int.c |   23 +++++++++++++----------
+ 1 file changed, 13 insertions(+), 10 deletions(-)
 
-diff --git a/drivers/xen/balloon.c b/drivers/xen/balloon.c
-index 37d06ea..afe1a3f 100644
---- a/drivers/xen/balloon.c
-+++ b/drivers/xen/balloon.c
-@@ -592,19 +592,29 @@ static void __init balloon_add_region(unsigned long start_pfn,
+diff --git a/drivers/oprofile/nmi_timer_int.c b/drivers/oprofile/nmi_timer_int.c
+index 76f1c93..9559829 100644
+--- a/drivers/oprofile/nmi_timer_int.c
++++ b/drivers/oprofile/nmi_timer_int.c
+@@ -108,8 +108,8 @@ static void nmi_timer_shutdown(void)
+ 	struct perf_event *event;
+ 	int cpu;
+ 
+-	get_online_cpus();
+-	unregister_cpu_notifier(&nmi_timer_cpu_nb);
++	cpu_notifier_register_begin();
++	__unregister_cpu_notifier(&nmi_timer_cpu_nb);
+ 	for_each_possible_cpu(cpu) {
+ 		event = per_cpu(nmi_timer_events, cpu);
+ 		if (!event)
+@@ -119,7 +119,7 @@ static void nmi_timer_shutdown(void)
+ 		perf_event_release_kernel(event);
  	}
+ 
+-	put_online_cpus();
++	cpu_notifier_register_done();
  }
  
-+static int alloc_balloon_scratch_page(int cpu)
-+{
-+	if (per_cpu(balloon_scratch_page, cpu) != NULL)
-+		return 0;
+ static int nmi_timer_setup(void)
+@@ -132,20 +132,23 @@ static int nmi_timer_setup(void)
+ 	do_div(period, HZ);
+ 	nmi_timer_attr.sample_period = period;
+ 
+-	get_online_cpus();
+-	err = register_cpu_notifier(&nmi_timer_cpu_nb);
++	cpu_notifier_register_begin();
++	err = __register_cpu_notifier(&nmi_timer_cpu_nb);
+ 	if (err)
+ 		goto out;
 +
-+	per_cpu(balloon_scratch_page, cpu) = alloc_page(GFP_KERNEL);
-+	if (per_cpu(balloon_scratch_page, cpu) == NULL) {
-+		pr_warn("Failed to allocate balloon_scratch_page for cpu %d\n", cpu);
-+		return -ENOMEM;
-+	}
-+
-+	return 0;
-+}
-+
-+
- static int balloon_cpu_notify(struct notifier_block *self,
- 				    unsigned long action, void *hcpu)
- {
- 	int cpu = (long)hcpu;
- 	switch (action) {
- 	case CPU_UP_PREPARE:
--		if (per_cpu(balloon_scratch_page, cpu) != NULL)
+ 	/* can't attach events to offline cpus: */
+ 	for_each_online_cpu(cpu) {
+ 		err = nmi_timer_start_cpu(cpu);
+-		if (err)
 -			break;
--		per_cpu(balloon_scratch_page, cpu) = alloc_page(GFP_KERNEL);
--		if (per_cpu(balloon_scratch_page, cpu) == NULL) {
--			pr_warn("Failed to allocate balloon_scratch_page for cpu %d\n", cpu);
-+		if (alloc_balloon_scratch_page(cpu))
- 			return NOTIFY_BAD;
--		}
- 		break;
- 	default:
- 		break;
-@@ -624,15 +634,16 @@ static int __init balloon_init(void)
- 		return -ENODEV;
- 
- 	if (!xen_feature(XENFEAT_auto_translated_physmap)) {
--		for_each_online_cpu(cpu)
--		{
--			per_cpu(balloon_scratch_page, cpu) = alloc_page(GFP_KERNEL);
--			if (per_cpu(balloon_scratch_page, cpu) == NULL) {
--				pr_warn("Failed to allocate balloon_scratch_page for cpu %d\n", cpu);
-+		register_cpu_notifier(&balloon_cpu_notifier);
-+
-+		get_online_cpus();
-+		for_each_online_cpu(cpu) {
-+			if (alloc_balloon_scratch_page(cpu)) {
-+				put_online_cpus();
- 				return -ENOMEM;
- 			}
- 		}
--		register_cpu_notifier(&balloon_cpu_notifier);
-+		put_online_cpus();
++		if (err) {
++			cpu_notifier_register_done();
++			nmi_timer_shutdown();
++			return err;
++		}
  	}
+-	if (err)
+-		nmi_timer_shutdown();
++
+ out:
+-	put_online_cpus();
++	cpu_notifier_register_done();
+ 	return err;
+ }
  
- 	pr_info("Initialising balloon driver\n");
 
