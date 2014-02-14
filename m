@@ -1,16 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp03.au.ibm.com ([202.81.31.145]:48692 "EHLO
-	e23smtp03.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751829AbaBNICk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 03:02:40 -0500
+Received: from e23smtp07.au.ibm.com ([202.81.31.140]:44854 "EHLO
+	e23smtp07.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751815AbaBNIDY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 03:03:24 -0500
 Received: from /spool/local
-	by e23smtp03.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp07.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 14 Feb 2014 18:02:38 +1000
+	Fri, 14 Feb 2014 18:03:22 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 35/52] scsi, fcoe: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:27:05 +0530
-Message-ID: <20140214075704.22701.27489.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 38/52] drivers/base/topology.c: Fix CPU hotplug callback
+ registration
+Date: Fri, 14 Feb 2014 13:27:51 +0530
+Message-ID: <20140214075750.22701.57260.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -19,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Robert Love <robert.w.love@intel.com>, "James E.J. Bottomley" <JBottomley@parallels.com>, fcoe-devel@open-fcoe.org, linux-scsi@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140214075705.TvyGevOEwfMp2eBAH5RQqmijvrf3km1uTuT3SDxKH1w@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140214075751.cpBwSYBSIHJNuyLpk9cjiUyduONmhOaWI6echo9dyT8@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -53,68 +54,43 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the fcoe code in scsi by using this latter form of callback registration.
+Fix the topology code by using this latter form of callback registration.
 
-Cc: Robert Love <robert.w.love@intel.com>
-Cc: "James E.J. Bottomley" <JBottomley@parallels.com>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: fcoe-devel@open-fcoe.org
-Cc: linux-scsi@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- drivers/scsi/fcoe/fcoe.c |   15 +++++++++++++--
- 1 file changed, 13 insertions(+), 2 deletions(-)
+ drivers/base/topology.c |   12 ++++++++----
+ 1 file changed, 8 insertions(+), 4 deletions(-)
 
-diff --git a/drivers/scsi/fcoe/fcoe.c b/drivers/scsi/fcoe/fcoe.c
-index f317000..d5e105b 100644
---- a/drivers/scsi/fcoe/fcoe.c
-+++ b/drivers/scsi/fcoe/fcoe.c
-@@ -2633,14 +2633,18 @@ static int __init fcoe_init(void)
- 		skb_queue_head_init(&p->fcoe_rx_list);
- 	}
- 
+diff --git a/drivers/base/topology.c b/drivers/base/topology.c
+index 94ffee3..a738d10 100644
+--- a/drivers/base/topology.c
++++ b/drivers/base/topology.c
+@@ -161,16 +161,20 @@ static int topology_cpu_callback(struct notifier_block *nfb,
+ static int topology_sysfs_init(void)
+ {
+ 	int cpu;
+-	int rc;
++	int rc = 0;
++
 +	cpu_notifier_register_begin();
-+
- 	for_each_online_cpu(cpu)
- 		fcoe_percpu_thread_create(cpu);
  
- 	/* Initialize per CPU interrupt thread */
--	rc = register_hotcpu_notifier(&fcoe_cpu_notifier);
-+	rc = __register_hotcpu_notifier(&fcoe_cpu_notifier);
- 	if (rc)
- 		goto out_free;
- 
-+	cpu_notifier_register_done();
-+
- 	/* Setup link change notification */
- 	fcoe_dev_setup();
- 
-@@ -2655,6 +2659,9 @@ out_free:
  	for_each_online_cpu(cpu) {
- 		fcoe_percpu_thread_destroy(cpu);
+ 		rc = topology_add_dev(cpu);
+ 		if (rc)
+-			return rc;
++			goto out;
  	}
-+
+-	hotcpu_notifier(topology_cpu_callback, 0);
++	__hotcpu_notifier(topology_cpu_callback, 0);
+ 
+-	return 0;
++out:
 +	cpu_notifier_register_done();
-+
- 	mutex_unlock(&fcoe_config_mutex);
- 	destroy_workqueue(fcoe_wq);
- 	return rc;
-@@ -2687,11 +2694,15 @@ static void __exit fcoe_exit(void)
- 	}
- 	rtnl_unlock();
++	return rc;
+ }
  
--	unregister_hotcpu_notifier(&fcoe_cpu_notifier);
-+	cpu_notifier_register_begin();
- 
- 	for_each_online_cpu(cpu)
- 		fcoe_percpu_thread_destroy(cpu);
- 
-+	__unregister_hotcpu_notifier(&fcoe_cpu_notifier);
-+
-+	cpu_notifier_register_done();
-+
- 	mutex_unlock(&fcoe_config_mutex);
- 
- 	/*
+ device_initcall(topology_sysfs_init);
 
