@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp08.in.ibm.com ([122.248.162.8]:49734 "EHLO
+Received: from e28smtp08.in.ibm.com ([122.248.162.8]:44383 "EHLO
 	e28smtp08.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752619AbaBNH50 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 02:57:26 -0500
+	with ESMTP id S1751145AbaBNH6g (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 02:58:36 -0500
 Received: from /spool/local
 	by e28smtp08.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 14 Feb 2014 13:27:23 +0530
+	Fri, 14 Feb 2014 13:28:33 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 12/52] s390, smp: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:21:55 +0530
-Message-ID: <20140214075155.22701.59797.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 17/52] x86, vsyscall: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:22:58 +0530
+Message-ID: <20140214075258.22701.21926.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -19,8 +19,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140214075155.FoZh1ydMpK46fHxXuO5lLUukn3Qb1MXnqlXsX1mdA-w@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140214075258.h3m2JXWGVhxtIt1xj43sb3BXSB6FUOcP8tmzu2m0jm4@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -53,50 +53,36 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the smp code in s390 by using this latter form of callback registration.
+Fix the vsyscall code in x86 by using this latter form of callback
+registration.
 
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: linux-s390@vger.kernel.org
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/s390/kernel/smp.c |   13 +++++++++----
- 1 file changed, 9 insertions(+), 4 deletions(-)
+ arch/x86/kernel/vsyscall_64.c |    6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
 
-diff --git a/arch/s390/kernel/smp.c b/arch/s390/kernel/smp.c
-index a7125b6..e10be35 100644
---- a/arch/s390/kernel/smp.c
-+++ b/arch/s390/kernel/smp.c
-@@ -1057,19 +1057,24 @@ static DEVICE_ATTR(rescan, 0200, NULL, rescan_store);
- 
- static int __init s390_smp_init(void)
+diff --git a/arch/x86/kernel/vsyscall_64.c b/arch/x86/kernel/vsyscall_64.c
+index 1f96f93..556eaf2 100644
+--- a/arch/x86/kernel/vsyscall_64.c
++++ b/arch/x86/kernel/vsyscall_64.c
+@@ -393,9 +393,13 @@ static int __init vsyscall_init(void)
  {
--	int cpu, rc;
-+	int cpu, rc = 0;
+ 	BUG_ON(VSYSCALL_ADDR(0) != __fix_to_virt(VSYSCALL_FIRST_PAGE));
  
--	hotcpu_notifier(smp_cpu_notify, 0);
- #ifdef CONFIG_HOTPLUG_CPU
- 	rc = device_create_file(cpu_subsys.dev_root, &dev_attr_rescan);
- 	if (rc)
- 		return rc;
- #endif
 +	cpu_notifier_register_begin();
- 	for_each_present_cpu(cpu) {
- 		rc = smp_add_present_cpu(cpu);
- 		if (rc)
--			return rc;
-+			goto out;
- 	}
--	return 0;
 +
-+	__hotcpu_notifier(smp_cpu_notify, 0);
+ 	on_each_cpu(cpu_vsyscall_init, NULL, 1);
+ 	/* notifier priority > KVM */
+-	hotcpu_notifier(cpu_vsyscall_notifier, 30);
++	__hotcpu_notifier(cpu_vsyscall_notifier, 30);
 +
-+out:
 +	cpu_notifier_register_done();
-+	return rc;
+ 
+ 	return 0;
  }
- subsys_initcall(s390_smp_init);
 
