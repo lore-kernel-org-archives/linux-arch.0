@@ -1,17 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp08.au.ibm.com ([202.81.31.141]:39788 "EHLO
+Received: from e23smtp08.au.ibm.com ([202.81.31.141]:39908 "EHLO
 	e23smtp08.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752428AbaBNH5C (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 02:57:02 -0500
+	with ESMTP id S1752375AbaBNH6I (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 02:58:08 -0500
 Received: from /spool/local
 	by e23smtp08.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 14 Feb 2014 17:56:41 +1000
+	Fri, 14 Feb 2014 17:57:49 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 09/52] arm,
- hw-breakpoint: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:21:09 +0530
-Message-ID: <20140214075108.22701.93980.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 14/52] powerpc, sysfs: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:22:15 +0530
+Message-ID: <20140214075215.22701.23653.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,8 +19,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.comRussell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, Will Deacon <will.deacon@arm.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140214075109.pbWdc1FmsOIT8F_NEa3RSvSqbhIUG4preUP-UCQLZhQ@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Olof Johansson <olof@lixom.net>, Wang Dongsheng <dongsheng.wang@freescale.com>, linuxppc-dev@lists.ozlabs.org, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140214075215.7d-SFeTNgbZAuG9YezTl-Z1RmNVNGjbDcYTUOpD1ZIU@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -54,50 +53,46 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the hw-breakpoint code in arm by using this latter form of callback
+Fix the sysfs code in powerpc by using this latter form of callback
 registration.
 
-Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Olof Johansson <olof@lixom.net>
+Cc: Wang Dongsheng <dongsheng.wang@freescale.com>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arm-kernel@lists.infradead.org
-Acked-by: Will Deacon <will.deacon@arm.com>
+Cc: linuxppc-dev@lists.ozlabs.org
+Acked-by: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/arm/kernel/hw_breakpoint.c |    8 +++++++-
+ arch/powerpc/kernel/sysfs.c |    8 +++++++-
  1 file changed, 7 insertions(+), 1 deletion(-)
 
-diff --git a/arch/arm/kernel/hw_breakpoint.c b/arch/arm/kernel/hw_breakpoint.c
-index 3d44660..3702de8 100644
---- a/arch/arm/kernel/hw_breakpoint.c
-+++ b/arch/arm/kernel/hw_breakpoint.c
-@@ -1072,6 +1072,8 @@ static int __init arch_hw_breakpoint_init(void)
- 	core_num_brps = get_num_brps();
- 	core_num_wrps = get_num_wrps();
+diff --git a/arch/powerpc/kernel/sysfs.c b/arch/powerpc/kernel/sysfs.c
+index 97e1dc9..d90d4b7 100644
+--- a/arch/powerpc/kernel/sysfs.c
++++ b/arch/powerpc/kernel/sysfs.c
+@@ -975,7 +975,8 @@ static int __init topology_init(void)
+ 	int cpu;
  
-+	cpu_notifier_register_begin();
+ 	register_nodes();
+-	register_cpu_notifier(&sysfs_cpu_nb);
 +
- 	/*
- 	 * We need to tread carefully here because DBGSWENABLE may be
- 	 * driven low on this core and there isn't an architected way to
-@@ -1088,6 +1090,7 @@ static int __init arch_hw_breakpoint_init(void)
- 	if (!cpumask_empty(&debug_err_mask)) {
- 		core_num_brps = 0;
- 		core_num_wrps = 0;
-+		cpu_notifier_register_done();
- 		return 0;
++	cpu_notifier_register_begin();
+ 
+ 	for_each_possible_cpu(cpu) {
+ 		struct cpu *c = &per_cpu(cpu_devices, cpu);
+@@ -999,6 +1000,11 @@ static int __init topology_init(void)
+ 		if (cpu_online(cpu))
+ 			register_cpu_online(cpu);
  	}
- 
-@@ -1107,7 +1110,10 @@ static int __init arch_hw_breakpoint_init(void)
- 			TRAP_HWBKPT, "breakpoint debug exception");
- 
- 	/* Register hotplug and PM notifiers. */
--	register_cpu_notifier(&dbg_reset_nb);
-+	__register_cpu_notifier(&dbg_reset_nb);
++
++	__register_cpu_notifier(&sysfs_cpu_nb);
 +
 +	cpu_notifier_register_done();
 +
- 	pm_init();
- 	return 0;
- }
+ #ifdef CONFIG_PPC64
+ 	sysfs_create_dscr_default();
+ #endif /* CONFIG_PPC64 */
 
