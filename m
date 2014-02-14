@@ -1,16 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp02.au.ibm.com ([202.81.31.144]:60984 "EHLO
-	e23smtp02.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752487AbaBNH5P (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 02:57:15 -0500
+Received: from e28smtp05.in.ibm.com ([122.248.162.5]:38754 "EHLO
+	e28smtp05.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751831AbaBNH5K (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 02:57:10 -0500
 Received: from /spool/local
-	by e23smtp02.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp05.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 14 Feb 2014 17:56:57 +1000
+	Fri, 14 Feb 2014 13:27:08 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 10/52] arm, kvm: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:21:23 +0530
-Message-ID: <20140214075122.22701.18462.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 04/52] CPU hotplug,
+ perf: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:19:52 +0530
+Message-ID: <20140214074946.22701.91683.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -19,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Christoffer Dall <christoffer.dall@linaro.org>, Gleb Natapov <gleb@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>Russell King <linux@arm.linux.org.uk>, kvmarm@lists.cs.columbia.edu, kvm@vger.kernel.org, linux-arm-kernel@lists.infradead.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140214075123.Ij3qeoIdkwFE1hrptOutR5yk_rSmOfILu-m1lTRla5k@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Peter Zijlstra <a.p.zijlstra@chello.nl>, Arnaldo Carvalho de Melo <acme@ghostprotocols.net>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140214074952.6FONLpuw_b7993LnQehWPFixoZC9f_cPJycUlpWcFwg@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -53,52 +54,58 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the kvm code in arm by using this latter form of callback registration.
+Fix the perf subsystem's hotplug notifier by using this latter form of
+callback registration.
 
-Cc: Christoffer Dall <christoffer.dall@linaro.org>
-Cc: Gleb Natapov <gleb@kernel.org>
-Cc: Paolo Bonzini <pbonzini@redhat.com>
-Cc: Russell King <linux@arm.linux.org.uk>
+Also provide a bare-bones version of perf_cpu_notifier() that doesn't
+invoke the notifiers for the already online CPUs. This would be useful
+for subsystems that need to perform a different set of initialization
+for the already online CPUs, or don't need the initialization altogether.
+
+Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Paul Mackerras <paulus@samba.org>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: kvmarm@lists.cs.columbia.edu
-Cc: kvm@vger.kernel.org
-Cc: linux-arm-kernel@lists.infradead.org
+Cc: Arnaldo Carvalho de Melo <acme@ghostprotocols.net>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/arm/kvm/arm.c |    7 ++++++-
- 1 file changed, 6 insertions(+), 1 deletion(-)
+ include/linux/perf_event.h |   16 +++++++++++++++-
+ 1 file changed, 15 insertions(+), 1 deletion(-)
 
-diff --git a/arch/arm/kvm/arm.c b/arch/arm/kvm/arm.c
-index 1d8248e..147b917 100644
---- a/arch/arm/kvm/arm.c
-+++ b/arch/arm/kvm/arm.c
-@@ -1050,21 +1050,26 @@ int kvm_arch_init(void *opaque)
- 		}
- 	}
+diff --git a/include/linux/perf_event.h b/include/linux/perf_event.h
+index e56b07f..3356abc 100644
+--- a/include/linux/perf_event.h
++++ b/include/linux/perf_event.h
+@@ -835,6 +835,8 @@ do {									\
+ 		{ .notifier_call = fn, .priority = CPU_PRI_PERF };	\
+ 	unsigned long cpu = smp_processor_id();				\
+ 	unsigned long flags;						\
++									\
++	cpu_notifier_register_begin();					\
+ 	fn(&fn##_nb, (unsigned long)CPU_UP_PREPARE,			\
+ 		(void *)(unsigned long)cpu);				\
+ 	local_irq_save(flags);						\
+@@ -843,9 +845,21 @@ do {									\
+ 	local_irq_restore(flags);					\
+ 	fn(&fn##_nb, (unsigned long)CPU_ONLINE,				\
+ 		(void *)(unsigned long)cpu);				\
+-	register_cpu_notifier(&fn##_nb);				\
++	__register_cpu_notifier(&fn##_nb);				\
++	cpu_notifier_register_done();					\
+ } while (0)
  
-+	cpu_notifier_register_begin();
-+
- 	err = init_hyp_mode();
- 	if (err)
- 		goto out_err;
++/*
++ * Bare-bones version of perf_cpu_notifier(), which doesn't invoke the
++ * callback for already online CPUs.
++ */
++#define __perf_cpu_notifier(fn)						\
++do {									\
++	static struct notifier_block fn##_nb =				\
++		{ .notifier_call = fn, .priority = CPU_PRI_PERF };	\
++									\
++	__register_cpu_notifier(&fn##_nb);				\
++} while (0)
  
--	err = register_cpu_notifier(&hyp_init_cpu_nb);
-+	err = __register_cpu_notifier(&hyp_init_cpu_nb);
- 	if (err) {
- 		kvm_err("Cannot register HYP init CPU notifier (%d)\n", err);
- 		goto out_err;
- 	}
- 
-+	cpu_notifier_register_done();
-+
- 	hyp_cpu_pm_init();
- 
- 	kvm_coproc_table_init();
- 	return 0;
- out_err:
-+	cpu_notifier_register_done();
- 	return err;
- }
- 
+ struct perf_pmu_events_attr {
+ 	struct device_attribute attr;
 
