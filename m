@@ -1,142 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp1040.oracle.com ([141.146.126.69]:47616 "EHLO
-	aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752756AbaBNQsz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 11:48:55 -0500
-Message-ID: <52FE490B.8000908@oracle.com>
-Date: Fri, 14 Feb 2014 11:49:15 -0500
-From: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Received: from e28smtp07.in.ibm.com ([122.248.162.7]:54746 "EHLO
+	e28smtp07.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752524AbaBNSIo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 13:08:44 -0500
+Received: from /spool/local
+	by e28smtp07.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
+	Fri, 14 Feb 2014 23:38:41 +0530
+Message-ID: <52FE5A62.90100@linux.vnet.ibm.com>
+Date: Fri, 14 Feb 2014 23:33:14 +0530
+From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v2 46/52] xen, balloon: Fix CPU hotplug callback registration
-References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com> <20140214075935.22701.71000.stgit@srivatsabhat.in.ibm.com>
-In-Reply-To: <20140214075935.22701.71000.stgit@srivatsabhat.in.ibm.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
+Subject: Re: [PATCH v2 27/52] x86, pci, amd-bus: Fix CPU hotplug callback
+ registration
+References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com> <20140214075511.22701.15084.stgit@srivatsabhat.in.ibm.com> <CAErSpo4nyoY8jCR5omywB06ka5T-qKMQURSO6c3_569o-WbOgw@mail.gmail.com>
+In-Reply-To: <CAErSpo4nyoY8jCR5omywB06ka5T-qKMQURSO6c3_569o-WbOgw@mail.gmail.com>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Cc: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, David Vrabel <david.vrabel@citrix.com>, xen-devel@lists.xenproject.org
-Message-ID: <20140214164915.0h3j_KYPHRIFliIN1g8Vl1zX0odanen_IvUbJyyJr_A@z>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: "paulus@samba.org" <paulus@samba.org>, oleg@redhat.com, Ingo Molnar <mingo@kernel.org>, Rusty Russell <rusty@rustcorp.com.au>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Tejun Heo <tj@kernel.org>, Michel Lespinasse <walken@google.com>, ego@linux.vnet.ibm.com, Russell King <linux@arm.linux.org.uk>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, "x86@kernel.org" <x86@kernel.org>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>
+Message-ID: <20140214180314.Z8y3NxCCAZtT15HlZUBJCvcBieZPx9_jIAPIPXCuunY@z>
 
-On 02/14/2014 02:59 AM, Srivatsa S. Bhat wrote:
-> Subsystems that want to register CPU hotplug callbacks, as well as perform
-> initialization for the CPUs that are already online, often do it as shown
-> below:
->
-> 	get_online_cpus();
->
-> 	for_each_online_cpu(cpu)
-> 		init_cpu(cpu);
->
-> 	register_cpu_notifier(&foobar_cpu_notifier);
->
-> 	put_online_cpus();
->
-> This is wrong, since it is prone to ABBA deadlocks involving the
-> cpu_add_remove_lock and the cpu_hotplug.lock (when running concurrently
-> with CPU hotplug operations).
->
-> Interestingly, the balloon code in xen can actually prevent double
-> initialization and hence can use the following simplified form of callback
-> registration:
->
-> 	register_cpu_notifier(&foobar_cpu_notifier);
->
-> 	get_online_cpus();
->
-> 	for_each_online_cpu(cpu)
-> 		init_cpu(cpu);
->
-> 	put_online_cpus();
->
-> A hotplug operation that occurs between registering the notifier and calling
-> get_online_cpus(), won't disrupt anything, because the code takes care to
-> perform the memory allocations only once.
->
-> So reorganize the balloon code in xen this way to fix the deadlock with
-> callback registration.
->
-> Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-> Cc: Boris Ostrovsky <boris.ostrovsky@oracle.com>
-> Cc: David Vrabel <david.vrabel@citrix.com>
-> Cc: Ingo Molnar <mingo@kernel.org>
-> Cc: xen-devel@lists.xenproject.org
-> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
-> ---
->
->   drivers/xen/balloon.c |   35 +++++++++++++++++++++++------------
->   1 file changed, 23 insertions(+), 12 deletions(-)
+On 02/14/2014 11:05 PM, Bjorn Helgaas wrote:
+> On Fri, Feb 14, 2014 at 12:55 AM, Srivatsa S. Bhat
+> <srivatsa.bhat@linux.vnet.ibm.com> wrote:
+>> Subsystems that want to register CPU hotplug callbacks, as well as perform
+>> initialization for the CPUs that are already online, often do it as shown
+>> below:
+>>
+>>         get_online_cpus();
+>>
+>>         for_each_online_cpu(cpu)
+>>                 init_cpu(cpu);
+>>
+>>         register_cpu_notifier(&foobar_cpu_notifier);
+>>
+>>         put_online_cpus();
+>>
+>> This is wrong, since it is prone to ABBA deadlocks involving the
+>> cpu_add_remove_lock and the cpu_hotplug.lock (when running concurrently
+>> with CPU hotplug operations).
+>>
+>> Instead, the correct and race-free way of performing the callback
+>> registration is:
+>>
+>>         cpu_notifier_register_begin();
+>>
+>>         for_each_online_cpu(cpu)
+>>                 init_cpu(cpu);
+>>
+>>         /* Note the use of the double underscored version of the API */
+>>         __register_cpu_notifier(&foobar_cpu_notifier);
+>>
+>>         cpu_notifier_register_done();
+>>
+>>
+>> Fix the amd-bus code in x86 by using this latter form of callback
+>> registration.
+>>
+>> Cc: Bjorn Helgaas <bhelgaas@google.com>
+>> Cc: Thomas Gleixner <tglx@linutronix.de>
+>> Cc: Ingo Molnar <mingo@kernel.org>
+>> Cc: "H. Peter Anvin" <hpa@zytor.com>
+>> Cc: x86@kernel.org
+>> Cc: linux-pci@vger.kernel.org
+>> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+> 
+> This looks fine to me.
+> 
+> Acked-by: Bjorn Helgaas <bhelgaas@google.com>
+> 
+> I think it makes sense for you to merge it along with all your other
+> similar changes.  I don't foresee any conflicts with things in my PCI
+> tree.
+> 
 
+Great! Thank you!
 
-This looks exactly like the earlier version (i.e the notifier is still 
-kept registered on allocation failure and commit message doesn't exactly 
-reflect the change).
-
--boris
-
->
-> diff --git a/drivers/xen/balloon.c b/drivers/xen/balloon.c
-> index 37d06ea..afe1a3f 100644
-> --- a/drivers/xen/balloon.c
-> +++ b/drivers/xen/balloon.c
-> @@ -592,19 +592,29 @@ static void __init balloon_add_region(unsigned long start_pfn,
->   	}
->   }
->   
-> +static int alloc_balloon_scratch_page(int cpu)
-> +{
-> +	if (per_cpu(balloon_scratch_page, cpu) != NULL)
-> +		return 0;
-> +
-> +	per_cpu(balloon_scratch_page, cpu) = alloc_page(GFP_KERNEL);
-> +	if (per_cpu(balloon_scratch_page, cpu) == NULL) {
-> +		pr_warn("Failed to allocate balloon_scratch_page for cpu %d\n", cpu);
-> +		return -ENOMEM;
-> +	}
-> +
-> +	return 0;
-> +}
-> +
-> +
->   static int balloon_cpu_notify(struct notifier_block *self,
->   				    unsigned long action, void *hcpu)
->   {
->   	int cpu = (long)hcpu;
->   	switch (action) {
->   	case CPU_UP_PREPARE:
-> -		if (per_cpu(balloon_scratch_page, cpu) != NULL)
-> -			break;
-> -		per_cpu(balloon_scratch_page, cpu) = alloc_page(GFP_KERNEL);
-> -		if (per_cpu(balloon_scratch_page, cpu) == NULL) {
-> -			pr_warn("Failed to allocate balloon_scratch_page for cpu %d\n", cpu);
-> +		if (alloc_balloon_scratch_page(cpu))
->   			return NOTIFY_BAD;
-> -		}
->   		break;
->   	default:
->   		break;
-> @@ -624,15 +634,16 @@ static int __init balloon_init(void)
->   		return -ENODEV;
->   
->   	if (!xen_feature(XENFEAT_auto_translated_physmap)) {
-> -		for_each_online_cpu(cpu)
-> -		{
-> -			per_cpu(balloon_scratch_page, cpu) = alloc_page(GFP_KERNEL);
-> -			if (per_cpu(balloon_scratch_page, cpu) == NULL) {
-> -				pr_warn("Failed to allocate balloon_scratch_page for cpu %d\n", cpu);
-> +		register_cpu_notifier(&balloon_cpu_notifier);
-> +
-> +		get_online_cpus();
-> +		for_each_online_cpu(cpu) {
-> +			if (alloc_balloon_scratch_page(cpu)) {
-> +				put_online_cpus();
->   				return -ENOMEM;
->   			}
->   		}
-> -		register_cpu_notifier(&balloon_cpu_notifier);
-> +		put_online_cpus();
->   	}
->   
->   	pr_info("Initialising balloon driver\n");
->
+Regards,
+Srivatsa S. Bhat
 
