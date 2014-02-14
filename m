@@ -1,17 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp07.in.ibm.com ([122.248.162.7]:51027 "EHLO
-	e28smtp07.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752539AbaBNH5Q (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 02:57:16 -0500
+Received: from e23smtp05.au.ibm.com ([202.81.31.147]:44701 "EHLO
+	e23smtp05.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751742AbaBNH6W (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 02:58:22 -0500
 Received: from /spool/local
-	by e28smtp07.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp05.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 14 Feb 2014 13:27:14 +0530
+	Fri, 14 Feb 2014 17:58:02 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 11/52] s390,
- cacheinfo: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:21:38 +0530
-Message-ID: <20140214075137.22701.1257.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 15/52] x86, msr: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:22:30 +0530
+Message-ID: <20140214075229.22701.93673.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,8 +19,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140214075138.fGDQ-vYBCc59l4E_93Gh3Hjm9cyMStq3ZXS3gj6KyIM@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140214075230.nw5cFR5uJe3HjhUIWS3IRj7MJTuc1ww3vHrl1d7r4Ew@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -54,35 +53,66 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the cacheinfo code in s390 by using this latter form of callback
-registration.
+Fix the msr code in x86 by using this latter form of callback registration.
 
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: linux-s390@vger.kernel.org
+Cc: x86@kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/s390/kernel/cache.c |    5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+ arch/x86/kernel/msr.c |   16 +++++++++-------
+ 1 file changed, 9 insertions(+), 7 deletions(-)
 
-diff --git a/arch/s390/kernel/cache.c b/arch/s390/kernel/cache.c
-index 3a414c0..c0b03c2 100644
---- a/arch/s390/kernel/cache.c
-+++ b/arch/s390/kernel/cache.c
-@@ -378,9 +378,12 @@ static int __init cache_init(void)
- 	if (!test_facility(34))
- 		return 0;
- 	cache_build_info();
+diff --git a/arch/x86/kernel/msr.c b/arch/x86/kernel/msr.c
+index 05266b5..c9603ac 100644
+--- a/arch/x86/kernel/msr.c
++++ b/arch/x86/kernel/msr.c
+@@ -259,14 +259,15 @@ static int __init msr_init(void)
+ 		goto out_chrdev;
+ 	}
+ 	msr_class->devnode = msr_devnode;
+-	get_online_cpus();
++
++	cpu_notifier_register_begin();
+ 	for_each_online_cpu(i) {
+ 		err = msr_device_create(i);
+ 		if (err != 0)
+ 			goto out_class;
+ 	}
+-	register_hotcpu_notifier(&msr_class_cpu_notifier);
+-	put_online_cpus();
++	__register_hotcpu_notifier(&msr_class_cpu_notifier);
++	cpu_notifier_register_done();
+ 
+ 	err = 0;
+ 	goto out;
+@@ -275,7 +276,7 @@ out_class:
+ 	i = 0;
+ 	for_each_online_cpu(i)
+ 		msr_device_destroy(i);
+-	put_online_cpus();
++	cpu_notifier_register_done();
+ 	class_destroy(msr_class);
+ out_chrdev:
+ 	__unregister_chrdev(MSR_MAJOR, 0, NR_CPUS, "cpu/msr");
+@@ -286,13 +287,14 @@ out:
+ static void __exit msr_exit(void)
+ {
+ 	int cpu = 0;
+-	get_online_cpus();
 +
 +	cpu_notifier_register_begin();
  	for_each_online_cpu(cpu)
- 		cache_add_cpu(cpu);
--	hotcpu_notifier(cache_hotplug, 0);
-+	__hotcpu_notifier(cache_hotplug, 0);
+ 		msr_device_destroy(cpu);
+ 	class_destroy(msr_class);
+ 	__unregister_chrdev(MSR_MAJOR, 0, NR_CPUS, "cpu/msr");
+-	unregister_hotcpu_notifier(&msr_class_cpu_notifier);
+-	put_online_cpus();
++	__unregister_hotcpu_notifier(&msr_class_cpu_notifier);
 +	cpu_notifier_register_done();
- 	return 0;
  }
- device_initcall(cache_init);
+ 
+ module_init(msr_init);
 
