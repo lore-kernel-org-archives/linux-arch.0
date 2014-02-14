@@ -1,14 +1,14 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 05/52] ia64, salinfo: Fix hotplug callback registration
-Date: Fri, 14 Feb 2014 13:20:20 +0530
-Message-ID: <20140214075019.22701.79255.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 06/52] ia64, palinfo: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:20:30 +0530
+Message-ID: <20140214075030.22701.23304.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-ia64-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
-Sender: linux-ia64-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: paulus@samba.org, oleg@redhat.com, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
 Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Ingo Molnar <mingo@kernel.org>, linux-ia64@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
@@ -44,7 +44,7 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the salinfo code in ia64 by using this latter form of callback
+Fix the palinfo code in ia64 by using this latter form of callback
 registration.
 
 Cc: Tony Luck <tony.luck@intel.com>
@@ -54,31 +54,29 @@ Cc: linux-ia64@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/ia64/kernel/salinfo.c |    6 +++++-
+ arch/ia64/kernel/palinfo.c |    6 +++++-
  1 file changed, 5 insertions(+), 1 deletion(-)
 
-diff --git a/arch/ia64/kernel/salinfo.c b/arch/ia64/kernel/salinfo.c
-index 960a396..ee9719e 100644
---- a/arch/ia64/kernel/salinfo.c
-+++ b/arch/ia64/kernel/salinfo.c
-@@ -635,6 +635,8 @@ salinfo_init(void)
- 					   (void *)salinfo_entries[i].feature);
- 	}
+diff --git a/arch/ia64/kernel/palinfo.c b/arch/ia64/kernel/palinfo.c
+index ab33328..c39c3cd 100644
+--- a/arch/ia64/kernel/palinfo.c
++++ b/arch/ia64/kernel/palinfo.c
+@@ -996,13 +996,17 @@ palinfo_init(void)
+ 	if (!palinfo_dir)
+ 		return -ENOMEM;
  
 +	cpu_notifier_register_begin();
 +
- 	for (i = 0; i < ARRAY_SIZE(salinfo_log_name); i++) {
- 		data = salinfo_data + i;
- 		data->type = i;
-@@ -669,7 +671,9 @@ salinfo_init(void)
- 	salinfo_timer.function = &salinfo_timeout;
- 	add_timer(&salinfo_timer);
+ 	/* Create palinfo dirs in /proc for all online cpus */
+ 	for_each_online_cpu(i) {
+ 		create_palinfo_proc_entries(i);
+ 	}
  
--	register_hotcpu_notifier(&salinfo_cpu_notifier);
-+	__register_hotcpu_notifier(&salinfo_cpu_notifier);
+ 	/* Register for future delivery via notify registration */
+-	register_hotcpu_notifier(&palinfo_cpu_notifier);
++	__register_hotcpu_notifier(&palinfo_cpu_notifier);
 +
 +	cpu_notifier_register_done();
  
  	return 0;
  }
-
