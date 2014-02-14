@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp07.in.ibm.com ([122.248.162.7]:49122 "EHLO
-	e28smtp07.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752373AbaBNIDh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 03:03:37 -0500
+Received: from e23smtp04.au.ibm.com ([202.81.31.146]:42797 "EHLO
+	e23smtp04.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752001AbaBNIGR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 03:06:17 -0500
 Received: from /spool/local
-	by e28smtp07.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp04.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 14 Feb 2014 13:33:35 +0530
+	Fri, 14 Feb 2014 18:06:16 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 39/52] clocksource,
- dummy-timer: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:28:05 +0530
-Message-ID: <20140214075804.22701.19937.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 51/52] net/core/flow.c: Fix CPU hotplug callback
+ registration
+Date: Fri, 14 Feb 2014 13:30:43 +0530
+Message-ID: <20140214080042.22701.50086.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Daniel Lezcano <daniel.lezcano@linaro.org>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140214075805.w85mYFoXfXq7yWurn9-CrOwbx7PWK_qRnsxoniEP-4s@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Li RongQing <roy.qing.li@gmail.com>, Sasha Levin <sasha.levin@oracle.com>, Chris Metcalf <cmetcalf@tilera.com>, netdev@vger.kernel.org, "David S. Miller" <davem@davemloft.net>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140214080043.JymvqGqr8MNl1JodNl_l02HoCKJ1aUTAidoeJsMwkiA@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -54,43 +54,53 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the clocksource dummy-timer code by using this latter form of callback
+Fix the code in net/core/flow.c by using this latter form of callback
 registration.
 
-Cc: Daniel Lezcano <daniel.lezcano@linaro.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Li RongQing <roy.qing.li@gmail.com>
+Cc: Sasha Levin <sasha.levin@oracle.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Chris Metcalf <cmetcalf@tilera.com>
 Cc: Ingo Molnar <mingo@kernel.org>
+Cc: netdev@vger.kernel.org
+Signed-off-by: David S. Miller <davem@davemloft.net>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- drivers/clocksource/dummy_timer.c |   11 ++++++++---
- 1 file changed, 8 insertions(+), 3 deletions(-)
+ net/core/flow.c |    8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
 
-diff --git a/drivers/clocksource/dummy_timer.c b/drivers/clocksource/dummy_timer.c
-index b3eb582..ad35725 100644
---- a/drivers/clocksource/dummy_timer.c
-+++ b/drivers/clocksource/dummy_timer.c
-@@ -56,14 +56,19 @@ static struct notifier_block dummy_timer_cpu_nb = {
+diff --git a/net/core/flow.c b/net/core/flow.c
+index dfa602c..9a2151f 100644
+--- a/net/core/flow.c
++++ b/net/core/flow.c
+@@ -456,6 +456,8 @@ static int __init flow_cache_init(struct flow_cache *fc)
+ 	if (!fc->percpu)
+ 		return -ENOMEM;
  
- static int __init dummy_timer_register(void)
- {
--	int err = register_cpu_notifier(&dummy_timer_cpu_nb);
-+	int err = 0;
-+
 +	cpu_notifier_register_begin();
-+	err = __register_cpu_notifier(&dummy_timer_cpu_nb);
- 	if (err)
--		return err;
-+		goto out;
- 
- 	/* We won't get a call on the boot CPU, so register immediately */
- 	if (num_possible_cpus() > 1)
- 		dummy_timer_setup();
- 
--	return 0;
-+out:
++
+ 	for_each_online_cpu(i) {
+ 		if (flow_cache_cpu_prepare(fc, i))
+ 			goto err;
+@@ -463,7 +465,9 @@ static int __init flow_cache_init(struct flow_cache *fc)
+ 	fc->hotcpu_notifier = (struct notifier_block){
+ 		.notifier_call = flow_cache_cpu,
+ 	};
+-	register_hotcpu_notifier(&fc->hotcpu_notifier);
++	__register_hotcpu_notifier(&fc->hotcpu_notifier);
++
 +	cpu_notifier_register_done();
-+	return err;
- }
- early_initcall(dummy_timer_register);
+ 
+ 	setup_timer(&fc->rnd_timer, flow_cache_new_hashrnd,
+ 		    (unsigned long) fc);
+@@ -479,6 +483,8 @@ err:
+ 		fcp->hash_table = NULL;
+ 	}
+ 
++	cpu_notifier_register_done();
++
+ 	free_percpu(fc->percpu);
+ 	fc->percpu = NULL;
+ 
 
