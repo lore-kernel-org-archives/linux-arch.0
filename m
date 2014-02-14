@@ -1,8 +1,8 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 04/52] CPU hotplug,
- perf: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:19:52 +0530
-Message-ID: <20140214074946.22701.91683.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 11/52] s390,
+ cacheinfo: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:21:38 +0530
+Message-ID: <20140214075137.22701.1257.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -10,8 +10,8 @@ Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: oleg@redhat.com, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul Mackerras <paulus@samba.org>, Ingo Molnar <mingo@kernel.org>, Arnaldo Carvalho de Melo <acme@ghostprotocols.net>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+To: paulus@samba.org, oleg@redhat.com, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Ingo Molnar <mingo@kernel.org>, linux-s390@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
@@ -45,57 +45,34 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the perf subsystem's hotplug notifier by using this latter form of
-callback registration.
+Fix the cacheinfo code in s390 by using this latter form of callback
+registration.
 
-Also provide a bare-bones version of perf_cpu_notifier() that doesn't
-invoke the notifiers for the already online CPUs. This would be useful
-for subsystems that need to perform a different set of initialization
-for the already online CPUs, or don't need the initialization altogether.
-
-Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Paul Mackerras <paulus@samba.org>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Arnaldo Carvalho de Melo <acme@ghostprotocols.net>
+Cc: linux-s390@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- include/linux/perf_event.h |   16 +++++++++++++++-
- 1 file changed, 15 insertions(+), 1 deletion(-)
+ arch/s390/kernel/cache.c |    5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
-diff --git a/include/linux/perf_event.h b/include/linux/perf_event.h
-index e56b07f..3356abc 100644
---- a/include/linux/perf_event.h
-+++ b/include/linux/perf_event.h
-@@ -835,6 +835,8 @@ do {									\
- 		{ .notifier_call = fn, .priority = CPU_PRI_PERF };	\
- 	unsigned long cpu = smp_processor_id();				\
- 	unsigned long flags;						\
-+									\
-+	cpu_notifier_register_begin();					\
- 	fn(&fn##_nb, (unsigned long)CPU_UP_PREPARE,			\
- 		(void *)(unsigned long)cpu);				\
- 	local_irq_save(flags);						\
-@@ -843,9 +845,21 @@ do {									\
- 	local_irq_restore(flags);					\
- 	fn(&fn##_nb, (unsigned long)CPU_ONLINE,				\
- 		(void *)(unsigned long)cpu);				\
--	register_cpu_notifier(&fn##_nb);				\
-+	__register_cpu_notifier(&fn##_nb);				\
-+	cpu_notifier_register_done();					\
- } while (0)
- 
-+/*
-+ * Bare-bones version of perf_cpu_notifier(), which doesn't invoke the
-+ * callback for already online CPUs.
-+ */
-+#define __perf_cpu_notifier(fn)						\
-+do {									\
-+	static struct notifier_block fn##_nb =				\
-+		{ .notifier_call = fn, .priority = CPU_PRI_PERF };	\
-+									\
-+	__register_cpu_notifier(&fn##_nb);				\
-+} while (0)
- 
- struct perf_pmu_events_attr {
- 	struct device_attribute attr;
+diff --git a/arch/s390/kernel/cache.c b/arch/s390/kernel/cache.c
+index 3a414c0..c0b03c2 100644
+--- a/arch/s390/kernel/cache.c
++++ b/arch/s390/kernel/cache.c
+@@ -378,9 +378,12 @@ static int __init cache_init(void)
+ 	if (!test_facility(34))
+ 		return 0;
+ 	cache_build_info();
++
++	cpu_notifier_register_begin();
+ 	for_each_online_cpu(cpu)
+ 		cache_add_cpu(cpu);
+-	hotcpu_notifier(cache_hotplug, 0);
++	__hotcpu_notifier(cache_hotplug, 0);
++	cpu_notifier_register_done();
+ 	return 0;
+ }
+ device_initcall(cache_init);
