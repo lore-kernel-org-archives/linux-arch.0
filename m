@@ -1,106 +1,107 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:45547 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751069AbaBNFIb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 14 Feb 2014 00:08:31 -0500
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-From: Torvald Riegel <triegel@redhat.com>
-In-Reply-To: <20140212091907.GA3545@laptop.programming.kicks-ass.net>
-References: <1391730288.23421.4102.camel@triegel.csb>
-	 <20140207042051.GL4250@linux.vnet.ibm.com>
-	 <20140207074405.GM5002@laptop.programming.kicks-ass.net>
-	 <20140207165028.GO4250@linux.vnet.ibm.com>
-	 <20140207165548.GR5976@mudshark.cambridge.arm.com>
-	 <20140207180216.GP4250@linux.vnet.ibm.com>
-	 <1391992071.18779.99.camel@triegel.csb>
-	 <CA+55aFwTwCPMpYTL_vCgNNP0hE8s2sgB0iw-79=xoj99V0JUNA@mail.gmail.com>
-	 <20140211155941.GU4250@linux.vnet.ibm.com>
-	 <1392185194.18779.2239.camel@triegel.csb>
-	 <20140212091907.GA3545@laptop.programming.kicks-ass.net>
-Content-Type: text/plain; charset="UTF-8"
-Date: Thu, 13 Feb 2014 21:07:55 -0800
-Message-ID: <1392354475.18779.3849.camel@triegel.csb>
-Mime-Version: 1.0
+Received: from e28smtp05.in.ibm.com ([122.248.162.5]:37512 "EHLO
+	e28smtp05.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751740AbaBNHyp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 02:54:45 -0500
+Received: from /spool/local
+	by e28smtp05.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
+	Fri, 14 Feb 2014 13:24:42 +0530
+From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Subject: [PATCH v2 01/52] CPU hotplug: Add lockdep annotations to
+ get/put_online_cpus()
+Date: Fri, 14 Feb 2014 13:19:14 +0530
+Message-ID: <20140214074913.22701.44704.stgit@srivatsabhat.in.ibm.com>
+In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
+References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: paulmck@linux.vnet.ibm.com, Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140214050755.uQlGEhaOEWxmZbqhvejp4jIMu_Qx0CByrpMPP82Vdg0@z>
+To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com"Gautham R. Shenoy" <ego@linux.vnet.ibm.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140214074914.DR7nkvd9N6I0av39VUs9nyBCg8DdpuBoJcQPfNW43kI@z>
 
-On Wed, 2014-02-12 at 10:19 +0100, Peter Zijlstra wrote:
-> > I don't know the specifics of your example, but from how I understand
-> > it, I don't see a problem if the compiler can prove that the store will
-> > always happen.
-> > 
-> > To be more specific, if the compiler can prove that the store will
-> > happen anyway, and the region of code can be assumed to always run
-> > atomically (e.g., there's no loop or such in there), then it is known
-> > that we have one atomic region of code that will always perform the
-> > store, so we might as well do the stuff in the region in some order.
-> > 
-> > Now, if any of the memory accesses are atomic, then the whole region of
-> > code containing those accesses is often not atomic because other threads
-> > might observe intermediate results in a data-race-free way.
-> > 
-> > (I know that this isn't a very precise formulation, but I hope it brings
-> > my line of reasoning across.)
-> 
-> So given something like:
-> 
-> 	if (x)
-> 		y = 3;
-> 
-> assuming both x and y are atomic (so don't gimme crap for now knowing
-> the C11 atomic incantations); and you can prove x is always true; you
-> don't see a problem with not emitting the conditional?
+From: Gautham R. Shenoy <ego@linux.vnet.ibm.com>
 
-That depends on what your goal is.  It would be correct as far as the
-standard is specified; this makes sense if all you want is indeed a
-program that does what the abstract machine might do, and produces the
-same output / side effects.
+Add lockdep annotations for get/put_online_cpus() and
+cpu_hotplug_begin()/cpu_hotplug_end().
 
-If you're trying to preserve the branch in the code emitted / executed
-by the implementation, then it would not be correct.  But those branches
-aren't specified as being part of the observable side effects.  In the
-common case, this makes sense because it enables optimizations that are
-useful; this line of reasoning also allows the compiler to merge some
-atomic accesses in the way that Linus would like to see it.
+Cc: Ingo Molnar <mingo@kernel.org>
+Reviewed-by: Oleg Nesterov <oleg@redhat.com>
+Signed-off-by: Gautham R. Shenoy <ego@linux.vnet.ibm.com>
+Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+---
 
-> Avoiding the conditional changes the result; see that control dependency
-> email from earlier.
+ kernel/cpu.c |   17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
 
-It does not regarding how the standard defines "result".
-
-> In the above example the load of X and the store to
-> Y are strictly ordered, due to control dependencies. Not emitting the
-> condition and maybe not even emitting the load completely wrecks this.
-
-I think you're trying to solve this backwards.  You are looking at this
-with an implicit wishlist of what the compiler should do (or how you
-want to use the hardware), but this is not a viable specification that
-one can write a compiler against.
-
-We do need clear rules for what the compiler is allowed to do or not
-(e.g., a memory model that models multi-threaded executions).  Otherwise
-it's all hand-waving, and we're getting nowhere.  Thus, the way to
-approach this is to propose a feature or change to the standard, make
-sure that this is consistent and has no unintended side effects for
-other aspects of compilation or other code, and then ask the compiler to
-implement it.  IOW, we need a patch for where this all starts: in the
-rules and requirements for compilation.
-
-Paul and I are at the C++ meeting currently, and we had sessions in
-which the concurrency study group talked about memory model issues like
-dependency tracking and memory_order_consume.  Paul shared uses of
-atomics (or likewise) in the kernel, and we discussed how the memory
-model currently handles various cases and why, how one could express
-other requirements consistently, and what is actually implementable in
-practice.  I can't speak for Paul, but I thought those discussions were
-productive.
-
-> Its therefore an invalid optimization to take out the conditional or
-> speculate the store, since it takes out the dependency.
-
-
+diff --git a/kernel/cpu.c b/kernel/cpu.c
+index deff2e6..33caf5e 100644
+--- a/kernel/cpu.c
++++ b/kernel/cpu.c
+@@ -19,6 +19,7 @@
+ #include <linux/mutex.h>
+ #include <linux/gfp.h>
+ #include <linux/suspend.h>
++#include <linux/lockdep.h>
+ 
+ #include "smpboot.h"
+ 
+@@ -57,17 +58,30 @@ static struct {
+ 	 * an ongoing cpu hotplug operation.
+ 	 */
+ 	int refcount;
++
++#ifdef CONFIG_DEBUG_LOCK_ALLOC
++	struct lockdep_map dep_map;
++#endif
+ } cpu_hotplug = {
+ 	.active_writer = NULL,
+ 	.lock = __MUTEX_INITIALIZER(cpu_hotplug.lock),
+ 	.refcount = 0,
++#ifdef CONFIG_DEBUG_LOCK_ALLOC
++	.dep_map = {.name = "cpu_hotplug.lock" },
++#endif
+ };
+ 
++/* Lockdep annotations for get/put_online_cpus() and cpu_hotplug_begin/end() */
++#define cpuhp_lock_acquire_read() lock_map_acquire_read(&cpu_hotplug.dep_map)
++#define cpuhp_lock_acquire()      lock_map_acquire(&cpu_hotplug.dep_map)
++#define cpuhp_lock_release()      lock_map_release(&cpu_hotplug.dep_map)
++
+ void get_online_cpus(void)
+ {
+ 	might_sleep();
+ 	if (cpu_hotplug.active_writer == current)
+ 		return;
++	cpuhp_lock_acquire_read();
+ 	mutex_lock(&cpu_hotplug.lock);
+ 	cpu_hotplug.refcount++;
+ 	mutex_unlock(&cpu_hotplug.lock);
+@@ -87,6 +101,7 @@ void put_online_cpus(void)
+ 	if (!--cpu_hotplug.refcount && unlikely(cpu_hotplug.active_writer))
+ 		wake_up_process(cpu_hotplug.active_writer);
+ 	mutex_unlock(&cpu_hotplug.lock);
++	cpuhp_lock_release();
+ 
+ }
+ EXPORT_SYMBOL_GPL(put_online_cpus);
+@@ -117,6 +132,7 @@ void cpu_hotplug_begin(void)
+ {
+ 	cpu_hotplug.active_writer = current;
+ 
++	cpuhp_lock_acquire();
+ 	for (;;) {
+ 		mutex_lock(&cpu_hotplug.lock);
+ 		if (likely(!cpu_hotplug.refcount))
+@@ -131,6 +147,7 @@ void cpu_hotplug_done(void)
+ {
+ 	cpu_hotplug.active_writer = NULL;
+ 	mutex_unlock(&cpu_hotplug.lock);
++	cpuhp_lock_release();
+ }
+ 
+ /*
 
