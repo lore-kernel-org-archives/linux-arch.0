@@ -1,8 +1,8 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 31/52] arm64,
- debug-monitors: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:26:13 +0530
-Message-ID: <20140214075612.22701.36819.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 32/52] powercap,
+ intel-rapl: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:26:27 +0530
+Message-ID: <20140214075626.22701.37887.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -11,7 +11,7 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: paulus@samba.org, oleg@redhat.com, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Catalin Marinas <catalin.marinas@arm.com>, Russell King <rmk+kernel@arm.linux.org.uk>, Ingo Molnar <mingo@kernel.org>, linux-arm-kernel@lists.infradead.org, Will Deacon <will.deacon@arm.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com"Rafael J. Wysocki" <rjw@rjwysocki.net>, Jacob Pan <jacob.jun.pan@linux.intel.com>, Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>, Ingo Molnar <mingo@kernel.org>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
@@ -45,39 +45,59 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the debug-monitors code in arm64 by using this latter form of callback
-registration.
+Fix the intel-rapl code in the powercap driver by using this latter form
+of callback registration. But retain the calls to get/put_online_cpus(),
+since they also protect the function rapl_cleanup_data(). By nesting
+get/put_online_cpus() *inside* cpu_notifier_register_begin/done(), we avoid
+the ABBA deadlock possibility mentioned above.
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Russell King <rmk+kernel@arm.linux.org.uk>
+Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+Cc: Jacob Pan <jacob.jun.pan@linux.intel.com>
+Cc: Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arm-kernel@lists.infradead.org
-Acked-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/arm64/kernel/debug-monitors.c |    6 +++++-
- 1 file changed, 5 insertions(+), 1 deletion(-)
+ drivers/powercap/intel_rapl.c |   10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm64/kernel/debug-monitors.c b/arch/arm64/kernel/debug-monitors.c
-index 636ba8b..c985531 100644
---- a/arch/arm64/kernel/debug-monitors.c
-+++ b/arch/arm64/kernel/debug-monitors.c
-@@ -155,12 +155,16 @@ static struct notifier_block os_lock_nb = {
+diff --git a/drivers/powercap/intel_rapl.c b/drivers/powercap/intel_rapl.c
+index 3c67683..d6c74c1 100644
+--- a/drivers/powercap/intel_rapl.c
++++ b/drivers/powercap/intel_rapl.c
+@@ -1369,6 +1369,9 @@ static int __init rapl_init(void)
  
- static int debug_monitors_init(void)
- {
+ 		return -ENODEV;
+ 	}
++
 +	cpu_notifier_register_begin();
 +
- 	/* Clear the OS lock. */
- 	smp_call_function(clear_os_lock, NULL, 1);
- 	clear_os_lock(NULL);
- 
- 	/* Register hotplug handler. */
--	register_cpu_notifier(&os_lock_nb);
-+	__register_cpu_notifier(&os_lock_nb);
-+
+ 	/* prevent CPU hotplug during detection */
+ 	get_online_cpus();
+ 	ret = rapl_detect_topology();
+@@ -1380,20 +1383,23 @@ static int __init rapl_init(void)
+ 		ret = -ENODEV;
+ 		goto done;
+ 	}
+-	register_hotcpu_notifier(&rapl_cpu_notifier);
++	__register_hotcpu_notifier(&rapl_cpu_notifier);
+ done:
+ 	put_online_cpus();
 +	cpu_notifier_register_done();
- 	return 0;
+ 
+ 	return ret;
  }
- postcore_initcall(debug_monitors_init);
+ 
+ static void __exit rapl_exit(void)
+ {
++	cpu_notifier_register_begin();
+ 	get_online_cpus();
+-	unregister_hotcpu_notifier(&rapl_cpu_notifier);
++	__unregister_hotcpu_notifier(&rapl_cpu_notifier);
+ 	rapl_unregister_powercap();
+ 	rapl_cleanup_data();
+ 	put_online_cpus();
++	cpu_notifier_register_done();
+ }
+ 
+ module_init(rapl_init);
