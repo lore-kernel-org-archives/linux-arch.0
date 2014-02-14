@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp08.in.ibm.com ([122.248.162.8]:44570 "EHLO
-	e28smtp08.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751998AbaBNH7T (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 02:59:19 -0500
+Received: from e28smtp07.in.ibm.com ([122.248.162.7]:51027 "EHLO
+	e28smtp07.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752539AbaBNH5Q (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Feb 2014 02:57:16 -0500
 Received: from /spool/local
-	by e28smtp08.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp07.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 14 Feb 2014 13:29:17 +0530
+	Fri, 14 Feb 2014 13:27:14 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v2 20/52] x86,
- therm_throt.c: Fix CPU hotplug callback registration
-Date: Fri, 14 Feb 2014 13:23:49 +0530
-Message-ID: <20140214075348.22701.14458.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v2 11/52] s390,
+ cacheinfo: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 13:21:38 +0530
+Message-ID: <20140214075137.22701.1257.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Tony Luck <tony.luck@intel.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-edac@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140214075349.EVA2GYiJK1U1wHeXmGBiW8Ut63fBrxzynt4Bij-YIvM@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140214075138.fGDQ-vYBCc59l4E_93Gh3Hjm9cyMStq3ZXS3gj6KyIM@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -54,43 +54,35 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the thermal throttle code in x86 by using this latter form of callback
+Fix the cacheinfo code in s390 by using this latter form of callback
 registration.
 
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
-Cc: linux-edac@vger.kernel.org
+Cc: linux-s390@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/x86/kernel/cpu/mcheck/therm_throt.c |    5 ++++-
+ arch/s390/kernel/cache.c |    5 ++++-
  1 file changed, 4 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/kernel/cpu/mcheck/therm_throt.c b/arch/x86/kernel/cpu/mcheck/therm_throt.c
-index 3eec7de..e05dfa3 100644
---- a/arch/x86/kernel/cpu/mcheck/therm_throt.c
-+++ b/arch/x86/kernel/cpu/mcheck/therm_throt.c
-@@ -319,7 +319,7 @@ static __init int thermal_throttle_init_device(void)
- 	if (!atomic_read(&therm_throt_en))
+diff --git a/arch/s390/kernel/cache.c b/arch/s390/kernel/cache.c
+index 3a414c0..c0b03c2 100644
+--- a/arch/s390/kernel/cache.c
++++ b/arch/s390/kernel/cache.c
+@@ -378,9 +378,12 @@ static int __init cache_init(void)
+ 	if (!test_facility(34))
  		return 0;
- 
--	register_hotcpu_notifier(&thermal_throttle_cpu_notifier);
-+	cpu_notifier_register_begin();
- 
- #ifdef CONFIG_HOTPLUG_CPU
- 	mutex_lock(&therm_cpu_lock);
-@@ -333,6 +333,9 @@ static __init int thermal_throttle_init_device(void)
- 	mutex_unlock(&therm_cpu_lock);
- #endif
- 
-+	__register_hotcpu_notifier(&thermal_throttle_cpu_notifier);
-+	cpu_notifier_register_done();
+ 	cache_build_info();
 +
++	cpu_notifier_register_begin();
+ 	for_each_online_cpu(cpu)
+ 		cache_add_cpu(cpu);
+-	hotcpu_notifier(cache_hotplug, 0);
++	__hotcpu_notifier(cache_hotplug, 0);
++	cpu_notifier_register_done();
  	return 0;
  }
- device_initcall(thermal_throttle_init_device);
+ device_initcall(cache_init);
 
