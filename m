@@ -1,25 +1,94 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Fri, 14 Feb 2014 10:50:11 +0100
-Message-ID: <20140214095011.GG27965@twins.programming.kicks-ass.net>
-References: <20140207074405.GM5002@laptop.programming.kicks-ass.net> <20140207165028.GO4250@linux.vnet.ibm.com> <20140207165548.GR5976@mudshark.cambridge.arm.com> <20140207180216.GP4250@linux.vnet.ibm.com> <1391992071.18779.99.camel@triegel.csb> <CA+55aFwTwCPMpYTL_vCgNNP0hE8s2sgB0iw-79=xoj99V0JUNA@mail.gmail.com> <20140211155941.GU4250@linux.vnet.ibm.com> <1392185194.18779.2239.camel@triegel.csb> <20140212091907.GA3545@laptop.programming.kicks-ass.net> <1392354475.18779.3849.camel@triegel.csb>
+From: Paolo Bonzini <pbonzini@redhat.com>
+Subject: Re: [PATCH v2 29/52] x86, kvm: Fix CPU hotplug callback registration
+Date: Fri, 14 Feb 2014 11:29:39 +0100
+Message-ID: <52FDF013.2030101@redhat.com>
+References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com> <20140214075542.22701.24501.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <gcc-return-182019-gcc=m.gmane.org@gcc.gnu.org>
-List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
-List-Archive: <http://gcc.gnu.org/ml/gcc/>
-List-Post: <mailto:gcc@gcc.gnu.org>
-List-Help: <http://gcc.gnu.org/ml/>
-Sender: gcc-owner@gcc.gnu.org
-Content-Disposition: inline
-In-Reply-To: <1392354475.18779.3849.camel@triegel.csb>
-To: Torvald Riegel <triegel@redhat.com>
-Cc: paulmck@linux.vnet.ibm.com, Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:49090 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751242AbaBNKaq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 14 Feb 2014 05:30:46 -0500
+In-Reply-To: <20140214075542.22701.24501.stgit@srivatsabhat.in.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Gleb Natapov <gleb@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, kvm@vger.kernel.org
 
-On Thu, Feb 13, 2014 at 09:07:55PM -0800, Torvald Riegel wrote:
-> That depends on what your goal is.
+Il 14/02/2014 08:55, Srivatsa S. Bhat ha scritto:
+> Subsystems that want to register CPU hotplug callbacks, as well as perform
+> initialization for the CPUs that are already online, often do it as shown
+> below:
+>
+> 	get_online_cpus();
+>
+> 	for_each_online_cpu(cpu)
+> 		init_cpu(cpu);
+>
+> 	register_cpu_notifier(&foobar_cpu_notifier);
+>
+> 	put_online_cpus();
+>
+> This is wrong, since it is prone to ABBA deadlocks involving the
+> cpu_add_remove_lock and the cpu_hotplug.lock (when running concurrently
+> with CPU hotplug operations).
+>
+> Instead, the correct and race-free way of performing the callback
+> registration is:
+>
+> 	cpu_notifier_register_begin();
+>
+> 	for_each_online_cpu(cpu)
+> 		init_cpu(cpu);
+>
+> 	/* Note the use of the double underscored version of the API */
+> 	__register_cpu_notifier(&foobar_cpu_notifier);
+>
+> 	cpu_notifier_register_done();
+>
+>
+> Fix the kvm code in x86 by using this latter form of callback registration.
+>
+> Cc: Gleb Natapov <gleb@kernel.org>
+> Cc: Paolo Bonzini <pbonzini@redhat.com>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Ingo Molnar <mingo@kernel.org>
+> Cc: "H. Peter Anvin" <hpa@zytor.com>
+> Cc: x86@kernel.org
+> Cc: kvm@vger.kernel.org
+> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+> ---
+>
+>  arch/x86/kvm/x86.c |    7 ++++++-
+>  1 file changed, 6 insertions(+), 1 deletion(-)
+>
+> diff --git a/arch/x86/kvm/x86.c b/arch/x86/kvm/x86.c
+> index 39c28f09..0166923 100644
+> --- a/arch/x86/kvm/x86.c
+> +++ b/arch/x86/kvm/x86.c
+> @@ -5365,7 +5365,8 @@ static void kvm_timer_init(void)
+>  	int cpu;
+>
+>  	max_tsc_khz = tsc_khz;
+> -	register_hotcpu_notifier(&kvmclock_cpu_notifier_block);
+> +
+> +	cpu_notifier_register_begin();
+>  	if (!boot_cpu_has(X86_FEATURE_CONSTANT_TSC)) {
+>  #ifdef CONFIG_CPU_FREQ
+>  		struct cpufreq_policy policy;
+> @@ -5382,6 +5383,10 @@ static void kvm_timer_init(void)
+>  	pr_debug("kvm: max_tsc_khz = %ld\n", max_tsc_khz);
+>  	for_each_online_cpu(cpu)
+>  		smp_call_function_single(cpu, tsc_khz_changed, NULL, 1);
+> +
+> +	__register_hotcpu_notifier(&kvmclock_cpu_notifier_block);
+> +	cpu_notifier_register_done();
+> +
+>  }
+>
+>  static DEFINE_PER_CPU(struct kvm_vcpu *, current_vcpu);
+>
 
-A compiler that we don't need to fight in order to generate sane code
-would be nice. But as Linus said; we can continue to ignore you lot and
-go on as we've done.
+Acked-by: Paolo Bonzini <pbonzini@redhat.com>
