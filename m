@@ -1,15 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:53340 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:25601 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753474AbaBORpy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 15 Feb 2014 12:45:54 -0500
+	id S1753432AbaBOSHn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 15 Feb 2014 13:07:43 -0500
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
 From: Torvald Riegel <triegel@redhat.com>
-In-Reply-To: <CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>
-References: <20140207180216.GP4250@linux.vnet.ibm.com>
-	 <1391992071.18779.99.camel@triegel.csb>
-	 <CA+55aFwTwCPMpYTL_vCgNNP0hE8s2sgB0iw-79=xoj99V0JUNA@mail.gmail.com>
-	 <1392183564.18779.2187.camel@triegel.csb>
+In-Reply-To: <CA+55aFyQTE-CzOoNn=KfDgt9bTLrUxBCXzhQ2T9kNoTy+bRQrQ@mail.gmail.com>
+References: <1392183564.18779.2187.camel@triegel.csb>
 	 <20140212180739.GB4250@linux.vnet.ibm.com>
 	 <CA+55aFw3S82GYdtnV2nJCvBGcuZf6kXdF5b7Vp9yb21QKr49Jw@mail.gmail.com>
 	 <20140213002355.GI4250@linux.vnet.ibm.com>
@@ -19,77 +16,165 @@ References: <20140207180216.GP4250@linux.vnet.ibm.com>
 	 <20140214172920.GQ4250@linux.vnet.ibm.com>
 	 <CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>
 	 <CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>
+	 <20140215020815.GS4250@linux.vnet.ibm.com>
+	 <CA+55aFyQTE-CzOoNn=KfDgt9bTLrUxBCXzhQ2T9kNoTy+bRQrQ@mail.gmail.com>
 Content-Type: text/plain; charset="UTF-8"
-Date: Sat, 15 Feb 2014 09:45:10 -0800
-Message-ID: <1392486310.18779.6447.camel@triegel.csb>
+Date: Sat, 15 Feb 2014 10:07:07 -0800
+Message-ID: <1392487627.18779.6535.camel@triegel.csb>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140215174510.mYEMAmsy1SCtJtIOFY0aQ0ptjY6_AYBdaxf5e2sxfbc@z>
+Message-ID: <20140215180707.nd4VoaviyqJn3ZYTkzLsN6SuTB03Qnz0Onl1smQzAsw@z>
 
-On Fri, 2014-02-14 at 12:02 -0800, Linus Torvalds wrote:
-> On Fri, Feb 14, 2014 at 11:50 AM, Linus Torvalds
-> <torvalds@linux-foundation.org> wrote:
+On Fri, 2014-02-14 at 18:44 -0800, Linus Torvalds wrote:
+> On Fri, Feb 14, 2014 at 6:08 PM, Paul E. McKenney
+> <paulmck@linux.vnet.ibm.com> wrote:
 > >
-> > Why are we still discussing this idiocy? It's irrelevant. If the
-> > standard really allows random store speculation, the standard doesn't
-> > matter, and sane people shouldn't waste their time arguing about it.
+> > One way of looking at the discussion between Torvald and myself would be
+> > as a seller (Torvald) and a buyer (me) haggling over the fine print in
+> > a proposed contract (the standard).  Whether that makes you feel better
+> > or worse about the situation I cannot say.  ;-)
 > 
-> Btw, the other part of this coin is that our manual types (using
-> volatile and various architecture-specific stuff) and our manual
-> barriers and inline asm accesses are generally *fine*.
-
-AFAICT, it does work for you, but hasn't been exactly pain-free.
-
-I think a major benefit of C11's memory model is that it gives a
-*precise* specification for how a compiler is allowed to optimize.
-There is a formalization of the model, which allows things like the
-cppmem tool by the Cambridge group.  It also allows meaningful fuzz
-testing: http://www.di.ens.fr/~zappa/projects/cmmtest/ ; this did reveal
-several GCC compiler bugs.
-
-I also think that reasoning about this model is easier than reasoning
-about how lots of different, concrete compiler optimizations would
-interact.
-
-> The C11 stuff doesn't buy us anything. The argument that "new
-> architectures might want to use it" is prue and utter bollocks, since
-> unless the standard gets the thing *right*, nobody sane would ever use
-> it for some new architecture, when the sane thing to do is to just
-> fill in the normal barriers and inline asms.
+> Oh, I'm perfectly fine with that. But we're not desperate to buy, and
+> I actually think the C11 people are - or at least should be - *way*
+> more desperate to sell their model to us than we are to take it.
 > 
-> So I'm very very serious: either the compiler and the standard gets
-> things right, or we don't use it. There is no middle ground where "we
-> might use it for one or two architectures and add random hints".
-> That's just stupid.
+> Which means that as a buyer you should say "this is what we want, if
+> you don't give us this, we'll just walk away". Not try to see how much
+> we can pay for it. Because there is very little upside for us, and
+> _unless_ the C11 standard gets things right it's just extra complexity
+> for us, coupled with new compiler fragility and years of code
+> generation bugs.
+
+I think there is an upside to you, mainly in that it allows compiler
+testing tools, potentially verification tools for atomics, and tools
+like cppmem that show allowed executions of code.
+
+I agree that the Linux community has been working well without this, and
+it's big enough to make running it's own show viable.  This will be
+different for smaller projects, though.
+
+> Why would we want that extra complexity and inevitable compiler bugs?
+> If we then have to fight compiler writers that point to the standard
+> and say "..but look, the standard says we can do this", then at that
+> point it went from "extra complexity and compiler bugs" to a whole
+> 'nother level of frustration and pain.
+
+I see your point, but flip side of the coin is that if you get the
+standard to say what you want, then you can tell the compiler writers to
+look at the standard.  Or show them bugs revealed by fuzz testing and
+such.
+
+> So just walk away unless the C11 standard gives us exactly what we
+> want. Not "something kind of like what we'd use". EXACTLY. Because I'm
+> not in the least interested in fighting compiler people that have a
+> crappy standard they can point to. Been there, done that, got the
+> T-shirt and learnt my lesson.
 > 
-> The only "middle ground" is about which compiler version we end up
-> trusting _if_ it turns out that the compiler and standard do get
-> things right. From Torvald's explanations (once I don't mis-read them
-> ;), my take-away so far has actually been that the standard *does* get
-> things right, but I do know from over-long personal experience that
-> compiler people sometimes want to be legalistic and twist the
-> documentation to the breaking point, at which point we just go "we'd
-> be crazy do use that".
+> And the thing is, I suspect that the Linux kernel is the most complete
+> - and most serious - user of true atomics that the C11 people can sell
+> their solution to.
 
-I agree that compilers want to optimize, and sometimes there's probably
-a little too much emphasis on applying an optimization vs. not
-surprising users.  But we have to draw a line (e.g., what is undefined
-behavior and what is not), because we need this to be actually able to
-optimize.
+I agree, but there are likely also other big projects that could make
+use of C11 atomics on the userspace side (e.g., certain databases, ...).
 
-Therefore, we need to get the rules into a shape that both allows
-optimizations and isn't full of surprising corner cases.  The rules are
-the standard, so it's the standard we have to get right.  According to
-my experience, a lot of thought goes into how to design the standard's
-language and library so that they are intuitive yet efficient.
+> If we don't buy it, they have no serious user.
 
-If you see issues in the standard, please bring them up.  Either report
-the defects directly and get involved yourself, or reach out to somebody
-that is participating in the standards process.
+I disagree with that.  That obviously depends on one's definition of
+"serious", but if you combine all C/C++ programs that use low-level
+atomics, then this is serious use as well.  There's lots of
+shared-memory synchronization in userspace as well.
 
-The standard certainly isn't perfect, so there is room to contribute.
+> Sure, they'll have lots
+> of random other one-off users for their atomics, where each user wants
+> one particular thing, but I suspect that we'll have the only really
+> unified portable code base
+
+glibc is a counterexample that comes to mind, although it's a smaller
+code base.  (It's currently not using C11 atomics, but transitioning
+there makes sense, and some thing I want to get to eventually.)
+
+> that handles pretty much *all* the serious
+> odd cases that the C11 atomics can actually talk about to each other.
+
+You certainly have lots of odd cases, but I would disagree with the
+assumption that only the Linux kernel will do full "testing" of the
+implementations.  If you have plenty of userspace programs using the
+atomics, that's a pretty big test suite, and one that should help bring
+the compilers up to speed.  So that might be a benefit even to the Linux
+kernel if it would use the C11 atomics.
+
+> Oh, they'll push things through with or without us, and it will be a
+> collection of random stuff, where they tried to please everybody, with
+> particularly compiler/architecture people who have no f*cking clue
+> about how their stuff is used pushing to make it easy/efficient for
+> their particular compiler/architecture.
+
+I'll ignore this... :)
+
+> But we have real optimized uses of pretty much all relevant cases that
+> people actually care about.
+
+You certainly cover a lot of cases.  Finding out whether you cover all
+that "people care about" would require you to actually ask all people,
+which I'm sure you've done ;)
+
+> We can walk away from them, and not really lose anything but a small
+> convenience (and it's a convenience *only* if the standard gets things
+> right).
+> 
+> And conversely, the C11 people can walk away from us too. But if they
+> can't make us happy (and by "make us happy", I really mean no stupid
+> games on our part) I personally think they'll have a stronger
+> standard, and a real use case, and real arguments. I'm assuming they
+> want that.
+
+I agree.
+
+> That's why I complain when you talk about things like marking control
+> dependencies explicitly. That's *us* bending over backwards. And as a
+> buyer, we have absolutely zero reason to do that.
+
+As I understood the situation, it was rather like the buyer trying to
+wrestle in an additional feature without having a proper specification
+of what the feature should actually do.  That's why we've been talking
+about what it should actually do, and how ...
+
+> Tell the C11 people: "no speculative writes". Full stop. End of story.
+> Because we're not buying anything else.
+> 
+> Similarly, if we need to mark atomics "volatile", then now the C11
+> atomics are no longer even a "small convenience", now they are just
+> extra complexity wrt what we already have. So just make it clear that
+> if the C11 standard needs to mark atomics volatile in order to get
+> non-speculative and non-reloading behavior, then the C11 atomics are
+> useless to us, and we're not buying.
+
+I hope what I wrote previously removes those concerns.
+
+> Remember: a compiler can *always* do "as if" optimizations - if a
+> compiler writer can prove that the end result acts 100% the same using
+> an optimized sequence, then they can do whatever the hell they want.
+> That's not the issue.
+
+Good to know that we agree on that.
+
+> But if we can *ever* see semantic impact of
+> speculative writes, the compiler is buggy, and the compiler writers
+> need to be aware that it is buggy. No ifs, buts, maybes about it.
+
+Agreed.
+
+> So I'm perfectly fine with you seeing yourself as a buyer. But I want
+> you to be a really *picky* and anal buyer - one that knows he has the
+> upper hand, and can walk away with no downside.
+
+FWIW, I don't see myself as being the seller.  Instead, I'm hope we can
+improve the situation for everyone involved, whether that involves C11
+or something else.  I see a potential mutual benefit, and I want to try
+to exploit it.  Regarding the distributions I'm concerned about, the
+Linux kernel and GCC are very much in the same boat.
 
