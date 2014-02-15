@@ -1,62 +1,177 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Fri, 14 Feb 2014 22:58:43 -0800
-Message-ID: <20140215065843.GA5016@linux.vnet.ibm.com>
-References: <1392321837.18779.3249.camel@triegel.csb>
- <20140214020144.GO4250@linux.vnet.ibm.com>
- <1392352981.18779.3800.camel@triegel.csb>
- <20140214172920.GQ4250@linux.vnet.ibm.com>
- <CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>
- <CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>
- <20140215020815.GS4250@linux.vnet.ibm.com>
- <CA+55aFyQTE-CzOoNn=KfDgt9bTLrUxBCXzhQ2T9kNoTy+bRQrQ@mail.gmail.com>
- <CA+55aFzoqKGG3iJMZxfaGnDAtpiOCOZcXf7f6cA4+uw2ST2N9w@mail.gmail.com>
- <20140215063543.GU4250@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Subject: [UPDATED][PATCH v2 46/52] xen, balloon: Fix CPU hotplug callback
+ registration
+Date: Sat, 15 Feb 2014 22:21:32 +0530
+Message-ID: <52FF9B14.8000308@linux.vnet.ibm.com>
+References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com> <20140214075935.22701.71000.stgit@srivatsabhat.in.ibm.com> <52FE490B.8000908@oracle.com> <52FE493A.2030206@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e32.co.us.ibm.com ([32.97.110.150]:43528 "EHLO
-	e32.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751735AbaBOG6v (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 15 Feb 2014 01:58:51 -0500
+Received: from e23smtp02.au.ibm.com ([202.81.31.144]:56146 "EHLO
+	e23smtp02.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753441AbaBOQ5J (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 15 Feb 2014 11:57:09 -0500
 Received: from /spool/local
-	by e32.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Fri, 14 Feb 2014 23:58:50 -0700
-Content-Disposition: inline
-In-Reply-To: <20140215063543.GU4250@linux.vnet.ibm.com>
+	by e23smtp02.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
+	Sun, 16 Feb 2014 02:57:06 +1000
+In-Reply-To: <52FE493A.2030206@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+To: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Cc: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, David Vrabel <david.vrabel@citrix.com>, xen-devel@lists.xenproject.org
 
-On Fri, Feb 14, 2014 at 10:35:44PM -0800, Paul E. McKenney wrote:
-> On Fri, Feb 14, 2014 at 06:48:02PM -0800, Linus Torvalds wrote:
-> > On Fri, Feb 14, 2014 at 6:44 PM, Linus Torvalds
-> > <torvalds@linux-foundation.org> wrote:
-> > >
-> > > And conversely, the C11 people can walk away from us too. But if they
-> > > can't make us happy (and by "make us happy", I really mean no stupid
-> > > games on our part) I personally think they'll have a stronger
-> > > standard, and a real use case, and real arguments. I'm assuming they
-> > > want that.
-> > 
-> > I should have somebody who proof-reads my emails before I send them out.
-> > 
-> > I obviously meant "if they *can* make us happy" (not "can't").
+On 02/14/2014 10:20 PM, Srivatsa S. Bhat wrote:
+> On 02/14/2014 10:19 PM, Boris Ostrovsky wrote:
+>> On 02/14/2014 02:59 AM, Srivatsa S. Bhat wrote:
+>>> Subsystems that want to register CPU hotplug callbacks, as well as
+>>> perform
+>>> initialization for the CPUs that are already online, often do it as shown
+>>> below:
+>>>
+[...]
+>> This looks exactly like the earlier version (i.e the notifier is still
+>> kept registered on allocation failure and commit message doesn't exactly
+>> reflect the change).
+>>
 > 
-> Understood.  My next step is to take a more detailed look at the piece
-> of the standard that should support RCU.  Depending on how that turns
-> out, I might look at other parts of the standard vs. Linux's atomics
-> and memory-ordering needs.  Should be interesting.  ;-)
+> Sorry, your earlier reply (for some unknown reason) missed the email-threading
+> and landed elsewhere in my inbox, and hence unfortunately I forgot to take
+> your suggestions into account while sending out the v2.
+> 
+> I'll send out an updated version of just this patch, as a reply.
 
-And perhaps a better way to represent the roles is that I am not the
-buyer, but rather the purchasing agent for the -potential- buyer.  -You-
-are of course the potential buyer.
+Here is the updated patch. Please let me know what you think!
 
-If I were to see myself as the buyer, then I must confess that the
-concerns you implicitly expressed in your prior email would be all too
-well-founded!
+----------------------------------------------------------------------------
 
-							Thanx, Paul
+From: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+Subject: [PATCH] xen, balloon: Fix CPU hotplug callback registration
+
+Subsystems that want to register CPU hotplug callbacks, as well as perform
+initialization for the CPUs that are already online, often do it as shown
+below:
+
+	get_online_cpus();
+
+	for_each_online_cpu(cpu)
+		init_cpu(cpu);
+
+	register_cpu_notifier(&foobar_cpu_notifier);
+
+	put_online_cpus();
+
+This is wrong, since it is prone to ABBA deadlocks involving the
+cpu_add_remove_lock and the cpu_hotplug.lock (when running concurrently
+with CPU hotplug operations).
+
+The xen balloon driver doesn't take get/put_online_cpus() around this code,
+but that is also buggy, since it can miss CPU hotplug events in between the
+initialization and callback registration:
+
+	for_each_online_cpu(cpu)
+		init_cpu(cpu);
+		   ^
+		   |  Race window; Can miss CPU hotplug events here.
+		   v
+	register_cpu_notifier(&foobar_cpu_notifier);
+
+Interestingly, the balloon code in xen can simply be reorganized as shown
+below, to have a race-free method to register hotplug callbacks, without even
+taking get/put_online_cpus(). This is because the initialization performed for
+already online CPUs is exactly the same as that performed for CPUs that come
+online later. Moreover, the code has checks in place to avoid double
+initialization.
+
+	register_cpu_notifier(&foobar_cpu_notifier);
+
+	get_online_cpus();
+
+	for_each_online_cpu(cpu)
+		init_cpu(cpu);
+
+	put_online_cpus();
+
+A hotplug operation that occurs between registering the notifier and calling
+get_online_cpus(), won't disrupt anything, because the code takes care to
+perform the memory allocations only once.
+
+So reorganize the balloon code in xen this way to fix the issues with CPU
+hotplug callback registration.
+
+Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Cc: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Cc: David Vrabel <david.vrabel@citrix.com>
+Cc: Ingo Molnar <mingo@kernel.org>
+Cc: xen-devel@lists.xenproject.org
+Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+---
+
+ drivers/xen/balloon.c |   36 ++++++++++++++++++++++++------------
+ 1 file changed, 24 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/xen/balloon.c b/drivers/xen/balloon.c
+index 37d06ea..dd79549 100644
+--- a/drivers/xen/balloon.c
++++ b/drivers/xen/balloon.c
+@@ -592,19 +592,29 @@ static void __init balloon_add_region(unsigned long start_pfn,
+ 	}
+ }
+ 
++static int alloc_balloon_scratch_page(int cpu)
++{
++	if (per_cpu(balloon_scratch_page, cpu) != NULL)
++		return 0;
++
++	per_cpu(balloon_scratch_page, cpu) = alloc_page(GFP_KERNEL);
++	if (per_cpu(balloon_scratch_page, cpu) == NULL) {
++		pr_warn("Failed to allocate balloon_scratch_page for cpu %d\n", cpu);
++		return -ENOMEM;
++	}
++
++	return 0;
++}
++
++
+ static int balloon_cpu_notify(struct notifier_block *self,
+ 				    unsigned long action, void *hcpu)
+ {
+ 	int cpu = (long)hcpu;
+ 	switch (action) {
+ 	case CPU_UP_PREPARE:
+-		if (per_cpu(balloon_scratch_page, cpu) != NULL)
+-			break;
+-		per_cpu(balloon_scratch_page, cpu) = alloc_page(GFP_KERNEL);
+-		if (per_cpu(balloon_scratch_page, cpu) == NULL) {
+-			pr_warn("Failed to allocate balloon_scratch_page for cpu %d\n", cpu);
++		if (alloc_balloon_scratch_page(cpu))
+ 			return NOTIFY_BAD;
+-		}
+ 		break;
+ 	default:
+ 		break;
+@@ -624,15 +634,17 @@ static int __init balloon_init(void)
+ 		return -ENODEV;
+ 
+ 	if (!xen_feature(XENFEAT_auto_translated_physmap)) {
+-		for_each_online_cpu(cpu)
+-		{
+-			per_cpu(balloon_scratch_page, cpu) = alloc_page(GFP_KERNEL);
+-			if (per_cpu(balloon_scratch_page, cpu) == NULL) {
+-				pr_warn("Failed to allocate balloon_scratch_page for cpu %d\n", cpu);
++		register_cpu_notifier(&balloon_cpu_notifier);
++
++		get_online_cpus();
++		for_each_online_cpu(cpu) {
++			if (alloc_balloon_scratch_page(cpu)) {
++				put_online_cpus();
++				unregister_cpu_notifier(&balloon_cpu_notifier);
+ 				return -ENOMEM;
+ 			}
+ 		}
+-		register_cpu_notifier(&balloon_cpu_notifier);
++		put_online_cpus();
+ 	}
+ 
+ 	pr_info("Initialising balloon driver\n");
