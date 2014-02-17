@@ -1,42 +1,45 @@
-From: "Joseph S. Myers" <joseph@codesourcery.com>
+From: Will Deacon <will.deacon@arm.com>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Mon, 17 Feb 2014 18:59:31 +0000
-Message-ID: <Pine.LNX.4.64.1402171856400.29680@digraph.polyomino.org.uk>
-References: <1392183564.18779.2187.camel@triegel.csb>
- <20140212180739.GB4250@linux.vnet.ibm.com>
- <CA+55aFw3S82GYdtnV2nJCvBGcuZf6kXdF5b7Vp9yb21QKr49Jw@mail.gmail.com>
- <20140213002355.GI4250@linux.vnet.ibm.com>  <1392321837.18779.3249.camel@triegel.csb>
-  <20140214020144.GO4250@linux.vnet.ibm.com>  <1392352981.18779.3800.camel@triegel.csb>
-  <20140214172920.GQ4250@linux.vnet.ibm.com>
- <CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>
- <CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>
- <20140215020815.GS4250@linux.vnet.ibm.com>
- <CA+55aFyQTE-CzOoNn=KfDgt9bTLrUxBCXzhQ2T9kNoTy+bRQrQ@mail.gmail.com>
- <1392487627.18779.6535.camel@triegel.csb>
+Date: Mon, 17 Feb 2014 19:19:14 +0000
+Message-ID: <20140217191914.GG26590@mudshark.cambridge.arm.com>
+References: <1392321837.18779.3249.camel@triegel.csb> <20140214020144.GO4250@linux.vnet.ibm.com> <1392352981.18779.3800.camel@triegel.csb> <20140214172920.GQ4250@linux.vnet.ibm.com> <CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com> <CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com> <20140215020815.GS4250@linux.vnet.ibm.com> <CA+55aFyQTE-CzOoNn=KfDgt9bTLrUxBCXzhQ2T9kNoTy+bRQrQ@mail.gmail.com> <1392487627.18779.6535.camel@triegel.csb> <Pine.LNX.4.64.1402171856400.29680@digraph.polyomino.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="US-ASCII"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay1.mentorg.com ([192.94.38.131]:35232 "EHLO
-	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753108AbaBQS7l (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Feb 2014 13:59:41 -0500
-In-Reply-To: <1392487627.18779.6535.camel@triegel.csb>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Torvald Riegel <triegel@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <gcc-return-182083-gcc=m.gmane.org@gcc.gnu.org>
+List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
+List-Archive: <http://gcc.gnu.org/ml/gcc/>
+List-Post: <mailto:gcc@gcc.gnu.org>
+List-Help: <http://gcc.gnu.org/ml/>
+Sender: gcc-owner@gcc.gnu.org
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.64.1402171856400.29680@digraph.polyomino.org.uk>
+To: "Joseph S. Myers" <joseph@codesourcery.com>
+Cc: Torvald Riegel <triegel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, 15 Feb 2014, Torvald Riegel wrote:
+On Mon, Feb 17, 2014 at 06:59:31PM +0000, Joseph S. Myers wrote:
+> On Sat, 15 Feb 2014, Torvald Riegel wrote:
+> 
+> > glibc is a counterexample that comes to mind, although it's a smaller
+> > code base.  (It's currently not using C11 atomics, but transitioning
+> > there makes sense, and some thing I want to get to eventually.)
+> 
+> glibc is using C11 atomics (GCC builtins rather than _Atomic / 
+> <stdatomic.h>, but using __atomic_* with explicitly specified memory model 
+> rather than the older __sync_*) on AArch64, plus in certain cases on ARM 
+> and MIPS.
 
-> glibc is a counterexample that comes to mind, although it's a smaller
-> code base.  (It's currently not using C11 atomics, but transitioning
-> there makes sense, and some thing I want to get to eventually.)
+Hmm, actually that results in a change in behaviour for the __sync_*
+primitives on AArch64. The documentation for those states that:
 
-glibc is using C11 atomics (GCC builtins rather than _Atomic / 
-<stdatomic.h>, but using __atomic_* with explicitly specified memory model 
-rather than the older __sync_*) on AArch64, plus in certain cases on ARM 
-and MIPS.
+  `In most cases, these built-in functions are considered a full barrier. That
+  is, no memory operand is moved across the operation, either forward or
+  backward. Further, instructions are issued as necessary to prevent the
+  processor from speculating loads across the operation and from queuing stores
+  after the operation.'
 
--- 
-Joseph S. Myers
-joseph@codesourcery.com
+which is stronger than simply mapping them to memory_model_seq_cst, which
+seems to be what the AArch64 compiler is doing (so you get acquire + release
+instead of a full fence).
+
+Will
