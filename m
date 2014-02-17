@@ -1,35 +1,118 @@
-From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Subject: Re: [PATCH v2 0/2] generic CPU feature based udev module autoprobing
-Date: Sun, 16 Feb 2014 18:11:27 +0100
-Message-ID: <CAKv+Gu8b7cZzq6dZJj3=yg5RE2iNszpJ_aeJmgW1Y3PGSRVT3g@mail.gmail.com>
-References: <1391862850-24620-1-git-send-email-ard.biesheuvel@linaro.org>
-	<CAKv+Gu_cVcT_796qnxEi2uSmXBpiptgjL2tc3t4TVHryEu9tvw@mail.gmail.com>
-	<20140216163928.GC28616@kroah.com>
+From: Gautham R Shenoy <ego@linux.vnet.ibm.com>
+Subject: Re: [PATCH v2 02/52] CPU hotplug: Provide lockless versions of
+ callback registration functions
+Date: Mon, 17 Feb 2014 18:56:09 +0530
+Message-ID: <20140217132608.GA30698@in.ibm.com>
+References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
+ <20140214074922.22701.17949.stgit@srivatsabhat.in.ibm.com>
+Reply-To: ego@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f175.google.com ([209.85.217.175]:51039 "EHLO
-	mail-lb0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752586AbaBPRL3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Feb 2014 12:11:29 -0500
-Received: by mail-lb0-f175.google.com with SMTP id p9so10474747lbv.20
-        for <linux-arch@vger.kernel.org>; Sun, 16 Feb 2014 09:11:27 -0800 (PST)
-In-Reply-To: <20140216163928.GC28616@kroah.com>
+Received: from e34.co.us.ibm.com ([32.97.110.152]:35685 "EHLO
+	e34.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752470AbaBQN0a (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Feb 2014 08:26:30 -0500
+Received: from /spool/local
+	by e34.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <ego@linux.vnet.ibm.com>;
+	Mon, 17 Feb 2014 06:26:30 -0700
+Content-Disposition: inline
+In-Reply-To: <20140214074922.22701.17949.stgit@srivatsabhat.in.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Toshi Kani <toshi.kani@hp.com>
 
-On 16 February 2014 17:39, gregkh@linuxfoundation.org
-<gregkh@linuxfoundation.org> wrote:
-> On Sun, Feb 16, 2014 at 03:40:04PM +0100, Ard Biesheuvel wrote:
->> Ping?
->
-> Sorry, still digging out from the -rc1 backlog.  Give me a few days,
-> Monday is a holliday in the US.
->
+On Fri, Feb 14, 2014 at 01:19:23PM +0530, Srivatsa S. Bhat wrote:
+> The following method of CPU hotplug callback registration is not safe
+> due to the possibility of an ABBA deadlock involving the cpu_add_remove_lock
+> and the cpu_hotplug.lock.
+> 
+> 	get_online_cpus();
+> 
+> 	for_each_online_cpu(cpu)
+> 		init_cpu(cpu);
+> 
+> 	register_cpu_notifier(&foobar_cpu_notifier);
+> 
+> 	put_online_cpus();
+> 
+> The deadlock is shown below:
+> 
+>           CPU 0                                         CPU 1
+>           -----                                         -----
+> 
+>    Acquire cpu_hotplug.lock
+>    [via get_online_cpus()]
+> 
+>                                               CPU online/offline operation
+>                                               takes cpu_add_remove_lock
+>                                               [via cpu_maps_update_begin()]
+> 
+> 
+>    Try to acquire
+>    cpu_add_remove_lock
+>    [via register_cpu_notifier()]
+> 
+> 
+>                                               CPU online/offline operation
+>                                               tries to acquire cpu_hotplug.lock
+>                                               [via cpu_hotplug_begin()]
+> 
+> 
+>                             *** DEADLOCK! ***
+> 
+> The problem here is that callback registration takes the locks in one order
+> whereas the CPU hotplug operations take the same locks in the opposite order.
+> To avoid this issue and to provide a race-free method to register CPU hotplug
+> callbacks (along with initialization of already online CPUs), introduce new
+> variants of the callback registration APIs that simply register the callbacks
+> without holding the cpu_add_remove_lock during the registration. That way,
+> we can avoid the ABBA scenario. However, we will need to hold the
+> cpu_add_remove_lock throughout the entire critical section, to protect updates
+> to the callback/notifier chain.
+> 
+> This can be achieved by writing the callback registration code as follows:
+> 
+> 	cpu_maps_update_begin(); [ or cpu_notifier_register_begin(); see below ]
+> 
+> 	for_each_online_cpu(cpu)
+> 		init_cpu(cpu);
+> 
+> 	/* This doesn't take the cpu_add_remove_lock */
+> 	__register_cpu_notifier(&foobar_cpu_notifier);
+> 
+> 	cpu_maps_update_done();  [ or cpu_notifier_register_done(); see below ]
+> 
+> Note that we can't use get_online_cpus() here instead of cpu_maps_update_begin()
+> because the cpu_hotplug.lock is dropped during the invocation of CPU_POST_DEAD
+> notifiers, and hence get_online_cpus() cannot provide the necessary
+> synchronization to protect the callback/notifier chains against concurrent
+> reads and writes. On the other hand, since the cpu_add_remove_lock protects
+> the entire hotplug operation (including CPU_POST_DEAD), we can use
+> cpu_maps_update_begin/done() to guarantee proper synchronization.
+> 
+> Also, since cpu_maps_update_begin/done() is like a super-set of
+> get/put_online_cpus(), the former naturally protects the critical sections
+> from concurrent hotplug operations.
+> 
+> Since the names cpu_maps_update_begin/done() don't make much sense in CPU
+> hotplug callback registration scenarios, we'll introduce new APIs named
+> cpu_notifier_register_begin/done() and map them to cpu_maps_update_begin/done().
+> 
+> In summary, introduce the lockless variants of un/register_cpu_notifier() and
+> also export the cpu_notifier_register_begin/done() APIs for use by modules.
+> This way, we provide a race-free way to register hotplug callbacks as well as
+> perform initialization for the CPUs that are already online.
+> 
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Toshi Kani <toshi.kani@hp.com>
+> Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: Ingo Molnar <mingo@kernel.org>
+> Acked-by: Oleg Nesterov <oleg@redhat.com>
+> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 
-Yes, please, whenever you have some time.
-
-Regards,
-Ard.
+Reviewed-by: Gautham R. Shenoy <ego@linux.vnet.ibm.com>
