@@ -1,76 +1,56 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+From: Richard Biener <richard.guenther@gmail.com>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Mon, 17 Feb 2014 12:23:24 -0800
-Message-ID: <20140217202324.GJ4250@linux.vnet.ibm.com>
-References: <20140213002355.GI4250@linux.vnet.ibm.com> <1392321837.18779.3249.camel@triegel.csb> <20140214020144.GO4250@linux.vnet.ibm.com> <1392352981.18779.3800.camel@triegel.csb> <20140214172920.GQ4250@linux.vnet.ibm.com> <CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com> <CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com> <1392486310.18779.6447.camel@triegel.csb> <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com> <1392666947.18779.6838.camel@triegel.csb>
-Reply-To: paulmck@linux.vnet.ibm.com
+Date: Mon, 17 Feb 2014 21:39:54 +0100
+Message-ID: <99178341-b6c8-4546-957c-2ea4031b4fe0@email.android.com>
+References: <20140207165028.GO4250@linux.vnet.ibm.com> <20140207165548.GR5976@mudshark.cambridge.arm.com> <20140207180216.GP4250@linux.vnet.ibm.com> <1391992071.18779.99.camel@triegel.csb> <CA+55aFwTwCPMpYTL_vCgNNP0hE8s2sgB0iw-79=xoj99V0JUNA@mail.gmail.com> <20140211155941.GU4250@linux.vnet.ibm.com> <1392185194.18779.2239.camel@triegel.csb> <20140212091907.GA3545@laptop.programming.kicks-ass.net> <20140212174209.GA4250@linux.vnet.ibm.com> <20140212181205.GD27965@twins.programming.kicks-ass.net> <20140217181815.GA1934@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <gcc-return-182087-gcc=m.gmane.org@gcc.gnu.org>
-List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
-List-Archive: <http://gcc.gnu.org/ml/gcc/>
-List-Post: <mailto:gcc@gcc.gnu.org>
-List-Help: <http://gcc.gnu.org/ml/>
-Sender: gcc-owner@gcc.gnu.org
-Content-Disposition: inline
-In-Reply-To: <1392666947.18779.6838.camel@triegel.csb>
-To: Torvald Riegel <triegel@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain;
+ charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ea0-f179.google.com ([209.85.215.179]:36843 "EHLO
+	mail-ea0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751847AbaBQUir (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Feb 2014 15:38:47 -0500
+In-Reply-To: <20140217181815.GA1934@linux.vnet.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: paulmck@linux.vnet.ibm.com"Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: Torvald Riegel <triegel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
 
-On Mon, Feb 17, 2014 at 08:55:47PM +0100, Torvald Riegel wrote:
-> On Sat, 2014-02-15 at 10:49 -0800, Linus Torvalds wrote:
-> > On Sat, Feb 15, 2014 at 9:45 AM, Torvald Riegel <triegel@redhat.com> wrote:
-> > >
-> > > I think a major benefit of C11's memory model is that it gives a
-> > > *precise* specification for how a compiler is allowed to optimize.
-> > 
-> > Clearly it does *not*. This whole discussion is proof of that. It's
-> > not at all clear,
-> 
-> It might not be an easy-to-understand specification, but as far as I'm
-> aware it is precise.  The Cambridge group's formalization certainly is
-> precise.  From that, one can derive (together with the usual rules for
-> as-if etc.) what a compiler is allowed to do (assuming that the standard
-> is indeed precise).  My replies in this discussion have been based on
-> reasoning about the standard, and not secret knowledge (with the
-> exception of no-out-of-thin-air, which is required in the standard's
-> prose but not yet formalized).
-> 
-> I agree that I'm using the formalization as a kind of placeholder for
-> the standard's prose (which isn't all that easy to follow for me
-> either), but I guess there's no way around an ISO standard using prose.
-> 
-> If you see a case in which the standard isn't precise, please bring it
-> up or open a C++ CWG issue for it.
+On February 17, 2014 7:18:15 PM GMT+01:00, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com> wrote:
+>On Wed, Feb 12, 2014 at 07:12:05PM +0100, Peter Zijlstra wrote:
+>> On Wed, Feb 12, 2014 at 09:42:09AM -0800, Paul E. McKenney wrote:
+>> > You need volatile semantics to force the compiler to ignore any
+>proofs
+>> > it might otherwise attempt to construct.  Hence all the
+>ACCESS_ONCE()
+>> > calls in my email to Torvald.  (Hopefully I translated your example
+>> > reasonably.)
+>> 
+>> My brain gave out for today; but it did appear to have the right
+>> structure.
+>
+>I can relate.  ;-)
+>
+>> I would prefer it C11 would not require the volatile casts. It should
+>> simply _never_ speculate with atomic writes, volatile or not.
+>
+>I agree with not needing volatiles to prevent speculated writes. 
+>However,
+>they will sometimes be needed to prevent excessive load/store
+>combining.
+>The compiler doesn't have the runtime feedback mechanisms that the
+>hardware has, and thus will need help from the developer from time
+>to time.
+>
+>Or maybe the Linux kernel simply waits to transition to C11 relaxed
+>atomics
+>until the compiler has learned to be sufficiently conservative in its
+>load-store combining decisions.
 
-I suggest that I go through the Linux kernel's requirements for atomics
-and memory barriers and see how they map to C11 atomics.  With that done,
-we would have very specific examples to go over.  Without that done, the
-discussion won't converge very well.
+Sounds backwards. Currently the compiler does nothing to the atomics. I'm sure we'll eventually add something. But if testing coverage is zero outside then surely things get worse, not better with time.
 
-Seem reasonable?
+Richard.
 
-							Thanx, Paul
-
-> > and the standard apparently is at least debatably
-> > allowing things that shouldn't be allowed.
-> 
-> Which example do you have in mind here?  Haven't we resolved all the
-> debated examples, or did I miss any?
-> 
-> > It's also a whole lot more
-> > complicated than "volatile", so the likelihood of a compiler writer
-> > actually getting it right - even if the standard does - is lower.
-> 
-> It's not easy, that's for sure, but none of the high-performance
-> alternatives are easy either.  There are testing tools out there based
-> on the formalization of the model, and we've found bugs with them.
-> 
-> And the alternative of using something not specified by the standard is
-> even worse, I think, because then you have to guess what a compiler
-> might do, without having any constraints; IOW, one is resorting to "no
-> sane compiler would do that", and that doesn't seem to very robust
-> either.
-> 
-> 
+>							Thanx, Paul
