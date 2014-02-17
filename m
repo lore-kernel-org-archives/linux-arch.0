@@ -1,345 +1,59 @@
-From: =?ISO-8859-1?Q?Christian_K=F6nig?= <deathsimple@vodafone.de>
-Subject: Re: [PATCH 2/6] seqno-fence: Hardware dma-buf implementation of fencing
- (v4)
-Date: Mon, 17 Feb 2014 18:36:49 +0100
-Message-ID: <530248B1.2090405@vodafone.de>
-References: <20140217155056.20337.25254.stgit@patser>	<20140217155556.20337.37589.stgit@patser>	<53023F3E.3080107@vodafone.de> <CAF6AEGtHSg=qESbGE8LZsQPrRfHnrSQOjpEAVKeZ5o9k07ZNcA@mail.gmail.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
+Date: Mon, 17 Feb 2014 10:18:15 -0800
+Message-ID: <20140217181815.GA1934@linux.vnet.ibm.com>
+References: <20140207165028.GO4250@linux.vnet.ibm.com>
+ <20140207165548.GR5976@mudshark.cambridge.arm.com>
+ <20140207180216.GP4250@linux.vnet.ibm.com>
+ <1391992071.18779.99.camel@triegel.csb>
+ <CA+55aFwTwCPMpYTL_vCgNNP0hE8s2sgB0iw-79=xoj99V0JUNA@mail.gmail.com>
+ <20140211155941.GU4250@linux.vnet.ibm.com>
+ <1392185194.18779.2239.camel@triegel.csb>
+ <20140212091907.GA3545@laptop.programming.kicks-ass.net>
+ <20140212174209.GA4250@linux.vnet.ibm.com>
+ <20140212181205.GD27965@twins.programming.kicks-ass.net>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1;
-	format=flowed
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pegasos-out.vodafone.de ([80.84.1.38]:45968 "HELO
-	pegasos-out.vodafone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with SMTP id S1750958AbaBQRhN convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Feb 2014 12:37:13 -0500
-In-Reply-To: <CAF6AEGtHSg=qESbGE8LZsQPrRfHnrSQOjpEAVKeZ5o9k07ZNcA@mail.gmail.com>
+Received: from e31.co.us.ibm.com ([32.97.110.149]:50011 "EHLO
+	e31.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752036AbaBQSSV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Feb 2014 13:18:21 -0500
+Received: from /spool/local
+	by e31.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Mon, 17 Feb 2014 11:18:20 -0700
+Content-Disposition: inline
+In-Reply-To: <20140212181205.GD27965@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rob Clark <robdclark@gmail.com>
-Cc: Maarten Lankhorst <maarten.lankhorst@canonical.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, Colin Cross <ccross@google.com>, "dri-devel@lists.freedesktop.org" <dri-devel@lists.freedesktop.org>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Torvald Riegel <triegel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
 
-Am 17.02.2014 18:27, schrieb Rob Clark:
-> On Mon, Feb 17, 2014 at 11:56 AM, Christian K=F6nig
-> <deathsimple@vodafone.de> wrote:
->> Am 17.02.2014 16:56, schrieb Maarten Lankhorst:
->>
->>> This type of fence can be used with hardware synchronization for si=
-mple
->>> hardware that can block execution until the condition
->>> (dma_buf[offset] - value) >=3D 0 has been met.
->>
->> Can't we make that just "dma_buf[offset] !=3D 0" instead? As far as =
-I know
->> this way it would match the definition M$ uses in their WDDM specifi=
-cation
->> and so make it much more likely that hardware supports it.
-> well 'buf[offset] >=3D value' at least means the same slot can be use=
-d
-> for multiple operations (with increasing values of 'value').. not sur=
-e
-> if that is something people care about.
->
->> =3Dvalue seems to be possible with adreno and radeon.  I'm not reall=
-y sure about others (although I presume it as least supported for nv de=
-sktop stuff).  For hw that cannot do >=3Dvalue, we can either have a di=
-fferent fence implementation which uses the !=3D0 approach.  Or change =
-seqno-fence implementation later if needed.  But if someone has hw that=
- can do !=3D0 but not >=3Dvalue, speak up now ;-)
+On Wed, Feb 12, 2014 at 07:12:05PM +0100, Peter Zijlstra wrote:
+> On Wed, Feb 12, 2014 at 09:42:09AM -0800, Paul E. McKenney wrote:
+> > You need volatile semantics to force the compiler to ignore any proofs
+> > it might otherwise attempt to construct.  Hence all the ACCESS_ONCE()
+> > calls in my email to Torvald.  (Hopefully I translated your example
+> > reasonably.)
+> 
+> My brain gave out for today; but it did appear to have the right
+> structure.
 
-Here! Radeon can only do >=3Dvalue on the DMA and 3D engine, but not wi=
-th=20
-UVD or VCE. And for the 3D engine it means draining the pipe, which=20
-isn't really a good idea.
+I can relate.  ;-)
 
-Christian.
+> I would prefer it C11 would not require the volatile casts. It should
+> simply _never_ speculate with atomic writes, volatile or not.
 
->
->> Apart from that I still don't like the idea of leaking a drivers IRQ=
- context
->> outside of the driver, but without a proper GPU scheduler there prob=
-ably
->> isn't much alternative.
-> I guess it will be not uncommon scenario for gpu device to just need
-> to kick display device to write a few registers for a page flip..
-> probably best not to schedule a worker just for this (unless the
-> signalled device otherwise needs to).  I think it is better in this
-> case to give the signalee some rope to hang themselves, and make it
-> the responsibility of the callback to kick things off to a worker if
-> needed.
->
-> BR,
-> -R
->
->> Christian.
->>
->>> A software fallback still has to be provided in case the fence is u=
-sed
->>> with a device that doesn't support this mechanism. It is useful to =
-expose
->>> this for graphics cards that have an op to support this.
->>>
->>> Some cards like i915 can export those, but don't have an option to =
-wait,
->>> so they need the software fallback.
->>>
->>> I extended the original patch by Rob Clark.
->>>
->>> v1: Original
->>> v2: Renamed from bikeshed to seqno, moved into dma-fence.c since
->>>       not much was left of the file. Lots of documentation added.
->>> v3: Use fence_ops instead of custom callbacks. Moved to own file
->>>       to avoid circular dependency between dma-buf.h and fence.h
->>> v4: Add spinlock pointer to seqno_fence_init
->>>
->>> Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
->>> ---
->>>    Documentation/DocBook/device-drivers.tmpl |    1
->>>    drivers/base/fence.c                      |   50 +++++++++++++
->>>    include/linux/seqno-fence.h               |  109
->>> +++++++++++++++++++++++++++++
->>>    3 files changed, 160 insertions(+)
->>>    create mode 100644 include/linux/seqno-fence.h
->>>
->>> diff --git a/Documentation/DocBook/device-drivers.tmpl
->>> b/Documentation/DocBook/device-drivers.tmpl
->>> index 7a0c9ddb4818..8c85c20942c2 100644
->>> --- a/Documentation/DocBook/device-drivers.tmpl
->>> +++ b/Documentation/DocBook/device-drivers.tmpl
->>> @@ -131,6 +131,7 @@ X!Edrivers/base/interface.c
->>>    !Edrivers/base/dma-buf.c
->>>    !Edrivers/base/fence.c
->>>    !Iinclude/linux/fence.h
->>> +!Iinclude/linux/seqno-fence.h
->>>    !Edrivers/base/reservation.c
->>>    !Iinclude/linux/reservation.h
->>>    !Edrivers/base/dma-coherent.c
->>> diff --git a/drivers/base/fence.c b/drivers/base/fence.c
->>> index 12df2bf62034..cd0937127a89 100644
->>> --- a/drivers/base/fence.c
->>> +++ b/drivers/base/fence.c
->>> @@ -25,6 +25,7 @@
->>>    #include <linux/export.h>
->>>    #include <linux/atomic.h>
->>>    #include <linux/fence.h>
->>> +#include <linux/seqno-fence.h>
->>>      #define CREATE_TRACE_POINTS
->>>    #include <trace/events/fence.h>
->>> @@ -413,3 +414,52 @@ __fence_init(struct fence *fence, const struct
->>> fence_ops *ops,
->>>          trace_fence_init(fence);
->>>    }
->>>    EXPORT_SYMBOL(__fence_init);
->>> +
->>> +static const char *seqno_fence_get_driver_name(struct fence *fence=
-) {
->>> +       struct seqno_fence *seqno_fence =3D to_seqno_fence(fence);
->>> +       return seqno_fence->ops->get_driver_name(fence);
->>> +}
->>> +
->>> +static const char *seqno_fence_get_timeline_name(struct fence *fen=
-ce) {
->>> +       struct seqno_fence *seqno_fence =3D to_seqno_fence(fence);
->>> +       return seqno_fence->ops->get_timeline_name(fence);
->>> +}
->>> +
->>> +static bool seqno_enable_signaling(struct fence *fence)
->>> +{
->>> +       struct seqno_fence *seqno_fence =3D to_seqno_fence(fence);
->>> +       return seqno_fence->ops->enable_signaling(fence);
->>> +}
->>> +
->>> +static bool seqno_signaled(struct fence *fence)
->>> +{
->>> +       struct seqno_fence *seqno_fence =3D to_seqno_fence(fence);
->>> +       return seqno_fence->ops->signaled &&
->>> seqno_fence->ops->signaled(fence);
->>> +}
->>> +
->>> +static void seqno_release(struct fence *fence)
->>> +{
->>> +       struct seqno_fence *f =3D to_seqno_fence(fence);
->>> +
->>> +       dma_buf_put(f->sync_buf);
->>> +       if (f->ops->release)
->>> +               f->ops->release(fence);
->>> +       else
->>> +               kfree(f);
->>> +}
->>> +
->>> +static long seqno_wait(struct fence *fence, bool intr, signed long
->>> timeout)
->>> +{
->>> +       struct seqno_fence *f =3D to_seqno_fence(fence);
->>> +       return f->ops->wait(fence, intr, timeout);
->>> +}
->>> +
->>> +const struct fence_ops seqno_fence_ops =3D {
->>> +       .get_driver_name =3D seqno_fence_get_driver_name,
->>> +       .get_timeline_name =3D seqno_fence_get_timeline_name,
->>> +       .enable_signaling =3D seqno_enable_signaling,
->>> +       .signaled =3D seqno_signaled,
->>> +       .wait =3D seqno_wait,
->>> +       .release =3D seqno_release,
->>> +};
->>> +EXPORT_SYMBOL(seqno_fence_ops);
->>> diff --git a/include/linux/seqno-fence.h b/include/linux/seqno-fenc=
-e.h
->>> new file mode 100644
->>> index 000000000000..952f7909128c
->>> --- /dev/null
->>> +++ b/include/linux/seqno-fence.h
->>> @@ -0,0 +1,109 @@
->>> +/*
->>> + * seqno-fence, using a dma-buf to synchronize fencing
->>> + *
->>> + * Copyright (C) 2012 Texas Instruments
->>> + * Copyright (C) 2012 Canonical Ltd
->>> + * Authors:
->>> + * Rob Clark <robdclark@gmail.com>
->>> + *   Maarten Lankhorst <maarten.lankhorst@canonical.com>
->>> + *
->>> + * This program is free software; you can redistribute it and/or m=
-odify
->>> it
->>> + * under the terms of the GNU General Public License version 2 as
->>> published by
->>> + * the Free Software Foundation.
->>> + *
->>> + * This program is distributed in the hope that it will be useful,=
- but
->>> WITHOUT
->>> + * ANY WARRANTY; without even the implied warranty of MERCHANTABIL=
-ITY or
->>> + * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public L=
-icense
->>> for
->>> + * more details.
->>> + *
->>> + * You should have received a copy of the GNU General Public Licen=
-se
->>> along with
->>> + * this program.  If not, see <http://www.gnu.org/licenses/>.
->>> + */
->>> +
->>> +#ifndef __LINUX_SEQNO_FENCE_H
->>> +#define __LINUX_SEQNO_FENCE_H
->>> +
->>> +#include <linux/fence.h>
->>> +#include <linux/dma-buf.h>
->>> +
->>> +struct seqno_fence {
->>> +       struct fence base;
->>> +
->>> +       const struct fence_ops *ops;
->>> +       struct dma_buf *sync_buf;
->>> +       uint32_t seqno_ofs;
->>> +};
->>> +
->>> +extern const struct fence_ops seqno_fence_ops;
->>> +
->>> +/**
->>> + * to_seqno_fence - cast a fence to a seqno_fence
->>> + * @fence: fence to cast to a seqno_fence
->>> + *
->>> + * Returns NULL if the fence is not a seqno_fence,
->>> + * or the seqno_fence otherwise.
->>> + */
->>> +static inline struct seqno_fence *
->>> +to_seqno_fence(struct fence *fence)
->>> +{
->>> +       if (fence->ops !=3D &seqno_fence_ops)
->>> +               return NULL;
->>> +       return container_of(fence, struct seqno_fence, base);
->>> +}
->>> +
->>> +/**
->>> + * seqno_fence_init - initialize a seqno fence
->>> + * @fence: seqno_fence to initialize
->>> + * @lock: pointer to spinlock to use for fence
->>> + * @sync_buf: buffer containing the memory location to signal on
->>> + * @context: the execution context this fence is a part of
->>> + * @seqno_ofs: the offset within @sync_buf
->>> + * @seqno: the sequence # to signal on
->>> + * @ops: the fence_ops for operations on this seqno fence
->>> + *
->>> + * This function initializes a struct seqno_fence with passed para=
-meters,
->>> + * and takes a reference on sync_buf which is released on fence
->>> destruction.
->>> + *
->>> + * A seqno_fence is a dma_fence which can complete in software whe=
-n
->>> + * enable_signaling is called, but it also completes when
->>> + * (s32)((sync_buf)[seqno_ofs] - seqno) >=3D 0 is true
->>> + *
->>> + * The seqno_fence will take a refcount on the sync_buf until it's
->>> + * destroyed, but actual lifetime of sync_buf may be longer if one=
- of the
->>> + * callers take a reference to it.
->>> + *
->>> + * Certain hardware have instructions to insert this type of wait
->>> condition
->>> + * in the command stream, so no intervention from software would b=
-e
->>> needed.
->>> + * This type of fence can be destroyed before completed, however a
->>> reference
->>> + * on the sync_buf dma-buf can be taken. It is encouraged to re-us=
-e the
->>> same
->>> + * dma-buf for sync_buf, since mapping or unmapping the sync_buf t=
-o the
->>> + * device's vm can be expensive.
->>> + *
->>> + * It is recommended for creators of seqno_fence to call fence_sig=
-nal
->>> + * before destruction. This will prevent possible issues from wrap=
-around
->>> at
->>> + * time of issue vs time of check, since users can check
->>> fence_is_signaled
->>> + * before submitting instructions for the hardware to wait on the =
-fence.
->>> + * However, when ops.enable_signaling is not called, it doesn't ha=
-ve to
->>> be
->>> + * done as soon as possible, just before there's any real danger o=
-f seqno
->>> + * wraparound.
->>> + */
->>> +static inline void
->>> +seqno_fence_init(struct seqno_fence *fence, spinlock_t *lock,
->>> +                struct dma_buf *sync_buf,  uint32_t context, uint3=
-2_t
->>> seqno_ofs,
->>> +                uint32_t seqno, const struct fence_ops *ops)
->>> +{
->>> +       BUG_ON(!fence || !sync_buf || !ops);
->>> +       BUG_ON(!ops->wait || !ops->enable_signaling ||
->>> !ops->get_driver_name || !ops->get_timeline_name);
->>> +
->>> +       /*
->>> +        * ops is used in __fence_init for get_driver_name, so need=
-s to be
->>> +        * initialized first
->>> +        */
->>> +       fence->ops =3D ops;
->>> +       __fence_init(&fence->base, &seqno_fence_ops, lock, context,
->>> seqno);
->>> +       get_dma_buf(sync_buf);
->>> +       fence->sync_buf =3D sync_buf;
->>> +       fence->seqno_ofs =3D seqno_ofs;
->>> +}
->>> +
->>> +#endif /* __LINUX_SEQNO_FENCE_H */
->>>
->>> _______________________________________________
->>> dri-devel mailing list
->>> dri-devel@lists.freedesktop.org
->>> http://lists.freedesktop.org/mailman/listinfo/dri-devel
->>
->> _______________________________________________
->> dri-devel mailing list
->> dri-devel@lists.freedesktop.org
->> http://lists.freedesktop.org/mailman/listinfo/dri-devel
+I agree with not needing volatiles to prevent speculated writes.  However,
+they will sometimes be needed to prevent excessive load/store combining.
+The compiler doesn't have the runtime feedback mechanisms that the
+hardware has, and thus will need help from the developer from time
+to time.
+
+Or maybe the Linux kernel simply waits to transition to C11 relaxed atomics
+until the compiler has learned to be sufficiently conservative in its
+load-store combining decisions.
+
+							Thanx, Paul
