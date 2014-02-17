@@ -1,56 +1,80 @@
-From: Richard Biener <richard.guenther@gmail.com>
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Mon, 17 Feb 2014 21:39:54 +0100
-Message-ID: <99178341-b6c8-4546-957c-2ea4031b4fe0@email.android.com>
-References: <20140207165028.GO4250@linux.vnet.ibm.com> <20140207165548.GR5976@mudshark.cambridge.arm.com> <20140207180216.GP4250@linux.vnet.ibm.com> <1391992071.18779.99.camel@triegel.csb> <CA+55aFwTwCPMpYTL_vCgNNP0hE8s2sgB0iw-79=xoj99V0JUNA@mail.gmail.com> <20140211155941.GU4250@linux.vnet.ibm.com> <1392185194.18779.2239.camel@triegel.csb> <20140212091907.GA3545@laptop.programming.kicks-ass.net> <20140212174209.GA4250@linux.vnet.ibm.com> <20140212181205.GD27965@twins.programming.kicks-ass.net> <20140217181815.GA1934@linux.vnet.ibm.com>
-Mime-Version: 1.0
-Content-Type: text/plain;
- charset=UTF-8
-Content-Transfer-Encoding: 8bit
+From: Waiman Long <Waiman.Long@hp.com>
+Subject: [PATCH v4 0/3] qspinlock: Introducing a 4-byte queue spinlock
+Date: Mon, 17 Feb 2014 15:41:21 -0500
+Message-ID: <1392669684-4807-1-git-send-email-Waiman.Long@hp.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ea0-f179.google.com ([209.85.215.179]:36843 "EHLO
-	mail-ea0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751847AbaBQUir (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Feb 2014 15:38:47 -0500
-In-Reply-To: <20140217181815.GA1934@linux.vnet.ibm.com>
+Received: from g1t0028.austin.hp.com ([15.216.28.35]:30479 "EHLO
+	g1t0028.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751178AbaBQUl7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Feb 2014 15:41:59 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: paulmck@linux.vnet.ibm.com"Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: Torvald Riegel <triegel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>, Waiman Long <Waiman.Long@hp.com>
 
-On February 17, 2014 7:18:15 PM GMT+01:00, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com> wrote:
->On Wed, Feb 12, 2014 at 07:12:05PM +0100, Peter Zijlstra wrote:
->> On Wed, Feb 12, 2014 at 09:42:09AM -0800, Paul E. McKenney wrote:
->> > You need volatile semantics to force the compiler to ignore any
->proofs
->> > it might otherwise attempt to construct.  Hence all the
->ACCESS_ONCE()
->> > calls in my email to Torvald.  (Hopefully I translated your example
->> > reasonably.)
->> 
->> My brain gave out for today; but it did appear to have the right
->> structure.
->
->I can relate.  ;-)
->
->> I would prefer it C11 would not require the volatile casts. It should
->> simply _never_ speculate with atomic writes, volatile or not.
->
->I agree with not needing volatiles to prevent speculated writes. 
->However,
->they will sometimes be needed to prevent excessive load/store
->combining.
->The compiler doesn't have the runtime feedback mechanisms that the
->hardware has, and thus will need help from the developer from time
->to time.
->
->Or maybe the Linux kernel simply waits to transition to C11 relaxed
->atomics
->until the compiler has learned to be sufficiently conservative in its
->load-store combining decisions.
+v3->v4:
+ - Remove debugging code and fix a configuration error
+ - Simplify the qspinlock structure and streamline the code to make it
+   perform a bit better
+ - Add an x86 version of asm/qspinlock.h for holding x86 specific
+   optimization.
+ - Add an optimized x86 code path for 2 contending tasks to improve
+   low contention performance.
 
-Sounds backwards. Currently the compiler does nothing to the atomics. I'm sure we'll eventually add something. But if testing coverage is zero outside then surely things get worse, not better with time.
+v2->v3:
+ - Simplify the code by using numerous mode only without an unfair option.
+ - Use the latest smp_load_acquire()/smp_store_release() barriers.
+ - Move the queue spinlock code to kernel/locking.
+ - Make the use of queue spinlock the default for x86-64 without user
+   configuration.
+ - Additional performance tuning.
 
-Richard.
+v1->v2:
+ - Add some more comments to document what the code does.
+ - Add a numerous CPU mode to support >= 16K CPUs
+ - Add a configuration option to allow lock stealing which can further
+   improve performance in many cases.
+ - Enable wakeup of queue head CPU at unlock time for non-numerous
+   CPU mode.
 
->							Thanx, Paul
+This patch set introduces a queue-based spinlock implementation that
+can replace the default ticket spinlock without increasing the size
+of the spinlock data structure. As a result, critical kernel data
+structures that embed spinlock won't increase in size and breaking
+data alignments.
+
+The queue spinlock has slight better performance than the ticket
+spinlock in uncontended case. Its performance can be much better
+with moderate to heavy contention.  This patch has the potential of
+improving the performance of all the workloads that have moderate to
+heavy spinlock contention.
+
+The queue spinlock is especially suitable for NUMA machines with at
+least 2 sockets, though noticeable performance benefit probably won't
+show up in machines with less than 4 sockets.
+
+The purpose of this patch set is not to solve any particular spinlock
+contention problems. Those need to be solved by refactoring the code
+to make more efficient use of the lock or finer granularity ones. The
+main purpose is to make the lock contention problems more tolerable
+until someone can spend the time and effort to fix them.
+
+Waiman Long (3):
+  qspinlock: Introducing a 4-byte queue spinlock implementation
+  qspinlock, x86: Enable x86-64 to use queue spinlock
+  qspinlock, x86: Add x86 specific optimization for 2 contending tasks
+
+ arch/x86/Kconfig                      |    1 +
+ arch/x86/include/asm/qspinlock.h      |  236 ++++++++++++++++++++++
+ arch/x86/include/asm/spinlock.h       |    5 +
+ arch/x86/include/asm/spinlock_types.h |    4 +
+ include/asm-generic/qspinlock.h       |  122 ++++++++++++
+ include/asm-generic/qspinlock_types.h |   55 +++++
+ kernel/Kconfig.locks                  |    7 +
+ kernel/locking/Makefile               |    1 +
+ kernel/locking/qspinlock.c            |  353 +++++++++++++++++++++++++++++++++
+ 9 files changed, 784 insertions(+), 0 deletions(-)
+ create mode 100644 arch/x86/include/asm/qspinlock.h
+ create mode 100644 include/asm-generic/qspinlock.h
+ create mode 100644 include/asm-generic/qspinlock_types.h
+ create mode 100644 kernel/locking/qspinlock.c
