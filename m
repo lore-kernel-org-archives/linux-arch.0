@@ -1,12 +1,18 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:26083 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:54821 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751097AbaBQVGe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 17 Feb 2014 16:06:34 -0500
+	id S1752973AbaBQVVj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 17 Feb 2014 16:21:39 -0500
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
 From: Torvald Riegel <triegel@redhat.com>
-In-Reply-To: <20140217202324.GJ4250@linux.vnet.ibm.com>
-References: <20140213002355.GI4250@linux.vnet.ibm.com>
+In-Reply-To: <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
+References: <20140207180216.GP4250@linux.vnet.ibm.com>
+	 <1391992071.18779.99.camel@triegel.csb>
+	 <CA+55aFwTwCPMpYTL_vCgNNP0hE8s2sgB0iw-79=xoj99V0JUNA@mail.gmail.com>
+	 <1392183564.18779.2187.camel@triegel.csb>
+	 <20140212180739.GB4250@linux.vnet.ibm.com>
+	 <CA+55aFw3S82GYdtnV2nJCvBGcuZf6kXdF5b7Vp9yb21QKr49Jw@mail.gmail.com>
+	 <20140213002355.GI4250@linux.vnet.ibm.com>
 	 <1392321837.18779.3249.camel@triegel.csb>
 	 <20140214020144.GO4250@linux.vnet.ibm.com>
 	 <1392352981.18779.3800.camel@triegel.csb>
@@ -16,51 +22,70 @@ References: <20140213002355.GI4250@linux.vnet.ibm.com>
 	 <1392486310.18779.6447.camel@triegel.csb>
 	 <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
 	 <1392666947.18779.6838.camel@triegel.csb>
-	 <20140217202324.GJ4250@linux.vnet.ibm.com>
+	 <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
 Content-Type: text/plain; charset="UTF-8"
-Date: Mon, 17 Feb 2014 22:05:58 +0100
-Message-ID: <1392671158.18779.6909.camel@triegel.csb>
+Date: Mon, 17 Feb 2014 22:21:03 +0100
+Message-ID: <1392672063.18779.6940.camel@triegel.csb>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: paulmck@linux.vnet.ibm.com
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140217210558.JKkHiJRxrf6Phv5SMc3RoAixZpQuBRIbgFXTZPXmB8c@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Message-ID: <20140217212103.d7Ye-IXUEU4L_oAH7VaZ18AEJW2syJ8oG4lGNuYndDo@z>
 
-On Mon, 2014-02-17 at 12:23 -0800, Paul E. McKenney wrote:
-> On Mon, Feb 17, 2014 at 08:55:47PM +0100, Torvald Riegel wrote:
-> > On Sat, 2014-02-15 at 10:49 -0800, Linus Torvalds wrote:
-> > > On Sat, Feb 15, 2014 at 9:45 AM, Torvald Riegel <triegel@redhat.com> wrote:
-> > > >
-> > > > I think a major benefit of C11's memory model is that it gives a
-> > > > *precise* specification for how a compiler is allowed to optimize.
-> > > 
-> > > Clearly it does *not*. This whole discussion is proof of that. It's
-> > > not at all clear,
-> > 
-> > It might not be an easy-to-understand specification, but as far as I'm
-> > aware it is precise.  The Cambridge group's formalization certainly is
-> > precise.  From that, one can derive (together with the usual rules for
-> > as-if etc.) what a compiler is allowed to do (assuming that the standard
-> > is indeed precise).  My replies in this discussion have been based on
-> > reasoning about the standard, and not secret knowledge (with the
-> > exception of no-out-of-thin-air, which is required in the standard's
-> > prose but not yet formalized).
-> > 
-> > I agree that I'm using the formalization as a kind of placeholder for
-> > the standard's prose (which isn't all that easy to follow for me
-> > either), but I guess there's no way around an ISO standard using prose.
-> > 
-> > If you see a case in which the standard isn't precise, please bring it
-> > up or open a C++ CWG issue for it.
+On Mon, 2014-02-17 at 12:18 -0800, Linus Torvalds wrote:
+> On Mon, Feb 17, 2014 at 11:55 AM, Torvald Riegel <triegel@redhat.com> wrote:
+> >
+> > Which example do you have in mind here?  Haven't we resolved all the
+> > debated examples, or did I miss any?
 > 
-> I suggest that I go through the Linux kernel's requirements for atomics
-> and memory barriers and see how they map to C11 atomics.  With that done,
-> we would have very specific examples to go over.  Without that done, the
-> discussion won't converge very well.
-> 
-> Seem reasonable?
+> Well, Paul seems to still think that the standard possibly allows
+> speculative writes or possibly value speculation in ways that break
+> the hardware-guaranteed orderings.
 
-Sounds good!
+That's true, I just didn't see any specific examples so far.
+
+> And personally, I can't read standards paperwork. It is invariably
+> written in some basically impossible-to-understand lawyeristic mode,
+
+Yeah, it's not the most intuitive form for things like the memory model.
+
+> and then it is read by people (compiler writers) that intentionally
+> try to mis-use the words and do language-lawyering ("that depends on
+> what the meaning of 'is' is").
+
+That assumption about people working on compilers is a little too broad,
+don't you think?
+
+I think that it is important to stick to a specification, in the same
+way that one wouldn't expect a program with undefined behavior make any
+sense of it, magically, in cases where stuff is undefined.
+
+However, that of course doesn't include trying to exploit weasel-wording
+(BTW, both users and compiler writers try to do it).  IMHO,
+weasel-wording in a standard is a problem in itself even if not
+exploited, and often it indicates that there is a real issue.  There
+might be reasons to have weasel-wording (e.g., because there's no known
+better way to express it like in case of the not really precise
+no-out-of-thin-air rule today), but nonetheless those aren't ideal.
+
+> The whole "lvalue vs rvalue expression
+> vs 'what is a volatile access'" thing for C++ was/is a great example
+> of that.
+
+I'm not aware of the details of this.
+
+> So quite frankly, as a result I refuse to have anything to do with the
+> process directly.
+
+That's unfortunate.  Then please work with somebody that isn't
+uncomfortable with participating directly in the process.  But be
+warned, it may very well be a person working on compilers :)
+
+Have you looked at the formalization of the model by Batty et al.?  The
+overview of this is prose, but the formalized model itself is all formal
+relations and logic.  So there should be no language-lawyering issues
+with that form.  (For me, the formalized model is much easier to reason
+about.)
 
