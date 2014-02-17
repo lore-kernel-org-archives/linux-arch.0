@@ -1,72 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e32.co.us.ibm.com ([32.97.110.150]:45180 "EHLO
-	e32.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754484AbaBQWO3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Feb 2014 17:14:29 -0500
-Received: from /spool/local
-	by e32.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Mon, 17 Feb 2014 15:14:28 -0700
-Date: Mon, 17 Feb 2014 14:14:23 -0800
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Received: from mx1.redhat.com ([209.132.183.28]:16058 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752819AbaBQW0R (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 17 Feb 2014 17:26:17 -0500
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Message-ID: <20140217221423.GK4250@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Torvald Riegel <triegel@redhat.com>
+In-Reply-To: <CA+55aFyay_ck4eb6HEWvD4bTS=3OYY7wX1MVNKAcpUYN0ssWhA@mail.gmail.com>
 References: <20140207180216.GP4250@linux.vnet.ibm.com>
- <1391992071.18779.99.camel@triegel.csb>
- <CA+55aFwTwCPMpYTL_vCgNNP0hE8s2sgB0iw-79=xoj99V0JUNA@mail.gmail.com>
- <20140211155941.GU4250@linux.vnet.ibm.com>
- <1392185194.18779.2239.camel@triegel.csb>
- <20140212091907.GA3545@laptop.programming.kicks-ass.net>
- <20140212174209.GA4250@linux.vnet.ibm.com>
- <20140212181205.GD27965@twins.programming.kicks-ass.net>
- <20140217181815.GA1934@linux.vnet.ibm.com>
- <99178341-b6c8-4546-957c-2ea4031b4fe0@email.android.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <99178341-b6c8-4546-957c-2ea4031b4fe0@email.android.com>
+	 <1391992071.18779.99.camel@triegel.csb>
+	 <CA+55aFwTwCPMpYTL_vCgNNP0hE8s2sgB0iw-79=xoj99V0JUNA@mail.gmail.com>
+	 <1392183564.18779.2187.camel@triegel.csb>
+	 <20140212180739.GB4250@linux.vnet.ibm.com>
+	 <CA+55aFw3S82GYdtnV2nJCvBGcuZf6kXdF5b7Vp9yb21QKr49Jw@mail.gmail.com>
+	 <20140213002355.GI4250@linux.vnet.ibm.com>
+	 <1392321837.18779.3249.camel@triegel.csb>
+	 <20140214020144.GO4250@linux.vnet.ibm.com>
+	 <1392352981.18779.3800.camel@triegel.csb>
+	 <20140214172920.GQ4250@linux.vnet.ibm.com>
+	 <CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>
+	 <CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>
+	 <1392486310.18779.6447.camel@triegel.csb>
+	 <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
+	 <1392666947.18779.6838.camel@triegel.csb>
+	 <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
+	 <1392672063.18779.6940.camel@triegel.csb>
+	 <CA+55aFyay_ck4eb6HEWvD4bTS=3OYY7wX1MVNKAcpUYN0ssWhA@mail.gmail.com>
+Content-Type: text/plain; charset="UTF-8"
+Date: Mon, 17 Feb 2014 23:25:39 +0100
+Message-ID: <1392675939.18779.7063.camel@triegel.csb>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Biener <richard.guenther@gmail.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Torvald Riegel <triegel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140217221423.wV4NUtjkp8ijujUoXCM5vs1iP281RcBDI_45k0oTgRs@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Message-ID: <20140217222539.Tr7MTpQQJ2icm_vgmn2naedViPhe3QTTisMpiEhVG_Q@z>
 
-On Mon, Feb 17, 2014 at 09:39:54PM +0100, Richard Biener wrote:
-> On February 17, 2014 7:18:15 PM GMT+01:00, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com> wrote:
-> >On Wed, Feb 12, 2014 at 07:12:05PM +0100, Peter Zijlstra wrote:
-> >> On Wed, Feb 12, 2014 at 09:42:09AM -0800, Paul E. McKenney wrote:
-> >> > You need volatile semantics to force the compiler to ignore any
-> >proofs
-> >> > it might otherwise attempt to construct.  Hence all the
-> >ACCESS_ONCE()
-> >> > calls in my email to Torvald.  (Hopefully I translated your example
-> >> > reasonably.)
-> >> 
-> >> My brain gave out for today; but it did appear to have the right
-> >> structure.
+On Mon, 2014-02-17 at 14:02 -0800, Linus Torvalds wrote:
+> On Mon, Feb 17, 2014 at 1:21 PM, Torvald Riegel <triegel@redhat.com> wrote:
+> > On Mon, 2014-02-17 at 12:18 -0800, Linus Torvalds wrote:
+> >> and then it is read by people (compiler writers) that intentionally
+> >> try to mis-use the words and do language-lawyering ("that depends on
+> >> what the meaning of 'is' is").
 > >
-> >I can relate.  ;-)
-> >
-> >> I would prefer it C11 would not require the volatile casts. It should
-> >> simply _never_ speculate with atomic writes, volatile or not.
-> >
-> >I agree with not needing volatiles to prevent speculated writes. 
-> >However,
-> >they will sometimes be needed to prevent excessive load/store
-> >combining.
-> >The compiler doesn't have the runtime feedback mechanisms that the
-> >hardware has, and thus will need help from the developer from time
-> >to time.
-> >
-> >Or maybe the Linux kernel simply waits to transition to C11 relaxed
-> >atomics
-> >until the compiler has learned to be sufficiently conservative in its
-> >load-store combining decisions.
+> > That assumption about people working on compilers is a little too broad,
+> > don't you think?
 > 
-> Sounds backwards. Currently the compiler does nothing to the atomics. I'm sure we'll eventually add something. But if testing coverage is zero outside then surely things get worse, not better with time.
+> Let's just say that *some* are that way, and those are the ones that I
+> end up butting heads with.
+> 
+> The sane ones I never have to argue with - point them at a bug, and
+> they just say "yup, bug". The insane ones say "we don't need to fix
+> that, because if you read this copy of the standards that have been
+> translated to chinese and back, it clearly says that this is
+> acceptable".
+> 
+> >> The whole "lvalue vs rvalue expression
+> >> vs 'what is a volatile access'" thing for C++ was/is a great example
+> >> of that.
+> >
+> > I'm not aware of the details of this.
+> 
+> The argument was that an lvalue doesn't actually "access" the memory
+> (an rvalue does), so this:
+> 
+>    volatile int *p = ...;
+> 
+>    *p;
+> 
+> doesn't need to generate a load from memory, because "*p" is still an
+> lvalue (since you could assign things to it).
+> 
+> This isn't an issue in C, because in C, expression statements are
+> always rvalues, but C++ changed that.
 
-Perhaps we solve this chicken-and-egg problem by creating a test suite?
+Huhh.  I can see the problems that this creates in terms of C/C++
+compatibility.
 
-							Thanx, Paul
+> The people involved with the C++
+> standards have generally been totally clueless about their subtle
+> changes.
+
+This isn't a fair characterization.  There are many people that do care,
+and certainly not all are clueless.  But it's a limited set of people,
+bugs happen, and not all of them will have the same goals.
+
+I think one way to prevent such problems in the future could be to have
+someone in the kernel community volunteer to look through standard
+revisions before they are published.  The standard needs to be fixed,
+because compilers need to conform to the standard (e.g., a compiler's
+extension "fixing" the above wouldn't be conforming anymore because it
+emits more volatile reads than specified).
+
+Or maybe those of us working on the standard need to flag potential
+changes of interest to the kernel folks.  But that may be less reliable
+than someone from the kernel side looking at them; I don't know.
 
