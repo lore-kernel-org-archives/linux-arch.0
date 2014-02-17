@@ -1,91 +1,342 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e39.co.us.ibm.com ([32.97.110.160]:51570 "EHLO
-	e39.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751847AbaBQUXb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Feb 2014 15:23:31 -0500
-Received: from /spool/local
-	by e39.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Mon, 17 Feb 2014 13:23:30 -0700
-Date: Mon, 17 Feb 2014 12:23:24 -0800
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Message-ID: <20140217202324.GJ4250@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <20140213002355.GI4250@linux.vnet.ibm.com>
- <1392321837.18779.3249.camel@triegel.csb>
- <20140214020144.GO4250@linux.vnet.ibm.com>
- <1392352981.18779.3800.camel@triegel.csb>
- <20140214172920.GQ4250@linux.vnet.ibm.com>
- <CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>
- <CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>
- <1392486310.18779.6447.camel@triegel.csb>
- <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
- <1392666947.18779.6838.camel@triegel.csb>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1392666947.18779.6838.camel@triegel.csb>
+Received: from g1t0026.austin.hp.com ([15.216.28.33]:13555 "EHLO
+	g1t0026.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751178AbaBQUmK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Feb 2014 15:42:10 -0500
+From: Waiman Long <Waiman.Long@hp.com>
+Subject: [PATCH v4 3/3] qspinlock, x86: Add x86 specific optimization for 2 contending tasks
+Date: Mon, 17 Feb 2014 15:41:24 -0500
+Message-ID: <1392669684-4807-4-git-send-email-Waiman.Long@hp.com>
+In-Reply-To: <1392669684-4807-1-git-send-email-Waiman.Long@hp.com>
+References: <1392669684-4807-1-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Torvald Riegel <triegel@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140217202324.HQIOcQpz8-DoB3iaAGPPKV7C-9b2QxROArgF0dR4-PA@z>
+To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>, Waiman Long <Waiman.Long@hp.com>
+Message-ID: <20140217204124.xYRUuBLSxuupbiDT8DrW4EP6OmfdeHD3J7krnzGMzVc@z>
 
-On Mon, Feb 17, 2014 at 08:55:47PM +0100, Torvald Riegel wrote:
-> On Sat, 2014-02-15 at 10:49 -0800, Linus Torvalds wrote:
-> > On Sat, Feb 15, 2014 at 9:45 AM, Torvald Riegel <triegel@redhat.com> wrote:
-> > >
-> > > I think a major benefit of C11's memory model is that it gives a
-> > > *precise* specification for how a compiler is allowed to optimize.
-> > 
-> > Clearly it does *not*. This whole discussion is proof of that. It's
-> > not at all clear,
-> 
-> It might not be an easy-to-understand specification, but as far as I'm
-> aware it is precise.  The Cambridge group's formalization certainly is
-> precise.  From that, one can derive (together with the usual rules for
-> as-if etc.) what a compiler is allowed to do (assuming that the standard
-> is indeed precise).  My replies in this discussion have been based on
-> reasoning about the standard, and not secret knowledge (with the
-> exception of no-out-of-thin-air, which is required in the standard's
-> prose but not yet formalized).
-> 
-> I agree that I'm using the formalization as a kind of placeholder for
-> the standard's prose (which isn't all that easy to follow for me
-> either), but I guess there's no way around an ISO standard using prose.
-> 
-> If you see a case in which the standard isn't precise, please bring it
-> up or open a C++ CWG issue for it.
+A major problem with the queue spinlock patch is its performance at
+low contention level (2-4 contending tasks) where it is slower than
+the corresponding ticket spinlock code path. The following table shows
+the execution time (in ms) of a micro-benchmark where 5M iterations
+of the lock/unlock cycles were run on a 10-core Westere-EX CPU with
+2 different types loads - standalone (lock and protected data in
+different cachelines) and embedded (lock and protected data in the
+same cacheline).
 
-I suggest that I go through the Linux kernel's requirements for atomics
-and memory barriers and see how they map to C11 atomics.  With that done,
-we would have very specific examples to go over.  Without that done, the
-discussion won't converge very well.
+		  [Standalone/Embedded]
+  # of tasks	Ticket lock	Queue lock	%Change
+  ----------	-----------	----------	-------
+       1	  135/111	 135/102	  0%/-8%
+       2	  732/950	1315/1573	+80%/+66%
+       3	 1827/1783	2372/2428	+30%/+36%
+       4	 2689/2725	2934/2934	 +9%/+8%
+       5	 3736/3748	3658/3652	 -2%/-3%
+       6	 4942/4984	4434/4428	-10%/-11%
+       7	 6304/6319	5176/5163	-18%/-18%
+       8	 7736/7629	5955/5944	-23%/-22%
 
-Seem reasonable?
+It can be seen that the performance degradation is particular bad
+with 2 and 3 contending tasks. To reduce that performance deficit
+at low contention level, a special x86 specific optimized code path
+for 2 contending tasks was added. This special code path will only
+be activated with less than 16K of configured CPUs because it uses
+a byte in the 32-bit lock word to hold a waiting bit for the 2nd
+contending tasks instead of queuing the waiting task in the queue.
 
-							Thanx, Paul
+With the change, the performance data became:
 
-> > and the standard apparently is at least debatably
-> > allowing things that shouldn't be allowed.
-> 
-> Which example do you have in mind here?  Haven't we resolved all the
-> debated examples, or did I miss any?
-> 
-> > It's also a whole lot more
-> > complicated than "volatile", so the likelihood of a compiler writer
-> > actually getting it right - even if the standard does - is lower.
-> 
-> It's not easy, that's for sure, but none of the high-performance
-> alternatives are easy either.  There are testing tools out there based
-> on the formalization of the model, and we've found bugs with them.
-> 
-> And the alternative of using something not specified by the standard is
-> even worse, I think, because then you have to guess what a compiler
-> might do, without having any constraints; IOW, one is resorting to "no
-> sane compiler would do that", and that doesn't seem to very robust
-> either.
-> 
-> 
+		  [Standalone/Embedded]
+  # of tasks	Ticket lock	Queue lock	%Change
+  ----------	-----------	----------	-------
+       2	  732/950	 523/528	-29%/-44%
+       3	 1827/1783	2366/2384	+30%/+34%
+
+The queue spinlock code path is now a bit faster with 2 contending
+tasks.  There is also a very slight improvement with 3 contending
+tasks.
+
+The performance of the optimized code path can vary depending on which
+of the several different code paths is taken. It is also not as fair as
+the ticket spinlock and some variations on the execution times of the
+2 contending tasks.  Testing with different pairs of cores within the
+same CPUs shows an execution time that varies from 400ms to 1194ms.
+The ticket spinlock code also shows a variation of 718-1146ms which
+is probably due to the CPU topology within a socket.
+
+In a multi-socketed server, the optimized code path also seems to
+produce a big performance improvement in cross-node contention traffic
+at low contention level. The table below show the performance with
+1 contending task per node:
+
+		[Standalone]
+  # of nodes	Ticket lock	Queue lock	%Change
+  ----------	-----------	----------	-------
+       1	   135		 135		  0%
+       2	  4452		 528		-88%
+       3	 10767		2369		-78%
+       4	 20835		2921		-86%
+
+The micro-benchmark was also run on a 4-core Ivy-Bridge PC. The table
+below shows the collected performance data:
+
+		  [Standalone/Embedded]
+  # of tasks	Ticket lock	Queue lock	%Change
+  ----------	-----------	----------	-------
+       1	  197/178	  181/150	 -8%/-16%
+       2	 1109/928    435-1417/697-2125
+       3	 1836/1702  1372-3112/1379-3138
+       4	 2717/2429  1842-4158/1846-4170
+
+The performance of the queue lock patch varied from run to run whereas
+the performance of the ticket lock was more consistent. The queue
+lock figures above were the range of values that were reported.
+
+Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+---
+ arch/x86/include/asm/qspinlock.h      |  183 ++++++++++++++++++++++++++++++++-
+ include/asm-generic/qspinlock_types.h |   16 +++-
+ 2 files changed, 196 insertions(+), 3 deletions(-)
+
+diff --git a/arch/x86/include/asm/qspinlock.h b/arch/x86/include/asm/qspinlock.h
+index 7316ec4..ff205c4 100644
+--- a/arch/x86/include/asm/qspinlock.h
++++ b/arch/x86/include/asm/qspinlock.h
+@@ -7,10 +7,18 @@
+ 
+ /*
+  * Queue spinlock union structure to be used within this header file only
++ * Besides the slock and lock fields, the other fields are only valid with
++ * less than 16K CPUs.
+  */
+ union qspinlock_x86 {
+ 	struct qspinlock slock;
+-	u8		 lock;	/* Lock bit	*/
++	struct {
++		u8  lock;	/* Lock bit	*/
++		u8  wait;	/* Waiting bit	*/
++		u16 qcode;	/* Queue code	*/
++	};
++	u16 lock_wait;		/* Lock and wait bits */
++	int qlcode;
+ };
+ 
+ #define queue_spin_trylock_unfair queue_spin_trylock_unfair
+@@ -48,6 +56,179 @@ static inline void queue_spin_unlock(struct qspinlock *lock)
+ 	barrier();
+ }
+ 
++#ifndef _Q_MANY_CPUS
++/*
++ * With less than 16K CPUs, the following optimizations are possible with
++ * the x86 architecture:
++ *  1) The 2nd byte of the 32-bit lock word can be used as a pending bit
++ *     for waiting lock acquirer so that it won't need to go through the
++ *     MCS style locking queuing which has a higher overhead.
++ *  2) The 16-bit queue code can be accessed or modified directly as a
++ *     16-bit short value without disturbing the first 2 bytes.
++ */
++#define	_QSPINLOCK_WAITING	0x100U	/* Waiting bit in 2nd byte   */
++#define	_QSPINLOCK_LWMASK	0xffff	/* Mask for lock & wait bits */
++
++/*
++ * As the qcode will be accessed as a 16-bit word, no offset is needed
++ */
++#define _QCODE_VAL_OFFSET	0
++#define _SET_QCODE(cpu, idx)	(((cpu) + 1) << 2 | (idx))
++
++#define queue_spin_trylock_quick queue_spin_trylock_quick
++/**
++ * queue_spin_trylock_quick - fast spinning on the queue spinlock
++ * @lock : Pointer to queue spinlock structure
++ * @qsval: Old queue spinlock value
++ * Return: 1 if lock acquired, 0 if failed
++ *
++ * This is an optimized contention path for 2 contending tasks. It
++ * should only be entered if no task is waiting in the queue. This
++ * optimized path is not as fair as the ticket spinlock, but it offers
++ * slightly better performance. The regular MCS locking path for 3 or
++ * more contending tasks, however, is fair.
++ *
++ * Depending on the exact timing, there are several different paths where
++ * a contending task can take. The actual contention performance depends
++ * on which path is taken. So it can be faster or slower than the
++ * corresponding ticket spinlock path. On average, it is probably on par
++ * with ticket spinlock.
++ */
++static inline int queue_spin_trylock_quick(struct qspinlock *lock, int qsval)
++{
++	union qspinlock_x86 *qlock = (union qspinlock_x86 *)lock;
++	u16		     old;
++
++	/*
++	 * Fall into the quick spinning code path only if no one is waiting
++	 * or the lock is available.
++	 */
++	if (unlikely((qsval != _QSPINLOCK_LOCKED) &&
++		     (qsval != _QSPINLOCK_WAITING)))
++		return 0;
++
++	old = xchg(&qlock->lock_wait, _QSPINLOCK_WAITING|_QSPINLOCK_LOCKED);
++
++	if (old == 0) {
++		/*
++		 * Got the lock, can clear the waiting bit now
++		 */
++		ACCESS_ONCE(qlock->wait) = 0;
++		return 1;
++	} else if (old == _QSPINLOCK_LOCKED) {
++try_again:
++		/*
++		 * Wait until the lock byte is cleared to get the lock
++		 */
++		do {
++			cpu_relax();
++		} while (ACCESS_ONCE(qlock->lock));
++		/*
++		 * Set the lock bit & clear the waiting bit
++		 */
++		if (cmpxchg(&qlock->lock_wait, _QSPINLOCK_WAITING,
++			   _QSPINLOCK_LOCKED) == _QSPINLOCK_WAITING)
++			return 1;
++		/*
++		 * Someone has steal the lock, so wait again
++		 */
++		goto try_again;
++	} else if (old == _QSPINLOCK_WAITING) {
++		/*
++		 * Another task is already waiting while it steals the lock.
++		 * A bit of unfairness here won't change the big picture.
++		 * So just take the lock and return.
++		 */
++		return 1;
++	}
++	/*
++	 * Nothing need to be done if the old value is
++	 * (_QSPINLOCK_WAITING | _QSPINLOCK_LOCKED).
++	 */
++	return 0;
++}
++
++#define queue_code_xchg	queue_code_xchg
++/**
++ * queue_code_xchg - exchange a queue code value
++ * @lock : Pointer to queue spinlock structure
++ * @qcode: New queue code to be exchanged
++ * Return: The original qcode value in the queue spinlock
++ */
++static inline u32 queue_code_xchg(struct qspinlock *lock, u32 qcode)
++{
++	union qspinlock_x86 *qlock = (union qspinlock_x86 *)lock;
++
++	return (u32)xchg(&qlock->qcode, (u16)qcode);
++}
++
++#define queue_spin_trylock_and_clr_qcode queue_spin_trylock_and_clr_qcode
++/**
++ * queue_spin_trylock_and_clr_qcode - Try to lock & clear qcode simultaneously
++ * @lock : Pointer to queue spinlock structure
++ * @qcode: The supposedly current qcode value
++ * Return: true if successful, false otherwise
++ */
++static inline int
++queue_spin_trylock_and_clr_qcode(struct qspinlock *lock, u32 qcode)
++{
++	qcode <<= _QCODE_OFFSET;
++	return atomic_cmpxchg(&lock->qlcode, qcode, _QSPINLOCK_LOCKED) == qcode;
++}
++
++#define queue_get_lock_qcode queue_get_lock_qcode
++/**
++ * queue_get_lock_qcode - get the lock & qcode values
++ * @lock  : Pointer to queue spinlock structure
++ * @qcode : Pointer to the returned qcode value
++ * @mycode: My qcode value
++ * Return : > 0 if lock is not available
++ *	   = 0 if lock is free
++ *	   < 0 if lock is taken & can return after cleanup
++ *
++ * It is considered locked when either the lock bit or the wait bit is set.
++ */
++static inline int
++queue_get_lock_qcode(struct qspinlock *lock, u32 *qcode, u32 mycode)
++{
++	u32 qlcode;
++
++	qlcode = (u32)atomic_read(&lock->qlcode);
++	/*
++	 * With the special case that qlcode contains only _QSPINLOCK_LOCKED
++	 * and mycode. It will try to transition back to the quick spinning
++	 * code by clearing the qcode and setting the _QSPINLOCK_WAITING
++	 * bit.
++	 */
++	if (qlcode == (_QSPINLOCK_LOCKED | (mycode << _QCODE_OFFSET))) {
++		u32 old = qlcode;
++
++		qlcode = atomic_cmpxchg(&lock->qlcode, old,
++				_QSPINLOCK_LOCKED|_QSPINLOCK_WAITING);
++		if (qlcode == old) {
++			union qspinlock_x86 *slock =
++				(union qspinlock_x86 *)lock;
++try_again:
++			/*
++			 * Wait until the lock byte is cleared
++			 */
++			do {
++				cpu_relax();
++			} while (ACCESS_ONCE(slock->lock));
++			/*
++			 * Set the lock bit & clear the waiting bit
++			 */
++			if (cmpxchg(&slock->lock_wait, _QSPINLOCK_WAITING,
++				    _QSPINLOCK_LOCKED) == _QSPINLOCK_WAITING)
++				return -1;	/* Got the lock */
++			goto try_again;
++		}
++	}
++	*qcode = qlcode >> _QCODE_OFFSET;
++	return qlcode & _QSPINLOCK_LWMASK;
++}
++
++#endif /* _Q_MANY_CPUS */
+ #endif /* !CONFIG_X86_OOSTORE && !CONFIG_X86_PPRO_FENCE */
+ 
+ #include <asm-generic/qspinlock.h>
+diff --git a/include/asm-generic/qspinlock_types.h b/include/asm-generic/qspinlock_types.h
+index e8cc9ca..486d8fd 100644
+--- a/include/asm-generic/qspinlock_types.h
++++ b/include/asm-generic/qspinlock_types.h
+@@ -26,16 +26,28 @@
+ /*
+  * The queue spinlock data structure - a 32-bit word
+  *
+- * The bits assignment are:
++ * For NR_CPUS >= 16K, the bits assignment are:
+  *   Bit  0   : Set if locked
+  *   Bits 1-7 : Not used
+  *   Bits 8-31: Queue code
++ *
++ * For NR_CPUS < 16K, the bits assignment are:
++ *   Bit   0   : Set if locked
++ *   Bits  1-7 : Not used
++ *   Bits  8-15: Reserved for architecture specific optimization
++ *   Bits 16-31: Queue code
+  */
+ typedef struct qspinlock {
+ 	atomic_t	qlcode;	/* Lock + queue code */
+ } arch_spinlock_t;
+ 
+-#define _QCODE_OFFSET		8
++#if CONFIG_NR_CPUS >= (1 << 14)
++# define _Q_MANY_CPUS
++# define _QCODE_OFFSET	8
++#else
++# define _QCODE_OFFSET	16
++#endif
++
+ #define _QSPINLOCK_LOCKED	1U
+ #define	_QCODE(lock)	(atomic_read(&(lock)->qlcode) >> _QCODE_OFFSET)
+ #define	_QLOCK(lock)	(atomic_read(&(lock)->qlcode) & _QSPINLOCK_LOCKED)
+-- 
+1.7.1
 
