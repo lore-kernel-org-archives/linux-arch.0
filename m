@@ -1,47 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fw-tnat.austin.arm.com ([217.140.110.23]:22395 "EHLO
-	collaborate-mta1.arm.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1752583AbaBQSop (ORCPT
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:38293 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752901AbaBQTUB (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 17 Feb 2014 13:44:45 -0500
-Date: Mon, 17 Feb 2014 18:44:35 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH] asm-generic: add sched_setattr/sched_getattr syscalls
-Message-ID: <20140217184435.GD8361@arm.com>
-References: <1391441617-21518-1-git-send-email-james.hogan@imgtec.com>
+	Mon, 17 Feb 2014 14:20:01 -0500
+Date: Mon, 17 Feb 2014 19:19:14 +0000
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
+Message-ID: <20140217191914.GG26590@mudshark.cambridge.arm.com>
+References: <1392321837.18779.3249.camel@triegel.csb>
+ <20140214020144.GO4250@linux.vnet.ibm.com>
+ <1392352981.18779.3800.camel@triegel.csb>
+ <20140214172920.GQ4250@linux.vnet.ibm.com>
+ <CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>
+ <CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>
+ <20140215020815.GS4250@linux.vnet.ibm.com>
+ <CA+55aFyQTE-CzOoNn=KfDgt9bTLrUxBCXzhQ2T9kNoTy+bRQrQ@mail.gmail.com>
+ <1392487627.18779.6535.camel@triegel.csb>
+ <Pine.LNX.4.64.1402171856400.29680@digraph.polyomino.org.uk>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1391441617-21518-1-git-send-email-james.hogan@imgtec.com>
+In-Reply-To: <Pine.LNX.4.64.1402171856400.29680@digraph.polyomino.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Vineet Gupta <vgupta@synopsys.com>, Will Deacon <Will.Deacon@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "msalter@redhat.com" <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, Richard Kuo <rkuo@codeaurora.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "linux-metag@vger.kernel.org" <linux-metag@vger.kernel.org>, Jonas Bonn <jonas@southpole.se>, "linux@openrisc.net" <linux@openrisc.net>, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, Chris Metcalf <cmetcalf@tilera.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>
-Message-ID: <20140217184435.UCLGNFjJ-_2WAa_7yHmEzWIFf8p64GmJpuCu36mo3iQ@z>
+To: "Joseph S. Myers" <joseph@codesourcery.com>
+Cc: Torvald Riegel <triegel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Message-ID: <20140217191914.JGlofFHWDuFrtYsOaBse43cSey2wZ-EIHlNMSUvsnpo@z>
 
-On Mon, Feb 03, 2014 at 03:33:37PM +0000, James Hogan wrote:
-> Add the sched_setattr and sched_getattr syscalls to the generic syscall
-> list, which is used by the following architectures: arc, arm64, c6x,
-> hexagon, metag, openrisc, score, tile, unicore32.
+On Mon, Feb 17, 2014 at 06:59:31PM +0000, Joseph S. Myers wrote:
+> On Sat, 15 Feb 2014, Torvald Riegel wrote:
 > 
-> Signed-off-by: James Hogan <james.hogan@imgtec.com>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: linux-arch@vger.kernel.org
-> Cc: Vineet Gupta <vgupta@synopsys.com>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will.deacon@arm.com>
-> Cc: linux-arm-kernel@lists.infradead.org
-> Cc: Mark Salter <msalter@redhat.com>
-> Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
-> Cc: linux-c6x-dev@linux-c6x.org
-> Cc: Richard Kuo <rkuo@codeaurora.org>
-> Cc: linux-hexagon@vger.kernel.org
-> Cc: linux-metag@vger.kernel.org
-> Cc: Jonas Bonn <jonas@southpole.se>
-> Cc: linux@lists.openrisc.net
-> Cc: Chen Liqin <liqin.linux@gmail.com>
-> Cc: Lennox Wu <lennox.wu@gmail.com>
-> Cc: Chris Metcalf <cmetcalf@tilera.com>
-> Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
+> > glibc is a counterexample that comes to mind, although it's a smaller
+> > code base.  (It's currently not using C11 atomics, but transitioning
+> > there makes sense, and some thing I want to get to eventually.)
+> 
+> glibc is using C11 atomics (GCC builtins rather than _Atomic / 
+> <stdatomic.h>, but using __atomic_* with explicitly specified memory model 
+> rather than the older __sync_*) on AArch64, plus in certain cases on ARM 
+> and MIPS.
 
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+Hmm, actually that results in a change in behaviour for the __sync_*
+primitives on AArch64. The documentation for those states that:
+
+  `In most cases, these built-in functions are considered a full barrier. That
+  is, no memory operand is moved across the operation, either forward or
+  backward. Further, instructions are issued as necessary to prevent the
+  processor from speculating loads across the operation and from queuing stores
+  after the operation.'
+
+which is stronger than simply mapping them to memory_model_seq_cst, which
+seems to be what the AArch64 compiler is doing (so you get acquire + release
+instead of a full fence).
+
+Will
