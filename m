@@ -1,72 +1,133 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:22641 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753165AbaBQW2F (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 17 Feb 2014 17:28:05 -0500
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-From: Torvald Riegel <triegel@redhat.com>
-In-Reply-To: <20140217221423.GK4250@linux.vnet.ibm.com>
+Received: from mail-ve0-f173.google.com ([209.85.128.173]:57222 "EHLO
+	mail-ve0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752968AbaBQWcr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Feb 2014 17:32:47 -0500
+MIME-Version: 1.0
+In-Reply-To: <1392674986.18779.7038.camel@triegel.csb>
 References: <20140207180216.GP4250@linux.vnet.ibm.com>
-	 <1391992071.18779.99.camel@triegel.csb>
-	 <CA+55aFwTwCPMpYTL_vCgNNP0hE8s2sgB0iw-79=xoj99V0JUNA@mail.gmail.com>
-	 <20140211155941.GU4250@linux.vnet.ibm.com>
-	 <1392185194.18779.2239.camel@triegel.csb>
-	 <20140212091907.GA3545@laptop.programming.kicks-ass.net>
-	 <20140212174209.GA4250@linux.vnet.ibm.com>
-	 <20140212181205.GD27965@twins.programming.kicks-ass.net>
-	 <20140217181815.GA1934@linux.vnet.ibm.com>
-	 <99178341-b6c8-4546-957c-2ea4031b4fe0@email.android.com>
-	 <20140217221423.GK4250@linux.vnet.ibm.com>
-Content-Type: text/plain; charset="UTF-8"
-Date: Mon, 17 Feb 2014 23:27:27 +0100
-Message-ID: <1392676047.18779.7067.camel@triegel.csb>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+	<1391992071.18779.99.camel@triegel.csb>
+	<CA+55aFwTwCPMpYTL_vCgNNP0hE8s2sgB0iw-79=xoj99V0JUNA@mail.gmail.com>
+	<1392183564.18779.2187.camel@triegel.csb>
+	<20140212180739.GB4250@linux.vnet.ibm.com>
+	<CA+55aFw3S82GYdtnV2nJCvBGcuZf6kXdF5b7Vp9yb21QKr49Jw@mail.gmail.com>
+	<20140213002355.GI4250@linux.vnet.ibm.com>
+	<1392321837.18779.3249.camel@triegel.csb>
+	<20140214020144.GO4250@linux.vnet.ibm.com>
+	<1392352981.18779.3800.camel@triegel.csb>
+	<20140214172920.GQ4250@linux.vnet.ibm.com>
+	<CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>
+	<1392485428.18779.6387.camel@triegel.csb>
+	<CA+55aFw5v8Zc818YoxazFhP0btN1faofNbED=qrpi3VrtRA39w@mail.gmail.com>
+	<1392674986.18779.7038.camel@triegel.csb>
+Date: Mon, 17 Feb 2014 14:32:46 -0800
+Message-ID: <CA+55aFz-gaNKxRGU-YPw3xu=T8ZxFv0v22i+R7vWoeQT0i+8Mw@mail.gmail.com>
+Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: paulmck@linux.vnet.ibm.com
-Cc: Richard Biener <richard.guenther@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140217222727.riZq0CuG3bNmB-zZPcg9tTaPHrRlGDRTZvwWVntL6qI@z>
+To: Torvald Riegel <triegel@redhat.com>
+Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Message-ID: <20140217223246.JSzHfEoUEI7DqmaKVEzp00kiZhe3apkY_A26mbX-aBI@z>
 
-On Mon, 2014-02-17 at 14:14 -0800, Paul E. McKenney wrote:
-> On Mon, Feb 17, 2014 at 09:39:54PM +0100, Richard Biener wrote:
-> > On February 17, 2014 7:18:15 PM GMT+01:00, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com> wrote:
-> > >On Wed, Feb 12, 2014 at 07:12:05PM +0100, Peter Zijlstra wrote:
-> > >> On Wed, Feb 12, 2014 at 09:42:09AM -0800, Paul E. McKenney wrote:
-> > >> > You need volatile semantics to force the compiler to ignore any
-> > >proofs
-> > >> > it might otherwise attempt to construct.  Hence all the
-> > >ACCESS_ONCE()
-> > >> > calls in my email to Torvald.  (Hopefully I translated your example
-> > >> > reasonably.)
-> > >> 
-> > >> My brain gave out for today; but it did appear to have the right
-> > >> structure.
-> > >
-> > >I can relate.  ;-)
-> > >
-> > >> I would prefer it C11 would not require the volatile casts. It should
-> > >> simply _never_ speculate with atomic writes, volatile or not.
-> > >
-> > >I agree with not needing volatiles to prevent speculated writes. 
-> > >However,
-> > >they will sometimes be needed to prevent excessive load/store
-> > >combining.
-> > >The compiler doesn't have the runtime feedback mechanisms that the
-> > >hardware has, and thus will need help from the developer from time
-> > >to time.
-> > >
-> > >Or maybe the Linux kernel simply waits to transition to C11 relaxed
-> > >atomics
-> > >until the compiler has learned to be sufficiently conservative in its
-> > >load-store combining decisions.
-> > 
-> > Sounds backwards. Currently the compiler does nothing to the atomics. I'm sure we'll eventually add something. But if testing coverage is zero outside then surely things get worse, not better with time.
-> 
-> Perhaps we solve this chicken-and-egg problem by creating a test suite?
+On Mon, Feb 17, 2014 at 2:09 PM, Torvald Riegel <triegel@redhat.com> wrote:
+> On Sat, 2014-02-15 at 11:15 -0800, Linus Torvalds wrote:
+>> >
+>> > if (atomic_load(&x, mo_relaxed) == 1)
+>> >   atomic_store(&y, 3, mo_relaxed));
+>>
+>> No, please don't use this idiotic example. It is wrong.
+>
+> It won't be useful in practice in a lot of cases, but that doesn't mean
+> it's wrong.  It's clearly not illegal code.  It also serves a purpose: a
+> simple example to reason about a few aspects of the memory model.
 
-Perhaps.  The test suite might also be a good set of examples showing
-which cases we expect to be optimized in a certain way, and which not.
-I suppose the uses of (the equivalent) of atomics in the kernel would be
-a good start.
+It's not illegal code, but i you claim that you can make that store
+unconditional, it's a pointless and wrong example.
 
+>> The fact is, if a compiler generates anything but the obvious sequence
+>> (read/cmp/branch/store - where branch/store might obviously be done
+>> with some other machine conditional like a predicate), the compiler is
+>> wrong.
+>
+> Why?  I've reasoned why (1) to (3) above allow in certain cases (i.e.,
+> the first load always returning 1) for the branch (or other machine
+> conditional) to not be emitted.  So please either poke holes into this
+> reasoning, or clarify that you don't in fact, contrary to what you wrote
+> above, agree with (1) to (3).
+
+The thing is, the first load DOES NOT RETURN 1. It returns whatever
+that memory location contains. End of story.
+
+Stop claiming it "can return 1".. It *never* returns 1 unless you do
+the load and *verify* it, or unless the load itself can be made to go
+away. And with the code sequence given, that just doesn't happen. END
+OF STORY.
+
+So your argument is *shit*. Why do you continue to argue it?
+
+I told you how that load can go away, and you agreed. But IT CANNOT GO
+AWAY any other way. You cannot claim "the compiler knows". The
+compiler doesn't know. It's that simple.
+
+>> So why do I say you are wrong, after I just gave you an example of how
+>> it happens? Because my example went back to the *real* issue, and
+>> there are actual real semantically meaningful details with doing
+>> things like load merging.
+>>
+>> To give an example, let's rewrite things a bit more to use an extra variable:
+>>
+>>     atomic_store(&x, 1, mo_relaxed);
+>>     a = atomic_load(&1, mo_relaxed);
+>>     if (a == 1)
+>>         atomic_store(&y, 3, mo_relaxed);
+>>
+>> which looks exactly the same.
+>
+> I'm confused.  Is this a new example?
+
+That is a new example. The important part is that it has left a
+"trace" for the programmer: because 'a' contains the value, the
+programmer can now look at the value later and say "oh, we know we did
+a store iff a was 1"
+
+>> This sequence:
+>>
+>>     atomic_store(&x, 1, mo_relaxed);
+>>     a = atomic_load(&x, mo_relaxed);
+>>     atomic_store(&y, 3, mo_relaxed);
+>>
+>> is actually - and very seriously - buggy.
+>>
+>> Why? Because you have effectively split the atomic_load into two loads
+>> - one for the value of 'a', and one for your 'proof' that the store is
+>> unconditional.
+>
+> I can't follow that, because it isn't clear to me which code sequences
+> are meant to belong together, and which transformations the compiler is
+> supposed to make.  If you would clarify that, then I can reply to this
+> part.
+
+Basically, if the compiler allows the condition of "I wrote 3 to the
+y, but the programmer sees 'a' has another value than 1 later" then
+the compiler is one buggy pile of shit. It fundamentally broke the
+whole concept of atomic accesses. Basically the "atomic" access to 'x'
+turned into two different accesses: the one that "proved" that x had
+the value 1 (and caused the value 3 to be written), and the other load
+that then write that other value into 'a'.
+
+It's really not that complicated.
+
+And this is why descriptions like this should ABSOLUTELY NOT BE
+WRITTEN as "if the compiler can prove that 'x' had the value 1, it can
+remove the branch". Because that IS NOT SUFFICIENT. That was not a
+valid transformation of the atomic load.
+
+The only valid transformation was the one I stated, namely to remove
+the load entirely and replace it with the value written earlier in the
+same execution context.
+
+Really, why is so hard to understand?
+
+               Linus
