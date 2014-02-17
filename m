@@ -1,51 +1,42 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH] asm-generic: add sched_setattr/sched_getattr
-	syscalls
-Date: Mon, 17 Feb 2014 18:44:35 +0000
-Message-ID: <20140217184435.GD8361@arm.com>
-References: <1391441617-21518-1-git-send-email-james.hogan@imgtec.com>
+From: "Joseph S. Myers" <joseph@codesourcery.com>
+Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
+Date: Mon, 17 Feb 2014 18:59:31 +0000
+Message-ID: <Pine.LNX.4.64.1402171856400.29680@digraph.polyomino.org.uk>
+References: <1392183564.18779.2187.camel@triegel.csb>
+ <20140212180739.GB4250@linux.vnet.ibm.com>
+ <CA+55aFw3S82GYdtnV2nJCvBGcuZf6kXdF5b7Vp9yb21QKr49Jw@mail.gmail.com>
+ <20140213002355.GI4250@linux.vnet.ibm.com>  <1392321837.18779.3249.camel@triegel.csb>
+  <20140214020144.GO4250@linux.vnet.ibm.com>  <1392352981.18779.3800.camel@triegel.csb>
+  <20140214172920.GQ4250@linux.vnet.ibm.com>
+ <CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>
+ <CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>
+ <20140215020815.GS4250@linux.vnet.ibm.com>
+ <CA+55aFyQTE-CzOoNn=KfDgt9bTLrUxBCXzhQ2T9kNoTy+bRQrQ@mail.gmail.com>
+ <1392487627.18779.6535.camel@triegel.csb>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-bounces@lists.openrisc.net>
-Content-Disposition: inline
-In-Reply-To: <1391441617-21518-1-git-send-email-james.hogan@imgtec.com>
-List-Unsubscribe: <http://lists.openrisc.net/options/linux>,
-	<mailto:linux-request@lists.openrisc.net?subject=unsubscribe>
-List-Archive: <http://lists.openrisc.net/pipermail/linux>
-List-Post: <mailto:linux@lists.openrisc.net>
-List-Help: <mailto:linux-request@lists.openrisc.net?subject=help>
-List-Subscribe: <http://lists.openrisc.net/listinfo/linux>,
-	<mailto:linux-request@lists.openrisc.net?subject=subscribe>
-Sender: linux-bounces@lists.openrisc.net
-Errors-To: linux-bounces@lists.openrisc.net
-To: James Hogan <james.hogan@imgtec.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, Arnd Bergmann <arnd@arndb.de>, Aurelien Jacquiot <a-jacquiot@ti.com>, Vineet Gupta <vgupta@synopsys.com>, "linux@openrisc.net" <linux@openrisc.net>, Will Deacon <Will.Deacon@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Chris Metcalf <cmetcalf@tilera.com>, Richard Kuo <rkuo@codeaurora.org>, Lennox Wu <lennox.wu@gmail.com>, "msalter@redhat.com" <msalter@redhat.com>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Chen Liqin <liqin.linux@gmail.com>, "linux-metag@vger.kernel.org" <linux-metag@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="US-ASCII"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from relay1.mentorg.com ([192.94.38.131]:35232 "EHLO
+	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753108AbaBQS7l (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Feb 2014 13:59:41 -0500
+In-Reply-To: <1392487627.18779.6535.camel@triegel.csb>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Torvald Riegel <triegel@redhat.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
 
-On Mon, Feb 03, 2014 at 03:33:37PM +0000, James Hogan wrote:
-> Add the sched_setattr and sched_getattr syscalls to the generic syscall
-> list, which is used by the following architectures: arc, arm64, c6x,
-> hexagon, metag, openrisc, score, tile, unicore32.
-> 
-> Signed-off-by: James Hogan <james.hogan@imgtec.com>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: linux-arch@vger.kernel.org
-> Cc: Vineet Gupta <vgupta@synopsys.com>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will.deacon@arm.com>
-> Cc: linux-arm-kernel@lists.infradead.org
-> Cc: Mark Salter <msalter@redhat.com>
-> Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
-> Cc: linux-c6x-dev@linux-c6x.org
-> Cc: Richard Kuo <rkuo@codeaurora.org>
-> Cc: linux-hexagon@vger.kernel.org
-> Cc: linux-metag@vger.kernel.org
-> Cc: Jonas Bonn <jonas@southpole.se>
-> Cc: linux@lists.openrisc.net
-> Cc: Chen Liqin <liqin.linux@gmail.com>
-> Cc: Lennox Wu <lennox.wu@gmail.com>
-> Cc: Chris Metcalf <cmetcalf@tilera.com>
-> Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
+On Sat, 15 Feb 2014, Torvald Riegel wrote:
 
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+> glibc is a counterexample that comes to mind, although it's a smaller
+> code base.  (It's currently not using C11 atomics, but transitioning
+> there makes sense, and some thing I want to get to eventually.)
+
+glibc is using C11 atomics (GCC builtins rather than _Atomic / 
+<stdatomic.h>, but using __atomic_* with explicitly specified memory model 
+rather than the older __sync_*) on AArch64, plus in certain cases on ARM 
+and MIPS.
+
+-- 
+Joseph S. Myers
+joseph@codesourcery.com
