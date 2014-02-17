@@ -1,29 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f182.google.com ([209.85.223.182]:54653 "EHLO
-	mail-ie0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752036AbaBQQz1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Feb 2014 11:55:27 -0500
+Received: from pegasos-out.vodafone.de ([80.84.1.38]:41804 "HELO
+	pegasos-out.vodafone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with SMTP id S1752107AbaBQREH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Feb 2014 12:04:07 -0500
+Message-ID: <53023F3E.3080107@vodafone.de>
+Date: Mon, 17 Feb 2014 17:56:30 +0100
+From: =?ISO-8859-1?Q?Christian_K=F6nig?= <deathsimple@vodafone.de>
 MIME-Version: 1.0
+Subject: Re: [PATCH 2/6] seqno-fence: Hardware dma-buf implementation of fencing
+ (v4)
+References: <20140217155056.20337.25254.stgit@patser> <20140217155556.20337.37589.stgit@patser>
 In-Reply-To: <20140217155556.20337.37589.stgit@patser>
-References: <20140217155056.20337.25254.stgit@patser>
-	<20140217155556.20337.37589.stgit@patser>
-Date: Mon, 17 Feb 2014 11:55:27 -0500
-Message-ID: <CAF6AEGtuSHRE0UfL0H2LMpRFY7Vj3_M85EnRHHx2fTktj0wFhA@mail.gmail.com>
-Subject: Re: [PATCH 2/6] seqno-fence: Hardware dma-buf implementation of
- fencing (v4)
-From: Rob Clark <robdclark@gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Colin Cross <ccross@google.com>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, "dri-devel@lists.freedesktop.org" <dri-devel@lists.freedesktop.org>, Daniel Vetter <daniel@ffwll.ch>, Sumit Semwal <sumit.semwal@linaro.org>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
-Message-ID: <20140217165527.W-9bY4V4ICi6qg4OzyNvu0xnwRMiwjWy_VyoAfOVYKI@z>
+To: Maarten Lankhorst <maarten.lankhorst@canonical.com>, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, ccross@google.com, linux-media@vger.kernel.org
+Message-ID: <20140217165630.hYzzp-G0GInhjCaCcRNuuMJBJ7fdmD5IBtOxemMlvas@z>
 
-On Mon, Feb 17, 2014 at 10:56 AM, Maarten Lankhorst
-<maarten.lankhorst@canonical.com> wrote:
+Am 17.02.2014 16:56, schrieb Maarten Lankhorst:
 > This type of fence can be used with hardware synchronization for simple
 > hardware that can block execution until the condition
 > (dma_buf[offset] - value) >= 0 has been met.
+
+Can't we make that just "dma_buf[offset] != 0" instead? As far as I know 
+this way it would match the definition M$ uses in their WDDM 
+specification and so make it much more likely that hardware supports it.
+
+Apart from that I still don't like the idea of leaking a drivers IRQ 
+context outside of the driver, but without a proper GPU scheduler there 
+probably isn't much alternative.
+
+Christian.
+
 >
 > A software fallback still has to be provided in case the fence is used
 > with a device that doesn't support this mechanism. It is useful to expose
@@ -36,99 +46,94 @@ On Mon, Feb 17, 2014 at 10:56 AM, Maarten Lankhorst
 >
 > v1: Original
 > v2: Renamed from bikeshed to seqno, moved into dma-fence.c since
->     not much was left of the file. Lots of documentation added.
+>      not much was left of the file. Lots of documentation added.
 > v3: Use fence_ops instead of custom callbacks. Moved to own file
->     to avoid circular dependency between dma-buf.h and fence.h
+>      to avoid circular dependency between dma-buf.h and fence.h
 > v4: Add spinlock pointer to seqno_fence_init
 >
 > Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-
-
-Reviewed-by: Rob Clark <robdclark@gmail.com>
-
-
 > ---
->  Documentation/DocBook/device-drivers.tmpl |    1
->  drivers/base/fence.c                      |   50 +++++++++++++
->  include/linux/seqno-fence.h               |  109 +++++++++++++++++++++++++++++
->  3 files changed, 160 insertions(+)
->  create mode 100644 include/linux/seqno-fence.h
+>   Documentation/DocBook/device-drivers.tmpl |    1
+>   drivers/base/fence.c                      |   50 +++++++++++++
+>   include/linux/seqno-fence.h               |  109 +++++++++++++++++++++++++++++
+>   3 files changed, 160 insertions(+)
+>   create mode 100644 include/linux/seqno-fence.h
 >
 > diff --git a/Documentation/DocBook/device-drivers.tmpl b/Documentation/DocBook/device-drivers.tmpl
 > index 7a0c9ddb4818..8c85c20942c2 100644
 > --- a/Documentation/DocBook/device-drivers.tmpl
 > +++ b/Documentation/DocBook/device-drivers.tmpl
 > @@ -131,6 +131,7 @@ X!Edrivers/base/interface.c
->  !Edrivers/base/dma-buf.c
->  !Edrivers/base/fence.c
->  !Iinclude/linux/fence.h
+>   !Edrivers/base/dma-buf.c
+>   !Edrivers/base/fence.c
+>   !Iinclude/linux/fence.h
 > +!Iinclude/linux/seqno-fence.h
->  !Edrivers/base/reservation.c
->  !Iinclude/linux/reservation.h
->  !Edrivers/base/dma-coherent.c
+>   !Edrivers/base/reservation.c
+>   !Iinclude/linux/reservation.h
+>   !Edrivers/base/dma-coherent.c
 > diff --git a/drivers/base/fence.c b/drivers/base/fence.c
 > index 12df2bf62034..cd0937127a89 100644
 > --- a/drivers/base/fence.c
 > +++ b/drivers/base/fence.c
 > @@ -25,6 +25,7 @@
->  #include <linux/export.h>
->  #include <linux/atomic.h>
->  #include <linux/fence.h>
+>   #include <linux/export.h>
+>   #include <linux/atomic.h>
+>   #include <linux/fence.h>
 > +#include <linux/seqno-fence.h>
->
->  #define CREATE_TRACE_POINTS
->  #include <trace/events/fence.h>
+>   
+>   #define CREATE_TRACE_POINTS
+>   #include <trace/events/fence.h>
 > @@ -413,3 +414,52 @@ __fence_init(struct fence *fence, const struct fence_ops *ops,
->         trace_fence_init(fence);
->  }
->  EXPORT_SYMBOL(__fence_init);
+>   	trace_fence_init(fence);
+>   }
+>   EXPORT_SYMBOL(__fence_init);
 > +
 > +static const char *seqno_fence_get_driver_name(struct fence *fence) {
-> +       struct seqno_fence *seqno_fence = to_seqno_fence(fence);
-> +       return seqno_fence->ops->get_driver_name(fence);
+> +	struct seqno_fence *seqno_fence = to_seqno_fence(fence);
+> +	return seqno_fence->ops->get_driver_name(fence);
 > +}
 > +
 > +static const char *seqno_fence_get_timeline_name(struct fence *fence) {
-> +       struct seqno_fence *seqno_fence = to_seqno_fence(fence);
-> +       return seqno_fence->ops->get_timeline_name(fence);
+> +	struct seqno_fence *seqno_fence = to_seqno_fence(fence);
+> +	return seqno_fence->ops->get_timeline_name(fence);
 > +}
 > +
 > +static bool seqno_enable_signaling(struct fence *fence)
 > +{
-> +       struct seqno_fence *seqno_fence = to_seqno_fence(fence);
-> +       return seqno_fence->ops->enable_signaling(fence);
+> +	struct seqno_fence *seqno_fence = to_seqno_fence(fence);
+> +	return seqno_fence->ops->enable_signaling(fence);
 > +}
 > +
 > +static bool seqno_signaled(struct fence *fence)
 > +{
-> +       struct seqno_fence *seqno_fence = to_seqno_fence(fence);
-> +       return seqno_fence->ops->signaled && seqno_fence->ops->signaled(fence);
+> +	struct seqno_fence *seqno_fence = to_seqno_fence(fence);
+> +	return seqno_fence->ops->signaled && seqno_fence->ops->signaled(fence);
 > +}
 > +
 > +static void seqno_release(struct fence *fence)
 > +{
-> +       struct seqno_fence *f = to_seqno_fence(fence);
+> +	struct seqno_fence *f = to_seqno_fence(fence);
 > +
-> +       dma_buf_put(f->sync_buf);
-> +       if (f->ops->release)
-> +               f->ops->release(fence);
-> +       else
-> +               kfree(f);
+> +	dma_buf_put(f->sync_buf);
+> +	if (f->ops->release)
+> +		f->ops->release(fence);
+> +	else
+> +		kfree(f);
 > +}
 > +
 > +static long seqno_wait(struct fence *fence, bool intr, signed long timeout)
 > +{
-> +       struct seqno_fence *f = to_seqno_fence(fence);
-> +       return f->ops->wait(fence, intr, timeout);
+> +	struct seqno_fence *f = to_seqno_fence(fence);
+> +	return f->ops->wait(fence, intr, timeout);
 > +}
 > +
 > +const struct fence_ops seqno_fence_ops = {
-> +       .get_driver_name = seqno_fence_get_driver_name,
-> +       .get_timeline_name = seqno_fence_get_timeline_name,
-> +       .enable_signaling = seqno_enable_signaling,
-> +       .signaled = seqno_signaled,
-> +       .wait = seqno_wait,
-> +       .release = seqno_release,
+> +	.get_driver_name = seqno_fence_get_driver_name,
+> +	.get_timeline_name = seqno_fence_get_timeline_name,
+> +	.enable_signaling = seqno_enable_signaling,
+> +	.signaled = seqno_signaled,
+> +	.wait = seqno_wait,
+> +	.release = seqno_release,
 > +};
 > +EXPORT_SYMBOL(seqno_fence_ops);
 > diff --git a/include/linux/seqno-fence.h b/include/linux/seqno-fence.h
@@ -166,11 +171,11 @@ Reviewed-by: Rob Clark <robdclark@gmail.com>
 > +#include <linux/dma-buf.h>
 > +
 > +struct seqno_fence {
-> +       struct fence base;
+> +	struct fence base;
 > +
-> +       const struct fence_ops *ops;
-> +       struct dma_buf *sync_buf;
-> +       uint32_t seqno_ofs;
+> +	const struct fence_ops *ops;
+> +	struct dma_buf *sync_buf;
+> +	uint32_t seqno_ofs;
 > +};
 > +
 > +extern const struct fence_ops seqno_fence_ops;
@@ -185,9 +190,9 @@ Reviewed-by: Rob Clark <robdclark@gmail.com>
 > +static inline struct seqno_fence *
 > +to_seqno_fence(struct fence *fence)
 > +{
-> +       if (fence->ops != &seqno_fence_ops)
-> +               return NULL;
-> +       return container_of(fence, struct seqno_fence, base);
+> +	if (fence->ops != &seqno_fence_ops)
+> +		return NULL;
+> +	return container_of(fence, struct seqno_fence, base);
 > +}
 > +
 > +/**
@@ -228,22 +233,27 @@ Reviewed-by: Rob Clark <robdclark@gmail.com>
 > + */
 > +static inline void
 > +seqno_fence_init(struct seqno_fence *fence, spinlock_t *lock,
-> +                struct dma_buf *sync_buf,  uint32_t context, uint32_t seqno_ofs,
-> +                uint32_t seqno, const struct fence_ops *ops)
+> +		 struct dma_buf *sync_buf,  uint32_t context, uint32_t seqno_ofs,
+> +		 uint32_t seqno, const struct fence_ops *ops)
 > +{
-> +       BUG_ON(!fence || !sync_buf || !ops);
-> +       BUG_ON(!ops->wait || !ops->enable_signaling || !ops->get_driver_name || !ops->get_timeline_name);
+> +	BUG_ON(!fence || !sync_buf || !ops);
+> +	BUG_ON(!ops->wait || !ops->enable_signaling || !ops->get_driver_name || !ops->get_timeline_name);
 > +
-> +       /*
-> +        * ops is used in __fence_init for get_driver_name, so needs to be
-> +        * initialized first
-> +        */
-> +       fence->ops = ops;
-> +       __fence_init(&fence->base, &seqno_fence_ops, lock, context, seqno);
-> +       get_dma_buf(sync_buf);
-> +       fence->sync_buf = sync_buf;
-> +       fence->seqno_ofs = seqno_ofs;
+> +	/*
+> +	 * ops is used in __fence_init for get_driver_name, so needs to be
+> +	 * initialized first
+> +	 */
+> +	fence->ops = ops;
+> +	__fence_init(&fence->base, &seqno_fence_ops, lock, context, seqno);
+> +	get_dma_buf(sync_buf);
+> +	fence->sync_buf = sync_buf;
+> +	fence->seqno_ofs = seqno_ofs;
 > +}
 > +
 > +#endif /* __LINUX_SEQNO_FENCE_H */
 >
+> _______________________________________________
+> dri-devel mailing list
+> dri-devel@lists.freedesktop.org
+> http://lists.freedesktop.org/mailman/listinfo/dri-devel
+
