@@ -1,85 +1,82 @@
 From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Tue, 18 Feb 2014 09:38:32 -0800
-Message-ID: <CA+55aFw=9iKadR-r5sdZdJ_7yDzSV4=+P=gZXXsrxU61wKHf5w@mail.gmail.com>
-References: <CAHWkzRQSaKOM23yg1LbCO=uWremNzwnXUCUJF2H-+z_Xhmp79g@mail.gmail.com>
+Date: Tue, 18 Feb 2014 09:44:48 -0800
+Message-ID: <CA+55aFw7QYEMFs0BCxqRJW3Cz=tLbaku-tmN6hLXPKP9jbom7Q@mail.gmail.com>
+References: <1392321837.18779.3249.camel@triegel.csb>
+	<20140214020144.GO4250@linux.vnet.ibm.com>
+	<1392352981.18779.3800.camel@triegel.csb>
+	<20140214172920.GQ4250@linux.vnet.ibm.com>
+	<CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>
+	<CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>
+	<1392486310.18779.6447.camel@triegel.csb>
+	<CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
+	<1392666947.18779.6838.camel@triegel.csb>
+	<CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
+	<20140218030002.GA15857@linux.vnet.ibm.com>
+	<CA+55aFyqLrj4d2TA+2aazRqXnbVsUvs0yaBL2D5rXF1G=Kiu_g@mail.gmail.com>
+	<CA+55aFwsq5E8kMoEeHJJ1f2=+QAUCu_HndfPxHNz8fUBprS-jQ@mail.gmail.com>
+	<1392740258.18779.7732.camel@triegel.csb>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ve0-f176.google.com ([209.85.128.176]:50880 "EHLO
-	mail-ve0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751005AbaBRRid (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2014 12:38:33 -0500
-In-Reply-To: <CAHWkzRQSaKOM23yg1LbCO=uWremNzwnXUCUJF2H-+z_Xhmp79g@mail.gmail.com>
+Received: from mail-ve0-f180.google.com ([209.85.128.180]:37536 "EHLO
+	mail-ve0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754517AbaBRRot (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2014 12:44:49 -0500
+In-Reply-To: <1392740258.18779.7732.camel@triegel.csb>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter.Sewell@cl.cam.ac.uk
-Cc: "mark.batty@cl.cam.ac.uk" <Mark.Batty@cl.cam.ac.uk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+To: Torvald Riegel <triegel@redhat.com>
+Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
 
-On Tue, Feb 18, 2014 at 4:12 AM, Peter Sewell <Peter.Sewell@cl.cam.ac.uk> wrote:
+On Tue, Feb 18, 2014 at 8:17 AM, Torvald Riegel <triegel@redhat.com> wrote:
+>>
+>>   "Consume operation: no reads in the current thread dependent on the
+>> value currently loaded can be reordered before this load"
 >
-> For example, suppose we have, in one compilation unit:
+> I can't remember seeing that language in the standard (ie, C or C++).
+> Where is this from?
+
+That's just for googling for explanations. I do have some old standard
+draft, but that doesn't have any concise definitions anywhere that I
+could find.
+
+>> and it could make a compiler writer say that value speculation is
+>> still valid, if you do it like this (with "ptr" being the atomic
+>> variable):
+>>
+>>   value = ptr->val;
 >
->     void f(int ra, int*rb) {
->       if (ra==42)
->         *rb=42;
->       else
->         *rb=42;
->     }
+> I assume the load from ptr has mo_consume ordering?
 
-So this is a great example, and in general I really like your page at:
+Yes.
 
-> For more context, this example is taken from a summary of the thin-air
-> problem by Mark Batty and myself,
-> <www.cl.cam.ac.uk/~pes20/cpp/notes42.html>, and the problem with
-> dependencies via other compilation units was AFAIK first pointed out
-> by Hans Boehm.
+>> into
+>>
+>>   tmp = ptr;
+>>   value = speculated.value;
+>>   if (unlikely(tmp != &speculated))
+>>     value = tmp->value;
+>>
+>> which is still bogus. The load of "ptr" does happen before the load of
+>> "value = speculated->value" in the instruction stream, but it would
+>> still result in the CPU possibly moving the value read before the
+>> pointer read at least on ARM and power.
+>
+> And surprise, in the C/C++ model the load from ptr is sequenced-before
+> the load from speculated, but there's no ordering constraint on the
+> reads-from relation for the value load if you use mo_consume on the ptr
+> load.  Thus, the transformed code has less ordering constraints than the
+> original code, and we arrive at the same outcome.
 
-and the reason I like your page is that it really talks about the
-problem by pointing to the "unoptimized" code, and what hardware would
-do.
+Ok, good.
 
-As mentioned, I think that's actually the *correct* way to think about
-the problem space, because it allows the programmer to take hardware
-characteristics into account, without having to try to "describe" them
-at a source level.
+> The standard is clear on what's required.  I strongly suggest reading
+> the formalization of the memory model by Batty et al.
 
-As to your example of
+Can you point to it? Because I can find a draft standard, and it sure
+as hell does *not* contain any clarity of the model. It has a *lot* of
+verbiage, but it's pretty much impossible to actually understand, even
+for somebody who really understands memory ordering.
 
-   if (ra)
-       atomic_write(rb, A);
-   else
-       atomic_write(rb, B);
-
-I really think that it is ok to combine that into
-
-    atomic_write(rb, ra ? A:B);
-
-(by virtue of "exact same behavior on actual hardware"), and then the
-only remaining question is whether the "ra?A:B" can be optimized to
-remove the conditional if A==B as in your example where both are "42".
-Agreed?
-
-Now, I would argue that the "naive" translation of that is
-unambiguous, and since "ra" is not volatile or magic in any way, then
-"ra?42:42" can obviously be optimized into just 42 - by the exact same
-rule that says "the compiler can do any transformation that is
-equivalent in the hardware". The compiler can *locally* decide that
-that is the right thing to do, and any programmer that complains about
-that decision is just crazy.
-
-So my "local machine behavior equivalency" rule means that that
-function can be optimized into a single "store 42 atomically into rb".
-
-Now, if it's *not* compiled locally, and is instead implemented as a
-macro (or inline function), there are obviously situations where "ra ?
-A : B" ends up having to do other things. In particular, X may be
-volatile or an atomic read that has ordering semantics, and then that
-expression doesn't become just "42", but that's a separate issue. It's
-not all that dissimilar to "function calls are sequence points",
-though, and obviously if the source of "ra" has semantic meaning, you
-have to honor that semantic meaning.
-
-Agreed?
-
-                  Linus
+             Linus
