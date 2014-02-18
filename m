@@ -1,144 +1,58 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Mon, 17 Feb 2014 21:22:32 -0800
-Message-ID: <20140218052232.GG4250@linux.vnet.ibm.com>
-References: <20140214172920.GQ4250@linux.vnet.ibm.com>
- <CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>
- <CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>
- <1392486310.18779.6447.camel@triegel.csb>
- <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
- <1392666947.18779.6838.camel@triegel.csb>
- <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
- <20140218030002.GA15857@linux.vnet.ibm.com>
- <CA+55aFyqLrj4d2TA+2aazRqXnbVsUvs0yaBL2D5rXF1G=Kiu_g@mail.gmail.com>
- <CA+55aFwsq5E8kMoEeHJJ1f2=+QAUCu_HndfPxHNz8fUBprS-jQ@mail.gmail.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v4 0/3] qspinlock: Introducing a 4-byte queue spinlock
+Date: Tue, 18 Feb 2014 08:31:11 +0100
+Message-ID: <20140218073111.GW27965@twins.programming.kicks-ass.net>
+References: <1392669684-4807-1-git-send-email-Waiman.Long@hp.com>
+ <53029167.4060109@zytor.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e34.co.us.ibm.com ([32.97.110.152]:51369 "EHLO
-	e34.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751006AbaBRFWh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2014 00:22:37 -0500
-Received: from /spool/local
-	by e34.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Mon, 17 Feb 2014 22:22:37 -0700
+Received: from merlin.infradead.org ([205.233.59.134]:36331 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751239AbaBRHbd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2014 02:31:33 -0500
 Content-Disposition: inline
-In-Reply-To: <CA+55aFwsq5E8kMoEeHJJ1f2=+QAUCu_HndfPxHNz8fUBprS-jQ@mail.gmail.com>
+In-Reply-To: <53029167.4060109@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Waiman Long <Waiman.Long@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
 
-On Mon, Feb 17, 2014 at 07:42:42PM -0800, Linus Torvalds wrote:
-> On Mon, Feb 17, 2014 at 7:24 PM, Linus Torvalds
-> <torvalds@linux-foundation.org> wrote:
-> >
-> > As far as I can tell, the intent is that you can't do value
-> > speculation (except perhaps for the "relaxed", which quite frankly
-> > sounds largely useless).
+On Mon, Feb 17, 2014 at 02:47:03PM -0800, H. Peter Anvin wrote:
+> On 02/17/2014 12:41 PM, Waiman Long wrote:
+> > v3->v4:
+> >  - Remove debugging code and fix a configuration error
+> >  - Simplify the qspinlock structure and streamline the code to make it
+> >    perform a bit better
+> >  - Add an x86 version of asm/qspinlock.h for holding x86 specific
+> >    optimization.
+> >  - Add an optimized x86 code path for 2 contending tasks to improve
+> >    low contention performance.
+> > 
+> > v2->v3:
+> >  - Simplify the code by using numerous mode only without an unfair option.
+> >  - Use the latest smp_load_acquire()/smp_store_release() barriers.
+> >  - Move the queue spinlock code to kernel/locking.
+> >  - Make the use of queue spinlock the default for x86-64 without user
+> >    configuration.
+> >  - Additional performance tuning.
+> > 
+> > v1->v2:
+> >  - Add some more comments to document what the code does.
+> >  - Add a numerous CPU mode to support >= 16K CPUs
+> >  - Add a configuration option to allow lock stealing which can further
+> >    improve performance in many cases.
+> >  - Enable wakeup of queue head CPU at unlock time for non-numerous
+> >    CPU mode.
+> > 
+> > This patch set introduces a queue-based spinlock implementation that
+> > can replace the default ticket spinlock without increasing the size
+> > of the spinlock data structure. As a result, critical kernel data
+> > structures that embed spinlock won't increase in size and breaking
+> > data alignments.
+> > 
 > 
-> Hmm. The language I see for "consume" is not obvious:
-> 
->   "Consume operation: no reads in the current thread dependent on the
-> value currently loaded can be reordered before this load"
-> 
-> and it could make a compiler writer say that value speculation is
-> still valid, if you do it like this (with "ptr" being the atomic
-> variable):
-> 
->   value = ptr->val;
-> 
-> into
-> 
->   tmp = ptr;
->   value = speculated.value;
->   if (unlikely(tmp != &speculated))
->     value = tmp->value;
-> 
-> which is still bogus. The load of "ptr" does happen before the load of
-> "value = speculated->value" in the instruction stream, but it would
-> still result in the CPU possibly moving the value read before the
-> pointer read at least on ARM and power.
-> 
-> So if you're a compiler person, you think you followed the letter of
-> the spec - as far as *you* were concerned, no load dependent on the
-> value of the atomic load moved to before the atomic load. You go home,
-> happy, knowing you've done your job. Never mind that you generated
-> code that doesn't actually work.
+> This is starting to look good, so I have pulled it into
+> tip:x86/spinlocks to start give it some testing mileage.
 
-Agreed, that would be bad.  But please see below.
-
-> I dread having to explain to the compiler person that he may be right
-> in some theoretical virtual machine, but the code is subtly broken and
-> nobody will ever understand why (and likely not be able to create a
-> test-case showing the breakage).
-
-If things go as they usually do, such explanations will be required
-a time or two.
-
-> But maybe the full standard makes it clear that "reordered before this
-> load" actually means on the real hardware, not just in the generated
-> instruction stream. Reading it with understanding of the *intent* and
-> understanding all the different memory models that requirement should
-> be obvious (on alpha, you need an "rmb" instruction after the load),
-> but ...
-
-The key point with memory_order_consume is that it must be paired with
-some sort of store-release, a category that includes stores tagged
-with memory_order_release (surprise!), memory_order_acq_rel, and
-memory_order_seq_cst.  This pairing is analogous to the memory-barrier
-pairing in the Linux kernel.
-
-So you have something like this for the rcu_assign_pointer() side:
-
-	p = kmalloc(...);
-	if (unlikely(!p))
-		return -ENOMEM;
-	p->a = 1;
-	p->b = 2;
-	p->c = 3;
-	/* The following would be buried within rcu_assign_pointer(). */
-	atomic_store_explicit(&gp, p, memory_order_release);
-
-And something like this for the rcu_dereference() side:
-
-	/* The following would be buried within rcu_dereference(). */
-	q = atomic_load_explicit(&gp, memory_order_consume);
-	do_something_with(q->a);
-
-So, let's look at the C11 draft, section 5.1.2.4 "Multi-threaded
-executions and data races".
-
-5.1.2.4p14 says that the atomic_load_explicit() carries a dependency to
-the argument of do_something_with().
-
-5.1.2.4p15 says that the atomic_store_explicit() is dependency-ordered
-before the atomic_load_explicit().
-
-5.1.2.4p15 also says that the atomic_store_explicit() is
-dependency-ordered before the argument of do_something_with().  This is
-because if A is dependency-ordered before X and X carries a dependency
-to B, then A is dependency-ordered before B.
-
-5.1.2.4p16 says that the atomic_store_explicit() inter-thread happens
-before the argument of do_something_with().
-
-The assignment to p->a is sequenced before the atomic_store_explicit().
-
-Therefore, combining these last two, the assignment to p->a happens
-before the argument of do_something_with(), and that means that
-do_something_with() had better see the "1" assigned to p->a or some
-later value.
-
-But as far as I know, compiler writers currently take the approach of
-treating memory_order_consume as if it was memory_order_acquire.
-Which certainly works, as long as ARM and PowerPC people don't mind
-an extra memory barrier out of each rcu_dereference().
-
-Which is one thing that compiler writers are permitted to do according
-to the standard -- substitute a memory-barrier instruction for any
-given dependency...
-
-							Thanx, Paul
+It very much needs paravirt muck before we can even consider it.
