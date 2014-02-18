@@ -1,202 +1,109 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f173.google.com ([209.85.213.173]:64424 "EHLO
-	mail-ig0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756369AbaBRPdg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2014 10:33:36 -0500
-MIME-Version: 1.0
-Reply-To: Peter.Sewell@cl.cam.ac.uk
-In-Reply-To: <20140218145645.GK4250@linux.vnet.ibm.com>
-References: <CAHWkzRQSaKOM23yg1LbCO=uWremNzwnXUCUJF2H-+z_Xhmp79g@mail.gmail.com>
-	<20140218145645.GK4250@linux.vnet.ibm.com>
-Date: Tue, 18 Feb 2014 15:33:35 +0000
-Message-ID: <CAHWkzRR1YozAuTqSTdyTncyNju6ZqUwYi0h988FBgFLDJAtaEg@mail.gmail.com>
+Received: from mx1.redhat.com ([209.132.183.28]:7034 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932104AbaBRPlA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 18 Feb 2014 10:41:00 -0500
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-From: Peter Sewell <Peter.Sewell@cl.cam.ac.uk>
-Content-Type: text/plain; charset=ISO-8859-1
+From: Torvald Riegel <triegel@redhat.com>
+In-Reply-To: <CA+55aFzSBZMC6kbdJj5Jus9-q1dzXdCYQXfMm34O+9h8SbGcGQ@mail.gmail.com>
+References: <20140207180216.GP4250@linux.vnet.ibm.com>
+	 <1391992071.18779.99.camel@triegel.csb>
+	 <CA+55aFwTwCPMpYTL_vCgNNP0hE8s2sgB0iw-79=xoj99V0JUNA@mail.gmail.com>
+	 <1392183564.18779.2187.camel@triegel.csb>
+	 <20140212180739.GB4250@linux.vnet.ibm.com>
+	 <CA+55aFw3S82GYdtnV2nJCvBGcuZf6kXdF5b7Vp9yb21QKr49Jw@mail.gmail.com>
+	 <20140213002355.GI4250@linux.vnet.ibm.com>
+	 <1392321837.18779.3249.camel@triegel.csb>
+	 <20140214020144.GO4250@linux.vnet.ibm.com>
+	 <1392352981.18779.3800.camel@triegel.csb>
+	 <20140214172920.GQ4250@linux.vnet.ibm.com>
+	 <CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>
+	 <CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>
+	 <1392486310.18779.6447.camel@triegel.csb>
+	 <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
+	 <1392666947.18779.6838.camel@triegel.csb>
+	 <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
+	 <1392672063.18779.6940.camel@triegel.csb>
+	 <1392675939.18779.7063.camel@triegel.csb>
+	 <CA+55aFx2jxE8! sTZEmNnMg6ktDuU_0xPiEw3=qH0=+xat8p8cAA@mail.gmail.com>
+	 <1392680518.18779.7213.camel@triegel.csb>
+	 <CA+55aFzSBZMC6kbdJj5Jus9-q1dzXdCYQXfMm34O+9h8SbGcGQ@mail.gmail.com>
+Content-Type: text/plain; charset="UTF-8"
+Date: Tue, 18 Feb 2014 16:38:40 +0100
+Message-ID: <1392737920.18779.7659.camel@triegel.csb>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul McKenney <paulmck@linux.vnet.ibm.com>
-Cc: "mark.batty@cl.cam.ac.uk" <Mark.Batty@cl.cam.ac.uk>, peterz@infradead.org, Torvald Riegel <triegel@redhat.com>, torvalds@linux-foundation.org, Will Deacon <will.deacon@arm.com>, Ramana.Radhakrishnan@arm.com, dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@kernel.org, gcc@gcc.gnu.org
-Message-ID: <20140218153335.mGwA3WdDtzUYRPfrfc3M_XbmH7toFtnpECVNqxXaeSs@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Message-ID: <20140218153840.hGtuInG3Q0mR_Bc5IwSl2K6l8gok6t7xzzIJQYvJoVE@z>
 
-Hi Paul,
+On Mon, 2014-02-17 at 16:18 -0800, Linus Torvalds wrote:
+> On Mon, Feb 17, 2014 at 3:41 PM, Torvald Riegel <triegel@redhat.com> wrote:
+> >
+> > There's an underlying problem here that's independent from the actual
+> > instance that you're worried about here: "no sense" is a ultimately a
+> > matter of taste/objectives/priorities as long as the respective
+> > specification is logically consistent.
+> 
+> Yes. But I don't think it's "independent".
+> 
+> Exactly *because* some people will read standards without applying
+> "does the resulting code generation actually make sense for the
+> programmer that wrote the code", the standard has to be pretty clear.
+> 
+> The standard often *isn't* pretty clear. It wasn't clear enough when
+> it came to "volatile", and yet that was a *much* simpler concept than
+> atomic accesses and memory ordering.
+> 
+> And most of the time it's not a big deal. But because the C standard
+> generally tries to be very portable, and cover different machines,
+> there tends to be a mindset that anything inherently unportable is
+> "undefined" or "implementation defined", and then the compiler writer
+> is basically given free reign to do anything they want (with
+> "implementation defined" at least requiring that it is reliably the
+> same thing).
 
-On 18 February 2014 14:56, Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
-> On Tue, Feb 18, 2014 at 12:12:06PM +0000, Peter Sewell wrote:
->> Several of you have said that the standard and compiler should not
->> permit speculative writes of atomics, or (effectively) that the
->> compiler should preserve dependencies.  In simple examples it's easy
->> to see what that means, but in general it's not so clear what the
->> language should guarantee, because dependencies may go via non-atomic
->> code in other compilation units, and we have to consider the extent to
->> which it's desirable to limit optimisation there.
->>
->> For example, suppose we have, in one compilation unit:
->>
->>     void f(int ra, int*rb) {
->>       if (ra==42)
->>         *rb=42;
->>       else
->>         *rb=42;
->>     }
->
-> Hello, Peter!
->
-> Nice example!
->
-> The relevant portion of Documentation/memory-barriers.txt in my -rcu tree
-> says the following about the control dependency in the above construct:
->
-> ------------------------------------------------------------------------
->
->         q = ACCESS_ONCE(a);
->         if (q) {
->                 barrier();
->                 ACCESS_ONCE(b) = p;
->                 do_something();
->         } else {
->                 barrier();
->                 ACCESS_ONCE(b) = p;
->                 do_something_else();
->         }
->
-> The initial ACCESS_ONCE() is required to prevent the compiler from
-> proving the value of 'a', and the pair of barrier() invocations are
-> required to prevent the compiler from pulling the two identical stores
-> to 'b' out from the legs of the "if" statement.
+Yes, that's how it works in general.  And this makes sense, because all
+optimizations rely on that.  Second, you can't keep something consistent
+(eg, between compilers) if it isn't specified.  So if we want stricter
+rules, those need to be specified somewhere.
 
-thanks
+> And when it comes to memory ordering, *everything* is basically
+> non-portable, because different CPU's very much have different rules.
 
-> ------------------------------------------------------------------------
->
-> So yes, current compilers need significant help if it is necessary to
-> maintain dependencies in that sort of code.
->
-> Similar examples came up in the data-dependency discussions in the
-> standards committee, which led to the [[carries_dependency]] attribute for
-> C11 and C++11.  Of course, current compilers don't have this attribute,
-> and the current Linux kernel code doesn't have any other marking for
-> data dependencies passing across function boundaries.  (Maybe some time
-> as an assist for detecting pointer leaks out of RCU read-side critical
-> sections, but efforts along those lines are a bit stalled at the moment.)
->
-> More on data dependencies below...
->
->> and in another compilation unit the bodies of two threads:
->>
->>     // Thread 0
->>     r1 = x;
->>     f(r1,&r2);
->>     y = r2;
->>
->>     // Thread 1
->>     r3 = y;
->>     f(r3,&r4);
->>     x = r4;
->>
->> where accesses to x and y are annotated C11 atomic
->> memory_order_relaxed or Linux ACCESS_ONCE(), accesses to
->> r1,r2,r3,r4,ra,rb are not annotated, and x and y initially hold 0.
->>
->> (Of course, this is an artificial example, to make the point below as
->> simply as possible - in real code the branches of the conditional
->> might not be syntactically identical, just equivalent after macro
->> expansion and other optimisation.)
->>
->> In the source program there's a dependency from the read of x to the
->> write of y in Thread 0, and from the read of y to the write of x on
->> Thread 1.  Dependency-respecting compilation would preserve those and
->> the ARM and POWER architectures both respect them, so the reads of x
->> and y could not give 42.
->>
->> But a compiler might well optimise the (non-atomic) body of f() to
->> just *rb=42, making the threads effectively
->>
->>     // Thread 0
->>     r1 = x;
->>     y = 42;
->>
->>     // Thread 1
->>     r3 = y;
->>     x = 42;
->>
->> (GCC does this at O1, O2, and O3) and the ARM and POWER architectures
->> permit those two reads to see 42. That is moreover actually observable
->> on current ARM hardware.
->
-> I do agree that this could happen on current compilers and hardware.
->
-> Agreed, but as Peter Zijlstra noted in this thread, this optimization
-> is to a control dependency, not a data dependency.
+Well, the current set of memory orders (and the memory model as a whole)
+is portable, even though it might not allow to exploit all hardware
+properties, and thus might perform sub-optimally in some cases.
 
-Indeed.  In principle (again as Hans has observed) a compiler might
-well convert between the two, e.g. if operating on single-bit values,
-or where value-range analysis has shown that a variable can only
-contain one of a small set of values.   I don't know whether that
-happens in practice?  Then there are also cases where a compiler is
-very likely to remove data/address dependencies, eg if some constant C
-is #define'd to be 0 then an array access indexed by x * C will have
-the dependency on x removed.  The runtime and compiler development
-costs of preventing that are also unclear to me.
+> I worry that that means that the standard then takes the stance that
+> "well, compiler re-ordering is no worse than CPU re-ordering, so we
+> let the compiler do anything". And then we have to either add
+> "volatile" to make sure the compiler doesn't do that, or use an overly
+> strict memory model at the compiler level that makes it all pointless.
 
-Given that, whether it's reasonable to treat control and data
-dependencies differently seems to be an open question.
+Using "volatile" is not a good option, I think, because synchronization
+between threads should be orthogonal to observable output of the
+abstract machine.
 
->> So as far as we can see, either:
->>
->> 1) if you can accept the latter behaviour (if the Linux codebase does
->>    not rely on its absence), the language definition should permit it,
->>    and current compiler optimisations can be used,
->>
->> or
->>
->> 2) otherwise, the language definition should prohibit it but the
->>    compiler would have to preserve dependencies even in compilation
->>    units that have no mention of atomics.  It's unclear what the
->>    (runtime and compiler development) cost of that would be in
->>    practice - perhaps Torvald could comment?
->
-> For current compilers, we have to rely on coding conventions within
-> the Linux kernel in combination with non-standard extentions to gcc
-> and specified compiler flags to disable undesirable behavior.  I have a
-> start on specifying this in a document I am preparing for the standards
-> committee, a very early draft of which may be found here:
->
-> http://www2.rdrop.com/users/paulmck/scalability/paper/consume.2014.02.16c.pdf
->
-> Section 3 shows the results of a manual scan through the Linux kernel's
-> dependency chains, and Section 4.1 lists a probably incomplete (and no
-> doubt erroneous) list of coding standards required to make dependency
-> chains work on current compilers.  Any comments and suggestions are more
-> than welcome!
+The current memory model might not allow to exploit all hardware
+properties, I agree.
 
-Thanks, that's very interesting (especially the non-local dependency chains).
+But then why don't we work on how to extend it to do so?  We need to
+specify the behavior we want anyway, and this can't be independent of
+the language semantics, so it has to be conceptually integrated with the
+standard anyway.
 
-At a first glance, the "4.1 Rules for C-Language RCU Users" seem
-pretty fragile - they're basically trying to guess the limits of
-compiler optimisation smartness.
+> So I really really hope that the standard doesn't give compiler
+> writers free hands to do anything that they can prove is "equivalent"
+> in the virtual C machine model.
 
->> For more context, this example is taken from a summary of the thin-air
->> problem by Mark Batty and myself,
->> <www.cl.cam.ac.uk/~pes20/cpp/notes42.html>, and the problem with
->> dependencies via other compilation units was AFAIK first pointed out
->> by Hans Boehm.
->
-> Nice document!
->
-> One point of confusion for me...  Example 4 says "language must allow".
-> Shouldn't that be "language is permitted to allow"?  Seems like an
-> implementation is always within its rights to avoid an optimization if
-> its implementation prevents it from safely detecting the oppportunity
-> for that optimization.  Or am I missing something here?
+It does, but it also doesn't mean this can't be extended.  So let's
+focus on whether we can find an extension.
 
-We're saying that the language definition must allow it, not that any
-particular implementation must be able to exhibit it.
+> That's not how you get reliable
+> results.
 
-best,
-Peter
+In this general form, that's obviously a false claim.
 
-
-
->                                                         Thanx, Paul
->
