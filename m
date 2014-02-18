@@ -1,117 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e39.co.us.ibm.com ([32.97.110.160]:51761 "EHLO
-	e39.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755116AbaBRQvY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2014 11:51:24 -0500
+Received: from e37.co.us.ibm.com ([32.97.110.158]:34057 "EHLO
+	e37.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754576AbaBRRQO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2014 12:16:14 -0500
 Received: from /spool/local
-	by e39.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e37.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Tue, 18 Feb 2014 09:51:24 -0700
-Date: Tue, 18 Feb 2014 08:51:19 -0800
+	Tue, 18 Feb 2014 10:16:14 -0700
+Date: Tue, 18 Feb 2014 09:16:09 -0800
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Message-ID: <20140218165119.GN4250@linux.vnet.ibm.com>
+Message-ID: <20140218171609.GP4250@linux.vnet.ibm.com>
 Reply-To: paulmck@linux.vnet.ibm.com
-References: <1392352981.18779.3800.camel@triegel.csb>
- <20140214172920.GQ4250@linux.vnet.ibm.com>
- <CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>
+References: <CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>
  <CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>
  <1392486310.18779.6447.camel@triegel.csb>
  <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
  <1392666947.18779.6838.camel@triegel.csb>
  <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
- <20140218030002.GA15857@linux.vnet.ibm.com>
- <1392739000.18779.7692.camel@triegel.csb>
+ <530296CD.5050503@warwick.ac.uk>
+ <CA+55aFyi8QWge7QR0M+ABH-kEiwvoEyMhK6GWRvN1YNKJAFuSQ@mail.gmail.com>
+ <1392737465.18779.7644.camel@triegel.csb>
+ <CA+55aFxn2KRXDQ91xRs=bO_6d_nA_PSQvoY1_=OxyJ86+KOO9Q@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1392739000.18779.7692.camel@triegel.csb>
+In-Reply-To: <CA+55aFxn2KRXDQ91xRs=bO_6d_nA_PSQvoY1_=OxyJ86+KOO9Q@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Torvald Riegel <triegel@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140218165119.4CQEnrf8B9ckL_J0IcNHkpZ6eB7Tx45gFXy_NUf3xfQ@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Torvald Riegel <triegel@redhat.com>, Alec Teal <a.teal@warwick.ac.uk>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Message-ID: <20140218171609.hHynABr3gT81MgxhbOhfUcDoF1jJ88WfQ-q5nMGRJKc@z>
 
-On Tue, Feb 18, 2014 at 04:56:40PM +0100, Torvald Riegel wrote:
-> On Mon, 2014-02-17 at 19:00 -0800, Paul E. McKenney wrote:
-> > On Mon, Feb 17, 2014 at 12:18:21PM -0800, Linus Torvalds wrote:
-> > > On Mon, Feb 17, 2014 at 11:55 AM, Torvald Riegel <triegel@redhat.com> wrote:
-> > > >
-> > > > Which example do you have in mind here?  Haven't we resolved all the
-> > > > debated examples, or did I miss any?
-> > > 
-> > > Well, Paul seems to still think that the standard possibly allows
-> > > speculative writes or possibly value speculation in ways that break
-> > > the hardware-guaranteed orderings.
-> > 
-> > It is not that I know of any specific problems, but rather that I
-> > know I haven't looked under all the rocks.  Plus my impression from
-> > my few years on the committee is that the standard will be pushed to
-> > the limit when it comes time to add optimizations.
-> > 
-> > One example that I learned about last week uses the branch-prediction
-> > hardware to validate value speculation.  And no, I am not at all a fan
-> > of value speculation, in case you were curious.  However, it is still
-> > an educational example.
-> > 
-> > This is where you start:
-> > 
-> > 	p = gp.load_explicit(memory_order_consume); /* AKA rcu_dereference() */
-> > 	do_something(p->a, p->b, p->c);
-> > 	p->d = 1;
+On Tue, Feb 18, 2014 at 08:49:13AM -0800, Linus Torvalds wrote:
+> On Tue, Feb 18, 2014 at 7:31 AM, Torvald Riegel <triegel@redhat.com> wrote:
+> > On Mon, 2014-02-17 at 16:05 -0800, Linus Torvalds wrote:
+> >> And exactly because I know enough, I would *really* like atomics to be
+> >> well-defined, and have very clear - and *local* - rules about how they
+> >> can be combined and optimized.
+> >
+> > "Local"?
 > 
-> I assume that's the source code.
-
-Yep!
-
-> > Then you leverage branch-prediction hardware as follows:
-> > 
-> > 	p = gp.load_explicit(memory_order_consume); /* AKA rcu_dereference() */
-> > 	if (p == GUESS) {
-> > 		do_something(GUESS->a, GUESS->b, GUESS->c);
-> > 		GUESS->d = 1;
-> > 	} else {
-> > 		do_something(p->a, p->b, p->c);
-> > 		p->d = 1;
-> > 	}
+> Yes.
 > 
-> I assume that this is a potential transformation by a compiler.
-
-Again, yep!
-
-> > The CPU's branch-prediction hardware squashes speculation in the case where
-> > the guess was wrong, and this prevents the speculative store to ->d from
-> > ever being visible.  However, the then-clause breaks dependencies, which
-> > means that the loads -could- be speculated, so that do_something() gets
-> > passed pre-initialization values.
-> > 
-> > Now, I hope and expect that the wording in the standard about dependency
-> > ordering prohibits this sort of thing.  But I do not yet know for certain.
+> So I think that one of the big advantages of atomics over volatile is
+> that they *can* be optimized, and as such I'm not at all against
+> trying to generate much better code than for volatile accesses.
 > 
-> The transformation would be incorrect.  p->a in the source code carries
-> a dependency, and as you say, the transformed code wouldn't have that
-> dependency any more.  So the transformed code would loose ordering
-> constraints that it has in the virtual machine, so in the absence of
-> other proofs of correctness based on properties not shown in the
-> example, the transformed code would not result in the same behavior as
-> allowed by the abstract machine.
+> But at the same time, that can go too far. For example, one of the
+> things we'd want to use atomics for is page table accesses, where it
+> is very important that we don't generate multiple accesses to the
+> values, because parts of the values can be change *by*hardware* (ie
+> accessed and dirty bits).
+> 
+> So imagine that you have some clever global optimizer that sees that
+> the program never ever actually sets the dirty bit at all in any
+> thread, and then uses that kind of non-local knowledge to make
+> optimization decisions. THAT WOULD BE BAD.
 
-Glad that you agree!  ;-)
+Might as well list other reasons why value proofs via whole-program
+analysis are unreliable for the Linux kernel:
 
-> If the transformation would actually be by a programmer, then this
-> wouldn't do the same as the first example because mo_consume doesn't
-> work through the if statement.
+1.	As Linus said, changes from hardware.
 
-Agreed.
+2.	Assembly code that is not visible to the compiler.
+	Inline asms will -normally- let the compiler know what
+	memory they change, but some just use the "memory" tag.
+	Worse yet, I suspect that most compilers don't look all
+	that carefully at .S files.
 
-> Are there other specified concerns that you have regarding this example?
+	Any number of other programs contain assembly files.
 
-Nope.  Just generalized paranoia.  (But just because I am paranoid
-doesn't mean that there isn't a bug lurking somewhere in the standard,
-the compiler, the kernel, or my own head!)
+3.	Kernel modules that have not yet been written.  Now, the
+	compiler could refrain from trying to prove anything about
+	an EXPORT_SYMBOL() or EXPORT_SYMBOL_GPL() variable, but there
+	is currently no way to communicate this information to the
+	compiler other than marking the variable "volatile".
 
-I will likely have more once I start mapping Linux kernel atomics to the
-C11 standard.  One more paper past N3934 comes first, though.
+	Other programs have similar issues, e.g., via dlopen().
+
+4.	Some drivers allow user-mode code to mmap() some of their
+	state.  Any changes undertaken by the user-mode code would
+	be invisible to the compiler.
+
+5.	JITed code produced based on BPF: https://lwn.net/Articles/437981/
+
+And probably other stuff as well.
 
 							Thanx, Paul
 
