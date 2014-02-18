@@ -1,108 +1,97 @@
-From: Peter Sewell <Peter.Sewell@cl.cam.ac.uk>
+From: Torvald Riegel <triegel@redhat.com>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Tue, 18 Feb 2014 16:08:53 +0000
-Message-ID: <CAHWkzRQZoWsc5SAJHnbDZckuo9fzt_t88F1K+2U11_mdLyQNxg@mail.gmail.com>
-References: <CAHWkzRQSaKOM23yg1LbCO=uWremNzwnXUCUJF2H-+z_Xhmp79g@mail.gmail.com>
-	<20140218125357.GC27965@twins.programming.kicks-ass.net>
-Reply-To: Peter.Sewell@cl.cam.ac.uk
+Date: Tue, 18 Feb 2014 17:17:38 +0100
+Message-ID: <1392740258.18779.7732.camel@triegel.csb>
+References: <1392321837.18779.3249.camel@triegel.csb>	 <20140214020144.GO4250@linux.vnet.ibm.com>	 <1392352981.18779.3800.camel@triegel.csb>	 <20140214172920.GQ4250@linux.vnet.ibm.com>	 <CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>	 <CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>	 <1392486310.18779.6447.camel@triegel.csb>	 <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>	 <1392666947.18779.6838.camel@triegel.csb>	 <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>	 <20140218030002.GA15857@linux.vnet.ibm.com>	 <CA+55aFyqLrj4d2TA+2aazRqXnbVsUvs0yaBL2D5rXF1G=Kiu_g@mail.gmail.com>	 <CA+55aFwsq5E8kMoEeHJJ1f2=+QAUCu_HndfPxHNz8fUBprS-jQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f177.google.com ([209.85.223.177]:58783 "EHLO
-	mail-ie0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755299AbaBRQIy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2014 11:08:54 -0500
-In-Reply-To: <20140218125357.GC27965@twins.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "mark.batty@cl.cam.ac.uk" <Mark.Batty@cl.cam.ac.uk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Torvald Riegel <triegel@redhat.com>, torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, "ramana.radhakrishnan" <Ramana.Radhakrishnan@arm.com>, dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@kernel.org, gcc@gcc.gnu.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <gcc-return-182132-gcc=m.gmane.org@gcc.gnu.org>
+List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
+List-Archive: <http://gcc.gnu.org/ml/gcc/>
+List-Post: <mailto:gcc@gcc.gnu.org>
+List-Help: <http://gcc.gnu.org/ml/>
+Sender: gcc-owner@gcc.gnu.org
+In-Reply-To: <CA+55aFwsq5E8kMoEeHJJ1f2=+QAUCu_HndfPxHNz8fUBprS-jQ@mail.gmail.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 18 February 2014 12:53, Peter Zijlstra <peterz@infradead.org> wrote:
-> On Tue, Feb 18, 2014 at 12:12:06PM +0000, Peter Sewell wrote:
->> Several of you have said that the standard and compiler should not
->> permit speculative writes of atomics, or (effectively) that the
->> compiler should preserve dependencies.
->
-> The example below only deals with control dependencies; so I'll limit
-> myself to that.
+On Mon, 2014-02-17 at 19:42 -0800, Linus Torvalds wrote:
+> On Mon, Feb 17, 2014 at 7:24 PM, Linus Torvalds
+> <torvalds@linux-foundation.org> wrote:
+> >
+> > As far as I can tell, the intent is that you can't do value
+> > speculation (except perhaps for the "relaxed", which quite frankly
+> > sounds largely useless).
+> 
+> Hmm. The language I see for "consume" is not obvious:
+> 
+>   "Consume operation: no reads in the current thread dependent on the
+> value currently loaded can be reordered before this load"
 
-Data/address dependencies are, if anything, even less clear - see a
-paragraph on that in my reply to Paul.
+I can't remember seeing that language in the standard (ie, C or C++).
+Where is this from?
 
->> In simple examples it's easy
->> to see what that means, but in general it's not so clear what the
->> language should guarantee, because dependencies may go via non-atomic
->> code in other compilation units, and we have to consider the extent to
->> which it's desirable to limit optimisation there.
->>
->> For example, suppose we have, in one compilation unit:
->>
->>     void f(int ra, int*rb) {
->>       if (ra==42)
->>         *rb=42;
->>       else
->>         *rb=42;
->>     }
->>
->> and in another compilation unit the bodies of two threads:
->>
->>     // Thread 0
->>     r1 = x;
->>     f(r1,&r2);
->>     y = r2;
->>
->>     // Thread 1
->>     r3 = y;
->>     f(r3,&r4);
->>     x = r4;
->>
->> where accesses to x and y are annotated C11 atomic
->> memory_order_relaxed or Linux ACCESS_ONCE(), accesses to
->> r1,r2,r3,r4,ra,rb are not annotated, and x and y initially hold 0.
->
-> So I'm intuitively ok with this, however I would expect something like:
->
->   void f(_Atomic int ra, _Atomic int *rb);
->
-> To preserve dependencies and not make the conditional go away, simply
-> because in that case the:
->
->   if (ra == 42)
->
-> the 'ra' usage can be seen as an atomic load.
->
->> So as far as we can see, either:
->>
->> 1) if you can accept the latter behaviour (if the Linux codebase does
->>    not rely on its absence), the language definition should permit it,
->>    and current compiler optimisations can be used,
->
-> Currently there's exactly 1 site in the Linux kernel that relies on
-> control dependencies as far as I know -- the one I put in.
+> and it could make a compiler writer say that value speculation is
+> still valid, if you do it like this (with "ptr" being the atomic
+> variable):
+> 
+>   value = ptr->val;
 
-ok, thanks
+I assume the load from ptr has mo_consume ordering?
 
-> And its
-> limited to a single function, so no cross translation unit funnies
-> there.
+> into
+> 
+>   tmp = ptr;
+>   value = speculated.value;
+>   if (unlikely(tmp != &speculated))
+>     value = tmp->value;
+> 
+> which is still bogus. The load of "ptr" does happen before the load of
+> "value = speculated->value" in the instruction stream, but it would
+> still result in the CPU possibly moving the value read before the
+> pointer read at least on ARM and power.
 
-One can imagine a language definition that treats code that lies
-entirely within a single compilation unit specially (e.g. if it's
-somehow annotated as relying on dependencies).  But I imagine it would
-be pretty unappealing to work with.
+And surprise, in the C/C++ model the load from ptr is sequenced-before
+the load from speculated, but there's no ordering constraint on the
+reads-from relation for the value load if you use mo_consume on the ptr
+load.  Thus, the transformed code has less ordering constraints than the
+original code, and we arrive at the same outcome.
 
-> Of course, nobody is going to tell me when or where they'll put in the
-> next one; since its now documented as accepted practise.
+> So if you're a compiler person, you think you followed the letter of
+> the spec - as far as *you* were concerned, no load dependent on the
+> value of the atomic load moved to before the atomic load.
 
-Is that not fragile?
+No.  Because the wobbly sentence you cited(?) above is not what the
+standard says.
 
-> However, PaulMck and our RCU usage very much do cross all sorts of TU
-> boundaries; but those are data dependencies.
+Would you please stop making claims about what compiler writers would do
+or not if you seemingly aren't even familiar with the model that
+compiler writers would use to reason about transformations?  Seriously?
 
-yes - though again see my reply to Paul's note
+> You go home,
+> happy, knowing you've done your job. Never mind that you generated
+> code that doesn't actually work.
+> 
+> I dread having to explain to the compiler person that he may be right
+> in some theoretical virtual machine, but the code is subtly broken and
+> nobody will ever understand why (and likely not be able to create a
+> test-case showing the breakage).
+> 
+> But maybe the full standard makes it clear that "reordered before this
+> load" actually means on the real hardware, not just in the generated
+> instruction stream.
 
-thanks,
-Peter
+Do you think everyone else is stupid?  If there's an ordering constraint
+in the virtual machine, it better be present when executing in the real
+machine unless it provably cannot result in different output as
+specified by the language's semantics.
 
-> ~ Peter
+> Reading it with understanding of the *intent* and
+> understanding all the different memory models that requirement should
+> be obvious (on alpha, you need an "rmb" instruction after the load),
+> but ...
+
+The standard is clear on what's required.  I strongly suggest reading
+the formalization of the memory model by Batty et al.
