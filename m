@@ -1,67 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ve0-f177.google.com ([209.85.128.177]:60581 "EHLO
-	mail-ve0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751005AbaBRAJW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Feb 2014 19:09:22 -0500
-MIME-Version: 1.0
-In-Reply-To: <1392679048.18779.7168.camel@triegel.csb>
-References: <20140207180216.GP4250@linux.vnet.ibm.com>
-	<1391992071.18779.99.camel@triegel.csb>
-	<CA+55aFwTwCPMpYTL_vCgNNP0hE8s2sgB0iw-79=xoj99V0JUNA@mail.gmail.com>
-	<1392183564.18779.2187.camel@triegel.csb>
-	<20140212180739.GB4250@linux.vnet.ibm.com>
-	<CA+55aFw3S82GYdtnV2nJCvBGcuZf6kXdF5b7Vp9yb21QKr49Jw@mail.gmail.com>
-	<20140213002355.GI4250@linux.vnet.ibm.com>
-	<1392321837.18779.3249.camel@triegel.csb>
-	<20140214020144.GO4250@linux.vnet.ibm.com>
-	<1392352981.18779.3800.camel@triegel.csb>
-	<20140214172920.GQ4250@linux.vnet.ibm.com>
-	<CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>
-	<1392485428.18779.6387.camel@triegel.csb>
-	<CA+55aFw5v8Zc818YoxazFhP0btN1faofNbED=qrpi3VrtRA39w@mail.gmail.com>
-	<1392674986.18779.7038.camel@triegel.csb>
-	<CA+55aFz-gaNKxRGU-YPw3xu=T8ZxFv0v22i+R7vWoeQT0i+8Mw@mail.gmail.com>
-	<1392679048.18779.7168.camel@triegel.csb>
-Date: Mon, 17 Feb 2014 16:09:21 -0800
-Message-ID: <CA+55aFxw+k66jgOVKr0nDuUA91svcZKkBb5purMbfPrO+C+5sQ@mail.gmail.com>
+Received: from e32.co.us.ibm.com ([32.97.110.150]:41343 "EHLO
+	e32.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751445AbaBRB0k (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Feb 2014 20:26:40 -0500
+Received: from /spool/local
+	by e32.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Mon, 17 Feb 2014 18:26:40 -0700
+Date: Mon, 17 Feb 2014 17:26:36 -0800
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Content-Type: text/plain; charset=UTF-8
+Message-ID: <20140218012636.GB4250@linux.vnet.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
+References: <CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>
+ <1392486310.18779.6447.camel@triegel.csb>
+ <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
+ <1392666947.18779.6838.camel@triegel.csb>
+ <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
+ <1392672063.18779.6940.camel@triegel.csb>
+ <1392675939.18779.7063.camel@triegel.csb>
+ <CA+55aFx2jxE8sTZEmNnMg6ktDuU_0xPiEw3=qH0=+xat8p8cAA@mail.gmail.com>
+ <1392680518.18779.7213.camel@triegel.csb>
+ <CA+55aFzSBZMC6kbdJj5Jus9-q1dzXdCYQXfMm34O+9h8SbGcGQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CA+55aFzSBZMC6kbdJj5Jus9-q1dzXdCYQXfMm34O+9h8SbGcGQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Torvald Riegel <triegel@redhat.com>
-Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140218000921.Fd1ZzbVWUde_wzH53Yg0Cc25wD0Q7W8yTec51jr4Hz8@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Message-ID: <20140218012636.G9nH7DexdiEEaUGwklvm6UsdSZyrkp9mJGeQAwE_ACw@z>
 
-On Mon, Feb 17, 2014 at 3:17 PM, Torvald Riegel <triegel@redhat.com> wrote:
-> On Mon, 2014-02-17 at 14:32 -0800,
->
->> Stop claiming it "can return 1".. It *never* returns 1 unless you do
->> the load and *verify* it, or unless the load itself can be made to go
->> away. And with the code sequence given, that just doesn't happen. END
->> OF STORY.
->
-> void foo();
-> {
->   atomic<int> x = 1;
->   if (atomic_load(&x, mo_relaxed) == 1)
->     atomic_store(&y, 3, mo_relaxed));
-> }
+On Mon, Feb 17, 2014 at 04:18:52PM -0800, Linus Torvalds wrote:
+> On Mon, Feb 17, 2014 at 3:41 PM, Torvald Riegel <triegel@redhat.com> wrote:
+> >
+> > There's an underlying problem here that's independent from the actual
+> > instance that you're worried about here: "no sense" is a ultimately a
+> > matter of taste/objectives/priorities as long as the respective
+> > specification is logically consistent.
+> 
+> Yes. But I don't think it's "independent".
+> 
+> Exactly *because* some people will read standards without applying
+> "does the resulting code generation actually make sense for the
+> programmer that wrote the code", the standard has to be pretty clear.
+> 
+> The standard often *isn't* pretty clear. It wasn't clear enough when
+> it came to "volatile", and yet that was a *much* simpler concept than
+> atomic accesses and memory ordering.
+> 
+> And most of the time it's not a big deal. But because the C standard
+> generally tries to be very portable, and cover different machines,
+> there tends to be a mindset that anything inherently unportable is
+> "undefined" or "implementation defined", and then the compiler writer
+> is basically given free reign to do anything they want (with
+> "implementation defined" at least requiring that it is reliably the
+> same thing).
+> 
+> And when it comes to memory ordering, *everything* is basically
+> non-portable, because different CPU's very much have different rules.
+> I worry that that means that the standard then takes the stance that
+> "well, compiler re-ordering is no worse than CPU re-ordering, so we
+> let the compiler do anything". And then we have to either add
+> "volatile" to make sure the compiler doesn't do that, or use an overly
+> strict memory model at the compiler level that makes it all pointless.
 
-This is the very example I gave, where the real issue is not that "you
-prove that load returns 1", you instead say "store followed by a load
-can be combined".
+For whatever it is worth, this line of reasoning has been one reason why
+I have been objecting strenuously every time someone on the committee
+suggests eliminating "volatile" from the standard.
 
-I (in another email I just wrote) tried to show why the "prove
-something is true" is a very dangerous model.  Seriously, it's pure
-crap. It's broken.
+							Thanx, Paul
 
-If the C standard defines atomics in terms of "provable equivalence",
-it's broken. Exactly because on a *virtual* machine you can prove
-things that are not actually true in a *real* machine. I have the
-example of value speculation changing the memory ordering model of the
-actual machine.
+> So I really really hope that the standard doesn't give compiler
+> writers free hands to do anything that they can prove is "equivalent"
+> in the virtual C machine model. That's not how you get reliable
+> results.
+> 
+>                Linus
+> 
 
-See?
-
-                Linus
