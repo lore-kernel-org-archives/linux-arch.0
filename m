@@ -1,111 +1,34 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Tue, 18 Feb 2014 13:29:55 -0800
-Message-ID: <20140218212955.GW4250@linux.vnet.ibm.com>
-References: <CAHWkzRQSaKOM23yg1LbCO=uWremNzwnXUCUJF2H-+z_Xhmp79g@mail.gmail.com>
- <1392756211.18779.8263.camel@triegel.csb>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v4 1/3] qspinlock: Introducing a 4-byte queue spinlock
+ implementation
+Date: Tue, 18 Feb 2014 22:34:00 +0100
+Message-ID: <20140218213400.GS14089@laptop.programming.kicks-ass.net>
+References: <1392669684-4807-1-git-send-email-Waiman.Long@hp.com>
+ <1392669684-4807-2-git-send-email-Waiman.Long@hp.com>
+ <20140218073951.GZ27965@twins.programming.kicks-ass.net>
+ <5303B6F3.9090001@hp.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e33.co.us.ibm.com ([32.97.110.151]:42219 "EHLO
-	e33.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751454AbaBRVaC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2014 16:30:02 -0500
-Received: from /spool/local
-	by e33.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Tue, 18 Feb 2014 14:30:01 -0700
+Received: from merlin.infradead.org ([205.233.59.134]:36534 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751355AbaBRVeV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2014 16:34:21 -0500
 Content-Disposition: inline
-In-Reply-To: <1392756211.18779.8263.camel@triegel.csb>
+In-Reply-To: <5303B6F3.9090001@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Torvald Riegel <triegel@redhat.com>
-Cc: Peter.Sewell@cl.cam.ac.uk, "mark.batty@cl.cam.ac.uk" <Mark.Batty@cl.cam.ac.uk>, peterz@infradead.org, torvalds@linux-foundation.org, Will Deacon <will.deacon@arm.com>, Ramana.Radhakrishnan@arm.com, dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@kernel.org, gcc@gcc.gnu.org
+To: Waiman Long <waiman.long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
 
-On Tue, Feb 18, 2014 at 09:43:31PM +0100, Torvald Riegel wrote:
-> xagsmtp5.20140218204423.3934@bldgate.vnet.ibm.com
-> X-Xagent-Gateway: bldgate.vnet.ibm.com (XAGSMTP5 at BLDGATE)
-> 
-> On Tue, 2014-02-18 at 12:12 +0000, Peter Sewell wrote:
-> > Several of you have said that the standard and compiler should not
-> > permit speculative writes of atomics, or (effectively) that the
-> > compiler should preserve dependencies.  In simple examples it's easy
-> > to see what that means, but in general it's not so clear what the
-> > language should guarantee, because dependencies may go via non-atomic
-> > code in other compilation units, and we have to consider the extent to
-> > which it's desirable to limit optimisation there.
-> 
-> [...]
-> 
-> > 2) otherwise, the language definition should prohibit it but the
-> >    compiler would have to preserve dependencies even in compilation
-> >    units that have no mention of atomics.  It's unclear what the
-> >    (runtime and compiler development) cost of that would be in
-> >    practice - perhaps Torvald could comment?
-> 
-> If I'm reading the standard correctly, it requires that data
-> dependencies are preserved through loads and stores, including nonatomic
-> ones.  That sounds convenient because it allows programmers to use
-> temporary storage.
-> 
-> However, what happens if a dependency "arrives" at a store for which the
-> alias set isn't completely known?  Then we either have to add a barrier
-> to enforce the ordering at this point, or we have to assume that all
-> other potentially aliasing memory locations would also have to start
-> carrying dependencies (which might be in other functions in other
-> compilation units).  Neither option is good.  The first might introduce
-> barriers in places in which they might not be required (or the
-> programmer has to use kill_dependency() quite often to avoid all these).
-> The second is bad because points-to analysis is hard, so in practice the
-> points-to set will not be precisely known for a lot of pointers.  So
-> this might not just creep into other functions via calls of
-> [[carries_dependency]] functions, but also through normal loads and
-> stores, likely prohibiting many optimizations.
+On Tue, Feb 18, 2014 at 02:39:31PM -0500, Waiman Long wrote:
+> The #ifdef is harder to take away here. The point is that doing a 32-bit
+> exchange may accidentally steal the lock with the additional code to handle
+> that. Doing a 16-bit exchange, on the other hand, will never steal the lock
+> and so don't need the extra handling code. I could construct a function with
+> different return values to handle the different cases if you think it will
+> make the code easier to read.
 
-I cannot immediately think of a situation where a store carrying a
-dependency into a non-trivially aliased object wouldn't be a usage
-error, so perhaps emitting a barrier and a diagnostic at that point
-is best.
-
-> Furthermore, the dependency tracking can currently only be
-> "disabled/enabled" on a function granularity (via
-> [[carries_dependency]]).  Thus, if we have big functions, then
-> dependency tracking may slow down a lot of code in the big function.  If
-> we have small functions, there's a lot of attributes to be added.
-> 
-> If a function may only carry a dependency but doesn't necessarily (eg,
-> depending on input parameters), then the programmer has to make a
-> trade-off whether he/she want's to benefit from mo_consume but slow down
-> other calls due to additional barriers (ie, when this function is called
-> from non-[[carries_dependency]] functions), or vice versa.  (IOW,
-> because of the function granularity, other code's performance is
-> affected.)
-> 
-> If a compiler wants to implement dependency tracking just for a few
-> constructs (e.g., operators -> + ...) and use barriers otherwise, then
-> this decision must be compatible with how all this is handled in other
-> compilation units.  Thus, compiler optimizations effectively become part
-> of the ABI, which doesn't seem right.
-> 
-> I hope these examples illustrate my concerns about the implementability
-> in practice of this.  It's also why I've suggested to move from an
-> opt-out approach as in the current standard (ie, with kill_dependency())
-> to an opt-in approach for conservative dependency tracking (e.g., with a
-> preserve_dependencies(exp) call, where exp will not be optimized in a
-> way that removes any dependencies).  This wouldn't help with many
-> optimizations being prevented, but it should at least help programmers
-> contain the problem to smaller regions of code.
-> 
-> I'm not aware of any implementation that tries to track dependencies, so
-> I can't give any real performance numbers.  This could perhaps be
-> simulated, but I'm not sure whether a realistic case would be made
-> without at least supporting [[carries_dependency]] properly in the
-> compiler, which would be some work.
-
-Another approach would be to use start-tracking/stop-tracking directives
-that could be buried into rcu_read_lock() and rcu_read_unlock().  There
-are issues with nesting and conditional use of rcu_read_lock() and
-rcu_read_unlock(), but it does give you nicer granularity properties.
-
-							Thanx, Paul
+Does it really pay to use xchg() with all those fixup cases? Why not
+have a single cmpxchg() loop that does just the exact atomic op you
+want?
