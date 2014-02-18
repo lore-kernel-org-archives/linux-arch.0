@@ -1,97 +1,68 @@
 From: Torvald Riegel <triegel@redhat.com>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Tue, 18 Feb 2014 17:17:38 +0100
-Message-ID: <1392740258.18779.7732.camel@triegel.csb>
-References: <1392321837.18779.3249.camel@triegel.csb>	 <20140214020144.GO4250@linux.vnet.ibm.com>	 <1392352981.18779.3800.camel@triegel.csb>	 <20140214172920.GQ4250@linux.vnet.ibm.com>	 <CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>	 <CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>	 <1392486310.18779.6447.camel@triegel.csb>	 <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>	 <1392666947.18779.6838.camel@triegel.csb>	 <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>	 <20140218030002.GA15857@linux.vnet.ibm.com>	 <CA+55aFyqLrj4d2TA+2aazRqXnbVsUvs0yaBL2D5rXF1G=Kiu_g@mail.gmail.com>	 <CA+55aFwsq5E8kMoEeHJJ1f2=+QAUCu_HndfPxHNz8fUBprS-jQ@mail.gmail.com>
+Date: Tue, 18 Feb 2014 16:46:57 +0100
+Message-ID: <1392738417.18779.7675.camel@triegel.csb>
+References: <20140207180216.GP4250@linux.vnet.ibm.com>	 <1391992071.18779.99.camel@triegel.csb>	 <CA+55aFwTwCPMpYTL_vCgNNP0hE8s2sgB0iw-79=xoj99V0JUNA@mail.gmail.com>	 <1392183564.18779.2187.camel@triegel.csb>	 <20140212180739.GB4250@linux.vnet.ibm.com>	 <CA+55aFw3S82GYdtnV2nJCvBGcuZf6kXdF5b7Vp9yb21QKr49Jw@mail.gmail.com>	 <20140213002355.GI4250@linux.vnet.ibm.com>	 <1392321837.18779.3249.camel@triegel.csb>	 <20140214020144.GO4250@linux.vnet.ibm.com>	 <1392352981.18779.3800.camel@triegel.csb>	 <20140214172920.GQ4250@linux.vnet.ibm.com>	 <CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>	 <1392485428.18779.6387.camel@triegel.csb>	 <CA+55aFw5v8Zc818YoxazFhP0btN1faofNbED=qrpi3VrtRA39w@mail.gmail.com>	 <1392674986.18779.7038.camel@triegel.csb>	 <CA+55aFz-gaNKxRGU-YPw3xu=T8ZxFv
+ 0v22i+R7vWoeQT0i+8Mw@mail.gmail.com>	 <1392679048.18779.7168.camel@triegel.csb>	 <CA+55aFxw+k66jgOVKr0nDuUA91svcZKkBb5purMbfPrO+C+5sQ@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <gcc-return-182132-gcc=m.gmane.org@gcc.gnu.org>
+Return-path: <gcc-return-182133-gcc=m.gmane.org@gcc.gnu.org>
 List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
 List-Archive: <http://gcc.gnu.org/ml/gcc/>
 List-Post: <mailto:gcc@gcc.gnu.org>
 List-Help: <http://gcc.gnu.org/ml/>
 Sender: gcc-owner@gcc.gnu.org
-In-Reply-To: <CA+55aFwsq5E8kMoEeHJJ1f2=+QAUCu_HndfPxHNz8fUBprS-jQ@mail.gmail.com>
+In-Reply-To: <CA+55aFxw+k66jgOVKr0nDuUA91svcZKkBb5purMbfPrO+C+5sQ@mail.gmail.com>
 To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, 2014-02-17 at 19:42 -0800, Linus Torvalds wrote:
-> On Mon, Feb 17, 2014 at 7:24 PM, Linus Torvalds
-> <torvalds@linux-foundation.org> wrote:
+On Mon, 2014-02-17 at 16:09 -0800, Linus Torvalds wrote:
+> On Mon, Feb 17, 2014 at 3:17 PM, Torvald Riegel <triegel@redhat.com> wrote:
+> > On Mon, 2014-02-17 at 14:32 -0800,
 > >
-> > As far as I can tell, the intent is that you can't do value
-> > speculation (except perhaps for the "relaxed", which quite frankly
-> > sounds largely useless).
+> >> Stop claiming it "can return 1".. It *never* returns 1 unless you do
+> >> the load and *verify* it, or unless the load itself can be made to go
+> >> away. And with the code sequence given, that just doesn't happen. END
+> >> OF STORY.
+> >
+> > void foo();
+> > {
+> >   atomic<int> x = 1;
+> >   if (atomic_load(&x, mo_relaxed) == 1)
+> >     atomic_store(&y, 3, mo_relaxed));
+> > }
 > 
-> Hmm. The language I see for "consume" is not obvious:
+> This is the very example I gave, where the real issue is not that "you
+> prove that load returns 1", you instead say "store followed by a load
+> can be combined".
 > 
->   "Consume operation: no reads in the current thread dependent on the
-> value currently loaded can be reordered before this load"
+> I (in another email I just wrote) tried to show why the "prove
+> something is true" is a very dangerous model.  Seriously, it's pure
+> crap. It's broken.
 
-I can't remember seeing that language in the standard (ie, C or C++).
-Where is this from?
+I don't see anything dangerous in the example above with the language
+semantics as specified: It's a well-defined situation, given the rules
+of the language.  I replied to the other email you wrote with my
+viewpoint on why the above is useful, how it compares to what you seem
+to what, and where I think we need to start to bridge the gap.
 
-> and it could make a compiler writer say that value speculation is
-> still valid, if you do it like this (with "ptr" being the atomic
-> variable):
-> 
->   value = ptr->val;
+> If the C standard defines atomics in terms of "provable equivalence",
+> it's broken. Exactly because on a *virtual* machine you can prove
+> things that are not actually true in a *real* machine.
 
-I assume the load from ptr has mo_consume ordering?
+For the control dependencies you have in mind, it's actually the other
+way around.  You expect the real machine's properties in a program whose
+semantics only give you the virtual machine's properties.  Anything you
+prove on the virtual machine will be true on the real machine (in a
+correct implementation) -- but you can't expect to have real-machine
+properties on language that's based on the virtual machine.
 
-> into
-> 
->   tmp = ptr;
->   value = speculated.value;
->   if (unlikely(tmp != &speculated))
->     value = tmp->value;
-> 
-> which is still bogus. The load of "ptr" does happen before the load of
-> "value = speculated->value" in the instruction stream, but it would
-> still result in the CPU possibly moving the value read before the
-> pointer read at least on ARM and power.
+> I have the
+> example of value speculation changing the memory ordering model of the
+> actual machine.
 
-And surprise, in the C/C++ model the load from ptr is sequenced-before
-the load from speculated, but there's no ordering constraint on the
-reads-from relation for the value load if you use mo_consume on the ptr
-load.  Thus, the transformed code has less ordering constraints than the
-original code, and we arrive at the same outcome.
-
-> So if you're a compiler person, you think you followed the letter of
-> the spec - as far as *you* were concerned, no load dependent on the
-> value of the atomic load moved to before the atomic load.
-
-No.  Because the wobbly sentence you cited(?) above is not what the
-standard says.
-
-Would you please stop making claims about what compiler writers would do
-or not if you seemingly aren't even familiar with the model that
-compiler writers would use to reason about transformations?  Seriously?
-
-> You go home,
-> happy, knowing you've done your job. Never mind that you generated
-> code that doesn't actually work.
-> 
-> I dread having to explain to the compiler person that he may be right
-> in some theoretical virtual machine, but the code is subtly broken and
-> nobody will ever understand why (and likely not be able to create a
-> test-case showing the breakage).
-> 
-> But maybe the full standard makes it clear that "reordered before this
-> load" actually means on the real hardware, not just in the generated
-> instruction stream.
-
-Do you think everyone else is stupid?  If there's an ordering constraint
-in the virtual machine, it better be present when executing in the real
-machine unless it provably cannot result in different output as
-specified by the language's semantics.
-
-> Reading it with understanding of the *intent* and
-> understanding all the different memory models that requirement should
-> be obvious (on alpha, you need an "rmb" instruction after the load),
-> but ...
-
-The standard is clear on what's required.  I strongly suggest reading
-the formalization of the memory model by Batty et al.
+This example is not true for the language as specified.  It is true for
+a modified language that you have in mind, but for this one I've just
+seen pretty rough rules so far.  Please see my other reply.
