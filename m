@@ -1,60 +1,63 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Tue, 18 Feb 2014 11:00:48 -0800
-Message-ID: <CA+55aFxSPEzm95qM8qiXu3F4zm1DU4EcVx+-UucW5VPt1yCzGQ@mail.gmail.com>
-References: <CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>	<CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>	<1392486310.18779.6447.camel@triegel.csb>	<CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>	<1392666947.18779.6838.camel@triegel.csb>	<CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>	<530296CD.5050503@warwick.ac.uk>	<CA+55aFyi8QWge7QR0M+ABH-kEiwvoEyMhK6GWRvN1YNKJAFuSQ@mail.gmail.com>	<1392737465.18779.7644.camel@triegel.csb>	<CA+55aFxn2KRXDQ91xRs=bO_6d_nA_PSQvoY1_=OxyJ86+KOO9Q@mail.gmail.com>	<20140218171609.GP4250@linux.vnet.ibm.com>	<CAHWkzRSXxAPShfFTAQj=f5M1L4K1E5D6yLmQS72-b1jNGTPpEA@mail.gmail.com>
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH v4 0/3] qspinlock: Introducing a 4-byte queue spinlock
+Date: Tue, 18 Feb 2014 14:27:30 -0500
+Message-ID: <5303B422.2010304@hp.com>
+References: <1392669684-4807-1-git-send-email-Waiman.Long@hp.com> <53029167.4060109@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <gcc-return-182145-gcc=m.gmane.org@gcc.gnu.org>
-List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
-List-Archive: <http://gcc.gnu.org/ml/gcc/>
-List-Post: <mailto:gcc@gcc.gnu.org>
-List-Help: <http://gcc.gnu.org/ml/>
-Sender: gcc-owner@gcc.gnu.org
-In-Reply-To: <CAHWkzRSXxAPShfFTAQj=f5M1L4K1E5D6yLmQS72-b1jNGTPpEA@mail.gmail.com>
-To: Peter.Sewell@cl.cam.ac.uk
-Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Torvald Riegel <triegel@redhat.com>, Alec Teal <a.teal@warwick.ac.uk>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from g2t1383g.austin.hp.com ([15.217.136.92]:54154 "EHLO
+	g2t1383g.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750966AbaBRT15 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2014 14:27:57 -0500
+In-Reply-To: <53029167.4060109@zytor.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
 
-On Tue, Feb 18, 2014 at 10:23 AM, Peter Sewell
-<Peter.Sewell@cl.cam.ac.uk> wrote:
+On 02/17/2014 05:47 PM, H. Peter Anvin wrote:
+> On 02/17/2014 12:41 PM, Waiman Long wrote:
+>> v3->v4:
+>>   - Remove debugging code and fix a configuration error
+>>   - Simplify the qspinlock structure and streamline the code to make it
+>>     perform a bit better
+>>   - Add an x86 version of asm/qspinlock.h for holding x86 specific
+>>     optimization.
+>>   - Add an optimized x86 code path for 2 contending tasks to improve
+>>     low contention performance.
+>>
+>> v2->v3:
+>>   - Simplify the code by using numerous mode only without an unfair option.
+>>   - Use the latest smp_load_acquire()/smp_store_release() barriers.
+>>   - Move the queue spinlock code to kernel/locking.
+>>   - Make the use of queue spinlock the default for x86-64 without user
+>>     configuration.
+>>   - Additional performance tuning.
+>>
+>> v1->v2:
+>>   - Add some more comments to document what the code does.
+>>   - Add a numerous CPU mode to support>= 16K CPUs
+>>   - Add a configuration option to allow lock stealing which can further
+>>     improve performance in many cases.
+>>   - Enable wakeup of queue head CPU at unlock time for non-numerous
+>>     CPU mode.
+>>
+>> This patch set introduces a queue-based spinlock implementation that
+>> can replace the default ticket spinlock without increasing the size
+>> of the spinlock data structure. As a result, critical kernel data
+>> structures that embed spinlock won't increase in size and breaking
+>> data alignments.
+>>
+> This is starting to look good, so I have pulled it into
+> tip:x86/spinlocks to start give it some testing mileage.
 >
-> interesting list.  So are you saying that value-range-analysis and
-> such-like (I say glibly, without really knowing what "such-like"
-> refers to here) are fundamentally incompatible with
-> the kernel code
+> 	-hpa
+>
+>
 
-No, it's fine to do things like value-range-analysis, it's just that
-you have to do it on a local scope, and not think that you can see
-every single write to some variable.
+Thank for the additional testing. Please let me know if you find 
+anything wrong.
 
-And as Paul points out, this is actually generally true even outside
-of kernels. We may be pretty unique in having some things that are
-literally done by hardware (eg the page table updates), but we're
-certainly not unique in having loadable modules or code that the
-compiler doesn't know about by virtue of being compiled separately
-(assembly files, JITted, whatever).
-
-And we are actually perfectly fine with compiler barriers. One of our
-most common barriers is simply this:
-
-   #define barrier() __asm__ __volatile__("": : :"memory")
-
-which basically tells the compiler "something changes memory in ways
-you don't understand, so you cannot assume anything about memory
-contents".
-
-Obviously, a compiler is still perfectly fine optimizing things like
-local variables etc that haven't had their address taken across such a
-barrier (regardless of whether those local variables might be spilled
-to the stack frame etc), but equally obviously we'd require that this
-kind of thing makes sure that any atomic writes have been finalized by
-the time the barrier happens (it does *not* imply a memory ordering,
-just a compiler memory access barrier - we have separate things for
-ordering requirements, and those obviously often generate actual
-barrier instructions)
-
-And we're likely always going to have things like this, but if C11
-atomics end up working well for us, we might have *fewer* of them.
-
-              Linus
+-Longman
