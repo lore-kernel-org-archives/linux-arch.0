@@ -1,62 +1,85 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Tue, 18 Feb 2014 09:17:46 -0800
-Message-ID: <20140218171746.GQ4250@linux.vnet.ibm.com>
+Date: Tue, 18 Feb 2014 09:38:32 -0800
+Message-ID: <CA+55aFw=9iKadR-r5sdZdJ_7yDzSV4=+P=gZXXsrxU61wKHf5w@mail.gmail.com>
 References: <CAHWkzRQSaKOM23yg1LbCO=uWremNzwnXUCUJF2H-+z_Xhmp79g@mail.gmail.com>
- <20140218145645.GK4250@linux.vnet.ibm.com>
- <CAKKQTT0Z4220G34_PB_iW74UtEsgo3nt3Rbv3nPy0m6Mbwg+9g@mail.gmail.com>
-Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e37.co.us.ibm.com ([32.97.110.158]:34963 "EHLO
-	e37.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751855AbaBRRRw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2014 12:17:52 -0500
-Received: from /spool/local
-	by e37.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Tue, 18 Feb 2014 10:17:52 -0700
-Content-Disposition: inline
-In-Reply-To: <CAKKQTT0Z4220G34_PB_iW74UtEsgo3nt3Rbv3nPy0m6Mbwg+9g@mail.gmail.com>
+Received: from mail-ve0-f176.google.com ([209.85.128.176]:50880 "EHLO
+	mail-ve0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751005AbaBRRid (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2014 12:38:33 -0500
+In-Reply-To: <CAHWkzRQSaKOM23yg1LbCO=uWremNzwnXUCUJF2H-+z_Xhmp79g@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Batty <Mark.Batty@cl.cam.ac.uk>
-Cc: Peter Sewell <Peter.Sewell@cl.cam.ac.uk>, peterz@infradead.org, Torvald Riegel <triegel@redhat.com>, torvalds@linux-foundation.org, Will Deacon <will.deacon@arm.com>, Ramana.Radhakrishnan@arm.com, dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@kernel.org, gcc@gcc.gnu.org
+To: Peter.Sewell@cl.cam.ac.uk
+Cc: "mark.batty@cl.cam.ac.uk" <Mark.Batty@cl.cam.ac.uk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
 
-On Tue, Feb 18, 2014 at 03:16:33PM +0000, Mark Batty wrote:
-> Hi Paul,
-> 
-> Thanks for the document. I'm looking forward to reading the bits about
-> dependency chains in Linux.
+On Tue, Feb 18, 2014 at 4:12 AM, Peter Sewell <Peter.Sewell@cl.cam.ac.uk> wrote:
+>
+> For example, suppose we have, in one compilation unit:
+>
+>     void f(int ra, int*rb) {
+>       if (ra==42)
+>         *rb=42;
+>       else
+>         *rb=42;
+>     }
 
-And I am looking forward to your thoughts on those bits!
+So this is a great example, and in general I really like your page at:
 
-> > One point of confusion for me...  Example 4 says "language must allow".
-> > Shouldn't that be "language is permitted to allow"?
-> 
-> When we say "allow", we mean that the optimised execution should be
-> allowed by the specification, and Implicitly, the unoptimised
-> execution should remain allowed too. We want to be concrete about what
-> the language specification allows, and that's why we say "must". It is
-> not to disallow the unoptimised execution.
+> For more context, this example is taken from a summary of the thin-air
+> problem by Mark Batty and myself,
+> <www.cl.cam.ac.uk/~pes20/cpp/notes42.html>, and the problem with
+> dependencies via other compilation units was AFAIK first pointed out
+> by Hans Boehm.
 
-OK, got it!
+and the reason I like your page is that it really talks about the
+problem by pointing to the "unoptimized" code, and what hardware would
+do.
 
-							Thanx, Paul
+As mentioned, I think that's actually the *correct* way to think about
+the problem space, because it allows the programmer to take hardware
+characteristics into account, without having to try to "describe" them
+at a source level.
 
-> > Seems like an
-> > implementation is always within its rights to avoid an optimization if
-> > its implementation prevents it from safely detecting the oppportunity
-> > for that optimization.
-> 
-> That's right.
-> 
-> - Mark
-> 
-> 
-> > Or am I missing something here?
-> >
-> >                                                         Thanx, Paul
-> >
-> 
+As to your example of
+
+   if (ra)
+       atomic_write(rb, A);
+   else
+       atomic_write(rb, B);
+
+I really think that it is ok to combine that into
+
+    atomic_write(rb, ra ? A:B);
+
+(by virtue of "exact same behavior on actual hardware"), and then the
+only remaining question is whether the "ra?A:B" can be optimized to
+remove the conditional if A==B as in your example where both are "42".
+Agreed?
+
+Now, I would argue that the "naive" translation of that is
+unambiguous, and since "ra" is not volatile or magic in any way, then
+"ra?42:42" can obviously be optimized into just 42 - by the exact same
+rule that says "the compiler can do any transformation that is
+equivalent in the hardware". The compiler can *locally* decide that
+that is the right thing to do, and any programmer that complains about
+that decision is just crazy.
+
+So my "local machine behavior equivalency" rule means that that
+function can be optimized into a single "store 42 atomically into rb".
+
+Now, if it's *not* compiled locally, and is instead implemented as a
+macro (or inline function), there are obviously situations where "ra ?
+A : B" ends up having to do other things. In particular, X may be
+volatile or an atomic read that has ordering semantics, and then that
+expression doesn't become just "42", but that's a separate issue. It's
+not all that dissimilar to "function calls are sequence points",
+though, and obviously if the source of "ra" has semantic meaning, you
+have to honor that semantic meaning.
+
+Agreed?
+
+                  Linus
