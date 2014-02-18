@@ -1,75 +1,40 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+From: Torvald Riegel <triegel@redhat.com>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Tue, 18 Feb 2014 11:47:45 -0800
-Message-ID: <20140218194745.GV4250@linux.vnet.ibm.com>
-References: <CAHWkzRQSaKOM23yg1LbCO=uWremNzwnXUCUJF2H-+z_Xhmp79g@mail.gmail.com>
- <CA+55aFw=9iKadR-r5sdZdJ_7yDzSV4=+P=gZXXsrxU61wKHf5w@mail.gmail.com>
- <CAHWkzRQp3x4Wsnr6ZRdxfk04MuWT3bANnL8=VbCVEZ6+ifiqYA@mail.gmail.com>
- <CA+55aFyfjr7=kXu6W83HhMenOnX9fssOGaZTJv_vj6rQ_+jY3Q@mail.gmail.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+Date: Tue, 18 Feb 2014 20:47:47 +0100
+Message-ID: <1392752867.18779.8120.camel@triegel.csb>
+References: <1392321837.18779.3249.camel@triegel.csb>	 <20140214020144.GO4250@linux.vnet.ibm.com>	 <1392352981.18779.3800.camel@triegel.csb>	 <20140214172920.GQ4250@linux.vnet.ibm.com>	 <CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>	 <CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>	 <1392486310.18779.6447.camel@triegel.csb>	 <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>	 <1392666947.18779.6838.camel@triegel.csb>	 <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>	 <20140218030002.GA15857@linux.vnet.ibm.com>	 <CA+55aFyqLrj4d2TA+2aazRqXnbVsUvs0yaBL2D5rXF1G=Kiu_g@mail.gmail.com>	 <CA+55aFwsq5E8kMoEeHJJ1f2=+QAUCu_HndfPxHNz8fUBprS-jQ@mail.gmail.com>	 <1392740258.18779.7732.camel@triegel.csb>	 <CA+55aFw7QYEMFs0BCx
+ qRJW3Cz=tLbaku-tmN6hLXPKP9jbom7Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e39.co.us.ibm.com ([32.97.110.160]:40699 "EHLO
-	e39.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751454AbaBRTru (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2014 14:47:50 -0500
-Received: from /spool/local
-	by e39.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Tue, 18 Feb 2014 12:47:50 -0700
-Content-Disposition: inline
-In-Reply-To: <CA+55aFyfjr7=kXu6W83HhMenOnX9fssOGaZTJv_vj6rQ_+jY3Q@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <gcc-return-182150-gcc=m.gmane.org@gcc.gnu.org>
+List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
+List-Archive: <http://gcc.gnu.org/ml/gcc/>
+List-Post: <mailto:gcc@gcc.gnu.org>
+List-Help: <http://gcc.gnu.org/ml/>
+Sender: gcc-owner@gcc.gnu.org
+In-Reply-To: <CA+55aFw7QYEMFs0BCxqRJW3Cz=tLbaku-tmN6hLXPKP9jbom7Q@mail.gmail.com>
 To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter.Sewell@cl.cam.ac.uk, "mark.batty@cl.cam.ac.uk" <Mark.Batty@cl.cam.ac.uk>, Peter Zijlstra <peterz@infradead.org>, Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Feb 18, 2014 at 10:49:27AM -0800, Linus Torvalds wrote:
-> On Tue, Feb 18, 2014 at 10:21 AM, Peter Sewell
-> <Peter.Sewell@cl.cam.ac.uk> wrote:
-> >
-> > This is a bit more subtle, because (on ARM and POWER) removing the
-> > dependency and conditional branch is actually in general *not* equivalent
-> > in the hardware, in a concurrent context.
+On Tue, 2014-02-18 at 09:44 -0800, Linus Torvalds wrote:
+> On Tue, Feb 18, 2014 at 8:17 AM, Torvald Riegel <triegel@redhat.com> wrote:
+> > The standard is clear on what's required.  I strongly suggest reading
+> > the formalization of the memory model by Batty et al.
 > 
-> So I agree, but I think that's a generic issue with non-local memory
-> ordering, and is not at all specific to the optimization wrt that
-> "x?42:42" expression.
-> 
-> If you have a value that you loaded with a non-relaxed load, and you
-> pass that value off to a non-local function that you don't know what
-> it does, in my opinion that implies that the compiler had better add
-> the necessary serialization to say "whatever that other function does,
-> we guarantee the semantics of the load".
-> 
-> So on ppc, if you do a load with "consume" or "acquire" and then call
-> another function without having had something in the caller that
-> serializes the load, you'd better add the lwsync or whatever before
-> the call. Exactly because the function call itself otherwise basically
-> breaks the visibility into ordering. You've basically turned a
-> load-with-ordering-guarantees into just an integer that you passed off
-> to something that doesn't know about the ordering guarantees - and you
-> need that "lwsync" in order to still guarantee the ordering.
-> 
-> Tough titties. That's what a CPU with weak memory ordering semantics
-> gets in order to have sufficient memory ordering.
+> Can you point to it? Because I can find a draft standard, and it sure
+> as hell does *not* contain any clarity of the model. It has a *lot* of
+> verbiage, but it's pretty much impossible to actually understand, even
+> for somebody who really understands memory ordering.
 
-And that is in fact what C11 compilers are supposed to do if the function
-doesn't have the [[carries_dependency]] attribute on the corresponding
-argument or return of the non-local function.  If the function is marked
-with [[carries_dependency]], then the compiler has the information needed
-in both compilations to make things work correctly.
+http://www.cl.cam.ac.uk/~mjb220/n3132.pdf
+This has an explanation of the model up front, and then the detailed
+formulae in Section 6.  This is from 2010, and there might have been
+smaller changes since then, but I'm not aware of any bigger ones.
 
-							Thanx, Paul
-
-> And I don't think it's actually a problem in practice. If you are
-> doing loads with ordered semantics, you're not going to pass the
-> result off willy-nilly to random functions (or you really *do* require
-> the ordering, because the load that did the "acquire" was actually for
-> a lock!
-> 
-> So I really think that the "local optimization" is correct regardless.
-> 
->                    Linus
-> 
+The cppmem tool is based on this, so if you want to play around with a
+few code examples, it's pretty nice because it shows you all allowed
+executions, including graphs like in the paper (see elsewhere in this
+thread for CAS syntax):
+http://svr-pes20-cppmem.cl.cam.ac.uk/cppmem/
