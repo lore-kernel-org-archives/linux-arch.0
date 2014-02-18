@@ -1,86 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:46989 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751142AbaBRRkV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 18 Feb 2014 12:40:21 -0500
+Received: from mail-ie0-f172.google.com ([209.85.223.172]:64117 "EHLO
+	mail-ie0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751231AbaBRSXr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2014 13:23:47 -0500
+MIME-Version: 1.0
+Reply-To: Peter.Sewell@cl.cam.ac.uk
+In-Reply-To: <20140218171609.GP4250@linux.vnet.ibm.com>
+References: <CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>
+	<CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>
+	<1392486310.18779.6447.camel@triegel.csb>
+	<CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
+	<1392666947.18779.6838.camel@triegel.csb>
+	<CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
+	<530296CD.5050503@warwick.ac.uk>
+	<CA+55aFyi8QWge7QR0M+ABH-kEiwvoEyMhK6GWRvN1YNKJAFuSQ@mail.gmail.com>
+	<1392737465.18779.7644.camel@triegel.csb>
+	<CA+55aFxn2KRXDQ91xRs=bO_6d_nA_PSQvoY1_=OxyJ86+KOO9Q@mail.gmail.com>
+	<20140218171609.GP4250@linux.vnet.ibm.com>
+Date: Tue, 18 Feb 2014 18:23:47 +0000
+Message-ID: <CAHWkzRSXxAPShfFTAQj=f5M1L4K1E5D6yLmQS72-b1jNGTPpEA@mail.gmail.com>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-From: Torvald Riegel <triegel@redhat.com>
-In-Reply-To: <CA+55aFxw+k66jgOVKr0nDuUA91svcZKkBb5purMbfPrO+C+5sQ@mail.gmail.com>
-References: <20140207180216.GP4250@linux.vnet.ibm.com>
-	 <1391992071.18779.99.camel@triegel.csb>
-	 <CA+55aFwTwCPMpYTL_vCgNNP0hE8s2sgB0iw-79=xoj99V0JUNA@mail.gmail.com>
-	 <1392183564.18779.2187.camel@triegel.csb>
-	 <20140212180739.GB4250@linux.vnet.ibm.com>
-	 <CA+55aFw3S82GYdtnV2nJCvBGcuZf6kXdF5b7Vp9yb21QKr49Jw@mail.gmail.com>
-	 <20140213002355.GI4250@linux.vnet.ibm.com>
-	 <1392321837.18779.3249.camel@triegel.csb>
-	 <20140214020144.GO4250@linux.vnet.ibm.com>
-	 <1392352981.18779.3800.camel@triegel.csb>
-	 <20140214172920.GQ4250@linux.vnet.ibm.com>
-	 <CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>
-	 <1392485428.18779.6387.camel@triegel.csb>
-	 <CA+55aFw5v8Zc818YoxazFhP0btN1faofNbED=qrpi3VrtRA39w@mail.gmail.com>
-	 <1392674986.18779.7038.camel@triegel.csb>
-	 <CA+55aFz-gaNKxRGU-YPw3xu=T8ZxFv0v22i+R7vWoeQT0i+8Mw@mail.gmail.com>
-	 <1392679048.18779.7168.camel@triegel.csb>
-	 <CA+55aFxw+k66jgOVKr0nDuUA91svcZKkBb5purMbfPrO+C+5sQ@mail.gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Date: Tue, 18 Feb 2014 16:46:57 +0100
-Message-ID: <1392738417.18779.7675.camel@triegel.csb>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+From: Peter Sewell <Peter.Sewell@cl.cam.ac.uk>
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140218154657.0fUjeV6OQ0TRtVkn8J0V8LAUVWj7M3VRcnNbHLGnt8M@z>
+To: Paul McKenney <paulmck@linux.vnet.ibm.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Torvald Riegel <triegel@redhat.com>, Alec Teal <a.teal@warwick.ac.uk>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Message-ID: <20140218182347.4bX-YyTihh1-iaLF3AOUxVTvts5tUSEt7IhJkf54Y7c@z>
 
-On Mon, 2014-02-17 at 16:09 -0800, Linus Torvalds wrote:
-> On Mon, Feb 17, 2014 at 3:17 PM, Torvald Riegel <triegel@redhat.com> wrote:
-> > On Mon, 2014-02-17 at 14:32 -0800,
-> >
-> >> Stop claiming it "can return 1".. It *never* returns 1 unless you do
-> >> the load and *verify* it, or unless the load itself can be made to go
-> >> away. And with the code sequence given, that just doesn't happen. END
-> >> OF STORY.
-> >
-> > void foo();
-> > {
-> >   atomic<int> x = 1;
-> >   if (atomic_load(&x, mo_relaxed) == 1)
-> >     atomic_store(&y, 3, mo_relaxed));
-> > }
-> 
-> This is the very example I gave, where the real issue is not that "you
-> prove that load returns 1", you instead say "store followed by a load
-> can be combined".
-> 
-> I (in another email I just wrote) tried to show why the "prove
-> something is true" is a very dangerous model.  Seriously, it's pure
-> crap. It's broken.
+On 18 February 2014 17:16, Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
+> On Tue, Feb 18, 2014 at 08:49:13AM -0800, Linus Torvalds wrote:
+>> On Tue, Feb 18, 2014 at 7:31 AM, Torvald Riegel <triegel@redhat.com> wrote:
+>> > On Mon, 2014-02-17 at 16:05 -0800, Linus Torvalds wrote:
+>> >> And exactly because I know enough, I would *really* like atomics to be
+>> >> well-defined, and have very clear - and *local* - rules about how they
+>> >> can be combined and optimized.
+>> >
+>> > "Local"?
+>>
+>> Yes.
+>>
+>> So I think that one of the big advantages of atomics over volatile is
+>> that they *can* be optimized, and as such I'm not at all against
+>> trying to generate much better code than for volatile accesses.
+>>
+>> But at the same time, that can go too far. For example, one of the
+>> things we'd want to use atomics for is page table accesses, where it
+>> is very important that we don't generate multiple accesses to the
+>> values, because parts of the values can be change *by*hardware* (ie
+>> accessed and dirty bits).
+>>
+>> So imagine that you have some clever global optimizer that sees that
+>> the program never ever actually sets the dirty bit at all in any
+>> thread, and then uses that kind of non-local knowledge to make
+>> optimization decisions. THAT WOULD BE BAD.
+>
+> Might as well list other reasons why value proofs via whole-program
+> analysis are unreliable for the Linux kernel:
+>
+> 1.      As Linus said, changes from hardware.
+>
+> 2.      Assembly code that is not visible to the compiler.
+>         Inline asms will -normally- let the compiler know what
+>         memory they change, but some just use the "memory" tag.
+>         Worse yet, I suspect that most compilers don't look all
+>         that carefully at .S files.
+>
+>         Any number of other programs contain assembly files.
+>
+> 3.      Kernel modules that have not yet been written.  Now, the
+>         compiler could refrain from trying to prove anything about
+>         an EXPORT_SYMBOL() or EXPORT_SYMBOL_GPL() variable, but there
+>         is currently no way to communicate this information to the
+>         compiler other than marking the variable "volatile".
+>
+>         Other programs have similar issues, e.g., via dlopen().
+>
+> 4.      Some drivers allow user-mode code to mmap() some of their
+>         state.  Any changes undertaken by the user-mode code would
+>         be invisible to the compiler.
+>
+> 5.      JITed code produced based on BPF: https://lwn.net/Articles/437981/
+>
+> And probably other stuff as well.
 
-I don't see anything dangerous in the example above with the language
-semantics as specified: It's a well-defined situation, given the rules
-of the language.  I replied to the other email you wrote with my
-viewpoint on why the above is useful, how it compares to what you seem
-to what, and where I think we need to start to bridge the gap.
+interesting list.  So are you saying that value-range-analysis and
+such-like (I say glibly, without really knowing what "such-like"
+refers to here) are fundamentally incompatible with
+the kernel code, or can you think of some way to tell the compiler a
+bound on the footprint of the "unseen" changes in each of those cases?
 
-> If the C standard defines atomics in terms of "provable equivalence",
-> it's broken. Exactly because on a *virtual* machine you can prove
-> things that are not actually true in a *real* machine.
+Peter
 
-For the control dependencies you have in mind, it's actually the other
-way around.  You expect the real machine's properties in a program whose
-semantics only give you the virtual machine's properties.  Anything you
-prove on the virtual machine will be true on the real machine (in a
-correct implementation) -- but you can't expect to have real-machine
-properties on language that's based on the virtual machine.
 
-> I have the
-> example of value speculation changing the memory ordering model of the
-> actual machine.
-
-This example is not true for the language as specified.  It is true for
-a modified language that you have in mind, but for this one I've just
-seen pretty rough rules so far.  Please see my other reply.
-
+>                                                         Thanx, Paul
+>
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
