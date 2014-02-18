@@ -1,174 +1,102 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Tue, 18 Feb 2014 08:49:13 -0800
-Message-ID: <CA+55aFxn2KRXDQ91xRs=bO_6d_nA_PSQvoY1_=OxyJ86+KOO9Q@mail.gmail.com>
-References: <20140207180216.GP4250@linux.vnet.ibm.com>
-	<1391992071.18779.99.camel@triegel.csb>
-	<CA+55aFwTwCPMpYTL_vCgNNP0hE8s2sgB0iw-79=xoj99V0JUNA@mail.gmail.com>
-	<1392183564.18779.2187.camel@triegel.csb>
-	<20140212180739.GB4250@linux.vnet.ibm.com>
-	<CA+55aFw3S82GYdtnV2nJCvBGcuZf6kXdF5b7Vp9yb21QKr49Jw@mail.gmail.com>
-	<20140213002355.GI4250@linux.vnet.ibm.com>
-	<1392321837.18779.3249.camel@triegel.csb>
-	<20140214020144.GO4250@linux.vnet.ibm.com>
-	<1392352981.18779.3800.camel@triegel.csb>
-	<20140214172920.GQ4250@linux.vnet.ibm.com>
-	<CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>
-	<CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>
-	<1392486310.18779.6447.camel@triegel.csb>
-	<CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
-	<1392666947.18779.6838.camel@triegel.csb>
-	<CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
-	<530296CD.5050503@warwick.ac.uk>
-	<CA+55aFyi8QWge7QR0M+ABH-kEiwvoEyMhK6GWRvN1YNKJAFuSQ@mail.gmail.com>
-	<1392737465.18779.7644.camel@triegel.csb>
+Date: Tue, 18 Feb 2014 08:51:19 -0800
+Message-ID: <20140218165119.GN4250@linux.vnet.ibm.com>
+References: <1392352981.18779.3800.camel@triegel.csb> <20140214172920.GQ4250@linux.vnet.ibm.com> <CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com> <CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com> <1392486310.18779.6447.camel@triegel.csb> <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com> <1392666947.18779.6838.camel@triegel.csb> <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com> <20140218030002.GA15857@linux.vnet.ibm.com> <1392739000.18779.7692.camel@triegel.csb>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ve0-f170.google.com ([209.85.128.170]:48761 "EHLO
-	mail-ve0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751292AbaBRQtQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2014 11:49:16 -0500
-In-Reply-To: <1392737465.18779.7644.camel@triegel.csb>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <gcc-return-182136-gcc=m.gmane.org@gcc.gnu.org>
+List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
+List-Archive: <http://gcc.gnu.org/ml/gcc/>
+List-Post: <mailto:gcc@gcc.gnu.org>
+List-Help: <http://gcc.gnu.org/ml/>
+Sender: gcc-owner@gcc.gnu.org
+Content-Disposition: inline
+In-Reply-To: <1392739000.18779.7692.camel@triegel.csb>
 To: Torvald Riegel <triegel@redhat.com>
-Cc: Alec Teal <a.teal@warwick.ac.uk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Feb 18, 2014 at 7:31 AM, Torvald Riegel <triegel@redhat.com> wrote:
-> On Mon, 2014-02-17 at 16:05 -0800, Linus Torvalds wrote:
->> And exactly because I know enough, I would *really* like atomics to be
->> well-defined, and have very clear - and *local* - rules about how they
->> can be combined and optimized.
->
-> "Local"?
+On Tue, Feb 18, 2014 at 04:56:40PM +0100, Torvald Riegel wrote:
+> On Mon, 2014-02-17 at 19:00 -0800, Paul E. McKenney wrote:
+> > On Mon, Feb 17, 2014 at 12:18:21PM -0800, Linus Torvalds wrote:
+> > > On Mon, Feb 17, 2014 at 11:55 AM, Torvald Riegel <triegel@redhat.com> wrote:
+> > > >
+> > > > Which example do you have in mind here?  Haven't we resolved all the
+> > > > debated examples, or did I miss any?
+> > > 
+> > > Well, Paul seems to still think that the standard possibly allows
+> > > speculative writes or possibly value speculation in ways that break
+> > > the hardware-guaranteed orderings.
+> > 
+> > It is not that I know of any specific problems, but rather that I
+> > know I haven't looked under all the rocks.  Plus my impression from
+> > my few years on the committee is that the standard will be pushed to
+> > the limit when it comes time to add optimizations.
+> > 
+> > One example that I learned about last week uses the branch-prediction
+> > hardware to validate value speculation.  And no, I am not at all a fan
+> > of value speculation, in case you were curious.  However, it is still
+> > an educational example.
+> > 
+> > This is where you start:
+> > 
+> > 	p = gp.load_explicit(memory_order_consume); /* AKA rcu_dereference() */
+> > 	do_something(p->a, p->b, p->c);
+> > 	p->d = 1;
+> 
+> I assume that's the source code.
 
-Yes.
+Yep!
 
-So I think that one of the big advantages of atomics over volatile is
-that they *can* be optimized, and as such I'm not at all against
-trying to generate much better code than for volatile accesses.
+> > Then you leverage branch-prediction hardware as follows:
+> > 
+> > 	p = gp.load_explicit(memory_order_consume); /* AKA rcu_dereference() */
+> > 	if (p == GUESS) {
+> > 		do_something(GUESS->a, GUESS->b, GUESS->c);
+> > 		GUESS->d = 1;
+> > 	} else {
+> > 		do_something(p->a, p->b, p->c);
+> > 		p->d = 1;
+> > 	}
+> 
+> I assume that this is a potential transformation by a compiler.
 
-But at the same time, that can go too far. For example, one of the
-things we'd want to use atomics for is page table accesses, where it
-is very important that we don't generate multiple accesses to the
-values, because parts of the values can be change *by*hardware* (ie
-accessed and dirty bits).
+Again, yep!
 
-So imagine that you have some clever global optimizer that sees that
-the program never ever actually sets the dirty bit at all in any
-thread, and then uses that kind of non-local knowledge to make
-optimization decisions. THAT WOULD BE BAD.
+> > The CPU's branch-prediction hardware squashes speculation in the case where
+> > the guess was wrong, and this prevents the speculative store to ->d from
+> > ever being visible.  However, the then-clause breaks dependencies, which
+> > means that the loads -could- be speculated, so that do_something() gets
+> > passed pre-initialization values.
+> > 
+> > Now, I hope and expect that the wording in the standard about dependency
+> > ordering prohibits this sort of thing.  But I do not yet know for certain.
+> 
+> The transformation would be incorrect.  p->a in the source code carries
+> a dependency, and as you say, the transformed code wouldn't have that
+> dependency any more.  So the transformed code would loose ordering
+> constraints that it has in the virtual machine, so in the absence of
+> other proofs of correctness based on properties not shown in the
+> example, the transformed code would not result in the same behavior as
+> allowed by the abstract machine.
 
-Do you see what I'm aiming for? Any optimization that tries to prove
-anything from more than local state is by definition broken, because
-it assumes that everything is described by the program.
+Glad that you agree!  ;-)
 
-But *local* optimizations are fine, as long as they follow the obvious
-rule of not actually making changes that are semantically visible.
+> If the transformation would actually be by a programmer, then this
+> wouldn't do the same as the first example because mo_consume doesn't
+> work through the if statement.
 
-(In practice, I'd be impressed as hell for that particular example,
-and we actually do end up setting the dirty bit by hand in some
-situations, so the example is slightly made up, but there are other
-cases that might be more realistic in that sometimes we do things that
-are hidden from the compiler - in assembly etc - and the compiler
-might *think* it knows what is going on, but it doesn't actually see
-all accesses).
+Agreed.
 
-> Sorry, but the rules *are* very clear.  I *really* suggest to look at
-> the formalization by Batty et al.  And in these rules, proving that a
-> read will always return value X has a well-defined meaning, and you can
-> use it.  That simply follows from how the model is built.
+> Are there other specified concerns that you have regarding this example?
 
-What "model"?
+Nope.  Just generalized paranoia.  (But just because I am paranoid
+doesn't mean that there isn't a bug lurking somewhere in the standard,
+the compiler, the kernel, or my own head!)
 
-That's the thing. I have tried to figure out whether the model is some
-abstract C model, or a model based on the actual hardware that the
-compiler is compiling for, and whether the model is one that assumes
-the compiler has complete knowledge of the system (see the example
-above).
+I will likely have more once I start mapping Linux kernel atomics to the
+C11 standard.  One more paper past N3934 comes first, though.
 
-And it seems to be a mixture of it all. The definitions of the various
-orderings obviously very much imply that the compiler has to insert
-the proper barriers or sequence markers for that architecture, but
-then there is no apparent way to depend on any *other* architecture
-ordering guarantees. Like our knowledge that all architectures (with
-the exception of alpha, which really doesn't end up being something we
-worry about any more) end up having the load dependency ordering
-guarantee.
-
-> What you seem to want just isn't covered by the model as it is today --
-> you can't infer from that that the model itself would be wrong.  The
-> dependency chains aren't modeled in the way you envision it (except in
-> what consume_mo tries, but that seems to be hard to implement); they are
-> there on the level of the program logic as modeled by the abstract
-> machine and the respective execution/output rules, but they are not
-> built to represent those specific ordering guarantees the HW gives you.
-
-So this is a problem. It basically means that we cannot do the kinds
-of things we do now, which very much involve knowing what the memory
-ordering of a particular machine is, and combining that knowledge with
-our knowledge of code generation.
-
-Now, *most* of what we do is protected by locking and is all fine. But
-we do have a few rather subtle places in RCU and in the scheduler
-where we depend on the actual dependency chain.
-
-In *practice*, I seriously doubt any reasonable compiler can actually
-make a mess of it. The kinds of optimizations that would actually
-defeat the dependency chain are simply not realistic. And I suspect
-that will end up being what we rely on - there being no actual sane
-sequence that a compiler would ever do, even if we wouldn't have
-guarantees for some of it.
-
-And I suspect  I can live with that. We _have_ lived with that for the
-longest time, after all. We very much do things that aren't covered by
-any existing C standard, and just basically use tricks to coax the
-compiler into never generating code that doesn't work (with our inline
-asm barriers etc being a prime example).
-
-> I would also be cautious claiming that the rules you suggested would be
-> very clear and very simple.  I haven't seen a memory model spec from you
-> that would be viable as the standard model for C/C++, nor have I seen
-> proof that this would actually be easier to understand for programmers
-> in general.
-
-So personally, if I were to write the spec, I would have taken a
-completely different approach from what the standard obviously does.
-
-I'd have taken the approach of specifying the required semantics each
-atomic op (ie the memory operations would end up having to be
-annotated with their ordering constraints), and then said that the
-compiler can generate any code that is equivalent to that
-_on_the_target_machine_.
-
-Why? Just to avoid the whole "ok, which set of rules applies now" problem.
-
->> For example, CPU people actually do tend to give guarantees for
->> certain things, like stores that are causally related being visible in
->> a particular order.
->
-> Yes, but that's not part of the model so far.  If you want to exploit
-> this, please make a suggestion for how to extend the model to cover
-> this.
-
-See above. This is exactly why I detest the C "model" thing. Now you
-need ways to describe those CPU guarantees, because if you can't
-describe them, you can't express them in the model.
-
-I would *much* have preferred the C standard to say that you have to
-generate code that is guaranteed to act the same way - on that machine
-- as the "naive direct unoptimized translation".
-
-IOW, I would *revel* in the fact that different machines are
-different, and basically just describe the "stupid" code generation.
-You'd get the guaranteed semantic baseline, but you'd *also* be able
-to know that whatever architecture guarantees you have would remain.
-Without having to describe those architecture issues.
-
-It would be *so* nice if the C standard had done that for pretty much
-everything that is "implementation dependent". Not just atomics.
-
-[ will look at the rest of your email later ]
-
-                 Linus
+							Thanx, Paul
