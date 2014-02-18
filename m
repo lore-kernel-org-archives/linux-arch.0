@@ -1,124 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:27517 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:50756 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751745AbaBRT5u (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 18 Feb 2014 14:57:50 -0500
+	id S1750727AbaBRUoR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 18 Feb 2014 15:44:17 -0500
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
 From: Torvald Riegel <triegel@redhat.com>
-In-Reply-To: <20140218165543.GO4250@linux.vnet.ibm.com>
-References: <1392486310.18779.6447.camel@triegel.csb>
-	 <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
-	 <1392666947.18779.6838.camel@triegel.csb>
-	 <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
-	 <1392672063.18779.6940.camel@triegel.csb>
-	 <1392675939.18779.7063.camel@triegel.csb>
-	 <CA+55aFx2jxE8!sTZEmNnMg6ktDuU_0xPiEw3=qH0=+xat8p8cAA@mail.gmail.com>
-	 <1392680518.18779.7213.camel@triegel.csb>
-	 <CA+55aFzSBZMC6kbdJj5Jus9-q1dzXdCYQXfMm34O+9h8SbGcGQ@mail.gmail.com>
-	 <1392737920.18779.7659.camel@triegel.csb>
-	 <20140218165543.GO4250@linux.vnet.ibm.com>
+In-Reply-To: <CAHWkzRQSaKOM23yg1LbCO=uWremNzwnXUCUJF2H-+z_Xhmp79g@mail.gmail.com>
+References: <CAHWkzRQSaKOM23yg1LbCO=uWremNzwnXUCUJF2H-+z_Xhmp79g@mail.gmail.com>
 Content-Type: text/plain; charset="UTF-8"
-Date: Tue, 18 Feb 2014 20:57:12 +0100
-Message-ID: <1392753432.18779.8146.camel@triegel.csb>
+Date: Tue, 18 Feb 2014 21:43:31 +0100
+Message-ID: <1392756211.18779.8263.camel@triegel.csb>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: paulmck@linux.vnet.ibm.com
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140218195712.W3q9fAVgYlR0c0WkO0v_kVVZQaLhlVZv-_aTHKMSHhk@z>
+To: Peter.Sewell@cl.cam.ac.uk
+Cc: "mark.batty@cl.cam.ac.uk" <Mark.Batty@cl.cam.ac.uk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, peterz@infradead.org, torvalds@linux-foundation.org, Will Deacon <will.deacon@arm.com>, Ramana.Radhakrishnan@arm.com, dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@kernel.org, gcc@gcc.gnu.org
+Message-ID: <20140218204331.GtRzolc-ER_eaezG7D1CYk1jXoPV-1Tj7NkzMsAllGM@z>
 
-On Tue, 2014-02-18 at 08:55 -0800, Paul E. McKenney wrote:
-> On Tue, Feb 18, 2014 at 04:38:40PM +0100, Torvald Riegel wrote:
-> > On Mon, 2014-02-17 at 16:18 -0800, Linus Torvalds wrote:
-> > > On Mon, Feb 17, 2014 at 3:41 PM, Torvald Riegel <triegel@redhat.com> wrote:
-> > > >
-> > > > There's an underlying problem here that's independent from the actual
-> > > > instance that you're worried about here: "no sense" is a ultimately a
-> > > > matter of taste/objectives/priorities as long as the respective
-> > > > specification is logically consistent.
-> > > 
-> > > Yes. But I don't think it's "independent".
-> > > 
-> > > Exactly *because* some people will read standards without applying
-> > > "does the resulting code generation actually make sense for the
-> > > programmer that wrote the code", the standard has to be pretty clear.
-> > > 
-> > > The standard often *isn't* pretty clear. It wasn't clear enough when
-> > > it came to "volatile", and yet that was a *much* simpler concept than
-> > > atomic accesses and memory ordering.
-> > > 
-> > > And most of the time it's not a big deal. But because the C standard
-> > > generally tries to be very portable, and cover different machines,
-> > > there tends to be a mindset that anything inherently unportable is
-> > > "undefined" or "implementation defined", and then the compiler writer
-> > > is basically given free reign to do anything they want (with
-> > > "implementation defined" at least requiring that it is reliably the
-> > > same thing).
-> > 
-> > Yes, that's how it works in general.  And this makes sense, because all
-> > optimizations rely on that.  Second, you can't keep something consistent
-> > (eg, between compilers) if it isn't specified.  So if we want stricter
-> > rules, those need to be specified somewhere.
-> > 
-> > > And when it comes to memory ordering, *everything* is basically
-> > > non-portable, because different CPU's very much have different rules.
-> > 
-> > Well, the current set of memory orders (and the memory model as a whole)
-> > is portable, even though it might not allow to exploit all hardware
-> > properties, and thus might perform sub-optimally in some cases.
-> > 
-> > > I worry that that means that the standard then takes the stance that
-> > > "well, compiler re-ordering is no worse than CPU re-ordering, so we
-> > > let the compiler do anything". And then we have to either add
-> > > "volatile" to make sure the compiler doesn't do that, or use an overly
-> > > strict memory model at the compiler level that makes it all pointless.
-> > 
-> > Using "volatile" is not a good option, I think, because synchronization
-> > between threads should be orthogonal to observable output of the
-> > abstract machine.
-> 
-> Are you thinking of "volatile" -instead- of atomics?  My belief is that
-> given the current standard there will be times that we need to use
-> "volatile" -in- -addition- to atomics.
+On Tue, 2014-02-18 at 12:12 +0000, Peter Sewell wrote:
+> Several of you have said that the standard and compiler should not
+> permit speculative writes of atomics, or (effectively) that the
+> compiler should preserve dependencies.  In simple examples it's easy
+> to see what that means, but in general it's not so clear what the
+> language should guarantee, because dependencies may go via non-atomic
+> code in other compilation units, and we have to consider the extent to
+> which it's desirable to limit optimisation there.
 
-No, I was talking about having to use "volatile" in addition to atomics
-to get synchronization properties for the atomics.  ISTM that this would
-be unfortunate because the objective for "volatile" (ie, declaring what
-is output of the abstract machine) is orthogonal to synchronization
-between threads.  So if we want to preserve control dependencies and get
-ordering guarantees through that, I wouldn't prefer it through hacks
-based on volatile.
+[...]
 
-For example, if we have a macro or helper function that contains
-synchronization code, but the compiler can prove that the macro/function
-is used just on data only accessible to a single thread, then the
-"volatile" notation on it would prevent optimizations.
+> 2) otherwise, the language definition should prohibit it but the
+>    compiler would have to preserve dependencies even in compilation
+>    units that have no mention of atomics.  It's unclear what the
+>    (runtime and compiler development) cost of that would be in
+>    practice - perhaps Torvald could comment?
 
-> > The current memory model might not allow to exploit all hardware
-> > properties, I agree.
-> > 
-> > But then why don't we work on how to extend it to do so?  We need to
-> > specify the behavior we want anyway, and this can't be independent of
-> > the language semantics, so it has to be conceptually integrated with the
-> > standard anyway.
-> > 
-> > > So I really really hope that the standard doesn't give compiler
-> > > writers free hands to do anything that they can prove is "equivalent"
-> > > in the virtual C machine model.
-> > 
-> > It does, but it also doesn't mean this can't be extended.  So let's
-> > focus on whether we can find an extension.
-> > 
-> > > That's not how you get reliable
-> > > results.
-> > 
-> > In this general form, that's obviously a false claim.
-> 
-> These two sentences starkly illustrate the difference in perspective
-> between you two.  You are talking past each other.  Not sure how to fix
-> this at the moment, but what else is new?  ;-)
+If I'm reading the standard correctly, it requires that data
+dependencies are preserved through loads and stores, including nonatomic
+ones.  That sounds convenient because it allows programmers to use
+temporary storage.
 
-Well, we're still talking, and we are making little steps in clarifying
-things, so there is progress :)
+However, what happens if a dependency "arrives" at a store for which the
+alias set isn't completely known?  Then we either have to add a barrier
+to enforce the ordering at this point, or we have to assume that all
+other potentially aliasing memory locations would also have to start
+carrying dependencies (which might be in other functions in other
+compilation units).  Neither option is good.  The first might introduce
+barriers in places in which they might not be required (or the
+programmer has to use kill_dependency() quite often to avoid all these).
+The second is bad because points-to analysis is hard, so in practice the
+points-to set will not be precisely known for a lot of pointers.  So
+this might not just creep into other functions via calls of
+[[carries_dependency]] functions, but also through normal loads and
+stores, likely prohibiting many optimizations.
+
+Furthermore, the dependency tracking can currently only be
+"disabled/enabled" on a function granularity (via
+[[carries_dependency]]).  Thus, if we have big functions, then
+dependency tracking may slow down a lot of code in the big function.  If
+we have small functions, there's a lot of attributes to be added.
+
+If a function may only carry a dependency but doesn't necessarily (eg,
+depending on input parameters), then the programmer has to make a
+trade-off whether he/she want's to benefit from mo_consume but slow down
+other calls due to additional barriers (ie, when this function is called
+from non-[[carries_dependency]] functions), or vice versa.  (IOW,
+because of the function granularity, other code's performance is
+affected.)
+
+If a compiler wants to implement dependency tracking just for a few
+constructs (e.g., operators -> + ...) and use barriers otherwise, then
+this decision must be compatible with how all this is handled in other
+compilation units.  Thus, compiler optimizations effectively become part
+of the ABI, which doesn't seem right.
+
+I hope these examples illustrate my concerns about the implementability
+in practice of this.  It's also why I've suggested to move from an
+opt-out approach as in the current standard (ie, with kill_dependency())
+to an opt-in approach for conservative dependency tracking (e.g., with a
+preserve_dependencies(exp) call, where exp will not be optimized in a
+way that removes any dependencies).  This wouldn't help with many
+optimizations being prevented, but it should at least help programmers
+contain the problem to smaller regions of code.
+
+I'm not aware of any implementation that tries to track dependencies, so
+I can't give any real performance numbers.  This could perhaps be
+simulated, but I'm not sure whether a realistic case would be made
+without at least supporting [[carries_dependency]] properly in the
+compiler, which would be some work.
 
