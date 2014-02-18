@@ -1,111 +1,117 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:61207 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751527AbaBRQSX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 18 Feb 2014 11:18:23 -0500
+Received: from e39.co.us.ibm.com ([32.97.110.160]:51761 "EHLO
+	e39.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755116AbaBRQvY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2014 11:51:24 -0500
+Received: from /spool/local
+	by e39.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Tue, 18 Feb 2014 09:51:24 -0700
+Date: Tue, 18 Feb 2014 08:51:19 -0800
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-From: Torvald Riegel <triegel@redhat.com>
-In-Reply-To: <CA+55aFwsq5E8kMoEeHJJ1f2=+QAUCu_HndfPxHNz8fUBprS-jQ@mail.gmail.com>
-References: <1392321837.18779.3249.camel@triegel.csb>
-	 <20140214020144.GO4250@linux.vnet.ibm.com>
-	 <1392352981.18779.3800.camel@triegel.csb>
-	 <20140214172920.GQ4250@linux.vnet.ibm.com>
-	 <CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>
-	 <CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>
-	 <1392486310.18779.6447.camel@triegel.csb>
-	 <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
-	 <1392666947.18779.6838.camel@triegel.csb>
-	 <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
-	 <20140218030002.GA15857@linux.vnet.ibm.com>
-	 <CA+55aFyqLrj4d2TA+2aazRqXnbVsUvs0yaBL2D5rXF1G=Kiu_g@mail.gmail.com>
-	 <CA+55aFwsq5E8kMoEeHJJ1f2=+QAUCu_HndfPxHNz8fUBprS-jQ@mail.gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Date: Tue, 18 Feb 2014 17:17:38 +0100
-Message-ID: <1392740258.18779.7732.camel@triegel.csb>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Message-ID: <20140218165119.GN4250@linux.vnet.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
+References: <1392352981.18779.3800.camel@triegel.csb>
+ <20140214172920.GQ4250@linux.vnet.ibm.com>
+ <CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>
+ <CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>
+ <1392486310.18779.6447.camel@triegel.csb>
+ <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
+ <1392666947.18779.6838.camel@triegel.csb>
+ <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
+ <20140218030002.GA15857@linux.vnet.ibm.com>
+ <1392739000.18779.7692.camel@triegel.csb>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1392739000.18779.7692.camel@triegel.csb>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140218161738.u-UKe6Gw6OZ8W9DfBC5jVCBwGV-Zr7Vj2kOLs1F8et0@z>
+To: Torvald Riegel <triegel@redhat.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Message-ID: <20140218165119.4CQEnrf8B9ckL_J0IcNHkpZ6eB7Tx45gFXy_NUf3xfQ@z>
 
-On Mon, 2014-02-17 at 19:42 -0800, Linus Torvalds wrote:
-> On Mon, Feb 17, 2014 at 7:24 PM, Linus Torvalds
-> <torvalds@linux-foundation.org> wrote:
-> >
-> > As far as I can tell, the intent is that you can't do value
-> > speculation (except perhaps for the "relaxed", which quite frankly
-> > sounds largely useless).
+On Tue, Feb 18, 2014 at 04:56:40PM +0100, Torvald Riegel wrote:
+> On Mon, 2014-02-17 at 19:00 -0800, Paul E. McKenney wrote:
+> > On Mon, Feb 17, 2014 at 12:18:21PM -0800, Linus Torvalds wrote:
+> > > On Mon, Feb 17, 2014 at 11:55 AM, Torvald Riegel <triegel@redhat.com> wrote:
+> > > >
+> > > > Which example do you have in mind here?  Haven't we resolved all the
+> > > > debated examples, or did I miss any?
+> > > 
+> > > Well, Paul seems to still think that the standard possibly allows
+> > > speculative writes or possibly value speculation in ways that break
+> > > the hardware-guaranteed orderings.
+> > 
+> > It is not that I know of any specific problems, but rather that I
+> > know I haven't looked under all the rocks.  Plus my impression from
+> > my few years on the committee is that the standard will be pushed to
+> > the limit when it comes time to add optimizations.
+> > 
+> > One example that I learned about last week uses the branch-prediction
+> > hardware to validate value speculation.  And no, I am not at all a fan
+> > of value speculation, in case you were curious.  However, it is still
+> > an educational example.
+> > 
+> > This is where you start:
+> > 
+> > 	p = gp.load_explicit(memory_order_consume); /* AKA rcu_dereference() */
+> > 	do_something(p->a, p->b, p->c);
+> > 	p->d = 1;
 > 
-> Hmm. The language I see for "consume" is not obvious:
+> I assume that's the source code.
+
+Yep!
+
+> > Then you leverage branch-prediction hardware as follows:
+> > 
+> > 	p = gp.load_explicit(memory_order_consume); /* AKA rcu_dereference() */
+> > 	if (p == GUESS) {
+> > 		do_something(GUESS->a, GUESS->b, GUESS->c);
+> > 		GUESS->d = 1;
+> > 	} else {
+> > 		do_something(p->a, p->b, p->c);
+> > 		p->d = 1;
+> > 	}
 > 
->   "Consume operation: no reads in the current thread dependent on the
-> value currently loaded can be reordered before this load"
+> I assume that this is a potential transformation by a compiler.
 
-I can't remember seeing that language in the standard (ie, C or C++).
-Where is this from?
+Again, yep!
 
-> and it could make a compiler writer say that value speculation is
-> still valid, if you do it like this (with "ptr" being the atomic
-> variable):
+> > The CPU's branch-prediction hardware squashes speculation in the case where
+> > the guess was wrong, and this prevents the speculative store to ->d from
+> > ever being visible.  However, the then-clause breaks dependencies, which
+> > means that the loads -could- be speculated, so that do_something() gets
+> > passed pre-initialization values.
+> > 
+> > Now, I hope and expect that the wording in the standard about dependency
+> > ordering prohibits this sort of thing.  But I do not yet know for certain.
 > 
->   value = ptr->val;
+> The transformation would be incorrect.  p->a in the source code carries
+> a dependency, and as you say, the transformed code wouldn't have that
+> dependency any more.  So the transformed code would loose ordering
+> constraints that it has in the virtual machine, so in the absence of
+> other proofs of correctness based on properties not shown in the
+> example, the transformed code would not result in the same behavior as
+> allowed by the abstract machine.
 
-I assume the load from ptr has mo_consume ordering?
+Glad that you agree!  ;-)
 
-> into
-> 
->   tmp = ptr;
->   value = speculated.value;
->   if (unlikely(tmp != &speculated))
->     value = tmp->value;
-> 
-> which is still bogus. The load of "ptr" does happen before the load of
-> "value = speculated->value" in the instruction stream, but it would
-> still result in the CPU possibly moving the value read before the
-> pointer read at least on ARM and power.
+> If the transformation would actually be by a programmer, then this
+> wouldn't do the same as the first example because mo_consume doesn't
+> work through the if statement.
 
-And surprise, in the C/C++ model the load from ptr is sequenced-before
-the load from speculated, but there's no ordering constraint on the
-reads-from relation for the value load if you use mo_consume on the ptr
-load.  Thus, the transformed code has less ordering constraints than the
-original code, and we arrive at the same outcome.
+Agreed.
 
-> So if you're a compiler person, you think you followed the letter of
-> the spec - as far as *you* were concerned, no load dependent on the
-> value of the atomic load moved to before the atomic load.
+> Are there other specified concerns that you have regarding this example?
 
-No.  Because the wobbly sentence you cited(?) above is not what the
-standard says.
+Nope.  Just generalized paranoia.  (But just because I am paranoid
+doesn't mean that there isn't a bug lurking somewhere in the standard,
+the compiler, the kernel, or my own head!)
 
-Would you please stop making claims about what compiler writers would do
-or not if you seemingly aren't even familiar with the model that
-compiler writers would use to reason about transformations?  Seriously?
+I will likely have more once I start mapping Linux kernel atomics to the
+C11 standard.  One more paper past N3934 comes first, though.
 
-> You go home,
-> happy, knowing you've done your job. Never mind that you generated
-> code that doesn't actually work.
-> 
-> I dread having to explain to the compiler person that he may be right
-> in some theoretical virtual machine, but the code is subtly broken and
-> nobody will ever understand why (and likely not be able to create a
-> test-case showing the breakage).
-> 
-> But maybe the full standard makes it clear that "reordered before this
-> load" actually means on the real hardware, not just in the generated
-> instruction stream.
-
-Do you think everyone else is stupid?  If there's an ordering constraint
-in the virtual machine, it better be present when executing in the real
-machine unless it provably cannot result in different output as
-specified by the language's semantics.
-
-> Reading it with understanding of the *intent* and
-> understanding all the different memory models that requirement should
-> be obvious (on alpha, you need an "rmb" instruction after the load),
-> but ...
-
-The standard is clear on what's required.  I strongly suggest reading
-the formalization of the memory model by Batty et al.
+							Thanx, Paul
 
