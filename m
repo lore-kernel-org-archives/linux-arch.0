@@ -1,111 +1,76 @@
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Tue, 18 Feb 2014 08:55:44 -0800
-Message-ID: <20140218165543.GO4250@linux.vnet.ibm.com>
-References: <1392486310.18779.6447.camel@triegel.csb>
- <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
- <1392666947.18779.6838.camel@triegel.csb>
- <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
- <1392672063.18779.6940.camel@triegel.csb>
- <1392675939.18779.7063.camel@triegel.csb>
- <CA+55aFx2jxE8!sTZEmNnMg6ktDuU_0xPiEw3=qH0=+xat8p8cAA@mail.gmail.com>
- <1392680518.18779.7213.camel@triegel.csb>
- <CA+55aFzSBZMC6kbdJj5Jus9-q1dzXdCYQXfMm34O+9h8SbGcGQ@mail.gmail.com>
- <1392737920.18779.7659.camel@triegel.csb>
+Date: Tue, 18 Feb 2014 09:16:09 -0800
+Message-ID: <20140218171609.GP4250@linux.vnet.ibm.com>
+References: <CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com> <CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com> <1392486310.18779.6447.camel@triegel.csb> <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com> <1392666947.18779.6838.camel@triegel.csb> <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com> <530296CD.5050503@warwick.ac.uk> <CA+55aFyi8QWge7QR0M+ABH-kEiwvoEyMhK6GWRvN1YNKJAFuSQ@mail.gmail.com> <1392737465.18779.7644.camel@triegel.csb> <CA+55aFxn2KRXDQ91xRs=bO_6d_nA_PSQvoY1_=OxyJ86+KOO9Q@mail.gmail.com>
 Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e38.co.us.ibm.com ([32.97.110.159]:50200 "EHLO
-	e38.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752959AbaBRQzt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2014 11:55:49 -0500
-Received: from /spool/local
-	by e38.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Tue, 18 Feb 2014 09:55:49 -0700
+Return-path: <gcc-return-182138-gcc=m.gmane.org@gcc.gnu.org>
+List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
+List-Archive: <http://gcc.gnu.org/ml/gcc/>
+List-Post: <mailto:gcc@gcc.gnu.org>
+List-Help: <http://gcc.gnu.org/ml/>
+Sender: gcc-owner@gcc.gnu.org
 Content-Disposition: inline
-In-Reply-To: <1392737920.18779.7659.camel@triegel.csb>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Torvald Riegel <triegel@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+In-Reply-To: <CA+55aFxn2KRXDQ91xRs=bO_6d_nA_PSQvoY1_=OxyJ86+KOO9Q@mail.gmail.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Torvald Riegel <triegel@redhat.com>, Alec Teal <a.teal@warwick.ac.uk>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Feb 18, 2014 at 04:38:40PM +0100, Torvald Riegel wrote:
-> On Mon, 2014-02-17 at 16:18 -0800, Linus Torvalds wrote:
-> > On Mon, Feb 17, 2014 at 3:41 PM, Torvald Riegel <triegel@redhat.com> wrote:
-> > >
-> > > There's an underlying problem here that's independent from the actual
-> > > instance that you're worried about here: "no sense" is a ultimately a
-> > > matter of taste/objectives/priorities as long as the respective
-> > > specification is logically consistent.
-> > 
-> > Yes. But I don't think it's "independent".
-> > 
-> > Exactly *because* some people will read standards without applying
-> > "does the resulting code generation actually make sense for the
-> > programmer that wrote the code", the standard has to be pretty clear.
-> > 
-> > The standard often *isn't* pretty clear. It wasn't clear enough when
-> > it came to "volatile", and yet that was a *much* simpler concept than
-> > atomic accesses and memory ordering.
-> > 
-> > And most of the time it's not a big deal. But because the C standard
-> > generally tries to be very portable, and cover different machines,
-> > there tends to be a mindset that anything inherently unportable is
-> > "undefined" or "implementation defined", and then the compiler writer
-> > is basically given free reign to do anything they want (with
-> > "implementation defined" at least requiring that it is reliably the
-> > same thing).
+On Tue, Feb 18, 2014 at 08:49:13AM -0800, Linus Torvalds wrote:
+> On Tue, Feb 18, 2014 at 7:31 AM, Torvald Riegel <triegel@redhat.com> wrote:
+> > On Mon, 2014-02-17 at 16:05 -0800, Linus Torvalds wrote:
+> >> And exactly because I know enough, I would *really* like atomics to be
+> >> well-defined, and have very clear - and *local* - rules about how they
+> >> can be combined and optimized.
+> >
+> > "Local"?
 > 
-> Yes, that's how it works in general.  And this makes sense, because all
-> optimizations rely on that.  Second, you can't keep something consistent
-> (eg, between compilers) if it isn't specified.  So if we want stricter
-> rules, those need to be specified somewhere.
+> Yes.
 > 
-> > And when it comes to memory ordering, *everything* is basically
-> > non-portable, because different CPU's very much have different rules.
+> So I think that one of the big advantages of atomics over volatile is
+> that they *can* be optimized, and as such I'm not at all against
+> trying to generate much better code than for volatile accesses.
 > 
-> Well, the current set of memory orders (and the memory model as a whole)
-> is portable, even though it might not allow to exploit all hardware
-> properties, and thus might perform sub-optimally in some cases.
+> But at the same time, that can go too far. For example, one of the
+> things we'd want to use atomics for is page table accesses, where it
+> is very important that we don't generate multiple accesses to the
+> values, because parts of the values can be change *by*hardware* (ie
+> accessed and dirty bits).
 > 
-> > I worry that that means that the standard then takes the stance that
-> > "well, compiler re-ordering is no worse than CPU re-ordering, so we
-> > let the compiler do anything". And then we have to either add
-> > "volatile" to make sure the compiler doesn't do that, or use an overly
-> > strict memory model at the compiler level that makes it all pointless.
-> 
-> Using "volatile" is not a good option, I think, because synchronization
-> between threads should be orthogonal to observable output of the
-> abstract machine.
+> So imagine that you have some clever global optimizer that sees that
+> the program never ever actually sets the dirty bit at all in any
+> thread, and then uses that kind of non-local knowledge to make
+> optimization decisions. THAT WOULD BE BAD.
 
-Are you thinking of "volatile" -instead- of atomics?  My belief is that
-given the current standard there will be times that we need to use
-"volatile" -in- -addition- to atomics.
+Might as well list other reasons why value proofs via whole-program
+analysis are unreliable for the Linux kernel:
 
-> The current memory model might not allow to exploit all hardware
-> properties, I agree.
-> 
-> But then why don't we work on how to extend it to do so?  We need to
-> specify the behavior we want anyway, and this can't be independent of
-> the language semantics, so it has to be conceptually integrated with the
-> standard anyway.
-> 
-> > So I really really hope that the standard doesn't give compiler
-> > writers free hands to do anything that they can prove is "equivalent"
-> > in the virtual C machine model.
-> 
-> It does, but it also doesn't mean this can't be extended.  So let's
-> focus on whether we can find an extension.
-> 
-> > That's not how you get reliable
-> > results.
-> 
-> In this general form, that's obviously a false claim.
+1.	As Linus said, changes from hardware.
 
-These two sentences starkly illustrate the difference in perspective
-between you two.  You are talking past each other.  Not sure how to fix
-this at the moment, but what else is new?  ;-)
+2.	Assembly code that is not visible to the compiler.
+	Inline asms will -normally- let the compiler know what
+	memory they change, but some just use the "memory" tag.
+	Worse yet, I suspect that most compilers don't look all
+	that carefully at .S files.
+
+	Any number of other programs contain assembly files.
+
+3.	Kernel modules that have not yet been written.  Now, the
+	compiler could refrain from trying to prove anything about
+	an EXPORT_SYMBOL() or EXPORT_SYMBOL_GPL() variable, but there
+	is currently no way to communicate this information to the
+	compiler other than marking the variable "volatile".
+
+	Other programs have similar issues, e.g., via dlopen().
+
+4.	Some drivers allow user-mode code to mmap() some of their
+	state.  Any changes undertaken by the user-mode code would
+	be invisible to the compiler.
+
+5.	JITed code produced based on BPF: https://lwn.net/Articles/437981/
+
+And probably other stuff as well.
 
 							Thanx, Paul
