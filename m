@@ -1,103 +1,75 @@
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Tue, 18 Feb 2014 11:42:18 -0800
-Message-ID: <20140218194218.GU4250@linux.vnet.ibm.com>
-References: <1392486310.18779.6447.camel@triegel.csb>
- <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
- <1392666947.18779.6838.camel@triegel.csb>
- <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
- <530296CD.5050503@warwick.ac.uk>
- <CA+55aFyi8QWge7QR0M+ABH-kEiwvoEyMhK6GWRvN1YNKJAFuSQ@mail.gmail.com>
- <1392737465.18779.7644.camel@triegel.csb>
- <CA+55aFxn2KRXDQ91xRs=bO_6d_nA_PSQvoY1_=OxyJ86+KOO9Q@mail.gmail.com>
- <20140218171609.GP4250@linux.vnet.ibm.com>
- <CAHWkzRSXxAPShfFTAQj=f5M1L4K1E5D6yLmQS72-b1jNGTPpEA@mail.gmail.com>
+Date: Tue, 18 Feb 2014 11:47:45 -0800
+Message-ID: <20140218194745.GV4250@linux.vnet.ibm.com>
+References: <CAHWkzRQSaKOM23yg1LbCO=uWremNzwnXUCUJF2H-+z_Xhmp79g@mail.gmail.com>
+ <CA+55aFw=9iKadR-r5sdZdJ_7yDzSV4=+P=gZXXsrxU61wKHf5w@mail.gmail.com>
+ <CAHWkzRQp3x4Wsnr6ZRdxfk04MuWT3bANnL8=VbCVEZ6+ifiqYA@mail.gmail.com>
+ <CA+55aFyfjr7=kXu6W83HhMenOnX9fssOGaZTJv_vj6rQ_+jY3Q@mail.gmail.com>
 Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e32.co.us.ibm.com ([32.97.110.150]:34454 "EHLO
-	e32.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751600AbaBRTmZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2014 14:42:25 -0500
+Received: from e39.co.us.ibm.com ([32.97.110.160]:40699 "EHLO
+	e39.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751454AbaBRTru (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2014 14:47:50 -0500
 Received: from /spool/local
-	by e32.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e39.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Tue, 18 Feb 2014 12:42:25 -0700
+	Tue, 18 Feb 2014 12:47:50 -0700
 Content-Disposition: inline
-In-Reply-To: <CAHWkzRSXxAPShfFTAQj=f5M1L4K1E5D6yLmQS72-b1jNGTPpEA@mail.gmail.com>
+In-Reply-To: <CA+55aFyfjr7=kXu6W83HhMenOnX9fssOGaZTJv_vj6rQ_+jY3Q@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Sewell <Peter.Sewell@cl.cam.ac.uk>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Torvald Riegel <triegel@redhat.com>, Alec Teal <a.teal@warwick.ac.uk>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter.Sewell@cl.cam.ac.uk, "mark.batty@cl.cam.ac.uk" <Mark.Batty@cl.cam.ac.uk>, Peter Zijlstra <peterz@infradead.org>, Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
 
-On Tue, Feb 18, 2014 at 06:23:47PM +0000, Peter Sewell wrote:
-> On 18 February 2014 17:16, Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
-> > On Tue, Feb 18, 2014 at 08:49:13AM -0800, Linus Torvalds wrote:
-> >> On Tue, Feb 18, 2014 at 7:31 AM, Torvald Riegel <triegel@redhat.com> wrote:
-> >> > On Mon, 2014-02-17 at 16:05 -0800, Linus Torvalds wrote:
-> >> >> And exactly because I know enough, I would *really* like atomics to be
-> >> >> well-defined, and have very clear - and *local* - rules about how they
-> >> >> can be combined and optimized.
-> >> >
-> >> > "Local"?
-> >>
-> >> Yes.
-> >>
-> >> So I think that one of the big advantages of atomics over volatile is
-> >> that they *can* be optimized, and as such I'm not at all against
-> >> trying to generate much better code than for volatile accesses.
-> >>
-> >> But at the same time, that can go too far. For example, one of the
-> >> things we'd want to use atomics for is page table accesses, where it
-> >> is very important that we don't generate multiple accesses to the
-> >> values, because parts of the values can be change *by*hardware* (ie
-> >> accessed and dirty bits).
-> >>
-> >> So imagine that you have some clever global optimizer that sees that
-> >> the program never ever actually sets the dirty bit at all in any
-> >> thread, and then uses that kind of non-local knowledge to make
-> >> optimization decisions. THAT WOULD BE BAD.
+On Tue, Feb 18, 2014 at 10:49:27AM -0800, Linus Torvalds wrote:
+> On Tue, Feb 18, 2014 at 10:21 AM, Peter Sewell
+> <Peter.Sewell@cl.cam.ac.uk> wrote:
 > >
-> > Might as well list other reasons why value proofs via whole-program
-> > analysis are unreliable for the Linux kernel:
-> >
-> > 1.      As Linus said, changes from hardware.
-> >
-> > 2.      Assembly code that is not visible to the compiler.
-> >         Inline asms will -normally- let the compiler know what
-> >         memory they change, but some just use the "memory" tag.
-> >         Worse yet, I suspect that most compilers don't look all
-> >         that carefully at .S files.
-> >
-> >         Any number of other programs contain assembly files.
-> >
-> > 3.      Kernel modules that have not yet been written.  Now, the
-> >         compiler could refrain from trying to prove anything about
-> >         an EXPORT_SYMBOL() or EXPORT_SYMBOL_GPL() variable, but there
-> >         is currently no way to communicate this information to the
-> >         compiler other than marking the variable "volatile".
-> >
-> >         Other programs have similar issues, e.g., via dlopen().
-> >
-> > 4.      Some drivers allow user-mode code to mmap() some of their
-> >         state.  Any changes undertaken by the user-mode code would
-> >         be invisible to the compiler.
-> >
-> > 5.      JITed code produced based on BPF: https://lwn.net/Articles/437981/
-> >
-> > And probably other stuff as well.
+> > This is a bit more subtle, because (on ARM and POWER) removing the
+> > dependency and conditional branch is actually in general *not* equivalent
+> > in the hardware, in a concurrent context.
 > 
-> interesting list.  So are you saying that value-range-analysis and
-> such-like (I say glibly, without really knowing what "such-like"
-> refers to here) are fundamentally incompatible with
-> the kernel code, or can you think of some way to tell the compiler a
-> bound on the footprint of the "unseen" changes in each of those cases?
+> So I agree, but I think that's a generic issue with non-local memory
+> ordering, and is not at all specific to the optimization wrt that
+> "x?42:42" expression.
+> 
+> If you have a value that you loaded with a non-relaxed load, and you
+> pass that value off to a non-local function that you don't know what
+> it does, in my opinion that implies that the compiler had better add
+> the necessary serialization to say "whatever that other function does,
+> we guarantee the semantics of the load".
+> 
+> So on ppc, if you do a load with "consume" or "acquire" and then call
+> another function without having had something in the caller that
+> serializes the load, you'd better add the lwsync or whatever before
+> the call. Exactly because the function call itself otherwise basically
+> breaks the visibility into ordering. You've basically turned a
+> load-with-ordering-guarantees into just an integer that you passed off
+> to something that doesn't know about the ordering guarantees - and you
+> need that "lwsync" in order to still guarantee the ordering.
+> 
+> Tough titties. That's what a CPU with weak memory ordering semantics
+> gets in order to have sufficient memory ordering.
 
-Other than the "volatile" keyword, no.
-
-Well, I suppose you could also create a function that changed the
-variables in question, then arrange to never call it, but in such a way
-that the compiler could not prove that it was never called.  But ouch!
+And that is in fact what C11 compilers are supposed to do if the function
+doesn't have the [[carries_dependency]] attribute on the corresponding
+argument or return of the non-local function.  If the function is marked
+with [[carries_dependency]], then the compiler has the information needed
+in both compilations to make things work correctly.
 
 							Thanx, Paul
+
+> And I don't think it's actually a problem in practice. If you are
+> doing loads with ordered semantics, you're not going to pass the
+> result off willy-nilly to random functions (or you really *do* require
+> the ordering, because the load that did the "acquire" was actually for
+> a lock!
+> 
+> So I really think that the "local optimization" is correct regardless.
+> 
+>                    Linus
+> 
