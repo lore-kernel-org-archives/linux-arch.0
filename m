@@ -1,30 +1,31 @@
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: Re: [PATCH v2 00/52] CPU hotplug: Fix issues with callback registration
-Date: Tue, 18 Feb 2014 14:26:03 +0530
-Message-ID: <53032023.5000403@linux.vnet.ibm.com>
-References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
+From: "Dr. Pius Okagba" <renato.ardigo@alice.it>
+Subject: Dear
+Date: Tue, 18 Feb 2014 12:36:01 +0100 (CET)
+Message-ID: <14444c7ffb1.renato.ardigo__29685.0084247582$1392723389$gmane$org@alice.it>
+Reply-To: franklinb1@barid.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain;charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: mingo@kernel.org, peterz@infradead.org, tglx@linutronix.de
-Cc: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, paulus@samba.org, oleg@redhat.com, rusty@rustcorp.com.au, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp303.alice.it ([82.57.200.119]:15762 "EHLO smtp303.alice.it"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754902AbaBRLgM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 18 Feb 2014 06:36:12 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 
-Hi Ingo, Peter, Thomas,
-
-The CPU hotplug core pieces in this patchset have been Acked by Oleg Nesterov
-and Gautham Shenoy. A majority of the remaining patches that do the tree-wide
-conversions have been Acked by the various subsystem maintainers. Since those
-patches have a build dependency on the second patch, it would be easiest to
-take all these patches through one single tree.
-
-Would you please consider taking all the patches in this series through your
-tree?
-
-Thank you very much!
-
-Regards,
-Srivatsa S. Bhat
+Attention:
+Regarding the transaction made so far, I waited for your message as you told 
+me
+with none received. Remember, I supposed to have traveled last night 
+but the
+weather is too bad. I will be leaving to Paraguay tomorrow for estate project.
+Meanwhile, contact the Bank manager with below address, i have kept the cheque
+worth of USD2.5M. They will either mail it to you or remit it for transfer
+depending on how you want it; Here is Bank contact information:
+ 
+Name Of Manager: Mr. Franklin Barnard
+MAIL: (franklinb1@barid.com,
+okagbapius1@live.com
+Thank you
+UN Office.
