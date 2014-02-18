@@ -1,11 +1,10 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f172.google.com ([209.85.223.172]:64117 "EHLO
-	mail-ie0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751231AbaBRSXr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2014 13:23:47 -0500
+Received: from mail-ve0-f169.google.com ([209.85.128.169]:45954 "EHLO
+	mail-ve0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751558AbaBRTAt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2014 14:00:49 -0500
 MIME-Version: 1.0
-Reply-To: Peter.Sewell@cl.cam.ac.uk
-In-Reply-To: <20140218171609.GP4250@linux.vnet.ibm.com>
+In-Reply-To: <CAHWkzRSXxAPShfFTAQj=f5M1L4K1E5D6yLmQS72-b1jNGTPpEA@mail.gmail.com>
 References: <CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>
 	<CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>
 	<1392486310.18779.6447.camel@triegel.csb>
@@ -17,86 +16,57 @@ References: <CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>
 	<1392737465.18779.7644.camel@triegel.csb>
 	<CA+55aFxn2KRXDQ91xRs=bO_6d_nA_PSQvoY1_=OxyJ86+KOO9Q@mail.gmail.com>
 	<20140218171609.GP4250@linux.vnet.ibm.com>
-Date: Tue, 18 Feb 2014 18:23:47 +0000
-Message-ID: <CAHWkzRSXxAPShfFTAQj=f5M1L4K1E5D6yLmQS72-b1jNGTPpEA@mail.gmail.com>
+	<CAHWkzRSXxAPShfFTAQj=f5M1L4K1E5D6yLmQS72-b1jNGTPpEA@mail.gmail.com>
+Date: Tue, 18 Feb 2014 11:00:48 -0800
+Message-ID: <CA+55aFxSPEzm95qM8qiXu3F4zm1DU4EcVx+-UucW5VPt1yCzGQ@mail.gmail.com>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-From: Peter Sewell <Peter.Sewell@cl.cam.ac.uk>
-Content-Type: text/plain; charset=ISO-8859-1
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul McKenney <paulmck@linux.vnet.ibm.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Torvald Riegel <triegel@redhat.com>, Alec Teal <a.teal@warwick.ac.uk>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140218182347.4bX-YyTihh1-iaLF3AOUxVTvts5tUSEt7IhJkf54Y7c@z>
+To: Peter.Sewell@cl.cam.ac.uk
+Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Torvald Riegel <triegel@redhat.com>, Alec Teal <a.teal@warwick.ac.uk>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Message-ID: <20140218190048.yXKqLyAny_RzVO10-MwwzutqizjGsmya1NNxzFreNwk@z>
 
-On 18 February 2014 17:16, Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
-> On Tue, Feb 18, 2014 at 08:49:13AM -0800, Linus Torvalds wrote:
->> On Tue, Feb 18, 2014 at 7:31 AM, Torvald Riegel <triegel@redhat.com> wrote:
->> > On Mon, 2014-02-17 at 16:05 -0800, Linus Torvalds wrote:
->> >> And exactly because I know enough, I would *really* like atomics to be
->> >> well-defined, and have very clear - and *local* - rules about how they
->> >> can be combined and optimized.
->> >
->> > "Local"?
->>
->> Yes.
->>
->> So I think that one of the big advantages of atomics over volatile is
->> that they *can* be optimized, and as such I'm not at all against
->> trying to generate much better code than for volatile accesses.
->>
->> But at the same time, that can go too far. For example, one of the
->> things we'd want to use atomics for is page table accesses, where it
->> is very important that we don't generate multiple accesses to the
->> values, because parts of the values can be change *by*hardware* (ie
->> accessed and dirty bits).
->>
->> So imagine that you have some clever global optimizer that sees that
->> the program never ever actually sets the dirty bit at all in any
->> thread, and then uses that kind of non-local knowledge to make
->> optimization decisions. THAT WOULD BE BAD.
+On Tue, Feb 18, 2014 at 10:23 AM, Peter Sewell
+<Peter.Sewell@cl.cam.ac.uk> wrote:
 >
-> Might as well list other reasons why value proofs via whole-program
-> analysis are unreliable for the Linux kernel:
->
-> 1.      As Linus said, changes from hardware.
->
-> 2.      Assembly code that is not visible to the compiler.
->         Inline asms will -normally- let the compiler know what
->         memory they change, but some just use the "memory" tag.
->         Worse yet, I suspect that most compilers don't look all
->         that carefully at .S files.
->
->         Any number of other programs contain assembly files.
->
-> 3.      Kernel modules that have not yet been written.  Now, the
->         compiler could refrain from trying to prove anything about
->         an EXPORT_SYMBOL() or EXPORT_SYMBOL_GPL() variable, but there
->         is currently no way to communicate this information to the
->         compiler other than marking the variable "volatile".
->
->         Other programs have similar issues, e.g., via dlopen().
->
-> 4.      Some drivers allow user-mode code to mmap() some of their
->         state.  Any changes undertaken by the user-mode code would
->         be invisible to the compiler.
->
-> 5.      JITed code produced based on BPF: https://lwn.net/Articles/437981/
->
-> And probably other stuff as well.
+> interesting list.  So are you saying that value-range-analysis and
+> such-like (I say glibly, without really knowing what "such-like"
+> refers to here) are fundamentally incompatible with
+> the kernel code
 
-interesting list.  So are you saying that value-range-analysis and
-such-like (I say glibly, without really knowing what "such-like"
-refers to here) are fundamentally incompatible with
-the kernel code, or can you think of some way to tell the compiler a
-bound on the footprint of the "unseen" changes in each of those cases?
+No, it's fine to do things like value-range-analysis, it's just that
+you have to do it on a local scope, and not think that you can see
+every single write to some variable.
 
-Peter
+And as Paul points out, this is actually generally true even outside
+of kernels. We may be pretty unique in having some things that are
+literally done by hardware (eg the page table updates), but we're
+certainly not unique in having loadable modules or code that the
+compiler doesn't know about by virtue of being compiled separately
+(assembly files, JITted, whatever).
 
+And we are actually perfectly fine with compiler barriers. One of our
+most common barriers is simply this:
 
->                                                         Thanx, Paul
->
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
+   #define barrier() __asm__ __volatile__("": : :"memory")
+
+which basically tells the compiler "something changes memory in ways
+you don't understand, so you cannot assume anything about memory
+contents".
+
+Obviously, a compiler is still perfectly fine optimizing things like
+local variables etc that haven't had their address taken across such a
+barrier (regardless of whether those local variables might be spilled
+to the stack frame etc), but equally obviously we'd require that this
+kind of thing makes sure that any atomic writes have been finalized by
+the time the barrier happens (it does *not* imply a memory ordering,
+just a compiler memory access barrier - we have separate things for
+ordering requirements, and those obviously often generate actual
+barrier instructions)
+
+And we're likely always going to have things like this, but if C11
+atomics end up working well for us, we might have *fewer* of them.
+
+              Linus
