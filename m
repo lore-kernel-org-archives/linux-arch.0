@@ -1,50 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:40153 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751982AbaBRVrz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 18 Feb 2014 16:47:55 -0500
+Received: from merlin.infradead.org ([205.233.59.134]:37120 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750727AbaBRVxD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2014 16:53:03 -0500
+Date: Tue, 18 Feb 2014 22:52:56 +0100
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-From: Torvald Riegel <triegel@redhat.com>
-In-Reply-To: <20140218214047.GU14089@laptop.programming.kicks-ass.net>
-References: <CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>
-	 <1392486310.18779.6447.camel@triegel.csb>
-	 <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
-	 <1392666947.18779.6838.camel@triegel.csb>
-	 <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
-	 <530296CD.5050503@warwick.ac.uk>
-	 <CA+55aFyi8QWge7QR0M+ABH-kEiwvoEyMhK6GWRvN1YNKJAFuSQ@mail.gmail.c!om>
-	 <1392737465.18779.7644.camel@triegel.csb>
-	 <CA+55aFxn2KRXDQ91xRs=bO_6d_nA_PSQvoY1_=OxyJ86+KOO9Q@mail.gmail.com>
-	 <1392758516.18779.8378.camel@triegel.csb>
-	 <20140218214047.GU14089@laptop.programming.kicks-ass.net>
-Content-Type: text/plain; charset="UTF-8"
-Date: Tue, 18 Feb 2014 22:47:15 +0100
-Message-ID: <1392760035.18779.8449.camel@triegel.csb>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Message-ID: <20140218215256.GW14089@laptop.programming.kicks-ass.net>
+References: <1392486310.18779.6447.camel@triegel.csb>
+ <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
+ <1392666947.18779.6838.camel@triegel.csb>
+ <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
+ <530296CD.5050503@warwick.ac.uk>
+ <CA+55aFyi8QWge7QR0M+ABH-kEiwvoEyMhK6GWRvN1YNKJAFuSQ@mail.gmail.com>
+ <1392737465.18779.7644.camel@triegel.csb>
+ <CA+55aFxn2KRXDQ91xRs=bO_6d_nA_PSQvoY1_=OxyJ86+KOO9Q@mail.gmail.com>
+ <20140218171609.GP4250@linux.vnet.ibm.com>
+ <1392759615.18779.8429.camel@triegel.csb>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1392759615.18779.8429.camel@triegel.csb>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Alec Teal <a.teal@warwick.ac.uk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140218214715.8BmGCYWLtzgyGnwpR1KiPXO6icr6oVxy0F0sSIGlAKM@z>
+To: Torvald Riegel <triegel@redhat.com>
+Cc: paulmck@linux.vnet.ibm.com, Linus Torvalds <torvalds@linux-foundation.org>, Alec Teal <a.teal@warwick.ac.uk>, Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Message-ID: <20140218215256.HkEX5z6ZUWO0JpQqfAjcsXJrHCElXX-Mdd8hDZbytfs@z>
 
-On Tue, 2014-02-18 at 22:40 +0100, Peter Zijlstra wrote:
-> On Tue, Feb 18, 2014 at 10:21:56PM +0100, Torvald Riegel wrote:
-> > Well, that's how atomics that aren't volatile are defined in the
-> > standard.  I can see that you want something else too, but that doesn't
-> > mean that the other thing is broken.
+> > 4.	Some drivers allow user-mode code to mmap() some of their
+> > 	state.  Any changes undertaken by the user-mode code would
+> > 	be invisible to the compiler.
 > 
-> Well that other thing depends on being able to see the entire program at
-> compile time. PaulMck already listed various ways in which this is
-> not feasible even for normal userspace code.
+> A good point, but a compiler that doesn't try to (incorrectly) assume
+> something about the semantics of mmap will simply see that the mmap'ed
+> data will escape to stuff if can't analyze, so it will not be able to
+> make a proof.
 > 
-> In particular; DSOs and JITs were mentioned.
+> This is different from, for example, malloc(), which is guaranteed to
+> return "fresh" nonaliasing memory.
 
-No it doesn't depend on whole-program analysis being possible.  Because
-if it isn't, then a correct compiler will just not do certain
-optimizations simply because it can't prove properties required for the
-optimization to hold.  With the exception of access to objects via magic
-numbers (e.g., fixed and known addresses (see my reply to Paul), which
-are outside of the semantics specified in the standard), I don't see a
-correctness problem here.
+The kernel side of this is different.. it looks like 'normal' memory, we
+just happen to allow it to end up in userspace too.
 
+But on that point; how do you tell the compiler the difference between
+malloc() and mmap()? Is that some function attribute?
