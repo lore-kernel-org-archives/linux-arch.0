@@ -1,32 +1,50 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v4 1/3] qspinlock: Introducing a 4-byte queue spinlock
- implementation
-Date: Tue, 18 Feb 2014 14:31:34 -0500
-Message-ID: <5303B516.3080409@hp.com>
-References: <1392669684-4807-1-git-send-email-Waiman.Long@hp.com> <1392669684-4807-2-git-send-email-Waiman.Long@hp.com> <20140218073326.GX27965@twins.programming.kicks-ass.net>
+From: Eric Paris <eparis@redhat.com>
+Subject: Re: [ARCH question] Do syscall_get_nr and syscall_get_arguments
+ always work?
+Date: Tue, 18 Feb 2014 14:39:22 -0500
+Message-ID: <1392752362.2165.31.camel@flatline.rdu.redhat.com>
+References: <CALCETrU6M=Abo1z2cRoZy07-=3bwKiK84gCSMcBPLA1TkXPb8A@mail.gmail.com>
+	 <CACM3HyHwrKQAWZRhE2N1VtGKu1xSvcGeuMG1Ag+vzP2BA111cQ@mail.gmail.com>
+	 <CALCETrXXnSdyc5VpT8f6uu6kbO1cq4QwdKqr9z8AOhY_wsoBLA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20140218073326.GX27965@twins.programming.kicks-ass.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:60793 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751954AbaBRTjj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 18 Feb 2014 14:39:39 -0500
+In-Reply-To: <CALCETrXXnSdyc5VpT8f6uu6kbO1cq4QwdKqr9z8AOhY_wsoBLA@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Jonas Bonn <jonas.bonn@gmail.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, linux-audit@redhat.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andi Kleen <andi@firstfloor.org>, Steve Grubb <sgrubb@redhat.com>
 
-On 02/18/2014 02:33 AM, Peter Zijlstra wrote:
-> On Mon, Feb 17, 2014 at 03:41:22PM -0500, Waiman Long wrote:
->> +#define	_QCODE(lock)	(atomic_read(&(lock)->qlcode)>>  _QCODE_OFFSET)
->> +#define	_QLOCK(lock)	(atomic_read(&(lock)->qlcode)&  _QSPINLOCK_LOCKED)
->> +#define GET_QN_IDX(code)	(((code)>>  _QCODE_VAL_OFFSET)&  3)
->> +#define GET_CPU_NR(code)	(((code)>>  (_QCODE_VAL_OFFSET + 2)) - 1)
->> +#ifndef _SET_QCODE
->> +#define _SET_QCODE(cpu, idx)	((((cpu) + 1)<<  (_QCODE_VAL_OFFSET + 2)) |\
->> +				((idx)<<  _QCODE_VAL_OFFSET) |\
->
-> Someone please take the CPP away.. dude most this doesn't need to be a
-> macro. Its used only in 1 or two places and its utterly unreadable.
+On Fri, 2014-02-07 at 08:40 -0800, Andy Lutomirski wrote:
+> On Fri, Feb 7, 2014 at 4:58 AM, Jonas Bonn <jonas.bonn@gmail.com> wrote:
+> > Hi Andy,
+> >
+> > On 5 February 2014 00:50, Andy Lutomirski <luto@amacapital.net> wrote:
+> >>
+> >> I can't even find the system call entry point on mips.
+> >>
+> >>
+> >> Is there a semi-official answer here?
+> >
+> > I don't have an official answer for you, but when I wanted to do
+> > something with these entry points a couple of years back I discovered
+> > that they aren't very thoroughly implemented across the various
+> > architectures.  I started cleaning this up and can probably dig up
+> > some of this for you if you need it.
+> 
+> The syscall_get_xyz functions are certainly implemented and functional
+> in all relevant architectures -- the audit code is already using them.
+>  The thing I'm uncertain about is whether they are usable with no
+> syscall slow path bits set.
+> 
+> I guess that, if the syscall restart logic needs to read the argument
+> registers, then they're probably reliably saved...
 
-Yes, I can take them away. It is not a big problem.
-
--Longman
+Al just indicated to me that on at least ia64, syscall_get_arguments()
+is really expensive.  So maybe not a deal breaker, but sounds like we'd
+lose a lot of performance trying to get them at syscall exit...
