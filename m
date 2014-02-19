@@ -1,57 +1,122 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Wed, 19 Feb 2014 12:42:38 +0100
-Message-ID: <20140219114238.GH15586@twins.programming.kicks-ass.net>
-References: <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
- <1392666947.18779.6838.camel@triegel.csb>
- <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
- <530296CD.5050503@warwick.ac.uk>
- <CA+55aFyi8QWge7QR0M+ABH-kEiwvoEyMhK6GWRvN1YNKJAFuSQ@mail.gmail.c!om>
- <1392737465.18779.7644.camel@triegel.csb>
- <CA+55aFxn2KRXDQ91xRs=bO_6d_nA_PSQvoY1_=OxyJ86+KOO9Q@mail.gmail.com>
- <1392758516.18779.8378.camel@triegel.csb>
- <20140218214713.GV14089@laptop.programming.kicks-ass.net>
- <1392808022.18779.8674.camel@triegel.csb>
+From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Subject: Re: [PATCH 2/6] seqno-fence: Hardware dma-buf implementation of fencing
+ (v4)
+Date: Wed, 19 Feb 2014 14:25:59 +0100
+Message-ID: <5304B0E7.4000802@canonical.com>
+References: <20140217155056.20337.25254.stgit@patser>	<20140217155556.20337.37589.stgit@patser>	<53023F3E.3080107@vodafone.de>	<CAF6AEGtHSg=qESbGE8LZsQPrRfHnrSQOjpEAVKeZ5o9k07ZNcA@mail.gmail.com>	<530248B1.2090405@vodafone.de> <CAF6AEGtk1dGdFg2wk-ofRQmaxEnnEOQBOg=JNaPRVapQqsML+w@mail.gmail.com> <530257E3.2060508@vodafone.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1;
+	format=flowed
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:53684 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752881AbaBSLmt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2014 06:42:49 -0500
-Content-Disposition: inline
-In-Reply-To: <1392808022.18779.8674.camel@triegel.csb>
+Received: from youngberry.canonical.com ([91.189.89.112]:33129 "EHLO
+	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753531AbaBSN0C (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2014 08:26:02 -0500
+In-Reply-To: <530257E3.2060508@vodafone.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Torvald Riegel <triegel@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Alec Teal <a.teal@warwick.ac.uk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+To: =?ISO-8859-1?Q?Christian_K=F6nig?= <deathsimple@vodafone.de>, Rob Clark <robdclark@gmail.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, Colin Cross <ccross@google.com>, "dri-devel@lists.freedesktop.org" <dri-devel@lists.freedesktop.org>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
 
-On Wed, Feb 19, 2014 at 12:07:02PM +0100, Torvald Riegel wrote:
-> > Its not only hardware; also the kernel/user boundary has this same
-> > problem. We cannot a-priory say what userspace will do; in fact, because
-> > we're a general purpose OS, we must assume it will willfully try its
-> > bestest to wreck whatever assumptions we make about its behaviour.
-> 
-> That's a good note, and I think a distinct case from those below,
-> because here you're saying that you can't assume that the userspace code
-> follows the C11 semantics ...
+op 17-02-14 19:41, Christian K=F6nig schreef:
+> Am 17.02.2014 19:24, schrieb Rob Clark:
+>> On Mon, Feb 17, 2014 at 12:36 PM, Christian K=F6nig
+>> <deathsimple@vodafone.de> wrote:
+>>> Am 17.02.2014 18:27, schrieb Rob Clark:
+>>>
+>>>> On Mon, Feb 17, 2014 at 11:56 AM, Christian K=F6nig
+>>>> <deathsimple@vodafone.de> wrote:
+>>>>> Am 17.02.2014 16:56, schrieb Maarten Lankhorst:
+>>>>>
+>>>>>> This type of fence can be used with hardware synchronization for=
+ simple
+>>>>>> hardware that can block execution until the condition
+>>>>>> (dma_buf[offset] - value) >=3D 0 has been met.
+>>>>>
+>>>>> Can't we make that just "dma_buf[offset] !=3D 0" instead? As far =
+as I know
+>>>>> this way it would match the definition M$ uses in their WDDM
+>>>>> specification
+>>>>> and so make it much more likely that hardware supports it.
+>>>> well 'buf[offset] >=3D value' at least means the same slot can be =
+used
+>>>> for multiple operations (with increasing values of 'value').. not =
+sure
+>>>> if that is something people care about.
+>>>>
+>>>>> =3Dvalue seems to be possible with adreno and radeon.  I'm not re=
+ally sure
+>>>>> about others (although I presume it as least supported for nv des=
+ktop
+>>>>> stuff).  For hw that cannot do >=3Dvalue, we can either have a di=
+fferent fence
+>>>>> implementation which uses the !=3D0 approach.  Or change seqno-fe=
+nce
+>>>>> implementation later if needed.  But if someone has hw that can d=
+o !=3D0 but
+>>>>> not >=3Dvalue, speak up now ;-)
+>>>
+>>> Here! Radeon can only do >=3Dvalue on the DMA and 3D engine, but no=
+t with UVD
+>>> or VCE. And for the 3D engine it means draining the pipe, which isn=
+'t really
+>>> a good idea.
+>> hmm, ok.. forgot you have a few extra rings compared to me.  Is UVD
+>> re-ordering from decode-order to display-order for you in hw? If not=
+,
+>> I guess you need sw intervention anyways when a frame is done for
+>> frame re-ordering, so maybe hw->hw sync doesn't really matter as muc=
+h
+>> as compared to gpu/3d->display.  For dma<->3d interactions, seems li=
+ke
+>> you would care more about hw<->hw sync, but I guess you aren't likel=
+y
+>> to use GPU A to do a resolve blit for GPU B..
+>
+> No UVD isn't reordering, but since frame reordering is predictable yo=
+u usually end up with pipelining everything to the hardware. E.g. you s=
+end the decode commands in decode order to the UVD block and if you hav=
+e overlay active one of the frames are going to be the first to display=
+ and then you want to wait for it on the display side.
+>
+>> For 3D ring, I assume you probably want a CP_WAIT_FOR_IDLE before a
+>> CP_MEM_WRITE to update fence value in memory (for the one signalling
+>> the fence).  But why would you need that before a CP_WAIT_REG_MEM (f=
+or
+>> the one waiting for the fence)?  I don't exactly have documentation
+>> for adreno version of CP_WAIT_REG_{MEM,EQ,GTE}..  but PFP and ME
+>> appear to be same instruction set as r600, so I'm pretty sure they
+>> should have similar capabilities.. CP_WAIT_REG_MEM appears to be sam=
+e
+>> but with 32bit gpu addresses vs 64b.
+>
+> You shouldn't use any of the CP commands for engine synchronization (=
+neither for wait nor for signal). The PFP and ME are just the top of a =
+quite deep pipeline and when you use any of the CP_WAIT functions you b=
+lock them for something and that's draining the pipeline.
+>
+> With the semaphore and fence commands the values are just attached as=
+ prerequisite to the draw command, e.g. the CP setups the draw environm=
+ent and issues the command, but the actual execution of it is delayed u=
+ntil the "!=3D 0" condition hits. And in the meantime the CP already pr=
+epares the next draw operation.
+>
+> But at least for compute queues wait semaphore aren't the perfect sol=
+ution either. What you need then is a GPU scheduler that uses a kernel =
+task for setting up the command submission for you when all prerequisit=
+es are meet.
+nouveau has sort of a scheduler in hardware. It can yield when waiting =
+on a semaphore. And each process gets their own context and the timesli=
+ces can be adjusted. ;-) But I don't mind changing this patch when an a=
+ctual user pops up. Nouveau can do a  wait for (*sema & mask) !=3D 0 on=
+ly on nvc0 and newer, where mask can be chosen. But it can do =3D=3D so=
+mevalue and >=3D somevalue on older relevant optimus hardware, so if we=
+ know that it was zero before and we know the sign of the new value tha=
+t could work too.
 
-Right; we can malfunction in those cases though; as long as the
-malfunctioning happens on the userspace side. That is, whatever
-userspace does should not cause the kernel to crash, but userspace
-crashing itself, or getting crap data or whatever is its own damn fault
-for not following expected behaviour.
+Adding ops and a separate mask later on when users pop up is fine with =
+me, the original design here was chosen so I could map the intel status=
+ page read-only into the process specific nvidia vm.
 
-To stay on topic; if the kernel/user interface requires memory ordering
-and userspace explicitly omits the barriers all malfunctioning should be
-on the user. For instance it might loose a fwd progress guarantee or
-data integrity guarantees.
-
-In specific, given a kernel/user lockless producer/consumer buffer, if
-the user-side allows the tail write to happen before its data reads are
-complete, the kernel might overwrite the data its still reading.
-
-Or in case of futexes, if the user side doesn't use the appropriate
-operations its lock state gets corrupt but only userspace should suffer.
-
-But yes, this does require some care and consideration from our side.
+~Maarten
