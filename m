@@ -1,116 +1,105 @@
-From: Toshi Kani <toshi.kani@hp.com>
-Subject: Re: [PATCH v2 02/52] CPU hotplug: Provide lockless versions of
- callback registration functions
-Date: Wed, 19 Feb 2014 14:34:46 -0700
-Message-ID: <1392845686.6784.3.camel@misato.fc.hp.com>
-References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
-	 <20140214074922.22701.17949.stgit@srivatsabhat.in.ibm.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
+Date: Wed, 19 Feb 2014 14:12:29 -0800
+Message-ID: <20140219221229.GJ4250@linux.vnet.ibm.com>
+References: <530296CD.5050503@warwick.ac.uk>
+ <CA+55aFyi8QWge7QR0M+ABH-kEiwvoEyMhK6GWRvN1YNKJAFuSQ@mail.gmail.com>
+ <1392737465.18779.7644.camel@triegel.csb>
+ <CA+55aFxn2KRXDQ91xRs=bO_6d_nA_PSQvoY1_=OxyJ86+KOO9Q@mail.gmail.com>
+ <20140218171609.GP4250@linux.vnet.ibm.com>
+ <1392759615.18779.8429.camel@triegel.csb>
+ <20140218225845.GB4250@linux.vnet.ibm.com>
+ <1392807548.18779.8659.camel@triegel.csb>
+ <20140219151422.GE4250@linux.vnet.ibm.com>
+ <1392832551.18779.9315.camel@triegel.csb>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g9t1613g.houston.hp.com ([15.240.0.71]:49488 "EHLO
-	g9t1613g.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753449AbaBSVmW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2014 16:42:22 -0500
-In-Reply-To: <20140214074922.22701.17949.stgit@srivatsabhat.in.ibm.com>
+Received: from e31.co.us.ibm.com ([32.97.110.149]:39334 "EHLO
+	e31.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753015AbaBSWMd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2014 17:12:33 -0500
+Received: from /spool/local
+	by e31.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Wed, 19 Feb 2014 15:12:33 -0700
+Content-Disposition: inline
+In-Reply-To: <1392832551.18779.9315.camel@triegel.csb>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Cc: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Torvald Riegel <triegel@redhat.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Alec Teal <a.teal@warwick.ac.uk>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
 
-On Fri, 2014-02-14 at 13:19 +0530, Srivatsa S. Bhat wrote:
-> The following method of CPU hotplug callback registration is not safe
-> due to the possibility of an ABBA deadlock involving the cpu_add_remove_lock
-> and the cpu_hotplug.lock.
-> 
-> 	get_online_cpus();
-> 
-> 	for_each_online_cpu(cpu)
-> 		init_cpu(cpu);
-> 
-> 	register_cpu_notifier(&foobar_cpu_notifier);
-> 
-> 	put_online_cpus();
-> 
-> The deadlock is shown below:
-> 
->           CPU 0                                         CPU 1
->           -----                                         -----
-> 
->    Acquire cpu_hotplug.lock
->    [via get_online_cpus()]
-> 
->                                               CPU online/offline operation
->                                               takes cpu_add_remove_lock
->                                               [via cpu_maps_update_begin()]
-> 
-> 
->    Try to acquire
->    cpu_add_remove_lock
->    [via register_cpu_notifier()]
-> 
-> 
->                                               CPU online/offline operation
->                                               tries to acquire cpu_hotplug.lock
->                                               [via cpu_hotplug_begin()]
-> 
-> 
->                             *** DEADLOCK! ***
-> 
-> The problem here is that callback registration takes the locks in one order
-> whereas the CPU hotplug operations take the same locks in the opposite order.
-> To avoid this issue and to provide a race-free method to register CPU hotplug
-> callbacks (along with initialization of already online CPUs), introduce new
-> variants of the callback registration APIs that simply register the callbacks
-> without holding the cpu_add_remove_lock during the registration. That way,
-> we can avoid the ABBA scenario. However, we will need to hold the
-> cpu_add_remove_lock throughout the entire critical section, to protect updates
-> to the callback/notifier chain.
-> 
-> This can be achieved by writing the callback registration code as follows:
-> 
-> 	cpu_maps_update_begin(); [ or cpu_notifier_register_begin(); see below ]
-> 
-> 	for_each_online_cpu(cpu)
-> 		init_cpu(cpu);
-> 
-> 	/* This doesn't take the cpu_add_remove_lock */
-> 	__register_cpu_notifier(&foobar_cpu_notifier);
-> 
-> 	cpu_maps_update_done();  [ or cpu_notifier_register_done(); see below ]
-> 
-> Note that we can't use get_online_cpus() here instead of cpu_maps_update_begin()
-> because the cpu_hotplug.lock is dropped during the invocation of CPU_POST_DEAD
-> notifiers, and hence get_online_cpus() cannot provide the necessary
-> synchronization to protect the callback/notifier chains against concurrent
-> reads and writes. On the other hand, since the cpu_add_remove_lock protects
-> the entire hotplug operation (including CPU_POST_DEAD), we can use
-> cpu_maps_update_begin/done() to guarantee proper synchronization.
-> 
-> Also, since cpu_maps_update_begin/done() is like a super-set of
-> get/put_online_cpus(), the former naturally protects the critical sections
-> from concurrent hotplug operations.
-> 
-> Since the names cpu_maps_update_begin/done() don't make much sense in CPU
-> hotplug callback registration scenarios, we'll introduce new APIs named
-> cpu_notifier_register_begin/done() and map them to cpu_maps_update_begin/done().
-> 
-> In summary, introduce the lockless variants of un/register_cpu_notifier() and
-> also export the cpu_notifier_register_begin/done() APIs for use by modules.
-> This way, we provide a race-free way to register hotplug callbacks as well as
-> perform initialization for the CPUs that are already online.
-> 
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Toshi Kani <toshi.kani@hp.com>
-> Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: Ingo Molnar <mingo@kernel.org>
-> Acked-by: Oleg Nesterov <oleg@redhat.com>
-> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+On Wed, Feb 19, 2014 at 06:55:51PM +0100, Torvald Riegel wrote:
+> On Wed, 2014-02-19 at 07:14 -0800, Paul E. McKenney wrote:
+> > On Wed, Feb 19, 2014 at 11:59:08AM +0100, Torvald Riegel wrote:
 
-Acked-by: Toshi Kani <toshi.kani@hp.com>
+[ . . . ]
 
-Thanks,
--Toshi
+> > > On both sides, the compiler will see that mmap() (or similar) is called,
+> > > so that means the data escapes to something unknown, which could create
+> > > threads and so on.  So first, it can't do whole-program analysis for
+> > > this state anymore, and has to assume that other C11 threads are
+> > > accessing this memory.  Next, lock-free atomics are specified to be
+> > > "address-free", meaning that they must work independent of where in
+> > > memory the atomics are mapped (see C++ (e.g., N3690) 29.4p3; that's a
+> > > "should" and non-normative, but essential IMO).  Thus, this then boils
+> > > down to just a simple case of synchronization.  (Of course, the rest of
+> > > the ABI has to match too for the data exchange to work.)
+> > 
+> > The compiler will see mmap() on the user side, but not on the kernel
+> > side.  On the kernel side, something special is required.
+> 
+> Maybe -- you'll certainly know better :)
+> 
+> But maybe it's not that hard: For example, if the memory is in current
+> code made available to userspace via calling some function with an asm
+> implementation that the compiler can't analyze, then this should be
+> sufficient.
+
+The kernel code would need to explicitly tell the compiler what portions
+of the kernel address space were covered by this.  I would not want the
+compiler to have to work it out based on observing interactions with the
+page tables.  ;-)
+
+> > Agree that "address-free" would be nice as "shall" rather than "should".
+> > 
+> > > > I echo Peter's question about how one tags functions like mmap().
+> > > > 
+> > > > I will also remember this for the next time someone on the committee
+> > > > discounts "volatile".  ;-)
+> > > > 
+> > > > > > 5.	JITed code produced based on BPF: https://lwn.net/Articles/437981/
+> > > > > 
+> > > > > This might be special, or not, depending on how the JITed code gets
+> > > > > access to data.  If this is via fixed addresses (e.g., (void*)0x123),
+> > > > > then see above.  If this is through function calls that the compiler
+> > > > > can't analyze, then this is like 4.
+> > > > 
+> > > > It could well be via the kernel reading its own symbol table, sort of
+> > > > a poor-person's reflection facility.  I guess that would be for all
+> > > > intents and purposes equivalent to your (void*)0x123.
+> > > 
+> > > If it is replacing code generated by the compiler, then yes.  If the JIT
+> > > is just filling in functions that had been undefined yet declared
+> > > before, then the compiler will have seen the data escape through the
+> > > function interfaces, and should be aware that there is other stuff.
+> > 
+> > So one other concern would then be things things like ftrace, kprobes,
+> > ksplice, and so on.  These rewrite the kernel binary at runtime, though
+> > in very limited ways.
+> 
+> Yes.  Nonetheless, I wouldn't see a problem if they, say, rewrite with
+> C11-compatible code (and same ABI) on a function granularity (and when
+> the function itself isn't executing concurrently) -- this seems to be
+> similar to just having another compiler compile this particular
+> function.
+
+Well, they aren't using C11-compatible code yet.  They do patch within
+functions.  And in some cases, they make staged sequences of changes to
+allow the patching to happen concurrently with other CPUs executing the
+code being patched.  Not sure that any of the latter is actually in the
+kernel at the moment, but it has at least been prototyped and discussed.
+
+							Thanx, Paul
