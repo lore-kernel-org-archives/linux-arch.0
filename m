@@ -1,63 +1,38 @@
-From: Torvald Riegel <triegel@redhat.com>
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Wed, 19 Feb 2014 19:11:39 +0100
-Message-ID: <1392833499.18779.9347.camel@triegel.csb>
-References: <CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>	 <1392486310.18779.6447.camel@triegel.csb>	 <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>	 <1392666947.18779.6838.camel@triegel.csb>	 <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>	 <530296CD.5050503@warwick.ac.uk>	 <CA+55aFyi8QWge7QR0M+ABH-kEiwvoEyMhK6GWRvN1YNKJAFuSQ@mail.gmail.c!om>	 <1392737465.18779.7644.camel@triegel.csb>	 <CA+55aFxn2KRXDQ91xRs=bO_6d_nA_PSQvoY1_=OxyJ86+KOO9Q@mail.gmail.com>	 <1392758516.18779.8378.camel@triegel.csb>	 <20140218214047.GU14089@laptop.programming.kicks-ass.net>	 <1392760035.18779.8449.camel@triegel.csb>	 <alpine.DEB.2.02.1402190722040.2147@nftneq.ynat.uz>
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH v4 0/3] qspinlock: Introducing a 4-byte queue spinlock
+Date: Wed, 19 Feb 2014 14:24:49 -0500
+Message-ID: <53050501.3070101@hp.com>
+References: <1392669684-4807-1-git-send-email-Waiman.Long@hp.com> <53029167.4060109@zytor.com> <20140218073111.GW27965@twins.programming.kicks-ass.net> <5303B4C4.2040907@hp.com> <20140218212827.GR14089@laptop.programming.kicks-ass.net> <5303FDEC.9060001@hp.com> <20140219085107.GG27965@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <gcc-return-182179-gcc=m.gmane.org@gcc.gnu.org>
-List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
-List-Archive: <http://gcc.gnu.org/ml/gcc/>
-List-Post: <mailto:gcc@gcc.gnu.org>
-List-Help: <http://gcc.gnu.org/ml/>
-Sender: gcc-owner@gcc.gnu.org
-In-Reply-To: <alpine.DEB.2.02.1402190722040.2147@nftneq.ynat.uz>
-To: David Lang <david@lang.hm>
-Cc: Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Alec Teal <a.teal@warwick.ac.uk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from g4t3427.houston.hp.com ([15.201.208.55]:56742 "EHLO
+	g4t3427.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754402AbaBSTZM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2014 14:25:12 -0500
+In-Reply-To: <20140219085107.GG27965@twins.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
 
-On Wed, 2014-02-19 at 07:23 -0800, David Lang wrote:
-> On Tue, 18 Feb 2014, Torvald Riegel wrote:
-> 
-> > On Tue, 2014-02-18 at 22:40 +0100, Peter Zijlstra wrote:
-> >> On Tue, Feb 18, 2014 at 10:21:56PM +0100, Torvald Riegel wrote:
-> >>> Well, that's how atomics that aren't volatile are defined in the
-> >>> standard.  I can see that you want something else too, but that doesn't
-> >>> mean that the other thing is broken.
-> >>
-> >> Well that other thing depends on being able to see the entire program at
-> >> compile time. PaulMck already listed various ways in which this is
-> >> not feasible even for normal userspace code.
-> >>
-> >> In particular; DSOs and JITs were mentioned.
-> >
-> > No it doesn't depend on whole-program analysis being possible.  Because
-> > if it isn't, then a correct compiler will just not do certain
-> > optimizations simply because it can't prove properties required for the
-> > optimization to hold.  With the exception of access to objects via magic
-> > numbers (e.g., fixed and known addresses (see my reply to Paul), which
-> > are outside of the semantics specified in the standard), I don't see a
-> > correctness problem here.
-> 
-> Are you really sure that the compiler can figure out every possible thing that a 
-> loadable module or JITed code can access? That seems like a pretty strong claim.
+On 02/19/2014 03:51 AM, Peter Zijlstra wrote:
+> On Tue, Feb 18, 2014 at 07:42:20PM -0500, Waiman Long wrote:
+>> On 02/18/2014 04:28 PM, Peter Zijlstra wrote:
+>>> On Tue, Feb 18, 2014 at 02:30:12PM -0500, Waiman Long wrote:
+>>>> I will start looking at how to make it work with paravirt. Hopefully, it
+>>>> won't take too long.
+>>> The cheap way out is to simply switch to the test-and-set spinlock on
+>>> whatever X86_FEATURE_ indicates a guest I suppose.
+>> I don't think there is X86_FEATURE flag that indicates running in a guest.
+>> In fact, a guest should never find out if it is running virtualized.
+> No it very much should; how else is paravirt ever going to work?
 
-If the other code can be produced by a C translation unit that is valid
-to be linked with the rest of the program, then I'm pretty sure the
-compiler has a well-defined notion of whether it does or does not see
-all other potential accesses.  IOW, if the C compiler is dealing with C
-semantics and mechanisms only (including the C mechanisms for sharing
-with non-C code!), then it will know what to do.
+We do have a CONFIG_PARAVIRT macro that turns on or off PV support. The 
+queue spinlock can be easily changed into an unfair lock which allows 
+lock stealing. We could have a config option to make it unfair in the 
+PARAVIRT environment, but I don't think Linus like the idea of an unfair 
+lock.
 
-If you're playing tricks behind the C compiler's back using
-implementation-defined stuff outside of the C specification, then
-there's nothing the compiler really can do.  For example, if you're
-trying to access a variable on a function's stack from some other
-function, you better know how the register allocator of the compiler
-operates.  In contrast, if you let this function simply export the
-address of the variable to some external place, all will be fine.
-
-The documentation of GCC's -fwhole-program and -flto might also be
-interesting for you.  GCC wouldn't need to have -fwhole-program if it
-weren't conservative by default (correctly so).
+-Longman
