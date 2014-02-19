@@ -1,82 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ve0-f172.google.com ([209.85.128.172]:46828 "EHLO
-	mail-ve0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752305AbaBSDJp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2014 22:09:45 -0500
-Received: by mail-ve0-f172.google.com with SMTP id c14so14569833vea.3
-        for <linux-arch@vger.kernel.org>; Tue, 18 Feb 2014 19:09:45 -0800 (PST)
+Received: from merlin.infradead.org ([205.233.59.134]:49698 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751809AbaBSIwp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2014 03:52:45 -0500
+Date: Wed, 19 Feb 2014 09:52:25 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v4 1/3] qspinlock: Introducing a 4-byte queue spinlock
+ implementation
+Message-ID: <20140219085225.GH27965@twins.programming.kicks-ass.net>
+References: <1392669684-4807-1-git-send-email-Waiman.Long@hp.com>
+ <1392669684-4807-2-git-send-email-Waiman.Long@hp.com>
+ <20140218073951.GZ27965@twins.programming.kicks-ass.net>
+ <5303B6F3.9090001@hp.com>
+ <20140218213400.GS14089@laptop.programming.kicks-ass.net>
+ <5303FFC5.5040004@hp.com>
 MIME-Version: 1.0
-In-Reply-To: <1392752362.2165.31.camel@flatline.rdu.redhat.com>
-References: <CALCETrU6M=Abo1z2cRoZy07-=3bwKiK84gCSMcBPLA1TkXPb8A@mail.gmail.com>
- <CACM3HyHwrKQAWZRhE2N1VtGKu1xSvcGeuMG1Ag+vzP2BA111cQ@mail.gmail.com>
- <CALCETrXXnSdyc5VpT8f6uu6kbO1cq4QwdKqr9z8AOhY_wsoBLA@mail.gmail.com> <1392752362.2165.31.camel@flatline.rdu.redhat.com>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Tue, 18 Feb 2014 19:09:24 -0800
-Message-ID: <CALCETrXnLfqo=VyaM7TyDAmjXyZDoztzmaNxkLudoSN7OZBd4Q@mail.gmail.com>
-Subject: Re: [ARCH question] Do syscall_get_nr and syscall_get_arguments
- always work?
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <5303FFC5.5040004@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric Paris <eparis@redhat.com>
-Cc: Jonas Bonn <jonas.bonn@gmail.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, linux-audit@redhat.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andi Kleen <andi@firstfloor.org>, Steve Grubb <sgrubb@redhat.com>
-Message-ID: <20140219030924.7H-V7exY0hGZ49cTSGWULDT6ZhNSgBPsYdflNE8FIAI@z>
+To: Waiman Long <waiman.long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
+Message-ID: <20140219085225.vepdP129muMdx7qJWSLXAhJ9VRmnvBB1WzStyRCov0w@z>
 
-On Tue, Feb 18, 2014 at 11:39 AM, Eric Paris <eparis@redhat.com> wrote:
-> On Fri, 2014-02-07 at 08:40 -0800, Andy Lutomirski wrote:
->> On Fri, Feb 7, 2014 at 4:58 AM, Jonas Bonn <jonas.bonn@gmail.com> wrote:
->> > Hi Andy,
->> >
->> > On 5 February 2014 00:50, Andy Lutomirski <luto@amacapital.net> wrote:
->> >>
->> >> I can't even find the system call entry point on mips.
->> >>
->> >>
->> >> Is there a semi-official answer here?
->> >
->> > I don't have an official answer for you, but when I wanted to do
->> > something with these entry points a couple of years back I discovered
->> > that they aren't very thoroughly implemented across the various
->> > architectures.  I started cleaning this up and can probably dig up
->> > some of this for you if you need it.
->>
->> The syscall_get_xyz functions are certainly implemented and functional
->> in all relevant architectures -- the audit code is already using them.
->>  The thing I'm uncertain about is whether they are usable with no
->> syscall slow path bits set.
->>
->> I guess that, if the syscall restart logic needs to read the argument
->> registers, then they're probably reliably saved...
->
-> Al just indicated to me that on at least ia64, syscall_get_arguments()
-> is really expensive.  So maybe not a deal breaker, but sounds like we'd
-> lose a lot of performance trying to get them at syscall exit...
->
+On Tue, Feb 18, 2014 at 07:50:13PM -0500, Waiman Long wrote:
+> On 02/18/2014 04:34 PM, Peter Zijlstra wrote:
+> >On Tue, Feb 18, 2014 at 02:39:31PM -0500, Waiman Long wrote:
+> >>The #ifdef is harder to take away here. The point is that doing a 32-bit
+> >>exchange may accidentally steal the lock with the additional code to handle
+> >>that. Doing a 16-bit exchange, on the other hand, will never steal the lock
+> >>and so don't need the extra handling code. I could construct a function with
+> >>different return values to handle the different cases if you think it will
+> >>make the code easier to read.
+> >Does it really pay to use xchg() with all those fixup cases? Why not
+> >have a single cmpxchg() loop that does just the exact atomic op you
+> >want?
+> 
+> The main reason for using xchg instead of cmpxchg is its performance impact
+> when the lock is heavily contended. Under those circumstances, a task may
+> need to do several tries of read+atomic-RMV before getting it right. This
+> may cause a lot of cacheline contention. With xchg, we need at most 2 atomic
+> ops. Using cmpxchg() does simplify the code a bit at the expense of
+> performance with heavy contention.
 
-I wonder how slow syscall_get_arguments has to be before it's a real
-problem.  Remember that we only need to call it when we already know
-that an audit record needs to be written (or if a syscall argument is
-used in a filter rule, I suppose -- I'm sure sure whether that's
-possible).  As long as syscall_get_nr is fast, which I think it is on
-ia64, then the tradeoff might still be a win.
-
-But I think this is still a bit of a lost cause.  Currently, if I'm
-reading the code correctly, signal delivery to a non-auditd process
-can result in writing an audit event.  If the signal is delivered
-during a syscall, then current code will write an audit record for
-that syscall on syscall exit.
-
-If we want to preserve that behavior without a syscall audit hook,
-then the signal delivery code needs to know whether it's in the middle
-of a syscall.  AFAIK this is not possible.
-
-On the other hand, most interesting signals are probably *not* the
-result of a syscall anyway, so it may make sense to just remove that
-code entirely.
-
-TBH, as long as something happens to get rid of audit overhead when
-there are no rules, my interest in personally writing something fancy
-to make the nonzero-number-of-rules case have less overhead is rather
-low.
-
---Andy
+Have you actually measured this?
