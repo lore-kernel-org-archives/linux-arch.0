@@ -1,81 +1,45 @@
-From: Eric Paris <eparis@redhat.com>
-Subject: Re: [ARCH question] Do syscall_get_nr and syscall_get_arguments
-	always work?
-Date: Wed, 19 Feb 2014 16:18:20 -0500
-Message-ID: <1392844700.2165.70.camel@flatline.rdu.redhat.com>
-References: <CALCETrU6M=Abo1z2cRoZy07-=3bwKiK84gCSMcBPLA1TkXPb8A@mail.gmail.com>
-	<CACM3HyHwrKQAWZRhE2N1VtGKu1xSvcGeuMG1Ag+vzP2BA111cQ@mail.gmail.com>
-	<CALCETrXXnSdyc5VpT8f6uu6kbO1cq4QwdKqr9z8AOhY_wsoBLA@mail.gmail.com>
-	<1392752362.2165.31.camel@flatline.rdu.redhat.com>
-	<CALCETrXnLfqo=VyaM7TyDAmjXyZDoztzmaNxkLudoSN7OZBd4Q@mail.gmail.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH v4 0/3] qspinlock: Introducing a 4-byte queue spinlock
+Date: Wed, 19 Feb 2014 13:29:15 -0800
+Message-ID: <5305222B.4080706@zytor.com>
+References: <1392669684-4807-1-git-send-email-Waiman.Long@hp.com> <53029167.4060109@zytor.com> <20140218073111.GW27965@twins.programming.kicks-ass.net> <5303B4C4.2040907@hp.com> <20140218212827.GR14089@laptop.programming.kicks-ass.net> <5303FDEC.9060001@hp.com> <20140219085107.GG27965@twins.programming.kicks-ass.net> <53050501.3070101@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-audit-bounces@redhat.com>
-In-Reply-To: <CALCETrXnLfqo=VyaM7TyDAmjXyZDoztzmaNxkLudoSN7OZBd4Q@mail.gmail.com>
-List-Unsubscribe: <https://www.redhat.com/mailman/options/linux-audit>,
-	<mailto:linux-audit-request@redhat.com?subject=unsubscribe>
-List-Archive: <https://www.redhat.com/archives/linux-audit>
-List-Post: <mailto:linux-audit@redhat.com>
-List-Help: <mailto:linux-audit-request@redhat.com?subject=help>
-List-Subscribe: <https://www.redhat.com/mailman/listinfo/linux-audit>,
-	<mailto:linux-audit-request@redhat.com?subject=subscribe>
-Sender: linux-audit-bounces@redhat.com
-Errors-To: linux-audit-bounces@redhat.com
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Andi Kleen <andi@firstfloor.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, linux-audit@redhat.com, Jonas Bonn <jonas.bonn@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:59253 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751858AbaBSVas (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Feb 2014 16:30:48 -0500
+In-Reply-To: <53050501.3070101@hp.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Waiman Long <waiman.long@hp.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
 
-On Tue, 2014-02-18 at 19:09 -0800, Andy Lutomirski wrote:
-> On Tue, Feb 18, 2014 at 11:39 AM, Eric Paris <eparis@redhat.com> wrote:
-
-> > Al just indicated to me that on at least ia64, syscall_get_arguments()
-> > is really expensive.  So maybe not a deal breaker, but sounds like we'd
-> > lose a lot of performance trying to get them at syscall exit...
-> >
+On 02/19/2014 11:24 AM, Waiman Long wrote:
+> On 02/19/2014 03:51 AM, Peter Zijlstra wrote:
+>> On Tue, Feb 18, 2014 at 07:42:20PM -0500, Waiman Long wrote:
+>>> On 02/18/2014 04:28 PM, Peter Zijlstra wrote:
+>>>> On Tue, Feb 18, 2014 at 02:30:12PM -0500, Waiman Long wrote:
+>>>>> I will start looking at how to make it work with paravirt.
+>>>>> Hopefully, it
+>>>>> won't take too long.
+>>>> The cheap way out is to simply switch to the test-and-set spinlock on
+>>>> whatever X86_FEATURE_ indicates a guest I suppose.
+>>> I don't think there is X86_FEATURE flag that indicates running in a
+>>> guest.
+>>> In fact, a guest should never find out if it is running virtualized.
+>> No it very much should; how else is paravirt ever going to work?
 > 
-> I wonder how slow syscall_get_arguments has to be before it's a real
-> problem.  Remember that we only need to call it when we already know
-> that an audit record needs to be written (or if a syscall argument is
-> used in a filter rule, I suppose -- I'm sure sure whether that's
-> possible).
-
-It's possible to include a0-a3 in syscall filter rules.  (Al wasn't
-supportive of killing __audit_syscall_entry().  He mentioned in
-particular difficulties around audit_get_stamp().  Won't pretend to have
-my head wrapped around what he was referring to...
-
-> But I think this is still a bit of a lost cause.  Currently, if I'm
-> reading the code correctly, signal delivery to a non-auditd process
-> can result in writing an audit event.
-
-So?  The info we collect about the target of the signal is not related
-to the changes you are discussing.  The work/collection is done as the
-task 'sending' the signal (and will only be emitted on syscall exit)
-
-> If the signal is delivered
-> during a syscall, then current code will write an audit record for
-> that syscall on syscall exit.
-
-Right, so we only care about if the sender has its audit_context all set
-up.  We'll only send a record on syscall exit...
-
-> If we want to preserve that behavior without a syscall audit hook,
-> then the signal delivery code needs to know whether it's in the middle
-> of a syscall.  AFAIK this is not possible.
-
-Clearly we need a syscall exit hook, I agree with that...
-
-> On the other hand, most interesting signals are probably *not* the
-> result of a syscall anyway, so it may make sense to just remove that
-> code entirely.
+> We do have a CONFIG_PARAVIRT macro that turns on or off PV support. The
+> queue spinlock can be easily changed into an unfair lock which allows
+> lock stealing. We could have a config option to make it unfair in the
+> PARAVIRT environment, but I don't think Linus like the idea of an unfair
+> lock.
 > 
-> TBH, as long as something happens to get rid of audit overhead when
-> there are no rules, my interest in personally writing something fancy
-> to make the nonzero-number-of-rules case have less overhead is rather
-> low.
 
-That's fair   :)
+The case where we run native on a system with CONFIG_PARAVIRT enabled
+DOES matter.
 
-> 
-> --Andy
+	-hpa
