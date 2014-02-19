@@ -1,82 +1,48 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v4 1/3] qspinlock: Introducing a 4-byte queue spinlock
- implementation
-Date: Wed, 19 Feb 2014 09:55:12 +0100
-Message-ID: <20140219085512.GI27965@twins.programming.kicks-ass.net>
-References: <1392669684-4807-1-git-send-email-Waiman.Long@hp.com>
- <1392669684-4807-2-git-send-email-Waiman.Long@hp.com>
- <20140218073951.GZ27965@twins.programming.kicks-ass.net>
- <5303B6F3.9090001@hp.com>
- <20140218213748.GT14089@laptop.programming.kicks-ass.net>
- <530401C9.4090100@hp.com>
+From: Torvald Riegel <triegel@redhat.com>
+Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
+Date: Wed, 19 Feb 2014 10:46:04 +0100
+Message-ID: <1392803164.18779.8498.camel@triegel.csb>
+References: <CAHWkzRQSaKOM23yg1LbCO=uWremNzwnXUCUJF2H-+z_Xhmp79g@mail.gmail.com>	 <1392756211.18779.8263.camel@triegel.csb>	 <CAHWkzRTZk-7JtzHDHBQ++cSY83Hmd+P-0KUposaQN7htW1CxUA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:49775 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752380AbaBSIzf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2014 03:55:35 -0500
-Content-Disposition: inline
-In-Reply-To: <530401C9.4090100@hp.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <waiman.long@hp.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <gcc-return-182166-gcc=m.gmane.org@gcc.gnu.org>
+List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
+List-Archive: <http://gcc.gnu.org/ml/gcc/>
+List-Post: <mailto:gcc@gcc.gnu.org>
+List-Help: <http://gcc.gnu.org/ml/>
+Sender: gcc-owner@gcc.gnu.org
+In-Reply-To: <CAHWkzRTZk-7JtzHDHBQ++cSY83Hmd+P-0KUposaQN7htW1CxUA@mail.gmail.com>
+To: Peter.Sewell@cl.cam.ac.uk
+Cc: "mark.batty@cl.cam.ac.uk" <Mark.Batty@cl.cam.ac.uk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, "ramana.radhakrishnan" <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Feb 18, 2014 at 07:58:49PM -0500, Waiman Long wrote:
-> On 02/18/2014 04:37 PM, Peter Zijlstra wrote:
-> >On Tue, Feb 18, 2014 at 02:39:31PM -0500, Waiman Long wrote:
-> >>>>+	/*
-> >>>>+	 * At the head of the wait queue now
-> >>>>+	 */
-> >>>>+	while (true) {
-> >>>>+		u32 qcode;
-> >>>>+		int retval;
-> >>>>+
-> >>>>+		retval = queue_get_lock_qcode(lock,&qcode, my_qcode);
-> >>>>+		if (retval>   0)
-> >>>>+			;	/* Lock not available yet */
-> >>>>+		else if (retval<   0)
-> >>>>+			/* Lock taken, can release the node&   return */
-> >>>>+			goto release_node;
-> >>>>+		else if (qcode != my_qcode) {
-> >>>>+			/*
-> >>>>+			 * Just get the lock with other spinners waiting
-> >>>>+			 * in the queue.
-> >>>>+			 */
-> >>>>+			if (queue_spin_trylock_unfair(lock))
-> >>>>+				goto notify_next;
-> >>>Why is this an option at all?
-> >>>
-> >>>
-> >>Are you referring to the case (qcode != my_qcode)? This condition will be
-> >>true if more than one tasks have queued up.
-> >But in no case should we revert to unfair spinning or stealing. We
-> >should always respect the queueing order.
+On Tue, 2014-02-18 at 23:48 +0000, Peter Sewell wrote:
+> On 18 February 2014 20:43, Torvald Riegel <triegel@redhat.com> wrote:
+> > On Tue, 2014-02-18 at 12:12 +0000, Peter Sewell wrote:
+> >> Several of you have said that the standard and compiler should not
+> >> permit speculative writes of atomics, or (effectively) that the
+> >> compiler should preserve dependencies.  In simple examples it's easy
+> >> to see what that means, but in general it's not so clear what the
+> >> language should guarantee, because dependencies may go via non-atomic
+> >> code in other compilation units, and we have to consider the extent to
+> >> which it's desirable to limit optimisation there.
 > >
-> >If the lock tail no longer points to us, then there's further waiters
-> >and we should wait for ->next and unlock it -- after we've taken the
-> >lock.
+> > [...]
 > >
+> >> 2) otherwise, the language definition should prohibit it but the
+> >>    compiler would have to preserve dependencies even in compilation
+> >>    units that have no mention of atomics.  It's unclear what the
+> >>    (runtime and compiler development) cost of that would be in
+> >>    practice - perhaps Torvald could comment?
+> >
+> > If I'm reading the standard correctly, it requires that data
+> > dependencies are preserved through loads and stores, including nonatomic
+> > ones.  That sounds convenient because it allows programmers to use
+> > temporary storage.
 > 
-> A task will be in this loop when it is already the head of a queue and is
-> entitled to take the lock. The condition (qcode != my_qcode) is to decide
-> whether it should just take the lock or take the lock & clear the code
-> simultaneously. I am a bit cautious to use queue_spin_trylock_unfair() as
-> there is a possibility that a CPU may run out of the queue node and need to
-> do unfair busy spinning.
+> The standard only needs this for consume chains,
 
-No; there is no such possibility. Add BUG_ON(idx>=4) and make sure of
-it.
-
-There's simply no more than 4 contexts what can nest at any one time:
-
-  task context
-  softirq context
-  hardirq context
-  nmi context
-
-And someone contending a spinlock from NMI context should be shot
-anyway.
-
-Getting more nested spinlocks is an absolute hard fail.
+That's right, and the runtime cost / implementation problems of
+mo_consume was what I was making statements about.  Sorry if that wasn't
+clear.
