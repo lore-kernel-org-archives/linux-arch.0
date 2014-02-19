@@ -1,45 +1,116 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH v4 0/3] qspinlock: Introducing a 4-byte queue spinlock
-Date: Wed, 19 Feb 2014 13:29:15 -0800
-Message-ID: <5305222B.4080706@zytor.com>
-References: <1392669684-4807-1-git-send-email-Waiman.Long@hp.com> <53029167.4060109@zytor.com> <20140218073111.GW27965@twins.programming.kicks-ass.net> <5303B4C4.2040907@hp.com> <20140218212827.GR14089@laptop.programming.kicks-ass.net> <5303FDEC.9060001@hp.com> <20140219085107.GG27965@twins.programming.kicks-ass.net> <53050501.3070101@hp.com>
+From: Toshi Kani <toshi.kani@hp.com>
+Subject: Re: [PATCH v2 02/52] CPU hotplug: Provide lockless versions of
+ callback registration functions
+Date: Wed, 19 Feb 2014 14:34:46 -0700
+Message-ID: <1392845686.6784.3.camel@misato.fc.hp.com>
+References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
+	 <20140214074922.22701.17949.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:59253 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751858AbaBSVas (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 Feb 2014 16:30:48 -0500
-In-Reply-To: <53050501.3070101@hp.com>
+Received: from g9t1613g.houston.hp.com ([15.240.0.71]:49488 "EHLO
+	g9t1613g.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753449AbaBSVmW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2014 16:42:22 -0500
+In-Reply-To: <20140214074922.22701.17949.stgit@srivatsabhat.in.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <waiman.long@hp.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On 02/19/2014 11:24 AM, Waiman Long wrote:
-> On 02/19/2014 03:51 AM, Peter Zijlstra wrote:
->> On Tue, Feb 18, 2014 at 07:42:20PM -0500, Waiman Long wrote:
->>> On 02/18/2014 04:28 PM, Peter Zijlstra wrote:
->>>> On Tue, Feb 18, 2014 at 02:30:12PM -0500, Waiman Long wrote:
->>>>> I will start looking at how to make it work with paravirt.
->>>>> Hopefully, it
->>>>> won't take too long.
->>>> The cheap way out is to simply switch to the test-and-set spinlock on
->>>> whatever X86_FEATURE_ indicates a guest I suppose.
->>> I don't think there is X86_FEATURE flag that indicates running in a
->>> guest.
->>> In fact, a guest should never find out if it is running virtualized.
->> No it very much should; how else is paravirt ever going to work?
+On Fri, 2014-02-14 at 13:19 +0530, Srivatsa S. Bhat wrote:
+> The following method of CPU hotplug callback registration is not safe
+> due to the possibility of an ABBA deadlock involving the cpu_add_remove_lock
+> and the cpu_hotplug.lock.
 > 
-> We do have a CONFIG_PARAVIRT macro that turns on or off PV support. The
-> queue spinlock can be easily changed into an unfair lock which allows
-> lock stealing. We could have a config option to make it unfair in the
-> PARAVIRT environment, but I don't think Linus like the idea of an unfair
-> lock.
+> 	get_online_cpus();
 > 
+> 	for_each_online_cpu(cpu)
+> 		init_cpu(cpu);
+> 
+> 	register_cpu_notifier(&foobar_cpu_notifier);
+> 
+> 	put_online_cpus();
+> 
+> The deadlock is shown below:
+> 
+>           CPU 0                                         CPU 1
+>           -----                                         -----
+> 
+>    Acquire cpu_hotplug.lock
+>    [via get_online_cpus()]
+> 
+>                                               CPU online/offline operation
+>                                               takes cpu_add_remove_lock
+>                                               [via cpu_maps_update_begin()]
+> 
+> 
+>    Try to acquire
+>    cpu_add_remove_lock
+>    [via register_cpu_notifier()]
+> 
+> 
+>                                               CPU online/offline operation
+>                                               tries to acquire cpu_hotplug.lock
+>                                               [via cpu_hotplug_begin()]
+> 
+> 
+>                             *** DEADLOCK! ***
+> 
+> The problem here is that callback registration takes the locks in one order
+> whereas the CPU hotplug operations take the same locks in the opposite order.
+> To avoid this issue and to provide a race-free method to register CPU hotplug
+> callbacks (along with initialization of already online CPUs), introduce new
+> variants of the callback registration APIs that simply register the callbacks
+> without holding the cpu_add_remove_lock during the registration. That way,
+> we can avoid the ABBA scenario. However, we will need to hold the
+> cpu_add_remove_lock throughout the entire critical section, to protect updates
+> to the callback/notifier chain.
+> 
+> This can be achieved by writing the callback registration code as follows:
+> 
+> 	cpu_maps_update_begin(); [ or cpu_notifier_register_begin(); see below ]
+> 
+> 	for_each_online_cpu(cpu)
+> 		init_cpu(cpu);
+> 
+> 	/* This doesn't take the cpu_add_remove_lock */
+> 	__register_cpu_notifier(&foobar_cpu_notifier);
+> 
+> 	cpu_maps_update_done();  [ or cpu_notifier_register_done(); see below ]
+> 
+> Note that we can't use get_online_cpus() here instead of cpu_maps_update_begin()
+> because the cpu_hotplug.lock is dropped during the invocation of CPU_POST_DEAD
+> notifiers, and hence get_online_cpus() cannot provide the necessary
+> synchronization to protect the callback/notifier chains against concurrent
+> reads and writes. On the other hand, since the cpu_add_remove_lock protects
+> the entire hotplug operation (including CPU_POST_DEAD), we can use
+> cpu_maps_update_begin/done() to guarantee proper synchronization.
+> 
+> Also, since cpu_maps_update_begin/done() is like a super-set of
+> get/put_online_cpus(), the former naturally protects the critical sections
+> from concurrent hotplug operations.
+> 
+> Since the names cpu_maps_update_begin/done() don't make much sense in CPU
+> hotplug callback registration scenarios, we'll introduce new APIs named
+> cpu_notifier_register_begin/done() and map them to cpu_maps_update_begin/done().
+> 
+> In summary, introduce the lockless variants of un/register_cpu_notifier() and
+> also export the cpu_notifier_register_begin/done() APIs for use by modules.
+> This way, we provide a race-free way to register hotplug callbacks as well as
+> perform initialization for the CPUs that are already online.
+> 
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Toshi Kani <toshi.kani@hp.com>
+> Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: Ingo Molnar <mingo@kernel.org>
+> Acked-by: Oleg Nesterov <oleg@redhat.com>
+> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 
-The case where we run native on a system with CONFIG_PARAVIRT enabled
-DOES matter.
+Acked-by: Toshi Kani <toshi.kani@hp.com>
 
-	-hpa
+Thanks,
+-Toshi
