@@ -1,54 +1,57 @@
-From: Torvald Riegel <triegel@redhat.com>
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Wed, 19 Feb 2014 12:07:02 +0100
-Message-ID: <1392808022.18779.8674.camel@triegel.csb>
-References: <CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>	 <1392486310.18779.6447.camel@triegel.csb>	 <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>	 <1392666947.18779.6838.camel@triegel.csb>	 <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>	 <530296CD.5050503@warwick.ac.uk>	 <CA+55aFyi8QWge7QR0M+ABH-kEiwvoEyMhK6GWRvN1YNKJAFuSQ@mail.gmail.c!om>	 <1392737465.18779.7644.camel@triegel.csb>	 <CA+55aFxn2KRXDQ91xRs=bO_6d_nA_PSQvoY1_=OxyJ86+KOO9Q@mail.gmail.com>	 <1392758516.18779.8378.camel@triegel.csb>	 <20140218214713.GV14089@laptop.programming.kicks-ass.net>
+Date: Wed, 19 Feb 2014 12:42:38 +0100
+Message-ID: <20140219114238.GH15586@twins.programming.kicks-ass.net>
+References: <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
+ <1392666947.18779.6838.camel@triegel.csb>
+ <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
+ <530296CD.5050503@warwick.ac.uk>
+ <CA+55aFyi8QWge7QR0M+ABH-kEiwvoEyMhK6GWRvN1YNKJAFuSQ@mail.gmail.c!om>
+ <1392737465.18779.7644.camel@triegel.csb>
+ <CA+55aFxn2KRXDQ91xRs=bO_6d_nA_PSQvoY1_=OxyJ86+KOO9Q@mail.gmail.com>
+ <1392758516.18779.8378.camel@triegel.csb>
+ <20140218214713.GV14089@laptop.programming.kicks-ass.net>
+ <1392808022.18779.8674.camel@triegel.csb>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <gcc-return-182169-gcc=m.gmane.org@gcc.gnu.org>
-List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
-List-Archive: <http://gcc.gnu.org/ml/gcc/>
-List-Post: <mailto:gcc@gcc.gnu.org>
-List-Help: <http://gcc.gnu.org/ml/>
-Sender: gcc-owner@gcc.gnu.org
-In-Reply-To: <20140218214713.GV14089@laptop.programming.kicks-ass.net>
-To: Peter Zijlstra <peterz@infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:53684 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752881AbaBSLmt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2014 06:42:49 -0500
+Content-Disposition: inline
+In-Reply-To: <1392808022.18779.8674.camel@triegel.csb>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Torvald Riegel <triegel@redhat.com>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Alec Teal <a.teal@warwick.ac.uk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2014-02-18 at 22:47 +0100, Peter Zijlstra wrote:
-> On Tue, Feb 18, 2014 at 10:21:56PM +0100, Torvald Riegel wrote:
-> > Yes, I do.  But that seems to be "volatile" territory.  It crosses the
-> > boundaries of the abstract machine, and thus is input/output.  Which
-> > fraction of your atomic accesses can read values produced by hardware?
-> > I would still suppose that lots of synchronization is not affected by
-> > this.
+On Wed, Feb 19, 2014 at 12:07:02PM +0100, Torvald Riegel wrote:
+> > Its not only hardware; also the kernel/user boundary has this same
+> > problem. We cannot a-priory say what userspace will do; in fact, because
+> > we're a general purpose OS, we must assume it will willfully try its
+> > bestest to wreck whatever assumptions we make about its behaviour.
 > 
-> Its not only hardware; also the kernel/user boundary has this same
-> problem. We cannot a-priory say what userspace will do; in fact, because
-> we're a general purpose OS, we must assume it will willfully try its
-> bestest to wreck whatever assumptions we make about its behaviour.
+> That's a good note, and I think a distinct case from those below,
+> because here you're saying that you can't assume that the userspace code
+> follows the C11 semantics ...
 
-That's a good note, and I think a distinct case from those below,
-because here you're saying that you can't assume that the userspace code
-follows the C11 semantics ...
+Right; we can malfunction in those cases though; as long as the
+malfunctioning happens on the userspace side. That is, whatever
+userspace does should not cause the kernel to crash, but userspace
+crashing itself, or getting crap data or whatever is its own damn fault
+for not following expected behaviour.
 
-> We also have loadable modules -- much like regular userspace DSOs -- so
-> there too we cannot say what will or will not happen.
-> 
-> We also have JITs that generate code on demand.
+To stay on topic; if the kernel/user interface requires memory ordering
+and userspace explicitly omits the barriers all malfunctioning should be
+on the user. For instance it might loose a fwd progress guarantee or
+data integrity guarantees.
 
-.. whereas for those, you might assume that the other code follows C11
-semantics and the same ABI, which makes this just a normal case already
-handled as (see my other replies nearby in this thread).
+In specific, given a kernel/user lockless producer/consumer buffer, if
+the user-side allows the tail write to happen before its data reads are
+complete, the kernel might overwrite the data its still reading.
 
-> And I'm absolutely sure (with the exception of the JITs, its not an area
-> I've worked on) that we have atomic usage across all those boundaries.
+Or in case of futexes, if the user side doesn't use the appropriate
+operations its lock state gets corrupt but only userspace should suffer.
 
-That would be fine as long as all involved parties use the same memory
-model and ABI to implement it.
-
-(Of course, I'm assuming here that the compiler is aware of sharing with
-other entities, which is always the case except in those corner case
-like accesses to (void*)0x123 magically aliasing with something else).
+But yes, this does require some care and consideration from our side.
