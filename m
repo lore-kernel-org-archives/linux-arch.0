@@ -1,77 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:31949 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755109AbaBSSMU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 Feb 2014 13:12:20 -0500
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-From: Torvald Riegel <triegel@redhat.com>
-In-Reply-To: <alpine.DEB.2.02.1402190722040.2147@nftneq.ynat.uz>
-References: <CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>
-	 <1392486310.18779.6447.camel@triegel.csb>
-	 <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
-	 <1392666947.18779.6838.camel@triegel.csb>
-	 <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
-	 <530296CD.5050503@warwick.ac.uk>
-	 <CA+55aFyi8QWge7QR0M+ABH-kEiwvoEyMhK6GWRvN1YNKJAFuSQ@mail.gmail.c!om>
-	 <1392737465.18779.7644.camel@triegel.csb>
-	 <CA+55aFxn2KRXDQ91xRs=bO_6d_nA_PSQvoY1_=OxyJ86+KOO9Q@mail.gmail.com>
-	 <1392758516.18779.8378.camel@triegel.csb>
-	 <20140218214047.GU14089@laptop.programming.kicks-ass.net>
-	 <1392760035.18779.8449.camel@triegel.csb>
-	 <alpine.DEB.2.02.1402190722040.2147@nftneq.ynat.uz>
-Content-Type: text/plain; charset="UTF-8"
-Date: Wed, 19 Feb 2014 19:11:39 +0100
-Message-ID: <1392833499.18779.9347.camel@triegel.csb>
-Mime-Version: 1.0
+Received: from g4t3425.houston.hp.com ([15.201.208.53]:7374 "EHLO
+	g4t3425.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755012AbaBSTaw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2014 14:30:52 -0500
+Message-ID: <53050657.1030306@hp.com>
+Date: Wed, 19 Feb 2014 14:30:31 -0500
+From: Waiman Long <waiman.long@hp.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH v4 1/3] qspinlock: Introducing a 4-byte queue spinlock
+ implementation
+References: <1392669684-4807-1-git-send-email-Waiman.Long@hp.com> <1392669684-4807-2-git-send-email-Waiman.Long@hp.com> <20140218073951.GZ27965@twins.programming.kicks-ass.net> <5303B6F3.9090001@hp.com> <20140218213748.GT14089@laptop.programming.kicks-ass.net> <530401C9.4090100@hp.com> <20140219085512.GI27965@twins.programming.kicks-ass.net>
+In-Reply-To: <20140219085512.GI27965@twins.programming.kicks-ass.net>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Lang <david@lang.hm>
-Cc: Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Alec Teal <a.teal@warwick.ac.uk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140219181139.pN5fAkl2hwBll1drYGlh6vmMIczH_ucAcBMirSb4XEw@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
+Message-ID: <20140219193031.v7E-W7V4lVxBOm33Xh6CVPDSNT8Ueu5c7SnlA5_0FZc@z>
 
-On Wed, 2014-02-19 at 07:23 -0800, David Lang wrote:
-> On Tue, 18 Feb 2014, Torvald Riegel wrote:
-> 
-> > On Tue, 2014-02-18 at 22:40 +0100, Peter Zijlstra wrote:
-> >> On Tue, Feb 18, 2014 at 10:21:56PM +0100, Torvald Riegel wrote:
-> >>> Well, that's how atomics that aren't volatile are defined in the
-> >>> standard.  I can see that you want something else too, but that doesn't
-> >>> mean that the other thing is broken.
-> >>
-> >> Well that other thing depends on being able to see the entire program at
-> >> compile time. PaulMck already listed various ways in which this is
-> >> not feasible even for normal userspace code.
-> >>
-> >> In particular; DSOs and JITs were mentioned.
-> >
-> > No it doesn't depend on whole-program analysis being possible.  Because
-> > if it isn't, then a correct compiler will just not do certain
-> > optimizations simply because it can't prove properties required for the
-> > optimization to hold.  With the exception of access to objects via magic
-> > numbers (e.g., fixed and known addresses (see my reply to Paul), which
-> > are outside of the semantics specified in the standard), I don't see a
-> > correctness problem here.
-> 
-> Are you really sure that the compiler can figure out every possible thing that a 
-> loadable module or JITed code can access? That seems like a pretty strong claim.
+On 02/19/2014 03:55 AM, Peter Zijlstra wrote:
+> On Tue, Feb 18, 2014 at 07:58:49PM -0500, Waiman Long wrote:
+>> On 02/18/2014 04:37 PM, Peter Zijlstra wrote:
+>>> On Tue, Feb 18, 2014 at 02:39:31PM -0500, Waiman Long wrote:
+>>>>>> +	/*
+>>>>>> +	 * At the head of the wait queue now
+>>>>>> +	 */
+>>>>>> +	while (true) {
+>>>>>> +		u32 qcode;
+>>>>>> +		int retval;
+>>>>>> +
+>>>>>> +		retval = queue_get_lock_qcode(lock,&qcode, my_qcode);
+>>>>>> +		if (retval>    0)
+>>>>>> +			;	/* Lock not available yet */
+>>>>>> +		else if (retval<    0)
+>>>>>> +			/* Lock taken, can release the node&    return */
+>>>>>> +			goto release_node;
+>>>>>> +		else if (qcode != my_qcode) {
+>>>>>> +			/*
+>>>>>> +			 * Just get the lock with other spinners waiting
+>>>>>> +			 * in the queue.
+>>>>>> +			 */
+>>>>>> +			if (queue_spin_trylock_unfair(lock))
+>>>>>> +				goto notify_next;
+>>>>> Why is this an option at all?
+>>>>>
+>>>>>
+>>>> Are you referring to the case (qcode != my_qcode)? This condition will be
+>>>> true if more than one tasks have queued up.
+>>> But in no case should we revert to unfair spinning or stealing. We
+>>> should always respect the queueing order.
+>>>
+>>> If the lock tail no longer points to us, then there's further waiters
+>>> and we should wait for ->next and unlock it -- after we've taken the
+>>> lock.
+>>>
+>> A task will be in this loop when it is already the head of a queue and is
+>> entitled to take the lock. The condition (qcode != my_qcode) is to decide
+>> whether it should just take the lock or take the lock&  clear the code
+>> simultaneously. I am a bit cautious to use queue_spin_trylock_unfair() as
+>> there is a possibility that a CPU may run out of the queue node and need to
+>> do unfair busy spinning.
+> No; there is no such possibility. Add BUG_ON(idx>=4) and make sure of
+> it.
 
-If the other code can be produced by a C translation unit that is valid
-to be linked with the rest of the program, then I'm pretty sure the
-compiler has a well-defined notion of whether it does or does not see
-all other potential accesses.  IOW, if the C compiler is dealing with C
-semantics and mechanisms only (including the C mechanisms for sharing
-with non-C code!), then it will know what to do.
+Yes, I could do that.
 
-If you're playing tricks behind the C compiler's back using
-implementation-defined stuff outside of the C specification, then
-there's nothing the compiler really can do.  For example, if you're
-trying to access a variable on a function's stack from some other
-function, you better know how the register allocator of the compiler
-operates.  In contrast, if you let this function simply export the
-address of the variable to some external place, all will be fine.
+However in the generic implementation, I still need some kind of atomic 
+cmpxchg to set the lock bit. I could probably just do a simple 
+assignment of 1 to the lock byte in x86.
 
-The documentation of GCC's -fwhole-program and -flto might also be
-interesting for you.  GCC wouldn't need to have -fwhole-program if it
-weren't conservative by default (correctly so).
+> There's simply no more than 4 contexts what can nest at any one time:
+>
+>    task context
+>    softirq context
+>    hardirq context
+>    nmi context
+>
+> And someone contending a spinlock from NMI context should be shot
+> anyway.
+>
+> Getting more nested spinlocks is an absolute hard fail.
 
