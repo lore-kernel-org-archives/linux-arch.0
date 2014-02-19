@@ -1,84 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t3425.houston.hp.com ([15.201.208.53]:7374 "EHLO
-	g4t3425.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755012AbaBSTaw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2014 14:30:52 -0500
-Message-ID: <53050657.1030306@hp.com>
-Date: Wed, 19 Feb 2014 14:30:31 -0500
-From: Waiman Long <waiman.long@hp.com>
+Received: from mail-vc0-f182.google.com ([209.85.220.182]:60324 "EHLO
+	mail-vc0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754958AbaBSTtL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2014 14:49:11 -0500
 MIME-Version: 1.0
-Subject: Re: [PATCH v4 1/3] qspinlock: Introducing a 4-byte queue spinlock
- implementation
-References: <1392669684-4807-1-git-send-email-Waiman.Long@hp.com> <1392669684-4807-2-git-send-email-Waiman.Long@hp.com> <20140218073951.GZ27965@twins.programming.kicks-ass.net> <5303B6F3.9090001@hp.com> <20140218213748.GT14089@laptop.programming.kicks-ass.net> <530401C9.4090100@hp.com> <20140219085512.GI27965@twins.programming.kicks-ass.net>
-In-Reply-To: <20140219085512.GI27965@twins.programming.kicks-ass.net>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <1392820858.18779.8936.camel@triegel.csb>
+References: <20140207180216.GP4250@linux.vnet.ibm.com>
+	<1391992071.18779.99.camel@triegel.csb>
+	<CA+55aFwTwCPMpYTL_vCgNNP0hE8s2sgB0iw-79=xoj99V0JUNA@mail.gmail.com>
+	<1392183564.18779.2187.camel@triegel.csb>
+	<20140212180739.GB4250@linux.vnet.ibm.com>
+	<CA+55aFw3S82GYdtnV2nJCvBGcuZf6kXdF5b7Vp9yb21QKr49Jw@mail.gmail.com>
+	<20140213002355.GI4250@linux.vnet.ibm.com>
+	<1392321837.18779.3249.camel@triegel.csb>
+	<20140214020144.GO4250@linux.vnet.ibm.com>
+	<1392352981.18779.3800.camel@triegel.csb>
+	<20140214172920.GQ4250@linux.vnet.ibm.com>
+	<CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>
+	<CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>
+	<1392486310.18779.6447.camel@triegel.csb>
+	<CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
+	<1392666947.18779.6838.camel@triegel.csb>
+	<CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
+	<530296CD.5050503@warwick.ac.uk>
+	<1392737465.18779.7644.camel@triegel.csb>
+	<1392758516.18779.8378.camel@triegel.csb>
+	<CA+55aFwOrFyDG_ZcOeh9Y-mQ1jMKA6bbBudh2hde6+jaRy4L_A@mail.gmail.com>
+	<1392820858.18779.8936.camel@triegel.csb>
+Date: Wed, 19 Feb 2014 11:49:10 -0800
+Message-ID: <CA+55aFw-xzEjPLXT1QBch9sAK=49JJvpkcnohzF66FzjUSxKbQ@mail.gmail.com>
+Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
-Message-ID: <20140219193031.v7E-W7V4lVxBOm33Xh6CVPDSNT8Ueu5c7SnlA5_0FZc@z>
+To: Torvald Riegel <triegel@redhat.com>
+Cc: Alec Teal <a.teal@warwick.ac.uk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Message-ID: <20140219194910.ehcMlotip_QOPJqbUcErnR9HjnI0FgMHQ8RAIyKjQpw@z>
 
-On 02/19/2014 03:55 AM, Peter Zijlstra wrote:
-> On Tue, Feb 18, 2014 at 07:58:49PM -0500, Waiman Long wrote:
->> On 02/18/2014 04:37 PM, Peter Zijlstra wrote:
->>> On Tue, Feb 18, 2014 at 02:39:31PM -0500, Waiman Long wrote:
->>>>>> +	/*
->>>>>> +	 * At the head of the wait queue now
->>>>>> +	 */
->>>>>> +	while (true) {
->>>>>> +		u32 qcode;
->>>>>> +		int retval;
->>>>>> +
->>>>>> +		retval = queue_get_lock_qcode(lock,&qcode, my_qcode);
->>>>>> +		if (retval>    0)
->>>>>> +			;	/* Lock not available yet */
->>>>>> +		else if (retval<    0)
->>>>>> +			/* Lock taken, can release the node&    return */
->>>>>> +			goto release_node;
->>>>>> +		else if (qcode != my_qcode) {
->>>>>> +			/*
->>>>>> +			 * Just get the lock with other spinners waiting
->>>>>> +			 * in the queue.
->>>>>> +			 */
->>>>>> +			if (queue_spin_trylock_unfair(lock))
->>>>>> +				goto notify_next;
->>>>> Why is this an option at all?
->>>>>
->>>>>
->>>> Are you referring to the case (qcode != my_qcode)? This condition will be
->>>> true if more than one tasks have queued up.
->>> But in no case should we revert to unfair spinning or stealing. We
->>> should always respect the queueing order.
->>>
->>> If the lock tail no longer points to us, then there's further waiters
->>> and we should wait for ->next and unlock it -- after we've taken the
->>> lock.
->>>
->> A task will be in this loop when it is already the head of a queue and is
->> entitled to take the lock. The condition (qcode != my_qcode) is to decide
->> whether it should just take the lock or take the lock&  clear the code
->> simultaneously. I am a bit cautious to use queue_spin_trylock_unfair() as
->> there is a possibility that a CPU may run out of the queue node and need to
->> do unfair busy spinning.
-> No; there is no such possibility. Add BUG_ON(idx>=4) and make sure of
-> it.
-
-Yes, I could do that.
-
-However in the generic implementation, I still need some kind of atomic 
-cmpxchg to set the lock bit. I could probably just do a simple 
-assignment of 1 to the lock byte in x86.
-
-> There's simply no more than 4 contexts what can nest at any one time:
+On Wed, Feb 19, 2014 at 6:40 AM, Torvald Riegel <triegel@redhat.com> wrote:
 >
->    task context
->    softirq context
->    hardirq context
->    nmi context
+> If all those other threads written in whichever way use the same memory
+> model and ABI for synchronization (e.g., choice of HW barriers for a
+> certain memory_order), it doesn't matter whether it's a hardware thread,
+> microcode, whatever.  In this case, C11 atomics should be fine.
+> (We have this in userspace already, because correct compilers will have
+> to assume that the code generated by them has to properly synchronize
+> with other code generated by different compilers.)
 >
-> And someone contending a spinlock from NMI context should be shot
-> anyway.
->
-> Getting more nested spinlocks is an absolute hard fail.
+> If the other threads use a different model, access memory entirely
+> differently, etc, then we might be back to "volatile" because we don't
+> know anything, and the very strict rules about execution steps of the
+> abstract machine (ie, no as-if rule) are probably the safest thing to
+> do.
 
+Oh, I don't even care about architectures that don't have real hardware atomics.
+
+So if there's a software protocol for atomics, all bets are off. The
+compiler almost certainly has to do atomics with function calls
+anyway, and we'll just plug in out own. And frankly, nobody will ever
+care, because those architectures aren't relevant, and never will be.
+
+Sure, there are some ancient Sparc platforms that only support a
+single-byte "ldstub" and there are some embedded chips that don't
+really do SMP, but have some pseudo-smp with special separate locking.
+Really, nobody cares. The C standard has that crazy lock-free atomic
+tests, and talks about address-free, but generally we require both
+lock-free and address-free in the kernel, because otherwise it's just
+too painful to do interrupt-safe locking, or do atomics in user-space
+(for futexes).
+
+So if your worry is just about software protocols for CPU's that
+aren't actually designed for modern SMP, that's pretty much a complete
+non-issue.
+
+                Linus
