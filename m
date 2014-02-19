@@ -1,99 +1,42 @@
-From: Peter Sewell <Peter.Sewell@cl.cam.ac.uk>
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Tue, 18 Feb 2014 23:48:37 +0000
-Message-ID: <CAHWkzRTZk-7JtzHDHBQ++cSY83Hmd+P-0KUposaQN7htW1CxUA@mail.gmail.com>
-References: <CAHWkzRQSaKOM23yg1LbCO=uWremNzwnXUCUJF2H-+z_Xhmp79g@mail.gmail.com>
-	<1392756211.18779.8263.camel@triegel.csb>
-Reply-To: Peter.Sewell@cl.cam.ac.uk
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH v4 0/3] qspinlock: Introducing a 4-byte queue spinlock
+Date: Tue, 18 Feb 2014 19:42:20 -0500
+Message-ID: <5303FDEC.9060001@hp.com>
+References: <1392669684-4807-1-git-send-email-Waiman.Long@hp.com> <53029167.4060109@zytor.com> <20140218073111.GW27965@twins.programming.kicks-ass.net> <5303B4C4.2040907@hp.com> <20140218212827.GR14089@laptop.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f176.google.com ([209.85.213.176]:43205 "EHLO
-	mail-ig0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751675AbaBRXsi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2014 18:48:38 -0500
-In-Reply-To: <1392756211.18779.8263.camel@triegel.csb>
+Received: from g4t3426.houston.hp.com ([15.201.208.54]:18646 "EHLO
+	g4t3426.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751881AbaBSAmi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Feb 2014 19:42:38 -0500
+In-Reply-To: <20140218212827.GR14089@laptop.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Torvald Riegel <triegel@redhat.com>
-Cc: "mark.batty@cl.cam.ac.uk" <Mark.Batty@cl.cam.ac.uk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, "ramana.radhakrishnan" <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
 
-On 18 February 2014 20:43, Torvald Riegel <triegel@redhat.com> wrote:
-> On Tue, 2014-02-18 at 12:12 +0000, Peter Sewell wrote:
->> Several of you have said that the standard and compiler should not
->> permit speculative writes of atomics, or (effectively) that the
->> compiler should preserve dependencies.  In simple examples it's easy
->> to see what that means, but in general it's not so clear what the
->> language should guarantee, because dependencies may go via non-atomic
->> code in other compilation units, and we have to consider the extent to
->> which it's desirable to limit optimisation there.
->
-> [...]
->
->> 2) otherwise, the language definition should prohibit it but the
->>    compiler would have to preserve dependencies even in compilation
->>    units that have no mention of atomics.  It's unclear what the
->>    (runtime and compiler development) cost of that would be in
->>    practice - perhaps Torvald could comment?
->
-> If I'm reading the standard correctly, it requires that data
-> dependencies are preserved through loads and stores, including nonatomic
-> ones.  That sounds convenient because it allows programmers to use
-> temporary storage.
+On 02/18/2014 04:28 PM, Peter Zijlstra wrote:
+> On Tue, Feb 18, 2014 at 02:30:12PM -0500, Waiman Long wrote:
+>> I will start looking at how to make it work with paravirt. Hopefully, it
+>> won't take too long.
+> The cheap way out is to simply switch to the test-and-set spinlock on
+> whatever X86_FEATURE_ indicates a guest I suppose.
 
-The standard only needs this for consume chains, but if one wanted to
-get rid of thin-air values by requiring implementations to respect all
-(reads-from union dependency) cycles, AFAICS we'd need it pretty much
-everywhere.   I don't myself think that's likely to be a realistic
-proposal, but it does keep coming up, and it'd be very interesting to
-know the actual cost on some credible workload.
+I don't think there is X86_FEATURE flag that indicates running in a 
+guest. In fact, a guest should never find out if it is running virtualized.
 
-> However, what happens if a dependency "arrives" at a store for which the
-> alias set isn't completely known?  Then we either have to add a barrier
-> to enforce the ordering at this point, or we have to assume that all
-> other potentially aliasing memory locations would also have to start
-> carrying dependencies (which might be in other functions in other
-> compilation units).  Neither option is good.  The first might introduce
-> barriers in places in which they might not be required (or the
-> programmer has to use kill_dependency() quite often to avoid all these).
-> The second is bad because points-to analysis is hard, so in practice the
-> points-to set will not be precisely known for a lot of pointers.  So
-> this might not just creep into other functions via calls of
-> [[carries_dependency]] functions, but also through normal loads and
-> stores, likely prohibiting many optimizations.
->
-> Furthermore, the dependency tracking can currently only be
-> "disabled/enabled" on a function granularity (via
-> [[carries_dependency]]).  Thus, if we have big functions, then
-> dependency tracking may slow down a lot of code in the big function.  If
-> we have small functions, there's a lot of attributes to be added.
->
-> If a function may only carry a dependency but doesn't necessarily (eg,
-> depending on input parameters), then the programmer has to make a
-> trade-off whether he/she want's to benefit from mo_consume but slow down
-> other calls due to additional barriers (ie, when this function is called
-> from non-[[carries_dependency]] functions), or vice versa.  (IOW,
-> because of the function granularity, other code's performance is
-> affected.)
->
-> If a compiler wants to implement dependency tracking just for a few
-> constructs (e.g., operators -> + ...) and use barriers otherwise, then
-> this decision must be compatible with how all this is handled in other
-> compilation units.  Thus, compiler optimizations effectively become part
-> of the ABI, which doesn't seem right.
->
-> I hope these examples illustrate my concerns about the implementability
-> in practice of this.  It's also why I've suggested to move from an
-> opt-out approach as in the current standard (ie, with kill_dependency())
-> to an opt-in approach for conservative dependency tracking (e.g., with a
-> preserve_dependencies(exp) call, where exp will not be optimized in a
-> way that removes any dependencies).  This wouldn't help with many
-> optimizations being prevented, but it should at least help programmers
-> contain the problem to smaller regions of code.
->
-> I'm not aware of any implementation that tries to track dependencies, so
-> I can't give any real performance numbers.  This could perhaps be
-> simulated, but I'm not sure whether a realistic case would be made
-> without at least supporting [[carries_dependency]] properly in the
-> compiler, which would be some work.
->
+After reading the current PV ticketlock implementation, I have a rough 
+idea of what I need to do to implement PV support in qspinlock. A large 
+portion of PV ticketlock code is find out the CPU number of the next one 
+to get the lock. The current qspinlock implementation has already 
+included CPU number of the previous member in the queue and it should be 
+pretty easy to store CPU number of the next one in the queue node 
+structure. These CPU numbers can then be supplied to the kick_cpu() 
+function to schedule in the require the CPU to make sure that progress 
+can be made.
+
+I will try to implement this idea to see how thing work out.
+
+-Longman
