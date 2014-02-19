@@ -1,52 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:60975 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:52457 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752954AbaBSJqq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 Feb 2014 04:46:46 -0500
+	id S1752943AbaBSJwi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Feb 2014 04:52:38 -0500
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
 From: Torvald Riegel <triegel@redhat.com>
-In-Reply-To: <CAHWkzRTZk-7JtzHDHBQ++cSY83Hmd+P-0KUposaQN7htW1CxUA@mail.gmail.com>
-References: <CAHWkzRQSaKOM23yg1LbCO=uWremNzwnXUCUJF2H-+z_Xhmp79g@mail.gmail.com>
-	 <1392756211.18779.8263.camel@triegel.csb>
-	 <CAHWkzRTZk-7JtzHDHBQ++cSY83Hmd+P-0KUposaQN7htW1CxUA@mail.gmail.com>
+In-Reply-To: <20140218215256.GW14089@laptop.programming.kicks-ass.net>
+References: <1392486310.18779.6447.camel@triegel.csb>
+	 <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
+	 <1392666947.18779.6838.camel@triegel.csb>
+	 <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
+	 <530296CD.5050503@warwick.ac.uk>
+	 <CA+55aFyi8QWge7QR0M+ABH-kEiwvoEyMhK6GWRvN1YNKJAFuSQ@mail.gmail.com>
+	 <1392737465.18779.7644.camel@triegel.csb>
+	 <CA+55aFxn2KRXDQ91xRs=bO_6d_nA_PSQvoY1_=OxyJ86+KOO9Q@mail.gmail.com>
+	 <20140218171609.GP4250@linux.vnet.ibm.com>
+	 <1392759615.18779.8429.camel@triegel.csb>
+	 <20140218215256.GW14089@laptop.programming.kicks-ass.net>
 Content-Type: text/plain; charset="UTF-8"
-Date: Wed, 19 Feb 2014 10:46:04 +0100
-Message-ID: <1392803164.18779.8498.camel@triegel.csb>
+Date: Wed, 19 Feb 2014 10:52:01 +0100
+Message-ID: <1392803521.18779.8507.camel@triegel.csb>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter.Sewell@cl.cam.ac.uk
-Cc: "mark.batty@cl.cam.ac.uk" <Mark.Batty@cl.cam.ac.uk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, "ramana.radhakrishnan" <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140219094604.StE8Kzw3fbPmoVgdKLgtwMgv7DXSZGsuajk8XGZ5wWU@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: paulmck@linux.vnet.ibm.com, Linus Torvalds <torvalds@linux-foundation.org>, Alec Teal <a.teal@warwick.ac.uk>, Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Message-ID: <20140219095201.xE0u9PNu0KwfcycdDGvYXQRovmjiNkDLbmKwiaeBSI0@z>
 
-On Tue, 2014-02-18 at 23:48 +0000, Peter Sewell wrote:
-> On 18 February 2014 20:43, Torvald Riegel <triegel@redhat.com> wrote:
-> > On Tue, 2014-02-18 at 12:12 +0000, Peter Sewell wrote:
-> >> Several of you have said that the standard and compiler should not
-> >> permit speculative writes of atomics, or (effectively) that the
-> >> compiler should preserve dependencies.  In simple examples it's easy
-> >> to see what that means, but in general it's not so clear what the
-> >> language should guarantee, because dependencies may go via non-atomic
-> >> code in other compilation units, and we have to consider the extent to
-> >> which it's desirable to limit optimisation there.
-> >
-> > [...]
-> >
-> >> 2) otherwise, the language definition should prohibit it but the
-> >>    compiler would have to preserve dependencies even in compilation
-> >>    units that have no mention of atomics.  It's unclear what the
-> >>    (runtime and compiler development) cost of that would be in
-> >>    practice - perhaps Torvald could comment?
-> >
-> > If I'm reading the standard correctly, it requires that data
-> > dependencies are preserved through loads and stores, including nonatomic
-> > ones.  That sounds convenient because it allows programmers to use
-> > temporary storage.
+On Tue, 2014-02-18 at 22:52 +0100, Peter Zijlstra wrote:
+> > > 4.	Some drivers allow user-mode code to mmap() some of their
+> > > 	state.  Any changes undertaken by the user-mode code would
+> > > 	be invisible to the compiler.
+> > 
+> > A good point, but a compiler that doesn't try to (incorrectly) assume
+> > something about the semantics of mmap will simply see that the mmap'ed
+> > data will escape to stuff if can't analyze, so it will not be able to
+> > make a proof.
+> > 
+> > This is different from, for example, malloc(), which is guaranteed to
+> > return "fresh" nonaliasing memory.
 > 
-> The standard only needs this for consume chains,
+> The kernel side of this is different.. it looks like 'normal' memory, we
+> just happen to allow it to end up in userspace too.
+> 
+> But on that point; how do you tell the compiler the difference between
+> malloc() and mmap()? Is that some function attribute?
 
-That's right, and the runtime cost / implementation problems of
-mo_consume was what I was making statements about.  Sorry if that wasn't
-clear.
+Yes:
+
+malloc
+        The malloc attribute is used to tell the compiler that a
+        function may be treated as if any non-NULL pointer it returns
+        cannot alias any other pointer valid when the function returns
+        and that the memory has undefined content. This often improves
+        optimization. Standard functions with this property include
+        malloc and calloc. realloc-like functions do not have this
+        property as the memory pointed to does not have undefined
+        content.
+
+I'm not quite sure whether GCC assumes malloc() to be indeed C's malloc
+even if the function attribute isn't used, and/or whether that is
+different for freestanding environments.
 
