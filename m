@@ -1,41 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ve0-f169.google.com ([209.85.128.169]:60897 "EHLO
-	mail-ve0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753820AbaBSURR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2014 15:17:17 -0500
-MIME-Version: 1.0
-In-Reply-To: <53050501.3070101@hp.com>
-References: <1392669684-4807-1-git-send-email-Waiman.Long@hp.com>
-	<53029167.4060109@zytor.com>
-	<20140218073111.GW27965@twins.programming.kicks-ass.net>
-	<5303B4C4.2040907@hp.com>
-	<20140218212827.GR14089@laptop.programming.kicks-ass.net>
-	<5303FDEC.9060001@hp.com>
-	<20140219085107.GG27965@twins.programming.kicks-ass.net>
-	<53050501.3070101@hp.com>
-Date: Wed, 19 Feb 2014 12:17:15 -0800
-Message-ID: <CA+55aFwyVgLJq2OgKZBK7g+T5-_M4o+dnEAr+qtYxA5t_=HSvA@mail.gmail.com>
-Subject: Re: [PATCH v4 0/3] qspinlock: Introducing a 4-byte queue spinlock
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Content-Type: text/plain; charset=UTF-8
+Received: from mx1.redhat.com ([209.132.183.28]:35035 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755171AbaBSVSi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Feb 2014 16:18:38 -0500
+Message-ID: <1392844700.2165.70.camel@flatline.rdu.redhat.com>
+Subject: Re: [ARCH question] Do syscall_get_nr and syscall_get_arguments
+ always work?
+From: Eric Paris <eparis@redhat.com>
+Date: Wed, 19 Feb 2014 16:18:20 -0500
+In-Reply-To: <CALCETrXnLfqo=VyaM7TyDAmjXyZDoztzmaNxkLudoSN7OZBd4Q@mail.gmail.com>
+References: <CALCETrU6M=Abo1z2cRoZy07-=3bwKiK84gCSMcBPLA1TkXPb8A@mail.gmail.com>
+	 <CACM3HyHwrKQAWZRhE2N1VtGKu1xSvcGeuMG1Ag+vzP2BA111cQ@mail.gmail.com>
+	 <CALCETrXXnSdyc5VpT8f6uu6kbO1cq4QwdKqr9z8AOhY_wsoBLA@mail.gmail.com>
+	 <1392752362.2165.31.camel@flatline.rdu.redhat.com>
+	 <CALCETrXnLfqo=VyaM7TyDAmjXyZDoztzmaNxkLudoSN7OZBd4Q@mail.gmail.com>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <waiman.long@hp.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
-Message-ID: <20140219201715.HS_0dhFK8iFstmDDbIM7RV2rlxw7brDBPiEv2_NGlnE@z>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Jonas Bonn <jonas.bonn@gmail.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, linux-audit@redhat.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andi Kleen <andi@firstfloor.org>, Steve Grubb <sgrubb@redhat.com>
+Message-ID: <20140219211820.Y5ZLW_-W1kH3WQG1_SWq1SSCYQEkbzk8UJXNQKaRN7k@z>
 
-On Wed, Feb 19, 2014 at 11:24 AM, Waiman Long <waiman.long@hp.com> wrote:
->
-> We do have a CONFIG_PARAVIRT macro that turns on or off PV support. The
-> queue spinlock can be easily changed into an unfair lock which allows lock
-> stealing. We could have a config option to make it unfair in the PARAVIRT
-> environment, but I don't think Linus like the idea of an unfair lock.
+On Tue, 2014-02-18 at 19:09 -0800, Andy Lutomirski wrote:
+> On Tue, Feb 18, 2014 at 11:39 AM, Eric Paris <eparis@redhat.com> wrote:
 
-I could care less for the paravirt case. As long as the native case
-ends up being sane (even when CONFIG_PARAVIRT is set at compile time),
-I'm fine.
+> > Al just indicated to me that on at least ia64, syscall_get_arguments()
+> > is really expensive.  So maybe not a deal breaker, but sounds like we'd
+> > lose a lot of performance trying to get them at syscall exit...
+> >
+> 
+> I wonder how slow syscall_get_arguments has to be before it's a real
+> problem.  Remember that we only need to call it when we already know
+> that an audit record needs to be written (or if a syscall argument is
+> used in a filter rule, I suppose -- I'm sure sure whether that's
+> possible).
 
-When actually running in a paravirtualized environment, locks are
-always going to have problems.
+It's possible to include a0-a3 in syscall filter rules.  (Al wasn't
+supportive of killing __audit_syscall_entry().  He mentioned in
+particular difficulties around audit_get_stamp().  Won't pretend to have
+my head wrapped around what he was referring to...
 
-                  Linus
+> But I think this is still a bit of a lost cause.  Currently, if I'm
+> reading the code correctly, signal delivery to a non-auditd process
+> can result in writing an audit event.
+
+So?  The info we collect about the target of the signal is not related
+to the changes you are discussing.  The work/collection is done as the
+task 'sending' the signal (and will only be emitted on syscall exit)
+
+> If the signal is delivered
+> during a syscall, then current code will write an audit record for
+> that syscall on syscall exit.
+
+Right, so we only care about if the sender has its audit_context all set
+up.  We'll only send a record on syscall exit...
+
+> If we want to preserve that behavior without a syscall audit hook,
+> then the signal delivery code needs to know whether it's in the middle
+> of a syscall.  AFAIK this is not possible.
+
+Clearly we need a syscall exit hook, I agree with that...
+
+> On the other hand, most interesting signals are probably *not* the
+> result of a syscall anyway, so it may make sense to just remove that
+> code entirely.
+> 
+> TBH, as long as something happens to get rid of audit overhead when
+> there are no rules, my interest in personally writing something fancy
+> to make the nonzero-number-of-rules case have less overhead is rather
+> low.
+
+That's fair   :)
+
+> 
+> --Andy
+
+
