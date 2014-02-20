@@ -1,12 +1,8 @@
 From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Thu, 20 Feb 2014 11:06:37 -0800
-Message-ID: <CA+55aFw-1oeOvH2eJgoJc5eU-0RRVER+gqqAkCYmJ+4MNpz53w@mail.gmail.com>
-References: <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
-	<1392666947.18779.6838.camel@triegel.csb>
-	<CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
-	<20140218030002.GA15857@linux.vnet.ibm.com>
-	<CA+55aFyqLrj4d2TA+2aazRqXnbVsUvs0yaBL2D5rXF1G=Kiu_g@mail.gmail.com>
+Date: Thu, 20 Feb 2014 11:09:24 -0800
+Message-ID: <CA+55aFwos2Gwd2LEvht4ymVxHb6GRVjtZ9wwJSaj1p--FqNUWw@mail.gmail.com>
+References: <CA+55aFyqLrj4d2TA+2aazRqXnbVsUvs0yaBL2D5rXF1G=Kiu_g@mail.gmail.com>
 	<CA+55aFwsq5E8kMoEeHJJ1f2=+QAUCu_HndfPxHNz8fUBprS-jQ@mail.gmail.com>
 	<1392740258.18779.7732.camel@triegel.csb>
 	<CA+55aFw7QYEMFs0BCxqRJW3Cz=tLbaku-tmN6hLXPKP9jbom7Q@mail.gmail.com>
@@ -14,35 +10,49 @@ References: <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
 	<CA+55aFxQPxQ8WOaZL8yAqBA=Y4k2gDn4r4oepMyi0uL6XLzv3w@mail.gmail.com>
 	<20140220040102.GM4250@linux.vnet.ibm.com>
 	<CA+55aFwwscSzwTr+xRdirtTx7HzugmMY9HrDe0GBqNhn=AuNVA@mail.gmail.com>
-	<1392918576.18779.10198.camel@triegel.csb>
-	<CA+55aFwV3pH+CP7Anv_YXzChL5V3_zre0+Ry-a1tJGYsbn-3iQ@mail.gmail.com>
-	<CA+55aFx9ZZeSEmZL2H69Mou=JcYr77Tb8SdDhMvV+GUVvEmd5Q@mail.gmail.com>
+	<20140220083032.GN4250@linux.vnet.ibm.com>
+	<CA+55aFwfx==u7o1NZ66aPbkOgsvGqW3UscGqrQkGuzOkjSpm6Q@mail.gmail.com>
+	<20140220181116.GT4250@linux.vnet.ibm.com>
+	<CA+55aFwn9gXWVq_GL=tPPP63vsqs-9QB4ii4s06xqG4UscCV5w@mail.gmail.com>
+	<1392922421.28840.36.camel@triegel.csb>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f170.google.com ([209.85.220.170]:37100 "EHLO
-	mail-vc0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754799AbaBTTGi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Feb 2014 14:06:38 -0500
-In-Reply-To: <CA+55aFx9ZZeSEmZL2H69Mou=JcYr77Tb8SdDhMvV+GUVvEmd5Q@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1392922421.28840.36.camel@triegel.csb>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Torvald Riegel <triegel@redhat.com>
 Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Feb 20, 2014 at 11:02 AM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
+On Thu, Feb 20, 2014 at 10:53 AM, Torvald Riegel <triegel@redhat.com> wrote:
+> On Thu, 2014-02-20 at 10:32 -0800, Linus Torvalds wrote:
+>> On Thu, Feb 20, 2014 at 10:11 AM, Paul E. McKenney
+>> <paulmck@linux.vnet.ibm.com> wrote:
+>> >
+>> > You really need that "consume" to be "acquire".
+>>
+>> So I think we now all agree that that is what the standard is saying.
 >
-> Again, the way I'd expect a compiler writer to actually *do* this is
-> to just default to "ac
+> Huh?
+>
+> The standard says that there are two separate things (among many more):
+> mo_acquire and mo_consume.  They both influence happens-before in
+> different (and independent!) ways.
+>
+> What Paul is saying is that *you* should have used *acquire* in that
+> example.
 
-Oops, pressed send by mistake too early.
+I understand.
 
-I was almost done:
+And I disagree. I think the standard is wrong, and what I *should* be
+doing is point out the fact very loudly, and just tell people to NEVER
+EVER use "consume" as long as it's not reliable and has insane
+semantics.
 
-I'd expect a compiler to just default to "acquire" semantics, but then
-have a few "obvious peephole" optimizations for cases that it
-encounters and where it is easy to replace the synchronization point
-with just an address dependency.
+So what I "should do" is to not accept any C11 atomics use in the
+kernel. Because with the "acquire", it generates worse code than what
+we already have, and with the "consume" it's shit.
 
-             Linus
+See?
+
+                  Linus
