@@ -1,155 +1,90 @@
-From: Torvald Riegel <triegel@redhat.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Thu, 20 Feb 2014 18:26:08 +0100
-Message-ID: <1392917168.18779.10157.camel@triegel.csb>
-References: <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>	 <1392666947.18779.6838.camel@triegel.csb>	 <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>	 <20140218030002.GA15857@linux.vnet.ibm.com>	 <CA+55aFyqLrj4d2TA+2aazRqXnbVsUvs0yaBL2D5rXF1G=Kiu_g@mail.gmail.com>	 <CA+55aFwsq5E8kMoEeHJJ1f2=+QAUCu_HndfPxHNz8fUBprS-jQ@mail.gmail.com>	 <1392740258.18779.7732.camel@triegel.csb>	 <CA+55aFw7QYEMFs0BCxqRJW3Cz=tLbaku-tmN6hLXPKP9jbom7Q@mail.gmail.com>	 <1392752867.18779.8120.camel@triegel.csb>	 <CA+55aFxQPxQ8WOaZL8yAqBA=Y4k2gDn4r4oepMyi0uL6XLzv3w@mail.gmail.com>	 <20140220040102.GM4250@linux.vnet.ibm.com>
+Date: Thu, 20 Feb 2014 09:34:57 -0800
+Message-ID: <CA+55aFyEEUrAz2r=nKxZxUtPVs7zoER9HukQq11UixnrYWbsjA@mail.gmail.com>
+References: <1392321837.18779.3249.camel@triegel.csb>
+	<20140214020144.GO4250@linux.vnet.ibm.com>
+	<1392352981.18779.3800.camel@triegel.csb>
+	<20140214172920.GQ4250@linux.vnet.ibm.com>
+	<CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>
+	<CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>
+	<1392486310.18779.6447.camel@triegel.csb>
+	<CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
+	<1392666947.18779.6838.camel@triegel.csb>
+	<CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
+	<20140218030002.GA15857@linux.vnet.ibm.com>
+	<CA+55aFyqLrj4d2TA+2aazRqXnbVsUvs0yaBL2D5rXF1G=Kiu_g@mail.gmail.com>
+	<CA+55aFwsq5E8kMoEeHJJ1f2=+QAUCu_HndfPxHNz8fUBprS-jQ@mail.gmail.com>
+	<1392740258.18779.7732.camel@triegel.csb>
+	<CA+55aFw7QYEMFs0BCxqRJW3Cz=tLbaku-tmN6hLXPKP9jbom7Q@mail.gmail.com>
+	<1392752867.18779.8120.camel@triegel.csb>
+	<CA+55aFxQPxQ8WOaZL8yAqBA=Y4k2gDn4r4oepMyi0uL6XLzv3w@mail.gmail.com>
+	<1392916492.18779.10136.camel@triegel.csb>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <gcc-return-182208-gcc=m.gmane.org@gcc.gnu.org>
-List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
-List-Archive: <http://gcc.gnu.org/ml/gcc/>
-List-Post: <mailto:gcc@gcc.gnu.org>
-List-Help: <http://gcc.gnu.org/ml/>
-Sender: gcc-owner@gcc.gnu.org
-In-Reply-To: <20140220040102.GM4250@linux.vnet.ibm.com>
-To: paulmck@linux.vnet.ibm.com
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-vc0-f170.google.com ([209.85.220.170]:37841 "EHLO
+	mail-vc0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752322AbaBTRe6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Feb 2014 12:34:58 -0500
+In-Reply-To: <1392916492.18779.10136.camel@triegel.csb>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Torvald Riegel <triegel@redhat.com>
+Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>, Mark Batty <mbatty@cl.cam.ac.uk>, Peter Sewell <Peter.Sewell@cl.cam.ac.uk>
 
-On Wed, 2014-02-19 at 20:01 -0800, Paul E. McKenney wrote:
-> On Wed, Feb 19, 2014 at 04:53:49PM -0800, Linus Torvalds wrote:
-> > On Tue, Feb 18, 2014 at 11:47 AM, Torvald Riegel <triegel@redhat.com> wrote:
-> > > On Tue, 2014-02-18 at 09:44 -0800, Linus Torvalds wrote:
-> > >>
-> > >> Can you point to it? Because I can find a draft standard, and it sure
-> > >> as hell does *not* contain any clarity of the model. It has a *lot* of
-> > >> verbiage, but it's pretty much impossible to actually understand, even
-> > >> for somebody who really understands memory ordering.
-> > >
-> > > http://www.cl.cam.ac.uk/~mjb220/n3132.pdf
-> > > This has an explanation of the model up front, and then the detailed
-> > > formulae in Section 6.  This is from 2010, and there might have been
-> > > smaller changes since then, but I'm not aware of any bigger ones.
-> > 
-> > Ahh, this is different from what others pointed at. Same people,
-> > similar name, but not the same paper.
-> > 
-> > I will read this version too, but from reading the other one and the
-> > standard in parallel and trying to make sense of it, it seems that I
-> > may have originally misunderstood part of the whole control dependency
-> > chain.
-> > 
-> > The fact that the left side of "? :", "&&" and "||" breaks data
-> > dependencies made me originally think that the standard tried very
-> > hard to break any control dependencies. Which I felt was insane, when
-> > then some of the examples literally were about the testing of the
-> > value of an atomic read. The data dependency matters quite a bit. The
-> > fact that the other "Mathematical" paper then very much talked about
-> > consume only in the sense of following a pointer made me think so even
-> > more.
-> > 
-> > But reading it some more, I now think that the whole "data dependency"
-> > logic (which is where the special left-hand side rule of the ternary
-> > and logical operators come in) are basically an exception to the rule
-> > that sequence points end up being also meaningful for ordering (ok, so
-> > C11 seems to have renamed "sequence points" to "sequenced before").
-> > 
-> > So while an expression like
-> > 
-> >     atomic_read(p, consume) ? a : b;
-> > 
-> > doesn't have a data dependency from the atomic read that forces
-> > serialization, writing
-> > 
-> >    if (atomic_read(p, consume))
-> >       a;
-> >    else
-> >       b;
-> > 
-> > the standard *does* imply that the atomic read is "happens-before" wrt
-> > "a", and I'm hoping that there is no question that the control
-> > dependency still acts as an ordering point.
-> 
-> The control dependency should order subsequent stores, at least assuming
-> that "a" and "b" don't start off with identical stores that the compiler
-> could pull out of the "if" and merge.  The same might also be true for ?:
-> for all I know.  (But see below)
+On Thu, Feb 20, 2014 at 9:14 AM, Torvald Riegel <triegel@redhat.com> wrote:
+>>
+>> So the clarification is basically to the statement that the "if
+>> (consume(p)) a" version *would* have an ordering guarantee between the
+>> read of "p" and "a", but the "consume(p) ? a : b" would *not* have
+>> such an ordering guarantee. Yes?
+>
+> Not as I understand it.  If my reply above wasn't clear, let me know and
+> I'll try to rephrase it into something that is.
 
-I don't think this is quite true.  I agree that a conditional store will
-not be executed speculatively (note that if it would happen in both the
-then and the else branch, it's not conditional); so, the store in
-"a;" (assuming it would be a store) won't happen unless the thread can
-really observe a true value for p.  However, this is *this thread's*
-view of the world, but not guaranteed to constrain how any other thread
-sees the state.  mo_consume does not contribute to
-inter-thread-happens-before in the same way that mo_acquire does (which
-*does* put a constraint on i-t-h-b, and thus enforces a global
-constraint that all threads have to respect).
+Yeah, so you and Paul agree. And as I mentioned in the email that
+crossed with yours, I think that means that the standard is overly
+complex, hard to understand, fragile, and all *pointlessly* so.
 
-Is it clear which distinction I'm trying to show here?
+Btw, there are many ways that "use a consume as an input to a
+conditional" can happen. In particular, even if the result is actually
+*used* like a pointer as far as the programmer is concerned, tricks
+like pointer compression etc can well mean that the "pointer" is
+actually at least partly implemented using conditionals, so that some
+paths end up being only dependent through a comparison of the pointer
+value.
 
-> That said, in this case, you could substitute relaxed for consume and get
-> the same effect.  The return value from atomic_read() gets absorbed into
-> the "if" condition, so there is no dependency-ordered-before relationship,
-> so nothing for consume to do.
-> 
-> One caution...  The happens-before relationship requires you to trace a
-> full path between the two operations of interest.  This is illustrated
-> by the following example, with both x and y initially zero:
-> 
-> T1:	atomic_store_explicit(&x, 1, memory_order_relaxed);
-> 	r1 = atomic_load_explicit(&y, memory_order_relaxed);
-> 
-> T2:	atomic_store_explicit(&y, 1, memory_order_relaxed);
-> 	r2 = atomic_load_explicit(&x, memory_order_relaxed);
-> 
-> There is a happens-before relationship between T1's load and store,
-> and another happens-before relationship between T2's load and store,
-> but there is no happens-before relationship from T1 to T2, and none
-> in the other direction, either.  And you don't get to assume any
-> ordering based on reasoning about these two disjoint happens-before
-> relationships.
-> 
-> So it is quite possible for r1==1&&r2==1 after both threads complete.
-> 
-> Which should be no surprise: This misordering can happen even on x86,
-> which would need a full smp_mb() to prevent it.
-> 
-> > THAT was one of my big confusions, the discussion about control
-> > dependencies and the fact that the logical ops broke the data
-> > dependency made me believe that the standard tried to actively avoid
-> > the whole issue with "control dependencies can break ordering
-> > dependencies on some CPU's due to branch prediction and memory
-> > re-ordering by the CPU".
-> > 
-> > But after all the reading, I'm starting to think that that was never
-> > actually the implication at all, and the "logical ops breaks the data
-> > dependency rule" is simply an exception to the sequence point rule.
-> > All other sequence points still do exist, and do imply an ordering
-> > that matters for "consume"
-> > 
-> > Am I now reading it right?
-> 
-> As long as there is an unbroken chain of -data- dependencies from the
-> consume to the later access in question, and as long as that chain
-> doesn't go through the excluded operations, yes.
-> 
-> > So the clarification is basically to the statement that the "if
-> > (consume(p)) a" version *would* have an ordering guarantee between the
-> > read of "p" and "a", but the "consume(p) ? a : b" would *not* have
-> > such an ordering guarantee. Yes?
-> 
-> Neither has a data-dependency guarantee, because there is no data
-> dependency from the load to either "a" or "b".  After all, the value
-> loaded got absorbed into the "if" condition.
+So I very much did *not* want to complicate the "litmus test" code
+snippet when Paul tried to make it more complex, but I do think that
+there are cases where code that "looks" like pure pointer chasing
+actually is not for some cases, and then can become basically that
+litmus test for some path.
 
-Agreed.
+Just to give you an example: in simple list handling it is not at all
+unusual to have a special node that is discovered by comparing the
+address, not by just loading from the pointer and following the list
+itself. Examples of that would be a HEAD node in a doubly linked list
+(Linux uses this concept quite widely, it's our default list
+implementation), or it could be a place-marker ("cursor" entry) in the
+list for safe traversal in the presence of concurrent deletes etc.
 
-> However, according to
-> discussions earlier in this thread, the "if" variant would have a
-> control-dependency ordering guarantee for any stores in "a" and "b"
-> (but not loads!).  The ?: form might also have a control-dependency
-> guarantee for any stores in "a" and "b" (again, not loads).
+And obviously there is the already much earlier mentioned
+compiler-induced compare, due to value speculation, that can basically
+create such sequences even wherethey did not originally exist in the
+source code itself.
 
-Don't quite agree; see above for my opinion on this.
+So even if you work with "pointer dereferences", and thus match that
+particular consume pattern, I really don't see why anybody would think
+that "hey, we can ignore any control dependencies" is a good idea.
+It's a *TERRIBLE* idea.
+
+And as mentioned, it's a terrible idea with no upsides. It doesn't
+help compiler optimizations for the case it's *intended* to help,
+since those optimizations can still be done without the horribly
+broken semantics. It doesn't help compiler writers, it just confuses
+them.
+
+And it sure as hell doesn't help users.
+
+                  Linus
