@@ -1,192 +1,141 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+From: Torvald Riegel <triegel@redhat.com>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Thu, 20 Feb 2014 10:18:41 -0800
-Message-ID: <20140220181841.GV4250@linux.vnet.ibm.com>
-References: <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
- <20140218030002.GA15857@linux.vnet.ibm.com>
- <CA+55aFyqLrj4d2TA+2aazRqXnbVsUvs0yaBL2D5rXF1G=Kiu_g@mail.gmail.com>
- <CA+55aFwsq5E8kMoEeHJJ1f2=+QAUCu_HndfPxHNz8fUBprS-jQ@mail.gmail.com>
- <1392740258.18779.7732.camel@triegel.csb>
- <CA+55aFw7QYEMFs0BCxqRJW3Cz=tLbaku-tmN6hLXPKP9jbom7Q@mail.gmail.com>
- <1392752867.18779.8120.camel@triegel.csb>
- <CA+55aFxQPxQ8WOaZL8yAqBA=Y4k2gDn4r4oepMyi0uL6XLzv3w@mail.gmail.com>
- <20140220040102.GM4250@linux.vnet.ibm.com>
- <1392917168.18779.10157.camel@triegel.csb>
-Reply-To: paulmck@linux.vnet.ibm.com
+Date: Thu, 20 Feb 2014 19:23:25 +0100
+Message-ID: <1392920605.18779.10261.camel@triegel.csb>
+References: <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>	 <20140218030002.GA15857@linux.vnet.ibm.com>	 <CA+55aFyqLrj4d2TA+2aazRqXnbVsUvs0yaBL2D5rXF1G=Kiu_g@mail.gmail.com>	 <CA+55aFwsq5E8kMoEeHJJ1f2=+QAUCu_HndfPxHNz8fUBprS-jQ@mail.gmail.com>	 <1392740258.18779.7732.camel@triegel.csb>	 <CA+55aFw7QYEMFs0BCxqRJW3Cz=tLbaku-tmN6hLXPKP9jbom7Q@mail.gmail.com>	 <1392752867.18779.8120.camel@triegel.csb>	 <CA+55aFxQPxQ8WOaZL8yAqBA=Y4k2gDn4r4oepMyi0uL6XLzv3w@mail.gmail.com>	 <20140220040102.GM4250@linux.vnet.ibm.com>	 <CA+55aFwwscSzwTr+xRdirtTx7HzugmMY9HrDe0GBqNhn=AuNVA@mail.gmail.com>	 <20140220083032.GN4250@linux.vnet.ibm.com>	 <CA+55aFwfx==u7o1NZ66aPbkOgsvGqW3UscGqrQkGuzOkjSpm6Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e39.co.us.ibm.com ([32.97.110.160]:44042 "EHLO
-	e39.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755765AbaBTSSq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Feb 2014 13:18:46 -0500
-Received: from /spool/local
-	by e39.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Thu, 20 Feb 2014 11:18:45 -0700
-Content-Disposition: inline
-In-Reply-To: <1392917168.18779.10157.camel@triegel.csb>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Torvald Riegel <triegel@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <gcc-return-182220-gcc=m.gmane.org@gcc.gnu.org>
+List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
+List-Archive: <http://gcc.gnu.org/ml/gcc/>
+List-Post: <mailto:gcc@gcc.gnu.org>
+List-Help: <http://gcc.gnu.org/ml/>
+Sender: gcc-owner@gcc.gnu.org
+In-Reply-To: <CA+55aFwfx==u7o1NZ66aPbkOgsvGqW3UscGqrQkGuzOkjSpm6Q@mail.gmail.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Feb 20, 2014 at 06:26:08PM +0100, Torvald Riegel wrote:
-> xagsmtp2.20140220172700.0416@vmsdvm4.vnet.ibm.com
-> X-Xagent-Gateway: vmsdvm4.vnet.ibm.com (XAGSMTP2 at VMSDVM4)
+On Thu, 2014-02-20 at 09:01 -0800, Linus Torvalds wrote:
+> On Thu, Feb 20, 2014 at 12:30 AM, Paul E. McKenney
+> <paulmck@linux.vnet.ibm.com> wrote:
+> >>
+> >> So lets make this really simple: if you have a consume->cmp->read, is
+> >> the ordering of the two reads guaranteed?
+> >
+> > Not as far as I know.  Also, as far as I know, there is no difference
+> > between consume and relaxed in the consume->cmp->read case.
 > 
-> On Wed, 2014-02-19 at 20:01 -0800, Paul E. McKenney wrote:
-> > On Wed, Feb 19, 2014 at 04:53:49PM -0800, Linus Torvalds wrote:
-> > > On Tue, Feb 18, 2014 at 11:47 AM, Torvald Riegel <triegel@redhat.com> wrote:
-> > > > On Tue, 2014-02-18 at 09:44 -0800, Linus Torvalds wrote:
-> > > >>
-> > > >> Can you point to it? Because I can find a draft standard, and it sure
-> > > >> as hell does *not* contain any clarity of the model. It has a *lot* of
-> > > >> verbiage, but it's pretty much impossible to actually understand, even
-> > > >> for somebody who really understands memory ordering.
-> > > >
-> > > > http://www.cl.cam.ac.uk/~mjb220/n3132.pdf
-> > > > This has an explanation of the model up front, and then the detailed
-> > > > formulae in Section 6.  This is from 2010, and there might have been
-> > > > smaller changes since then, but I'm not aware of any bigger ones.
-> > > 
-> > > Ahh, this is different from what others pointed at. Same people,
-> > > similar name, but not the same paper.
-> > > 
-> > > I will read this version too, but from reading the other one and the
-> > > standard in parallel and trying to make sense of it, it seems that I
-> > > may have originally misunderstood part of the whole control dependency
-> > > chain.
-> > > 
-> > > The fact that the left side of "? :", "&&" and "||" breaks data
-> > > dependencies made me originally think that the standard tried very
-> > > hard to break any control dependencies. Which I felt was insane, when
-> > > then some of the examples literally were about the testing of the
-> > > value of an atomic read. The data dependency matters quite a bit. The
-> > > fact that the other "Mathematical" paper then very much talked about
-> > > consume only in the sense of following a pointer made me think so even
-> > > more.
-> > > 
-> > > But reading it some more, I now think that the whole "data dependency"
-> > > logic (which is where the special left-hand side rule of the ternary
-> > > and logical operators come in) are basically an exception to the rule
-> > > that sequence points end up being also meaningful for ordering (ok, so
-> > > C11 seems to have renamed "sequence points" to "sequenced before").
-> > > 
-> > > So while an expression like
-> > > 
-> > >     atomic_read(p, consume) ? a : b;
-> > > 
-> > > doesn't have a data dependency from the atomic read that forces
-> > > serialization, writing
-> > > 
-> > >    if (atomic_read(p, consume))
-> > >       a;
-> > >    else
-> > >       b;
-> > > 
-> > > the standard *does* imply that the atomic read is "happens-before" wrt
-> > > "a", and I'm hoping that there is no question that the control
-> > > dependency still acts as an ordering point.
-> > 
-> > The control dependency should order subsequent stores, at least assuming
-> > that "a" and "b" don't start off with identical stores that the compiler
-> > could pull out of the "if" and merge.  The same might also be true for ?:
-> > for all I know.  (But see below)
+> Ok, quite frankly, I think that means that "consume" is misdesigned.
 > 
-> I don't think this is quite true.  I agree that a conditional store will
-> not be executed speculatively (note that if it would happen in both the
-> then and the else branch, it's not conditional); so, the store in
-> "a;" (assuming it would be a store) won't happen unless the thread can
-> really observe a true value for p.  However, this is *this thread's*
-> view of the world, but not guaranteed to constrain how any other thread
-> sees the state.  mo_consume does not contribute to
-> inter-thread-happens-before in the same way that mo_acquire does (which
-> *does* put a constraint on i-t-h-b, and thus enforces a global
-> constraint that all threads have to respect).
+> > The above example can have a return value of 0 if translated
+> > straightforwardly into either ARM or Power, right?
 > 
-> Is it clear which distinction I'm trying to show here?
+> Correct. And I think that is too subtle. It's dangerous, it makes code
+> that *looks* correct work incorrectly, and it actually happens to work
+> on x86 since x86 doesn't have crap-for-brains memory ordering
+> semantics.
+> 
+> > So, if you make one of two changes to your example, then I will agree
+> > with you.
+> 
+> No. We're not playing games here. I'm fed up with complex examples
+> that make no sense.
 
-If you are saying that the control dependencies are a result of a
-combination of the standard and the properties of the hardware that
-Linux runs on, I am with you.  (As opposed to control dependencies being
-a result solely of the standard.)
+Note that Paul's second suggestion for a change was to just use
+mo_acquire;  that's a simple change, and the easiest option, so it
+should be just fine.
 
-This was a deliberate decision in 2007 or so.  At that time, the
-documentation on CPU memory orderings were pretty crude, and it was
-not clear that all relevant hardware respected control dependencies.
-Back then, if you wanted an authoritative answer even to a fairly simple
-memory-ordering question, you had to find a hardware architect, and you
-probably waited weeks or even months for the answer.  Thanks to lots
-of work from the Cambridge guys at about the time that the standard was
-finalized, we have a much better picture of what the hardware does.
-
-> > That said, in this case, you could substitute relaxed for consume and get
-> > the same effect.  The return value from atomic_read() gets absorbed into
-> > the "if" condition, so there is no dependency-ordered-before relationship,
-> > so nothing for consume to do.
-> > 
-> > One caution...  The happens-before relationship requires you to trace a
-> > full path between the two operations of interest.  This is illustrated
-> > by the following example, with both x and y initially zero:
-> > 
-> > T1:	atomic_store_explicit(&x, 1, memory_order_relaxed);
-> > 	r1 = atomic_load_explicit(&y, memory_order_relaxed);
-> > 
-> > T2:	atomic_store_explicit(&y, 1, memory_order_relaxed);
-> > 	r2 = atomic_load_explicit(&x, memory_order_relaxed);
-> > 
-> > There is a happens-before relationship between T1's load and store,
-> > and another happens-before relationship between T2's load and store,
-> > but there is no happens-before relationship from T1 to T2, and none
-> > in the other direction, either.  And you don't get to assume any
-> > ordering based on reasoning about these two disjoint happens-before
-> > relationships.
-> > 
-> > So it is quite possible for r1==1&&r2==1 after both threads complete.
-> > 
-> > Which should be no surprise: This misordering can happen even on x86,
-> > which would need a full smp_mb() to prevent it.
-> > 
-> > > THAT was one of my big confusions, the discussion about control
-> > > dependencies and the fact that the logical ops broke the data
-> > > dependency made me believe that the standard tried to actively avoid
-> > > the whole issue with "control dependencies can break ordering
-> > > dependencies on some CPU's due to branch prediction and memory
-> > > re-ordering by the CPU".
-> > > 
-> > > But after all the reading, I'm starting to think that that was never
-> > > actually the implication at all, and the "logical ops breaks the data
-> > > dependency rule" is simply an exception to the sequence point rule.
-> > > All other sequence points still do exist, and do imply an ordering
-> > > that matters for "consume"
-> > > 
-> > > Am I now reading it right?
-> > 
-> > As long as there is an unbroken chain of -data- dependencies from the
-> > consume to the later access in question, and as long as that chain
-> > doesn't go through the excluded operations, yes.
-> > 
-> > > So the clarification is basically to the statement that the "if
-> > > (consume(p)) a" version *would* have an ordering guarantee between the
-> > > read of "p" and "a", but the "consume(p) ? a : b" would *not* have
-> > > such an ordering guarantee. Yes?
-> > 
-> > Neither has a data-dependency guarantee, because there is no data
-> > dependency from the load to either "a" or "b".  After all, the value
-> > loaded got absorbed into the "if" condition.
+> Nobody sane writes code that does that pointer comparison, and it is
+> entirely immaterial what the compiler can do behind our backs. The C
+> standard semantics need to make sense to the *user* (ie programmer),
+> not to a CPU and not to a compiler. The CPU and compiler are "tools".
+> They don't matter. Their only job is to make the code *work*, dammit.
 > 
-> Agreed.
+> So no idiotic made-up examples that involve code that nobody will ever
+> write and that have subtle issues.
 > 
-> > However, according to
-> > discussions earlier in this thread, the "if" variant would have a
-> > control-dependency ordering guarantee for any stores in "a" and "b"
-> > (but not loads!).  The ?: form might also have a control-dependency
-> > guarantee for any stores in "a" and "b" (again, not loads).
+> So the starting point is that (same example as before, but with even
+> clearer naming):
 > 
-> Don't quite agree; see above for my opinion on this.
+> Initialization state:
+>   initialized = 0;
+>   value = 0;
+> 
+> Consumer:
+> 
+>     return atomic_read(&initialized, consume) ? value : -1;
+> 
+> Writer:
+>     value = 42;
+>     atomic_write(&initialized, 1, release);
+> 
+> and because the C memory ordering standard is written in such a way
+> that this is subtly buggy (and can return 0, which is *not* logically
+> a valid value), then I think the C memory ordering standard is broken.
+> 
+> That "consumer" memory ordering is dangerous as hell, and it is
+> dangerous FOR NO GOOD REASON.
+> 
+> The trivial "fix" to the standard would be to get rid of all the
+> "carries a dependency" crap, and just say that *anything* that depends
+> on it is ordered wrt it.
+> 
+> That just means that on alpha, "consume" implies an unconditional read
+> barrier (well, unless the value is never used and is loaded just
+> because it is also volatile), on x86, "consume" is the same as
+> "acquire" which is just a plain load with ordering guarantees, and on
+> ARM or power you can still avoid the extra synchronization *if* the
+> value is used just for computation and for following pointers, but if
+> the value is used for a comparison, there needs to be a
+> synchronization barrier.
+> 
+> Notice? Getting rid of the stupid "carries-dependency" crap from the
+> standard actually
+>  (a) simplifies the standard
 
-And see above for my best guess at what your opinion is based on.  If
-my guess is correct, we might even be in agreement.
+Agreed, although it's easy to ignore the parts related to mo_consume, I
+think.
 
-							Thanx, Paul
+>  (b) means that the above obvious example *works*
+>  (c) does not in *any* way make for any less efficient code generation
+> for the cases that "consume" works correctly for in the current
+> mis-designed standard.
+>  (d) is actually a hell of a lot easier to explain to a compiler
+> writer, and I can guarantee that it is simpler to implement too.
+
+mo_acquire is certainly easier to implement in a compiler.
+
+> Why do I claim (d) "it is simpler to implement" - because on ARM/power
+> you can implement it *exactly* as a special "acquire", with just a
+> trivial peep-hole special case that follows the use chain of the
+> acquire op to the consume, and then just drop the acquire bit if the
+> only use is that compute-to-load chain.
+
+That's similar to the way I saw it and described in my reply to your
+other email (before getting to this email here).  It seems that this
+indeed might be doable transparently in the compiler, without requiring
+a special mo_acquire variant visible to programmers.
+
+> In fact, realistically, the *only* thing you need to actually care
+> about for the intended use case of "consume" is the question "is the
+> consuming load immediately consumed as an address (with offset) of a
+> memory operation. So you don't even need to follow any complicated
+> computation chain in a compiler - the only case that matters for the
+> barrier removal optimization is the "oh, I can see that it is only
+> used as an address to a dereference".
+
+To make this mo_acquire optimization apply often, a compiler might have
+to try to filter out accesses that don't synchronize (e.g., so that an
+access to a non-shared temporary variable doesn't prevent the
+optimization).
+
+> Seriously. The current standard is broken.
+
+Please, let's be precise in such statement, so that everyone actually
+knows what's meant.  The rest of the memory model can be perfectly fine
+even if you think that mo_consume isn't useful at all.  I think your
+opinion about mo_consume is clear now (and I have concerns about it too,
+FWIW).  If you see issues about all the other parts of the memory model
+(or the standard), please state these separately.
