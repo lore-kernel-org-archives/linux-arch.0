@@ -1,49 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ve0-f177.google.com ([209.85.128.177]:64597 "EHLO
-	mail-ve0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752938AbaBTRoM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Feb 2014 12:44:12 -0500
-MIME-Version: 1.0
-In-Reply-To: <53063D4A.9010601@hp.com>
-References: <1392669684-4807-1-git-send-email-Waiman.Long@hp.com>
-	<53029167.4060109@zytor.com>
-	<20140218073111.GW27965@twins.programming.kicks-ass.net>
-	<5303B4C4.2040907@hp.com>
-	<20140218212827.GR14089@laptop.programming.kicks-ass.net>
-	<5303FDEC.9060001@hp.com>
-	<20140219085107.GG27965@twins.programming.kicks-ass.net>
-	<53050501.3070101@hp.com>
-	<20140219194832.GY14089@laptop.programming.kicks-ass.net>
-	<53063D4A.9010601@hp.com>
-Date: Thu, 20 Feb 2014 09:44:11 -0800
-Message-ID: <CA+55aFwZ_-m46qZT586Rae3yESLCVZm6yM8WxMs2kZyCvpM5YA@mail.gmail.com>
-Subject: Re: [PATCH v4 0/3] qspinlock: Introducing a 4-byte queue spinlock
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Content-Type: text/plain; charset=UTF-8
+Received: from mx1.redhat.com ([209.132.183.28]:1823 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752424AbaBTRub (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 20 Feb 2014 12:50:31 -0500
+Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
+From: Torvald Riegel <triegel@redhat.com>
+In-Reply-To: <CA+55aFwwscSzwTr+xRdirtTx7HzugmMY9HrDe0GBqNhn=AuNVA@mail.gmail.com>
+References: <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
+	 <1392666947.18779.6838.camel@triegel.csb>
+	 <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
+	 <20140218030002.GA15857@linux.vnet.ibm.com>
+	 <CA+55aFyqLrj4d2TA+2aazRqXnbVsUvs0yaBL2D5rXF1G=Kiu_g@mail.gmail.com>
+	 <CA+55aFwsq5E8kMoEeHJJ1f2=+QAUCu_HndfPxHNz8fUBprS-jQ@mail.gmail.com>
+	 <1392740258.18779.7732.camel@triegel.csb>
+	 <CA+55aFw7QYEMFs0BCxqRJW3Cz=tLbaku-tmN6hLXPKP9jbom7Q@mail.gmail.com>
+	 <1392752867.18779.8120.camel@triegel.csb>
+	 <CA+55aFxQPxQ8WOaZL8yAqBA=Y4k2gDn4r4oepMyi0uL6XLzv3w@mail.gmail.com>
+	 <20140220040102.GM4250@linux.vnet.ibm.com>
+	 <CA+55aFwwscSzwTr+xRdirtTx7HzugmMY9HrDe0GBqNhn=AuNVA@mail.gmail.com>
+Content-Type: text/plain; charset="UTF-8"
+Date: Thu, 20 Feb 2014 18:49:36 +0100
+Message-ID: <1392918576.18779.10198.camel@triegel.csb>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <waiman.long@hp.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
-Message-ID: <20140220174411.RWnc_H4mbsaIyJZrWAAA1qyHTVGclgV6PeP4I4dc44w@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Message-ID: <20140220174936.hiQ25XlkiPt9cCWcNpKEBUiBFE_i8pJEXlUsKNVOjEo@z>
 
-On Thu, Feb 20, 2014 at 9:37 AM, Waiman Long <waiman.long@hp.com> wrote:
->
-> Yes, that is true for paravirt, but I was talking about virtualization in
-> general.
+On Wed, 2014-02-19 at 20:43 -0800, Linus Torvalds wrote:
 
-For non-paravirtualized environments, we should basically optimize for
-the actual hardware, and assume that the full virtualization is good
-enough that we don't care.
+[Paul has already answered many of your questions, and my reply to your
+previous email should also answer some.]
 
-Obviously, sometimes we might take "this is particularly expensive to
-virtualize" into account, and if it doesn't hurt hardware, try to help
-the virtual environment along. So you might have cases where certain
-hardware (typically interrupt controllers etc) should be accessed
-certain particular ways, because those not only work on real hardware,
-but behave well in virtualized environments too.
+> If the consumer of an atomic load isn't a pointer chasing operation,
+> then the consume should be defined to be the same as acquire. None of
+> this "conditionals break consumers". No, conditionals on the
+> dependency path should turn consumers into acquire, because otherwise
+> the "consume" load is dangerous as hell.
 
-But for spinlocks, just make the raw hardware work well when not
-*actively* paravirtualized. If some hypervisor deals badly with it,
-it's a hypervisor or management problem.
+Yes, mo_consume is more tricky than mo_acquire.
 
-            Linus
+However, that has an advantage because you can avoid getting stronger
+barriers if you don't need them (ie, you can avoid the "auto-update to
+acquire" you seem to have in mind).
+
+The auto-upgrade would be a possible semantics, I agree.
+
+Another option may be to let an implementation optimize the HW barriers
+that it uses for mo_acquire.  That is, if the compiler sees that (1) the
+result of an mo_acquire load is used on certain code paths *only* for
+consumers that carry the dependency *and* (2) there are no other
+operations on that code path that can possibly rely on the mo_acquire
+ordering guarantees, then the compiler can use a weaker HW barrier on
+archs such as PowerPC or ARM.
+
+That is similar to the rules for mo_consume you seem to have in mind,
+but makes it a compiler optimization on mo_acquire.  However, the
+compiler has to be conservative here, so having a mo_consume that is
+trickier to use but doesn't ever silently introduce stronger HW barriers
+seems to be useful (modulo the difficulties regarding to how it's
+currently specified in the standard).
+
+> And if the definition of acquire doesn't include the control
+> dependency either, then the C atomic memory model is just completely
+> and utterly broken, since the above *trivial* and clearly useful
+> example is broken.
+
+In terms of the model, if you establish a synchronizes-with using a
+reads-from that has (or crosses) a release/acquire memory-order pair,
+then this synchronizes-with will also order other operations that it's
+sequenced-before (see the composition of synchronizes-with and
+sequenced-before in the inter-thread-happens-before definition in n3132
+6.15).
+
+So yes, mo_acquire does that the logical "control dependencies" /
+sequenced-before into account.
+
