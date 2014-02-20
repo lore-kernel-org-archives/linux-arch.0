@@ -1,80 +1,107 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:35035 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755171AbaBSVSi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 Feb 2014 16:18:38 -0500
-Message-ID: <1392844700.2165.70.camel@flatline.rdu.redhat.com>
-Subject: Re: [ARCH question] Do syscall_get_nr and syscall_get_arguments
- always work?
-From: Eric Paris <eparis@redhat.com>
-Date: Wed, 19 Feb 2014 16:18:20 -0500
-In-Reply-To: <CALCETrXnLfqo=VyaM7TyDAmjXyZDoztzmaNxkLudoSN7OZBd4Q@mail.gmail.com>
-References: <CALCETrU6M=Abo1z2cRoZy07-=3bwKiK84gCSMcBPLA1TkXPb8A@mail.gmail.com>
-	 <CACM3HyHwrKQAWZRhE2N1VtGKu1xSvcGeuMG1Ag+vzP2BA111cQ@mail.gmail.com>
-	 <CALCETrXXnSdyc5VpT8f6uu6kbO1cq4QwdKqr9z8AOhY_wsoBLA@mail.gmail.com>
-	 <1392752362.2165.31.camel@flatline.rdu.redhat.com>
-	 <CALCETrXnLfqo=VyaM7TyDAmjXyZDoztzmaNxkLudoSN7OZBd4Q@mail.gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mail-vc0-f170.google.com ([209.85.220.170]:35029 "EHLO
+	mail-vc0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751638AbaBTAxu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2014 19:53:50 -0500
+MIME-Version: 1.0
+In-Reply-To: <1392752867.18779.8120.camel@triegel.csb>
+References: <1392321837.18779.3249.camel@triegel.csb>
+	<20140214020144.GO4250@linux.vnet.ibm.com>
+	<1392352981.18779.3800.camel@triegel.csb>
+	<20140214172920.GQ4250@linux.vnet.ibm.com>
+	<CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>
+	<CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>
+	<1392486310.18779.6447.camel@triegel.csb>
+	<CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
+	<1392666947.18779.6838.camel@triegel.csb>
+	<CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
+	<20140218030002.GA15857@linux.vnet.ibm.com>
+	<CA+55aFyqLrj4d2TA+2aazRqXnbVsUvs0yaBL2D5rXF1G=Kiu_g@mail.gmail.com>
+	<CA+55aFwsq5E8kMoEeHJJ1f2=+QAUCu_HndfPxHNz8fUBprS-jQ@mail.gmail.com>
+	<1392740258.18779.7732.camel@triegel.csb>
+	<CA+55aFw7QYEMFs0BCxqRJW3Cz=tLbaku-tmN6hLXPKP9jbom7Q@mail.gmail.com>
+	<1392752867.18779.8120.camel@triegel.csb>
+Date: Wed, 19 Feb 2014 16:53:49 -0800
+Message-ID: <CA+55aFxQPxQ8WOaZL8yAqBA=Y4k2gDn4r4oepMyi0uL6XLzv3w@mail.gmail.com>
+Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: Jonas Bonn <jonas.bonn@gmail.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, linux-audit@redhat.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andi Kleen <andi@firstfloor.org>, Steve Grubb <sgrubb@redhat.com>
-Message-ID: <20140219211820.Y5ZLW_-W1kH3WQG1_SWq1SSCYQEkbzk8UJXNQKaRN7k@z>
+To: Torvald Riegel <triegel@redhat.com>
+Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Message-ID: <20140220005349.RojVng-S6J-wsoOTJky8RbioFlzihQcaqpQRZqC2LB0@z>
 
-On Tue, 2014-02-18 at 19:09 -0800, Andy Lutomirski wrote:
-> On Tue, Feb 18, 2014 at 11:39 AM, Eric Paris <eparis@redhat.com> wrote:
+On Tue, Feb 18, 2014 at 11:47 AM, Torvald Riegel <triegel@redhat.com> wrote:
+> On Tue, 2014-02-18 at 09:44 -0800, Linus Torvalds wrote:
+>>
+>> Can you point to it? Because I can find a draft standard, and it sure
+>> as hell does *not* contain any clarity of the model. It has a *lot* of
+>> verbiage, but it's pretty much impossible to actually understand, even
+>> for somebody who really understands memory ordering.
+>
+> http://www.cl.cam.ac.uk/~mjb220/n3132.pdf
+> This has an explanation of the model up front, and then the detailed
+> formulae in Section 6.  This is from 2010, and there might have been
+> smaller changes since then, but I'm not aware of any bigger ones.
 
-> > Al just indicated to me that on at least ia64, syscall_get_arguments()
-> > is really expensive.  So maybe not a deal breaker, but sounds like we'd
-> > lose a lot of performance trying to get them at syscall exit...
-> >
-> 
-> I wonder how slow syscall_get_arguments has to be before it's a real
-> problem.  Remember that we only need to call it when we already know
-> that an audit record needs to be written (or if a syscall argument is
-> used in a filter rule, I suppose -- I'm sure sure whether that's
-> possible).
+Ahh, this is different from what others pointed at. Same people,
+similar name, but not the same paper.
 
-It's possible to include a0-a3 in syscall filter rules.  (Al wasn't
-supportive of killing __audit_syscall_entry().  He mentioned in
-particular difficulties around audit_get_stamp().  Won't pretend to have
-my head wrapped around what he was referring to...
+I will read this version too, but from reading the other one and the
+standard in parallel and trying to make sense of it, it seems that I
+may have originally misunderstood part of the whole control dependency
+chain.
 
-> But I think this is still a bit of a lost cause.  Currently, if I'm
-> reading the code correctly, signal delivery to a non-auditd process
-> can result in writing an audit event.
+The fact that the left side of "? :", "&&" and "||" breaks data
+dependencies made me originally think that the standard tried very
+hard to break any control dependencies. Which I felt was insane, when
+then some of the examples literally were about the testing of the
+value of an atomic read. The data dependency matters quite a bit. The
+fact that the other "Mathematical" paper then very much talked about
+consume only in the sense of following a pointer made me think so even
+more.
 
-So?  The info we collect about the target of the signal is not related
-to the changes you are discussing.  The work/collection is done as the
-task 'sending' the signal (and will only be emitted on syscall exit)
+But reading it some more, I now think that the whole "data dependency"
+logic (which is where the special left-hand side rule of the ternary
+and logical operators come in) are basically an exception to the rule
+that sequence points end up being also meaningful for ordering (ok, so
+C11 seems to have renamed "sequence points" to "sequenced before").
 
-> If the signal is delivered
-> during a syscall, then current code will write an audit record for
-> that syscall on syscall exit.
+So while an expression like
 
-Right, so we only care about if the sender has its audit_context all set
-up.  We'll only send a record on syscall exit...
+    atomic_read(p, consume) ? a : b;
 
-> If we want to preserve that behavior without a syscall audit hook,
-> then the signal delivery code needs to know whether it's in the middle
-> of a syscall.  AFAIK this is not possible.
+doesn't have a data dependency from the atomic read that forces
+serialization, writing
 
-Clearly we need a syscall exit hook, I agree with that...
+   if (atomic_read(p, consume))
+      a;
+   else
+      b;
 
-> On the other hand, most interesting signals are probably *not* the
-> result of a syscall anyway, so it may make sense to just remove that
-> code entirely.
-> 
-> TBH, as long as something happens to get rid of audit overhead when
-> there are no rules, my interest in personally writing something fancy
-> to make the nonzero-number-of-rules case have less overhead is rather
-> low.
+the standard *does* imply that the atomic read is "happens-before" wrt
+"a", and I'm hoping that there is no question that the control
+dependency still acts as an ordering point.
 
-That's fair   :)
+THAT was one of my big confusions, the discussion about control
+dependencies and the fact that the logical ops broke the data
+dependency made me believe that the standard tried to actively avoid
+the whole issue with "control dependencies can break ordering
+dependencies on some CPU's due to branch prediction and memory
+re-ordering by the CPU".
 
-> 
-> --Andy
+But after all the reading, I'm starting to think that that was never
+actually the implication at all, and the "logical ops breaks the data
+dependency rule" is simply an exception to the sequence point rule.
+All other sequence points still do exist, and do imply an ordering
+that matters for "consume"
 
+Am I now reading it right?
 
+So the clarification is basically to the statement that the "if
+(consume(p)) a" version *would* have an ordering guarantee between the
+read of "p" and "a", but the "consume(p) ? a : b" would *not* have
+such an ordering guarantee. Yes?
+
+                       Linus
