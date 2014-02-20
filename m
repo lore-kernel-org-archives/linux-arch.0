@@ -1,141 +1,154 @@
-From: Torvald Riegel <triegel@redhat.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Thu, 20 Feb 2014 19:23:25 +0100
-Message-ID: <1392920605.18779.10261.camel@triegel.csb>
-References: <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>	 <20140218030002.GA15857@linux.vnet.ibm.com>	 <CA+55aFyqLrj4d2TA+2aazRqXnbVsUvs0yaBL2D5rXF1G=Kiu_g@mail.gmail.com>	 <CA+55aFwsq5E8kMoEeHJJ1f2=+QAUCu_HndfPxHNz8fUBprS-jQ@mail.gmail.com>	 <1392740258.18779.7732.camel@triegel.csb>	 <CA+55aFw7QYEMFs0BCxqRJW3Cz=tLbaku-tmN6hLXPKP9jbom7Q@mail.gmail.com>	 <1392752867.18779.8120.camel@triegel.csb>	 <CA+55aFxQPxQ8WOaZL8yAqBA=Y4k2gDn4r4oepMyi0uL6XLzv3w@mail.gmail.com>	 <20140220040102.GM4250@linux.vnet.ibm.com>	 <CA+55aFwwscSzwTr+xRdirtTx7HzugmMY9HrDe0GBqNhn=AuNVA@mail.gmail.com>	 <20140220083032.GN4250@linux.vnet.ibm.com>	 <CA+55aFwfx==u7o1NZ66aPbkOgsvGqW3UscGqrQkGuzOkjSpm6Q@mail.gmail.com>
+Date: Thu, 20 Feb 2014 10:25:44 -0800
+Message-ID: <CA+55aFwV3pH+CP7Anv_YXzChL5V3_zre0+Ry-a1tJGYsbn-3iQ@mail.gmail.com>
+References: <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
+	<1392666947.18779.6838.camel@triegel.csb>
+	<CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
+	<20140218030002.GA15857@linux.vnet.ibm.com>
+	<CA+55aFyqLrj4d2TA+2aazRqXnbVsUvs0yaBL2D5rXF1G=Kiu_g@mail.gmail.com>
+	<CA+55aFwsq5E8kMoEeHJJ1f2=+QAUCu_HndfPxHNz8fUBprS-jQ@mail.gmail.com>
+	<1392740258.18779.7732.camel@triegel.csb>
+	<CA+55aFw7QYEMFs0BCxqRJW3Cz=tLbaku-tmN6hLXPKP9jbom7Q@mail.gmail.com>
+	<1392752867.18779.8120.camel@triegel.csb>
+	<CA+55aFxQPxQ8WOaZL8yAqBA=Y4k2gDn4r4oepMyi0uL6XLzv3w@mail.gmail.com>
+	<20140220040102.GM4250@linux.vnet.ibm.com>
+	<CA+55aFwwscSzwTr+xRdirtTx7HzugmMY9HrDe0GBqNhn=AuNVA@mail.gmail.com>
+	<1392918576.18779.10198.camel@triegel.csb>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <gcc-return-182220-gcc=m.gmane.org@gcc.gnu.org>
-List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
-List-Archive: <http://gcc.gnu.org/ml/gcc/>
-List-Post: <mailto:gcc@gcc.gnu.org>
-List-Help: <http://gcc.gnu.org/ml/>
-Sender: gcc-owner@gcc.gnu.org
-In-Reply-To: <CA+55aFwfx==u7o1NZ66aPbkOgsvGqW3UscGqrQkGuzOkjSpm6Q@mail.gmail.com>
-To: Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ve0-f179.google.com ([209.85.128.179]:46630 "EHLO
+	mail-ve0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754333AbaBTSZp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Feb 2014 13:25:45 -0500
+In-Reply-To: <1392918576.18779.10198.camel@triegel.csb>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Torvald Riegel <triegel@redhat.com>
 Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-List-Id: linux-arch.vger.kernel.org
 
-On Thu, 2014-02-20 at 09:01 -0800, Linus Torvalds wrote:
-> On Thu, Feb 20, 2014 at 12:30 AM, Paul E. McKenney
-> <paulmck@linux.vnet.ibm.com> wrote:
-> >>
-> >> So lets make this really simple: if you have a consume->cmp->read, is
-> >> the ordering of the two reads guaranteed?
-> >
-> > Not as far as I know.  Also, as far as I know, there is no difference
-> > between consume and relaxed in the consume->cmp->read case.
-> 
-> Ok, quite frankly, I think that means that "consume" is misdesigned.
-> 
-> > The above example can have a return value of 0 if translated
-> > straightforwardly into either ARM or Power, right?
-> 
-> Correct. And I think that is too subtle. It's dangerous, it makes code
-> that *looks* correct work incorrectly, and it actually happens to work
-> on x86 since x86 doesn't have crap-for-brains memory ordering
-> semantics.
-> 
-> > So, if you make one of two changes to your example, then I will agree
-> > with you.
-> 
-> No. We're not playing games here. I'm fed up with complex examples
-> that make no sense.
+On Thu, Feb 20, 2014 at 9:49 AM, Torvald Riegel <triegel@redhat.com> wrote:
+>
+> Yes, mo_consume is more tricky than mo_acquire.
+>
+> However, that has an advantage because you can avoid getting stronger
+> barriers if you don't need them (ie, you can avoid the "auto-update to
+> acquire" you seem to have in mind).
 
-Note that Paul's second suggestion for a change was to just use
-mo_acquire;  that's a simple change, and the easiest option, so it
-should be just fine.
+Oh, I agree about that part - I very much understand the reason for
+"consume", and I can see how it is more relaxed than "acquire" under
+many circumstances.
 
-> Nobody sane writes code that does that pointer comparison, and it is
-> entirely immaterial what the compiler can do behind our backs. The C
-> standard semantics need to make sense to the *user* (ie programmer),
-> not to a CPU and not to a compiler. The CPU and compiler are "tools".
-> They don't matter. Their only job is to make the code *work*, dammit.
-> 
-> So no idiotic made-up examples that involve code that nobody will ever
-> write and that have subtle issues.
-> 
-> So the starting point is that (same example as before, but with even
-> clearer naming):
-> 
-> Initialization state:
->   initialized = 0;
->   value = 0;
-> 
-> Consumer:
-> 
->     return atomic_read(&initialized, consume) ? value : -1;
-> 
-> Writer:
->     value = 42;
->     atomic_write(&initialized, 1, release);
-> 
-> and because the C memory ordering standard is written in such a way
-> that this is subtly buggy (and can return 0, which is *not* logically
-> a valid value), then I think the C memory ordering standard is broken.
-> 
-> That "consumer" memory ordering is dangerous as hell, and it is
-> dangerous FOR NO GOOD REASON.
-> 
-> The trivial "fix" to the standard would be to get rid of all the
-> "carries a dependency" crap, and just say that *anything* that depends
-> on it is ordered wrt it.
-> 
-> That just means that on alpha, "consume" implies an unconditional read
-> barrier (well, unless the value is never used and is loaded just
-> because it is also volatile), on x86, "consume" is the same as
-> "acquire" which is just a plain load with ordering guarantees, and on
-> ARM or power you can still avoid the extra synchronization *if* the
-> value is used just for computation and for following pointers, but if
-> the value is used for a comparison, there needs to be a
-> synchronization barrier.
-> 
-> Notice? Getting rid of the stupid "carries-dependency" crap from the
-> standard actually
->  (a) simplifies the standard
+I just think that you actually *do* want to have "consume" even for
+flag values, exactly *because* it is potentially cheaper than acquire.
 
-Agreed, although it's easy to ignore the parts related to mo_consume, I
-think.
+In fact, I'd argue that making consume reliable in the face of control
+dependencies is actually a *good* thing. It may not matter for
+something like x86, where consume and acquire end up with the same
+simple load, but even there it might relax instruction scheduling a
+bit, since a 'consume' would have a barrier just to the *users* of the
+value loaded, while 'acquire' would still have a scheduling barrier to
+any subsequent operations.
 
->  (b) means that the above obvious example *works*
->  (c) does not in *any* way make for any less efficient code generation
-> for the cases that "consume" works correctly for in the current
-> mis-designed standard.
->  (d) is actually a hell of a lot easier to explain to a compiler
-> writer, and I can guarantee that it is simpler to implement too.
+So I claim that for a sequence like my example, where the reader
+basically does something like
 
-mo_acquire is certainly easier to implement in a compiler.
+   load_atomic(&initialized, consume) ? value : -1;
 
-> Why do I claim (d) "it is simpler to implement" - because on ARM/power
-> you can implement it *exactly* as a special "acquire", with just a
-> trivial peep-hole special case that follows the use chain of the
-> acquire op to the consume, and then just drop the acquire bit if the
-> only use is that compute-to-load chain.
+the "consume" version can actually generate better code than "acquire"
+- if "consume" is specified the way *I* specified it.
 
-That's similar to the way I saw it and described in my reply to your
-other email (before getting to this email here).  It seems that this
-indeed might be doable transparently in the compiler, without requiring
-a special mo_acquire variant visible to programmers.
+The way the C standard specifies it, the above code is *buggy*.
+Agreed? It's really really subtly buggy, and I think that bug is not
+only a real danger, I think it is logically hard to understand why.
+The bug only makes sense to people who understand how memory ordering
+and branch prediction interacts.
 
-> In fact, realistically, the *only* thing you need to actually care
-> about for the intended use case of "consume" is the question "is the
-> consuming load immediately consumed as an address (with offset) of a
-> memory operation. So you don't even need to follow any complicated
-> computation chain in a compiler - the only case that matters for the
-> barrier removal optimization is the "oh, I can see that it is only
-> used as an address to a dereference".
+The way *I* suggested "consume" be implemented, the above not only
+works and is sensible, it actually generates possibly better code than
+forcing the programmer to use the (illogical) "acquire" operation.
 
-To make this mo_acquire optimization apply often, a compiler might have
-to try to filter out accesses that don't synchronize (e.g., so that an
-access to a non-shared temporary variable doesn't prevent the
-optimization).
+Why? Let me give you another - completely realistic, even if obviously
+a bit made up - example:
 
-> Seriously. The current standard is broken.
+   int return_expensive_system_value(void)
+   {
+        static atomic_t initialized;
+        static int calculated;
 
-Please, let's be precise in such statement, so that everyone actually
-knows what's meant.  The rest of the memory model can be perfectly fine
-even if you think that mo_consume isn't useful at all.  I think your
-opinion about mo_consume is clear now (and I have concerns about it too,
-FWIW).  If you see issues about all the other parts of the memory model
-(or the standard), please state these separately.
+        if (atomic_read(&initialized, mo_consume))
+            return calculated;
+
+        //let's say that this code opens /proc/cpuinfo and counts
+number of CPU's or whatever ...
+        calculated = read_value_from_system_files();
+        atomic_write(&initialized, 1, mo_release);
+        return calculated;
+    }
+
+and let's all agree that this is a somewhat realistic example, and we
+can imagine why/how somebody would write code like this. It's
+basically a very common lazy initialization pattern, you'll find this
+in libraries, in kernels, in application code yadda yadda. No
+argument?
+
+Now, let's assume that it turns out that this value ends up being
+really performance-critical, so the programmer makes the fast-path an
+inline function, tells the compiler that "initialized" read is likely,
+and generally wants the compiler to optimize it to hell and back.
+Still sounds reasonable and realistic?
+
+In other words, the *expected* code sequence for this is (on x86,
+which doesn't need any barriers):
+
+    cmpl $0, initialized
+    je unlikely_out_of_line_case
+    movl calculated, eax
+
+and on ARM/power you'd see a 'sync' instruction or whatever.
+
+So far 'acquire' and 'consume' have exacly the same code generation on
+power of x86, so your argument can be: "Ok, so let's just use the
+inconvenient and hard-to-understand 'consume' semantics that the
+current standard has, and tell the programmer that he should use
+'acquire' and not worry his little head about the difference because
+he will never understand it anyway".
+
+Sure, that would be an inconvencience for programmers, but hey,
+they're programming in C or C++, so they are *expected* to be manly
+men or womanly women, and a little illogical inconvenience never hurt
+anybody. After all, compared to the aliasing rules, that "use acquire,
+not consume" rule is positively *simple*, no?
+
+Are we all in agreement so far?
+
+But no, the "consume" thing can actually generate better code. Trivial example:
+
+    int my_threads_value;
+    extern int magic_system_multiplier;
+
+    my_thread_value = return_expensive_system_value();
+    my_thread_value *= magic_system_multiplier;
+
+and in the "acquire" model, the "acquire" itself means that the load
+from magic_system_multiplier is now constrained by the acquire memory
+ordering on "initialized".
+
+While in my *sane* model, where you can consume things even if they
+then result in control dependencies, there will still eventually be a
+"sync" instruction on powerpc (because you really need one between the
+load of 'initialized' and the load of 'calculated'), but the compiler
+would be free to schedule the load of 'magic_system_multiplier'
+earlier.
+
+So as far as I can tell, we want the 'consume' memory ordering to
+honor *all* dependencies, because
+ - it's simpler
+ - it's more logical
+ - it's less error-prone
+ - and it allows better code generation
+
+Hmm?
+
+              Linus
