@@ -1,7 +1,7 @@
 From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Thu, 20 Feb 2014 11:02:53 -0800
-Message-ID: <CA+55aFx9ZZeSEmZL2H69Mou=JcYr77Tb8SdDhMvV+GUVvEmd5Q@mail.gmail.com>
+Date: Thu, 20 Feb 2014 11:06:37 -0800
+Message-ID: <CA+55aFw-1oeOvH2eJgoJc5eU-0RRVER+gqqAkCYmJ+4MNpz53w@mail.gmail.com>
 References: <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
 	<1392666947.18779.6838.camel@triegel.csb>
 	<CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
@@ -16,66 +16,33 @@ References: <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
 	<CA+55aFwwscSzwTr+xRdirtTx7HzugmMY9HrDe0GBqNhn=AuNVA@mail.gmail.com>
 	<1392918576.18779.10198.camel@triegel.csb>
 	<CA+55aFwV3pH+CP7Anv_YXzChL5V3_zre0+Ry-a1tJGYsbn-3iQ@mail.gmail.com>
+	<CA+55aFx9ZZeSEmZL2H69Mou=JcYr77Tb8SdDhMvV+GUVvEmd5Q@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ve0-f176.google.com ([209.85.128.176]:52985 "EHLO
-	mail-ve0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754596AbaBTTCz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Feb 2014 14:02:55 -0500
-In-Reply-To: <CA+55aFwV3pH+CP7Anv_YXzChL5V3_zre0+Ry-a1tJGYsbn-3iQ@mail.gmail.com>
+Received: from mail-vc0-f170.google.com ([209.85.220.170]:37100 "EHLO
+	mail-vc0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754799AbaBTTGi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Feb 2014 14:06:38 -0500
+In-Reply-To: <CA+55aFx9ZZeSEmZL2H69Mou=JcYr77Tb8SdDhMvV+GUVvEmd5Q@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Torvald Riegel <triegel@redhat.com>
 Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
 
-On Thu, Feb 20, 2014 at 10:25 AM, Linus Torvalds
+On Thu, Feb 20, 2014 at 11:02 AM, Linus Torvalds
 <torvalds@linux-foundation.org> wrote:
 >
-> While in my *sane* model, where you can consume things even if they
-> then result in control dependencies, there will still eventually be a
-> "sync" instruction on powerpc (because you really need one between the
-> load of 'initialized' and the load of 'calculated'), but the compiler
-> would be free to schedule the load of 'magic_system_multiplier'
-> earlier.
+> Again, the way I'd expect a compiler writer to actually *do* this is
+> to just default to "ac
 
-Actually, "consume" is more interesting than that. Looking at the
-bugzilla entry Torvald pointed at, it has the trick to always turn any
-"consume" dependency into an address data dependency.
+Oops, pressed send by mistake too early.
 
-So another reason why you *want* to allow "consume" + "control
-dependency" is that it opens up the window for many more interesting
-and relevant optimizations than "acquire" does.
+I was almost done:
 
-Again, let's take that "trivial" expression:
+I'd expect a compiler to just default to "acquire" semantics, but then
+have a few "obvious peephole" optimizations for cases that it
+encounters and where it is easy to replace the synchronization point
+with just an address dependency.
 
-     return atomic_read(&initialized, consume) ? value : -1;
-
-and the compiler can actually turn this into an interesting address
-data dependency and optimize it to basically use address arithmetic
-and turn it into something like
-
-    return *(&value + (&((int)-1)-value)*!atomic_read(&initialized, consume));
-
-Of course, the *programmer* could have done that himself, but the
-above is actually a *pessimization* on x86 or other strongly ordered
-machines, so doing it at a source code level is actually a bad idea
-(not to mention that it's horribly unreadable).
-
-I could easily have gotten the address generation trick above wrong
-(see my comment about "horribly unreadable" and no sane person doing
-this at a source level), but that "complex" expression is not
-necessarily at all complex for a compiler. If "value" is a static
-variable, the compiler could create another read-only static variable
-that contains that "-1" value, and the difference in addresses would
-be a link-time constant, so it would not necessarily be all that ugly
-from a code generation standpoint.
-
-There are other ways to turn it into an address dependency, so the
-whole "consume as an input to conditionals" really does seem to have
-several optimization advantages (over "acquire").
-
-Again, the way I'd expect a compiler writer to actually *do* this is
-to just default to "ac
-
-               Linus
+             Linus
