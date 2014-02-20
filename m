@@ -1,18 +1,11 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f170.google.com ([209.85.220.170]:35029 "EHLO
-	mail-vc0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751638AbaBTAxu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2014 19:53:50 -0500
+Received: from mail-vc0-f178.google.com ([209.85.220.178]:42268 "EHLO
+	mail-vc0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752294AbaBTEnP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2014 23:43:15 -0500
 MIME-Version: 1.0
-In-Reply-To: <1392752867.18779.8120.camel@triegel.csb>
-References: <1392321837.18779.3249.camel@triegel.csb>
-	<20140214020144.GO4250@linux.vnet.ibm.com>
-	<1392352981.18779.3800.camel@triegel.csb>
-	<20140214172920.GQ4250@linux.vnet.ibm.com>
-	<CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>
-	<CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>
-	<1392486310.18779.6447.camel@triegel.csb>
-	<CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
+In-Reply-To: <20140220040102.GM4250@linux.vnet.ibm.com>
+References: <CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
 	<1392666947.18779.6838.camel@triegel.csb>
 	<CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
 	<20140218030002.GA15857@linux.vnet.ibm.com>
@@ -21,87 +14,105 @@ References: <1392321837.18779.3249.camel@triegel.csb>
 	<1392740258.18779.7732.camel@triegel.csb>
 	<CA+55aFw7QYEMFs0BCxqRJW3Cz=tLbaku-tmN6hLXPKP9jbom7Q@mail.gmail.com>
 	<1392752867.18779.8120.camel@triegel.csb>
-Date: Wed, 19 Feb 2014 16:53:49 -0800
-Message-ID: <CA+55aFxQPxQ8WOaZL8yAqBA=Y4k2gDn4r4oepMyi0uL6XLzv3w@mail.gmail.com>
+	<CA+55aFxQPxQ8WOaZL8yAqBA=Y4k2gDn4r4oepMyi0uL6XLzv3w@mail.gmail.com>
+	<20140220040102.GM4250@linux.vnet.ibm.com>
+Date: Wed, 19 Feb 2014 20:43:14 -0800
+Message-ID: <CA+55aFwwscSzwTr+xRdirtTx7HzugmMY9HrDe0GBqNhn=AuNVA@mail.gmail.com>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
 From: Linus Torvalds <torvalds@linux-foundation.org>
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Torvald Riegel <triegel@redhat.com>
-Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140220005349.RojVng-S6J-wsoOTJky8RbioFlzihQcaqpQRZqC2LB0@z>
+To: Paul McKenney <paulmck@linux.vnet.ibm.com>
+Cc: Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Message-ID: <20140220044314.LI3029EJQ5aKWDLZ2A3sIxEoS_eMWs9SLRZb3K1uiZQ@z>
 
-On Tue, Feb 18, 2014 at 11:47 AM, Torvald Riegel <triegel@redhat.com> wrote:
-> On Tue, 2014-02-18 at 09:44 -0800, Linus Torvalds wrote:
->>
->> Can you point to it? Because I can find a draft standard, and it sure
->> as hell does *not* contain any clarity of the model. It has a *lot* of
->> verbiage, but it's pretty much impossible to actually understand, even
->> for somebody who really understands memory ordering.
+On Wed, Feb 19, 2014 at 8:01 PM, Paul E. McKenney
+<paulmck@linux.vnet.ibm.com> wrote:
 >
-> http://www.cl.cam.ac.uk/~mjb220/n3132.pdf
-> This has an explanation of the model up front, and then the detailed
-> formulae in Section 6.  This is from 2010, and there might have been
-> smaller changes since then, but I'm not aware of any bigger ones.
+> The control dependency should order subsequent stores, at least assuming
+> that "a" and "b" don't start off with identical stores that the compiler
+> could pull out of the "if" and merge.  The same might also be true for ?:
+> for all I know.  (But see below)
 
-Ahh, this is different from what others pointed at. Same people,
-similar name, but not the same paper.
+Stores I don't worry about so much because
 
-I will read this version too, but from reading the other one and the
-standard in parallel and trying to make sense of it, it seems that I
-may have originally misunderstood part of the whole control dependency
-chain.
+ (a) you can't sanely move stores up in a compiler anyway
+ (b) no sane CPU or moves stores up, since they aren't on the critical path
 
-The fact that the left side of "? :", "&&" and "||" breaks data
-dependencies made me originally think that the standard tried very
-hard to break any control dependencies. Which I felt was insane, when
-then some of the examples literally were about the testing of the
-value of an atomic read. The data dependency matters quite a bit. The
-fact that the other "Mathematical" paper then very much talked about
-consume only in the sense of following a pointer made me think so even
-more.
+so a read->cmp->store is actually really hard to make anything sane
+re-order. I'm sure it can be done, and I'm sure it's stupid as hell.
 
-But reading it some more, I now think that the whole "data dependency"
-logic (which is where the special left-hand side rule of the ternary
-and logical operators come in) are basically an exception to the rule
-that sequence points end up being also meaningful for ordering (ok, so
-C11 seems to have renamed "sequence points" to "sequenced before").
+But that "it's hard to screw up" is *not* true for a load->cmp->load.
 
-So while an expression like
+So lets make this really simple: if you have a consume->cmp->read, is
+the ordering of the two reads guaranteed?
 
-    atomic_read(p, consume) ? a : b;
+> As long as there is an unbroken chain of -data- dependencies from the
+> consume to the later access in question, and as long as that chain
+> doesn't go through the excluded operations, yes.
 
-doesn't have a data dependency from the atomic read that forces
-serialization, writing
+So let's make it *really* specific, and make it real code doing a real
+operation, that is actually realistic and reasonable in a threaded
+environment, and may even be in some critical code.
 
-   if (atomic_read(p, consume))
-      a;
-   else
-      b;
+The issue is the read-side ordering guarantee for 'a' and 'b', for this case:
 
-the standard *does* imply that the atomic read is "happens-before" wrt
-"a", and I'm hoping that there is no question that the control
-dependency still acts as an ordering point.
+ - Initial state:
 
-THAT was one of my big confusions, the discussion about control
-dependencies and the fact that the logical ops broke the data
-dependency made me believe that the standard tried to actively avoid
-the whole issue with "control dependencies can break ordering
-dependencies on some CPU's due to branch prediction and memory
-re-ordering by the CPU".
+   a = b = 0;
 
-But after all the reading, I'm starting to think that that was never
-actually the implication at all, and the "logical ops breaks the data
-dependency rule" is simply an exception to the sequence point rule.
-All other sequence points still do exist, and do imply an ordering
-that matters for "consume"
+ - Thread 1 ("consumer"):
 
-Am I now reading it right?
+    if (atomic_read(&a, consume))
+         return b;
+    /* not yet initialized */
+    return -1;
 
-So the clarification is basically to the statement that the "if
-(consume(p)) a" version *would* have an ordering guarantee between the
-read of "p" and "a", but the "consume(p) ? a : b" would *not* have
-such an ordering guarantee. Yes?
+ - Thread 2 ("initializer"):
 
-                       Linus
+     b = some_value_lets_say_42;
+     /* We are now ready to party */
+     atomic_write(&a, 1, release);
+
+and quite frankly, if there is no ordering guarantee between the read
+of "a" and the read of "b" in the consumer thread, then the C atomics
+standard is broken.
+
+Put another way: I claim that if "thread 1" ever sees a return value
+other than -1 or 42, then the whole definition of atomics is broken.
+
+Question 2: and what changes if the atomic_read() is turned into an
+acquire, and why? Does it start working?
+
+> Neither has a data-dependency guarantee, because there is no data
+> dependency from the load to either "a" or "b".  After all, the value
+> loaded got absorbed into the "if" condition.  However, according to
+> discussions earlier in this thread, the "if" variant would have a
+> control-dependency ordering guarantee for any stores in "a" and "b"
+> (but not loads!).
+
+So exactly what part of the standard allows the loads to be
+re-ordered, and why? Quite frankly, I'd think that any sane person
+will agree that the above code snippet is realistic, and that my
+requirement that thread 1 sees either -1 or 42 is valid.
+
+And if the C standards body has said that control dependencies break
+the read ordering, then I really think that the C standards committee
+has screwed up.
+
+If the consumer of an atomic load isn't a pointer chasing operation,
+then the consume should be defined to be the same as acquire. None of
+this "conditionals break consumers". No, conditionals on the
+dependency path should turn consumers into acquire, because otherwise
+the "consume" load is dangerous as hell.
+
+And if the definition of acquire doesn't include the control
+dependency either, then the C atomic memory model is just completely
+and utterly broken, since the above *trivial* and clearly useful
+example is broken.
+
+I really think the above example is pretty damn black-and-white.
+Either it works, or the standard isn't worth wiping your ass with.
+
+          Linus
