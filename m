@@ -1,42 +1,102 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH 2/4] Sparc: sparc_cpu_model isn't in asm/system.h any
- more
-Date: Wed, 19 Feb 2014 19:47:13 -0500 (EST)
-Message-ID: <20140219.194713.1411547109743205257.davem@davemloft.net>
-References: <20140212154544.2405.2992.stgit@warthog.procyon.org.uk>
-	<20140212154559.2405.3104.stgit@warthog.procyon.org.uk>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
+Date: Wed, 19 Feb 2014 16:53:49 -0800
+Message-ID: <CA+55aFxQPxQ8WOaZL8yAqBA=Y4k2gDn4r4oepMyi0uL6XLzv3w@mail.gmail.com>
+References: <1392321837.18779.3249.camel@triegel.csb>
+	<20140214020144.GO4250@linux.vnet.ibm.com>
+	<1392352981.18779.3800.camel@triegel.csb>
+	<20140214172920.GQ4250@linux.vnet.ibm.com>
+	<CA+55aFx9CbgrfK4rBVYD75y2KoWiO90dSYsAW83O-tYVLK-gkg@mail.gmail.com>
+	<CA+55aFypfiTFwundih8QEA6ZwVGk=g5L4sabsN0932eih5knOQ@mail.gmail.com>
+	<1392486310.18779.6447.camel@triegel.csb>
+	<CA+55aFwTrt_6m1inNHQkk74i7uPkHNnacwHiBgioZSXieAs5Sw@mail.gmail.com>
+	<1392666947.18779.6838.camel@triegel.csb>
+	<CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
+	<20140218030002.GA15857@linux.vnet.ibm.com>
+	<CA+55aFyqLrj4d2TA+2aazRqXnbVsUvs0yaBL2D5rXF1G=Kiu_g@mail.gmail.com>
+	<CA+55aFwsq5E8kMoEeHJJ1f2=+QAUCu_HndfPxHNz8fUBprS-jQ@mail.gmail.com>
+	<1392740258.18779.7732.camel@triegel.csb>
+	<CA+55aFw7QYEMFs0BCxqRJW3Cz=tLbaku-tmN6hLXPKP9jbom7Q@mail.gmail.com>
+	<1392752867.18779.8120.camel@triegel.csb>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:49106 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750846AbaBTArP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Feb 2014 19:47:15 -0500
-In-Reply-To: <20140212154559.2405.3104.stgit@warthog.procyon.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: dhowells@redhat.com
-Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org, sparclinux@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1392752867.18779.8120.camel@triegel.csb>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Torvald Riegel <triegel@redhat.com>
+Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+List-Id: linux-arch.vger.kernel.org
 
-From: David Howells <dhowells@redhat.com>
-Date: Wed, 12 Feb 2014 15:45:59 +0000
+On Tue, Feb 18, 2014 at 11:47 AM, Torvald Riegel <triegel@redhat.com> wrote:
+> On Tue, 2014-02-18 at 09:44 -0800, Linus Torvalds wrote:
+>>
+>> Can you point to it? Because I can find a draft standard, and it sure
+>> as hell does *not* contain any clarity of the model. It has a *lot* of
+>> verbiage, but it's pretty much impossible to actually understand, even
+>> for somebody who really understands memory ordering.
+>
+> http://www.cl.cam.ac.uk/~mjb220/n3132.pdf
+> This has an explanation of the model up front, and then the detailed
+> formulae in Section 6.  This is from 2010, and there might have been
+> smaller changes since then, but I'm not aware of any bigger ones.
 
-> sparc_cpu_model isn't in asm/system.h any more, so remove a comment about it.
-> 
-> Signed-off-by: David Howells <dhowells@redhat.com>
+Ahh, this is different from what others pointed at. Same people,
+similar name, but not the same paper.
 
-That's not all your patch does:
+I will read this version too, but from reading the other one and the
+standard in parallel and trying to make sense of it, it seems that I
+may have originally misunderstood part of the whole control dependency
+chain.
 
-> -	/* extern enum sparc_cpu sparc_cpu_model; */ /* in <asm/system.h> */
-> -	if (sparc_cpu_model != sun4m) {
-> +	if (sparc_cpu_model != sun4m)
->  		/* We must be on sun4m because we use MMU Bypass ASI. */
->  		return -ENXIO;
-> -	}
+The fact that the left side of "? :", "&&" and "||" breaks data
+dependencies made me originally think that the standard tried very
+hard to break any control dependencies. Which I felt was insane, when
+then some of the examples literally were about the testing of the
+value of an atomic read. The data dependency matters quite a bit. The
+fact that the other "Mathematical" paper then very much talked about
+consume only in the sense of following a pointer made me think so even
+more.
 
-The basic block is more than one line, therefore the braces are
-appropriate.  Please do not remove them, and especially do not
-remove them without mentioning them in the commit message.
+But reading it some more, I now think that the whole "data dependency"
+logic (which is where the special left-hand side rule of the ternary
+and logical operators come in) are basically an exception to the rule
+that sequence points end up being also meaningful for ordering (ok, so
+C11 seems to have renamed "sequence points" to "sequenced before").
 
-Thanks.
+So while an expression like
+
+    atomic_read(p, consume) ? a : b;
+
+doesn't have a data dependency from the atomic read that forces
+serialization, writing
+
+   if (atomic_read(p, consume))
+      a;
+   else
+      b;
+
+the standard *does* imply that the atomic read is "happens-before" wrt
+"a", and I'm hoping that there is no question that the control
+dependency still acts as an ordering point.
+
+THAT was one of my big confusions, the discussion about control
+dependencies and the fact that the logical ops broke the data
+dependency made me believe that the standard tried to actively avoid
+the whole issue with "control dependencies can break ordering
+dependencies on some CPU's due to branch prediction and memory
+re-ordering by the CPU".
+
+But after all the reading, I'm starting to think that that was never
+actually the implication at all, and the "logical ops breaks the data
+dependency rule" is simply an exception to the sequence point rule.
+All other sequence points still do exist, and do imply an ordering
+that matters for "consume"
+
+Am I now reading it right?
+
+So the clarification is basically to the statement that the "if
+(consume(p)) a" version *would* have an ordering guarantee between the
+read of "p" and "a", but the "consume(p) ? a : b" would *not* have
+such an ordering guarantee. Yes?
+
+                       Linus
