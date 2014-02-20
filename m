@@ -1,89 +1,53 @@
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Thu, 20 Feb 2014 10:56:08 -0800
-Message-ID: <20140220185608.GX4250@linux.vnet.ibm.com>
-References: <1392740258.18779.7732.camel@triegel.csb> <CA+55aFw7QYEMFs0BCxqRJW3Cz=tLbaku-tmN6hLXPKP9jbom7Q@mail.gmail.com> <1392752867.18779.8120.camel@triegel.csb> <CA+55aFxQPxQ8WOaZL8yAqBA=Y4k2gDn4r4oepMyi0uL6XLzv3w@mail.gmail.com> <20140220040102.GM4250@linux.vnet.ibm.com> <CA+55aFwwscSzwTr+xRdirtTx7HzugmMY9HrDe0GBqNhn=AuNVA@mail.gmail.com> <20140220083032.GN4250@linux.vnet.ibm.com> <CA+55aFwfx==u7o1NZ66aPbkOgsvGqW3UscGqrQkGuzOkjSpm6Q@mail.gmail.com> <20140220181116.GT4250@linux.vnet.ibm.com> <CA+55aFwn9gXWVq_GL=tPPP63vsqs-9QB4ii4s06xqG4UscCV5w@mail.gmail.com>
+Date: Thu, 20 Feb 2014 10:56:42 -0800
+Message-ID: <20140220185642.GY4250@linux.vnet.ibm.com>
+References: <1392740258.18779.7732.camel@triegel.csb>
+ <CA+55aFw7QYEMFs0BCxqRJW3Cz=tLbaku-tmN6hLXPKP9jbom7Q@mail.gmail.com>
+ <1392752867.18779.8120.camel@triegel.csb>
+ <CA+55aFxQPxQ8WOaZL8yAqBA=Y4k2gDn4r4oepMyi0uL6XLzv3w@mail.gmail.com>
+ <20140220040102.GM4250@linux.vnet.ibm.com>
+ <CA+55aFwwscSzwTr+xRdirtTx7HzugmMY9HrDe0GBqNhn=AuNVA@mail.gmail.com>
+ <20140220083032.GN4250@linux.vnet.ibm.com>
+ <CA+55aFwfx==u7o1NZ66aPbkOgsvGqW3UscGqrQkGuzOkjSpm6Q@mail.gmail.com>
+ <20140220181116.GT4250@linux.vnet.ibm.com>
+ <1392921872.18779.10287.camel@triegel.csb>
 Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <gcc-return-182226-gcc=m.gmane.org@gcc.gnu.org>
-List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
-List-Archive: <http://gcc.gnu.org/ml/gcc/>
-List-Post: <mailto:gcc@gcc.gnu.org>
-List-Help: <http://gcc.gnu.org/ml/>
-Sender: gcc-owner@gcc.gnu.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e35.co.us.ibm.com ([32.97.110.153]:50492 "EHLO
+	e35.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755378AbaBTS4r (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Feb 2014 13:56:47 -0500
+Received: from /spool/local
+	by e35.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Thu, 20 Feb 2014 11:56:47 -0700
 Content-Disposition: inline
-In-Reply-To: <CA+55aFwn9gXWVq_GL=tPPP63vsqs-9QB4ii4s06xqG4UscCV5w@mail.gmail.com>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <1392921872.18779.10287.camel@triegel.csb>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Torvald Riegel <triegel@redhat.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
 
-On Thu, Feb 20, 2014 at 10:32:51AM -0800, Linus Torvalds wrote:
-> On Thu, Feb 20, 2014 at 10:11 AM, Paul E. McKenney
-> <paulmck@linux.vnet.ibm.com> wrote:
-> >
-> > You really need that "consume" to be "acquire".
+On Thu, Feb 20, 2014 at 07:44:32PM +0100, Torvald Riegel wrote:
+> xagsmtp3.20140220184514.1789@bldgate.vnet.ibm.com
+> X-Xagent-Gateway: bldgate.vnet.ibm.com (XAGSMTP3 at BLDGATE)
 > 
-> So I think we now all agree that that is what the standard is saying.
+> On Thu, 2014-02-20 at 10:11 -0800, Paul E. McKenney wrote:
+> > But yes, the compiler guys would be extremely happy to simply drop
+> > memory_order_consume from the standard, as it is the memory order
+> > that they most love to hate.
+> > 
+> > Getting them to agree to any sort of peep-hole optimization semantics
+> > for memory_order_consume is likely problematic.  
 > 
-> And I'm saying that that is wrong, that the standard is badly written,
-> and should be fixed.
-> 
-> Because before the standard is fixed, I claim that "consume" is
-> unusable. We cannot trust it. End of story.
+> I wouldn't be so pessimistic about that.  If the transformations can be
+> shown to be always correct in terms of the semantics specified in the
+> standard, and if the performance win is sufficiently large, why not?  Of
+> course, somebody has to volunteer to actually implement it :)
 
-We get exactly those same issues with control dependencies.
-
-The example gcc breakage was something like this:
-
-	i = atomic_load(idx, memory_order_consume);
-	x = array[0 + i - i];
-
-Then gcc optimized this to:
-
-	i = atomic_load(idx, memory_order_consume);
-	x = array[0];
-
-This same issue would hit control dependencies.  You are free to argue
-that this is the fault of ARM and PowerPC memory ordering, but the fact
-remains that your suggested change has -exactly- the same vulnerability
-as memory_order_consume currently has.
-
-> The fact that apparently gcc is currently buggy because it got the
-> dependency calculations *wrong* just reinforces my point.
-> 
-> The gcc bug Torvald pointed at is exactly because the current C
-> standard is illogical unreadable CRAP. I can guarantee that what
-> happened is:
-> 
->  - the compiler saw that the result of the read was used as the left
-> hand expression of the ternary "? :" operator
-> 
->  - as a result, the compiler decided that there's no dependency
-> 
->  - the compiler didn't think about the dependency that comes from the
-> result of the load *also* being used as the middle part of the ternary
-> expression, because it had optimized it away, despite the standard not
-> talking about that at all.
-> 
->  - so the compiler never saw the dependency that the standard talks about
-
-No, the dependency was in a cancelling arithmetic expression as shown
-above, so that gcc optimized the dependency away.  Then the ordering
-was lost on AARCH64.
-
-http://gcc.gnu.org/bugzilla/show_bug.cgi?id=59448
-
-> BECAUSE THE STANDARD LANGUAGE IS PURE AND UTTER SHIT.
-> 
-> My suggested language never had any of these problems, because *my*
-> suggested semantics are clear, logical, and don't have these kinds of
-> idiotic pit-falls.
-> 
-> Solution: Fix the f*cking C standard. No excuses, no explanations.
-> Just get it fixed.
-
-I agree that the standard needs help, but your suggested fix has the
-same problems as shown in the bugzilla.
+I guess that there is only one way to find out.  ;-)
 
 							Thanx, Paul
