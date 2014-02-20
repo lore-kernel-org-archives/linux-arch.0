@@ -1,63 +1,38 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Thu, 20 Feb 2014 01:20:49 -0800
-Message-ID: <20140220092049.GA22688@linux.vnet.ibm.com>
-References: <20140218030002.GA15857@linux.vnet.ibm.com>
- <CA+55aFyqLrj4d2TA+2aazRqXnbVsUvs0yaBL2D5rXF1G=Kiu_g@mail.gmail.com>
- <CA+55aFwsq5E8kMoEeHJJ1f2=+QAUCu_HndfPxHNz8fUBprS-jQ@mail.gmail.com>
- <1392740258.18779.7732.camel@triegel.csb>
- <CA+55aFw7QYEMFs0BCxqRJW3Cz=tLbaku-tmN6hLXPKP9jbom7Q@mail.gmail.com>
- <1392752867.18779.8120.camel@triegel.csb>
- <CA+55aFxQPxQ8WOaZL8yAqBA=Y4k2gDn4r4oepMyi0uL6XLzv3w@mail.gmail.com>
- <20140220040102.GM4250@linux.vnet.ibm.com>
- <CA+55aFwwscSzwTr+xRdirtTx7HzugmMY9HrDe0GBqNhn=AuNVA@mail.gmail.com>
- <20140220083032.GN4250@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: David Howells <dhowells@redhat.com>
+Subject: [PATCH 2/4] Sparc: sparc_cpu_model isn't in asm/system.h any more [ver #2]
+Date: Thu, 20 Feb 2014 16:08:12 +0000
+Message-ID: <17732.1392912492@warthog.procyon.org.uk>
+References: <20140212154559.2405.3104.stgit@warthog.procyon.org.uk>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e33.co.us.ibm.com ([32.97.110.151]:43400 "EHLO
-	e33.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751002AbaBTJUz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Feb 2014 04:20:55 -0500
-Received: from /spool/local
-	by e33.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Thu, 20 Feb 2014 02:20:55 -0700
-Content-Disposition: inline
-In-Reply-To: <20140220083032.GN4250@linux.vnet.ibm.com>
+Received: from mx1.redhat.com ([209.132.183.28]:37878 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754516AbaBTQIX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 20 Feb 2014 11:08:23 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+To: akpm@linux-foundation.org, davem@davemloft.net
+Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org, sparclinux@vger.kernel.org
 
-On Thu, Feb 20, 2014 at 12:30:32AM -0800, Paul E. McKenney wrote:
-> On Wed, Feb 19, 2014 at 08:43:14PM -0800, Linus Torvalds wrote:
 
-[ . . . ]
+sparc_cpu_model isn't in asm/system.h any more, so remove a comment about it.
 
-> So, if you make one of two changes to your example, then I will agree
-> with you.  The first change is to have a real data dependency between
-> the read of "a" and the second read:
-> 
->  - Initial state:
-> 
->    a = &c, b = 0; c = 0;
-> 
->  - Thread 1 ("consumer"):
-> 
->     if (atomic_read(&a, consume))
+Signed-off-by: David Howells <dhowells@redhat.com>
+cc: "David S. Miller" <davem@davemloft.net>
+cc: sparclinux@vger.kernel.org
+---
 
-And the above should be "if (atomic_read(&a, consume) != &c)".  Sigh!!!
+ drivers/sbus/char/jsflash.c |    1 -
+ 1 file changed, 1 deletion(-)
 
-							Thanx, Paul
-
->          return *a;
->     /* not yet initialized */
->     return -1;
-> 
->  - Thread 2 ("initializer"):
-> 
->      b = some_value_lets_say_42;
->      /* We are now ready to party */
->      atomic_write(&a, &b, release);
+diff --git a/drivers/sbus/char/jsflash.c b/drivers/sbus/char/jsflash.c
+index 6b4678a..4ccb5d8 100644
+--- a/drivers/sbus/char/jsflash.c
++++ b/drivers/sbus/char/jsflash.c
+@@ -507,7 +507,6 @@ static int jsflash_init(void)
+ 	}
+ 
+ 	/* Let us be really paranoid for modifications to probing code. */
+-	/* extern enum sparc_cpu sparc_cpu_model; */ /* in <asm/system.h> */
+ 	if (sparc_cpu_model != sun4m) {
+ 		/* We must be on sun4m because we use MMU Bypass ASI. */
+ 		return -ENXIO;
