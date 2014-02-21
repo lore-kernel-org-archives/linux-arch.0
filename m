@@ -1,41 +1,59 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH RESEND 10/14] hppa: locks: remove redundant arch_*_relax operations
-Date: Fri, 21 Feb 2014 17:34:57 +0000
-Message-ID: <1393004101-25382-11-git-send-email-will.deacon@arm.com>
+Subject: [PATCH RESEND 13/14] sparc: locks: remove redundant arch_*_relax operations
+Date: Fri, 21 Feb 2014 17:35:00 +0000
+Message-ID: <1393004101-25382-14-git-send-email-will.deacon@arm.com>
 References: <1393004101-25382-1-git-send-email-will.deacon@arm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:44755 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:44749 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S933426AbaBURfL (ORCPT
+	by vger.kernel.org with ESMTP id S932120AbaBURfK (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 21 Feb 2014 12:35:11 -0500
+	Fri, 21 Feb 2014 12:35:10 -0500
 In-Reply-To: <1393004101-25382-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
-Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Helge Deller <deller@gmx.de>
+Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>
 
 Now that the arch_{spin,read,write}_relax macros default to cpu_relax(),
-remove the redundant definitions for parisc.
+remove the redundant definitions for Sparc.
 
-Cc: Helge Deller <deller@gmx.de>
+Acked-by: David S. Miller <davem@davemloft.net>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- arch/parisc/include/asm/spinlock.h | 4 ----
- 1 file changed, 4 deletions(-)
+ arch/sparc/include/asm/spinlock_32.h | 4 ----
+ arch/sparc/include/asm/spinlock_64.h | 4 ----
+ 2 files changed, 8 deletions(-)
 
-diff --git a/arch/parisc/include/asm/spinlock.h b/arch/parisc/include/asm/spinlock.h
-index 3516e0b27044..64f2992e439f 100644
---- a/arch/parisc/include/asm/spinlock.h
-+++ b/arch/parisc/include/asm/spinlock.h
-@@ -191,8 +191,4 @@ static __inline__ int arch_write_can_lock(arch_rwlock_t *rw)
- #define arch_read_lock_flags(lock, flags) arch_read_lock(lock)
- #define arch_write_lock_flags(lock, flags) arch_write_lock(lock)
+diff --git a/arch/sparc/include/asm/spinlock_32.h b/arch/sparc/include/asm/spinlock_32.h
+index bcc98fc35281..180c8f3462ea 100644
+--- a/arch/sparc/include/asm/spinlock_32.h
++++ b/arch/sparc/include/asm/spinlock_32.h
+@@ -188,10 +188,6 @@ static inline int __arch_read_trylock(arch_rwlock_t *rw)
+ #define arch_read_lock_flags(rw, flags)   arch_read_lock(rw)
+ #define arch_write_lock_flags(rw, flags)  arch_write_lock(rw)
  
 -#define arch_spin_relax(lock)	cpu_relax()
 -#define arch_read_relax(lock)	cpu_relax()
 -#define arch_write_relax(lock)	cpu_relax()
 -
- #endif /* __ASM_SPINLOCK_H */
+ #define arch_read_can_lock(rw) (!((rw)->lock & 0xff))
+ #define arch_write_can_lock(rw) (!(rw)->lock)
+ 
+diff --git a/arch/sparc/include/asm/spinlock_64.h b/arch/sparc/include/asm/spinlock_64.h
+index 968917694978..f3b7a884f99e 100644
+--- a/arch/sparc/include/asm/spinlock_64.h
++++ b/arch/sparc/include/asm/spinlock_64.h
+@@ -216,10 +216,6 @@ static int inline arch_write_trylock(arch_rwlock_t *lock)
+ #define arch_read_can_lock(rw)		(!((rw)->lock & 0x80000000UL))
+ #define arch_write_can_lock(rw)	(!(rw)->lock)
+ 
+-#define arch_spin_relax(lock)	cpu_relax()
+-#define arch_read_relax(lock)	cpu_relax()
+-#define arch_write_relax(lock)	cpu_relax()
+-
+ #endif /* !(__ASSEMBLY__) */
+ 
+ #endif /* !(__SPARC64_SPINLOCK_H) */
 -- 
 1.8.2.2
