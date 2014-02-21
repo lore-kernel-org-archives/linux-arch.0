@@ -1,57 +1,24 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Thu, 20 Feb 2014 14:52:46 -0800
-Message-ID: <CA+55aFxp7U67R0PARaUfj94y5dJ8q6_HQ2pnbQ6=JD=XR-bTOw@mail.gmail.com>
-References: <1392752867.18779.8120.camel@triegel.csb>	<CA+55aFxQPxQ8WOaZL8yAqBA=Y4k2gDn4r4oepMyi0uL6XLzv3w@mail.gmail.com>	<20140220040102.GM4250@linux.vnet.ibm.com>	<CA+55aFwwscSzwTr+xRdirtTx7HzugmMY9HrDe0GBqNhn=AuNVA@mail.gmail.com>	<20140220083032.GN4250@linux.vnet.ibm.com>	<CA+55aFwfx==u7o1NZ66aPbkOgsvGqW3UscGqrQkGuzOkjSpm6Q@mail.gmail.com>	<20140220181116.GT4250@linux.vnet.ibm.com>	<CA+55aFwn9gXWVq_GL=tPPP63vsqs-9QB4ii4s06xqG4UscCV5w@mail.gmail.com>	<20140220185608.GX4250@linux.vnet.ibm.com>	<CA+55aFw4inow5B-JAg-NtZigJ90yDbksddr00RoMKytzDAEa8A@mail.gmail.com>	<20140220221027.GC4250@linux.vnet.ibm.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v4 3/3] qspinlock, x86: Add x86 specific optimization for
+ 2 contending tasks
+Date: Fri, 21 Feb 2014 13:12:22 +0100
+Message-ID: <20140221121222.GQ9987@twins.programming.kicks-ass.net>
+References: <1392669684-4807-1-git-send-email-Waiman.Long@hp.com>
+ <1392669684-4807-4-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <gcc-return-182236-gcc=m.gmane.org@gcc.gnu.org>
-List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
-List-Archive: <http://gcc.gnu.org/ml/gcc/>
-List-Post: <mailto:gcc@gcc.gnu.org>
-List-Help: <http://gcc.gnu.org/ml/>
-Sender: gcc-owner@gcc.gnu.org
-In-Reply-To: <20140220221027.GC4250@linux.vnet.ibm.com>
-To: Paul McKenney <paulmck@linux.vnet.ibm.com>
-Cc: Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:35329 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754055AbaBUMNO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2014 07:13:14 -0500
+Content-Disposition: inline
+In-Reply-To: <1392669684-4807-4-git-send-email-Waiman.Long@hp.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Waiman Long <Waiman.Long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
 
-On Thu, Feb 20, 2014 at 2:10 PM, Paul E. McKenney
-<paulmck@linux.vnet.ibm.com> wrote:
->
-> Linus, given that you are calling me out for pushing "legalistic and bad"
-> things, "syntactic bullshit", and playing "little games", I am forced
-> to conclude that you have never attended any sort of standards-committee
-> meeting.  ;-)
 
-Heh. I have heard people wax poetic about the pleasures of standards
-committee meetings.
 
-Enough that I haven't really ever had the slightest urge to participate ;)
-
-> FWIW, the last time I tried excluding things like "f-f", "x%1", "y*0" and
-> so on, I got a lot of pushback.  The reason I didn't argue too much back
-> (2007 or some such) then was that my view at the time was that I figured
-> the kernel code wouldn't do things like that anyway, so it didn't matter.
-
-Well.. I'd really hope we would never do that. That said, we have
-certainly used disgusting things that we knew would disable certain
-optimizations in the compiler before, so I wouldn't put it *entirely*
-past us to do things like that, but I'd argue that we'd do so in order
-to confuse the compiler to do what we want, not in order to argue that
-it's a good thing.
-
-I mean, right now we have at least *one* active ugly work-around for a
-compiler bug (the magic empty inline asm that works around the "asm
-goto" bug in gcc). So it's not like I would claim that we don't do
-disgusting things when we need to.
-
-But I'm pretty sure that any compiler guy must *hate* that current odd
-dependency-generation part, and if I was a gcc person, seeing that
-bugzilla entry Torvald pointed at, I would personally want to
-dismember somebody with a rusty spoon..
-
-So I suspect there are a number of people who would be *more* than
-happy with a change to those odd dependency rules.
-
-                Linus
+Why is this x86 only code?
