@@ -1,11 +1,10 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f182.google.com ([209.85.213.182]:37798 "EHLO
-	mail-ig0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751508AbaBUTss (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2014 14:48:48 -0500
+Received: from mail-vc0-f179.google.com ([209.85.220.179]:45895 "EHLO
+	mail-vc0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753937AbaBUUWT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2014 15:22:19 -0500
 MIME-Version: 1.0
-Reply-To: Peter.Sewell@cl.cam.ac.uk
-In-Reply-To: <CA+55aFz4Lhnx9XzMt_X8SOqmoUdiuW_93SAdV58UiEe3g278CQ@mail.gmail.com>
+In-Reply-To: <CAHWkzRSO82jU-9dtTEjHaW2FeLcEqdZXxp5Q8cmVTTT9uhZQYw@mail.gmail.com>
 References: <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
 	<20140218030002.GA15857@linux.vnet.ibm.com>
 	<CA+55aFyqLrj4d2TA+2aazRqXnbVsUvs0yaBL2D5rXF1G=Kiu_g@mail.gmail.com>
@@ -20,102 +19,42 @@ References: <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
 	<CA+55aFwfx==u7o1NZ66aPbkOgsvGqW3UscGqrQkGuzOkjSpm6Q@mail.gmail.com>
 	<CAHWkzRQZ8+gOGMFNyTKjFNzpUv6d_J1G9KL0x_iCa=YCgvEojQ@mail.gmail.com>
 	<CA+55aFyDQ-9mJJUUXqp+XWrpA8JMP0=exKa=JpiaNM9wAAsCrA@mail.gmail.com>
-	<CA+55aFz4Lhnx9XzMt_X8SOqmoUdiuW_93SAdV58UiEe3g278CQ@mail.gmail.com>
-Date: Fri, 21 Feb 2014 19:48:47 +0000
-Message-ID: <CAHWkzRRr5kY==3pZQ1Opb-Vy+2VCCUSaMJQz7Sd=5C--Y=FsxQ@mail.gmail.com>
+	<CAHWkzRSO82jU-9dtTEjHaW2FeLcEqdZXxp5Q8cmVTTT9uhZQYw@mail.gmail.com>
+Date: Fri, 21 Feb 2014 12:22:16 -0800
+Message-ID: <CA+55aFyp9WRbpHcodOr0M7cXkw+7OHMhfKCUy3q4g0YNYa_2CQ@mail.gmail.com>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-From: Peter Sewell <Peter.Sewell@cl.cam.ac.uk>
-Content-Type: text/plain; charset=ISO-8859-1
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
+To: "p796231 ." <Peter.Sewell@cl.cam.ac.uk>
 Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>, Mark Batty <mbatty@cantab.net>
-Message-ID: <20140221194847.q9cdHUwrsootNYBJsxAIC3qw6VFJg62NXWnvEk9TlAA@z>
+Message-ID: <20140221202216.i-8WBJln310-0-k3t1F-9ibX31TKYCOXdIhMyjUO2_k@z>
 
-On 21 February 2014 19:41, Linus Torvalds <torvalds@linux-foundation.org> wrote:
-> On Fri, Feb 21, 2014 at 11:16 AM, Linus Torvalds
-> <torvalds@linux-foundation.org> wrote:
->>
->> Why would this be any different, especially since it's easy to
->> understand both for a human and a compiler?
+On Fri, Feb 21, 2014 at 11:43 AM, Peter Sewell
+<Peter.Sewell@cl.cam.ac.uk> wrote:
 >
-> Btw, the actual data path may actually be semantically meaningful even
-> at a processor level.
->
-> For example, let's look at that gcc bugzilla that got mentioned
-> earlier, and let's assume that gcc is fixed to follow the "arithmetic
-> is always meaningful, even if it is only syntactic" the letter.
-> So we have that gcc bugzilla use-case:
->
->    flag ? *(q + flag - flag) : 0;
->
-> and let's say that the fixed compiler now generates the code with the
-> data dependency that is actually suggested in that bugzilla entry:
->
->         and     w2, w2, #0
->         ldr     w0, [x1, w2]
->
-> ie the CPU actually sees that address data dependency. Now everything
-> is fine, right?
->
-> Wrong.
->
-> It is actually quite possible that the CPU sees the "and with zero"
-> and *breaks the dependencies on the incoming value*.
+> You have to track dependencies through other assignments, e.g. simple x=y
 
-For reference: the Power and ARM architectures explicitly guarantee
-not to do this, the architects are quite clear about it, and we've
-tested (some cases) rather thoroughly.
-I can't speak about other architectures.
+That is all visible in the SSA form. Variable assignment has been
+converted to some use of the SSA node that generated the value. The
+use might be a phi node or a cast op, or maybe it's just a memory
+store op, but the whole point of SSA is that there is one single node
+that creates the data (in this case that would be the "load" op with
+the associated consume barrier - that barrier might be part of the
+load op itself, or it might be implemented as a separate SSA node that
+consumes the result of the load that generates a new pseudo), and the
+uses of the result are all visible from that.
 
-> Modern CPU's literally do things like that. Seriously. Maybe not that
-> particular one, but you'll sometimes find that the CPU - int he
-> instruction decoding phase (ie very early in the pipeline) notices
-> certain patterns that generate constants, and actually drop the data
-> dependency on the "incoming" registers.
->
-> On x86, generating zero using "xor" on the register with itself is one
-> such known sequence.
->
-> Can you guarantee that powerpc doesn't do the same for "and r,r,#0"?
-> Or what if the compiler generated the much more obvious
->
->     sub w2,w2,w2
->
-> for that "+flag-flag"? Are you really 100% sure that the CPU won't
-> notice that that is just a way to generate a zero, and doesn't depend
-> on the incoming values?
->
-> Because I'm not. I know CPU designers that do exactly this.
->
-> So I would actually and seriously argue that the whole C standard
-> attempt to use a syntactic data dependency as a determination of
-> whether two things are serialized is wrong, and that you actually
-> *want* to have the compiler optimize away false data dependencies.
->
-> Because people playing tricks with "+flag-flag" and thinking that that
-> somehow generates a data dependency - that's *wrong*. It's not just
-> the compiler that decides "that's obviously nonsense, I'll optimize it
-> away". The CPU itself can do it.
->
-> So my "actual semantic dependency" model is seriously more likely to
-> be *correct*. Not just t a compiler level.
->
-> Btw, any tricks like that, I would also take a second look at the
-> assembler and the linker. Many assemblers do some trivial
-> optimizations too.
+And yes, there might be a lot of users. But any complex case you just
+punt on - and the difference here is that since "punt" means "leave
+the barrier in place", it's never a correctness issue.
 
-That's certainly something worth checking.
+So yeah, it could be somewhat expensive, although you can always bound
+that expense by just punting. But the dependencies in SSA form are no
+more complex than the dependencies the C standard talks about now, and
+in SSA form they are at least really easy to follow.  So if they are
+complex and expensive in SSA form, I'd expect them to be *worse* in
+the current "depends-on" syntax form.
 
-> Are you sure that "and     w2, w2, #0" really ends
-> up being encoded as an "and"? Maybe the assembler says "I can do that
-> as a "mov w2,#0" instead? Who knows? Even power and ARM have their
-> variable-sized encodings (there are some "compressed executable"
-> embedded power processors, and there is obviously Thumb2, and many
-> assemblers end up trying to use equivalent "small" instructions..
->
-> So the whole "fake data dependency" thing is just dangerous on so many levels.
->
-> MUCH more dangerous than my "actual real dependency" model.
->
->                    Linus
+                 Linus
