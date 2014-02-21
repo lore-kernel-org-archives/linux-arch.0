@@ -1,127 +1,128 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Fri, 21 Feb 2014 11:16:30 -0800
-Message-ID: <CA+55aFyDQ-9mJJUUXqp+XWrpA8JMP0=exKa=JpiaNM9wAAsCrA@mail.gmail.com>
-References: <CA+55aFwUnRVk6q3VZeYjWfduoHcExW=Pht6jgp=4bBSaLHNPMA@mail.gmail.com>
-	<20140218030002.GA15857@linux.vnet.ibm.com>
-	<CA+55aFyqLrj4d2TA+2aazRqXnbVsUvs0yaBL2D5rXF1G=Kiu_g@mail.gmail.com>
-	<CA+55aFwsq5E8kMoEeHJJ1f2=+QAUCu_HndfPxHNz8fUBprS-jQ@mail.gmail.com>
-	<1392740258.18779.7732.camel@triegel.csb>
-	<CA+55aFw7QYEMFs0BCxqRJW3Cz=tLbaku-tmN6hLXPKP9jbom7Q@mail.gmail.com>
-	<1392752867.18779.8120.camel@triegel.csb>
-	<CA+55aFxQPxQ8WOaZL8yAqBA=Y4k2gDn4r4oepMyi0uL6XLzv3w@mail.gmail.com>
-	<20140220040102.GM4250@linux.vnet.ibm.com>
-	<CA+55aFwwscSzwTr+xRdirtTx7HzugmMY9HrDe0GBqNhn=AuNVA@mail.gmail.com>
-	<20140220083032.GN4250@linux.vnet.ibm.com>
-	<CA+55aFwfx==u7o1NZ66aPbkOgsvGqW3UscGqrQkGuzOkjSpm6Q@mail.gmail.com>
-	<CAHWkzRQZ8+gOGMFNyTKjFNzpUv6d_J1G9KL0x_iCa=YCgvEojQ@mail.gmail.com>
+Date: Fri, 21 Feb 2014 11:24:12 -0800
+Message-ID: <20140221192412.GM4250@linux.vnet.ibm.com>
+References: <1392740258.18779.7732.camel@triegel.csb>
+ <CA+55aFw7QYEMFs0BCxqRJW3Cz=tLbaku-tmN6hLXPKP9jbom7Q@mail.gmail.com>
+ <1392752867.18779.8120.camel@triegel.csb>
+ <CA+55aFxQPxQ8WOaZL8yAqBA=Y4k2gDn4r4oepMyi0uL6XLzv3w@mail.gmail.com>
+ <20140220040102.GM4250@linux.vnet.ibm.com>
+ <CA+55aFwwscSzwTr+xRdirtTx7HzugmMY9HrDe0GBqNhn=AuNVA@mail.gmail.com>
+ <20140220083032.GN4250@linux.vnet.ibm.com>
+ <CA+55aFwfx==u7o1NZ66aPbkOgsvGqW3UscGqrQkGuzOkjSpm6Q@mail.gmail.com>
+ <CAHWkzRQZ8+gOGMFNyTKjFNzpUv6d_J1G9KL0x_iCa=YCgvEojQ@mail.gmail.com>
+ <CAHWkzRRxqhH+DnuQHu9bM4ywGBen3oqtT8W4Xqt1CFAHy2WQRg@mail.gmail.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ve0-f180.google.com ([209.85.128.180]:48285 "EHLO
-	mail-ve0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751601AbaBUTQb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2014 14:16:31 -0500
-In-Reply-To: <CAHWkzRQZ8+gOGMFNyTKjFNzpUv6d_J1G9KL0x_iCa=YCgvEojQ@mail.gmail.com>
+Received: from e32.co.us.ibm.com ([32.97.110.150]:38279 "EHLO
+	e32.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750910AbaBUTYR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2014 14:24:17 -0500
+Received: from /spool/local
+	by e32.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Fri, 21 Feb 2014 12:24:16 -0700
+Content-Disposition: inline
+In-Reply-To: <CAHWkzRRxqhH+DnuQHu9bM4ywGBen3oqtT8W4Xqt1CFAHy2WQRg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "p796231 ." <Peter.Sewell@cl.cam.ac.uk>
-Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>, Mark Batty <mbatty@cantab.net>
+To: Peter Sewell <Peter.Sewell@cl.cam.ac.uk>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>, Mark Batty <mbatty@cantab.net>
 
-On Fri, Feb 21, 2014 at 10:25 AM, Peter Sewell
-<Peter.Sewell@cl.cam.ac.uk> wrote:
->
-> If one thinks this is too fragile, then simply using memory_order_acquire
-> and paying the resulting barrier cost (and perhaps hoping that compilers
-> will eventually be able to optimise some cases of those barriers to
-> hardware-level dependencies) is the obvious alternative.
+On Fri, Feb 21, 2014 at 06:28:05PM +0000, Peter Sewell wrote:
+> On 20 February 2014 17:01, Linus Torvalds <torvalds@linux-foundation.org
+> >wrote:
 
-No, the obvious alternative is to do what we do already, and just do
-it by hand. Using acquire is *worse* than what we have now.
+[ . . . ]
 
-Maybe for some other users, the thing falls out differently.
+> > > So, if you make one of two changes to your example, then I will agree
+> > > with you.
+> >
+> > No. We're not playing games here. I'm fed up with complex examples
+> > that make no sense.
+> >
+> > Nobody sane writes code that does that pointer comparison, and it is
+> > entirely immaterial what the compiler can do behind our backs. The C
+> > standard semantics need to make sense to the *user* (ie programmer),
+> > not to a CPU and not to a compiler. The CPU and compiler are "tools".
+> > They don't matter. Their only job is to make the code *work*, dammit.
+> >
+> > So no idiotic made-up examples that involve code that nobody will ever
+> > write and that have subtle issues.
+> >
+> > So the starting point is that (same example as before, but with even
+> > clearer naming):
+> >
+> > Initialization state:
+> >   initialized = 0;
+> >   value = 0;
+> >
+> > Consumer:
+> >
+> >     return atomic_read(&initialized, consume) ? value : -1;
+> >
+> > Writer:
+> >     value = 42;
+> >     atomic_write(&initialized, 1, release);
+> >
+> > and because the C memory ordering standard is written in such a way
+> > that this is subtly buggy (and can return 0, which is *not* logically
+> > a valid value), then I think the C memory ordering standard is broken.
+> >
+> > That "consumer" memory ordering is dangerous as hell, and it is
+> > dangerous FOR NO GOOD REASON.
+> >
+> > The trivial "fix" to the standard would be to get rid of all the
+> > "carries a dependency" crap, and just say that *anything* that depends
+> > on it is ordered wrt it.
+> >
+> 
+> There are two difficulties with this, if I understand correctly what
+> you're proposing.
+> 
+> The first is knowing where to stop.  If one includes all data and
+> control dependencies, pretty much all the continuation of execution
+> would depend on the consume read, so the compiler would eventually
+> have to give up and insert a gratuitous barrier.  One might imagine
+> somehow annotating the return_expensive_system_value() you have below
+> to say "stop dependency tracking at the return" (thereby perhaps
+> enabling the compiler to optimise the barrier that you'd need in h/w
+> to order the Linus-consume-read of initialised and the non-atomic read
+> of calculated, replacing it by a compiler-introduced artificial
+> dependency), and indeed that's roughly what the standard's
+> kill_dependency does for consumes.
 
-> Many concurrent things will "accidentally" work on x86 - consume is not
-> special in that respect.
+One way to tell the compiler where to stop would be to place markers
+in the source code saying where dependencies stop.  These markers
+could be provided by the definitions of the current rcu_read_unlock()
+tags in the Linux kernel (and elsewhere, for that matter).  These would
+be overridden by [[carries_dependency]] tags on function arguments and
+return values, which is needed to handle the possibility of nested RCU
+read-side critical sections.
 
-No. But if you have something that is mis-designed, easy to get wrong,
-and untestable, any sane programmer will go "that's bad".
+> The second is the proposal in later mails to use some notion of
+> "semantic" dependency instead of this syntactic one.  That's maybe
+> attractive at first sight, but rather hard to define in a decent way
+> in general.  To define whether the consume load can "really" affect
+> some subsequent value, you need to know about all the set of possible
+> executions of the program - which is exactly what we have to define.
+> 
+> For syntactic dependencies, in contrast, you can at least tell whether
+> they exist by examining the source code you have in front of you.  The
+> fact that artificial dependencies like (&x + y-y) are significant is
+> (I guess) basically incidental at the C level - sometimes things like
+> this are the best idiom to enforce ordering at the assembly level, but
+> in C I imagine they won't normally arise.  If they do, it might be
+> nicer to have a more informative syntax, eg (&x + dependency(y)).
 
-> There are two difficulties with this, if I understand correctly what you're
-> proposing.
->
-> The first is knowing where to stop.
+This was in fact one of the arguments put forward in favor of carrying
+dependencies through things like "y-y" back in the 2007-8 timeframe.
 
-No.
+Can't say that I am much of a fan of manually tagging all dependencies:
+Machines are much better at that sort of thing than are humans.
+But just out of curiosity, did you instead mean (&x + dependency(y-y))
+or some such?
 
-Read my suggestion. Knowing where to stop is *trivial*.
-
-Either the dependency is immediate and obvious, or you treat it like an acquire.
-
-Seriously. Any compiler that doesn't turn the dependency chain into
-SSA or something pretty much equivalent is pretty much a joke. Agreed?
-
-So we can pretty much assume that the compiler will have some
-intermediate representation as part of optimization that is basically
-SSA.
-
-So what you do is,
-
- - build the SSA by doing all the normal parsing and possible
-tree-level optimizations you already do even before getting to the SSA
-stage
-
- - do all the normal optimizations/simplifications/cse/etc that you do
-normally on SSA
-
- - add *one* new rule to your SSA simplification that goes something like this:
-
-   * when you see a load op that is marked with a "consume" barrier,
-just follow the usage chain that comes from that.
-   * if you hit a normal arithmetic op, just follow the result chain of that
-   * if you hit a memory operation address use, stop and say "looks good"
-   * it you hit anything else (including a copy/phi/whatever), abort
-   * if nothing aborted as part of the walk, you can now just remove
-the "consume" barrier.
-
-You can fancy it up and try to follow more cases, but realistically
-the only case that really matters is the "consume" being fed directly
-into one or more loads, with possibly an offset calculation in
-between. There are certainly more cases you could *try* to remove the
-barrier, but the thing is, it's never incorrect to not remove it, so
-any time you get bored or hit any complication at all, just do the
-"abort" part.
-
-I *guarantee* that if you describe this to a compiler writer, he will
-tell you that my scheme is about a billion times simpler than the
-current standard wording. Especially after you've pointed him to that
-gcc bugzilla entry and explained to him about how the current standard
-cares about those kinds of made-up syntactic chains that he likely
-removed quite early, possibly even as he was generating the semantic
-tree.
-
-Try it. I dare you. So if you want to talk about "difficulties", the
-current C standard loses.
-
-> The second is the proposal in later mails to use some notion of  "semantic"
-> dependency instead of this syntactic one.
-
-Bah.
-
-The C standard does that all over. It's called "as-is". The C standard
-talks about how the compiler can do pretty much whatever it likes, as
-long as the end result acts the same in the virtual C machine.
-
-So claiming that "semantics" being meaningful is somehow complex is
-bogus. People do that all the time. If you make it clear that the
-dependency chain is through the *value*, not syntax, and that the
-value can be optimized all the usual ways, it's quite clear what the
-end result is. Any operation that actually meaningfully uses the value
-is serialized with the load, and if there is no meaningful use that
-would affect the end result in the virtual machine, then there is no
-barrier.
-
-Why would this be any different, especially since it's easy to
-understand both for a human and a compiler?
-
-               Linus
+							Thanx, Paul
