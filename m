@@ -1,68 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ve0-f173.google.com ([209.85.128.173]:40910 "EHLO
-	mail-ve0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751522AbaBTWwr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Feb 2014 17:52:47 -0500
+Received: from g9t1613g.houston.hp.com ([15.240.0.71]:44616 "EHLO
+	g9t1613g.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932601AbaBURDN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2014 12:03:13 -0500
+Message-ID: <530786A2.6080406@hp.com>
+Date: Fri, 21 Feb 2014 12:02:26 -0500
+From: Waiman Long <waiman.long@hp.com>
 MIME-Version: 1.0
-In-Reply-To: <20140220221027.GC4250@linux.vnet.ibm.com>
-References: <1392752867.18779.8120.camel@triegel.csb>
-	<CA+55aFxQPxQ8WOaZL8yAqBA=Y4k2gDn4r4oepMyi0uL6XLzv3w@mail.gmail.com>
-	<20140220040102.GM4250@linux.vnet.ibm.com>
-	<CA+55aFwwscSzwTr+xRdirtTx7HzugmMY9HrDe0GBqNhn=AuNVA@mail.gmail.com>
-	<20140220083032.GN4250@linux.vnet.ibm.com>
-	<CA+55aFwfx==u7o1NZ66aPbkOgsvGqW3UscGqrQkGuzOkjSpm6Q@mail.gmail.com>
-	<20140220181116.GT4250@linux.vnet.ibm.com>
-	<CA+55aFwn9gXWVq_GL=tPPP63vsqs-9QB4ii4s06xqG4UscCV5w@mail.gmail.com>
-	<20140220185608.GX4250@linux.vnet.ibm.com>
-	<CA+55aFw4inow5B-JAg-NtZigJ90yDbksddr00RoMKytzDAEa8A@mail.gmail.com>
-	<20140220221027.GC4250@linux.vnet.ibm.com>
-Date: Thu, 20 Feb 2014 14:52:46 -0800
-Message-ID: <CA+55aFxp7U67R0PARaUfj94y5dJ8q6_HQ2pnbQ6=JD=XR-bTOw@mail.gmail.com>
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Content-Type: text/plain; charset=UTF-8
+Subject: Re: [PATCH v4 0/3] qspinlock: Introducing a 4-byte queue spinlock
+References: <1392669684-4807-1-git-send-email-Waiman.Long@hp.com> <53029167.4060109@zytor.com> <20140218073111.GW27965@twins.programming.kicks-ass.net> <5303B4C4.2040907@hp.com> <20140218212827.GR14089@laptop.programming.kicks-ass.net> <5303FDEC.9060001@hp.com> <20140219085107.GG27965@twins.programming.kicks-ass.net> <53050501.3070101@hp.com> <CA+55aFwyVgLJq2OgKZBK7g+T5-_M4o+dnEAr+qtYxA5t_=HSvA@mail.gmail.com> <5306413F.3010106@hp.com> <53065838.90102@linux.vnet.ibm.com>
+In-Reply-To: <53065838.90102@linux.vnet.ibm.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul McKenney <paulmck@linux.vnet.ibm.com>
-Cc: Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140220225246.JENtyIvgkRZrn5R7mlAmw13ZjjtAboswWF2aPHIfZac@z>
+To: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
+Message-ID: <20140221170226.b33PvaNYw5Feq4oy6KLSXrcOWEzjtLxJkTxXmn8yLU8@z>
 
-On Thu, Feb 20, 2014 at 2:10 PM, Paul E. McKenney
-<paulmck@linux.vnet.ibm.com> wrote:
+On 02/20/2014 02:32 PM, Raghavendra K T wrote:
+> On 02/20/2014 11:24 PM, Waiman Long wrote:
 >
-> Linus, given that you are calling me out for pushing "legalistic and bad"
-> things, "syntactic bullshit", and playing "little games", I am forced
-> to conclude that you have never attended any sort of standards-committee
-> meeting.  ;-)
+>> Now the key is how to detect if a kernel is really running in a PV
+>> environment. I need to ask some virtualization experts on that.
+>>
+>
+> For kvm you could just follow,
+> kvm_spinlock_init_jump() and KVM_FEATURE_* encoding in cpuid
+> part __do_cpuid_ent().
+>
 
-Heh. I have heard people wax poetic about the pleasures of standards
-committee meetings.
+I saw that in the arch/x86/kernel/kvm.c file. So I think I can use the 
+returned value of kvm_para_available() to decide if it is running in a 
+KVM guest. However, I am not so sure of what to use in xen.
 
-Enough that I haven't really ever had the slightest urge to participate ;)
-
-> FWIW, the last time I tried excluding things like "f-f", "x%1", "y*0" and
-> so on, I got a lot of pushback.  The reason I didn't argue too much back
-> (2007 or some such) then was that my view at the time was that I figured
-> the kernel code wouldn't do things like that anyway, so it didn't matter.
-
-Well.. I'd really hope we would never do that. That said, we have
-certainly used disgusting things that we knew would disable certain
-optimizations in the compiler before, so I wouldn't put it *entirely*
-past us to do things like that, but I'd argue that we'd do so in order
-to confuse the compiler to do what we want, not in order to argue that
-it's a good thing.
-
-I mean, right now we have at least *one* active ugly work-around for a
-compiler bug (the magic empty inline asm that works around the "asm
-goto" bug in gcc). So it's not like I would claim that we don't do
-disgusting things when we need to.
-
-But I'm pretty sure that any compiler guy must *hate* that current odd
-dependency-generation part, and if I was a gcc person, seeing that
-bugzilla entry Torvald pointed at, I would personally want to
-dismember somebody with a rusty spoon..
-
-So I suspect there are a number of people who would be *more* than
-happy with a change to those odd dependency rules.
-
-                Linus
+-Longman
