@@ -1,30 +1,41 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v4 3/3] qspinlock, x86: Add x86 specific optimization for
- 2 contending tasks
-Date: Fri, 21 Feb 2014 18:28:11 +0100
-Message-ID: <20140221172811.GS9987@twins.programming.kicks-ass.net>
-References: <1392669684-4807-1-git-send-email-Waiman.Long@hp.com>
- <1392669684-4807-4-git-send-email-Waiman.Long@hp.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Will Deacon <will.deacon@arm.com>
+Subject: [PATCH RESEND 01/14] ARC: locks: remove redundant arch_*_relax operations
+Date: Fri, 21 Feb 2014 17:34:48 +0000
+Message-ID: <1393004101-25382-2-git-send-email-will.deacon@arm.com>
+References: <1393004101-25382-1-git-send-email-will.deacon@arm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:44442 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932255AbaBUR2f (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2014 12:28:35 -0500
-Content-Disposition: inline
-In-Reply-To: <1392669684-4807-4-git-send-email-Waiman.Long@hp.com>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:44712 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S932120AbaBURfI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 21 Feb 2014 12:35:08 -0500
+In-Reply-To: <1393004101-25382-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <Waiman.Long@hp.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
+To: akpm@linux-foundation.org
+Cc: linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>
 
-On Mon, Feb 17, 2014 at 03:41:24PM -0500, Waiman Long wrote:
-> +	struct {
-> +		u8  lock;	/* Lock bit	*/
-> +		u8  wait;	/* Waiting bit	*/
-> +		u16 qcode;	/* Queue code	*/
-> +	};
+Now that the arch_{spin,read,write}_relax macros default to cpu_relax(),
+remove the redundant definitions for ARC.
 
-16 bit code would result in 14 bits for the CPU number, that's only 16k,
-I think SGI actually had a machine with that many CPUs in.
+Acked-by: Vineet Gupta <vgupta@synopsys.com>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+---
+ arch/arc/include/asm/spinlock.h | 4 ----
+ 1 file changed, 4 deletions(-)
+
+diff --git a/arch/arc/include/asm/spinlock.h b/arch/arc/include/asm/spinlock.h
+index b6a8c2dfbe6e..a7211e411018 100644
+--- a/arch/arc/include/asm/spinlock.h
++++ b/arch/arc/include/asm/spinlock.h
+@@ -144,8 +144,4 @@ static inline void arch_write_unlock(arch_rwlock_t *rw)
+ #define arch_read_lock_flags(lock, flags)	arch_read_lock(lock)
+ #define arch_write_lock_flags(lock, flags)	arch_write_lock(lock)
+ 
+-#define arch_spin_relax(lock)	cpu_relax()
+-#define arch_read_relax(lock)	cpu_relax()
+-#define arch_write_relax(lock)	cpu_relax()
+-
+ #endif /* __ASM_SPINLOCK_H */
+-- 
+1.8.2.2
