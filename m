@@ -1,71 +1,111 @@
-From: Torvald Riegel <triegel@redhat.com>
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Sat, 22 Feb 2014 19:53:43 +0100
-Message-ID: <1393095223.28840.4914.camel@triegel.csb>
-References: <CA+55aFyqLrj4d2TA+2aazRqXnbVsUvs0yaBL2D5rXF1G=Kiu_g@mail.gmail.com>	 <CA+55aFwsq5E8kMoEeHJJ1f2=+QAUCu_HndfPxHNz8fUBprS-jQ@mail.gmail.com>	 <1392740258.18779.7732.camel@triegel.csb>	 <CA+55aFw7QYEMFs0BCxqRJW3Cz=tLbaku-tmN6hLXPKP9jbom7Q@mail.gmail.com>	 <1392752867.18779.8120.camel@triegel.csb>	 <CA+55aFxQPxQ8WOaZL8yAqBA=Y4k2gDn4r4oepMyi0uL6XLzv3w@mail.gmail.com>	 <20140220040102.GM4250@linux.vnet.ibm.com>	 <CA+55aFwwscSzwTr+xRdirtTx7HzugmMY9HrDe0GBqNhn=AuNVA@mail.gmail.com>	 <20140220083032.GN4250@linux.vnet.ibm.com>	 <CA+55aFwfx==u7o1NZ66aPbkOgsvGqW3UscGqrQkGuzOkjSpm6Q@mail.gmail.com>	 <20140220181116.GT4250@linux.vnet.ibm.com>	 <CA+55aFwn9gXWVq_GL=tPPP63vsqs-9QB4ii4s06xqG4UscCV5w@mail.gmail.com>	 <1392922421.28840.36.camel@triegel.csb>	 <CA+55aFwos2Gwd2LEvht4ymVxHb6GRVjtZ9ww
- JSaj1p--FqNUWw@mail.gmail.com>
+From: Josh Triplett <josh@joshtriplett.org>
+Subject: [PATCH RESEND] bug: When !CONFIG_BUG, simplify WARN_ON_ONCE and
+ family
+Date: Sat, 22 Feb 2014 11:23:27 -0800
+Message-ID: <20140222192325.GA12587@thin>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <gcc-return-182254-gcc=m.gmane.org@gcc.gnu.org>
-List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
-List-Archive: <http://gcc.gnu.org/ml/gcc/>
-List-Post: <mailto:gcc@gcc.gnu.org>
-List-Help: <http://gcc.gnu.org/ml/>
-Sender: gcc-owner@gcc.gnu.org
-In-Reply-To: <CA+55aFwos2Gwd2LEvht4ymVxHb6GRVjtZ9wwJSaj1p--FqNUWw@mail.gmail.com>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+Sender: linux-kernel-owner@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 2014-02-20 at 11:09 -0800, Linus Torvalds wrote:
-> On Thu, Feb 20, 2014 at 10:53 AM, Torvald Riegel <triegel@redhat.com> wrote:
-> > On Thu, 2014-02-20 at 10:32 -0800, Linus Torvalds wrote:
-> >> On Thu, Feb 20, 2014 at 10:11 AM, Paul E. McKenney
-> >> <paulmck@linux.vnet.ibm.com> wrote:
-> >> >
-> >> > You really need that "consume" to be "acquire".
-> >>
-> >> So I think we now all agree that that is what the standard is saying.
-> >
-> > Huh?
-> >
-> > The standard says that there are two separate things (among many more):
-> > mo_acquire and mo_consume.  They both influence happens-before in
-> > different (and independent!) ways.
-> >
-> > What Paul is saying is that *you* should have used *acquire* in that
-> > example.
-> 
-> I understand.
-> 
-> And I disagree. I think the standard is wrong, and what I *should* be
-> doing is point out the fact very loudly, and just tell people to NEVER
-> EVER use "consume" as long as it's not reliable and has insane
-> semantics.
+When !CONFIG_BUG, WARN_ON and family become simple passthroughs of their
+condition argument; however, WARN_ON_ONCE and family still have
+conditions and a boolean to detect one-time invocation, even though the
+warning they'd emit doesn't exist.  Make the existing definitions
+conditional on CONFIG_BUG, and map them all to the passthrough WARN_ON
+when !CONFIG_BUG.
 
-Stating that (1) "the standard is wrong" and (2) that you think that
-mo_consume semantics are not good is two different things.  Making bold
-statements without a proper context isn't helpful in making this
-discussion constructive.  It's simply not efficient if I (or anybody
-else reading this) has to wonder whether you actually mean what you said
-(even if, when reading it literally, is arguably not consistent with the
-arguments brought up in the discussion) or whether those statements just
-have to be interpreted in some other way.
+This saves 4.4k on a minimized configuration (smaller than
+allnoconfig), and 20.6k with defconfig plus CONFIG_BUG=n.
 
-> So what I "should do" is to not accept any C11 atomics use in the
-> kernel.
+Signed-off-by: Josh Triplett <josh@joshtriplett.org>
+---
 
-You're obviously free to do that.
+diff's presentation here is not the easiest for reviewing purposes.
+Effectively, this is moving the existing definitions of WARN_ON_ONCE and
+family up into the CONFIG_BUG branch of the #ifdef, and then adding new
+stub versions in the !CONFIG_BUG branch.
 
-> Because with the "acquire", it generates worse code than what
-> we already have,
+ include/asm-generic/bug.h | 57 +++++++++++++++++++++++++----------------------
+ 1 file changed, 30 insertions(+), 27 deletions(-)
 
-I would argue that this is still under debate.  At least I haven't seen
-a definition of what you want that is complete and based on the standard
-(e.g., an example of what a compiler might do in a specific case isn't a
-definition).  From what I've seen, it's not inconceivable that what you
-want is just an optimized acquire.
-
-I'll bring this question up again elsewhere in the thread (where it
-hopefully fits better).
+diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+index 7d10f96..34223e0 100644
+--- a/include/asm-generic/bug.h
++++ b/include/asm-generic/bug.h
+@@ -106,33 +106,6 @@ extern void warn_slowpath_null(const char *file, const int line);
+ 	unlikely(__ret_warn_on);					\
+ })
+ 
+-#else /* !CONFIG_BUG */
+-#ifndef HAVE_ARCH_BUG
+-#define BUG() do {} while(0)
+-#endif
+-
+-#ifndef HAVE_ARCH_BUG_ON
+-#define BUG_ON(condition) do { if (condition) ; } while(0)
+-#endif
+-
+-#ifndef HAVE_ARCH_WARN_ON
+-#define WARN_ON(condition) ({						\
+-	int __ret_warn_on = !!(condition);				\
+-	unlikely(__ret_warn_on);					\
+-})
+-#endif
+-
+-#ifndef WARN
+-#define WARN(condition, format...) ({					\
+-	int __ret_warn_on = !!(condition);				\
+-	unlikely(__ret_warn_on);					\
+-})
+-#endif
+-
+-#define WARN_TAINT(condition, taint, format...) WARN_ON(condition)
+-
+-#endif
+-
+ #define WARN_ON_ONCE(condition)	({				\
+ 	static bool __section(.data.unlikely) __warned;		\
+ 	int __ret_warn_once = !!(condition);			\
+@@ -163,6 +136,36 @@ extern void warn_slowpath_null(const char *file, const int line);
+ 	unlikely(__ret_warn_once);				\
+ })
+ 
++#else /* !CONFIG_BUG */
++#ifndef HAVE_ARCH_BUG
++#define BUG() do {} while(0)
++#endif
++
++#ifndef HAVE_ARCH_BUG_ON
++#define BUG_ON(condition) do { if (condition) ; } while(0)
++#endif
++
++#ifndef HAVE_ARCH_WARN_ON
++#define WARN_ON(condition) ({						\
++	int __ret_warn_on = !!(condition);				\
++	unlikely(__ret_warn_on);					\
++})
++#endif
++
++#ifndef WARN
++#define WARN(condition, format...) ({					\
++	int __ret_warn_on = !!(condition);				\
++	unlikely(__ret_warn_on);					\
++})
++#endif
++
++#define WARN_ON_ONCE(condition) WARN_ON(condition)
++#define WARN_ONCE(condition, format...) WARN_ON(condition)
++#define WARN_TAINT(condition, taint, format...) WARN_ON(condition)
++#define WARN_TAINT_ONCE(condition, taint, format...) WARN_ON(condition)
++
++#endif
++
+ /*
+  * WARN_ON_SMP() is for cases that the warning is either
+  * meaningless for !SMP or may even cause failures.
+-- 
+1.9.0
