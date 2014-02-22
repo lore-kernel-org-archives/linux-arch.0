@@ -1,37 +1,40 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v4 3/3] qspinlock, x86: Add x86 specific optimization
- for 2 contending tasks
-Date: Fri, 21 Feb 2014 20:39:24 -0500
-Message-ID: <5307FFCC.1080007@hp.com>
-References: <1392669684-4807-1-git-send-email-Waiman.Long@hp.com> <1392669684-4807-4-git-send-email-Waiman.Long@hp.com> <20140221172811.GS9987@twins.programming.kicks-ass.net>
+From: "western.unionuniononlinemoneytransfer@outlook.com"
+	<operaciones@mailventas.central.perufarma.com.pe>
+Subject: Your Payment Info
+Date: Sat, 22 Feb 2014 09:04:23 -0500 (PET)
+Message-ID: <06bd3ed8-7e90-417d-ae62-3c33dcbb8a92@correo-zcs.central.perufarma.com.pe>
+Reply-To: "western.unionuniononlinemoneytransfer@outlook.com"
+	  <western.unionuniononlinemoneytransfer@outlook.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t3425.houston.hp.com ([15.201.208.53]:5589 "EHLO
-	g4t3425.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754829AbaBVBjo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2014 20:39:44 -0500
-In-Reply-To: <20140221172811.GS9987@twins.programming.kicks-ass.net>
+Received: from mail.perufarma.com.pe ([200.60.132.197]:4328 "EHLO
+	smarthost.perufarma.com.pe" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1751300AbaBVQPH convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 22 Feb 2014 11:15:07 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
 
-On 02/21/2014 12:28 PM, Peter Zijlstra wrote:
-> On Mon, Feb 17, 2014 at 03:41:24PM -0500, Waiman Long wrote:
->> +	struct {
->> +		u8  lock;	/* Lock bit	*/
->> +		u8  wait;	/* Waiting bit	*/
->> +		u16 qcode;	/* Queue code	*/
->> +	};
-> 16 bit code would result in 14 bits for the CPU number, that's only 16k,
-> I think SGI actually had a machine with that many CPUs in.
->
 
-If NR_CPUS >= 16k, the 2-task optimized code path will be disabled. 
-However, with that many CPUs, it is high spinlock contention behavior 
-that is more important than a bit better performance at low contention 
-level.
 
--Longman
+Attention/
+
+this mail is to update you about your compensations fund,which has be
+forwarded to, western union head office for foreign transfer
+department.Call Mr. Anthony Frank Western Union Director for
+Your($1.200,000USD) EMAIL( western.unionuniononlinemoneytransfer@outloo=
+k.com )Send to
+him Your receiving information
+
+Note;without this requirements your transfer cannot be process.
+
+receiver full name=E2=80=A6
+receiving country =E2=80=A6
+address..
+telephone number=E2=80=A6.
+ID copy (if any)
+
+Best Regards,
+Operation Ms Linda.
