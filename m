@@ -1,40 +1,38 @@
-From: "western.unionuniononlinemoneytransfer@outlook.com"
-	<operaciones@mailventas.central.perufarma.com.pe>
-Subject: Your Payment Info
-Date: Sat, 22 Feb 2014 09:04:23 -0500 (PET)
-Message-ID: <06bd3ed8-7e90-417d-ae62-3c33dcbb8a92@correo-zcs.central.perufarma.com.pe>
-Reply-To: "western.unionuniononlinemoneytransfer@outlook.com"
-	  <western.unionuniononlinemoneytransfer@outlook.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH v4 0/3] qspinlock: Introducing a 4-byte queue spinlock
+Date: Sat, 22 Feb 2014 17:56:13 +0100
+Message-ID: <20140222165613.GA30098@gmail.com>
+References: <1392669684-4807-1-git-send-email-Waiman.Long@hp.com>
+ <53029167.4060109@zytor.com>
+ <20140218073825.GY27965@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.perufarma.com.pe ([200.60.132.197]:4328 "EHLO
-	smarthost.perufarma.com.pe" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1751300AbaBVQPH convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 22 Feb 2014 11:15:07 -0500
+Received: from mail-ea0-f177.google.com ([209.85.215.177]:56434 "EHLO
+	mail-ea0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751203AbaBVQ4V (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 22 Feb 2014 11:56:21 -0500
+Content-Disposition: inline
+In-Reply-To: <20140218073825.GY27965@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Waiman Long <Waiman.Long@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
 
 
+* Peter Zijlstra <peterz@infradead.org> wrote:
 
-Attention/
+> On Mon, Feb 17, 2014 at 02:47:03PM -0800, H. Peter Anvin wrote:
+> > This is starting to look good, so I have pulled it into
+> > tip:x86/spinlocks to start give it some testing mileage.
+> 
+> Its still atrociously ugly code please drop it.
 
-this mail is to update you about your compensations fund,which has be
-forwarded to, western union head office for foreign transfer
-department.Call Mr. Anthony Frank Western Union Director for
-Your($1.200,000USD) EMAIL( western.unionuniononlinemoneytransfer@outloo=
-k.com )Send to
-him Your receiving information
+Fair enough - I've excluded it from tip:master for now, until the 
+uglies get resolved.
 
-Note;without this requirements your transfer cannot be process.
+Waiman: please address PeterZ's feedback.
 
-receiver full name=E2=80=A6
-receiving country =E2=80=A6
-address..
-telephone number=E2=80=A6.
-ID copy (if any)
+Thanks,
 
-Best Regards,
-Operation Ms Linda.
+	Ingo
