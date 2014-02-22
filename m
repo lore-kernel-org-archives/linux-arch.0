@@ -1,55 +1,38 @@
-From: Juan Emilio Ledesma Torres <jueleto@gmail.com>
-Subject: [BUG] Build error due -fstack-protector-strong not supported by compiler
-Date: Fri, 21 Feb 2014 20:47:20 -0300
-Message-ID: <CAEZm4MLr-Eic7uaiDd+KdbJsFsqrSd5AkKX7HHoSQUQ0AyRxyw@mail.gmail.com>
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH v4 3/3] qspinlock, x86: Add x86 specific optimization
+ for 2 contending tasks
+Date: Fri, 21 Feb 2014 20:36:11 -0500
+Message-ID: <5307FF0B.50100@hp.com>
+References: <1392669684-4807-1-git-send-email-Waiman.Long@hp.com> <1392669684-4807-4-git-send-email-Waiman.Long@hp.com> <20140221121222.GQ9987@twins.programming.kicks-ass.net> <530787F3.6020400@hp.com> <53078865.8060808@hp.com> <20140221172633.GR9987@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f177.google.com ([209.85.214.177]:50760 "EHLO
-	mail-ob0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753438AbaBUXrV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2014 18:47:21 -0500
-Received: by mail-ob0-f177.google.com with SMTP id wp18so5031029obc.36
-        for <linux-arch@vger.kernel.org>; Fri, 21 Feb 2014 15:47:20 -0800 (PST)
+Received: from g4t3425.houston.hp.com ([15.201.208.53]:5014 "EHLO
+	g4t3425.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753865AbaBVBgg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 21 Feb 2014 20:36:36 -0500
+In-Reply-To: <20140221172633.GR9987@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>, "Cc: Arjan van de Ven" <arjan@linux.intel.com>, "Cc: Michal Marek" <mmarek@suse.cz>, "Cc: Russell King" <linux@arm.linux.org.uk>, "Cc: Ralf Baechle" <ralf@linux-mips.org>, "Cc: Paul Mundt" <lethal@linux-sh.org>, "Cc: James Hogan" <james.hogan@imgtec.com>, "Cc: Stephen Rothwell" <sfr@canb.auug.org.au>, "Cc: Shawn Guo" <shawn.guo@linaro.org>, "Cc: Linus Torvalds" <torvalds@linux-foundation.org>, "Cc: Andrew Morton" <akpm@linux-foundation.org>, "Cc: Peter Zijlstra" <peterz@infradead.org>, "Cc: Thomas Gleixner" <tglx@linutronix.de>, linux-mips@linux-mips.org, linux-arch@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, George Spelvin <linux@horizon.com>, Tim Chen <tim.c.chen@linux.intel.com>, Daniel J Blueman <daniel@numascale.com>, Alexander Fyodorov <halcy@yandex.ru>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Thavatchai Makphaibulchoke <thavatchai.makpahibulchoke@hp.com>
 
-Hello,
+On 02/21/2014 12:26 PM, Peter Zijlstra wrote:
+> On Fri, Feb 21, 2014 at 12:09:57PM -0500, Waiman Long wrote:
+>> On 02/21/2014 12:08 PM, Waiman Long wrote:
+>>> On 02/21/2014 07:12 AM, Peter Zijlstra wrote:
+>>>> Why is this x86 only code?
+>>> The code is making use of the fact that byte write is atomic which is true
+>>> in x86 and probably in a few other architectures. I could pull these codes
+>>> into the generic qspinlock.c file and set a flag in the asm header file to
+>>> activate it if it is what you want.
+>>>
+>>> -Longman
+>> BTW, I also assume that 8-bit and 16-bit cmpxchg() and xchg() are available.
+> Right, screw Alpha :-) Just pull it into the generic code; its far too
+> much code to replicate per arch.
 
-When building latest Torvalds tree (HEAD d158fc7f) on a x86_64 machine
-using the attached defconfig I got the following build error:
+OK, I will do that in the next version.
 
-/home/pc12/linux/arch/x86/Makefile:118: stack-protector enabled but
-compiler support broken
-Makefile:614: Cannot use CONFIG_CC_STACKPROTECTOR_STRONG:
--fstack-protector-strong not supported by compiler
-
-Makefile:614: Cannot use CONFIG_CC_STACKPROTECTOR_STRONG:
--fstack-protector-strong not supported by compiler
-make[1]: No se hace nada para <<all>>.
-make[1]: No se hace nada para <<relocs>>.
-  CHK     include/config/kernel.release
-  CHK     include/generated/uapi/linux/version.h
-  CHK     include/generated/utsrelease.h
-  CC      kernel/bounds.s
-cc1: error: the command line option is not recognized '-fstack-protector-strong'
-make[1]: *** [kernel/bounds.s] Error 1
-make: *** [prepare0] Error 2
-
-I had already reported the bug on bugzilla [0] but I'm also reporting
-here for completeness.
-
-Bisecting this break was introduced on commit 19952a92
-("stackprotector: Unify the HAVE_CC_STACKPROTECTOR logic between
-architectures")
-
-I don't know if this problem is with the above commit or with my
-compiler (gcc (Ubuntu/Linaro 4.6.3-1ubuntu5) 4.6.3)
-
-[0]: https://bugzilla.kernel.org/show_bug.cgi?id=70951
-
--- 
-
-Best regards,
-Juan Ledesma
+-Longman
