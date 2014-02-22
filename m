@@ -1,111 +1,143 @@
-From: Josh Triplett <josh@joshtriplett.org>
-Subject: [PATCH RESEND] bug: When !CONFIG_BUG, simplify WARN_ON_ONCE and
- family
-Date: Sat, 22 Feb 2014 11:23:27 -0800
-Message-ID: <20140222192325.GA12587@thin>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
+Date: Sat, 22 Feb 2014 12:17:42 -0800
+Message-ID: <20140222201742.GP4250@linux.vnet.ibm.com>
+References: <CA+55aFyqLrj4d2TA+2aazRqXnbVsUvs0yaBL2D5rXF1G=Kiu_g@mail.gmail.com>
+ <CA+55aFwsq5E8kMoEeHJJ1f2=+QAUCu_HndfPxHNz8fUBprS-jQ@mail.gmail.com>
+ <1392740258.18779.7732.camel@triegel.csb>
+ <CA+55aFw7QYEMFs0BCxqRJW3Cz=tLbaku-tmN6hLXPKP9jbom7Q@mail.gmail.com>
+ <1392752867.18779.8120.camel@triegel.csb>
+ <CA+55aFxQPxQ8WOaZL8yAqBA=Y4k2gDn4r4oepMyi0uL6XLzv3w@mail.gmail.com>
+ <20140220040102.GM4250@linux.vnet.ibm.com>
+ <1392917168.18779.10157.camel@triegel.csb>
+ <20140220181841.GV4250@linux.vnet.ibm.com>
+ <1393093837.28840.4834.camel@triegel.csb>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e32.co.us.ibm.com ([32.97.110.150]:54383 "EHLO
+	e32.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751314AbaBVUSN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 22 Feb 2014 15:18:13 -0500
+Received: from /spool/local
+	by e32.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Sat, 22 Feb 2014 13:18:13 -0700
 Content-Disposition: inline
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <1393093837.28840.4834.camel@triegel.csb>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Torvald Riegel <triegel@redhat.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
 
-When !CONFIG_BUG, WARN_ON and family become simple passthroughs of their
-condition argument; however, WARN_ON_ONCE and family still have
-conditions and a boolean to detect one-time invocation, even though the
-warning they'd emit doesn't exist.  Make the existing definitions
-conditional on CONFIG_BUG, and map them all to the passthrough WARN_ON
-when !CONFIG_BUG.
+On Sat, Feb 22, 2014 at 07:30:37PM +0100, Torvald Riegel wrote:
+> xagsmtp2.20140222183231.5343@emeavsc.vnet.ibm.com
+> X-Xagent-Gateway: emeavsc.vnet.ibm.com (XAGSMTP2 at EMEAVSC)
+> 
+> On Thu, 2014-02-20 at 10:18 -0800, Paul E. McKenney wrote:
+> > On Thu, Feb 20, 2014 at 06:26:08PM +0100, Torvald Riegel wrote:
+> > > xagsmtp2.20140220172700.0416@vmsdvm4.vnet.ibm.com
+> > > X-Xagent-Gateway: vmsdvm4.vnet.ibm.com (XAGSMTP2 at VMSDVM4)
+> > > 
+> > > On Wed, 2014-02-19 at 20:01 -0800, Paul E. McKenney wrote:
+> > > > On Wed, Feb 19, 2014 at 04:53:49PM -0800, Linus Torvalds wrote:
+> > > > > On Tue, Feb 18, 2014 at 11:47 AM, Torvald Riegel <triegel@redhat.com> wrote:
+> > > > > > On Tue, 2014-02-18 at 09:44 -0800, Linus Torvalds wrote:
+> > > > > >>
+> > > > > >> Can you point to it? Because I can find a draft standard, and it sure
+> > > > > >> as hell does *not* contain any clarity of the model. It has a *lot* of
+> > > > > >> verbiage, but it's pretty much impossible to actually understand, even
+> > > > > >> for somebody who really understands memory ordering.
+> > > > > >
+> > > > > > http://www.cl.cam.ac.uk/~mjb220/n3132.pdf
+> > > > > > This has an explanation of the model up front, and then the detailed
+> > > > > > formulae in Section 6.  This is from 2010, and there might have been
+> > > > > > smaller changes since then, but I'm not aware of any bigger ones.
+> > > > > 
+> > > > > Ahh, this is different from what others pointed at. Same people,
+> > > > > similar name, but not the same paper.
+> > > > > 
+> > > > > I will read this version too, but from reading the other one and the
+> > > > > standard in parallel and trying to make sense of it, it seems that I
+> > > > > may have originally misunderstood part of the whole control dependency
+> > > > > chain.
+> > > > > 
+> > > > > The fact that the left side of "? :", "&&" and "||" breaks data
+> > > > > dependencies made me originally think that the standard tried very
+> > > > > hard to break any control dependencies. Which I felt was insane, when
+> > > > > then some of the examples literally were about the testing of the
+> > > > > value of an atomic read. The data dependency matters quite a bit. The
+> > > > > fact that the other "Mathematical" paper then very much talked about
+> > > > > consume only in the sense of following a pointer made me think so even
+> > > > > more.
+> > > > > 
+> > > > > But reading it some more, I now think that the whole "data dependency"
+> > > > > logic (which is where the special left-hand side rule of the ternary
+> > > > > and logical operators come in) are basically an exception to the rule
+> > > > > that sequence points end up being also meaningful for ordering (ok, so
+> > > > > C11 seems to have renamed "sequence points" to "sequenced before").
+> > > > > 
+> > > > > So while an expression like
+> > > > > 
+> > > > >     atomic_read(p, consume) ? a : b;
+> > > > > 
+> > > > > doesn't have a data dependency from the atomic read that forces
+> > > > > serialization, writing
+> > > > > 
+> > > > >    if (atomic_read(p, consume))
+> > > > >       a;
+> > > > >    else
+> > > > >       b;
+> > > > > 
+> > > > > the standard *does* imply that the atomic read is "happens-before" wrt
+> > > > > "a", and I'm hoping that there is no question that the control
+> > > > > dependency still acts as an ordering point.
+> > > > 
+> > > > The control dependency should order subsequent stores, at least assuming
+> > > > that "a" and "b" don't start off with identical stores that the compiler
+> > > > could pull out of the "if" and merge.  The same might also be true for ?:
+> > > > for all I know.  (But see below)
+> > > 
+> > > I don't think this is quite true.  I agree that a conditional store will
+> > > not be executed speculatively (note that if it would happen in both the
+> > > then and the else branch, it's not conditional); so, the store in
+> > > "a;" (assuming it would be a store) won't happen unless the thread can
+> > > really observe a true value for p.  However, this is *this thread's*
+> > > view of the world, but not guaranteed to constrain how any other thread
+> > > sees the state.  mo_consume does not contribute to
+> > > inter-thread-happens-before in the same way that mo_acquire does (which
+> > > *does* put a constraint on i-t-h-b, and thus enforces a global
+> > > constraint that all threads have to respect).
+> > > 
+> > > Is it clear which distinction I'm trying to show here?
+> > 
+> > If you are saying that the control dependencies are a result of a
+> > combination of the standard and the properties of the hardware that
+> > Linux runs on, I am with you.  (As opposed to control dependencies being
+> > a result solely of the standard.)
+> 
+> I'm not quite sure I understand what you mean :)  Do you mean the
+> control dependencies in the binary code, or the logical "control
+> dependencies" in source programs?
 
-This saves 4.4k on a minimized configuration (smaller than
-allnoconfig), and 20.6k with defconfig plus CONFIG_BUG=n.
+At present, the intersection of those two sets, but only including those
+control dependencies beginning with with a memory_order_consume load or a
+[[carries_dependency]] function argument or return value.
 
-Signed-off-by: Josh Triplett <josh@joshtriplett.org>
----
+Or something like that.  ;-)
 
-diff's presentation here is not the easiest for reviewing purposes.
-Effectively, this is moving the existing definitions of WARN_ON_ONCE and
-family up into the CONFIG_BUG branch of the #ifdef, and then adding new
-stub versions in the !CONFIG_BUG branch.
+> > This was a deliberate decision in 2007 or so.  At that time, the
+> > documentation on CPU memory orderings were pretty crude, and it was
+> > not clear that all relevant hardware respected control dependencies.
+> > Back then, if you wanted an authoritative answer even to a fairly simple
+> > memory-ordering question, you had to find a hardware architect, and you
+> > probably waited weeks or even months for the answer.  Thanks to lots
+> > of work from the Cambridge guys at about the time that the standard was
+> > finalized, we have a much better picture of what the hardware does.
+> 
+> But this part I understand.
 
- include/asm-generic/bug.h | 57 +++++++++++++++++++++++++----------------------
- 1 file changed, 30 insertions(+), 27 deletions(-)
+;-)
 
-diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-index 7d10f96..34223e0 100644
---- a/include/asm-generic/bug.h
-+++ b/include/asm-generic/bug.h
-@@ -106,33 +106,6 @@ extern void warn_slowpath_null(const char *file, const int line);
- 	unlikely(__ret_warn_on);					\
- })
- 
--#else /* !CONFIG_BUG */
--#ifndef HAVE_ARCH_BUG
--#define BUG() do {} while(0)
--#endif
--
--#ifndef HAVE_ARCH_BUG_ON
--#define BUG_ON(condition) do { if (condition) ; } while(0)
--#endif
--
--#ifndef HAVE_ARCH_WARN_ON
--#define WARN_ON(condition) ({						\
--	int __ret_warn_on = !!(condition);				\
--	unlikely(__ret_warn_on);					\
--})
--#endif
--
--#ifndef WARN
--#define WARN(condition, format...) ({					\
--	int __ret_warn_on = !!(condition);				\
--	unlikely(__ret_warn_on);					\
--})
--#endif
--
--#define WARN_TAINT(condition, taint, format...) WARN_ON(condition)
--
--#endif
--
- #define WARN_ON_ONCE(condition)	({				\
- 	static bool __section(.data.unlikely) __warned;		\
- 	int __ret_warn_once = !!(condition);			\
-@@ -163,6 +136,36 @@ extern void warn_slowpath_null(const char *file, const int line);
- 	unlikely(__ret_warn_once);				\
- })
- 
-+#else /* !CONFIG_BUG */
-+#ifndef HAVE_ARCH_BUG
-+#define BUG() do {} while(0)
-+#endif
-+
-+#ifndef HAVE_ARCH_BUG_ON
-+#define BUG_ON(condition) do { if (condition) ; } while(0)
-+#endif
-+
-+#ifndef HAVE_ARCH_WARN_ON
-+#define WARN_ON(condition) ({						\
-+	int __ret_warn_on = !!(condition);				\
-+	unlikely(__ret_warn_on);					\
-+})
-+#endif
-+
-+#ifndef WARN
-+#define WARN(condition, format...) ({					\
-+	int __ret_warn_on = !!(condition);				\
-+	unlikely(__ret_warn_on);					\
-+})
-+#endif
-+
-+#define WARN_ON_ONCE(condition) WARN_ON(condition)
-+#define WARN_ONCE(condition, format...) WARN_ON(condition)
-+#define WARN_TAINT(condition, taint, format...) WARN_ON(condition)
-+#define WARN_TAINT_ONCE(condition, taint, format...) WARN_ON(condition)
-+
-+#endif
-+
- /*
-  * WARN_ON_SMP() is for cases that the warning is either
-  * meaningless for !SMP or may even cause failures.
--- 
-1.9.0
+							Thanx, Paul
