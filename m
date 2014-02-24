@@ -1,162 +1,87 @@
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Mon, 24 Feb 2014 09:21:10 -0800
-Message-ID: <20140224172110.GO8264@linux.vnet.ibm.com>
-References: <CA+55aFwn9gXWVq_GL=tPPP63vsqs-9QB4ii4s06xqG4UscCV5w@mail.gmail.com>
- <1392922421.28840.36.camel@triegel.csb>
- <CA+55aFwos2Gwd2LEvht4ymVxHb6GRVjtZ9wwJSaj1p--FqNUWw@mail.gmail.com>
- <1393095223.28840.4914.camel@triegel.csb>
- <CA+55aFz9=RQoMO2ipyZgNPNzWGVXi_R9Ar5=o9VBWwXzDDz6jg@mail.gmail.com>
- <20140223003933.GQ4250@linux.vnet.ibm.com>
- <CA+55aFyjzR_Ga_HOKnBXpKYbuesqovj1-sFTVisD9UwA6JuJtw@mail.gmail.com>
- <20140223063426.GT4250@linux.vnet.ibm.com>
- <CA+55aFxMJvaQhoEwqgN=XA6gDOdZwoZQHdcAnB-FhAri_hK-6Q@mail.gmail.com>
- <CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com>
+Date: Mon, 24 Feb 2014 09:28:56 -0800
+Message-ID: <20140224172856.GP8264@linux.vnet.ibm.com>
+References: <1393095223.28840.4914.camel@triegel.csb> <CA+55aFz9=RQoMO2ipyZgNPNzWGVXi_R9Ar5=o9VBWwXzDDz6jg@mail.gmail.com> <20140223003933.GQ4250@linux.vnet.ibm.com> <CA+55aFyjzR_Ga_HOKnBXpKYbuesqovj1-sFTVisD9UwA6JuJtw@mail.gmail.com> <20140223063426.GT4250@linux.vnet.ibm.com> <CA+55aFxMJvaQhoEwqgN=XA6gDOdZwoZQHdcAnB-FhAri_hK-6Q@mail.gmail.com> <CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com> <CAFiYyc08cusFTsydD2C4rEZB-k38NnorzEXzKvqab0m3R+qn8w@mail.gmail.com> <CA+55aFyYtMm1_UsPVw8mi7o2iH_--1wLvxPUt5Z9mAEOGMgXdQ@mail.gmail.com> <alpine.LNX.2.00.1402241745100.7694@wotan.suse.de>
 Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e35.co.us.ibm.com ([32.97.110.153]:36348 "EHLO
-	e35.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752253AbaBXRVO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2014 12:21:14 -0500
-Received: from /spool/local
-	by e35.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Mon, 24 Feb 2014 10:21:14 -0700
+Return-path: <gcc-return-182280-gcc=m.gmane.org@gcc.gnu.org>
+List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
+List-Archive: <http://gcc.gnu.org/ml/gcc/>
+List-Post: <mailto:gcc@gcc.gnu.org>
+List-Help: <http://gcc.gnu.org/ml/>
+Sender: gcc-owner@gcc.gnu.org
 Content-Disposition: inline
-In-Reply-To: <CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+In-Reply-To: <alpine.LNX.2.00.1402241745100.7694@wotan.suse.de>
+To: Michael Matz <matz@suse.de>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Richard Biener <richard.guenther@gmail.com>, Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Feb 24, 2014 at 07:57:24AM -0800, Linus Torvalds wrote:
-> On Sun, Feb 23, 2014 at 11:31 AM, Linus Torvalds
-> <torvalds@linux-foundation.org> wrote:
-> >
-> > Let me think about it some more, but my gut feel is that just tweaking
-> > the definition of what "ordered" means is sufficient.
-> >
-> > So to go back to the suggested ordering rules (ignoring the "restrict"
-> > part, which is just to clarify that ordering through other means to
-> > get to the object doesn't matter), I suggested:
-> >
-> >  "the consume ordering guarantees the ordering between that
-> >   atomic read and the accesses to the object that the pointer
-> >   points to"
-> >
-> > and I think the solution is to just say that this ordering acts as a
-> > fence. It doesn't say exactly *where* the fence is, but it says that
-> > there is *some* fence between the load of the pointer and any/all
-> > accesses to the object through that pointer.
+On Mon, Feb 24, 2014 at 05:55:50PM +0100, Michael Matz wrote:
+> Hi,
 > 
-> I'm wrong. That doesn't work. At all. There is no ordering except
-> through the pointer chain.
+> On Mon, 24 Feb 2014, Linus Torvalds wrote:
 > 
-> So I think saying just that, and nothing else (no magic fences, no
-> nothing) is the right thing:
+> > > To me that reads like
+> > >
+> > >   int i;
+> > >   int *q = &i;
+> > >   int **p = &q;
+> > >
+> > >   atomic_XXX (p, CONSUME);
+> > >
+> > > orders against accesses '*p', '**p', '*q' and 'i'.  Thus it seems they
+> > > want to say that it orders against aliased storage - but then go further
+> > > and include "indirectly through a chain of pointers"?!  Thus an
+> > > atomic read of a int * orders against any 'int' memory operation but
+> > > not against 'float' memory operations?
+> > 
+> > No, it's not about type at all, and the "chain of pointers" can be
+> > much more complex than that, since the "int *" can point to within an
+> > object that contains other things than just that "int" (the "int" can
+> > be part of a structure that then has pointers to other structures
+> > etc).
 > 
->  "the consume ordering guarantees the ordering between that
->   atomic read and the accesses to the object that the pointer
->   points to directly or indirectly through a chain of pointers"
+> So, let me try to poke holes into your definition or increase my 
+> understanding :) .  You said "chain of pointers"(dereferences I assume), 
+> e.g. if p is result of consume load, then access to 
+> p->here->there->next->prev->stuff is supposed to be ordered with that load 
+> (or only when that last load/store itself is also an atomic load or 
+> store?).
 > 
-> The thing is, anything but a chain of pointers (and maybe relaxing it
-> to "indexes in tables" in addition to pointers) doesn't really work.
+> So, what happens if the pointer deref chain is partly hidden in some 
+> functions:
 > 
-> The current standard tries to break it at "obvious" points that can
-> lose the data dependency (either by turning it into a control
-> dependency, or by just dropping the value, like the left-hand side of
-> a comma-expression), but the fact is, it's broken.
+> A * adjustptr (B *ptr) { return &ptr->here->there->next; }
+> B * p = atomic_XXX (&somewhere, consume);
+> adjustptr(p)->prev->stuff = bla;
 > 
-> It's broken not just because the value can be lost other ways (ie the
-> "p-p" example), it's broken because the value can be turned into a
-> control dependency so many other ways too.
-> 
-> Compilers regularly turn arithmetic ops with logical comparisons into
-> branches. So an expression like "a = !!ptr" carries a dependency in
-> the current C standard, but it's entirely possible that a compiler
-> ends up turning it into a compare-and-branch rather than a
-> compare-and-set-conditional, depending on just exactly how "a" ends up
-> being used. That's true even on an architecture like ARM that has a
-> lot of conditional instructions (there are way less if you compile for
-> Thumb, for example, but compilers also do things like "if there are
-> more than N predicated instructions I'll just turn it into a
-> branch-over instead").
-> 
-> So I think the C standard needs to just explicitly say that you can
-> walk a chain of pointers (with that possible "indexes in arrays"
-> extension), and nothing more.
+> As far as I understood you, this whole ptrderef chain business would be 
+> only an optimization opportunity, right?  So if the compiler can't be sure 
+> how p is actually used (as in my function-using case, assume adjustptr is 
+> defined in another unit), then the consume load would simply be 
+> transformed into an acquire (or whatever, with some barrier I mean)?  Only 
+> _if_ the compiler sees all obvious uses of p (indirectly through pointer 
+> derefs) can it, yeah, do what with the consume load?
 
-I am comfortable with this.  My desire for also marking the later
-pointers does not make sense without some automated way of validating
-them, which I don't immediately see a way to do.
+Good point, I left that out of my list.  Adding it:
 
-So let me try laying out the details.  Sticking with pointers for the
-moment, if we reach agreement on these, I will try expanding to integers.
+13.	By default, pointer chains do not propagate into or out of functions.
+	In implementations having attributes, a [[carries_dependency]]
+	may be used to mark a function argument or return as passing
+	a pointer chain into or out of that function.
 
-1.	A pointer value obtained from a memory_order_consume load is part
-	of a pointer chain.  I am calling the pointer itself a "chained
-	pointer" for the moment.
-	
-2.	Note that it is the value that qualifies as being chained, not
-	the variable.  For example, given pointer variable might hold
-	a chained pointer at one point in the code, then a non-chained
-	pointer later.  Therefore, "q = p", where "q" is a pointer and
-	"p" is a chained pointer results in "q" containing a chained
-	pointer.
+	If a function does not contain memory_order_consume loads and
+	also does not contain [[carries_dependency]] attributes, then
+	that function may be compiled using any desired dependency-breaking
+	optimizations.
 
-3.	Adding or subtracting an integer to/from a chained pointer
-	results in another chained pointer in that same pointer chain.
+	The ordering effects are implementation defined when a given
+	pointer chain passes into or out of a function through a parameter
+	or return not marked with a [[carries_dependency]] attributed.
 
-4.	Bitwise operators ("&", "|", "^", and I suppose also "~")
-	applied to a chained pointer and an integer results in another
-	chained pointer in that same pointer chain.
-
-5.	Consider a sequence as follows: dereference operator (unary "*",
-	"[]", "->") optionally followed by a series of direct selection
-	operators ("."), finally (and unconditionally) followed by
-	a unary "&" operator.  Applying such a sequence to a chained
-	pointer results in another chained pointer in the same chain.
-
-	Given a chained pointer "p", examples include "&p[3]",
-	"&p->a.b.c.d.e.f.g", and "&*p".
-
-6.	The expression "p->f", where "p" is a chained pointer and "f"
-	is a pointer, results in a chained pointer.
-
-	FWIW, this means that pointer chains can overlap as in this
-	example:
-	
-		p = atomic_load_explicit(&gp, memory_order_consume);
-		q = atomic_load_explicit(&p->ap, memory_order_consume);
-		x = q->a;
-
-	This should be fine, I don't see any problems with this.
-
-7.	Applying a pointer cast to a chained pointer results in a
-	chained pointer.
-
-8.	Applying any of the following operators to a chained pointer
-	results in something that is not a chained pointer:
-	"()", sizeof, "!", "*", "/", "%", ">>", "<<", "<", ">", "<=",
-	">=", "==", "!=", "&&", and "||".
-
-9.	The effect of the compound assignment operators "+=", "-=",
-	and so on is the same as the equivalent expression using
-	simple assignment.
-
-10.	In a "?:" operator, if the selected one of the rightmost two
-	values is a chained pointer, then the result is also a
-	chained pointer.
-
-11.	In a "," operator, if the rightmost value is a chained pointer,
-	then the result is also a chained pointer.
-
-12.	A memory_order_consume load carries a dependency to any
-	dereference operator (unary "*", "[]", and "->") in the
-	resulting pointer chain.
-
-I think that covers everything...
+Note that this last paragraph differs from the current standard, which
+would require ordering regardless.
 
 							Thanx, Paul
