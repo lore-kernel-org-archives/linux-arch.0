@@ -1,67 +1,142 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH RESEND] bug: When !CONFIG_BUG, simplify WARN_ON_ONCE and
- family
-Date: Mon, 24 Feb 2014 15:17:58 -0800
-Message-ID: <20140224151758.b06125f6ddef2086d2b2a969@linux-foundation.org>
-References: <20140222192325.GA12587@thin>
-	<201402240902.35977.arnd@arndb.de>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
+Date: Mon, 24 Feb 2014 15:35:04 -0800
+Message-ID: <CA+55aFxGaKtvx5YnOFC5hU9+ischxn=LN_yWiqjXwpNZePvWmw@mail.gmail.com>
+References: <CA+55aFz9=RQoMO2ipyZgNPNzWGVXi_R9Ar5=o9VBWwXzDDz6jg@mail.gmail.com>
+	<20140223003933.GQ4250@linux.vnet.ibm.com>
+	<CA+55aFyjzR_Ga_HOKnBXpKYbuesqovj1-sFTVisD9UwA6JuJtw@mail.gmail.com>
+	<20140223063426.GT4250@linux.vnet.ibm.com>
+	<CA+55aFxMJvaQhoEwqgN=XA6gDOdZwoZQHdcAnB-FhAri_hK-6Q@mail.gmail.com>
+	<CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com>
+	<20140224172110.GO8264@linux.vnet.ibm.com>
+	<CA+55aFyi45f7oaG4MYP41TOc=E8Ze8Om88dV2Lq4F=qebhxt4A@mail.gmail.com>
+	<20140224185341.GU8264@linux.vnet.ibm.com>
+	<CA+55aFzXyob0aKnv1u7Stbu0rH5Aq2jaA1rHb=TvQe9c1KY0oQ@mail.gmail.com>
+	<20140224223701.GC8264@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <201402240902.35977.arnd@arndb.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Josh Triplett <josh@joshtriplett.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ve0-f178.google.com ([209.85.128.178]:54573 "EHLO
+	mail-ve0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752997AbaBXXfF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2014 18:35:05 -0500
+In-Reply-To: <20140224223701.GC8264@linux.vnet.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Paul McKenney <paulmck@linux.vnet.ibm.com>
+Cc: Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
 
-On Mon, 24 Feb 2014 09:02:35 +0100 Arnd Bergmann <arnd@arndb.de> wrote:
+On Mon, Feb 24, 2014 at 2:37 PM, Paul E. McKenney
+<paulmck@linux.vnet.ibm.com> wrote:
+>>
+>> What if the "nothing modifies 'p'" part looks like this:
+>>
+>>     if (p != &myvariable)
+>>         return;
+>>
+>> and now any sane compiler will happily optimize "q = *p" into "q =
+>> myvariable", and we're all done - nothing invalid was ever
+>
+> Yes, the compiler could do that.  But it would still be required to
+> carry a dependency from the memory_order_consume read to the "*p",
 
-> On Saturday 22 February 2014, Josh Triplett wrote:
-> > When !CONFIG_BUG, WARN_ON and family become simple passthroughs of their
-> > condition argument; however, WARN_ON_ONCE and family still have
-> > conditions and a boolean to detect one-time invocation, even though the
-> > warning they'd emit doesn't exist.  Make the existing definitions
-> > conditional on CONFIG_BUG, and map them all to the passthrough WARN_ON
-> > when !CONFIG_BUG.
-> > 
-> > This saves 4.4k on a minimized configuration (smaller than
-> > allnoconfig), and 20.6k with defconfig plus CONFIG_BUG=n.
-> 
-> This looks good, but it reminds me of a patch that I did a while ago
-> and that got lost while I was on leave:
-> 
-> > +#else /* !CONFIG_BUG */
-> > +#ifndef HAVE_ARCH_BUG
-> > +#define BUG() do {} while(0)
-> > +#endif
-> > +
-> > +#ifndef HAVE_ARCH_BUG_ON
-> > +#define BUG_ON(condition) do { if (condition) ; } while(0)
-> > +#endif
-> 
-> I've done some analysis of this before[1] and came to the conclusion that
-> this definition (which I realize you are not changing) is bad.
-> 
-> For one thing, it will cause lots of gcc warnings about code that
-> should have been unreachable being compiled. It also causes
-> misoptimizations for code that should be detected as unused or
-> (worse) lets us run into undefined behavior if we ever get into
-> the BUG() case.
-> 
-> This means we actually want BUG() to end with __builtin_unreachable()
-> as in the CONFIG_BUG=y case, and also ensure it actually is
-> unreachable. As I have shown in [1], the there is a small overhead
-> of doing this in terms of code size.
+But that's *BS*. You didn't actually listen to the main issue.
 
-CONFIG_BUG=n causes all sorts of stupid problems.
+Paul, why do you insist on this carries-a-dependency crap?
 
-And as kernel developers we don't *want* people disabling BUG - it
-reduces our ability to detect and fix stuff and it adds all sorts of
-hard-to-maintain nobody-tests-it things like this.
+It's broken. If you don't believe me, then believe the compiler person
+who already piped up and told you so.
 
-So...  how about we just do away with CONFIG_BUG?
+The "carries a dependency" model is broken. Get over it.
 
-- Do we know of anyone who is really using this and to good effect?
+No sane compiler will ever distinguish two different registers that
+have the same value from each other. No sane compiler will ever say
+"ok, register r1 has the exact same value as register r2, but r2
+carries the dependency, so I need to make sure to pass r2 to that
+function or use it as a base pointer".
 
-- Is their use case important/valuable enough for us to continue bothering?
+And nobody sane should *expect* a compiler to distinguish two
+registers with the same value that way.
+
+So the whole model is broken.
+
+I gave an alternate model (the "restrict"), and you didn't seem to
+understand the really fundamental difference. It's not a language
+difference, it's a conceptual difference.
+
+In the broken "carries a dependency" model, you have fight all those
+aliases that can have the same value, and it is not a fight you can
+win. We've had the "p-p" examples, we've had the "p&0" examples, but
+the fact is, that "p==&myvariable" example IS EXACTLY THE SAME THING.
+
+All three of those things: "p-p", "p&0", and "p==&myvariable" mean
+that any compiler worth its salt now know that "p" carries no
+information, and will optimize it away.
+
+So please stop arguing against that. Whenever you argue against that
+simple fact, you are arguing against sane compilers.
+
+So *accept* the fact that some operations (and I guarantee that there
+are more of those than you can think of, and you can create them with
+various tricks using pretty much *any* feature in the C language)
+essentially take the data information away. And just accept the fact
+that then the ordering goes away too.
+
+So give up on "carries a dependency". Because there will be cases
+where that dependency *isn't* carried.
+
+The language of the standard needs to get *away* from the broken
+model, because otherwise the standard is broken.
+
+I suggest we instead talk about "litmus tests" and why certain code
+sequences are ordered, and others are not.
+
+So the code sequence I already mentioned is *not* ordered:
+
+Litmus test 1:
+
+    p = atomic_read(pp, consume);
+    if (p == &variable)
+        return p->val;
+
+   is *NOT* ordered, because the compiler can trivially turn this into
+"return variable.val", and break the data dependency.
+
+   This is true *regardless* of any "carries a dependency" language,
+because that language is insane, and doesn't work when the different
+pieces here may be in different compilation units.
+
+BUT:
+
+Litmus test 2:
+
+    p = atomic_read(pp, consume);
+    if (p != &variable)
+        return p->val;
+
+  *IS* ordered, because while it looks syntactically a lot like
+"Litmus test 1", there is no sane way a compiler can use the knowledge
+that "p is not a pointer to a particular location" to break the data
+dependency.
+
+There is no way in hell that any sane "carries a dependency" model can
+get the simple tests above right.
+
+So give up on it already. "Carries a dependency" cannot work. It's a
+bad model. You're trying to describe the problem using the wrong
+tools.
+
+Note that my "restrict+pointer to object" language actually got this
+*right*. The "restrict" part made Litmus test 1 not ordered, because
+that "p == &variable" success case means that the pointer wasn't
+restricted, so the pre-requisite for ordering didn't exist.
+
+See? The "carries a dependency" is a broken model for this, but there
+are _other_ models that can work.
+
+You tried to rewrite my model into "carries a dependency". That
+*CANNOT* work. It's like trying to rewrite quantum physics into the
+Greek model of the four elements. They are not compatible models, and
+one of them can be shown to not work.
+
+              Linus
