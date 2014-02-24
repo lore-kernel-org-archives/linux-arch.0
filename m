@@ -1,126 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e35.co.us.ibm.com ([32.97.110.153]:41755 "EHLO
-	e35.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752960AbaBXSxr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2014 13:53:47 -0500
-Received: from /spool/local
-	by e35.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Mon, 24 Feb 2014 11:53:46 -0700
-Date: Mon, 24 Feb 2014 10:53:41 -0800
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Message-ID: <20140224185341.GU8264@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <CA+55aFwos2Gwd2LEvht4ymVxHb6GRVjtZ9wwJSaj1p--FqNUWw@mail.gmail.com>
- <1393095223.28840.4914.camel@triegel.csb>
- <CA+55aFz9=RQoMO2ipyZgNPNzWGVXi_R9Ar5=o9VBWwXzDDz6jg@mail.gmail.com>
- <20140223003933.GQ4250@linux.vnet.ibm.com>
- <CA+55aFyjzR_Ga_HOKnBXpKYbuesqovj1-sFTVisD9UwA6JuJtw@mail.gmail.com>
- <20140223063426.GT4250@linux.vnet.ibm.com>
- <CA+55aFxMJvaQhoEwqgN=XA6gDOdZwoZQHdcAnB-FhAri_hK-6Q@mail.gmail.com>
- <CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com>
- <20140224172110.GO8264@linux.vnet.ibm.com>
- <CA+55aFyi45f7oaG4MYP41TOc=E8Ze8Om88dV2Lq4F=qebhxt4A@mail.gmail.com>
-MIME-Version: 1.0
+Received: from ns1.pc-advies.be ([83.149.101.17]:59381 "EHLO
+	spo001.leaseweb.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752944AbaBXUS0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2014 15:18:26 -0500
+Date: Mon, 24 Feb 2014 20:52:23 +0100
+From: Wim Van Sebroeck <wim@iguana.be>
+Subject: Re: [PATCH 40/73] watchdog: delete non-required instances of include <linux/init.h>
+Message-ID: <20140224195223.GB20712@spo001.leaseweb.com>
+References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com> <1390339396-3479-41-git-send-email-paul.gortmaker@windriver.com>
+Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CA+55aFyi45f7oaG4MYP41TOc=E8Ze8Om88dV2Lq4F=qebhxt4A@mail.gmail.com>
+In-Reply-To: <1390339396-3479-41-git-send-email-paul.gortmaker@windriver.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140224185341.ErZr_t56qBwCMMJjKuNyWlayBkCSfkYsyTBlBquhZls@z>
+To: Paul Gortmaker <paul.gortmaker@windriver.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-watchdog@vger.kernel.org
+Message-ID: <20140224195223.NWcRAszrlSRRrrbDZnyRRV5gF8qYgRdOskv1rFfGkYk@z>
 
-On Mon, Feb 24, 2014 at 10:14:01AM -0800, Linus Torvalds wrote:
-> On Mon, Feb 24, 2014 at 9:21 AM, Paul E. McKenney
-> <paulmck@linux.vnet.ibm.com> wrote:
-> >
-> > 4.      Bitwise operators ("&", "|", "^", and I suppose also "~")
-> >         applied to a chained pointer and an integer results in another
-> >         chained pointer in that same pointer chain.
+Hi Paul,
+
+> None of these files are actually using any __init type directives
+> and hence don't need to include <linux/init.h>.  Most are just a
+> left over from __devinit and __cpuinit removal, or simply due to
+> code getting copied from one driver to the next.
 > 
-> No. You cannot define it this way. Taking the value of a pointer and
-> doing a bitwise operation that throws away all the bits (or even
-> *most* of the bits) results in the compiler easily being able to turn
-> the "chain" into a non-chain.
-> 
-> The obvious example being "val & 0", but things like "val & 1" are in
-> practice also something that compilers easily turn into control
-> dependencies instead of data dependencies.
+> Cc: Wim Van Sebroeck <wim@iguana.be>
+> Cc: linux-watchdog@vger.kernel.org
+> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
+> ---
+>  drivers/watchdog/ar7_wdt.c          | 1 -
+>  drivers/watchdog/ath79_wdt.c        | 1 -
+>  drivers/watchdog/bcm47xx_wdt.c      | 1 -
+>  drivers/watchdog/bcm63xx_wdt.c      | 1 -
+>  drivers/watchdog/cpu5wdt.c          | 1 -
+>  drivers/watchdog/cpwd.c             | 1 -
+>  drivers/watchdog/davinci_wdt.c      | 1 -
+>  drivers/watchdog/hpwdt.c            | 1 -
+>  drivers/watchdog/i6300esb.c         | 1 -
+>  drivers/watchdog/jz4740_wdt.c       | 1 -
+>  drivers/watchdog/max63xx_wdt.c      | 1 -
+>  drivers/watchdog/mtx-1_wdt.c        | 1 -
+>  drivers/watchdog/nuc900_wdt.c       | 1 -
+>  drivers/watchdog/of_xilinx_wdt.c    | 1 -
+>  drivers/watchdog/omap_wdt.c         | 1 -
+>  drivers/watchdog/orion_wdt.c        | 1 -
+>  drivers/watchdog/pnx4008_wdt.c      | 1 -
+>  drivers/watchdog/rdc321x_wdt.c      | 1 -
+>  drivers/watchdog/retu_wdt.c         | 1 -
+>  drivers/watchdog/riowd.c            | 1 -
+>  drivers/watchdog/s3c2410_wdt.c      | 1 -
+>  drivers/watchdog/sp805_wdt.c        | 1 -
+>  drivers/watchdog/stmp3xxx_rtc_wdt.c | 1 -
+>  drivers/watchdog/wdt_pci.c          | 1 -
+>  24 files changed, 24 deletions(-)
 
-Indeed, most of the bits need to remain for this to work.
+This patch has been added to linux-watchdog-next.
 
-> So you can talk about things like "aligning the pointer value to
-> object boundaries" etc, but it really cannot and *must* not be about
-> the syntactic operations.
-> 
-> The same goes for "adding and subtracting an integer". The *syntax*
-> doesn't matter. It's about remaining information. Doing "p-(int)p" or
-> "p+(-(int)p)" doesn't leave any information despite being "subtracting
-> and adding an integer" at a syntactic level.
-> 
-> Syntax is meaningless. Really.
-
-Good points.  How about the following replacements?
-
-3.	Adding or subtracting an integer to/from a chained pointer
-	results in another chained pointer in that same pointer chain.
-	The results of addition and subtraction operations that cancel
-	the chained pointer's value (for example, "p-(long)p" where "p"
-	is a pointer to char) are implementation defined.
-
-4.	Bitwise operators ("&", "|", "^", and I suppose also "~")
-	applied to a chained pointer and an integer for the purposes
-	of alignment and pointer translation results in another
-	chained pointer in that same pointer chain.  Other uses
-	of bitwise operators on chained pointers (for example,
-	"p|~0") are implementation defined.
-
-> > 8.      Applying any of the following operators to a chained pointer
-> >         results in something that is not a chained pointer:
-> >         "()", sizeof, "!", "*", "/", "%", ">>", "<<", "<", ">", "<=",
-> >         ">=", "==", "!=", "&&", and "||".
-> 
-> Parenthesis? I'm assuming that you mean calling through the chained pointer.
-
-Yes, good point.  Of course, parentheses for grouping just pass the
-value through without affecting the chained-ness.
-
-> Also, I think all of /, * and % are perfectly fine, and might be used
-> for that "aligning the pointer" operation that is fine.
-
-Something like this?
-
-	char *p;
-
-	p = p - (unsigned long)p % 8;
-
-I was thinking of this as subtraction -- the "p" gets moduloed by 8,
-which loses the chained-pointer designation.  But that is OK because
-that designation gets folded back in by the subtraction.  Am I missing
-a use case?
-
-That leaves things like this one:
-
-	p = (p / 8) * 8;
-
-I cannot think of any other legitimate use for "/" and "*".
-
-Here is an updated #8 and a new 8a:
-
-8.	Applying any of the following operators to a chained pointer
-	results in something that is not a chained pointer: function call
-	"()", sizeof, "!", "%", ">>", "<<", "<", ">", "<=", ">=", "==",
-	"!=", "&&", "||", and "kill_dependency()".
-
-8a.	Dividing a chained pointer by an integer and multiplying it
-	by that same integer (for example, to align that pointer) results
-	in a chained pointer in that same pointer chain.  The ordering
-	effects of other uses of infix "*" and "/" on chained pointers
-	are implementation defined.
-
-Does that capture it?
-
-							Thanx, Paul
+Kind regards,
+Wim.
 
