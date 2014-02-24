@@ -1,81 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f172.google.com ([74.125.82.172]:56771 "EHLO
-	mail-we0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752443AbaBXQ12 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2014 11:27:28 -0500
+Received: from adelie.canonical.com ([91.189.90.139]:52328 "EHLO
+	adelie.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752888AbaBXQ2m (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2014 11:28:42 -0500
+Subject: [PATCH 0/6] dma-buf synchronization patches (updated)
+From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Date: Mon, 24 Feb 2014 17:28:35 +0100
+Message-ID: <20140224162607.20485.70967.stgit@patser>
 MIME-Version: 1.0
-In-Reply-To: <CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com>
-References: <20140220083032.GN4250@linux.vnet.ibm.com>
-	<CA+55aFwfx==u7o1NZ66aPbkOgsvGqW3UscGqrQkGuzOkjSpm6Q@mail.gmail.com>
-	<20140220181116.GT4250@linux.vnet.ibm.com>
-	<CA+55aFwn9gXWVq_GL=tPPP63vsqs-9QB4ii4s06xqG4UscCV5w@mail.gmail.com>
-	<1392922421.28840.36.camel@triegel.csb>
-	<CA+55aFwos2Gwd2LEvht4ymVxHb6GRVjtZ9wwJSaj1p--FqNUWw@mail.gmail.com>
-	<1393095223.28840.4914.camel@triegel.csb>
-	<CA+55aFz9=RQoMO2ipyZgNPNzWGVXi_R9Ar5=o9VBWwXzDDz6jg@mail.gmail.com>
-	<20140223003933.GQ4250@linux.vnet.ibm.com>
-	<CA+55aFyjzR_Ga_HOKnBXpKYbuesqovj1-sFTVisD9UwA6JuJtw@mail.gmail.com>
-	<20140223063426.GT4250@linux.vnet.ibm.com>
-	<CA+55aFxMJvaQhoEwqgN=XA6gDOdZwoZQHdcAnB-FhAri_hK-6Q@mail.gmail.com>
-	<CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com>
-Date: Mon, 24 Feb 2014 17:27:26 +0100
-Message-ID: <CAFiYyc08cusFTsydD2C4rEZB-k38NnorzEXzKvqab0m3R+qn8w@mail.gmail.com>
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-From: Richard Biener <richard.guenther@gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140224162726.26Ba9fL3z-STomjwge8Dn4YOYOfSa46SXePA4UhquKQ@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, ccross@google.com, linaro-mm-sig@lists.linaro.org, robdclark@gmail.com, dri-devel@lists.freedesktop.org, daniel@ffwll.ch, sumit.semwal@linaro.org, linux-media@vger.kernel.org
+Message-ID: <20140224162835.inufWFv6cbznwBjpv3dKn-EqooFoeAhvbULBwzlBaR0@z>
 
-On Mon, Feb 24, 2014 at 4:57 PM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
-> On Sun, Feb 23, 2014 at 11:31 AM, Linus Torvalds
-> <torvalds@linux-foundation.org> wrote:
->>
->> Let me think about it some more, but my gut feel is that just tweaking
->> the definition of what "ordered" means is sufficient.
->>
->> So to go back to the suggested ordering rules (ignoring the "restrict"
->> part, which is just to clarify that ordering through other means to
->> get to the object doesn't matter), I suggested:
->>
->>  "the consume ordering guarantees the ordering between that
->>   atomic read and the accesses to the object that the pointer
->>   points to"
->>
->> and I think the solution is to just say that this ordering acts as a
->> fence. It doesn't say exactly *where* the fence is, but it says that
->> there is *some* fence between the load of the pointer and any/all
->> accesses to the object through that pointer.
->
-> I'm wrong. That doesn't work. At all. There is no ordering except
-> through the pointer chain.
->
-> So I think saying just that, and nothing else (no magic fences, no
-> nothing) is the right thing:
->
->  "the consume ordering guarantees the ordering between that
->   atomic read and the accesses to the object that the pointer
->   points to directly or indirectly through a chain of pointers"
+The following series implements fence and converts dma-buf and
+android sync to use it. Patch 5 and 6 add support for polling
+to dma-buf, blocking until all fences are signaled.
 
-To me that reads like
+Patches that received some minor updates:
+- seqno fence (wait condition member added)
+- android (whitespace changes and a comment removed)
+- add poll support to dma-buf (added comment)
 
-  int i;
-  int *q = &i;
-  int **p = &q;
+---
 
-  atomic_XXX (p, CONSUME);
+Maarten Lankhorst (6):
+      fence: dma-buf cross-device synchronization (v17)
+      seqno-fence: Hardware dma-buf implementation of fencing (v5)
+      dma-buf: use reservation objects
+      android: convert sync to fence api, v5
+      reservation: add support for fences to enable cross-device synchronisation
+      dma-buf: add poll support, v3
 
-orders against accesses '*p', '**p', '*q' and 'i'.  Thus it seems they
-want to say that it orders against aliased storage - but then go further
-and include "indirectly through a chain of pointers"?!  Thus an
-atomic read of a int * orders against any 'int' memory operation but
-not against 'float' memory operations?
 
-Eh ...
+ Documentation/DocBook/device-drivers.tmpl      |    3 
+ drivers/base/Kconfig                           |    9 
+ drivers/base/Makefile                          |    2 
+ drivers/base/dma-buf.c                         |  130 +++
+ drivers/base/fence.c                           |  467 ++++++++++++
+ drivers/gpu/drm/drm_prime.c                    |    8 
+ drivers/gpu/drm/exynos/exynos_drm_dmabuf.c     |    2 
+ drivers/gpu/drm/i915/i915_gem_dmabuf.c         |    2 
+ drivers/gpu/drm/nouveau/nouveau_drm.c          |    1 
+ drivers/gpu/drm/nouveau/nouveau_gem.h          |    1 
+ drivers/gpu/drm/nouveau/nouveau_prime.c        |    7 
+ drivers/gpu/drm/omapdrm/omap_gem_dmabuf.c      |    2 
+ drivers/gpu/drm/radeon/radeon_drv.c            |    2 
+ drivers/gpu/drm/radeon/radeon_prime.c          |    8 
+ drivers/gpu/drm/ttm/ttm_object.c               |    2 
+ drivers/media/v4l2-core/videobuf2-dma-contig.c |    2 
+ drivers/staging/android/Kconfig                |    1 
+ drivers/staging/android/Makefile               |    2 
+ drivers/staging/android/ion/ion.c              |    2 
+ drivers/staging/android/sw_sync.c              |    4 
+ drivers/staging/android/sync.c                 |  903 ++++++++----------------
+ drivers/staging/android/sync.h                 |   82 +-
+ drivers/staging/android/sync_debug.c           |  247 +++++++
+ drivers/staging/android/trace/sync.h           |   12 
+ include/drm/drmP.h                             |    2 
+ include/linux/dma-buf.h                        |   21 -
+ include/linux/fence.h                          |  329 +++++++++
+ include/linux/reservation.h                    |   20 +
+ include/linux/seqno-fence.h                    |  119 +++
+ include/trace/events/fence.h                   |  125 +++
+ 30 files changed, 1863 insertions(+), 654 deletions(-)
+ create mode 100644 drivers/base/fence.c
+ create mode 100644 drivers/staging/android/sync_debug.c
+ create mode 100644 include/linux/fence.h
+ create mode 100644 include/linux/seqno-fence.h
+ create mode 100644 include/trace/events/fence.h
 
-Just jumping in to throw in my weird-2-cents.
-
-Richard.
+-- 
+Signature
