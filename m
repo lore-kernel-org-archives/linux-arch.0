@@ -1,62 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ns1.pc-advies.be ([83.149.101.17]:59381 "EHLO
-	spo001.leaseweb.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752944AbaBXUS0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2014 15:18:26 -0500
-Date: Mon, 24 Feb 2014 20:52:23 +0100
-From: Wim Van Sebroeck <wim@iguana.be>
-Subject: Re: [PATCH 40/73] watchdog: delete non-required instances of include <linux/init.h>
-Message-ID: <20140224195223.GB20712@spo001.leaseweb.com>
-References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com> <1390339396-3479-41-git-send-email-paul.gortmaker@windriver.com>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:51532 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752639AbaBXXSA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2014 18:18:00 -0500
+Date: Mon, 24 Feb 2014 15:17:58 -0800
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH RESEND] bug: When !CONFIG_BUG, simplify WARN_ON_ONCE and
+ family
+Message-ID: <20140224151758.b06125f6ddef2086d2b2a969@linux-foundation.org>
+In-Reply-To: <201402240902.35977.arnd@arndb.de>
+References: <20140222192325.GA12587@thin>
+	<201402240902.35977.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1390339396-3479-41-git-send-email-paul.gortmaker@windriver.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Gortmaker <paul.gortmaker@windriver.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-watchdog@vger.kernel.org
-Message-ID: <20140224195223.NWcRAszrlSRRrrbDZnyRRV5gF8qYgRdOskv1rFfGkYk@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Josh Triplett <josh@joshtriplett.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20140224231758.lOhDAvGL6N4NwZ1gFedhnyB9MoHXabFYAxP8OsvAjqM@z>
 
-Hi Paul,
+On Mon, 24 Feb 2014 09:02:35 +0100 Arnd Bergmann <arnd@arndb.de> wrote:
 
-> None of these files are actually using any __init type directives
-> and hence don't need to include <linux/init.h>.  Most are just a
-> left over from __devinit and __cpuinit removal, or simply due to
-> code getting copied from one driver to the next.
+> On Saturday 22 February 2014, Josh Triplett wrote:
+> > When !CONFIG_BUG, WARN_ON and family become simple passthroughs of their
+> > condition argument; however, WARN_ON_ONCE and family still have
+> > conditions and a boolean to detect one-time invocation, even though the
+> > warning they'd emit doesn't exist.  Make the existing definitions
+> > conditional on CONFIG_BUG, and map them all to the passthrough WARN_ON
+> > when !CONFIG_BUG.
+> > 
+> > This saves 4.4k on a minimized configuration (smaller than
+> > allnoconfig), and 20.6k with defconfig plus CONFIG_BUG=n.
 > 
-> Cc: Wim Van Sebroeck <wim@iguana.be>
-> Cc: linux-watchdog@vger.kernel.org
-> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
-> ---
->  drivers/watchdog/ar7_wdt.c          | 1 -
->  drivers/watchdog/ath79_wdt.c        | 1 -
->  drivers/watchdog/bcm47xx_wdt.c      | 1 -
->  drivers/watchdog/bcm63xx_wdt.c      | 1 -
->  drivers/watchdog/cpu5wdt.c          | 1 -
->  drivers/watchdog/cpwd.c             | 1 -
->  drivers/watchdog/davinci_wdt.c      | 1 -
->  drivers/watchdog/hpwdt.c            | 1 -
->  drivers/watchdog/i6300esb.c         | 1 -
->  drivers/watchdog/jz4740_wdt.c       | 1 -
->  drivers/watchdog/max63xx_wdt.c      | 1 -
->  drivers/watchdog/mtx-1_wdt.c        | 1 -
->  drivers/watchdog/nuc900_wdt.c       | 1 -
->  drivers/watchdog/of_xilinx_wdt.c    | 1 -
->  drivers/watchdog/omap_wdt.c         | 1 -
->  drivers/watchdog/orion_wdt.c        | 1 -
->  drivers/watchdog/pnx4008_wdt.c      | 1 -
->  drivers/watchdog/rdc321x_wdt.c      | 1 -
->  drivers/watchdog/retu_wdt.c         | 1 -
->  drivers/watchdog/riowd.c            | 1 -
->  drivers/watchdog/s3c2410_wdt.c      | 1 -
->  drivers/watchdog/sp805_wdt.c        | 1 -
->  drivers/watchdog/stmp3xxx_rtc_wdt.c | 1 -
->  drivers/watchdog/wdt_pci.c          | 1 -
->  24 files changed, 24 deletions(-)
+> This looks good, but it reminds me of a patch that I did a while ago
+> and that got lost while I was on leave:
+> 
+> > +#else /* !CONFIG_BUG */
+> > +#ifndef HAVE_ARCH_BUG
+> > +#define BUG() do {} while(0)
+> > +#endif
+> > +
+> > +#ifndef HAVE_ARCH_BUG_ON
+> > +#define BUG_ON(condition) do { if (condition) ; } while(0)
+> > +#endif
+> 
+> I've done some analysis of this before[1] and came to the conclusion that
+> this definition (which I realize you are not changing) is bad.
+> 
+> For one thing, it will cause lots of gcc warnings about code that
+> should have been unreachable being compiled. It also causes
+> misoptimizations for code that should be detected as unused or
+> (worse) lets us run into undefined behavior if we ever get into
+> the BUG() case.
+> 
+> This means we actually want BUG() to end with __builtin_unreachable()
+> as in the CONFIG_BUG=y case, and also ensure it actually is
+> unreachable. As I have shown in [1], the there is a small overhead
+> of doing this in terms of code size.
 
-This patch has been added to linux-watchdog-next.
+CONFIG_BUG=n causes all sorts of stupid problems.
 
-Kind regards,
-Wim.
+And as kernel developers we don't *want* people disabling BUG - it
+reduces our ability to detect and fix stuff and it adds all sorts of
+hard-to-maintain nobody-tests-it things like this.
+
+So...  how about we just do away with CONFIG_BUG?
+
+- Do we know of anyone who is really using this and to good effect?
+
+- Is their use case important/valuable enough for us to continue bothering?
 
