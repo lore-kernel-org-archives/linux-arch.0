@@ -1,88 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:47723 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752560AbaBXNwy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 24 Feb 2014 08:52:54 -0500
-Message-ID: <530B4EB1.9000907@imgtec.com>
-Date: Mon, 24 Feb 2014 13:52:49 +0000
-From: James Hogan <james.hogan@imgtec.com>
+Received: from mail-we0-f172.google.com ([74.125.82.172]:56771 "EHLO
+	mail-we0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752443AbaBXQ12 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2014 11:27:28 -0500
 MIME-Version: 1.0
-Subject: Re: [PATCH] asm-generic: add sched_setattr/sched_getattr syscalls
-References: <1391441617-21518-1-git-send-email-james.hogan@imgtec.com> <20140217184435.GD8361@arm.com>
-In-Reply-To: <20140217184435.GD8361@arm.com>
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature";
-	boundary="DSPheHrLGBJJ4VcrXica0DsfFWdjx0VQb"
+In-Reply-To: <CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com>
+References: <20140220083032.GN4250@linux.vnet.ibm.com>
+	<CA+55aFwfx==u7o1NZ66aPbkOgsvGqW3UscGqrQkGuzOkjSpm6Q@mail.gmail.com>
+	<20140220181116.GT4250@linux.vnet.ibm.com>
+	<CA+55aFwn9gXWVq_GL=tPPP63vsqs-9QB4ii4s06xqG4UscCV5w@mail.gmail.com>
+	<1392922421.28840.36.camel@triegel.csb>
+	<CA+55aFwos2Gwd2LEvht4ymVxHb6GRVjtZ9wwJSaj1p--FqNUWw@mail.gmail.com>
+	<1393095223.28840.4914.camel@triegel.csb>
+	<CA+55aFz9=RQoMO2ipyZgNPNzWGVXi_R9Ar5=o9VBWwXzDDz6jg@mail.gmail.com>
+	<20140223003933.GQ4250@linux.vnet.ibm.com>
+	<CA+55aFyjzR_Ga_HOKnBXpKYbuesqovj1-sFTVisD9UwA6JuJtw@mail.gmail.com>
+	<20140223063426.GT4250@linux.vnet.ibm.com>
+	<CA+55aFxMJvaQhoEwqgN=XA6gDOdZwoZQHdcAnB-FhAri_hK-6Q@mail.gmail.com>
+	<CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com>
+Date: Mon, 24 Feb 2014 17:27:26 +0100
+Message-ID: <CAFiYyc08cusFTsydD2C4rEZB-k38NnorzEXzKvqab0m3R+qn8w@mail.gmail.com>
+Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
+From: Richard Biener <richard.guenther@gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Vineet Gupta <vgupta@synopsys.com>, Will Deacon <Will.Deacon@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "msalter@redhat.com" <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, Richard Kuo <rkuo@codeaurora.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "linux-metag@vger.kernel.org" <linux-metag@vger.kernel.org>, Jonas Bonn <jonas@southpole.se>, "linux@openrisc.net" <linux@openrisc.net>, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, Chris Metcalf <cmetcalf@tilera.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>
-Message-ID: <20140224135249.3vXgx8mtvZOVBBLF5evkxHx_M5adTsOsvYgXcGHrQmc@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Message-ID: <20140224162726.26Ba9fL3z-STomjwge8Dn4YOYOfSa46SXePA4UhquKQ@z>
 
---DSPheHrLGBJJ4VcrXica0DsfFWdjx0VQb
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: quoted-printable
-
-On 17/02/14 18:44, Catalin Marinas wrote:
-> On Mon, Feb 03, 2014 at 03:33:37PM +0000, James Hogan wrote:
->> Add the sched_setattr and sched_getattr syscalls to the generic syscal=
-l
->> list, which is used by the following architectures: arc, arm64, c6x,
->> hexagon, metag, openrisc, score, tile, unicore32.
+On Mon, Feb 24, 2014 at 4:57 PM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+> On Sun, Feb 23, 2014 at 11:31 AM, Linus Torvalds
+> <torvalds@linux-foundation.org> wrote:
 >>
->> Signed-off-by: James Hogan <james.hogan@imgtec.com>
->> Cc: Arnd Bergmann <arnd@arndb.de>
->> Cc: linux-arch@vger.kernel.org
->> Cc: Vineet Gupta <vgupta@synopsys.com>
->> Cc: Catalin Marinas <catalin.marinas@arm.com>
->> Cc: Will Deacon <will.deacon@arm.com>
->> Cc: linux-arm-kernel@lists.infradead.org
->> Cc: Mark Salter <msalter@redhat.com>
->> Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
->> Cc: linux-c6x-dev@linux-c6x.org
->> Cc: Richard Kuo <rkuo@codeaurora.org>
->> Cc: linux-hexagon@vger.kernel.org
->> Cc: linux-metag@vger.kernel.org
->> Cc: Jonas Bonn <jonas@southpole.se>
->> Cc: linux@lists.openrisc.net
->> Cc: Chen Liqin <liqin.linux@gmail.com>
->> Cc: Lennox Wu <lennox.wu@gmail.com>
->> Cc: Chris Metcalf <cmetcalf@tilera.com>
->> Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
->=20
-> Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+>> Let me think about it some more, but my gut feel is that just tweaking
+>> the definition of what "ordered" means is sufficient.
+>>
+>> So to go back to the suggested ordering rules (ignoring the "restrict"
+>> part, which is just to clarify that ordering through other means to
+>> get to the object doesn't matter), I suggested:
+>>
+>>  "the consume ordering guarantees the ordering between that
+>>   atomic read and the accesses to the object that the pointer
+>>   points to"
+>>
+>> and I think the solution is to just say that this ordering acts as a
+>> fence. It doesn't say exactly *where* the fence is, but it says that
+>> there is *some* fence between the load of the pointer and any/all
+>> accesses to the object through that pointer.
+>
+> I'm wrong. That doesn't work. At all. There is no ordering except
+> through the pointer chain.
+>
+> So I think saying just that, and nothing else (no magic fences, no
+> nothing) is the right thing:
+>
+>  "the consume ordering guarantees the ordering between that
+>   atomic read and the accesses to the object that the pointer
+>   points to directly or indirectly through a chain of pointers"
 
-Thanks,
+To me that reads like
 
-FYI I've applied to my fixes branch which is included in linux-next,
-I'll send Linus the pull request in a few days.
+  int i;
+  int *q = &i;
+  int **p = &q;
 
-Cheers
-James
+  atomic_XXX (p, CONSUME);
 
+orders against accesses '*p', '**p', '*q' and 'i'.  Thus it seems they
+want to say that it orders against aliased storage - but then go further
+and include "indirectly through a chain of pointers"?!  Thus an
+atomic read of a int * orders against any 'int' memory operation but
+not against 'float' memory operations?
 
---DSPheHrLGBJJ4VcrXica0DsfFWdjx0VQb
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
+Eh ...
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.13 (GNU/Linux)
+Just jumping in to throw in my weird-2-cents.
 
-iQIcBAEBAgAGBQJTC06yAAoJEKHZs+irPybfN/0QAKd34rJD7Lf6XqMgKHo7tfRD
-+LLHi/g8OlR1xkPKXmQlmdyGKtW+QmnGq/GLzJ1dTC8HZh/74i3NAtlTXIlujdsT
-ooD0TKqgHPaypdyrHlAO9GSHi241517cdWoai+4bNjg9nxStQ5R69XG4rUYkMkGU
-Tg/K6U8W9GNM1btJPGgrjV+qjmJ7zHOAWG1D631K+qxTn605HMefNbpCCJIV4NTg
-F6oGRAqaqh/NKLWY59zYz6iyE29chf7TPKSWiDJvHc8ZMfgnb3nhUnktUTHDbOqf
-FUfdWnzbvsN2jZFFOzTcoRbwObTYgMz0/Q8l3HZMbFSfLhLvhsZhQPd0SdAVJdzO
-zTaKiNun1hGfRhrFDUjmPf7xVur7N3Jq+62MfF0DFCJJ+23bImpW9+NWtJgcaLsS
-kVY+1M+ruhH628xBbQxvaAXHDpWhm3LYca+9zQ+fg17XcvEIHZeXcPs5tn/6CKqw
-B91Qn+BkAGCaf5QcmI+ZjKONpRtKdKjJPDssAHqmHeLno5/Q1rlDESgTwZriOd8o
-nLTTBSEkuY4xDPvB6GXPq83jKUc0x2hqeIjAziM5HM68IDH/eeWu+VY7tsGZepqW
-WogeiGNd4InXLUUvMljLPS8a0L4Y4e4vQEtbgO9TlUgnoq1/gXBoKvXlBaL98OZ7
-gcQf5gh2u0hqCIZMsbfH
-=8jpm
------END PGP SIGNATURE-----
-
---DSPheHrLGBJJ4VcrXica0DsfFWdjx0VQb--
-
+Richard.
