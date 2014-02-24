@@ -1,120 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from slow1-d.mail.gandi.net ([217.70.178.86]:56116 "EHLO
-	slow1-d.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751470AbaBVTgx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 22 Feb 2014 14:36:53 -0500
-Received: from relay6-d.mail.gandi.net (relay6-d.mail.gandi.net [217.70.183.198])
-	by slow1-d.mail.gandi.net (Postfix) with ESMTP id E161E534B7A
-	for <linux-arch@vger.kernel.org>; Sat, 22 Feb 2014 20:23:45 +0100 (CET)
-Date: Sat, 22 Feb 2014 11:23:27 -0800
-From: Josh Triplett <josh@joshtriplett.org>
-Subject: [PATCH RESEND] bug: When !CONFIG_BUG, simplify WARN_ON_ONCE and
- family
-Message-ID: <20140222192325.GA12587@thin>
+Received: from mail-ve0-f170.google.com ([209.85.128.170]:36218 "EHLO
+	mail-ve0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751864AbaBXBf3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 23 Feb 2014 20:35:29 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+In-Reply-To: <20140224011651.GC8264@linux.vnet.ibm.com>
+References: <20140220181116.GT4250@linux.vnet.ibm.com>
+	<CA+55aFwn9gXWVq_GL=tPPP63vsqs-9QB4ii4s06xqG4UscCV5w@mail.gmail.com>
+	<1392922421.28840.36.camel@triegel.csb>
+	<CA+55aFwos2Gwd2LEvht4ymVxHb6GRVjtZ9wwJSaj1p--FqNUWw@mail.gmail.com>
+	<1393095223.28840.4914.camel@triegel.csb>
+	<CA+55aFz9=RQoMO2ipyZgNPNzWGVXi_R9Ar5=o9VBWwXzDDz6jg@mail.gmail.com>
+	<20140223003933.GQ4250@linux.vnet.ibm.com>
+	<CA+55aFyjzR_Ga_HOKnBXpKYbuesqovj1-sFTVisD9UwA6JuJtw@mail.gmail.com>
+	<20140223063426.GT4250@linux.vnet.ibm.com>
+	<CA+55aFxMJvaQhoEwqgN=XA6gDOdZwoZQHdcAnB-FhAri_hK-6Q@mail.gmail.com>
+	<20140224011651.GC8264@linux.vnet.ibm.com>
+Date: Sun, 23 Feb 2014 17:35:28 -0800
+Message-ID: <CA+55aFx06UTTeypXOGUiwwbzJyqpVNR90zBDLPmxFzBkz=VwgQ@mail.gmail.com>
+Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20140222192327.WMP2Zjqd_myxD1aj2Swb4RZMj79uhHmGioW4XwcNEEQ@z>
+To: Paul McKenney <paulmck@linux.vnet.ibm.com>
+Cc: Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Message-ID: <20140224013528.w1TZrvYOJzLBFD6a9kNvNjMJXvKzqIhsIecM56aSTX8@z>
 
-When !CONFIG_BUG, WARN_ON and family become simple passthroughs of their
-condition argument; however, WARN_ON_ONCE and family still have
-conditions and a boolean to detect one-time invocation, even though the
-warning they'd emit doesn't exist.  Make the existing definitions
-conditional on CONFIG_BUG, and map them all to the passthrough WARN_ON
-when !CONFIG_BUG.
+On Sun, Feb 23, 2014 at 5:16 PM, Paul E. McKenney
+<paulmck@linux.vnet.ibm.com> wrote:
+>>
+>>  (a) we've said 'q' is restricted, so there is no aliasing between q
+>> and the pointers b/c. So the compiler is free to move those accesses
+>> around the "q = p->next" access.
+>
+> Ah, if I understand you, very good!
+>
+> My example intentionally left "q" -not- restricted.
 
-This saves 4.4k on a minimized configuration (smaller than
-allnoconfig), and 20.6k with defconfig plus CONFIG_BUG=n.
+No, I 100% agree with that. "q" is *not* restricted. But "p" is, since
+it came from that consuming load.
 
-Signed-off-by: Josh Triplett <josh@joshtriplett.org>
----
+But "q = p->next" is ordered by how something can alias "p->next", not by 'q'!
 
-diff's presentation here is not the easiest for reviewing purposes.
-Effectively, this is moving the existing definitions of WARN_ON_ONCE and
-family up into the CONFIG_BUG branch of the #ifdef, and then adding new
-stub versions in the !CONFIG_BUG branch.
+There is no need to restrict anything but 'p' for all of this to work.
 
- include/asm-generic/bug.h | 57 +++++++++++++++++++++++++----------------------
- 1 file changed, 30 insertions(+), 27 deletions(-)
+Btw, it's also worth pointing out that I do *not* in any way expect
+people to actually write the "restrict" keyword anywhere. So no need
+to change source code.
 
-diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-index 7d10f96..34223e0 100644
---- a/include/asm-generic/bug.h
-+++ b/include/asm-generic/bug.h
-@@ -106,33 +106,6 @@ extern void warn_slowpath_null(const char *file, const int line);
- 	unlikely(__ret_warn_on);					\
- })
- 
--#else /* !CONFIG_BUG */
--#ifndef HAVE_ARCH_BUG
--#define BUG() do {} while(0)
--#endif
--
--#ifndef HAVE_ARCH_BUG_ON
--#define BUG_ON(condition) do { if (condition) ; } while(0)
--#endif
--
--#ifndef HAVE_ARCH_WARN_ON
--#define WARN_ON(condition) ({						\
--	int __ret_warn_on = !!(condition);				\
--	unlikely(__ret_warn_on);					\
--})
--#endif
--
--#ifndef WARN
--#define WARN(condition, format...) ({					\
--	int __ret_warn_on = !!(condition);				\
--	unlikely(__ret_warn_on);					\
--})
--#endif
--
--#define WARN_TAINT(condition, taint, format...) WARN_ON(condition)
--
--#endif
--
- #define WARN_ON_ONCE(condition)	({				\
- 	static bool __section(.data.unlikely) __warned;		\
- 	int __ret_warn_once = !!(condition);			\
-@@ -163,6 +136,36 @@ extern void warn_slowpath_null(const char *file, const int line);
- 	unlikely(__ret_warn_once);				\
- })
- 
-+#else /* !CONFIG_BUG */
-+#ifndef HAVE_ARCH_BUG
-+#define BUG() do {} while(0)
-+#endif
-+
-+#ifndef HAVE_ARCH_BUG_ON
-+#define BUG_ON(condition) do { if (condition) ; } while(0)
-+#endif
-+
-+#ifndef HAVE_ARCH_WARN_ON
-+#define WARN_ON(condition) ({						\
-+	int __ret_warn_on = !!(condition);				\
-+	unlikely(__ret_warn_on);					\
-+})
-+#endif
-+
-+#ifndef WARN
-+#define WARN(condition, format...) ({					\
-+	int __ret_warn_on = !!(condition);				\
-+	unlikely(__ret_warn_on);					\
-+})
-+#endif
-+
-+#define WARN_ON_ONCE(condition) WARN_ON(condition)
-+#define WARN_ONCE(condition, format...) WARN_ON(condition)
-+#define WARN_TAINT(condition, taint, format...) WARN_ON(condition)
-+#define WARN_TAINT_ONCE(condition, taint, format...) WARN_ON(condition)
-+
-+#endif
-+
- /*
-  * WARN_ON_SMP() is for cases that the warning is either
-  * meaningless for !SMP or may even cause failures.
--- 
-1.9.0
+What you have is a situation where the pointer coming out of the
+memory_order_consume is restricted. But if you assign it to a
+non-restricted pointer, that's *fine*. That's perfectly normal C
+behavior. The "restrict" concept is not something that the programmer
+needs to worry about or ever even notice, it's basically just a
+promise to the compiler that "if somebody has another pointer lying
+around, accesses though that other pointer do not require ordering".
 
+So it sounds like you believe that the programmer would mark things
+"restrict", and I did not mean that at all.
+
+             Linus
