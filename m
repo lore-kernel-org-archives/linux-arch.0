@@ -1,152 +1,86 @@
-From: Michael Matz <matz@suse.de>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Mon, 24 Feb 2014 14:55:07 +0100 (CET)
-Message-ID: <alpine.LNX.2.00.1402241403580.7694@wotan.suse.de>
-References: <CA+55aFwwscSzwTr+xRdirtTx7HzugmMY9HrDe0GBqNhn=AuNVA@mail.gmail.com> <20140220083032.GN4250@linux.vnet.ibm.com> <CA+55aFwfx==u7o1NZ66aPbkOgsvGqW3UscGqrQkGuzOkjSpm6Q@mail.gmail.com> <20140220181116.GT4250@linux.vnet.ibm.com>
- <CA+55aFwn9gXWVq_GL=tPPP63vsqs-9QB4ii4s06xqG4UscCV5w@mail.gmail.com> <20140220185608.GX4250@linux.vnet.ibm.com> <CA+55aFw4inow5B-JAg-NtZigJ90yDbksddr00RoMKytzDAEa8A@mail.gmail.com> <20140220221027.GC4250@linux.vnet.ibm.com>
- <CA+55aFxp7U67R0PARaUfj94y5dJ8q6_HQ2pnbQ6=JD=XR-bTOw@mail.gmail.com> <alpine.LNX.2.00.1402211847290.7694@wotan.suse.de> <20140221191318.GK4250@linux.vnet.ibm.com>
+Date: Mon, 24 Feb 2014 07:57:24 -0800
+Message-ID: <CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com>
+References: <20140220083032.GN4250@linux.vnet.ibm.com>
+	<CA+55aFwfx==u7o1NZ66aPbkOgsvGqW3UscGqrQkGuzOkjSpm6Q@mail.gmail.com>
+	<20140220181116.GT4250@linux.vnet.ibm.com>
+	<CA+55aFwn9gXWVq_GL=tPPP63vsqs-9QB4ii4s06xqG4UscCV5w@mail.gmail.com>
+	<1392922421.28840.36.camel@triegel.csb>
+	<CA+55aFwos2Gwd2LEvht4ymVxHb6GRVjtZ9wwJSaj1p--FqNUWw@mail.gmail.com>
+	<1393095223.28840.4914.camel@triegel.csb>
+	<CA+55aFz9=RQoMO2ipyZgNPNzWGVXi_R9Ar5=o9VBWwXzDDz6jg@mail.gmail.com>
+	<20140223003933.GQ4250@linux.vnet.ibm.com>
+	<CA+55aFyjzR_Ga_HOKnBXpKYbuesqovj1-sFTVisD9UwA6JuJtw@mail.gmail.com>
+	<20140223063426.GT4250@linux.vnet.ibm.com>
+	<CA+55aFxMJvaQhoEwqgN=XA6gDOdZwoZQHdcAnB-FhAri_hK-6Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:59290 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752691AbaBXNzJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 24 Feb 2014 08:55:09 -0500
-In-Reply-To: <20140221191318.GK4250@linux.vnet.ibm.com>
+Received: from mail-vc0-f180.google.com ([209.85.220.180]:62051 "EHLO
+	mail-vc0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752591AbaBXP50 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2014 10:57:26 -0500
+In-Reply-To: <CA+55aFxMJvaQhoEwqgN=XA6gDOdZwoZQHdcAnB-FhAri_hK-6Q@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+To: Paul McKenney <paulmck@linux.vnet.ibm.com>
+Cc: Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
 
-Hi,
+On Sun, Feb 23, 2014 at 11:31 AM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+>
+> Let me think about it some more, but my gut feel is that just tweaking
+> the definition of what "ordered" means is sufficient.
+>
+> So to go back to the suggested ordering rules (ignoring the "restrict"
+> part, which is just to clarify that ordering through other means to
+> get to the object doesn't matter), I suggested:
+>
+>  "the consume ordering guarantees the ordering between that
+>   atomic read and the accesses to the object that the pointer
+>   points to"
+>
+> and I think the solution is to just say that this ordering acts as a
+> fence. It doesn't say exactly *where* the fence is, but it says that
+> there is *some* fence between the load of the pointer and any/all
+> accesses to the object through that pointer.
 
-On Fri, 21 Feb 2014, Paul E. McKenney wrote:
+I'm wrong. That doesn't work. At all. There is no ordering except
+through the pointer chain.
 
-> > And with conservative I mean "everything is a source of a dependency, and 
-> > hence can't be removed, reordered or otherwise fiddled with", and that 
-> > includes code sequences where no atomic objects are anywhere in sight [1].
-> > In the light of that the only realistic way (meaning to not have to 
-> > disable optimization everywhere) to implement consume as currently 
-> > specified is to map it to acquire.  At which point it becomes pointless.
-> 
-> No, only memory_order_consume loads and [[carries_dependency]]
-> function arguments are sources of dependency chains.
+So I think saying just that, and nothing else (no magic fences, no
+nothing) is the right thing:
 
-I don't see [[carries_dependency]] in the C11 final draft (yeah, should 
-get a real copy, I know, but let's assume it's the same language as the 
-standard).  Therefore, yes, only consume loads are sources of 
-dependencies.  The problem with the definition of the "carries a 
-dependency" relation is not the sources, but rather where it stops.  
-It's transitively closed over "value of evaluation A is used as operand in 
-evaluation B", with very few exceptions as per 5.1.2.4#14.  Evaluations 
-can contain function calls, so if there's _any_ chance that an operand of 
-an evaluation might even indirectly use something resulting from a consume 
-load then that evaluation must be compiled in a way to not break 
-dependency chains.
+ "the consume ordering guarantees the ordering between that
+  atomic read and the accesses to the object that the pointer
+  points to directly or indirectly through a chain of pointers"
 
-I don't see a way to generally assume that e.g. the value of a function 
-argument can impossibly result from a consume load, therefore the compiler 
-must assume that all function arguments _can_ result from such loads, and 
-so must disable all depchain breaking optimization (which are many).
+The thing is, anything but a chain of pointers (and maybe relaxing it
+to "indexes in tables" in addition to pointers) doesn't really work.
 
-> > [1] Simple example of what type of transformations would be disallowed:
-> > 
-> > int getzero (int i) { return i - i; }
-> 
-> This needs to be as follows:
-> 
-> [[carries_dependency]] int getzero(int i [[carries_dependency]])
-> {
-> 	return i - i;
-> }
-> 
-> Otherwise dependencies won't get carried through it.
+The current standard tries to break it at "obvious" points that can
+lose the data dependency (either by turning it into a control
+dependency, or by just dropping the value, like the left-hand side of
+a comma-expression), but the fact is, it's broken.
 
-So, with the above do you agree that in absense of any other magic (see 
-below) the compiler is not allowed to transform my initial getzero() 
-(without the carries_dependency markers) implementation into "return 0;" 
-because of the C11 rules for "carries-a-dependency"?
+It's broken not just because the value can be lost other ways (ie the
+"p-p" example), it's broken because the value can be turned into a
+control dependency so many other ways too.
 
-If so, do you then also agree that the specification of "carries a 
-dependency" is somewhat, err, shall we say, overbroad?
+Compilers regularly turn arithmetic ops with logical comparisons into
+branches. So an expression like "a = !!ptr" carries a dependency in
+the current C standard, but it's entirely possible that a compiler
+ends up turning it into a compare-and-branch rather than a
+compare-and-set-conditional, depending on just exactly how "a" ends up
+being used. That's true even on an architecture like ARM that has a
+lot of conditional instructions (there are way less if you compile for
+Thumb, for example, but compilers also do things like "if there are
+more than N predicated instructions I'll just turn it into a
+branch-over instead").
 
-> > depchains don't matter, could _then_ optmize it to zero.  But that's 
-> > insane, especially considering that it's hard to detect if a given context 
-> > doesn't care for depchains, after all the depchain relation is constructed 
-> > exactly so that it bleeds into nearly everywhere.  So we would most of 
-> > the time have to assume that the ultimate context will be depchain-aware 
-> > and therefore disable many transformations.
-> 
-> Any function that does not contain a memory_order_consume load and that 
-> doesn't have any arguments marked [[carries_dependency]] can be 
-> optimized just as before.
+So I think the C standard needs to just explicitly say that you can
+walk a chain of pointers (with that possible "indexes in arrays"
+extension), and nothing more.
 
-And as such marker doesn't exist we must conservatively assume that it's 
-on _all_ parameters, so I'll stand by my claim.
-
-> > Then inlining getzero would merely add another "# j.dep = i.dep" 
-> > relation, so depchains are still there but the value optimization can 
-> > happen before inlining.  Having to do something like that I'd find 
-> > disgusting, and rather rewrite consume into acquire :)  Or make the 
-> > depchain relation somehow realistically implementable.
-> 
-> I was actually OK with arithmetic cancellation breaking the dependency 
-> chains.  Others on the committee felt otherwise, and I figured that (1) 
-> I wouldn't be writing that kind of function anyway and (2) they knew 
-> more about writing compilers than I.  I would still be OK saying that 
-> things like "i-i", "i*0", "i%1", "i&0", "i|~0" and so on just break the 
-> dependency chain.
-
-Exactly.  I can see the problem that people had with that, though.  There 
-are very many ways to write conceiled zeros (or generally neutral elements 
-of the function in question).  My getzero() function is one (it could e.g. 
-be an assembler implementation).  The allowance to break dependency chains 
-would have to apply to such cancellation as well, and so can't simply 
-itemize all cases in which cancellation is allowed.  Rather it would have 
-had to argue about something like "value dependency", ala "evaluation B 
-depends on A, if there exist at least two different values A1 and A2 
-(results from A), for which evaluation B (with otherwise same operands) 
-yields different values B1 and B2".
-
-Alas, it doesn't, except if you want to understand the term "the value of 
-A is used as an operand of B" in that way.  Even then you'd still have the 
-second case of the depchain definition, via intermediate not even atomic 
-memory stores and loads to make two evaluations be ordered per 
-carries-a-dependency.
-
-And even that understanding of "is used" wouldn't be enough, because there 
-are cases where the cancellation happens in steps, and where it interacts 
-with the third clause (transitiveness):  Assume this:
-
-  a = something()  // evaluation A
-  b = 1 - a        // evaluation B
-  c = a - 1 + b    // evaluation C
-
-Now, clearly B depends on A.  Also C depends on B (because with otherwise 
-same operands changing just B also changes C), because of transitiveness C 
-then also depends on A.  But equally cleary C was just an elaborate way to 
-write "0", and so depends on nothing.  The problem was of course that A 
-and B weren't independent when determining the dependencies of C.  But 
-allowing cancellation to break dependency chains would have to allow for 
-these cases as well.
-
-So, now, that leaves us basically with depchains forcing us to disable 
-many useful transformation or finding some other magic.  One would be to 
-just regard all consume loads as acquire loads and be done (and 
-effectively remove the ill-advised "carries a dependency" relation from 
-consideration).
-
-You say downthread that it'd also be possible to just emit barriers before 
-all function calls (I say "all" because the compiler will generally 
-have applied some transformation that broke depchains if they existed).  
-That seems to me to be a bigger hammer than just ignoring depchains and 
-emit acquires instead of consumes (because the latter changes only exactly 
-where atomics are used, the former seems to me to have unbounded effect).
-
-So, am still missing something or is my understanding of the 
-carries-a-dependency relation correct and my conclusions are merely too 
-pessimistic?
-
-
-Ciao,
-Michael.
+                    Linus
