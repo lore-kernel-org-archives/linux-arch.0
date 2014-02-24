@@ -1,75 +1,38 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH RESEND] bug: When !CONFIG_BUG, simplify WARN_ON_ONCE and family
-Date: Mon, 24 Feb 2014 13:42:09 +0100
-Message-ID: <1747419.6FxgzfPen0@wuerfel>
-References: <20140224084437.GG20680@thin> <201402240902.35977.arnd@arndb.de> <10646.1393243751@warthog.procyon.org.uk>
+From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Subject: Re: [PATCH 4/6] android: convert sync to fence api, v4
+Date: Mon, 24 Feb 2014 14:01:13 +0100
+Message-ID: <530B4299.3090508@canonical.com>
+References: <20140217155056.20337.25254.stgit@patser> <20140217155640.20337.13331.stgit@patser> <5304B7F9.4070907@vmware.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.8]:61537 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751948AbaBXMmU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2014 07:42:20 -0500
-In-Reply-To: <10646.1393243751@warthog.procyon.org.uk>
+Received: from youngberry.canonical.com ([91.189.89.112]:37090 "EHLO
+	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751509AbaBXNBR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2014 08:01:17 -0500
+In-Reply-To: <5304B7F9.4070907@vmware.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Josh Triplett <josh@joshtriplett.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Thomas Hellstrom <thellstrom@vmware.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, ccross@google.com, linux-media@vger.kernel.org
 
-On Monday 24 February 2014 12:09:11 David Howells wrote:
-> Josh Triplett <josh@joshtriplett.org> wrote:
-> 
-> > > This means we actually want BUG() to end with __builtin_unreachable()
-> > > as in the CONFIG_BUG=y case, and also ensure it actually is
-> > > unreachable. As I have shown in [1], the there is a small overhead
-> > > of doing this in terms of code size.
-> > 
-> > I agree that allowing BUG() to become a no-op seems suboptimal, if only
-> > because of the resulting warnings and mis-optimizations.  However, I
-> > think the overhead could be cut down massively, such that BUG() just
-> > compiles down to a one-byte undefined instruction.  (__builtin_trap()
-> > might do the right thing here; worth checking.)
-> 
-> Is it possible to use an inline function with an empty body in this?  Let the
-> compiler prune away all the arguments?
-> 
+op 19-02-14 14:56, Thomas Hellstrom schreef:
+>> >+static void fence_check_cb_func(struct fence *f, struct fence_cb *cb)
+>> >+{
+>> >+	struct sync_fence_cb *check = container_of(cb, struct sync_fence_cb, cb);
+>> >+	struct sync_fence *fence = check->fence;
+>> >+
+>> >+	// TODO: Add a fence->status member and check it
+> Hmm, C++ / C99 style comments makes checkpatch.pl complain. Did you run
+> this series through checkpatch?
+>
+> /Thomas
+>
+Actually I used c99 here because it shouldn't have been in the sent patch. ;-)
 
-I think you are thinking of a different problem. BUG() already takes no
-arguments, but we get warnings for code like this:
+Right below that comment I use fence->status, so the right thing to do was to zap the comment.
 
-int f(void)
-{
-	switch (global) {
-	case 0:
-		return 0;
-	case 1:
-		return do_something();
-	default:
-		BUG();
-	}
-}
+Thanks for catching it!
 
-BUG() normally causes a fault and we print helpful messages before killing
-the task, and gcc knows we never continue because of the
-__builtin_unreachable() annotation.
-
-If BUG() is defined as 'do { } while (0)' in the example above, we get
-a warning because the function may end without returning a number.
-If we define it to 'do { unreachable(); } while (0)', we don't get a
-warning, but we can get undefined behavior in the case we ever get to
-the end of the function.
-
-__builtin_trap() would be nice as an architecture independent method,
-but I just checked what it does on ARM, and it just calls abort(),
-which is probably not what we want in the kernel, especially as long
-as the ARM abort() function calls BUG(), and most architectures don't
-define it at all.
-
-'do { } while (1)' is probably a reasonably generic way to not return
-and should compile into a single instruction on most architectures.
-panic() would be another option to do something that won't cause
-additional data corruption, but it's a varargs function, so that won't
-help you much when you just try to save object code size.
-
-	Arnd
+~Maarten\
