@@ -1,82 +1,152 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH] asm-generic: add sched_setattr/sched_getattr syscalls
-Date: Mon, 24 Feb 2014 13:52:49 +0000
-Message-ID: <530B4EB1.9000907@imgtec.com>
-References: <1391441617-21518-1-git-send-email-james.hogan@imgtec.com> <20140217184435.GD8361@arm.com>
+From: Michael Matz <matz@suse.de>
+Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
+Date: Mon, 24 Feb 2014 14:55:07 +0100 (CET)
+Message-ID: <alpine.LNX.2.00.1402241403580.7694@wotan.suse.de>
+References: <CA+55aFwwscSzwTr+xRdirtTx7HzugmMY9HrDe0GBqNhn=AuNVA@mail.gmail.com> <20140220083032.GN4250@linux.vnet.ibm.com> <CA+55aFwfx==u7o1NZ66aPbkOgsvGqW3UscGqrQkGuzOkjSpm6Q@mail.gmail.com> <20140220181116.GT4250@linux.vnet.ibm.com>
+ <CA+55aFwn9gXWVq_GL=tPPP63vsqs-9QB4ii4s06xqG4UscCV5w@mail.gmail.com> <20140220185608.GX4250@linux.vnet.ibm.com> <CA+55aFw4inow5B-JAg-NtZigJ90yDbksddr00RoMKytzDAEa8A@mail.gmail.com> <20140220221027.GC4250@linux.vnet.ibm.com>
+ <CA+55aFxp7U67R0PARaUfj94y5dJ8q6_HQ2pnbQ6=JD=XR-bTOw@mail.gmail.com> <alpine.LNX.2.00.1402211847290.7694@wotan.suse.de> <20140221191318.GK4250@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature";
-	boundary="DSPheHrLGBJJ4VcrXica0DsfFWdjx0VQb"
-Return-path: <linux-hexagon-owner@vger.kernel.org>
-In-Reply-To: <20140217184435.GD8361@arm.com>
-Sender: linux-hexagon-owner@vger.kernel.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Vineet Gupta <vgupta@synopsys.com>, Will Deacon <Will.Deacon@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "msalter@redhat.com" <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, Richard Kuo <rkuo@codeaurora.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "linux-metag@vger.kernel.org" <linux-metag@vger.kernel.org>, Jonas Bonn <jonas@southpole.se>, "linux@openrisc.net" <linux@openrisc.net>, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, Chris Metcalf <cmetcalf@tilera.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from cantor2.suse.de ([195.135.220.15]:59290 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752691AbaBXNzJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 24 Feb 2014 08:55:09 -0500
+In-Reply-To: <20140221191318.GK4250@linux.vnet.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
 
---DSPheHrLGBJJ4VcrXica0DsfFWdjx0VQb
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: quoted-printable
+Hi,
 
-On 17/02/14 18:44, Catalin Marinas wrote:
-> On Mon, Feb 03, 2014 at 03:33:37PM +0000, James Hogan wrote:
->> Add the sched_setattr and sched_getattr syscalls to the generic syscal=
-l
->> list, which is used by the following architectures: arc, arm64, c6x,
->> hexagon, metag, openrisc, score, tile, unicore32.
->>
->> Signed-off-by: James Hogan <james.hogan@imgtec.com>
->> Cc: Arnd Bergmann <arnd@arndb.de>
->> Cc: linux-arch@vger.kernel.org
->> Cc: Vineet Gupta <vgupta@synopsys.com>
->> Cc: Catalin Marinas <catalin.marinas@arm.com>
->> Cc: Will Deacon <will.deacon@arm.com>
->> Cc: linux-arm-kernel@lists.infradead.org
->> Cc: Mark Salter <msalter@redhat.com>
->> Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
->> Cc: linux-c6x-dev@linux-c6x.org
->> Cc: Richard Kuo <rkuo@codeaurora.org>
->> Cc: linux-hexagon@vger.kernel.org
->> Cc: linux-metag@vger.kernel.org
->> Cc: Jonas Bonn <jonas@southpole.se>
->> Cc: linux@lists.openrisc.net
->> Cc: Chen Liqin <liqin.linux@gmail.com>
->> Cc: Lennox Wu <lennox.wu@gmail.com>
->> Cc: Chris Metcalf <cmetcalf@tilera.com>
->> Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
->=20
-> Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+On Fri, 21 Feb 2014, Paul E. McKenney wrote:
 
-Thanks,
+> > And with conservative I mean "everything is a source of a dependency, and 
+> > hence can't be removed, reordered or otherwise fiddled with", and that 
+> > includes code sequences where no atomic objects are anywhere in sight [1].
+> > In the light of that the only realistic way (meaning to not have to 
+> > disable optimization everywhere) to implement consume as currently 
+> > specified is to map it to acquire.  At which point it becomes pointless.
+> 
+> No, only memory_order_consume loads and [[carries_dependency]]
+> function arguments are sources of dependency chains.
 
-FYI I've applied to my fixes branch which is included in linux-next,
-I'll send Linus the pull request in a few days.
+I don't see [[carries_dependency]] in the C11 final draft (yeah, should 
+get a real copy, I know, but let's assume it's the same language as the 
+standard).  Therefore, yes, only consume loads are sources of 
+dependencies.  The problem with the definition of the "carries a 
+dependency" relation is not the sources, but rather where it stops.  
+It's transitively closed over "value of evaluation A is used as operand in 
+evaluation B", with very few exceptions as per 5.1.2.4#14.  Evaluations 
+can contain function calls, so if there's _any_ chance that an operand of 
+an evaluation might even indirectly use something resulting from a consume 
+load then that evaluation must be compiled in a way to not break 
+dependency chains.
 
-Cheers
-James
+I don't see a way to generally assume that e.g. the value of a function 
+argument can impossibly result from a consume load, therefore the compiler 
+must assume that all function arguments _can_ result from such loads, and 
+so must disable all depchain breaking optimization (which are many).
+
+> > [1] Simple example of what type of transformations would be disallowed:
+> > 
+> > int getzero (int i) { return i - i; }
+> 
+> This needs to be as follows:
+> 
+> [[carries_dependency]] int getzero(int i [[carries_dependency]])
+> {
+> 	return i - i;
+> }
+> 
+> Otherwise dependencies won't get carried through it.
+
+So, with the above do you agree that in absense of any other magic (see 
+below) the compiler is not allowed to transform my initial getzero() 
+(without the carries_dependency markers) implementation into "return 0;" 
+because of the C11 rules for "carries-a-dependency"?
+
+If so, do you then also agree that the specification of "carries a 
+dependency" is somewhat, err, shall we say, overbroad?
+
+> > depchains don't matter, could _then_ optmize it to zero.  But that's 
+> > insane, especially considering that it's hard to detect if a given context 
+> > doesn't care for depchains, after all the depchain relation is constructed 
+> > exactly so that it bleeds into nearly everywhere.  So we would most of 
+> > the time have to assume that the ultimate context will be depchain-aware 
+> > and therefore disable many transformations.
+> 
+> Any function that does not contain a memory_order_consume load and that 
+> doesn't have any arguments marked [[carries_dependency]] can be 
+> optimized just as before.
+
+And as such marker doesn't exist we must conservatively assume that it's 
+on _all_ parameters, so I'll stand by my claim.
+
+> > Then inlining getzero would merely add another "# j.dep = i.dep" 
+> > relation, so depchains are still there but the value optimization can 
+> > happen before inlining.  Having to do something like that I'd find 
+> > disgusting, and rather rewrite consume into acquire :)  Or make the 
+> > depchain relation somehow realistically implementable.
+> 
+> I was actually OK with arithmetic cancellation breaking the dependency 
+> chains.  Others on the committee felt otherwise, and I figured that (1) 
+> I wouldn't be writing that kind of function anyway and (2) they knew 
+> more about writing compilers than I.  I would still be OK saying that 
+> things like "i-i", "i*0", "i%1", "i&0", "i|~0" and so on just break the 
+> dependency chain.
+
+Exactly.  I can see the problem that people had with that, though.  There 
+are very many ways to write conceiled zeros (or generally neutral elements 
+of the function in question).  My getzero() function is one (it could e.g. 
+be an assembler implementation).  The allowance to break dependency chains 
+would have to apply to such cancellation as well, and so can't simply 
+itemize all cases in which cancellation is allowed.  Rather it would have 
+had to argue about something like "value dependency", ala "evaluation B 
+depends on A, if there exist at least two different values A1 and A2 
+(results from A), for which evaluation B (with otherwise same operands) 
+yields different values B1 and B2".
+
+Alas, it doesn't, except if you want to understand the term "the value of 
+A is used as an operand of B" in that way.  Even then you'd still have the 
+second case of the depchain definition, via intermediate not even atomic 
+memory stores and loads to make two evaluations be ordered per 
+carries-a-dependency.
+
+And even that understanding of "is used" wouldn't be enough, because there 
+are cases where the cancellation happens in steps, and where it interacts 
+with the third clause (transitiveness):  Assume this:
+
+  a = something()  // evaluation A
+  b = 1 - a        // evaluation B
+  c = a - 1 + b    // evaluation C
+
+Now, clearly B depends on A.  Also C depends on B (because with otherwise 
+same operands changing just B also changes C), because of transitiveness C 
+then also depends on A.  But equally cleary C was just an elaborate way to 
+write "0", and so depends on nothing.  The problem was of course that A 
+and B weren't independent when determining the dependencies of C.  But 
+allowing cancellation to break dependency chains would have to allow for 
+these cases as well.
+
+So, now, that leaves us basically with depchains forcing us to disable 
+many useful transformation or finding some other magic.  One would be to 
+just regard all consume loads as acquire loads and be done (and 
+effectively remove the ill-advised "carries a dependency" relation from 
+consideration).
+
+You say downthread that it'd also be possible to just emit barriers before 
+all function calls (I say "all" because the compiler will generally 
+have applied some transformation that broke depchains if they existed).  
+That seems to me to be a bigger hammer than just ignoring depchains and 
+emit acquires instead of consumes (because the latter changes only exactly 
+where atomics are used, the former seems to me to have unbounded effect).
+
+So, am still missing something or is my understanding of the 
+carries-a-dependency relation correct and my conclusions are merely too 
+pessimistic?
 
 
---DSPheHrLGBJJ4VcrXica0DsfFWdjx0VQb
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.13 (GNU/Linux)
-
-iQIcBAEBAgAGBQJTC06yAAoJEKHZs+irPybfN/0QAKd34rJD7Lf6XqMgKHo7tfRD
-+LLHi/g8OlR1xkPKXmQlmdyGKtW+QmnGq/GLzJ1dTC8HZh/74i3NAtlTXIlujdsT
-ooD0TKqgHPaypdyrHlAO9GSHi241517cdWoai+4bNjg9nxStQ5R69XG4rUYkMkGU
-Tg/K6U8W9GNM1btJPGgrjV+qjmJ7zHOAWG1D631K+qxTn605HMefNbpCCJIV4NTg
-F6oGRAqaqh/NKLWY59zYz6iyE29chf7TPKSWiDJvHc8ZMfgnb3nhUnktUTHDbOqf
-FUfdWnzbvsN2jZFFOzTcoRbwObTYgMz0/Q8l3HZMbFSfLhLvhsZhQPd0SdAVJdzO
-zTaKiNun1hGfRhrFDUjmPf7xVur7N3Jq+62MfF0DFCJJ+23bImpW9+NWtJgcaLsS
-kVY+1M+ruhH628xBbQxvaAXHDpWhm3LYca+9zQ+fg17XcvEIHZeXcPs5tn/6CKqw
-B91Qn+BkAGCaf5QcmI+ZjKONpRtKdKjJPDssAHqmHeLno5/Q1rlDESgTwZriOd8o
-nLTTBSEkuY4xDPvB6GXPq83jKUc0x2hqeIjAziM5HM68IDH/eeWu+VY7tsGZepqW
-WogeiGNd4InXLUUvMljLPS8a0L4Y4e4vQEtbgO9TlUgnoq1/gXBoKvXlBaL98OZ7
-gcQf5gh2u0hqCIZMsbfH
-=8jpm
------END PGP SIGNATURE-----
-
---DSPheHrLGBJJ4VcrXica0DsfFWdjx0VQb--
+Ciao,
+Michael.
