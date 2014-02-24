@@ -1,119 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relay4-d.mail.gandi.net ([217.70.183.196]:35425 "EHLO
-	relay4-d.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750899AbaBXIoq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2014 03:44:46 -0500
-Date: Mon, 24 Feb 2014 00:44:37 -0800
-From: Josh Triplett <josh@joshtriplett.org>
-Subject: Re: [PATCH RESEND] bug: When !CONFIG_BUG, simplify WARN_ON_ONCE and
- family
-Message-ID: <20140224084437.GG20680@thin>
-References: <20140222192325.GA12587@thin>
- <201402240902.35977.arnd@arndb.de>
+Received: from multi.imgtec.com ([194.200.65.239]:47723 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752560AbaBXNwy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 24 Feb 2014 08:52:54 -0500
+Message-ID: <530B4EB1.9000907@imgtec.com>
+Date: Mon, 24 Feb 2014 13:52:49 +0000
+From: James Hogan <james.hogan@imgtec.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <201402240902.35977.arnd@arndb.de>
+Subject: Re: [PATCH] asm-generic: add sched_setattr/sched_getattr syscalls
+References: <1391441617-21518-1-git-send-email-james.hogan@imgtec.com> <20140217184435.GD8361@arm.com>
+In-Reply-To: <20140217184435.GD8361@arm.com>
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature";
+	boundary="DSPheHrLGBJJ4VcrXica0DsfFWdjx0VQb"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20140224084437.a5JMPEyg9C7pBGnhvAH5A4c3UnqZYT9JrnWtztA6v60@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Vineet Gupta <vgupta@synopsys.com>, Will Deacon <Will.Deacon@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "msalter@redhat.com" <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, Richard Kuo <rkuo@codeaurora.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "linux-metag@vger.kernel.org" <linux-metag@vger.kernel.org>, Jonas Bonn <jonas@southpole.se>, "linux@openrisc.net" <linux@openrisc.net>, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, Chris Metcalf <cmetcalf@tilera.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>
+Message-ID: <20140224135249.3vXgx8mtvZOVBBLF5evkxHx_M5adTsOsvYgXcGHrQmc@z>
 
-On Mon, Feb 24, 2014 at 09:02:35AM +0100, Arnd Bergmann wrote:
-> On Saturday 22 February 2014, Josh Triplett wrote:
-> > When !CONFIG_BUG, WARN_ON and family become simple passthroughs of their
-> > condition argument; however, WARN_ON_ONCE and family still have
-> > conditions and a boolean to detect one-time invocation, even though the
-> > warning they'd emit doesn't exist.  Make the existing definitions
-> > conditional on CONFIG_BUG, and map them all to the passthrough WARN_ON
-> > when !CONFIG_BUG.
-> > 
-> > This saves 4.4k on a minimized configuration (smaller than
-> > allnoconfig), and 20.6k with defconfig plus CONFIG_BUG=n.
-> 
-> This looks good, but it reminds me of a patch that I did a while ago
-> and that got lost while I was on leave:
-> 
-> > +#else /* !CONFIG_BUG */
-> > +#ifndef HAVE_ARCH_BUG
-> > +#define BUG() do {} while(0)
-> > +#endif
-> > +
-> > +#ifndef HAVE_ARCH_BUG_ON
-> > +#define BUG_ON(condition) do { if (condition) ; } while(0)
-> > +#endif
-> 
-> I've done some analysis of this before[1] and came to the conclusion that
-> this definition (which I realize you are not changing) is bad.
-> 
-> For one thing, it will cause lots of gcc warnings about code that
-> should have been unreachable being compiled. It also causes
-> misoptimizations for code that should be detected as unused or
-> (worse) lets us run into undefined behavior if we ever get into
-> the BUG() case.
-> 
-> This means we actually want BUG() to end with __builtin_unreachable()
-> as in the CONFIG_BUG=y case, and also ensure it actually is
-> unreachable. As I have shown in [1], the there is a small overhead
-> of doing this in terms of code size.
+--DSPheHrLGBJJ4VcrXica0DsfFWdjx0VQb
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: quoted-printable
 
-I agree that allowing BUG() to become a no-op seems suboptimal, if only
-because of the resulting warnings and mis-optimizations.  However, I
-think the overhead could be cut down massively, such that BUG() just
-compiles down to a one-byte undefined instruction.  (__builtin_trap()
-might do the right thing here; worth checking.)
+On 17/02/14 18:44, Catalin Marinas wrote:
+> On Mon, Feb 03, 2014 at 03:33:37PM +0000, James Hogan wrote:
+>> Add the sched_setattr and sched_getattr syscalls to the generic syscal=
+l
+>> list, which is used by the following architectures: arc, arm64, c6x,
+>> hexagon, metag, openrisc, score, tile, unicore32.
+>>
+>> Signed-off-by: James Hogan <james.hogan@imgtec.com>
+>> Cc: Arnd Bergmann <arnd@arndb.de>
+>> Cc: linux-arch@vger.kernel.org
+>> Cc: Vineet Gupta <vgupta@synopsys.com>
+>> Cc: Catalin Marinas <catalin.marinas@arm.com>
+>> Cc: Will Deacon <will.deacon@arm.com>
+>> Cc: linux-arm-kernel@lists.infradead.org
+>> Cc: Mark Salter <msalter@redhat.com>
+>> Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
+>> Cc: linux-c6x-dev@linux-c6x.org
+>> Cc: Richard Kuo <rkuo@codeaurora.org>
+>> Cc: linux-hexagon@vger.kernel.org
+>> Cc: linux-metag@vger.kernel.org
+>> Cc: Jonas Bonn <jonas@southpole.se>
+>> Cc: linux@lists.openrisc.net
+>> Cc: Chen Liqin <liqin.linux@gmail.com>
+>> Cc: Lennox Wu <lennox.wu@gmail.com>
+>> Cc: Chris Metcalf <cmetcalf@tilera.com>
+>> Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
+>=20
+> Acked-by: Catalin Marinas <catalin.marinas@arm.com>
 
-That said, I think there's still a reasonable argument to be made for
-allowing it to be cut down to just __builtin_unreachable() without a
-trap, for much the same reason that noreturn doesn't generate code
-expecting the function to return.  A one-byte undefined instruction
-isn't that bad, but that also means BUG_ON has to generate the
-conditional and the conditional jump around that instruction.
+Thanks,
 
-(Consider the reasoning behind CONFIG_DOUBLEFAULT, and its Kconfig help
-text.)
+FYI I've applied to my fixes branch which is included in linux-next,
+I'll send Linus the pull request in a few days.
 
-On the other hand, it's also a good argument for converting far more
-BUGs to WARNs and BUG_ONs to WARN_ONs.
+Cheers
+James
 
-In any case, while I agree that the change you're proposing seems
-reasonable, I don't think it should occur as part of this patch.  Do you
-think this patch seems reasonable, and that further patches could occur
-on top of it for the behavior you describe?
 
-> > +#ifndef HAVE_ARCH_WARN_ON
-> > +#define WARN_ON(condition) ({						\
-> > +	int __ret_warn_on = !!(condition);				\
-> > +	unlikely(__ret_warn_on);					\
-> > +})
-> > +#endif
-> > +
-> > +#ifndef WARN
-> > +#define WARN(condition, format...) ({					\
-> > +	int __ret_warn_on = !!(condition);				\
-> > +	unlikely(__ret_warn_on);					\
-> > +})
-> > +#endif
-> 
-> FWIW, there is an easy extension to this to get rid of some "unused variable"
-> warnings, but using the format string in an unreachable part of the macro,
-> as I did in my patch (but didn't explain there):
-> 
-> @@ -125,6 +126,8 @@ extern void warn_slowpath_null(const char *file, const int line);
->  #ifndef WARN
->  #define WARN(condition, format...) ({					\
->  	int __ret_warn_on = !!(condition);				\
-> +	if (0 && (__ret_warn_on))					\
-> +		printk(format);						\
->  	unlikely(__ret_warn_on);					\
->  })
->  #endif
+--DSPheHrLGBJJ4VcrXica0DsfFWdjx0VQb
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
 
-This seems better done via no_printk, but yes, that seems sensible.
-The arguments should be used too.
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.13 (GNU/Linux)
 
-(But again, I'm not actually changing these in this patch; diff just
-thinks I'm moving them.)
+iQIcBAEBAgAGBQJTC06yAAoJEKHZs+irPybfN/0QAKd34rJD7Lf6XqMgKHo7tfRD
++LLHi/g8OlR1xkPKXmQlmdyGKtW+QmnGq/GLzJ1dTC8HZh/74i3NAtlTXIlujdsT
+ooD0TKqgHPaypdyrHlAO9GSHi241517cdWoai+4bNjg9nxStQ5R69XG4rUYkMkGU
+Tg/K6U8W9GNM1btJPGgrjV+qjmJ7zHOAWG1D631K+qxTn605HMefNbpCCJIV4NTg
+F6oGRAqaqh/NKLWY59zYz6iyE29chf7TPKSWiDJvHc8ZMfgnb3nhUnktUTHDbOqf
+FUfdWnzbvsN2jZFFOzTcoRbwObTYgMz0/Q8l3HZMbFSfLhLvhsZhQPd0SdAVJdzO
+zTaKiNun1hGfRhrFDUjmPf7xVur7N3Jq+62MfF0DFCJJ+23bImpW9+NWtJgcaLsS
+kVY+1M+ruhH628xBbQxvaAXHDpWhm3LYca+9zQ+fg17XcvEIHZeXcPs5tn/6CKqw
+B91Qn+BkAGCaf5QcmI+ZjKONpRtKdKjJPDssAHqmHeLno5/Q1rlDESgTwZriOd8o
+nLTTBSEkuY4xDPvB6GXPq83jKUc0x2hqeIjAziM5HM68IDH/eeWu+VY7tsGZepqW
+WogeiGNd4InXLUUvMljLPS8a0L4Y4e4vQEtbgO9TlUgnoq1/gXBoKvXlBaL98OZ7
+gcQf5gh2u0hqCIZMsbfH
+=8jpm
+-----END PGP SIGNATURE-----
 
-- Josh Triplett
+--DSPheHrLGBJJ4VcrXica0DsfFWdjx0VQb--
+
