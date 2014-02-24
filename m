@@ -1,45 +1,35 @@
-From: One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>
-Subject: Re: [PATCH RESEND] bug: When !CONFIG_BUG, simplify WARN_ON_ONCE and
- family
-Date: Mon, 24 Feb 2014 13:16:05 +0000
-Message-ID: <20140224131605.3bd7febc@alan.etchedpixels.co.uk>
-References: <20140224084437.GG20680@thin>
-	<201402240902.35977.arnd@arndb.de>
-	<10646.1393243751@warthog.procyon.org.uk>
-	<1747419.6FxgzfPen0@wuerfel>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH RESEND] bug: When !CONFIG_BUG, simplify WARN_ON_ONCE and family
+Date: Mon, 24 Feb 2014 14:39:46 +0100
+Message-ID: <16994526.0QcMcz0xo0@wuerfel>
+References: <20140224084437.GG20680@thin> <1747419.6FxgzfPen0@wuerfel> <20140224131605.3bd7febc@alan.etchedpixels.co.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lxorguk.ukuu.org.uk ([81.2.110.251]:39333 "EHLO
-	lxorguk.ukuu.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752312AbaBXNQ0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2014 08:16:26 -0500
-In-Reply-To: <1747419.6FxgzfPen0@wuerfel>
+Received: from moutng.kundenserver.de ([212.227.17.13]:52328 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752532AbaBXNp3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2014 08:45:29 -0500
+In-Reply-To: <20140224131605.3bd7febc@alan.etchedpixels.co.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
+To: One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>
 Cc: David Howells <dhowells@redhat.com>, Josh Triplett <josh@joshtriplett.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-> BUG() normally causes a fault and we print helpful messages before killing
-> the task, and gcc knows we never continue because of the
-> __builtin_unreachable() annotation.
+On Monday 24 February 2014 13:16:05 One Thousand Gnomes wrote:
 > 
-> If BUG() is defined as 'do { } while (0)' in the example above, we get
-> a warning because the function may end without returning a number.
-> If we define it to 'do { unreachable(); } while (0)', we don't get a
-> warning, but we can get undefined behavior in the case we ever get to
-> the end of the function.
+> While I agree defining it as do {} while(1); would be a lot smarter,
+> simply making it required that a platform provides an implementation of
+> BUG() would be even better. 
 
-That warning is the right thing though. In a lot of cases BUG(); is
-followed by code that can lead to serious corruption and potentially
-things like disk corruption following or security compromise.
+But how do we get there? The majority of architectures define BUG()
+already, but a lot of them only if CONFIG_BUG is enabled. That is
+of course trivial do change, and it is what my older patch does
+for ARM and x86.
 
-We *should* be warning if you are stupid enough to build a kernel where
-BUG() does not terminate.
+We also have seven architectures without a BUG() implementation (c6x,
+m32r, meta, microblaze, score, sh, unicore32) and six more (arm64,
+hexagon openrisc tile um xtensa) that have no bug.h at all.
 
-While I agree defining it as do {} while(1); would be a lot smarter,
-simply making it required that a platform provides an implementation of
-BUG() would be even better. 
-
-Alan
+	Arnd
