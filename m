@@ -1,68 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f174.google.com ([209.85.220.174]:61935 "EHLO
-	mail-vc0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751085AbaBXFZ4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2014 00:25:56 -0500
+Received: from moutng.kundenserver.de ([212.227.17.8]:51023 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752814AbaBXICn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2014 03:02:43 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH RESEND] bug: When !CONFIG_BUG, simplify WARN_ON_ONCE and family
+Date: Mon, 24 Feb 2014 09:02:35 +0100
+References: <20140222192325.GA12587@thin>
+In-Reply-To: <20140222192325.GA12587@thin>
 MIME-Version: 1.0
-In-Reply-To: <20140224045951.GH8264@linux.vnet.ibm.com>
-References: <1392922421.28840.36.camel@triegel.csb>
-	<CA+55aFwos2Gwd2LEvht4ymVxHb6GRVjtZ9wwJSaj1p--FqNUWw@mail.gmail.com>
-	<1393095223.28840.4914.camel@triegel.csb>
-	<CA+55aFz9=RQoMO2ipyZgNPNzWGVXi_R9Ar5=o9VBWwXzDDz6jg@mail.gmail.com>
-	<20140223003933.GQ4250@linux.vnet.ibm.com>
-	<CA+55aFyjzR_Ga_HOKnBXpKYbuesqovj1-sFTVisD9UwA6JuJtw@mail.gmail.com>
-	<20140223063426.GT4250@linux.vnet.ibm.com>
-	<CA+55aFxMJvaQhoEwqgN=XA6gDOdZwoZQHdcAnB-FhAri_hK-6Q@mail.gmail.com>
-	<20140224011651.GC8264@linux.vnet.ibm.com>
-	<CA+55aFx06UTTeypXOGUiwwbzJyqpVNR90zBDLPmxFzBkz=VwgQ@mail.gmail.com>
-	<20140224045951.GH8264@linux.vnet.ibm.com>
-Date: Sun, 23 Feb 2014 21:25:55 -0800
-Message-ID: <CA+55aFz1sPZ9f0uGpd7pqe162pGdU_i2aXjYOV1y6SNKmYUDGQ@mail.gmail.com>
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201402240902.35977.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul McKenney <paulmck@linux.vnet.ibm.com>
-Cc: Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140224052555.5eu8s4xx2yxaVlIoeEN6OUNNhUIvyx0mDPG9uL6A-7c@z>
+To: Josh Triplett <josh@joshtriplett.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20140224080235.yd3wZtpy7YQrPQV-WuPnjnFJBATKmdguJpoG3JSViN0@z>
 
-On Sun, Feb 23, 2014 at 8:59 PM, Paul E. McKenney
-<paulmck@linux.vnet.ibm.com> wrote:
-> On Sun, Feb 23, 2014 at 05:35:28PM -0800, Linus Torvalds wrote:
->>
->> But "q = p->next" is ordered by how something can alias "p->next", not by 'q'!
->>
->> There is no need to restrict anything but 'p' for all of this to work.
->
-> I cannot say I understand this last sentence right new from the viewpoint
-> of the standard, but suspending disbelief for the moment...
+On Saturday 22 February 2014, Josh Triplett wrote:
+> When !CONFIG_BUG, WARN_ON and family become simple passthroughs of their
+> condition argument; however, WARN_ON_ONCE and family still have
+> conditions and a boolean to detect one-time invocation, even though the
+> warning they'd emit doesn't exist.  Make the existing definitions
+> conditional on CONFIG_BUG, and map them all to the passthrough WARN_ON
+> when !CONFIG_BUG.
+> 
+> This saves 4.4k on a minimized configuration (smaller than
+> allnoconfig), and 20.6k with defconfig plus CONFIG_BUG=n.
 
-So 'p' is what comes from that consuming load that returns a
-'restrict' pointer. That doesn't affect 'q' in any way.
+This looks good, but it reminds me of a patch that I did a while ago
+and that got lost while I was on leave:
 
-But the act of initializing 'q' by dereferencing p (in "p->next") is -
-by virtue of the restrict - something that the compiler can see cannot
-alias with anything else, so the compiler could re-order other memory
-accesses freely around it, if you see what I mean.
+> +#else /* !CONFIG_BUG */
+> +#ifndef HAVE_ARCH_BUG
+> +#define BUG() do {} while(0)
+> +#endif
+> +
+> +#ifndef HAVE_ARCH_BUG_ON
+> +#define BUG_ON(condition) do { if (condition) ; } while(0)
+> +#endif
 
-Modulo all the *other* ordering guarantees, of course. So other
-atomics and volatiles etc may have their own rules, quite apart from
-any aliasing issues.
+I've done some analysis of this before[1] and came to the conclusion that
+this definition (which I realize you are not changing) is bad.
 
-> Understood -- in this variant, you are taking the marking from the
-> fact that there was an assignment from a memory_order_consume load
-> rather than from a keyword on the assigned-to variable's declaration.
+For one thing, it will cause lots of gcc warnings about code that
+should have been unreachable being compiled. It also causes
+misoptimizations for code that should be detected as unused or
+(worse) lets us run into undefined behavior if we ever get into
+the BUG() case.
 
-Yes, and to me, it's really just a legalistic trick to make it clear
-that any *other* pointer that  happens to point to the same object
-cannot be dereferenced within scope of the result of the
-atomic_read(mo_consume), at least not if you expect to get the memory
-ordering semantics. You can do it, but then you violate the guarantee
-of the restrict, and you get what you get - a potential non-ordering.
+This means we actually want BUG() to end with __builtin_unreachable()
+as in the CONFIG_BUG=y case, and also ensure it actually is
+unreachable. As I have shown in [1], the there is a small overhead
+of doing this in terms of code size.
 
-So if somebody just immediately assigns the value to a normal
-(non-restrict) pointer nothing *really* changes. It's just there to
-describe the guarantees.
+> +#ifndef HAVE_ARCH_WARN_ON
+> +#define WARN_ON(condition) ({						\
+> +	int __ret_warn_on = !!(condition);				\
+> +	unlikely(__ret_warn_on);					\
+> +})
+> +#endif
+> +
+> +#ifndef WARN
+> +#define WARN(condition, format...) ({					\
+> +	int __ret_warn_on = !!(condition);				\
+> +	unlikely(__ret_warn_on);					\
+> +})
+> +#endif
 
-              Linus
+
+FWIW, there is an easy extension to this to get rid of some "unused variable"
+warnings, but using the format string in an unreachable part of the macro,
+as I did in my patch (but didn't explain there):
+
+@@ -125,6 +126,8 @@ extern void warn_slowpath_null(const char *file, const int line);
+ #ifndef WARN
+ #define WARN(condition, format...) ({					\
+ 	int __ret_warn_on = !!(condition);				\
++	if (0 && (__ret_warn_on))					\
++		printk(format);						\
+ 	unlikely(__ret_warn_on);					\
+ })
+ #endif
+
+
+	Arnd
+
+[1] http://lkml.org/lkml/2013/7/12/121
