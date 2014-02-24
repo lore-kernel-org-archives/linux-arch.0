@@ -1,107 +1,126 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e32.co.us.ibm.com ([32.97.110.150]:44956 "EHLO
-	e32.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752664AbaBXR5Q (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2014 12:57:16 -0500
+Received: from e35.co.us.ibm.com ([32.97.110.153]:41755 "EHLO
+	e35.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752960AbaBXSxr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Feb 2014 13:53:47 -0500
 Received: from /spool/local
-	by e32.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e35.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Mon, 24 Feb 2014 10:57:15 -0700
-Date: Mon, 24 Feb 2014 09:57:11 -0800
+	Mon, 24 Feb 2014 11:53:46 -0700
+Date: Mon, 24 Feb 2014 10:53:41 -0800
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Message-ID: <20140224175710.GA19983@linux.vnet.ibm.com>
+Message-ID: <20140224185341.GU8264@linux.vnet.ibm.com>
 Reply-To: paulmck@linux.vnet.ibm.com
-References: <CA+55aFz9=RQoMO2ipyZgNPNzWGVXi_R9Ar5=o9VBWwXzDDz6jg@mail.gmail.com>
+References: <CA+55aFwos2Gwd2LEvht4ymVxHb6GRVjtZ9wwJSaj1p--FqNUWw@mail.gmail.com>
+ <1393095223.28840.4914.camel@triegel.csb>
+ <CA+55aFz9=RQoMO2ipyZgNPNzWGVXi_R9Ar5=o9VBWwXzDDz6jg@mail.gmail.com>
  <20140223003933.GQ4250@linux.vnet.ibm.com>
  <CA+55aFyjzR_Ga_HOKnBXpKYbuesqovj1-sFTVisD9UwA6JuJtw@mail.gmail.com>
  <20140223063426.GT4250@linux.vnet.ibm.com>
  <CA+55aFxMJvaQhoEwqgN=XA6gDOdZwoZQHdcAnB-FhAri_hK-6Q@mail.gmail.com>
  <CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com>
- <CAFiYyc08cusFTsydD2C4rEZB-k38NnorzEXzKvqab0m3R+qn8w@mail.gmail.com>
- <CA+55aFyYtMm1_UsPVw8mi7o2iH_--1wLvxPUt5Z9mAEOGMgXdQ@mail.gmail.com>
- <alpine.LNX.2.00.1402241745100.7694@wotan.suse.de>
- <20140224172856.GP8264@linux.vnet.ibm.com>
+ <20140224172110.GO8264@linux.vnet.ibm.com>
+ <CA+55aFyi45f7oaG4MYP41TOc=E8Ze8Om88dV2Lq4F=qebhxt4A@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20140224172856.GP8264@linux.vnet.ibm.com>
+In-Reply-To: <CA+55aFyi45f7oaG4MYP41TOc=E8Ze8Om88dV2Lq4F=qebhxt4A@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Matz <matz@suse.de>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Richard Biener <richard.guenther@gmail.com>, Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140224175711.1qOgGN5GmTw8-Ff_b7Dk7cozS5A0KN48jX4pa_KdEsA@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Message-ID: <20140224185341.ErZr_t56qBwCMMJjKuNyWlayBkCSfkYsyTBlBquhZls@z>
 
-On Mon, Feb 24, 2014 at 09:28:56AM -0800, Paul E. McKenney wrote:
-> On Mon, Feb 24, 2014 at 05:55:50PM +0100, Michael Matz wrote:
-> > Hi,
-> > 
-> > On Mon, 24 Feb 2014, Linus Torvalds wrote:
-> > 
-> > > > To me that reads like
-> > > >
-> > > >   int i;
-> > > >   int *q = &i;
-> > > >   int **p = &q;
-> > > >
-> > > >   atomic_XXX (p, CONSUME);
-> > > >
-> > > > orders against accesses '*p', '**p', '*q' and 'i'.  Thus it seems they
-> > > > want to say that it orders against aliased storage - but then go further
-> > > > and include "indirectly through a chain of pointers"?!  Thus an
-> > > > atomic read of a int * orders against any 'int' memory operation but
-> > > > not against 'float' memory operations?
-> > > 
-> > > No, it's not about type at all, and the "chain of pointers" can be
-> > > much more complex than that, since the "int *" can point to within an
-> > > object that contains other things than just that "int" (the "int" can
-> > > be part of a structure that then has pointers to other structures
-> > > etc).
-> > 
-> > So, let me try to poke holes into your definition or increase my 
-> > understanding :) .  You said "chain of pointers"(dereferences I assume), 
-> > e.g. if p is result of consume load, then access to 
-> > p->here->there->next->prev->stuff is supposed to be ordered with that load 
-> > (or only when that last load/store itself is also an atomic load or 
-> > store?).
-> > 
-> > So, what happens if the pointer deref chain is partly hidden in some 
-> > functions:
-> > 
-> > A * adjustptr (B *ptr) { return &ptr->here->there->next; }
-> > B * p = atomic_XXX (&somewhere, consume);
-> > adjustptr(p)->prev->stuff = bla;
-> > 
-> > As far as I understood you, this whole ptrderef chain business would be 
-> > only an optimization opportunity, right?  So if the compiler can't be sure 
-> > how p is actually used (as in my function-using case, assume adjustptr is 
-> > defined in another unit), then the consume load would simply be 
-> > transformed into an acquire (or whatever, with some barrier I mean)?  Only 
-> > _if_ the compiler sees all obvious uses of p (indirectly through pointer 
-> > derefs) can it, yeah, do what with the consume load?
+On Mon, Feb 24, 2014 at 10:14:01AM -0800, Linus Torvalds wrote:
+> On Mon, Feb 24, 2014 at 9:21 AM, Paul E. McKenney
+> <paulmck@linux.vnet.ibm.com> wrote:
+> >
+> > 4.      Bitwise operators ("&", "|", "^", and I suppose also "~")
+> >         applied to a chained pointer and an integer results in another
+> >         chained pointer in that same pointer chain.
 > 
-> Good point, I left that out of my list.  Adding it:
+> No. You cannot define it this way. Taking the value of a pointer and
+> doing a bitwise operation that throws away all the bits (or even
+> *most* of the bits) results in the compiler easily being able to turn
+> the "chain" into a non-chain.
 > 
-> 13.	By default, pointer chains do not propagate into or out of functions.
-> 	In implementations having attributes, a [[carries_dependency]]
-> 	may be used to mark a function argument or return as passing
-> 	a pointer chain into or out of that function.
-> 
-> 	If a function does not contain memory_order_consume loads and
-> 	also does not contain [[carries_dependency]] attributes, then
-> 	that function may be compiled using any desired dependency-breaking
-> 	optimizations.
-> 
-> 	The ordering effects are implementation defined when a given
-> 	pointer chain passes into or out of a function through a parameter
-> 	or return not marked with a [[carries_dependency]] attributed.
-> 
-> Note that this last paragraph differs from the current standard, which
-> would require ordering regardless.
+> The obvious example being "val & 0", but things like "val & 1" are in
+> practice also something that compilers easily turn into control
+> dependencies instead of data dependencies.
 
-And there is also kill_dependency(), which needs to be added to the list
-in #8 of operators that take a chained pointer and return something that
-is not a chained pointer.
+Indeed, most of the bits need to remain for this to work.
+
+> So you can talk about things like "aligning the pointer value to
+> object boundaries" etc, but it really cannot and *must* not be about
+> the syntactic operations.
+> 
+> The same goes for "adding and subtracting an integer". The *syntax*
+> doesn't matter. It's about remaining information. Doing "p-(int)p" or
+> "p+(-(int)p)" doesn't leave any information despite being "subtracting
+> and adding an integer" at a syntactic level.
+> 
+> Syntax is meaningless. Really.
+
+Good points.  How about the following replacements?
+
+3.	Adding or subtracting an integer to/from a chained pointer
+	results in another chained pointer in that same pointer chain.
+	The results of addition and subtraction operations that cancel
+	the chained pointer's value (for example, "p-(long)p" where "p"
+	is a pointer to char) are implementation defined.
+
+4.	Bitwise operators ("&", "|", "^", and I suppose also "~")
+	applied to a chained pointer and an integer for the purposes
+	of alignment and pointer translation results in another
+	chained pointer in that same pointer chain.  Other uses
+	of bitwise operators on chained pointers (for example,
+	"p|~0") are implementation defined.
+
+> > 8.      Applying any of the following operators to a chained pointer
+> >         results in something that is not a chained pointer:
+> >         "()", sizeof, "!", "*", "/", "%", ">>", "<<", "<", ">", "<=",
+> >         ">=", "==", "!=", "&&", and "||".
+> 
+> Parenthesis? I'm assuming that you mean calling through the chained pointer.
+
+Yes, good point.  Of course, parentheses for grouping just pass the
+value through without affecting the chained-ness.
+
+> Also, I think all of /, * and % are perfectly fine, and might be used
+> for that "aligning the pointer" operation that is fine.
+
+Something like this?
+
+	char *p;
+
+	p = p - (unsigned long)p % 8;
+
+I was thinking of this as subtraction -- the "p" gets moduloed by 8,
+which loses the chained-pointer designation.  But that is OK because
+that designation gets folded back in by the subtraction.  Am I missing
+a use case?
+
+That leaves things like this one:
+
+	p = (p / 8) * 8;
+
+I cannot think of any other legitimate use for "/" and "*".
+
+Here is an updated #8 and a new 8a:
+
+8.	Applying any of the following operators to a chained pointer
+	results in something that is not a chained pointer: function call
+	"()", sizeof, "!", "%", ">>", "<<", "<", ">", "<=", ">=", "==",
+	"!=", "&&", "||", and "kill_dependency()".
+
+8a.	Dividing a chained pointer by an integer and multiplying it
+	by that same integer (for example, to align that pointer) results
+	in a chained pointer in that same pointer chain.  The ordering
+	effects of other uses of infix "*" and "/" on chained pointers
+	are implementation defined.
+
+Does that capture it?
 
 							Thanx, Paul
 
