@@ -1,8 +1,8 @@
 From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH v5 1/8] qspinlock: Introducing a 4-byte queue spinlock
 	implementation
-Date: Wed, 26 Feb 2014 17:22:43 +0100
-Message-ID: <20140226162243.GX6835@laptop.programming.kicks-ass.net>
+Date: Wed, 26 Feb 2014 17:24:40 +0100
+Message-ID: <20140226162440.GY6835@laptop.programming.kicks-ass.net>
 References: <1393427668-60228-1-git-send-email-Waiman.Long@hp.com>
 	<1393427668-60228-2-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
@@ -25,22 +25,11 @@ Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux
 List-Id: linux-arch.vger.kernel.org
 
 On Wed, Feb 26, 2014 at 10:14:21AM -0500, Waiman Long wrote:
-
-> +struct qnode {
-> +	u32		 wait;		/* Waiting flag		*/
-> +	struct qnode	*next;		/* Next queue node addr */
-> +};
+> +static void put_qnode(void)
+> +{
+> +	struct qnode_set *qset = this_cpu_ptr(&qnset);
 > +
-> +struct qnode_set {
-> +	struct qnode	nodes[MAX_QNODES];
-> +	int		node_idx;	/* Current node to use */
-> +};
-> +
-> +/*
-> + * Per-CPU queue node structures
-> + */
-> +static DEFINE_PER_CPU_ALIGNED(struct qnode_set, qnset) = { {{0}}, 0 };
+> +	qset->node_idx--;
+> +}
 
-So I've not yet wrapped my head around any of this; and I see a later
-patch adds some paravirt gunk to this, but it does blow you can't keep
-it a single cacheline for the sane case.
+That very much wants to be: this_cpu_dec().
