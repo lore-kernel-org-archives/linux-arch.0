@@ -1,66 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e35.co.us.ibm.com ([32.97.110.153]:46517 "EHLO
-	e35.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751192AbaBZFXL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Feb 2014 00:23:11 -0500
-Received: from /spool/local
-	by e35.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Tue, 25 Feb 2014 22:23:11 -0700
-Date: Tue, 25 Feb 2014 21:23:06 -0800
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Received: from mx1.redhat.com ([209.132.183.28]:28597 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752313AbaBZNFQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 26 Feb 2014 08:05:16 -0500
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Message-ID: <20140226052306.GD8264@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com>
- <20140224172110.GO8264@linux.vnet.ibm.com>
- <CA+55aFyi45f7oaG4MYP41TOc=E8Ze8Om88dV2Lq4F=qebhxt4A@mail.gmail.com>
- <20140224185341.GU8264@linux.vnet.ibm.com>
- <CA+55aFzXyob0aKnv1u7Stbu0rH5Aq2jaA1rHb=TvQe9c1KY0oQ@mail.gmail.com>
- <20140224223701.GC8264@linux.vnet.ibm.com>
- <CA+55aFxGaKtvx5YnOFC5hU9+ischxn=LN_yWiqjXwpNZePvWmw@mail.gmail.com>
- <CA+55aFwo9ZKxyN76cnkN7iQi7pKB+_tVD=re+RoMP4MiSajC8w@mail.gmail.com>
- <20140226001558.GY8264@linux.vnet.ibm.com>
- <530D6056.40305@redhat.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <530D6056.40305@redhat.com>
+From: Torvald Riegel <triegel@redhat.com>
+In-Reply-To: <20140221191318.GK4250@linux.vnet.ibm.com>
+References: <CA+55aFwwscSzwTr+xRdirtTx7HzugmMY9HrDe0GBqNhn=AuNVA@mail.gmail.com>
+	 <20140220083032.GN4250@linux.vnet.ibm.com>
+	 <CA+55aFwfx==u7o1NZ66aPbkOgsvGqW3UscGqrQkGuzOkjSpm6Q@mail.gmail.com>
+	 <20140220181116.GT4250@linux.vnet.ibm.com>
+	 <CA+55aFwn9gXWVq_GL=tPPP63vsqs-9QB4ii4s06xqG4UscCV5w@mail.gmail.com>
+	 <20140220185608.GX4250@linux.vnet.ibm.com>
+	 <CA+55aFw4inow5B-JAg-NtZigJ90yDbksddr00RoMKytzDAEa8A@mail.gmail.com>
+	 <20140220221027.GC4250@linux.vnet.ibm.com>
+	 <CA+55aFxp7U67R0PARaUfj94y5dJ8q6_HQ2pnbQ6=JD=XR-bTOw@mail.gmail.com>
+	 <alpine.LNX.2.00.1402211847290.7694@wotan.suse.de>
+	 <20140221191318.GK4250@linux.vnet.ibm.com>
+Content-Type: text/plain; charset="UTF-8"
+Date: Wed, 26 Feb 2014 14:04:30 +0100
+Message-ID: <1393419870.28840.8680.camel@triegel.csb>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jeff Law <law@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140226052306.1J6BOT5cnU9oPT3I1nTQuBAvpgwLm0rmRjBrnY5ME6c@z>
+To: paulmck@linux.vnet.ibm.com
+Cc: Michael Matz <matz@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Message-ID: <20140226130430.yOiLP5vvGnsHUHqFYNDK2ZhGOTdVx3ce8lG1ui31EGE@z>
 
-On Tue, Feb 25, 2014 at 08:32:38PM -0700, Jeff Law wrote:
-> On 02/25/14 17:15, Paul E. McKenney wrote:
-> >>I have for the last several years been 100% convinced that the Intel
-> >>memory ordering is the right thing, and that people who like weak
-> >>memory ordering are wrong and should try to avoid reproducing if at
-> >>all possible. But given that we have memory orderings like power and
-> >>ARM, I don't actually see a sane way to get a good strong ordering.
-> >>You can teach compilers about cases like the above when they actually
-> >>see all the code and they could poison the value chain etc. But it
-> >>would be fairly painful, and once you cross object files (or even just
-> >>functions in the same compilation unit, for that matter), it goes from
-> >>painful to just "ridiculously not worth it".
-> >
-> >And I have indeed seen a post or two from you favoring stronger memory
-> >ordering over the past few years.  ;-)
-> I couldn't agree more.
+On Fri, 2014-02-21 at 11:13 -0800, Paul E. McKenney wrote:
+> On Fri, Feb 21, 2014 at 07:35:37PM +0100, Michael Matz wrote:
+> > Hi,
+> > 
+> > On Thu, 20 Feb 2014, Linus Torvalds wrote:
+> > 
+> > > But I'm pretty sure that any compiler guy must *hate* that current odd
+> > > dependency-generation part, and if I was a gcc person, seeing that
+> > > bugzilla entry Torvald pointed at, I would personally want to
+> > > dismember somebody with a rusty spoon..
+> > 
+> > Yes.  Defining dependency chains in the way the standard currently seems 
+> > to do must come from people not writing compilers.  There's simply no 
+> > sensible way to implement it without being really conservative, because 
+> > the depchains can contain arbitrary constructs including stores, 
+> > loads and function calls but must still be observed.  
+> > 
+> > And with conservative I mean "everything is a source of a dependency, and 
+> > hence can't be removed, reordered or otherwise fiddled with", and that 
+> > includes code sequences where no atomic objects are anywhere in sight [1].
+> > In the light of that the only realistic way (meaning to not have to 
+> > disable optimization everywhere) to implement consume as currently 
+> > specified is to map it to acquire.  At which point it becomes pointless.
 > 
-> >
-> >Are ARM and Power really the bad boys here?  Or are they instead playing
-> >the role of the canary in the coal mine?
-> That's a question I've been struggling with recently as well.  I
-> suspect they (arm, power) are going to be the outliers rather than
-> the canary. While the weaker model may give them some advantages WRT
-> scalability, I don't think it'll ultimately be enough to overcome
-> the difficulty in writing correct low level code for them.
-> 
-> Regardless, they're here and we have to deal with them.
+> No, only memory_order_consume loads and [[carries_dependency]]
+> function arguments are sources of dependency chains.
 
-Agreed...
+However, that is, given how the standard specifies things, just one of
+the possible ways for how an implementation can handle this.  Treating
+[[carries_dependency]] as a "necessary" annotation to make exploiting
+mo_consume work in practice is possible, but it's not required by the
+standard.
 
-							Thanx, Paul
+Also, dependencies are specified to flow through loads and stores
+(restricted to scalar objects and bitfields), so any load that might
+load from a dependency-carrying store can also be a source (and that
+doesn't seem to be restricted by [[carries_dependency]]).
 
