@@ -1,51 +1,30 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Tue, 25 Feb 2014 21:23:06 -0800
-Message-ID: <20140226052306.GD8264@linux.vnet.ibm.com>
-References: <CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com> <20140224172110.GO8264@linux.vnet.ibm.com> <CA+55aFyi45f7oaG4MYP41TOc=E8Ze8Om88dV2Lq4F=qebhxt4A@mail.gmail.com> <20140224185341.GU8264@linux.vnet.ibm.com> <CA+55aFzXyob0aKnv1u7Stbu0rH5Aq2jaA1rHb=TvQe9c1KY0oQ@mail.gmail.com> <20140224223701.GC8264@linux.vnet.ibm.com> <CA+55aFxGaKtvx5YnOFC5hU9+ischxn=LN_yWiqjXwpNZePvWmw@mail.gmail.com> <CA+55aFwo9ZKxyN76cnkN7iQi7pKB+_tVD=re+RoMP4MiSajC8w@mail.gmail.com> <20140226001558.GY8264@linux.vnet.ibm.com> <530D6056.40305@redhat.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH RESEND 03/14] arm64: locks: remove redundant
+ arch_*_relax operations
+Date: Wed, 26 Feb 2014 12:15:22 +0000
+Message-ID: <20140226121522.GA7761@arm.com>
+References: <1393004101-25382-1-git-send-email-will.deacon@arm.com>
+ <1393004101-25382-4-git-send-email-will.deacon@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <gcc-return-182311-gcc=m.gmane.org@gcc.gnu.org>
-List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
-List-Archive: <http://gcc.gnu.org/ml/gcc/>
-List-Post: <mailto:gcc@gcc.gnu.org>
-List-Help: <http://gcc.gnu.org/ml/>
-Sender: gcc-owner@gcc.gnu.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from fw-tnat.austin.arm.com ([217.140.110.23]:46458 "EHLO
+	collaborate-mta1.arm.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1750918AbaBZMPd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 26 Feb 2014 07:15:33 -0500
 Content-Disposition: inline
-In-Reply-To: <530D6056.40305@redhat.com>
-To: Jeff Law <law@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <1393004101-25382-4-git-send-email-will.deacon@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Will Deacon <will.deacon@arm.com>
+Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org
 
-On Tue, Feb 25, 2014 at 08:32:38PM -0700, Jeff Law wrote:
-> On 02/25/14 17:15, Paul E. McKenney wrote:
-> >>I have for the last several years been 100% convinced that the Intel
-> >>memory ordering is the right thing, and that people who like weak
-> >>memory ordering are wrong and should try to avoid reproducing if at
-> >>all possible. But given that we have memory orderings like power and
-> >>ARM, I don't actually see a sane way to get a good strong ordering.
-> >>You can teach compilers about cases like the above when they actually
-> >>see all the code and they could poison the value chain etc. But it
-> >>would be fairly painful, and once you cross object files (or even just
-> >>functions in the same compilation unit, for that matter), it goes from
-> >>painful to just "ridiculously not worth it".
-> >
-> >And I have indeed seen a post or two from you favoring stronger memory
-> >ordering over the past few years.  ;-)
-> I couldn't agree more.
+On Fri, Feb 21, 2014 at 05:34:50PM +0000, Will Deacon wrote:
+> Now that the arch_{spin,read,write}_relax macros default to cpu_relax(),
+> remove the redundant definitions for arm64.
 > 
-> >
-> >Are ARM and Power really the bad boys here?  Or are they instead playing
-> >the role of the canary in the coal mine?
-> That's a question I've been struggling with recently as well.  I
-> suspect they (arm, power) are going to be the outliers rather than
-> the canary. While the weaker model may give them some advantages WRT
-> scalability, I don't think it'll ultimately be enough to overcome
-> the difficulty in writing correct low level code for them.
-> 
-> Regardless, they're here and we have to deal with them.
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Signed-off-by: Will Deacon <will.deacon@arm.com>
 
-Agreed...
-
-							Thanx, Paul
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
