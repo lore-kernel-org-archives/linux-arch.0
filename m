@@ -1,49 +1,34 @@
-From: Torvald Riegel <triegel@redhat.com>
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Wed, 26 Feb 2014 14:09:17 +0100
-Message-ID: <1393420157.28840.8691.camel@triegel.csb>
-References: <CA+55aFwwscSzwTr+xRdirtTx7HzugmMY9HrDe0GBqNhn=AuNVA@mail.gmail.com>	 <20140220083032.GN4250@linux.vnet.ibm.com>	 <CA+55aFwfx==u7o1NZ66aPbkOgsvGqW3UscGqrQkGuzOkjSpm6Q@mail.gmail.com>	 <20140220181116.GT4250@linux.vnet.ibm.com>	 <CA+55aFwn9gXWVq_GL=tPPP63vsqs-9QB4ii4s06xqG4UscCV5w@mail.gmail.com>	 <20140220185608.GX4250@linux.vnet.ibm.com>	 <CA+55aFw4inow5B-JAg-NtZigJ90yDbksddr00RoMKytzDAEa8A@mail.gmail.com>	 <20140220221027.GC4250@linux.vnet.ibm.com>	 <CA+55aFxp7U67R0PARaUfj94y5dJ8q6_HQ2pnbQ6=JD=XR-bTOw@mail.gmail.com>	 <alpine.LNX.2.00.1402211847290.7694@wotan.suse.de>	 <20140221191318.GK4250@linux.vnet.ibm.com>	 <Pine.LNX.4.64.1402212206040.16563@digraph.polyomino.org.uk>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 1/5] bug: When !CONFIG_BUG, simplify WARN_ON_ONCE and family
+Date: Wed, 26 Feb 2014 14:24:59 +0100
+Message-ID: <201402261424.59875.arnd@arndb.de>
+References: <469b5dc113cb468232291527642f8dc47663e945.1393385236.git.josh@joshtriplett.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <gcc-return-182320-gcc=m.gmane.org@gcc.gnu.org>
-List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
-List-Archive: <http://gcc.gnu.org/ml/gcc/>
-List-Post: <mailto:gcc@gcc.gnu.org>
-List-Help: <http://gcc.gnu.org/ml/>
-Sender: gcc-owner@gcc.gnu.org
-In-Reply-To: <Pine.LNX.4.64.1402212206040.16563@digraph.polyomino.org.uk>
-To: "Joseph S. Myers" <joseph@codesourcery.com>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Michael Matz <matz@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.17.13]:62082 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750814AbaBZNZH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Feb 2014 08:25:07 -0500
+In-Reply-To: <469b5dc113cb468232291527642f8dc47663e945.1393385236.git.josh@joshtriplett.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Josh Triplett <josh@joshtriplett.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Fri, 2014-02-21 at 22:10 +0000, Joseph S. Myers wrote:
-> On Fri, 21 Feb 2014, Paul E. McKenney wrote:
+On Wednesday 26 February 2014, Josh Triplett wrote:
+> When !CONFIG_BUG, WARN_ON and family become simple passthroughs of their
+> condition argument; however, WARN_ON_ONCE and family still have
+> conditions and a boolean to detect one-time invocation, even though the
+> warning they'd emit doesn't exist.  Make the existing definitions
+> conditional on CONFIG_BUG, and add definitions for !CONFIG_BUG that map
+> to the passthrough versions of WARN and WARN_ON.
 > 
-> > This needs to be as follows:
-> > 
-> > [[carries_dependency]] int getzero(int i [[carries_dependency]])
-> > {
-> > 	return i - i;
-> > }
-> > 
-> > Otherwise dependencies won't get carried through it.
+> This saves 4.4k on a minimized configuration (smaller than
+> allnoconfig), and 20.6k with defconfig plus CONFIG_BUG=n.
 > 
-> C11 doesn't have attributes at all (and no specification regarding calls 
-> and dependencies that I can see).  And the way I read the C++11 
-> specification of carries_dependency is that specifying carries_dependency 
-> is purely about increasing optimization of the caller: that if it isn't 
-> specified, then the caller doesn't know what dependencies might be 
-> carried.  "Note: The carries_dependency attribute does not change the 
-> meaning of the program, but may result in generation of more efficient 
-> code. - end note".
+> Signed-off-by: Josh Triplett <josh@joshtriplett.org>
 
-I think that this last sentence can be kind of misleading, especially
-when looking at it from an implementation point of view.  How
-dependencies are handled (ie, preserving the syntactic dependencies vs.
-emitting barriers) must be part of the ABI, or things like
-[[carries_dependency]] won't work as expected (or lead to inefficient
-code).  Thus, in practice, all compiler vendors on a platform would have
-to agree to a particular handling, which might end up in selecting the
-easy-but-conservative implementation option (ie, always emitting
-mo_acquire when the source uses mo_consume).
+Acked-by: Arnd Bergmann <arnd@arndb.de>
