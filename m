@@ -1,59 +1,48 @@
-From: "George Spelvin" <linux@horizon.com>
+From: Jeff Law <law@redhat.com>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: 25 Feb 2014 22:06:53 -0500
-Message-ID: <20140226030653.17328.qmail@science.horizon.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from science.horizon.com ([71.41.210.146]:54671 "HELO
-	science.horizon.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with SMTP id S1751798AbaBZDGz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Feb 2014 22:06:55 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: paulmck@linux.vnet.ibm.com
-Cc: akpm@linux-foundation.org, dhowells@redhat.com, gcc@gcc.gnu.org, linux@horizon.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@kernel.org, peterz@infradead.org, Ramana.Radhakrishnan@arm.com, torvalds@linux-foundation.org, triegel@redhat.com, will.deacon@arm.com
+Date: Tue, 25 Feb 2014 20:32:38 -0700
+Message-ID: <530D6056.40305@redhat.com>
+References: <20140223063426.GT4250@linux.vnet.ibm.com> <CA+55aFxMJvaQhoEwqgN=XA6gDOdZwoZQHdcAnB-FhAri_hK-6Q@mail.gmail.com> <CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com> <20140224172110.GO8264@linux.vnet.ibm.com> <CA+55aFyi45f7oaG4MYP41TOc=E8Ze8Om88dV2Lq4F=qebhxt4A@mail.gmail.com> <20140224185341.GU8264@linux.vnet.ibm.com> <CA+55aFzXyob0aKnv1u7Stbu0rH5Aq2jaA1rHb=TvQe9c1KY0oQ@mail.gmail.com> <20140224223701.GC8264@linux.vnet.ibm.com> <CA+55aFxGaKtvx5YnOFC5hU9+ischxn=LN_yWiqjXwpNZePvWmw@mail.gmail.com> <CA+55aFwo9ZKxyN76cnkN7iQi7pKB+_tVD=re+RoMP4MiSajC8w@mail.gmail.com> <20140226001558.GY8264@linux.vnet.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <gcc-return-182308-gcc=m.gmane.org@gcc.gnu.org>
+List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
+List-Archive: <http://gcc.gnu.org/ml/gcc/>
+List-Post: <mailto:gcc@gcc.gnu.org>
+List-Help: <http://gcc.gnu.org/ml/>
+Sender: gcc-owner@gcc.gnu.org
+In-Reply-To: <20140226001558.GY8264@linux.vnet.ibm.com>
+To: paulmck@linux.vnet.ibm.com, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+List-Id: linux-arch.vger.kernel.org
 
-<paulmck@linux.vnet.ibm.com> wrote:
-> <torvalds@linux-foundation.org> wrote:
+On 02/25/14 17:15, Paul E. McKenney wrote:
 >> I have for the last several years been 100% convinced that the Intel
 >> memory ordering is the right thing, and that people who like weak
 >> memory ordering are wrong and should try to avoid reproducing if at
->> all possible.
+>> all possible. But given that we have memory orderings like power and
+>> ARM, I don't actually see a sane way to get a good strong ordering.
+>> You can teach compilers about cases like the above when they actually
+>> see all the code and they could poison the value chain etc. But it
+>> would be fairly painful, and once you cross object files (or even just
+>> functions in the same compilation unit, for that matter), it goes from
+>> painful to just "ridiculously not worth it".
+>
+> And I have indeed seen a post or two from you favoring stronger memory
+> ordering over the past few years.  ;-)
+I couldn't agree more.
+
 >
 > Are ARM and Power really the bad boys here?  Or are they instead playing
 > the role of the canary in the coal mine?
+That's a question I've been struggling with recently as well.  I suspect 
+they (arm, power) are going to be the outliers rather than the canary. 
+While the weaker model may give them some advantages WRT scalability, I 
+don't think it'll ultimately be enough to overcome the difficulty in 
+writing correct low level code for them.
 
-To paraphrase some older threads, I think Linus's argument is that
-weak memory ordering is like branch delay slots: a way to make a simple
-implementation simpler, but ends up being no help to a more aggressive
-implementation.
-
-Branch delay slots give a one-cycle bonus to in-order cores, but
-once you go superscalar and add branch prediction, they stop helping,
-and once you go full out of order, they're just an annoyance.
-
-Likewise, I can see the point that weak ordering can help make a simple
-cache interface simpler, but once you start doing speculative loads,
-you've already bought and paid for all the hardware you need to do
-stronger coherency.
-
-Another thing that requires all the strong-coherency machinery is
-a high-performance implementation of the various memory barrier and
-synchronization operations.  Yes, a low-performance (drain the pipeline)
-implementation is tolerable if the instructions aren't used frequently,
-but once you're really trying, it doesn't save complexity.
-
-Once you're there, strong coherency always doesn't actually cost you any
-time outside of critical synchronization code, and it both simplifies
-and speeds up the tricky synchronization software.
+Regardless, they're here and we have to deal with them.
 
 
-So PPC and ARM's weak ordering are not the direction the future is going.
-Rather, weak ordering is something that's only useful in a limited
-technology window, which is rapidly passing.
-
-If you can find someone in IBM who's worked on the Z series cache
-coherency (extremely strong ordering), they probably have some useful
-insights.  The big question is if strong ordering, once you've accepted
-the implementation complexity and area, actually costs anything in
-execution time.  If there's an unavoidable cost which weak ordering saves,
-that's significant.
+Jeff
