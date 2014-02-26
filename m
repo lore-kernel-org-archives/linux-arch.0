@@ -1,48 +1,110 @@
-From: Jeff Law <law@redhat.com>
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Tue, 25 Feb 2014 20:32:38 -0700
-Message-ID: <530D6056.40305@redhat.com>
-References: <20140223063426.GT4250@linux.vnet.ibm.com> <CA+55aFxMJvaQhoEwqgN=XA6gDOdZwoZQHdcAnB-FhAri_hK-6Q@mail.gmail.com> <CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com> <20140224172110.GO8264@linux.vnet.ibm.com> <CA+55aFyi45f7oaG4MYP41TOc=E8Ze8Om88dV2Lq4F=qebhxt4A@mail.gmail.com> <20140224185341.GU8264@linux.vnet.ibm.com> <CA+55aFzXyob0aKnv1u7Stbu0rH5Aq2jaA1rHb=TvQe9c1KY0oQ@mail.gmail.com> <20140224223701.GC8264@linux.vnet.ibm.com> <CA+55aFxGaKtvx5YnOFC5hU9+ischxn=LN_yWiqjXwpNZePvWmw@mail.gmail.com> <CA+55aFwo9ZKxyN76cnkN7iQi7pKB+_tVD=re+RoMP4MiSajC8w@mail.gmail.com> <20140226001558.GY8264@linux.vnet.ibm.com>
+From: Josh Triplett <josh@joshtriplett.org>
+Subject: [PATCH v2 1/5] bug: When !CONFIG_BUG, simplify WARN_ON_ONCE and
+ family
+Date: Tue, 25 Feb 2014 19:48:35 -0800
+Message-ID: <469b5dc113cb468232291527642f8dc47663e945.1393385236.git.josh@joshtriplett.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <gcc-return-182308-gcc=m.gmane.org@gcc.gnu.org>
-List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
-List-Archive: <http://gcc.gnu.org/ml/gcc/>
-List-Post: <mailto:gcc@gcc.gnu.org>
-List-Help: <http://gcc.gnu.org/ml/>
-Sender: gcc-owner@gcc.gnu.org
-In-Reply-To: <20140226001558.GY8264@linux.vnet.ibm.com>
-To: paulmck@linux.vnet.ibm.com, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+Sender: linux-kernel-owner@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 02/25/14 17:15, Paul E. McKenney wrote:
->> I have for the last several years been 100% convinced that the Intel
->> memory ordering is the right thing, and that people who like weak
->> memory ordering are wrong and should try to avoid reproducing if at
->> all possible. But given that we have memory orderings like power and
->> ARM, I don't actually see a sane way to get a good strong ordering.
->> You can teach compilers about cases like the above when they actually
->> see all the code and they could poison the value chain etc. But it
->> would be fairly painful, and once you cross object files (or even just
->> functions in the same compilation unit, for that matter), it goes from
->> painful to just "ridiculously not worth it".
->
-> And I have indeed seen a post or two from you favoring stronger memory
-> ordering over the past few years.  ;-)
-I couldn't agree more.
+When !CONFIG_BUG, WARN_ON and family become simple passthroughs of their
+condition argument; however, WARN_ON_ONCE and family still have
+conditions and a boolean to detect one-time invocation, even though the
+warning they'd emit doesn't exist.  Make the existing definitions
+conditional on CONFIG_BUG, and add definitions for !CONFIG_BUG that map
+to the passthrough versions of WARN and WARN_ON.
 
->
-> Are ARM and Power really the bad boys here?  Or are they instead playing
-> the role of the canary in the coal mine?
-That's a question I've been struggling with recently as well.  I suspect 
-they (arm, power) are going to be the outliers rather than the canary. 
-While the weaker model may give them some advantages WRT scalability, I 
-don't think it'll ultimately be enough to overcome the difficulty in 
-writing correct low level code for them.
+This saves 4.4k on a minimized configuration (smaller than
+allnoconfig), and 20.6k with defconfig plus CONFIG_BUG=n.
 
-Regardless, they're here and we have to deal with them.
+Signed-off-by: Josh Triplett <josh@joshtriplett.org>
+---
+v2: Incorporate feedback from Arnd Bergmann: make the WARN_* variants with
+    format strings and arguments call WARN and pass along those arguments,
+    rather than calling WARN_ON.  Used by the new patch 3, which makes the stub
+    version of WARN call no_printk.
 
+ include/asm-generic/bug.h | 57 +++++++++++++++++++++++++----------------------
+ 1 file changed, 30 insertions(+), 27 deletions(-)
 
-Jeff
+diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+index 7d10f96..7ecd398 100644
+--- a/include/asm-generic/bug.h
++++ b/include/asm-generic/bug.h
+@@ -106,33 +106,6 @@ extern void warn_slowpath_null(const char *file, const int line);
+ 	unlikely(__ret_warn_on);					\
+ })
+ 
+-#else /* !CONFIG_BUG */
+-#ifndef HAVE_ARCH_BUG
+-#define BUG() do {} while(0)
+-#endif
+-
+-#ifndef HAVE_ARCH_BUG_ON
+-#define BUG_ON(condition) do { if (condition) ; } while(0)
+-#endif
+-
+-#ifndef HAVE_ARCH_WARN_ON
+-#define WARN_ON(condition) ({						\
+-	int __ret_warn_on = !!(condition);				\
+-	unlikely(__ret_warn_on);					\
+-})
+-#endif
+-
+-#ifndef WARN
+-#define WARN(condition, format...) ({					\
+-	int __ret_warn_on = !!(condition);				\
+-	unlikely(__ret_warn_on);					\
+-})
+-#endif
+-
+-#define WARN_TAINT(condition, taint, format...) WARN_ON(condition)
+-
+-#endif
+-
+ #define WARN_ON_ONCE(condition)	({				\
+ 	static bool __section(.data.unlikely) __warned;		\
+ 	int __ret_warn_once = !!(condition);			\
+@@ -163,6 +136,36 @@ extern void warn_slowpath_null(const char *file, const int line);
+ 	unlikely(__ret_warn_once);				\
+ })
+ 
++#else /* !CONFIG_BUG */
++#ifndef HAVE_ARCH_BUG
++#define BUG() do {} while(0)
++#endif
++
++#ifndef HAVE_ARCH_BUG_ON
++#define BUG_ON(condition) do { if (condition) ; } while(0)
++#endif
++
++#ifndef HAVE_ARCH_WARN_ON
++#define WARN_ON(condition) ({						\
++	int __ret_warn_on = !!(condition);				\
++	unlikely(__ret_warn_on);					\
++})
++#endif
++
++#ifndef WARN
++#define WARN(condition, format...) ({					\
++	int __ret_warn_on = !!(condition);				\
++	unlikely(__ret_warn_on);					\
++})
++#endif
++
++#define WARN_ON_ONCE(condition) WARN_ON(condition)
++#define WARN_ONCE(condition, format...) WARN(condition, format)
++#define WARN_TAINT(condition, taint, format...) WARN(condition, format)
++#define WARN_TAINT_ONCE(condition, taint, format...) WARN(condition, format)
++
++#endif
++
+ /*
+  * WARN_ON_SMP() is for cases that the warning is either
+  * meaningless for !SMP or may even cause failures.
+-- 
+1.9.0
