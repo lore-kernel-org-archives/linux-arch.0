@@ -1,49 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:5893 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751114AbaBZDdN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 25 Feb 2014 22:33:13 -0500
-Message-ID: <530D6056.40305@redhat.com>
-Date: Tue, 25 Feb 2014 20:32:38 -0700
-From: Jeff Law <law@redhat.com>
+Received: from relay5-d.mail.gandi.net ([217.70.183.197]:50989 "EHLO
+	relay5-d.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751114AbaBZDtZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Feb 2014 22:49:25 -0500
+Date: Tue, 25 Feb 2014 19:49:19 -0800
+From: Josh Triplett <josh@joshtriplett.org>
+Subject: [PATCH v2 4/5] bug: Use a common definition of BUG_ON regardless of
+ CONFIG_BUG
+Message-ID: <6ce38c3701f8ed1d30bfc1661ede7eade46a79c6.1393385236.git.josh@joshtriplett.org>
+References: <469b5dc113cb468232291527642f8dc47663e945.1393385236.git.josh@joshtriplett.org>
 MIME-Version: 1.0
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-References: <20140223063426.GT4250@linux.vnet.ibm.com> <CA+55aFxMJvaQhoEwqgN=XA6gDOdZwoZQHdcAnB-FhAri_hK-6Q@mail.gmail.com> <CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com> <20140224172110.GO8264@linux.vnet.ibm.com> <CA+55aFyi45f7oaG4MYP41TOc=E8Ze8Om88dV2Lq4F=qebhxt4A@mail.gmail.com> <20140224185341.GU8264@linux.vnet.ibm.com> <CA+55aFzXyob0aKnv1u7Stbu0rH5Aq2jaA1rHb=TvQe9c1KY0oQ@mail.gmail.com> <20140224223701.GC8264@linux.vnet.ibm.com> <CA+55aFxGaKtvx5YnOFC5hU9+ischxn=LN_yWiqjXwpNZePvWmw@mail.gmail.com> <CA+55aFwo9ZKxyN76cnkN7iQi7pKB+_tVD=re+RoMP4MiSajC8w@mail.gmail.com> <20140226001558.GY8264@linux.vnet.ibm.com>
-In-Reply-To: <20140226001558.GY8264@linux.vnet.ibm.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <469b5dc113cb468232291527642f8dc47663e945.1393385236.git.josh@joshtriplett.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: paulmck@linux.vnet.ibm.com, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140226033238.92axlvNvt9vvCLRZleMTtuECDw6EkezSmMwVja85Lto@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20140226034919.6T7yv7rH0n_9CQd26UUzMXxMPiiBUoIGNeGQO1wygOE@z>
 
-On 02/25/14 17:15, Paul E. McKenney wrote:
->> I have for the last several years been 100% convinced that the Intel
->> memory ordering is the right thing, and that people who like weak
->> memory ordering are wrong and should try to avoid reproducing if at
->> all possible. But given that we have memory orderings like power and
->> ARM, I don't actually see a sane way to get a good strong ordering.
->> You can teach compilers about cases like the above when they actually
->> see all the code and they could poison the value chain etc. But it
->> would be fairly painful, and once you cross object files (or even just
->> functions in the same compilation unit, for that matter), it goes from
->> painful to just "ridiculously not worth it".
->
-> And I have indeed seen a post or two from you favoring stronger memory
-> ordering over the past few years.  ;-)
-I couldn't agree more.
+include/asm-generic/bug.h defines BUG_ON to call BUG() if CONFIG_BUG=y,
+or as a no-op if !CONFIG_BUG.  However, BUG() is already a no-op if
+!CONFIG_BUG, making this pointless.  Use a common definition that always
+calls BUG().
 
->
-> Are ARM and Power really the bad boys here?  Or are they instead playing
-> the role of the canary in the coal mine?
-That's a question I've been struggling with recently as well.  I suspect 
-they (arm, power) are going to be the outliers rather than the canary. 
-While the weaker model may give them some advantages WRT scalability, I 
-don't think it'll ultimately be enough to overcome the difficulty in 
-writing correct low level code for them.
+This does not change the compiled code at all.
 
-Regardless, they're here and we have to deal with them.
+Signed-off-by: Josh Triplett <josh@joshtriplett.org>
+---
+ include/asm-generic/bug.h | 12 ++++--------
+ 1 file changed, 4 insertions(+), 8 deletions(-)
 
+diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+index a97fa11..653c44a 100644
+--- a/include/asm-generic/bug.h
++++ b/include/asm-generic/bug.h
+@@ -51,10 +51,6 @@ struct bug_entry {
+ } while (0)
+ #endif
+ 
+-#ifndef HAVE_ARCH_BUG_ON
+-#define BUG_ON(condition) do { if (unlikely(condition)) BUG(); } while (0)
+-#endif
+-
+ /*
+  * WARN(), WARN_ON(), WARN_ON_ONCE, and so on can be used to report
+  * significant issues that need prompt attention if they should ever
+@@ -141,10 +137,6 @@ extern void warn_slowpath_null(const char *file, const int line);
+ #define BUG() do {} while (0)
+ #endif
+ 
+-#ifndef HAVE_ARCH_BUG_ON
+-#define BUG_ON(condition) do { if (condition) ; } while (0)
+-#endif
+-
+ #ifndef HAVE_ARCH_WARN_ON
+ #define WARN_ON(condition) ({						\
+ 	int __ret_warn_on = !!(condition);				\
+@@ -167,6 +159,10 @@ extern void warn_slowpath_null(const char *file, const int line);
+ 
+ #endif
+ 
++#ifndef HAVE_ARCH_BUG_ON
++#define BUG_ON(condition) do { if (unlikely(condition)) BUG(); } while (0)
++#endif
++
+ /*
+  * WARN_ON_SMP() is for cases that the warning is either
+  * meaningless for !SMP or may even cause failures.
+-- 
+1.9.0
 
-Jeff
