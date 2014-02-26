@@ -1,12 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relay5-d.mail.gandi.net ([217.70.183.197]:38025 "EHLO
+Received: from relay5-d.mail.gandi.net ([217.70.183.197]:35217 "EHLO
 	relay5-d.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750800AbaBZDtn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Feb 2014 22:49:43 -0500
-Date: Tue, 25 Feb 2014 19:49:36 -0800
+	with ESMTP id S1751164AbaBZDs5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Feb 2014 22:48:57 -0500
+Date: Tue, 25 Feb 2014 19:48:51 -0800
 From: Josh Triplett <josh@joshtriplett.org>
-Subject: [PATCH v2 5/5] bug: Make BUG() call unreachable()
-Message-ID: <d97712e037ea4c90e9cb30c56229383d257831de.1393385236.git.josh@joshtriplett.org>
+Subject: [PATCH v2 2/5] include/asm-generic/bug.h: Style fix:
+ s/while(0)/while (0)/
+Message-ID: <b37138855c05cbdd6184f74fbd2e2f17bff7fb74.1393385236.git.josh@joshtriplett.org>
 References: <469b5dc113cb468232291527642f8dc47663e945.1393385236.git.josh@joshtriplett.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -15,31 +16,38 @@ In-Reply-To: <469b5dc113cb468232291527642f8dc47663e945.1393385236.git.josh@josht
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20140226034936.Pg-MIq4Y0dlDOsT4l84bbsQMlAyAIvxQOz1lzTY8PwE@z>
+Message-ID: <20140226034851.FCEXcO6OmCTFD-spDetrmWwTUJIMsx6V6PGxnmHmpBE@z>
 
-This effectively causes BUG() to act like a function with the noreturn
-attribute, which prevents GCC from warning about the code that follows
-BUG() (for instance, warning about not returning a value in a non-void
-function after calling BUG()).
-
-This actually makes the kernel smaller; bloat-o-meter summary:
-add/remove: 2/7 grow/shrink: 34/57 up/down: 475/-1233 (-758)
-
+Reported-by: Randy Dunlap <rdunlap@infradead.org>
 Signed-off-by: Josh Triplett <josh@joshtriplett.org>
 ---
- include/asm-generic/bug.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ include/asm-generic/bug.h | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
 diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-index 653c44a..5f69248 100644
+index 7ecd398..2d54d8d 100644
 --- a/include/asm-generic/bug.h
 +++ b/include/asm-generic/bug.h
-@@ -134,7 +134,7 @@ extern void warn_slowpath_null(const char *file, const int line);
+@@ -52,7 +52,7 @@ struct bug_entry {
+ #endif
+ 
+ #ifndef HAVE_ARCH_BUG_ON
+-#define BUG_ON(condition) do { if (unlikely(condition)) BUG(); } while(0)
++#define BUG_ON(condition) do { if (unlikely(condition)) BUG(); } while (0)
+ #endif
+ 
+ /*
+@@ -138,11 +138,11 @@ extern void warn_slowpath_null(const char *file, const int line);
  
  #else /* !CONFIG_BUG */
  #ifndef HAVE_ARCH_BUG
--#define BUG() do {} while (0)
-+#define BUG() do { unreachable(); } while (0)
+-#define BUG() do {} while(0)
++#define BUG() do {} while (0)
+ #endif
+ 
+ #ifndef HAVE_ARCH_BUG_ON
+-#define BUG_ON(condition) do { if (condition) ; } while(0)
++#define BUG_ON(condition) do { if (condition) ; } while (0)
  #endif
  
  #ifndef HAVE_ARCH_WARN_ON
