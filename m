@@ -1,83 +1,115 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from slow1-d.mail.gandi.net ([217.70.178.86]:41912 "EHLO
-	slow1-d.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751497AbaBZPIt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Feb 2014 10:08:49 -0500
-Received: from relay6-d.mail.gandi.net (relay6-d.mail.gandi.net [217.70.183.198])
-	by slow1-d.mail.gandi.net (Postfix) with ESMTP id 39FA0486130
-	for <linux-arch@vger.kernel.org>; Wed, 26 Feb 2014 15:58:30 +0100 (CET)
-Date: Wed, 26 Feb 2014 06:58:06 -0800
-From: Josh Triplett <josh@joshtriplett.org>
-Subject: Re: [PATCH v2 5/5] bug: Make BUG() call unreachable()
-Message-ID: <20140226145806.GA24150@thin>
-References: <469b5dc113cb468232291527642f8dc47663e945.1393385236.git.josh@joshtriplett.org>
- <d97712e037ea4c90e9cb30c56229383d257831de.1393385236.git.josh@joshtriplett.org>
- <201402261429.06553.arnd@arndb.de>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <201402261429.06553.arnd@arndb.de>
+Received: from mx1.redhat.com ([209.132.183.28]:57455 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751131AbaBZRfI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 26 Feb 2014 12:35:08 -0500
+Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
+From: Torvald Riegel <triegel@redhat.com>
+In-Reply-To: <CA+55aFwi-wd_heT_R-ngHAS5=aVNqy4PqKTriK4bVWpuS5+pkg@mail.gmail.com>
+References: <20140220083032.GN4250@linux.vnet.ibm.com>
+	 <CA+55aFwfx==u7o1NZ66aPbkOgsvGqW3UscGqrQkGuzOkjSpm6Q@mail.gmail.com>
+	 <20140220181116.GT4250@linux.vnet.ibm.com>
+	 <CA+55aFwn9gXWVq_GL=tPPP63vsqs-9QB4ii4s06xqG4UscCV5w@mail.gmail.com>
+	 <1392922421.28840.36.camel@triegel.csb>
+	 <CA+55aFwos2Gwd2LEvht4ymVxHb6GRVjtZ9wwJSaj1p--FqNUWw@mail.gmail.com>
+	 <1393095223.28840.4914.camel@triegel.csb>
+	 <CA+55aFz9=RQoMO2ipyZgNPNzWGVXi_R9Ar5=o9VBWwXzDDz6jg@mail.gmail.com>
+	 <20140223003933.GQ4250@linux.vnet.ibm.com>
+	 <CA+55aFyjzR_Ga_HOKnBXpKYbuesqovj1-sFTVisD9UwA6JuJtw@mail.gmail.com>
+	 <20140223063426.GT4250@linux.vnet.ibm.com>
+	 <CA+55aFxMJvaQhoEwqgN=XA6gDOdZwoZQHdcAnB-FhAri_hK-6Q@mail.gmail.com>
+	 <CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com>
+	 <CAFiYyc08cusFTsydD2C4rEZB-k38NnorzEXzKvqab0m3R+qn8w@mail.gmail.com>
+	 <CA+55aFyYtMm1_UsPVw8mi7o2iH_--1wLvxPUt5Z9mAEOGMgXdQ@mail.gmail.com>
+	 <alpine.LNX.2.00.1402241745100.7694@wotan.suse.de>
+	 <CA+55aFwi-wd_heT_R-ngHAS5=aVNqy4PqKTriK4bVWpuS5+pkg@mail.gmail.com>
+Content-Type: text/plain; charset="UTF-8"
+Date: Wed, 26 Feb 2014 18:34:25 +0100
+Message-ID: <1393436065.28840.8964.camel@triegel.csb>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20140226145806.JiLQdpkLtQ5Eaw443Ge7K5u5DKqm3nL5t9KH8mvwv4o@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Michael Matz <matz@suse.de>, Richard Biener <richard.guenther@gmail.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Message-ID: <20140226173425.SI9jSz4a_LhegkwiW-NXe2x7ftKpbRkhpIfhxxRE3Os@z>
 
-On Wed, Feb 26, 2014 at 02:29:06PM +0100, Arnd Bergmann wrote:
-> On Wednesday 26 February 2014, Josh Triplett wrote:
-> > @@ -134,7 +134,7 @@ extern void warn_slowpath_null(const char *file, const int line);
-> >  
-> >  #else /* !CONFIG_BUG */
-> >  #ifndef HAVE_ARCH_BUG
-> > -#define BUG() do {} while (0)
-> > +#define BUG() do { unreachable(); } while (0)
-> >  #endif
+On Mon, 2014-02-24 at 09:38 -0800, Linus Torvalds wrote:
+> On Mon, Feb 24, 2014 at 8:55 AM, Michael Matz <matz@suse.de> wrote:
+> >
+> > So, let me try to poke holes into your definition or increase my
+> > understanding :) .  You said "chain of pointers"(dereferences I assume),
+> > e.g. if p is result of consume load, then access to
+> > p->here->there->next->prev->stuff is supposed to be ordered with that load
+> > (or only when that last load/store itself is also an atomic load or
+> > store?).
 > 
-> I disagree with this one. As Alan said, we really want to use an
-> arch specific BUG() even in the !CONFIG_BUG case.
-
-Possibly, but when doing so on an arch-by-arch basis, we'd need to make
-sure that either there's a sensible trap handler for whatever trap it
-invokes (for instance, ud2), or that there's some kind of useful
-behavior otherwise (for instance, a reboot).  Hence why I didn't make
-any attempt to add architecture-specific patches in this series.
-
-In any case, I tried a quick test of that on x86 below, along with the
-generic equivalent.
-
-> For the cases where this is not yet possible, I'd suggest using
+> It's supposed to be ordered wrt the first load (the consuming one), yes.
 > 
-> #define BUG() do { } while (1)
+> > So, what happens if the pointer deref chain is partly hidden in some
+> > functions:
+> 
+> No problem.
+> 
+> The thing is, the ordering is actually handled by the CPU in all
+> relevant cases.  So the compiler doesn't actually need to *do*
+> anything. All this legalistic stuff is just to describe the semantics
+> and the guarantees.
+> 
+> The problem is two cases:
+> 
+>  (a) alpha (which doesn't really order any accesses at all, not even
+> dependent loads), but for a compiler alpha is actually trivial: just
+> add a "rmb" instruction after the load, and you can't really do
+> anything else (there's a few optimizations you can do wrt the rmb, but
+> they are very specific and simple).
+> 
+> So (a) is a "problem", but the solution is actually really simple, and
+> gives very *strong* guarantees: on alpha, a "consume" ends up being
+> basically the same as a read barrier after the load, with only very
+> minimal room for optimization.
+> 
+>  (b) ARM and powerpc and similar architectures, that guarantee the
+> data dependency as long as it is an *actual* data dependency, and
+> never becomes a control dependency.
+> 
+> On ARM and powerpc, control dependencies do *not* order accesses (the
+> reasons boil down to essentially: branch prediction breaks the
+> dependency, and instructions that come after the branch can be happily
+> executed before the branch). But it's almost impossible to describe
+> that in the standard, since compilers can (and very much do) turn a
+> control dependency into a data dependency and vice versa.
+> 
+> So the current standard tries to describe that "control vs data"
+> dependency, and tries to limit it to a data dependency. It fails. It
+> fails for multiple reasons - it doesn't allow for trivial
+> optimizations that just remove the data dependency, and it also
+> doesn't allow for various trivial cases where the compiler *does* turn
+> the data dependency into a control dependency.
+> 
+> So I really really think that the current C standard language is
+> broken. Unfixably broken.
+> 
+> I'm trying to change the "syntactic data dependency" that the current
+> standard uses into something that is clearer and correct.
+> 
+> The "chain of pointers" thing is still obviously a data dependency,
+> but by limiting it to pointers, it simplifies the language, clarifies
+> the meaning, avoids all syntactic tricks (ie "p-p" is clearly a
+> syntactic dependency on "p", but does *not* involve in any way
+> following the pointer) and makes it basically impossible for the
+> compiler to break the dependency without doing value prediction, and
+> since value prediction has to be disallowed anyway, that's a feature,
+> not a bug.
 
-I just tested this, and:
+AFAIU, Michael is wondering about how we can separate non-synchronizing
+code (ie, in this case, not taking part in any "chain of pointers" used
+with mo_consume loads) from code that does.  If we cannot, then we
+prevent value prediction *everywhere*, unless the compiler can prove
+that the code is never part of such a chain (which is hard due to alias
+analysis being hard, etc.).
+(We can probably argue to which extent value prediction is necessary for
+generation of efficient code, but it obviously does work in
+non-synchronizing code (or even with acquire barriers with some care) --
+so forbidding it entirely might be bad.)
 
-$ scripts/bloat-o-meter vmlinux-nobug-base vmlinux-nobug-loop
-add/remove: 2/1 grow/shrink: 247/33 up/down: 5461/-604 (4857)
-
-In particular:
-
-$ scripts/bloat-o-meter vmlinux-nobug-unreachable vmlinux-nobug-loop
-add/remove: 6/0 grow/shrink: 261/9 up/down: 5679/-64 (5615)
-
-So, some functions do get the optimizations from GCC treating the code
-after an infinite loop as unreachable, but overall the infinite loops
-themselves (and the conditionals around them in the more common case of
-BUG_ON) are non-trivially large.
-
-I tried a quick hack that used:
-#define BUG() do { asm("ud2"); unreachable(); } while (0)
-in place of the infinite loop, and got:
-
-$ scripts/bloat-o-meter vmlinux-nobug-base vmlinux-nobug-ud2-unreachable
-add/remove: 2/1 grow/shrink: 250/37 up/down: 4874/-606 (4268)
-
-So, very little savings there compared to the infinite loop (unsurprising,
-since ud2 is two bytes, and so is "1: jmp 1b").
-
-This doesn't seem any different than compiling out assert() at runtime
-in a userspace program, given how the kernel uses BUG() and BUG_ON().
-I'd argue that adding unreachable() doesn't seem like it makes the
-current implementation of BUG() any worse; either way if you reach it
-you have a problem.
-
-- Josh Triplett
