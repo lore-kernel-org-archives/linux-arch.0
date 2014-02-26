@@ -1,13 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relay5-d.mail.gandi.net ([217.70.183.197]:50989 "EHLO
+Received: from relay5-d.mail.gandi.net ([217.70.183.197]:38025 "EHLO
 	relay5-d.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751114AbaBZDtZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Feb 2014 22:49:25 -0500
-Date: Tue, 25 Feb 2014 19:49:19 -0800
+	with ESMTP id S1750800AbaBZDtn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Feb 2014 22:49:43 -0500
+Date: Tue, 25 Feb 2014 19:49:36 -0800
 From: Josh Triplett <josh@joshtriplett.org>
-Subject: [PATCH v2 4/5] bug: Use a common definition of BUG_ON regardless of
- CONFIG_BUG
-Message-ID: <6ce38c3701f8ed1d30bfc1661ede7eade46a79c6.1393385236.git.josh@joshtriplett.org>
+Subject: [PATCH v2 5/5] bug: Make BUG() call unreachable()
+Message-ID: <d97712e037ea4c90e9cb30c56229383d257831de.1393385236.git.josh@joshtriplett.org>
 References: <469b5dc113cb468232291527642f8dc47663e945.1393385236.git.josh@joshtriplett.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -16,57 +15,34 @@ In-Reply-To: <469b5dc113cb468232291527642f8dc47663e945.1393385236.git.josh@josht
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20140226034919.6T7yv7rH0n_9CQd26UUzMXxMPiiBUoIGNeGQO1wygOE@z>
+Message-ID: <20140226034936.Pg-MIq4Y0dlDOsT4l84bbsQMlAyAIvxQOz1lzTY8PwE@z>
 
-include/asm-generic/bug.h defines BUG_ON to call BUG() if CONFIG_BUG=y,
-or as a no-op if !CONFIG_BUG.  However, BUG() is already a no-op if
-!CONFIG_BUG, making this pointless.  Use a common definition that always
-calls BUG().
+This effectively causes BUG() to act like a function with the noreturn
+attribute, which prevents GCC from warning about the code that follows
+BUG() (for instance, warning about not returning a value in a non-void
+function after calling BUG()).
 
-This does not change the compiled code at all.
+This actually makes the kernel smaller; bloat-o-meter summary:
+add/remove: 2/7 grow/shrink: 34/57 up/down: 475/-1233 (-758)
 
 Signed-off-by: Josh Triplett <josh@joshtriplett.org>
 ---
- include/asm-generic/bug.h | 12 ++++--------
- 1 file changed, 4 insertions(+), 8 deletions(-)
+ include/asm-generic/bug.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-index a97fa11..653c44a 100644
+index 653c44a..5f69248 100644
 --- a/include/asm-generic/bug.h
 +++ b/include/asm-generic/bug.h
-@@ -51,10 +51,6 @@ struct bug_entry {
- } while (0)
+@@ -134,7 +134,7 @@ extern void warn_slowpath_null(const char *file, const int line);
+ 
+ #else /* !CONFIG_BUG */
+ #ifndef HAVE_ARCH_BUG
+-#define BUG() do {} while (0)
++#define BUG() do { unreachable(); } while (0)
  #endif
  
--#ifndef HAVE_ARCH_BUG_ON
--#define BUG_ON(condition) do { if (unlikely(condition)) BUG(); } while (0)
--#endif
--
- /*
-  * WARN(), WARN_ON(), WARN_ON_ONCE, and so on can be used to report
-  * significant issues that need prompt attention if they should ever
-@@ -141,10 +137,6 @@ extern void warn_slowpath_null(const char *file, const int line);
- #define BUG() do {} while (0)
- #endif
- 
--#ifndef HAVE_ARCH_BUG_ON
--#define BUG_ON(condition) do { if (condition) ; } while (0)
--#endif
--
  #ifndef HAVE_ARCH_WARN_ON
- #define WARN_ON(condition) ({						\
- 	int __ret_warn_on = !!(condition);				\
-@@ -167,6 +159,10 @@ extern void warn_slowpath_null(const char *file, const int line);
- 
- #endif
- 
-+#ifndef HAVE_ARCH_BUG_ON
-+#define BUG_ON(condition) do { if (unlikely(condition)) BUG(); } while (0)
-+#endif
-+
- /*
-  * WARN_ON_SMP() is for cases that the warning is either
-  * meaningless for !SMP or may even cause failures.
 -- 
 1.9.0
 
