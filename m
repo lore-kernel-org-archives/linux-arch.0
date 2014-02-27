@@ -1,61 +1,53 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH RFC v5 7/8] pvqspinlock,
-	x86: Add qspinlock para-virtualization support
-Date: Thu, 27 Feb 2014 14:42:34 -0500
-Message-ID: <530F952A.3030702@hp.com>
-References: <1393427668-60228-1-git-send-email-Waiman.Long@hp.com>
-	<1393427668-60228-8-git-send-email-Waiman.Long@hp.com>
-	<530F2B8F.1010401@citrix.com> <530F3967.6030805@redhat.com>
-	<530F4949.4050706@citrix.com> <530F4F98.2080308@redhat.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
+Date: Thu, 27 Feb 2014 11:47:08 -0800
+Message-ID: <CA+55aFzav_2ayvEgbgeAzQohJ7EQH0tgUU0WcSyvUA6hgOo_Ow@mail.gmail.com>
+References: <CA+55aFyjzR_Ga_HOKnBXpKYbuesqovj1-sFTVisD9UwA6JuJtw@mail.gmail.com>	<20140223063426.GT4250@linux.vnet.ibm.com>	<CA+55aFxMJvaQhoEwqgN=XA6gDOdZwoZQHdcAnB-FhAri_hK-6Q@mail.gmail.com>	<CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com>	<20140224172110.GO8264@linux.vnet.ibm.com>	<CA+55aFyi45f7oaG4MYP41TOc=E8Ze8Om88dV2Lq4F=qebhxt4A@mail.gmail.com>	<20140224185341.GU8264@linux.vnet.ibm.com>	<CA+55aFzXyob0aKnv1u7Stbu0rH5Aq2jaA1rHb=TvQe9c1KY0oQ@mail.gmail.com>	<1393515453.28840.9961.camel@triegel.csb>	<CA+55aFyE58NokYdoU+-feHTXv+5snByu+vCyMtg2fNc7npMbDg@mail.gmail.com>	<20140227190611.GU8264@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <530F4F98.2080308@redhat.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Paolo Bonzini <pbonzini@redhat.com>
-Cc: Jeremy Fitzhardinge <jeremy@goop.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Alok Kataria <akataria@vmware.com>, linux-arch@vger.kernel.org, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Ingo Molnar <mingo@redhat.com>, Scott J Norton <scott.norton@hp.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Alexander Fyodorov <halcy@yandex.ru>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Daniel J Blueman <daniel@numascale.com>, Oleg Nesterov <oleg@redhat.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, George Spelvin <linux@horizon.com>, Thomas Gleixner <tglx@linutronix.de>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <gcc-return-182352-gcc=m.gmane.org@gcc.gnu.org>
+List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
+List-Archive: <http://gcc.gnu.org/ml/gcc/>
+List-Post: <mailto:gcc@gcc.gnu.org>
+List-Help: <http://gcc.gnu.org/ml/>
+Sender: gcc-owner@gcc.gnu.org
+In-Reply-To: <20140227190611.GU8264@linux.vnet.ibm.com>
+To: Paul McKenney <paulmck@linux.vnet.ibm.com>
+Cc: Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 02/27/2014 09:45 AM, Paolo Bonzini wrote:
-> Il 27/02/2014 15:18, David Vrabel ha scritto:
->> On 27/02/14 13:11, Paolo Bonzini wrote:
->>> Il 27/02/2014 13:11, David Vrabel ha scritto:
->>>>>> This patch adds para-virtualization support to the queue spinlock 
->>>>>> code
->>>>>> by enabling the queue head to kick the lock holder CPU, if known,
->>>>>> in when the lock isn't released for a certain amount of time. It
->>>>>> also enables the mutual monitoring of the queue head CPU and the
->>>>>> following node CPU in the queue to make sure that their CPUs will
->>>>>> stay scheduled in.
->>>> I'm not really understanding how this is supposed to work.  There
->>>> appears to be an assumption that a guest can keep one of its VCPUs
->>>> running by repeatedly kicking it?  This is not possible under Xen 
->>>> and I
->>>> doubt it's possible under KVM or any other hypervisor.
->>>
->>> KVM allows any VCPU to wake up a currently halted VCPU of its choice,
->>> see Documentation/virtual/kvm/hypercalls.txt.
->>
->> But neither of the VCPUs being kicked here are halted -- they're either
->> running or runnable (descheduled by the hypervisor).
+On Thu, Feb 27, 2014 at 11:06 AM, Paul E. McKenney
+<paulmck@linux.vnet.ibm.com> wrote:
 >
-> /me actually looks at Waiman's code...
+> 3.      The comparison was against another RCU-protected pointer,
+>         where that other pointer was properly fetched using one
+>         of the RCU primitives.  Here it doesn't matter which pointer
+>         you use.  At least as long as the rcu_assign_pointer() for
+>         that other pointer happened after the last update to the
+>         pointed-to structure.
 >
-> Right, this is really different from pvticketlocks, where the *unlock* 
-> primitive wakes up a sleeping VCPU.  It is more similar to PLE 
-> (pause-loop exiting).
->
-> Paolo
+> I am a bit nervous about #3.  Any thoughts on it?
 
-Yes, it is mostly to deal with vCPU that are not running because of PLE.
+I think that it might be worth pointing out as an example, and saying
+that code like
 
--Longman
+   p = atomic_read(consume);
+   X;
+   q = atomic_read(consume);
+   Y;
+   if (p == q)
+        data = p->val;
+
+then the access of "p->val" is constrained to be data-dependent on
+*either* p or q, but you can't really tell which, since the compiler
+can decide that the values are interchangeable.
+
+I cannot for the life of me come up with a situation where this would
+matter, though. If "X" contains a fence, then that fence will be a
+stronger ordering than anything the consume through "p" would
+guarantee anyway. And if "X" does *not* contain a fence, then the
+atomic reads of p and q are unordered *anyway*, so then whether the
+ordering to the access through "p" is through p or q is kind of
+irrelevant. No?
+
+                     Linus
