@@ -1,143 +1,55 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Thu, 27 Feb 2014 11:22:26 -0800
-Message-ID: <20140227192226.GA4698@linux.vnet.ibm.com>
-References: <CA+55aFyjzR_Ga_HOKnBXpKYbuesqovj1-sFTVisD9UwA6JuJtw@mail.gmail.com>
- <20140223063426.GT4250@linux.vnet.ibm.com>
- <CA+55aFxMJvaQhoEwqgN=XA6gDOdZwoZQHdcAnB-FhAri_hK-6Q@mail.gmail.com>
- <CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com>
- <20140224172110.GO8264@linux.vnet.ibm.com>
- <CA+55aFyi45f7oaG4MYP41TOc=E8Ze8Om88dV2Lq4F=qebhxt4A@mail.gmail.com>
- <20140224185341.GU8264@linux.vnet.ibm.com>
- <CA+55aFzXyob0aKnv1u7Stbu0rH5Aq2jaA1rHb=TvQe9c1KY0oQ@mail.gmail.com>
- <1393515453.28840.9961.camel@triegel.csb>
- <20140227175021.GT8264@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH RFC v5 4/8] pvqspinlock, x86: Allow unfair spinlock in
+	a real PV environment
+Date: Thu, 27 Feb 2014 14:40:13 -0500
+Message-ID: <530F949D.6050609@hp.com>
+References: <1393427668-60228-1-git-send-email-Waiman.Long@hp.com>
+	<1393427668-60228-5-git-send-email-Waiman.Long@hp.com>
+	<530F2F7B.40500@citrix.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e36.co.us.ibm.com ([32.97.110.154]:41785 "EHLO
-	e36.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750904AbaB0TWf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Feb 2014 14:22:35 -0500
-Received: from /spool/local
-	by e36.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Thu, 27 Feb 2014 12:22:34 -0700
-Content-Disposition: inline
-In-Reply-To: <20140227175021.GT8264@linux.vnet.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Torvald Riegel <triegel@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <530F2F7B.40500@citrix.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: David Vrabel <david.vrabel@citrix.com>
+Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Alok Kataria <akataria@vmware.com>, linux-arch@vger.kernel.org, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Scott J Norton <scott.norton@hp.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Alexander Fyodorov <halcy@yandex.ru>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Daniel J Blueman <daniel@numascale.com>, Oleg Nesterov <oleg@redhat.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, George Spelvin <linux@horizon.com>, Thomas Gleixner <tglx@linutronix.de>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Feb 27, 2014 at 09:50:21AM -0800, Paul E. McKenney wrote:
-> On Thu, Feb 27, 2014 at 04:37:33PM +0100, Torvald Riegel wrote:
-> > xagsmtp2.20140227154925.3851@vmsdvm9.vnet.ibm.com
-> > 
-> > On Mon, 2014-02-24 at 11:54 -0800, Linus Torvalds wrote:
-> > > On Mon, Feb 24, 2014 at 10:53 AM, Paul E. McKenney
-> > > <paulmck@linux.vnet.ibm.com> wrote:
-> > > >
-> > > > Good points.  How about the following replacements?
-> > > >
-> > > > 3.      Adding or subtracting an integer to/from a chained pointer
-> > > >         results in another chained pointer in that same pointer chain.
-> > > >         The results of addition and subtraction operations that cancel
-> > > >         the chained pointer's value (for example, "p-(long)p" where "p"
-> > > >         is a pointer to char) are implementation defined.
-> > > >
-> > > > 4.      Bitwise operators ("&", "|", "^", and I suppose also "~")
-> > > >         applied to a chained pointer and an integer for the purposes
-> > > >         of alignment and pointer translation results in another
-> > > >         chained pointer in that same pointer chain.  Other uses
-> > > >         of bitwise operators on chained pointers (for example,
-> > > >         "p|~0") are implementation defined.
-> > > 
-> > > Quite frankly, I think all of this language that is about the actual
-> > > operations is irrelevant and wrong.
-> > > 
-> > > It's not going to help compiler writers, and it sure isn't going to
-> > > help users that read this.
-> > > 
-> > > Why not just talk about "value chains" and that any operations that
-> > > restrict the value range severely end up breaking the chain. There is
-> > > no point in listing the operations individually, because every single
-> > > operation *can* restrict things. Listing individual operations and
-> > > depdendencies is just fundamentally wrong.
-> > 
-> > [...]
-> > 
-> > > The *only* thing that matters for all of them is whether they are
-> > > "value-preserving", or whether they drop so much information that the
-> > > compiler might decide to use a control dependency instead. That's true
-> > > for every single one of them.
-> > > 
-> > > Similarly, actual true control dependencies that limit the problem
-> > > space sufficiently that the actual pointer value no longer has
-> > > significant information in it (see the above example) are also things
-> > > that remove information to the point that only a control dependency
-> > > remains. Even when the value itself is not modified in any way at all.
-> > 
-> > I agree that just considering syntactic properties of the program seems
-> > to be insufficient.  Making it instead depend on whether there is a
-> > "semantic" dependency due to a value being "necessary" to compute a
-> > result seems better.  However, whether a value is "necessary" might not
-> > be obvious, and I understand Paul's argument that he does not want to
-> > have to reason about all potential compiler optimizations.  Thus, I
-> > believe we need to specify when a value is "necessary".
-> > 
-> > I have a suggestion for a somewhat different formulation of the feature
-> > that you seem to have in mind, which I'll discuss below.  Excuse the
-> > verbosity of the following, but I'd rather like to avoid
-> > misunderstandings than save a few words.
-> 
-> Thank you very much for putting this forward!  I must confess that I was
-> stuck, and my earlier attempt now enshrined in the C11 and C++11 standards
-> is quite clearly way bogus.
-> 
-> One possible saving grace:  From discussions at the standards committee
-> meeting a few weeks ago, there is a some chance that the committee will
-> be willing to do a rip-and-replace on the current memory_order_consume
-> wording, without provisions for backwards compatibility with the current
-> bogosity.
-> 
-> > What we'd like to capture is that a value originating from a mo_consume
-> > load is "necessary" for a computation (e.g., it "cannot" be replaced
-> > with value predictions and/or control dependencies); if that's the case
-> > in the program, we can reasonably assume that a compiler implementation
-> > will transform this into a data dependency, which will then lead to
-> > ordering guarantees by the HW.
-> > 
-> > However, we need to specify when a value is "necessary".  We could say
-> > that this is implementation-defined, and use a set of litmus tests
-> > (e.g., like those discussed in the thread) to roughly carve out what a
-> > programmer could expect.  This may even be practical for a project like
-> > the Linux kernel that follows strict project-internal rules and pays a
-> > lot of attention to what the particular implementations of compilers
-> > expected to compile the kernel are doing.  However, I think this
-> > approach would be too vague for the standard and for many other
-> > programs/projects.
-> 
-> I agree that a number of other projects would have more need for this than
-> might the kernel.  Please understand that this is in no way denigrating
-> the intelligence of other projects' members.  It is just that many of
-> them have only recently started seriously thinking about concurrency.
-> In contrast, the Linux kernel community has been doing concurrency since
-> the mid-1990s.  Projects with less experience with concurrency will
-> probably need more help, from the compiler and from elsewhere as well.
+On 02/27/2014 07:28 AM, David Vrabel wrote:
+> On 26/02/14 15:14, Waiman Long wrote:
+>> Locking is always an issue in a virtualized environment as the virtual
+>> CPU that is waiting on a lock may get scheduled out and hence block
+>> any progress in lock acquisition even when the lock has been freed.
+>>
+>> One solution to this problem is to allow unfair lock in a
+>> para-virtualized environment. In this case, a new lock acquirer can
+>> come and steal the lock if the next-in-line CPU to get the lock is
+>> scheduled out. Unfair lock in a native environment is generally not a
+>> good idea as there is a possibility of lock starvation for a heavily
+>> contended lock.
+> I'm not sure I'm keen on losing the fairness in PV environment.  I'm
+> concerned that on an over-committed host, the lock starvation problem
+> will be particularly bad.
+>
+> But I'll have to revist this once a non-broken PV qspinlock
+> implementation exists (or someone explains how the proposed one works).
+>
+> David
 
-I should hasten to add that it is not just concurrency.  After all, part
-of the reason I got into trouble with memory_order_consume is that my
-mid-to-late 70s experience with compilers is not so useful in 2014.  ;-)
+On second thought, the unfair qspinlock may not be as bad as other 
+unfair locks. Basically, a task gets one chance to steal the lock. If it 
+can't, it will go to the back of the queue and wait for its turn. So 
+unless a single CPU can monopolize a lock by acquiring it again 
+immediately after release, all the tasks queuing up will eventually has 
+its chance of getting the lock.
 
-							Thanx, Paul
-
-> Your proposal looks quite promising at first glance.  But rather than
-> try and comment on it immediately, I am going to take a number of uses of
-> RCU from the Linux kernel and apply your proposal to them, then respond
-> with the results
-> 
-> Fair enough?
-> 
-> 							Thanx, Paul
+-Longman
