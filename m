@@ -1,15 +1,15 @@
 From: David Vrabel <david.vrabel@citrix.com>
-Subject: Re: [PATCH RFC v5 7/8] pvqspinlock,
-	x86: Add qspinlock para-virtualization support
-Date: Thu, 27 Feb 2014 12:11:59 +0000
-Message-ID: <530F2B8F.1010401@citrix.com>
+Subject: Re: [PATCH RFC v5 4/8] pvqspinlock, x86: Allow unfair spinlock in
+	a real PV environment
+Date: Thu, 27 Feb 2014 12:28:43 +0000
+Message-ID: <530F2F7B.40500@citrix.com>
 References: <1393427668-60228-1-git-send-email-Waiman.Long@hp.com>
-	<1393427668-60228-8-git-send-email-Waiman.Long@hp.com>
+	<1393427668-60228-5-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <1393427668-60228-8-git-send-email-Waiman.Long@hp.com>
+In-Reply-To: <1393427668-60228-5-git-send-email-Waiman.Long@hp.com>
 List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
 	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
 List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
@@ -25,16 +25,22 @@ Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux
 List-Id: linux-arch.vger.kernel.org
 
 On 26/02/14 15:14, Waiman Long wrote:
-> This patch adds para-virtualization support to the queue spinlock code
-> by enabling the queue head to kick the lock holder CPU, if known,
-> in when the lock isn't released for a certain amount of time. It
-> also enables the mutual monitoring of the queue head CPU and the
-> following node CPU in the queue to make sure that their CPUs will
-> stay scheduled in.
+> Locking is always an issue in a virtualized environment as the virtual
+> CPU that is waiting on a lock may get scheduled out and hence block
+> any progress in lock acquisition even when the lock has been freed.
+> 
+> One solution to this problem is to allow unfair lock in a
+> para-virtualized environment. In this case, a new lock acquirer can
+> come and steal the lock if the next-in-line CPU to get the lock is
+> scheduled out. Unfair lock in a native environment is generally not a
+> good idea as there is a possibility of lock starvation for a heavily
+> contended lock.
 
-I'm not really understanding how this is supposed to work.  There
-appears to be an assumption that a guest can keep one of its VCPUs
-running by repeatedly kicking it?  This is not possible under Xen and I
-doubt it's possible under KVM or any other hypervisor.
+I'm not sure I'm keen on losing the fairness in PV environment.  I'm
+concerned that on an over-committed host, the lock starvation problem
+will be particularly bad.
+
+But I'll have to revist this once a non-broken PV qspinlock
+implementation exists (or someone explains how the proposed one works).
 
 David
