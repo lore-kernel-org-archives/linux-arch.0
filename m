@@ -1,64 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ve0-f177.google.com ([209.85.128.177]:41432 "EHLO
-	mail-ve0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752512AbaB0TrR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Feb 2014 14:47:17 -0500
-MIME-Version: 1.0
-In-Reply-To: <20140227190611.GU8264@linux.vnet.ibm.com>
-References: <CA+55aFyjzR_Ga_HOKnBXpKYbuesqovj1-sFTVisD9UwA6JuJtw@mail.gmail.com>
-	<20140223063426.GT4250@linux.vnet.ibm.com>
-	<CA+55aFxMJvaQhoEwqgN=XA6gDOdZwoZQHdcAnB-FhAri_hK-6Q@mail.gmail.com>
-	<CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com>
-	<20140224172110.GO8264@linux.vnet.ibm.com>
-	<CA+55aFyi45f7oaG4MYP41TOc=E8Ze8Om88dV2Lq4F=qebhxt4A@mail.gmail.com>
-	<20140224185341.GU8264@linux.vnet.ibm.com>
-	<CA+55aFzXyob0aKnv1u7Stbu0rH5Aq2jaA1rHb=TvQe9c1KY0oQ@mail.gmail.com>
-	<1393515453.28840.9961.camel@triegel.csb>
-	<CA+55aFyE58NokYdoU+-feHTXv+5snByu+vCyMtg2fNc7npMbDg@mail.gmail.com>
-	<20140227190611.GU8264@linux.vnet.ibm.com>
-Date: Thu, 27 Feb 2014 11:47:08 -0800
-Message-ID: <CA+55aFzav_2ayvEgbgeAzQohJ7EQH0tgUU0WcSyvUA6hgOo_Ow@mail.gmail.com>
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Content-Type: text/plain; charset=UTF-8
+Received: from mx1.redhat.com ([209.132.183.28]:10534 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751326AbaB0Uxu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 27 Feb 2014 15:53:50 -0500
+Message-ID: <1393534420.24180.59.camel@flatline.rdu.redhat.com>
+Subject: Re: [libseccomp-discuss] Making a universal list of syscalls?
+From: Eric Paris <eparis@redhat.com>
+Date: Thu, 27 Feb 2014 15:53:40 -0500
+In-Reply-To: <CALCETrWbjazg_kAY1uAB+cMTdaJqtyGrTwQWNFCSzZ56B0KEkw@mail.gmail.com>
+References: <CALCETrWbjazg_kAY1uAB+cMTdaJqtyGrTwQWNFCSzZ56B0KEkw@mail.gmail.com>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul McKenney <paulmck@linux.vnet.ibm.com>
-Cc: Torvald Riegel <triegel@redhat.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140227194708.MkSGlXLAOfiLmrPLznwkusZRiOyU-eLRhrr_pW6r_Ks@z>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, libseccomp-discuss@lists.sourceforge.net, Steve Grubb <sgrubb@redhat.com>
+Message-ID: <20140227205340.V9Po-dhk8OTwynZiBJvd1XSWLp9JpB6FIGd9McQyB54@z>
 
-On Thu, Feb 27, 2014 at 11:06 AM, Paul E. McKenney
-<paulmck@linux.vnet.ibm.com> wrote:
->
-> 3.      The comparison was against another RCU-protected pointer,
->         where that other pointer was properly fetched using one
->         of the RCU primitives.  Here it doesn't matter which pointer
->         you use.  At least as long as the rcu_assign_pointer() for
->         that other pointer happened after the last update to the
->         pointed-to structure.
->
-> I am a bit nervous about #3.  Any thoughts on it?
+On Thu, 2014-02-27 at 12:40 -0800, Andy Lutomirski wrote:
+> Currently, dealing with Linux syscalls in an architecture-independent
+> way is a mess.  Here are some issues:
+> 
+>  1. There's no clean way to map between syscall names and numbers on
+> different architectures.  The kernel contains a number of tables (that
+> work differently for different architectures).  strace has some arcane
+> mechanism.  libseccomp has another.
 
-I think that it might be worth pointing out as an example, and saying
-that code like
+userspace audit a 3rd.
 
-   p = atomic_read(consume);
-   X;
-   q = atomic_read(consume);
-   Y;
-   if (p == q)
-        data = p->val;
+> I'd like to see a master list in the kernel that lists, for every
+> syscall, the name, the number for each architecture that implements it
+> (using the AUDIT_ARCH semantics, probably), and the signature.  The
+> build process could parse this table to replace the current per-arch
+> mess.
 
-then the access of "p->val" is constrained to be data-dependent on
-*either* p or q, but you can't really tell which, since the compiler
-can decide that the values are interchangeable.
+I know for audit it would be huge if userspace didn't try to organically
+grow this knowledge on their own!  So +1 from me!
 
-I cannot for the life of me come up with a situation where this would
-matter, though. If "X" contains a fence, then that fence will be a
-stronger ordering than anything the consume through "p" would
-guarantee anyway. And if "X" does *not* contain a fence, then the
-atomic reads of p and q are unordered *anyway*, so then whether the
-ordering to the access through "p" is through p or q is kind of
-irrelevant. No?
+> 
+> Issues here: some syscalls have different signatures on different
+> architectures.  Maybe we could require that a canonical syscall name
+> would have the same signature everywhere, but architectures could
+> specify alternate names.  So, for things like clone (?), there could
+> actually be a few syscalls that all have alternate names of "clone".
+> 
+> More importantly, we could add a library in tools that exposes this
+> information to userspace.  Useful operations:
+> 
+>  - For a given (arch, nr), indicate, for each logical argument, which
+> physical argument slot is used or, if the argument is split into a
+> high and low part, which pair of slots is used.
+> 
+>  - For a given (nr, logical args), issue the syscall for the
+> architecture that build the library.
+> 
+>  - For a given (arch, nr, logical args), issue the syscall if
+> possible.  An x86_32 build could issue x86_64 syscalls with some
+> effort, and an x86_64 build could easily issue 32-bit syscalls.
+> 
+>  - For a given arch, map between name and nr, and give access to the signature.
+> 
+> If this happened, presumably all architectures that supported it would
+> have to have valid AUDIT_ARCH support.  That means that someone would
+> have to fix ARM OABI (sigh).
+> 
+> Thoughts?
 
-                     Linus
