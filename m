@@ -1,39 +1,77 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v5 1/8] qspinlock: Introducing a 4-byte queue spinlock
-	implementation
-Date: Thu, 27 Feb 2014 15:25:51 -0500
-Message-ID: <530F9F4F.9070104@hp.com>
-References: <1393427668-60228-1-git-send-email-Waiman.Long@hp.com>
-	<1393427668-60228-2-git-send-email-Waiman.Long@hp.com>
-	<20140226162440.GY6835@laptop.programming.kicks-ass.net>
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Making a universal list of syscalls?
+Date: Thu, 27 Feb 2014 12:40:32 -0800
+Message-ID: <CALCETrWbjazg_kAY1uAB+cMTdaJqtyGrTwQWNFCSzZ56B0KEkw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <20140226162440.GY6835@laptop.programming.kicks-ass.net>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Alok Kataria <akataria@vmware.com>, linux-arch@vger.kernel.org, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Scott J Norton <scott.norton@hp.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Alexander Fyodorov <halcy@yandex.ru>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Daniel J Blueman <daniel@numascale.com>, Oleg Nesterov <oleg@redhat.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, George Spelvin <linux@horizon.com>, Thomas Gleixner <tglx@linutro>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-vc0-f180.google.com ([209.85.220.180]:51763 "EHLO
+	mail-vc0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751901AbaB0Ukx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Feb 2014 15:40:53 -0500
+Received: by mail-vc0-f180.google.com with SMTP id ks9so2976841vcb.25
+        for <linux-arch@vger.kernel.org>; Thu, 27 Feb 2014 12:40:52 -0800 (PST)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, libseccomp-discuss@lists.sourceforge.net
 
-On 02/26/2014 11:24 AM, Peter Zijlstra wrote:
-> On Wed, Feb 26, 2014 at 10:14:21AM -0500, Waiman Long wrote:
->> +static void put_qnode(void)
->> +{
->> +	struct qnode_set *qset = this_cpu_ptr(&qnset);
->> +
->> +	qset->node_idx--;
->> +}
-> That very much wants to be: this_cpu_dec().
+Currently, dealing with Linux syscalls in an architecture-independent
+way is a mess.  Here are some issues:
 
-Yes, I will change it to use this_cpu_dec().
+ 1. There's no clean way to map between syscall names and numbers on
+different architectures.  The kernel contains a number of tables (that
+work differently for different architectures).  strace has some arcane
+mechanism.  libseccomp has another.
 
--Longman
+ 2. There's no clean way to map between syscall argument registers and
+logical syscall arguments.  Each architecture knows how to do it, as
+do strace and glibc, but I suspect that *everyone* else gets it wrong.
+ Especially on ARM.
+
+ 3. Determining which architectures have which syscalls is a mess.
+Recent kernel builds love to warn me that finit_module is missing on
+x86_64.  This is simply not true.  I have no idea why.
+
+ 4. Actually issuing a nontrivial syscall is annoying.  syscall(2) can
+do it for the native architecture (only).
+
+ 5. Decoding ucontext from SIGSYS is a mess.  I have prototype code
+for libseccomp that can do it, but it gets the arguments wrong due to
+ABI issues.  See (2).
+
+I'd like to see a master list in the kernel that lists, for every
+syscall, the name, the number for each architecture that implements it
+(using the AUDIT_ARCH semantics, probably), and the signature.  The
+build process could parse this table to replace the current per-arch
+mess.
+
+Issues here: some syscalls have different signatures on different
+architectures.  Maybe we could require that a canonical syscall name
+would have the same signature everywhere, but architectures could
+specify alternate names.  So, for things like clone (?), there could
+actually be a few syscalls that all have alternate names of "clone".
+
+More importantly, we could add a library in tools that exposes this
+information to userspace.  Useful operations:
+
+ - For a given (arch, nr), indicate, for each logical argument, which
+physical argument slot is used or, if the argument is split into a
+high and low part, which pair of slots is used.
+
+ - For a given (nr, logical args), issue the syscall for the
+architecture that build the library.
+
+ - For a given (arch, nr, logical args), issue the syscall if
+possible.  An x86_32 build could issue x86_64 syscalls with some
+effort, and an x86_64 build could easily issue 32-bit syscalls.
+
+ - For a given arch, map between name and nr, and give access to the signature.
+
+If this happened, presumably all architectures that supported it would
+have to have valid AUDIT_ARCH support.  That means that someone would
+have to fix ARM OABI (sigh).
+
+Thoughts?
+
+
+--Andy
