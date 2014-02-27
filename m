@@ -1,77 +1,146 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Making a universal list of syscalls?
-Date: Thu, 27 Feb 2014 12:40:32 -0800
-Message-ID: <CALCETrWbjazg_kAY1uAB+cMTdaJqtyGrTwQWNFCSzZ56B0KEkw@mail.gmail.com>
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH v5 3/8] qspinlock, x86: Add x86 specific optimization
+	for 2 contending tasks
+Date: Thu, 27 Feb 2014 15:42:19 -0500
+Message-ID: <530FA32B.8010202@hp.com>
+References: <1393427668-60228-1-git-send-email-Waiman.Long@hp.com>
+	<1393427668-60228-4-git-send-email-Waiman.Long@hp.com>
+	<20140226162057.GW6835@laptop.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f180.google.com ([209.85.220.180]:51763 "EHLO
-	mail-vc0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751901AbaB0Ukx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Feb 2014 15:40:53 -0500
-Received: by mail-vc0-f180.google.com with SMTP id ks9so2976841vcb.25
-        for <linux-arch@vger.kernel.org>; Thu, 27 Feb 2014 12:40:52 -0800 (PST)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, libseccomp-discuss@lists.sourceforge.net
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <20140226162057.GW6835@laptop.programming.kicks-ass.net>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Alok Kataria <akataria@vmware.com>, linux-arch@vger.kernel.org, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Scott J Norton <scott.norton@hp.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Alexander Fyodorov <halcy@yandex.ru>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Daniel J Blueman <daniel@numascale.com>, Oleg Nesterov <oleg@redhat.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, George Spelvin <linux@horizon.com>, Thomas Gleixner <tglx@linutro>
+List-Id: linux-arch.vger.kernel.org
 
-Currently, dealing with Linux syscalls in an architecture-independent
-way is a mess.  Here are some issues:
+On 02/26/2014 11:20 AM, Peter Zijlstra wrote:
+> You don't happen to have a proper state diagram for this thing do you?
+>
+> I suppose I'm going to have to make one; this is all getting a bit
+> unwieldy, and those xchg() + fixup things are hard to read.
 
- 1. There's no clean way to map between syscall names and numbers on
-different architectures.  The kernel contains a number of tables (that
-work differently for different architectures).  strace has some arcane
-mechanism.  libseccomp has another.
+I don't have a state diagram on hand, but I will add more comments to 
+describe the 4 possible cases and how to handle them.
 
- 2. There's no clean way to map between syscall argument registers and
-logical syscall arguments.  Each architecture knows how to do it, as
-do strace and glibc, but I suspect that *everyone* else gets it wrong.
- Especially on ARM.
+>
+> On Wed, Feb 26, 2014 at 10:14:23AM -0500, Waiman Long wrote:
+>> +static inline int queue_spin_trylock_quick(struct qspinlock *lock, int qsval)
+>> +{
+>> +	union arch_qspinlock *qlock = (union arch_qspinlock *)lock;
+>> +	u16		     old;
+>> +
+>> +	/*
+>> +	 * Fall into the quick spinning code path only if no one is waiting
+>> +	 * or the lock is available.
+>> +	 */
+>> +	if (unlikely((qsval != _QSPINLOCK_LOCKED)&&
+>> +		     (qsval != _QSPINLOCK_WAITING)))
+>> +		return 0;
+>> +
+>> +	old = xchg(&qlock->lock_wait, _QSPINLOCK_WAITING|_QSPINLOCK_LOCKED);
+>> +
+>> +	if (old == 0) {
+>> +		/*
+>> +		 * Got the lock, can clear the waiting bit now
+>> +		 */
+>> +		smp_u8_store_release(&qlock->wait, 0);
+>
+> So we just did an atomic op, and now you're trying to optimize this
+> write. Why do you need a whole byte for that?
+>
+> Surely a cmpxchg loop with the right atomic op can't be _that_ much
+> slower? Its far more readable and likely avoids that steal fail below as
+> well.
 
- 3. Determining which architectures have which syscalls is a mess.
-Recent kernel builds love to warn me that finit_module is missing on
-x86_64.  This is simply not true.  I have no idea why.
+At low contention level, atomic operations that requires a lock prefix 
+are the major contributor to the total execution times. I saw estimate 
+online that the time to execute a lock prefix instruction can easily be 
+50X longer than a regular instruction that can be pipelined. That is why 
+I try to do it with as few lock prefix instructions as possible. If I 
+have to do an atomic cmpxchg, it probably won't be faster than the 
+regular qspinlock slowpath.
 
- 4. Actually issuing a nontrivial syscall is annoying.  syscall(2) can
-do it for the native architecture (only).
+Given that speed at low contention level which is the common case is 
+important to get this patch accepted, I have to do what I can to make it 
+run as far as possible for this 2 contending task case.
 
- 5. Decoding ucontext from SIGSYS is a mess.  I have prototype code
-for libseccomp that can do it, but it gets the arguments wrong due to
-ABI issues.  See (2).
+>> +		return 1;
+>> +	} else if (old == _QSPINLOCK_LOCKED) {
+>> +try_again:
+>> +		/*
+>> +		 * Wait until the lock byte is cleared to get the lock
+>> +		 */
+>> +		do {
+>> +			cpu_relax();
+>> +		} while (ACCESS_ONCE(qlock->lock));
+>> +		/*
+>> +		 * Set the lock bit&  clear the waiting bit
+>> +		 */
+>> +		if (cmpxchg(&qlock->lock_wait, _QSPINLOCK_WAITING,
+>> +			   _QSPINLOCK_LOCKED) == _QSPINLOCK_WAITING)
+>> +			return 1;
+>> +		/*
+>> +		 * Someone has steal the lock, so wait again
+>> +		 */
+>> +		goto try_again;
+> That's just a fail.. steals should not ever be allowed. It's a fair lock
+> after all.
 
-I'd like to see a master list in the kernel that lists, for every
-syscall, the name, the number for each architecture that implements it
-(using the AUDIT_ARCH semantics, probably), and the signature.  The
-build process could parse this table to replace the current per-arch
-mess.
+The code is unfair, but this unfairness help it to run faster than 
+ticket spinlock in this particular case. And the regular qspinlock 
+slowpath is fair. A little bit of unfairness in this particular case 
+helps its speed.
 
-Issues here: some syscalls have different signatures on different
-architectures.  Maybe we could require that a canonical syscall name
-would have the same signature everywhere, but architectures could
-specify alternate names.  So, for things like clone (?), there could
-actually be a few syscalls that all have alternate names of "clone".
+>> +	} else if (old == _QSPINLOCK_WAITING) {
+>> +		/*
+>> +		 * Another task is already waiting while it steals the lock.
+>> +		 * A bit of unfairness here won't change the big picture.
+>> +		 * So just take the lock and return.
+>> +		 */
+>> +		return 1;
+>> +	}
+>> +	/*
+>> +	 * Nothing need to be done if the old value is
+>> +	 * (_QSPINLOCK_WAITING | _QSPINLOCK_LOCKED).
+>> +	 */
+>> +	return 0;
+>> +}
+>
+>
+>
+>> @@ -296,6 +478,9 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, int qsval)
+>>   		return;
+>>   	}
+>>
+>> +#ifdef queue_code_xchg
+>> +	prev_qcode = queue_code_xchg(lock, my_qcode);
+>> +#else
+>>   	/*
+>>   	 * Exchange current copy of the queue node code
+>>   	 */
+>> @@ -329,6 +514,7 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, int qsval)
+>>   	} else
+>>   		prev_qcode&= ~_QSPINLOCK_LOCKED;	/* Clear the lock bit */
+>>   	my_qcode&= ~_QSPINLOCK_LOCKED;
+>> +#endif /* queue_code_xchg */
+>>
+>>   	if (prev_qcode) {
+>>   		/*
+> That's just horrible.. please just make the entire #else branch another
+> version of that same queue_code_xchg() function.
 
-More importantly, we could add a library in tools that exposes this
-information to userspace.  Useful operations:
+OK, I will wrap it in another function.
 
- - For a given (arch, nr), indicate, for each logical argument, which
-physical argument slot is used or, if the argument is split into a
-high and low part, which pair of slots is used.
-
- - For a given (nr, logical args), issue the syscall for the
-architecture that build the library.
-
- - For a given (arch, nr, logical args), issue the syscall if
-possible.  An x86_32 build could issue x86_64 syscalls with some
-effort, and an x86_64 build could easily issue 32-bit syscalls.
-
- - For a given arch, map between name and nr, and give access to the signature.
-
-If this happened, presumably all architectures that supported it would
-have to have valid AUDIT_ARCH support.  That means that someone would
-have to fix ARM OABI (sigh).
-
-Thoughts?
-
-
---Andy
+Regards,
+Longman
