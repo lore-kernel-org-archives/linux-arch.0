@@ -1,26 +1,23 @@
-From: Eric Paris <eparis@redhat.com>
-Subject: Re: Making a universal list of syscalls?
-Date: Thu, 27 Feb 2014 15:53:40 -0500
-Message-ID: <1393534420.24180.59.camel@flatline.rdu.redhat.com>
+From: Paul Moore <pmoore@redhat.com>
+Subject: Re: [libseccomp-discuss] Making a universal list of syscalls?
+Date: Thu, 27 Feb 2014 16:16:29 -0500
+Message-ID: <3314313.Fyy7jKNWkG@sifl>
 References: <CALCETrWbjazg_kAY1uAB+cMTdaJqtyGrTwQWNFCSzZ56B0KEkw@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <libseccomp-discuss-bounces@lists.sourceforge.net>
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:18136 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751247AbaB0VQp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 27 Feb 2014 16:16:45 -0500
 In-Reply-To: <CALCETrWbjazg_kAY1uAB+cMTdaJqtyGrTwQWNFCSzZ56B0KEkw@mail.gmail.com>
-List-Unsubscribe: <https://lists.sourceforge.net/lists/listinfo/libseccomp-discuss>,
-	<mailto:libseccomp-discuss-request@lists.sourceforge.net?subject=unsubscribe>
-List-Archive: <http://sourceforge.net/mailarchive/forum.php?forum_name=libseccomp-discuss>
-List-Post: <mailto:libseccomp-discuss@lists.sourceforge.net>
-List-Help: <mailto:libseccomp-discuss-request@lists.sourceforge.net?subject=help>
-List-Subscribe: <https://lists.sourceforge.net/lists/listinfo/libseccomp-discuss>,
-	<mailto:libseccomp-discuss-request@lists.sourceforge.net?subject=subscribe>
-Errors-To: libseccomp-discuss-bounces@lists.sourceforge.net
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: linux-arch <linux-arch@vger.kernel.org>, libseccomp-discuss@lists.sourceforge.net, Steve Grubb <sgrubb@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: libseccomp-discuss@lists.sourceforge.net, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Cc: Andy Lutomirski <luto@amacapital.net>
 
-On Thu, 2014-02-27 at 12:40 -0800, Andy Lutomirski wrote:
+On Thursday, February 27, 2014 12:40:32 PM Andy Lutomirski wrote:
 > Currently, dealing with Linux syscalls in an architecture-independent
 > way is a mess.  Here are some issues:
 > 
@@ -29,50 +26,38 @@ On Thu, 2014-02-27 at 12:40 -0800, Andy Lutomirski wrote:
 > work differently for different architectures).  strace has some arcane
 > mechanism.  libseccomp has another.
 
-userspace audit a 3rd.
+This is a major pain point for libseccomp, what we have now is passable, and 
+it works, but I cringe each time I look at it because I worry about 
+maintaining it.  I would be very happy if the kernel had some 
+header/file/whatever that could be used by userspace applications to map 
+syscall names/numbers for each architecture.
 
-> I'd like to see a master list in the kernel that lists, for every
-> syscall, the name, the number for each architecture that implements it
-> (using the AUDIT_ARCH semantics, probably), and the signature.  The
-> build process could parse this table to replace the current per-arch
-> mess.
+>  2. There's no clean way to map between syscall argument registers and
+> logical syscall arguments.  Each architecture knows how to do it, as
+> do strace and glibc, but I suspect that *everyone* else gets it wrong.
+>  Especially on ARM.
 
-I know for audit it would be huge if userspace didn't try to organically
-grow this knowledge on their own!  So +1 from me!
+I remember looking into this with libseccomp, around the ARM time frame with 
+Andy, and I believe I managed to reassure myself - not well, mind you - that 
+we were *ok* with seccomp/libseccomp.  However, having a argument mapping 
+document/header/etc. would go a long way here.
 
-> 
-> Issues here: some syscalls have different signatures on different
-> architectures.  Maybe we could require that a canonical syscall name
-> would have the same signature everywhere, but architectures could
-> specify alternate names.  So, for things like clone (?), there could
-> actually be a few syscalls that all have alternate names of "clone".
-> 
-> More importantly, we could add a library in tools that exposes this
-> information to userspace.  Useful operations:
-> 
->  - For a given (arch, nr), indicate, for each logical argument, which
-> physical argument slot is used or, if the argument is split into a
-> high and low part, which pair of slots is used.
-> 
->  - For a given (nr, logical args), issue the syscall for the
-> architecture that build the library.
-> 
->  - For a given (arch, nr, logical args), issue the syscall if
-> possible.  An x86_32 build could issue x86_64 syscalls with some
-> effort, and an x86_64 build could easily issue 32-bit syscalls.
-> 
->  - For a given arch, map between name and nr, and give access to the signature.
-> 
-> If this happened, presumably all architectures that supported it would
-> have to have valid AUDIT_ARCH support.  That means that someone would
-> have to fix ARM OABI (sigh).
-> 
-> Thoughts?
+>  3. Determining which architectures have which syscalls is a mess.
+> Recent kernel builds love to warn me that finit_module is missing on
+> x86_64.  This is simply not true.  I have no idea why.
 
+Closely related to item #1.  Also a major pain for libseccomp for the same 
+reasons.
 
-------------------------------------------------------------------------------
-Flow-based real-time traffic analytics software. Cisco certified tool.
-Monitor traffic, SLAs, QoS, Medianet, WAAS etc. with NetFlow Analyzer
-Customize your own dashboards, set traffic alerts and generate reports.
-Network behavioral analysis & security monitoring. All-in-one tool.
-http://pubads.g.doubleclick.net/gampad/clk?id=126839071&iu=/4140/ostg.clktrk
+>  5. Decoding ucontext from SIGSYS is a mess.  I have prototype code
+> for libseccomp that can do it, but it gets the arguments wrong due to
+> ABI issues.  See (2).
+
+I've actually been sitting on some of Andy's libseccomp code for this for a 
+while now because the solution is very fiddly.  Improvements here could make 
+life much easier for us and remove a lot of my hesitation in merging Andy's 
+code.
+
+-- 
+paul moore
+security and virtualization @ redhat
