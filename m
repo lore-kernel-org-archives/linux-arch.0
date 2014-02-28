@@ -1,69 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:10534 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751326AbaB0Uxu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 27 Feb 2014 15:53:50 -0500
-Message-ID: <1393534420.24180.59.camel@flatline.rdu.redhat.com>
-Subject: Re: [libseccomp-discuss] Making a universal list of syscalls?
-From: Eric Paris <eparis@redhat.com>
-Date: Thu, 27 Feb 2014 15:53:40 -0500
-In-Reply-To: <CALCETrWbjazg_kAY1uAB+cMTdaJqtyGrTwQWNFCSzZ56B0KEkw@mail.gmail.com>
-References: <CALCETrWbjazg_kAY1uAB+cMTdaJqtyGrTwQWNFCSzZ56B0KEkw@mail.gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from kvm5.telegraphics.com.au ([98.124.60.144]:56547 "EHLO
+	kvm5.telegraphics.com.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750999AbaB1DUB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Feb 2014 22:20:01 -0500
+Date: Fri, 28 Feb 2014 14:12:22 +1100 (EST)
+From: Finn Thain <fthain@telegraphics.com.au>
+Subject: futex_init() vs. KERNEL_DS, was Re: Boot crash on 68030
+In-Reply-To: <mvmy53t6mac.fsf@hawking.suse.de>
+Message-ID: <alpine.LNX.2.00.1402281202180.21491@nippy.intranet>
+References: <20793.61385.652975.797741@pilspetsen.it.uu.se> <alpine.LNX.2.00.1312101000250.10258@nippy.intranet> <87iouxzju3.fsf@igel.home> <alpine.LNX.2.00.1312101141250.17926@nippy.intranet> <CAMuHMdVB3w3JpNSrdZXPk+xrDXyhm-CgDHX5XW_1CUKn8pQmtA@mail.gmail.com>
+ <mvmy53t6mac.fsf@hawking.suse.de>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, libseccomp-discuss@lists.sourceforge.net, Steve Grubb <sgrubb@redhat.com>
-Message-ID: <20140227205340.V9Po-dhk8OTwynZiBJvd1XSWLp9JpB6FIGd9McQyB54@z>
+To: Linux-m68k <linux-m68k@vger.kernel.org>, Linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20140228031222.CI-NNKBPWYh7n2TWyEGzkUMNyM8MIcZOaDqzacuxbHo@z>
 
-On Thu, 2014-02-27 at 12:40 -0800, Andy Lutomirski wrote:
-> Currently, dealing with Linux syscalls in an architecture-independent
-> way is a mess.  Here are some issues:
-> 
->  1. There's no clean way to map between syscall names and numbers on
-> different architectures.  The kernel contains a number of tables (that
-> work differently for different architectures).  strace has some arcane
-> mechanism.  libseccomp has another.
 
-userspace audit a 3rd.
+On Tue, 10 Dec 2013, Andreas Schwab wrote:
 
-> I'd like to see a master list in the kernel that lists, for every
-> syscall, the name, the number for each architecture that implements it
-> (using the AUDIT_ARCH semantics, probably), and the signature.  The
-> build process could parse this table to replace the current per-arch
-> mess.
+> Geert Uytterhoeven <geert@linux-m68k.org> writes:
+> 
+> >> Data read fault at 0x00000000 in Super Data (pc=0x3afec) BAD KERNEL 
+> >> BUSERR
+> 
+> I think futex_init needs to do set_fs(USER_DS), since futex is about 
+> user data.
 
-I know for audit it would be huge if userspace didn't try to organically
-grow this knowledge on their own!  So +1 from me!
+Rhetorical question: does it make sense to explicitly switch to USER_DS 
+when we know that current->mm may be invalid at the time?
 
-> 
-> Issues here: some syscalls have different signatures on different
-> architectures.  Maybe we could require that a canonical syscall name
-> would have the same signature everywhere, but architectures could
-> specify alternate names.  So, for things like clone (?), there could
-> actually be a few syscalls that all have alternate names of "clone".
-> 
-> More importantly, we could add a library in tools that exposes this
-> information to userspace.  Useful operations:
-> 
->  - For a given (arch, nr), indicate, for each logical argument, which
-> physical argument slot is used or, if the argument is split into a
-> high and low part, which pair of slots is used.
-> 
->  - For a given (nr, logical args), issue the syscall for the
-> architecture that build the library.
-> 
->  - For a given (arch, nr, logical args), issue the syscall if
-> possible.  An x86_32 build could issue x86_64 syscalls with some
-> effort, and an x86_64 build could easily issue 32-bit syscalls.
-> 
->  - For a given arch, map between name and nr, and give access to the signature.
-> 
-> If this happened, presumably all architectures that supported it would
-> have to have valid AUDIT_ARCH support.  That means that someone would
-> have to fix ARM OABI (sigh).
-> 
-> Thoughts?
+Given that the presence of USER_DS or KERNEL_DS at initcall-time varies 
+between architectures, perhaps this question must be left to arch 
+implementors.
 
+Moreover, architectures that have no need for a run-time test for usable 
+futex_value ops have no real interest in such questions. AFAICT, only mips 
+needs the run-time test.
+
+For every other arch the availability of futex_value ops is known at 
+compile-time. We don't need to pursue universal answers to questions like 
+these:
+
+1) the correctness of switching to USER_DS with mm->current == NULL [1]
+
+2) the correctness of USER_DS vs. KERNEL_DS for (all) initcalls [2]
+
+3) the correctness of allowing faults when get_fs() == KERNEL_DS [3]
+
+4) the proposition that "[futex_value ops] explicitly take a __user 
+   pointer and are expected to do whatever is needed to perform the 
+   operation"  ... even during kernel initialization. [4]
+
+The discussion of these questions in various threads on various lists did 
+not resolve anything. Again, this is probably because all of these 
+questions are actually arch implementation issues.
+
+So it seems to me that the solution to the futex_init() problem is to 
+evaluate the futex_cmpxchg_enabled assignment at compile-time where 
+possible, and use the run-time test only on mips. Thoughts?
+
+Finn
+
+
+[1] http://marc.info/?l=linux-next&m=138876015228975&w=2
+
+[2] https://lkml.org/lkml/2014/1/15/476
+    http://marc.info/?l=linux-kernel&m=138971456630101&w=2
+
+[3] http://marc.info/?l=linux-next&m=138876367730190&w=2
+
+[4] http://marc.info/?l=linux-kernel&m=138970641726884&w=2
