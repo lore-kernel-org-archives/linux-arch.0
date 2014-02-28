@@ -1,63 +1,42 @@
-From: Paul Moore <pmoore@redhat.com>
-Subject: Re: [libseccomp-discuss] Making a universal list of syscalls?
-Date: Thu, 27 Feb 2014 16:16:29 -0500
-Message-ID: <3314313.Fyy7jKNWkG@sifl>
-References: <CALCETrWbjazg_kAY1uAB+cMTdaJqtyGrTwQWNFCSzZ56B0KEkw@mail.gmail.com>
+From: Josh Triplett <josh@joshtriplett.org>
+Subject: Re: [PATCH v2 5/5] bug: Make BUG() call unreachable()
+Date: Thu, 27 Feb 2014 16:16:45 -0800
+Message-ID: <20140228001645.GA29605@thin>
+References: <469b5dc113cb468232291527642f8dc47663e945.1393385236.git.josh@joshtriplett.org>
+ <201402261429.06553.arnd@arndb.de>
+ <20140226145806.GA24150@thin>
+ <201402272019.47554.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:18136 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751247AbaB0VQp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 27 Feb 2014 16:16:45 -0500
-In-Reply-To: <CALCETrWbjazg_kAY1uAB+cMTdaJqtyGrTwQWNFCSzZ56B0KEkw@mail.gmail.com>
+Received: from relay6-d.mail.gandi.net ([217.70.183.198]:41655 "EHLO
+	relay6-d.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751334AbaB1AQy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Feb 2014 19:16:54 -0500
+Content-Disposition: inline
+In-Reply-To: <201402272019.47554.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: libseccomp-discuss@lists.sourceforge.net, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Cc: Andy Lutomirski <luto@amacapital.net>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Thursday, February 27, 2014 12:40:32 PM Andy Lutomirski wrote:
-> Currently, dealing with Linux syscalls in an architecture-independent
-> way is a mess.  Here are some issues:
+On Thu, Feb 27, 2014 at 08:19:47PM +0100, Arnd Bergmann wrote:
+> On Wednesday 26 February 2014, Josh Triplett wrote:
+> > This doesn't seem any different than compiling out assert() at runtime
+> > in a userspace program, given how the kernel uses BUG() and BUG_ON().
+> > I'd argue that adding unreachable() doesn't seem like it makes the
+> > current implementation of BUG() any worse; either way if you reach it
+> > you have a problem.
 > 
->  1. There's no clean way to map between syscall names and numbers on
-> different architectures.  The kernel contains a number of tables (that
-> work differently for different architectures).  strace has some arcane
-> mechanism.  libseccomp has another.
+> I think it's better to get a warning about undefined behavior than
+> to suppress that warning.
 
-This is a major pain point for libseccomp, what we have now is passable, and 
-it works, but I cringe each time I look at it because I worry about 
-maintaining it.  I would be very happy if the kernel had some 
-header/file/whatever that could be used by userspace applications to map 
-syscall names/numbers for each architecture.
+Then at this point I'm going to suggest that you go ahead and submit the
+patch you want on top of the first four patches of this series.  Please
+keep in mind the value and code size savings of !CONFIG_BUG, versus
+CONFIG_BUG=y and !CONFIG_DEBUG_BUGVERBOSE; those mean two different
+things.
 
->  2. There's no clean way to map between syscall argument registers and
-> logical syscall arguments.  Each architecture knows how to do it, as
-> do strace and glibc, but I suspect that *everyone* else gets it wrong.
->  Especially on ARM.
+Meanwhile: Andrew, could you go ahead and apply the first four patches?
 
-I remember looking into this with libseccomp, around the ARM time frame with 
-Andy, and I believe I managed to reassure myself - not well, mind you - that 
-we were *ok* with seccomp/libseccomp.  However, having a argument mapping 
-document/header/etc. would go a long way here.
-
->  3. Determining which architectures have which syscalls is a mess.
-> Recent kernel builds love to warn me that finit_module is missing on
-> x86_64.  This is simply not true.  I have no idea why.
-
-Closely related to item #1.  Also a major pain for libseccomp for the same 
-reasons.
-
->  5. Decoding ucontext from SIGSYS is a mess.  I have prototype code
-> for libseccomp that can do it, but it gets the arguments wrong due to
-> ABI issues.  See (2).
-
-I've actually been sitting on some of Andy's libseccomp code for this for a 
-while now because the solution is very fiddly.  Improvements here could make 
-life much easier for us and remove a lot of my hesitation in merging Andy's 
-code.
-
--- 
-paul moore
-security and virtualization @ redhat
+- Josh Triplett
