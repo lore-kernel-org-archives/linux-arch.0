@@ -1,16 +1,20 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH RFC v5 5/8] pvqspinlock, x86: Enable unfair queue spinlock
-	in a KVM guest
-Date: Fri, 28 Feb 2014 12:08:47 -0500
-Message-ID: <5310C29F.8040706@hp.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v5 3/8] qspinlock, x86: Add x86 specific optimization for
+	2 contending tasks
+Date: Fri, 28 Feb 2014 18:37:12 +0100
+Message-ID: <20140228173712.GZ6835@laptop.programming.kicks-ass.net>
 References: <1393427668-60228-1-git-send-email-Waiman.Long@hp.com>
-	<1393427668-60228-6-git-send-email-Waiman.Long@hp.com>
-	<20140226170859.GC20775@phenom.dumpdata.com>
+	<1393427668-60228-4-git-send-email-Waiman.Long@hp.com>
+	<20140226162057.GW6835@laptop.programming.kicks-ass.net>
+	<530FA32B.8010202@hp.com>
+	<20140228092945.GG27965@twins.programming.kicks-ass.net>
+	<CA+55aFyz-7NvwUN5q8xqSvHsufC4Z1NSCvnUYrKRAhBeVjUuDA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <20140226170859.GC20775@phenom.dumpdata.com>
+Content-Disposition: inline
+In-Reply-To: <CA+55aFyz-7NvwUN5q8xqSvHsufC4Z1NSCvnUYrKRAhBeVjUuDA@mail.gmail.com>
 List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
 	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
 List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
@@ -20,43 +24,25 @@ List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualizati
 	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
 Sender: virtualization-bounces@lists.linux-foundation.org
 Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Alok Kataria <akataria@vmware.com>, linux-arch@vger.kernel.org, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Scott J Norton <scott.norton@hp.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Alexander Fyodorov <halcy@yandex.ru>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Daniel J Blueman <daniel@numascale.com>, Oleg Nesterov <oleg@redhat.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, George Spelvin <linux@horizon.com>, Thomas Gleixner <tglx@linutronix.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Cheg
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Andi Kleen <andi@firstfloor.org>, Peter Anvin <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Alok Kataria <akataria@vmware.com>, linux-arch@vger.kernel.org, the arch/x86 maintainers <x86@kernel.org>, Ingo Molnar <mingo@redhat.com>, Daniel J Blueman <daniel@numascale.com>, xen-devel@lists.xenproject.org, Paul McKenney <paulmck@linux.vnet.ibm.com>, Alexander Fyodorov <halcy@yandex.ru>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, George Spelvin <linux@horizon.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, virtualization <virtualization@lists.linux-fou>
 List-Id: linux-arch.vger.kernel.org
 
-On 02/26/2014 12:08 PM, Konrad Rzeszutek Wilk wrote:
-> On Wed, Feb 26, 2014 at 10:14:25AM -0500, Waiman Long wrote:
->> This patch adds a KVM init function to activate the unfair queue
->> spinlock in a KVM guest when the PARAVIRT_UNFAIR_LOCKS kernel config
->> option is selected.
->>
->> Signed-off-by: Waiman Long<Waiman.Long@hp.com>
->> ---
->>   arch/x86/kernel/kvm.c |   17 +++++++++++++++++
->>   1 files changed, 17 insertions(+), 0 deletions(-)
->>
->> diff --git a/arch/x86/kernel/kvm.c b/arch/x86/kernel/kvm.c
->> index 713f1b3..a489140 100644
->> --- a/arch/x86/kernel/kvm.c
->> +++ b/arch/x86/kernel/kvm.c
->> @@ -826,3 +826,20 @@ static __init int kvm_spinlock_init_jump(void)
->>   early_initcall(kvm_spinlock_init_jump);
->>
->>   #endif	/* CONFIG_PARAVIRT_SPINLOCKS */
->> +
->> +#ifdef CONFIG_PARAVIRT_UNFAIR_LOCKS
->> +/*
->> + * Enable unfair lock if running in a real para-virtualized environment
->> + */
->> +static __init int kvm_unfair_locks_init_jump(void)
->> +{
->> +	if (!kvm_para_available())
->> +		return 0;
-> I think you also need to check for !kvm_para_has_feature(KVM_FEATURE_PV_UNHALT)?
-> Otherwise you might enable this, but the kicker function won't be
-> enabled.
+On Fri, Feb 28, 2014 at 08:25:24AM -0800, Linus Torvalds wrote:
+> On Feb 28, 2014 1:30 AM, "Peter Zijlstra" <peterz@infradead.org> wrote:
+> >
+> > At low contention the cmpxchg won't have to be retried (much) so using
+> > it won't be a problem and you get to have arbitrary atomic ops.
+> 
+> Peter, the difference between an atomic op and *no* atomic op is huge.
 
-The unfair lock code doesn't need to use the CPU kicker function. That 
-is why the KVM_FEATURE_PV_UNHALT feature is not checked.
+I know, I'm just asking what the difference is between the xchg() - and
+atomic op, and an cmpxchg(), also an atomic op.
 
--Longman
+The xchg() makes the entire thing somewhat difficult. Needing to fixup
+all kinds of states if we guessed wrong about what was in the variables.
+
+> And Waiman posted numbers for the optimization. Why do you argue with
+> handwaving and against numbers?
+
+I've asked for his benchmark.. 
