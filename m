@@ -1,64 +1,51 @@
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: futex_init() vs. KERNEL_DS, was Re: Boot crash on 68030
-Date: Fri, 28 Feb 2014 08:48:06 +0100
-Message-ID: <20140228074806.GA4216@osiris>
-References: <20793.61385.652975.797741@pilspetsen.it.uu.se>
- <alpine.LNX.2.00.1312101000250.10258@nippy.intranet>
- <87iouxzju3.fsf@igel.home>
- <alpine.LNX.2.00.1312101141250.17926@nippy.intranet>
- <CAMuHMdVB3w3JpNSrdZXPk+xrDXyhm-CgDHX5XW_1CUKn8pQmtA@mail.gmail.com>
- <mvmy53t6mac.fsf@hawking.suse.de>
- <alpine.LNX.2.00.1402281202180.21491@nippy.intranet>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 5/5] bug: Make BUG() call unreachable()
+Date: Fri, 28 Feb 2014 09:55:26 +0100
+Message-ID: <6915585.VegnvotSUi@wuerfel>
+References: <469b5dc113cb468232291527642f8dc47663e945.1393385236.git.josh@joshtriplett.org> <201402272019.47554.arnd@arndb.de> <20140228001645.GA29605@thin>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-m68k-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <alpine.LNX.2.00.1402281202180.21491@nippy.intranet>
-Sender: linux-m68k-owner@vger.kernel.org
-To: Finn Thain <fthain@telegraphics.com.au>
-Cc: Linux-m68k <linux-m68k@vger.kernel.org>, Linux-arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.17.13]:49238 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750798AbaB1Iz3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Feb 2014 03:55:29 -0500
+In-Reply-To: <20140228001645.GA29605@thin>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Josh Triplett <josh@joshtriplett.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Fri, Feb 28, 2014 at 02:12:22PM +1100, Finn Thain wrote:
-> > >> Data read fault at 0x00000000 in Super Data (pc=0x3afec) BAD KERNEL 
-> > >> BUSERR
+On Thursday 27 February 2014 16:16:45 Josh Triplett wrote:
+> On Thu, Feb 27, 2014 at 08:19:47PM +0100, Arnd Bergmann wrote:
+> > On Wednesday 26 February 2014, Josh Triplett wrote:
+> > > This doesn't seem any different than compiling out assert() at runtime
+> > > in a userspace program, given how the kernel uses BUG() and BUG_ON().
+> > > I'd argue that adding unreachable() doesn't seem like it makes the
+> > > current implementation of BUG() any worse; either way if you reach it
+> > > you have a problem.
 > > 
-> > I think futex_init needs to do set_fs(USER_DS), since futex is about 
-> > user data.
+> > I think it's better to get a warning about undefined behavior than
+> > to suppress that warning.
 > 
-> Rhetorical question: does it make sense to explicitly switch to USER_DS 
-> when we know that current->mm may be invalid at the time?
-> 
-> Given that the presence of USER_DS or KERNEL_DS at initcall-time varies 
-> between architectures, perhaps this question must be left to arch 
-> implementors.
+> Then at this point I'm going to suggest that you go ahead and submit the
+> patch you want on top of the first four patches of this series.
 
-All architectures start with KERNEL_DS, otherwise the first couple of system
-calls within kernel_init() would all fail and the system wouldn't boot.
+Sure, no problem. I'll wait for your patches to show up in linux-next
+and then do a patch on top. I'll be traveling for the next week, so
+it may get delayed another few days.
 
-> Moreover, architectures that have no need for a run-time test for usable 
-> futex_value ops have no real interest in such questions. AFAICT, only mips 
-> needs the run-time test.
-> 
-> For every other arch the availability of futex_value ops is known at 
-> compile-time. We don't need to pursue universal answers to questions like 
-> these:
-> 
-> 1) the correctness of switching to USER_DS with mm->current == NULL [1]
+> Please keep in mind the value and code size savings of !CONFIG_BUG, versus
+> CONFIG_BUG=y and !CONFIG_DEBUG_BUGVERBOSE; those mean two different
+> things.
 
-I "fixed" s390, so it should survive an early switch to USER_DS and a
-subsequent failing user space access now.
+I think I compared all the options before in the patch I cited,
+https://lkml.org/lkml/2013/7/5/222 but I agree that the list
+is a bit confusing.
 
-Anyway,
+> Meanwhile: Andrew, could you go ahead and apply the first four patches?
 
-> The discussion of these questions in various threads on various lists did 
-> not resolve anything. Again, this is probably because all of these 
-> questions are actually arch implementation issues.
-> 
-> So it seems to me that the solution to the futex_init() problem is to 
-> evaluate the futex_cmpxchg_enabled assignment at compile-time where 
-> possible, and use the run-time test only on mips. Thoughts?
+Yes please.
 
-Such a patch exists already (bottom of message):
-
-http://marc.info/?l=linux-next&m=138875880028607&w=2
+	Arnd
